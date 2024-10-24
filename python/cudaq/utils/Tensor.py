@@ -56,14 +56,16 @@ class Tensor:
                 raise RuntimeError(
                     "Tensor init from CUDA-QX Tensor must provide `dtype`.")
             self._tensor = data
-            self._dtype = dtype
+            self._dtype = self._scalar_type_to_numpy(dtype)
             return
 
         if data is not None:
             if isinstance(data, (list, tuple, np.ndarray)):
-                data = np.array(data)
                 if dtype is None:
-                    dtype = data.dtype
+                    data = np.array(data)
+                else:
+                    data = np.array(data, dtype=dtype)
+                dtype = self._scalar_type_to_numpy(data.dtype)
             else:
                 raise ValueError("Data must be a list, tuple, or NumPy array")
 
@@ -76,6 +78,23 @@ class Tensor:
             if dtype is None:
                 dtype = np.float64
             self._create_empty_tensor([], dtype)
+
+    def _scalar_type_to_numpy(self, dtype):
+        """
+        Convert scalar type to NumPy `dtype`.
+        """
+        if dtype in [
+                np.uint8, np.int32, np.int64, np.float32, np.float64,
+                np.complex64, np.complex128
+        ]:
+            return dtype
+        if dtype == int:
+            return np.int32
+        if dtype == float:
+            return np.float64
+        if dtype == complex:
+            return np.complex128
+        raise ValueError("Unsupported dtype")
 
     def _create_tensor(self, data, dtype):
         """
@@ -113,7 +132,7 @@ class Tensor:
         Create an empty tensor with given shape and `dtype`.
 
         Args:
-           `shape (tuple)`: The shape of the tensor.
+            `shape (tuple)`: The shape of the tensor.
             `dtype (numpy.dtype)`: The data type of the tensor elements.
 
         Raises:
@@ -149,6 +168,8 @@ class Tensor:
         Returns:
             The value(s) at the specified index/indices.
         """
+        if isinstance(key, int):
+            return self.at([key])
         return self.at(list(key))
 
     def __setitem__(self, key, value):
@@ -159,7 +180,10 @@ class Tensor:
             key: Index or slice object.
             value: Value(s) to set.
         """
-        self._tensor[key] = value
+        if isinstance(key, int):
+            self._tensor[[key]] = value
+        else:
+            self._tensor[key] = value
 
     def __array__(self, dtype=None):
         """
@@ -243,7 +267,9 @@ class Tensor:
         Args:
             data: The array-like data to take from the tensor.
         """
-        np_data = np.array(data, dtype=self._scalar_type_to_numpy(self._dtype))
+        np_data = np.array(data,
+                           copy=False,
+                           dtype=self._scalar_type_to_numpy(self._dtype))
         self._tensor.take(np_data)
 
     def borrow(self, data):
@@ -253,7 +279,9 @@ class Tensor:
         Args:
             data: The array-like data to borrow from the tensor.
         """
-        np_data = np.array(data, dtype=self._scalar_type_to_numpy(self._dtype))
+        np_data = np.array(data,
+                           copy=False,
+                           dtype=self._scalar_type_to_numpy(self._dtype))
         self._tensor.borrow(np_data)
 
     def dump(self):

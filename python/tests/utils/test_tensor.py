@@ -15,11 +15,104 @@ def tensor_class(request):
     return request.param
 
 
+def test_tensor_creation_from_data():
+    t = cudaq.Tensor(data=[[0, 1], [2, 3]])
+    assert t.shape() == [2, 2]
+    assert t.size() == 4
+    assert t.rank() == 2
+    assert t[0, 0] == 0
+    assert t[0, 1] == 1
+    t[0, 0] = 2
+    t[1, 1] = 4
+    assert t[0, 0] == 2
+    assert t[1, 1] == 4
+
+
+def test_tensor_creation_from_data_int32():
+    t = cudaq.Tensor(data=[[0, 1], [2, 3]], dtype=np.int32)
+    assert t.shape() == [2, 2]
+    assert t.size() == 4
+    assert t.rank() == 2
+    assert t[0, 0] == 0
+    assert t[0, 1] == 1
+    t[0, 0] = 2
+    t[1, 1] = 4
+    assert t[0, 0] == 2
+    assert t[1, 1] == 4
+
+    t = cudaq.Tensor(data=[0, 1], dtype=np.int32)
+    assert t.shape() == [2]
+    assert t.size() == 2
+    assert t.rank() == 1
+    assert t[0] == 0
+    assert t[1] == 1
+    t[0] = 2
+    t[1] = 4
+    assert t[0] == 2
+    assert t[1] == 4
+
+
+def test_tensor_creation_from_data_float32():
+    t = cudaq.Tensor(data=[[0, 1], [2, 3]], dtype=np.float32)
+    assert t.shape() == [2, 2]
+    assert t.size() == 4
+    assert t.rank() == 2
+    assert t[0, 0] == 0
+    assert t[0, 1] == 1
+    t[0, 0] = 2
+    t[1, 1] = 4
+    assert t[0, 0] == 2
+    assert t[1, 1] == 4
+
+    t = cudaq.Tensor(data=[0, 1], dtype=np.float32)
+    assert t.shape() == [2]
+    assert t.size() == 2
+    assert t.rank() == 1
+    assert t[0] == 0
+    assert t[1] == 1
+    t[0] = 2
+    t[1] = 4
+    assert t[0] == 2
+    assert t[1] == 4
+
+
+def test_tensor_creation_from_data_complex64():
+    t = cudaq.Tensor(data=[[0, 1], [2, 3]], dtype=np.complex64)
+    assert t.shape() == [2, 2]
+    assert t.size() == 4
+    assert t.rank() == 2
+    assert t[0, 0] == 0
+    assert t[0, 1] == 1
+    t[0, 0] = 2
+    t[1, 1] = 4
+    assert t[0, 0] == 2
+    assert t[1, 1] == 4
+
+    t = cudaq.Tensor(data=[0, 1], dtype=np.complex64)
+    assert t.shape() == [2]
+    assert t.size() == 2
+    assert t.rank() == 1
+    assert t[0] == 0
+    assert t[1] == 1
+    t[0] = 2
+    t[1] = 4
+    assert t[0] == 2
+    assert t[1] == 4
+
+
+def test_tensor_creation_uint8():
+    shape = [2, 3, 4]
+    t = cudaq.Tensor(shape=shape, dtype=np.uint8)
+    assert t.shape() == shape
+    assert t.size() == 24
+
+
 def test_tensor_creation_int32():
     shape = [2, 3, 4]
     t = cudaq.Tensor(shape=shape, dtype=np.int32)
     assert t.shape() == shape
     assert t.size() == 24
+
 
 def test_tensor_creation_int64():
     shape = [2, 3, 4]
@@ -27,11 +120,13 @@ def test_tensor_creation_int64():
     assert t.shape() == shape
     assert t.size() == 24
 
+
 def test_tensor_creation_float32():
     shape = [2, 3, 4]
     t = cudaq.Tensor(shape=shape, dtype=np.float32)
     assert t.shape() == shape
     assert t.size() == 24
+
 
 def test_tensor_creation_float64():
     shape = [2, 3, 4]
@@ -39,17 +134,20 @@ def test_tensor_creation_float64():
     assert t.shape() == shape
     assert t.size() == 24
 
+
 def test_tensor_creation_complex64():
     shape = [2, 3, 4]
     t = cudaq.Tensor(shape=shape, dtype=np.complex64)
     assert t.shape() == shape
     assert t.size() == 24
 
+
 def test_tensor_creation_complex128():
     shape = [2, 3, 4]
     t = cudaq.Tensor(shape=shape, dtype=np.complex128)
     assert t.shape() == shape
     assert t.size() == 24
+
 
 def test_tensor_indexing():
     shape = [2, 3]
@@ -68,6 +166,7 @@ def test_tensor_indexing():
     assert t[1, 1] == 5
     assert t[1, 2] == 6
 
+
 def test_tensor_indexing_float32():
     shape = [2, 3]
     t = cudaq.Tensor(shape=shape, dtype=np.float32)
@@ -84,6 +183,7 @@ def test_tensor_indexing_float32():
     assert np.isclose(t[1, 0], 4.4)
     assert np.isclose(t[1, 1], 5.5)
     assert np.isclose(t[1, 2], 6.6)
+
 
 def test_tensor_indexing_float64():
     shape = [2, 3]
@@ -102,6 +202,7 @@ def test_tensor_indexing_float64():
     assert np.isclose(t[1, 1], 5.5)
     assert np.isclose(t[1, 2], 6.6)
 
+
 def test_tensor_indexing_complex64():
     shape = [2, 3]
     t = cudaq.Tensor(shape=shape, dtype=np.complex64)
@@ -118,6 +219,7 @@ def test_tensor_indexing_complex64():
     assert np.isclose(t[1, 0], 4.4 + 4j)
     assert np.isclose(t[1, 1], 5.5 + 5j)
     assert np.isclose(t[1, 2], 6.6 + 6j)
+
 
 def test_tensor_indexing_complex128():
     shape = [2, 3]
@@ -136,6 +238,7 @@ def test_tensor_indexing_complex128():
     assert np.isclose(t[1, 1], 5.5 + 5j)
     assert np.isclose(t[1, 2], 6.6 + 6j)
 
+
 def test_tensor_numpy_conversion():
     shape = [2, 3]
     t = cudaq.Tensor(shape=shape)
@@ -147,6 +250,7 @@ def test_tensor_numpy_conversion():
     assert arr.shape == tuple(shape)
     assert np.array_equal(arr, np.array([[0, 1, 2], [3, 4, 5]]))
 
+
 def test_numpy_to_tensor_float64():
     arr = np.array([[0, 1, 2], [3, 4, 5]], dtype=np.float64)
     t = cudaq.Tensor(shape=arr.shape, dtype=np.float64)
@@ -155,6 +259,7 @@ def test_numpy_to_tensor_float64():
     for i in range(2):
         for j in range(3):
             assert t[i, j] == arr[i, j]
+
 
 def test_numpy_to_tensor_complex128():
     arr = np.array([[0, 1, 2], [3, 4, 5]], dtype=np.complex128)
@@ -187,51 +292,57 @@ def test_tensor_operations():
     result = np.dot(arr, arr)
     assert np.array_equal(result, np.array([[7, 10], [15, 22]]))
 
-def test_tensor_copy_float64():
-    t = cudaq.Tensor(shape=[2, 2], dtype=np.float64)
-    arr =np.array([[1,2], [3,4]])
+
+def test_tensor_copy():
+    t = cudaq.Tensor(shape=[2, 2])
+    arr = np.array([[1, 2], [3, 4]])
     t.copy(arr)
-    
-    assert t[0,0] == arr[0,0]
-    assert t[0,1] == arr[0,1]
-    assert t[1,0] == arr[1,0]
-    assert t[1,1] == arr[1,1]
+
+    assert t[0, 0] == arr[0, 0]
+    assert t[0, 1] == arr[0, 1]
+    assert t[1, 0] == arr[1, 0]
+    assert t[1, 1] == arr[1, 1]
 
     arr[0, 0] = 100
-    assert t[0,0] == 1
+    assert t[0, 0] == 1
 
-def test_tensor_borrow_float64():
-    t = cudaq.Tensor(shape=[2, 2], dtype=np.float64)
-    arr =np.array([[1,2], [3,4]])
+
+def test_tensor_borrow():
+    t = cudaq.Tensor(shape=[2, 2])
+    arr = np.array([[1, 2], [3, 4]])
     t.borrow(arr)
-    
-    assert t[0,0] == arr[0,0]
-    assert t[0,1] == arr[0,1]
-    assert t[1,0] == arr[1,0]
-    assert t[1,1] == arr[1,1]
+
+    assert t[0, 0] == arr[0, 0]
+    assert t[0, 1] == arr[0, 1]
+    assert t[1, 0] == arr[1, 0]
+    assert t[1, 1] == arr[1, 1]
 
     arr[0, 0] = 100
-    assert t[0,0] == 1
+    assert t[0, 0] == 1
+
 
 def test_tensor_take_float64():
-    t = cudaq.Tensor(shape=[2, 2], dtype=np.float64)
-    arr = np.array([[1,2], [3,4]])
+    t = cudaq.Tensor(shape=[2, 2])
+    arr = np.array([[1, 2], [3, 4]])
     t.take(arr)
-    
-    assert t[0,0] == arr[0,0]
-    assert t[0,1] == arr[0,1]
-    assert t[1,0] == arr[1,0]
-    assert t[1,1] == arr[1,1]
+
+    assert t[0, 0] == arr[0, 0]
+    assert t[0, 1] == arr[0, 1]
+    assert t[1, 0] == arr[1, 0]
+    assert t[1, 1] == arr[1, 1]
 
     arr[0, 0] = 100
-    assert t[0,0] == 1
+    assert t[0, 0] == 1
 
-def test_tensor_dump_float64():
-    t = cudaq.Tensor(shape=[2, 2], dtype=np.float64)
-    arr = np.array([[1,2], [3,4]])
+
+def test_tensor_dump():
+    t = cudaq.Tensor(shape=[2, 2])
+    arr = np.array([[1, 2], [3, 4]])
     t.take(arr)
     s = t.__str__()
     assert s == '[[1. 2.]\n [3. 4.]]'
+    t.dump()
+
 
 def test_tensor_large_data():
     shape = [100, 100, 100]
@@ -258,7 +369,7 @@ def test_tensor_errors():
         _ = t[0, 2]
 
     # Test wrong number of indices
-    with pytest.raises(TypeError):
+    with pytest.raises(RuntimeError):
         t[0] = 1
 
     with pytest.raises(RuntimeError):
