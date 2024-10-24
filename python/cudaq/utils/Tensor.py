@@ -18,8 +18,8 @@ class Tensor:
     interface for quantum tensor operations.
 
     Attributes:
-        _tensor: The underlying CUDA-Q core tensor object.
-        _dtype: The data type of the tensor elements.
+        `_tensor`: The underlying CUDA-Q core tensor object.
+        `_dtype`: The data type of the tensor elements.
     """
 
     def __init__(self, shape=None, data=None, dtype=None):
