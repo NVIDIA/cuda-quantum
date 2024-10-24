@@ -120,7 +120,7 @@ public:
   }
 
   /// @brief Destructor for xtensor
-  ~xtensor() { ownership = Invalid; }
+  ~xtensor() override { ownership = Invalid; }
 
   /// @brief Get the rank of the tensor
   /// @return The rank (number of dimensions) of the tensor
