@@ -180,6 +180,13 @@ public:
     owned_data.swap(d);
     m_shape = shape;
   }
+  void take(std::unique_ptr<Scalar[]> &&d,
+            const xtensor_shape_type &shape) override {
+    deallocate();
+    ownership = OwnedByTake;
+    owned_data.swap(d);
+    m_shape = shape;
+  }
 
   /// @brief Borrow the given data without taking ownership
   /// @param d Pointer to the source data
