@@ -185,13 +185,15 @@ class Tensor:
         else:
             self._tensor[key] = value
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """
         Convert the tensor to a NumPy array.
 
         Args:
             `dtype (numpy.dtype, optional)`:
                 The desired `dtype` of the resulting array.
+            `copy (bool)`:
+                Copy the array data iff true.
 
         Returns:
            `numpy.ndarray:`
@@ -202,14 +204,25 @@ class Tensor:
                 If the requested `dtype` doesn't match the `dtype` of the
                 tensor.
         """
+
+        # Ensure compatibility with older NumPy versions
+        # See: https://numpy.org/devdocs/numpy_2_0_migration_guide.html#adapting-to-changes-in-the-copy-keyword.
+        if np.lib.NumpyVersion(np.__version__) >= "2.0.0":
+            copy_if_needed = None
+        elif np.lib.NumpyVersion(np.__version__) < "1.28.0":
+            copy_if_needed = False
+
+        if copy is None and copy_if_needed is False:
+            copy = False
+
         if dtype is None:
-            return np.array(self._tensor, copy=False, dtype=dtype)
+            return np.array(self._tensor, dtype=dtype, copy=copy)
         else:
             if dtype != self._dtype:
                 raise RuntimeError(
                     f"invalid NumPy `dtype` conversion ({dtype} vs {self._dtype})"
                 )
-            return np.array(self._tensor, copy=False, dtype=dtype)
+            return np.array(self._tensor, dtype=dtype, copy=copy)
 
     def rank(self):
         """
@@ -267,9 +280,7 @@ class Tensor:
         Args:
             data: The array-like data to take from the tensor.
         """
-        np_data = np.array(data,
-                           copy=False,
-                           dtype=self._scalar_type_to_numpy(self._dtype))
+        np_data = np.array(data, dtype=self._scalar_type_to_numpy(self._dtype))
         self._tensor.take(np_data)
 
     def borrow(self, data):
@@ -279,9 +290,7 @@ class Tensor:
         Args:
             data: The array-like data to borrow from the tensor.
         """
-        np_data = np.array(data,
-                           copy=False,
-                           dtype=self._scalar_type_to_numpy(self._dtype))
+        np_data = np.array(data, dtype=self._scalar_type_to_numpy(self._dtype))
         self._tensor.borrow(np_data)
 
     def dump(self):
