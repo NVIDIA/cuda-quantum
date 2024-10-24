@@ -22,7 +22,7 @@ class Tensor:
         _dtype: The data type of the tensor elements.
     """
 
-    def __init__(self, data=None, shape=None, dtype=None):
+    def __init__(self, shape=None, data=None, dtype=None):
         """
         Initialize a Tensor object.
 
