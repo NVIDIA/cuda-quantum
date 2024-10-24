@@ -36,6 +36,7 @@ jobs:
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
+      packages: read
 
     outputs:
       artifact_name: ${{ steps.prereqs.outputs.artifact_name }}
