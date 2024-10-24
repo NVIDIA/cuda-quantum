@@ -68,6 +68,11 @@ public:
                                               data, shape)
                 .release())) {}
 
+  /// Construct a `tensor` from a `tensor_impl` using move semantics.
+  tensor(details::tensor_impl<Scalar> &&impl) {
+    pimpl = std::make_shared<details::tensor_impl<Scalar>>(impl);
+  }
+
   /// @brief Get the rank of the tensor
   /// @return The rank of the tensor
   std::size_t rank() const { return pimpl->rank(); }
