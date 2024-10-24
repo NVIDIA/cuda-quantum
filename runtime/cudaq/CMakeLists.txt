@@ -23,7 +23,8 @@ add_library(${LIBRARY_NAME}
                 qis/remote_state.cpp
                 qis/state.cpp
                 utils/cudaq_utils.cpp
-                distributed/mpi_plugin.cpp)
+                distributed/mpi_plugin.cpp
+                utils/details/impls/xtensor_impl.cpp)
 
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
 
@@ -36,7 +37,9 @@ if (CUDA_FOUND)
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
             $<BUILD_INTERFACE:${CUDAToolkit_INCLUDE_DIRS}>
-    PRIVATE .)
+    PRIVATE .
+            ${CMAKE_SOURCE_DIR}/tpls/xtl/include 
+            ${CMAKE_SOURCE_DIR}/tpls/xtensor/include)
 
   target_link_libraries(${LIBRARY_NAME}
     PUBLIC dl cudaq-spin cudaq-common cudaq-nlopt cudaq-ensmallen
@@ -48,7 +51,9 @@ else()
     PUBLIC $<INSTALL_INTERFACE:include>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
-    PRIVATE .)
+    PRIVATE . 
+            ${CMAKE_SOURCE_DIR}/tpls/xtl/include 
+            ${CMAKE_SOURCE_DIR}/tpls/xtensor/include)
 
   target_link_libraries(${LIBRARY_NAME}
     PUBLIC dl cudaq-spin cudaq-common cudaq-nlopt cudaq-ensmallen
@@ -60,6 +65,8 @@ add_subdirectory(algorithms)
 add_subdirectory(platform)
 add_subdirectory(builder)
 add_subdirectory(domains)
+
+set_target_properties(${LIBRARY_NAME} PROPERTIES CXX_VISIBILITY_PRESET "default")
 
 install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-targets DESTINATION lib)
 

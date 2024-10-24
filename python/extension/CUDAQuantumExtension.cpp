@@ -30,6 +30,7 @@
 #include "runtime/cudaq/target/py_runtime_target.h"
 #include "runtime/cudaq/target/py_testing_utils.h"
 #include "runtime/mlir/py_register_dialects.h"
+#include "runtime/utils/py_tensor.h"
 #include "utils/LinkedLibraryHolder.h"
 #include "utils/OpaqueArguments.h"
 
@@ -108,6 +109,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
   cudaq::bindAltLaunchKernel(cudaqRuntime);
   cudaq::bindTestUtils(cudaqRuntime, *holder.get());
   cudaq::bindCustomOpRegistry(cudaqRuntime);
+  cudaq::bindTensor(cudaqRuntime);
 
   cudaqRuntime.def("set_random_seed", &cudaq::set_random_seed,
                    "Provide the seed for backend quantum kernel simulation.");

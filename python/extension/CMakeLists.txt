@@ -70,6 +70,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/utils/PyFermioniqRESTQPU.cpp
     ../runtime/utils/PyRemoteSimulatorQPU.cpp
     ../runtime/utils/PyRestRemoteClient.cpp
+    ../runtime/utils/py_tensor.cpp
     ../utils/LinkedLibraryHolder.cpp
     ../../runtime/common/ArgumentConversion.cpp
     ../../runtime/cudaq/platform/common/QuantumExecutionQueue.cpp
@@ -137,6 +138,9 @@ add_mlir_python_modules(CUDAQuantumPythonModules
   COMMON_CAPI_LINK_LIBS
     CUDAQuantumPythonCAPI
   )
+
+set_target_properties(CUDAQuantumPythonModules.extension._quakeDialects.dso PROPERTIES CXX_VISIBILITY_PRESET "default")
+target_compile_options(CUDAQuantumPythonModules.extension._quakeDialects.dso PRIVATE -Wno-attributes)                     
 
 ## The Python bindings module for Quake dialect depends on CUDAQ libraries 
 ## which it can't locate since they are in "../../lib" and the 'rpath' is set
