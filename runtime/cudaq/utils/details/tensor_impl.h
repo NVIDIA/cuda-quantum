@@ -21,6 +21,16 @@ class xtensor;
 
 namespace cudaq::details {
 
+template <typename T>
+class tensor_impl;
+
+template <typename T>
+tensor_impl<T> operator*(const tensor_impl<T> &, const tensor_impl<T> &);
+
+/// Addition of two tensors.
+template <typename T>
+tensor_impl<T> operator+(const tensor_impl<T> &, const tensor_impl<T> &);
+
 /// @brief Implementation class for tensor operations following the PIMPL idiom
 template <typename Scalar = std::complex<double>>
 class tensor_impl : public extension_point<tensor_impl<Scalar>, const Scalar *,

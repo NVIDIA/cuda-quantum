@@ -13,6 +13,15 @@
 
 namespace cudaq {
 
+template <typename T>
+class tensor;
+
+template <typename T>
+tensor<T> operator*(const tensor<T> &, const tensor<T> &);
+
+template <typename T>
+tensor<T> operator+(const tensor<T> &, const tensor<T> &);
+
 /// @brief A tensor class implementing the PIMPL idiom.
 ///
 /// The flattened data is stored in row-major layout, where the strides grow
