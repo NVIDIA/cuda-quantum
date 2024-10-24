@@ -206,27 +206,31 @@ public:
   }
 
   // Double dispatch to make sure both arguments are this derived class.
-  details::tensor_impl<Scalar>
+  details::tensor_impl<Scalar> *
   dd_multiply(const details::tensor_impl<Scalar> &left) const override {
     return left.multiply(*this);
   }
-  details::tensor_impl<Scalar>
+  details::tensor_impl<Scalar> *
   dd_add(const details::tensor_impl<Scalar> &left) const override {
     return left.add(*this);
   }
 
-  details::tensor_impl<Scalar>
+  details::tensor_impl<Scalar> *
   multiply(const xtensor<Scalar> &right) const override {
     auto &left = *this;
 
     // TODO: call some library here
+
+    return new xtensor<Scalar>(nullptr, xtensor_shape_type{});
   }
 
-  details::tensor_impl<Scalar>
+  details::tensor_impl<Scalar> *
   add(const xtensor<Scalar> &right) const override {
     auto &left = *this;
 
     // TODO: call some library here
+
+    return new xtensor<Scalar>(nullptr, xtensor_shape_type{});
   }
 
   static constexpr auto ScalarAsString = cudaq::type_to_string<Scalar>();

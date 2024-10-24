@@ -146,13 +146,14 @@ public:
 
   // Double-dispatch hooks. We use double dispatch to ensure that both arguments
   // are in fact the same derived class of `tensor_impl`.
-  virtual tensor_impl<Scalar>
+  virtual tensor_impl<Scalar> *
   dd_multiply(const tensor_impl<Scalar> &left) const = 0;
-  virtual tensor_impl<Scalar> dd_add(const tensor_impl<Scalar> &left) const = 0;
+  virtual tensor_impl<Scalar> *
+  dd_add(const tensor_impl<Scalar> &left) const = 0;
 
   // Terminal implementation of operators.
-  virtual tensor_impl<Scalar> multiply(const xtensor<Scalar> &right) const = 0;
-  virtual tensor_impl<Scalar> add(const xtensor<Scalar> &right) const = 0;
+  virtual tensor_impl<Scalar> *multiply(const xtensor<Scalar> &right) const = 0;
+  virtual tensor_impl<Scalar> *add(const xtensor<Scalar> &right) const = 0;
 };
 
 /// Multiplication of two tensors.
