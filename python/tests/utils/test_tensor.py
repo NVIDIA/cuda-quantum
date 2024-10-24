@@ -100,58 +100,19 @@ def test_tensor_creation_from_data_complex64():
     assert t[1] == 4
 
 
-def test_tensor_creation_uint8():
+def test_tensor_creation():
     shape = [2, 3, 4]
-    t = cudaq.Tensor(shape=shape, dtype=np.uint8)
+    t = cudaq.Tensor(shape)
     assert t.shape() == shape
     assert t.size() == 24
 
-
-def test_tensor_creation_int32():
-    shape = [2, 3, 4]
-    t = cudaq.Tensor(shape=shape, dtype=np.int32)
-    assert t.shape() == shape
-    assert t.size() == 24
-
-
-def test_tensor_creation_int64():
-    shape = [2, 3, 4]
-    t = cudaq.Tensor(shape=shape, dtype=np.int64)
-    assert t.shape() == shape
-    assert t.size() == 24
-
-
-def test_tensor_creation_float32():
-    shape = [2, 3, 4]
-    t = cudaq.Tensor(shape=shape, dtype=np.float32)
-    assert t.shape() == shape
-    assert t.size() == 24
-
-
-def test_tensor_creation_float64():
-    shape = [2, 3, 4]
-    t = cudaq.Tensor(shape=shape, dtype=np.float64)
-    assert t.shape() == shape
-    assert t.size() == 24
-
-
-def test_tensor_creation_complex64():
-    shape = [2, 3, 4]
-    t = cudaq.Tensor(shape=shape, dtype=np.complex64)
-    assert t.shape() == shape
-    assert t.size() == 24
-
-
-def test_tensor_creation_complex128():
-    shape = [2, 3, 4]
-    t = cudaq.Tensor(shape=shape, dtype=np.complex128)
+    t = cudaq.Tensor(shape=shape)
     assert t.shape() == shape
     assert t.size() == 24
 
 
 def test_tensor_indexing():
-    shape = [2, 3]
-    t = cudaq.Tensor(shape=shape)
+    t = cudaq.Tensor([2, 3])
     t[0, 0] = 1
     t[0, 1] = 2
     t[0, 2] = 3
@@ -169,7 +130,7 @@ def test_tensor_indexing():
 
 def test_tensor_indexing_float32():
     shape = [2, 3]
-    t = cudaq.Tensor(shape=shape, dtype=np.float32)
+    t = cudaq.Tensor(shape, dtype=np.float32)
     t[0, 0] = 1.1
     t[0, 1] = 2.2
     t[0, 2] = 3.3
@@ -187,7 +148,7 @@ def test_tensor_indexing_float32():
 
 def test_tensor_indexing_float64():
     shape = [2, 3]
-    t = cudaq.Tensor(shape=shape, dtype=np.float64)
+    t = cudaq.Tensor(shape, dtype=np.float64)
     t[0, 0] = 1.1
     t[0, 1] = 2.2
     t[0, 2] = 3.3
@@ -205,7 +166,7 @@ def test_tensor_indexing_float64():
 
 def test_tensor_indexing_complex64():
     shape = [2, 3]
-    t = cudaq.Tensor(shape=shape, dtype=np.complex64)
+    t = cudaq.Tensor(shape, dtype=np.complex64)
     t[0, 0] = 1.1 + 1j
     t[0, 1] = 2.2 + 2j
     t[0, 2] = 3.3 + 3j
@@ -223,7 +184,7 @@ def test_tensor_indexing_complex64():
 
 def test_tensor_indexing_complex128():
     shape = [2, 3]
-    t = cudaq.Tensor(shape=shape, dtype=np.complex128)
+    t = cudaq.Tensor(shape, dtype=np.complex128)
     t[0, 0] = 1.1 + 1j
     t[0, 1] = 2.2 + 2j
     t[0, 2] = 3.3 + 3j
@@ -241,7 +202,7 @@ def test_tensor_indexing_complex128():
 
 def test_tensor_numpy_conversion():
     shape = [2, 3]
-    t = cudaq.Tensor(shape=shape)
+    t = cudaq.Tensor(shape)
     for i in range(2):
         for j in range(3):
             t[i, j] = i * 3 + j
@@ -252,8 +213,8 @@ def test_tensor_numpy_conversion():
 
 
 def test_numpy_to_tensor_float64():
-    arr = np.array([[0, 1, 2], [3, 4, 5]], dtype=np.float64)
-    t = cudaq.Tensor(shape=arr.shape, dtype=np.float64)
+    arr = np.array([[0., 1., 2.], [3., 4., 5.]], dtype=np.float64)
+    t = cudaq.Tensor(arr.shape, dtype=np.float64)
     a = np.array(t, copy=False, dtype=np.float64)
     np.array(t, copy=False, dtype=np.float64)[:] = arr
     for i in range(2):
@@ -262,8 +223,9 @@ def test_numpy_to_tensor_float64():
 
 
 def test_numpy_to_tensor_complex128():
-    arr = np.array([[0, 1, 2], [3, 4, 5]], dtype=np.complex128)
-    t = cudaq.Tensor(shape=arr.shape, dtype=np.complex128)
+    arr = np.array([[0. + 1j, 1. + 1j, 2. + 1j], [3. + 1j, 4. + 1j, 5. + 1j]],
+                   dtype=np.complex128)
+    t = cudaq.Tensor(arr.shape, dtype=np.complex128)
     a = np.array(t, copy=False, dtype=np.complex128)
     np.array(t, copy=False, dtype=np.complex128)[:] = arr
     for i in range(2):
@@ -272,7 +234,7 @@ def test_numpy_to_tensor_complex128():
 
 
 def test_tensor_operations():
-    t = cudaq.Tensor(shape=[2, 2])
+    t = cudaq.Tensor([2, 2])
     t[0, 0] = 1
     t[0, 1] = 2
     t[1, 0] = 3
@@ -294,7 +256,7 @@ def test_tensor_operations():
 
 
 def test_tensor_copy():
-    t = cudaq.Tensor(shape=[2, 2])
+    t = cudaq.Tensor([2, 2])
     arr = np.array([[1, 2], [3, 4]])
     t.copy(arr)
 
@@ -308,7 +270,7 @@ def test_tensor_copy():
 
 
 def test_tensor_borrow():
-    t = cudaq.Tensor(shape=[2, 2])
+    t = cudaq.Tensor([2, 2])
     arr = np.array([[1, 2], [3, 4]])
     t.borrow(arr)
 
@@ -322,7 +284,7 @@ def test_tensor_borrow():
 
 
 def test_tensor_take_float64():
-    t = cudaq.Tensor(shape=[2, 2])
+    t = cudaq.Tensor([2, 2])
     arr = np.array([[1, 2], [3, 4]])
     t.take(arr)
 
@@ -336,7 +298,7 @@ def test_tensor_take_float64():
 
 
 def test_tensor_dump():
-    t = cudaq.Tensor(shape=[2, 2])
+    t = cudaq.Tensor([2, 2])
     arr = np.array([[1, 2], [3, 4]])
     t.take(arr)
     s = t.__str__()
@@ -346,7 +308,7 @@ def test_tensor_dump():
 
 def test_tensor_large_data():
     shape = [100, 100, 100]
-    t = cudaq.Tensor(shape=shape)
+    t = cudaq.Tensor(shape)
 
     # Fill with some
     arr = np.array(t, copy=False)
@@ -359,7 +321,7 @@ def test_tensor_large_data():
 
 
 def test_tensor_errors():
-    t = cudaq.Tensor(shape=[2, 2])
+    t = cudaq.Tensor([2, 2])
 
     # Test index out of bounds
     with pytest.raises(RuntimeError):
