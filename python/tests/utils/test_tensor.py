@@ -128,6 +128,23 @@ def test_tensor_indexing():
     assert t[1, 2] == 6
 
 
+def test_tensor_indexing_int32():
+    t = cudaq.Tensor([2, 3], dtype=np.int32)
+    t[0, 0] = 1
+    t[0, 1] = 2
+    t[0, 2] = 3
+    t[1, 0] = 4
+    t[1, 1] = 5
+    t[1, 2] = 6
+
+    assert t[0, 0] == 1
+    assert t[0, 1] == 2
+    assert t[0, 2] == 3
+    assert t[1, 0] == 4
+    assert t[1, 1] == 5
+    assert t[1, 2] == 6
+
+
 def test_tensor_indexing_float32():
     shape = [2, 3]
     t = cudaq.Tensor(shape, dtype=np.float32)
