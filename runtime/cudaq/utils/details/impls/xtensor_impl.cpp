@@ -166,7 +166,8 @@ public:
     auto size = compute_shape_size(shape);
     auto newData = std::make_unique<Scalar[]>(size);
     owned_data.swap(newData);
-    std::copy(d, d + size, owned_data.get());
+    if (d)
+      std::copy(d, d + size, owned_data.get());
     m_shape = shape;
   }
 
