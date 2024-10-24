@@ -52,6 +52,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+
+      - name: Login to GitHub CR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
       - name: Restore build environment
         if: inputs.devdeps_cache && inputs.devdeps_archive
         id: restore
@@ -97,12 +110,6 @@ jobs:
           echo "docker_output=type=local,dest=/tmp/wheels" >> $GITHUB_OUTPUT
           # do not change this prefix without adjusting other workflows
           echo "artifact_name=pycudaq-$cache_id" >> $GITHUB_OUTPUT
-
-      - name: Log in to DockerHub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
 
       - name: Set up context for buildx
         run: |
