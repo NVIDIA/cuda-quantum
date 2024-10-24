@@ -74,8 +74,6 @@ Kernel = PyKernel
 Target = cudaq_runtime.Target
 State = cudaq_runtime.State
 pauli_word = cudaq_runtime.pauli_word
-# FIXME What to do with this Tensor, is it used publicly?
-StateTensor = cudaq_runtime.Tensor
 SimulationPrecision = cudaq_runtime.SimulationPrecision
 
 # to be deprecated
