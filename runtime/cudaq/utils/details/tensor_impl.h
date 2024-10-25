@@ -148,11 +148,11 @@ public:
 
   // Operator friends.
   template <typename T>
-  friend tensor_impl<T> operator*(const tensor_impl<T> &,
-                                  const tensor_impl<T> &);
+  friend tensor_impl<T> *operator*(const tensor_impl<T> &,
+                                   const tensor_impl<T> &);
   template <typename T>
-  friend tensor_impl<T> operator+(const tensor_impl<T> &,
-                                  const tensor_impl<T> &);
+  friend tensor_impl<T> *operator+(const tensor_impl<T> &,
+                                   const tensor_impl<T> &);
 
   // Double-dispatch hooks. We use double dispatch to ensure that both arguments
   // are in fact the same derived class of `tensor_impl`.
