@@ -34,11 +34,9 @@ private:
   bool validIndices(const xtensor_shape_type &idxs) const {
     if (idxs.size() != m_shape.size())
       return false;
-    std::size_t dim = 0;
-    for (auto idx : idxs) {
+    for (std::size_t dim = 0; auto idx : idxs)
       if (idx < 0 || idx >= m_shape[dim++])
         return false;
-    }
     return true;
   }
 

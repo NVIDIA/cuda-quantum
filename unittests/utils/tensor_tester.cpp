@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2024 NVIDIA Corporation & Affiliates.                         *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -257,6 +257,12 @@ TEST(TensorTest, InvalidAccess) {
   std::vector<std::size_t> shape = {2, 2};
   cudaq::tensor t(shape);
 
+  try {
+    t.at({2, 0});
+  } catch (std::exception &e) {
+    std::cout << "Exception: (" << typeid(e).name() << ")" << e.what()
+              << std::endl;
+  }
   EXPECT_THROW(t.at({2, 0}), std::runtime_error);
   EXPECT_THROW(t.at({0, 2}), std::runtime_error);
   EXPECT_THROW(t.at({0, 0, 0}), std::runtime_error);
