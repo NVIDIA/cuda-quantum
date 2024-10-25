@@ -262,13 +262,11 @@ TEST(TensorTest, InvalidAccess) {
     t.at({2, 0});
   } catch (...) {
     eptr = std::current_exception();
+    auto info = eptr.__cxa_exception_type();
+    std::cout << "Caught exception of type : " << info->name() << std::endl;
+    throw std::runtime_error(info->name());
   }
-  try {
-    if (eptr)
-      std::rethrow_exception(eptr);
-  } catch (const std::exception &e) {
-    std::cout << "Caught exception \"" << e.what() << "\"\n";
-  }
+
   EXPECT_THROW(t.at({2, 0}), std::runtime_error);
   EXPECT_THROW(t.at({0, 2}), std::runtime_error);
   EXPECT_THROW(t.at({0, 0, 0}), std::runtime_error);
