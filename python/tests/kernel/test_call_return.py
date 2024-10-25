@@ -6,19 +6,21 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import cudaq 
+import cudaq
 
-@cudaq.kernel(verbose=True)
-def callMe(q : cudaq.qubit) -> bool:
-    h(q)
-    m = mz(q)
-    return m
 
-print(callMe)
+def test():
 
-@cudaq.kernel(verbose=True)
-def IWillCallYou() -> bool:
-    q = cudaq.qubit()
-    return callMe(q) 
+    @cudaq.kernel()
+    def callMe(q: cudaq.qubit) -> bool:
+        h(q)
+        m = mz(q)
+        return m
 
-print(IWillCallYou())
+    @cudaq.kernel()
+    def IWillCallYou() -> bool:
+        q = cudaq.qubit()
+        t = callMe(q)
+        return t
+
+    print(IWillCallYou())
