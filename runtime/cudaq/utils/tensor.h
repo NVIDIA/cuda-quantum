@@ -54,21 +54,6 @@ public:
   using scalar_type = typename details::tensor_impl<Scalar>::scalar_type;
   static constexpr auto ScalarAsString = type_to_string<Scalar>();
 
-  /// @brief Construct an empty tensor
-  tensor()
-      : pimpl(std::shared_ptr<details::tensor_impl<Scalar>>(
-            details::tensor_impl<Scalar>::get(
-                std::string("xtensor") + std::string(ScalarAsString), {})
-                .release())) {}
-
-  /// @brief Construct a tensor with the given shape
-  /// @param shape The shape of the tensor
-  tensor(const std::vector<std::size_t> &shape)
-      : pimpl(std::shared_ptr<details::tensor_impl<Scalar>>(
-            details::tensor_impl<Scalar>::get(
-                std::string("xtensor") + std::string(ScalarAsString), shape)
-                .release())) {}
-
   /// @brief Construct a tensor with the given data and shape
   /// @param data Pointer to the tensor data
   /// @param shape The shape of the tensor
@@ -78,6 +63,20 @@ public:
                                                   std::string(ScalarAsString),
                                               data, shape)
                 .release())) {}
+
+  /// @brief Construct a tensor with the given shape
+  /// @param shape The shape of the tensor
+  tensor(const std::vector<std::size_t> &shape) : tensor(nullptr, shape) {}
+
+  /// @brief Construct an empty tensor
+  tensor() : tensor(nullptr, {}) {}
+
+  tensor(const scalar_type (&data)[], const std::vector<std::size_t> &shape)
+      : tensor(reinterpret_cast<const scalar_type *>(&data), shape) {}
+
+  tensor(const std::vector<scalar_type> &data,
+         const std::vector<std::size_t> &shape)
+      : tensor(reinterpret_cast<const scalar_type *>(&data.front()), shape) {}
 
   /// @brief Get the rank of the tensor
   /// @return The rank of the tensor
