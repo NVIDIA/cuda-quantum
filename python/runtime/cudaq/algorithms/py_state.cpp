@@ -156,7 +156,7 @@ state pyGetStateLibraryMode(py::object kernel, py::args args) {
 void bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
 
   py::class_<SimulationState::Tensor>(
-      mod, "Tensor",
+      mod, "SimulationTensor",
       "The `Tensor` describes a pointer to simulation data as well as the rank "
       "and extents for that tensorial data it represents.")
       .def("data",

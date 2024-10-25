@@ -90,6 +90,8 @@ Data Types
 
 .. autoclass:: cudaq::SimulationPrecision
     :members:
+
+.. autoclass:: cudaq::SimulationTensor
     
 .. autoclass:: cudaq::Target
     :members:
