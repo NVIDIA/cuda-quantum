@@ -900,6 +900,9 @@ class PyASTBridge(ast.NodeVisitor):
                 self.mlirTypeFromAnnotation(arg.annotation)
                 for arg in node.args.args
             ]
+            parentResultType = self.knownResultType
+            self.knownResultType = self.mlirTypeFromAnnotation(node.returns)
+
             # Get the argument names
             argNames = [arg.arg for arg in node.args.args]
 
@@ -980,6 +983,8 @@ class PyASTBridge(ast.NodeVisitor):
             globalKernelRegistry[node.name] = f
             self.symbolTable.clear()
             self.valueStack.clear()
+
+            self.knownResultType = parentResultType
 
     def visit_Expr(self, node):
         """
@@ -1870,7 +1875,11 @@ class PyASTBridge(ast.NodeVisitor):
                 values = [self.popValue() for _ in node.args]
                 values.reverse()
                 values = [self.ifPointerThenLoad(v) for v in values]
-                func.CallOp(otherKernel, values)
+                if len(fType.results) == 0:
+                    func.CallOp(otherKernel, values)
+                else:
+                    result = func.CallOp(otherKernel, values).result
+                    self.pushValue(result)
                 return
 
             elif node.func.id in self.symbolTable:
@@ -3539,6 +3548,7 @@ class PyASTBridge(ast.NodeVisitor):
             dynSize = cc.StdvecSizeOp(self.getIntegerType(), result).result
             heapCopy = func.CallOp([ptrTy], symName,
                                    [resBuf, dynSize, eleSize]).result
+            resBuf = cc.CastOp(ptrTy, resBuf)
             res = cc.StdvecInitOp(result.type, heapCopy, dynSize).result
             func.ReturnOp([res])
             return
