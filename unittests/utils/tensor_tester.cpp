@@ -253,22 +253,18 @@ TEST(TensorTest, BorrowData) {
   EXPECT_EQ(t.at({1, 1}), std::complex<double>(1.0, 0.0));
 }
 
-TEST(TensorTest, InvalidAccess) {
+TEST(TensorTest, InvalidAccessDimensions) {
   std::vector<std::size_t> shape = {2, 2};
   cudaq::tensor t(shape);
 
-  std::exception_ptr eptr;
-  try {
-    t.at({2, 0});
-  } catch (...) {
-    eptr = std::current_exception();
-    auto info = eptr.__cxa_exception_type();
-    std::cout << "Caught exception of type : " << info->name() << std::endl;
-    throw std::runtime_error(info->name());
-  }
-
   EXPECT_THROW(t.at({2, 0}), std::runtime_error);
   EXPECT_THROW(t.at({0, 2}), std::runtime_error);
+}
+
+TEST(TensorTest, InvalidAccessRank) {
+  std::vector<std::size_t> shape = {2, 2};
+  cudaq::tensor t(shape);
+
   EXPECT_THROW(t.at({0, 0, 0}), std::runtime_error);
 }
 

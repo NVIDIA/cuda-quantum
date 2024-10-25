@@ -62,8 +62,6 @@ Common
 
 .. doxygenenum:: cudaq::simulation_precision
 
-.. doxygentypedef:: cudaq::tensor
-
 .. doxygentypedef:: cudaq::TensorStateData
 
 .. doxygentypedef:: cudaq::state_data
