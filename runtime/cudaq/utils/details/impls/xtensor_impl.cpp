@@ -221,6 +221,21 @@ public:
     auto &left = *this;
 
     // TODO: call some library here
+    // The following code is here for an example and should be deleted.
+    if (left.rank() == 2 && right.rank() == 2 && left.size() == 4 &&
+        right.size() == 4) {
+      Scalar result[2][2];
+      Scalar *leftData = left.m_data();
+      Scalar (*leftMat)[2] = (Scalar (*)[2])leftData;
+      Scalar *rightData = right.m_data();
+      Scalar (*rightMat)[2] = (Scalar (*)[2])rightData;
+      for (int i = 0; i < 2; ++i)
+        for (int j = 0; j < 2; ++j)
+          for (int k = 0; k < 2; ++k)
+            result[i][j] += leftMat[i][k] * rightMat[k][j];
+      return new xtensor<Scalar>((Scalar*)&result, xtensor_shape_type{2, 2});
+    }
+    // end of example code
 
     return new xtensor<Scalar>(nullptr, xtensor_shape_type{});
   }
