@@ -9,7 +9,7 @@
 // REQUIRES: nvcc
 
 // clang-format off
-// RUN: nvcc -I runtime -c -Xcompiler -fPIC %cpp_std %p/tensor.cu -o %t.o
+// RUN: nvcc -I %p/../../runtime -c -Xcompiler -fPIC %cpp_std %p/tensor.cu -o %t.o
 // RUN: nvq++ %cpp_std --enable-mlir %s %t.o -L `dirname $(which nvcc)`/../lib64 -lcudart -o %t.x
 // clang-format on
 
