@@ -77,7 +77,7 @@ public:
                 .release())) {}
 
   /// Construct a `tensor` from a `tensor_impl` using move semantics.
-  tensor(details::tensor_impl<Scalar> *impl) { pimpl.swap(impl); }
+  tensor(details::tensor_impl<Scalar> *impl) { pimpl.reset(impl); }
 
   /// @brief Get the rank of the tensor
   /// @return The rank of the tensor
