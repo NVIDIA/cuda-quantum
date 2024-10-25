@@ -46,6 +46,9 @@ class tensor {
 private:
   std::shared_ptr<details::tensor_impl<Scalar>> pimpl;
 
+  /// Construct a `tensor` from a `tensor_impl` pointer.
+  tensor(details::tensor_impl<Scalar> *impl) { pimpl.reset(impl); }
+
 public:
   /// @brief Type alias for the scalar type used in the tensor
   using scalar_type = typename details::tensor_impl<Scalar>::scalar_type;
@@ -75,9 +78,6 @@ public:
                                                   std::string(ScalarAsString),
                                               data, shape)
                 .release())) {}
-
-  /// Construct a `tensor` from a `tensor_impl` using move semantics.
-  tensor(details::tensor_impl<Scalar> *impl) { pimpl.reset(impl); }
 
   /// @brief Get the rank of the tensor
   /// @return The rank of the tensor
