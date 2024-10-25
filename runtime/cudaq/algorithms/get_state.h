@@ -14,6 +14,7 @@
 #include "cudaq/host_config.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/QuantumExecutionQueue.h"
+#include "cudaq/qis/quantum_state.h"
 #include "cudaq/qis/remote_state.h"
 #include "cudaq/qis/state.h"
 #include <complex>
@@ -117,6 +118,17 @@ auto get_state(QuantumKernel &&kernel, Args &&...args) {
   if constexpr (has_name<QuantumKernel>::value) {
     return state(new RemoteSimulationState(std::forward<QuantumKernel>(kernel),
                                            std::forward<Args>(args)...));
+  }
+#endif
+#if defined(CUDAQ_QUANTUM_DEVICE)
+  // Store kernel name and arguments for quantum states.
+  if (!cudaq::get_quake_by_name(cudaq::getKernelName(kernel), false).empty()) {
+    return state(new QuantumState(std::forward<QuantumKernel>(kernel),
+                                  std::forward<Args>(args)...));
+  } else {
+    throw std::runtime_error(
+        "cudaq::state* argument synthesis is not supported for quantum hardware"
+        "for c-like functions, use class kernels instead");
   }
 #endif
   return details::extractState([&]() mutable {

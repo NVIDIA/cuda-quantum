@@ -149,6 +149,22 @@ int main() {
   // clang-format on
 
   {
+    std::cout << "Passing state from another kernel as argument"
+                 " with pauli word arg (kernel mode)"
+              << std::endl;
+    auto state = cudaq::get_state(test_init_state);
+    auto counts = cudaq::sample(test_state_param2, &state, cudaq::pauli_word{"XX"});
+    printCounts(counts);
+  }
+  // clang-format off
+// CHECK: Passing state from another kernel as argument with pauli word arg (kernel mode)
+// CHECK: 00
+// CHECK: 01
+// CHECK: 10
+// CHECK: 11
+  // clang-format on
+
+  {
     std::cout << "Passing state from another kernel as argument iteratively "
                  "with vector args (kernel mode)"
               << std::endl;

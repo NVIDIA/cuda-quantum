@@ -898,6 +898,26 @@ def cc_AddressOfOp : CCOp<"address_of", [Pure,
   }];
 }
 
+def cc_GetStateOp : CCOp<"get_state", [Pure] > {
+  let summary = "Get state from kernel with the provided name.";
+  let description = [{
+    This operation is created by argument synthesis of state pointer arguments
+    for quantum devices. It takes a kernel name as ASCIIZ string literal value
+    and returns the kernel's quantum state. The operation is replaced by a call
+    to the kernel with the provided name in ReplaceStateByKernel pass.
+
+    ```mlir
+      %0 = cc.get_state "callee" : !cc.ptr<!cc.state>
+    ```
+  }];
+
+  let arguments = (ins StrAttr:$calleeName);
+  let results = (outs cc_PointerType:$result);
+  let assemblyFormat = [{
+     $calleeName `:` qualified(type(results)) attr-dict
+  }];
+}
+
 def cc_GlobalOp : CCOp<"global", [IsolatedFromAbove, Symbol]> {
   let summary = "Create a global constant or variable";
   let description = [{
