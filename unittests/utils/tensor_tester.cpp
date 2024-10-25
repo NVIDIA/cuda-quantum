@@ -257,11 +257,17 @@ TEST(TensorTest, InvalidAccess) {
   std::vector<std::size_t> shape = {2, 2};
   cudaq::tensor t(shape);
 
+  std::exception_ptr eptr;
   try {
     t.at({2, 0});
-  } catch (std::exception &e) {
-    std::cout << "Exception: (" << typeid(e).name() << ")" << e.what()
-              << std::endl;
+  } catch (...) {
+    eptr = std::current_exception();
+  }
+  try {
+    if (eptr)
+      std::rethrow_exception(eptr);
+  } catch (const std::exception &e) {
+    std::cout << "Caught exception \"" << e.what() << "\"\n";
   }
   EXPECT_THROW(t.at({2, 0}), std::runtime_error);
   EXPECT_THROW(t.at({0, 2}), std::runtime_error);
