@@ -27,7 +27,7 @@ runs:
 
         # Check if a volume mapping is specified and set the option
         volume_option=""
-        if [ ! -z "${{ inputs.volume }}" ]; then
+        if [ -n "${{ inputs.volume }}" ]; then
           volume_option="-v ${{ inputs.volume }}"
         fi
 
