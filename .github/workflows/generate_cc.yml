@@ -5,6 +5,9 @@ on:
         type: string
         required: false
         default: linux/amd64
+      devdeps_image:
+        required: false
+        type: string
       devdeps_cache:
         required: true
         type: string
@@ -20,24 +23,36 @@ name: Show Code Coverage Diff
 
 jobs:
   gen_code_coverage:
-    runs-on: 'linux-amd64-cpu8'
+    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
+      packages: read
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Restore environment
+        id: restore_devdeps
+        if: inputs.devdeps_image == ''
         uses: actions/cache/restore@v4
         with:
           path: ${{ inputs.devdeps_archive }}
           key: ${{ inputs.devdeps_cache }}
           fail-on-cache-miss: true
 
+      - name: Log in to GitHub CR
+        if: inputs.devdeps_image != ''
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
       - name: Set up context for buildx
         run: |
           docker context create builder_context
+
       - name: Set up buildx runner
         uses: docker/setup-buildx-action@v3
         with:
@@ -46,14 +61,22 @@ jobs:
       - name: Build CUDA Quantum
         id: cudaq_build
         run: |
-          load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
-          base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
-          devdeps_tag=`echo $base_image | rev | cut -d ":" -f 1 | rev`
+          if ${{ steps.restore_devdeps.outcome != 'skipped' }}; then
+            load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
+            base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
+          elif ${{ inputs.devdeps_image != '' }}; then
+            base_image=${{ inputs.devdeps_image }}
+          else
+            echo "::error file=generate_cc.yml::Missing configuration for development dependencies. Either specify the image (i.e. provide devdeps_image) or cache (i.e. provide devdeps_cache and devdeps_archive) that should be used for the build."
+            exit 1
+          fi
+
           DOCKER_BUILDKIT=1 docker build --platform ${{ inputs.platform }} \
             -t cuda-quantum-cc:local -f docker/build/cudaq.dev.Dockerfile . \
             --build-arg base_image=$base_image
-          tag_prefix=`echo $devdeps_tag | cut -d "_" -f 1`
-          echo "tag_prefix=$tag_prefix" >> $GITHUB_OUTPUT
+
+          devdeps_tag=`echo $base_image | rev | cut -d ":" -f 1 | rev`
+          echo "devdeps_tag=$devdeps_tag" >> $GITHUB_OUTPUT
 
       - name: Create Shared Dir
         run: |
@@ -75,6 +98,7 @@ jobs:
               cp ./build/ccoverage/coverage.txt /shared
               cp ./build/pycoverage/coverage.xml /shared
             fi
+
       - name: Upload C/C++ & Python Coverage To Codecov
         uses: codecov/codecov-action@v4
         with:
@@ -92,7 +116,7 @@ jobs:
         if: inputs.export_environment
         run: |
           output_directory=/tmp
-          filename=${{ steps.cudaq_build.outputs.tag_prefix }}_build
+          filename=${{ steps.cudaq_build.outputs.devdeps_tag }}_cc_build
           docker run --name cuda-quantum-cc cuda-quantum-cc:local
           docker export cuda-quantum-cc > $output_directory/$filename.tar
           docker rm -f cuda-quantum-cc
