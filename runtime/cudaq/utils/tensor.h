@@ -49,14 +49,8 @@ public:
   matrix_2(const std::vector<std::complex<double>> &v,
            const Dimensions &dim = {2, 2})
       : dimensions{dim}, data{new std::complex<double>[get_size(dim)]} {
-    assert(v.size() >= get_size(dimensions) &&
-           "vector must have enough elements");
+    check_size(v.size(), dimensions);
     std::copy(v.begin(), v.begin() + get_size(dimensions), data);
-  }
-  matrix_2(const std::complex<double> *v, const Dimensions &dim = {2, 2})
-      : dimensions{dim}, data{new std::complex<double>[get_size(dim)]} {
-    auto size = get_size(dimensions);
-    std::copy(v, v + size, data);
   }
 
   matrix_2 &operator=(const matrix_2 &other) {
@@ -65,6 +59,7 @@ public:
     std::copy(other.data, other.data + get_size(dimensions), data);
     return *this;
   }
+
   matrix_2 &operator=(matrix_2 &&other) {
     dimensions = other.dimensions;
     data = other.data;
@@ -107,8 +102,10 @@ public:
   friend matrix_2 kronecker(Iterable begin, Iterable end);
 
   /// Operator to get the value at a particular index in the matrix.
-  std::optional<std::complex<double>>
-  operator[](const std::vector<std::size_t> &at) const;
+  std::complex<double> operator[](const std::vector<std::size_t> &at) const;
+
+  /// Operator to get the value at a particular index in the matrix.
+  std::complex<double> &operator[](const std::vector<std::size_t> &at);
 
   std::string dump() const;
 
@@ -118,9 +115,17 @@ public:
   std::size_t get_size() const { return get_size(dimensions); }
 
 private:
+  matrix_2(const std::complex<double> *v, const Dimensions &dim = {2, 2})
+      : dimensions{dim}, data{new std::complex<double>[get_size(dim)]} {
+    auto size = get_size(dimensions);
+    std::copy(v, v + size, data);
+  }
+
   static std::size_t get_size(const Dimensions &dim) {
     return dim.first * dim.second;
   }
+
+  static void check_size(std::size_t size, const Dimensions &dim);
 
   void swap(std::complex<double> *new_data) {
     if (data)
