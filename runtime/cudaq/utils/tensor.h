@@ -34,7 +34,7 @@ matrix_2 kronecker(T begin, T end);
 /// two-by-two set of values.
 class matrix_2 {
 public:
-  using Dimensions = std::pair<unsigned, unsigned>;
+  using Dimensions = std::pair<std::size_t, std::size_t>;
 
   matrix_2() = default;
   matrix_2(const matrix_2 &other)
@@ -107,8 +107,13 @@ public:
 
   void dump();
 
+  std::size_t get_rank() const { return 2; }
+  std::size_t get_rows() const { return dimensions.first; }
+  std::size_t get_columns() const { return dimensions.second; }
+  std::size_t get_size() const { return get_size(dimensions); }
+
 private:
-  std::size_t get_size(const Dimensions &dim) const {
+  static std::size_t get_size(const Dimensions &dim) {
     return dim.first * dim.second;
   }
 
@@ -116,6 +121,13 @@ private:
     if (data)
       delete[] data;
     data = new_data;
+  }
+
+  void clear() {
+    if (data)
+      delete[] data;
+    data = nullptr;
+    dimensions = {};
   }
 
   Dimensions dimensions = {};

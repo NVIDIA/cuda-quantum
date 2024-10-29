@@ -1,0 +1,62 @@
+/*******************************************************************************
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+#include "cudaq/utils/tensor.h"
+#include "gtest/gtest.h"
+
+TEST(Tensor, initialization) {
+  {
+    cudaq::matrix_2 m0;
+    EXPECT_EQ(m0.dump(), "{}");
+  }
+  {
+    cudaq::matrix_2 m1({1., 0., 0., 1.});
+    EXPECT_EQ(m1.dump(), "{  { (1,0)  (0,0) }\n   { (0,0)  (1,0) }\n }");
+  }
+}
+
+TEST(UtilsTester, crossProduct) {
+  {
+    cudaq::matrix_2 m2({2., 1., 3., 4.});
+    cudaq::matrix_2 m3({3., 2., 1., 4.});
+    cudaq::matrix_2 m4 = m2 * m3;
+    EXPECT_EQ(m4.dump(), "{  { (7,0)  (8,0) }\n   { (13,0)  (22,0) }\n }");
+  }
+}
+
+TEST(UtilsTester, addition) {
+  {
+    cudaq::matrix_2 m5({2., 11., 3., 4.2});
+    cudaq::matrix_2 m6({3., 42., 1.4, 4.});
+    cudaq::matrix_2 m7 = m5 + m6;
+    EXPECT_EQ(m7.dump(), "{  { (5,0)  (53,0) }\n   { (4.4,0)  (8.2,0) }\n }");
+  }
+}
+
+TEST(UtilsTester, subtraction) {
+  {
+    cudaq::matrix_2 m8({12.1, 1., 3., 14.});
+    cudaq::matrix_2 m9({3., 22., 31., 4.});
+    cudaq::matrix_2 ma = m8 - m9;
+    EXPECT_EQ(ma.dump(), "{  { (9.1,0)  (-21,0) }\n   { (-28,0)  (10,0) }\n }");
+  }
+}
+
+TEST(UtilsTester, kroneckerProduct) {
+  {
+
+    cudaq::matrix_2 mb({6.1, 1.5, 3., 14.});
+    cudaq::matrix_2 mc({7.4, 8., 9., 4.2});
+    cudaq::matrix_2 md = cudaq::kronecker(mb, mc);
+    EXPECT_EQ(
+        md.dump(),
+        "{  { (45.14,0)  (48.8,0)  (11.1,0)  (12,0) }\n   { (54.9,0)  "
+        "(25.62,0)  (13.5,0)  (6.3,0) }\n   { (22.2,0)  (24,0)  (103.6,0)  "
+        "(112,0) }\n   { (27,0)  (12.6,0)  (126,0)  (58.8,0) }\n }");
+  }
+}
