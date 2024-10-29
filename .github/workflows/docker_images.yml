@@ -59,8 +59,9 @@ jobs:
             echo "runner=linux-amd64-cpu8" >> $GITHUB_OUTPUT
             echo "build_docs=${{ inputs.build_docs != 'false' }}" >> $GITHUB_OUTPUT
             is_versioned=${{ github.ref_type == 'tag' || github.ref_name == 'main' || startsWith(github.ref_name, 'releases/') }}
+            is_staging_branch=${{ startsWith(github.ref_name, 'staging/') }}
             is_experimental=${{ startsWith(github.ref_name, 'experimental/') }}
-            push_to_ngc=`${{ inputs.environment && secrets.NGC_CREDENTIALS != '' }} && ($is_versioned || $is_experimental) && echo true || echo`
+            push_to_ngc=`${{ inputs.environment && secrets.NGC_CREDENTIALS != '' }} && ($is_versioned || $is_staging_branch || $is_experimental) && echo true || echo`
             echo "push_to_ngc=$push_to_ngc" >> $GITHUB_OUTPUT
           elif [ -n "$(echo ${{ inputs.platforms }} | grep -i arm)" ]; then
             platform_tag=`echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr -d ' '`
@@ -230,6 +231,13 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+
+      - name: Log in to GitHub CR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
 
       - name: Log in to the container registry
         if: inputs.environment && vars.registry

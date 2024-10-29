@@ -754,7 +754,8 @@ jobs:
                 echo ":x: Test failed (failed to execute): $ex" >> $GITHUB_STEP_SUMMARY
                 test_err_sum=$((test_err_sum+1))
               fi
-            else
+            # building_kernels.py is disabled due to https://github.com/NVIDIA/cuda-quantum/issues/2299.
+            elif [[ "$ex" != *"building_kernels"* ]]; then
               # Only run examples that are not target-specific (e.g., ionq, iqm)
               if ! grep -q "set_target" "$ex"; then
                 # Use --target command line option to run these examples with nvqc
@@ -874,7 +875,8 @@ jobs:
                 echo ":x: Test failed (failed to execute): $ex" >> $GITHUB_STEP_SUMMARY
                 test_err_sum=$((test_err_sum+1))
               fi
-            else
+            # building_kernels.py is disabled due to https://github.com/NVIDIA/cuda-quantum/issues/2299.
+            elif [[ "$ex" != *"building_kernels"* ]]; then
               # Only run examples that are not target-specific (e.g., ionq, iqm)
               if ! grep -q "set_target" "$ex"; then
                 # Use --target command line option to run these examples with nvqc

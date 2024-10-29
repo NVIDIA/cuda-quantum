@@ -40,6 +40,7 @@ on:
   push:
     branches:
       - 'releases/*'
+      - 'staging/*'
       - 'experimental/*'
       - 'features/*'
 
