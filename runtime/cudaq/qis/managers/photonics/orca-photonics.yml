@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-name: photonics
-description: "Photonics"
+name: orca-photonics
+description: "Photonics simulator"
 config:
   library-mode-execution-manager: photonics
