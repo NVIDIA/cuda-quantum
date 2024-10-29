@@ -26,7 +26,6 @@ on:
         required: true
         description: 'Python version to run wheel test'
         options:
-        - '3.9'
         - '3.10'
         - '3.11'
         - '3.12'
