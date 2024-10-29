@@ -131,7 +131,7 @@ matrix_2 kronecker(T begin, T end) {
     return result;
   result = *begin;
   for (auto i = ++begin; i != end; ++i)
-    result = kronecker(result, *i);
+    result.kronecker_inplace(*i);
   return result;
 }
 
