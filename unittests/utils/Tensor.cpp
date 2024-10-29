@@ -20,7 +20,7 @@ TEST(Tensor, initialization) {
   }
 }
 
-TEST(UtilsTester, crossProduct) {
+TEST(Tensor, crossProduct) {
   {
     cudaq::matrix_2 m2({2., 1., 3., 4.});
     cudaq::matrix_2 m3({3., 2., 1., 4.});
@@ -29,7 +29,7 @@ TEST(UtilsTester, crossProduct) {
   }
 }
 
-TEST(UtilsTester, addition) {
+TEST(Tensor, addition) {
   {
     cudaq::matrix_2 m5({2., 11., 3., 4.2});
     cudaq::matrix_2 m6({3., 42., 1.4, 4.});
@@ -38,7 +38,7 @@ TEST(UtilsTester, addition) {
   }
 }
 
-TEST(UtilsTester, subtraction) {
+TEST(Tensor, subtraction) {
   {
     cudaq::matrix_2 m8({12.1, 1., 3., 14.});
     cudaq::matrix_2 m9({3., 22., 31., 4.});
@@ -47,7 +47,7 @@ TEST(UtilsTester, subtraction) {
   }
 }
 
-TEST(UtilsTester, kroneckerProduct) {
+TEST(Tensor, kroneckerProduct) {
   {
 
     cudaq::matrix_2 mb({6.1, 1.5, 3., 14.});
