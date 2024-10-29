@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/utils/tensor.h"
-#include <strstream>
+#include <sstream>
 
 inline std::complex<double> &access(std::complex<double> *p,
                                     cudaq::matrix_2::Dimensions sizes,
@@ -87,9 +87,8 @@ cudaq::matrix_2::kronecker_inplace(const cudaq::matrix_2 &right) {
   return *this;
 }
 
-std::string cudaq::matrix_2::dump() {
-  std::string result;
-  std::ostrstream out{result};
+std::string cudaq::matrix_2::dump() const {
+  std::ostringstream out;
   out << '{';
   for (std::size_t i = 0; i < get_rows(); i++) {
     out << "  {";
@@ -98,5 +97,5 @@ std::string cudaq::matrix_2::dump() {
     out << "}\n ";
   }
   out << '}';
-  return result;
+  return out.str();
 }

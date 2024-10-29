@@ -105,7 +105,7 @@ public:
   template <typename Iterable, typename T>
   friend matrix_2 kronecker(T begin, T end);
 
-  void dump();
+  std::string dump() const;
 
   std::size_t get_rank() const { return 2; }
   std::size_t get_rows() const { return dimensions.first; }
