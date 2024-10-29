@@ -105,6 +105,9 @@ public:
   template <typename Iterable, typename T>
   friend matrix_2 kronecker(Iterable begin, Iterable end);
 
+  /// Operator to get the value at a particular index in the matrix.
+  std::complex<double> operator[](const std::vector<std::size_t> &at) const;
+
   std::string dump() const;
 
   std::size_t get_rank() const { return 2; }

@@ -87,6 +87,13 @@ cudaq::matrix_2::kronecker_inplace(const cudaq::matrix_2 &right) {
   return *this;
 }
 
+std::complex<double>
+cudaq::matrix_2::operator[](const std::vector<std::size_t> &at) const {
+  if (at.size() != 2 || at[0] >= get_rows() || at[1] >= get_columns())
+    return {};
+  return access(data, dimensions, at[0], at[1]);
+}
+
 std::string cudaq::matrix_2::dump() const {
   std::ostringstream out;
   out << '{';
