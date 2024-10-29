@@ -20,7 +20,7 @@ TEST(Tensor, initialization) {
   }
 }
 
-TEST(Tensor, crossProduct) {
+TEST(Tensor, product) {
   {
     cudaq::matrix_2 m2({2., 1., 3., 4.});
     cudaq::matrix_2 m3({3., 2., 1., 4.});
