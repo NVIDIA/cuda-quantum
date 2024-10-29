@@ -16,6 +16,19 @@
 
 namespace cudaq {
 
+class matrix_2;
+
+matrix_2 operator*(const matrix_2 &, const matrix_2 &);
+matrix_2 operator*(std::complex<double>, const matrix_2 &);
+matrix_2 operator+(const matrix_2 &, const matrix_2 &);
+matrix_2 operator-(const matrix_2 &, const matrix_2 &);
+matrix_2 kronecker(const matrix_2 &, const matrix_2 &);
+template <typename Iterable,
+          typename T = typename std::iterator_traits<Iterable>::value_type>
+matrix_2 kronecker(T begin, T end);
+
+//===----------------------------------------------------------------------===//
+
 /// This is a minimalist matrix container. It is two-dimensional. It owns its
 /// data. Elements are of type `complex<double>`. Typically, it will contain a
 /// two-by-two set of values.
@@ -68,38 +81,29 @@ public:
   // Primitive operations on `matrix_2` objects.
   //===--------------------------------------------------------------------===//
 
-  /// Multiplication (cross-product) of two matrixes.
+  /// Multiplication (cross-product) of two matrices.
   friend matrix_2 operator*(const matrix_2 &, const matrix_2 &);
   matrix_2 &operator*=(const matrix_2 &);
 
-  /// Scalar Multiplication with matrixes.
+  /// Scalar Multiplication with matrices.
   friend matrix_2 operator*(std::complex<double>, const matrix_2 &);
 
-  /// Addition of two matrixes.
+  /// Addition of two matrices.
   friend matrix_2 operator+(const matrix_2 &, const matrix_2 &);
   matrix_2 &operator+=(const matrix_2 &);
 
-  /// Subtraction of two matrixes.
+  /// Subtraction of two matrices.
   friend matrix_2 operator-(const matrix_2 &, const matrix_2 &);
   matrix_2 &operator-=(const matrix_2 &);
 
-  /// Kronecker of two matrixes.
+  /// Kronecker of two matrices.
   friend matrix_2 kronecker(const matrix_2 &, const matrix_2 &);
   matrix_2 &kronecker_inplace(const matrix_2 &);
 
-  /// Kronecker a list of matrixes. The list can be any container that has
+  /// Kronecker a list of matrices. The list can be any container that has
   /// iterators defined.
-  template <typename Iterable,
-            typename T = typename std::iterator_traits<Iterable>::value_type>
-  static matrix_2 kronecker(T begin, T end) {
-    matrix_2 result;
-    if (begin == end)
-      return result;
-    result = *begin;
-    for (auto i = ++begin; i != end; ++i)
-      result = kronecker(result, *i);
-    return result;
-  }
+  template <typename Iterable, typename T>
+  friend matrix_2 kronecker(T begin, T end);
 
   void dump();
 
@@ -117,6 +121,19 @@ private:
   Dimensions dimensions = {};
   std::complex<double> *data = nullptr;
 };
+
+//===----------------------------------------------------------------------===//
+
+template <typename Iterable, typename T>
+matrix_2 kronecker(T begin, T end) {
+  matrix_2 result;
+  if (begin == end)
+    return result;
+  result = *begin;
+  for (auto i = ++begin; i != end; ++i)
+    result = kronecker(result, *i);
+  return result;
+}
 
 inline matrix_2 operator*(const matrix_2 &left, const matrix_2 &right) {
   matrix_2 result = left;
