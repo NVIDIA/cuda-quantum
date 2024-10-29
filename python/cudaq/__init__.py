@@ -8,6 +8,7 @@
 
 import sys, os, numpy, platform, multiprocessing
 from ._packages import *
+from .mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 # Set the multiprocessing start method to 'spawn' if not already set
 if multiprocessing.get_start_method(allow_none=True) is None:
@@ -50,8 +51,6 @@ from .runtime.sample import sample
 from .runtime.observe import observe
 from .runtime.state import to_cupy
 from .kernel.register_op import register_operation
-
-from .mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 try:
     from qutip import Qobj, Bloch
