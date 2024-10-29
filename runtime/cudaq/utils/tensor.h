@@ -48,14 +48,8 @@ public:
   matrix_2(const std::vector<std::complex<double>> &v,
            const Dimensions &dim = {2, 2})
       : dimensions{dim}, data{new std::complex<double>[get_size(dim)]} {
-    assert(v.size() >= get_size(dimensions) &&
-           "vector must have enough elements");
+    check_size(v.size(), dimensions);
     std::copy(v.begin(), v.begin() + get_size(dimensions), data);
-  }
-  matrix_2(const std::complex<double> *v, const Dimensions &dim = {2, 2})
-      : dimensions{dim}, data{new std::complex<double>[get_size(dim)]} {
-    auto size = get_size(dimensions);
-    std::copy(v, v + size, data);
   }
 
   matrix_2 &operator=(const matrix_2 &other) {
@@ -113,9 +107,17 @@ public:
   std::size_t get_size() const { return get_size(dimensions); }
 
 private:
+  matrix_2(const std::complex<double> *v, const Dimensions &dim = {2, 2})
+      : dimensions{dim}, data{new std::complex<double>[get_size(dim)]} {
+    auto size = get_size(dimensions);
+    std::copy(v, v + size, data);
+  }
+
   static std::size_t get_size(const Dimensions &dim) {
     return dim.first * dim.second;
   }
+
+  static void check_size(std::size_t size, const Dimensions &dim);
 
   void swap(std::complex<double> *new_data) {
     if (data)

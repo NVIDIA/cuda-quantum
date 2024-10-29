@@ -16,10 +16,9 @@ inline std::complex<double> &access(std::complex<double> *p,
 }
 
 cudaq::matrix_2 &cudaq::matrix_2::operator*=(const cudaq::matrix_2 &right) {
-  if (get_columns() != right.get_rows()) {
-    clear();
-    return *this;
-  }
+  if (get_columns() != right.get_rows())
+    throw std::runtime_error("matrix dimensions mismatch in operator*=");
+
   auto new_data = new std::complex<double>[get_rows() * right.get_columns()];
   for (std::size_t i = 0; i < get_rows(); i++)
     for (std::size_t j = 0; j < right.get_columns(); j++)
@@ -43,11 +42,9 @@ cudaq::matrix_2 cudaq::operator*(std::complex<double> scalar,
 }
 
 cudaq::matrix_2 &cudaq::matrix_2::operator+=(const cudaq::matrix_2 &right) {
-  if (!(get_rows() == right.get_rows() &&
-        get_columns() == right.get_columns())) {
-    clear();
-    return *this;
-  }
+  if (!(get_rows() == right.get_rows() && get_columns() == right.get_columns()))
+    throw std::runtime_error("matrix dimensions mismatch in operator+=");
+
   for (std::size_t i = 0; i < get_rows(); i++)
     for (std::size_t j = 0; j < get_columns(); j++)
       access(data, dimensions, i, j) +=
@@ -56,11 +53,9 @@ cudaq::matrix_2 &cudaq::matrix_2::operator+=(const cudaq::matrix_2 &right) {
 }
 
 cudaq::matrix_2 &cudaq::matrix_2::operator-=(const cudaq::matrix_2 &right) {
-  if (!(get_rows() == right.get_rows() &&
-        get_columns() == right.get_columns())) {
-    clear();
-    return *this;
-  }
+  if (!(get_rows() == right.get_rows() && get_columns() == right.get_columns()))
+    throw std::runtime_error("matrix dimensions mismatch in operator-=");
+
   for (std::size_t i = 0; i < get_rows(); i++)
     for (std::size_t j = 0; j < get_columns(); j++)
       access(data, dimensions, i, j) -=
@@ -85,6 +80,11 @@ cudaq::matrix_2::kronecker_inplace(const cudaq::matrix_2 &right) {
   swap(new_data);
   dimensions = new_dim;
   return *this;
+}
+
+void cudaq::matrix_2::check_size(std::size_t size, const Dimensions &dim) {
+  if (size < get_size(dim))
+    throw std::runtime_error("vector must have enough elements");
 }
 
 std::string cudaq::matrix_2::dump() const {
