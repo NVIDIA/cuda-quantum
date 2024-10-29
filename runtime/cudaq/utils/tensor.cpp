@@ -87,11 +87,28 @@ void cudaq::matrix_2::check_size(std::size_t size, const Dimensions &dim) {
     throw std::runtime_error("vector must have enough elements");
 }
 
-std::optional<std::complex<double>>
+std::complex<double>
 cudaq::matrix_2::operator[](const std::vector<std::size_t> &at) const {
-  if (at.size() != 2 || at[0] >= get_rows() || at[1] >= get_columns())
+  if (at.size() != 2)
+    throw std::runtime_error("Invalid access: indices must have length of 2");
+
+  if (at[0] >= get_rows() || at[1] >= get_columns())
     throw std::runtime_error(
-        "invalid access: indices {" + std::to_string(at[0]) + ", " +
+        "Invalid access: indices {" + std::to_string(at[0]) + ", " +
+        std::to_string(at[1]) + "} are larger than matrix dimensions: {" +
+        std::to_string(dimensions.first) + ", " +
+        std::to_string(dimensions.second) + "}");
+  return access(data, dimensions, at[0], at[1]);
+}
+
+std::complex<double> &
+cudaq::matrix_2::operator[](const std::vector<std::size_t> &at) {
+  if (at.size() != 2)
+    throw std::runtime_error("Invalid access: indices must have length of 2");
+
+  if (at[0] >= get_rows() || at[1] >= get_columns())
+    throw std::runtime_error(
+        "Invalid access: indices {" + std::to_string(at[0]) + ", " +
         std::to_string(at[1]) + "} are larger than matrix dimensions: {" +
         std::to_string(dimensions.first) + ", " +
         std::to_string(dimensions.second) + "}");

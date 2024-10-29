@@ -29,6 +29,43 @@ TEST(Tensor, initialization) {
   }
 }
 
+TEST(Tensor, access) {
+  {
+    cudaq::matrix_2 m0;
+
+    EXPECT_THROW((m0[{0}]), std::runtime_error);
+    EXPECT_THROW((m0[{0, 1}]), std::runtime_error);
+    EXPECT_THROW((m0[{0, 0, 0}]), std::runtime_error);
+  }
+  {
+    cudaq::matrix_2 m1({1., 0., 0., 1.});
+
+    EXPECT_EQ((m1[{0, 1}]), 0.);
+    EXPECT_THROW((m1[{0, 2}]), std::runtime_error);
+    EXPECT_THROW((m1[{0, 0, 0}]), std::runtime_error);
+
+    m1[{0, 1}] = 4.;
+    m1[{1, 0}] = m1[{0, 1}];
+
+    EXPECT_EQ((m1[{0, 1}]), 4.);
+    EXPECT_EQ((m1[{1, 0}]), 4.);
+  }
+  {
+    cudaq::matrix_2 m1({1., 2., 3., 4., 5., 6.}, {2, 3});
+
+    EXPECT_EQ((m1[{0, 2}]), 3.);
+    EXPECT_THROW((m1[{0, 3}]), std::runtime_error);
+    EXPECT_THROW((m1[{2, 1}]), std::runtime_error);
+    EXPECT_THROW((m1[{0, 2, 3}]), std::runtime_error);
+
+    m1[{0, 2}] = 9.;
+    m1[{1, 0}] = m1[{0, 2}];
+
+    EXPECT_EQ((m1[{0, 2}]), 9.);
+    EXPECT_EQ((m1[{1, 0}]), 9.);
+  }
+}
+
 TEST(Tensor, product) {
   {
     cudaq::matrix_2 m2({2., 1., 3., 4.});
