@@ -29,7 +29,7 @@ TEST(Tensor, initialization) {
   }
 }
 
-TEST(Tensor, crossProduct) {
+TEST(Tensor, product) {
   {
     cudaq::matrix_2 m2({2., 1., 3., 4.});
     cudaq::matrix_2 m3({3., 2., 1., 4.});
@@ -80,7 +80,6 @@ TEST(Tensor, subtraction) {
 
 TEST(Tensor, kroneckerProduct) {
   {
-
     cudaq::matrix_2 mb({6.1, 1.5, 3., 14.});
     cudaq::matrix_2 mc({7.4, 8., 9., 4.2});
     cudaq::matrix_2 md = cudaq::kronecker(mb, mc);
@@ -89,5 +88,18 @@ TEST(Tensor, kroneckerProduct) {
         "{  { (45.14,0)  (48.8,0)  (11.1,0)  (12,0) }\n   { (54.9,0)  "
         "(25.62,0)  (13.5,0)  (6.3,0) }\n   { (22.2,0)  (24,0)  (103.6,0)  "
         "(112,0) }\n   { (27,0)  (12.6,0)  (126,0)  (58.8,0) }\n }");
+  }
+}
+
+TEST(Tensor, kroneckerOnList) {
+  {
+    cudaq::matrix_2 me({{1., 1.}}, {1, 1});
+    cudaq::matrix_2 mf({1., 2.}, {1, 2});
+    cudaq::matrix_2 mg({3., 4., 5.}, {3, 1});
+    std::vector<cudaq::matrix_2> v{me, mf, mg};
+    cudaq::matrix_2 mh = cudaq::kronecker(v.begin(), v.end());
+    EXPECT_EQ(
+        mh.dump(),
+        "{  { (3,3)  (6,6) }\n   { (4,4)  (8,8) }\n   { (5,5)  (10,10) }\n }");
   }
 }

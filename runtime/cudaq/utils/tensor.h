@@ -12,6 +12,7 @@
 #include <cassert>
 #include <complex>
 #include <iterator>
+#include <optional>
 #include <vector>
 
 namespace cudaq {
@@ -25,7 +26,7 @@ matrix_2 operator-(const matrix_2 &, const matrix_2 &);
 matrix_2 kronecker(const matrix_2 &, const matrix_2 &);
 template <typename Iterable,
           typename T = typename std::iterator_traits<Iterable>::value_type>
-matrix_2 kronecker(T begin, T end);
+matrix_2 kronecker(Iterable begin, Iterable end);
 
 //===----------------------------------------------------------------------===//
 
@@ -97,7 +98,11 @@ public:
   /// Kronecker a list of matrices. The list can be any container that has
   /// iterators defined.
   template <typename Iterable, typename T>
-  friend matrix_2 kronecker(T begin, T end);
+  friend matrix_2 kronecker(Iterable begin, Iterable end);
+
+  /// Operator to get the value at a particular index in the matrix.
+  std::optional<std::complex<double>>
+  operator[](const std::vector<std::size_t> &at) const;
 
   std::string dump() const;
 
@@ -139,12 +144,12 @@ private:
 //===----------------------------------------------------------------------===//
 
 template <typename Iterable, typename T>
-matrix_2 kronecker(T begin, T end) {
+matrix_2 kronecker(Iterable begin, Iterable end) {
   matrix_2 result;
   if (begin == end)
     return result;
   result = *begin;
-  for (auto i = ++begin; i != end; ++i)
+  for (auto i = std::next(begin); i != end; i = std::next(i))
     result.kronecker_inplace(*i);
   return result;
 }
