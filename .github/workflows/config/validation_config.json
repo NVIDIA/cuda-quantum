@@ -35,7 +35,6 @@
             "operating_systems": 
             [
                 "ubuntu:24.04",
-                "ubuntu:22.04",
                 "fedora:40",
                 "redhat/ubi9:9.2",
                 "opensuse/leap:15.6"
