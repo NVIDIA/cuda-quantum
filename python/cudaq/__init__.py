@@ -30,11 +30,14 @@ if not "CUDAQ_DYNLIBS" in os.environ:
         # The following package is only available on `x86_64` (not `aarch64`). For
         # `aarch64`, the library must be provided another way (likely with
         # LD_LIBRARY_PATH).
-        # Note: platform.processor does not work in all cases (if uname -p returns 
+        # Note: platform.processor does not work in all cases (if `uname -p` returns
         # unknown, e.g. on WSL)
-        if platform.processor() == "x86_64" or platform.uname().machine == "x86_64":
-            cudart_libs = get_library_path(f"nvidia-cuda_runtime-cu{cuda_major}")
-            cudart_path = os.path.join(cudart_libs, f"libcudart.so.{cuda_major}.0")
+        if platform.processor() == "x86_64" or platform.uname(
+        ).machine == "x86_64":
+            cudart_libs = get_library_path(
+                f"nvidia-cuda_runtime-cu{cuda_major}")
+            cudart_path = os.path.join(cudart_libs,
+                                       f"libcudart.so.{cuda_major}.0")
             os.environ["CUDAQ_DYNLIBS"] += f":{cudart_path}"
     except:
         import importlib.util
