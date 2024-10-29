@@ -103,6 +103,11 @@ target_link_libraries(CUDAQuantumPythonSources.Extension INTERFACE
     fmt::fmt-header-only
     unzip_util
 )
+if (CUDA_FOUND)
+  enable_language(CUDA)
+  find_package(CUDAToolkit REQUIRED)
+  target_compile_definitions(CUDAQuantumPythonSources.Extension PRIVATE -DCUDAQ_CUDA_MAJOR=${CUDAToolkit_VERSION_MAJOR)
+endif()
 
 ################################################################################
 # Common CAPI

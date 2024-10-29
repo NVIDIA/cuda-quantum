@@ -17,12 +17,12 @@ if multiprocessing.get_start_method(allow_none=True) is None:
 # CUDAQ_DYNLIBS must be set before any other imports that would initialize
 # LinkedLibraryHolder.
 if not "CUDAQ_DYNLIBS" in os.environ:
-    # FIXME: NEED TO DETECT CUDA VERSION HERE!
     try:
-        custatevec_libs = get_library_path("custatevec-cu11")
+        cuda_major = cudaq_runtime.__cuda_major__
+        custatevec_libs = get_library_path(f"custatevec-cu{cuda_major}")
         custatevec_path = os.path.join(custatevec_libs, "libcustatevec.so.1")
 
-        cutensornet_libs = get_library_path("cutensornet-cu11")
+        cutensornet_libs = get_library_path(f"cutensornet-cu{cuda_major}")
         cutensornet_path = os.path.join(cutensornet_libs, "libcutensornet.so.2")
 
         os.environ["CUDAQ_DYNLIBS"] = f"{custatevec_path}:{cutensornet_path}"
@@ -33,8 +33,8 @@ if not "CUDAQ_DYNLIBS" in os.environ:
         # Note: platform.processor does not work in all cases (if uname -p returns 
         # unknown, e.g. on WSL)
         if platform.processor() == "x86_64" or platform.uname().machine == "x86_64":
-            cudart_libs = get_library_path("nvidia-cuda_runtime-cu11")
-            cudart_path = os.path.join(cudart_libs, "libcudart.so.11.0")
+            cudart_libs = get_library_path(f"nvidia-cuda_runtime-cu{cuda_major}")
+            cudart_path = os.path.join(cudart_libs, f"libcudart.so.{cuda_major}.0")
             os.environ["CUDAQ_DYNLIBS"] += f":{cudart_path}"
     except:
         import importlib.util
