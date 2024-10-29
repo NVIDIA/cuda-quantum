@@ -12,6 +12,7 @@
 #include <cassert>
 #include <complex>
 #include <iterator>
+#include <optional>
 #include <vector>
 
 namespace cudaq {
@@ -106,7 +107,8 @@ public:
   friend matrix_2 kronecker(Iterable begin, Iterable end);
 
   /// Operator to get the value at a particular index in the matrix.
-  std::complex<double> operator[](const std::vector<std::size_t> &at) const;
+  std::optional<std::complex<double>>
+  operator[](const std::vector<std::size_t> &at) const;
 
   std::string dump() const;
 
