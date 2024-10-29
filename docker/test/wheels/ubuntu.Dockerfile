@@ -36,6 +36,7 @@ COPY docs/sphinx/snippets/python /tmp/snippets/
 COPY python/tests /tmp/tests/
 COPY python/README*.md /tmp/
 
+RUN sed -ie 's/include-system-site-packages\s*=\s*false/include-system-site-packages = true/g' "$VIRTUAL_ENV/pyvenv.cfg"
 RUN python${python_version} -m pip install ${pip_install_flags} /tmp/$cuda_quantum_wheel
 RUN if [ -n "$optional_dependencies" ]; then \
         cudaq_package=$(echo $cuda_quantum_wheel | cut -d '-' -f1 | tr _ -) && \
