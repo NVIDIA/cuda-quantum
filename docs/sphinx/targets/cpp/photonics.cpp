@@ -9,20 +9,18 @@
 
 struct photonicsKernel {
   void operator()() __qpu__ {
-    cudaq::qvector<3> qutrits(2);
-    plus(qutrits[0]);
-    plus(qutrits[1]);
-    plus(qutrits[1]);
-    mz(qutrits);
+    cudaq::qvector<3> qumodes(2);
+    create(qumodes[0]);
+    create(qumodes[1]);
+    create(qumodes[1]);
+    mz(qumodes);
   }
 };
 
 int main() {
 
   auto counts = cudaq::sample(photonicsKernel{});
-  for (auto &[k, v] : counts) {
-    printf("Result : Count = %s : %lu\n", k.c_str(), v);
-  }
+  counts.dump();
 
   auto state = cudaq::get_state(photonicsKernel{});
   state.dump();
