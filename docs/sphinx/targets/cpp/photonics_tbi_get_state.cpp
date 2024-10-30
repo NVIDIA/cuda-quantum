@@ -1,6 +1,6 @@
 // Compile and run with:
 // ```
-// nvq++ --target photonics photonics_tbi_get_state.cpp && ./a.out
+// nvq++ --target orca-photonics photonics_tbi_get_state.cpp && ./a.out
 // ```
 
 #include <cudaq.h>

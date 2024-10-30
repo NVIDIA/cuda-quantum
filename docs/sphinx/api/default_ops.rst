@@ -638,7 +638,7 @@ operations, each operating on 2 qubits.
 Photonic Operations on Qudits
 =============================
 
-These operations are valid only on the `photonics` target which does not support
+These operations are valid only on the `orca-photonics` target which does not support
 the quantum operations above.
 
 :code:`create`

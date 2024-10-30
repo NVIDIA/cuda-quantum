@@ -1,6 +1,7 @@
 // Compile and run with:
 // ```
-// nvq++ --target photonics photonics.cpp && ./a.out
+// nvq++ --target orca-photonics photonics.cpp
+// ./a.out
 // ```
 
 #include "cudaq/photonics.h"

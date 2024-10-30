@@ -15,7 +15,7 @@ import cudaq
 
 @pytest.fixture(autouse=True)
 def do_something():
-    cudaq.set_target("photonics")
+    cudaq.set_target("orca-photonics")
     yield
     cudaq.reset_target()
     cudaq.__clearKernelRegistries()
@@ -153,7 +153,7 @@ def test_target_change():
     res = cudaq.sample(bell_pair)
     assert len(res) == 2 and '00' in res and '11' in res
 
-    cudaq.set_target("photonics")
+    cudaq.set_target("orca-photonics")
     res = cudaq.sample(kernel)
     assert len(res) == 1 and '1' in res
 

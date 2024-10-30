@@ -15,12 +15,12 @@
 # Check the output for any tests that were skipped.
 
 # E.g. run the command 
-#   source validate_wheel.sh -w /tmp/cuda_quantum-*.whl -f /tmp -p 3.10 
+#   source validate_wheel.sh -w /tmp/cuda_quantum*.whl -f /tmp -p 3.10 
 # in a container (with GPU support) defined by:
 #
 # ARG base_image=ubuntu:22.04
 # FROM ${base_image}
-# ARG cuda_quantum_wheel=cuda_quantum-0.6.0-cp310-cp310-manylinux_2_28_x86_64.whl
+# ARG cuda_quantum_wheel=cuda_quantum_cu11-0.8.0-cp310-cp310-manylinux_2_28_x86_64.whl
 # COPY $cuda_quantum_wheel /tmp/$cuda_quantum_wheel
 # COPY scripts/validate_wheel.sh validate_wheel.sh
 # COPY docs/sphinx/examples/python /tmp/examples/
@@ -28,7 +28,7 @@
 # COPY docs/sphinx/targets/python /tmp/targets/
 # COPY docs/sphinx/snippets/python /tmp/snippets/
 # COPY python/tests /tmp/tests/
-# COPY python/README.md /tmp/README.md
+# COPY python/README*.md /tmp/
 # RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates vim wget openssh-client
 
 __optind__=$OPTIND
@@ -52,6 +52,7 @@ while getopts ":f:p:qw:" opt; do
 done
 OPTIND=$__optind__
 
+# FIXME: check validation with src dist (subsequent PR)
 readme_file="$root_folder/README.md"
 if [ ! -d "$root_folder" ] || [ ! -f "$readme_file" ] ; then
     echo -e "\e[01;31mDid not find Python root folder. Please pass the folder containing the README and test with -f.\e[0m" >&2

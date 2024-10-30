@@ -236,8 +236,8 @@ def mz(qudits: PyQudit | List[PyQudit], register_name=''):
 class PhotonicsHandler(object):
     """
     The `PhotonicsHandler` class serves as to process CUDA-Q kernels for the 
-    `photonics` target.
-    The target must be set to `photonics` prior to invoking a `PhotonicsHandler`.
+    `orca-photonics` target.
+    The target must be set to `orca-photonics` prior to invoking a `PhotonicsHandler`.
 
     The quantum operations in this kernel apply to qudits defined by 
     `qudit(level=N)` or a list of qudits. The qudits within a kernel must be of
@@ -249,9 +249,9 @@ class PhotonicsHandler(object):
 
     def __init__(self, function):
 
-        if 'photonics' != cudaq_runtime.get_target().name:
+        if 'orca-photonics' != cudaq_runtime.get_target().name:
             raise RuntimeError(
-                "A photonics kernel can only be used with 'photonics' target.")
+                "This kernel can only be used with 'orca-photonics' target.")
 
         QuditManager.reset()
         self.kernelFunction = function

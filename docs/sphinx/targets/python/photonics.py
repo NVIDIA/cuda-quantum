@@ -1,6 +1,6 @@
 import cudaq
 
-cudaq.set_target("photonics")
+cudaq.set_target("orca-photonics")
 
 
 @cudaq.kernel
