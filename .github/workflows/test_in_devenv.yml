@@ -63,7 +63,6 @@ jobs:
           endpoint: builder_context
 
       - name: Build CUDA Quantum
-        id: cudaq_build
         run: |
           if ${{ steps.restore_devdeps.outcome != 'skipped' }}; then
             load_output=`docker load --input "${{ inputs.devdeps_archive }}"`

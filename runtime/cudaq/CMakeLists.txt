@@ -23,6 +23,7 @@ add_library(${LIBRARY_NAME}
                 qis/remote_state.cpp
                 qis/state.cpp
                 utils/cudaq_utils.cpp
+                utils/tensor.cpp
                 distributed/mpi_plugin.cpp)
 
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
