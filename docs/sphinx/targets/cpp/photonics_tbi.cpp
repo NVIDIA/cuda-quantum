@@ -1,6 +1,6 @@
 // Compile and run with:
 // ```
-// nvq++ --target photonics photonics_tbi.cpp -o tbi.x
+// nvq++ --target orca-photonics photonics_tbi.cpp -o tbi.x
 // ./tbi.x
 // ```
 

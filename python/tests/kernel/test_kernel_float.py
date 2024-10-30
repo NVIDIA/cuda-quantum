@@ -13,17 +13,11 @@ import numpy as np
 
 import cudaq
 
-## [PYTHON_VERSION_FIX]
-skipIfPythonLessThan39 = pytest.mark.skipif(
-    sys.version_info < (3, 9),
-    reason="built-in collection types such as `list` not supported")
-
 
 def is_close(expected, actual) -> bool:
     return np.isclose(expected, actual, atol=1e-6)
 
 
-@skipIfPythonLessThan39
 def test_float_params():
     """Test that we can pass float lists to kernel functions."""
 
@@ -80,7 +74,6 @@ def test_float_use():
 # np.float64
 
 
-@skipIfPythonLessThan39
 def test_float64_params():
     """Test that we can pass float lists to kernel functions."""
 
@@ -170,7 +163,6 @@ def test_float64_use():
 # np.float32
 
 
-@skipIfPythonLessThan39
 def test_float32_params():
     """Test that we can pass float lists to kernel functions."""
 
@@ -257,7 +249,6 @@ def test_float32_use():
     assert is_close(t, float_np_use())
 
 
-@skipIfPythonLessThan39
 def test_float_list_parameter_promotion():
 
     @cudaq.kernel
@@ -279,7 +270,6 @@ def test_float_list_parameter_promotion():
     check([np.float32(np.pi / 2), True])
 
 
-@skipIfPythonLessThan39
 def test_float64_list_parameter_promotion():
 
     @cudaq.kernel
@@ -301,7 +291,6 @@ def test_float64_list_parameter_promotion():
     check([np.float32(np.pi / 2), 0, True])
 
 
-@skipIfPythonLessThan39
 def test_float32_list_parameter_promotion():
 
     @cudaq.kernel

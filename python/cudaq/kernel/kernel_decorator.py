@@ -398,10 +398,10 @@ class PyKernelDecorator(object):
         except RuntimeError:
             target_name = None
 
-        if 'photonics' == target_name:
+        if 'orca-photonics' == target_name:
             if self.kernelFunction is None:
                 raise RuntimeError(
-                    "The 'photonics' target must be used with a valid function."
+                    "The 'orca-photonics' target must be used with a valid function."
                 )
             # NOTE: Since this handler does not support MLIR mode (yet), just
             # invoke the kernel. If calling from a bound function, need to

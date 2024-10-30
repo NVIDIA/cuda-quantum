@@ -81,12 +81,9 @@ def __isBroadcast(kernel, *args):
             'list', 'np.ndarray', 'List', 'List[float]', 'List[complex]',
             'List[int]'
         ])
-        ## [PYTHON_VERSION_FIX]
-        if sys.version_info >= (3, 9):
-            checkList.extend(
-                [list[float], list[complex], list[int], list[bool]])
-            checkList.extend(
-                ['list[float]', 'list[complex]', 'list[int]', 'list[bool]'])
+        checkList.extend([list[float], list[complex], list[int], list[bool]])
+        checkList.extend(
+            ['list[float]', 'list[complex]', 'list[int]', 'list[bool]'])
         firstArgTypeIsStdvec = argTypes[firstArgType] in checkList
         if (isinstance(firstArg, list) or
                 isinstance(firstArg, List)) and not firstArgTypeIsStdvec:
