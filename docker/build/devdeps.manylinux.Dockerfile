@@ -99,16 +99,21 @@ ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
 ENV CURL_INSTALL_PREFIX=/usr/local/curl
 RUN bash /scripts/install_prerequisites.sh
 
-# Install CUDA 11.8.
+# Install CUDA
+
+ARG cuda_version
+ENV CUDA_VERSION=${cuda_version}
 
 # Note that pip packages are available for all necessary runtime components.
 RUN arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
     && dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/$distro/$arch_folder/cuda-$distro.repo \
     && dnf clean expire-cache \
-    && dnf install -y --nobest --setopt=install_weak_deps=False \
-        cuda-compiler-11-8.$(uname -m) cuda-cudart-devel-11-8.$(uname -m) libcublas-devel-11-8.$(uname -m)
+    && dnf install -y --nobest --setopt=install_weak_deps=False wget \
+        cuda-compiler-$(echo ${CUDA_VERSION} | tr . -) \
+        cuda-cudart-devel-$(echo ${CUDA_VERSION} | tr . -) \
+        libcublas-devel-$(echo ${CUDA_VERSION} | tr . -)
 
-ENV CUDA_INSTALL_PREFIX=/usr/local/cuda-11.8
+ENV CUDA_INSTALL_PREFIX=/usr/local/cuda-$CUDA_VERSION
 ENV CUDA_HOME="$CUDA_INSTALL_PREFIX"
 ENV CUDA_ROOT="$CUDA_INSTALL_PREFIX"
 ENV CUDA_PATH="$CUDA_INSTALL_PREFIX"
