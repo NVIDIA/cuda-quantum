@@ -169,7 +169,7 @@ jobs:
           file: ./docker/build/devdeps.ext.Dockerfile
           build-args: |
             ompidev_image=${{ inputs.ompidev_image }}
-            base_image=nvidia/cuda:${{ inputs.cuda_version }}-runtime-ubuntu22.04
+            base_image=nvidia/cuda:${{ inputs.cuda_version }}.0-runtime-ubuntu22.04
             cuda_version=${{ inputs.cuda_version }}
             cuda_packages=
           tags: ${{ steps.metadata.outputs.tags }}

@@ -344,6 +344,7 @@ jobs:
         cuda_version=${{ matrix.cuda_version }}
         base_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-{1}', matrix.platform, needs.config.outputs.devdeps_toolchain)] }}
         ompidev_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-cu{1}-ompi', matrix.platform, matrix.cuda_version)] }}
+        ${{ matrix.cuda_version != '11.8' && 'cuda_packages="cuda-cudart cuda-compiler libcublas-dev libcusolver libnvjitlink"' || '' }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
       environment: ${{ needs.metadata.outputs.environment }}
