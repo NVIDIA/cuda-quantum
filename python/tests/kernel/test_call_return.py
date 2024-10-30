@@ -12,56 +12,58 @@ import cudaq
 def test_call_with_return_bool():
 
     @cudaq.kernel()
-    def callMe(q: cudaq.qubit) -> bool:
+    def callee(q: cudaq.qubit) -> bool:
         h(q)
         m = mz(q)
         return m
 
     @cudaq.kernel()
-    def IWillCallYou() -> bool:
+    def caller() -> bool:
         q = cudaq.qubit()
-        t = callMe(q)
-        return t
-
-    print(IWillCallYou())
-
-def test_call_with_return_list():
-    @cudaq.kernel(verbose=True)
-    def callee(v: cudaq.qview) -> list[bool]:
-        return mz(v)
-
-    @cudaq.kernel()
-    def caller() -> list[bool]:
-        q = cudaq.qvector(2)
         t = callee(q)
         return t
 
     print(caller())
 
-# def test_call_with_return_list():
-#     from dataclasses import dataclass
-#     @dataclass
-#     class patch:
-#         data : cudaq.qview 
-#         ancx : cudaq.qview 
-#         ancz : cudaq.qview 
 
-# @cudaq.kernel(verbose=True)
-# def stabilizer(logicalQubit: patch, x_stabilizers: list[int],
-#                z_stabilizers: list[int]) -> list[bool]:
-#     for xi in range(len(logicalQubit.ancx)):
-#         for di in range(len(logicalQubit.data)):
-#             if x_stabilizers[xi * len(logicalQubit.data) + di] == 1:
-#                 x.ctrl(logicalQubit.ancx[xi], logicalQubit.data[di])
+def test_call_with_return_bool2():
+    from dataclasses import dataclass
 
-#     h(logicalQubit.ancx)
-#     for zi in range(len(logicalQubit.ancx)):
-#         for di in range(len(logicalQubit.data)):
-#             if z_stabilizers[zi * len(logicalQubit.data) + di] == 1:
-#                 x.ctrl(logicalQubit.data[di], logicalQubit.ancz[zi])
+    @dataclass
+    class patch:
+        data: cudaq.qview
+        ancx: cudaq.qview
+        ancz: cudaq.qview
 
-#     results = mz(logicalQubit.ancx, logicalQubit.ancz)
+    @cudaq.kernel()
+    def stabilizer(logicalQubit: patch, x_stabilizers: list[int],
+                   z_stabilizers: list[int]) -> bool:
+        for xi in range(len(logicalQubit.ancx)):
+            for di in range(len(logicalQubit.data)):
+                if x_stabilizers[xi * len(logicalQubit.data) + di] == 1:
+                    x.ctrl(logicalQubit.ancx[xi], logicalQubit.data[di])
 
-#     reset(logicalQubit.ancx)
-#     reset(logicalQubit.ancz)
-#     return results
+        h(logicalQubit.ancx)
+        for zi in range(len(logicalQubit.ancz)):
+            for di in range(len(logicalQubit.data)):
+                if z_stabilizers[zi * len(logicalQubit.data) + di] == 1:
+                    x.ctrl(logicalQubit.data[di], logicalQubit.ancz[zi])
+
+        results = mz(logicalQubit.ancx, logicalQubit.ancz)
+
+        reset(logicalQubit.ancx)
+        reset(logicalQubit.ancz)
+        #TODO: support returning lists
+        return results[0] and results[2]
+
+    @cudaq.kernel()
+    def run() -> bool:
+        q = cudaq.qvector(2)
+        x(q[0])
+        r = cudaq.qvector(2)
+        s = cudaq.qvector(2)
+        p = patch(q, r, s)
+
+        return stabilizer(p, [1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1])
+
+    assert run() == True
