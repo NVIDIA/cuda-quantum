@@ -54,6 +54,7 @@ def test_call_with_return_bool2():
         reset(logicalQubit.ancx)
         reset(logicalQubit.ancz)
         #TODO: support returning lists
+        #Issue: https://github.com/NVIDIA/cuda-quantum/issues/2336
         return results[0] and results[2]
 
     @cudaq.kernel()
