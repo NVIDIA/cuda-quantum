@@ -1,6 +1,6 @@
 // Compile and run with:
 // ```
-// nvq++ --target photonics photonics.cpp
+// nvq++ --target orca-photonics photonics.cpp
 // ./a.out
 // ```
 
