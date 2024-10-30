@@ -520,9 +520,9 @@ std::invoke_result_t<QuantumKernel, Args...> invokeKernel(QuantumKernel &&fn,
     // Just need to JIT code to get it registered.
     static_cast<cudaq::details::kernel_builder_base &>(fn).jitCode();
     auto serializedArgsBuffer = serializeArgs(std::forward<Args>(args)...);
-    cudaq::get_platform().launchKernel(fn.name(), nullptr,
-                                       (void *)serializedArgsBuffer.data(),
-                                       serializedArgsBuffer.size(), 0, {});
+    [[maybe_unused]] auto result = cudaq::get_platform().launchKernel(
+        fn.name(), nullptr, (void *)serializedArgsBuffer.data(),
+        serializedArgsBuffer.size(), 0, {});
   } else {
     // In library mode, to use the remote simulator platform, we need to pack
     // the argument and delegate to the platform's launchKernel rather than
