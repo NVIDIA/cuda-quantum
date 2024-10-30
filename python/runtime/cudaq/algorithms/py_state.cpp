@@ -655,7 +655,7 @@ index pair.
         if (holder.getTarget().name == "remote-mqpu" ||
             holder.getTarget().name == "nvqc")
           return pyGetStateRemote(kernel, args);
-        if (holder.getTarget().name == "photonics")
+        if (holder.getTarget().name == "orca-photonics")
           return pyGetStateLibraryMode(kernel, args);
         return pyGetState(kernel, args);
       },
