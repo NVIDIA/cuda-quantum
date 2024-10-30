@@ -63,7 +63,7 @@ if [ "$1" == "install-cuquantum" ]; then
     CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
 
 # [>cuQuantumInstall]
-    CUQUANTUM_VERSION=24.03.0.4
+    CUQUANTUM_VERSION=24.08.0.5
     CUQUANTUM_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum
 
     cuquantum_archive=cuquantum-linux-${CUDA_ARCH_FOLDER}-${CUQUANTUM_VERSION}_cuda$(echo ${CUDA_VERSION} | cut -d . -f1)-archive.tar.xz

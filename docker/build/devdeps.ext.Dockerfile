@@ -16,12 +16,21 @@
 # Must be built from the repo root with:
 #   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:ext -f docker/build/devdeps.ext.Dockerfile .
 
+ARG cuda_version=11.8
 ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:llvm-main
-ARG ompidev_image=ghcr.io/nvidia/cuda-quantum-devdeps:ompi-main
+ARG ompidev_image=ghcr.io/nvidia/cuda-quantum-devdeps:cu11-ompi-main
 FROM $ompidev_image AS ompibuild
+RUN if [ -z "${cuda_version}" ]; then \
+        echo -e "\e[01;31mError: Missing argument cuda_version.\e[0m" >&2; \
+    fi && \        
+    if [ -n "${CUDA_VERSION}" ] && [ "${CUDA_VERSION}" != "${cuda_version}" ]; then \
+        echo -e "\e[01;31mError: CUDA version ${CUDA_VERSION} in ompidev_image does not match ${cuda_version}.\e[0m" >&2; \
+    fi
 
 FROM $base_image
 SHELL ["/bin/bash", "-c"]
+ARG cuda_version
+ENV CUDA_VERSION=${cuda_version}
 
 # When a dialogue box would be needed during install, assume default configurations.
 # Set here to avoid setting it for all install commands. 
@@ -125,12 +134,13 @@ ENV CUQUANTUM_PATH="$CUQUANTUM_INSTALL_PREFIX"
 ENV LD_LIBRARY_PATH="$CUQUANTUM_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
 ENV CPATH="$CUQUANTUM_INSTALL_PREFIX/include:$CPATH"
 
-ENV CUQUANTUM_VERSION=24.03.0.4_cuda11
+ENV CUQUANTUM_VERSION=24.08.0.5
 RUN apt-get update && apt-get install -y --no-install-recommends xz-utils \
     && arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
-    && wget -q "https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-$arch_folder/cuquantum-linux-$arch_folder-$CUQUANTUM_VERSION-archive.tar.xz" \
-    && mkdir -p "$CUQUANTUM_INSTALL_PREFIX" && tar xf cuquantum-linux-$arch_folder-$CUQUANTUM_VERSION-archive.tar.xz --strip-components 1 -C "$CUQUANTUM_INSTALL_PREFIX" \
-    && rm cuquantum-linux-$arch_folder-$CUQUANTUM_VERSION-archive.tar.xz \
+    && cuda_major=$(echo $CUDA_VERSION | cut -d . -f1) \
+    && wget -q "https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-$arch_folder/cuquantum-linux-$arch_folder-${CUQUANTUM_VERSION}_cuda${cuda_major}-archive.tar.xz" \
+    && mkdir -p "$CUQUANTUM_INSTALL_PREFIX" && tar xf cuquantum-linux-$arch_folder-${CUQUANTUM_VERSION}_cuda${cuda_major}-archive.tar.xz --strip-components 1 -C "$CUQUANTUM_INSTALL_PREFIX" \
+    && rm cuquantum-linux-$arch_folder-${CUQUANTUM_VERSION}_cuda${cuda_major}-archive.tar.xz \
     && apt-get remove -y xz-utils \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
@@ -145,19 +155,21 @@ ENV CPATH="$CUTENSOR_INSTALL_PREFIX/include:$CPATH"
 ENV CUTENSOR_VERSION=2.0.1.2
 RUN apt-get update && apt-get install -y --no-install-recommends xz-utils \
     && arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
+    && cuda_major=$(echo $CUDA_VERSION | cut -d . -f1) \
     && wget -q "https://developer.download.nvidia.com/compute/cutensor/redist/libcutensor/linux-$arch_folder/libcutensor-linux-$arch_folder-$CUTENSOR_VERSION-archive.tar.xz" \
     && tar xf libcutensor-linux-$arch_folder-$CUTENSOR_VERSION-archive.tar.xz && cd libcutensor-linux-$arch_folder-$CUTENSOR_VERSION-archive \
-    && mkdir -p "$CUTENSOR_INSTALL_PREFIX" && mv include "$CUTENSOR_INSTALL_PREFIX" && mv lib/11 "$CUTENSOR_INSTALL_PREFIX/lib" \
+    && mkdir -p "$CUTENSOR_INSTALL_PREFIX" && mv include "$CUTENSOR_INSTALL_PREFIX" && mv lib/${cuda_major} "$CUTENSOR_INSTALL_PREFIX/lib" \
     && cd / && rm -rf libcutensor-linux-$arch_folder-$CUTENSOR_VERSION-archive* \
     && apt-get remove -y xz-utils \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
-# Install CUDA 11.8.
+# Install CUDA
 
-ARG cuda_root=/usr/local/cuda-11.8
-ARG cuda_packages="cuda-cudart-11-8 cuda-compiler-11-8 libcublas-dev-11-8 libcusolver-11-8"
+ARG cuda_packages="cuda-cudart cuda-compiler libcublas-dev libcusolver"
 RUN if [ -n "$cuda_packages" ]; then \
         arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
+        && cuda_version_suffix=$(echo ${CUDA_VERSION} | tr . -) \
+        && cuda_packages=`printf '%s\n' $cuda_packages | xargs -I "{}" echo "{}"-$cuda_version_suffix` \
         && wget -q "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/$arch_folder/cuda-keyring_1.0-1_all.deb" \
         && dpkg -i cuda-keyring_1.0-1_all.deb \
         && apt-get update && apt-get install -y --no-install-recommends $cuda_packages \
@@ -178,7 +190,7 @@ RUN if [ -z "$CUDA_ROOT" ]; then \
         /usr/local/cuda/compat/lib; \
     fi
 
-ENV CUDA_INSTALL_PREFIX="$cuda_root"
+ENV CUDA_INSTALL_PREFIX="/usr/local/cuda-${CUDA_VERSION}"
 ENV CUDA_HOME="$CUDA_INSTALL_PREFIX"
 ENV CUDA_ROOT="$CUDA_INSTALL_PREFIX"
 ENV CUDA_PATH="$CUDA_INSTALL_PREFIX"
