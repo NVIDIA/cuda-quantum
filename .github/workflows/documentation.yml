@@ -32,6 +32,7 @@ jobs:
       contents: write
       issues: write
       pull-requests: write
+      actions: read
 
     environment:
       name: ${{ (github.event.workflow_run.name == 'CI' && 'default') || 'github-pages' }}
