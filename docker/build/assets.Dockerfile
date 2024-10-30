@@ -269,7 +269,7 @@ RUN if [ ! -x "$(command -v nvidia-smi)" ] || [ -z "$(nvidia-smi | egrep -o "CUD
         # Removing gcc packages remove the CUDA toolkit since it depends on them
         source /cuda-quantum/scripts/configure_build.sh install-cudart; \
     fi && cd /cuda-quantum && \
-    # FIXME: Tensor tests for runtime errors throw a different exception.
+    # FIXME: Tensor unit tests for runtime errors throw a different exception.
     # Issue: https://github.com/NVIDIA/cuda-quantum/issues/2321
     excludes+=" --exclude-regex ctest-nvqpp|ctest-targettests|Tensor.*Error" && \
     ctest --output-on-failure --test-dir build $excludes
