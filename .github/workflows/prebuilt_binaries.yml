@@ -279,6 +279,7 @@ jobs:
   validation:
     name: Validate installer
     needs: [build_installer, build_openmpi, create_test_config]
+    if: toJson(fromJSON(needs.create_test_config.outputs.json).operating_systems) != '[]'
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
