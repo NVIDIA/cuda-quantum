@@ -166,10 +166,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends xz-utils \
 # Install CUDA
 
 ARG cuda_packages="cuda-cudart cuda-compiler libcublas-dev libcusolver"
-RUN if [ -n "$cuda_packages" ]; then \
+RUN if [ -n "$(echo "$cuda_packages")" ]; then \
         arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
-        && cuda_version_suffix=$(echo ${CUDA_VERSION} | tr . -) \
-        && cuda_packages=`printf '%s\n' $cuda_packages | xargs -I "{}" echo "{}"-$cuda_version_suffix` \
+        && cuda_packages=`printf '%s\n' $cuda_packages | xargs -I "{}" echo "{}"-$(echo ${CUDA_VERSION} | tr . -)` \
         && wget -q "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/$arch_folder/cuda-keyring_1.0-1_all.deb" \
         && dpkg -i cuda-keyring_1.0-1_all.deb \
         && apt-get update && apt-get install -y --no-install-recommends $cuda_packages \
