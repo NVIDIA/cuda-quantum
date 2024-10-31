@@ -342,19 +342,14 @@ Type factory::getSRetElementType(FunctionType funcTy) {
   return funcTy.getResult(0);
 }
 
-static Type convertToHostSideType(Type ty) {
+Type factory::convertToHostSideType(Type ty) {
   if (auto memrefTy = dyn_cast<cc::StdvecType>(ty))
-    return convertToHostSideType(
-        factory::stlVectorType(memrefTy.getElementType()));
+    return factory::stlVectorType(
+        convertToHostSideType(memrefTy.getElementType()));
   if (isa<cc::IndirectCallableType>(ty))
     return cc::PointerType::get(IntegerType::get(ty.getContext(), 8));
-  if (auto memrefTy = dyn_cast<cc::CharspanType>(ty)) {
-    // `pauli_word` is an object with a std::vector in the header files at
-    // present. This data type *must* be updated if it becomes a std::string
-    // once again.
-    return convertToHostSideType(
-        factory::stlVectorType(IntegerType::get(ty.getContext(), 8)));
-  }
+  if (isa<cc::CharspanType>(ty))
+    return factory::stlStringType(ty.getContext());
   auto *ctx = ty.getContext();
   if (auto structTy = dyn_cast<cc::StructType>(ty)) {
     SmallVector<Type> newMembers;

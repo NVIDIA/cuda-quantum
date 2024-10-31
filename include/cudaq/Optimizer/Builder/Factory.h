@@ -246,6 +246,9 @@ bool hasSRet(mlir::func::FuncOp funcOp);
 mlir::FunctionType toHostSideFuncType(mlir::FunctionType funcTy,
                                       bool addThisPtr, mlir::ModuleOp module);
 
+/// Convert device type, \p ty, to host side type.
+mlir::Type convertToHostSideType(mlir::Type ty);
+
 // Return `true` if the given type corresponds to a standard vector type
 // according to our convention.
 // The convention is a `ptr<struct<ptr<T>, ptr<T>, ptr<T>>>`.

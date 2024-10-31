@@ -8,20 +8,31 @@
 #pragma once
 
 #include <string>
-#include <vector>
 
 namespace cudaq {
-/// @brief The `pauli_word` is a thin wrapper on a
-/// Pauli tensor product string, e.g. `XXYZ` on 4
-// qubits.
+/// @brief The `pauli_word` is a thin wrapper on a Pauli tensor product string,
+/// e.g. `XXYZ` on 4 qubits.
 class pauli_word {
 private:
-  std::vector<char> term;
+  std::string term;
 
 public:
   pauli_word() = default;
-  pauli_word(const std::string t) : term(t.begin(), t.end()) {}
-  std::string str() const { return std::string(term.begin(), term.end()); }
-  const std::vector<char> &data() const { return term; }
+  pauli_word(std::string &&t) : term{std::move(t)} {}
+  pauli_word(const std::string &t) : term(t) {}
+  pauli_word(const char *const p) : term{p} {}
+  pauli_word &operator=(const std::string &t) {
+    term = t;
+    return *this;
+  }
+  pauli_word &operator=(const char *const p) {
+    term = p;
+    return *this;
+  }
+
+  std::string str() const { return term; }
+
+  // TODO: Obsolete? Used by KernelWrapper.h only.
+  const std::vector<char> data() const { return {term.begin(), term.end()}; }
 };
 } // namespace cudaq
