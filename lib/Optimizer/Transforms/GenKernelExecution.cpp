@@ -356,14 +356,16 @@ private:
   // logical device side argument. May drop some arguments on the floor if they
   // cannot be encoded.
   template <bool argsAreReferences>
-  SmallVector<std::tuple<unsigned, Value, Type>> zipArgumentsWithDeviceTypes(
-      Location loc, OpBuilder &builder, ValueRange args, TypeRange types,
-      SmallVectorImpl<Value> *freeVectorBuffers = nullptr) {
+  SmallVector<std::tuple<unsigned, Value, Type>>
+  zipArgumentsWithDeviceTypes(Location loc, OpBuilder &builder, ValueRange args,
+                              TypeRange types,
+                              SmallVectorImpl<Value> &freeVectorBuffers) {
     SmallVector<std::tuple<unsigned, Value, Type>> result;
     if constexpr (argsAreReferences) {
       // Simple case: the number of args must be equal to the types.
       assert(args.size() == types.size() &&
              "arguments and types must have same size");
+      auto *ctx = builder.getContext();
       for (auto iter : llvm::enumerate(llvm::zip(args, types))) {
         // Remove the reference.
         Value v = std::get<Value>(iter.value());
@@ -371,10 +373,18 @@ private:
         if (!(cudaq::cc::isDynamicType(ty) || isStateType(ty) ||
               isa<cudaq::cc::IndirectCallableType>(ty)))
           v = builder.create<cudaq::cc::LoadOp>(loc, v);
-        // NB: Will a vector<bool> be passed as a C++ object or "unrolled" by
-        // the caller into a contiguous string of bytes, where each byte is a
-        // bool? Assume the latter for now, since it's likely the way python
-        // will do / continue to do it.
+        // Python will pass a std::vector<bool> to us here. Unpack it.
+        if (auto stdvecTy = dyn_cast<cudaq::cc::StdvecType>(ty))
+          if (stdvecTy.getElementType() == IntegerType::get(ctx, 1)) {
+            Type stdvecHostTy =
+                cudaq::opt::factory::stlVectorType(stdvecTy.getElementType());
+            Value tmp = builder.create<cudaq::cc::AllocaOp>(loc, stdvecHostTy);
+            builder.create<func::CallOp>(loc, std::nullopt,
+                                         cudaq::stdvecBoolUnpackToInitList,
+                                         ArrayRef<Value>{tmp, v});
+            freeVectorBuffers.push_back(tmp);
+            v = tmp;
+          }
         result.emplace_back(iter.index(), v, ty);
       }
     } else /*constexpr*/ {
@@ -401,9 +411,7 @@ private:
                                          cudaq::stdvecBoolUnpackToInitList,
                                          ArrayRef<Value>{tmp, *argIter});
             result.emplace_back(argPos, tmp, devTy);
-            assert(freeVectorBuffers &&
-                   "must have a vector to return heap allocations");
-            freeVectorBuffers->push_back(tmp);
+            freeVectorBuffers.push_back(tmp);
             continue;
           }
 
@@ -730,8 +738,9 @@ private:
     // Zip the arguments with the device side argument types. Recall that some
     // of the (left-most) arguments may have been dropped on the floor.
     const bool hasDynamicSignature = isDynamicSignature(devKernelTy);
+    SmallVector<Value> freeVectorBuffers;
     auto zippy = zipArgumentsWithDeviceTypes</*argsAreReferences=*/true>(
-        loc, builder, pseudoArgs, passedDevArgTys);
+        loc, builder, pseudoArgs, passedDevArgTys, freeVectorBuffers);
     auto sizeScratch = builder.create<cudaq::cc::AllocaOp>(loc, i64Ty);
     auto messageBufferSize = [&]() -> Value {
       if (hasDynamicSignature)
@@ -763,6 +772,19 @@ private:
                             addendumScratch);
     } else {
       populateMessageBuffer(loc, builder, msgBufferPrefix, zippy);
+    }
+
+    if (!freeVectorBuffers.empty()) {
+      // Need to free any temporary vector-like buffers. These arise when
+      // there is a std::vector<bool> argument, which we translate into a
+      // std::vector<i8> to reuse the same code as any other std::vector<T>.
+      for (auto vecVar : freeVectorBuffers) {
+        auto ptrPtrTy = cudaq::cc::PointerType::get(ptrI8Ty);
+        auto ptrPtr = builder.create<cudaq::cc::CastOp>(loc, ptrPtrTy, vecVar);
+        Value freeMe = builder.create<cudaq::cc::LoadOp>(loc, ptrPtr);
+        builder.create<func::CallOp>(loc, std::nullopt, "free",
+                                     ArrayRef<Value>{freeMe});
+      }
     }
 
     // Return the message buffer and its size in bytes.
@@ -1168,7 +1190,7 @@ private:
     const bool hasDynamicSignature = isDynamicSignature(devFuncTy);
     SmallVector<Value> freeVectorBuffers;
     auto zippy = zipArgumentsWithDeviceTypes</*argsAreReferences=*/false>(
-        loc, builder, blockValues, devFuncTy.getInputs(), &freeVectorBuffers);
+        loc, builder, blockValues, devFuncTy.getInputs(), freeVectorBuffers);
     auto sizeScratch = builder.create<cudaq::cc::AllocaOp>(loc, i64Ty);
     auto messageBufferSize = [&]() -> Value {
       if (hasDynamicSignature)
