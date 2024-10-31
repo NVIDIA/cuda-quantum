@@ -101,7 +101,7 @@ RUN bash /scripts/install_prerequisites.sh
 
 # Install CUDA
 
-ARG cuda_version
+ARG cuda_version=11.8
 ENV CUDA_VERSION=${cuda_version}
 
 # Note that pip packages are available for all necessary runtime components.
