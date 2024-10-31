@@ -55,6 +55,13 @@ jobs:
       cudaq_version: ${{ steps.artifacts.outputs.cudaq_version }}
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.assets_repo || github.repository }}
+          ref: ${{ vars.data_branch }}
+          token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+
       - name: Download build info
         id: artifacts
         run: |
@@ -141,13 +148,6 @@ jobs:
           echo "docs_archive=$docs_archive" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ github.token }}
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ vars.assets_repo || github.repository }}
-          ref: ${{ vars.data_branch }}
-          token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Trigger assets creation
         id: assets_creation
