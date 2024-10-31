@@ -35,6 +35,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
 
     environment:
@@ -162,9 +163,9 @@ jobs:
           current_branch=$(git rev-parse --abbrev-ref HEAD)
 
           function create_assets {
-            release_id=`echo "$4" | jq -r ".$1.release_id"`
-            staging_branch=`echo "$4" | jq -r ".$1.staging_branch"`
-            artifacts_url=`echo "$4" | jq -r ".$1.artifacts_url"`
+            release_id=`echo "$4" | jq -r ".\"$1\".release_id"`
+            staging_branch=`echo "$4" | jq -r ".\"$1\".staging_branch"`
+            artifacts_url=`echo "$4" | jq -r ".\"$1\".artifacts_url"`
             staging_folder="deployments/staging/$3"
             image_hash=`cat "$1.txt" | grep -o "$2: \S*" | cut -d ' ' -f 2`
             file_id=`echo $image_hash | rev | cut -d ':' -f 1 | rev`
@@ -216,7 +217,7 @@ jobs:
           git config --global user.name "cuda-quantum-bot"
           git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
           function delete_staging_branch {
-            staging_branch=`echo "$2" | jq -r ".$1.staging_branch"`
+            staging_branch=`echo "$2" | jq -r ".\"$1\".staging_branch"`
             echo "Delete staging branch $staging_branch ..."
             if [[ "$staging_branch" =~ ^bot\/.*$ ]]; then
               git push origin --delete $staging_branch
@@ -252,7 +253,7 @@ jobs:
           
           function download_assets {
             mkdir "$1" && cd "$1"
-            release_id=`echo "$2" | jq -r ".$1.release_id"`
+            release_id=`echo "$2" | jq -r ".\"$1\".release_id"`
             while ! [ -f "$1.txt" ]; do
               echo "Download $release_id assets..."
               (gh release download $release_id -R ${{ vars.assets_repo || github.repository }}) || true
