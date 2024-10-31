@@ -886,7 +886,8 @@ jobs:
           echo "$keys" >> cache_keys.txt
           
           platform_tag=${{ needs.metadata.outputs.platform_tag }}
-          artifact_name=cache_keys${platform_tag:+_$platform_tag}_images
+          cuda_major=`echo ${{ inputs.cuda_version }} | cut -d . -f1`
+          artifact_name=cache_keys${platform_tag:+_$platform_tag}${cuda_major:+_cu$cuda_major}_images
           echo "artifact_name=$artifact_name" >> $GITHUB_OUTPUT
 
       - uses: actions/upload-artifact@v4
