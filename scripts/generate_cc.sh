@@ -65,8 +65,6 @@ repo_root=$(cd "$this_file_dir" && git rev-parse --show-toplevel)
 # Set envs
 if $gen_cpp_coverage; then
     export CUDAQ_ENABLE_CC=ON
-    mkdir -p /usr/lib/llvm-16/lib/clang/16/lib/linux
-    ln -s /usr/local/llvm/lib/clang/16/lib/x86_64-unknown-linux-gnu/libclang_rt.profile.a /usr/lib/llvm-16/lib/clang/16/lib/linux/libclang_rt.profile-x86_64.a
     export LLVM_PROFILE_FILE=${repo_root}/build/tmp/cudaq-cc/profile-%9m.profraw
 fi
 
@@ -90,14 +88,7 @@ gen_cplusplus_report() {
 }
 
 if $gen_cpp_coverage; then
-    # Detect toolchain use_llvm_cov=false
-    toolchain_contents=$(cat /usr/local/llvm/bootstrap/cc)
-    if [[ $toolchain_contents == *"/usr/bin/clang-16"* ]]; then
-        use_llvm_cov=true
-    else
-        echo "Currently not supported, running tests using llvm-lit fails"
-        exit 1
-    fi
+    use_llvm_cov=true
 
     # Run tests (C++ Unittests)
     python3 -m pip install iqm-client==16.1
