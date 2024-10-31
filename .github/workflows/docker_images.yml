@@ -20,6 +20,10 @@ on:
       build_docs:
         required: false
         type: string
+      cuda_version:
+        required: false
+        type: string
+        description: The CUDA version with which the development dependencies were built.
       environment:
         required: false
         type: string
@@ -165,8 +169,8 @@ jobs:
           file: ./docker/build/devdeps.ext.Dockerfile
           build-args: |
             ompidev_image=${{ inputs.ompidev_image }}
-            base_image=nvidia/cuda:11.8.0-runtime-ubuntu22.04
-            cuda_root=/usr/local/cuda-11.8
+            base_image=nvidia/cuda:${{ inputs.cuda_version }}.0-runtime-ubuntu22.04
+            cuda_version=${{ inputs.cuda_version }}
             cuda_packages=
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
@@ -470,7 +474,8 @@ jobs:
           image_description="CUDA Quantum toolkit for heterogeneous quantum-classical workflows"
 
           platform_tag=${{ needs.metadata.outputs.platform_tag }}
-          image_tag=${platform_tag:+$platform_tag-}
+          cuda_major=`echo ${{ inputs.cuda_version }} | cut -d . -f1`
+          image_tag=${platform_tag:+$platform_tag-}${cuda_major:+cu${cuda_major}-}
           if ${{ github.event.pull_request.number != '' }} || [ -n "$(echo ${{ github.ref_name }} | grep pull-request/)" ]; then
             pr_number=`echo ${{ github.ref_name }} | grep -o [0-9]*`
             image_tag+=pr-${pr_number:-${{ github.event.pull_request.number }}}
@@ -841,7 +846,8 @@ jobs:
         run: |
           cudaqdev_hash=${{ needs.cudaqdev_image.outputs.image_hash }}
           cudaq_hash=${{ needs.cudaq_image.outputs.image_hash }}
-          artifact_name=image_publishing # changing the artifact name requires updating other workflows
+          cuda_major=`echo ${{ inputs.cuda_version }} | cut -d . -f1`
+          artifact_name=image_${cuda_major:+cu${cuda_major}_}publishing # changing the artifact name requires updating other workflows
           echo "artifact_name=$artifact_name" >> $GITHUB_OUTPUT
           info_file="$artifact_name.txt"
           echo "info_file=$info_file" >> $GITHUB_OUTPUT
@@ -852,6 +858,7 @@ jobs:
           echo "cuda-quantum-dev-image: $cudaqdev_hash"  >> "$info_file"
           echo "cuda-quantum-devdeps-image: ${{ inputs.devdeps_image }}" >> "$info_file"
           echo "platforms: ${{ inputs.platforms }}" >> "$info_file"
+          echo "cuda-version: ${{ inputs.cuda_version }}" >> "$info_file"
           cat .github/workflows/config/gitlab_commits.txt >> "$info_file"
 
       - name: Upload build info

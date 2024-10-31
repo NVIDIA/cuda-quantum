@@ -487,7 +487,8 @@ jobs:
   staging:
     name: Staging
     needs: [build_installer, build_openmpi, create_test_config, validation]
-    if: inputs.environment
+    # Allow staging even if there are not validations configured.
+    if: always() && !cancelled() && inputs.environment && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest
     permissions:
       contents: read
