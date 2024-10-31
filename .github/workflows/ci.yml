@@ -194,6 +194,8 @@ jobs:
         toolchain: [clang16]
       fail-fast: false
     uses: ./.github/workflows/generate_cc.yml
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     with:
       platform: linux/${{ matrix.platform }}
       devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
