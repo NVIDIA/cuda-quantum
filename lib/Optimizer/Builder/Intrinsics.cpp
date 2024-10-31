@@ -307,11 +307,17 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     return %0 : !cc.ptr<i8>
   })#"},
 
+    // __nvqpp_vector_bool_free_temporary_lists
+    {cudaq::stdvecBoolFreeTemporaryLists,
+     {},
+     R"#(
+  func.func private @__nvqpp_vector_bool_free_temporary_initlists(!cc.ptr<i8>) -> ())#"},
+
     // __nvqpp_vector_bool_to_initializer_list
     {cudaq::stdvecBoolUnpackToInitList,
      {},
      R"#(
-  func.func private @__nvqpp_vector_bool_to_initializer_list(!cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>) -> ())#"},
+  func.func private @__nvqpp_vector_bool_to_initializer_list(!cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x 32>}>>, !cc.ptr<!cc.ptr<i8>>) -> ())#"},
 
     {"__nvqpp_zeroDynamicResult", {}, R"#(
   func.func private @__nvqpp_zeroDynamicResult() -> !cc.struct<{!cc.ptr<i8>, i64}> {

@@ -321,6 +321,22 @@ cc::StructType factory::stlVectorType(Type eleTy) {
   return cc::StructType::get(ctx, ArrayRef<Type>{ptrTy, ptrTy, ptrTy});
 }
 
+// Note that this is the raw host type, where std::vector<bool> is distinct.
+// When converting to the device side, the distinction is deliberately removed
+// making std::vector<bool> the same format as std::vector<char>.
+static cc::StructType stlHostVectorType(Type eleTy) {
+  MLIRContext *ctx = eleTy.getContext();
+  if (eleTy != IntegerType::get(ctx, 1)) {
+    // std::vector<T> where T != bool.
+    return factory::stlVectorType(eleTy);
+  }
+  // std::vector<bool> is a different type than std::vector<T>.
+  auto ptrTy = cc::PointerType::get(eleTy);
+  auto i8Ty = IntegerType::get(ctx, 8);
+  auto padout = cc::ArrayType::get(ctx, i8Ty, 32);
+  return cc::StructType::get(ctx, ArrayRef<Type>{ptrTy, padout});
+}
+
 // FIXME: Give these front-end names so we can disambiguate more types.
 cc::StructType factory::getDynamicBufferType(MLIRContext *ctx) {
   auto ptrTy = cc::PointerType::get(IntegerType::get(ctx, 8));
@@ -344,8 +360,7 @@ Type factory::getSRetElementType(FunctionType funcTy) {
 
 Type factory::convertToHostSideType(Type ty) {
   if (auto memrefTy = dyn_cast<cc::StdvecType>(ty))
-    return factory::stlVectorType(
-        convertToHostSideType(memrefTy.getElementType()));
+    return stlHostVectorType(convertToHostSideType(memrefTy.getElementType()));
   if (isa<cc::IndirectCallableType>(ty))
     return cc::PointerType::get(IntegerType::get(ty.getContext(), 8));
   if (isa<cc::CharspanType>(ty))
