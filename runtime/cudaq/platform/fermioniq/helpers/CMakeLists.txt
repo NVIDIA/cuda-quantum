@@ -5,7 +5,13 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
+target_sources(cudaq-fermioniq-qpu PRIVATE FermioniqServerHelper.cpp)
 
-#  RUN: cudaq-target-conf -o %t %cudaq_target_dir/photonics.yml && cat %t | FileCheck %s
+add_library(cudaq-serverhelper-fermioniq SHARED FermioniqServerHelper.cpp )
+target_link_libraries(cudaq-serverhelper-fermioniq
+  PUBLIC 
+    cudaq-common 
+    fmt::fmt-header-only 
+)
+install(TARGETS cudaq-serverhelper-fermioniq DESTINATION lib)
 
-# CHECK-DAG: LIBRARY_MODE_EXECUTION_MANAGER=photonics

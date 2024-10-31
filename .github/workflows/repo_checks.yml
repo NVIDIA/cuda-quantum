@@ -15,6 +15,9 @@ jobs:
   links:
     runs-on: ubuntu-latest
     name: "Check links"
+    permissions:
+      contents: read
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -33,6 +36,9 @@ jobs:
   license_headers:
     name: Check license headers
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
     steps:
       - uses: actions/checkout@v4
       - uses: apache/skywalking-eyes/header@v0.4.0
@@ -43,6 +49,8 @@ jobs:
   filters:
     name: Filter files to check
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     outputs:
       json: ${{ steps.files.outputs.json }}
@@ -95,6 +103,8 @@ jobs:
     name: Check code formatting
     runs-on: ubuntu-latest
     needs: filters
+    permissions:
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
@@ -162,6 +172,8 @@ jobs:
     name: Check spelling
     runs-on: ubuntu-latest
     needs: filters
+    permissions:
+      contents: read
 
     steps:
       - uses: actions/checkout@v4

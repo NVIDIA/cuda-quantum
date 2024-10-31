@@ -35,6 +35,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
 
     environment:
@@ -54,12 +55,6 @@ jobs:
       cudaq_version: ${{ steps.artifacts.outputs.cudaq_version }}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ vars.data_branch }}
-          token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
-
       - name: Download build info
         id: artifacts
         run: |
@@ -89,6 +84,7 @@ jobs:
             if [ "${name%_publishing}" != "$name" ]; then
               download "$url" "$name"
               platforms=`cat "$name.txt" | egrep -o 'platforms?: \S*' | cut -d ' ' -f 2`
+              cuda_version=`cat "$name.txt" | egrep -o 'cuda-version: \S*' | cut -d ' ' -f 2`
               image_hash=`cat "$name.txt" | grep -o -e "cuda-quantum-dev-image: \S*" -e "cuda-quantum-assets-image: \S*" -e "cuda-quantum-wheeldeps-image: \S*" | cut -d ' ' -f 2`
               if [ -n "$(echo $platforms | grep ',')" ]; then runner=linux-amd64-cpu8
               else runner=$(echo $platforms | tr / -)-cpu8
@@ -103,7 +99,7 @@ jobs:
               release_id=${{ inputs.assets_from_run || github.run_id }}_$name
 
               releases+="$release_id "
-              info={\"$name\":{\"release_id\":\"$release_id\",\"staging_branch\":\"$staging_branch\",\"runner\":\"$runner\",\"artifacts_url\":\"$artifacts_url\",\"platform\":\"$platforms\",\"image_hash\":\"$image_hash\"}}
+              info={\"$name\":{\"release_id\":\"$release_id\",\"staging_branch\":\"$staging_branch\",\"runner\":\"$runner\",\"artifacts_url\":\"$artifacts_url\",\"platform\":\"$platforms\",\"cuda_version\":\"$cuda_version\",\"image_hash\":\"$image_hash\"}}
 
               if [ "${name#image}" != "$name" ]; then
                 docker_images=`echo $docker_images | jq ".info_files |= . + [\"$name\"]"`
@@ -146,6 +142,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.assets_repo || github.repository }}
+          ref: ${{ vars.data_branch }}
+          token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+
       - name: Trigger assets creation
         id: assets_creation
         if: inputs.assets_from_run == ''
@@ -160,9 +163,9 @@ jobs:
           current_branch=$(git rev-parse --abbrev-ref HEAD)
 
           function create_assets {
-            release_id=`echo "$4" | jq -r ".$1.release_id"`
-            staging_branch=`echo "$4" | jq -r ".$1.staging_branch"`
-            artifacts_url=`echo "$4" | jq -r ".$1.artifacts_url"`
+            release_id=`echo "$4" | jq -r ".\"$1\".release_id"`
+            staging_branch=`echo "$4" | jq -r ".\"$1\".staging_branch"`
+            artifacts_url=`echo "$4" | jq -r ".\"$1\".artifacts_url"`
             staging_folder="deployments/staging/$3"
             image_hash=`cat "$1.txt" | grep -o "$2: \S*" | cut -d ' ' -f 2`
             file_id=`echo $image_hash | rev | cut -d ':' -f 1 | rev`
@@ -199,7 +202,7 @@ jobs:
       - name: Wait for assets
         run: |
           for release_id in `echo ${{ steps.artifacts.outputs.releases }}`; do
-            while [ -z "$(gh release list -R ${{ github.repository }} | grep -s $release_id)" ];
+            while [ -z "$(gh release list -R ${{ vars.assets_repo || github.repository }} | grep -s $release_id)" ];
             do echo "Waiting for assets $release_id ..." && sleep 300; 
             done
           done
@@ -214,7 +217,7 @@ jobs:
           git config --global user.name "cuda-quantum-bot"
           git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
           function delete_staging_branch {
-            staging_branch=`echo "$2" | jq -r ".$1.staging_branch"`
+            staging_branch=`echo "$2" | jq -r ".\"$1\".staging_branch"`
             echo "Delete staging branch $staging_branch ..."
             if [[ "$staging_branch" =~ ^bot\/.*$ ]]; then
               git push origin --delete $staging_branch
@@ -250,10 +253,10 @@ jobs:
           
           function download_assets {
             mkdir "$1" && cd "$1"
-            release_id=`echo "$2" | jq -r ".$1.release_id"`
+            release_id=`echo "$2" | jq -r ".\"$1\".release_id"`
             while ! [ -f "$1.txt" ]; do
               echo "Download $release_id assets..."
-              (gh release download $release_id -R ${{ github.repository }}) || true
+              (gh release download $release_id -R ${{ vars.assets_repo || github.repository }}) || true
               sleep 30
             done
             cd ..
@@ -355,7 +358,7 @@ jobs:
 
           echo "release_id=$release_id" >> $GITHUB_OUTPUT
           echo "push_to_ngc=$push_to_ngc" >> $GITHUB_OUTPUT
-          echo "image_name=$registry/cuda-quantum" >> $GITHUB_OUTPUT
+          echo "image_name=$registry/${{ vars.packages_prefix }}cuda-quantum" >> $GITHUB_OUTPUT
           echo "image_tag=${base_tag%-base}" >> $GITHUB_OUTPUT
           echo "image_title=$image_title" >> $GITHUB_OUTPUT
           echo "image_description=$image_description" >> $GITHUB_OUTPUT
@@ -446,7 +449,7 @@ jobs:
       - name: Update release information
         run: |
           release_id=${{ steps.release_info.outputs.release_id }}
-          gh release view $release_id --json body --jq .body > rel_notes.txt
+          gh release view $release_id -R ${{ vars.assets_repo || github.repository }} --json body --jq .body > rel_notes.txt
           header_length=`cat rel_notes.txt | grep -n "Release notes generated" | cut -d ':' -f 1`
           head -n $(($header_length - 1)) rel_notes.txt > new_notes.txt
           echo -e "\nImages for ${{ steps.release_info.outputs.platforms }}:\n" >> new_notes.txt
@@ -455,7 +458,7 @@ jobs:
           echo "- cuda-quantum-dev (for extension development): ${{ steps.release_info.outputs.cudaqdev_image }}" >> new_notes.txt
           echo "- cuda-quantum-devdeps (development dependencies only): ${{ steps.release_info.outputs.cudaqdevdeps_image }}" >> new_notes.txt
           (echo && tail -n +$header_length rel_notes.txt) >> new_notes.txt
-          gh release edit $release_id -R ${{ github.repository }} --notes-file new_notes.txt
+          gh release edit $release_id -R ${{ vars.assets_repo || github.repository }} --notes-file new_notes.txt
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
@@ -510,6 +513,7 @@ jobs:
           platform=`cat $build_info | grep -o 'platform: \S*' | cut -d ' ' -f 2`
           platform_id=`echo $platform | sed 's/linux\///g' | tr -d ' '`
           platform_arch=`([ "$platform_id" == "amd64" ] && echo x86_64) || ([ "$platform_id" == "arm64" ] && echo aarch64) || echo any`
+          cuda_version=`cat $build_info | grep -o 'cuda-version: \S*' | cut -d ' ' -f 2`
           assets_image=`cat $build_info | grep -o 'cuda-quantum-assets-image: \S*' | cut -d ' ' -f 2`
           platform_base_image=`cat $build_info | grep -o 'platform-base-image: \S*' | cut -d ' ' -f 2`
           openmpi_buildcache=`cat $build_info | grep -o 'openmpi-build-cache: \S*' | cut -d ' ' -f 2`
@@ -518,6 +522,7 @@ jobs:
           echo "release_id=$release_id" >> $GITHUB_OUTPUT
           echo "platform=$platform" >> $GITHUB_OUTPUT
           echo "platform_arch=$platform_arch" >> $GITHUB_OUTPUT
+          echo "cuda_major_version=$(echo $cuda_version | cut -d . -f1)" >> $GITHUB_OUTPUT
           echo "assets_image=$assets_image" >> $GITHUB_OUTPUT
           echo "platform_base_image=$platform_base_image" >> $GITHUB_OUTPUT
           echo "openmpi_buildcache=$openmpi_buildcache" >> $GITHUB_OUTPUT
@@ -555,21 +560,29 @@ jobs:
       - name: Update release information
         run: |
           release_id=${{ steps.release_info.outputs.release_id }}
-          gh release view $release_id --json body --jq .body > rel_notes.txt
+          gh release view $release_id -R ${{ vars.assets_repo || github.repository }} --json body --jq .body > rel_notes.txt
           header_length=`cat rel_notes.txt | grep -n "Release notes generated" | cut -d ':' -f 1`
           head -n $(($header_length - 1)) rel_notes.txt > new_notes.txt
-          echo -e "\nImage to create ${{ steps.release_info.outputs.platform }} installer:\n" >> new_notes.txt
+          echo -e "\nImage to create ${{ steps.release_info.outputs.platform }} installer for CUDA ${{ steps.release_info.outputs.cuda_major_version }}:\n" >> new_notes.txt
           echo "- cuda-quantum-assets: ${{ steps.release_info.outputs.assets_image }}" >> new_notes.txt
           (echo && tail -n +$header_length rel_notes.txt) >> new_notes.txt
-          gh release edit $release_id -R ${{ github.repository }} --notes-file new_notes.txt
+          gh release edit $release_id -R ${{ vars.assets_repo || github.repository }} --notes-file new_notes.txt
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.release_info.outputs.platform_arch }}-installer
+          name: ${{ steps.release_info.outputs.platform_arch }}-cu${{ steps.release_info.outputs.cuda_major_version }}-installer
           path: /tmp/install
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Upload additional assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.release_info.outputs.platform_arch }}-cu${{ steps.release_info.outputs.cuda_major_version }}-assets
+          path: assets
           retention-days: 1
           if-no-files-found: error
 
@@ -587,7 +600,7 @@ jobs:
     strategy:
       matrix:
         info_file: ${{ fromJson(needs.assets.outputs.python_wheels).info_files }}
-        python_version: ['3.8', '3.9', '3.10', '3.11']
+        python_version: ['3.10', '3.11', '3.12']
       fail-fast: false
 
     runs-on: ${{ (contains(matrix.info_file, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
@@ -690,13 +703,13 @@ jobs:
           release_id=${{ fromJson(needs.assets.outputs.python_wheels)[format('{0}', matrix.info_file)].release_id }}
           platform=${{ fromJson(needs.assets.outputs.python_wheels)[format('{0}', matrix.info_file)].platform }}
           cudaqwheeldeps_image=${{ fromJson(needs.assets.outputs.python_wheels)[format('{0}', matrix.info_file)].image_hash }}
-          gh release view $release_id -R ${{ github.repository }} --json body --jq .body > rel_notes.txt
+          gh release view $release_id -R ${{ vars.assets_repo || github.repository }} --json body --jq .body > rel_notes.txt
           header_length=`cat rel_notes.txt | grep -n "Release notes generated" | cut -d ':' -f 1`
           head -n $(($header_length - 1)) rel_notes.txt > new_notes.txt
           echo -e "\nImage to create $platform wheels:\n" >> new_notes.txt
           echo "- cuda-quantum-devdeps (development dependencies only): $cudaqwheeldeps_image" >> new_notes.txt
           (echo && tail -n +$header_length rel_notes.txt) >> new_notes.txt
-          gh release edit $release_id -R ${{ github.repository }} --notes-file new_notes.txt
+          gh release edit $release_id -R ${{ vars.assets_repo || github.repository }} --notes-file new_notes.txt
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
@@ -725,10 +738,13 @@ jobs:
     name: Installer validation
     needs: [assets, cudaq_installer]
     runs-on: linux-amd64-gpu-v100-latest-1
+    permissions:
+      contents: read
 
     strategy:
       matrix:
-        os_image: ['redhat/ubi8:8.0', 'ubuntu:22.04']
+        os_image: ['redhat/ubi8:8.0', 'ubuntu:22.04', 'debian:12']
+        cuda_version: ["11.8", "12.0"]
       fail-fast: false
 
     container:
@@ -744,14 +760,20 @@ jobs:
         with:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
+      - name: Configure validation
+        id: config
+        run: 
+          cuda_major=`echo ${{ matrix.cuda_version }} | cut -d . -f1`
+          echo "cuda_major=$cuda_major" >> $GITHUB_OUTPUT
+
       - name: Load installer
         uses: actions/download-artifact@v4
         with:
-          name: x86_64-installer
+          name: x86_64-cu${{ steps.config.outputs.cuda_major }}-installer
           path: /tmp/install
 
       - name: Runtime dependencies (apt)
-        if: startsWith(matrix.os_image, 'ubuntu')
+        if: startsWith(matrix.os_image, 'ubuntu') || startsWith(matrix.os_image, 'debian')
         run: |
           apt-get update && apt-get install -y --no-install-recommends \
             wget ca-certificates libc6-dev libopenmpi-dev
@@ -759,8 +781,11 @@ jobs:
           CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
           wget "${CUDA_DOWNLOAD_URL}/$distro/x86_64/cuda-keyring_1.1-1_all.deb"
           dpkg -i cuda-keyring_1.1-1_all.deb
+          cuda_version_suffix="$(echo ${{ matrix.cuda_version }} | tr . -)"
           apt-get update && apt-get install -y --no-install-recommends \
-            libcublas-11-8 cuda-cudart-11-8 libcusolver-11-8
+            libcublas-$cuda_version_suffix \
+            cuda-cudart-$cuda_version_suffix \
+            libcusolver-$cuda_version_suffix
 
       - name: Runtime dependencies (dnf)
         if: startsWith(matrix.os_image, 'redhat')
@@ -789,9 +814,11 @@ jobs:
         env:
           BASH_ENV: ~/.bashrc
         run: |
-          chmod +x /tmp/install/install_cuda_quantum.*
-          /tmp/install/install_cuda_quantum.* --accept
-          rm -rf examples applications targets && mv docs/sphinx/examples examples && mv docs/sphinx/applications applications && mv docs/sphinx/targets targets && rm -rf examples/python && rm -rf applications/python && rm -rf targets/python
+          chmod +x /tmp/install/install_cuda_quantum*
+          /tmp/install/install_cuda_quantum* --accept
+          rm -rf examples applications targets
+          mv docs/sphinx/examples examples && mv docs/sphinx/applications applications && mv docs/sphinx/targets targets
+          rm -rf examples/python && rm -rf applications/python && rm -rf targets/python
 
           GITHUB_STEP_SUMMARY=$GITHUB_STEP_SUMMARY \
           bash -l scripts/validate_container.sh | tee /tmp/validation.out
@@ -804,11 +831,13 @@ jobs:
             exit 1
           fi
 
+  # FIXME: CUDA 11 VS CUDA 12
   wheel_validation:
     name: Python wheel instructions validation
     needs: [assets, cudaq_wheels]
-
     runs-on: linux-amd64-gpu-v100-latest-1
+    permissions:
+      contents: read
 
     container:
       image: ubuntu:22.04
@@ -854,8 +883,9 @@ jobs:
   wheel_validation_x86_simple:
     name: Simple Python wheel installation validation
     needs: [assets, cudaq_wheels]
-
     runs-on: linux-amd64-gpu-v100-latest-1
+    permissions:
+      contents: read
 
     container:
       image: ubuntu:22.04
@@ -999,18 +1029,24 @@ jobs:
       url: ${{ vars.deployment_url }}
 
     steps:
-      - name: Download cuda-quantum wheels
+      - name: Download CUDA-Q Python wheels
         uses: actions/download-artifact@v4
         with:
           pattern: '*-wheels'
           path: wheelhouse
 
-      - name: Download CUDA Quantum installer
+      - name: Download CUDA-Q installer
         uses: actions/download-artifact@v4
         with:
           pattern: '*-installer'
           path: installers
 
+      - name: Download additional assets
+        uses: actions/download-artifact@v4
+        with:
+          pattern: '*-assets'
+          path: assets
+  
       # The python wheels are uploaded as a release asset, but not pushed to anywhere else.
       # Note that PyPI packages cannot be updated once pushed;
       #  - We could upload wheels to test-pypi when creating a release.
@@ -1032,7 +1068,7 @@ jobs:
           release_title="${{ needs.assets.outputs.release_title }}"
           github_commit=${{ needs.assets.outputs.github_commit }}
           version=${{ needs.assets.outputs.release_version }}
-          versions=`gh release list -R ${{ github.repository }} --exclude-drafts --exclude-pre-releases | egrep -o "([0-9]{1,}\.)+[0-9]{1,}\S*" | sort -r -V`
+          versions=`gh release list -R ${{ vars.assets_repo || github.repository }} --exclude-drafts --exclude-pre-releases | egrep -o "([0-9]{1,}\.)+[0-9]{1,}\S*" | sort -r -V`
           latest_tag=`echo $versions | cut -d ' ' -f 1`
           prerelease=`([ "$(echo $version | egrep -o '([0-9]{1,}\.)+[0-9]{1,}')" == "$version" ] && echo '') || echo '--prerelease'`
           
@@ -1043,6 +1079,7 @@ jobs:
             --generate-notes --notes-start-tag $latest_tag --notes "$rel_notes"
           gh release upload $release_id -R ${{ github.repository }} wheelhouse.zip --clobber
           gh release upload $release_id -R ${{ github.repository }} install_cuda_quantum.* --clobber
+          gh release upload $release_id -R ${{ github.repository }} assets/* --clobber
           gh release edit $release_id -R ${{ github.repository }} \
             --title "$release_title" --tag $version $prerelease # --draft=false
         env:
@@ -1065,12 +1102,12 @@ jobs:
         run: |
           # Delete the draft release(s) used to exchange data between GitLab and GitHub.
           for release_id in `echo ${{ needs.assets.outputs.releases }}`; do
-            if [ -n "$(gh release list -R ${{ github.repository }} | grep -s $release_id)" ]; then
+            if [ -n "$(gh release list -R ${{ vars.assets_repo || github.repository }} | grep -s $release_id)" ]; then
               echo "## Draft Release $release_id:" >> $GITHUB_STEP_SUMMARY
-              gh release view $release_id -R ${{ github.repository }} --json body --jq .body > rel_notes.txt
+              gh release view $release_id -R ${{ vars.assets_repo || github.repository }} --json body --jq .body > rel_notes.txt
               header_length=`cat rel_notes.txt | grep -n "Release notes generated" | cut -d ':' -f 1`
               head -n $(($header_length - 1)) rel_notes.txt >> $GITHUB_STEP_SUMMARY
-              gh release delete $release_id -R ${{ github.repository }} -y
+              gh release delete $release_id -R ${{ vars.assets_repo || github.repository }} -y
               echo "Deleted release $release_id."
             fi
           done

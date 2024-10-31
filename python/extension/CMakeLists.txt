@@ -67,6 +67,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/cudaq/target/py_testing_utils.cpp
     ../runtime/mlir/py_register_dialects.cpp
     ../runtime/utils/PyRemoteRESTQPU.cpp
+    ../runtime/utils/PyFermioniqRESTQPU.cpp
     ../runtime/utils/PyRemoteSimulatorQPU.cpp
     ../runtime/utils/PyRestRemoteClient.cpp
     ../utils/LinkedLibraryHolder.cpp
@@ -102,6 +103,11 @@ target_link_libraries(CUDAQuantumPythonSources.Extension INTERFACE
     fmt::fmt-header-only
     unzip_util
 )
+if (CUDA_FOUND)
+  enable_language(CUDA)
+  find_package(CUDAToolkit REQUIRED)
+  target_compile_definitions(CUDAQuantumPythonSources.Extension INTERFACE -DCUDAQ_CUDA_MAJOR=${CUDAToolkit_VERSION_MAJOR})
+endif()
 
 ################################################################################
 # Common CAPI

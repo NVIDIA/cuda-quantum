@@ -13,10 +13,14 @@ on:
       build_cache:
         type: string
         required: false
-      toolchain:
+      build_config_id:
+        required: false
+        type: string
+        description: A string that uniquely identifies the toolchain and build configuration used within the Docker image. The value is used in tags and cache locations to distinguish different builds.
+      cuda_version:
         required: true
         type: string
-        description: The toolchain used to build the assets. The value is passed as build argument to Docker and used in tags and cache locations to distinguish different builds.
+        description: The CUDA version used for the build (e.g. 12.3).
       environment:
         type: string
         required: false
@@ -84,8 +88,9 @@ jobs:
 
           repo_owner=${{ github.repository_owner }}
           registry=${{ vars.registry || 'localhost:5000' }}
-          image_name=$registry/${repo_owner,,}/cuda-quantum-assets
-          tag_prefix=$platform_tag-${{ inputs.toolchain }}-
+          image_name=$registry/${repo_owner,,}/${{ vars.packages_prefix }}cuda-quantum-assets
+          build_config_id=${{ inputs.build_config_id }}
+          tag_prefix=${platform_tag}-${build_config_id:+$build_config_id-}
 
           if ${{ github.event.pull_request.merged == true }}; then
             tag_name=`echo ${{ github.event.pull_request.base.ref }} | tr / -`
@@ -102,7 +107,7 @@ jobs:
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
           echo "tag_prefix=$tag_prefix" >> $GITHUB_OUTPUT
           echo "custom_tags=$custom_tags" >> $GITHUB_OUTPUT
-          echo "artifact_name=cudaq-${platform_tag}-installer-${{ github.run_id }}" >> $GITHUB_OUTPUT
+          echo "artifact_name=cudaq-${tag_prefix}-installer-${{ github.run_id }}" >> $GITHUB_OUTPUT
           {
             echo 'additional_build_caches<<multiline'
             if ${{ github.event.pull_request.number != '' }}; then
@@ -149,6 +154,7 @@ jobs:
           build-args: |
             release_version=${{ steps.config.outputs.cudaq_version }}
             base_image=${{ inputs.platform_base_image }}
+            cuda_version=${{ inputs.cuda_version }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: ${{ inputs.platform }}
@@ -240,6 +246,7 @@ jobs:
           target: mpibuild
           build-args: |
             base_image_mpibuild=${{ inputs.platform_base_image }}
+            cudart_version=${{ inputs.cuda_version }}
           platforms: ${{ inputs.platform }}
           cache-from: |
             ${{ steps.cache.outputs.build_cache }}
@@ -253,6 +260,7 @@ jobs:
       contents: read
 
     outputs:
+      cuda_major: ${{ steps.config.outputs.cuda_major }}
       json: "${{ steps.config.outputs.json }}"
 
     steps:
@@ -261,13 +269,17 @@ jobs:
 
       - id: config
         run: |
+          cuda_major=`echo ${{ inputs.cuda_version }} | cut -d . -f1`
           config_file=".github/workflows/config/validation_config.json"
-          cpp_config=`cat "$config_file" | jq '.cpp[] | select(.platform=="${{ inputs.platform }}")'`
+          cpp_config=`cat "$config_file" | jq ".cpp[] | select(.platform==\"${{ inputs.platform }}\" and .cuda_major==$cuda_major)"`
+
+          echo "cuda_major=$cuda_major" >> $GITHUB_OUTPUT
           echo "json=$(echo $cpp_config)" >> $GITHUB_OUTPUT
 
   validation:
     name: Validate installer
     needs: [build_installer, build_openmpi, create_test_config]
+    if: toJson(fromJSON(needs.create_test_config.outputs.json).operating_systems) != '[]'
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
@@ -306,13 +318,17 @@ jobs:
           config='${{ needs.create_test_config.outputs.json }}'
           system_config=`echo $config | jq -r '."${{ matrix.os_image }}"'`
           all_build_args=`echo $system_config | jq 'to_entries[] | .key + "=" + (.value | tostring)'`
-          # Don't install CUDA dependencies if we run on a non-GPU runner
-          additional_build_args=`echo $all_build_args | sed -e 's/"cuda_distribution=[^"]*"//g'`
+          if [ -x "$(command -v nvidia-smi)" ]; then
+            additional_build_args="$all_build_args"
+          else
+            # Don't install CUDA dependencies if we run on a non-GPU runner
+            additional_build_args=`echo $all_build_args | sed -e 's/"cuda_distribution=[^"]*"//g'`
+          fi
 
           mv /tmp/install/* .
           docker build -t validation:local -f "docker/test/installer/linux.Dockerfile" . \
             --cache-from ${{ needs.build_openmpi.outputs.build_cache }} \
-            --build-arg cuda_quantum_installer=install_cuda_quantum.$(uname -m) \
+            --build-arg cuda_quantum_installer=install_cuda_quantum_cu${{ needs.create_test_config.outputs.cuda_major }}.$(uname -m) \
             --build-arg cuda_quantum_wheel=cuda_quantum*$(uname -m).whl \
             --build-arg base_image=${{ matrix.os_image }} \
             --build-arg base_image_mpibuild=${{ inputs.platform_base_image }} \
@@ -386,7 +402,7 @@ jobs:
 
             # Re-install CUDA Quantum
             MPI_PATH=/usr/local/openmpi \
-            sudo -E bash install_cuda_quantum.* --accept | tee install_log.txt
+            sudo -E bash install_cuda_quantum_cu${{ needs.create_test_config.outputs.cuda_major }}.$(uname -m) --accept | tee install_log.txt
             if [ -n "$(cat install_log.txt | grep -i 'Warning:')" ]; then
               echo "::error::Re-installation produced a warning. Check the log for more detail."
               exit 102
@@ -470,10 +486,11 @@ jobs:
 
   staging:
     name: Staging
-    needs: [build_installer, build_openmpi, validation]
+    needs: [build_installer, build_openmpi, create_test_config, validation]
     if: inputs.environment
     runs-on: ubuntu-latest
-    permissions: {}
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout repository
@@ -485,7 +502,7 @@ jobs:
           image_hash=${{ needs.build_installer.outputs.image_hash }}
           platform_id=`echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
           echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
-          artifact_name=installer_${platform_id}_publishing # changing the artifact name requires updating other workflows
+          artifact_name=installer_${platform_id}_cu${{ needs.create_test_config.outputs.cuda_major }}_publishing # changing the artifact name requires updating other workflows
           echo "artifact_name=$artifact_name" >> $GITHUB_OUTPUT
           info_file="$artifact_name.txt"
           echo "info_file=$info_file" >> $GITHUB_OUTPUT
@@ -496,6 +513,7 @@ jobs:
           echo "platform-base-image: ${{ inputs.platform_base_image }}" >> "$info_file"
           echo "openmpi-build-cache: ${{ needs.build_openmpi.outputs.build_cache }}" >> "$info_file"
           echo "platform: ${{ inputs.platform }}" >> "$info_file"
+          echo "cuda-version: ${{ inputs.cuda_version }}" >> "$info_file"
           cat .github/workflows/config/gitlab_commits.txt >> "$info_file"
 
       - name: Upload build info
