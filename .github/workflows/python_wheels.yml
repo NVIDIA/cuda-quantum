@@ -5,10 +5,17 @@ on:
         type: string
         required: false
         default: linux/amd64
+      build_config_id:
+        required: false
+        type: string
+        description: An string that uniquely identfies the toolchain and build configuration used within the Docker image. The value is used in tags and cache locations to distinguish different builds.
       python_version:
         type: string
-        required: false
-        default: '3.10'
+        required: true
+      cuda_version:
+        required: true
+        type: string
+        description: The CUDA version used for the build (e.g. 12.3).
       devdeps_image:
         required: false
         type: string
@@ -207,14 +214,13 @@ jobs:
             base_image=ghcr.io/${repo_owner,,}/${image_tag#${repo_owner,,}}
           fi
 
-          wheelname=`echo cuda_quantum-*-manylinux_*_$(uname -m).whl`
+          wheelname=`echo cuda_quantum*-manylinux_*_$(uname -m).whl`
           docker build -t wheel_validation:local -f "docker/test/wheels/$distr.Dockerfile" . \
             --build-arg base_image=$base_image \
             --build-arg python_version=${{ inputs.python_version }} \
             --build-arg cuda_quantum_wheel=$wheelname \
             --build-arg preinstalled_modules="numpy pytest psutil" \
-            --build-arg pip_install_flags=${{ matrix.pip_install_flags }} \
-            --build-arg optional_dependencies=$([ "$(uname -m)" == "x86_64" ] && echo cudart)
+            --build-arg pip_install_flags=${{ matrix.pip_install_flags }}
 
           docker run --rm -dit --name wheel-validation wheel_validation:local
           (docker exec wheel-validation python${{ inputs.python_version }} -c "import cudaq") && imported=true || imported=false
@@ -258,7 +264,8 @@ jobs:
             # Uninstall pip-installed cuda-quantum in the `wheel_validation:local` image.
             # In this step, we test the full installation workflow with conda; 
             # hence we don't want to mix conda and pip packages.
-            python${{ inputs.python_version }} -m pip uninstall -y cuda-quantum
+            cuda_major=$(echo ${{ inputs.cuda_version }} | cut -d . -f1)
+            python${{ inputs.python_version }} -m pip uninstall -y cuda-quantum-cu${cuda_major}
             # Install cuda-quantum wheel and all dependencies (including MPI) using conda (README instructions)
             # Install conda
             dnf install -y --nobest --setopt=install_weak_deps=False wget openssh-clients
@@ -268,7 +275,7 @@ jobs:
             ~/miniconda3/bin/conda init bash
             source ~/.bashrc
             # Extract the setup script from Python wheel's readme
-            readme_file="/tmp/README.md"
+            readme_file="/tmp/README-cu${cuda_major}.md"
             python_version="${{ inputs.python_version }}"
             # Parse README file to install openmpi
             conda_script="$(awk '/(Begin conda install)/{flag=1;next}/(End conda install)/{flag=0}flag' $readme_file | grep . | sed '/^```/d')" 
@@ -277,9 +284,9 @@ jobs:
             while IFS= read -r line; do
               if [[ ! "$line" =~ $regex ]]; then
                   # Replace Python version
-                  line=${line//3.10/$python_version}
+                  line=$(echo $line | sed -E "s/python(=)?3.[0-9]{1,}/python\1$python_version/g")
                   # Install the wheel file
-                  line=${line//pip install cuda-quantum/pip install /tmp/cuda_quantum-*-manylinux_*_$(uname -m).whl}
+                  line=${line//pip install cuda-quantum-cu${cuda_major}/pip install /tmp/cuda_quantum*-manylinux_*_$(uname -m).whl}
                   eval "$line"
               fi
             done <<< "$conda_script"
@@ -373,8 +380,11 @@ jobs:
         run: |
           wheeldeps_hash=${{ inputs.devdeps_image }}
           platform_id=`echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
+          build_config_id=${{ inputs.build_config_id }}
+          build_config_id=${build_config_id:-cu${{ inputs.cuda_version }}}
+          artifact_name=python_${platform_id}_${build_config_id}_publishing # changing the artifact name requires updating other workflows
+
           echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
-          artifact_name=python_${platform_id}_publishing # changing the artifact name requires updating other workflows
           echo "artifact_name=$artifact_name" >> $GITHUB_OUTPUT
           info_file="$artifact_name.txt"
           echo "info_file=$info_file" >> $GITHUB_OUTPUT
