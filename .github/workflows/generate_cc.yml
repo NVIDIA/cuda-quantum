@@ -17,7 +17,9 @@ on:
       export_environment:
         required: false
         type: boolean
-
+    secrets:
+      CODECOV_TOKEN:
+        required: false
 
 name: Show Code Coverage Diff
 
