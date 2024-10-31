@@ -1,0 +1,58 @@
+#!/bin/bash
+
+# ============================================================================ #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# Uncomment this and connect to Braket REST Server with authentication. You may need to change the "host.docker.internal" into braket's server url
+# checkServerConnection() {
+#   PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ - << EOF
+# import socket
+# try:
+#     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#     s.connect(("host.docker.internal", 5000))
+#     s.close()
+# except Exception:
+#     exit(1)
+# EOF
+# }
+
+# Uncomment this and connect to mock_qpu backend server within the container (mock_qpu/braket) under main/utils
+checkServerConnection() {
+  PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ - << EOF
+import socket
+try:
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect(("localhost", 5000))
+    s.close()
+except Exception:
+    exit(1)
+EOF
+}
+
+# Uncomment this and connect to mock_qpu backend server within the container (mock_qpu/braket) under main/utils
+# Launch the fake server
+PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/mock_qpu/braket/__init__.py &
+# we'll need the process id to kill it
+pid=$(echo "$!")
+n=0
+while ! checkServerConnection; do
+  sleep 1
+  n=$((n+1))
+  if [ "$n" -eq "10" ]; then
+    kill -INT $pid
+    exit 99
+  fi
+done
+# Run the tests
+./test_braket
+# Did they fail? 
+testsPassed=$?
+# kill the server
+kill -INT $pid
+# return success / failure
+exit $testsPassed

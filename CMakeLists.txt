@@ -124,7 +124,8 @@ endif()
 # ==============================================================================
 option(CUDAQ_BUILD_TESTS "Build cudaq tests" ON)
 option(CUDAQ_ENABLE_RPC_LOGGING "Enable verbose printout for client/server qpud connection." OFF)
-option(CUDAQ_TEST_MOCK_SERVERS "Enable Remote QPU Tests via Mock Servers." OFF)
+option(CUDAQ_TEST_MOCK_SERVERS "Enable Remote QPU Tests via Mock Servers." ON)
+option(CUDAQ_INTEGRATION_TEST_BRAKET "Run integration tests on Braket backend." ON)
 option(CUDAQ_DISABLE_RUNTIME "Build without the CUDA-Q runtime, just the compiler toolchain." OFF)
 option(CUDAQ_SKIP_MPI "Do not build with MPI, even when it is available." OFF)
 option(CUDAQ_DISABLE_CPP_FRONTEND "Build without the CUDA-Q C++ Clang-based Frontend." OFF)
@@ -478,6 +479,15 @@ if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
   add_subdirectory(tpls/Crow)
 endif()
 
+# AWS SDK for C++
+if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+  set(crypto_LIBRARY "$ENV{OPENSSL_INSTALL_PREFIX}/lib64/libcrypto.a" CACHE STRING "" FORCE)
+else()
+  set(crypto_LIBRARY "$ENV{OPENSSL_INSTALL_PREFIX}/lib/libcrypto.a" CACHE STRING "" FORCE)
+endif()
+set(crypto_INCLUDE_DIR "$ENV{OPENSSL_INSTALL_PREFIX}/include" CACHE STRING "" FORCE)
+set(SERVICE_COMPONENTS braket s3-crt sts)
+find_package(AWSSDK REQUIRED COMPONENTS ${SERVICE_COMPONENTS})
 
 # Check for CUDA Support
 # ==============================================================================
