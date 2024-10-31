@@ -20,11 +20,14 @@ ARG cuda_version=11.8
 ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:llvm-main
 ARG ompidev_image=ghcr.io/nvidia/cuda-quantum-devdeps:cu11-ompi-main
 FROM $ompidev_image AS ompibuild
+ARG cuda_version
 RUN if [ -z "${cuda_version}" ]; then \
-        echo -e "\e[01;31mError: Missing argument cuda_version.\e[0m" >&2; \
+        echo -e "\e[01;31mError: Missing argument cuda_version.\e[0m" >&2 && \
+        exit 1; \
     fi && \        
     if [ -n "${CUDA_VERSION}" ] && [ "${CUDA_VERSION}" != "${cuda_version}" ]; then \
-        echo -e "\e[01;31mError: CUDA version ${CUDA_VERSION} in ompidev_image does not match ${cuda_version}.\e[0m" >&2; \
+        echo -e "\e[01;31mError: CUDA version ${CUDA_VERSION} in ompidev_image does not match ${cuda_version}.\e[0m" >&2 && \
+        exit 1; \
     fi
 
 FROM $base_image
@@ -166,9 +169,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends xz-utils \
 # Install CUDA
 
 ARG cuda_packages="cuda-cudart cuda-compiler libcublas-dev libcusolver"
-RUN if [ -n "$(echo "$cuda_packages")" ]; then \
+RUN if [ -n "$cuda_packages" ]; then \
         arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
-        && cuda_packages=`printf '%s\n' $cuda_packages | xargs -I "{}" echo "{}"-$(echo ${CUDA_VERSION} | tr . -)` \
+        && cuda_packages=`printf '%s\n' $cuda_packages | xargs -I {} echo {}-$(echo ${CUDA_VERSION} | tr . -)` \
         && wget -q "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/$arch_folder/cuda-keyring_1.0-1_all.deb" \
         && dpkg -i cuda-keyring_1.0-1_all.deb \
         && apt-get update && apt-get install -y --no-install-recommends $cuda_packages \
