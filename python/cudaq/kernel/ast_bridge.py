@@ -9,6 +9,7 @@ import ast
 import hashlib
 import graphlib
 import sys, os
+from types import ModuleType
 from typing import Callable
 from collections import deque
 import numpy as np
@@ -1296,60 +1297,66 @@ class PyASTBridge(ast.NodeVisitor):
         """
         global globalRegisteredOperations
 
-        if self.verbose:
-            print("[Visit Call] {}".format(
-                ast.unparse(node) if hasattr(ast, 'unparse') else node))
+        #if self.verbose:
+        print("[Visit Call] {}".format(
+            ast.unparse(node) if hasattr(ast, 'unparse') else node))
 
         self.currentNode = node
 
-        # do not walk the FunctionDef decorator_list arguments
         if isinstance(node.func, ast.Attribute):
-            if hasattr(
-                    node.func.value, 'id'
-            ) and node.func.value.id == 'cudaq' and node.func.attr == 'kernel':
+            # When `node.func` is an attribute, then we have the case where the
+            # call has the following form: `<obj>.<obj>.<...>.<name>`.
+            value = node.func.value
+
+            # First, we walk all the components until we reach a name.
+            components = [node.func.attr]
+            while isinstance(value, ast.Attribute):
+                components.append(value.attr)
+                value = value.value
+            components.append(value.id)
+            components = components[::-1]
+
+            # Check whether this is our known decorator `@cudaq.kernel`. If it
+            # is then we gracefully ignore it.
+            if components[0] == 'cudaq' and components[1] == 'kernel':
                 return
 
-            # If we have a `func = ast.Attribute``, then it could be that
-            # we have a previously defined kernel function call with manually specified module names
-            # e.g. `cudaq.lib.test.hello.fermionic_swap``. In this case, we assume
-            # FindDepKernels has found something like this, loaded it, and now we just
-            # want to get the function name and call it.
+            # Get full module path.
+            #
+            # Note: Here we skip anything that starts with `cudaq.` because not
+            # all constructs are backed by an python object. See issue #
+            modPath = ""
+            if components[0] != 'cudaq':
+                if components[0] in sys.modules:
+                    module = sys.modules[components[0]]
+                    obj = module
+                    for attribute in components[1:]:
+                        obj = getattr(obj, attribute)
+                    if hasattr(obj,
+                               '__module__') and obj.__module__ != obj.__name__:
+                        modPath = obj.__module__
+                    else:
+                        modPath = obj.__name__
+                else:
+                    import inspect
+                    current_frame = inspect.currentframe()
+                    mod = None
+                    while current_frame is not None:
+                        local_vars = current_frame.f_locals
+                        if components[0] in local_vars:
+                            mod = local_vars[components[0]]
+                            break
+                        current_frame = current_frame.f_back
 
-            # First let's check for registered C++ kernels
-            cppDevModNames = []
-            value = node.func.value
-            if isinstance(value, ast.Name) and value.id != 'cudaq':
-                cppDevModNames = [node.func.attr, value.id]
-            else:
-                while isinstance(value, ast.Attribute):
-                    cppDevModNames.append(value.attr)
-                    value = value.value
-                    if isinstance(value, ast.Name):
-                        cppDevModNames.append(value.id)
-                        break
+                    if isinstance(mod, ModuleType):
+                        modPath = mod.__name__
 
-            devKey = '.'.join(cppDevModNames[::-1])
-
-            def get_full_module_path(partial_path):
-                parts = partial_path.split('.')
-                for module_name, module in sys.modules.items():
-                    if module_name.endswith(parts[0]):
-                        try:
-                            obj = module
-                            for part in parts[1:]:
-                                obj = getattr(obj, part)
-                            return f"{module_name}.{'.'.join(parts[1:])}"
-                        except AttributeError:
-                            continue
-                return partial_path
-
-            devKey = get_full_module_path(devKey)
-            if cudaq_runtime.isRegisteredDeviceModule(devKey):
+            if cudaq_runtime.isRegisteredDeviceModule(modPath):
                 maybeKernelName = cudaq_runtime.checkRegisteredCppDeviceKernel(
-                    self.module, devKey + '.' + node.func.attr)
+                    self.module, modPath + '.' + node.func.attr)
                 if maybeKernelName == None:
                     maybeKernelName = cudaq_runtime.checkRegisteredCppDeviceKernel(
-                        self.module, devKey)
+                        self.module, modPath)
                 if maybeKernelName != None:
                     otherKernel = SymbolTable(
                         self.module.operation)[maybeKernelName]
@@ -1368,7 +1375,6 @@ class PyASTBridge(ast.NodeVisitor):
                     func.CallOp(otherKernel, values)
                     return
 
-            # Start by seeing if we have mod1.mod2.mod3...
             moduleNames = []
             value = node.func.value
             while isinstance(value, ast.Attribute):

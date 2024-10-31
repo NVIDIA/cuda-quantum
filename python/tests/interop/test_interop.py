@@ -222,6 +222,27 @@ def test_cpp_kernel_from_python_2():
 
     callUCCSD()
 
+def test_cpp_kernel_from_python_3():
+
+    import qlib
+
+    # Sanity checks
+    print(qlib.qstd.qft)
+    print(qlib.qstd.another)
+
+    @cudaq.kernel
+    def callQftAndAnother():
+        q = cudaq.qvector(4)
+        qlib.qstd.qft(q)
+        h(q)
+        qlib.qstd.another(q, 2)
+
+    callQftAndAnother()
+
+    counts = cudaq.sample(callQftAndAnother)
+    counts.dump()
+    assert len(counts) == 1 and '0010' in counts
+
 def test_capture():
     @cudaq.kernel
     def takesCapture(s : int):
