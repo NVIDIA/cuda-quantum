@@ -279,6 +279,7 @@ jobs:
   validation:
     name: Validate installer
     needs: [build_installer, build_openmpi, create_test_config]
+    if: toJson(fromJSON(needs.create_test_config.outputs.json).operating_systems) != '[]'
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
@@ -486,7 +487,8 @@ jobs:
   staging:
     name: Staging
     needs: [build_installer, build_openmpi, create_test_config, validation]
-    if: inputs.environment
+    # Allow staging even if there are not validations configured.
+    if: always() && !cancelled() && inputs.environment && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest
     permissions:
       contents: read

@@ -380,8 +380,9 @@ jobs:
         run: |
           wheeldeps_hash=${{ inputs.devdeps_image }}
           platform_id=`echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
+          cuda_major=`echo ${{ inputs.cuda_version }} | cut -d . -f1`
           build_config_id=${{ inputs.build_config_id }}
-          build_config_id=${build_config_id:-cu${{ inputs.cuda_version }}}
+          build_config_id=${build_config_id:-cu$cuda_major}
           artifact_name=python_${platform_id}_${build_config_id}_publishing # changing the artifact name requires updating other workflows
 
           echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
@@ -393,6 +394,7 @@ jobs:
           echo "source-sha: ${{ github.sha }}" >> "$info_file"
           echo "cuda-quantum-wheeldeps-image: $wheeldeps_hash" >> "$info_file"
           echo "platform: ${{ inputs.platform }}" >> "$info_file"
+          echo "cuda-version: ${{ inputs.cuda_version }}" >> "$info_file"
           cat .github/workflows/config/gitlab_commits.txt >> "$info_file"
 
       - name: Upload build info
