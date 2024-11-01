@@ -496,14 +496,45 @@ set(CURL_INCLUDE_DIR "$ENV{CURL_INSTALL_PREFIX}/include" CACHE STRING "" FORCE)
 set(OPENSSL_ROOT_DIR "$ENV{OPENSSL_INSTALL_PREFIX}" CACHE STRING "" FORCE)
 set(ENABLE_TESTING OFF CACHE BOOL "" FORCE)
 
-remove_definitions(-Werror)
-add_subdirectory(tpls/aws-sdk-cpp EXCLUDE_FROM_ALL)
-
-execute_process(COMMAND cmake WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tpls/aws-sdk-cpp)
-execute_process(COMMAND make WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tpls/aws-sdk-cpp)
-execute_process(COMMAND make install WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tpls/aws-sdk-cpp)
-
+# Do a dry run first
 set(SERVICE_COMPONENTS braket s3-crt sts)
+find_package(AWSSDK COMPONENTS ${SERVICE_COMPONENTS})
+
+if (NOT AWSSDK_FOUND)
+  message(STATUS "AWS SDK not found. Building it.")
+  include(ProcessorCount)
+  ProcessorCount(N)
+  if(CMAKE_MAKE_PROGRAM MATCHES "make$")
+    set(MAKE_PARALLEL ${CMAKE_MAKE_PROGRAM} -j${N})
+  else()
+    set(MAKE_PARALLEL ${CMAKE_MAKE_PROGRAM})
+  endif()
+
+  execute_process(RESULT_VARIABLE result COMMAND cmake "-B${CMAKE_CURRENT_BINARY_DIR}/tpls/aws-sdk-cpp" "${CMAKE_CURRENT_SOURCE_DIR}/tpls/aws-sdk-cpp" 
+          "-DAUTORUN_UNIT_TESTS=OFF"
+          "-DAWS_SDK_WARNINGS_ARE_ERRORS=OFF"
+          "-DAWS_USER_AGENT_CUSTOMIZATION=CUDA-Q/${CUDA_QUANTUM_VERSION}"
+          "-DBUILD_ONLY=braket;s3-crt;sts"
+          "-DBUILD_SHARED_LIBS=OFF"
+          "-DCMAKE_COMPILE_WARNING_AS_ERROR=OFF"
+          "-Dcrypto_LIBRARY=${crypto_LIBRARY}"
+          "-Dcrypto_INCLUDE_DIR=${crypto_INCLUDE_DIR}"
+          "-DCURL_LIBRARY=$ENV{CURL_INSTALL_PREFIX}/lib/libcurl.a"
+          "-DCURL_INCLUDE_DIR=$ENV{CURL_INSTALL_PREFIX}/include"
+          "-DOPENSSL_ROOT_DIR=$ENV{OPENSSL_INSTALL_PREFIX}"
+          "-DENABLE_TESTING=OFF"
+          "-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}"
+    )
+    if(NOT ${result} STREQUAL "0")
+      message(FATAL_ERROR "Configuring aws-sdk-cpp failed.")
+    endif()
+    execute_process(RESULT_VARIABLE result COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR}/tpls/aws-sdk-cpp ${MAKE_PARALLEL} install)
+    if(NOT ${result} STREQUAL "0")
+      message(FATAL_ERROR "Building aws-sdk-cpp failed.")
+    endif()
+endif()
+
+# Find it with REQUIRED flag
 find_package(AWSSDK REQUIRED COMPONENTS ${SERVICE_COMPONENTS})
 enable_testing() # ensure that testing is enabled for subsequent directories
 
