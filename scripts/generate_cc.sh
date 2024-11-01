@@ -65,6 +65,8 @@ repo_root=$(cd "$this_file_dir" && git rev-parse --show-toplevel)
 # Set envs
 if $gen_cpp_coverage; then
     export CUDAQ_ENABLE_CC=ON
+    mkdir -p /usr/lib/llvm-16/lib/clang/16/lib/linux
+    ln -s /usr/local/llvm/lib/clang/16/lib/x86_64-unknown-linux-gnu/libclang_rt.profile.a /usr/lib/llvm-16/lib/clang/16/lib/linux/libclang_rt.profile-x86_64.a
     export LLVM_PROFILE_FILE=${repo_root}/build/tmp/cudaq-cc/profile-%9m.profraw
 fi
 
