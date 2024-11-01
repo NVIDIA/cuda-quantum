@@ -375,7 +375,7 @@ jobs:
         if: steps.job_summary.outputs.validation_summary != ''
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.job_summary.outputs.artifact_id }}_validation
+          name: ${{ steps.job_summary.outputs.artifact_id }}_py${{ inputs.python_version }}_validation
           path: ${{ steps.job_summary.outputs.validation_summary }}
           retention-days: 1
           if-no-files-found: warn
