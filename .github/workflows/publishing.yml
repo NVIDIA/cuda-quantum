@@ -71,7 +71,7 @@ jobs:
             artifacts_url=${{ github.event.workflow_run.artifacts_url }}
             echo "Artifacts downloaded from https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}" >> $GITHUB_STEP_SUMMARY
           fi
-          artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
+          artifacts=$(gh api $artifacts_url --paginate -q '.artifacts[] | {name: .name, url: .archive_download_url}')
 
           function download {
             gh api $1 > info.zip
