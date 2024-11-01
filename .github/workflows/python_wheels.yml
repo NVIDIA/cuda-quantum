@@ -355,6 +355,8 @@ jobs:
           cuda_major=`echo ${{ inputs.cuda_version }} | cut -d . -f1`
           platform_id=`echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
           artifact_id=python_${platform_id}_cu$cuda_major # changing the artifact name requires updating other workflows
+          os_id=`echo ${{ matrix.os_image}} | tr ':' _ | tr '/' -`
+          echo "os_id=$os_id" >> $GITHUB_OUTPUT
           echo "artifact_id=$artifact_id" >> $GITHUB_OUTPUT
 
           if [ -f /tmp/validation.out ]; then
@@ -375,7 +377,7 @@ jobs:
         if: steps.job_summary.outputs.validation_summary != ''
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.job_summary.outputs.artifact_id }}_py${{ inputs.python_version }}_validation
+          name: ${{ steps.job_summary.outputs.artifact_id }}_${{ steps.job_summary.outputs.os_id }}_py${{ inputs.python_version }}_validation
           path: ${{ steps.job_summary.outputs.validation_summary }}
           retention-days: 1
           if-no-files-found: warn
