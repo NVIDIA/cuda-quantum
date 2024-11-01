@@ -16,9 +16,8 @@
 // port number and localhost connect to mock_qpu backend server within the
 // container (mock_qpu/braket).
 std::string mockPort = "5000";
-std::string machine = "telegraph-8q";
+std::string machine = "sv1";
 std::string backendStringTemplate =
-    //    "braket;emulate;false;url;http://localhost:{};credentials;{};machine;{}";
     "braket;emulate;false;url;http://localhost:{};credentials;{}";
 bool isValidExpVal(double value) {
   // give us some wiggle room while keep the tests fast

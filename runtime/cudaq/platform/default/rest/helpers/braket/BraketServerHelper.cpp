@@ -8,6 +8,17 @@
 
 #include "BraketServerHelper.h"
 
+namespace {
+std::string prepareOpenQasm(std::string source) {
+  const std::regex includeRE{"include \".*\";"};
+  source = std::regex_replace(source, includeRE, "");
+  const std::regex cxToCnot{"\\scx\\s"};
+  source = std::regex_replace(source, cxToCnot, " cnot ");
+  return source;
+}
+
+} // namespace
+
 namespace cudaq {
 
 std::string getDeviceArn(const std::string &machine) {
@@ -15,7 +26,7 @@ std::string getDeviceArn(const std::string &machine) {
     return machine;
   }
 
-  if (!machine.starts_with("arn:aws:braket") && deviceArns.contains(machine)) {
+  if (deviceArns.contains(machine)) {
     return deviceArns.at(machine);
   }
 
@@ -68,14 +79,6 @@ void BraketServerHelper::initialize(BackendConfig config) {
   backendConfig = std::move(config);
 };
 
-std::string prepareOpenQasm(std::string source) {
-  const std::regex includeRE{"include \".*\";"};
-  source = std::regex_replace(source, includeRE, "");
-  const std::regex cxToCnot{"\\scx\\s"};
-  source = std::regex_replace(source, cxToCnot, " cnot ");
-  return source;
-}
-
 // Create a job for Braket
 ServerJobPayload
 BraketServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
@@ -94,7 +97,6 @@ BraketServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     auto action = nlohmann::json::parse(
         "{\"braketSchemaHeader\": {\"name\": \"braket.ir.openqasm.program\", "
         "\"version\": \"1\"}, \"source\": \"\", \"inputs\": {}}");
-    ;
     action["source"] = prepareOpenQasm(circuitCode.code);
     taskRequest["action"] = action.dump();
     taskRequest["shots"] = shots;
@@ -108,6 +110,23 @@ BraketServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
 
   return ret;
 };
+
+sample_result BraketServerHelper::processResults(ServerMessage &resultsJson,
+                                                 std::string &) {
+  CountsDictionary counts;
+
+  auto const &measurements = resultsJson.at("measurements");
+
+  for (auto const &m : measurements) {
+    std::string bitString = "";
+    for (int bit : m) {
+      bitString += std::to_string(bit);
+    }
+    counts[bitString]++;
+  }
+
+  return sample_result{ExecutionResult{counts}};
+}
 
 } // namespace cudaq
 
