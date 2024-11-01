@@ -2,7 +2,7 @@
     "python":
     [
         {
-            "version": 3.10,
+            "version": "3.10",
             "operating_systems": 
             [
                 "ubuntu:22.04",
@@ -11,7 +11,7 @@
             ]
         },
         {
-            "version": 3.11,
+            "version": "3.11",
             "operating_systems": 
             [
                 "ubuntu:22.04",
@@ -22,7 +22,7 @@
             ]
         },
         {
-            "version": 3.12,
+            "version": "3.12",
             "operating_systems": 
             [
                 "ubuntu:24.04",
@@ -48,31 +48,31 @@
             "ubuntu:22.04": 
             {
                 "libcdev_package": "libc6-dev",
-                "cudart_version": 12.0,
+                "cudart_version": "12.0",
                 "cuda_distribution": "ubuntu2204"
             },
             "debian:12": 
             {
                 "libcdev_package": "libc6-dev",
-                "cudart_version": 12.6,
+                "cudart_version": "12.6",
                 "cuda_distribution": "debian12"
             },
             "redhat/ubi9:9.2": 
             {
                 "libcdev_package": "glibc-devel",
-                "cudart_version": 12.0,
+                "cudart_version": "12.0",
                 "cuda_distribution": "rhel9"
             },
             "opensuse/leap:15.5": 
             {
                 "libcdev_package": "glibc-devel",
-                "cudart_version": 12.0,
+                "cudart_version": "12.0",
                 "cuda_distribution": "opensuse15"
             },
             "fedora:39": 
             {
                 "libcdev_package": "glibc-devel",
-                "cudart_version": 12.4,
+                "cudart_version": "12.4",
                 "cuda_distribution": "fedora39"
             }
         },
@@ -89,25 +89,25 @@
             "ubuntu:22.04": 
             {
                 "libcdev_package": "libc6-dev",
-                "cudart_version": 11.8,
+                "cudart_version": "11.8",
                 "cuda_distribution": "ubuntu2204"
             },
             "redhat/ubi8:8.0": 
             {
                 "libcdev_package": "glibc-devel",
-                "cudart_version": 11.8,
+                "cudart_version": "11.8",
                 "cuda_distribution": "rhel9"
             },
             "opensuse/leap:15.5": 
             {
                 "libcdev_package": "glibc-devel",
-                "cudart_version": 11.8,
+                "cudart_version": "11.8",
                 "cuda_distribution": "opensuse15"
             },
             "fedora:38": 
             {
                 "libcdev_package": "glibc-devel",
-                "cudart_version": 11.8,
+                "cudart_version": "11.8",
                 "cuda_distribution": "rhel9"
             }
         },
@@ -122,13 +122,13 @@
             "ubuntu:22.04": 
             {
                 "libcdev_package": "libc6-dev",
-                "cudart_version": 12.0,
+                "cudart_version": "12.0",
                 "cuda_distribution": "ubuntu2204"
             },
             "redhat/ubi9:9.2": 
             {
                 "libcdev_package": "glibc-devel",
-                "cudart_version": 12.0,
+                "cudart_version": "12.0",
                 "cuda_distribution": "rhel9"
             }
         },
@@ -144,19 +144,19 @@
             "ubuntu:22.04": 
             { 
                 "libcdev_package": "libc6-dev",
-                "cudart_version": 11.8,
+                "cudart_version": "11.8",
                 "cuda_distribution": "ubuntu2204"
             },
             "redhat/ubi8:8.0": 
             {
                 "libcdev_package": "glibc-devel",
-                "cudart_version": 11.8,
+                "cudart_version": "11.8",
                 "cuda_distribution": "rhel9"
             },
             "fedora:38": 
             {
                 "libcdev_package": "glibc-devel",
-                "cudart_version": 11.8,
+                "cudart_version": "11.8",
                 "cuda_distribution": "rhel9"
             }
         }
