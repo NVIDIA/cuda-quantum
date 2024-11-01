@@ -188,12 +188,12 @@ def test_2grover_compute_action():
 def test_pauli_word_input():
 
     h2_data = [
-        3, 1, 1, 3, 0.0454063, 0, 2, 0, 0, 0, 0.17028, 0, 0, 0, 2, 0,
-        -0.220041, -0, 1, 3, 3, 1, 0.0454063, 0, 0, 0, 0, 0, -0.106477, 0, 0,
-        2, 0, 0, 0.17028, 0, 0, 0, 0, 2, -0.220041, -0, 3, 3, 1, 1, -0.0454063,
-        -0, 2, 2, 0, 0, 0.168336, 0, 2, 0, 2, 0, 0.1202, 0, 0, 2, 0, 2, 0.1202,
-        0, 2, 0, 0, 2, 0.165607, 0, 0, 2, 2, 0, 0.165607, 0, 0, 0, 2, 2,
-        0.174073, 0, 1, 1, 3, 3, -0.0454063, -0, 15
+        3, 1, 1, 3, 0.0454063, 0, 2, 0, 0, 0, 0.17028, 0, 0, 0, 2, 0, -0.220041,
+        -0, 1, 3, 3, 1, 0.0454063, 0, 0, 0, 0, 0, -0.106477, 0, 0, 2, 0, 0,
+        0.17028, 0, 0, 0, 0, 2, -0.220041, -0, 3, 3, 1, 1, -0.0454063, -0, 2, 2,
+        0, 0, 0.168336, 0, 2, 0, 2, 0, 0.1202, 0, 0, 2, 0, 2, 0.1202, 0, 2, 0,
+        0, 2, 0.165607, 0, 0, 2, 2, 0, 0.165607, 0, 0, 0, 2, 2, 0.174073, 0, 1,
+        1, 3, 3, -0.0454063, -0, 15
     ]
     h = cudaq.SpinOperator(h2_data, 4)
 
@@ -236,12 +236,12 @@ def test_pauli_word_input():
 
 def test_exp_pauli():
     h2_data = [
-        3, 1, 1, 3, 0.0454063, 0, 2, 0, 0, 0, 0.17028, 0, 0, 0, 2, 0,
-        -0.220041, -0, 1, 3, 3, 1, 0.0454063, 0, 0, 0, 0, 0, -0.106477, 0, 0,
-        2, 0, 0, 0.17028, 0, 0, 0, 0, 2, -0.220041, -0, 3, 3, 1, 1, -0.0454063,
-        -0, 2, 2, 0, 0, 0.168336, 0, 2, 0, 2, 0, 0.1202, 0, 0, 2, 0, 2, 0.1202,
-        0, 2, 0, 0, 2, 0.165607, 0, 0, 2, 2, 0, 0.165607, 0, 0, 0, 2, 2,
-        0.174073, 0, 1, 1, 3, 3, -0.0454063, -0, 15
+        3, 1, 1, 3, 0.0454063, 0, 2, 0, 0, 0, 0.17028, 0, 0, 0, 2, 0, -0.220041,
+        -0, 1, 3, 3, 1, 0.0454063, 0, 0, 0, 0, 0, -0.106477, 0, 0, 2, 0, 0,
+        0.17028, 0, 0, 0, 0, 2, -0.220041, -0, 3, 3, 1, 1, -0.0454063, -0, 2, 2,
+        0, 0, 0.168336, 0, 2, 0, 2, 0, 0.1202, 0, 0, 2, 0, 2, 0.1202, 0, 2, 0,
+        0, 2, 0.165607, 0, 0, 2, 2, 0, 0.165607, 0, 0, 0, 2, 2, 0.174073, 0, 1,
+        1, 3, 3, -0.0454063, -0, 15
     ]
     h = cudaq.SpinOperator(h2_data, 4)
 
@@ -852,7 +852,7 @@ def test_invalid_cudaq_type():
         print(test)
 
 
-def test_bool_list_elements():
+def test_bool_list_element():
 
     @cudaq.kernel
     def kernel(var: list[bool]):
@@ -866,6 +866,38 @@ def test_bool_list_elements():
 
     counts = cudaq.sample(kernel, [True], shots_count=100)
     assert '0' in counts and len(counts) == 1
+
+
+def test_list_bool_elements():
+    import cudaq
+
+    @cudaq.kernel
+    def kernel(n: int, bools: list[bool]):
+        q = cudaq.qvector(n)
+        for j in range(n):
+            b = bools[j]
+            if b == False:
+                x(q[j])
+
+    counts = cudaq.sample(kernel, 2, [True, True])
+    assert "00" in counts
+    assert len(counts) == 1
+
+    counts = cudaq.sample(kernel, 2, [False, True])
+    assert "10" in counts
+    assert len(counts) == 1
+
+    counts = cudaq.sample(kernel, 2, [True, False])
+    assert "01" in counts
+    assert len(counts) == 1
+
+    counts = cudaq.sample(kernel, 2, [False, False])
+    assert "11" in counts
+    assert len(counts) == 1
+
+    counts = cudaq.sample(kernel, 5, [True, True, False, True, True])
+    assert "00100" in counts
+    assert len(counts) == 1
 
 
 def test_list_float_pass_list_int():
@@ -919,12 +951,14 @@ def test_aug_assign_add():
 def test_empty_lists():
 
     @cudaq.kernel
-    def empty(var: list[cudaq.pauli_word], varvar: list[float],
-              varvarvar: list[bool]):
+    def empty(a: list[cudaq.pauli_word], b: list[bool], c: list[int],
+              d: list[float], e: list[complex]) -> int:
+
         q = cudaq.qvector(2)
         x(q[0])
+        return len(a) + len(b) + len(c) + len(d) + len(e)
 
-    empty([], [], [])
+    assert empty([], [], [], [], []) == 0
 
 
 def test_no_valueerror_np_array():
@@ -1764,15 +1798,17 @@ def test_disallow_quantum_struct_return():
 
         test()
 
+
 def test_disallow_recursive_quantum_struct():
     from dataclasses import dataclass
+
     @dataclass
     class T:
         q: cudaq.qview
 
     @dataclass
     class Holder:
-        t : T
+        t: T
 
     with pytest.raises(RuntimeError) as e:
 
@@ -1783,37 +1819,41 @@ def test_disallow_recursive_quantum_struct():
             hh = Holder(t)
 
         print(test)
-    
+
     with pytest.raises(RuntimeError) as e:
 
         @cudaq.kernel
-        def test(hh : Holder):
+        def test(hh: Holder):
             pass
 
         print(test)
 
+
 def test_disallow_struct_with_methods():
     from dataclasses import dataclass
+
     @dataclass
     class T:
         q: cudaq.qview
+
         def doSomething(self):
-            pass 
+            pass
 
     with pytest.raises(RuntimeError) as e:
 
         @cudaq.kernel
-        def test(t : T):
-            pass 
+        def test(t: T):
+            pass
 
         print(test)
-    
+
     with pytest.raises(RuntimeError) as e:
 
-        @cudaq.kernel 
+        @cudaq.kernel
         def test():
             q = cudaq.qvector(2)
             t = T(q)
+
         print(test)
 
 
