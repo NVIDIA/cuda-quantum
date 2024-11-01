@@ -506,6 +506,7 @@ execute_process(COMMAND make install WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DI
 
 set(SERVICE_COMPONENTS braket s3-crt sts)
 find_package(AWSSDK REQUIRED COMPONENTS ${SERVICE_COMPONENTS})
+enable_testing() # ensure that testing is enabled for subsequent directories
 
 # Check for CUDA Support
 # ==============================================================================
