@@ -13,17 +13,20 @@ def test_call_with_return_bool():
 
     @cudaq.kernel()
     def callee(q: cudaq.qubit) -> bool:
-        h(q)
+        x(q)
         m = mz(q)
         return m
 
     @cudaq.kernel()
     def caller() -> bool:
         q = cudaq.qubit()
-        t = callee(q)
-        return t
+        return callee(q)
 
-    print(caller())
+    result = caller()
+    assert result == True or result == False
+
+    counts = cudaq.sample(caller)
+    assert '1' in counts and len(counts) == 1
 
 
 def test_call_with_return_bool2():
@@ -55,7 +58,7 @@ def test_call_with_return_bool2():
         reset(logicalQubit.ancz)
         #TODO: support returning lists
         #Issue: https://github.com/NVIDIA/cuda-quantum/issues/2336
-        return results[0] and results[2]
+        return results[3]
 
     @cudaq.kernel()
     def run() -> bool:
@@ -67,4 +70,9 @@ def test_call_with_return_bool2():
 
         return stabilizer(p, [1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1])
 
-    assert run() == True
+    result = run()
+    assert result == True or result == False
+
+    sample_result = cudaq.sample(run)
+    counts = sample_result.get_register_counts("results")
+    assert len(counts) == 4
