@@ -578,14 +578,6 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
-      - name: Upload additional assets
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ steps.release_info.outputs.platform_arch }}-cu${{ steps.release_info.outputs.cuda_major_version }}-assets
-          path: assets
-          retention-days: 1
-          if-no-files-found: error
-
   cudaq_wheels:
     name: CUDA Quantum Python wheels
     if: ${{ toJson(fromJson(needs.assets.outputs.python_wheels).info_files) != '[]' }}
@@ -743,8 +735,8 @@ jobs:
 
     strategy:
       matrix:
-        os_image: ['redhat/ubi8:8.0', 'ubuntu:22.04', 'debian:12']
-        cuda_version: ["11.8", "12.0"]
+        os_image: ['redhat/ubi9:9.2', 'ubuntu:22.04']
+        cuda_version: ['11.8', '12.0']
       fail-fast: false
 
     container:
@@ -773,7 +765,7 @@ jobs:
           path: /tmp/install
 
       - name: Runtime dependencies (apt)
-        if: startsWith(matrix.os_image, 'ubuntu') || startsWith(matrix.os_image, 'debian')
+        if: startsWith(matrix.os_image, 'ubuntu')
         run: |
           apt-get update && apt-get install -y --no-install-recommends \
             wget ca-certificates libc6-dev libopenmpi-dev
@@ -792,7 +784,7 @@ jobs:
         run: |
           dnf install -y --nobest --setopt=install_weak_deps=False \
             'dnf-command(config-manager)' glibc-devel openssh-clients
-          . scripts/configure_build.sh install-cudart
+          CUDA_VERSION=${{ matrix.cuda_version }} . scripts/configure_build.sh install-cudart
 
           # We need to install an MPI implementation, otherwise nothing
           # will be able to run on the nvidia-mgpu backend.
@@ -814,8 +806,9 @@ jobs:
         env:
           BASH_ENV: ~/.bashrc
         run: |
-          chmod +x /tmp/install/install_cuda_quantum*
-          /tmp/install/install_cuda_quantum* --accept
+          installer=install_cuda_quantum_cu$(echo ${{ matrix.cuda_version }} | cut -d . -f1).x86_64
+          chmod +x /tmp/install/$installer
+          /tmp/install/$installer --accept
           rm -rf examples applications targets
           mv docs/sphinx/examples examples && mv docs/sphinx/applications applications && mv docs/sphinx/targets targets
           rm -rf examples/python && rm -rf applications/python && rm -rf targets/python
@@ -879,7 +872,8 @@ jobs:
             echo "::error::Error running validation script" 
             exit $status_sum
           fi
-  
+
+  # FIXME: CUDA 11 VS CUDA 12
   wheel_validation_x86_simple:
     name: Simple Python wheel installation validation
     needs: [assets, cudaq_wheels]
@@ -1041,12 +1035,6 @@ jobs:
           pattern: '*-installer'
           path: installers
 
-      - name: Download additional assets
-        uses: actions/download-artifact@v4
-        with:
-          pattern: '*-assets'
-          path: assets
-  
       # The python wheels are uploaded as a release asset, but not pushed to anywhere else.
       # Note that PyPI packages cannot be updated once pushed;
       #  - We could upload wheels to test-pypi when creating a release.
@@ -1079,7 +1067,6 @@ jobs:
             --generate-notes --notes-start-tag $latest_tag --notes "$rel_notes"
           gh release upload $release_id -R ${{ github.repository }} wheelhouse.zip --clobber
           gh release upload $release_id -R ${{ github.repository }} install_cuda_quantum.* --clobber
-          gh release upload $release_id -R ${{ github.repository }} assets/* --clobber
           gh release edit $release_id -R ${{ github.repository }} \
             --title "$release_title" --tag $version $prerelease # --draft=false
         env:
