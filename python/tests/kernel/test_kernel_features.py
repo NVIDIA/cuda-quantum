@@ -880,24 +880,19 @@ def test_list_bool_elements():
                 x(q[j])
 
     counts = cudaq.sample(kernel, 2, [True, True])
-    assert "00" in counts
-    assert len(counts) == 1
+    assert "00" in counts and len(counts) == 1
 
     counts = cudaq.sample(kernel, 2, [False, True])
-    assert "10" in counts
-    assert len(counts) == 1
+    assert "10" in counts and len(counts) == 1
 
     counts = cudaq.sample(kernel, 2, [True, False])
-    assert "01" in counts
-    assert len(counts) == 1
+    assert "01" in counts and len(counts) == 1
 
     counts = cudaq.sample(kernel, 2, [False, False])
-    assert "11" in counts
-    assert len(counts) == 1
+    assert "11" in counts and len(counts) == 1
 
     counts = cudaq.sample(kernel, 5, [True, True, False, True, True])
-    assert "00100" in counts
-    assert len(counts) == 1
+    assert "00100" in counts and len(counts) == 1
 
 
 def test_list_float_pass_list_int():
