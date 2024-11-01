@@ -857,7 +857,7 @@ jobs:
           name: x86_64-cu${{ matrix.cuda_major }}-py3.10-wheels
           path: /tmp/install
       
-      - name: Run simple validation
+      - name: Run validation
         shell: bash
         run: |
           apt-get update && apt-get install -y --no-install-recommends ca-certificates vim wget openssh-client
@@ -910,7 +910,7 @@ jobs:
           name: x86_64-cu${{ matrix.cuda_major }}-py3.10-wheels
           path: /tmp/install
       
-      - name: Run simple x86 validation
+      - name: Run x86 validation
         shell: bash
         run: |
           # These simple steps are only expected to work for x86 and only for

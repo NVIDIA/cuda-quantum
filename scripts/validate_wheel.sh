@@ -15,7 +15,7 @@
 # Check the output for any tests that were skipped.
 
 # E.g. run the command 
-#   source validate_wheel.sh -w /tmp/cuda_quantum*.whl -f /tmp -p 3.10 
+#   source validate_wheel.sh -w /tmp/cuda_quantum*.whl -f /tmp -p 3.10 -c 11
 # in a container (with GPU support) defined by:
 #
 # ARG base_image=ubuntu:22.04
@@ -28,7 +28,7 @@
 # COPY docs/sphinx/targets/python /tmp/targets/
 # COPY docs/sphinx/snippets/python /tmp/snippets/
 # COPY python/tests /tmp/tests/
-# COPY python/README*.md /tmp/
+# COPY python/README-cu11.md /tmp/
 # RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates vim wget openssh-client
 
 __optind__=$OPTIND

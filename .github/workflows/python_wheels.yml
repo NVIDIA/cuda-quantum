@@ -161,7 +161,7 @@ jobs:
       - id: config
         run: |
           python_config=`cat .github/workflows/config/validation_config.json | jq ".python"`
-          operating_systems=`echo "$python_config" | jq '.[] | select(.version==${{ inputs.python_version }}).operating_systems'`
+          operating_systems=`echo "$python_config" | jq '.[] | select(.version=="${{ inputs.python_version }}").operating_systems'`
           echo "json={\"os_images\":$(echo $operating_systems)}" >> $GITHUB_OUTPUT
 
   validation:
