@@ -5,10 +5,6 @@ on:
         type: string
         required: false
         default: linux/amd64
-      build_config_id:
-        required: false
-        type: string
-        description: An string that uniquely identfies the toolchain and build configuration used within the Docker image. The value is used in tags and cache locations to distinguish different builds.
       python_version:
         type: string
         required: true
@@ -176,6 +172,9 @@ jobs:
       contents: read
       packages: read
 
+    outputs:
+      artifact_id: "${{ steps.job_summary.outputs.artifact_id }}"
+  
     strategy:
       matrix:
         os_image: ${{ fromJSON(needs.create_test_config.outputs.json).os_images }}
@@ -350,18 +349,36 @@ jobs:
           fi
 
       - name: Create job summary
+        id: job_summary
         if: always() && !cancelled() 
         run: |
+          cuda_major=`echo ${{ inputs.cuda_version }} | cut -d . -f1`
+          platform_id=`echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
+          artifact_id=python_${platform_id}_cu$cuda_major # changing the artifact name requires updating other workflows
+          echo "artifact_id=$artifact_id" >> $GITHUB_OUTPUT
+
           if [ -f /tmp/validation.out ]; then
             if [ -n "${{ matrix.pip_install_flags }}" ]; then 
                 installation_details="(installed with ${{ matrix.pip_install_flags }})"
             else 
                 installation_details="(default installation)"
             fi
-            echo "## Validation on ${{ matrix.os_image }} $installation_details" >> $GITHUB_STEP_SUMMARY
-            echo "The validation of the cuda-quantum Python wheel produced the following output:" >> $GITHUB_STEP_SUMMARY
-            cat /tmp/validation.out >> $GITHUB_STEP_SUMMARY
+
+            summary=/tmp/summary.txt
+            echo "## Validation on ${{ matrix.os_image }} $installation_details" >> $summary
+            echo "The validation of the cuda-quantum Python wheel produced the following output:" >>> $summary
+            cat /tmp/validation.out >>> $summary
+            echo "validation_summary=$summary" >> $GITHUB_OUTPUT
           fi
+
+      - name: Upload job summary
+        if: steps.job_summary.outputs.validation_summary != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.job_summary.outputs.artifact_id }}_validation
+          path: ${{ steps.job_summary.outputs.validation_summary }}
+          retention-days: 1
+          if-no-files-found: warn
 
   staging:
     name: Staging
@@ -380,10 +397,7 @@ jobs:
         run: |
           wheeldeps_hash=${{ inputs.devdeps_image }}
           platform_id=`echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
-          cuda_major=`echo ${{ inputs.cuda_version }} | cut -d . -f1`
-          build_config_id=${{ inputs.build_config_id }}
-          build_config_id=${build_config_id:-cu$cuda_major}
-          artifact_name=python_${platform_id}_${build_config_id}_publishing # changing the artifact name requires updating other workflows
+          artifact_name=${{ needs.validation.outputs.artifact_id }}_publishing # changing the artifact name requires updating other workflows
 
           echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
           echo "artifact_name=$artifact_name" >> $GITHUB_OUTPUT

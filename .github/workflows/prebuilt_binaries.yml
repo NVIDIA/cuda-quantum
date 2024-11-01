@@ -260,7 +260,6 @@ jobs:
       contents: read
 
     outputs:
-      cuda_major: ${{ steps.config.outputs.cuda_major }}
       json: "${{ steps.config.outputs.json }}"
 
     steps:
@@ -272,8 +271,6 @@ jobs:
           cuda_major=`echo ${{ inputs.cuda_version }} | cut -d . -f1`
           config_file=".github/workflows/config/validation_config.json"
           cpp_config=`cat "$config_file" | jq ".cpp[] | select(.platform==\"${{ inputs.platform }}\" and .cuda_major==$cuda_major)"`
-
-          echo "cuda_major=$cuda_major" >> $GITHUB_OUTPUT
           echo "json=$(echo $cpp_config)" >> $GITHUB_OUTPUT
 
   validation:
@@ -284,6 +281,9 @@ jobs:
     permissions:
       contents: read
       packages: read
+
+    outputs:
+      artifact_id: "${{ steps.job_summary.outputs.artifact_id }}"
 
     strategy:
       matrix:
@@ -328,7 +328,7 @@ jobs:
           mv /tmp/install/* .
           docker build -t validation:local -f "docker/test/installer/linux.Dockerfile" . \
             --cache-from ${{ needs.build_openmpi.outputs.build_cache }} \
-            --build-arg cuda_quantum_installer=install_cuda_quantum_cu${{ needs.create_test_config.outputs.cuda_major }}.$(uname -m) \
+            --build-arg cuda_quantum_installer=install_cuda_quantum_cu$(echo ${{ inputs.cuda_version }} | cut -d . -f1).$(uname -m) \
             --build-arg cuda_quantum_wheel=cuda_quantum*$(uname -m).whl \
             --build-arg base_image=${{ matrix.os_image }} \
             --build-arg base_image_mpibuild=${{ inputs.platform_base_image }} \
@@ -402,7 +402,7 @@ jobs:
 
             # Re-install CUDA Quantum
             MPI_PATH=/usr/local/openmpi \
-            sudo -E bash install_cuda_quantum_cu${{ needs.create_test_config.outputs.cuda_major }}.$(uname -m) --accept | tee install_log.txt
+            sudo -E bash install_cuda_quantum_cu$(echo ${{ inputs.cuda_version }} | cut -d . -f1).$(uname -m) --accept | tee install_log.txt
             if [ -n "$(cat install_log.txt | grep -i 'Warning:')" ]; then
               echo "::error::Re-installation produced a warning. Check the log for more detail."
               exit 102
@@ -474,15 +474,32 @@ jobs:
             fi
 
       - name: Create job summary
+        id: job_summary
         if: always() && !cancelled()
         run: |
+          cuda_major=`echo ${{ inputs.cuda_version }} | cut -d . -f1`
+          platform_id=`echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
+          artifact_id=installer_${platform_id}_cu$cuda_major # changing the artifact name requires updating other workflows
+          echo "artifact_id=$artifact_id" >> $GITHUB_OUTPUT
+
           if [ -f /tmp/validation.out ]; then
-            echo "## Validation" >> $GITHUB_STEP_SUMMARY
-            echo "The validation of the CUDA Quantum installation produced the following output:" >> $GITHUB_STEP_SUMMARY
-            echo '```text' >> $GITHUB_STEP_SUMMARY
-            cat /tmp/validation.out >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
+            summary=/tmp/summary.txt
+            echo "## Validation" > $summary
+            echo "The validation of the CUDA Quantum installation produced the following output:" >> $summary
+            echo '```text' >> $summary
+            cat /tmp/validation.out >> $summary
+            echo '```' >> $summary
+            echo "validation_summary=$summary" >> $GITHUB_OUTPUT
           fi
+
+      - name: Upload job summary
+        if: steps.job_summary.outputs.validation_summary != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.job_summary.outputs.artifact_id }}_validation
+          path: ${{ steps.job_summary.outputs.validation_summary }}
+          retention-days: 1
+          if-no-files-found: warn
 
   staging:
     name: Staging
@@ -503,7 +520,7 @@ jobs:
           image_hash=${{ needs.build_installer.outputs.image_hash }}
           platform_id=`echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
           echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
-          artifact_name=installer_${platform_id}_cu${{ needs.create_test_config.outputs.cuda_major }}_publishing # changing the artifact name requires updating other workflows
+          artifact_name=${{ needs.validation.outputs.artifact_id }}_publishing # changing the artifact name requires updating other workflows
           echo "artifact_name=$artifact_name" >> $GITHUB_OUTPUT
           info_file="$artifact_name.txt"
           echo "info_file=$info_file" >> $GITHUB_OUTPUT
