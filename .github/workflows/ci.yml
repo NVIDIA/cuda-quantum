@@ -193,6 +193,24 @@ jobs:
       devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 
+  gen_code_coverage:
+    name: Gen code coverage
+    needs: config
+    strategy:
+      matrix:
+        platform: [amd64]
+        toolchain: [clang16]
+      fail-fast: false
+    uses: ./.github/workflows/generate_cc.yml
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    with:
+      platform: linux/${{ matrix.platform }}
+      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
+      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
+      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
+      export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
+
   docker_image:
     name: Create Docker images
     needs: config
