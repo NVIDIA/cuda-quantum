@@ -2176,7 +2176,7 @@ class PyASTBridge(ast.NodeVisitor):
                 if node.func.attr == 'qvector':
                     if len(self.valueStack) == 0:
                         self.emitFatalError(
-                            'qvector does not have nullary constructor. init from size or existing state.',
+                            'qvector does not have default constructor. Init from size or existing state.',
                             node)
 
                     valueOrPtr = self.popValue()

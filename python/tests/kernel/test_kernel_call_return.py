@@ -9,6 +9,22 @@
 import cudaq
 
 
+def test_call_with_callee_return_bool():
+
+    @cudaq.kernel
+    def bar(qubits: cudaq.qview) -> bool:
+        x(qubits)
+        return False
+
+    @cudaq.kernel
+    def foo(n: int):
+        qubits = cudaq.qvector(n)
+        bar(qubits)
+
+    counts = cudaq.sample(foo, 3)
+    assert "111" in counts and len(counts) == 1
+
+
 def test_call_with_return_bool():
 
     @cudaq.kernel()
