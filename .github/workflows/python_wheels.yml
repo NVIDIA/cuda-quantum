@@ -374,7 +374,7 @@ jobs:
           fi
 
       - name: Upload job summary
-        if: steps.job_summary.outputs.validation_summary != ''
+        if: steps.job_summary.outputs.validation_summary != '' && matrix.pip_install_flags == ''
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.job_summary.outputs.artifact_id }}_${{ steps.job_summary.outputs.os_id }}_py${{ inputs.python_version }}_validation
