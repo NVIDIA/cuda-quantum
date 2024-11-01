@@ -194,7 +194,7 @@ jobs:
           NGC_CLI_API_KEY: ${{ secrets.NGC_CREDENTIALS }}
           NGC_CLI_ORG: ${{ env.NGC_QUANTUM_ORG }}
           NGC_CLI_TEAM: cuda-quantum
-        # When a new REST version is introduced, NVQC_REST_PAYLOAD_VERSION needs to be updated in lockstep with the new nightly CUDA Quantum image. 
+        # When a new REST version is introduced, NVQC_REST_PAYLOAD_VERSION needs to be updated in lockstep with the new nightly CUDA Quantum image.
         # Otherwise, deployment of the test function will fail.
         run: |
           # We run with CUDAQ_SER_CODE_EXEC set. The final NVQC deployment may
@@ -268,7 +268,7 @@ jobs:
             filelist="targettests/*/*.cpp"
             echo "testlist=$filelist" >> $GITHUB_OUTPUT
           fi
-      
+
       - name: Setup anyon account
         # This step is currently bypassed during nightly runs due to
         # maintenance. Restore the if check to the original value when
@@ -405,18 +405,15 @@ jobs:
           fi
         shell: bash
 
-      - name: Submit to IQM Demo server
+      - name: Submit to a mocked IQM Resonance server
         if: (success() || failure()) && (inputs.target == 'iqm' || github.event_name == 'schedule' || inputs.target == 'nightly')
         run: |
-          # Must install iqm-cortex-cli to authenticate
-          pip install iqm-cortex-cli
-          echo "### Submit to IQM Demo server" >> $GITHUB_STEP_SUMMARY
-          # IQM demo server info is from: https://demo.qc.iqm.fi/cocos/info/
-          cortex init --config-file ${HOME}/.config/iqm-cortex-cli/config.json --tokens-file ${HOME}/.cache/iqm-cortex-cli/tokens.json --auth-server-url https://demo.qc.iqm.fi/auth --client-id iqm_client --realm cortex --username '${{ secrets.IQM_USER }}'
-          cortex auth login --username '${{ secrets.IQM_USER }}' --password '${{ secrets.IQM_PASSWORD }}'
-          echo ":white_check_mark: Successfully installed iqm-cortex-cli and logged in" >> $GITHUB_STEP_SUMMARY
-          # Use the demo machine, which is Adonis architecture
-          export IQM_SERVER_URL="https://demo.qc.iqm.fi/cocos"
+          echo "### Submit to IQM Resonance" >> $GITHUB_STEP_SUMMARY
+          # Create a json file with the Resonance auth token
+          echo "{ \"access_token\": \"${{ secrets.IQM_TOKEN }}\" }" > .resonance.api-token.json
+          export IQM_TOKENS_FILE=".resonance.api-token.json"
+          # Use IQM Resonance Pyrit mock, which implements the Adonis architecture
+          export IQM_SERVER_URL="https://cocos.resonance.meetiqm.com/pyrite:mock"
           export CUDAQ_LOG_LEVEL="info"
           set +e # Allow script to keep going through errors
           test_err_sum=0
@@ -443,8 +440,6 @@ jobs:
               ;;
             esac
           done
-          set -e # Re-enable exit code error checking
-          cortex auth logout -f
           echo ":white_check_mark: Successfully logged out of IQM" >> $GITHUB_STEP_SUMMARY
           if [ ! $test_err_sum -eq 0 ]; then
             echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
