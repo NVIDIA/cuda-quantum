@@ -110,7 +110,8 @@ Python Wheels:
     - export PROJECT_SRCS_DIR=$PWD/.. 
     # Install CUDA Quantum wheel for a particular Python version (could be any version) 
     - export python=python3.10 
-    - cd /tmp/wheels/ && $python -m pip install cuda_quantum-*-cp310-cp310-manylinux_*_$(uname -m).whl
+    - cuda_major=$(echo $CUDA_VERSION | cut -d . -f1)
+    - cd /tmp/wheels/ && $python -m pip install cuda_quantum_cu${cuda_major}*-cp310-cp310-manylinux_*_$(uname -m).whl
     - cudaq_location=`$python -m pip show cuda-quantum | grep -e 'Location:\ .*$'`
     - export CUDAQ_INSTALL_PREFIX="${cudaq_location#Location:\ }"
     - cp -R $CUDAQ_INSTALL_PREFIX/lib64/cmake/fmt $CUDAQ_INSTALL_PREFIX/lib/cmake
