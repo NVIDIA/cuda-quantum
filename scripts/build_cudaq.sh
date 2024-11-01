@@ -119,28 +119,6 @@ else
   fi
 fi
 
-# Build and install AWS SDK if necessary
-if [ ! -f /usr/local/lib/libaws-c-common.a ]; then
-  echo "Building and installing AWS SDK."
-  pushd $working_dir/tpls/aws-sdk-cpp
-  cmake \
-    -DAUTORUN_UNIT_TESTS=OFF \
-    -DAWS_SDK_WARNINGS_ARE_ERRORS=OFF \
-    -DAWS_USER_AGENT_CUSTOMIZATION="CUDA-Q/$CUDA_QUANTUM_VERSION" \
-    -DBUILD_ONLY="braket;s3-crt;sts" \
-    -DBUILD_SHARED_LIBS=OFF \
-    -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF \
-    -DCURL_LIBRARY=/usr/local/curl/lib/libcurl.a \
-    -DCURL_INCLUDE_DIR=/usr/local/curl/include \
-    -Dcrypto_LIBRARY=$OPENSSL_INSTALL_PREFIX/lib64/libcrypto.a \
-    -Dcrypto_INCLUDE_DIR=$OPENSSL_INSTALL_PREFIX/include \
-    -DOPENSSL_ROOT_DIR=$OPENSSL_INSTALL_PREFIX \
-    -DENABLE_TESTING=OFF
-  make && make install
-  popd
-  echo "AWS SDK installed: /usr/local/lib/"
-fi
-
 # Determine linker and linker flags
 if [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/ld.lld")" ]; then
   echo "Configuring nvq++ to use the lld linker by default."
@@ -185,7 +163,6 @@ cmake_args="-G Ninja '"$repo_root"' \
   -DCUDAQ_ENABLE_PYTHON=${CUDAQ_PYTHON_SUPPORT:-TRUE} \
   -DCUDAQ_BUILD_TESTS=${CUDAQ_BUILD_TESTS:-TRUE} \
   -DCUDAQ_TEST_MOCK_SERVERS=${CUDAQ_BUILD_TESTS:-TRUE} \
-  -DCUDAQ_INTEGRATION_TEST_BRAKET=${CUDAQ_BUILD_TESTS:-TRUE} \
   -DCMAKE_COMPILE_WARNING_AS_ERROR=${CUDAQ_WERROR:-ON}"
 # Note that even though we specify CMAKE_CUDA_HOST_COMPILER above, it looks like the 
 # CMAKE_CUDA_COMPILER_WORKS checks do *not* use that host compiler unless the CUDAHOSTCXX 
