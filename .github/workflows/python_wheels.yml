@@ -365,9 +365,9 @@ jobs:
             fi
 
             summary=/tmp/summary.txt
-            echo "## Validation on ${{ matrix.os_image }} $installation_details" >> $summary
-            echo "The validation of the cuda-quantum Python wheel produced the following output:" >>> $summary
-            cat /tmp/validation.out >>> $summary
+            echo "## Validation on ${{ matrix.os_image }} $installation_details" > $summary
+            echo "The validation of the cuda-quantum Python wheel produced the following output:" >> $summary
+            cat /tmp/validation.out >> $summary
             echo "validation_summary=$summary" >> $GITHUB_OUTPUT
           fi
 
