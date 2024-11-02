@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/utils/tensor.h"
+#include "exceptions.h"
 #include "gtest/gtest.h"
 
 TEST(Tensor, initialization) {
@@ -27,8 +28,8 @@ TEST(Tensor, initialization) {
 
 TEST(Tensor, initializationError) {
   {
-    EXPECT_THROW(cudaq::matrix_2 m1({1., 2., 3., 4., 5.}, {2, 3}),
-                 std::runtime_error);
+    EXPECT_THROW_MIXED_STDLIB(cudaq::matrix_2 m1({1., 2., 3., 4., 5.}, {2, 3}),
+                              std::runtime_error);
   }
 }
 
@@ -61,22 +62,22 @@ TEST(Tensor, accessError) {
   {
     cudaq::matrix_2 m0;
 
-    EXPECT_THROW((m0[{0}]), std::runtime_error);
-    EXPECT_THROW((m0[{0, 1}]), std::runtime_error);
-    EXPECT_THROW((m0[{0, 0, 0}]), std::runtime_error);
+    EXPECT_THROW_MIXED_STDLIB((m0[{0}]), std::runtime_error);
+    EXPECT_THROW_MIXED_STDLIB((m0[{0, 1}]), std::runtime_error);
+    EXPECT_THROW_MIXED_STDLIB((m0[{0, 0, 0}]), std::runtime_error);
   }
   {
     cudaq::matrix_2 m1({1., 0., 0., 1.});
 
-    EXPECT_THROW((m1[{0, 2}]), std::runtime_error);
-    EXPECT_THROW((m1[{0, 0, 0}]), std::runtime_error);
+    EXPECT_THROW_MIXED_STDLIB((m1[{0, 2}]), std::runtime_error);
+    EXPECT_THROW_MIXED_STDLIB((m1[{0, 0, 0}]), std::runtime_error);
   }
   {
     cudaq::matrix_2 m1({1., 2., 3., 4., 5., 6.}, {2, 3});
 
-    EXPECT_THROW((m1[{0, 3}]), std::runtime_error);
-    EXPECT_THROW((m1[{2, 1}]), std::runtime_error);
-    EXPECT_THROW((m1[{0, 2, 3}]), std::runtime_error);
+    EXPECT_THROW_MIXED_STDLIB((m1[{0, 3}]), std::runtime_error);
+    EXPECT_THROW_MIXED_STDLIB((m1[{2, 1}]), std::runtime_error);
+    EXPECT_THROW_MIXED_STDLIB((m1[{0, 2, 3}]), std::runtime_error);
   }
 }
 
@@ -100,7 +101,7 @@ TEST(Tensor, productError) {
   {
     cudaq::matrix_2 m2({2., 1., 3., 4.});
     cudaq::matrix_2 m3({1., 2., 3., 4., 5., 6.}, {3, 2});
-    EXPECT_THROW(m2 * m3, std::runtime_error);
+    EXPECT_THROW_MIXED_STDLIB(m2 * m3, std::runtime_error);
   }
 }
 
@@ -117,7 +118,7 @@ TEST(Tensor, additionError) {
   {
     cudaq::matrix_2 m5({2., 1., 3., 4.});
     cudaq::matrix_2 m6({1., 2., 3., 4., 5., 6.}, {3, 2});
-    EXPECT_THROW(m5 + m6, std::runtime_error);
+    EXPECT_THROW_MIXED_STDLIB(m5 + m6, std::runtime_error);
   }
 }
 
@@ -133,7 +134,7 @@ TEST(Tensor, subtractionError) {
   {
     cudaq::matrix_2 m8({2., 1., 3., 4.});
     cudaq::matrix_2 m9({1., 2., 3., 4., 5., 6.}, {3, 2});
-    EXPECT_THROW(m8 - m9, std::runtime_error);
+    EXPECT_THROW_MIXED_STDLIB(m8 - m9, std::runtime_error);
   }
 }
 
