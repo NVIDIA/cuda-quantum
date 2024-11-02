@@ -6,6 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+/// Additional test API that can catch and verify exceptions in code compiled
+/// with `libstdc++` that were thrown in code compiled with `libc++`.
 #include "gtest/gtest.h"
 #define GTEST_TEST_THROW_MIXED_STDLIB(statement, expected_exception, fail)     \
   GTEST_AMBIGUOUS_ELSE_BLOCKER_                                                \
