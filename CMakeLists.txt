@@ -524,6 +524,7 @@ if (NOT AWSSDK_FOUND)
           "-DOPENSSL_ROOT_DIR=$ENV{OPENSSL_INSTALL_PREFIX}"
           "-DENABLE_TESTING=OFF"
           "-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}"
+          "-G ${CMAKE_GENERATOR}"
     )
     if(NOT ${result} STREQUAL "0")
       message(FATAL_ERROR "Configuring aws-sdk-cpp failed.")
