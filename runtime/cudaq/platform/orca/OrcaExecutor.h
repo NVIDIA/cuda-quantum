@@ -17,6 +17,10 @@ namespace cudaq {
 /// API.
 class OrcaExecutor : public Executor {
 public:
+  details::future
+  execute(std::vector<KernelExecution> &codesToExecute) override {
+    throw std::runtime_error("execute on kernels not supported");
+  }
   /// @brief Execute the provided ORCA quantum parameters and return a future
   /// object. The caller can make this synchronous by just immediately calling
   /// .get().
