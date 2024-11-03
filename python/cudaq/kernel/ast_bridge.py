@@ -166,6 +166,8 @@ class PyASTBridge(ast.NodeVisitor):
         self.buildingEntryPoint = False
         self.inForBodyStack = deque()
         self.inIfStmtBlockStack = deque()
+        self.currentAssignVariableName = None
+        self.walkingReturnNode = False
         self.controlNegations = []
         self.subscriptPushPointerValue = False
         self.verbose = 'verbose' in kwargs and kwargs['verbose']
@@ -900,6 +902,10 @@ class PyASTBridge(ast.NodeVisitor):
                 self.mlirTypeFromAnnotation(arg.annotation)
                 for arg in node.args.args
             ]
+            parentResultType = self.knownResultType
+            if node.returns != None:
+                self.knownResultType = self.mlirTypeFromAnnotation(node.returns)
+
             # Get the argument names
             argNames = [arg.arg for arg in node.args.args]
 
@@ -980,6 +986,8 @@ class PyASTBridge(ast.NodeVisitor):
             globalKernelRegistry[node.name] = f
             self.symbolTable.clear()
             self.valueStack.clear()
+
+            self.knownResultType = parentResultType
 
     def visit_Expr(self, node):
         """
@@ -1713,7 +1721,7 @@ class PyASTBridge(ast.NodeVisitor):
                 # If `registerName` is None, then we know that we
                 # are not assigning this measure result to anything
                 # so we therefore should not push it on the stack
-                pushResultToStack = registerName != None
+                pushResultToStack = registerName != None or self.walkingReturnNode
 
                 # By default we set the `register_name` for the measurement
                 # to the assigned variable name (if there is one). But
@@ -1870,7 +1878,11 @@ class PyASTBridge(ast.NodeVisitor):
                 values = [self.popValue() for _ in node.args]
                 values.reverse()
                 values = [self.ifPointerThenLoad(v) for v in values]
-                func.CallOp(otherKernel, values)
+                if len(fType.results) == 0:
+                    func.CallOp(otherKernel, values)
+                else:
+                    result = func.CallOp(otherKernel, values).result
+                    self.pushValue(result)
                 return
 
             elif node.func.id in self.symbolTable:
@@ -2162,6 +2174,11 @@ class PyASTBridge(ast.NodeVisitor):
                         node)
 
                 if node.func.attr == 'qvector':
+                    if len(self.valueStack) == 0:
+                        self.emitFatalError(
+                            'qvector does not have default constructor. Init from size or existing state.',
+                            node)
+
                     valueOrPtr = self.popValue()
                     initializerTy = valueOrPtr.type
 
@@ -3519,7 +3536,9 @@ class PyASTBridge(ast.NodeVisitor):
         if node.value == None:
             return
 
+        self.walkingReturnNode = True
         self.visit(node.value)
+        self.walkingReturnNode = False
 
         if len(self.valueStack) == 0:
             return
@@ -3537,6 +3556,7 @@ class PyASTBridge(ast.NodeVisitor):
             byteWidth = 16 if ComplexType.isinstance(eleTy) else 8
             eleSize = self.getConstantInt(byteWidth)
             dynSize = cc.StdvecSizeOp(self.getIntegerType(), result).result
+            resBuf = cc.CastOp(ptrTy, resBuf)
             heapCopy = func.CallOp([ptrTy], symName,
                                    [resBuf, dynSize, eleSize]).result
             res = cc.StdvecInitOp(result.type, heapCopy, dynSize).result
