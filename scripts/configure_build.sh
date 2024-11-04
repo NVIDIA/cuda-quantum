@@ -79,7 +79,7 @@ if [ "$1" == "install-cutensor" ]; then
     CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
 
 # [>cuTensorInstall]
-    CUTENSOR_VERSION=2.0.1.2
+    CUTENSOR_VERSION=2.0.2.5
     CUTENSOR_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cutensor/redist/libcutensor
 
     cutensor_archive=libcutensor-linux-${CUDA_ARCH_FOLDER}-${CUTENSOR_VERSION}-archive.tar.xz
