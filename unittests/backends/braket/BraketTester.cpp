@@ -15,7 +15,7 @@
 
 // port number and localhost connect to mock_qpu backend server within the
 // container (mock_qpu/braket).
-std::string mockPort = "5000";
+std::string mockPort = "62445";
 std::string machine = "sv1";
 std::string backendStringTemplate =
     "braket;emulate;false;url;http://localhost:{};credentials;{}";

@@ -14,7 +14,7 @@
 # import socket
 # try:
 #     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#     s.connect(("host.docker.internal", 5000))
+#     s.connect(("host.docker.internal", 62445))
 #     s.close()
 # except Exception:
 #     exit(1)
@@ -27,7 +27,7 @@ checkServerConnection() {
 import socket
 try:
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect(("localhost", 5000))
+    s.connect(("localhost", 62445))
     s.close()
 except Exception:
     exit(1)
