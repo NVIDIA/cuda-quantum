@@ -15,7 +15,7 @@
 # Check the output for any tests that were skipped.
 
 # E.g. run the command 
-#   source validate_wheel.sh -w /tmp/cuda_quantum*.whl -f /tmp -p 3.10 
+#   source validate_wheel.sh -w /tmp/cuda_quantum*.whl -f /tmp -p 3.10 -c 11
 # in a container (with GPU support) defined by:
 #
 # ARG base_image=ubuntu:22.04
@@ -28,15 +28,17 @@
 # COPY docs/sphinx/targets/python /tmp/targets/
 # COPY docs/sphinx/snippets/python /tmp/snippets/
 # COPY python/tests /tmp/tests/
-# COPY python/README*.md /tmp/
+# COPY python/README-cu11.md /tmp/
 # RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates vim wget openssh-client
 
 __optind__=$OPTIND
 OPTIND=1
 python_version=3.11
 quick_test=false
-while getopts ":f:p:qw:" opt; do
+while getopts ":c:f:p:qw:" opt; do
   case $opt in
+    c) cuda_major="$OPTARG"
+    ;;
     f) root_folder="$OPTARG"
     ;;
     p) python_version="$OPTARG"
@@ -53,7 +55,7 @@ done
 OPTIND=$__optind__
 
 # FIXME: check validation with src dist (subsequent PR)
-readme_file="$root_folder/README.md"
+readme_file="$root_folder/README-cu$cuda_major.md"
 if [ ! -d "$root_folder" ] || [ ! -f "$readme_file" ] ; then
     echo -e "\e[01;31mDid not find Python root folder. Please pass the folder containing the README and test with -f.\e[0m" >&2
     (return 0 2>/dev/null) && return 100 || exit 100
