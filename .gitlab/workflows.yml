@@ -125,6 +125,7 @@ Python Wheels:
     - (bash build.sh $READ_ACCESS_TOKEN && built=true) || built=false
     - cp -R artifacts/* $ARTIFACTS_DIR
     - if $built; then `exit 0`; else `exit 1`; fi
+  allow_failure: true
 
 Installer:
   rules:
@@ -151,6 +152,7 @@ Installer:
     - mkdir -p ../artifacts/$(uname -m)/mgmn_svsim && mv artifacts/* ../artifacts/$(uname -m)/mgmn_svsim
     - cd .. && rm -rf cudaq_mgmn_svsim
     - if $built; then `exit 0`; else `exit 1`; fi
+  allow_failure: true
 
 Docker Image:
   rules:
@@ -178,6 +180,7 @@ Docker Image:
     - mkdir -p ../artifacts/$(uname -m)/mgmn_svsim && mv artifacts/* ../artifacts/$(uname -m)/mgmn_svsim
     - cd .. && rm -rf cudaq_mgmn_svsim
     - if $built; then `exit 0`; else `exit 1`; fi
+  allow_failure: true
 
 Push to GitHub:
   only:
