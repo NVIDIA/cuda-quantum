@@ -13,8 +13,11 @@ import cudaq
 import uuid
 import uvicorn
 from fastapi import FastAPI, HTTPException, Header
+from fastapi.responses import JSONResponse
 from llvmlite import binding as llvm
 from pydantic import BaseModel
+import json
+from typing import Any, Dict
 
 # Define the REST Server App
 app = FastAPI()
@@ -34,6 +37,12 @@ class TaskBody(BaseModel):
 class AuthModel(BaseModel):
     email: str
     password: str
+
+
+class TaskIdRequest(BaseModel):
+    qpu_id: str
+    task_count: int
+    tag: str
 
 
 # Keep track of Job Ids to their Names
@@ -69,20 +78,14 @@ def getNumRequiredQubits(function):
 # Here we expose a way to post jobs,
 # Must have a Access Token, Job Program must be Adaptive Profile
 # with entry_point tag
-@app.post("/tasks/submit")
-async def postJob(
-    tasks: Union[TaskBody, Task],
-    # access_token: Union[str, None] = Header(alias="Authorization",default=None)
-):
+@app.post("/{deviceId}/tasks/submit")
+async def postJob(data: Dict[str, Any],
+                  authentication_token: str = Header(...),
+                  content_type: str = Header(...)):
     global createdJobs, shots
-    print("task: ", task)
-
-    # if access_token == None:
-    # raise HTTPException(status_code(401), detail="Credentials not provided")
-    if isinstance(tasks, Task):
-        tasks = TaskBody(tasks=[
-            tasks,
-        ])
+    if authentication_token != "fake_auth_token":
+        raise HTTPException(status_code=403, detail="Permission denied")
+    tasks = TaskBody(tasks=data["tasks"])
     for task in tasks.tasks:
         newId = task.task_id
         program = task.program
@@ -124,7 +127,7 @@ async def postJob(
 
 # Retrieve the job, simulate having to wait by counting to 3
 # until we return the job results
-@app.get("/tasks/{jobId}/all_info")
+@app.get("/{deviceId}/tasks/{jobId}/all_info")
 async def getJob(jobId: str):
     global countJobGetRequests, createdJobs, shots
 
@@ -140,6 +143,45 @@ async def getJob(jobId: str):
 @app.post("/tasks")
 async def getJob(n=1):
     return [uuid.uuid4() for _ in range(n)]
+
+
+@app.post("/{deviceId}/tasks")
+async def reserveJobId(request: TaskIdRequest):
+    n = request.task_count
+    return [uuid.uuid4() for _ in range(n)]
+
+
+@app.get("/admin/qpu")
+async def qetQpu(authentication_token: str = Header(...)):
+
+    if authentication_token != "fake_auth_token":
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    data = {
+        "items": [{
+            "active": True,
+            "created_at": "2024-04-09T14:24:50.918020+00:00",
+            "created_by": "11111111-1111-1111-1111-111111111111",
+            "feature_set": {
+                "always_on": True,
+                "qubit_count": 8,
+                "simulator": True
+            },
+            "generation": -1,
+            "id": "qpu:uk:-1:1234567890",
+            "name": "OQC Mock Server",
+            "region": "uk",
+            "status": "ACTIVE",
+            "updated_at": "2024-07-29T14:54:46.948951+00:00",
+            "updated_by": "11111111-1111-1111-1111-111111111111",
+            "url": "http://localhost:62442/1234567890"
+        }],
+        "page": 1,
+        "per_page": 10,
+        "total": 2
+    }
+
+    return JSONResponse(content=data)
 
 
 def startServer(port):
