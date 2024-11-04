@@ -99,7 +99,7 @@ Python Wheels:
           url=`echo $artifact | jq -r '.url'`
           gh api $url > _pycudaq.zip
           unzip -d _pycudaq _pycudaq.zip && cd _pycudaq
-          for wheel in `ls cuda_quantum-*-cp310-cp310-manylinux_*_$(uname -m).whl 2> /dev/null`; do
+          for wheel in `ls cuda_quantum*-cp310-cp310-manylinux_*_$(uname -m).whl 2> /dev/null`; do
             echo "Adding wheel $wheel."
             mv $wheel "/tmp/wheels/$wheel"
           done
