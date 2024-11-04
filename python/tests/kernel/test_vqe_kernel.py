@@ -14,11 +14,6 @@ import cudaq
 from cudaq import spin
 import numpy as np
 
-## [PYTHON_VERSION_FIX]
-skipIfPythonLessThan39 = pytest.mark.skipif(
-    sys.version_info < (3, 9),
-    reason="built-in collection types such as `list` not supported")
-
 
 # Helper function for asserting two values are within a
 # certain tolerance. If we make numpy a dependency,
@@ -56,7 +51,6 @@ def test_two_qubit_vqe_float():
     assert np.isclose(got_expectation, -1.74, atol=1e-2)
 
 
-@skipIfPythonLessThan39
 def test_two_qubit_vqe_vecfloat():
     """A 2-qubit VQE ansatz used to benchmark `cudaq.vqe`."""
 
@@ -143,7 +137,6 @@ def test_vqe_two_qubit_float_gradients():
                                                  got_parameters))
 
 
-@skipIfPythonLessThan39
 def test_vqe_two_qubit_list_gradients():
     """
     Test `cudaq.vqe` on a 2-qubit benchmark for each gradient based optimizer,

@@ -34,4 +34,4 @@ install(EXPORT cudaq-em-photonics-targets
         NAMESPACE cudaq::
         DESTINATION lib/cmake/cudaq)
 
-add_target_config(photonics)
+add_target_config(orca-photonics)

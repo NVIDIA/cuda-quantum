@@ -7,8 +7,11 @@ on:
         default: linux/amd64
       python_version:
         type: string
-        required: false
-        default: '3.10'
+        required: true
+      cuda_version:
+        required: true
+        type: string
+        description: The CUDA version used for the build (e.g. 12.3).
       devdeps_image:
         required: false
         type: string
@@ -36,6 +39,7 @@ jobs:
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
+      packages: read
 
     outputs:
       artifact_name: ${{ steps.prereqs.outputs.artifact_name }}
@@ -51,6 +55,19 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+
+      - name: Login to GitHub CR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
 
       - name: Restore build environment
         if: inputs.devdeps_cache && inputs.devdeps_archive
@@ -98,12 +115,6 @@ jobs:
           # do not change this prefix without adjusting other workflows
           echo "artifact_name=pycudaq-$cache_id" >> $GITHUB_OUTPUT
 
-      - name: Log in to DockerHub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
-
       - name: Set up context for buildx
         run: |
           docker context create builder_context
@@ -150,7 +161,7 @@ jobs:
       - id: config
         run: |
           python_config=`cat .github/workflows/config/validation_config.json | jq ".python"`
-          operating_systems=`echo "$python_config" | jq '.[] | select(.version==${{ inputs.python_version }}).operating_systems'`
+          operating_systems=`echo "$python_config" | jq '.[] | select(.version=="${{ inputs.python_version }}").operating_systems'`
           echo "json={\"os_images\":$(echo $operating_systems)}" >> $GITHUB_OUTPUT
 
   validation:
@@ -161,6 +172,9 @@ jobs:
       contents: read
       packages: read
 
+    outputs:
+      artifact_id: "${{ steps.job_summary.outputs.artifact_id }}"
+  
     strategy:
       matrix:
         os_image: ${{ fromJSON(needs.create_test_config.outputs.json).os_images }}
@@ -199,14 +213,13 @@ jobs:
             base_image=ghcr.io/${repo_owner,,}/${image_tag#${repo_owner,,}}
           fi
 
-          wheelname=`echo cuda_quantum-*-manylinux_*_$(uname -m).whl`
+          wheelname=`echo cuda_quantum*-manylinux_*_$(uname -m).whl`
           docker build -t wheel_validation:local -f "docker/test/wheels/$distr.Dockerfile" . \
             --build-arg base_image=$base_image \
             --build-arg python_version=${{ inputs.python_version }} \
             --build-arg cuda_quantum_wheel=$wheelname \
             --build-arg preinstalled_modules="numpy pytest psutil" \
-            --build-arg pip_install_flags=${{ matrix.pip_install_flags }} \
-            --build-arg optional_dependencies=$([ "$(uname -m)" == "x86_64" ] && echo cudart)
+            --build-arg pip_install_flags=${{ matrix.pip_install_flags }}
 
           docker run --rm -dit --name wheel-validation wheel_validation:local
           (docker exec wheel-validation python${{ inputs.python_version }} -c "import cudaq") && imported=true || imported=false
@@ -250,7 +263,8 @@ jobs:
             # Uninstall pip-installed cuda-quantum in the `wheel_validation:local` image.
             # In this step, we test the full installation workflow with conda; 
             # hence we don't want to mix conda and pip packages.
-            python${{ inputs.python_version }} -m pip uninstall -y cuda-quantum
+            cuda_major=$(echo ${{ inputs.cuda_version }} | cut -d . -f1)
+            python${{ inputs.python_version }} -m pip uninstall -y cuda-quantum-cu${cuda_major}
             # Install cuda-quantum wheel and all dependencies (including MPI) using conda (README instructions)
             # Install conda
             dnf install -y --nobest --setopt=install_weak_deps=False wget openssh-clients
@@ -260,7 +274,7 @@ jobs:
             ~/miniconda3/bin/conda init bash
             source ~/.bashrc
             # Extract the setup script from Python wheel's readme
-            readme_file="/tmp/README.md"
+            readme_file="/tmp/README-cu${cuda_major}.md"
             python_version="${{ inputs.python_version }}"
             # Parse README file to install openmpi
             conda_script="$(awk '/(Begin conda install)/{flag=1;next}/(End conda install)/{flag=0}flag' $readme_file | grep . | sed '/^```/d')" 
@@ -269,9 +283,9 @@ jobs:
             while IFS= read -r line; do
               if [[ ! "$line" =~ $regex ]]; then
                   # Replace Python version
-                  line=${line//3.10/$python_version}
+                  line=$(echo $line | sed -E "s/python(=)?3.[0-9]{1,}/python\1$python_version/g")
                   # Install the wheel file
-                  line=${line//pip install cuda-quantum/pip install /tmp/cuda_quantum-*-manylinux_*_$(uname -m).whl}
+                  line=${line//pip install cuda-quantum-cu${cuda_major}/pip install /tmp/cuda_quantum*-manylinux_*_$(uname -m).whl}
                   eval "$line"
               fi
             done <<< "$conda_script"
@@ -335,18 +349,38 @@ jobs:
           fi
 
       - name: Create job summary
+        id: job_summary
         if: always() && !cancelled() 
         run: |
+          cuda_major=`echo ${{ inputs.cuda_version }} | cut -d . -f1`
+          platform_id=`echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
+          artifact_id=python_${platform_id}_cu$cuda_major # changing the artifact name requires updating other workflows
+          os_id=`echo ${{ matrix.os_image}} | tr ':' _ | tr '/' -`
+          echo "os_id=$os_id" >> $GITHUB_OUTPUT
+          echo "artifact_id=$artifact_id" >> $GITHUB_OUTPUT
+
           if [ -f /tmp/validation.out ]; then
             if [ -n "${{ matrix.pip_install_flags }}" ]; then 
                 installation_details="(installed with ${{ matrix.pip_install_flags }})"
             else 
                 installation_details="(default installation)"
             fi
-            echo "## Validation on ${{ matrix.os_image }} $installation_details" >> $GITHUB_STEP_SUMMARY
-            echo "The validation of the cuda-quantum Python wheel produced the following output:" >> $GITHUB_STEP_SUMMARY
-            cat /tmp/validation.out >> $GITHUB_STEP_SUMMARY
+
+            summary=/tmp/summary.txt
+            echo "## Validation on ${{ matrix.os_image }} $installation_details" > $summary
+            echo "The validation of the cuda-quantum Python wheel produced the following output:" >> $summary
+            cat /tmp/validation.out >> $summary
+            echo "validation_summary=$summary" >> $GITHUB_OUTPUT
           fi
+
+      - name: Upload job summary
+        if: steps.job_summary.outputs.validation_summary != '' && matrix.pip_install_flags == ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.job_summary.outputs.artifact_id }}_${{ steps.job_summary.outputs.os_id }}_py${{ inputs.python_version }}_validation
+          path: ${{ steps.job_summary.outputs.validation_summary }}
+          retention-days: 1
+          if-no-files-found: warn
 
   staging:
     name: Staging
@@ -365,8 +399,9 @@ jobs:
         run: |
           wheeldeps_hash=${{ inputs.devdeps_image }}
           platform_id=`echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
+          artifact_name=${{ needs.validation.outputs.artifact_id }}_publishing # changing the artifact name requires updating other workflows
+
           echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
-          artifact_name=python_${platform_id}_publishing # changing the artifact name requires updating other workflows
           echo "artifact_name=$artifact_name" >> $GITHUB_OUTPUT
           info_file="$artifact_name.txt"
           echo "info_file=$info_file" >> $GITHUB_OUTPUT
@@ -375,6 +410,7 @@ jobs:
           echo "source-sha: ${{ github.sha }}" >> "$info_file"
           echo "cuda-quantum-wheeldeps-image: $wheeldeps_hash" >> "$info_file"
           echo "platform: ${{ inputs.platform }}" >> "$info_file"
+          echo "cuda-version: ${{ inputs.cuda_version }}" >> "$info_file"
           cat .github/workflows/config/gitlab_commits.txt >> "$info_file"
 
       - name: Upload build info

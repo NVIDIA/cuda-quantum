@@ -35,10 +35,10 @@ on:
         required: false
         type: string
         description: Any additional parameters that should be passed to --cache-from (see Docker documentation for more detail).
-      toolchain:
+      build_config_id:
         required: false
         type: string
-        description: The toolchain used within the Docker image. The value is passed as build argument to Docker and used in tags and cache locations to distinguish different builds.
+        description: A string that uniquely identifies the toolchain and build configuration used within the Docker image. The value is used in tags and cache locations to distinguish different builds.
       pull_request_number:
         required: false
         type: string
@@ -135,8 +135,8 @@ jobs:
           image_id=`basename ${{ inputs.dockerfile }} .Dockerfile`${build_target:+.$build_target}
           image_title=cuda-quantum-`echo $image_id | cut -d "." -f 1`
           image_name=$registry/${repo_owner,,}/${{ vars.packages_prefix }}$image_title
-          toolchain=${{ inputs.toolchain }}
-          tag_prefix=`echo $image_id | cut -s -d "." -f 2- | xargs -I "%" echo %. | tr . -`${platform_tag:+$platform_tag-}${toolchain:+$toolchain-}
+          build_config_id=${{ inputs.build_config_id }}
+          tag_prefix=`echo $image_id | cut -s -d "." -f 2- | xargs -I "%" echo %. | tr . -`${platform_tag:+$platform_tag-}${build_config_id:+$build_config_id-}
           tag_suffix=""
 
           if ${{ inputs.pull_request_number != '' }} || ${{ github.event.pull_request.number != '' }}; then
@@ -235,11 +235,11 @@ jobs:
       - name: Determine cache locations
         id: cache
         run: |
-          toolchain=${{ inputs.toolchain }}
+          build_config_id=${{ inputs.build_config_id }}
           registry_cache=ghcr.io/${{ needs.metadata.outputs.owner }}/${{ vars.packages_prefix }}buildcache-cuda-quantum
           nvidia_registry_cache=ghcr.io/nvidia/buildcache-cuda-quantum
           registry_cache_base=$(echo ${{ inputs.registry_cache_from || github.event.pull_request.base.ref || 'main' }} | tr / -)
-          cache_id=$(echo ${{ needs.metadata.outputs.image_id }}${toolchain:+-$toolchain} | tr . -)
+          cache_id=$(echo ${{ needs.metadata.outputs.image_id }}${build_config_id:+-$build_config_id} | tr . -)
 
           # Local caches are always to and from a single location.
 
@@ -318,7 +318,6 @@ jobs:
           file: ./docker/${{ needs.metadata.outputs.dockerfile }}
           target: ${{ inputs.build_target }}
           build-args: |
-            toolchain=${{ inputs.toolchain }}
             ${{ inputs.build_args }}
           tags: ${{ needs.metadata.outputs.image_tags }}
           labels: ${{ needs.metadata.outputs.image_labels }}
