@@ -130,9 +130,6 @@ def _infer_best_package() -> str:
     return cudaq_bdist
 
 
-release_version = os.getenv("CUDA_QUANTUM_VERSION", "0.0.0")
-if release_version == '': release_version = "0.0.0"
-
 # This setup.py handles 2 cases:
 #   1. At the release time, we use it to generate sdist (which contains this script)
 #   2. At the install time, this script identifies the installed CUDA version 
@@ -143,47 +140,15 @@ if os.environ.get('CUDAQ_META_WHEEL_BUILD', '0') == '1':
     install_requires = []
     cmdclass = {}
 else:
-    # Case 2: install sdist
-    install_requires = [f"{_infer_best_package()}=={release_version}",]
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),"_version.txt")) as f:
+        __version__ = f.read()
+    install_requires = [f"{_infer_best_package()}=={__version__}",]
     cmdclass = {}
     # FIXME: I don't think we need this? SEE https://discuss.python.org/t/wheel-caching-and-non-deterministic-builds/7687/6
     #cmdclass = {'bdist_wheel': bdist_wheel} if bdist_wheel is not None else {}
 
 
 setup(
-    name="cudaq",
-    version=release_version,
-    description="Python bindings for the CUDA-Q toolkit for heterogeneous quantum-classical workflows.",
-    url="https://developer.nvidia.com/cuquantum-sdk",
-    project_urls={
-        "Homepage": "https://developer.nvidia.com/cuda-quantum",
-        "Documentation": "https://nvidia.github.io/cuda-quantum",
-        "Repository": "https://github.com/NVIDIA/cuda-quantum",
-        "Releases": "https://nvidia.github.io/cuda-quantum/latest/releases.html",
-    },
-    author="NVIDIA Corporation & Affiliates",
-    license_files=('LICENSE',),
-    keywords=[ "cuda-quantum", "cuda", "quantum", "quantum computing", "nvidia", "high-performance computing" ],
     zip_safe=False,
-    setup_requires=[
-        "setuptools",
-        "wheel",
-    ],
     install_requires=install_requires,
-    classifiers=[
-        'Intended Audience :: Science/Research',
-        'Intended Audience :: Developers',
-        'License :: OSI Approved :: Apache Software License 2.0 (Apache-2.0)',
-        'Programming Language :: Python',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.10',
-        'Programming Language :: Python :: 3.11',
-        'Programming Language :: Python :: 3.12',
-        "Environment :: GPU :: NVIDIA CUDA",
-        "Environment :: GPU :: NVIDIA CUDA :: 11",
-        "Environment :: GPU :: NVIDIA CUDA :: 12",
-        'Topic :: Software Development',
-        'Topic :: Scientific/Engineering',
-    ],
-    cmdclass=cmdclass,
 )
