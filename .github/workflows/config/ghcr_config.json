@@ -77,7 +77,7 @@
             "platforms": "linux/amd64,linux/arm64",
             "tags": 
             [
-                "38", "40"
+                "38", "39"
             ]
         },
         {
