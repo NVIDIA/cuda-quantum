@@ -25,7 +25,9 @@
                                                      nullptr, nullptr);        \
       if (demangledPtr) {                                                      \
         std::string demangledName(demangledPtr);                               \
-        if (demangledName != #expected_exception) {                            \
+        if (demangledName == #expected_exception) {                            \
+          gtest_caught_expected = true;                                        \
+        } else {                                                               \
           gtest_msg.value =                                                    \
               "Expected: " #statement                                          \
               " throws an exception of type " #expected_exception              \
@@ -33,6 +35,13 @@
               demangledName;                                                   \
           goto GTEST_CONCAT_TOKEN_(gtest_label_testthrow_, __LINE__);          \
         }                                                                      \
+      } else {                                                                 \
+        gtest_msg.value =                                                      \
+            "Expected: " #statement                                            \
+            " throws an exception of type " #expected_exception                \
+            ".\n  Actual (cannot demangle): it throws a different type: " +    \
+            exType;                                                            \
+        goto GTEST_CONCAT_TOKEN_(gtest_label_testthrow_, __LINE__);            \
       }                                                                        \
     }                                                                          \
     if (!gtest_caught_expected) {                                              \
