@@ -797,6 +797,7 @@ jobs:
           bash ~/.miniconda3/miniconda.sh -b -u -p ~/.miniconda3
           rm -rf ~/.miniconda3/miniconda.sh
           eval "$(~/.miniconda3/bin/conda shell.bash hook)"
+          conda install -y -c main libarchive --force-reinstall
           conda install -y -c conda-forge openmpi
 
           echo 'eval "$(~/.miniconda3/bin/conda shell.bash hook)"' >> ~/.bashrc
