@@ -129,6 +129,65 @@ jobs:
             exit 1
           fi
 
+          if [ "$package_dep" != "cuda-quantum" ]; then
+            $python -m pip install ${package_dep}==${{ inputs.cudaq_version }} \
+              --extra-index-url http://localhost:8080 
+            $python -m pip install cudaq==${{ inputs.cudaq_version }} \
+              --extra-index-url http://localhost:8080 
+            $python -c 'import cudaq; print(cudaq.get_target().name)'
+            $autoremove -y cudaq
+            if [ -z "$($python -m pip list | grep $package_dep)" ]; then 
+              echo "::error file=python_metapackages.yml::Missing installation of $package_dep package."
+              exit 1
+            fi
+            $autoremove -y $package_dep
+          fi
+
       - name: Test installation error
         run: |
-          exit 1
+          #dnf install -y --nobest --setopt=install_weak_deps=False curl jq
+          #PACKAGE_JSON_URL="https://pypi.org/pypi/cuda-quantum/json"
+          #curl -L -s "$PACKAGE_JSON_URL" | jq  -r '.releases | keys | .[]'
+
+          python=python${{ matrix.python_version }}
+          $python -m pip install pypiserver
+          server=`find / -name pypi-server -executable -type f`
+          $server run -p 8080 /tmp/packages & 
+
+          case "${{ matrix.cuda_version }}" in
+            "") 
+              set +e # continue on error
+              $python -m pip install cuda-quantum==${{ inputs.cudaq_version }} \
+                --extra-index-url http://localhost:8080 
+              set -e && check_package=cuda-quantum
+            ;; 
+            12.*) 
+              $python -m pip install cuda-quantum-cu11==${{ inputs.cudaq_version }} \
+                --extra-index-url http://localhost:8080 
+              set +e # continue on error
+              $python -m pip install cudaq==${{ inputs.cudaq_version }} \
+                --extra-index-url http://localhost:8080
+              set -e && check_package=cudaq
+            ;; 
+            *) 
+              set +e # continue on error
+              # test that we get an error for an existing cuda-quantum installation
+              $python -m pip install cuda-quantum==0.8.0
+              set -e
+              if [ -z "$($python -m pip list | grep cuda-quantum)" ]; then 
+                # if we don't have a 0.8.0 version for this python version, test other conflict
+                $python -m pip install cuda-quantum-cu12==${{ inputs.cudaq_version }} \
+                  --extra-index-url http://localhost:8080
+              fi
+              set +e # continue on error
+              $python -m pip install cudaq==${{ inputs.cudaq_version }} \
+                --extra-index-url http://localhost:8080
+              set -e && check_package=cudaq
+            ;; 
+          esac
+
+          if [ -n "$($python -m pip list | grep ${check_package})" ]; then 
+            echo "::error file=python_metapackages.yml::Unexpected installation of ${check_package} package."
+            exit 1
+          fi
+
