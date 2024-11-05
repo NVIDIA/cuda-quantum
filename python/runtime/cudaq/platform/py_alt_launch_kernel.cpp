@@ -413,6 +413,16 @@ void pyAltLaunchKernel(const std::string &name, MlirModule module,
   std::free(rawArgs);
 }
 
+void pyAltLaunchAnalogKernel(const std::string &name,
+                             std::string &programArgs) {
+  // TODO: check name
+  auto dynamicResult = cudaq::altLaunchKernel(
+      name.c_str(), KernelThunkType(nullptr),
+      (void *)(const_cast<char *>(programArgs.c_str())), 0, 0);
+  if (dynamicResult.data_buffer || dynamicResult.size)
+    throw std::runtime_error("not implemented: support dynamic results");
+}
+
 /// @brief Serialize \p runtimeArgs into a flat buffer starting at
 /// \p startingArgIdx (0-based). This does not execute the kernel. This is
 /// useful for VQE applications when you want to serialize the constant
@@ -682,6 +692,13 @@ void bindAltLaunchKernel(py::module &mod) {
       py::arg("kernelName"), py::arg("module"), py::arg("returnType"),
       py::kw_only(), py::arg("callable_names") = std::vector<std::string>{},
       "DOC STRING");
+
+  mod.def(
+      "pyAltLaunchAnalogKernel",
+      [&](const std::string &name, std::string &programArgs) {
+        return pyAltLaunchAnalogKernel(name, programArgs);
+      },
+      py::arg("name"), py::arg("programArgs"), "DOC STRING");
 
   mod.def("synthesize", [](py::object kernel, py::args runtimeArgs) {
     MlirModule module = kernel.attr("module").cast<MlirModule>();
