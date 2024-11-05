@@ -56,54 +56,26 @@ class BraketExecutor : public Executor {
   };
 
   ScopedApi api;
-  Aws::Braket::BraketClient braketClient;
-  Aws::STS::STSClient stsClient;
-  Aws::S3Crt::S3CrtClient s3Client;
+
+  std::unique_ptr<Aws::Braket::BraketClient> braketClientPtr;
+  std::unique_ptr<Aws::STS::STSClient> stsClientPtr;
+  std::unique_ptr<Aws::S3Crt::S3CrtClient> s3ClientPtr;
 
   std::future<std::string> defaultBucketFuture;
   char const *jobToken;
 
   std::chrono::microseconds pollingInterval = std::chrono::milliseconds{100};
 
-  static auto getClientConfig() {
-    Aws::Client::ClientConfiguration clientConfig;
-    clientConfig.verifySSL = false;
-    return clientConfig;
-  }
-
-  static auto getS3ClientConfig() {
-    Aws::S3Crt::ClientConfiguration clientConfig;
-    clientConfig.verifySSL = false;
-    return clientConfig;
-  }
-
 public:
-  BraketExecutor()
-      : api(options), braketClient(getClientConfig()),
-        stsClient(getClientConfig()), s3Client(getS3ClientConfig()),
-        jobToken(std::getenv("AMZN_BRAKET_JOB_TOKEN")) {
-    cudaq::debug("Creating BraketExecutor");
-
-    defaultBucketFuture = std::async(std::launch::async, [this] {
-      auto response = stsClient.GetCallerIdentity();
-      std::string bucketName;
-      if (response.IsSuccess()) {
-        bucketName =
-            fmt::format("amazon-braket-{}-{}", getClientConfig().region,
-                        response.GetResult().GetAccount());
-        cudaq::info("Braket task results will use S3 bucket \"{}\"",
-                    bucketName);
-        return bucketName;
-      } else {
-        throw std::runtime_error(response.GetError().GetMessage());
-      }
-    });
-  }
+  BraketExecutor();
 
   ~BraketExecutor() = default;
 
   /// @brief Execute the provided Braket task
   details::future
   execute(std::vector<KernelExecution> &codesToExecute) override;
+
+  /// @brief Set the server helper
+  void setServerHelper(ServerHelper *helper) override;
 };
 } // namespace cudaq
