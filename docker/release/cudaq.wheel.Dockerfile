@@ -18,7 +18,7 @@
 # - https://github.com/numpy/numpy/blob/main/pyproject.toml, and 
 # - https://github.com/numpy/numpy/blob/main/.github/workflows/wheels.yml
 
-ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:manylinux-amd64-cu11-gcc11-main
+ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:manylinux-amd64-cu11.8-gcc11-main
 FROM $base_image AS wheelbuild
 
 ARG release_version=
