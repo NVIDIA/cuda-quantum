@@ -19,6 +19,9 @@ target_include_directories(cudaq-rest-qpu PRIVATE .
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
        $<INSTALL_INTERFACE:include>)
 
+set(SERVICE_COMPONENTS braket s3-crt sts)
+find_package(AWSSDK REQUIRED COMPONENTS ${SERVICE_COMPONENTS})
+
 target_link_libraries(cudaq-rest-qpu 
   PUBLIC 
     cudaq-spin 
@@ -28,7 +31,8 @@ target_link_libraries(cudaq-rest-qpu
     MLIRTranslateLib
     fmt::fmt-header-only 
     cudaq 
-    cudaq-platform-default)
+    cudaq-platform-default
+    ${AWSSDK_LINK_LIBRARIES})
 
 install(TARGETS cudaq-rest-qpu DESTINATION lib)
 
