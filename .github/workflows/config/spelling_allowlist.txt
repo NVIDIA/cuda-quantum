@@ -9,6 +9,7 @@ Anyon
 Asynchronous
 BFGS
 Bloch
+Braket
 CLA
 CLI
 CMake
