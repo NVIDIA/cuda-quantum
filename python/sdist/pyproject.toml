@@ -50,10 +50,8 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 packages = []
+include-package-data = true
 license-files = [ "LICENSE", "NOTICE", "CITATION.cff" ]
-
-[tool.setuptools.package-data]
-cudaq = ["_version.txt"]
 
 [tool.setuptools.dynamic]
 version = {file = "_version.txt"}

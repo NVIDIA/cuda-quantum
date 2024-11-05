@@ -102,10 +102,10 @@ def _infer_best_package() -> str:
 
     # Find the existing wheel installation
     installed = []
-    for cuda_major in ['11', '12']:
+    for pkg_suffix in ['', '-cu11', '-cu12']:
         try:
-            pkg_resources.get_distribution(f"cuda-quantum-cu{cuda_major}")
-            installed.append(f"cuda-quantum-cu{cuda_major}")
+            pkg_resources.get_distribution(f"cuda-quantum{pkg_suffix}")
+            installed.append(f"cuda-quantum{pkg_suffix}")
         except pkg_resources.DistributionNotFound:
             pass
     
@@ -130,25 +130,36 @@ def _infer_best_package() -> str:
     return cudaq_bdist
 
 
-# This setup.py handles 2 cases:
-#   1. At the release time, we use it to generate sdist (which contains this script)
-#   2. At the install time, this script identifies the installed CUDA version 
-#      and downloads the corresponding CUDA-Q binary distribution
+# This setup.py handles 3 cases:
+#   1. At the release time, we use it to generate sdist (which contains this script).
+#   2. If the sdist is generated for the deprecated cuda-quantum package name, 
+#      this script raises an exception at install time asking to install cudaq instead.
+#   3. If the sdist is generated for a valid cudaq version, 
+#      this script identifies the installed CUDA version at cudaq install time
+#      and downloads the corresponding CUDA-Q binary distribution.
 # For case 1, CUDAQ_META_WHEEL_BUILD is set to 1.
+setup_dir = os.path.dirname(os.path.abspath(__file__))
+data_files = []
+install_requires = []
 if os.environ.get('CUDAQ_META_WHEEL_BUILD', '0') == '1':
     # Case 1: generate sdist
-    install_requires = []
-    cmdclass = {}
+    if os.path.exists(os.path.join(setup_dir, "_deprecated.txt")):
+        data_files = [('', ['_deprecated.txt',])]  # extra files to be copied into sdist
 else:
-    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),"_version.txt")) as f:
-        __version__ = f.read()
+    # Case 2: install cuda-quantum sdist
+    if os.path.exists(os.path.join(setup_dir, "_deprecated.txt")):
+        with open(os.path.join(setup_dir, "_deprecated.txt"), "r") as f:
+            deprecation = f.read()
+        raise Exception(
+            f'This package is deprecated. \n' + deprecation)
+    # Case 3: install cudaq sdist
+    with open(os.path.join(setup_dir, "_version.txt"), "r") as f:
+        __version__ = f.read() 
     install_requires = [f"{_infer_best_package()}=={__version__}",]
-    cmdclass = {}
-    # FIXME: I don't think we need this? SEE https://discuss.python.org/t/wheel-caching-and-non-deterministic-builds/7687/6
-    #cmdclass = {'bdist_wheel': bdist_wheel} if bdist_wheel is not None else {}
 
 
 setup(
     zip_safe=False,
+    data_files=data_files,
     install_requires=install_requires,
 )

@@ -25,6 +25,10 @@ on:
         required: false
         type: boolean
         default: false
+    outputs:
+      cudaq_version:
+        description: "The version of the built wheels."
+        value: ${{ jobs.build_wheel.outputs.cudaq_version }}
     secrets:
       DOCKERHUB_USERNAME:
         required: true
@@ -43,6 +47,7 @@ jobs:
 
     outputs:
       artifact_name: ${{ steps.prereqs.outputs.artifact_name }}
+      cudaq_version: ${{ steps.prereqs.outputs.cudaq_version }}
 
     # Needed for making local images available to the docker/build-push-action.
     # See also https://stackoverflow.com/a/63927832.

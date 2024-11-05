@@ -77,12 +77,11 @@ COPY --from=wheelbuild /cuda-quantum/wheelhouse/*manylinux*.whl .
 
 # cd /cuda-quantum/python/sdist
 # echo $CUDA_QUANTUM_VERSION > /cuda-quantum/python/sdist/_version.txt
-# cp -y /cuda-quantum/_version.py /cuda-quantum/python/sdist/_version.py
 # cp /cuda-quantum/LICENSE /cuda-quantum/python/sdist/LICENSE
 # cp /cuda-quantum/NOTICE /cuda-quantum/python/sdist/NOTICE
 # cp /cuda-quantum/CITATION.cff /cuda-quantum/python/sdist/CITATION.cff
 # CUDAQ_META_WHEEL_BUILD=1 python3.10 -m build . --sdist
 # python3.10 -m pip install --extra-index-url $extraurl dist/cudaq-*.tar.gz
 # python3.10 -m pip install pip3-autoremove
-# /opt/_internal/cpython-3.10.15/bin/pip-autoremove cudaq
+# /opt/_internal/cpython-3.10.15/bin/pip-autoremove -y cudaq
 # rm -rf cudaq.egg-info/ dist
