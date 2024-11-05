@@ -756,7 +756,7 @@ jobs:
 
       - name: Configure validation
         id: config
-        run: 
+        run: |
           cuda_major=`echo ${{ matrix.cuda_version }} | cut -d . -f1`
           echo "cuda_major=$cuda_major" >> $GITHUB_OUTPUT
 

@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-ARG base_image=nvcr.io/nvidia/nightly/cuda-quantum:latest-base
+ARG base_image=nvcr.io/nvidia/nightly/cuda-quantum:cu11-latest-base
 FROM $base_image
 
 USER root
@@ -29,8 +29,9 @@ RUN if [ -d "$CUDA_QUANTUM_PATH/assets/documentation" ]; then \
     && rm -rf "$CUDA_QUANTUM_PATH/assets" "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
 
 # Install additional runtime dependencies.
-RUN apt-get install -y --no-install-recommends \
-        libcusolver-11-8 libcublas-11-8 cuda-cudart-11-8 \
+RUN cuda_version_suffix=$(echo $CUDA_VERSION | tr . -) && \
+    apt-get install -y --no-install-recommends \
+        libcusolver-${cuda_version_suffix} libcublas-${cuda_version_suffix} cuda-cudart-${cuda_version_suffix} \
         # just here for convenience:
         curl jq 
 RUN if [ -x "$(command -v pip)" ]; then \

@@ -59,6 +59,7 @@ RUN echo "Building wheel for python${python_version}." \
         CUDACXX="$CUDA_INSTALL_PREFIX/bin/nvcc" CUDAHOSTCXX=$CXX \
         $python -m build --wheel \
     && cudaq_major=$(echo ${CUDA_VERSION} | cut -d . -f1) \
+    && cudart_libsuffix=$([ "$cuda_major" == "11" ] && echo "11.0" || echo "12") \
     && $python -m pip install --no-cache-dir auditwheel \
     && LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/_skbuild/lib" \
         $python -m auditwheel -v repair dist/cuda_quantum*linux_*.whl \
@@ -69,7 +70,8 @@ RUN echo "Building wheel for python${python_version}." \
             --exclude libcusolver.so.$cudaq_major \
             --exclude libcutensor.so.2 \
             --exclude libnvToolsExt.so.1 \ 
-            --exclude libcudart.so.$cudaq_major.0
+            --exclude libcudart.so.$cudart_libsuffix \
+            --exclude libnvidia-ml.so.1
 
 FROM scratch
 COPY --from=wheelbuild /cuda-quantum/wheelhouse/*manylinux*.whl . 
