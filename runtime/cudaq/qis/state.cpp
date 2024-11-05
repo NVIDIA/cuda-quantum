@@ -62,7 +62,9 @@ std::complex<double> state::operator[](std::size_t idx) const {
     // network state.
     std::vector<int> basisState(numQubits, 0);
     // Are we dealing with qudits or qubits?
-    if (std::log2(numElements) / numQubits > 1) {
+    /// NOTE: Following check makes assumption that only qubit simulation uses
+    /// GPU(s)
+    if (!internal->isDeviceData() && std::log2(numElements) / numQubits > 1) {
       for (std::size_t i = 0; i < numQubits; ++i) {
         basisState[i] = 1; // TODO: This is a placeholder. We need to figure out
                            // how to handle qudits.
