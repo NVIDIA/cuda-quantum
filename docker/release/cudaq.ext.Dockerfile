@@ -30,10 +30,13 @@ RUN if [ -d "$CUDA_QUANTUM_PATH/assets/documentation" ]; then \
 
 # Install additional runtime dependencies.
 RUN cuda_version_suffix=$(echo $CUDA_VERSION | tr . -) && \
-    apt-get install -y --no-install-recommends \
-        libcusolver-${cuda_version_suffix} libcublas-${cuda_version_suffix} cuda-cudart-${cuda_version_suffix} \
-        # just here for convenience:
-        curl jq 
+    for cudart_dependency in libcusolver libcublas cuda-cudart; do \
+        if [ -z "$(apt list --installed | grep -o ${cudart_dependency}-${cuda_version_suffix})" ]; then \
+            apt-get install -y --no-install-recommends ${cudart_dependency}-${cuda_version_suffix}; \
+        fi \
+    done && \
+    # just here for convenience:
+    apt-get install -y --no-install-recommends curl jq 
 RUN if [ -x "$(command -v pip)" ]; then \
         apt-get install -y --no-install-recommends gcc libpython3-dev \
         && pip install --no-cache-dir jupyterlab; \
