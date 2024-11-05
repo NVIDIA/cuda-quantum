@@ -6,13 +6,15 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-find_package(Python COMPONENTS Interpreter)
-if (OPENSSL_FOUND AND CUDAQ_ENABLE_PYTHON AND CUDAQ_TEST_MOCK_SERVERS)
-  add_subdirectory(anyon)
-  add_subdirectory(braket)
-  add_subdirectory(oqc)
-  add_subdirectory(quantinuum)
-  add_subdirectory(ionq)
-  add_subdirectory(iqm)
-endif()
-add_subdirectory(qpp_observe)
+set(SERVICE_COMPONENTS braket s3-crt sts)
+find_package(AWSSDK REQUIRED COMPONENTS ${SERVICE_COMPONENTS})
+target_sources(cudaq-rest-qpu PRIVATE BraketExecutor.cpp BraketServerHelper.cpp)
+add_target_config(braket)
+add_library(cudaq-serverhelper-braket SHARED BraketExecutor.cpp BraketServerHelper.cpp)
+
+target_link_libraries(cudaq-serverhelper-braket
+    cudaq-common
+    fmt::fmt-header-only
+    ${AWSSDK_LINK_LIBRARIES})
+
+install(TARGETS cudaq-serverhelper-braket DESTINATION lib)
