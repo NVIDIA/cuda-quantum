@@ -34,6 +34,7 @@ def test_kernel_synthesis_complex():
 
     counts = cudaq.sample(kernel, state)
     print(f"Non-synthesized: ${counts}")
+    print(kernel)
     assert '00' in counts
     assert '10' in counts
     assert len(counts) == 2
@@ -41,6 +42,7 @@ def test_kernel_synthesis_complex():
     synthesized = cudaq.synthesize(kernel, state)
     counts = cudaq.sample(synthesized)
     print(f"Synthesized: ${counts}")
+    print(synthesized)
     assert '00' in counts
     assert '10' in counts
     assert len(counts) == 2
