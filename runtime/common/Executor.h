@@ -41,7 +41,7 @@ public:
 
   /// @brief Execute the provided quantum codes and return a future object
   /// The caller can make this synchronous by just immediately calling .get().
-  details::future execute(std::vector<KernelExecution> &codesToExecute);
+  virtual details::future execute(std::vector<KernelExecution> &codesToExecute);
 };
 
 } // namespace cudaq
