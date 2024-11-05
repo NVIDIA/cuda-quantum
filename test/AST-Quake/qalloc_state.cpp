@@ -20,7 +20,7 @@ struct Eins {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Eins(
 // CHECK-SAME:      %[[VAL_0:.*]]: !cc.ptr<!cc.state>) -> !cc.stdvec<i1>
-// CHECK:           %[[VAL_3:.*]] = call @__nvqpp_cudaq_state_numberOfQubits(%[[VAL_0]]) : (!cc.ptr<!cc.state>) -> i64
+// CHECK:           %[[VAL_3:.*]] = cc.get_number_of_qubits %[[VAL_0]] : (!cc.ptr<!cc.state>) -> i64
 // CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<?>[%[[VAL_3]] : i64]
 // CHECK:           %[[VAL_6:.*]] = quake.init_state %[[VAL_5]], %[[VAL_0]] : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
 
@@ -34,7 +34,7 @@ struct Zwei {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Zwei(
 // CHECK-SAME:      %[[VAL_0:.*]]: !cc.ptr<!cc.state>) -> !cc.stdvec<i1>
-// CHECK:           %[[VAL_3:.*]] = call @__nvqpp_cudaq_state_numberOfQubits(%[[VAL_0]]) : (!cc.ptr<!cc.state>) -> i64
+// CHECK:           %[[VAL_3:.*]] = cc.get_number_of_qubits %[[VAL_0]] : (!cc.ptr<!cc.state>) -> i64
 // CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<?>[%[[VAL_3]] : i64]
 // CHECK:           %[[VAL_6:.*]] = quake.init_state %[[VAL_5]], %[[VAL_0]] : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
 
@@ -48,7 +48,7 @@ struct Drei {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Drei(
 // CHECK-SAME:      %[[VAL_0:.*]]: !cc.ptr<!cc.state>) -> !cc.stdvec<i1>
-// CHECK:           %[[VAL_3:.*]] = call @__nvqpp_cudaq_state_numberOfQubits(%[[VAL_0]]) : (!cc.ptr<!cc.state>) -> i64
+// CHECK:           %[[VAL_3:.*]] = cc.get_number_of_qubits %[[VAL_0]] : (!cc.ptr<!cc.state>) -> i64
 // CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<?>[%[[VAL_3]] : i64]
 // CHECK:           %[[VAL_6:.*]] = quake.init_state %[[VAL_5]], %[[VAL_0]] : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
 
@@ -62,8 +62,7 @@ struct Vier {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Vier(
 // CHECK-SAME:      %[[VAL_0:.*]]: !cc.ptr<!cc.state>) -> !cc.stdvec<i1>
-// CHECK:           %[[VAL_3:.*]] = call @__nvqpp_cudaq_state_numberOfQubits(%[[VAL_0]]) : (!cc.ptr<!cc.state>) -> i64
+// CHECK:           %[[VAL_3:.*]] = cc.get_number_of_qubits %[[VAL_0]] : (!cc.ptr<!cc.state>) -> i64
 // CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<?>[%[[VAL_3]] : i64]
 // CHECK:           %[[VAL_6:.*]] = quake.init_state %[[VAL_5]], %[[VAL_0]] : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
 
-// CHECK: func.func private @__nvqpp_cudaq_state_numberOfQubits(!cc.ptr<!cc.state>) -> i64

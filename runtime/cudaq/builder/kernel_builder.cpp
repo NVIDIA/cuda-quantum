@@ -514,16 +514,11 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &sizeOrVec) {
     auto eleTy = statePtrTy.getElementType();
     if (auto stateTy = dyn_cast<cc::StateType>(eleTy)) {
       // get the number of qubits
-      IRBuilder irBuilder(context);
-      auto mod = builder.getBlock()->getParentOp()->getParentOfType<ModuleOp>();
-      auto result = irBuilder.loadIntrinsic(mod, getNumQubitsFromCudaqState);
-      assert(succeeded(result) && "loading intrinsic should never fail");
-      auto numQubits = builder.create<func::CallOp>(
-          builder.getI64Type(), getNumQubitsFromCudaqState, ValueRange{value});
+      auto numQubits = builder.create<cudaq::cc::GetNumberOfQubitsOp>(
+          builder.getI64Type(), value);
       // allocate the number of qubits we need
       auto veqTy = quake::VeqType::getUnsized(context);
-      Value qubits =
-          builder.create<quake::AllocaOp>(veqTy, numQubits.getResult(0));
+      Value qubits = builder.create<quake::AllocaOp>(veqTy, numQubits);
       // Add the initialize state op
       qubits = builder.create<quake::InitializeStateOp>(qubits.getType(),
                                                         qubits, value);
