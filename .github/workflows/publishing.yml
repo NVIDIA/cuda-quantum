@@ -737,7 +737,7 @@ jobs:
 
     strategy:
       matrix:
-        os_image: ['redhat/ubi9:9.2', 'ubuntu:22.04']
+        os_image: ['redhat/ubi8:8.0', 'ubuntu:22.04']
         cuda_version: ['11.8', '12.0']
       fail-fast: false
 
@@ -791,7 +791,7 @@ jobs:
           dnf install -y --nobest --setopt=install_weak_deps=False \
             'dnf-command(config-manager)' glibc-devel openssh-clients
           CUDA_VERSION=${{ matrix.cuda_version }}
-          DISTRIBUTION=rhel9
+          DISTRIBUTION=rhel8
           . scripts/configure_build.sh install-cudart
 
           # We need to install an MPI implementation, otherwise nothing
@@ -803,7 +803,6 @@ jobs:
           bash ~/.miniconda3/miniconda.sh -b -u -p ~/.miniconda3
           rm -rf ~/.miniconda3/miniconda.sh
           eval "$(~/.miniconda3/bin/conda shell.bash hook)"
-          conda config --set solver classic
           conda install -y -c conda-forge openmpi
 
           echo 'eval "$(~/.miniconda3/bin/conda shell.bash hook)"' >> ~/.bashrc
