@@ -413,7 +413,7 @@ jobs:
           echo "{ \"access_token\": \"${{ secrets.IQM_TOKEN }}\" }" > .resonance.api-token.json
           export IQM_TOKENS_FILE=".resonance.api-token.json"
           # Use IQM Resonance Pyrit mock, which implements the Adonis architecture
-          export IQM_SERVER_URL="https://cocos.resonance.meetiqm.com/pyrite:mock"
+          export IQM_SERVER_URL="https://cocos.resonance.meetiqm.com/pyrite:test"
           export CUDAQ_LOG_LEVEL="info"
           set +e # Allow script to keep going through errors
           test_err_sum=0
