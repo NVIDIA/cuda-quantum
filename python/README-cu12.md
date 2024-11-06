@@ -13,7 +13,9 @@ CUDA-Q is a comprehensive framework for quantum programming. It features:
   cuQuantum and a number of different physical quantum processors (QPUs)
 
 The CUDA-Q Python wheels contain the Python API and core components of
-CUDA-Q. More information about available packages as well as a link to the
+CUDA-Q. This package specifically contains a binary distribution of CUDA-Q
+built for CUDA 12.
+More information about available packages as well as a link to the
 documentation and examples for each version can be found in the [release
 notes][cudaq_docs_releases]. System and compatibility requirements
 are listed in the Installation Guide of the linked documentation.

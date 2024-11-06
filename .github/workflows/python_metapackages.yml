@@ -13,6 +13,18 @@ on:
         required: true
         type: string
         description: Json array of the CUDA versions to test the packages with (e.g. ['11.8', '12.0']).
+      wheel_artifacts:
+        required: true
+        type: string
+        description: A pattern that matches all artifacts that contain wheels that the metapackages depend on.
+      github_commit:
+        required: false
+        type: string
+        description: Optional argument to set the GitHub commit to use for the build. 
+    outputs:
+      artifact_name:
+        description: "The name of the artifact that contains the built metapackages."
+        value: ${{ jobs.build_metapackages.outputs.artifact_name }}
 
 name: Python metapackages
 
@@ -23,11 +35,17 @@ jobs:
     permissions:
       contents: read
 
+    outputs:
+      artifact_name: ${{ steps.sdist_build.outputs.artifact_name }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: "${{ inputs.github_commit || '' }}"
 
-      - name: Build cudaq sdist
+      - name: Build metapackages
+        id: sdist_build
         run: |
             for file in LICENSE NOTICE CITATION.cff; do
                 cp $file python/sdist/$file
@@ -37,23 +55,24 @@ jobs:
                 python3 python3-pip python3-venv
             python3 -m pip install build
 
+            echo "Building cudaq sdist package..."
             cd python/sdist && echo ${{ inputs.cudaq_version }} > _version.txt
             CUDAQ_META_WHEEL_BUILD=1 python3 -m build . --sdist
             mv dist/cudaq-* /tmp/packages/
+            rm -rf cudaq.egg-info dist
 
-      - name: Build cuda-quantum sdist
-        run: |
-            cd python/sdist && rm -rf cudaq.egg-info dist
+            echo "Building cuda-quantum sdist package..."
             sed -i 's/name = "cudaq"/name = "cuda-quantum"/' pyproject.toml
             echo 'Please remove the cuda-quantum package and `pip install cudaq` instead.' > _deprecated.txt
-
             CUDAQ_META_WHEEL_BUILD=1 python3 -m build . --sdist
             mv dist/cuda_quantum-* /tmp/packages/
+
+            echo "artifact_name=cudaq-sdist-${{ inputs.cudaq_version }}" >> $GITHUB_OUTPUT
 
       - name: Upload metapackages
         uses: actions/upload-artifact@v4
         with:
-          name: pycudaq-${{ inputs.cudaq_version }}
+          name: ${{ steps.sdist_build.outputs.artifact_name }}
           path: /tmp/packages/
           retention-days: 1
           if-no-files-found: error
@@ -67,10 +86,6 @@ jobs:
 
     container:
       image: ghcr.io/nvidia/pypa/manylinux_2_28_x86_64:latest
-      options: --user root
-      env:
-        NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
-        TERM: xterm
 
     strategy:
       matrix:
@@ -79,15 +94,26 @@ jobs:
       fail-fast: false
 
     steps:
-      - name: Load packages
+      - name: Load metapackages
         uses: actions/download-artifact@v4
         with:
-          pattern: 'pycudaq-*'
-          path: /tmp/packages/
+          pattern: ${{ needs.build_metapackages.outputs.artifact_name }}
+          path: /tmp/metapackages/
+          merge-multiple: true
+
+      - name: Load wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ${{ inputs.wheel_artifacts }}
+          path: /tmp/wheels/
           merge-multiple: true
 
       - name: Test installation
         run: |
+          mkdir /tmp/packages 
+          mv /tmp/wheels/* /tmp/packages && mv /tmp/metapackages/* /tmp/packages
+          rmdir /tmp/wheels /tmp/metapackages
+
           if [ -n "${{ matrix.cuda_version }}" ]; then
             CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
             CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)

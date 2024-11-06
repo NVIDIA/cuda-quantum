@@ -145,18 +145,18 @@ setup_dir = os.path.dirname(os.path.abspath(__file__))
 data_files = []
 install_requires = []
 if os.environ.get('CUDAQ_META_WHEEL_BUILD', '0') == '1':
-    # Case 1: generate sdist
+    # Case 1: create source distribution
     if os.path.exists(os.path.join(setup_dir, "_deprecated.txt")):
         data_files = [('', [
             '_deprecated.txt',
-        ])]  # extra files to be copied into sdist
+        ])]  # extra files to be copied into the distribution
 else:
-    # Case 2: install cuda-quantum sdist
+    # Case 2: install cuda-quantum source distribution
     if os.path.exists(os.path.join(setup_dir, "_deprecated.txt")):
         with open(os.path.join(setup_dir, "_deprecated.txt"), "r") as f:
             deprecation = f.read()
         raise Exception(f'This package is deprecated. \n' + deprecation)
-    # Case 3: install cudaq sdist
+    # Case 3: install cudaq source distribution
     with open(os.path.join(setup_dir, "_version.txt"), "r") as f:
         __version__ = f.read()
     install_requires = [

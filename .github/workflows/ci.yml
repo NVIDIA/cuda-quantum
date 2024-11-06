@@ -257,6 +257,7 @@ jobs:
       cudaq_version: ${{ needs.python_wheels.outputs.cudaq_version }}
       python_versions: "['3.10', '3.12']"
       cuda_versions: "['', '11.8', '12.0']"
+      wheel_artifacts: 'pycudaq-*'
 
   binaries:
     name: Create CUDA Quantum installer
