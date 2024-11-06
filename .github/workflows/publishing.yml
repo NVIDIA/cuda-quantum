@@ -931,7 +931,7 @@ jobs:
           fi
 
   wheel_validation_conda:
-    name: Wheel validation (conda)
+    name: Wheel validation, conda
     needs: [assets, cudaq_wheels]
     runs-on: linux-amd64-gpu-v100-latest-1
     permissions:
@@ -993,7 +993,7 @@ jobs:
           fi
 
   metapackage_validation_piponly:
-    name: Python metapackage validation (pip only)
+    name: Python metapackage validation, pip only
     needs: [assets, cudaq_wheels, cudaq_metapackages]
     runs-on: linux-amd64-gpu-v100-latest-1
     permissions:
