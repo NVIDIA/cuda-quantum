@@ -75,7 +75,7 @@ fi
 conda_script="$(awk '/(Begin conda install)/{flag=1;next}/(End conda install)/{flag=0}flag' "$readme_file" | grep . | sed '/^```/d')" 
 while IFS= read -r line; do
     line=$(echo $line | sed -E "s/python(=)?3.[0-9]{1,}/python\13.10/g")
-    line=$(echo $line | sed -E "s/pip install cuda-quantum-cu[0-9]{2,}/pip install \"${cudaq_wheel//\//\\/}\"/g")
+    line=$(echo $line | sed -E "s/pip install cuda-quantum-cu[0-9]{2}/pip install \"${cudaq_wheel//\//\\/}\"/g")
     if [ -n "$(echo $line | grep "conda activate")" ]; then
         conda_env=$(echo "$line" | sed "s#conda activate##" | tr -d '[:space:]')
         source $(conda info --base)/bin/activate $conda_env
@@ -169,7 +169,8 @@ done
 # Note that a derivative of this code is in
 # docs/sphinx/using/backends/platform.rst, so if you update it here, you need to
 # check if any docs updates are needed.
-cudaq_location=`python3 -m pip show cuda-quantum | grep -e 'Location: .*$'`
+cudaq_package=`python3 -m pip list | grep -oE 'cuda-quantum-cu[0-9]{2}'`
+cudaq_location=`python3 -m pip show ${cudaq_package} | grep -e 'Location: .*$'`
 qpud_py="${cudaq_location#Location: }/bin/cudaq-qpud.py"
 if [ -x "$(command -v nvidia-smi)" ]; 
 then nr_gpus=`nvidia-smi --list-gpus | wc -l`
