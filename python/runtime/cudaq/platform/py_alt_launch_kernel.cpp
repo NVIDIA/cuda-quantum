@@ -415,7 +415,8 @@ void pyAltLaunchKernel(const std::string &name, MlirModule module,
 
 void pyAltLaunchAnalogKernel(const std::string &name,
                              std::string &programArgs) {
-  // TODO: check name
+  if (name.find(cudaq::runtime::cudaqAHSPrefixName) != 0)
+    throw std::runtime_error("Unexpected type of kernel.");
   auto dynamicResult = cudaq::altLaunchKernel(
       name.c_str(), KernelThunkType(nullptr),
       (void *)(const_cast<char *>(programArgs.c_str())), 0, 0);
@@ -698,7 +699,8 @@ void bindAltLaunchKernel(py::module &mod) {
       [&](const std::string &name, std::string &programArgs) {
         return pyAltLaunchAnalogKernel(name, programArgs);
       },
-      py::arg("name"), py::arg("programArgs"), "DOC STRING");
+      py::arg("name"), py::arg("programArgs"),
+      "Launch an analog Hamiltonian simulation kernel");
 
   mod.def("synthesize", [](py::object kernel, py::args runtimeArgs) {
     MlirModule module = kernel.attr("module").cast<MlirModule>();

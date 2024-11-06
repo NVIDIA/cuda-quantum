@@ -83,7 +83,7 @@ def test_JSON_payload():
         }
     }
     # NOTE: For internal testing only, not user-level API
-    cudaq.cudaq_runtime.pyAltLaunchAnalogKernel("QuEra_Analog_Hamiltonian",
+    cudaq.cudaq_runtime.pyAltLaunchAnalogKernel("__analog_hamiltonian_kernel__",
                                                 json.dumps(input))
 
 

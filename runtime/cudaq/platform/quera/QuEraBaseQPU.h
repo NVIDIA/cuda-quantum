@@ -32,8 +32,7 @@ public:
                void *args, std::uint64_t voidStarSize,
                std::uint64_t resultOffset,
                const std::vector<void *> &rawArgs) override {
-    // TODO: Check for prefix only
-    if ("QuEra_Analog_Hamiltonian" != kernelName)
+    if (kernelName.find(cudaq::runtime::cudaqAHSPrefixName) != 0)
       throw std::runtime_error("Not supported on this target.");
 
     cudaq::info("Launching remote kernel ({})", kernelName);
