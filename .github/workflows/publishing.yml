@@ -930,8 +930,8 @@ jobs:
             exit 1
           fi
 
-  pypi_validation_conda:
-    name: Python instructions validation (conda)
+  wheel_validation_conda:
+    name: Wheel validation (conda)
     needs: [assets, cudaq_wheels]
     runs-on: linux-amd64-gpu-v100-latest-1
     permissions:
@@ -964,8 +964,16 @@ jobs:
       - name: Run validation
         shell: bash
         run: |
-          apt-get update && apt-get install -y --no-install-recommends ca-certificates vim wget openssh-client
-          cd /tmp
+          apt-get update && apt-get install -y --no-install-recommends \
+            ca-certificates vim wget unzip openssh-client
+          
+          # Extract README from wheel
+          cudaq_wheel=/tmp/install/cuda_quantum_cu${{ matrix.cuda_major }}*.whl 
+          wheelname=${cudaq_wheel##*/} && archive_name=${wheelname%.*}.zip
+          cp $cudaq_wheel /tmp/$wheelname && mv /tmp/$wheelname /tmp/$archive_name 
+          unzip /tmp/$archive_name -d /tmp/cudaq_wheel && rm -rf /tmp/$archive_name
+          metadata=/tmp/cudaq_wheel/*.dist-info/METADATA
+
           # Setup links for validate_wheel.sh script
           ln -s $GITHUB_WORKSPACE/scripts/validate_wheel.sh .
           ln -s $GITHUB_WORKSPACE/docs/sphinx/examples/python /tmp/examples
@@ -973,18 +981,19 @@ jobs:
           ln -s $GITHUB_WORKSPACE/docs/sphinx/targets/python /tmp/targets
           ln -s $GITHUB_WORKSPACE/docs/sphinx/snippets/python /tmp/snippets
           ln -s $GITHUB_WORKSPACE/python/tests /tmp/tests
-          ln -s $GITHUB_WORKSPACE/python/README-cu${{ matrix.cuda_major }}.md .
+          ln -s $metadata /tmp/README.md
+
           # Run the script w/ -q to run a shortened test
           set +e # Allow script to keep going through errors (needed for skipped tests)
-          source validate_wheel.sh -w /tmp/install/cuda_quantum_cu${{ matrix.cuda_major }}*.whl -f /tmp -p 3.10 -c ${{ matrix.cuda_major }}
+          source validate_wheel.sh -w $cudaq_wheel -f /tmp -p 3.10
           set -e # Re-enable exit code error checking
           if [ "$status_sum" -ne "0" ]; then
             echo "::error::Error running validation script" 
             exit $status_sum
           fi
 
-  pypi_validation_x86:
-    name: Simple Python installation validation
+  metapackage_validation_piponly:
+    name: Python metapackage validation (pip only)
     needs: [assets, cudaq_wheels, cudaq_metapackages]
     runs-on: linux-amd64-gpu-v100-latest-1
     permissions:
@@ -1128,7 +1137,7 @@ jobs:
 
   clean_up:
     name: Clean up
-    needs: [assets, cudaq_images, cudaq_installers, cudaq_wheels, cudaq_metapackages, image_validation, installer_validation, pypi_validation_conda, pypi_validation_x86, create_release]
+    needs: [assets, cudaq_images, cudaq_installers, cudaq_wheels, cudaq_metapackages, image_validation, installer_validation, wheel_validation_conda, metapackage_validation_piponly, create_release]
     # Force this job to run even when some of the dependencies above are skipped.
     if: always() && !cancelled() && needs.assets.result != 'skipped' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest

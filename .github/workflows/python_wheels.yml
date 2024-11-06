@@ -279,26 +279,33 @@ jobs:
             bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
             ~/miniconda3/bin/conda init bash
             source ~/.bashrc
+
             # Extract the setup script from Python wheel's readme
-            readme_file="/tmp/README-cu${cuda_major}.md"
-            python_version="${{ inputs.python_version }}"
-            # Parse README file to install openmpi
-            conda_script="$(awk '/(Begin conda install)/{flag=1;next}/(End conda install)/{flag=0}flag' $readme_file | grep . | sed '/^```/d')" 
+            cudaq_wheel=/tmp/cuda_quantum_cu*-manylinux_*_$(uname -m).whl
+            wheelname=${cudaq_wheel##*/} && archive_name=${wheelname%.*}.zip 
+            tmploc=/tmp/scratch && mkdir $tmploc
+            cp $cudaq_wheel $tmploc/$wheelname && mv $tmploc/$wheelname $tmploc/$archive_name 
+            unzip $tmploc/$archive_name -d $tmploc/cudaq_wheel && rm -rf $tmploc/$archive_name
+            metadata=$tmploc/cudaq_wheel/*.dist-info/METADATA
+
+            # Parse README content to install openmpi
+            conda_script="$(awk '/(Begin conda install)/{flag=1;next}/(End conda install)/{flag=0}flag' $metadata | grep . | sed '/^```/d')" 
             # Skip the installation of CUDA since we don't need CUDA for this test.
             regex='conda install -y -n cuda-quantum.*cuda'
             while IFS= read -r line; do
               if [[ ! "$line" =~ $regex ]]; then
                   # Replace Python version
-                  line=$(echo $line | sed -E "s/python(=)?3.[0-9]{1,}/python\1$python_version/g")
+                  line=$(echo $line | sed -E "s/python(=)?3.[0-9]{1,}/python\1${{ inputs.python_version }}/g")
                   # Install the wheel file
-                  line=${line//pip install cuda-quantum-cu${cuda_major}/pip install /tmp/cuda_quantum*-manylinux_*_$(uname -m).whl}
+                  line=${line//pip install cuda-quantum-cu${cuda_major}/pip install ${cudaq_wheel}}
                   eval "$line"
               fi
             done <<< "$conda_script"
-            ompi_script="$(awk '/(Begin ompi setup)/{flag=1;next}/(End ompi setup)/{flag=0}flag' $readme_file | grep . | sed '/^```/d')" 
+            ompi_script="$(awk '/(Begin ompi setup)/{flag=1;next}/(End ompi setup)/{flag=0}flag' $metadata | grep . | sed '/^```/d')" 
             while IFS= read -r line; do
                 eval "$line"
             done <<< "$ompi_script"
+
             # Run the MPI test
             python${{ inputs.python_version }} -m pip install pytest numpy
             mpirun --allow-run-as-root -np 4 python${{ inputs.python_version }} -m pytest -v /tmp/tests/parallel/test_mpi_api.py

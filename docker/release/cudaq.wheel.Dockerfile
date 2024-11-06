@@ -38,10 +38,24 @@ RUN echo "Building MLIR bindings for python${python_version}" && \
     bash /scripts/build_llvm.sh -c Release -v 
 
 # Patch the pyproject.toml file to change the CUDA version if needed
-RUN if [ "${CUDA_VERSION#12.}" != "${CUDA_VERSION}" ]; then \
+RUN sed -i "s/README.md.in/README.md/g" cuda-quantum/pyproject.toml && \
+    if [ "${CUDA_VERSION#12.}" != "${CUDA_VERSION}" ]; then \
         sed -i "s/-cu11/-cu12/g" cuda-quantum/pyproject.toml && \
         sed -i -E "s/(nvidia-cublas-cu[0-9]* ~= )[0-9\.]*/\1${CUDA_VERSION}/g" cuda-quantum/pyproject.toml; \
         sed -i -E "s/(nvidia-cuda-runtime-cu[0-9]* ~= )[0-9\.]*/\1${CUDA_VERSION}/g" cuda-quantum/pyproject.toml; \
+    fi
+
+# Create the README
+RUN cd cuda-quantum && cat python/README.md.in > python/README.md && \
+    package_name=cuda-quantum-cu$(echo ${CUDA_VERSION} | cut -d . -f1) && \
+    cuda_version_requirement=">= ${CUDA_VERSION}" && \
+    cuda_version_conda=${CUDA_VERSION}.0 && \
+    for variable in package_name cuda_version_requirement cuda_version_conda; do \
+        sed -i "s/.{{[ ]*$variable[ ]*}}/${!variable}/g" python/README.md; \
+    done && \
+    if [ -n "$(cat python/README.md | grep -e '.{{.*}}')" ]; then \
+        echo "Incomplete template substitutions in README." && \
+        exit 1; \
     fi
 
 # Build the wheel

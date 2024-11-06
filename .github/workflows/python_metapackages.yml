@@ -47,6 +47,7 @@ jobs:
       - name: Build metapackages
         id: metapackage_build
         run: |
+            sed -i "s/README.md.in/README.md/g" python/metapackages/pyproject.toml
             for file in LICENSE NOTICE CITATION.cff; do
                 cp $file python/metapackages/$file
             done
@@ -75,15 +76,9 @@ jobs:
             rm -rf cudaq.egg-info dist
 
             echo "Creating README.md for cuda-quantum package"
-            package_name=cuda-quantum
-            cat python/README.md.in > python/metapackages/README.md
-            for variable in package_name cuda_version_requirement cuda_version_conda; do
-              sed -i "s/.{{[ ]*$variable[ ]*}}/${!variable}/g" python/metapackages/README.md
-            done
-            if [ -n "$(cat python/metapackages/README.md | grep -e '.{{.*}}')" ]; then 
-              echo "::error file=python_metapackages.yml::Incomplete template substitutions in README."
-              exit 1
-            fi
+            echo "# Welcome to the CUDA-Q Python API" > README.md
+            echo "This package is deprecated and new versions are published under the name `cudaq` instead." >> README.md
+            echo "For more information, please see [CUDA-Q on PyPI](https://pypi.org/project/cudaq)." >> README.md
 
             echo "Building cuda-quantum metapackage ..."
             sed -i 's/name = "cudaq"/name = "cuda-quantum"/' pyproject.toml
