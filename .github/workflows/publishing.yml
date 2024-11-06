@@ -923,7 +923,7 @@ jobs:
             exit 1
           fi
 
-  wheel_validation_conda:
+  pypi_validation_conda:
     name: Python instructions validation (conda)
     needs: [assets, cudaq_wheels]
     runs-on: linux-amd64-gpu-v100-latest-1
@@ -976,9 +976,9 @@ jobs:
             exit $status_sum
           fi
 
-  wheel_validation_x86:
-    name: Simple Python wheel installation validation
-    needs: [assets, cudaq_wheels]
+  pypi_validation_x86:
+    name: Simple Python installation validation
+    needs: [assets, cudaq_wheels, cudaq_metapackages]
     runs-on: linux-amd64-gpu-v100-latest-1
     permissions:
       contents: read
@@ -1001,12 +1001,19 @@ jobs:
         with:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
-      - name: Load wheel
+      - name: Load wheels
         uses: actions/download-artifact@v4
         with:
-          name: x86_64-cu${{ matrix.cuda_major }}-py3.10-wheels
-          path: /tmp/install
-      
+          pattern: '*py3.10-wheels'
+          path: /tmp/wheels
+          merge-multiple: true
+
+      - name: Load metapackage
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.cudaq_metapackages.outputs.artifact_name }}
+          path: /tmp/packages
+
       - name: Run x86 validation
         shell: bash
         run: |
@@ -1014,7 +1021,18 @@ jobs:
           # targets and test cases that don't require MPI.
           # Create clean python3 environment.
           apt-get update && apt-get install -y --no-install-recommends python3 python3-pip
-          pip install /tmp/install/cuda_quantum_cu${{ matrix.cuda_major }}*.whl
+          mv /tmp/wheels/* /tmp/packages && rmdir /tmp/wheels
+
+          python3 -m pip install pypiserver
+          server=`find / -name pypi-server -executable -type f`
+          $server run -p 8080 /tmp/packages & 
+
+          pip install cudaq --extra-index-url http://localhost:8080 
+          if [ -z "$(pip list | grep cuda-quantum-cu${{ matrix.cuda_major }})" ]; then 
+            echo "::error::Missing installation of cuda-quantum-cu${{ matrix.cuda_major }} package."
+            exit 1
+          fi
+
           status_sum=0
           set +e # Allow script to keep going through errors
           # Verify that the necessary GPU targets are installed and usable
@@ -1103,7 +1121,7 @@ jobs:
 
   clean_up:
     name: Clean up
-    needs: [assets, cudaq_images, cudaq_installers, cudaq_wheels, cudaq_metapackages, image_validation, installer_validation, wheel_validation_conda, wheel_validation_x86, create_release]
+    needs: [assets, cudaq_images, cudaq_installers, cudaq_wheels, cudaq_metapackages, image_validation, installer_validation, pypi_validation_conda, pypi_validation_x86, create_release]
     # Force this job to run even when some of the dependencies above are skipped.
     if: always() && !cancelled() && needs.assets.result != 'skipped' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest
