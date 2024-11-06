@@ -7,34 +7,33 @@
  ******************************************************************************/
 
 // REQUIRES: c++20
-// RUN: cudaq-quake %s | FileCheck %s
+// RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
 
 #include "cudaq.h"
 
 namespace cudaq {
 __qpu__ void callMe(int i) {}
-
 __qpu__ void kernel() { cudaq::callMe(5); }
 } // namespace cudaq
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_callMe._ZN5cudaq6callMeEi(
-// CHECK-SAME:                                                                    %[[VAL_0:.*]]: i32 loc("/cuda-quantum/runtime/cudaq/qis/qubit_qis.h":23:17)) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-// CHECK:           %[[VAL_1:.*]] = cc.alloca i32 loc(#[[?]])
-// CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<i32> loc(#[[?]])
-// CHECK:           return loc(#[[$ATTR_0]])
-// CHECK:         } loc(#[[$ATTR_0]])
+// CHECK-SAME:                                                                    %[[VAL_0:.*]]: i32) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK:           %[[VAL_1:.*]] = cc.alloca i32
+// CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<i32>
+// CHECK:           return
+// CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel._ZN5cudaq6kernelEv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 5 : i32 loc(#[[?]])
-// CHECK:           call @__nvqpp__mlirgen__function_callMe._ZN5cudaq6callMeEi(%[[VAL_0]]) : (i32) -> () loc(#[[?]])
-// CHECK:           return loc(#[[$ATTR_0]])
-// CHECK:         } loc(#[[$ATTR_0]])
+// CHECK:           %[[VAL_0:.*]] = arith.constant 5 : i32
+// CHECK:           call @__nvqpp__mlirgen__function_callMe._ZN5cudaq6callMeEi(%[[VAL_0]]) : (i32) -> ()
+// CHECK:           return
+// CHECK:         }
 
 // CHECK-LABEL:   func.func @_ZN5cudaq6callMeEi(
-// CHECK-SAME:                                  %[[VAL_0:.*]]: i32 loc("/cuda-quantum/runtime/cudaq/qis/qubit_qis.h":23:17)) attributes {no_this} {
-// CHECK:           return loc(#[[$ATTR_0]])
-// CHECK:         } loc(#[[$ATTR_0]])
+// CHECK-SAME:                                  %[[VAL_0:.*]]: i32) attributes {no_this} {
+// CHECK:           return
+// CHECK:         }
 
 // CHECK-LABEL:   func.func @_ZN5cudaq6kernelEv() attributes {no_this} {
-// CHECK:           return loc(#[[$ATTR_0]])
-// CHECK:         } loc(#[[$ATTR_0]]
+// CHECK:           return
+// CHECK:         }
