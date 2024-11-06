@@ -76,8 +76,8 @@ fi
 # Execute instructions from the README file
 conda_script="$(awk '/(Begin conda install)/{flag=1;next}/(End conda install)/{flag=0}flag' "$readme_file" | grep . | sed '/^```/d')" 
 while IFS= read -r line; do
-    line=${line//3.10/$python_version}
-    line=${line//pip install cuda-quantum/pip install "$cudaq_wheel"}
+    line=$(echo $line | sed -E "s/python(=)?3.[0-9]{1,}/python\13.10/g")
+    line=$(echo $line | sed -E "s/pip install cuda-quantum-cu[0-9]{2,}/pip install \"$cudaq_wheel\"/g")
     if [ -n "$(echo $line | grep "conda activate")" ]; then
         conda_env=$(echo "$line" | sed "s#conda activate##" | tr -d '[:space:]')
         source $(conda info --base)/bin/activate $conda_env
