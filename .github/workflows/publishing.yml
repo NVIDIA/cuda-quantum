@@ -129,8 +129,9 @@ jobs:
             fi
           done
 
-          # Version number of the Python wheels
-          if ${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') }}; then
+          # CUDA-Q version number
+          is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
+          if ${is_versioned}; then
             cudaq_version=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
           else
             cudaq_version=${release_version:-0.0.0}
@@ -737,7 +738,7 @@ jobs:
 
     strategy:
       matrix:
-        os_image: ['redhat/ubi9:9.2', 'ubuntu:22.04']
+        os_image: ['redhat/ubi8:8.0', 'ubuntu:22.04']
         cuda_version: ['11.8', '12.0']
       fail-fast: false
 
@@ -756,7 +757,7 @@ jobs:
 
       - name: Configure validation
         id: config
-        run: 
+        run: |
           cuda_major=`echo ${{ matrix.cuda_version }} | cut -d . -f1`
           echo "cuda_major=$cuda_major" >> $GITHUB_OUTPUT
 
@@ -780,13 +781,19 @@ jobs:
             libcublas-$cuda_version_suffix \
             cuda-cudart-$cuda_version_suffix \
             libcusolver-$cuda_version_suffix
+          if [ $(echo ${{ matrix.cuda_version }} | cut -d . -f1) -gt 11 ]; then 
+            apt-get install -y --no-install-recommends \
+            libnvjitlink-$cuda_version_suffix
+          fi
 
       - name: Runtime dependencies (dnf)
         if: startsWith(matrix.os_image, 'redhat')
         run: |
           dnf install -y --nobest --setopt=install_weak_deps=False \
             'dnf-command(config-manager)' glibc-devel openssh-clients
-          CUDA_VERSION=${{ matrix.cuda_version }} . scripts/configure_build.sh install-cudart
+          CUDA_VERSION=${{ matrix.cuda_version }}
+          DISTRIBUTION=rhel8
+          . scripts/configure_build.sh install-cudart
 
           # We need to install an MPI implementation, otherwise nothing
           # will be able to run on the nvidia-mgpu backend.
