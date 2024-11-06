@@ -72,7 +72,7 @@ jobs:
             echo "Building cudaq metapackage ..."
             cd python/metapackages && echo ${{ inputs.cudaq_version }} > _version.txt
             CUDAQ_META_WHEEL_BUILD=1 python3 -m build . --sdist
-            mv dist/cudaq-* /tmp/packages/
+            mkdir /tmp/packages && mv dist/cudaq-* /tmp/packages/
             rm -rf cudaq.egg-info dist
 
             echo "Creating README.md for cuda-quantum package"
