@@ -420,7 +420,7 @@ void pyAltLaunchAnalogKernel(const std::string &name,
       name.c_str(), KernelThunkType(nullptr),
       (void *)(const_cast<char *>(programArgs.c_str())), 0, 0);
   if (dynamicResult.data_buffer || dynamicResult.size)
-    throw std::runtime_error("not implemented: support dynamic results");
+    throw std::runtime_error("Not implemented: support dynamic results");
 }
 
 /// @brief Serialize \p runtimeArgs into a flat buffer starting at

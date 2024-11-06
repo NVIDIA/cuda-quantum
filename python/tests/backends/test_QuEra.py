@@ -28,8 +28,7 @@ port = 62444
 
 @pytest.fixture(scope="session", autouse=True)
 def startUpMockServer():
-    os.environ["QUERA_API_KEY"] = "00000000000000000000000000000000"
-    # Set the targeted QPU
+    # NOTE: Credentials can be set with AWS CLI
     cudaq.set_target('quera')
     # Launch the Mock Server
     p = Process(target=startServer, args=(port,))
