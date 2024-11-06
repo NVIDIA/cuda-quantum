@@ -580,7 +580,9 @@ static Value descendThroughDynamicType(Location loc, OpBuilder &builder,
               Type packedTy = cudaq::opt::factory::genArgumentBufferType(t);
               Value strSize =
                   builder.create<cudaq::cc::SizeOfOp>(loc, i64Ty, packedTy);
-              for (auto [i, m] : llvm::enumerate(t.getMembers())) {
+              for (auto iter : llvm::enumerate(t.getMembers())) {
+                std::int32_t i = iter.index();
+                auto m = iter.value();
                 if (cudaq::cc::isDynamicType(m)) {
                   auto hostPtrTy = cast<cudaq::cc::PointerType>(arg.getType());
                   auto hostStrTy =
@@ -763,13 +765,14 @@ populateMessageBuffer(Location loc, OpBuilder &builder, Value msgBufferBase,
       cast<cudaq::cc::PointerType>(msgBufferBase.getType()).getElementType());
   // Loop over all the arguments and populate the message buffer.
   for (auto [idx, arg, devArgTy] : zippy) {
+    std::int32_t i = idx;
     if (cudaq::cc::isDynamicType(devArgTy)) {
       assert(addendum && "must have addendum to encode dynamic argument(s)");
       // Get the address of the slot to be filled.
-      auto memberTy = cast<cudaq::cc::StructType>(structTy).getMember(idx);
+      auto memberTy = cast<cudaq::cc::StructType>(structTy).getMember(i);
       auto ptrTy = cudaq::cc::PointerType::get(memberTy);
       auto slot = builder.create<cudaq::cc::ComputePtrOp>(
-          loc, ptrTy, msgBufferBase, ArrayRef<cudaq::cc::ComputePtrArg>{idx});
+          loc, ptrTy, msgBufferBase, ArrayRef<cudaq::cc::ComputePtrArg>{i});
       addendum = populateDynamicAddendum(loc, builder, devArgTy, arg, slot,
                                          addendum, addendumScratch);
       continue;
@@ -784,10 +787,10 @@ populateMessageBuffer(Location loc, OpBuilder &builder, Value msgBufferBase,
       continue;
 
     // Get the address of the slot to be filled.
-    auto memberTy = cast<cudaq::cc::StructType>(structTy).getMember(idx);
+    auto memberTy = cast<cudaq::cc::StructType>(structTy).getMember(i);
     auto ptrTy = cudaq::cc::PointerType::get(memberTy);
     Value slot = builder.create<cudaq::cc::ComputePtrOp>(
-        loc, ptrTy, msgBufferBase, ArrayRef<cudaq::cc::ComputePtrArg>{idx});
+        loc, ptrTy, msgBufferBase, ArrayRef<cudaq::cc::ComputePtrArg>{i});
 
     // Argument is a packaged kernel. In this case, the argument is some
     // unknown kernel that may be called. The packaged argument is coming
