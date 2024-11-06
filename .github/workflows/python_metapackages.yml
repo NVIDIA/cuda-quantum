@@ -55,11 +55,35 @@ jobs:
                 python3 python3-pip python3-venv
             python3 -m pip install build
 
+            echo "Creating README.md for cudaq package"
+            package_name=cudaq
+            cuda_version_requirement="11.x (where x >= 8) or 12.x"
+            cuda_version_conda=11.8.0 # only used as example in the install script
+            cat python/README.md.in > python/metapackages/README.md
+            for variable in package_name cuda_version_requirement cuda_version_conda; do
+              sed -i "s/.{{[ ]*$variable[ ]*}}/${!variable}/g" python/metapackages/README.md
+            done
+            if [ -n "$(cat python/metapackages/README.md | grep -e '.{{.*}}')" ]; then 
+              echo "::error file=python_metapackages.yml::Incomplete template substitutions in README."
+              exit 1
+            fi
+
             echo "Building cudaq metapackage ..."
             cd python/metapackages && echo ${{ inputs.cudaq_version }} > _version.txt
             CUDAQ_META_WHEEL_BUILD=1 python3 -m build . --sdist
             mv dist/cudaq-* /tmp/packages/
             rm -rf cudaq.egg-info dist
+
+            echo "Creating README.md for cuda-quantum package"
+            package_name=cuda-quantum
+            cat python/README.md.in > python/metapackages/README.md
+            for variable in package_name cuda_version_requirement cuda_version_conda; do
+              sed -i "s/.{{[ ]*$variable[ ]*}}/${!variable}/g" python/metapackages/README.md
+            done
+            if [ -n "$(cat python/metapackages/README.md | grep -e '.{{.*}}')" ]; then 
+              echo "::error file=python_metapackages.yml::Incomplete template substitutions in README."
+              exit 1
+            fi
 
             echo "Building cuda-quantum metapackage ..."
             sed -i 's/name = "cudaq"/name = "cuda-quantum"/' pyproject.toml

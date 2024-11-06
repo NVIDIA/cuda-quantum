@@ -48,14 +48,15 @@ with all its dependencies:
 [//]: # (Begin conda install)
 
 ```console
-conda create -y -n cuda-quantum python=3.12 pip
-conda install -y -n cuda-quantum -c "nvidia/label/cuda-12.0.0" cuda
-conda install -y -n cuda-quantum -c conda-forge mpi4py openmpi cxx-compiler
-conda env config vars set -n cuda-quantum LD_LIBRARY_PATH="$CONDA_PREFIX/envs/cuda-quantum/lib:$LD_LIBRARY_PATH"
-conda env config vars set -n cuda-quantum MPI_PATH=$CONDA_PREFIX/envs/cuda-quantum
-conda run -n cuda-quantum pip install cuda-quantum-cu12
-conda activate cuda-quantum
-source $CONDA_PREFIX/lib/python3.12/site-packages/distributed_interfaces/activate_custom_mpi.sh
+cuda_version=12.0.0 # set this variable to your CUDA 12 version
+conda create -y -n cudaq-env python=3.11 pip
+conda install -y -n cudaq-env -c "nvidia/label/cuda-${cuda_version}" cuda
+conda install -y -n cudaq-env -c conda-forge mpi4py openmpi cxx-compiler
+conda env config vars set -n cudaq-env LD_LIBRARY_PATH="$CONDA_PREFIX/envs/cudaq-env/lib:$LD_LIBRARY_PATH"
+conda env config vars set -n cudaq-env MPI_PATH=$CONDA_PREFIX/envs/cudaq-env
+conda run -n cudaq-env pip install cuda-quantum-cu12
+conda activate cudaq-env
+source $CONDA_PREFIX/lib/python3.11/site-packages/distributed_interfaces/activate_custom_mpi.sh
 ```
 
 [//]: # (End conda install)

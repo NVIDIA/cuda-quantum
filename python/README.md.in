@@ -12,11 +12,12 @@ CUDA-Q is a comprehensive framework for quantum programming. It features:
   technologies, including state-of-the-art simulator backends with NVIDIA
   cuQuantum and a number of different physical quantum processors (QPUs)
 
-The CUDA-Q Python wheels contain the Python API and core components of
-CUDA-Q. More information about available packages as well as a link to the
-documentation and examples for each version can be found in the [release
-notes][cudaq_docs_releases]. System and compatibility requirements
-are listed in the Installation Guide of the linked documentation.
+The CUDA-Q Python wheels contain the Python API and core components of CUDA-Q.
+This package installs CUDA-Q binaries that are compatible with a CUDA version
+${{ cuda_version_requirement }}. More information about available packages as
+well as a link to the documentation and examples for each version can be found
+in the [release notes][cudaq_docs_releases]. System and compatibility
+requirements are listed in the Installation Guide of the linked documentation.
 
 **Note**: CUDA-Q is currently only supported on Linux operating systems using
 `x86_64` or `aarch64`/`arm64` processors.
@@ -30,29 +31,28 @@ are listed in the Installation Guide of the linked documentation.
 
 CUDA-Q does not require a GPU to use, but some components are GPU-accelerated.
 
-Getting started with CUDA-Q on `x86_64` platforms simply requires
-`pip install cudaq`. If you have an NVIDIA GPU on your host system, you
-will be able to use it without any further installation steps.
+Getting started with CUDA-Q on `x86_64` platforms simply requires `pip install
+${{ package_name }}`. If you have an NVIDIA GPU on your host system, you will be
+able to use it without any further installation steps.
 
 However, if you want to perform multi-GPU simulations, or if you are using
-`aarch64`/`arm64` processors, additional components must be installed.
-We recommend using [Conda](https://docs.conda.io/en/latest/) to do so.
-If you are not already using Conda,
-you can install a minimal version following the instructions
-[here](https://docs.anaconda.com/miniconda/). The
-following commands will create and activate a complete environment for CUDA-Q
-with all its dependencies:
+`aarch64`/`arm64` processors, additional components must be installed. We
+recommend using [Conda](https://docs.conda.io/en/latest/) to do so. If you are
+not already using Conda, you can install a minimal version following the
+instructions [here](https://docs.anaconda.com/miniconda/). The following
+commands will create and activate a complete environment for CUDA-Q with all its
+dependencies:
 
 [//]: # (Begin conda install)
 
 ```console
-cuda_version=11.8.0 # set this variable to your preferred version (>=11.8)
+cuda_version=${{ cuda_version_conda }} # set this variable to version ${{ cuda_version_requirement }}
 conda create -y -n cudaq-env python=3.11 pip
 conda install -y -n cudaq-env -c "nvidia/label/cuda-${cuda_version}" cuda
 conda install -y -n cudaq-env -c conda-forge mpi4py openmpi cxx-compiler
 conda env config vars set -n cudaq-env LD_LIBRARY_PATH="$CONDA_PREFIX/envs/cudaq-env/lib:$LD_LIBRARY_PATH"
 conda env config vars set -n cudaq-env MPI_PATH=$CONDA_PREFIX/envs/cudaq-env
-conda run -n cudaq-env pip install cudaq
+conda run -n cudaq-env pip install ${{ package_name }}
 conda activate cudaq-env
 source $CONDA_PREFIX/lib/python3.11/site-packages/distributed_interfaces/activate_custom_mpi.sh
 ```
@@ -89,8 +89,8 @@ installed.
 
 ## Running CUDA-Q
 
-You should now be able to import CUDA-Q and start building quantum
-programs in Python!
+You should now be able to import CUDA-Q and start building quantum programs in
+Python!
 
 ```console
 import cudaq
@@ -118,9 +118,9 @@ about contributing to the CUDA-Q platform, please take a look at
 
 CUDA-Q is an open source project. The source code is available on
 [GitHub][github_link] and licensed under [Apache License
-2.0](https://github.com/NVIDIA/cuda-quantum/blob/main/LICENSE). CUDA-Q
-makes use of the NVIDIA cuQuantum SDK to enable high-performance simulation,
-which is held to its own respective license.
+2.0](https://github.com/NVIDIA/cuda-quantum/blob/main/LICENSE). CUDA-Q makes use
+of the NVIDIA cuQuantum SDK to enable high-performance simulation, which is held
+to its own respective license.
 
 [github_link]: https://github.com/NVIDIA/cuda-quantum/
 
