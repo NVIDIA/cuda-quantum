@@ -780,14 +780,19 @@ jobs:
             libcublas-$cuda_version_suffix \
             cuda-cudart-$cuda_version_suffix \
             libcusolver-$cuda_version_suffix
+          if [ $(echo ${{ matrix.cuda_version }} | cut -d . -f1) -gt 11 ]; then 
+            apt-get install -y --no-install-recommends \
+            libnvjitlink-$cuda_version_suffix
+          fi
 
       - name: Runtime dependencies (dnf)
         if: startsWith(matrix.os_image, 'redhat')
         run: |
           dnf install -y --nobest --setopt=install_weak_deps=False \
             'dnf-command(config-manager)' glibc-devel openssh-clients
-          CUDA_VERSION=${{ matrix.cuda_version }} DISTRIBUTION=rhel9 \ 
-            . scripts/configure_build.sh install-cudart
+          CUDA_VERSION=${{ matrix.cuda_version }}
+          DISTRIBUTION=rhel9
+          . scripts/configure_build.sh install-cudart
 
           # We need to install an MPI implementation, otherwise nothing
           # will be able to run on the nvidia-mgpu backend.
