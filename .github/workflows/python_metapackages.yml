@@ -36,7 +36,7 @@ jobs:
       contents: read
 
     outputs:
-      artifact_name: ${{ steps.sdist_build.outputs.artifact_name }}
+      artifact_name: ${{ steps.metapackage_build.outputs.artifact_name }}
 
     steps:
       - name: Checkout repository
@@ -45,34 +45,34 @@ jobs:
           ref: "${{ inputs.github_commit || '' }}"
 
       - name: Build metapackages
-        id: sdist_build
+        id: metapackage_build
         run: |
             for file in LICENSE NOTICE CITATION.cff; do
-                cp $file python/sdist/$file
+                cp $file python/metapackages/$file
             done
 
             apt-get update && apt-get install -y --no-install-recommends \
                 python3 python3-pip python3-venv
             python3 -m pip install build
 
-            echo "Building cudaq sdist package..."
-            cd python/sdist && echo ${{ inputs.cudaq_version }} > _version.txt
+            echo "Building cudaq metapackage ..."
+            cd python/metapackages && echo ${{ inputs.cudaq_version }} > _version.txt
             CUDAQ_META_WHEEL_BUILD=1 python3 -m build . --sdist
             mv dist/cudaq-* /tmp/packages/
             rm -rf cudaq.egg-info dist
 
-            echo "Building cuda-quantum sdist package..."
+            echo "Building cuda-quantum metapackage ..."
             sed -i 's/name = "cudaq"/name = "cuda-quantum"/' pyproject.toml
             echo 'Please remove the cuda-quantum package and `pip install cudaq` instead.' > _deprecated.txt
             CUDAQ_META_WHEEL_BUILD=1 python3 -m build . --sdist
             mv dist/cuda_quantum-* /tmp/packages/
 
-            echo "artifact_name=cudaq-sdist-${{ inputs.cudaq_version }}" >> $GITHUB_OUTPUT
+            echo "artifact_name=cudaq-metapackage-${{ inputs.cudaq_version }}" >> $GITHUB_OUTPUT
 
       - name: Upload metapackages
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.sdist_build.outputs.artifact_name }}
+          name: ${{ steps.metapackage_build.outputs.artifact_name }}
           path: /tmp/packages/
           retention-days: 1
           if-no-files-found: error
