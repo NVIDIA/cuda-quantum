@@ -169,8 +169,6 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
       auto fnTy = cast<FunctionType>(popType());
       return pushType(cc::IndirectCallableType::get(fnTy));
     }
-    auto loc = toLocation(x);
-    TODO_loc(loc, "unhandled type, " + name + ", in cudaq namespace");
   }
   if (isInNamespace(x, "std")) {
     if (name.equals("vector")) {
