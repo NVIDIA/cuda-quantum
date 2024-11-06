@@ -49,6 +49,7 @@ jobs:
       platform_tag: ${{ steps.info.outputs.platform_tag }}
       build_docs: ${{ steps.info.outputs.build_docs }}
       push_to_ngc: ${{ steps.info.outputs.push_to_ngc }}
+      is_versioned: ${{ steps.info.outputs.is_versioned }}
 
     # Needed to define metadata depending on whether an environment secret is defined.
     environment:
@@ -62,10 +63,10 @@ jobs:
             # multi-platform builds get no platform tag
             echo "runner=linux-amd64-cpu8" >> $GITHUB_OUTPUT
             echo "build_docs=${{ inputs.build_docs != 'false' }}" >> $GITHUB_OUTPUT
-            is_versioned=${{ github.ref_type == 'tag' || github.ref_name == 'main' || startsWith(github.ref_name, 'releases/') }}
-            is_staging_branch=${{ startsWith(github.ref_name, 'staging/') }}
-            is_experimental=${{ startsWith(github.ref_name, 'experimental/') }}
-            push_to_ngc=`${{ inputs.environment && secrets.NGC_CREDENTIALS != '' }} && ($is_versioned || $is_staging_branch || $is_experimental) && echo true || echo`
+            is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
+            has_continuous_deployment=${{ startsWith(github.ref_name, 'experimental/') || github.ref_name == 'main' }}
+            push_to_ngc=`${{ inputs.environment && secrets.NGC_CREDENTIALS != '' }} && ($is_versioned || $has_continuous_deployment) && echo true || echo`
+            echo "is_versioned=$is_versioned" >> $GITHUB_OUTPUT
             echo "push_to_ngc=$push_to_ngc" >> $GITHUB_OUTPUT
           elif [ -n "$(echo ${{ inputs.platforms }} | grep -i arm)" ]; then
             platform_tag=`echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr -d ' '`
@@ -481,7 +482,7 @@ jobs:
             image_tag+=pr-${pr_number:-${{ github.event.pull_request.number }}}
           elif ${{ github.ref_type == 'branch' && github.ref_name == 'main' }}; then
             image_tag+=latest
-          elif ${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') }}; then
+          elif ${{ needs.metadata.outputs.is_versioned == 'true' }}; then
             image_tag+=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
           else
             image_tag+=`echo ${{ github.ref_name }} | tr '/' '-'`

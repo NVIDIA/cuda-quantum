@@ -129,8 +129,9 @@ jobs:
             fi
           done
 
-          # Version number of the Python wheels
-          if ${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') }}; then
+          # CUDA-Q version number
+          is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
+          if ${is_versioned}; then
             cudaq_version=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
           else
             cudaq_version=${release_version:-0.0.0}
