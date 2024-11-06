@@ -9,7 +9,7 @@
 [project]
 name = "cudaq"
 dynamic = ["version", "dependencies"]
-keywords = [ "cuda-quantum", "cuda", "quantum", "quantum computing", "nvidia", "high-performance computing" ]
+keywords = [ "cudaq", "cuda-quantum", "cuda", "quantum", "quantum computing", "nvidia", "high-performance computing" ]
 description="Python bindings for the CUDA-Q toolkit for heterogeneous quantum-classical workflows."
 authors = [{name = "NVIDIA Corporation & Affiliates"}]
 maintainers = [{name = "NVIDIA Corporation & Affiliates"}]
