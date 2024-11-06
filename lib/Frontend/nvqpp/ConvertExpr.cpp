@@ -2049,8 +2049,6 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
                                        ValueRange{buffer, start, stop, step});
       return pushValue(call.getResult(0));
     }
-
-    TODO_loc(loc, "unknown function, " + funcName + ", in cudaq namespace");
   } // end in cudaq namespace
 
   if (isInNamespace(func, "std")) {
