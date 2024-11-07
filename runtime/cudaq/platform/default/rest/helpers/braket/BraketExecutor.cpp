@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "BraketExecutor.h"
-#include "BraketServerHelper.h"
+#include "common/BraketExecutor.h"
+#include "common/BraketServerHelper.h"
 
 #include <aws/braket/model/CreateQuantumTaskRequest.h>
 #include <aws/braket/model/GetQuantumTaskRequest.h>
@@ -147,21 +147,25 @@ void BraketExecutor::setServerHelper(ServerHelper *helper) {
       }).share();
 }
 
-details::future
-BraketExecutor::execute(std::vector<KernelExecution> &codesToExecute) {
+ServerJobPayload BraketExecutor::checkHelperAndCreateJob(
+    std::vector<KernelExecution> &codesToExecute) {
   auto braketServerHelper = dynamic_cast<BraketServerHelper *>(serverHelper);
   assert(braketServerHelper);
   braketServerHelper->setShots(shots);
 
-  auto [dummy1, dummy2, messages] =
-      braketServerHelper->createJob(codesToExecute);
-
-  std::string defaultBucket = defaultBucketFuture.get();
-  std::string const defaultPrefix = "tasks";
-
   auto config = braketServerHelper->getConfig();
   cudaq::info("Backend config: {}, shots {}", config, shots);
   config.insert({"shots", std::to_string(shots)});
+
+  return braketServerHelper->createJob(codesToExecute);
+}
+
+details::future
+BraketExecutor::execute(std::vector<KernelExecution> &codesToExecute) {
+  auto [dummy1, dummy2, messages] = checkHelperAndCreateJob(codesToExecute);
+
+  std::string const defaultBucket = defaultBucketFuture.get();
+  std::string const defaultPrefix = "tasks";
 
   std::vector<Aws::Braket::Model::CreateQuantumTaskOutcomeCallable>
       createOutcomes;
@@ -247,7 +251,7 @@ BraketExecutor::execute(std::vector<KernelExecution> &codesToExecute) {
         return sample_result(results);
       },
       std::move(createOutcomes));
-};
+}
 } // namespace cudaq
 
 CUDAQ_REGISTER_TYPE(cudaq::Executor, cudaq::BraketExecutor, braket);

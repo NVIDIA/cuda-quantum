@@ -28,17 +28,15 @@
 # COPY docs/sphinx/targets/python /tmp/targets/
 # COPY docs/sphinx/snippets/python /tmp/snippets/
 # COPY python/tests /tmp/tests/
-# COPY python/README-cu11.md /tmp/
+# COPY python/README.md.in /tmp/README.md
 # RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates vim wget openssh-client
 
 __optind__=$OPTIND
 OPTIND=1
 python_version=3.11
 quick_test=false
-while getopts ":c:f:p:qw:" opt; do
+while getopts ":f:p:qw:" opt; do
   case $opt in
-    c) cuda_major="$OPTARG"
-    ;;
     f) root_folder="$OPTARG"
     ;;
     p) python_version="$OPTARG"
@@ -55,7 +53,7 @@ done
 OPTIND=$__optind__
 
 # FIXME: check validation with src dist (subsequent PR)
-readme_file="$root_folder/README-cu$cuda_major.md"
+readme_file="$root_folder/README.md"
 if [ ! -d "$root_folder" ] || [ ! -f "$readme_file" ] ; then
     echo -e "\e[01;31mDid not find Python root folder. Please pass the folder containing the README and test with -f.\e[0m" >&2
     (return 0 2>/dev/null) && return 100 || exit 100
@@ -76,8 +74,8 @@ fi
 # Execute instructions from the README file
 conda_script="$(awk '/(Begin conda install)/{flag=1;next}/(End conda install)/{flag=0}flag' "$readme_file" | grep . | sed '/^```/d')" 
 while IFS= read -r line; do
-    line=${line//3.10/$python_version}
-    line=${line//pip install cuda-quantum/pip install "$cudaq_wheel"}
+    line=$(echo $line | sed -E "s/python(=)?3.[0-9]{1,}/python\13.10/g")
+    line=$(echo $line | sed -E "s/pip install cuda-quantum-cu[0-9]{2}/pip install \"${cudaq_wheel//\//\\/}\"/g")
     if [ -n "$(echo $line | grep "conda activate")" ]; then
         conda_env=$(echo "$line" | sed "s#conda activate##" | tr -d '[:space:]')
         source $(conda info --base)/bin/activate $conda_env
@@ -171,7 +169,8 @@ done
 # Note that a derivative of this code is in
 # docs/sphinx/using/backends/platform.rst, so if you update it here, you need to
 # check if any docs updates are needed.
-cudaq_location=`python3 -m pip show cuda-quantum | grep -e 'Location: .*$'`
+cudaq_package=`python3 -m pip list | grep -oE 'cuda-quantum-cu[0-9]{2}'`
+cudaq_location=`python3 -m pip show ${cudaq_package} | grep -e 'Location: .*$'`
 qpud_py="${cudaq_location#Location: }/bin/cudaq-qpud.py"
 if [ -x "$(command -v nvidia-smi)" ]; 
 then nr_gpus=`nvidia-smi --list-gpus | wc -l`

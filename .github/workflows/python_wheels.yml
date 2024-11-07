@@ -25,6 +25,10 @@ on:
         required: false
         type: boolean
         default: false
+    outputs:
+      cudaq_version:
+        description: "The version of the built wheels."
+        value: ${{ jobs.build_wheel.outputs.cudaq_version }}
     secrets:
       DOCKERHUB_USERNAME:
         required: true
@@ -43,6 +47,7 @@ jobs:
 
     outputs:
       artifact_name: ${{ steps.prereqs.outputs.artifact_name }}
+      cudaq_version: ${{ steps.prereqs.outputs.cudaq_version }}
 
     # Needed for making local images available to the docker/build-push-action.
     # See also https://stackoverflow.com/a/63927832.
@@ -103,7 +108,8 @@ jobs:
           cache_id=`echo ${{ inputs.python_version }}-$devenv_tag | tr . -`
 
           mkdir -p "/tmp/wheels"
-          if ${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') }}; then
+          is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
+          if ${is_versioned}; then
             cudaq_version=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
           else
             cudaq_version=0.0.0
@@ -265,34 +271,41 @@ jobs:
             # hence we don't want to mix conda and pip packages.
             cuda_major=$(echo ${{ inputs.cuda_version }} | cut -d . -f1)
             python${{ inputs.python_version }} -m pip uninstall -y cuda-quantum-cu${cuda_major}
+
             # Install cuda-quantum wheel and all dependencies (including MPI) using conda (README instructions)
-            # Install conda
-            dnf install -y --nobest --setopt=install_weak_deps=False wget openssh-clients
+            dnf install -y --nobest --setopt=install_weak_deps=False wget unzip openssh-clients
             mkdir -p ~/miniconda3
             wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-$(uname -m).sh -O ~/miniconda3/miniconda.sh
             bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
             ~/miniconda3/bin/conda init bash
             source ~/.bashrc
+
             # Extract the setup script from Python wheel's readme
-            readme_file="/tmp/README-cu${cuda_major}.md"
-            python_version="${{ inputs.python_version }}"
-            # Parse README file to install openmpi
-            conda_script="$(awk '/(Begin conda install)/{flag=1;next}/(End conda install)/{flag=0}flag' $readme_file | grep . | sed '/^```/d')" 
+            cudaq_wheel=/tmp/cuda_quantum_cu*-manylinux_*_$(uname -m).whl
+            wheelname=${cudaq_wheel##*/} && archive_name=${wheelname%.*}.zip 
+            tmploc=/tmp/scratch && mkdir $tmploc
+            cp $cudaq_wheel $tmploc/$wheelname && mv $tmploc/$wheelname $tmploc/$archive_name 
+            unzip $tmploc/$archive_name -d $tmploc/cudaq_wheel && rm -rf $tmploc/$archive_name
+            metadata=$tmploc/cudaq_wheel/*.dist-info/METADATA
+
+            # Parse README content to install openmpi
+            conda_script="$(awk '/(Begin conda install)/{flag=1;next}/(End conda install)/{flag=0}flag' $metadata | grep . | sed '/^```/d')" 
             # Skip the installation of CUDA since we don't need CUDA for this test.
             regex='conda install -y -n cuda-quantum.*cuda'
             while IFS= read -r line; do
               if [[ ! "$line" =~ $regex ]]; then
                   # Replace Python version
-                  line=$(echo $line | sed -E "s/python(=)?3.[0-9]{1,}/python\1$python_version/g")
+                  line=$(echo $line | sed -E "s/python(=)?3.[0-9]{1,}/python\1${{ inputs.python_version }}/g")
                   # Install the wheel file
-                  line=${line//pip install cuda-quantum-cu${cuda_major}/pip install /tmp/cuda_quantum*-manylinux_*_$(uname -m).whl}
+                  line=${line//pip install cuda-quantum-cu${cuda_major}/pip install ${cudaq_wheel}}
                   eval "$line"
               fi
             done <<< "$conda_script"
-            ompi_script="$(awk '/(Begin ompi setup)/{flag=1;next}/(End ompi setup)/{flag=0}flag' $readme_file | grep . | sed '/^```/d')" 
+            ompi_script="$(awk '/(Begin ompi setup)/{flag=1;next}/(End ompi setup)/{flag=0}flag' $metadata | grep . | sed '/^```/d')" 
             while IFS= read -r line; do
                 eval "$line"
             done <<< "$ompi_script"
+
             # Run the MPI test
             python${{ inputs.python_version }} -m pip install pytest numpy
             mpirun --allow-run-as-root -np 4 python${{ inputs.python_version }} -m pytest -v /tmp/tests/parallel/test_mpi_api.py

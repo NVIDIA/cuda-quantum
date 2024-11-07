@@ -48,4 +48,8 @@ static constexpr const char CudaqRegisterArgsCreator[] =
 static constexpr const char CudaqRegisterKernelName[] =
     "cudaqRegisterKernelName";
 
+/// Prefix for an analog kernel entry functions.
+static constexpr const char cudaqAHSPrefixName[] =
+    "__analog_hamiltonian_kernel__";
+
 } // namespace cudaq::runtime

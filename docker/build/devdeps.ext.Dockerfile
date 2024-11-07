@@ -17,7 +17,7 @@
 #   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:ext -f docker/build/devdeps.ext.Dockerfile .
 
 ARG cuda_version=11.8
-ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:llvm-main
+ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:gcc11-main
 ARG ompidev_image=ghcr.io/nvidia/cuda-quantum-devdeps:cu11-ompi-main
 FROM $ompidev_image AS ompibuild
 ARG cuda_version
@@ -155,7 +155,7 @@ ENV CUTENSOR_ROOT="$CUTENSOR_INSTALL_PREFIX"
 ENV LD_LIBRARY_PATH="$CUTENSOR_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
 ENV CPATH="$CUTENSOR_INSTALL_PREFIX/include:$CPATH"
 
-ENV CUTENSOR_VERSION=2.0.1.2
+ENV CUTENSOR_VERSION=2.0.2.5
 RUN apt-get update && apt-get install -y --no-install-recommends xz-utils \
     && arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
     && cuda_major=$(echo $CUDA_VERSION | cut -d . -f1) \
