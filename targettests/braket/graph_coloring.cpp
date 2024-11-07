@@ -1,1 +1,0 @@
-../execution/graph_coloring.cpp
