@@ -151,9 +151,10 @@ jobs:
 
           python=python${{ matrix.python_version }}
           $python -m pip install pip3-autoremove
-          autoremove=`find / -name pip-autoremove -executable -type f`
+          # autoremove is in an odd location that isn't found unless we search for it...
+          autoremove="$python $($python -m pip show pip3-autoremove |  grep -e 'Location: .*$' | cut -d ' ' -f2)/pip_autoremove.py"
           $python -m pip install pypiserver
-          server=`find / -name pypi-server -executable -type f`
+          server="$python $($python -m pip show pypiserver | grep -e 'Location: .*$' | cut -d ' ' -f2)/pypiserver_main__.py"
           $server run -p 8080 /tmp/packages & 
 
           package_dep=`echo cuda-quantum${cuda_version_suffix:+-cu$cuda_version_suffix} | cut -d '-' -f1-2`
@@ -201,7 +202,7 @@ jobs:
 
           python=python${{ matrix.python_version }}
           $python -m pip install pypiserver
-          server=`find / -name pypi-server -executable -type f`
+          server="$python $($python -m pip show pypiserver | grep -e 'Location: .*$' | cut -d ' ' -f2)/pypiserver_main__.py"
           $server run -p 8080 /tmp/packages & 
 
           case "${{ matrix.cuda_version }}" in
