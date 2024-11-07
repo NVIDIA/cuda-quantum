@@ -54,10 +54,11 @@ void BraketServerHelper::initialize(BackendConfig config) {
 
   // Fetch machine info before checking emulate because we want to be able to
   // emulate specific machines.
-  auto machine = getValueOrDefault(config, "qpu", SV1);
+  auto machine = getValueOrDefault(config, "machine", SV1);
   auto deviceArn = getDeviceArn(machine);
   cudaq::info("Running on device {}", deviceArn);
 
+  config["defaultBucket"] = getValueOrDefault(config, "default_bucket", "");
   config["deviceArn"] = deviceArn;
   config["qubits"] = deviceQubitCounts.contains(deviceArn)
                          ? deviceQubitCounts.at(deviceArn)

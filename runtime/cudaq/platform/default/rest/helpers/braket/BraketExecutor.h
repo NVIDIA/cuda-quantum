@@ -18,14 +18,8 @@
 #include <aws/core/Aws.h>
 
 #include <aws/braket/BraketClient.h>
-#include <aws/braket/model/CreateQuantumTaskRequest.h>
-#include <aws/braket/model/GetQuantumTaskRequest.h>
-#include <aws/braket/model/QuantumTaskStatus.h>
-
-#include <aws/sts/STSClient.h>
-
 #include <aws/s3-crt/S3CrtClient.h>
-#include <aws/s3-crt/model/GetObjectRequest.h>
+#include <aws/sts/STSClient.h>
 
 #include <aws/core/utils/logging/AWSLogging.h>
 #include <aws/core/utils/logging/ConsoleLogSystem.h>
@@ -49,7 +43,6 @@ class BraketExecutor : public Executor {
 
   public:
     ScopedApi(Aws::SDKOptions &options) : options(options) {
-      cudaq::debug("Initializing AWS API");
       Aws::InitAPI(options);
     }
     ~ScopedApi() { Aws::ShutdownAPI(options); }
@@ -61,7 +54,7 @@ class BraketExecutor : public Executor {
   std::unique_ptr<Aws::STS::STSClient> stsClientPtr;
   std::unique_ptr<Aws::S3Crt::S3CrtClient> s3ClientPtr;
 
-  std::future<std::string> defaultBucketFuture;
+  std::shared_future<std::string> defaultBucketFuture;
   char const *jobToken;
 
   std::chrono::microseconds pollingInterval = std::chrono::milliseconds{100};

@@ -9,20 +9,93 @@
 #include "BraketExecutor.h"
 #include "BraketServerHelper.h"
 
+#include <aws/braket/model/CreateQuantumTaskRequest.h>
+#include <aws/braket/model/GetQuantumTaskRequest.h>
+#include <aws/braket/model/QuantumTaskStatus.h>
+
+#include <aws/s3-crt/model/CreateBucketRequest.h>
+#include <aws/s3-crt/model/GetObjectRequest.h>
+#include <aws/s3-crt/model/PutBucketPolicyRequest.h>
+#include <aws/s3-crt/model/PutPublicAccessBlockRequest.h>
+
+#include <aws/core/utils/ARN.h>
+
 namespace {
-std::string getDeviceRegion(std::string deviceArn) {
-  auto start = deviceArn.begin();
-  for (int i = 0; i < 3; ++i) {
-    start = std::find(start, deviceArn.end(), ':');
-    if (start != deviceArn.end()) {
-      ++start;
+void tryCreateBucket(Aws::S3Crt::S3CrtClient &client, std::string const &region,
+                     std::string const &bucketName) {
+  Aws::S3Crt::Model::CreateBucketRequest createReq;
+  createReq.SetBucket(bucketName);
+  Aws::S3Crt::Model::CreateBucketConfiguration config;
+  if (region != Aws::Region::US_EAST_1) {
+    config.SetLocationConstraint(
+        Aws::S3Crt::Model::BucketLocationConstraintMapper::
+            GetBucketLocationConstraintForName(region));
+  }
+  createReq.SetCreateBucketConfiguration(config);
+  cudaq::info("Attempting to create S3 bucket \"s3://{}\"", bucketName);
+  auto createResponse = client.CreateBucket(createReq);
+  if (!createResponse.IsSuccess()) {
+    auto error = createResponse.GetError();
+    if (error.GetErrorType() ==
+        Aws::S3Crt::S3CrtErrors::BUCKET_ALREADY_OWNED_BY_YOU) {
+      cudaq::info("\"s3://{}\" already exists", bucketName);
+      return;
+    } else if (error.GetErrorType() ==
+               Aws::S3Crt::S3CrtErrors::BUCKET_ALREADY_EXISTS) {
+      throw std::runtime_error("default bucket name \"" + bucketName +
+                               "\" already exists in another account. Please "
+                               "supply an alternative bucket name.");
     } else {
-      throw std::runtime_error("Improper device arn: " + deviceArn);
+      throw std::runtime_error(error.GetMessage());
     }
   }
-  auto end = std::find(start, deviceArn.end(), ':');
-  return std::string{start, end};
+
+  Aws::S3Crt::Model::PutPublicAccessBlockRequest publicReq;
+  publicReq.SetBucket(bucketName);
+  Aws::S3Crt::Model::PublicAccessBlockConfiguration publicConfig;
+  publicConfig.SetBlockPublicAcls(true);
+  publicConfig.SetIgnorePublicAcls(true);
+  publicConfig.SetBlockPublicPolicy(true);
+  publicConfig.SetRestrictPublicBuckets(true);
+  publicReq.SetPublicAccessBlockConfiguration(publicConfig);
+
+  auto publicResponse = client.PutPublicAccessBlock(publicReq);
+  if (!publicResponse.IsSuccess()) {
+    auto error = publicResponse.GetError();
+    throw std::runtime_error(error.GetMessage());
+  }
+
+  std::string policy = fmt::format(R"({{
+    "Version": "2012-10-17",
+    "Statement": [
+        {{
+            "Effect": "Allow",
+            "Principal": {{
+                "Service": [
+                    "braket.amazonaws.com"
+                ]
+            }},
+            "Action": "s3:*",
+            "Resource": [
+                "arn:aws:s3:::{0}",
+                "arn:aws:s3:::{0}/*"
+            ]
+        }}
+    ]
+}})",
+                                   bucketName);
+
+  Aws::S3Crt::Model::PutBucketPolicyRequest policyReq;
+  policyReq.SetBucket(bucketName);
+  policyReq.SetBody(std::make_shared<Aws::StringStream>(policy));
+
+  auto policyResponse = client.PutBucketPolicy(policyReq);
+  if (!policyResponse.IsSuccess()) {
+    auto error = policyResponse.GetError();
+    throw std::runtime_error(error.GetMessage());
+  }
 }
+
 } // namespace
 
 namespace cudaq {
@@ -32,7 +105,10 @@ BraketExecutor::BraketExecutor()
 /// @brief Set the server helper
 void BraketExecutor::setServerHelper(ServerHelper *helper) {
   Executor::setServerHelper(helper);
-  std::string region = getDeviceRegion(helper->getConfig().at("deviceArn"));
+
+  std::string region =
+      Aws::Utils::ARN(helper->getConfig().at("deviceArn")).GetRegion();
+  std::string defaultBucket = helper->getConfig().at("defaultBucket");
 
   Aws::Client::ClientConfiguration clientConfig;
   clientConfig.verifySSL = false;
@@ -52,18 +128,23 @@ void BraketExecutor::setServerHelper(ServerHelper *helper) {
   stsClientPtr = std::make_unique<Aws::STS::STSClient>(clientConfig);
   s3ClientPtr = std::make_unique<Aws::S3Crt::S3CrtClient>(s3ClientConfig);
 
-  defaultBucketFuture = std::async(std::launch::async, [this, region] {
-    auto response = stsClientPtr->GetCallerIdentity();
-    std::string bucketName;
-    if (response.IsSuccess()) {
-      bucketName = fmt::format("amazon-braket-{}-{}", region,
-                               response.GetResult().GetAccount());
-      cudaq::info("Braket task results will use S3 bucket \"{}\"", bucketName);
-      return bucketName;
-    } else {
-      throw std::runtime_error(response.GetError().GetMessage());
-    }
-  });
+  defaultBucketFuture =
+      std::async(std::launch::async, [this, region, defaultBucket] {
+        std::string bucketName = defaultBucket;
+        if (bucketName.empty()) {
+          auto response = stsClientPtr->GetCallerIdentity();
+          if (response.IsSuccess()) {
+            bucketName = fmt::format("amazon-braket-{}-{}", region,
+                                     response.GetResult().GetAccount());
+          } else {
+            throw std::runtime_error(response.GetError().GetMessage());
+          }
+        }
+        tryCreateBucket(*s3ClientPtr, region, bucketName);
+        cudaq::info("Braket task results will use S3 bucket \"s3://{}\"",
+                    bucketName);
+        return bucketName;
+      }).share();
 }
 
 details::future
@@ -75,7 +156,7 @@ BraketExecutor::execute(std::vector<KernelExecution> &codesToExecute) {
   auto [dummy1, dummy2, messages] =
       braketServerHelper->createJob(codesToExecute);
 
-  std::string const defaultBucket = defaultBucketFuture.get();
+  std::string defaultBucket = defaultBucketFuture.get();
   std::string const defaultPrefix = "tasks";
 
   auto config = braketServerHelper->getConfig();
