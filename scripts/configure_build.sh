@@ -55,6 +55,10 @@ if [ "$1" == "install-cudart" ]; then
         cuda-cudart-${version_suffix} \
         libcusolver-${version_suffix} \
         libcublas-${version_suffix}
+    if [ $(echo ${CUDA_VERSION} | cut -d . -f1) -gt 11 ]; then 
+        dnf install -y --nobest --setopt=install_weak_deps=False \
+            libnvjitlink-${version_suffix}
+    fi
 # [<CUDARTInstall]
 fi
 
@@ -79,7 +83,7 @@ if [ "$1" == "install-cutensor" ]; then
     CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
 
 # [>cuTensorInstall]
-    CUTENSOR_VERSION=2.0.1.2
+    CUTENSOR_VERSION=2.0.2.5
     CUTENSOR_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cutensor/redist/libcutensor
 
     cutensor_archive=libcutensor-linux-${CUDA_ARCH_FOLDER}-${CUTENSOR_VERSION}-archive.tar.xz
