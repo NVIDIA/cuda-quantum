@@ -812,7 +812,7 @@ populateMessageBuffer(Location loc, OpBuilder &builder, Value msgBufferBase,
     if (isa<cudaq::cc::PointerType>(devArgTy))
       arg = builder.create<cudaq::cc::CastOp>(loc, memberTy, arg);
 
-    if (isa<cudaq::cc::StructType>(arg.getType()) &&
+    if (isa<cudaq::cc::StructType, cudaq::cc::ArrayType>(arg.getType()) &&
         (cudaq::cc::PointerType::get(arg.getType()) != slot.getType())) {
       slot = builder.create<cudaq::cc::CastOp>(
           loc, cudaq::cc::PointerType::get(arg.getType()), slot);
