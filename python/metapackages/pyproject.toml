@@ -7,24 +7,15 @@
 # ============================================================================ #
 
 [project]
-name = "cuda-quantum-cu11"
-dynamic = ["version"]
+name = "cudaq"
+dynamic = ["version", "dependencies"]
 keywords = [ "cudaq", "cuda-quantum", "cuda", "quantum", "quantum computing", "nvidia", "high-performance computing" ]
 description="Python bindings for the CUDA-Q toolkit for heterogeneous quantum-classical workflows."
 authors = [{name = "NVIDIA Corporation & Affiliates"}]
 maintainers = [{name = "NVIDIA Corporation & Affiliates"}]
-readme = { file="python/README.md.in", content-type = "text/markdown"}
+readme = { file="README.md.in", content-type = "text/markdown"}
 requires-python = ">=3.10"
 license = { file="LICENSE" }
-dependencies = [
-  'astpretty ~= 3.0',
-  'cuquantum-cu11 ~= 24.08',
-  'numpy >= 1.24',
-  'requests >= 2.31',
-  'nvidia-cublas-cu11 ~= 11.11; platform_machine == "x86_64"',
-  'nvidia-cuda-runtime-cu11 ~= 11.8; platform_machine == "x86_64"',
-  'nvidia-cusolver-cu11 ~= 11.4; platform_machine == "x86_64"'
-]
 classifiers = [
     'Intended Audience :: Science/Research',
     'Intended Audience :: Developers',
@@ -54,23 +45,14 @@ chemistry = [ "scipy==1.10.1", "openfermionpyscf==0.5", "h5py<3.11"  ]
 visualization = [ "qutip<5" , "matplotlib>=3.5" ]
 
 [build-system]
-requires = ["scikit-build-core==0.9.10", "cmake>=3.26,<3.29", "numpy>=1.24", "pytest==8.2.0"]
-build-backend = "scikit_build_core.build"
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
 
-[tool.scikit-build]
-wheel.packages = ["python/cudaq"]
-wheel.license-files = [ "LICENSE", "NOTICE", "CITATION.cff" ]
-build-dir = "_skbuild"
-metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
-cmake.minimum-version = "3.26"
-cmake.build-type = "Release"
-cmake.verbose = false
-cmake.args = [
-    "-DCUDAQ_ENABLE_PYTHON=TRUE",
-    "-DCUDAQ_DISABLE_CPP_FRONTEND=TRUE",
-    "-DCUDAQ_DISABLE_TOOLS=TRUE",
-    "-DCUDAQ_BUILD_TESTS=TRUE"
-]
+[tool.setuptools]
+packages = []
+include-package-data = true
+license-files = [ "LICENSE", "NOTICE", "CITATION.cff" ]
 
-[tool.setuptools_scm]
-write_to = "_version.py"
+[tool.setuptools.dynamic]
+version = {file = "_version.txt"}
+

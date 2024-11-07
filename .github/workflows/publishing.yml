@@ -286,8 +286,8 @@ jobs:
           retention-days: 1
           if-no-files-found: warn
           
-  cudaq_hpc:
-    name: CUDA Quantum Docker image
+  cudaq_images:
+    name: CUDA-Q Docker image
     if: ${{ toJson(fromJson(needs.assets.outputs.docker_images).info_files) != '[]' }}
     needs: assets
     runs-on: ubuntu-latest
@@ -471,8 +471,8 @@ jobs:
           outputs: |
             image_hash: ${{ steps.release_info.outputs.image_name }}@${{ steps.cudaq_build.outputs.digest }}
 
-  cudaq_installer:
-    name: CUDA Quantum installer
+  cudaq_installers:
+    name: CUDA-Q installer
     if: ${{ toJson(fromJson(needs.assets.outputs.installers).info_files) != '[]' }}
     needs: assets
     permissions:
@@ -580,7 +580,7 @@ jobs:
           if-no-files-found: error
 
   cudaq_wheels:
-    name: CUDA Quantum Python wheels
+    name: CUDA-Q Python wheels
     if: ${{ toJson(fromJson(needs.assets.outputs.python_wheels).info_files) != '[]' }}
     needs: assets
     permissions:
@@ -683,7 +683,7 @@ jobs:
           if-no-files-found: error
     
   cudaq_wheels_release_info:  
-    name: Update release info of CUDA Quantum Python wheels
+    name: Update release info of CUDA-Q Python wheels
     needs: [assets, cudaq_wheels]
     runs-on: ubuntu-latest
 
@@ -708,9 +708,20 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
-  config:
-    name: Configure validation
-    needs: [cudaq_hpc, cudaq_installer, cudaq_wheels]
+  cudaq_metapackages:
+    name: CUDA-Q metapackages
+    needs: [assets, cudaq_wheels]
+    uses: ./.github/workflows/python_metapackages.yml
+    with:
+      cudaq_version: ${{ needs.assets.outputs.cudaq_version }}
+      python_versions: "['3.10', '3.11', '3.12']" 
+      cuda_versions: "['', '11.8', '12.0']"
+      wheel_artifacts: '*-wheels'
+      github_commit: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
+
+  image_validation_config:
+    name: Configure image validation
+    needs: cudaq_images
     runs-on: ubuntu-latest
 
     outputs:
@@ -729,9 +740,95 @@ jobs:
           images=`echo '${{ steps.read_json.outputs.result }}' | jq '[.image_hash[] | select(. != "")]'`
           echo "docker_images=$(echo $images)" >> $GITHUB_OUTPUT
 
+  image_validation:
+    name: Docker image validation
+    needs: [assets, image_validation_config]
+    runs-on: linux-amd64-gpu-v100-latest-1
+    permissions:
+      contents: read
+      packages: read
+
+    strategy:
+      matrix:
+        image_hash: ${{ fromJson(needs.image_validation_config.outputs.docker_images) }}
+      fail-fast: false
+
+    container:
+      image: ${{ matrix.image_hash }}
+      options: --user root # otherwise step summary doesn't work
+      env:
+        NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
+        TERM: xterm
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
+          path: github-repo
+          sparse-checkout: |
+            scripts
+            docs
+
+      - name: Basic validation (GPU backends)
+        shell: bash
+        run: |
+          backends_to_test=`\
+              for file in $(ls $CUDA_QUANTUM_PATH/targets/*.yml); \
+              do
+                  if [ -n "$(cat $file | grep "gpu-requirements")" ]; then \
+                    basename $file | cut -d "." -f 1; \
+                  elif [ -n "$(basename $file | grep mqpu)" ]; then \
+                    echo remote-mqpu; \
+                  fi; \
+              done`
+
+          rm -rf examples applications targets && mv github-repo/docs/sphinx/examples examples && mv github-repo/docs/sphinx/applications applications && mv github-repo/docs/sphinx/targets targets
+          mv github-repo/docs/notebook_validation.py .
+          GITHUB_STEP_SUMMARY=$GITHUB_STEP_SUMMARY \
+          bash github-repo/scripts/validate_container.sh $backends_to_test | tee /tmp/validation.out
+
+          # Check that the tests included the nvidia-mgpu backend:
+          relevant_line=`grep -n "Testing backends:" /tmp/validation.out | cut -d : -f1`
+          tested_backends=`cat /tmp/validation.out | tail -n +$relevant_line | sed -e '/^$/,$d'`
+          if [ -z "$(echo $tested_backends | grep nvidia-mgpu)" ]; then 
+            echo "::error::Missing tests for nvidia-mgpu backend."
+            exit 1
+          fi
+
+      - name: MPI validation 
+        shell: bash
+        run: |
+          status_sum=0 && set +e # Allow script to keep going through errors
+          for ex in `find /home/cudaq/examples/other/distributed/ -name '*.cpp'`; do
+            # Set CUDAQ_ENABLE_MPI_EXAMPLE to activate these examples.
+            nvq++ -DCUDAQ_ENABLE_MPI_EXAMPLE=1 $ex
+            status=$?
+            if [ $status -eq 0 ]; then
+              # Run with mpiexec
+              mpiexec --allow-run-as-root -np 4 ./a.out
+              status=$?
+              filename=$(basename -- "$ex")
+              if [ $status -eq 0 ]; then
+                echo ":white_check_mark: Successfully ran $filename." >> $GITHUB_STEP_SUMMARY
+              else
+                echo ":x: Failed to execute $filename." >> $GITHUB_STEP_SUMMARY
+                status_sum=$((status_sum+1))
+              fi
+            else
+              echo ":x: Compilation failed for $filename." >> $GITHUB_STEP_SUMMARY
+              status_sum=$((status_sum+1))
+            fi
+          done
+          set -e # Re-enable exit code error checking
+          if [ ! $status_sum -eq 0 ]; then
+            echo "::error::$status_sum examples failed; see step summary for a list of failures."
+            exit $status_sum
+          fi
+
   installer_validation:
     name: Installer validation
-    needs: [assets, cudaq_installer]
+    needs: [assets, cudaq_installers]
     runs-on: linux-amd64-gpu-v100-latest-1
     permissions:
       contents: read
@@ -834,7 +931,7 @@ jobs:
           fi
 
   wheel_validation_conda:
-    name: Python instructions validation (conda)
+    name: Wheel validation, conda
     needs: [assets, cudaq_wheels]
     runs-on: linux-amd64-gpu-v100-latest-1
     permissions:
@@ -867,8 +964,16 @@ jobs:
       - name: Run validation
         shell: bash
         run: |
-          apt-get update && apt-get install -y --no-install-recommends ca-certificates vim wget openssh-client
-          cd /tmp
+          apt-get update && apt-get install -y --no-install-recommends \
+            ca-certificates vim wget unzip openssh-client
+          
+          # Extract README from wheel
+          cudaq_wheel=/tmp/install/cuda_quantum_cu${{ matrix.cuda_major }}*.whl 
+          wheelname=${cudaq_wheel##*/} && archive_name=${wheelname%.*}.zip
+          cp $cudaq_wheel /tmp/$wheelname && mv /tmp/$wheelname /tmp/$archive_name 
+          unzip /tmp/$archive_name -d /tmp/cudaq_wheel && rm -rf /tmp/$archive_name
+          metadata=/tmp/cudaq_wheel/*.dist-info/METADATA
+
           # Setup links for validate_wheel.sh script
           ln -s $GITHUB_WORKSPACE/scripts/validate_wheel.sh .
           ln -s $GITHUB_WORKSPACE/docs/sphinx/examples/python /tmp/examples
@@ -876,19 +981,20 @@ jobs:
           ln -s $GITHUB_WORKSPACE/docs/sphinx/targets/python /tmp/targets
           ln -s $GITHUB_WORKSPACE/docs/sphinx/snippets/python /tmp/snippets
           ln -s $GITHUB_WORKSPACE/python/tests /tmp/tests
-          ln -s $GITHUB_WORKSPACE/python/README-cu${{ matrix.cuda_major }}.md .
+          ln -s $metadata /tmp/README.md
+
           # Run the script w/ -q to run a shortened test
           set +e # Allow script to keep going through errors (needed for skipped tests)
-          source validate_wheel.sh -w /tmp/install/cuda_quantum_cu${{ matrix.cuda_major }}*.whl -f /tmp -p 3.10 -c ${{ matrix.cuda_major }}
+          source validate_wheel.sh -w $cudaq_wheel -f /tmp -p 3.10
           set -e # Re-enable exit code error checking
           if [ "$status_sum" -ne "0" ]; then
             echo "::error::Error running validation script" 
             exit $status_sum
           fi
 
-  wheel_validation_x86:
-    name: Simple Python wheel installation validation
-    needs: [assets, cudaq_wheels]
+  metapackage_validation_piponly:
+    name: Python metapackage validation, pip only
+    needs: [assets, cudaq_wheels, cudaq_metapackages]
     runs-on: linux-amd64-gpu-v100-latest-1
     permissions:
       contents: read
@@ -911,12 +1017,19 @@ jobs:
         with:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
-      - name: Load wheel
+      - name: Load wheels
         uses: actions/download-artifact@v4
         with:
-          name: x86_64-cu${{ matrix.cuda_major }}-py3.10-wheels
-          path: /tmp/install
-      
+          pattern: '*py3.10-wheels'
+          path: /tmp/wheels
+          merge-multiple: true
+
+      - name: Load metapackage
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.cudaq_metapackages.outputs.artifact_name }}
+          path: /tmp/packages
+
       - name: Run x86 validation
         shell: bash
         run: |
@@ -924,7 +1037,18 @@ jobs:
           # targets and test cases that don't require MPI.
           # Create clean python3 environment.
           apt-get update && apt-get install -y --no-install-recommends python3 python3-pip
-          pip install /tmp/install/cuda_quantum_cu${{ matrix.cuda_major }}*.whl
+          mv /tmp/wheels/* /tmp/packages && rmdir /tmp/wheels
+
+          python3 -m pip install pypiserver
+          server=`find / -name pypi-server -executable -type f`
+          $server run -p 8080 /tmp/packages & 
+
+          pip install cudaq --extra-index-url http://localhost:8080 
+          if [ -z "$(pip list | grep cuda-quantum-cu${{ matrix.cuda_major }})" ]; then 
+            echo "::error::Missing installation of cuda-quantum-cu${{ matrix.cuda_major }} package."
+            exit 1
+          fi
+
           status_sum=0
           set +e # Allow script to keep going through errors
           # Verify that the necessary GPU targets are installed and usable
@@ -942,96 +1066,10 @@ jobs:
             echo "::error::Error running validation script" 
             exit $status_sum
           fi
-  
-  image_validation:
-    name: Docker image validation
-    needs: [assets, config]
-    runs-on: linux-amd64-gpu-v100-latest-1
-    permissions:
-      contents: read
-      packages: read
-
-    strategy:
-      matrix:
-        image_hash: ${{ fromJson(needs.config.outputs.docker_images) }}
-      fail-fast: false
-
-    container:
-      image: ${{ matrix.image_hash }}
-      options: --user root # otherwise step summary doesn't work
-      env:
-        NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
-        TERM: xterm
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
-          path: github-repo
-          sparse-checkout: |
-            scripts
-            docs
-
-      - name: Basic validation (GPU backends)
-        shell: bash
-        run: |
-          backends_to_test=`\
-              for file in $(ls $CUDA_QUANTUM_PATH/targets/*.yml); \
-              do
-                  if [ -n "$(cat $file | grep "gpu-requirements")" ]; then \
-                    basename $file | cut -d "." -f 1; \
-                  elif [ -n "$(basename $file | grep mqpu)" ]; then \
-                    echo remote-mqpu; \
-                  fi; \
-              done`
-
-          rm -rf examples applications targets && mv github-repo/docs/sphinx/examples examples && mv github-repo/docs/sphinx/applications applications && mv github-repo/docs/sphinx/targets targets
-          mv github-repo/docs/notebook_validation.py .
-          GITHUB_STEP_SUMMARY=$GITHUB_STEP_SUMMARY \
-          bash github-repo/scripts/validate_container.sh $backends_to_test | tee /tmp/validation.out
-
-          # Check that the tests included the nvidia-mgpu backend:
-          relevant_line=`grep -n "Testing backends:" /tmp/validation.out | cut -d : -f1`
-          tested_backends=`cat /tmp/validation.out | tail -n +$relevant_line | sed -e '/^$/,$d'`
-          if [ -z "$(echo $tested_backends | grep nvidia-mgpu)" ]; then 
-            echo "::error::Missing tests for nvidia-mgpu backend."
-            exit 1
-          fi
-
-      - name: MPI validation 
-        shell: bash
-        run: |
-          status_sum=0 && set +e # Allow script to keep going through errors
-          for ex in `find /home/cudaq/examples/other/distributed/ -name '*.cpp'`; do
-            # Set CUDAQ_ENABLE_MPI_EXAMPLE to activate these examples.
-            nvq++ -DCUDAQ_ENABLE_MPI_EXAMPLE=1 $ex
-            status=$?
-            if [ $status -eq 0 ]; then
-              # Run with mpiexec
-              mpiexec --allow-run-as-root -np 4 ./a.out
-              status=$?
-              filename=$(basename -- "$ex")
-              if [ $status -eq 0 ]; then
-                echo ":white_check_mark: Successfully ran $filename." >> $GITHUB_STEP_SUMMARY
-              else
-                echo ":x: Failed to execute $filename." >> $GITHUB_STEP_SUMMARY
-                status_sum=$((status_sum+1))
-              fi
-            else
-              echo ":x: Compilation failed for $filename." >> $GITHUB_STEP_SUMMARY
-              status_sum=$((status_sum+1))
-            fi
-          done
-          set -e # Re-enable exit code error checking
-          if [ ! $status_sum -eq 0 ]; then
-            echo "::error::$status_sum examples failed; see step summary for a list of failures."
-            exit $status_sum
-          fi
 
   create_release:
-    name: CUDA Quantum Release
-    needs: [assets, cudaq_hpc, cudaq_installer, cudaq_wheels]
+    name: CUDA-Q Release
+    needs: [assets, cudaq_images, cudaq_installers, cudaq_wheels, cudaq_metapackages]
     if: needs.assets.outputs.release_title && inputs.github_commit == '' && inputs.assets_from_run == '' && inputs.nvidia_mgpu_commit == ''
     runs-on: ubuntu-latest
 
@@ -1040,17 +1078,23 @@ jobs:
       url: ${{ vars.deployment_url }}
 
     steps:
+      - name: Download CUDA-Q installer
+        uses: actions/download-artifact@v4
+        with:
+          pattern: '*-installer'
+          path: installers
+
       - name: Download CUDA-Q Python wheels
         uses: actions/download-artifact@v4
         with:
           pattern: '*-wheels'
           path: wheelhouse
 
-      - name: Download CUDA-Q installer
+      - name: Download CUDA-Q metapackages
         uses: actions/download-artifact@v4
         with:
-          pattern: '*-installer'
-          path: installers
+          name: ${{ needs.cudaq_metapackages.outputs.artifact_name }}
+          path: metapackages
 
       # The python wheels are uploaded as a release asset, but not pushed to anywhere else.
       # Note that PyPI packages cannot be updated once pushed;
@@ -1068,6 +1112,7 @@ jobs:
             mv -v "wheelhouse/$dir"/* wheelhouse/ && rmdir "wheelhouse/$dir"
           done
           zip -r wheelhouse.zip wheelhouse
+          zip -r metapackages.zip metapackages
 
           release_id=${{ inputs.assets_from_run || github.run_id }}
           release_title="${{ needs.assets.outputs.release_title }}"
@@ -1082,8 +1127,9 @@ jobs:
           gh release create $release_id --title $release_id -R ${{ github.repository }} \
             --target $github_commit --draft $prerelease \
             --generate-notes --notes-start-tag $latest_tag --notes "$rel_notes"
-          gh release upload $release_id -R ${{ github.repository }} wheelhouse.zip --clobber
           gh release upload $release_id -R ${{ github.repository }} install_cuda_quantum.* --clobber
+          gh release upload $release_id -R ${{ github.repository }} wheelhouse.zip --clobber
+          gh release upload $release_id -R ${{ github.repository }} metapackages.zip --clobber
           gh release edit $release_id -R ${{ github.repository }} \
             --title "$release_title" --tag $version $prerelease # --draft=false
         env:
@@ -1091,7 +1137,7 @@ jobs:
 
   clean_up:
     name: Clean up
-    needs: [assets, cudaq_hpc, cudaq_installer, cudaq_wheels, wheel_validation_conda, wheel_validation_x86, create_release, installer_validation, image_validation]
+    needs: [assets, cudaq_images, cudaq_installers, cudaq_wheels, cudaq_metapackages, image_validation, installer_validation, wheel_validation_conda, metapackage_validation_piponly, create_release]
     # Force this job to run even when some of the dependencies above are skipped.
     if: always() && !cancelled() && needs.assets.result != 'skipped' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest

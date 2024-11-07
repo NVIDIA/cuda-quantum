@@ -1,0 +1,244 @@
+on:
+  workflow_call:
+    inputs:
+      cudaq_version:
+        required: true
+        type: string
+        description: The version of the built CUDA-Q packages.
+      python_versions:
+        required: true
+        type: string
+        description: Json array of the Python versions to test the packages with (e.g. ['3.10', '3.12']).
+      cuda_versions:
+        required: true
+        type: string
+        description: Json array of the CUDA versions to test the packages with (e.g. ['11.8', '12.0']).
+      wheel_artifacts:
+        required: true
+        type: string
+        description: A pattern that matches all artifacts that contain wheels that the metapackages depend on.
+      github_commit:
+        required: false
+        type: string
+        description: Optional argument to set the GitHub commit to use for the build. 
+    outputs:
+      artifact_name:
+        description: "The name of the artifact that contains the built metapackages."
+        value: ${{ jobs.build_metapackages.outputs.artifact_name }}
+
+name: Python metapackages
+
+jobs:
+  build_metapackages:
+    name: Build Python metapackages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    outputs:
+      artifact_name: ${{ steps.metapackage_build.outputs.artifact_name }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: "${{ inputs.github_commit || '' }}"
+
+      - name: Build metapackages
+        id: metapackage_build
+        run: |
+            sed -i "s/README.md.in/README.md/g" python/metapackages/pyproject.toml
+            for file in LICENSE NOTICE CITATION.cff; do
+                cp $file python/metapackages/$file
+            done
+
+            apt-get update && apt-get install -y --no-install-recommends \
+                python3 python3-pip python3-venv
+            python3 -m pip install build
+
+            echo "Creating README.md for cudaq package"
+            package_name=cudaq
+            cuda_version_requirement="11.x (where x >= 8) or 12.x"
+            cuda_version_conda=11.8.0 # only used as example in the install script
+            cat python/README.md.in > python/metapackages/README.md
+            for variable in package_name cuda_version_requirement cuda_version_conda; do
+              sed -i "s/.{{[ ]*$variable[ ]*}}/${!variable}/g" python/metapackages/README.md
+            done
+            if [ -n "$(cat python/metapackages/README.md | grep -e '.{{.*}}')" ]; then 
+              echo "::error file=python_metapackages.yml::Incomplete template substitutions in README."
+              exit 1
+            fi
+
+            echo "Building cudaq metapackage ..."
+            cd python/metapackages && echo ${{ inputs.cudaq_version }} > _version.txt
+            CUDAQ_META_WHEEL_BUILD=1 python3 -m build . --sdist
+            mkdir /tmp/packages && mv dist/cudaq-* /tmp/packages/
+            rm -rf cudaq.egg-info dist
+
+            echo "Creating README.md for cuda-quantum package"
+            echo "# Welcome to the CUDA-Q Python API" > README.md
+            echo "This package is deprecated and new versions are published under the name `cudaq` instead." >> README.md
+            echo "For more information, please see [CUDA-Q on PyPI](https://pypi.org/project/cudaq)." >> README.md
+
+            echo "Building cuda-quantum metapackage ..."
+            sed -i 's/name = "cudaq"/name = "cuda-quantum"/' pyproject.toml
+            echo 'Please remove the cuda-quantum package and `pip install cudaq` instead.' > _deprecated.txt
+            CUDAQ_META_WHEEL_BUILD=1 python3 -m build . --sdist
+            mv dist/cuda_quantum-* /tmp/packages/
+
+            echo "artifact_name=cudaq-metapackage-${{ inputs.cudaq_version }}" >> $GITHUB_OUTPUT
+
+      - name: Upload metapackages
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.metapackage_build.outputs.artifact_name }}
+          path: /tmp/packages/
+          retention-days: 1
+          if-no-files-found: error
+
+  test_metapackages:
+    name: Test Python metapackages
+    needs: build_metapackages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+
+    container:
+      image: ghcr.io/nvidia/pypa/manylinux_2_28_x86_64:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
+
+    strategy:
+      matrix:
+        cuda_version: ${{ fromJSON(inputs.cuda_versions) }}
+        python_version: ${{ fromJSON(inputs.python_versions) }}
+      fail-fast: false
+
+    steps:
+      - name: Load metapackages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ${{ needs.build_metapackages.outputs.artifact_name }}
+          path: /tmp/metapackages/
+          merge-multiple: true
+
+      - name: Load wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ${{ inputs.wheel_artifacts }}
+          path: /tmp/wheels/
+          merge-multiple: true
+
+      - name: Test installation
+        run: |
+          mkdir /tmp/packages 
+          mv /tmp/wheels/* /tmp/packages && mv /tmp/metapackages/* /tmp/packages
+          rmdir /tmp/wheels /tmp/metapackages
+
+          if [ -n "${{ matrix.cuda_version }}" ]; then
+            CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
+            CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
+            CUDA_DISTRIBUTION=rhel8
+            dnf config-manager --add-repo \
+              "${CUDA_DOWNLOAD_URL}/${CUDA_DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-${CUDA_DISTRIBUTION}.repo"
+
+            cuda_version_suffix=`echo ${{ matrix.cuda_version }} | tr . -`
+            dnf install -y --nobest --setopt=install_weak_deps=False \
+              cuda-cudart-${cuda_version_suffix}
+          fi
+
+          python=python${{ matrix.python_version }}
+          $python -m pip install pip3-autoremove
+          # autoremove is in an odd location that isn't found unless we search for it...
+          autoremove="$python $($python -m pip show pip3-autoremove |  grep -e 'Location: .*$' | cut -d ' ' -f2)/pip_autoremove.py"
+          $python -m pip install pypiserver
+          server="$python $($python -m pip show pypiserver | grep -e 'Location: .*$' | cut -d ' ' -f2)/pypiserver_main__.py"
+          $server run -p 8080 /tmp/packages & 
+
+          package_dep=`echo cuda-quantum${cuda_version_suffix:+-cu$cuda_version_suffix} | cut -d '-' -f1-2`
+          if [ -n "$($python -m pip list | grep $package_dep)" ]; then 
+            echo "::error file=python_metapackages.yml::Unexpected installation of $package_dep package."
+            exit 1
+          fi
+
+          $python -m pip install cudaq==${{ inputs.cudaq_version }} \
+            --extra-index-url http://localhost:8080 
+
+          if [ -z "$($python -m pip list | grep $package_dep)" ]; then 
+            echo "::error file=python_metapackages.yml::Missing installation of $package_dep package."
+            exit 1
+          elif [ "$($python -c 'import cudaq; print(cudaq.get_target().name)')" != "qpp-cpu" ]; then 
+            echo "::error file=python_metapackages.yml::Unexpected output for cudaq.get_target()."
+            exit 1
+          fi
+
+          $autoremove -y cudaq
+          if [ -n "$($python -m pip list | grep $package_dep)" ]; then 
+            echo "::error file=python_metapackages.yml::Unexpected installation of $package_dep package."
+            exit 1
+          fi
+
+          if [ "$package_dep" != "cuda-quantum" ]; then
+            $python -m pip install ${package_dep}==${{ inputs.cudaq_version }} \
+              --extra-index-url http://localhost:8080 
+            $python -m pip install cudaq==${{ inputs.cudaq_version }} \
+              --extra-index-url http://localhost:8080 
+            $python -c 'import cudaq; print(cudaq.get_target().name)'
+            $autoremove -y cudaq
+            if [ -z "$($python -m pip list | grep $package_dep)" ]; then 
+              echo "::error file=python_metapackages.yml::Missing installation of $package_dep package."
+              exit 1
+            fi
+            $autoremove -y $package_dep
+          fi
+
+      - name: Test installation error
+        run: |
+          #dnf install -y --nobest --setopt=install_weak_deps=False curl jq
+          #PACKAGE_JSON_URL="https://pypi.org/pypi/cuda-quantum/json"
+          #curl -L -s "$PACKAGE_JSON_URL" | jq  -r '.releases | keys | .[]'
+
+          python=python${{ matrix.python_version }}
+          $python -m pip install pypiserver
+          server="$python $($python -m pip show pypiserver | grep -e 'Location: .*$' | cut -d ' ' -f2)/pypiserver_main__.py"
+          $server run -p 8080 /tmp/packages & 
+
+          case "${{ matrix.cuda_version }}" in
+            "") 
+              set +e # continue on error
+              $python -m pip install cuda-quantum==${{ inputs.cudaq_version }} \
+                --extra-index-url http://localhost:8080 
+              set -e && check_package=cuda-quantum
+            ;; 
+            12.*) 
+              $python -m pip install cuda-quantum-cu11==${{ inputs.cudaq_version }} \
+                --extra-index-url http://localhost:8080 
+              set +e # continue on error
+              $python -m pip install cudaq==${{ inputs.cudaq_version }} \
+                --extra-index-url http://localhost:8080
+              set -e && check_package=cudaq
+            ;; 
+            *) 
+              set +e # continue on error
+              # test that we get an error for an existing cuda-quantum installation
+              $python -m pip install cuda-quantum==0.8.0
+              set -e
+              if [ -z "$($python -m pip list | grep cuda-quantum)" ]; then 
+                # if we don't have a 0.8.0 version for this python version, test other conflict
+                $python -m pip install cuda-quantum-cu12==${{ inputs.cudaq_version }} \
+                  --extra-index-url http://localhost:8080
+              fi
+              set +e # continue on error
+              $python -m pip install cudaq==${{ inputs.cudaq_version }} \
+                --extra-index-url http://localhost:8080
+              set -e && check_package=cudaq
+            ;; 
+          esac
+
+          if [ -n "$($python -m pip list | grep ${check_package})" ]; then 
+            echo "::error file=python_metapackages.yml::Unexpected installation of ${check_package} package."
+            exit 1
+          fi
+

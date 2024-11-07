@@ -249,6 +249,16 @@ jobs:
       devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
       devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
 
+  python_metapackages:
+    name: Create Python metapackages
+    needs: python_wheels
+    uses: ./.github/workflows/python_metapackages.yml
+    with:
+      cudaq_version: ${{ needs.python_wheels.outputs.cudaq_version }}
+      python_versions: "['3.10', '3.12']"
+      cuda_versions: "['', '11.8', '12.0']"
+      wheel_artifacts: 'pycudaq-*'
+
   binaries:
     name: Create CUDA Quantum installer
     needs: [metadata, config]
