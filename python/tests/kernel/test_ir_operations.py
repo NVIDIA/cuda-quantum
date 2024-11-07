@@ -5,7 +5,6 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-import os
 import pytest
 import numpy as np
 import sys
@@ -13,11 +12,6 @@ from typing import List
 
 import cudaq
 from cudaq import spin
-
-## [PYTHON_VERSION_FIX]
-skipIfPythonLessThan39 = pytest.mark.skipif(
-    sys.version_info < (3, 9),
-    reason="built-in collection types such as `list` not supported")
 
 
 @pytest.fixture(autouse=True)
@@ -59,7 +53,6 @@ def test_synthesize():
     assert np.isclose(result.expectation(), -1.74, atol=1e-2)
 
 
-@skipIfPythonLessThan39
 def test_synthesize_param_list():
 
     @cudaq.kernel

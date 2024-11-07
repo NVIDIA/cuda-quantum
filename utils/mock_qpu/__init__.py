@@ -6,6 +6,9 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-from .quantinuum import *
+from .anyon import *
+from .braket import *
 from .ionq import *
 from .iqm import *
+from .quantinuum import *
+from .quera import *

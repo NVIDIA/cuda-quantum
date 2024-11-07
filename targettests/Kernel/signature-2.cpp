@@ -126,6 +126,36 @@ struct SV {
   }
 };
 
+void show5(long john) { std::cout << john << ' '; }
+void show6(char actor) { std::cout << actor << '\n'; }
+
+struct T {
+  void operator()(std::tuple<int, long, double, char> tup) __qpu__ {
+    show3(std::get<0>(tup));
+    show5(std::get<1>(tup));
+    show4(std::get<double>(tup));
+    show6(std::get<3>(tup));
+  }
+};
+
+void show7(double d) {
+  std::cout << std::fixed << std::setw(11) << std::setprecision(3) << d << '\n';
+}
+
+struct T2 {
+  void operator()(std::tuple<long, double> tup) __qpu__ {
+    show5(std::get<0>(tup));
+    show7(std::get<1>(tup));
+  }
+};
+
+struct T3 {
+  void operator()(std::pair<long, double> tup) __qpu__ {
+    show5(std::get<0>(tup));
+    show7(std::get<1>(tup));
+  }
+};
+
 int main() {
   VectorOfStruct vsData = {{1, 1.0f, 95.0}, {2, 18.4f, 86.945}};
   VS{}(vsData);
@@ -136,6 +166,15 @@ int main() {
   StructOfVector svData = {{1, 10, 3, 100}, {1.2, 2.4, 4.8}};
   SV{}(svData);
 
+  std::tuple<int, long, double, char> t1{234, 89238, 3.14, 'Z'};
+  T{}(t1);
+
+  std::tuple<long, double> t2{2098, 99.5};
+  T2{}(t2);
+  
+  std::pair<long, double> t3{34061, 1999.2};
+  T3{}(t3);
+
   return 0;
 }
 
@@ -144,3 +183,6 @@ int main() {
 // CHECK: A { 737 87.250 }; B { 0.750 639 }
 // CHECK: 1 10 3 100
 // CHECK: 1.200 2.400 4.800
+// CHECK: 234 89238 3.140 Z
+// CHECK: 2098 99.5
+// CHECK: 34061 1999.2

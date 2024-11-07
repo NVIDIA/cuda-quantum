@@ -6,19 +6,21 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+include(HandleLLVMOptions)
 set(LIBRARY_NAME cudaq-common)
 
 set(COMMON_EXTRA_DEPS "")
 set(COMMON_RUNTIME_SRC
+  CustomOp.cpp  
+  Environment.cpp
+  Executor.cpp
+  Future.cpp
   Logger.cpp 
   MeasureCounts.cpp 
   NoiseModel.cpp 
-  ServerHelper.cpp 
   Resources.cpp
+  ServerHelper.cpp 
   Trace.cpp
-  Future.cpp
-  Environment.cpp
-  Executor.cpp
 )
 
 # Create the cudaq-common library
@@ -84,9 +86,24 @@ endif()
 get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
 get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
 
-add_library(cudaq-mlir-runtime SHARED RuntimeMLIR.cpp Environment.cpp JIT.cpp Logger.cpp)
+add_library(cudaq-mlir-runtime
+  SHARED
+    ArgumentConversion.cpp
+    Environment.cpp
+    JIT.cpp
+    Logger.cpp
+    RuntimeMLIR.cpp
+)
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS cudaq-mlir-runtime)
-set_source_files_properties(JIT.cpp PROPERTIES COMPILE_FLAGS -fno-rtti)
+
+# Note: JIT.cpp contains throw statements. Should RTTI be enabled?
+set_source_files_properties(
+    Environment.cpp
+    JIT.cpp
+    Logger.cpp
+    RuntimeMLIR.cpp
+  PROPERTIES COMPILE_FLAGS -fno-rtti
+)
 
 target_include_directories(cudaq-mlir-runtime
   PRIVATE .
@@ -98,6 +115,7 @@ target_link_libraries(cudaq-mlir-runtime
   PUBLIC
     ${dialect_libs}
     ${conversion_libs}
+    nvqir
     CCDialect
     QuakeDialect
     OptCodeGen
@@ -115,6 +133,7 @@ target_link_libraries(cudaq-mlir-runtime
     MLIRLLVMCommonConversion
     MLIRLLVMToLLVMIRTranslation
   PRIVATE
+    cudaq
     spdlog::spdlog)
 
 install(TARGETS cudaq-mlir-runtime DESTINATION lib)

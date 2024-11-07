@@ -32,10 +32,12 @@ case $1 in
 esac
 
 CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
-CUDA_DISTRIBUTION=${CUDA_DISTRIBUTION:-'rhel9'} # not really a great option, but allows some basic testing
+CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
 CUDA_VERSION_SUFFIX=$(echo ${CUDART_VERSION:-'11.8'} | tr . -)
 CUDA_PACKAGES=$(echo "cuda-cudart libcusolver libcublas" | sed "s/[^ ]*/&-${CUDA_VERSION_SUFFIX} /g")
-CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
+if [ $(echo ${CUDART_VERSION} | cut -d . -f1) -gt 11 ]; then 
+    CUDA_PACKAGES+=" libnvjitlink-${CUDA_VERSION_SUFFIX}"
+fi
 
 if [ "$pkg_manager" == "apt-get" ]; then
     ## [Prerequisites]
@@ -43,14 +45,18 @@ if [ "$pkg_manager" == "apt-get" ]; then
         sudo wget ca-certificates
     echo "apt-get install -y --no-install-recommends openssh-client" > install_sshclient.sh
 
-    ## [C++ standard library]
-    apt-get install -y --no-install-recommends ${LIBSTDCPP_PACKAGE:-'libstdc++-11-dev'}
+    ## [C development headers]
+    if [ -n "${LIBCDEV_PACKAGE}" ]; then
+        apt-get install -y --no-install-recommends ${LIBCDEV_PACKAGE}
+    fi
 
     ## [CUDA runtime libraries]
-    wget "${CUDA_DOWNLOAD_URL}/${CUDA_DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-keyring_1.1-1_all.deb"
-    dpkg -i cuda-keyring_1.1-1_all.deb && apt-get update 
-    apt-get install -y --no-install-recommends ${CUDA_PACKAGES}
-    rm cuda-keyring_1.1-1_all.deb
+    if [ -n "${CUDA_DISTRIBUTION}" ]; then
+        wget "${CUDA_DOWNLOAD_URL}/${CUDA_DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-keyring_1.1-1_all.deb"
+        dpkg -i cuda-keyring_1.1-1_all.deb && apt-get update 
+        apt-get install -y --no-install-recommends ${CUDA_PACKAGES}
+        rm cuda-keyring_1.1-1_all.deb
+    fi
 
 elif [ "$pkg_manager" == "dnf" ]; then
     ## [Prerequisites]
@@ -58,31 +64,33 @@ elif [ "$pkg_manager" == "dnf" ]; then
         sudo 'dnf-command(config-manager)'
     echo "dnf install -y --nobest --setopt=install_weak_deps=False openssh-clients" > install_sshclient.sh
 
-    ## [C++ standard library]
-    LIBSTDCPP_PACKAGE=${LIBSTDCPP_PACKAGE:-'gcc-c++'}
-    GCC_VERSION=`echo $LIBSTDCPP_PACKAGE | (egrep -o '[0-9]+' || true)`
-    dnf install -y --nobest --setopt=install_weak_deps=False ${LIBSTDCPP_PACKAGE}
-    enable_script=`find / -path '*gcc*' -path '*'$GCC_VERSIONS'*' -name enable`
-    if [ -n "$enable_script" ]; then
-        . "$enable_script"
+    ## [C development headers]
+    if [ -n "${LIBCDEV_PACKAGE}" ]; then
+        dnf install -y --nobest --setopt=install_weak_deps=False ${LIBCDEV_PACKAGE}
     fi
 
     ## [CUDA runtime libraries]
-    dnf config-manager --add-repo "${CUDA_DOWNLOAD_URL}/${CUDA_DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-${CUDA_DISTRIBUTION}.repo"
-    dnf install -y --nobest --setopt=install_weak_deps=False ${CUDA_PACKAGES}
+    if [ -n "${CUDA_DISTRIBUTION}" ]; then
+        dnf config-manager --add-repo "${CUDA_DOWNLOAD_URL}/${CUDA_DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-${CUDA_DISTRIBUTION}.repo"
+        dnf install -y --nobest --setopt=install_weak_deps=False ${CUDA_PACKAGES}
+    fi
 
 elif [ "$pkg_manager" == "zypper" ]; then
     ## [Prerequisites]
-    zypper clean --all && zypper --non-interactive up --no-recommends
+    zypper clean --all && zypper ref && zypper --non-interactive up --no-recommends
     zypper --non-interactive in --no-recommends sudo gzip tar
     echo "zypper --non-interactive in --no-recommends openssh-clients" > install_sshclient.sh
 
-    ## [C++ standard library]
-    zypper --non-interactive in --no-recommends ${LIBSTDCPP_PACKAGE:-'gcc13-c++'}
+    ## [C development headers]
+    if [ -n "${LIBCDEV_PACKAGE}" ]; then
+        zypper --non-interactive in --no-recommends ${LIBCDEV_PACKAGE}
+    fi
 
     ## [CUDA runtime libraries]
-    zypper ar "${CUDA_DOWNLOAD_URL}/${CUDA_DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-${CUDA_DISTRIBUTION}.repo"
-    zypper --non-interactive --gpg-auto-import-keys in --no-recommends ${CUDA_PACKAGES}
+    if [ -n "${CUDA_DISTRIBUTION}" ]; then
+        zypper ar "${CUDA_DOWNLOAD_URL}/${CUDA_DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-${CUDA_DISTRIBUTION}.repo"
+        zypper --non-interactive --gpg-auto-import-keys in --no-recommends ${CUDA_PACKAGES}
+    fi
 
 else
     echo "Installation via $pkg_manager is not yet implemented." >&2

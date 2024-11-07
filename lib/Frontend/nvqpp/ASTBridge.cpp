@@ -159,13 +159,24 @@ public:
         customOperationNames(customOperations) {}
 
   /// Add a kernel to the list of kernels to process.
-  void processQpu(std::string &&kernelName, const clang::FunctionDecl *f) {
+  template <bool replace = true>
+  void processQpu(const std::string &kernelName, const clang::FunctionDecl *f) {
     LLVM_DEBUG(llvm::dbgs()
                << "adding kernel: " << kernelName << ", "
                << reinterpret_cast<void *>(const_cast<clang::FunctionDecl *>(f))
                << '\n');
-    functionsToEmit.push_back(std::make_pair(std::move(kernelName), f));
-    callGraphBuilder.addToCallGraph(const_cast<clang::FunctionDecl *>(f));
+    auto iter = std::find_if(functionsToEmit.begin(), functionsToEmit.end(),
+                             [&](auto p) { return p.first == kernelName; });
+    if constexpr (replace) {
+      if (iter == functionsToEmit.end())
+        functionsToEmit.push_back(std::make_pair(kernelName, f));
+      else
+        iter->second = f;
+      callGraphBuilder.addToCallGraph(const_cast<clang::FunctionDecl *>(f));
+    } else {
+      if (iter == functionsToEmit.end())
+        functionsToEmit.push_back(std::make_pair(kernelName, f));
+    }
   }
 
   // Check some of the restrictions and limitations on kernel classes. These
@@ -220,10 +231,10 @@ public:
     return result;
   }
 
-  bool VisitFunctionDecl(clang::FunctionDecl *func) {
+  bool VisitFunctionDecl(clang::FunctionDecl *x) {
     if (ignoreTemplate)
       return true;
-    func = func->getDefinition();
+    auto *func = x->getDefinition();
 
     if (func) {
       bool runChecks = false;
@@ -248,10 +259,15 @@ public:
         processQpu(cudaq::details::getTagNameOfFunctionDecl(func, mangler),
                    func);
       }
+    } else if (cudaq::ASTBridgeAction::ASTBridgeConsumer::isQuantum(x)) {
+      // Add declarations to support separate compilation.
+      processQpu</*replace=*/false>(
+          cudaq::details::getTagNameOfFunctionDecl(x, mangler), x);
     }
     return true;
   }
 
+  // NB: DataRecursionQueue* argument intentionally omitted.
   bool TraverseLambdaExpr(clang::LambdaExpr *x) {
     bool saveQuantumTypesNotAllowed = quantumTypesNotAllowed;
     // Rationale: a lambda expression may be passed from classical C++ code into
@@ -267,9 +283,9 @@ public:
     if (ignoreTemplate)
       return true;
     if (const auto *cxxMethodDecl = lambda->getCallOperator())
-      if (const auto *f = cxxMethodDecl->getAsFunction()->getDefinition();
-          f && cudaq::ASTBridgeAction::ASTBridgeConsumer::isQuantum(f))
-        processQpu(cudaq::details::getTagNameOfFunctionDecl(f, mangler), f);
+      if (const auto *f = cxxMethodDecl->getAsFunction()->getDefinition())
+        if (cudaq::ASTBridgeAction::ASTBridgeConsumer::isQuantum(f))
+          processQpu(cudaq::details::getTagNameOfFunctionDecl(f, mangler), f);
     return true;
   }
 
@@ -300,7 +316,22 @@ public:
     return true;
   }
 
+  bool isTupleReverseVar(clang::VarDecl *decl) {
+    if (cudaq::isInNamespace(decl, "cudaq"))
+      return decl->getName().equals("TupleIsReverse");
+    return false;
+  }
+
   bool VisitVarDecl(clang::VarDecl *x) {
+    if (isTupleReverseVar(x)) {
+      auto loc = x->getLocation();
+      auto opt = x->getAnyInitializer()->getIntegerConstantExpr(
+          x->getASTContext(), &loc, false);
+      if (opt) {
+        LLVM_DEBUG(llvm::dbgs() << "tuples are reversed: " << *opt << '\n');
+        tuplesAreReversed = !opt->isZero();
+      }
+    }
     // The check to make sure that quantum data types are only used in kernels
     // is done here. This checks both variable declarations and parameters.
     if (quantumTypesNotAllowed)
@@ -320,6 +351,8 @@ public:
     return true;
   }
 
+  bool isTupleReversed() const { return tuplesAreReversed; }
+
 private:
   cudaq::EmittedFunctionsCollection &functionsToEmit;
   clang::CallGraph &callGraphBuilder;
@@ -330,6 +363,7 @@ private:
   const clang::CXXRecordDecl *checkedClass = nullptr;
   bool ignoreTemplate = false;
   bool quantumTypesNotAllowed = false;
+  bool tuplesAreReversed = false;
 };
 } // namespace
 
@@ -540,10 +574,10 @@ void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
   llvm::SmallVector<clang::Decl *> reachableFuncs =
       listReachableFunctions(callGraphBuilder.getRoot());
   auto *ctx = module->getContext();
-  details::QuakeBridgeVisitor visitor(&astContext, ctx, builder, module.get(),
-                                      symbol_table, functionsToEmit,
-                                      reachableFuncs, cxx_mangled_kernel_names,
-                                      ci, mangler, customOperationNames);
+  details::QuakeBridgeVisitor visitor(
+      &astContext, ctx, builder, module.get(), symbol_table, functionsToEmit,
+      reachableFuncs, cxx_mangled_kernel_names, ci, mangler,
+      customOperationNames, tuplesAreReversed);
 
   // First generate declarations for all kernels.
   bool ok = true;
@@ -619,6 +653,7 @@ bool ASTBridgeAction::ASTBridgeConsumer::HandleTopLevelDecl(
   // Loop over all decls, saving the function decls that are quantum kernels.
   for (const auto *decl : dg)
     finder.TraverseDecl(const_cast<clang::Decl *>(decl));
+  tuplesAreReversed |= finder.isTupleReversed();
   return true;
 }
 

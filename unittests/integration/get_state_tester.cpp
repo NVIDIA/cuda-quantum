@@ -14,6 +14,9 @@
 
 using namespace cudaq;
 
+// State operations not supported in Stim.
+#ifndef CUDAQ_BACKEND_STIM
+
 CUDAQ_TEST(GetStateTester, checkSimple) {
   auto kernel = []() __qpu__ {
     cudaq::qubit q, r;
@@ -91,6 +94,29 @@ CUDAQ_TEST(GetStateTester, checkSimple) {
   auto state1 = cudaq::get_state(kernel1);
   EXPECT_NEAR(1.0, state1.amplitude({0, 1, 1, 0, 0}).real(), 1e-3);
 
+  // Check sign of overlap calculation:
+  // Basic Bell states: (|00> + |11>) and (|00> - |11>) are orthogonal states,
+  // and should have zero overlap. These Bell states form a maximally entangled
+  // basis, known as the Bell basis, of the Hilbert space.
+  auto bell1 = []() __qpu__ {
+    cudaq::qvector qvec(2);
+    h(qvec[0]);
+    cx(qvec[0], qvec[1]);
+  };
+
+  auto bellState1 = cudaq::get_state(bell1);
+
+  auto bell2 = []() __qpu__ {
+    cudaq::qvector qvec(2);
+    x(qvec[0]);
+    h(qvec[0]);
+    cx(qvec[0], qvec[1]);
+  };
+
+  auto bellState2 = cudaq::get_state(bell2);
+  const auto overlap = bellState1.overlap(bellState2);
+  EXPECT_NEAR(0.0, overlap.real(), 1e-3);
+
 #ifndef CUDAQ_BACKEND_TENSORNET
   // Demonstrate a useful use-case for get_state,
   // specifically, let's approximate another 2-qubit state with a
@@ -141,4 +167,25 @@ CUDAQ_TEST(GetStateTester, checkOverlapFromHostVector) {
   // Check overlap with host vector
   EXPECT_NEAR(1.0, state.overlap(hostState).real(), 1e-3);
 }
+#endif
+
+CUDAQ_TEST(GetStateTester, checkKron) {
+  auto force_kron = [](std::vector<std::complex<cudaq::real>> vec) __qpu__ {
+    cudaq::qubit a;
+    cudaq::qvector qvec(vec);
+  };
+  // Construct a 6-qubit |111111> state
+  const int num_qubits_input_state = 6;
+  std::vector<std::complex<cudaq::real>> hostStateData(
+      1 << num_qubits_input_state);
+  hostStateData[hostStateData.size() - 1] = 1.0;
+
+  auto counts = cudaq::sample(force_kron, hostStateData);
+
+  // Expect a single state with a deterministic outcome
+  EXPECT_EQ(counts.size(), 1);
+  EXPECT_EQ(counts.begin()->first,
+            "0" + std::string(num_qubits_input_state, '1'));
+}
+
 #endif

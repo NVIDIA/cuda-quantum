@@ -12,12 +12,13 @@ import json
 from typing import Callable
 from ..mlir.ir import *
 from ..mlir.passmanager import *
-from ..mlir.dialects import quake, cc
+from ..mlir.dialects import quake, cc, func
 from .ast_bridge import compile_to_mlir, PyASTBridge
-from .utils import mlirTypeFromPyType, nvqppPrefix, mlirTypeToPyType, globalAstRegistry, emitFatalError, emitErrorIfInvalidPauli
-from .analysis import MidCircuitMeasurementAnalyzer, RewriteMeasures, HasReturnNodeVisitor
+from .utils import mlirTypeFromPyType, nvqppPrefix, mlirTypeToPyType, globalAstRegistry, emitFatalError, emitErrorIfInvalidPauli, globalRegisteredTypes
+from .analysis import MidCircuitMeasurementAnalyzer, HasReturnNodeVisitor
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 from .captured_data import CapturedDataStorage
+from ..handlers import PhotonicsHandler
 
 import numpy as np
 
@@ -88,6 +89,12 @@ class PyKernelDecorator(object):
                 ['f_locals'].items()
             }
 
+        # Register any external class types that may be used
+        # in the kernel definition
+        for name, var in self.globalScopedVars.items():
+            if isinstance(var, type):
+                globalRegisteredTypes[name] = (var, var.__annotations__)
+
         # Once the kernel is compiled to MLIR, we
         # want to know what capture variables, if any, were
         # used in the kernel. We need to track these.
@@ -105,7 +112,7 @@ class PyKernelDecorator(object):
                     entryBlock = function.entry_block
                     self.argTypes = [v.type for v in entryBlock.arguments]
                     self.signature = {
-                        'arg{}'.format(i): mlirTypeToPyType(v.type)
+                        'arg{}'.format(i): mlirTypeToPyType(v)
                         for i, v in enumerate(self.argTypes)
                     }
                     self.returnType = self.signature[
@@ -212,6 +219,49 @@ class PyKernelDecorator(object):
         # Grab the dependent capture variables, if any
         self.dependentCaptures = extraMetadata[
             'dependent_captures'] if 'dependent_captures' in extraMetadata else None
+
+    def merge_kernel(self, otherMod):
+        """
+        Merge the kernel in this PyKernelDecorator (the ModuleOp) with 
+        the provided ModuleOp. 
+        """
+        self.compile()
+        if not isinstance(otherMod, str):
+            otherMod = str(otherMod)
+        newMod = cudaq_runtime.mergeExternalMLIR(self.module, otherMod)
+        # Get the name of the kernel entry point
+        name = self.name
+        for op in newMod.body:
+            if isinstance(op, func.FuncOp):
+                for attr in op.attributes:
+                    if 'cudaq-entrypoint' == attr.name:
+                        name = op.name.value.replace(nvqppPrefix, '')
+                        break
+
+        return PyKernelDecorator(None, kernelName=name, module=newMod)
+
+    def synthesize_callable_arguments(self, funcNames):
+        """
+        Given this Kernel has callable block arguments, synthesize away these 
+        callable arguments with the in-module FuncOps with given names. The 
+        name at index 0 in the list corresponds to the first callable block 
+        argument, index 1 to the second callable block argument, etc. 
+        """
+        self.compile()
+        cudaq_runtime.synthPyCallable(self.module, funcNames)
+        # Reset the argument types by removing the Callable
+        self.argTypes = [
+            a for a in self.argTypes if not cc.CallableType.isinstance(a)
+        ]
+
+    def extract_c_function_pointer(self, name=None):
+        """
+        Return the C function pointer for the function with given name, or 
+        with the name of this kernel if not provided.
+        """
+        self.compile()
+        return cudaq_runtime.jitAndGetFunctionPointer(
+            self.module, nvqppPrefix + self.name if name is None else name)
 
     def __str__(self):
         """
@@ -337,9 +387,35 @@ class PyKernelDecorator(object):
 
     def __call__(self, *args):
         """
-        Invoke the CUDA-Q kernel. JIT compilation of the 
-        kernel AST to MLIR will occur here if it has not already occurred. 
+        Invoke the CUDA-Q kernel. JIT compilation of the kernel AST to MLIR 
+        will occur here if it has not already occurred, except when the target
+        requires custom handling.
         """
+
+        # Check if target is set
+        try:
+            target_name = cudaq_runtime.get_target().name
+        except RuntimeError:
+            target_name = None
+
+        if 'orca-photonics' == target_name:
+            if self.kernelFunction is None:
+                raise RuntimeError(
+                    "The 'orca-photonics' target must be used with a valid function."
+                )
+            # NOTE: Since this handler does not support MLIR mode (yet), just
+            # invoke the kernel. If calling from a bound function, need to
+            # unpack the arguments, for example, see `pyGetStateLibraryMode`
+            try:
+                context_name = cudaq_runtime.getExecutionContextName()
+            except RuntimeError:
+                context_name = None
+            callable_args = args
+            if "extract-state" == context_name and len(args) == 1:
+                callable_args = args[0]
+            PhotonicsHandler(self.kernelFunction)(*callable_args)
+            return
+
         # Prepare captured state storage for the run
         self.capturedDataStorage = self.createStorage()
 

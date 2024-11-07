@@ -8,10 +8,7 @@
 
 # RUN: PYTHONPATH=../../ pytest -rP  %s | FileCheck %s
 
-import os
 
-import pytest
-import numpy as np
 
 import cudaq
 
@@ -25,9 +22,9 @@ def test_synth_and_qir():
         for i, qubitIdx in enumerate(range(numQubits - 1)):
             x.ctrl(qubits[i], qubits[qubitIdx + 1])
 
-    print(cudaq.to_qir(ghz))
+    print(cudaq.translate(ghz, format="qir"))
     ghz_synth = cudaq.synthesize(ghz, 5)
-    print(cudaq.to_qir(ghz_synth, profile='qir-base'))
+    print(cudaq.translate(ghz_synth, format='qir-base'))
 
 
 # CHECK:    %[[VAL_0:.*]] = tail call

@@ -8,6 +8,7 @@
 
 // REQUIRES: c++20
 // clang-format off
+// RUN: nvq++ --target braket                   --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ --target ionq                     --emulate %s -o %t && %t | FileCheck %s
 // 2 different IQM machines for 2 different topologies
 // RUN: nvq++ --target iqm --iqm-machine Adonis --emulate %s -o %t && %t | FileCheck %s
@@ -48,7 +49,7 @@ int main() {
   return 0;
 }
 
-// Note: seeds 2 and 12 will push this to -2 instead of -1. All all other
-// seeds in 1-100 range will be -1.x.
+// Note: seeds 2 and 12 will push this to -2 instead of -1. All other seeds in
+// 1-100 range will be -1.x.
 
 // CHECK: Energy is -1.

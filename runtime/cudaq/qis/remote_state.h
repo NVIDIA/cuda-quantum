@@ -27,12 +27,44 @@ protected:
   // to be mutable) or overlap calculation with another remote state (combining
   // the IR of both states for remote evaluation)
   mutable std::unique_ptr<cudaq::SimulationState> state;
-  mutable std::vector<char> argsBuffer;
   // Cache log messages from the remote execution.
   // Mutable to support lazy execution during `const` API calls.
   mutable std::string platformExecutionLog;
+  using ArgDeleter = std::function<void(void *)>;
+  /// @brief  Vector of arguments
+  // Note: we create a copy of all arguments except pointers.
+  std::vector<void *> args;
+  /// @brief Deletion functions for the arguments.
+  std::vector<std::function<void(void *)>> deleters;
 
 public:
+  template <typename T>
+  void addArgument(const T &arg) {
+    if constexpr (std::is_pointer_v<std::decay_t<T>>) {
+      if constexpr (std::is_copy_constructible_v<
+                        std::remove_pointer_t<std::decay_t<T>>>) {
+        auto ptr = new std::remove_pointer_t<std::decay_t<T>>(*arg);
+        args.push_back(ptr);
+        deleters.push_back([](void *ptr) {
+          delete static_cast<std::remove_pointer_t<std::decay_t<T>> *>(ptr);
+        });
+      } else {
+        throw std::invalid_argument(
+            "Unsupported argument type: only pointers to copy-constructible "
+            "types and copy-constructible types are supported.");
+      }
+    } else if constexpr (std::is_copy_constructible_v<std::decay_t<T>>) {
+      auto *ptr = new std::decay_t<T>(arg);
+      args.push_back(ptr);
+      deleters.push_back(
+          [](void *ptr) { delete static_cast<std::decay_t<T> *>(ptr); });
+    } else {
+      throw std::invalid_argument(
+          "Unsupported argument type: only pointers to copy-constructible "
+          "types and copy-constructible types are supported.");
+    }
+  }
+
   /// @brief Constructor
   template <typename QuantumKernel, typename... Args>
   RemoteSimulationState(QuantumKernel &&kernel, Args &&...args) {
@@ -43,16 +75,15 @@ public:
     } else {
       kernelName = cudaq::getKernelName(kernel);
     }
-
-    argsBuffer = cudaq::serializeArgs(std::forward<Args>(args)...);
+    (addArgument(args), ...);
   }
   RemoteSimulationState() = default;
   virtual ~RemoteSimulationState();
   /// @brief Triggers remote execution to resolve the state data.
   virtual void execute() const;
 
-  /// @brief Helper to retrieve (kernel name, `args` pointer and `args` size)
-  virtual std::tuple<std::string, void *, std::size_t> getKernelInfo() const;
+  /// @brief Helper to retrieve (kernel name, `args` pointers)
+  virtual std::pair<std::string, std::vector<void *>> getKernelInfo() const;
 
   /// @brief Return the number of qubits this state represents.
   std::size_t getNumQubits() const override;
@@ -101,6 +132,21 @@ public:
 
   /// @brief Destroy the state representation, frees all associated memory.
   void destroyState() override;
+
+  /// @brief Return true if this `SimulationState` wraps data on the GPU.
+  bool isDeviceData() const override;
+
+  /// @brief Transfer data from device to host, return the data
+  /// to the pointer provided by the client. Clients must specify the number of
+  /// elements.
+  void toHost(std::complex<double> *clientAllocatedData,
+              std::size_t numElements) const override;
+
+  /// @brief Transfer data from device to host, return the data
+  /// to the pointer provided by the client. Clients must specify the number of
+  /// elements.
+  void toHost(std::complex<float> *clientAllocatedData,
+              std::size_t numElements) const override;
 
 private:
   /// @brief Return the qubit count threshold where the full remote state should

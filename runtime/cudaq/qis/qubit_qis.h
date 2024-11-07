@@ -13,6 +13,7 @@
 #include "cudaq/qis/modifiers.h"
 #include "cudaq/qis/pauli_word.h"
 #include "cudaq/qis/qarray.h"
+#include "cudaq/qis/qkernel.h"
 #include "cudaq/qis/qreg.h"
 #include "cudaq/qis/qvector.h"
 #include "cudaq/spin_op.h"
@@ -705,7 +706,7 @@ template <
         std::remove_reference_t<std::remove_cv_t<QubitRange>>, cudaq::qubit>>>
 #endif
 void exp_pauli(double theta, QubitRange &&qubits,
-               cudaq::pauli_word &pauliWord) {
+               const cudaq::pauli_word &pauliWord) {
   exp_pauli(theta, qubits, pauliWord.str().c_str());
 }
 
@@ -1198,11 +1199,19 @@ void genericApplicator(const std::string &gateName, Args &&...args) {
       [[maybe_unused]] std::complex<double> i(0, 1.);                          \
       return __VA_ARGS__;                                                      \
     }                                                                          \
+    static inline const bool registered_ = []() {                              \
+      cudaq::customOpRegistry::getInstance()                                   \
+          .registerOperation<CONCAT(NAME, _operation)>(#NAME);                 \
+      return true;                                                             \
+    }();                                                                       \
   };                                                                           \
   CUDAQ_MOD_TEMPLATE                                                           \
   void NAME(Args &&...args) {                                                  \
-    cudaq::getExecutionManager()->registerOperation<CONCAT(NAME, _operation)>( \
-        #NAME);                                                                \
+    /* Perform registration at call site as well in case the static            \
+     * initialization was not executed in the same context, e.g., remote       \
+     * execution.*/                                                            \
+    cudaq::customOpRegistry::getInstance()                                     \
+        .registerOperation<CONCAT(NAME, _operation)>(#NAME);                   \
     details::genericApplicator<mod, NUMT, NUMP>(#NAME,                         \
                                                 std::forward<Args>(args)...);  \
   }                                                                            \

@@ -51,6 +51,17 @@ inline bool operator<(const IntrinsicCode &icode, const IntrinsicCode &jcode) {
 static constexpr IntrinsicCode intrinsicTable[] = {
     // Initialize a (preallocated) buffer (the first parameter) with i64 values
     // on the semi-open range `[0..n)` where `n` is the second parameter.
+    {cudaq::runtime::getLinkableKernelKey,
+     {},
+     R"#(
+  func.func private @__cudaq_getLinkableKernelKey(!cc.ptr<i8>) -> i64
+)#"},
+    {cudaq::runtime::registerLinkableKernel,
+     {},
+     R"#(
+  func.func private @__cudaq_registerLinkableKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>) -> ()
+)#"},
+
     {cudaq::setCudaqRangeVector,
      {},
      R"#(
@@ -221,9 +232,14 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   })#"},
 
     {"__nvqpp_createDynamicResult",
+     /* arguments:
+          arg0: original buffer ptr
+          arg1: original buffer size
+          arg2: ptr to span of the return data: {ptr, bytes}
+          arg3: offset to result slot in buffer */
      {cudaq::llvmMemCopyIntrinsic, "malloc"},
      R"#(
-  func.func private @__nvqpp_createDynamicResult(%arg0: !cc.ptr<i8>, %arg1: i64, %arg2: !cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>) -> !cc.struct<{!cc.ptr<i8>, i64}> {
+  func.func private @__nvqpp_createDynamicResult(%arg0: !cc.ptr<i8>, %arg1: i64, %arg2: !cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>, %arg3: i64) -> !cc.struct<{!cc.ptr<i8>, i64}> {
     %0 = cc.compute_ptr %arg2[1] : (!cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>) -> !cc.ptr<i64>
     %1 = cc.load %0 : !cc.ptr<i64>
     %2 = arith.addi %arg1, %1 : i64
@@ -238,8 +254,22 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     %7 = cc.undef !cc.struct<{!cc.ptr<i8>, i64}>
     %8 = cc.insert_value %3, %7[0] : (!cc.struct<{!cc.ptr<i8>, i64}>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
     %9 = cc.insert_value %2, %8[1] : (!cc.struct<{!cc.ptr<i8>, i64}>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
+    %11 = cc.compute_ptr %10[%arg3] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+    %12 = cc.cast %11 : (!cc.ptr<i8>) -> !cc.ptr<!cc.ptr<i8>>
+    cc.store %6, %12 : !cc.ptr<!cc.ptr<i8>>
     return %9 : !cc.struct<{!cc.ptr<i8>, i64}>
   })#"},
+
+    {cudaq::createCudaqStateFromDataFP32, {}, R"#(
+  func.func private @__nvqpp_cudaq_state_createFromData_fp32(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!cc.state>
+  )#"},
+    {cudaq::createCudaqStateFromDataFP64, {}, R"#(
+  func.func private @__nvqpp_cudaq_state_createFromData_fp64(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!cc.state>
+  )#"},
+
+    {cudaq::deleteCudaqState, {}, R"#(
+  func.func private @__nvqpp_cudaq_state_delete(%p : !cc.ptr<!cc.state>) -> ()
+  )#"},
 
     {cudaq::getNumQubitsFromCudaqState, {}, R"#(
   func.func private @__nvqpp_cudaq_state_numberOfQubits(%p : !cc.ptr<!cc.state>) -> i64
@@ -293,19 +323,51 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     return %3 : !cc.struct<{!cc.ptr<i8>, i64}>
   })#"},
 
-    {cudaq::runtime::launchKernelFuncName, // altLaunchKernel
+    // altLaunchKernel(kernelName, thunk, commBuffer, buffSize, resultOffset)
+    {cudaq::runtime::launchKernelFuncName,
      {},
      R"#(
-  func.func private @altLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> ())#"},
+  func.func private @altLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>)#"},
+
+    {cudaq::runtime::CudaqRegisterArgsCreator,
+     {},
+     R"#(
+  func.func private @cudaqRegisterArgsCreator(!cc.ptr<i8>, !cc.ptr<i8>) -> ()
+)#"},
+    {cudaq::runtime::CudaqRegisterKernelName,
+     {cudaq::runtime::CudaqRegisterArgsCreator,
+      cudaq::runtime::CudaqRegisterLambdaName,
+      cudaq::runtime::registerLinkableKernel,
+      cudaq::runtime::getLinkableKernelKey},
+     "func.func private @cudaqRegisterKernelName(!cc.ptr<i8>) -> ()"},
+
+    {cudaq::runtime::CudaqRegisterLambdaName,
+     {},
+     R"#(
+  llvm.func @cudaqRegisterLambdaName(!llvm.ptr<i8>, !llvm.ptr<i8>) attributes {sym_visibility = "private"}
+)#"},
 
     {"free", {}, "func.func private @free(!cc.ptr<i8>) -> ()"},
+
+    // hybridLaunchKernel(kernelName, thunk, commBuffer, buffSize,
+    //                    resultOffset, vectorArgPtrs)
+    {cudaq::runtime::launchKernelHybridFuncName,
+     {},
+     R"#(
+  func.func private @hybridLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>)#"},
 
     {cudaq::llvmMemCopyIntrinsic, // llvm.memcpy.p0i8.p0i8.i64
      {},
      R"#(
   func.func private @llvm.memcpy.p0i8.p0i8.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ())#"},
 
-    {"malloc", {}, "func.func private @malloc(i64) -> !cc.ptr<i8>"}};
+    {"malloc", {}, "func.func private @malloc(i64) -> !cc.ptr<i8>"},
+
+    // streamlinedLaunchKernel(kernelName, vectorArgPtrs)
+    {cudaq::runtime::launchKernelStreamlinedFuncName,
+     {},
+     R"#(
+  func.func private @streamlinedLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>) -> ())#"}};
 
 static constexpr std::size_t intrinsicTableSize =
     sizeof(intrinsicTable) / sizeof(IntrinsicCode);
@@ -388,18 +450,19 @@ LogicalResult IRBuilder::loadIntrinsic(ModuleOp module, StringRef intrinName) {
 }
 
 template <typename T>
-DenseElementsAttr createDenseElementsAttr(const std::vector<T> &values,
+DenseElementsAttr createDenseElementsAttr(const SmallVectorImpl<T> &values,
                                           Type eleTy) {
   auto newValues = ArrayRef<T>(values.data(), values.size());
   auto tensorTy = RankedTensorType::get(values.size(), eleTy);
   return DenseElementsAttr::get(tensorTy, newValues);
 }
 
-DenseElementsAttr createDenseElementsAttr(const std::vector<bool> &values,
-                                          Type eleTy) {
-  std::vector<std::byte> converted;
-  for (auto b : values) {
-    converted.push_back(std::byte(b));
+static DenseElementsAttr
+createDenseElementsAttr(const SmallVectorImpl<bool> &values, Type eleTy) {
+  SmallVector<std::byte> converted;
+  for (auto it = values.begin(); it != values.end(); it++) {
+    bool value = *it;
+    converted.push_back(std::byte(value));
   }
   auto newValues = ArrayRef<bool>(reinterpret_cast<bool *>(converted.data()),
                                   converted.size());
@@ -407,83 +470,99 @@ DenseElementsAttr createDenseElementsAttr(const std::vector<bool> &values,
   return DenseElementsAttr::get(tensorTy, newValues);
 }
 
-template <typename A>
-cc::GlobalOp buildVectorOfConstantElements(Location loc, ModuleOp module,
-                                           StringRef name,
-                                           const std::vector<A> &values,
-                                           IRBuilder &builder, Type eleTy) {
+static cc::GlobalOp buildVectorOfConstantElements(Location loc, ModuleOp module,
+                                                  StringRef name,
+                                                  DenseElementsAttr &arrayAttr,
+                                                  IRBuilder &builder,
+                                                  Type eleTy) {
   if (auto glob = module.lookupSymbol<cc::GlobalOp>(name))
     return glob;
   auto *ctx = builder.getContext();
   OpBuilder::InsertionGuard guard(builder);
   builder.setInsertionPointToEnd(module.getBody());
-  auto globalTy = cc::ArrayType::get(ctx, eleTy, values.size());
-
-  auto arrayAttr = createDenseElementsAttr(values, eleTy);
+  auto globalTy = cc::ArrayType::get(ctx, eleTy, arrayAttr.size());
   return builder.create<cudaq::cc::GlobalOp>(loc, globalTy, name, arrayAttr,
                                              /*constant=*/true,
                                              /*external=*/false);
 }
 
+template <typename A>
+cc::GlobalOp buildVectorOfConstantElements(Location loc, ModuleOp module,
+                                           StringRef name,
+                                           const SmallVectorImpl<A> &values,
+                                           IRBuilder &builder, Type eleTy) {
+  auto arrayAttr = createDenseElementsAttr(values, eleTy);
+  return buildVectorOfConstantElements(loc, module, name, arrayAttr, builder,
+                                       eleTy);
+}
+
+cc::GlobalOp IRBuilder::genVectorOfConstants(Location loc, ModuleOp module,
+                                             StringRef name,
+                                             DenseElementsAttr values,
+                                             Type elementType) {
+  return buildVectorOfConstantElements(loc, module, name, values, *this,
+                                       elementType);
+}
+
 cc::GlobalOp IRBuilder::genVectorOfConstants(
     Location loc, ModuleOp module, StringRef name,
-    const std::vector<std::complex<double>> &values) {
+    const SmallVectorImpl<std::complex<double>> &values) {
   return buildVectorOfConstantElements(loc, module, name, values, *this,
                                        ComplexType::get(getF64Type()));
 }
 
 cc::GlobalOp IRBuilder::genVectorOfConstants(
     Location loc, ModuleOp module, StringRef name,
-    const std::vector<std::complex<float>> &values) {
+    const SmallVectorImpl<std::complex<float>> &values) {
   return buildVectorOfConstantElements(loc, module, name, values, *this,
                                        ComplexType::get(getF32Type()));
 }
 
 cc::GlobalOp
 IRBuilder::genVectorOfConstants(Location loc, ModuleOp module, StringRef name,
-                                const std::vector<double> &values) {
+                                const SmallVectorImpl<double> &values) {
   return buildVectorOfConstantElements(loc, module, name, values, *this,
                                        getF64Type());
 }
 
-cc::GlobalOp IRBuilder::genVectorOfConstants(Location loc, ModuleOp module,
-                                             StringRef name,
-                                             const std::vector<float> &values) {
+cc::GlobalOp
+IRBuilder::genVectorOfConstants(Location loc, ModuleOp module, StringRef name,
+                                const SmallVectorImpl<float> &values) {
   return buildVectorOfConstantElements(loc, module, name, values, *this,
                                        getF32Type());
 }
 
 cc::GlobalOp
 IRBuilder::genVectorOfConstants(Location loc, ModuleOp module, StringRef name,
-                                const std::vector<std::int64_t> &values) {
+                                const SmallVectorImpl<std::int64_t> &values) {
   return buildVectorOfConstantElements(loc, module, name, values, *this,
                                        getI64Type());
 }
 
 cc::GlobalOp
 IRBuilder::genVectorOfConstants(Location loc, ModuleOp module, StringRef name,
-                                const std::vector<std::int32_t> &values) {
+                                const SmallVectorImpl<std::int32_t> &values) {
   return buildVectorOfConstantElements(loc, module, name, values, *this,
                                        getI32Type());
 }
 
 cc::GlobalOp
 IRBuilder::genVectorOfConstants(Location loc, ModuleOp module, StringRef name,
-                                const std::vector<std::int16_t> &values) {
+                                const SmallVectorImpl<std::int16_t> &values) {
   return buildVectorOfConstantElements(loc, module, name, values, *this,
                                        getI16Type());
 }
 
 cc::GlobalOp
 IRBuilder::genVectorOfConstants(Location loc, ModuleOp module, StringRef name,
-                                const std::vector<std::int8_t> &values) {
+                                const SmallVectorImpl<std::int8_t> &values) {
   return buildVectorOfConstantElements(loc, module, name, values, *this,
                                        getI8Type());
 }
 
-cc::GlobalOp IRBuilder::genVectorOfConstants(Location loc, ModuleOp module,
-                                             StringRef name,
-                                             const std::vector<bool> &values) {
+cc::GlobalOp
+IRBuilder::genVectorOfConstants(Location loc, ModuleOp module, StringRef name,
+                                const SmallVectorImpl<bool> &values) {
   return buildVectorOfConstantElements(loc, module, name, values, *this,
                                        getI1Type());
 }

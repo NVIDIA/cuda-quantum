@@ -28,85 +28,20 @@ namespace cudaq::opt {
 using namespace mlir;
 
 namespace {
-template <typename A>
-std::vector<A> readConstantValues(SmallVectorImpl<Attribute> &vec, Type eleTy) {
-  std::vector<A> result;
-  for (auto a : vec) {
-    if constexpr (std::is_same_v<A, std::complex<double>>) {
-      auto v = cast<ArrayAttr>(a);
-      result.emplace_back(cast<FloatAttr>(v[0]).getValue().convertToDouble(),
-                          cast<FloatAttr>(v[1]).getValue().convertToDouble());
-    } else if constexpr (std::is_same_v<A, std::complex<float>>) {
-      auto v = cast<ArrayAttr>(a);
-      result.emplace_back(cast<FloatAttr>(v[0]).getValue().convertToFloat(),
-                          cast<FloatAttr>(v[1]).getValue().convertToFloat());
-    } else if constexpr (std::is_same_v<A, double>) {
-      auto v = cast<FloatAttr>(a);
-      result.emplace_back(v.getValue().convertToDouble());
-    } else if constexpr (std::is_same_v<A, float>) {
-      auto v = cast<FloatAttr>(a);
-      result.emplace_back(v.getValue().convertToFloat());
-    }
-  }
-  return result;
-}
-
-LogicalResult genVectorOfConstantsFromAttributes(cudaq::IRBuilder irBuilder,
-                                                 Location loc, ModuleOp module,
-                                                 StringRef name,
-                                                 SmallVector<Attribute> &values,
-                                                 Type eleTy) {
-
-  if (auto cTy = dyn_cast<ComplexType>(eleTy)) {
-    auto floatTy = cTy.getElementType();
-    if (floatTy == irBuilder.getF64Type()) {
-      auto vals = readConstantValues<std::complex<double>>(values, cTy);
-      if (vals.size() == values.size()) {
-        irBuilder.genVectorOfConstants(loc, module, name, vals);
-        return success();
-      }
-    } else if (floatTy == irBuilder.getF32Type()) {
-      auto vals = readConstantValues<std::complex<float>>(values, cTy);
-      if (vals.size() == values.size()) {
-        irBuilder.genVectorOfConstants(loc, module, name, vals);
-        return success();
-      }
-    }
-  } else if (auto floatTy = dyn_cast<FloatType>(eleTy)) {
-    if (floatTy == irBuilder.getF64Type()) {
-      auto vals = readConstantValues<double>(values, floatTy);
-      if (vals.size() == values.size()) {
-        irBuilder.genVectorOfConstants(loc, module, name, vals);
-        return success();
-      }
-    } else if (floatTy == irBuilder.getF32Type()) {
-      auto vals = readConstantValues<float>(values, floatTy);
-      if (vals.size() == values.size()) {
-        irBuilder.genVectorOfConstants(loc, module, name, vals);
-        return success();
-      }
-    }
-  }
-  return failure();
-}
-} // namespace
-
-namespace {
 class AllocaPattern : public OpRewritePattern<cudaq::cc::AllocaOp> {
 public:
-  explicit AllocaPattern(MLIRContext *ctx, DominanceInfo &di,
-                         const std::string &fn, ModuleOp m)
-      : OpRewritePattern(ctx), dom(di), funcName(fn), module(m) {}
+  explicit AllocaPattern(MLIRContext *ctx, DominanceInfo &di, StringRef fn)
+      : OpRewritePattern(ctx), dom(di), funcName(fn) {}
 
   LogicalResult matchAndRewrite(cudaq::cc::AllocaOp alloc,
                                 PatternRewriter &rewriter) const override {
     SmallVector<Operation *> stores;
-    bool toGlobal = false;
-    if (!isGoodCandidate(alloc, stores, dom, toGlobal))
+    if (!isGoodCandidate(alloc, stores, dom))
       return failure();
 
     LLVM_DEBUG(llvm::dbgs() << "Candidate was found\n");
-    auto arrTy = cast<cudaq::cc::ArrayType>(alloc.getElementType());
+    auto eleTy = alloc.getElementType();
+    auto arrTy = cast<cudaq::cc::ArrayType>(eleTy);
     SmallVector<Attribute> values;
 
     // Every element of `stores` must be a cc::StoreOp with a ConstantOp as the
@@ -123,83 +58,66 @@ public:
     }
 
     // Create the cc.const_array.
-    auto eleTy = arrTy.getElementType();
     auto valuesAttr = rewriter.getArrayAttr(values);
     auto loc = alloc.getLoc();
-    Value conArr;
-    Value conGlobal;
-    if (toGlobal) {
-      static unsigned counter = 0;
-      auto ptrTy = cudaq::cc::PointerType::get(arrTy);
-      // Build a new name based on the kernel name.
-      std::string name = funcName + ".rodata_" + std::to_string(counter++);
-      cudaq::IRBuilder irBuilder(rewriter.getContext());
-      if (succeeded(genVectorOfConstantsFromAttributes(irBuilder, loc, module,
-                                                       name, values, eleTy))) {
-        conGlobal = rewriter.create<cudaq::cc::AddressOfOp>(loc, ptrTy, name);
-        conArr = rewriter.create<cudaq::cc::LoadOp>(loc, arrTy, conGlobal);
-      } else {
-        conArr =
-            rewriter.create<cudaq::cc::ConstantArrayOp>(loc, arrTy, valuesAttr);
-      }
-    } else {
-      conArr =
-          rewriter.create<cudaq::cc::ConstantArrayOp>(loc, arrTy, valuesAttr);
-    }
+    Value conArr =
+        rewriter.create<cudaq::cc::ConstantArrayOp>(loc, arrTy, valuesAttr);
 
-    std::vector<mlir::Operation *> toErase;
+    assert(conArr && "must have created the constant array");
+    LLVM_DEBUG(llvm::dbgs() << "constant array is:\n" << conArr << '\n');
+    bool cannotEraseAlloc = false;
+
+    // Collect all the stores, casts, and compute_ptr to be erased safely and in
+    // topological order.
+    SmallVector<Operation *> opsToErase;
+    auto insertOpToErase = [&](Operation *op) {
+      auto iter = std::find(opsToErase.begin(), opsToErase.end(), op);
+      if (iter == opsToErase.end())
+        opsToErase.push_back(op);
+    };
 
     // Rewalk all the uses of alloc, u, which must be cc.cast or cc.compute_ptr.
-    // For each,u, remove a store and replace a load with a cc.extract_value.
-    for (auto &use : alloc->getUses()) {
-      auto *user = use.getOwner();
+    // For each u remove a store and replace a load with a cc.extract_value.
+    for (auto *user : alloc->getUsers()) {
+      if (!user)
+        continue;
       std::int32_t offset = 0;
       if (auto cptr = dyn_cast<cudaq::cc::ComputePtrOp>(user))
         offset = cptr.getRawConstantIndices()[0];
       bool isLive = false;
-      for (auto &useuse : user->getUses()) {
-        auto *useuser = useuse.getOwner();
-        if (auto ist = dyn_cast<quake::InitializeStateOp>(useuser)) {
-          rewriter.setInsertionPointAfter(useuser);
-          LLVM_DEBUG(llvm::dbgs() << "replaced init_state\n");
-          assert(conGlobal && "global must be defined");
-          rewriter.replaceOpWithNewOp<quake::InitializeStateOp>(
-              ist, ist.getType(), ist.getTargets(), conGlobal);
-          continue;
+      if (!isa<cudaq::cc::CastOp, cudaq::cc::ComputePtrOp>(user)) {
+        cannotEraseAlloc = isLive = true;
+      } else {
+        for (auto *useuser : user->getUsers()) {
+          if (auto load = dyn_cast<cudaq::cc::LoadOp>(useuser)) {
+            rewriter.setInsertionPointAfter(useuser);
+            LLVM_DEBUG(llvm::dbgs() << "replaced load\n");
+            rewriter.replaceOpWithNewOp<cudaq::cc::ExtractValueOp>(
+                load, eleTy, conArr,
+                ArrayRef<cudaq::cc::ExtractValueArg>{offset});
+            continue;
+          }
+          if (isa<cudaq::cc::StoreOp>(useuser)) {
+            insertOpToErase(useuser);
+            continue;
+          }
+          LLVM_DEBUG(llvm::dbgs() << "alloc is live\n");
+          cannotEraseAlloc = isLive = true;
         }
-        if (auto load = dyn_cast<cudaq::cc::LoadOp>(useuser)) {
-          rewriter.setInsertionPointAfter(useuser);
-          LLVM_DEBUG(llvm::dbgs() << "replaced load\n");
-          rewriter.replaceOpWithNewOp<cudaq::cc::ExtractValueOp>(
-              load, eleTy, conArr,
-              ArrayRef<cudaq::cc::ExtractValueArg>{offset});
-          continue;
-        }
-        if (isa<cudaq::cc::StoreOp>(useuser))
-          toErase.push_back(useuser);
-        isLive = true;
-      }
-      if (auto ist = dyn_cast<quake::InitializeStateOp>(user)) {
-        rewriter.setInsertionPointAfter(user);
-        LLVM_DEBUG(llvm::dbgs() << "replaced init_state\n");
-        assert(conGlobal && "global must be defined");
-        rewriter.replaceOpWithNewOp<quake::InitializeStateOp>(
-            ist, ist.getType(), ist.getTargets(), conGlobal);
-        continue;
       }
       if (!isLive)
-        toErase.push_back(user);
+        insertOpToErase(user);
     }
-    if (toGlobal) {
+
+    for (auto *e : opsToErase)
+      rewriter.eraseOp(e);
+
+    if (cannotEraseAlloc) {
       rewriter.setInsertionPointAfter(alloc);
-      rewriter.replaceOp(alloc, conGlobal);
-    } else {
-      toErase.push_back(alloc);
+      rewriter.create<cudaq::cc::StoreOp>(loc, conArr, alloc);
+      return success();
     }
-
-    for (auto *op : toErase)
-      rewriter.eraseOp(op);
-
+    rewriter.eraseOp(alloc);
     return success();
   }
 
@@ -207,14 +125,11 @@ public:
   // array value. \p scoreboard is a vector of store operations. Each element of
   // the allocated array must be written to exactly 1 time, and the scoreboard
   // is used to track these stores. \p dom is the dominance info for this
-  // function (to ensure the stores happen before uses). \p toGlobal is returned
-  // as a result. If it is `true`, then the constant array shall be lowered to a
-  // global variable rather than an inline constant array.
+  // function (to ensure the stores happen before uses).
   static bool isGoodCandidate(cudaq::cc::AllocaOp alloc,
                               SmallVectorImpl<Operation *> &scoreboard,
-                              DominanceInfo &dom, bool &toGlobal) {
+                              DominanceInfo &dom) {
     LLVM_DEBUG(llvm::dbgs() << "checking candidate\n");
-    toGlobal = false;
     if (alloc.getSeqSize())
       return false;
     auto arrTy = dyn_cast<cudaq::cc::ArrayType>(alloc.getElementType());
@@ -259,7 +174,6 @@ public:
         }
         if (isa<quake::InitializeStateOp>(u)) {
           toGlobalUses.push_back(u);
-          toGlobal = true;
           continue;
         }
         if (isa<cudaq::cc::LoadOp>(u)) {
@@ -303,26 +217,26 @@ public:
         }
         // Process casts that are used in quake.init_state.
         if (cast.getType() == ptrUnsizedArrTy) {
-          if (getWriteOp(cast, 0))
-            LLVM_DEBUG(
-                llvm::dbgs()
-                << "unexpected use of array size removing cast in a store"
-                << *op << '\n');
-          continue;
+          if (cast->hasOneUse()) {
+            auto &use = *cast->getUses().begin();
+            Operation *u = use.getOwner();
+            if (isa_and_present<quake::InitializeStateOp>(u)) {
+              toGlobalUses.push_back(op);
+              continue;
+            }
+          }
+          return false;
         }
         LLVM_DEBUG(llvm::dbgs() << "unexpected cast: " << *op << '\n');
         toGlobalUses.push_back(op);
-        toGlobal = true;
         continue;
       }
       if (isa<quake::InitializeStateOp>(op)) {
         toGlobalUses.push_back(op);
-        toGlobal = true;
         continue;
       }
       LLVM_DEBUG(llvm::dbgs() << "unexpected use: " << *op << '\n');
       toGlobalUses.push_back(op);
-      toGlobal = true;
     }
 
     bool ok = std::all_of(scoreboard.begin(), scoreboard.end(),
@@ -358,8 +272,7 @@ public:
   }
 
   DominanceInfo &dom;
-  const std::string &funcName;
-  mutable ModuleOp module;
+  StringRef funcName;
 };
 
 class LiftArrayAllocPass
@@ -369,26 +282,20 @@ public:
 
   void runOnOperation() override {
     auto *ctx = &getContext();
-    auto module = getOperation();
-    for (Operation &op : *module.getBody()) {
-      auto func = dyn_cast<func::FuncOp>(op);
-      if (!func)
-        continue;
-      DominanceInfo domInfo(func);
-      std::string funcName = func.getName().str();
-      RewritePatternSet patterns(ctx);
-      patterns.insert<AllocaPattern>(ctx, domInfo, funcName, module);
+    auto func = getOperation();
+    DominanceInfo domInfo(func);
+    StringRef funcName = func.getName();
+    RewritePatternSet patterns(ctx);
+    patterns.insert<AllocaPattern>(ctx, domInfo, funcName);
 
-      LLVM_DEBUG(llvm::dbgs()
-                 << "Before lifting constant array: " << func << '\n');
+    LLVM_DEBUG(llvm::dbgs()
+               << "Before lifting constant array: " << func << '\n');
 
-      if (failed(applyPatternsAndFoldGreedily(func.getOperation(),
-                                              std::move(patterns))))
-        signalPassFailure();
+    if (failed(applyPatternsAndFoldGreedily(func, std::move(patterns))))
+      signalPassFailure();
 
-      LLVM_DEBUG(llvm::dbgs()
-                 << "After lifting constant array: " << func << '\n');
-    }
+    LLVM_DEBUG(llvm::dbgs()
+               << "After lifting constant array: " << func << '\n');
   }
 };
 } // namespace

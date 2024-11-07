@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --kernel-execution %s | FileCheck %s
+// RUN: cudaq-opt --kernel-execution=codegen=1 %s | FileCheck %s
 
 module attributes {quake.mangled_name_map = {
 __nvqpp__mlirgen__function_hawaiian = "shirt",
@@ -65,17 +65,17 @@ __nvqpp__mlirgen__function_cargo = "pants"}} {
 // CHECK:           call @llvm.memcpy.p0i8.p0i8.i64(%[[VAL_21]], %[[VAL_26]], %[[VAL_22]], %[[VAL_23]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
 // CHECK:           %[[VAL_90:.*]] = cc.cast %[[VAL_21]] :
 // CHECK:           %[[VAL_27:.*]] = cc.compute_ptr %[[VAL_90]][%[[VAL_22]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_28:.*]] = llvm.mlir.addressof @function_hawaiian.kernelName : !llvm.ptr<array<18 x i8>>
 // CHECK:           %[[VAL_29:.*]] = constant @function_hawaiian.thunk : (!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>
-// CHECK:           %[[VAL_30:.*]] = cc.cast %[[VAL_28]] : (!llvm.ptr<array<18 x i8>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_31:.*]] = cc.func_ptr %[[VAL_29]] : ((!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_32:.*]] = cc.cast %[[VAL_20]] : (!cc.ptr<!cc.array<!cc.struct<{i1, i64}> x ?>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_33:.*]] = arith.constant 2147483647 : i64
-// CHECK:           call @altLaunchKernel(%[[VAL_30]], %[[VAL_31]], %[[VAL_32]], %[[VAL_17]], %[[VAL_33]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> ()
+// CHECK:           %[[VAL_28:.*]] = llvm.mlir.addressof @function_hawaiian.kernelName : !llvm.ptr<array<18 x i8>>
+// CHECK:           %[[VAL_30:.*]] = cc.cast %[[VAL_28]] : (!llvm.ptr<array<18 x i8>>) -> !cc.ptr<i8>
+// CHECK:           call @altLaunchKernel(%[[VAL_30]], %[[VAL_31]], %[[VAL_32]], %[[VAL_17]], %[[VAL_33]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // CHECK:           return
 // CHECK:         }
 
-// CHECK-DAG:     func.func private @altLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64)
+// CHECK-DAG:     func.func private @altLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // CHECK-DAG:     func.func private @cudaqRegisterKernelName(!cc.ptr<i8>)
 // CHECK-DAG:     func.func private @cudaqRegisterArgsCreator(!cc.ptr<i8>, !cc.ptr<i8>)
 // CHECK-DAG:     func.func private @malloc(i64) -> !cc.ptr<i8>

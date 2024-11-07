@@ -11,12 +11,12 @@
 #include "QuantumExecutionQueue.h"
 #include "common/Logger.h"
 #include "common/Registry.h"
+#include "common/ThunkInterface.h"
 #include "common/Timing.h"
 #include "cudaq/qis/execution_manager.h"
 #include "cudaq/qis/qubit_qis.h"
 #include "cudaq/remote_capabilities.h"
 #include "cudaq/utils/cudaq_utils.h"
-
 #include <optional>
 
 namespace cudaq {
@@ -172,8 +172,21 @@ public:
   /// Launch the kernel with given name (to extract its Quake representation).
   /// The raw function pointer is also provided, as are the runtime arguments,
   /// as a struct-packed void pointer and its corresponding size.
-  virtual void launchKernel(const std::string &name, void (*kernelFunc)(void *),
-                            void *args, std::uint64_t, std::uint64_t) = 0;
+  [[nodiscard]] virtual KernelThunkResultType
+  launchKernel(const std::string &name, KernelThunkType kernelFunc, void *args,
+               std::uint64_t, std::uint64_t,
+               const std::vector<void *> &rawArgs) = 0;
+
+  /// Launch the kernel with given name and argument arrays.
+  // This is intended for remote QPUs whereby we need to JIT-compile the kernel
+  // with argument synthesis. Remote QPU implementation to override this.
+  virtual void launchKernel(const std::string &name,
+                            const std::vector<void *> &rawArgs) {
+    if (!isRemote())
+      throw std::runtime_error("Wrong kernel launch point: Attempt to launch "
+                               "kernel in streamlined for JIT mode on local "
+                               "simulated QPU. This is not supported.");
+  }
 
   /// Launch serialized code for remote execution. Subtypes that support this
   /// should override this function.

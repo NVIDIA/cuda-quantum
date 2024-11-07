@@ -47,6 +47,14 @@ sample_result future::get() {
       results.emplace_back(c.to_map(), id.second);
       results.back().sequentialData = c.sequential_data();
     } else {
+      if (c.has_expectation()) {
+        // If the QPU returns the data with expectation values, just use it
+        // directly.
+        // This can be the case for remote emulation/simulation providers who
+        // compute the expectation value for us.
+        return c;
+      }
+
       // For each register, add the results into result.
       for (auto &regName : c.register_names()) {
         results.emplace_back(c.to_map(regName), regName);
@@ -102,7 +110,7 @@ std::istream &operator>>(std::istream &is, future &f) {
   nlohmann::json j;
   try {
     is >> j;
-  } catch (std::exception &ex) {
+  } catch (...) {
     throw std::runtime_error(
         "Formatting error; could not parse input as json.");
   }

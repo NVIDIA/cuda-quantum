@@ -24,6 +24,7 @@
 #include "mlir/Conversion/MathToLLVM/MathToLLVM.h"
 #include "mlir/Conversion/SCFToControlFlow/SCFToControlFlow.h"
 #include "mlir/Dialect/Arith/Transforms/Passes.h"
+#include "mlir/Target/LLVMIR/TypeToLLVM.h"
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_CCTOLLVM
@@ -41,6 +42,9 @@ LLVM::LLVMStructType cudaq::opt::lambdaAsPairOfPointers(MLIRContext *context) {
 }
 
 void cudaq::opt::populateCCTypeConversions(LLVMTypeConverter *converter) {
+  converter->addConversion([](cc::IndirectCallableType type) {
+    return IntegerType::get(type.getContext(), 64);
+  });
   converter->addConversion([](cc::CallableType type) {
     return lambdaAsPairOfPointers(type.getContext());
   });
@@ -77,6 +81,27 @@ void cudaq::opt::populateCCTypeConversions(LLVMTypeConverter *converter) {
     return LLVM::LLVMStructType::getLiteral(type.getContext(), members,
                                             type.getPacked());
   });
+}
+
+std::size_t cudaq::opt::getDataSize(llvm::DataLayout &dataLayout, Type ty) {
+  LLVMTypeConverter converter(ty.getContext());
+  cudaq::opt::populateCCTypeConversions(&converter);
+  auto llvmDialectTy = converter.convertType(ty);
+  llvm::LLVMContext context;
+  LLVM::TypeToLLVMIRTranslator translator(context);
+  auto llvmTy = translator.translateType(llvmDialectTy);
+  return dataLayout.getTypeAllocSize(llvmTy);
+}
+
+std::size_t cudaq::opt::getDataOffset(llvm::DataLayout &dataLayout, Type ty,
+                                      std::size_t off) {
+  LLVMTypeConverter converter(ty.getContext());
+  cudaq::opt::populateCCTypeConversions(&converter);
+  auto llvmDialectTy = converter.convertType(ty);
+  llvm::LLVMContext context;
+  LLVM::TypeToLLVMIRTranslator translator(context);
+  auto llvmTy = cast<llvm::StructType>(translator.translateType(llvmDialectTy));
+  return dataLayout.getStructLayout(llvmTy)->getElementOffset(off);
 }
 
 namespace {

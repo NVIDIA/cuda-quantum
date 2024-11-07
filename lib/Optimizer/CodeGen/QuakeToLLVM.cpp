@@ -336,6 +336,43 @@ public:
   }
 };
 
+class GetMemberOpPattern : public ConvertOpToLLVMPattern<quake::GetMemberOp> {
+public:
+  using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::GetMemberOp extract, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto toTy = getTypeConverter()->convertType(extract.getType());
+    std::int64_t position = adaptor.getIndex();
+    rewriter.replaceOpWithNewOp<LLVM::ExtractValueOp>(
+        extract, toTy, adaptor.getStruq(), ArrayRef<std::int64_t>{position});
+    return success();
+  }
+};
+
+class MakeStruqOpPattern : public ConvertOpToLLVMPattern<quake::MakeStruqOp> {
+public:
+  using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::MakeStruqOp mkStruq, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = mkStruq.getLoc();
+    auto *ctx = rewriter.getContext();
+    auto toTy = getTypeConverter()->convertType(mkStruq.getType());
+    Value result = rewriter.create<LLVM::UndefOp>(loc, toTy);
+    std::int64_t count = 0;
+    for (auto op : adaptor.getOperands()) {
+      auto off = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{count});
+      result = rewriter.create<LLVM::InsertValueOp>(loc, toTy, result, op, off);
+      count++;
+    }
+    rewriter.replaceOp(mkStruq, result);
+    return success();
+  }
+};
+
 class SubveqOpRewrite : public ConvertOpToLLVMPattern<quake::SubVeqOp> {
 public:
   using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
@@ -462,11 +499,12 @@ public:
           cudaq::opt::factory::genLlvmI64Constant(loc, rewriter, numElements);
 
       // Set the string literal data
-      auto strPtr = rewriter.create<LLVM::GEPOp>(
-          loc, LLVM::LLVMPointerType::get(rewriter.getI8Type()), alloca,
-          ValueRange{zero, zero});
-      auto castedPauli = rewriter.create<LLVM::BitcastOp>(
-          loc, cudaq::opt::factory::getPointerType(context), pauliWord);
+      auto charPtrTy = cudaq::opt::factory::getPointerType(context);
+      auto strPtrTy = LLVM::LLVMPointerType::get(charPtrTy);
+      auto strPtr = rewriter.create<LLVM::GEPOp>(loc, strPtrTy, alloca,
+                                                 ValueRange{zero, zero});
+      auto castedPauli =
+          rewriter.create<LLVM::BitcastOp>(loc, charPtrTy, pauliWord);
       rewriter.create<LLVM::StoreOp>(loc, castedPauli, strPtr);
 
       // Set the integer length
@@ -476,8 +514,8 @@ public:
       rewriter.create<LLVM::StoreOp>(loc, size, intPtr);
 
       // Cast to raw opaque pointer
-      auto castedStore = rewriter.create<LLVM::BitcastOp>(
-          loc, cudaq::opt::factory::getPointerType(context), alloca);
+      auto castedStore =
+          rewriter.create<LLVM::BitcastOp>(loc, charPtrTy, alloca);
       operands.push_back(castedStore);
       rewriter.replaceOpWithNewOp<LLVM::CallOp>(instOp, TypeRange{}, symbolRef,
                                                 operands);
@@ -1316,13 +1354,45 @@ public:
     StringRef generatorName = sref.getRootReference();
     auto globalOp =
         parentModule.lookupSymbol<cudaq::cc::GlobalOp>(generatorName);
+    const auto customOpName = [&]() -> std::string {
+      auto globalName = generatorName.str();
+      // IMPORTANT: this must match the logic to generate global data
+      // globalName = f'{nvqppPrefix}{opName}_generator_{numTargets}.rodata'
+      const std::string nvqppPrefix = "__nvqpp__mlirgen__";
+      const std::string generatorSuffix = "_generator";
+      if (globalName.starts_with(nvqppPrefix)) {
+        globalName = globalName.substr(nvqppPrefix.size());
+        const size_t pos = globalName.find(generatorSuffix);
+        if (pos != std::string::npos)
+          return globalName.substr(0, pos);
+      }
+
+      return "";
+    }();
+
+    // Create a global string for the op name
+    auto insertPoint = rewriter.saveInsertionPoint();
+    rewriter.setInsertionPointToStart(parentModule.getBody());
+    // Create the custom op name global
+    auto builder = cudaq::IRBuilder::atBlockEnd(parentModule.getBody());
+    auto opNameGlobal =
+        builder.genCStringLiteralAppendNul(loc, parentModule, customOpName);
+    // Shift back to the function
+    rewriter.restoreInsertionPoint(insertPoint);
+    // Get the string address and bit cast
+    auto opNameRef = rewriter.create<LLVM::AddressOfOp>(
+        loc, cudaq::opt::factory::getPointerType(opNameGlobal.getType()),
+        opNameGlobal.getSymName());
+    auto castedOpNameRef = rewriter.create<LLVM::BitcastOp>(
+        loc, cudaq::opt::factory::getPointerType(context), opNameRef);
+
     if (!globalOp)
       return op.emitOpError("global not found for custom op");
 
     auto complex64Ty =
         typeConverter->convertType(ComplexType::get(rewriter.getF64Type()));
     auto complex64PtrTy = LLVM::LLVMPointerType::get(complex64Ty);
-    Type type = getTypeConverter()->convertType(globalOp.getType());
+    Type type = typeConverter->convertType(globalOp.getType());
     auto addrOp = rewriter.create<LLVM::AddressOfOp>(loc, type, generatorName);
     auto unitaryData =
         rewriter.create<LLVM::BitcastOp>(loc, complex64PtrTy, addrOp);
@@ -1334,12 +1404,13 @@ public:
         cudaq::opt::factory::createLLVMFunctionSymbol(
             qirFunctionName, LLVM::LLVMVoidType::get(context),
             {complex64PtrTy, cudaq::opt::getArrayType(context),
-             cudaq::opt::getArrayType(context)},
+             cudaq::opt::getArrayType(context),
+             LLVM::LLVMPointerType::get(rewriter.getI8Type())},
             parentModule);
 
     rewriter.replaceOpWithNewOp<LLVM::CallOp>(
         op, TypeRange{}, customSymbolRef,
-        ValueRange{unitaryData, controlArr, targetArr});
+        ValueRange{unitaryData, controlArr, targetArr, castedOpNameRef});
 
     return success();
   }
@@ -1352,19 +1423,21 @@ void cudaq::opt::populateQuakeToLLVMPatterns(LLVMTypeConverter &typeConverter,
   auto *context = patterns.getContext();
   patterns.insert<GetVeqSizeOpRewrite, RemoveRelaxSizeRewrite, MxToMz, MyToMz,
                   ReturnBitRewrite>(context);
-  patterns.insert<
-      AllocaOpRewrite, ConcatOpRewrite, CustomUnitaryOpRewrite,
-      DeallocOpRewrite, DiscriminateOpPattern, ExtractQubitOpRewrite,
-      ExpPauliRewrite, OneTargetRewrite<quake::HOp>,
-      OneTargetRewrite<quake::XOp>, OneTargetRewrite<quake::YOp>,
-      OneTargetRewrite<quake::ZOp>, OneTargetRewrite<quake::SOp>,
-      OneTargetRewrite<quake::TOp>, OneTargetOneParamRewrite<quake::R1Op>,
-      OneTargetTwoParamRewrite<quake::PhasedRxOp>,
-      OneTargetOneParamRewrite<quake::RxOp>,
-      OneTargetOneParamRewrite<quake::RyOp>,
-      OneTargetOneParamRewrite<quake::RzOp>,
-      OneTargetTwoParamRewrite<quake::U2Op>,
-      OneTargetThreeParamRewrite<quake::U3Op>, QmemRAIIOpRewrite, ResetRewrite,
-      SubveqOpRewrite, TwoTargetRewrite<quake::SwapOp>>(typeConverter);
+  patterns
+      .insert<AllocaOpRewrite, ConcatOpRewrite, CustomUnitaryOpRewrite,
+              DeallocOpRewrite, DiscriminateOpPattern, ExtractQubitOpRewrite,
+              ExpPauliRewrite, GetMemberOpPattern, MakeStruqOpPattern,
+              OneTargetRewrite<quake::HOp>, OneTargetRewrite<quake::XOp>,
+              OneTargetRewrite<quake::YOp>, OneTargetRewrite<quake::ZOp>,
+              OneTargetRewrite<quake::SOp>, OneTargetRewrite<quake::TOp>,
+              OneTargetOneParamRewrite<quake::R1Op>,
+              OneTargetTwoParamRewrite<quake::PhasedRxOp>,
+              OneTargetOneParamRewrite<quake::RxOp>,
+              OneTargetOneParamRewrite<quake::RyOp>,
+              OneTargetOneParamRewrite<quake::RzOp>,
+              OneTargetTwoParamRewrite<quake::U2Op>,
+              OneTargetThreeParamRewrite<quake::U3Op>, QmemRAIIOpRewrite,
+              ResetRewrite, SubveqOpRewrite, TwoTargetRewrite<quake::SwapOp>>(
+          typeConverter);
   patterns.insert<MeasureRewrite<quake::MzOp>>(typeConverter, measureCounter);
 }

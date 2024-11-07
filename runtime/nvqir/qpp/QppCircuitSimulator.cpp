@@ -47,11 +47,10 @@ struct QppState : public cudaq::SimulationState {
     std::span<std::complex<double>> otherState(
         reinterpret_cast<std::complex<double> *>(other.getTensor().data),
         other.getTensor().extents[0]);
-    return std::inner_product(
-               state.begin(), state.end(), otherState.begin(), complex{0., 0.},
-               [](auto a, auto b) { return a + b; },
-               [](auto a, auto b) { return std::abs(a * std::conj(b)); })
-        .real();
+    return std::abs(std::inner_product(
+        state.begin(), state.end(), otherState.begin(), complex{0., 0.},
+        [](auto a, auto b) { return a + b; },
+        [](auto a, auto b) { return a * std::conj(b); }));
   }
 
   std::complex<double>
@@ -156,7 +155,7 @@ protected:
     std::vector<double> result;
     if constexpr (std::is_same_v<StateType, qpp::ket>) {
       result.resize(stateDimension);
-#ifdef CUDAQ_HAS_OPENMP
+#if defined(_OPENMP)
 #pragma omp parallel for
 #endif
       for (std::size_t i = 0; i < stateDimension; ++i)
@@ -164,7 +163,7 @@ protected:
     } else if constexpr (std::is_same_v<StateType, qpp::cmat>) {
       Eigen::VectorXcd diag = state.diagonal();
       result.resize(state.rows());
-#ifdef CUDAQ_HAS_OPENMP
+#if defined(_OPENMP)
 #pragma omp parallel for
 #endif
       for (Eigen::Index i = 0; i < state.rows(); ++i)
@@ -353,6 +352,7 @@ public:
   /// @param index 0-based index of qubit to reset
   void resetQubit(const std::size_t index) override {
     flushGateQueue();
+    flushAnySamplingTasks();
     const auto qubitIdx = convertQubitIndex(index);
     state = qpp::reset(state, {qubitIdx});
   }

@@ -1,11 +1,15 @@
+ABI
+AFQMC
 API
 APIs
 AST
 Aer
 AlmaLinux
+Anyon
 Asynchronous
 BFGS
 Bloch
+Braket
 CLA
 CLI
 CMake
@@ -19,6 +23,7 @@ Cartesian
 CentOS
 Conda
 CuPy
+DCO
 DGX
 DOI
 Deuteron
@@ -28,6 +33,7 @@ Fortran
 Fourier
 GHCR
 GPU
+GPUDirect
 GPUs
 GitHub
 HPC
@@ -58,6 +64,7 @@ Max-Cut
 MyST
 NGC
 NVIDIA
+NVLink
 NVQC
 NVQIR
 OQC
@@ -115,6 +122,7 @@ amongst
 ancilla
 ansatz
 ansatzes
+archiver
 arity
 auxillary
 backend
@@ -122,6 +130,7 @@ backends
 bitcode
 bitstring
 bitstrings
+bool
 boolean
 boson
 broadcasted
@@ -132,6 +141,8 @@ canonicalization
 canonicalize
 canonicalizer
 canonicalizes
+centroid
+centroids
 codebase
 comparator
 comparators
@@ -143,6 +154,7 @@ coprocessing
 coprocessor
 coprocessors
 copyable
+coreset
 cortex-cli
 coupler
 couplers
@@ -157,6 +169,7 @@ deallocation
 deallocations
 decrement
 decrementing
+dendrogram
 deserialize
 destructor
 dimensionality
@@ -172,6 +185,7 @@ eigenvalue
 eigenvalues
 eigenvector
 eigenvectors
+endian
 enqueue
 enqueues
 enqueuing
@@ -187,6 +201,8 @@ expressivity
 extensibility
 extremal
 fermionic
+fermioniq
+fmt
 frontend
 frontends
 homogenous
@@ -221,6 +237,7 @@ namespaces
 natively
 normalization
 nullary
+observables
 optimizer
 optimizers
 parallelization
@@ -242,6 +259,8 @@ qubit
 qubits
 qudit
 qudits
+qumode
+qumodes
 reStructuredText
 reconfigurable
 runtime

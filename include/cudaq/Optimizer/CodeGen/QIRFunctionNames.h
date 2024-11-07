@@ -24,6 +24,7 @@ static constexpr const char QIRMeasureToRegister[] =
 
 static constexpr const char QIRCnot[] = "__quantum__qis__cnot";
 static constexpr const char QIRCphase[] = "__quantum__qis__cphase";
+static constexpr const char QIRCZ[] = "__quantum__qis__cz";
 static constexpr const char QIRReadResultBody[] =
     "__quantum__qis__read_result__body";
 
@@ -73,9 +74,20 @@ static constexpr const char QIRArrayConcatArray[] =
 static constexpr const char QIRArrayCreateArray[] =
     "__quantum__rt__array_create_1d";
 
+/// Dynamic qubit management helper functions. These are currently only used by
+/// the NVQIR simulator.
+static constexpr const char QIRisDynamicQubitManagement[] =
+    "__quantum__rt__is_dynamic_qubit_management";
+static constexpr const char QIRsetDynamicQubitManagement[] =
+    "__quantum__rt__set_dynamic_qubit_management";
+
 /// QIR Base/Adaptive Profile record output function names
 static constexpr const char QIRRecordOutput[] =
     "__quantum__rt__result_record_output";
+
+/// Custom NVQIR method to cleanup result maps in between consecutive programs.
+static constexpr const char QIRClearResultMaps[] =
+    "__quantum__rt__clear_result_maps";
 
 inline mlir::Type getQuantumTypeByName(mlir::StringRef type,
                                        mlir::MLIRContext *context) {

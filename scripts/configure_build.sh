@@ -26,7 +26,7 @@ if [ "$1" == "install-cuda" ]; then
     CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
 
 # [>CUDAInstall]
-    CUDA_VERSION=11.8
+    CUDA_VERSION=${CUDA_VERSION:-11.8}
     CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
     # Go to the url above, set the variables below to a suitable distribution
     # and subfolder for your platform, and uncomment the line below.
@@ -43,7 +43,7 @@ if [ "$1" == "install-cudart" ]; then
     CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
 
 # [>CUDARTInstall]
-    CUDA_VERSION=11.8
+    CUDA_VERSION=${CUDA_VERSION:-11.8}
     CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
     # Go to the url above, set the variables below to a suitable distribution
     # and subfolder for your platform, and uncomment the line below.
@@ -52,17 +52,22 @@ if [ "$1" == "install-cudart" ]; then
     version_suffix=$(echo ${CUDA_VERSION} | tr . -)
     dnf config-manager --add-repo "${CUDA_DOWNLOAD_URL}/${DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-${DISTRIBUTION}.repo"
     dnf install -y --nobest --setopt=install_weak_deps=False \
-        cuda-nvtx-${version_suffix} cuda-cudart-${version_suffix} \
-        libcusolver-${version_suffix} libcublas-${version_suffix}
+        cuda-cudart-${version_suffix} \
+        libcusolver-${version_suffix} \
+        libcublas-${version_suffix}
+    if [ $(echo ${CUDA_VERSION} | cut -d . -f1) -gt 11 ]; then 
+        dnf install -y --nobest --setopt=install_weak_deps=False \
+            libnvjitlink-${version_suffix}
+    fi
 # [<CUDARTInstall]
 fi
 
 if [ "$1" == "install-cuquantum" ]; then
-    CUDA_VERSION=11.8
+    CUDA_VERSION=${CUDA_VERSION:-11.8}
     CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
 
 # [>cuQuantumInstall]
-    CUQUANTUM_VERSION=24.03.0.4
+    CUQUANTUM_VERSION=24.08.0.5
     CUQUANTUM_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum
 
     cuquantum_archive=cuquantum-linux-${CUDA_ARCH_FOLDER}-${CUQUANTUM_VERSION}_cuda$(echo ${CUDA_VERSION} | cut -d . -f1)-archive.tar.xz
@@ -74,11 +79,11 @@ if [ "$1" == "install-cuquantum" ]; then
 fi
 
 if [ "$1" == "install-cutensor" ]; then
-    CUDA_VERSION=11.8
+    CUDA_VERSION=${CUDA_VERSION:-11.8}
     CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
 
 # [>cuTensorInstall]
-    CUTENSOR_VERSION=2.0.1.2
+    CUTENSOR_VERSION=2.0.2.5
     CUTENSOR_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cutensor/redist/libcutensor
 
     cutensor_archive=libcutensor-linux-${CUDA_ARCH_FOLDER}-${CUTENSOR_VERSION}-archive.tar.xz
@@ -91,29 +96,28 @@ fi
 
 if [ "$1" == "install-gcc" ]; then
 # [>gccInstall]
-    GCC_VERSION=11
+    GCC_VERSION=${GCC_VERSION:-11}
     dnf install -y --nobest --setopt=install_weak_deps=False \
         gcc-toolset-${GCC_VERSION}
+    # Enabling the toolchain globally is only needed for debug builds
+    # to ensure that the correct assembler is picked to process debug symbols.
+    enable_script=`find / -path '*gcc*' -path '*'$GCC_VERSIONS'*' -name enable`
+    if [ -n "$enable_script" ]; then
+        . "$enable_script"
+    fi
 # [<gccInstall]
 fi
 
 # [>ToolchainConfiguration]
-GCC_INSTALL_PREFIX=/opt/rh/gcc-toolset-11
-export CXX="${GCC_INSTALL_PREFIX}/root/usr/bin/g++"
-export CC="${GCC_INSTALL_PREFIX}/root/usr/bin/gcc"
-export FC="${GCC_INSTALL_PREFIX}/root/usr/bin/gfortran"
+export GCC_TOOLCHAIN=/opt/rh/gcc-toolset-11/root/usr/
+export CXX="${GCC_TOOLCHAIN}/bin/g++"
+export CC="${GCC_TOOLCHAIN}/bin/gcc"
 export CUDACXX=/usr/local/cuda/bin/nvcc
+export CUDAHOSTCXX="${GCC_TOOLCHAIN}/bin/g++"
 # [<ToolchainConfiguration]
 
-if [ "$1" == "install-prereqs" ]; then
-    export LDFLAGS="-static-libgcc -static-libstdc++"
-    export LLVM_PROJECTS='clang;lld;mlir'
-    this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
-    bash "$this_file_dir/install_prerequisites.sh"
-fi
-
 if [ "$1" == "build-openmpi" ]; then
-    source $GCC_INSTALL_PREFIX/enable
+    source "${GCC_TOOLCHAIN}/../../enable"
 
 # [>OpenMPIBuild]
     OPENMPI_VERSION=4.1.4

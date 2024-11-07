@@ -15,18 +15,20 @@
 # Check the output for any tests that were skipped.
 
 # E.g. run the command 
-#   source validate_wheel.sh -w /tmp/cuda_quantum-*.whl -f /tmp -p 3.10 
+#   source validate_wheel.sh -w /tmp/cuda_quantum*.whl -f /tmp -p 3.10 -c 11
 # in a container (with GPU support) defined by:
 #
 # ARG base_image=ubuntu:22.04
 # FROM ${base_image}
-# ARG cuda_quantum_wheel=cuda_quantum-0.6.0-cp310-cp310-manylinux_2_28_x86_64.whl
+# ARG cuda_quantum_wheel=cuda_quantum_cu11-0.8.0-cp310-cp310-manylinux_2_28_x86_64.whl
 # COPY $cuda_quantum_wheel /tmp/$cuda_quantum_wheel
 # COPY scripts/validate_wheel.sh validate_wheel.sh
 # COPY docs/sphinx/examples/python /tmp/examples/
+# COPY docs/sphinx/applications/python /tmp/applications/
+# COPY docs/sphinx/targets/python /tmp/targets/
 # COPY docs/sphinx/snippets/python /tmp/snippets/
 # COPY python/tests /tmp/tests/
-# COPY python/README.md /tmp/README.md
+# COPY python/README.md.in /tmp/README.md
 # RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates vim wget openssh-client
 
 __optind__=$OPTIND
@@ -50,6 +52,7 @@ while getopts ":f:p:qw:" opt; do
 done
 OPTIND=$__optind__
 
+# FIXME: check validation with src dist (subsequent PR)
 readme_file="$root_folder/README.md"
 if [ ! -d "$root_folder" ] || [ ! -f "$readme_file" ] ; then
     echo -e "\e[01;31mDid not find Python root folder. Please pass the folder containing the README and test with -f.\e[0m" >&2
@@ -71,8 +74,8 @@ fi
 # Execute instructions from the README file
 conda_script="$(awk '/(Begin conda install)/{flag=1;next}/(End conda install)/{flag=0}flag' "$readme_file" | grep . | sed '/^```/d')" 
 while IFS= read -r line; do
-    line=${line//3.10/$python_version}
-    line=${line//pip install cuda-quantum/pip install "$cudaq_wheel"}
+    line=$(echo $line | sed -E "s/python(=)?3.[0-9]{1,}/python\13.10/g")
+    line=$(echo $line | sed -E "s/pip install cuda-quantum-cu[0-9]{2}/pip install \"${cudaq_wheel//\//\\/}\"/g")
     if [ -n "$(echo $line | grep "conda activate")" ]; then
         conda_env=$(echo "$line" | sed "s#conda activate##" | tr -d '[:space:]')
         source $(conda info --base)/bin/activate $conda_env
@@ -153,7 +156,7 @@ for ex in `find "$root_folder/snippets" -name '*.py'`; do
 done
 
 # Run examples
-for ex in `find "$root_folder/examples" -name '*.py' -not -path '*/providers/*'`; do
+for ex in `find "$root_folder/examples" "$root_folder/applications" "$root_folder/targets" -name '*.py'`; do
     python3 "$ex"
     if [ ! $? -eq 0 ]; then
         echo -e "\e[01;31mFailed to execute $ex.\e[0m" >&2
@@ -166,7 +169,8 @@ done
 # Note that a derivative of this code is in
 # docs/sphinx/using/backends/platform.rst, so if you update it here, you need to
 # check if any docs updates are needed.
-cudaq_location=`python3 -m pip show cuda-quantum | grep -e 'Location: .*$'`
+cudaq_package=`python3 -m pip list | grep -oE 'cuda-quantum-cu[0-9]{2}'`
+cudaq_location=`python3 -m pip show ${cudaq_package} | grep -e 'Location: .*$'`
 qpud_py="${cudaq_location#Location: }/bin/cudaq-qpud.py"
 if [ -x "$(command -v nvidia-smi)" ]; 
 then nr_gpus=`nvidia-smi --list-gpus | wc -l`

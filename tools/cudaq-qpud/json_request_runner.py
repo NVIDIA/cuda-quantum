@@ -163,11 +163,11 @@ if __name__ == "__main__":
             'errorMessage': error_message
         }
     finally:
-        if cudaq.mpi.is_initialized():
-            cudaq.mpi.finalize()
-
         # Only rank 0 prints the result
         if not (cudaq.mpi.is_initialized()) or (cudaq.mpi.rank() == 0):
             with open(jsonFile, 'w') as fp:
                 json.dump(result, fp)
                 fp.flush()
+
+        if cudaq.mpi.is_initialized():
+            cudaq.mpi.finalize()

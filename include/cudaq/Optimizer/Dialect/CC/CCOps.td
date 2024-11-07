@@ -787,11 +787,17 @@ def cc_AllocaOp : CCOp<"alloca", [
     MemoryEffects<[MemAlloc<AutomaticAllocationScopeResource>]>]> {
   let summary = "Allocate a dynamic block of memory on the stack.";
   let description = [{
-    The AllocaOp is similar to the C library `alloca()` function. The number of
-    bytes to be allocated is computed by the size of the `elementType` (which
-    may not have a non-positive size) times `seqSize` if present or `1` if
-    `seqSize` is omitted. This returns a pointer to the first element in the
-    allocated sequence of `seqSize` elements of `elementType`.
+    The AllocaOp is similar to the C library `alloca()` function. It allocates
+    a block of memory on the stack. The memory is undefined/poison until it is
+    explicitly initialized.
+
+    The number of bytes to be allocated is computed by the size of the
+    `elementType` (which may not have a non-positive size) times `seqSize` if
+    present or `1` if `seqSize` is omitted.
+
+    The result is a pointer to the first element in the allocated sequence of
+    `seqSize` elements of `elementType`. Each subsequent element (if any) will
+    be at the next succeeding naturally aligned memory location.
   }];
 
   let arguments = (ins
@@ -1433,6 +1439,49 @@ def cc_CallCallableOp : CCOp<"call_callable", [CallOpInterface]> {
   }];
 }
 
+def cc_CallIndirectCallableOp : CCOp<"call_indirect_callable",
+    [CallOpInterface]> {
+  let summary = "Call a C++ callable, unresolved, at run-time.";
+  let description = [{
+    This effectively connects a call from one kernel to another kernel, which
+    would have been done at link-time in host code, at run-time on the device
+    side. This allows calls between kernels defined in separate compilation
+    units. The definitions of these caller/callee functions are not both present
+    at compile-time, so they are exposed to the CUDAQ runtime for stitching or
+    LTO at JIT compile time.
+  }];
+
+  let arguments = (ins
+    cc_IndirectCallableType:$callee,
+    Variadic<AnyType>:$args
+  );
+  let results = (outs Variadic<AnyType>:$results);
+  let hasVerifier = 1;
+  let hasCanonicalizer = 1;
+
+  let assemblyFormat = [{
+    $callee (`,` $args^)? `:` functional-type(operands, results) attr-dict
+  }];
+
+  let extraClassDeclaration = [{
+    /// Get the argument operands to the called function.
+    operand_range getArgOperands() {
+      return {arg_operand_begin(), arg_operand_end()};
+    }
+
+    operand_iterator arg_operand_begin() { return ++operand_begin(); }
+    operand_iterator arg_operand_end() { return operand_end(); }
+
+    /// Return the callee of this operation.
+    mlir::CallInterfaceCallable getCallableForCallee() { return getCallee(); }
+
+    mlir::FunctionType getFunctionType() {
+      return mlir::FunctionType::get(getContext(), getOperands().getType(),
+        getResults().getTypes());
+    }
+  }];
+}
+
 def cc_InstantiateCallableOp : CCOp<"instantiate_callable", [Pure]> {
   let summary = "Construction of a callable object.";
   let description = [{
@@ -1598,4 +1647,52 @@ def cc_CreateStringLiteralOp : CCOp<"string_literal"> {
      $stringLiteral `:` qualified(type(results)) attr-dict
   }];
 }
+
+def cc_ArgumentSubstitutionOp : CCOp<"arg_subst",
+  [IsolatedFromAbove, NoRegionArguments, NoTerminator, SingleBlock]> {
+  let summary = "An argument substition.";
+  let description = [{
+    This operation is used to define computations to produce a particular value.
+    The last Op in the block is the result and specifies the result type.
+    The code in the block will be substituted into a FuncOp to replace an
+    argument. The argument is erased from the function's signature, specializing
+    the function into a new function of reduced arity. (Typically, all arguments
+    are erased turning the function into a nullary.)
+
+    For example, given a function
+    ```mlir
+      func.func @foo(%arg0: i32, %arg1: f32) ...
+    ```
+    and a set of argument substitutions for the scalar arguments
+    ```mlir
+      cc.arg_subst[0] {
+        %c42_i32 = arith.constant 42 : i32
+      }
+      cc.arg_subst[1] {
+        %cst = arith.constant 3.100000e+00 : f32
+      }
+    ```
+    the argument synthesis pass can substitute the arguments and create a new
+    nullary function
+    ```mlir
+      func.func @foo() {
+        %arg0 = arith.constant 42 : i32
+        %arg1 = arith.constant 3.1 : f32
+        ...
+    ```
+
+    Each arg_subst can hold an arbitrary block of code, allowing for the
+    construction of non-trivial values.
+
+    See also the `argument-synthesis` pass.
+  }];
+
+  let arguments = (ins
+    ConfinedAttr<I32Attr, [IntNonNegative]>:$position
+  );
+  let regions = (region SizedRegion<1>:$body);
+
+  let assemblyFormat = "`[` $position `]` $body attr-dict";
+}
+
 #endif // CUDAQ_OPTIMIZER_DIALECT_CC_OPS

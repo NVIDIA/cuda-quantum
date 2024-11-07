@@ -29,10 +29,14 @@ LogicalResult UnitaryBuilder::build(func::FuncOp func) {
   auto result = func.walk([&](Operation *op) {
     if (auto nullWireOp = dyn_cast<quake::NullWireOp>(op))
       return allocateQubits(nullWireOp.getResult());
+    if (auto borrowOp = dyn_cast<quake::BorrowWireOp>(op))
+      return allocateQubits(borrowOp.getResult());
     if (auto allocOp = dyn_cast<quake::AllocaOp>(op))
       return allocateQubits(allocOp.getResult());
     if (auto extractOp = dyn_cast<quake::ExtractRefOp>(op))
       return visitExtractOp(extractOp);
+    if (auto unwrapOp = dyn_cast<quake::UnwrapOp>(op))
+      return visitUnwrapOp(unwrapOp);
     if (auto optor = dyn_cast<quake::OperatorInterface>(op)) {
       optor.getOperatorMatrix(matrix);
       // If the operator couldn't produce a matrix, stop the walk.
@@ -96,6 +100,13 @@ WalkResult UnitaryBuilder::visitExtractOp(quake::ExtractRefOp op) {
   }
   auto [entry, _] = qubitMap.try_emplace(op.getResult());
   entry->second.push_back(qubits[index]);
+  return WalkResult::advance();
+}
+
+WalkResult UnitaryBuilder::visitUnwrapOp(quake::UnwrapOp op) {
+  ArrayRef<unsigned> qubits = qubitMap[op.getOperand()];
+  auto [entry, _] = qubitMap.try_emplace(op.getResult());
+  entry->second.push_back(qubits.front());
   return WalkResult::advance();
 }
 

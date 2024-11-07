@@ -24,7 +24,7 @@
 
 ARG base_image=ubuntu:22.04
 ARG cudaqdev_image=ghcr.io/nvidia/cuda-quantum-dev:latest
-FROM $cudaqdev_image as cudaqbuild
+FROM $cudaqdev_image AS cudaqbuild
 
 # Unfortunately, there is no way to use the environment variables defined in the dev image
 # to determine where to copy files from. See also e.g. https://github.com/moby/moby/issues/37345
@@ -117,9 +117,10 @@ RUN adduser --disabled-password --gecos '' cudaq && adduser cudaq sudo \
 ENV PATH="$PATH:/home/cudaq/.local/bin"
 
 ADD ./docs/sphinx/examples/ /home/cudaq/examples/
+ADD ./docs/sphinx/applications/ /home/cudaq/applications/
+ADD ./docs/sphinx/targets/ /home/cudaq/targets/
 ADD ./docker/release/README.md /home/cudaq/README.md
-RUN mv /home/cudaq/examples/python/tutorials /home/cudaq/tutorial \
-    && chown -R cudaq /home/cudaq && chgrp -R cudaq /home/cudaq
+RUN chown -R cudaq /home/cudaq && chgrp -R cudaq /home/cudaq
 
 USER cudaq
 WORKDIR /home/cudaq

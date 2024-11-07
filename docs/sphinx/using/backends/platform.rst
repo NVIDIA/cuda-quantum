@@ -15,11 +15,10 @@ QPUs for asynchronous CUDA-Q kernel and :code:`cudaq::` function invocations.
 Each available QPU is assigned a logical index, and programmers can launch
 specific asynchronous function invocations targeting a desired QPU.
 
+.. _mqpu-platform:
 
 NVIDIA `MQPU` Platform
 ++++++++++++++++++++++
-
-.. _mqpu-platform:
 
 In the multi-QPU mode (:code:`mqpu` option), the NVIDIA target provides a simulated QPU for every available NVIDIA GPU on the underlying system. 
 Each QPU is simulated via a `cuStateVec` simulator backend as defined by the NVIDIA target. For more information about using multiple GPUs 
@@ -50,7 +49,8 @@ Here is a simple example demonstrating its usage.
         ./a.out
 
 CUDA-Q exposes asynchronous versions of the default :code:`cudaq` algorithmic
-primitive functions like :code:`sample` and :code:`observe` (e.g., :code:`sample_async` function in the above code snippets).
+primitive functions like :code:`sample`, :code:`observe`, and :code:`get_state` 
+(e.g., :code:`sample_async` function in the above code snippets).
 
 Depending on the number of GPUs available on the system, the :code:`nvidia` multi-QPU platform will create the same number of virtual QPU instances.
 For example, on a system with 4 GPUs, the above code will distribute the four sampling tasks among those :code:`GPUEmulatedQPU` instances.
@@ -70,6 +70,30 @@ The results might look like the following 4 different random samplings:
   By default, the :code:`nvidia` multi-QPU platform will utilize all available GPUs (number of QPUs instances is equal to the number of GPUs).
   To specify the number QPUs to be instantiated, one can set the :code:`CUDAQ_MQPU_NGPUS` environment variable.
   For example, use :code:`export CUDAQ_MQPU_NGPUS=2` to specify that only 2 QPUs (GPUs) are needed.
+
+Since the underlying :code:`GPUEmulatedQPU` is a simulator backend, we can also retrieve the state vector from each
+QPU via the :code:`cudaq::get_state_async` (C++) or :code:`cudaq.get_state_async` (Python) as shown in the bellow code snippets.
+
+.. tab:: Python
+
+    .. literalinclude:: ../../snippets/python/using/cudaq/platform/get_state_async.py
+        :language: python
+        :start-after: [Begin Documentation]
+
+.. tab:: C++
+
+    .. literalinclude:: ../../snippets/cpp/using/cudaq/platform/get_state_async.cpp
+        :language: cpp
+        :start-after: [Begin Documentation]
+        :end-before: [End Documentation]
+
+
+    One can specify the target multi-QPU architecture with the :code:`--target` flag:
+    
+    .. code-block:: console
+
+        nvq++ get_state_async.cpp --target nvidia --target-option mqpu
+        ./a.out
 
 .. deprecated:: 0.8
     The :code:`nvidia-mqpu` and :code:`nvidia-mqpu-fp64` targets, which are equivalent to the multi-QPU options `mgpu,fp32` and `mgpu,fp64`, respectively, of the :code:`nvidia` target, are deprecated and will be removed in a future release.
@@ -268,3 +292,50 @@ language constructs within quantum kernels may not yet be fully supported.
      - `std::vector<std::vector<int>>`, `std::vector<cudaq::pauli_word>`, etc. 
      - Number of top-level elements (as a 64-bit integer) followed sizes in bytes of element vectors (as a contiguous array of 64-bit integers) then serialized data of the inner vectors.
      
+For CUDA-Q kernels that return a value, the remote platform supports returning simple data types of 
+`bool`, integral (e.g., `int` or `std::size_t`), and floating-point types (`float` or `double`) 
+when MLIR-based compilation is enabled (:code:`--enable-mlir`).
+
+Accessing Simulated Quantum State
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The remote `MQPU` platform supports accessing simulator backend's state vector via the 
+`cudaq::get_state` (C++) or `cudaq.get_state` (Python) APIs, similar to local simulator backends.
+
+State data can be retrieved as a full state vector or as individual basis states' amplitudes.
+The later is designed for large quantum states, which incurred data transfer overheads.
+
+.. tab:: Python
+
+    .. code:: python 
+        
+        state = cudaq.get_state(kernel)
+        amplitudes = state.amplitudes(['0000', '1111'])
+        
+.. tab:: C++
+
+    .. code-block:: cpp
+        
+        auto state = cudaq::get_state(kernel)
+        auto amplitudes = state.amplitudes({{0, 0, 0, 0}, {1, 1, 1, 1}});
+
+In the above example, the amplitudes of the two requested states are returned.
+
+For C++ quantum kernels [*]_ compiled with the CUDA-Q MLIR-based compiler and Python kernels,
+state accessor is evaluated in a just-in-time/on-demand manner, and hence can be customize to
+users' need.
+
+For instance, in the above amplitude access example, if the state vector is very large, e.g.,
+multi-GPU distributed state vectors or tensor-network encoded quantum states, the full state vector
+will not be retrieved when `get_state` is called. Instead, when the `amplitudes` accessor is called,
+a specific amplitude calculation request will be sent to the server. 
+Thus, only the amplitudes of those basis states will be computed and returned. 
+
+Similarly, for state overlap calculation, if deferred state evaluation is available (Python/MLIR-based compiler)
+for both of the operand quantum states, a custom overlap calculation request will be constructed and sent to the server.
+Only the final overlap result will be returned, thereby eliminating back-and-forth state data transfers. 
+
+.. [*] Only C++ quantum kernels whose names are available via run-time type information (RTTI) are supported.
+    For example, quantum kernels expressed as named `struct` are supported but not standalone functions.
+    Kernels that do not have deferred state evaluation support will perform synchronous `get_state`, whereby the full state
+    vector is returned from the server immediately.   

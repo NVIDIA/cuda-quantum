@@ -12,11 +12,23 @@
 
 #include <array>
 #include <complex>
+#include <functional>
 #include <math.h>
 #include <unordered_map>
 #include <vector>
 
 namespace cudaq {
+
+/// @brief Noise model enumerated type that allows downstream simulators of
+/// `kraus_channel` objects to apply simulator-specific logic for well-known
+/// noise models.
+enum class noise_model_type {
+  unknown,
+  depolarization_channel,
+  amplitude_damping_channel,
+  bit_flip_channel,
+  phase_flip_channel
+};
 
 /// @brief A kraus_op represents a single Kraus operation,
 /// described as a complex matrix of specific size. The matrix
@@ -106,6 +118,12 @@ protected:
   }
 
 public:
+  /// @brief Noise type enumeration
+  noise_model_type noise_type = noise_model_type::unknown;
+
+  /// @brief Noise parameter values
+  std::vector<real> parameters;
+
   ~kraus_channel() = default;
 
   /// @brief The nullary constructor
@@ -158,6 +176,13 @@ public:
 /// to a Kraus channel containing a number of kraus_ops to
 /// be applied to the density matrix representation of the state.
 class noise_model {
+public:
+  /// @brief Callback function type for noise channel.
+  /// Given the qubit operands and gate parameters, this function should return
+  /// a concrete noise channel.
+  using PredicateFuncTy = std::function<kraus_channel(
+      const std::vector<std::size_t> &, const std::vector<double> &)>;
+
 protected:
   /// @brief Noise Model data map key is a (quantum Op + qubits applied to)
   using KeyT = std::pair<std::string, std::vector<std::size_t>>;
@@ -179,12 +204,46 @@ protected:
   using NoiseModelOpMap =
       std::unordered_map<KeyT, std::vector<kraus_channel>, KeyTHash>;
 
-  static constexpr const char *availableOps[] = {
-      "x", "y", "z", "h", "s", "t", "rx", "ry", "rz", "r1", "u3"};
-
   // The noise model is a mapping of quantum operation
   // names to a Kraus channel applied after the operation is applied.
   NoiseModelOpMap noiseModel;
+
+  /// @brief Gate identity for a match-all condition.
+  // In this case, it will match an operation with any qubits.
+  // The controlled versions of a gate are tracked by the number of control
+  // qubits.
+  struct GateIdentifier {
+    std::string name;
+    std::size_t numControls;
+    bool operator==(const GateIdentifier &other) const {
+      return other.name == name && other.numControls == numControls;
+    };
+  };
+
+  // In addition to specific (gate + operands) map, we have a default map,
+  // which tracks noise channels attached to all operations of that type.
+  // This map is keyed by the gate-name + number of control bits, e.g., x(1)
+  // means cnot.
+  struct GateIdentifierHash {
+    std::size_t operator()(const GateIdentifier &p) const {
+      const std::string fullName =
+          p.name + "(" + std::to_string(p.numControls) + ")";
+      return std::hash<std::string>{}(fullName);
+    }
+  };
+
+  /// @brief Useful typedef for the noise model data map
+  using DefaultNoiseModelOpMap =
+      std::unordered_map<GateIdentifier, std::vector<kraus_channel>,
+                         GateIdentifierHash>;
+  /// @brief  Matched-all noise channel map
+  DefaultNoiseModelOpMap defaultNoiseModel;
+
+  /// @brief Noise model by callback function map
+  std::unordered_map<std::string, PredicateFuncTy> gatePredicates;
+
+  static constexpr const char *availableOps[] = {
+      "x", "y", "z", "h", "s", "t", "rx", "ry", "rz", "r1", "u3"};
 
 public:
   /// @brief default constructor
@@ -192,7 +251,10 @@ public:
 
   /// @brief Return true if there are no kraus_channels in this noise model.
   /// @return
-  bool empty() const { return noiseModel.empty(); }
+  bool empty() const {
+    return noiseModel.empty() && defaultNoiseModel.empty() &&
+           gatePredicates.empty();
+  }
 
   /// @brief Add the Kraus channel to the specified one-qubit quantum
   /// operation. It applies to the quantumOp operation for the specified
@@ -200,11 +262,25 @@ public:
   void add_channel(const std::string &quantumOp,
                    const std::vector<std::size_t> &qubits,
                    const kraus_channel &channel);
-  void add_channel(const std::string &quantumOp,
-                   const std::vector<std::size_t> &&qubits,
-                   const kraus_channel &channel) {
-    add_channel(quantumOp, qubits, channel);
-  }
+
+  /// @brief Add the Kraus channel as a callback to the specified quantum
+  /// operation.
+  // The callback function will be called with the gate operands and gate
+  // parameters whenever the specified quantum operation is executed. The
+  // callback function should return a concrete noise channel. This can be an
+  // empty noise channel if no noise is expected.
+  /// @param quantumOp Quantum operation that the noise channel applies to.
+  /// @param pred Callback function that generates a noise channel.
+  void add_channel(const std::string &quantumOp, const PredicateFuncTy &pred);
+
+  /// @brief Add the Kraus channel that applies to a quantum operation on any
+  /// arbitrary qubits.
+  /// @param quantumOp Quantum operation that the noise channel applies to.
+  /// @param channel The Kraus channel to apply.
+  /// @param numControls Number of control qubits for the gate. Default is 0
+  /// (gate without a control modifier).
+  void add_all_qubit_channel(const std::string &quantumOp,
+                             const kraus_channel &channel, int numControls = 0);
 
   /// @brief Add the provided kraus_channel to all
   /// specified quantum operations.
@@ -219,19 +295,48 @@ public:
       add_channel(name, qubits, channel);
   }
 
+  /// @brief Add the provided kraus_channel callback to all
+  /// specified quantum operations.
+  template <typename... QuantumOp>
+  void add_channel(const PredicateFuncTy &pred) {
+    std::vector<std::string> names;
+    std::apply(
+        [&](const auto &...elements) { (names.push_back(elements.name), ...); },
+        std::tuple<QuantumOp...>());
+    for (auto &name : names)
+      add_channel(name, pred);
+  }
+
+  /// @brief Add the provided kraus_channel to all
+  /// specified quantum operations applying on arbitrary qubits.
+  template <typename... QuantumOp>
+  void add_all_qubit_channel(const kraus_channel &channel,
+                             int numControls = 0) {
+    std::vector<std::string> names;
+    std::apply(
+        [&](const auto &...elements) { (names.push_back(elements.name), ...); },
+        std::tuple<QuantumOp...>());
+    for (auto &name : names)
+      add_all_qubit_channel(name, channel, numControls);
+  }
+
   /// @brief Return relevant kraus_channels on the specified qubits for
   // the given quantum operation. This will merge Kraus channels
   // that exists for the same quantumOp and qubits.
   std::vector<kraus_channel>
   get_channels(const std::string &quantumOp,
-               const std::vector<std::size_t> &qubits) const;
+               const std::vector<std::size_t> &targetQubits,
+               const std::vector<std::size_t> &controlQubits = {},
+               const std::vector<double> &params = {}) const;
 
   /// @brief Get all kraus_channels on the given qubits
   template <typename QuantumOp>
   std::vector<kraus_channel>
-  get_channels(const std::vector<std::size_t> &qubits) const {
+  get_channels(const std::vector<std::size_t> &targetQubits,
+               const std::vector<std::size_t> &controlQubits = {},
+               const std::vector<double> &params = {}) const {
     QuantumOp op;
-    return get_channels(op.name, qubits);
+    return get_channels(op.name, targetQubits, controlQubits, params);
   }
 };
 
@@ -252,6 +357,8 @@ public:
         k3v{std::sqrt(probability / three), 0, 0,
             negOne * std::sqrt(probability / three)};
     ops = {k0v, k1v, k2v, k3v};
+    this->parameters.push_back(probability);
+    noise_type = noise_model_type::depolarization_channel;
     validateCompleteness();
   }
 };
@@ -265,6 +372,8 @@ public:
     std::vector<cudaq::complex> k0v{1, 0, 0, std::sqrt(1 - probability)},
         k1v{0, std::sqrt(probability), 0, 0};
     ops = {k0v, k1v};
+    this->parameters.push_back(probability);
+    noise_type = noise_model_type::amplitude_damping_channel;
     validateCompleteness();
   }
 };
@@ -279,6 +388,8 @@ public:
                                     std::sqrt(1 - probability)},
         k1v{0, std::sqrt(probability), std::sqrt(probability), 0};
     ops = {k0v, k1v};
+    this->parameters.push_back(probability);
+    noise_type = noise_model_type::bit_flip_channel;
     validateCompleteness();
   }
 };
@@ -294,6 +405,8 @@ public:
                                     std::sqrt(1 - probability)},
         k1v{std::sqrt(probability), 0, 0, negOne * std::sqrt(probability)};
     ops = {k0v, k1v};
+    this->parameters.push_back(probability);
+    noise_type = noise_model_type::phase_flip_channel;
     validateCompleteness();
   }
 };

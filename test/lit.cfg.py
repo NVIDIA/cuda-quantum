@@ -7,18 +7,12 @@
 # ============================================================================ #
 
 import os
-import platform
-import re
-import subprocess
-import sys
 import bisect
 
 import lit.formats
 import lit.util
 
 from lit.llvm import llvm_config
-from lit.llvm.subst import ToolSubst
-from lit.llvm.subst import FindTool
 
 # Configuration file for the 'lit' test runner.
 
@@ -32,7 +26,7 @@ config.name = 'CUDAQ'
 config.test_format = lit.formats.ShTest(not llvm_config.use_lit_shell)
 
 # A list of file extensions to treat as test files.
-config.suffixes = ['.cpp', '.ll', '.mlir', '.qke', '.config']
+config.suffixes = ['.cpp', '.ll', '.mlir', '.qke']
 
 config.substitutions.append(('%PATH%', config.environment['PATH']))
 config.substitutions.append(('%llvmshlibdir', config.llvm_shlib_dir))

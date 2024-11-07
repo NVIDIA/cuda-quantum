@@ -10,6 +10,7 @@
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "llvm/TargetParser/Host.h"
 #include "llvm/TargetParser/Triple.h"
 #include "mlir/IR/Matchers.h"
 
@@ -17,15 +18,26 @@ using namespace mlir;
 
 namespace cudaq::opt {
 
+// The common small struct limit for architectures cudaq is supporting.
+static constexpr unsigned CommonSmallStructSize = 128;
+
 bool factory::isX86_64(ModuleOp module) {
-  auto ta = module->getAttr(targetTripleAttrName);
-  llvm::Triple tr(cast<StringAttr>(ta).str());
+  std::string triple;
+  if (auto ta = module->getAttr(targetTripleAttrName))
+    triple = cast<StringAttr>(ta).str();
+  else
+    triple = llvm::sys::getDefaultTargetTriple();
+  llvm::Triple tr(triple);
   return tr.getArch() == llvm::Triple::x86_64;
 }
 
 bool factory::isAArch64(ModuleOp module) {
-  auto ta = module->getAttr(targetTripleAttrName);
-  llvm::Triple tr(cast<StringAttr>(ta).str());
+  std::string triple;
+  if (auto ta = module->getAttr(targetTripleAttrName))
+    triple = cast<StringAttr>(ta).str();
+  else
+    triple = llvm::sys::getDefaultTargetTriple();
+  llvm::Triple tr(triple);
   return tr.getArch() == llvm::Triple::aarch64;
 }
 
@@ -34,6 +46,8 @@ static Type genBufferType(Type ty) {
   auto *ctx = ty.getContext();
   if (isa<cudaq::cc::CallableType>(ty))
     return cudaq::cc::PointerType::get(ctx);
+  if (isa<cudaq::cc::IndirectCallableType>(ty))
+    return IntegerType::get(ctx, 64);
   if (auto vecTy = dyn_cast<cudaq::cc::SpanLikeType>(ty)) {
     auto i64Ty = IntegerType::get(ctx, 64);
     if (isOutput) {
@@ -291,33 +305,6 @@ cc::LoopOp factory::createMonotonicLoop(
   return loop;
 }
 
-// FIXME: some ABIs may return a small struct in registers rather than via an
-// sret pointer.
-//
-// On x86_64,
-//   pair of:  argument         return value    packed from msb to lsb
-//    i32   :   i64              i64             (second, first)
-//    i64   :   i64, i64         { i64, i64 }
-//    f32   :   <2 x float>      <2 x float>
-//    f64   :   double, double   { double, double }
-//
-// On aarch64,
-//   pair of:  argument         return value    packed from msb to lsb
-//    i32   :   i64              i64             (second, first)
-//    i64   :   [2 x i64]        [2 x i64]
-//    f32   :   [2 x float]      { float, float }
-//    f64   :   [2 x double]     { double, double }
-bool factory::hasHiddenSRet(FunctionType funcTy) {
-  // If a function has more than 1 result, the results are promoted to a
-  // structured return argument. Otherwise, if there is 1 result and it is an
-  // aggregate type, then it is promoted to a structured return argument.
-  auto numResults = funcTy.getNumResults();
-  return numResults > 1 ||
-         (numResults == 1 && funcTy.getResult(0)
-                                 .isa<cc::SpanLikeType, cc::StructType,
-                                      cc::ArrayType, cc::CallableType>());
-}
-
 cc::StructType factory::stlStringType(MLIRContext *ctx) {
   auto i8Ty = IntegerType::get(ctx, 8);
   auto ptrI8Ty = cc::PointerType::get(i8Ty);
@@ -350,8 +337,8 @@ Type factory::getSRetElementType(FunctionType funcTy) {
   auto *ctx = funcTy.getContext();
   if (funcTy.getNumResults() > 1)
     return cc::StructType::get(ctx, funcTy.getResults());
-  if (isa<cc::SpanLikeType>(funcTy.getResult(0)))
-    return getDynamicBufferType(ctx);
+  if (auto spanTy = dyn_cast<cc::SpanLikeType>(funcTy.getResult(0)))
+    return stlVectorType(spanTy.getElementType());
   return funcTy.getResult(0);
 }
 
@@ -359,6 +346,8 @@ static Type convertToHostSideType(Type ty) {
   if (auto memrefTy = dyn_cast<cc::StdvecType>(ty))
     return convertToHostSideType(
         factory::stlVectorType(memrefTy.getElementType()));
+  if (isa<cc::IndirectCallableType>(ty))
+    return cc::PointerType::get(IntegerType::get(ty.getContext(), 8));
   if (auto memrefTy = dyn_cast<cc::CharspanType>(ty)) {
     // `pauli_word` is an object with a std::vector in the header files at
     // present. This data type *must* be updated if it becomes a std::string
@@ -390,33 +379,50 @@ static Type convertToHostSideType(Type ty) {
 // function tries to simulate GCC argument passing conventions. classify() also
 // has a number of FIXME comments, where it diverges from the referenced ABI.
 // Empirical evidence show that on x86_64, integers and floats are packed in
-// integers of size 32 or 64 together, unless the float member fits by itself.
+// integers of size 8, 16, 24, 32 or 64 together, unless the float member fits
+// by itself.
 static bool shouldExpand(SmallVectorImpl<Type> &packedTys,
-                         cc::StructType structTy) {
+                         cc::StructType structTy, unsigned scaling = 8) {
   if (structTy.isEmpty())
     return false;
   auto *ctx = structTy.getContext();
   unsigned bits = 0;
+  const auto scaleBy = scaling - 1;
+  auto scaleBits = [&](unsigned size) {
+    if (size < 32)
+      size = (size + scaleBy) & ~scaleBy;
+    if (size > 32 && size <= 64)
+      size = 64;
+    return size;
+  };
 
   // First split the members into a "lo" set and a "hi" set.
   SmallVector<Type> set1;
   SmallVector<Type> set2;
   for (auto ty : structTy.getMembers()) {
     if (auto intTy = dyn_cast<IntegerType>(ty)) {
-      bits += intTy.getWidth();
-      if (bits <= 64)
+      auto addBits = scaleBits(intTy.getWidth());
+      if (bits + addBits <= 64) {
+        bits += addBits;
         set1.push_back(ty);
-      else
+      } else {
+        bits = std::max(bits, 64u) + addBits;
         set2.push_back(ty);
+      }
     } else if (auto fltTy = dyn_cast<FloatType>(ty)) {
-      bits += fltTy.getWidth();
-      if (bits <= 64)
+      auto addBits = fltTy.getWidth();
+      if (bits + addBits <= 64) {
+        bits += addBits;
         set1.push_back(ty);
-      else
+      } else {
+        bits = std::max(bits, 64u) + addBits;
         set2.push_back(ty);
+      }
     } else {
       return false;
     }
+    if (bits > CommonSmallStructSize)
+      return false;
   }
 
   // Process the sets. If the set has anything integral, use integer. If the set
@@ -428,12 +434,23 @@ static bool shouldExpand(SmallVectorImpl<Type> &packedTys,
         return true;
     return false;
   };
+  auto intSetSize = [&](auto theSet) {
+    unsigned size = 0;
+    for (auto ty : theSet)
+      size += scaleBits(ty.getIntOrFloatBitWidth());
+    return size;
+  };
   auto processMembers = [&](auto theSet, unsigned packIdx) {
     if (useInt(theSet)) {
-      packedTys[packIdx] = IntegerType::get(ctx, bits > 32 ? 64 : 32);
+      auto size = intSetSize(theSet);
+      if (size <= 32)
+        packedTys[packIdx] = IntegerType::get(ctx, size);
+      else
+        packedTys[packIdx] = IntegerType::get(ctx, 64);
     } else if (theSet.size() == 1) {
       packedTys[packIdx] = theSet[0];
     } else {
+      assert(theSet[0] == FloatType::getF32(ctx) && "must be float");
       packedTys[packIdx] =
           VectorType::get(ArrayRef<std::int64_t>{2}, theSet[0]);
     }
@@ -441,15 +458,59 @@ static bool shouldExpand(SmallVectorImpl<Type> &packedTys,
   assert(!set1.empty() && "struct must have members");
   packedTys.resize(set2.empty() ? 1 : 2);
   processMembers(set1, 0);
-  if (!set2.empty())
-    processMembers(set2, 1);
+  if (set2.empty())
+    return false;
+  processMembers(set2, 1);
   return true;
+}
+
+bool factory::hasSRet(func::FuncOp funcOp) {
+  if (funcOp.getNumArguments() > 0)
+    if (auto dict = funcOp.getArgAttrDict(0))
+      return dict.contains(LLVM::LLVMDialect::getStructRetAttrName());
+  return false;
+}
+
+// On x86_64,
+//   pair of:  argument         return value    packed from msb to lsb
+//    i32   :   i64              i64             (second, first)
+//    i64   :   i64, i64         { i64, i64 }
+//    f32   :   <2 x float>      <2 x float>
+//    f64   :   double, double   { double, double }
+//    ptr   :   ptr, ptr         { ptr, ptr }
+//
+// On aarch64,
+//   pair of:  argument         return value    packed from msb to lsb
+//    i32   :   i64              i64             (second, first)
+//    i64   :   [2 x i64]        [2 x i64]
+//    f32   :   [2 x float]      { float, float }
+//    f64   :   [2 x double]     { double, double }
+//    ptr   :   [2 x i64]        [2 x i64]
+bool factory::hasHiddenSRet(FunctionType funcTy) {
+  // If a function has more than 1 result, the results are promoted to a
+  // structured return argument. Otherwise, if there is 1 result and it is an
+  // aggregate type, then it is promoted to a structured return argument.
+  auto numResults = funcTy.getNumResults();
+  if (numResults == 0)
+    return false;
+  if (numResults > 1)
+    return true;
+  auto resTy = funcTy.getResult(0);
+  if (resTy.isa<cc::SpanLikeType, cc::ArrayType, cc::CallableType>())
+    return true;
+  if (auto strTy = dyn_cast<cc::StructType>(resTy)) {
+    SmallVector<Type> packedTys;
+    bool inRegisters = shouldExpand(packedTys, strTy) || !packedTys.empty();
+    return !inRegisters;
+  }
+  return false;
 }
 
 bool factory::structUsesTwoArguments(mlir::Type ty) {
   // Unchecked! This is only valid if target is X86-64.
   auto structTy = dyn_cast<cc::StructType>(ty);
-  if (!structTy || structTy.getBitSize() == 0 || structTy.getBitSize() > 128)
+  if (!structTy || structTy.getBitSize() == 0 ||
+      structTy.getBitSize() > CommonSmallStructSize)
     return false;
   SmallVector<Type> unused;
   return shouldExpand(unused, structTy);
@@ -465,6 +526,17 @@ static bool onlyArithmeticMembers(cc::StructType structTy) {
   return true;
 }
 
+// Unchecked precondition: structTy must be entirely arithmetic.
+static unsigned getLargestWidth(cc::StructType structTy) {
+  unsigned largest = 8;
+  for (auto ty : structTy.getMembers()) {
+    auto width = ty.getIntOrFloatBitWidth();
+    if (width > largest)
+      largest = width;
+  }
+  return largest;
+}
+
 // When the kernel comes from a class, there is always a default `this` argument
 // to the kernel entry function. The CUDA-Q spec doesn't allow the kernel
 // object to contain data members (yet), so we can ignore the `this` pointer.
@@ -473,18 +545,50 @@ FunctionType factory::toHostSideFuncType(FunctionType funcTy, bool addThisPtr,
   auto *ctx = funcTy.getContext();
   SmallVector<Type> inputTys;
   bool hasSRet = false;
-  if (factory::hasHiddenSRet(funcTy)) {
-    // When the kernel is returning a std::vector<T> result, the result is
-    // returned via a sret argument in the first position. When this argument
-    // is added, the this pointer becomes the second argument. Both are opaque
-    // pointers at this point.
-    auto eleTy = convertToHostSideType(getSRetElementType(funcTy));
-    inputTys.push_back(cc::PointerType::get(eleTy));
-    hasSRet = true;
+  Type resultTy;
+  auto i64Ty = IntegerType::get(ctx, 64);
+  if (funcTy.getNumResults() == 1)
+    if (auto strTy = dyn_cast<cc::StructType>(funcTy.getResult(0)))
+      if (strTy.getBitSize() != 0 &&
+          strTy.getBitSize() <= CommonSmallStructSize) {
+        if (isX86_64(module)) {
+          // X86_64: Byte addressable scaling (packed registers). Default is a
+          // struct.
+          SmallVector<Type, 2> packedTys;
+          if (shouldExpand(packedTys, strTy) || !packedTys.empty()) {
+            if (packedTys.size() == 1)
+              resultTy = packedTys[0];
+            else
+              resultTy = cc::StructType::get(ctx, packedTys);
+          }
+        } else if (isAArch64(module) && onlyArithmeticMembers(strTy)) {
+          // AARCH64: Padded registers. Default is a two-element array.
+          unsigned largest = getLargestWidth(strTy);
+          SmallVector<Type, 2> packedTys;
+          if (shouldExpand(packedTys, strTy, largest) || !packedTys.empty()) {
+            if (packedTys.size() == 1)
+              resultTy = packedTys[0];
+            else
+              resultTy = cc::ArrayType::get(ctx, packedTys[0], 2);
+          }
+        }
+      }
+  if (!resultTy && funcTy.getNumResults()) {
+    if (factory::hasHiddenSRet(funcTy)) {
+      // When the kernel is returning a std::vector<T> result, the result is
+      // returned via a sret argument in the first position. When this argument
+      // is added, the this pointer becomes the second argument. Both are opaque
+      // pointers at this point.
+      auto eleTy = convertToHostSideType(getSRetElementType(funcTy));
+      inputTys.push_back(cc::PointerType::get(eleTy));
+      hasSRet = true;
+    } else {
+      assert(funcTy.getNumResults() == 1);
+      resultTy = funcTy.getResult(0);
+    }
   }
   // If this kernel is a plain old function or a static member function, we
   // don't want to add a hidden `this` argument.
-  auto i64Ty = IntegerType::get(ctx, 64);
   auto ptrTy = cc::PointerType::get(IntegerType::get(ctx, 8));
   if (addThisPtr)
     inputTys.push_back(ptrTy);
@@ -496,10 +600,15 @@ FunctionType factory::toHostSideFuncType(FunctionType funcTy, bool addThisPtr,
       // On x86_64 and aarch64, a struct that is smaller than 128 bits may be
       // passed in registers as separate arguments. See classifyArgumentType()
       // in CodeGen/TargetInfo.cpp.
-      if (strTy.getBitSize() != 0 && strTy.getBitSize() <= 128) {
+      if (strTy.getBitSize() != 0 &&
+          strTy.getBitSize() <= CommonSmallStructSize) {
         if (isX86_64(module)) {
           SmallVector<Type, 2> packedTys;
           if (shouldExpand(packedTys, strTy)) {
+            for (auto ty : packedTys)
+              inputTys.push_back(ty);
+            continue;
+          } else if (!packedTys.empty()) {
             for (auto ty : packedTys)
               inputTys.push_back(ty);
             continue;
@@ -508,10 +617,16 @@ FunctionType factory::toHostSideFuncType(FunctionType funcTy, bool addThisPtr,
           assert(isAArch64(module) && "aarch64 expected");
           if (onlyArithmeticMembers(strTy)) {
             // Empirical evidence shows that on aarch64, arguments are packed
-            // into a single i64 or a [2 x i64] typed value based on the size of
-            // the struct. This is regardless of whether the value(s) are
-            // floating-point or not.
-            if (strTy.getBitSize() > 64)
+            // into a single i64 or a [2 x i64] typed value based on the size
+            // of the struct. The exception is when there are 2 elements and
+            // they are both float or both double.
+            if ((strTy.getMembers().size() == 2) &&
+                (strTy.getMember(0) == strTy.getMember(1)) &&
+                ((strTy.getMember(0) == Float32Type::get(ctx)) ||
+                 (strTy.getMember(0) == Float64Type::get(ctx))))
+              inputTys.push_back(
+                  cc::ArrayType::get(ctx, strTy.getMember(0), 2));
+            else if (strTy.getBitSize() > 64)
               inputTys.push_back(cc::ArrayType::get(ctx, i64Ty, 2));
             else
               inputTys.push_back(i64Ty);
@@ -529,8 +644,8 @@ FunctionType factory::toHostSideFuncType(FunctionType funcTy, bool addThisPtr,
   // and it hasn't been converted to a hidden sret argument.
   if (funcTy.getNumResults() == 0 || hasSRet)
     return FunctionType::get(ctx, inputTys, {});
-  assert(funcTy.getNumResults() == 1);
-  return FunctionType::get(ctx, inputTys, funcTy.getResults());
+  assert(funcTy.getNumResults() == 1 && resultTy);
+  return FunctionType::get(ctx, inputTys, resultTy);
 }
 
 bool factory::isStdVecArg(Type type) {
@@ -568,6 +683,59 @@ Value factory::createCast(OpBuilder &builder, Location loc, Type toType,
   return builder.create<cudaq::cc::CastOp>(loc, toType, fromValue,
                                            signExtend ? unit : none,
                                            zeroExtend ? unit : none);
+}
+
+std::vector<std::complex<double>>
+factory::readGlobalConstantArray(cudaq::cc::GlobalOp &global) {
+  std::vector<std::complex<double>> result{};
+
+  auto attr = global.getValue();
+  auto elementsAttr = cast<mlir::ElementsAttr>(attr.value());
+  auto eleTy = elementsAttr.getElementType();
+  auto values = elementsAttr.getValues<mlir::Attribute>();
+
+  for (auto it = values.begin(); it != values.end(); ++it) {
+    auto valAttr = *it;
+
+    auto v = [&]() -> std::complex<double> {
+      if (isa<FloatType>(eleTy))
+        return {cast<FloatAttr>(valAttr).getValue().convertToDouble(),
+                static_cast<double>(0.0)};
+      if (isa<IntegerType>(eleTy))
+        return {static_cast<double>(cast<IntegerAttr>(valAttr).getInt()),
+                static_cast<double>(0.0)};
+      assert(isa<ComplexType>(eleTy));
+      auto arrayAttr = cast<mlir::ArrayAttr>(valAttr);
+      auto real = cast<FloatAttr>(arrayAttr[0]).getValue().convertToDouble();
+      auto imag = cast<FloatAttr>(arrayAttr[1]).getValue().convertToDouble();
+      return {real, imag};
+    }();
+
+    result.push_back(v);
+  }
+  return result;
+}
+
+std::pair<mlir::func::FuncOp, bool>
+factory::getOrAddFunc(mlir::Location loc, mlir::StringRef funcName,
+                      mlir::FunctionType funcTy, mlir::ModuleOp module) {
+  auto func = module.lookupSymbol<func::FuncOp>(funcName);
+  if (func) {
+    if (!func.empty()) {
+      // Already lowered function func, skip it.
+      return {func, /*defined=*/true};
+    }
+    // Function was declared but not defined.
+    return {func, /*defined=*/false};
+  }
+  // Function not found, so add it to the module.
+  OpBuilder build(module.getBodyRegion());
+  OpBuilder::InsertionGuard guard(build);
+  build.setInsertionPointToEnd(module.getBody());
+  SmallVector<NamedAttribute> attrs;
+  func = build.create<func::FuncOp>(loc, funcName, funcTy, attrs);
+  func.setPrivate();
+  return {func, /*defined=*/false};
 }
 
 } // namespace cudaq::opt

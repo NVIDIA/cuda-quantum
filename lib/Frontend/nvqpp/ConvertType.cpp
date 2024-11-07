@@ -22,12 +22,6 @@ static bool isArithmeticType(Type t) {
   return isa<IntegerType, FloatType, ComplexType>(t);
 }
 
-/// Is \p t a quantum reference type. In the bridge, quantum types are always
-/// reference types.
-static bool isQuantumType(Type t) {
-  return isa<quake::VeqType, quake::RefType>(t);
-}
-
 /// Allow `array of [array of]* T`, where `T` is arithmetic.
 static bool isStaticArithmeticSequenceType(Type t) {
   if (auto vec = dyn_cast<cudaq::cc::ArrayType>(t)) {
@@ -119,6 +113,8 @@ static bool isKernelSignatureType(FunctionType t);
 static bool isKernelCallable(Type t) {
   if (auto lambdaTy = dyn_cast<cudaq::cc::CallableType>(t))
     return isKernelSignatureType(lambdaTy.getSignature());
+  if (auto lambdaTy = dyn_cast<cudaq::cc::IndirectCallableType>(t))
+    return isKernelSignatureType(lambdaTy.getSignature());
   return false;
 }
 
@@ -142,7 +138,8 @@ static bool isKernelResultType(Type t) {
 /// (function), or a string.
 static bool isKernelArgumentType(Type t) {
   return isArithmeticType(t) || isComposedArithmeticType(t) ||
-         isQuantumType(t) || isKernelCallable(t) || isFunctionCallable(t) ||
+         quake::isQuantumReferenceType(t) || isKernelCallable(t) ||
+         isFunctionCallable(t) ||
          // TODO: move from pointers to a builtin string type.
          cudaq::isCharPointerType(t);
 }
@@ -221,6 +218,17 @@ bool QuakeBridgeVisitor::TraverseRecordType(clang::RecordType *t) {
   return true;
 }
 
+std::pair<std::uint64_t, unsigned>
+QuakeBridgeVisitor::getWidthAndAlignment(clang::RecordDecl *x) {
+  auto *defn = x->getDefinition();
+  assert(defn && "struct must be defined here");
+  auto *ty = defn->getTypeForDecl();
+  if (ty->isDependentType())
+    return {0, 0};
+  auto ti = getContext()->getTypeInfo(ty);
+  return {ti.Width, llvm::PowerOf2Ceil(ti.Align) / 8};
+}
+
 bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
   assert(!x->isLambda() && "expected lambda to be handled in traverse");
   // Note that we're generating a Type on the type stack.
@@ -230,21 +238,93 @@ bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
   auto *ctx = builder.getContext();
   if (!x->getDefinition())
     return pushType(cc::StructType::get(ctx, name, /*isOpaque=*/true));
+
   SmallVector<Type> fieldTys =
       lastTypes(std::distance(x->field_begin(), x->field_end()));
-  auto [width, alignInBytes] = [&]() -> std::pair<std::uint64_t, unsigned> {
-    auto *defn = x->getDefinition();
-    assert(defn && "struct must be defined here");
-    auto *ty = defn->getTypeForDecl();
-    if (ty->isDependentType())
-      return {0, 0};
-    auto ti = getContext()->getTypeInfo(ty);
-    return {ti.Width, llvm::PowerOf2Ceil(ti.Align) / 8};
+  auto [width, alignInBytes] = getWidthAndAlignment(x);
+  bool isStruq = !fieldTys.empty();
+  for (auto ty : fieldTys)
+    if (!quake::isQuantumReferenceType(ty))
+      isStruq = false;
+
+  auto ty = [&]() -> Type {
+    if (isStruq)
+      return quake::StruqType::get(ctx, fieldTys);
+    if (name.empty())
+      return cc::StructType::get(ctx, fieldTys, width, alignInBytes);
+    return cc::StructType::get(ctx, name, fieldTys, width, alignInBytes);
   }();
-  if (name.empty())
-    return pushType(cc::StructType::get(ctx, fieldTys, width, alignInBytes));
-  return pushType(
-      cc::StructType::get(ctx, name, fieldTys, width, alignInBytes));
+
+  // Do some error analysis on the product type. Check the following:
+
+  // - If this is a struq:
+  if (isa<quake::StruqType>(ty)) {
+    // -- does it contain invalid C++ types?
+    for (auto *field : x->fields()) {
+      auto *ty = field->getType().getTypePtr();
+      bool isRef = false;
+      if (ty->isLValueReferenceType()) {
+        auto *lref = cast<clang::LValueReferenceType>(ty);
+        isRef = true;
+        ty = lref->getPointeeType().getTypePtr();
+      }
+      if (auto *tyDecl = ty->getAsRecordDecl()) {
+        if (auto *ident = tyDecl->getIdentifier()) {
+          auto name = ident->getName();
+          if (isInNamespace(tyDecl, "cudaq")) {
+            if (isRef) {
+              // can be owning container; so can be qubit, qarray, or qvector
+              if ((name.equals("qudit") || name.equals("qubit") ||
+                   name.equals("qvector") || name.equals("qarray")))
+                continue;
+            }
+            // must be qview or qview&
+            if (name.equals("qview"))
+              continue;
+          }
+        }
+      }
+      reportClangError(x, mangler, "quantum struct has invalid member type.");
+    }
+    // -- does it contain contain a struq member? Not allowed.
+    for (auto fieldTy : fieldTys)
+      if (isa<quake::StruqType>(fieldTy))
+        reportClangError(x, mangler,
+                         "recursive quantum struct types are not allowed.");
+  }
+
+  // - Is this a struct does it have quantum types? Not allowed.
+  if (!isa<quake::StruqType>(ty))
+    for (auto fieldTy : fieldTys)
+      if (quake::isQuakeType(fieldTy))
+        reportClangError(
+            x, mangler,
+            "hybrid quantum-classical struct types are not allowed.");
+
+  // - Does this product type have (user-defined) member functions? Not allowed.
+  if (auto *cxxRd = dyn_cast<clang::CXXRecordDecl>(x)) {
+    auto numMethods = [&cxxRd]() {
+      std::size_t count = 0;
+      for (auto methodIter = cxxRd->method_begin();
+           methodIter != cxxRd->method_end(); ++methodIter) {
+        // Don't check if this is a __qpu__ struct method
+        if (auto attr = (*methodIter)->getAttr<clang::AnnotateAttr>();
+            attr && attr->getAnnotation().str() == cudaq::kernelAnnotation)
+          continue;
+        // Check if the method is not implicit (i.e., user-defined)
+        if (!(*methodIter)->isImplicit())
+          count++;
+      }
+      return count;
+    }();
+
+    if (numMethods > 0)
+      reportClangError(
+          x, mangler,
+          "struct with user-defined methods is not allowed in quantum kernel.");
+  }
+
+  return pushType(ty);
 }
 
 bool QuakeBridgeVisitor::VisitFunctionProtoType(clang::FunctionProtoType *t) {
@@ -361,8 +441,8 @@ bool QuakeBridgeVisitor::VisitLValueReferenceType(
   if (t->getPointeeType()->isUndeducedAutoType())
     return pushType(cc::PointerType::get(builder.getContext()));
   auto eleTy = popType();
-  if (isa<cc::CallableType, cc::SpanLikeType, quake::VeqType, quake::RefType>(
-          eleTy))
+  if (isa<cc::CallableType, cc::IndirectCallableType, cc::SpanLikeType,
+          quake::VeqType, quake::RefType>(eleTy))
     return pushType(eleTy);
   return pushType(cc::PointerType::get(eleTy));
 }
@@ -373,8 +453,9 @@ bool QuakeBridgeVisitor::VisitRValueReferenceType(
     return pushType(cc::PointerType::get(builder.getContext()));
   auto eleTy = popType();
   // FIXME: LLVMStructType is promoted as a temporary workaround.
-  if (isa<cc::CallableType, cc::SpanLikeType, cc::ArrayType, cc::StructType,
-          quake::VeqType, quake::RefType, LLVM::LLVMStructType>(eleTy))
+  if (isa<cc::ArrayType, cc::CallableType, cc::IndirectCallableType,
+          cc::SpanLikeType, cc::StructType, quake::VeqType, quake::RefType,
+          LLVM::LLVMStructType>(eleTy))
     return pushType(eleTy);
   return pushType(cc::PointerType::get(eleTy));
 }
@@ -426,14 +507,17 @@ bool QuakeBridgeVisitor::doSyntaxChecks(const clang::FunctionDecl *x) {
   auto astTy = x->getType();
   // Verify the argument and return types are valid for a kernel.
   auto *protoTy = dyn_cast<clang::FunctionProtoType>(astTy.getTypePtr());
-  if (!protoTy) {
-    reportClangError(x, mangler, "kernel must have a prototype");
+  auto syntaxError = [&]<unsigned N>(const char(&msg)[N]) -> bool {
+    reportClangError(x, mangler, msg);
+    [[maybe_unused]] auto ty = popType();
+    LLVM_DEBUG(llvm::dbgs() << "invalid type: " << ty << '\n');
     return false;
-  }
+  };
+  if (!protoTy)
+    return syntaxError("kernel must have a prototype");
   if (protoTy->getNumParams() != funcTy.getNumInputs()) {
     // The arity of the function doesn't match, so report an error.
-    reportClangError(x, mangler, "kernel has unexpected arguments");
-    return false;
+    return syntaxError("kernel has unexpected arguments");
   }
   for (auto [t, p] : llvm::zip(funcTy.getInputs(), x->parameters())) {
     // Structs, lambdas, functions are valid callable objects. Also pure
@@ -441,14 +525,12 @@ bool QuakeBridgeVisitor::doSyntaxChecks(const clang::FunctionDecl *x) {
     if (isKernelArgumentType(t) || isReferenceToCallableRecord(t, p) ||
         isReferenceToCudaqStateType(t))
       continue;
-    reportClangError(p, mangler, "kernel argument type not supported");
-    return false;
+    return syntaxError("kernel argument type not supported");
   }
   for (auto t : funcTy.getResults()) {
     if (isKernelResultType(t))
       continue;
-    reportClangError(x, mangler, "kernel result type not supported");
-    return false;
+    return syntaxError("kernel result type not supported");
   }
   return true;
 }

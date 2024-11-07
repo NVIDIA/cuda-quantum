@@ -520,9 +520,9 @@ std::invoke_result_t<QuantumKernel, Args...> invokeKernel(QuantumKernel &&fn,
     // Just need to JIT code to get it registered.
     static_cast<cudaq::details::kernel_builder_base &>(fn).jitCode();
     auto serializedArgsBuffer = serializeArgs(std::forward<Args>(args)...);
-    cudaq::get_platform().launchKernel(fn.name(), nullptr,
-                                       (void *)serializedArgsBuffer.data(),
-                                       serializedArgsBuffer.size(), 0);
+    [[maybe_unused]] auto result = cudaq::get_platform().launchKernel(
+        fn.name(), nullptr, (void *)serializedArgsBuffer.data(),
+        serializedArgsBuffer.size(), 0, {});
   } else {
     // In library mode, to use the remote simulator platform, we need to pack
     // the argument and delegate to the platform's launchKernel rather than
@@ -537,14 +537,19 @@ std::invoke_result_t<QuantumKernel, Args...> invokeKernel(QuantumKernel &&fn,
     // For raw function pointers, i.e., kernels described as free functions, we
     // send on the function pointer to the platform to retrieve the symbol name
     // since the typeid of a function only contains signature info.
-    if constexpr (std::is_class_v<std::decay_t<QuantumKernel>>)
+    if constexpr (std::is_class_v<std::decay_t<QuantumKernel>>) {
+      // FIXME: this shouldn't use the serialization code any longer. It should
+      // build a vector of void* and pass that instead.
       cudaq::get_platform().launchKernel(cudaq::getKernelName(fn), nullptr,
                                          (void *)serializedArgsBuffer.data(),
-                                         serializedArgsBuffer.size(), 0);
-    else
+                                         serializedArgsBuffer.size(), 0, {});
+    } else {
       cudaq::get_platform().launchKernel(
-          cudaq::getKernelName(fn), reinterpret_cast<void (*)(void *)>(&fn),
-          (void *)serializedArgsBuffer.data(), serializedArgsBuffer.size(), 0);
+          cudaq::getKernelName(fn),
+          reinterpret_cast<cudaq::KernelThunkType>(&fn),
+          (void *)serializedArgsBuffer.data(), serializedArgsBuffer.size(), 0,
+          {});
+    }
   }
 #else
   return fn(std::forward<Args>(args)...);

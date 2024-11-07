@@ -12,9 +12,19 @@
 #include "cudaq/host_config.h"
 #include "cudaq/qis/qubit_qis.h"
 #include <string>
+#include <tuple>
 #include <type_traits>
 
 namespace cudaq {
+namespace details {
+// Test std::tuple layout.
+constexpr bool isTupleRecursivelyDefined() {
+  std::tuple<double, int, char> t;
+  return static_cast<void *>(&std::get<double>(t)) != static_cast<void *>(&t);
+}
+[[maybe_unused]] static bool TupleIsReverse = isTupleRecursivelyDefined();
+} // namespace details
+
 namespace __internal__ {
 std::string demangle_kernel(const char *);
 bool isLibraryMode(const std::string &);
@@ -22,22 +32,36 @@ extern bool globalFalse;
 } // namespace __internal__
 
 /// @brief Given a string kernel name, return the corresponding Quake code
+/// This will throw if the kernel name is unknown to the quake code registry.
 std::string get_quake_by_name(const std::string &kernelName);
+
+/// @brief Given a string kernel name, return the corresponding Quake code.
+/// This overload allows one to specify the known mangled arguments string
+/// in order to disambiguate overloaded kernel names.
+/// This will throw if the kernel name is unknown to the quake code registry.
+std::string get_quake_by_name(const std::string &kernelName,
+                              std::optional<std::string> knownMangledArgs);
+
+/// @brief Given a string kernel name, return the corresponding Quake code.
+// If `throwException` is set, it will throw if the kernel name is unknown to
+// the quake code registry. Otherwise, return an empty string in that case.
+std::string
+get_quake_by_name(const std::string &kernelName, bool throwException,
+                  std::optional<std::string> knownMangledArgs = std::nullopt);
 
 // Simple test to see if the QuantumKernel template
 // type is a `cudaq::builder` with `operator()(Args...)`
 template <class T, class = void>
 struct hasToQuakeMethod : std::false_type {};
 template <class T>
-struct hasToQuakeMethod<
-    T, typename voider<decltype(std::declval<T>().to_quake())>::type>
+struct hasToQuakeMethod<T, std::void_t<decltype(std::declval<T>().to_quake())>>
     : std::true_type {};
 
 template <class T, class = void>
 struct hasCallMethod : std::false_type {};
 template <class T>
 struct hasCallMethod<
-    T, typename voider<decltype(std::declval<T>().operator())>::type>
+    T, typename std::void_t<decltype(std::declval<T>().operator())>>
     : std::true_type {};
 
 namespace internal {
@@ -65,18 +89,14 @@ struct KernelCallArgs<RT (Owner::*)(Args...) const> {
 template <typename QuantumKernel>
 std::string get_kernel_name_from_type() {
   std::string name = typeid(QuantumKernel).name();
-  while (name.size() > 0 && std::isdigit(name[0]))
-    name = name.substr(1);
+  name.erase(0, name.find_first_not_of("0123456789"));
   return name;
 }
 
 template <typename Arg, typename... Args>
 std::string expand_parameter_pack() {
-  if constexpr (sizeof...(Args)) {
-    return get_kernel_name_from_type<Arg>() + expand_parameter_pack<Args...>();
-  } else {
-    return get_kernel_name_from_type<Arg>();
-  }
+  return (get_kernel_name_from_type<Arg>() + ... +
+          get_kernel_name_from_type<Args>());
 }
 } // namespace internal
 
@@ -99,6 +119,7 @@ std::string get_kernel_template_member_name() {
 inline std::string get_kernel_function_name(std::string &&name) {
   return "function_" + std::move(name);
 }
+
 inline std::string get_kernel_function_name(const std::string &name) {
   return "function_" + name;
 }
@@ -110,6 +131,7 @@ std::string get_kernel_template_function_name(std::string &&funcName) {
   std::string name = internal::expand_parameter_pack<Args...>();
   return "instance_function_" + std::move(funcName) + name;
 }
+
 template <typename... Args>
 std::string get_kernel_template_function_name(const std::string &funcName) {
   std::string name = internal::expand_parameter_pack<Args...>();
@@ -181,6 +203,12 @@ std::string get_quake(std::string &&functionName) {
 
 inline std::string get_quake(std::string &&functionName) {
   return get_quake_by_name(get_kernel_function_name(std::move(functionName)));
+}
+
+inline std::string get_quake(std::string &&functionName,
+                             const std::string &knownMangledArgs) {
+  return get_quake_by_name(get_kernel_function_name(std::move(functionName)),
+                           knownMangledArgs);
 }
 
 typedef std::size_t (*KernelArgsCreator)(void **, void **);

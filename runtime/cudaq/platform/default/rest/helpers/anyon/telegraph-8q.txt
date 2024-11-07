@@ -1,0 +1,31 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# The format of the file is as follows:
+# 1. You must specify the number of nodes
+Number of nodes: 8
+
+# 2. Specifying the number of edges is optional
+Number of edges: ?
+
+# 3. For each node, list the connections as:
+# <NodeNumber> --> { <ConnectedNode1>, <ConnectedNode2>, ... }
+# Notes:
+# - Node numbers are 0-based
+# - Each node's info must be entirely on one line.
+# - The nodes and lines do not have to be in order.
+# - Connections are assumed to be bidirectional.
+# - Any duplicates will be automatically removed.
+0 --> {7, 1}
+1 --> {0, 2}
+2 --> {1, 3}
+3 --> {2, 4}
+4 --> {3, 5}
+5 --> {4, 6}
+6 --> {5, 7}
+7 --> {6, 0}

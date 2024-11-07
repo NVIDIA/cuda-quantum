@@ -6,7 +6,9 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --kernel-execution %s | FileCheck %s
+// RUN: cudaq-opt --kernel-execution=codegen=1 %s | FileCheck %s
+// RUN: cudaq-opt --kernel-execution=codegen=2 %s | FileCheck --check-prefix=STREAM %s
+// RUN: cudaq-opt --kernel-execution %s | FileCheck --check-prefix=HYBRID %s
 
 module attributes {quake.mangled_name_map = {
   __nvqpp__mlirgen__ghz = "_ZN3ghzclEi"}} {
@@ -85,30 +87,41 @@ module attributes {quake.mangled_name_map = {
 
 // CHECK-LABEL:   func.func @_ZN3ghzclEi(
 // CHECK-SAME:      %[[VAL_0:.*]]: !cc.ptr<i8>, %[[VAL_1:.*]]: i32) -> f64 {
-// CHECK:           %[[VAL_2:.*]] = cc.undef !cc.struct<{i32, f64}>
-// CHECK:           %[[VAL_3:.*]] = arith.constant 0 : i64
+// CHECK-DAG:       %[[VAL_2:.*]] = cc.undef !cc.struct<{i32, f64}>
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 0 : i64
 // CHECK:           %[[VAL_4:.*]] = cc.insert_value %[[VAL_1]], %[[VAL_2]][0] : (!cc.struct<{i32, f64}>, i32) -> !cc.struct<{i32, f64}>
-// CHECK:           %[[VAL_5:.*]] = cc.cast %[[VAL_3]] : (i64) -> !cc.ptr<!cc.struct<{i32, f64}>>
-// CHECK:           %[[VAL_7:.*]] = cc.sizeof !cc.struct<{i32, f64}> : i64
-// CHECK:           %[[VAL_8:.*]] = arith.addi %[[VAL_7]], %[[VAL_3]] : i64
-// CHECK:           %[[VAL_9:.*]] = cc.alloca i8[%[[VAL_8]] : i64]
-// CHECK:           %[[VAL_10:.*]] = cc.cast %[[VAL_9]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<!cc.struct<{i32, f64}>>
-// CHECK:           cc.store %[[VAL_4]], %[[VAL_10]] : !cc.ptr<!cc.struct<{i32, f64}>>
-// CHECK:           %[[VAL_11:.*]] = cc.cast %[[VAL_9]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<!cc.array<!cc.struct<{i32, f64}> x ?>>
-// CHECK:           %[[VAL_12:.*]] = llvm.mlir.addressof @ghz.kernelName : !llvm.ptr<array<4 x i8>>
-// CHECK:           %[[VAL_13:.*]] = constant @ghz.thunk : (!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>
-// CHECK:           %[[VAL_14:.*]] = cc.cast %[[VAL_12]] : (!llvm.ptr<array<4 x i8>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_15:.*]] = cc.func_ptr %[[VAL_13]] : ((!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_16:.*]] = cc.cast %[[VAL_11]] : (!cc.ptr<!cc.array<!cc.struct<{i32, f64}> x ?>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_17:.*]] = cc.compute_ptr %[[VAL_5]][1] : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<f64>
-// CHECK:           %[[VAL_18:.*]] = cc.cast %[[VAL_17]] : (!cc.ptr<f64>) -> i64
-// CHECK:           call @altLaunchKernel(%[[VAL_14]], %[[VAL_15]], %[[VAL_16]], %[[VAL_8]], %[[VAL_18]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> ()
-// CHECK:           %[[VAL_19:.*]] = cc.compute_ptr %[[VAL_11]][0, 1] : (!cc.ptr<!cc.array<!cc.struct<{i32, f64}> x ?>>) -> !cc.ptr<f64>
-// CHECK:           %[[VAL_20:.*]] = cc.load %[[VAL_19]] : !cc.ptr<f64>
-// CHECK:           return %[[VAL_20]] : f64
+// CHECK:           %[[VAL_5:.*]] = cc.sizeof !cc.struct<{i32, f64}> : i64
+// CHECK:           %[[VAL_6:.*]] = arith.addi %[[VAL_5]], %[[VAL_3]] : i64
+// CHECK:           %[[VAL_7:.*]] = cc.alloca i8{{\[}}%[[VAL_6]] : i64]
+// CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_7]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<!cc.struct<{i32, f64}>>
+// CHECK:           cc.store %[[VAL_4]], %[[VAL_8]] : !cc.ptr<!cc.struct<{i32, f64}>>
+// CHECK:           %[[VAL_9:.*]] = cc.cast %[[VAL_7]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<!cc.array<!cc.struct<{i32, f64}> x ?>>
+// CHECK:           %[[VAL_10:.*]] = constant @ghz.thunk : (!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// CHECK:           %[[VAL_11:.*]] = cc.func_ptr %[[VAL_10]] : ((!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_12:.*]] = cc.cast %[[VAL_9]] : (!cc.ptr<!cc.array<!cc.struct<{i32, f64}> x ?>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_13:.*]] = cc.offsetof !cc.struct<{i32, f64}> [1] : i64
+// CHECK:           %[[VAL_14:.*]] = llvm.mlir.addressof @ghz.kernelName : !llvm.ptr<array<4 x i8>>
+// CHECK:           %[[VAL_15:.*]] = cc.cast %[[VAL_14]] : (!llvm.ptr<array<4 x i8>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_16:.*]] = call @altLaunchKernel(%[[VAL_15]], %[[VAL_11]], %[[VAL_12]], %[[VAL_6]], %[[VAL_13]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// CHECK:           %[[VAL_17:.*]] = cc.extract_value %[[VAL_16]][0] : (!cc.struct<{!cc.ptr<i8>, i64}>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_18:.*]] = cc.cast %[[VAL_17]] : (!cc.ptr<i8>) -> i64
+// CHECK:           %[[VAL_19:.*]] = arith.constant 0 : i64
+// CHECK:           %[[VAL_20:.*]] = arith.cmpi ne, %[[VAL_18]], %[[VAL_19]] : i64
+// CHECK:           cf.cond_br %[[VAL_20]], ^bb1, ^bb2
+// CHECK:         ^bb1:
+// CHECK:           %[[VAL_21:.*]] = cc.cast %[[VAL_17]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.struct<{i32, f64}>>
+// CHECK:           %[[VAL_22:.*]] = cc.compute_ptr %[[VAL_21]][1] : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<f64>
+// CHECK:           cf.br ^bb3(%[[VAL_22]] : !cc.ptr<f64>)
+// CHECK:         ^bb2:
+// CHECK:           %[[VAL_23:.*]] = cc.compute_ptr %[[VAL_9]][0, 1] : (!cc.ptr<!cc.array<!cc.struct<{i32, f64}> x ?>>) -> !cc.ptr<f64>
+// CHECK:           cf.br ^bb3(%[[VAL_23]] : !cc.ptr<f64>)
+// CHECK:         ^bb3(%[[VAL_24:.*]]: !cc.ptr<f64>):
+// CHECK:           %[[VAL_25:.*]] = cc.compute_ptr %[[VAL_9]][0, 1] : (!cc.ptr<!cc.array<!cc.struct<{i32, f64}> x ?>>) -> !cc.ptr<f64>
+// CHECK:           %[[VAL_26:.*]] = cc.load %[[VAL_25]] : !cc.ptr<f64>
+// CHECK:           return %[[VAL_26]] : f64
 // CHECK:         }
 
-// CHECK:         func.func private @altLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64)
+// CHECK:         func.func private @altLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // CHECK:         func.func private @cudaqRegisterKernelName(!cc.ptr<i8>)
 
 // CHECK:         llvm.mlir.global external constant @ghz.kernelName("ghz\00") {addr_space = 0 : i32}
@@ -130,8 +143,8 @@ module attributes {quake.mangled_name_map = {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @ghz.argsCreator(
-// CHECK-SAME:                               %[[VAL_0:.*]]: !cc.ptr<!cc.ptr<i8>>,
-// CHECK-SAME:                               %[[VAL_1:.*]]: !cc.ptr<!cc.ptr<i8>>) -> i64 {
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.ptr<!cc.ptr<i8>>,
+// CHECK-SAME:      %[[VAL_1:.*]]: !cc.ptr<!cc.ptr<i8>>) -> i64 {
 // CHECK:           %[[VAL_2:.*]] = cc.undef !cc.struct<{i32, f64}>
 // CHECK:           %[[VAL_14:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<!cc.ptr<i8>>) -> !cc.ptr<!cc.array<!cc.ptr<i8> x ?>>
 // CHECK:           %[[VAL_3:.*]] = arith.constant 0 : i64
@@ -157,3 +170,87 @@ module attributes {quake.mangled_name_map = {
 // CHECK:           func.call @cudaqRegisterArgsCreator(%[[VAL_1]], %[[VAL_3]]) : (!cc.ptr<i8>, !cc.ptr<i8>) -> ()
 // CHECK:           llvm.return
 // CHECK:         }
+
+
+// STREAM-LABEL:   func.func @_ZN3ghzclEi(
+// STREAM-SAME:      %[[VAL_0:.*]]: !cc.ptr<i8>, %[[VAL_1:.*]]: i32) -> f64 {
+// STREAM:           %[[VAL_2:.*]] = cc.alloca !cc.struct<{!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>}>
+// STREAM:           %[[VAL_3:.*]] = cc.alloca !cc.array<!cc.ptr<i8> x 1>
+// STREAM:           %[[VAL_4:.*]] = cc.sizeof !cc.array<!cc.ptr<i8> x 1> : i64
+// STREAM:           %[[VAL_5:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<!cc.ptr<i8> x 1>>) -> !cc.ptr<!cc.ptr<i8>>
+// STREAM:           %[[VAL_6:.*]] = cc.cast %[[VAL_2]] : (!cc.ptr<!cc.struct<{!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>}>>) -> !cc.ptr<!cc.ptr<!cc.ptr<i8>>>
+// STREAM:           cc.store %[[VAL_5]], %[[VAL_6]] : !cc.ptr<!cc.ptr<!cc.ptr<i8>>>
+// STREAM:           %[[VAL_7:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<!cc.ptr<i8> x 1>>) -> i64
+// STREAM:           %[[VAL_8:.*]] = arith.addi %[[VAL_7]], %[[VAL_4]] : i64
+// STREAM:           %[[VAL_9:.*]] = cc.cast %[[VAL_8]] : (i64) -> !cc.ptr<!cc.ptr<i8>>
+// STREAM:           %[[VAL_10:.*]] = cc.compute_ptr %[[VAL_2]][1] : (!cc.ptr<!cc.struct<{!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>}>>) -> !cc.ptr<!cc.ptr<!cc.ptr<i8>>>
+// STREAM:           cc.store %[[VAL_9]], %[[VAL_10]] : !cc.ptr<!cc.ptr<!cc.ptr<i8>>>
+// STREAM:           %[[VAL_11:.*]] = cc.compute_ptr %[[VAL_2]][2] : (!cc.ptr<!cc.struct<{!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>}>>) -> !cc.ptr<!cc.ptr<!cc.ptr<i8>>>
+// STREAM:           cc.store %[[VAL_9]], %[[VAL_11]] : !cc.ptr<!cc.ptr<!cc.ptr<i8>>>
+// STREAM:           %[[VAL_14:.*]] = cc.compute_ptr %[[VAL_3]][0] : (!cc.ptr<!cc.array<!cc.ptr<i8> x 1>>) -> !cc.ptr<!cc.ptr<i8>>
+// STREAM:           %[[VAL_15:.*]] = cc.alloca i32
+// STREAM:           cc.store %[[VAL_1]], %[[VAL_15]] : !cc.ptr<i32>
+// STREAM:           %[[VAL_16:.*]] = cc.cast %[[VAL_15]] : (!cc.ptr<i32>) -> !cc.ptr<i8>
+// STREAM:           cc.store %[[VAL_16]], %[[VAL_14]] : !cc.ptr<!cc.ptr<i8>>
+// STREAM:           %[[VAL_19:.*]] = cc.cast %[[VAL_2]] : (!cc.ptr<!cc.struct<{!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>}>>) -> !cc.ptr<i8>
+// STREAM:           %[[VAL_20:.*]] = llvm.mlir.addressof @ghz.kernelName : !llvm.ptr<array<4 x i8>>
+// STREAM:           %[[VAL_21:.*]] = cc.cast %[[VAL_20]] : (!llvm.ptr<array<4 x i8>>) -> !cc.ptr<i8>
+// STREAM:           call @streamlinedLaunchKernel(%[[VAL_21]], %[[VAL_19]]) : (!cc.ptr<i8>, !cc.ptr<i8>) -> ()
+// STREAM:           %[[VAL_22:.*]] = cc.undef f64
+// STREAM:           return %[[VAL_22]] : f64
+// STREAM:         }
+
+// HYBRID-LABEL:   func.func @_ZN3ghzclEi(
+// HYBRID-SAME:      %[[VAL_0:.*]]: !cc.ptr<i8>, %[[VAL_1:.*]]: i32) -> f64 {
+// HYBRID:           %[[VAL_2:.*]] = cc.undef !cc.struct<{i32, f64}>
+// HYBRID:           %[[VAL_3:.*]] = arith.constant 0 : i64
+// HYBRID:           %[[VAL_4:.*]] = cc.insert_value %[[VAL_1]], %[[VAL_2]][0] : (!cc.struct<{i32, f64}>, i32) -> !cc.struct<{i32, f64}>
+// HYBRID:           %[[VAL_5:.*]] = cc.sizeof !cc.struct<{i32, f64}> : i64
+// HYBRID:           %[[VAL_6:.*]] = arith.addi %[[VAL_5]], %[[VAL_3]] : i64
+// HYBRID:           %[[VAL_7:.*]] = cc.alloca i8{{\[}}%[[VAL_6]] : i64]
+// HYBRID:           %[[VAL_8:.*]] = cc.cast %[[VAL_7]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<!cc.struct<{i32, f64}>>
+// HYBRID:           cc.store %[[VAL_4]], %[[VAL_8]] : !cc.ptr<!cc.struct<{i32, f64}>>
+// HYBRID:           %[[VAL_9:.*]] = cc.cast %[[VAL_7]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<!cc.array<!cc.struct<{i32, f64}> x ?>>
+// HYBRID:           %[[VAL_10:.*]] = constant @ghz.thunk : (!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// HYBRID:           %[[VAL_11:.*]] = cc.func_ptr %[[VAL_10]] : ((!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>) -> !cc.ptr<i8>
+// HYBRID:           %[[VAL_12:.*]] = cc.cast %[[VAL_9]] : (!cc.ptr<!cc.array<!cc.struct<{i32, f64}> x ?>>) -> !cc.ptr<i8>
+// HYBRID:           %[[VAL_13:.*]] = cc.offsetof !cc.struct<{i32, f64}> [1] : i64
+// HYBRID:           %[[VAL_14:.*]] = cc.alloca !cc.struct<{!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>}>
+// HYBRID:           %[[VAL_15:.*]] = cc.alloca !cc.array<!cc.ptr<i8> x 1>
+// HYBRID:           %[[VAL_16:.*]] = cc.sizeof !cc.array<!cc.ptr<i8> x 1> : i64
+// HYBRID:           %[[VAL_17:.*]] = cc.cast %[[VAL_15]] : (!cc.ptr<!cc.array<!cc.ptr<i8> x 1>>) -> !cc.ptr<!cc.ptr<i8>>
+// HYBRID:           %[[VAL_18:.*]] = cc.cast %[[VAL_14]] : (!cc.ptr<!cc.struct<{!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>}>>) -> !cc.ptr<!cc.ptr<!cc.ptr<i8>>>
+// HYBRID:           cc.store %[[VAL_17]], %[[VAL_18]] : !cc.ptr<!cc.ptr<!cc.ptr<i8>>>
+// HYBRID:           %[[VAL_19:.*]] = cc.cast %[[VAL_15]] : (!cc.ptr<!cc.array<!cc.ptr<i8> x 1>>) -> i64
+// HYBRID:           %[[VAL_20:.*]] = arith.addi %[[VAL_19]], %[[VAL_16]] : i64
+// HYBRID:           %[[VAL_21:.*]] = cc.cast %[[VAL_20]] : (i64) -> !cc.ptr<!cc.ptr<i8>>
+// HYBRID:           %[[VAL_22:.*]] = cc.compute_ptr %[[VAL_14]][1] : (!cc.ptr<!cc.struct<{!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>}>>) -> !cc.ptr<!cc.ptr<!cc.ptr<i8>>>
+// HYBRID:           cc.store %[[VAL_21]], %[[VAL_22]] : !cc.ptr<!cc.ptr<!cc.ptr<i8>>>
+// HYBRID:           %[[VAL_23:.*]] = cc.compute_ptr %[[VAL_14]][2] : (!cc.ptr<!cc.struct<{!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>}>>) -> !cc.ptr<!cc.ptr<!cc.ptr<i8>>>
+// HYBRID:           cc.store %[[VAL_21]], %[[VAL_23]] : !cc.ptr<!cc.ptr<!cc.ptr<i8>>>
+// HYBRID:           %[[VAL_24:.*]] = cc.compute_ptr %[[VAL_15]][0] : (!cc.ptr<!cc.array<!cc.ptr<i8> x 1>>) -> !cc.ptr<!cc.ptr<i8>>
+// HYBRID:           %[[VAL_25:.*]] = cc.alloca i32
+// HYBRID:           cc.store %[[VAL_1]], %[[VAL_25]] : !cc.ptr<i32>
+// HYBRID:           %[[VAL_26:.*]] = cc.cast %[[VAL_25]] : (!cc.ptr<i32>) -> !cc.ptr<i8>
+// HYBRID:           cc.store %[[VAL_26]], %[[VAL_24]] : !cc.ptr<!cc.ptr<i8>>
+// HYBRID:           %[[VAL_27:.*]] = cc.cast %[[VAL_14]] : (!cc.ptr<!cc.struct<{!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>}>>) -> !cc.ptr<i8>
+// HYBRID:           %[[VAL_28:.*]] = llvm.mlir.addressof @ghz.kernelName : !llvm.ptr<array<4 x i8>>
+// HYBRID:           %[[VAL_29:.*]] = cc.cast %[[VAL_28]] : (!llvm.ptr<array<4 x i8>>) -> !cc.ptr<i8>
+// HYBRID:           %[[VAL_30:.*]] = call @hybridLaunchKernel(%[[VAL_29]], %[[VAL_11]], %[[VAL_12]], %[[VAL_6]], %[[VAL_13]], %[[VAL_27]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// HYBRID:           %[[VAL_31:.*]] = cc.extract_value %[[VAL_30]][0] : (!cc.struct<{!cc.ptr<i8>, i64}>) -> !cc.ptr<i8>
+// HYBRID:           %[[VAL_32:.*]] = cc.cast %[[VAL_31]] : (!cc.ptr<i8>) -> i64
+// HYBRID:           %[[VAL_33:.*]] = arith.constant 0 : i64
+// HYBRID:           %[[VAL_34:.*]] = arith.cmpi ne, %[[VAL_32]], %[[VAL_33]] : i64
+// HYBRID:           cf.cond_br %[[VAL_34]], ^bb1, ^bb2
+// HYBRID:         ^bb1:
+// HYBRID:           %[[VAL_35:.*]] = cc.cast %[[VAL_31]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.struct<{i32, f64}>>
+// HYBRID:           %[[VAL_36:.*]] = cc.compute_ptr %[[VAL_35]][1] : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<f64>
+// HYBRID:           cf.br ^bb3(%[[VAL_36]] : !cc.ptr<f64>)
+// HYBRID:         ^bb2:
+// HYBRID:           %[[VAL_37:.*]] = cc.compute_ptr %[[VAL_9]][0, 1] : (!cc.ptr<!cc.array<!cc.struct<{i32, f64}> x ?>>) -> !cc.ptr<f64>
+// HYBRID:           cf.br ^bb3(%[[VAL_37]] : !cc.ptr<f64>)
+// HYBRID:         ^bb3(%[[VAL_38:.*]]: !cc.ptr<f64>):
+// HYBRID:           %[[VAL_39:.*]] = cc.compute_ptr %[[VAL_9]][0, 1] : (!cc.ptr<!cc.array<!cc.struct<{i32, f64}> x ?>>) -> !cc.ptr<f64>
+// HYBRID:           %[[VAL_40:.*]] = cc.load %[[VAL_39]] : !cc.ptr<f64>
+// HYBRID:           return %[[VAL_40]] : f64
+// HYBRID:         }

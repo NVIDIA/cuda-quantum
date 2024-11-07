@@ -57,10 +57,9 @@ public:
   // Conditional feedback is handled by the server side.
   virtual bool supportsConditionalFeedback() override { return true; }
 
-  // By default, the remote capabilities are all enabled. Subtypes may override
-  // this.
+  // Get the capabilities from the client.
   virtual RemoteCapabilities getRemoteCapabilities() const override {
-    return RemoteCapabilities(/*initValues=*/true);
+    return m_client->getRemoteCapabilities();
   }
 
   virtual void setTargetBackend(const std::string &backend) override {
@@ -106,9 +105,26 @@ public:
       throw std::runtime_error("Failed to launch VQE. Error: " + errorMsg);
   }
 
-  void launchKernel(const std::string &name, void (*kernelFunc)(void *),
-                    void *args, std::uint64_t voidStarSize,
-                    std::uint64_t resultOffset) override {
+  void launchKernel(const std::string &name,
+                    const std::vector<void *> &rawArgs) override {
+    [[maybe_unused]] auto dynamicResult =
+        launchKernelImpl(name, nullptr, nullptr, 0, 0, &rawArgs);
+  }
+
+  KernelThunkResultType
+  launchKernel(const std::string &name, KernelThunkType kernelFunc, void *args,
+               std::uint64_t voidStarSize, std::uint64_t resultOffset,
+               const std::vector<void *> &rawArgs) override {
+    // Remote simulation cannot deal with rawArgs. Drop them on the floor.
+    return launchKernelImpl(name, kernelFunc, args, voidStarSize, resultOffset,
+                            nullptr);
+  }
+
+  [[nodiscard]] KernelThunkResultType
+  launchKernelImpl(const std::string &name, KernelThunkType kernelFunc,
+                   void *args, std::uint64_t voidStarSize,
+                   std::uint64_t resultOffset,
+                   const std::vector<void *> *rawArgs) {
     cudaq::info(
         "BaseRemoteSimulatorQPU: Launch kernel named '{}' remote QPU {} "
         "(simulator = {})",
@@ -118,7 +134,7 @@ public:
         getExecutionContextForMyThread();
 
     if (executionContextPtr && executionContextPtr->name == "tracer") {
-      return;
+      return {};
     }
 
     // Default context for a 'fire-and-ignore' kernel launch; i.e., no context
@@ -126,15 +142,52 @@ public:
     // set up a single-shot execution context for this case.
     static thread_local cudaq::ExecutionContext defaultContext("sample",
                                                                /*shots=*/1);
+    // This is a kernel invocation outside the CUDA-Q APIs (sample/observe).
+    const bool isDirectInvocation = !executionContextPtr;
     cudaq::ExecutionContext &executionContext =
         executionContextPtr ? *executionContextPtr : defaultContext;
+
+    // Populate the conditional feedback metadata if this is a direct
+    // invocation (not otherwise populated by cudaq::sample)
+    if (isDirectInvocation)
+      executionContext.hasConditionalsOnMeasureResults =
+          cudaq::kernelHasConditionalFeedback(name);
+
     std::string errorMsg;
     const bool requestOkay = m_client->sendRequest(
         *m_mlirContext, executionContext, /*serializedCodeContext=*/nullptr,
         /*vqe_gradient=*/nullptr, /*vqe_optimizer=*/nullptr, /*vqe_n_params=*/0,
-        m_simName, name, kernelFunc, args, voidStarSize, &errorMsg);
+        m_simName, name, make_degenerate_kernel_type(kernelFunc), args,
+        voidStarSize, &errorMsg, rawArgs);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
+    if (isDirectInvocation &&
+        !executionContext.invocationResultBuffer.empty()) {
+      if (executionContext.invocationResultBuffer.size() + resultOffset >
+          voidStarSize)
+        throw std::runtime_error(
+            "Unexpected result: return type size of " +
+            std::to_string(executionContext.invocationResultBuffer.size()) +
+            " bytes overflows the argument buffer.");
+      // Currently, we only support result buffer serialization on LittleEndian
+      // CPUs (x86, ARM, PPC64LE).
+      // Note: NVQC service will always be using LE. If
+      // the client (e.g., compiled from source) is built for big-endian, we
+      // will throw an error if result buffer data is returned.
+      if (llvm::sys::IsBigEndianHost)
+        throw std::runtime_error(
+            "Serializing the result buffer from a remote kernel invocation is "
+            "not supported for BigEndian CPU architectures.");
+
+      char *resultBuf = reinterpret_cast<char *>(args) + resultOffset;
+      // Copy the result data to the args buffer.
+      std::memcpy(resultBuf, executionContext.invocationResultBuffer.data(),
+                  executionContext.invocationResultBuffer.size());
+      executionContext.invocationResultBuffer.clear();
+    }
+
+    // Assumes kernel has no dynamic results. (Static result handled above.)
+    return {};
   }
 
   void

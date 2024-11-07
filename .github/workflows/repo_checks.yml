@@ -1,6 +1,9 @@
 on:
   workflow_dispatch:
   pull_request:
+  merge_group:
+    types: 
+      - checks_requested
 
 name: "Basic content checks"
 
@@ -12,6 +15,9 @@ jobs:
   links:
     runs-on: ubuntu-latest
     name: "Check links"
+    permissions:
+      contents: read
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -30,6 +36,9 @@ jobs:
   license_headers:
     name: Check license headers
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
     steps:
       - uses: actions/checkout@v4
       - uses: apache/skywalking-eyes/header@v0.4.0
@@ -40,6 +49,8 @@ jobs:
   filters:
     name: Filter files to check
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     outputs:
       json: ${{ steps.files.outputs.json }}
@@ -82,16 +93,18 @@ jobs:
 
           create_output cxx '*.cpp *.h *.hpp :!:test :!:targettests :!:tpls :!:**/nlopt-src/*'
           create_output cxx_headers '*.h *.hpp :!:test :!:targettests :!:tpls :!:**/nlopt-src/*'
-          create_output cxx_examples 'docs/sphinx/examples/**/*.cpp'
+          create_output cxx_examples 'docs/sphinx/examples/**/*.cpp' 'docs/sphinx/applications/cpp/*.cpp' 'docs/sphinx/targets/cpp/*.cpp'
           create_output python '*.py :!:python/tests :!:test :!:targettests :!:tpls :!:docs/sphinx/conf.py'
           create_output markdown '*.md :!:tpls'
-          create_output rst '*.rst :!:tpls'
+          create_output rst '*.rst :!:tpls :!:docs/sphinx/_templates/**/*.rst'
           echo "json=$(echo $json)" >> $GITHUB_OUTPUT
 
   formatting:
     name: Check code formatting
     runs-on: ubuntu-latest
     needs: filters
+    permissions:
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
@@ -159,6 +172,8 @@ jobs:
     name: Check spelling
     runs-on: ubuntu-latest
     needs: filters
+    permissions:
+      contents: read
 
     steps:
       - uses: actions/checkout@v4

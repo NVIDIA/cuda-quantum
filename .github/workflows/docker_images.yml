@@ -20,6 +20,10 @@ on:
       build_docs:
         required: false
         type: string
+      cuda_version:
+        required: false
+        type: string
+        description: The CUDA version with which the development dependencies were built.
       environment:
         required: false
         type: string
@@ -45,6 +49,7 @@ jobs:
       platform_tag: ${{ steps.info.outputs.platform_tag }}
       build_docs: ${{ steps.info.outputs.build_docs }}
       push_to_ngc: ${{ steps.info.outputs.push_to_ngc }}
+      is_versioned: ${{ steps.info.outputs.is_versioned }}
 
     # Needed to define metadata depending on whether an environment secret is defined.
     environment:
@@ -56,11 +61,12 @@ jobs:
         run: |
           if [ -n "$(echo ${{ inputs.platforms }} | grep ',')" ]; then
             # multi-platform builds get no platform tag
-            echo "runner=linux-amd64-cpu16" >> $GITHUB_OUTPUT
+            echo "runner=linux-amd64-cpu8" >> $GITHUB_OUTPUT
             echo "build_docs=${{ inputs.build_docs != 'false' }}" >> $GITHUB_OUTPUT
-            is_versioned=${{ github.ref_type == 'tag' || github.ref_name == 'main' || startsWith(github.ref_name, 'releases/') }}
-            is_experimental=${{ startsWith(github.ref_name, 'experimental/') }}
-            push_to_ngc=`${{ inputs.environment && secrets.NGC_CREDENTIALS != '' }} && ($is_versioned || $is_experimental) && echo true || echo`
+            is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
+            has_continuous_deployment=${{ startsWith(github.ref_name, 'experimental/') || github.ref_name == 'main' }}
+            push_to_ngc=`${{ inputs.environment && secrets.NGC_CREDENTIALS != '' }} && ($is_versioned || $has_continuous_deployment) && echo true || echo`
+            echo "is_versioned=$is_versioned" >> $GITHUB_OUTPUT
             echo "push_to_ngc=$push_to_ngc" >> $GITHUB_OUTPUT
           elif [ -n "$(echo ${{ inputs.platforms }} | grep -i arm)" ]; then
             platform_tag=`echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr -d ' '`
@@ -96,6 +102,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Log in to DockerHub
         uses: docker/login-action@v3
@@ -116,7 +124,7 @@ jobs:
         run: |
           repo_owner=${{ github.repository_owner }}
           registry=${{ vars.registry || 'localhost:5000' }}
-          image_name=$registry/${repo_owner,,}/open-mpi
+          image_name=$registry/${repo_owner,,}/${{ vars.packages_prefix }}open-mpi
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
 
           docker pull ${{ inputs.ompidev_image }} # to get the tag
@@ -162,8 +170,8 @@ jobs:
           file: ./docker/build/devdeps.ext.Dockerfile
           build-args: |
             ompidev_image=${{ inputs.ompidev_image }}
-            base_image=nvidia/cuda:11.8.0-runtime-ubuntu22.04
-            cuda_root=/usr/local/cuda-11.8
+            base_image=nvidia/cuda:${{ inputs.cuda_version }}.0-runtime-ubuntu22.04
+            cuda_version=${{ inputs.cuda_version }}
             cuda_packages=
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
@@ -220,12 +228,21 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Log in to DockerHub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+
+      - name: Log in to GitHub CR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
 
       - name: Log in to the container registry
         if: inputs.environment && vars.registry
@@ -266,7 +283,7 @@ jobs:
 
           repo_owner=${{ github.repository_owner }}
           registry=${{ vars.registry || 'localhost:5000' }}
-          image_name=$registry/${repo_owner,,}/cuda-quantum-dev
+          image_name=$registry/${repo_owner,,}/${{ vars.packages_prefix }}cuda-quantum-dev
           image_tag=`docker inspect $base_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.version"'`
           docker image rm $base_image
           docker image prune --force
@@ -370,6 +387,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Log in to DockerHub
         uses: docker/login-action@v3
@@ -451,18 +470,19 @@ jobs:
           repo_owner=${{ github.repository_owner }}
           registry=${{ vars.registry || 'localhost:5000' }}/${repo_owner,,}
           ngc_registry=`${{ needs.metadata.outputs.push_to_ngc == 'true' }} && echo nvcr.io/${repo_owner,,}/nightly || echo ''`
-          dev_image_name=${registry}/cuda-quantum-dev
-          image_name=${ngc_registry:-$registry}/cuda-quantum
+          dev_image_name=${registry}/${{ vars.packages_prefix }}cuda-quantum-dev
+          image_name=${ngc_registry:-$registry}/${{ vars.packages_prefix }}cuda-quantum
           image_description="CUDA Quantum toolkit for heterogeneous quantum-classical workflows"
 
           platform_tag=${{ needs.metadata.outputs.platform_tag }}
-          image_tag=${platform_tag:+$platform_tag-}
+          cuda_major=`echo ${{ inputs.cuda_version }} | cut -d . -f1`
+          image_tag=${platform_tag:+$platform_tag-}${cuda_major:+cu${cuda_major}-}
           if ${{ github.event.pull_request.number != '' }} || [ -n "$(echo ${{ github.ref_name }} | grep pull-request/)" ]; then
             pr_number=`echo ${{ github.ref_name }} | grep -o [0-9]*`
             image_tag+=pr-${pr_number:-${{ github.event.pull_request.number }}}
           elif ${{ github.ref_type == 'branch' && github.ref_name == 'main' }}; then
             image_tag+=latest
-          elif ${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') }}; then
+          elif ${{ needs.metadata.outputs.is_versioned == 'true' }}; then
             image_tag+=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
           else
             image_tag+=`echo ${{ github.ref_name }} | tr '/' '-'`
@@ -625,6 +645,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Log in to GitHub CR
         uses: docker/login-action@v3
@@ -735,9 +757,14 @@ jobs:
       contents: read
       packages: read
 
+    outputs:
+      artifact_id: "${{ steps.job_summary.outputs.artifact_id }}"
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Log in to GitHub CR
         uses: docker/login-action@v3
@@ -778,7 +805,7 @@ jobs:
           docker cp docs/notebook_validation.py cuda-quantum:"/home/cudaq/notebook_validation.py"
           # In containers without GPU support, UCX does not work properly since it is configured to work with GPU-support.
           # Hence, don't enforce UCX when running these tests.
-          docker exec cuda-quantum bash -c "python3 -m pip install pandas scipy pandas seaborn"
+          docker exec cuda-quantum bash -c "python3 -m pip install pandas scipy pandas seaborn 'h5py<3.11' contfrac"
           (docker exec cuda-quantum bash -c "unset OMPI_MCA_pml && set -o pipefail && bash validate_container.sh | tee /tmp/validation.out") && passed=true || passed=false
           docker cp cuda-quantum:"/tmp/validation.out" /tmp/validation.out
           docker stop cuda-quantum
@@ -787,19 +814,37 @@ jobs:
             echo "::error::Validation failed; see job summary for more details."
             exit 1
           elif ${{ inputs.ompidev_image != '' }} && [ "$(cat /tmp/validation.out | grep '^nvidia$')" != "nvidia" ]; then
-            echo "Missing installation for nvidia backend." && exit 1
+            echo "Missing installation for nvidia backend."
+            exit 1
           fi
 
       - name: Create job summary
+        id: job_summary
         if: always() && !cancelled()
         run: |
+          cuda_major=`echo ${{ inputs.cuda_version }} | cut -d . -f1`
+          platform_id=${{ needs.metadata.outputs.platform_tag }}
+          artifact_id=image${platform_id:+_$platform_id}${cuda_major:+_cu$cuda_major} # changing the artifact name requires updating other workflows
+          echo "artifact_id=$artifact_id" >> $GITHUB_OUTPUT
+
           if [ -f /tmp/validation.out ]; then
-            echo "## Validation" >> $GITHUB_STEP_SUMMARY
-            echo "The validation of the cuda-quantum image produced the following output:" >> $GITHUB_STEP_SUMMARY
-            echo '```text' >> $GITHUB_STEP_SUMMARY
-            cat /tmp/validation.out >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
+            summary=/tmp/summary.txt
+            echo "## Validation" > $summary
+            echo "The validation of the cuda-quantum image produced the following output:" >> $summary
+            echo '```text' >> $summary
+            cat /tmp/validation.out >> $summary
+            echo '```' >> $summary
+            echo "validation_summary=$summary" >> $GITHUB_OUTPUT
           fi
+
+      - name: Upload job summary
+        if: steps.job_summary.outputs.validation_summary != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.job_summary.outputs.artifact_id }}_validation
+          path: ${{ steps.job_summary.outputs.validation_summary }}
+          retention-days: 1
+          if-no-files-found: warn
 
   staging:
     name: Staging
@@ -808,18 +853,21 @@ jobs:
     # all jobs that depend on it will need to add the same condition.
     if: always() && !cancelled() && inputs.environment && needs.metadata.outputs.platform_tag == '' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest
-    permissions: {}
+    permissions: 
+      contents: read
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Create build info
         id: staging
         run: |
           cudaqdev_hash=${{ needs.cudaqdev_image.outputs.image_hash }}
           cudaq_hash=${{ needs.cudaq_image.outputs.image_hash }}
-          artifact_name=image_publishing # changing the artifact name requires updating other workflows
+          artifact_name=${{ needs.validation.outputs.artifact_id }}_publishing # changing the artifact name requires updating other workflows
           echo "artifact_name=$artifact_name" >> $GITHUB_OUTPUT
           info_file="$artifact_name.txt"
           echo "info_file=$info_file" >> $GITHUB_OUTPUT
@@ -830,6 +878,7 @@ jobs:
           echo "cuda-quantum-dev-image: $cudaqdev_hash"  >> "$info_file"
           echo "cuda-quantum-devdeps-image: ${{ inputs.devdeps_image }}" >> "$info_file"
           echo "platforms: ${{ inputs.platforms }}" >> "$info_file"
+          echo "cuda-version: ${{ inputs.cuda_version }}" >> "$info_file"
           cat .github/workflows/config/gitlab_commits.txt >> "$info_file"
 
       - name: Upload build info
@@ -855,10 +904,7 @@ jobs:
           keys+=" ${{ needs.cudaq_image.outputs.tar_cache }}"
           keys+=" ${{ needs.ompi_image.outputs.tar_cache }}"
           echo "$keys" >> cache_keys.txt
-          
-          platform_tag=${{ needs.metadata.outputs.platform_tag }}
-          artifact_name=cache_keys${platform_tag:+_$platform_tag}_images
-          echo "artifact_name=$artifact_name" >> $GITHUB_OUTPUT
+          echo "artifact_name=${{ needs.validation.outputs.artifact_id }}_cache_keys" >> $GITHUB_OUTPUT
 
       - uses: actions/upload-artifact@v4
         with:

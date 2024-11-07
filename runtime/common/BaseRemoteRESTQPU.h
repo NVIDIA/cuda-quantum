@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "common/ArgumentConversion.h"
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
 #include "common/Executor.h"
@@ -17,11 +18,13 @@
 #include "common/RuntimeMLIR.h"
 #include "cudaq.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
+#include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Support/Plugin.h"
 #include "cudaq/Support/TargetConfig.h"
@@ -105,6 +108,10 @@ protected:
   /// `-mlir-print-ir-after-all` in `cudaq-opt`.
   bool enablePrintMLIREachPass = false;
 
+  /// @brief Flag indicating whether we should enable MLIR pass statistics
+  /// to be printed. This is similar to `-mlir-pass-statistics` in `cudaq-opt`
+  bool enablePassStatistics = false;
+
   /// @brief If we are emulating locally, keep track
   /// of JIT engines for invoking the kernels.
   std::vector<mlir::ExecutionEngine *> jitEngines;
@@ -112,7 +119,8 @@ protected:
   /// @brief Invoke the kernel in the JIT engine
   void invokeJITKernel(mlir::ExecutionEngine *jit,
                        const std::string &kernelName) {
-    auto funcPtr = jit->lookup(std::string("__nvqpp__mlirgen__") + kernelName);
+    auto funcPtr = jit->lookup(std::string(cudaq::runtime::cudaqGenPrefixName) +
+                               kernelName);
     if (!funcPtr) {
       throw std::runtime_error(
           "cudaq::builder failed to get kernelReg function.");
@@ -136,8 +144,6 @@ public:
   BaseRemoteRESTQPU() : QPU() {
     std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
     platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
-    // Default is to run sampling via the remote rest call
-    executor = std::make_unique<cudaq::Executor>();
   }
 
   BaseRemoteRESTQPU(BaseRemoteRESTQPU &&) = delete;
@@ -245,6 +251,8 @@ public:
         getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", disableMLIRthreading);
     enablePrintMLIREachPass =
         getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", enablePrintMLIREachPass);
+    enablePassStatistics =
+        getEnvBool("CUDAQ_MLIR_PASS_STATISTICS", enablePassStatistics);
 
     // If the very verbose enablePrintMLIREachPass flag is set, then
     // multi-threading must be disabled.
@@ -305,11 +313,19 @@ public:
 
     // Set the qpu name
     qpuName = mutableBackend;
-
     // Create the ServerHelper for this QPU and give it the backend config
     serverHelper = cudaq::registry::get<cudaq::ServerHelper>(qpuName);
+    if (!serverHelper) {
+      throw std::runtime_error("ServerHelper not found for target");
+    }
     serverHelper->initialize(backendConfig);
     serverHelper->updatePassPipeline(platformPath, passPipelineConfig);
+    cudaq::info("Retrieving executor with name {}", qpuName);
+    cudaq::info("Is this executor registered? {}",
+                cudaq::registry::isRegistered<cudaq::Executor>(qpuName));
+    executor = cudaq::registry::isRegistered<cudaq::Executor>(qpuName)
+                   ? cudaq::registry::get<cudaq::Executor>(qpuName)
+                   : std::make_unique<cudaq::Executor>();
 
     // Give the server helper to the executor
     executor->setServerHelper(serverHelper.get());
@@ -347,12 +363,24 @@ public:
     return output_names;
   }
 
+  std::vector<cudaq::KernelExecution>
+  lowerQuakeCode(const std::string &kernelName, void *kernelArgs) {
+    return lowerQuakeCode(kernelName, kernelArgs, {});
+  }
+
+  std::vector<cudaq::KernelExecution>
+  lowerQuakeCode(const std::string &kernelName,
+                 const std::vector<void *> &rawArgs) {
+    return lowerQuakeCode(kernelName, nullptr, rawArgs);
+  }
+
   /// @brief Extract the Quake representation for the given kernel name and
   /// lower it to the code format required for the specific backend. The
   /// lowering process is controllable via the configuration file in the
   /// platform directory for the targeted backend.
   std::vector<cudaq::KernelExecution>
-  lowerQuakeCode(const std::string &kernelName, void *kernelArgs) {
+  lowerQuakeCode(const std::string &kernelName, void *kernelArgs,
+                 const std::vector<void *> &rawArgs) {
 
     auto [m_module, contextPtr, updatedArgs] =
         extractQuakeCodeAndContext(kernelName, kernelArgs);
@@ -361,7 +389,7 @@ public:
 
     // Extract the kernel name
     auto func = m_module.lookupSymbol<mlir::func::FuncOp>(
-        std::string("__nvqpp__mlirgen__") + kernelName);
+        std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName);
 
     // Create a new Module to clone the function into
     auto location = mlir::FileLineColLoc::get(&context, "<builder>", 1, 1);
@@ -377,7 +405,7 @@ public:
     for (auto &op : m_module.getOps()) {
       // Add any global symbols, including global constant arrays.
       // Global constant arrays can be created during compilation,
-      // `lift-array-value`, `quake-synthesizer`, and `get-concrete-matrix`
+      // `lift-array-alloc`, `quake-synthesizer`, and `get-concrete-matrix`
       // passes.
       if (auto globalOp = dyn_cast<cudaq::cc::GlobalOp>(op))
         moduleOp.push_back(globalOp.clone());
@@ -402,10 +430,24 @@ public:
         throw std::runtime_error("Remote rest platform Quake lowering failed.");
     };
 
-    if (updatedArgs) {
-      cudaq::info("Run Quake Synth.\n");
+    if (!rawArgs.empty() || updatedArgs) {
       mlir::PassManager pm(&context);
-      pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));
+      if (!rawArgs.empty()) {
+        cudaq::info("Run Argument Synth.\n");
+        opt::ArgumentConverter argCon(kernelName, moduleOp, false);
+        argCon.gen(rawArgs);
+        std::string kernName = cudaq::runtime::cudaqGenPrefixName + kernelName;
+        mlir::SmallVector<mlir::StringRef> kernels = {kernName};
+        std::string substBuff;
+        llvm::raw_string_ostream ss(substBuff);
+        ss << argCon.getSubstitutionModule();
+        mlir::SmallVector<mlir::StringRef> substs = {substBuff};
+        pm.addNestedPass<mlir::func::FuncOp>(
+            opt::createArgumentSynthesisPass(kernels, substs));
+      } else if (updatedArgs) {
+        cudaq::info("Run Quake Synth.\n");
+        pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));
+      }
       pm.addPass(mlir::createCanonicalizerPass());
       if (disableMLIRthreading || enablePrintMLIREachPass)
         moduleOp.getContext()->disableMultithreading();
@@ -418,7 +460,7 @@ public:
     runPassPipeline(passPipelineConfig, moduleOp);
 
     auto entryPointFunc = moduleOp.lookupSymbol<mlir::func::FuncOp>(
-        std::string("__nvqpp__mlirgen__") + kernelName);
+        std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName);
     std::vector<std::size_t> mapping_reorder_idx;
     if (auto mappingAttr = dyn_cast_if_present<mlir::ArrayAttr>(
             entryPointFunc->getAttr("mapping_reorder_idx"))) {
@@ -448,11 +490,14 @@ public:
 
         // Get the ansatz
         auto ansatz = moduleOp.lookupSymbol<mlir::func::FuncOp>(
-            std::string("__nvqpp__mlirgen__") + kernelName);
+            std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName);
 
         // Create a new Module to clone the ansatz into it
         auto tmpModuleOp = builder.create<mlir::ModuleOp>();
         tmpModuleOp.push_back(ansatz.clone());
+        moduleOp.walk([&](quake::WireSetOp wireSetOp) {
+          tmpModuleOp.push_back(wireSetOp.clone());
+        });
 
         // Extract the binary symplectic encoding
         auto [binarySymplecticForm, coeffs] = term.get_raw_data();
@@ -460,8 +505,7 @@ public:
         // Create the pass manager, add the quake observe ansatz pass
         // and run it followed by the canonicalizer
         mlir::PassManager pm(&context);
-        mlir::OpPassManager &optPM = pm.nest<mlir::func::FuncOp>();
-        optPM.addPass(
+        pm.addNestedPass<mlir::func::FuncOp>(
             cudaq::opt::createObserveAnsatzPass(binarySymplecticForm[0]));
         if (disableMLIRthreading || enablePrintMLIREachPass)
           tmpModuleOp.getContext()->disableMultithreading();
@@ -469,7 +513,14 @@ public:
           pm.enableIRPrinting();
         if (failed(pm.run(tmpModuleOp)))
           throw std::runtime_error("Could not apply measurements to ansatz.");
-        runPassPipeline(passPipelineConfig, tmpModuleOp);
+        // The full pass pipeline was run above, but the ansatz pass can
+        // introduce gates that aren't supported by the backend, so we need to
+        // re-run the gate set mapping if that existed in the original pass
+        // pipeline.
+        auto csvSplit = cudaq::split(passPipelineConfig, ',');
+        for (auto &pass : csvSplit)
+          if (pass.ends_with("-gate-set-mapping"))
+            runPassPipeline(pass, tmpModuleOp);
         modules.emplace_back(term.to_string(false), tmpModuleOp);
       }
     } else
@@ -499,7 +550,7 @@ public:
         if (disableMLIRthreading)
           moduleOpI.getContext()->disableMultithreading();
         if (failed(translation(moduleOpI, outStr, postCodeGenPasses, printIR,
-                               enablePrintMLIREachPass)))
+                               enablePrintMLIREachPass, enablePassStatistics)))
           throw std::runtime_error("Could not successfully translate to " +
                                    codegenTranslation + ".");
       }
@@ -514,22 +565,63 @@ public:
     return codes;
   }
 
-  /// @brief Launch the kernel. Extract the Quake code and lower to
-  /// the representation required by the targeted backend. Handle all pertinent
-  /// modifications for the execution context as well as asynchronous or
-  /// synchronous invocation.
-  void launchKernel(const std::string &kernelName, void (*kernelFunc)(void *),
-                    void *args, std::uint64_t voidStarSize,
-                    std::uint64_t resultOffset) override {
+  void launchKernel(const std::string &kernelName,
+                    const std::vector<void *> &rawArgs) override {
     cudaq::info("launching remote rest kernel ({})", kernelName);
 
     // TODO future iterations of this should support non-void return types.
     if (!executionContext)
-      throw std::runtime_error("Remote rest execution can only be performed "
-                               "via cudaq::sample() or cudaq::observe().");
+      throw std::runtime_error(
+          "Remote rest execution can only be performed via cudaq::sample(), "
+          "cudaq::observe(), or cudaq::draw().");
 
     // Get the Quake code, lowered according to config file.
-    auto codes = lowerQuakeCode(kernelName, args);
+    auto codes = lowerQuakeCode(kernelName, rawArgs);
+    completeLaunchKernel(kernelName, std::move(codes));
+  }
+
+  /// @brief Launch the kernel. Extract the Quake code and lower to
+  /// the representation required by the targeted backend. Handle all pertinent
+  /// modifications for the execution context as well as asynchronous or
+  /// synchronous invocation.
+  KernelThunkResultType
+  launchKernel(const std::string &kernelName, KernelThunkType kernelFunc,
+               void *args, std::uint64_t voidStarSize,
+               std::uint64_t resultOffset,
+               const std::vector<void *> &rawArgs) override {
+    cudaq::info("launching remote rest kernel ({})", kernelName);
+
+    // TODO future iterations of this should support non-void return types.
+    if (!executionContext)
+      throw std::runtime_error(
+          "Remote rest execution can only be performed via cudaq::sample(), "
+          "cudaq::observe(), or cudaq::draw().");
+
+    // Get the Quake code, lowered according to config file.
+    // FIXME: For python, we reach here with rawArgs being empty and args having
+    // the arguments. Python should be using the streamlined argument synthesis,
+    // but apparently it isn't. This works around that bug.
+    auto codes = rawArgs.empty() ? lowerQuakeCode(kernelName, args)
+                                 : lowerQuakeCode(kernelName, rawArgs);
+    completeLaunchKernel(kernelName, std::move(codes));
+
+    // NB: Kernel should/will never return dynamic results.
+    return {};
+  }
+
+  void completeLaunchKernel(const std::string &kernelName,
+                            std::vector<cudaq::KernelExecution> &&codes) {
+
+    // After performing lowerQuakeCode, check to see if we are simply drawing
+    // the circuit. If so, perform the trace here and then return.
+    if (executionContext->name == "tracer" && jitEngines.size() == 1) {
+      cudaq::getExecutionManager()->setExecutionContext(executionContext);
+      invokeJITKernelAndRelease(jitEngines[0], kernelName);
+      cudaq::getExecutionManager()->resetExecutionContext();
+      jitEngines.clear();
+      return;
+    }
+
     // Get the current execution context and number of shots
     std::size_t localShots = 1000;
     if (executionContext->shots != std::numeric_limits<std::size_t>::max() &&

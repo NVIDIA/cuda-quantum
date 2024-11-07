@@ -19,7 +19,7 @@ namespace nvqir {
 CircuitSimulator *getCircuitSimulatorInternal();
 }
 
-namespace {
+namespace cudaq {
 
 /// The DefaultExecutionManager will implement allocation, deallocation, and
 /// quantum instruction application via calls to the current CircuitSimulator
@@ -56,16 +56,32 @@ protected:
                        const void *state,
                        cudaq::simulation_precision precision) override {
     // Here we have qubits in requestedAllocations
-    // want to allocate and set state
+    // want to allocate and set state.
     // There could be previous 'default' allocations whereby we just cached them
     // in requestedAllocations.
     // These default allocations need to be dispatched separately.
-    // FIXME: this assumes no qubit reuse, aka the qubits in targets are the
-    // last ones to be allocated. This is consistent with the Kronecker product
-    // assumption in CircuitSimulator.
     if (!requestedAllocations.empty() &&
         targets.size() != requestedAllocations.size()) {
       assert(targets.size() < requestedAllocations.size());
+      // This assumes no qubit reuse, aka the qubits are allocated in order.
+      // This is consistent with the Kronecker product assumption in
+      // CircuitSimulator.
+      for (std::size_t i = 0; i < requestedAllocations.size() - 1; ++i) {
+        // Verify this assumption to make sure the simulator set
+        // the state of appropriate qubits.
+        const auto &thisAlloc = requestedAllocations[i];
+        const auto &nextAlloc = requestedAllocations[i + 1];
+        if (nextAlloc.id != (thisAlloc.id + 1)) {
+          std::stringstream errorMsg;
+          errorMsg << "Out of order allocation detected. This is not supported "
+                      "by simulator backends. Qubit allocations: [ ";
+          for (const auto &alloc : requestedAllocations) {
+            errorMsg << alloc.id << " ";
+          }
+          errorMsg << "]";
+          throw std::logic_error(errorMsg.str());
+        }
+      }
       const auto numDefaultAllocs =
           requestedAllocations.size() - targets.size();
       simulator()->allocateQubits(numDefaultAllocs);
@@ -191,9 +207,11 @@ protected:
                 simulator()->applyExpPauli(parameters[0], localC, localT, op);
               })
         .Default([&]() {
-          if (auto iter = registeredOperations.find(gateName);
-              iter != registeredOperations.end()) {
-            auto data = iter->second->unitary(parameters);
+          if (cudaq::customOpRegistry::getInstance().isOperationRegistered(
+                  gateName)) {
+            const auto &op =
+                cudaq::customOpRegistry::getInstance().getOperation(gateName);
+            auto data = op.unitary(parameters);
             simulator()->applyCustomOperation(data, localC, localT, gateName);
             return;
           }
@@ -233,9 +251,9 @@ public:
   }
 };
 
-} // namespace
+} // namespace cudaq
 
-CUDAQ_REGISTER_EXECUTION_MANAGER(DefaultExecutionManager)
+CUDAQ_REGISTER_EXECUTION_MANAGER(DefaultExecutionManager, default)
 
 extern "C" {
 /// C interface to the (default) execution manager's methods.

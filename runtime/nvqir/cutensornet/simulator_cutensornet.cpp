@@ -14,7 +14,8 @@
 
 namespace nvqir {
 
-SimulatorTensorNetBase::SimulatorTensorNetBase() {
+SimulatorTensorNetBase::SimulatorTensorNetBase()
+    : m_randomEngine(std::random_device()()) {
   int numDevices{0};
   HANDLE_CUDA_ERROR(cudaGetDeviceCount(&numDevices));
   // we assume that the processes are mapped to nodes in contiguous chunks
@@ -106,6 +107,7 @@ void SimulatorTensorNetBase::applyGate(const GateApplicationTask &task) {
 /// @brief Reset the state of a given qubit to zero
 void SimulatorTensorNetBase::resetQubit(const std::size_t qubitIdx) {
   flushGateQueue();
+  flushAnySamplingTasks();
   LOG_API_TIME();
   // Prepare the state before RDM calculation
   prepareQubitTensorState();
@@ -160,7 +162,7 @@ bool SimulatorTensorNetBase::measureQubit(const std::size_t qubitIdx) {
   const double prob0 = rdm[0].real();
   const double prob1 = rdm[3].real();
   assert(std::abs(1.0 - (prob0 + prob1)) < 1e-9);
-  const double rand = randomValues(1, 1.0)[0];
+  const double rand = randomValues(1, 1.0, m_randomEngine)[0];
   const bool resultBool = (rand > prob0);
   const std::vector<std::complex<double>> projected0Mat{
       {1.0 / std::sqrt(prob0), 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}};
@@ -315,6 +317,10 @@ void SimulatorTensorNetBase::swap(const std::vector<std::size_t> &ctrlBits,
     ctls[size] = tgtIdx;
     nvqir::CircuitSimulatorBase<double>::x(ctls, srcIdx);
   }
+}
+
+void SimulatorTensorNetBase::setRandomSeed(std::size_t randomSeed) {
+  m_randomEngine = std::mt19937(randomSeed);
 }
 
 SimulatorTensorNetBase::~SimulatorTensorNetBase() {

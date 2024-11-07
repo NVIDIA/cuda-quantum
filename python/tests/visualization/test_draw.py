@@ -24,13 +24,9 @@ def test_draw():
 
     @cudaq.kernel
     def bar(qvec: cudaq.qview):
-        # FIXME https://github.com/NVIDIA/cuda-quantum/issues/1734
-        # rx(np.e, qvec[0])
-        rx(2.71828182845904523536028, qvec[0])
+        rx(np.e, qvec[0])
         ry(np.pi, qvec[1])
-        # FIXME https://github.com/NVIDIA/cuda-quantum/issues/1734
-        # cudaq.adjoint(rz, np.pi, qvec[2])
-        rz(-np.pi, qvec[2])
+        rz.adj(np.pi, qvec[2])
 
     @cudaq.kernel
     def zaz(qub: cudaq.qubit):
@@ -107,6 +103,33 @@ q3 : ┤ h ├──────────────────────
     expected_str = expected_str[1:]
     produced_string = cudaq.draw("latex", kernel)
     assert expected_str == produced_string
+
+
+def test_draw_hw_target():
+
+    @cudaq.kernel
+    def hw_kernel():
+        q = cudaq.qvector(3)
+        h(q[0])
+        x.ctrl(q[0], q[1], q[2])
+
+    cudaq.set_target('ionq', emulate=True)
+    # fmt: on
+    expected_str = R"""
+     ╭───╮                                       ╭───╮╭─────╮╭───╮╭───╮
+q0 : ┤ h ├──●─────────────────────●──────────────┤ x ├┤ tdg ├┤ x ├┤ t ├
+     ╰───╯  │                     │              ╰─┬─╯╰─────╯╰─┬─╯├───┤
+q1 : ───────┼───────────●─────────┼───────────●────●───────────●──┤ t ├
+     ╭───╮╭─┴─╮╭─────╮╭─┴─╮╭───╮╭─┴─╮╭─────╮╭─┴─╮╭───╮ ╭───╮      ╰───╯
+q2 : ┤ h ├┤ x ├┤ tdg ├┤ x ├┤ t ├┤ x ├┤ tdg ├┤ x ├┤ t ├─┤ h ├───────────
+     ╰───╯╰───╯╰─────╯╰───╯╰───╯╰───╯╰─────╯╰───╯╰───╯ ╰───╯           
+"""
+    # fmt: off
+    # Extra newline added for convenience to match the cleanly formatted expected_str above.
+    produced_string = '\n' + cudaq.draw(hw_kernel)
+    print(produced_string)
+    assert expected_str == produced_string
+    cudaq.reset_target()
 
 
 # leave for gdb debugging

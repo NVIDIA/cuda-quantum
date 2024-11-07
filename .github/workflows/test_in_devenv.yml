@@ -30,6 +30,7 @@ jobs:
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
+      packages: read
 
     steps:
       - name: Checkout repository
@@ -44,6 +45,14 @@ jobs:
           key: ${{ inputs.devdeps_cache }}
           fail-on-cache-miss: true
 
+      - name: Log in to GitHub CR
+        if: inputs.devdeps_image != ''
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
       - name: Set up context for buildx
         run: |
           docker context create builder_context
@@ -54,7 +63,6 @@ jobs:
           endpoint: builder_context
 
       - name: Build CUDA Quantum
-        id: cudaq_build
         run: |
           if ${{ steps.restore_devdeps.outcome != 'skipped' }}; then
             load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
@@ -82,11 +90,11 @@ jobs:
             python3 -m pip install iqm-client==16.1
             ctest --output-on-failure --test-dir build -E "ctest-nvqpp|ctest-targettests"
             ctest_status=$?
-            /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
+            $LLVM_INSTALL_PREFIX/bin/llvm-lit -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
             lit_status=$?
-            /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/targettests/lit.site.cfg.py build/targettests
+            $LLVM_INSTALL_PREFIX/bin/llvm-lit -v --param nvqpp_site_config=build/targettests/lit.site.cfg.py build/targettests
             targ_status=$?
-            /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/python/tests/mlir/lit.site.cfg.py build/python/tests/mlir
+            $LLVM_INSTALL_PREFIX/bin/llvm-lit -v --param nvqpp_site_config=build/python/tests/mlir/lit.site.cfg.py build/python/tests/mlir
             pymlir_status=$?
             if [ ! $ctest_status -eq 0 ] || [ ! $lit_status -eq 0 ] || [ $targ_status -ne 0 ] || [ $pymlir_status -ne 0 ]; then
               echo "::error file=test_in_devenv.yml::C++ tests failed (ctest status $ctest_status, llvm-lit status $lit_status, \
@@ -152,6 +160,7 @@ jobs:
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
+      packages: read
 
     steps:
       - name: Checkout repository
@@ -165,6 +174,14 @@ jobs:
           path: ${{ inputs.devdeps_archive }}
           key: ${{ inputs.devdeps_cache }}
           fail-on-cache-miss: true
+
+      - name: Log in to GitHub CR
+        if: inputs.devdeps_image != ''
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
 
       - name: Set up context for buildx
         run: |

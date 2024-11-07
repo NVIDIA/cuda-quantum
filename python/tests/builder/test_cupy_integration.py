@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -105,6 +105,32 @@ def test_cupy_to_state():
     state = cudaq.get_state(kernel)
     result = state.overlap(state_from_cupy)
     assert np.isclose(result, 1.0, atol=1e-3)
+
+
+def test_cupy_to_state_without_dtype():
+    cudaq.set_target('nvidia-fp64')
+    cp_data = cp.array([.707107, 0j, 0, .707107])
+    state_from_cupy = cudaq.State.from_data(cp_data)
+    state_from_cupy.dump()
+    kernel = cudaq.make_kernel()
+    q = kernel.qalloc(2)
+    kernel.h(q[0])
+    kernel.cx(q[0], q[1])
+    # State is on the GPU, this is nvidia target
+    state = cudaq.get_state(kernel)
+    result = state.overlap(state_from_cupy)
+    assert np.isclose(result, 1.0, atol=1e-3)
+    cudaq.reset_target()
+
+
+@pytest.mark.parametrize("target", ["qpp-cpu", "density-matrix-cpu"])
+def test_cupy_to_state_cpu_sim(target):
+    cudaq.set_target(target)
+    cp_data = cp.array([.707107, 0, 0, .707107], dtype=cp.complex128)
+    # This should throw since these targets are CPU-based.
+    with pytest.raises(RuntimeError) as error:
+        state_from_cupy = cudaq.State.from_data(cp_data)
+    cudaq.reset_target()
 
 
 # leave for gdb debugging

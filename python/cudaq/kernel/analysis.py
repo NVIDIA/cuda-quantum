@@ -10,6 +10,7 @@ import ast, inspect, importlib, textwrap
 from .utils import globalAstRegistry, globalKernelRegistry, mlirTypeFromAnnotation
 from ..mlir.dialects import cc
 from ..mlir.ir import *
+from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 
 class MidCircuitMeasurementAnalyzer(ast.NodeVisitor):
@@ -52,168 +53,43 @@ class MidCircuitMeasurementAnalyzer(ast.NodeVisitor):
             return self.getVariableName(node.value)
         return ''
 
+    def checkForMeasureResult(self, value):
+        return self.isMeasureCallOp(value) or self.getVariableName(
+            value) in self.measureResultsVars
+
     def visit_If(self, node):
         condition = node.test
-        # catch `if mz(q)`
-        if self.isMeasureCallOp(condition):
+
+        # Catch `if mz(q)`, `if val`, where `val = mz(q)` or `if var[k]`, where `var = mz(qvec)`
+        if self.checkForMeasureResult(condition):
             self.hasMidCircuitMeasures = True
             return
-        # Catch `if val`, where `val = mz(q)` or `if var[k]`, where `var = mz(qvec)`
-        if self.getVariableName(condition) in self.measureResultsVars:
+
+        # Compare: look at left expression.
+        # Catch `if var == True/False` and `if var[k] == True/False:` or `if mz(q) == True/False`
+        if isinstance(condition, ast.Compare) and self.checkForMeasureResult(
+                condition.left):
             self.hasMidCircuitMeasures = True
-        elif isinstance(condition, ast.Compare):
-            # Compare: look at left expression.
-            # Handle: `if var == True/False` and `if var[k] == True/False:`
-            if self.getVariableName(condition.left) in self.measureResultsVars:
-                self.hasMidCircuitMeasures = True
-            elif self.isMeasureCallOp(condition.left):
-                # Handle: `if mz(q) == True/False`
-                self.hasMidCircuitMeasures = True
+            return
+
         # Catch `if UnaryOp mz(q)` or `if UnaryOp var` (`var = mz(q)`)
-        elif isinstance(condition, ast.UnaryOp):
-            self.hasMidCircuitMeasures = self.isMeasureCallOp(
-                condition.operand) or (self.getVariableName(condition.operand)
-                                       in self.measureResultsVars)
+        if isinstance(condition, ast.UnaryOp) and self.checkForMeasureResult(
+                condition.operand):
+            self.hasMidCircuitMeasures = True
+            return
+
         # Catch `if something BoolOp mz(q)` or `something BoolOp var` (`var = mz(q)`)
-        elif isinstance(condition,
-                        ast.BoolOp) and 'values' in condition.__dict__:
-            for node in condition.__dict__['values']:
-                if self.isMeasureCallOp(node):
+        if isinstance(condition, ast.BoolOp) and 'values' in condition.__dict__:
+
+            for value in condition.__dict__['values']:
+                if self.checkForMeasureResult(value):
                     self.hasMidCircuitMeasures = True
-                    break
-                elif self.getVariableName(node) in self.measureResultsVars:
+                    return
+                if isinstance(value,
+                              ast.Compare) and self.checkForMeasureResult(
+                                  value.left):
                     self.hasMidCircuitMeasures = True
-                    break
-
-
-class RewriteMeasures(ast.NodeTransformer):
-    """
-    This `NodeTransformer` will analyze the AST for measurement 
-    nodes that do not provide a `register_name=` keyword. If found 
-    it will replace that node with one that sets the register_name to 
-    the variable name in the assignment. 
-    """
-
-    def visit_FunctionDef(self, node):
-        node.decorator_list.clear()
-        self.generic_visit(node)
-        return node
-
-    def visit_Assign(self, node):
-        # We only care about nodes with a Name target (`mz`,`my`,`mx`)
-        if len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
-            # The value has to be a Call node
-            if isinstance(node.value, ast.Call):
-                # The function we are calling should be Named
-                if not isinstance(node.value.func, ast.Name):
-                    return node
-
-                # Make sure we are only seeing measurements
-                if node.value.func.id not in ['mx', 'my', 'mz']:
-                    return node
-
-                # If we already have a register_name keyword
-                # then we don't have to do anything
-                if len(node.value.keywords):
-                    for keyword in node.value.keywords:
-                        if keyword.arg == 'register_name':
-                            return node
-
-                # If here, we have a measurement with no register name
-                # We'll add one here
-                newConstant = ast.Constant(value=node.targets[0].id)
-                newCall = ast.Call(func=node.value.func,
-                                   value=node.targets[0].id,
-                                   args=node.value.args,
-                                   keywords=[
-                                       ast.keyword(arg='register_name',
-                                                   value=newConstant)
-                                   ])
-                ast.copy_location(newCall, node.value)
-                ast.copy_location(newConstant, node.value)
-                ast.fix_missing_locations(newCall)
-                node.value = newCall
-                return node
-
-        return node
-
-
-class MatrixToRowMajorList(ast.NodeTransformer):
-    """
-    Convert 2D `np.array([[row0],[row1], ... ])` to a row-major 
-    single list, `np.array([row0 row1 row2 ...])` in order to make it 
-    easier to convert the data to a `stdvec` in our MLIR model.
-    """
-
-    def visit_Call(self, node):
-
-        self.generic_visit(node)
-
-        if not isinstance(node.func, ast.Attribute):
-            return node
-
-        # is an attribute
-        if not node.func.value.id in ['numpy', 'np']:
-            return node
-
-        if not node.func.attr == 'array':
-            return node
-
-        # this is an NumPy array
-        args = node.args
-
-        if len(args) != 1 and not isinstance(args[0], ast.List):
-            return node
-
-        # [[this], [this], [this], [this], ...]
-        subLists = args[0].elts
-        # convert to [this, this, this, this, ...]
-        newElts = []
-        for l in subLists:
-            for e in l.elts:
-                newElts.append(e)
-
-        newList = ast.List(elts=newElts, ctx=ast.Load())
-        newCall = ast.Call(func=node.func, args=[newList], keywords=[])
-        ast.copy_location(newCall, node)
-        ast.fix_missing_locations(newCall)
-        return newCall
-
-
-class LambdaOrLambdaAssignToFunctionDef(ast.NodeTransformer):
-    """
-    Convert a parameterized lambda returning a NumPy array to a standard 
-    Python function definition.
-    """
-
-    def visit_Assign(self, node):
-        if isinstance(node.value, ast.Call):
-            if isinstance(node.value.args[0], ast.Lambda):
-                n = ast.FunctionDef(
-                    name=node.targets[0].id,
-                    args=node.value.args[0].args,
-                    body=[ast.Return(value=node.value.args[0].body)],
-                    decorator_list=[])
-                ast.copy_location(n, node.value)
-                ast.fix_missing_locations(n)
-                for a in n.args.args:
-                    a.annotation = ast.Name(id='float')
-                return n
-
-
-class CheckAndCorrectFunctionName(ast.NodeTransformer):
-    """
-    It may be the case that the custom unitary has a specified function name 
-    that is not equal to the desired operation name. Fix that here.
-    """
-
-    def __init__(self, desiredName):
-        self.desiredName = desiredName
-
-    def visit_FunctionDef(self, node):
-        if node.name != self.desiredName:
-            node.name = self.desiredName
-        return node
+                    return
 
 
 class FindDepKernelsVisitor(ast.NodeVisitor):
@@ -286,13 +162,23 @@ class FindDepKernelsVisitor(ast.NodeVisitor):
 
                 if len(moduleNames):
                     moduleNames.reverse()
+                    if cudaq_runtime.isRegisteredDeviceModule(
+                            '.'.join(moduleNames)):
+                        return
+
                     # This will throw if the function / module is invalid
-                    m = importlib.import_module('.'.join(moduleNames))
+                    try:
+                        m = importlib.import_module('.'.join(moduleNames))
+                    except:
+                        return
+
                     getattr(m, node.func.attr)
                     name = node.func.attr
+
                     if name not in globalAstRegistry:
                         raise RuntimeError(
-                            f"{name} is not a valid kernel to call.")
+                            f"{name} is not a valid kernel to call ({'.'.join(moduleNames)})."
+                        )
 
                     self.depKernels[name] = globalAstRegistry[name]
 

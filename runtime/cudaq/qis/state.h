@@ -40,14 +40,14 @@ public:
   state &operator=(state &&other);
 
   /// @brief Convenience function for extracting from a known vector.
-  std::complex<double> operator[](std::size_t idx);
+  std::complex<double> operator[](std::size_t idx) const;
 
   /// @brief Convenience function for extracting from a known matrix.
-  std::complex<double> operator()(std::size_t idx, std::size_t jdx);
+  std::complex<double> operator()(std::size_t idx, std::size_t jdx) const;
 
   /// @brief General extraction operator for state data.
   std::complex<double> operator()(const std::initializer_list<std::size_t> &,
-                                  std::size_t tensorIdx = 0);
+                                  std::size_t tensorIdx = 0) const;
 
   /// @brief Return the tensor at the given index for this state representation.
   /// For state-vector and density matrix simulation states, there is just one
@@ -86,6 +86,7 @@ public:
   void dump(std::ostream &os) const;
 
   /// @brief Compute the overlap of this state with the other one.
+  /// For state vectors (pure states), it is computed as `|<this | other>|`.
   std::complex<double> overlap(const state &other);
 
   /// @brief Return the amplitude of the given computational basis state

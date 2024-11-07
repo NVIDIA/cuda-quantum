@@ -11,6 +11,7 @@
 #include "common/ExecutionContext.h"
 #include "common/NoiseModel.h"
 #include "common/ObserveResult.h"
+#include "common/ThunkInterface.h"
 #include "cudaq/remote_capabilities.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <cstring>
@@ -142,9 +143,11 @@ public:
 
   // This method is the hook for the kernel rewrites to invoke
   // quantum kernels.
-  void launchKernel(std::string kernelName, void (*kernelFunc)(void *),
-                    void *args, std::uint64_t voidStarSize,
-                    std::uint64_t resultOffset);
+  [[nodiscard]] KernelThunkResultType
+  launchKernel(std::string kernelName, KernelThunkType kernelFunc, void *args,
+               std::uint64_t voidStarSize, std::uint64_t resultOffset,
+               const std::vector<void *> &rawArgs);
+  void launchKernel(std::string kernelName, const std::vector<void *> &);
 
   // This method is the hook for executing SerializedCodeExecutionContext
   // objects.
@@ -212,8 +215,22 @@ protected:
 /// tied to the quantum platform instance somehow. Note that the compiler cannot
 /// provide that information.
 extern "C" {
-void altLaunchKernel(const char *kernelName, void (*kernel)(void *), void *args,
-                     std::uint64_t argsSize, std::uint64_t resultOffset);
+// Client-server (legacy) interface.
+[[nodiscard]] KernelThunkResultType
+altLaunchKernel(const char *kernelName, KernelThunkType kernel, void *args,
+                std::uint64_t argsSize, std::uint64_t resultOffset);
+// Streamlined interface for launching kernels. Argument synthesis and JIT
+// compilation *must* happen on the local machine.
+[[nodiscard]] KernelThunkResultType
+streamlinedLaunchKernel(const char *kernelName,
+                        const std::vector<void *> &rawArgs);
+// Hybrid of the client-server and streamlined approaches. Letting JIT
+// compilation happen either early or late and can handle return values from
+// each kernel launch.
+[[nodiscard]] KernelThunkResultType
+hybridLaunchKernel(const char *kernelName, KernelThunkType kernel, void *args,
+                   std::uint64_t argsSize, std::uint64_t resultOffset,
+                   const std::vector<void *> &rawArgs);
 }
 
 } // namespace cudaq

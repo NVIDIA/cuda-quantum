@@ -15,7 +15,10 @@ on:
   push:
     branches:
       - "pull-request/[0-9]+"
-
+  merge_group:
+    types: 
+      - checks_requested
+    
 name: CI # do not change name without updating workflow_run triggers
 
 concurrency:
@@ -28,6 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: read
+      contents: read
 
     outputs:
       pull_request_number: ${{ steps.pr_info.outputs.pr_number }}
@@ -78,7 +82,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
-        toolchain: [llvm, clang16, gcc12]
+        toolchain: [clang16, gcc11, gcc12]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -87,11 +91,11 @@ jobs:
     with:
       platforms: linux/${{ matrix.platform }}
       dockerfile: build/devdeps.Dockerfile
-      toolchain: ${{ matrix.toolchain }}
+      build_config_id: ${{ matrix.toolchain }}
       build_args: |
-        llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
-        pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
+        toolchain=${{ matrix.toolchain }}
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
+      checkout_submodules: true
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.platform }}-${{ matrix.toolchain }}
 
@@ -101,6 +105,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
+        cuda_version: ["11.8", "12.0"]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -109,15 +114,17 @@ jobs:
     with:
       platforms: linux/${{ matrix.platform }}
       dockerfile: build/devdeps.manylinux.Dockerfile
-      toolchain: gcc11
+      build_config_id: cu${{ matrix.cuda_version }}-gcc11
       build_args: |
         base_image=ghcr.io/nvidia/pypa/manylinux_2_28${{ (matrix.platform == 'arm64' && '_aarch64') || (matrix.platform == 'amd64' && '_x86_64') || '' }}:latest
+        cuda_version=${{ matrix.cuda_version }}
+        toolchain=gcc11
         distro=rhel8
         llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
         pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
       # needed only for the cloudposse GitHub action
-      matrix_key: ${{ matrix.platform }}-python
+      matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-python
 
   source_build:
     name: Load source build cache
@@ -125,6 +132,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
+        cuda_version: ["11.8", "12.0"]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -133,14 +141,16 @@ jobs:
     with:
       platforms: linux/${{ matrix.platform }}
       dockerfile: build/assets.Dockerfile
+      build_config_id: cu${{ matrix.cuda_version }}-llvm
       build_target: prereqs
-      toolchain: gcc11
       build_args: |
         base_image=${{ fromJson(needs.metadata.outputs.platform_config)[format('{0}', matrix.platform)].minimal_base_image }}
+        cuda_version=${{ matrix.cuda_version }}
+        toolchain=llvm
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
       checkout_submodules: true
       # needed only for the cloudposse GitHub action
-      matrix_key: ${{ matrix.platform }}-installer
+      matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-installer
 
   # This job is needed only when using the cloudposse GitHub action to read
   # the output of a matrix job. This is a workaround due to current GitHub
@@ -155,7 +165,7 @@ jobs:
       json: "${{ steps.read_json.outputs.result }}"
 
     steps:
-      - uses: cloudposse/github-action-matrix-outputs-read@0.1.2
+      - uses: cloudposse/github-action-matrix-outputs-read@1.0.0
         id: read_json
         with:
           matrix-step-name: dev_environment
@@ -166,7 +176,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
-        toolchain: [llvm, clang16, gcc12]
+        toolchain: [clang16, gcc11, gcc12]
         mpi: [openmpi, mpich]
         exclude:
           - toolchain: llvm
@@ -178,6 +188,24 @@ jobs:
     with:
       platform: linux/${{ matrix.platform }}
       mpi: ${{ matrix.mpi }}
+      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
+      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
+      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
+      export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
+
+  gen_code_coverage:
+    name: Gen code coverage
+    needs: config
+    strategy:
+      matrix:
+        platform: [amd64]
+        toolchain: [clang16]
+      fail-fast: false
+    uses: ./.github/workflows/generate_cc.yml
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    with:
+      platform: linux/${{ matrix.platform }}
       devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
       devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
       devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
@@ -196,9 +224,9 @@ jobs:
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: linux/${{ matrix.platform }}
-      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-llvm', matrix.platform)] }}
-      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-llvm', matrix.platform)] }}
-      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-llvm', matrix.platform)] }}
+      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-gcc11', matrix.platform)] }}
+      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-gcc11', matrix.platform)] }}
+      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-gcc11', matrix.platform)] }}
 
   python_wheels:
     name: Create Python wheels
@@ -206,7 +234,8 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
-        python_version: ['3.8', '3.11']
+        python_version: ['3.10', '3.12']
+        cuda_version: ["11.8", "12.0"]
       fail-fast: false
     uses: ./.github/workflows/python_wheels.yml
     secrets:
@@ -215,9 +244,20 @@ jobs:
     with:
       platform: linux/${{ matrix.platform }}
       python_version: ${{ matrix.python_version }}
-      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-python', matrix.platform)] }}
-      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-python', matrix.platform)] }}
-      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-python', matrix.platform)] }}
+      cuda_version: ${{ matrix.cuda_version }}
+      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
+      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
+      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
+
+  python_metapackages:
+    name: Create Python metapackages
+    needs: python_wheels
+    uses: ./.github/workflows/python_metapackages.yml
+    with:
+      cudaq_version: ${{ needs.python_wheels.outputs.cudaq_version }}
+      python_versions: "['3.10', '3.12']"
+      cuda_versions: "['', '11.8', '12.0']"
+      wheel_artifacts: 'pycudaq-*'
 
   binaries:
     name: Create CUDA Quantum installer
@@ -225,6 +265,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
+        cuda_version: ["11.8", "12.0"]
       fail-fast: false
     uses: ./.github/workflows/prebuilt_binaries.yml
     secrets:
@@ -233,8 +274,9 @@ jobs:
     with:
       platform: linux/${{ matrix.platform }}
       platform_base_image: ${{ fromJson(needs.metadata.outputs.platform_config)[format('{0}', matrix.platform)].minimal_base_image }}
-      build_cache:  ${{ fromJson(needs.config.outputs.json).build_cache[format('{0}-installer', matrix.platform)] }}
-      toolchain: gcc11
+      build_config_id: cu${{ matrix.cuda_version }}-llvm
+      cuda_version: ${{ matrix.cuda_version }}
+      build_cache:  ${{ fromJson(needs.config.outputs.json).build_cache[format('{0}-cu{1}-installer', matrix.platform, matrix.cuda_version)] }}
 
   clean_up:
     name: Prepare cache clean-up

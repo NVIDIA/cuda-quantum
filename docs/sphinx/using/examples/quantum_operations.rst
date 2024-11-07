@@ -84,7 +84,7 @@ state:
 
 .. math:: \tfrac{1}{\sqrt{2}}\begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix} \begin{bmatrix} 1 \\ 0 \\ \end{bmatrix} = \tfrac{1}{\sqrt{2}} \begin{bmatrix} 1 \\ 0 \\ \end{bmatrix} + \tfrac{1}{\sqrt{2}} \begin{bmatrix} 0 \\ 1 \\ \end{bmatrix}. 
 
-The probability of finding the qubit in the 0 / 1 state is hence
+The probability of finding the qubit in the :math:`\ket{0}` or :math:`\ket{1}` state is hence
 :math:`\lvert \tfrac{1}{\sqrt{2}} \rvert ^2 = \tfrac{1}{2}`. Lets verify
 this with some code:
 
@@ -157,8 +157,8 @@ measurement, wavefunction collapse yields either a classical 0 or 1.
 
 The mathematical theory devised to explain quantum phenomena tells us
 that the probability of observing the qubit in the state
-:math:`\ket{0}` / :math:`\ket{1}` yielding a classical 0 / 1 is
-:math:`\lvert \alpha \rvert ^2` / :math:`\lvert \beta \rvert ^2`. 
+:math:`\ket{0}` or :math:`\ket{1}`, yielding a classical 0 or 1, is
+:math:`\lvert \alpha \rvert ^2` or :math:`\lvert \beta \rvert ^2`, respectively. 
 
 As we see in the example of the Hadamard gate above,
 the result 0 or 1 each is yielded roughly 50% of the times as predicted 
@@ -173,30 +173,3 @@ where the probability of measuring :math:`x = 00, 01, 10, 11` occurs
 with probability :math:`\lvert \alpha_{x} \rvert ^2` with the
 normalization condition that
 :math:`\sum_{x \in \{ 0,1 \}^2} \lvert \alpha_{x} \rvert ^2 = 1`.
-
-
-State Visualization
------------------------------
-
-What are the possible states a qubit can be in and how can we build up
-a visual cue to help us make sense of quantum states and their
-evolution?
-
-We know our qubit can have two distinct states: :math:`\ket{0}` and
-:math:`\ket{1}`. Maybe we need a one-dimensional line whose vertices can
-represent each of the aforementioned states.
-We also know that qubits can be in an equal superposition states:
-:math:`\ket{+}` and :math:`\ket{-}`. This now forces us to extend our
-1D line to a 2D Cartesian coordinate system.
-If you dive deeper you will learn about the existence of states like 
-:math:`\ket{+i}` and :math:`\ket{-i}`, this calls for a 3D
-extension.
-
-It turns out that a sphere is able to depict all the possible states of
-a single qubit. This is called a Bloch sphere. 
-
-Unfortunately, there is no such handy visualization for multi-qubit states.
-In particular, a multi-qubit state cannot be visualized as multiple Bloch 
-spheres due to the nature of entanglement that makes quantum computing so powerful. 
-
-
