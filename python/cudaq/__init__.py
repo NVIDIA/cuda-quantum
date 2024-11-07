@@ -7,8 +7,8 @@
 # ============================================================================ #
 
 import sys, os, numpy, platform, multiprocessing
-from ._packages import *
-from .mlir._mlir_libs._quakeDialects import cudaq_runtime
+from ._packages import get_library_path
+from ._metadata import cuda_major
 
 # Set the multiprocessing start method to 'spawn' if not already set
 if multiprocessing.get_start_method(allow_none=True) is None:
@@ -18,7 +18,6 @@ if multiprocessing.get_start_method(allow_none=True) is None:
 # LinkedLibraryHolder.
 if not "CUDAQ_DYNLIBS" in os.environ:
     try:
-        cuda_major = cudaq_runtime.__cuda_major__
         custatevec_libs = get_library_path(f"custatevec-cu{cuda_major}")
         custatevec_path = os.path.join(custatevec_libs, "libcustatevec.so.1")
 
@@ -54,6 +53,7 @@ from .runtime.sample import sample
 from .runtime.observe import observe
 from .runtime.state import to_cupy
 from .kernel.register_op import register_operation
+from .mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 try:
     from qutip import Qobj, Bloch
