@@ -134,7 +134,7 @@ async def getJob(jobId: str):
 
     # The simulators don't implement result recording features yet, so we have
     # to mark these results specially (MOCK_SERVER_RESULTS) in order to allow
-    # downstream code to recognize that this isn't from a true QPU.
+    # downstream code to recognize that this isn't from a true QuEra QPU.
     res = ({"status": "done", "results": {"MOCK_SERVER_RESULTS": retData}}, 201)
     return res
 
@@ -146,4 +146,4 @@ def startServer(port):
 
 if __name__ == '__main__':
     print("Server Starting")
-    startServer(62446)
+    startServer(62444)
