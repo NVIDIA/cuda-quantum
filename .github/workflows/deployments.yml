@@ -264,6 +264,7 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
+        cuda_version: ["11.8", "12.0"]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -272,11 +273,14 @@ jobs:
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.ompi.Dockerfile
+      build_config_id: cu${{ matrix.cuda_version }}
+      build_args: |
+        cuda_version=${{ matrix.cuda_version }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
       environment: ${{ needs.metadata.outputs.environment }}
       # needed only for the cloudposse GitHub action
-      matrix_key: ${{ matrix.platform }}-ompi
+      matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-ompi
 
   dispatch:
     name: Dispatch deployments
@@ -327,6 +331,7 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
+        cuda_version: ["11.8", "12.0"]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -335,15 +340,17 @@ jobs:
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.ext.Dockerfile
-      build_config_id: ${{ needs.config.outputs.devdeps_toolchain }}
+      build_config_id: cu${{ matrix.cuda_version }}-${{ needs.config.outputs.devdeps_toolchain }}
       build_args: |
+        cuda_version=${{ matrix.cuda_version }}
         base_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-{1}', matrix.platform, needs.config.outputs.devdeps_toolchain)] }}
-        ompidev_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-ompi', matrix.platform)] }}
+        ompidev_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-cu{1}-ompi', matrix.platform, matrix.cuda_version)] }}
+        ${{ matrix.cuda_version != '11.8' && 'cuda_packages=cuda-cudart cuda-compiler libcublas-dev libcusolver libnvjitlink' || '' }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
       environment: ${{ needs.metadata.outputs.environment }}
       # needed only for the cloudposse GitHub action
-      matrix_key: ${{ matrix.platform }}-ext
+      matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-ext
 
   # This job is needed only when using the cloudposse GitHub action to read
   # the output of a matrix job. This is a workaround due to current GitHub
@@ -369,6 +376,7 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
+        cuda_version: ["11.8", "12.0"]
       fail-fast: false
     uses: ./.github/workflows/docker_images.yml
     secrets:
@@ -377,9 +385,10 @@ jobs:
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
-      ompidev_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-ompi', matrix.platform)] }}
-      devdeps_image: ${{ fromJson(needs.ext_config.outputs.json).image_hash[format('{0}-ext', matrix.platform)] }}
-      build_docs: true
+      cuda_version: ${{ matrix.cuda_version }}
+      ompidev_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-cu{1}-ompi', matrix.platform, matrix.cuda_version)] }}
+      devdeps_image: ${{ fromJson(needs.ext_config.outputs.json).image_hash[format('{0}-cu{1}-ext', matrix.platform, matrix.cuda_version)] }}
+      build_docs: ${{ matrix.cuda_version == '11.8' }}
       environment: ghcr-deployment
 
   python_wheels:
@@ -397,7 +406,6 @@ jobs:
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platform: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
-      build_config_id: cu${{ matrix.cuda_version }}
       python_version: ${{ matrix.python_version }}
       cuda_version: ${{ matrix.cuda_version }}
       devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}

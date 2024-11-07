@@ -56,3 +56,5 @@ Executor::execute(std::vector<KernelExecution> &codesToExecute) {
   return details::future(ids, name, config);
 }
 } // namespace cudaq
+
+LLVM_INSTANTIATE_REGISTRY(cudaq::Executor::RegistryType)

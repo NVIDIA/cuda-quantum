@@ -55,6 +55,13 @@ jobs:
       cudaq_version: ${{ steps.artifacts.outputs.cudaq_version }}
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.assets_repo || github.repository }}
+          ref: ${{ vars.data_branch }}
+          token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+
       - name: Download build info
         id: artifacts
         run: |
@@ -64,7 +71,7 @@ jobs:
             artifacts_url=${{ github.event.workflow_run.artifacts_url }}
             echo "Artifacts downloaded from https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}" >> $GITHUB_STEP_SUMMARY
           fi
-          artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
+          artifacts=$(gh api $artifacts_url --paginate -q '.artifacts[] | {name: .name, url: .archive_download_url}')
 
           function download {
             gh api $1 > info.zip
@@ -122,8 +129,9 @@ jobs:
             fi
           done
 
-          # Version number of the Python wheels
-          if ${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') }}; then
+          # CUDA-Q version number
+          is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
+          if ${is_versioned}; then
             cudaq_version=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
           else
             cudaq_version=${release_version:-0.0.0}
@@ -141,13 +149,6 @@ jobs:
           echo "docs_archive=$docs_archive" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ github.token }}
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ vars.assets_repo || github.repository }}
-          ref: ${{ vars.data_branch }}
-          token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Trigger assets creation
         id: assets_creation
@@ -578,14 +579,6 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
-      - name: Upload additional assets
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ steps.release_info.outputs.platform_arch }}-cu${{ steps.release_info.outputs.cuda_major_version }}-assets
-          path: assets
-          retention-days: 1
-          if-no-files-found: error
-
   cudaq_wheels:
     name: CUDA Quantum Python wheels
     if: ${{ toJson(fromJson(needs.assets.outputs.python_wheels).info_files) != '[]' }}
@@ -627,12 +620,14 @@ jobs:
           platform=`cat $build_info | grep -o 'platform: \S*' | cut -d ' ' -f 2`
           platform_id=`echo $platform | sed 's/linux\///g' | tr -d ' '`
           platform_arch=`([ "$platform_id" == "amd64" ] && echo x86_64) || ([ "$platform_id" == "arm64" ] && echo aarch64) || echo any`
+          cuda_version=`cat $build_info | grep -o 'cuda-version: \S*' | cut -d ' ' -f 2`
           cudaqwheeldeps_image=`cat $build_info | grep -o 'cuda-quantum-wheeldeps-image: \S*' | cut -d ' ' -f 2`
           for file in `ls *zip`; do unzip -j "$file" -d "$assets_folder" && rm "$file"; done 
   
           echo "release_id=$release_id" >> $GITHUB_OUTPUT
           echo "platform=$platform" >> $GITHUB_OUTPUT
           echo "platform_arch=$platform_arch" >> $GITHUB_OUTPUT
+          echo "cuda_major_version=$(echo $cuda_version | cut -d . -f1)" >> $GITHUB_OUTPUT
           echo "cudaqwheeldeps_image=$cudaqwheeldeps_image" >> $GITHUB_OUTPUT
           echo "assets_folder=$assets_folder" >> $GITHUB_OUTPUT
           echo "docker_output=type=local,dest=/tmp/wheels" >> $GITHUB_OUTPUT
@@ -682,7 +677,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.release_info.outputs.platform_arch }}-py${{ matrix.python_version }}-wheels
+          name: ${{ steps.release_info.outputs.platform_arch }}-cu${{ steps.release_info.outputs.cuda_major_version }}-py${{ matrix.python_version }}-wheels
           path: /tmp/wheels
           retention-days: ${{ steps.set_retention_days.outputs.retention_days }}
           if-no-files-found: error
@@ -743,8 +738,8 @@ jobs:
 
     strategy:
       matrix:
-        os_image: ['redhat/ubi8:8.0', 'ubuntu:22.04', 'debian:12']
-        cuda_version: ["11.8", "12.0"]
+        os_image: ['redhat/ubi8:8.0', 'ubuntu:22.04']
+        cuda_version: ['11.8', '12.0']
       fail-fast: false
 
     container:
@@ -762,7 +757,7 @@ jobs:
 
       - name: Configure validation
         id: config
-        run: 
+        run: |
           cuda_major=`echo ${{ matrix.cuda_version }} | cut -d . -f1`
           echo "cuda_major=$cuda_major" >> $GITHUB_OUTPUT
 
@@ -773,7 +768,7 @@ jobs:
           path: /tmp/install
 
       - name: Runtime dependencies (apt)
-        if: startsWith(matrix.os_image, 'ubuntu') || startsWith(matrix.os_image, 'debian')
+        if: startsWith(matrix.os_image, 'ubuntu')
         run: |
           apt-get update && apt-get install -y --no-install-recommends \
             wget ca-certificates libc6-dev libopenmpi-dev
@@ -786,12 +781,18 @@ jobs:
             libcublas-$cuda_version_suffix \
             cuda-cudart-$cuda_version_suffix \
             libcusolver-$cuda_version_suffix
+          if [ $(echo ${{ matrix.cuda_version }} | cut -d . -f1) -gt 11 ]; then 
+            apt-get install -y --no-install-recommends \
+            libnvjitlink-$cuda_version_suffix
+          fi
 
       - name: Runtime dependencies (dnf)
         if: startsWith(matrix.os_image, 'redhat')
         run: |
           dnf install -y --nobest --setopt=install_weak_deps=False \
             'dnf-command(config-manager)' glibc-devel openssh-clients
+          CUDA_VERSION=${{ matrix.cuda_version }}
+          DISTRIBUTION=rhel8
           . scripts/configure_build.sh install-cudart
 
           # We need to install an MPI implementation, otherwise nothing
@@ -814,8 +815,9 @@ jobs:
         env:
           BASH_ENV: ~/.bashrc
         run: |
-          chmod +x /tmp/install/install_cuda_quantum*
-          /tmp/install/install_cuda_quantum* --accept
+          installer=install_cuda_quantum_cu$(echo ${{ matrix.cuda_version }} | cut -d . -f1).x86_64
+          chmod +x /tmp/install/$installer
+          /tmp/install/$installer --accept
           rm -rf examples applications targets
           mv docs/sphinx/examples examples && mv docs/sphinx/applications applications && mv docs/sphinx/targets targets
           rm -rf examples/python && rm -rf applications/python && rm -rf targets/python
@@ -831,13 +833,17 @@ jobs:
             exit 1
           fi
 
-  # FIXME: CUDA 11 VS CUDA 12
-  wheel_validation:
-    name: Python wheel instructions validation
+  wheel_validation_conda:
+    name: Python instructions validation (conda)
     needs: [assets, cudaq_wheels]
     runs-on: linux-amd64-gpu-v100-latest-1
     permissions:
       contents: read
+
+    strategy:
+      matrix:
+        cuda_major: ['11', '12']
+      fail-fast: false
 
     container:
       image: ubuntu:22.04
@@ -855,10 +861,10 @@ jobs:
       - name: Load wheel
         uses: actions/download-artifact@v4
         with:
-          name: x86_64-py3.10-wheels
+          name: x86_64-cu${{ matrix.cuda_major }}-py3.10-wheels
           path: /tmp/install
       
-      - name: Run simple validation
+      - name: Run validation
         shell: bash
         run: |
           apt-get update && apt-get install -y --no-install-recommends ca-certificates vim wget openssh-client
@@ -870,22 +876,27 @@ jobs:
           ln -s $GITHUB_WORKSPACE/docs/sphinx/targets/python /tmp/targets
           ln -s $GITHUB_WORKSPACE/docs/sphinx/snippets/python /tmp/snippets
           ln -s $GITHUB_WORKSPACE/python/tests /tmp/tests
-          ln -s $GITHUB_WORKSPACE/python/README.md .
+          ln -s $GITHUB_WORKSPACE/python/README-cu${{ matrix.cuda_major }}.md .
           # Run the script w/ -q to run a shortened test
           set +e # Allow script to keep going through errors (needed for skipped tests)
-          source validate_wheel.sh -w /tmp/install/cuda_quantum-*.whl -f /tmp -p 3.10
+          source validate_wheel.sh -w /tmp/install/cuda_quantum_cu${{ matrix.cuda_major }}*.whl -f /tmp -p 3.10 -c ${{ matrix.cuda_major }}
           set -e # Re-enable exit code error checking
           if [ "$status_sum" -ne "0" ]; then
             echo "::error::Error running validation script" 
             exit $status_sum
           fi
-  
-  wheel_validation_x86_simple:
+
+  wheel_validation_x86:
     name: Simple Python wheel installation validation
     needs: [assets, cudaq_wheels]
     runs-on: linux-amd64-gpu-v100-latest-1
     permissions:
       contents: read
+
+    strategy:
+      matrix:
+        cuda_major: ['11', '12']
+      fail-fast: false
 
     container:
       image: ubuntu:22.04
@@ -903,17 +914,17 @@ jobs:
       - name: Load wheel
         uses: actions/download-artifact@v4
         with:
-          name: x86_64-py3.10-wheels
+          name: x86_64-cu${{ matrix.cuda_major }}-py3.10-wheels
           path: /tmp/install
       
-      - name: Run simple x86 validation
+      - name: Run x86 validation
         shell: bash
         run: |
           # These simple steps are only expected to work for x86 and only for
           # targets and test cases that don't require MPI.
           # Create clean python3 environment.
           apt-get update && apt-get install -y --no-install-recommends python3 python3-pip
-          pip install /tmp/install/cuda_quantum-*.whl
+          pip install /tmp/install/cuda_quantum_cu${{ matrix.cuda_major }}*.whl
           status_sum=0
           set +e # Allow script to keep going through errors
           # Verify that the necessary GPU targets are installed and usable
@@ -1041,12 +1052,6 @@ jobs:
           pattern: '*-installer'
           path: installers
 
-      - name: Download additional assets
-        uses: actions/download-artifact@v4
-        with:
-          pattern: '*-assets'
-          path: assets
-  
       # The python wheels are uploaded as a release asset, but not pushed to anywhere else.
       # Note that PyPI packages cannot be updated once pushed;
       #  - We could upload wheels to test-pypi when creating a release.
@@ -1079,7 +1084,6 @@ jobs:
             --generate-notes --notes-start-tag $latest_tag --notes "$rel_notes"
           gh release upload $release_id -R ${{ github.repository }} wheelhouse.zip --clobber
           gh release upload $release_id -R ${{ github.repository }} install_cuda_quantum.* --clobber
-          gh release upload $release_id -R ${{ github.repository }} assets/* --clobber
           gh release edit $release_id -R ${{ github.repository }} \
             --title "$release_title" --tag $version $prerelease # --draft=false
         env:
@@ -1087,7 +1091,7 @@ jobs:
 
   clean_up:
     name: Clean up
-    needs: [assets, cudaq_hpc, cudaq_installer, cudaq_wheels, wheel_validation, wheel_validation_x86_simple, create_release, installer_validation, image_validation]
+    needs: [assets, cudaq_hpc, cudaq_installer, cudaq_wheels, wheel_validation_conda, wheel_validation_x86, create_release, installer_validation, image_validation]
     # Force this job to run even when some of the dependencies above are skipped.
     if: always() && !cancelled() && needs.assets.result != 'skipped' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest

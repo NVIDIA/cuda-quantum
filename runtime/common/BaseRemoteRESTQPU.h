@@ -144,8 +144,6 @@ public:
   BaseRemoteRESTQPU() : QPU() {
     std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
     platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
-    // Default is to run sampling via the remote rest call
-    executor = std::make_unique<cudaq::Executor>();
   }
 
   BaseRemoteRESTQPU(BaseRemoteRESTQPU &&) = delete;
@@ -315,7 +313,6 @@ public:
 
     // Set the qpu name
     qpuName = mutableBackend;
-
     // Create the ServerHelper for this QPU and give it the backend config
     serverHelper = cudaq::registry::get<cudaq::ServerHelper>(qpuName);
     if (!serverHelper) {
@@ -323,6 +320,12 @@ public:
     }
     serverHelper->initialize(backendConfig);
     serverHelper->updatePassPipeline(platformPath, passPipelineConfig);
+    cudaq::info("Retrieving executor with name {}", qpuName);
+    cudaq::info("Is this executor registered? {}",
+                cudaq::registry::isRegistered<cudaq::Executor>(qpuName));
+    executor = cudaq::registry::isRegistered<cudaq::Executor>(qpuName)
+                   ? cudaq::registry::get<cudaq::Executor>(qpuName)
+                   : std::make_unique<cudaq::Executor>();
 
     // Give the server helper to the executor
     executor->setServerHelper(serverHelper.get());
