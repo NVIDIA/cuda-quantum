@@ -122,8 +122,8 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
                          ATTR arrayAttr, MAKER makeElementValue) {
   auto *ctx = builder.getContext();
   auto argTy = argument.getType();
-  assert(isa<cudaq::cc::StdvecType>(argTy));
-  auto strTy = cast<cudaq::cc::StdvecType>(argTy);
+  assert(isa<cudaq::cc::SpanLikeType>(argTy));
+  auto strTy = cast<cudaq::cc::SpanLikeType>(argTy);
   auto eleTy = cast<ELETY>(strTy.getElementType());
   builder.setInsertionPointToStart(argument.getOwner());
   auto argLoc = argument.getLoc();
@@ -566,7 +566,7 @@ public:
 
       // If std::vector<arithmetic> type, add it to the list of vector info.
       // These will be processed when we reach the buffer's appendix.
-      if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(type)) {
+      if (auto vecTy = dyn_cast<cudaq::cc::SpanLikeType>(type)) {
         auto eleTy = vecTy.getElementType();
         if (!isa<IntegerType, FloatType, ComplexType, cudaq::cc::CharspanType>(
                 eleTy)) {
