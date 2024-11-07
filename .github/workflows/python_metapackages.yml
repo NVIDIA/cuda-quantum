@@ -105,6 +105,9 @@ jobs:
 
     container:
       image: ghcr.io/nvidia/pypa/manylinux_2_28_x86_64:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
 
     strategy:
       matrix:
