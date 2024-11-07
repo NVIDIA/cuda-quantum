@@ -68,11 +68,6 @@ protected:
   virtual ServerJobPayload
   checkHelperAndCreateJob(std::vector<KernelExecution> &codesToExecute);
 
-  /// @brief Utility function to check the type of ServerHelper and use it to
-  /// create job
-  virtual ServerJobPayload
-  checkHelperAndCreateJob(std::vector<KernelExecution> &codesToExecute);
-
 public:
   BraketExecutor();
 
