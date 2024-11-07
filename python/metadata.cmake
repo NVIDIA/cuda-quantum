@@ -11,9 +11,13 @@
 # This script is used/needed to run it as a command in a custom CMake target, 
 # which copies all Python files to the build directory.
 
-if (NOT METADATA_FILE)
+if(NOT METADATA_FILE)
     message(FATAL_ERROR "METADATA_FILE is not defined")
 endif()
 
 message(STATUS "Creating metadata file in ${METADATA_FILE}.")
-file(WRITE ${METADATA_FILE} "cuda_major=${CUDA_VERSION_MAJOR}")
+if(CUDA_VERSION_MAJOR)
+    file(WRITE ${METADATA_FILE} "cuda_major=${CUDA_VERSION_MAJOR}")
+else()
+    file(WRITE ${METADATA_FILE} "cuda_major=None")
+endif()

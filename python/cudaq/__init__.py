@@ -16,7 +16,7 @@ if multiprocessing.get_start_method(allow_none=True) is None:
 
 # CUDAQ_DYNLIBS must be set before any other imports that would initialize
 # LinkedLibraryHolder.
-if not "CUDAQ_DYNLIBS" in os.environ:
+if not "CUDAQ_DYNLIBS" in os.environ and not cuda_major is None:
     try:
         custatevec_libs = get_library_path(f"custatevec-cu{cuda_major}")
         custatevec_path = os.path.join(custatevec_libs, "libcustatevec.so.1")
