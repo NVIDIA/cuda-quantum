@@ -102,6 +102,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      packages: read
 
     container:
       image: ghcr.io/nvidia/pypa/manylinux_2_28_x86_64:latest
