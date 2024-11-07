@@ -37,7 +37,7 @@ public:
 };
 
 struct QernelS1 {
-  S1 operator()(S1 s) __qpu__ {
+  S1 operator()(S1 s) NYI {
     if (s._1 == 4 && s._2 == 8.2)
       ok();
     else

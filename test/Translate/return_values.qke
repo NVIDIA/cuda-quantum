@@ -196,7 +196,7 @@ func.func @test_1(%this: !cc.ptr<i8>) -> i16 {
 // CHECK-LABEL: define i16 @test_1(i8* nocapture readnone 
 // CHECK-SAME:        %[[VAL_0:.*]]) local_unnamed_addr {
 // CHECK:         %[[VAL_1:.*]] = alloca [0 x i8*], align 8
-// CHECK:         %[[VAL_2:.*]] = alloca i16, align 2
+// CHECK:         %[[VAL_2:.*]] = alloca i16
 // CHECK:         %[[VAL_3:.*]] = alloca { i8**, i8**, i8** }, align 8
 // CHECK:         %[[VAL_4:.*]] = bitcast i16* %[[VAL_2]] to i8*
 // CHECK:         %[[VAL_5:.*]] = getelementptr inbounds [0 x i8*], [0 x i8*]* %[[VAL_1]], i64 0, i64 0
