@@ -105,10 +105,13 @@ def _infer_best_package() -> str:
     # Find the existing wheel installation
     installed = []
     for pkg_suffix in ['', '-cu11', '-cu12']:
+        _log(f"Looking for existing installation of cuda-quantum{pkg_suffix}.")
         try:
             pkg_resources.get_distribution(f"cuda-quantum{pkg_suffix}")
             installed.append(f"cuda-quantum{pkg_suffix}")
+            _log("Installation found.")
         except pkg_resources.DistributionNotFound:
+            _log("No installation found.")
             pass
 
     cuda_version = _get_cuda_version()
@@ -122,10 +125,13 @@ def _infer_best_package() -> str:
         cudaq_bdist = 'cuda-quantum-cu12'
     else:
         raise Exception(f'Your CUDA version ({cuda_version}) is too new.')
+    _log(f"Identified {cudaq_bdist} as the best package.")
 
     # Disallow -cu11 & -cu12 wheels from coexisting
     conflicting = ", ".join((pkg for pkg in installed if pkg != cudaq_bdist))
+    _log(f"Conflicting packages: {conflicting}")
     if conflicting != '':
+        _log("Abort.")
         raise Exception(
             f'You have a conflicting CUDA-Q version installed.'
             f'Please remove the following package(s): {conflicting}')
