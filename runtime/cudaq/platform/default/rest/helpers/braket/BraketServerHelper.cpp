@@ -116,14 +116,24 @@ sample_result BraketServerHelper::processResults(ServerMessage &resultsJson,
                                                  std::string &) {
   CountsDictionary counts;
 
-  auto const &measurements = resultsJson.at("measurements");
+  if (resultsJson.contains("measurements")) {
+    auto const &measurements = resultsJson.at("measurements");
 
-  for (auto const &m : measurements) {
-    std::string bitString = "";
-    for (int bit : m) {
-      bitString += std::to_string(bit);
+    for (auto const &m : measurements) {
+      std::string bitString = "";
+      for (int bit : m) {
+        bitString += std::to_string(bit);
+      }
+      counts[bitString]++;
     }
-    counts[bitString]++;
+  } else {
+    auto const &probs = resultsJson.at("measurementProbabilities");
+    int shots = resultsJson.at("taskMetadata").at("shots");
+    for (auto const &measurementP : probs.items()) {
+      std::string bitString = measurementP.key();
+      double p = measurementP.value();
+      counts[bitString] = std::round(p * shots);
+    }
   }
 
   return sample_result{ExecutionResult{counts}};
