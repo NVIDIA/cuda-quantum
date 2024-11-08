@@ -208,7 +208,7 @@ func.func @test_1(%this: !cc.ptr<i8>) -> i16 {
 // CHECK:         store i8** %[[VAL_5]], i8*** %[[VAL_8]], align 8
 // CHECK:         %[[VAL_9:.*]] = bitcast { i8**, i8**, i8** }* %[[VAL_3]] to i8*
 // CHECK:         %[[VAL_10:.*]] = call { i8*, i64 } @hybridLaunchKernel(i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @test_1.kernelName, i64 0, i64 0), i8* nonnull bitcast ({ i8*, i64 } (i8*, i1)* @test_1.thunk to i8*), i8* nonnull %[[VAL_4]], i64 2, i64 0, i8* nonnull %[[VAL_9]])
-// CHECK:         %[[VAL_11:.*]] = load i16, i16* %[[VAL_2]], align 2
+// CHECK:         %[[VAL_11:.*]] = load i16, i16* %[[VAL_2]]
 // CHECK:         ret i16 %[[VAL_11]]
 // CHECK:       }
 
