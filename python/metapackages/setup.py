@@ -6,7 +6,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import ctypes, pkg_resources, os, sys
+import ctypes, os, sys
+import importlib.util
 from setuptools import setup
 from typing import Optional
 
@@ -107,10 +108,13 @@ def _infer_best_package() -> str:
     for pkg_suffix in ['', '-cu11', '-cu12']:
         _log(f"Looking for existing installation of cuda-quantum{pkg_suffix}.")
         try:
-            pkg_resources.get_distribution(f"cuda-quantum{pkg_suffix}")
-            installed.append(f"cuda-quantum{pkg_suffix}")
-            _log("Installation found.")
-        except pkg_resources.DistributionNotFound:
+            package_spec = importlib.util.find_spec(f"cuda-quantum{pkg_suffix}")
+            if package_spec is None:
+                _log("No installation found.")
+            else:
+                installed.append(f"cuda-quantum{pkg_suffix}")
+                _log("Installation found.")
+        except:
             _log("No installation found.")
             pass
 
