@@ -22,3 +22,8 @@ target-arguments:
     type: string
     platform-arg: machine
     help-string: "Specify the QuEra QPU."
+  - key: default_bucket
+    required: false
+    type: string
+    platform-arg: default_bucket
+    help-string: "Specify a default S3 bucket for QuEra results."

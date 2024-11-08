@@ -19,6 +19,7 @@ void QuEraServerHelper::initialize(BackendConfig config) {
 
   cudaq::info("Running on device {}", deviceArn);
 
+  config["defaultBucket"] = getValueOrDefault(config, "default_bucket", "");
   config["deviceArn"] = deviceArn;
   config["qubits"] = deviceQubitCounts.contains(deviceArn)
                          ? deviceQubitCounts.at(deviceArn)
