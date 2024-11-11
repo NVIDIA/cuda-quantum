@@ -68,7 +68,19 @@ def _get_cuda_version() -> Optional[int]:
 
     version = None
 
-    # First try NVRTC
+    # First, try to get version from NVIDIA Management Library
+    try:
+        _log(f'Trying to detect CUDA version using NVIDIA Management Library')
+        from pynvml import nvmlInit, nvmlSystemGetCudaDriverVersion
+        nvmlInit()
+        version = nvmlSystemGetCudaDriverVersion()
+    except Exception as e:
+        _log(f"Error: {e}")  # log and move on
+    if version is not None:
+        _log(f'Detected version: {version}')
+        return version
+
+    # Fall back to try and detect version from NVRTC
     libnames = [
         'libnvrtc.so.12',
         'libnvrtc.so.11.2',
@@ -83,7 +95,7 @@ def _get_cuda_version() -> Optional[int]:
     if version is not None:
         return version
 
-    # Next try CUDART (side-effect: a CUDA context will be initialized)
+    # Last try to detect version from CUDART (a CUDA context will be initialized)
     libnames = [
         'libcudart.so.12',
         'libcudart.so.11.0',
