@@ -78,6 +78,7 @@ def _get_cuda_version() -> Optional[int]:
         _log(f"Error: {e}")  # log and move on
     if version is not None:
         _log(f'Detected version: {version}')
+        _log("Autodetection succeeded")
         return version
 
     # Fall back to try and detect version from NVRTC
@@ -93,6 +94,7 @@ def _get_cuda_version() -> Optional[int]:
     except Exception as e:
         _log(f"Error: {e}")  # log and move on
     if version is not None:
+        _log("Autodetection succeeded")
         return version
 
     # Last try to detect version from CUDART (a CUDA context will be initialized)
@@ -107,6 +109,7 @@ def _get_cuda_version() -> Optional[int]:
     except Exception as e:
         _log(f"Error: {e}")  # log and move on
     if version is not None:
+        _log("Autodetection succeeded")
         return version
 
     _log("Autodetection failed")
