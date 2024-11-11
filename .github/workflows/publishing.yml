@@ -1011,7 +1011,7 @@ jobs:
           # targets and test cases that don't require MPI.
           # Create clean python3 environment.
           apt-get update && apt-get install -y --no-install-recommends python3 python3-pip
-          mv /tmp/wheels/* /tmp/packages && rmdir /tmp/wheels
+          mkdir -p /tmp/packages && mv /tmp/wheels/* /tmp/packages && rmdir /tmp/wheels
 
           python3 -m pip install pypiserver
           server=`find / -name pypi-server -executable -type f`
@@ -1021,6 +1021,7 @@ jobs:
             pip install cuda-quantum-cu${{ matrix.cuda_major }} -v \
               --extra-index-url http://localhost:8080 
           else
+            pip install --upgrade pip
             pip install cudaq -v \
               --extra-index-url http://localhost:8080 \
             | tee /tmp/install.out
