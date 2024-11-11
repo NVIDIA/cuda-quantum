@@ -197,16 +197,17 @@ jobs:
               git pull origin -- $staging_branch 2> /dev/null || true
               git push origin $current_branch:$staging_branch
             else
-              if [ -z "$(gh release list -R ${{ github.repository }} | grep -s $release_id)" ];
-              then
-                versions=`gh release list -R ${{ github.repository }} --exclude-drafts --exclude-pre-releases | egrep -o "([0-9]{1,}\.)+[0-9]{1,}\S*" | sort -r -V`
+              if [ -z "$(gh release list -R ${{ vars.assets_repo || github.repository }} | grep -s $release_id)" ]; then
+                echo "Preparing assets..."
+                versions=`gh release list -R ${{ vars.assets_repo || github.repository }} --exclude-drafts --exclude-pre-releases | egrep -o "([0-9]{1,}\.)+[0-9]{1,}\S*" | sort -r -V`
                 latest_tag=`echo $versions | cut -d ' ' -f 1`
 
                 source_sha=${{ steps.artifacts.outputs.github_commit }}
                 rel_notes="This release draft is created by a publishing workflow with manual assets creation."
                 rel_notes+=$(echo "<br/>GitHub commit [$source_sha](${{ github.repository }}/tree/$source_sha)")
 
-                gh release create $release_id --title $release_id -R ${{ github.repository }} \
+                echo "Creating draft release $release_id."
+                gh release create $release_id --title $release_id -R ${{ vars.assets_repo || github.repository }} \
                   --target $source_sha --draft --prerelease \
                   --generate-notes --notes-start-tag $latest_tag --notes "$rel_notes"
               else
