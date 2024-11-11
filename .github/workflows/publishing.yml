@@ -38,9 +38,6 @@ jobs:
     name: Assets
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: write
 
     environment:
       name: ghcr-deployment
@@ -206,6 +203,7 @@ jobs:
                 rel_notes+=$(echo "<br/>GitHub commit [$source_sha](${{ github.repository }}/tree/$source_sha)")
 
                 echo "Creating draft release $release_id."
+                set -x
                 gh release create $release_id --title $release_id -R ${{ vars.assets_repo || github.repository }} \
                   --target $source_sha --draft --prerelease \
                   --generate-notes --notes-start-tag $latest_tag --notes "$rel_notes"
