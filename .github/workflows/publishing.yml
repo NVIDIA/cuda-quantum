@@ -38,6 +38,9 @@ jobs:
     name: Assets
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
 
     environment:
       name: ghcr-deployment
@@ -1075,8 +1078,9 @@ jobs:
       - name: Load wheels
         uses: actions/download-artifact@v4
         with:
-          name: x86_64-cu${{ matrix.cuda_major }}-py3.10-wheels
+          pattern: '*py3.10-wheels'
           path: /tmp/wheels
+          merge-multiple: true
 
       - name: Load metapackage
         uses: actions/download-artifact@v4
