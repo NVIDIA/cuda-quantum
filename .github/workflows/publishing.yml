@@ -189,10 +189,10 @@ jobs:
             echo "asset-name: $1.txt" >> "$1.txt"
             echo "release-id: $release_id" >> "$1.txt"
             echo "artifacts-url: $artifacts_url" >> "$1.txt"
-            mkdir -p "$staging_folder" && mv -v "$1.txt" "$staging_folder/$file_id"
 
             if ${{ inputs.manual_assets_creation == '' }}; then 
               echo "Pushing $1 to $staging_branch"
+              mkdir -p "$staging_folder" && mv -v "$1.txt" "$staging_folder/$file_id"
               git add "$staging_folder" && git commit -m "$image_hash"
               git pull origin -- $staging_branch 2> /dev/null || true
               git push origin $current_branch:$staging_branch
@@ -216,7 +216,7 @@ jobs:
               
               assets_folder=$(echo $release_id | cut -d _ -f2-)
               upload=`find /tmp/${{ inputs.manual_assets_creation }}/$assets_folder -name '*.zip'`
-              echo $upload | xargs gh release upload $release_id -R ${{ github.repository }} --clobber "$staging_folder/$file_id/$1.txt"
+              echo $upload | xargs gh release upload $release_id -R ${{ github.repository }} --clobber "$1.txt"
             fi
           }
 
