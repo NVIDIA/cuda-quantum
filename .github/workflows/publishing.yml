@@ -9,6 +9,10 @@ on:
         type: string
         description: Optional argument to take assets from a prior run of this workflow; facilitates rerunning a failed workflow without re-building the assets.
         required: false
+      manual_assets_creation:
+        type: string
+        required: false
+        description: Do not trigger a pipeline on GitLab but instead use the assets contained in the draft release with the given name.
       github_commit:
         type: string
         description: Optional argument to set the GitHub commit to use for the final build and validation. 
@@ -159,9 +163,14 @@ jobs:
           # Using the image sha as the file name and the docker image name
           # as the folder is convenient for the GitLab CI.
 
-          git config --global user.name "cuda-quantum-bot"
-          git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
-          current_branch=$(git rev-parse --abbrev-ref HEAD)
+          if ${{ inputs.manual_assets_creation == '' }}; then 
+            git config --global user.name "cuda-quantum-bot"
+            git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
+            current_branch=$(git rev-parse --abbrev-ref HEAD)
+          else
+            gh release download ${{ inputs.manual_assets_creation }} -R ${{ vars.assets_repo || github.repository }}
+            unzip -d /tmp/ ${{ inputs.manual_assets_creation }}.zip && rm -rf ${{ inputs.manual_assets_creation }}.zip
+          fi
 
           function create_assets {
             release_id=`echo "$4" | jq -r ".\"$1\".release_id"`
@@ -182,10 +191,33 @@ jobs:
             echo "artifacts-url: $artifacts_url" >> "$1.txt"
             mkdir -p "$staging_folder" && mv -v "$1.txt" "$staging_folder/$file_id"
 
-            echo "Pushing $1 to $staging_branch"
-            git add "$staging_folder" && git commit -m "$image_hash"
-            git pull origin -- $staging_branch 2> /dev/null || true
-            git push origin $current_branch:$staging_branch
+            if ${{ inputs.manual_assets_creation == '' }}; then 
+              echo "Pushing $1 to $staging_branch"
+              git add "$staging_folder" && git commit -m "$image_hash"
+              git pull origin -- $staging_branch 2> /dev/null || true
+              git push origin $current_branch:$staging_branch
+            else
+              if [ -z "$(gh release list -R ${{ github.repository }} | grep -s $release_id)" ];
+              then
+                versions=`gh release list -R ${{ github.repository }} --exclude-drafts --exclude-pre-releases | egrep -o "([0-9]{1,}\.)+[0-9]{1,}\S*" | sort -r -V`
+                latest_tag=`echo $versions | cut -d ' ' -f 1`
+
+                source_sha=${{ steps.artifacts.outputs.github_commit }}
+                rel_notes="This release draft is created by a publishing workflow with manual assets creation."
+                rel_notes+=$(echo "<br/>GitHub commit [$source_sha](${{ github.repository }}/tree/$source_sha)")
+
+                gh release create $release_id --title $release_id -R ${{ github.repository }} \
+                  --target $source_sha --draft --prerelease \
+                  --generate-notes --notes-start-tag $latest_tag --notes "$rel_notes"
+              else
+                echo "::error::Release $release_id already exists."
+                exit 1
+              fi              
+              
+              assets_folder=$(echo $release_id | cut -d _ -f2-)
+              upload=`find /tmp/${{ inputs.manual_assets_creation }}/$assets_folder -name '*.zip'`
+              echo $upload | xargs gh release upload $release_id -R ${{ github.repository }} --clobber "$staging_folder/$file_id/$1.txt"
+            fi
           }
 
           for file in ${{ join(fromJson(steps.artifacts.outputs.docker_images).info_files, ' ') }}; do
@@ -199,6 +231,8 @@ jobs:
           for file in ${{ join(fromJson(steps.artifacts.outputs.installers).info_files, ' ') }}; do
             create_assets $file cuda-quantum-assets-image cuda-quantum-assets '${{ steps.artifacts.outputs.installers }}'
           done
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Wait for assets
         run: |
