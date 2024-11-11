@@ -1050,7 +1050,6 @@ jobs:
 
   metapackage_validation_conda:
     name: Python metapackage validation, conda environment
-    if: false
     needs: [assets, cudaq_wheels, cudaq_metapackages]
     runs-on: linux-amd64-gpu-v100-latest-1
     permissions:
