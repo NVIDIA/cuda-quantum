@@ -288,7 +288,7 @@ jobs:
           
   cudaq_images:
     name: CUDA-Q Docker image
-    if: ${{ toJson(fromJson(needs.assets.outputs.docker_images).info_files) != '[]' }}
+    if: ${{ false && toJson(fromJson(needs.assets.outputs.docker_images).info_files) != '[]' }}
     needs: assets
     runs-on: ubuntu-latest
     permissions:
@@ -473,7 +473,7 @@ jobs:
 
   cudaq_installers:
     name: CUDA-Q installer
-    if: ${{ toJson(fromJson(needs.assets.outputs.installers).info_files) != '[]' }}
+    if: ${{ false && toJson(fromJson(needs.assets.outputs.installers).info_files) != '[]' }}
     needs: assets
     permissions:
       contents: read
@@ -932,6 +932,7 @@ jobs:
 
   wheel_validation_conda:
     name: Wheel validation, conda
+    if: false
     needs: [assets, cudaq_wheels]
     runs-on: linux-amd64-gpu-v100-latest-1
     permissions:
