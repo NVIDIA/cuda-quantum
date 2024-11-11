@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       actions: read
-      contents: read
+      contents: write
 
     environment:
       name: ghcr-deployment
@@ -198,7 +198,6 @@ jobs:
               git push origin $current_branch:$staging_branch
             else
               if [ -z "$(gh release list -R ${{ vars.assets_repo || github.repository }} | grep -s $release_id)" ]; then
-                echo "Preparing assets..."
                 versions=`gh release list -R ${{ vars.assets_repo || github.repository }} --exclude-drafts --exclude-pre-releases | egrep -o "([0-9]{1,}\.)+[0-9]{1,}\S*" | sort -r -V`
                 latest_tag=`echo $versions | cut -d ' ' -f 1`
 
@@ -217,6 +216,7 @@ jobs:
               
               assets_folder=$(echo $release_id | cut -d _ -f2-)
               upload=`find /tmp/${{ inputs.manual_assets_creation }}/$assets_folder -name '*.zip'`
+              echo "Uploading assets $upload $1.txt..."
               echo $upload | xargs gh release upload $release_id -R ${{ github.repository }} --clobber "$1.txt"
             fi
           }
