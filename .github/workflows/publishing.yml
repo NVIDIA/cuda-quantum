@@ -1043,6 +1043,7 @@ jobs:
           server=`find / -name pypi-server -executable -type f`
           $server run -p 8080 /tmp/packages & 
 
+          pip install --upgrade pip
           pip install cudaq --extra-index-url http://localhost:8080 
           if [ -z "$(pip list | grep cuda-quantum-cu${{ matrix.cuda_major }})" ]; then 
             echo "::error::Missing installation of cuda-quantum-cu${{ matrix.cuda_major }} package."
