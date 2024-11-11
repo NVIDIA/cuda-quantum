@@ -1094,7 +1094,7 @@ jobs:
             ca-certificates vim wget unzip openssh-client
           mv /tmp/wheels/* /tmp/packages && rmdir /tmp/wheels
 
-          python3 -m pip install pypiserver
+          python3.10 -m pip install pypiserver
           server=`find / -name pypi-server -executable -type f`
           $server run -p 8080 /tmp/packages & 
 
@@ -1121,7 +1121,7 @@ jobs:
           set -e # Re-enable exit code error checking
 
           expected_dependency=cuda-quantum-cu$(echo ${{ matrix.cuda_version }} | cut -d . -f1)
-          if [ -z "$(python3 -m pip list | grep ${expected_dependency})" ]; then 
+          if [ -z "$(python3.10 -m pip list | grep ${expected_dependency})" ]; then 
             echo "::error::Missing installation of ${expected_dependency} package."
             exit 1
           fi
