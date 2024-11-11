@@ -206,7 +206,6 @@ jobs:
                 rel_notes+=$(echo "<br/>GitHub commit [$source_sha](${{ github.repository }}/tree/$source_sha)")
 
                 echo "Creating draft release $release_id."
-                set -x
                 gh release create $release_id --title $release_id -R ${{ vars.assets_repo || github.repository }} \
                   --target $source_sha --draft --prerelease \
                   --generate-notes --notes-start-tag $latest_tag --notes "$rel_notes"
@@ -248,7 +247,7 @@ jobs:
 
       # We can delete staging branch now after the expected draft releases have been created.
       - name: Clean up
-        if: steps.assets_creation.outcome != 'skipped'
+        if: steps.assets_creation.outcome != 'skipped' && inputs.manual_assets_creation == ''
         run: |
           # Clean up the staging branch that was used to trigger the GitLab pipeline.
           git config --global user.name "cuda-quantum-bot"
