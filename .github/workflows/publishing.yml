@@ -1025,6 +1025,11 @@ jobs:
             pip install cudaq -v \
               --extra-index-url http://localhost:8080 \
             | tee /tmp/install.out
+
+            echo
+            cat /tmp/install.out
+            echo
+
             if [ -z "$(cat /tmp/install.out | grep -o 'Autodetection succeeded')" ]; then 
               echo "::error::Autodetection to determine cudaq binary distribution failed."
               exit 1
