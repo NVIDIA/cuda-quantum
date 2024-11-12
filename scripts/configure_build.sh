@@ -55,6 +55,10 @@ if [ "$1" == "install-cudart" ]; then
         cuda-cudart-${version_suffix} \
         libcusolver-${version_suffix} \
         libcublas-${version_suffix}
+    if [ $(echo ${CUDA_VERSION} | cut -d . -f1) -gt 11 ]; then 
+        dnf install -y --nobest --setopt=install_weak_deps=False \
+            libnvjitlink-${version_suffix}
+    fi
 # [<CUDARTInstall]
 fi
 

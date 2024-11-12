@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "BraketServerHelper.h"
+#include "common/BraketServerHelper.h"
 
 namespace {
 std::string prepareOpenQasm(std::string source) {

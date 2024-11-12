@@ -31,7 +31,7 @@
 #include <aws/core/utils/logging/ConsoleLogSystem.h>
 #include <aws/core/utils/logging/LogLevel.h>
 
-#include "BraketServerHelper.h"
+#include "common/BraketServerHelper.h"
 #include "common/Logger.h"
 
 #include <nlohmann/json.hpp>
@@ -42,6 +42,7 @@
 namespace cudaq {
 /// @brief The Executor subclass for Amazon Braket
 class BraketExecutor : public Executor {
+protected:
   Aws::SDKOptions options;
 
   class ScopedApi {
@@ -50,6 +51,8 @@ class BraketExecutor : public Executor {
   public:
     ScopedApi(Aws::SDKOptions &options) : options(options) {
       cudaq::debug("Initializing AWS API");
+      /// FIXME: Allow setting following flag via CUDA-Q frontend
+      // options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Debug;
       Aws::InitAPI(options);
     }
     ~ScopedApi() { Aws::ShutdownAPI(options); }
@@ -76,6 +79,11 @@ class BraketExecutor : public Executor {
     clientConfig.verifySSL = false;
     return clientConfig;
   }
+
+  /// @brief Utility function to check the type of ServerHelper and use it to
+  /// create job
+  virtual ServerJobPayload
+  checkHelperAndCreateJob(std::vector<KernelExecution> &codesToExecute);
 
 public:
   BraketExecutor()
