@@ -29,31 +29,13 @@ namespace cudaq::opt {
 using namespace mlir;
 
 namespace {
-
-static bool isCall(Operation *op, std::vector<const char *> &&names) {
-  if (op) {
-    if (auto callOp = dyn_cast<func::CallOp>(op)) {
-      if (auto calleeAttr = callOp.getCalleeAttr()) {
-        auto funcName = calleeAttr.getValue().str();
-        if (std::find(names.begin(), names.end(), funcName) != names.end())
-          return true;
-      }
-    }
-  }
-  return false;
-}
-
-static bool isNumberOfQubitsCall(Operation *op) {
-  return isCall(op, {cudaq::getNumQubitsFromCudaqState});
-}
-
 // clang-format off
 /// Replace `quake.init_state` by a call to a (modified) kernel that produced
 /// the state.
 ///
 /// ```
 ///  %0 = cc.get_state "__nvqpp__mlirgen__test_init_state.modified_0" : !cc.ptr<!cc.state>
-///  %1 = call @__nvqpp_cudaq_state_numberOfQubits(%0) : (!cc.ptr<!cc.state>) -> i64
+///  %1 = cc.get_number_of_qubits %0 : (!cc.ptr<!cc.state>) -> i64
 ///  %2 = quake.alloca !quake.veq<?>[%1 : i64]
 ///  %3 = quake.init_state %2, %0 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
 /// ───────────────────────────────────────────
@@ -87,7 +69,8 @@ public:
                 "Failed to remove `quake.alloca` in state synthesis");
             return failure();
           }
-          if (isNumberOfQubitsCall(numOfQubits)) {
+
+          if (isa<cudaq::cc::GetNumberOfQubitsOp>(numOfQubits)) {
             if (numOfQubits->getUses().empty())
               rewriter.eraseOp(numOfQubits);
             else {
