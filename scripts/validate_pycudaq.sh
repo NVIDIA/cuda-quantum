@@ -35,7 +35,7 @@ __optind__=$OPTIND
 OPTIND=1
 python_version=3.11
 quick_test=false
-while getopts ":c:f:p:qu:v:" opt; do
+while getopts ":c:f:i:p:qv:" opt; do
   case $opt in
     c) cuda_version="$OPTARG"
     ;;
@@ -45,7 +45,7 @@ while getopts ":c:f:p:qu:v:" opt; do
     ;;
     q) quick_test=true
     ;;
-    u) download_url="$OPTARG"
+    i) extra_packages="$OPTARG"
     ;;
     v) cudaq_version="$OPTARG"
     ;;
@@ -74,16 +74,20 @@ fi
 
 # Execute instructions from the README file
 conda_script="$(awk '/(Begin conda install)/{flag=1;next}/(End conda install)/{flag=0}flag' "$readme_file" | grep . | sed '/^```/d')" 
-if [ -n "${download_url}" ]; then 
-    pip_extra_url="--extra-index-url ${download_url} "
+if [ -n "${extra_packages}" ]; then 
+    pip_extra_url="--extra-index-url http://localhost:8080"
 fi
 while IFS= read -r line; do
     line=$(echo $line | sed -E "s/cuda_version=([0-9]{1,}\.)+[0-9]{1,}/cuda_version=${cuda_version}.0/g")
-    line=$(echo $line | sed -E "s/python(=)?3.[0-9]{1,}/python\13.10/g")
+    line=$(echo $line | sed -E "s/python(=)?3.[0-9]{1,}/python\1${python_version}/g")
     line=$(echo $line | sed -E "s/pip install cudaq/pip install cudaq==${cudaq_version} -v ${pip_extra_url}/g")
     if [ -n "$(echo $line | grep "conda activate")" ]; then
         conda_env=$(echo "$line" | sed "s#conda activate##" | tr -d '[:space:]')
         source $(conda info --base)/bin/activate $conda_env
+        if [ -n "${download_url}" ]; then 
+            eval "pip install pypiserver"
+            eval "pypi-server run -p 8080 ${extra_packages}"
+        fi
     elif [ -n "$(echo $line | tr -d '[:space:]')" ]; then
         eval "$line"
     fi
