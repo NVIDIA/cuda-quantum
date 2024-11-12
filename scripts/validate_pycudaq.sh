@@ -15,13 +15,14 @@
 # Check the output for any tests that were skipped.
 
 # E.g. run the command 
-#   source validate_pycudaq.sh -w /tmp/cuda_quantum*.whl -f /tmp -p 3.10 -c 11
+#   source validate_pycudaq.sh -v ${cudaq_version} -i ${package_folder} -f /tmp -p 3.10 -c 11
 # in a container (with GPU support) defined by:
 #
 # ARG base_image=ubuntu:22.04
 # FROM ${base_image}
-# ARG cuda_quantum_wheel=cuda_quantum_cu11-0.8.0-cp310-cp310-manylinux_2_28_x86_64.whl
-# COPY $cuda_quantum_wheel /tmp/$cuda_quantum_wheel
+# ARG cudaq_version=0.0.0
+# ARG package_folder=/tmp/packages
+# COPY ${package_folder} ${package_folder}
 # COPY scripts/validate_pycudaq.sh validate_pycudaq.sh
 # COPY docs/sphinx/examples/python /tmp/examples/
 # COPY docs/sphinx/applications/python /tmp/applications/
@@ -78,9 +79,9 @@ if [ -n "${download_url}" ]; then
     pip_extra_url="--extra-index-url ${download_url} "
 fi
 while IFS= read -r line; do
-    line=$(echo $line | sed -E "s/cuda_version=([0-9]{1,}\.)+[0-9]{1,}/cuda_version=${cuda_version}.0/g")
+    line=$(echo $line | sed -E "s/cuda_version=(.\{\{)?\s?\S+\s?(\}\})?/cuda_version=${cuda_version}.0/g")
     line=$(echo $line | sed -E "s/python(=)?3.[0-9]{1,}/python\13.10/g")
-    line=$(echo $line | sed -E "s/pip install cudaq/pip install cudaq==${cudaq_version} -v ${pip_extra_url}/g")
+    line=$(echo $line | sed -E "s/pip install (.\{\{)?\s?\S+\s?(\}\})?/pip install cudaq==${cudaq_version} -v ${pip_extra_url}/g")
     if [ -n "$(echo $line | grep "conda activate")" ]; then
         conda_env=$(echo "$line" | sed "s#conda activate##" | tr -d '[:space:]')
         source $(conda info --base)/bin/activate $conda_env
