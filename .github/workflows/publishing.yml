@@ -323,7 +323,7 @@ jobs:
           
   cudaq_images:
     name: CUDA-Q Docker image
-    if: ${{ false && toJson(fromJson(needs.assets.outputs.docker_images).info_files) != '[]' }}
+    if: ${{ toJson(fromJson(needs.assets.outputs.docker_images).info_files) != '[]' }}
     needs: assets
     runs-on: ubuntu-latest
     permissions:
@@ -508,7 +508,7 @@ jobs:
 
   cudaq_installers:
     name: CUDA-Q installer
-    if: ${{ false && toJson(fromJson(needs.assets.outputs.installers).info_files) != '[]' }}
+    if: ${{ toJson(fromJson(needs.assets.outputs.installers).info_files) != '[]' }}
     needs: assets
     permissions:
       contents: read
