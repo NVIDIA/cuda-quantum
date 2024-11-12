@@ -40,8 +40,10 @@ public:
       return failure();
 
     LLVM_DEBUG(llvm::dbgs() << "Candidate was found\n");
-    auto eleTy = alloc.getElementType();
-    auto arrTy = cast<cudaq::cc::ArrayType>(eleTy);
+    auto allocTy = alloc.getElementType();
+    auto arrTy = cast<cudaq::cc::ArrayType>(allocTy);
+    auto eleTy = arrTy.getElementType();
+
     SmallVector<Attribute> values;
 
     // Every element of `stores` must be a cc::StoreOp with a ConstantOp as the
@@ -89,12 +91,16 @@ public:
         cannotEraseAlloc = isLive = true;
       } else {
         for (auto *useuser : user->getUsers()) {
+          if (!useuser)
+            continue;
           if (auto load = dyn_cast<cudaq::cc::LoadOp>(useuser)) {
             rewriter.setInsertionPointAfter(useuser);
             LLVM_DEBUG(llvm::dbgs() << "replaced load\n");
-            rewriter.replaceOpWithNewOp<cudaq::cc::ExtractValueOp>(
-                load, eleTy, conArr,
+            auto extractValue = rewriter.create<cudaq::cc::ExtractValueOp>(loc, 
+                eleTy, conArr,
                 ArrayRef<cudaq::cc::ExtractValueArg>{offset});
+            rewriter.replaceAllUsesWith(load, extractValue);
+            insertOpToErase(load);
             continue;
           }
           if (isa<cudaq::cc::StoreOp>(useuser)) {

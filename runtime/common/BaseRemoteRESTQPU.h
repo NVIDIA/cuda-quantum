@@ -292,8 +292,11 @@ public:
     }
     std::string allowEarlyExitSetting =
         (codegenTranslation == "qir-adaptive") ? "1" : "0";
-    passPipelineConfig = std::string("cc-loop-unroll{allow-early-exit=") +
-                         allowEarlyExitSetting + "}," + passPipelineConfig;
+    
+    // Const prop loop boundaries and unroll loops.
+    passPipelineConfig = std::string(
+      "func.func(memtoreg{quantum=0},canonicalize,cse,lift-array-alloc,cse,canonicalize),"
+      "cc-loop-unroll{allow-early-exit=") + allowEarlyExitSetting + "}," + passPipelineConfig;
 
     auto disableQM = backendConfig.find("disable_qubit_mapping");
     if (disableQM != backendConfig.end() && disableQM->second == "true") {
