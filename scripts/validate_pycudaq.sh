@@ -60,6 +60,7 @@ OPTIND=$__optind__
 # FIXME: check validation with src dist (subsequent PR)
 readme_file="$root_folder/README.md"
 if [ ! -d "$root_folder" ] || [ ! -f "$readme_file" ] ; then
+    ls "$root_folder"
     echo -e "\e[01;31mDid not find Python root folder. Please pass the folder containing the README and test with -f.\e[0m" >&2
     (return 0 2>/dev/null) && return 100 || exit 100
 fi
