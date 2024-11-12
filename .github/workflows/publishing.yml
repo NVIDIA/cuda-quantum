@@ -1024,11 +1024,7 @@ jobs:
             pip install --upgrade pip
             pip install cudaq -v \
               --extra-index-url http://localhost:8080 \
-            | tee /tmp/install.out
-
-            echo
-            cat /tmp/install.out
-            echo
+            2>&1 | tee /tmp/install.out
 
             if [ -z "$(cat /tmp/install.out | grep -o 'Autodetection succeeded')" ]; then 
               echo "::error::Autodetection to determine cudaq binary distribution failed."
@@ -1099,10 +1095,6 @@ jobs:
             ca-certificates vim wget unzip openssh-client
           mv /tmp/wheels/* /tmp/packages && rmdir /tmp/wheels
 
-          python3.10 -m pip install pypiserver
-          server=`find / -name pypi-server -executable -type f`
-          $server run -p 8080 /tmp/packages & 
-
           # Extract README from metapackage
           cudaq_metapackage=cudaq-${{ needs.assets.outputs.cudaq_version }}
           tar xf /tmp/packages/${cudaq_metapackage}.tar.gz && mv ${cudaq_metapackage}/README.md .
@@ -1121,12 +1113,12 @@ jobs:
           set +e # Allow script to keep going through errors (needed for skipped tests)
           source validate_wheel.sh \
             -v ${{ needs.assets.outputs.cudaq_version }} \
-            -u http://localhost:8080 -f /tmp \
+            -i /tmp/packages -f /tmp \
             -c ${{ matrix.cuda_version }} -p 3.10
           set -e # Re-enable exit code error checking
 
           expected_dependency=cuda-quantum-cu$(echo ${{ matrix.cuda_version }} | cut -d . -f1)
-          if [ -z "$(python3.10 -m pip list | grep ${expected_dependency})" ]; then 
+          if [ -z "$(python3 -m pip list | grep ${expected_dependency})" ]; then 
             echo "::error::Missing installation of ${expected_dependency} package."
             exit 1
           fi
