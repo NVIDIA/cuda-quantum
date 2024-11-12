@@ -9,7 +9,6 @@
 #include "common/Logger.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
-#include <iostream>
 #include <map>
 #include <regex>
 #include <sstream>
