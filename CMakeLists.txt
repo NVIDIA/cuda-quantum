@@ -162,6 +162,14 @@ if(NOT CURL_LIBRARY AND EXISTS "$ENV{CURL_INSTALL_PREFIX}/lib/libcurl.a")
   SET(CMAKE_USE_SYSTEM_CURL TRUE)
   SET(CURL_NO_CURL_CMAKE ON)
 endif()
+if (NOT crypto_LIBRARY AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND EXISTS "$ENV{OPENSSL_INSTALL_PREFIX}/lib64/libcrypto.a")
+  SET(crypto_LIBRARY "$ENV{OPENSSL_INSTALL_PREFIX}/lib64/libcrypto.a" CACHE INTERNAL "")
+elseif(NOT crypto_LIBRARY AND NOT CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND EXISTS "$ENV{OPENSSL_INSTALL_PREFIX}/lib/libcrypto.a")
+  SET(crypto_LIBRARY "$ENV{OPENSSL_INSTALL_PREFIX}/lib/libcrypto.a" CACHE INTERNAL "")
+endif()
+if (NOT crypto_INCLUDE_DIR AND EXISTS "$ENV{OPENSSL_INSTALL_PREFIX}/include")
+  SET(crypto_INCLUDE_DIR "$ENV{OPENSSL_INSTALL_PREFIX}/include" CACHE INTERNAL "")
+endif()
 if(NOT CUDAQ_EXTERNAL_NVQIR_SIMS)
   SET(CUDAQ_EXTERNAL_NVQIR_SIMS $ENV{CUDAQ_EXTERNAL_NVQIR_SIMS})
 endif()
@@ -476,8 +484,46 @@ if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
   # The asio submodule doesn't use cmake, so use find_path for it.
   find_path(ASIO_INCLUDE_DIR asio.hpp PATHS tpls/asio/asio/include)
   add_subdirectory(tpls/Crow)
+  # AWS SDK for C++
+  set(SERVICE_COMPONENTS braket s3-crt sts)
+  # Call find_package without REQUIRED flag to see whether AWSSDK is installed.
+  find_package(AWSSDK COMPONENTS ${SERVICE_COMPONENTS})
+  if (NOT AWSSDK_FOUND)
+    message(STATUS "AWS SDK not found. Building it.")
+    include(ProcessorCount)
+    ProcessorCount(N)
+    if(CMAKE_MAKE_PROGRAM MATCHES "make$")
+      set(MAKE_PARALLEL ${CMAKE_MAKE_PROGRAM} -j${N})
+    else()
+      set(MAKE_PARALLEL ${CMAKE_MAKE_PROGRAM})
+    endif()
+    execute_process(RESULT_VARIABLE result COMMAND cmake "-B${CMAKE_CURRENT_BINARY_DIR}/tpls/aws-sdk-cpp" "${CMAKE_CURRENT_SOURCE_DIR}/tpls/aws-sdk-cpp" 
+        "-DAUTORUN_UNIT_TESTS=OFF"
+        "-DAWS_SDK_WARNINGS_ARE_ERRORS=OFF"
+        "-DAWS_USER_AGENT_CUSTOMIZATION=CUDA-Q/${CUDA_QUANTUM_VERSION}"
+        "-DBUILD_ONLY=braket;s3-crt;sts"
+        "-DBUILD_SHARED_LIBS=OFF"
+        "-DCMAKE_COMPILE_WARNING_AS_ERROR=OFF"
+        "-Dcrypto_LIBRARY=${crypto_LIBRARY}"
+        "-Dcrypto_INCLUDE_DIR=${crypto_INCLUDE_DIR}"
+        "-DCURL_LIBRARY=${CURL_LIBRARY}"
+        "-DCURL_INCLUDE_DIR=${CURL_INCLUDE_DIR}"
+        "-DOPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR}"
+        "-DENABLE_TESTING=OFF"
+        "-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}"
+        "-G ${CMAKE_GENERATOR}"
+      )
+      if(NOT ${result} STREQUAL "0")
+        message(FATAL_ERROR "Configuring aws-sdk-cpp failed.")
+      endif()
+      execute_process(RESULT_VARIABLE result COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR}/tpls/aws-sdk-cpp ${MAKE_PARALLEL} install)
+      if(NOT ${result} STREQUAL "0")
+        message(FATAL_ERROR "Building aws-sdk-cpp failed.")
+      endif()
+  endif()
+  # AWSSDK should be installed now. Call find_package with REQUIRED flag.
+  find_package(AWSSDK REQUIRED COMPONENTS ${SERVICE_COMPONENTS})
 endif()
-
 
 # Check for CUDA Support
 # ==============================================================================

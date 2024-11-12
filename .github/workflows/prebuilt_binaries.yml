@@ -80,7 +80,8 @@ jobs:
         id: config
         run: |
           platform_tag=`echo ${{ inputs.platform }} | sed 's/linux\///g' | tr -d ' '`
-          if ${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') }}; then
+          is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
+          if ${is_versioned}; then
             cudaq_version=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
           else
             cudaq_version=0.0.0

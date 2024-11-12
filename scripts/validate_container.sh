@@ -81,7 +81,8 @@ available_backends=`\
         qpu=${platform##* }
         requirements=$(cat $file | grep "gpu-requirements:")
         gpus=${requirements##* }
-        if [ "${qpu}" != "remote_rest" ] && [ "${qpu}" != "fermioniq" ] && [ "${qpu}" != "orca" ] && [ "${qpu}" != "NvcfSimulatorQPU" ] \
+        if [ "${qpu}" != "remote_rest" ] && [ "${qpu}" != "NvcfSimulatorQPU" ] \
+        && [ "${qpu}" != "fermioniq" ] && [ "${qpu}" != "orca" ] && [ "${qpu}" != "quera" ] \
         && ($gpu_available || [ -z "$gpus" ] || [ "${gpus,,}" == "false" ]); then \
             basename $file | cut -d "." -f 1; \
         fi; \
@@ -265,7 +266,9 @@ echo "============================="
 # Note: some of the tests do their own "!pip install ..." during the test, and
 # for that to work correctly on the first time, the user site directory (e.g.
 # ~/.local/lib/python3.10/site-packages) must already exist, so create it here.
-mkdir -p $(python3 -m site --user-site)
+if [ -x "$(command -v python3)" ]; then 
+    mkdir -p $(python3 -m site --user-site)
+fi
 
 # Note divisive_clustering_src is not currently in the Published container under
 # the "examples" folder, but the Publishing workflow moves all examples from

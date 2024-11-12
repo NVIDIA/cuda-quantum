@@ -1,0 +1,24 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: quera
+description: "CUDA-Q target for QuEra."
+config:
+  # Tell DefaultQuantumPlatform what QPU subtype to use
+  platform-qpu: quera
+  # Add the quera-qpu library to the link list
+  link-libs: ["-lcudaq-quera-qpu"]
+  # Library mode is only for simulators, physical backends must turn this off
+  library-mode: false
+
+target-arguments:
+  - key: machine
+    required: false
+    type: string
+    platform-arg: machine
+    help-string: "Specify the QuEra QPU."
