@@ -40,7 +40,7 @@ By selecting the `nvqc` target, the quantum circuit simulation will run on NVQC 
 
         ================ NVQC Device Info ================
         GPU Device Name: "NVIDIA H100 80GB HBM3"
-        CUDA Driver Version / Runtime Version: 12.2 / 11.8
+        CUDA Driver Version / Runtime Version: 12.2 / 12.0
         Total global memory (GB): 79.1
         Memory Clock Rate (MHz): 2619.000
         GPU Clock Rate (MHz): 1980.000
@@ -64,7 +64,7 @@ By selecting the `nvqc` target, the quantum circuit simulation will run on NVQC 
 
         ================ NVQC Device Info ================
         GPU Device Name: "NVIDIA H100 80GB HBM3"
-        CUDA Driver Version / Runtime Version: 12.2 / 11.8
+        CUDA Driver Version / Runtime Version: 12.2 / 12.0
         Total global memory (GB): 79.1
         Memory Clock Rate (MHz): 2619.000
         GPU Clock Rate (MHz): 1980.000
