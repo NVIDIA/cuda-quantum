@@ -24,6 +24,7 @@ bool isValidExpVal(double value) {
   return value < -1.1 && value > -2.3;
 }
 
+
 CUDAQ_TEST(OQCTester, checkSampleSync) {
   auto backendString = fmt::format(fmt::runtime(backendStringTemplate),
                                    mockPort, auth_token, device_id);
