@@ -1059,7 +1059,7 @@ jobs:
 
     strategy:
       matrix:
-        cuda_version: ['11.8', '12.6']
+        cuda_version: ['11.8', '12.4']
       fail-fast: false
 
     container:
