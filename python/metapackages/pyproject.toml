@@ -45,7 +45,7 @@ chemistry = [ "scipy==1.10.1", "openfermionpyscf==0.5", "h5py<3.11"  ]
 visualization = [ "qutip<5" , "matplotlib>=3.5" ]
 
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools", "nvidia-ml-py"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]

@@ -9,6 +9,10 @@ on:
         type: string
         description: Optional argument to take assets from a prior run of this workflow; facilitates rerunning a failed workflow without re-building the assets.
         required: false
+      manual_assets_creation:
+        type: string
+        required: false
+        description: Do not trigger a pipeline on GitLab but instead use the assets contained in the draft release with the given name.
       github_commit:
         type: string
         description: Optional argument to set the GitHub commit to use for the final build and validation. 
@@ -159,9 +163,14 @@ jobs:
           # Using the image sha as the file name and the docker image name
           # as the folder is convenient for the GitLab CI.
 
-          git config --global user.name "cuda-quantum-bot"
-          git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
-          current_branch=$(git rev-parse --abbrev-ref HEAD)
+          if ${{ inputs.manual_assets_creation == '' }}; then 
+            git config --global user.name "cuda-quantum-bot"
+            git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
+            current_branch=$(git rev-parse --abbrev-ref HEAD)
+          else
+            gh release download ${{ inputs.manual_assets_creation }} -R ${{ vars.assets_repo || github.repository }}
+            unzip -d /tmp/ ${{ inputs.manual_assets_creation }}.zip && rm -rf ${{ inputs.manual_assets_creation }}.zip
+          fi
 
           function create_assets {
             release_id=`echo "$4" | jq -r ".\"$1\".release_id"`
@@ -180,12 +189,36 @@ jobs:
             echo "asset-name: $1.txt" >> "$1.txt"
             echo "release-id: $release_id" >> "$1.txt"
             echo "artifacts-url: $artifacts_url" >> "$1.txt"
-            mkdir -p "$staging_folder" && mv -v "$1.txt" "$staging_folder/$file_id"
 
-            echo "Pushing $1 to $staging_branch"
-            git add "$staging_folder" && git commit -m "$image_hash"
-            git pull origin -- $staging_branch 2> /dev/null || true
-            git push origin $current_branch:$staging_branch
+            if ${{ inputs.manual_assets_creation == '' }}; then 
+              echo "Pushing $1 to $staging_branch"
+              mkdir -p "$staging_folder" && mv -v "$1.txt" "$staging_folder/$file_id"
+              git add "$staging_folder" && git commit -m "$image_hash"
+              git pull origin -- $staging_branch 2> /dev/null || true
+              git push origin $current_branch:$staging_branch
+            else
+              if [ -z "$(gh release list -R ${{ vars.assets_repo || github.repository }} | grep -s $release_id)" ]; then
+                versions=`gh release list -R ${{ vars.assets_repo || github.repository }} --exclude-drafts --exclude-pre-releases | egrep -o "([0-9]{1,}\.)+[0-9]{1,}\S*" | sort -r -V`
+                latest_tag=`echo $versions | cut -d ' ' -f 1`
+
+                source_sha=${{ steps.artifacts.outputs.github_commit }}
+                rel_notes="This release draft is created by a publishing workflow with manual assets creation."
+                rel_notes+=$(echo "<br/>GitHub commit [$source_sha](${{ github.repository }}/tree/$source_sha)")
+
+                echo "Creating draft release $release_id."
+                gh release create $release_id --title $release_id -R ${{ vars.assets_repo || github.repository }} \
+                  --target $source_sha --draft --prerelease \
+                  --generate-notes --notes-start-tag $latest_tag --notes "$rel_notes"
+              else
+                echo "::error::Release $release_id already exists."
+                exit 1
+              fi              
+              
+              assets_folder=$(echo $release_id | cut -d _ -f2-)
+              upload=`find /tmp/${{ inputs.manual_assets_creation }}/$assets_folder -name '*.zip'`
+              echo "Uploading assets $upload $1.txt..."
+              echo $upload | xargs gh release upload $release_id -R ${{ github.repository }} --clobber "$1.txt"
+            fi
           }
 
           for file in ${{ join(fromJson(steps.artifacts.outputs.docker_images).info_files, ' ') }}; do
@@ -199,6 +232,8 @@ jobs:
           for file in ${{ join(fromJson(steps.artifacts.outputs.installers).info_files, ' ') }}; do
             create_assets $file cuda-quantum-assets-image cuda-quantum-assets '${{ steps.artifacts.outputs.installers }}'
           done
+        env:
+          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Wait for assets
         run: |
@@ -212,7 +247,7 @@ jobs:
 
       # We can delete staging branch now after the expected draft releases have been created.
       - name: Clean up
-        if: steps.assets_creation.outcome != 'skipped'
+        if: steps.assets_creation.outcome != 'skipped' && inputs.manual_assets_creation == ''
         run: |
           # Clean up the staging branch that was used to trigger the GitLab pipeline.
           git config --global user.name "cuda-quantum-bot"
@@ -930,16 +965,16 @@ jobs:
             exit 1
           fi
 
-  wheel_validation_conda:
-    name: Wheel validation, conda
-    needs: [assets, cudaq_wheels]
+  wheel_validation_piponly:
+    name: Wheel validation, pip only
+    needs: [assets, cudaq_wheels, cudaq_metapackages]
     runs-on: linux-amd64-gpu-v100-latest-1
     permissions:
       contents: read
 
     strategy:
       matrix:
-        cuda_major: ['11', '12']
+        cuda_major: ['', '11', '12']
       fail-fast: false
 
     container:
@@ -955,45 +990,68 @@ jobs:
         with:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
-      - name: Load wheel
+      - name: Load wheels
         uses: actions/download-artifact@v4
         with:
-          name: x86_64-cu${{ matrix.cuda_major }}-py3.10-wheels
-          path: /tmp/install
-      
-      - name: Run validation
+          pattern: '*py3.10-wheels'
+          path: /tmp/wheels
+          merge-multiple: true
+
+      - name: Load metapackage
+        if: ${{ matrix.cuda_major == '' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.cudaq_metapackages.outputs.artifact_name }}
+          path: /tmp/packages
+
+      - name: Run x86 validation
         shell: bash
         run: |
-          apt-get update && apt-get install -y --no-install-recommends \
-            ca-certificates vim wget unzip openssh-client
+          # These simple steps are only expected to work for x86 and only for
+          # targets and test cases that don't require MPI.
+          # Create clean python3 environment.
+          apt-get update && apt-get install -y --no-install-recommends python3 python3-pip
+          mkdir -p /tmp/packages && mv /tmp/wheels/* /tmp/packages && rmdir /tmp/wheels
+
+          python3 -m pip install pypiserver
+          server=`find / -name pypi-server -executable -type f`
+          $server run -p 8080 /tmp/packages & 
           
-          # Extract README from wheel
-          cudaq_wheel=/tmp/install/cuda_quantum_cu${{ matrix.cuda_major }}*.whl 
-          wheelname=${cudaq_wheel##*/} && archive_name=${wheelname%.*}.zip
-          cp $cudaq_wheel /tmp/$wheelname && mv /tmp/$wheelname /tmp/$archive_name 
-          unzip /tmp/$archive_name -d /tmp/cudaq_wheel && rm -rf /tmp/$archive_name
-          metadata=/tmp/cudaq_wheel/*.dist-info/METADATA
+          if [ -n "${{ matrix.cuda_major }}" ]; then
+            pip install cuda-quantum-cu${{ matrix.cuda_major }} -v \
+              --extra-index-url http://localhost:8080 
+          else
+            pip install --upgrade pip
+            pip install cudaq -v \
+              --extra-index-url http://localhost:8080 \
+            2>&1 | tee /tmp/install.out
 
-          # Setup links for validate_wheel.sh script
-          ln -s $GITHUB_WORKSPACE/scripts/validate_wheel.sh .
-          ln -s $GITHUB_WORKSPACE/docs/sphinx/examples/python /tmp/examples
-          ln -s $GITHUB_WORKSPACE/docs/sphinx/applications/python /tmp/applications
-          ln -s $GITHUB_WORKSPACE/docs/sphinx/targets/python /tmp/targets
-          ln -s $GITHUB_WORKSPACE/docs/sphinx/snippets/python /tmp/snippets
-          ln -s $GITHUB_WORKSPACE/python/tests /tmp/tests
-          ln -s $metadata /tmp/README.md
+            if [ -z "$(cat /tmp/install.out | grep -o 'Autodetection succeeded')" ]; then 
+              echo "::error::Autodetection to determine cudaq binary distribution failed."
+              exit 1
+            fi
+          fi
 
-          # Run the script w/ -q to run a shortened test
-          set +e # Allow script to keep going through errors (needed for skipped tests)
-          source validate_wheel.sh -w $cudaq_wheel -f /tmp -p 3.10
+          status_sum=0
+          set +e # Allow script to keep going through errors
+          # Verify that the necessary GPU targets are installed and usable
+          # Note nvidia-mgpu requires MPI, so it is not available with this method.
+          for tgt in nvidia nvidia-fp64 tensornet; do
+              echo "Running with target ${tgt}"
+              python3 docs/sphinx/examples/python/intro.py --target ${tgt}
+              if [ $? -ne 0 ]; then 
+                  echo -e "\e[01;31mPython trivial test for target ${tgt} failed.\e[0m" >&2
+                  status_sum=$((status_sum+1))
+              fi
+          done
           set -e # Re-enable exit code error checking
           if [ "$status_sum" -ne "0" ]; then
             echo "::error::Error running validation script" 
             exit $status_sum
           fi
 
-  metapackage_validation_piponly:
-    name: Python metapackage validation, pip only
+  metapackage_validation_conda:
+    name: Python metapackage validation, conda environment
     needs: [assets, cudaq_wheels, cudaq_metapackages]
     runs-on: linux-amd64-gpu-v100-latest-1
     permissions:
@@ -1001,7 +1059,7 @@ jobs:
 
     strategy:
       matrix:
-        cuda_major: ['11', '12']
+        cuda_version: ['11.8', '12.4']
       fail-fast: false
 
     container:
@@ -1030,38 +1088,40 @@ jobs:
           name: ${{ needs.cudaq_metapackages.outputs.artifact_name }}
           path: /tmp/packages
 
-      - name: Run x86 validation
+      - name: Run validation
         shell: bash
         run: |
-          # These simple steps are only expected to work for x86 and only for
-          # targets and test cases that don't require MPI.
-          # Create clean python3 environment.
-          apt-get update && apt-get install -y --no-install-recommends python3 python3-pip
+          apt-get update && apt-get install -y --no-install-recommends \
+            ca-certificates vim wget unzip openssh-client
           mv /tmp/wheels/* /tmp/packages && rmdir /tmp/wheels
 
-          python3 -m pip install pypiserver
-          server=`find / -name pypi-server -executable -type f`
-          $server run -p 8080 /tmp/packages & 
+          # Extract README from metapackage
+          cudaq_metapackage=cudaq-${{ needs.assets.outputs.cudaq_version }}
+          tar xf /tmp/packages/${cudaq_metapackage}.tar.gz && mv -v ${cudaq_metapackage}/README.md .
+          rm -rf ${cudaq_metapackage} && readme=README.md
 
-          pip install cudaq --extra-index-url http://localhost:8080 
-          if [ -z "$(pip list | grep cuda-quantum-cu${{ matrix.cuda_major }})" ]; then 
-            echo "::error::Missing installation of cuda-quantum-cu${{ matrix.cuda_major }} package."
+          # Setup links for validate_pycudaq.sh script
+          ln -s $GITHUB_WORKSPACE/scripts/validate_pycudaq.sh .
+          ln -s $GITHUB_WORKSPACE/docs/sphinx/examples/python /tmp/examples
+          ln -s $GITHUB_WORKSPACE/docs/sphinx/applications/python /tmp/applications
+          ln -s $GITHUB_WORKSPACE/docs/sphinx/targets/python /tmp/targets
+          ln -s $GITHUB_WORKSPACE/docs/sphinx/snippets/python /tmp/snippets
+          ln -s $GITHUB_WORKSPACE/python/tests /tmp/tests
+          ln -s $GITHUB_WORKSPACE/$readme /tmp/README.md
+
+          # Run the script w/ -q to run a shortened test
+          set +e # Allow script to keep going through errors (needed for skipped tests)
+          source validate_pycudaq.sh \
+            -v ${{ needs.assets.outputs.cudaq_version }} \
+            -i /tmp/packages -f /tmp \
+            -c ${{ matrix.cuda_version }} -p 3.10
+          set -e # Re-enable exit code error checking
+
+          expected_dependency=cuda-quantum-cu$(echo ${{ matrix.cuda_version }} | cut -d . -f1)
+          if [ -z "$(python3 -m pip list | grep ${expected_dependency})" ]; then 
+            echo "::error::Missing installation of ${expected_dependency} package."
             exit 1
           fi
-
-          status_sum=0
-          set +e # Allow script to keep going through errors
-          # Verify that the necessary GPU targets are installed and usable
-          # Note nvidia-mgpu requires MPI, so it is not available with this method.
-          for tgt in nvidia nvidia-fp64 tensornet; do
-              echo "Running with target ${tgt}"
-              python3 docs/sphinx/examples/python/intro.py --target ${tgt}
-              if [ $? -ne 0 ]; then 
-                  echo -e "\e[01;31mPython trivial test for target ${tgt} failed.\e[0m" >&2
-                  status_sum=$((status_sum+1))
-              fi
-          done
-          set -e # Re-enable exit code error checking
           if [ "$status_sum" -ne "0" ]; then
             echo "::error::Error running validation script" 
             exit $status_sum
@@ -1137,7 +1197,7 @@ jobs:
 
   clean_up:
     name: Clean up
-    needs: [assets, cudaq_images, cudaq_installers, cudaq_wheels, cudaq_metapackages, image_validation, installer_validation, wheel_validation_conda, metapackage_validation_piponly, create_release]
+    needs: [assets, cudaq_images, cudaq_installers, cudaq_wheels, cudaq_metapackages, image_validation, installer_validation, metapackage_validation_conda, wheel_validation_piponly, create_release]
     # Force this job to run even when some of the dependencies above are skipped.
     if: always() && !cancelled() && needs.assets.result != 'skipped' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest
