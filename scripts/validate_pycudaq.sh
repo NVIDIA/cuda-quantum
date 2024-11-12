@@ -88,7 +88,7 @@ while IFS= read -r line; do
         source $(conda info --base)/bin/activate $conda_env
         if [ -n "${extra_packages}" ]; then 
             eval "pip install pypiserver"
-            eval "pypi-server run -p 8080 ${extra_packages}"
+            eval "pypi-server run -p 8080 ${extra_packages} &"
         fi
     elif [ -n "$(echo $line | tr -d '[:space:]')" ]; then
         eval "$line"
