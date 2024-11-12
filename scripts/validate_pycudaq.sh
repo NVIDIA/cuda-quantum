@@ -15,14 +15,15 @@
 # Check the output for any tests that were skipped.
 
 # E.g. run the command 
-#   source validate_wheel.sh -w /tmp/cuda_quantum*.whl -f /tmp -p 3.10 -c 11
+#   source validate_pycudaq.sh -v ${cudaq_version} -i ${package_folder} -f /tmp -p 3.10 -c 11
 # in a container (with GPU support) defined by:
 #
 # ARG base_image=ubuntu:22.04
 # FROM ${base_image}
-# ARG cuda_quantum_wheel=cuda_quantum_cu11-0.8.0-cp310-cp310-manylinux_2_28_x86_64.whl
-# COPY $cuda_quantum_wheel /tmp/$cuda_quantum_wheel
-# COPY scripts/validate_wheel.sh validate_wheel.sh
+# ARG cudaq_version=0.0.0
+# ARG package_folder=/tmp/packages
+# COPY ${package_folder} ${package_folder}
+# COPY scripts/validate_pycudaq.sh validate_pycudaq.sh
 # COPY docs/sphinx/examples/python /tmp/examples/
 # COPY docs/sphinx/applications/python /tmp/applications/
 # COPY docs/sphinx/targets/python /tmp/targets/
@@ -35,15 +36,19 @@ __optind__=$OPTIND
 OPTIND=1
 python_version=3.11
 quick_test=false
-while getopts ":f:p:qw:" opt; do
+while getopts ":c:f:i:p:qv:" opt; do
   case $opt in
+    c) cuda_version="$OPTARG"
+    ;;
     f) root_folder="$OPTARG"
     ;;
     p) python_version="$OPTARG"
     ;;
     q) quick_test=true
     ;;
-    w) cudaq_wheel="$OPTARG"
+    i) extra_packages="$OPTARG"
+    ;;
+    v) cudaq_version="$OPTARG"
     ;;
     \?) echo "Invalid command line option -$OPTARG" >&2
     (return 0 2>/dev/null) && return 100 || exit 100
@@ -52,13 +57,10 @@ while getopts ":f:p:qw:" opt; do
 done
 OPTIND=$__optind__
 
-# FIXME: check validation with src dist (subsequent PR)
 readme_file="$root_folder/README.md"
 if [ ! -d "$root_folder" ] || [ ! -f "$readme_file" ] ; then
+    ls "$root_folder"
     echo -e "\e[01;31mDid not find Python root folder. Please pass the folder containing the README and test with -f.\e[0m" >&2
-    (return 0 2>/dev/null) && return 100 || exit 100
-elif [ ! -f "$cudaq_wheel" ]; then
-    echo -e "\e[01;31mDid not find Python wheel. Please pass its absolute path with -w.\e[0m" >&2
     (return 0 2>/dev/null) && return 100 || exit 100
 fi
 
@@ -73,12 +75,20 @@ fi
 
 # Execute instructions from the README file
 conda_script="$(awk '/(Begin conda install)/{flag=1;next}/(End conda install)/{flag=0}flag' "$readme_file" | grep . | sed '/^```/d')" 
+if [ -n "${extra_packages}" ]; then 
+    pip_extra_url="--extra-index-url http://localhost:8080"
+fi
 while IFS= read -r line; do
-    line=$(echo $line | sed -E "s/python(=)?3.[0-9]{1,}/python\13.10/g")
-    line=$(echo $line | sed -E "s/pip install cuda-quantum-cu[0-9]{2}/pip install \"${cudaq_wheel//\//\\/}\"/g")
+    line=$(echo $line | sed -E "s/cuda_version=(.\{\{)?\s?\S+\s?(\}\})?/cuda_version=${cuda_version}.0 /g")
+    line=$(echo $line | sed -E "s/python(=)?3.[0-9]{1,}/python\1${python_version}/g")
+    line=$(echo $line | sed -E "s/pip install (.\{\{)?\s?\S+\s?(\}\})?/pip install cudaq==${cudaq_version} -v ${pip_extra_url//\//\\/}/g")
     if [ -n "$(echo $line | grep "conda activate")" ]; then
         conda_env=$(echo "$line" | sed "s#conda activate##" | tr -d '[:space:]')
         source $(conda info --base)/bin/activate $conda_env
+        if [ -n "${extra_packages}" ]; then 
+            eval "pip install pypiserver"
+            eval "pypi-server run -p 8080 ${extra_packages} &"
+        fi
     elif [ -n "$(echo $line | tr -d '[:space:]')" ]; then
         eval "$line"
     fi
@@ -169,7 +179,7 @@ done
 # Note that a derivative of this code is in
 # docs/sphinx/using/backends/platform.rst, so if you update it here, you need to
 # check if any docs updates are needed.
-cudaq_package=`python3 -m pip list | grep -oE 'cuda-quantum-cu[0-9]{2}'`
+cudaq_package=`python3 -m pip list | grep -oE 'cudaq'`
 cudaq_location=`python3 -m pip show ${cudaq_package} | grep -e 'Location: .*$'`
 qpud_py="${cudaq_location#Location: }/bin/cudaq-qpud.py"
 if [ -x "$(command -v nvidia-smi)" ]; 
