@@ -30,12 +30,23 @@ add_subdirectory(extension)
 
 file(GLOB_RECURSE PYTHON_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/*.py")
 
+if (CUDA_FOUND)
+  enable_language(CUDA)
+  find_package(CUDAToolkit REQUIRED)
+endif()
+
+set(METADATA_FILE "${CMAKE_BINARY_DIR}/python/cudaq/_metadata.py" )
 add_custom_target(
   CopyPythonFiles ALL
   COMMAND ${CMAKE_COMMAND} -E copy_directory
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_BINARY_DIR}/python
+  COMMAND ${CMAKE_COMMAND} 
+  -DMETADATA_FILE="${METADATA_FILE}" 
+  -DCUDA_VERSION_MAJOR=${CUDAToolkit_VERSION_MAJOR} 
+  -P ${CMAKE_CURRENT_SOURCE_DIR}/metadata.cmake
   DEPENDS ${PYTHON_SOURCES}
+  BYPRODUCTS "${METADATA_FILE}"
 )
 
 add_dependencies(CUDAQuantumPythonModules CopyPythonFiles)
@@ -45,6 +56,7 @@ add_subdirectory(runtime/cudaq/domains/plugins)
 if (NOT SKBUILD)
   install(DIRECTORY cudaq DESTINATION .)
 endif()
+install(FILES "${METADATA_FILE}" DESTINATION cudaq)
 
 # Do we have pytest and numpy? 
 execute_process(COMMAND ${Python_EXECUTABLE} -m pytest --version
