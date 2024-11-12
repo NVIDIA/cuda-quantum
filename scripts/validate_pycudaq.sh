@@ -57,7 +57,6 @@ while getopts ":c:f:i:p:qv:" opt; do
 done
 OPTIND=$__optind__
 
-# FIXME: check validation with src dist (subsequent PR)
 readme_file="$root_folder/README.md"
 if [ ! -d "$root_folder" ] || [ ! -f "$readme_file" ] ; then
     ls "$root_folder"

@@ -23,9 +23,7 @@ Install CUDA-Q
    please follow the instructions for `installing CUDA-Q <https://pypi.org/project/cuda-quantum/>`_ from PyPI. 
    If you have an NVIDIA GPU, make sure to also follow the instructions for enabling GPU-acceleration.
 
-.. FIXME: update readme here to pull from the src distribution description instead (subsequent PR)
-
-   .. include:: ../../../python/README-cu12.md
+   .. include:: ../../../python/README.md
       :parser: myst_parser.sphinx_
       :start-after: (Begin complete install)
       :end-before: (End complete install)
