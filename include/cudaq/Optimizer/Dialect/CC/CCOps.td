@@ -898,6 +898,48 @@ def cc_AddressOfOp : CCOp<"address_of", [Pure,
   }];
 }
 
+def cc_CreateStateOp : CCOp<"create_state", [Pure] > {
+  let summary = "Create state from data";
+  let description = [{
+    This operation takes a pointer to state data and creates a quantum state.
+    The operation can be optimized away in DeleteStates pass, or replaced
+    by an intrinsic runtime call on simulators.
+
+    ```mlir
+      %0 = cc.create_state %data: !cc.ptr<!cc.state>
+    ```
+  }];
+
+  let arguments = (ins
+    AnyPointerType:$data,
+    AnySignlessInteger:$length
+  );
+  let results = (outs AnyPointerType:$result);
+  let assemblyFormat = [{
+      $data `,` $length `:` functional-type(operands, results) attr-dict
+  }];
+}
+
+def cc_GetNumberOfQubitsOp : CCOp<"get_number_of_qubits", [Pure] > {
+  let summary = "Get number of qubits from a quantum state";
+  let description = [{
+    This operation takes a state pointer argument and returns a number of
+    qubits in the state. The operation can be optimized away in some passes
+    line ReplaceStateByKernel or DeleteStates, or replaced by an intrinsic
+    runtime call on simulators.
+
+    ```mlir
+      %0 = cc.get_number_of_qubits %state : i64
+    ```
+  }];
+
+  let arguments = (ins cc_PointerType:$state);
+  let results = (outs AnySignlessInteger:$result);
+  let assemblyFormat = [{
+      $state `:` functional-type(operands, results) attr-dict
+  }];
+}
+
 def cc_GetStateOp : CCOp<"get_state", [Pure] > {
   let summary = "Get state from kernel with the provided name.";
   let description = [{

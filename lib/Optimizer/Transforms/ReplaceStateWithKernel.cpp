@@ -126,7 +126,7 @@ public:
       signalPassFailure();
 
     LLVM_DEBUG(llvm::dbgs()
-               << "After replace state with kerenl: " << func << '\n');
+               << "After replace state with kernel: " << func << '\n');
   }
 };
 } // namespace

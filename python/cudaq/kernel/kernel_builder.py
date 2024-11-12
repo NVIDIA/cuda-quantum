@@ -777,10 +777,8 @@ class PyKernel(object):
             if isinstance(initializer, cudaq_runtime.State):
                 statePtr = self.capturedDataStorage.storeCudaqState(initializer)
 
-                symName = '__nvqpp_cudaq_state_numberOfQubits'
-                load_intrinsic(self.module, symName)
                 i64Ty = self.getIntegerType()
-                numQubits = func.CallOp([i64Ty], symName, [statePtr]).result
+                numQubits = cc.GetNumberOfQubitsOp(i64Ty, statePtr).result
 
                 veqTy = quake.VeqType.get(self.ctx)
                 qubits = quake.AllocaOp(veqTy, size=numQubits).result
@@ -816,11 +814,9 @@ class PyKernel(object):
                     if cc.StateType.isinstance(valueTy):
                         statePtr = initializer.mlirValue
 
-                        symName = '__nvqpp_cudaq_state_numberOfQubits'
-                        load_intrinsic(self.module, symName)
                         i64Ty = self.getIntegerType()
-                        numQubits = func.CallOp([i64Ty], symName,
-                                                [statePtr]).result
+                        numQubits = cc.GetNumberOfQubitsOp(i64Ty,
+                                                           statePtr).result
 
                         veqTy = quake.VeqType.get(self.ctx)
                         qubits = quake.AllocaOp(veqTy, size=numQubits).result

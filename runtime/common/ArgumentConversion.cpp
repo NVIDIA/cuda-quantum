@@ -146,29 +146,18 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
       std::string name =
           kernelName.str() + ".rodata_synth_" + std::to_string(counter++);
       irBuilder.genVectorOfConstants(loc, substMod, name, vec);
-
       return builder.create<cudaq::cc::AddressOfOp>(loc, ptrTy, name);
     };
 
     auto buffer = is64Bit ? genConArray.template operator()<double>()
                           : genConArray.template operator()<float>();
 
-    auto createState = is64Bit ? cudaq::createCudaqStateFromDataFP64
-                               : cudaq::createCudaqStateFromDataFP32;
-    auto result = irBuilder.loadIntrinsic(substMod, createState);
-    assert(succeeded(result) && "loading intrinsic should never fail");
-
     auto arrSize = builder.create<arith::ConstantIntOp>(loc, size, 64);
     auto stateTy = cudaq::cc::StateType::get(ctx);
     auto statePtrTy = cudaq::cc::PointerType::get(stateTy);
-    auto i8PtrTy = cudaq::cc::PointerType::get(builder.getI8Type());
 
-    auto cast = builder.create<cudaq::cc::CastOp>(loc, i8PtrTy, buffer);
-    auto statePtr = builder
-                        .create<func::CallOp>(loc, statePtrTy, createState,
-                                              ValueRange{cast, arrSize})
-                        .getResult(0);
-    return builder.create<cudaq::cc::CastOp>(loc, statePtrTy, statePtr);
+    return builder.create<cudaq::cc::CreateStateOp>(loc, statePtrTy, buffer,
+                                                    arrSize);
   }
 
   // For quantum hardware, replace states with calls to kernels that generated

@@ -2694,19 +2694,12 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
             initials = load.getPtrvalue();
         }
         if (isStateType(initials.getType())) {
-          IRBuilder irBuilder(builder.getContext());
-          auto mod =
-              builder.getBlock()->getParentOp()->getParentOfType<ModuleOp>();
-          auto result =
-              irBuilder.loadIntrinsic(mod, getNumQubitsFromCudaqState);
-          assert(succeeded(result) && "loading intrinsic should never fail");
           Value state = initials;
           auto i64Ty = builder.getI64Type();
-          auto numQubits = builder.create<func::CallOp>(
-              loc, i64Ty, getNumQubitsFromCudaqState, ValueRange{state});
+          auto numQubits =
+              builder.create<cudaq::cc::GetNumberOfQubitsOp>(loc, i64Ty, state);
           auto veqTy = quake::VeqType::getUnsized(ctx);
-          Value alloc = builder.create<quake::AllocaOp>(loc, veqTy,
-                                                        numQubits.getResult(0));
+          Value alloc = builder.create<quake::AllocaOp>(loc, veqTy, numQubits);
           return pushValue(builder.create<quake::InitializeStateOp>(
               loc, veqTy, alloc, state));
         }

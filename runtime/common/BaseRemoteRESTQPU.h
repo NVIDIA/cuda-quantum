@@ -464,6 +464,7 @@ public:
         pm.addNestedPass<mlir::func::FuncOp>(
             opt::createReplaceStateWithKernel());
         pm.addPass(mlir::createSymbolDCEPass());
+        pm.addPass(opt::createDeleteStates());
       } else if (updatedArgs) {
         cudaq::info("Run Quake Synth.\n");
         pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));
