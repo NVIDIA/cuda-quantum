@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-ARG base_image=nvcr.io/nvidia/nightly/cuda-quantum:cu11-latest-base
+ARG base_image=nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest-base
 FROM $base_image
 
 USER root
