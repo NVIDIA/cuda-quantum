@@ -1100,8 +1100,8 @@ jobs:
           tar xf /tmp/packages/${cudaq_metapackage}.tar.gz && mv ${cudaq_metapackage}/README.md .
           rm -rf ${cudaq_metapackage} && readme=README.md
 
-          # Setup links for validate_wheel.sh script
-          ln -s $GITHUB_WORKSPACE/scripts/validate_wheel.sh .
+          # Setup links for validate_pycudaq.sh script
+          ln -s $GITHUB_WORKSPACE/scripts/validate_pycudaq.sh .
           ln -s $GITHUB_WORKSPACE/docs/sphinx/examples/python /tmp/examples
           ln -s $GITHUB_WORKSPACE/docs/sphinx/applications/python /tmp/applications
           ln -s $GITHUB_WORKSPACE/docs/sphinx/targets/python /tmp/targets
@@ -1111,7 +1111,7 @@ jobs:
 
           # Run the script w/ -q to run a shortened test
           set +e # Allow script to keep going through errors (needed for skipped tests)
-          source validate_wheel.sh \
+          source validate_pycudaq.sh \
             -v ${{ needs.assets.outputs.cudaq_version }} \
             -i /tmp/packages -f /tmp \
             -c ${{ matrix.cuda_version }} -p 3.10
