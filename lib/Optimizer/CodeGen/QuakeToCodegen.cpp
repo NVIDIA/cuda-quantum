@@ -85,7 +85,7 @@ public:
     auto is64Bit = isa<Float64Type>(eleTy);
 
     if (auto cTy = dyn_cast<ComplexType>(eleTy))
-      is64Bit = isa<Float64Type>(eleTy);
+      is64Bit = isa<Float64Type>(cTy.getElementType());
 
     auto createStateFunc = is64Bit ? cudaq::createCudaqStateFromDataFP64
                                    : cudaq::createCudaqStateFromDataFP32;

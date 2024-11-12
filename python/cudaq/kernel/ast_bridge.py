@@ -3829,6 +3829,9 @@ class PyASTBridge(ast.NodeVisitor):
                 if cc.StdvecType.isinstance(eleTy):
                     self.pushValue(value)
                     return
+                if cc.StateType.isinstance(eleTy):
+                    self.pushValue(value)
+                    return
                 loaded = cc.LoadOp(value).result
                 self.pushValue(loaded)
             elif cc.CallableType.isinstance(
