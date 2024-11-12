@@ -35,12 +35,12 @@ loop_lengths = [1, 1]
 n_beam_splitters = len(loop_lengths) * len(input_state) - sum(loop_lengths)
 
 # beam splitter angles
-bs_angles = np.linspace(np.pi / 8, np.pi / 3, n_beam_splitters)
+bs_angles = np.linspace(np.pi / 3, np.pi / 6, n_beam_splitters)
 
 # Optionally, we can also specify the phase shifter angles, if the system
 # includes phase shifters
 # ```
-# ps_angles = np.linspace(np.pi / 6, np.pi / 3, n_beam_splitters)
+# ps_angles = np.linspace(np.pi / 3, np.pi / 5, n_beam_splitters)
 # ```
 
 # we can also set number of requested samples

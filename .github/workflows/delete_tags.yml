@@ -73,7 +73,7 @@ jobs:
 
       - name: Delete matching images
         if: steps.packages.outputs.versions_to_remove
-        uses: actions/delete-package-versions@v4
+        uses: actions/delete-package-versions@v5
         with: 
           package-name: ${{ inputs.ghcr_image }}
           package-type: 'container'

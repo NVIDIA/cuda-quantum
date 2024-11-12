@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-#  RUN: cudaq-target-conf -o %t %cudaq_target_dir/photonics.yml && cat %t | FileCheck %s
-
-# CHECK-DAG: LIBRARY_MODE_EXECUTION_MANAGER=photonics
+name: orca-photonics
+description: "Photonics simulator"
+config:
+  library-mode-execution-manager: photonics

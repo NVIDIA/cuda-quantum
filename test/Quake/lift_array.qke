@@ -6,7 +6,8 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt -lift-array-value %s | FileCheck %s
+// RUN: cudaq-opt -lift-array-alloc %s | FileCheck %s
+// RXN: cudaq-opt -lift-array-alloc -globalize-array-values %s | FileCheck --check-prefix=GLOBAL %s
 
 func.func @__nvqpp__mlirgen__function_test_complex_constant_array._Z27test_complex_constant_arrayv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
   %cst = complex.constant [0.707106769 : f32, 0.000000e+00 : f32] : complex<f32>
@@ -26,12 +27,21 @@ func.func @__nvqpp__mlirgen__function_test_complex_constant_array._Z27test_compl
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_test_complex_constant_array._Z27test_complex_constant_arrayv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-// CHECK:           %[[VAL_0:.*]] = cc.address_of @__nvqpp__mlirgen__function_test_complex_constant_array._Z27test_complex_constant_arrayv.rodata_{{[0-9]+}} : !cc.ptr<!cc.array<complex<f32> x 4>>
-// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
-// CHECK:           %[[VAL_2:.*]] = quake.init_state %[[VAL_1]], %[[VAL_0]] : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f32> x 4>>) -> !quake.veq<2>
+// CHECK:           %[[VAL_0:.*]] = cc.const_array {{\[\[}}0.707106769 : f32, 0.000000e+00 : f32], [0.707106769 : f32, 0.000000e+00 : f32], [0.000000e+00 : f32, 0.000000e+00 : f32], [0.000000e+00 : f32, 0.000000e+00 : f32]] : !cc.array<complex<f32> x 4>
+// CHECK:           %[[VAL_1:.*]] = cc.alloca !cc.array<complex<f32> x 4>
+// CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<!cc.array<complex<f32> x 4>>
+// CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!cc.array<complex<f32> x 4>>) -> !cc.ptr<complex<f32>>
+// CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_4:.*]] = quake.init_state %[[VAL_3]], %[[VAL_2]] : (!quake.veq<2>, !cc.ptr<complex<f32>>) -> !quake.veq<2>
 // CHECK:           return
 // CHECK:         }
 
+// GLOBAL-LABEL:   func.func @__nvqpp__mlirgen__function_test_complex_constant_array._Z27test_complex_constant_arrayv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// GLOBAL:           %[[VAL_0:.*]] = cc.address_of @__nvqpp__mlirgen__function_test_complex_constant_array._Z27test_complex_constant_arrayv.rodata_{{[0-9]+}} : !cc.ptr<!cc.array<complex<f32> x 4>>
+// GLOBAL:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
+// GLOBAL:           %[[VAL_2:.*]] = quake.init_state %[[VAL_1]], %[[VAL_0]] : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f32> x 4>>) -> !quake.veq<2>
+// GLOBAL:           return
+// GLOBAL:         }
 
 func.func private @__nvqpp_vectorCopyCtor(!cc.ptr<i8>, i64, i64) -> !cc.ptr<i8>
 
@@ -58,12 +68,24 @@ func.func @__nvqpp__mlirgen__function_custom_h_generator_1._Z20custom_h_generato
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_custom_h_generator_1._Z20custom_h_generator_1v() -> !cc.stdvec<complex<f64>> attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 16 : i64
 // CHECK:           %[[VAL_1:.*]] = arith.constant 4 : i64
-// CHECK:           %[[VAL_2:.*]] = cc.address_of @__nvqpp__mlirgen__function_custom_h_generator_1._Z20custom_h_generator_1v.rodata_{{[0-9]+}} : !cc.ptr<!cc.array<complex<f64> x 4>>
-// CHECK:           %[[VAL_3:.*]] = cc.cast %[[VAL_2]] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_4:.*]] = call @__nvqpp_vectorCopyCtor(%[[VAL_3]], %[[VAL_1]], %[[VAL_0]]) : (!cc.ptr<i8>, i64, i64) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_5:.*]] = cc.stdvec_init %[[VAL_4]], %[[VAL_1]] : (!cc.ptr<i8>, i64) -> !cc.stdvec<complex<f64>>
-// CHECK:           return %[[VAL_5]] : !cc.stdvec<complex<f64>>
+// CHECK:           %[[VAL_2:.*]] = cc.const_array {{\[\[}}0.70710678118654757, 0.000000e+00], [0.70710678118654757, 0.000000e+00], [0.70710678118654757, 0.000000e+00], [-0.70710678118654757, 0.000000e+00]] : !cc.array<complex<f64> x 4>
+// CHECK:           %[[VAL_3:.*]] = cc.alloca !cc.array<complex<f64> x 4>
+// CHECK:           cc.store %[[VAL_2]], %[[VAL_3]] : !cc.ptr<!cc.array<complex<f64> x 4>>
+// CHECK:           %[[VAL_4:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_5:.*]] = call @__nvqpp_vectorCopyCtor(%[[VAL_4]], %[[VAL_1]], %[[VAL_0]]) : (!cc.ptr<i8>, i64, i64) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_6:.*]] = cc.stdvec_init %[[VAL_5]], %[[VAL_1]] : (!cc.ptr<i8>, i64) -> !cc.stdvec<complex<f64>>
+// CHECK:           return %[[VAL_6]] : !cc.stdvec<complex<f64>>
 // CHECK:         }
+
+// GLOBAL-LABEL:   func.func @__nvqpp__mlirgen__function_custom_h_generator_1._Z20custom_h_generator_1v() -> !cc.stdvec<complex<f64>> attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// GLOBAL:           %[[VAL_0:.*]] = arith.constant 16 : i64
+// GLOBAL:           %[[VAL_1:.*]] = arith.constant 4 : i64
+// GLOBAL:           %[[VAL_2:.*]] = cc.address_of @__nvqpp__mlirgen__function_custom_h_generator_1._Z20custom_h_generator_1v.rodata_{{[0-9]+}} : !cc.ptr<!cc.array<complex<f64> x 4>>
+// GLOBAL:           %[[VAL_3:.*]] = cc.cast %[[VAL_2]] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<i8>
+// GLOBAL:           %[[VAL_4:.*]] = call @__nvqpp_vectorCopyCtor(%[[VAL_3]], %[[VAL_1]], %[[VAL_0]]) : (!cc.ptr<i8>, i64, i64) -> !cc.ptr<i8>
+// GLOBAL:           %[[VAL_5:.*]] = cc.stdvec_init %[[VAL_4]], %[[VAL_1]] : (!cc.ptr<i8>, i64) -> !cc.stdvec<complex<f64>>
+// GLOBAL:           return %[[VAL_5]] : !cc.stdvec<complex<f64>>
+// GLOBAL:         }
 
 func.func @test2() -> !quake.veq<2> {
   %cst = arith.constant 9.000000e+00 : f64
@@ -85,12 +107,21 @@ func.func @test2() -> !quake.veq<2> {
 }
 
 // CHECK-LABEL:   func.func @test2() -> !quake.veq<2> {
-// CHECK:           %[[VAL_0:.*]] = cc.address_of @test2.rodata_{{[0-9]+}} : !cc.ptr<!cc.array<f64 x 4>>
-// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
-// CHECK:           %[[VAL_2:.*]] = quake.init_state %[[VAL_1]], %[[VAL_0]] : (!quake.veq<2>, !cc.ptr<!cc.array<f64 x 4>>) -> !quake.veq<2>
-// CHECK:           return %[[VAL_2]] : !quake.veq<2>
+// CHECK:           %[[VAL_0:.*]] = cc.const_array [1.000000e+00, 2.000000e+00, 6.000000e+00, 9.000000e+00] : !cc.array<f64 x 4>
+// CHECK:           %[[VAL_1:.*]] = cc.alloca !cc.array<f64 x 4>
+// CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<!cc.array<f64 x 4>>
+// CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_3:.*]] = quake.init_state %[[VAL_2]], %[[VAL_1]] : (!quake.veq<2>, !cc.ptr<!cc.array<f64 x 4>>) -> !quake.veq<2>
+// CHECK:           return %[[VAL_3]] : !quake.veq<2>
 // CHECK:         }
 
-// CHECK-DAG:     cc.global constant @__nvqpp__mlirgen__function_test_complex_constant_array._Z27test_complex_constant_arrayv.rodata_{{[0-9]+}} (dense<[(0.707106769,0.000000e+00), (0.707106769,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f32>>) : !cc.array<complex<f32> x 4>
-// CHECK-DAG:     cc.global constant @__nvqpp__mlirgen__function_custom_h_generator_1._Z20custom_h_generator_1v.rodata_{{[0-9]+}} (dense<[(0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (-0.70710678118654757,0.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
-// CHECK-DAG:     cc.global constant @test2.rodata_{{[0-9]+}} (dense<[1.000000e+00, 2.000000e+00, 6.000000e+00, 9.000000e+00]> : tensor<4xf64>) : !cc.array<f64 x 4>
+// GLOBAL-LABEL:   func.func @test2() -> !quake.veq<2> {
+// GLOBAL:           %[[VAL_0:.*]] = cc.address_of @test2.rodata_{{[0-9]+}} : !cc.ptr<!cc.array<f64 x 4>>
+// GLOBAL:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
+// GLOBAL:           %[[VAL_2:.*]] = quake.init_state %[[VAL_1]], %[[VAL_0]] : (!quake.veq<2>, !cc.ptr<!cc.array<f64 x 4>>) -> !quake.veq<2>
+// GLOBAL:           return %[[VAL_2]] : !quake.veq<2>
+// GLOBAL:         }
+
+// GLOBAL-DAG:     cc.global constant @__nvqpp__mlirgen__function_test_complex_constant_array._Z27test_complex_constant_arrayv.rodata_{{[0-9]+}} (dense<[(0.707106769,0.000000e+00), (0.707106769,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f32>>) : !cc.array<complex<f32> x 4>
+// GLOBAL-DAG:     cc.global constant @__nvqpp__mlirgen__function_custom_h_generator_1._Z20custom_h_generator_1v.rodata_{{[0-9]+}} (dense<[(0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (-0.70710678118654757,0.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+// GLOBAL-DAG:     cc.global constant @test2.rodata_{{[0-9]+}} (dense<[1.000000e+00, 2.000000e+00, 6.000000e+00, 9.000000e+00]> : tensor<4xf64>) : !cc.array<f64 x 4>

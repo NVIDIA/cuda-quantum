@@ -32,6 +32,7 @@ jobs:
       contents: write
       issues: write
       pull-requests: write
+      actions: read
 
     environment:
       name: ${{ (github.event.workflow_run.name == 'CI' && 'default') || 'github-pages' }}
@@ -100,6 +101,22 @@ jobs:
               echo "Instead, please edit the README in docker/release/ to describe the feature and link any additional resources."
             elif ${{ github.event.workflow_run.name != 'CI' }} && [ "$head_branch" != "${head_branch#features/}" ]; then
               echo "Documentation for feature branches will not be published."
+            elif ${{ github.event.workflow_run.name != 'CI' }} && [ "$head_branch" != "${head_branch#staging/}" ]; then
+              # Only publish docs if no release branch exists for that version.
+              version=`echo ${head_branch#staging/} | (egrep -o "^v?([0-9]{1,}\.)+[0-9]{1,}$" || true)`
+              gh api repos/${{ github.repository }}/branches \
+                -H "Accept: application/vnd.github+json" \
+                -H "X-GitHub-Api-Version: 2022-11-28" \
+                --paginate --jq '.[].name | select(startswith("releases/"))' \
+              > release_branches.txt
+              if [ -n "$(cat release_branches.txt | (egrep -o "^releases/v?${version}$" || true))" ]; then 
+                echo "A release branch exists for version $version. Documentation from staging branch will not be published." >> $GITHUB_STEP_SUMMARY
+              else
+                echo "target_folder=${version#v}" >> $GITHUB_OUTPUT
+                if [ -z "${version:-$pr_number}" ]; then
+                  echo "Unrecognized docs version. Documentation will not be published." >> $GITHUB_STEP_SUMMARY
+                fi
+              fi
             else
               version=`echo ${head_branch#releases/} | (egrep -o "^v?([0-9]{1,}\.)+[0-9]{1,}$" || true)`
               echo "target_folder=${version#v}" >> $GITHUB_OUTPUT

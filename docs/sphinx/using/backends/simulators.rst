@@ -479,6 +479,97 @@ Specific aspects of the simulation can be configured by defining the following e
     The parallelism of Jacobi method (the default `CUDAQ_MPS_SVD_ALGO` setting) gives GPU better performance on small and medium size matrices.
     If you expect a large number of singular values (e.g., increasing the `CUDAQ_MPS_MAX_BOND` setting), please adjust the `CUDAQ_MPS_SVD_ALGO` setting accordingly.  
 
+Fermioniq
+==================================
+
+.. _fermioniq-backend:
+
+`Fermioniq <https://fermioniq.com/>`__ offers a cloud-based tensor-network emulation platform, `Ava <https://www.fermioniq.com/ava/>`__, 
+for the approximate simulation of large-scale quantum circuits beyond the memory limit of state vector and exact tensor network based methods. 
+
+The level of approximation can be controlled by setting the bond dimension: larger values yield more accurate simulations at the expense 
+of slower computation time. For a detailed description of Ava users are referred to the `online documentation <https://docs.fermioniq.com/>`__.
+
+Users of CUDA-Q can access a simplified version of the full Fermioniq emulator (`Ava <https://www.fermioniq.com/ava/>`__) from either
+C++ or Python. This version currently supports emulation of quantum circuits without noise, and can return measurement samples and/or 
+compute expectation values of observables.
+
+.. note::
+    In order to use the Fermioniq emulator, users must provide access credentials. These can be requested by contacting info@fermioniq.com 
+
+    The credentials must be set via two environment variables:
+    `FERMIONIQ_ACCESS_TOKEN_ID` and `FERMIONIQ_ACCESS_TOKEN_SECRET`.
+
+.. tab:: Python
+
+    The target to which quantum kernels are submitted 
+    can be controlled with the ``cudaq::set_target()`` function.
+
+    .. code:: python
+
+        cudaq.set_target('fermioniq')
+
+    You will have to specify a remote configuration id for the Fermioniq backend
+    during compilation.
+
+    .. code:: python
+
+        cudaq.set_target("fermioniq", **{
+            "remote-config": remote_config_id
+        })
+
+    For a comprehensive list of all remote configurations, please contact Fermioniq directly.
+
+    When your organization requires you to define a project id, you have to specify
+    the project id during compilation.
+
+    .. code:: python
+
+        cudaq.set_target("fermioniq", **{
+            "project-id": project_id
+        })
+
+    To specify the bond dimension, you can pass the ``fermioniq-bond-dim`` parameter.
+
+    .. code:: python 
+
+        cudaq.set_target("fermioniq", **{
+            "bond-dim": 5
+        })
+
+.. tab:: C++
+
+    To target quantum kernel code for execution in the Fermioniq backends,
+    pass the flag ``--target fermioniq`` to the ``nvq++`` compiler. CUDA-Q will 
+    authenticate via the Fermioniq REST API using the environment variables 
+    set earlier.
+
+    .. code:: bash
+
+        nvq++ --target fermioniq src.cpp ...
+
+    You will have to specify a remote configuration id for the Fermioniq backend
+    during compilation.
+
+    .. code:: bash
+
+        nvq++ --target fermioniq --fermioniq-remote-config <remote_config_id> src.cpp ...
+
+    For a comprehensive list of all remote configurations, please contact Fermioniq directly.
+
+    When your organization requires you to define a project id, you have to specify
+    the project id during compilation.
+
+    .. code:: bash
+
+        nvq++ --target fermioniq --fermioniq-project-id <project_id> src.cpp ...
+
+    To specify the bond dimension, you can pass the ``fermioniq-bond-dim`` parameter.
+
+    .. code:: bash
+
+        nvq++ --target fermioniq --fermioniq-bond-dim 10 src.cpp ...
+
 Default Simulator
 ==================================
 

@@ -47,7 +47,8 @@ void cudaq::opt::addPipelineTranslateToOpenQASM(PassManager &pm) {
   pm.addNestedPass<func::FuncOp>(createClassicalMemToReg());
   pm.addPass(createLoopUnroll());
   pm.addPass(createCanonicalizerPass());
-  pm.addPass(createLiftArrayAlloc());
+  pm.addNestedPass<func::FuncOp>(createLiftArrayAlloc());
+  pm.addPass(createGlobalizeArrayValues());
   pm.addPass(createStatePreparation());
 }
 

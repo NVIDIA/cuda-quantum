@@ -166,12 +166,7 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                 f"list subscript missing slice node ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
             )
 
-        # The tree differs here between Python 3.8 and 3.9+
         eleTypeNode = annotation.slice
-        ## [PYTHON_VERSION_FIX]
-        if sys.version_info < (3, 9):
-            eleTypeNode = eleTypeNode.value
-
         # expected that slice is a Name node
         listEleTy = mlirTypeFromAnnotation(eleTypeNode, ctx)
         return cc.StdvecType.get(ctx, listEleTy)
@@ -411,30 +406,23 @@ def mlirTypeToPyType(argType):
     if cc.CharspanType.isinstance(argType):
         return pauli_word
 
-    def getListType(eleType: type):
-        ## [PYTHON_VERSION_FIX]
-        if sys.version_info < (3, 9):
-            return List[eleType]
-        else:
-            return list[eleType]
-
     if cc.StdvecType.isinstance(argType):
         eleTy = cc.StdvecType.getElementType(argType)
         if cc.CharspanType.isinstance(eleTy):
-            return getListType(pauli_word)
+            return list[pauli_word]
 
         if IntegerType.isinstance(eleTy):
             if IntegerType(eleTy).width == 1:
-                return getListType(bool)
-            return getListType(int)
+                return list[bool]
+            return list[int]
         if F64Type.isinstance(eleTy):
-            return getListType(float)
+            return list[float]
         if F32Type.isinstance(eleTy):
-            return getListType(np.float32)
+            return list[np.float32]
         if ComplexType.isinstance(eleTy):
             ty = complex if F64Type.isinstance(
                 ComplexType(eleTy).element_type) else np.complex64
-            return getListType(ty)
+            return list[ty]
 
     if cc.PointerType.isinstance(argType):
         valueTy = cc.PointerType.getElementType(argType)

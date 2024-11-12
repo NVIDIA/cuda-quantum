@@ -15,11 +15,6 @@ from typing import List
 import cudaq
 from cudaq import spin
 
-## [PYTHON_VERSION_FIX]
-skipIfPythonLessThan39 = pytest.mark.skipif(
-    sys.version_info < (3, 9),
-    reason="built-in collection types such as `list` not supported")
-
 
 @pytest.fixture(autouse=True)
 def do_something():
@@ -183,7 +178,6 @@ def test_broadcast():
     print([r for r in results])
 
 
-@skipIfPythonLessThan39
 def test_broadcast_py39Plus():
 
     @cudaq.kernel
@@ -301,7 +295,6 @@ def test_spec_adherence():
         cudaq.observe(returnsSomething, hamiltonian, .59)
 
 
-@skipIfPythonLessThan39
 def test_pack_args_pauli_list():
     random.seed(13)
     np.random.seed(13)

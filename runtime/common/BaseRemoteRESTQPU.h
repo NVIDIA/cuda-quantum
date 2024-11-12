@@ -144,8 +144,6 @@ public:
   BaseRemoteRESTQPU() : QPU() {
     std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
     platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
-    // Default is to run sampling via the remote rest call
-    executor = std::make_unique<cudaq::Executor>();
   }
 
   BaseRemoteRESTQPU(BaseRemoteRESTQPU &&) = delete;
@@ -315,11 +313,19 @@ public:
 
     // Set the qpu name
     qpuName = mutableBackend;
-
     // Create the ServerHelper for this QPU and give it the backend config
     serverHelper = cudaq::registry::get<cudaq::ServerHelper>(qpuName);
+    if (!serverHelper) {
+      throw std::runtime_error("ServerHelper not found for target");
+    }
     serverHelper->initialize(backendConfig);
     serverHelper->updatePassPipeline(platformPath, passPipelineConfig);
+    cudaq::info("Retrieving executor with name {}", qpuName);
+    cudaq::info("Is this executor registered? {}",
+                cudaq::registry::isRegistered<cudaq::Executor>(qpuName));
+    executor = cudaq::registry::isRegistered<cudaq::Executor>(qpuName)
+                   ? cudaq::registry::get<cudaq::Executor>(qpuName)
+                   : std::make_unique<cudaq::Executor>();
 
     // Give the server helper to the executor
     executor->setServerHelper(serverHelper.get());
@@ -399,7 +405,7 @@ public:
     for (auto &op : m_module.getOps()) {
       // Add any global symbols, including global constant arrays.
       // Global constant arrays can be created during compilation,
-      // `lift-array-value`, `quake-synthesizer`, and `get-concrete-matrix`
+      // `lift-array-alloc`, `quake-synthesizer`, and `get-concrete-matrix`
       // passes.
       if (auto globalOp = dyn_cast<cudaq::cc::GlobalOp>(op))
         moduleOp.push_back(globalOp.clone());

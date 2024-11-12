@@ -112,6 +112,111 @@ the ``shots_count`` is set to 1000.
 
 To see a complete example for using IonQ's backends, take a look at our :doc:`Python examples <../examples/examples>`.
 
+Anyon Technologies/Anyon Computing
+==================================
+
+.. _anyon-backend:
+
+Setting Credentials
+```````````````````
+
+Programmers of CUDA-Q may access the Anyon API from either
+C++ or Python. Anyon requires a credential configuration file with username and password. 
+The configuration file can be generated as follows, replacing
+the ``<username>`` and ``<password>`` in the first line with your Anyon Technologies
+account details. The credential in the file will be used by CUDA-Q to login to Anyon quantum services 
+and will be updated by CUDA-Q with an obtained API token and refresh token. 
+Note, the credential line will be deleted in the updated configuration file. 
+
+.. code:: bash
+    
+    echo 'credentials: {"username":"<username>","password":"<password>"}' > $HOME/.anyon_config
+
+Users can also login and get the keys manually using the following commands:
+
+.. code:: bash
+
+    # You may need to run: `apt-get update && apt-get install curl jq`
+    curl -X POST --user "<username>:<password>"  -H "Content-Type: application/json" \
+    https://api.anyon.cloud:5000/login > credentials.json
+    id_token=`cat credentials.json | jq -r '."id_token"'`
+    refresh_token=`cat credentials.json | jq -r '."refresh_token"'`
+    echo "key: $id_token" > ~/.anyon_config
+    echo "refresh: $refresh_token" >> ~/.anyon_config
+
+The path to the configuration can be specified as an environment variable:
+
+.. code:: bash
+
+    export CUDAQ_ANYON_CREDENTIALS=$HOME/.anyon_config
+
+
+Submission from C++
+`````````````````````````
+
+To target quantum kernel code for execution in the Anyon Technologies backends,
+pass the flag ``--target anyon`` to the ``nvq++`` compiler. CUDA-Q will 
+authenticate via the Anyon Technologies REST API using the credential in your configuration file.
+
+.. code:: bash
+
+    nvq++ --target anyon --<backend-type> <machine> src.cpp ...
+
+To execute your kernels using Anyon Technologies backends, pass the ``--anyon-machine`` flag to the ``nvq++`` compiler
+as the ``--<backend-type>`` to specify which machine to submit quantum kernels to:
+
+.. code:: bash
+
+    nvq++ --target anyon --anyon-machine telegraph-8q src.cpp ...
+
+where ``telegraph-8q`` is an example of a physical QPU (Architecture: Telegraph, Qubit Count: 8).
+
+Currently, ``telegraph-8q`` and ``berkeley-25q`` are available for access over CUDA-Q.
+
+To emulate the Anyon Technologies machine locally, without submitting through the cloud,
+you can also pass the ``--emulate`` flag as the ``--<backend-type>`` to ``nvq++``. This will emit any target 
+specific compiler warnings and diagnostics, before running a noise free emulation.
+
+.. code:: bash
+
+    nvq++ --target anyon --emulate src.cpp
+
+To see a complete example for using Anyon's backends, take a look at our :doc:`C++ examples <../examples/examples>`.
+
+
+Submission from Python
+`````````````````````````
+
+The target to which quantum kernels are submitted 
+can be controlled with the ``cudaq.set_target()`` function.
+
+To execute your kernels using Anyon Technologies backends, specify which machine to submit quantum kernels to
+by setting the :code:`machine` parameter of the target. 
+If :code:`machine` is not specified, the default machine will be ``telegraph-8q``.
+
+.. code:: python
+
+    cudaq.set_target('anyon', machine='telegraph-8q')
+
+As shown above, ``telegraph-8q`` is an example of a physical QPU.
+
+To emulate the Anyon Technologies machine locally, without submitting through the cloud,
+you can also set the ``emulate`` flag to ``True``. This will emit any target 
+specific compiler warnings and diagnostics, before running a noise free emulation.
+
+.. code:: python
+
+    cudaq.set_target('anyon', emulate=True)
+
+The number of shots for a kernel execution can be set through
+the ``shots_count`` argument to ``cudaq.sample`` or ``cudaq.observe``. By default,
+the ``shots_count`` is set to 1000.
+
+.. code:: python 
+
+    cudaq.sample(kernel, shots_count=10000)
+
+To see a complete example for using Anyon's backends, take a look at our :doc:`Python examples <../examples/examples>`.
 
 IQM
 ==================================
@@ -490,3 +595,5 @@ the ``shots_count`` is set to 1000.
     cudaq.sample(kernel, shots_count=10000)
 
 To see a complete example for using Quantinuum's backends, take a look at our :doc:`Python examples <../examples/examples>`.
+
+

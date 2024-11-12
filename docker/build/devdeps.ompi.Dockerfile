@@ -15,12 +15,15 @@
 # Must be built from the repo root with:
 #   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:ompi -f docker/build/devdeps.ompi.Dockerfile .
 
-FROM nvidia/cuda:11.8.0-devel-ubuntu22.04
+ARG cuda_version=11.8
+FROM nvidia/cuda:${cuda_version}.0-devel-ubuntu22.04
 SHELL ["/bin/bash", "-c"]
 ARG DEBIAN_FRONTEND=noninteractive
+ARG cuda_version
+ENV CUDA_VERSION=${cuda_version}
 
 ARG TARGETARCH
-ENV CUDA_INSTALL_PREFIX=/usr/local/cuda-11.8
+ENV CUDA_INSTALL_PREFIX=/usr/local/cuda-${CUDA_VERSION}
 ENV COMMON_COMPILER_FLAGS="-march=x86-64-v3 -mtune=generic -O2 -pipe"
 ENV COMMON_COMPILER_FLAGS_ARM="-march=armv8-a -mtune=generic -O2 -pipe"
 

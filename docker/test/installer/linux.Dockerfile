@@ -14,16 +14,20 @@ FROM ${base_image_mpibuild} AS mpibuild
 ARG base_image_mpibuild
 SHELL ["/bin/bash", "-c"]
 ARG DEBIAN_FRONTEND=noninteractive
+ARG cudart_version
 
 ## [Prerequisites]
 ADD docker/test/installer/runtime_dependencies.sh /runtime_dependencies.sh
 RUN CUDA_DISTRIBUTION=rhel9 bash runtime_dependencies.sh ${base_image_mpibuild}
 RUN dnf install -y --nobest --setopt=install_weak_deps=False \
-        autoconf libtool flex make wget \
-        gcc-toolset-11 cuda-cudart-devel-11-8
+        autoconf libtool flex make wget
+
+ADD scripts/configure_build.sh /cuda-quantum/scripts/configure_build.sh
+RUN source /cuda-quantum/scripts/configure_build.sh install-gcc && \
+    dnf install -y --nobest --setopt=install_weak_deps=False \
+        cuda-cudart-devel-$(echo ${cudart_version} | tr . -)
 
 ## [Build]
-ADD scripts/configure_build.sh /cuda-quantum/scripts/configure_build.sh
 RUN source /cuda-quantum/scripts/configure_build.sh build-openmpi
 
 # [CUDA-Q Installation]
@@ -60,13 +64,13 @@ USER cudaq
 WORKDIR /home/cudaq
 
 ## [Install]
-ARG cuda_quantum_installer='out/install_cuda_quantum.*'
+ARG cuda_quantum_installer='out/install_cuda_quantum*'
 ADD "${cuda_quantum_installer}" .
 RUN source /etc/environment && \
     echo "Installing CUDA-Q..." && \
     ## [>CUDAQuantumInstall]
     MPI_PATH=/usr/local/openmpi \
-    sudo -E bash install_cuda_quantum.$(uname -m) --accept && . /etc/profile
+    sudo -E bash install_cuda_quantum*.$(uname -m) --accept && . /etc/profile
     ## [<CUDAQuantumInstall]
 RUN . /etc/profile && nvq++ --help
 

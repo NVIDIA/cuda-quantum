@@ -78,7 +78,7 @@ jobs:
       # We need to keep a good number of untagged manifests, 
       # since each tagged image contains/depends on untagged components
       - name: Delete untagged images
-        uses: actions/delete-package-versions@v4
+        uses: actions/delete-package-versions@v5
         with: 
           package-name: ${{ matrix.image_name }}
           package-type: 'container'
@@ -133,7 +133,7 @@ jobs:
 
       - name: Delete matching signatures
         if: steps.packages.outputs.versions_to_remove
-        uses: actions/delete-package-versions@v4
+        uses: actions/delete-package-versions@v5
         with: 
           package-name: ${{ matrix.image_name }}
           package-type: 'container'

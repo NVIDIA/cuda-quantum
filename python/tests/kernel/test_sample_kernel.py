@@ -14,11 +14,6 @@ from typing import Callable, List
 
 import cudaq
 
-## [PYTHON_VERSION_FIX]
-skipIfPythonLessThan39 = pytest.mark.skipif(
-    sys.version_info < (3, 9),
-    reason="built-in collection types such as `list` not supported")
-
 
 @pytest.fixture(autouse=True)
 def do_something():
@@ -148,7 +143,6 @@ def test_broadcast():
         assert len(c) == 2
 
 
-@skipIfPythonLessThan39
 def test_broadcastPy39Plus():
 
     @cudaq.kernel

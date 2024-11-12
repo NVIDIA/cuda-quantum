@@ -21,7 +21,6 @@
 #include <complex>
 #include <fstream>
 #include <iostream>
-#include <map>
 #include <random>
 #include <set>
 #include <utility>
@@ -62,48 +61,52 @@ actionOnBra(spin_op &term, const std::string &bitConfiguration) {
   return std::make_pair(newConfiguration, coeff);
 }
 
-std::pair<std::complex<double>, std::vector<bool>>
-mult(std::vector<bool> row, std::vector<bool> other_row,
-     std::complex<double> &rowCoeff, std::complex<double> &otherCoeff) {
-  // This is term_i * otherTerm_j
-  std::vector<bool> tmp(row.size()), tmp2(row.size());
-  std::size_t numQubits = row.size() / 2;
+std::pair<std::vector<bool>, std::complex<double>>
+mult(const std::vector<bool> &p1, const std::vector<bool> &p2,
+     const std::complex<double> &p1Coeff, const std::complex<double> &p2Coeff) {
+  auto [minSize, maxSize] = std::minmax({p1.size(), p2.size()});
+  std::size_t minNumQubits = minSize / 2;
+  std::size_t maxNumQubits = maxSize / 2;
+  std::vector<bool> result(maxSize, false);
+  int yCount = 0;
+  int cPhase = 0;
 
-  for (std::size_t i = 0; i < 2 * numQubits; i++)
-    tmp[i] = row[i] ^ other_row[i];
+  for (std::size_t i = 0; i < minNumQubits; ++i) {
+    bool p1_x = p1[i];
+    bool p1_z = p1[i + (p1.size() / 2)];
+    bool p2_x = p2[i];
+    bool p2_z = p2[i + (p2.size() / 2)];
 
-  for (std::size_t i = 0; i < numQubits; i++)
-    tmp2[i] = (row[i] && other_row[numQubits + i]) ||
-              (row[i + numQubits] && other_row[i]);
+    // Compute the resulting Pauli operator
+    result[i] = p1_x ^ p2_x;
+    result[i + maxNumQubits] = p1_z ^ p2_z;
 
-  int orig_phase = 0, other_phase = 0;
-  for (std::size_t i = 0; i < numQubits; i++) {
-    if (row[i] && row[i + numQubits])
-      orig_phase++;
-
-    if (other_row[i] && other_row[i + numQubits])
-      other_phase++;
+    yCount +=
+        (p1_x & p1_z) + (p2_x & p2_z) - (result[i] & result[i + maxNumQubits]);
+    cPhase += p1_x & p2_z;
   }
 
-  int sum = 0;
-  for (auto a : tmp2)
-    if (a)
-      sum++;
+  const std::vector<bool> &big = p1.size() < p2.size() ? p2 : p1;
+  for (std::size_t i = minNumQubits; i < maxNumQubits; ++i) {
+    result[i] = big[i];
+    result[i + maxNumQubits] = big[i + maxNumQubits];
+  }
 
-  auto _phase = orig_phase + other_phase + 2 * sum;
-  // Based on the phase, figure out an extra coeff to apply
-  for (std::size_t i = 0; i < numQubits; i++)
-    if (tmp[i] && tmp[i + numQubits])
-      _phase -= 1;
+  // Normalize the phase to a value in the range [0, 3]
+  int phaseFactor = (2 * cPhase + yCount) % 4;
+  if (phaseFactor < 0)
+    phaseFactor += 4;
 
-  _phase %= 4;
-  std::complex<double> imaginary(0, 1);
-  std::array<std::complex<double>, 4> phaseCoeffArr{1.0, -1. * imaginary, -1.0,
-                                                    imaginary};
-  auto phase_coeff = phaseCoeffArr[_phase];
-  auto coeff = rowCoeff;
-  coeff *= phase_coeff * otherCoeff;
-  return std::make_pair(coeff, tmp);
+  // Phase correction factors based on the total phase
+  using namespace std::complex_literals;
+  std::array<std::complex<double>, 4> phase{1.0, -1i, -1.0, 1i};
+  std::complex<double> resultCoeff = p1Coeff * phase[phaseFactor] * p2Coeff;
+
+  // Handle the "-0" issue
+  if (std::abs(resultCoeff.real()) < 1e-12)
+    resultCoeff.real(0);
+
+  return {result, resultCoeff};
 }
 } // namespace details
 
@@ -425,56 +428,47 @@ spin_op &spin_op::operator-=(const spin_op &v) noexcept {
 }
 
 spin_op &spin_op::operator*=(const spin_op &v) noexcept {
-  spin_op copy = v;
-  if (v.num_qubits() > num_qubits())
-    expandToNQubits(copy.num_qubits());
-  else if (v.num_qubits() < num_qubits())
-    copy.expandToNQubits(num_qubits());
+  using term_and_coeff = std::pair<std::vector<bool>, std::complex<double>>;
+  std::size_t numTerms = num_terms() * v.num_terms();
+  std::vector<term_and_coeff> result(numTerms);
+  std::size_t min = std::min(num_terms(), v.num_terms());
 
-  std::unordered_map<std::vector<bool>, std::complex<double>> newTerms;
-  std::size_t ourRow = 0, theirRow = 0;
-  std::vector<std::complex<double>> composedCoeffs(num_terms() *
-                                                   copy.num_terms());
-  std::vector<std::vector<bool>> composition(num_terms() * copy.num_terms());
-  std::map<std::size_t, std::pair<std::size_t, std::size_t>> indexMap;
-  auto nElements = composition.size();
-  for (std::size_t i = 0; i < nElements; i++) {
-    auto pair = std::make_pair(ourRow, theirRow);
-    indexMap.emplace(i, pair);
-    if (theirRow == copy.num_terms() - 1) {
-      theirRow = 0;
-      ourRow++;
-    } else
-      theirRow++;
-  }
+  // Put the `unordered_map` iterators into vectors to minimize pointer chasing
+  // when doing the cartesian product of the spin operators' terms.
+  using Iter =
+      std::unordered_map<spin_op_term, std::complex<double>>::const_iterator;
+  std::vector<Iter> thisTermIt;
+  std::vector<Iter> otherTermIt;
+  thisTermIt.reserve(terms.size());
+  otherTermIt.reserve(v.terms.size());
+  for (auto it = terms.begin(); it != terms.end(); ++it)
+    thisTermIt.push_back(it);
+  for (auto it = v.terms.begin(); it != v.terms.end(); ++it)
+    otherTermIt.push_back(it);
+
 #if defined(_OPENMP)
   // Threshold to start OpenMP parallelization.
   // 16 ~ 4-term * 4-term
   constexpr std::size_t spin_op_omp_threshold = 16;
-#pragma omp parallel for shared(composition) if (nElements >                   \
-                                                     spin_op_omp_threshold)
+#pragma omp parallel for shared(result) if (numTerms > spin_op_omp_threshold)
 #endif
-  for (std::size_t i = 0; i < nElements; i++) {
-    auto [j, k] = indexMap[i];
-    auto s = terms.begin();
-    auto t = copy.terms.begin();
-    std::advance(s, j);
-    std::advance(t, k);
-    auto res = details::mult(s->first, t->first, s->second, t->second);
-    composition[i] = res.second;
-    composedCoeffs[i] = res.first;
+  for (std::size_t i = 0; i < numTerms; ++i) {
+    Iter s = thisTermIt[i % min];
+    Iter t = otherTermIt[i / min];
+    if (terms.size() > v.terms.size()) {
+      s = thisTermIt[i / min];
+      t = otherTermIt[i % min];
+    }
+    result[i] = details::mult(s->first, t->first, s->second, t->second);
   }
 
-  for (std::size_t i = 0; i < nElements; i++) {
-    auto iter = newTerms.find(composition[i]);
-    if (iter == newTerms.end())
-      newTerms.emplace(composition[i], composedCoeffs[i]);
-    else
-      iter->second += composedCoeffs[i];
+  terms.clear();
+  terms.reserve(numTerms);
+  for (auto &&[term, coeff] : result) {
+    auto [it, created] = terms.emplace(term, coeff);
+    if (!created)
+      it->second += coeff;
   }
-
-  terms = newTerms;
-
   return *this;
 }
 

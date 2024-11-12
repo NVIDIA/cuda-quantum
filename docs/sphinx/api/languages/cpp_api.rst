@@ -172,7 +172,11 @@ Platform
 
 .. doxygenclass:: cudaq::BaseNvcfSimulatorQPU
 
+.. doxygenclass:: cudaq::FermioniqBaseQPU
+
 .. doxygenclass:: cudaq::OrcaRemoteRESTQPU 
+
+.. doxygenclass:: cudaq::QuEraBaseQPU
 
 .. doxygenclass:: cudaq::quantum_platform
     :members:

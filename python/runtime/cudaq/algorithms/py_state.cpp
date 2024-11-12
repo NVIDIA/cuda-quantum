@@ -311,7 +311,11 @@ void bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
           "Return a state from matrix product state tensor data.")
       .def_static(
           "from_data",
-          [](const std::vector<py::object> &tensors) {
+          [](const py::list &tensors) {
+            // Note: we must use Python type (py::list) for proper overload
+            // resolution. The overload for py::object, intended for cupy arrays
+            // (implementing Python array interface), may be overshadowed by any
+            // std::vector overloads.
             cudaq::TensorStateData tensorData;
             for (auto &tensor : tensors) {
               // Make sure this is a CuPy array
@@ -347,7 +351,7 @@ void bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
           "ndarray).")
       .def_static(
           "from_data",
-          [](py::object opaqueData) {
+          [&holder](py::object opaqueData) {
             // Make sure this is a CuPy array
             if (!py::hasattr(opaqueData, "data"))
               throw std::runtime_error(
@@ -380,6 +384,13 @@ void bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
                 numElements *= el.cast<std::size_t>();
               return numElements;
             }();
+
+            // Check that the target is GPU-based, i.e., can handle device
+            // pointer.
+            if (!holder.getTarget().config.GpuRequired)
+              throw std::runtime_error(fmt::format(
+                  "Current target '{}' does not support CuPy arrays.",
+                  holder.getTarget().name));
 
             long ptr = data.attr("ptr").cast<long>();
             if (typeStr == "complex64")
@@ -644,7 +655,7 @@ index pair.
         if (holder.getTarget().name == "remote-mqpu" ||
             holder.getTarget().name == "nvqc")
           return pyGetStateRemote(kernel, args);
-        if (holder.getTarget().name == "photonics")
+        if (holder.getTarget().name == "orca-photonics")
           return pyGetStateLibraryMode(kernel, args);
         return pyGetState(kernel, args);
       },

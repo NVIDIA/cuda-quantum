@@ -67,6 +67,8 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/cudaq/target/py_testing_utils.cpp
     ../runtime/mlir/py_register_dialects.cpp
     ../runtime/utils/PyRemoteRESTQPU.cpp
+    ../runtime/utils/PyFermioniqRESTQPU.cpp
+    ../runtime/utils/PyQuEraRemoteRESTQPU.cpp
     ../runtime/utils/PyRemoteSimulatorQPU.cpp
     ../runtime/utils/PyRestRemoteClient.cpp
     ../utils/LinkedLibraryHolder.cpp

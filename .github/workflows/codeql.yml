@@ -8,14 +8,19 @@ on:
     branches: 
       - 'main'
       - 'releases/*'
+      - 'staging/*'
       - 'experimental/*'
       - 'features/*'
   pull_request:
     branches: 
       - 'main'
       - 'releases/*'
+      - 'staging/*'
       - 'experimental/*'
       - 'features/*'
+  merge_group:
+    types: 
+      - checks_requested
   schedule:
     - cron: '37 9 * * 2'
 

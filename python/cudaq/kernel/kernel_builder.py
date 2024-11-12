@@ -14,7 +14,7 @@ import re
 import string
 import sys
 import numpy as np
-from typing import get_origin, List
+from typing import get_origin
 from .quake_value import QuakeValue
 from .kernel_decorator import PyKernelDecorator
 from .utils import mlirTypeFromPyType, nvqppPrefix, emitFatalError, emitWarning, mlirTypeToPyType, emitErrorIfInvalidPauli, globalRegisteredOperations
@@ -30,16 +30,6 @@ from ..mlir.dialects import builtin, func, arith, math, complex as complexDialec
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime, load_intrinsic, register_all_dialects, gen_vector_of_complex_constant
 
 kDynamicPtrIndex: int = -2147483648
-
-
-## [PYTHON_VERSION_FIX]
-## Refer: https://peps.python.org/pep-0616/
-def remove_prefix(inputStr: str, prefix: str) -> str:
-    if inputStr.startswith(prefix):
-        return inputStr[len(prefix):]
-    else:
-        return inputStr[:]
-
 
 qvector = cudaq_runtime.qvector
 
@@ -268,7 +258,7 @@ class PyKernel(object):
             nvqppPrefix, ''.join(
                 random.choice(string.ascii_uppercase + string.digits)
                 for _ in range(10)))
-        self.name = remove_prefix(self.funcName, nvqppPrefix)
+        self.name = self.funcName.removeprefix(nvqppPrefix)
         self.funcNameEntryPoint = self.funcName + '_PyKernelEntryPointRewrite'
         attr = DictAttr.get(
             {
@@ -1460,13 +1450,6 @@ class PyKernel(object):
                 f"Invalid number of arguments passed to kernel `{self.funcName}` ({len(args)} provided, {len(self.mlirArgTypes)} required"
             )
 
-        def getListType(eleType: type):
-            ## [PYTHON_VERSION_FIX]
-            if sys.version_info < (3, 9):
-                return List[eleType]
-            else:
-                return list[eleType]
-
         # validate the argument types
         processedArgs = []
         for i, arg in enumerate(args):
@@ -1491,7 +1474,7 @@ class PyKernel(object):
                 if len(arg) == 0:
                     processedArgs.append(arg)
                     continue
-                listType = getListType(type(arg[0]))
+                listType = list[type(arg[0])]
             mlirType = mlirTypeFromPyType(argType, self.ctx)
 
             if cc.StdvecType.isinstance(mlirType):
