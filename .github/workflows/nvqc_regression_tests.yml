@@ -320,7 +320,7 @@ jobs:
           set +e # Allow script to keep going through errors
           python$python_version -m pip install pytest
           test_err_sum=0
-          for ex in `find examples/python python/tests/mlir/target -name '*.py'; do
+          for ex in `find examples/python python/tests/mlir/target -name '*.py'`; do
             filename=$(basename -- "$ex")
             filename="${filename%.*}"
             echo "Testing $filename:"
