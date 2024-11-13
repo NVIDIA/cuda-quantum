@@ -163,13 +163,14 @@ jobs:
           # Using the image sha as the file name and the docker image name
           # as the folder is convenient for the GitLab CI.
 
-          if ${{ inputs.manual_assets_creation == '' }}; then 
+          publishing_assets=${{ inputs.manual_assets_creation || vars.publishing_assets || '' }}
+          if [ -z "${publishing_assets}" ]; then 
             git config --global user.name "cuda-quantum-bot"
             git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
             current_branch=$(git rev-parse --abbrev-ref HEAD)
           else
-            gh release download ${{ inputs.manual_assets_creation }} -R ${{ vars.assets_repo || github.repository }}
-            unzip -d /tmp/ ${{ inputs.manual_assets_creation }}.zip && rm -rf ${{ inputs.manual_assets_creation }}.zip
+            gh release download ${publishing_assets} -R ${{ vars.assets_repo || github.repository }}
+            unzip -d /tmp/ ${publishing_assets}.zip && rm -rf ${publishing_assets}.zip
           fi
 
           function create_assets {
@@ -190,7 +191,7 @@ jobs:
             echo "release-id: $release_id" >> "$1.txt"
             echo "artifacts-url: $artifacts_url" >> "$1.txt"
 
-            if ${{ inputs.manual_assets_creation == '' }}; then 
+            if [ -z "${publishing_assets}" ]; then 
               echo "Pushing $1 to $staging_branch"
               mkdir -p "$staging_folder" && mv -v "$1.txt" "$staging_folder/$file_id"
               git add "$staging_folder" && git commit -m "$image_hash"
@@ -217,7 +218,7 @@ jobs:
               fi              
               
               assets_folder=$(echo $release_id | cut -d _ -f2-)
-              upload=`find /tmp/${{ inputs.manual_assets_creation }}/$assets_folder -name '*.zip'`
+              upload=`find /tmp/${publishing_assets}/$assets_folder -name '*.zip'`
               echo "Uploading assets $upload $1.txt..."
               echo $upload | xargs gh release upload $release_id -R ${{ vars.assets_repo || github.repository }} --clobber "$1.txt"
             fi
@@ -249,7 +250,7 @@ jobs:
 
       # We can delete staging branch now after the expected draft releases have been created.
       - name: Clean up
-        if: steps.assets_creation.outcome != 'skipped' && inputs.manual_assets_creation == ''
+        if: steps.assets_creation.outcome != 'skipped' && inputs.manual_assets_creation == '' && vars.publishing_assets == ''
         run: |
           # Clean up the staging branch that was used to trigger the GitLab pipeline.
           git config --global user.name "cuda-quantum-bot"
