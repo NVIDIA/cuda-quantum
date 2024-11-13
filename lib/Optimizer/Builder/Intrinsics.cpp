@@ -49,6 +49,17 @@ inline bool operator<(const IntrinsicCode &icode, const IntrinsicCode &jcode) {
 /// well as prototypes for LLVM intrinsics and C library calls that are used by
 /// the compiler. The table should be kept in sorted order.
 static constexpr IntrinsicCode intrinsicTable[] = {
+    // These following pauli_word helper functions are only available on the
+    // host-side. They ought not be called in kernel code.
+    {cudaq::runtime::getPauliWordData,
+     {},
+     "func.func private @_ZNK5cudaq10pauli_word11_nvqpp_dataEv(%pw : "
+     "!cc.ptr<i8>) -> !cc.ptr<i8>"},
+    {cudaq::runtime::getPauliWordSize,
+     {cudaq::runtime::getPauliWordData},
+     "func.func private @_ZNK5cudaq10pauli_word11_nvqpp_sizeEv(%pw : "
+     "!cc.ptr<i8>) -> i64"},
+
     // Initialize a (preallocated) buffer (the first parameter) with i64 values
     // on the semi-open range `[0..n)` where `n` is the second parameter.
     {cudaq::runtime::getLinkableKernelKey,

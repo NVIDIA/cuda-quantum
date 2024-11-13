@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
+#include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
@@ -305,12 +306,13 @@ cc::LoopOp factory::createMonotonicLoop(
   return loop;
 }
 
-cc::StructType factory::stlStringType(MLIRContext *ctx) {
+cc::ArrayType factory::genHostStringType(ModuleOp mod) {
+  auto *ctx = mod.getContext();
   auto i8Ty = IntegerType::get(ctx, 8);
-  auto ptrI8Ty = cc::PointerType::get(i8Ty);
-  auto i64Ty = IntegerType::get(ctx, 64);
-  auto padTy = cc::ArrayType::get(ctx, i8Ty, 16);
-  return cc::StructType::get(ctx, ArrayRef<Type>{ptrI8Ty, i64Ty, padTy});
+  auto sizeAttr = mod->getAttr(cudaq::runtime::sizeofStringAttrName);
+  assert(sizeAttr && "module must have cc.sizeof_string attribute");
+  auto size = cast<IntegerAttr>(sizeAttr).getInt();
+  return cc::ArrayType::get(ctx, i8Ty, size);
 }
 
 // FIXME: We should get the underlying structure of a std::vector from the
@@ -358,18 +360,19 @@ Type factory::getSRetElementType(FunctionType funcTy) {
   return funcTy.getResult(0);
 }
 
-Type factory::convertToHostSideType(Type ty) {
+Type factory::convertToHostSideType(Type ty, ModuleOp mod) {
   if (auto memrefTy = dyn_cast<cc::StdvecType>(ty))
-    return stlHostVectorType(convertToHostSideType(memrefTy.getElementType()));
+    return stlHostVectorType(
+        convertToHostSideType(memrefTy.getElementType(), mod));
   if (isa<cc::IndirectCallableType>(ty))
     return cc::PointerType::get(IntegerType::get(ty.getContext(), 8));
-  if (isa<cc::CharspanType>(ty))
-    return factory::stlStringType(ty.getContext());
+  if (auto csTy = dyn_cast<cc::CharspanType>(ty))
+    return genHostStringType(mod);
   auto *ctx = ty.getContext();
   if (auto structTy = dyn_cast<cc::StructType>(ty)) {
     SmallVector<Type> newMembers;
     for (auto mem : structTy.getMembers())
-      newMembers.push_back(convertToHostSideType(mem));
+      newMembers.push_back(convertToHostSideType(mem, mod));
     if (structTy.getName())
       return cc::StructType::get(ctx, structTy.getName(), newMembers,
                                  structTy.getBitSize(), structTy.getAlignment(),
@@ -589,7 +592,7 @@ FunctionType factory::toHostSideFuncType(FunctionType funcTy, bool addThisPtr,
       // returned via a sret argument in the first position. When this argument
       // is added, the this pointer becomes the second argument. Both are opaque
       // pointers at this point.
-      auto eleTy = convertToHostSideType(getSRetElementType(funcTy));
+      auto eleTy = convertToHostSideType(getSRetElementType(funcTy), module);
       inputTys.push_back(cc::PointerType::get(eleTy));
       hasSRet = true;
     } else {
@@ -605,7 +608,7 @@ FunctionType factory::toHostSideFuncType(FunctionType funcTy, bool addThisPtr,
 
   // Add all the explicit (not hidden) arguments after the hidden ones.
   for (auto kernelTy : funcTy.getInputs()) {
-    auto hostTy = convertToHostSideType(kernelTy);
+    auto hostTy = convertToHostSideType(kernelTy, module);
     if (auto strTy = dyn_cast<cc::StructType>(hostTy)) {
       // On x86_64 and aarch64, a struct that is smaller than 128 bits may be
       // passed in registers as separate arguments. See classifyArgumentType()
@@ -645,6 +648,9 @@ FunctionType factory::toHostSideFuncType(FunctionType funcTy, bool addThisPtr,
         }
       }
       // Pass a struct as a byval pointer.
+      hostTy = cc::PointerType::get(hostTy);
+    } else if (isa<cc::ArrayType>(hostTy)) {
+      // Pass a raw data block as a pointer. (It's a struct passed as a blob.)
       hostTy = cc::PointerType::get(hostTy);
     }
     inputTys.push_back(hostTy);

@@ -52,4 +52,12 @@ static constexpr const char CudaqRegisterKernelName[] =
 static constexpr const char cudaqAHSPrefixName[] =
     "__analog_hamiltonian_kernel__";
 
+// Host-side helper functions for working with `cudaq::pauli_word` or a
+// `std::string`.
+static constexpr const char sizeofStringAttrName[] = "cc.sizeof_string";
+static constexpr const char getPauliWordSize[] =
+    "_ZNK5cudaq10pauli_word11_nvqpp_sizeEv";
+static constexpr const char getPauliWordData[] =
+    "_ZNK5cudaq10pauli_word11_nvqpp_dataEv";
+
 } // namespace cudaq::runtime

@@ -128,9 +128,13 @@ inline mlir::Type stateImplType(mlir::Type eleTy) {
   return cudaq::opt::factory::getPointerType(eleTy.getContext());
 }
 
-// Host side types for std::string and std::vector
+// Generate host side type for std::string. The result is the type of a block of
+// bytes and the length to allocate. This allows for the creation of code to
+// allocate a variable, stride across such a variable, etc. The ModuleOp must
+// contain the sizeof a pauli_word in its attributes.
+cudaq::cc::ArrayType genHostStringType(mlir::ModuleOp module);
 
-cudaq::cc::StructType stlStringType(mlir::MLIRContext *ctx);
+// Host side types for std::vector
 cudaq::cc::StructType stlVectorType(mlir::Type eleTy);
 
 //===----------------------------------------------------------------------===//
@@ -247,7 +251,7 @@ mlir::FunctionType toHostSideFuncType(mlir::FunctionType funcTy,
                                       bool addThisPtr, mlir::ModuleOp module);
 
 /// Convert device type, \p ty, to host side type.
-mlir::Type convertToHostSideType(mlir::Type ty);
+mlir::Type convertToHostSideType(mlir::Type ty, mlir::ModuleOp module);
 
 // Return `true` if the given type corresponds to a standard vector type
 // according to our convention.
