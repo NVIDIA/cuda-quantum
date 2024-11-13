@@ -51,7 +51,7 @@ private:
     return term.size();
   }
 
-  std::string term; ///< Pauli words are string-like encodings.
+  std::string term; ///< Pauli words are string-like.
 };
 
 namespace details {
