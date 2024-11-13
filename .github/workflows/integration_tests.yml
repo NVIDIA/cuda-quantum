@@ -823,7 +823,7 @@ jobs:
             echo "Using artifacts from workflow id $workflow_id"
             # Allow error when trying to download wheel artifacts since they might be expired.
             set +e
-            gh run download $workflow_id --name "x86_64-py$python_version-wheels"
+            gh run download $workflow_id --name "x86_64-cu12-py$python_version-wheels"
             retVal=$?
             set -e
             if [ $retVal -ne 0 ]; then
