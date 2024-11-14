@@ -202,7 +202,8 @@ jobs:
 
           # Test NVQC Python examples + Python MLIR execution tests (not IR tests)
           python3 -m pip install pytest
-          for ex in `find examples/python python/tests/mlir/target -name '*.py'`; do
+          # Disabling building_kernels as the state is not yet supported on NVQC
+          for ex in `find examples/python python/tests/mlir/target -name '*.py' ! -name '*building_kernels*'`; do
             filename=$(basename -- "$ex")
             filename="${filename%.*}"
             echo "Testing $filename:"
