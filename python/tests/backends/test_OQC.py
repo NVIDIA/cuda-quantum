@@ -34,7 +34,7 @@ def assert_close(got) -> bool:
 def startUpMockServer():
 
     os.environ["OQC_AUTH_TOKEN"] = "fake_auth_token"
-    os.environ["OQC_DEVICE"] = "Toshiko1"
+    os.environ["OQC_DEVICE"] = "qpu:uk:-1:1234567890"
     os.environ["OQC_URL"] = f"http://localhost:{port}"
     # Set the targeted QPU
     cudaq.set_target('oqc',
