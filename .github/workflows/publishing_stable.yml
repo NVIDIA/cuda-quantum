@@ -75,7 +75,7 @@ jobs:
         run: |
           nightly_image=${{ inputs.image_source_location }}/${{ inputs.image_short_name }}:${{ inputs.image_tag }}
           echo "FROM $nightly_image" >> ngc.Dockerfile
-          if [ "$(echo ${{ inputs.image_tag }} | egrep -o '([0-9]{1,}\.)+[0-9]{1,}')" != "${{ inputs.image_tag }}" ]; then
+          if [ "$(echo ${{ inputs.image_tag }} | egrep -o 'cu[0-9]{1,2}-([0-9]{1,}\.)+[0-9]{1,}')" != "${{ inputs.image_tag }}" ]; then
             echo "::error::Only non-prerelease tags can be pushed to stable."
             exit 1
           fi
