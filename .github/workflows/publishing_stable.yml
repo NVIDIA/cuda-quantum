@@ -43,6 +43,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Configure registries
+        id: config
+        run: |  
+          echo "::add-mask::$NGC_API_KEY"
+          if echo "${{ inputs.image_target_location }}" | grep -q "^nvcr.io"; then 
+            ngc_org=`echo "${{ inputs.image_target_location }}" | cut -d / -f2`
+            ngc_team=`echo "${{ inputs.image_target_location }}" | cut -d / -f3`
+            echo "ngc_org=$ngc_org" >> $GITHUB_OUTPUT
+            echo "ngc_team=$ngc_team" >> $GITHUB_OUTPUT
+          fi
+        env:
+          NGC_API_KEY: ${{ inputs.ngc_api_key }}
+
       - name: Log in to the container registry
         if: inputs.environment && vars.registry
         uses: docker/login-action@v3
@@ -61,13 +74,6 @@ jobs:
       - name: Prepare image
         id: setup
         run: |
-          if echo "${{ inputs.image_target_location }}" | grep -q "^nvcr.io"; then 
-            ngc_org=`echo nvcr.io/nvidia/quantum | cut -d / -f2`
-            ngc_team=`echo nvcr.io/nvidia/quantum | cut -d / -f3`
-            echo "ngc_org=$ngc_org" >> $GITHUB_OUTPUT
-            echo "ngc_org=$ngc_team" >> $GITHUB_OUTPUT
-          fi
-
           nightly_image=${{ inputs.image_source_location }}/${{ inputs.image_short_name }}:${{ inputs.image_tag }}
           echo "FROM $nightly_image" >> ngc.Dockerfile
           if [ "$(echo ${{ inputs.image_tag }} | egrep -o '([0-9]{1,}\.)+[0-9]{1,}')" != "${{ inputs.image_tag }}" ]; then
@@ -114,27 +120,27 @@ jobs:
           push: true
 
       - name: Install Cosign
-        if: steps.setup.outputs.ngc_org == ''
+        if: steps.config.outputs.ngc_org == ''
         uses: sigstore/cosign-installer@v3.3.0
         with:
           cosign-release: 'v2.2.2'
 
       - name: Sign image with GitHub OIDC Token
-        if: steps.setup.outputs.ngc_org == ''
+        if: steps.config.outputs.ngc_org == ''
         env:
           DIGEST: ${{ steps.copy_build.outputs.digest }}
           TAGS: ${{ steps.metadata.outputs.tags }}
         run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
       - name: Install NGC CLI
-        if: steps.setup.outputs.ngc_org != ''
+        if: steps.config.outputs.ngc_org != ''
         uses: ./.github/actions/install-ngc-cli
         with:
           version: 3.31.0
           checksum: b715e503e2c0b44814a51f330eafd605f5d240ea0987bf615700d359c993f138
 
       - name: Sign image with NGC CLI
-        if: steps.setup.outputs.ngc_org != ''
+        if: steps.config.outputs.ngc_org != ''
         env:
           TAGS: ${{ steps.metadata.outputs.tags }}
           NGC_CLI_API_KEY: ${{ inputs.ngc_api_key || secrets.NGC_CREDENTIALS }}
