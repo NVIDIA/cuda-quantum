@@ -6,7 +6,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import ctypes, pkg_resources, os, sys
+import ctypes, os, sys
+import importlib.util
 from setuptools import setup
 from typing import Optional
 
@@ -67,7 +68,7 @@ def _get_cuda_version() -> Optional[int]:
 
     version = None
 
-    # First try NVRTC
+    # Try to detect version from NVRTC
     libnames = [
         'libnvrtc.so.12',
         'libnvrtc.so.11.2',
@@ -80,9 +81,10 @@ def _get_cuda_version() -> Optional[int]:
     except Exception as e:
         _log(f"Error: {e}")  # log and move on
     if version is not None:
+        _log("Autodetection succeeded")
         return version
 
-    # Next try CUDART (side-effect: a CUDA context will be initialized)
+    # Try to detect version from CUDART (a CUDA context will be initialized)
     libnames = [
         'libcudart.so.12',
         'libcudart.so.11.0',
@@ -94,6 +96,20 @@ def _get_cuda_version() -> Optional[int]:
     except Exception as e:
         _log(f"Error: {e}")  # log and move on
     if version is not None:
+        _log("Autodetection succeeded")
+        return version
+
+    # Try to get version from NVIDIA Management Library
+    try:
+        _log(f'Trying to detect CUDA version using NVIDIA Management Library')
+        from pynvml import nvmlInit, nvmlSystemGetCudaDriverVersion
+        nvmlInit()
+        version = nvmlSystemGetCudaDriverVersion()
+    except Exception as e:
+        _log(f"Error: {e}")  # log and move on
+    if version is not None:
+        _log(f'Detected version: {version}')
+        _log("Autodetection succeeded")
         return version
 
     _log("Autodetection failed")
@@ -105,10 +121,16 @@ def _infer_best_package() -> str:
     # Find the existing wheel installation
     installed = []
     for pkg_suffix in ['', '-cu11', '-cu12']:
+        _log(f"Looking for existing installation of cuda-quantum{pkg_suffix}.")
         try:
-            pkg_resources.get_distribution(f"cuda-quantum{pkg_suffix}")
-            installed.append(f"cuda-quantum{pkg_suffix}")
-        except pkg_resources.DistributionNotFound:
+            package_spec = importlib.util.find_spec(f"cuda-quantum{pkg_suffix}")
+            if package_spec is None:
+                _log("No installation found.")
+            else:
+                installed.append(f"cuda-quantum{pkg_suffix}")
+                _log("Installation found.")
+        except:
+            _log("No installation found.")
             pass
 
     cuda_version = _get_cuda_version()
@@ -122,10 +144,13 @@ def _infer_best_package() -> str:
         cudaq_bdist = 'cuda-quantum-cu12'
     else:
         raise Exception(f'Your CUDA version ({cuda_version}) is too new.')
+    _log(f"Identified {cudaq_bdist} as the best package.")
 
     # Disallow -cu11 & -cu12 wheels from coexisting
     conflicting = ", ".join((pkg for pkg in installed if pkg != cudaq_bdist))
+    _log(f"Conflicting packages: {conflicting}")
     if conflicting != '':
+        _log("Abort.")
         raise Exception(
             f'You have a conflicting CUDA-Q version installed.'
             f'Please remove the following package(s): {conflicting}')

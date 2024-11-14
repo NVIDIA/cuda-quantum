@@ -18,7 +18,7 @@
 # - https://github.com/numpy/numpy/blob/main/pyproject.toml, and 
 # - https://github.com/numpy/numpy/blob/main/.github/workflows/wheels.yml
 
-ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:manylinux-amd64-cu11.8-gcc11-main
+ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:manylinux-amd64-cu12.0-gcc11-main
 FROM $base_image AS wheelbuild
 
 ARG release_version=
@@ -39,9 +39,10 @@ RUN echo "Building MLIR bindings for python${python_version}" && \
 
 # Patch the pyproject.toml file to change the CUDA version if needed
 RUN sed -i "s/README.md.in/README.md/g" cuda-quantum/pyproject.toml && \
-    if [ "${CUDA_VERSION#12.}" != "${CUDA_VERSION}" ]; then \
-        sed -i "s/-cu11/-cu12/g" cuda-quantum/pyproject.toml && \
-        sed -i -E "s/(nvidia-cublas-cu[0-9]* ~= )[0-9\.]*/\1${CUDA_VERSION}/g" cuda-quantum/pyproject.toml; \
+    if [ "${CUDA_VERSION#11.}" != "${CUDA_VERSION}" ]; then \
+        cublas_version=11.11 && \
+        sed -i "s/-cu12/-cu11/g" cuda-quantum/pyproject.toml && \
+        sed -i -E "s/(nvidia-cublas-cu[0-9]* ~= )[0-9\.]*/\1${cublas_version}/g" cuda-quantum/pyproject.toml && \
         sed -i -E "s/(nvidia-cuda-runtime-cu[0-9]* ~= )[0-9\.]*/\1${CUDA_VERSION}/g" cuda-quantum/pyproject.toml; \
     fi
 

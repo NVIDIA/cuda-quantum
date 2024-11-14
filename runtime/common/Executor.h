@@ -34,7 +34,7 @@ public:
   virtual ~Executor() = default;
 
   /// @brief Set the server helper
-  void setServerHelper(ServerHelper *helper) { serverHelper = helper; }
+  virtual void setServerHelper(ServerHelper *helper) { serverHelper = helper; }
 
   /// @brief Set the number of shots to execute
   void setShots(std::size_t s) { shots = s; }

@@ -9,6 +9,10 @@ on:
         type: string
         description: Optional argument to take assets from a prior run of this workflow; facilitates rerunning a failed workflow without re-building the assets.
         required: false
+      manual_assets_creation:
+        type: string
+        required: false
+        description: Do not trigger a pipeline on GitLab but instead use the assets contained in the draft release with the given name.
       github_commit:
         type: string
         description: Optional argument to set the GitHub commit to use for the final build and validation. 
@@ -159,9 +163,15 @@ jobs:
           # Using the image sha as the file name and the docker image name
           # as the folder is convenient for the GitLab CI.
 
-          git config --global user.name "cuda-quantum-bot"
-          git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
-          current_branch=$(git rev-parse --abbrev-ref HEAD)
+          publishing_assets=${{ inputs.manual_assets_creation || vars.publishing_assets || '' }}
+          if [ -z "${publishing_assets}" ]; then 
+            git config --global user.name "cuda-quantum-bot"
+            git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
+            current_branch=$(git rev-parse --abbrev-ref HEAD)
+          else
+            gh release download ${publishing_assets} -R ${{ vars.assets_repo || github.repository }}
+            unzip -d /tmp/ ${publishing_assets}.zip && rm -rf ${publishing_assets}.zip
+          fi
 
           function create_assets {
             release_id=`echo "$4" | jq -r ".\"$1\".release_id"`
@@ -180,12 +190,38 @@ jobs:
             echo "asset-name: $1.txt" >> "$1.txt"
             echo "release-id: $release_id" >> "$1.txt"
             echo "artifacts-url: $artifacts_url" >> "$1.txt"
-            mkdir -p "$staging_folder" && mv -v "$1.txt" "$staging_folder/$file_id"
 
-            echo "Pushing $1 to $staging_branch"
-            git add "$staging_folder" && git commit -m "$image_hash"
-            git pull origin -- $staging_branch 2> /dev/null || true
-            git push origin $current_branch:$staging_branch
+            if [ -z "${publishing_assets}" ]; then 
+              echo "Pushing $1 to $staging_branch"
+              mkdir -p "$staging_folder" && mv -v "$1.txt" "$staging_folder/$file_id"
+              git add "$staging_folder" && git commit -m "$image_hash"
+              git pull origin -- $staging_branch 2> /dev/null || true
+              git push origin $current_branch:$staging_branch
+            else
+              if [ -z "$(gh release list -R ${{ vars.assets_repo || github.repository }} | grep -s $release_id)" ]; then
+                versions=`gh release list -R ${{ vars.assets_repo || github.repository }} --exclude-drafts --exclude-pre-releases | egrep -o "([0-9]{1,}\.)+[0-9]{1,}\S*" | sort -r -V`
+                latest_tag=`echo $versions | cut -d ' ' -f 1`
+                rel_notes="This release draft is created by a publishing workflow with manual assets creation."
+                rel_notes+=$(echo "<br/>GitHub commit [${{ steps.artifacts.outputs.github_commit }}](${{ github.repository }}/tree/${{ steps.artifacts.outputs.github_commit }})")
+
+                echo "Creating draft release $release_id."
+                # If we use a separate repo to store temporary assets, we can't use the github commit as the target
+                # since it does not exist on that repo. However, these drafts are deleted again at the end of the workflow 
+                # and nothing relies on the target. 
+                gh release create $release_id --title $release_id -R ${{ vars.assets_repo || github.repository }} \
+                  --target ${{ vars.assets_repo && 'main' || steps.artifacts.outputs.github_commit }} \
+                  --draft --prerelease \
+                  --generate-notes --notes-start-tag $latest_tag --notes "$rel_notes"
+              else
+                echo "::error::Release $release_id already exists."
+                exit 1
+              fi              
+              
+              assets_folder=$(echo $release_id | cut -d _ -f2-)
+              upload=`find /tmp/${publishing_assets}/$assets_folder -name '*.zip'`
+              echo "Uploading assets $upload $1.txt..."
+              echo $upload | xargs gh release upload $release_id -R ${{ vars.assets_repo || github.repository }} --clobber "$1.txt"
+            fi
           }
 
           for file in ${{ join(fromJson(steps.artifacts.outputs.docker_images).info_files, ' ') }}; do
@@ -199,6 +235,8 @@ jobs:
           for file in ${{ join(fromJson(steps.artifacts.outputs.installers).info_files, ' ') }}; do
             create_assets $file cuda-quantum-assets-image cuda-quantum-assets '${{ steps.artifacts.outputs.installers }}'
           done
+        env:
+          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Wait for assets
         run: |
@@ -212,7 +250,7 @@ jobs:
 
       # We can delete staging branch now after the expected draft releases have been created.
       - name: Clean up
-        if: steps.assets_creation.outcome != 'skipped'
+        if: steps.assets_creation.outcome != 'skipped' && inputs.manual_assets_creation == '' && vars.publishing_assets == ''
         run: |
           # Clean up the staging branch that was used to trigger the GitLab pipeline.
           git config --global user.name "cuda-quantum-bot"
@@ -242,7 +280,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
-      - name: Retrieve 
+      - name: Retrieve CUDA-Q assets
         id: assets_retrieval
         run: |
           assets_folder=/tmp/assets && mkdir "$assets_folder" && cd "$assets_folder"
@@ -277,7 +315,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
   
-      - name: Upload assets
+      - name: Upload CUDA-Q assets
         if: steps.artifacts.outputs.releases != ''
         uses: actions/upload-artifact@v4
         with:
@@ -290,7 +328,7 @@ jobs:
     name: CUDA-Q Docker image
     if: ${{ toJson(fromJson(needs.assets.outputs.docker_images).info_files) != '[]' }}
     needs: assets
-    runs-on: ubuntu-latest
+    runs-on: linux-amd64-cpu8
     permissions:
       contents: read
       packages: write
@@ -335,7 +373,7 @@ jobs:
         run: |
           release_id=${{ fromJson(needs.assets.outputs.docker_images)[format('{0}', matrix.info_file)].release_id }}
           assets_folder=assets && mkdir "$assets_folder" && cd "$assets_folder"
-          cp -r /tmp/assets/${{ matrix.info_file }}/. "$(pwd)"
+          cp -r /tmp/assets/${{ matrix.info_file }}/. "$(pwd)" && rm -rf /tmp/assets
           if ${{ github.event_name == 'workflow_dispatch' && inputs.include_docs }}; then
             mkdir documentation && mv -v /tmp/assets/documentation/* documentation
           fi
@@ -477,7 +515,7 @@ jobs:
     needs: assets
     permissions:
       contents: read
-      packages: write
+      packages: read
       id-token: write
 
     environment:
@@ -536,11 +574,10 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
 
-      - name: Log in to default registry
-        if: steps.release_info.outputs.push_to_ngc != 'true'
+      - name: Log in to GitHub CR
         uses: docker/login-action@v3
         with:
-          registry: ${{ vars.registry }}
+          registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
@@ -585,6 +622,7 @@ jobs:
     needs: assets
     permissions:
       contents: read
+      packages: read
 
     environment:
       name: ghcr-deployment
@@ -639,6 +677,13 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+
+      - name: Log in to GitHub CR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
 
       - name: Set up context for buildx
         run: |
@@ -755,6 +800,9 @@ jobs:
 
     container:
       image: ${{ matrix.image_hash }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
       options: --user root # otherwise step summary doesn't work
       env:
         NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
@@ -930,70 +978,8 @@ jobs:
             exit 1
           fi
 
-  wheel_validation_conda:
-    name: Wheel validation, conda
-    needs: [assets, cudaq_wheels]
-    runs-on: linux-amd64-gpu-v100-latest-1
-    permissions:
-      contents: read
-
-    strategy:
-      matrix:
-        cuda_major: ['11', '12']
-      fail-fast: false
-
-    container:
-      image: ubuntu:22.04
-      options: --user root
-      env:
-        NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
-        TERM: xterm
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
-
-      - name: Load wheel
-        uses: actions/download-artifact@v4
-        with:
-          name: x86_64-cu${{ matrix.cuda_major }}-py3.10-wheels
-          path: /tmp/install
-      
-      - name: Run validation
-        shell: bash
-        run: |
-          apt-get update && apt-get install -y --no-install-recommends \
-            ca-certificates vim wget unzip openssh-client
-          
-          # Extract README from wheel
-          cudaq_wheel=/tmp/install/cuda_quantum_cu${{ matrix.cuda_major }}*.whl 
-          wheelname=${cudaq_wheel##*/} && archive_name=${wheelname%.*}.zip
-          cp $cudaq_wheel /tmp/$wheelname && mv /tmp/$wheelname /tmp/$archive_name 
-          unzip /tmp/$archive_name -d /tmp/cudaq_wheel && rm -rf /tmp/$archive_name
-          metadata=/tmp/cudaq_wheel/*.dist-info/METADATA
-
-          # Setup links for validate_wheel.sh script
-          ln -s $GITHUB_WORKSPACE/scripts/validate_wheel.sh .
-          ln -s $GITHUB_WORKSPACE/docs/sphinx/examples/python /tmp/examples
-          ln -s $GITHUB_WORKSPACE/docs/sphinx/applications/python /tmp/applications
-          ln -s $GITHUB_WORKSPACE/docs/sphinx/targets/python /tmp/targets
-          ln -s $GITHUB_WORKSPACE/docs/sphinx/snippets/python /tmp/snippets
-          ln -s $GITHUB_WORKSPACE/python/tests /tmp/tests
-          ln -s $metadata /tmp/README.md
-
-          # Run the script w/ -q to run a shortened test
-          set +e # Allow script to keep going through errors (needed for skipped tests)
-          source validate_wheel.sh -w $cudaq_wheel -f /tmp -p 3.10
-          set -e # Re-enable exit code error checking
-          if [ "$status_sum" -ne "0" ]; then
-            echo "::error::Error running validation script" 
-            exit $status_sum
-          fi
-
-  metapackage_validation_piponly:
-    name: Python metapackage validation, pip only
+  wheel_validation_piponly:
+    name: Wheel validation, pip only
     needs: [assets, cudaq_wheels, cudaq_metapackages]
     runs-on: linux-amd64-gpu-v100-latest-1
     permissions:
@@ -1001,7 +987,7 @@ jobs:
 
     strategy:
       matrix:
-        cuda_major: ['11', '12']
+        cuda_major: ['', '11', '12']
       fail-fast: false
 
     container:
@@ -1020,11 +1006,12 @@ jobs:
       - name: Load wheels
         uses: actions/download-artifact@v4
         with:
-          pattern: '*py3.10-wheels'
+          pattern: '*-wheels'
           path: /tmp/wheels
           merge-multiple: true
 
       - name: Load metapackage
+        if: ${{ matrix.cuda_major == '' }}
         uses: actions/download-artifact@v4
         with:
           name: ${{ needs.cudaq_metapackages.outputs.artifact_name }}
@@ -1037,16 +1024,25 @@ jobs:
           # targets and test cases that don't require MPI.
           # Create clean python3 environment.
           apt-get update && apt-get install -y --no-install-recommends python3 python3-pip
-          mv /tmp/wheels/* /tmp/packages && rmdir /tmp/wheels
+          mkdir -p /tmp/packages && mv /tmp/wheels/* /tmp/packages && rmdir /tmp/wheels
 
           python3 -m pip install pypiserver
           server=`find / -name pypi-server -executable -type f`
           $server run -p 8080 /tmp/packages & 
+          
+          if [ -n "${{ matrix.cuda_major }}" ]; then
+            pip install cuda-quantum-cu${{ matrix.cuda_major }} -v \
+              --extra-index-url http://localhost:8080 
+          else
+            pip install --upgrade pip
+            pip install cudaq -v \
+              --extra-index-url http://localhost:8080 \
+            2>&1 | tee /tmp/install.out
 
-          pip install cudaq --extra-index-url http://localhost:8080 
-          if [ -z "$(pip list | grep cuda-quantum-cu${{ matrix.cuda_major }})" ]; then 
-            echo "::error::Missing installation of cuda-quantum-cu${{ matrix.cuda_major }} package."
-            exit 1
+            if [ -z "$(cat /tmp/install.out | grep -o 'Autodetection succeeded')" ]; then 
+              echo "::error::Autodetection to determine cudaq binary distribution failed."
+              exit 1
+            fi
           fi
 
           status_sum=0
@@ -1062,6 +1058,83 @@ jobs:
               fi
           done
           set -e # Re-enable exit code error checking
+          if [ "$status_sum" -ne "0" ]; then
+            echo "::error::Error running validation script" 
+            exit $status_sum
+          fi
+
+  metapackage_validation_conda:
+    name: Python metapackage validation, conda environment
+    needs: [assets, cudaq_wheels, cudaq_metapackages]
+    runs-on: linux-amd64-gpu-v100-latest-1
+    permissions:
+      contents: read
+
+    strategy:
+      matrix:
+        cuda_version: ['11.8', '12.4']
+      fail-fast: false
+
+    container:
+      image: ubuntu:22.04
+      options: --user root
+      env:
+        NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
+        TERM: xterm
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
+
+      - name: Load wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: '*-wheels'
+          path: /tmp/wheels
+          merge-multiple: true
+
+      - name: Load metapackage
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.cudaq_metapackages.outputs.artifact_name }}
+          path: /tmp/packages
+
+      - name: Run validation
+        shell: bash
+        run: |
+          apt-get update && apt-get install -y --no-install-recommends \
+            ca-certificates vim wget unzip openssh-client
+          mv /tmp/wheels/* /tmp/packages && rmdir /tmp/wheels
+
+          # Extract README from metapackage
+          cudaq_metapackage=cudaq-${{ needs.assets.outputs.cudaq_version }}
+          tar xf /tmp/packages/${cudaq_metapackage}.tar.gz && mv -v ${cudaq_metapackage}/README.md .
+          rm -rf ${cudaq_metapackage} && readme=README.md
+
+          # Setup links for validate_pycudaq.sh script
+          ln -s $GITHUB_WORKSPACE/scripts/validate_pycudaq.sh .
+          ln -s $GITHUB_WORKSPACE/docs/sphinx/examples/python /tmp/examples
+          ln -s $GITHUB_WORKSPACE/docs/sphinx/applications/python /tmp/applications
+          ln -s $GITHUB_WORKSPACE/docs/sphinx/targets/python /tmp/targets
+          ln -s $GITHUB_WORKSPACE/docs/sphinx/snippets/python /tmp/snippets
+          ln -s $GITHUB_WORKSPACE/python/tests /tmp/tests
+          ln -s $GITHUB_WORKSPACE/$readme /tmp/README.md
+
+          # Run the script w/ -q to run a shortened test
+          set +e # Allow script to keep going through errors (needed for skipped tests)
+          source validate_pycudaq.sh \
+            -v ${{ needs.assets.outputs.cudaq_version }} \
+            -i /tmp/packages -f /tmp \
+            -c ${{ matrix.cuda_version }} -p 3.10
+          set -e # Re-enable exit code error checking
+
+          expected_dependency=cuda-quantum-cu$(echo ${{ matrix.cuda_version }} | cut -d . -f1)
+          if [ -z "$(python3 -m pip list | grep ${expected_dependency})" ]; then 
+            echo "::error::Missing installation of ${expected_dependency} package."
+            exit 1
+          fi
           if [ "$status_sum" -ne "0" ]; then
             echo "::error::Error running validation script" 
             exit $status_sum
@@ -1127,7 +1200,7 @@ jobs:
           gh release create $release_id --title $release_id -R ${{ github.repository }} \
             --target $github_commit --draft $prerelease \
             --generate-notes --notes-start-tag $latest_tag --notes "$rel_notes"
-          gh release upload $release_id -R ${{ github.repository }} install_cuda_quantum.* --clobber
+          gh release upload $release_id -R ${{ github.repository }} install_cuda_quantum* --clobber
           gh release upload $release_id -R ${{ github.repository }} wheelhouse.zip --clobber
           gh release upload $release_id -R ${{ github.repository }} metapackages.zip --clobber
           gh release edit $release_id -R ${{ github.repository }} \
@@ -1137,7 +1210,7 @@ jobs:
 
   clean_up:
     name: Clean up
-    needs: [assets, cudaq_images, cudaq_installers, cudaq_wheels, cudaq_metapackages, image_validation, installer_validation, wheel_validation_conda, metapackage_validation_piponly, create_release]
+    needs: [assets, cudaq_images, cudaq_installers, cudaq_wheels, cudaq_metapackages, image_validation, installer_validation, metapackage_validation_conda, wheel_validation_piponly, create_release]
     # Force this job to run even when some of the dependencies above are skipped.
     if: always() && !cancelled() && needs.assets.result != 'skipped' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest

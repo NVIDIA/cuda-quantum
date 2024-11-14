@@ -154,7 +154,7 @@ jobs:
           # autoremove is in an odd location that isn't found unless we search for it...
           autoremove="$python $($python -m pip show pip3-autoremove |  grep -e 'Location: .*$' | cut -d ' ' -f2)/pip_autoremove.py"
           $python -m pip install pypiserver
-          server="$python $($python -m pip show pypiserver | grep -e 'Location: .*$' | cut -d ' ' -f2)/pypiserver_main__.py"
+          server="$python $($python -m pip show pypiserver | grep -e 'Location: .*$' | cut -d ' ' -f2)/pypiserver/__main__.py"
           $server run -p 8080 /tmp/packages & 
 
           package_dep=`echo cuda-quantum${cuda_version_suffix:+-cu$cuda_version_suffix} | cut -d '-' -f1-2`
@@ -195,14 +195,12 @@ jobs:
           fi
 
       - name: Test installation error
+        # FIXME: We actually don't give a proper install error if there are conflicting packages on the system...
+        if: matrix.cuda_version == ''
         run: |
-          #dnf install -y --nobest --setopt=install_weak_deps=False curl jq
-          #PACKAGE_JSON_URL="https://pypi.org/pypi/cuda-quantum/json"
-          #curl -L -s "$PACKAGE_JSON_URL" | jq  -r '.releases | keys | .[]'
-
           python=python${{ matrix.python_version }}
           $python -m pip install pypiserver
-          server="$python $($python -m pip show pypiserver | grep -e 'Location: .*$' | cut -d ' ' -f2)/pypiserver_main__.py"
+          server="$python $($python -m pip show pypiserver | grep -e 'Location: .*$' | cut -d ' ' -f2)/pypiserver/__main__.py"
           $server run -p 8080 /tmp/packages & 
 
           case "${{ matrix.cuda_version }}" in
@@ -216,7 +214,7 @@ jobs:
               $python -m pip install cuda-quantum-cu11==${{ inputs.cudaq_version }} \
                 --extra-index-url http://localhost:8080 
               set +e # continue on error
-              $python -m pip install cudaq==${{ inputs.cudaq_version }} \
+              $python -m pip install cudaq==${{ inputs.cudaq_version }} -v \
                 --extra-index-url http://localhost:8080
               set -e && check_package=cudaq
             ;; 
@@ -231,7 +229,7 @@ jobs:
                   --extra-index-url http://localhost:8080
               fi
               set +e # continue on error
-              $python -m pip install cudaq==${{ inputs.cudaq_version }} \
+              $python -m pip install cudaq==${{ inputs.cudaq_version }} -v \
                 --extra-index-url http://localhost:8080
               set -e && check_package=cudaq
             ;; 

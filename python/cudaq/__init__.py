@@ -40,7 +40,7 @@ if not "CUDAQ_DYNLIBS" in os.environ and not cuda_major is None:
             os.environ["CUDAQ_DYNLIBS"] += f":{cudart_path}"
     except:
         import importlib.util
-        package_spec = importlib.util.find_spec("cuda-quantum")
+        package_spec = importlib.util.find_spec(f"cuda-quantum-cu{cuda_major}")
         if not package_spec is None and not package_spec.loader is None:
             print("Could not find a suitable cuQuantum Python package.")
         pass

@@ -27,8 +27,13 @@ target-arguments:
   - key: machine
     required: false
     type: string
-    platform-arg: qpu 
+    platform-arg: machine
     help-string: "Specify the Amazon Braket QPU."
+  - key: default_bucket
+    required: false
+    type: string
+    platform-arg: default_bucket
+    help-string: "Specify a default S3 bucket for Amazon Braket results."
   - key: noise-model
     required: false
     type: string

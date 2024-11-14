@@ -291,7 +291,7 @@ jobs:
             # Parse README content to install openmpi
             conda_script="$(awk '/(Begin conda install)/{flag=1;next}/(End conda install)/{flag=0}flag' $metadata | grep . | sed '/^```/d')" 
             # Skip the installation of CUDA since we don't need CUDA for this test.
-            regex='conda install -y -n cuda-quantum.*cuda'
+            regex='conda install -y -n cuda-env.*cuda'
             while IFS= read -r line; do
               if [[ ! "$line" =~ $regex ]]; then
                   # Replace Python version
