@@ -46,6 +46,7 @@ jobs:
       - name: Configure registries
         id: config
         run: |  
+          NGC_API_KEY=$(jq -r '.inputs.ngc_api_key' $GITHUB_EVENT_PATH)
           echo "::add-mask::$NGC_API_KEY"
           if echo "${{ inputs.image_target_location }}" | grep -q "^nvcr.io"; then 
             ngc_org=`echo "${{ inputs.image_target_location }}" | cut -d / -f2`
@@ -53,11 +54,9 @@ jobs:
             echo "ngc_org=$ngc_org" >> $GITHUB_OUTPUT
             echo "ngc_team=$ngc_team" >> $GITHUB_OUTPUT
           fi
-        env:
-          NGC_API_KEY: ${{ inputs.ngc_api_key }}
 
       - name: Log in to the container registry
-        if: inputs.environment && vars.registry
+        if: vars.registry
         uses: docker/login-action@v3
         with:
           registry: ${{ vars.registry }}
@@ -144,8 +143,8 @@ jobs:
         env:
           TAGS: ${{ steps.metadata.outputs.tags }}
           NGC_CLI_API_KEY: ${{ inputs.ngc_api_key || secrets.NGC_CREDENTIALS }}
-          NGC_CLI_ORG: ${{ steps.setup.outputs.ngc_org }}
-          NGC_CLI_TEAM: ${{ steps.setup.outputs.ngc_team }}
+          NGC_CLI_ORG: ${{ steps.config.outputs.ngc_org }}
+          NGC_CLI_TEAM: ${{ steps.config.outputs.ngc_team }}
         run: |
           echo "Signing ${TAGS}"
           ngc-cli/ngc registry image publish --source ${TAGS} ${TAGS} --sign
