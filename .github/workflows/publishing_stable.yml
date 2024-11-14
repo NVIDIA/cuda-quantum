@@ -19,7 +19,11 @@ on:
         type: string
         default: nvcr.io/nvidia/quantum
         required: false
-        description: The registry prefix for the image to push. 
+        description: The registry prefix for the image to push.
+      ngc_api_key:
+        type: string
+        required: false
+        description: The API key to use when authenticating with NGC.
 
 name: Push stable release
 
@@ -52,7 +56,7 @@ jobs:
         with:
           registry: 'nvcr.io'
           username: '$oauthtoken'
-          password: ${{ secrets.NGC_CREDENTIALS }}
+          password: ${{ inputs.ngc_api_key || secrets.NGC_CREDENTIALS }}
 
       - name: Prepare image
         id: setup
@@ -133,7 +137,7 @@ jobs:
         if: steps.setup.outputs.ngc_org != ''
         env:
           TAGS: ${{ steps.metadata.outputs.tags }}
-          NGC_CLI_API_KEY: ${{ secrets.NGC_CREDENTIALS }}
+          NGC_CLI_API_KEY: ${{ inputs.ngc_api_key || secrets.NGC_CREDENTIALS }}
           NGC_CLI_ORG: ${{ steps.setup.outputs.ngc_org }}
           NGC_CLI_TEAM: ${{ steps.setup.outputs.ngc_team }}
         run: |
