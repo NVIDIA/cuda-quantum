@@ -18,7 +18,9 @@ ARG cudart_version
 
 ## [Prerequisites]
 ADD docker/test/installer/runtime_dependencies.sh /runtime_dependencies.sh
-RUN CUDA_DISTRIBUTION=rhel9 bash runtime_dependencies.sh ${base_image_mpibuild}
+RUN CUDA_DISTRIBUTION=rhel9 \
+    CUDART_VERSION=${cudart_version} \
+    bash runtime_dependencies.sh ${base_image_mpibuild}
 RUN dnf install -y --nobest --setopt=install_weak_deps=False \
         autoconf libtool flex make wget
 

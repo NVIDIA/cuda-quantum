@@ -302,7 +302,7 @@ jobs:
             python_version_filename=$(echo "${python_version//.}")
             # Install Python and the wheel
             apt-get update && apt-get install -y --no-install-recommends python$python_version python3-pip
-            wheelfile=$(find . -name "cuda_quantum_cu11*cp$python_version_filename*x86_64.whl")
+            wheelfile=$(find . -name "cuda_quantum_cu12*cp$python_version_filename*x86_64.whl")
             python$python_version -m pip install $wheelfile
             echo "skipped=false" >> $GITHUB_OUTPUT
           else
@@ -321,7 +321,7 @@ jobs:
           set +e # Allow script to keep going through errors
           python$python_version -m pip install pytest
           test_err_sum=0
-          for ex in `find examples/python python/tests/mlir/target -name '*.py'; do
+          for ex in `find examples/python python/tests/mlir/target -name '*.py'`; do
             filename=$(basename -- "$ex")
             filename="${filename%.*}"
             echo "Testing $filename:"
