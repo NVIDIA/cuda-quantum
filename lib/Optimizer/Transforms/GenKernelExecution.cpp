@@ -351,8 +351,8 @@ convertAllStdVectorBool(Location loc, OpBuilder &builder, ModuleOp module,
     }();
     auto transEleTy = cast<cudaq::cc::StructType>(transientTy).getMember(0);
     auto dataTy = cast<cudaq::cc::PointerType>(transEleTy).getElementType();
-    auto sizeTransientTy = builder.create<cudaq::cc::SizeOfOp>(
-        loc, builder.getI64Type(), dataTy);
+    auto sizeTransientTy =
+        builder.create<cudaq::cc::SizeOfOp>(loc, builder.getI64Type(), dataTy);
     Value sizeInBytes =
         builder.create<arith::MulIOp>(loc, count, sizeTransientTy);
 
