@@ -19,7 +19,6 @@
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/ToolOutputFile.h"
-#include "mlir/Analysis/DataLayoutAnalysis.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/Transforms/Passes.h"
@@ -238,11 +237,14 @@ genByteSizeAndElementCount(Location loc, OpBuilder &builder, ModuleOp module,
   // If this is a vector<struct<...>>, convert the bytes of struct to bytes of
   // struct with converted members.
   if (isa<cudaq::cc::StructType>(eleTy)) {
-    auto eleTy = cast<cudaq::cc::PointerType>(arg.getType()).getElementType();
+    auto vecTy = cast<cudaq::cc::PointerType>(arg.getType()).getElementType();
+    auto vecEleRefTy = cast<cudaq::cc::StructType>(vecTy).getMember(0);
+    auto vecEleTy = cast<cudaq::cc::PointerType>(vecEleRefTy).getElementType();
     auto i64Ty = builder.getI64Type();
-    auto hostStrSize = builder.create<cudaq::cc::SizeOfOp>(loc, i64Ty, eleTy);
+    auto hostStrSize =
+        builder.create<cudaq::cc::SizeOfOp>(loc, i64Ty, vecEleTy);
     Value count = builder.create<arith::DivSIOp>(loc, size, hostStrSize);
-    Type packedTy = cudaq::opt::factory::genArgumentBufferType(t);
+    Type packedTy = cudaq::opt::factory::genArgumentBufferType(eleTy);
     auto packSize = builder.create<cudaq::cc::SizeOfOp>(loc, i64Ty, packedTy);
     size = builder.create<arith::MulIOp>(loc, count, packSize);
     return {size, count};
@@ -330,7 +332,12 @@ convertAllStdVectorBool(Location loc, OpBuilder &builder, ModuleOp module,
     auto input = builder.create<cudaq::cc::CastOp>(
         loc, cudaq::cc::PointerType::get(subArrTy), startInput);
     auto transientTy = convertToTransientType(sty, module);
-    Value tmp = builder.create<cudaq::cc::AllocaOp>(loc, transientTy);
+    auto tmp = [&]() -> Value {
+      if (preallocated)
+        return builder.create<cudaq::cc::CastOp>(
+            loc, cudaq::cc::PointerType::get(transientTy), *preallocated);
+      return builder.create<cudaq::cc::AllocaOp>(loc, transientTy);
+    }();
     Value sizeDelta = genVectorSize(loc, builder, arg);
     auto count = [&]() -> Value {
       if (cudaq::cc::isDynamicType(seleTy)) {
@@ -342,8 +349,10 @@ convertAllStdVectorBool(Location loc, OpBuilder &builder, ModuleOp module,
           loc, builder.getI64Type(), seleTy);
       return builder.create<arith::DivSIOp>(loc, sizeDelta, sizeEle);
     }();
+    auto transEleTy = cast<cudaq::cc::StructType>(transientTy).getMember(0);
+    auto dataTy = cast<cudaq::cc::PointerType>(transEleTy).getElementType();
     auto sizeTransientTy = builder.create<cudaq::cc::SizeOfOp>(
-        loc, builder.getI64Type(), transientTy);
+        loc, builder.getI64Type(), dataTy);
     Value sizeInBytes =
         builder.create<arith::MulIOp>(loc, count, sizeTransientTy);
 
@@ -352,7 +361,6 @@ convertAllStdVectorBool(Location loc, OpBuilder &builder, ModuleOp module,
         loc, builder.getI8Type(), sizeInBytes);
 
     // Initialize the temporary vector.
-    auto transEleTy = cast<cudaq::cc::StructType>(transientTy).getMember(0);
     auto vecEleTy = cudaq::cc::PointerType::get(transEleTy);
     auto tmpBegin = builder.create<cudaq::cc::ComputePtrOp>(
         loc, vecEleTy, tmp, ArrayRef<cudaq::cc::ComputePtrArg>{0});
@@ -400,8 +408,14 @@ convertAllStdVectorBool(Location loc, OpBuilder &builder, ModuleOp module,
     auto argPtrTy = cast<cudaq::cc::PointerType>(arg.getType());
     auto argStrTy = cast<cudaq::cc::StructType>(argPtrTy.getElementType());
 
-    // Create a new struct that we'll store the converted data into.
-    Value buffer = builder.create<cudaq::cc::AllocaOp>(loc, bufferTy);
+    // If a struct was preallocated, use it. Otherwise, create a new struct that
+    // we'll store the converted data into.
+    auto buffer = [&]() -> Value {
+      if (preallocated)
+        return builder.create<cudaq::cc::CastOp>(
+            loc, cudaq::cc::PointerType::get(bufferTy), *preallocated);
+      return builder.create<cudaq::cc::AllocaOp>(loc, bufferTy);
+    }();
 
     // Loop over each element. Replace each with the converted value.
     for (auto iter : llvm::enumerate(sty.getMembers())) {
@@ -960,6 +974,211 @@ static void maybeFreeHeapAllocations(Location loc, OpBuilder &builder,
       });
 }
 
+/// Fetch an argument from the comm buffer. Here, the argument is not dynamic so
+/// it can be read as is out of the buffer.
+static Value fetchInputValue(Location loc, OpBuilder &builder, Type devTy,
+                             Value ptr) {
+  assert(!cudaq::cc::isDynamicType(devTy) && "must not be a dynamic type");
+  if (isa<cudaq::cc::IndirectCallableType>(devTy)) {
+    // An indirect callable passes a key value which will be used to determine
+    // the kernel that is being called.
+    auto key = builder.create<cudaq::cc::LoadOp>(loc, ptr);
+    return builder.create<cudaq::cc::CastOp>(loc, devTy, key);
+  }
+
+  if (isa<cudaq::cc::CallableType>(devTy)) {
+    // A direct callable will have already been effectively inlined and this
+    // argument should not be referenced.
+    return builder.create<cudaq::cc::PoisonOp>(loc, devTy);
+  }
+
+  auto ptrDevTy = cudaq::cc::PointerType::get(devTy);
+  if (auto strTy = dyn_cast<cudaq::cc::StructType>(devTy)) {
+    // Argument is a struct.
+    if (strTy.isEmpty())
+      return builder.create<cudaq::cc::UndefOp>(loc, devTy);
+
+    // Cast to avoid conflicts between layout compatible, distinct struct types.
+    auto structPtr = builder.create<cudaq::cc::CastOp>(loc, ptrDevTy, ptr);
+    return builder.create<cudaq::cc::LoadOp>(loc, structPtr);
+  }
+
+  // Default case: argument passed as a value inplace.
+  return builder.create<cudaq::cc::LoadOp>(loc, ptr);
+}
+
+/// Helper routine to generate code to increment the trailing data pointer to
+/// the next block of data (if any).
+static Value incrementTrailingDataPointer(Location loc, OpBuilder &builder,
+                                          Value trailingData, Value bytes) {
+  auto i8Ty = builder.getI8Type();
+  auto bufferTy = cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(i8Ty));
+  auto buffPtr = builder.create<cudaq::cc::CastOp>(loc, bufferTy, trailingData);
+  auto i8PtrTy = cudaq::cc::PointerType::get(i8Ty);
+  return builder.create<cudaq::cc::ComputePtrOp>(
+      loc, i8PtrTy, buffPtr, ArrayRef<cudaq::cc::ComputePtrArg>{bytes});
+}
+
+/// In the thunk, we need to unpack any `std::vector` objects encoded in the
+/// packet. Since these have dynamic size, they are encoded as trailing bytes
+/// by offset and size. The offset is implicit from the values of the
+/// arguments. All sizes are encoded as `int64_t`.
+///
+/// A vector of vector of ... T is encoded as a int64_t (length). At the
+/// offset of the level `i` vector will be a sequence of sizes for the level
+/// `i+1` vectors. For the leaf vector level, `n`, the blocks of data for each
+/// vector will be immediately following for each vector at level `n` for the
+/// branch of the tree being encoded.
+///
+/// For example, a variable defined and initialized as
+/// ```
+/// vector<vector<vector<char>>> example =
+///    {{{'a'}, {'b', 'c'}, {'z'}}, {{'d' 'e', 'f'}}};
+/// ```
+///
+/// and passed as an argument to a kernel will be encoded as the following
+/// block. The block will have a structure with the declared arguments
+/// followed by an addendum of variable data, where the vector data is
+/// encoded.
+///
+/// ```
+///   arguments: { ..., 1, ... }
+///   addendum: [[3; 1 2 1, a, b c, z] [1; 3, d e f]]
+/// ```
+static std::pair<Value, Value> constructDynamicInputValue(Location loc,
+                                                          OpBuilder &builder,
+                                                          Type devTy, Value ptr,
+                                                          Value trailingData) {
+  assert(cudaq::cc::isDynamicType(devTy) && "must be dynamic type");
+  // There are 2 cases.
+  // 1. The dynamic type is a std::span of any legal device argument type.
+  // 2. The dynamic type is a struct containing at least 1 std::span.
+  if (auto spanTy = dyn_cast<cudaq::cc::SpanLikeType>(devTy)) {
+    // ptr: a pointer to the length of the block in bytes.
+    // trailingData: the block of data to decode.
+    auto eleTy = spanTy.getElementType();
+    auto i64Ty = builder.getI64Type();
+    auto buffEleTy = cudaq::opt::factory::genArgumentBufferType(eleTy);
+
+    // Get the size of each element in the vector and compute the vector's
+    // logical length.
+    auto eleSize = builder.create<cudaq::cc::SizeOfOp>(loc, i64Ty, buffEleTy);
+    Value bytes = builder.create<cudaq::cc::LoadOp>(loc, ptr);
+    auto vecLength = builder.create<arith::DivSIOp>(loc, bytes, eleSize);
+
+    if (cudaq::cc::isDynamicType(eleTy)) {
+      // The vector is recursively dynamic.
+      // Create a new block in which to place the stdvec/struct data in
+      // device-side format.
+      Value newVecData =
+          builder.create<cudaq::cc::AllocaOp>(loc, eleTy, vecLength);
+      // Compute new trailing data, skipping the current vector's data.
+      auto nextTrailingData =
+          incrementTrailingDataPointer(loc, builder, trailingData, bytes);
+
+      // For each element in the vector, convert it to device-side format and
+      // save the result in newVecData.
+      auto elePtrTy = cudaq::cc::PointerType::get(eleTy);
+      auto packTy = cudaq::opt::factory::genArgumentBufferType(eleTy);
+      Type packedArrTy =
+          cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(packTy));
+      Type packedEleTy = cudaq::cc::PointerType::get(packTy);
+      auto arrPtr =
+          builder.create<cudaq::cc::CastOp>(loc, packedArrTy, trailingData);
+      auto trailingDataVar =
+          builder.create<cudaq::cc::AllocaOp>(loc, nextTrailingData.getType());
+      builder.create<cudaq::cc::StoreOp>(loc, nextTrailingData,
+                                         trailingDataVar);
+      cudaq::opt::factory::createInvariantLoop(
+          builder, loc, vecLength,
+          [&](OpBuilder &builder, Location loc, Region &, Block &block) {
+            Value i = block.getArgument(0);
+            auto nextTrailingData =
+                builder.create<cudaq::cc::LoadOp>(loc, trailingDataVar);
+            auto vecMemPtr = builder.create<cudaq::cc::ComputePtrOp>(
+                loc, packedEleTy, arrPtr,
+                ArrayRef<cudaq::cc::ComputePtrArg>{i});
+            auto r = constructDynamicInputValue(loc, builder, eleTy, vecMemPtr,
+                                                nextTrailingData);
+            auto newVecPtr = builder.create<cudaq::cc::ComputePtrOp>(
+                loc, elePtrTy, newVecData,
+                ArrayRef<cudaq::cc::ComputePtrArg>{i});
+            builder.create<cudaq::cc::StoreOp>(loc, r.first, newVecPtr);
+            builder.create<cudaq::cc::StoreOp>(loc, r.second, trailingDataVar);
+          });
+
+      // Create the new outer stdvec span as the result.
+      Value stdvecResult = builder.create<cudaq::cc::StdvecInitOp>(
+          loc, spanTy, newVecData, vecLength);
+      nextTrailingData =
+          builder.create<cudaq::cc::LoadOp>(loc, trailingDataVar);
+      return {stdvecResult, nextTrailingData};
+    }
+
+    // This vector has constant data, so just use the data in-place and
+    // construct the stdvec span with it.
+    auto castTrailingData = builder.create<cudaq::cc::CastOp>(
+        loc, cudaq::cc::PointerType::get(eleTy), trailingData);
+    Value stdvecResult = builder.create<cudaq::cc::StdvecInitOp>(
+        loc, spanTy, castTrailingData, vecLength);
+    auto nextTrailingData =
+        incrementTrailingDataPointer(loc, builder, trailingData, bytes);
+    return {stdvecResult, nextTrailingData};
+  }
+
+  // Argument must be a struct.
+  // The struct contains dynamic components. Extract them and build up the
+  // struct value to be passed as an argument.
+  // ptr: pointer to the first element of the struct or a vector length.
+  // tailingData: the block of data for the first dynamic type field.
+  auto strTy = cast<cudaq::cc::StructType>(devTy);
+  auto ptrEleTy = cast<cudaq::cc::PointerType>(ptr.getType()).getElementType();
+  auto packedTy = cast<cudaq::cc::StructType>(ptrEleTy);
+  Value result = builder.create<cudaq::cc::UndefOp>(loc, strTy);
+  assert(strTy.getNumMembers() == packedTy.getNumMembers());
+  for (auto iter :
+       llvm::enumerate(llvm::zip(strTy.getMembers(), packedTy.getMembers()))) {
+    auto devMemTy = std::get<0>(iter.value());
+    std::int32_t off = iter.index();
+    auto packedMemTy = std::get<1>(iter.value());
+    auto dataPtr = builder.create<cudaq::cc::ComputePtrOp>(
+        loc, cudaq::cc::PointerType::get(packedMemTy), ptr,
+        ArrayRef<cudaq::cc::ComputePtrArg>{off});
+    if (cudaq::cc::isDynamicType(devMemTy)) {
+      auto r = constructDynamicInputValue(loc, builder, devMemTy, dataPtr,
+                                          trailingData);
+      result = builder.create<cudaq::cc::InsertValueOp>(loc, strTy, result,
+                                                        r.first, off);
+      trailingData = r.second;
+      continue;
+    }
+    auto val = fetchInputValue(loc, builder, devMemTy, dataPtr);
+    result =
+        builder.create<cudaq::cc::InsertValueOp>(loc, strTy, result, val, off);
+  }
+  return {result, trailingData};
+}
+
+/// Translate the buffer data to a sequence of arguments suitable to the
+/// actual kernel call.
+///
+/// \param inTy      The actual expected type of the argument.
+/// \param structTy  The modified buffer type over all the arguments at the
+/// current level.
+static std::pair<Value, Value>
+processInputValue(Location loc, OpBuilder &builder, Value trailingData,
+                  Value ptrPackedStruct, Type inTy, std::int64_t off,
+                  cudaq::cc::StructType packedStructTy) {
+  auto packedPtr = builder.create<cudaq::cc::ComputePtrOp>(
+      loc, cudaq::cc::PointerType::get(packedStructTy.getMember(off)),
+      ptrPackedStruct, ArrayRef<cudaq::cc::ComputePtrArg>{off});
+  if (cudaq::cc::isDynamicType(inTy))
+    return constructDynamicInputValue(loc, builder, inTy, packedPtr,
+                                      trailingData);
+  auto val = fetchInputValue(loc, builder, inTy, packedPtr);
+  return {val, trailingData};
+}
+
 /// This pass adds a `<kernel name>.thunk` function and a rewritten C++ host
 /// side (mangled) stub to the code for every entry-point kernel in the module.
 /// It may also generate a `<kernel name>.argsCreator` function. Finally, it
@@ -1096,174 +1315,6 @@ public:
     return argsCreatorFunc;
   }
 
-  /// In the thunk, we need to unpack any `std::vector` objects encoded in the
-  /// packet. Since these have dynamic size, they are encoded as trailing bytes
-  /// by offset and size. The offset is implicit from the values of the
-  /// arguments. All sizes are encoded as `int64_t`.
-  ///
-  /// A vector of vector of ... T is encoded as a int64_t (length). At the
-  /// offset of the level `i` vector will be a sequence of sizes for the level
-  /// `i+1` vectors. For the leaf vector level, `n`, the blocks of data for each
-  /// vector will be immediately following for each vector at level `n` for the
-  /// branch of the tree being encoded.
-  ///
-  /// For example, a variable defined and initialized as
-  /// ```
-  /// vector<vector<vector<char>>> example =
-  ///    {{{'a'}, {'b', 'c'}, {'z'}}, {{'d' 'e', 'f'}}};
-  /// ```
-  ///
-  /// and passed as an argument to a kernel will be encoded as the following
-  /// block. The block will have a structure with the declared arguments
-  /// followed by an addendum of variable data, where the vector data is
-  /// encoded.
-  ///
-  /// ```
-  ///   arguments: { ..., 1, ... }
-  ///   addendum: [[3; 1 2 1, a, b c, z] [1; 3, d e f]]
-  /// ```
-  std::pair<Value, Value> unpackStdVector(Location loc, OpBuilder &builder,
-                                          cudaq::cc::SpanLikeType stdvecTy,
-                                          Value vecSize, Value trailingData) {
-    // Convert the pointer-free std::vector<T> to a span structure to be
-    // passed. A span structure is a pointer and a size (in element
-    // units). Note that this structure may be recursive.
-    auto i8Ty = builder.getI8Type();
-    auto ptrI8Ty = cudaq::cc::PointerType::get(i8Ty);
-    auto bytesTy = getByteAddressableType(builder);
-    Type eleTy = stdvecTy.getElementType();
-    auto innerStdvecTy = dyn_cast<cudaq::cc::SpanLikeType>(eleTy);
-    std::size_t eleSize =
-        innerStdvecTy ? /*(i64Type/8)*/ 8 : dataLayout->getTypeSize(eleTy);
-    auto eleSizeVal = [&]() -> Value {
-      if (eleSize)
-        return builder.create<arith::ConstantIntOp>(loc, eleSize, 64);
-      assert(isa<cudaq::cc::StructType>(eleTy) ||
-             (isa<cudaq::cc::ArrayType>(eleTy) &&
-              !cast<cudaq::cc::ArrayType>(eleTy).isUnknownSize()));
-      auto i64Ty = builder.getI64Type();
-      return builder.create<cudaq::cc::SizeOfOp>(loc, i64Ty, eleTy);
-    }();
-    auto vecLength = builder.create<arith::DivSIOp>(loc, vecSize, eleSizeVal);
-    if (innerStdvecTy) {
-      // Recursive case: std::vector<std::vector<...>>
-      // TODO: Uses stack allocation, however it may be better to use heap
-      // allocation. It's not clear the QPU has heap memory allocation. If this
-      // uses heap allocation, then the thunk must free that memory *after* the
-      // kernel proper returns.
-      auto vecTmp = builder.create<cudaq::cc::AllocaOp>(loc, eleTy, vecLength);
-      auto currentEnd = builder.create<cudaq::cc::AllocaOp>(loc, ptrI8Ty);
-      auto i64Ty = builder.getI64Type();
-      auto arrI64Ty = cudaq::cc::ArrayType::get(i64Ty);
-      auto arrTy = cudaq::cc::PointerType::get(arrI64Ty);
-      auto innerVec =
-          builder.create<cudaq::cc::CastOp>(loc, arrTy, trailingData);
-      auto trailingBytes =
-          builder.create<cudaq::cc::CastOp>(loc, bytesTy, trailingData);
-      trailingData = builder.create<cudaq::cc::ComputePtrOp>(
-          loc, ptrI8Ty, trailingBytes, vecSize);
-      builder.create<cudaq::cc::StoreOp>(loc, trailingData, currentEnd);
-      // Loop over each subvector in the vector and recursively unpack it into
-      // the vecTmp variable. Leaf vectors do not need a fresh variable. This
-      // effectively translates all the size/offset information for all the
-      // subvectors into temps.
-      Value vecLengthIndex = builder.create<cudaq::cc::CastOp>(
-          loc, builder.getI64Type(), vecLength,
-          cudaq::cc::CastOpMode::Unsigned);
-      cudaq::opt::factory::createInvariantLoop(
-          builder, loc, vecLengthIndex,
-          [&](OpBuilder &builder, Location loc, Region &, Block &block) {
-            Value i = block.getArgument(0);
-            auto innerPtr = builder.create<cudaq::cc::ComputePtrOp>(
-                loc, cudaq::cc::PointerType::get(i64Ty), innerVec,
-                SmallVector<cudaq::cc::ComputePtrArg>{i});
-            Value innerVecSize =
-                builder.create<cudaq::cc::LoadOp>(loc, innerPtr);
-            Value tmp = builder.create<cudaq::cc::LoadOp>(loc, currentEnd);
-            auto unpackPair =
-                unpackStdVector(loc, builder, innerStdvecTy, innerVecSize, tmp);
-            auto ptrInnerTy = cudaq::cc::PointerType::get(innerStdvecTy);
-            auto subVecPtr = builder.create<cudaq::cc::ComputePtrOp>(
-                loc, ptrInnerTy, vecTmp,
-                SmallVector<cudaq::cc::ComputePtrArg>{i});
-            builder.create<cudaq::cc::StoreOp>(loc, unpackPair.first,
-                                               subVecPtr);
-            builder.create<cudaq::cc::StoreOp>(loc, unpackPair.second,
-                                               currentEnd);
-          });
-      auto coerceResult = builder.create<cudaq::cc::CastOp>(
-          loc, cudaq::cc::PointerType::get(stdvecTy), vecTmp);
-      trailingData = builder.create<cudaq::cc::LoadOp>(loc, currentEnd);
-      Value result = builder.create<cudaq::cc::StdvecInitOp>(
-          loc, stdvecTy, coerceResult, vecLength);
-      return {result, trailingData};
-    }
-    // Must divide by byte, 8 bits.
-    // The data is at trailingData and is valid for vecLength of eleTy.
-    auto castData = builder.create<cudaq::cc::CastOp>(
-        loc, cudaq::cc::PointerType::get(eleTy), trailingData);
-    Value stdVecResult = builder.create<cudaq::cc::StdvecInitOp>(
-        loc, stdvecTy, castData, vecLength);
-    auto arrTy = cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(i8Ty));
-    Value casted = builder.create<cudaq::cc::CastOp>(loc, arrTy, trailingData);
-    trailingData =
-        builder.create<cudaq::cc::ComputePtrOp>(loc, ptrI8Ty, casted, vecSize);
-    return {stdVecResult, trailingData};
-  }
-
-  /// Translate the buffer data to a sequence of arguments suitable to the
-  /// actual kernel call.
-  ///
-  /// \param inTy      The actual expected type of the argument.
-  /// \param structTy  The modified buffer type over all the arguments at the
-  /// current level.
-  std::pair<Value, Value> processInputValue(Location loc, OpBuilder &builder,
-                                            Value trailingData, Value val,
-                                            Type inTy, std::int64_t off,
-                                            cudaq::cc::StructType structTy) {
-    if (isa<cudaq::cc::IndirectCallableType>(inTy)) {
-      auto i64Ty = builder.getI64Type();
-      auto key =
-          builder.create<cudaq::cc::ExtractValueOp>(loc, i64Ty, val, off);
-      return {builder.create<cudaq::cc::CastOp>(loc, inTy, key), trailingData};
-    }
-    if (isa<cudaq::cc::CallableType>(inTy))
-      return {builder.create<cudaq::cc::UndefOp>(loc, inTy), trailingData};
-    if (auto stdVecTy = dyn_cast<cudaq::cc::SpanLikeType>(inTy)) {
-      Value vecSize = builder.create<cudaq::cc::ExtractValueOp>(
-          loc, builder.getI64Type(), val, off);
-      return unpackStdVector(loc, builder, stdVecTy, vecSize, trailingData);
-    }
-    if (auto strTy = dyn_cast<cudaq::cc::StructType>(inTy)) {
-      if (!cudaq::cc::isDynamicType(strTy)) {
-        if (strTy.isEmpty())
-          return {builder.create<cudaq::cc::UndefOp>(loc, inTy), trailingData};
-        return {builder.create<cudaq::cc::ExtractValueOp>(loc, inTy, val, off),
-                trailingData};
-      }
-      // The struct contains dynamic components. Extract them and build up the
-      // struct value to be passed as an argument.
-      Type buffMemTy = structTy.getMember(off);
-      Value strVal = builder.create<cudaq::cc::UndefOp>(loc, inTy);
-      Value subVal =
-          builder.create<cudaq::cc::ExtractValueOp>(loc, buffMemTy, val, off);
-      // Convert the argument type, strTy, to a buffer type.
-      auto memberArgTy = cast<cudaq::cc::StructType>(
-          cudaq::opt::factory::genArgumentBufferType(strTy));
-      for (auto iter : llvm::enumerate(strTy.getMembers())) {
-        auto [a, t] =
-            processInputValue(loc, builder, trailingData, subVal, iter.value(),
-                              iter.index(), memberArgTy);
-        trailingData = t;
-        strVal = builder.create<cudaq::cc::InsertValueOp>(loc, inTy, strVal, a,
-                                                          iter.index());
-      }
-      return {strVal, trailingData};
-    }
-    return {builder.create<cudaq::cc::ExtractValueOp>(loc, inTy, val, off),
-            trailingData};
-  }
-
   /// Generate the thunk function. This function is called by the library
   /// callback function to "unpack" the arguments and pass them to the kernel
   /// function on the QPU side. The thunk will also save any return values to
@@ -1285,7 +1336,6 @@ public:
     auto castOp = builder.create<cudaq::cc::CastOp>(loc, structPtrTy,
                                                     thunkEntry->getArgument(0));
     auto isClientServer = thunkEntry->getArgument(1);
-    Value val = builder.create<cudaq::cc::LoadOp>(loc, castOp);
     auto i64Ty = builder.getI64Type();
 
     // Compute the struct size without the trailing bytes, structSize.
@@ -1306,7 +1356,7 @@ public:
     SmallVector<Value> args;
     const std::int32_t offset = funcTy.getNumInputs();
     for (auto inp : llvm::enumerate(funcTy.getInputs())) {
-      auto [a, t] = processInputValue(loc, builder, trailingData, val,
+      auto [a, t] = processInputValue(loc, builder, trailingData, castOp,
                                       inp.value(), inp.index(), structTy);
       trailingData = t;
       args.push_back(a);
@@ -1838,8 +1888,6 @@ public:
     auto builder = OpBuilder::atBlockEnd(module.getBody());
     auto mangledNameMap =
         module->getAttrOfType<DictionaryAttr>(cudaq::runtime::mangledNameMap);
-    DataLayoutAnalysis dla(module); // caches module's data layout information.
-    dataLayout = &dla.getAtOrAbove(module);
     std::error_code ec;
     llvm::ToolOutputFile out(outputFilename, ec, llvm::sys::fs::OF_None);
     if (ec) {
@@ -1956,8 +2004,5 @@ public:
     }
     out.keep();
   }
-
-private:
-  const DataLayout *dataLayout = nullptr;
 };
 } // namespace

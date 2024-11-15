@@ -10,6 +10,16 @@
 
 #include "cudaq/Optimizer/Builder/Factory.h"
 
+//===----------------------------------------------------------------------===//
+//
+// Runtime helper functions are functions that will appear in the runtime
+// library (implementations are defined in either the headers or libraries in
+// the `runtime` directory). These helper functions may never be assumed to
+// appear on the device-side, so these helpers should only be used in host-side
+// code.
+//
+//===----------------------------------------------------------------------===//
+
 namespace cudaq::runtime {
 
 /// Prefix for all kernel entry functions.

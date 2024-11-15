@@ -170,11 +170,11 @@ module attributes {quake.mangled_name_map = {
 // ALT-SAME:                         %[[VAL_0:.*]]: !cc.ptr<i8>,
 // ALT-SAME:                         %[[VAL_1:.*]]: i1) -> !cc.struct<{!cc.ptr<i8>, i64}> {
 // ALT:           %[[VAL_2:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.struct<{i32, f64}>>
-// ALT:           %[[VAL_3:.*]] = cc.load %[[VAL_2]] : !cc.ptr<!cc.struct<{i32, f64}>>
-// ALT:           %[[VAL_4:.*]] = cc.sizeof !cc.struct<{i32, f64}> : i64
-// ALT:           %[[VAL_5:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
-// ALT:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_5]]{{\[}}%[[VAL_4]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
-// ALT:           %[[VAL_7:.*]] = cc.extract_value %[[VAL_3]][0] : (!cc.struct<{i32, f64}>) -> i32
+// ALT:           %[[VAL_3:.*]] = cc.sizeof !cc.struct<{i32, f64}> : i64
+// ALT:           %[[VAL_4:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
+// ALT:           %[[VAL_5:.*]] = cc.compute_ptr %[[VAL_4]]{{\[}}%[[VAL_3]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+// ALT:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_2]][0] : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<i32>
+// ALT:           %[[VAL_7:.*]] = cc.load %[[VAL_6]] : !cc.ptr<i32>
 // ALT:           %[[VAL_8:.*]] = call @__nvqpp__mlirgen__ghz(%[[VAL_7]]) : (i32) -> f64
 // ALT:           %[[VAL_9:.*]] = cc.compute_ptr %[[VAL_2]][1] : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<f64>
 // ALT:           cc.store %[[VAL_8]], %[[VAL_9]] : !cc.ptr<f64>
@@ -403,14 +403,14 @@ module attributes {quake.mangled_name_map = {
 // HYBRID:         }
 
 // HYBRID-LABEL:   func.func @ghz.thunk(
-// HYBRID-SAME:                         %[[VAL_0:.*]]: !cc.ptr<i8>,
-// HYBRID-SAME:                         %[[VAL_1:.*]]: i1) -> !cc.struct<{!cc.ptr<i8>, i64}> {
+// HYBRID-SAME:        %[[VAL_0:.*]]: !cc.ptr<i8>,
+// HYBRID-SAME:        %[[VAL_1:.*]]: i1) -> !cc.struct<{!cc.ptr<i8>, i64}> {
 // HYBRID:           %[[VAL_2:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.struct<{i32, f64}>>
-// HYBRID:           %[[VAL_3:.*]] = cc.load %[[VAL_2]] : !cc.ptr<!cc.struct<{i32, f64}>>
-// HYBRID:           %[[VAL_4:.*]] = cc.sizeof !cc.struct<{i32, f64}> : i64
-// HYBRID:           %[[VAL_5:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
-// HYBRID:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_5]]{{\[}}%[[VAL_4]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
-// HYBRID:           %[[VAL_7:.*]] = cc.extract_value %[[VAL_3]][0] : (!cc.struct<{i32, f64}>) -> i32
+// HYBRID:           %[[VAL_3:.*]] = cc.sizeof !cc.struct<{i32, f64}> : i64
+// HYBRID:           %[[VAL_4:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
+// HYBRID:           %[[VAL_5:.*]] = cc.compute_ptr %[[VAL_4]]{{\[}}%[[VAL_3]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+// HYBRID:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_2]][0] : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<i32>
+// HYBRID:           %[[VAL_7:.*]] = cc.load %[[VAL_6]] : !cc.ptr<i32>
 // HYBRID:           %[[VAL_8:.*]] = call @__nvqpp__mlirgen__ghz(%[[VAL_7]]) : (i32) -> f64
 // HYBRID:           %[[VAL_9:.*]] = cc.compute_ptr %[[VAL_2]][1] : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<f64>
 // HYBRID:           cc.store %[[VAL_8]], %[[VAL_9]] : !cc.ptr<f64>

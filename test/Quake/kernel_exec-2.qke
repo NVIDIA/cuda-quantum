@@ -172,24 +172,25 @@ __nvqpp__mlirgen__function_cargo = "pants"}} {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @function_hawaiian.thunk(
-// CHECK-SAME:           %[[VAL_0:.*]]: !cc.ptr<i8>,
-// CHECK-SAME:           %[[VAL_1:.*]]: i1) -> !cc.struct<{!cc.ptr<i8>, i64}> {
+// CHECK-SAME:        %[[VAL_0:.*]]: !cc.ptr<i8>,
+// CHECK-SAME:        %[[VAL_1:.*]]: i1) -> !cc.struct<{!cc.ptr<i8>, i64}> {
 // CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.struct<{i1, i64}>>
-// CHECK:           %[[VAL_3:.*]] = cc.load %[[VAL_2]] : !cc.ptr<!cc.struct<{i1, i64}>>
-// CHECK:           %[[VAL_4:.*]] = cc.sizeof !cc.struct<{i1, i64}> : i64
-// CHECK:           %[[VAL_5:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
-// CHECK:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_5]]{{\[}}%[[VAL_4]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_7:.*]] = cc.extract_value %[[VAL_3]][0] : (!cc.struct<{i1, i64}>) -> i1
-// CHECK:           %[[VAL_8:.*]] = cc.extract_value %[[VAL_3]][1] : (!cc.struct<{i1, i64}>) -> i64
-// CHECK:           %[[VAL_9:.*]] = arith.constant 4 : i64
-// CHECK:           %[[VAL_10:.*]] = arith.divsi %[[VAL_8]], %[[VAL_9]] : i64
-// CHECK:           %[[VAL_11:.*]] = cc.cast %[[VAL_6]] : (!cc.ptr<i8>) -> !cc.ptr<i32>
-// CHECK:           %[[VAL_12:.*]] = cc.stdvec_init %[[VAL_11]], %[[VAL_10]] : (!cc.ptr<i32>, i64) -> !cc.stdvec<i32>
-// CHECK:           %[[VAL_13:.*]] = cc.cast %[[VAL_6]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
-// CHECK:           %[[VAL_14:.*]] = cc.compute_ptr %[[VAL_13]]{{\[}}%[[VAL_8]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
-// CHECK:           call @__nvqpp__mlirgen__function_hawaiian(%[[VAL_7]], %[[VAL_12]]) : (i1, !cc.stdvec<i32>) -> ()
-// CHECK:           %[[VAL_15:.*]] = call @__nvqpp_zeroDynamicResult() : () -> !cc.struct<{!cc.ptr<i8>, i64}>
-// CHECK:           return %[[VAL_15]] : !cc.struct<{!cc.ptr<i8>, i64}>
+// CHECK:           %[[VAL_3:.*]] = cc.sizeof !cc.struct<{i1, i64}> : i64
+// CHECK:           %[[VAL_4:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
+// CHECK:           %[[VAL_5:.*]] = cc.compute_ptr %[[VAL_4]]{{\[}}%[[VAL_3]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_2]][0] : (!cc.ptr<!cc.struct<{i1, i64}>>) -> !cc.ptr<i1>
+// CHECK:           %[[VAL_7:.*]] = cc.load %[[VAL_6]] : !cc.ptr<i1>
+// CHECK:           %[[VAL_8:.*]] = cc.compute_ptr %[[VAL_2]][1] : (!cc.ptr<!cc.struct<{i1, i64}>>) -> !cc.ptr<i64>
+// CHECK:           %[[VAL_9:.*]] = cc.sizeof i32 : i64
+// CHECK:           %[[VAL_10:.*]] = cc.load %[[VAL_8]] : !cc.ptr<i64>
+// CHECK:           %[[VAL_11:.*]] = arith.divsi %[[VAL_10]], %[[VAL_9]] : i64
+// CHECK:           %[[VAL_12:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<i8>) -> !cc.ptr<i32>
+// CHECK:           %[[VAL_13:.*]] = cc.stdvec_init %[[VAL_12]], %[[VAL_11]] : (!cc.ptr<i32>, i64) -> !cc.stdvec<i32>
+// CHECK:           %[[VAL_14:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
+// CHECK:           %[[VAL_15:.*]] = cc.compute_ptr %[[VAL_14]]{{\[}}%[[VAL_10]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+// CHECK:           call @__nvqpp__mlirgen__function_hawaiian(%[[VAL_7]], %[[VAL_13]]) : (i1, !cc.stdvec<i32>) -> ()
+// CHECK:           %[[VAL_16:.*]] = call @__nvqpp_zeroDynamicResult() : () -> !cc.struct<{!cc.ptr<i8>, i64}>
+// CHECK:           return %[[VAL_16]] : !cc.struct<{!cc.ptr<i8>, i64}>
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @function_hawaiian.argsCreator(

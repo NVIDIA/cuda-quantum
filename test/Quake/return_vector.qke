@@ -264,12 +264,12 @@ func.func @test_1(%0: !cc.ptr<!cc.struct<{!cc.ptr<f64>, !cc.ptr<f64>, !cc.ptr<f6
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @test_0.thunk(
-// CHECK-SAME:                            %[[VAL_0:.*]]: !cc.ptr<i8>,
-// CHECK-SAME:                            %[[VAL_1:.*]]: i1) -> !cc.struct<{!cc.ptr<i8>, i64}> {
+// CHECK-SAME:        %[[VAL_0:.*]]: !cc.ptr<i8>,
+// CHECK-SAME:        %[[VAL_1:.*]]: i1) -> !cc.struct<{!cc.ptr<i8>, i64}> {
 // CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.struct<{i32, !cc.struct<{!cc.ptr<i32>, i64}>}>>
-// CHECK:           %[[VAL_3:.*]] = cc.load %[[VAL_2]] : !cc.ptr<!cc.struct<{i32, !cc.struct<{!cc.ptr<i32>, i64}>}>>
-// CHECK:           %[[VAL_4:.*]] = cc.sizeof !cc.struct<{i32, !cc.struct<{!cc.ptr<i32>, i64}>}> : i64
-// CHECK:           %[[VAL_5:.*]] = cc.extract_value %[[VAL_3]][0] : (!cc.struct<{i32, !cc.struct<{!cc.ptr<i32>, i64}>}>) -> i32
+// CHECK:           %[[VAL_3:.*]] = cc.sizeof !cc.struct<{i32, !cc.struct<{!cc.ptr<i32>, i64}>}> : i64
+// CHECK:           %[[VAL_4:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<i8>) -> !cc.ptr<i32>
+// CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_6:.*]] = call @__nvqpp__mlirgen__test_0(%[[VAL_5]]) : (i32) -> !cc.stdvec<i32>
 // CHECK:           %[[VAL_7:.*]] = cc.compute_ptr %[[VAL_2]][1] : (!cc.ptr<!cc.struct<{i32, !cc.struct<{!cc.ptr<i32>, i64}>}>>) -> !cc.ptr<!cc.struct<{!cc.ptr<i32>, i64}>>
 // CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_7]] : (!cc.ptr<!cc.struct<{!cc.ptr<i32>, i64}>>) -> !cc.ptr<!cc.stdvec<i32>>
@@ -278,7 +278,7 @@ func.func @test_1(%0: !cc.ptr<!cc.struct<{!cc.ptr<f64>, !cc.ptr<f64>, !cc.ptr<f6
 // CHECK:         ^bb1:
 // CHECK:           %[[VAL_9:.*]] = cc.cast %[[VAL_7]] : (!cc.ptr<!cc.struct<{!cc.ptr<i32>, i64}>>) -> !cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>
 // CHECK:           %[[VAL_10:.*]] = cc.offsetof !cc.struct<{i32, !cc.struct<{!cc.ptr<i32>, i64}>}> [1] : i64
-// CHECK:           %[[VAL_11:.*]] = call @__nvqpp_createDynamicResult(%[[VAL_0]], %[[VAL_4]], %[[VAL_9]], %[[VAL_10]]) : (!cc.ptr<i8>, i64, !cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// CHECK:           %[[VAL_11:.*]] = call @__nvqpp_createDynamicResult(%[[VAL_0]], %[[VAL_3]], %[[VAL_9]], %[[VAL_10]]) : (!cc.ptr<i8>, i64, !cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // CHECK:           return %[[VAL_11]] : !cc.struct<{!cc.ptr<i8>, i64}>
 // CHECK:         ^bb2:
 // CHECK:           %[[VAL_12:.*]] = call @__nvqpp_zeroDynamicResult() : () -> !cc.struct<{!cc.ptr<i8>, i64}>
@@ -319,12 +319,12 @@ func.func @test_1(%0: !cc.ptr<!cc.struct<{!cc.ptr<f64>, !cc.ptr<f64>, !cc.ptr<f6
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @test_1.thunk(
-// CHECK-SAME:                            %[[VAL_0:.*]]: !cc.ptr<i8>,
-// CHECK-SAME:                            %[[VAL_1:.*]]: i1) -> !cc.struct<{!cc.ptr<i8>, i64}> {
+// CHECK-SAME:        %[[VAL_0:.*]]: !cc.ptr<i8>,
+// CHECK-SAME:        %[[VAL_1:.*]]: i1) -> !cc.struct<{!cc.ptr<i8>, i64}> {
 // CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.struct<{i32, !cc.struct<{!cc.ptr<f64>, i64}>}>>
-// CHECK:           %[[VAL_3:.*]] = cc.load %[[VAL_2]] : !cc.ptr<!cc.struct<{i32, !cc.struct<{!cc.ptr<f64>, i64}>}>>
-// CHECK:           %[[VAL_4:.*]] = cc.sizeof !cc.struct<{i32, !cc.struct<{!cc.ptr<f64>, i64}>}> : i64
-// CHECK:           %[[VAL_5:.*]] = cc.extract_value %[[VAL_3]][0] : (!cc.struct<{i32, !cc.struct<{!cc.ptr<f64>, i64}>}>) -> i32
+// CHECK:           %[[VAL_3:.*]] = cc.sizeof !cc.struct<{i32, !cc.struct<{!cc.ptr<f64>, i64}>}> : i64
+// CHECK:           %[[VAL_4:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<i8>) -> !cc.ptr<i32>
+// CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_6:.*]] = call @__nvqpp__mlirgen__test_1(%[[VAL_5]]) : (i32) -> !cc.stdvec<f64>
 // CHECK:           %[[VAL_7:.*]] = cc.compute_ptr %[[VAL_2]][1] : (!cc.ptr<!cc.struct<{i32, !cc.struct<{!cc.ptr<f64>, i64}>}>>) -> !cc.ptr<!cc.struct<{!cc.ptr<f64>, i64}>>
 // CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_7]] : (!cc.ptr<!cc.struct<{!cc.ptr<f64>, i64}>>) -> !cc.ptr<!cc.stdvec<f64>>
@@ -333,7 +333,7 @@ func.func @test_1(%0: !cc.ptr<!cc.struct<{!cc.ptr<f64>, !cc.ptr<f64>, !cc.ptr<f6
 // CHECK:         ^bb1:
 // CHECK:           %[[VAL_9:.*]] = cc.cast %[[VAL_7]] : (!cc.ptr<!cc.struct<{!cc.ptr<f64>, i64}>>) -> !cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>
 // CHECK:           %[[VAL_10:.*]] = cc.offsetof !cc.struct<{i32, !cc.struct<{!cc.ptr<f64>, i64}>}> [1] : i64
-// CHECK:           %[[VAL_11:.*]] = call @__nvqpp_createDynamicResult(%[[VAL_0]], %[[VAL_4]], %[[VAL_9]], %[[VAL_10]]) : (!cc.ptr<i8>, i64, !cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// CHECK:           %[[VAL_11:.*]] = call @__nvqpp_createDynamicResult(%[[VAL_0]], %[[VAL_3]], %[[VAL_9]], %[[VAL_10]]) : (!cc.ptr<i8>, i64, !cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // CHECK:           return %[[VAL_11]] : !cc.struct<{!cc.ptr<i8>, i64}>
 // CHECK:         ^bb2:
 // CHECK:           %[[VAL_12:.*]] = call @__nvqpp_zeroDynamicResult() : () -> !cc.struct<{!cc.ptr<i8>, i64}>
@@ -341,8 +341,8 @@ func.func @test_1(%0: !cc.ptr<!cc.struct<{!cc.ptr<f64>, !cc.ptr<f64>, !cc.ptr<f6
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @test_1.argsCreator(
-// CHECK-SAME:                                  %[[VAL_0:.*]]: !cc.ptr<!cc.ptr<i8>>,
-// CHECK-SAME:                                  %[[VAL_1:.*]]: !cc.ptr<!cc.ptr<i8>>) -> i64 {
+// CHECK-SAME:        %[[VAL_0:.*]]: !cc.ptr<!cc.ptr<i8>>,
+// CHECK-SAME:        %[[VAL_1:.*]]: !cc.ptr<!cc.ptr<i8>>) -> i64 {
 // CHECK:           %[[VAL_2:.*]] = cc.load %[[VAL_0]] : !cc.ptr<!cc.ptr<i8>>
 // CHECK:           %[[VAL_3:.*]] = cc.cast %[[VAL_2]] : (!cc.ptr<i8>) -> !cc.ptr<i32>
 // CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_3]] : !cc.ptr<i32>
