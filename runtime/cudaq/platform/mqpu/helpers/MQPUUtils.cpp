@@ -118,9 +118,8 @@ cudaq::AutoLaunchRestServerProcess::AutoLaunchRestServerProcess(
     llvm::StringRef argv[] = {serverApp.get(), "--port", port.value()};
     std::string errorMsg;
     bool executionFailed = false;
-    auto processInfo =
-        llvm::sys::ExecuteNoWait(serverApp.get(), argv, Env, {}, 0,
-                                 &errorMsg, &executionFailed);
+    auto processInfo = llvm::sys::ExecuteNoWait(serverApp.get(), argv, Env, {},
+                                                0, &errorMsg, &executionFailed);
     if (executionFailed)
       throw std::runtime_error("Failed to launch " + serverExeName +
                                " at port " + port.value() + ": " + errorMsg);
