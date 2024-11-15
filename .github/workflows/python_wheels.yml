@@ -306,6 +306,17 @@ jobs:
                 eval "$line"
             done <<< "$ompi_script"
 
+            # Install CUDA runtime
+            dnf install -y https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64/cuda-rhel9.repo
+            dnf clean all
+            dnf install -y cuda-runtime-11-0
+
+            # Set up library path
+            export LD_LIBRARY_PATH=/usr/local/cuda-11.0/lib64:$LD_LIBRARY_PATH
+
+            # Verify installation
+            ldconfig -p | grep libcudart
+
             # Run the MPI test
             python${{ inputs.python_version }} -m pip install pytest numpy
             mpirun --allow-run-as-root -np 4 python${{ inputs.python_version }} -m pytest -v /tmp/tests/parallel/test_mpi_api.py
