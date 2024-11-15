@@ -14,7 +14,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel1 = "__nvqp
     quake.custom_op @__nvqpp__mlirgen__op1_generator_1.rodata %0 : (!quake.ref) -> ()
     return
   }
-  cc.global constant @__nvqpp__mlirgen__op1_generator_1.rodata (dense<[(-0.35004537000000002,0.66093880000000005), (0.52346031000000004,-0.40818800999999999), (-0.021867350000000001,0.66343799000000003), (-0.32826912000000003,0.67202026999999998)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4> {sym_visibility = "private"}
+  cc.global constant private @__nvqpp__mlirgen__op1_generator_1.rodata (dense<[(-0.35004537000000002,0.66093880000000005), (0.52346031000000004,-0.40818800999999999), (-0.021867350000000001,0.66343799000000003), (-0.32826912000000003,0.67202026999999998)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel1() attributes {"cudaq-entrypoint"} {

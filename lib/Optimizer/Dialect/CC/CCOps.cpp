@@ -988,6 +988,79 @@ void cudaq::cc::ExtractValueOp::getCanonicalizationPatterns(
 }
 
 //===----------------------------------------------------------------------===//
+// GlobalOp
+//===----------------------------------------------------------------------===//
+
+ParseResult cudaq::cc::GlobalOp::parse(OpAsmParser &parser,
+                                       OperationState &result) {
+  // Check for the `extern` optional keyword first.
+  if (succeeded(parser.parseOptionalKeyword("extern")))
+    result.addAttribute(getExternalAttrName(result.name),
+                        parser.getBuilder().getUnitAttr());
+
+  // Check for the `constant` optional keyword second.
+  if (succeeded(parser.parseOptionalKeyword("constant")))
+    result.addAttribute(getConstantAttrName(result.name),
+                        parser.getBuilder().getUnitAttr());
+
+  // Check for the visibility optional keyword third.
+  StringRef visibility;
+  if (parser.parseOptionalKeyword(&visibility, {"public", "private", "nested"}))
+    return failure();
+
+  StringAttr visibilityAttr = parser.getBuilder().getStringAttr(visibility);
+  result.addAttribute(SymbolTable::getVisibilityAttrName(), visibilityAttr);
+
+  // Parse the rest of the global.
+  //   @<symbol> ( <initializer-attr> ) : <result-type>
+  StringAttr name;
+  if (parser.parseSymbolName(name, getSymNameAttrName(result.name),
+                             result.attributes))
+    return failure();
+  if (succeeded(parser.parseOptionalLParen())) {
+    Attribute value;
+    if (parser.parseAttribute(value, getValueAttrName(result.name),
+                              result.attributes) ||
+        parser.parseRParen())
+      return failure();
+  }
+  SmallVector<Type, 1> types;
+  if (parser.parseOptionalColonTypeList(types) ||
+      parser.parseOptionalAttrDict(result.attributes))
+    return failure();
+  if (types.size() > 1)
+    return parser.emitError(parser.getNameLoc(), "expected zero or one type");
+  result.addAttribute(getGlobalTypeAttrName(result.name),
+                      TypeAttr::get(types[0]));
+  return success();
+}
+
+void cudaq::cc::GlobalOp::print(OpAsmPrinter &p) {
+  p << ' ';
+  if (getExternal())
+    p << "extern ";
+  if (getConstant())
+    p << "constant ";
+
+  if (auto visibility = getSymVisibility())
+    if (visibility.has_value())
+      p << visibility.value().str() << ' ';
+
+  p.printSymbolName(getSymName());
+  if (auto value = getValue()) {
+    p << " (";
+    p.printAttribute(*value);
+    p << ")";
+  }
+  p << " : " << getGlobalType();
+
+  p.printOptionalAttrDict((*this)->getAttrs(),
+                          {getSymNameAttrName(), getValueAttrName(),
+                           getGlobalTypeAttrName(), getConstantAttrName(),
+                           getExternalAttrName(), getSymVisibilityAttrName()});
+}
+
+//===----------------------------------------------------------------------===//
 // StdvecDataOp
 //===----------------------------------------------------------------------===//
 

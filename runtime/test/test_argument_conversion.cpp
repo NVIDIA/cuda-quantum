@@ -388,7 +388,7 @@ void test_state(mlir::MLIRContext *ctx) {
 // CHECK:           %[[VAL_5:.*]] = func.call @__nvqpp_cudaq_state_createFromData_fp64(%[[VAL_4]], %[[VAL_2]]) : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
 // CHECK:           %[[VAL_6:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<!cc.state>) -> !cc.ptr<!cc.state>
 // CHECK:        }
-// CHECK-DAG:    cc.global constant @[[VAL_GC]] (dense<[(0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<8xcomplex<f64>>) : !cc.array<complex<f64> x 8> {sym_visibility = "private"}
+// CHECK-DAG:    cc.global constant private @[[VAL_GC]] (dense<[(0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<8xcomplex<f64>>) : !cc.array<complex<f64> x 8>
 // CHECK-DAG:    func.func private @__nvqpp_cudaq_state_createFromData_fp64(!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
   // clang-format on
 }
@@ -498,7 +498,7 @@ void test_combinations(mlir::MLIRContext *ctx) {
 // CHECK:           %[[VAL_5:.*]] = func.call @__nvqpp_cudaq_state_createFromData_fp64(%[[VAL_4]], %[[VAL_2]]) : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
 // CHECK:           %[[VAL_6:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<!cc.state>) -> !cc.ptr<!cc.state>
 // CHECK:         }
-// CHECK-DAG:     cc.global constant @[[VAL_GC]] (dense<[(0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<8xcomplex<f64>>) : !cc.array<complex<f64> x 8> {sym_visibility = "private"}
+// CHECK-DAG:     cc.global constant private @[[VAL_GC]] (dense<[(0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<8xcomplex<f64>>) : !cc.array<complex<f64> x 8>
 // CHECK-DAG:     func.func private @__nvqpp_cudaq_state_createFromData_fp64(!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
 // CHECK-LABEL:   cc.arg_subst[2] {
 // CHECK:           %[[VAL_0:.*]] = cc.alloca !cc.array<!cc.charspan x 2>

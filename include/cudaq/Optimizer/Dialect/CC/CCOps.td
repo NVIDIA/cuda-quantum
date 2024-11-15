@@ -919,10 +919,7 @@ def cc_GlobalOp : CCOp<"global", [IsolatedFromAbove, Symbol]> {
     UnitAttr:$external
   );
 
-  let assemblyFormat = [{
-    ( `external` $external^ )? ( `constant` $constant^ )?
-      $sym_name `(`$value`)` `:` qualified($global_type) attr-dict
-  }];
+  let hasCustomAssemblyFormat = 1;
 
   let builders = [
     OpBuilder<(ins

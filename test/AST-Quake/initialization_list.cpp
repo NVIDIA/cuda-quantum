@@ -44,5 +44,5 @@ __qpu__ void g() {
 // CHECK:           return
 // CHECK:         }
 
-// CHECK:         cc.global constant @__nvqpp__rodata_init_0(dense<[1.000000e+00, 2.000000e+00, 3.000000e+00, 4.000000e+00]> : tensor<4xf64>) : !cc.array<f64 x 4> {sym_visibility = "private"}
+// CHECK:         cc.global constant private @__nvqpp__rodata_init_0(dense<[1.000000e+00, 2.000000e+00, 3.000000e+00, 4.000000e+00]> : tensor<4xf64>) : !cc.array<f64 x 4>
 
