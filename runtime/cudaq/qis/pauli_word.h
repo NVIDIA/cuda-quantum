@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <ctype.h>
 #include <string>
 
