@@ -299,6 +299,7 @@ private:
 ///  cc.global constant @foo.rodata_0 (dense<[(0.707106769,0.000000e+00),
 ///      (0.707106769,0.000000e+00), (0.000000e+00,0.000000e+00),
 ///      (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f32>>) :
+///      {sym_visibility = "private"}
 ///    !cc.array<complex<f32> x 4>
 /// }
 /// ```

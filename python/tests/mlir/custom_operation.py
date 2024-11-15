@@ -35,8 +35,8 @@ def test_bell_pair():
 # CHECK:           quake.custom_op @__nvqpp__mlirgen__custom_x_generator_1.rodata {{\[}}%[[VAL_1]]] %[[VAL_2]] : (!quake.ref, !quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
-# CHECK:         cc.global constant @__nvqpp__mlirgen__custom_h_generator_1.rodata (dense<[(0.70710678118654746,0.000000e+00), (0.70710678118654746,0.000000e+00), (0.70710678118654746,0.000000e+00), (-0.70710678118654746,0.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
-# CHECK:         cc.global constant @__nvqpp__mlirgen__custom_x_generator_1.rodata (dense<[(0.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+# CHECK-DAG:     cc.global constant @__nvqpp__mlirgen__custom_h_generator_1.rodata(dense<[(0.70710678118654746,0.000000e+00), (0.70710678118654746,0.000000e+00), (0.70710678118654746,0.000000e+00), (-0.70710678118654746,0.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4> {sym_visibility = "private"}
+# CHECK-DAG:     cc.global constant @__nvqpp__mlirgen__custom_x_generator_1.rodata(dense<[(0.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4> {sym_visibility = "private"}
 
 
 def test_custom_adjoint():
@@ -64,5 +64,5 @@ def test_custom_adjoint():
 # CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
-# CHECK:         cc.global constant @__nvqpp__mlirgen__custom_s_generator_1.rodata (dense<[(1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,1.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
-# CHECK:         cc.global constant @__nvqpp__mlirgen__custom_s_adj_generator_1.rodata (dense<[(1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (-0.000000e+00,-1.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+# CHECK-DAG:     cc.global constant @__nvqpp__mlirgen__custom_s_generator_1.rodata(dense<[(1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,1.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4> {sym_visibility = "private"}
+# CHECK-DAG:     cc.global constant @__nvqpp__mlirgen__custom_s_adj_generator_1.rodata(dense<[(1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (-0.000000e+00,-1.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4> {sym_visibility = "private"}

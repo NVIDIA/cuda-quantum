@@ -19,8 +19,8 @@ module {
     %measOut = quake.mz %0 : (!quake.ref) -> !quake.measure
     return
   }
-  cc.global constant @__nvqpp__mlirgen__function_custom_s_generator_1._Z20custom_s_generator_1RKSt6vectorIdSaIdEE.rodata_0 (dense<[(1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,1.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
-  cc.global constant @__nvqpp__mlirgen__function_custom_s_adj_generator_1._Z24custom_s_adj_generator_1RKSt6vectorIdSaIdEE.rodata_1 (dense<[(1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,-1.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+  cc.global constant @__nvqpp__mlirgen__function_custom_s_generator_1._Z20custom_s_generator_1RKSt6vectorIdSaIdEE.rodata_0 (dense<[(1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,1.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4> {sym_visibility = "private"}
+  cc.global constant @__nvqpp__mlirgen__function_custom_s_adj_generator_1._Z24custom_s_adj_generator_1RKSt6vectorIdSaIdEE.rodata_1 (dense<[(1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,-1.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4> {sym_visibility = "private"}
     
 }
  

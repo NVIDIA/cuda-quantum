@@ -31,7 +31,7 @@ module {
     } {invariant}
     return
   }
-  cc.global constant @__nvqpp__rodata_init_0 (dense<[1.000000e+00, 0.000000e+00, 5.000000e-01, 5.000000e-01]> : tensor<4xf64>) : !cc.array<f64 x 4>
+  cc.global constant @__nvqpp__rodata_init_0 (dense<[1.000000e+00, 0.000000e+00, 5.000000e-01, 5.000000e-01]> : tensor<4xf64>) : !cc.array<f64 x 4> {sym_visibility = "private"}
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__FromState() {
@@ -41,5 +41,5 @@ module {
 // CHECK:           quake.dealloc %[[VAL_5]] : !quake.veq<4>
 // CHECK:           return
 // CHECK:         }
-// CHECK:         cc.global constant @__nvqpp__rodata_init_0 (dense<[1.000000e+00, 0.000000e+00, 5.000000e-01, 5.000000e-01]> : tensor<4xf64>) : !cc.array<f64 x 4>
+// CHECK:         cc.global constant @__nvqpp__rodata_init_0 (dense<[1.000000e+00, 0.000000e+00, 5.000000e-01, 5.000000e-01]> : tensor<4xf64>) : !cc.array<f64 x 4> {sym_visibility = "private"}
 

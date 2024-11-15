@@ -912,7 +912,7 @@ def cc_GlobalOp : CCOp<"global", [IsolatedFromAbove, Symbol]> {
 
   let arguments = (ins
     TypeAttr:$global_type,
-    StrAttr:$sym_name,
+    SymbolNameAttr:$sym_name,
     OptionalAttr<AnyAttr>:$value,
     OptionalAttr<StrAttr>:$sym_visibility,
     UnitAttr:$constant,

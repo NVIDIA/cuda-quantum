@@ -52,7 +52,6 @@ void cudaq::opt::addPipelineTranslateToOpenQASM(PassManager &pm) {
   pm.addPass(createStatePreparation());
   pm.addNestedPass<func::FuncOp>(createGetConcreteMatrix());
   pm.addPass(createUnitarySynthesis());
-  addAggressiveEarlyInlining(pm);
   pm.addPass(createSymbolDCEPass());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
