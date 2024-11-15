@@ -310,9 +310,11 @@ cc::ArrayType factory::genHostStringType(ModuleOp mod) {
   auto *ctx = mod.getContext();
   auto i8Ty = IntegerType::get(ctx, 8);
   auto sizeAttr = mod->getAttr(cudaq::runtime::sizeofStringAttrName);
-  assert(sizeAttr && "module must have cc.sizeof_string attribute");
-  auto size = cast<IntegerAttr>(sizeAttr).getInt();
-  return cc::ArrayType::get(ctx, i8Ty, size);
+  if (sizeAttr) {
+    auto size = cast<IntegerAttr>(sizeAttr).getInt();
+    return cc::ArrayType::get(ctx, i8Ty, size);
+  }
+  return cc::ArrayType::get(ctx, i8Ty, sizeof(std::string));
 }
 
 // FIXME: We should get the underlying structure of a std::vector from the

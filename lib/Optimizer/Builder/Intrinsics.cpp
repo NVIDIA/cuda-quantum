@@ -56,7 +56,8 @@ static constexpr IntrinsicCode intrinsicTable[] = {
      "func.func private @_ZNK5cudaq10pauli_word11_nvqpp_dataEv(%pw : "
      "!cc.ptr<i8>) -> !cc.ptr<i8>"},
     {cudaq::runtime::getPauliWordSize,
-     {cudaq::runtime::getPauliWordData},
+     {cudaq::runtime::getPauliWordData, cudaq::runtime::bindingGetStringData,
+      cudaq::runtime::bindingGetStringSize},
      "func.func private @_ZNK5cudaq10pauli_word11_nvqpp_sizeEv(%pw : "
      "!cc.ptr<i8>) -> i64"},
 
@@ -302,6 +303,15 @@ static constexpr IntrinsicCode intrinsicTable[] = {
      R"#(
   func.func private @__nvqpp_getStateVectorLength_fp64(%p : i64, %o : i64) -> i64
   )#"},
+
+    // Quasi-portable entry points for use with non-C++ front ends (Python).
+    {cudaq::runtime::bindingGetStringData,
+     {},
+     "func.func private @__nvqpp_getStringData(%p: !cc.ptr<i8>) -> "
+     "!cc.ptr<i8>"},
+    {cudaq::runtime::bindingGetStringSize,
+     {},
+     "func.func private @__nvqpp_getStringSize(%p: !cc.ptr<i8>) -> i64"},
 
     // __nvqpp_initializer_list_to_vector_bool
     {cudaq::stdvecBoolCtorFromInitList,

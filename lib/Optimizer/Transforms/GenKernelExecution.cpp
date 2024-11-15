@@ -92,8 +92,8 @@ static FunctionType getThunkType(MLIRContext *ctx) {
 /// </code>
 ///
 /// This implementation does \e not support wide characters.
-static Value genStringLength(Location loc, OpBuilder &builder,
-                             Value stringArg) {
+static Value genStringLength(Location loc, OpBuilder &builder, Value stringArg,
+                             ModuleOp module) {
   Type stringTy = stringArg.getType();
   assert(isa<cudaq::cc::PointerType>(stringTy) &&
          isa<cudaq::cc::ArrayType>(
@@ -101,9 +101,11 @@ static Value genStringLength(Location loc, OpBuilder &builder,
          "host side string expected");
   auto callArg = builder.create<cudaq::cc::CastOp>(
       loc, cudaq::cc::PointerType::get(builder.getI8Type()), stringArg);
+  StringRef helperName = module->getAttr(cudaq::runtime::sizeofStringAttrName)
+                             ? cudaq::runtime::getPauliWordSize
+                             : cudaq::runtime::bindingGetStringSize;
   auto lenRes = builder.create<func::CallOp>(loc, builder.getI64Type(),
-                                             cudaq::runtime::getPauliWordSize,
-                                             ValueRange{callArg});
+                                             helperName, ValueRange{callArg});
   return lenRes.getResult(0);
 }
 
@@ -528,7 +530,7 @@ static Value descendThroughDynamicType(Location loc, OpBuilder &builder,
           // A char span is dynamic, but it is not recursively dynamic. Just
           // read the length of the string out.
           .Case([&](cudaq::cc::CharspanType t) -> Value {
-            return genStringLength(loc, builder, arg);
+            return genStringLength(loc, builder, arg, module);
           })
           // A std::vector is dynamic and may be recursive dynamic as well.
           .Case([&](cudaq::cc::StdvecType t) -> Value {
@@ -620,14 +622,17 @@ genSizeOfDynamicMessageBuffer(Location loc, OpBuilder &builder, ModuleOp module,
 }
 
 static Value populateStringAddendum(Location loc, OpBuilder &builder,
-                                    Value host, Value sizeSlot,
-                                    Value addendum) {
-  Value size = genStringLength(loc, builder, host);
+                                    Value host, Value sizeSlot, Value addendum,
+                                    ModuleOp module) {
+  Value size = genStringLength(loc, builder, host, module);
   builder.create<cudaq::cc::StoreOp>(loc, size, sizeSlot);
   auto ptrI8Ty = cudaq::cc::PointerType::get(builder.getI8Type());
   auto fromPtr = builder.create<cudaq::cc::CastOp>(loc, ptrI8Ty, host);
-  auto dataPtr = builder.create<func::CallOp>(
-      loc, ptrI8Ty, cudaq::runtime::getPauliWordData, ValueRange{fromPtr});
+  StringRef helperName = module->getAttr(cudaq::runtime::sizeofStringAttrName)
+                             ? cudaq::runtime::getPauliWordData
+                             : cudaq::runtime::bindingGetStringData;
+  auto dataPtr = builder.create<func::CallOp>(loc, ptrI8Ty, helperName,
+                                              ValueRange{fromPtr});
   auto notVolatile = builder.create<arith::ConstantIntOp>(loc, 0, 1);
   auto toPtr = builder.create<cudaq::cc::CastOp>(loc, ptrI8Ty, addendum);
   builder.create<func::CallOp>(
@@ -664,7 +669,8 @@ static Value populateDynamicAddendum(Location loc, OpBuilder &builder,
                                      Value sizeSlot, Value addendum,
                                      Value addendumScratch) {
   if (isa<cudaq::cc::CharspanType>(devArgTy))
-    return populateStringAddendum(loc, builder, host, sizeSlot, addendum);
+    return populateStringAddendum(loc, builder, host, sizeSlot, addendum,
+                                  module);
   if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(devArgTy)) {
     auto eleTy = vecTy.getElementType();
     if (cudaq::cc::isDynamicType(eleTy)) {

@@ -502,5 +502,12 @@ void __nvqpp_vector_bool_free_temporary_initlists(
     free(p);
   delete allocations;
 }
+
+/// Quasi-portable string helpers for Python (non-C++ frontends).  These library
+/// helper functions allow non-C++ front-ends to remain portable with the core
+/// layer. As these helpers ought to be built along with the bindings, there
+/// should not be a compatibility issue.
+const char *__nvqpp_getStringData(const std::string &s) { return s.data(); }
+std::uint64_t __nvqpp_getStringSize(const std::string &s) { return s.size(); }
 }
 } // namespace cudaq::support
