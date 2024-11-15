@@ -79,6 +79,26 @@ cudaq::AutoLaunchRestServerProcess::AutoLaunchRestServerProcess(
   if (!serverApp)
     throw std::runtime_error("Unable to find CUDA-Q REST server to launch.");
 
+  // If the CUDAQ_DYNLIBS env var is set (typically from the Python
+  // environment), use that data to preload the specified .so files.
+  std::string preload;
+  std::optional<llvm::SmallVector<llvm::StringRef>> Env;
+  if (auto *ch = getenv("CUDAQ_DYNLIBS")) {
+    Env = llvm::SmallVector<llvm::StringRef>();
+    if (auto *p = getenv("LD_PRELOAD")) {
+      preload = p;
+      if (preload.size() > 0)
+        preload += ":";
+    }
+    preload += std::string(ch);
+    for (char **env = environ; *env != nullptr; ++env) {
+      if (!std::string(*env).starts_with("LD_PRELOAD="))
+        Env->push_back(*env);
+    }
+    preload = "LD_PRELOAD=" + preload;
+    Env->push_back(preload);
+  }
+
   constexpr std::size_t PORT_MAX_RETRIES = 10;
   for (std::size_t j = 0; j < PORT_MAX_RETRIES; j++) {
     /// Step 1: Look up a port
@@ -99,7 +119,7 @@ cudaq::AutoLaunchRestServerProcess::AutoLaunchRestServerProcess(
     std::string errorMsg;
     bool executionFailed = false;
     auto processInfo =
-        llvm::sys::ExecuteNoWait(serverApp.get(), argv, std::nullopt, {}, 0,
+        llvm::sys::ExecuteNoWait(serverApp.get(), argv, Env, {}, 0,
                                  &errorMsg, &executionFailed);
     if (executionFailed)
       throw std::runtime_error("Failed to launch " + serverExeName +
