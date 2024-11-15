@@ -33,11 +33,9 @@ def assert_close(got) -> bool:
 @pytest.fixture(scope="session", autouse=True)
 def startUpMockServer():
 
-    os.environ["OQC_PASSWORD"] = "password"
-    # Set the targeted QPU
-    cudaq.set_target('oqc',
-                     url=f'http://localhost:{port}',
-                     email="email@email.com")
+    os.environ["OQC_AUTH_TOKEN"] = "fake_auth_token"
+    os.environ["OQC_DEVICE"] = "qpu:uk:-1:1234567890"
+    os.environ["OQC_URL"] = f"http://localhost:{port}"
 
     # Launch the Mock Server
     p = Process(target=startServer, args=(port,))
@@ -48,6 +46,10 @@ def startUpMockServer():
         pytest.exit("Mock server did not start in time, skipping tests.",
                     returncode=1)
 
+    # Set the targeted QPU
+    cudaq.set_target('oqc',
+                     url=f'http://localhost:{port}',
+                     auth_token="fake_auth_token")
     yield "Running the tests."
 
     # Kill the server, remove the file
