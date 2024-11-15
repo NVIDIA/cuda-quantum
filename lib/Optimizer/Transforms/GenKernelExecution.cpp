@@ -1167,7 +1167,7 @@ static std::pair<Value, Value> constructDynamicInputValue(Location loc,
 /// current level.
 static std::pair<Value, Value>
 processInputValue(Location loc, OpBuilder &builder, Value trailingData,
-                  Value ptrPackedStruct, Type inTy, std::int64_t off,
+                  Value ptrPackedStruct, Type inTy, std::int32_t off,
                   cudaq::cc::StructType packedStructTy) {
   auto packedPtr = builder.create<cudaq::cc::ComputePtrOp>(
       loc, cudaq::cc::PointerType::get(packedStructTy.getMember(off)),
