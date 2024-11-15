@@ -7,13 +7,13 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ -std=c++17 --enable-mlir                             %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target anyon                    --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target braket                   --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target ionq                     --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ -std=c++17 --enable-mlir %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target anyon --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target braket --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target ionq --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std --target iqm --iqm-machine Apollo --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target oqc                      --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target oqc --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>

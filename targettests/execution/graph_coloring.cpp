@@ -8,8 +8,8 @@
 
 // REQUIRES: c++20
 // clang-format off
-// RUN: nvq++ --target braket                   --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %s -o %t --target braket --emulate && %t FileCheck %s
+// RUN: nvq++ %s -o %t --target quantinuum --emulate && %t | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>
