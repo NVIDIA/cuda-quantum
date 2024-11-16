@@ -27,6 +27,8 @@
         <script src="../_static/copybutton.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -46,7 +48,7 @@
             NVIDIA CUDA-Q
           </a>
               <div class="version">
-                latest
+                cu11-latest
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -625,7 +627,8 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#user-defined-custom-operations">User-Defined Custom Operations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#photonic-operations-on-qudits">Photonic Operations on Qudits</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#plus"><code class="code docutils literal notranslate"><span class="pre">plus</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#create"><code class="code docutils literal notranslate"><span class="pre">create</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#annihilate"><code class="code docutils literal notranslate"><span class="pre">annihilate</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#phase-shift"><code class="code docutils literal notranslate"><span class="pre">phase_shift</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#beam-splitter"><code class="code docutils literal notranslate"><span class="pre">beam_splitter</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#id1"><code class="code docutils literal notranslate"><span class="pre">mz</span></code></a></li>
@@ -1316,26 +1319,55 @@ operations, each operating on 2 qubits.</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Custom operations are currently supported only on <a class="reference internal" href="../using/backends/simulators.html"><span class="doc">CUDA-Q Simulation Backends</span></a>.
-Attempt to use with a hardware backend will result in runtime error.</p>
+<p>When a custom operation is used on hardware backends, it is synthesized to a
+set of native quantum operations. Currently, only 1-qubit and 2-qubit custom
+operations are supported on hardware backends.</p>
 </div>
 </section>
 <section id="photonic-operations-on-qudits">
 <h2>Photonic Operations on Qudits<a class="headerlink" href="#photonic-operations-on-qudits" title="Permalink to this heading">¶</a></h2>
-<p>These operations are valid only on the <code class="code docutils literal notranslate"><span class="pre">photonics</span></code> target which does not support the quantum operations above.</p>
-<section id="plus">
-<h3><code class="code docutils literal notranslate"><span class="pre">plus</span></code><a class="headerlink" href="#plus" title="Permalink to this heading">¶</a></h3>
-<p>This is a place-holder, to be updated later.</p>
+<p>These operations are valid only on the <code class="code docutils literal notranslate"><span class="pre">orca-photonics</span></code> target which does not support
+the quantum operations above.</p>
+<section id="create">
+<h3><code class="code docutils literal notranslate"><span class="pre">create</span></code><a class="headerlink" href="#create" title="Permalink to this heading">¶</a></h3>
+<p>This operation increments the number of photons in a qumode up to a maximum value
+defined by the qudit level that represents the qumode. If it is applied to a qumode
+where the number of photons is already at the maximum value, the operation has no
+effect.</p>
+<p><span class="math notranslate nohighlight">\(U|0\rangle → |1\rangle, U|1\rangle → |2\rangle, U|2\rangle → |3\rangle, \cdots, U|d\rangle → |d\rangle\)</span>
+where <span class="math notranslate nohighlight">\(d\)</span> is the qudit level.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--19-input--1" name="tab-set--19" type="radio"><label class="tab-label" for="tab-set--19-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">q</span> <span class="o">=</span> <span class="n">qudit</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
-<span class="n">plus</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+<span class="n">create</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 <input class="tab-input" id="tab-set--19-input--2" name="tab-set--19" type="radio"><label class="tab-label" for="tab-set--19-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="o">&lt;</span><span class="mi">3</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
-<span class="n">plus</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="n">create</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="annihilate">
+<h3><code class="code docutils literal notranslate"><span class="pre">annihilate</span></code><a class="headerlink" href="#annihilate" title="Permalink to this heading">¶</a></h3>
+<p>This operation reduces the number of photons in a qumode up to a minimum value of
+0 representing the vacuum state. If it is applied to a qumode where the number of
+photons is already at the minimum value 0, the operation has no effect.</p>
+<p><span class="math notranslate nohighlight">\(U|0\rangle → |0\rangle, U|1\rangle → |0\rangle, U|2\rangle → |1\rangle, \cdots, U|d\rangle → |d-1\rangle\)</span>
+where <span class="math notranslate nohighlight">\(d\)</span> is the qudit level.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--20-input--1" name="tab-set--20" type="radio"><label class="tab-label" for="tab-set--20-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">q</span> <span class="o">=</span> <span class="n">qudit</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">annihilate</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--20-input--2" name="tab-set--20" type="radio"><label class="tab-label" for="tab-set--20-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="o">&lt;</span><span class="mi">3</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+<span class="n">annihilate</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
 </pre></div>
 </div>
 </div>
@@ -1343,15 +1375,19 @@ Attempt to use with a hardware backend will result in runtime error.</p>
 </section>
 <section id="phase-shift">
 <h3><code class="code docutils literal notranslate"><span class="pre">phase_shift</span></code><a class="headerlink" href="#phase-shift" title="Permalink to this heading">¶</a></h3>
-<p>This is a place-holder, to be updated later.</p>
+<p>A phase shifter adds a phase <span class="math notranslate nohighlight">\(\phi\)</span> on a qumode. For the annihilation (<span class="math notranslate nohighlight">\(a_1\)</span>)
+and creation operators (<span class="math notranslate nohighlight">\(a_1^\dagger\)</span>) of a qumode, the phase shift operator
+is defined  by</p>
+<div class="math notranslate nohighlight">
+\[P(\phi) = \exp\left(i \phi a_1^\dagger a_1  \right)\]</div>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--20-input--1" name="tab-set--20" type="radio"><label class="tab-label" for="tab-set--20-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--21-input--1" name="tab-set--21" type="radio"><label class="tab-label" for="tab-set--21-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">q</span> <span class="o">=</span> <span class="n">qudit</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
 <span class="n">phase_shift</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="mf">0.17</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--20-input--2" name="tab-set--20" type="radio"><label class="tab-label" for="tab-set--20-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--21-input--2" name="tab-set--21" type="radio"><label class="tab-label" for="tab-set--21-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="o">&lt;</span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
 <span class="n">phase_shift</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="mf">0.17</span><span class="p">);</span>
 </pre></div>
@@ -1361,15 +1397,20 @@ Attempt to use with a hardware backend will result in runtime error.</p>
 </section>
 <section id="beam-splitter">
 <h3><code class="code docutils literal notranslate"><span class="pre">beam_splitter</span></code><a class="headerlink" href="#beam-splitter" title="Permalink to this heading">¶</a></h3>
-<p>This is a place-holder, to be updated later.</p>
+<p>Beam splitters act on two qumodes together and it is parameterized by a single angle
+<span class="math notranslate nohighlight">\(\theta\)</span>, relating to reflectivity.
+For the annihilation (<span class="math notranslate nohighlight">\(a_1\)</span> and <span class="math notranslate nohighlight">\(a_2\)</span>) and creation operators (<span class="math notranslate nohighlight">\(a_1^\dagger\)</span>
+and <span class="math notranslate nohighlight">\(a_2^\dagger\)</span>) of two qumodes, the beam splitter operator is defined by</p>
+<div class="math notranslate nohighlight">
+\[B(\theta) = \exp\left[i \theta (a_1^\dagger a_2 + a_1 a_2^\dagger) \right]\]</div>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--21-input--1" name="tab-set--21" type="radio"><label class="tab-label" for="tab-set--21-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--22-input--1" name="tab-set--22" type="radio"><label class="tab-label" for="tab-set--22-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">q</span> <span class="o">=</span> <span class="p">[</span><span class="n">qudit</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">)]</span>
 <span class="n">beam_splitter</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mf">0.34</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--21-input--2" name="tab-set--21" type="radio"><label class="tab-label" for="tab-set--21-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--22-input--2" name="tab-set--22" type="radio"><label class="tab-label" for="tab-set--22-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="o">&lt;</span><span class="mi">3</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
 <span class="n">beam_splitter</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="w"> </span><span class="mf">0.34</span><span class="p">);</span>
 </pre></div>
@@ -1379,17 +1420,17 @@ Attempt to use with a hardware backend will result in runtime error.</p>
 </section>
 <section id="id1">
 <h3><code class="code docutils literal notranslate"><span class="pre">mz</span></code><a class="headerlink" href="#id1" title="Permalink to this heading">¶</a></h3>
-<p>This operation returns the measurement results of the input qudit(s).</p>
+<p>This operation returns the measurement results of the input qumode(s).</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--22-input--1" name="tab-set--22" type="radio"><label class="tab-label" for="tab-set--22-input--1">Python</label><div class="tab-content docutils">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">qutrits</span> <span class="o">=</span> <span class="p">[</span><span class="n">qudit</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">)]</span>
-<span class="n">mz</span><span class="p">(</span><span class="n">qutrits</span><span class="p">)</span>
+<input checked="True" class="tab-input" id="tab-set--23-input--1" name="tab-set--23" type="radio"><label class="tab-label" for="tab-set--23-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">qumodes</span> <span class="o">=</span> <span class="p">[</span><span class="n">qudit</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">)]</span>
+<span class="n">mz</span><span class="p">(</span><span class="n">qumodes</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--22-input--2" name="tab-set--22" type="radio"><label class="tab-label" for="tab-set--22-input--2">C++</label><div class="tab-content docutils">
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="o">&lt;</span><span class="mi">3</span><span class="o">&gt;</span><span class="w"> </span><span class="n">qutrits</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
-<span class="n">mz</span><span class="p">(</span><span class="n">qutrits</span><span class="p">);</span>
+<input class="tab-input" id="tab-set--23-input--2" name="tab-set--23" type="radio"><label class="tab-label" for="tab-set--23-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="o">&lt;</span><span class="mi">3</span><span class="o">&gt;</span><span class="w"> </span><span class="n">qumodes</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+<span class="n">mz</span><span class="p">(</span><span class="n">qumodes</span><span class="p">);</span>
 </pre></div>
 </div>
 </div>

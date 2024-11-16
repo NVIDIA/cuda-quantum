@@ -46,7 +46,7 @@
             NVIDIA CUDA-Q
           </a>
               <div class="version">
-                latest
+                cu11-latest
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -625,7 +625,8 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/default_ops.html#user-defined-custom-operations">User-Defined Custom Operations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/default_ops.html#photonic-operations-on-qudits">Photonic Operations on Qudits</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#plus"><code class="code docutils literal notranslate"><span class="pre">plus</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#create"><code class="code docutils literal notranslate"><span class="pre">create</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#annihilate"><code class="code docutils literal notranslate"><span class="pre">annihilate</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#phase-shift"><code class="code docutils literal notranslate"><span class="pre">phase_shift</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#beam-splitter"><code class="code docutils literal notranslate"><span class="pre">beam_splitter</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#id1"><code class="code docutils literal notranslate"><span class="pre">mz</span></code></a></li>
@@ -710,9 +711,9 @@ will be installed and used.</p>
 <li><p>Linux operating system. The instructions in this guide have been validated
 with the <a class="reference external" href="https://hub.docker.com/u/almalinux">AlmaLinux 8 image</a> that
 serves as the base image for the <a class="reference external" href="https://github.com/pypa/manylinux">manylinux_2_28 image</a>, and should work for the operating
-systems CentOS 8, Debian 11 and 12, Fedora 38, OpenSUSE/SLED/SLES 15.5, RHEL 8
-and 9, Rocky 8 and 9, and Ubuntu 22.04. Other operating systems may work, but
-have not been tested.</p></li>
+systems CentOS 8, Debian 11 and 12, Fedora 38 and 39, OpenSUSE/SLED/SLES 15.5
+and 15.6, RHEL 8 and 9, Rocky 8 and 9, and Ubuntu 24.04 and 22.04. Other
+operating systems may work, but have not been tested.</p></li>
 <li><p><a class="reference external" href="https://www.gnu.org/software/bash/">Bash</a> shell. The CUDA-Q
 build, install and run scripts expect to use <code class="code docutils literal notranslate"><span class="pre">/bin/bash</span></code>.</p></li>
 <li><p><a class="reference external" href="https://www.gnu.org/software/libc/">GNU C library</a>.
@@ -720,8 +721,8 @@ Make sure that the version on the host system is the same one
 or newer than the version on the build system. Our own builds
 use version 2.28.</p></li>
 <li><p>CPU with either x86-64 (x86-64-v3 architecture and newer) or ARM64
-(ARM v8-A architecture and newer). Other architectures may work but are not tested and may require
-adjustments to the build instructions.</p></li>
+(ARM v8-A architecture and newer). Other architectures may work but are not
+tested and may require adjustments to the build instructions.</p></li>
 <li><p>Needed <strong>only on the host</strong> system: NVIDIA GPU with Volta, Turing, Ampere, Ada, or
 Hopper architecture and <a class="reference external" href="https://developer.nvidia.com/cuda-gpus">Compute Capability</a> 7+. Make sure you have the latest
 <a class="reference external" href="https://www.nvidia.com/download/index.aspx">drivers</a> installed for your
@@ -741,7 +742,7 @@ the correct libraries and versions.</p>
 following prerequisites in your build environment prior to proceeding with
 the build as described in the subsequent sections:</p>
 <ul class="simple">
-<li><p>Python version 3.8 or newer: If you intend to build CUDA-Q with Python
+<li><p>Python version 3.10 or newer: If you intend to build CUDA-Q with Python
 support, make sure the Python version on the build system matches the version
 on the host system. If you intend to only build the C++ support for
 CUDA-Q, the Python interpreter is required only for some of the
@@ -803,7 +804,7 @@ corresponding environment variable(s).</p>
 <h3>CUDA<a class="headerlink" href="#cuda" title="Permalink to this heading">¶</a></h3>
 <p>Building CUDA-Q requires a full installation of the CUDA toolkit.
 <strong>You can install the CUDA toolkit and use the CUDA compiler without having a GPU.</strong>
-The instructions are tested using version 11.8, but any CUDA 11 or 12 version
+The instructions are tested using version 11.8 and 12.0, but other CUDA 11 or 12 versions
 should work, as long as the CUDA runtime version on the host system matches the
 CUDA version used for the build, and the installed driver on the host
 system supports that CUDA version. We recommend using the latest CUDA version
@@ -812,8 +813,8 @@ that is supported by the driver on the host system.</p>
 following the installation guide for your platform in the online documentation
 linked on that page.</p>
 <p>Within the tested AlmaLinux 8 environment, for example, the following commands
-install CUDA 11.8:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDA_VERSION</span><span class="o">=</span><span class="m">11</span>.8
+install CUDA 12.0:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDA_VERSION</span><span class="o">=</span><span class="si">${</span><span class="nv">CUDA_VERSION</span><span class="k">:-</span><span class="nv">12</span><span class="p">.0</span><span class="si">}</span>
 <span class="nv">CUDA_DOWNLOAD_URL</span><span class="o">=</span>https://developer.download.nvidia.com/compute/cuda/repos
 <span class="c1"># Go to the url above, set the variables below to a suitable distribution</span>
 <span class="c1"># and subfolder for your platform, and uncomment the line below.</span>
@@ -834,7 +835,7 @@ The following instructions have been tested with <a class="reference external" h
 Other toolchains may be supported but have not been tested.</p>
 <p>Within the tested AlmaLinux 8 environment, for example, the following commands
 install GCC 11:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">GCC_VERSION</span><span class="o">=</span><span class="m">11</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">GCC_VERSION</span><span class="o">=</span><span class="si">${</span><span class="nv">GCC_VERSION</span><span class="k">:-</span><span class="nv">11</span><span class="si">}</span>
 dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>--nobest<span class="w"> </span>--setopt<span class="o">=</span><span class="nv">install_weak_deps</span><span class="o">=</span>False<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>gcc-toolset-<span class="si">${</span><span class="nv">GCC_VERSION</span><span class="si">}</span>
 <span class="c1"># Enabling the toolchain globally is only needed for debug builds</span>
@@ -903,12 +904,17 @@ for your system, you may need to install an additional package to get the develo
 The package name is usually your python version followed by either a <code class="code docutils literal notranslate"><span class="pre">-dev</span></code> or <code class="code docutils literal notranslate"><span class="pre">-devel</span></code> suffix.
 If you are using a <a class="reference external" href="https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-python.html">Conda environment</a>,
 the necessary headers should already be installed.</p></li>
-<li><p>Pip package manager: Make sure the <code class="code docutils literal notranslate"><span class="pre">pip</span></code> module is enable for your Python version.
+<li><p>Pip package manager: Make sure the <code class="code docutils literal notranslate"><span class="pre">pip</span></code> module is enable for your Python version, and that your <code class="code docutils literal notranslate"><span class="pre">pip</span></code> version is 24 or newer.
 We refer to the Python <a class="reference external" href="https://pip.pypa.io/en/stable/installation/">documentation</a> for
 more information about installing/enabling <code class="code docutils literal notranslate"><span class="pre">pip</span></code>.</p></li>
 <li><p>Python modules: Install the additional modules <code class="code docutils literal notranslate"><span class="pre">numpy</span></code>, <code class="code docutils literal notranslate"><span class="pre">build</span></code>, <code class="code docutils literal notranslate"><span class="pre">auditwheel</span></code>, and <code class="code docutils literal notranslate"><span class="pre">patchelf</span></code> for your
 Python version, e.g. <code class="code docutils literal notranslate"><span class="pre">python3</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">numpy</span> <span class="pre">build</span> <span class="pre">auditwheel</span> <span class="pre">patchelf</span></code>.</p></li>
 </ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The wheel build by default is configured to depend on CUDA 12. To build a wheel for CUDA 11,
+you need to adjust the dependencies and project name in the <code class="code docutils literal notranslate"><span class="pre">pyproject.toml</span></code> file.</p>
+</div>
 <p>From within the folder where you cloned the CUDA-Q repository, run the following
 command to build the CUDA-Q Python wheel:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">LLVM_PROJECTS</span><span class="o">=</span><span class="s1">&#39;clang;flang;lld;mlir;python-bindings;openmp;runtimes&#39;</span><span class="w"> </span><span class="se">\</span>
@@ -1011,8 +1017,6 @@ headers of the C standard library installed. You can check this by searching for
 via package manager (usually the package name is called something like <code class="code docutils literal notranslate"><span class="pre">glibc-devel</span></code>
 or <code class="code docutils literal notranslate"><span class="pre">libc6-devel</span></code>). These headers are also included with any installation of GCC.</p></li>
 </ul>
-<p>To use CUDA-Q with Python, you should have a working
-Python installation on the host system, including the <code class="code docutils literal notranslate"><span class="pre">pip</span></code> package manager.</p>
 <p>If you followed the instructions for building the
 <a class="reference internal" href="#cudaq-python-from-source"><span class="std std-ref">CUDA-Q Python wheel</span></a>,
 copy the built <code class="code docutils literal notranslate"><span class="pre">.whl</span></code> file to the host system, and install it using <code class="code docutils literal notranslate"><span class="pre">pip</span></code>; e.g.</p>
@@ -1021,7 +1025,7 @@ copy the built <code class="code docutils literal notranslate"><span class="pre"
 </div>
 <p>To install the necessary CUDA and MPI dependencies for some of the components,
 you can either follow the instructions on <a class="reference external" href="https://pypi.org/project/cuda-quantum/">PyPI.org</a>,
-replacing <code class="code docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">cuda-quantum</span></code> with the command above, or you can follow the
+replacing <code class="code docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">cudaq</span></code> with the command above, or you can follow the
 instructions in the remaining sections of this document to customize and better
 optimize them for your host system.</p>
 <p>If you followed the instructions for building the
@@ -1063,7 +1067,7 @@ used for the build. While not necessary, we recommend installing
 the complete CUDA toolkit like you did for the CUDA-Q build.
 If you prefer to only install the minimal set of runtime libraries, the following
 commands, for example, install the necessary packages for the AlmaLinux 8 environment:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDA_VERSION</span><span class="o">=</span><span class="m">11</span>.8
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDA_VERSION</span><span class="o">=</span><span class="si">${</span><span class="nv">CUDA_VERSION</span><span class="k">:-</span><span class="nv">12</span><span class="p">.0</span><span class="si">}</span>
 <span class="nv">CUDA_DOWNLOAD_URL</span><span class="o">=</span>https://developer.download.nvidia.com/compute/cuda/repos
 <span class="c1"># Go to the url above, set the variables below to a suitable distribution</span>
 <span class="c1"># and subfolder for your platform, and uncomment the line below.</span>
@@ -1072,8 +1076,13 @@ commands, for example, install the necessary packages for the AlmaLinux 8 enviro
 <span class="nv">version_suffix</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="si">${</span><span class="nv">CUDA_VERSION</span><span class="si">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span>.<span class="w"> </span>-<span class="k">)</span>
 dnf<span class="w"> </span>config-manager<span class="w"> </span>--add-repo<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUDA_DOWNLOAD_URL</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">DISTRIBUTION</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">CUDA_ARCH_FOLDER</span><span class="si">}</span><span class="s2">/cuda-</span><span class="si">${</span><span class="nv">DISTRIBUTION</span><span class="si">}</span><span class="s2">.repo&quot;</span>
 dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>--nobest<span class="w"> </span>--setopt<span class="o">=</span><span class="nv">install_weak_deps</span><span class="o">=</span>False<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>cuda-nvtx-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span>cuda-cudart-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>libcusolver-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span>libcublas-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span>
+<span class="w">    </span>cuda-cudart-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>libcusolver-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>libcublas-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span>
+<span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="si">${</span><span class="nv">CUDA_VERSION</span><span class="si">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>cut<span class="w"> </span>-d<span class="w"> </span>.<span class="w"> </span>-f1<span class="k">)</span><span class="w"> </span>-gt<span class="w"> </span><span class="m">11</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span><span class="w"> </span>
+<span class="w">    </span>dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>--nobest<span class="w"> </span>--setopt<span class="o">=</span><span class="nv">install_weak_deps</span><span class="o">=</span>False<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>libnvjitlink-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span>
+<span class="k">fi</span>
 </pre></div>
 </div>
 </section>

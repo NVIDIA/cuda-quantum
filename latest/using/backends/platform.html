@@ -46,7 +46,7 @@
             NVIDIA CUDA-Q
           </a>
               <div class="version">
-                latest
+                cu11-latest
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -625,7 +625,8 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/default_ops.html#user-defined-custom-operations">User-Defined Custom Operations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/default_ops.html#photonic-operations-on-qudits">Photonic Operations on Qudits</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#plus"><code class="code docutils literal notranslate"><span class="pre">plus</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#create"><code class="code docutils literal notranslate"><span class="pre">create</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#annihilate"><code class="code docutils literal notranslate"><span class="pre">annihilate</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#phase-shift"><code class="code docutils literal notranslate"><span class="pre">phase_shift</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#beam-splitter"><code class="code docutils literal notranslate"><span class="pre">beam_splitter</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#id1"><code class="code docutils literal notranslate"><span class="pre">mz</span></code></a></li>
@@ -1044,7 +1045,7 @@ For instance, on a machine with 8 NVIDIA GPUs, one may wish to partition those G
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Use cudaq-qpud.py wrapper script to automatically find dependencies for the Python wheel configuration.</span>
-<span class="nv">cudaq_location</span><span class="o">=</span><span class="sb">`</span>python3<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>show<span class="w"> </span>cuda-quantum<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-e<span class="w"> </span><span class="s1">&#39;Location: .*$&#39;</span><span class="sb">`</span>
+<span class="nv">cudaq_location</span><span class="o">=</span><span class="sb">`</span>python3<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>show<span class="w"> </span>cudaq<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-e<span class="w"> </span><span class="s1">&#39;Location: .*$&#39;</span><span class="sb">`</span>
 <span class="nv">qpud_py</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">cudaq_location</span><span class="p">#Location: </span><span class="si">}</span><span class="s2">/bin/cudaq-qpud.py&quot;</span>
 <span class="nv">CUDA_VISIBLE_DEVICES</span><span class="o">=</span><span class="m">0</span>,1<span class="w"> </span>mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>python3<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$qpud_py</span><span class="s2">&quot;</span><span class="w"> </span>--port<span class="w"> </span>&lt;QPU<span class="w"> </span><span class="m">1</span><span class="w"> </span>TCP/IP<span class="w"> </span>port<span class="w"> </span>number&gt;
 <span class="nv">CUDA_VISIBLE_DEVICES</span><span class="o">=</span><span class="m">2</span>,3<span class="w"> </span>mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>python3<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$qpud_py</span><span class="s2">&quot;</span><span class="w"> </span>--port<span class="w"> </span>&lt;QPU<span class="w"> </span><span class="m">2</span><span class="w"> </span>TCP/IP<span class="w"> </span>port<span class="w"> </span>number&gt;

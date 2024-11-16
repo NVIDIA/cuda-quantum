@@ -46,7 +46,7 @@
             NVIDIA CUDA-Q
           </a>
               <div class="version">
-                latest
+                cu11-latest
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -625,7 +625,8 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/default_ops.html#user-defined-custom-operations">User-Defined Custom Operations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/default_ops.html#photonic-operations-on-qudits">Photonic Operations on Qudits</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#plus"><code class="code docutils literal notranslate"><span class="pre">plus</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#create"><code class="code docutils literal notranslate"><span class="pre">create</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#annihilate"><code class="code docutils literal notranslate"><span class="pre">annihilate</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#phase-shift"><code class="code docutils literal notranslate"><span class="pre">phase_shift</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#beam-splitter"><code class="code docutils literal notranslate"><span class="pre">beam_splitter</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#id1"><code class="code docutils literal notranslate"><span class="pre">mz</span></code></a></li>
@@ -696,8 +697,8 @@ take a look at the section below on how to use <a class="reference internal" hre
 In addition to publishing <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags">stable releases</a>,
 we also publish Docker images whenever we update certain branches on our <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a>.
 These images are published in our <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/nightly/containers/cuda-quantum/tags">nightly channel on NGC</a>.
-To download the latest version on the main branch of our GitHub repository, for example, use the command</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">docker pull nvcr.io/nvidia/nightly/cuda-quantum:latest</span>
+To download the latest version on the main branch of our GitHub repository, built to work with CUDA 12, for example, use the command</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">docker pull nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest</span>
 </pre></div>
 </div>
 <p>Early prototypes for features we are considering can be tried out by using the image tags starting
@@ -705,14 +706,14 @@ with <code class="code docutils literal notranslate"><span class="pre">experimen
 about the feature. We welcome and appreciate your feedback about these early prototypes;
 how popular they are will help inform whether we should include them in future releases.</p>
 <p>Once you have downloaded an image, the container can be run using the command</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">docker run -it --name cuda-quantum nvcr.io/nvidia/nightly/cuda-quantum:latest</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">docker run -it --name cuda-quantum nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest</span>
 </pre></div>
 </div>
 <p>Replace the image name and/or tag in the command above, if necessary, with the one you want to use.
 This will give you terminal access to the created container. To enable support
 for GPU-accelerated backends, you will need to pass the <code class="code docutils literal notranslate"><span class="pre">--gpus</span></code> flag when launching
 the container, for example:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">docker run -it --gpus all --name cuda-quantum nvcr.io/nvidia/nightly/cuda-quantum:latest</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">docker run -it --gpus all --name cuda-quantum nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest</span>
 </pre></div>
 </div>
 <div class="admonition note">
@@ -732,7 +733,7 @@ please take a look at the section on <a class="reference internal" href="#docker
 <p>Alternatively, it is possible, but not recommended, to launch an SSH server inside the container environment and connect an IDE using SSH. To do so, make sure you have generated a suitable RSA key pair; if your <code class="code docutils literal notranslate"><span class="pre">~/.ssh/</span></code> folder does not already contain the files <code class="code docutils literal notranslate"><span class="pre">id_rsa.pub</span></code> and <code class="code docutils literal notranslate"><span class="pre">id.rsa</span></code>,
 follow the instructions for generating a new SSH key on <a class="reference external" href="https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent">this page</a>.
 You can then launch the container and connect to it via SSH by executing the following commands:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">docker run -itd --gpus all --name cuda-quantum -p 2222:22 nvcr.io/nvidia/nightly/cuda-quantum:latest</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">docker run -itd --gpus all --name cuda-quantum -p 2222:22 nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest</span>
 <span class="go">docker exec cuda-quantum bash -c &quot;sudo apt-get install -y --no-install-recommends openssh-server&quot;</span>
 <span class="go">docker exec cuda-quantum bash -c &quot;sudo sed -i -E &quot;s/#?\s*UsePAM\s+.+/UsePAM yes/g&quot; /etc/ssh/sshd_config&quot;</span>
 <span class="go">docker cp ~/.ssh/id_rsa.pub cuda-quantum:/home/cudaq/.ssh/authorized_keys</span>
@@ -756,7 +757,7 @@ To do so on Linux or WSL, make sure you have the <a class="reference external" h
 <p>For more information about using Singularity on other systems, take a look at the <a class="reference external" href="https://docs.sylabs.io/guides/4.0/admin-guide/installation.html#installation-on-windows-or-mac">admin guide</a>.</p>
 <p>Once you have singularity installed, create a file <code class="code docutils literal notranslate"><span class="pre">cuda-quantum.def</span></code> with the following content:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">Bootstrap: docker</span>
-<span class="go">From: nvcr.io/nvidia/nightly/cuda-quantum:latest</span>
+<span class="go">From: nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest</span>
 
 <span class="gp">%</span>runscript
 <span class="go">    mount devpts /dev/pts -t devpts</span>
@@ -857,7 +858,7 @@ hence requires admin privileges on the system. We may revise that in the future;
 upvote the corresponding <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/issues/1075">GitHub issue</a>.</p>
 <p>To install CUDA-Q, execute the command</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">MPI_PATH</span><span class="o">=</span>/usr/local/openmpi<span class="w"> </span><span class="se">\</span>
-sudo<span class="w"> </span>-E<span class="w"> </span>bash<span class="w"> </span>install_cuda_quantum.<span class="k">$(</span>uname<span class="w"> </span>-m<span class="k">)</span><span class="w"> </span>--accept<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>.<span class="w"> </span>/etc/profile
+sudo<span class="w"> </span>-E<span class="w"> </span>bash<span class="w"> </span>install_cuda_quantum*.<span class="k">$(</span>uname<span class="w"> </span>-m<span class="k">)</span><span class="w"> </span>--accept<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>.<span class="w"> </span>/etc/profile
 </pre></div>
 </div>
 <div class="admonition note">
@@ -1111,7 +1112,7 @@ with the command</p>
 <p>Confirm that you can submit a job with the command</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">ngc base-command job run \</span>
 <span class="go">  --name Job-001 --total-runtime 60s \</span>
-<span class="go">  --image nvcr.io/nvidia/nightly/cuda-quantum:latest --result /results \</span>
+<span class="go">  --image nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest --result /results \</span>
 <span class="go">  --ace &lt;ace_name&gt; --instance &lt;instance_name&gt; \</span>
 <span class="go">  --commandline &#39;echo &quot;Hello from DGX Cloud!&quot;&#39;</span>
 </pre></div>
@@ -1139,7 +1140,7 @@ to use CUDA-Q with <a class="reference external" href="https://jupyterlab.readth
 running on DGX Cloud:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">ngc base-command job run \</span>
 <span class="go">  --name Job-interactive-001 --total-runtime 600s \</span>
-<span class="go">  --image nvcr.io/nvidia/nightly/cuda-quantum:latest --result /results \</span>
+<span class="go">  --image nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest --result /results \</span>
 <span class="go">  --ace &lt;ace_name&gt; --instance &lt;instance_name&gt; \</span>
 <span class="go">  --port 8888 --commandline &#39;jupyter-lab-setup &lt;my-custom-token&gt; --port=8888&#39;</span>
 </pre></div>
@@ -1164,7 +1165,7 @@ to use CUDA-Q with a local installation of <a class="reference external" href="h
 or the <a class="reference external" href="https://vscode.dev/">VS Code Web UI</a>, running on DGX Cloud:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">ngc base-command job run \</span>
 <span class="go">  --name Job-interactive-001 --total-runtime 600s \</span>
-<span class="go">  --image nvcr.io/nvidia/nightly/cuda-quantum:latest --result /results \</span>
+<span class="go">  --image nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest --result /results \</span>
 <span class="go">  --ace &lt;ace_name&gt; --instance &lt;instance_name&gt; \</span>
 <span class="go">  --commandline &#39;vscode-setup tunnel --name cuda-quantum-dgx --accept-server-license-terms&#39;</span>
 </pre></div>
@@ -1202,21 +1203,23 @@ certain CUDA libraries separately to take advantage of these.</p>
 to enable GPU support when you launch the container, that is pass the <code class="code docutils literal notranslate"><span class="pre">--gpus</span> <span class="pre">all</span></code> flag when launching
 the container with Docker and the <code class="code docutils literal notranslate"><span class="pre">--nv</span></code> flag when launching the container with Singularity.</p>
 <p>Note that the image does not contain all development dependencies for CUDA, such as, for example the <code class="code docutils literal notranslate"><span class="pre">nvcc</span></code> compiler. You can install all CUDA development dependencies by running the command</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">sudo apt-get install cuda-toolkit-11.8</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">sudo apt-get install cuda-toolkit-12.0</span>
 </pre></div>
 </div>
-<p>inside the container. Most Python packages that use GPU-acceleration, such as for example <a class="reference external" href="https://cupy.dev">CuPy</a>, require an existing CUDA installation. After installing the <code class="code docutils literal notranslate"><span class="pre">cuda-toolkit-11.8</span></code> you can install CuPy with the command</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python3 -m pip install cupy-cuda11x</span>
+<p>inside the container. Make sure the toolkit version you install matches the CUDA runtime installation in the container.
+Most Python packages that use GPU-acceleration, such as for example <a class="reference external" href="https://cupy.dev">CuPy</a>, require an existing CUDA installation.
+After installing the <code class="code docutils literal notranslate"><span class="pre">cuda-toolkit-12.0</span></code> you can install CuPy for CUDA 12 with the command</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python3 -m pip install cupy-cuda12x</span>
 </pre></div>
 </div>
 </section>
 <section id="installing-pre-built-binaries">
 <span id="cuda-dependencies-prebuilt-binaries"></span><h3>Installing Pre-built Binaries<a class="headerlink" href="#installing-pre-built-binaries" title="Permalink to this heading">¶</a></h3>
 <p>If you installed pre-built binaries for CUDA-Q, you will need to install
-the necessary CUDA 11 runtime libraries to use GPU-acceleration in CUDA-Q.
+the necessary CUDA runtime libraries to use GPU-acceleration in CUDA-Q.
 If you prefer to only install the minimal set of runtime libraries, the following
 commands, for example, install the necessary packages for RHEL 8:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDA_VERSION</span><span class="o">=</span><span class="m">11</span>.8
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDA_VERSION</span><span class="o">=</span><span class="si">${</span><span class="nv">CUDA_VERSION</span><span class="k">:-</span><span class="nv">12</span><span class="p">.0</span><span class="si">}</span>
 <span class="nv">CUDA_DOWNLOAD_URL</span><span class="o">=</span>https://developer.download.nvidia.com/compute/cuda/repos
 <span class="c1"># Go to the url above, set the variables below to a suitable distribution</span>
 <span class="c1"># and subfolder for your platform, and uncomment the line below.</span>
@@ -1225,17 +1228,23 @@ commands, for example, install the necessary packages for RHEL 8:</p>
 <span class="nv">version_suffix</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="si">${</span><span class="nv">CUDA_VERSION</span><span class="si">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span>.<span class="w"> </span>-<span class="k">)</span>
 dnf<span class="w"> </span>config-manager<span class="w"> </span>--add-repo<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUDA_DOWNLOAD_URL</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">DISTRIBUTION</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">CUDA_ARCH_FOLDER</span><span class="si">}</span><span class="s2">/cuda-</span><span class="si">${</span><span class="nv">DISTRIBUTION</span><span class="si">}</span><span class="s2">.repo&quot;</span>
 dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>--nobest<span class="w"> </span>--setopt<span class="o">=</span><span class="nv">install_weak_deps</span><span class="o">=</span>False<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>cuda-nvtx-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span>cuda-cudart-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>libcusolver-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span>libcublas-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span>
+<span class="w">    </span>cuda-cudart-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>libcusolver-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>libcublas-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span>
+<span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="si">${</span><span class="nv">CUDA_VERSION</span><span class="si">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>cut<span class="w"> </span>-d<span class="w"> </span>.<span class="w"> </span>-f1<span class="k">)</span><span class="w"> </span>-gt<span class="w"> </span><span class="m">11</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span><span class="w"> </span>
+<span class="w">    </span>dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>--nobest<span class="w"> </span>--setopt<span class="o">=</span><span class="nv">install_weak_deps</span><span class="o">=</span>False<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>libnvjitlink-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span>
+<span class="k">fi</span>
 </pre></div>
 </div>
 <p>More detailed instructions for your platform can be found in the online documentation
 linked for that <a class="reference external" href="https://developer.nvidia.com/cuda-toolkit-archive">CUDA version</a>.
-Please make sure to install CUDA version 11.8, and confirm that your
+Please make sure to install CUDA version 11.8 or newer, and confirm that your
 <a class="reference external" href="https://www.nvidia.com/download/index.aspx">GPU driver</a> supports that version.
 While the above packages are sufficient to use GPU-acceleration within CUDA-Q,
-we recommend installing the complete CUDA toolkit (<code class="code docutils literal notranslate"><span class="pre">cuda-toolkit-11-8</span></code>) that also
-includes the <code class="code docutils literal notranslate"><span class="pre">nvcc</span></code> compiler.</p>
+we recommend installing the complete CUDA toolkit (<code class="code docutils literal notranslate"><span class="pre">cuda-toolkit-12-0</span></code>) that also
+includes the <code class="code docutils literal notranslate"><span class="pre">nvcc</span></code> compiler. A separate CUDA-Q installer is available for CUDA 11,
+built against version 11.8, and for CUDA 12, built against version 12.0.</p>
 </section>
 </section>
 <section id="distributed-computing-with-mpi">
@@ -1262,7 +1271,7 @@ To do so,</p>
 If you installed CUDA-Q using the <code class="code docutils literal notranslate"><span class="pre">installer</span> <span class="pre">&lt;install-prebuilt-binaries&gt;</span></code>, or if you are using the CUDA-Q
 container image, this variable should already be defined. If you installed the CUDA-Q
 <code class="code docutils literal notranslate"><span class="pre">Python</span> <span class="pre">wheels</span> <span class="pre">&lt;install-python-wheels&gt;</span></code>, set this variable to the directory listed under “Location” when you run the
-command <code class="code docutils literal notranslate"><span class="pre">pip</span> <span class="pre">show</span> <span class="pre">cuda-quantum</span></code>.</p></li>
+command <code class="code docutils literal notranslate"><span class="pre">pip</span> <span class="pre">show</span> <span class="pre">cudaq</span></code>.</p></li>
 <li><p>Set the environment variable <code class="code docutils literal notranslate"><span class="pre">MPI_PATH</span></code> to the location of your MPI installation. In particular, <code class="code docutils literal notranslate"><span class="pre">${MPI_PATH}/include</span></code>
 is expected to contain the <code class="code docutils literal notranslate"><span class="pre">mpi.h</span></code> header and <code class="code docutils literal notranslate"><span class="pre">${MPI_PATH}/lib64</span></code> or <code class="code docutils literal notranslate"><span class="pre">${MPI_PATH}/lib</span></code> is expected to contain <code class="code docutils literal notranslate"><span class="pre">libmpi.so</span></code>.</p></li>
 <li><p>Execute the following command to complete the activation:</p>
@@ -1298,8 +1307,17 @@ between bash sessions, e.g., by adding it to the <code class="code docutils lite
 <span id="updating-cuda-quantum"></span><h2>Updating CUDA-Q<a class="headerlink" href="#updating-cuda-q" title="Permalink to this heading">¶</a></h2>
 <p>If you installed the CUDA-Q Python wheels, you can update to the latest release
 by running the command</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python3 -m pip install --upgrade cuda-quantum</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python3 -m pip install --upgrade cudaq</span>
 </pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Please check if you have an existing installation of the <code class="code docutils literal notranslate"><span class="pre">cuda-quantum</span></code>,
+<code class="code docutils literal notranslate"><span class="pre">cudaq-quantum-cu11</span></code>, or <code class="code docutils literal notranslate"><span class="pre">cuda-quantum-cu12</span></code> package,
+and uninstall it prior to installing <code class="code docutils literal notranslate"><span class="pre">cudaq</span></code>. The <code class="code docutils literal notranslate"><span class="pre">cudaq</span></code> package supersedes the
+<code class="code docutils literal notranslate"><span class="pre">cuda-quantum</span></code> package and will install a suitable binary distribution (either
+<code class="code docutils literal notranslate"><span class="pre">cuda-quantum-cu11</span></code> or <code class="code docutils literal notranslate"><span class="pre">cuda-quantum-cu12</span></code>) for your system. Multiple versions
+of a CUDA-Q binary distribution will conflict with each other and not work properly.</p>
 </div>
 <p>If you previously installed the CUDA-Q pre-built binaries, you should first uninstall your
 current CUDA-Q installation before installing the new version using the installer.
@@ -1337,10 +1355,10 @@ instructions <a class="reference internal" href="#install-prebuilt-binaries"><sp
 <td><p>Linux</p></td>
 </tr>
 <tr class="row-odd"><td><p>Tested Distributions</p></td>
-<td><p>CentOS 8; Debian 11, 12; Fedora 38; OpenSUSE/SLED/SLES 15.5; RHEL 8, 9; Rocky 8, 9; Ubuntu 22.04</p></td>
+<td><p>CentOS 8; Debian 11, 12; Fedora 38, 39; OpenSUSE/SLED/SLES 15.5, 15.6; RHEL 8, 9; Rocky 8, 9; Ubuntu 22.04, 24.04</p></td>
 </tr>
 <tr class="row-even"><td><p>Python versions</p></td>
-<td><p>3.8+</p></td>
+<td><p>3.10+</p></td>
 </tr>
 </tbody>
 </table>

@@ -49,7 +49,7 @@
             NVIDIA CUDA-Q
           </a>
               <div class="version">
-                latest
+                cu11-latest
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -628,7 +628,8 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/default_ops.html#user-defined-custom-operations">User-Defined Custom Operations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/default_ops.html#photonic-operations-on-qudits">Photonic Operations on Qudits</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#plus"><code class="code docutils literal notranslate"><span class="pre">plus</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#create"><code class="code docutils literal notranslate"><span class="pre">create</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#annihilate"><code class="code docutils literal notranslate"><span class="pre">annihilate</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#phase-shift"><code class="code docutils literal notranslate"><span class="pre">phase_shift</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#beam-splitter"><code class="code docutils literal notranslate"><span class="pre">beam_splitter</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#id1"><code class="code docutils literal notranslate"><span class="pre">mz</span></code></a></li>
@@ -675,12 +676,12 @@
 <p><img alt="hybrid" class="no-scaled-link" src="../../_images/hybrid.png" style="width: 600px;" /></p>
 <p>We perform binary classification on the MNIST dataset where data flows through the neural network architecture to the quantum circuit whose output is used to classify hand written digits.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Install the relevant packages.</span>
 
-<span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span><span class="nv">matplotlib</span><span class="o">==</span><span class="m">3</span>.8.4<span class="w"> </span><span class="nv">torch</span><span class="o">==</span><span class="m">2</span>.2.0<span class="w"> </span><span class="nv">torchvision</span><span class="o">==</span><span class="m">0</span>.17.0<span class="w"> </span>scikit-learn<span class="o">==</span><span class="m">1</span>.4.2<span class="w"> </span>-q
+<span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span><span class="nv">matplotlib</span><span class="o">==</span><span class="m">3</span>.8.4<span class="w"> </span><span class="nv">torch</span><span class="o">==</span><span class="m">2</span>.0.1+cu118<span class="w"> </span><span class="nv">torchvision</span><span class="o">==</span><span class="m">0</span>.15.2+cu118<span class="w"> </span>scikit-learn<span class="o">==</span><span class="m">1</span>.4.2<span class="w"> </span>-q<span class="w"> </span>--extra-index-url<span class="w"> </span>https://download.pytorch.org/whl/cu118
 </pre></div>
 </div>
 </div>

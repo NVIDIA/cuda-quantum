@@ -48,7 +48,7 @@
             NVIDIA CUDA-Q
           </a>
               <div class="version">
-                latest
+                cu11-latest
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -627,7 +627,8 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../api/default_ops.html#user-defined-custom-operations">User-Defined Custom Operations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/default_ops.html#photonic-operations-on-qudits">Photonic Operations on Qudits</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#plus"><code class="code docutils literal notranslate"><span class="pre">plus</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#create"><code class="code docutils literal notranslate"><span class="pre">create</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#annihilate"><code class="code docutils literal notranslate"><span class="pre">annihilate</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#phase-shift"><code class="code docutils literal notranslate"><span class="pre">phase_shift</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#beam-splitter"><code class="code docutils literal notranslate"><span class="pre">beam_splitter</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#id1"><code class="code docutils literal notranslate"><span class="pre">mz</span></code></a></li>
@@ -687,25 +688,29 @@ found in our complete <a class="reference internal" href="install/install.html">
 please follow the instructions for <a class="reference external" href="https://pypi.org/project/cuda-quantum/">installing CUDA-Q</a> from PyPI.
 If you have an NVIDIA GPU, make sure to also follow the instructions for enabling GPU-acceleration.</p>
 <p>CUDA-Q does not require a GPU to use, but some components are GPU-accelerated.</p>
-<p>Getting started with CUDA-Q on <code class="docutils literal notranslate"><span class="pre">x86_64</span></code> platforms simply requires
-<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">cuda-quantum</span></code>. If you have an NVIDIA GPU on your host system, you
-will be able to use it without any further installation steps.</p>
-<p>However, if you want to perform multi-GPU simulations, or if you are using
-<code class="docutils literal notranslate"><span class="pre">aarch64</span></code>/<code class="docutils literal notranslate"><span class="pre">arm64</span></code> processors, additional components must be installed.
-We recommend using <a class="reference external" href="https://docs.conda.io/en/latest/">Conda</a> to do so.
-If you are not already using Conda,
-you can install a minimal version following the instructions
-<a class="reference external" href="https://docs.anaconda.com/miniconda/">here</a>. The
-following commands will create and activate a complete environment for CUDA-Q
-with all its dependencies:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">conda create -y -n cuda-quantum python=3.10 pip</span>
-<span class="go">conda install -y -n cuda-quantum -c &quot;nvidia/label/cuda-11.8.0&quot; cuda</span>
-<span class="go">conda install -y -n cuda-quantum -c conda-forge mpi4py openmpi cxx-compiler</span>
-<span class="go">conda env config vars set -n cuda-quantum LD_LIBRARY_PATH=&quot;$CONDA_PREFIX/envs/cuda-quantum/lib:$LD_LIBRARY_PATH&quot;</span>
-<span class="go">conda env config vars set -n cuda-quantum MPI_PATH=$CONDA_PREFIX/envs/cuda-quantum</span>
-<span class="go">conda run -n cuda-quantum pip install cuda-quantum</span>
-<span class="go">conda activate cuda-quantum</span>
-<span class="go">source $CONDA_PREFIX/lib/python3.10/site-packages/distributed_interfaces/activate_custom_mpi.sh</span>
+<p>Getting started with CUDA-Q on <code class="docutils literal notranslate"><span class="pre">x86_64</span></code> platforms simply requires <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">cudaq</span></code>. Please make sure your <code class="docutils literal notranslate"><span class="pre">pip</span></code> version is &gt;= 24.0.
+If you have an NVIDIA GPU on your host system, you will be
+able to use it without any further installation steps.</p>
+<blockquote>
+<div><p><strong>Important:</strong>
+Please check if you have an existing installation of the <code class="docutils literal notranslate"><span class="pre">cuda-quantum</span></code>, <code class="docutils literal notranslate"><span class="pre">cudaq-quantum-cu11</span></code>, or <code class="docutils literal notranslate"><span class="pre">cuda-quantum-cu12</span></code> package, and uninstall it prior to installation. Different CUDA-Q binary distributions may conflict with each other causing issues.</p>
+</div></blockquote>
+<p>If you want to perform multi-GPU simulations, or if you are using
+<code class="docutils literal notranslate"><span class="pre">aarch64</span></code>/<code class="docutils literal notranslate"><span class="pre">arm64</span></code> processors, additional components must be installed. We
+recommend using <a class="reference external" href="https://docs.conda.io/en/latest/">Conda</a> to do so. If you are
+not already using Conda, you can install a minimal version following the
+instructions <a class="reference external" href="https://docs.anaconda.com/miniconda/">here</a>. The following
+commands will create and activate a complete environment for CUDA-Q with all its
+dependencies:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">cuda_version=11.8.0 # set this variable to version 11.x (where x &gt;= 8) or 12.x</span>
+<span class="go">conda create -y -n cudaq-env python=3.11 pip</span>
+<span class="go">conda install -y -n cudaq-env -c &quot;nvidia/label/cuda-${cuda_version}&quot; cuda</span>
+<span class="go">conda install -y -n cudaq-env -c conda-forge mpi4py openmpi cxx-compiler</span>
+<span class="go">conda env config vars set -n cudaq-env LD_LIBRARY_PATH=&quot;$CONDA_PREFIX/envs/cudaq-env/lib:$LD_LIBRARY_PATH&quot;</span>
+<span class="go">conda env config vars set -n cudaq-env MPI_PATH=$CONDA_PREFIX/envs/cudaq-env</span>
+<span class="go">conda activate cudaq-env</span>
+<span class="go">pip install cudaq</span>
+<span class="go">source $CONDA_PREFIX/lib/python3.11/site-packages/distributed_interfaces/activate_custom_mpi.sh</span>
 </pre></div>
 </div>
 <p>You must configure MPI by setting the following environment variables:</p>
@@ -724,10 +729,11 @@ to set them every time you launch a new shell, we recommend adding them to
 <input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">C++</label><div class="tab-content docutils">
 <p>To develop CUDA-Q applications using C++, please make sure you have a C++ toolchain installed
 that supports C++20, for example <code class="code docutils literal notranslate"><span class="pre">g++</span></code> version 11 or newer.
-Download the <code class="code docutils literal notranslate"><span class="pre">install_cuda_quantum</span></code> file for your processor architecture from
-the assets of the respective <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases">GitHub release</a>; that is the file with the <code class="code docutils literal notranslate"><span class="pre">aarch64</span></code> extension for ARM processors, and the one with <code class="code docutils literal notranslate"><span class="pre">x86_64</span></code> for, e.g., Intel and AMD processors.</p>
+Download the <code class="code docutils literal notranslate"><span class="pre">install_cuda_quantum</span></code> file for your processor architecture and CUDA version (<code class="code docutils literal notranslate"><span class="pre">_cu11</span></code> suffix for CUDA 11 and <code class="code docutils literal notranslate"><span class="pre">_cu12</span></code> suffix for CUDA 12)
+from the assets of the respective <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases">GitHub release</a>;
+hat is the file with the <code class="code docutils literal notranslate"><span class="pre">aarch64</span></code> extension for ARM processors, and the one with <code class="code docutils literal notranslate"><span class="pre">x86_64</span></code> for, e.g., Intel and AMD processors.</p>
 <p>To install CUDA-Q, execute the commands</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>-E<span class="w"> </span>bash<span class="w"> </span>install_cuda_quantum.<span class="k">$(</span>uname<span class="w"> </span>-m<span class="k">)</span><span class="w"> </span>--accept
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>-E<span class="w"> </span>bash<span class="w"> </span>install_cuda_quantum*.<span class="k">$(</span>uname<span class="w"> </span>-m<span class="k">)</span><span class="w"> </span>--accept
 .<span class="w"> </span>/etc/profile
 </pre></div>
 </div>

@@ -46,7 +46,7 @@
             NVIDIA CUDA-Q
           </a>
               <div class="version">
-                latest
+                cu11-latest
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -625,7 +625,8 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/default_ops.html#user-defined-custom-operations">User-Defined Custom Operations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/default_ops.html#photonic-operations-on-qudits">Photonic Operations on Qudits</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#plus"><code class="code docutils literal notranslate"><span class="pre">plus</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#create"><code class="code docutils literal notranslate"><span class="pre">create</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#annihilate"><code class="code docutils literal notranslate"><span class="pre">annihilate</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#phase-shift"><code class="code docutils literal notranslate"><span class="pre">phase_shift</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#beam-splitter"><code class="code docutils literal notranslate"><span class="pre">beam_splitter</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#id1"><code class="code docutils literal notranslate"><span class="pre">mz</span></code></a></li>
@@ -1064,12 +1065,12 @@ parameters of the time bin interferometer.</p>
 <span class="n">n_beam_splitters</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">loop_lengths</span><span class="p">)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_state</span><span class="p">)</span> <span class="o">-</span> <span class="nb">sum</span><span class="p">(</span><span class="n">loop_lengths</span><span class="p">)</span>
 
 <span class="c1"># beam splitter angles</span>
-<span class="n">bs_angles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">8</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">3</span><span class="p">,</span> <span class="n">n_beam_splitters</span><span class="p">)</span>
+<span class="n">bs_angles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">3</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">6</span><span class="p">,</span> <span class="n">n_beam_splitters</span><span class="p">)</span>
 
 <span class="c1"># Optionally, we can also specify the phase shifter angles, if the system</span>
 <span class="c1"># includes phase shifters</span>
 <span class="c1"># ```</span>
-<span class="c1"># ps_angles = np.linspace(np.pi / 6, np.pi / 3, n_beam_splitters)</span>
+<span class="c1"># ps_angles = np.linspace(np.pi / 3, np.pi / 5, n_beam_splitters)</span>
 <span class="c1"># ```</span>
 
 <span class="c1"># we can also set number of requested samples</span>
@@ -1131,25 +1132,14 @@ parameters of the time bin interferometer.</p>
 <span class="c1">// To use the ORCA Computing target you will need to set the ORCA_ACCESS_URL</span>
 <span class="c1">// environment variable or pass the URL to the `--orca-url` flag.</span>
 
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/orca.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq.h&quot;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;chrono&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq/orca.h&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;fstream&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;iostream&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;thread&gt;</span>
 
-<span class="c1">// define helper function to generate linear spaced vectors</span>
-<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span>
-<span class="kt">void</span><span class="w"> </span><span class="n">linear_spaced_vector</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&amp;</span><span class="n">xs</span><span class="p">,</span><span class="w"> </span><span class="n">T</span><span class="w"> </span><span class="n">min</span><span class="p">,</span><span class="w"> </span><span class="n">T</span><span class="w"> </span><span class="n">max</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">N</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="n">T</span><span class="w"> </span><span class="n">h</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">max</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">min</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">N</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span>
-<span class="w">  </span><span class="k">typename</span><span class="w"> </span><span class="nc">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">iterator</span><span class="w"> </span><span class="n">x</span><span class="p">;</span>
-<span class="w">  </span><span class="n">T</span><span class="w"> </span><span class="n">val</span><span class="p">;</span>
-<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">xs</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span><span class="w"> </span><span class="n">val</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">min</span><span class="p">;</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">xs</span><span class="p">.</span><span class="n">end</span><span class="p">();</span><span class="w"> </span><span class="o">++</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">val</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">h</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="o">*</span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">val</span><span class="p">;</span>
-<span class="w">  </span><span class="p">}</span>
-<span class="p">}</span>
-
-<span class="kt">int</span><span class="w"> </span><span class="n">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">std</span><span class="o">::</span><span class="nn">this_thread</span><span class="p">;</span><span class="w">     </span><span class="c1">// sleep_for, sleep_until</span>
 <span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">std</span><span class="o">::</span><span class="nn">chrono_literals</span><span class="p">;</span><span class="w"> </span><span class="c1">// `ns`, `us`, `ms`, `s`, `h`, etc.</span>
 
@@ -1165,10 +1155,10 @@ parameters of the time bin interferometer.</p>
 
 <span class="w">  </span><span class="c1">// half of 8 time bins is filled with a single photon and the other half is</span>
 <span class="w">  </span><span class="c1">// filled with the vacuum state (empty)</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">input_state</span><span class="p">{</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">};</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">input_state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">};</span>
 
 <span class="w">  </span><span class="c1">// The time bin interferometer in this example has two loops, each of length 1</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">loop_lengths</span><span class="p">{</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">};</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">loop_lengths</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">};</span>
 
 <span class="w">  </span><span class="c1">// helper variables to calculate the number of beam splitters and phase</span>
 <span class="w">  </span><span class="c1">// shifters needed in the TBI</span>
@@ -1179,18 +1169,18 @@ parameters of the time bin interferometer.</p>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">n_beam_splitters</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">n_loops</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">n_modes</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">sum_loop_lengths</span><span class="p">;</span>
 
 <span class="w">  </span><span class="c1">// beam splitter angles (created as a linear spaced vector of angles)</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">bs_angles</span><span class="p">(</span><span class="n">n_beam_splitters</span><span class="p">);</span>
-<span class="w">  </span><span class="n">linear_spaced_vector</span><span class="p">(</span><span class="n">bs_angles</span><span class="p">,</span><span class="w"> </span><span class="n">M_PI</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">8</span><span class="p">,</span><span class="w"> </span><span class="n">M_PI</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="n">n_beam_splitters</span><span class="p">);</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">bs_angles</span><span class="w"> </span><span class="o">=</span>
+<span class="w">      </span><span class="n">cudaq</span><span class="o">::</span><span class="n">linspace</span><span class="p">(</span><span class="n">M_PI</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="n">M_PI</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">6</span><span class="p">,</span><span class="w"> </span><span class="n">n_beam_splitters</span><span class="p">);</span>
 
 <span class="w">  </span><span class="c1">// Optionally, we can also specify the phase shifter angles (created as a</span>
 <span class="w">  </span><span class="c1">// linear spaced vector of angles), if the system includes phase shifters</span>
 <span class="w">  </span><span class="c1">// ```</span>
-<span class="w">  </span><span class="c1">// std::vector&lt;double&gt; ps_angles(n_beam_splitters);</span>
-<span class="w">  </span><span class="c1">// linear_spaced_vector(ps_angles, M_PI / 6, M_PI / 3, n_beam_splitters);</span>
+<span class="w">  </span><span class="c1">// std::vector&lt;double&gt; ps_angles = cudaq::linspace(M_PI / 3, M_PI / 5,</span>
+<span class="w">  </span><span class="c1">// n_beam_splitters);</span>
 <span class="w">  </span><span class="c1">// ```</span>
 
 <span class="w">  </span><span class="c1">// we can also set number of requested samples</span>
-<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">n_samples</span><span class="p">{</span><span class="mi">10000</span><span class="p">};</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">n_samples</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10000</span><span class="p">;</span>
 
 <span class="w">  </span><span class="c1">// Submit to ORCA synchronously (e.g., wait for the job result to be</span>
 <span class="w">  </span><span class="c1">// returned before proceeding with the rest of the execution).</span>
