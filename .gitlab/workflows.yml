@@ -117,7 +117,8 @@ Python Wheels:
     - $python -m pip install pypiserver
     - server="$python $($python -m pip show pypiserver | grep -e 'Location.*$' | cut -d ' ' -f2)/pypiserver/__main__.py"
     - $server run -p 8080 /tmp/packages & 
-    - $python -m http.server 5555 &
+    - $python -m http.server 5555 -d /tmp/packages &
+    - sleep 5
     # To be removed/replaced - installing cuquantum manually to have the dev headers
     - CUQUANTUM_VERSION=24.11.0.20
     - CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
