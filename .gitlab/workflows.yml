@@ -231,7 +231,7 @@ Push to GitHub:
         rel_notes="This release draft is managed by cd processes."
         rel_notes+=$(echo "<br/>GitHub commit [$source_commit]($upstream_url/tree/$source_commit)")
         gh release create $release_id --title $release_id -R $upstream_url \
-          --target $source_commit --draft --prerelease \
+          --target 'bot/data' --draft --prerelease \
           --generate-notes --notes-start-tag $latest_tag --notes "$rel_notes"
       fi
     - mkdir -p artifacts && cd artifacts
