@@ -69,7 +69,7 @@ Python Wheels:
   stage: build
   dependencies: 
     - Metadata
-  image: $CI_COMMIT_TITLE
+  # image: $CI_COMMIT_TITLE
   tags:
     - $runner
   interruptible: false
@@ -78,6 +78,7 @@ Python Wheels:
       - artifacts
     expire_in: 1 day
   before_script:
+    - exit 1
     # Install GitHub CLI
     - dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
     - dnf install -y gh jq
@@ -111,6 +112,7 @@ Python Wheels:
         fi
       done
   script:
+    - exit 1
     - export PROJECT_SRCS_DIR=$PWD/..
     - export python=python3.10 
     # Launch a local pypi server for additional artifacts
@@ -152,7 +154,7 @@ Installer:
   stage: build
   dependencies: 
     - Metadata
-  image: $CI_COMMIT_TITLE
+  #image: $CI_COMMIT_TITLE
   tags:
     - $runner
   interruptible: false
@@ -161,6 +163,7 @@ Installer:
       - artifacts/**/mgmn_svsim/
     expire_in: 1 day
   script:
+    - exit 1
     - echo "Building mgmn_svsim for $(uname -m) architecture."
     - echo "Checking out commit $CUDAQ_MGMN_SVSIM_COMMIT on $CI_SERVER_HOST/$CUDAQ_MGMN_SVSIM_REPO."
     - mkdir cudaq_mgmn_svsim && cd cudaq_mgmn_svsim && git init
@@ -179,7 +182,7 @@ Docker Image:
   stage: build
   dependencies: 
     - Metadata
-  image: $CI_COMMIT_TITLE
+  #image: $CI_COMMIT_TITLE
   parallel:
     matrix:
       - runner: [project/cuda-quantum-amd64, hostname/core-plab-e114-arm-glr02.nvidia.com]
@@ -191,6 +194,7 @@ Docker Image:
       - artifacts/**/mgmn_svsim/
     expire_in: 1 day
   script:
+    - exit 1
     - echo "Building mgmn_svsim for $(uname -m) architecture."
     - echo "Checking out commit $CUDAQ_MGMN_SVSIM_COMMIT on $CI_SERVER_HOST/$CUDAQ_MGMN_SVSIM_REPO."
     - mkdir cudaq_mgmn_svsim && cd cudaq_mgmn_svsim && git init
