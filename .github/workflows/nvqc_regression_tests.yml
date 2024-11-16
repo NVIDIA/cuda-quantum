@@ -313,7 +313,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
       - name: Test NVQC
-        if: ${{ ! steps.install_wheel.skipped }}
+        if: ${{ steps.install_wheel.outputs.skipped != 'true' }}
         run: |
           echo "### Submit to NVQC from Python wheels" >> $GITHUB_STEP_SUMMARY
           python_version=${{ inputs.python_version || env.python_version }}

@@ -50,6 +50,15 @@ void cudaq::opt::addPipelineTranslateToOpenQASM(PassManager &pm) {
   pm.addNestedPass<func::FuncOp>(createLiftArrayAlloc());
   pm.addPass(createGlobalizeArrayValues());
   pm.addPass(createStatePreparation());
+  pm.addNestedPass<func::FuncOp>(createGetConcreteMatrix());
+  pm.addPass(createUnitarySynthesis());
+  pm.addPass(createSymbolDCEPass());
+  pm.addPass(createCanonicalizerPass());
+  pm.addPass(createCSEPass());
+  pm.addNestedPass<func::FuncOp>(createMultiControlDecompositionPass());
+  pm.addPass(createDecompositionPass(
+      {.enabledPatterns = {"CCZToCX", "RxAdjToRx", "RyAdjToRy", "RzAdjToRz"}}));
+  pm.addPass(createCanonicalizerPass());
 }
 
 void cudaq::opt::addPipelineTranslateToIQMJson(PassManager &pm) {

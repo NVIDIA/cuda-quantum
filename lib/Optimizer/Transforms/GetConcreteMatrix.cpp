@@ -47,6 +47,8 @@ public:
     if (!funcOp)
       return failure();
 
+    funcOp.setPrivate();
+
     // The generator function returns a concrete matrix. If prior passes have
     // run to constant fold and lift array values, the generator function will
     // have address of the global variable which holds the concrete matrix.
