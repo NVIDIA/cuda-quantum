@@ -93,7 +93,7 @@ Python Wheels:
     # Retrieve other artifacts
     - mkdir /tmp/packages && cd /tmp/packages
     - gh release download cuquantum-24.11 -R nvidia/cudaq-private
-    - rm -rf *archive.tar* && cd -
+    - ls && cd -
     # Store wheels in a temporary directory 
     - mkdir -p /tmp/wheels
     - |
@@ -117,7 +117,15 @@ Python Wheels:
     - $python -m pip install pypiserver
     - server="$python $($python -m pip show pypiserver | grep -e 'Location.*$' | cut -d ' ' -f2)/pypiserver/__main__.py"
     - $server run -p 8080 /tmp/packages & 
-    - $python -m pip install cuquantum-cu$(echo $CUDA_VERSION | cut -d . -f1)~=24.11 --extra-index-url http://localhost:8080 
+    - $python -m http.server 5555 &
+    # To be removed/replaced - installing cuquantum manually to have the dev headers
+    - CUQUANTUM_VERSION=24.11.0.20
+    - export CUQUANTUM_INSTALL_PREFIX=/usr/local/cuquantum
+    - cuquantum_archive=cuquantum-linux-${CUDA_ARCH_FOLDER}-${CUQUANTUM_VERSION}_cuda$(echo ${CUDA_VERSION} | cut -d . -f1)-archive.tar.xz
+    - wget "http://localhost:5555/${cuquantum_archive}" 
+    - mkdir -p "${CUQUANTUM_INSTALL_PREFIX}" 
+    - tar xf "${cuquantum_archive}" --strip-components 1 -C "${CUQUANTUM_INSTALL_PREFIX}" 
+    - rm -rf "${cuquantum_archive}"
     # Install CUDA Quantum wheel for a particular Python version (could be any version) 
     - cuda_major=$(echo $CUDA_VERSION | cut -d . -f1)
     - cd /tmp/wheels/ && $python -m pip install cuda_quantum_cu${cuda_major}*-cp310-cp310-manylinux_*_$(uname -m).whl --extra-index-url http://localhost:8080 
