@@ -481,9 +481,12 @@ static cc::GlobalOp buildVectorOfConstantElements(Location loc, ModuleOp module,
   OpBuilder::InsertionGuard guard(builder);
   builder.setInsertionPointToEnd(module.getBody());
   auto globalTy = cc::ArrayType::get(ctx, eleTy, arrayAttr.size());
-  return builder.create<cudaq::cc::GlobalOp>(loc, globalTy, name, arrayAttr,
-                                             /*constant=*/true,
-                                             /*external=*/false);
+  auto global =
+      builder.create<cudaq::cc::GlobalOp>(loc, globalTy, name, arrayAttr,
+                                          /*constant=*/true,
+                                          /*external=*/false);
+  global.setPrivate();
+  return global;
 }
 
 template <typename A>
