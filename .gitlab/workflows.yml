@@ -90,6 +90,10 @@ Python Wheels:
     - build_info=`cat deployments/staging/$staged/${digest#sha256:}`
     - artifacts_url=`echo "$build_info" | grep -s -o 'artifacts-url:\s*\S*' | rev | cut -d ' ' -f 1 | rev`
     - artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name:.name, url:.archive_download_url}')
+    # Retrieve other artifacts
+    - mkdir /tmp/packages && cd /tmp/packages
+    - gh release download cuquantum-24.11 -R nvidia/cudaq-private || true
+    - rm -rf *archive.tar* && cd -
     # Store wheels in a temporary directory 
     - mkdir -p /tmp/wheels
     - |
@@ -107,11 +111,15 @@ Python Wheels:
         fi
       done
   script:
-    - export PROJECT_SRCS_DIR=$PWD/.. 
-    # Install CUDA Quantum wheel for a particular Python version (could be any version) 
+    - export PROJECT_SRCS_DIR=$PWD/..
     - export python=python3.10 
+    # Launch a local pypi server for additional artifacts
+    - $python -m pip install pypiserver
+    - server="$python $($python -m pip show pypiserver | grep -e 'Location.*$' | cut -d ' ' -f2)/pypiserver/__main__.py"
+    - $server run -p 8080 /tmp/packages & 
+    # Install CUDA Quantum wheel for a particular Python version (could be any version) 
     - cuda_major=$(echo $CUDA_VERSION | cut -d . -f1)
-    - cd /tmp/wheels/ && $python -m pip install cuda_quantum_cu${cuda_major}*-cp310-cp310-manylinux_*_$(uname -m).whl
+    - cd /tmp/wheels/ && $python -m pip install cuda_quantum_cu${cuda_major}*-cp310-cp310-manylinux_*_$(uname -m).whl --extra-index-url http://localhost:8080 
     - cudaq_location=`$python -m pip show cuda-quantum-cu${cuda_major} | grep -e 'Location:\ .*$'`
     - export CUDAQ_INSTALL_PREFIX="${cudaq_location#Location:\ }"
     - cp -R $CUDAQ_INSTALL_PREFIX/lib64/cmake/fmt $CUDAQ_INSTALL_PREFIX/lib/cmake
