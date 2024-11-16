@@ -53,7 +53,7 @@ jobs:
           else
             artifacts_url=${{ github.event.workflow_run.artifacts_url }}
           fi
-          artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
+          artifacts=$(gh api --paginate $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
           artifact_name=cuda_quantum_docs
 
           docs_found=${{ github.event.workflow_run.name == 'CI' || false }}
