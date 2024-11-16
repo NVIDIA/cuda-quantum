@@ -2498,8 +2498,10 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
     {
       OpBuilder::InsertionGuard guard(builder);
       builder.setInsertionPointToEnd(module.getBody());
-      builder.create<cc::GlobalOp>(loc, globalTy, name, f64Attr,
-                                   /*constant=*/true);
+      builder
+          .create<cc::GlobalOp>(loc, globalTy, name, f64Attr,
+                                /*constant=*/true, /*external=*/false)
+          .setPrivate();
     }
     auto ptrTy = cc::PointerType::get(globalTy);
     auto globalInit = builder.create<cc::AddressOfOp>(loc, ptrTy, name);

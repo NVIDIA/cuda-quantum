@@ -51,5 +51,5 @@ int main() {
 // CHECK:   cx var0[2], var0[3];
 // CHECK:   cx var0[3], var0[4];
 // CHECK:   ccx var0[0], var0[2], var0[1];
-// CHECK:   creg var12[5];
-// CHECK:   measure var0 -> var12;
+// CHECK:   creg var6[5];
+// CHECK:   measure var0 -> var6;
