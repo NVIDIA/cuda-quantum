@@ -1,22 +1,22 @@
 workflow:
   name: 'Staging'
   rules:
-    - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-dev@sha256:\S+$/'
+    - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_TITLE =~ /cuda-quantum-dev@sha256:\S+$/'
       variables:
         staged: "cuda-quantum-dev"
-    - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_BRANCH =~ /arm64/ && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-devdeps@sha256:\S+$/'
+    - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_BRANCH =~ /arm64/ && $CI_COMMIT_TITLE =~ /cuda-quantum-devdeps@sha256:\S+$/'
       variables:
         runner: hostname/core-plab-e114-arm-glr01.nvidia.com
         staged: "cuda-quantum-devdeps"
-    - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-devdeps@sha256:\S+$/'
+    - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_TITLE =~ /cuda-quantum-devdeps@sha256:\S+$/'
       variables:
         runner: project/cuda-quantum-amd64
         staged: "cuda-quantum-devdeps"
-    - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_BRANCH =~ /arm64/ && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-assets@sha256:\S+$/'
+    - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_BRANCH =~ /arm64/ && $CI_COMMIT_TITLE =~ /cuda-quantum-assets@sha256:\S+$/'
       variables:
         runner: hostname/core-plab-e114-arm-glr01.nvidia.com
         staged: "cuda-quantum-assets"
-    - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-assets@sha256:\S+$/'
+    - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_TITLE =~ /cuda-quantum-assets@sha256:\S+$/'
       variables:
         runner: project/cuda-quantum-amd64
         staged: "cuda-quantum-assets"
@@ -55,7 +55,7 @@ Metadata:
       then git remote add upstream ${upstream_url}.git;
       fi
     # Retrieve the build metadata
-    - digest=${CI_COMMIT_TITLE#ghcr.io/nvidia/$staged@}
+    - digest=`echo $CI_COMMIT_TITLE | rev | cut -d '@' -f 1 | rev`
     - build_info=`cat deployments/staging/$staged/${digest#sha256:}`
     - CUDAQ_MGMN_SVSIM_REPO=`echo "$build_info" | grep -s -o 'nvidia-mgpu-repo:\s*\S*' | rev | cut -d ' ' -f 1 | cut -d ':' -f 1 | rev`
     - CUDAQ_MGMN_SVSIM_COMMIT=`echo "$build_info" | grep -s -o 'nvidia-mgpu-commit:\s*\S*' | rev | cut -d ' ' -f 1 | cut -d ':' -f 1 | rev`
@@ -86,7 +86,7 @@ Python Wheels:
       then git remote add upstream ${upstream_url}.git;
       fi
     # Retrieve the upstream CUDA Quantum artifacts
-    - digest=${CI_COMMIT_TITLE#ghcr.io/nvidia/$staged@}
+    - digest=`echo $CI_COMMIT_TITLE | rev | cut -d '@' -f 1 | rev`
     - build_info=`cat deployments/staging/$staged/${digest#sha256:}`
     - artifacts_url=`echo "$build_info" | grep -s -o 'artifacts-url:\s*\S*' | rev | cut -d ' ' -f 1 | rev`
     - artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name:.name, url:.archive_download_url}')
@@ -199,7 +199,7 @@ Push to GitHub:
     - if [ -z "$(git remote -v | grep upstream)" ]; 
       then git remote add upstream ${upstream_url}.git;
       fi
-    - digest=${CI_COMMIT_TITLE#ghcr.io/nvidia/$staged@}
+    - digest=`echo $CI_COMMIT_TITLE | rev | cut -d '@' -f 1 | rev`
     - build_info=`cat deployments/staging/$staged/${digest#sha256:}`
     - info_file=`echo "$build_info" | grep -s -o 'asset-name:\s*\S*' | rev | cut -d ' ' -f 1 | cut -d ':' -f 1 | rev`
     - release_id=`echo "$build_info" | grep -s -o 'release-id:\s*\S*' | rev | cut -d ' ' -f 1 | cut -d ':' -f 1 | rev`
