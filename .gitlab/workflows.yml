@@ -120,6 +120,7 @@ Python Wheels:
     - $python -m http.server 5555 &
     # To be removed/replaced - installing cuquantum manually to have the dev headers
     - CUQUANTUM_VERSION=24.11.0.20
+    - CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
     - export CUQUANTUM_INSTALL_PREFIX=/usr/local/cuquantum
     - cuquantum_archive=cuquantum-linux-${CUDA_ARCH_FOLDER}-${CUQUANTUM_VERSION}_cuda$(echo ${CUDA_VERSION} | cut -d . -f1)-archive.tar.xz
     - wget "http://localhost:5555/${cuquantum_archive}" 
