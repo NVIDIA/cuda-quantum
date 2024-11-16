@@ -92,7 +92,7 @@ Python Wheels:
     - artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name:.name, url:.archive_download_url}')
     # Retrieve other artifacts
     - mkdir /tmp/packages && cd /tmp/packages
-    - gh release download cuquantum-24.11 -R nvidia/cudaq-private || true
+    - gh release download cuquantum-24.11 -R nvidia/cudaq-private
     - rm -rf *archive.tar* && cd -
     # Store wheels in a temporary directory 
     - mkdir -p /tmp/wheels
@@ -117,6 +117,7 @@ Python Wheels:
     - $python -m pip install pypiserver
     - server="$python $($python -m pip show pypiserver | grep -e 'Location.*$' | cut -d ' ' -f2)/pypiserver/__main__.py"
     - $server run -p 8080 /tmp/packages & 
+    - $python -m pip install cuquantum-cu$(echo $CUDA_VERSION | cut -d . -f1)~=24.11 --extra-index-url http://localhost:8080 
     # Install CUDA Quantum wheel for a particular Python version (could be any version) 
     - cuda_major=$(echo $CUDA_VERSION | cut -d . -f1)
     - cd /tmp/wheels/ && $python -m pip install cuda_quantum_cu${cuda_major}*-cp310-cp310-manylinux_*_$(uname -m).whl --extra-index-url http://localhost:8080 
