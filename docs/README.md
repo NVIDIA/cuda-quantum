@@ -70,6 +70,6 @@ Additional links that may be helpful that are not listed above:
 - [Sphinx configuration
   options](https://www.sphinx-doc.org/en/master/usage/configuration.html)
 - [Syntax highlighting in inline
-  code](https://sphinxawesome.xyz/demo/inline-code/#syntax-highlighting-in-inline-code)
+  code](https://sphinxcontrib-inlinesyntaxhighlight.readthedocs.io/en/latest)
 - [Test examples in Python
   documentation](https://docs.python.org/3/library/doctest.html)
