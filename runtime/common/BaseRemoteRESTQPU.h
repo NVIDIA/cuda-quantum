@@ -489,15 +489,13 @@ public:
           continue;
 
         // Get the ansatz
-        auto ansatz = moduleOp.lookupSymbol<mlir::func::FuncOp>(
-            std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName);
+        [[maybe_unused]] auto ansatz =
+            moduleOp.lookupSymbol<mlir::func::FuncOp>(
+                cudaq::runtime::cudaqGenPrefixName + kernelName);
+        assert(ansatz && "could not find the ansatz kernel");
 
         // Create a new Module to clone the ansatz into it
-        auto tmpModuleOp = builder.create<mlir::ModuleOp>();
-        tmpModuleOp.push_back(ansatz.clone());
-        moduleOp.walk([&](quake::WireSetOp wireSetOp) {
-          tmpModuleOp.push_back(wireSetOp.clone());
-        });
+        auto tmpModuleOp = moduleOp.clone();
 
         // Extract the binary symplectic encoding
         auto [binarySymplecticForm, coeffs] = term.get_raw_data();
