@@ -168,7 +168,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends xz-utils \
 
 # Install CUDA
 
-ARG cuda_packages="cuda-cudart cuda-compiler libcublas-dev libcusolver"
+ARG cuda_packages="cuda-cudart cuda-nvrtc cuda-compiler libcublas-dev libcusolver"
 RUN if [ -n "$cuda_packages" ]; then \
         arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
         && cuda_packages=`printf '%s\n' $cuda_packages | xargs -I {} echo {}-$(echo ${CUDA_VERSION} | tr . -)` \

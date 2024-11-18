@@ -926,7 +926,8 @@ jobs:
           apt-get update && apt-get install -y --no-install-recommends \
             libcublas-$cuda_version_suffix \
             cuda-cudart-$cuda_version_suffix \
-            libcusolver-$cuda_version_suffix
+            libcusolver-$cuda_version_suffix \
+            cuda-nvrtc-$cuda_version_suffix
           if [ $(echo ${{ matrix.cuda_version }} | cut -d . -f1) -gt 11 ]; then 
             apt-get install -y --no-install-recommends \
             libnvjitlink-$cuda_version_suffix

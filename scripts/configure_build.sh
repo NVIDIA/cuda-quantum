@@ -53,6 +53,7 @@ if [ "$1" == "install-cudart" ]; then
     dnf config-manager --add-repo "${CUDA_DOWNLOAD_URL}/${DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-${DISTRIBUTION}.repo"
     dnf install -y --nobest --setopt=install_weak_deps=False \
         cuda-cudart-${version_suffix} \
+        cuda-nvrtc-${version_suffix} \
         libcusolver-${version_suffix} \
         libcublas-${version_suffix}
     if [ $(echo ${CUDA_VERSION} | cut -d . -f1) -gt 11 ]; then 
