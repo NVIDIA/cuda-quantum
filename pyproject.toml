@@ -18,8 +18,9 @@ requires-python = ">=3.10"
 license = { file="LICENSE" }
 dependencies = [
   'astpretty ~= 3.0',
-  'cuquantum-cu12 ~= 24.08',
+  'cuquantum-python-cu12 >= 24.11',
   'numpy >= 1.24',
+  'scipy >= 1.10.1',
   'requests >= 2.31',
   'nvidia-cublas-cu12 ~= 12.0; platform_machine == "x86_64"',
   'nvidia-cuda-runtime-cu12 ~= 12.0; platform_machine == "x86_64"',
@@ -50,8 +51,10 @@ Releases = "https://nvidia.github.io/cuda-quantum/latest/releases.html"
 # We must use h5py<3.11 because 3.11 doesn't include aarch64 Linux wheels.
 # https://github.com/h5py/h5py/issues/2408
 [project.optional-dependencies]
-chemistry = [ "scipy==1.10.1", "openfermionpyscf==0.5", "h5py<3.11"  ]
+chemistry = [ "openfermionpyscf==0.5", "h5py<3.11"  ]
 visualization = [ "qutip<5" , "matplotlib>=3.5" ]
+# Additional torch-based integrator
+integrators = [ "torchdiffeq" ]
 
 [build-system]
 requires = ["scikit-build-core==0.9.10", "cmake>=3.26,<3.29", "numpy>=1.24", "pytest==8.2.0"]

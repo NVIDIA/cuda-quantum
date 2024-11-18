@@ -29,6 +29,7 @@ DOI
 Deuteron
 Doxygen
 FPGAs
+Fock
 Fortran
 Fourier
 GHCR
@@ -91,6 +92,7 @@ QPUs
 QPU’s
 QTX
 Qiskit
+QuEra
 QuTiP
 Quake
 Quantinuum
@@ -172,6 +174,7 @@ decrementing
 dendrogram
 deserialize
 destructor
+detuning
 dimensionality
 discoverable
 discretization
@@ -215,6 +218,8 @@ inlined
 inlining
 instantiation
 instantiations
+integrator
+integrators
 interferometer
 interoperational
 intrinsics
@@ -301,6 +306,7 @@ templated
 toolchain
 toolchains
 toolset
+transmon
 trotterization
 unary
 uncomputation
@@ -314,5 +320,6 @@ variadic
 variational
 verifier
 vertices
+waveforms
 wavefunction
 workflow
