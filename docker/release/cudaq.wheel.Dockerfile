@@ -43,6 +43,7 @@ RUN sed -i "s/README.md.in/README.md/g" cuda-quantum/pyproject.toml && \
         cublas_version=11.11 && \
         sed -i "s/-cu12/-cu11/g" cuda-quantum/pyproject.toml && \
         sed -i -E "s/(nvidia-cublas-cu[0-9]* ~= )[0-9\.]*/\1${cublas_version}/g" cuda-quantum/pyproject.toml && \
+        sed -i -E "s/(nvidia-cuda-nvrtc-cu[0-9]* ~= )[0-9\.]*/\1${CUDA_VERSION}/g" cuda-quantum/pyproject.toml && \
         sed -i -E "s/(nvidia-cuda-runtime-cu[0-9]* ~= )[0-9\.]*/\1${CUDA_VERSION}/g" cuda-quantum/pyproject.toml; \
     fi
 
