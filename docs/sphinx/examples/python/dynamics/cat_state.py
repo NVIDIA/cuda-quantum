@@ -1,6 +1,6 @@
 import cudaq
 from cudaq import operators, Schedule, ScipyZvodeIntegrator
-from cudaq.operator import coherent_state, wigner_function
+from cudaq.operator import coherent_state
 import numpy as np
 import cupy as cp
 import os
@@ -90,33 +90,3 @@ final_state = evolution_result.final_state()
 overlap = final_state.overlap(expected_state)
 print(f"Overlap with the expected cat state: {overlap}.")
 
-
-def plot_wigner(state, fig=None, ax=None):
-    """
-    Plot the Wigner function and the Fock state distribution given a density
-    matrix for a harmonic oscillator mode.
-    """
-    if fig is None or ax is None:
-        fig, ax = plt.subplots(1, 1, figsize=(8, 8))
-
-    xvec = cp.linspace(-7.5, 7.5, 200)
-
-    W = wigner_function(state, xvec, xvec).get()
-    wlim = abs(W).max()
-
-    ax.contourf(
-        xvec.get(),
-        xvec.get(),
-        W,
-        100,
-        norm=mpl.colors.Normalize(-wlim, wlim),
-        cmap=mpl.colormaps.get_cmap("RdBu"),
-    )
-    ax.set_xlabel(r"$x_1$", fontsize=16)
-    ax.set_ylabel(r"$x_2$", fontsize=16)
-
-    return fig, ax
-
-
-fig, ax = plot_wigner(final_state)
-fig.savefig('cat_state_wigner.png', dpi=fig.dpi)
