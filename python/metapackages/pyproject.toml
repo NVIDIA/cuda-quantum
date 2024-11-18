@@ -32,7 +32,7 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://developer.nvidia.com/cuda-quantum"
+Homepage = "https://developer.nvidia.com/cuda-q"
 Documentation = "https://nvidia.github.io/cuda-quantum"
 Repository = "https://github.com/NVIDIA/cuda-quantum"
 Releases = "https://nvidia.github.io/cuda-quantum/latest/releases.html"

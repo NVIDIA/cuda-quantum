@@ -49,7 +49,7 @@ RUN sed -i "s/README.md.in/README.md/g" cuda-quantum/pyproject.toml && \
 # Create the README
 RUN cd cuda-quantum && cat python/README.md.in > python/README.md && \
     package_name=cuda-quantum-cu$(echo ${CUDA_VERSION} | cut -d . -f1) && \
-    cuda_version_requirement=">= ${CUDA_VERSION}" && \
+    cuda_version_requirement="\>= ${CUDA_VERSION}" && \
     cuda_version_conda=${CUDA_VERSION}.0 && \
     for variable in package_name cuda_version_requirement cuda_version_conda; do \
         sed -i "s/.{{[ ]*$variable[ ]*}}/${!variable}/g" python/README.md; \
