@@ -158,7 +158,7 @@ auto runObservationAsync(KernelFunctor &&wrappedKernel, spin_op &H,
   // If the platform is not remote, then we can handle asynchronous execution
   // via a new worker thread.
   KernelExecutionTask task(
-      [&, qpu_id, shots, kernelName,
+      [&, H, qpu_id, shots, kernelName,
        kernel = std::forward<KernelFunctor>(wrappedKernel)]() mutable {
         return details::runObservation(kernel, H, platform, shots, kernelName,
                                        qpu_id)

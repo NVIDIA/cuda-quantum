@@ -292,6 +292,11 @@ do
         if [ -z "$(echo $requested_backends | grep $t)" ]; then 
             echo "Explicitly set target $t not available."
             skip_example=true
+        elif [ "$t" == "quera" ]; then 
+            # Skipped because GitHub does not have the necessary authentication token 
+            # to submit a (paid) job to QuEra.
+            echo "Explicitly set target quera; skipping validation due to paid submission."
+            skip_example=true
         fi
     done
 

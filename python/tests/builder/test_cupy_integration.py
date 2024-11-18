@@ -14,6 +14,8 @@ import cudaq
 
 cp = pytest.importorskip('cupy')
 
+if cudaq.num_available_gpus() == 0:
+    pytest.skip("Skipping GPU tests", allow_module_level=True)
 
 def assert_close(want, got, tolerance=1.e-5) -> bool:
     return abs(want - got) < tolerance

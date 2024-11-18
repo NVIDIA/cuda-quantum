@@ -17,8 +17,8 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__bell = "__nvqpp__
     quake.custom_op @__nvqpp__mlirgen__custom_x_generator_1.rodata [%1] %2 : (!quake.ref, !quake.ref) -> ()
     return
   }
-  cc.global constant @__nvqpp__mlirgen__custom_h_generator_1.rodata (dense<[(0.70710678118654746,0.000000e+00), (0.70710678118654746,0.000000e+00), (0.70710678118654746,0.000000e+00), (-0.70710678118654746,0.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
-  cc.global constant @__nvqpp__mlirgen__custom_x_generator_1.rodata (dense<[(0.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+  cc.global constant private @__nvqpp__mlirgen__custom_h_generator_1.rodata (dense<[(0.70710678118654746,0.000000e+00), (0.70710678118654746,0.000000e+00), (0.70710678118654746,0.000000e+00), (-0.70710678118654746,0.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+  cc.global constant private @__nvqpp__mlirgen__custom_x_generator_1.rodata (dense<[(0.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
 }
 
 // CHECK-LABEL:   func.func private @__nvqpp__mlirgen__custom_h_generator_1.kernel(

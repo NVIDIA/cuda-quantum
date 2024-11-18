@@ -133,7 +133,7 @@ jobs:
 
       - name: Test installation
         run: |
-          mkdir /tmp/packages 
+          mkdir -p /tmp/packages 
           mv /tmp/wheels/* /tmp/packages && mv /tmp/metapackages/* /tmp/packages
           rmdir /tmp/wheels /tmp/metapackages
 

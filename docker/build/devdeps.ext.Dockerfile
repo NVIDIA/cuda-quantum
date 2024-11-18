@@ -137,7 +137,7 @@ ENV CUQUANTUM_PATH="$CUQUANTUM_INSTALL_PREFIX"
 ENV LD_LIBRARY_PATH="$CUQUANTUM_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
 ENV CPATH="$CUQUANTUM_INSTALL_PREFIX/include:$CPATH"
 
-ENV CUQUANTUM_VERSION=24.08.0.5
+ENV CUQUANTUM_VERSION=24.11.0.21
 RUN apt-get update && apt-get install -y --no-install-recommends xz-utils \
     && arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
     && cuda_major=$(echo $CUDA_VERSION | cut -d . -f1) \
@@ -201,5 +201,5 @@ ENV PATH="${CUDA_INSTALL_PREFIX}/lib64/:${CUDA_INSTALL_PREFIX}/bin:${PATH}"
 # Active MPI support for the cuTensorNet library
 
 RUN cd "$CUQUANTUM_INSTALL_PREFIX/distributed_interfaces/" \
-    && source activate_mpi.sh
+    && source activate_mpi_cutn.sh
 ENV CUTENSORNET_COMM_LIB="$CUQUANTUM_INSTALL_PREFIX/distributed_interfaces/libcutensornet_distributed_interface_mpi.so"

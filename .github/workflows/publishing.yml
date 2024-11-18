@@ -323,7 +323,7 @@ jobs:
           path: /tmp/assets
           retention-days: 1
           if-no-files-found: warn
-          
+
   cudaq_images:
     name: CUDA-Q Docker image
     if: ${{ toJson(fromJson(needs.assets.outputs.docker_images).info_files) != '[]' }}
@@ -397,7 +397,7 @@ jobs:
 
           echo "release_id=$release_id" >> $GITHUB_OUTPUT
           echo "push_to_ngc=$push_to_ngc" >> $GITHUB_OUTPUT
-          echo "image_name=$registry/${{ vars.packages_prefix }}cuda-quantum" >> $GITHUB_OUTPUT
+          echo "image_name=$registry/cuda-quantum" >> $GITHUB_OUTPUT
           echo "image_tag=${base_tag%-base}" >> $GITHUB_OUTPUT
           echo "image_title=$image_title" >> $GITHUB_OUTPUT
           echo "image_description=$image_description" >> $GITHUB_OUTPUT
@@ -821,10 +821,11 @@ jobs:
       - name: Basic validation (GPU backends)
         shell: bash
         run: |
+          # We don't test the 'dynamics' target in these tests
           backends_to_test=`\
               for file in $(ls $CUDA_QUANTUM_PATH/targets/*.yml); \
               do
-                  if [ -n "$(cat $file | grep "gpu-requirements")" ]; then \
+                  if [[ "$file" != *"dynamics"* ]] && [ -n "$(cat $file | grep "gpu-requirements")" ]; then \
                     basename $file | cut -d "." -f 1; \
                   elif [ -n "$(basename $file | grep mqpu)" ]; then \
                     echo remote-mqpu; \
