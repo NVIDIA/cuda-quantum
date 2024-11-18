@@ -58,7 +58,7 @@ jobs:
 
             echo "Creating README.md for cudaq package"
             package_name=cudaq
-            cuda_version_requirement="11.x (where x >= 8) or 12.x"
+            cuda_version_requirement="11.x (where x \>= 8) or 12.x"
             cuda_version_conda=11.8.0 # only used as example in the install script
             cat python/README.md.in > python/metapackages/README.md
             for variable in package_name cuda_version_requirement cuda_version_conda; do
