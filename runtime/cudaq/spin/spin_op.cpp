@@ -416,10 +416,12 @@ spin_op &spin_op::operator+=(const spin_op &v) noexcept {
     auto iter = terms.find(term);
     if (iter != terms.end()) {
       iter->second += coeff;
-      if (std::abs(iter->second) < 1e-12)
+      if (std::abs(iter->second) < 1e-12) {
         terms.erase(iter);
-    } else
+      }
+    } else {
       terms.emplace(term, coeff);
+    }
   }
 
   return *this;
