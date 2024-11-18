@@ -49,6 +49,11 @@ jobs:
       url: ${{ vars.deployment_url }}
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: "${{ github.ref }}"
+
       - name: Configure registries
         id: config
         run: |  
