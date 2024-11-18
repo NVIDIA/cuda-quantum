@@ -596,4 +596,57 @@ the ``shots_count`` is set to 1000.
 
 To see a complete example for using Quantinuum's backends, take a look at our :doc:`Python examples <../examples/examples>`.
 
+QuEra Computing
+==================================
 
+.. _quera-backend:
+
+Setting Credentials
+```````````````````
+
+Programmers of CUDA-Q may access Aquila, QuEra's first generation of quantum
+processing unit (QPU) via AWS Braket. Hence, users must set AWS credentials using 
+any of the documented `methods <https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html>`__.
+One of the simplest ways is to use `AWS CLI <https://aws.amazon.com/cli/>`__.
+
+.. code:: bash
+
+    aws configure
+
+Alternatively, users can set the following environment variables.
+
+.. code:: bash
+
+  export AWS_DEFAULT_REGION="us-east-1"
+  export AWS_ACCESS_KEY_ID="<key_id>"
+  export AWS_SECRET_ACCESS_KEY="<access_key>"
+  export AWS_SESSION_TOKEN="<token>"
+
+
+Submission from C++
+`````````````````````````
+
+Not yet supported.
+
+
+Submission from Python
+`````````````````````````
+
+The target to which quantum kernels are submitted 
+can be controlled with the ``cudaq::set_target()`` function.
+
+.. code:: python
+
+    cudaq.set_target('quera')
+
+By default, analog Hamiltonian will be submitted to the Aquila system.
+
+The number of shots for a kernel execution can be set through the 
+``shots_count`` argument to ``cudaq.evolve``. By default, the ``shots_count`` 
+is set to 100.
+
+.. code:: python 
+
+    cudaq.evolve(RydbergHamiltonian(...), schedule=s, shots_count=1000)
+
+To see a complete example for using QuEra's backend, take a look at our :doc:`Python examples <../examples/hardware_providers>`.

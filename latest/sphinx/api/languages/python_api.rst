@@ -120,17 +120,17 @@ Data Types
     :special-members: __getitem__, __str__
 
 .. autoclass:: cudaq::SpinOperator
-    :members:
+.. autoclass:: cudaq.operator.expressions.OperatorSum
 
-    .. automethod:: __eq__
-    .. automethod:: __add__
-    .. automethod:: __radd__
-    .. automethod:: __sub__
-    .. automethod:: __rsub__
-    .. automethod:: __mul__
-    .. automethod:: __rmul__
-    .. automethod:: __iter__
-        
+.. autoclass:: cudaq.operator.expressions.ElementaryOperator
+    
+    .. automethod:: define
+
+.. autoclass:: cudaq.operator.expressions.ProductOperator
+.. autoclass:: cudaq.operator.expressions.ScalarOperator
+.. autoclass:: cudaq.operator.expressions.RydbergHamiltonian
+.. autoclass:: cudaq.operator.definitions.SpinOperator
+
 .. autofunction:: cudaq::spin.i
 .. autofunction:: cudaq::spin.x
 .. autofunction:: cudaq::spin.y

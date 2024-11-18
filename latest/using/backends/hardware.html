@@ -46,7 +46,7 @@
             NVIDIA CUDA-Q
           </a>
               <div class="version">
-                cu11-latest
+                cu11-0.9.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -185,6 +185,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#oqc">OQC</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#orca-computing">ORCA Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
 </ul>
 </li>
 </ul>
@@ -358,6 +359,12 @@
 <li class="toctree-l4"><a class="reference internal" href="#id15">Submission from Python</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="#quera-computing">QuEra Computing</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#quera-backend">Setting Credentials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id17">Submission from C++</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id18">Submission from Python</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="nvqc.html">   NVIDIA Quantum Cloud</a><ul>
@@ -380,6 +387,13 @@
 </li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="dynamics.html">   Dynamics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="dynamics.html#quick-start">Quick Start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dynamics.html#operator">Operator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dynamics.html#time-dependent-dynamics">Time-Dependent Dynamics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dynamics.html#numerical-integrators">Numerical Integrators</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../install/install.html">   Installation</a><ul>
@@ -569,6 +583,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.qvector"><code class="docutils literal notranslate"><span class="pre">qvector</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.SpinOperator"><code class="docutils literal notranslate"><span class="pre">SpinOperator</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.expressions.OperatorSum"><code class="docutils literal notranslate"><span class="pre">OperatorSum</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.expressions.ElementaryOperator"><code class="docutils literal notranslate"><span class="pre">ElementaryOperator</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.expressions.ProductOperator"><code class="docutils literal notranslate"><span class="pre">ProductOperator</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.expressions.ScalarOperator"><code class="docutils literal notranslate"><span class="pre">ScalarOperator</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.expressions.RydbergHamiltonian"><code class="docutils literal notranslate"><span class="pre">RydbergHamiltonian</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.definitions.SpinOperator"><code class="docutils literal notranslate"><span class="pre">SpinOperator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.spin.i"><code class="docutils literal notranslate"><span class="pre">spin.i()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.spin.x"><code class="docutils literal notranslate"><span class="pre">spin.x()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.spin.y"><code class="docutils literal notranslate"><span class="pre">spin.y()</span></code></a></li>
@@ -1111,6 +1131,46 @@ the <code class="docutils literal notranslate"><span class="pre">shots_count</sp
 </pre></div>
 </div>
 <p>To see a complete example for using Quantinuum’s backends, take a look at our <a class="reference internal" href="../examples/examples.html"><span class="doc">Python examples</span></a>.</p>
+</section>
+</section>
+<section id="quera-computing">
+<h2>QuEra Computing<a class="headerlink" href="#quera-computing" title="Permalink to this heading">¶</a></h2>
+<section id="quera-backend">
+<span id="id16"></span><h3>Setting Credentials<a class="headerlink" href="#quera-backend" title="Permalink to this heading">¶</a></h3>
+<p>Programmers of CUDA-Q may access Aquila, QuEra’s first generation of quantum
+processing unit (QPU) via AWS Braket. Hence, users must set AWS credentials using
+any of the documented <a class="reference external" href="https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html">methods</a>.
+One of the simplest ways is to use <a class="reference external" href="https://aws.amazon.com/cli/">AWS CLI</a>.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>aws<span class="w"> </span>configure
+</pre></div>
+</div>
+<p>Alternatively, users can set the following environment variables.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">AWS_DEFAULT_REGION</span><span class="o">=</span><span class="s2">&quot;us-east-1&quot;</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">AWS_ACCESS_KEY_ID</span><span class="o">=</span><span class="s2">&quot;&lt;key_id&gt;&quot;</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">AWS_SECRET_ACCESS_KEY</span><span class="o">=</span><span class="s2">&quot;&lt;access_key&gt;&quot;</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">AWS_SESSION_TOKEN</span><span class="o">=</span><span class="s2">&quot;&lt;token&gt;&quot;</span>
+</pre></div>
+</div>
+</section>
+<section id="id17">
+<h3>Submission from C++<a class="headerlink" href="#id17" title="Permalink to this heading">¶</a></h3>
+<p>Not yet supported.</p>
+</section>
+<section id="id18">
+<h3>Submission from Python<a class="headerlink" href="#id18" title="Permalink to this heading">¶</a></h3>
+<p>The target to which quantum kernels are submitted
+can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq::set_target()</span></code> function.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;quera&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>By default, analog Hamiltonian will be submitted to the Aquila system.</p>
+<p>The number of shots for a kernel execution can be set through the
+<code class="docutils literal notranslate"><span class="pre">shots_count</span></code> argument to <code class="docutils literal notranslate"><span class="pre">cudaq.evolve</span></code>. By default, the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code>
+is set to 100.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">RydbergHamiltonian</span><span class="p">(</span><span class="o">...</span><span class="p">),</span> <span class="n">schedule</span><span class="o">=</span><span class="n">s</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>To see a complete example for using QuEra’s backend, take a look at our <a class="reference internal" href="../examples/hardware_providers.html"><span class="doc">Python examples</span></a>.</p>
 </section>
 </section>
 </section>

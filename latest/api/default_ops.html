@@ -48,7 +48,7 @@
             NVIDIA CUDA-Q
           </a>
               <div class="version">
-                cu11-latest
+                cu11-0.9.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -187,6 +187,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../using/examples/hardware_providers.html#oqc">OQC</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../using/examples/hardware_providers.html#orca-computing">ORCA Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../using/examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../using/examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
 </ul>
 </li>
 </ul>
@@ -360,6 +361,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../using/backends/hardware.html#id15">Submission from Python</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../using/backends/hardware.html#quera-computing">QuEra Computing</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../using/backends/hardware.html#quera-backend">Setting Credentials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../using/backends/hardware.html#id17">Submission from C++</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../using/backends/hardware.html#id18">Submission from Python</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../using/backends/nvqc.html">   NVIDIA Quantum Cloud</a><ul>
@@ -382,6 +389,13 @@
 </li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../using/backends/dynamics.html">   Dynamics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../using/backends/dynamics.html#quick-start">Quick Start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../using/backends/dynamics.html#operator">Operator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../using/backends/dynamics.html#time-dependent-dynamics">Time-Dependent Dynamics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../using/backends/dynamics.html#numerical-integrators">Numerical Integrators</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../using/install/install.html">   Installation</a><ul>
@@ -571,6 +585,12 @@
 <li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.qvector"><code class="docutils literal notranslate"><span class="pre">qvector</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.SpinOperator"><code class="docutils literal notranslate"><span class="pre">SpinOperator</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.operator.expressions.OperatorSum"><code class="docutils literal notranslate"><span class="pre">OperatorSum</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.operator.expressions.ElementaryOperator"><code class="docutils literal notranslate"><span class="pre">ElementaryOperator</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.operator.expressions.ProductOperator"><code class="docutils literal notranslate"><span class="pre">ProductOperator</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.operator.expressions.ScalarOperator"><code class="docutils literal notranslate"><span class="pre">ScalarOperator</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.operator.expressions.RydbergHamiltonian"><code class="docutils literal notranslate"><span class="pre">RydbergHamiltonian</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.operator.definitions.SpinOperator"><code class="docutils literal notranslate"><span class="pre">SpinOperator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.spin.i"><code class="docutils literal notranslate"><span class="pre">spin.i()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.spin.x"><code class="docutils literal notranslate"><span class="pre">spin.x()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.spin.y"><code class="docutils literal notranslate"><span class="pre">spin.y()</span></code></a></li>
@@ -1319,9 +1339,8 @@ operations, each operating on 2 qubits.</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>When a custom operation is used on hardware backends, it is synthesized to a
-set of native quantum operations. Currently, only 1-qubit and 2-qubit custom
-operations are supported on hardware backends.</p>
+<p>Custom operations are currently supported only on <a class="reference internal" href="../using/backends/simulators.html"><span class="doc">CUDA-Q Simulation Backends</span></a>.
+Attempt to use with a hardware backend will result in runtime error.</p>
 </div>
 </section>
 <section id="photonic-operations-on-qudits">

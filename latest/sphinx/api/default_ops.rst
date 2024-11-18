@@ -631,9 +631,8 @@ operations, each operating on 2 qubits.
 
 .. note:: 
 
-  When a custom operation is used on hardware backends, it is synthesized to a
-  set of native quantum operations. Currently, only 1-qubit and 2-qubit custom 
-  operations are supported on hardware backends.
+  Custom operations are currently supported only on :doc:`../using/backends/simulators`.
+  Attempt to use with a hardware backend will result in runtime error.
 
 
 Photonic Operations on Qudits
