@@ -796,6 +796,10 @@ jobs:
       contents: read
       packages: read
 
+    environment:
+      name: ghcr-deployment
+      url: ${{ vars.deployment_url }}
+
     strategy:
       matrix:
         image_hash: ${{ fromJson(needs.image_validation_config.outputs.docker_images) }}
