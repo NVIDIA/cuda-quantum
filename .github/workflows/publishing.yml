@@ -821,11 +821,10 @@ jobs:
       - name: Basic validation (GPU backends)
         shell: bash
         run: |
-          # We don't test the 'dynamics' target in these tests
           backends_to_test=`\
               for file in $(ls $CUDA_QUANTUM_PATH/targets/*.yml); \
               do
-                  if [[ "$file" != *"dynamics"* ]] && [ -n "$(cat $file | grep "gpu-requirements")" ]; then \
+                  if [ -n "$(cat $file | grep "gpu-requirements")" ]; then \
                     basename $file | cut -d "." -f 1; \
                   elif [ -n "$(basename $file | grep mqpu)" ]; then \
                     echo remote-mqpu; \
@@ -1063,7 +1062,7 @@ jobs:
           # Also need to test dynamics
           echo "Running with target dynamics"
           python3 -m pip install matplotlib
-          python3 docs/sphinx/examples/python/dynamics/squeezing.py
+          python3 docs/sphinx/examples/python/dynamics/qubit_dynamics.py
 
           set -e # Re-enable exit code error checking
           if [ "$status_sum" -ne "0" ]; then
