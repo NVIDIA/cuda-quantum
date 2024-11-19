@@ -1,3 +1,13 @@
+#!/bin/bash
+
+# ============================================================================ #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
 # Release process
 
 # To see all the changes that were added since the latest release, navigate to your clone of the cuda-quantum repository, 

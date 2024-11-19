@@ -33,7 +33,6 @@ class cuDensityMatTimeStepper(BaseTimeStepper[CudmStateType]):
                 self.liouvillian_action.prepare(self.ctx, (self.state,))
         # FIXME: reduce temporary allocations.
         # Currently, we cannot return a reference since the caller might call compute() multiple times during a single integrate step.
-        # https://github.com/NVIDIA/cudaq-private/issues/14
         timer = ScopeTimer("compute.action_result")
         with timer:
             action_result = self.state.clone(

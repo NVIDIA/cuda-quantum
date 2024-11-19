@@ -163,7 +163,6 @@ class _OperatorHelpers:
         Converts a `cudaq.ComplexMatrix` to the corresponding `numpy` array.
         """
         # FIXME: implement conversion in `py_matrix.cpp` instead and ensure consistency with `numpy.array` -> `ComplexMatrix`
-        # https://github.com/NVIDIA/cudaq-private/issues/18
         return numpy.array(
             [[cmatrix[row, column]
               for row in range(cmatrix.num_rows())]

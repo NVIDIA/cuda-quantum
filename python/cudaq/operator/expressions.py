@@ -111,9 +111,7 @@ class OperatorSum:
             If the equality evaluates to True, on the other hand, the operators 
             are guaranteed to represent the same transformation for all arguments.
         """
-        # FIXME: `_canonical_terms` check is not a reliable check for spin operator equality.
-        # https://github.com/NVIDIA/cudaq-private/issues/30
-        # Hence, always use `spin_op` equality check.
+        # Use `spin_op` equality check when possible, since it is more accurate than the generic check that attempts to canonicalize.
         if self._is_spinop and hasattr(other,
                                        "_is_spinop") and other._is_spinop:
             return self._to_spinop() == other._to_spinop()

@@ -142,7 +142,6 @@ def _launch_analog_hamiltonian_kernel(target_name: str,
 
 
 # FIXME: move to C++
-# https://github.com/NVIDIA/cudaq-private/issues/15
 def _evolution_kernel(
     num_qubits: int,
     compute_step_matrix: Callable[[Mapping[str, NumericType], float],
@@ -280,7 +279,6 @@ def evolve_single(
         if len(observables) == 0:
             return cudaq_runtime.evolve(initial_state, kernel)
         # FIXME: permit to compute expectation values for operators defined as matrix
-        # https://github.com/NVIDIA/cudaq-private/issues/16
         if len(collapse_operators) > 0:
             cudaq_runtime.set_noise(noise)
         result = cudaq_runtime.evolve(initial_state, kernel, parameters[-1],
@@ -490,7 +488,6 @@ def evolve_single_async(
         if len(observables) == 0:
             return cudaq_runtime.evolve_async(initial_state, kernel)
         # FIXME: permit to compute expectation values for operators defined as matrix
-        # https://github.com/NVIDIA/cudaq-private/issues/16
         if len(collapse_operators) > 0:
             cudaq_runtime.evolve_async(initial_state,
                                        kernel,
