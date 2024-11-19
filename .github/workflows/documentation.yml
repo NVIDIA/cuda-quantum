@@ -130,7 +130,7 @@ jobs:
             fi
           fi
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN || github.token }}
 
       - name: Push docs update
         id: push_docs
