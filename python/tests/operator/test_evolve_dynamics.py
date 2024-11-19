@@ -436,6 +436,8 @@ def test_floquet_steady_state(integrator):
         np.testing.assert_allclose(n[i], expected_steady_state, atol=0.02)
 
 
+# See also https://github.com/qutip/qutip-notebooks/blob/master/examples/landau-zener.ipynb
+# for more details/a more involved example of the same problem.
 @pytest.mark.parametrize('integrator', all_integrator_classes)
 def test_landau_zener(integrator):
     # Define some shorthand operators
