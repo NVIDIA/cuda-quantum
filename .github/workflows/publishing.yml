@@ -338,6 +338,9 @@ jobs:
       name: ghcr-deployment
       url: ${{ vars.deployment_url }}
 
+    outputs:
+      push_to_ngc: ${{ steps.release_info.outputs.push_to_ngc }}
+
     strategy:
       matrix:
         info_file: ${{ fromJson(needs.assets.outputs.docker_images).info_files }}
@@ -787,7 +790,7 @@ jobs:
 
   image_validation:
     name: Docker image validation
-    needs: [assets, image_validation_config]
+    needs: [assets, cudaq_images, image_validation_config]
     runs-on: linux-amd64-gpu-v100-latest-1
     permissions:
       contents: read
@@ -801,8 +804,8 @@ jobs:
     container:
       image: ${{ matrix.image_hash }}
       credentials:
-        username: ${{ github.actor }}
-        password: ${{ github.token }}
+        username: ${{ needs.cudaq_images.outputs.push_to_ngc != 'true' && github.actor || '' }}
+        password: ${{ needs.cudaq_images.outputs.push_to_ngc != 'true' && github.token || '' }}
       options: --user root # otherwise step summary doesn't work
       env:
         NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
