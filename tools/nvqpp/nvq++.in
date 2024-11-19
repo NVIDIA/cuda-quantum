@@ -772,9 +772,7 @@ for i in ${SRCS}; do
 		QUAKELL_FILE=$(mktemp ${file}.ll.XXXXXX)
 		TMPFILES="${TMPFILES} ${QUAKELL_FILE}"
 
-		# FIXME This next step needs to be extensible... We may lower to QIR, but we
-		# may need to lower to Rigetti QIR and link with their libs or we may lower
-		# to IBM QUIR
+		# FIXME This next step needs to be extensible... 
 		run ${TOOLBIN}cudaq-translate ${CUDAQ_TRANSLATE_ARGS} --convert-to=${LLVM_QUANTUM_TARGET} ${QUAKE_IN} -o ${QUAKELL_FILE}
 		if ${EMIT_QIR}; then
 			run cp ${QUAKELL_FILE} ${file}.qir.ll
