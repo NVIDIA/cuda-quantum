@@ -44,3 +44,24 @@ async_result = evolve_async(RydbergHamiltonian(atom_sites=register,
                             schedule=schedule,
                             shots_count=10).get()
 async_result.dump()
+
+## Sample result
+# ```
+# {
+#   __global__ : { 12121222:1 21202221:1 21212121:2 21212122:1 21221212:1 21221221:2 22121221:1 22221221:1 }
+#    post_sequence : { 01010111:1 10101010:2 10101011:1 10101110:1 10110101:1 10110110:2 11010110:1 11110110:1 }
+#    pre_sequence : { 11101111:1 11111111:9 }
+# }
+# ```
+
+## Interpreting result
+# `pre_sequence` has the measurement bits, one for each atomic site, before the
+# quantum evolution is run. The count is aggregated across shots. The value is
+# 0 if site is empty, 1 if site is filled.
+# `post_sequence` has the measurement bits, one for each atomic site, at the
+# end of the quantum evolution. The count is aggregated across shots. The value
+# is 0 if atom is in Rydberg state or site is empty, 1 if atom is in ground
+# state.
+# `__global__` has the aggregate of the state counts from all the successful
+# shots. The value is 0 if site is empty, 1 if atom is in Rydberg state (up
+# state spin) and 2 if atom is in ground state (down state spin).

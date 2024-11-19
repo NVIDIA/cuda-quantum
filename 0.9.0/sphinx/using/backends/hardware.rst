@@ -641,9 +641,29 @@ can be controlled with the ``cudaq::set_target()`` function.
 
 By default, analog Hamiltonian will be submitted to the Aquila system.
 
-The number of shots for a kernel execution can be set through the 
-``shots_count`` argument to ``cudaq.evolve``. By default, the ``shots_count`` 
-is set to 100.
+Aquila is a "field programmable qubit array" operated as an analog 
+Hamiltonian simulator on a user-configurable architecture, executing 
+programmable coherent quantum dynamics on up to 256 neutral-atom qubits.
+Refer to QuEra's `whitepaper <https://cdn.prod.website-files.com/643b94c382e84463a9e52264/648f5bf4d19795aaf36204f7_Whitepaper%20June%2023.pdf>`__ for details.
+
+Due to the nature of the underlying hardware, this target only supports the 
+``evolve`` and ``evolve_async`` APIs.
+The `hamiltonian` must be an `Operator` of the type `RydbergHamiltonian`. Only 
+other parameters supported are `schedule` (mandatory) and `shots_count` (optional).
+
+For example,
+
+.. code:: python
+
+    evolution_result = evolve(RydbergHamiltonian(atom_sites=register,
+                                                 amplitude=omega,
+                                                 phase=phi,
+                                                 delta_global=delta),
+                               schedule=schedule)
+
+The number of shots for a kernel execution can be set through the ``shots_count``
+argument to ``evolve`` or ``evolve_async``. By default, the ``shots_count`` is 
+set to 100.
 
 .. code:: python 
 
