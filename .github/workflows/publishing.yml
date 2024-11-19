@@ -804,8 +804,8 @@ jobs:
     container:
       image: ${{ matrix.image_hash }}
       credentials:
-        username: ${{ needs.cudaq_images.outputs.push_to_ngc != 'true' && github.actor || '' }}
-        password: ${{ needs.cudaq_images.outputs.push_to_ngc != 'true' && github.token || '' }}
+        username: ${{ needs.cudaq_images.outputs.push_to_ngc != 'true' && github.actor || '$oauthtoken' }}
+        password: ${{ needs.cudaq_images.outputs.push_to_ngc != 'true' && github.token || secrets.NGC_CREDENTIALS  }}
       options: --user root # otherwise step summary doesn't work
       env:
         NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
