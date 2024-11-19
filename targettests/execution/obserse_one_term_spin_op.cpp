@@ -26,9 +26,7 @@ struct ansatz {
 int main() {
   // Build up your spin op algebraically
   using namespace cudaq::spin;
-  cudaq::spin_op h = i(0) * z(1); // <-- MAKE THIS CHANGE HERE
-  // cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
-  //                    .21829 * z(0) - 6.125 * z(1);
+  cudaq::spin_op h = i(0) * z(1);
 
   // Make repeatable for shots-based emulation
   cudaq::set_random_seed(13);
@@ -44,4 +42,5 @@ int main() {
 
 // CHECK-LABEL: Attention
 // CHECK-NOT: Energy is 0.000000
+// CHECK: Energy is 0.8
 // CHECK-LABEL: At ease
