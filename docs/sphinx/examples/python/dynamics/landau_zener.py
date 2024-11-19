@@ -21,24 +21,29 @@ sm_dag = operators.create(0)
 # Dimensions of sub-system. We only have a single degree of freedom of dimension 2 (two-level system).
 dimensions = {0: 2}
 
-# System parameters
-gamma1 = 0.0001  # relaxation rate
-gamma2 = 0.005  # `dephasing`  rate
-delta = 0.5 * 2 * np.pi  # qubit `pauli_x` coefficient
-eps0 = 0.0 * 2 * np.pi  # qubit `pauli_z` coefficient
-A = 2.0 * 2 * np.pi  # time-dependent sweep rate
+# Decoherence parameters
+gamma_sm = 0.0001  # relaxation rate
+gamma_sz = 0.005  # `dephasing`  rate
+
+# Landau–Zener Hamiltonian:
+# `[[-alpha*t, g], [g, alpha*t]] = g * pauli_x - alpha * t * pauli_z`
+g = 0.5 * 2 * np.pi
+alpha = 2.0 * 2 * np.pi
+
+# Analytical formula
+lz_formula_p0 = np.exp(-np.pi * g**2 / (alpha))
+lz_formula_p1 = 1.0 - lz_formula_p0
 
 # Hamiltonian
-hamiltonian = -delta / 2.0 * sx - eps0 / 2.0 * sz - A / 2.0 * ScalarOperator(
-    lambda t: t) * sz
+hamiltonian = g * sx - alpha * ScalarOperator(lambda t: t) * sz
 
 # collapse operators: relaxation and `dephasing`
-c_op_list = [np.sqrt(gamma1) * sm, np.sqrt(gamma2) * sz]
+c_op_list = [np.sqrt(gamma_sm) * sm, np.sqrt(gamma_sz) * sz]
 
 # Initial state of the system (ground state)
 psi0 = cudaq.State.from_data(cp.array([1.0, 0.0], dtype=cp.complex128))
 
-# Schedule of time steps.
+# Schedule of time steps (simulating a long time range)
 steps = np.linspace(-20.0, 20.0, 5000)
 schedule = Schedule(steps, ["t"])
 
@@ -60,12 +65,14 @@ prob1 = [
 prob0 = [1 - val for val in prob1]
 fig, ax = plt.subplots(figsize=(12, 8))
 ax.plot(steps, prob1, 'b', steps, prob0, 'r')
-ax.plot(steps,
-        1 - np.exp(-np.pi * delta**2 / (2 * A)) * np.ones(np.shape(steps)), 'k')
+ax.plot(steps, lz_formula_p1 * np.ones(np.shape(steps)), 'k')
+ax.plot(steps, lz_formula_p0 * np.ones(np.shape(steps)), 'm')
 ax.set_xlabel("Time")
 ax.set_ylabel("Occupation probability")
 ax.set_title("Landau-Zener transition")
-ax.legend(("Excited state", "Ground state", "Landau-Zener formula"), loc=0)
+ax.legend(("Excited state", "Ground state", "LZ formula (Excited state)",
+           "LZ formula (Ground state)"),
+          loc=0)
 
 abspath = os.path.abspath(__file__)
 dname = os.path.dirname(abspath)

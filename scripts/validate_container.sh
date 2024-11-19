@@ -202,6 +202,12 @@ do
                 # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1283
                 target_flag+=" --enable-mlir"
             fi
+        elif [ "$t" == "dynamics" ]; then
+            let "skipped+=1"
+            echo "Skipping $t target."
+            # These C++ tests are not intended for dynamics
+            echo ":white_flag: $filename: Not executed due to compatibility reasons. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
+            continue
         fi
 
         echo "Testing on $t target..."
@@ -270,6 +276,11 @@ if [ -x "$(command -v python3)" ]; then
     mkdir -p $(python3 -m site --user-site)
 fi
 
+# Long-running dynamics examples
+dynamics_backend_skipped_examples=(\
+    examples/python/dynamics/transmon_resonator.py  \
+    examples/python/dynamics/silicon_spin_qubit.py)
+
 # Note divisive_clustering_src is not currently in the Published container under
 # the "examples" folder, but the Publishing workflow moves all examples from
 # docs/sphinx/examples, docs/sphinx/targets into the examples directory for the
@@ -296,6 +307,9 @@ do
             # Skipped because GitHub does not have the necessary authentication token 
             # to submit a (paid) job to QuEra.
             echo "Explicitly set target quera; skipping validation due to paid submission."
+            skip_example=true
+        elif [[ "$t" == "dynamics" ]] && [[ " ${dynamics_backend_skipped_examples[*]} " =~ " $ex " ]]; then
+            echo "Skipping due to long run time."
             skip_example=true
         fi
     done

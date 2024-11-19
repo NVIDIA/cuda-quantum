@@ -40,7 +40,7 @@ if not "CUDAQ_DYNLIBS" in os.environ and not cuda_major is None:
             cuda_nvrtc_libs = get_library_path(
                 f"nvidia-cuda_nvrtc-cu{cuda_major}")
             cuda_nvrtc_path = os.path.join(cuda_nvrtc_libs,
-                                       f"libnvrtc.so.{cuda_major}")
+                                           f"libnvrtc.so.{cuda_major}")
             os.environ["CUDAQ_DYNLIBS"] += f":{cudart_path}:{cuda_nvrtc_path}"
     except:
         import importlib.util
