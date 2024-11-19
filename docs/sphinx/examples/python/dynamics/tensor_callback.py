@@ -13,8 +13,8 @@ cudaq.set_target("dynamics")
 # Consider a simple 2-level system Hamiltonian exhibits the Landau–Zener transition:
 # `[[-alpha*t, g], [g, alpha*t]]
 # This can be defined as a callback tensor:
-g = 0.5 * 2 * np.pi
-alpha = 2.0 * 2 * np.pi
+g = 2.0 * np.pi
+alpha = 10.0 * 2 * np.pi
 
 
 def callback_tensor(t):
@@ -38,7 +38,7 @@ dimensions = {0: 2}
 psi0 = cudaq.State.from_data(cp.array([1.0, 0.0], dtype=cp.complex128))
 
 # Schedule of time steps (simulating a long time range)
-steps = np.linspace(-20.0, 20.0, 10000)
+steps = np.linspace(-4.0, 4.0, 10000)
 schedule = Schedule(steps, ["t"])
 
 # Run the simulation.
@@ -47,10 +47,7 @@ evolution_result = cudaq.evolve(hamiltonian,
                                 schedule,
                                 psi0,
                                 observables=[operators.number(0)],
-                                collapse_operators=[
-                                    np.sqrt(0.0001) * spin.minus(0),
-                                    np.sqrt(0.005) * spin.z(0)
-                                ],
+                                collapse_operators=[],
                                 store_intermediate_results=True,
                                 integrator=ScipyZvodeIntegrator())
 
