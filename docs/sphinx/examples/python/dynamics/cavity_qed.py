@@ -23,6 +23,8 @@ sm = operators.annihilate(0)
 sm_dag = operators.create(0)
 
 # Defining the Hamiltonian for the system: self-energy terms and cavity-atom interaction term.
+# This is the so-called Jaynes-Cummings model:
+# https://en.wikipedia.org/wiki/Jaynes%E2%80%93Cummings_model
 hamiltonian = 2 * np.pi * operators.number(1) + 2 * np.pi * operators.number(
     0) + 2 * np.pi * 0.25 * (sm * a_dag + sm_dag * a)
 

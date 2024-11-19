@@ -7,39 +7,38 @@ import matplotlib.pyplot as plt
 
 # This example simulates time evolution of a qubit (`transmon`) being driven by a pulse.
 # The pulse is a modulated signal with a Gaussian envelop.
+# The simulation is performed in the 'lab' frame.
 
 # Set the target to our dynamics simulator
 cudaq.set_target("dynamics")
 
 # Device parameters
 # Strength of the Rabi-rate in GHz.
-r = 0.1
+rabi_rate = 0.1
 
 # Frequency of the qubit transition in GHz.
-w = 5.
-
-# Sample rate of the backend in `ns`.
-dt = 1 / 4.5
+omega = 5.0 * 2 * np.pi
 
 # Define Gaussian envelope function to approximately implement a `rx(pi/2)` gate.
-amp = 1. / 2.0
-sig = 1.0 / r / amp
-T = 6 * sig
+amplitude = 1. / 2.0  # Pi/2 rotation
+sigma = 1.0 / rabi_rate / amplitude
+pulse_duration = 6 * sigma
 
 
-def gaussian(t, duration, amp, sigma):
-    return amp * np.exp(-0.5 * (t - duration / 2)**2 / (sigma)**2)
+def gaussian(t, duration, amplitude, sigma):
+    # Gaussian envelope function
+    return amplitude * np.exp(-0.5 * (t - duration / 2)**2 / (sigma)**2)
 
 
 def signal(t):
     # Modulated signal
-    return np.cos(2 * np.pi * w * t) * gaussian(t, T, amp, sig)
+    return np.cos(omega * t) * gaussian(t, pulse_duration, amplitude, sigma)
 
 
 # Qubit Hamiltonian
-hamiltonian = 2 * np.pi * w * spin.z(0) / 2
+hamiltonian = omega * spin.z(0) / 2
 # Add modulated driving term to the Hamiltonian
-hamiltonian += np.pi * r * ScalarOperator(signal) * spin.x(0)
+hamiltonian += np.pi * rabi_rate * ScalarOperator(signal) * spin.x(0)
 
 # Dimensions of sub-system. We only have a single degree of freedom of dimension 2 (two-level system).
 dimensions = {0: 2}
@@ -48,10 +47,10 @@ dimensions = {0: 2}
 psi0 = cudaq.State.from_data(cp.array([1.0, 0.0], dtype=cp.complex128))
 
 # Schedule of time steps.
-t_final = T
-tau = dt / 100
-n_steps = int(np.ceil(t_final / tau)) + 1
-steps = np.linspace(0, t_final, n_steps)
+# Since this is a lab-frame simulation, the time step must be small to accurately capture the modulated signal.
+dt = 1 / omega / 20
+n_steps = int(np.ceil(pulse_duration / dt)) + 1
+steps = np.linspace(0, pulse_duration, n_steps)
 schedule = Schedule(steps, ["t"])
 
 # Run the simulation.
@@ -71,7 +70,7 @@ pop1 = [
 ]
 pop0 = [1.0 - x for x in pop1]
 fig = plt.figure(figsize=(6, 16))
-envelop = [gaussian(t, T, amp, sig) for t in steps]
+envelop = [gaussian(t, pulse_duration, amplitude, sigma) for t in steps]
 
 plt.subplot(3, 1, 1)
 plt.plot(steps, envelop)
@@ -79,11 +78,12 @@ plt.ylabel("Amplitude")
 plt.xlabel("Time")
 plt.title("Envelope")
 
-modulated = [
-    np.cos(2 * np.pi * w * t) * gaussian(t, T, amp, sig) for t in steps
+modulated_signal = [
+    np.cos(omega * t) * gaussian(t, pulse_duration, amplitude, sigma)
+    for t in steps
 ]
 plt.subplot(3, 1, 2)
-plt.plot(steps, modulated)
+plt.plot(steps, modulated_signal)
 plt.ylabel("Amplitude")
 plt.xlabel("Time")
 plt.title("Signal")

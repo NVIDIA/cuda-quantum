@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 # This example simulates cross-resonance interactions between superconducting qubits.
 # Cross-resonance interaction is key to implementing two-qubit conditional gates, e.g., the CNOT gate.
-
+# Ref: A simple all-microwave entangling gate for fixed-frequency superconducting qubits (Phys. Rev. Lett. 107, 080502)
 # Set the target to our dynamics simulator
 cudaq.set_target("dynamics")
 
@@ -16,15 +16,16 @@ cudaq.set_target("dynamics")
 delta = 100 * 2 * np.pi
 # Static coupling between qubits
 J = 7 * 2 * np.pi
-# spurious electromagnetic `crosstalk`
-m2 = 0.2
+# spurious electromagnetic `crosstalk` due to stray electromagnetic coupling in the device circuit and package 
+# see (Phys. Rev. Lett. 107, 080502)
+m_12 = 0.2
 # Drive strength
 Omega = 20 * 2 * np.pi
 
-# Qubit Hamiltonian
+# Qubit Hamiltonian (in the rotating frame w.r.t. the target qubit)
 hamiltonian = delta / 2 * spin.z(0) + J * (
     spin.minus(1) * spin.plus(0) +
-    spin.plus(1) * spin.minus(0)) + Omega * spin.x(0) + m2 * Omega * spin.x(1)
+    spin.plus(1) * spin.minus(0)) + Omega * spin.x(0) + m_12 * Omega * spin.x(1)
 
 # Dimensions of sub-system
 dimensions = {0: 2, 1: 2}
