@@ -10,6 +10,7 @@
 #define CUDAQ_OPTIMIZER_DIALECT_CC_OPS
 
 include "mlir/Interfaces/InferTypeOpInterface.td"
+include "mlir/IR/SymbolInterfaces.td"
 include "cudaq/Optimizer/Dialect/Common/Traits.td"
 include "cudaq/Optimizer/Dialect/CC/CCDialect.td"
 include "cudaq/Optimizer/Dialect/CC/CCInterfaces.td"
@@ -911,19 +912,35 @@ def cc_GlobalOp : CCOp<"global", [IsolatedFromAbove, Symbol]> {
 
   let arguments = (ins
     TypeAttr:$global_type,
-    StrAttr:$sym_name,
+    SymbolNameAttr:$sym_name,
     OptionalAttr<AnyAttr>:$value,
+    OptionalAttr<StrAttr>:$sym_visibility,
     UnitAttr:$constant,
     UnitAttr:$external
   );
 
   let hasCustomAssemblyFormat = 1;
 
+  let builders = [
+    OpBuilder<(ins
+      "mlir::Type":$type, "mlir::StringRef":$name,
+      "mlir::Attribute":$value, "bool":$constant, "bool":$external), [{
+        return build($_builder, $_state, type, name, value,
+                     mlir::StringAttr{}, constant, external);
+      }]
+    >];
+
   let extraClassDeclaration = [{
     cudaq::cc::PointerType getType() {
       auto globalTy = getGlobalType();
       return cudaq::cc::PointerType::get(globalTy);
     }
+
+    //===------------------------------------------------------------------===//
+    // SymbolOpInterface Methods
+    //===------------------------------------------------------------------===//
+
+    bool isDeclaration() { return getExternal(); }
   }];
 }
 
