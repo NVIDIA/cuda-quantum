@@ -90,10 +90,6 @@ Python Wheels:
     - build_info=`cat deployments/staging/$staged/${digest#sha256:}`
     - artifacts_url=`echo "$build_info" | grep -s -o 'artifacts-url:\s*\S*' | rev | cut -d ' ' -f 1 | rev`
     - artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name:.name, url:.archive_download_url}')
-    # Retrieve other artifacts
-    - mkdir /tmp/packages && cd /tmp/packages
-    - gh release download cuquantum-24.11 -R nvidia/cudaq-private
-    - ls && cd -
     # Store wheels in a temporary directory 
     - mkdir -p /tmp/wheels
     - |
@@ -113,18 +109,13 @@ Python Wheels:
   script:
     - export PROJECT_SRCS_DIR=$PWD/..
     - export python=python3.10 
-    # Launch a local pypi server for additional artifacts
-    - $python -m pip install pypiserver
-    - server="$python $($python -m pip show pypiserver | grep -e 'Location.*$' | cut -d ' ' -f2)/pypiserver/__main__.py"
-    - $server run -p 8080 /tmp/packages & 
-    - $python -m http.server 5555 -d /tmp/packages &
-    - sleep 5
     # To be removed/replaced - installing cuquantum manually to have the dev headers
-    - CUQUANTUM_VERSION=24.11.0.20
+    - CUQUANTUM_VERSION=24.11.0.21
     - CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
-    - export CUQUANTUM_INSTALL_PREFIX=/usr/local/cuquantum
+    - CUQUANTUM_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum
     - cuquantum_archive=cuquantum-linux-${CUDA_ARCH_FOLDER}-${CUQUANTUM_VERSION}_cuda$(echo ${CUDA_VERSION} | cut -d . -f1)-archive.tar.xz
-    - wget "http://localhost:5555/${cuquantum_archive}" 
+    - export CUQUANTUM_INSTALL_PREFIX=/usr/local/cuquantum
+    - wget "${CUQUANTUM_DOWNLOAD_URL}/linux-${CUDA_ARCH_FOLDER}/${cuquantum_archive}"
     - mkdir -p "${CUQUANTUM_INSTALL_PREFIX}" 
     - tar xf "${cuquantum_archive}" --strip-components 1 -C "${CUQUANTUM_INSTALL_PREFIX}" 
     - rm -rf "${cuquantum_archive}"
