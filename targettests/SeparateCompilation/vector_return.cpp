@@ -58,6 +58,7 @@ __qpu__ void entry() {
 int main() {
   // call the entry-point kernel
   entry();
+  return 0;
 }
 
 // CHECK: na ... BATMAN!
