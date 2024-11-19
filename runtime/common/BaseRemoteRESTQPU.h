@@ -679,6 +679,8 @@ public:
               }
             }
 
+            bool isObserve =
+                executionContext && executionContext->name == "observe";
             for (std::size_t i = 0; i < codes.size(); i++) {
               cudaq::ExecutionContext context("sample", localShots);
               context.reorderIdx = reorderIdx;
@@ -688,7 +690,7 @@ public:
 
               // If there are multiple codes, this is likely a spin_op.
               // If so, use the code name instead of the global register.
-              if (codes.size() > 1) {
+              if (isObserve || (codes.size() > 1)) {
                 results.emplace_back(context.result.to_map(), codes[i].name);
                 results.back().sequentialData =
                     context.result.sequential_data();
