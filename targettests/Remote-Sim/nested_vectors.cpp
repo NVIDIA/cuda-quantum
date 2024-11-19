@@ -8,7 +8,7 @@
 
 // REQUIRES: remote-sim
 // clang-format off
-// RUN: nvq++ %cpp_std --target remote-mqpu %s -o %t && %t
+// RUN: nvq++ --library-mode %cpp_std --target remote-mqpu %s -o %t && %t
 // clang-format on
 
 #include "remote_test_assert.h"
