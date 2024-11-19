@@ -293,3 +293,18 @@ backend target.
 .. note::
     To use Torch-based integrators, users need to install `torchdiffeq` (e.g., with `pip install torchdiffeq`).
     This is an optional dependency of CUDA-Q, thus will not be installed by default.
+
+.. warning:: 
+    Torch-based integrators require a CUDA-enabled Torch installation. Depending on your platform (e.g., `aarch64`),
+    the default Torch pip package may not have CUDA support. 
+
+    The below command can be used to verify your installation:
+
+    .. code:: bash
+
+        python3 -c "import torch; print(torch.version.cuda)"
+
+    If the output is a '`None`' string, it indicates that your Torch installation does not support CUDA.
+    In this case, you need to install a CUDA-enabled Torch package via other mechanisms, e.g., building Torch from source or
+    using their Docker images.
+ 
