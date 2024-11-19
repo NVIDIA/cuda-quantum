@@ -11,7 +11,7 @@ cudaq.set_target("dynamics")
 
 # In this example, we solve the Quantum Heisenberg model (https://en.wikipedia.org/wiki/Quantum_Heisenberg_model),
 # which exhibits the so-called quantum quench effect.
-# e.g., see "Quantum quenches in the anisotropic spin-1/2 Heisenberg chain: different approaches to many-body dynamics far from equilibrium"
+# e.g., see `Quantum quenches in the anisotropic spin-1/2 Heisenberg chain: different approaches to many-body dynamics far from equilibrium`
 # (New J. Phys. 12 055017)
 # Number of spins
 N = 9
