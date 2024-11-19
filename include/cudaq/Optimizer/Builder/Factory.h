@@ -131,7 +131,7 @@ inline mlir::Type stateImplType(mlir::Type eleTy) {
 // Generate host side type for std::string. The result is the type of a block of
 // bytes and the length to allocate. This allows for the creation of code to
 // allocate a variable, stride across such a variable, etc. The ModuleOp must
-// contain the sizeof a pauli_word in its attributes.
+// contain the size of a pauli_word in its attributes.
 cudaq::cc::ArrayType genHostStringType(mlir::ModuleOp module);
 
 // Host side types for std::vector
