@@ -67,10 +67,6 @@ RUN echo "Building wheel for python${python_version}." \
     # Find any external NVQIR simulator assets to be pulled in during wheel packaging.
     && export CUDAQ_EXTERNAL_NVQIR_SIMS=$(bash scripts/find_wheel_assets.sh assets) \
     && export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/assets" \
-    && export CUQUANTUM_INSTALL_PREFIX=/usr/local/cuquantum \
-    && export CUTENSOR_INSTALL_PREFIX=/usr/local/cutensor \
-    && bash scripts/configure_build.sh install-cuquantum \
-    && bash scripts/configure_build.sh install-cutensor \
     &&  SETUPTOOLS_SCM_PRETEND_VERSION=${CUDA_QUANTUM_VERSION:-0.0.0} \
         CUDACXX="$CUDA_INSTALL_PREFIX/bin/nvcc" CUDAHOSTCXX=$CXX \
         $python -m build --wheel \
