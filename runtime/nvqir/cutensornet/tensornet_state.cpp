@@ -531,10 +531,7 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
   if (symplecticRepr.empty())
     return {};
 
-  cutensornetHandle_t cutnHandle = m_cutnHandle;
-  cutensornetState_t quantumState = getInternalState();
   const std::size_t numQubits = getNumQubits();
-
   const auto numSpinOps = symplecticRepr[0].size() / 2;
   std::vector<std::complex<double>> allExpVals;
   allExpVals.reserve(symplecticRepr.size());
@@ -571,9 +568,9 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
 
   cutensornetNetworkOperator_t cutnNetworkOperator;
 
-  HANDLE_CUTN_ERROR(
-      cutensornetCreateNetworkOperator(cutnHandle, numQubits, qubitDims.data(),
-                                       CUDA_C_64F, &cutnNetworkOperator));
+  HANDLE_CUTN_ERROR(cutensornetCreateNetworkOperator(
+      m_cutnHandle, numQubits, qubitDims.data(), CUDA_C_64F,
+      &cutnNetworkOperator));
 
   const std::vector<int32_t> numModes(pauliTensorData.size(), 1);
   int64_t id;
@@ -583,7 +580,7 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
   }
   const cuDoubleComplex termCoeff{1.0, 0.0};
   HANDLE_CUTN_ERROR(cutensornetNetworkOperatorAppendProduct(
-      cutnHandle, cutnNetworkOperator, termCoeff, pauliTensorData.size(),
+      m_cutnHandle, cutnNetworkOperator, termCoeff, pauliTensorData.size(),
       numModes.data(), dataStateModes.data(),
       /*tensorModeStrides*/ nullptr, pauliTensorData.data(), &id));
 
@@ -591,7 +588,7 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
   cutensornetStateExpectation_t tensorNetworkExpectation;
   {
     ScopedTraceWithContext("cutensornetCreateExpectation");
-    HANDLE_CUTN_ERROR(cutensornetCreateExpectation(cutnHandle, quantumState,
+    HANDLE_CUTN_ERROR(cutensornetCreateExpectation(m_cutnHandle, m_quantumState,
                                                    cutnNetworkOperator,
                                                    &tensorNetworkExpectation));
   }
@@ -604,7 +601,7 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
   {
     ScopedTraceWithContext("cutensornetExpectationConfigure");
     HANDLE_CUTN_ERROR(cutensornetExpectationConfigure(
-        cutnHandle, tensorNetworkExpectation,
+        m_cutnHandle, tensorNetworkExpectation,
         CUTENSORNET_EXPECTATION_OPT_NUM_HYPER_SAMPLES, &numHyperSamples,
         sizeof(numHyperSamples)));
   }
@@ -612,22 +609,23 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
   // Step 3: Prepare
   cutensornetWorkspaceDescriptor_t workDesc;
   HANDLE_CUTN_ERROR(
-      cutensornetCreateWorkspaceDescriptor(cutnHandle, &workDesc));
+      cutensornetCreateWorkspaceDescriptor(m_cutnHandle, &workDesc));
   {
     ScopedTraceWithContext("cutensornetExpectationPrepare");
-    HANDLE_CUTN_ERROR(cutensornetExpectationPrepare(
-        cutnHandle, tensorNetworkExpectation, scratchPad.scratchSize, workDesc,
-        /*cudaStream*/ 0));
+    HANDLE_CUTN_ERROR(
+        cutensornetExpectationPrepare(m_cutnHandle, tensorNetworkExpectation,
+                                      scratchPad.scratchSize, workDesc,
+                                      /*cudaStream*/ 0));
   }
 
   // Attach the workspace buffer
   int64_t worksize{0};
   HANDLE_CUTN_ERROR(cutensornetWorkspaceGetMemorySize(
-      cutnHandle, workDesc, CUTENSORNET_WORKSIZE_PREF_RECOMMENDED,
+      m_cutnHandle, workDesc, CUTENSORNET_WORKSIZE_PREF_RECOMMENDED,
       CUTENSORNET_MEMSPACE_DEVICE, CUTENSORNET_WORKSPACE_SCRATCH, &worksize));
   if (worksize <= static_cast<int64_t>(scratchPad.scratchSize)) {
     HANDLE_CUTN_ERROR(cutensornetWorkspaceSetMemory(
-        cutnHandle, workDesc, CUTENSORNET_MEMSPACE_DEVICE,
+        m_cutnHandle, workDesc, CUTENSORNET_MEMSPACE_DEVICE,
         CUTENSORNET_WORKSPACE_SCRATCH, scratchPad.d_scratch, worksize));
   } else {
     throw std::runtime_error("ERROR: Insufficient workspace size on Device!");
@@ -672,7 +670,7 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
       {
         ScopedTraceWithContext("cutensornetExpectationCompute");
         HANDLE_CUTN_ERROR(cutensornetExpectationCompute(
-            cutnHandle, tensorNetworkExpectation, workDesc, &expVal,
+            m_cutnHandle, tensorNetworkExpectation, workDesc, &expVal,
             static_cast<void *>(&stateNorm),
             /*cudaStream*/ 0));
       }
