@@ -15,7 +15,8 @@ namespace nvqir {
 
 TensorNetState::TensorNetState(std::size_t numQubits,
                                ScratchDeviceMem &inScratchPad,
-                               cutensornetHandle_t handle, std::mt19937 &randomEngine)
+                               cutensornetHandle_t handle,
+                               std::mt19937 &randomEngine)
     : m_numQubits(numQubits), m_cutnHandle(handle), scratchPad(inScratchPad),
       m_randomEngine(randomEngine) {
   const std::vector<int64_t> qubitDims(m_numQubits, 2);
@@ -26,7 +27,8 @@ TensorNetState::TensorNetState(std::size_t numQubits,
 
 TensorNetState::TensorNetState(const std::vector<int> &basisState,
                                ScratchDeviceMem &inScratchPad,
-                               cutensornetHandle_t handle, std::mt19937 &randomEngine)
+                               cutensornetHandle_t handle,
+                               std::mt19937 &randomEngine)
     : TensorNetState(basisState.size(), inScratchPad, handle, randomEngine) {
   constexpr std::complex<double> h_xGate[4] = {0.0, 1.0, 1.0, 0.0};
   constexpr auto sizeBytes = 4 * sizeof(std::complex<double>);
@@ -606,8 +608,8 @@ std::unique_ptr<TensorNetState> TensorNetState::createFromMpsTensors(
   LOG_API_TIME();
   if (in_mpsTensors.empty())
     throw std::invalid_argument("Empty MPS tensor list");
-  auto state = std::make_unique<TensorNetState>(in_mpsTensors.size(),
-                                                inScratchPad, handle, randomEngine);
+  auto state = std::make_unique<TensorNetState>(
+      in_mpsTensors.size(), inScratchPad, handle, randomEngine);
   std::vector<const int64_t *> extents;
   std::vector<void *> tensorData;
   for (const auto &tensor : in_mpsTensors) {
@@ -627,8 +629,8 @@ std::unique_ptr<TensorNetState> TensorNetState::createFromOpTensors(
     ScratchDeviceMem &inScratchPad, cutensornetHandle_t handle,
     std::mt19937 &randomEngine) {
   LOG_API_TIME();
-  auto state =
-      std::make_unique<TensorNetState>(numQubits, inScratchPad, handle, randomEngine);
+  auto state = std::make_unique<TensorNetState>(numQubits, inScratchPad, handle,
+                                                randomEngine);
   for (const auto &op : opTensors)
     if (op.isUnitary)
       state->applyGate(op.controlQubitIds, op.targetQubitIds, op.deviceData,
@@ -658,8 +660,8 @@ std::unique_ptr<TensorNetState> TensorNetState::createFromStateVector(
     cutensornetHandle_t handle, std::mt19937 &randomEngine) {
   LOG_API_TIME();
   const std::size_t numQubits = std::log2(stateVec.size());
-  auto state =
-      std::make_unique<TensorNetState>(numQubits, inScratchPad, handle, randomEngine);
+  auto state = std::make_unique<TensorNetState>(numQubits, inScratchPad, handle,
+                                                randomEngine);
 
   // Support initializing the tensor network in a specific state vector state.
   // Note: this is not intended for large state vector but for relatively small
