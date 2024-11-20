@@ -128,44 +128,6 @@ ENV UCX_MAX_RNDV_RAILS=1
 ENV UCX_MEMTYPE_CACHE=n
 ENV UCX_TLS=rc,cuda_copy,cuda_ipc,gdr_copy,sm
 
-# Install cuQuantum libraries.
-
-ARG CUQUANTUM_INSTALL_PREFIX=/opt/nvidia/cuquantum
-ENV CUQUANTUM_INSTALL_PREFIX="$CUQUANTUM_INSTALL_PREFIX"
-ENV CUQUANTUM_ROOT="$CUQUANTUM_INSTALL_PREFIX"
-ENV CUQUANTUM_PATH="$CUQUANTUM_INSTALL_PREFIX"
-ENV LD_LIBRARY_PATH="$CUQUANTUM_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
-ENV CPATH="$CUQUANTUM_INSTALL_PREFIX/include:$CPATH"
-
-ENV CUQUANTUM_VERSION=24.11.0.21
-RUN apt-get update && apt-get install -y --no-install-recommends xz-utils \
-    && arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
-    && cuda_major=$(echo $CUDA_VERSION | cut -d . -f1) \
-    && wget -q "https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-$arch_folder/cuquantum-linux-$arch_folder-${CUQUANTUM_VERSION}_cuda${cuda_major}-archive.tar.xz" \
-    && mkdir -p "$CUQUANTUM_INSTALL_PREFIX" && tar xf cuquantum-linux-$arch_folder-${CUQUANTUM_VERSION}_cuda${cuda_major}-archive.tar.xz --strip-components 1 -C "$CUQUANTUM_INSTALL_PREFIX" \
-    && rm cuquantum-linux-$arch_folder-${CUQUANTUM_VERSION}_cuda${cuda_major}-archive.tar.xz \
-    && apt-get remove -y xz-utils \
-    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
-
-# Install cuTensor libraries.
-
-ARG CUTENSOR_INSTALL_PREFIX=/opt/nvidia/cutensor
-ENV CUTENSOR_INSTALL_PREFIX="$CUTENSOR_INSTALL_PREFIX"
-ENV CUTENSOR_ROOT="$CUTENSOR_INSTALL_PREFIX"
-ENV LD_LIBRARY_PATH="$CUTENSOR_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
-ENV CPATH="$CUTENSOR_INSTALL_PREFIX/include:$CPATH"
-
-ENV CUTENSOR_VERSION=2.0.2.5
-RUN apt-get update && apt-get install -y --no-install-recommends xz-utils \
-    && arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
-    && cuda_major=$(echo $CUDA_VERSION | cut -d . -f1) \
-    && wget -q "https://developer.download.nvidia.com/compute/cutensor/redist/libcutensor/linux-$arch_folder/libcutensor-linux-$arch_folder-$CUTENSOR_VERSION-archive.tar.xz" \
-    && tar xf libcutensor-linux-$arch_folder-$CUTENSOR_VERSION-archive.tar.xz && cd libcutensor-linux-$arch_folder-$CUTENSOR_VERSION-archive \
-    && mkdir -p "$CUTENSOR_INSTALL_PREFIX" && mv include "$CUTENSOR_INSTALL_PREFIX" && mv lib/${cuda_major} "$CUTENSOR_INSTALL_PREFIX/lib" \
-    && cd / && rm -rf libcutensor-linux-$arch_folder-$CUTENSOR_VERSION-archive* \
-    && apt-get remove -y xz-utils \
-    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
-
 # Install CUDA
 
 ARG cuda_packages="cuda-cudart cuda-nvrtc cuda-compiler libcublas-dev libcusolver"
@@ -198,8 +160,22 @@ ENV CUDA_ROOT="$CUDA_INSTALL_PREFIX"
 ENV CUDA_PATH="$CUDA_INSTALL_PREFIX"
 ENV PATH="${CUDA_INSTALL_PREFIX}/lib64/:${CUDA_INSTALL_PREFIX}/bin:${PATH}"
 
-# Active MPI support for the cuTensorNet library
+# Install cuQuantum dependencies, including cuTensor.
+RUN python3.10 -m pip install cuquantum-python-cu$(echo $CUDA_VERSION | cut -d . -f1)~=24.11
 
-RUN cd "$CUQUANTUM_INSTALL_PREFIX/distributed_interfaces/" \
-    && source activate_mpi_cutn.sh
+ARG CUQUANTUM_INSTALL_PREFIX=/usr/local/lib/python3.10/dist-packages/cuquantum
+ENV CUQUANTUM_INSTALL_PREFIX="$CUQUANTUM_INSTALL_PREFIX"
+ENV CUQUANTUM_ROOT="$CUQUANTUM_INSTALL_PREFIX"
+ENV CUQUANTUM_PATH="$CUQUANTUM_INSTALL_PREFIX"
+ENV LD_LIBRARY_PATH="$CUQUANTUM_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
+ENV CPATH="$CUQUANTUM_INSTALL_PREFIX/include:$CPATH"
+
+ARG CUTENSOR_INSTALL_PREFIX=/usr/local/lib/python3.10/dist-packages/cutensor/
+ENV CUTENSOR_INSTALL_PREFIX="$CUTENSOR_INSTALL_PREFIX"
+ENV CUTENSOR_ROOT="$CUTENSOR_INSTALL_PREFIX"
+ENV LD_LIBRARY_PATH="$CUTENSOR_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
+ENV CPATH="$CUTENSOR_INSTALL_PREFIX/include:$CPATH"
+
+# Active MPI support for the cuTensorNet library
+RUN cd "$CUQUANTUM_INSTALL_PREFIX/distributed_interfaces/" && source activate_mpi_cutn.sh
 ENV CUTENSORNET_COMM_LIB="$CUQUANTUM_INSTALL_PREFIX/distributed_interfaces/libcutensornet_distributed_interface_mpi.so"

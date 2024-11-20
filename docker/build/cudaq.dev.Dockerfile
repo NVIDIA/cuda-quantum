@@ -62,10 +62,3 @@ RUN if [ -n "$install" ]; \
         fi; \
         echo "source-sha: $git_source_sha" > "$CUDAQ_INSTALL_PREFIX/build_info.txt"; \
     fi
-
-# Needed for dynamics.
-RUN if [ -z "${CUDA_VERSION}" ]; then \
-        python3 -m pip install --no-cache-dir cuquantum-python-cu12~=24.11; \
-    else \
-        python3 -m pip install --no-cache-dir cuquantum-python-cu$(echo $CUDA_VERSION | cut -d . -f1)~=24.11; \
-    fi
