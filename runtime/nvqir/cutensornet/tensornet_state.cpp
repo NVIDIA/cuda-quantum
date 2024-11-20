@@ -635,29 +635,30 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
   for (const auto &term : symplecticRepr) {
     bool allIdOps = true;
     for (std::size_t i = 0; i < numQubits; ++i) {
+      // Memory address of this Pauli term in the placeholder array.
       auto *address = static_cast<char *>(pauliMats_h) + i * ALIGNMENT_BYTES;
       constexpr int PAULI_ARRAY_SIZE_BYTES = 4 * sizeof(std::complex<double>);
+      // The Pauli matrix data that we want to load to this slot.
+      // Default is the Identity matrix.
+      const std::complex<double> *pauliMatrixPtr = PauliI_h;
       if (i < numSpinOps) {
         if (term[i] && term[i + numSpinOps]) {
           // Y
           allIdOps = false;
-          std::memcpy(address, PauliY_h, PAULI_ARRAY_SIZE_BYTES);
+          pauliMatrixPtr = PauliY_h;
         } else if (term[i]) {
           // X
           allIdOps = false;
-          std::memcpy(address, PauliX_h, PAULI_ARRAY_SIZE_BYTES);
+          pauliMatrixPtr = PauliX_h;
         } else if (term[i + numSpinOps]) {
           // Z
           allIdOps = false;
-          std::memcpy(address, PauliZ_h, PAULI_ARRAY_SIZE_BYTES);
-        } else {
-          // I
-          std::memcpy(address, PauliI_h, PAULI_ARRAY_SIZE_BYTES);
+          pauliMatrixPtr = PauliZ_h;
         }
-      } else {
-        // Padding I
-        std::memcpy(address, PauliI_h, PAULI_ARRAY_SIZE_BYTES);
       }
+      // Copy the Pauli matrix data to the placeholder array at the appropriate
+      // slot.
+      std::memcpy(address, pauliMatrixPtr, PAULI_ARRAY_SIZE_BYTES);
     }
     if (allIdOps) {
       allExpVals.emplace_back(1.0);
