@@ -362,6 +362,9 @@ struct ExpPauliDecomposition : public OpRewritePattern<quake::ExpPauliOp> {
               auto strAttr = cast<mlir::StringAttr>(attr.value());
               optPauliWordStr = strAttr.getValue();
             }
+          } else if (auto lit = addrOp.getDefiningOp<
+                                cudaq::cc::CreateStringLiteralOp>()) {
+            optPauliWordStr = lit.getStringLiteral();
           }
         }
       }
@@ -369,7 +372,7 @@ struct ExpPauliDecomposition : public OpRewritePattern<quake::ExpPauliOp> {
 
     // Assert that we have a constant known pauli word
     if (!optPauliWordStr.has_value())
-      return failure();
+      return expPauliOp.emitOpError("cannot determine pauli word string");
 
     auto pauliWordStr = optPauliWordStr.value();
 
