@@ -229,7 +229,7 @@ bool SimulatorTensorNetBase::canHandleObserve() {
   // Note: -1 is also used to denote non-sampling execution. Hence, we need to
   // check for this particular -1 value as being casted to an unsigned type.
   if (executionContext && executionContext->shots > 0 &&
-      executionContext->shots != static_cast<std::size_t>(-1)) {
+      executionContext->shots != ~0ull) {
     // This 'shots' mode is very slow for tensor network.
     // However, we need to respect the shots option.
     cudaq::info("[SimulatorTensorNetBase] Shots mode expectation calculation "
