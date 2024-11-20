@@ -1,6 +1,6 @@
 // Compile and run with:
 // ```
-// nvq++ --library-mode grover.cpp -o grover.x && ./grover.x
+// nvq++ grover.cpp -o grover.x && ./grover.x
 // ```
 
 #include <cmath>
