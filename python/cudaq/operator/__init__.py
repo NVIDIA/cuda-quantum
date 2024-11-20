@@ -11,4 +11,4 @@ from .evolution import evolve, evolve_async
 from .expressions import Operator, OperatorSum, ProductOperator, ElementaryOperator, ScalarOperator, RydbergHamiltonian
 from .helpers import NumericType
 from .schedule import Schedule
-from .cudm_state import CuDensityMatState, to_cupy_array, ket2dm, coherent_state, coherent_dm
+from .cudm_state import CuDensityMatState, to_cupy_array

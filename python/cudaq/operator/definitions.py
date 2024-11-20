@@ -47,7 +47,7 @@ class operators:
         def _displace(
                 dimension: int,
                 displacement: NumericType) -> NDArray[numpy.complexfloating]:
-            """Connects to the next available port.
+            """Returns the displacement operator matrix.
             Args:
                 displacement: Amplitude of the displacement operator.
                     See also https://en.wikipedia.org/wiki/Displacement_operator.
@@ -61,7 +61,7 @@ class operators:
         @staticmethod
         def _squeeze(dimension: int,
                      squeezing: NumericType) -> NDArray[numpy.complexfloating]:
-            """Connects to the next available port.
+            """Returns the squeezing operator matrix.
             Args:
                 squeezing: Amplitude of the squeezing operator.
                     See also https://en.wikipedia.org/wiki/Squeeze_operator.

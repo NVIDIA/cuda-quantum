@@ -7,10 +7,10 @@ import matplotlib.pyplot as plt
 
 # This example simulates time evolution of a qubit (`transmon`) being driven close to resonance in the presence of noise (decoherence).
 # Thus, it exhibits Rabi oscillations.
-
 # Set the target to our dynamics simulator
 cudaq.set_target("dynamics")
 
+# Qubit Hamiltonian reference: https://qiskit-community.github.io/qiskit-dynamics/tutorials/Rabi_oscillations.html
 # Device parameters
 # Qubit resonant frequency
 omega_z = 10.0 * 2 * np.pi

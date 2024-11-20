@@ -1,6 +1,5 @@
 import cudaq
 from cudaq import operators, spin, Schedule, ScipyZvodeIntegrator
-from cudaq.operator import coherent_state
 import numpy as np
 import cupy as cp
 import os
@@ -10,7 +9,9 @@ import matplotlib.pyplot as plt
 cudaq.set_target("dynamics")
 
 # This example demonstrates a simulation of a superconducting transmon qubit coupled to a resonator (i.e., cavity).
-# For reference, see "Charge-insensitive qubit design derived from the Cooper pair box", PRA 76, 042319
+# References:
+# - "Charge-insensitive qubit design derived from the Cooper pair box", PRA 76, 042319
+# - QuTiP lecture: https://github.com/jrjohansson/qutip-lectures/blob/master/Lecture-10-cQED-dispersive-regime.ipynb
 
 # Number of cavity photons
 N = 20
@@ -40,6 +41,21 @@ hamiltonian = 0.5 * omega_01_prime * spin.z(0) + (
 # Transmon in a superposition state
 transmon_state = cp.array([1. / np.sqrt(2.), 1. / np.sqrt(2.)],
                           dtype=cp.complex128)
+
+
+# Helper to create a coherent state in Fock basis truncated at `num_levels`.
+# Note: There are a couple of ways of generating a coherent state,
+# e.g., see https://qutip.readthedocs.io/en/v5.0.3/apidoc/functions.html#qutip.core.states.coherent
+# or https://en.wikipedia.org/wiki/Coherent_state
+# Here, in this example, we use a the formula: `|alpha> = D(alpha)|0>`,
+# i.e., apply the displacement operator on a zero (or vacuum) state to compute the corresponding coherent state.
+def coherent_state(num_levels, amplitude):
+    displace_mat = operators.displace(0).to_matrix({0: num_levels},
+                                                   displacement=amplitude)
+    # `D(alpha)|0>` is the first column of `D(alpha)` matrix
+    return cp.array(np.transpose(displace_mat)[0])
+
+
 # Cavity in a coherent state
 cavity_state = coherent_state(N, 2.0)
 psi0 = cudaq.State.from_data(cp.kron(transmon_state, cavity_state))

@@ -29,29 +29,6 @@ def to_cupy_array(state):
     return cupy_array
 
 
-# Helper to convert a state vector to a density matrix
-def ket2dm(ket: cupy.ndarray) -> cupy.ndarray:
-    return cupy.outer(ket.reshape((ket.size, 1)),
-                      cupy.conjugate(ket.reshape((ket.size, 1))))
-
-
-# Helper to create a 'coherent' state as a state vector.
-def coherent_state(N: int, alpha: float):
-    # Computes coherent state amplitudes in the Fock basis
-    # Ref: https://en.wikipedia.org/wiki/Coherent_state
-    fock_amplitudes = cupy.zeros(N, dtype=cupy.complex128)
-    amplitude = numpy.exp(-numpy.abs(alpha)**2 / 2.0)
-    for n in range(N):
-        fock_amplitudes[n] = amplitude
-        amplitude *= (alpha / numpy.sqrt(n + 1))
-    return fock_amplitudes
-
-
-# Helper to create a coherent state as a density matrix.
-def coherent_dm(N: int, alpha: float):
-    return ket2dm(coherent_state(N, alpha))
-
-
 # A Python wrapper of `CuDensityMatState` state.
 class CuDensityMatState(object):
     __ctx = None

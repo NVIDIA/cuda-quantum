@@ -9,6 +9,11 @@ import matplotlib.pyplot as plt
 # of the two states is a linear function of time, an analytical formula exists to calculate
 # the probability of finding the system in the excited state after the transition.
 
+# References:
+# - https://en.wikipedia.org/wiki/Landau%E2%80%93Zener_formula
+# - "The Landau-Zener formula made simple", `Eric P Glasbrenner and Wolfgang P Schleich 2023 J. Phys. B: At. Mol. Opt. Phys. 56 104001`
+# - QuTiP notebook: https://github.com/qutip/qutip-notebooks/blob/master/examples/landau-zener.ipynb
+
 # Set the target to our dynamics simulator
 cudaq.set_target("dynamics")
 
