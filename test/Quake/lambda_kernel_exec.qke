@@ -15,7 +15,7 @@
 // CHECK: llvm.call @cudaqRegisterLambdaName(%[[VAL_1]], %{{.*}}) : (!llvm.ptr<i8>, !llvm.ptr<i8>) -> ()
 
 module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__lambda.main.canHaveMultiple = "_ZZ4mainENK3$_1clEv", __nvqpp__mlirgen__lambda.main.test = "_ZZ4mainENK3$_0clEv"}} {
-  func.func @__nvqpp__mlirgen__lambda.main.test() attributes {"cudaq-entrypoint"} {
+  func.func @__nvqpp__mlirgen__lambda.main.test() attributes {"cudaq-entrypoint", no_this} {
     %c2_i32 = arith.constant 2 : i32
     %0 = arith.extsi %c2_i32 : i32 to i64
     %1 = quake.alloca !quake.veq<?>[%0 : i64]
@@ -54,7 +54,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__lambda.main.canHa
 // CHECK-NEXT: %[[VAL_4:.*]] = cc.cast %[[VAL_3]] : (!llvm.ptr<array<10 x i8>>) -> !llvm.ptr<i8>
 // CHECK: llvm.call @cudaqRegisterLambdaName(%[[VAL_4]], %{{.*}}) : (!llvm.ptr<i8>, !llvm.ptr<i8>) -> ()
 
-  func.func @__nvqpp__mlirgen__lambda.main.canHaveMultiple() attributes {"cudaq-entrypoint"} {
+  func.func @__nvqpp__mlirgen__lambda.main.canHaveMultiple() attributes {"cudaq-entrypoint", no_this} {
     %c2_i32 = arith.constant 2 : i32
     %0 = arith.extsi %c2_i32 : i32 to i64
     %1 = quake.alloca !quake.veq<?>[%0 : i64]

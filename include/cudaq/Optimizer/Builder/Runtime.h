@@ -10,6 +10,16 @@
 
 #include "cudaq/Optimizer/Builder/Factory.h"
 
+//===----------------------------------------------------------------------===//
+//
+// Runtime helper functions are functions that will appear in the runtime
+// library (implementations are defined in either the headers or libraries in
+// the `runtime` directory). These helper functions may never be assumed to
+// appear on the device-side, so these helpers should only be used in host-side
+// code.
+//
+//===----------------------------------------------------------------------===//
+
 namespace cudaq::runtime {
 
 /// Prefix for all kernel entry functions.
@@ -51,5 +61,16 @@ static constexpr const char CudaqRegisterKernelName[] =
 /// Prefix for an analog kernel entry functions.
 static constexpr const char cudaqAHSPrefixName[] =
     "__analog_hamiltonian_kernel__";
+
+// Host-side helper functions for working with `cudaq::pauli_word` or a
+// `std::string`. These include both fully dynamic and binding time (library
+// build time) helper functions.
+static constexpr const char sizeofStringAttrName[] = "cc.sizeof_string";
+static constexpr const char getPauliWordSize[] =
+    "_ZNK5cudaq10pauli_word11_nvqpp_sizeEv";
+static constexpr const char getPauliWordData[] =
+    "_ZNK5cudaq10pauli_word11_nvqpp_dataEv";
+static constexpr const char bindingGetStringData[] = "__nvqpp_getStringData";
+static constexpr const char bindingGetStringSize[] = "__nvqpp_getStringSize";
 
 } // namespace cudaq::runtime
