@@ -6,6 +6,10 @@ import numpy as np
 # AWS credentials must be set before running this program.
 # AWS Braket costs apply.
 
+# This example illustrates how to use QuEra's Aquila device on Braket with CUDA-Q.
+# It is a CUDA-Q implementation of the getting started materials for Braket available here:
+# https://docs.aws.amazon.com/braket/latest/developerguide/braket-get-started-hello-ahs.html
+
 cudaq.set_target("quera")
 
 # Define the 2-dimensional atom arrangement
