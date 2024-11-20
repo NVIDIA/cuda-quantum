@@ -169,10 +169,9 @@ TensorNetState::sample(const std::vector<int32_t> &measuredBitIds,
         &numHyperSamples, sizeof(numHyperSamples)));
 
     // Generate a random seed from the backend simulator's random engine.
-    // e.g., if the user set the seed, this will make sampling sequence
-    // deterministic. Note: after a random seed setting at the user's level,
+    // Note: after a random seed setting at the user's level,
     // consecutive `cudaq::sample` calls will still return different results
-    // (yet deterministic). i.e., the seed that we send to cutensornet should
+    // (yet deterministic), i.e., the seed that we send to cutensornet should
     // not be the user's seed.
     const int32_t rndSeed = m_randomEngine();
     HANDLE_CUTN_ERROR(cutensornetSamplerConfigure(
