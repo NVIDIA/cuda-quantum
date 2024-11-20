@@ -372,7 +372,7 @@ static Eigen::MatrixXcd reshapeStateVec(const Eigen::VectorXcd &stateVec) {
 MPSSimulationState::MpsStateData MPSSimulationState::createFromStateVec(
     cutensornetHandle_t cutnHandle, ScratchDeviceMem &inScratchPad,
     std::size_t size, std::complex<double> *ptr, int bondDim,
-    std::mt19937 &rngEng) {
+    std::mt19937 &randomEngine) {
   const std::size_t numQubits = std::log2(size);
   // Reverse the qubit order to match cutensornet convention
   auto newStateVec = TensorNetState::reverseQubitOrder(
@@ -390,7 +390,7 @@ MPSSimulationState::MpsStateData MPSSimulationState::createFromStateVec(
     stateTensor.deviceData = d_tensor;
     stateTensor.extents = std::vector<int64_t>{2};
     auto state = TensorNetState::createFromMpsTensors(
-        {stateTensor}, inScratchPad, cutnHandle, rngEng);
+        {stateTensor}, inScratchPad, cutnHandle, randomEngine);
     return {std::move(state), std::vector<MPSTensor>{stateTensor}};
   }
 
@@ -463,7 +463,7 @@ MPSSimulationState::MpsStateData MPSSimulationState::createFromStateVec(
   mpsTensors.emplace_back(stateTensor);
   assert(mpsTensors.size() == numQubits);
   auto state = TensorNetState::createFromMpsTensors(mpsTensors, inScratchPad,
-                                                    cutnHandle, rngEng);
+                                                    cutnHandle, randomEngine);
   return {std::move(state), mpsTensors};
 }
 

@@ -85,7 +85,7 @@ public:
                                          ScratchDeviceMem &inScratchPad,
                                          std::size_t size,
                                          std::complex<double> *data,
-                                         int bondDim, std::mt19937 &rngEng);
+                                         int bondDim, std::mt19937 &randomEngine);
 
   /// Retrieve the MPS tensors
   std::vector<MPSTensor> getMpsTensors() const { return m_mpsTensors; }

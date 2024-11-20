@@ -15,9 +15,9 @@ namespace nvqir {
 
 TensorNetState::TensorNetState(std::size_t numQubits,
                                ScratchDeviceMem &inScratchPad,
-                               cutensornetHandle_t handle, std::mt19937 &rngEng)
+                               cutensornetHandle_t handle, std::mt19937 &randomEngine)
     : m_numQubits(numQubits), m_cutnHandle(handle), scratchPad(inScratchPad),
-      m_randomEngine(rngEng) {
+      m_randomEngine(randomEngine) {
   const std::vector<int64_t> qubitDims(m_numQubits, 2);
   HANDLE_CUTN_ERROR(cutensornetCreateState(
       m_cutnHandle, CUTENSORNET_STATE_PURITY_PURE, m_numQubits,
@@ -26,8 +26,8 @@ TensorNetState::TensorNetState(std::size_t numQubits,
 
 TensorNetState::TensorNetState(const std::vector<int> &basisState,
                                ScratchDeviceMem &inScratchPad,
-                               cutensornetHandle_t handle, std::mt19937 &rngEng)
-    : TensorNetState(basisState.size(), inScratchPad, handle, rngEng) {
+                               cutensornetHandle_t handle, std::mt19937 &randomEngine)
+    : TensorNetState(basisState.size(), inScratchPad, handle, randomEngine) {
   constexpr std::complex<double> h_xGate[4] = {0.0, 1.0, 1.0, 0.0};
   constexpr auto sizeBytes = 4 * sizeof(std::complex<double>);
   void *d_gate{nullptr};
@@ -169,7 +169,7 @@ TensorNetState::sample(const std::vector<int32_t> &measuredBitIds,
         &numHyperSamples, sizeof(numHyperSamples)));
 
     // Generate a random seed from the backend simulator's random engine.
-    // Note: after a random seed setting at the user's level,
+    // Note: Even after a random seed setting at the user's level,
     // consecutive `cudaq::sample` calls will still return different results
     // (yet deterministic), i.e., the seed that we send to cutensornet should
     // not be the user's seed.
@@ -602,12 +602,12 @@ std::complex<double> TensorNetState::computeExpVal(
 
 std::unique_ptr<TensorNetState> TensorNetState::createFromMpsTensors(
     const std::vector<MPSTensor> &in_mpsTensors, ScratchDeviceMem &inScratchPad,
-    cutensornetHandle_t handle, std::mt19937 &rngEng) {
+    cutensornetHandle_t handle, std::mt19937 &randomEngine) {
   LOG_API_TIME();
   if (in_mpsTensors.empty())
     throw std::invalid_argument("Empty MPS tensor list");
   auto state = std::make_unique<TensorNetState>(in_mpsTensors.size(),
-                                                inScratchPad, handle, rngEng);
+                                                inScratchPad, handle, randomEngine);
   std::vector<const int64_t *> extents;
   std::vector<void *> tensorData;
   for (const auto &tensor : in_mpsTensors) {
@@ -625,10 +625,10 @@ std::unique_ptr<TensorNetState> TensorNetState::createFromMpsTensors(
 std::unique_ptr<TensorNetState> TensorNetState::createFromOpTensors(
     std::size_t numQubits, const std::vector<AppliedTensorOp> &opTensors,
     ScratchDeviceMem &inScratchPad, cutensornetHandle_t handle,
-    std::mt19937 &rngEng) {
+    std::mt19937 &randomEngine) {
   LOG_API_TIME();
   auto state =
-      std::make_unique<TensorNetState>(numQubits, inScratchPad, handle, rngEng);
+      std::make_unique<TensorNetState>(numQubits, inScratchPad, handle, randomEngine);
   for (const auto &op : opTensors)
     if (op.isUnitary)
       state->applyGate(op.controlQubitIds, op.targetQubitIds, op.deviceData,
@@ -655,11 +655,11 @@ TensorNetState::reverseQubitOrder(std::span<std::complex<double>> stateVec) {
 
 std::unique_ptr<TensorNetState> TensorNetState::createFromStateVector(
     std::span<std::complex<double>> stateVec, ScratchDeviceMem &inScratchPad,
-    cutensornetHandle_t handle, std::mt19937 &rngEng) {
+    cutensornetHandle_t handle, std::mt19937 &randomEngine) {
   LOG_API_TIME();
   const std::size_t numQubits = std::log2(stateVec.size());
   auto state =
-      std::make_unique<TensorNetState>(numQubits, inScratchPad, handle, rngEng);
+      std::make_unique<TensorNetState>(numQubits, inScratchPad, handle, randomEngine);
 
   // Support initializing the tensor network in a specific state vector state.
   // Note: this is not intended for large state vector but for relatively small

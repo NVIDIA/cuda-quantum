@@ -93,7 +93,8 @@ protected:
   std::unique_ptr<TensorNetState> m_state;
   std::unordered_map<std::string, void *> m_gateDeviceMemCache;
   ScratchDeviceMem scratchPad;
-  // Random number generator for generating random number for measurements.
+  // Random number generator for generating 32-bit numbers with a state size of
+  // 19937 bits for measurements.
   std::mt19937 m_randomEngine;
 };
 
