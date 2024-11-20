@@ -302,8 +302,7 @@ def test_pack_args_pauli_list():
     def generateRandomPauliStrings(numQubits, numPaulis):
         s = ['X', 'Y', 'Z', 'I']
         return [
-            ''.join([random.choice(s)
-                     for i in range(numQubits)])
+            ''.join([random.choice(s) for i in range(numQubits)])
             for i in range(numPaulis)
         ]
 
@@ -336,7 +335,8 @@ def test_pack_args_pauli_list():
     ts = np.random.rand(len(pauliStings))
 
     exp_val1 = cudaq.observe_async(gqeCirc1, obs, numQubits, list(ts),
-                                   pauliStings[0]).get().expectation()
+                                   cudaq.pauli_word(
+                                       pauliStings[0])).get().expectation()
     print('observe_async exp_val1', exp_val1)
     exp_val2 = cudaq.observe_async(gqeCirc2, obs, numQubits, list(ts),
                                    pauliStings).get().expectation()
