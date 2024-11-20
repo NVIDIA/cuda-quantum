@@ -15,8 +15,9 @@ namespace nvqir {
 
 TensorNetState::TensorNetState(std::size_t numQubits,
                                ScratchDeviceMem &inScratchPad,
-                               cutensornetHandle_t handle)
-    : m_numQubits(numQubits), m_cutnHandle(handle), scratchPad(inScratchPad) {
+                               cutensornetHandle_t handle, std::mt19937 &rngEng)
+    : m_numQubits(numQubits), m_cutnHandle(handle), scratchPad(inScratchPad),
+      m_randomEngine(rngEng) {
   const std::vector<int64_t> qubitDims(m_numQubits, 2);
   HANDLE_CUTN_ERROR(cutensornetCreateState(
       m_cutnHandle, CUTENSORNET_STATE_PURITY_PURE, m_numQubits,
@@ -25,8 +26,8 @@ TensorNetState::TensorNetState(std::size_t numQubits,
 
 TensorNetState::TensorNetState(const std::vector<int> &basisState,
                                ScratchDeviceMem &inScratchPad,
-                               cutensornetHandle_t handle)
-    : TensorNetState(basisState.size(), inScratchPad, handle) {
+                               cutensornetHandle_t handle, std::mt19937 &rngEng)
+    : TensorNetState(basisState.size(), inScratchPad, handle, rngEng) {
   constexpr std::complex<double> h_xGate[4] = {0.0, 1.0, 1.0, 0.0};
   constexpr auto sizeBytes = 4 * sizeof(std::complex<double>);
   void *d_gate{nullptr};
@@ -43,8 +44,8 @@ TensorNetState::TensorNetState(const std::vector<int> &basisState,
 }
 
 std::unique_ptr<TensorNetState> TensorNetState::clone() const {
-  return createFromOpTensors(m_numQubits, m_tensorOps, scratchPad,
-                             m_cutnHandle);
+  return createFromOpTensors(m_numQubits, m_tensorOps, scratchPad, m_cutnHandle,
+                             m_randomEngine);
 }
 
 void TensorNetState::applyGate(const std::vector<int32_t> &controlQubits,
@@ -166,6 +167,17 @@ TensorNetState::sample(const std::vector<int32_t> &measuredBitIds,
     HANDLE_CUTN_ERROR(cutensornetSamplerConfigure(
         m_cutnHandle, sampler, CUTENSORNET_SAMPLER_OPT_NUM_HYPER_SAMPLES,
         &numHyperSamples, sizeof(numHyperSamples)));
+
+    // Generate a random seed from the backend simulator's random engine.
+    // e.g., if the user set the seed, this will make sampling sequence
+    // deterministic. Note: after a random seed setting at the user's level,
+    // consecutive `cudaq::sample` calls will still return different results
+    // (yet deterministic). i.e., the seed that we send to cutensornet should
+    // not be the user's seed.
+    const int32_t rndSeed = m_randomEngine();
+    HANDLE_CUTN_ERROR(cutensornetSamplerConfigure(
+        m_cutnHandle, sampler, CUTENSORNET_SAMPLER_CONFIG_DETERMINISTIC,
+        &rndSeed, sizeof(rndSeed)));
   }
 
   // Prepare the quantum circuit sampler
@@ -591,12 +603,12 @@ std::complex<double> TensorNetState::computeExpVal(
 
 std::unique_ptr<TensorNetState> TensorNetState::createFromMpsTensors(
     const std::vector<MPSTensor> &in_mpsTensors, ScratchDeviceMem &inScratchPad,
-    cutensornetHandle_t handle) {
+    cutensornetHandle_t handle, std::mt19937 &rngEng) {
   LOG_API_TIME();
   if (in_mpsTensors.empty())
     throw std::invalid_argument("Empty MPS tensor list");
   auto state = std::make_unique<TensorNetState>(in_mpsTensors.size(),
-                                                inScratchPad, handle);
+                                                inScratchPad, handle, rngEng);
   std::vector<const int64_t *> extents;
   std::vector<void *> tensorData;
   for (const auto &tensor : in_mpsTensors) {
@@ -613,10 +625,11 @@ std::unique_ptr<TensorNetState> TensorNetState::createFromMpsTensors(
 /// operators.
 std::unique_ptr<TensorNetState> TensorNetState::createFromOpTensors(
     std::size_t numQubits, const std::vector<AppliedTensorOp> &opTensors,
-    ScratchDeviceMem &inScratchPad, cutensornetHandle_t handle) {
+    ScratchDeviceMem &inScratchPad, cutensornetHandle_t handle,
+    std::mt19937 &rngEng) {
   LOG_API_TIME();
   auto state =
-      std::make_unique<TensorNetState>(numQubits, inScratchPad, handle);
+      std::make_unique<TensorNetState>(numQubits, inScratchPad, handle, rngEng);
   for (const auto &op : opTensors)
     if (op.isUnitary)
       state->applyGate(op.controlQubitIds, op.targetQubitIds, op.deviceData,
@@ -641,14 +654,13 @@ TensorNetState::reverseQubitOrder(std::span<std::complex<double>> stateVec) {
   return ket;
 }
 
-std::unique_ptr<TensorNetState>
-TensorNetState::createFromStateVector(std::span<std::complex<double>> stateVec,
-                                      ScratchDeviceMem &inScratchPad,
-                                      cutensornetHandle_t handle) {
+std::unique_ptr<TensorNetState> TensorNetState::createFromStateVector(
+    std::span<std::complex<double>> stateVec, ScratchDeviceMem &inScratchPad,
+    cutensornetHandle_t handle, std::mt19937 &rngEng) {
   LOG_API_TIME();
   const std::size_t numQubits = std::log2(stateVec.size());
   auto state =
-      std::make_unique<TensorNetState>(numQubits, inScratchPad, handle);
+      std::make_unique<TensorNetState>(numQubits, inScratchPad, handle, rngEng);
 
   // Support initializing the tensor network in a specific state vector state.
   // Note: this is not intended for large state vector but for relatively small
