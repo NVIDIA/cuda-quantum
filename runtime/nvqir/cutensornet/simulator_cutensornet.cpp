@@ -283,9 +283,8 @@ SimulatorTensorNetBase::observe(const cudaq::spin_op &ham) {
         cudaq::ExecutionResult({}, termStrs[i], termExpVals[i].real()));
   }
 
-  cudaq::sample_result perTermData(static_cast<double>(expVal.real()), results);
-  return cudaq::observe_result(static_cast<double>(expVal.real()), ham,
-                               perTermData);
+  cudaq::sample_result perTermData(expVal.real(), results);
+  return cudaq::observe_result(expVal.real(), ham, perTermData);
 }
 
 nvqir::CircuitSimulator *SimulatorTensorNetBase::clone() { return nullptr; }
