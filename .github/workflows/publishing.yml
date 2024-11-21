@@ -1040,7 +1040,7 @@ jobs:
           $server run -p 8080 /tmp/packages & 
           
           if [ -n "${{ matrix.cuda_major }}" ]; then
-            pip install cuda-quantum-cu${{ matrix.cuda_major }} -v \
+            pip install cuda-quantum-cu${{ matrix.cuda_major }}==${{ needs.assets.outputs.cudaq_version }} -v \
               --extra-index-url http://localhost:8080 
           else
             pip install --upgrade pip
