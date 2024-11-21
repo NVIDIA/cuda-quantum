@@ -150,6 +150,10 @@ do
     if [ -n "$intended_target" ]; then
         echo "Intended for execution on $intended_target backend."
     fi
+    use_library_mode=`sed -e '/^$/,$d' $ex | grep -oP '^//\s*nvq++.+-library-mode'`
+    if [ -n "$use_library_mode" ]; then
+        nvqpp_extra_options="--library-mode"
+    fi
 
     for t in $requested_backends
     do
@@ -214,7 +218,7 @@ do
             for (( i=0; i<${arraylength}; i++ ));
             do
                 echo "  Testing nvidia target option: ${optionArray[$i]}"
-                nvq++ $ex $target_flag --target-option "${optionArray[$i]}"
+                nvq++ $nvqpp_extra_options $ex $target_flag --target-option "${optionArray[$i]}"
                 if [ ! $? -eq 0 ]; then
                     let "failed+=1"
                     echo "  :x: Compilation failed for $filename." >> "${tmpFile}_$(echo $t | tr - _)"
@@ -235,7 +239,7 @@ do
                 rm a.out /tmp/cudaq_validation.out &> /dev/null
             done
         else
-            nvq++ $ex $target_flag 
+            nvq++ $nvqpp_extra_options $ex $target_flag
             if [ ! $? -eq 0 ]; then
                 let "failed+=1"
                 echo ":x: Compilation failed for $filename." >> "${tmpFile}_$(echo $t | tr - _)"

@@ -36,10 +36,15 @@ static constexpr const char getCudaqSizeFromTriple[] =
 // typically specialized to be bit packed).
 static constexpr const char stdvecBoolCtorFromInitList[] =
     "__nvqpp_initializer_list_to_vector_bool";
+
 // Convert a (likely packed) std::vector<bool> into a sequence of bytes, each
 // holding a boolean value.
 static constexpr const char stdvecBoolUnpackToInitList[] =
     "__nvqpp_vector_bool_to_initializer_list";
+
+// Free any temporary buffers used to hold std::vector<bool> data.
+static constexpr const char stdvecBoolFreeTemporaryLists[] =
+    "__nvqpp_vector_bool_free_temporary_initlists";
 
 // The internal data of the cudaq::state object must be `2**n` in length. This
 // function returns the value `n`.
