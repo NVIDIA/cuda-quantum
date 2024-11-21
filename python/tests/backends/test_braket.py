@@ -19,31 +19,14 @@ from network_utils import check_server_connection
 ## NOTE: Amazon Braket costs apply
 pytestmark = pytest.mark.skip("Braket credentials required")
 
-try:
-    from utils.mock_qpu.braket import startServer
-except:
-    print("Mock qpu not available, skipping Braket tests.")
-    pytest.skip("Mock qpu not available.", allow_module_level=True)
-
-# Define the port for the mock server
-port = 62445
-
 
 @pytest.fixture(scope="session", autouse=True)
-def startUpMockServer():
-    # NOTE: Credentials can be set with AWS CLI
+def do_something():
     device_arn = "arn:aws:braket:::device/quantum-simulator/amazon/sv1"
     cudaq.set_target("braket", machine=device_arn)
-    # Launch the Mock Server
-    p = Process(target=startServer, args=(port,))
-    p.start()
-    if not check_server_connection(port):
-        p.terminate()
-        pytest.exit("Mock server did not start in time, skipping tests.",
-                    returncode=1)
     yield "Running the tests."
-    # Kill the server, remove the file
-    p.terminate()
+    cudaq.__clearKernelRegistries()
+    cudaq.reset_target()
 
 
 def test_simple_kernel():
@@ -74,7 +57,7 @@ def test_multi_qubit_kernel():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.sample(kernel, shots_count=100)
-    assert "cannot declare bit register. Only 1 bit register(s) is/are supported" in repr(
+    assert "cannot declare a qubit register. Only 1 qubit register(s) is/are supported" in repr(
         e)
 
 
@@ -140,6 +123,22 @@ def test_all_gates():
     assert "01" in counts
 
 
+def test_multi_qvector():
+
+    @cudaq.kernel
+    def kernel():
+        qubits = cudaq.qvector(2)
+        ancilla = cudaq.qvector(2)
+        x(qubits)
+        h(ancilla)
+        mz(ancilla)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.sample(kernel, shots_count=100)
+    assert "cannot declare a qubit register. Only 1 qubit register(s) is/are supported" in repr(
+        e)
+
+
 def test_control_modifier():
 
     @cudaq.kernel
@@ -174,10 +173,8 @@ def test_adjoint_modifier():
         q = cudaq.qubit()
         rx(1.1, q)
         rx.adj(1.1, q)
-
         ry(1.1, q)
         ry.adj(1.1, q)
-
         mz(q)
 
     counts = cudaq.sample(rotation_adjoint_test, shots_count=100)
@@ -287,12 +284,9 @@ def test_kernel_with_args():
     "arn:aws:braket:::device/quantum-simulator/amazon/tn1"
 ])
 def test_other_simulators(device_arn):
-
     cudaq.set_target("braket", machine=device_arn)
-
     test_qvector_kernel()
     test_builder_sample()
-
     cudaq.reset_target()
 
 
