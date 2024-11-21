@@ -290,16 +290,12 @@ jobs:
 
             # Parse README content to install openmpi
             conda_script="$(awk '/(Begin conda install)/{flag=1;next}/(End conda install)/{flag=0}flag' $metadata | grep . | sed '/^```/d')" 
-            # Skip the installation of CUDA since we don't need CUDA for this test.
-            regex='conda install -y -n cudaq-env.*cuda'
             while IFS= read -r line; do
-              if [[ ! "$line" =~ $regex ]]; then
-                  # Replace Python version
-                  line=$(echo $line | sed -E "s/python(=)?3.[0-9]{1,}/python\1${{ inputs.python_version }}/g")
-                  # Install the wheel file
-                  line=${line//pip install cuda-quantum-cu${cuda_major}/pip install ${cudaq_wheel}}
-                  eval "$line"
-              fi
+              # Replace Python version
+              line=$(echo $line | sed -E "s/python(=)?3.[0-9]{1,}/python\1${{ inputs.python_version }}/g")
+              # Install the wheel file
+              line=${line//pip install cuda-quantum-cu${cuda_major}/pip install ${cudaq_wheel}}
+              eval "$line"
             done <<< "$conda_script"
             ompi_script="$(awk '/(Begin ompi setup)/{flag=1;next}/(End ompi setup)/{flag=0}flag' $metadata | grep . | sed '/^```/d')" 
             while IFS= read -r line; do
