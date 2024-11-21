@@ -3,7 +3,7 @@ on:
     inputs:
       deployment_id:
         type: string
-        description: The workflow id of the deployment that contains produced the documentation to publish.
+        description: The workflow id of the deployment that contains the produced documentation to publish.
         required: true
       version:
         required: true
