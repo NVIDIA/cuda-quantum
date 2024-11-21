@@ -6,552 +6,664 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import cudaq, inspect, numpy, operator, types, uuid
+import cudaq, numpy as np, operator, pytest
 from cudaq.operator import *
-from typing import Any, Optional
-import os, pytest
+
 
 @pytest.fixture(autouse=True)
-def do_something():
+def setup_and_teardown():
     cudaq.set_target("qpp-cpu")
     yield
     cudaq.reset_target()
 
-def test_all():
-    dims = {0: 2, 1: 2, 2: 2, 3: 2, 4: 2}
 
-    print(f'pauliX(1): {spin.x(1).to_matrix(dims)}')
-    print(f'pauliY(2): {spin.y(2).to_matrix(dims)}')
+def test_pauli_matrices():
+    dims = {0: 2, 1: 2, 2: 2}
+    assert np.allclose(spin.x(1).to_matrix(dims), [[0, 1], [1, 0]])
+    assert np.allclose(spin.y(2).to_matrix(dims), [[0, -1j], [1j, 0]])
 
-    print(f'pauliZ(0) * pauliZ(0): {(spin.z(0) * spin.z(0)).to_matrix(dims)}')
-    print(f'pauliZ(0) * pauliZ(1): {(spin.z(0) * spin.z(1)).to_matrix(dims)}')
-    print(f'pauliZ(0) * pauliY(1): {(spin.z(0) * spin.y(1)).to_matrix(dims)}')
 
+def test_matrix_multiplication():
+    dims = {0: 2, 1: 2}
+    zz_00 = spin.z(0) * spin.z(0)
+    zz_01 = spin.z(0) * spin.z(1)
+    zy_01 = spin.z(0) * spin.y(1)
+    assert np.allclose(zz_00.to_matrix(dims), np.eye(2))
+    assert np.allclose(
+        zz_01.to_matrix(dims),
+        [[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
+    assert np.allclose(
+        zy_01.to_matrix(dims),
+        [[0, 0, -1j, 0], [0, 0, 0, 1j], [1j, 0, 0, 0], [0, -1j, 0, 0]])
+
+    dims = {0: 2}
+
+    I = spin.i(0)
+    X = spin.x(0)
+    Y = spin.y(0)
+    Z = spin.z(0)
+
+    expected_results = {
+        ("I", "I"): I,
+        ("I", "X"): X,
+        ("I", "Y"): Y,
+        ("I", "Z"): Z,
+        ("X", "I"): X,
+        ("X", "X"): I,
+        ("X", "Y"): 1j * Z,
+        ("X", "Z"): -1j * Y,
+        ("Y", "I"): Y,
+        ("Y", "X"): -1j * Z,
+        ("Y", "Y"): I,
+        ("Y", "Z"): 1j * X,
+        ("Z", "I"): Z,
+        ("Z", "X"): 1j * Y,
+        ("Z", "Y"): -1j * X,
+        ("Z", "Z"): I,
+    }
+
+    for (op1_str, op2_str), expected in expected_results.items():
+        op1 = locals()[op1_str]
+        op2 = locals()[op2_str]
+        product = op1 * op2
+        expected_matrix = expected.to_matrix(dims)
+        product_matrix = product.to_matrix(dims)
+        assert np.allclose(product_matrix,
+                           expected_matrix), f"Failed for {op1} * {op2}"
+
+
+def test_operator_addition():
+    dims = {0: 2, 1: 2}
     op1 = ProductOperator([spin.x(0), spin.i(1)])
     op2 = ProductOperator([spin.i(0), spin.x(1)])
-    print(f'pauliX(0) + pauliX(1): {op1.to_matrix(dims) + op2.to_matrix(dims)}')
-    op3 = ProductOperator([spin.x(1), spin.i(0)])
-    op4 = ProductOperator([
-        spin.i(1),
-        spin.x(0),
-    ])
-    print(f'pauliX(1) + pauliX(0): {op1.to_matrix(dims) + op2.to_matrix(dims)}')
+    assert np.allclose((op1 + op2).to_matrix(dims),
+                       [[0, 1, 1, 0], [1, 0, 0, 1], [1, 0, 0, 1], [0, 1, 1, 0]])
+    assert np.allclose((op2 + op1).to_matrix(dims),
+                       [[0, 1, 1, 0], [1, 0, 0, 1], [1, 0, 0, 1], [0, 1, 1, 0]])
 
-    print(f'pauliX(0) + pauliX(1): {(spin.x(0) + spin.x(1)).to_matrix(dims)}')
-    print(f'pauliX(0) * pauliX(1): {(spin.x(0) * spin.x(1)).to_matrix(dims)}')
-    print(
-        f'pauliX(0) * pauliI(1) * pauliI(0) * pauliX(1): {(op1 * op2).to_matrix(dims)}'
-    )
 
-    print(f'pauliX(0) * pauliI(1): {op1.to_matrix(dims)}')
-    print(f'pauliI(0) * pauliX(1): {op2.to_matrix(dims)}')
-    print(
-        f'pauliX(0) * pauliI(1) + pauliI(0) * pauliX(1): {(op1 + op2).to_matrix(dims)}'
-    )
+def test_complex_operations():
+    dims = {0: 2, 1: 2}
+    op1 = spin.x(0) * spin.x(1)
+    op2 = spin.z(0) * spin.z(1)
+    assert np.allclose(
+        (op1 + op2).to_matrix(dims),
+        [[1, 0, 0, 1], [0, -1, 1, 0], [0, 1, -1, 0], [1, 0, 0, 1]])
+    op3 = spin.x(0) + spin.x(1)
+    op4 = spin.z(0) + spin.z(1)
+    assert np.allclose(
+        (op3 * op4).to_matrix(dims),
+        [[0, 0, 0, 0], [2, 0, 0, -2], [2, 0, 0, -2], [0, 0, 0, 0]])
+    dims = {0: 2, 1: 2, 2: 2}
+    op5 = operators.squeeze(0) + operators.displace(1)
+    assert np.allclose(
+        op5.to_matrix(dims, displacement=0.5, squeezing=0.5),
+        [[1.87758256, 0, -0.47942554, 0], [0, 1.87758256, 0, -0.47942554],
+         [0.47942554, 0, 1.87758256, 0], [0, 0.47942554, 0, 1.87758256]])
+    assert np.allclose((op5 * spin.y(2)).to_matrix(dims,
+                                                   displacement=0.5,
+                                                   squeezing=0.5),
+                       (spin.y(2) * op5).to_matrix(dims,
+                                                   displacement=0.5,
+                                                   squeezing=0.5))
 
-    op5 = spin.x(0) * spin.x(1)
-    op6 = spin.z(0) * spin.z(1)
-    print(f'pauliX(0) * pauliX(1): {op5.to_matrix(dims)}')
-    print(f'pauliZ(0) * pauliZ(1): {op6.to_matrix(dims)}')
-    print(
-        f'pauliX(0) * pauliX(1) + pauliZ(0) * pauliZ(1): {(op5 + op6).to_matrix(dims)}'
-    )
 
-    op7 = spin.x(0) + spin.x(1)
-    op8 = spin.z(0) + spin.z(1)
-    print(f'pauliX(0) + pauliX(1): {op7.to_matrix(dims)}')
-    print(f'pauliZ(0) + pauliZ(1): {op8.to_matrix(dims)}')
-    print(
-        f'pauliX(0) + pauliX(1) + pauliZ(0) + pauliZ(1): {(op7 + op8).to_matrix(dims)}'
-    )
-    print(
-        f'(pauliX(0) + pauliX(1)) * (pauliZ(0) + pauliZ(1)): {(op7 * op8).to_matrix(dims)}'
-    )
-
-    print(
-        f'pauliX(0) * (pauliZ(0) + pauliZ(1)): {(spin.x(0) * op8).to_matrix(dims)}'
-    )
-    print(
-        f'(pauliZ(0) + pauliZ(1)) * pauliX(0): {(op8 * spin.x(0)).to_matrix(dims)}'
-    )
-
-    op9 = spin.z(1) + spin.z(2)
-    print(
-        f'(pauliX(0) + pauliX(1)) * pauliI(2): {numpy.kron(op7.to_matrix(dims), spin.i(2).to_matrix(dims))}'
-    )
-    print(
-        f'(pauliX(0) + pauliX(1)) * pauliI(2): {(op7 * spin.i(2)).to_matrix(dims)}'
-    )
-    print(
-        f'(pauliX(0) + pauliX(1)) * pauliI(2): {(spin.i(2) * op7).to_matrix(dims)}'
-    )
-    print(
-        f'pauliI(0) * (pauliZ(1) + pauliZ(2)): {numpy.kron(spin.i(0).to_matrix(dims), op9.to_matrix(dims))}'
-    )
-    print(
-        f'(pauliX(0) + pauliX(1)) * (pauliZ(1) + pauliZ(2)): {(op7 * op9).to_matrix(dims)}'
-    )
-
-    so0 = ScalarOperator(lambda: 1.0j)
-    print(f'Scalar op (t -> 1.0)(): {so0.to_matrix()}')
-
+def test_scalar_operations():
+    dims = {0: 2}
     so1 = ScalarOperator(lambda t: t)
-    print(f'Scalar op (t -> t)(1.): {so1.to_matrix(t = 1.0)}')
-    print(
-        f'Trivial prod op (t -> t)(1.): {(ProductOperator([so1])).to_matrix({}, t = 1.)}'
-    )
-    print(
-        f'Trivial prod op (t -> t)(2.): {(ProductOperator([so1])).to_matrix({}, t = 2.)}'
-    )
+    assert so1.to_matrix(t=2.0) == 2.0
+    op1 = so1 * spin.x(0)
+    op2 = spin.x(0) * so1
+    op3 = so1 + spin.x(0)
+    op4 = spin.x(0) + so1
+    assert np.allclose(op1.to_matrix(dims, t=2.0), [[0, 2], [2, 0]])
+    assert np.allclose(op2.to_matrix(dims, t=2.0), [[0, 2], [2, 0]])
+    assert np.allclose(op1.to_matrix(dims, t=2.0), op2.to_matrix(dims, t=2.0))
+    assert np.allclose(op3.to_matrix(dims, t=2.0), [[2, 1], [1, 2]])
+    assert np.allclose(op4.to_matrix(dims, t=2.0), [[2, 1], [1, 2]])
+    assert np.allclose(op3.to_matrix(dims, t=2.0), op4.to_matrix(dims, t=2.0))
+    assert np.allclose(op1.to_matrix(dims, t=1j), [[0, 1j], [1j, 0]])
+    assert np.allclose(op2.to_matrix(dims, t=1j), [[0, 1j], [1j, 0]])
+    assert np.allclose(op1.to_matrix(dims, t=2.0), op2.to_matrix(dims, t=2.0))
+    assert np.allclose(op3.to_matrix(dims, t=1j), [[1j, 1], [1, 1j]])
+    assert np.allclose(op4.to_matrix(dims, t=1j), [[1j, 1], [1, 1j]])
+    assert np.allclose(op3.to_matrix(dims, t=2.0), op4.to_matrix(dims, t=2.0))
 
-    print(
-        f'(t -> t)(1j) * pauliX(0): {(so1 * spin.x(0)).to_matrix(dims, t = 1j)}'
-    )
-    print(
-        f'pauliX(0) * (t -> t)(1j): {(spin.x(0) * so1).to_matrix(dims, t = 1j)}'
-    )
-    print(
-        f'pauliX(0) + (t -> t)(1j): {(spin.x(0) + so1).to_matrix(dims, t = 1j)}'
-    )
-    print(
-        f'(t -> t)(1j) + pauliX(0): {(so1 + spin.x(0)).to_matrix(dims, t = 1j)}'
-    )
-    print(
-        f'pauliX(0) + (t -> t)(1j): {(spin.x(0) + so1).to_matrix(dims, t = 1j)}'
-    )
-    print(
-        f'(t -> t)(1j) + pauliX(0): {(so1 + spin.x(0)).to_matrix(dims, t = 1j)}'
-    )
-    print(
-        f'(t -> t)(2.) * (pauliX(0) + pauliX(1)) * (pauliZ(1) + pauliZ(2)): {(so1 * op7 * op9).to_matrix(dims, t = 2.)}'
-    )
-    print(
-        f'(pauliX(0) + pauliX(1)) * (t -> t)(2.) * (pauliZ(1) + pauliZ(2)): {(op7 * so1 * op9).to_matrix(dims, t = 2.)}'
-    )
-    print(
-        f'(pauliX(0) + pauliX(1)) * (pauliZ(1) + pauliZ(2)) * (t -> t)(2.): {(op7 * op9 * so1).to_matrix(dims, t = 2.)}'
-    )
 
-    op10 = so1 * spin.x(0)
-    so1.generator = lambda t: 1. / t
-    print(f'(t -> 1/t)(2) * pauliX(0): {op10.to_matrix(dims, t = 2.)}')
-    so1_gen2 = so1.generator
-    so1.generator = lambda t: so1_gen2(2 * t)
-    print(f'(t -> 1/(2t))(2) * pauliX(0): {op10.to_matrix(dims, t = 2.)}')
-    so1.generator = lambda t: so1_gen2(t)
-    print(f'(t -> 1/t)(2) * pauliX(0): {op10.to_matrix(dims, t = 2.)}')
+def test_scalar_constant():
+    so_const = ScalarOperator.const(5)
+    assert np.allclose(so_const.to_matrix(), [5])
 
-    so2 = ScalarOperator(lambda t: t**2)
-    op11 = spin.z(1) * so2
-    print(f'pauliZ(0) * (t -> t^2)(2.): {op11.to_matrix(dims, t = 2.)}')
 
-    so3 = ScalarOperator(lambda t: 1. / t)
-    so4 = ScalarOperator(lambda t: t**2)
-    print(f'((t -> 1/t) * (t -> t^2))(2.): {(so3 * so4).to_matrix(t = 2.)}')
-    so5 = so3 + so4
-    so3.generator = lambda field: 1. / field
-    print(
-        f'((f -> 1/f) + (t -> t^2))(f=2, t=1.): {so5.to_matrix(t = 1., field = 2)}'
-    )
+def test_scalar_arithmetic_operations():
+    so1 = ScalarOperator.const(3)
+    so2 = ScalarOperator.const(2)
 
-    def generator(field, **kwargs):
-        print(f'generator got kwargs: {kwargs}')
-        return field
+    assert np.allclose((so1 + so2).to_matrix(), [5])
+    assert np.allclose((so1 - so2).to_matrix(), [1])
+    assert np.allclose((so1 * so2).to_matrix(), [6])
+    assert np.allclose((so1 / so2).to_matrix(), [1.5])
+    assert np.allclose((so1**2).to_matrix(), [9])
 
-    so3.generator = generator
-    print(
-        f'((f -> f) + (t -> t^2))(f=3, t=2): {so5.to_matrix(field = 3, t = 2, dummy = 10)}'
-    )
 
-    so6 = ScalarOperator(lambda foo, *, bar: foo * bar)
-    print(
-        f'((f,t) -> f*t)(f=3, t=2): {so6.to_matrix(foo = 3, bar = 2, dummy = 10)}'
-    )
-    so7 = ScalarOperator(lambda foo, *, bar, **kwargs: foo * bar)
-    print(
-        f'((f,t) -> f*t)(f=3, t=2): {so6.to_matrix(foo = 3, bar = 2, dummy = 10)}'
-    )
+def test_scalar_generator_update():
+    so1 = ScalarOperator(lambda t: t)
+    so1.generator = lambda p: 1 / p
+    assert 'p' in so1.parameters
 
-    def get_parameter_value(parameter_name: str, time: float):
-        if parameter_name == "foo":
-            return time
-        elif parameter_name == "bar":
-            return 2 * time
-        else:
-            raise NotImplementedError(
-                f'No value defined for parameter {parameter_name}.')
+    dims = {0: 2}
+    op = so1 * spin.x(0)
+    assert np.allclose(op.to_matrix(dims, p=2.0), [[0, 0.5], [0.5, 0]])
 
-    schedule = Schedule([0.0, 0.5, 1.0], so6.parameters, get_parameter_value)
-    for parameters in schedule:
-        print(f'step {schedule.current_step}')
-        print(
-            f'((f,t) -> f*t)({parameters}): {so6.to_matrix({}, **parameters)}')
+    # Update to new generator function
+    so1.generator = lambda q: q + 1
+    assert 'q' in so1.parameters
 
-    print(
-        f'(pauliX(0) + i*pauliY(0))/2: {0.5 * (spin.x(0) + operators.const(1j) * spin.y(0)).to_matrix(dims)}'
-    )
-    print(f'pauli+(0): {spin.plus(0).to_matrix(dims)}')
-    print(
-        f'(pauliX(0) - i*pauliY(0))/2: {0.5 * (spin.x(0) - operators.const(1j) * spin.y(0)).to_matrix(dims)}'
-    )
-    print(f'pauli-(0): {spin.minus(0).to_matrix(dims)}')
 
-    op12 = operators.squeeze(0) + operators.displace(0)
-    print(f'create<3>(0): {operators.create(0).to_matrix({0:3})}')
-    print(f'annihilate<3>(0): {operators.annihilate(0).to_matrix({0:3})}')
-    print(
-        f'squeeze<3>(0)[squeezing = 0.5]: {operators.squeeze(0).to_matrix({0:3}, squeezing=0.5)}'
-    )
-    print(
-        f'displace<3>(0)[displacement = 0.5]: {operators.displace(0).to_matrix({0:3}, displacement=0.5)}'
-    )
-    print(
-        f'(squeeze<3>(0) + displace<3>(0))[squeezing = 0.5, displacement = 0.5]: {op12.to_matrix({0:3}, displacement=0.5, squeezing=0.5)}'
-    )
-    print(
-        f'squeeze<4>(0)[squeezing = 0.5]: {operators.squeeze(0).to_matrix({0:4}, squeezing=0.5)}'
-    )
-    print(
-        f'displace<4>(0)[displacement = 0.5]: {operators.displace(0).to_matrix({0:4}, displacement=0.5)}'
-    )
-    print(
-        f'(squeeze<4>(0) + displace<4>(0))[squeezing = 0.5, displacement = 0.5]: {op12.to_matrix({0:4}, displacement=0.5, squeezing=0.5)}'
-    )
+def test_composite_scalar_operator_with_same_parameter():
+    so1 = ScalarOperator(lambda t: t)
+    so2 = ScalarOperator(lambda t: 2 * t)
+    composite_op = so1 * so2
 
-    so8 = ScalarOperator(lambda my_param: my_param - 1)
-    so9 = so7 * so8
-    print(f'parameter descriptions: {operators.squeeze(0).parameters}')
-    print(f'parameter descriptions: {op12.parameters}')
-    print(f'parameter descriptions: {(so7 + so8).parameters}')
-    print(
-        f'parameter descriptions: {(operators.squeeze(0) * operators.displace(0)).parameters}'
-    )
-    print(f'parameter descriptions: {so9.parameters}')
-    so7.generator = lambda new_parameter: 1.0
-    print(f'parameter descriptions: {so9.parameters}')
-    so9.generator = lambda reset: reset
-    print(f'parameter descriptions: {so9.parameters}')
+    dims = {0: 2}
+    op = composite_op * spin.x(0)
+    assert np.allclose(op.to_matrix(dims, t=2.0), [[0, 8], [8, 0]])
 
-    def all_zero(sure, args):
+
+def test_composite_scalar_operator_with_different_parameter():
+    so1 = ScalarOperator(lambda t: t)
+    so2 = ScalarOperator(lambda p: 2 * p)
+    composite_op = so1 * so2
+
+    dims = {0: 2}
+    op = composite_op * spin.x(0)
+    assert np.allclose(op.to_matrix(dims, t=2.0, p=3.0), [[0, 12], [12, 0]])
+    assert 't' in composite_op.parameters and 'p' in composite_op.parameters
+
+
+def test_parameter_update_in_composite_operator():
+    so1 = ScalarOperator(lambda t: t)
+    so2 = ScalarOperator(lambda p: 2 * p)
+    composite_op = so1 * so2
+
+    so1.generator = lambda q: 1 / q
+    assert 'q' in composite_op.parameters
+    assert 'p' in composite_op.parameters
+
+
+def test_scalar_operator_with_parameter_doc():
+    # Define a generator with a parameter docstring
+    def generator_with_doc(t):
+        """Time parameter for scaling"""
+        return t
+
+    so = ScalarOperator(generator_with_doc)
+    assert 't' in so.parameters
+
+
+def test_composite_scalar_operator_with_parameter_doc():
+    # Define generators with individual parameter docstrings
+    def generator1(t):
+        """Time parameter for first scalar operator"""
+        return t
+
+    def generator2(p):
+        """Amplitude parameter for second scalar operator"""
+        return p * 2
+
+    so1 = ScalarOperator(generator1)
+    so2 = ScalarOperator(generator2)
+
+    composite_op = so1 * so2
+    assert 't' in composite_op.parameters
+    assert 'p' in composite_op.parameters
+
+
+def test_update_parameter_doc_in_composite_operator():
+    # Define initial generators with a docstring
+    def generator1(t):
+        """Initial time parameter"""
+        return t
+
+    def generator2(p):
+        """Amplitude parameter"""
+        return p * 2
+
+    so1 = ScalarOperator(generator1)
+    so2 = ScalarOperator(generator2)
+
+    composite_op = so1 * so2
+    assert 't' in composite_op.parameters
+    assert 'p' in composite_op.parameters
+
+    def new_generator(q):
+        """New frequency parameter"""
+        return 1 / q
+
+    so1.generator = new_generator
+
+    assert 'q' in composite_op.parameters
+    assert 'p' in composite_op.parameters
+
+
+def test_parameter_description():
+    squeeze_op = operators.squeeze(0)
+    displace_op = operators.displace(0)
+    combined_op = squeeze_op + displace_op
+    assert 'squeezing' in squeeze_op.parameters and squeeze_op.parameters['squeezing'].strip() 
+    assert 'displacement' in displace_op.parameters and displace_op.parameters['displacement'].strip()
+    assert 'squeezing' in combined_op.parameters and combined_op.parameters['squeezing'].strip() 
+    assert 'displacement' in combined_op.parameters and combined_op.parameters['displacement'].strip()
+    assert combined_op.parameters['squeezing'] == squeeze_op.parameters['squeezing']
+    assert combined_op.parameters['displacement'] == displace_op.parameters['displacement']
+
+    def generator(param1, args):
         """Some args documentation.
         Args:
 
-        sure (:obj:`int`, optional): my docs for sure
+        param1 (:obj:`int`, optional): my docs for param1
         args: Description of `args`. Multiple
                 lines are supported.
         Returns:
-        Something that for sure is correct.
+        Something that depends on param1.
         """
-        if sure:
+        if param1:
             return 0
         else:
-            return 1
+            return args
 
-    print(f'parameter descriptions: {(ScalarOperator(all_zero)).parameters}')
+    op = ScalarOperator(generator)
+    assert 'param1' in op.parameters and op.parameters['param1'] == 'my docs for param1'
+    assert 'args' in op.parameters and op.parameters['args'] == 'Description of `args`. Multiple lines are supported.'
 
+
+def test_operator_equality():
+    # ScalarOperator constants and generators
+    assert ScalarOperator.const(5) == ScalarOperator.const(5)
+    assert ScalarOperator.const(5) == ScalarOperator.const(5 + 0j)
+    assert ScalarOperator.const(5) != ScalarOperator.const(5j)
+    assert ScalarOperator.const(lambda: 5) != ScalarOperator.const(5)
+    assert ScalarOperator.const(lambda: 5) != ScalarOperator.const(lambda: 5)
+
+    generator = lambda: 5
+    so1 = ScalarOperator(generator)
+    so2 = ScalarOperator(lambda: 5)
+
+    assert so1 != so2
+    assert so1 == ScalarOperator(generator)
+    so2.generator = generator
+    assert so1 == so2
+
+    # Identity and elementary operators with scalar operators
+    elop = ElementaryOperator.identity(1)
+    assert (elop * so1) == (elop * so2)
+    assert (elop + so1) == (elop + so2)
+
+    # Spin operators
+    assert (spin.x(1) + spin.y(1)) == ((spin.y(1) + spin.x(1)))
+    assert (spin.x(1) * spin.y(1)) == ((spin.y(1) * spin.x(1)))
+    assert (spin.x(0) + spin.y(1)) == ((spin.y(1) + spin.x(0)))
+    assert (spin.x(0) * spin.y(1)) == ((spin.y(1) * spin.x(0)))
+
+    # Product and sum of operators
+    opprod = operators.create(0) * operators.annihilate(0)
+    oppsum = operators.create(0) + operators.annihilate(0)
+    assert opprod != oppsum
+    assert (opprod * so1) == (so1 * opprod)
+    assert (opprod + so1) == (so1 + opprod)
+
+    # Pauli matrices
+    spinzy = lambda i, j: spin.z(i) * spin.y(j)
+    spinxy = lambda i, j: spin.x(i) * spin.y(j)
+    assert (spinxy(0, 0) + spinzy(0, 0)) == (spinzy(0, 0) + spinxy(0, 0))
+    assert (spinxy(0, 0) * spinzy(0, 0)) == (spinzy(0, 0) * spinxy(0, 0))
+    assert (spinxy(1, 1) * spinzy(0, 0)) == (spinzy(0, 0) * spinxy(1, 1))
+    assert (spinxy(1, 2) * spinzy(3, 4)) == (spinzy(3, 4) * spinxy(1, 2))
+
+    # Scalar arithmetic and operator interactions
+    assert (ScalarOperator.const(5) +
+            ScalarOperator.const(3)) == (ScalarOperator.const(4) +
+                                         ScalarOperator.const(4))
+    assert (ScalarOperator.const(6) *
+            ScalarOperator.const(2)) == (ScalarOperator.const(4) *
+                                         ScalarOperator.const(3))
+    assert ((ScalarOperator.const(5) + ScalarOperator.const(3)) *
+            elop) == (elop *
+                      (ScalarOperator.const(4) + ScalarOperator.const(4)))
+    assert (ScalarOperator.const(6) * ScalarOperator.const(2) +
+            elop) == (elop + ScalarOperator.const(4) * ScalarOperator.const(3))
+    assert (ScalarOperator.const(6) * ScalarOperator.const(2) *
+            elop) == (elop * ScalarOperator.const(4) * ScalarOperator.const(3))
+
+    # Mixed scalar and operator arithmetic
+    assert (ScalarOperator.const(5) + 3) == (4 + ScalarOperator.const(4))
+    assert (ScalarOperator.const(6) * 2) == (4 * ScalarOperator.const(3))
+    assert ((ScalarOperator.const(5) + 3) *
+            elop) == (elop * (4 + ScalarOperator.const(4)))
+    assert (ScalarOperator.const(6) * 2 + elop) == (elop +
+                                                    4 * ScalarOperator.const(3))
+    assert (ScalarOperator.const(6) * 2.0 * elop) == (elop * 4.0 *
+                                                      ScalarOperator.const(3))
+    assert (ScalarOperator.const(6) / 2) == ScalarOperator.const(3)
+
+
+def test_arithmetics_operations():
+    dims = {0: 2, 1: 2}
     scop = operators.const(2)
     elop = operators.identity(1)
-    print(f"arithmetics: {scop.to_matrix(dims)}")
-    print(f"arithmetics: {elop.to_matrix(dims)}")
-    print(f"arithmetics: {(elop / scop).to_matrix(dims)}")
-    print(f"arithmetics: {(scop * elop).to_matrix(dims)}")
-    print(f"arithmetics: {(elop * scop).to_matrix(dims)}")
-    print(f"arithmetics: {(scop + elop).to_matrix(dims)}")
-    print(f"arithmetics: {(elop + scop).to_matrix(dims)}")
-    print(f"arithmetics: {(scop - elop).to_matrix(dims)}")
-    print(f"arithmetics: {(elop - scop).to_matrix(dims)}")
-    print(f"arithmetics: {((scop * elop) / scop).to_matrix(dims)}")
-    print(f"arithmetics: {((elop / scop) * elop).to_matrix(dims)}")
-    print(f"arithmetics: {((elop / scop) + elop).to_matrix(dims)}")
-    print(f"arithmetics: {(elop * (elop / scop)).to_matrix(dims)}")
-    print(f"arithmetics: {(elop + (elop / scop)).to_matrix(dims)}")
-    print(f"arithmetics: {((scop + elop) / scop).to_matrix(dims)}")
-    print(f"arithmetics: {(scop + (elop / scop)).to_matrix(dims)}")
-    print(f"arithmetics: {((scop * elop) / scop).to_matrix(dims)}")
-    print(f"arithmetics: {(scop * (elop / scop)).to_matrix(dims)}")
-    print(f"arithmetics: {((scop * elop) * scop).to_matrix(dims)}")
-    print(f"arithmetics: {(scop * (scop * elop)).to_matrix(dims)}")
-    print(f"arithmetics: {((scop * elop) * elop).to_matrix(dims)}")
-    print(f"arithmetics: {(elop * (scop * elop)).to_matrix(dims)}")
-    print(f"arithmetics: {((scop * elop) + scop).to_matrix(dims)}")
-    print(f"arithmetics: {(scop + (scop * elop)).to_matrix(dims)}")
-    print(f"arithmetics: {((scop * elop) + elop).to_matrix(dims)}")
-    print(f"arithmetics: {(elop + (scop * elop)).to_matrix(dims)}")
-    print(f"arithmetics: {((scop * elop) - scop).to_matrix(dims)}")
-    print(f"arithmetics: {(scop - (scop * elop)).to_matrix(dims)}")
-    print(f"arithmetics: {((scop * elop) - elop).to_matrix(dims)}")
-    print(f"arithmetics: {(elop - (scop * elop)).to_matrix(dims)}")
-    print(f"arithmetics: {((scop + elop) * scop).to_matrix(dims)}")
-    print(f"arithmetics: {(scop * (scop + elop)).to_matrix(dims)}")
-    print(f"arithmetics: {((scop + elop) * elop).to_matrix(dims)}")
-    print(f"arithmetics: {(elop * (scop + elop)).to_matrix(dims)}")
-    print(f"arithmetics: {((scop - elop) * scop).to_matrix(dims)}")
-    print(f"arithmetics: {(scop * (scop - elop)).to_matrix(dims)}")
-    print(f"arithmetics: {((scop - elop) * elop).to_matrix(dims)}")
-    print(f"arithmetics: {(elop * (scop - elop)).to_matrix(dims)}")
-    print(f"arithmetics: {((scop + elop) + scop).to_matrix(dims)}")
-    print(f"arithmetics: {(scop + (scop + elop)).to_matrix(dims)}")
-    print(f"arithmetics: {((scop + elop) + elop).to_matrix(dims)}")
-    print(f"arithmetics: {(elop + (scop + elop)).to_matrix(dims)}")
-    print(f"arithmetics: {((scop - elop) - scop).to_matrix(dims)}")
-    print(f"arithmetics: {(scop - (scop - elop)).to_matrix(dims)}")
-    print(f"arithmetics: {((scop - elop) - elop).to_matrix(dims)}")
-    print(f"arithmetics: {(elop - (scop - elop)).to_matrix(dims)}")
+    assert np.allclose((scop + elop).to_matrix(dims),
+                       (elop + scop).to_matrix(dims))
+    assert np.allclose((scop - elop).to_matrix(dims),
+                       -(elop - scop).to_matrix(dims))
+    assert np.allclose((scop * elop).to_matrix(dims),
+                       (elop * scop).to_matrix(dims))
+    assert np.allclose(
+        (elop / scop).to_matrix(dims),
+        [[0.5, 0, 0, 0], [0, 0.5, 0, 0], [0, 0, 0.5, 0], [0, 0, 0, 0.5]])
+    assert np.allclose(((scop * elop) / scop).to_matrix(dims),
+                       [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+    assert np.allclose(
+        ((elop / scop) * elop).to_matrix(dims),
+        [[0.5, 0, 0, 0], [0, 0.5, 0, 0], [0, 0, 0.5, 0], [0, 0, 0, 0.5]])
+    assert np.allclose(
+        ((elop / scop) + elop).to_matrix(dims),
+        [[1.5, 0, 0, 0], [0, 1.5, 0, 0], [0, 0, 1.5, 0], [0, 0, 0, 1.5]])
+    assert np.allclose(
+        (elop * (elop / scop)).to_matrix(dims),
+        [[0.5, 0, 0, 0], [0, 0.5, 0, 0], [0, 0, 0.5, 0], [0, 0, 0, 0.5]])
+    assert np.allclose(
+        (elop + (elop / scop)).to_matrix(dims),
+        [[1.5, 0, 0, 0], [0, 1.5, 0, 0], [0, 0, 1.5, 0], [0, 0, 0, 1.5]])
+    assert np.allclose(
+        ((scop + elop) / scop).to_matrix(dims),
+        [[1.5, 0, 0, 0], [0, 1.5, 0, 0], [0, 0, 1.5, 0], [0, 0, 0, 1.5]])
+    assert np.allclose(
+        (scop + (elop / scop)).to_matrix(dims),
+        [[2.5, 0, 0, 0], [0, 2.5, 0, 0], [0, 0, 2.5, 0], [0, 0, 0, 2.5]])
+    assert np.allclose(((scop * elop) / scop).to_matrix(dims),
+                       [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+    assert np.allclose((scop * (elop / scop)).to_matrix(dims),
+                       [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+    assert np.allclose(((scop * elop) * scop).to_matrix(dims),
+                       [[4, 0, 0, 0], [0, 4, 0, 0], [0, 0, 4, 0], [0, 0, 0, 4]])
+    assert np.allclose((scop * (scop * elop)).to_matrix(dims),
+                       [[4, 0, 0, 0], [0, 4, 0, 0], [0, 0, 4, 0], [0, 0, 0, 4]])
+    assert np.allclose(((scop * elop) * elop).to_matrix(dims),
+                       [[2, 0, 0, 0], [0, 2, 0, 0], [0, 0, 2, 0], [0, 0, 0, 2]])
+    assert np.allclose((elop * (scop * elop)).to_matrix(dims),
+                       [[2, 0, 0, 0], [0, 2, 0, 0], [0, 0, 2, 0], [0, 0, 0, 2]])
+    assert np.allclose(((scop * elop) + scop).to_matrix(dims),
+                       [[4, 0, 0, 0], [0, 4, 0, 0], [0, 0, 4, 0], [0, 0, 0, 4]])
+    assert np.allclose((scop + (scop * elop)).to_matrix(dims),
+                       [[4, 0, 0, 0], [0, 4, 0, 0], [0, 0, 4, 0], [0, 0, 0, 4]])
+    assert np.allclose(((scop * elop) + elop).to_matrix(dims),
+                       [[3, 0, 0, 0], [0, 3, 0, 0], [0, 0, 3, 0], [0, 0, 0, 3]])
+    assert np.allclose((elop + (scop * elop)).to_matrix(dims),
+                       [[3, 0, 0, 0], [0, 3, 0, 0], [0, 0, 3, 0], [0, 0, 0, 3]])
+    assert np.allclose(((scop * elop) - scop).to_matrix(dims),
+                       [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+    assert np.allclose((scop - (scop * elop)).to_matrix(dims),
+                       [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+    assert np.allclose(((scop * elop) - elop).to_matrix(dims),
+                       [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+    assert np.allclose(
+        (elop - (scop * elop)).to_matrix(dims),
+        [[-1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, -1]])
+    assert np.allclose(((scop + elop) * scop).to_matrix(dims),
+                       [[6, 0, 0, 0], [0, 6, 0, 0], [0, 0, 6, 0], [0, 0, 0, 6]])
+    assert np.allclose((scop * (scop + elop)).to_matrix(dims),
+                       [[6, 0, 0, 0], [0, 6, 0, 0], [0, 0, 6, 0], [0, 0, 0, 6]])
+    assert np.allclose(((scop + elop) * elop).to_matrix(dims),
+                       [[3, 0, 0, 0], [0, 3, 0, 0], [0, 0, 3, 0], [0, 0, 0, 3]])
+    assert np.allclose((elop * (scop + elop)).to_matrix(dims),
+                       [[3, 0, 0, 0], [0, 3, 0, 0], [0, 0, 3, 0], [0, 0, 0, 3]])
+    assert np.allclose(((scop - elop) * scop).to_matrix(dims),
+                       [[2, 0, 0, 0], [0, 2, 0, 0], [0, 0, 2, 0], [0, 0, 0, 2]])
+    assert np.allclose((scop * (scop - elop)).to_matrix(dims),
+                       [[2, 0, 0, 0], [0, 2, 0, 0], [0, 0, 2, 0], [0, 0, 0, 2]])
+    assert np.allclose(((scop - elop) * elop).to_matrix(dims),
+                       [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+    assert np.allclose((elop * (scop - elop)).to_matrix(dims),
+                       [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+    assert np.allclose(((scop + elop) + scop).to_matrix(dims),
+                       [[5, 0, 0, 0], [0, 5, 0, 0], [0, 0, 5, 0], [0, 0, 0, 5]])
+    assert np.allclose((scop + (scop + elop)).to_matrix(dims),
+                       [[5, 0, 0, 0], [0, 5, 0, 0], [0, 0, 5, 0], [0, 0, 0, 5]])
+    assert np.allclose(((scop + elop) + elop).to_matrix(dims),
+                       [[4, 0, 0, 0], [0, 4, 0, 0], [0, 0, 4, 0], [0, 0, 0, 4]])
+    assert np.allclose((elop + (scop + elop)).to_matrix(dims),
+                       [[4, 0, 0, 0], [0, 4, 0, 0], [0, 0, 4, 0], [0, 0, 0, 4]])
+    assert np.allclose(
+        ((scop - elop) - scop).to_matrix(dims),
+        [[-1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, -1]])
+    assert np.allclose((scop - (scop - elop)).to_matrix(dims),
+                       [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+    assert np.allclose(((scop - elop) - elop).to_matrix(dims),
+                       [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+    assert np.allclose((elop - (scop - elop)).to_matrix(dims),
+                       [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+
+    assert np.allclose(operator.add(scop, 2).to_matrix(dims), [4. + 0.j])
+    assert np.allclose(operator.add(scop, 2.5).to_matrix(dims), [4.5 + 0j])
+    assert np.allclose(operator.add(scop, 2j).to_matrix(dims), [2 + 2j])
+    assert np.allclose(operator.add(2, scop).to_matrix(dims), [4 + 0j])
+    assert np.allclose(operator.add(2.5, scop).to_matrix(dims), [4.5 + 0j])
+    assert np.allclose(operator.add(2j, scop).to_matrix(dims), [2 + 2j])
+
+    assert np.allclose(operator.sub(scop, 2).to_matrix(dims), [0 + 0.j])
+    assert np.allclose(operator.sub(scop, 2.5).to_matrix(dims), [-0.5 + 0j])
+    assert np.allclose(operator.sub(scop, 2j).to_matrix(dims), [2 - 2j])
+    assert np.allclose(operator.sub(2, scop).to_matrix(dims), [0 + 0j])
+    assert np.allclose(operator.sub(2.5, scop).to_matrix(dims), [0.5 + 0j])
+    assert np.allclose(operator.sub(2j, scop).to_matrix(dims), [-2 + 2j])
+
+    assert np.allclose(operator.mul(scop, 2).to_matrix(dims), [4 + 0.j])
+    assert np.allclose(operator.mul(scop, 2.5).to_matrix(dims), [5 + 0j])
+    assert np.allclose(operator.mul(scop, 2j).to_matrix(dims), [0 + 4j])
+    assert np.allclose(operator.mul(2, scop).to_matrix(dims), [4 + 0j])
+    assert np.allclose(operator.mul(2.5, scop).to_matrix(dims), [5 + 0j])
+    assert np.allclose(operator.mul(2j, scop).to_matrix(dims), [0 + 4j])
+
+    assert np.allclose(operator.truediv(scop, 2).to_matrix(dims), [1 + 0.j])
+    assert np.allclose(operator.truediv(scop, 2.5).to_matrix(dims), [0.8 + 0j])
+    assert np.allclose(operator.truediv(scop, 2j).to_matrix(dims), [0 - 1j])
+    assert np.allclose(operator.truediv(2, scop).to_matrix(dims), [1 + 0j])
+    assert np.allclose(operator.truediv(2.5, scop).to_matrix(dims), [1.25 + 0j])
+    assert np.allclose(operator.truediv(2j, scop).to_matrix(dims), [0 + 1j])
+
+    assert np.allclose(operator.pow(scop, 2).to_matrix(dims), [4 + 0j])
+    assert np.allclose(
+        operator.pow(scop, 2.5).to_matrix(dims), [5.65685425 + 0j])
+    assert np.allclose(
+        operator.pow(scop, 2j).to_matrix(dims), [0.18345697 + 0.98302774j])
+    assert np.allclose(operator.pow(2, scop).to_matrix(dims), [4 + 0j])
+    assert np.allclose(operator.pow(2.5, scop).to_matrix(dims), [6.25 + 0j])
+    assert np.allclose(operator.pow(2j, scop).to_matrix(dims), [-4 + 0j])
 
     opprod = operators.create(0) * operators.annihilate(0)
     opsum = operators.create(0) + operators.annihilate(0)
-    for arith in [
-            operator.add, operator.sub, operator.mul, operator.truediv,
-            operator.pow
-    ]:
-        print(f"testing {arith} for ScalarOperator")
-        print(f"arithmetics: {arith(scop, 2).to_matrix(dims)}")
-        print(f"arithmetics: {arith(scop, 2.5).to_matrix(dims)}")
-        print(f"arithmetics: {arith(scop, 2j).to_matrix(dims)}")
-        print(f"arithmetics: {arith(2, scop).to_matrix(dims)}")
-        print(f"arithmetics: {arith(2.5, scop).to_matrix(dims)}")
-        print(f"arithmetics: {arith(2j, scop).to_matrix(dims)}")
 
-    for op in [elop, opprod, opsum]:
-        for arith in [operator.add, operator.sub, operator.mul]:
-            print(f"testing {arith} for {type(op)}")
-            print(f"arithmetics: {arith(op, 2).to_matrix(dims)}")
-            print(f"arithmetics: {arith(op, 2.5).to_matrix(dims)}")
-            print(f"arithmetics: {arith(op, 2j).to_matrix(dims)}")
-            print(f"arithmetics: {arith(2, op).to_matrix(dims)}")
-            print(f"arithmetics: {arith(2.5, op).to_matrix(dims)}")
-            print(f"arithmetics: {arith(2j, op).to_matrix(dims)}")
-        print(f"testing {operator.truediv} for {type(op)}")
-        print(f"arithmetics: {(op / 2).to_matrix(dims)}")
-        print(f"arithmetics: {(op / 2.5).to_matrix(dims)}")
-        print(f"arithmetics: {(op / 2j).to_matrix(dims)}")
+    assert np.allclose(
+        operator.add(elop, 2).to_matrix(dims),
+        [[3, 0, 0, 0], [0, 3, 0, 0], [0, 0, 3, 0], [0, 0, 0, 3]])
+    assert np.allclose(
+        operator.add(elop, 2.5).to_matrix(dims),
+        [[3.5, 0, 0, 0], [0, 3.5, 0, 0], [0, 0, 3.5, 0], [0, 0, 0, 3.5]])
+    assert np.allclose(
+        operator.add(elop, 2j).to_matrix(dims),
+        [[1 + 2j, 0, 0, 0], [0, 1 + 2j, 0, 0], [0, 0, 1 + 2j, 0],
+         [0, 0, 0, 1 + 2j]])
+    assert np.allclose(
+        operator.add(2, elop).to_matrix(dims),
+        [[3, 0, 0, 0], [0, 3, 0, 0], [0, 0, 3, 0], [0, 0, 0, 3]])
+    assert np.allclose(
+        operator.add(2.5, elop).to_matrix(dims),
+        [[3.5, 0, 0, 0], [0, 3.5, 0, 0], [0, 0, 3.5, 0], [0, 0, 0, 3.5]])
+    assert np.allclose(
+        operator.add(2j, elop).to_matrix(dims),
+        [[1 + 2j, 0, 0, 0], [0, 1 + 2j, 0, 0], [0, 0, 1 + 2j, 0],
+         [0, 0, 0, 1 + 2j]])
 
-    print(operators.const(2))
-    print(ScalarOperator(lambda alpha: 2 * alpha))
-    print(ScalarOperator(all_zero))
-    print(spin.x(0))
-    print(2 * spin.x(0))
-    print(spin.x(0) + 2)
-    print(operators.squeeze(0))
-    print(operators.squeeze(0) * operators.displace(1))
-    print(operators.squeeze(0) + operators.displace(1) * 5)
-    print(spin.x(0) - 2)
-    print(spin.x(0) - spin.y(1))
-    print(spin.x(0).degrees)
-    print((spin.x(2) * spin.y(0)).degrees)
-    print((spin.x(2) + spin.y(0)).degrees)
+    assert np.allclose(
+        operator.sub(elop, 2).to_matrix(dims),
+        [[-1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, -1]])
+    assert np.allclose(
+        operator.sub(elop, 2.5).to_matrix(dims),
+        [[-1.5, 0, 0, 0], [0, -1.5, 0, 0], [0, 0, -1.5, 0], [0, 0, 0, -1.5]])
+    assert np.allclose(
+        operator.sub(elop, 2j).to_matrix(dims),
+        [[1 - 2j, 0, 0, 0], [0, 1 - 2j, 0, 0], [0, 0, 1 - 2j, 0],
+         [0, 0, 0, 1 - 2j]])
+    assert np.allclose(
+        operator.sub(2, elop).to_matrix(dims),
+        [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+    assert np.allclose(
+        operator.sub(2.5, elop).to_matrix(dims),
+        [[1.5, 0, 0, 0], [0, 1.5, 0, 0], [0, 0, 1.5, 0], [0, 0, 0, 1.5]])
+    assert np.allclose(
+        operator.sub(2j, elop).to_matrix(dims),
+        [[-1 + 2j, 0, 0, 0], [0, -1 + 2j, 0, 0], [0, 0, -1 + 2j, 0],
+         [0, 0, 0, -1 + 2j]])
 
-    print(ScalarOperator.const(5) == ScalarOperator.const(5))
-    print(ScalarOperator.const(5) == ScalarOperator.const(5 + 0j))
-    print(ScalarOperator.const(5) == ScalarOperator.const(5j))
-    print(ScalarOperator(lambda: 5) == ScalarOperator.const(5))
-    print(ScalarOperator(lambda: 5) == ScalarOperator(lambda: 5))
-    gen = lambda: 5
-    so10 = ScalarOperator(gen)
-    so11 = ScalarOperator(lambda: 5)
-    print(so10 == so11)
-    print(so10 == ScalarOperator(gen))
-    so11.generator = gen
-    print(so10 == so11)
-    print(
-        ElementaryOperator.identity(1) *
-        so10 == ElementaryOperator.identity(1) * so11)
-    print(
-        ElementaryOperator.identity(1) +
-        so10 == ElementaryOperator.identity(1) + so11)
-    print(spin.x(1) + spin.y(1) == spin.y(1) + spin.x(1))
-    print(spin.x(1) * spin.y(1) == spin.y(1) * spin.x(1))
-    print(spin.x(0) + spin.y(1) == spin.y(1) + spin.x(0))
-    print(spin.x(0) * spin.y(1) == spin.y(1) * spin.x(0))
-    print(opprod == opprod)
-    print(opprod * so10 == so10 * opprod)
-    print(opprod + so10 == so10 + opprod)
-    print(
-        ScalarOperator.const(10) * opprod == opprod *
-        ScalarOperator.const(10.0))
-    print(
-        ScalarOperator.const(10) + opprod == opprod +
-        ScalarOperator.const(10.0))
-    paulizy = lambda i, j: spin.z(i) * spin.y(j)
-    paulixy = lambda i, j: spin.x(i) * spin.y(j)
-    print(paulixy(0, 0) + paulizy(0, 0) == paulizy(0, 0) + paulixy(0, 0))
-    print(paulixy(0, 0) * paulizy(0, 0) == paulizy(0, 0) * paulixy(0, 0))
-    print(
-        paulixy(1, 1) * paulizy(0, 0) == paulizy(0, 0) * paulixy(1, 1)
-    )  # We have multiple terms acting on the same degree of freedom, so we don't try to reorder here.
-    print(paulixy(1, 2) * paulizy(3, 4) == paulizy(3, 4) * paulixy(1, 2))
-    print(
-        ScalarOperator.const(5) +
-        ScalarOperator.const(3) == ScalarOperator.const(4) +
-        ScalarOperator.const(4))
-    print(
-        ScalarOperator.const(6) *
-        ScalarOperator.const(2) == ScalarOperator.const(4) *
-        ScalarOperator.const(3))
-    print((ScalarOperator.const(5) + ScalarOperator.const(3)) * elop == elop *
-          (ScalarOperator.const(4) + ScalarOperator.const(4)))
-    print(
-        ScalarOperator.const(6) * ScalarOperator.const(2) + elop == elop +
-        ScalarOperator.const(4) * ScalarOperator.const(3))
-    print(
-        ScalarOperator.const(6) * ScalarOperator.const(2) * elop == elop *
-        ScalarOperator.const(4) * ScalarOperator.const(3))
-    print(ScalarOperator.const(5) + 3 == 4 + ScalarOperator.const(4))
-    print(ScalarOperator.const(6) * 2 == 4 * ScalarOperator.const(3))
-    print((ScalarOperator.const(5) + 3) * elop == elop *
-          (4 + ScalarOperator.const(4)))
-    print(
-        ScalarOperator.const(6) * 2 + elop == elop +
-        4 * ScalarOperator.const(3))
-    print(
-        ScalarOperator.const(6) * 2.0 * elop == elop * 4.0 *
-        ScalarOperator.const(3))
-    print(ScalarOperator.const(6) / 2 == ScalarOperator.const(3))
+    assert np.allclose(
+        operator.mul(elop, 2).to_matrix(dims),
+        [[2, 0, 0, 0], [0, 2, 0, 0], [0, 0, 2, 0], [0, 0, 0, 2]])
+    assert np.allclose(
+        operator.mul(elop, 2.5).to_matrix(dims),
+        [[2.5, 0, 0, 0], [0, 2.5, 0, 0], [0, 0, 2.5, 0], [0, 0, 0, 2.5]])
+    assert np.allclose(
+        operator.mul(elop, 2j).to_matrix(dims),
+        [[2j, 0, 0, 0], [0, 2j, 0, 0], [0, 0, 2j, 0], [0, 0, 0, 2j]])
+    assert np.allclose(
+        operator.mul(2, elop).to_matrix(dims),
+        [[2, 0, 0, 0], [0, 2, 0, 0], [0, 0, 2, 0], [0, 0, 0, 2]])
+    assert np.allclose(
+        operator.mul(2.5, elop).to_matrix(dims),
+        [[2.5, 0, 0, 0], [0, 2.5, 0, 0], [0, 0, 2.5, 0], [0, 0, 0, 2.5]])
+    assert np.allclose(
+        operator.mul(2j, elop).to_matrix(dims),
+        [[2j, 0, 0, 0], [0, 2j, 0, 0], [0, 0, 2j, 0], [0, 0, 0, 2j]])
 
-    def tranverse_field(num_qubits: int,
-                        field_strength: ScalarOperator) -> Operator:
-        operator = OperatorSum()
-        for i in range(num_qubits):
-            operator += field_strength * spin.x(i)
-        return operator
+    assert np.allclose(
+        (elop / 2).to_matrix(dims),
+        [[0.5, 0, 0, 0], [0, 0.5, 0, 0], [0, 0, 0.5, 0], [0, 0, 0, 0.5]])
+    assert np.allclose(
+        (elop / 2.5).to_matrix(dims),
+        [[0.4, 0, 0, 0], [0, 0.4, 0, 0], [0, 0, 0.4, 0], [0, 0, 0, 0.4]])
+    assert np.allclose((elop / 2j).to_matrix(dims),
+                       [[-0.5j, 0, 0, 0], [0, -0.5j, 0, 0], [0, 0, -0.5j, 0],
+                        [0, 0, 0, -0.5j]])
 
-    def ising_chain(num_qubits: int,
-                    coupling_strength: ScalarOperator) -> Operator:
-        operator = OperatorSum()
-        for i in range(1, num_qubits):
-            operator += coupling_strength * spin.z(i - 1) * spin.z(i)
-        return operator
+    assert np.allclose(
+        operator.add(opprod, 2).to_matrix(dims), [[2, 0], [0, 3]])
+    assert np.allclose(
+        operator.add(opprod, 2.5).to_matrix(dims), [[2.5, 0], [0, 3.5]])
+    assert np.allclose(
+        operator.add(opprod, 2j).to_matrix(dims), [[2j, 0], [0, 1 + 2j]])
+    assert np.allclose(
+        operator.add(2, opprod).to_matrix(dims), [[2, 0], [0, 3]])
+    assert np.allclose(
+        operator.add(2.5, opprod).to_matrix(dims), [[2.5, 0], [0, 3.5]])
+    assert np.allclose(
+        operator.add(2j, opprod).to_matrix(dims), [[2j, 0], [0, 1 + 2j]])
 
-    num_qubits = 5
-    start_time, end_time = 0, 1
-    field_coeff, coupling_coeff = 1.0, 1.0
-    num_steps = 10
+    assert np.allclose(
+        operator.sub(opprod, 2).to_matrix(dims), [[-2, 0], [0, -1]])
+    assert np.allclose(
+        operator.sub(opprod, 2.5).to_matrix(dims), [[-2.5, 0], [0, -1.5]])
+    assert np.allclose(
+        operator.sub(opprod, 2j).to_matrix(dims), [[-2j, 0], [0, 1 - 2j]])
+    assert np.allclose(
+        operator.sub(2, opprod).to_matrix(dims), [[2, 0], [0, 1]])
+    assert np.allclose(
+        operator.sub(2.5, opprod).to_matrix(dims), [[2.5, 0], [0, 1.5]])
+    assert np.allclose(
+        operator.sub(2j, opprod).to_matrix(dims), [[2j, 0], [0, -1 + 2j]])
 
-    time = ScalarOperator(lambda time: time)
-    field_strength = field_coeff * (1 - time)
-    coupling_strength = coupling_coeff * time
+    assert np.allclose(
+        operator.mul(opprod, 2).to_matrix(dims), [[0, 0], [0, 2]])
+    assert np.allclose(
+        operator.mul(opprod, 2.5).to_matrix(dims), [[0, 0], [0, 2.5]])
+    assert np.allclose(
+        operator.mul(opprod, 2j).to_matrix(dims), [[0, 0], [0, 2j]])
+    assert np.allclose(
+        operator.mul(2, opprod).to_matrix(dims), [[0, 0], [0, 2]])
+    assert np.allclose(
+        operator.mul(2.5, opprod).to_matrix(dims), [[0, 0], [0, 2.5]])
+    assert np.allclose(
+        operator.mul(2j, opprod).to_matrix(dims), [[0, 0], [0, 2j]])
 
-    hamiltonian = ising_chain(num_qubits, field_strength) + tranverse_field(
-        num_qubits, coupling_strength)
-    dimensions = dict([(i, 2) for i in hamiltonian.degrees])
-    energy = hamiltonian
-    magnetization = tranverse_field(num_qubits, operators.const(1)) / num_qubits
-    cost_function = ising_chain(num_qubits, operators.const(coupling_coeff))
+    assert np.allclose((opprod / 2).to_matrix(dims), [[0, 0], [0, 0.5]])
+    assert np.allclose((opprod / 2.5).to_matrix(dims), [[0, 0], [0, 0.4]])
+    assert np.allclose((opprod / 2j).to_matrix(dims), [[0, 0], [0, -0.5j]])
 
-    uniform_superposition = cudaq.State.from_data(
-        numpy.ones(2**num_qubits, dtype=numpy.complex128) /
-        numpy.sqrt(2**num_qubits))
-    all_zero_state = cudaq.State.from_data(
-        numpy.array([1] + (2**num_qubits - 1) * [0], dtype=numpy.complex128))
+    assert np.allclose(operator.add(opsum, 2).to_matrix(dims), [[2, 1], [1, 2]])
+    assert np.allclose(
+        operator.add(opsum, 2.5).to_matrix(dims), [[2.5, 1], [1, 2.5]])
+    assert np.allclose(
+        operator.add(opsum, 2j).to_matrix(dims), [[2j, 1], [1, 2j]])
+    assert np.allclose(operator.add(2, opsum).to_matrix(dims), [[2, 1], [1, 2]])
+    assert np.allclose(
+        operator.add(2.5, opsum).to_matrix(dims), [[2.5, 1], [1, 2.5]])
+    assert np.allclose(
+        operator.add(2j, opsum).to_matrix(dims), [[2j, 1], [1, 2j]])
 
-    steps = numpy.linspace(start_time, end_time, num_steps)
-    schedule = Schedule(steps, ["time"])
-    #evolution_result = evolve(hamiltonian, dimensions, schedule, uniform_superposition,
-    #                          observables = [energy, magnetization, cost_function],
-    #                          store_intermediate_results = True)
+    assert np.allclose(
+        operator.sub(opsum, 2).to_matrix(dims), [[-2, 1], [1, -2]])
+    assert np.allclose(
+        operator.sub(opsum, 2.5).to_matrix(dims), [[-2.5, 1], [1, -2.5]])
+    assert np.allclose(
+        operator.sub(opsum, 2j).to_matrix(dims), [[-2j, 1], [1, -2j]])
+    assert np.allclose(
+        operator.sub(2, opsum).to_matrix(dims), [[2, -1], [-1, 2]])
+    assert np.allclose(
+        operator.sub(2.5, opsum).to_matrix(dims), [[2.5, -1], [-1, 2.5]])
+    assert np.allclose(
+        operator.sub(2j, opsum).to_matrix(dims), [[2j, -1], [-1, 2j]])
 
-    print("Evolve on default simulator:")
-    schedule.reset()
-    evolution_result = evolve(hamiltonian, dimensions, schedule,
-                              uniform_superposition)
-    evolution_result.final_state().dump()
+    assert np.allclose(operator.mul(opsum, 2).to_matrix(dims), [[0, 2], [2, 0]])
+    assert np.allclose(
+        operator.mul(opsum, 2.5).to_matrix(dims), [[0, 2.5], [2.5, 0]])
+    assert np.allclose(
+        operator.mul(opsum, 2j).to_matrix(dims), [[0, 2j], [2j, 0]])
+    assert np.allclose(operator.mul(2, opsum).to_matrix(dims), [[0, 2], [2, 0]])
+    assert np.allclose(
+        operator.mul(2.5, opsum).to_matrix(dims), [[0, 2.5], [2.5, 0]])
+    assert np.allclose(
+        operator.mul(2j, opsum).to_matrix(dims), [[0, 2j], [2j, 0]])
 
-    print("Evolve asynchronous on default simulator:")
-    schedule.reset()
-    async_evolution_result = evolve_async(hamiltonian, dimensions, schedule,
-                                          uniform_superposition)
-    evolution_result = async_evolution_result.get()
-    evolution_result.final_state().dump()
-
-    print("Evolve + observe on default simulator:")
-    schedule.reset()
-    evolution_result = evolve(hamiltonian,
-                              dimensions,
-                              schedule,
-                              uniform_superposition,
-                              observables=[cost_function])
-    evolution_result.final_state().dump()
-    print(
-        f"final expectation values: {[res.expectation() for res in evolution_result.final_expectation_values()]}"
-    )
-
-    print("Evolve + observe asynchronous on default simulator:")
-    schedule.reset()
-    async_evolution_result = evolve_async(hamiltonian,
-                                          dimensions,
-                                          schedule,
-                                          uniform_superposition,
-                                          observables=[cost_function])
-    evolution_result = async_evolution_result.get()
-    evolution_result.final_state().dump()
-    print(
-        f"final expectation values: {[res.expectation() for res in evolution_result.final_expectation_values()]}"
-    )
-
-    print("Evolve with intermediate states on default simulator:")
-    schedule.reset()
-    evolution_result = evolve(hamiltonian,
-                              dimensions,
-                              schedule,
-                              uniform_superposition,
-                              store_intermediate_results=True)
-    for state in evolution_result.intermediate_states():
-        state.dump()
-    evolution_result.final_state().dump()
-
-    print("Evolve asynchronous with intermediate states on default simulator:")
-    schedule.reset()
-    async_evolution_result = evolve_async(hamiltonian,
-                                          dimensions,
-                                          schedule,
-                                          uniform_superposition,
-                                          store_intermediate_results=True)
-    evolution_result = async_evolution_result.get()
-    for state in evolution_result.intermediate_states():
-        state.dump()
-    evolution_result.final_state().dump()
-
-    print("Evolve + observe with intermediate results on default simulator:")
-    schedule.reset()
-    evolution_result = evolve(hamiltonian,
-                              dimensions,
-                              schedule,
-                              uniform_superposition,
-                              observables=[cost_function],
-                              store_intermediate_results=True)
-    for state in evolution_result.intermediate_states():
-        state.dump()
-    for expectations in evolution_result.expectation_values():
-        print(
-            f"expectation values: {[res.expectation() for res in expectations]}"
-        )
-    print(
-        f"final expectation values: {[res.expectation() for res in evolution_result.final_expectation_values()]}"
-    )
-
-    print(
-        "Evolve + observe asynchronous with intermediate results on default simulator:"
-    )
-    schedule.reset()
-    async_evolution_result = evolve_async(hamiltonian,
-                                          dimensions,
-                                          schedule,
-                                          uniform_superposition,
-                                          observables=[cost_function],
-                                          store_intermediate_results=True)
-    evolution_result = async_evolution_result.get()
-    for state in evolution_result.intermediate_states():
-        state.dump()
-    for expectations in evolution_result.expectation_values():
-        print(
-            f"expectation values: {[res.expectation() for res in expectations]}"
-        )
-    print(
-        f"final expectation values: {[res.expectation() for res in evolution_result.final_expectation_values()]}"
-    )
+    assert np.allclose((opsum / 2).to_matrix(dims), [[0, 0.5], [0.5, 0]])
+    assert np.allclose((opsum / 2.5).to_matrix(dims), [[0, 0.4], [0.4, 0]])
+    assert np.allclose((opsum / 2j).to_matrix(dims), [[0, -0.5j], [-0.5j, 0]])
 
 
-# leave for gdb debugging
+def test_elementary_operator():
+    dims = {0: 2, 1: 2}
+    elop = ElementaryOperator.identity(1)
+    scop = ScalarOperator.const(2)
+    assert np.allclose((elop + scop).to_matrix(dims),
+                       (scop + elop).to_matrix(dims))
+    assert np.allclose((elop * scop).to_matrix(dims),
+                       (scop * elop).to_matrix(dims))
+
+
+def test_transverse_field():
+    dims = {0: 2, 1: 2, 2: 2}
+    num_qubits = 3
+    field_strength = ScalarOperator(lambda t: t)
+    transverse_op = sum(field_strength * spin.x(i) for i in range(num_qubits))
+    assert transverse_op.to_matrix(dims, t=1.0).shape == (8, 8)
+
+
+def test_ising_chain():
+    dims = {0: 2, 1: 2, 2: 2}
+    num_qubits = 3
+    coupling_strength = ScalarOperator(lambda t: t)
+    ising_op = sum(coupling_strength * spin.z(i) * spin.z(i + 1)
+                   for i in range(num_qubits - 1))
+    assert ising_op.to_matrix(dims, t=1.0).shape == (8, 8)
+
+
+# Run with: pytest -rP
 if __name__ == "__main__":
-    loc = os.path.abspath(__file__)
-    pytest.main([loc, "-rP"])
+    pytest.main(["-rP"])

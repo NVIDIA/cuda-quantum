@@ -38,8 +38,8 @@ class _OperatorHelpers:
                 if existing_desc and new_desc:
                     param_descriptions[
                         key] = f'{existing_desc}{os.linesep}---{os.linesep}{new_desc}'
-                elif new_desc:
-                    param_descriptions[key] = new_desc
+                else:
+                    param_descriptions[key] = new_desc or existing_desc
         return param_descriptions
 
     @staticmethod
