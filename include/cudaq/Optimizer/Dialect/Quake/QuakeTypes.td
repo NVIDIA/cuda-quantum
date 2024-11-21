@@ -150,7 +150,6 @@ def VeqType : QuakeType<"Veq", "veq"> {
 
   let parameters = (ins "std::size_t":$size);
 
-  let genVerifyDecl = 1;
   let hasCustomAssemblyFormat = 1;
   
   let extraClassDeclaration = [{
@@ -177,8 +176,10 @@ def StruqType : QuakeType<"Struq", "struq"> {
 
   let parameters = (ins
     "mlir::StringAttr":$name,
+    // members must be NonStruqRefType.
     ArrayRefParameter<"mlir::Type">:$members
   );
+
   let hasCustomAssemblyFormat = 1;
 
   let extraClassDeclaration = [{
