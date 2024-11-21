@@ -122,15 +122,9 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
                          ATTR arrayAttr, MAKER makeElementValue) {
   auto *ctx = builder.getContext();
   auto argTy = argument.getType();
-  assert(isa<cudaq::cc::StdvecType>(argTy) ||
-         isa<cudaq::cc::CharspanType>(argTy));
-  ELETY eleTy = [&]() -> ELETY {
-    if (auto strTy = dyn_cast<cudaq::cc::StdvecType>(argTy))
-      return cast<ELETY>(strTy.getElementType());
-    // Force cast this to ELETY. This will only happen for CharspanType.
-    return cast<ELETY>(cudaq::opt::factory::getCharType(ctx));
-  }();
-  auto strTy = cudaq::cc::StdvecType::get(ctx, eleTy);
+  assert(isa<cudaq::cc::SpanLikeType>(argTy));
+  auto strTy = cast<cudaq::cc::SpanLikeType>(argTy);
+  auto eleTy = cast<ELETY>(strTy.getElementType());
   builder.setInsertionPointToStart(argument.getOwner());
   auto argLoc = argument.getLoc();
   auto conArray = builder.create<cudaq::cc::ConstantArrayOp>(
@@ -572,7 +566,7 @@ public:
 
       // If std::vector<arithmetic> type, add it to the list of vector info.
       // These will be processed when we reach the buffer's appendix.
-      if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(type)) {
+      if (auto vecTy = dyn_cast<cudaq::cc::SpanLikeType>(type)) {
         auto eleTy = vecTy.getElementType();
         if (!isa<IntegerType, FloatType, ComplexType, cudaq::cc::CharspanType>(
                 eleTy)) {
@@ -618,19 +612,6 @@ public:
         auto rawSize =
             *reinterpret_cast<const std::uint64_t *>(ptrToSizeInBuffer);
         stdVecInfo.emplace_back(argNum, Type{}, rawSize);
-        continue;
-      }
-
-      if (auto charSpanTy = dyn_cast<cudaq::cc::CharspanType>(type)) {
-        const char *ptrToSizeInBuffer =
-            static_cast<const char *>(args) + offset;
-        auto sizeFromBuffer =
-            *reinterpret_cast<const std::uint64_t *>(ptrToSizeInBuffer);
-        std::size_t bytesInType = sizeof(char);
-        auto vectorSize = sizeFromBuffer / bytesInType;
-        stdVecInfo.emplace_back(
-            argNum, cudaq::opt::factory::getCharType(builder.getContext()),
-            vectorSize);
         continue;
       }
 

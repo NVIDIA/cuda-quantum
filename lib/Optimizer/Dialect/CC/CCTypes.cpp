@@ -158,7 +158,7 @@ Type cc::SpanLikeType::getElementType() const {
 }
 
 bool isDynamicType(Type ty) {
-  if (isa<StdvecType>(ty))
+  if (isa<SpanLikeType>(ty))
     return true;
   if (auto strTy = dyn_cast<StructType>(ty)) {
     for (auto memTy : strTy.getMembers())
