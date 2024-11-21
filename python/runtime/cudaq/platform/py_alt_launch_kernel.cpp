@@ -558,8 +558,7 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
     pm.addPass(cudaq::opt::createStatePreparation());
   }
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  /// FIXME: Experimental change to see effect on Braket test(s)
-  // pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandMeasurementsPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandMeasurementsPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize());

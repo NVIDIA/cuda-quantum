@@ -84,9 +84,10 @@ def test_qvector_kernel():
         cx(qubits[0], qubits[1])
         mz(qubits)
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.sample(kernel, shots_count=100)
-    assert "Could not successfully translate to qasm2" in repr(e)
+    counts = cudaq.sample(kernel, shots_count=100)
+    assert len(counts) == 2
+    assert "00" in counts
+    assert "11" in counts
 
 
 def test_builder_sample():
@@ -95,11 +96,8 @@ def test_builder_sample():
     qubits = kernel.qalloc(2)
     kernel.h(qubits[0])
     kernel.cx(qubits[0], qubits[1])
-    ## Fix for 'RuntimeError: At least one of the used qubits in the program need to be measured'
-    kernel.mz(qubits[0])
-    ## Fix for 'RuntimeError: Device requires all qubits in the program to be measured. This may be caused by declaring non-contiguous qubits or measuring partial qubits'
-    kernel.mz(qubits[1])
-    with pytest.raises(RuntimeError) as e:
-        cudaq.sample(kernel, shots_count=100)
-    assert "cannot declare bit register. Only 1 bit register(s) is/are supported" in repr(
-        e)
+    kernel.mz(qubits)
+    counts = cudaq.sample(kernel, shots_count=100)
+    assert len(counts) == 2
+    assert "00" in counts
+    assert "11" in counts
