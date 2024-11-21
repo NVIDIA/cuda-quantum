@@ -71,7 +71,7 @@ def test_multi_qubit_kernel():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.sample(kernel, shots_count=100)
-    assert "cannot declare a qubit register. Only 1 qubit register(s) is/are supported" in repr(
+    assert "cannot declare bit register. Only 1 bit register(s) is/are supported" in repr(
         e)
 
 
@@ -101,3 +101,48 @@ def test_builder_sample():
     assert len(counts) == 2
     assert "00" in counts
     assert "11" in counts
+
+
+def test_control_modifier():
+
+    @cudaq.kernel
+    def bell():
+        qubits = cudaq.qvector(2)
+        h(qubits[0])
+        x.ctrl(qubits[0], qubits[1])
+        mz(qubits)
+
+    counts = cudaq.sample(bell, shots_count=100)
+    assert len(counts) == 2
+    assert "00" in counts
+    assert "11" in counts
+
+
+def test_adjoint_modifier():
+
+    @cudaq.kernel
+    def single_adjoint_test():
+        q = cudaq.qubit()
+        s(q)
+        s.adj(q)
+        mz(q)
+
+    with pytest.raises(RuntimeError) as e:
+        counts = cudaq.sample(single_adjoint_test, shots_count=100)
+    assert "uses a gate: sdg which is not supported by the device or defined via a defcal" in repr(
+        e)
+
+    @cudaq.kernel
+    def rotation_adjoint_test():
+        q = cudaq.qubit()
+        rx(1.1, q)
+        rx.adj(1.1, q)
+
+        ry(1.1, q)
+        ry.adj(1.1, q)
+
+        mz(q)
+
+    counts = cudaq.sample(rotation_adjoint_test, shots_count=100)
+    assert '0' in counts
+    assert len(counts) == 1
