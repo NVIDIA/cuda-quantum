@@ -128,7 +128,7 @@ def test_adjoint_modifier():
         mz(q)
 
     with pytest.raises(RuntimeError) as e:
-        counts = cudaq.sample(single_adjoint_test, shots_count=100)
+        cudaq.sample(single_adjoint_test, shots_count=100)
     assert "uses a gate: sdg which is not supported by the device or defined via a defcal" in repr(
         e)
 
@@ -146,3 +146,28 @@ def test_adjoint_modifier():
     counts = cudaq.sample(rotation_adjoint_test, shots_count=100)
     assert '0' in counts
     assert len(counts) == 1
+
+
+def test_u3_decomposition():
+
+    @cudaq.kernel
+    def kernel():
+        qubit = cudaq.qubit()
+        u3(0.0, np.pi / 2, np.pi, qubit)
+        mz(qubit)
+
+    # Test here is that this runs
+    result = cudaq.sample(kernel, shots_count=100)
+    measurement_probabilities = dict(result.items())
+    print(measurement_probabilities)
+
+    @cudaq.kernel
+    def kernel():
+        qubits = cudaq.qvector(2)
+        u3.ctrl(0.0, np.pi / 2, np.pi, qubits[0], qubits[1])
+        mz(qubits)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.sample(kernel, shots_count=100)
+    assert "uses a gate: crz which is not supported by the device or defined via a defcal" in repr(
+        e)
