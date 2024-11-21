@@ -10,7 +10,7 @@ import numpy, scipy  # type: ignore
 from numpy.typing import NDArray
 from typing import Sequence
 
-from .helpers import NumericType, _OperatorHelpers
+from .helpers import NumericType
 from .expressions import OperatorSum, ProductOperator, ElementaryOperator, ScalarOperator, RydbergHamiltonian
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
