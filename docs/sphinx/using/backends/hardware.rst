@@ -605,7 +605,9 @@ Setting Credentials
 ```````````````````
 
 Programmers of CUDA-Q may access Aquila, QuEra's first generation of quantum
-processing unit (QPU) via Amazon Braket. Hence, users must set AWS credentials using 
+processing unit (QPU) via Amazon Braket. Hence, users must first enable Braket by 
+following `these instructions <https://docs.aws.amazon.com/braket/latest/developerguide/braket-enable-overview.html>`__. 
+Then set credentials using any of the documented `methods <https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html>`__.
 any of the documented `methods <https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html>`__.
 One of the simplest ways is to use `AWS CLI <https://aws.amazon.com/cli/>`__.
 
