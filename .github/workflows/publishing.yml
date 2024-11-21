@@ -1044,7 +1044,7 @@ jobs:
               --extra-index-url http://localhost:8080 
           else
             pip install --upgrade pip
-            pip install cudaq -v \
+            pip install cudaq==${{ needs.assets.outputs.cudaq_version }} -v \
               --extra-index-url http://localhost:8080 \
             2>&1 | tee /tmp/install.out
 
