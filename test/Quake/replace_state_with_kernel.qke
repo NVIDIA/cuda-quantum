@@ -1,0 +1,32 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -replace-state-with-kernel -canonicalize %s | FileCheck %s
+
+module {
+  func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+    %0 = cc.get_state "callee.modified_0" : !cc.ptr<!cc.state>
+    %1 = call @__nvqpp_cudaq_state_numberOfQubits(%0) : (!cc.ptr<!cc.state>) -> i64
+    %2 = quake.alloca !quake.veq<?>[%1 : i64]
+    %3 = quake.init_state %2, %0 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
+return
+  }
+  func.func private @__nvqpp_cudaq_state_numberOfQubits(!cc.ptr<!cc.state>) -> i64
+  func.func private @callee.modified_0() -> !quake.veq<?> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    %cst = arith.constant 1.5707963267948966 : f64
+    %0 = quake.alloca !quake.veq<2>
+    %1 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+    quake.ry (%cst) %1 : (f64, !quake.ref) -> ()
+    %2 = quake.relax_size %0 : (!quake.veq<2>) -> !quake.veq<?>
+    return %2 : !quake.veq<?>
+  }
+// CHECK-LABEL:   func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK:           %[[VAL_0:.*]] = call @callee.modified_0() : () -> !quake.veq<?>
+// CHECK:           return
+// CHECK:         }
+}

@@ -13,13 +13,11 @@
 #include "cudaq/utils/cudaq_utils.h"
 
 namespace cudaq {
-/// Implementation of `SimulationState` for remote simulator backends.
+/// Implementation of `SimulationState` for quantum device backends.
 // The state is represented by a quantum kernel.
-// For accessor APIs, we may resolve the state to a state vector by executing
-// the kernel on the remote simulator. For overlap API b/w 2 remote states, we
-// can send both kernels to the remote backend for execution and compute the
-// overlap.
-class RemoteSimulationState : public cudaq::SimulationState {
+// Quantum state contains all the information we need to replicate a
+// call to kernel that created the state.
+class QuantumState : public cudaq::SimulationState {
 protected:
   std::string kernelName;
   // Lazily-evaluated state data (just keeping the kernel name and arguments).
@@ -67,7 +65,7 @@ public:
 
   /// @brief Constructor
   template <typename QuantumKernel, typename... Args>
-  RemoteSimulationState(QuantumKernel &&kernel, Args &&...args) {
+  QuantumState(QuantumKernel &&kernel, Args &&...args) {
     if constexpr (has_name<QuantumKernel>::value) {
       // kernel_builder kernel: need to JIT code to get it registered.
       static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
@@ -77,10 +75,11 @@ public:
     }
     (addArgument(args), ...);
   }
-  RemoteSimulationState() = default;
-  virtual ~RemoteSimulationState();
-  /// @brief Triggers remote execution to resolve the state data.
-  virtual void execute() const;
+  QuantumState() = default;
+  virtual ~QuantumState();
+
+  /// @brief True if the state has amplitudes or density matrix available.
+  virtual bool hasData() const override { return false; }
 
   /// @brief Helper to retrieve (kernel name, `args` pointers)
   virtual std::optional<std::pair<std::string, std::vector<void *>>>
@@ -148,10 +147,5 @@ public:
   /// elements.
   void toHost(std::complex<float> *clientAllocatedData,
               std::size_t numElements) const override;
-
-private:
-  /// @brief Return the qubit count threshold where the full remote state should
-  /// be flattened and returned.
-  static std::size_t maxQubitCountForFullStateTransfer();
 };
 } // namespace cudaq
