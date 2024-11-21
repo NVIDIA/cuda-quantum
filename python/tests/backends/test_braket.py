@@ -6,7 +6,10 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import cudaq, pytest, os
+import cudaq
+import pytest
+import os
+from cudaq import spin
 import numpy as np
 from multiprocessing import Process
 from network_utils import check_server_connection
@@ -103,6 +106,40 @@ def test_builder_sample():
     assert "11" in counts
 
 
+def test_all_gates():
+
+    @cudaq.kernel
+    def single_qubit_gates():
+        q = cudaq.qubit()
+        h(q)
+        x(q)
+        y(q)
+        z(q)
+        # r1(np.pi, q) ## Unsupported
+        rx(np.pi, q)
+        ry(np.pi, q)
+        rz(np.pi, q)
+        s(q)
+        t(q)
+        # mx(q) ## Unsupported
+        # my(q) ## Unsupported
+        mz(q)
+
+    # Test here is that this runs
+    cudaq.sample(single_qubit_gates, shots_count=100).dump()
+
+    @cudaq.kernel
+    def two_qubit_gates():
+        qubits = cudaq.qvector(2)
+        x(qubits[0])
+        swap(qubits[0], qubits[1])
+        mz(qubits)
+
+    counts = cudaq.sample(two_qubit_gates, shots_count=100)
+    assert len(counts) == 1
+    assert "01" in counts
+
+
 def test_control_modifier():
 
     @cudaq.kernel
@@ -171,3 +208,95 @@ def test_u3_decomposition():
         cudaq.sample(kernel, shots_count=100)
     assert "uses a gate: crz which is not supported by the device or defined via a defcal" in repr(
         e)
+
+
+def test_sample_async():
+    cudaq.set_random_seed(13)
+
+    @cudaq.kernel
+    def simple():
+        qubits = cudaq.qvector(2)
+        h(qubits[0])
+        x.ctrl(qubits[0], qubits[1])
+        mz(qubits)
+
+    future = cudaq.sample_async(simple)
+    counts = future.get()
+    assert (len(counts) == 2)
+    assert ('00' in counts)
+    assert ('11' in counts)
+
+
+def test_observe():
+    cudaq.set_random_seed(13)
+
+    @cudaq.kernel
+    def ansatz(theta: float):
+        qreg = cudaq.qvector(2)
+        x(qreg[0])
+        ry(theta, qreg[1])
+        x.ctrl(qreg[1], qreg[0])
+        ## NOTE: Measure required since 'Device requires all qubits in the program to be measured.'
+        mz(qreg)
+
+    # Define its spin Hamiltonian.
+    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
+        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.observe(ansatz, hamiltonian, .59, shots_count=100)
+    assert "observe specification violated for 'ansatz': kernels passed to observe cannot have measurements specified." in repr(
+        e)
+
+
+def test_custom_operations():
+
+    cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
+
+    @cudaq.kernel
+    def basic_x():
+        qubit = cudaq.qubit()
+        custom_x(qubit)
+
+    ## NOTE: `translateOperatorName` function in `lib/Optimizer/CodeGen/TranslateToOpenQASM.cpp`
+    #        replaces `r1` with `u1`
+    with pytest.raises(RuntimeError) as e:
+        cudaq.sample(basic_x, shots_count=100)
+    assert "uses a gate: u1 which is not supported by the device or defined via a defcal" in repr(
+        e)
+
+
+def test_kernel_with_args():
+
+    @cudaq.kernel
+    def kernel(qubit_count: int):
+        qreg = cudaq.qvector(qubit_count)
+        h(qreg[0])
+        for qubit in range(qubit_count - 1):
+            x.ctrl(qreg[qubit], qreg[qubit + 1])
+        mz(qreg)
+
+    counts = cudaq.sample(kernel, 8, shots_count=100)
+    assert len(counts) == 2
+    assert "00000000" in counts
+    assert "11111111" in counts
+
+
+@pytest.mark.parametrize("device_arn", [
+    "arn:aws:braket:::device/quantum-simulator/amazon/dm1",
+    "arn:aws:braket:::device/quantum-simulator/amazon/tn1"
+])
+def test_other_simulators(device_arn):
+
+    cudaq.set_target("braket", machine=device_arn)
+
+    test_qvector_kernel()
+    test_builder_sample()
+
+    cudaq.reset_target()
+
+
+# leave for gdb debugging
+if __name__ == "__main__":
+    loc = os.path.abspath(__file__)
+    pytest.main([loc, "-s"])
