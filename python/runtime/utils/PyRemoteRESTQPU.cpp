@@ -89,7 +89,8 @@ protected:
     pm.addPass(mlir::createCanonicalizerPass());
     pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
     pm.addPass(createInlinerPass());
-    pm.addPass(cudaq::opt::createExpandMeasurementsPass());
+    /// FIXME: Experimental change to see effect on Braket test(s)
+    // pm.addPass(cudaq::opt::createExpandMeasurementsPass());
     pm.addPass(createCanonicalizerPass());
     pm.addPass(createCSEPass());
     if (failed(pm.run(cloned)))
