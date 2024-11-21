@@ -106,6 +106,10 @@ Value cudaq::cc::getByteSizeOfType(OpBuilder &builder, Location loc, Type ty,
         return builder.create<arith::MulIOp>(loc, builder.getI64Type(), v,
                                              scale);
       })
+      .Case([&](cudaq::cc::SpanLikeType) -> Value {
+        // Uniformly on the device size: {ptr, i64}
+        return createInt(16);
+      })
       .Default({});
 }
 

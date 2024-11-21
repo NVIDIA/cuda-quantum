@@ -489,21 +489,19 @@ public:
           continue;
 
         // Get the ansatz
-        auto ansatz = moduleOp.lookupSymbol<mlir::func::FuncOp>(
-            std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName);
+        [[maybe_unused]] auto ansatz =
+            moduleOp.lookupSymbol<mlir::func::FuncOp>(
+                cudaq::runtime::cudaqGenPrefixName + kernelName);
+        assert(ansatz && "could not find the ansatz kernel");
 
         // Create a new Module to clone the ansatz into it
-        auto tmpModuleOp = builder.create<mlir::ModuleOp>();
-        tmpModuleOp.push_back(ansatz.clone());
-        moduleOp.walk([&](quake::WireSetOp wireSetOp) {
-          tmpModuleOp.push_back(wireSetOp.clone());
-        });
+        auto tmpModuleOp = moduleOp.clone();
 
         // Extract the binary symplectic encoding
         auto [binarySymplecticForm, coeffs] = term.get_raw_data();
 
-        // Create the pass manager, add the quake observe ansatz pass
-        // and run it followed by the canonicalizer
+        // Create the pass manager, add the quake observe ansatz pass and run it
+        // followed by the canonicalizer
         mlir::PassManager pm(&context);
         pm.addNestedPass<mlir::func::FuncOp>(
             cudaq::opt::createObserveAnsatzPass(binarySymplecticForm[0]));
@@ -527,10 +525,9 @@ public:
       modules.emplace_back(kernelName, moduleOp);
 
     if (emulate) {
-      // If we are in emulation mode, we need to first get a
-      // full QIR representation of the code. Then we'll map to
-      // an LLVM Module, create a JIT ExecutionEngine pointer
-      // and use that for execution
+      // If we are in emulation mode, we need to first get a full QIR
+      // representation of the code. Then we'll map to an LLVM Module, create a
+      // JIT ExecutionEngine pointer and use that for execution
       for (auto &[name, module] : modules) {
         auto clonedModule = module.clone();
         jitEngines.emplace_back(
@@ -682,6 +679,8 @@ public:
               }
             }
 
+            bool isObserve =
+                executionContext && executionContext->name == "observe";
             for (std::size_t i = 0; i < codes.size(); i++) {
               cudaq::ExecutionContext context("sample", localShots);
               context.reorderIdx = reorderIdx;
@@ -691,7 +690,7 @@ public:
 
               // If there are multiple codes, this is likely a spin_op.
               // If so, use the code name instead of the global register.
-              if (codes.size() > 1) {
+              if (isObserve || (codes.size() > 1)) {
                 results.emplace_back(context.result.to_map(), codes[i].name);
                 results.back().sequentialData =
                     context.result.sequential_data();
@@ -713,8 +712,7 @@ public:
       // Allow developer to disable remote sending (useful for debugging IR)
       if (getEnvBool("DISABLE_REMOTE_SEND", false))
         return;
-      else
-        future = executor->execute(codes);
+      future = executor->execute(codes);
     }
 
     // Keep this asynchronous if requested

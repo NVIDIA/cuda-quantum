@@ -202,12 +202,11 @@ void test_scalars(mlir::MLIRContext *ctx) {
 // CHECK:       Substitution module:
 
 // CHECK-LABEL:   cc.arg_subst[0] {
-// CHECK:           %[[VAL_0:.*]] = cc.address_of @cstr.58595A00 : !cc.ptr<!llvm.array<4 x i8>>
-// CHECK:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<!llvm.array<4 x i8>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_0:.*]] = cc.string_literal "XYZ" : !cc.ptr<!cc.array<i8 x 4>>
+// CHECK:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_2:.*]] = arith.constant 3 : i64
 // CHECK:           %[[VAL_3:.*]] = cc.stdvec_init %[[VAL_1]], %[[VAL_2]] : (!cc.ptr<i8>, i64) -> !cc.charspan
 // CHECK:         }
-// CHECK-DAG:     llvm.mlir.global private constant @cstr.58595A00("XYZ\00") {addr_space = 0 : i32}
   // clang-format on
 }
 
@@ -250,14 +249,14 @@ void test_vectors(mlir::MLIRContext *ctx) {
   // clang-format off
 // CHECK-LABEL:   cc.arg_subst[0] {
 // CHECK:           %[[VAL_0:.*]] = cc.alloca !cc.array<!cc.charspan x 2>
-// CHECK:           %[[VAL_1:.*]] = cc.address_of @cstr.585800 : !cc.ptr<!llvm.array<3 x i8>>
-// CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!llvm.array<3 x i8>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_1:.*]] = cc.string_literal "XX" : !cc.ptr<!cc.array<i8 x 3>>
+// CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_3:.*]] = arith.constant 2 : i64
 // CHECK:           %[[VAL_4:.*]] = cc.stdvec_init %[[VAL_2]], %[[VAL_3]] : (!cc.ptr<i8>, i64) -> !cc.charspan
 // CHECK:           %[[VAL_5:.*]] = cc.compute_ptr %[[VAL_0]][0] : (!cc.ptr<!cc.array<!cc.charspan x 2>>) -> !cc.ptr<!cc.charspan>
 // CHECK:           cc.store %[[VAL_4]], %[[VAL_5]] : !cc.ptr<!cc.charspan>
-// CHECK:           %[[VAL_6:.*]] = cc.address_of @cstr.585900 : !cc.ptr<!llvm.array<3 x i8>>
-// CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_6]] : (!cc.ptr<!llvm.array<3 x i8>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_6:.*]] = cc.string_literal "XY" : !cc.ptr<!cc.array<i8 x 3>>
+// CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_6]] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_8:.*]] = arith.constant 2 : i64
 // CHECK:           %[[VAL_9:.*]] = cc.stdvec_init %[[VAL_7]], %[[VAL_8]] : (!cc.ptr<i8>, i64) -> !cc.charspan
 // CHECK:           %[[VAL_10:.*]] = cc.compute_ptr %[[VAL_0]][1] : (!cc.ptr<!cc.array<!cc.charspan x 2>>) -> !cc.ptr<!cc.charspan>
@@ -265,8 +264,6 @@ void test_vectors(mlir::MLIRContext *ctx) {
 // CHECK:           %[[VAL_11:.*]] = arith.constant 2 : i64
 // CHECK:           %[[VAL_12:.*]] = cc.stdvec_init %[[VAL_0]], %[[VAL_11]] : (!cc.ptr<!cc.array<!cc.charspan x 2>>, i64) -> !cc.stdvec<!cc.charspan>
 // CHECK:         }
-// CHECK-DAG:     llvm.mlir.global private constant @cstr.585800("XX\00") {addr_space = 0 : i32}
-// CHECK-DAG:     llvm.mlir.global private constant @cstr.585900("XY\00") {addr_space = 0 : i32}
   // clang-format on
 }
 
@@ -502,14 +499,14 @@ void test_combinations(mlir::MLIRContext *ctx) {
 // CHECK-DAG:     func.func private @__nvqpp_cudaq_state_createFromData_fp64(!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
 // CHECK-LABEL:   cc.arg_subst[2] {
 // CHECK:           %[[VAL_0:.*]] = cc.alloca !cc.array<!cc.charspan x 2>
-// CHECK:           %[[VAL_1:.*]] = cc.address_of @cstr.585800 : !cc.ptr<!llvm.array<3 x i8>>
-// CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!llvm.array<3 x i8>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_1:.*]] = cc.string_literal "XX" : !cc.ptr<!cc.array<i8 x 3>>
+// CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_3:.*]] = arith.constant 2 : i64
 // CHECK:           %[[VAL_4:.*]] = cc.stdvec_init %[[VAL_2]], %[[VAL_3]] : (!cc.ptr<i8>, i64) -> !cc.charspan
 // CHECK:           %[[VAL_5:.*]] = cc.compute_ptr %[[VAL_0]][0] : (!cc.ptr<!cc.array<!cc.charspan x 2>>) -> !cc.ptr<!cc.charspan>
 // CHECK:           cc.store %[[VAL_4]], %[[VAL_5]] : !cc.ptr<!cc.charspan>
-// CHECK:           %[[VAL_6:.*]] = cc.address_of @cstr.585900 : !cc.ptr<!llvm.array<3 x i8>>
-// CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_6]] : (!cc.ptr<!llvm.array<3 x i8>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_6:.*]] = cc.string_literal "XY" : !cc.ptr<!cc.array<i8 x 3>>
+// CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_6]] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_8:.*]] = arith.constant 2 : i64
 // CHECK:           %[[VAL_9:.*]] = cc.stdvec_init %[[VAL_7]], %[[VAL_8]] : (!cc.ptr<i8>, i64) -> !cc.charspan
 // CHECK:           %[[VAL_10:.*]] = cc.compute_ptr %[[VAL_0]][1] : (!cc.ptr<!cc.array<!cc.charspan x 2>>) -> !cc.ptr<!cc.charspan>
@@ -517,8 +514,6 @@ void test_combinations(mlir::MLIRContext *ctx) {
 // CHECK:           %[[VAL_11:.*]] = arith.constant 2 : i64
 // CHECK:           %[[VAL_12:.*]] = cc.stdvec_init %[[VAL_0]], %[[VAL_11]] : (!cc.ptr<!cc.array<!cc.charspan x 2>>, i64) -> !cc.stdvec<!cc.charspan>
 // CHECK:         }
-// CHECK-DAG:     llvm.mlir.global private constant @cstr.585800("XX\00") {addr_space = 0 : i32}
-// CHECK-DAG:     llvm.mlir.global private constant @cstr.585900("XY\00") {addr_space = 0 : i32}
   // clang-format on
 }
 
