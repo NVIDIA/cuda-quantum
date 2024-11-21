@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include <pybind11/complex.h>
+#include <pybind11/numpy.h>
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
 
@@ -79,7 +80,20 @@ void bindComplexMatrix(py::module &mod) {
             self.dump(ss);
             return ss.str();
           },
-          "Write this matrix to a string representation.");
+          "Write this matrix to a string representation.")
+      .def(
+          "to_numpy",
+          [](const complex_matrix &m) {
+            std::vector<ssize_t> shape = {static_cast<ssize_t>(m.rows()),
+                                          static_cast<ssize_t>(m.cols())};
+            std::vector<ssize_t> strides = {
+                static_cast<ssize_t>(sizeof(std::complex<double>) * m.cols()),
+                static_cast<ssize_t>(sizeof(std::complex<double>))};
+
+            // Return a numpy array without copying data
+            return py::array_t<std::complex<double>>(shape, strides, m.data());
+          },
+          "Convert :class:`ComplexMatrix` to numpy.ndarray.");
 }
 
 } // namespace cudaq

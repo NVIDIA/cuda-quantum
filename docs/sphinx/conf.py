@@ -205,6 +205,7 @@ nitpick_ignore = [
     ('py:class', 'function'),
     ('py:class', 'type'),
     ('py:class', 'cudaq::spin_op'),
+    ('py:class', 'numpy.ndarray[]'),
 ]
 
 napoleon_google_docstring = True

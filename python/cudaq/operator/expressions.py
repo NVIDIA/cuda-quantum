@@ -203,7 +203,7 @@ class OperatorSum:
             if isinstance(spin_op, (complex, float, int)):
                 return numpy.array([spin_op], dtype=numpy.complex128)
             else:
-                return _OperatorHelpers.cmatrix_to_nparray(spin_op.to_matrix())
+                return spin_op.to_matrix().to_numpy()
 
         cache_key = (tuple(dimensions.items()), tuple(kwargs.items()))
 

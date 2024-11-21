@@ -156,20 +156,6 @@ class _OperatorHelpers:
         matrix[:] = matrix[permutation, :][:, permutation]
 
     @staticmethod
-    def cmatrix_to_nparray(
-            cmatrix: cudaq_runtime.ComplexMatrix
-    ) -> NDArray[numpy.complexfloating]:
-        """
-        Converts a `cudaq.ComplexMatrix` to the corresponding `numpy` array.
-        """
-        # FIXME: implement conversion in `py_matrix.cpp` instead and ensure consistency with `numpy.array` -> `ComplexMatrix`
-        return numpy.array(
-            [[cmatrix[row, column]
-              for row in range(cmatrix.num_rows())]
-             for column in range(cmatrix.num_columns())],
-            dtype=numpy.complex128)
-
-    @staticmethod
     def canonicalize_degrees(degrees: Iterable[int]) -> Tuple[int]:
         """
         Returns the degrees sorted in canonical order.

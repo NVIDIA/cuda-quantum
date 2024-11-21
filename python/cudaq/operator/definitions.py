@@ -155,14 +155,11 @@ class operators:
 
 class spin:
     ElementaryOperator.define(
-        "pauli_x", [2], lambda: _OperatorHelpers.cmatrix_to_nparray(
-            cudaq_runtime.spin.x(0).to_matrix()))
+        "pauli_x", [2], lambda: cudaq_runtime.spin.x(0).to_matrix().to_numpy())
     ElementaryOperator.define(
-        "pauli_y", [2], lambda: _OperatorHelpers.cmatrix_to_nparray(
-            cudaq_runtime.spin.y(0).to_matrix()))
+        "pauli_y", [2], lambda: cudaq_runtime.spin.y(0).to_matrix().to_numpy())
     ElementaryOperator.define(
-        "pauli_z", [2], lambda: _OperatorHelpers.cmatrix_to_nparray(
-            cudaq_runtime.spin.z(0).to_matrix()))
+        "pauli_z", [2], lambda: cudaq_runtime.spin.z(0).to_matrix().to_numpy())
 
     @classmethod
     def x(cls, target: int) -> ElementaryOperator:
