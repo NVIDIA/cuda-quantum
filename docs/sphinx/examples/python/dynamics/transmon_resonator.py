@@ -28,7 +28,6 @@ omega_r = 2.0 * 2 * np.pi  # resonator frequency
 chi_01 = 0.025 * 2 * np.pi
 chi_12 = 0.0
 
-# See equation 3.8
 omega_01_prime = omega_01 + chi_01
 omega_r_prime = omega_r - chi_12 / 2.0
 chi = chi_01 - chi_12 / 2.0
