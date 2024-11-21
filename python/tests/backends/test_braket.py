@@ -11,13 +11,11 @@ import pytest
 import os
 from cudaq import spin
 import numpy as np
-from multiprocessing import Process
-from network_utils import check_server_connection
 
 ## NOTE: Comment the following line which skips these tests in order to run in
 # local dev environment after setting AWS credentials.
 ## NOTE: Amazon Braket costs apply
-pytestmark = pytest.mark.skip("Braket credentials required")
+pytestmark = pytest.mark.skip("Amazon Braket credentials required")
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -38,8 +36,6 @@ def test_simple_kernel():
         mz(q)
 
     counts = cudaq.sample(kernel, shots_count=100)
-    counts.dump()
-
     assert len(counts) == 1
     assert "1" in counts
 
@@ -273,10 +269,10 @@ def test_kernel_with_args():
             x.ctrl(qreg[qubit], qreg[qubit + 1])
         mz(qreg)
 
-    counts = cudaq.sample(kernel, 8, shots_count=100)
+    counts = cudaq.sample(kernel, 4, shots_count=100)
     assert len(counts) == 2
-    assert "00000000" in counts
-    assert "11111111" in counts
+    assert "0000" in counts
+    assert "1111" in counts
 
 
 @pytest.mark.parametrize("device_arn", [
