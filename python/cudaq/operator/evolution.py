@@ -10,7 +10,6 @@ from __future__ import annotations
 import numpy, scipy, sys, uuid
 from numpy.typing import NDArray
 from typing import Callable, Iterable, Mapping, Optional, Sequence
-import cupy as cp
 import json
 import random
 import string
@@ -54,6 +53,7 @@ def _compute_step_matrix(hamiltonian: Operator,
     op_matrix = -1j * op_matrix * dt
 
     if use_gpu:
+        import cupy as cp
         op_matrix_gpu = cp.array(op_matrix)
         return cp.asnumpy(cp.exp(op_matrix_gpu))
     else:
