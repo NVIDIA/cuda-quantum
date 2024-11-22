@@ -250,12 +250,18 @@ def test_parameter_description():
     squeeze_op = operators.squeeze(0)
     displace_op = operators.displace(0)
     combined_op = squeeze_op + displace_op
-    assert 'squeezing' in squeeze_op.parameters and squeeze_op.parameters['squeezing'].strip() 
-    assert 'displacement' in displace_op.parameters and displace_op.parameters['displacement'].strip()
-    assert 'squeezing' in combined_op.parameters and combined_op.parameters['squeezing'].strip() 
-    assert 'displacement' in combined_op.parameters and combined_op.parameters['displacement'].strip()
-    assert combined_op.parameters['squeezing'] == squeeze_op.parameters['squeezing']
-    assert combined_op.parameters['displacement'] == displace_op.parameters['displacement']
+    assert 'squeezing' in squeeze_op.parameters and squeeze_op.parameters[
+        'squeezing'].strip()
+    assert 'displacement' in displace_op.parameters and displace_op.parameters[
+        'displacement'].strip()
+    assert 'squeezing' in combined_op.parameters and combined_op.parameters[
+        'squeezing'].strip()
+    assert 'displacement' in combined_op.parameters and combined_op.parameters[
+        'displacement'].strip()
+    assert combined_op.parameters['squeezing'] == squeeze_op.parameters[
+        'squeezing']
+    assert combined_op.parameters['displacement'] == displace_op.parameters[
+        'displacement']
 
     def generator(param1, args):
         """Some args documentation.
@@ -273,8 +279,10 @@ def test_parameter_description():
             return args
 
     op = ScalarOperator(generator)
-    assert 'param1' in op.parameters and op.parameters['param1'] == 'my docs for param1'
-    assert 'args' in op.parameters and op.parameters['args'] == 'Description of `args`. Multiple lines are supported.'
+    assert 'param1' in op.parameters and op.parameters[
+        'param1'] == 'my docs for param1'
+    assert 'args' in op.parameters and op.parameters[
+        'args'] == 'Description of `args`. Multiple lines are supported.'
 
 
 def test_operator_equality():
