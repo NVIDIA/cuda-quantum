@@ -3,7 +3,7 @@ on:
     inputs:
       deployment_id:
         type: string
-        description: The workflow id of the deployment that contains produced the documentation to publish.
+        description: The workflow id of the deployment that contains the produced documentation to publish.
         required: true
       version:
         required: true
@@ -53,7 +53,7 @@ jobs:
           else
             artifacts_url=${{ github.event.workflow_run.artifacts_url }}
           fi
-          artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
+          artifacts=$(gh api --paginate $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
           artifact_name=cuda_quantum_docs
 
           docs_found=${{ github.event.workflow_run.name == 'CI' || false }}

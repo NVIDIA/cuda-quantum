@@ -26,7 +26,6 @@ struct deuteron_n3_ansatz {
   }
 };
 
-#ifndef CUDAQ_BACKEND_TENSORNET
 CUDAQ_TEST(ObserveResult, checkSimple) {
 
   using namespace cudaq::spin;
@@ -112,5 +111,4 @@ CUDAQ_TEST(ObserveResult, checkExpValBug) {
   printf("exp %lf \n", exp);
   EXPECT_NEAR(exp, .79, 1e-1);
 }
-#endif
 #endif
