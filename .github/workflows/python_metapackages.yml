@@ -246,7 +246,9 @@ jobs:
           if [ -f /tmp/install.out ] && [ -z "$(cat /tmp/install.out | grep -o 'Autodetection succeeded')" ]; then
             # Autodetection failed - a default choice of the binary distribution will be installed.
             echo "::warning::Autodetection to determine cudaq binary distribution failed."
-            installed_default=$(cat /tmp/install.out | sed -nE 's/.*Identified (\S*) as the best package.*/\1/p')
+            # Take the first Identified best package because the logs print multiple lines.
+            # They should all be the same, if they differ in the build environment then there is probably issues.
+            installed_default=$(cat /tmp/install.out | sed -nE 's/.*Identified (\S*) as the best package.*/\1/p' | head -n 1)
             echo "::warning::The installed default is ${installed_default}, the potential conflicting package is ${test_conflicting}"
             if [ "$installed_default" == "$test_conflicting" ]; then
               check_package=none
