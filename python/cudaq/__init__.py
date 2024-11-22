@@ -72,8 +72,6 @@ else:
 parallel = cudaq_runtime.parallel
 
 # Primitive Types
-from .operator.definitions import spin, SpinOperator
-
 qubit = cudaq_runtime.qubit
 qvector = cudaq_runtime.qvector
 qview = cudaq_runtime.qview
@@ -87,6 +85,20 @@ SimulationPrecision = cudaq_runtime.SimulationPrecision
 
 # to be deprecated
 qreg = cudaq_runtime.qvector
+
+# Operator API
+from .operator.definitions import spin, SpinOperator
+# Re-export non-spin-op operators under the `operators` namespace
+# e.g. `cudaq.operators.annihilate`
+from .operator import operators as operators
+# Operator types (in addition to `spin` types)
+# e.g., allows users to use `cudaq.ScalarOperator(lambda...)`
+from .operator import Operator, ElementaryOperator, ScalarOperator
+
+# Time evolution API
+from .operator.schedule import Schedule
+from .operator.evolution import evolve, evolve_async
+from .operator.integrators import *
 
 # Optimizers + Gradients
 optimizers = cudaq_runtime.optimizers
@@ -143,19 +155,6 @@ testing = cudaq_runtime.testing
 
 # target-specific
 orca = cudaq_runtime.orca
-
-# Dynamics-specific types
-from .operator.schedule import Schedule
-from .operator.evolution import evolve, evolve_async
-# Operator types (in addition to `spin` types)
-# e.g., allows users to use `cudaq.ScalarOperator(lambda...)`
-from .operator import Operator, ElementaryOperator, ScalarOperator
-# Re-export non-spin-op operators under the `operators` namespace
-# e.g. `cudaq.operators.annihilate`
-from .operator import operators as operators
-# Export dynamics integrators
-# e.g., `cudaq.RungeKuttaIntegrator``
-from .operator.integrators import *
 
 
 def synthesize(kernel, *args):

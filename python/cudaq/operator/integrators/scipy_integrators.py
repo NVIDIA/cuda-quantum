@@ -8,7 +8,6 @@
 
 from ..integrator import BaseTimeStepper, BaseIntegrator
 from ..cudm_helpers import cudm, CudmStateType
-import cupy
 from ..cudm_helpers import CuDensityMatOpConversion, constructLiouvillian
 from .builtin_integrators import cuDensityMatTimeStepper
 
@@ -19,6 +18,11 @@ try:
 except ImportError:
     has_scipy = False
 
+has_cupy = True
+try:
+    import cupy as cp
+except ImportError:
+    has_cupy = False
 
 class ScipyZvodeIntegrator(BaseIntegrator[CudmStateType]):
     n_steps = 2500
@@ -29,6 +33,9 @@ class ScipyZvodeIntegrator(BaseIntegrator[CudmStateType]):
     def __init__(self, stepper: BaseTimeStepper[CudmStateType], **kwargs):
         if not has_scipy:
             raise ImportError("scipy is required to use this integrator.")
+        if not has_cupy:
+            raise ImportError(
+                'CuPy is required to use this integrator.')
         super().__init__(**kwargs)
         self.stepper = stepper
         self.state_data_shape = None

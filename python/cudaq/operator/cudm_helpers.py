@@ -7,7 +7,7 @@
 # ============================================================================ #
 
 import numpy
-from typing import Mapping, List, Sequence, Union
+from typing import Any, Mapping, List, Sequence, Union
 from numbers import Number
 from .expressions import ElementaryOperator, ScalarOperator
 from .manipulation import OperatorArithmetics
@@ -20,14 +20,21 @@ try:
     from cuquantum import densitymat as cudm
     from cuquantum.densitymat._internal.callbacks import CallbackCoefficient
     CudmStateType = Union[cudm.DensePureState, cudm.DenseMixedState]
+    CudmOperator = cudm.Operator
+    CudmOperatorTerm = cudm.OperatorTerm
+    CudmWorkstream = cudm.Workstream
 except ImportError:
     cudm = None
+    CudmOperator = Any
+    CudmOperatorTerm = Any
+    CudmWorkstream = Any
+    CallbackCoefficient = Any
 
 logger = logging.getLogger(__name__)
 
 
 class CuDensityMatOpConversion(
-        OperatorArithmetics[cudm.OperatorTerm | CallbackCoefficient | Number]):
+        OperatorArithmetics[CudmOperatorTerm | CallbackCoefficient | Number]):
     """
     Visitor class to convert CUDA-Q operator to a `cuquantum` representation.
     """
@@ -39,8 +46,8 @@ class CuDensityMatOpConversion(
         self._schedule = schedule
 
     def _callback_mult_op(self, scalar: CallbackCoefficient,
-                          op: cudm.OperatorTerm) -> cudm.OperatorTerm:
-        new_opterm = cudm.OperatorTerm(dtype=op.dtype)
+                          op: CudmOperatorTerm) -> CudmOperatorTerm:
+        new_opterm = CudmOperatorTerm(dtype=op.dtype)
         for term, modes, duals, coeff in zip(op.terms, op.modes, op.duals,
                                              op._coefficients):
             combined_terms = []
@@ -51,15 +58,15 @@ class CuDensityMatOpConversion(
         return new_opterm
 
     def tensor(
-        self, op1: cudm.OperatorTerm | CallbackCoefficient | Number,
-        op2: cudm.OperatorTerm | CallbackCoefficient | Number
-    ) -> cudm.OperatorTerm | CallbackCoefficient | Number:
+        self, op1: CudmOperatorTerm | CallbackCoefficient | Number,
+        op2: CudmOperatorTerm | CallbackCoefficient | Number
+    ) -> CudmOperatorTerm | CallbackCoefficient | Number:
         logger.info(f"Tensor {op1} and {op2}")
-        if isinstance(op1, cudm.OperatorTerm):
+        if isinstance(op1, CudmOperatorTerm):
             logger.info(f" {op1}:")
             for term, coeff in zip(op1.terms, op1._coefficients):
                 logger.info(f"  {coeff} * {term}")
-        if isinstance(op2, cudm.OperatorTerm):
+        if isinstance(op2, CudmOperatorTerm):
             logger.info(f" {op2}:")
             for term, coeff in zip(op2.terms, op2._coefficients):
                 logger.info(f"  {coeff} * {term}")
@@ -72,7 +79,7 @@ class CuDensityMatOpConversion(
             return self._callback_mult_op(op1, op2)
         if isinstance(op2, CallbackCoefficient):
             return self._callback_mult_op(op2, op1)
-        new_opterm = cudm.OperatorTerm(dtype=op1.dtype)
+        new_opterm = CudmOperatorTerm(dtype=op1.dtype)
         for term2, modes2, duals2, coeff2 in zip(op2.terms, op2.modes,
                                                  op2.duals, op2._coefficients):
             for term1, modes1, duals1, coeff1 in zip(op1.terms, op1.modes,
@@ -88,15 +95,15 @@ class CuDensityMatOpConversion(
         return new_opterm
 
     def mul(
-        self, op1: cudm.OperatorTerm | CallbackCoefficient | Number,
-        op2: cudm.OperatorTerm | CallbackCoefficient | Number
-    ) -> cudm.OperatorTerm | CallbackCoefficient | Number:
+        self, op1: CudmOperatorTerm | CallbackCoefficient | Number,
+        op2: CudmOperatorTerm | CallbackCoefficient | Number
+    ) -> CudmOperatorTerm | CallbackCoefficient | Number:
         logger.info(f"Multiply {op1} and {op2}")
-        if isinstance(op1, cudm.OperatorTerm):
+        if isinstance(op1, CudmOperatorTerm):
             logger.info(f" {op1}:")
             for term, coeff in zip(op1.terms, op1._coefficients):
                 logger.info(f"  {coeff} * {term}")
-        if isinstance(op2, cudm.OperatorTerm):
+        if isinstance(op2, CudmOperatorTerm):
             logger.info(f" {op2}:")
             for term, coeff in zip(op2.terms, op2._coefficients):
                 logger.info(f"  {coeff} * {term}")
@@ -110,7 +117,7 @@ class CuDensityMatOpConversion(
             return self._callback_mult_op(op1, op2)
         if isinstance(op2, CallbackCoefficient):
             return self._callback_mult_op(op2, op1)
-        new_opterm = cudm.OperatorTerm(dtype=op1.dtype)
+        new_opterm = CudmOperatorTerm(dtype=op1.dtype)
         for term2, modes2, duals2, coeff2 in zip(op2.terms, op2.modes,
                                                  op2.duals, op2._coefficients):
             for term1, modes1, duals1, coeff1 in zip(op1.terms, op1.modes,
@@ -128,22 +135,22 @@ class CuDensityMatOpConversion(
         return new_opterm
 
     def _scalar_to_op(
-            self, scalar: CallbackCoefficient | Number) -> cudm.OperatorTerm:
+            self, scalar: CallbackCoefficient | Number) -> CudmOperatorTerm:
         op_mat = numpy.identity(self._dimensions[0], dtype=numpy.complex128)
         op_term = cudm.tensor_product((cudm.DenseOperator(op_mat), (0,)),
                                       coeff=scalar)
         return op_term
 
     def add(
-        self, op1: cudm.OperatorTerm | CallbackCoefficient | Number,
-        op2: cudm.OperatorTerm | CallbackCoefficient | Number
-    ) -> cudm.OperatorTerm | CallbackCoefficient | Number:
+        self, op1: CudmOperatorTerm | CallbackCoefficient | Number,
+        op2: CudmOperatorTerm | CallbackCoefficient | Number
+    ) -> CudmOperatorTerm | CallbackCoefficient | Number:
         logger.info(f"Add {op1} and {op2}")
-        if isinstance(op1, cudm.OperatorTerm):
+        if isinstance(op1, CudmOperatorTerm):
             logger.info(f" {op1}:")
             for term, coeff in zip(op1.terms, op1._coefficients):
                 logger.info(f"  {coeff} * {term}")
-        if isinstance(op2, cudm.OperatorTerm):
+        if isinstance(op2, CudmOperatorTerm):
             logger.info(f" {op2}:")
             for term, coeff in zip(op2.terms, op2._coefficients):
                 logger.info(f"  {coeff} * {term}")
@@ -154,9 +161,9 @@ class CuDensityMatOpConversion(
             return op2
         if isinstance(op2, Number) and op2 == 0.0:
             return op1
-        if isinstance(op1, Number) and isinstance(op2, cudm.OperatorTerm):
+        if isinstance(op1, Number) and isinstance(op2, CudmOperatorTerm):
             return op2 + self._scalar_to_op(op1)
-        if isinstance(op2, Number) and isinstance(op1, cudm.OperatorTerm):
+        if isinstance(op2, Number) and isinstance(op1, CudmOperatorTerm):
             return op1 + self._scalar_to_op(op2)
         if isinstance(op1, CallbackCoefficient) and isinstance(
                 op2, CallbackCoefficient):
@@ -199,7 +206,7 @@ class CuDensityMatOpConversion(
 
     def evaluate(
         self, op: ElementaryOperator | ScalarOperator
-    ) -> cudm.OperatorTerm | CallbackCoefficient | Number:
+    ) -> CudmOperatorTerm | CallbackCoefficient | Number:
         logger.info(f"Evaluating {op}")
         if isinstance(op, ScalarOperator):
             if op._constant_value is None:
@@ -227,8 +234,8 @@ class CuDensityMatOpConversion(
                     (cudm.DenseOperator(op_mat), op.degrees), coeff=1.0)
 
 
-def computeLindladOp(hilbert_space_dims: List[int], l1: cudm.OperatorTerm,
-                     l2: cudm.OperatorTerm):
+def computeLindladOp(hilbert_space_dims: List[int], l1: CudmOperatorTerm,
+                     l2: CudmOperatorTerm):
     """
     Helper function to compute the Lindlad (super-)operator 
     """
@@ -297,8 +304,8 @@ def computeLindladOp(hilbert_space_dims: List[int], l1: cudm.OperatorTerm,
     return lindblad
 
 
-def constructLiouvillian(hilbert_space_dims: List[int], ham: cudm.OperatorTerm,
-                         c_ops: List[cudm.OperatorTerm],
+def constructLiouvillian(hilbert_space_dims: List[int], ham: CudmOperatorTerm,
+                         c_ops: List[CudmOperatorTerm],
                          is_master_equation: bool):
     """
     Helper to construct the Liouvillian (master or Schrodinger equations) operator
