@@ -138,6 +138,34 @@ def test_multi_qvector():
 def test_control_modifier():
 
     @cudaq.kernel
+    def single_qubit_gates():
+        qubits = cudaq.qvector(2)
+        h.ctrl(qubits[0], qubits[1])
+        x.ctrl(qubits[1], qubits[0])
+        y.ctrl(qubits[0], qubits[1])
+        z.ctrl(qubits[1], qubits[0])
+        r1.ctrl(np.pi / 2, qubits[0], qubits[1])
+        rx.ctrl(np.pi / 4, qubits[1], qubits[0])
+        ry.ctrl(np.pi / 8, qubits[0], qubits[1])
+        rz.ctrl(np.pi, qubits[1], qubits[0])
+        s.ctrl(qubits[0], qubits[1])
+        t.ctrl(qubits[1], qubits[0])
+        mz(qubits)
+
+    # Test here is that this runs
+    cudaq.sample(single_qubit_gates, shots_count=100).dump()
+
+    @cudaq.kernel
+    def test():
+        qubits = cudaq.qvector(3)
+        x(qubits[0], qubits[1])
+        swap.ctrl(qubits[0], qubits[1], qubits[2])
+
+    counts = cudaq.sample(test)
+    assert len(counts) == 1
+    assert '110' in counts
+
+    @cudaq.kernel
     def bell():
         qubits = cudaq.qvector(2)
         h(qubits[0])
@@ -153,28 +181,18 @@ def test_control_modifier():
 def test_adjoint_modifier():
 
     @cudaq.kernel
-    def single_adjoint_test():
+    def single_qubit_gates():
         q = cudaq.qubit()
-        s(q)
+        r1.adj(np.pi, q)
+        rx.adj(np.pi / 2, q)
+        ry.adj(np.pi / 4, q)
+        rz.adj(np.pi / 8, q)
         s.adj(q)
+        t.adj(q)
         mz(q)
 
-    counts = cudaq.sample(single_adjoint_test, shots_count=100)
-    assert len(counts) == 1
-    assert "0" in counts
-
-    @cudaq.kernel
-    def rotation_adjoint_test():
-        q = cudaq.qubit()
-        rx(1.1, q)
-        rx.adj(1.1, q)
-        ry(1.1, q)
-        ry.adj(1.1, q)
-        mz(q)
-
-    counts = cudaq.sample(rotation_adjoint_test, shots_count=100)
-    assert '0' in counts
-    assert len(counts) == 1
+    # Test here is that this runs
+    cudaq.sample(single_qubit_gates, shots_count=100).dump()
 
 
 def test_u3_decomposition():
@@ -248,13 +266,10 @@ def test_custom_operations():
     def basic_x():
         qubit = cudaq.qubit()
         custom_x(qubit)
+        mz(qubit)
 
-    ## NOTE: `translateOperatorName` function in `lib/Optimizer/CodeGen/TranslateToOpenQASM.cpp`
-    #        replaces `r1` with `u1`
-    with pytest.raises(RuntimeError) as e:
-        cudaq.sample(basic_x, shots_count=100)
-    assert "uses a gate: u1 which is not supported by the device or defined via a defcal" in repr(
-        e)
+    counts = cudaq.sample(basic_x, shots_count=100)
+    assert len(counts) == 1 and "1" in counts
 
 
 def test_kernel_with_args():
