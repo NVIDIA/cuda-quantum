@@ -24,6 +24,7 @@ try:
 except ImportError:
     has_cupy = False
 
+
 class ScipyZvodeIntegrator(BaseIntegrator[CudmStateType]):
     n_steps = 2500
     atol = 1e-8
@@ -34,8 +35,7 @@ class ScipyZvodeIntegrator(BaseIntegrator[CudmStateType]):
         if not has_scipy:
             raise ImportError("scipy is required to use this integrator.")
         if not has_cupy:
-            raise ImportError(
-                'CuPy is required to use this integrator.')
+            raise ImportError('CuPy is required to use this integrator.')
         super().__init__(**kwargs)
         self.stepper = stepper
         self.state_data_shape = None

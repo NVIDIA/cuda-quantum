@@ -134,8 +134,8 @@ class CuDensityMatOpConversion(
                                                   coeff=coeff1 * coeff2)
         return new_opterm
 
-    def _scalar_to_op(
-            self, scalar: CallbackCoefficient | Number) -> CudmOperatorTerm:
+    def _scalar_to_op(self,
+                      scalar: CallbackCoefficient | Number) -> CudmOperatorTerm:
         op_mat = numpy.identity(self._dimensions[0], dtype=numpy.complex128)
         op_term = cudm.tensor_product((cudm.DenseOperator(op_mat), (0,)),
                                       coeff=scalar)

@@ -17,12 +17,12 @@ try:
 except ImportError:
     has_cupy = False
 
+
 class cuDensityMatTimeStepper(BaseTimeStepper[CudmStateType]):
 
     def __init__(self, liouvillian: CudmOperator, ctx: CudmWorkStream):
         if not has_cupy:
-            raise ImportError(
-                'CuPy is required to use integrators.')
+            raise ImportError('CuPy is required to use integrators.')
         self.liouvillian = liouvillian
         self.ctx = ctx
         self.state = None
@@ -58,8 +58,7 @@ class RungeKuttaIntegrator(BaseIntegrator[CudmStateType]):
                  stepper: BaseTimeStepper[CudmStateType] = None,
                  **kwargs):
         if not has_cupy:
-            raise ImportError(
-                'CuPy is required to use integrators.')
+            raise ImportError('CuPy is required to use integrators.')
         super().__init__(**kwargs)
         self.stepper = stepper
 
