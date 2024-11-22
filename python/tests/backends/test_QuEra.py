@@ -42,7 +42,7 @@ def startUpMockServer():
     p.terminate()
 
 
-@pytest.mark.skip(reason="Braket credentials required")
+@pytest.mark.skip(reason="Amazon Braket credentials required")
 def test_JSON_payload():
     input = {
         "braketSchemaHeader": {

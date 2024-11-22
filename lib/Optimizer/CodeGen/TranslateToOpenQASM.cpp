@@ -9,6 +9,7 @@
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/CodeGen/Emitter.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/ADT/PostOrderIterator.h"
@@ -22,13 +23,13 @@ using namespace cudaq;
 //===----------------------------------------------------------------------===//
 // Helper functions
 //===----------------------------------------------------------------------===//
-
+/// FIXME: Remove this code
 /// Translates operation names into OpenQASM gate names
 static LogicalResult translateOperatorName(quake::OperatorInterface optor,
                                            StringRef &name) {
   StringRef qkeName = optor->getName().stripDialect();
   if (optor.getControls().size() == 0) {
-    name = StringSwitch<StringRef>(qkeName).Case("r1", "u1").Default(qkeName);
+    name = StringSwitch<StringRef>(qkeName).Default(qkeName);
   } else if (optor.getControls().size() == 1) {
     name = StringSwitch<StringRef>(qkeName)
                .Case("h", "ch")
@@ -345,6 +346,11 @@ static LogicalResult emitOperation(Emitter &emitter, Operation &op) {
       .Case<DeallocOp>([&](auto op) { return success(); })
       .Case<func::ReturnOp>([&](auto op) { return success(); })
       .Case<arith::ConstantOp>([&](auto op) { return success(); })
+      .Case<cudaq::cc::AllocaOp>([&](auto op) { return success(); })
+      .Case<cudaq::cc::StoreOp>([&](auto op) { return success(); })
+      .Case<cudaq::cc::CastOp>([&](auto op) { return success(); })
+      .Case<cudaq::cc::ComputePtrOp>([&](auto op) { return success(); })
+      .Case<quake::DiscriminateOp>([&](auto op) { return success(); })
       .Default([&](Operation *) -> LogicalResult {
         if (op.getName().getDialectNamespace().equals("llvm"))
           return success();
