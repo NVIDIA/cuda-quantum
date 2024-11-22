@@ -15,21 +15,21 @@
 # Usage: 
 # bash install_prerequisites.sh
 #
-# For the libraries LLVM, BLAS, ZLIB, OPENSSL, CURL, CUQUANTUM, CUTENSOR, if the
-# library is not found the location defined by the corresponding environment variable 
-# *_INSTALL_PREFIX, it will be built from source and installed that location.
-# If the LLVM libraries are built from source, the environment variable LLVM_PROJECTS
-# can be used to customize which projects are built, and pybind11 will be built and 
-# installed in the location defined by PYBIND11_INSTALL_PREFIX if necessary.
-# The cuQuantum and cuTensor libraries are only installed if a suitable CUDA compiler 
-# is installed. 
+# For the libraries LLVM, BLAS, ZLIB, OPENSSL, CURL, CUQUANTUM, CUTENSOR, if
+# the library is not found the location defined by the corresponding
+# environment variable *_INSTALL_PREFIX, it will be built from source and
+# installed that location.  If the LLVM libraries are built from source, the
+# environment variable LLVM_PROJECTS can be used to customize which projects
+# are built, and pybind11 will be built and installed in the location defined
+# by PYBIND11_INSTALL_PREFIX if necessary.  The cuQuantum and cuTensor
+# libraries are only installed if a suitable CUDA compiler is installed.
 # 
 # By default, all prerequisites as outlines above are installed even if the
-# corresponding *_INSTALL_PREFIX is not defined. The command line flag -m changes
-# that behavior to only install the libraries for which this variable is defined.
-# A compiler toolchain, cmake, and ninja will be installed unless the the -m flag 
-# is passed or the corresponding commands already exist. If the commands already 
-# exist, compatibility or versions won't be validated.
+# corresponding *_INSTALL_PREFIX is not defined. The command line flag -m
+# changes that behavior to only install the libraries for which this variable
+# is defined.  A compiler toolchain, cmake, and ninja will be installed unless
+# the the -m flag is passed or the corresponding commands already exist. If
+# the commands already exist, compatibility or versions won't be validated.
 
 # Process command line arguments
 toolchain=''
@@ -64,6 +64,7 @@ if $install_all; then
   CURL_INSTALL_PREFIX=${CURL_INSTALL_PREFIX:-/usr/local/curl}
   CUQUANTUM_INSTALL_PREFIX=${CUQUANTUM_INSTALL_PREFIX:-/opt/nvidia/cuquantum}
   CUTENSOR_INSTALL_PREFIX=${CUTENSOR_INSTALL_PREFIX:-/opt/nvidia/cutensor}
+  AWSSDKCPP_INSTALL_PREFIX=${AWSSDK_INSTALL_PREFIX:-/usr/local/aws-sdk-cpp}
 fi
 
 function temp_install_if_command_unknown {
@@ -331,6 +332,29 @@ if [ -n "$cuda_version" ]; then
       echo "cuTensor already installed in $CUTENSOR_INSTALL_PREFIX."
     fi
   fi
+fi
+
+# aws-sdk-cpp needed for Amazon Braket backend
+if [ -n "$AWSSDKCPP_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep aws-sdk-cpp)" ]; then
+  # TODO: Finish this part
+  echo "Fetching aws-sdk-cpp"
+  #git clone ...
+  echo "Configuring aws-sdk-cpp"
+  #cmake -B"${CMAKE_CURRENT_BINARY_DIR}"/tpls/aws-sdk-cpp \
+  #      "${CMAKE_CURRENT_SOURCE_DIR}"/tpls/aws-sdk-cpp \
+  #      -DAUTORUN_UNIT_TESTS=OFF -DAWS_SDK_WARNINGS_ARE_ERRORS=OFF \
+  #      -DAWS_USER_AGENT_CUSTOMIZATION=CUDA-Q/"${CUDA_QUANTUM_VERSION}" \
+  #      -DBUILD_ONLY="braket;s3-crt;sts" -DBUILD_SHARED_LIBS=OFF \
+  #      -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF \
+  #      -Dcrypto_LIBRARY="${crypto_LIBRARY}" \
+  #      -Dcrypto_INCLUDE_DIR="${crypto_INCLUDE_DIR}" \
+  #      -DCURL_LIBRARY="${CURL_LIBRARY}" \
+  #      -DCURL_INCLUDE_DIR="${CURL_INCLUDE_DIR}" \
+  #      -DOPENSSL_ROOT_DIR="${OPENSSL_ROOT_DIR}" -DENABLE_TESTING=OFF \
+  #      -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" -G Ninja
+  echo "Build and install aws-sdk-cpp"
+  #ninja install
+  echo "FIXME: aws-sdk-cpp wasn't installed! TODO!"
 fi
 
 exclude_prereq="$(echo $exclude_prereq | tr ';' ' ' | sed 's/  */, /g')"
