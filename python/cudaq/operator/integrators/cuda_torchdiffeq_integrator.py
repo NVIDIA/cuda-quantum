@@ -8,12 +8,18 @@
 
 from ..integrator import BaseTimeStepper, BaseIntegrator
 from ..cudm_helpers import cudm, CudmStateType
-import cupy as cp
 from ..cudm_helpers import CuDensityMatOpConversion, constructLiouvillian
 from .builtin_integrators import cuDensityMatTimeStepper
 
+has_cupy = True
 has_torch = True
 has_torchdiffeq = True
+
+try:
+    import cupy as cp
+except ImportError:
+    has_cupy = False
+
 try:
     import torch
     import torch.utils
@@ -43,6 +49,9 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[CudmStateType]):
         if not has_torchdiffeq:
             raise ImportError(
                 'torchdiffeq is required to use Torch-based integrators.')
+        if not has_cupy:
+            raise ImportError(
+                'CuPy is required to use Torch-based integrators.')
 
         super().__init__(**kwargs)
         self.stepper = stepper

@@ -8,14 +8,26 @@
 
 from ..integrator import BaseTimeStepper, BaseIntegrator
 from ..cudm_helpers import cudm, CudmStateType
-import cupy
 from ..cudm_helpers import CuDensityMatOpConversion, constructLiouvillian
 from ...util.timing_helper import ScopeTimer
 
+try: 
+    import cupy
+except:
+    print("CuPy module cannot be imported. Integrators won't be available.")
+
+has_cupy = True
+try:
+    import cupy as cp
+except ImportError:
+    has_cupy = False
 
 class cuDensityMatTimeStepper(BaseTimeStepper[CudmStateType]):
 
     def __init__(self, liouvillian: cudm.Operator, ctx: cudm.WorkStream):
+        if not has_cupy:
+            raise ImportError(
+                'CuPy is required to use integrators.')
         self.liouvillian = liouvillian
         self.ctx = ctx
         self.state = None
@@ -36,7 +48,7 @@ class cuDensityMatTimeStepper(BaseTimeStepper[CudmStateType]):
         timer = ScopeTimer("compute.action_result")
         with timer:
             action_result = self.state.clone(
-                cupy.zeros_like(self.state.storage).reshape(
+                cp.zeros_like(self.state.storage).reshape(
                     self.state.local_info[0]))
         timer = ScopeTimer("liouvillian_action.compute")
         with timer:
@@ -50,6 +62,9 @@ class RungeKuttaIntegrator(BaseIntegrator[CudmStateType]):
     def __init__(self,
                  stepper: BaseTimeStepper[CudmStateType] = None,
                  **kwargs):
+        if not has_cupy:
+            raise ImportError(
+                'CuPy is required to use integrators.')
         super().__init__(**kwargs)
         self.stepper = stepper
 
@@ -91,19 +106,19 @@ class RungeKuttaIntegrator(BaseIntegrator[CudmStateType]):
             current_t = self.t + i * dt
             k1 = self.stepper.compute(self.state, current_t)
 
-            rho_temp = cupy.copy(self.state.storage).reshape(
+            rho_temp = cp.copy(self.state.storage).reshape(
                 self.state.local_info[0])
             rho_temp += ((dt / 2) * k1.storage)
             k2 = self.stepper.compute(self.state.clone(rho_temp),
                                       current_t + dt / 2)
 
-            rho_temp = cupy.copy(self.state.storage).reshape(
+            rho_temp = cp.copy(self.state.storage).reshape(
                 self.state.local_info[0])
             rho_temp += ((dt / 2) * k2.storage)
             k3 = self.stepper.compute(self.state.clone(rho_temp),
                                       current_t + dt / 2)
 
-            rho_temp = cupy.copy(self.state.storage).reshape(
+            rho_temp = cp.copy(self.state.storage).reshape(
                 self.state.local_info[0])
             rho_temp += ((dt) * k3.storage)
             k4 = self.stepper.compute(self.state.clone(rho_temp),
