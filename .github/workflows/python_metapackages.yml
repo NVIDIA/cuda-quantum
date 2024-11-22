@@ -247,6 +247,7 @@ jobs:
             # Autodetection failed - a default choice of the binary distribution will be installed.
             echo "::warning::Autodetection to determine cudaq binary distribution failed."
             installed_default=$(cat /tmp/install.out | sed -nE 's/.*Identified (\S*) as the best package.*/\1/p')
+            echo "::warning::The installed default is ${installed_default}, the potential conflicting package is ${test_conflicting}"
             if [ "$installed_default" == "$test_conflicting" ]; then
               check_package=none
             fi
