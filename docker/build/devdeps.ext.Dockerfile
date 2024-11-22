@@ -161,7 +161,10 @@ ENV CUDA_PATH="$CUDA_INSTALL_PREFIX"
 ENV PATH="${CUDA_INSTALL_PREFIX}/lib64/:${CUDA_INSTALL_PREFIX}/bin:${PATH}"
 
 # Install cuQuantum dependencies, including cuTensor.
-RUN python3.10 -m pip install cuquantum-python-cu$(echo $CUDA_VERSION | cut -d . -f1)~=24.11
+RUN python3 -m pip install cuquantum-python-cu$(echo $CUDA_VERSION | cut -d . -f1)~=24.11 && \
+    if [ "$(python3 --version | grep -o [0-9\.]* | cut -d . -f -2)" != "3.10" ]; then \
+        echo "expecting Python version 3.10"; \
+    fi
 
 ARG CUQUANTUM_INSTALL_PREFIX=/usr/local/lib/python3.10/dist-packages/cuquantum
 ENV CUQUANTUM_INSTALL_PREFIX="$CUQUANTUM_INSTALL_PREFIX"
