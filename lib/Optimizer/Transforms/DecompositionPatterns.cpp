@@ -460,6 +460,25 @@ struct R1ToRz : public OpRewritePattern<quake::R1Op> {
   }
 };
 
+// Naive mapping of R1 to U3, ignoring the global phase.
+// This is only expected to work with full inlining and
+// quake apply specialization.
+struct R1ToU3 : public OpRewritePattern<quake::R1Op> {
+  using OpRewritePattern<quake::R1Op>::OpRewritePattern;
+
+  void initialize() { setDebugName("R1ToU3"); }
+
+  LogicalResult matchAndRewrite(quake::R1Op r1Op,
+                                PatternRewriter &rewriter) const override {
+    Location loc = r1Op->getLoc();
+    Value zero = createConstant(loc, 0.0, rewriter.getF64Type(), rewriter);
+    std::array<Value, 3> parameters = {zero, zero, r1Op.getParameters()[0]};
+    rewriter.replaceOpWithNewOp<quake::U3Op>(
+        r1Op, r1Op.isAdj(), parameters, r1Op.getControls(), r1Op.getTargets());
+    return success();
+  }
+};
+
 // quake.swap a, b
 // ───────────────────────────────────
 // quake.cnot b, a;
@@ -597,6 +616,34 @@ struct SToR1 : public OpRewritePattern<quake::SOp> {
     QuakeOperatorCreator qRewriter(rewriter);
     qRewriter.create<quake::R1Op>(loc, angle, controls, target);
 
+    qRewriter.selectWiresAndReplaceUses(op, controls, target);
+    rewriter.eraseOp(op);
+    return success();
+  }
+};
+
+// quake.s<adj> target
+// ─────────────────────────────────
+// (quake.z * quake.s) target
+struct SAdjToSZ : public OpRewritePattern<quake::SOp> {
+  using OpRewritePattern<quake::SOp>::OpRewritePattern;
+
+  void initialize() { setDebugName("SAdjToSZ"); }
+
+  LogicalResult matchAndRewrite(quake::SOp op,
+                                PatternRewriter &rewriter) const override {
+    if (!op.isAdj())
+      return failure();
+
+    // Op info
+    auto loc = op->getLoc();
+    auto parameters = op.getParameters();
+    SmallVector<Value> controls(op.getControls());
+    Value target = op.getTarget();
+
+    QuakeOperatorCreator qRewriter(rewriter);
+    qRewriter.create<quake::ZOp>(loc, parameters, controls, target);
+    qRewriter.create<quake::SOp>(loc, parameters, controls, target);
     qRewriter.selectWiresAndReplaceUses(op, controls, target);
     rewriter.eraseOp(op);
     return success();
@@ -1537,6 +1584,7 @@ void cudaq::populateWithAllDecompositionPatterns(RewritePatternSet &patterns) {
     // SOp patterns
     SToPhasedRx,
     SToR1,
+    SAdjToSZ,
     // TOp patterns
     TToPhasedRx,
     TToR1,
@@ -1554,6 +1602,7 @@ void cudaq::populateWithAllDecompositionPatterns(RewritePatternSet &patterns) {
     CR1ToCX,
     R1ToPhasedRx,
     R1ToRz,
+    R1ToU3,
     // RxOp patterns
     CRxToCX,
     RxToPhasedRx,
