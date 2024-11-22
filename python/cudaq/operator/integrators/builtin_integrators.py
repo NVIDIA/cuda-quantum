@@ -7,7 +7,7 @@
 # ============================================================================ #
 
 from ..integrator import BaseTimeStepper, BaseIntegrator
-from ..cudm_helpers import cudm, CudmStateType, CudmOperator, CudmWorkstream
+from ..cudm_helpers import cudm, CudmStateType, CudmOperator, CudmWorkStream
 from ..cudm_helpers import CuDensityMatOpConversion, constructLiouvillian
 from ...util.timing_helper import ScopeTimer
 
@@ -19,7 +19,7 @@ except ImportError:
 
 class cuDensityMatTimeStepper(BaseTimeStepper[CudmStateType]):
 
-    def __init__(self, liouvillian: CudmOperator, ctx: CudmWorkstream):
+    def __init__(self, liouvillian: CudmOperator, ctx: CudmWorkStream):
         if not has_cupy:
             raise ImportError(
                 'CuPy is required to use integrators.')

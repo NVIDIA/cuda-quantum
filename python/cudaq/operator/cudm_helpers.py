@@ -22,12 +22,12 @@ try:
     CudmStateType = Union[cudm.DensePureState, cudm.DenseMixedState]
     CudmOperator = cudm.Operator
     CudmOperatorTerm = cudm.OperatorTerm
-    CudmWorkstream = cudm.Workstream
+    CudmWorkStream = cudm.WorkStream
 except ImportError:
     cudm = None
     CudmOperator = Any
     CudmOperatorTerm = Any
-    CudmWorkstream = Any
+    CudmWorkStream = Any
     CallbackCoefficient = Any
 
 logger = logging.getLogger(__name__)
