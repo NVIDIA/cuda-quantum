@@ -115,8 +115,21 @@ echo "Running core tests."
 python3 -m pip install pytest numpy psutil
 python3 -m pytest -v "$root_folder/tests" \
     --ignore "$root_folder/tests/backends" \
+    --ignore "$root_folder/tests/operator/integrators" \
     --ignore "$root_folder/tests/parallel" \
     --ignore "$root_folder/tests/domains"
+if [ ! $? -eq 0 ]; then
+    echo -e "\e[01;31mPython tests failed.\e[0m" >&2
+    status_sum=$((status_sum+1))
+fi
+
+# Run torch integrator tests.
+# This is an optional integrator, which requires torch and torchdiffeq.
+# Install torch separately to match the cuda version.
+# Torch if installed as part of torchdiffeq's dependencies, may default to the latest cuda version. 
+python3 -m pip install torch --index-url https://download.pytorch.org/whl/cu$(echo ${cuda_version//.})
+python3 -m pip install torchdiffeq
+python3 -m pytest -v "$root_folder/tests/operator/integrators"
 if [ ! $? -eq 0 ]; then
     echo -e "\e[01;31mPython tests failed.\e[0m" >&2
     status_sum=$((status_sum+1))
@@ -166,11 +179,25 @@ for ex in `find "$root_folder/snippets" -name '*.py'`; do
 done
 
 # Run examples
+# Some examples generate plots
+python3 -m pip install --user matplotlib
 for ex in `find "$root_folder/examples" "$root_folder/applications" "$root_folder/targets" -name '*.py'`; do
-    python3 "$ex"
-    if [ ! $? -eq 0 ]; then
-        echo -e "\e[01;31mFailed to execute $ex.\e[0m" >&2
-        status_sum=$((status_sum+1))
+    skip_example=false
+    explicit_targets=`cat $ex | grep -Po '^\s*cudaq.set_target\("\K.*(?=")'`
+    for t in $explicit_targets; do
+        if [ "$t" == "quera" ]; then 
+            # Skipped because GitHub does not have the necessary authentication token 
+            # to submit a (paid) job to QuEra.
+            echo -e "\e[01;31mWarning: Explicitly set target quera in $ex; skipping validation due to paid submission.\e[0m" >&2
+            skip_example=true
+        fi
+    done
+    if ! $skip_example; then 
+        python3 "$ex"
+        if [ ! $? -eq 0 ]; then
+            echo -e "\e[01;31mFailed to execute $ex.\e[0m" >&2
+            status_sum=$((status_sum+1))
+        fi
     fi
 done
 

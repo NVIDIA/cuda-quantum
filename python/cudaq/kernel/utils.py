@@ -26,6 +26,8 @@ qreg = qvector
 
 nvqppPrefix = '__nvqpp__mlirgen__'
 
+ahkPrefix = '__analog_hamiltonian_kernel__'
+
 # Keep a global registry of all kernel FuncOps
 # keyed on their name (without `__nvqpp__mlirgen__` prefix)
 globalKernelRegistry = {}

@@ -62,6 +62,10 @@ public:
   /// the expected results as a cudaq::future here.
   details::future futureResult;
 
+  /// @brief Construct a `async_sample_result` so as to pass across Python
+  /// boundary
+  async_result<sample_result> asyncResult;
+
   /// @brief Pointer to simulation-specific simulation data.
   std::unique_ptr<SimulationState> simulationState;
 

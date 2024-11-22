@@ -161,6 +161,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
         with:
           endpoint: builder_context
+          driver-opts: network=host
 
       - name: Build Open MPI
         id: docker_build
@@ -705,7 +706,7 @@ jobs:
             docker pull $cudaqdev_image
           fi
 
-          docker run --rm -dit --name cuda-quantum-dev $cudaqdev_image
+          docker run --rm -dit --network host --name cuda-quantum-dev $cudaqdev_image
           (docker exec cuda-quantum-dev bash -c "export $docs_version && bash scripts/build_docs.sh" && built=true) || built=false
           if $built; then docker cp cuda-quantum-dev:"/usr/local/cudaq/docs/." docs; \
           else docker cp cuda-quantum-dev:"/workspaces/cuda-quantum/build/." /tmp/build; fi

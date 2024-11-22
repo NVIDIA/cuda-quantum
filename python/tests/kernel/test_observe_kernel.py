@@ -302,7 +302,8 @@ def test_pack_args_pauli_list():
     def generateRandomPauliStrings(numQubits, numPaulis):
         s = ['X', 'Y', 'Z', 'I']
         return [
-            ''.join([random.choice(s) for i in range(numQubits)])
+            ''.join([random.choice(s)
+                     for i in range(numQubits)])
             for i in range(numPaulis)
         ]
 

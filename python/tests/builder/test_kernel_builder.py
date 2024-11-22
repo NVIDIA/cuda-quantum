@@ -1423,7 +1423,7 @@ def test_issue_9():
 
 
 def test_issue_670():
-    
+
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(1)
     kernel.ry(0.1, qubits)

@@ -94,6 +94,9 @@ jobs:
     container:
       image: ${{ needs.setup.outputs.cudaq_test_image }}
       options: --user root
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
     outputs:
       cudaq_commit: ${{ steps.commit-sha.outputs.sha }}
     steps:
