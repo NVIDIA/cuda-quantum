@@ -138,14 +138,11 @@ public:
                                       double relCutoff,
                                       cutensornetTensorSVDAlgo_t algo);
 
-  /// @brief  Compute the expectation value w.r.t. a
-  /// `cutensornetNetworkOperator_t`
-  ///
-  /// The `cutensornetNetworkOperator_t` can be constructed from
-  /// `cudaq::spin_op`, i.e., representing a sum of Pauli products with
-  /// different coefficients.
-  std::complex<double>
-  computeExpVal(cutensornetNetworkOperator_t tensorNetworkOperator);
+  /// @brief Compute the expectation value of an observable
+  /// @param symplecticRepr The symplectic representation of the observable
+  /// @return
+  std::vector<std::complex<double>>
+  computeExpVals(const std::vector<std::vector<bool>> &symplecticRepr);
 
   /// @brief Number of qubits that this state represents.
   std::size_t getNumQubits() const { return m_numQubits; }
