@@ -45,6 +45,9 @@ __qpu__ void entry() {
   callMe(q, 5);
 }
 
-int main() { entry(); }
+int main() {
+  entry();
+  return 0;
+}
 
 // CHECK: na ... BATMAN!

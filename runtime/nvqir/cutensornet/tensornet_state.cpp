@@ -538,22 +538,79 @@ TensorNetState::factorizeMPS(int64_t maxExtent, double absCutoff,
   return mpsTensors;
 }
 
-std::complex<double> TensorNetState::computeExpVal(
-    cutensornetNetworkOperator_t tensorNetworkOperator) {
-  cutensornetStateExpectation_t tensorNetworkExpectation;
+std::vector<std::complex<double>> TensorNetState::computeExpVals(
+    const std::vector<std::vector<bool>> &symplecticRepr) {
   LOG_API_TIME();
+  if (symplecticRepr.empty())
+    return {};
+
+  const std::size_t numQubits = getNumQubits();
+  const auto numSpinOps = symplecticRepr[0].size() / 2;
+  std::vector<std::complex<double>> allExpVals;
+  allExpVals.reserve(symplecticRepr.size());
+
+  constexpr int ALIGNMENT_BYTES = 256;
+  const int placeHolderArraySize = ALIGNMENT_BYTES * numQubits;
+
+  void *pauliMats_h = malloc(placeHolderArraySize);
+  void *pauliMats_d{nullptr};
+  HANDLE_CUDA_ERROR(cudaMalloc(&pauliMats_d, placeHolderArraySize));
+  std::vector<const void *> pauliTensorData;
+  std::vector<std::vector<int32_t>> stateModes;
+
+  for (std::size_t i = 0; i < numQubits; ++i) {
+    pauliTensorData.emplace_back(static_cast<char *>(pauliMats_d) +
+                                 ALIGNMENT_BYTES * i);
+    stateModes.emplace_back(std::vector<int32_t>{static_cast<int32_t>(i)});
+  }
+
+  const std::vector<int64_t> qubitDims(numQubits, 2);
+
+  // Initialize device mem for Pauli matrices
+  constexpr std::complex<double> PauliI_h[4] = {
+      {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {1.0, 0.0}};
+
+  constexpr std::complex<double> PauliX_h[4]{
+      {0.0, 0.0}, {1.0, 0.0}, {1.0, 0.0}, {0.0, 0.0}};
+
+  constexpr std::complex<double> PauliY_h[4]{
+      {0.0, 0.0}, {0.0, -1.0}, {0.0, 1.0}, {0.0, 0.0}};
+
+  constexpr std::complex<double> PauliZ_h[4]{
+      {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {-1.0, 0.0}};
+
+  cutensornetNetworkOperator_t cutnNetworkOperator;
+
+  HANDLE_CUTN_ERROR(cutensornetCreateNetworkOperator(
+      m_cutnHandle, numQubits, qubitDims.data(), CUDA_C_64F,
+      &cutnNetworkOperator));
+
+  const std::vector<int32_t> numModes(pauliTensorData.size(), 1);
+  int64_t id;
+  std::vector<const int32_t *> dataStateModes;
+  for (const auto &stateMode : stateModes) {
+    dataStateModes.emplace_back(stateMode.data());
+  }
+  const cuDoubleComplex termCoeff{1.0, 0.0};
+  HANDLE_CUTN_ERROR(cutensornetNetworkOperatorAppendProduct(
+      m_cutnHandle, cutnNetworkOperator, termCoeff, pauliTensorData.size(),
+      numModes.data(), dataStateModes.data(),
+      /*tensorModeStrides*/ nullptr, pauliTensorData.data(), &id));
 
   // Step 1: create
+  cutensornetStateExpectation_t tensorNetworkExpectation;
   {
     ScopedTraceWithContext("cutensornetCreateExpectation");
     HANDLE_CUTN_ERROR(cutensornetCreateExpectation(m_cutnHandle, m_quantumState,
-                                                   tensorNetworkOperator,
+                                                   cutnNetworkOperator,
                                                    &tensorNetworkExpectation));
   }
   // Step 2: configure
+  // Note: as we reuse this path across many contractions, use a higher number
+  // of hyper samples.
   const int32_t numHyperSamples =
-      8; // desired number of hyper samples used in the tensor network
-         // contraction path finder
+      512; // desired number of hyper samples used in the tensor network
+           // contraction path finder
   {
     ScopedTraceWithContext("cutensornetExpectationConfigure");
     HANDLE_CUTN_ERROR(cutensornetExpectationConfigure(
@@ -568,9 +625,10 @@ std::complex<double> TensorNetState::computeExpVal(
       cutensornetCreateWorkspaceDescriptor(m_cutnHandle, &workDesc));
   {
     ScopedTraceWithContext("cutensornetExpectationPrepare");
-    HANDLE_CUTN_ERROR(cutensornetExpectationPrepare(
-        m_cutnHandle, tensorNetworkExpectation, scratchPad.scratchSize,
-        workDesc, /*cudaStream*/ 0));
+    HANDLE_CUTN_ERROR(
+        cutensornetExpectationPrepare(m_cutnHandle, tensorNetworkExpectation,
+                                      scratchPad.scratchSize, workDesc,
+                                      /*cudaStream*/ 0));
   }
 
   // Attach the workspace buffer
@@ -587,19 +645,57 @@ std::complex<double> TensorNetState::computeExpVal(
   }
 
   // Step 4: Compute
-  std::complex<double> expVal;
-  std::complex<double> stateNorm{0.0, 0.0};
-  {
-    ScopedTraceWithContext("cutensornetExpectationCompute");
-    HANDLE_CUTN_ERROR(cutensornetExpectationCompute(
-        m_cutnHandle, tensorNetworkExpectation, workDesc, &expVal,
-        static_cast<void *>(&stateNorm),
-        /*cudaStream*/ 0));
+  for (const auto &term : symplecticRepr) {
+    bool allIdOps = true;
+    for (std::size_t i = 0; i < numQubits; ++i) {
+      // Memory address of this Pauli term in the placeholder array.
+      auto *address = static_cast<char *>(pauliMats_h) + i * ALIGNMENT_BYTES;
+      constexpr int PAULI_ARRAY_SIZE_BYTES = 4 * sizeof(std::complex<double>);
+      // The Pauli matrix data that we want to load to this slot.
+      // Default is the Identity matrix.
+      const std::complex<double> *pauliMatrixPtr = PauliI_h;
+      if (i < numSpinOps) {
+        if (term[i] && term[i + numSpinOps]) {
+          // Y
+          allIdOps = false;
+          pauliMatrixPtr = PauliY_h;
+        } else if (term[i]) {
+          // X
+          allIdOps = false;
+          pauliMatrixPtr = PauliX_h;
+        } else if (term[i + numSpinOps]) {
+          // Z
+          allIdOps = false;
+          pauliMatrixPtr = PauliZ_h;
+        }
+      }
+      // Copy the Pauli matrix data to the placeholder array at the appropriate
+      // slot.
+      std::memcpy(address, pauliMatrixPtr, PAULI_ARRAY_SIZE_BYTES);
+    }
+    if (allIdOps) {
+      allExpVals.emplace_back(1.0);
+    } else {
+      HANDLE_CUDA_ERROR(cudaMemcpy(pauliMats_d, pauliMats_h,
+                                   placeHolderArraySize,
+                                   cudaMemcpyHostToDevice));
+      std::complex<double> expVal;
+      std::complex<double> stateNorm{0.0, 0.0};
+      {
+        ScopedTraceWithContext("cutensornetExpectationCompute");
+        HANDLE_CUTN_ERROR(cutensornetExpectationCompute(
+            m_cutnHandle, tensorNetworkExpectation, workDesc, &expVal,
+            static_cast<void *>(&stateNorm),
+            /*cudaStream*/ 0));
+      }
+      allExpVals.emplace_back(expVal / std::abs(stateNorm));
+    }
   }
-  // Step 5: clean up
-  HANDLE_CUTN_ERROR(cutensornetDestroyExpectation(tensorNetworkExpectation));
-  HANDLE_CUTN_ERROR(cutensornetDestroyWorkspaceDescriptor(workDesc));
-  return expVal / std::abs(stateNorm);
+
+  free(pauliMats_h);
+  HANDLE_CUDA_ERROR(cudaFree(pauliMats_d));
+
+  return allExpVals;
 }
 
 std::unique_ptr<TensorNetState> TensorNetState::createFromMpsTensors(
