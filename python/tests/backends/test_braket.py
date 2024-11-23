@@ -290,6 +290,21 @@ def test_kernel_with_args():
     assert "1111" in counts
 
 
+def test_multiple_measurement():
+
+    @cudaq.kernel
+    def kernel():
+        qubits = cudaq.qvector(2)
+        h(qubits[0])
+        mz(qubits[0])
+        mz(qubits[1])
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.sample(kernel, shots_count=100).dump()
+    assert "cannot declare bit register. Only 1 bit register(s) is/are supported" in repr(
+        e)
+
+
 def test_qvector_slicing():
 
     @cudaq.kernel
