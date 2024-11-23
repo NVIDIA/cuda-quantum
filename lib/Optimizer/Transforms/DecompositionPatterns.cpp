@@ -622,9 +622,10 @@ struct SToR1 : public OpRewritePattern<quake::SOp> {
   }
 };
 
-// quake.s<adj> target
+// quake.s<adj> [control] target
 // ─────────────────────────────────
-// (quake.z * quake.s) target
+// quake.z [control] target
+// quake.s [control] target
 struct SAdjToSZ : public OpRewritePattern<quake::SOp> {
   using OpRewritePattern<quake::SOp>::OpRewritePattern;
 
