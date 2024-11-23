@@ -191,6 +191,7 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
         cublas_version=11.11 && \
         sed -i "s/-cu12/-cu11/g" pyproject.toml && \
         sed -i -E "s/(nvidia-cublas-cu[0-9]* ~= )[0-9\.]*/\1${cublas_version}/g" pyproject.toml && \
+        sed -i -E "s/(nvidia-cuda-nvrtc-cu[0-9]* ~= )[0-9\.]*/\1${CUDA_VERSION}/g" pyproject.toml && \
         sed -i -E "s/(nvidia-cuda-runtime-cu[0-9]* ~= )[0-9\.]*/\1${CUDA_VERSION}/g" pyproject.toml; \
     fi && \
     # Needed to retrigger the LLVM build, since the MLIR Python bindings
@@ -260,7 +261,7 @@ RUN gcc_packages=$(dnf list installed "gcc*" | sed '/Installed Packages/d' | cut
 
 ## [Python MLIR tests]
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
-    python3 -m pip install lit pytest && \
+    python3 -m pip install lit pytest scipy cuquantum-python-cu$(echo ${CUDA_VERSION} | cut -d . -f1)~=24.11 && \
     "${LLVM_INSTALL_PREFIX}/bin/llvm-lit" -v _skbuild/python/tests/mlir \
         --param nvqpp_site_config=_skbuild/python/tests/mlir/lit.site.cfg.py
 # The other tests for the Python wheel are run post-installation.

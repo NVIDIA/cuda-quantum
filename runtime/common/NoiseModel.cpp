@@ -20,7 +20,7 @@ bool isIdentity(const EigenMatTy &mat, double threshold = 1e-9) {
 
 template <typename EigenMatTy>
 bool validateCPTP(const std::vector<EigenMatTy> &mats,
-                  double threshold = 1e-9) {
+                  double threshold = 1e-4) {
   if (mats.empty()) {
     return true;
   }

@@ -8,7 +8,6 @@
 
 # RUN: PYTHONPATH=../../ pytest -rP  %s | FileCheck %s
 
-
 import numpy as np
 
 import cudaq
