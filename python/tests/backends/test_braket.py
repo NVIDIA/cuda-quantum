@@ -156,14 +156,16 @@ def test_control_modifier():
     cudaq.sample(single_qubit_gates, shots_count=100).dump()
 
     @cudaq.kernel
-    def test():
+    def two_qubit_gates():
         qubits = cudaq.qvector(3)
-        x(qubits[0], qubits[1])
+        x(qubits[0])
+        x(qubits[1])
         swap.ctrl(qubits[0], qubits[1], qubits[2])
+        mz(qubits)
 
-    counts = cudaq.sample(test)
+    counts = cudaq.sample(two_qubit_gates, shots_count=100)
     assert len(counts) == 1
-    assert '110' in counts
+    assert '101' in counts
 
     @cudaq.kernel
     def bell():
@@ -229,7 +231,7 @@ def test_sample_async():
         x.ctrl(qubits[0], qubits[1])
         mz(qubits)
 
-    future = cudaq.sample_async(simple)
+    future = cudaq.sample_async(simple, shots_count=100)
     counts = future.get()
     assert (len(counts) == 2)
     assert ('00' in counts)
