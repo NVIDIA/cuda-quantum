@@ -81,7 +81,8 @@ available_backends=`\
         qpu=${platform##* }
         requirements=$(cat $file | grep "gpu-requirements:")
         gpus=${requirements##* }
-        if [ "${qpu}" != "remote_rest" ] && [ "${qpu}" != "fermioniq" ] && [ "${qpu}" != "orca" ] && [ "${qpu}" != "NvcfSimulatorQPU" ] \
+        if [ "${qpu}" != "remote_rest" ] && [ "${qpu}" != "NvcfSimulatorQPU" ] \
+        && [ "${qpu}" != "fermioniq" ] && [ "${qpu}" != "orca" ] && [ "${qpu}" != "quera" ] \
         && ($gpu_available || [ -z "$gpus" ] || [ "${gpus,,}" == "false" ]); then \
             basename $file | cut -d "." -f 1; \
         fi; \
@@ -149,6 +150,10 @@ do
     if [ -n "$intended_target" ]; then
         echo "Intended for execution on $intended_target backend."
     fi
+    use_library_mode=`sed -e '/^$/,$d' $ex | grep -oP '^//\s*nvq++.+-library-mode'`
+    if [ -n "$use_library_mode" ]; then
+        nvqpp_extra_options="--library-mode"
+    fi
 
     for t in $requested_backends
     do
@@ -201,6 +206,12 @@ do
                 # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1283
                 target_flag+=" --enable-mlir"
             fi
+        elif [ "$t" == "dynamics" ]; then
+            let "skipped+=1"
+            echo "Skipping $t target."
+            # These C++ tests are not intended for dynamics
+            echo ":white_flag: $filename: Not executed due to compatibility reasons. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
+            continue
         fi
 
         echo "Testing on $t target..."
@@ -213,7 +224,7 @@ do
             for (( i=0; i<${arraylength}; i++ ));
             do
                 echo "  Testing nvidia target option: ${optionArray[$i]}"
-                nvq++ $ex $target_flag --target-option "${optionArray[$i]}"
+                nvq++ $nvqpp_extra_options $ex $target_flag --target-option "${optionArray[$i]}"
                 if [ ! $? -eq 0 ]; then
                     let "failed+=1"
                     echo "  :x: Compilation failed for $filename." >> "${tmpFile}_$(echo $t | tr - _)"
@@ -234,7 +245,7 @@ do
                 rm a.out /tmp/cudaq_validation.out &> /dev/null
             done
         else
-            nvq++ $ex $target_flag 
+            nvq++ $nvqpp_extra_options $ex $target_flag
             if [ ! $? -eq 0 ]; then
                 let "failed+=1"
                 echo ":x: Compilation failed for $filename." >> "${tmpFile}_$(echo $t | tr - _)"
@@ -265,7 +276,14 @@ echo "============================="
 # Note: some of the tests do their own "!pip install ..." during the test, and
 # for that to work correctly on the first time, the user site directory (e.g.
 # ~/.local/lib/python3.10/site-packages) must already exist, so create it here.
-mkdir -p $(python3 -m site --user-site)
+if [ -x "$(command -v python3)" ]; then 
+    mkdir -p $(python3 -m site --user-site)
+fi
+
+# Long-running dynamics examples
+dynamics_backend_skipped_examples=(\
+    examples/python/dynamics/transmon_resonator.py  \
+    examples/python/dynamics/silicon_spin_qubit.py)
 
 # Note divisive_clustering_src is not currently in the Published container under
 # the "examples" folder, but the Publishing workflow moves all examples from
@@ -288,6 +306,14 @@ do
     for t in $explicit_targets; do
         if [ -z "$(echo $requested_backends | grep $t)" ]; then 
             echo "Explicitly set target $t not available."
+            skip_example=true
+        elif [ "$t" == "quera" ]; then 
+            # Skipped because GitHub does not have the necessary authentication token 
+            # to submit a (paid) job to QuEra.
+            echo "Explicitly set target quera; skipping validation due to paid submission."
+            skip_example=true
+        elif [[ "$t" == "dynamics" ]] && [[ " ${dynamics_backend_skipped_examples[*]} " =~ " $ex " ]]; then
+            echo "Skipping due to long run time."
             skip_example=true
         fi
     done

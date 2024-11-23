@@ -16,3 +16,4 @@ if (CUDAQ_ENABLE_REST)
 endif()
 
 add_subdirectory(fermioniq)
+add_subdirectory(quera)

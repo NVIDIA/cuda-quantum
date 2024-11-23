@@ -222,9 +222,11 @@ def test_cpp_kernel_from_python_2():
 
     callUCCSD()
 
+
 def test_capture():
+
     @cudaq.kernel
-    def takesCapture(s : int):
+    def takesCapture(s: int):
         pass
 
     spin = 0
@@ -232,4 +234,5 @@ def test_capture():
     @cudaq.kernel(verbose=True)
     def entry():
         takesCapture(spin)
+
     entry.compile()

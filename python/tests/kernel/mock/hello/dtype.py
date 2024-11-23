@@ -5,10 +5,11 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-import cudaq 
+import cudaq
 from dataclasses import dataclass
+
 
 @dataclass
 class TestClass:
-    i : int 
-    d : float 
+    i: int
+    d: float

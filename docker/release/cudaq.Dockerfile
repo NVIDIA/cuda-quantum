@@ -16,7 +16,7 @@
 #
 # Usage:
 # Must be built from the repo root with:
-#   docker build -t nvcr.io/nvidia/nightly/cuda-quantum:latest-base -f docker/release/cudaq.Dockerfile .
+#   docker build -t nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest-base -f docker/release/cudaq.Dockerfile .
 # 
 # The build argument cudaqdev_image defines the CUDA-Q dev image that contains the CUDA
 # Quantum build. This Dockerfile copies the built components into the base_image. The specified
@@ -38,7 +38,6 @@ RUN mkdir /usr/local/cudaq_assets && cd /usr/local/cudaq_assets && \
     mv "$LLVM_INSTALL_PREFIX/bin/llc" "/usr/local/cudaq_assets/llvm/bin/llc" && \
     mv "$LLVM_INSTALL_PREFIX/bin/lld" "/usr/local/cudaq_assets/llvm/bin/lld" && \
     mv "$LLVM_INSTALL_PREFIX/bin/ld.lld" "/usr/local/cudaq_assets/llvm/bin/ld.lld" && \
-    if [ -d "$CUQUANTUM_INSTALL_PREFIX" ]; then mv "$CUQUANTUM_INSTALL_PREFIX"/* "/usr/local/cudaq_assets/cuquantum"; fi && \
     if [ "$CUDAQ_INSTALL_PREFIX" != "/usr/local/cudaq" ]; then mv "$CUDAQ_INSTALL_PREFIX" "/usr/local/cudaq"; fi
 
 FROM $base_image
@@ -59,9 +58,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python3 python3-pip libstdc++-12-dev \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* \
-    && python3 -m pip install --no-cache-dir numpy \
+    && python3 -m pip install --no-cache-dir \
+        numpy scipy cuquantum-python-cu$(echo ${CUDA_VERSION:-12} | cut -d . -f1)~=24.11 \
     && ln -s /bin/python3 /bin/python
-    RUN apt-get update && apt-get install -y --no-install-recommends gcc g++ python3-dev \
+RUN apt-get update && apt-get install -y --no-install-recommends gcc g++ python3-dev \
     # Ref: https://github.com/qutip/qutip/issues/2412
     && python3 -m pip install --no-cache-dir notebook==7.1.3 "qutip<5" matplotlib \
     && apt-get remove -y gcc g++ python3-dev \

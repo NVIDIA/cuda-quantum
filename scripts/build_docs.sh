@@ -141,11 +141,25 @@ if [ ! "$doxygen_exit_code" -eq "0" ]; then
     docs_exit_code=11
 fi
 
+# Create Python readme from template
+echo "Creating README.md for cudaq package"
+package_name=cudaq
+cuda_version_requirement="11.x (where x >= 8) or 12.x"
+cuda_version_conda=11.8.0 # only used as example in the install script
+cat "$repo_root/python/README.md.in" > "$repo_root/python/README.md"
+for variable in package_name cuda_version_requirement cuda_version_conda; do
+    sed -i "s/.{{[ ]*$variable[ ]*}}/${!variable}/g" "$repo_root/python/README.md"
+done
+if [ -n "$(cat "$repo_root/python/README.md" | grep -e '.{{.*}}')" ]; then 
+    echo "Incomplete template substitutions in README."
+    docs_exit_code=1
+fi
+
 echo "Building CUDA-Q documentation using Sphinx..."
 cd "$repo_root/docs"
+
 # The docs build so far is fast such that we do not care about the cached outputs.
 # Revisit this when caching becomes necessary.
-
 rm -rf sphinx/_doxygen/
 rm -rf sphinx/_mdgen/
 cp -r "$doxygen_output_dir" sphinx/_doxygen/

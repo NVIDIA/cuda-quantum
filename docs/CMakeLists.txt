@@ -16,8 +16,8 @@
 #   SOURCE_DIR <DIR>: the directory that SOURCE_LOCATION is relative to (if not the default)
 #   LAUNCH_COMMAND <COMMAND>: the command to launch the test (e.g., mpirun)
 function(add_nvqpp_test TEST_NAME SOURCE_LOCATION)
-  cmake_parse_arguments(PARSED_ARGS "" "TARGET;LABELS;SOURCE_DIR;LAUNCH_COMMAND;APPLICATION_ARGS;TARGET_OPTION" "" ${ARGN}) 
-  set(NVQPP_COMPILE_ARGS "")
+  cmake_parse_arguments(PARSED_ARGS "" "TARGET;LABELS;SOURCE_DIR;LAUNCH_COMMAND;APPLICATION_ARGS;TARGET_OPTION" "" ${ARGN})
+  set(NVQPP_COMPILE_ARGS "--library-mode ")
   if(PARSED_ARGS_TARGET)
     set(NVQPP_COMPILE_ARGS "${NVQPP_COMPILE_ARGS} --target ${PARSED_ARGS_TARGET}")
     if (PARSED_ARGS_TARGET_OPTION)
@@ -131,6 +131,9 @@ if (CUDAQ_ENABLE_PYTHON)
   endfunction()
 
   add_pycudaq_test(Intro intro.py)
+  if (CUDA_FOUND)
+    add_pycudaq_test(EvolveDynamics using/backends/dynamics.py LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
+  endif()
 
   if (CUTENSORNET_ROOT AND CUDA_FOUND) 
     # This example uses tensornet backend.

@@ -383,6 +383,7 @@ def test_complex_vqe_named_lambda_sweep_opt(optimizer):
 def test_complex_vqe_named_lambda_sweep_grad(gradient):
     test_complex_vqe_named_lambda(cudaq.optimizers.Adam(), gradient)
 
+
 @skipIfModulesNotInstalled
 def test_state_preparation():
 
@@ -397,6 +398,7 @@ def test_state_preparation():
     assert not '01' in counts
     assert not '11' in counts
 
+
 @skipIfModulesNotInstalled
 def test_state_preparation_builder():
     kernel, state = cudaq.make_kernel(list[complex])
@@ -408,6 +410,7 @@ def test_state_preparation_builder():
     assert '10' in counts
     assert not '01' in counts
     assert not '11' in counts
+
 
 @skipIfModulesNotInstalled
 @pytest.mark.skip(reason="https://github.com/NVIDIA/cuda-quantum/issues/1924")

@@ -49,6 +49,18 @@ inline bool operator<(const IntrinsicCode &icode, const IntrinsicCode &jcode) {
 /// well as prototypes for LLVM intrinsics and C library calls that are used by
 /// the compiler. The table should be kept in sorted order.
 static constexpr IntrinsicCode intrinsicTable[] = {
+    // These following pauli_word helper functions are only available on the
+    // host-side. They ought not be called in kernel code.
+    {cudaq::runtime::getPauliWordData,
+     {},
+     "func.func private @_ZNK5cudaq10pauli_word11_nvqpp_dataEv(%pw : "
+     "!cc.ptr<i8>) -> !cc.ptr<i8>"},
+    {cudaq::runtime::getPauliWordSize,
+     {cudaq::runtime::getPauliWordData, cudaq::runtime::bindingGetStringData,
+      cudaq::runtime::bindingGetStringSize},
+     "func.func private @_ZNK5cudaq10pauli_word11_nvqpp_sizeEv(%pw : "
+     "!cc.ptr<i8>) -> i64"},
+
     // Initialize a (preallocated) buffer (the first parameter) with i64 values
     // on the semi-open range `[0..n)` where `n` is the second parameter.
     {cudaq::runtime::getLinkableKernelKey,
@@ -292,6 +304,15 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__nvqpp_getStateVectorLength_fp64(%p : i64, %o : i64) -> i64
   )#"},
 
+    // Quasi-portable entry points for use with non-C++ front ends (Python).
+    {cudaq::runtime::bindingGetStringData,
+     {},
+     "func.func private @__nvqpp_getStringData(%p: !cc.ptr<i8>) -> "
+     "!cc.ptr<i8>"},
+    {cudaq::runtime::bindingGetStringSize,
+     {},
+     "func.func private @__nvqpp_getStringSize(%p: !cc.ptr<i8>) -> i64"},
+
     // __nvqpp_initializer_list_to_vector_bool
     {cudaq::stdvecBoolCtorFromInitList,
      {},
@@ -307,11 +328,17 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     return %0 : !cc.ptr<i8>
   })#"},
 
+    // __nvqpp_vector_bool_free_temporary_lists
+    {cudaq::stdvecBoolFreeTemporaryLists,
+     {},
+     R"#(
+  func.func private @__nvqpp_vector_bool_free_temporary_initlists(!cc.ptr<i8>) -> ())#"},
+
     // __nvqpp_vector_bool_to_initializer_list
     {cudaq::stdvecBoolUnpackToInitList,
      {},
      R"#(
-  func.func private @__nvqpp_vector_bool_to_initializer_list(!cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>) -> ())#"},
+  func.func private @__nvqpp_vector_bool_to_initializer_list(!cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x 32>}>>, !cc.ptr<!cc.ptr<i8>>) -> ())#"},
 
     {"__nvqpp_zeroDynamicResult", {}, R"#(
   func.func private @__nvqpp_zeroDynamicResult() -> !cc.struct<{!cc.ptr<i8>, i64}> {
@@ -481,9 +508,12 @@ static cc::GlobalOp buildVectorOfConstantElements(Location loc, ModuleOp module,
   OpBuilder::InsertionGuard guard(builder);
   builder.setInsertionPointToEnd(module.getBody());
   auto globalTy = cc::ArrayType::get(ctx, eleTy, arrayAttr.size());
-  return builder.create<cudaq::cc::GlobalOp>(loc, globalTy, name, arrayAttr,
-                                             /*constant=*/true,
-                                             /*external=*/false);
+  auto global =
+      builder.create<cudaq::cc::GlobalOp>(loc, globalTy, name, arrayAttr,
+                                          /*constant=*/true,
+                                          /*external=*/false);
+  global.setPrivate();
+  return global;
 }
 
 template <typename A>

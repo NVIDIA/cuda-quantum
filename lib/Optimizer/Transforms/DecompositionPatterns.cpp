@@ -362,6 +362,9 @@ struct ExpPauliDecomposition : public OpRewritePattern<quake::ExpPauliOp> {
               auto strAttr = cast<mlir::StringAttr>(attr.value());
               optPauliWordStr = strAttr.getValue();
             }
+          } else if (auto lit = addrOp.getDefiningOp<
+                                cudaq::cc::CreateStringLiteralOp>()) {
+            optPauliWordStr = lit.getStringLiteral();
           }
         }
       }
@@ -369,7 +372,7 @@ struct ExpPauliDecomposition : public OpRewritePattern<quake::ExpPauliOp> {
 
     // Assert that we have a constant known pauli word
     if (!optPauliWordStr.has_value())
-      return failure();
+      return expPauliOp.emitOpError("cannot determine pauli word string");
 
     auto pauliWordStr = optPauliWordStr.value();
 
@@ -1181,6 +1184,41 @@ struct RxToPhasedRx : public OpRewritePattern<quake::RxOp> {
   }
 };
 
+// quake.rx<adj> (θ) target
+// ─────────────────────────────────
+// quake.rx(-θ) target
+struct RxAdjToRx : public OpRewritePattern<quake::RxOp> {
+  using OpRewritePattern<quake::RxOp>::OpRewritePattern;
+
+  void initialize() { setDebugName("RxAdjToRx"); }
+
+  LogicalResult matchAndRewrite(quake::RxOp op,
+                                PatternRewriter &rewriter) const override {
+    if (!op.getControls().empty())
+      return failure();
+
+    if (!op.isAdj())
+      return failure();
+
+    // Op info
+    Location loc = op->getLoc();
+    Value target = op.getTarget();
+    Value angle = op.getParameter();
+    angle = rewriter.create<arith::NegFOp>(loc, angle);
+
+    // Necessary/Helpful constants
+    SmallVector<Value> noControls;
+    SmallVector<Value> parameters = {angle};
+
+    QuakeOperatorCreator qRewriter(rewriter);
+    qRewriter.create<quake::RxOp>(loc, parameters, noControls, target);
+
+    qRewriter.selectWiresAndReplaceUses(op, target);
+    rewriter.eraseOp(op);
+    return success();
+  }
+};
+
 //===----------------------------------------------------------------------===//
 // RyOp decompositions
 //===----------------------------------------------------------------------===//
@@ -1260,6 +1298,41 @@ struct RyToPhasedRx : public OpRewritePattern<quake::RyOp> {
     SmallVector<Value> parameters = {angle, pi_2};
     QuakeOperatorCreator qRewriter(rewriter);
     qRewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
+
+    qRewriter.selectWiresAndReplaceUses(op, target);
+    rewriter.eraseOp(op);
+    return success();
+  }
+};
+
+// quake.ry<adj> (θ) target
+// ─────────────────────────────────
+// quake.ry(-θ) target
+struct RyAdjToRy : public OpRewritePattern<quake::RyOp> {
+  using OpRewritePattern<quake::RyOp>::OpRewritePattern;
+
+  void initialize() { setDebugName("RyAdjToRy"); }
+
+  LogicalResult matchAndRewrite(quake::RyOp op,
+                                PatternRewriter &rewriter) const override {
+    if (!op.getControls().empty())
+      return failure();
+
+    if (!op.isAdj())
+      return failure();
+
+    // Op info
+    Location loc = op->getLoc();
+    Value target = op.getTarget();
+    Value angle = op.getParameter();
+    angle = rewriter.create<arith::NegFOp>(loc, angle);
+
+    // Necessary/Helpful constants
+    SmallVector<Value> noControls;
+    SmallVector<Value> parameters = {angle};
+
+    QuakeOperatorCreator qRewriter(rewriter);
+    qRewriter.create<quake::RyOp>(loc, parameters, noControls, target);
 
     qRewriter.selectWiresAndReplaceUses(op, target);
     rewriter.eraseOp(op);
@@ -1364,6 +1437,41 @@ struct RzToPhasedRx : public OpRewritePattern<quake::RzOp> {
   }
 };
 
+// quake.rz<adj> (θ) target
+// ─────────────────────────────────
+// quake.rz(-θ) target
+struct RzAdjToRz : public OpRewritePattern<quake::RzOp> {
+  using OpRewritePattern<quake::RzOp>::OpRewritePattern;
+
+  void initialize() { setDebugName("RzAdjToRz"); }
+
+  LogicalResult matchAndRewrite(quake::RzOp op,
+                                PatternRewriter &rewriter) const override {
+    if (!op.getControls().empty())
+      return failure();
+
+    if (!op.isAdj())
+      return failure();
+
+    // Op info
+    Location loc = op->getLoc();
+    Value target = op.getTarget();
+    Value angle = op.getParameter();
+    angle = rewriter.create<arith::NegFOp>(loc, angle);
+
+    // Necessary/Helpful constants
+    SmallVector<Value> noControls;
+    SmallVector<Value> parameters = {angle};
+
+    QuakeOperatorCreator qRewriter(rewriter);
+    qRewriter.create<quake::RzOp>(loc, parameters, noControls, target);
+
+    qRewriter.selectWiresAndReplaceUses(op, target);
+    rewriter.eraseOp(op);
+    return success();
+  }
+};
+
 //===----------------------------------------------------------------------===//
 // U3Op decompositions
 //===----------------------------------------------------------------------===//
@@ -1449,12 +1557,15 @@ void cudaq::populateWithAllDecompositionPatterns(RewritePatternSet &patterns) {
     // RxOp patterns
     CRxToCX,
     RxToPhasedRx,
+    RxAdjToRx,
     // RyOp patterns
     CRyToCX,
     RyToPhasedRx,
+    RyAdjToRy,
     // RzOp patterns
     CRzToCX,
     RzToPhasedRx,
+    RzAdjToRz,
     // Swap
     SwapToCX,
     // U3Op

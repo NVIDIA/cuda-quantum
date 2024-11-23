@@ -119,7 +119,12 @@ def cc_StructType : CCType<"Struct", "struct",
   ];
 
   let extraClassDeclaration = [{
+    // O(1)
     bool isEmpty() const { return getMembers().empty(); }
+
+    // O(n)
+    std::size_t getNumMembers() const { return getMembers().size(); }
+
     Type getMember(unsigned position) { return getMembers()[position]; }
   }];
 }
