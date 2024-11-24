@@ -20,6 +20,8 @@
 
 #include <aws/core/utils/ARN.h>
 
+#include <iostream>
+
 namespace {
 void tryCreateBucket(Aws::S3Crt::S3CrtClient &client, std::string const &region,
                      std::string const &bucketName) {
@@ -162,95 +164,104 @@ ServerJobPayload BraketExecutor::checkHelperAndCreateJob(
 
 details::future
 BraketExecutor::execute(std::vector<KernelExecution> &codesToExecute) {
-  auto [dummy1, dummy2, messages] = checkHelperAndCreateJob(codesToExecute);
+  // auto [dummy1, dummy2, messages] = checkHelperAndCreateJob(codesToExecute);
 
-  std::string const defaultBucket = defaultBucketFuture.get();
-  std::string const defaultPrefix = "tasks";
+  // std::string const defaultBucket = defaultBucketFuture.get();
+  // std::string const defaultPrefix = "tasks";
 
-  std::vector<Aws::Braket::Model::CreateQuantumTaskOutcomeCallable>
-      createOutcomes;
+  // std::vector<Aws::Braket::Model::CreateQuantumTaskOutcomeCallable>
+  //     createOutcomes;
 
-  for (const auto &message : messages) {
-    Aws::Braket::Model::CreateQuantumTaskRequest req;
-    req.SetAction(message["action"]);
-    req.SetDeviceArn(message["deviceArn"]);
-    req.SetShots(message["shots"]);
-    if (jobToken)
-      req.SetJobToken(jobToken);
-    req.SetOutputS3Bucket(defaultBucket);
-    req.SetOutputS3KeyPrefix(defaultPrefix);
+  // for (const auto &message : messages) {
+  //   Aws::Braket::Model::CreateQuantumTaskRequest req;
+  //   req.SetAction(message["action"]);
+  //   req.SetDeviceArn(message["deviceArn"]);
+  //   req.SetShots(message["shots"]);
+  //   if (jobToken)
+  //     req.SetJobToken(jobToken);
+  //   req.SetOutputS3Bucket(defaultBucket);
+  //   req.SetOutputS3KeyPrefix(defaultPrefix);
 
-    createOutcomes.push_back(braketClientPtr->CreateQuantumTaskCallable(req));
-  }
+  //   createOutcomes.push_back(braketClientPtr->CreateQuantumTaskCallable(req));
+  // }
 
   return std::async(
       std::launch::async,
-      [this](std::vector<Aws::Braket::Model::CreateQuantumTaskOutcomeCallable>
-                 createOutcomes) {
+      [this](/*std::vector<Aws::Braket::Model::CreateQuantumTaskOutcomeCallable>
+                 createOutcomes*/) {
         std::vector<ExecutionResult> results;
-        for (auto &outcome : createOutcomes) {
-          auto createResponse = outcome.get();
-          if (!createResponse.IsSuccess()) {
-            throw std::runtime_error(createResponse.GetError().GetMessage());
-          }
-          std::string taskArn = createResponse.GetResult().GetQuantumTaskArn();
-          cudaq::info("Created Braket quantum task {}", taskArn);
+        //for (auto &outcome : createOutcomes) {
+          // auto createResponse = outcome.get();
+          // if (!createResponse.IsSuccess()) {
+          //   throw std::runtime_error(createResponse.GetError().GetMessage());
+          // }
+          // std::string taskArn = createResponse.GetResult().GetQuantumTaskArn();
+          
+          // cudaq::info("Created Braket quantum task {}", taskArn);
 
-          Aws::Braket::Model::GetQuantumTaskRequest req;
-          req.SetQuantumTaskArn(taskArn);
-          auto getResponse = braketClientPtr->GetQuantumTask(req);
-          if (!getResponse.IsSuccess()) {
-            throw std::runtime_error(getResponse.GetError().GetMessage());
-          }
-          auto taskStatus = getResponse.GetResult().GetStatus();
-          while (
-              taskStatus != Aws::Braket::Model::QuantumTaskStatus::COMPLETED &&
-              taskStatus != Aws::Braket::Model::QuantumTaskStatus::FAILED &&
-              taskStatus != Aws::Braket::Model::QuantumTaskStatus::CANCELLED) {
-            std::this_thread::sleep_for(pollingInterval);
+          // Aws::Braket::Model::GetQuantumTaskRequest req;
+          // req.SetQuantumTaskArn(taskArn);
+          // auto getResponse = braketClientPtr->GetQuantumTask(req);
+          // if (!getResponse.IsSuccess()) {
+          //   throw std::runtime_error(getResponse.GetError().GetMessage());
+          // }
+          // auto taskStatus = getResponse.GetResult().GetStatus();
+          // while (
+          //     taskStatus != Aws::Braket::Model::QuantumTaskStatus::COMPLETED &&
+          //     taskStatus != Aws::Braket::Model::QuantumTaskStatus::FAILED &&
+          //     taskStatus != Aws::Braket::Model::QuantumTaskStatus::CANCELLED) {
+          //   std::this_thread::sleep_for(pollingInterval);
 
-            getResponse = braketClientPtr->GetQuantumTask(req);
-            if (!getResponse.IsSuccess()) {
-              throw std::runtime_error(getResponse.GetError().GetMessage());
-            }
-            taskStatus = getResponse.GetResult().GetStatus();
-          }
+          //   getResponse = braketClientPtr->GetQuantumTask(req);
+          //   if (!getResponse.IsSuccess()) {
+          //     throw std::runtime_error(getResponse.GetError().GetMessage());
+          //   }
+          //   taskStatus = getResponse.GetResult().GetStatus();
+          // }
 
-          auto getResult = getResponse.GetResult();
-          if (taskStatus != Aws::Braket::Model::QuantumTaskStatus::COMPLETED) {
-            // Task terminated without results
-            throw std::runtime_error(
-                fmt::format("Braket task {} terminated without results. {}",
-                            taskArn, getResult.GetFailureReason()));
-          }
+          // auto getResult = getResponse.GetResult();
+          // if (taskStatus != Aws::Braket::Model::QuantumTaskStatus::COMPLETED) {
+          //   // Task terminated without results
+          //   throw std::runtime_error(
+          //       fmt::format("Braket task {} terminated without results. {}",
+          //                   taskArn, getResult.GetFailureReason()));
+          // }
 
-          std::string outBucket = getResult.GetOutputS3Bucket();
-          std::string outPrefix = getResult.GetOutputS3Directory();
+          // std::string outBucket = getResult.GetOutputS3Bucket();
+          // std::string outPrefix = getResult.GetOutputS3Directory();
 
-          cudaq::info("Fetching braket quantum task {} results from "
-                      "s3://{}/{}/results.json",
-                      taskArn, outBucket, outPrefix);
+          // cudaq::info("Fetching braket quantum task {} results from "
+          //             "s3://{}/{}/results.json",
+          //             taskArn, outBucket, outPrefix);
 
-          Aws::S3Crt::Model::GetObjectRequest resultsJsonRequest;
-          resultsJsonRequest.SetBucket(outBucket);
-          resultsJsonRequest.SetKey(fmt::format("{}/results.json", outPrefix));
-          auto s3Response = s3ClientPtr->GetObject(resultsJsonRequest);
-          if (!s3Response.IsSuccess()) {
-            throw std::runtime_error(s3Response.GetError().GetMessage());
-          }
-          auto resultsJson = nlohmann::json::parse(
-              s3Response.GetResultWithOwnership().GetBody());
+          // Aws::S3Crt::Model::GetObjectRequest resultsJsonRequest;
+          // resultsJsonRequest.SetBucket(outBucket);
+          // resultsJsonRequest.SetKey(fmt::format("{}/results.json", outPrefix));
+          // auto s3Response = s3ClientPtr->GetObject(resultsJsonRequest);
+          // if (!s3Response.IsSuccess()) {
+          //   throw std::runtime_error(s3Response.GetError().GetMessage());
+          // }
+          // auto resultsJson = nlohmann::json::parse(
+          //     s3Response.GetResultWithOwnership().GetBody());
+          std::string taskArn = "arn:aws:braket:us-east-1:783764578061:quantum-task/8bad9d49-b546-4ed8-8517-1b23c1eb929e";
+          auto resultsJson = nlohmann::json::parse("{\"additionalMetadata\":{\"action\":{\"braketSchemaHeader\":{\"name\":\"braket.ir.openqasm.program\",\"version\":\"1\"},\"inputs\":{},\"source\":\"// Code generated by NVIDIA's nvq++ compiler\\nOPENQASM 2.0;\\n\\n\\n\\nqreg var0[4];\\nx var0[1];\\nx var0[2];\\ncreg var3[4];\\nmeasure var0 -> var3;\\n\"},\"simulatorMetadata\":{\"braketSchemaHeader\":{\"name\":\"braket.task_result.simulator_metadata\",\"version\":\"1\"},\"executionDuration\":2}},\"braketSchemaHeader\":{\"name\":\"braket.task_result.gate_model_task_result\",\"version\":\"1\"},\"measuredQubits\":[0,1,2,3],\"measurements\":[[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0]],\"resultTypes\":[],\"taskMetadata\":{\"braketSchemaHeader\":{\"name\":\"braket.task_result.task_metadata\",\"version\":\"1\"},\"createdAt\":\"2024-11-23T19:16:08.872Z\",\"deviceId\":\"arn:aws:braket:::device/quantum-simulator/amazon/sv1\",\"deviceParameters\":{\"braketSchemaHeader\":{\"name\":\"braket.device_schema.simulators.gate_model_simulator_device_parameters\",\"version\":\"1\"},\"paradigmParameters\":{\"braketSchemaHeader\":{\"name\":\"braket.device_schema.gate_model_parameters\",\"version\":\"1\"},\"disableQubitRewiring\":false,\"qubitCount\":4}},\"endedAt\":\"2024-11-23T19:16:10.138Z\",\"id\":\"arn:aws:braket:us-east-1:783764578061:quantum-task/8bad9d49-b546-4ed8-8517-1b23c1eb929e\",\"shots\":100,\"status\":\"COMPLETED\"}}");
+          std::cout << "Results: " << resultsJson << std::endl;
           auto c = serverHelper->processResults(resultsJson, taskArn);
 
           for (auto &regName : c.register_names()) {
+            std::cout << "Register name: " << regName << std::endl;
             results.emplace_back(c.to_map(regName), regName);
+            std::cout << "Sequential data: " << regName << std::endl;
+            for(auto d: c.sequential_data(regName)) {
+              std::cout << d << std::endl;
+            }
             results.back().sequentialData = c.sequential_data(regName);
           }
-        }
+        //}
 
         return sample_result(results);
-      },
-      std::move(createOutcomes));
+      }/*,
+      std::move(createOutcomes)*/);
 }
 } // namespace cudaq
 

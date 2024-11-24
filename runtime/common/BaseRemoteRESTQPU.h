@@ -21,6 +21,7 @@
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
+#include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
@@ -332,7 +333,7 @@ public:
   }
 
   /// @brief Conditionally form an output_names JSON object if this was for QIR
-  nlohmann::json formOutputNames(const std::string &codegenTranslation,
+  nlohmann::json formOutputNames(const std::string &codegenTranslation, mlir::ModuleOp moduleOp,
                                  const std::string &codeStr) {
     // Form an output_names mapping from codeStr
     nlohmann::json output_names;
@@ -355,6 +356,15 @@ public:
               func.hasFnAttribute("output_names")) {
             output_names = nlohmann::json::parse(
                 func.getFnAttribute("output_names").getValueAsString());
+            break;
+          }
+        }
+      }
+    } else if (codegenTranslation.starts_with("qasm2")) {
+      for (auto &op : moduleOp) {
+        if (op.hasAttr(cudaq::entryPointAttrName) && op.hasAttr("output_names")) {
+          if (auto strAttr = op.getAttr(cudaq::opt::QIROutputNamesAttrName).dyn_cast_or_null<mlir::StringAttr>()) {
+            output_names = nlohmann::json::parse(strAttr.getValue());
             break;
           }
         }
@@ -551,9 +561,12 @@ public:
           throw std::runtime_error("Could not successfully translate to " +
                                    codegenTranslation + ".");
       }
-
+      // TODO: see if modules are new here?
+      std::cout << "NEW MODULE: " << std::endl;
+      moduleOpI.dump();
+      std::cout << "CODE STR: " << codeStr << std::endl;
       // Form an output_names mapping from codeStr
-      nlohmann::json j = formOutputNames(codegenTranslation, codeStr);
+      nlohmann::json j = formOutputNames(codegenTranslation, moduleOpI, codeStr);
 
       codes.emplace_back(name, codeStr, j, mapping_reorder_idx);
     }

@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "common/BraketServerHelper.h"
+#include <iostream>
 
 namespace {
 std::string prepareOpenQasm(std::string source) {
@@ -113,7 +114,22 @@ BraketServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
 };
 
 sample_result BraketServerHelper::processResults(ServerMessage &resultsJson,
-                                                 std::string &) {
+                                                 std::string &jobID) {
+
+  //if (outputNames.find(jobID) == outputNames.end())
+  //  throw std::runtime_error("Could not find output names for job " + jobID);
+
+  //auto &output_names = outputNames[jobID];
+  // Fake output names
+  cudaq::OutputNamesType output_names;
+  output_names[0] = cudaq::ResultInfoType{1, "1"};
+  output_names[1] = cudaq::ResultInfoType{2, "2"};
+
+  for (auto &[result, info] : output_names) {
+    cudaq::info("Qubit {} Result {} Name {}", info.qubitNum, result,
+                info.registerName);
+  }
+
   CountsDictionary counts;
 
   if (resultsJson.contains("measurements")) {
@@ -136,7 +152,73 @@ sample_result BraketServerHelper::processResults(ServerMessage &resultsJson,
     }
   }
 
-  return sample_result{ExecutionResult{counts}};
+  std::cout << "COUNTS: " << std::endl;
+  for (auto c: counts) {
+    std::cout << c.first << ": " << c.second <<std::endl;
+  }
+
+//   COUNTS: 
+//     0110: 100
+// { 0110:100 }
+// need: 11: 100
+
+  // Full execution results include compiler-generated qubits, which are
+  // undesirable to the user.
+  cudaq::ExecutionResult fullExecResults{counts};
+  auto fullSampleResults = cudaq::sample_result{fullExecResults};
+
+  // clang-format off
+  // The following code strips out and reorders the outputs based on output_names.
+  // For example, if `counts` is something like:
+  //      { 11111:62 01111:12 11110:12 01110:12 }
+  // And if we want to discard the first bit (because qubit 0 was a
+  // compiler-generated qubit), that maps to something like this:
+  // -----------------------------------------------------
+  // Qubit  Index - x1234    x1234    x1234    x1234
+  // Result Index - x0123    x0123    x0123    x0123
+  //              { 11111:62 01111:12 11110:12 01110:12 }
+  //              { x1111:62 x1111:12 x1110:12 x1110:12 }
+  //                  \--- v ---/       \--- v ---/
+  //              {    1111:(62+12)     x1110:(12+12)   }
+  //              {    1111:74           1110:24        }
+  // -----------------------------------------------------
+  // clang-format on
+
+  std::vector<ExecutionResult> execResults;
+
+  // Get a reduced list of qubit numbers that were in the original program
+  // so that we can slice the output data and extract the bits that the user
+  // was interested in. Sort by QIR qubit number.
+  std::vector<std::size_t> qubitNumbers;
+  qubitNumbers.reserve(output_names.size());
+  for (auto &[result, info] : output_names) {
+    qubitNumbers.push_back(info.qubitNum);
+  }
+
+  // For each original counts entry in the full sample results, reduce it
+  // down to the user component and add to userGlobal. If qubitNumbers is empty,
+  // that means all qubits were measured.
+  if (qubitNumbers.empty()) {
+    execResults.emplace_back(ExecutionResult{fullSampleResults.to_map()});
+  } else {
+    auto subset = fullSampleResults.get_marginal(qubitNumbers);
+    execResults.emplace_back(ExecutionResult{subset.to_map()});
+  }
+
+  // // Now add to `execResults` one register at a time
+  // for (const auto &[result, info] : output_names) {
+  //   CountsDictionary regCounts;
+  //   for (const auto &[bits, count] : fullSampleResults)
+  //     regCounts[std::string{bits[info.qubitNum]}] += count;
+  //   execResults.emplace_back(regCounts, info.registerName);
+  // }
+
+  // Return a sample result including the global register and all individual
+  // registers.
+  auto ret = cudaq::sample_result(execResults);
+  return ret;
+
+  //return sample_result{ExecutionResult{counts}};
 }
 
 } // namespace cudaq

@@ -1,0 +1,970 @@
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:205] Init infrastructure for pythonic builder.
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:185] Found Target anyon with config file anyon.yml
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:195] Found Target: anyon -> (sim=qpp, platform=default)
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:185] Found Target braket with config file braket.yml
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:195] Found Target: braket -> (sim=qpp, platform=default)
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:185] Found Target density-matrix-cpu with config file density-matrix-cpu.yml
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:129] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:135] Use dm simulator for target density-matrix-cpu
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:195] Found Target: density-matrix-cpu -> (sim=dm, platform=default)
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:185] Found Target fermioniq with config file fermioniq.yml
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:195] Found Target: fermioniq -> (sim=qpp, platform=default)
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:185] Found Target ionq with config file ionq.yml
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:195] Found Target: ionq -> (sim=qpp, platform=default)
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:185] Found Target iqm with config file iqm.yml
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:195] Found Target: iqm -> (sim=qpp, platform=default)
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:185] Found Target nvidia-fp64 with config file nvidia-fp64.yml
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:129] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:140] Skip cusvsim-fp64 simulator for target nvidia-fp64 since it is not available
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:129] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:135] Use custatevec-fp64 simulator for target nvidia-fp64
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:195] Found Target: nvidia-fp64 -> (sim=custatevec_fp64, platform=default)
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:185] Found Target nvidia-mqpu-fp64 with config file nvidia-mqpu-fp64.yml
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:129] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:140] Skip cusvsim-fp64 simulator for target nvidia-mqpu-fp64 since it is not available
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:129] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:135] Use custatevec-fp64 simulator for target nvidia-mqpu-fp64
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:195] Found Target: nvidia-mqpu-fp64 -> (sim=custatevec_fp64, platform=mqpu)
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:185] Found Target nvidia-mqpu-mps with config file nvidia-mqpu-mps.yml
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:129] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:135] Use tensornet-mps simulator for target nvidia-mqpu-mps
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:195] Found Target: nvidia-mqpu-mps -> (sim=tensornet_mps, platform=mqpu)
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:185] Found Target nvidia-mqpu with config file nvidia-mqpu.yml
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:129] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:140] Skip cusvsim-fp32 simulator for target nvidia-mqpu since it is not available
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:129] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:135] Use custatevec-fp32 simulator for target nvidia-mqpu
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:195] Found Target: nvidia-mqpu -> (sim=custatevec_fp32, platform=mqpu)
+[2024-11-24 19:46:56.079] [info] [LinkedLibraryHolder.cpp:185] Found Target nvidia with config file nvidia.yml
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:129] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:140] Skip cusvsim-fp32 simulator for target nvidia since it is not available
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:129] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:135] Use custatevec-fp32 simulator for target nvidia
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:195] Found Target: nvidia -> (sim=custatevec_fp32, platform=default)
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:185] Found Target nvqc with config file nvqc.yml
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:195] Found Target: nvqc -> (sim=qpp, platform=mqpu)
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:185] Found Target opt-test with config file opt-test.yml
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:129] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:140] Skip cusvsim-fp32 simulator for target opt-test since it is not available
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:129] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:135] Use custatevec-fp32 simulator for target opt-test
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:195] Found Target: opt-test -> (sim=custatevec_fp32, platform=default)
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:185] Found Target oqc with config file oqc.yml
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:195] Found Target: oqc -> (sim=qpp, platform=default)
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:185] Found Target orca-photonics with config file orca-photonics.yml
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:195] Found Target: orca-photonics -> (sim=qpp, platform=default)
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:185] Found Target orca with config file orca.yml
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:195] Found Target: orca -> (sim=qpp, platform=mqpu)
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:185] Found Target qpp-cpu with config file qpp-cpu.yml
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:129] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:135] Use qpp simulator for target qpp-cpu
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:195] Found Target: qpp-cpu -> (sim=qpp, platform=default)
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:185] Found Target quantinuum with config file quantinuum.yml
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:195] Found Target: quantinuum -> (sim=qpp, platform=default)
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:185] Found Target quera with config file quera.yml
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:195] Found Target: quera -> (sim=qpp, platform=default)
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:185] Found Target remote-mqpu with config file remote-mqpu.yml
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:195] Found Target: remote-mqpu -> (sim=qpp, platform=mqpu)
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:185] Found Target stim with config file stim.yml
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:129] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:135] Use stim simulator for target stim
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:195] Found Target: stim -> (sim=stim, platform=default)
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:185] Found Target tensornet-mps with config file tensornet-mps.yml
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:129] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:135] Use tensornet-mps simulator for target tensornet-mps
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:195] Found Target: tensornet-mps -> (sim=tensornet_mps, platform=default)
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:185] Found Target tensornet with config file tensornet.yml
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:129] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:135] Use tensornet simulator for target tensornet
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:195] Found Target: tensornet -> (sim=tensornet, platform=default)
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:230] Init: Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2024-11-24 19:46:56.080] [info] [LinkedLibraryHolder.cpp:322] Found platform plugin default.
+[2024-11-24 19:46:56.081] [info] [LinkedLibraryHolder.cpp:322] Found platform plugin mqpu.
+[2024-11-24 19:46:56.094] [info] [LinkedLibraryHolder.cpp:301] Found simulator plugin custatevec_fp32.
+[2024-11-24 19:46:56.094] [info] [LinkedLibraryHolder.cpp:301] Found simulator plugin custatevec_fp64.
+[2024-11-24 19:46:56.094] [info] [LinkedLibraryHolder.cpp:301] Found simulator plugin custatevec_kernels.
+[2024-11-24 19:46:56.095] [info] [LinkedLibraryHolder.cpp:301] Found simulator plugin dm.
+[2024-11-24 19:46:56.095] [info] [LinkedLibraryHolder.cpp:301] Found simulator plugin qpp.
+[2024-11-24 19:46:56.095] [info] [LinkedLibraryHolder.cpp:301] Found simulator plugin stim.
+[2024-11-24 19:46:56.099] [info] [LinkedLibraryHolder.cpp:301] Found simulator plugin tensornet_mps.
+[2024-11-24 19:46:56.099] [info] [LinkedLibraryHolder.cpp:301] Found simulator plugin tensornet.
+[2024-11-24 19:46:56.160] [info] [LinkedLibraryHolder.cpp:129] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2024-11-24 19:46:56.160] [info] [LinkedLibraryHolder.cpp:140] Skip cusvsim-fp32 simulator for target nvidia since it is not available
+[2024-11-24 19:46:56.160] [info] [LinkedLibraryHolder.cpp:129] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2024-11-24 19:46:56.160] [info] [LinkedLibraryHolder.cpp:135] Use custatevec-fp32 simulator for target nvidia
+[2024-11-24 19:46:56.161] [info] [LinkedLibraryHolder.cpp:455] Setting target=nvidia (sim=custatevec_fp32, platform=default)
+[2024-11-24 19:46:56.161] [info] [PluginUtils.h:24] Requesting N5nvqir16CircuitSimulatorE plugin via symbol name getCircuitSimulator_custatevec_fp32.
+[2024-11-24 19:46:56.161] [info] [PluginUtils.h:36] Successfully loaded the plugin.
+[2024-11-24 19:46:56.310] [info] [NVQIR.cpp:70] [runtime] Setting the circuit simulator to custatevec-fp32.
+[2024-11-24 19:46:56.310] [info] [PluginUtils.h:24] Requesting N5cudaq16quantum_platformE plugin via symbol name getQuantumPlatform_default.
+[2024-11-24 19:46:56.310] [info] [PluginUtils.h:36] Successfully loaded the plugin.
+[2024-11-24 19:46:56.310] [info] [DefaultQuantumPlatform.cpp:87] Backend string is nvidia
+[2024-11-24 19:46:56.310] [info] [DefaultQuantumPlatform.cpp:104] Config file path = /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../targets/nvidia.yml
+[2024-11-24 19:46:56.311] [info] [quantum_platform.cpp:37] external caller setting the platform.
+[2024-11-24 19:46:56.311] [info] [execution_manager.cpp:21] external caller clearing the execution manager.
+[2024-11-24 19:46:56.405] [info] [CUDAQuantumExtension.cpp:67] Calling initialize_cudaq.
+[2024-11-24 19:46:56.405] [info] [LinkedLibraryHolder.cpp:455] Setting target=braket (sim=qpp, platform=default)
+[2024-11-24 19:46:56.405] [info] [PluginUtils.h:24] Requesting N5nvqir16CircuitSimulatorE plugin via symbol name getCircuitSimulator_qpp.
+[2024-11-24 19:46:56.405] [info] [PluginUtils.h:36] Successfully loaded the plugin.
+[2024-11-24 19:46:56.405] [info] [NVQIR.cpp:70] [runtime] Setting the circuit simulator to qpp.
+[2024-11-24 19:46:56.405] [info] [PluginUtils.h:24] Requesting N5cudaq16quantum_platformE plugin via symbol name getQuantumPlatform_default.
+[2024-11-24 19:46:56.405] [info] [PluginUtils.h:36] Successfully loaded the plugin.
+[2024-11-24 19:46:56.416] [info] [DefaultQuantumPlatform.cpp:87] Backend string is braket;machine;arn:aws:braket:::device/quantum-simulator/amazon/sv1
+[2024-11-24 19:46:56.416] [info] [DefaultQuantumPlatform.cpp:104] Config file path = /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../targets/braket.yml
+[2024-11-24 19:46:56.416] [info] [DefaultQuantumPlatform.cpp:122] Default platform QPU subtype name: remote_rest
+[2024-11-24 19:46:56.416] [info] [BaseRemoteRESTQPU.h:212] Remote REST platform is targeting braket;machine;arn:aws:braket:::device/quantum-simulator/amazon/sv1.
+[2024-11-24 19:46:56.416] [info] [BaseRemoteRESTQPU.h:269] Config file path = /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../targets/braket.yml
+[2024-11-24 19:46:56.416] [info] [BaseRemoteRESTQPU.h:279] Appending lowering pipeline: func.func(const-prop-complex,canonicalize,cse,lift-array-alloc),globalize-array-values,state-prep,unitary-synthesis,canonicalize,apply-op-specialization,aggressive-early-inlining,unrolling-pipeline,func.func(lower-to-cfg),canonicalize,func.func(multicontrol-decomposition),decomposition{enable-patterns=R1ToU3,U3ToRotations,CCZToCX,CRzToCX,RxAdjToRx,RyAdjToRy,RzAdjToRz,SAdjToSZ},func.func(memtoreg{quantum=0},expand-control-veqs,canonicalize,combine-quantum-alloc),symbol-dce
+[2024-11-24 19:46:56.417] [info] [BaseRemoteRESTQPU.h:285] Set codegen translation: qasm2
+[2024-11-24 19:46:56.417] [info] [BraketServerHelper.cpp:54] Initializing Amazon Braket backend.
+[2024-11-24 19:46:56.417] [info] [BraketServerHelper.cpp:60] Running on device arn:aws:braket:::device/quantum-simulator/amazon/sv1
+[2024-11-24 19:46:56.417] [info] [BaseRemoteRESTQPU.h:324] Retrieving executor with name braket
+[2024-11-24 19:46:56.417] [info] [BaseRemoteRESTQPU.h:326] Is this executor registered? true
+[2024-11-24 19:46:56.438] [info] [quantum_platform.cpp:37] external caller setting the platform.
+[2024-11-24 19:46:56.438] [info] [execution_manager.cpp:21] external caller clearing the execution manager.
+[2024-11-24 19:46:56.438] [info] [BaseRemoteRESTQPU.h:195] Remote Rest QPU setting execution context to sample
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+[2024-11-24 19:46:56.465] [info] [BaseRemoteRESTQPU.h:602] launching remote rest kernel (kernel)
+[2024-11-24 19:46:56.466] [info] [cudaq.cpp:220] Replacing code for kernel kernel
+[2024-11-24 19:46:56.466] [info] [BaseRemoteRESTQPU.h:430] Pass pipeline for kernel = cc-loop-unroll{allow-early-exit=0},canonicalize,func.func(const-prop-complex,canonicalize,cse,lift-array-alloc),globalize-array-values,state-prep,unitary-synthesis,canonicalize,apply-op-specialization,aggressive-early-inlining,unrolling-pipeline,func.func(lower-to-cfg),canonicalize,func.func(multicontrol-decomposition),decomposition{enable-patterns=R1ToU3,U3ToRotations,CCZToCX,CRzToCX,RxAdjToRx,RyAdjToRy,RzAdjToRz,SAdjToSZ},func.func(memtoreg{quantum=0},expand-control-veqs,canonicalize,combine-quantum-alloc),symbol-dce
+// -----// IR Dump Before LoopUnroll (cc-loop-unroll) ('builtin.module' operation) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before Canonicalizer (canonicalize) ('builtin.module' operation) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before ConstPropComplex (const-prop-complex) ('func.func' operation: @__nvqpp__mlirgen__kernel) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before Canonicalizer (canonicalize) ('func.func' operation: @__nvqpp__mlirgen__kernel) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before CSE (cse) ('func.func' operation: @__nvqpp__mlirgen__kernel) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before LiftArrayAlloc (lift-array-alloc) ('func.func' operation: @__nvqpp__mlirgen__kernel) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before GlobalizeArrayValues (globalize-array-values) ('builtin.module' operation) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before StatePreparation (state-prep) ('builtin.module' operation) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before UnitarySynthesis (unitary-synthesis) ('builtin.module' operation) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before Canonicalizer (canonicalize) ('builtin.module' operation) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before ApplySpecialization (apply-op-specialization) ('builtin.module' operation) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before ConvertToDirectCalls (indirect-to-direct-calls) ('builtin.module' operation) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before Inliner (inline) ('builtin.module' operation) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before Canonicalizer (canonicalize) ('func.func' operation: @__nvqpp__mlirgen__kernel) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before CheckKernelCalls (check-kernel-calls) ('func.func' operation: @__nvqpp__mlirgen__kernel) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before Canonicalizer (canonicalize) ('builtin.module' operation) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before MemToReg (memtoreg) ('func.func' operation: @__nvqpp__mlirgen__kernel) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before Canonicalizer (canonicalize) ('builtin.module' operation) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before LoopNormalize (cc-loop-normalize) ('builtin.module' operation) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before Canonicalizer (canonicalize) ('builtin.module' operation) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before LoopUnroll (cc-loop-unroll) ('builtin.module' operation) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before UpdateRegisterNames (update-register-names) ('builtin.module' operation) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before LowerToCFG (lower-to-cfg) ('func.func' operation: @__nvqpp__mlirgen__kernel) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before Canonicalizer (canonicalize) ('builtin.module' operation) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before MultiControlDecompositionPass (multicontrol-decomposition) ('func.func' operation: @__nvqpp__mlirgen__kernel) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before DecompositionPass (decomposition) ('builtin.module' operation) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before MemToReg (memtoreg) ('func.func' operation: @__nvqpp__mlirgen__kernel) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before ExpandControlVeqs (expand-control-veqs) ('func.func' operation: @__nvqpp__mlirgen__kernel) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before Canonicalizer (canonicalize) ('func.func' operation: @__nvqpp__mlirgen__kernel) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before CombineQuantumAllocations (combine-quantum-alloc) ('func.func' operation: @__nvqpp__mlirgen__kernel) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump After CombineQuantumAllocations (combine-quantum-alloc) ('func.func' operation: @__nvqpp__mlirgen__kernel) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %c0_i64 = arith.constant 0 : i64
+    %c3_i64 = arith.constant 3 : i64
+    %c2_i64 = arith.constant 2 : i64
+    %c1_i64 = arith.constant 1 : i64
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.subveq %0, %c0_i64, %c3_i64 : (!quake.veq<4>, i64, i64) -> !quake.veq<4>
+    %2 = quake.extract_ref %0[%c1_i64] : (!quake.veq<4>, i64) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %3 = quake.extract_ref %0[%c2_i64] : (!quake.veq<4>, i64) -> !quake.ref
+    quake.x %3 : (!quake.ref) -> ()
+    %measOut = quake.mz %1 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before SymbolDCE (symbol-dce) ('builtin.module' operation) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %c0_i64 = arith.constant 0 : i64
+    %c3_i64 = arith.constant 3 : i64
+    %c2_i64 = arith.constant 2 : i64
+    %c1_i64 = arith.constant 1 : i64
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.subveq %0, %c0_i64, %c3_i64 : (!quake.veq<4>, i64, i64) -> !quake.veq<4>
+    %2 = quake.extract_ref %0[%c1_i64] : (!quake.veq<4>, i64) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %3 = quake.extract_ref %0[%c2_i64] : (!quake.veq<4>, i64) -> !quake.ref
+    quake.x %3 : (!quake.ref) -> ()
+    %measOut = quake.mz %1 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before Canonicalizer (canonicalize) ('builtin.module' operation) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %c0_i64 = arith.constant 0 : i64
+    %c3_i64 = arith.constant 3 : i64
+    %c2_i64 = arith.constant 2 : i64
+    %c1_i64 = arith.constant 1 : i64
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.subveq %0, %c0_i64, %c3_i64 : (!quake.veq<4>, i64, i64) -> !quake.veq<4>
+    %2 = quake.extract_ref %0[%c1_i64] : (!quake.veq<4>, i64) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %3 = quake.extract_ref %0[%c2_i64] : (!quake.veq<4>, i64) -> !quake.ref
+    quake.x %3 : (!quake.ref) -> ()
+    %measOut = quake.mz %1 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump After Canonicalizer (canonicalize) ('builtin.module' operation) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before CSE (cse) ('builtin.module' operation) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before MemToReg (memtoreg) ('func.func' operation: @__nvqpp__mlirgen__kernel) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before LoopUnroll (cc-loop-unroll) ('builtin.module' operation) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before Canonicalizer (canonicalize) ('builtin.module' operation) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before LiftArrayAlloc (lift-array-alloc) ('func.func' operation: @__nvqpp__mlirgen__kernel) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before GlobalizeArrayValues (globalize-array-values) ('builtin.module' operation) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before StatePreparation (state-prep) ('builtin.module' operation) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before GetConcreteMatrix (get-concrete-matrix) ('func.func' operation: @__nvqpp__mlirgen__kernel) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before UnitarySynthesis (unitary-synthesis) ('builtin.module' operation) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before SymbolDCE (symbol-dce) ('builtin.module' operation) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before Canonicalizer (canonicalize) ('builtin.module' operation) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before CSE (cse) ('builtin.module' operation) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before MultiControlDecompositionPass (multicontrol-decomposition) ('func.func' operation: @__nvqpp__mlirgen__kernel) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before DecompositionPass (decomposition) ('builtin.module' operation) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before ExpandControlVeqs (expand-control-veqs) ('func.func' operation: @__nvqpp__mlirgen__kernel) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before CombineQuantumAllocations (combine-quantum-alloc) ('func.func' operation: @__nvqpp__mlirgen__kernel) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump After CombineQuantumAllocations (combine-quantum-alloc) ('func.func' operation: @__nvqpp__mlirgen__kernel) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %c0_i64 = arith.constant 0 : i64
+    %c3_i64 = arith.constant 3 : i64
+    %c2_i64 = arith.constant 2 : i64
+    %c1_i64 = arith.constant 1 : i64
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.subveq %0, %c0_i64, %c3_i64 : (!quake.veq<4>, i64, i64) -> !quake.veq<4>
+    %2 = quake.extract_ref %0[%c1_i64] : (!quake.veq<4>, i64) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %3 = quake.extract_ref %0[%c2_i64] : (!quake.veq<4>, i64) -> !quake.ref
+    quake.x %3 : (!quake.ref) -> ()
+    %measOut = quake.mz %1 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before CombineMeasurements (combine-measurements) ('func.func' operation: @__nvqpp__mlirgen__kernel) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+    %c0_i64 = arith.constant 0 : i64
+    %c3_i64 = arith.constant 3 : i64
+    %c2_i64 = arith.constant 2 : i64
+    %c1_i64 = arith.constant 1 : i64
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.subveq %0, %c0_i64, %c3_i64 : (!quake.veq<4>, i64, i64) -> !quake.veq<4>
+    %2 = quake.extract_ref %0[%c1_i64] : (!quake.veq<4>, i64) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %3 = quake.extract_ref %0[%c2_i64] : (!quake.veq<4>, i64) -> !quake.ref
+    quake.x %3 : (!quake.ref) -> ()
+    %measOut = quake.mz %1 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump After CombineMeasurements (combine-measurements) ('func.func' operation: @__nvqpp__mlirgen__kernel) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint", output_names = "[[[0,[0,\220\22]],[1,[1,\221\22]],[2,[2,\222\22]]]]"} {
+    %c2_i64 = arith.constant 2 : i64
+    %c1_i64 = arith.constant 1 : i64
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[%c1_i64] : (!quake.veq<4>, i64) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[%c2_i64] : (!quake.veq<4>, i64) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump Before Canonicalizer (canonicalize) ('func.func' operation: @__nvqpp__mlirgen__kernel) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint", output_names = "[[[0,[0,\220\22]],[1,[1,\221\22]],[2,[2,\222\22]]]]"} {
+    %c2_i64 = arith.constant 2 : i64
+    %c1_i64 = arith.constant 1 : i64
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[%c1_i64] : (!quake.veq<4>, i64) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[%c2_i64] : (!quake.veq<4>, i64) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+// -----// IR Dump After Canonicalizer (canonicalize) ('func.func' operation: @__nvqpp__mlirgen__kernel) //----- //
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint", output_names = "[[[0,[0,\220\22]],[1,[1,\221\22]],[2,[2,\222\22]]]]"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+
+
+NEW MODULE: 
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint", output_names = "[[[0,[0,\220\22]],[1,[1,\221\22]],[2,[2,\222\22]]]]"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+}
+CODE STR: // Code generated by NVIDIA's nvq++ compiler
+OPENQASM 2.0;
+
+include "qelib1.inc";
+
+qreg var0[4];
+x var0[1];
+x var0[2];
+creg var3[4];
+measure var0 -> var3;
+
+Results: {"additionalMetadata":{"action":{"braketSchemaHeader":{"name":"braket.ir.openqasm.program","version":"1"},"inputs":{},"source":"// Code generated by NVIDIA's nvq++ compiler\nOPENQASM 2.0;\n\n\n\nqreg var0[4];\nx var0[1];\nx var0[2];\ncreg var3[4];\nmeasure var0 -> var3;\n"},"simulatorMetadata":{"braketSchemaHeader":{"name":"braket.task_result.simulator_metadata","version":"1"},"executionDuration":2}},"braketSchemaHeader":{"name":"braket.task_result.gate_model_task_result","version":"1"},"measuredQubits":[0,1,2,3],"measurements":[[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0],[0,1,1,0]],"resultTypes":[],"taskMetadata":{"braketSchemaHeader":{"name":"braket.task_result.task_metadata","version":"1"},"createdAt":"2024-11-23T19:16:08.872Z","deviceId":"arn:aws:braket:::device/quantum-simulator/amazon/sv1","deviceParameters":{"braketSchemaHeader":{"name":"braket.device_schema.simulators.gate_model_simulator_device_parameters","version":"1"},"paradigmParameters":{"braketSchemaHeader":{"name":"braket.device_schema.gate_model_parameters","version":"1"},"disableQubitRewiring":false,"qubitCount":4}},"endedAt":"2024-11-23T19:16:10.138Z","id":"arn:aws:braket:us-east-1:783764578061:quantum-task/8bad9d49-b546-4ed8-8517-1b23c1eb929e","shots":100,"status":"COMPLETED"}}
+[2024-11-24 19:46:56.483] [info] [BraketServerHelper.cpp:130] Qubit 1 Result 0 Name q1
+[2024-11-24 19:46:56.483] [info] [BraketServerHelper.cpp:130] Qubit 2 Result 1 Name q2
+COUNTS: 
+0110: 100
+Register name: __global__
+Sequential data: __global__
+{ 11:100 }
+

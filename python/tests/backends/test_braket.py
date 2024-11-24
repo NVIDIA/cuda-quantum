@@ -272,6 +272,22 @@ def test_kernel_with_args():
     assert "0000" in counts
     assert "1111" in counts
 
+def test_kernel_subveqs():
+
+    @cudaq.kernel
+    def kernel():
+        qreg = cudaq.qvector(4)
+        h(qreg[0])
+        for qubit in range(3):
+            x.ctrl(qreg[qubit], qreg[qubit + 1])
+        v = qreg[1:2]
+        mz(v)
+
+    counts = cudaq.sample(kernel, 4, shots_count=100)
+    assert len(counts) == 2
+    assert "0000" in counts
+    assert "1111" in counts
+
 
 @pytest.mark.parametrize("device_arn", [
     "arn:aws:braket:::device/quantum-simulator/amazon/dm1",
