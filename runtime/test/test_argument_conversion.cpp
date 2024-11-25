@@ -15,8 +15,8 @@
 #include "common/ArgumentConversion.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "cudaq/Optimizer/InitAllDialects.h"
 #include "cudaq/qis/pauli_word.h"
-#include "mlir/InitAllDialects.h"
 #include "mlir/Parser/Parser.h"
 #include <numeric>
 
@@ -519,8 +519,7 @@ void test_combinations(mlir::MLIRContext *ctx) {
 
 int main() {
   mlir::DialectRegistry registry;
-  mlir::registerAllDialects(registry);
-  registry.insert<cudaq::cc::CCDialect, quake::QuakeDialect>();
+  cudaq::registerAllDialects(registry);
   mlir::MLIRContext context(registry);
   context.loadAllAvailableDialects();
   test_scalars(&context);
