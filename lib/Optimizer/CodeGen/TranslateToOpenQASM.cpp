@@ -23,18 +23,22 @@ using namespace cudaq;
 //===----------------------------------------------------------------------===//
 // Helper functions
 //===----------------------------------------------------------------------===//
-/// FIXME: Re-evaluate this renaming workflow; consider using decomposition
 /// Translates operation names into OpenQASM gate names
 static LogicalResult translateOperatorName(quake::OperatorInterface optor,
                                            StringRef &name) {
   StringRef qkeName = optor->getName().stripDialect();
   if (optor.getControls().size() == 0) {
-    name = StringSwitch<StringRef>(qkeName).Default(qkeName);
+    name = StringSwitch<StringRef>(qkeName).Case("r1", "u1").Default(qkeName);
   } else if (optor.getControls().size() == 1) {
     name = StringSwitch<StringRef>(qkeName)
+               .Case("h", "ch")
                .Case("x", "cx")
                .Case("y", "cy")
                .Case("z", "cz")
+               .Case("r1", "cu1")
+               .Case("rx", "crx")
+               .Case("ry", "cry")
+               .Case("rz", "crz")
                .Case("swap", "cswap")
                .Default(qkeName);
   } else if (optor.getControls().size() == 2) {
