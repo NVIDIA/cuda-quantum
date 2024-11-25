@@ -74,8 +74,8 @@ public:
   ~BraketExecutor() = default;
 
   /// @brief Execute the provided Braket task
-  details::future
-  execute(std::vector<KernelExecution> &codesToExecute) override;
+  details::future execute(std::vector<KernelExecution> &codesToExecute,
+                          bool isObserve) override;
 
   /// @brief Set the server helper
   void setServerHelper(ServerHelper *helper) override;

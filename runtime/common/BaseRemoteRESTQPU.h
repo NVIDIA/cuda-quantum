@@ -626,6 +626,7 @@ public:
       localShots = executionContext->shots;
 
     executor->setShots(localShots);
+    bool isObserve = executionContext && executionContext->name == "observe";
 
     // If emulation requested, then just grab the function
     // and invoke it with the simulator
@@ -638,7 +639,7 @@ public:
       // Launch the execution of the simulated jobs asynchronously
       future = cudaq::details::future(std::async(
           std::launch::async,
-          [&, codes, localShots, kernelName, seed,
+          [&, codes, localShots, kernelName, seed, isObserve,
            reorderIdx = executionContext->reorderIdx,
            localJIT = std::move(jitEngines)]() mutable -> cudaq::sample_result {
             std::vector<cudaq::ExecutionResult> results;
@@ -679,8 +680,6 @@ public:
               }
             }
 
-            bool isObserve =
-                executionContext && executionContext->name == "observe";
             for (std::size_t i = 0; i < codes.size(); i++) {
               cudaq::ExecutionContext context("sample", localShots);
               context.reorderIdx = reorderIdx;
@@ -712,7 +711,7 @@ public:
       // Allow developer to disable remote sending (useful for debugging IR)
       if (getEnvBool("DISABLE_REMOTE_SEND", false))
         return;
-      future = executor->execute(codes);
+      future = executor->execute(codes, isObserve);
     }
 
     // Keep this asynchronous if requested

@@ -49,6 +49,9 @@ protected:
   std::future<sample_result> inFuture;
   bool wrapsFutureSampling = false;
 
+  /// @brief Whether or not this is in support of an "observe" call
+  bool isObserve = false;
+
 public:
   /// @brief The constructor
   future() = default;
@@ -68,6 +71,11 @@ public:
   future(std::vector<Job> &_jobs, std::string &qpuNameIn,
          std::map<std::string, std::string> &config)
       : jobs(_jobs), qpuName(qpuNameIn), serverConfig(config) {}
+
+  future(std::vector<Job> &_jobs, std::string &qpuNameIn,
+         std::map<std::string, std::string> &config, bool isObserve)
+      : jobs(_jobs), qpuName(qpuNameIn), serverConfig(config),
+        isObserve(isObserve) {}
 
   future &operator=(future &other);
   future &operator=(future &&other);
