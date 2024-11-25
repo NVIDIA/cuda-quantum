@@ -8,7 +8,7 @@
 
 // REQUIRES: c++20
 // clang-format off
-// XUN: nvq++ %s -o %t --target braket --emulate && %t FileCheck %s
+// RUN: if $braket_avail; then nvq++ %s -o %t --target braket --emulate && %t FileCheck %s ; fi
 // RUN: nvq++ %s -o %t --target quantinuum --emulate && %t | FileCheck %s
 // clang-format on
 
