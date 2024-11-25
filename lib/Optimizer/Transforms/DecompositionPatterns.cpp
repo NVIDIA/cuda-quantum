@@ -460,7 +460,7 @@ struct R1ToRz : public OpRewritePattern<quake::R1Op> {
   }
 };
 
-// Naive mapping of R1 to U3, ignoring the global phase.
+// Naive mapping of R1 to U3
 // This is only expected to work with full inlining and
 // quake apply specialization.
 struct R1ToU3 : public OpRewritePattern<quake::R1Op> {
