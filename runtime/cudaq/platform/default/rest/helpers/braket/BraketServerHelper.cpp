@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "common/BraketServerHelper.h"
-#include <iostream>
 
 namespace {
 std::string prepareOpenQasm(std::string source) {
@@ -116,15 +115,10 @@ BraketServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
 sample_result BraketServerHelper::processResults(ServerMessage &resultsJson,
                                                  std::string &jobID) {
 
-  //if (outputNames.find(jobID) == outputNames.end())
-  //  throw std::runtime_error("Could not find output names for job " + jobID);
+  if (outputNames.find(jobID) == outputNames.end())
+    throw std::runtime_error("Could not find output names for job " + jobID);
 
-  //auto &output_names = outputNames[jobID];
-  // Fake output names
-  cudaq::OutputNamesType output_names;
-  output_names[0] = cudaq::ResultInfoType{1, "1"};
-  output_names[1] = cudaq::ResultInfoType{2, "2"};
-
+  auto &output_names = outputNames[jobID];
   for (auto &[result, info] : output_names) {
     cudaq::info("Qubit {} Result {} Name {}", info.qubitNum, result,
                 info.registerName);
@@ -151,16 +145,6 @@ sample_result BraketServerHelper::processResults(ServerMessage &resultsJson,
       counts[bitString] = std::round(p * shots);
     }
   }
-
-  std::cout << "COUNTS: " << std::endl;
-  for (auto c: counts) {
-    std::cout << c.first << ": " << c.second <<std::endl;
-  }
-
-//   COUNTS: 
-//     0110: 100
-// { 0110:100 }
-// need: 11: 100
 
   // Full execution results include compiler-generated qubits, which are
   // undesirable to the user.
@@ -205,20 +189,27 @@ sample_result BraketServerHelper::processResults(ServerMessage &resultsJson,
     execResults.emplace_back(ExecutionResult{subset.to_map()});
   }
 
-  // // Now add to `execResults` one register at a time
-  // for (const auto &[result, info] : output_names) {
-  //   CountsDictionary regCounts;
-  //   for (const auto &[bits, count] : fullSampleResults)
-  //     regCounts[std::string{bits[info.qubitNum]}] += count;
-  //   execResults.emplace_back(regCounts, info.registerName);
-  // }
-
   // Return a sample result including the global register and all individual
   // registers.
   auto ret = cudaq::sample_result(execResults);
   return ret;
+}
 
-  //return sample_result{ExecutionResult{counts}};
+void BraketServerHelper::setOutputNames(const std::string &taskId,
+                                        const std::string &output_names) {
+  // Parse `output_names` into jobOutputNames.
+  // Note: See `ExtendMeasurePattern` of `CombineMeasurements.cpp
+  // for an example of how this was populated.
+  OutputNamesType jobOutputNames;
+  nlohmann::json outputNamesJSON = nlohmann::json::parse(output_names);
+  for (const auto &el : outputNamesJSON[0]) {
+    auto result = el[0].get<std::size_t>();
+    auto qubitNum = el[1][0].get<std::size_t>();
+    auto registerName = el[1][1].get<std::string>();
+    jobOutputNames[result] = {qubitNum, registerName};
+  }
+
+  outputNames[taskId] = jobOutputNames;
 }
 
 } // namespace cudaq

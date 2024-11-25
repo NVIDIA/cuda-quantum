@@ -41,8 +41,8 @@ void cudaq::opt::commonPipelineConvertToQIR(
   pm.addPass(createConvertToQIR());
 }
 
-// TODO: remove passes from yml files?
 void cudaq::opt::addPipelineTranslateToOpenQASM(PassManager &pm) {
+  // TODO: remove passes that are not common to all pipelines.
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
   pm.addNestedPass<func::FuncOp>(createClassicalMemToReg());
@@ -55,14 +55,15 @@ void cudaq::opt::addPipelineTranslateToOpenQASM(PassManager &pm) {
   pm.addPass(createUnitarySynthesis());
   pm.addPass(createSymbolDCEPass());
   pm.addPass(createCanonicalizerPass());
-  pm.addPass(createCSEPass());
   pm.addNestedPass<func::FuncOp>(createMultiControlDecompositionPass());
   pm.addPass(createDecompositionPass(
-      {.enabledPatterns = {"R1ToU3","U3ToRotations","CCZToCX","CRzToCX", "RxAdjToRx", "RyAdjToRy", "RzAdjToRz", "SAdjToSZ"}}));
+      {.enabledPatterns = {"R1ToU3","U3ToRotations","CCZToCX","CRzToCX",
+      "RxAdjToRx", "RyAdjToRy", "RzAdjToRz", "SAdjToSZ"}}));
   pm.addNestedPass<func::FuncOp>(createExpandControlVeqs());
   pm.addNestedPass<func::FuncOp>(createCombineQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(createCombineMeasurements());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addPass(createSymbolDCEPass());
 }
 
 void cudaq::opt::addPipelineTranslateToIQMJson(PassManager &pm) {

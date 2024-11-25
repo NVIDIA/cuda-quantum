@@ -7,26 +7,18 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-//#include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
-//#include "cudaq/Optimizer/CodeGen/CudaqFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "nlohmann/json.hpp"
 #include "llvm/Support/Debug.h"
-//#include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
-//#include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
-//#include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/Pass/Pass.h"
-//#include "mlir/Target/LLVMIR/TypeToLLVM.h"
-//#include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
-//#include "mlir/Transforms/RegionUtils.h"
-#include "nlohmann/json.hpp"
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_COMBINEMEASUREMENTS
@@ -41,13 +33,14 @@ namespace {
 
 class ExtendMeasurePattern : public OpRewritePattern<quake::MzOp> {
   using OutputNamesType =
-    std::map<std::size_t, std::pair<std::size_t, std::string>>;
+      std::map<std::size_t, std::pair<std::size_t, std::string>>;
+
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  explicit ExtendMeasurePattern(MLIRContext *ctx, OutputNamesType &resultQubitVals)
-      : OpRewritePattern(ctx),
-        resultQubitVals(resultQubitVals) {}
+  explicit ExtendMeasurePattern(MLIRContext *ctx,
+                                OutputNamesType &resultQubitVals)
+      : OpRewritePattern(ctx), resultQubitVals(resultQubitVals) {}
 
   // Replace a pattern such as:
   // ```
@@ -60,7 +53,8 @@ public:
   // ```
   // with:
   // ```
-  // func.func @kernel() attributes {"cudaq-entrypoint", ["output_names", "[[[0,[1,\22q0\22]],[1,[2,\22q1\22]]]]"]} {
+  // func.func @kernel() attributes {"cudaq-entrypoint", ["output_names",
+  // "[[[0,[1,\22q0\22]],[1,[2,\22q1\22]]]]"]} {
   //   %1 = ... : !quake.veq<4>
   //   %measOut = quake.mz %1 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
   // }
@@ -71,7 +65,7 @@ public:
       measure.emitError("Only measures with no uses are supported");
       return failure();
     }
-    
+
     auto veqOp = measure.getOperand(0);
     if (auto subveq = veqOp.getDefiningOp<quake::SubVeqOp>()) {
       Value lowOp = subveq.getLow();
@@ -81,27 +75,29 @@ public:
         if (auto constHigh = highOp.getDefiningOp<arith::ConstantIntOp>()) {
           auto high = static_cast<std::size_t>(constHigh.value());
           for (std::size_t i = low; i <= high; i++) {
-            // Note: regname is ignored for OpenQasm2
-            resultQubitVals[i-low] = std::make_pair(i, std::to_string(i));
+            // Note: regname is ignored for OpenQasm2 targets
+            resultQubitVals[i - low] = std::make_pair(i, std::to_string(i));
           }
-          rewriter.replaceOpWithNewOp<quake::MzOp>(measure, measure.getResultTypes(), subveq.getVeq());
+          rewriter.replaceOpWithNewOp<quake::MzOp>(
+              measure, measure.getResultTypes(), subveq.getVeq());
           return success();
         }
       }
     }
-   
+
     return failure();
   }
+
 private:
   OutputNamesType &resultQubitVals;
 };
-
 
 class CombineMeasurementsPass
     : public cudaq::opt::impl::CombineMeasurementsBase<
           CombineMeasurementsPass> {
   using OutputNamesType =
-    std::map<std::size_t, std::pair<std::size_t, std::string>>;
+      std::map<std::size_t, std::pair<std::size_t, std::string>>;
+
 public:
   using CombineMeasurementsBase::CombineMeasurementsBase;
 
@@ -121,12 +117,12 @@ public:
       func.emitOpError("combining measurements failed");
       signalPassFailure();
     }
-    
+
     // TODO: move measOut to the end of the func (see delayMeasurements?)
     if (!resultQubitVals.empty()) {
       nlohmann::json resultQubitJSON{resultQubitVals};
       func->setAttr(cudaq::opt::QIROutputNamesAttrName,
-                  builder.getStringAttr(resultQubitJSON.dump()));
+                    builder.getStringAttr(resultQubitJSON.dump()));
     }
 
     LLVM_DEBUG(llvm::dbgs() << "Function after combining measurements:\n"
