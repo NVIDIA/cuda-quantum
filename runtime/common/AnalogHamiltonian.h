@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #pragma once
+#include "common/FmtCore.h"
 #include "nlohmann/json.hpp"
 #include <optional>
 #include <string>
@@ -35,8 +36,8 @@ using json = nlohmann::json;
 
 /// @brief Convert a double to a JSON string.
 inline std::string doubleAsJsonString(double d) {
-  json j = d;
-  return j.dump();
+  std::string s = fmt::format("{:.8f}", d);
+  return s;
 }
 
 /// @brief Convert a vector of strings to a vector of doubles.
@@ -95,8 +96,8 @@ struct TimeSeries {
   TimeSeries() = default;
   TimeSeries(const std::vector<std::pair<double, double>> &data) {
     for (const auto &pair : data) {
-      times.push_back(pair.first);
-      values.push_back(pair.second);
+      values.push_back(pair.first);
+      times.push_back(pair.second);
     }
   }
   std::vector<double> values;
@@ -197,7 +198,7 @@ struct LocalDetuning {
 /// @brief Represents the neutral atom Hamiltonian (driven parts)
 struct Hamiltonian {
   std::vector<DrivingField> drivingFields;
-  std::vector<LocalDetuning> localDetuning;
+  std::vector<LocalDetuning> localDetuning = {};
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(Hamiltonian, drivingFields, localDetuning);
 };
 

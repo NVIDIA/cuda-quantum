@@ -11,7 +11,6 @@
 import cudaq
 
 
-
 def test_bug_1875():
 
     @cudaq.kernel

@@ -11,7 +11,6 @@
 import cudaq
 
 
-
 def test_control_on_adjoint():
 
     @cudaq.kernel

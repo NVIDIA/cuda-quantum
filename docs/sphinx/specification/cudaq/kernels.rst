@@ -101,10 +101,10 @@ The allowed types are as follows:
 
   .. code-block:: python 
 
-    class MySimpleStruct(object):
-        def __init__(self):
-            self.i = 0 
-            self.j = 0
+    @dataclass
+    class MySimpleStruct:
+        i : int
+        j : int
 
     @cudaq.kernel
     def kernel(N : int, flag : bool, angle : float, layers : list[int], 
