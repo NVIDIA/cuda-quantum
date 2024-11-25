@@ -23,7 +23,7 @@ using namespace cudaq;
 //===----------------------------------------------------------------------===//
 // Helper functions
 //===----------------------------------------------------------------------===//
-/// FIXME: Remove this code, move logic to decomposition patterns
+/// FIXME: Re-evaluate this renaming workflow; consider using decomposition
 /// Translates operation names into OpenQASM gate names
 static LogicalResult translateOperatorName(quake::OperatorInterface optor,
                                            StringRef &name) {

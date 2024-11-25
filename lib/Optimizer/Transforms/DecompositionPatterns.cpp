@@ -622,35 +622,6 @@ struct SToR1 : public OpRewritePattern<quake::SOp> {
   }
 };
 
-// quake.s<adj> [control] target
-// ─────────────────────────────────
-// quake.z [control] target
-// quake.s [control] target
-struct SAdjToSZ : public OpRewritePattern<quake::SOp> {
-  using OpRewritePattern<quake::SOp>::OpRewritePattern;
-
-  void initialize() { setDebugName("SAdjToSZ"); }
-
-  LogicalResult matchAndRewrite(quake::SOp op,
-                                PatternRewriter &rewriter) const override {
-    if (!op.isAdj())
-      return failure();
-
-    // Op info
-    auto loc = op->getLoc();
-    auto parameters = op.getParameters();
-    SmallVector<Value> controls(op.getControls());
-    Value target = op.getTarget();
-
-    QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<quake::ZOp>(loc, parameters, controls, target);
-    qRewriter.create<quake::SOp>(loc, parameters, controls, target);
-    qRewriter.selectWiresAndReplaceUses(op, controls, target);
-    rewriter.eraseOp(op);
-    return success();
-  }
-};
-
 //===----------------------------------------------------------------------===//
 // TOp decompositions
 //===----------------------------------------------------------------------===//
@@ -721,33 +692,6 @@ struct TToR1 : public OpRewritePattern<quake::TOp> {
     QuakeOperatorCreator qRewriter(rewriter);
     qRewriter.create<quake::R1Op>(loc, angle, controls, target);
 
-    qRewriter.selectWiresAndReplaceUses(op, controls, target);
-    rewriter.eraseOp(op);
-    return success();
-  }
-};
-
-// quake.tdg [control] target
-// ────────────────────────────────────
-// quake.r1(-π/4) [control] target
-struct TAdjToR1 : public OpRewritePattern<quake::TOp> {
-  using OpRewritePattern<quake::TOp>::OpRewritePattern;
-
-  void initialize() { setDebugName("TAdjToR1"); }
-
-  LogicalResult matchAndRewrite(quake::TOp op,
-                                PatternRewriter &rewriter) const override {
-    if (!op.isAdj())
-      return failure();
-
-    // Op info
-    auto loc = op->getLoc();
-    SmallVector<Value> controls(op.getControls());
-    Value target = op.getTarget();
-
-    QuakeOperatorCreator qRewriter(rewriter);
-    Value angle = createConstant(loc, -M_PI_4, rewriter.getF64Type(), rewriter);
-    qRewriter.create<quake::R1Op>(loc, angle, controls, target);
     qRewriter.selectWiresAndReplaceUses(op, controls, target);
     rewriter.eraseOp(op);
     return success();
@@ -1612,11 +1556,9 @@ void cudaq::populateWithAllDecompositionPatterns(RewritePatternSet &patterns) {
     // SOp patterns
     SToPhasedRx,
     SToR1,
-    SAdjToSZ,
     // TOp patterns
     TToPhasedRx,
     TToR1,
-    TAdjToR1,
     // XOp patterns
     CXToCZ,
     CCXToCCZ,
