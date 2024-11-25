@@ -32,7 +32,7 @@ FROM $cudaqdev_image AS cudaqbuild
 # access to the environment variables, so that the hardcoded paths in this file don't need to 
 # match the paths in the dev image.
 RUN mkdir /usr/local/cudaq_assets && cd /usr/local/cudaq_assets && \
-    mkdir -p llvm/bin && mkdir -p llvm/lib && mkdir cuquantum && \
+    mkdir -p llvm/bin && mkdir -p llvm/lib && \
     mv "$LLVM_INSTALL_PREFIX/bin/"clang* "/usr/local/cudaq_assets/llvm/bin/" && rm -rf "/usr/local/cudaq_assets/llvm/bin/"clang-format* && \
     mv "$LLVM_INSTALL_PREFIX/lib/"clang* "/usr/local/cudaq_assets/llvm/lib/" && \
     mv "$LLVM_INSTALL_PREFIX/bin/llc" "/usr/local/cudaq_assets/llvm/bin/llc" && \
