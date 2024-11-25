@@ -12,11 +12,11 @@ import numpy as np
 from typing import List
 from multiprocessing import Process
 from network_utils import check_server_connection
-try:
-    from utils.mock_qpu.ionq import startServer
-except:
-    print("Mock qpu not available, skipping IonQ tests.")
-    pytest.skip("Mock qpu not available.", allow_module_level=True)
+# try:
+from utils.mock_qpu.ionq import startServer
+# except:
+#    print("Mock qpu not available, skipping IonQ tests.")
+#    pytest.skip("Mock qpu not available.", allow_module_level=True)
 
 # Define the port for the mock server
 port = 62441
