@@ -9,4 +9,3 @@
 #pragma once
 
 #include "cudaq/dynamics/operators.h"
-
