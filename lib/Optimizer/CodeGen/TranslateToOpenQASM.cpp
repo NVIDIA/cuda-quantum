@@ -23,7 +23,6 @@ using namespace cudaq;
 //===----------------------------------------------------------------------===//
 // Helper functions
 //===----------------------------------------------------------------------===//
-/// FIXME: Remove this code
 /// Translates operation names into OpenQASM gate names
 static LogicalResult translateOperatorName(quake::OperatorInterface optor,
                                            StringRef &name) {
@@ -40,7 +39,8 @@ static LogicalResult translateOperatorName(quake::OperatorInterface optor,
                .Case("rx", "crx")
                .Case("ry", "cry")
                .Case("rz", "crz")
-               .Default("");
+               .Case("swap", "cswap")
+               .Default(qkeName);
   } else if (optor.getControls().size() == 2) {
     name = StringSwitch<StringRef>(qkeName).Case("x", "ccx").Default("");
   }

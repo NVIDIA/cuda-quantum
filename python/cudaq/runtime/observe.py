@@ -31,6 +31,13 @@ def __broadcastObserve(kernel, spin_operator, *args, shots_count=0):
     return results
 
 
+# Helper to convert new a Operator instance to a native `SpinOperator`
+def to_spin_op(obj):
+    if hasattr(obj, "_to_spinop"):
+        return obj._to_spinop()
+    return obj
+
+
 def observe(kernel,
             spin_operator,
             *args,
@@ -74,6 +81,10 @@ Returns:
         raise RuntimeError('observe specification violated for \'' +
                            kernel.name + '\': ' + validityCheck[1])
 
+    spin_operator = to_spin_op(spin_operator)
+    if isinstance(spin_operator, list):
+        for idx, op in enumerate(spin_operator):
+            spin_operator[idx] = to_spin_op(op)
     # Handle parallel execution use cases
     if execution != None:
         return cudaq_runtime.observe_parallel(kernel,

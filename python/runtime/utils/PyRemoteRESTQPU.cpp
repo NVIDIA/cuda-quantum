@@ -89,9 +89,6 @@ protected:
     pm.addPass(mlir::createCanonicalizerPass());
     pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
     pm.addPass(createInlinerPass());
-    /// NOTE: This change is for the `braket` target. May require additional
-    /// pass in other pipelines.
-    // pm.addPass(cudaq::opt::createExpandMeasurementsPass());
     pm.addPass(createCanonicalizerPass());
     pm.addPass(createCSEPass());
     if (failed(pm.run(cloned)))

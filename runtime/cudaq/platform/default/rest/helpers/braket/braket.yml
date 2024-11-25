@@ -17,8 +17,7 @@ config:
   # Tell NVQ++ to generate glue code to set the target backend name
   gen-target-backend: true
   # Define the lowering pipeline
-  platform-lowering-config: "func.func(const-prop-complex,canonicalize,cse,lift-array-alloc),globalize-array-values,state-prep,unitary-synthesis,canonicalize,apply-op-specialization,aggressive-early-inlining,unrolling-pipeline,func.func(lower-to-cfg),canonicalize,func.func(multicontrol-decomposition),decomposition{enable-patterns=R1ToU3,U3ToRotations,CCZToCX,CRzToCX,RxAdjToRx,RyAdjToRy,RzAdjToRz,SAdjToSZ}"
-  #platform-lowering-config: "func.func(const-prop-complex,canonicalize,cse,lift-array-alloc),globalize-array-values,state-prep,unitary-synthesis,canonicalize,apply-op-specialization,aggressive-early-inlining,unrolling-pipeline,func.func(lower-to-cfg),canonicalize,func.func(multicontrol-decomposition),decomposition{enable-patterns=R1ToU3,U3ToRotations,CCZToCX,CRzToCX,RxAdjToRx,RyAdjToRy,RzAdjToRz,SAdjToSZ},func.func(memtoreg{quantum=0},expand-control-veqs,canonicalize,combine-quantum-alloc),symbol-dce"
+  platform-lowering-config: "func.func(const-prop-complex,canonicalize,cse,lift-array-alloc),globalize-array-values,state-prep,unitary-synthesis,canonicalize,apply-op-specialization,aggressive-early-inlining,unrolling-pipeline,func.func(lower-to-cfg),canonicalize,func.func(multicontrol-decomposition),decomposition{enable-patterns=SToR1,TToR1,R1ToU3,U3ToRotations,CHToCX,CCZToCX,CRzToCX,CRyToCX,CRxToCX,CR1ToCX,RxAdjToRx,RyAdjToRy,RzAdjToRz}"
   # Tell the rest-qpu that we are generating OpenQASM 2.0.
   codegen-emission: qasm2
   # Additional passes to run after lowering to QUAKE

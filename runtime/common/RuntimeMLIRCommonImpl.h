@@ -8,9 +8,9 @@
 
 #pragma once
 
+#include "Environment.h"
 #include "Logger.h"
 #include "Timing.h"
-#include "Environment.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"
@@ -679,12 +679,12 @@ mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
       cudaq::opt::addWiresetToProfileQIRPipeline(pm, convertTo);
     else
       cudaq::opt::commonPipelineConvertToQIR(pm, convertTo);
-    
+
     auto enablePrintMLIREachPass =
         getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
     if (enablePrintMLIREachPass) {
-        module->getContext()->disableMultithreading();
-        pm.enableIRPrinting();
+      module->getContext()->disableMultithreading();
+      pm.enableIRPrinting();
     }
 
     mlir::DefaultTimingManager tm;

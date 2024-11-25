@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "JITExecutionCache.h"
+#include "common/AnalogHamiltonian.h"
 #include "common/ArgumentConversion.h"
 #include "common/ArgumentWrapper.h"
 #include "common/Environment.h"
@@ -415,7 +416,7 @@ void pyAltLaunchKernel(const std::string &name, MlirModule module,
 
 void pyAltLaunchAnalogKernel(const std::string &name,
                              std::string &programArgs) {
-  if (name.find(cudaq::runtime::cudaqAHSPrefixName) != 0)
+  if (name.find(cudaq::runtime::cudaqAHKPrefixName) != 0)
     throw std::runtime_error("Unexpected type of kernel.");
   auto dynamicResult = cudaq::altLaunchKernel(
       name.c_str(), KernelThunkType(nullptr),
@@ -709,7 +710,8 @@ void bindAltLaunchKernel(py::module &mod) {
         return pyAltLaunchAnalogKernel(name, programArgs);
       },
       py::arg("name"), py::arg("programArgs"),
-      "Launch an analog Hamiltonian simulation kernel");
+      "Launch an analog Hamiltonian simulation kernel with given JSON "
+      "payload.");
 
   mod.def("synthesize", [](py::object kernel, py::args runtimeArgs) {
     MlirModule module = kernel.attr("module").cast<MlirModule>();

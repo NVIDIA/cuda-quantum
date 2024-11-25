@@ -39,9 +39,6 @@
 # see https://developer.nvidia.com/blog/building-cuda-applications-cmake/
 # (specifically also CUDA_SEPARABLE_COMPILATION)
 
-LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-/opt/llvm}
-CUQUANTUM_INSTALL_PREFIX=${CUQUANTUM_INSTALL_PREFIX:-/opt/nvidia/cuquantum}
-CUTENSOR_INSTALL_PREFIX=${CUTENSOR_INSTALL_PREFIX:-/opt/nvidia/cutensor}
 CUDAQ_INSTALL_PREFIX=${CUDAQ_INSTALL_PREFIX:-"$HOME/.cudaq"}
 
 # Process command line arguments
@@ -105,11 +102,18 @@ if [ "$cuda_version" = "" ] || [ "$cuda_major" -lt "11" ] || ([ "$cuda_minor" -l
   unset cuda_driver
 else 
   echo "CUDA version $cuda_version detected."
+  if [ -z "$CUQUANTUM_INSTALL_PREFIX" ] && [ -x "$(command -v pip)" ] && [ -n "$(pip list | grep -o cuquantum-python-cu$cuda_major)" ]; then
+    CUQUANTUM_INSTALL_PREFIX="$(pip show cuquantum-python-cu$cuda_major | sed -nE 's/Location: (.*)$/\1/p')/cuquantum"
+  fi
   if [ ! -d "$CUQUANTUM_INSTALL_PREFIX" ] || [ -z "$(ls -A "$CUQUANTUM_INSTALL_PREFIX"/* 2> /dev/null)" ]; then
     echo "No cuQuantum installation detected. Please set the environment variable CUQUANTUM_INSTALL_PREFIX to enable cuQuantum integration."
     echo "Some backends will be omitted from the build."
   else
     echo "Using cuQuantum installation in $CUQUANTUM_INSTALL_PREFIX."
+  fi
+
+  if [ -z "$CUTENSOR_INSTALL_PREFIX" ] && [ -x "$(command -v pip)" ] && [ -n "$(pip list | grep -o cutensor-cu$cuda_major)" ]; then
+    CUTENSOR_INSTALL_PREFIX="$(pip show cutensor-cu$cuda_major | sed -nE 's/Location: (.*)$/\1/p')/cutensor"
   fi
   if [ ! -d "$CUTENSOR_INSTALL_PREFIX" ] || [ -z "$(ls -A "$CUTENSOR_INSTALL_PREFIX"/* 2> /dev/null)" ]; then
     echo "No cuTensor installation detected. Please set the environment variable CUTENSOR_INSTALL_PREFIX to enable cuTensor integration."
