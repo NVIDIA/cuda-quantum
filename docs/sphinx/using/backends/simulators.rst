@@ -479,6 +479,22 @@ Specific aspects of the simulation can be configured by defining the following e
     The parallelism of Jacobi method (the default `CUDAQ_MPS_SVD_ALGO` setting) gives GPU better performance on small and medium size matrices.
     If you expect a large number of singular values (e.g., increasing the `CUDAQ_MPS_MAX_BOND` setting), please adjust the `CUDAQ_MPS_SVD_ALGO` setting accordingly.  
 
+
+Amazon Braket
+==================================
+
+.. _braket-backend:
+
+`Amazon Braket <https://aws.amazon.com/braket/>`__ is a fully managed AWS 
+service which provides Jupyter notebook environments, high-performance quantum 
+circuit simulators, and secure, on-demand access to various quantum computers.
+
+The simulator and hardware backends from Amazon Braket are available with the
+`braket` target in CUDA-Q. To get started, follow the instructions `here <https://docs.aws.amazon.com/braket/latest/developerguide/braket-enable-overview.html>`__.
+Also see, `Amazon Braket documentation <https://docs.aws.amazon.com/braket/>`__.
+
+
+
 Fermioniq
 ==================================
 

@@ -12,7 +12,8 @@ CUDA-Q Backends
 
 **The following is a comprehensive list of the available targets in CUDA-Q:**
 
-* :ref:`density-matrix-cpu <default-simulator>`
+
+* :ref:`braket <braket-backend>`
 * :ref:`fermioniq <fermioniq-backend>`
 * :ref:`ionq <ionq-backend>`
 * :ref:`anyon <anyon-backend>`
