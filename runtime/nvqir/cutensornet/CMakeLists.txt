@@ -10,7 +10,7 @@
 enable_language(CUDA)
 find_package(CUDAToolkit REQUIRED)
 
-find_library(CUTENSOR_LIB
+find_library(CUTENSOR_LIB libcutensor.so.2
     NAMES   cutensor
     HINTS   
         ${CUTENSOR_ROOT}/lib64
@@ -20,7 +20,7 @@ find_library(CUTENSOR_LIB
 )
 
 find_library(CUTENSORNET_LIB
-    NAMES   cutensornet
+    NAMES   cutensornet libcutensornet.so.2
     HINTS   
         ${CUTENSORNET_ROOT}/lib64
         ${CUTENSORNET_ROOT}/lib

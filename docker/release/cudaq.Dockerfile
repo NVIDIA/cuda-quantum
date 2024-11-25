@@ -55,11 +55,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install CUDA-Q runtime dependencies.
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        python3 python3-pip libstdc++-12-dev \
+RUN apt-get update && apt-get install -y --no-install-recommends libstdc++-12-dev \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* \
-    && python3 -m pip install --no-cache-dir \
-        numpy scipy cuquantum-python-cu$(echo ${CUDA_VERSION:-12} | cut -d . -f1)~=24.11 \
+    && python3 -m pip install --no-cache-dir numpy scipy \
     && ln -s /bin/python3 /bin/python
 RUN apt-get update && apt-get install -y --no-install-recommends gcc g++ python3-dev \
     # Ref: https://github.com/qutip/qutip/issues/2412
