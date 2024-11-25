@@ -70,8 +70,8 @@ public:
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0:2, 1:2}`.
-  /// @arg `parameters` : A map of the paramter names to their concrete, complex
-  /// values.
+  /// @arg `parameters` : A map of the parameter names to their concrete,
+  /// complex values.
   complex_matrix
   to_matrix(const std::map<int, int> &dimensions,
             const std::map<std::string, double> &params = {}) const;
@@ -107,7 +107,7 @@ public:
   /// addition is commutative, as is the product of two operators if they
   /// act on different degrees of freedom.
   /// The equality comparison does *not* take commutation relations into
-  /// account, and does not try to reorder terms blockwise; it may hence
+  /// account, and does not try to reorder terms block-wise; it may hence
   /// evaluate to False, even if two operators in reality are the same.
   /// If the equality evaluates to True, on the other hand, the operators
   /// are guaranteed to represent the same transformation for all arguments.
@@ -168,7 +168,7 @@ public:
   ///  addition is commutative, as is the product of two operators if they
   ///  act on different degrees of freedom.
   ///  The equality comparison does *not* take commutation relations into
-  ///  account, and does not try to reorder terms blockwise; it may hence
+  ///  account, and does not try to reorder terms block-wise; it may hence
   ///  evaluate to False, even if two operators in reality are the same.
   ///  If the equality evaluates to True, on the other hand, the operators
   ///  are guaranteed to represent the same transformation for all arguments.
@@ -185,8 +185,8 @@ public:
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0:2, 1:2}`.
-  /// @arg `parameters` : A map of the paramter names to their concrete, complex
-  /// values.
+  /// @arg `parameters` : A map of the parameter names to their concrete,
+  /// complex values.
   complex_matrix
   to_matrix(const std::map<int, int> dimensions,
             const std::map<std::string, std::complex<double>> parameters) const;
@@ -205,7 +205,7 @@ public:
   template <typename TEval>
   TEval _evaluate(operator_arithmetics<TEval> &arithmetics) const;
 
-  /// @brief A map of the paramter names to their concrete, complex values.
+  /// @brief A map of the parameter names to their concrete, complex values.
   std::map<std::string, std::complex<double>> parameters;
 
   const std::vector<std::variant<scalar_operator, elementary_operator>> &
@@ -343,7 +343,7 @@ public:
   /// @brief The degrees of freedom that the operator acts on in canonical
   /// order.
   std::vector<int> degrees;
-  /// @brief A map of the paramter names to their concrete, complex values.
+  /// @brief A map of the parameter names to their concrete, complex values.
   /// This will be enabled once we can handle generalized callback function
   /// arguments.
   /// @FIXME: Not needed until generalizing the function arguments.
@@ -439,7 +439,7 @@ public:
   std::vector<scalar_operator> _operators_to_compose;
 
   /// NOTE: We should revisit these constructors and remove any that have
-  /// become unecessary as the implementation improves.
+  /// become unnecessary as the implementation improves.
   scalar_operator() = default;
   // Copy constructor.
   scalar_operator(const scalar_operator &other);
