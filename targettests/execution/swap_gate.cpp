@@ -29,6 +29,7 @@ int main() {
   };
 
   auto counts = cudaq::sample(swapKernel);
+  counts.dump(std::cout);
 
 #ifndef SYNTAX_CHECK
   std::cout << counts.most_probable() << '\n';
