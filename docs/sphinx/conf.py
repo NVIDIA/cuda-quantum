@@ -178,7 +178,10 @@ breathe_show_enumvalue_initializer = True
 # -- Other options -------------------------------------------------
 
 autosummary_generate = True
-autodoc_mock_imports = ['cuquantum', 'cupy']
+
+# This is unfortunately not sufficient for docs generation, due to the use of Union type;
+# see also https://github.com/sphinx-doc/sphinx/issues/11211. 
+# autodoc_mock_imports = ['cuquantum', 'cupy']
 
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
