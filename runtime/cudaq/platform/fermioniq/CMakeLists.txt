@@ -28,7 +28,6 @@ target_link_libraries(${LIBRARY_NAME}
     cudaq-platform-default)
 
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
-install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-fermioniq-qpu-targets DESTINATION lib)
 
 # install(EXPORT cudaq-fermioniq-qpu-targets
 #         FILE CUDAQQPUFermioniqTargets.cmake

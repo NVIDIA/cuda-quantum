@@ -36,4 +36,3 @@ target_link_libraries(cudaq-rest-qpu
 
 install(TARGETS cudaq-rest-qpu DESTINATION lib)
 
-install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-rest-qpu-targets DESTINATION lib)
