@@ -246,8 +246,19 @@ public:
   matchAndRewrite(quake::SubVeqOp subveq, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = subveq.getLoc();
-    auto diff = rewriter.create<arith::SubIOp>(loc, adaptor.getHigh(),
-                                               adaptor.getLow());
+    auto up = [&]() -> Value {
+      if (!adaptor.getUpper())
+        return rewriter.create<arith::ConstantIntOp>(loc, adaptor.getRawUpper(),
+                                                     64);
+      return adaptor.getUpper();
+    }();
+    auto lo = [&]() -> Value {
+      if (!adaptor.getLower())
+        return rewriter.create<arith::ConstantIntOp>(loc, adaptor.getRawLower(),
+                                                     64);
+      return adaptor.getLower();
+    }();
+    auto diff = rewriter.create<arith::SubIOp>(loc, up, lo);
     auto one = rewriter.create<arith::ConstantIntOp>(loc, 1, 64);
     auto length = rewriter.create<arith::AddIOp>(loc, diff, one);
     // Compute the pointer to the first element in the subveq and build a new
@@ -260,8 +271,7 @@ public:
         loc, ptrptrTy, adaptor.getVeq(), ArrayRef<cudaq::cc::ComputePtrArg>{0});
     auto qspanData = rewriter.create<cudaq::cc::LoadOp>(loc, qspanDataPtr);
     auto buffer = rewriter.create<cudaq::cc::ComputePtrOp>(
-        loc, ptrI64Ty, qspanData,
-        ArrayRef<cudaq::cc::ComputePtrArg>{adaptor.getLow()});
+        loc, ptrI64Ty, qspanData, ArrayRef<cudaq::cc::ComputePtrArg>{lo});
     auto qspanTy = cudaq::opt::getCudaqQubitSpanType(rewriter.getContext());
     Value newspan = rewriter.create<cudaq::cc::AllocaOp>(loc, qspanTy);
     rewriter.create<func::CallOp>(loc, std::nullopt,
