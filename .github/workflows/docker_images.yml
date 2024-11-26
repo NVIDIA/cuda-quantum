@@ -707,6 +707,11 @@ jobs:
           fi
 
           docker run --rm -dit --network host --name cuda-quantum-dev $cudaqdev_image
+          # Unfortunately, we need to install cuquantum for docs generation to work properly, 
+          # since using mock imports in the autodocs configuration doesn't work properly. 
+          # See also https://github.com/sphinx-doc/sphinx/issues/11211. 
+          docker exec cuda-quantum-dev bash -c "python3 -m pip install cuquantum-python-cu12~=24.11"
+          
           (docker exec cuda-quantum-dev bash -c "export $docs_version && bash scripts/build_docs.sh" && built=true) || built=false
           if $built; then docker cp cuda-quantum-dev:"/usr/local/cudaq/docs/." docs; \
           else docker cp cuda-quantum-dev:"/workspaces/cuda-quantum/build/." /tmp/build; fi
