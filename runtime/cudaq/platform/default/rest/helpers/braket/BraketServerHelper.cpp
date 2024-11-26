@@ -66,13 +66,13 @@ void BraketServerHelper::initialize(BackendConfig config) {
   if (!config["shots"].empty())
     this->setShots(std::stoul(config["shots"]));
 
-  const auto emulate_it = config.find("emulate");
-  if (emulate_it != config.end() && emulate_it->second == "true") {
-    cudaq::info("Emulation is enabled, ignore all Amazon Braket connection "
-                "specific information.");
-    backendConfig = std::move(config);
-    return;
-  }
+  // const auto emulate_it = config.find("emulate");
+  //  if (emulate_it != config.end() && emulate_it->second == "true") {
+  //    cudaq::info("Emulation is enabled, ignore all Amazon Braket connection "
+  //                "specific information.");
+  //    backendConfig = std::move(config);
+  //    return;
+  //  }
 
   parseConfigForCommonParams(config);
 
@@ -172,7 +172,7 @@ sample_result BraketServerHelper::processResults(ServerMessage &resultsJson,
 
   // Get a reduced list of qubit numbers that were in the original program
   // so that we can slice the output data and extract the bits that the user
-  // was interested in. Sort by QIR qubit number.
+  // was interested in. Sort by OpenQasm2 qubit number.
   std::vector<std::size_t> qubitNumbers;
   qubitNumbers.reserve(output_names.size());
   for (auto &[result, info] : output_names) {

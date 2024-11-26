@@ -470,6 +470,17 @@ public:
         throw std::runtime_error("Could not successfully apply quake-synth.");
     }
 
+    // Delay combining measurements for backends that cannot handle
+    // subveqs and multiple measurements until we created the emulation code.
+    auto combineMeasurements =
+        passPipelineConfig.find("combine-measurements") != std::string::npos;
+    if (emulate && combineMeasurements) {
+      std::regex combine("(.*)([,]*)([ ]*)combine-measurements(.*)");
+      std::string replacement("$1$4");
+      passPipelineConfig =
+          std::regex_replace(passPipelineConfig, combine, replacement);
+    }
+
     runPassPipeline(passPipelineConfig, moduleOp);
 
     auto entryPointFunc = moduleOp.lookupSymbol<mlir::func::FuncOp>(
@@ -547,6 +558,9 @@ public:
             cudaq::createQIRJITEngine(clonedModule, codegenTranslation));
       }
     }
+
+    if (emulate && combineMeasurements)
+      runPassPipeline("func.func(combine-measurements)", moduleOp);
 
     // Get the code gen translation
     auto translation = cudaq::getTranslation(codegenTranslation);
