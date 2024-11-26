@@ -491,8 +491,7 @@ circuit simulators, and secure, on-demand access to various quantum computers.
 
 The simulator and hardware backends from Amazon Braket are available with the
 `braket` target in CUDA-Q. To get started, follow the instructions `here <https://docs.aws.amazon.com/braket/latest/developerguide/braket-enable-overview.html>`__.
-Also see, `Amazon Braket documentation <https://docs.aws.amazon.com/braket/>`__.
-
+To learn more about Amazon Braket, you can vew the `Amazon Braket Documentation <https://docs.aws.amazon.com/braket/>`__ and `Amazon Braket Examples <https://github.com/amazon-braket/amazon-braket-examples>`__.
 
 
 Fermioniq
