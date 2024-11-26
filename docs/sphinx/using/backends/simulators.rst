@@ -479,7 +479,6 @@ Specific aspects of the simulation can be configured by defining the following e
     The parallelism of Jacobi method (the default `CUDAQ_MPS_SVD_ALGO` setting) gives GPU better performance on small and medium size matrices.
     If you expect a large number of singular values (e.g., increasing the `CUDAQ_MPS_MAX_BOND` setting), please adjust the `CUDAQ_MPS_SVD_ALGO` setting accordingly.  
 
-
 Fermioniq
 ==================================
 
