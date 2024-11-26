@@ -88,8 +88,6 @@ async def postJob(job: Job,
     newId = str(uuid.uuid4())
     shots = job.shots
     program = job.input.data
-    print("Program")
-    print(program)
     decoded = base64.b64decode(program)
     m = llvm.module.parse_bitcode(decoded)
     mstr = str(m)
