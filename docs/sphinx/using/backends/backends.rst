@@ -12,7 +12,6 @@ CUDA-Q Backends
 
 **The following is a comprehensive list of the available targets in CUDA-Q:**
 
-
 * :ref:`braket <braket-backend>`
 * :ref:`fermioniq <fermioniq-backend>`
 * :ref:`ionq <ionq-backend>`
