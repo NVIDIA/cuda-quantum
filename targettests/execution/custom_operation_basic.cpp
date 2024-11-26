@@ -13,9 +13,7 @@
 // RUN: nvq++ %cpp_std --target iqm --iqm-machine Apollo --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std --target oqc --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t | FileCheck %s
-// RUN: if $braket_avail; then \
-// RUN:   nvq++ %cpp_std --target braket --emulate %s -o %t && %t | FileCheck %s; \
-// RUN: fi
+// RUN: if $braket_avail; then nvq++ %cpp_std --target braket --emulate %s -o %t && %t | FileCheck %s; fi
 // clang-format on
 
 #include <cudaq.h>
