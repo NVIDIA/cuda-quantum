@@ -39,7 +39,7 @@ runs:
         ${{ inputs.run }}
         EOF
 
-        container=$(docker run --user ${{ inputs.user }} $additional_run_args $volume_option -id ${{ inputs.image }})
+        container=$(docker run --user ${{ inputs.user }} $additional_run_args $volume_option --network host -id ${{ inputs.image }})
         docker cp $tmpFile $container:$tmpFile
         docker exec --user root $container chown -R ${{ inputs.user }} $tmpFile
         docker exec $container ${{ inputs.shell }} $tmpFile

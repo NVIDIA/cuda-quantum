@@ -131,6 +131,9 @@ if (CUDAQ_ENABLE_PYTHON)
   endfunction()
 
   add_pycudaq_test(Intro intro.py)
+  if (CUDA_FOUND)
+    add_pycudaq_test(EvolveDynamics using/backends/dynamics.py LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
+  endif()
 
   if (CUTENSORNET_ROOT AND CUDA_FOUND) 
     # This example uses tensornet backend.

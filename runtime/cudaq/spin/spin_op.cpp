@@ -559,29 +559,44 @@ std::vector<spin_op> spin_op::distribute_terms(std::size_t numChunks) const {
 
 std::string spin_op::to_string(bool printCoeffs) const {
   std::stringstream ss;
-  std::vector<std::string> printOut;
-  for (auto &[term, coeff] : terms) {
+  const auto termToStr = [](const std::vector<bool> &term) {
+    std::string printOut;
+    printOut.reserve(term.size() / 2);
     for (std::size_t i = 0; i < term.size() / 2; i++) {
       if (term[i] && term[i + term.size() / 2])
-        printOut.push_back("Y");
+        printOut.push_back('Y');
       else if (term[i])
-        printOut.push_back("X");
+        printOut.push_back('X');
       else if (term[i + term.size() / 2])
-        printOut.push_back("Z");
+        printOut.push_back('Z');
       else
-        printOut.push_back("I");
+        printOut.push_back('I');
     }
+    return printOut;
+  };
 
-    if (printCoeffs)
+  if (!printCoeffs) {
+    std::vector<std::string> printOut;
+    printOut.reserve(terms.size());
+    for (auto &[term, coeff] : terms)
+      printOut.emplace_back(termToStr(term));
+    // IMPORTANT: For a printing without coefficients, we want to
+    // sort the terms to get a consistent order for printing.
+    // This is necessary because unordered_map does not maintain order and our
+    // code relies on the full string representation as the key to look up full
+    // expectation of the whole `spin_op`.
+    // FIXME: Make the logic to look up whole expectation value from
+    // `sample_result` more robust.
+    std::sort(printOut.begin(), printOut.end());
+    ss << fmt::format("{}", fmt::join(printOut, ""));
+  } else {
+    for (auto &[term, coeff] : terms) {
       ss << fmt::format("[{}{}{}j]", coeff.real(),
                         coeff.imag() < 0.0 ? "-" : "+", std::fabs(coeff.imag()))
          << " ";
-
-    ss << fmt::format("{}", fmt::join(printOut, ""));
-
-    if (printCoeffs)
+      ss << termToStr(term);
       ss << "\n";
-    printOut.clear();
+    }
   }
 
   return ss.str();
