@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: cudaq-quake  %s | | cudaq-opt --unrolling-pipeline | cudaq-translate --convert-to=openqasm2 | FileCheck %s
+// RUN: cudaq-quake  %s | cudaq-opt --unrolling-pipeline | cudaq-translate --convert-to=openqasm2 | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>

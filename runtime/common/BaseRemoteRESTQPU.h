@@ -564,10 +564,7 @@ public:
           throw std::runtime_error("Could not successfully translate to " +
                                    codegenTranslation + ".");
       }
-      // TODO: see if modules are new here?
-      std::cout << "NEW MODULE: " << std::endl;
-      moduleOpI.dump();
-      std::cout << "CODE STR: " << codeStr << std::endl;
+
       // Form an output_names mapping from codeStr
       nlohmann::json j =
           formOutputNames(codegenTranslation, moduleOpI, codeStr);

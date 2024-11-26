@@ -31,10 +31,16 @@ using namespace mlir;
 
 namespace {
 
-struct Analysis {
-  using OutputNamesType =
-      std::map<std::size_t, std::pair<std::size_t, std::string>>;
+// After combine-quantum-alloc, we have one top allocation per function.
+// The following type is used to store qubit mapping from result qubit
+// index to the actual qubit index and register name.
+// map[result] --> [qb,regName]
+// Note: register name is currently not used in `OpenQasm2` backends,
+// so we supply a bogus name.
+using OutputNamesType =
+    std::map<std::size_t, std::pair<std::size_t, std::string>>;
 
+struct Analysis {
   Analysis() = default;
   Analysis(const Analysis &) = delete;
   Analysis(Analysis &&) = delete;
@@ -87,9 +93,6 @@ struct Analysis {
 };
 
 class ExtendQubitMeasurePattern : public OpRewritePattern<quake::MzOp> {
-  using OutputNamesType =
-      std::map<std::size_t, std::pair<std::size_t, std::string>>;
-
 public:
   using OpRewritePattern::OpRewritePattern;
 
@@ -145,9 +148,6 @@ private:
 };
 
 class ExtendVeqMeasurePattern : public OpRewritePattern<quake::MzOp> {
-  using OutputNamesType =
-      std::map<std::size_t, std::pair<std::size_t, std::string>>;
-
 public:
   using OpRewritePattern::OpRewritePattern;
 
@@ -210,9 +210,6 @@ private:
 class CombineMeasurementsPass
     : public cudaq::opt::impl::CombineMeasurementsBase<
           CombineMeasurementsPass> {
-  using OutputNamesType =
-      std::map<std::size_t, std::pair<std::size_t, std::string>>;
-
 public:
   using CombineMeasurementsBase::CombineMeasurementsBase;
 

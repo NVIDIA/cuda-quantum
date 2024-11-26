@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: cudaq-quake  %s  | cudaq-opt -canonicalize -cse -lift-array-alloc -globalize-array-values -state-prep | cudaq-translate --convert-to=openqasm2 | FileCheck %s
+// RUN: cudaq-quake  %s | cudaq-opt -canonicalize -cse -lift-array-alloc -globalize-array-values -state-prep | cudaq-translate --convert-to=openqasm2 | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>
