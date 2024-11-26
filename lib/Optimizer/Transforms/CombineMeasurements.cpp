@@ -12,13 +12,13 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "nlohmann/json.hpp"
 #include "llvm/Support/Debug.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
-#include "nlohmann/json.hpp"
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_COMBINEMEASUREMENTS
@@ -58,8 +58,10 @@ struct Analysis {
 
           qalloc = alloc;
         } else if (auto measure = dyn_cast_or_null<quake::MzOp>(&op)) {
-          if (!measure.use_empty())
-            return measure.emitError("Measurements with uses are not supported");
+          if (!measure.use_empty()) {
+            measure.emitWarning("Measurements with uses are not supported");
+            return success();
+          }
 
           auto veqOp = measure.getOperand(0);
           auto ty = veqOp.getType();
@@ -131,7 +133,7 @@ public:
         rewriter.replaceOpWithNewOp<quake::MzOp>(measure, TypeRange{resultType},
                                                  ValueRange{veq},
                                                  measure.getRegisterNameAttr());
-      else
+      else if (measure.use_empty())
         rewriter.eraseOp(measure);
     }
 
@@ -192,7 +194,7 @@ public:
         rewriter.replaceOpWithNewOp<quake::MzOp>(
             measure, measure.getResultTypes(), ValueRange{subveq.getVeq()},
             measure.getRegisterNameAttr());
-      else
+      else if (measure.use_empty())
         rewriter.eraseOp(measure);
 
       return success();

@@ -9,6 +9,7 @@
 // RUN: cudaq-opt -combine-measurements -canonicalize %s | FileCheck %s
 
 module {
+
   func.func @mz_2bits_extract_cst_index() attributes {"cudaq-entrypoint"} {
     %0 = quake.alloca !quake.veq<2>
     %1 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
@@ -38,6 +39,21 @@ module {
 // CHECK:       func.func @mz_2bits_extract_cst_op_index() attributes {"cudaq-entrypoint", output_names = "{{\[\[\[0,\[0,\\220\\22\]\],\[2,\[1,\\221\\22\]\]\]\]}}"} {
 // CHECK:         %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
 // CHECK:         %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+// CHECK:         return
+// CHECK:       }
+
+  func.func @mz_2bits_extract_non_consecutive() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<3>
+    %1 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+    %measOut = quake.mz %1 : (!quake.ref) -> !quake.measure
+    %2 = quake.extract_ref %0[2] : (!quake.veq<2>) -> !quake.ref
+    %measOut_0 = quake.mz %2 : (!quake.ref) -> !quake.measure
+    return
+  }
+
+// CHECK:       func.func @mz_2bits_extract_cst_index() attributes {"cudaq-entrypoint", output_names = "{{\[\[\[0,\[0,\\220\\22\]\],\[2,\[1,\\222\\22\]\]\]\]}}"} {
+// CHECK:         %[[VAL_0:.*]] = quake.alloca !quake.veq<3>
+// CHECK:         %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<3>) -> !cc.stdvec<!quake.measure>
 // CHECK:         return
 // CHECK:       }
 
