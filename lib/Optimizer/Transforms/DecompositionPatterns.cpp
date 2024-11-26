@@ -461,8 +461,9 @@ struct R1ToRz : public OpRewritePattern<quake::R1Op> {
 };
 
 // Naive mapping of R1 to U3
-// This is only expected to work with full inlining and
-// quake apply specialization.
+// quake.r1(λ) [control] target
+// ───────────────────────────────────
+// quake.u3(0, 0, λ) [control] target
 struct R1ToU3 : public OpRewritePattern<quake::R1Op> {
   using OpRewritePattern<quake::R1Op>::OpRewritePattern;
 

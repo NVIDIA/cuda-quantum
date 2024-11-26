@@ -23,6 +23,7 @@ using namespace cudaq;
 //===----------------------------------------------------------------------===//
 // Helper functions
 //===----------------------------------------------------------------------===//
+
 /// Translates operation names into OpenQASM gate names
 static LogicalResult translateOperatorName(quake::OperatorInterface optor,
                                            StringRef &name) {
