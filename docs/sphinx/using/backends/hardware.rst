@@ -422,7 +422,7 @@ Setting Credentials
 `````````````````````````
 
 In order to use the OQC devices you will need to register.
-Registration is achieved by contacting oqc_qcaas_support@oxfordquantumcircuits.com
+Registration is achieved by contacting `oqc_qcaas_support@oxfordquantumcircuits.com`.
 
 Once registered you will be able to authenticate with your ``email`` and ``password``
 
