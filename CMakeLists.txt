@@ -93,6 +93,11 @@ if (CUDAQ_ENABLE_REST AND NOT DEFINED CUDAQ_ENABLE_REMOTE_SIM)
   endif()
 endif()
 
+# Enable AWS backends by default.
+if (NOT DEFINED CUDAQ_ENABLE_BRAKET_BACKENDS)
+  set(CUDAQ_ENABLE_BRAKET_BACKENDS ON CACHE BOOL "Enable building AWS backends.")
+endif()
+
 # Generate a CompilationDatabase (compile_commands.json file) for our build,
 # for use by clang_complete, YouCompleteMe, etc.
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
@@ -151,6 +156,9 @@ endif()
 if(NOT OPENSSL_ROOT_DIR)	
   SET(OPENSSL_ROOT_DIR "$ENV{OPENSSL_INSTALL_PREFIX}")	
 endif()
+if(NOT AWSSDK_ROOT)
+  SET(AWSSDK_ROOT "$ENV{AWS_INSTALL_PREFIX}")
+endif()
 if(NOT BLAS_LIBRARIES AND EXISTS "$ENV{BLAS_INSTALL_PREFIX}/libblas.a")
   # CACHE INTERNAL is needed due to how FindBLAS.cmake works...
   SET(BLAS_LIBRARIES "$ENV{BLAS_INSTALL_PREFIX}/libblas.a" CACHE INTERNAL "")	
@@ -165,10 +173,6 @@ endif()
 if(NOT CUDAQ_EXTERNAL_NVQIR_SIMS)
   SET(CUDAQ_EXTERNAL_NVQIR_SIMS $ENV{CUDAQ_EXTERNAL_NVQIR_SIMS})
 endif()
-if(NOT DEFINED CUDAQ_ENABLE_BRAKET_BACKENDS)
-  SET(CUDAQ_ENABLE_BRAKET_BACKENDS TRUE)
-endif()
-
 if(NOT CUDAQ_ENABLE_CC)
   SET(CUDAQ_ENABLE_CC $ENV{CUDAQ_ENABLE_CC})
 endif()

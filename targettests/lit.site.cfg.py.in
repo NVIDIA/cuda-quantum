@@ -43,7 +43,7 @@ config.test_remote_sim = "@CUDAQ_TEST_REMOTE_SIM@"
 if cmake_boolvar_to_bool(config.test_remote_sim):
   config.available_features.add('remote-sim')
 
-config.cudaq_backends_braket = "@ENABLE_BRAKET_BACKENDS@"
+config.cudaq_backends_braket = "@CUDAQ_ENABLE_BRAKET_BACKENDS@"
 if cmake_boolvar_to_bool(config.cudaq_backends_braket):
   config.available_features.add('braket')
   config.substitutions.append(('%braket_avail', 'true'))

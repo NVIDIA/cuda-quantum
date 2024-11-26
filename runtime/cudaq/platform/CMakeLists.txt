@@ -16,6 +16,6 @@ if (CUDAQ_ENABLE_REST)
 endif()
 
 add_subdirectory(fermioniq)
-if (CUDAQ_ENABLE_BRAKET_BACKENDS)
+if (AWSSDK_ROOT)
   add_subdirectory(quera)
 endif()
