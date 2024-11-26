@@ -34,6 +34,20 @@ config.targets_to_build = "@TARGETS_TO_BUILD@"
 config.excludes = ["@CUDAQ_EXTRA_CONFIG_EXCLUDES@"]
 config.pipefail = False
 
+config.cudaq_backend_anyon = "@ENABLE_ANYON_BACKEND@"
+if cmake_boolvar_to_bool(config.cudaq_backend_anyon):
+  config.available_features.add('anyon')
+  config.substitutions.append(('%anyon_avail', 'true'))
+else:
+  config.substitutions.append(('%anyon_avail', 'false'))
+
+config.cudaq_backend_braket = "@ENABLE_BRAKET_BACKEND@"
+if cmake_boolvar_to_bool(config.cudaq_backend_braket):
+  config.available_features.add('braket')
+  config.substitutions.append(('%braket_avail', 'true'))
+else:
+  config.substitutions.append(('%braket_avail', 'false'))
+
 # Is the nvcc compiler available?
 config.cuda_found = "@CUDA_FOUND@"
 if cmake_boolvar_to_bool(config.cuda_found):

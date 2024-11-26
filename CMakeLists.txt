@@ -484,45 +484,25 @@ if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
   # The asio submodule doesn't use cmake, so use find_path for it.
   find_path(ASIO_INCLUDE_DIR asio.hpp PATHS tpls/asio/asio/include)
   add_subdirectory(tpls/Crow)
-  # AWS SDK for C++
-  set(SERVICE_COMPONENTS braket s3-crt sts)
-  # Call find_package without REQUIRED flag to see whether AWSSDK is installed.
-  find_package(AWSSDK COMPONENTS ${SERVICE_COMPONENTS})
-  if (NOT AWSSDK_FOUND)
-    message(STATUS "AWS SDK not found. Building it.")
-    include(ProcessorCount)
-    ProcessorCount(N)
-    if(CMAKE_MAKE_PROGRAM MATCHES "make$")
-      set(MAKE_PARALLEL ${CMAKE_MAKE_PROGRAM} -j${N})
-    else()
-      set(MAKE_PARALLEL ${CMAKE_MAKE_PROGRAM})
-    endif()
-    execute_process(RESULT_VARIABLE result COMMAND cmake "-B${CMAKE_CURRENT_BINARY_DIR}/tpls/aws-sdk-cpp" "${CMAKE_CURRENT_SOURCE_DIR}/tpls/aws-sdk-cpp" 
-        "-DAUTORUN_UNIT_TESTS=OFF"
-        "-DAWS_SDK_WARNINGS_ARE_ERRORS=OFF"
-        "-DAWS_USER_AGENT_CUSTOMIZATION=CUDA-Q/${CUDA_QUANTUM_VERSION}"
-        "-DBUILD_ONLY=braket;s3-crt;sts"
-        "-DBUILD_SHARED_LIBS=OFF"
-        "-DCMAKE_COMPILE_WARNING_AS_ERROR=OFF"
-        "-Dcrypto_LIBRARY=${crypto_LIBRARY}"
-        "-Dcrypto_INCLUDE_DIR=${crypto_INCLUDE_DIR}"
-        "-DCURL_LIBRARY=${CURL_LIBRARY}"
-        "-DCURL_INCLUDE_DIR=${CURL_INCLUDE_DIR}"
-        "-DOPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR}"
-        "-DENABLE_TESTING=OFF"
-        "-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}"
-        "-G ${CMAKE_GENERATOR}"
-      )
-      if(NOT ${result} STREQUAL "0")
-        message(FATAL_ERROR "Configuring aws-sdk-cpp failed.")
-      endif()
-      execute_process(RESULT_VARIABLE result COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR}/tpls/aws-sdk-cpp ${MAKE_PARALLEL} install)
-      if(NOT ${result} STREQUAL "0")
-        message(FATAL_ERROR "Building aws-sdk-cpp failed.")
-      endif()
+  if (NOT DEFINED CUDAQ_ENABLE_BRAKET_BACKEND)
+    set(CUDAQ_ENABLE_BRAKET_BACKEND OFF CACHE BOOL
+      "Enable build and test of Braket backend")
   endif()
-  # AWSSDK should be installed now. Call find_package with REQUIRED flag.
-  find_package(AWSSDK REQUIRED COMPONENTS ${SERVICE_COMPONENTS})
+  if (CUDAQ_ENABLE_BRAKET_BACKEND)
+    # AWS SDK for C++
+    set(SERVICE_COMPONENTS braket s3-crt sts)
+    # Call find_package without REQUIRED flag to see whether AWSSDK is
+    # installed.
+    find_package(AWSSDK COMPONENTS ${SERVICE_COMPONENTS})
+    if (NOT AWSSDK_FOUND)
+      message(STATUS "AWS SDK not found. Braket backend DISABLED.")
+      set(CUDAQ_ENABLE_BRAKET_BACKEND OFF)
+    else()
+      # AWSSDK should be installed on the system.
+      # Call find_package with REQUIRED flag.
+      find_package(AWSSDK REQUIRED COMPONENTS ${SERVICE_COMPONENTS})
+    endif()
+  endif()
 endif()
 
 # Check for CUDA Support
