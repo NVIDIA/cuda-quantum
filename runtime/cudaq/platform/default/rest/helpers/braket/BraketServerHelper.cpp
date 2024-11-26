@@ -34,8 +34,8 @@ std::string getDeviceArn(const std::string &machine) {
   for (const auto &machine : deviceArns)
     knownMachines += machine.first + " ";
   const auto errorMessage =
-      fmt::format("Machine \"{}\" is invalid. Machine must be either a Braket "
-                  "device ARN or one of the known devices: {}",
+      fmt::format("Machine \"{}\" is invalid. Machine must be either an Amazon "
+                  "Braket device ARN or one of the known devices: {}",
                   machine, knownMachines);
   throw std::runtime_error(errorMessage);
 }
@@ -68,8 +68,8 @@ void BraketServerHelper::initialize(BackendConfig config) {
 
   const auto emulate_it = config.find("emulate");
   if (emulate_it != config.end() && emulate_it->second == "true") {
-    cudaq::info("Emulation is enabled, ignore all Braket connection specific "
-                "information.");
+    cudaq::info("Emulation is enabled, ignore all Amazon Braket connection "
+                "specific information.");
     backendConfig = std::move(config);
     return;
   }
