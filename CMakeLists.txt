@@ -484,6 +484,10 @@ if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
   # The asio submodule doesn't use cmake, so use find_path for it.
   find_path(ASIO_INCLUDE_DIR asio.hpp PATHS tpls/asio/asio/include)
   add_subdirectory(tpls/Crow)
+  if (NOT DEFINED CUDAQ_ENABLE_BRAKET_BACKEND)
+    set(CUDAQ_ENABLE_BRAKET_BACKEND OFF CACHE BOOL
+      "Enable build and test of Braket backend")
+  endif()
   if (CUDAQ_ENABLE_BRAKET_BACKEND)
     # AWS SDK for C++
     set(SERVICE_COMPONENTS braket s3-crt sts)
