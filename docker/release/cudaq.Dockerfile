@@ -55,7 +55,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install CUDA-Q runtime dependencies.
 
-RUN apt-get update && apt-get install -y --no-install-recommends libstdc++-12-dev \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libstdc++-12-dev python3 python3-pip \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* \
     && python3 -m pip install --no-cache-dir numpy scipy \
     && ln -s /bin/python3 /bin/python
