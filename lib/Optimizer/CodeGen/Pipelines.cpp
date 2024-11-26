@@ -45,10 +45,6 @@ void cudaq::opt::addPipelineTranslateToOpenQASM(PassManager &pm) {
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
   pm.addNestedPass<func::FuncOp>(createClassicalMemToReg());
-  pm.addNestedPass<func::FuncOp>(createExpandControlVeqs());
-  pm.addNestedPass<func::FuncOp>(createCombineQuantumAllocations());
-  pm.addNestedPass<func::FuncOp>(createCombineMeasurements());
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(createSymbolDCEPass());
 }
 
@@ -61,5 +57,6 @@ void cudaq::opt::addPipelineTranslateToIQMJson(PassManager &pm) {
   pm.addNestedPass<func::FuncOp>(createLowerToCFGPass());
   pm.addNestedPass<func::FuncOp>(createQuakeAddDeallocs());
   pm.addNestedPass<func::FuncOp>(createCombineQuantumAllocations());
+  pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
 }
