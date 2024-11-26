@@ -8,13 +8,15 @@
 
 // REQUIRES: c++20
 // clang-format off
-// RUN: nvq++ --target braket                   --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ --target ionq                     --emulate %s -o %t && %t | FileCheck %s
 // 2 different IQM machines for 2 different topologies
 // RUN: nvq++ --target iqm --iqm-machine Adonis --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ --target iqm --iqm-machine Apollo --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ --target oqc                      --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
+// RUN: if $braket_avail; then \
+// RUN:   nvq++ --target braket                 --emulate %s -o %t && %t | FileCheck %s; \
+// RUN: fi
 // clang-format on
 
 #include <cudaq.h>
