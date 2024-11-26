@@ -17,6 +17,7 @@
 #include <thread>
 #include <iostream>
 #include <sstream>
+using json = nlohmann::json;
 
 std::string formatOpenQasm(const std::string &input_string)
 {
@@ -122,8 +123,8 @@ namespace cudaq
     backendConfig["version"] = getValueOrDefault(config, "version", DEFAULT_VERSION);
     backendConfig["user_agent"] = getValueOrDefault(config, "user_agent",
                                                     "cudaq/" + std::string(cudaq::getVersion()));
-    backendConfig["target"] = getValueOrDefault(config, "target", "cq_sqorpius_simualtor");
-
+    backendConfig["target"] = getValueOrDefault(config, "target", "cq_sqorpius_simulator");
+    backendConfig["method"] = config["method"];
     // Determine if token is required
     bool isTokenRequired = [&]()
     {
@@ -188,10 +189,13 @@ namespace cudaq
     ServerMessage job;
     job["qasm_strs"] = formatOpenQasm(circuitCode.code); // Assuming code is in OpenQASM format
     job["target"] = backendConfig.at("target");
-    // job["shots"] = shots;
-    job["shots"] = 100;
-    // job["method"] = "dry-run";
-    std::cout << job << std::endl;
+    job["shots"] = shots;
+
+    if (backendConfig.count("options"))
+       job["options"] = backendConfig.at("options");
+    
+    if (backendConfig.count("method"))
+       job["method"] = backendConfig.at("method");
 
     // Store output names and reorder indices if necessary
     OutputNamesType outputNamesMap;
@@ -223,7 +227,6 @@ namespace cudaq
 
     // Get the first job ID
     std::string jobId = postResponse["job_ids"][0];
-    std::cout << jobId << std::endl;
     // Return the job ID
     return jobId;
   }
