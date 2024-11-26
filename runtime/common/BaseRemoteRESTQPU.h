@@ -650,7 +650,7 @@ public:
 
             bool hasConditionals =
                 cudaq::kernelHasConditionalFeedback(kernelName);
-            if (hasConditionals && codes.size() > 1)
+            if (hasConditionals && isObserve)
               throw std::runtime_error("error: spin_ops not yet supported with "
                                        "kernels containing conditionals");
             if (hasConditionals) {
@@ -687,9 +687,8 @@ public:
               invokeJITKernelAndRelease(localJIT[i], kernelName);
               cudaq::getExecutionManager()->resetExecutionContext();
 
-              // If there are multiple codes, this is likely a spin_op.
-              // If so, use the code name instead of the global register.
-              if (isObserve || (codes.size() > 1)) {
+              if (isObserve) {
+                // Use the code name instead of the global register.
                 results.emplace_back(context.result.to_map(), codes[i].name);
                 results.back().sequentialData =
                     context.result.sequential_data();

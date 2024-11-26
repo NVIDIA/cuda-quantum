@@ -41,9 +41,8 @@ sample_result future::get() {
     }
     auto c = serverHelper->processResults(resultResponse, id.first);
 
-    // If there are multiple jobs, this is likely a spin_op.
-    // If so, use the job name instead of the global register.
-    if (isObserve || jobs.size() > 1) {
+    if (isObserve) {
+      // Use the job name instead of the global register.
       results.emplace_back(c.to_map(), id.second);
       results.back().sequentialData = c.sequential_data();
     } else {
