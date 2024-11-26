@@ -312,9 +312,10 @@ def test_kernel_two_subveqs():
         qreg = cudaq.qvector(4)
         x(qreg[1])
         x(qreg[2])
-        v = qreg[0:2]
-        v = qreg[2:3]
-        mz(v)
+        v1 = qreg[0:2]
+        mz(v1)
+        v2 = qreg[2:3]
+        mz(v2)
 
     counts = cudaq.sample(kernel, shots_count=100)
     assert len(counts) == 1
@@ -328,9 +329,10 @@ def test_kernel_qubit_subveq():
         qreg = cudaq.qvector(4)
         x(qreg[1])
         x(qreg[2])
-        v = qreg[0:2]
-        v = qreg[2]
-        mz(v)
+        v1 = qreg[0:2]
+        mz(v1)
+        v2 = qreg[2]
+        mz(v2)
 
     counts = cudaq.sample(kernel, shots_count=100)
     assert len(counts) == 1

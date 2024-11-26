@@ -475,8 +475,8 @@ public:
     auto combineMeasurements =
         passPipelineConfig.find("combine-measurements") != std::string::npos;
     if (emulate && combineMeasurements) {
-      std::regex combine("(.*)([,]*)([ ]*)combine-measurements(.*)");
-      std::string replacement("$1$4");
+      std::regex combine("(.*),([ ]*)combine-measurements(.*)");
+      std::string replacement("$1$3");
       passPipelineConfig =
           std::regex_replace(passPipelineConfig, combine, replacement);
     }
