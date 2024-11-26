@@ -178,6 +178,7 @@ breathe_show_enumvalue_initializer = True
 # -- Other options -------------------------------------------------
 
 autosummary_generate = True
+autodoc_mock_imports = ['cuquantum', 'cupy']
 
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
