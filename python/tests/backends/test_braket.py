@@ -289,6 +289,7 @@ def test_kernel_with_args():
     assert "0000" in counts
     assert "1111" in counts
 
+
 def test_kernel_subveqs():
 
     @cudaq.kernel
@@ -302,6 +303,7 @@ def test_kernel_subveqs():
     counts = cudaq.sample(kernel, shots_count=100)
     assert len(counts) == 1
     assert "11" in counts
+
 
 def test_kernel_two_subveqs():
 
@@ -318,6 +320,7 @@ def test_kernel_two_subveqs():
     assert len(counts) == 1
     assert "011" in counts
 
+
 def test_kernel_qubit_subveq():
 
     @cudaq.kernel
@@ -333,7 +336,7 @@ def test_kernel_qubit_subveq():
     assert len(counts) == 1
     assert "011" in counts
 
-    
+
 def test_multiple_measurement():
 
     @cudaq.kernel
@@ -347,6 +350,7 @@ def test_multiple_measurement():
     assert len(counts) == 2
     assert "00" in counts
     assert "10" in counts
+
 
 def test_multiple_measurement_non_consecutive():
 

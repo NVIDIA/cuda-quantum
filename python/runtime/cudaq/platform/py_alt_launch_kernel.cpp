@@ -642,12 +642,12 @@ std::string getASM(const std::string &name, MlirModule module,
   PassManager pm(context);
   pm.addPass(cudaq::opt::createLambdaLiftingPass());
   // Run most of the passes from hardware pipelines.
-
-  pm.addPass(createCanonicalizerPass());
-  pm.addPass(createCSEPass());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCSEPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
+  pm.addPass(cudaq::opt::createLoopNormalize());
   pm.addPass(cudaq::opt::createLoopUnroll());
-  pm.addPass(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLiftArrayAlloc());
   pm.addPass(cudaq::opt::createGlobalizeArrayValues());
   pm.addPass(cudaq::opt::createStatePreparation());
@@ -656,8 +656,8 @@ std::string getASM(const std::string &name, MlirModule module,
   pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
   cudaq::opt::addAggressiveEarlyInlining(pm);
   pm.addPass(createSymbolDCEPass());
-  pm.addPass(createCanonicalizerPass());
-  pm.addPass(createCSEPass());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCSEPass());
   pm.addNestedPass<func::FuncOp>(
       cudaq::opt::createMultiControlDecompositionPass());
   pm.addPass(cudaq::opt::createDecompositionPass(
@@ -665,7 +665,7 @@ std::string getASM(const std::string &name, MlirModule module,
                            "CHToCX", "CCZToCX", "CRzToCX", "CRyToCX", "CRxToCX",
                            "CR1ToCX", "CCZToCX", "RxAdjToRx", "RyAdjToRy",
                            "RzAdjToRz"}}));
-  pm.addPass(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlVeqs());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createCombineQuantumAllocations());
   cudaq::opt::addPipelineTranslateToOpenQASM(pm);

@@ -623,34 +623,6 @@ struct SToR1 : public OpRewritePattern<quake::SOp> {
   }
 };
 
-// quake.s<adj> target
-// ─────────────────────────────────
-// (quake.z * quake.s) target
-struct SAdjToSZ : public OpRewritePattern<quake::SOp> {
-  using OpRewritePattern<quake::SOp>::OpRewritePattern;
-
-  void initialize() { setDebugName("SAdjToSZ"); }
-
-  LogicalResult matchAndRewrite(quake::SOp op,
-                                PatternRewriter &rewriter) const override {
-    if (!op.isAdj())
-      return failure();
-
-    // Op info
-    auto loc = op->getLoc();
-    auto parameters = op.getParameters();
-    SmallVector<Value> controls(op.getControls());
-    Value target = op.getTarget();
-
-    QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<quake::ZOp>(loc, parameters, controls, target);
-    qRewriter.create<quake::SOp>(loc, parameters, controls, target);
-    qRewriter.selectWiresAndReplaceUses(op, controls, target);
-    rewriter.eraseOp(op);
-    return success();
-  }
-};
-
 //===----------------------------------------------------------------------===//
 // TOp decompositions
 //===----------------------------------------------------------------------===//
@@ -1585,7 +1557,6 @@ void cudaq::populateWithAllDecompositionPatterns(RewritePatternSet &patterns) {
     // SOp patterns
     SToPhasedRx,
     SToR1,
-    SAdjToSZ,
     // TOp patterns
     TToPhasedRx,
     TToR1,

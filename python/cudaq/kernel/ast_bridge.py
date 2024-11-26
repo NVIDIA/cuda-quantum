@@ -4032,5 +4032,4 @@ def compile_to_mlir(astModule, metadata,
     if len(bridge.dependentCaptureVars):
         extraMetaData['dependent_captures'] = bridge.dependentCaptureVars
 
-    bridge.module.dump()
     return bridge.module, bridge.argTypes, extraMetaData

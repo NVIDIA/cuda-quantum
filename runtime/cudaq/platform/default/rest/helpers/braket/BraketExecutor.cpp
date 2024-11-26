@@ -20,8 +20,6 @@
 
 #include <aws/core/utils/ARN.h>
 
-#include <iostream>
-
 namespace {
 void tryCreateBucket(Aws::S3Crt::S3CrtClient &client, std::string const &region,
                      std::string const &bucketName) {
@@ -261,16 +259,12 @@ BraketExecutor::execute(std::vector<KernelExecution> &codesToExecute) {
           auto c = serverHelper->processResults(resultsJson, taskArn);
 
           for (auto &regName : c.register_names()) {
-            std::cout << "Register name: " << regName << std::endl;
             results.emplace_back(c.to_map(regName), regName);
-            std::cout << "Sequential data: " << regName << std::endl;
-            for (auto d : c.sequential_data(regName)) {
-              std::cout << d << std::endl;
-            }
             results.back().sequentialData = c.sequential_data(regName);
           }
           i++;
         }
+
         return sample_result(results);
       },
       std::move(createOutcomes));
