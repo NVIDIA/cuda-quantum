@@ -561,7 +561,7 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandMeasurementsPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize());
+  pm.addPass(cudaq::opt::createLoopNormalize());
   pm.addPass(cudaq::opt::createLoopUnroll());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   DefaultTimingManager tm;
