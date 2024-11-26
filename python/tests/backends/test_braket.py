@@ -328,7 +328,7 @@ def test_qvector_slicing():
 
     counts = cudaq.sample(kernel, shots_count=100)
     assert len(counts) == 1
-    assert "00" in counts
+    assert "1100" in counts
 
 
 def test_mid_circuit_measurement():
