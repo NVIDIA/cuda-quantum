@@ -89,7 +89,10 @@ void quake::StruqType::print(AsmPrinter &printer) const {
 }
 
 // This recursive function returns true if and only if \p ty is a quake
-// reference type and the number of qubits is a compile-time known constant.
+// type in the set \e R, `{ ref, veq, struq }`, (loosely known as "reference"
+// types) and the number of qubits is a compile-time known constant. This
+// function returns false for any type not in the set \e R or if the composition
+// of types contains a `veq` of unspecified size.
 static bool isConstQuantumBits(Type ty) {
   if (isa<quake::RefType>(ty))
     return true;
