@@ -2,11 +2,13 @@
 // ```
 // nvq++ --target braket braket.cpp -o out.x && ./out.x
 // ```
-// This will submit the job to the Amazon Braket state vector simulator (default).
-// Alternatively, users can choose any of the available devices by specifying its `ARN` with 
-// the `--braket-machine`, e.g.,
+// This will submit the job to the Amazon Braket state vector simulator
+// (default). Alternatively, users can choose any of the available devices by
+// specifying its `ARN` with the `--braket-machine`, e.g.,
 // ```
-// nvq++ --target braket --braket-machine "arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet" braket.cpp -o out.x && ./out.x
+// nvq++ --target braket --braket-machine \
+// "arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet" braket.cpp -o out.x
+// ./out.x
 // ```
 // Assumes a valid set of credentials have been set prior to execution.
 
