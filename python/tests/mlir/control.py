@@ -394,7 +394,7 @@ def test_sample_apply_call_control():
 # CHECK:           %{{[0-2]}} = quake.alloca !quake.ref
 # CHECK:           call @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(%{{[0-2]}}) : (!quake.ref) -> ()
 # CHECK:           quake.h %{{[0-2]}} : (!quake.ref) -> ()
-# CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}[%{{[0-2]}} %{{[0-2]}} : (!quake.ref, !quake.ref) -> ()
+# CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}} [%{{[0-2]}}] %{{[0-2]}} : (!quake.ref, !quake.ref) -> ()
 # CHECK:           quake.h %{{[0-2]}} : (!quake.ref) -> ()
 # CHECK:           %[[VAL_2:.*]] = quake.mz %{{[0-2]}} name "" : (!quake.ref) -> !quake.measure
 # CHECK:           return
