@@ -479,7 +479,7 @@ public:
       std::string replacement("$1$3");
       passPipelineConfig =
           std::regex_replace(passPipelineConfig, combine, replacement);
-      cudaq::info("Delaying combine-measurements due to emulation. "
+      cudaq::info("Delaying combine-measurements pass due to emulation. "
                   "Updating pipeline to {}",
                   passPipelineConfig);
     }
