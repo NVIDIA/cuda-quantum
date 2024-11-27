@@ -327,7 +327,7 @@ public:
                                 PatternRewriter &rewriter) const override {
     auto loc = init.getLoc();
     auto qubits = init.getOperand(0);
-    if (auto alloc = dyn_cast<quake::AllocaOp>(qubits.getDefiningOp())) {
+    if (auto alloc = qubits.getDefiningOp<quake::AllocaOp>()) {
 
       // Find vector data.
       auto data = init.getOperand(1);
