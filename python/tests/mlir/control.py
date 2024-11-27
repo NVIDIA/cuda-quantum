@@ -277,8 +277,8 @@ def test_sample_control_qubit_args():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
-# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
-# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
+# CHECK-DAG:       %[[VAL_0:.*]] = quake.alloca !quake.ref
+# CHECK-DAG:       %[[VAL_1:.*]] = quake.alloca !quake.ref
 # CHECK:           call @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(%[[VAL_0]]) : (!quake.ref) -> ()
 # CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
 # CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*\[}}%[[VAL_1]]] %[[VAL_0]] : (!quake.ref, !quake.ref) -> ()
@@ -333,8 +333,8 @@ def test_sample_control_qreg_args():
 
 # CHECK-LABEL: test_sample_control_qreg_args
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
-# CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<2>
-# CHECK:           %[[VAL_6:.*]] = quake.alloca !quake.ref
+# CHECK-DAG:       %[[VAL_5:.*]] = quake.alloca !quake.veq<2>
+# CHECK-DAG:       %[[VAL_6:.*]] = quake.alloca !quake.ref
 # CHECK:           %[[VAL_7:.*]] = quake.extract_ref %[[VAL_5]][0] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           quake.x %[[VAL_7]] : (!quake.ref) -> ()
 # CHECK:           quake.x %[[VAL_6]] : (!quake.ref) -> ()
@@ -390,8 +390,8 @@ def test_sample_apply_call_control():
 
 # CHECK-LABEL: test_sample_apply_call_control
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
-# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
-# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
+# CHECK-DAG:       %[[VAL_0:.*]] = quake.alloca !quake.ref
+# CHECK-DAG:       %[[VAL_1:.*]] = quake.alloca !quake.ref
 # CHECK:           call @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(%[[VAL_0]]) : (!quake.ref) -> ()
 # CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
 # CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}{{\[}}%[[VAL_1]]] %[[VAL_0]] : (!quake.ref, !quake.ref) -> ()
