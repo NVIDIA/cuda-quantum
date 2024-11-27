@@ -11,7 +11,7 @@ enable_language(CUDA)
 find_package(CUDAToolkit REQUIRED)
 
 find_library(CUTENSOR_LIB
-    NAMES   cutensor
+    NAMES   cutensor libcutensor.so.2
     HINTS   
         ${CUTENSOR_ROOT}/lib64
         ${CUTENSOR_ROOT}/lib
@@ -20,7 +20,7 @@ find_library(CUTENSOR_LIB
 )
 
 find_library(CUTENSORNET_LIB
-    NAMES   cutensornet
+    NAMES   cutensornet libcutensornet.so.2
     HINTS   
         ${CUTENSORNET_ROOT}/lib64
         ${CUTENSORNET_ROOT}/lib
@@ -60,8 +60,8 @@ set(CUTENSORNET_PATCH ${CMAKE_MATCH_1})
 
 set(CUTENSORNET_VERSION ${CUTENSORNET_MAJOR}.${CUTENSORNET_MINOR}.${CUTENSORNET_PATCH})
 message(STATUS "Found cutensornet version: ${CUTENSORNET_VERSION}")
-# We need cutensornet v2.3+
-if (${CUTENSORNET_VERSION} VERSION_GREATER_EQUAL "2.3")
+# We need cutensornet v2.5.0+
+if (${CUTENSORNET_VERSION} VERSION_GREATER_EQUAL "2.5")
   set (BASE_TENSOR_BACKEND_SRS  
         simulator_cutensornet.cpp 
         tensornet_spin_op.cpp
