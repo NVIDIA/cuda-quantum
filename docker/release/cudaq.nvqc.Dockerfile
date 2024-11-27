@@ -13,7 +13,7 @@
 #   DOCKER_BUILDKIT=1 docker build -f docker/release/cudaq.nvqc.Dockerfile . --output out
 
 # Base image is CUDA-Q image 
-ARG base_image=nvcr.io/nvidia/nightly/cuda-quantum:latest
+ARG base_image=nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest
 FROM $base_image AS nvcf_image
 
 # Run the tar command and then uncomment ADD cudaq.tar.gz ... in order to

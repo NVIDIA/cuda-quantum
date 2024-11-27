@@ -1,15 +1,37 @@
 on:
   workflow_dispatch:
     inputs:
-      image_short_name:
-        type: string 
-        description: The short name of the image to pull from the nightly channel and push to the stable channel.
-        default: cuda-quantum
-        required: false
       image_tag:
         type: string
-        description: The tag of the cuda-quantum image on the nightly channel to push to the stable channel.
         required: true
+        description: The tag of the cuda-quantum image on the nightly channel to push to the stable channel.
+      image_short_name:
+        type: string 
+        required: false
+        default: cuda-quantum
+        description: The short name of the image to pull from the nightly channel and push to the stable channel.
+      image_source_location:
+        type: string
+        default: nvcr.io/nvidia/nightly
+        required: false
+        description: The registry prefix for the image to pull. 
+      image_target_location:
+        type: string
+        default: nvcr.io/nvidia/quantum
+        required: false
+        description: The registry prefix for the image to push.
+      ngc_api_key:
+        type: string
+        required: false
+        description: The API key to use when authenticating with NGC.
+      sign_image:
+        type: boolean
+        required: false
+        default: true
+      allow_arbitrary_tag:
+        type: boolean
+        required: false
+        default: false
 
 name: Push stable release
 
@@ -19,38 +41,70 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      packages: write
+      id-token: write
 
     environment:
-      name: ghcr-deployment
+      name: production
       url: ${{ vars.deployment_url }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: "${{ github.ref }}"
+
+      - name: Configure registries
+        id: config
+        run: |  
+          NGC_API_KEY=$(jq -r '.inputs.ngc_api_key' $GITHUB_EVENT_PATH)
+          echo "::add-mask::$NGC_API_KEY"
+          if echo "${{ inputs.image_target_location }}" | grep -q "^nvcr.io"; then 
+            echo "push_to_ngc=true" >> $GITHUB_OUTPUT
+            ngc_org=`echo "${{ inputs.image_target_location }}" | cut -d / -f2`
+            ngc_team=`echo "${{ inputs.image_target_location }}" | cut -d / -f3`
+            echo "ngc_org=$ngc_org" >> $GITHUB_OUTPUT
+            echo "ngc_team=$ngc_team" >> $GITHUB_OUTPUT
+          fi
+          if echo "${{ inputs.image_source_location }}" | grep -q "^nvcr.io"; then 
+            echo "pull_from_ngc=true" >> $GITHUB_OUTPUT
+          fi
 
       - name: Log in to NGC registry
+        if: steps.config.outputs.pull_from_ngc == 'true' || steps.config.outputs.push_to_ngc == 'true'
         uses: docker/login-action@v3
         with:
           registry: 'nvcr.io'
           username: '$oauthtoken'
-          password: ${{ secrets.NGC_CREDENTIALS }}
+          password: ${{ inputs.ngc_api_key || secrets.NGC_CREDENTIALS }}
 
-      - name: Pull nightly image
-        id: nightly_image
+      - name: Log in to the container registry
+        if: vars.registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ vars.registry }}
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Prepare image
+        id: setup
         run: |
-          nightly_image=nvcr.io/nvidia/nightly/${{ inputs.image_short_name }}:${{ inputs.image_tag }}
+          nightly_image=${{ inputs.image_source_location }}/${{ inputs.image_short_name }}:${{ inputs.image_tag }}
           echo "FROM $nightly_image" >> ngc.Dockerfile
-          if [ "$(echo ${{ inputs.image_tag }} | egrep -o '([0-9]{1,}\.)+[0-9]{1,}')" != "${{ inputs.image_tag }}" ]; then
+          if ! ${{ inputs.allow_arbitrary_tag }} && [ "$(echo ${{ inputs.image_tag }} | egrep -o 'cu[0-9]{1,2}-([0-9]{1,}\.)+[0-9]{1,}')" != "${{ inputs.image_tag }}" ]; then
             echo "::error::Only non-prerelease tags can be pushed to stable."
             exit 1
           fi
 
-          regctl="docker run --rm ghcr.io/regclient/regctl:v0.6.0"
-          manifest=`$regctl image manifest $nightly_image --format "{{ json . }}"`
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends curl
+          curl -L https://github.com/regclient/regclient/releases/latest/download/regctl-linux-amd64 > regctl
+          chmod 755 regctl
+
+          manifest=`./regctl image manifest $nightly_image --format "{{ json . }}"`
           platforms=`echo $manifest | jq -r '.manifests | map("\(.platform.os)/\(.platform.architecture)") | .[]'`
           echo "platforms=$(echo $platforms | tr ' ' ,)" >> $GITHUB_OUTPUT
 
-          $regctl image inspect $nightly_image \
+          ./regctl image inspect $nightly_image \
           | jq -r '.config.Labels | to_entries | map("\(.key)=\(.value|tostring)") | .[]' \
           > labels.txt
           {
@@ -66,11 +120,11 @@ jobs:
         id: metadata
         uses: docker/metadata-action@v5
         with:
-          images: nvcr.io/nvidia/quantum/${{ inputs.image_short_name }}
+          images: ${{ inputs.image_target_location }}/${{ inputs.image_short_name }}
           flavor: latest=false
           tags: type=raw,value=${{ inputs.image_tag }}
           labels: |
-            ${{ steps.nightly_image.outputs.labels }}
+            ${{ steps.setup.outputs.labels }}
 
       - name: Copy cuda-quantum NGC image
         id: copy_build
@@ -80,21 +134,36 @@ jobs:
           file: ngc.Dockerfile
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
-          platforms: ${{ steps.nightly_image.outputs.platforms }}
+          platforms: ${{ steps.setup.outputs.platforms }}
           push: true
 
+      - name: Install Cosign
+        if: inputs.sign_image && steps.config.outputs.push_to_ngc != 'true'
+        uses: sigstore/cosign-installer@v3.3.0
+        with:
+          cosign-release: 'v2.2.2'
+
+      - name: Sign image with GitHub OIDC Token
+        if: inputs.sign_image && steps.config.outputs.push_to_ngc != 'true'
+        env:
+          DIGEST: ${{ steps.copy_build.outputs.digest }}
+          TAGS: ${{ steps.metadata.outputs.tags }}
+        run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
+
       - name: Install NGC CLI
+        if: inputs.sign_image && steps.config.outputs.push_to_ngc == 'true'
         uses: ./.github/actions/install-ngc-cli
         with:
           version: 3.31.0
           checksum: b715e503e2c0b44814a51f330eafd605f5d240ea0987bf615700d359c993f138
 
       - name: Sign image with NGC CLI
+        if: inputs.sign_image && steps.config.outputs.push_to_ngc == 'true'
         env:
           TAGS: ${{ steps.metadata.outputs.tags }}
-          NGC_CLI_API_KEY: ${{ secrets.NGC_CREDENTIALS }}
-          NGC_CLI_ORG: ${{ github.repository_owner }}
-          NGC_CLI_TEAM: 'quantum'
+          NGC_CLI_API_KEY: ${{ inputs.ngc_api_key || secrets.NGC_CREDENTIALS }}
+          NGC_CLI_ORG: ${{ steps.config.outputs.ngc_org }}
+          NGC_CLI_TEAM: ${{ steps.config.outputs.ngc_team }}
         run: |
           echo "Signing ${TAGS}"
           ngc-cli/ngc registry image publish --source ${TAGS} ${TAGS} --sign

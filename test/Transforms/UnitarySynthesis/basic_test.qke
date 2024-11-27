@@ -14,7 +14,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__k1 = "__nvqpp__ml
     quake.custom_op @__nvqpp__mlirgen__custom_x_generator_1.rodata %0 : (!quake.ref) -> ()
     return
   }
-  cc.global constant @__nvqpp__mlirgen__custom_x_generator_1.rodata (dense<[(0.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+  cc.global constant private @__nvqpp__mlirgen__custom_x_generator_1.rodata (dense<[(0.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
 }
 
 // CHECK-LABEL:   func.func private @__nvqpp__mlirgen__custom_x_generator_1.kernel(

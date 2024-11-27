@@ -186,7 +186,7 @@ jobs:
         os_image: ${{ fromJSON(needs.create_test_config.outputs.json).os_images }}
         pip_install_flags: ['', '--user']
       fail-fast: false
-  
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -220,11 +220,11 @@ jobs:
           fi
 
           wheelname=`echo cuda_quantum*-manylinux_*_$(uname -m).whl`
-          docker build -t wheel_validation:local -f "docker/test/wheels/$distr.Dockerfile" . \
+          docker build --network host -t wheel_validation:local -f "docker/test/wheels/$distr.Dockerfile" . \
             --build-arg base_image=$base_image \
             --build-arg python_version=${{ inputs.python_version }} \
             --build-arg cuda_quantum_wheel=$wheelname \
-            --build-arg preinstalled_modules="numpy pytest psutil" \
+            --build-arg preinstalled_modules="pytest psutil" \
             --build-arg pip_install_flags=${{ matrix.pip_install_flags }}
 
           docker run --rm -dit --name wheel-validation wheel_validation:local
@@ -290,16 +290,12 @@ jobs:
 
             # Parse README content to install openmpi
             conda_script="$(awk '/(Begin conda install)/{flag=1;next}/(End conda install)/{flag=0}flag' $metadata | grep . | sed '/^```/d')" 
-            # Skip the installation of CUDA since we don't need CUDA for this test.
-            regex='conda install -y -n cuda-quantum.*cuda'
             while IFS= read -r line; do
-              if [[ ! "$line" =~ $regex ]]; then
-                  # Replace Python version
-                  line=$(echo $line | sed -E "s/python(=)?3.[0-9]{1,}/python\1${{ inputs.python_version }}/g")
-                  # Install the wheel file
-                  line=${line//pip install cuda-quantum-cu${cuda_major}/pip install ${cudaq_wheel}}
-                  eval "$line"
-              fi
+              # Replace Python version
+              line=$(echo $line | sed -E "s/python(=)?3.[0-9]{1,}/python\1${{ inputs.python_version }}/g")
+              # Install the wheel file
+              line=${line//pip install cuda-quantum-cu${cuda_major}/pip install ${cudaq_wheel}}
+              eval "$line"
             done <<< "$conda_script"
             ompi_script="$(awk '/(Begin ompi setup)/{flag=1;next}/(End ompi setup)/{flag=0}flag' $metadata | grep . | sed '/^```/d')" 
             while IFS= read -r line; do
@@ -320,7 +316,7 @@ jobs:
           docker run --rm -dit --name wheel-validation-snippets wheel_validation:local
           status_sum=0
 
-          for ex in `find docs/sphinx/snippets/python -name '*.py' -not -path '*/platform/*' -not -path '*/nvqc/*'`; do
+          for ex in `find docs/sphinx/snippets/python -name '*.py' -not -path '*/platform/*' -not -path '*/nvqc/*' -not -path '*/backends/*'`; do
             file="${ex#docs/sphinx/snippets/python/}"
             echo "__Snippet ${file}:__" >> /tmp/validation.out
             (docker exec wheel-validation-snippets bash -c "python${{ inputs.python_version }} /tmp/snippets/$file" >> /tmp/validation.out) && success=true || success=false
@@ -343,7 +339,7 @@ jobs:
           docker run --rm -dit --name wheel-validation-examples wheel_validation:local
           status_sum=0
 
-          for ex in `find docs/sphinx/examples/python -name '*.py' -not -path '*/building_kernels.py'`; do
+          for ex in `find docs/sphinx/examples/python -name '*.py' -not -path '*/building_kernels.py' -not -path '*/dynamics/*'`; do
             file="${ex#docs/sphinx/examples/python/}"
             echo "__Example ${file}:__" >> /tmp/validation.out
             (docker exec wheel-validation-examples bash -c "python${{ inputs.python_version }} /tmp/examples/$file" >> /tmp/validation.out) && success=true || success=false

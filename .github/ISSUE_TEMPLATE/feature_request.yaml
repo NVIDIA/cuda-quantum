@@ -5,7 +5,7 @@ labels: [enhancement]
 body:
   - type: markdown
     attributes:
-      value: Thank you for helping us improve CUDA Quantum.
+      value: Thank you for helping us improve CUDA-Q.
 
   - type: checkboxes
     attributes:

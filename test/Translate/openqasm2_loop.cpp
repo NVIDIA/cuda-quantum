@@ -6,7 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake  %s | cudaq-translate --convert-to=openqasm2 | FileCheck %s
+// clang-format off
+// RUN: cudaq-quake  %s | cudaq-opt --unrolling-pipeline | cudaq-translate --convert-to=openqasm2 | FileCheck %s
+// clang-format on
 
 #include <cudaq.h>
 #include <fstream>
@@ -51,5 +53,5 @@ int main() {
 // CHECK:   cx var0[2], var0[3];
 // CHECK:   cx var0[3], var0[4];
 // CHECK:   ccx var0[0], var0[2], var0[1];
-// CHECK:   creg var12[5];
-// CHECK:   measure var0 -> var12;
+// CHECK:   creg var6[5];
+// CHECK:   measure var0 -> var6;

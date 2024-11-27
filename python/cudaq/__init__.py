@@ -36,8 +36,12 @@ if not "CUDAQ_DYNLIBS" in os.environ and not cuda_major is None:
             cudart_libs = get_library_path(
                 f"nvidia-cuda_runtime-cu{cuda_major}")
             cudart_path = os.path.join(cudart_libs,
-                                       f"libcudart.so.{cuda_major}.0")
-            os.environ["CUDAQ_DYNLIBS"] += f":{cudart_path}"
+                                       f"libcudart.so.{cuda_major}")
+            cuda_nvrtc_libs = get_library_path(
+                f"nvidia-cuda_nvrtc-cu{cuda_major}")
+            cuda_nvrtc_path = os.path.join(cuda_nvrtc_libs,
+                                           f"libnvrtc.so.{cuda_major}")
+            os.environ["CUDAQ_DYNLIBS"] += f":{cudart_path}:{cuda_nvrtc_path}"
     except:
         import importlib.util
         package_spec = importlib.util.find_spec(f"cuda-quantum-cu{cuda_major}")
@@ -68,11 +72,9 @@ else:
 parallel = cudaq_runtime.parallel
 
 # Primitive Types
-spin = cudaq_runtime.spin
 qubit = cudaq_runtime.qubit
 qvector = cudaq_runtime.qvector
 qview = cudaq_runtime.qview
-SpinOperator = cudaq_runtime.SpinOperator
 Pauli = cudaq_runtime.Pauli
 Kernel = PyKernel
 Target = cudaq_runtime.Target
@@ -83,6 +85,20 @@ SimulationPrecision = cudaq_runtime.SimulationPrecision
 
 # to be deprecated
 qreg = cudaq_runtime.qvector
+
+# Operator API
+from .operator.definitions import spin, SpinOperator
+# Re-export non-spin-op operators under the `operators` namespace
+# e.g. `cudaq.operators.annihilate`
+from .operator import operators as operators
+# Operator types (in addition to `spin` types)
+# e.g., allows users to use `cudaq.ScalarOperator(lambda...)`
+from .operator import Operator, ElementaryOperator, ScalarOperator
+
+# Time evolution API
+from .operator.schedule import Schedule
+from .operator.evolution import evolve, evolve_async
+from .operator.integrators import *
 
 # Optimizers + Gradients
 optimizers = cudaq_runtime.optimizers
@@ -119,6 +135,8 @@ get_state = cudaq_runtime.get_state
 get_state_async = cudaq_runtime.get_state_async
 SampleResult = cudaq_runtime.SampleResult
 ObserveResult = cudaq_runtime.ObserveResult
+EvolveResult = cudaq_runtime.EvolveResult
+AsyncEvolveResult = cudaq_runtime.AsyncEvolveResult
 AsyncSampleResult = cudaq_runtime.AsyncSampleResult
 AsyncObserveResult = cudaq_runtime.AsyncObserveResult
 AsyncStateResult = cudaq_runtime.AsyncStateResult

@@ -2393,9 +2393,14 @@ class PyASTBridge(ast.NodeVisitor):
                         if len(node.args):
                             # extract the `subveq`
                             startOff = arith.SubIOp(qrSize, self.popValue())
+                            dyna = IntegerAttr.get(self.getIntegerType(), -1)
                             self.pushValue(
-                                quake.SubVeqOp(self.getVeqType(), var, startOff,
-                                               endOff).result)
+                                quake.SubVeqOp(self.getVeqType(),
+                                               var,
+                                               dyna,
+                                               dyna,
+                                               lower=startOff,
+                                               upper=endOff).result)
                         else:
                             # extract the qubit...
                             self.pushValue(
@@ -2411,9 +2416,14 @@ class PyASTBridge(ast.NodeVisitor):
                             qrSize = self.popValue()
                             one = self.getConstantInt(1)
                             offset = arith.SubIOp(qrSize, one)
+                            dyna = IntegerAttr.get(self.getIntegerType(), -1)
                             self.pushValue(
-                                quake.SubVeqOp(self.getVeqType(), var, zero,
-                                               offset).result)
+                                quake.SubVeqOp(self.getVeqType(),
+                                               var,
+                                               dyna,
+                                               dyna,
+                                               lower=zero,
+                                               upper=offset).result)
                         else:
                             # extract the qubit...
                             self.pushValue(
@@ -2988,9 +2998,14 @@ class PyASTBridge(ast.NodeVisitor):
             if quake.VeqType.isinstance(var.type):
                 # Upper bound is exclusive
                 upperVal = arith.SubIOp(upperVal, self.getConstantInt(1)).result
+                dyna = IntegerAttr.get(self.getIntegerType(), -1)
                 self.pushValue(
-                    quake.SubVeqOp(self.getVeqType(), var, lowerVal,
-                                   upperVal).result)
+                    quake.SubVeqOp(self.getVeqType(),
+                                   var,
+                                   dyna,
+                                   dyna,
+                                   lower=lowerVal,
+                                   upper=upperVal).result)
             elif cc.StdvecType.isinstance(var.type):
                 eleTy = cc.StdvecType.getElementType(var.type)
                 ptrTy = cc.PointerType.get(self.ctx, eleTy)

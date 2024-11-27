@@ -17,6 +17,7 @@
 #include "cudaq/qis/qreg.h"
 #include "cudaq/qis/qvector.h"
 #include "cudaq/spin_op.h"
+#include <algorithm>
 #include <cstring>
 #include <functional>
 
@@ -828,11 +829,13 @@ std::vector<measure_result> mz(qubit &q, Qs &&...qs) {
 }
 
 namespace support {
-// Helper to initialize a `vector<bool>` data structure.
+// Helpers to deal with the `vector<bool>` specialized template type.
 extern "C" {
 void __nvqpp_initializer_list_to_vector_bool(std::vector<bool> &, char *,
                                              std::size_t);
-void __nvqpp_vector_bool_to_initializer_list(void *, const std::vector<bool> &);
+void __nvqpp_vector_bool_to_initializer_list(void *, const std::vector<bool> &,
+                                             std::vector<char *> **);
+void __nvqpp_vector_bool_free_temporary_initlists(std::vector<char *> *);
 }
 } // namespace support
 

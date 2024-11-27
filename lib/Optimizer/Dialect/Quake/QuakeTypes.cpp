@@ -49,13 +49,6 @@ Type quake::VeqType::parse(AsmParser &parser) {
   return get(parser.getContext(), size);
 }
 
-LogicalResult
-quake::VeqType::verify(llvm::function_ref<InFlightDiagnostic()> emitError,
-                       std::size_t size) {
-  // FIXME: Do we want to check the size of the veq for some bound?
-  return success();
-}
-
 //===----------------------------------------------------------------------===//
 
 Type quake::StruqType::parse(AsmParser &parser) {
@@ -77,6 +70,9 @@ Type quake::StruqType::parse(AsmParser &parser) {
       break;
     if (!succeeded(*optTy))
       return {};
+    if (!llvm::isa<quake::RefType, quake::VeqType>(member))
+      parser.emitError(parser.getCurrentLocation(),
+                       "invalid struq member type");
     members.push_back(member);
   } while (succeeded(parser.parseOptionalComma()));
   if (parser.parseGreater())

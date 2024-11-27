@@ -77,14 +77,16 @@ static Value genConstant(OpBuilder &builder, FloatType fltTy, long double *v) {
 static Value genConstant(OpBuilder &builder, const std::string &v,
                          ModuleOp substMod) {
   auto loc = builder.getUnknownLoc();
-  cudaq::IRBuilder irBuilder(builder);
-  auto cString = irBuilder.genCStringLiteralAppendNul(loc, substMod, v);
-  auto addr = builder.create<cudaq::cc::AddressOfOp>(
-      loc, cudaq::cc::PointerType::get(cString.getType()), cString.getName());
-  auto i8PtrTy = cudaq::cc::PointerType::get(builder.getI8Type());
-  auto cast = builder.create<cudaq::cc::CastOp>(loc, i8PtrTy, addr);
+  auto *ctx = builder.getContext();
+  auto i8Ty = builder.getI8Type();
+  auto strLitTy = cudaq::cc::PointerType::get(
+      cudaq::cc::ArrayType::get(ctx, i8Ty, v.size() + 1));
+  auto strLit =
+      builder.create<cudaq::cc::CreateStringLiteralOp>(loc, strLitTy, v);
+  auto i8PtrTy = cudaq::cc::PointerType::get(i8Ty);
+  auto cast = builder.create<cudaq::cc::CastOp>(loc, i8PtrTy, strLit);
   auto size = builder.create<arith::ConstantIntOp>(loc, v.size(), 64);
-  auto chSpanTy = cudaq::cc::CharspanType::get(builder.getContext());
+  auto chSpanTy = cudaq::cc::CharspanType::get(ctx);
   return builder.create<cudaq::cc::StdvecInitOp>(loc, chSpanTy, cast, size);
 }
 
@@ -203,6 +205,21 @@ Value dispatchSubtype(OpBuilder &builder, Type ty, void *p, ModuleOp substMod,
       .Default({});
 }
 
+// Get the size of \p eleTy on the host side in bytes.
+static std::size_t getHostSideElementSize(Type eleTy,
+                                          llvm::DataLayout &layout) {
+  if (isa<cudaq::cc::StdvecType>(eleTy))
+    return sizeof(std::vector<int>);
+  if (isa<cudaq::cc::CharspanType>(eleTy)) {
+    // char span type is a std::string on host side.
+    return sizeof(std::string);
+  }
+  // Note: we want the size on the host side, but `getDataSize()` returns the
+  // size on the device side. This is ok for now since they are the same for
+  // most types and the special cases are handled above.
+  return cudaq::opt::getDataSize(layout, eleTy);
+}
+
 Value genConstant(OpBuilder &builder, cudaq::cc::StdvecType vecTy, void *p,
                   ModuleOp substMod, llvm::DataLayout &layout) {
   typedef const char *VectorType[3];
@@ -212,11 +229,7 @@ Value genConstant(OpBuilder &builder, cudaq::cc::StdvecType vecTy, void *p,
     return {};
   auto eleTy = vecTy.getElementType();
   auto elePtrTy = cudaq::cc::PointerType::get(eleTy);
-  auto eleSize = cudaq::opt::getDataSize(layout, eleTy);
-  if (isa<cudaq::cc::CharspanType>(eleTy)) {
-    // char span type (i.e. pauli word) is a `vector<char>`
-    eleSize = sizeof(VectorType);
-  }
+  auto eleSize = getHostSideElementSize(eleTy, layout);
 
   assert(eleSize && "element must have a size");
   auto loc = builder.getUnknownLoc();
