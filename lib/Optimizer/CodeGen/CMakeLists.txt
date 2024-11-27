@@ -62,7 +62,6 @@ add_cudaq_library(OptCodeGen
     MLIRFuncToLLVM
     MLIRMathToFuncs
     MLIRMathToLLVM
-    MLIRSCFToControlFlow
 
     # Translation
     MLIRTargetLLVMIRExport
