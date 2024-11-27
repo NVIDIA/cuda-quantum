@@ -953,11 +953,11 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
     pm.addPass(createCanonicalizerPass());
     pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
-    pm.addPass(createCanonicalizerPass());
+    pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     pm.addPass(cudaq::opt::createExpandMeasurementsPass());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll());
-    pm.addPass(createCanonicalizerPass());
+    pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
