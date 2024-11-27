@@ -66,13 +66,13 @@ void BraketServerHelper::initialize(BackendConfig config) {
   if (!config["shots"].empty())
     this->setShots(std::stoul(config["shots"]));
 
-  // const auto emulate_it = config.find("emulate");
-  //  if (emulate_it != config.end() && emulate_it->second == "true") {
-  //    cudaq::info("Emulation is enabled, ignore all Amazon Braket connection "
-  //                "specific information.");
-  //    backendConfig = std::move(config);
-  //    return;
-  //  }
+  const auto emulate_it = config.find("emulate");
+   if (emulate_it != config.end() && emulate_it->second == "true") {
+     cudaq::info("Emulation is enabled, ignore all Amazon Braket connection "
+                 "specific information.");
+     backendConfig = std::move(config);
+     return;
+   }
 
   parseConfigForCommonParams(config);
 
