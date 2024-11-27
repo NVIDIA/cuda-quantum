@@ -349,12 +349,11 @@ public:
           auto decomposer = StateDecomposer(gateBuilder, vec, phaseThreshold);
           decomposer.decompose();
 
-          // Use prepared qubits instead of the init state.
+          // Use prepared qubits instead of the initialized state.
           init.replaceAllUsesWith(qubits);
+
+          // Erase the init so we don't try to replace it again.
           rewriter.eraseOp(init);
-          if (cast)
-            rewriter.eraseOp(cast);
-          rewriter.eraseOp(addr);
           return success();
         }
       }
