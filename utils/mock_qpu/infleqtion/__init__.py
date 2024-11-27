@@ -42,8 +42,7 @@ numQubitsRequired = 0
 async def login(token: Union[str, None] = Header(alias="Authorization",
                                                  default=None)):
     if token == None:
-        raise HTTPException(status_code(401),
-                            detail="Credentials not provided")
+        raise HTTPException(status_code(401), detail="Credentials not provided")
     return {"id-token": "hello", "refresh-token": "refreshToken"}
 
 
@@ -57,8 +56,7 @@ async def postJob(job: Job,
     global createdJobs, shots, numQubitsRequired
 
     if token == None:
-        raise HTTPException(status_code(401),
-                            detail="Credentials not provided")
+        raise HTTPException(status_code(401), detail="Credentials not provided")
 
     print('Posting job with shots = ', job.shots)
     newId = str(uuid.uuid4())
