@@ -5,9 +5,11 @@ import cudaq
 cudaq.set_target("braket")
 
 # The default device is SV1, state vector simulator. Users may choose any of
-# the available devices by supplying its `ARN` with `machine` parameter.
+# the available devices by supplying its `ARN` with the `machine` parameter.
 # For example,
+# ```
 # cudaq.set_target("braket", machine="arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet")
+# ```
 
 
 # Create the kernel we'd like to execute
