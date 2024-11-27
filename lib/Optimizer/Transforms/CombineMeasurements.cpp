@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
@@ -127,7 +128,7 @@ public:
       else
         return extract.emitError("Non-constant index in ExtractRef");
 
-      auto offset = idx + analysis.measurements[measure.getMeasOut()];
+      auto offset = analysis.measurements[measure.getMeasOut()];
       analysis.resultQubitVals[offset] =
           std::make_pair(idx, std::to_string(idx));
 
@@ -169,27 +170,34 @@ public:
   // And collect output names information:  `"[[[0,[1,"q0"]],[1,[2,"q1"]]]]"`
   LogicalResult matchAndRewrite(quake::MzOp measure,
                                 PatternRewriter &rewriter) const override {
-
     auto veqOp = measure.getOperand(0);
     if (auto subveq = veqOp.getDefiningOp<quake::SubVeqOp>()) {
-      Value lowOp = subveq.getLow();
-      Value highOp = subveq.getHigh();
+      std::size_t low;
+      if (subveq.hasConstantLowerBound())
+        low = subveq.getConstantLowerBound();
+      else {
+        auto value = cudaq::opt::factory::getIntIfConstant(subveq.getLower());
+        if (!value.has_value())
+          return subveq.emitError("Non-constant lower index in subveq");
+        low = static_cast<std::size_t>(value.value());
+      }
 
-      auto constLow = lowOp.getDefiningOp<arith::ConstantIntOp>();
-      if (!constLow)
-        return subveq.emitError("Non-constant low index in subveq");
-      auto constHigh = highOp.getDefiningOp<arith::ConstantIntOp>();
-      if (!constHigh)
-        return subveq.emitError("Non-constant high index in subveq");
-
-      auto low = static_cast<std::size_t>(constLow.value());
-      auto high = static_cast<std::size_t>(constHigh.value());
+      std::size_t high;
+      if (subveq.hasConstantUpperBound())
+        high = subveq.getConstantUpperBound();
+      else {
+        auto value = cudaq::opt::factory::getIntIfConstant(subveq.getUpper());
+        if (!value.has_value())
+          return subveq.emitError("Non-constant upper index in subveq");
+        high = static_cast<std::size_t>(value.value());
+      }
 
       for (std::size_t i = low; i <= high; i++) {
         auto start = analysis.measurements[measure.getMeasOut()];
         auto offset = i - low + start;
         analysis.resultQubitVals[offset] = std::make_pair(i, std::to_string(i));
       }
+
       if (measure == analysis.lastMeasurement)
         rewriter.replaceOpWithNewOp<quake::MzOp>(
             measure, measure.getResultTypes(), ValueRange{subveq.getVeq()},
