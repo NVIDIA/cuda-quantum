@@ -307,8 +307,8 @@ void SimulatorTensorNetBase::setToZeroState() {
   const auto numQubits = m_state->getNumQubits();
   m_state.reset();
   // Re-create a zero state of the same size
-  m_state =
-      std::make_unique<TensorNetState>(numQubits, scratchPad, m_cutnHandle);
+  m_state = std::make_unique<TensorNetState>(numQubits, scratchPad,
+                                             m_cutnHandle, m_randomEngine);
 }
 
 void SimulatorTensorNetBase::swap(const std::vector<std::size_t> &ctrlBits,
