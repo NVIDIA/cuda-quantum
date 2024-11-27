@@ -109,21 +109,11 @@ Python Wheels:
   script:
     - export PROJECT_SRCS_DIR=$PWD/..
     - export python=python3.10 
-    # To be removed/replaced - installing cuquantum manually to have the dev headers
-    - CUQUANTUM_VERSION=24.11.0.21
-    - CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
-    - CUQUANTUM_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum
-    - cuquantum_archive=cuquantum-linux-${CUDA_ARCH_FOLDER}-${CUQUANTUM_VERSION}_cuda$(echo ${CUDA_VERSION} | cut -d . -f1)-archive.tar.xz
-    - export CUQUANTUM_INSTALL_PREFIX=/usr/local/cuquantum
-    - wget "${CUQUANTUM_DOWNLOAD_URL}/linux-${CUDA_ARCH_FOLDER}/${cuquantum_archive}"
-    - mkdir -p "${CUQUANTUM_INSTALL_PREFIX}" 
-    - tar xf "${cuquantum_archive}" --strip-components 1 -C "${CUQUANTUM_INSTALL_PREFIX}" 
-    - rm -rf "${cuquantum_archive}"
     # Install CUDA Quantum wheel for a particular Python version (could be any version) 
     - cuda_major=$(echo $CUDA_VERSION | cut -d . -f1)
-    - cd /tmp/wheels/ && $python -m pip install cuda_quantum_cu${cuda_major}*-cp310-cp310-manylinux_*_$(uname -m).whl --extra-index-url http://localhost:8080 
-    - cudaq_location=`$python -m pip show cuda-quantum-cu${cuda_major} | grep -e 'Location:\ .*$'`
-    - export CUDAQ_INSTALL_PREFIX="${cudaq_location#Location:\ }"
+    - cd /tmp/wheels/ && $python -m pip install cuda_quantum_cu${cuda_major}*-cp310-cp310-manylinux_*_$(uname -m).whl
+    - export CUQUANTUM_INSTALL_PREFIX="$($python -m pip show cuquantum-python-cu$cuda_major | sed -nE 's/Location. (.*)$/\1/p')/cuquantum"
+    - export CUDAQ_INSTALL_PREFIX="$($python -m pip show cuda-quantum-cu${cuda_major} | sed -nE 's/Location. (.*)$/\1/p')"
     - cp -R $CUDAQ_INSTALL_PREFIX/lib64/cmake/fmt $CUDAQ_INSTALL_PREFIX/lib/cmake
     - export ARTIFACTS_DIR=$PROJECT_SRCS_DIR/cuda-quantum/artifacts/wheels_$(uname -m)
     - mkdir -p $ARTIFACTS_DIR
@@ -219,10 +209,14 @@ Push to GitHub:
     - |
       if [ -z "$(gh release list -R $upstream_url | grep -s $release_id)" ];
       then
+        # Check if the souce commit exists on the upstream repo
+        if [ -n "$(gh repo view $upstream_url -b $source_commit | grep "Welcome to the CUDA-Q repository")" ]; then target=$source_commit
+        else target=main
+        fi
         rel_notes="This release draft is managed by cd processes."
         rel_notes+=$(echo "<br/>GitHub commit [$source_commit]($upstream_url/tree/$source_commit)")
         gh release create $release_id --title $release_id -R $upstream_url \
-          --target 'bot/data' --draft --prerelease \
+          --target $target --draft --prerelease \
           --generate-notes --notes-start-tag $latest_tag --notes "$rel_notes"
       fi
     - mkdir -p artifacts && cd artifacts
