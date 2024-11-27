@@ -69,7 +69,7 @@ you can also pass the ``--emulate`` flag to ``nvq++``.
 
     nvq++ --emulate --target braket src.cpp
 
-To see a complete example for using Amazon Braket backends, take a look at TBD.
+To see a complete example for using Amazon Braket backends, take a look at our :doc:`C++ examples <../examples/examples>`.
 
 Submission from Python
 `````````````````````````
@@ -106,7 +106,7 @@ argument to ``cudaq.sample``. By default, the ``shots_count`` is set to 1000.
 
     cudaq.sample(kernel, shots_count=100)
 
-To see a complete example for using Amazon Braket backends, take a look at TBD.
+To see a complete example for using Amazon Braket backends, take a look at our :doc:`Python examples <../examples/examples>`.
 
 .. note:: 
 
