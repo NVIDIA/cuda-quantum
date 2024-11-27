@@ -18,7 +18,6 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
-// #include "mlir/Transforms/RegionUtils.h"
 #include <span>
 
 namespace cudaq::opt {
@@ -303,12 +302,10 @@ namespace {
 /// module {
 ///   func.func @foo() attributes {
 ///     %0 = quake.alloca !quake.veq<2>
-///     %c1_i64 = arith.constant 1 : i64
-///     %1 = quake.extract_ref %0[%c1_i64] : (!quake.veq<2>, i64) -> !quake.ref
+///     %1 = quake.extract_ref %0[1] : (!quake.veq<2>, i64) -> !quake.ref
 ///     %cst = arith.constant 0.000000e+00 : f64
 ///     quake.ry (%cst) %1 : (f64, !quake.ref) -> ()
-///     %c0_i64 = arith.constant 0 : i64
-///     %2 = quake.extract_ref %0[%c0_i64] : (!quake.veq<2>, i64) -> !quake.ref
+///     %2 = quake.extract_ref %0[0] : (!quake.veq<2>, i64) -> !quake.ref
 ///     %cst_0 = arith.constant 0.78539816339744839 : f64
 ///     quake.ry (%cst_0) %2 : (f64, !quake.ref) -> ()
 ///     quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
@@ -370,64 +367,6 @@ private:
   double phaseThreshold;
 };
 
-// LogicalResult transform(ModuleOp module, func::FuncOp funcOp,
-//                         double phaseThreshold) {
-//   if (funcOp.empty())
-//     return success();
-//   auto builder = OpBuilder::atBlockBegin(&funcOp.getBody().front());
-//   auto toErase = std::vector<mlir::Operation *>();
-//   auto result = success();
-
-//   funcOp->walk([&](Operation *op) {
-//     if (auto initOp = dyn_cast<quake::InitializeStateOp>(op)) {
-//       auto loc = op->getLoc();
-//       builder.setInsertionPointAfter(initOp);
-//       // Find the qvector alloc.
-//       auto qubits = initOp.getOperand(0);
-//       if (auto alloc = dyn_cast<quake::AllocaOp>(qubits.getDefiningOp())) {
-
-//         // Find vector data.
-//         auto data = initOp.getOperand(1);
-//         auto cast = dyn_cast<cudaq::cc::CastOp>(data.getDefiningOp());
-//         if (cast)
-//           data = cast.getOperand();
-
-//         if (auto addr =
-//                 dyn_cast<cudaq::cc::AddressOfOp>(data.getDefiningOp())) {
-
-//           auto globalName = addr.getGlobalName();
-//           auto symbol = module.lookupSymbol(globalName);
-//           if (auto global = dyn_cast<cudaq::cc::GlobalOp>(symbol)) {
-//             // Read state initialization data from the global array.
-//             auto vec = cudaq::opt::factory::readGlobalConstantArray(global);
-
-//             // Prepare state from vector data.
-//             auto gateBuilder = StateGateBuilder(builder, loc, qubits);
-//             auto decomposer = StateDecomposer(gateBuilder, vec,
-//             phaseThreshold); decomposer.decompose();
-
-//             initOp.replaceAllUsesWith(qubits);
-//             toErase.push_back(initOp);
-//             if (cast)
-//               toErase.push_back(cast);
-//             toErase.push_back(addr);
-//             toErase.push_back(global);
-//             return;
-//           }
-//         }
-//       }
-//       funcOp.emitOpError("StatePreparation failed to replace
-//       quake.state_init"); result = failure();
-//     }
-//   });
-
-//   for (auto &op : toErase) {
-//     op->erase();
-//   }
-
-//   return result;
-// }
-
 class StatePreparationPass
     : public cudaq::opt::impl::StatePreparationBase<StatePreparationPass> {
 protected:
@@ -453,23 +392,6 @@ public:
     LLVM_DEBUG(llvm::dbgs() << "Function after state preparation:\n"
                             << func << "\n\n");
   }
-
-  // void runOnOperation() override final {
-  //   auto module = getModule();
-  //   for (Operation &op : *module.getBody()) {
-  //     auto funcOp = dyn_cast<func::FuncOp>(op);
-  //     if (!funcOp)
-  //       continue;
-  //     std::string kernelName = funcOp.getName().str();
-
-  //     auto result = transform(module, funcOp, phaseThreshold);
-  //     if (result.failed()) {
-  //       funcOp.emitOpError("Failed to prepare state for '" + kernelName);
-  //       signalPassFailure();
-  //       return;
-  //     }
-  //   }
-  // }
 };
 
 } // namespace
