@@ -555,7 +555,7 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createConstPropComplex());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createLiftArrayAlloc());
     pm.addPass(cudaq::opt::createGlobalizeArrayValues());
-    pm.addPass(cudaq::opt::createStatePreparation());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createStatePreparation());
   }
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandMeasurementsPass());
@@ -564,6 +564,7 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addPass(createSymbolDCEPass());
   DefaultTimingManager tm;
   tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
   auto timingScope = tm.getRootScope(); // starts the timer
@@ -634,10 +635,46 @@ std::string getASM(const std::string &name, MlirModule module,
   auto cloned = unwrap(module).clone();
   auto context = cloned.getContext();
 
+  // Get additional debug values
+  auto disableMLIRthreading = getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", false);
+  auto enablePrintMLIREachPass =
+      getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
+
   PassManager pm(context);
   pm.addPass(cudaq::opt::createLambdaLiftingPass());
+  // Run most of the passes from hardware pipelines.
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCSEPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLiftArrayAlloc());
+  pm.addPass(cudaq::opt::createGlobalizeArrayValues());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createStatePreparation());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createGetConcreteMatrix());
+  pm.addPass(cudaq::opt::createUnitarySynthesis());
+  pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
+  cudaq::opt::addAggressiveEarlyInlining(pm);
+  pm.addPass(createSymbolDCEPass());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCSEPass());
+  pm.addNestedPass<func::FuncOp>(
+      cudaq::opt::createMultiControlDecompositionPass());
+  pm.addPass(cudaq::opt::createDecompositionPass(
+      {.enabledPatterns = {"SToR1", "TToR1", "R1ToU3", "U3ToRotations",
+                           "CHToCX", "CCZToCX", "CRzToCX", "CRyToCX", "CRxToCX",
+                           "CR1ToCX", "CCZToCX", "RxAdjToRx", "RyAdjToRy",
+                           "RzAdjToRz"}}));
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlVeqs());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createCombineQuantumAllocations());
   cudaq::opt::addPipelineTranslateToOpenQASM(pm);
 
+  if (disableMLIRthreading || enablePrintMLIREachPass)
+    context->disableMultithreading();
+  if (enablePrintMLIREachPass)
+    pm.enableIRPrinting();
   if (failed(pm.run(cloned)))
     throw std::runtime_error("getASM: code generation failed.");
   std::free(rawArgs);

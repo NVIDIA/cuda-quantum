@@ -45,12 +45,11 @@ public:
 
   LogicalResult matchAndRewrite(quake::AllocaOp alloc,
                                 PatternRewriter &rewriter) const override {
-    Type refTy = quake::RefType::get(rewriter.getContext());
     for (auto p : llvm::enumerate(analysis.allocations)) {
       if (alloc == p.value()) {
         auto i = p.index();
         auto &os = analysis.offsetSizes[i];
-        if (alloc.getType() == refTy) {
+        if (isa<quake::RefType>(alloc.getType())) {
           [[maybe_unused]] Value ext =
               rewriter.replaceOpWithNewOp<quake::ExtractRefOp>(
                   alloc, analysis.newAlloc, os.first);
@@ -58,16 +57,43 @@ public:
                      << "replace " << alloc << " with " << ext << '\n');
           return success();
         }
-        Value lo = rewriter.create<arith::ConstantIntOp>(
-            alloc.getLoc(), os.first, rewriter.getI64Type());
-        Value hi = rewriter.create<arith::ConstantIntOp>(
-            alloc.getLoc(), os.first + os.second - 1, rewriter.getI64Type());
-        [[maybe_unused]] Value subveq =
-            rewriter.replaceOpWithNewOp<quake::SubVeqOp>(
-                alloc, alloc.getType(), analysis.newAlloc, lo, hi);
-        LLVM_DEBUG(llvm::dbgs()
-                   << "replace " << alloc << " with " << subveq << '\n');
-        return success();
+        if (isa<quake::VeqType>(alloc.getType())) {
+          Value lo = rewriter.create<arith::ConstantIntOp>(
+              alloc.getLoc(), os.first, rewriter.getI64Type());
+          Value hi = rewriter.create<arith::ConstantIntOp>(
+              alloc.getLoc(), os.first + os.second - 1, rewriter.getI64Type());
+          [[maybe_unused]] Value subveq =
+              rewriter.replaceOpWithNewOp<quake::SubVeqOp>(
+                  alloc, alloc.getType(), analysis.newAlloc, lo, hi);
+          LLVM_DEBUG(llvm::dbgs()
+                     << "replace " << alloc << " with " << subveq << '\n');
+          return success();
+        }
+        if (auto sty = dyn_cast<quake::StruqType>(alloc.getType())) {
+          SmallVector<Value> parts;
+          std::size_t inner = os.first;
+          auto loc = alloc.getLoc();
+          for (auto m : sty.getMembers()) {
+            auto v = [&]() -> Value {
+              if (isa<quake::RefType>(m)) {
+                auto result = rewriter.create<quake::ExtractRefOp>(
+                    loc, analysis.newAlloc, inner);
+                inner++;
+                return result;
+              }
+              assert(cast<quake::VeqType>(m).hasSpecifiedSize());
+              std::size_t dist = inner + cast<quake::VeqType>(m).getSize() - 1;
+              auto result = rewriter.create<quake::SubVeqOp>(
+                  loc, m, analysis.newAlloc, inner, dist);
+              inner = dist + 1;
+              return result;
+            }();
+            parts.push_back(v);
+          }
+          rewriter.replaceOpWithNewOp<quake::MakeStruqOp>(alloc, sty, parts);
+          return success();
+        }
+        return alloc.emitOpError("has unexpected type");
       }
     }
     return failure();
@@ -152,11 +178,7 @@ public:
 
   // TODO: move this to a place where it can be shared.
   static std::size_t allocationSize(quake::AllocaOp alloc) {
-    if (isa<quake::RefType>(alloc.getType()))
-      return 1;
-    auto veq = cast<quake::VeqType>(alloc.getType());
-    assert(veq.hasSpecifiedSize() && "veq type must have constant size");
-    return veq.getSize();
+    return quake::getAllocationSize(alloc.getType());
   }
 };
 } // namespace

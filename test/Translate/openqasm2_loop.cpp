@@ -6,7 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake  %s | cudaq-translate --convert-to=openqasm2 | FileCheck %s
+// clang-format off
+// RUN: cudaq-quake  %s | cudaq-opt --unrolling-pipeline | cudaq-translate --convert-to=openqasm2 | FileCheck %s
+// clang-format on
 
 #include <cudaq.h>
 #include <fstream>
