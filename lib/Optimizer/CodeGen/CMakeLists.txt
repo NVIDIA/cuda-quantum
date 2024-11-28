@@ -54,7 +54,6 @@ add_cudaq_library(OptCodeGen
     MLIRTransforms
 
     # Conversions
-    MLIRAffineToStandard
     MLIRArithToLLVM
     MLIRComplexToLibm
     MLIRComplexToLLVM
