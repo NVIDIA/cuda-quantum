@@ -13,7 +13,6 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Todo.h"
 #include "llvm/Support/Debug.h"
-#include "mlir/Dialect/SCF/IR/SCF.h"
 #include "mlir/IR/Dominance.h"
 #include "mlir/IR/IRMapping.h"
 #include "mlir/Transforms/DialectConversion.h"
@@ -557,11 +556,6 @@ public:
         invert(newIfOp.getThenRegion());
         invert(newIfOp.getElseRegion());
         continue;
-      }
-      if (auto forOp = dyn_cast<scf::ForOp>(op)) {
-        LLVM_DEBUG(llvm::dbgs() << "moving for: " << forOp << ".\n");
-        TODO_loc(loc, "cannot make adjoint of kernel with scf.for");
-        // should we convert to cc.loop and use code below?
       }
       if (auto loopOp = dyn_cast<cudaq::cc::LoopOp>(op)) {
         LLVM_DEBUG(llvm::dbgs() << "moving loop: " << loopOp << ".\n");
