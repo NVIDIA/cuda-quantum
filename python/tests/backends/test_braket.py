@@ -398,6 +398,18 @@ def test_mid_circuit_measurement():
     assert "Could not successfully translate to qasm2" in repr(e)
 
 
+def test_state_prep():
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)])
+        mz(q)
+
+    counts = cudaq.sample(kernel)
+    assert '11' in counts
+    assert '00' in counts
+
+
 @pytest.mark.parametrize("device_arn", [
     "arn:aws:braket:::device/quantum-simulator/amazon/dm1",
     "arn:aws:braket:::device/quantum-simulator/amazon/tn1"

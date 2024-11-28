@@ -2907,6 +2907,12 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
     }
   }
 
+  if (isa<quake::StruqType>(ctorTy)) {
+    if (quake::isConstantQuantumRefType(ctorTy))
+      return pushValue(builder.create<quake::AllocaOp>(loc, ctorTy));
+    return true;
+  }
+
   auto *parent = ctor->getParent();
   if (ctor->isCopyConstructor() && parent->isLambda()) {
     // Copy-ctor on a lambda. For now on the QPU device side, we do not make a
