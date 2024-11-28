@@ -23,7 +23,8 @@ class TensorNetSimulationState : public cudaq::SimulationState {
 public:
   TensorNetSimulationState(std::unique_ptr<TensorNetState> inState,
                            ScratchDeviceMem &inScratchPad,
-                           cutensornetHandle_t cutnHandle);
+                           cutensornetHandle_t cutnHandle,
+                           std::mt19937 &randomEngine);
 
   TensorNetSimulationState(const TensorNetSimulationState &) = delete;
   TensorNetSimulationState &
@@ -78,5 +79,6 @@ protected:
   // This speeds up sequential state amplitude accessors for small states.
   static constexpr std::size_t g_maxQubitsForStateContraction = 30;
   std::vector<std::complex<double>> m_contractedStateVec;
+  std::mt19937 &m_randomEngine;
 };
 } // namespace nvqir

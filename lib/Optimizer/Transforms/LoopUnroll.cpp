@@ -233,9 +233,11 @@ public:
     auto numLoops = countLoopOps(op);
     unsigned progress = 0;
     if (numLoops) {
-      PassManager pm(ctx);
-      pm.addPass(createCanonicalizerPass());
       RewritePatternSet patterns(ctx);
+      for (auto *dialect : ctx->getLoadedDialects())
+        dialect->getCanonicalizationPatterns(patterns);
+      for (RegisteredOperationName op : ctx->getRegisteredOperations())
+        op.getCanonicalizationPatterns(patterns, ctx);
       patterns.insert<UnrollCountedLoop>(ctx, threshold,
                                          /*signalFailure=*/false, allowBreak,
                                          progress);
@@ -246,18 +248,15 @@ public:
       do {
         progress = 0;
         (void)applyPatternsAndFoldGreedily(op, frozen);
-        if (failed(pm.run(op)))
-          break;
       } while (progress);
     }
-    numLoops = countLoopOps(op);
-    if (numLoops && signalFailure) {
-      RewritePatternSet patterns(ctx);
-      patterns.insert<UnrollCountedLoop>(ctx, threshold, signalFailure,
-                                         allowBreak, progress);
-      (void)applyPatternsAndFoldGreedily(op, std::move(patterns));
-      emitError(UnknownLoc::get(ctx), "did not unroll loops");
-      signalPassFailure();
+
+    if (signalFailure) {
+      numLoops = countLoopOps(op);
+      if (numLoops) {
+        op->emitOpError("did not unroll loops");
+        signalPassFailure();
+      }
     }
   }
 
@@ -343,15 +342,15 @@ struct UnrollPipelineOptions
 static void createUnrollingPipeline(OpPassManager &pm, unsigned threshold,
                                     bool signalFailure, bool allowBreak,
                                     bool allowClosedInterval) {
-  pm.addPass(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
-  pm.addPass(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   cudaq::opt::LoopNormalizeOptions lno{allowClosedInterval, allowBreak};
-  pm.addPass(cudaq::opt::createLoopNormalize(lno));
-  pm.addPass(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize(lno));
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   cudaq::opt::LoopUnrollOptions luo{threshold, signalFailure, allowBreak};
-  pm.addPass(cudaq::opt::createLoopUnroll(luo));
-  pm.addPass(cudaq::opt::createUpdateRegisterNames());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll(luo));
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createUpdateRegisterNames());
 }
 
 void cudaq::opt::registerUnrollingPipeline() {

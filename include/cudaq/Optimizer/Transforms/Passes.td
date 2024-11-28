@@ -141,6 +141,32 @@ def CheckKernelCalls : Pass<"check-kernel-calls", "mlir::func::FuncOp"> {
   }];
 }
 
+def CombineMeasurements :
+    Pass<"combine-measurements", "mlir::func::FuncOp"> {
+  let summary = "Extends mesurements on subveqs adds output names";
+  let description = [{
+    Replace a pattern such as:
+    ```
+    func.func @kernel() attributes {"cudaq-entrypoint"} {
+      %1 = ... : !quake.veq<4>
+      %2 = quake.subveq %1, %c2, %c3 : (!quake.veq<4>, i32, i32) ->
+            !quake.veq<2>
+      %measOut = quake.mz %2 : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+    }
+    ```
+    with:
+    ```
+    func.func @kernel() attributes {"cudaq-entrypoint", ["output_names",
+    "[[[0,[1,\22q0\22]],[1,[2,\22q1\22]]]]"]} {
+      %1 = ... : !quake.veq<4>
+      %measOut = quake.mz %1 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    }
+    ```
+  }];
+  let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
+}
+
+
 def CombineQuantumAllocations :
     Pass<"combine-quantum-alloc", "mlir::func::FuncOp"> {
   let summary = "Combines quake alloca operations.";
@@ -799,7 +825,7 @@ def DeleteStates : Pass<"delete-states", "mlir::ModuleOp"> {
   }];
 }
 
-def StatePreparation : Pass<"state-prep", "mlir::ModuleOp"> {
+def StatePreparation : Pass<"state-prep", "mlir::func::FuncOp"> {
   let summary =
     "Convert state vector data into gates";
   let description = [{

@@ -16,6 +16,7 @@
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "cudaq/Optimizer/InitAllDialects.h"
 #include "cudaq/Optimizer/Support/Verifier.h"
 #include "cudaq/Support/Version.h"
 #include "nvqpp_config.h"
@@ -32,9 +33,9 @@
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/IR/BuiltinOps.h"
-#include "mlir/InitAllPasses.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
+#include "mlir/Transforms/Passes.h"
 #include <filesystem>
 
 using namespace llvm;
@@ -313,13 +314,10 @@ int main(int argc, char **argv) {
     return ec.value();
   }
 
-  mlir::registerAllPasses();
-
   // Read the code into a memory buffer and setup MLIR.
   auto cplusplusCode = fileOrError.get()->getBuffer();
   mlir::DialectRegistry registry;
-  mlir::registerAllDialects(registry);
-  registry.insert<cudaq::cc::CCDialect, quake::QuakeDialect>();
+  cudaq::registerAllDialects(registry);
   mlir::MLIRContext context(registry);
   // TODO: Consider only loading the dialects we know we'll use.
   context.loadAllAvailableDialects();

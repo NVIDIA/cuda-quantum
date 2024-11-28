@@ -185,10 +185,10 @@ for ex in `find "$root_folder/examples" "$root_folder/applications" "$root_folde
     skip_example=false
     explicit_targets=`cat $ex | grep -Po '^\s*cudaq.set_target\("\K.*(?=")'`
     for t in $explicit_targets; do
-        if [ "$t" == "quera" ]; then 
+        if [ "$t" == "quera" ] || [ "$t" == "braket" ] ; then 
             # Skipped because GitHub does not have the necessary authentication token 
-            # to submit a (paid) job to QuEra.
-            echo -e "\e[01;31mWarning: Explicitly set target quera in $ex; skipping validation due to paid submission.\e[0m" >&2
+            # to submit a (paid) job to Amazon Braket (includes QuEra).
+            echo -e "\e[01;31mWarning: Explicitly set target braket or quera in $ex; skipping validation due to paid submission.\e[0m" >&2
             skip_example=true
         fi
     done
