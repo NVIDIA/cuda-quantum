@@ -25,8 +25,6 @@ target_link_libraries(cudaq-quake
   MLIRLLVMCommonConversion
   MLIRLLVMToLLVMIRTranslation
 
-  MLIRMemRefDialect
-  
   clangCodeGen
   clangFrontendTool
   clangFrontend
