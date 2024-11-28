@@ -113,11 +113,6 @@ Python Wheels:
     - cuda_major=$(echo $CUDA_VERSION | cut -d . -f1)
     - cd /tmp/wheels/ && $python -m pip install cuda_quantum_cu${cuda_major}*-cp310-cp310-manylinux_*_$(uname -m).whl
     - export CUQUANTUM_INSTALL_PREFIX="$($python -m pip show cuquantum-python-cu$cuda_major | sed -nE 's/Location. (.*)$/\1/p')/cuquantum"
-    - |
-      # FIXME: remove this an instead update the mgpu build to properly work with alternative libs
-      if [ ! -f "$CUQUANTUM_INSTALL_PREFIX/lib/libcustatevec.so" ]; then 
-        ln -s "$CUQUANTUM_INSTALL_PREFIX/lib/libcustatevec.so.1" "$CUQUANTUM_INSTALL_PREFIX/lib/libcustatevec.so"
-      fi
     - export CUDAQ_INSTALL_PREFIX="$($python -m pip show cuda-quantum-cu${cuda_major} | sed -nE 's/Location. (.*)$/\1/p')"
     - cp -R $CUDAQ_INSTALL_PREFIX/lib64/cmake/fmt $CUDAQ_INSTALL_PREFIX/lib/cmake
     - export ARTIFACTS_DIR=$PROJECT_SRCS_DIR/cuda-quantum/artifacts/wheels_$(uname -m)
@@ -177,11 +172,6 @@ Docker Image:
       - artifacts/**/mgmn_svsim/
     expire_in: 1 day
   script:
-    - |
-      # FIXME: remove this an instead update the mgpu build to properly work with alternative libs
-      if [ ! -f "$CUQUANTUM_INSTALL_PREFIX/lib/libcustatevec.so" ]; then 
-        ln -s "$CUQUANTUM_INSTALL_PREFIX/lib/libcustatevec.so.1" "$CUQUANTUM_INSTALL_PREFIX/lib/libcustatevec.so"
-      fi
     - echo "Building mgmn_svsim for $(uname -m) architecture."
     - echo "Checking out commit $CUDAQ_MGMN_SVSIM_COMMIT on $CI_SERVER_HOST/$CUDAQ_MGMN_SVSIM_REPO."
     - mkdir cudaq_mgmn_svsim && cd cudaq_mgmn_svsim && git init
