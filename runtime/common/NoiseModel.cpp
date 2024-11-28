@@ -78,10 +78,6 @@ void validateCompletenessRelation_fp64(const std::vector<kraus_op> &ops) {
         "Provided kraus_ops are not completely positive and trace preserving.");
 }
 
-kraus_channel::kraus_channel(std::vector<kraus_op> &_ops) : ops(_ops) {
-  validateCompleteness();
-}
-
 kraus_channel::kraus_channel(const kraus_channel &other)
     : ops(other.ops), noise_type(other.noise_type),
       parameters(other.parameters) {}
