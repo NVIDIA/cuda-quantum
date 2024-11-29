@@ -123,8 +123,6 @@ class PyASTBridge(ast.NodeVisitor):
         else:
             self.ctx = Context()
             register_all_dialects(self.ctx)
-            quake.register_dialect(self.ctx)
-            cc.register_dialect(self.ctx)
             cudaq_runtime.registerLLVMDialectTranslation(self.ctx)
             self.loc = Location.unknown(context=self.ctx)
             self.module = Module.create(loc=self.loc)

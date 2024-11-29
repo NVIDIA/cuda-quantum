@@ -37,7 +37,8 @@ qvector = cudaq_runtime.qvector
 
 # We need static initializers to run in the CAPI `ExecutionEngine`,
 # so here we run a simple JIT compile at global scope
-with Context():
+with Context() as ctx:
+    register_all_dialects(ctx)
     module = Module.parse(r"""
 llvm.func @none() {
   llvm.return
@@ -246,8 +247,6 @@ class PyKernel(object):
     def __init__(self, argTypeList):
         self.ctx = Context()
         register_all_dialects(self.ctx)
-        quake.register_dialect(self.ctx)
-        cc.register_dialect(self.ctx)
         cudaq_runtime.registerLLVMDialectTranslation(self.ctx)
 
         self.metadata = {'conditionalOnMeasure': False}

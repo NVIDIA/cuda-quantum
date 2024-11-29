@@ -119,10 +119,14 @@ add_mlir_python_common_capi_library(CUDAQuantumPythonCAPI
   RELATIVE_INSTALL_ROOT "../.."
   DECLARED_SOURCES
     CUDAQuantumPythonSources
-    # TODO: Remove this in favor of showing fine grained registration once
-    # available.
-    MLIRPythonExtension.RegisterEverything
     MLIRPythonSources.Core
+    MLIRPythonSources.Dialects.arith
+    MLIRPythonSources.Dialects.builtin
+    MLIRPythonSources.Dialects.cf
+    MLIRPythonSources.Dialects.complex
+    MLIRPythonSources.Dialects.func
+    MLIRPythonSources.Dialects.math
+    MLIRPythonSources.ExecutionEngine
 )
 
 ################################################################################
@@ -134,10 +138,14 @@ add_mlir_python_modules(CUDAQuantumPythonModules
   INSTALL_PREFIX "cudaq/mlir"
   DECLARED_SOURCES
     CUDAQuantumPythonSources
-    # TODO: Remove this in favor of showing fine grained registration once
-    # available.
-    MLIRPythonExtension.RegisterEverything
-    MLIRPythonSources
+    MLIRPythonSources.Core
+    MLIRPythonSources.Dialects.arith
+    MLIRPythonSources.Dialects.builtin
+    MLIRPythonSources.Dialects.cf
+    MLIRPythonSources.Dialects.complex
+    MLIRPythonSources.Dialects.func
+    MLIRPythonSources.Dialects.math
+    MLIRPythonSources.ExecutionEngine
   COMMON_CAPI_LINK_LIBS
     CUDAQuantumPythonCAPI
   )
