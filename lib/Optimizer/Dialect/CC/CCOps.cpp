@@ -106,6 +106,10 @@ Value cudaq::cc::getByteSizeOfType(OpBuilder &builder, Location loc, Type ty,
         return builder.create<arith::MulIOp>(loc, builder.getI64Type(), v,
                                              scale);
       })
+      .Case([&](cudaq::cc::SpanLikeType) -> Value {
+        // Uniformly on the device size: {ptr, i64}
+        return createInt(16);
+      })
       .Default({});
 }
 
@@ -1003,6 +1007,14 @@ ParseResult cudaq::cc::GlobalOp::parse(OpAsmParser &parser,
     result.addAttribute(getConstantAttrName(result.name),
                         parser.getBuilder().getUnitAttr());
 
+  // Check for the visibility optional keyword third.
+  StringRef visibility;
+  if (parser.parseOptionalKeyword(&visibility, {"public", "private", "nested"}))
+    return failure();
+
+  StringAttr visibilityAttr = parser.getBuilder().getStringAttr(visibility);
+  result.addAttribute(SymbolTable::getVisibilityAttrName(), visibilityAttr);
+
   // Parse the rest of the global.
   //   @<symbol> ( <initializer-attr> ) : <result-type>
   StringAttr name;
@@ -1033,6 +1045,11 @@ void cudaq::cc::GlobalOp::print(OpAsmPrinter &p) {
     p << "extern ";
   if (getConstant())
     p << "constant ";
+
+  if (auto visibility = getSymVisibility())
+    if (visibility.has_value())
+      p << visibility.value().str() << ' ';
+
   p.printSymbolName(getSymName());
   if (auto value = getValue()) {
     p << " (";
@@ -1040,10 +1057,11 @@ void cudaq::cc::GlobalOp::print(OpAsmPrinter &p) {
     p << ")";
   }
   p << " : " << getGlobalType();
-  p.printOptionalAttrDictWithKeyword(
-      (*this)->getAttrs(),
-      {getSymNameAttrName(), getValueAttrName(), getGlobalTypeAttrName(),
-       getConstantAttrName(), getExternalAttrName()});
+
+  p.printOptionalAttrDict((*this)->getAttrs(),
+                          {getSymNameAttrName(), getValueAttrName(),
+                           getGlobalTypeAttrName(), getConstantAttrName(),
+                           getExternalAttrName(), getSymVisibilityAttrName()});
 }
 
 //===----------------------------------------------------------------------===//

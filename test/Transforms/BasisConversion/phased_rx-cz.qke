@@ -6,8 +6,8 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt -pass-pipeline='builtin.module(basis-conversion{basis=z(1),phased_rx})' %s | FileCheck %s
-// RUN: cudaq-opt -pass-pipeline='builtin.module(basis-conversion{basis=z(1),phased_rx})' %s | CircuitCheck %s --up-to-global-phase
+// RUN: cudaq-opt --basis-conversion="basis=z(1),phased_rx disable-patterns=R1ToU3" %s | FileCheck %s
+// RUN: cudaq-opt --basis-conversion="basis=z(1),phased_rx disable-patterns=R1ToU3" %s | CircuitCheck %s --up-to-global-phase
 
 
 // CHECK-LABEL: func.func @cx

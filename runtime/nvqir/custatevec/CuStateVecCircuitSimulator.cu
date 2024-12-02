@@ -215,8 +215,6 @@ complexValue<ScalarType> innerProduct(
   thrust::device_ptr<thrust::complex<ScalarType>> thrustDevPtrBBegin;
   if (createDeviceAlloc) {
     // otherPtr is not a device pointer...
-    // FIXME: WE NEED TO PROPERLY CONVERT HERE - 
-    // PASS A BUFFER RATHER THAN REINTERPRETE_CAST AND HOPE FOR THE BEST...
     auto *castedOtherPtr = reinterpret_cast<std::complex<ScalarType> *>(otherPtr);
     std::vector<std::complex<ScalarType>> dataAsVec(castedOtherPtr,
                                                     castedOtherPtr + size);

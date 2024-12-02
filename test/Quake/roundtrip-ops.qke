@@ -818,6 +818,7 @@ func.func @quantum_product_type() {
   %22 = quake.make_struq %20, %21 : (!quake.veq<7>, !quake.veq<8>) -> !quake.struq<!quake.veq<7>, !quake.veq<8>>
   %23 = quake.get_member %22[0] : (!quake.struq<!quake.veq<7>, !quake.veq<8>>) -> !quake.veq<7>
   %24 = quake.get_member %22[1] : (!quake.struq<!quake.veq<7>, !quake.veq<8>>) -> !quake.veq<8>
+  %25 = quake.alloca !quake.struq<!quake.veq<8>, !quake.veq<5>>
   return
  }
 
@@ -837,5 +838,6 @@ func.func @quantum_product_type() {
 // CHECK:           %[[VAL_12:.*]] = quake.make_struq %[[VAL_10]], %[[VAL_11]] : (!quake.veq<7>, !quake.veq<8>) -> !quake.struq<!quake.veq<7>, !quake.veq<8>>
 // CHECK:           %[[VAL_13:.*]] = quake.get_member %[[VAL_12]][0] : (!quake.struq<!quake.veq<7>, !quake.veq<8>>) -> !quake.veq<7>
 // CHECK:           %[[VAL_14:.*]] = quake.get_member %[[VAL_12]][1] : (!quake.struq<!quake.veq<7>, !quake.veq<8>>) -> !quake.veq<8>
+// CHECK:           %[[VAL_15:.*]] = quake.alloca !quake.struq<!quake.veq<8>, !quake.veq<5>>
 // CHECK:           return
 // CHECK:         }

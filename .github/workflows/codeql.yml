@@ -34,6 +34,7 @@ jobs:
     # Consider using larger runners or machines with greater resources for possible analysis time improvements.
     runs-on: 'ubuntu-latest'
     permissions:
+      packages: read # required to fetch internal or private CodeQL packs
       security-events: write
       # read permissions below are only required for workflows in private repositories
       actions: read
@@ -47,10 +48,11 @@ jobs:
         # see https://docs.github.com/en/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/customizing-your-advanced-setup-for-code-scanning.
         # For analyzing a compiled language, you can modify the 'build-mode' for that language to customize how
         # your codebase is analyzed, see https://docs.github.com/en/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/codeql-code-scanning-for-compiled-languages
-        - language: c-cpp
-          build-mode: none # Consider setting this to manual and providing a build command to get more accurate scanning
         - language: python
-          build-mode: none
+          build-mode: none # Consider setting this to manual and providing a build command to get more accurate scanning
+        # FIXME: enable code scanning for C++
+        # - language: c-cpp
+        #   build-mode: manual # Consider setting this to manual and providing a build command to get more accurate scanning
 
     steps:
     - name: Checkout repository

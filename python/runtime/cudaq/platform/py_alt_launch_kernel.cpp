@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "JITExecutionCache.h"
+#include "common/AnalogHamiltonian.h"
 #include "common/ArgumentConversion.h"
 #include "common/ArgumentWrapper.h"
 #include "common/Environment.h"
@@ -413,6 +414,17 @@ void pyAltLaunchKernel(const std::string &name, MlirModule module,
   std::free(rawArgs);
 }
 
+void pyAltLaunchAnalogKernel(const std::string &name,
+                             std::string &programArgs) {
+  if (name.find(cudaq::runtime::cudaqAHKPrefixName) != 0)
+    throw std::runtime_error("Unexpected type of kernel.");
+  auto dynamicResult = cudaq::altLaunchKernel(
+      name.c_str(), KernelThunkType(nullptr),
+      (void *)(const_cast<char *>(programArgs.c_str())), 0, 0);
+  if (dynamicResult.data_buffer || dynamicResult.size)
+    throw std::runtime_error("Not implemented: support dynamic results");
+}
+
 /// @brief Serialize \p runtimeArgs into a flat buffer starting at
 /// \p startingArgIdx (0-based). This does not execute the kernel. This is
 /// useful for VQE applications when you want to serialize the constant
@@ -543,7 +555,7 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createConstPropComplex());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createLiftArrayAlloc());
     pm.addPass(cudaq::opt::createGlobalizeArrayValues());
-    pm.addPass(cudaq::opt::createStatePreparation());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createStatePreparation());
   }
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandMeasurementsPass());
@@ -552,6 +564,7 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addPass(createSymbolDCEPass());
   DefaultTimingManager tm;
   tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
   auto timingScope = tm.getRootScope(); // starts the timer
@@ -622,10 +635,46 @@ std::string getASM(const std::string &name, MlirModule module,
   auto cloned = unwrap(module).clone();
   auto context = cloned.getContext();
 
+  // Get additional debug values
+  auto disableMLIRthreading = getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", false);
+  auto enablePrintMLIREachPass =
+      getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
+
   PassManager pm(context);
   pm.addPass(cudaq::opt::createLambdaLiftingPass());
+  // Run most of the passes from hardware pipelines.
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCSEPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLiftArrayAlloc());
+  pm.addPass(cudaq::opt::createGlobalizeArrayValues());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createStatePreparation());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createGetConcreteMatrix());
+  pm.addPass(cudaq::opt::createUnitarySynthesis());
+  pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
+  cudaq::opt::addAggressiveEarlyInlining(pm);
+  pm.addPass(createSymbolDCEPass());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCSEPass());
+  pm.addNestedPass<func::FuncOp>(
+      cudaq::opt::createMultiControlDecompositionPass());
+  pm.addPass(cudaq::opt::createDecompositionPass(
+      {.enabledPatterns = {"SToR1", "TToR1", "R1ToU3", "U3ToRotations",
+                           "CHToCX", "CCZToCX", "CRzToCX", "CRyToCX", "CRxToCX",
+                           "CR1ToCX", "CCZToCX", "RxAdjToRx", "RyAdjToRy",
+                           "RzAdjToRz"}}));
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlVeqs());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createCombineQuantumAllocations());
   cudaq::opt::addPipelineTranslateToOpenQASM(pm);
 
+  if (disableMLIRthreading || enablePrintMLIREachPass)
+    context->disableMultithreading();
+  if (enablePrintMLIREachPass)
+    pm.enableIRPrinting();
   if (failed(pm.run(cloned)))
     throw std::runtime_error("getASM: code generation failed.");
   std::free(rawArgs);
@@ -682,6 +731,15 @@ void bindAltLaunchKernel(py::module &mod) {
       py::arg("kernelName"), py::arg("module"), py::arg("returnType"),
       py::kw_only(), py::arg("callable_names") = std::vector<std::string>{},
       "DOC STRING");
+
+  mod.def(
+      "pyAltLaunchAnalogKernel",
+      [&](const std::string &name, std::string &programArgs) {
+        return pyAltLaunchAnalogKernel(name, programArgs);
+      },
+      py::arg("name"), py::arg("programArgs"),
+      "Launch an analog Hamiltonian simulation kernel with given JSON "
+      "payload.");
 
   mod.def("synthesize", [](py::object kernel, py::args runtimeArgs) {
     MlirModule module = kernel.attr("module").cast<MlirModule>();

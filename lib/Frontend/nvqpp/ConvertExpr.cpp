@@ -2049,8 +2049,9 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
                                        ValueRange{buffer, start, stop, step});
       return pushValue(call.getResult(0));
     }
-
-    TODO_loc(loc, "unknown function, " + funcName + ", in cudaq namespace");
+    if (!isInNamespace(func, "solvers") && !isInNamespace(func, "qec")) {
+      TODO_loc(loc, "unknown function, " + funcName + ", in cudaq namespace");
+    }
   } // end in cudaq namespace
 
   if (isInNamespace(func, "std")) {
@@ -2498,8 +2499,10 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
     {
       OpBuilder::InsertionGuard guard(builder);
       builder.setInsertionPointToEnd(module.getBody());
-      builder.create<cc::GlobalOp>(loc, globalTy, name, f64Attr,
-                                   /*constant=*/true);
+      builder
+          .create<cc::GlobalOp>(loc, globalTy, name, f64Attr,
+                                /*constant=*/true, /*external=*/false)
+          .setPrivate();
     }
     auto ptrTy = cc::PointerType::get(globalTy);
     auto globalInit = builder.create<cc::AddressOfOp>(loc, ptrTy, name);
@@ -2902,6 +2905,12 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
         return true;
       }
     }
+  }
+
+  if (isa<quake::StruqType>(ctorTy)) {
+    if (quake::isConstantQuantumRefType(ctorTy))
+      return pushValue(builder.create<quake::AllocaOp>(loc, ctorTy));
+    return true;
   }
 
   auto *parent = ctor->getParent();

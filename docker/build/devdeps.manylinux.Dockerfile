@@ -91,20 +91,11 @@ RUN LLVM_PROJECTS='clang;mlir' LLVM_SOURCE=/llvm-project \
     # No clean up of the build or source directory,
     # since we need to re-build llvm for each python version to get the bindings.
 
-# Install additional dependencies required to build the CUDA-Q wheel.
-ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
-ENV BLAS_INSTALL_PREFIX=/usr/local/blas
-ENV ZLIB_INSTALL_PREFIX=/usr/local/zlib
-ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
-ENV CURL_INSTALL_PREFIX=/usr/local/curl
-RUN bash /scripts/install_prerequisites.sh
-
 # Install CUDA
 
 ARG cuda_version=11.8
 ENV CUDA_VERSION=${cuda_version}
 
-# Note that pip packages are available for all necessary runtime components.
 RUN arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
     && dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/$distro/$arch_folder/cuda-$distro.repo \
     && dnf clean expire-cache \
@@ -119,3 +110,14 @@ ENV CUDA_ROOT="$CUDA_INSTALL_PREFIX"
 ENV CUDA_PATH="$CUDA_INSTALL_PREFIX"
 ENV PATH="${CUDA_INSTALL_PREFIX}/lib64/:${CUDA_INSTALL_PREFIX}/bin:${PATH}"
 ENV LD_LIBRARY_PATH="${CUDA_INSTALL_PREFIX}/lib64:${LD_LIBRARY_PATH}"
+
+# Install additional dependencies required to build the CUDA-Q wheel.
+ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
+ADD ./scripts/configure_build.sh /scripts/configure_build.sh
+ENV BLAS_INSTALL_PREFIX=/usr/local/blas
+ENV ZLIB_INSTALL_PREFIX=/usr/local/zlib
+ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
+ENV CURL_INSTALL_PREFIX=/usr/local/curl
+ENV CUQUANTUM_INSTALL_PREFIX=/usr/local/cuquantum
+ENV CUTENSOR_INSTALL_PREFIX=/usr/local/cutensor
+RUN bash /scripts/install_prerequisites.sh

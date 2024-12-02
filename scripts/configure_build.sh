@@ -26,7 +26,7 @@ if [ "$1" == "install-cuda" ]; then
     CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
 
 # [>CUDAInstall]
-    CUDA_VERSION=${CUDA_VERSION:-11.8}
+    CUDA_VERSION=${CUDA_VERSION:-12.0}
     CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
     # Go to the url above, set the variables below to a suitable distribution
     # and subfolder for your platform, and uncomment the line below.
@@ -43,7 +43,7 @@ if [ "$1" == "install-cudart" ]; then
     CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
 
 # [>CUDARTInstall]
-    CUDA_VERSION=${CUDA_VERSION:-11.8}
+    CUDA_VERSION=${CUDA_VERSION:-12.0}
     CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
     # Go to the url above, set the variables below to a suitable distribution
     # and subfolder for your platform, and uncomment the line below.
@@ -53,6 +53,7 @@ if [ "$1" == "install-cudart" ]; then
     dnf config-manager --add-repo "${CUDA_DOWNLOAD_URL}/${DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-${DISTRIBUTION}.repo"
     dnf install -y --nobest --setopt=install_weak_deps=False \
         cuda-cudart-${version_suffix} \
+        cuda-nvrtc-${version_suffix} \
         libcusolver-${version_suffix} \
         libcublas-${version_suffix}
     if [ $(echo ${CUDA_VERSION} | cut -d . -f1) -gt 11 ]; then 
@@ -63,11 +64,11 @@ if [ "$1" == "install-cudart" ]; then
 fi
 
 if [ "$1" == "install-cuquantum" ]; then
-    CUDA_VERSION=${CUDA_VERSION:-11.8}
+    CUDA_VERSION=${CUDA_VERSION:-12.0}
     CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
 
 # [>cuQuantumInstall]
-    CUQUANTUM_VERSION=24.08.0.5
+    CUQUANTUM_VERSION=24.11.0.21
     CUQUANTUM_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum
 
     cuquantum_archive=cuquantum-linux-${CUDA_ARCH_FOLDER}-${CUQUANTUM_VERSION}_cuda$(echo ${CUDA_VERSION} | cut -d . -f1)-archive.tar.xz
@@ -79,7 +80,7 @@ if [ "$1" == "install-cuquantum" ]; then
 fi
 
 if [ "$1" == "install-cutensor" ]; then
-    CUDA_VERSION=${CUDA_VERSION:-11.8}
+    CUDA_VERSION=${CUDA_VERSION:-12.0}
     CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
 
 # [>cuTensorInstall]

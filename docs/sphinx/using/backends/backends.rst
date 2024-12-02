@@ -12,6 +12,7 @@ CUDA-Q Backends
 
 **The following is a comprehensive list of the available targets in CUDA-Q:**
 
+* :ref:`braket <braket-backend>`
 * :ref:`density-matrix-cpu <default-simulator>`
 * :ref:`fermioniq <fermioniq-backend>`
 * :ref:`ionq <ionq-backend>`
@@ -27,6 +28,7 @@ CUDA-Q Backends
 * :ref:`orca <orca-backend>`
 * :ref:`qpp-cpu <qpp-cpu-backend>`
 * :ref:`quantinuum <quantinuum-backend>`
+* :ref:`quera <quera-backend>`
 * :ref:`remote-mqpu <mqpu-platform>`
 * :ref:`stim <stim-backend>`
 * :ref:`tensornet <tensor-backends>`

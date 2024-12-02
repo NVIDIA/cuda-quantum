@@ -9,7 +9,6 @@
 #include "simulator_cutensornet.h"
 #include "cudaq.h"
 #include "cutensornet.h"
-#include "external_plugin.h"
 #include "tensornet_spin_op.h"
 
 namespace nvqir {
@@ -224,20 +223,23 @@ SimulatorTensorNetBase::sample(const std::vector<std::size_t> &measuredBits,
   return counts;
 }
 
-bool SimulatorTensorNetBase::canHandleObserve() { return true; }
+bool SimulatorTensorNetBase::canHandleObserve() {
+  // Do not compute <H> from matrix if shots based sampling requested
+  // i.e., a valid shots count value was set.
+  // Note: -1 is also used to denote non-sampling execution. Hence, we need to
+  // check for this particular -1 value as being casted to an unsigned type.
+  if (executionContext && executionContext->shots > 0 &&
+      executionContext->shots != ~0ull) {
+    // This 'shots' mode is very slow for tensor network.
+    // However, we need to respect the shots option.
+    cudaq::info("[SimulatorTensorNetBase] Shots mode expectation calculation "
+                "is requested with {} shots.",
+                executionContext->shots);
 
-static nvqir::CutensornetExecutor *getPluginInstance() {
-  using GetPluginFunction = nvqir::CutensornetExecutor *(*)();
-  auto handle = dlopen(NULL, RTLD_LAZY);
-  GetPluginFunction fcn =
-      (GetPluginFunction)(intptr_t)dlsym(handle, "getCutnExecutor");
-  if (!fcn) {
-    cudaq::info("Externally provided cutensornet plugin not found.");
-    return nullptr;
+    return false;
   }
-
-  cudaq::info("Successfully loaded the cutensornet plugin.");
-  return fcn();
+  // Otherwise, perform exact expectation value calculation/contraction.
+  return true;
 }
 
 /// @brief Evaluate the expectation value of a given observable
@@ -245,28 +247,44 @@ cudaq::observe_result
 SimulatorTensorNetBase::observe(const cudaq::spin_op &ham) {
   LOG_API_TIME();
   prepareQubitTensorState();
-  auto *cutnExtension = getPluginInstance();
-  if (cutnExtension) {
-    const auto [terms, coeffs] = ham.get_raw_data();
-    const auto termExpVals =
-        cutnExtension->computeExpVals(m_cutnHandle, m_state->getInternalState(),
-                                      m_state->getNumQubits(), terms);
-    std::complex<double> expVal = 0.0;
-    for (std::size_t i = 0; i < terms.size(); ++i) {
-      expVal += (coeffs[i] * termExpVals[i]);
-    }
-    return cudaq::observe_result(expVal.real(), ham,
-                                 cudaq::sample_result(cudaq::ExecutionResult(
-                                     {}, ham.to_string(false), expVal.real())));
-  } else {
-    TensorNetworkSpinOp spinOp(ham, m_cutnHandle);
-    std::complex<double> expVal =
-        m_state->computeExpVal(spinOp.getNetworkOperator());
-    expVal += spinOp.getIdentityTermOffset();
-    return cudaq::observe_result(expVal.real(), ham,
-                                 cudaq::sample_result(cudaq::ExecutionResult(
-                                     {}, ham.to_string(false), expVal.real())));
+
+  std::vector<std::string> termStrs;
+  std::vector<cudaq::spin_op::spin_op_term> terms;
+  std::vector<std::complex<double>> coeffs;
+  termStrs.reserve(ham.num_terms());
+  terms.reserve(ham.num_terms());
+  coeffs.reserve(ham.num_terms());
+
+  // Note: as the spin_op terms are stored as an unordered map, we need to
+  // iterate in one loop to collect all the data (string, symplectic data, and
+  // coefficient).
+  ham.for_each_term([&](cudaq::spin_op &term) {
+    termStrs.emplace_back(term.to_string(false));
+    auto [symplecticRep, coeff] = term.get_raw_data();
+    if (symplecticRep.size() != 1 || coeff.size() != 1)
+      throw std::runtime_error(fmt::format(
+          "Unexpected data encountered when iterating spin operator terms: "
+          "expecting a single term, got {} terms.",
+          symplecticRep.size()));
+    terms.emplace_back(symplecticRep[0]);
+    coeffs.emplace_back(coeff[0]);
+  });
+
+  // Compute the expectation value for all terms
+  const auto termExpVals = m_state->computeExpVals(terms);
+  std::complex<double> expVal = 0.0;
+  // Construct per-term data in the final observe_result
+  std::vector<cudaq::ExecutionResult> results;
+  results.reserve(terms.size());
+
+  for (std::size_t i = 0; i < terms.size(); ++i) {
+    expVal += (coeffs[i] * termExpVals[i]);
+    results.emplace_back(
+        cudaq::ExecutionResult({}, termStrs[i], termExpVals[i].real()));
   }
+
+  cudaq::sample_result perTermData(expVal.real(), results);
+  return cudaq::observe_result(expVal.real(), ham, perTermData);
 }
 
 nvqir::CircuitSimulator *SimulatorTensorNetBase::clone() { return nullptr; }
@@ -289,8 +307,8 @@ void SimulatorTensorNetBase::setToZeroState() {
   const auto numQubits = m_state->getNumQubits();
   m_state.reset();
   // Re-create a zero state of the same size
-  m_state =
-      std::make_unique<TensorNetState>(numQubits, scratchPad, m_cutnHandle);
+  m_state = std::make_unique<TensorNetState>(numQubits, scratchPad,
+                                             m_cutnHandle, m_randomEngine);
 }
 
 void SimulatorTensorNetBase::swap(const std::vector<std::size_t> &ctrlBits,
