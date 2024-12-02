@@ -29,7 +29,7 @@ namespace cudaq::opt {
 using namespace mlir;
 
 namespace {
-/// For a `cc:CreateStateOp`, get the number of qubits allocated.
+/// For a `quake.create_state`, get the number of qubits allocated.
 static std::size_t getStateSize(Operation *op) {
   if (auto createStateOp = dyn_cast<quake::CreateStateOp>(op)) {
     auto sizeOperand = createStateOp.getOperand(1);
