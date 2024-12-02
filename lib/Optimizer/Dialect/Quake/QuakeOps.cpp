@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
@@ -167,11 +168,8 @@ LogicalResult quake::AllocaOp::verify() {
     if (getSize())
       return emitOpError("cannot specify size with this quantum type");
 
-    if (auto stqTy = dyn_cast<StruqType>(getResult().getType()))
-      for (auto t : stqTy.getMembers())
-        if (auto vt = dyn_cast<VeqType>(t))
-          if (!vt.hasSpecifiedSize())
-            return emitOpError("struq type must have specified size");
+    if (!quake::isConstantQuantumRefType(getResult().getType()))
+      return emitOpError("struq type must have specified size");
   }
 
   // Check the uses. If any use is a InitializeStateOp, then it must be the only
@@ -411,9 +409,10 @@ parseRawIndex(OpAsmParser &parser,
   return success();
 }
 
-static void printRawIndex(OpAsmPrinter &printer, quake::ExtractRefOp refOp,
-                          Value index, IntegerAttr rawIndex) {
-  if (rawIndex.getValue() == quake::ExtractRefOp::kDynamicIndex)
+template <typename OP>
+void printRawIndex(OpAsmPrinter &printer, OP refOp, Value index,
+                   IntegerAttr rawIndex) {
+  if (rawIndex.getValue() == OP::kDynamicIndex)
     printer.printOperand(index);
   else
     printer << rawIndex.getValue();
@@ -686,70 +685,131 @@ void quake::RelaxSizeOp::getCanonicalizationPatterns(
 // SubVeqOp
 //===----------------------------------------------------------------------===//
 
+LogicalResult quake::SubVeqOp::verify() {
+  if ((hasConstantLowerBound() && getRawLower() == kDynamicIndex) ||
+      (!hasConstantLowerBound() && getRawLower() != kDynamicIndex))
+    return emitOpError("invalid lower bound specified");
+  if ((hasConstantUpperBound() && getRawUpper() == kDynamicIndex) ||
+      (!hasConstantUpperBound() && getRawUpper() != kDynamicIndex))
+    return emitOpError("invalid upper bound specified");
+  if (hasConstantLowerBound() && hasConstantUpperBound()) {
+    if (getRawLower() > getRawUpper())
+      return emitOpError("invalid subrange specified");
+    if (auto veqTy = dyn_cast<quake::VeqType>(getVeq().getType()))
+      if (veqTy.hasSpecifiedSize())
+        if (getRawLower() >= veqTy.getSize() ||
+            getRawUpper() >= veqTy.getSize())
+          return emitOpError(
+              "subveq range does not fully intersect the input veq");
+    if (auto veqTy = dyn_cast<quake::VeqType>(getResult().getType()))
+      if (veqTy.hasSpecifiedSize())
+        if (veqTy.getSize() != getRawUpper() - getRawLower() + 1)
+          return emitOpError("incorrect size for result veq type");
+  }
+  return success();
+}
+
 namespace {
+// %3 = quake.subveq %0, 4, 10 : (!quake.veq<12>, i64, i64) -> !quake.veq<?>
+// ─────────────────────────────────────────────────────────────────────────────
+// %new3 = quake.subveq %0, 4, 10 : (!quake.veq<12>, i64, i64) -> !quake.veq<7>
+// %3 = quake.relax_size %new3 : (!quake.veq<7>) -> !quake.veq<?>
+struct FixUnspecifiedSubveqPattern : public OpRewritePattern<quake::SubVeqOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::SubVeqOp subveq,
+                                PatternRewriter &rewriter) const override {
+    auto veqTy = dyn_cast<quake::VeqType>(subveq.getType());
+    if (veqTy && veqTy.hasSpecifiedSize())
+      return failure();
+    if (!(subveq.hasConstantLowerBound() && subveq.hasConstantUpperBound()))
+      return failure();
+    auto *ctx = rewriter.getContext();
+    std::size_t size =
+        subveq.getConstantUpperBound() - subveq.getConstantLowerBound() + 1u;
+    auto szVecTy = quake::VeqType::get(ctx, size);
+    auto loc = subveq.getLoc();
+    auto subv = rewriter.create<quake::SubVeqOp>(
+        loc, szVecTy, subveq.getVeq(), subveq.getLower(), subveq.getUpper(),
+        subveq.getRawLower(), subveq.getRawUpper());
+    rewriter.replaceOpWithNewOp<quake::RelaxSizeOp>(subveq, veqTy, subv);
+    return success();
+  }
+};
+
+// %1 = constant 4 : i64
+// %2 = constant 10 : i64
+// %3 = quake.subveq %0, %1, %2 : (!quake.veq<12>, i64, i64) -> !quake.veq<?>
+// ─────────────────────────────────────────────────────────────────────────────
+// %3 = quake.subveq %0, 4, 10 : (!quake.veq<12>, i64, i64) -> !quake.veq<7>
+struct FuseConstantToSubveqPattern : public OpRewritePattern<quake::SubVeqOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::SubVeqOp subveq,
+                                PatternRewriter &rewriter) const override {
+    if (subveq.hasConstantLowerBound() && subveq.hasConstantUpperBound())
+      return failure();
+    bool regen = false;
+    std::int64_t lo = subveq.getConstantLowerBound();
+    Value loVal = subveq.getLower();
+    if (!subveq.hasConstantLowerBound())
+      if (auto olo = cudaq::opt::factory::getIntIfConstant(subveq.getLower())) {
+        regen = true;
+        loVal = nullptr;
+        lo = *olo;
+      }
+
+    std::int64_t hi = subveq.getConstantUpperBound();
+    Value hiVal = subveq.getUpper();
+    if (!subveq.hasConstantUpperBound())
+      if (auto ohi = cudaq::opt::factory::getIntIfConstant(subveq.getUpper())) {
+        regen = true;
+        hiVal = nullptr;
+        hi = *ohi;
+      }
+
+    if (!regen)
+      return failure();
+    rewriter.replaceOpWithNewOp<quake::SubVeqOp>(
+        subveq, subveq.getType(), subveq.getVeq(), loVal, hiVal, lo, hi);
+    return success();
+  }
+};
+
+// Replace subveq operations that extract the entire original register with the
+// original register.
 struct RemoveSubVeqNoOpPattern : public OpRewritePattern<quake::SubVeqOp> {
   using OpRewritePattern::OpRewritePattern;
 
   LogicalResult matchAndRewrite(quake::SubVeqOp subVeqOp,
                                 PatternRewriter &rewriter) const override {
-    // Replace subveq operations that extract the entire original register
-    // with the original register.
     auto origVeq = subVeqOp.getVeq();
-    auto low = subVeqOp.getLow();
-    auto high = subVeqOp.getHigh();
-
-    // The start of the subveq must be known
-    auto arithLow = low.getDefiningOp<arith::ConstantIntOp>();
-    if (!arithLow)
-      return failure();
-
-    // The end of the subveq must be known
-    auto arithHigh = high.getDefiningOp<arith::ConstantIntOp>();
-    if (!arithHigh)
-      return failure();
-
     // The original veq size must be known
     auto veqType = dyn_cast<quake::VeqType>(origVeq.getType());
     if (!veqType.hasSpecifiedSize())
       return failure();
+    if (!(subVeqOp.hasConstantLowerBound() && subVeqOp.hasConstantUpperBound()))
+      return failure();
 
-    // If the subveq is the whole register, than the
-    // start value must be 0
-    if (arithLow.value() != 0)
+    // If the subveq is the whole register, than the start value must be 0.
+    if (subVeqOp.getConstantLowerBound() != 0)
       return failure();
 
     // If the sizes are equal, then replace
-    if (static_cast<int64_t>(veqType.getSize()) == arithHigh.value() + 1) {
-      // this subveq is the whole original register, hence a no-op
-      rewriter.replaceOp(subVeqOp, origVeq);
-      return success();
-    }
+    if (veqType.getSize() != subVeqOp.getConstantUpperBound() + 1)
+      return failure();
 
-    // All else fail
-    return failure();
+    // this subveq is the whole original register, hence a no-op
+    rewriter.replaceOp(subVeqOp, origVeq);
+    return success();
   }
 };
 } // namespace
 
-Value quake::createSizedSubVeqOp(PatternRewriter &builder, Location loc,
-                                 OpResult result, Value inVec, Value lo,
-                                 Value hi) {
-  auto vecTy = result.getType().cast<quake::VeqType>();
-  auto *ctx = builder.getContext();
-  auto getVal = [&](Value v) {
-    auto vCon = cast<arith::ConstantOp>(v.getDefiningOp());
-    return static_cast<std::size_t>(
-        vCon.getValue().cast<IntegerAttr>().getInt());
-  };
-  std::size_t size = getVal(hi) - getVal(lo) + 1u;
-  auto szVecTy = quake::VeqType::get(ctx, size);
-  auto subveq = builder.create<quake::SubVeqOp>(loc, szVecTy, inVec, lo, hi);
-  return builder.create<quake::RelaxSizeOp>(loc, vecTy, subveq);
-}
-
 void quake::SubVeqOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
                                                   MLIRContext *context) {
-  patterns.add<FuseConstantToSubveqPattern, RemoveSubVeqNoOpPattern>(context);
+  patterns.add<FixUnspecifiedSubveqPattern, FuseConstantToSubveqPattern,
+               RemoveSubVeqNoOpPattern>(context);
 }
 
 //===----------------------------------------------------------------------===//

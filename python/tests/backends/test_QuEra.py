@@ -40,7 +40,7 @@ def startUpMockServer():
     p.terminate()
 
 
-@pytest.mark.skip(reason="Braket credentials required")
+@pytest.mark.skip(reason="Amazon Braket credentials required")
 def test_JSON_payload():
     '''
     Test based on https://docs.aws.amazon.com/braket/latest/developerguide/braket-quera-submitting-analog-program-aquila.html

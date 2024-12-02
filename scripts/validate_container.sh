@@ -307,10 +307,10 @@ do
         if [ -z "$(echo $requested_backends | grep $t)" ]; then 
             echo "Explicitly set target $t not available."
             skip_example=true
-        elif [ "$t" == "quera" ]; then 
+        elif [ "$t" == "quera" ] || [ "$t" == "braket" ] ; then 
             # Skipped because GitHub does not have the necessary authentication token 
-            # to submit a (paid) job to QuEra.
-            echo "Explicitly set target quera; skipping validation due to paid submission."
+            # to submit a (paid) job to Amazon Braket (includes QuEra).
+            echo "Explicitly set target braket or quera; skipping validation due to paid submission."
             skip_example=true
         elif [[ "$t" == "dynamics" ]] && [[ " ${dynamics_backend_skipped_examples[*]} " =~ " $ex " ]]; then
             echo "Skipping due to long run time."

@@ -57,7 +57,11 @@ public:
           continue;
         }
         if (auto subveq = dyn_cast<quake::SubVeqOp>(user)) {
-          auto lowInt = cudaq::opt::factory::getIntIfConstant(subveq.getLow());
+          auto lowInt = [&]() -> std::optional<std::int32_t> {
+            if (subveq.hasConstantLowerBound())
+              return {subveq.getConstantLowerBound()};
+            return cudaq::opt::factory::getIntIfConstant(subveq.getLower());
+          }();
           if (!lowInt)
             return failure();
           for (auto *subUser : subveq->getUsers())
@@ -200,8 +204,17 @@ public:
         if (ext.hasConstantIndex())
           return true;
       if (auto sub = dyn_cast<quake::SubVeqOp>(op)) {
-        if (!cudaq::opt::factory::getIntIfConstant(sub.getLow()) ||
-            !cudaq::opt::factory::getIntIfConstant(sub.getHigh()))
+        auto lowInt = [&]() -> std::optional<std::int32_t> {
+          if (sub.hasConstantLowerBound())
+            return {sub.getConstantLowerBound()};
+          return cudaq::opt::factory::getIntIfConstant(sub.getLower());
+        }();
+        auto upInt = [&]() -> std::optional<std::int32_t> {
+          if (sub.hasConstantUpperBound())
+            return {sub.getConstantUpperBound()};
+          return cudaq::opt::factory::getIntIfConstant(sub.getUpper());
+        }();
+        if (!(lowInt && upInt))
           return false;
         for (auto *subUser : sub->getUsers())
           if (!isUseConvertible(subUser))
