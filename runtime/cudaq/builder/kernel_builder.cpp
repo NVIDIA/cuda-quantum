@@ -514,7 +514,7 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &sizeOrVec) {
     auto eleTy = statePtrTy.getElementType();
     if (auto stateTy = dyn_cast<cc::StateType>(eleTy)) {
       // get the number of qubits
-      auto numQubits = builder.create<cudaq::cc::GetNumberOfQubitsOp>(
+      auto numQubits = builder.create<quake::GetNumberOfQubitsOp>(
           builder.getI64Type(), value);
       // allocate the number of qubits we need
       auto veqTy = quake::VeqType::getUnsized(context);

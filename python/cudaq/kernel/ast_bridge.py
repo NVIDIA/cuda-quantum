@@ -2247,8 +2247,8 @@ class PyASTBridge(ast.NodeVisitor):
                         statePtr = self.ifNotPointerThenStore(valueOrPtr)
 
                         i64Ty = self.getIntegerType()
-                        numQubits = cc.GetNumberOfQubitsOp(i64Ty,
-                                                           statePtr).result
+                        numQubits = quake.GetNumberOfQubitsOp(i64Ty,
+                                                              statePtr).result
 
                         veqTy = quake.VeqType.get(self.ctx)
                         qubits = quake.AllocaOp(veqTy, size=numQubits).result

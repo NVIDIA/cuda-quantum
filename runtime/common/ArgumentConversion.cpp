@@ -10,6 +10,7 @@
 #include "cudaq.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Todo.h"
 #include "cudaq/qis/pauli_word.h"
 #include "cudaq/utils/registry.h"
@@ -142,8 +143,8 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
     auto stateTy = cudaq::cc::StateType::get(ctx);
     auto statePtrTy = cudaq::cc::PointerType::get(stateTy);
 
-    return builder.create<cudaq::cc::CreateStateOp>(loc, statePtrTy, buffer,
-                                                    arrSize);
+    return builder.create<quake::CreateStateOp>(loc, statePtrTy, buffer,
+                                                arrSize);
   }
   // The program is executed on quantum hardware, state data is not
   // available and needs to be regenerated.

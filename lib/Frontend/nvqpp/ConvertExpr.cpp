@@ -2700,7 +2700,7 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
           Value state = initials;
           auto i64Ty = builder.getI64Type();
           auto numQubits =
-              builder.create<cudaq::cc::GetNumberOfQubitsOp>(loc, i64Ty, state);
+              builder.create<quake::GetNumberOfQubitsOp>(loc, i64Ty, state);
           auto veqTy = quake::VeqType::getUnsized(ctx);
           Value alloc = builder.create<quake::AllocaOp>(loc, veqTy, numQubits);
           return pushValue(builder.create<quake::InitializeStateOp>(

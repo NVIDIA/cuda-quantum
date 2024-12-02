@@ -778,7 +778,7 @@ class PyKernel(object):
                 statePtr = self.capturedDataStorage.storeCudaqState(initializer)
 
                 i64Ty = self.getIntegerType()
-                numQubits = cc.GetNumberOfQubitsOp(i64Ty, statePtr).result
+                numQubits = quake.GetNumberOfQubitsOp(i64Ty, statePtr).result
 
                 veqTy = quake.VeqType.get(self.ctx)
                 qubits = quake.AllocaOp(veqTy, size=numQubits).result
@@ -815,8 +815,8 @@ class PyKernel(object):
                         statePtr = initializer.mlirValue
 
                         i64Ty = self.getIntegerType()
-                        numQubits = cc.GetNumberOfQubitsOp(i64Ty,
-                                                           statePtr).result
+                        numQubits = quake.GetNumberOfQubitsOp(i64Ty,
+                                                              statePtr).result
 
                         veqTy = quake.VeqType.get(self.ctx)
                         qubits = quake.AllocaOp(veqTy, size=numQubits).result

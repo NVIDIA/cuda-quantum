@@ -66,11 +66,11 @@ public:
   }
 };
 
-class CreateStateOpPattern : public OpRewritePattern<cudaq::cc::CreateStateOp> {
+class CreateStateOpPattern : public OpRewritePattern<quake::CreateStateOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(cudaq::cc::CreateStateOp createStateOp,
+  LogicalResult matchAndRewrite(quake::CreateStateOp createStateOp,
                                 PatternRewriter &rewriter) const override {
     auto module = createStateOp->getParentOfType<ModuleOp>();
     auto loc = createStateOp.getLoc();
@@ -104,12 +104,33 @@ public:
   }
 };
 
-class GetNumberOfQubitsOpPattern
-    : public OpRewritePattern<cudaq::cc::GetNumberOfQubitsOp> {
+class DeleteStateOpPattern : public OpRewritePattern<quake::DeleteStateOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(cudaq::cc::GetNumberOfQubitsOp getNumQubitsOp,
+  LogicalResult matchAndRewrite(quake::DeleteStateOp deleteStateOp,
+                                PatternRewriter &rewriter) const override {
+    auto module = deleteStateOp->getParentOfType<ModuleOp>();
+    auto ctx = deleteStateOp.getContext();
+    auto state = deleteStateOp.getOperand();
+
+    cudaq::IRBuilder irBuilder(ctx);
+    auto result = irBuilder.loadIntrinsic(module, cudaq::deleteCudaqState);
+    assert(succeeded(result) && "loading intrinsic should never fail");
+
+    rewriter.replaceOpWithNewOp<func::CallOp>(deleteStateOp, std::nullopt,
+                                              cudaq::deleteCudaqState,
+                                              mlir::ValueRange{state});
+    return success();
+  }
+};
+
+class GetNumberOfQubitsOpPattern
+    : public OpRewritePattern<quake::GetNumberOfQubitsOp> {
+public:
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::GetNumberOfQubitsOp getNumQubitsOp,
                                 PatternRewriter &rewriter) const override {
     auto module = getNumQubitsOp->getParentOfType<ModuleOp>();
     auto ctx = getNumQubitsOp.getContext();
@@ -133,5 +154,5 @@ void cudaq::codegen::populateQuakeToCodegenPatterns(
     mlir::RewritePatternSet &patterns) {
   auto *ctx = patterns.getContext();
   patterns.insert<CodeGenRAIIPattern, ExpandComplexCast, CreateStateOpPattern,
-                  GetNumberOfQubitsOpPattern>(ctx);
+                  DeleteStateOpPattern, GetNumberOfQubitsOpPattern>(ctx);
 }

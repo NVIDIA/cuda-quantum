@@ -378,7 +378,7 @@ void test_state(mlir::MLIRContext *ctx) {
 // CHECK-LABEL:   cc.arg_subst[0] {
 // CHECK:           %[[VAL_0:.*]] = cc.address_of @[[VAL_GC:.*]] : !cc.ptr<!cc.array<complex<f64> x 8>>
 // CHECK:           %[[VAL_1:.*]] = arith.constant 8 : i64
-// CHECK:           %[[VAL_2:.*]] = cc.create_state %[[VAL_0]], %[[VAL_1]] : (!cc.ptr<!cc.array<complex<f64> x 8>>, i64) -> !cc.ptr<!cc.state>
+// CHECK:           %[[VAL_2:.*]] = quake.create_state %[[VAL_0]], %[[VAL_1]] : (!cc.ptr<!cc.array<complex<f64> x 8>>, i64) -> !cc.ptr<!cc.state>
 // CHECK:        }
 // CHECK-DAG:    cc.global constant private @[[VAL_GC]] (dense<[(0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<8xcomplex<f64>>) : !cc.array<complex<f64> x 8>
   // clang-format on
@@ -482,7 +482,7 @@ void test_combinations(mlir::MLIRContext *ctx) {
 // CHECK-LABEL:   cc.arg_subst[1] {
 // CHECK:           %[[VAL_0:.*]] = cc.address_of @[[VAL_GC:.*]] : !cc.ptr<!cc.array<complex<f64> x 8>>
 // CHECK:           %[[VAL_1:.*]] = arith.constant 8 : i64
-// CHECK:           %[[VAL_5:.*]] = cc.create_state %[[VAL_0]], %[[VAL_1]] : (!cc.ptr<!cc.array<complex<f64> x 8>>, i64) -> !cc.ptr<!cc.state>
+// CHECK:           %[[VAL_5:.*]] = quake.create_state %[[VAL_0]], %[[VAL_1]] : (!cc.ptr<!cc.array<complex<f64> x 8>>, i64) -> !cc.ptr<!cc.state>
 // CHECK:         }
 // CHECK-DAG:     cc.global constant private @[[VAL_GC]] (dense<[(0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<8xcomplex<f64>>) : !cc.array<complex<f64> x 8>
 // CHECK-LABEL:   cc.arg_subst[2] {
