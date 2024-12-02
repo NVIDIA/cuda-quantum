@@ -13,7 +13,7 @@ checkServerConnection() {
 import socket
 try:
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect(("localhost", 62441))
+    s.connect(("localhost", 62447))
     s.close()
 except Exception:
     exit(1)

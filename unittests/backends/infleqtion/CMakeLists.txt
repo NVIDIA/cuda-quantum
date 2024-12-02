@@ -24,5 +24,5 @@ target_link_libraries(test_infleqtion
   gtest_main)
 
 
-configure_file("InfleqtionStartServerAndTest.sh.in" "${CMAKE_BINARY_DIR}/unittests/backends/infleqtion/InleqtionStartServerAndTest.sh" @ONLY)
+configure_file("InfleqtionStartServerAndTest.sh.in" "${CMAKE_BINARY_DIR}/unittests/backends/infleqtion/InfleqtionStartServerAndTest.sh" @ONLY)
 add_test(NAME infleqtion-tests COMMAND bash InfleqtionStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/unittests/backends/infleqtion/)

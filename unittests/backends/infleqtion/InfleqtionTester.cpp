@@ -13,7 +13,7 @@
 #include <gtest/gtest.h>
 #include <stdlib.h>
 
-std::string mockPort = "62441";
+std::string mockPort = "62447";
 std::string backendStringTemplate =
     "infleqtion;emulate;false;url;http://localhost:{}";
 

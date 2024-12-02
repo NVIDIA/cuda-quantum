@@ -15,11 +15,12 @@ from network_utils import check_server_connection
 try:
     from utils.mock_qpu.infleqtion import startServer
 except:
-   print("Mock qpu not available, skipping Infleqtion tests.")
-   pytest.skip("Mock qpu not available.", allow_module_level=True)
+    print("Mock qpu not available, skipping Infleqtion tests.")
+    pytest.skip("Mock qpu not available.", allow_module_level=True)
 
 # Define the port for the mock server
-port = 62441
+port = 62447
+
 
 @pytest.fixture(scope="session", autouse=True)
 def startUpMockServer():
@@ -42,6 +43,7 @@ def startUpMockServer():
     # Kill the server
     p.terminate()
 
+
 @cudaq.kernel
 def kernel():
     qubit = cudaq.qubit()
@@ -52,6 +54,7 @@ def kernel():
     t(qubit)
     s(qubit)
     mz(qubit)
+
 
 def test_infleqtion_sample():
     counts = cudaq.sample(kernel)
