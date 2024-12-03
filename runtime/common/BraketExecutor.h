@@ -68,14 +68,18 @@ protected:
   virtual ServerJobPayload
   checkHelperAndCreateJob(std::vector<KernelExecution> &codesToExecute);
 
+  /// @brief Utility function to set the output qubits for a task.
+  void setOutputNames(const KernelExecution &codeToExecute,
+                      const std::string &taskId);
+
 public:
   BraketExecutor();
 
   ~BraketExecutor() = default;
 
   /// @brief Execute the provided Braket task
-  details::future
-  execute(std::vector<KernelExecution> &codesToExecute) override;
+  details::future execute(std::vector<KernelExecution> &codesToExecute,
+                          bool isObserve) override;
 
   /// @brief Set the server helper
   void setServerHelper(ServerHelper *helper) override;

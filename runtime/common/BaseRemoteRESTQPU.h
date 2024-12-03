@@ -21,6 +21,7 @@
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
+#include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
@@ -333,6 +334,7 @@ public:
 
   /// @brief Conditionally form an output_names JSON object if this was for QIR
   nlohmann::json formOutputNames(const std::string &codegenTranslation,
+                                 mlir::ModuleOp moduleOp,
                                  const std::string &codeStr) {
     // Form an output_names mapping from codeStr
     nlohmann::json output_names;
@@ -355,6 +357,17 @@ public:
               func.hasFnAttribute("output_names")) {
             output_names = nlohmann::json::parse(
                 func.getFnAttribute("output_names").getValueAsString());
+            break;
+          }
+        }
+      }
+    } else if (codegenTranslation.starts_with("qasm2")) {
+      for (auto &op : moduleOp) {
+        if (op.hasAttr(cudaq::entryPointAttrName) &&
+            op.hasAttr("output_names")) {
+          if (auto strAttr = op.getAttr(cudaq::opt::QIROutputNamesAttrName)
+                                 .dyn_cast_or_null<mlir::StringAttr>()) {
+            output_names = nlohmann::json::parse(strAttr.getValue());
             break;
           }
         }
@@ -457,6 +470,20 @@ public:
         throw std::runtime_error("Could not successfully apply quake-synth.");
     }
 
+    // Delay combining measurements for backends that cannot handle
+    // subveqs and multiple measurements until we created the emulation code.
+    auto combineMeasurements =
+        passPipelineConfig.find("combine-measurements") != std::string::npos;
+    if (emulate && combineMeasurements) {
+      std::regex combine("(.*),([ ]*)combine-measurements(.*)");
+      std::string replacement("$1$3");
+      passPipelineConfig =
+          std::regex_replace(passPipelineConfig, combine, replacement);
+      cudaq::info("Delaying combine-measurements pass due to emulation. "
+                  "Updating pipeline to {}",
+                  passPipelineConfig);
+    }
+
     runPassPipeline(passPipelineConfig, moduleOp);
 
     auto entryPointFunc = moduleOp.lookupSymbol<mlir::func::FuncOp>(
@@ -535,6 +562,9 @@ public:
       }
     }
 
+    if (emulate && combineMeasurements)
+      runPassPipeline("func.func(combine-measurements)", moduleOp);
+
     // Get the code gen translation
     auto translation = cudaq::getTranslation(codegenTranslation);
 
@@ -553,7 +583,8 @@ public:
       }
 
       // Form an output_names mapping from codeStr
-      nlohmann::json j = formOutputNames(codegenTranslation, codeStr);
+      nlohmann::json j =
+          formOutputNames(codegenTranslation, moduleOpI, codeStr);
 
       codes.emplace_back(name, codeStr, j, mapping_reorder_idx);
     }
@@ -626,6 +657,7 @@ public:
       localShots = executionContext->shots;
 
     executor->setShots(localShots);
+    bool isObserve = executionContext && executionContext->name == "observe";
 
     // If emulation requested, then just grab the function
     // and invoke it with the simulator
@@ -638,7 +670,7 @@ public:
       // Launch the execution of the simulated jobs asynchronously
       future = cudaq::details::future(std::async(
           std::launch::async,
-          [&, codes, localShots, kernelName, seed,
+          [&, codes, localShots, kernelName, seed, isObserve,
            reorderIdx = executionContext->reorderIdx,
            localJIT = std::move(jitEngines)]() mutable -> cudaq::sample_result {
             std::vector<cudaq::ExecutionResult> results;
@@ -649,7 +681,7 @@ public:
 
             bool hasConditionals =
                 cudaq::kernelHasConditionalFeedback(kernelName);
-            if (hasConditionals && codes.size() > 1)
+            if (hasConditionals && isObserve)
               throw std::runtime_error("error: spin_ops not yet supported with "
                                        "kernels containing conditionals");
             if (hasConditionals) {
@@ -679,8 +711,6 @@ public:
               }
             }
 
-            bool isObserve =
-                executionContext && executionContext->name == "observe";
             for (std::size_t i = 0; i < codes.size(); i++) {
               cudaq::ExecutionContext context("sample", localShots);
               context.reorderIdx = reorderIdx;
@@ -688,9 +718,8 @@ public:
               invokeJITKernelAndRelease(localJIT[i], kernelName);
               cudaq::getExecutionManager()->resetExecutionContext();
 
-              // If there are multiple codes, this is likely a spin_op.
-              // If so, use the code name instead of the global register.
-              if (isObserve || (codes.size() > 1)) {
+              if (isObserve) {
+                // Use the code name instead of the global register.
                 results.emplace_back(context.result.to_map(), codes[i].name);
                 results.back().sequentialData =
                     context.result.sequential_data();
@@ -712,7 +741,7 @@ public:
       // Allow developer to disable remote sending (useful for debugging IR)
       if (getEnvBool("DISABLE_REMOTE_SEND", false))
         return;
-      future = executor->execute(codes);
+      future = executor->execute(codes, isObserve);
     }
 
     // Keep this asynchronous if requested

@@ -160,8 +160,21 @@ ServerJobPayload BraketExecutor::checkHelperAndCreateJob(
   return braketServerHelper->createJob(codesToExecute);
 }
 
+void BraketExecutor::setOutputNames(const KernelExecution &codeToExecute,
+                                    const std::string &taskId) {
+  auto braketServerHelper = dynamic_cast<BraketServerHelper *>(serverHelper);
+  assert(braketServerHelper);
+  auto config = braketServerHelper->getConfig();
+
+  auto output_names = codeToExecute.output_names.dump();
+  config["output_names." + taskId] = output_names;
+
+  braketServerHelper->setOutputNames(taskId, output_names);
+}
+
 details::future
-BraketExecutor::execute(std::vector<KernelExecution> &codesToExecute) {
+BraketExecutor::execute(std::vector<KernelExecution> &codesToExecute,
+                        bool isObserve) {
   auto [dummy1, dummy2, messages] = checkHelperAndCreateJob(codesToExecute);
 
   std::string const defaultBucket = defaultBucketFuture.get();
@@ -185,16 +198,19 @@ BraketExecutor::execute(std::vector<KernelExecution> &codesToExecute) {
 
   return std::async(
       std::launch::async,
-      [this](std::vector<Aws::Braket::Model::CreateQuantumTaskOutcomeCallable>
-                 createOutcomes) {
+      [this, codesToExecute](
+          std::vector<Aws::Braket::Model::CreateQuantumTaskOutcomeCallable>
+              createOutcomes) {
         std::vector<ExecutionResult> results;
-        for (auto &outcome : createOutcomes) {
+        for (std::size_t i = 0; auto &outcome : createOutcomes) {
           auto createResponse = outcome.get();
           if (!createResponse.IsSuccess()) {
             throw std::runtime_error(createResponse.GetError().GetMessage());
           }
           std::string taskArn = createResponse.GetResult().GetQuantumTaskArn();
+
           cudaq::info("Created Braket quantum task {}", taskArn);
+          setOutputNames(codesToExecute[i], taskArn);
 
           Aws::Braket::Model::GetQuantumTaskRequest req;
           req.SetQuantumTaskArn(taskArn);
@@ -240,12 +256,14 @@ BraketExecutor::execute(std::vector<KernelExecution> &codesToExecute) {
           }
           auto resultsJson = nlohmann::json::parse(
               s3Response.GetResultWithOwnership().GetBody());
+
           auto c = serverHelper->processResults(resultsJson, taskArn);
 
           for (auto &regName : c.register_names()) {
             results.emplace_back(c.to_map(regName), regName);
             results.back().sequentialData = c.sequential_data(regName);
           }
+          i++;
         }
 
         return sample_result(results);

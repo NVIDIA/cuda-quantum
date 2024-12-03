@@ -8,7 +8,6 @@
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
-#include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
