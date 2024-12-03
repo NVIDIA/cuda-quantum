@@ -95,26 +95,6 @@ std::vector<int> operator_sum::degrees() const {
   return std::vector<int>(unique_degrees.begin(), unique_degrees.end());
 }
 
-/// Aggregate parameters of all terms.
-/*
-std::map<std::string, std::string> operator_sum::parameters() const {
-  std::map<std::string, std::string> param_map;
-
-  for (const auto &term : m_terms) {
-    for (const auto &op_variant : term.get_terms()) {
-      std::visit(
-          [&param_map](auto &op) {
-            const auto &op_params = op.parameters;
-            param_map.insert(op_params.begin(), op_params.end());
-          },
-          op_variant);
-    }
-  }
-
-  return param_map;
-}
-*/
-
 /// Check if the operator sum acts as a spin operator.
 bool operator_sum::_is_spinop() const {
   return std::all_of(
@@ -207,16 +187,6 @@ operator_sum operator_sum::operator+=(const operator_sum &other) {
 //     }
 //   }
 // return operator_sum(product_terms);
-// }
-
-/// FIXME:
-// operator_sum operator_sum::operator/(const operator_sum &other) const {
-//   std::vector<product_operator> divided_terms;
-//   for (const auto &term : m_terms) {
-//     divided_terms.push_back(term / other);
-//   }
-
-//   return operator_sum(divided_terms);
 // }
 
 operator_sum operator_sum::operator+(const scalar_operator &other) const {

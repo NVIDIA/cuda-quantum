@@ -48,12 +48,18 @@ public:
   /// is a product of elementary and scalar operators.
   operator_sum(const std::vector<product_operator> &terms);
 
+  // FIXME: Maybe shouldn't be directly accessible, but protected instead
+  const std::vector<product_operator> &get_terms() const { return m_terms; }
+
   operator_sum canonicalize() const;
 
   /// @brief The degrees of freedom that the operator acts on in canonical
   /// order.
   std::vector<int> degrees() const;
 
+  // FIXME: This should be dictionary of parameter names to their description (the parameter documentation).
+  // However, this isn't implemented in C++ yet; in C++ we would need to suitable arguments when defining 
+  // elementary and scalar operators to pass the parameter description. Maybe just drop this for now?
   //std::map<std::string, std::string> parameters() const;
 
   bool _is_spinop() const;
@@ -71,33 +77,50 @@ public:
   /// complex values.
   complex_matrix
   to_matrix(const std::map<int, int> &dimensions,
-            const std::map<std::string, double> &params = {}) const;
+            const std::map<std::string, std::complex<double>> &params = {}) const;
+
+  /// @brief Return the operator_sum as a string.
+  std::string to_string() const;
 
   // Arithmetic operators
   operator_sum operator+(const operator_sum &other) const;
   operator_sum operator-(const operator_sum &other) const;
   operator_sum operator*(const operator_sum &other) const;
-  operator_sum operator/(const operator_sum &other) const;
   operator_sum operator+=(const operator_sum &other);
   operator_sum operator-=(const operator_sum &other);
-
-  operator_sum operator+(const scalar_operator &other) const;
-  operator_sum operator-(const scalar_operator &other) const;
-  operator_sum operator+=(const scalar_operator &other);
-  operator_sum operator-=(const scalar_operator &other);
+  operator_sum operator*=(const operator_sum &other);
 
   operator_sum operator+(const product_operator &other) const;
   operator_sum operator-(const product_operator &other) const;
+  operator_sum operator*(const product_operator &other) const;
   operator_sum operator+=(const product_operator &other);
   operator_sum operator-=(const product_operator &other);
+  operator_sum operator*=(const product_operator &other);
 
   operator_sum operator+(const elementary_operator &other) const;
   operator_sum operator-(const elementary_operator &other) const;
+  operator_sum operator*(const elementary_operator &other) const;
   operator_sum operator+=(const elementary_operator &other);
   operator_sum operator-=(const elementary_operator &other);
+  operator_sum operator*=(const elementary_operator &other);
 
-  /// @brief Return the operator_sum as a string.
-  std::string to_string() const;
+  operator_sum operator+(const scalar_operator &other) const;
+  operator_sum operator-(const scalar_operator &other) const;
+  operator_sum operator*(const scalar_operator &other) const;
+  operator_sum operator/(const scalar_operator &other) const;
+  operator_sum operator+=(const scalar_operator &other);
+  operator_sum operator-=(const scalar_operator &other);
+  operator_sum operator*=(const scalar_operator &other);
+  operator_sum operator/=(const scalar_operator &other);
+
+  operator_sum operator+(const std::complex<double> &other) const;
+  operator_sum operator-(const std::complex<double> &other) const;
+  operator_sum operator*(const std::complex<double> &other) const;
+  operator_sum operator/(const std::complex<double> &other) const;
+  operator_sum operator+=(const std::complex<double> &other);
+  operator_sum operator-=(const std::complex<double> &other);
+  operator_sum operator*=(const std::complex<double> &other);
+  operator_sum operator/=(const std::complex<double> &other);
 
   /// @brief  True, if the other value is an operator_sum with equivalent terms,
   /// and False otherwise. The equality takes into account that operator
@@ -109,11 +132,6 @@ public:
   /// If the equality evaluates to True, on the other hand, the operators
   /// are guaranteed to represent the same transformation for all arguments.
   bool operator==(const operator_sum &other) const;
-
-  const std::vector<product_operator> &get_terms() const { return m_terms; }
-
-  std::complex<double>
-  evaluate(std::map<std::string, std::complex<double>> parameters);
 };
 
 /// @brief Represents an operator expression consisting of a product of
@@ -138,44 +156,21 @@ public:
       std::vector<std::variant<scalar_operator, elementary_operator>>
           atomic_operators);
 
-  // Arithmetic overloads against all other operator types.
-  operator_sum operator+(std::complex<double> other);
-  operator_sum operator-(std::complex<double> other);
-  product_operator operator*(std::complex<double> other);
-  product_operator operator*=(std::complex<double> other);
-  product_operator operator/(const std::complex<double> scalar) const;
-  operator_sum operator+(operator_sum other);
-  operator_sum operator-(operator_sum other);
-  product_operator operator*(operator_sum other);
-  product_operator operator*=(operator_sum other);
-  operator_sum operator+(const scalar_operator &other) const;
-  operator_sum operator-(const scalar_operator &other) const;
-  product_operator operator*(const scalar_operator &other) const;
-  product_operator &operator*=(const scalar_operator &other);
-  operator_sum operator+(const product_operator &other) const;
-  operator_sum operator-(const product_operator &other) const;
-  product_operator operator*(const product_operator &other) const;
-  product_operator operator*=(product_operator other);
-  operator_sum operator+(elementary_operator other);
-  operator_sum operator-(elementary_operator other);
-  product_operator operator*(elementary_operator other);
-  product_operator operator*=(elementary_operator other);
-  /// @brief True, if the other value is an operator_sum with equivalent terms,
-  ///  and False otherwise. The equality takes into account that operator
-  ///  addition is commutative, as is the product of two operators if they
-  ///  act on different degrees of freedom.
-  ///  The equality comparison does *not* take commutation relations into
-  ///  account, and does not try to reorder terms block-wise; it may hence
-  ///  evaluate to False, even if two operators in reality are the same.
-  ///  If the equality evaluates to True, on the other hand, the operators
-  ///  are guaranteed to represent the same transformation for all arguments.
-  bool operator==(product_operator other);
-
   /// @brief Converts a Pauli word to a product operator
   product_operator _from_word(const std::string &word);
 
-  /// @brief Return the `product_operator` as a string.
-  std::string to_string() const;
+  // FIXME: Maybe shouldn't be directly accessible, but protected instead
+  const std::vector<std::variant<scalar_operator, elementary_operator>> &
+  get_terms() const {
+    return m_terms;
+  };
+
+  /// @brief The degrees of freedom that the operator acts on in canonical
+  /// order.
+  std::vector<int> degrees() const;
+
+  template <typename TEval>
+  TEval _evaluate(operator_arithmetics<TEval> &arithmetics) const;
 
   /// @brief Return the `operator_sum` as a matrix.
   /// @arg  `dimensions` : A mapping that specifies the number of levels,
@@ -188,32 +183,63 @@ public:
   to_matrix(const std::map<int, int> dimensions,
             const std::map<std::string, std::complex<double>> parameters) const;
 
-  /// @brief Creates a representation of the operator as a `cudaq::pauli_word`
-  /// that can be passed as an argument to quantum kernels.
-  // pauli_word to_pauli_word();
+  /// @brief Return the `product_operator` as a string.
+  std::string to_string() const;
 
-  /// @brief The degrees of freedom that the operator acts on in canonical
-  /// order.
-  std::vector<int> degrees() const;
+  // Arithmetic operators
+  operator_sum operator+(const operator_sum &other) const;
+  operator_sum operator-(const operator_sum &other) const;
+  operator_sum operator*(const operator_sum &other) const;
 
-  std::complex<double>
-  evaluate(std::map<std::string, std::complex<double>> parameters);
+  operator_sum operator+(const product_operator &other) const;
+  operator_sum operator-(const product_operator &other) const;
+  product_operator operator*(const product_operator &other) const;
+  product_operator operator*=(const product_operator &other);
 
-  template <typename TEval>
-  TEval _evaluate(operator_arithmetics<TEval> &arithmetics) const;
+  operator_sum operator+(const elementary_operator &other) const;
+  operator_sum operator-(const elementary_operator &other) const;
+  product_operator operator*(const elementary_operator &other) const;
+  product_operator operator*=(const elementary_operator &other);
 
-  /// @brief A map of the parameter names to their concrete, complex values.
-  std::map<std::string, std::complex<double>> parameters;
+  operator_sum operator+(const scalar_operator &other) const;
+  operator_sum operator-(const scalar_operator &other) const;
+  product_operator operator*(const scalar_operator &other) const;
+  product_operator operator/(const scalar_operator &other) const;
+  product_operator operator*=(const scalar_operator &other);
+  product_operator operator/=(const scalar_operator &other);
 
-  const std::vector<std::variant<scalar_operator, elementary_operator>> &
-  get_terms() const {
-    return m_terms;
-  };
+  operator_sum operator+(const std::complex<double> &other) const;
+  operator_sum operator-(const std::complex<double> &other) const;
+  product_operator operator*(const std::complex<double> &other) const;
+  product_operator operator/(const std::complex<double> &other) const;
+  product_operator operator*=(const std::complex<double> &other);
+  product_operator operator/=(const std::complex<double> &other);
+
+  /// @brief True, if the other value is an operator_sum with equivalent terms,
+  ///  and False otherwise. The equality takes into account that operator
+  ///  addition is commutative, as is the product of two operators if they
+  ///  act on different degrees of freedom.
+  ///  The equality comparison does *not* take commutation relations into
+  ///  account, and does not try to reorder terms block-wise; it may hence
+  ///  evaluate to False, even if two operators in reality are the same.
+  ///  If the equality evaluates to True, on the other hand, the operators
+  ///  are guaranteed to represent the same transformation for all arguments.
+  bool operator==(product_operator other);
 };
 
 class elementary_operator : public product_operator {
 private:
-  std::map<std::string, Definition> m_ops;
+
+  // FIXME: Definition class doesn't seem to be implemented anywhere
+  //static std::map<std::string, Definition> = {};
+
+  std::string id;
+  std::vector<int> degrees;
+  /// @brief The number of levels, that is the dimension, for each degree of
+  /// freedom in canonical order that the operator acts on. A value of zero or
+  /// less indicates that the operator is defined for any dimension of that
+  /// degree.
+  std::map<int, int> expected_dimensions;
 
 public:
   // The constructor should never be called directly by the user:
@@ -224,49 +250,17 @@ public:
   /// @arg degrees : the degrees of freedom that the operator acts upon.
   elementary_operator(std::string operator_id, std::vector<int> degrees);
 
-  // Copy constructor.
-  elementary_operator(const elementary_operator &other);
-  elementary_operator(elementary_operator &other);
+  /// @brief The degrees of freedom that the operator acts on in canonical
+  /// order.
+  //std::vector<int> degrees() const;
 
-  // Arithmetic overloads against all other operator types.
-  /// NOTE: All of below arithmetic implemented except for the division between
-  ///       two elementary ops. Further testing at the matrix level is needed.
-  operator_sum operator+(std::complex<double> other);
-  operator_sum operator-(std::complex<double> other);
-  product_operator operator*(std::complex<double> other);
-  product_operator operator/(std::complex<double> other);
-  operator_sum operator+(double other);
-  operator_sum operator-(double other);
-  product_operator operator*(double other);
-  product_operator operator/(double other);
-  operator_sum operator+(scalar_operator other);
-  operator_sum operator-(scalar_operator other);
-  product_operator operator*(scalar_operator other);
-  product_operator operator/(scalar_operator other);
-  operator_sum operator+(elementary_operator other);
-  operator_sum operator-(elementary_operator other);
-  product_operator operator*(elementary_operator other);
-  product_operator operator/(elementary_operator other);
+  // FIXME: This should be dictionary of parameter names to their description (the parameter documentation).
+  // However, this isn't implemented in C++ yet; in C++ we would need to suitable arguments when defining 
+  // elementary and scalar operators to pass the parameter description. Maybe just drop this for now?
+  //std::map<std::string, std::string> parameters() const;
 
-  /// TODO: implement and test the below
-  operator_sum operator+(operator_sum other);
-  operator_sum operator-(operator_sum other);
-  operator_sum operator+=(operator_sum other);
-  operator_sum operator-=(operator_sum other);
-  /// FIXME: Correct signature?
-  product_operator operator*(operator_sum other);
-  //
-  operator_sum operator+(product_operator other);
-  operator_sum operator-(product_operator other);
-  product_operator operator*(product_operator other);
-  product_operator operator/(product_operator other);
-
-  /// @brief True, if the other value is an elementary operator with the same id
-  /// acting on the same degrees of freedom, and False otherwise.
-  bool operator==(elementary_operator other);
-
-  /// @brief Return the `elementary_operator` as a string.
-  std::string to_string() const;
+  template <typename TEval>
+  TEval _evaluate(operator_arithmetics<TEval> &arithmetics) const;
 
   /// @brief Return the `elementary_operator` as a matrix.
   /// @arg  `dimensions` : A map specifying the number of levels,
@@ -277,7 +271,44 @@ public:
   to_matrix(const std::map<int, int> dimensions,
             const std::map<std::string, std::complex<double>> parameters) const;
 
-  // Predefined operators.
+  /// @brief Return the `elementary_operator` as a string.
+  std::string to_string() const;
+
+  // Arithmetic operators
+  operator_sum operator+(const operator_sum &other) const;
+  operator_sum operator-(const operator_sum &other) const;
+  operator_sum operator*(const operator_sum &other) const;
+
+  operator_sum operator+(const product_operator &other) const;
+  operator_sum operator-(const product_operator &other) const;
+  product_operator operator*(const product_operator &other) const;
+
+  operator_sum operator+(const elementary_operator &other) const;
+  operator_sum operator-(const elementary_operator &other) const;
+  product_operator operator*(const elementary_operator &other) const;
+
+  operator_sum operator+(const scalar_operator &other) const;
+  operator_sum operator-(const scalar_operator &other) const;
+  product_operator operator*(const scalar_operator &other) const;
+  product_operator operator/(const scalar_operator &other) const;
+
+  operator_sum operator+(const std::complex<double> &other) const;
+  operator_sum operator-(const std::complex<double> &other) const;
+  product_operator operator*(const std::complex<double> &other) const;
+  product_operator operator/(const std::complex<double> &other) const;
+
+  // FIXME: if we have these here we should also have then for the other operator classes
+  operator_sum operator+(double other) const;
+  operator_sum operator-(double other) const;
+  product_operator operator*(double other) const;
+  product_operator operator/(double other) const;
+
+  /// @brief True, if the other value is an elementary operator with the same id
+  /// acting on the same degrees of freedom, and False otherwise.
+  bool operator==(elementary_operator other);
+
+  // FIXME: These should not be members of elementary_operator. 
+  // They should be defined and work in the same way as any operator defined by user code.
   static elementary_operator identity(int degree);
   static elementary_operator zero(int degree);
   static elementary_operator annihilate(int degree);
@@ -286,7 +317,6 @@ public:
   static elementary_operator number(int degree);
   static elementary_operator parity(int degree);
   static elementary_operator position(int degree);
-  /// FIXME:
   static elementary_operator squeeze(int degree,
                                      std::complex<double> amplitude);
   static elementary_operator displace(int degree,
@@ -321,6 +351,9 @@ public:
   template <typename Func>
   void define(std::string operator_id, std::map<int, int> expected_dimensions,
               Func create) {
+    throw std::logic_error("Function not yet implemented");
+
+    /* FIXME: These things are not actually defined it seems
     if (m_ops.find(operator_id) != m_ops.end()) {
       // todo: make a nice error message to say op already exists
       throw;
@@ -328,52 +361,32 @@ public:
     auto defn = Definition();
     defn.create_definition(operator_id, expected_dimensions, create);
     m_ops[operator_id] = defn;
+    */
   }
-
-  // Attributes.
-
-  /// @brief The number of levels, that is the dimension, for each degree of
-  /// freedom in canonical order that the operator acts on. A value of zero or
-  /// less indicates that the operator is defined for any dimension of that
-  /// degree.
-  std::map<int, int> expected_dimensions;
-  /// @brief The degrees of freedom that the operator acts on in canonical
-  /// order.
-  std::vector<int> degrees;
-  /// @brief A map of the parameter names to their concrete, complex values.
-  /// This will be enabled once we can handle generalized callback function
-  /// arguments.
-  /// @FIXME: Not needed until generalizing the function arguments.
-  std::map<std::string, std::string> parameters;
-  std::string id;
-
-  // /// @brief Creates a representation of the operator as `pauli_word` that
-  // can be passed as an argument to quantum kernels.
-  // pauli_word to_pauli_word ovveride();
-
-  std::complex<double>
-  evaluate(std::map<std::string, std::complex<double>> parameters);
-
-  template <typename TEval>
-  TEval _evaluate(operator_arithmetics<TEval> &arithmetics) const;
 };
+
 // Reverse order arithmetic for elementary operators against pure scalars.
+// FIXME: what about the same for other operator classes??
 operator_sum operator+(std::complex<double> other, elementary_operator self);
 operator_sum operator-(std::complex<double> other, elementary_operator self);
 product_operator operator*(std::complex<double> other,
                            elementary_operator self);
-product_operator operator/(std::complex<double> other,
-                           elementary_operator self);
 operator_sum operator+(double other, elementary_operator self);
 operator_sum operator-(double other, elementary_operator self);
 product_operator operator*(double other, elementary_operator self);
-product_operator operator/(double other, elementary_operator self);
 
 class scalar_operator : public product_operator {
 private:
   // If someone gave us a constant value, we will just return that
   // directly to them when they call `evaluate`.
-  std::complex<double> m_constant_value;
+  std::optional<std::complex<double>> m_constant_value;
+  // Used when the scalar operator is held within
+  // a variant type next to elementary operators.
+  std::vector<int> degrees = {};
+  // FIXME: why a class member? That doesn't seem like a good choice
+  // Only populated when we've performed arithmetic between various
+  // scalar operators.
+  std::vector<scalar_operator> _operators_to_compose;
 
 public:
   /// @brief Constructor that just takes a callback function with no
@@ -388,29 +401,15 @@ public:
   /// without the need for an extra member function.
   scalar_operator(std::complex<double> value);
   scalar_operator(double value);
+  ~scalar_operator() = default;
 
-  // Arithmetic overloads against other operator types.
-  scalar_operator operator+(scalar_operator other);
-  scalar_operator operator-(scalar_operator other);
-  scalar_operator operator*(scalar_operator other);
-  scalar_operator operator/(scalar_operator other);
-  /// TODO:
-  scalar_operator pow(scalar_operator other);
+  /// @brief The function that generates the value of the scalar operator.
+  /// The function can take a vector of complex-valued arguments
+  /// and returns a number.
+  ScalarCallbackFunction generator;
 
-  /// TODO: All of the below need deeper testing but are implemented.
-  operator_sum operator+(elementary_operator other);
-  operator_sum operator-(elementary_operator other);
-  product_operator operator*(elementary_operator other);
-  product_operator operator/(elementary_operator other);
-  // TODO:
-  operator_sum operator+(operator_sum other);
-  operator_sum operator-(operator_sum other);
-  operator_sum operator*(operator_sum other);
-  operator_sum operator/(operator_sum other);
-  operator_sum operator+(product_operator other);
-  operator_sum operator-(product_operator other);
-  product_operator operator*(product_operator other);
-  product_operator operator/(product_operator other);
+  template <typename TEval>
+  TEval _evaluate(operator_arithmetics<TEval> &arithmetics) const;
 
   /// @brief Return the scalar operator as a concrete complex value.
   std::complex<double>
@@ -422,68 +421,68 @@ public:
   to_matrix(const std::map<int, int> dimensions,
             const std::map<std::string, std::complex<double>> parameters) const;
 
+
+
+  // Arithmetic operators
+  operator_sum operator+(const operator_sum &other) const;
+  operator_sum operator-(const operator_sum &other) const;
+  operator_sum operator*(const operator_sum &other) const;
+
+  operator_sum operator+(const product_operator &other) const;
+  operator_sum operator-(const product_operator &other) const;
+  product_operator operator*(const product_operator &other) const;
+
+  operator_sum operator+(const elementary_operator &other) const;
+  operator_sum operator-(const elementary_operator &other) const;
+  product_operator operator*(const elementary_operator &other) const;
+
+  scalar_operator operator+(const scalar_operator &other) const;
+  scalar_operator operator-(const scalar_operator &other) const;
+  scalar_operator operator*(const scalar_operator &other) const;
+  scalar_operator operator/(const scalar_operator &other) const;
+  scalar_operator pow(scalar_operator other) const; 
+  scalar_operator operator+=(const scalar_operator &other);
+  scalar_operator operator-=(const scalar_operator &other);
+  scalar_operator operator*=(const scalar_operator &other);
+  scalar_operator operator/=(const scalar_operator &other);
+
+  scalar_operator operator+(const std::complex<double> &other) const;
+  scalar_operator operator-(const std::complex<double> &other) const;
+  scalar_operator operator*(const std::complex<double> &other) const;
+  scalar_operator operator/(const std::complex<double> &other) const;
+  scalar_operator pow(const std::complex<double> &other) const; 
+  scalar_operator operator+=(const std::complex<double> &other);
+  scalar_operator operator-=(const std::complex<double> &other);
+  scalar_operator operator*=(const std::complex<double> &other);
+  scalar_operator operator/=(const std::complex<double> &other);
+
+  // FIXME: if we have these here we should also have then for the other operator classes
+  scalar_operator operator+(double other) const;
+  scalar_operator operator-(double other) const;
+  scalar_operator operator*(double other) const;
+  scalar_operator operator/(double other) const;
+  scalar_operator pow(double other) const; 
+  scalar_operator operator+=(double other);
+  scalar_operator operator-=(double other);
+  scalar_operator operator*=(double other);
+  scalar_operator operator/=(double other);
+
   // /// @brief Returns true if other is a scalar operator with the same
   // /// generator.
   // bool operator==(scalar_operator other);
 
-  /// @brief The function that generates the value of the scalar operator.
-  /// The function can take a vector of complex-valued arguments
-  /// and returns a number.
-  ScalarCallbackFunction generator;
-
-  // Only populated when we've performed arithmetic between various
-  // scalar operators.
-  std::vector<scalar_operator> _operators_to_compose;
-
-  /// NOTE: We should revisit these constructors and remove any that have
-  /// become unnecessary as the implementation improves.
-  scalar_operator() = default;
-  // Copy constructor.
-  scalar_operator(const scalar_operator &other);
-  scalar_operator(scalar_operator &other);
-
-  ~scalar_operator() = default;
-
-  template <typename TEval>
-  TEval _evaluate(operator_arithmetics<TEval> &arithmetics) const;
-
-  // Need this property for consistency with other inherited types.
-  // Particularly, to be used when the scalar operator is held within
-  // a variant type next to elementary operators.
-  std::vector<int> degrees = {-1};
-
   // REMOVEME: just using this as a temporary patch:
   std::complex<double> get_val() { return m_constant_value; };
-
-  bool has_val() {
-    return m_constant_value.real() != 0.0 && m_constant_value.imag() != 0.0;
-  };
 };
 
-scalar_operator operator+(scalar_operator self, std::complex<double> other);
-scalar_operator operator-(scalar_operator self, std::complex<double> other);
-scalar_operator operator*(scalar_operator self, std::complex<double> other);
-scalar_operator operator/(scalar_operator self, std::complex<double> other);
 scalar_operator operator+(std::complex<double> other, scalar_operator self);
 scalar_operator operator-(std::complex<double> other, scalar_operator self);
 scalar_operator operator*(std::complex<double> other, scalar_operator self);
 scalar_operator operator/(std::complex<double> other, scalar_operator self);
-scalar_operator operator+(scalar_operator self, double other);
-scalar_operator operator-(scalar_operator self, double other);
-scalar_operator operator*(scalar_operator self, double other);
-scalar_operator operator/(scalar_operator self, double other);
 scalar_operator operator+(double other, scalar_operator self);
 scalar_operator operator-(double other, scalar_operator self);
 scalar_operator operator*(double other, scalar_operator self);
 scalar_operator operator/(double other, scalar_operator self);
-void operator+=(scalar_operator &self, std::complex<double> other);
-void operator-=(scalar_operator &self, std::complex<double> other);
-void operator*=(scalar_operator &self, std::complex<double> other);
-void operator/=(scalar_operator &self, std::complex<double> other);
-void operator+=(scalar_operator &self, scalar_operator other);
-void operator-=(scalar_operator &self, scalar_operator other);
-void operator*=(scalar_operator &self, scalar_operator other);
-void operator/=(scalar_operator &self, scalar_operator other);
 
 using Operator = std::variant<std::monostate, std::unique_ptr<operator_sum>,
                               std::unique_ptr<product_operator>,

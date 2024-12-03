@@ -18,12 +18,6 @@ namespace cudaq {
 elementary_operator::elementary_operator(std::string operator_id,
                                          std::vector<int> degrees)
     : id(operator_id), degrees(degrees) {}
-elementary_operator::elementary_operator(const elementary_operator &other)
-    : m_ops(other.m_ops), expected_dimensions(other.expected_dimensions),
-      degrees(other.degrees), id(other.id) {}
-elementary_operator::elementary_operator(elementary_operator &other)
-    : m_ops(other.m_ops), expected_dimensions(other.expected_dimensions),
-      degrees(other.degrees), id(other.id) {}
 
 elementary_operator elementary_operator::identity(int degree) {
   std::string op_id = "identity";
@@ -31,7 +25,7 @@ elementary_operator elementary_operator::identity(int degree) {
   auto op = elementary_operator(op_id, degrees);
   // A dimension of -1 indicates this operator can act on any dimension.
   op.expected_dimensions[degree] = -1;
-  if (op.m_ops.find(op_id) == op.m_ops.end()) {
+  if (elementary_operator::m_ops.find(op_id) == elementary_operator::m_ops.end()) {
     auto func = [&](std::map<int, int> dimensions,
                     std::map<std::string, std::complex<double>> _none) {
       int degree = op.degrees[0];
@@ -57,7 +51,7 @@ elementary_operator elementary_operator::zero(int degree) {
   auto op = elementary_operator(op_id, degrees);
   // A dimension of -1 indicates this operator can act on any dimension.
   op.expected_dimensions[degree] = -1;
-  if (op.m_ops.find(op_id) == op.m_ops.end()) {
+  if (elementary_operator::m_ops.find(op_id) == elementary_operator::m_ops.end()) {
     auto func = [&](std::map<int, int> dimensions,
                     std::map<std::string, std::complex<double>> _none) {
       // Need to set the degree via the op itself because the
@@ -83,7 +77,7 @@ elementary_operator elementary_operator::annihilate(int degree) {
   auto op = elementary_operator(op_id, degrees);
   // A dimension of -1 indicates this operator can act on any dimension.
   op.expected_dimensions[degree] = -1;
-  if (op.m_ops.find(op_id) == op.m_ops.end()) {
+  if (elementary_operator::m_ops.find(op_id) == elementary_operator::m_ops.end()) {
     auto func = [&](std::map<int, int> dimensions,
                     std::map<std::string, std::complex<double>> _none) {
       auto degree = op.degrees[0];
@@ -108,7 +102,7 @@ elementary_operator elementary_operator::create(int degree) {
   auto op = elementary_operator(op_id, degrees);
   // A dimension of -1 indicates this operator can act on any dimension.
   op.expected_dimensions[degree] = -1;
-  if (op.m_ops.find(op_id) == op.m_ops.end()) {
+  if (elementary_operator::m_ops.find(op_id) == elementary_operator::m_ops.end()) {
     auto func = [&](std::map<int, int> dimensions,
                     std::map<std::string, std::complex<double>> _none) {
       auto degree = op.degrees[0];
@@ -133,7 +127,7 @@ elementary_operator elementary_operator::position(int degree) {
   auto op = elementary_operator(op_id, degrees);
   // A dimension of -1 indicates this operator can act on any dimension.
   op.expected_dimensions[degree] = -1;
-  if (op.m_ops.find(op_id) == op.m_ops.end()) {
+  if (elementary_operator::m_ops.find(op_id) == elementary_operator::m_ops.end()) {
     auto func = [&](std::map<int, int> dimensions,
                     std::map<std::string, std::complex<double>> _none) {
       auto degree = op.degrees[0];
@@ -160,7 +154,7 @@ elementary_operator elementary_operator::momentum(int degree) {
   auto op = elementary_operator(op_id, degrees);
   // A dimension of -1 indicates this operator can act on any dimension.
   op.expected_dimensions[degree] = -1;
-  if (op.m_ops.find(op_id) == op.m_ops.end()) {
+  if (elementary_operator::m_ops.find(op_id) == elementary_operator::m_ops.end()) {
     auto func = [&](std::map<int, int> dimensions,
                     std::map<std::string, std::complex<double>> _none) {
       auto degree = op.degrees[0];
@@ -189,7 +183,7 @@ elementary_operator elementary_operator::number(int degree) {
   auto op = elementary_operator(op_id, degrees);
   // A dimension of -1 indicates this operator can act on any dimension.
   op.expected_dimensions[degree] = -1;
-  if (op.m_ops.find(op_id) == op.m_ops.end()) {
+  if (elementary_operator::m_ops.find(op_id) == elementary_operator::m_ops.end()) {
     auto func = [&](std::map<int, int> dimensions,
                     std::map<std::string, std::complex<double>> _none) {
       auto degree = op.degrees[0];
@@ -214,7 +208,7 @@ elementary_operator elementary_operator::parity(int degree) {
   auto op = elementary_operator(op_id, degrees);
   // A dimension of -1 indicates this operator can act on any dimension.
   op.expected_dimensions[degree] = -1;
-  if (op.m_ops.find(op_id) == op.m_ops.end()) {
+  if (elementary_operator::m_ops.find(op_id) == elementary_operator::m_ops.end()) {
     auto func = [&](std::map<int, int> dimensions,
                     std::map<std::string, std::complex<double>> _none) {
       auto degree = op.degrees[0];
@@ -240,7 +234,7 @@ elementary_operator::displace(int degree, std::complex<double> amplitude) {
   auto op = elementary_operator(op_id, degrees);
   // A dimension of -1 indicates this operator can act on any dimension.
   op.expected_dimensions[degree] = -1;
-  if (op.m_ops.find(op_id) == op.m_ops.end()) {
+  if (elementary_operator::m_ops.find(op_id) == elementary_operator::m_ops.end()) {
     auto func = [&](std::map<int, int> dimensions,
                     std::map<std::string, std::complex<double>> _none) {
       auto degree = op.degrees[0];
@@ -277,11 +271,11 @@ elementary_operator::squeeze(int degree, std::complex<double> amplitude) {
 complex_matrix elementary_operator::to_matrix(
     const std::map<int, int> dimensions,
     const std::map<std::string, std::complex<double>> parameters) const {
-  if (m_ops.find(id) == m_ops.end())
+  if (elementary_operator::m_ops.find(id) == elementary_operator::m_ops.end())
     throw std::runtime_error(
         fmt::format("No operator found with this ID '{}'", id));
 
-  return m_ops.at(id).generator(dimensions, parameters);
+  return elementary_operator::m_ops.at(id).generator(dimensions, parameters);
 }
 
 template <typename TEval>

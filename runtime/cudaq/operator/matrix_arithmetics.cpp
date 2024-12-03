@@ -104,11 +104,6 @@ matrix_arithmetics::canonicalize(const cudaq::complex_matrix &op_matrix,
 }
 
 Evaluated matrix_arithmetics::evaluate(const Operator &op) const {
-  // cudaq::complex_matrix matrix = op.to_matrix(dimensions, op.parameters);
-  // // Replace with degrees from operator
-  // std::vector<int> degrees = op.degrees;
-  // return Evaluated(degrees, matrix);
-
   return std::visit(
       [this](auto &&arg) -> Evaluated {
         using T = std::decay_t<decltype(arg)>;
@@ -118,17 +113,11 @@ Evaluated matrix_arithmetics::evaluate(const Operator &op) const {
           std::vector<int> degrees = arg.degrees;
           return Evaluated(degrees, matrix);
         } else if constexpr (std::is_same_v<T, cudaq::scalar_operator>) {
-          // Handle the scalar operator
-          if (arg.has_val()) {
-            // double scalar_value = arg.get_val();
-            int dim = dimensions.at(arg.degrees[0]);
-            cudaq::complex_matrix matrix =
-                cudaq::complex_matrix::identity(dim, dim);
-            return Evaluated(arg.degrees, matrix);
-          } else {
-            throw std::runtime_error(
-                "Dynamic scalar operator evaluation not implemented.");
-          }
+          // FIXME: this is not correct!
+          int dim = dimensions.at(arg.degrees[0]);
+          cudaq::complex_matrix matrix =
+              cudaq::complex_matrix::identity(dim, dim);
+          return Evaluated(arg.degrees, matrix);
         } else {
           throw std::runtime_error(
               "Unknown operator type in CudaqOperatorVariant.");
