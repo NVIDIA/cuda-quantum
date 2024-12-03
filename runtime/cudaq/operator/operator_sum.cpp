@@ -20,8 +20,8 @@ operator_sum::operator_sum(const std::vector<product_operator> &terms)
     : m_terms(terms) {}
 
 /// Canonicalize the terms of the operator sum.
-std::vector<std::tuple<scalar_operator, elementary_operator>>
-operator_sum::_canonical_terms() const {
+std::vector<sdt::variant<scalar_operator, elementary_operator>>
+operator_sum::canonical_terms() const {
   std::vector<sdt::variant<scalar_operator, elementary_operator>>
       canonicalized_terms;
 
@@ -67,7 +67,7 @@ operator_sum::_canonical_terms() const {
 /// Canonicalize the operator sum into a new instance
 operator_sum operator_sum::canonicalize() const {
   std::vector<product_operator> canonical_terms;
-  for (const auto &[scalar, elementary] : _canonical_terms()) {
+  for (const auto &[scalar, elementary] : canonical_terms()) {
     canonical_terms.emplace_back(product_operator({scalar, elementary}));
   }
 
@@ -76,7 +76,7 @@ operator_sum operator_sum::canonicalize() const {
 
 /// Equality operator to compare canonicalized terms.
 bool operator_sum::operator==(const operator_sum &other) const {
-  return _canonical_terms() == other._canonical_terms;
+  return canonical_terms() == other.canonical_terms;
 }
 
 /// Get unique degrees of freedom in canonical order.
@@ -96,8 +96,9 @@ std::vector<int> operator_sum::degrees() const {
 }
 
 /// Aggregate parameters of all terms.
-std::map<std::string, std::complex<double>> operator_sum::parameters() const {
-  std::map<std::string, std::complex<double>> param_map;
+/*
+std::map<std::string, std::string> operator_sum::parameters() const {
+  std::map<std::string, std::string> param_map;
 
   for (const auto &term : m_terms) {
     for (const auto &op_variant : term.get_terms()) {
@@ -112,6 +113,7 @@ std::map<std::string, std::complex<double>> operator_sum::parameters() const {
 
   return param_map;
 }
+*/
 
 /// Check if the operator sum acts as a spin operator.
 bool operator_sum::_is_spinop() const {

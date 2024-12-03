@@ -8,4 +8,4 @@
 
 #pragma once
 
-#include "cudaq/dynamics/operators.h"
+#include "cudaq/operator/operators.h"

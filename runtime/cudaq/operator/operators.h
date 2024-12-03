@@ -35,11 +35,8 @@ class operator_sum {
 private:
   std::vector<product_operator> m_terms;
 
-  std::vector<std::tuple<scalar_operator, elementary_operator>>
-  canonicalize_product(product_operator &prod) const;
-
-  std::vector<std::tuple<scalar_operator, elementary_operator>>
-  _canonical_terms() const;
+  std::vector<sdt::variant<scalar_operator, elementary_operator>>
+  canonical_terms() const;
 
 public:
   /// @brief Empty constructor that a user can aggregate terms into.
@@ -57,7 +54,7 @@ public:
   /// order.
   std::vector<int> degrees() const;
 
-  std::map<std::string, std::complex<double>> parameters() const;
+  //std::map<std::string, std::string> parameters() const;
 
   bool _is_spinop() const;
 
@@ -347,7 +344,7 @@ public:
   /// This will be enabled once we can handle generalized callback function
   /// arguments.
   /// @FIXME: Not needed until generalizing the function arguments.
-  std::map<std::string, std::complex<double>> parameters;
+  std::map<std::string, std::string> parameters;
   std::string id;
 
   // /// @brief Creates a representation of the operator as `pauli_word` that
