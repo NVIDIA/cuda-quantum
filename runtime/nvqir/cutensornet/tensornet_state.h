@@ -14,6 +14,7 @@
 #include "timing_utils.h"
 #include <span>
 #include <unordered_map>
+#include <optional>
 
 namespace nvqir {
 /// This is used to track whether the tensor state is default initialized vs
@@ -28,13 +29,31 @@ struct MPSTensor {
   std::vector<int64_t> extents;
 };
 
+struct UnitaryChannel {
+  std::vector<void *> tensorData;
+  std::vector<double> probabilities;
+};
+
 /// Track gate tensors that were appended to the tensor network.
 struct AppliedTensorOp {
   void *deviceData = nullptr;
+  std::optional<UnitaryChannel> unitaryChannel;
   std::vector<int32_t> targetQubitIds;
   std::vector<int32_t> controlQubitIds;
   bool isAdjoint;
   bool isUnitary;
+  AppliedTensorOp(void *dataPtr, const std::vector<int32_t> &targetQubits,
+                  const std::vector<int32_t> &controlQubits, bool adjoint,
+                  bool unitary)
+      : deviceData(dataPtr), targetQubitIds(targetQubits),
+        controlQubitIds(controlQubits), isAdjoint(adjoint), isUnitary(unitary) {
+  }
+
+  AppliedTensorOp(const std::vector<int32_t> &qubits,
+                  const std::vector<void *> &krausOps,
+                  const std::vector<double> &probabilities)
+      : targetQubitIds(qubits),
+        unitaryChannel(UnitaryChannel(krausOps, probabilities)) {}
 };
 
 /// @brief Wrapper of cutensornetState_t to provide convenient API's for CUDA-Q
@@ -100,6 +119,11 @@ public:
   void applyGate(const std::vector<int32_t> &controlQubits,
                  const std::vector<int32_t> &targetQubits, void *gateDeviceMem,
                  bool adjoint = false);
+
+  /// @brief Apply a unitary channel
+  void applyUnitaryChannel(const std::vector<int32_t> &qubits,
+                           const std::vector<void *> &krausOps,
+                           const std::vector<double> &probabilities);
 
   /// @brief Apply a projector matrix (non-unitary)
   /// @param proj_d Projector matrix (expected a 2x2 matrix in column major)

@@ -73,6 +73,22 @@ void TensorNetState::applyGate(const std::vector<int32_t> &controlQubits,
                                            controlQubits, adjoint, true});
 }
 
+void TensorNetState::applyUnitaryChannel(
+    const std::vector<int32_t> &qubits, const std::vector<void *> &krausOps,
+    const std::vector<double> &probabilities) {
+  LOG_API_TIME();
+  int64_t channelId = 0;
+  HANDLE_CUTN_ERROR(cutensornetStateApplyUnitaryChannel(
+      m_cutnHandle, m_quantumState, /*numStateModes=*/qubits.size(),
+      /*stateModes=*/qubits.data(),
+      /*numTensors=*/krausOps.size(),
+      /*tensorData=*/const_cast<void **>(krausOps.data()),
+      /*tensorModeStrides=*/nullptr,
+      /*probabilities=*/probabilities.data(), &channelId));
+
+  m_tensorOps.emplace_back(AppliedTensorOp{qubits, krausOps, probabilities});
+}
+
 void TensorNetState::applyQubitProjector(void *proj_d,
                                          const std::vector<int32_t> &qubitIdx) {
   LOG_API_TIME();

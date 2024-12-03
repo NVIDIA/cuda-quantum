@@ -103,6 +103,118 @@ void SimulatorTensorNetBase::applyGate(const GateApplicationTask &task) {
   m_state->applyGate(ctrlQubits, targetQubits, m_gateDeviceMemCache[gateKey]);
 }
 
+void SimulatorTensorNetBase::applyNoiseChannel(
+    const std::string_view gateName, const std::vector<std::size_t> &controls,
+    const std::vector<std::size_t> &targets,
+    const std::vector<double> &params) {
+  // Do nothing if no execution context
+  if (!executionContext)
+    return;
+
+  // Do nothing if no noise model
+  if (!executionContext->noiseModel)
+    return;
+
+  // Get the name as a string
+  std::string gName(gateName);
+  std::vector<int32_t> qubits{controls.begin(), controls.end()};
+  qubits.insert(qubits.end(), targets.begin(), targets.end());
+
+  // Get the Kraus channels specified for this gate and qubits
+  auto krausChannels = executionContext->noiseModel->get_channels(
+      gName, targets, controls, params);
+
+  // If none, do nothing
+  if (krausChannels.empty())
+    return;
+
+  cudaq::info(
+      "[SimulatorTensorNetBase] Applying {} kraus channels on qubits: {}",
+      krausChannels.size(), qubits);
+
+  const std::vector<std::complex<double>> matPauliI = {
+      {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {1.0, 0.0}};
+  const std::vector<std::complex<double>> matPauliX{
+      {0.0, 0.0}, {1.0, 0.0}, {1.0, 0.0}, {0.0, 0.0}};
+  const std::vector<std::complex<double>> matPauliY{
+      {0.0, 0.0}, {0.0, 1.0}, {0.0, -1.0}, {0.0, 0.0}};
+  const std::vector<std::complex<double>> matPauliZ{
+      {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {-1.0, 0.0}};
+
+  const auto getOrCacheMat = [&](const std::string &key,
+                                 const std::vector<std::complex<double>> &mat) {
+    const auto iter = m_gateDeviceMemCache.find(key);
+
+    if (iter == m_gateDeviceMemCache.end()) {
+      void *dMem = allocateGateMatrix(mat);
+      m_gateDeviceMemCache[key] = dMem;
+      return dMem;
+    }
+    return iter->second;
+  };
+
+  for (auto &krausChannel : krausChannels) {
+    switch (krausChannel.noise_type) {
+    case cudaq::noise_model_type::depolarization_channel: {
+      if (krausChannel.parameters.size() != 1)
+        throw std::runtime_error(
+            fmt::format("Invalid parameters for a depolarization channel. "
+                        "Expecting 1 parameter, got {}.",
+                        krausChannel.parameters.size()));
+      const std::vector<void *> channelMats{getOrCacheMat("PauliI", matPauliI),
+                                            getOrCacheMat("PauliX", matPauliX),
+                                            getOrCacheMat("PauliY", matPauliY),
+                                            getOrCacheMat("PauliZ", matPauliZ)};
+      const double p = krausChannel.parameters[0];
+      const std::vector<double> probabilities = {1 - p, p / 3., p / 3., p / 3.};
+      m_state->applyUnitaryChannel(qubits, channelMats, probabilities);
+      break;
+    }
+    case cudaq::noise_model_type::bit_flip_channel: {
+      if (krausChannel.parameters.size() != 1)
+        throw std::runtime_error(
+            fmt::format("Invalid parameters for a bit-flip channel. "
+                        "Expecting 1 parameter, got {}.",
+                        krausChannel.parameters.size()));
+
+      const std::vector<void *> channelMats{getOrCacheMat("PauliI", matPauliI),
+                                            getOrCacheMat("PauliX", matPauliX)};
+      const double p = krausChannel.parameters[0];
+      const std::vector<double> probabilities = {1 - p, p};
+      m_state->applyUnitaryChannel(qubits, channelMats, probabilities);
+      break;
+    }
+    case cudaq::noise_model_type::phase_flip_channel: {
+      if (krausChannel.parameters.size() != 1)
+        throw std::runtime_error(
+            fmt::format("Invalid parameters for a phase-flip channel. "
+                        "Expecting 1 parameter, got {}.",
+                        krausChannel.parameters.size()));
+
+      const std::vector<void *> channelMats{getOrCacheMat("PauliI", matPauliI),
+                                            getOrCacheMat("PauliZ", matPauliX)};
+      const double p = krausChannel.parameters[0];
+      const std::vector<double> probabilities = {1 - p, p};
+      m_state->applyUnitaryChannel(qubits, channelMats, probabilities);
+      break;
+    }
+    case cudaq::noise_model_type::amplitude_damping_channel: {
+      throw std::runtime_error("Non-unitary noise channels are not supported.");
+    }
+    case cudaq::noise_model_type::unknown: {
+      // TODO: check the Kraus matrices to see if we can convert it to a unitary
+      // channel.
+      throw std::runtime_error("Non-unitary noise channels are not supported.");
+      break;
+    }
+    default:
+      throw std::runtime_error(
+          "Unsupported noise model type: " +
+          std::to_string(static_cast<int>(krausChannel.noise_type)));
+    }
+  }
+}
+
 /// @brief Reset the state of a given qubit to zero
 void SimulatorTensorNetBase::resetQubit(const std::size_t qubitIdx) {
   flushGateQueue();

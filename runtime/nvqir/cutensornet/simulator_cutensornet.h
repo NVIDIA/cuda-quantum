@@ -30,6 +30,12 @@ public:
   /// @brief Apply quantum gate
   void applyGate(const GateApplicationTask &task) override;
 
+  /// @brief Apply a noise channel
+  void applyNoiseChannel(const std::string_view gateName,
+                         const std::vector<std::size_t> &controls,
+                         const std::vector<std::size_t> &targets,
+                         const std::vector<double> &params) override;
+
   // Override base calculateStateDim (we don't instantiate full state vector in
   // the tensornet backend). When the user want to retrieve the state vector, we
   // check if it is feasible to do so.
