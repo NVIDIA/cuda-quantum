@@ -27,16 +27,11 @@ where :math:`\sigma_z` and :math:`\sigma_x` are Pauli Z and X operators, respect
 Using CUDA-Q `operator`, the above time-dependent Hamiltonian can be set up as follows.
 
 .. tab:: Python
-    
-    .. code:: python
 
-        from cudaq.operator import *
-
-        # Qubit Hamiltonian
-        hamiltonian = 0.5 * omega_z * spin.z(0)
-        # Add modulated driving term to the Hamiltonian
-        hamiltonian += omega_x * ScalarOperator(
-            lambda t: np.cos(omega_d * t)) * spin.x(0)
+  .. literalinclude:: ../../snippets/python/using/backends/dynamics.py
+        :language: python
+        :start-after: [Begin Transmon]
+        :end-before: [End Transmon]
 
 In particular, `ScalarOperator` provides an easy way to model arbitrary time-dependent control signals.   
 Details about CUDA-Q `operator`, including builtin operators that it supports can be found :ref:`here <operators>`.
@@ -47,35 +42,11 @@ The below code snippet shows how to simulate the time-evolution of the above sys
 with `cudaq.evolve`.
 
 .. tab:: Python
-    
-    .. code:: python
 
-        # Set the target to our dynamics simulator
-        cudaq.set_target("dynamics")
-
-        # Dimensions of sub-systems: a single two-level system.
-        dimensions = {0: 2}
-
-        # Initial state of the system (ground state).
-        rho0 = cudaq.State.from_data(
-            cp.array([[1.0, 0.0], [0.0, 0.0]], dtype=cp.complex128))
-
-        # Schedule of time steps.
-        steps = np.linspace(0, t_final, n_steps)
-        schedule = Schedule(steps, ["t"])
-
-        # Run the simulation.
-        evolution_result = evolve(hamiltonian,
-                                dimensions,
-                                schedule,
-                                rho0,
-                                observables=[spin.x(0),
-                                            spin.y(0),
-                                            spin.z(0)],
-                                collapse_operators=[],
-                                store_intermediate_results=True)
-
-
+  .. literalinclude:: ../../snippets/python/using/backends/dynamics.py
+        :language: python
+        :start-after: [Begin Evolve]
+        :end-before: [End Evolve]
 
 Specifically, we need to set up the simulation by providing:
 
@@ -103,24 +74,12 @@ as well as intermediate values at each time step (with `store_intermediate_resul
 
 For example, we can plot the Pauli expectation value for the above simulation as follows.
 
-
 .. tab:: Python
-    
-    .. code:: python
 
-        get_result = lambda idx, res: [
-            exp_vals[idx].expectation() for exp_vals in res.expectation_values()
-        ]
-
-        import matplotlib.pyplot as plt
-
-        plt.plot(steps, get_result(0, evolution_result))
-        plt.plot(steps, get_result(1, evolution_result))
-        plt.plot(steps, get_result(2, evolution_result))
-        plt.ylabel("Expectation value")
-        plt.xlabel("Time")
-        plt.legend(("Sigma-X", "Sigma-Y", "Sigma-Z"))
-
+  .. literalinclude:: ../../snippets/python/using/backends/dynamics.py
+        :language: python
+        :start-after: [Begin Plot]
+        :end-before: [End Plot]
 
 In particular, for each time step, `evolve` captures an array of expectation values, one for each  
 observable. Hence, we convert them into sequences for plotting purposes.
@@ -186,11 +145,11 @@ Mathematically, the Hamiltonian can be expressed as
 This Hamiltonian can be converted to CUDA-Q `Operator` representation with
 
 .. tab:: Python
-    
-    .. code:: python
 
-        hamiltonian = omega_c * operators.create(1) * operators.annihilate(1) + (omega_a/2) * spin.z(0) + (Omega/2) (operators.annihilate(1) * spin.plus(0) + operators.create(1)*spin.minus(0))
-
+  .. literalinclude:: ../../snippets/python/using/backends/dynamics.py
+        :language: python
+        :start-after: [Begin Jaynes-Cummings]
+        :end-before: [End Jaynes-Cummings]
 
 In the above code snippet, we map the cavity light field to degree index 1 and the two-level atom to degree index 0. 
 The description of composite quantum system dynamics is independent from the Hilbert space of the system components.
@@ -217,41 +176,47 @@ where :math:`f(t)` is the time-dependent driving strength given as :math:`cos(\o
 The following code sets up the problem
 
 .. tab:: Python
-    
-    .. code:: python
-        
-        import numpy as np
-        # Define the static (drift) and control terms 
-        H0 = spin.z(0)
-        H1 = spin.x(0)
-        H = H0 + ScalarOperator(lambda t: np.cos(omega * t)) * H1
+
+  .. literalinclude:: ../../snippets/python/using/backends/dynamics.py
+        :language: python
+        :start-after: [Begin Hamiltonian]
+        :end-before: [End Hamiltonian]
 
 2. Time-dependent operator
 
 We can also construct a time-dependent operator from a function that returns a complex matrix representing the time dynamics of 
 that operator.
 
-As an example, let's revisit the above example, whereby we now define a time-dependent operator :math:`H_1(t) = cos(\omega t) \sigma_X`.
+As an example, let's looks at the `displacement operator <https://en.wikipedia.org/wiki/Displacement_operator>`__. It can be defined as follows:
+
 
 .. tab:: Python
-    
-    .. code:: python
-        
-        import numpy as np
-        
-        # A function that returns H1 matrix as a function of time
-        def H1_matrix(t):
-            return np.cos(omega * t) * np.array([[0., 1.], [1., 0.]], dtype=np.complex128)
-        # Define and register the time-dependent operator
-        # This operator is expected to be applied to a two-level sub-system (dimension = 2).
-        ElementaryOperator.define("H1", [2], H1_matrix)
-        
-        # Construct the Hamiltonian terms
-        H0 = spin.z(0)
-        H1 = ElementaryOperator("H1", [0])
-        # Total Hamiltonian
-        H = H0 + H1
 
+  .. literalinclude:: ../../snippets/python/using/backends/dynamics.py
+        :language: python
+        :start-after: [Begin DefineOp]
+        :end-before: [End DefineOp]
+
+The defined operator is parameterized by the `displacement` amplitude. To create simulate the evolution of an 
+operator under a time dependent displacement amplitude, we can define how the amplitude changes in time:
+
+.. tab:: Python
+
+  .. literalinclude:: ../../snippets/python/using/backends/dynamics.py
+        :language: python
+        :start-after: [Begin Schedule1]
+        :end-before: [End Schedule1]
+
+Let's say we want to add a squeezing term to the system operator. We can independently vary the squeezing 
+amplitude and the displacement amplitude by instantiating a schedule with a custom function that returns 
+the desired value for each parameter: 
+
+.. tab:: Python
+
+  .. literalinclude:: ../../snippets/python/using/backends/dynamics.py
+        :language: python
+        :start-after: [Begin Schedule2]
+        :end-before: [End Schedule2]
 
 Numerical Integrators
 ++++++++++++++++++++++

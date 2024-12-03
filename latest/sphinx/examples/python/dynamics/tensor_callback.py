@@ -1,121 +1,72 @@
 import cudaq
-from cudaq import ElementaryOperator, spin, Schedule, ScipyZvodeIntegrator
+from cudaq import ElementaryOperator, spin, operators, Schedule, ScipyZvodeIntegrator
 import numpy as np
 import cupy as cp
 import os
 import matplotlib.pyplot as plt
 
-# This example simulates time evolution of a qubit (`transmon`) being driven close to resonance in the presence of noise (decoherence).
-# Thus, it exhibits Rabi oscillations.
+# This example demonstrates the use of callback functions to define time-dependent operators.
 
 # Set the target to our dynamics simulator
 cudaq.set_target("dynamics")
 
-# Device parameters
-# Qubit resonant frequency
-nu_z = 10.0
-# Transverse term
-nu_x = 1.0
-# Harmonic driving frequency
-# Note: we chose a frequency slightly different from the resonant frequency to demonstrate the off-resonance effect.
-nu_d = 9.98
+# Consider a simple 2-level system Hamiltonian exhibits the Landau–Zener transition:
+# `[[-alpha*t, g], [g, alpha*t]]
+# This can be defined as a callback tensor:
+g = 2.0 * np.pi
+alpha = 10.0 * 2 * np.pi
 
 
 def callback_tensor(t):
-    return np.cos(2 * np.pi * nu_d * t) * np.array([[0., 1.], [1., 0.]],
-                                                   dtype=np.complex128)
+    return np.array([[-alpha * t, g], [g, alpha * t]], dtype=np.complex128)
 
 
-# Let's define the control term as a callback tensor
-ElementaryOperator.define("control_term", [2], callback_tensor)
+# Analytical formula
+lz_formula_p0 = np.exp(-np.pi * g**2 / (alpha))
+lz_formula_p1 = 1.0 - lz_formula_p0
 
-# Qubit Hamiltonian
-hamiltonian = 0.5 * 2 * np.pi * nu_z * spin.z(0)
-# Add modulated driving term to the Hamiltonian
-hamiltonian += 2 * np.pi * nu_x * ElementaryOperator("control_term", [0])
+# Let's define the control term as a callback tensor that acts on 2-level systems
+ElementaryOperator.define("lz_op", [2], callback_tensor)
+
+# Hamiltonian
+hamiltonian = ElementaryOperator("lz_op", [0])
 
 # Dimensions of sub-system. We only have a single degree of freedom of dimension 2 (two-level system).
 dimensions = {0: 2}
 
-# Initial state of the system (ground state).
-rho0 = cudaq.State.from_data(
-    cp.array([[1.0, 0.0], [0.0, 0.0]], dtype=cp.complex128))
+# Initial state of the system (ground state)
+psi0 = cudaq.State.from_data(cp.array([1.0, 0.0], dtype=cp.complex128))
 
-# Schedule of time steps.
-t_final = 0.5 / nu_x
-tau = .005
-n_steps = int(np.ceil(t_final / tau)) + 1
-steps1 = np.linspace(0, t_final, n_steps)
-schedule = Schedule(steps1, ["t"])
+# Schedule of time steps (simulating a long time range)
+steps = np.linspace(-4.0, 4.0, 10000)
+schedule = Schedule(steps, ["t"])
 
 # Run the simulation.
-# First, we run the simulation without any collapse operators (no decoherence).
 evolution_result = cudaq.evolve(hamiltonian,
                                 dimensions,
                                 schedule,
-                                rho0,
-                                observables=[spin.x(0),
-                                             spin.y(0),
-                                             spin.z(0)],
+                                psi0,
+                                observables=[operators.number(0)],
                                 collapse_operators=[],
                                 store_intermediate_results=True,
                                 integrator=ScipyZvodeIntegrator())
 
-# Now, run the simulation with qubit decoherence
-Gamma_1 = 0.8
-Gamma_2 = 0.2
-# Use a different time scale in this case to demonstrate the effect of decoherence.
-t_final = 5.5 / max(Gamma_1, Gamma_2)
-n_steps = int(np.ceil(t_final / tau)) + 1
-steps2 = np.linspace(0, t_final, n_steps)
-schedule = Schedule(steps2, ["t"])
-
-evolution_result_decay = cudaq.evolve(
-    hamiltonian,
-    dimensions,
-    schedule,
-    rho0,
-    observables=[spin.x(0), spin.y(0), spin.z(0)],
-    collapse_operators=[
-        np.sqrt(Gamma_1) * spin.plus(0),
-        np.sqrt(Gamma_2) * spin.z(0)
-    ],
-    store_intermediate_results=True,
-    integrator=ScipyZvodeIntegrator())
-
-get_result = lambda idx, res: [
-    exp_vals[idx].expectation() for exp_vals in res.expectation_values()
-]
-ideal_results = [
-    get_result(0, evolution_result),
-    get_result(1, evolution_result),
-    get_result(2, evolution_result)
-]
-decoherence_results = [
-    get_result(0, evolution_result_decay),
-    get_result(1, evolution_result_decay),
-    get_result(2, evolution_result_decay)
+prob1 = [
+    exp_vals[0].expectation()
+    for exp_vals in evolution_result.expectation_values()
 ]
 
-fig = plt.figure(figsize=(18, 6))
-
-plt.subplot(1, 2, 1)
-plt.plot(steps1, ideal_results[0])
-plt.plot(steps1, ideal_results[1])
-plt.plot(steps1, ideal_results[2])
-plt.ylabel("Expectation value")
-plt.xlabel("Time")
-plt.legend(("Sigma-X", "Sigma-Y", "Sigma-Z"))
-plt.title("No decoherence")
-
-plt.subplot(1, 2, 2)
-plt.plot(steps2, decoherence_results[0])
-plt.plot(steps2, decoherence_results[1])
-plt.plot(steps2, decoherence_results[2])
-plt.ylabel("Expectation value")
-plt.xlabel("Time")
-plt.legend(("Sigma-X", "Sigma-Y", "Sigma-Z"))
-plt.title("With decoherence")
+prob0 = [1 - val for val in prob1]
+fig, ax = plt.subplots(figsize=(12, 8))
+ax.plot(steps, prob1, 'b', steps, prob0, 'r')
+ax.plot(steps, lz_formula_p1 * np.ones(np.shape(steps)), 'k')
+ax.plot(steps, lz_formula_p0 * np.ones(np.shape(steps)), 'm')
+ax.set_xlabel("Time")
+ax.set_ylabel("Occupation probability")
+ax.set_title("Landau-Zener transition")
+ax.legend(("Excited state", "Ground state", "LZ formula (Excited state)",
+           "LZ formula (Ground state)"),
+          loc=0)
 
 abspath = os.path.abspath(__file__)
 dname = os.path.dirname(abspath)

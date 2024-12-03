@@ -2,9 +2,13 @@ import cudaq
 from cudaq.operator import *
 import numpy as np
 
-## NOTE: QuEra Aquila system is available via AWS Braket.
-# AWS credentials must be set before running this program.
-# AWS Braket costs apply.
+## NOTE: QuEra Aquila system is available via Amazon Braket.
+# Credentials must be set before running this program.
+# Amazon Braket costs apply.
+
+# This example illustrates how to use QuEra's Aquila device on Braket with CUDA-Q.
+# It is a CUDA-Q implementation of the getting started materials for Braket available here:
+# https://docs.aws.amazon.com/braket/latest/developerguide/braket-get-started-hello-ahs.html
 
 cudaq.set_target("quera")
 

@@ -1,6 +1,5 @@
 import cudaq
 from cudaq import operators, spin, Schedule, ScipyZvodeIntegrator
-from cudaq.operator import coherent_state
 import numpy as np
 import cupy as cp
 import os
@@ -10,7 +9,9 @@ import matplotlib.pyplot as plt
 cudaq.set_target("dynamics")
 
 # This example demonstrates a simulation of a superconducting transmon qubit coupled to a resonator (i.e., cavity).
-# For reference, see "Charge-insensitive qubit design derived from the Cooper pair box", PRA 76, 042319
+# References:
+# - "Charge-insensitive qubit design derived from the Cooper pair box", PRA 76, 042319
+# - QuTiP lecture: https://github.com/jrjohansson/qutip-lectures/blob/master/Lecture-10-cQED-dispersive-regime.ipynb
 
 # Number of cavity photons
 N = 20
@@ -27,30 +28,34 @@ omega_r = 2.0 * 2 * np.pi  # resonator frequency
 chi_01 = 0.025 * 2 * np.pi
 chi_12 = 0.0
 
-# Alias for commonly used operators
-# Cavity operators
-a = operators.annihilate(1)
-a_dag = operators.create(1)
-nc = operators.number(1)
-xc = operators.annihilate(1) + operators.create(1)
-
-# Transmon operators
-sz = spin.z(0)
-sx = spin.x(0)
-nq = operators.number(0)
-xq = operators.annihilate(0) + operators.create(0)
-
-# See equation 3.8
 omega_01_prime = omega_01 + chi_01
 omega_r_prime = omega_r - chi_12 / 2.0
 chi = chi_01 - chi_12 / 2.0
-hamiltonian = 0.5 * omega_01_prime * sz + (omega_r_prime + chi * sz) * a_dag * a
+
+# System Hamiltonian
+hamiltonian = 0.5 * omega_01_prime * spin.z(0) + (
+    omega_r_prime + chi * spin.z(0)) * operators.number(1)
 
 # Initial state of the system
 # Transmon in a superposition state
 transmon_state = cp.array([1. / np.sqrt(2.), 1. / np.sqrt(2.)],
                           dtype=cp.complex128)
-# Cavity in a superposition state
+
+
+# Helper to create a coherent state in Fock basis truncated at `num_levels`.
+# Note: There are a couple of ways of generating a coherent state,
+# e.g., see https://qutip.readthedocs.io/en/v5.0.3/apidoc/functions.html#qutip.core.states.coherent
+# or https://en.wikipedia.org/wiki/Coherent_state
+# Here, in this example, we use a the formula: `|alpha> = D(alpha)|0>`,
+# i.e., apply the displacement operator on a zero (or vacuum) state to compute the corresponding coherent state.
+def coherent_state(num_levels, amplitude):
+    displace_mat = operators.displace(0).to_matrix({0: num_levels},
+                                                   displacement=amplitude)
+    # `D(alpha)|0>` is the first column of `D(alpha)` matrix
+    return cp.array(np.transpose(displace_mat)[0])
+
+
+# Cavity in a coherent state
 cavity_state = coherent_state(N, 2.0)
 psi0 = cudaq.State.from_data(cp.kron(transmon_state, cavity_state))
 
@@ -62,7 +67,12 @@ evolution_result = cudaq.evolve(hamiltonian,
                                 dimensions,
                                 schedule,
                                 psi0,
-                                observables=[nc, nq, xc, xq],
+                                observables=[
+                                    operators.number(1),
+                                    operators.number(0),
+                                    operators.position(1),
+                                    operators.position(0)
+                                ],
                                 collapse_operators=[],
                                 store_intermediate_results=True,
                                 integrator=ScipyZvodeIntegrator())

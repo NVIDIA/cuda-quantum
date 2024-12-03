@@ -158,8 +158,6 @@ Data Types
     :members:
 
 .. autofunction:: cudaq.operator.cudm_state.to_cupy_array
-.. autofunction:: cudaq.operator.cudm_state.coherent_state
-.. autofunction:: cudaq.operator.cudm_state.coherent_dm
 
 .. autoclass:: cudaq::SampleResult
     :members:

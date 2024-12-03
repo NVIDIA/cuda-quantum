@@ -9,9 +9,10 @@ import matplotlib.pyplot as plt
 # Set the target to our dynamics simulator
 cudaq.set_target("dynamics")
 
-# Device parameters
-delta = 0.0  # Detuning of the drive
-alpha = -340.0  # Anharmonicity
+# Sample device parameters
+# Assuming a simple transmon device Hamiltonian in rotating frame.
+detuning = 0.0  # Detuning of the drive; assuming resonant drive
+anharmonicity = -340.0  # Anharmonicity
 sigma = 0.01  # sigma of the Gaussian pulse
 cutoff = 4.0 * sigma  # total length of drive pulse
 
@@ -54,8 +55,8 @@ def cost_function(amps):
     amplitude = 100 * amps[0]
     drag_amp = 100 * amps[1]
     # Qubit Hamiltonian
-    hamiltonian = delta * operators.number(0) + (
-        alpha / 2) * operators.create(0) * operators.create(
+    hamiltonian = detuning * operators.number(0) + (
+        anharmonicity / 2) * operators.create(0) * operators.create(
             0) * operators.annihilate(0) * operators.annihilate(0)
     # Drive term
     hamiltonian += amplitude * ScalarOperator(gaussian) * (

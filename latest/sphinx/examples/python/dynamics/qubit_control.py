@@ -7,24 +7,24 @@ import matplotlib.pyplot as plt
 
 # This example simulates time evolution of a qubit (`transmon`) being driven close to resonance in the presence of noise (decoherence).
 # Thus, it exhibits Rabi oscillations.
-
 # Set the target to our dynamics simulator
 cudaq.set_target("dynamics")
 
+# Qubit Hamiltonian reference: https://qiskit-community.github.io/qiskit-dynamics/tutorials/Rabi_oscillations.html
 # Device parameters
 # Qubit resonant frequency
-nu_z = 10.0
+omega_z = 10.0 * 2 * np.pi
 # Transverse term
-nu_x = 1.0
+omega_x = 2 * np.pi
 # Harmonic driving frequency
 # Note: we chose a frequency slightly different from the resonant frequency to demonstrate the off-resonance effect.
-nu_d = 9.98
+omega_drive = 0.99 * omega_z
 
 # Qubit Hamiltonian
-hamiltonian = 0.5 * 2 * np.pi * nu_z * spin.z(0)
+hamiltonian = 0.5 * omega_z * spin.z(0)
 # Add modulated driving term to the Hamiltonian
-hamiltonian += 2 * np.pi * nu_x * ScalarOperator(
-    lambda t: np.cos(2 * np.pi * nu_d * t)) * spin.x(0)
+hamiltonian += omega_x * ScalarOperator(
+    lambda t: np.cos(omega_drive * t)) * spin.x(0)
 
 # Dimensions of sub-system. We only have a single degree of freedom of dimension 2 (two-level system).
 dimensions = {0: 2}
@@ -34,11 +34,11 @@ rho0 = cudaq.State.from_data(
     cp.array([[1.0, 0.0], [0.0, 0.0]], dtype=cp.complex128))
 
 # Schedule of time steps.
-t_final = 0.5 / nu_x
-tau = .005
-n_steps = int(np.ceil(t_final / tau)) + 1
-steps1 = np.linspace(0, t_final, n_steps)
-schedule = Schedule(steps1, ["t"])
+t_final = np.pi / omega_x
+dt = 2.0 * np.pi / omega_drive / 100
+n_steps = int(np.ceil(t_final / dt)) + 1
+steps = np.linspace(0, t_final, n_steps)
+schedule = Schedule(steps, ["t"])
 
 # Run the simulation.
 # First, we run the simulation without any collapse operators (no decoherence).
@@ -54,14 +54,8 @@ evolution_result = cudaq.evolve(hamiltonian,
                                 integrator=ScipyZvodeIntegrator())
 
 # Now, run the simulation with qubit decoherence
-Gamma_1 = 0.8
-Gamma_2 = 0.2
-# Use a different time scale in this case to demonstrate the effect of decoherence.
-t_final = 5.5 / max(Gamma_1, Gamma_2)
-n_steps = int(np.ceil(t_final / tau)) + 1
-steps2 = np.linspace(0, t_final, n_steps)
-schedule = Schedule(steps2, ["t"])
-
+gamma_sm = 4.0
+gamma_sz = 1.0
 evolution_result_decay = cudaq.evolve(
     hamiltonian,
     dimensions,
@@ -69,8 +63,8 @@ evolution_result_decay = cudaq.evolve(
     rho0,
     observables=[spin.x(0), spin.y(0), spin.z(0)],
     collapse_operators=[
-        np.sqrt(Gamma_1) * spin.plus(0),
-        np.sqrt(Gamma_2) * spin.z(0)
+        np.sqrt(gamma_sm) * spin.plus(0),
+        np.sqrt(gamma_sz) * spin.z(0)
     ],
     store_intermediate_results=True,
     integrator=ScipyZvodeIntegrator())
@@ -92,18 +86,18 @@ decoherence_results = [
 fig = plt.figure(figsize=(18, 6))
 
 plt.subplot(1, 2, 1)
-plt.plot(steps1, ideal_results[0])
-plt.plot(steps1, ideal_results[1])
-plt.plot(steps1, ideal_results[2])
+plt.plot(steps, ideal_results[0])
+plt.plot(steps, ideal_results[1])
+plt.plot(steps, ideal_results[2])
 plt.ylabel("Expectation value")
 plt.xlabel("Time")
 plt.legend(("Sigma-X", "Sigma-Y", "Sigma-Z"))
 plt.title("No decoherence")
 
 plt.subplot(1, 2, 2)
-plt.plot(steps2, decoherence_results[0])
-plt.plot(steps2, decoherence_results[1])
-plt.plot(steps2, decoherence_results[2])
+plt.plot(steps, decoherence_results[0])
+plt.plot(steps, decoherence_results[1])
+plt.plot(steps, decoherence_results[2])
 plt.ylabel("Expectation value")
 plt.xlabel("Time")
 plt.legend(("Sigma-X", "Sigma-Y", "Sigma-Z"))
