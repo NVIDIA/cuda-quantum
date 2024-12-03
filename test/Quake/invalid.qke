@@ -71,3 +71,27 @@ func.func @test_struq() {
   %0 = quake.alloca !quake.struq<!quake.struq<!quake.veq<3>, !quake.ref>, !quake.veq<7>>
   return
 }
+
+// -----
+
+func.func @test_subveq(%0: !quake.veq<2>) {
+  // expected-error@+1 {{does not fully intersect}}
+  %1 = quake.subveq %0, 10, 10 : (!quake.veq<2>) -> !quake.veq<1>
+  return
+}
+
+// -----
+
+func.func @test_subveq(%0: !quake.veq<?>) {
+  // expected-error@+1 {{invalid subrange specified}}
+  %1 = quake.subveq %0, 10, 4 : (!quake.veq<?>) -> !quake.veq<?>
+  return
+}
+
+// -----
+
+func.func @test_subveq(%0: !quake.veq<?>) {
+  // expected-error@+1 {{incorrect size for result}}
+  %1 = quake.subveq %0, 8, 35 : (!quake.veq<?>) -> !quake.veq<1>
+  return
+}

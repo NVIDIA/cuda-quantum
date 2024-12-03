@@ -1,0 +1,118 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -combine-measurements -canonicalize %s | FileCheck %s
+
+module {
+func.func @mz_2bits_extract_cst_index() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<2>
+    %1 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+    %measOut = quake.mz %1 : (!quake.ref) -> !quake.measure
+    %2 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
+    %measOut_0 = quake.mz %2 : (!quake.ref) -> !quake.measure
+    return
+  }
+
+// CHECK-LABEL: func.func @mz_2bits_extract_cst_index() attributes {"cudaq-entrypoint", output_names = "{{\[\[\[0,\[0,\\220\\22\]\],\[1,\[1,\\221\\22\]\]\]\]}}"} {
+// CHECK:         %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
+// CHECK:         %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+// CHECK:         return
+// CHECK:       }
+
+  func.func @mz_2bits_extract_cst_op_index() attributes {"cudaq-entrypoint"} {
+    %c1_i64 = arith.constant 1 : i64
+    %c0_i64 = arith.constant 0 : i64
+    %0 = quake.alloca !quake.veq<2>
+    %1 = quake.extract_ref %0[%c0_i64] : (!quake.veq<2>, i64) -> !quake.ref
+    %measOut = quake.mz %1 : (!quake.ref) -> !quake.measure
+    %2 = quake.extract_ref %0[%c1_i64] : (!quake.veq<2>, i64) -> !quake.ref
+    %measOut_0 = quake.mz %2 : (!quake.ref) -> !quake.measure
+    return
+  }
+// CHECK-LABEL: func.func @mz_2bits_extract_cst_op_index() attributes {"cudaq-entrypoint", output_names = "{{\[\[\[0,\[0,\\220\\22\]\],\[1,\[1,\\221\\22\]\]\]\]}}"} {
+// CHECK:         %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
+// CHECK:         %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+// CHECK:         return
+// CHECK:       }
+
+  func.func @mz_2bits_extract_non_consecutive() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<3>
+    %1 = quake.extract_ref %0[0] : (!quake.veq<3>) -> !quake.ref
+    %measOut = quake.mz %1 : (!quake.ref) -> !quake.measure
+    %2 = quake.extract_ref %0[2] : (!quake.veq<3>) -> !quake.ref
+    %measOut_0 = quake.mz %2 : (!quake.ref) -> !quake.measure
+    return
+  }
+
+// CHECK-LABEL: func.func @mz_2bits_extract_non_consecutive() attributes {"cudaq-entrypoint", output_names = "{{\[\[\[0,\[0,\\220\\22\]\],\[1,\[2,\\222\\22\]\]\]\]}}"} {
+// CHECK:         %[[VAL_0:.*]] = quake.alloca !quake.veq<3>
+// CHECK:         %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<3>) -> !cc.stdvec<!quake.measure>
+// CHECK:         return
+// CHECK:       }
+
+  func.func @subveq_4_1() attributes {"cudaq-entrypoint"} {
+    %c1_i64 = arith.constant 1 : i64
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.subveq %0, %c1_i64, %c1_i64 : (!quake.veq<4>, i64, i64) -> !quake.veq<1>
+    %measOut = quake.mz %1 : (!quake.veq<1>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+
+// CHECK-LABEL: func.func @subveq_4_1() attributes {"cudaq-entrypoint", output_names = "{{\[\[\[0,\[1,\\221\\22\]\]\]\]}}"} {
+// CHECK:         %[[VAL_0:.*]] = quake.alloca !quake.veq<4>
+// CHECK:         %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+// CHECK:         return
+// CHECK:       }
+
+  func.func @subveq_4_2() attributes {"cudaq-entrypoint"} {
+    %c1_i64 = arith.constant 1 : i64
+    %c2_i64 = arith.constant 2 : i64
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.subveq %0, %c1_i64, %c2_i64 : (!quake.veq<4>, i64, i64) -> !quake.veq<2>
+    %measOut = quake.mz %1 : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+
+// CHECK-LABEL: func.func @subveq_4_2() attributes {"cudaq-entrypoint", output_names = "{{\[\[\[0,\[1,\\221\\22\]\],\[1,\[2,\\222\\22\]\]\]\]}}"} {
+// CHECK:         %[[VAL_0:.*]] = quake.alloca !quake.veq<4>
+// CHECK:         %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+// CHECK:         return
+// CHECK:       }
+
+  func.func @subveq_4_4() attributes {"cudaq-entrypoint"} {
+    %c0_i64 = arith.constant 0 : i64
+    %c3_i64 = arith.constant 3 : i64
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.subveq %0, %c0_i64, %c3_i64 : (!quake.veq<4>, i64, i64) -> !quake.veq<4>
+    %measOut = quake.mz %1 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+
+// CHECK-LABEL: func.func @subveq_4_4() attributes {"cudaq-entrypoint", output_names = "{{\[\[\[0,\[0,\\220\\22\]\],\[1,\[1,\\221\\22\]\],\[2,\[2,\\222\\22\]\],\[3,\[3,\\223\\22\]\]\]\]}}"} {
+// CHECK:         %[[VAL_0:.*]] = quake.alloca !quake.veq<4>
+// CHECK:         %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+// CHECK:         return
+// CHECK:       }
+
+  func.func @mz_2subveqs_extract() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    %2 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    %3 = quake.subveq %0, 0, 1 : (!quake.veq<4>) -> !quake.veq<2>
+    %measOut = quake.mz %3 : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+    %4 = quake.subveq %0, 2, 2 : (!quake.veq<4>) -> !quake.veq<1>
+    %measOut_0 = quake.mz %4 : (!quake.veq<1>) -> !cc.stdvec<!quake.measure>
+    return
+  }
+
+// CHECK-LABEL: func.func @mz_2subveqs_extract() attributes {"cudaq-entrypoint", output_names = "{{\[\[\[0,\[0,\\220\\22\]\],\[1,\[1,\\221\\22\]\],\[2,\[2,\\222\\22\]\]\]\]}}"} {
+// CHECK:         %[[VAL_0:.*]] = quake.alloca !quake.veq<4>
+// CHECK:         %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+// CHECK:         return
+// CHECK:       }
+}

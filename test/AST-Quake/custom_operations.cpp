@@ -80,11 +80,10 @@ __qpu__ void kernel_4() {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_4._Z8kernel_4v() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 3 : i64
-// CHECK:           %[[VAL_1:.*]] = arith.constant 2 : i64
 // CHECK:           %[[VAL_2:.*]] = arith.constant 1 : i64
 // CHECK:           %[[VAL_3:.*]] = arith.constant 0 : i64
 // CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.veq<4>
-// CHECK:           %[[VAL_5:.*]] = quake.subveq %[[VAL_4]], %[[VAL_3]], %[[VAL_1]] : (!quake.veq<4>, i64, i64) -> !quake.veq<3>
+// CHECK:           %[[VAL_5:.*]] = quake.subveq %[[VAL_4]], 0, 2 : (!quake.veq<4>) -> !quake.veq<3>
 // CHECK:           %[[VAL_6:.*]] = cc.loop while ((%[[VAL_7:.*]] = %[[VAL_3]]) -> (i64)) {
 // CHECK:             %[[VAL_8:.*]] = arith.cmpi slt, %[[VAL_7]], %[[VAL_0]] : i64
 // CHECK:             cc.condition %[[VAL_8]](%[[VAL_7]] : i64)

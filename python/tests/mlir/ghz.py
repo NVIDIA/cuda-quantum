@@ -75,7 +75,7 @@ def test_ghz():
 # CHECK:           quake.h %[[VAL_7]] : (!quake.ref) -> ()
 # CHECK:           %[[VAL_8:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i64>
 # CHECK:           %[[VAL_9:.*]] = arith.subi %[[VAL_8]], %[[VAL_1]] : i64
-# CHECK:           %[[VAL_10:.*]] = quake.subveq %[[VAL_6]], %[[VAL_3]], %[[VAL_9]] : (!quake.veq<?>, i64, i64) -> !quake.veq<?>
+# CHECK:           %[[VAL_10:.*]] = quake.subveq %[[VAL_6]], 0, %[[VAL_9]] : (!quake.veq<?>, i64) -> !quake.veq<?>
 # CHECK:           %[[VAL_11:.*]] = quake.veq_size %[[VAL_10]] : (!quake.veq<?>) -> i64
 # CHECK:           %[[VAL_12:.*]] = cc.alloca !cc.struct<{i64, !quake.ref}>{{\[}}%[[VAL_11]] : i64]
 # CHECK:           %[[VAL_13:.*]] = cc.loop while ((%[[VAL_14:.*]] = %[[VAL_3]]) -> (i64)) {

@@ -34,8 +34,8 @@ std::string getDeviceArn(const std::string &machine) {
   for (const auto &machine : deviceArns)
     knownMachines += machine.first + " ";
   const auto errorMessage =
-      fmt::format("Machine \"{}\" is invalid. Machine must be either a Braket "
-                  "device ARN or one of the known devices: {}",
+      fmt::format("Machine \"{}\" is invalid. Machine must be either an Amazon "
+                  "Braket device ARN or one of the known devices: {}",
                   machine, knownMachines);
   throw std::runtime_error(errorMessage);
 }
@@ -68,8 +68,8 @@ void BraketServerHelper::initialize(BackendConfig config) {
 
   const auto emulate_it = config.find("emulate");
   if (emulate_it != config.end() && emulate_it->second == "true") {
-    cudaq::info("Emulation is enabled, ignore all Braket connection specific "
-                "information.");
+    cudaq::info("Emulation is enabled, ignore all Amazon Braket connection "
+                "specific information.");
     backendConfig = std::move(config);
     return;
   }
@@ -113,7 +113,17 @@ BraketServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
 };
 
 sample_result BraketServerHelper::processResults(ServerMessage &resultsJson,
-                                                 std::string &) {
+                                                 std::string &jobID) {
+
+  if (outputNames.find(jobID) == outputNames.end())
+    throw std::runtime_error("Could not find output names for job " + jobID);
+
+  auto &output_names = outputNames[jobID];
+  for (auto &[result, info] : output_names) {
+    cudaq::info("Qubit {} Result {} Name {}", info.qubitNum, result,
+                info.registerName);
+  }
+
   CountsDictionary counts;
 
   if (resultsJson.contains("measurements")) {
@@ -136,7 +146,70 @@ sample_result BraketServerHelper::processResults(ServerMessage &resultsJson,
     }
   }
 
-  return sample_result{ExecutionResult{counts}};
+  // Full execution results include compiler-generated qubits, which are
+  // undesirable to the user.
+  cudaq::ExecutionResult fullExecResults{counts};
+  auto fullSampleResults = cudaq::sample_result{fullExecResults};
+
+  // clang-format off
+  // The following code strips out and reorders the outputs based on output_names.
+  // For example, if `counts` is something like:
+  //      { 11111:62 01111:12 11110:12 01110:12 }
+  // And if we want to discard the first bit (because qubit 0 was a
+  // compiler-generated qubit), that maps to something like this:
+  // -----------------------------------------------------
+  // Qubit  Index - x1234    x1234    x1234    x1234
+  // Result Index - x0123    x0123    x0123    x0123
+  //              { 11111:62 01111:12 11110:12 01110:12 }
+  //              { x1111:62 x1111:12 x1110:12 x1110:12 }
+  //                  \--- v ---/       \--- v ---/
+  //              {    1111:(62+12)     x1110:(12+12)   }
+  //              {    1111:74           1110:24        }
+  // -----------------------------------------------------
+  // clang-format on
+
+  std::vector<ExecutionResult> execResults;
+
+  // Get a reduced list of qubit numbers that were in the original program
+  // so that we can slice the output data and extract the bits that the user
+  // was interested in. Sort by OpenQasm2 qubit number.
+  std::vector<std::size_t> qubitNumbers;
+  qubitNumbers.reserve(output_names.size());
+  for (auto &[result, info] : output_names) {
+    qubitNumbers.push_back(info.qubitNum);
+  }
+
+  // For each original counts entry in the full sample results, reduce it
+  // down to the user component and add to userGlobal. If qubitNumbers is empty,
+  // that means all qubits were measured.
+  if (qubitNumbers.empty()) {
+    execResults.emplace_back(ExecutionResult{fullSampleResults.to_map()});
+  } else {
+    auto subset = fullSampleResults.get_marginal(qubitNumbers);
+    execResults.emplace_back(ExecutionResult{subset.to_map()});
+  }
+
+  // Return a sample result including the global register and all individual
+  // registers.
+  auto ret = cudaq::sample_result(execResults);
+  return ret;
+}
+
+void BraketServerHelper::setOutputNames(const std::string &taskId,
+                                        const std::string &output_names) {
+  // Parse `output_names` into jobOutputNames.
+  // Note: See `ExtendMeasurePattern` of `CombineMeasurements.cpp
+  // for an example of how this was populated.
+  OutputNamesType jobOutputNames;
+  nlohmann::json outputNamesJSON = nlohmann::json::parse(output_names);
+  for (const auto &el : outputNamesJSON[0]) {
+    auto result = el[0].get<std::size_t>();
+    auto qubitNum = el[1][0].get<std::size_t>();
+    auto registerName = el[1][1].get<std::string>();
+    jobOutputNames[result] = {qubitNum, registerName};
+  }
+
+  outputNames[taskId] = jobOutputNames;
 }
 
 } // namespace cudaq

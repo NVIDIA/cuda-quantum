@@ -64,28 +64,4 @@ def FuseConstantToExtractRefPattern : Pat<
       (createExtractRefOp $veq, $index),
       [(SizeIsPresentPred $index)]>;
 
-def createSizedSubVeqOp : NativeCodeCall<
-      "quake::createSizedSubVeqOp($_builder, $_loc, $0, $1, $2, $3)">;
-
-def ArgIsConstantPred : Constraint<CPred<
-      "dyn_cast_or_null<mlir::arith::ConstantOp>($0.getDefiningOp())">>;
-
-def IsUnknownVec : Constraint<CPred<
-      "dyn_cast_or_null<mlir::arith::ConstantOp>($0.getDefiningOp())">>;
-
-// %1 = constant 4 : i64
-// %2 = constant 10 : i64
-// %3 = quake.subveq (%0 : !quake.ref<12>, %1 : i64, %2 : i64) : !quake.ref<?>
-// ─────────────────────────────────────────────────────────────────────────────
-// %1 = constant 4 : i64
-// %2 = constant 10 : i64
-// %new3 = quake.subveq (%0 : !quake.ref<12>, %1 : i64, %2 : i64) :
-//     !quake.ref<7>
-// %3 = quake.relax_size %new3 : (!quake.ref<7>) -> !quake.ref<?>
-def FuseConstantToSubveqPattern : Pat<
-      (quake_SubVeqOp:$subveq $v, $lo, $hi),
-      (createSizedSubVeqOp $subveq, $v, $lo, $hi),
-      [(UnknownSizePred $subveq), (ArgIsConstantPred $lo),
-       (ArgIsConstantPred $hi)]>;
-
 #endif

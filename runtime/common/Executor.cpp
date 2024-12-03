@@ -10,8 +10,8 @@
 #include "common/Logger.h"
 
 namespace cudaq {
-details::future
-Executor::execute(std::vector<KernelExecution> &codesToExecute) {
+details::future Executor::execute(std::vector<KernelExecution> &codesToExecute,
+                                  bool isObserve) {
 
   serverHelper->setShots(shots);
 
@@ -53,7 +53,7 @@ Executor::execute(std::vector<KernelExecution> &codesToExecute) {
 
   config.insert({"shots", std::to_string(shots)});
   std::string name = serverHelper->name();
-  return details::future(ids, name, config);
+  return details::future(ids, name, config, isObserve);
 }
 } // namespace cudaq
 

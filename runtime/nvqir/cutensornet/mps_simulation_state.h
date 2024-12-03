@@ -35,7 +35,8 @@ public:
   MPSSimulationState(std::unique_ptr<TensorNetState> inState,
                      const std::vector<MPSTensor> &mpsTensors,
                      ScratchDeviceMem &inScratchPad,
-                     cutensornetHandle_t cutnHandle);
+                     cutensornetHandle_t cutnHandle,
+                     std::mt19937 &randomEngine);
 
   MPSSimulationState(const MPSSimulationState &) = delete;
   MPSSimulationState &operator=(const MPSSimulationState &) = delete;
@@ -84,7 +85,8 @@ public:
                                          ScratchDeviceMem &inScratchPad,
                                          std::size_t size,
                                          std::complex<double> *data,
-                                         int bondDim);
+                                         int bondDim,
+                                         std::mt19937 &randomEngine);
 
   /// Retrieve the MPS tensors
   std::vector<MPSTensor> getMpsTensors() const { return m_mpsTensors; }
@@ -105,6 +107,7 @@ protected:
   // This speeds up sequential state amplitude accessors for small states.
   static constexpr std::size_t g_maxQubitsForStateContraction = 30;
   std::vector<std::complex<double>> m_contractedStateVec;
+  std::mt19937 &m_randomEngine;
 };
 
 } // namespace nvqir

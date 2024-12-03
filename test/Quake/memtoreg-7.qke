@@ -102,9 +102,9 @@ func.func @__nvqpp__mlirgen__test() attributes {"cudaq-entrypoint", qubitMeasure
 // CHECK:         }
 
 // CANOE-LABEL:   func.func @__nvqpp__mlirgen__test() attributes {"cudaq-entrypoint", qubitMeasurementFeedback = true} {
-// CANOE:           %[[VAL_0:.*]] = arith.constant 2 : i64
-// CANOE:           %[[VAL_1:.*]] = arith.constant false
-// CANOE:           %[[VAL_2:.*]] = arith.constant true
+// CANOE-DAG:       %[[VAL_0:.*]] = arith.constant 2 : i64
+// CANOE-DAG:       %[[VAL_1:.*]] = arith.constant false
+// CANOE-DAG:       %[[VAL_2:.*]] = arith.constant true
 // CANOE:           %[[VAL_3:.*]] = quake.alloca !quake.ref
 // CANOE:           %[[VAL_4:.*]] = quake.alloca !quake.ref
 // CANOE:           %[[VAL_5:.*]] = cc.undef i1

@@ -32,7 +32,7 @@ FROM $cudaqdev_image AS cudaqbuild
 # access to the environment variables, so that the hardcoded paths in this file don't need to 
 # match the paths in the dev image.
 RUN mkdir /usr/local/cudaq_assets && cd /usr/local/cudaq_assets && \
-    mkdir -p llvm/bin && mkdir -p llvm/lib && mkdir cuquantum && \
+    mkdir -p llvm/bin && mkdir -p llvm/lib && \
     mv "$LLVM_INSTALL_PREFIX/bin/"clang* "/usr/local/cudaq_assets/llvm/bin/" && rm -rf "/usr/local/cudaq_assets/llvm/bin/"clang-format* && \
     mv "$LLVM_INSTALL_PREFIX/lib/"clang* "/usr/local/cudaq_assets/llvm/lib/" && \
     mv "$LLVM_INSTALL_PREFIX/bin/llc" "/usr/local/cudaq_assets/llvm/bin/llc" && \
@@ -56,10 +56,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install CUDA-Q runtime dependencies.
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        python3 python3-pip libstdc++-12-dev \
+        libstdc++-12-dev python3 python3-pip \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* \
-    && python3 -m pip install --no-cache-dir \
-        numpy scipy cuquantum-python-cu$(echo ${CUDA_VERSION:-12} | cut -d . -f1)~=24.11 \
+    && python3 -m pip install --no-cache-dir numpy scipy \
     && ln -s /bin/python3 /bin/python
 RUN apt-get update && apt-get install -y --no-install-recommends gcc g++ python3-dev \
     # Ref: https://github.com/qutip/qutip/issues/2412

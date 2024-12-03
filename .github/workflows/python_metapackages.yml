@@ -77,7 +77,7 @@ jobs:
 
             echo "Creating README.md for cuda-quantum package"
             echo "# Welcome to the CUDA-Q Python API" > README.md
-            echo "This package is deprecated and new versions are published under the name `cudaq` instead." >> README.md
+            echo "This package is deprecated and new versions are published under the name \`cudaq\` instead." >> README.md
             echo "For more information, please see [CUDA-Q on PyPI](https://pypi.org/project/cudaq)." >> README.md
 
             echo "Building cuda-quantum metapackage ..."
@@ -195,8 +195,6 @@ jobs:
           fi
 
       - name: Test installation error
-        # FIXME: We actually don't give a proper install error if there are conflicting packages on the system...
-        if: matrix.cuda_version == ''
         run: |
           python=python${{ matrix.python_version }}
           $python -m pip install pypiserver
@@ -211,11 +209,13 @@ jobs:
               set -e && check_package=cuda-quantum
             ;; 
             12.*) 
+              test_conflicting=cuda-quantum-cu11
               $python -m pip install cuda-quantum-cu11==${{ inputs.cudaq_version }} \
                 --extra-index-url http://localhost:8080 
               set +e # continue on error
               $python -m pip install cudaq==${{ inputs.cudaq_version }} -v \
-                --extra-index-url http://localhost:8080
+                --extra-index-url http://localhost:8080 \
+              2>&1 | tee /tmp/install.out
               set -e && check_package=cudaq
             ;; 
             *) 
@@ -225,17 +225,37 @@ jobs:
               set -e
               if [ -z "$($python -m pip list | grep cuda-quantum)" ]; then 
                 # if we don't have a 0.8.0 version for this python version, test other conflict
+                test_conflicting=cuda-quantum-cu12
                 $python -m pip install cuda-quantum-cu12==${{ inputs.cudaq_version }} \
                   --extra-index-url http://localhost:8080
+              else
+                test_conflicting=cuda-quantum
               fi
               set +e # continue on error
               $python -m pip install cudaq==${{ inputs.cudaq_version }} -v \
-                --extra-index-url http://localhost:8080
+                --extra-index-url http://localhost:8080 \
+              2>&1 | tee /tmp/install.out
               set -e && check_package=cudaq
             ;; 
           esac
 
-          if [ -n "$($python -m pip list | grep ${check_package})" ]; then 
+          # The autodetection will fail if the runner does not have a GPU.
+          # In that case, we will only check if the install failed, if the
+          # package we want to test the conflict detection for is not the
+          # default package that is installed when there is no GPU.
+          if [ -f /tmp/install.out ] && [ -z "$(cat /tmp/install.out | grep -o 'Autodetection succeeded')" ]; then
+            # Autodetection failed - a default choice of the binary distribution will be installed.
+            echo "::warning::Autodetection to determine cudaq binary distribution failed."
+            # Take the first Identified best package because the logs print multiple lines.
+            # They should all be the same, if they differ in the build environment then there is probably issues.
+            installed_default=$(cat /tmp/install.out | sed -nE 's/.*Identified (\S*) as the best package.*/\1/p' | head -n 1)
+            echo "::warning::The installed default is ${installed_default}, the potential conflicting package is ${test_conflicting}"
+            if [ "$installed_default" == "$test_conflicting" ]; then
+              check_package=none
+            fi
+          fi
+
+          if [ "$check_package" != "none" ] && [ -n "$($python -m pip list | grep ${check_package})" ]; then
             echo "::error file=python_metapackages.yml::Unexpected installation of ${check_package} package."
             exit 1
           fi

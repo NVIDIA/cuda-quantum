@@ -17,6 +17,7 @@ add_cudaq_library(OptTransforms
   ApplyOpSpecialization.cpp
   ArgumentSynthesis.cpp
   BasisConversion.cpp
+  CombineMeasurements.cpp
   CombineQuantumAlloc.cpp
   ConstPropComplex.cpp
   Decomposition.cpp

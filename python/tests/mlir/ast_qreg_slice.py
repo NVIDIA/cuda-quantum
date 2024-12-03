@@ -59,17 +59,17 @@ def test_slice():
 # CHECK-DAG:           %[[VAL_5:.*]] = arith.constant 5 : i64
 # CHECK-DAG:           %[[VAL_6:.*]] = arith.constant 0 : i64
 # CHECK:           %[[VAL_7:.*]] = quake.alloca !quake.veq<4>
-# CHECK:           %[[VAL_8:.*]] = quake.subveq %[[VAL_7]], %[[VAL_2]], %[[VAL_0]] : (!quake.veq<4>, i64, i64) -> !quake.veq<2>
+# CHECK:           %[[VAL_8:.*]] = quake.subveq %[[VAL_7]], 2, 3 : (!quake.veq<4>) -> !quake.veq<2>
 # CHECK:           %[[VAL_9:.*]] = quake.extract_ref %[[VAL_8]][0] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           quake.x %[[VAL_9]] : (!quake.ref) -> ()
 # CHECK:           %[[VAL_10:.*]] = quake.extract_ref %[[VAL_8]][1] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           quake.x %[[VAL_10]] : (!quake.ref) -> ()
-# CHECK:           %[[VAL_11:.*]] = quake.subveq %[[VAL_7]], %[[VAL_6]], %[[VAL_3]] : (!quake.veq<4>, i64, i64) -> !quake.veq<2>
+# CHECK:           %[[VAL_11:.*]] = quake.subveq %[[VAL_7]], 0, 1 : (!quake.veq<4>) -> !quake.veq<2>
 # CHECK:           %[[VAL_12:.*]] = quake.extract_ref %[[VAL_11]][0] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           quake.y %[[VAL_12]] : (!quake.ref) -> ()
 # CHECK:           %[[VAL_13:.*]] = quake.extract_ref %[[VAL_11]][1] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           quake.y %[[VAL_13]] : (!quake.ref) -> ()
-# CHECK:           %[[VAL_14:.*]] = quake.subveq %[[VAL_7]], %[[VAL_3]], %[[VAL_2]] : (!quake.veq<4>, i64, i64) -> !quake.veq<2>
+# CHECK:           %[[VAL_14:.*]] = quake.subveq %[[VAL_7]], 1, 2 : (!quake.veq<4>) -> !quake.veq<2>
 # CHECK:           %[[VAL_15:.*]] = quake.extract_ref %[[VAL_14]][0] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           quake.z %[[VAL_15]] : (!quake.ref) -> ()
 # CHECK:           %[[VAL_16:.*]] = quake.extract_ref %[[VAL_14]][1] : (!quake.veq<2>) -> !quake.ref

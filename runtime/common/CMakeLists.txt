@@ -83,9 +83,6 @@ endif()
 ## here called cudaq-mlir-runtime that cudaq-builder and cudaq-rest-qpu 
 ## can link to and get MLIR/LLVM things uniformly
 
-get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
-get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
-
 add_library(cudaq-mlir-runtime
   SHARED
     ArgumentConversion.cpp
@@ -113,8 +110,6 @@ target_include_directories(cudaq-mlir-runtime
 
 target_link_libraries(cudaq-mlir-runtime 
   PUBLIC
-    ${dialect_libs}
-    ${conversion_libs}
     nvqir
     CCDialect
     QuakeDialect

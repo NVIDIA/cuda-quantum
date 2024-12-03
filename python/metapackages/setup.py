@@ -8,6 +8,7 @@
 
 import ctypes, os, sys
 import importlib.util
+import site, glob
 from setuptools import setup
 from typing import Optional
 
@@ -116,22 +117,76 @@ def _get_cuda_version() -> Optional[int]:
     return None
 
 
-def _infer_best_package() -> str:
+def _check_package_installed(package_name) -> bool:
+    """
+    Checks if a python package is installed globally or in user packages.
+    """
 
+    # ideally you would use `importlib.util.find_spec` to check for the file.
+    # For some reason, that does not work during pip install, which I'm
+    # not clear about for now. This is worked around by getting the site
+    # packages and searching for the files manually.
+
+    def _check_in_directory(directory, package_name):
+        """
+        Helper function to check if a package exists in a given directory.
+        """
+        search_pattern = os.path.join(directory, f"{package_name}-*.dist-info")
+        matches = glob.glob(search_pattern)
+        if matches:
+            _log(
+                f"Found the following matches for '{package_name}*' in {directory}:"
+            )
+            for match in matches:
+                _log(match)
+            return True
+        return False
+
+    def _replace_hyphens_with_underscores(input_string):
+        return input_string.replace("-", "_")
+
+    # ```
+    # Normalize because package name hyphens replaced with underscores
+    # ex:
+    # # ls /usr/local/lib/python3.10/dist-packages | grep cuda
+    # cuda_quantum_cu11-0.9.0.dist-info
+    # cuda_quantum_cu11.libs
+    # cuda_quantum_cu12-0.9.0.dist-info
+    # cuda_quantum_cu12.libs
+    # ```
+    normalized_package_name = _replace_hyphens_with_underscores(package_name)
+
+    # Check in user site-packages
+    user_site_packages = site.getusersitepackages()
+    if os.path.exists(user_site_packages):
+        _log(f"User site-packages directory: {user_site_packages}")
+        return _check_in_directory(user_site_packages, normalized_package_name)
+    else:
+        _log("User site-packages directory does not exist.")
+
+    # Check in global site-packages
+    site_packages_dirs = site.getsitepackages()
+    _log(f"Global site-packages directories: {site_packages_dirs}")
+    for directory in site_packages_dirs:
+        if _check_in_directory(directory, normalized_package_name):
+            return True
+
+    _log(
+        f"No matches found for '{normalized_package_name}' in any site-packages directory."
+    )
+    return False
+
+
+def _infer_best_package() -> str:
+    """
+    Checks what packages should be installed, and handles potential conflicts.
+    """
     # Find the existing wheel installation
     installed = []
-    for pkg_suffix in ['', '-cu11', '-cu12']:
-        _log(f"Looking for existing installation of cuda-quantum{pkg_suffix}.")
-        try:
-            package_spec = importlib.util.find_spec(f"cuda-quantum{pkg_suffix}")
-            if package_spec is None:
-                _log("No installation found.")
-            else:
-                installed.append(f"cuda-quantum{pkg_suffix}")
-                _log("Installation found.")
-        except:
-            _log("No installation found.")
-            pass
+    for pkg in ['cuda-quantum', 'cuda-quantum-cu11', 'cuda-quantum-cu12']:
+        _log(f"Looking for existing installation of {pkg}.")
+        if _check_package_installed(pkg):
+            installed.append(pkg)
 
     cuda_version = _get_cuda_version()
     if cuda_version is None:

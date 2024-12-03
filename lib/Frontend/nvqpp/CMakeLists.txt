@@ -8,9 +8,6 @@
 
 set(LIBRARY_NAME cudaq-mlirgen)
 
-get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
-get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
-
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-switch")
 add_mlir_library(${LIBRARY_NAME}
     # bridge from AST to Quake
@@ -25,8 +22,6 @@ add_mlir_library(${LIBRARY_NAME}
     QuakeDialect
     OptimBuilder
 
-    ${dialect_libs}
-    ${conversion_libs}
     MLIRIR
     MLIRParser
     MLIRPass
@@ -38,6 +33,7 @@ add_mlir_library(${LIBRARY_NAME}
     MLIRTargetLLVMIRExport
     MLIRLLVMCommonConversion
     MLIRLLVMToLLVMIRTranslation
+    MLIRMathDialect
     clangBasic
     clangAST
     clangFrontend

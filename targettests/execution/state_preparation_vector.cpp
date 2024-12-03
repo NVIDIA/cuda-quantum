@@ -6,22 +6,20 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
 // Simulators
 // RUN: nvq++ %cpp_std %s -o %t && %t | FileCheck %s
 
 // Quantum emulators
-// RUN: nvq++ %cpp_std -target quantinuum -emulate %s -o %t && \
-// RUN:   %t | FileCheck %s
-// RUN: nvq++ %cpp_std -target ionq       -emulate %s -o %t && \
-// RUN:   %t | FileCheck %s
-// RUN: nvq++ %cpp_std -target oqc        -emulate %s -o %t && \
-// RUN:   %t | FileCheck %s
+// RUN: nvq++ %cpp_std -target braket     -emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std -target quantinuum -emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std -target ionq       -emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std -target oqc        -emulate %s -o %t && %t | FileCheck %s
 
 // 2 different IQM machines for 2 different topologies
-// RUN: nvq++ %cpp_std -target iqm --iqm-machine Adonis -emulate %s -o %t && \
-// RUN:   %t | FileCheck %s
-// RUN: nvq++ %cpp_std -target iqm --iqm-machine Apollo -emulate %s -o %t && \
-// RUN:   %t | FileCheck %s
+// RUN: nvq++ %cpp_std -target iqm --iqm-machine Adonis -emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std -target iqm --iqm-machine Apollo -emulate %s -o %t && %t | FileCheck %s
+// clang-format on
 
 #include <cudaq.h>
 #include <iostream>

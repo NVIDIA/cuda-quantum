@@ -393,8 +393,18 @@ public:
         rtSubveqFuncName, arrayTy, {arrayTy, i32Ty, i64Ty, i64Ty, i64Ty},
         parentModule);
 
-    Value lowArg = adaptor.getOperands()[1];
-    Value highArg = adaptor.getOperands()[2];
+    auto lowArg = [&]() -> Value {
+      if (!adaptor.getLower())
+        return rewriter.create<arith::ConstantIntOp>(loc, adaptor.getRawLower(),
+                                                     64);
+      return adaptor.getLower();
+    }();
+    auto highArg = [&]() -> Value {
+      if (!adaptor.getUpper())
+        return rewriter.create<arith::ConstantIntOp>(loc, adaptor.getRawUpper(),
+                                                     64);
+      return adaptor.getUpper();
+    }();
     auto extend = [&](Value &v) -> Value {
       if (v.getType().isa<IntegerType>() &&
           v.getType().cast<IntegerType>().getWidth() < 64)

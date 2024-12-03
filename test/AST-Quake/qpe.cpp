@@ -268,7 +268,7 @@ int main() {
 // CHECK:           %[[VAL_17:.*]] = cc.load %[[VAL_10]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_18:.*]] = cc.cast signed %[[VAL_17]] : (i32) -> i64
 // CHECK:           %[[VAL_19:.*]] = arith.subi %[[VAL_18]], %[[VAL_6]] : i64
-// CHECK:           %[[VAL_20:.*]] = quake.subveq %[[VAL_16]], %[[VAL_7]], %[[VAL_19]] : (!quake.veq<?>, i64, i64) -> !quake.veq<?>
+// CHECK:           %[[VAL_20:.*]] = quake.subveq %[[VAL_16]], 0, %[[VAL_19]] : (!quake.veq<?>, i64) -> !quake.veq<?>
 // CHECK:           %[[VAL_21:.*]] = cc.load %[[VAL_11]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_22:.*]] = cc.cast signed %[[VAL_21]] : (i32) -> i64
 // CHECK:           %[[VAL_23:.*]] = quake.veq_size %[[VAL_16]] : (!quake.veq<?>) -> i64

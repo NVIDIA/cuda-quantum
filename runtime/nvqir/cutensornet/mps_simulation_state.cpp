@@ -26,9 +26,11 @@ std::size_t MPSSimulationState::getNumQubits() const {
 MPSSimulationState::MPSSimulationState(std::unique_ptr<TensorNetState> inState,
                                        const std::vector<MPSTensor> &mpsTensors,
                                        ScratchDeviceMem &inScratchPad,
-                                       cutensornetHandle_t cutnHandle)
+                                       cutensornetHandle_t cutnHandle,
+                                       std::mt19937 &randomEngine)
     : m_cutnHandle(cutnHandle), state(std::move(inState)),
-      m_mpsTensors(mpsTensors), scratchPad(inScratchPad) {}
+      m_mpsTensors(mpsTensors), scratchPad(inScratchPad),
+      m_randomEngine(randomEngine) {}
 
 MPSSimulationState::~MPSSimulationState() { deallocate(); }
 
@@ -266,8 +268,8 @@ MPSSimulationState::getAmplitude(const std::vector<int> &basisState) {
   }
 
   if (getNumQubits() > 1) {
-    TensorNetState basisTensorNetState(basisState, scratchPad,
-                                       state->getInternalContext());
+    TensorNetState basisTensorNetState(
+        basisState, scratchPad, state->getInternalContext(), m_randomEngine);
     // Note: this is a basis state, hence bond dim == 1
     std::vector<MPSTensor> basisStateTensors = basisTensorNetState.factorizeMPS(
         1, std::numeric_limits<double>::min(),
@@ -369,7 +371,8 @@ static Eigen::MatrixXcd reshapeStateVec(const Eigen::VectorXcd &stateVec) {
 
 MPSSimulationState::MpsStateData MPSSimulationState::createFromStateVec(
     cutensornetHandle_t cutnHandle, ScratchDeviceMem &inScratchPad,
-    std::size_t size, std::complex<double> *ptr, int bondDim) {
+    std::size_t size, std::complex<double> *ptr, int bondDim,
+    std::mt19937 &randomEngine) {
   const std::size_t numQubits = std::log2(size);
   // Reverse the qubit order to match cutensornet convention
   auto newStateVec = TensorNetState::reverseQubitOrder(
@@ -386,8 +389,8 @@ MPSSimulationState::MpsStateData MPSSimulationState::createFromStateVec(
     MPSTensor stateTensor;
     stateTensor.deviceData = d_tensor;
     stateTensor.extents = std::vector<int64_t>{2};
-    auto state = TensorNetState::createFromMpsTensors({stateTensor},
-                                                      inScratchPad, cutnHandle);
+    auto state = TensorNetState::createFromMpsTensors(
+        {stateTensor}, inScratchPad, cutnHandle, randomEngine);
     return {std::move(state), std::vector<MPSTensor>{stateTensor}};
   }
 
@@ -460,7 +463,7 @@ MPSSimulationState::MpsStateData MPSSimulationState::createFromStateVec(
   mpsTensors.emplace_back(stateTensor);
   assert(mpsTensors.size() == numQubits);
   auto state = TensorNetState::createFromMpsTensors(mpsTensors, inScratchPad,
-                                                    cutnHandle);
+                                                    cutnHandle, randomEngine);
   return {std::move(state), mpsTensors};
 }
 
@@ -486,16 +489,17 @@ MPSSimulationState::createFromSizeAndPtr(std::size_t size, void *ptr,
       MPSTensor stateTensor{d_tensor, mpsExtents};
       mpsTensors.emplace_back(stateTensor);
     }
-    auto state = TensorNetState::createFromMpsTensors(mpsTensors, scratchPad,
-                                                      m_cutnHandle);
-    return std::make_unique<MPSSimulationState>(std::move(state), mpsTensors,
-                                                scratchPad, m_cutnHandle);
+    auto state = TensorNetState::createFromMpsTensors(
+        mpsTensors, scratchPad, m_cutnHandle, m_randomEngine);
+    return std::make_unique<MPSSimulationState>(
+        std::move(state), mpsTensors, scratchPad, m_cutnHandle, m_randomEngine);
   }
-  auto [state, mpsTensors] = createFromStateVec(
-      m_cutnHandle, scratchPad, size,
-      reinterpret_cast<std::complex<double> *>(ptr), MPSSettings().maxBond);
-  return std::make_unique<MPSSimulationState>(std::move(state), mpsTensors,
-                                              scratchPad, m_cutnHandle);
+  auto [state, mpsTensors] =
+      createFromStateVec(m_cutnHandle, scratchPad, size,
+                         reinterpret_cast<std::complex<double> *>(ptr),
+                         MPSSettings().maxBond, m_randomEngine);
+  return std::make_unique<MPSSimulationState>(
+      std::move(state), mpsTensors, scratchPad, m_cutnHandle, m_randomEngine);
 }
 
 MPSSettings::MPSSettings() {

@@ -88,6 +88,42 @@ void quake::StruqType::print(AsmPrinter &printer) const {
   printer << '>';
 }
 
+// This recursive function returns true if and only if \p ty is a quake
+// type in the set \e R, `{ ref, veq, struq }`, (loosely known as "reference"
+// types) and the number of qubits is a compile-time known constant. This
+// function returns false for any type not in the set \e R or if the composition
+// of types contains a `veq` of unspecified size.
+static bool isConstQuantumBits(Type ty) {
+  if (isa<quake::RefType>(ty))
+    return true;
+  if (auto t = dyn_cast<quake::StruqType>(ty)) {
+    for (auto m : t.getMembers())
+      if (!isConstQuantumBits(m))
+        return false;
+    return true;
+  }
+  if (auto t = dyn_cast<quake::VeqType>(ty))
+    if (t.hasSpecifiedSize())
+      return true;
+  return false;
+}
+
+bool quake::isConstantQuantumRefType(Type ty) { return isConstQuantumBits(ty); }
+
+std::size_t quake::getAllocationSize(Type ty) {
+  if (isa<quake::RefType>(ty))
+    return 1;
+  if (auto stq = dyn_cast<quake::StruqType>(ty)) {
+    std::size_t size = 0;
+    for (auto m : stq.getMembers())
+      size += getAllocationSize(m);
+    return size;
+  }
+  auto veq = cast<quake::VeqType>(ty);
+  assert(veq.hasSpecifiedSize() && "veq type must have constant size");
+  return veq.getSize();
+}
+
 //===----------------------------------------------------------------------===//
 
 void quake::QuakeDialect::registerTypes() {

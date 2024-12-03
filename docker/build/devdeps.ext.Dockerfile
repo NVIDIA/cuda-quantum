@@ -59,7 +59,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends gnupg \
 
 ARG PMI_INSTALL_PREFIX=/usr/local/pmi
 ENV PMI_INSTALL_PREFIX="$PMI_INSTALL_PREFIX"
-ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$PMIX_INSTALL_PREFIX/lib"
+ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$PMI_INSTALL_PREFIX/lib"
 COPY --from=ompibuild "$PMI_INSTALL_PREFIX" "$PMI_INSTALL_PREFIX"
 
 # Copy over GDRCOPY and install runtime dependencies.
@@ -161,7 +161,10 @@ ENV CUDA_PATH="$CUDA_INSTALL_PREFIX"
 ENV PATH="${CUDA_INSTALL_PREFIX}/lib64/:${CUDA_INSTALL_PREFIX}/bin:${PATH}"
 
 # Install cuQuantum dependencies, including cuTensor.
-RUN python3 -m pip install cuquantum-python-cu$(echo $CUDA_VERSION | cut -d . -f1)~=24.11 && \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        python3 python3-pip && \
+    apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* && \
+    python3 -m pip install cuquantum-python-cu$(echo $CUDA_VERSION | cut -d . -f1)~=24.11 && \
     if [ "$(python3 --version | grep -o [0-9\.]* | cut -d . -f -2)" != "3.10" ]; then \
         echo "expecting Python version 3.10"; \
     fi
@@ -173,7 +176,7 @@ ENV CUQUANTUM_PATH="$CUQUANTUM_INSTALL_PREFIX"
 ENV LD_LIBRARY_PATH="$CUQUANTUM_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
 ENV CPATH="$CUQUANTUM_INSTALL_PREFIX/include:$CPATH"
 
-ARG CUTENSOR_INSTALL_PREFIX=/usr/local/lib/python3.10/dist-packages/cutensor/
+ARG CUTENSOR_INSTALL_PREFIX=/usr/local/lib/python3.10/dist-packages/cutensor
 ENV CUTENSOR_INSTALL_PREFIX="$CUTENSOR_INSTALL_PREFIX"
 ENV CUTENSOR_ROOT="$CUTENSOR_INSTALL_PREFIX"
 ENV LD_LIBRARY_PATH="$CUTENSOR_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"

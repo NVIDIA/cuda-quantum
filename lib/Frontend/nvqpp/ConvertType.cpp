@@ -262,22 +262,18 @@ bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
     // -- does it contain invalid C++ types?
     for (auto *field : x->fields()) {
       auto *ty = field->getType().getTypePtr();
-      bool isRef = false;
       if (ty->isLValueReferenceType()) {
         auto *lref = cast<clang::LValueReferenceType>(ty);
-        isRef = true;
         ty = lref->getPointeeType().getTypePtr();
       }
       if (auto *tyDecl = ty->getAsRecordDecl()) {
         if (auto *ident = tyDecl->getIdentifier()) {
           auto name = ident->getName();
           if (isInNamespace(tyDecl, "cudaq")) {
-            if (isRef) {
-              // can be owning container; so can be qubit, qarray, or qvector
-              if ((name.equals("qudit") || name.equals("qubit") ||
-                   name.equals("qvector") || name.equals("qarray")))
-                continue;
-            }
+            //  can be owning container; so can be qubit, qarray, or qvector
+            if ((name.equals("qudit") || name.equals("qubit") ||
+                 name.equals("qvector") || name.equals("qarray")))
+              continue;
             // must be qview or qview&
             if (name.equals("qview"))
               continue;
@@ -442,7 +438,7 @@ bool QuakeBridgeVisitor::VisitLValueReferenceType(
     return pushType(cc::PointerType::get(builder.getContext()));
   auto eleTy = popType();
   if (isa<cc::CallableType, cc::IndirectCallableType, cc::SpanLikeType,
-          quake::VeqType, quake::RefType>(eleTy))
+          quake::VeqType, quake::RefType, quake::StruqType>(eleTy))
     return pushType(eleTy);
   return pushType(cc::PointerType::get(eleTy));
 }
@@ -455,7 +451,7 @@ bool QuakeBridgeVisitor::VisitRValueReferenceType(
   // FIXME: LLVMStructType is promoted as a temporary workaround.
   if (isa<cc::ArrayType, cc::CallableType, cc::IndirectCallableType,
           cc::SpanLikeType, cc::StructType, quake::VeqType, quake::RefType,
-          LLVM::LLVMStructType>(eleTy))
+          quake::StruqType, LLVM::LLVMStructType>(eleTy))
     return pushType(eleTy);
   return pushType(cc::PointerType::get(eleTy));
 }

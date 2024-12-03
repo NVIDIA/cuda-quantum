@@ -51,7 +51,7 @@ jobs:
 
     steps:
       - run: |
-          gh release list -L 100 -R ${{ github.repository }} > rels.txt
+          gh release list -L 1000 -R ${{ github.repository }} > rels.txt
           while read rel _; do 
             isDraft=`gh release view $rel -R ${{ github.repository }} --json isDraft --jq '.isDraft'`
             isPrerelease=`gh release view $rel -R ${{ github.repository }} --json isPrerelease --jq '.isPrerelease'`

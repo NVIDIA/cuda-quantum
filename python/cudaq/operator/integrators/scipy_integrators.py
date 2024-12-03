@@ -20,7 +20,7 @@ except ImportError:
 
 has_cupy = True
 try:
-    import cupy as cp
+    import cupy
 except ImportError:
     has_cupy = False
 

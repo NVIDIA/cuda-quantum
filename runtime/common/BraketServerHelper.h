@@ -83,6 +83,9 @@ public:
   cudaq::sample_result processResults(ServerMessage &postJobResponse,
                                       std::string &jobId) override;
 
+  void setOutputNames(const std::string &taskId,
+                      const std::string &output_names);
+
 protected:
   /// @brief Return the headers required for the REST calls
   RestHeaders generateRequestHeader() const;

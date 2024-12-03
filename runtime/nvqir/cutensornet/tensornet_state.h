@@ -52,15 +52,20 @@ protected:
   // Tensor ops that have been applied to the state.
   std::vector<AppliedTensorOp> m_tensorOps;
   ScratchDeviceMem &scratchPad;
+  // Random number generator measurement sampling.
+  // This is a reference to the backend random number generator, which can be
+  // reseeded by users.
+  std::mt19937 &m_randomEngine;
 
 public:
   /// @brief Constructor
   TensorNetState(std::size_t numQubits, ScratchDeviceMem &inScratchPad,
-                 cutensornetHandle_t handle);
+                 cutensornetHandle_t handle, std::mt19937 &randomEngine);
 
   /// @brief Constructor (specific basis state)
   TensorNetState(const std::vector<int> &basisState,
-                 ScratchDeviceMem &inScratchPad, cutensornetHandle_t handle);
+                 ScratchDeviceMem &inScratchPad, cutensornetHandle_t handle,
+                 std::mt19937 &randomEngine);
 
   std::unique_ptr<TensorNetState> clone() const;
 
@@ -68,13 +73,15 @@ public:
   static std::unique_ptr<TensorNetState>
   createFromMpsTensors(const std::vector<MPSTensor> &mpsTensors,
                        ScratchDeviceMem &inScratchPad,
-                       cutensornetHandle_t handle);
+                       cutensornetHandle_t handle, std::mt19937 &randomEngine);
 
   /// Reconstruct/initialize a tensor network state from a list of tensor
   /// operators.
-  static std::unique_ptr<TensorNetState> createFromOpTensors(
-      std::size_t numQubits, const std::vector<AppliedTensorOp> &opTensors,
-      ScratchDeviceMem &inScratchPad, cutensornetHandle_t handle);
+  static std::unique_ptr<TensorNetState>
+  createFromOpTensors(std::size_t numQubits,
+                      const std::vector<AppliedTensorOp> &opTensors,
+                      ScratchDeviceMem &inScratchPad,
+                      cutensornetHandle_t handle, std::mt19937 &randomEngine);
 
   // Create a tensor network state from the input state vector.
   // Note: this is not the most efficient mode of initialization. However, this
@@ -83,7 +90,7 @@ public:
   static std::unique_ptr<TensorNetState>
   createFromStateVector(std::span<std::complex<double>> stateVec,
                         ScratchDeviceMem &inScratchPad,
-                        cutensornetHandle_t handle);
+                        cutensornetHandle_t handle, std::mt19937 &randomEngine);
 
   /// @brief Apply a unitary gate
   /// @param controlQubits Controlled qubit operands

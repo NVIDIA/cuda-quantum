@@ -16,6 +16,7 @@ add_mlir_dialect_library(OptimBuilder
 
   LINK_LIBS PUBLIC
     MLIRIR
+    MLIRParser
     CCDialect
     QuakeDialect
 )
