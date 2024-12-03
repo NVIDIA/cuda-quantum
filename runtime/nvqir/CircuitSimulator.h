@@ -1315,6 +1315,12 @@ public:
     // Flush the Gate Queue
     flushGateQueue();
 
+    // Apply measurement noise (if any)
+    // Note: gate noises are applied during flushGateQueue
+    if (executionContext && executionContext->noiseModel)
+      applyNoiseChannel(/*gateName=*/"mz", /*controls=*/{},
+                        /*targets=*/{qubitIdx}, /*params=*/{});
+
     // If sampling, just store the bit, do nothing else.
     if (handleBasicSampling(qubitIdx, registerName))
       return true;
