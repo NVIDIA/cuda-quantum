@@ -11,7 +11,7 @@
 #include <set>
 #include <stdio.h>
 
-#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM)
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) || defined(CUDAQ_BACKEND_TENSORNET)
 struct xOp {
   void operator()() __qpu__ {
     cudaq::qubit q;
@@ -188,7 +188,7 @@ CUDAQ_TEST(NoiseTest, checkExceptions) {
 }
 
 #endif
-#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM)
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) || defined(CUDAQ_BACKEND_TENSORNET)
 
 CUDAQ_TEST(NoiseTest, checkDepolType) {
   cudaq::set_random_seed(13);
@@ -203,7 +203,7 @@ CUDAQ_TEST(NoiseTest, checkDepolType) {
 }
 
 #endif
-#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM)
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) || defined(CUDAQ_BACKEND_TENSORNET)
 
 CUDAQ_TEST(NoiseTest, checkDepolTypeSimple) {
   cudaq::set_random_seed(13);
@@ -255,7 +255,7 @@ CUDAQ_TEST(NoiseTest, checkAmpDampTypeSimple) {
 }
 
 #endif
-#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM)
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) || defined(CUDAQ_BACKEND_TENSORNET)
 
 CUDAQ_TEST(NoiseTest, checkBitFlipType) {
   cudaq::set_random_seed(13);
@@ -272,7 +272,7 @@ CUDAQ_TEST(NoiseTest, checkBitFlipType) {
 }
 
 #endif
-#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM)
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) || defined(CUDAQ_BACKEND_TENSORNET)
 
 CUDAQ_TEST(NoiseTest, checkBitFlipTypeSimple) {
   cudaq::set_random_seed(13);
@@ -288,7 +288,7 @@ CUDAQ_TEST(NoiseTest, checkBitFlipTypeSimple) {
 }
 
 #endif
-#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM)
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) || defined(CUDAQ_BACKEND_TENSORNET)
 // Same as above but use alternate sample interface that specifies the number of
 // shots and the noise model to use.
 CUDAQ_TEST(NoiseTest, checkBitFlipTypeSimpleOptions) {
@@ -308,7 +308,7 @@ CUDAQ_TEST(NoiseTest, checkBitFlipTypeSimpleOptions) {
 }
 
 #endif
-#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM)
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) || defined(CUDAQ_BACKEND_TENSORNET)
 
 CUDAQ_TEST(NoiseTest, checkPhaseFlipType) {
   cudaq::set_random_seed(13);
@@ -333,7 +333,7 @@ CUDAQ_TEST(NoiseTest, checkPhaseFlipType) {
 }
 
 #endif
-#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM)
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) || defined(CUDAQ_BACKEND_TENSORNET)
 
 template <std::size_t N>
 struct xOpAll {
@@ -344,7 +344,7 @@ struct xOpAll {
 };
 
 #endif
-#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM)
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) || defined(CUDAQ_BACKEND_TENSORNET)
 
 CUDAQ_TEST(NoiseTest, checkAllQubitChannel) {
   cudaq::set_random_seed(13);
@@ -504,7 +504,7 @@ CUDAQ_TEST(NoiseTest, checkAllQubitChannelWithControlPrefix) {
 }
 
 #endif
-#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM)
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) || defined(CUDAQ_BACKEND_TENSORNET)
 
 CUDAQ_TEST(NoiseTest, checkCallbackChannel) {
   cudaq::set_random_seed(13);

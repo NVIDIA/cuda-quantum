@@ -75,7 +75,7 @@ protected:
   // This is a reference to the backend random number generator, which can be
   // reseeded by users.
   std::mt19937 &m_randomEngine;
-
+  bool m_hasNoiseChannel = false;
 public:
   /// @brief Constructor
   TensorNetState(std::size_t numQubits, ScratchDeviceMem &inScratchPad,
@@ -185,6 +185,12 @@ public:
   /// @brief Helper to reverse qubit order of the input state vector.
   static std::vector<std::complex<double>>
   reverseQubitOrder(std::span<std::complex<double>> stateVec);
+
+  /// @brief Apply all the cached ops to the state.
+  void applyCachedOps();
+
+  /// @brief Set the state to a zero state
+  void setZeroState();
 
   /// @brief Destructor
   ~TensorNetState();

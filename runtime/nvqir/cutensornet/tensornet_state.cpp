@@ -77,16 +77,15 @@ void TensorNetState::applyUnitaryChannel(
     const std::vector<int32_t> &qubits, const std::vector<void *> &krausOps,
     const std::vector<double> &probabilities) {
   LOG_API_TIME();
-  int64_t channelId = 0;
   HANDLE_CUTN_ERROR(cutensornetStateApplyUnitaryChannel(
       m_cutnHandle, m_quantumState, /*numStateModes=*/qubits.size(),
       /*stateModes=*/qubits.data(),
       /*numTensors=*/krausOps.size(),
       /*tensorData=*/const_cast<void **>(krausOps.data()),
       /*tensorModeStrides=*/nullptr,
-      /*probabilities=*/probabilities.data(), &channelId));
-
+      /*probabilities=*/probabilities.data(), &m_tensorId));
   m_tensorOps.emplace_back(AppliedTensorOp{qubits, krausOps, probabilities});
+  m_hasNoiseChannel = true;
 }
 
 void TensorNetState::applyQubitProjector(void *proj_d,
@@ -183,7 +182,7 @@ TensorNetState::sample(const std::vector<int32_t> &measuredBitIds,
   {
     ScopedTraceWithContext("cutensornetSamplerConfigure");
     HANDLE_CUTN_ERROR(cutensornetSamplerConfigure(
-        m_cutnHandle, sampler, CUTENSORNET_SAMPLER_OPT_NUM_HYPER_SAMPLES,
+        m_cutnHandle, sampler, CUTENSORNET_SAMPLER_CONFIG_NUM_HYPER_SAMPLES,
         &numHyperSamples, sizeof(numHyperSamples)));
 
     // Generate a random seed from the backend simulator's random engine.
@@ -228,7 +227,9 @@ TensorNetState::sample(const std::vector<int32_t> &measuredBitIds,
 
   // Sample the quantum circuit state
   std::unordered_map<std::string, size_t> counts;
-  constexpr int MAX_SHOTS_PER_RUNS = 10000;
+  // If this is a trajectory simulation, each shot needs an independent
+  // trajectory sampling.
+  const int MAX_SHOTS_PER_RUNS = m_hasNoiseChannel ? 1 : 10000;
   int shotsToRun = shots;
   while (shotsToRun > 0) {
     const int numShots = std::min(shotsToRun, MAX_SHOTS_PER_RUNS);
@@ -765,6 +766,55 @@ TensorNetState::reverseQubitOrder(std::span<std::complex<double>> stateVec) {
     ket[std::stoull(bitStr, nullptr, 2)] = stateVec[i];
   }
   return ket;
+}
+
+void TensorNetState::applyCachedOps() {
+  int64_t tensorId = 0;
+  for (auto &op : m_tensorOps)
+    if (op.deviceData) {
+      if (op.controlQubitIds.empty()) {
+        HANDLE_CUTN_ERROR(cutensornetStateApplyTensorOperator(
+            m_cutnHandle, m_quantumState, op.targetQubitIds.size(),
+            op.targetQubitIds.data(), op.deviceData, nullptr, /*immutable*/ 1,
+            /*adjoint*/ static_cast<int32_t>(op.isAdjoint),
+            /*unitary*/ static_cast<int32_t>(op.isUnitary), &tensorId));
+      } else {
+        HANDLE_CUTN_ERROR(cutensornetStateApplyControlledTensorOperator(
+            m_cutnHandle, m_quantumState,
+            /*numControlModes=*/op.controlQubitIds.size(),
+            /*stateControlModes=*/op.controlQubitIds.data(),
+            /*stateControlValues=*/nullptr,
+            /*numTargetModes*/ op.targetQubitIds.size(),
+            /*stateTargetModes*/ op.targetQubitIds.data(), op.deviceData,
+            nullptr,
+            /*immutable*/ 1,
+            /*adjoint*/ static_cast<int32_t>(op.isAdjoint),
+            /*unitary*/ static_cast<int32_t>(op.isUnitary), &m_tensorId));
+      }
+    } else if (op.unitaryChannel.has_value()) {
+      HANDLE_CUTN_ERROR(cutensornetStateApplyUnitaryChannel(
+          m_cutnHandle, m_quantumState,
+          /*numStateModes=*/op.targetQubitIds.size(),
+          /*stateModes=*/op.targetQubitIds.data(),
+          /*numTensors=*/op.unitaryChannel->tensorData.size(),
+          /*tensorData=*/op.unitaryChannel->tensorData.data(),
+          /*tensorModeStrides=*/nullptr,
+          /*probabilities=*/op.unitaryChannel->probabilities.data(),
+          &m_tensorId));
+    } else {
+      throw std::runtime_error("Invalid AppliedTensorOp encounterred.");
+    }
+}
+
+void TensorNetState::setZeroState() {
+  LOG_API_TIME();
+  // Destroy the current quantum circuit state
+  HANDLE_CUTN_ERROR(cutensornetDestroyState(m_quantumState));
+  const std::vector<int64_t> qubitDims(m_numQubits, 2);
+  // Re-create the state
+  HANDLE_CUTN_ERROR(cutensornetCreateState(
+      m_cutnHandle, CUTENSORNET_STATE_PURITY_PURE, m_numQubits,
+      qubitDims.data(), CUDA_C_64F, &m_quantumState));
 }
 
 std::unique_ptr<TensorNetState> TensorNetState::createFromStateVector(
