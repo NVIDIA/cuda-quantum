@@ -104,6 +104,7 @@ SLED
 SLES
 SLURM
 SVD
+Stim
 Superpositions
 TBI
 TCP
