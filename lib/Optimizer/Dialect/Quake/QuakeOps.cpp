@@ -168,11 +168,8 @@ LogicalResult quake::AllocaOp::verify() {
     if (getSize())
       return emitOpError("cannot specify size with this quantum type");
 
-    if (auto stqTy = dyn_cast<StruqType>(getResult().getType()))
-      for (auto t : stqTy.getMembers())
-        if (auto vt = dyn_cast<VeqType>(t))
-          if (!vt.hasSpecifiedSize())
-            return emitOpError("struq type must have specified size");
+    if (!quake::isConstantQuantumRefType(getResult().getType()))
+      return emitOpError("struq type must have specified size");
   }
 
   // Check the uses. If any use is a InitializeStateOp, then it must be the only

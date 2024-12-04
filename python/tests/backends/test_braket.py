@@ -51,10 +51,10 @@ def test_multi_qubit_kernel():
         mz(q0)
         mz(q1)
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.sample(kernel, shots_count=100)
-    assert "cannot declare a qubit register. Only 1 qubit register(s) is/are supported" in repr(
-        e)
+    counts = cudaq.sample(kernel, shots_count=100)
+    assert len(counts) == 2
+    assert "00" in counts
+    assert "11" in counts
 
 
 def test_qvector_kernel():
@@ -129,10 +129,8 @@ def test_multi_qvector():
         h(ancilla)
         mz(ancilla)
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.sample(kernel, shots_count=100)
-    assert "cannot declare a qubit register. Only 1 qubit register(s) is/are supported" in repr(
-        e)
+    # Test here is that this runs
+    cudaq.sample(kernel, shots_count=100).dump()
 
 
 def test_control_modifier():
@@ -396,6 +394,18 @@ def test_mid_circuit_measurement():
     with pytest.raises(RuntimeError) as e:
         cudaq.sample(simple, shots_count=100).dump()
     assert "Could not successfully translate to qasm2" in repr(e)
+
+
+def test_state_prep():
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)])
+        mz(q)
+
+    counts = cudaq.sample(kernel)
+    assert '11' in counts
+    assert '00' in counts
 
 
 @pytest.mark.parametrize("device_arn", [

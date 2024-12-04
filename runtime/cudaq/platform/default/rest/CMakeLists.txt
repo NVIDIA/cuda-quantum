@@ -19,8 +19,12 @@ target_include_directories(cudaq-rest-qpu PRIVATE .
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
        $<INSTALL_INTERFACE:include>)
 
-set(SERVICE_COMPONENTS braket s3-crt sts)
-find_package(AWSSDK REQUIRED COMPONENTS ${SERVICE_COMPONENTS})
+if (AWSSDK_ROOT)
+  set(SERVICE_COMPONENTS braket s3-crt sts)
+  find_package(AWSSDK REQUIRED COMPONENTS ${SERVICE_COMPONENTS})
+else()
+  set(AWSSDK_LINK_LIBRARIES "")
+endif()
 
 target_link_libraries(cudaq-rest-qpu 
   PUBLIC 
