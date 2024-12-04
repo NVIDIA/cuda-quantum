@@ -192,7 +192,7 @@ void SimulatorTensorNetBase::applyNoiseChannel(
                         krausChannel.parameters.size()));
 
       const std::vector<void *> channelMats{getOrCacheMat("PauliI", matPauliI),
-                                            getOrCacheMat("PauliZ", matPauliX)};
+                                            getOrCacheMat("PauliZ", matPauliZ)};
       const double p = krausChannel.parameters[0];
       const std::vector<double> probabilities = {1 - p, p};
       m_state->applyUnitaryChannel(qubits, channelMats, probabilities);
