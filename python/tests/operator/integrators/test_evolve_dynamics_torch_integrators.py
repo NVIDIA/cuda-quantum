@@ -7,6 +7,9 @@
 # ============================================================================ #
 import pytest
 import cudaq
+
+torch = pytest.importorskip("torch")
+
 # Note: the test model may create state, hence need to set the target to "dynamics"
 cudaq.set_target("dynamics")
 
