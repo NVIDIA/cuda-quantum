@@ -48,6 +48,13 @@ public:
   complex_matrix(value_type *rawData, const std::size_t rows,
                  const std::size_t cols);
 
+  complex_matrix();
+  complex_matrix(const complex_matrix &other);
+  complex_matrix &operator=(const complex_matrix &other);
+
+  static complex_matrix identity(const std::size_t rows,
+                                 const std::size_t cols);
+
   /// @brief Return the internal data representation
   value_type *data() const;
 
@@ -56,6 +63,11 @@ public:
 
   /// @brief Return the number of columns
   std::size_t cols() const { return nCols; }
+
+  /// @brief Return the total number of elements in the matrix
+  std::size_t size() const { return nRows * nCols; }
+
+  complex_matrix operator+(const complex_matrix &other) const;
 
   /// @brief Multiply this matrix with the provided other matrix.
   /// This does not modify this matrix but instead returns a
@@ -68,6 +80,12 @@ public:
 
   /// @brief Return the element at the row `i` and column `j`.
   value_type &operator()(std::size_t i, std::size_t j) const;
+
+  /// @brief Check for equality between two complex matrices.
+  bool operator==(complex_matrix &other);
+
+  /// @brief Return the exponential of the matrix.
+  complex_matrix exp() const;
 
   /// @brief Return the minimal eigenvalue for this matrix.
   value_type minimal_eigenvalue() const;
@@ -82,10 +100,24 @@ public:
   /// @brief Set all elements in this matrix to 0.0
   void set_zero();
 
+  /// @brief Set this matrix equal to the identity.
+  void set_identity();
+
   /// @brief Print this matrix to the given output stream
   void dump(std::ostream &os);
 
   /// @brief Print this matrix to standard out
   void dump();
+
+  /// @brief Kronecker product between two matrices.
+  complex_matrix kronecker(complex_matrix &other);
+
+  std::vector<value_type> get_row(std::size_t i) const;
+
+  void set_row(std::size_t i, const std::vector<value_type> &row);
 };
+
+// Needed to perform an accumulation of kronecker products.
+complex_matrix kronecker(complex_matrix &self, complex_matrix &other);
+
 } // namespace cudaq
