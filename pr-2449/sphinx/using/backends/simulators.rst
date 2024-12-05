@@ -444,7 +444,7 @@ Specific aspects of the simulation can be configured by defining the following e
     The parallelism of Jacobi method (the default `CUDAQ_MPS_SVD_ALGO` setting) gives GPU better performance on small and medium size matrices.
     If you expect a large number of singular values (e.g., increasing the `CUDAQ_MPS_MAX_BOND` setting), please adjust the `CUDAQ_MPS_SVD_ALGO` setting accordingly.  
 
-Clifford-Only Simulation
+Clifford-Only Simulator
 ==================================
 
 Stim (CPU)
@@ -481,10 +481,10 @@ To execute a program on the :code:`stim` target, use the following commands:
         ./program.x
 
 .. note::
-    CUDA-Q currently executes CUDA-Q programs using a "shot-by-shot" execution
-    approach. This allows for conditional gate execution (i.e. full control
-    flow), but it can be slower than executing Stim a single time and generating
-    all the shots from that single execution.
+    CUDA-Q currently executes kernels using a "shot-by-shot" execution approach.
+    This allows for conditional gate execution (i.e. full control flow), but it
+    can be slower than executing Stim a single time and generating all the shots
+    from that single execution.
 
 Fermioniq
 ==================================

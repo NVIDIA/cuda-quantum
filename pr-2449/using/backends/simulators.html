@@ -317,7 +317,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#matrix-product-state">Matrix product state</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#clifford-only-simulation">Clifford-Only Simulation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#clifford-only-simulator">Clifford-Only Simulator</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#stim-cpu">Stim (CPU)</a></li>
 </ul>
 </li>
@@ -1113,8 +1113,8 @@ If you expect a large number of singular values (e.g., increasing the <code clas
 </div>
 </section>
 </section>
-<section id="clifford-only-simulation">
-<h2>Clifford-Only Simulation<a class="headerlink" href="#clifford-only-simulation" title="Permalink to this heading">¶</a></h2>
+<section id="clifford-only-simulator">
+<h2>Clifford-Only Simulator<a class="headerlink" href="#clifford-only-simulator" title="Permalink to this heading">¶</a></h2>
 <section id="stim-cpu">
 <h3>Stim (CPU)<a class="headerlink" href="#stim-cpu" title="Permalink to this heading">¶</a></h3>
 <p id="stim-backend">This target provides a fast simulator for circuits containing <em>only</em> Clifford
@@ -1142,10 +1142,10 @@ library.</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>CUDA-Q currently executes CUDA-Q programs using a “shot-by-shot” execution
-approach. This allows for conditional gate execution (i.e. full control
-flow), but it can be slower than executing Stim a single time and generating
-all the shots from that single execution.</p>
+<p>CUDA-Q currently executes kernels using a “shot-by-shot” execution approach.
+This allows for conditional gate execution (i.e. full control flow), but it
+can be slower than executing Stim a single time and generating all the shots
+from that single execution.</p>
 </div>
 </section>
 </section>
