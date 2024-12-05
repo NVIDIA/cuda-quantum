@@ -103,6 +103,62 @@ void SimulatorTensorNetBase::applyGate(const GateApplicationTask &task) {
   m_state->applyGate(ctrlQubits, targetQubits, m_gateDeviceMemCache[gateKey]);
 }
 
+template <typename T>
+std::optional<double> isScaledUnitary(const std::vector<std::complex<T>> &mat,
+                                      double eps) {
+  typedef Eigen::Matrix<std::complex<T>, Eigen::Dynamic, Eigen::Dynamic,
+                        Eigen::RowMajor>
+      RowMajorMatTy;
+  const int dim = std::log2(mat.size());
+  Eigen::Map<const RowMajorMatTy> kMat(mat.data(), dim, dim);
+  if (kMat.isZero())
+    return std::nullopt;
+  // Check that (K_dag * K) is a scaled identity matrix
+  // i.e., the K matrix is a scaled unitary.
+  auto kdK = kMat.adjoint() * kMat;
+  if (!kdK.isDiagonal())
+    return std::nullopt;
+  // First element
+  std::complex<T> val = kdK(0, 0);
+  if (std::abs(val) > eps && std::abs(val.imag()) < eps) {
+    auto scaledKdK = (std::complex<T>{1.0} / val) * kdK;
+    if (scaledKdK.isIdentity())
+      return val.real();
+  }
+  return std::nullopt;
+}
+
+std::optional<std::pair<
+    std::vector<double>,
+    std::vector<std::vector<std::complex<
+        double>>>>> static computeUnitaryMixture(const std::
+                                                     vector<std::vector<
+                                                         std::complex<double>>>
+                                                         &krausOps,
+                                                 double tol = 1e-12) {
+  std::vector<double> probs;
+  std::vector<std::vector<std::complex<double>>> mats;
+  const auto scaleMat = [](const std::vector<std::complex<double>> &mat,
+                           double scaleFactor) {
+    std::vector<std::complex<double>> scaledMat = mat;
+    for (auto &x : scaledMat)
+      x /= scaleFactor;
+    return scaledMat;
+  };
+  for (const auto &op : krausOps) {
+    const auto scaledFactor = isScaledUnitary(op, tol);
+    if (!scaledFactor.has_value())
+      return std::nullopt;
+    probs.emplace_back(scaledFactor.value());
+    mats.emplace_back(scaleMat(op, scaledFactor.value()));
+  }
+
+  if (std::abs(1.0 - std::reduce(probs.begin(), probs.end())) > tol)
+    return std::nullopt;
+
+  return std::make_pair(probs, mats);
+}
+
 void SimulatorTensorNetBase::applyNoiseChannel(
     const std::string_view gateName, const std::vector<std::size_t> &controls,
     const std::vector<std::size_t> &targets,
@@ -199,12 +255,32 @@ void SimulatorTensorNetBase::applyNoiseChannel(
       break;
     }
     case cudaq::noise_model_type::amplitude_damping_channel: {
-      throw std::runtime_error("Non-unitary noise channels are not supported.");
+      if (krausChannel.parameters.size() != 1)
+        throw std::runtime_error(
+            fmt::format("Invalid parameters for a amplitude damping channel. "
+                        "Expecting 1 parameter, got {}.",
+                        krausChannel.parameters.size()));
+      if (krausChannel.parameters[0] != 0.0)
+        throw std::runtime_error(
+            "Non-unitary noise channels are not supported.");
+      break;
     }
     case cudaq::noise_model_type::unknown: {
-      // TODO: check the Kraus matrices to see if we can convert it to a unitary
-      // channel.
-      throw std::runtime_error("Non-unitary noise channels are not supported.");
+      std::vector<std::vector<std::complex<double>>> mats;
+      for (const auto &op : krausChannel.get_ops())
+        mats.emplace_back(op.data);
+      auto asUnitaryMixture = computeUnitaryMixture(mats);
+      if (asUnitaryMixture.has_value()) {
+        auto &[probabilities, unitaries] = asUnitaryMixture.value();
+        std::vector<void *> channelMats;
+        for (const auto &mat : unitaries)
+          channelMats.emplace_back(getOrCacheMat(
+              "ScaledUnitary_" + std::to_string(vecComplexHash(mat)), mat));
+        m_state->applyUnitaryChannel(qubits, channelMats, probabilities);
+      } else {
+        throw std::runtime_error(
+            "Non-unitary noise channels are not supported.");
+      }
       break;
     }
     default:
