@@ -924,7 +924,7 @@ prior to setting the target.</p>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_HOST_DEVICE_MIGRATION_LEVEL</span></code></p></td>
 <td><p>positive integer</p></td>
-<td><p>Specify host-device memory migration w.r.t. the network structure.</p></td>
+<td><p>Specify host-device memory migration w.r.t. the network structure. If provided, this setting determines the position to insert the number of migration index bits to the <code class="code docutils literal notranslate"><span class="pre">CUDAQ_GLOBAL_INDEX_BITS</span></code> list. By default, if not set, the number of migration index bits (CPU-GPU data transfers) is appended to the end of the array of index bits (aka, state vector distribution scheme). This default behavior is optimized for systems with fast GPU-GPU interconnects (NVLink, InfiniBand, etc.)</p></td>
 </tr>
 </tbody>
 </table>
