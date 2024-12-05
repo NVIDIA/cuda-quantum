@@ -29,7 +29,6 @@ target_link_libraries(${LIBRARY_NAME}
   PRIVATE
     fmt::fmt-header-only cudaq CUDAQTargetConfigUtil)
 
-install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 install(TARGETS ${LIBRARY_NAME}
   EXPORT cudaq-platform-default-targets DESTINATION lib)
 
