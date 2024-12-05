@@ -16,21 +16,21 @@ config:
   link-libs: ["-lcudaq-rest-qpu"]
   # Tell NVQ++ to generate glue code to set the target backend name
   gen-target-backend: true
-  # Define the lowering pipeline; # ADJUST DECOMPOSTION
-  platform-lowering-config: "func.func(const-prop-complex,canonicalize,cse,lift-array-alloc),globalize-array-values,state-prep,unitary-synthesis,canonicalize,apply-op-specialization,aggressive-early-inlining,unrolling-pipeline,func.func(lower-to-cfg),canonicalize,func.func(multicontrol-decomposition),decomposition{enable-patterns=SToR1,TToR1,R1ToU3,U3ToRotations,CHToCX,CCZToCX,CRzToCX,CRyToCX,CRxToCX,CR1ToCX,RxAdjToRx,RyAdjToRy,RzAdjToRz},func.func(memtoreg{quantum=0}),symbol-dce"
+  # Define the lowering pipeline
+  platform-lowering-config: "func.func(const-prop-complex,canonicalize,cse,lift-array-alloc),globalize-array-values,unitary-synthesis,canonicalize,apply-op-specialization,aggressive-early-inlining,unrolling-pipeline,func.func(lower-to-cfg),canonicalize,func.func(multicontrol-decomposition),decomposition{enable-patterns=CHToCX,CCZToCX,CRzToCX,CRyToCX,CRxToCX,CR1ToCX,RxAdjToRx,RyAdjToRy,RzAdjToRz},func.func(memtoreg{quantum=0}),symbol-dce"
   # Tell the rest-qpu that we are generating OpenQASM 2.0.
   codegen-emission: qasm2
   # Library mode is only for simulators, physical backends must turn this off
   library-mode: false
 
 target-arguments:
-  - key: qpu
+  - key: machine
     required: false
     type: string
-    platform-arg: qpu
-    help-string: "Specify the Infleqtion QPU."
-  - key: noise-model
+    platform-arg: machine
+    help-string: "Specify the Infleqtion backend to run on."
+  - key: method
     required: false
     type: string
-    platform-arg: noise
-    help-string: "Specify the noise model for simulation."
+    platform-arg: method
+    help-string: "Specify the circuit execution type, either: dry-run (ideal simulation) or noise-sim (noisy-simulation)."
