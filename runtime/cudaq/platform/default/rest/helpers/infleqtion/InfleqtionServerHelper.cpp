@@ -15,19 +15,21 @@
 #include <fstream>
 #include <iostream>
 #include <map>
-#include <sstream>
 #include <regex>
+#include <sstream>
 #include <thread>
 #include <unordered_set>
 using json = nlohmann::json;
 
-bool isValidTarget(const std::string& input) {
-    static const std::unordered_set<std::string> validTargets = {"cq_sqorpius_qpu", "cq_sqorpius_simulator", "cq_sqale_simulator"};
-    return validTargets.find(input) != validTargets.end();
+bool isValidTarget(const std::string &input) {
+  static const std::unordered_set<std::string> validTargets = {
+      "cq_sqorpius_qpu", "cq_sqorpius_simulator", "cq_sqale_simulator"};
+  return validTargets.find(input) != validTargets.end();
 }
 
 std::string formatOpenQasm(const std::string &input_string) {
-  std::string escaped_string = std::regex_replace(input_string, std::regex("\\\\"), "\\\\");
+  std::string escaped_string =
+      std::regex_replace(input_string, std::regex("\\\\"), "\\\\");
   escaped_string = std::regex_replace(escaped_string, std::regex("\""), "\\\"");
   escaped_string = std::regex_replace(escaped_string, std::regex("\n"), "\\n");
 
@@ -110,7 +112,8 @@ void InfleqtionServerHelper::initialize(BackendConfig config) {
       getValueOrDefault(config, "version", DEFAULT_VERSION);
   backendConfig["user_agent"] = getValueOrDefault(
       config, "user_agent", "cudaq/" + std::string(cudaq::getVersion()));
-  backendConfig["machine"] = getValueOrDefault(config, "machine", "cq_sqorpius_simulator");
+  backendConfig["machine"] =
+      getValueOrDefault(config, "machine", "cq_sqorpius_simulator");
   backendConfig["method"] = config["method"];
 
   // Validate machine name client-side
@@ -173,16 +176,13 @@ InfleqtionServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
 
   // Construct the job message
   ServerMessage job;
-  job["qasm_strs"] =
-      formatOpenQasm(circuitCode.code); // Assuming code is in OpenQASM 2.0 format
+  job["qasm_strs"] = formatOpenQasm(
+      circuitCode.code); // Assuming code is in OpenQASM 2.0 format
   job["target"] = backendConfig.at("machine");
   job["shots"] = shots;
 
   if (backendConfig.count("method"))
     job["method"] = backendConfig.at("method");
-
-  if (backendConfig.count("options"))
-    job["options"] = backendConfig.at("options");
 
   // Store output names and reorder indices if necessary
   OutputNamesType outputNamesMap;
