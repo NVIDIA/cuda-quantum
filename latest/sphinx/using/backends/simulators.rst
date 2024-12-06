@@ -300,41 +300,6 @@ use the following commands:
         nvq++ --target qpp-cpu program.cpp [...] -o program.x
         ./program.x
 
-
-Clifford-Only Simulation (CPU)
-++++++++++++++++++++++++++++++++++
-
-.. _stim-backend:
-
-This target provides a fast simulator for circuits containing *only* Clifford
-gates. Any non-Clifford gates (such as T gates and Toffoli gates) are not
-supported. This simulator is based on the `Stim <https://github.com/quantumlib/Stim>`_
-library.
-
-To execute a program on the :code:`stim` target, use the following commands:
-
-.. tab:: Python
-
-    .. code:: bash 
-
-        python3 program.py [...] --target stim
-
-    The target can also be defined in the application code by calling
-
-    .. code:: python 
-
-        cudaq.set_target('stim')
-
-    If a target is set in the application code, this target will override the :code:`--target` command line flag given during program invocation.
-
-.. tab:: C++
-
-    .. code:: bash 
-
-        nvq++ --target stim program.cpp [...] -o program.x
-        ./program.x
-
-
 Tensor Network Simulators
 ==================================
 
@@ -478,6 +443,48 @@ Specific aspects of the simulation can be configured by defining the following e
 .. note::
     The parallelism of Jacobi method (the default `CUDAQ_MPS_SVD_ALGO` setting) gives GPU better performance on small and medium size matrices.
     If you expect a large number of singular values (e.g., increasing the `CUDAQ_MPS_MAX_BOND` setting), please adjust the `CUDAQ_MPS_SVD_ALGO` setting accordingly.  
+
+Clifford-Only Simulator
+==================================
+
+Stim (CPU)
+++++++++++++++++++++++++++++++++++
+
+.. _stim-backend:
+
+This target provides a fast simulator for circuits containing *only* Clifford
+gates. Any non-Clifford gates (such as T gates and Toffoli gates) are not
+supported. This simulator is based on the `Stim <https://github.com/quantumlib/Stim>`_
+library.
+
+To execute a program on the :code:`stim` target, use the following commands:
+
+.. tab:: Python
+
+    .. code:: bash 
+
+        python3 program.py [...] --target stim
+
+    The target can also be defined in the application code by calling
+
+    .. code:: python 
+
+        cudaq.set_target('stim')
+
+    If a target is set in the application code, this target will override the :code:`--target` command line flag given during program invocation.
+
+.. tab:: C++
+
+    .. code:: bash 
+
+        nvq++ --target stim program.cpp [...] -o program.x
+        ./program.x
+
+.. note::
+    CUDA-Q currently executes kernels using a "shot-by-shot" execution approach.
+    This allows for conditional gate execution (i.e. full control flow), but it
+    can be slower than executing Stim a single time and generating all the shots
+    from that single execution.
 
 Fermioniq
 ==================================
