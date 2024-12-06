@@ -379,10 +379,7 @@ cudaq::ExecutionResult
 SimulatorTensorNetBase::sample(const std::vector<std::size_t> &measuredBits,
                                const int shots) {
   LOG_API_TIME();
-  std::vector<int32_t> measuredBitIds;
-  std::transform(measuredBits.begin(), measuredBits.end(),
-                 std::back_inserter(measuredBitIds),
-                 [](std::size_t idx) { return static_cast<int32_t>(idx); });
+  std::vector<int32_t> measuredBitIds(measuredBits.begin(), measuredBits.end());
   if (shots < 1) {
     cudaq::spin_op::spin_op_term allZTerm(2 * m_state->getNumQubits(), 0);
     for (const auto &m : measuredBits)

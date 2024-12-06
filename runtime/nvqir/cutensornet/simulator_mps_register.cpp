@@ -153,6 +153,42 @@ public:
     SimulatorTensorNetBase::applyExpPauli(theta, controls, qubitIds, op);
   }
 
+  /// @brief Sample a subset of qubits
+  cudaq::ExecutionResult sample(const std::vector<std::size_t> &measuredBits,
+                                const int shots) override {
+    const bool hasNoise = executionContext && executionContext->noiseModel;
+    if (!hasNoise || shots < 1)
+      return SimulatorTensorNetBase::sample(measuredBits, shots);
+
+    LOG_API_TIME();
+    cudaq::ExecutionResult counts;
+    std::vector<int32_t> measuredBitIds(measuredBits.begin(),
+                                        measuredBits.end());
+    for (int i = 0; i < shots; ++i) {
+      // As the Kraus operator sampling may change the MPS state, we need to
+      // re-compute the factorization in each trajectory.
+      prepareQubitTensorState();
+      const auto samples = m_state->sample(measuredBitIds, 1);
+      assert(samples.size() == 1);
+      for (const auto &[bitString, count] : samples)
+        counts.appendResult(bitString, count);
+    }
+    double expVal = 0.0;
+    // Compute the expectation value from the counts
+    for (auto &kv : counts.counts) {
+      auto par = cudaq::sample_result::has_even_parity(kv.first);
+      auto p = kv.second / (double)shots;
+      if (!par) {
+        p = -p;
+      }
+      expVal += p;
+    }
+
+    counts.expectationValue = expVal;
+
+    return counts;
+  }
+
   virtual std::string name() const override { return "tensornet-mps"; }
 
   CircuitSimulator *clone() override {
