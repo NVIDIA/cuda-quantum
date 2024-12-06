@@ -19,10 +19,6 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassRegistry.h"
 
-namespace qtx {
-class CircuitOp;
-}
-
 namespace cudaq::opt {
 
 #define GEN_PASS_CLASSES
