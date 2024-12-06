@@ -45,6 +45,7 @@ Hadamards
 Hamiltonian
 Hamiltonians
 IQM
+InfiniBand
 IonQ
 JIT
 JSON
