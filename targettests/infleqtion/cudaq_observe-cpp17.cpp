@@ -1,1 +1,1 @@
-targettests/execution/cudaq_observe-cpp17.cpp
+../execution/cudaq_observe-cpp17.cpp
