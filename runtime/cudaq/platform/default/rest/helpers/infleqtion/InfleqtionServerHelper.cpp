@@ -137,9 +137,6 @@ void InfleqtionServerHelper::initialize(BackendConfig config) {
   backendConfig["job_path"] =
       backendConfig["url"] + '/' + backendConfig["version"] + "/jobs";
 
-  // Set default shots value to 100
-  shots = 100;
-
   // Set shots if provided
   if (config.find("shots") != config.end())
     this->setShots(std::stoul(config["shots"]));
