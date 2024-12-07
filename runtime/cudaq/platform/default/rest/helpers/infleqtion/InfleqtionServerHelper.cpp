@@ -23,7 +23,7 @@ using json = nlohmann::json;
 
 bool isValidTarget(const std::string &input) {
   static const std::unordered_set<std::string> validTargets = {
-      "cq_sqorpius_qpu", "cq_sqorpius_simulator", "cq_sqale_simulator"};
+      "cq_sqale_qpu", "cq_sqale_simulator"};
   return validTargets.find(input) != validTargets.end();
 }
 
@@ -113,7 +113,7 @@ void InfleqtionServerHelper::initialize(BackendConfig config) {
   backendConfig["user_agent"] = getValueOrDefault(
       config, "user_agent", "cudaq/" + std::string(cudaq::getVersion()));
   backendConfig["machine"] =
-      getValueOrDefault(config, "machine", "cq_sqorpius_simulator");
+      getValueOrDefault(config, "machine", "cq_sqale_simulator");
   backendConfig["method"] = config["method"];
 
   // Validate machine name client-side
