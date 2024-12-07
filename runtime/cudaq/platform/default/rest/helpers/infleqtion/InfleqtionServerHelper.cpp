@@ -82,6 +82,12 @@ public:
   cudaq::sample_result processResults(ServerMessage &getJobResponse,
                                       std::string &jobId) override;
 
+  /// @brief Override the polling interval method
+  std::chrono::microseconds
+  nextResultPollingInterval(ServerMessage &postResponse) override {
+    return std::chrono::seconds(1);
+  }
+
 private:
   /// @brief RestClient used for HTTP requests.
   RestClient client;
@@ -242,8 +248,12 @@ bool InfleqtionServerHelper::jobIsDone(ServerMessage &getJobResponse) {
   if (!getJobResponse.contains("status"))
     throw std::runtime_error("ServerMessage is missing job 'status' key.");
 
-  // Return whether the job is done
-  return getJobResponse["status"] == "Done";
+  std::string status = getJobResponse["status"];
+  if (status == "Canceled") {
+    throw std::runtime_error("The submitted job was canceled.");
+  }
+  // Returns whether the job is done
+  return status == "Done";
 }
 
 // Process the results from a job
