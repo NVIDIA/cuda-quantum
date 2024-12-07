@@ -5,16 +5,13 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
+target_sources(cudaq-rest-qpu PRIVATE InfleqtionServerHelper.cpp)
+add_target_config(infleqtion)
 
-find_package(Python COMPONENTS Interpreter)
-if (OPENSSL_FOUND AND CUDAQ_ENABLE_PYTHON AND CUDAQ_TEST_MOCK_SERVERS)
-  add_subdirectory(anyon)
-  add_subdirectory(braket)
-  add_subdirectory(infleqtion)
-  add_subdirectory(ionq)
-  add_subdirectory(iqm)
-  add_subdirectory(oqc)
-  add_subdirectory(quantinuum)  
-endif()
-add_subdirectory(qpp_observe)
-add_subdirectory(quera)
+add_library(cudaq-serverhelper-infleqtion SHARED InfleqtionServerHelper.cpp )
+target_link_libraries(cudaq-serverhelper-infleqtion
+  PUBLIC
+    cudaq-common
+    fmt::fmt-header-only
+)
+install(TARGETS cudaq-serverhelper-infleqtion DESTINATION lib)
