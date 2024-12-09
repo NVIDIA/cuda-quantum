@@ -62,6 +62,7 @@ if $install_all; then
   ZLIB_INSTALL_PREFIX=${ZLIB_INSTALL_PREFIX:-/usr/local/zlib}
   OPENSSL_INSTALL_PREFIX=${OPENSSL_INSTALL_PREFIX:-/usr/lib/ssl}
   CURL_INSTALL_PREFIX=${CURL_INSTALL_PREFIX:-/usr/local/curl}
+  AWS_INSTALL_PREFIX=${AWS_INSTALL_PREFIX:-/usr/local/aws}
   CUQUANTUM_INSTALL_PREFIX=${CUQUANTUM_INSTALL_PREFIX:-/opt/nvidia/cuquantum}
   CUTENSOR_INSTALL_PREFIX=${CUTENSOR_INSTALL_PREFIX:-/opt/nvidia/cutensor}
 fi
@@ -308,6 +309,41 @@ if [ -n "$CURL_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep curl)" ]
     remove_temp_installs
   else
     echo "Curl already installed in $CURL_INSTALL_PREFIX."
+  fi
+fi
+
+# [AWS SDK] Needed for communication with Braket
+if [ -n "$AWS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep aws)" ]; then
+  if [ ! -d "$AWS_INSTALL_PREFIX" ] || [ -z "$(ls -A "$AWS_INSTALL_PREFIX"/* 2> /dev/null)" ]; then
+    aws_service_components='braket s3-crt sts'
+    git clone --filter=tree:0 https://github.com/aws/aws-sdk-cpp aws-sdk-cpp
+    cd aws-sdk-cpp && git checkout 1.11.454 && git submodule update --init --recursive
+
+    # FIXME: CUDAQ VERSION?
+    mkdir build && cd build
+    cmake -G Ninja .. \
+      -DCMAKE_INSTALL_PREFIX="${AWS_INSTALL_PREFIX}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF \
+      -DAWS_SDK_WARNINGS_ARE_ERRORS=OFF \
+      -DAWS_USER_AGENT_CUSTOMIZATION=CUDA-Q/${CUDA_QUANTUM_VERSION} \
+      -DBUILD_ONLY="$(echo $aws_service_components | tr ' ' ';')" \
+      -DBUILD_SHARED_LIBS=OFF \
+      -DZLIB_ROOT="${ZLIB_INSTALL_PREFIX}" \
+      -DZLIB_USE_STATIC_LIBS=ON \
+      -DOPENSSL_ROOT_DIR="${OPENSSL_INSTALL_PREFIX}" \
+      -DCURL_LIBRARY="${CURL_INSTALL_PREFIX}/lib/libcurl.a" \
+      -DCURL_INCLUDE_DIR="${CURL_INSTALL_PREFIX}/include" \
+      -Dcrypto_LIBRARY="$(find "$OPENSSL_INSTALL_PREFIX" -name libcrypto.a)" \
+      -Dcrypto_INCLUDE_DIR="${OPENSSL_INSTALL_PREFIX}/include" \
+      -DENABLE_TESTING=OFF \
+      -DAUTORUN_UNIT_TESTS=OFF
+    cmake --build . --config=Release
+    cmake --install . --config=Release
+    cd ../.. && rm -rf 1.11.454.tar.gz aws-sdk-cpp
+    remove_temp_installs
+  else
+    echo "AWS SDK already installed in $AWS_INSTALL_PREFIX."
   fi
 fi
 

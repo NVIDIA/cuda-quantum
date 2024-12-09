@@ -19,6 +19,8 @@ export BLAS_INSTALL_PREFIX=/usr/local/blas
 export ZLIB_INSTALL_PREFIX=/usr/local/zlib
 export OPENSSL_INSTALL_PREFIX=/usr/local/openssl
 export CURL_INSTALL_PREFIX=/usr/local/curl
+export AWS_INSTALL_PREFIX=/usr/local/aws
+
 # [<InstallLocations]
 
 if [ "$1" == "install-cuda" ]; then

@@ -256,7 +256,7 @@ protected:
   std::unordered_map<std::string, PredicateFuncTy> gatePredicates;
 
   static constexpr const char *availableOps[] = {
-      "x", "y", "z", "h", "s", "t", "rx", "ry", "rz", "r1", "u3"};
+      "x", "y", "z", "h", "s", "t", "rx", "ry", "rz", "r1", "u3", "mz"};
 
 public:
   /// @brief default constructor
