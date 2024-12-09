@@ -80,8 +80,7 @@ std::optional<observe_result>
 runObservation(KernelFunctor &&k, cudaq::spin_op &h, quantum_platform &platform,
                int shots, const std::string &kernelName, std::size_t qpu_id = 0,
                details::future *futureResult = nullptr,
-               std::size_t batchIteration = 0,
-               std::size_t totalBatchIters = 0,
+               std::size_t batchIteration = 0, std::size_t totalBatchIters = 0,
                std::optional<std::size_t> numTrajectories = {}) {
   auto ctx = std::make_unique<ExecutionContext>("observe", shots);
   ctx->kernelName = kernelName;
