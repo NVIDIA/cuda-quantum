@@ -101,6 +101,38 @@ def test_all_gates():
     cudaq.sample(all_gates).dump()
 
 
+def test_multiple_qvector():
+
+    @cudaq.kernel
+    def kernel():
+        qubits = cudaq.qvector(2)
+        ancilla = cudaq.qvector(2)
+        x(qubits)
+        h(ancilla)
+        mz(ancilla)
+
+    # Test here is that this runs
+    cudaq.sample(kernel).dump()
+
+
+def test_multiple_measure():
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(4)
+        a = cudaq.qvector(2)
+        h(q[0])
+        cx(q[0], q[1])
+        h(a)
+        cx(q[1], a[0])
+        mz(q[1])
+        mz(q[0])
+        mz(a)
+
+    # Test here is that this runs
+    cudaq.sample(kernel).dump()
+
+
 def test_observe():
     cudaq.set_random_seed(13)
 
