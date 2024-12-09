@@ -27,7 +27,6 @@ target_link_libraries(cudaq-quake
 
   MLIRAffineDialect
   MLIRMemRefDialect
-  MLIRSCFDialect
   
   clangCodeGen
   clangFrontendTool
