@@ -641,3 +641,44 @@ CUDAQ_TEST(NoiseTest, checkCustomOperation) {
   }
 }
 #endif
+
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM)
+
+CUDAQ_TEST(NoiseTest, checkMeasurementNoise) {
+  cudaq::set_random_seed(13);
+  constexpr double bitFlipRate = 0.1;
+  cudaq::bit_flip_channel bf(bitFlipRate);
+  cudaq::noise_model noise;
+  // 10% bit flipping during measurement
+  noise.add_channel("mz", {0}, bf);
+  cudaq::set_noise(noise);
+  {
+    auto kernel = []() {
+      cudaq::qubit q;
+      x(q);
+      mz(q);
+    };
+    auto counts = cudaq::sample(10000, kernel);
+    counts.dump();
+    // Due to measurement errors, we have both 0/1 results.
+    EXPECT_EQ(2, counts.size());
+    EXPECT_NEAR(counts.probability("0"), bitFlipRate, 0.01);
+    EXPECT_NEAR(counts.probability("1"), 1.0 - bitFlipRate, 0.01);
+  }
+  {
+    auto kernel = []() {
+      cudaq::qvector q(2);
+      x(q);
+      mz(q);
+    };
+    auto counts = cudaq::sample(10000, kernel);
+    counts.dump();
+    // We only have measurement noise on the first qubit.
+    EXPECT_EQ(2, counts.size());
+    EXPECT_NEAR(counts.probability("01"), bitFlipRate, 0.01);
+    EXPECT_NEAR(counts.probability("11"), 1.0 - bitFlipRate, 0.01);
+  }
+  cudaq::unset_noise(); // clear for subsequent tests
+}
+
+#endif
