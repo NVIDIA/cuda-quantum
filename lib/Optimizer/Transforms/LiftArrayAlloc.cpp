@@ -96,8 +96,8 @@ public:
           if (auto load = dyn_cast<cudaq::cc::LoadOp>(useuser)) {
             rewriter.setInsertionPointAfter(useuser);
             LLVM_DEBUG(llvm::dbgs() << "replaced load\n");
-            auto extractValue = rewriter.create<cudaq::cc::ExtractValueOp>(loc, 
-                eleTy, conArr,
+            auto extractValue = rewriter.create<cudaq::cc::ExtractValueOp>(
+                loc, eleTy, conArr,
                 ArrayRef<cudaq::cc::ExtractValueArg>{offset});
             rewriter.replaceAllUsesWith(load, extractValue);
             insertOpToErase(load);

@@ -3547,7 +3547,7 @@ class PyASTBridge(ast.NodeVisitor):
 
     def visit_IfExp(self, node):
         """
-        Map a Python `ast.IfExp` node to a `select` in the arith dialect.
+        Map a Python `ast.IfExp` node to a `select` in the `arith` dialect.
         """
         if self.verbose:
             print("[Visit IfExp = {}]".format(
@@ -3577,7 +3577,7 @@ class PyASTBridge(ast.NodeVisitor):
         self.visit(node.orelse)
         elseValue = self.popValue()
         elseValue = self.ifPointerThenLoad(elseValue)
-        
+
         self.pushValue(arith.SelectOp(condition, ifValue, elseValue).result)
         return
 

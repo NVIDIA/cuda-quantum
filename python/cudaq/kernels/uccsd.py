@@ -147,20 +147,36 @@ def single_excitation(qubits: cudaq.qview, p_occ: int, q_virt: int,
 def double_excitation_opt(qubits: cudaq.qview, p_occ: int, q_occ: int,
                           r_virt: int, s_virt: int, theta: float):
 
-    i_occ = p_occ if (p_occ < q_occ) else q_occ
-    j_occ = q_occ if (p_occ < q_occ) else p_occ
-    a_virt = r_virt if (r_virt < s_virt) else s_virt
-    b_virt = s_virt if (r_virt < s_virt) else r_virt
+    i_occ = 0
+    j_occ = 0
+    a_virt = 0
+    b_virt = 0
+    if (p_occ < q_occ) and (r_virt < s_virt):
+        i_occ = p_occ
+        j_occ = q_occ
+        a_virt = r_virt
+        b_virt = s_virt
 
-    eq = (p_occ == q_occ) and (r_virt < s_virt)
-    i_occ = 0 if eq else i_occ
-    j_occ = 0 if eq else j_occ
-    a_virt = 0 if eq else a_virt
-    b_virt = 0 if eq else b_virt
+    elif (p_occ > q_occ) and (r_virt > s_virt):
+        i_occ = q_occ
+        j_occ = p_occ
+        a_virt = s_virt
+        b_virt = r_virt
 
-    updateTheta = ((p_occ < q_occ) and (r_virt > s_virt)) or ((p_occ > q_occ) and (r_virt < s_virt)) 
-    theta = (theta* -1.) if updateTheta else theta
+    elif (p_occ < q_occ) and (r_virt > s_virt):
+        i_occ = p_occ
+        j_occ = q_occ
+        a_virt = s_virt
+        b_virt = r_virt
+        # theta *= -1.0 FIXME
+        theta *= -1.
 
+    elif (p_occ > q_occ) and (r_virt < s_virt):
+        i_occ = q_occ
+        j_occ = p_occ
+        a_virt = r_virt
+        b_virt = s_virt
+        theta *= -1.0
     #Block I: x_i x_j x_a y_b + x_i x_j y_a x_b + x_i y_i y_a y_b - x_i y_j x_a x_b
     #Block II: - y_i x_j x_a x_b +y_i x_j y_a y_b - y_i x_j x_a x_b - y_i y_j y_a x_b
 
@@ -334,113 +350,97 @@ def uccsd_odd_electrons(qubits: cudaq.qview, thetas: list[float],
     lenVirtA = len(virtual_alpha_indices)
     lenVirtB = len(virtual_beta_indices)
 
-    singles_a0 = [0 for k in range(lenOccA * lenVirtA)]
-    singles_a1 = [0 for k in range(lenOccA * lenVirtA)]
+    singles_a = [[0, 0] for k in range(lenOccA * lenVirtA)]
     counter = 0
     for p in occupied_alpha_indices:
         for q in virtual_alpha_indices:
-            singles_a0[counter] = p
-            singles_a1[counter] = q
+            singles_a[counter] = [p, q]
             counter = counter + 1
 
     counter = 0
-    singles_b0 = [0 for k in range(lenOccB * lenVirtB)]
-    singles_b1 = [0 for k in range(lenOccB * lenVirtB)]
+    singles_b = [[0, 0] for k in range(lenOccB * lenVirtB)]
     for p in occupied_beta_indices:
         for q in virtual_beta_indices:
-            singles_b0[counter] = p
-            singles_b1[counter] = q
+            singles_b[counter] = [p, q]
             counter = counter + 1
 
     counter = 0
-    doubles_m0 = [0 for k in range(lenOccB * lenVirtB * lenOccA * lenVirtA)]
-    doubles_m1 = [0 for k in range(lenOccB * lenVirtB * lenOccA * lenVirtA)]
-    doubles_m2 = [0 for k in range(lenOccB * lenVirtB * lenOccA * lenVirtA)]
-    doubles_m3 = [0 for k in range(lenOccB * lenVirtB * lenOccA * lenVirtA)]
-    
-    
+    doubles_m = [
+        [0, 0, 0, 0] for k in range(lenOccB * lenVirtB * lenOccA * lenVirtA)
+    ]
     for p in occupied_alpha_indices:
         for q in occupied_beta_indices:
             for r in virtual_beta_indices:
                 for s in virtual_alpha_indices:
-                    doubles_m0[counter] = p
-                    doubles_m1[counter] = q
-                    doubles_m2[counter] = r
-                    doubles_m3[counter] = s
+                    doubles_m[counter] = [p, q, r, s]
                     counter = counter + 1
 
     counter = 0
-    nEle = lenOccA * (lenOccA -1)/2 * lenVirtA * (lenVirtA -1) /2
-    doubles_a0 = [0 for k in range(nEle)]
-    doubles_a1 = [0 for k in range(nEle)]
-    doubles_a2 = [0 for k in range(nEle)]
-    doubles_a3 = [0 for k in range(nEle)]
-    for p in occupied_alpha_indices:
-        i = 0
-        for q in occupied_alpha_indices[i:]:
-            for r in virtual_alpha_indices:
-                j = 0
-                for s in virtual_alpha_indices[j:]:
-                    doubles_a0[counter] = p
-                    doubles_a1[counter] = q
-                    doubles_a2[counter] = r
-                    doubles_a3[counter] = s
-                    counter = counter + 1
-                j = j + 1
-        i = i + 1
+    nEle = 0
+    for p in range(lenOccA - 1):
+        for q in range(p + 1, lenOccA):
+            for r in range(lenVirtA - 1):
+                for s in range(r + 1, lenVirtA):
+                    nEle = nEle + 1
 
     counter = 0
-    nEle = lenOccB * (lenOccB -1)/2 * lenVirtB * (lenVirtB -1) /2
-    doubles_b0 = [0 for k in range(nEle)]
-    doubles_b1 = [0 for k in range(nEle)]
-    doubles_b2 = [0 for k in range(nEle)]
-    doubles_b3 = [0 for k in range(nEle)]
-    for p in occupied_beta_indices:
-        i = 0
-        for q in occupied_beta_indices[i:]:
-            for r in virtual_beta_indices:
-                j = 0
-                for s in virtual_beta_indices[j:]:
-                    doubles_b0[counter] = p
-                    doubles_b1[counter] = q
-                    doubles_b2[counter] = r
-                    doubles_b3[counter] = s
+    doubles_a = [[0, 0, 0, 0] for k in range(nEle)]
+    for p in range(lenOccA - 1):
+        for q in range(p + 1, lenOccA):
+            for r in range(lenVirtA - 1):
+                for s in range(r + 1, lenVirtA):
+                    doubles_a[counter] = [occupied_alpha_indices[p],occupied_alpha_indices[q],\
+                                     virtual_alpha_indices[r],virtual_alpha_indices[s]]
                     counter = counter + 1
-                j = j + 1
-        i = i + 1
 
-    n_alpha_singles = len(singles_a0)
-    n_beta_singles = len(singles_b0)
-    n_mixed_doubles = len(doubles_m0)
-    n_alpha_doubles = len(doubles_a0)
-    n_beta_doubles = len(doubles_b0)
+    counter = 0
+    nEle = 0
+    for p in range(lenOccB - 1):
+        for q in range(p + 1, lenOccB):
+            for r in range(lenVirtB - 1):
+                for s in range(r + 1, lenVirtB):
+                    nEle = nEle + 1
+    doubles_b = [[0, 0, 0, 0] for k in range(nEle)]
+    for p in range(lenOccB - 1):
+        for q in range(p + 1, lenOccB):
+            for r in range(lenVirtB - 1):
+                for s in range(r + 1, lenVirtB):
+                    doubles_b[counter] = [occupied_beta_indices[p],occupied_beta_indices[q],\
+                                     virtual_beta_indices[r],virtual_beta_indices[s]]
+                    counter = counter + 1
+
+    n_alpha_singles = len(singles_a)
+    n_beta_singles = len(singles_b)
+    n_mixed_doubles = len(doubles_m)
+    n_alpha_doubles = len(doubles_a)
+    n_beta_doubles = len(doubles_b)
 
     thetaCounter = 0
     for i in range(n_alpha_singles):
-        single_excitation(qubits, singles_a0[i], singles_a1[i],
+        single_excitation(qubits, singles_a[i][0], singles_a[i][1],
                           thetas[thetaCounter])
         thetaCounter += 1
 
     for i in range(n_beta_singles):
-        single_excitation(qubits, singles_b0[i], singles_b1[i],
+        single_excitation(qubits, singles_b[i][0], singles_b[i][1],
                           thetas[thetaCounter])
         thetaCounter += 1
 
     for i in range(n_mixed_doubles):
-        double_excitation_opt(qubits, doubles_m0[i], doubles_m1[i],
-                              doubles_m2[i], doubles_m3[i],
+        double_excitation_opt(qubits, doubles_m[i][0], doubles_m[i][1],
+                              doubles_m[i][2], doubles_m[i][3],
                               thetas[thetaCounter])
         thetaCounter += 1
 
     for i in range(n_alpha_doubles):
-        double_excitation_opt(qubits, doubles_a0[i], doubles_a1[i],
-                              doubles_a2[i], doubles_a3[i],
+        double_excitation_opt(qubits, doubles_a[i][0], doubles_a[i][1],
+                              doubles_a[i][2], doubles_a[i][3],
                               thetas[thetaCounter])
         thetaCounter += 1
 
     for i in range(n_beta_doubles):
-        double_excitation_opt(qubits, doubles_b0[i], doubles_b1[i],
-                              doubles_b2[i], doubles_b3[i],
+        double_excitation_opt(qubits, doubles_b[i][0], doubles_b[i][1],
+                              doubles_b[i][2], doubles_b[i][3],
                               thetas[thetaCounter])
         thetaCounter += 1
 
@@ -463,114 +463,97 @@ def uccsd_even_electrons(qubits: cudaq.qview, thetas: list[float],
     lenVirtA = len(virtual_alpha_indices)
     lenVirtB = len(virtual_beta_indices)
 
-    singles_a0 = [0 for k in range(lenOccA * lenVirtA)]
-    singles_a1 = [0 for k in range(lenOccA * lenVirtA)]
+    singles_a = [[0, 0] for k in range(lenOccA * lenVirtA)]
     counter = 0
     for p in occupied_alpha_indices:
         for q in virtual_alpha_indices:
-            singles_a0[counter] = p
-            singles_a1[counter] = q
+            singles_a[counter] = [p, q]
             counter = counter + 1
 
     counter = 0
-    singles_b0 = [0 for k in range(lenOccB * lenVirtB)]
-    singles_b1 = [0 for k in range(lenOccB * lenVirtB)]
+    singles_b = [[0, 0] for k in range(lenOccB * lenVirtB)]
     for p in occupied_beta_indices:
         for q in virtual_beta_indices:
-            singles_b0[counter] = p
-            singles_b1[counter] = q
+            singles_b[counter] = [p, q]
             counter = counter + 1
 
     counter = 0
-    doubles_m0 = [0 for k in range(lenOccB * lenVirtB * lenOccA * lenVirtA)]
-    doubles_m1 = [0 for k in range(lenOccB * lenVirtB * lenOccA * lenVirtA)]
-    doubles_m2 = [0 for k in range(lenOccB * lenVirtB * lenOccA * lenVirtA)]
-    doubles_m3 = [0 for k in range(lenOccB * lenVirtB * lenOccA * lenVirtA)]
+    doubles_m = [
+        [0, 0, 0, 0] for k in range(lenOccB * lenVirtB * lenOccA * lenVirtA)
+    ]
     for p in occupied_alpha_indices:
         for q in occupied_beta_indices:
             for r in virtual_beta_indices:
                 for s in virtual_alpha_indices:
-                    doubles_m0[counter] = p
-                    doubles_m1[counter] = q
-                    doubles_m2[counter] = r
-                    doubles_m3[counter] = s
+                    doubles_m[counter] = [p, q, r, s]
                     counter = counter + 1
 
     counter = 0
-    nEle = lenOccA * (lenOccA -1)/2 * lenVirtA * (lenVirtA -1) /2
-    doubles_a0 = [0 for k in range(nEle)]
-    doubles_a1 = [0 for k in range(nEle)]
-    doubles_a2 = [0 for k in range(nEle)]
-    doubles_a3 = [0 for k in range(nEle)]
-    for p in occupied_alpha_indices:
-        i = 0
-        for q in occupied_alpha_indices[i:]:
-            for r in virtual_alpha_indices:
-                j = 0
-                for s in virtual_alpha_indices[j:]:
-                    doubles_a0[counter] = p
-                    doubles_a1[counter] = q
-                    doubles_a2[counter] = r
-                    doubles_a3[counter] = s
-                    counter = counter + 1
-                j = j + 1
-        i = i + 1
-
+    nEle = 0
+    for p in range(lenOccA - 1):
+        for q in range(p + 1, lenOccA):
+            for r in range(lenVirtA - 1):
+                for s in range(r + 1, lenVirtA):
+                    nEle = nEle + 1
 
     counter = 0
-    nEle = lenOccB * (lenOccB -1)/2 * lenVirtB * (lenVirtB -1) /2
-    doubles_b0 = [0 for k in range(nEle)]
-    doubles_b1 = [0 for k in range(nEle)]
-    doubles_b2 = [0 for k in range(nEle)]
-    doubles_b3 = [0 for k in range(nEle)]
-
-    for p in occupied_beta_indices:
-        i = 0
-        for q in occupied_beta_indices[i:]:
-            for r in virtual_beta_indices:
-                j = 0
-                for s in virtual_beta_indices[j:]:
-                    doubles_b0[counter] = p
-                    doubles_b1[counter] = q
-                    doubles_b2[counter] = r
-                    doubles_b3[counter] = s
+    doubles_a = [[0, 0, 0, 0] for k in range(nEle)]
+    for p in range(lenOccA - 1):
+        for q in range(p + 1, lenOccA):
+            for r in range(lenVirtA - 1):
+                for s in range(r + 1, lenVirtA):
+                    doubles_a[counter] = [occupied_alpha_indices[p],occupied_alpha_indices[q],\
+                                     virtual_alpha_indices[r],virtual_alpha_indices[s]]
                     counter = counter + 1
-                j = j + 1
-        i = i + 1
 
+    counter = 0
+    nEle = 0
+    for p in range(lenOccB - 1):
+        for q in range(p + 1, lenOccB):
+            for r in range(lenVirtB - 1):
+                for s in range(r + 1, lenVirtB):
+                    nEle = nEle + 1
+    doubles_b = [[0, 0, 0, 0] for k in range(nEle)]
+    for p in range(lenOccB - 1):
+        for q in range(p + 1, lenOccB):
+            for r in range(lenVirtB - 1):
+                for s in range(r + 1, lenVirtB):
+                    doubles_b[counter] = [occupied_beta_indices[p],occupied_beta_indices[q],\
+                                     virtual_beta_indices[r],virtual_beta_indices[s]]
+                    counter = counter + 1
 
-    n_alpha_singles = len(singles_a0)
-    n_beta_singles = len(singles_b0)
-    n_mixed_doubles = len(doubles_m0)
-    n_alpha_doubles = len(doubles_a0)
-    n_beta_doubles = len(doubles_b0)
+    n_alpha_singles = len(singles_a)
+    n_beta_singles = len(singles_b)
+    n_mixed_doubles = len(doubles_m)
+    n_alpha_doubles = len(doubles_a)
+    n_beta_doubles = len(doubles_b)
 
     thetaCounter = 0
     for i in range(n_alpha_singles):
-        single_excitation(qubits, singles_a0[i], singles_a1[i],
+        single_excitation(qubits, singles_a[i][0], singles_a[i][1],
                           thetas[thetaCounter])
         thetaCounter += 1
 
     for i in range(n_beta_singles):
-        single_excitation(qubits, singles_b0[i], singles_b1[i],
+        single_excitation(qubits, singles_b[i][0], singles_b[i][1],
                           thetas[thetaCounter])
         thetaCounter += 1
 
     for i in range(n_mixed_doubles):
-        double_excitation_opt(qubits, doubles_m0[i], doubles_m1[i],
-                              doubles_m2[i], doubles_m3[i],
+        double_excitation_opt(qubits, doubles_m[i][0], doubles_m[i][1],
+                              doubles_m[i][2], doubles_m[i][3],
                               thetas[thetaCounter])
         thetaCounter += 1
 
     for i in range(n_alpha_doubles):
-        double_excitation_opt(qubits, doubles_a0[i], doubles_a1[i],
-                              doubles_a2[i], doubles_a3[i],
+        double_excitation_opt(qubits, doubles_a[i][0], doubles_a[i][1],
+                              doubles_a[i][2], doubles_a[i][3],
                               thetas[thetaCounter])
         thetaCounter += 1
 
     for i in range(n_beta_doubles):
-        double_excitation_opt(qubits, doubles_b0[i], doubles_b1[i],
-                              doubles_b2[i], doubles_b3[i],
+        double_excitation_opt(qubits, doubles_b[i][0], doubles_b[i][1],
+                              doubles_b[i][2], doubles_b[i][3],
                               thetas[thetaCounter])
         thetaCounter += 1
 
