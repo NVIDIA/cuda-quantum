@@ -2310,8 +2310,10 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
         // replace it with an indirect call to the func::ConstantOp.
         auto indirect = popValue();
         auto funcTy = cast<FunctionType>(indirect.getType());
+        auto convertedArgs =
+            convertKernelArgs(builder, loc, 0, args, funcTy.getInputs());
         auto call = builder.create<func::CallIndirectOp>(
-            loc, funcTy.getResults(), indirect, args);
+            loc, funcTy.getResults(), indirect, convertedArgs);
         if (call.getResults().empty())
           return true;
         return pushValue(call.getResult(0));
