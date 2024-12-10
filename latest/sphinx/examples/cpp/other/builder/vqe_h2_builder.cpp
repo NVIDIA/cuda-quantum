@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -17,9 +17,9 @@
 #include <cudaq/optimizers.h>
 
 // This example demonstrates the utility of the builder pattern
-// for a common chemistry example. Here we build up a CUDA Quantum kernel
+// for a common chemistry example. Here we build up a CUDA-Q kernel
 // with N layers and each layer containing an arrangement of
-// random SO(4) rotations. The algorithm leverages the CUDA Quantum
+// random SO(4) rotations. The algorithm leverages the CUDA-Q
 // VQE support to compute the ground state of the Hydrogen atom.
 
 namespace cudaq {
@@ -78,7 +78,7 @@ int main() {
   int layers = 2, n_qubits = H.num_qubits(), block_size = 2, p_counter = 0;
   int n_blocks_per_layer = 2 * (n_qubits / block_size) - 1;
   int n_params = layers * 6 * n_blocks_per_layer;
-  printf("%d qubit hamiltonian -> %d parameters\n", n_qubits, n_params);
+  printf("%d qubit Hamiltonian -> %d parameters\n", n_qubits, n_params);
 
   // Create the builder with signature void(std::vector<double>)
   auto [kernel, params] = cudaq::make_kernel<std::vector<double>>();

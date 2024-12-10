@@ -69,7 +69,7 @@ other on the same qubit---visually:
     └───┘ └───┘         └───┘
 ```
 
-Where `I` is the identity operator. Now note that a naive implemention of
+Where `I` is the identity operator. Now note that a naive implementation of
 this optimization for Quake would optimize away both `quake.h` operators
 being applied to `%q0`.  Such an implementation would have missed the fact
 that a measurement is being applied to the vector, `%veq`, which contains

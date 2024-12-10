@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,7 +8,7 @@
 
 // Compile and run with:
 // ```
-// nvq++ observe_mqpu.cpp -o observe_mqpu.x -target nvidia-mqpu
+// nvq++ observe_mqpu.cpp -o observe_mqpu.x --target nvidia --target-option mqpu
 // && ./observe_mqpu.x
 // ```
 #include <cudaq.h>

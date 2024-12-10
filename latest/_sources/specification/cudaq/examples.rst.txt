@@ -4,269 +4,267 @@ Example Programs
 Hello World - Simple Bell State
 -------------------------------
 
-.. code-block:: cpp
+.. tab:: C++ 
 
-  #include <cudaq.h>
+  .. code-block:: cpp
 
-  struct bell {
-    int operator()(int num_iters) __qpu__ {
-      cudaq::qreg q(2);
-      int nCorrect = 0;
-      for (int i = 0; i < num_iters; i++) {
-        h(q[0]);
-        x<cudaq::ctrl>(q[0], q[1]);
-        auto results = mz(q);
-        if (results[0] == results[1]) 
-          nCorrect++;
-        
-        reset(q[0]);
-        reset(q[1]);
-      }
-      return nCorrect;
-    }
-  };
+      #include <cudaq.h>
 
-  int main() { printf("N Correct = %d\n", bell{}(100)); }
+      struct bell {
+        int operator()(int num_iters) __qpu__ {
+          cudaq::qarray<2> q;
+          int nCorrect = 0;
+          for (int i = 0; i < num_iters; i++) {
+            h(q[0]);
+            x<cudaq::ctrl>(q[0], q[1]);
+            auto results = mz(q);
+            if (results[0] == results[1]) 
+              nCorrect++;
+            
+            reset(q[0]);
+            reset(q[1]);
+          }
+          return nCorrect;
+        }
+      };
+
+      int main() { printf("N Correct = %d\n", bell{}(100)); }
+
+.. tab:: Python 
+
+  .. code-block:: python 
+
+    import cudaq 
+
+    @cudaq.kernel()
+    def bell(num_iters : int) -> int:
+        q = cudaq.qvector(2)
+        nCorrect = 0
+        for i in range(num_iters):
+            h(q[0])
+            x.ctrl(q[0], q[1])
+            results = mz(q)
+            if results[0] == results[1]:
+               nCorrect = nCorrect + 1
+            
+            reset(q)
+        return nCorrect 
+
+    counts = bell(100)
+    print(f'N Correct = {counts}')
+    assert counts == 100
 
 GHZ State Preparation and Sampling
 ----------------------------------
 
-.. code-block:: cpp 
- 
-  #include <cudaq.h>
+.. tab:: C++ 
 
-  struct ghz {
-    void operator()(const int n_qubits) __qpu__ {
-      cudaq::qreg q(n_qubits);
-      h(q[0]);
-      for (int i = 0; i < n_qubits - 1; ++i) 
-        // note use of ctrl modifier
-        x<cudaq::ctrl>(q[i], q[i+1]); 
-      
-      mz(q);
-    }
-  };
+  .. code-block:: cpp 
+  
+      #include <cudaq.h>
 
-  int main() {
-    // Sample the state produced by the ghz kernel
-    auto counts = cudaq::sample(ghz{}, 10);
-    for (auto [bits, count] : counts) {
-      printf("Observed %s %lu times.\n", bits.c_str(), count);
-    }
-    return 0;
-  }
+      __qpu__ ghz(const int n_qubits) {
+        cudaq::qvector q(n_qubits);
+        h(q[0]);
+        for (int i = 0; i < n_qubits - 1; ++i) 
+          // note use of ctrl modifier
+          x<cudaq::ctrl>(q[i], q[i+1]); 
+        
+        mz(q);
+      }
+
+      int main() {
+        // Sample the state produced by the ghz kernel
+        auto counts = cudaq::sample(ghz, 10);
+        for (auto [bits, count] : counts) {
+          printf("Observed %s %lu times.\n", bits.c_str(), count);
+        }
+        return 0;
+      }
+
+.. tab:: Python 
+
+  .. code-block:: python 
+
+    import cudaq 
+    
+    @cudaq.kernel
+    def ghz(numQubits:int):
+        qubits = cudaq.qvector(numQubits)
+        h(qubits.front())
+        for i, qubit in enumerate(qubits.front(numQubits - 1)):
+            x.ctrl(qubit, qubits[i + 1])
+    
+    counts = cudaq.sample(ghz, 10)
+    for bits, count : counts:
+        print('Observed {} {} times.'.format(bits, count))
 
 Quantum Phase Estimation
 ------------------------
 
-.. code-block:: cpp 
+.. tab:: C++ 
 
-  #include <cudaq.h>
-  #include <cmath>
+  .. literalinclude:: ../../applications/cpp/phase_estimation.cpp
+      :language: cpp
 
-  __qpu__ void iqft (cudaq::qspan<> q) {
-    int N = q.size();
-    // Swap qubits
-    for (int i = 0; i < N / 2; ++i) {
-      swap(q[i], q[N - i - 1]);
-    }
+.. tab:: Python 
 
-    for (int i = 0; i < N - 1; ++i) {
-      h(q[i]);
-      int j = i + 1;
-      for (int y = i; y >= 0; --y) {
-        const double theta = -M_PI / std::pow(2.0, j - y);
-        r1<cudaq::ctrl>(theta, q[j], q[y]);
-      }
-    }
+  .. code-block:: python 
 
-    h(q[N - 1]);
-  }
+    import cudaq, numpy as np
 
-  struct PhaseEstimation {
-    double operator()(const int n_counting_qubits, const int n_state_qubits,
-                     auto&& statePrep, auto&& unitary) __qpu__ {
-      // Allocate a register of qubits
-      cudaq::qreg q(n_counting_qubits + n_state_qubits);
+    # Compute phase for U |psi> = exp(-2 pi phase) |psi> 
+    # This example will consider U = T, and |psi> = |1>
+    # Define a Inverse Quantum Fourier Transform kernel
+    @cudaq.kernel
+    def iqft(qubits: cudaq.qview):
+        N = qubits.size()
+        for i in range(N // 2):
+            swap(qubits[i], qubits[N - i - 1])
 
-      // Extract sub-registers, one for the counting qubits
-      // another for the eigen state register
-      auto counting_qubits = q.front(n_counting_qubits);
-      auto state_register = q.back(n_state_qubits);
+        for i in range(N - 1):
+            h(qubits[i])
+            j = i + 1
+            for y in range(i, -1, -1):
+                r1.ctrl(-np.pi / 2**(j - y), qubits[j], qubits[y])
 
-      // Prepare the eigenstate 
-      statePrep(state_register);
+        h(qubits[N - 1])
 
-      // Put the counting register into uniform superposition
-      h(counting_qubits);
 
-      // Perform ctrl-U^j
-      for (int i = 0; i < n_counting_qubits; ++i) {
-        for (int j = 0; j < 1UL << i; ++j) {
-          cudaq::control(unitary, counting_qubits[i], state_register);
-        }
-      }
+    # Define the U kernel
+    @cudaq.kernel
+    def tGate(qubit: cudaq.qubit):
+        t(qubit)
 
-      // Apply inverse quantum fourier transform
-      iqft(counting_qubits);
 
-      // Measure and compute the phase...
-      auto bits = mz(counting_qubits);
-      return cudaq::to_integer(bits) / std::pow(2, n_counting_qubits);
-    }
-  };
+    # Define the state preparation |psi> kernel
+    @cudaq.kernel
+    def xGate(qubit: cudaq.qubit):
+        x(qubit)
 
-  int main() {
-    auto statePrep = [](cudaq::qspan<> q) __qpu__ { x(q); };
-    auto unitary = [](cudaq::qspan<> q) __qpu__ { t(q); };
-    double phase = PhaseEstimation{}(3, 1, statePrep, unitary);
-    printf("Phase = %lf\n", phase);
-  }
+    # General Phase Estimation kernel for single qubit 
+    # eigen states. 
+    @cudaq.kernel
+    def qpe(nC: int, nQ: int, statePrep: Callable[[cudaq.qubit], None],
+            oracle: Callable[[cudaq.qubit], None]):
+        q = cudaq.qvector(nC + nQ)
+        countingQubits = q.front(nC)
+        stateRegister = q.back()
+        statePrep(stateRegister)
+        h(countingQubits)
+        for i in range(nC):
+            for j in range(2**i):
+                cudaq.control(oracle, [countingQubits[i]], stateRegister)
+        iqft(countingQubits)
+        mz(countingQubits)
+
+    # Sample the state to get the phase. 
+    counts = cudaq.sample(qpe, 3, 1, xGate, tGate)
+    assert len(counts) == 1
+    assert '100' in counts
+
 
 Deuteron Binding Energy Parameter Sweep
 ---------------------------------------
 
-.. code-block:: cpp 
+.. tab:: C++ 
 
-  #include <cudaq.h>
-  #include <cudaq/algorithm.h>
+  .. code-block:: cpp 
 
-  struct deuteron_n2_ansatz {
-    void operator()(double theta) __qpu__ {
-      cudaq::qreg q(2);
-      x(q[0]);
-      ry(theta, q[1]);
-      x<cudaq::ctrl>(q[1], q[0]);
-    }
-  };
+      #include <cudaq.h>
 
-  int main() {
-    using namespace cudaq::spin;
-    cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
-                .21829 * z(0) - 6.125 * z(1);
-  
-    // Perform parameter sweep for deuteron N=2 Hamiltonian
-    const auto param_space = cudaq::linspace(-M_PI, M_PI, 25);
-    for (const auto& param : param_space) {
-      // KERNEL::observe(...) <==> 
-      // E(params...) = <psi(params...) | H | psi(params...)>
-      double energy_at_param = cudaq::observe(deuteron_n2_ansatz{}, h, param);
-      printf("<H>(%lf) = %lf\n", param, energy_at_param);
-    }
-  }
+      struct deuteron_n2_ansatz {
+        void operator()(double theta) __qpu__ {
+          cudaq::qarray<2> q;
+          x(q[0]);
+          ry(theta, q[1]);
+          x<cudaq::ctrl>(q[1], q[0]);
+        }
+      };
+
+      int main() {
+        using namespace cudaq::spin;
+        cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
+                    .21829 * z(0) - 6.125 * z(1);
+    
+        // Perform parameter sweep for deuteron N=2 Hamiltonian
+        const auto param_space = cudaq::linspace(-M_PI, M_PI, 25);
+        for (const auto& param : param_space) {
+          // KERNEL::observe(...) <==> 
+          // E(params...) = <psi(params...) | H | psi(params...)>
+          double energy_at_param = cudaq::observe(deuteron_n2_ansatz{}, h, param);
+          printf("<H>(%lf) = %lf\n", param, energy_at_param);
+        }
+      }
+
+.. tab:: Python 
+
+  .. code-block:: python 
+
+    import cudaq 
+    from cudaq import spin 
+
+    @cudaq.kernel
+    def ansatz(angle:float):
+        q = cudaq.qvector(2)
+        x(q[0])
+        ry(angle, q[1])
+        x.ctrl(q[1], q[0])
+
+    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
+        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+
+    # Perform parameter sweep for deuteron N=2 Hamiltonian
+    for angle in np.linspace(-np.pi, np.pi, 25):
+         # KERNEL::observe(...) <==> 
+         # E(params...) = <psi(params...) | H | psi(params...)>
+         energyAtParam = cudaq.observe(ansatz, hamiltonian, .59)
+         print('<H>({}) = {}'.format(angle, energyAtParam))
 
 
 Grover's Algorithm
 ------------------
 
-.. code-block:: cpp 
+.. tab:: C++ 
 
-  #include <cudaq.h>
+  .. literalinclude:: ../../applications/cpp/grover.cpp
+      :language: cpp
 
-  __qpu__ void reflect_about_uniform(cudaq::qspan<> q) {
-    auto ctrl_qubits = q.front(q.size() - 1);
-    auto& last_qubit = q.back();
-    // Compute (U) Action (V) produces
-    // U V U::Adjoint
-    cudaq::compute_action([&]() {
-                           h(q);
-                           x(q);
-                         },
-                         [&]() { 
-                           z<cudaq::ctrl>(ctrl_qubits, last_qubit); 
-                         }
-                        );
-  }
+.. tab:: Python 
 
-  struct run_grover {
-    template <typename CallableKernel>
-    auto operator()(const int n_qubits, const int n_iterations,
-                          CallableKernel&& oracle) __qpu__ {
-      cudaq::qreg q(n_qubits);
-      h(q);
-      for (int i = 0; i < n_iterations; i++) {
-        oracle(q);
-        reflect_about_uniform(q);
-      }
-      mz(q);
-    }
-  };
+  .. code-block:: python 
 
-  struct oracle {
-    void operator()(cudaq::qspan<> q) __qpu__ {
-      cz(q[0], q[2]);
-      cz(q[1], q[2]);
-    }
-  };
+    @cudaq.kernel 
+    def reflect(qubits: cudaq.qview):
+        ctrls = qubits.front(qubits.size() - 1)
+        last = qubits.back()
+        cudaq.compute_action(lambda: (h(qubits), x(qubits)),
+                              lambda: z.ctrl(ctrls, last))
 
-  int main() {
-    auto counts = cudaq::sample(run_grover{}, 3, 1, oracle{});
-    counts.dump();
-    return 0;
-  }
+    @cudaq.kernel
+    def oracle(q: cudaq.qview):
+        z.ctrl(q[0], q[2])
+        z.ctrl(q[1], q[2])
+
+    @cudaq.kernel
+    def grover(N: int, M: int, oracle: Callable[[cudaq.qview], None]):
+        q = cudaq.qvector(N)
+        h(q)
+        for i in range(M):
+            oracle(q)
+            reflect(q)
+        mz(q)
+
+    counts = cudaq.sample(grover, 3, 1, oracle)
+    assert len(counts) == 2
+    assert '101' in counts
+    assert '011' in counts
+
 
 Iterative Phase Estimation
 --------------------------
 
-.. code-block:: cpp
-
-   #include <cudaq.h>
-
-  struct iqpe {
-    void operator()() __qpu__ {
-      cudaq::qreg<2> q;
-      h(q[0]);
-      x(q[1]);
-      for (int i = 0; i < 8; i++)
-        r1<cudaq::ctrl>(-5 * M_PI / 8., q[0], q[1]);
-
-      h(q[0]);
-      auto cr0 = mz(q[0]);
-      reset(q[0]);
-
-      h(q[0]);
-      for (int i = 0; i < 4; i++)
-        r1<cudaq::ctrl>(-5 * M_PI / 8., q[0], q[1]);
-
-      if (cr0)
-        rz(-M_PI / 2., q[0]);
-
-      h(q[0]);
-      auto cr1 = mz(q[0]);
-      reset(q[0]);
-
-      h(q[0]);
-      for (int i = 0; i < 2; i++)
-        r1<cudaq::ctrl>(-5 * M_PI / 8., q[0], q[1]);
-
-      if (cr0)
-        rz(-M_PI / 4., q[0]);
-  
-      if (cr1)
-        rz(-M_PI / 2., q[0]);
-
-      h(q[0]);
-      auto cr2 = mz(q[0]);
-      reset(q[0]);
-      h(q[0]);
-      r1<cudaq::ctrl>(-5 * M_PI / 8., q[0], q[1]);
-
-      if (cr0)
-        rz(-M_PI / 8., q[0]);
-
-      if (cr1)
-        rz(-M_PI_4, q[0]);
-
-      if (cr2)
-        rz(-M_PI_2, q[0]);
-
-      h(q[0]);
-      mz(q[0]);
-    }
-  };
-
-  int main() {
-    auto counts = cudaq::sample(/*shots*/ 100, iqpe{});
-    counts.dump();
-    return 0;
-  }
+.. literalinclude:: ../../applications/cpp/iterative_qpe.cpp
+    :language: cpp
+    :start-after: [Begin Documentation]
+    :end-before: [End Documentation]

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,15 +8,16 @@
 
 // Compile and run with:
 // ```
-// nvq++ get_state_async.cpp -o get_state_async.x -target nvidia-mqpu
+// nvq++ get_state_async.cpp -o get_state_async.x --target nvidia
+// --target-option mqpu
 // && ./get_state_async.x
 // ```
 #include <cudaq.h>
-#include <cudaq/algorithms/state.h>
+#include <cudaq/algorithms/get_state.h>
 int main() {
   // [Begin Documentation]
   auto kernelToRun = [](int runtimeParam) __qpu__ {
-    cudaq::qreg q(runtimeParam);
+    cudaq::qvector q(runtimeParam);
     h(q[0]);
     for (int i = 0; i < runtimeParam - 1; ++i)
       x<cudaq::ctrl>(q[i], q[i + 1]);

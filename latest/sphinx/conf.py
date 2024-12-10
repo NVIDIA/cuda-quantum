@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -23,9 +23,9 @@ import sphinx_rtd_theme
 
 # -- Project information -----------------------------------------------------
 
-project   = 'NVIDIA CUDA Quantum'
-copyright = '2023, NVIDIA Corporation & Affiliates'
-author    = 'NVIDIA Corporation & Affiliates'
+project = 'NVIDIA CUDA-Q'
+copyright = '2024, NVIDIA Corporation & Affiliates'
+author = 'NVIDIA Corporation & Affiliates'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| used in various places throughout the docs.
@@ -41,26 +41,27 @@ version = os.getenv("CUDA_QUANTUM_VERSION", "latest")
 extensions = [
     # 'sphinx.ext.imgmath',
     'sphinx.ext.ifconfig',
-    'sphinx.ext.autodoc',        # to get documentation from python doc comments
+    'sphinx.ext.autodoc',  # to get documentation from python doc comments
     'sphinx.ext.autosummary',
     'sphinx.ext.autosectionlabel',
-    'sphinx.ext.doctest',        # test example codes in docs
+    'sphinx.ext.doctest',  # test example codes in docs
     'sphinx.ext.extlinks',
     'sphinx.ext.intersphinx',
-    #'sphinx.ext.mathjax',
-    'sphinx.ext.napoleon',       # support google/numpy style docstrings
+    'sphinx.ext.mathjax',
+    'sphinx.ext.napoleon',  # support google/numpy style docstrings
     #'sphinx.ext.linkcode',
     'sphinx_reredirects',
     'breathe',
-    'enum_tools.autoenum',       # for pretty-print Python enums
-    'myst_parser',               # for including markdown files
-    'sphinx_inline_tabs',        # showing code blocks in multiple languages
-    'nbsphinx',                  # for supporting jupyter notebooks
-    'sphinx_copybutton',         # allows for copy/paste of code cells
+    'enum_tools.autoenum',  # for pretty-print Python enums
+    'myst_parser',  # for including markdown files
+    'sphinx_inline_tabs',  # showing code blocks in multiple languages
+    'nbsphinx',  # for supporting jupyter notebooks
+    'sphinx_copybutton',  # allows for copy/paste of code cells
     "sphinx_gallery.load_style",
     "IPython.sphinxext.ipython_console_highlighting",
 ]
 
+nbsphinx_allow_errors = False
 nbsphinx_thumbnails = {
     # Default thumbnail if the notebook does not define a cell tag to specify the thumbnail.
     # See also: https://nbsphinx.readthedocs.io/en/latest/subdir/gallery.html
@@ -72,7 +73,7 @@ nbsphinx_thumbnails = {
 imgmath_latex_preamble = r'\usepackage{braket}'
 
 imgmath_image_format = 'svg'
-imgmath_font_size    = 14
+imgmath_font_size = 14
 #imgmath_dvipng_args = ['-gamma', '1.5', '-D', '110', '-bg', 'Transparent']
 
 # Add any paths that contain templates here, relative to this directory.
@@ -91,10 +92,38 @@ master_doc = 'index'
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['**/_*', '.DS_Store']
+exclude_patterns = [
+    '**/_*', '.DS_Store', 'examples/python/building_kernels.ipynb'
+]
+
+# Generate OpenAPI spec for the REST API
+import ruamel.yaml
+import json
+
+current_path = os.path.dirname(os.path.realpath(__file__))
+# YAML file defines the spec
+yaml_file = current_path + '/api/rest/.openapi.yaml'
+yaml = ruamel.yaml.YAML(typ='safe')
+with open(yaml_file) as fpi:
+    data = yaml.load(fpi)
+json_spec = json.dumps(data, indent=2)
+
+# Auto-generate the HTML file with the embedded OpenAPI spec.
+html_template_file = current_path + '/_templates/openapi.html'
+with open(html_template_file, 'r') as file:
+    filedata = file.read()
+# Replace the placeholder with the spec
+filedata = filedata.replace("##SPEC_JSON##", json_spec)
+html_output_file = current_path + '/Output/openapi.html'
+os.makedirs(os.path.dirname(html_output_file), exist_ok=True)
+# Write the file out again
+with open(html_output_file, 'w') as file:
+    file.write(filedata)
+# Add this to `html_extra_path` so that it is copied to the deployed docs.
+html_extra_path = ['Output/openapi.html']
 
 # The reST default role (used for this markup: `text`) to use for all documents.
-default_role = 'code' # NOTE: the following may be a better choice to error on the side of flagging anything that is referenced but but not declared
+default_role = 'code'  # NOTE: the following may be a better choice to error on the side of flagging anything that is referenced but but not declared
 #default_role = 'cpp:any' # see https://www.sphinx-doc.org/en/master/usage/restructuredtext/domains.html#cross-referencing
 
 # The name of the Pygments (syntax highlighting) style to use.
@@ -116,10 +145,11 @@ html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {
-    "collapse_navigation" : False,
-    "sticky_navigation" : False,
-    "prev_next_buttons_location" : "both",
-    "style_nav_header_background" : "#76b900" # Set upper left search bar to NVIDIA green
+    "collapse_navigation": False,
+    "sticky_navigation": False,
+    "prev_next_buttons_location": "both",
+    "style_nav_header_background":
+        "#76b900"  # Set upper left search bar to NVIDIA green
 }
 
 html_css_files = ['_static/cudaq_override.css']
@@ -132,12 +162,14 @@ html_static_path = ['_static']
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'cudaqDoc'
 
+
 def setup(app):
     app.add_css_file('cudaq_override.css')
 
+
 # -- Options for BREATHE -------------------------------------------------
 
-breathe_projects = { "cudaq": "_doxygen/xml" }
+breathe_projects = {"cudaq": "_doxygen/xml"}
 
 breathe_default_project = "cudaq"
 
@@ -147,14 +179,16 @@ breathe_show_enumvalue_initializer = True
 
 autosummary_generate = True
 
+# This is unfortunately not sufficient for docs generation, due to the use of Union type;
+# see also https://github.com/sphinx-doc/sphinx/issues/11211. 
+# autodoc_mock_imports = ['cuquantum', 'cupy']
+
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
     'numpy': ('https://numpy.org/doc/stable/', None),
 }
 
-redirects = {
-    "versions": "../latest/releases.html"
-}
+redirects = {"versions": "../latest/releases.html"}
 
 nitpick_ignore = [
     ('cpp:identifier', 'GlobalRegisterName'),
@@ -171,9 +205,11 @@ nitpick_ignore = [
     ('cpp:identifier', 'BinarySymplecticForm'),
     ('cpp:identifier', 'CountsDictionary'),
     ('cpp:identifier', 'QuakeValueOrNumericType'),
+    ('cpp:identifier', 'cudaq::ctrl'),
     ('py:class', 'function'),
     ('py:class', 'type'),
     ('py:class', 'cudaq::spin_op'),
+    ('py:class', 'numpy.ndarray[]'),
 ]
 
 napoleon_google_docstring = True

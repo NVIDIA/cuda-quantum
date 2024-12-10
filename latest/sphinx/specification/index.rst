@@ -2,7 +2,7 @@
 Specifications
 *****************
 
-The following specifications for the CUDA Quantum programming model and toolchain are available:
+The following specifications for the CUDA-Q programming model and toolchain are available:
 
 .. toctree::
    :maxdepth: 2

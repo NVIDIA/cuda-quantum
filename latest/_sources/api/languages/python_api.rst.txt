@@ -1,4 +1,4 @@
-CUDA Quantum Python API
+CUDA-Q Python API
 ******************************
 
 .. automodule:: cudaq
@@ -7,7 +7,10 @@ Program Construction
 =============================
 
 .. autofunction:: cudaq::make_kernel
-.. autofunction:: cudaq::from_state
+.. [SKIP_TEST]: Reason - AttributeError: module 'cudaq' has no attribute 'from_state'
+.. .. autofunction:: cudaq::from_state
+
+.. autoclass:: cudaq::PyKernel
 .. autoclass:: cudaq::Kernel
 
     .. automethod:: qalloc
@@ -37,6 +40,7 @@ Program Construction
     .. automethod:: r1
     .. automethod:: cr1
     .. automethod:: swap
+    .. automethod:: cswap
     .. automethod:: exp_pauli
     .. automethod:: mx
     .. automethod:: my
@@ -46,6 +50,13 @@ Program Construction
     .. automethod:: adjoint
     .. automethod:: control
     .. automethod:: apply_call
+    .. automethod:: u3
+
+.. autoclass:: cudaq::PyKernelDecorator
+    :members:
+    :special-members: __str__, __call__
+
+.. autofunction:: kernel
     
 Kernel Execution
 =============================
@@ -57,6 +68,14 @@ Kernel Execution
 .. autofunction:: cudaq::get_state
 .. autofunction:: cudaq::get_state_async
 .. autofunction:: cudaq::vqe
+.. autofunction:: cudaq::draw
+.. autofunction:: cudaq::translate
+
+Dynamics
+=============================
+
+.. autofunction:: cudaq::evolve
+.. autofunction:: cudaq::evolve_async
 
 Backend Configuration
 =============================
@@ -68,7 +87,6 @@ Backend Configuration
 .. autofunction:: cudaq::reset_target
 .. autofunction:: cudaq::set_noise
 .. autofunction:: cudaq::unset_noise
-
 .. automethod:: cudaq::initialize_cudaq
 .. automethod:: cudaq::num_available_gpus
 .. automethod:: cudaq::set_random_seed
@@ -76,11 +94,16 @@ Backend Configuration
 Data Types
 =============================
 
+.. autoclass:: cudaq::SimulationPrecision
+    :members:
+    
 .. autoclass:: cudaq::Target
     :members:
 
 .. autoclass:: cudaq::State
     :members:
+
+.. autoclass:: cudaq::Tensor
 
 .. autoclass:: cudaq::QuakeValue
 
@@ -96,27 +119,45 @@ Data Types
 
 .. autoclass:: cudaq::qubit
 .. autoclass:: cudaq::qreg
+.. autoclass:: cudaq::qvector
 
 .. autoclass:: cudaq::ComplexMatrix
     :members:
     :special-members: __getitem__, __str__
 
-.. autoclass:: cudaq::SpinOperator
+.. autoclass:: cudaq::Schedule
+.. autoclass:: cudaq.operator.integrator.BaseIntegrator
+.. autoclass:: cudaq::EvolveResult
     :members:
 
-    .. automethod:: __eq__
-    .. automethod:: __add__
-    .. automethod:: __radd__
-    .. automethod:: __sub__
-    .. automethod:: __rsub__
-    .. automethod:: __mul__
-    .. automethod:: __rmul__
-    .. automethod:: __iter__
-        
+.. autoclass:: cudaq::AsyncEvolveResult
+    :members:
+
+.. autoclass:: cudaq::SpinOperator
+.. autoclass:: cudaq.operator.expressions.OperatorSum
+
+.. autoclass:: cudaq.operator.expressions.ElementaryOperator
+    
+    .. automethod:: define
+
+.. autoclass:: cudaq.operator.expressions.ProductOperator
+
+.. autoclass:: cudaq.operator.expressions.RydbergHamiltonian
+    :members:
+    :special-members: __init__
+
+.. autoclass:: cudaq.operator.expressions.ScalarOperator
+.. autoclass:: cudaq.operator.definitions.SpinOperator
+
 .. autofunction:: cudaq::spin.i
 .. autofunction:: cudaq::spin.x
 .. autofunction:: cudaq::spin.y
 .. autofunction:: cudaq::spin.z
+
+.. autoclass:: cudaq.operator.cudm_state.CuDensityMatState
+    :members:
+
+.. autofunction:: cudaq.operator.cudm_state.to_cupy_array
 
 .. autoclass:: cudaq::SampleResult
     :members:
@@ -207,5 +248,11 @@ MPI Submodule
 .. automethod:: cudaq.mpi::rank
 .. automethod:: cudaq.mpi::num_ranks
 .. automethod:: cudaq.mpi::all_gather
+.. automethod:: cudaq.mpi::broadcast
 .. automethod:: cudaq.mpi::is_initialized
 .. automethod:: cudaq.mpi::finalize
+
+ORCA Submodule
+=============================
+
+.. automethod:: cudaq.orca::sample

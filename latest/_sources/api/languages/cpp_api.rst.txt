@@ -1,4 +1,4 @@
-CUDA Quantum C++ API
+CUDA-Q C++ API
 ******************************
 
 Operators 
@@ -18,7 +18,13 @@ Quantum
 .. doxygenclass:: cudaq::qreg
     :members:
 
+.. doxygenclass:: cudaq::qvector
+    :members:
+
 .. doxygenclass:: cudaq::qspan
+    :members:
+
+.. doxygenclass:: cudaq::qview
     :members:
 
 .. doxygentypedef:: cudaq::qubit
@@ -38,6 +44,8 @@ Common
 .. doxygenclass:: cudaq::async_result
     :members:
 
+.. doxygentypedef:: async_sample_result
+
 
 .. doxygenstruct:: cudaq::ExecutionResult
     :members:
@@ -45,7 +53,28 @@ Common
 .. doxygenclass:: cudaq::sample_result
     :members:
 
-.. doxygentypedef:: cudaq::State
+.. doxygenclass:: cudaq::SimulationState
+
+.. doxygenstruct:: cudaq::SimulationState::Tensor
+    :members:
+
+.. doxygenenum:: cudaq::SimulationState::precision
+
+.. doxygenenum:: cudaq::simulation_precision
+
+.. doxygentypedef:: cudaq::tensor
+
+.. doxygentypedef:: cudaq::TensorStateData
+
+.. doxygentypedef:: cudaq::state_data
+
+.. doxygenclass:: cudaq::CusvState
+
+.. doxygenclass:: nvqir::MPSSimulationState
+
+.. doxygenclass:: nvqir::TensorNetSimulationState
+
+.. doxygenclass:: cudaq::RemoteSimulationState
 
 .. doxygenclass:: cudaq::registry::RegisteredType
     :members:
@@ -53,13 +82,19 @@ Common
 .. doxygenclass:: cudaq::complex_matrix
     :members:
 
+.. doxygenclass:: cudaq::Trace
+
+.. doxygenfunction:: cudaq::range(ElementType total)
+.. doxygenfunction:: cudaq::range(ElementType begin, ElementType end, ElementType step)
+
+.. doxygenfunction:: cudaq::draw(QuantumKernel &&kernel, Args&&... args)
+
 .. doxygenclass:: cudaq::Resources
 
 .. doxygentypedef:: cudaq::complex_matrix::value_type
 
 Noise Modeling 
 ================
-.. doxygentypedef:: cudaq::complex
 
 .. doxygenstruct:: cudaq::kraus_op
     :members:
@@ -81,6 +116,8 @@ Noise Modeling
 
 .. doxygenclass:: cudaq::noise_model
     :members:
+
+.. doxygenenum:: cudaq::noise_model_type
 
 Kernel Builder
 ===============
@@ -129,8 +166,25 @@ Platform
 .. doxygenclass:: cudaq::QPU
     :members:
 
+.. doxygenclass:: cudaq::BaseRemoteRESTQPU
+
+.. doxygenclass:: cudaq::BaseRemoteSimulatorQPU
+
+.. doxygenclass:: cudaq::BaseNvcfSimulatorQPU
+
+.. doxygenclass:: cudaq::FermioniqBaseQPU
+
+.. doxygenclass:: cudaq::OrcaRemoteRESTQPU 
+
+.. doxygenclass:: cudaq::QuEraBaseQPU
+
 .. doxygenclass:: cudaq::quantum_platform
     :members:
+
+.. doxygenstruct:: cudaq::RemoteCapabilities
+    :members:
+
+.. doxygenclass:: cudaq::SerializedCodeExecutionContext
 
 .. doxygentypedef:: cudaq::QuantumTask
 
@@ -140,6 +194,19 @@ Platform
 
 .. doxygentypedef:: cudaq::KernelExecutionTask
 
+.. doxygenstruct:: cudaq::KernelThunkResultType
+
+.. doxygentypedef:: cudaq::KernelThunkType
+
+Utilities
+=========
+
+.. doxygentypedef:: cudaq::complex
+
+.. doxygentypedef:: cudaq::real 
+
+.. doxygenfunction:: cudaq::range(std::size_t)
+    
 Namespaces 
 ===========
 
@@ -166,6 +233,17 @@ Namespaces
 .. doxygenfunction:: cudaq::mpi::finalize
 .. doxygenfunction:: cudaq::mpi::rank
 .. doxygenfunction:: cudaq::mpi::num_ranks
-.. doxygenfunction:: cudaq::mpi::all_gather
+.. doxygenfunction:: cudaq::mpi::all_gather(std::vector<double> &global, const std::vector<double> &local)
+.. doxygenfunction:: cudaq::mpi::all_gather(std::vector<int> &global, const std::vector<int> &local)
 .. doxygenfunction:: cudaq::mpi::all_reduce(const T&, const Func&)
 .. doxygenfunction:: cudaq::mpi::all_reduce(const T &localValue, const BinaryFunction &function)
+.. doxygenfunction:: cudaq::mpi::broadcast(std::vector<double> &data, int rootRank)
+.. doxygenfunction:: cudaq::mpi::broadcast(std::string &data, int rootRank)
+
+.. doxygennamespace:: cudaq::orca
+    :desc-only:
+
+.. doxygenfunction:: cudaq::orca::sample(std::vector<std::size_t> &input_state, std::vector<std::size_t> &loop_lengths, std::vector<double> &bs_angles, int n_samples = 10000, std::size_t qpu_id = 0)
+.. doxygenfunction:: cudaq::orca::sample(std::vector<std::size_t> &input_state, std::vector<std::size_t> &loop_lengths, std::vector<double> &bs_angles, std::vector<double> &ps_angles, int n_samples = 10000, std::size_t qpu_id = 0)
+.. doxygenfunction:: cudaq::orca::sample_async(std::vector<std::size_t> &input_state, std::vector<std::size_t> &loop_lengths, std::vector<double> &bs_angles, int n_samples = 10000, std::size_t qpu_id = 0)
+.. doxygenfunction:: cudaq::orca::sample_async(std::vector<std::size_t> &input_state, std::vector<std::size_t> &loop_lengths, std::vector<double> &bs_angles, std::vector<double> &ps_angles, int n_samples = 10000, std::size_t qpu_id = 0)

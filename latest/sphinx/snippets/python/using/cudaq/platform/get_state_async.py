@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -8,19 +8,23 @@
 # [Begin Documentation]
 import cudaq
 
-cudaq.set_target("nvidia-mqpu")
+cudaq.set_target("nvidia", option="mqpu")
 target = cudaq.get_target()
-num_qpus = target.num_qpus()
-print("Number of QPUs:", num_qpus)
+qpu_count = target.num_qpus()
+print("Number of QPUs:", qpu_count)
 
-kernel = cudaq.make_kernel()
-qubits = kernel.qalloc(5)
-# Place qubits in GHZ state.
-kernel.h(qubits[0])
-kernel.for_loop(0, 4, lambda i: kernel.cx(qubits[i], qubits[i + 1]))
+
+@cudaq.kernel
+def kernel():
+    qvector = cudaq.qvector(5)
+    # Place qubits in GHZ State
+    h(qvector[0])
+    for qubit in range(4):
+        x.ctrl(qvector[qubit], qvector[qubit + 1])
+
 
 state_futures = []
-for qpu in range(num_qpus):
+for qpu in range(qpu_count):
     state_futures.append(cudaq.get_state_async(kernel, qpu_id=qpu))
 
 for state in state_futures:

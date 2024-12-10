@@ -7,7 +7,7 @@
 // GPU-accelerated backends and their ability to easily handle
 // a larger number of qubits compared the CPU-only backend.
 
-// On CPU-only backends, this seems to hang, i.e. it takes a long
+// On CPU-only backends, this seems to hang, i.e., it takes a long
 // time to handle this number of qubits.
 
 #include <cudaq.h>
@@ -16,8 +16,8 @@
 struct ghz {
   auto operator()(const int N) __qpu__ {
 
-    // Dynamic, vector-like `qreg`
-    cudaq::qreg q(N);
+    // Dynamically sized vector of qubits
+    cudaq::qvector q(N);
     h(q[0]);
     for (int i = 0; i < N - 1; i++) {
       x<cudaq::ctrl>(q[i], q[i + 1]);
@@ -27,7 +27,8 @@ struct ghz {
 };
 
 int main() {
-  auto counts = cudaq::sample(/*shots=*/100, ghz{}, 28);
+  auto shots_count = 1024 * 1024;
+  auto counts = cudaq::sample(shots_count, ghz{}, 28);
 
   if (!cudaq::mpi::is_initialized() || cudaq::mpi::rank() == 0) {
     counts.dump();
