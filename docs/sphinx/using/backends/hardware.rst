@@ -41,7 +41,7 @@ pass the flag ``--target infleqtion`` to the ``nvq++`` compiler.
     nvq++ --target infleqtion src.cpp
 
 This will take the API key and handle all authentication with, and submission to,
-the Infleqtion's QPU(s). By default, quantum kernel code will be submitted to Infleqtion's Sqale
+the Infleqtion's QPU (or simulator). By default, quantum kernel code will be submitted to Infleqtion's Sqale
 simulator.
 
 To execute your kernels on a QPU, pass the ``--infleqtion-machine`` flag to the ``nvq++`` compiler
@@ -96,7 +96,7 @@ To specify which Infleqtion QPU to use, set the :code:`machine` parameter.
 
 where ``cq_sqale_qpu`` is an example of a physical QPU.
 
-To run an ideal dry-run execution on the QPU, additionally set the ``method`` flag to ``"dry-run"``.
+To run an ideal dry-run execution of the QPU, additionally set the ``method`` flag to ``"dry-run"``.
 
 .. code:: python
 

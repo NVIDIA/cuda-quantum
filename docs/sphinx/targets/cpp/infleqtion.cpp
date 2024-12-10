@@ -10,21 +10,24 @@
 // ```
 // nvq++ --target infleqtion infleqtion.cpp -o out.x && ./out.x
 // ```
-// This will submit the job to the Infleqtion's ideal simulator, cq_sqale_simulator (default).
-// Alternatively, we can enable hardware noise model simulation by specifying `noise-sim` to
-// the flag `--infleqtion-method`, e.g.,
+// This will submit the job to the Infleqtion's ideal simulator,
+// cq_sqale_simulator (default). Alternatively, we can enable hardware noise
+// model simulation by specifying `noise-sim` to the flag `--infleqtion-method`,
+// e.g.,
 // ```
-// nvq++ --target infleqtion --infleqtion-machine cq_sqale_qpu --infleqtion-method noise-sim
-// infleqtion.cpp -o out.x && ./out.x
+// nvq++ --target infleqtion --infleqtion-machine cq_sqale_qpu
+// --infleqtion-method noise-sim infleqtion.cpp -o out.x && ./out.x
 // ```
-// where "noise-sim" instructs Superstaq to perform a noisy emulation of the QPU.
-// An ideal dry-run execution on the QPU may be performed by passing `dry-run` to the `--infleqtion-method` flag, e.g.,
+// where "noise-sim" instructs Superstaq to perform a noisy emulation of the
+// QPU. An ideal dry-run execution on the QPU may be performed by passing
+// `dry-run` to the `--infleqtion-method` flag, e.g.,
 // ```
-// nvq++ --target infleqtion --infleqtion-machine cq_sqale_qpu --infleqtion-method dry-run
-// infleqtion.cpp -o out.x && ./out.x
+// nvq++ --target infleqtion --infleqtion-machine cq_sqale_qpu
+// --infleqtion-method dry-run infleqtion.cpp -o out.x && ./out.x
 // ```
-// Note: If targeting ideal cloud simulation, `--infleqtion-machine cq_sqale_simulator` is optional
-// since it is the default configuration if not provided.
+// Note: If targeting ideal cloud simulation, `--infleqtion-machine
+// cq_sqale_simulator` is optional since it is the default configuration if not
+// provided.
 
 #include <cudaq.h>
 #include <fstream>
