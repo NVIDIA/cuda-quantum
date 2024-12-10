@@ -6,12 +6,14 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
 // RUN: nvq++ %cpp_std --enable-mlir %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target anyon --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target ionq --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target iqm --emulate --iqm-machine Apollo %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target oqc --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target anyon                    --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target ionq                     --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target iqm --iqm-machine Apollo --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target oqc                      --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
+// clang-format on
 
 #include <cudaq.h>
 
