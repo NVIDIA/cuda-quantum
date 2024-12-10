@@ -10,7 +10,7 @@
 #
 # Usage:
 # Must be built from the repo root with:
-#   DOCKER_BUILDKIT=1 docker build -f docker/release/cudaq.nvqc.Dockerfile . --output out
+#   docker build -f docker/release/cudaq.nvqc.Dockerfile .
 
 # Base image is CUDA-Q image 
 ARG base_image=nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest
