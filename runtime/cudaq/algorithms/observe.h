@@ -62,8 +62,8 @@ concept ObserveCallValid =
 /// model to use for the observe operation.
 /// \p num_trajectories is the optional number of trajectories to be used when
 /// computing the expectation values in the presence of noise. This parameter is
-/// only applied to simulation backends that support trajectory noisy
-/// simulation.
+/// only applied to simulation backends that support noisy
+/// simulation of trajectories.
 struct observe_options {
   int shots = -1;
   cudaq::noise_model noise;
