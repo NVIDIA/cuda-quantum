@@ -16,10 +16,17 @@
 version_regex="([0-9]{1,}\.)+[0-9]{1,}\S*"
 versions=`gh release list -R nvidia/cuda-quantum --exclude-drafts --exclude-pre-releases | egrep -o "$version_regex" | sort -r -V`
 last_release=`echo $versions | cut -d ' ' -f 1`
-current_release="0.9.0"
+current_release="$1"
+if [ -z "$current_release" ]; then 
+    echo "Warning: no version number specified for the new release."
+    rel_branch=main
+else
+    rel_branch=releases/v$current_release
+fi
 
 author="" # insert your name to show only your PRs
-git pull && git log releases/v$current_release...releases/v$last_release --cherry-pick --left-only --no-merges --oneline --author="$author" | egrep -o '\(#[0-9]*\)$' > commits.txt
+git pull || echo "Warning: failed to pull updates"
+git log $rel_branch...releases/v$last_release --cherry-pick --left-only --no-merges --oneline --author="$author" | egrep -o '\(#[0-9]*\)$' > commits.txt
 
 for pr in `cat commits.txt`; do 
     maintenance=`gh pr view ${pr: 2: -1} --json labels --jq 'any(.labels.[]; .name == "maintenance")'`
@@ -29,7 +36,7 @@ for pr in `cat commits.txt`; do
 
         if [ -z "$milestone" ]; then
             echo "Missing milestone for PR ${pr: 2: -1} by $pr_author."
-        elif [ "$(echo "$milestone" | egrep -o "$version_regex" || true)" == "$current_release" ]; then
+        elif [ -z "$current_release" ] || [ "$(echo "$milestone" | egrep -o "$version_regex" || true)" == "$current_release" ]; then
             labels=`gh pr view ${pr: 2: -1} --json labels --jq '.labels.[].name'`
             echo "Labels for PR ${pr: 2: -1} by $pr_author: $labels"
         fi
