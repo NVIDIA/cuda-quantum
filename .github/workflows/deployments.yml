@@ -347,7 +347,7 @@ jobs:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     with:
       platform: linux/${{ matrix.platform }}
-      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-{1}', fromJson(needs.metadata.outputs.multi_platform).ids, matrix.toolchain)] }}
+      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-{1}', fromJson(needs.metadata.outputs.multi_platform).ids[0], matrix.toolchain)] }}
       export_environment: false
 
   extdevdeps:
