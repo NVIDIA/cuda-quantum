@@ -109,8 +109,8 @@ public:
   /// `sample_result`.
   std::vector<char> invocationResultBuffer;
 
-  /// @brief The number of trajectories to be used for an expectation calculation
-  /// on simulation backends that support trajectory simulation.
+  /// @brief The number of trajectories to be used for an expectation
+  /// calculation on simulation backends that support trajectory simulation.
   std::optional<std::size_t> numberTrajectories;
 
   /// @brief The Constructor, takes the name of the context
