@@ -89,7 +89,7 @@ runObservation(KernelFunctor &&k, cudaq::spin_op &h, quantum_platform &platform,
     ctx->shots = shots;
 
   if (numTrajectories.has_value())
-    ctx->numberTrajectories = numTrajectories.value();
+    ctx->numberTrajectories = *numTrajectories;
 
   ctx->batchIteration = batchIteration;
   ctx->totalIterations = totalBatchIters;
