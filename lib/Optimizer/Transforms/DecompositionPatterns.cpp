@@ -480,6 +480,40 @@ struct R1ToU3 : public OpRewritePattern<quake::R1Op> {
   }
 };
 
+// quake.r1<adj> (θ) target
+// ─────────────────────────────────
+// quake.r1(-θ) target
+struct R1AdjToR1 : public OpRewritePattern<quake::R1Op> {
+  using OpRewritePattern<quake::R1Op>::OpRewritePattern;
+
+  void initialize() { setDebugName("R1AdjToR1"); }
+
+  LogicalResult matchAndRewrite(quake::R1Op op,
+                                PatternRewriter &rewriter) const override {
+    if (!op.getControls().empty())
+      return failure();
+    if (!op.isAdj())
+      return failure();
+
+    // Op info
+    Location loc = op->getLoc();
+    Value target = op.getTarget();
+    Value angle = op.getParameter();
+    angle = rewriter.create<arith::NegFOp>(loc, angle);
+
+    // Necessary/Helpful constants
+    SmallVector<Value> noControls;
+    SmallVector<Value> parameters = {angle};
+
+    QuakeOperatorCreator qRewriter(rewriter);
+    qRewriter.create<quake::R1Op>(loc, parameters, noControls, target);
+
+    qRewriter.selectWiresAndReplaceUses(op, target);
+    rewriter.eraseOp(op);
+    return success();
+  }
+};
+
 // quake.swap a, b
 // ───────────────────────────────────
 // quake.cnot b, a;
@@ -1575,6 +1609,7 @@ void cudaq::populateWithAllDecompositionPatterns(RewritePatternSet &patterns) {
     R1ToPhasedRx,
     R1ToRz,
     R1ToU3,
+    R1AdjToR1,
     // RxOp patterns
     CRxToCX,
     RxToPhasedRx,
