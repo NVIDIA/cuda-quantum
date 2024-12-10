@@ -1,1 +1,0 @@
-../execution/sudoku_2x2-1.cpp

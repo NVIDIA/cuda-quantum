@@ -8,54 +8,29 @@
 
 // RUN: cudaq-opt -canonicalize %s | FileCheck %s
 
-  func.func @__nvqpp__mlirgen__reflect_about_uniform(%arg0: !quake.veq<?>) attributes {"cudaq-kernel"} {
-    %0 = quake.veq_size %arg0 : (!quake.veq<?>) -> i64
-    %c1_i32 = arith.constant 1 : i32
-    %1 = arith.extsi %c1_i32 : i32 to i64
-    %2 = arith.subi %0, %1 : i64
-    %c0_i64 = arith.constant 0 : i64
-    %c1_i64 = arith.constant 1 : i64
-    %3 = arith.subi %2, %c1_i64 : i64
-    %4 = quake.subveq %arg0, %c0_i64, %3 : (!quake.veq<?>, i64, i64) -> !quake.veq<?>
-    %5 = quake.veq_size %arg0 : (!quake.veq<?>) -> i64
-    %c1_i64_0 = arith.constant 1 : i64
-    %6 = arith.subi %5, %c1_i64_0 : i64
-    %7 = quake.extract_ref %arg0[%6] : (!quake.veq<?>,i64) -> !quake.ref
-    %8 = cc.create_lambda {
-      cc.scope {
-        %c0 = arith.constant 0 : index
-        %c1 = arith.constant 1 : index
-        %10 = quake.veq_size %arg0 : (!quake.veq<?>) -> i64
-        %11 = arith.index_cast %10 : i64 to index
-        scf.for %arg1 = %c0 to %11 step %c1 {
-          %12 = quake.extract_ref %arg0[%arg1] : (!quake.veq<?>,index) -> !quake.ref
-          quake.h %12 : (!quake.ref) -> ()
-        }
-      }
-    } : !cc.callable<() -> ()>
-    %9 = cc.create_lambda {
-      cc.scope {
-        quake.z [%4] %7 : (!quake.veq<?>, !quake.ref) -> ()
-      }
-    } : !cc.callable<() -> ()>
-    quake.compute_action %8, %9 : !cc.callable<() -> ()>, !cc.callable<() -> ()>
-    return
-  }
+func.func @canonicalize_scope(%arg0: !quake.ref) attributes {"cudaq-kernel"} {
+  %0 = cc.create_lambda {
+    cc.scope {
+      quake.h %arg0 : (!quake.ref) -> ()
+    }
+  } : !cc.callable<() -> ()>
+  %1 = cc.create_lambda {
+    cc.scope {
+      quake.z %arg0 : (!quake.ref) -> ()
+    }
+  } : !cc.callable<() -> ()>
+  quake.compute_action %0, %1 : !cc.callable<() -> ()>, !cc.callable<() -> ()>
+  return
+}
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__reflect_about_uniform(
-// CHECK:           %[[VAL_12:.*]] = cc.create_lambda {
+// CHECK-LABEL:   func.func @canonicalize_scope(
+// CHECK:           %[[VAL_0:.*]] = cc.create_lambda {
 // CHECK-NOT:       cc.scope
-// CHECK:             %[[VAL_13:.*]] = quake.veq_size %{{.*}} : (!quake.veq<?>) -> i64
-// CHECK:             %[[VAL_14:.*]] = arith.index_cast %[[VAL_13]] : i64 to index
-// CHECK:             scf.for %[[VAL_15:.*]] = %{{.*}} to %[[VAL_14]] step %
-// CHECK:               %[[VAL_16:.*]] = quake.extract_ref
-// CHECK:               quake.h %[[VAL_16]]
-// CHECK:             }
+// CHECK:             quake.h %{{.*}} :
 // CHECK:           } : !cc.callable<() -> ()>
-// CHECK:           %[[VAL_17:.*]] = cc.create_lambda {
+// CHECK:           %[[VAL_1:.*]] = cc.create_lambda {
 // CHECK-NOT:       cc.scope
-// CHECK:             quake.z [%{{.*}}] %{{.*}} :
+// CHECK:             quake.z %{{.*}} :
 // CHECK:           } : !cc.callable<() -> ()>
-// CHECK:           quake.compute_action
-// CHECK:           return
+// CHECK:           quake.compute_action %[[VAL_0]], %[[VAL_1]]
 

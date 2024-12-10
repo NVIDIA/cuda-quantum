@@ -13,7 +13,6 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/Support/Debug.h"
-#include "mlir/Dialect/SCF/IR/SCF.h"
 
 #define DEBUG_TYPE "lower-ast-expr"
 
