@@ -125,7 +125,7 @@ the ``shots_count`` is set to 1000.
     cudaq.sample(kernel, shots_count=100)
 
 To see a complete example for using Infleqtion's backends, take a look at our :doc:`Python examples <../examples/examples>`.
-Moreover, for an end-to-end application workflow example executed on the Infleqtion QPU, take a look at [AIM NOTEBOOK].
+Moreover, for an end-to-end application workflow example executed on the Infleqtion QPU, take a look at :doc:`AIM ground state solver <../applications/python/logical_aim_sqale>`.
 
 
 Amazon Braket
