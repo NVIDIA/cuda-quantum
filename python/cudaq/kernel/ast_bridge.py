@@ -1826,7 +1826,11 @@ class PyASTBridge(ast.NodeVisitor):
                 targets = [self.popValue() for _ in range(numTargets)]
                 targets.reverse()
 
-                self.checkControlAndTargetTypes([], targets)
+                for i, t in enumerate(targets):
+                    if not quake.RefType.isinstance(t.type):
+                        self.emitFatalError(
+                            f'invalid target operand {i}, broadcasting is not supported on custom operations.'
+                        )
 
                 globalName = f'{nvqppPrefix}{node.func.id}_generator_{numTargets}.rodata'
 
@@ -2395,9 +2399,14 @@ class PyASTBridge(ast.NodeVisitor):
                         if len(node.args):
                             # extract the `subveq`
                             startOff = arith.SubIOp(qrSize, self.popValue())
+                            dyna = IntegerAttr.get(self.getIntegerType(), -1)
                             self.pushValue(
-                                quake.SubVeqOp(self.getVeqType(), var, startOff,
-                                               endOff).result)
+                                quake.SubVeqOp(self.getVeqType(),
+                                               var,
+                                               dyna,
+                                               dyna,
+                                               lower=startOff,
+                                               upper=endOff).result)
                         else:
                             # extract the qubit...
                             self.pushValue(
@@ -2413,9 +2422,14 @@ class PyASTBridge(ast.NodeVisitor):
                             qrSize = self.popValue()
                             one = self.getConstantInt(1)
                             offset = arith.SubIOp(qrSize, one)
+                            dyna = IntegerAttr.get(self.getIntegerType(), -1)
                             self.pushValue(
-                                quake.SubVeqOp(self.getVeqType(), var, zero,
-                                               offset).result)
+                                quake.SubVeqOp(self.getVeqType(),
+                                               var,
+                                               dyna,
+                                               dyna,
+                                               lower=zero,
+                                               upper=offset).result)
                         else:
                             # extract the qubit...
                             self.pushValue(
@@ -2667,6 +2681,12 @@ class PyASTBridge(ast.NodeVisitor):
                 numValues = len(self.valueStack)
                 targets = [self.popValue() for _ in range(numTargets)]
                 targets.reverse()
+
+                for i, t in enumerate(targets):
+                    if not quake.RefType.isinstance(t.type):
+                        self.emitFatalError(
+                            f'invalid target operand {i}, broadcasting is not supported on custom operations.'
+                        )
 
                 globalName = f'{nvqppPrefix}{node.func.value.id}_generator_{numTargets}.rodata'
 
@@ -2990,9 +3010,14 @@ class PyASTBridge(ast.NodeVisitor):
             if quake.VeqType.isinstance(var.type):
                 # Upper bound is exclusive
                 upperVal = arith.SubIOp(upperVal, self.getConstantInt(1)).result
+                dyna = IntegerAttr.get(self.getIntegerType(), -1)
                 self.pushValue(
-                    quake.SubVeqOp(self.getVeqType(), var, lowerVal,
-                                   upperVal).result)
+                    quake.SubVeqOp(self.getVeqType(),
+                                   var,
+                                   dyna,
+                                   dyna,
+                                   lower=lowerVal,
+                                   upper=upperVal).result)
             elif cc.StdvecType.isinstance(var.type):
                 eleTy = cc.StdvecType.getElementType(var.type)
                 ptrTy = cc.PointerType.get(self.ctx, eleTy)

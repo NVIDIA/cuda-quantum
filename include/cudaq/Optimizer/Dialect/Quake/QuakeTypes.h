@@ -53,4 +53,7 @@ inline bool isQuantumValueType(mlir::Type ty) {
   return isLinearType(ty) || mlir::isa<quake::ControlType>(ty);
 }
 
+bool isConstantQuantumRefType(mlir::Type ty);
+std::size_t getAllocationSize(mlir::Type ty);
+
 } // namespace quake

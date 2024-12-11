@@ -41,9 +41,8 @@ sample_result future::get() {
     }
     auto c = serverHelper->processResults(resultResponse, id.first);
 
-    // If there are multiple jobs, this is likely a spin_op.
-    // If so, use the job name instead of the global register.
-    if (jobs.size() > 1) {
+    if (isObserve) {
+      // Use the job name instead of the global register.
       results.emplace_back(c.to_map(), id.second);
       results.back().sequentialData = c.sequential_data();
     } else {
@@ -75,6 +74,7 @@ future &future::operator=(future &other) {
   jobs = other.jobs;
   qpuName = other.qpuName;
   serverConfig = other.serverConfig;
+  isObserve = other.isObserve;
   if (other.wrapsFutureSampling) {
     wrapsFutureSampling = true;
     inFuture = std::move(other.inFuture);
@@ -86,6 +86,7 @@ future &future::operator=(future &&other) {
   jobs = other.jobs;
   qpuName = other.qpuName;
   serverConfig = other.serverConfig;
+  isObserve = other.isObserve;
   if (other.wrapsFutureSampling) {
     wrapsFutureSampling = true;
     inFuture = std::move(other.inFuture);
@@ -102,6 +103,7 @@ std::ostream &operator<<(std::ostream &os, future &f) {
   j["jobs"] = f.jobs;
   j["qpu"] = f.qpuName;
   j["config"] = f.serverConfig;
+  j["isObserve"] = f.isObserve;
   os << j.dump(4);
   return os;
 }
@@ -117,6 +119,7 @@ std::istream &operator>>(std::istream &is, future &f) {
   f.jobs = j["jobs"].get<std::vector<future::Job>>();
   f.qpuName = j["qpu"].get<std::string>();
   f.serverConfig = j["config"].get<std::map<std::string, std::string>>();
+  f.isObserve = j["isObserve"].get<bool>();
   return is;
 }
 

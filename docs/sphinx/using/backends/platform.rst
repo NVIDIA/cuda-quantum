@@ -96,7 +96,7 @@ QPU via the :code:`cudaq::get_state_async` (C++) or :code:`cudaq.get_state_async
         ./a.out
 
 .. deprecated:: 0.8
-    The :code:`nvidia-mqpu` and :code:`nvidia-mqpu-fp64` targets, which are equivalent to the multi-QPU options `mgpu,fp32` and `mgpu,fp64`, respectively, of the :code:`nvidia` target, are deprecated and will be removed in a future release.
+    The :code:`nvidia-mqpu` and :code:`nvidia-mqpu-fp64` targets, which are equivalent to the multi-QPU options `mqpu,fp32` and `mqpu,fp64`, respectively, of the :code:`nvidia` target, are deprecated and will be removed in a future release.
 
 Parallel distribution mode
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -196,7 +196,7 @@ For instance, on a machine with 8 NVIDIA GPUs, one may wish to partition those G
      .. code-block:: bash
          
          # Use cudaq-qpud.py wrapper script to automatically find dependencies for the Python wheel configuration.
-         cudaq_location=`python3 -m pip show cuda-quantum | grep -e 'Location: .*$'`
+         cudaq_location=`python3 -m pip show cudaq | grep -e 'Location: .*$'`
          qpud_py="${cudaq_location#Location: }/bin/cudaq-qpud.py"
          CUDA_VISIBLE_DEVICES=0,1 mpiexec -np 2 python3 "$qpud_py" --port <QPU 1 TCP/IP port number>
          CUDA_VISIBLE_DEVICES=2,3 mpiexec -np 2 python3 "$qpud_py" --port <QPU 2 TCP/IP port number>

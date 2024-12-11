@@ -46,14 +46,17 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     CUDAQuantumExtension.cpp
     ../runtime/common/py_ExecutionContext.cpp
     ../runtime/common/py_NoiseModel.cpp
+    ../runtime/common/py_EvolveResult.cpp
     ../runtime/common/py_ObserveResult.cpp
     ../runtime/common/py_SampleResult.cpp
     ../runtime/common/py_CustomOpRegistry.cpp
+    ../runtime/common/py_AnalogHamiltonian.cpp
     ../runtime/cudaq/algorithms/py_draw.cpp
     ../runtime/cudaq/algorithms/py_observe_async.cpp
     ../runtime/cudaq/algorithms/py_optimizer.cpp
     ../runtime/cudaq/algorithms/py_sample_async.cpp
     ../runtime/cudaq/algorithms/py_state.cpp
+    ../runtime/cudaq/algorithms/py_evolve.cpp
     ../runtime/cudaq/algorithms/py_translate.cpp
     ../runtime/cudaq/algorithms/py_utils.cpp
     ../runtime/cudaq/algorithms/py_vqe.cpp
@@ -104,11 +107,6 @@ target_link_libraries(CUDAQuantumPythonSources.Extension INTERFACE
     fmt::fmt-header-only
     unzip_util
 )
-if (CUDA_FOUND)
-  enable_language(CUDA)
-  find_package(CUDAToolkit REQUIRED)
-  target_compile_definitions(CUDAQuantumPythonSources.Extension INTERFACE -DCUDAQ_CUDA_MAJOR=${CUDAToolkit_VERSION_MAJOR})
-endif()
 
 ################################################################################
 # Common CAPI

@@ -12,13 +12,13 @@
 #
 # Usage:
 # Must be built from the repo root with:
-#   docker build -t ghcr.io/nvidia/cuda-quantum-assets:amd64-cu11-llvm-main -f docker/build/assets.Dockerfile .
+#   docker build -t ghcr.io/nvidia/cuda-quantum-assets:amd64-cu12-llvm-main -f docker/build/assets.Dockerfile .
 
 # [Operating System]
 ARG base_image=amd64/almalinux:8
 FROM ${base_image} AS prereqs
 SHELL ["/bin/bash", "-c"]
-ARG cuda_version=11.8
+ARG cuda_version=12.0
 ENV CUDA_VERSION=${cuda_version}
 
 # When a dialogue box would be needed during install, assume default configurations.
@@ -187,6 +187,13 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON}-devel && 
     ${PYTHON} -m pip install numpy build auditwheel patchelf
 
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
+    if [ "${CUDA_VERSION#11.}" != "${CUDA_VERSION}" ]; then \
+        cublas_version=11.11 && \
+        sed -i "s/-cu12/-cu11/g" pyproject.toml && \
+        sed -i -E "s/(nvidia-cublas-cu[0-9]* ~= )[0-9\.]*/\1${cublas_version}/g" pyproject.toml && \
+        sed -i -E "s/(nvidia-cuda-nvrtc-cu[0-9]* ~= )[0-9\.]*/\1${CUDA_VERSION}/g" pyproject.toml && \
+        sed -i -E "s/(nvidia-cuda-runtime-cu[0-9]* ~= )[0-9\.]*/\1${CUDA_VERSION}/g" pyproject.toml; \
+    fi && \
     # Needed to retrigger the LLVM build, since the MLIR Python bindings
     # are not built in the prereqs stage.
     rm -rf "${LLVM_INSTALL_PREFIX}" && \
@@ -223,7 +230,8 @@ RUN echo "Patching up wheel using auditwheel..." && \
         --exclude libcustatevec.so.1 \
         --exclude libcudart.so.11.0 \
         --exclude libnvToolsExt.so.1 \
-        --exclude libnvidia-ml.so.1
+        --exclude libnvidia-ml.so.1 \
+        --exclude libcuda.so.1
     ## [<CUDAQuantumWheel]
 
 # Validate that the nvidia backend was built.
@@ -254,7 +262,7 @@ RUN gcc_packages=$(dnf list installed "gcc*" | sed '/Installed Packages/d' | cut
 
 ## [Python MLIR tests]
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
-    python3 -m pip install lit pytest && \
+    python3 -m pip install lit pytest scipy cuquantum-python-cu$(echo ${CUDA_VERSION} | cut -d . -f1)~=24.11 && \
     "${LLVM_INSTALL_PREFIX}/bin/llvm-lit" -v _skbuild/python/tests/mlir \
         --param nvqpp_site_config=_skbuild/python/tests/mlir/lit.site.cfg.py
 # The other tests for the Python wheel are run post-installation.

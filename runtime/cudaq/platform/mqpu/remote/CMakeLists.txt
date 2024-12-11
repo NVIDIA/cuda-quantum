@@ -18,4 +18,3 @@ target_link_libraries(cudaq-remote-simulator-qpu PUBLIC
                     
 install(TARGETS cudaq-remote-simulator-qpu DESTINATION lib)
 
-install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-remote-simulator-qpu-targets DESTINATION lib)

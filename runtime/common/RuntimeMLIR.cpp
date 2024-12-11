@@ -14,6 +14,8 @@
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "cudaq/Optimizer/InitAllDialects.h"
+#include "cudaq/Optimizer/InitAllPasses.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/MC/SubtargetFeature.h"
@@ -25,8 +27,6 @@
 #include "llvm/Support/TargetSelect.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/ExecutionEngine/OptUtils.h"
-#include "mlir/InitAllDialects.h"
-#include "mlir/InitAllPasses.h"
 #include "mlir/InitAllTranslations.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Pass/PassManager.h"
@@ -75,24 +75,16 @@ std::unique_ptr<MLIRContext> initializeMLIR() {
   if (!mlirLLVMInitialized) {
     llvm::InitializeNativeTarget();
     llvm::InitializeNativeTargetAsmPrinter();
-    registerAllPasses();
-    cudaq::opt::registerOptCodeGenPasses();
-    cudaq::opt::registerOptTransformsPasses();
+    cudaq::registerAllPasses();
     registerToQIRTranslation();
     registerToOpenQASMTranslation();
     registerToIQMJsonTranslation();
-    cudaq::opt::registerAggressiveEarlyInlining();
-    cudaq::opt::registerUnrollingPipeline();
-    cudaq::opt::registerTargetPipelines();
-    cudaq::opt::registerWireSetToProfileQIRPipeline();
-    cudaq::opt::registerMappingPipeline();
     mlirLLVMInitialized = true;
   }
 
   DialectRegistry registry;
-  registry.insert<quake::QuakeDialect, cc::CCDialect>();
   cudaq::opt::registerCodeGenDialect(registry);
-  registerAllDialects(registry);
+  cudaq::registerAllDialects(registry);
   auto context = std::make_unique<MLIRContext>(registry);
   context->loadAllAvailableDialects();
   registerLLVMDialectTranslation(*context);
