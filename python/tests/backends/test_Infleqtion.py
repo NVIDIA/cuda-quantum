@@ -78,7 +78,7 @@ def test_all_gates():
         rz.ctrl(np.pi, qubits[1], qubits[0])
         s.ctrl(qubits[0], qubits[1])
         t.ctrl(qubits[1], qubits[0])
-        # u3.ctrl(0.0, np.pi / 2, np.pi, qubits[0], qubits[1])
+        u3.ctrl(0.0, np.pi / 2, np.pi, qubits[0], qubits[1])
         mz(qubits)
 
         qreg = cudaq.qvector(3)
