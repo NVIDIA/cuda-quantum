@@ -23,9 +23,7 @@
 
 using namespace mlir;
 
-namespace {
-#include "cudaq/Optimizer/Dialect/Quake/Canonical.inc"
-} // namespace
+#include "CanonicalPatterns.inc"
 
 static LogicalResult verifyWireResultsAreLinear(Operation *op) {
   for (Value v : op->getOpResults())
@@ -344,6 +342,12 @@ struct ConcatNoOpPattern : public OpRewritePattern<quake::ConcatOp> {
   }
 };
 
+// %8 = quake.concat %4, %5, %6 : (!quake.ref, !quake.veq<4>,
+//        !quake.veq<2>) -> !quake.veq<?>
+// ───────────────────────────────────────────────────────────
+// %.8 = quake.concat %4, %5, %6 : (!quake.ref, !quake.veq<4>,
+//        !quake.veq<2>) -> !quake.veq<7>
+// %8 = quake.relax_size %.8 : (!quake.veq<7>) -> !quake.veq<?>
 struct ConcatSizePattern : public OpRewritePattern<quake::ConcatOp> {
   using OpRewritePattern::OpRewritePattern;
 
