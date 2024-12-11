@@ -15,6 +15,7 @@ def kernel():
     x.ctrl(qvector[0], qvector[1])
     mz(qvector)
 
+
 # Note: All measurements must be terminal when performing the sampling.
 
 # Execute on Infleqtion and print out the results.

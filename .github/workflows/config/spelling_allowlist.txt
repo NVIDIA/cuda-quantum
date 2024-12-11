@@ -46,6 +46,7 @@ Hamiltonian
 Hamiltonians
 IQM
 InfiniBand
+Infleqtion
 IonQ
 JIT
 JSON
