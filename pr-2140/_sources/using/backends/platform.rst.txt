@@ -196,7 +196,7 @@ For instance, on a machine with 8 NVIDIA GPUs, one may wish to partition those G
      .. code-block:: bash
          
          # Use cudaq-qpud.py wrapper script to automatically find dependencies for the Python wheel configuration.
-         cudaq_location=`python3 -m pip show cuda-quantum | grep -e 'Location: .*$'`
+         cudaq_location=`python3 -m pip show cudaq | grep -e 'Location: .*$'`
          qpud_py="${cudaq_location#Location: }/bin/cudaq-qpud.py"
          CUDA_VISIBLE_DEVICES=0,1 mpiexec -np 2 python3 "$qpud_py" --port <QPU 1 TCP/IP port number>
          CUDA_VISIBLE_DEVICES=2,3 mpiexec -np 2 python3 "$qpud_py" --port <QPU 2 TCP/IP port number>
