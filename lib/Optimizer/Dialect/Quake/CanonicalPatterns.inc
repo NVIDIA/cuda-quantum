@@ -38,7 +38,7 @@ struct ForwardConstantVeqSizePattern
 
 // %2 = constant 10 : i32
 // %3 = quake.alloca !quake.veq<?>[%2 : i32]
-// ───────────────────────────────────────────
+// ─────────────────────────────────────────
 // %3 = quake.alloca !quake.veq<10>
 struct FuseConstantToAllocaPattern : public OpRewritePattern<quake::AllocaOp> {
   using OpRewritePattern::OpRewritePattern;
@@ -67,7 +67,7 @@ struct FuseConstantToAllocaPattern : public OpRewritePattern<quake::AllocaOp> {
 
 // %2 = constant 10 : i32
 // %3 = quake.extract_ref %1[%2] : (!quake.veq<?>, i32) -> !quake.ref
-// ───────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────
 // %3 = quake.extract_ref %1[10] : (!quake.veq<?>) -> !quake.ref
 struct FuseConstantToExtractRefPattern
     : public OpRewritePattern<quake::ExtractRefOp> {
