@@ -2,7 +2,7 @@ Using Quantum Hardware Providers
 -----------------------------------
 
 CUDA-Q contains support for using a set of hardware providers (Amazon Braket, 
-IonQ, IQM, OQC, ORCA Computing, Quantinuum and QuEra Computing). 
+Infleqtion, IonQ, IQM, OQC, ORCA Computing, Quantinuum, and QuEra Computing). 
 For more information about executing quantum kernels on different hardware 
 backends, please take a look at :doc:`hardware <../backends/hardware>`.
 
