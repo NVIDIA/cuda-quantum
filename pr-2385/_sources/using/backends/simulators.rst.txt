@@ -522,7 +522,7 @@ compute expectation values of observables.
     .. code:: python
 
         cudaq.set_target("fermioniq", **{
-            "remote-config": remote_config_id
+            "remote_config": remote_config_id
         })
 
     For a comprehensive list of all remote configurations, please contact Fermioniq directly.
@@ -533,15 +533,15 @@ compute expectation values of observables.
     .. code:: python
 
         cudaq.set_target("fermioniq", **{
-            "project-id": project_id
+            "project_id": project_id
         })
 
-    To specify the bond dimension, you can pass the ``fermioniq-bond-dim`` parameter.
+    To specify the bond dimension, you can pass the ``bond_dim`` parameter.
 
     .. code:: python 
 
         cudaq.set_target("fermioniq", **{
-            "bond-dim": 5
+            "bond_dim": 5
         })
 
 .. tab:: C++
