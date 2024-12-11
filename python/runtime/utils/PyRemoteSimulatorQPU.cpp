@@ -16,12 +16,12 @@ namespace {
 
 // This is a helper function to help reduce duplicated code across
 // PyRemoteSimulatorQPU and PyNvcfSimulatorQPU.
-static void _launchVQE(cudaq::ExecutionContext *executionContextPtr,
-                       std::unique_ptr<cudaq::RemoteRuntimeClient> &m_client,
-                       const std::string &m_simName, const std::string &name,
-                       const void *kernelArgs, cudaq::gradient *gradient,
-                       cudaq::spin_op &H, cudaq::optimizer &optimizer,
-                       const int n_params, const std::size_t shots) {
+static void launchVqeImpl(cudaq::ExecutionContext *executionContextPtr,
+                          std::unique_ptr<cudaq::RemoteRuntimeClient> &m_client,
+                          const std::string &m_simName, const std::string &name,
+                          const void *kernelArgs, cudaq::gradient *gradient,
+                          cudaq::spin_op &H, cudaq::optimizer &optimizer,
+                          const int n_params, const std::size_t shots) {
   auto *wrapper = reinterpret_cast<const cudaq::ArgWrapper *>(kernelArgs);
   auto m_module = wrapper->mod;
   auto *mlirContext = m_module->getContext();
@@ -46,12 +46,13 @@ static void _launchVQE(cudaq::ExecutionContext *executionContextPtr,
 
 // This is a helper function to help reduce duplicated code across
 // PyRemoteSimulatorQPU and PyNvcfSimulatorQPU.
-static void _launchKernel(cudaq::ExecutionContext *executionContextPtr,
-                          std::unique_ptr<cudaq::RemoteRuntimeClient> &m_client,
-                          const std::string &m_simName, const std::string &name,
-                          void (*kernelFunc)(void *), void *args,
-                          std::uint64_t voidStarSize,
-                          std::uint64_t resultOffset) {
+static void
+launchKernelImpl(cudaq::ExecutionContext *executionContextPtr,
+                 std::unique_ptr<cudaq::RemoteRuntimeClient> &m_client,
+                 const std::string &m_simName, const std::string &name,
+                 void (*kernelFunc)(void *), void *args,
+                 std::uint64_t voidStarSize, std::uint64_t resultOffset,
+                 const std::vector<void *> &rawArgs) {
   auto *wrapper = reinterpret_cast<cudaq::ArgWrapper *>(args);
   auto m_module = wrapper->mod;
   auto callableNames = wrapper->callableNames;
@@ -74,6 +75,41 @@ static void _launchKernel(cudaq::ExecutionContext *executionContextPtr,
     throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
 }
 
+static void launchKernelStreamlineImpl(
+    cudaq::ExecutionContext *executionContextPtr,
+    std::unique_ptr<cudaq::RemoteRuntimeClient> &m_client,
+    const std::string &m_simName, const std::string &name,
+    const std::vector<void *> &rawArgs) {
+  if (rawArgs.empty())
+    throw std::runtime_error(
+        "Streamlined kernel launch: arguments cannot "
+        "be empty. The first argument should be a pointer to the MLIR "
+        "ModuleOp.");
+
+  auto *moduleOpPtr = reinterpret_cast<mlir::ModuleOp *>(rawArgs[0]);
+  auto m_module = *moduleOpPtr;
+  auto *mlirContext = m_module->getContext();
+
+  // Default context for a 'fire-and-ignore' kernel launch; i.e., no context
+  // was set before launching the kernel. Use a static variable per thread to
+  // set up a single-shot execution context for this case.
+  static thread_local cudaq::ExecutionContext defaultContext("sample",
+                                                             /*shots=*/1);
+  cudaq::ExecutionContext &executionContext =
+      executionContextPtr ? *executionContextPtr : defaultContext;
+  std::string errorMsg;
+  auto actualArgs = rawArgs;
+  // Remove the first argument (the MLIR ModuleOp) from the list of arguments.
+  actualArgs.erase(actualArgs.begin());
+
+  const bool requestOkay = m_client->sendRequest(
+      *mlirContext, executionContext, /*serializedCodeContext=*/nullptr,
+      /*vqe_gradient=*/nullptr, /*vqe_optimizer=*/nullptr, /*vqe_n_params=*/0,
+      m_simName, name, nullptr, nullptr, 0, &errorMsg, &actualArgs);
+  if (!requestOkay)
+    throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
+}
+
 // Remote QPU: delegating the execution to a remotely-hosted server, which can
 // reinstate the execution context and JIT-invoke the kernel.
 class PyRemoteSimulatorQPU : public cudaq::BaseRemoteSimulatorQPU {
@@ -90,18 +126,33 @@ public:
         "PyRemoteSimulatorQPU: Launch VQE kernel named '{}' remote QPU {} "
         "(simulator = {})",
         name, qpu_id, m_simName);
-    ::_launchVQE(getExecutionContextForMyThread(), m_client, m_simName, name,
-                 kernelArgs, gradient, H, optimizer, n_params, shots);
+    ::launchVqeImpl(getExecutionContextForMyThread(), m_client, m_simName, name,
+                    kernelArgs, gradient, H, optimizer, n_params, shots);
   }
 
-  void launchKernel(const std::string &name, void (*kernelFunc)(void *),
-                    void *args, std::uint64_t voidStarSize,
-                    std::uint64_t resultOffset) override {
+  cudaq::KernelThunkResultType
+  launchKernel(const std::string &name, cudaq::KernelThunkType kernelFunc,
+               void *args, std::uint64_t voidStarSize,
+               std::uint64_t resultOffset,
+               const std::vector<void *> &rawArgs) override {
     cudaq::info("PyRemoteSimulatorQPU: Launch kernel named '{}' remote QPU {} "
                 "(simulator = {})",
                 name, qpu_id, m_simName);
-    ::_launchKernel(getExecutionContextForMyThread(), m_client, m_simName, name,
-                    kernelFunc, args, voidStarSize, resultOffset);
+    ::launchKernelImpl(getExecutionContextForMyThread(), m_client, m_simName,
+                       name, make_degenerate_kernel_type(kernelFunc), args,
+                       voidStarSize, resultOffset, rawArgs);
+    // TODO: Python should probably support return values too.
+    return {};
+  }
+
+  void launchKernel(const std::string &name,
+                    const std::vector<void *> &rawArgs) override {
+    cudaq::info("PyRemoteSimulatorQPU: Streamline launch kernel named '{}' "
+                "remote QPU {} "
+                "(simulator = {})",
+                name, qpu_id, m_simName);
+    ::launchKernelStreamlineImpl(getExecutionContextForMyThread(), m_client,
+                                 m_simName, name, rawArgs);
   }
 
   PyRemoteSimulatorQPU(PyRemoteSimulatorQPU &&) = delete;
@@ -126,18 +177,33 @@ public:
         "PyNvcfSimulatorQPU: Launch VQE kernel named '{}' remote QPU {} "
         "(simulator = {})",
         name, qpu_id, m_simName);
-    ::_launchVQE(getExecutionContextForMyThread(), m_client, m_simName, name,
-                 kernelArgs, gradient, H, optimizer, n_params, shots);
+    ::launchVqeImpl(getExecutionContextForMyThread(), m_client, m_simName, name,
+                    kernelArgs, gradient, H, optimizer, n_params, shots);
   }
 
-  void launchKernel(const std::string &name, void (*kernelFunc)(void *),
-                    void *args, std::uint64_t voidStarSize,
-                    std::uint64_t resultOffset) override {
+  cudaq::KernelThunkResultType
+  launchKernel(const std::string &name, cudaq::KernelThunkType kernelFunc,
+               void *args, std::uint64_t voidStarSize,
+               std::uint64_t resultOffset,
+               const std::vector<void *> &rawArgs) override {
     cudaq::info("PyNvcfSimulatorQPU: Launch kernel named '{}' remote QPU {} "
                 "(simulator = {})",
                 name, qpu_id, m_simName);
-    ::_launchKernel(getExecutionContextForMyThread(), m_client, m_simName, name,
-                    kernelFunc, args, voidStarSize, resultOffset);
+    ::launchKernelImpl(getExecutionContextForMyThread(), m_client, m_simName,
+                       name, make_degenerate_kernel_type(kernelFunc), args,
+                       voidStarSize, resultOffset, rawArgs);
+    // TODO: Python should probably support return values too.
+    return {};
+  }
+
+  void launchKernel(const std::string &name,
+                    const std::vector<void *> &rawArgs) override {
+    cudaq::info("PyNvcfSimulatorQPU: Streamline launch kernel named '{}' "
+                "remote QPU {} "
+                "(simulator = {})",
+                name, qpu_id, m_simName);
+    ::launchKernelStreamlineImpl(getExecutionContextForMyThread(), m_client,
+                                 m_simName, name, rawArgs);
   }
 
   PyNvcfSimulatorQPU(PyNvcfSimulatorQPU &&) = delete;

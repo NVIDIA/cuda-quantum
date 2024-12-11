@@ -92,7 +92,9 @@ master_doc = 'index'
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['**/_*', '.DS_Store']
+exclude_patterns = [
+    '**/_*', '.DS_Store', 'examples/python/building_kernels.ipynb'
+]
 
 # Generate OpenAPI spec for the REST API
 import ruamel.yaml
@@ -177,6 +179,10 @@ breathe_show_enumvalue_initializer = True
 
 autosummary_generate = True
 
+# This is unfortunately not sufficient for docs generation, due to the use of Union type;
+# see also https://github.com/sphinx-doc/sphinx/issues/11211. 
+# autodoc_mock_imports = ['cuquantum', 'cupy']
+
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
     'numpy': ('https://numpy.org/doc/stable/', None),
@@ -203,6 +209,7 @@ nitpick_ignore = [
     ('py:class', 'function'),
     ('py:class', 'type'),
     ('py:class', 'cudaq::spin_op'),
+    ('py:class', 'numpy.ndarray[]'),
 ]
 
 napoleon_google_docstring = True

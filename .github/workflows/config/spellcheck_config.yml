@@ -45,7 +45,8 @@ matrix:
 
 - name: rst
   sources:
-  - '**/*.rst'
+  - '**/*.rst|!docs/sphinx/_templates/**/*.rst'
+  glob_flags: N|G|B
   expect_match: false
   aspell:
     lang: en
@@ -192,6 +193,8 @@ matrix:
 - name: cxx_examples
   sources:
   - 'docs/sphinx/examples/**/*.cpp'
+  - 'docs/sphinx/applications/cpp/*.cpp'
+  - 'docs/sphinx/targets/cpp/*.cpp'
   expect_match: false
   aspell:
     lang: en

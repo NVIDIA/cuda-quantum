@@ -8,6 +8,7 @@
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
+#include "cudaq/Optimizer/Dialect/Quake/Canonical.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
@@ -21,14 +22,6 @@ namespace cudaq::opt {
 #define DEBUG_TYPE "combine-quantum-alloc"
 
 using namespace mlir;
-
-static Value createCast(PatternRewriter &rewriter, Location loc, Value inVal) {
-  auto i64Ty = rewriter.getI64Type();
-  assert(inVal.getType() != rewriter.getIndexType() &&
-         "use of index type is deprecated");
-  return rewriter.create<cudaq::cc::CastOp>(loc, i64Ty, inVal,
-                                            cudaq::cc::CastOpMode::Unsigned);
-}
 
 namespace {
 struct Analysis {
@@ -52,12 +45,11 @@ public:
 
   LogicalResult matchAndRewrite(quake::AllocaOp alloc,
                                 PatternRewriter &rewriter) const override {
-    Type refTy = quake::RefType::get(rewriter.getContext());
     for (auto p : llvm::enumerate(analysis.allocations)) {
       if (alloc == p.value()) {
         auto i = p.index();
         auto &os = analysis.offsetSizes[i];
-        if (alloc.getType() == refTy) {
+        if (isa<quake::RefType>(alloc.getType())) {
           [[maybe_unused]] Value ext =
               rewriter.replaceOpWithNewOp<quake::ExtractRefOp>(
                   alloc, analysis.newAlloc, os.first);
@@ -65,85 +57,49 @@ public:
                      << "replace " << alloc << " with " << ext << '\n');
           return success();
         }
-        Value lo = rewriter.create<arith::ConstantIntOp>(
-            alloc.getLoc(), os.first, rewriter.getI64Type());
-        Value hi = rewriter.create<arith::ConstantIntOp>(
-            alloc.getLoc(), os.first + os.second - 1, rewriter.getI64Type());
-        [[maybe_unused]] Value subveq =
-            rewriter.replaceOpWithNewOp<quake::SubVeqOp>(
-                alloc, alloc.getType(), analysis.newAlloc, lo, hi);
-        LLVM_DEBUG(llvm::dbgs()
-                   << "replace " << alloc << " with " << subveq << '\n');
-        return success();
+        if (isa<quake::VeqType>(alloc.getType())) {
+          Value lo = rewriter.create<arith::ConstantIntOp>(
+              alloc.getLoc(), os.first, rewriter.getI64Type());
+          Value hi = rewriter.create<arith::ConstantIntOp>(
+              alloc.getLoc(), os.first + os.second - 1, rewriter.getI64Type());
+          [[maybe_unused]] Value subveq =
+              rewriter.replaceOpWithNewOp<quake::SubVeqOp>(
+                  alloc, alloc.getType(), analysis.newAlloc, lo, hi);
+          LLVM_DEBUG(llvm::dbgs()
+                     << "replace " << alloc << " with " << subveq << '\n');
+          return success();
+        }
+        if (auto sty = dyn_cast<quake::StruqType>(alloc.getType())) {
+          SmallVector<Value> parts;
+          std::size_t inner = os.first;
+          auto loc = alloc.getLoc();
+          for (auto m : sty.getMembers()) {
+            auto v = [&]() -> Value {
+              if (isa<quake::RefType>(m)) {
+                auto result = rewriter.create<quake::ExtractRefOp>(
+                    loc, analysis.newAlloc, inner);
+                inner++;
+                return result;
+              }
+              assert(cast<quake::VeqType>(m).hasSpecifiedSize());
+              std::size_t dist = inner + cast<quake::VeqType>(m).getSize() - 1;
+              auto result = rewriter.create<quake::SubVeqOp>(
+                  loc, m, analysis.newAlloc, inner, dist);
+              inner = dist + 1;
+              return result;
+            }();
+            parts.push_back(v);
+          }
+          rewriter.replaceOpWithNewOp<quake::MakeStruqOp>(alloc, sty, parts);
+          return success();
+        }
+        return alloc.emitOpError("has unexpected type");
       }
     }
     return failure();
   }
 
   Analysis &analysis;
-};
-
-class ExtractPat : public OpRewritePattern<quake::ExtractRefOp> {
-public:
-  using OpRewritePattern::OpRewritePattern;
-
-  // Replace a pattern such as:
-  // ```
-  //   %1 = ... : !quake.veq<4>
-  //   %2 = quake.subveq %1, %c2, %c3 : (!quake.veq<4>, i32, i32) ->
-  //        !quake.veq<2>
-  //   %3 = quake.extract_ref %2[0] : (!quake.veq<2>) -> !quake.ref
-  // ```
-  // with:
-  // ```
-  //   %1 = ... : !quake.veq<4>
-  //   %3 = quake.extract_ref %1[2] : (!uwake.veq<4>) -> !quake.ref
-  // ```
-  LogicalResult matchAndRewrite(quake::ExtractRefOp extract,
-                                PatternRewriter &rewriter) const override {
-    auto subveq = extract.getVeq().getDefiningOp<quake::SubVeqOp>();
-    if (!subveq || isa<quake::SubVeqOp>(subveq.getVeq().getDefiningOp()))
-      return failure();
-
-    Value offset;
-    auto loc = extract.getLoc();
-    Value low = subveq.getLow();
-    if (extract.hasConstantIndex()) {
-      Value cv = rewriter.create<arith::ConstantIntOp>(
-          loc, extract.getConstantIndex(), low.getType());
-      offset = rewriter.create<arith::AddIOp>(loc, cv, low);
-    } else {
-      Value cast1 = createCast(rewriter, loc, extract.getIndex());
-      Value cast2 = createCast(rewriter, loc, low);
-      offset = rewriter.create<arith::AddIOp>(loc, cast1, cast2);
-    }
-    rewriter.replaceOpWithNewOp<quake::ExtractRefOp>(extract, subveq.getVeq(),
-                                                     offset);
-    return success();
-  }
-};
-
-class SubVeqPat : public OpRewritePattern<quake::SubVeqOp> {
-public:
-  using OpRewritePattern::OpRewritePattern;
-
-  LogicalResult matchAndRewrite(quake::SubVeqOp subveq,
-                                PatternRewriter &rewriter) const override {
-    auto prior = subveq.getVeq().getDefiningOp<quake::SubVeqOp>();
-    if (!prior)
-      return failure();
-
-    auto loc = subveq.getLoc();
-    Value cast1 = createCast(rewriter, loc, prior.getLow());
-    Value cast2 = createCast(rewriter, loc, subveq.getLow());
-    Value cast3 = createCast(rewriter, loc, subveq.getHigh());
-    Value sum1 = rewriter.create<arith::AddIOp>(loc, cast1, cast2);
-    Value sum2 = rewriter.create<arith::AddIOp>(loc, cast1, cast3);
-    auto veqTy = subveq.getType();
-    rewriter.replaceOpWithNewOp<quake::SubVeqOp>(subveq, veqTy, prior.getVeq(),
-                                                 sum1, sum2);
-    return success();
-  }
 };
 
 class CombineQuantumAllocationsPass
@@ -194,7 +150,8 @@ public:
     {
       RewritePatternSet patterns(ctx);
       patterns.insert<AllocaPat>(ctx, analysis);
-      patterns.insert<ExtractPat, SubVeqPat>(ctx);
+      patterns.insert<quake::canonical::ExtractRefFromSubVeqPattern,
+                      quake::canonical::CombineSubVeqsPattern>(ctx);
       if (failed(applyPatternsAndFoldGreedily(func.getOperation(),
                                               std::move(patterns)))) {
         func.emitOpError("combining alloca, subveq, and extract ops failed");
@@ -221,11 +178,7 @@ public:
 
   // TODO: move this to a place where it can be shared.
   static std::size_t allocationSize(quake::AllocaOp alloc) {
-    if (isa<quake::RefType>(alloc.getType()))
-      return 1;
-    auto veq = cast<quake::VeqType>(alloc.getType());
-    assert(veq.hasSpecifiedSize() && "veq type must have constant size");
-    return veq.getSize();
+    return quake::getAllocationSize(alloc.getType());
   }
 };
 } // namespace

@@ -18,10 +18,6 @@
 
 namespace cudaq::opt {
 
-/// Pass to generate the device code loading stubs.
-std::unique_ptr<mlir::Pass>
-createGenerateDeviceCodeLoader(bool genAsQuake = false);
-
 /// Add a pass pipeline to transform call between kernels to direct calls that
 /// do not go through the runtime layers, inline all calls, and detect if calls
 /// to kernels remain in the fully inlined into entry point kernel.
@@ -38,7 +34,7 @@ std::unique_ptr<mlir::Pass> createDelayMeasurementsPass();
 std::unique_ptr<mlir::Pass> createExpandMeasurementsPass();
 std::unique_ptr<mlir::Pass> createLambdaLiftingPass();
 std::unique_ptr<mlir::Pass> createLowerToCFGPass();
-std::unique_ptr<mlir::Pass> createObserveAnsatzPass(std::vector<bool> &);
+std::unique_ptr<mlir::Pass> createObserveAnsatzPass(const std::vector<bool> &);
 std::unique_ptr<mlir::Pass> createQuakeAddMetadata();
 std::unique_ptr<mlir::Pass> createQuakeAddDeallocs();
 std::unique_ptr<mlir::Pass> createQuakeSynthesizer();
@@ -46,13 +42,13 @@ std::unique_ptr<mlir::Pass>
 createQuakeSynthesizer(std::string_view, const void *,
                        std::size_t startingArgIdx = 0,
                        bool sameAddressSpace = false);
-std::unique_ptr<mlir::Pass> createRaiseToAffinePass();
 std::unique_ptr<mlir::Pass> createUnwindLoweringPass();
 
 std::unique_ptr<mlir::Pass>
-createPySynthCallableBlockArgs(const std::vector<std::string> &);
+createPySynthCallableBlockArgs(const llvm::SmallVector<llvm::StringRef> &,
+                               bool removeBlockArg = false);
 inline std::unique_ptr<mlir::Pass> createPySynthCallableBlockArgs() {
-  return createPySynthCallableBlockArgs({});
+  return createPySynthCallableBlockArgs({}, false);
 }
 
 /// Helper function to build an argument synthesis pass. The names of the

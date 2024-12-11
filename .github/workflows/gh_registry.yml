@@ -8,7 +8,6 @@ name: Update GHCR
 jobs:
   ghcr_config:
     name: Read GHCR config
-    if: github.event_name == 'workflow_dispatch' || vars.enabled_workflows == 'all'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -83,7 +82,7 @@ jobs:
           password: ${{ github.token }}
 
       - name: Delete old images
-        uses: actions/delete-package-versions@v4
+        uses: actions/delete-package-versions@v5
         with: 
           package-name: ${{ fromJson(needs.ghcr_config.outputs.external_images)[format('{0}', matrix.image)].package_name }}
           package-type: 'container'
@@ -177,9 +176,9 @@ jobs:
           password: ${{ github.token }}
 
       - name: Delete old images
-        uses: actions/delete-package-versions@v4
+        uses: actions/delete-package-versions@v5
         with: 
-          package-name: ${{ matrix.package_name }}
+          package-name: ${{ vars.packages_prefix }}${{ matrix.package_name }}
           package-type: 'container'
           min-versions-to-keep: ${{ fromJson(needs.ghcr_config.outputs.internal_images)[format('{0}', matrix.package_name)].nr_tags_to_keep }}
         continue-on-error: true

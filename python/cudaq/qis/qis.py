@@ -72,14 +72,14 @@ def ry(*args):
 
 def rz(*args):
     """
-    This operation is an arbitrary rotation about the Z axis.
+    This operation is an arbitrary rotation about the Z axis, which introduces a relative phase factor of lambda.
     """
     raise_error
 
 
 def r1(*args):
     """
-    This operation is an arbitrary rotation about the |1> state.
+    This operation is an arbitrary rotation about the |1> state or the Z axis, which introduces a relative phase factor of lambda/2.
     """
     raise_error
 

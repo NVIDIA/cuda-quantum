@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 import pytest
-import os, math
+import os, math, sys
 import numpy as np
 
 import cudaq

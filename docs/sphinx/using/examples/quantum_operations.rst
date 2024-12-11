@@ -84,7 +84,7 @@ state:
 
 .. math:: \tfrac{1}{\sqrt{2}}\begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix} \begin{bmatrix} 1 \\ 0 \\ \end{bmatrix} = \tfrac{1}{\sqrt{2}} \begin{bmatrix} 1 \\ 0 \\ \end{bmatrix} + \tfrac{1}{\sqrt{2}} \begin{bmatrix} 0 \\ 1 \\ \end{bmatrix}. 
 
-The probability of finding the qubit in the 0 / 1 state is hence
+The probability of finding the qubit in the :math:`\ket{0}` or :math:`\ket{1}` state is hence
 :math:`\lvert \tfrac{1}{\sqrt{2}} \rvert ^2 = \tfrac{1}{2}`. Lets verify
 this with some code:
 
@@ -157,8 +157,8 @@ measurement, wavefunction collapse yields either a classical 0 or 1.
 
 The mathematical theory devised to explain quantum phenomena tells us
 that the probability of observing the qubit in the state
-:math:`\ket{0}` / :math:`\ket{1}` yielding a classical 0 / 1 is
-:math:`\lvert \alpha \rvert ^2` / :math:`\lvert \beta \rvert ^2`. 
+:math:`\ket{0}` or :math:`\ket{1}`, yielding a classical 0 or 1, is
+:math:`\lvert \alpha \rvert ^2` or :math:`\lvert \beta \rvert ^2`, respectively. 
 
 As we see in the example of the Hadamard gate above,
 the result 0 or 1 each is yielded roughly 50% of the times as predicted 

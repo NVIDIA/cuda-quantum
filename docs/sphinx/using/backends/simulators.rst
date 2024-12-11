@@ -91,7 +91,9 @@ use `cudaq.set_target('nvidia', option='fp64')` for Python in-source target modi
 
   This backend requires an NVIDIA GPU and CUDA runtime libraries. If you do not have these dependencies installed, you may encounter an error stating `Invalid simulator requested`. See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
 
-In the single-GPU mode, the :code:`nvidia` target provides the following environment variable options.
+In the single-GPU mode, the :code:`nvidia` target provides the following
+environment variable options. Any environment variables must be set prior to
+setting the target.
 
 .. list-table:: **Environment variable options supported in single-GPU mode**
   :widths: 20 30 50
@@ -110,10 +112,10 @@ In the single-GPU mode, the :code:`nvidia` target provides the following environ
     - Number of CPU threads used for circuit processing. The default value is `8`.
   * - ``CUDAQ_MAX_CPU_MEMORY_GB``
     - non-negative integer, or `NONE`
-    - CPU memory size (in GB) allowed for state-vector migration. `NONE` means unlimited (up to physical memory constraints). Default is 0 (disabled). 
+    - CPU memory size (in GB) allowed for state-vector migration. `NONE` means unlimited (up to physical memory constraints). Default is 0GB (disabled, variable is not set to any value).
   * - ``CUDAQ_MAX_GPU_MEMORY_GB``
     - positive integer, or `NONE`
-    - GPU memory (in GB) allowed for on-device state-vector allocation. As the state-vector size exceeds this limit, host memory will be utilized for migration. `NONE` means unlimited (up to physical memory constraints). This is the default. 
+    - GPU memory (in GB) allowed for on-device state-vector allocation. As the state-vector size exceeds this limit, host memory will be utilized for migration. `NONE` means unlimited (up to physical memory constraints). This is the default.
 
 .. deprecated:: 0.8
     The :code:`nvidia-fp64` targets, which is equivalent setting the `fp64` option on the :code:`nvidia` target, 
@@ -167,10 +169,11 @@ To execute a program on the multi-node multi-GPU NVIDIA target, use the followin
     If a target is set in the application code, this target will override the :code:`--target` command line flag given during program invocation.
 
     .. note::
-        (1) The order of the option settings are interchangeable.
-        For example, `cudaq.set_target('nvidia', option='mgpu,fp64')` is equivalent to `cudaq.set_target('nvidia', option='fp64.mgpu')`.
+        
+        * The order of the option settings are interchangeable.
+          For example, `cudaq.set_target('nvidia', option='mgpu,fp64')` is equivalent to `cudaq.set_target('nvidia', option='fp64,mgpu')`.
 
-        (2) The `nvidia` target has single-precision as the default setting. Thus, using `option='mgpu'` implies that `option='mgpu,fp32'`.  
+        * The `nvidia` target has single-precision as the default setting. Thus, using `option='mgpu'` implies that `option='mgpu,fp32'`.  
 
 .. tab:: C++
 
@@ -199,7 +202,8 @@ To execute a program on the multi-node multi-GPU NVIDIA target, use the followin
 
 In addition to those environment variable options supported in the single-GPU mode,
 the :code:`nvidia` target provides the following environment variable options particularly for 
-the multi-node multi-GPU configuration.
+the multi-node multi-GPU configuration. Any environment variables must be set
+prior to setting the target.
 
 .. list-table:: **Additional environment variable options for multi-node multi-GPU mode**
   :widths: 20 30 50
@@ -230,7 +234,7 @@ the multi-node multi-GPU configuration.
     - Specify the inter-node network structure (faster to slower). For example, assuming a 8 nodes, 4 GPUs/node simulation whereby network communication is faster, this `CUDAQ_GLOBAL_INDEX_BITS` environment variable can be set to `3,2`. The first `3` represents **8** nodes with fast communication and the second `2` represents **4** 8-node groups in those total 32 nodes. Default is an empty list (no customization based on network structure of the cluster).
   * - ``CUDAQ_HOST_DEVICE_MIGRATION_LEVEL``
     - positive integer
-    - Specify host-device memory migration w.r.t. the network structure. 
+    - Specify host-device memory migration w.r.t. the network structure. If provided, this setting determines the position to insert the number of migration index bits to the `CUDAQ_GLOBAL_INDEX_BITS` list. By default, if not set, the number of migration index bits (CPU-GPU data transfers) is appended to the end of the array of index bits (aka, state vector distribution scheme). This default behavior is optimized for systems with fast GPU-GPU interconnects (NVLink, InfiniBand, etc.) 
 
 .. deprecated:: 0.8
     The :code:`nvidia-mgpu` target, which is equivalent to the multi-node multi-GPU double-precision option (`mgpu,fp64`) of the :code:`nvidia`
@@ -296,7 +300,6 @@ use the following commands:
         nvq++ --target qpp-cpu program.cpp [...] -o program.x
         ./program.x
 
-
 Tensor Network Simulators
 ==================================
 
@@ -306,7 +309,7 @@ CUDA-Q provides a couple of tensor-network simulator targets accelerated with
 the :code:`cuTensorNet` library. 
 These backends are available for use from both C++ and Python.
 
-Tensor network-based simulators are suitable for large-scale simulation of certain classes of quantum circuits involving many qubits beyond the memory limit of state vector based simulators. For example, computing the expectation value of a Hamiltonian via :code:`cudaq::observe` can be performed efficiently, thanks to :code:`cuTensorNet` contraction optimization capability. On the other hand, conditional circuits, i.e., those with mid-circuit measurements or reset, despite being supported by both backends, may result in poor performance. 
+Tensor network simulators are suitable for large-scale simulation of certain classes of quantum circuits involving many qubits beyond the memory limit of state vector based simulators. For example, computing the expectation value of a Hamiltonian via :code:`cudaq::observe` can be performed efficiently, thanks to :code:`cuTensorNet` contraction optimization capability. On the other hand, conditional circuits, i.e., those with mid-circuit measurements or reset, despite being supported by both backends, may result in poor performance. 
 
 Multi-node multi-GPU
 +++++++++++++++++++++++++++++++++++
@@ -439,14 +442,147 @@ Specific aspects of the simulation can be configured by defining the following e
 
 .. note::
     The parallelism of Jacobi method (the default `CUDAQ_MPS_SVD_ALGO` setting) gives GPU better performance on small and medium size matrices.
-    If you expect the a large number of singular values (e.g., increasing the `CUDAQ_MPS_MAX_BOND` setting), please adjust the `CUDAQ_MPS_SVD_ALGO` setting accordingly.  
+    If you expect a large number of singular values (e.g., increasing the `CUDAQ_MPS_MAX_BOND` setting), please adjust the `CUDAQ_MPS_SVD_ALGO` setting accordingly.  
+
+Clifford-Only Simulator
+==================================
+
+Stim (CPU)
+++++++++++++++++++++++++++++++++++
+
+.. _stim-backend:
+
+This target provides a fast simulator for circuits containing *only* Clifford
+gates. Any non-Clifford gates (such as T gates and Toffoli gates) are not
+supported. This simulator is based on the `Stim <https://github.com/quantumlib/Stim>`_
+library.
+
+To execute a program on the :code:`stim` target, use the following commands:
+
+.. tab:: Python
+
+    .. code:: bash 
+
+        python3 program.py [...] --target stim
+
+    The target can also be defined in the application code by calling
+
+    .. code:: python 
+
+        cudaq.set_target('stim')
+
+    If a target is set in the application code, this target will override the :code:`--target` command line flag given during program invocation.
+
+.. tab:: C++
+
+    .. code:: bash 
+
+        nvq++ --target stim program.cpp [...] -o program.x
+        ./program.x
+
+.. note::
+    CUDA-Q currently executes kernels using a "shot-by-shot" execution approach.
+    This allows for conditional gate execution (i.e. full control flow), but it
+    can be slower than executing Stim a single time and generating all the shots
+    from that single execution.
+
+Fermioniq
+==================================
+
+.. _fermioniq-backend:
+
+`Fermioniq <https://fermioniq.com/>`__ offers a cloud-based tensor-network emulation platform, `Ava <https://www.fermioniq.com/ava/>`__, 
+for the approximate simulation of large-scale quantum circuits beyond the memory limit of state vector and exact tensor network based methods. 
+
+The level of approximation can be controlled by setting the bond dimension: larger values yield more accurate simulations at the expense 
+of slower computation time. For a detailed description of Ava users are referred to the `online documentation <https://docs.fermioniq.com/>`__.
+
+Users of CUDA-Q can access a simplified version of the full Fermioniq emulator (`Ava <https://www.fermioniq.com/ava/>`__) from either
+C++ or Python. This version currently supports emulation of quantum circuits without noise, and can return measurement samples and/or 
+compute expectation values of observables.
+
+.. note::
+    In order to use the Fermioniq emulator, users must provide access credentials. These can be requested by contacting info@fermioniq.com 
+
+    The credentials must be set via two environment variables:
+    `FERMIONIQ_ACCESS_TOKEN_ID` and `FERMIONIQ_ACCESS_TOKEN_SECRET`.
+
+.. tab:: Python
+
+    The target to which quantum kernels are submitted 
+    can be controlled with the ``cudaq::set_target()`` function.
+
+    .. code:: python
+
+        cudaq.set_target('fermioniq')
+
+    You will have to specify a remote configuration id for the Fermioniq backend
+    during compilation.
+
+    .. code:: python
+
+        cudaq.set_target("fermioniq", **{
+            "remote_config": remote_config_id
+        })
+
+    For a comprehensive list of all remote configurations, please contact Fermioniq directly.
+
+    When your organization requires you to define a project id, you have to specify
+    the project id during compilation.
+
+    .. code:: python
+
+        cudaq.set_target("fermioniq", **{
+            "project_id": project_id
+        })
+
+    To specify the bond dimension, you can pass the ``bond_dim`` parameter.
+
+    .. code:: python 
+
+        cudaq.set_target("fermioniq", **{
+            "bond_dim": 5
+        })
+
+.. tab:: C++
+
+    To target quantum kernel code for execution in the Fermioniq backends,
+    pass the flag ``--target fermioniq`` to the ``nvq++`` compiler. CUDA-Q will 
+    authenticate via the Fermioniq REST API using the environment variables 
+    set earlier.
+
+    .. code:: bash
+
+        nvq++ --target fermioniq src.cpp ...
+
+    You will have to specify a remote configuration id for the Fermioniq backend
+    during compilation.
+
+    .. code:: bash
+
+        nvq++ --target fermioniq --fermioniq-remote-config <remote_config_id> src.cpp ...
+
+    For a comprehensive list of all remote configurations, please contact Fermioniq directly.
+
+    When your organization requires you to define a project id, you have to specify
+    the project id during compilation.
+
+    .. code:: bash
+
+        nvq++ --target fermioniq --fermioniq-project-id <project_id> src.cpp ...
+
+    To specify the bond dimension, you can pass the ``fermioniq-bond-dim`` parameter.
+
+    .. code:: bash
+
+        nvq++ --target fermioniq --fermioniq-bond-dim 10 src.cpp ...
 
 Default Simulator
 ==================================
 
 .. _default-simulator:
 
-If no explicit target is set, i.e. if the code is compiled without any :code:`--target` flags, then CUDA-Q makes a default choice for the simulator.
+If no explicit target is set, i.e., if the code is compiled without any :code:`--target` flags, then CUDA-Q makes a default choice for the simulator.
 
 If an NVIDIA GPU and CUDA runtime libraries are available, the default target is set to `nvidia`. This will utilize the :ref:`cuQuantum single-GPU state vector simulator <cuQuantum single-GPU>`.  
 On CPU-only systems, the default target is set to `qpp-cpu` which uses the :ref:`OpenMP CPU-only simulator <OpenMP CPU-only>`.

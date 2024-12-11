@@ -20,7 +20,6 @@
 #include "clang/Frontend/FrontendAction.h"
 #include "clang/Rewrite/Core/Rewriter.h"
 #include "llvm/ADT/ScopedHashTable.h"
-#include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/LLVMIR/LLVMTypes.h"
 #include "mlir/IR/Builders.h"
@@ -286,6 +285,7 @@ public:
                                 DataRecursionQueue *q = nullptr);
   bool VisitCXXConstructExpr(clang::CXXConstructExpr *x);
   bool VisitCXXOperatorCallExpr(clang::CXXOperatorCallExpr *x);
+  bool VisitCXXParenListInitExpr(clang::CXXParenListInitExpr *x);
   bool WalkUpFromCXXOperatorCallExpr(clang::CXXOperatorCallExpr *x);
   bool TraverseDeclRefExpr(clang::DeclRefExpr *x,
                            DataRecursionQueue *q = nullptr);
@@ -401,6 +401,7 @@ public:
 
   bool TraverseRecordType(clang::RecordType *t);
   bool interceptRecordDecl(clang::RecordDecl *x);
+  std::pair<std::uint64_t, unsigned> getWidthAndAlignment(clang::RecordDecl *x);
   bool VisitRecordDecl(clang::RecordDecl *x);
 
   // Type declarations to be converted to high-level Quake and CC types are
@@ -498,6 +499,9 @@ public:
   bool isItaniumCXXABI();
 
 private:
+  /// Check that the value on the top of the stack is an entry-point kernel.
+  bool hasTOSEntryKernel();
+
   /// Map the block arguments to the names of the function parameters.
   void addArgumentSymbols(mlir::Block *entryBlock,
                           mlir::ArrayRef<clang::ParmVarDecl *> parameters);

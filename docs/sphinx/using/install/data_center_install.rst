@@ -52,9 +52,9 @@ will be installed and used.
   with the `AlmaLinux 8 image <https://hub.docker.com/u/almalinux>`__ that
   serves as the base image for the `manylinux_2_28 image
   <https://github.com/pypa/manylinux>`__, and should work for the operating
-  systems CentOS 8, Debian 11 and 12, Fedora 38, OpenSUSE/SLED/SLES 15.5, RHEL 8
-  and 9, Rocky 8 and 9, and Ubuntu 22.04. Other operating systems may work, but
-  have not been tested.
+  systems CentOS 8, Debian 11 and 12, Fedora 38 and 39, OpenSUSE/SLED/SLES 15.5
+  and 15.6, RHEL 8 and 9, Rocky 8 and 9, and Ubuntu 24.04 and 22.04. Other 
+  operating systems may work, but have not been tested.
 - `Bash <https://www.gnu.org/software/bash/>`__ shell. The CUDA-Q 
   build, install and run scripts expect to use `/bin/bash`.
 - `GNU C library <https://www.gnu.org/software/libc/>`__. 
@@ -62,8 +62,8 @@ will be installed and used.
   or newer than the version on the build system. Our own builds
   use version 2.28.
 - CPU with either x86-64 (x86-64-v3 architecture and newer) or ARM64
-  (ARM v8-A architecture and newer). Other architectures may work but are not tested and may require
-  adjustments to the build instructions.
+  (ARM v8-A architecture and newer). Other architectures may work but are not
+  tested and may require adjustments to the build instructions.
 - Needed **only on the host** system: NVIDIA GPU with Volta, Turing, Ampere, Ada, or
   Hopper architecture and `Compute Capability
   <https://developer.nvidia.com/cuda-gpus>`__ 7+. Make sure you have the latest
@@ -86,7 +86,7 @@ In addition to the prerequisites listed above, you will need to install the
 following prerequisites in your build environment prior to proceeding with 
 the build as described in the subsequent sections:
 
-- Python version 3.8 or newer: If you intend to build CUDA-Q with Python
+- Python version 3.10 or newer: If you intend to build CUDA-Q with Python
   support, make sure the Python version on the build system matches the version
   on the host system. If you intend to only build the C++ support for
   CUDA-Q, the Python interpreter is required only for some of the 
@@ -149,7 +149,7 @@ CUDA
 
 Building CUDA-Q requires a full installation of the CUDA toolkit.
 **You can install the CUDA toolkit and use the CUDA compiler without having a GPU.**
-The instructions are tested using version 11.8, but any CUDA 11 or 12 version
+The instructions are tested using version 11.8 and 12.0, but other CUDA 11 or 12 versions
 should work, as long as the CUDA runtime version on the host system matches the 
 CUDA version used for the build, and the installed driver on the host 
 system supports that CUDA version. We recommend using the latest CUDA version
@@ -160,7 +160,7 @@ following the installation guide for your platform in the online documentation
 linked on that page.
 
 Within the tested AlmaLinux 8 environment, for example, the following commands
-install CUDA 11.8:
+install CUDA 12.0:
 
 .. literalinclude:: ../../../../scripts/configure_build.sh
     :language: bash
@@ -245,13 +245,18 @@ Python-specific tools:
   in the way as you installed Python itself. If you installed Python via the package manager
   for your system, you may need to install an additional package to get the development headers.
   The package name is usually your python version followed by either a `-dev` or `-devel` suffix.
-  If you are using a `Conda environment <https://conda.io/projects/conda/en/latest/user-guide/getting-started.html#managing-python>`__,
+  If you are using a `Conda environment <https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-python.html>`__,
   the necessary headers should already be installed.
-- Pip package manager: Make sure the `pip` module is enable for your Python version.
+- Pip package manager: Make sure the `pip` module is enable for your Python version, and that your `pip` version is 24 or newer.
   We refer to the Python `documentation <https://pip.pypa.io/en/stable/installation/>`__ for
   more information about installing/enabling `pip`.
 - Python modules: Install the additional modules `numpy`, `build`, `auditwheel`, and `patchelf` for your
   Python version, e.g. `python3 -m pip install numpy build auditwheel patchelf`.
+
+.. note::
+
+  The wheel build by default is configured to depend on CUDA 12. To build a wheel for CUDA 11, 
+  you need to adjust the dependencies and project name in the `pyproject.toml` file. 
 
 From within the folder where you cloned the CUDA-Q repository, run the following
 command to build the CUDA-Q Python wheel:
@@ -340,9 +345,6 @@ Make sure your host system satisfies the `Prerequisites`_ listed above.
   via package manager (usually the package name is called something like `glibc-devel`
   or `libc6-devel`). These headers are also included with any installation of GCC.
 
-To use CUDA-Q with Python, you should have a working
-Python installation on the host system, including the `pip` package manager.
-
 If you followed the instructions for building the 
 :ref:`CUDA-Q Python wheel <cudaq-python-from-source>`,
 copy the built `.whl` file to the host system, and install it using `pip`; e.g.
@@ -351,9 +353,11 @@ copy the built `.whl` file to the host system, and install it using `pip`; e.g.
 
     pip install cuda_quantum*.whl
 
+.. TODO: update pypi links throughout the docs
+
 To install the necessary CUDA and MPI dependencies for some of the components, 
 you can either follow the instructions on `PyPI.org <https://pypi.org/project/cuda-quantum/>`__, 
-replacing `pip install cuda-quantum` with the command above, or you can follow the
+replacing `pip install cudaq` with the command above, or you can follow the
 instructions in the remaining sections of this document to customize and better
 optimize them for your host system.
 

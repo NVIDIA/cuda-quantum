@@ -18,7 +18,7 @@
 # - https://github.com/numpy/numpy/blob/main/pyproject.toml, and 
 # - https://github.com/numpy/numpy/blob/main/.github/workflows/wheels.yml
 
-ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:manylinux-amd64-gcc11-main
+ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:manylinux-amd64-cu12.0-gcc11-main
 FROM $base_image AS wheelbuild
 
 ARG release_version=
@@ -37,6 +37,29 @@ RUN echo "Building MLIR bindings for python${python_version}" && \
     LLVM_CMAKE_CACHE=/cmake/caches/LLVM.cmake LLVM_SOURCE=/llvm-project \
     bash /scripts/build_llvm.sh -c Release -v 
 
+# Patch the pyproject.toml file to change the CUDA version if needed
+RUN sed -i "s/README.md.in/README.md/g" cuda-quantum/pyproject.toml && \
+    if [ "${CUDA_VERSION#11.}" != "${CUDA_VERSION}" ]; then \
+        cublas_version=11.11 && \
+        sed -i "s/-cu12/-cu11/g" cuda-quantum/pyproject.toml && \
+        sed -i -E "s/(nvidia-cublas-cu[0-9]* ~= )[0-9\.]*/\1${cublas_version}/g" cuda-quantum/pyproject.toml && \
+        sed -i -E "s/(nvidia-cuda-nvrtc-cu[0-9]* ~= )[0-9\.]*/\1${CUDA_VERSION}/g" cuda-quantum/pyproject.toml && \
+        sed -i -E "s/(nvidia-cuda-runtime-cu[0-9]* ~= )[0-9\.]*/\1${CUDA_VERSION}/g" cuda-quantum/pyproject.toml; \
+    fi
+
+# Create the README
+RUN cd cuda-quantum && cat python/README.md.in > python/README.md && \
+    package_name=cuda-quantum-cu$(echo ${CUDA_VERSION} | cut -d . -f1) && \
+    cuda_version_requirement="\>= ${CUDA_VERSION}" && \
+    cuda_version_conda=${CUDA_VERSION}.0 && \
+    for variable in package_name cuda_version_requirement cuda_version_conda; do \
+        sed -i "s/.{{[ ]*$variable[ ]*}}/${!variable}/g" python/README.md; \
+    done && \
+    if [ -n "$(cat python/README.md | grep -e '.{{.*}}')" ]; then \
+        echo "Incomplete template substitutions in README." && \
+        exit 1; \
+    fi
+
 # Build the wheel
 RUN echo "Building wheel for python${python_version}." \
     && rm ~/.cache/pip -rf \
@@ -44,29 +67,24 @@ RUN echo "Building wheel for python${python_version}." \
     # Find any external NVQIR simulator assets to be pulled in during wheel packaging.
     && export CUDAQ_EXTERNAL_NVQIR_SIMS=$(bash scripts/find_wheel_assets.sh assets) \
     && export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/assets" \
-    && $python -m pip install --no-cache-dir \
-        auditwheel cuquantum-cu11==24.03.0.post1 cutensor-cu11==2.0.1 \
-    && cuquantum_location=`$python -m pip show cuquantum-cu11 | grep -e 'Location: .*$'` \
-    && export CUQUANTUM_INSTALL_PREFIX="${cuquantum_location#Location: }/cuquantum" \
-    && cutensor_location=`$python -m pip show cutensor-cu11 | grep -e 'Location: .*$'` \
-    && export CUTENSOR_INSTALL_PREFIX="${cutensor_location#Location: }/cutensor" \
-    && ln -s $CUQUANTUM_INSTALL_PREFIX/lib/libcustatevec.so.1 $CUQUANTUM_INSTALL_PREFIX/lib/libcustatevec.so \
-    && ln -s $CUQUANTUM_INSTALL_PREFIX/lib/libcutensornet.so.2 $CUQUANTUM_INSTALL_PREFIX/lib/libcutensornet.so \
-    && ln -s $CUTENSOR_INSTALL_PREFIX/lib/libcutensor.so.2 $CUTENSOR_INSTALL_PREFIX/lib/libcutensor.so \
     &&  SETUPTOOLS_SCM_PRETEND_VERSION=${CUDA_QUANTUM_VERSION:-0.0.0} \
         CUDACXX="$CUDA_INSTALL_PREFIX/bin/nvcc" CUDAHOSTCXX=$CXX \
         $python -m build --wheel \
+    && cudaq_major=$(echo ${CUDA_VERSION} | cut -d . -f1) \
+    && cudart_libsuffix=$([ "$cuda_major" == "11" ] && echo "11.0" || echo "12") \
+    && $python -m pip install --no-cache-dir auditwheel \
     && LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/_skbuild/lib" \
-        $python -m auditwheel -v repair dist/cuda_quantum-*linux_*.whl \
+        $python -m auditwheel -v repair dist/cuda_quantum*linux_*.whl \
             --exclude libcustatevec.so.1 \
             --exclude libcutensornet.so.2 \
-            --exclude libcublas.so.11 \
-            --exclude libcublasLt.so.11 \
-            --exclude libcusolver.so.11 \
+            --exclude libcublas.so.$cudaq_major \
+            --exclude libcublasLt.so.$cudaq_major \
+            --exclude libcusolver.so.$cudaq_major \
             --exclude libcutensor.so.2 \
             --exclude libnvToolsExt.so.1 \ 
-            --exclude libcudart.so.11.0 \
-            --exclude libnvidia-ml.so.1
+            --exclude libcudart.so.$cudart_libsuffix \
+            --exclude libnvidia-ml.so.1 \
+            --exclude libcuda.so.1
 
 FROM scratch
 COPY --from=wheelbuild /cuda-quantum/wheelhouse/*manylinux*.whl . 

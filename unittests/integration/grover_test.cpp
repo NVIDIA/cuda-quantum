@@ -48,6 +48,9 @@ struct oracle {
   }
 };
 
+// Multi-control gates not supported in stim.
+#ifndef CUDAQ_BACKEND_STIM
+
 CUDAQ_TEST(GroverTester, checkNISQ) {
   using namespace cudaq;
   auto counts = cudaq::sample(1000, run_grover{}, 3, 1, oracle{});
@@ -60,3 +63,5 @@ CUDAQ_TEST(GroverTester, checkNISQ) {
   }
   EXPECT_EQ(counter, 1000);
 }
+
+#endif

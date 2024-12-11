@@ -153,19 +153,30 @@ public:
   using Base = clang::RecursiveASTVisitor<QPUCodeFinder>;
   explicit QPUCodeFinder(
       cudaq::EmittedFunctionsCollection &funcsToEmit, clang::CallGraph &cgb,
-      clang::ItaniumMangleContext *mangler,
+      clang::ItaniumMangleContext *mangler, ModuleOp module,
       std::unordered_map<std::string, std::string> &customOperations)
       : functionsToEmit(funcsToEmit), callGraphBuilder(cgb), mangler(mangler),
-        customOperationNames(customOperations) {}
+        module(module), customOperationNames(customOperations) {}
 
   /// Add a kernel to the list of kernels to process.
-  void processQpu(std::string &&kernelName, const clang::FunctionDecl *f) {
+  template <bool replace = true>
+  void processQpu(const std::string &kernelName, const clang::FunctionDecl *f) {
     LLVM_DEBUG(llvm::dbgs()
                << "adding kernel: " << kernelName << ", "
                << reinterpret_cast<void *>(const_cast<clang::FunctionDecl *>(f))
                << '\n');
-    functionsToEmit.push_back(std::make_pair(std::move(kernelName), f));
-    callGraphBuilder.addToCallGraph(const_cast<clang::FunctionDecl *>(f));
+    auto iter = std::find_if(functionsToEmit.begin(), functionsToEmit.end(),
+                             [&](auto p) { return p.first == kernelName; });
+    if constexpr (replace) {
+      if (iter == functionsToEmit.end())
+        functionsToEmit.push_back(std::make_pair(kernelName, f));
+      else
+        iter->second = f;
+      callGraphBuilder.addToCallGraph(const_cast<clang::FunctionDecl *>(f));
+    } else {
+      if (iter == functionsToEmit.end())
+        functionsToEmit.push_back(std::make_pair(kernelName, f));
+    }
   }
 
   // Check some of the restrictions and limitations on kernel classes. These
@@ -220,10 +231,10 @@ public:
     return result;
   }
 
-  bool VisitFunctionDecl(clang::FunctionDecl *func) {
+  bool VisitFunctionDecl(clang::FunctionDecl *x) {
     if (ignoreTemplate)
       return true;
-    func = func->getDefinition();
+    auto *func = x->getDefinition();
 
     if (func) {
       bool runChecks = false;
@@ -248,10 +259,15 @@ public:
         processQpu(cudaq::details::getTagNameOfFunctionDecl(func, mangler),
                    func);
       }
+    } else if (cudaq::ASTBridgeAction::ASTBridgeConsumer::isQuantum(x)) {
+      // Add declarations to support separate compilation.
+      processQpu</*replace=*/false>(
+          cudaq::details::getTagNameOfFunctionDecl(x, mangler), x);
     }
     return true;
   }
 
+  // NB: DataRecursionQueue* argument intentionally omitted.
   bool TraverseLambdaExpr(clang::LambdaExpr *x) {
     bool saveQuantumTypesNotAllowed = quantumTypesNotAllowed;
     // Rationale: a lambda expression may be passed from classical C++ code into
@@ -267,9 +283,9 @@ public:
     if (ignoreTemplate)
       return true;
     if (const auto *cxxMethodDecl = lambda->getCallOperator())
-      if (const auto *f = cxxMethodDecl->getAsFunction()->getDefinition();
-          f && cudaq::ASTBridgeAction::ASTBridgeConsumer::isQuantum(f))
-        processQpu(cudaq::details::getTagNameOfFunctionDecl(f, mangler), f);
+      if (const auto *f = cxxMethodDecl->getAsFunction()->getDefinition())
+        if (cudaq::ASTBridgeAction::ASTBridgeConsumer::isQuantum(f))
+          processQpu(cudaq::details::getTagNameOfFunctionDecl(f, mangler), f);
     return true;
   }
 
@@ -316,6 +332,25 @@ public:
         tuplesAreReversed = !opt->isZero();
       }
     }
+    if (cudaq::isInNamespace(x, "cudaq") &&
+        cudaq::isInNamespace(x, "details") &&
+        x->getName().equals("_nvqpp_sizeof")) {
+      // This constexpr is the sizeof a pauli_word and a std::string.
+      auto loc = x->getLocation();
+      auto opt = x->getAnyInitializer()->getIntegerConstantExpr(
+          x->getASTContext(), &loc, false);
+      assert(opt && "must compute the sizeof a cudaq::pauli_word");
+      auto sizeofString = opt->getZExtValue();
+      auto sizeAttr = module->getAttr(cudaq::runtime::sizeofStringAttrName);
+      if (sizeAttr) {
+        assert(sizeofString == cast<IntegerAttr>(sizeAttr).getUInt());
+      } else {
+        auto *ctx = module.getContext();
+        auto i64Ty = IntegerType::get(ctx, 64);
+        module->setAttr(cudaq::runtime::sizeofStringAttrName,
+                        IntegerAttr::get(i64Ty, sizeofString));
+      }
+    }
     // The check to make sure that quantum data types are only used in kernels
     // is done here. This checks both variable declarations and parameters.
     if (quantumTypesNotAllowed)
@@ -341,6 +376,7 @@ private:
   cudaq::EmittedFunctionsCollection &functionsToEmit;
   clang::CallGraph &callGraphBuilder;
   clang::ItaniumMangleContext *mangler;
+  ModuleOp module;
   std::unordered_map<std::string, std::string> &customOperationNames;
   // A class that is being visited. Need to run semantics checks on it if and
   // only if it has a quantum kernel.
@@ -632,7 +668,7 @@ void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
 
 bool ASTBridgeAction::ASTBridgeConsumer::HandleTopLevelDecl(
     clang::DeclGroupRef dg) {
-  QPUCodeFinder finder(functionsToEmit, callGraphBuilder, mangler,
+  QPUCodeFinder finder(functionsToEmit, callGraphBuilder, mangler, module.get(),
                        customOperationNames);
   // Loop over all decls, saving the function decls that are quantum kernels.
   for (const auto *decl : dg)

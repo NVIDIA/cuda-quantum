@@ -8,7 +8,8 @@
 
 // RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=CR1ToCX})' %s | FileCheck %s
 // RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=CR1ToCX})' %s | CircuitCheck %s
-
+// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(expand-control-veqs,memtoreg),decomposition{enable-patterns=CR1ToCX})' %s | FileCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(expand-control-veqs,memtoreg),decomposition{enable-patterns=CR1ToCX})' %s | CircuitCheck %s
 
 // Test the decomposition pattern with different control types. The FileCheck
 // part of this test only cares about the sequence of operations. Correcteness

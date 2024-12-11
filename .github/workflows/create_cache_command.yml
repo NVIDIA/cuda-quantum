@@ -96,7 +96,9 @@ jobs:
     with:
       platforms: linux/${{ matrix.platform }}
       dockerfile: build/devdeps.Dockerfile
-      toolchain: ${{ matrix.toolchain }}
+      build_config_id: ${{ matrix.toolchain }}
+      build_args: |
+        toolchain=${{ matrix.toolchain }}
       create_local_cache: true
       registry_cache_from: ${{ needs.pr_info.outputs.target_branch }}
       pull_request_number: ${{ needs.pr_info.outputs.pull_request_number }}
@@ -110,6 +112,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
+        cuda_version: ["11.8", "12.0"]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -118,9 +121,11 @@ jobs:
     with:
       platforms: linux/${{ matrix.platform }}
       dockerfile: build/devdeps.manylinux.Dockerfile
-      toolchain: gcc11
+      build_config_id: cu${{ matrix.cuda_version }}-gcc11
       build_args: |
         base_image=ghcr.io/nvidia/pypa/manylinux_2_28${{ (matrix.platform == 'arm64' && '_aarch64') || (matrix.platform == 'amd64' && '_x86_64') || '' }}:latest
+        cuda_version=${{ matrix.cuda_version }}
+        toolchain=gcc11
         distro=rhel8
         llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
         pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
@@ -128,7 +133,7 @@ jobs:
       registry_cache_from: ${{ needs.pr_info.outputs.target_branch }}
       pull_request_number: ${{ needs.pr_info.outputs.pull_request_number }}
       # needed only for the cloudposse GitHub action
-      matrix_key: ${{ matrix.platform }}-python
+      matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-python
 
   source_build_caches:
     name: Cache source build
@@ -136,6 +141,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
+        cuda_version: ["11.8", "12.0"]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -144,14 +150,16 @@ jobs:
     with:
       platforms: linux/${{ matrix.platform }}
       dockerfile: build/assets.Dockerfile
+      build_config_id: cu${{ matrix.cuda_version }}-llvm
       build_target: prereqs
-      toolchain: llvm
       build_args: |
         base_image=${{ fromJson(needs.metadata.outputs.platform_config)[format('{0}', matrix.platform)].minimal_base_image }}
+        cuda_version=${{ matrix.cuda_version }}
+        toolchain=llvm
       registry_cache_from: ${{ needs.pr_info.outputs.target_branch }}
       checkout_submodules: true
       # needed only for the cloudposse GitHub action
-      matrix_key: ${{ matrix.platform }}-installer
+      matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-installer
 
   finalize:
     name: Indicate completion

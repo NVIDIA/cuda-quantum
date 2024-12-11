@@ -158,7 +158,7 @@ Type cc::SpanLikeType::getElementType() const {
 }
 
 bool isDynamicType(Type ty) {
-  if (isa<StdvecType>(ty))
+  if (isa<SpanLikeType>(ty))
     return true;
   if (auto strTy = dyn_cast<StructType>(ty)) {
     for (auto memTy : strTy.getMembers())
@@ -177,8 +177,8 @@ CallableType CallableType::getNoSignature(MLIRContext *ctx) {
 }
 
 void CCDialect::registerTypes() {
-  addTypes<ArrayType, CallableType, CharspanType, PointerType, StdvecType,
-           StateType, StructType>();
+  addTypes<ArrayType, CallableType, CharspanType, IndirectCallableType,
+           PointerType, StdvecType, StateType, StructType>();
 }
 
 } // namespace cudaq::cc

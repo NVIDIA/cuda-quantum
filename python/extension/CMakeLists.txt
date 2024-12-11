@@ -46,13 +46,17 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     CUDAQuantumExtension.cpp
     ../runtime/common/py_ExecutionContext.cpp
     ../runtime/common/py_NoiseModel.cpp
+    ../runtime/common/py_EvolveResult.cpp
     ../runtime/common/py_ObserveResult.cpp
     ../runtime/common/py_SampleResult.cpp
+    ../runtime/common/py_CustomOpRegistry.cpp
+    ../runtime/common/py_AnalogHamiltonian.cpp
     ../runtime/cudaq/algorithms/py_draw.cpp
     ../runtime/cudaq/algorithms/py_observe_async.cpp
     ../runtime/cudaq/algorithms/py_optimizer.cpp
     ../runtime/cudaq/algorithms/py_sample_async.cpp
     ../runtime/cudaq/algorithms/py_state.cpp
+    ../runtime/cudaq/algorithms/py_evolve.cpp
     ../runtime/cudaq/algorithms/py_translate.cpp
     ../runtime/cudaq/algorithms/py_utils.cpp
     ../runtime/cudaq/algorithms/py_vqe.cpp
@@ -66,13 +70,18 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/cudaq/target/py_testing_utils.cpp
     ../runtime/mlir/py_register_dialects.cpp
     ../runtime/utils/PyRemoteRESTQPU.cpp
+    ../runtime/utils/PyFermioniqRESTQPU.cpp
+    ../runtime/utils/PyQuEraRemoteRESTQPU.cpp
     ../runtime/utils/PyRemoteSimulatorQPU.cpp
     ../runtime/utils/PyRestRemoteClient.cpp
     ../utils/LinkedLibraryHolder.cpp
+    ../../runtime/common/ArgumentConversion.cpp
     ../../runtime/cudaq/platform/common/QuantumExecutionQueue.cpp
     ../../runtime/cudaq/platform/default/rest_server/RemoteRuntimeClient.cpp
+    ../../runtime/cudaq/platform/orca/OrcaExecutor.cpp
     ../../runtime/cudaq/platform/orca/OrcaQPU.cpp
-    ../../runtime/common/ArgumentConversion.cpp
+    ../../runtime/cudaq/platform/orca/OrcaRemoteRESTQPU.cpp
+    ../../runtime/cudaq/platform/orca/OrcaServerHelper.cpp
 
   EMBED_CAPI_LINK_LIBS
    CUDAQuantumMLIRCAPI
@@ -82,6 +91,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
    OptTransforms
    MLIRPass
    CUDAQTargetConfigUtil
+   cudaq-python-interop
 )
 
 target_include_directories(CUDAQuantumPythonSources.Extension INTERFACE 
@@ -93,6 +103,7 @@ target_link_libraries(CUDAQuantumPythonSources.Extension INTERFACE
     cudaq 
     cudaq-common 
     cudaq-em-default
+    cudaq-em-photonics
     fmt::fmt-header-only
     unzip_util
 )

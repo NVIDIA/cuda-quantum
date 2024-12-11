@@ -42,6 +42,12 @@ struct QuakeTypeConverter : public TypeConverter {
       return cudaq::cc::PointerType::get(
           cudaq::opt::getCudaqQubitSpanType(ty.getContext()));
     });
+    addConversion([&](quake::StruqType ty) {
+      SmallVector<Type> mems;
+      for (auto m : ty.getMembers())
+        mems.push_back(convertType(m));
+      return cudaq::cc::StructType::get(ty.getContext(), mems);
+    });
     addConversion([](quake::MeasureType ty) {
       return IntegerType::get(ty.getContext(), 64);
     });

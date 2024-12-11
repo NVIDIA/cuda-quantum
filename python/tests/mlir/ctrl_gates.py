@@ -82,6 +82,7 @@ def test_kernel_ctrl_rotation():
     print(kernel)
 
 
+# CHECK-LABEL: test_kernel_ctrl_rotation
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
 # CHECK-SAME:      %[[VAL_0:.*]]: !cc.stdvec<f64>) attributes {"cudaq-entrypoint"} {
 # CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 3.000000e+00 : f64
@@ -137,6 +138,7 @@ def test_kernel_multi_ctrl():
     print(kernel)
 
 
+# CHECK-LABEL: test_kernel_multi_ctrl
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<3>
 # CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<3>) -> !quake.ref
@@ -175,6 +177,7 @@ def test_kernel_ctrl_register():
     print(kernel)
 
 
+# CHECK-LABEL: test_kernel_ctrl_register
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
 # CHECK-DAG:       %[[VAL_0:.*]] = quake.alloca !quake.veq<3>
 # CHECK-DAG:       %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
@@ -221,6 +224,7 @@ def test_kernel_rotation_ctrl_register():
     print(kernel)
 
 
+# CHECK-LABEL: test_kernel_rotation_ctrl_register
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
 # CHECK-SAME:      %[[VAL_0:.*]]: !cc.stdvec<f64>) attributes {"cudaq-entrypoint"} {
 # CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 3 : i64
@@ -286,6 +290,7 @@ def test_ctrl_swap():
     print(kernel)
 
 
+# CHECK-LABEL: test_ctrl_swap
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
 # CHECK-DAG:       %[[VAL_0:.*]] = quake.alloca !quake.ref
 # CHECK-DAG:       %[[VAL_1:.*]] = quake.alloca !quake.ref

@@ -10,6 +10,16 @@
 
 #include "cudaq/Optimizer/Builder/Factory.h"
 
+//===----------------------------------------------------------------------===//
+//
+// Runtime helper functions are functions that will appear in the runtime
+// library (implementations are defined in either the headers or libraries in
+// the `runtime` directory). These helper functions may never be assumed to
+// appear on the device-side, so these helpers should only be used in host-side
+// code.
+//
+//===----------------------------------------------------------------------===//
+
 namespace cudaq::runtime {
 
 /// Prefix for all kernel entry functions.
@@ -28,5 +38,39 @@ static constexpr const char launchKernelStreamlinedFuncName[] =
 static constexpr const char launchKernelHybridFuncName[] = "hybridLaunchKernel";
 
 static constexpr const char mangledNameMap[] = "quake.mangled_name_map";
+
+static constexpr const char deviceCodeHolderAdd[] =
+    "__cudaq_deviceCodeHolderAdd";
+
+static constexpr const char registerLinkableKernel[] =
+    "__cudaq_registerLinkableKernel";
+static constexpr const char getLinkableKernelKey[] =
+    "__cudaq_getLinkableKernelKey";
+static constexpr const char getLinkableKernelName[] =
+    "__cudaq_getLinkableKernelName";
+static constexpr const char getLinkableKernelDeviceSide[] =
+    "__cudaq_getLinkableKernelDeviceFunction";
+
+static constexpr const char CudaqRegisterLambdaName[] =
+    "cudaqRegisterLambdaName";
+static constexpr const char CudaqRegisterArgsCreator[] =
+    "cudaqRegisterArgsCreator";
+static constexpr const char CudaqRegisterKernelName[] =
+    "cudaqRegisterKernelName";
+
+/// Prefix for an analog kernel entry functions.
+static constexpr const char cudaqAHKPrefixName[] =
+    "__analog_hamiltonian_kernel__";
+
+// Host-side helper functions for working with `cudaq::pauli_word` or a
+// `std::string`. These include both fully dynamic and binding time (library
+// build time) helper functions.
+static constexpr const char sizeofStringAttrName[] = "cc.sizeof_string";
+static constexpr const char getPauliWordSize[] =
+    "_ZNK5cudaq10pauli_word11_nvqpp_sizeEv";
+static constexpr const char getPauliWordData[] =
+    "_ZNK5cudaq10pauli_word11_nvqpp_dataEv";
+static constexpr const char bindingGetStringData[] = "__nvqpp_getStringData";
+static constexpr const char bindingGetStringSize[] = "__nvqpp_getStringSize";
 
 } // namespace cudaq::runtime

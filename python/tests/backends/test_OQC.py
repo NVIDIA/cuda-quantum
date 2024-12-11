@@ -33,11 +33,9 @@ def assert_close(got) -> bool:
 @pytest.fixture(scope="session", autouse=True)
 def startUpMockServer():
 
-    os.environ["OQC_PASSWORD"] = "password"
-    # Set the targeted QPU
-    cudaq.set_target('oqc',
-                     url=f'http://localhost:{port}',
-                     email="email@email.com")
+    os.environ["OQC_AUTH_TOKEN"] = "fake_auth_token"
+    os.environ["OQC_DEVICE"] = "qpu:uk:-1:1234567890"
+    os.environ["OQC_URL"] = f"http://localhost:{port}"
 
     # Launch the Mock Server
     p = Process(target=startServer, args=(port,))
@@ -45,8 +43,13 @@ def startUpMockServer():
 
     if not check_server_connection(port):
         p.terminate()
-        pytest.exit("Mock server did not start in time, skipping tests.", returncode=1)
+        pytest.exit("Mock server did not start in time, skipping tests.",
+                    returncode=1)
 
+    # Set the targeted QPU
+    cudaq.set_target('oqc',
+                     url=f'http://localhost:{port}',
+                     auth_token="fake_auth_token")
     yield "Running the tests."
 
     # Kill the server, remove the file
@@ -185,6 +188,104 @@ def test_OQC_state_preparation_builder():
     assert '10' in counts
     assert not '01' in counts
     assert not '11' in counts
+
+
+def test_exp_pauli():
+
+    @cudaq.kernel
+    def test():
+        q = cudaq.qvector(2)
+        exp_pauli(1.0, q, "XX")
+
+    counts = cudaq.sample(test)
+    assert '00' in counts
+    assert '11' in counts
+    assert not '01' in counts
+    assert not '10' in counts
+
+
+def test_1q_unitary_synthesis():
+
+    cudaq.register_operation("custom_h",
+                             1. / np.sqrt(2.) * np.array([1, 1, 1, -1]))
+    cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
+
+    @cudaq.kernel
+    def basic_x():
+        qubit = cudaq.qubit()
+        custom_x(qubit)
+
+    counts = cudaq.sample(basic_x)
+    counts.dump()
+    assert len(counts) == 1 and "1" in counts
+
+    @cudaq.kernel
+    def basic_h():
+        qubit = cudaq.qubit()
+        custom_h(qubit)
+
+    counts = cudaq.sample(basic_h)
+    counts.dump()
+    assert "0" in counts and "1" in counts
+
+    @cudaq.kernel
+    def bell():
+        qubits = cudaq.qvector(2)
+        custom_h(qubits[0])
+        custom_x.ctrl(qubits[0], qubits[1])
+
+    counts = cudaq.sample(bell)
+    counts.dump()
+    assert len(counts) == 2
+    assert "00" in counts and "11" in counts
+
+    cudaq.register_operation("custom_s", np.array([1, 0, 0, 1j]))
+    cudaq.register_operation("custom_s_adj", np.array([1, 0, 0, -1j]))
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qubit()
+        h(q)
+        custom_s.adj(q)
+        custom_s_adj(q)
+        h(q)
+
+    counts = cudaq.sample(kernel)
+    counts.dump()
+    assert counts["1"] == 1000
+
+
+def test_2q_unitary_synthesis():
+
+    cudaq.register_operation(
+        "custom_cnot",
+        np.array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0]))
+
+    @cudaq.kernel
+    def bell_pair():
+        qubits = cudaq.qvector(2)
+        h(qubits[0])
+        custom_cnot(qubits[0], qubits[1])
+
+    counts = cudaq.sample(bell_pair)
+    assert len(counts) == 2
+    assert "00" in counts and "11" in counts
+
+    cudaq.register_operation(
+        "custom_cz", np.array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+                               -1]))
+
+    @cudaq.kernel
+    def ctrl_z_kernel():
+        qubits = cudaq.qvector(5)
+        controls = cudaq.qvector(2)
+        custom_cz(qubits[1], qubits[0])
+        x(qubits[2])
+        custom_cz(qubits[3], qubits[2])
+        x(controls)
+
+    counts = cudaq.sample(ctrl_z_kernel)
+    assert counts["0010011"] == 1000
 
 
 # leave for gdb debugging

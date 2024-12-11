@@ -60,7 +60,7 @@ installed_backends=`\
     done`
 
 # remote_rest targets are automatically filtered, 
-# so is execution on the photonics backend
+# so is execution on the photonics backend and the stim backend
 # This will test all NVIDIA-derivative targets in the legacy mode,
 # i.e., nvidia-fp64, nvidia-mgpu, nvidia-mqpu, etc., are treated as standalone targets.
 available_backends=`\
@@ -70,11 +70,19 @@ available_backends=`\
         if grep -q "library-mode-execution-manager: photonics" $file ; then 
           continue
         fi 
+        # Skip optimization test targets
+        if [[ $file == *"opt-test.yml" ]]; then
+          continue
+        fi
+        if grep -q "nvqir-simulation-backend: stim" $file ; then 
+          continue
+        fi 
         platform=$(cat $file | grep "platform-qpu:")
         qpu=${platform##* }
         requirements=$(cat $file | grep "gpu-requirements:")
         gpus=${requirements##* }
-        if [ "${qpu}" != "remote_rest" ] && [ "${qpu}" != "orca" ] && [ "${qpu}" != "NvcfSimulatorQPU" ] \
+        if [ "${qpu}" != "remote_rest" ] && [ "${qpu}" != "NvcfSimulatorQPU" ] \
+        && [ "${qpu}" != "fermioniq" ] && [ "${qpu}" != "orca" ] && [ "${qpu}" != "quera" ] \
         && ($gpu_available || [ -z "$gpus" ] || [ "${gpus,,}" == "false" ]); then \
             basename $file | cut -d "." -f 1; \
         fi; \
@@ -117,17 +125,18 @@ fi
 tensornet_backend_skipped_tests=(\
     examples/cpp/other/builder/vqe_h2_builder.cpp \
     examples/cpp/other/builder/qaoa_maxcut_builder.cpp \
-    examples/cpp/algorithms/vqe_h2.cpp \
-    examples/cpp/algorithms/qaoa_maxcut.cpp \
+    applications/cpp/vqe_h2.cpp \
+    applications/cpp/qaoa_maxcut.cpp \
     examples/cpp/other/builder/builder.cpp \
-    examples/cpp/algorithms/amplitude_estimation.cpp)
+    applications/cpp/amplitude_estimation.cpp)
 
 echo "============================="
 echo "==        C++ Tests        =="
 echo "============================="
 
+# Note: piping the `find` results through `sort` guarantees repeatable ordering.
 tmpFile=$(mktemp)
-for ex in `find examples/ -name '*.cpp'`;
+for ex in `find examples/ applications/ targets/ -name '*.cpp' | sort`;
 do
     filename=$(basename -- "$ex")
     filename="${filename%.*}"
@@ -140,6 +149,10 @@ do
     intended_target=`sed -e '/^$/,$d' $ex | grep -oP '^//\s*nvq++.+--target\s+\K\S+'`
     if [ -n "$intended_target" ]; then
         echo "Intended for execution on $intended_target backend."
+    fi
+    use_library_mode=`sed -e '/^$/,$d' $ex | grep -oP '^//\s*nvq++.+-library-mode'`
+    if [ -n "$use_library_mode" ]; then
+        nvqpp_extra_options="--library-mode"
     fi
 
     for t in $requested_backends
@@ -173,7 +186,7 @@ do
             # Skipped long-running tests (variational optimization loops) for the "remote-mqpu" target to keep CI runtime managable.
             # A simplified test for these use cases is included in the 'test/Remote-Sim/' test suite. 
             # Skipped tests that require passing kernel callables to entry-point kernels for the "remote-mqpu" target.
-            if [[ "$ex" == *"vqe_h2"* || "$ex" == *"qaoa_maxcut"* || "$ex" == *"gradients"* || "$ex" == *"grover"* || "$ex" == *"multi_controlled_operations"* || "$ex" == *"phase_estimation"* || "$ex" == *"trotter_kernel"* || "$ex" == *"builder.cpp"* ]];
+            if [[ "$ex" == *"vqe_h2"* || "$ex" == *"qaoa_maxcut"* || "$ex" == *"gradients"* || "$ex" == *"grover"* || "$ex" == *"multi_controlled_operations"* || "$ex" == *"phase_estimation"* || "$ex" == *"trotter_kernel_mode"* || "$ex" == *"builder.cpp"* ]];
             then
                 let "skipped+=1"
                 echo "Skipping $t target.";
@@ -193,6 +206,12 @@ do
                 # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1283
                 target_flag+=" --enable-mlir"
             fi
+        elif [ "$t" == "dynamics" ]; then
+            let "skipped+=1"
+            echo "Skipping $t target."
+            # These C++ tests are not intended for dynamics
+            echo ":white_flag: $filename: Not executed due to compatibility reasons. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
+            continue
         fi
 
         echo "Testing on $t target..."
@@ -205,7 +224,7 @@ do
             for (( i=0; i<${arraylength}; i++ ));
             do
                 echo "  Testing nvidia target option: ${optionArray[$i]}"
-                nvq++ $ex $target_flag --target-option "${optionArray[$i]}"
+                nvq++ $nvqpp_extra_options $ex $target_flag --target-option "${optionArray[$i]}"
                 if [ ! $? -eq 0 ]; then
                     let "failed+=1"
                     echo "  :x: Compilation failed for $filename." >> "${tmpFile}_$(echo $t | tr - _)"
@@ -226,7 +245,7 @@ do
                 rm a.out /tmp/cudaq_validation.out &> /dev/null
             done
         else
-            nvq++ $ex $target_flag 
+            nvq++ $nvqpp_extra_options $ex $target_flag
             if [ ! $? -eq 0 ]; then
                 let "failed+=1"
                 echo ":x: Compilation failed for $filename." >> "${tmpFile}_$(echo $t | tr - _)"
@@ -254,13 +273,27 @@ echo "============================="
 echo "==      Python Tests       =="
 echo "============================="
 
+# Note: some of the tests do their own "!pip install ..." during the test, and
+# for that to work correctly on the first time, the user site directory (e.g.
+# ~/.local/lib/python3.10/site-packages) must already exist, so create it here.
+if [ -x "$(command -v python3)" ]; then 
+    mkdir -p $(python3 -m site --user-site)
+fi
+
+# Long-running dynamics examples
+dynamics_backend_skipped_examples=(\
+    examples/python/dynamics/transmon_resonator.py  \
+    examples/python/dynamics/silicon_spin_qubit.py)
+
 # Note divisive_clustering_src is not currently in the Published container under
 # the "examples" folder, but the Publishing workflow moves all examples from
-# docs/sphinx/examples into the examples directory for the purposes of the
-# container validation. The divisive_clustering_src Python files are used by the
-# Divisive_clustering.ipynb notebook, so they are tested elsewhere and should be
-# excluded from this test.
-for ex in `find examples/ -name '*.py' -not -path '*/divisive_clustering_src/*'`;
+# docs/sphinx/examples, docs/sphinx/targets into the examples directory for the
+# purposes of the container validation. The divisive_clustering_src Python
+# files are used by the Divisive_clustering.ipynb notebook, so they are tested
+# elsewhere and should be excluded from this test.
+# Same with afqmc.
+# Note: piping the `find` results through `sort` guarantees repeatable ordering.
+for ex in `find examples/ targets/ -name '*.py' | sort`;
 do 
     filename=$(basename -- "$ex")
     filename="${filename%.*}"
@@ -273,6 +306,14 @@ do
     for t in $explicit_targets; do
         if [ -z "$(echo $requested_backends | grep $t)" ]; then 
             echo "Explicitly set target $t not available."
+            skip_example=true
+        elif [ "$t" == "quera" ] || [ "$t" == "braket" ] ; then 
+            # Skipped because GitHub does not have the necessary authentication token 
+            # to submit a (paid) job to Amazon Braket (includes QuEra).
+            echo "Explicitly set target braket or quera; skipping validation due to paid submission."
+            skip_example=true
+        elif [[ "$t" == "dynamics" ]] && [[ " ${dynamics_backend_skipped_examples[*]} " =~ " $ex " ]]; then
+            echo "Skipping due to long run time."
             skip_example=true
         fi
     done
@@ -297,7 +338,7 @@ do
     echo "============================="
 done
 
-if [ -n "$(find $(pwd) -name '*.ipynb')" ]; then
+if [ -n "$(find examples/ applications/ -name '*.ipynb')" ]; then
     echo "Validating notebooks:"
     export OMP_NUM_THREADS=8 
     echo "$available_backends" | python3 notebook_validation.py

@@ -8,7 +8,8 @@
 
 // RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=CXToCZ})' %s | FileCheck %s
 // RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=CXToCZ})' %s | CircuitCheck %s
-
+// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(expand-control-veqs,memtoreg),decomposition{enable-patterns=CXToCZ})' %s | FileCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(expand-control-veqs,memtoreg),decomposition{enable-patterns=CXToCZ})' %s | CircuitCheck %s
 
 // Test the decomposition pattern with different control types. The FileCheck
 // part of this test only cares about the sequence of operations. Correcteness
@@ -16,7 +17,7 @@
 
 // CHECK-LABEL: func.func @qref_control
 func.func @qref_control(%c: !quake.ref, %t: !quake.ref) {
-  // CHECK-NEXT: quake.h
+  // CHECK:      quake.h
   // CHECK-NEXT: quake.z
   // CHECK-NEXT: quake.h
   quake.x [%c] %t : (!quake.ref, !quake.ref) -> ()
@@ -25,7 +26,7 @@ func.func @qref_control(%c: !quake.ref, %t: !quake.ref) {
 
 // CHECK-LABEL: func.func @qvec_control
 func.func @qvec_control(%c: !quake.veq<1>, %t: !quake.ref) {
-  // CHECK-NEXT: quake.h
+  // CHECK:      quake.h
   // CHECK-NEXT: quake.z
   // CHECK-NEXT: quake.h
   quake.x [%c] %t : (!quake.veq<1>, !quake.ref) -> ()

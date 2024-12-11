@@ -5,9 +5,11 @@ APIs
 AST
 Aer
 AlmaLinux
+Anyon
 Asynchronous
 BFGS
 Bloch
+Braket
 CLA
 CLI
 CMake
@@ -21,11 +23,13 @@ Cartesian
 CentOS
 Conda
 CuPy
+DCO
 DGX
 DOI
 Deuteron
 Doxygen
 FPGAs
+Fock
 Fortran
 Fourier
 GHCR
@@ -41,6 +45,7 @@ Hadamards
 Hamiltonian
 Hamiltonians
 IQM
+InfiniBand
 IonQ
 JIT
 JSON
@@ -88,6 +93,7 @@ QPUs
 QPU’s
 QTX
 Qiskit
+QuEra
 QuTiP
 Quake
 Quantinuum
@@ -99,6 +105,7 @@ SLED
 SLES
 SLURM
 SVD
+Stim
 Superpositions
 TBI
 TCP
@@ -127,6 +134,7 @@ backends
 bitcode
 bitstring
 bitstrings
+bool
 boolean
 boson
 broadcasted
@@ -168,6 +176,7 @@ decrementing
 dendrogram
 deserialize
 destructor
+detuning
 dimensionality
 discoverable
 discretization
@@ -197,6 +206,7 @@ expressivity
 extensibility
 extremal
 fermionic
+fermioniq
 fmt
 frontend
 frontends
@@ -210,6 +220,8 @@ inlined
 inlining
 instantiation
 instantiations
+integrator
+integrators
 interferometer
 interoperational
 intrinsics
@@ -232,6 +244,7 @@ namespaces
 natively
 normalization
 nullary
+observables
 optimizer
 optimizers
 parallelization
@@ -253,6 +266,8 @@ qubit
 qubits
 qudit
 qudits
+qumode
+qumodes
 reStructuredText
 reconfigurable
 runtime
@@ -293,6 +308,7 @@ templated
 toolchain
 toolchains
 toolset
+transmon
 trotterization
 unary
 uncomputation
@@ -306,5 +322,6 @@ variadic
 variational
 verifier
 vertices
+waveforms
 wavefunction
 workflow

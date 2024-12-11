@@ -22,7 +22,6 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__Z4mainE3$_0 = "_Z
     quake.exp_pauli %4, %1, %5 : (f64, !quake.veq<4>, !cc.ptr<!cc.array<i8 x 5>>) -> ()
     return
   }
-}
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Z4mainE3$_0(
 // CHECK-SAME:                                             %[[VAL_0:.*]]: f64) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
@@ -66,3 +65,37 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__Z4mainE3$_0 = "_Z
 // CHECK:           quake.h %[[VAL_20]] : (!quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
+
+  func.func @__nvqpp__mlirgen__function_test_param._Z10test_paramN5cudaq10pauli_wordE() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+    %cst = arith.constant 1.000000e+00 : f64
+    %c2_i64 = arith.constant 2 : i64
+    %0 = cc.address_of @cstr.585900 : !cc.ptr<!llvm.array<3 x i8>>
+    %1 = cc.cast %0 : (!cc.ptr<!llvm.array<3 x i8>>) -> !cc.ptr<i8>
+    %2 = cc.stdvec_init %1, %c2_i64 : (!cc.ptr<i8>, i64) -> !cc.charspan
+    %3 = quake.alloca !quake.veq<2>
+    quake.exp_pauli %cst, %3, %2 : (f64, !quake.veq<2>, !cc.charspan) -> ()
+    return
+  }
+  llvm.mlir.global private constant @cstr.585900("XY\00") {addr_space = 0 : i32}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_test_param._Z10test_paramN5cudaq10pauli_wordE() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i64
+// CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
+// CHECK:           %[[VAL_2:.*]] = arith.constant 1.5707963267948966 : f64
+// CHECK:           %[[VAL_3:.*]] = arith.constant -1.5707963267948966 : f64
+// CHECK:           %[[VAL_4:.*]] = arith.constant 1.000000e+00 : f64
+// CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_6:.*]] = quake.extract_ref %[[VAL_5]][%[[VAL_0]]] : (!quake.veq<2>, i64) -> !quake.ref
+// CHECK:           quake.h %[[VAL_6]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_7:.*]] = quake.extract_ref %[[VAL_5]][%[[VAL_1]]] : (!quake.veq<2>, i64) -> !quake.ref
+// CHECK:           quake.rx (%[[VAL_2]]) %[[VAL_7]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x [%[[VAL_6]]] %[[VAL_7]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_4]]) %[[VAL_7]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x [%[[VAL_6]]] %[[VAL_7]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           %[[VAL_8:.*]] = quake.extract_ref %[[VAL_5]][%[[VAL_1]]] : (!quake.veq<2>, i64) -> !quake.ref
+// CHECK:           quake.rx (%[[VAL_3]]) %[[VAL_8]] : (f64, !quake.ref) -> ()
+// CHECK:           %[[VAL_9:.*]] = quake.extract_ref %[[VAL_5]][%[[VAL_0]]] : (!quake.veq<2>, i64) -> !quake.ref
+// CHECK:           quake.h %[[VAL_9]] : (!quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }
+}

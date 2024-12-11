@@ -29,14 +29,36 @@ enum class MeasureBasis { I, X, Y, Z };
 void appendMeasurement(MeasureBasis &basis, OpBuilder &builder, Location &loc,
                        Value &qubit) {
   SmallVector<Value> targets{qubit};
-  if (basis == MeasureBasis::X) {
-    builder.create<quake::HOp>(loc, ValueRange{}, targets);
-  } else if (basis == MeasureBasis::Y) {
-    llvm::APFloat d(M_PI_2);
-    Value rotation =
-        builder.create<arith::ConstantFloatOp>(loc, d, builder.getF64Type());
-    SmallVector<Value> params{rotation};
-    builder.create<quake::RyOp>(loc, params, ValueRange{}, targets);
+  if (quake::isLinearType(qubit.getType())) {
+    // Value semantics
+    auto wireTy = quake::WireType::get(builder.getContext());
+    if (basis == MeasureBasis::X) {
+      auto newOp = builder.create<quake::HOp>(
+          loc, TypeRange{wireTy}, /*is_adj=*/false, ValueRange{}, ValueRange{},
+          targets, DenseBoolArrayAttr{});
+      qubit.replaceAllUsesExcept(newOp.getResult(0), newOp);
+      qubit = newOp.getResult(0);
+    } else if (basis == MeasureBasis::Y) {
+      llvm::APFloat d(M_PI_2);
+      Value rotation =
+          builder.create<arith::ConstantFloatOp>(loc, d, builder.getF64Type());
+      auto newOp = builder.create<quake::RyOp>(
+          loc, TypeRange{wireTy}, /*is_adj=*/false, ValueRange{rotation},
+          ValueRange{}, ValueRange{qubit}, DenseBoolArrayAttr{});
+      qubit.replaceAllUsesExcept(newOp.getResult(0), newOp);
+      qubit = newOp.getResult(0);
+    }
+  } else {
+    // Reference semantics
+    if (basis == MeasureBasis::X) {
+      builder.create<quake::HOp>(loc, ValueRange{}, targets);
+    } else if (basis == MeasureBasis::Y) {
+      llvm::APFloat d(M_PI_2);
+      Value rotation =
+          builder.create<arith::ConstantFloatOp>(loc, d, builder.getF64Type());
+      SmallVector<Value> params{rotation};
+      builder.create<quake::RyOp>(loc, params, ValueRange{}, targets);
+    }
   }
 }
 
@@ -82,6 +104,39 @@ private:
       return;
 
     AnsatzMetadata data;
+
+    funcOp->walk([&](quake::BorrowWireOp op) {
+      Value wire = op.getResult();
+      // Wires are linear types that must be used exactly once, so traverse
+      // those uses until the end of the linear operators.
+      // NOTE - if this is ever moved to other passes that have different use
+      // cases than this one, then it needs to be updated to support ResetOp,
+      // which is not an operator interface (I don't think).
+      while (auto gate =
+                 dyn_cast<quake::OperatorInterface>(*wire.getUsers().begin())) {
+        std::size_t qopNum = 0;
+        auto controls = gate.getControls();
+        for (auto w : controls) {
+          if (w == wire)
+            break;
+          else
+            qopNum++;
+        }
+        if (qopNum >= controls.size()) {
+          for (auto w : gate.getTargets()) {
+            if (w == wire)
+              break;
+            else
+              qopNum++;
+          }
+        }
+        wire = gate.getWires()[qopNum];
+        if (wire.getUsers().empty())
+          break;
+      }
+      data.qubitValues.insert({data.nQubits++, wire});
+      return WalkResult::advance();
+    });
 
     // walk and find all quantum allocations
     auto walkResult = funcOp->walk([&](quake::AllocaOp op) {
@@ -145,14 +200,14 @@ private:
 /// measurement basis change operations.
 struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
   explicit AppendMeasurements(MLIRContext *ctx, const AnsatzFunctionInfo &info,
-                              std::vector<bool> &bsf)
+                              ArrayRef<bool> bsf)
       : OpRewritePattern(ctx), infoMap(info), termBSF(bsf) {}
 
   /// The pre-computed analysis information
   AnsatzFunctionInfo infoMap;
 
   /// The Pauli term representation
-  std::vector<bool> &termBSF;
+  ArrayRef<bool> termBSF;
 
   LogicalResult matchAndRewrite(func::FuncOp funcOp,
                                 PatternRewriter &rewriter) const override {
@@ -160,38 +215,41 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
 
     // Use an Analysis to count the number of qubits.
     auto iter = infoMap.find(funcOp);
-    if (iter == infoMap.end()) {
-      std::string msg = "Errors encountered in pass analysis\n";
-      funcOp.emitError(msg);
-      return failure();
-    }
+    if (iter == infoMap.end())
+      return funcOp.emitOpError("Errors encountered in pass analysis");
     auto nQubits = iter->second.nQubits;
 
-    if (nQubits != termBSF.size() / 2) {
-      std::string msg = "Invalid number of binary-symplectic elements "
-                        "provided. Must provide 2 * NQubits = " +
-                        std::to_string(2 * nQubits) + "\n";
-      funcOp.emitError(msg);
-      return failure();
-    }
+    if (nQubits != termBSF.size() / 2)
+      return funcOp.emitOpError("Invalid number of binary-symplectic elements "
+                                "provided. Must provide 2 * NQubits = " +
+                                std::to_string(2 * nQubits));
 
     // If the mapping pass was not run, we expect no pre-existing measurements.
-    if (!iter->second.mappingPassRan && !iter->second.measurements.empty()) {
-      std::string msg = "Cannot observe kernel with measures in it.\n";
-      funcOp.emitError(msg);
-      return failure();
-    }
+    if (!iter->second.mappingPassRan && !iter->second.measurements.empty())
+      return funcOp.emitOpError("Cannot observe kernel with measures in it.");
+
     // Attempt to remove measurements. Note that the mapping pass may add
-    // measurements to kernels that don't contain any measurements. For
-    // observe kernels, we remove them here since we are adding specific
-    // measurements below.
+    // measurements to kernels that don't contain any measurements. For observe
+    // kernels, we remove them here since we are adding specific measurements
+    // below. Note: each `op` in the list of measurements must be removed by the
+    // end of this loop, otherwise the end result may be incorrect.
     for (auto *op : iter->second.measurements) {
-      if (!op->getUsers().empty()) {
-        std::string msg =
-            "Cannot observe kernel with non dangling measurements.\n";
-        funcOp.emitError(msg);
-        return failure();
-      }
+      bool safeToRemove = [&]() {
+        for (auto user : op->getUsers())
+          if (!isa<quake::SinkOp, quake::ReturnWireOp>(user))
+            return false;
+        return true;
+      }();
+      if (!safeToRemove)
+        return funcOp.emitOpError(
+            "Cannot observe kernel with non dangling measurements.");
+
+      for (auto result : op->getResults())
+        if (quake::isLinearType(result.getType()))
+          result.replaceAllUsesWith(op->getOperand(0));
+
+      // Force remove `op`.
+      op->dropAllReferences();
       op->erase();
     }
 
@@ -208,7 +266,7 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
 
     // Loop over the binary-symplectic form provided and append
     // measurements as necessary.
-    std::vector<Value> qubitsToMeasure;
+    SmallVector<Value> qubitsToMeasure;
     for (std::size_t i = 0; i < termBSF.size() / 2; i++) {
       bool xElement = termBSF[i];
       bool zElement = termBSF[i + nQubits];
@@ -227,20 +285,30 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
       auto qubitVal = seek->second;
 
       // append the measurement basis change ops
+      // Note: when using value semantics, qubitVal will be updated to the new
+      // wire here.
       appendMeasurement(basis, builder, loc, qubitVal);
 
       if (xElement + zElement != 0)
         qubitsToMeasure.push_back(qubitVal);
     }
 
+    auto measTy = quake::MeasureType::get(builder.getContext());
+    auto wireTy = quake::WireType::get(builder.getContext());
     for (auto &[measureNum, qubitToMeasure] :
          llvm::enumerate(qubitsToMeasure)) {
       // add the measure
       char regName[16];
       std::snprintf(regName, sizeof(regName), "r%05lu", measureNum);
-      auto measTy = quake::MeasureType::get(builder.getContext());
-      builder.create<quake::MzOp>(loc, measTy, qubitToMeasure,
-                                  builder.getStringAttr(regName));
+      if (quake::isLinearType(qubitToMeasure.getType())) {
+        auto newOp = builder.create<quake::MzOp>(
+            loc, TypeRange{measTy, wireTy}, ValueRange{qubitToMeasure},
+            builder.getStringAttr(regName));
+        qubitToMeasure.replaceAllUsesExcept(newOp.getResult(1), newOp);
+      } else {
+        builder.create<quake::MzOp>(loc, measTy, qubitToMeasure,
+                                    builder.getStringAttr(regName));
+      }
     }
 
     rewriter.finalizeRootUpdate(funcOp);
@@ -254,13 +322,13 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
 class ObserveAnsatzPass
     : public cudaq::opt::impl::ObserveAnsatzBase<ObserveAnsatzPass> {
 protected:
-  std::vector<bool> binarySymplecticForm;
+  SmallVector<bool> binarySymplecticForm;
 
 public:
   using ObserveAnsatzBase::ObserveAnsatzBase;
 
-  ObserveAnsatzPass(std::vector<bool> &bsfData)
-      : binarySymplecticForm(bsfData) {}
+  ObserveAnsatzPass(const std::vector<bool> &bsfData)
+      : binarySymplecticForm{bsfData.begin(), bsfData.end()} {}
 
   void runOnOperation() override {
     auto funcOp = dyn_cast<func::FuncOp>(getOperation());
@@ -285,16 +353,14 @@ public:
     target.addLegalDialect<quake::QuakeDialect>();
 
     if (failed(applyPartialConversion(getOperation(), target,
-                                      std::move(patterns)))) {
-      emitError(funcOp.getLoc(), "failed to observe ansatz");
+                                      std::move(patterns))))
       signalPassFailure();
-    }
   }
 };
 
 } // namespace
 
 std::unique_ptr<mlir::Pass>
-cudaq::opt::createObserveAnsatzPass(std::vector<bool> &bsfData) {
-  return std::make_unique<ObserveAnsatzPass>(bsfData);
+cudaq::opt::createObserveAnsatzPass(const std::vector<bool> &packed) {
+  return std::make_unique<ObserveAnsatzPass>(packed);
 }

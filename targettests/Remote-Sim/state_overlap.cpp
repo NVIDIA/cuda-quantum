@@ -17,26 +17,26 @@
 #include <cudaq.h>
 
 struct bellCircuit {
-  void operator()() __qpu__ {
-    cudaq::qvector qubits(2);
+  void operator()(int N) __qpu__ {
+    cudaq::qvector qubits(N);
     h(qubits[0]);
-    cx(qubits[0], qubits[1]);
+    for (int i = 0; i < N - 1; ++i)
+      cx(qubits[i], qubits[i + 1]);
   }
 };
 
 struct noOpCircuit {
-  void operator()() __qpu__ {
-    cudaq::qvector qubits(2);
-    h(qubits[0]);
-    cx(qubits[0], qubits[1]);
-    cx(qubits[0], qubits[1]);
-    h(qubits[0]);
+  void operator()(int N) __qpu__ {
+    cudaq::qvector qubits(N);
+    h(qubits);
+    h(qubits);
   }
 };
 
 int main() {
-  auto state1 = cudaq::get_state(bellCircuit{});
-  auto state2 = cudaq::get_state(noOpCircuit{});
+  constexpr int N = 2;
+  auto state1 = cudaq::get_state(bellCircuit{}, 2);
+  auto state2 = cudaq::get_state(noOpCircuit{}, 2);
   const auto overlap = state1.overlap(state2);
   REMOTE_TEST_ASSERT(std::abs(M_SQRT1_2 - overlap) < 1e-3);
   return 0;

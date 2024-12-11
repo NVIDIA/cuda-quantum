@@ -22,7 +22,6 @@
 #include "mlir/Conversion/LLVMCommon/Pattern.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 #include "mlir/Conversion/MathToLLVM/MathToLLVM.h"
-#include "mlir/Conversion/SCFToControlFlow/SCFToControlFlow.h"
 #include "mlir/Dialect/Arith/Transforms/Passes.h"
 #include "mlir/Target/LLVMIR/TypeToLLVM.h"
 
@@ -42,6 +41,9 @@ LLVM::LLVMStructType cudaq::opt::lambdaAsPairOfPointers(MLIRContext *context) {
 }
 
 void cudaq::opt::populateCCTypeConversions(LLVMTypeConverter *converter) {
+  converter->addConversion([](cc::IndirectCallableType type) {
+    return IntegerType::get(type.getContext(), 64);
+  });
   converter->addConversion([](cc::CallableType type) {
     return lambdaAsPairOfPointers(type.getContext());
   });
@@ -118,7 +120,6 @@ struct CCToLLVM : public cudaq::opt::impl::CCToLLVMBase<CCToLLVM> {
     arith::populateArithToLLVMConversionPatterns(ccTypeConverter, patterns);
     populateMathToLLVMConversionPatterns(ccTypeConverter, patterns);
 
-    populateSCFToControlFlowConversionPatterns(patterns);
     cf::populateControlFlowToLLVMConversionPatterns(ccTypeConverter, patterns);
     populateFuncToLLVMConversionPatterns(ccTypeConverter, patterns);
     cudaq::opt::populateCCToLLVMPatterns(ccTypeConverter, patterns);

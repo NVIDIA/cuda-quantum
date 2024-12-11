@@ -30,11 +30,10 @@ set(NVQPP_TEST_PARAMS
 get_property(test_cudaq_libraries GLOBAL PROPERTY CUDAQ_RUNTIME_LIBS)
 
 set(NVQPP_TEST_DEPENDS
+    CircuitCheck
     cudaq-opt
     cudaq-translate
-    CircuitCheck
     FileCheck
-
     test_argument_conversion
     CustomPassPlugin
 )

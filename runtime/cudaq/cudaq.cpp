@@ -14,6 +14,7 @@
 #include "cuda_runtime_api.h"
 #endif
 #include "cudaq/platform.h"
+#include "cudaq/qis/qkernel.h"
 #include "cudaq/utils/registry.h"
 #include "distributed/mpi_plugin.h"
 #include <dlfcn.h>
@@ -210,7 +211,8 @@ static std::shared_mutex globalRegistryMutex;
 
 static std::vector<std::pair<std::string, std::string>> quakeRegistry;
 
-void cudaq::registry::deviceCodeHolderAdd(const char *key, const char *code) {
+void cudaq::registry::__cudaq_deviceCodeHolderAdd(const char *key,
+                                                  const char *code) {
   std::unique_lock<std::shared_mutex> lock(globalRegistryMutex);
   auto it = std::find_if(quakeRegistry.begin(), quakeRegistry.end(),
                          [&](const auto &pair) { return pair.first == key; });
@@ -233,10 +235,48 @@ static std::vector<std::string> kernelRegistry;
 
 static std::map<std::string, cudaq::KernelArgsCreator> argsCreators;
 static std::map<std::string, std::string> lambdaNames;
+static std::map<void *, std::pair<const char *, void *>> linkableKernelRegistry;
 
 void cudaq::registry::cudaqRegisterKernelName(const char *kernelName) {
   std::unique_lock<std::shared_mutex> lock(globalRegistryMutex);
   kernelRegistry.emplace_back(kernelName);
+}
+
+void cudaq::registry::__cudaq_registerLinkableKernel(void *hostSideFunc,
+                                                     const char *kernelName,
+                                                     void *deviceSideFunc) {
+  std::unique_lock<std::shared_mutex> lock(globalRegistryMutex);
+  linkableKernelRegistry.insert(
+      {hostSideFunc, std::pair{kernelName, deviceSideFunc}});
+}
+
+std::intptr_t cudaq::registry::__cudaq_getLinkableKernelKey(void *p) {
+  if (!p)
+    throw std::runtime_error("cannot get kernel key, nullptr");
+  const auto &qk = *reinterpret_cast<const cudaq::qkernel<void()> *>(p);
+  return reinterpret_cast<std::intptr_t>(*qk.get_entry_kernel_from_holder());
+}
+
+const char *cudaq::registry::getLinkableKernelNameOrNull(std::intptr_t key) {
+  auto iter = linkableKernelRegistry.find(reinterpret_cast<void *>(key));
+  if (iter != linkableKernelRegistry.end())
+    return iter->second.first;
+  return nullptr;
+}
+
+const char *cudaq::registry::__cudaq_getLinkableKernelName(std::intptr_t key) {
+  auto *result = getLinkableKernelNameOrNull(key);
+  if (!result)
+    throw std::runtime_error("kernel key is not present: kernel name unknown");
+  return result;
+}
+
+void *
+cudaq::registry::__cudaq_getLinkableKernelDeviceFunction(std::intptr_t key) {
+  auto iter = linkableKernelRegistry.find(reinterpret_cast<void *>(key));
+  if (iter != linkableKernelRegistry.end())
+    return iter->second.second;
+  throw std::runtime_error("kernel key is not present: kernel unknown");
 }
 
 void cudaq::registry::cudaqRegisterArgsCreator(const char *name,
@@ -281,7 +321,8 @@ KernelArgsCreator getArgsCreator(const std::string &kernelName) {
 }
 
 std::string get_quake_by_name(const std::string &kernelName,
-                              bool throwException) {
+                              bool throwException,
+                              std::optional<std::string> knownMangledArgs) {
   // A prefix name has a '.' before the C++ mangled name suffix.
   auto kernelNamePrefix = kernelName + '.';
 
@@ -302,7 +343,14 @@ std::string get_quake_by_name(const std::string &kernelName,
           throw std::runtime_error("Quake code for '" + kernelName +
                                    "' has multiple matches.\n");
       } else {
-        result = pair.second;
+        if (!knownMangledArgs.has_value())
+          result = pair.second;
+        else {
+          if (pair.first.ends_with(knownMangledArgs.value())) {
+            result = pair.second;
+            break;
+          }
+        }
       }
     }
   }
@@ -317,6 +365,11 @@ std::string get_quake_by_name(const std::string &kernelName,
 
 std::string get_quake_by_name(const std::string &kernelName) {
   return get_quake_by_name(kernelName, true);
+}
+
+std::string get_quake_by_name(const std::string &kernelName,
+                              std::optional<std::string> knownMangledArgs) {
+  return get_quake_by_name(kernelName, true, knownMangledArgs);
 }
 
 bool kernelHasConditionalFeedback(const std::string &kernelName) {
@@ -417,20 +470,44 @@ void __nvqpp_initializer_list_to_vector_bool(std::vector<bool> &result,
 /// `std::vector<bool>` overload. The conversion turns the `std::vector<bool>`
 /// into a mock vector structure that looks like `std::vector<char>`. The
 /// calling routine must cleanup the buffer allocated by this code.
-void __nvqpp_vector_bool_to_initializer_list(void *outData,
-                                             const std::vector<bool> &inVec) {
+/// This helper routine may only be called on the host side.
+void __nvqpp_vector_bool_to_initializer_list(
+    void *outData, const std::vector<bool> &inVec,
+    std::vector<char *> **allocations) {
   // The MockVector must be allocated by the caller.
   struct MockVector {
     char *start;
     char *end;
+    char *end2;
   };
   MockVector *mockVec = reinterpret_cast<MockVector *>(outData);
   auto outSize = inVec.size();
   // The buffer allocated here must be freed by the caller.
-  mockVec->start = static_cast<char *>(malloc(outSize));
-  mockVec->end = mockVec->start + outSize;
+  if (!*allocations)
+    *allocations = new std::vector<char *>;
+  char *newData = static_cast<char *>(malloc(outSize));
+  (*allocations)->push_back(newData);
+  mockVec->start = newData;
+  mockVec->end2 = mockVec->end = newData + outSize;
   for (unsigned i = 0; i < outSize; ++i)
-    (mockVec->start)[i] = static_cast<char>(inVec[i]);
+    newData[i] = static_cast<char>(inVec[i]);
 }
+
+/// This helper routine deletes the vector that tracks all the temporaries that
+/// were created as well as the temporaries themselves.
+/// This routine may only be called on the host side.
+void __nvqpp_vector_bool_free_temporary_initlists(
+    std::vector<char *> *allocations) {
+  for (auto *p : *allocations)
+    free(p);
+  delete allocations;
+}
+
+/// Quasi-portable string helpers for Python (non-C++ frontends).  These library
+/// helper functions allow non-C++ front-ends to remain portable with the core
+/// layer. As these helpers ought to be built along with the bindings, there
+/// should not be a compatibility issue.
+const char *__nvqpp_getStringData(const std::string &s) { return s.data(); }
+std::uint64_t __nvqpp_getStringSize(const std::string &s) { return s.size(); }
 }
 } // namespace cudaq::support

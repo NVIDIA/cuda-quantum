@@ -11,6 +11,7 @@
 #include "cudaq.h"
 #include <iostream>
 #include <pybind11/complex.h>
+#include <pybind11/functional.h>
 #include <pybind11/stl.h>
 
 namespace cudaq {
@@ -71,6 +72,36 @@ Args:
   channel (cudaq.KrausChannel): The :class:`KrausChannel` to apply 
     to the specified `operator` on the specified `qubits`.)#")
       .def(
+          "add_channel",
+          [](noise_model &self, std::string &opName,
+             const noise_model::PredicateFuncTy &pre) {
+            self.add_channel(opName, pre);
+          },
+          py::arg("operator"), py::arg("pre"),
+          R"#(Add the given :class:`KrausChannel` generator callback to be applied after invocation 
+of the specified quantum operation.
+
+Args:
+  operator (str): The quantum operator to apply the noise channel to.
+  pre (Callable): The callback which takes qubits operands and gate parameters and returns a concrete :class:`KrausChannel` to apply 
+    to the specified `operator`.)#")
+      .def(
+          "add_all_qubit_channel",
+          [](noise_model &self, std::string &opName, kraus_channel &channel,
+             std::size_t num_controls = 0) {
+            self.add_all_qubit_channel(opName, channel, num_controls);
+          },
+          py::arg("operator"), py::arg("channel"), py::arg("num_controls") = 0,
+
+          R"#(Add the given :class:`KrausChannel` to be applied after invocation 
+of the specified quantum operation on arbitrary qubits.
+
+Args:
+  operator (str): The quantum operator to apply the noise channel to.
+  channel (cudaq.KrausChannel): The :class:`KrausChannel` to apply 
+    to the specified `operator` on any arbitrary qubits.
+  num_controls: Number of control bits. Default is 0 (no control bits).)#")
+      .def(
           "get_channels",
           [](noise_model self, const std::string &op,
              std::vector<std::size_t> &qubits) {
@@ -112,6 +143,7 @@ void bindNoiseChannels(py::module &mod) {
                             "The `KrausChannel` is composed of a list of "
                             ":class:`KrausOperator`'s and "
                             "is applied to a specific qubit or set of qubits.")
+      .def(py::init<>(), "Create an empty :class:`KrausChannel`")
       .def(py::init<std::vector<kraus_op>>(),
            "Create a :class:`KrausChannel` composed of a list of "
            ":class:`KrausOperator`'s.")
@@ -162,7 +194,7 @@ void bindNoiseChannels(py::module &mod) {
       
       For `probability = 0.0`, the channel will behave noise-free. 
       For `probability = 0.75`, the channel will fully depolarize the state.
-      For `proability = 1.0`, the channel will be uniform.)#")
+      For `probability = 1.0`, the channel will be uniform.)#")
       .def(py::init<double>(), py::arg("probability"),
            "Initialize the `DepolarizationChannel` with the provided "
            "`probability`.");

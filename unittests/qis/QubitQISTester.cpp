@@ -142,6 +142,7 @@ CUDAQ_TEST(QubitQISTester, checkCommonKernel) {
   }
   EXPECT_EQ(counter, 1000);
 
+#ifndef CUDAQ_BACKEND_STIM
   auto ansatz = [](double theta) {
     cudaq::qvector q(2);
     x(q[0]);
@@ -155,8 +156,10 @@ CUDAQ_TEST(QubitQISTester, checkCommonKernel) {
                      .21829 * z(0) - 6.125 * z(1);
   auto energy = cudaq::observe(ansatz, h, .59);
   EXPECT_NEAR(energy, -1.7487, 1e-3);
+#endif
 }
 
+#ifndef CUDAQ_BACKEND_STIM
 CUDAQ_TEST(QubitQISTester, checkCtrlRegion) {
 
   auto ccnot = []() {
@@ -227,7 +230,9 @@ CUDAQ_TEST(QubitQISTester, checkCtrlRegion) {
   EXPECT_EQ(1, counts3.size());
   EXPECT_TRUE(counts3.begin()->first == "101");
 }
+#endif
 
+#ifndef CUDAQ_BACKEND_STIM
 CUDAQ_TEST(QubitQISTester, checkAdjointRegions) {
   struct single_adjoint_test {
     void operator()() __qpu__ {
@@ -334,6 +339,7 @@ CUDAQ_TEST(QubitQISTester, checkAdjointRegions) {
   EXPECT_EQ(1, counts5.size());
   EXPECT_TRUE(counts5.begin()->first == "101");
 }
+#endif
 
 CUDAQ_TEST(QubitQISTester, checkMeasureResetFence) {
   {
@@ -367,6 +373,7 @@ CUDAQ_TEST(QubitQISTester, checkMeasureResetFence) {
   }
 }
 
+#ifndef CUDAQ_BACKEND_STIM
 CUDAQ_TEST(QubitQISTester, checkU3Op) {
   auto check_x = []() {
     cudaq::qubit q;
@@ -391,7 +398,9 @@ CUDAQ_TEST(QubitQISTester, checkU3Op) {
     EXPECT_TRUE(bits == "00" || bits == "11");
   }
 }
+#endif
 
+#ifndef CUDAQ_BACKEND_STIM
 CUDAQ_TEST(QubitQISTester, checkU3Ctrl) {
   auto another_bell_pair = []() {
     cudaq::qvector qubits(2);
@@ -404,7 +413,9 @@ CUDAQ_TEST(QubitQISTester, checkU3Ctrl) {
     EXPECT_TRUE(bits == "00" || bits == "11");
   }
 }
+#endif
 
+#ifndef CUDAQ_BACKEND_STIM
 CUDAQ_TEST(QubitQISTester, checkU3Adj) {
   auto rotation_adjoint_test = []() {
     cudaq::qubit q;
@@ -423,8 +434,11 @@ CUDAQ_TEST(QubitQISTester, checkU3Adj) {
     EXPECT_TRUE(bits == "0");
   }
 }
+#endif
 
 using namespace std::complex_literals;
+
+#ifndef CUDAQ_BACKEND_STIM
 
 // Test someone can build a library of custom operations
 CUDAQ_REGISTER_OPERATION(
@@ -643,4 +657,5 @@ CUDAQ_TEST(CustomUnitaryTester, checkMultiQubitOps) {
 #endif
 }
 
+#endif
 #endif

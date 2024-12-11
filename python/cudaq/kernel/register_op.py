@@ -7,11 +7,13 @@
 # ============================================================================ #
 
 from functools import partialmethod
+import math
 import numpy as np
 from typing import Callable, List
 
 from .utils import globalRegisteredOperations
 from .kernel_builder import PyKernel, __generalCustomOperation
+from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 
 def register_operation(operation_name: str, unitary):
@@ -44,12 +46,12 @@ def register_operation(operation_name: str, unitary):
         raise RuntimeError("unknown type of unitary.")
 
     matrix = matrix.flatten()
-    assert matrix.ndim == len(matrix.shape), \
-        "provide a 1D array for the matrix representation in row-major format."
 
-    # Size must be a power of 2
-    assert (matrix.size != 0)
-    assert (matrix.size & (matrix.size - 1) == 0)
+    # Size must be a perfect square and power of 2; at least 4 for 1-qubit operation
+    if matrix.size < 4 or (matrix.size & (matrix.size - 1)) != 0 or (math.isqrt(
+            matrix.size)**2) != matrix.size:
+        raise RuntimeError(
+            "invalid matrix size, required 2^N * 2^N for N-qubit operation.")
 
     # Register the operation name so JIT AST can get it.
     globalRegisteredOperations[operation_name] = matrix
@@ -57,5 +59,8 @@ def register_operation(operation_name: str, unitary):
     # Make available to kernel builder object
     setattr(PyKernel, operation_name,
             partialmethod(__generalCustomOperation, operation_name))
+    # Let the runtime know about this registered operation.
+    # Note: the matrix generator/construction is not known by the ExecutionManager in this case since we don't expect the ExecutionManager to be involved.
+    cudaq_runtime.register_custom_operation(operation_name)
 
     return

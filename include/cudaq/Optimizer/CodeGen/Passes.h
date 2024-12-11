@@ -27,15 +27,19 @@ class LLVMStructType;
 } // namespace mlir
 
 namespace cudaq::opt {
-void registerConvertToQIRPass();
 
 /// Convert (generic) QIR to the profile-specific QIR for a specific target.
 /// @param pm Pass Manager to add QIR passes to
 /// @param convertTo Expected to be `qir-base` or `qir-adaptive` (comes from the
 /// cudaq-translate command line `--convert-to` parameter)
-void addQIRProfilePipeline(mlir::OpPassManager &pm, llvm::StringRef convertTo);
+/// @param performPrep Whether or not to perform the initial prep pass (normally
+/// true, but false for the WireSet QIR path)
+void addQIRProfilePipeline(mlir::OpPassManager &pm, llvm::StringRef convertTo,
+                           bool performPrep = true);
 
 void addLowerToCCPipeline(mlir::OpPassManager &pm);
+void addWiresetToProfileQIRPipeline(mlir::OpPassManager &pm,
+                                    llvm::StringRef profile);
 
 /// @brief Verify that all `CallOp` targets are QIR- or NVQIR-defined functions
 /// or in the provided allowed list.
@@ -45,7 +49,6 @@ createVerifyNVQIRCallOpsPass(const std::vector<llvm::StringRef> &allowedFuncs);
 // Use the addQIRProfilePipeline() for the following passes.
 std::unique_ptr<mlir::Pass>
 createQIRToQIRProfilePass(llvm::StringRef convertTo);
-std::unique_ptr<mlir::Pass> verifyQIRProfilePass(llvm::StringRef convertTo);
 std::unique_ptr<mlir::Pass> createQIRProfilePreparationPass();
 std::unique_ptr<mlir::Pass>
 createConvertToQIRFuncPass(llvm::StringRef convertTo);
@@ -59,6 +62,7 @@ void registerCodeGenDialect(mlir::DialectRegistry &registry);
 mlir::LLVM::LLVMStructType lambdaAsPairOfPointers(mlir::MLIRContext *context);
 
 void registerToExecutionManagerCCPipeline();
+void registerWireSetToProfileQIRPipeline();
 void populateCCTypeConversions(mlir::LLVMTypeConverter *converter);
 
 // declarative passes

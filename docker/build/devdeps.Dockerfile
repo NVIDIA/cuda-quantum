@@ -50,6 +50,7 @@ ENV BLAS_INSTALL_PREFIX=/usr/local/blas
 ENV ZLIB_INSTALL_PREFIX=/usr/local/zlib
 ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
 ENV CURL_INSTALL_PREFIX=/usr/local/curl
+ENV AWS_INSTALL_PREFIX=/usr/local/aws
 
 ## [Build Dependencies]
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -135,10 +136,12 @@ ENV BLAS_INSTALL_PREFIX=/usr/local/blas
 ENV ZLIB_INSTALL_PREFIX=/usr/local/zlib
 ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
 ENV CURL_INSTALL_PREFIX=/usr/local/curl
+ENV AWS_INSTALL_PREFIX=/usr/local/aws
 COPY --from=prereqs /usr/local/blas "$BLAS_INSTALL_PREFIX"
 COPY --from=prereqs /usr/local/zlib "$ZLIB_INSTALL_PREFIX"
 COPY --from=prereqs /usr/local/openssl "$OPENSSL_INSTALL_PREFIX"
 COPY --from=prereqs /usr/local/curl "$CURL_INSTALL_PREFIX"
+COPY --from=prereqs /usr/local/aws "$AWS_INSTALL_PREFIX"
 
 # Install additional dependencies required to build and test CUDA-Q.
 RUN apt-get update && apt-get install --no-install-recommends -y wget ca-certificates \
@@ -167,4 +170,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends python3 python3
     && python3 -m pip install --no-cache-dir \
         ipython==8.15.0 pandoc==2.3 sphinx==5.3.0 sphinx_rtd_theme==1.2.0 sphinx-reredirects==0.1.2 \
         sphinx-copybutton==0.5.2 sphinx_inline_tabs==2023.4.21 enum-tools[sphinx] breathe==4.34.0 \
-        nbsphinx==0.9.2 sphinx_gallery==0.13.0 myst-parser==1.0.0 ipykernel==6.29.4 notebook==7.1.3
+        nbsphinx==0.9.2 sphinx_gallery==0.13.0 myst-parser==1.0.0 ipykernel==6.29.4 notebook==7.1.3 \
+        ipywidgets==8.1.5

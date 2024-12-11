@@ -9,6 +9,7 @@
 #include "cudaq/Optimizer/CodeGen/CCToLLVM.h"
 #include "CodeGenOps.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
+#include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
@@ -185,6 +186,50 @@ public:
     auto call2 = rewriter.create<LLVM::CallOp>(loc, resultTy, arguments2);
     rewriter.create<LLVM::BrOp>(loc, call2.getResults(), endBlock);
     rewriter.replaceOp(call, endBlock->getArguments());
+    return success();
+  }
+};
+
+class CallIndirectCallableOpPattern
+    : public ConvertOpToLLVMPattern<cudaq::cc::CallIndirectCallableOp> {
+public:
+  using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+
+  LogicalResult
+  matchAndRewrite(cudaq::cc::CallIndirectCallableOp call, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = call.getLoc();
+    auto parentModule = call->getParentOfType<ModuleOp>();
+    auto funcPtrTy = getTypeConverter()->convertType(
+        cast<cudaq::cc::IndirectCallableType>(call.getCallee().getType())
+            .getSignature());
+    auto ptrTy = LLVM::LLVMPointerType::get(rewriter.getI8Type());
+    auto funcTy = cast<LLVM::LLVMFunctionType>(
+        cast<LLVM::LLVMPointerType>(funcPtrTy).getElementType());
+    auto i64Ty = rewriter.getI64Type(); // intptr_t
+    FlatSymbolRefAttr funSymbol = cudaq::opt::factory::createLLVMFunctionSymbol(
+        cudaq::runtime::getLinkableKernelDeviceSide, ptrTy, {i64Ty},
+        parentModule);
+
+    // Use the runtime helper function to convert the key to a pointer to the
+    // function that was intended to be called. This can only be functional if
+    // the runtime support has been linked into the executable and the
+    // device-side functions are located in the same address space as well. None
+    // of these functions should be expected to reside on remote hardware.
+    // Therefore, this will likely only be useful in a simulation target.
+    auto lookee = rewriter.create<LLVM::CallOp>(
+        loc, ptrTy, funSymbol, ValueRange{adaptor.getCallee()});
+    auto lookup =
+        rewriter.create<LLVM::BitcastOp>(loc, funcPtrTy, lookee.getResult());
+
+    // Call the function that was just found in the map.
+    SmallVector<Value> args = {lookup.getResult()};
+    args.append(adaptor.getArgs().begin(), adaptor.getArgs().end());
+    if (isa<LLVM::LLVMVoidType>(funcTy.getReturnType()))
+      rewriter.replaceOpWithNewOp<LLVM::CallOp>(call, std::nullopt, args);
+    else
+      rewriter.replaceOpWithNewOp<LLVM::CallOp>(call, funcTy.getReturnType(),
+                                                args);
     return success();
   }
 };
@@ -670,7 +715,8 @@ public:
 void cudaq::opt::populateCCToLLVMPatterns(LLVMTypeConverter &typeConverter,
                                           RewritePatternSet &patterns) {
   patterns.insert<AddressOfOpPattern, AllocaOpPattern, CallableClosureOpPattern,
-                  CallableFuncOpPattern, CallCallableOpPattern, CastOpPattern,
+                  CallableFuncOpPattern, CallCallableOpPattern,
+                  CallIndirectCallableOpPattern, CastOpPattern,
                   ComputePtrOpPattern, CreateStringLiteralOpPattern,
                   ExtractValueOpPattern, FuncToPtrOpPattern, GlobalOpPattern,
                   InsertValueOpPattern, InstantiateCallableOpPattern,

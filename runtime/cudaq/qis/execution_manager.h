@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "common/CustomOp.h"
 #include "common/QuditIdTracker.h"
 #include "cudaq/host_config.h"
 #include "cudaq/spin_op.h"
@@ -61,17 +62,6 @@ public:
 using measure_result = bool;
 #endif
 
-/// @brief Define a `unitary_operation` type that exposes
-/// a sub-type specific unitary representation of the
-/// operation.
-struct unitary_operation {
-  /// @brief Given a set of rotation parameters, return
-  /// a row-major 1D array representing the unitary operation
-  virtual std::vector<std::complex<double>> unitary(
-      const std::vector<double> &parameters = std::vector<double>()) const = 0;
-  virtual ~unitary_operation() {}
-};
-
 /// The ExecutionManager provides a base class describing a concrete sub-system
 /// for allocating qudits and executing quantum instructions on those qudits.
 /// This type is templated on the concrete qudit type (`qubit`, `qmode`, etc).
@@ -95,10 +85,6 @@ protected:
 
   /// Internal - At qudit deallocation, return the qudit index
   void returnIndex(std::size_t idx) { tracker.returnIndex(idx); }
-
-  /// @brief Keep track of a registry of user-provided unitary operations.
-  std::unordered_map<std::string, std::unique_ptr<cudaq::unitary_operation>>
-      registeredOperations;
 
 public:
   ExecutionManager() = default;
@@ -180,31 +166,52 @@ public:
   /// provided operation name.
   template <typename T>
   void registerOperation(const std::string &name) {
-    auto iter = registeredOperations.find(name);
-    if (iter != registeredOperations.end())
-      return;
-    registeredOperations.insert({name, std::make_unique<T>()});
+    customOpRegistry::getInstance().registerOperation<T>(name);
   }
 
   /// Clear the registered operations
-  virtual void clearRegisteredOperations() { registeredOperations.clear(); }
+  virtual void clearRegisteredOperations() {
+    customOpRegistry::getInstance().clearRegisteredOperations();
+  }
 
   virtual ~ExecutionManager() = default;
 };
 
-/// Get the default execution manager instance.
-ExecutionManager *getExecutionManager();
+// Function declaration, implemented by the macro expansion below
+ExecutionManager *getRegisteredExecutionManager();
+
+// Function declaration, implemented elsewhere
+ExecutionManager *getExecutionManagerInternal();
+
+// Get the execution manager instance.
+inline ExecutionManager *getExecutionManager() {
+  ExecutionManager *em = getExecutionManagerInternal();
+  if (em) {
+    return em;
+  }
+  return getRegisteredExecutionManager();
+}
+
 } // namespace cudaq
 
 // The following macro is to be used by ExecutionManager subclass developers. It
 // will define the global thread_local execution manager pointer instance, and
 // define the factory function for clients to get reference to the execution
 // manager.
-#define CUDAQ_REGISTER_EXECUTION_MANAGER(Manager)                              \
+#define CONCAT(a, b) CONCAT_INNER(a, b)
+#define CONCAT_INNER(a, b) a##b
+#define CUDAQ_REGISTER_EXECUTION_MANAGER(Manager, Name)                        \
   namespace cudaq {                                                            \
-  ExecutionManager *getExecutionManager() {                                    \
+  ExecutionManager *getRegisteredExecutionManager() {                          \
     thread_local static std::unique_ptr<ExecutionManager> qis_manager =        \
         std::make_unique<Manager>();                                           \
+    return qis_manager.get();                                                  \
+  }                                                                            \
+  }                                                                            \
+  extern "C" {                                                                 \
+  cudaq::ExecutionManager *CONCAT(getRegisteredExecutionManager_, Name)() {    \
+    thread_local static std::unique_ptr<cudaq::ExecutionManager> qis_manager = \
+        std::make_unique<cudaq::Manager>();                                    \
     return qis_manager.get();                                                  \
   }                                                                            \
   }
