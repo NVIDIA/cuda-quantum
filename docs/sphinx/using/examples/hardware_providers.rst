@@ -21,6 +21,21 @@ The following code illustrates how to run kernels on Amazon Braket's backends.
    .. literalinclude:: ../../targets/cpp/braket.cpp
       :language: cpp
 
+Infleqtion
+==================================
+
+The following code illustrates how to run kernels on Infleqtion's backends.
+
+.. tab:: Python
+
+   .. literalinclude:: ../../targets/python/infleqtion.py
+      :language: python
+
+.. tab:: C++
+
+   .. literalinclude:: ../../targets/cpp/infleqtion.cpp
+      :language: cpp
+
 IonQ
 ==================================
 
