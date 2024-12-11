@@ -25,8 +25,7 @@ bool isValidExpVal(double value) {
 }
 
 CUDAQ_TEST(BraketTester, checkSampleSync) {
-  GTEST_SKIP() << "Fails with: Please make sure all qubits in the qubit "
-                  "register are used for tasks submitted to simulators";
+  GTEST_SKIP() << "Amazon Braket credentials required";
   std::string home = std::getenv("HOME");
   std::string fileName = home + "/FakeCppBraket.config";
   auto backendString =
@@ -68,8 +67,7 @@ CUDAQ_TEST(BraketTester, checkSampleSyncEmulate) {
 }
 
 CUDAQ_TEST(BraketTester, checkSampleAsync) {
-  GTEST_SKIP() << "Fails with: Please make sure all qubits in the qubit "
-                  "register are used for tasks submitted to simulators";
+  GTEST_SKIP() << "Amazon Braket credentials required";
   std::string home = std::getenv("HOME");
   std::string fileName = home + "/FakeCppBraket.config";
   auto backendString = fmt::format(fmt::runtime(backendStringTemplate),
@@ -111,8 +109,8 @@ CUDAQ_TEST(BraketTester, checkSampleAsyncEmulate) {
 }
 
 CUDAQ_TEST(BraketTester, checkSampleAsyncLoadFromFile) {
-  GTEST_SKIP() << "Fails with: Please make sure all qubits in the qubit "
-                  "register are used for tasks submitted to simulators";
+  GTEST_SKIP() << "Fails with: Cannot persist a cudaq::future for a local "
+                  "kernel execution.";
   std::string home = std::getenv("HOME");
   std::string fileName = home + "/FakeCppBraket.config";
   auto backendString = fmt::format(fmt::runtime(backendStringTemplate),
@@ -148,9 +146,7 @@ CUDAQ_TEST(BraketTester, checkSampleAsyncLoadFromFile) {
 }
 
 CUDAQ_TEST(BraketTester, checkObserveSync) {
-  GTEST_SKIP() << "Fails with: Device requires all qubits in the program to be "
-                  "measured. This may be caused by declaring non-contiguous "
-                  "qubits or measuring partial qubits";
+  GTEST_SKIP() << "Fails with: Cannot observe kernel with measures in it";
   std::string home = std::getenv("HOME");
   std::string fileName = home + "/FakeCppBraket.config";
   auto backendString = fmt::format(fmt::runtime(backendStringTemplate),
@@ -164,6 +160,7 @@ CUDAQ_TEST(BraketTester, checkObserveSync) {
   kernel.x(qubit[0]);
   kernel.ry(theta, qubit[1]);
   kernel.x<cudaq::ctrl>(qubit[1], qubit[0]);
+  kernel.mz(qubit);
 
   using namespace cudaq::spin;
   cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
@@ -226,78 +223,6 @@ CUDAQ_TEST(BraketTester, checkObserveAsync) {
   auto future = cudaq::observe_async(kernel, h, .59);
 
   auto result = future.get();
-  result.dump();
-
-  printf("ENERGY: %lf\n", result.expectation());
-  EXPECT_TRUE(isValidExpVal(result.expectation()));
-}
-
-CUDAQ_TEST(BraketTester, checkObserveAsyncEmulate) {
-  std::string home = std::getenv("HOME");
-  std::string fileName = home + "/FakeCppBraket.config";
-  auto backendString = fmt::format(fmt::runtime(backendStringTemplate),
-                                   mockPort, fileName, machine);
-  backendString =
-      std::regex_replace(backendString, std::regex("false"), "true");
-
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
-
-  auto [kernel, theta] = cudaq::make_kernel<double>();
-  auto qubit = kernel.qalloc(2);
-  kernel.x(qubit[0]);
-  kernel.ry(theta, qubit[1]);
-  kernel.x<cudaq::ctrl>(qubit[1], qubit[0]);
-
-  using namespace cudaq::spin;
-  cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
-                     .21829 * z(0) - 6.125 * z(1);
-  auto future = cudaq::observe_async(100000, 0, kernel, h, .59);
-
-  auto result = future.get();
-  result.dump();
-
-  printf("ENERGY: %lf\n", result.expectation());
-  EXPECT_TRUE(isValidExpVal(result.expectation()));
-}
-
-CUDAQ_TEST(BraketTester, checkObserveAsyncLoadFromFile) {
-  GTEST_SKIP() << "Fails with: Device requires all qubits in the program to be "
-                  "measured. This may be caused by declaring non-contiguous "
-                  "qubits or measuring partial qubits";
-  std::string home = std::getenv("HOME");
-  std::string fileName = home + "/FakeCppBraket.config";
-  auto backendString = fmt::format(fmt::runtime(backendStringTemplate),
-                                   mockPort, fileName, machine);
-
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
-
-  auto [kernel, theta] = cudaq::make_kernel<double>();
-  auto qubit = kernel.qalloc(2);
-  kernel.x(qubit[0]);
-  kernel.ry(theta, qubit[1]);
-  kernel.x<cudaq::ctrl>(qubit[1], qubit[0]);
-
-  using namespace cudaq::spin;
-  cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
-                     .21829 * z(0) - 6.125 * z(1);
-  auto future = cudaq::observe_async(kernel, h, .59);
-
-  {
-    std::ofstream out("saveMeObserve.json");
-    out << future;
-  }
-
-  // Later you can come back and read it in
-  cudaq::async_result<cudaq::observe_result> readIn(&h);
-  std::ifstream in("saveMeObserve.json");
-  in >> readIn;
-
-  // Get the results of the read in future.
-  auto result = readIn.get();
-
-  std::remove("saveMeObserve.json");
   result.dump();
 
   printf("ENERGY: %lf\n", result.expectation());

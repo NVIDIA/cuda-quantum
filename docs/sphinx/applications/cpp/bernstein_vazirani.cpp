@@ -34,7 +34,7 @@ std::vector<bool> random_bits(int seed) {
 
 template <int nrOfBits>
 struct oracle {
-  auto operator()(std::vector<bool> bitvector, cudaq::qview<> qs,
+  auto operator()(std::vector<bool> &bitvector, cudaq::qview<> qs,
                   cudaq::qubit &aux) __qpu__ {
 
     for (size_t i = 0; i < nrOfBits; i++) {

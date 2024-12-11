@@ -118,6 +118,7 @@ ENV BLAS_INSTALL_PREFIX=/usr/local/blas
 ENV ZLIB_INSTALL_PREFIX=/usr/local/zlib
 ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
 ENV CURL_INSTALL_PREFIX=/usr/local/curl
+ENV AWS_INSTALL_PREFIX=/usr/local/aws
 ENV CUQUANTUM_INSTALL_PREFIX=/usr/local/cuquantum
 ENV CUTENSOR_INSTALL_PREFIX=/usr/local/cutensor
 RUN bash /scripts/install_prerequisites.sh

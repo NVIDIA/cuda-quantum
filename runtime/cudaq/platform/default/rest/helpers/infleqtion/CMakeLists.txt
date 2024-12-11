@@ -5,7 +5,13 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
+target_sources(cudaq-rest-qpu PRIVATE InfleqtionServerHelper.cpp)
+add_target_config(infleqtion)
 
-install (FILES central_difference.h DESTINATION include/cudaq/gradients/)
-install (FILES parameter_shift.h DESTINATION include/cudaq/gradients/)
-install (FILES forward_difference.h DESTINATION include/cudaq/gradients/)
+add_library(cudaq-serverhelper-infleqtion SHARED InfleqtionServerHelper.cpp )
+target_link_libraries(cudaq-serverhelper-infleqtion
+  PUBLIC
+    cudaq-common
+    fmt::fmt-header-only
+)
+install(TARGETS cudaq-serverhelper-infleqtion DESTINATION lib)

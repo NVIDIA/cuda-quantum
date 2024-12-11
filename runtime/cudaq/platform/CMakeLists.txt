@@ -16,4 +16,6 @@ if (CUDAQ_ENABLE_REST)
 endif()
 
 add_subdirectory(fermioniq)
-add_subdirectory(quera)
+if (AWSSDK_ROOT)
+  add_subdirectory(quera)
+endif()

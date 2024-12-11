@@ -41,6 +41,7 @@ static LogicalResult translateOperatorName(quake::OperatorInterface optor,
                .Case("ry", "cry")
                .Case("rz", "crz")
                .Case("swap", "cswap")
+               .Case("u3", "cu3")
                .Default(qkeName);
   } else if (optor.getControls().size() == 2) {
     name = StringSwitch<StringRef>(qkeName).Case("x", "ccx").Default("");

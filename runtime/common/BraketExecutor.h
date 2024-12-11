@@ -1,4 +1,4 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -7,27 +7,22 @@
  ******************************************************************************/
 
 #pragma once
+
+#include "common/BraketServerHelper.h"
 #include "common/Executor.h"
 #include "common/FmtCore.h"
+#include "common/Logger.h"
 #include "common/MeasureCounts.h"
 #include "cudaq.h"
-
-#include <chrono>
-#include <iostream>
-
-#include <aws/core/Aws.h>
-
 #include <aws/braket/BraketClient.h>
-#include <aws/s3-crt/S3CrtClient.h>
-#include <aws/sts/STSClient.h>
-
+#include <aws/core/Aws.h>
 #include <aws/core/utils/logging/AWSLogging.h>
 #include <aws/core/utils/logging/ConsoleLogSystem.h>
 #include <aws/core/utils/logging/LogLevel.h>
-
-#include "common/BraketServerHelper.h"
-#include "common/Logger.h"
-
+#include <aws/s3-crt/S3CrtClient.h>
+#include <aws/sts/STSClient.h>
+#include <chrono>
+#include <iostream>
 #include <nlohmann/json.hpp>
 #include <regex>
 #include <string>
