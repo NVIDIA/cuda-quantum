@@ -14,7 +14,9 @@
 #include <arpa/inet.h>
 #include <execinfo.h>
 #include <filesystem>
+#include <numeric>
 #include <random>
+#include <set>
 #include <signal.h>
 #include <sys/socket.h>
 #include <thread>
@@ -80,23 +82,41 @@ cudaq::AutoLaunchRestServerProcess::AutoLaunchRestServerProcess(
     throw std::runtime_error("Unable to find CUDA-Q REST server to launch.");
 
   // If the CUDAQ_DYNLIBS env var is set (typically from the Python
-  // environment), use that data to preload the specified .so files.
-  std::string preload;
+  // environment), add these to the LD_LIBRARY_PATH.
+  std::string libPaths;
   std::optional<llvm::SmallVector<llvm::StringRef>> Env;
   if (auto *ch = getenv("CUDAQ_DYNLIBS")) {
     Env = llvm::SmallVector<llvm::StringRef>();
-    if (auto *p = getenv("LD_PRELOAD")) {
-      preload = p;
-      if (preload.size() > 0)
-        preload += ":";
+    if (auto *p = getenv("LD_LIBRARY_PATH")) {
+      libPaths = p;
+      if (libPaths.size() > 0)
+        libPaths += ":";
     }
-    preload += std::string(ch);
+
+    std::set<std::string> libDirs;
+    while(libPaths.size() > 0) {
+      auto next_delim = libPaths.find(":");
+      if(0 <= next_delim && next_delim < libPaths.size()) {
+        std::filesystem::path lib(libPaths.substr(0, next_delim));
+        libPaths = libPaths.substr(next_delim + 1);
+        auto libDir = lib.remove_filename().string();
+        if(libDir.size() > 0) 
+          libDirs.insert(libDir);
+      }
+    }
+
+    std::string dynLibs = std::accumulate(std::begin(libDirs), 
+                                          std::end(libDirs), 
+                                          std::string{},
+                                          [](const std::string& a, const std::string &b) {
+                                            return a + b + ':'; });
+    dynLibs.pop_back();
     for (char **env = environ; *env != nullptr; ++env) {
-      if (!std::string(*env).starts_with("LD_PRELOAD="))
+      if (!std::string(*env).starts_with("LD_LIBRARY_PATH="))
         Env->push_back(*env);
     }
-    preload = "LD_PRELOAD=" + preload;
-    Env->push_back(preload);
+    libPaths = "LD_LIBRARY_PATH=" + libPaths;
+    Env->push_back("LD_LIBRARY_PATH=" + dynLibs);
   }
 
   constexpr std::size_t PORT_MAX_RETRIES = 10;
