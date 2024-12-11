@@ -13,8 +13,7 @@ Infleqtion
 Infleqtion is a quantum hardware provider of gate-based neutral atom quantum computers. Their backends may be
 accessed via `Superstaq <https://superstaq.infleqtion.com/>`__, Infleqtion’s cross-platform software API
 that performs low-level compilation and cross-layer optimization. To get started users can create a Superstaq
-account by following `these instructions <https://superstaq.readthedocs.io/en/latest/get_started/credentials.html
->`__.
+account by following `these instructions <https://superstaq.readthedocs.io/en/latest/get_started/credentials.html>`__.
 
 For access to Infleqtion's neutral atom quantum computer, Sqale,
 `pre-registration <https://www.infleqtion.com/sqale-preregistration>`__ is now open for access.
@@ -125,7 +124,8 @@ the ``shots_count`` is set to 1000.
     cudaq.sample(kernel, shots_count=100)
 
 To see a complete example for using Infleqtion's backends, take a look at our :doc:`Python examples <../examples/examples>`.
-Moreover, for an end-to-end application workflow example executed on the Infleqtion QPU, take a look at :doc:`AIM ground state solver <../applications/python/logical_aim_sqale>`.
+Moreover, for an end-to-end application workflow example executed on the Infleqtion QPU, take a look at the 
+:doc:`AIM ground state solver <../applications/python/logical_aim_sqale>` notebook.
 
 
 Amazon Braket
