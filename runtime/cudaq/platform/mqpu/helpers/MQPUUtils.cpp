@@ -111,11 +111,15 @@ cudaq::AutoLaunchRestServerProcess::AutoLaunchRestServerProcess(
                                           [](const std::string& a, const std::string &b) {
                                             return a + b + ':'; });
     dynLibs.pop_back();
+    if (auto *p = getenv("LD_LIBRARY_PATH")) {
+      std::string envLibs = p;
+      if (envLibs.size() > 0)
+        dynLibs += ":" + envLibs;
+    }
     for (char **env = environ; *env != nullptr; ++env) {
       if (!std::string(*env).starts_with("LD_LIBRARY_PATH="))
         Env->push_back(*env);
     }
-    libPaths = "LD_LIBRARY_PATH=" + libPaths;
     Env->push_back("LD_LIBRARY_PATH=" + dynLibs);
   }
 
