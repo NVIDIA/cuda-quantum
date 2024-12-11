@@ -1175,7 +1175,7 @@ can be controlled with the <code class="docutils literal notranslate"><span clas
 <p>You will have to specify a remote configuration id for the Fermioniq backend
 during compilation.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;fermioniq&quot;</span><span class="p">,</span> <span class="o">**</span><span class="p">{</span>
-    <span class="s2">&quot;remote-config&quot;</span><span class="p">:</span> <span class="n">remote_config_id</span>
+    <span class="s2">&quot;remote_config&quot;</span><span class="p">:</span> <span class="n">remote_config_id</span>
 <span class="p">})</span>
 </pre></div>
 </div>
@@ -1183,13 +1183,13 @@ during compilation.</p>
 <p>When your organization requires you to define a project id, you have to specify
 the project id during compilation.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;fermioniq&quot;</span><span class="p">,</span> <span class="o">**</span><span class="p">{</span>
-    <span class="s2">&quot;project-id&quot;</span><span class="p">:</span> <span class="n">project_id</span>
+    <span class="s2">&quot;project_id&quot;</span><span class="p">:</span> <span class="n">project_id</span>
 <span class="p">})</span>
 </pre></div>
 </div>
-<p>To specify the bond dimension, you can pass the <code class="docutils literal notranslate"><span class="pre">fermioniq-bond-dim</span></code> parameter.</p>
+<p>To specify the bond dimension, you can pass the <code class="docutils literal notranslate"><span class="pre">bond_dim</span></code> parameter.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;fermioniq&quot;</span><span class="p">,</span> <span class="o">**</span><span class="p">{</span>
-    <span class="s2">&quot;bond-dim&quot;</span><span class="p">:</span> <span class="mi">5</span>
+    <span class="s2">&quot;bond_dim&quot;</span><span class="p">:</span> <span class="mi">5</span>
 <span class="p">})</span>
 </pre></div>
 </div>
