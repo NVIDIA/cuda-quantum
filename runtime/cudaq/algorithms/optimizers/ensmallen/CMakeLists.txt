@@ -38,8 +38,6 @@ if (NOT APPLE)
   target_link_options(${LIBRARY_NAME} PRIVATE -Wl,--exclude-libs,ALL)
 endif()
 
-install (FILES ensmallen.h DESTINATION include/cudaq/algorithms/optimizers/)
-
 install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-ensmallen-targets DESTINATION lib)
 install(EXPORT cudaq-ensmallen-targets
         FILE CUDAQEnsmallenTargets.cmake
