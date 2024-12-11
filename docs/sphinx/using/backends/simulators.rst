@@ -350,7 +350,7 @@ prior to setting the target.
     - The number of state vectors in the batched mode. If `NONE`, the batch size will be calculated based on the available device memory. Default is `NONE`.
   * - ``CUDAQ_BATCHED_SIM_MAX_BRANCHES``
     - positive integer
-    - The number of trajectory branches to be tracked simultaneously in the gate fuser. Default is 16. 
+    - The number of trajectory branches to be tracked simultaneously in the gate fusion. Default is 16. 
   * - ``CUDAQ_BATCHED_SIM_MAX_QUBITS``
     - positive integer
     - The max number of qubits for batching. If the qubit count in the circuit is more than this value, batched trajectory simulation will be disabled. The default value is 20.

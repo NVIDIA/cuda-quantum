@@ -9,7 +9,7 @@
 #[Begin Docs]
 import cudaq
 
-# Use the 'nvidia' target
+# Use the `nvidia` target
 cudaq.set_target("nvidia")
 
 # Let's define a simple kernel that we will add noise to.
@@ -22,13 +22,14 @@ def kernel(qubit_count: int):
     x(qvector)
     mz(qvector)
 
-# Add a simple bit-flip noise channel to X gate 
+
+# Add a simple bit-flip noise channel to X gate
 error_probability = 0.1
-bit_flip = cudaq.BitFlipChannel(error_probability) 
+bit_flip = cudaq.BitFlipChannel(error_probability)
 
 # Add noise channels to our noise model.
 noise_model = cudaq.NoiseModel()
-# Apply the bitflip channel to any X-gate on any qubits
+# Apply the bit-flip channel to any X-gate on any qubits
 noise_model.add_all_qubit_channel("x", bit_flip)
 
 # Due to the impact of noise, our measurements will no longer be uniformly

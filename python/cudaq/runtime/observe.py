@@ -68,7 +68,7 @@ Args:
   noise_model (Optional[`NoiseModel`]): The optional :class:`NoiseModel` to add 
     noise to the kernel execution on the simulator. Defaults to an empty 
     noise model.
-  num_trajectories (Optional[int]): The optional number of trajectories for noisy simulation. Only valid if a noise model is provided. Key-word only.
+  `num_trajectories` (Optional[int]): The optional number of trajectories for noisy simulation. Only valid if a noise model is provided. Key-word only.
 
 Returns:
   :class:`ObserveResult`: 
@@ -127,7 +127,8 @@ Returns:
         ctx.setSpinOperator(localOp)
         if num_trajectories != None:
             if noise_model is None:
-                raise RuntimeError("num_trajectories is provided without a noise_model.")
+                raise RuntimeError(
+                    "num_trajectories is provided without a noise_model.")
             ctx.numberTrajectories = num_trajectories
         cudaq_runtime.setExecutionContext(ctx)
         kernel(*args)
