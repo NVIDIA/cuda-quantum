@@ -87,16 +87,14 @@ cudaq::AutoLaunchRestServerProcess::AutoLaunchRestServerProcess(
   std::optional<llvm::SmallVector<llvm::StringRef>> Env;
   if (auto *ch = getenv("CUDAQ_DYNLIBS")) {
     Env = llvm::SmallVector<llvm::StringRef>();
-    if (auto *p = getenv("LD_LIBRARY_PATH")) {
-      libPaths = p;
-      if (libPaths.size() > 0)
-        libPaths += ":";
-    }
+    libPaths = ch;
+    if (libPaths.size() > 0)
+      libPaths += ":";
 
     std::set<std::string> libDirs;
     while(libPaths.size() > 0) {
       auto next_delim = libPaths.find(":");
-      if(0 <= next_delim && next_delim < libPaths.size()) {
+      if(next_delim < libPaths.size()) {
         std::filesystem::path lib(libPaths.substr(0, next_delim));
         libPaths = libPaths.substr(next_delim + 1);
         auto libDir = lib.remove_filename().string();
