@@ -1128,14 +1128,14 @@ jobs:
           tar xf /tmp/packages/${cudaq_metapackage}.tar.gz && mv -v ${cudaq_metapackage}/README.md .
           rm -rf ${cudaq_metapackage} && readme=README.md
 
-          # Setup links for validate_pycudaq.sh script
-          ln -s $GITHUB_WORKSPACE/scripts/validate_pycudaq.sh .
-          ln -s $GITHUB_WORKSPACE/docs/sphinx/examples/python /tmp/examples
-          ln -s $GITHUB_WORKSPACE/docs/sphinx/applications/python /tmp/applications
-          ln -s $GITHUB_WORKSPACE/docs/sphinx/targets/python /tmp/targets
-          ln -s $GITHUB_WORKSPACE/docs/sphinx/snippets/python /tmp/snippets
-          ln -s $GITHUB_WORKSPACE/python/tests /tmp/tests
-          ln -s $GITHUB_WORKSPACE/$readme /tmp/README.md
+          # Setup files for validate_pycudaq.sh script
+          cp    $GITHUB_WORKSPACE/scripts/validate_pycudaq.sh .
+          cp -r $GITHUB_WORKSPACE/docs/sphinx/examples/python /tmp/examples/
+          cp -r $GITHUB_WORKSPACE/docs/sphinx/applications/python /tmp/applications/
+          cp -r $GITHUB_WORKSPACE/docs/sphinx/targets/python /tmp/targets/
+          cp -r $GITHUB_WORKSPACE/docs/sphinx/snippets/python /tmp/snippets/
+          cp -r $GITHUB_WORKSPACE/python/tests /tmp/tests/
+          cp    $GITHUB_WORKSPACE/$readme /tmp/README.md
 
           # Run the script w/ -q to run a shortened test
           set +e # Allow script to keep going through errors (needed for skipped tests)
