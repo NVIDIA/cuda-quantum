@@ -50,7 +50,7 @@ struct PhotonicsState : public cudaq::SimulationState {
     const std::size_t idx = std::accumulate(
         std::make_reverse_iterator(basisState.end()),
         std::make_reverse_iterator(basisState.begin()), 0ull,
-        [&](std::size_t acc, int bit) { return (acc * levels) + bit; });
+        [&](std::size_t acc, int qudit) { return (acc * levels) + qudit; });
     return state[idx];
   }
 
@@ -104,6 +104,9 @@ private:
   /// @brief Current state
   qpp::ket state;
 
+  /// @brief The qudit-levels (`qumodes`)
+  std::size_t levels;
+
   /// @brief Instructions are stored in a map
   std::unordered_map<std::string, std::function<void(const Instruction &)>>
       instructions;
@@ -119,6 +122,7 @@ protected:
       // qubit will give [1,0], qutrit will give [1,0,0] and so on...
       state = qpp::ket::Zero(q.levels);
       state(0) = 1.0;
+      levels = q.levels;
       return;
     }
 
@@ -127,7 +131,7 @@ protected:
     state = qpp::kron(state, zeroState);
   }
 
-  /// @brief Allocate a set of `qudits` with a single call.
+  /// @brief Allocate a set of `qudits` (`qumodes`) with a single call.
   void allocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {
     for (auto &q : qudits)
       allocateQudit(q);
@@ -147,7 +151,7 @@ protected:
   /// @brief Qudit deallocation method
   void deallocateQudit(const cudaq::QuditInfo &q) override {}
 
-  /// @brief Deallocate a set of `qudits` with a single call.
+  /// @brief Deallocate a set of `qudits` (`qumodes`) with a single call.
   void deallocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {}
 
   /// @brief Handler for when the photonics execution context changes
@@ -162,6 +166,7 @@ protected:
         ids.push_back(s.id);
       }
       if (executionContext->name == "sample") {
+        cudaq::info("Sampling");
         auto shots = executionContext->shots;
         auto sampleResult =
             qpp::sample(shots, state, ids, sampleQudits.begin()->levels);
@@ -180,9 +185,21 @@ protected:
         }
         executionContext->result.append(counts);
       } else if (executionContext->name == "extract-state") {
+        cudaq::info("Extracting state");
+        // If here, then we care about the result qudit, so compute it.
+        for (auto &q : sampleQudits) {
+          const auto measurement_tuple = qpp::measure(
+              state, qpp::cmat::Identity(q.levels, q.levels), {q.id},
+              /*qudit dimension=*/q.levels, /*destructive measmt=*/false);
+          const auto measurement_result = std::get<qpp::RES>(measurement_tuple);
+          const auto &post_meas_states = std::get<qpp::ST>(measurement_tuple);
+          const auto &collapsed_state = post_meas_states[measurement_result];
+          state = Eigen::Map<const qpp::ket>(collapsed_state.data(),
+                                             collapsed_state.size());
+        }
+
         executionContext->simulationState =
-            std::make_unique<cudaq::PhotonicsState>(
-                std::move(state), sampleQudits.begin()->levels);
+            std::make_unique<cudaq::PhotonicsState>(std::move(state), levels);
       }
       // Reset the state and qudits
       state.resize(0);
@@ -204,7 +221,12 @@ protected:
       return 0;
     }
 
-    // If here, then we care about the result bit, so compute it.
+    if (executionContext && executionContext->name == "extract-state") {
+      sampleQudits.push_back(q);
+      return 0;
+    }
+
+    // If here, then we care about the result qudit, so compute it.
     const auto measurement_tuple = qpp::measure(
         state, qpp::cmat::Identity(q.levels, q.levels), {q.id},
         /*qudit dimension=*/q.levels, /*destructive measmt=*/false);
@@ -266,32 +288,17 @@ protected:
     return FACTORIAL_TABLE[n];
   }
 
-  /// @brief Computes the kronecker delta of two values
-  int _kron(int a, int b) {
-    if (a == b)
-      return 1;
-    else
-      return 0;
-  }
-
-  /// @brief Computes if two double values are within some absolute and relative
-  /// tolerance
-  bool _isclose(double a, double b, double rtol = 1e-08, double atol = 1e-9) {
-    return std::fabs(a - b) <= (atol + rtol * std::fabs(b));
-  }
-
   /// @brief Computes a single element in the matrix representing a beam
   /// splitter gate
-  double _calc_beamsplitter_elem(int N1, int N2, int n1, int n2, double theta) {
+  double _calc_beam_splitter_elem(int N1, int N2, int n1, int n2,
+                                  double theta) {
 
-    const double t = cos(theta); // transmission coeffient
-    const double r = sin(theta); // reflection coeffient
+    const double t = cos(theta); // transmission coefficient
+    const double r = sin(theta); // reflection coefficient
     double sum = 0;
     for (int k = 0; k <= n1; ++k) {
       int l = N1 - k;
       if (l >= 0 && l <= n2) {
-        // int term4 = _kron(N1, k + l); //* kron(N1 + N2, n1 + n2);
-
         double term1 = pow(r, (n1 - k + l)) * pow(t, (n2 + k - l));
         if (term1 == 0) {
           continue;
@@ -312,7 +319,7 @@ protected:
   }
 
   /// @brief Computes matrix representing a beam splitter gate
-  void beamsplitter(const double theta, qpp::cmat &BS) {
+  void beam_splitter(const double theta, qpp::cmat &BS) {
     int d = sqrt(BS.rows());
     //     """Returns a matrix representing a beam splitter
     for (int n1 = 0; n1 < d; ++n1) {
@@ -326,7 +333,7 @@ protected:
           } else {
 
             BS(n1 * d + n2, N1 * d + N2) =
-                _calc_beamsplitter_elem(N1, N2, n1, n2, theta);
+                _calc_beam_splitter_elem(N1, N2, n1, n2, theta);
           }
         }
       }
@@ -336,7 +343,33 @@ protected:
 public:
   PhotonicsExecutionManager() {
 
-    instructions.emplace("plusGate", [&](const Instruction &inst) {
+    instructions.emplace("create", [&](const Instruction &inst) {
+      auto &[gateName, params, controls, qudits, spin_op] = inst;
+      auto target = qudits[0];
+      int d = target.levels;
+      qpp::cmat u{qpp::cmat::Zero(d, d)};
+      u(d - 1, d - 1) = 1;
+      for (int i = 1; i < d; i++) {
+        u(i, i - 1) = 1;
+      }
+      cudaq::info("Applying create on {}<{}>", target.id, target.levels);
+      state = qpp::apply(state, u, {target.id}, target.levels);
+    });
+
+    instructions.emplace("annihilate", [&](const Instruction &inst) {
+      auto &[gateName, params, controls, qudits, spin_op] = inst;
+      auto target = qudits[0];
+      int d = target.levels;
+      qpp::cmat u{qpp::cmat::Zero(d, d)};
+      u(0, 0) = 1;
+      for (int i = 0; i < d - 1; i++) {
+        u(i, i + 1) = 1;
+      }
+      cudaq::info("Applying annihilate on {}<{}>", target.id, target.levels);
+      state = qpp::apply(state, u, {target.id}, target.levels);
+    });
+
+    instructions.emplace("plus", [&](const Instruction &inst) {
       auto &[gateName, params, controls, qudits, spin_op] = inst;
       auto target = qudits[0];
       int d = target.levels;
@@ -345,24 +378,24 @@ public:
       for (int i = 1; i < d; i++) {
         u(i, i - 1) = 1;
       }
-      cudaq::info("Applying plusGate on {}<{}>", target.id, target.levels);
+      cudaq::info("Applying plus on {}<{}>", target.id, target.levels);
       state = qpp::apply(state, u, {target.id}, target.levels);
     });
 
-    instructions.emplace("beamSplitterGate", [&](const Instruction &inst) {
+    instructions.emplace("beam_splitter", [&](const Instruction &inst) {
       auto &[gateName, params, controls, qudits, spin_op] = inst;
       auto target1 = qudits[0];
       auto target2 = qudits[1];
       size_t d = target1.levels;
       const double theta = params[0];
       qpp::cmat BS{qpp::cmat::Zero(d * d, d * d)};
-      beamsplitter(theta, BS);
-      cudaq::info("Applying beamSplitterGate on {}<{}> and {}<{}>", target1.id,
+      beam_splitter(theta, BS);
+      cudaq::info("Applying beam_splitter on {}<{}> and {}<{}>", target1.id,
                   target1.levels, target2.id, target2.levels);
       state = qpp::apply(state, BS, {target1.id, target2.id}, d);
     });
 
-    instructions.emplace("phaseShiftGate", [&](const Instruction &inst) {
+    instructions.emplace("phase_shift", [&](const Instruction &inst) {
       auto &[gateName, params, controls, qudits, spin_op] = inst;
       auto target = qudits[0];
       size_t d = target.levels;
@@ -372,8 +405,7 @@ public:
       for (size_t n = 0; n < d; n++) {
         PS(n, n) = std::exp(n * phi * i);
       }
-      cudaq::info("Applying phaseShiftGate on {}<{}>", target.id,
-                  target.levels);
+      cudaq::info("Applying phase_shift on {}<{}>", target.id, target.levels);
       state = qpp::apply(state, PS, {target.id}, target.levels);
     });
   }

@@ -17,6 +17,7 @@ add_cudaq_library(OptTransforms
   ApplyOpSpecialization.cpp
   ArgumentSynthesis.cpp
   BasisConversion.cpp
+  CombineMeasurements.cpp
   CombineQuantumAlloc.cpp
   ConstPropComplex.cpp
   Decomposition.cpp
@@ -30,6 +31,7 @@ add_cudaq_library(OptTransforms
   GenKernelExecution.cpp
   GenDeviceCodeLoader.cpp
   GetConcreteMatrix.cpp
+  GlobalizeArrayValues.cpp
   LambdaLifting.cpp
   LiftArrayAlloc.cpp
   LinearCtrlRelations.cpp
@@ -64,4 +66,9 @@ add_cudaq_library(OptTransforms
     MLIRIR
     OptimBuilder
     QuakeDialect
+)
+
+target_include_directories(OptTransforms SYSTEM
+  PRIVATE ${CMAKE_SOURCE_DIR}/tpls/eigen
+  PRIVATE ${CMAKE_SOURCE_DIR}/runtime
 )

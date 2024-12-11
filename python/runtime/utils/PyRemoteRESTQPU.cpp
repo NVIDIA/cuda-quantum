@@ -80,8 +80,8 @@ protected:
     // specific to python before the rest of the RemoteRESTQPU workflow
     auto cloned = m_module.clone();
     PassManager pm(cloned.getContext());
-    pm.addNestedPass<func::FuncOp>(
-        cudaq::opt::createPySynthCallableBlockArgs(callableNames));
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createPySynthCallableBlockArgs(
+        SmallVector<StringRef>(callableNames.begin(), callableNames.end())));
     cudaq::opt::addAggressiveEarlyInlining(pm);
     pm.addPass(mlir::createCanonicalizerPass());
     pm.addNestedPass<mlir::func::FuncOp>(
@@ -89,7 +89,6 @@ protected:
     pm.addPass(mlir::createCanonicalizerPass());
     pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
     pm.addPass(createInlinerPass());
-    pm.addPass(cudaq::opt::createExpandMeasurementsPass());
     pm.addPass(createCanonicalizerPass());
     pm.addPass(createCSEPass());
     if (failed(pm.run(cloned)))

@@ -123,14 +123,14 @@ jobs:
       # downsides, and do just that here to have some periodic clean up.
 
       - name: Delete build caches for MPI asset (ARM64)
-        uses: actions/delete-package-versions@v4
+        uses: actions/delete-package-versions@v5
         with: 
           package-name: buildcache-cuda-quantum-assets-openmpi-gcc11-arm64
           package-type: 'container'
           min-versions-to-keep: 1 # the used action does not support 0 here
 
       - name: Delete build caches for MPI asset (AMD64)
-        uses: actions/delete-package-versions@v4
+        uses: actions/delete-package-versions@v5
         with: 
           package-name: buildcache-cuda-quantum-assets-openmpi-gcc11-amd64
           package-type: 'container'

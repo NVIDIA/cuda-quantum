@@ -19,6 +19,17 @@
 
 namespace cudaq {
 
+/// @brief Noise model enumerated type that allows downstream simulators of
+/// `kraus_channel` objects to apply simulator-specific logic for well-known
+/// noise models.
+enum class noise_model_type {
+  unknown,
+  depolarization_channel,
+  amplitude_damping_channel,
+  bit_flip_channel,
+  phase_flip_channel
+};
+
 /// @brief A kraus_op represents a single Kraus operation,
 /// described as a complex matrix of specific size. The matrix
 /// is represented here as a 1d array (specifically a std::vector).
@@ -98,6 +109,10 @@ protected:
   std::vector<kraus_op> ops;
 
   /// @brief Validate that Sum K_i^† K_i = I
+  // Important: as this function dispatches different implementations based on
+  // `cudaq::complex`, which is a pre-processor define, do not call this in
+  // `NoiseModel.cpp`. `NoiseModel.cpp` is compiled as a `cudaq-common` library,
+  // which is not aware of the backend complex type.
   void validateCompleteness() {
     if constexpr (std::is_same_v<cudaq::complex::value_type, float>) {
       validateCompletenessRelation_fp32(ops);
@@ -107,6 +122,19 @@ protected:
   }
 
 public:
+  /// @brief Noise type enumeration
+  noise_model_type noise_type = noise_model_type::unknown;
+
+  /// @brief Noise parameter values
+  // Use `double` as the uniform type to store channel parameters (for both
+  // single- and double-precision channel definitions). Some
+  // `kraus_channel` methods, e.g., copy constructor/assignment, are implemented
+  // in `NoiseModel.cpp`, which is compiled to `cudaq-common` with
+  // double-precision configuration regardless of the backends.
+  // Hence, having a templated `parameters` member variable may cause data
+  // corruption.
+  std::vector<double> parameters;
+
   ~kraus_channel() = default;
 
   /// @brief The nullary constructor
@@ -126,7 +154,9 @@ public:
 
   /// @brief The constructor, take qubits and channel kraus_ops as lvalue
   /// reference
-  kraus_channel(std::vector<kraus_op> &ops);
+  kraus_channel(const std::vector<kraus_op> &inOps) : ops(inOps) {
+    validateCompleteness();
+  }
 
   /// @brief The constructor, take qubits and channel kraus_ops as rvalue
   /// reference
@@ -226,7 +256,7 @@ protected:
   std::unordered_map<std::string, PredicateFuncTy> gatePredicates;
 
   static constexpr const char *availableOps[] = {
-      "x", "y", "z", "h", "s", "t", "rx", "ry", "rz", "r1", "u3"};
+      "x", "y", "z", "h", "s", "t", "rx", "ry", "rz", "r1", "u3", "mz"};
 
 public:
   /// @brief default constructor
@@ -340,6 +370,8 @@ public:
         k3v{std::sqrt(probability / three), 0, 0,
             negOne * std::sqrt(probability / three)};
     ops = {k0v, k1v, k2v, k3v};
+    this->parameters.push_back(probability);
+    noise_type = noise_model_type::depolarization_channel;
     validateCompleteness();
   }
 };
@@ -353,6 +385,8 @@ public:
     std::vector<cudaq::complex> k0v{1, 0, 0, std::sqrt(1 - probability)},
         k1v{0, std::sqrt(probability), 0, 0};
     ops = {k0v, k1v};
+    this->parameters.push_back(probability);
+    noise_type = noise_model_type::amplitude_damping_channel;
     validateCompleteness();
   }
 };
@@ -367,6 +401,8 @@ public:
                                     std::sqrt(1 - probability)},
         k1v{0, std::sqrt(probability), std::sqrt(probability), 0};
     ops = {k0v, k1v};
+    this->parameters.push_back(probability);
+    noise_type = noise_model_type::bit_flip_channel;
     validateCompleteness();
   }
 };
@@ -382,6 +418,8 @@ public:
                                     std::sqrt(1 - probability)},
         k1v{std::sqrt(probability), 0, 0, negOne * std::sqrt(probability)};
     ops = {k0v, k1v};
+    this->parameters.push_back(probability);
+    noise_type = noise_model_type::phase_flip_channel;
     validateCompleteness();
   }
 };

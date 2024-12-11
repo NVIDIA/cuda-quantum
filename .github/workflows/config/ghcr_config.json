@@ -61,7 +61,7 @@
             "platforms": "linux/amd64,linux/arm64",
             "tags": 
             [
-                "22.04"
+                "22.04", "24.04"
             ]
         },
         {
@@ -77,7 +77,7 @@
             "platforms": "linux/amd64,linux/arm64",
             "tags": 
             [
-                "38"
+                "38", "39"
             ]
         },
         {
@@ -101,7 +101,7 @@
             "platforms": "linux/amd64,linux/arm64",
             "tags": 
             [
-                "15.5"
+                "15.5", "15.6"
             ]
         }
     ]

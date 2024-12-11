@@ -93,6 +93,11 @@ if (CUDAQ_ENABLE_REST AND NOT DEFINED CUDAQ_ENABLE_REMOTE_SIM)
   endif()
 endif()
 
+# Enable Amazon Braket backends by default.
+if (NOT DEFINED CUDAQ_ENABLE_BRAKET_BACKEND)
+  set(CUDAQ_ENABLE_BRAKET_BACKEND ON CACHE BOOL "Enable building AWS SDK for Amazon Braket backends.")
+endif()
+
 # Generate a CompilationDatabase (compile_commands.json file) for our build,
 # for use by clang_complete, YouCompleteMe, etc.
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
@@ -136,6 +141,10 @@ option(CUDAQ_REQUIRE_OPENMP "Fail the build if OpenMP is not found." OFF)
 if(NOT LLVM_DIR AND EXISTS "$ENV{LLVM_INSTALL_PREFIX}/lib/cmake/llvm")
   SET(LLVM_DIR "$ENV{LLVM_INSTALL_PREFIX}/lib/cmake/llvm")
 endif()
+if(NOT BLAS_LIBRARIES AND EXISTS "$ENV{BLAS_INSTALL_PREFIX}/libblas.a")
+  # CACHE INTERNAL is needed due to how FindBLAS.cmake works...
+  SET(BLAS_LIBRARIES "$ENV{BLAS_INSTALL_PREFIX}/libblas.a" CACHE INTERNAL "")	
+endif()
 if(NOT CUSTATEVEC_ROOT)
   SET(CUSTATEVEC_ROOT "$ENV{CUQUANTUM_INSTALL_PREFIX}")
 endif()
@@ -151,9 +160,13 @@ endif()
 if(NOT OPENSSL_ROOT_DIR)	
   SET(OPENSSL_ROOT_DIR "$ENV{OPENSSL_INSTALL_PREFIX}")	
 endif()
-if(NOT BLAS_LIBRARIES AND EXISTS "$ENV{BLAS_INSTALL_PREFIX}/libblas.a")
-  # CACHE INTERNAL is needed due to how FindBLAS.cmake works...
-  SET(BLAS_LIBRARIES "$ENV{BLAS_INSTALL_PREFIX}/libblas.a" CACHE INTERNAL "")	
+if (NOT crypto_LIBRARY AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND EXISTS "$ENV{OPENSSL_INSTALL_PREFIX}/lib64/libcrypto.a")
+  SET(crypto_LIBRARY "$ENV{OPENSSL_INSTALL_PREFIX}/lib64/libcrypto.a" CACHE INTERNAL "")
+elseif(NOT crypto_LIBRARY AND NOT CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND EXISTS "$ENV{OPENSSL_INSTALL_PREFIX}/lib/libcrypto.a")
+  SET(crypto_LIBRARY "$ENV{OPENSSL_INSTALL_PREFIX}/lib/libcrypto.a" CACHE INTERNAL "")
+endif()
+if (NOT crypto_INCLUDE_DIR AND EXISTS "$ENV{OPENSSL_INSTALL_PREFIX}/include")
+  SET(crypto_INCLUDE_DIR "$ENV{OPENSSL_INSTALL_PREFIX}/include" CACHE INTERNAL "")
 endif()
 if(NOT CURL_LIBRARY AND EXISTS "$ENV{CURL_INSTALL_PREFIX}/lib/libcurl.a")
   SET(CURL_LIBRARY "$ENV{CURL_INSTALL_PREFIX}/lib/libcurl.a")	
@@ -161,6 +174,9 @@ if(NOT CURL_LIBRARY AND EXISTS "$ENV{CURL_INSTALL_PREFIX}/lib/libcurl.a")
   SET(CURL_CONFIG_EXECUTABLE "$ENV{CURL_INSTALL_PREFIX}/bin/curl-config")
   SET(CMAKE_USE_SYSTEM_CURL TRUE)
   SET(CURL_NO_CURL_CMAKE ON)
+endif()
+if(NOT AWSSDK_ROOT AND CUDAQ_ENABLE_BRAKET_BACKEND)
+  SET(AWSSDK_ROOT "$ENV{AWS_INSTALL_PREFIX}")
 endif()
 if(NOT CUDAQ_EXTERNAL_NVQIR_SIMS)
   SET(CUDAQ_EXTERNAL_NVQIR_SIMS $ENV{CUDAQ_EXTERNAL_NVQIR_SIMS})
@@ -477,7 +493,6 @@ if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
   find_path(ASIO_INCLUDE_DIR asio.hpp PATHS tpls/asio/asio/include)
   add_subdirectory(tpls/Crow)
 endif()
-
 
 # Check for CUDA Support
 # ==============================================================================

@@ -37,12 +37,13 @@ public:
     execution_queue->enqueue(task);
   }
 
-  void launchKernel(const std::string &name, void (*kernelFunc)(void *),
-                    void *args, std::uint64_t, std::uint64_t,
-                    const std::vector<void *> &rawArgs) override {
+  cudaq::KernelThunkResultType
+  launchKernel(const std::string &name, cudaq::KernelThunkType kernelFunc,
+               void *args, std::uint64_t, std::uint64_t,
+               const std::vector<void *> &rawArgs) override {
     cudaq::info("QPU::launchKernel GPU {}", qpu_id);
     cudaSetDevice(qpu_id);
-    kernelFunc(args);
+    return kernelFunc(args, /*differentMemorySpace=*/false);
   }
 
   /// Overrides setExecutionContext to forward it to the ExecutionManager

@@ -89,7 +89,7 @@ Batching Hamiltonian Terms
 Expectation value computations of multi-term Hamiltonians can be
 asynchronously processed via the ``mqpu`` platform.
 
-.. image:: ../../examples/python/tutorials/images/hsplit.png
+.. image:: ../../applications/python/images/hsplit.png
 
 For workflows involving multiple GPUs, save the code below in a
 ``filename.py`` file and execute via:
@@ -113,7 +113,7 @@ Circuit Batching
 Execution of parameterized circuits with different parameters can be
 executed asynchronously via the ``mqpu`` platform.
 
-.. image:: ../../examples/python/tutorials/images/circsplit.png
+.. image:: ../../applications/python/images/circsplit.png
 
 .. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/circuit_batching.py
     :language: python

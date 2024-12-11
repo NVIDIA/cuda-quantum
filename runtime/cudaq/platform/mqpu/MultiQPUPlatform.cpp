@@ -137,6 +137,16 @@ public:
 
     const auto qpuSubType = getQpuType(description);
     if (!qpuSubType.empty()) {
+      const auto formatUrl = [](const std::string &url) -> std::string {
+        auto formatted = url;
+        // Default to http:// if none provided.
+        if (!formatted.starts_with("http"))
+          formatted = std::string("http://") + formatted;
+        if (!formatted.empty() && formatted.back() != '/')
+          formatted += '/';
+        return formatted;
+      };
+
       if (!cudaq::registry::isRegistered<cudaq::QPU>(qpuSubType))
         throw std::runtime_error(
             fmt::format("Unable to retrieve {} QPU implementation. Please "
@@ -186,6 +196,20 @@ public:
           platformQPUs.emplace_back(std::move(qpu));
         }
         platformNumQPUs = platformQPUs.size();
+      } else if (qpuSubType == "orca") {
+        auto urls = cudaq::split(getOpt(description, "url"), ',');
+        platformQPUs.clear();
+        for (std::size_t qId = 0; qId < urls.size(); ++qId) {
+          // Populate the information and add the QPUs
+          platformQPUs.emplace_back(cudaq::registry::get<cudaq::QPU>("orca"));
+          platformQPUs.back()->setId(qId);
+          const std::string configStr =
+              fmt::format("orca;url;{}", formatUrl(urls[qId]));
+          platformQPUs.back()->setTargetBackend(configStr);
+          threadToQpuId[std::hash<std::thread::id>{}(
+              platformQPUs.back()->getExecutionThreadId())] = qId;
+        }
+        platformNumQPUs = platformQPUs.size();
       } else {
         auto urls = cudaq::split(getOpt(description, "url"), ',');
         auto sims = cudaq::split(getOpt(description, "backend"), ',');
@@ -197,15 +221,6 @@ public:
             description.find("auto_launch") != std::string::npos ||
             urls.empty();
 
-        const auto formatUrl = [](const std::string &url) -> std::string {
-          auto formatted = url;
-          // Default to http:// if none provided.
-          if (!formatted.starts_with("http"))
-            formatted = std::string("http://") + formatted;
-          if (!formatted.empty() && formatted.back() != '/')
-            formatted += '/';
-          return formatted;
-        };
         if (autoLaunch) {
           urls.clear();
           const auto numInstanceStr = getOpt(description, "auto_launch");

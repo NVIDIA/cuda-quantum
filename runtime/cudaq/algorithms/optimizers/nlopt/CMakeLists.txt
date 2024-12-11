@@ -16,8 +16,6 @@ target_include_directories(${LIBRARY_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/runtime)
 target_include_directories(${LIBRARY_NAME} SYSTEM PRIVATE nlopt-src/ nlopt-src/src/api)
 target_link_libraries(${LIBRARY_NAME} PRIVATE nlopt)
 
-install (FILES nlopt.h DESTINATION include/cudaq/algorithms/optimizers/)
-
 install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-nlopt-targets DESTINATION lib)
 
 install(EXPORT cudaq-nlopt-targets

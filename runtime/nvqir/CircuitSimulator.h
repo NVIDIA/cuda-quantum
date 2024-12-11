@@ -10,6 +10,7 @@
 
 #include "Gates.h"
 #include "QIRTypes.h"
+#include "common/Environment.h"
 #include "common/Logger.h"
 #include "common/MeasureCounts.h"
 #include "common/NoiseModel.h"
@@ -685,6 +686,7 @@ protected:
         cudaq::ExecutionResult tmp(regName);
         for (auto &[bits, count] : execResult.counts) {
           std::string b = "";
+          b.reserve(qubits.size());
           for (auto &qb : qubits)
             b += bits[qubitLocMap[qb]];
           tmp.appendResult(b, count);
@@ -724,6 +726,19 @@ protected:
       return;
     }
 
+    // Use static variables to reduce the number of calls to cudaq::getEnvBool
+    // since this is a frequently called piece of code, and we don't expect it
+    // to change in the middle of a run.
+    static bool z_env_var_checked = false;
+    static bool z_matrix_logging = false;
+    if (!z_env_var_checked) {
+      z_matrix_logging = cudaq::getEnvBool("CUDAQ_LOG_GATE_MATRIX", false);
+      z_env_var_checked = true;
+    }
+    if (z_matrix_logging)
+      cudaq::log("{}: matrix={}, controls={}, targets={}, params={}", name,
+                 matrix, controls, targets, params);
+
     gateQueue.emplace(name, matrix, controls, targets, params);
   }
 
@@ -752,7 +767,17 @@ protected:
         summaryData.svGateUpdate(
             next.controls.size(), next.targets.size(), stateDimension,
             stateDimension * sizeof(std::complex<ScalarType>));
-      applyGate(next);
+      try {
+        applyGate(next);
+      } catch (std::exception &e) {
+        while (!gateQueue.empty())
+          gateQueue.pop();
+        throw e;
+      } catch (...) {
+        while (!gateQueue.empty())
+          gateQueue.pop();
+        throw std::runtime_error("Unknown exception in applyGate");
+      }
       if (executionContext && executionContext->noiseModel) {
         std::vector<double> params(next.parameters.begin(),
                                    next.parameters.end());
@@ -777,17 +802,7 @@ protected:
   /// The environment variable "CUDAQ_OBSERVE_FROM_SAMPLING" can be used to turn
   /// on or off this setting.
   bool shouldObserveFromSampling(bool defaultConfig = true) {
-    if (auto envVar = std::getenv(observeSamplingEnvVar); envVar) {
-      std::string asString = envVar;
-      std::transform(asString.begin(), asString.end(), asString.begin(),
-                     [](auto c) { return std::tolower(c); });
-      if (asString == "false" || asString == "off" || asString == "0")
-        return false;
-      if (asString == "true" || asString == "on" || asString == "1")
-        return true;
-    }
-
-    return defaultConfig;
+    return cudaq::getEnvBool(observeSamplingEnvVar, defaultConfig);
   }
 
   bool isSinglePrecision() const override {
@@ -1303,6 +1318,12 @@ public:
           const std::string &registerName) override {
     // Flush the Gate Queue
     flushGateQueue();
+
+    // Apply measurement noise (if any)
+    // Note: gate noises are applied during flushGateQueue
+    if (executionContext && executionContext->noiseModel)
+      applyNoiseChannel(/*gateName=*/"mz", /*controls=*/{},
+                        /*targets=*/{qubitIdx}, /*params=*/{});
 
     // If sampling, just store the bit, do nothing else.
     if (handleBasicSampling(qubitIdx, registerName))

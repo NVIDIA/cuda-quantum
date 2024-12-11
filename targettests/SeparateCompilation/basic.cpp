@@ -40,8 +40,7 @@ __qpu__ void dunkadee(cudaq::qvector<> &q) {
 #include "baselib.h"
 #include <iostream>
 
-__qpu__ void
-userKernel(const cudaq::qkernel_ref<void(cudaq::qvector<> &)> &init) {
+__qpu__ void userKernel(const cudaq::qkernel<void(cudaq::qvector<> &)> &init) {
   cudaq::qvector q(2);
   init(q);
 }

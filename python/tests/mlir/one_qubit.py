@@ -81,6 +81,7 @@ def test_kernel_param_1q():
     print(kernel)
 
 
+# CHECK-LABEL: test_kernel_param_1q
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
 # CHECK-SAME:                                                                   %[[VAL_0:.*]]: f64) attributes {"cudaq-entrypoint"} {
 # CHECK:           %0 = quake.alloca !quake.veq<1>

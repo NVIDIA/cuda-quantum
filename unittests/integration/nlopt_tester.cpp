@@ -13,6 +13,9 @@
 #include <cudaq/algorithms/gradients/central_difference.h>
 #include <cudaq/optimizers.h>
 
+// Rotational gates not supported in Stim.
+#ifndef CUDAQ_BACKEND_STIM
+
 // Skip these Nlopt optimizer tests for slow backends to reduce test time.
 // Note: CUDA-Q API level tests (e.g., `cudaq::observe`) should cover all
 // backend-specific functionalities required to interface with optimizers.
@@ -96,5 +99,7 @@ CUDAQ_TEST(NloptTester, checkOtherSignatures) {
     });
   });
 }
+
+#endif
 
 #endif

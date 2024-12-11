@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 // RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// RUN: CUDAQ_DEFAULT_SIMULATOR=stim nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
 
 #include <cudaq.h>

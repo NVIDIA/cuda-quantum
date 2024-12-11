@@ -40,6 +40,7 @@ on:
   push:
     branches:
       - 'releases/*'
+      - 'staging/*'
       - 'experimental/*'
       - 'features/*'
 
@@ -56,17 +57,20 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: read
 
     outputs:
       pull_request_number: ${{ steps.pr_info.outputs.pr_number }}
       pull_request_base: ${{ steps.pr_info.outputs.pr_base }}
       pull_request_commit: ${{ steps.pr_info.outputs.merge_commit }}
-      llvm_commit: ${{ steps.repo_info.outputs.llvm_commit }}
-      pybind11_commit: ${{ steps.repo_info.outputs.pybind11_commit }}
+      llvm_commit: ${{ steps.build_config.outputs.llvm_commit }}
+      pybind11_commit: ${{ steps.build_config.outputs.pybind11_commit }}
       cache_base: ${{ steps.build_info.outputs.cache_base }}
       cache_target: ${{ steps.build_info.outputs.cache_target }}
       multi_platform: ${{ steps.build_info.outputs.multi_platform }}
       platforms: ${{ steps.build_info.outputs.platforms }}
+      build_dependencies: ${{ steps.build_config.outputs.build_dependencies }}
+      create_packages: ${{ steps.build_config.outputs.create_packages }}
       environment: ${{ steps.build_info.outputs.environment }}
 
     steps:
@@ -157,15 +161,22 @@ jobs:
           ref: "${{ steps.pr_info.outputs.merge_commit }}"
 
       - name: Configure build
-        id: repo_info
+        id: build_config
         run: |
           echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
           echo "pybind11_commit=$(git rev-parse @:./tpls/pybind11)" >> $GITHUB_OUTPUT
 
+          if ${{ github.event_name != 'workflow_run' || steps.pr_info.outputs.pr_number != '' }}; then
+            echo "build_dependencies=true" >> $GITHUB_OUTPUT
+          fi
+          if ${{ github.event_name == 'workflow_dispatch' && ! inputs.update_registry_cache }}; then
+            echo "create_packages=true" >> $GITHUB_OUTPUT
+          fi
+
   devdeps:
     name: Build dev dependencies
     needs: metadata
-    if: github.event_name != 'workflow_run' || needs.metadata.outputs.pull_request_number != ''
+    if: needs.metadata.outputs.build_dependencies == 'true'
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
@@ -178,7 +189,9 @@ jobs:
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.Dockerfile
-      toolchain: ${{ matrix.toolchain }}
+      build_config_id: ${{ matrix.toolchain }}
+      build_args: |
+        toolchain=${{ matrix.toolchain }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
       pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
@@ -191,12 +204,13 @@ jobs:
   wheeldeps:
     name: Build wheel dependencies
     needs: metadata
-    if: github.event_name != 'workflow_run' || needs.metadata.outputs.pull_request_number != ''
+    if: needs.metadata.outputs.build_dependencies == 'true'
     strategy:
       matrix:
         # There are currently no multi-platform manylinux images available.
         # See https://github.com/pypa/manylinux/issues/1306.
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
+        cuda_version: ["11.8", "12.0"]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -205,9 +219,11 @@ jobs:
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.manylinux.Dockerfile
-      toolchain: gcc11
+      build_config_id: cu${{ matrix.cuda_version }}-gcc11
       build_args: |
         base_image=ghcr.io/nvidia/pypa/manylinux_2_28${{ (matrix.platform == 'arm64' && '_aarch64') || (matrix.platform == 'amd64' && '_x86_64') || '' }}:latest
+        cuda_version=${{ matrix.cuda_version }}
+        toolchain=gcc11
         distro=rhel8
         llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
         pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
@@ -217,15 +233,16 @@ jobs:
       pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
       environment: ${{ needs.metadata.outputs.environment }}
       # needed only for the cloudposse GitHub action
-      matrix_key: ${{ matrix.platform }}-python
+      matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-python
 
   source_build:
     name: Build cross-platform dependencies
     needs: metadata
-    if: github.event_name != 'workflow_run' || needs.metadata.outputs.pull_request_number != ''
+    if: needs.metadata.outputs.build_dependencies == 'true'
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
+        cuda_version: ["11.8", "12.0"]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -234,10 +251,12 @@ jobs:
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/assets.Dockerfile
+      build_config_id: cu${{ matrix.cuda_version }}-llvm
       build_target: prereqs
-      toolchain: llvm
       build_args: |
         base_image=${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].minimal_base_image }}
+        cuda_version=${{ matrix.cuda_version }}
+        toolchain=llvm
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
       pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
@@ -245,15 +264,16 @@ jobs:
       checkout_submodules: true
       environment: ${{ needs.metadata.outputs.environment }}
       # needed only for the cloudposse GitHub action
-      matrix_key: ${{ matrix.platform }}-installer
+      matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-installer
 
   openmpi:
     name: Build Open MPI
     needs: metadata
-    if: github.event_name != 'workflow_run' || needs.metadata.outputs.pull_request_number != ''
+    if: needs.metadata.outputs.build_dependencies == 'true'
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
+        cuda_version: ["11.8", "12.0"]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -262,11 +282,14 @@ jobs:
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.ompi.Dockerfile
+      build_config_id: cu${{ matrix.cuda_version }}
+      build_args: |
+        cuda_version=${{ matrix.cuda_version }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
       environment: ${{ needs.metadata.outputs.environment }}
       # needed only for the cloudposse GitHub action
-      matrix_key: ${{ matrix.platform }}-ompi
+      matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-ompi
 
   dispatch:
     name: Dispatch deployments
@@ -297,13 +320,12 @@ jobs:
   # https://github.com/actions/runner/pull/2477
   config:
     name: Configure build
-    needs: [devdeps, wheeldeps, source_build, openmpi]
-    if: github.event_name == 'workflow_dispatch' && ! inputs.update_registry_cache
+    needs: [metadata, devdeps, wheeldeps, source_build, openmpi]
+    if: needs.metadata.outputs.create_packages == 'true'
     runs-on: ubuntu-latest
 
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
-      devdeps_toolchain: gcc11
 
     steps:
       - uses: cloudposse/github-action-matrix-outputs-read@1.0.0
@@ -311,12 +333,30 @@ jobs:
         with:
           matrix-step-name: dev_environment
 
+  coverage:
+    name: Update code coverage
+    needs: [metadata, config]
+    if: needs.metadata.outputs.multi_platform != ''
+    strategy:
+      matrix:
+        platform: [amd64]
+        toolchain: [clang16]
+      fail-fast: false
+    uses: ./.github/workflows/generate_cc.yml
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    with:
+      platform: linux/${{ matrix.platform }}
+      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-{1}', fromJson(needs.metadata.outputs.multi_platform).ids[0], matrix.toolchain)] }}
+      export_environment: false
+
   extdevdeps:
     name: Create dev environment
     needs: [metadata, config, openmpi]
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
+        cuda_version: ["11.8", "12.0"]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -325,15 +365,17 @@ jobs:
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.ext.Dockerfile
-      toolchain: ${{ needs.config.outputs.devdeps_toolchain }}
+      build_config_id: cu${{ matrix.cuda_version }}-gcc11
       build_args: |
-        base_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-{1}', matrix.platform, needs.config.outputs.devdeps_toolchain)] }}
-        ompidev_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-ompi', matrix.platform)] }}
+        cuda_version=${{ matrix.cuda_version }}
+        base_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-gcc11', matrix.platform)] }}
+        ompidev_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-cu{1}-ompi', matrix.platform, matrix.cuda_version)] }}
+        ${{ matrix.cuda_version != '11.8' && 'cuda_packages=cuda-cudart cuda-nvrtc cuda-compiler libcublas-dev libcusolver libnvjitlink' || '' }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
       environment: ${{ needs.metadata.outputs.environment }}
       # needed only for the cloudposse GitHub action
-      matrix_key: ${{ matrix.platform }}-ext
+      matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-ext
 
   # This job is needed only when using the cloudposse GitHub action to read
   # the output of a matrix job. This is a workaround due to current GitHub
@@ -359,6 +401,7 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
+        cuda_version: ["11.8", "12.0"]
       fail-fast: false
     uses: ./.github/workflows/docker_images.yml
     secrets:
@@ -367,9 +410,10 @@ jobs:
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
-      ompidev_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-ompi', matrix.platform)] }}
-      devdeps_image: ${{ fromJson(needs.ext_config.outputs.json).image_hash[format('{0}-ext', matrix.platform)] }}
-      build_docs: true
+      cuda_version: ${{ matrix.cuda_version }}
+      ompidev_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-cu{1}-ompi', matrix.platform, matrix.cuda_version)] }}
+      devdeps_image: ${{ fromJson(needs.ext_config.outputs.json).image_hash[format('{0}-cu{1}-ext', matrix.platform, matrix.cuda_version)] }}
+      build_docs: ${{ matrix.cuda_version == '11.8' }}
       environment: ghcr-deployment
 
   python_wheels:
@@ -378,7 +422,8 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
-        python_version: ['3.8', '3.9', '3.10', '3.11']
+        python_version: ['3.10', '3.11', '3.12']
+        cuda_version: ["11.8", "12.0"]
       fail-fast: false
     uses: ./.github/workflows/python_wheels.yml
     secrets:
@@ -387,7 +432,8 @@ jobs:
     with:
       platform: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       python_version: ${{ matrix.python_version }}
-      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-python', matrix.platform)] }}
+      cuda_version: ${{ matrix.cuda_version }}
+      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
       create_staging_info:  ${{ matrix.python_version == '3.11' }} # staging info is the same for all python versions
 
   binaries:
@@ -396,6 +442,7 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
+        cuda_version: ["11.8", "12.0"]
       fail-fast: false
     uses: ./.github/workflows/prebuilt_binaries.yml
     secrets:
@@ -404,6 +451,7 @@ jobs:
     with:
       platform: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       platform_base_image: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].minimal_base_image }}
-      build_cache: ${{ fromJson(needs.config.outputs.json).build_cache[format('{0}-installer', matrix.platform)] }}
-      toolchain: llvm
+      build_config_id: cu${{ matrix.cuda_version }}-llvm
+      cuda_version: ${{ matrix.cuda_version }}
+      build_cache: ${{ fromJson(needs.config.outputs.json).build_cache[format('{0}-cu{1}-installer', matrix.platform, matrix.cuda_version)] }}
       environment: ghcr-deployment

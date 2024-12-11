@@ -19,7 +19,7 @@ void cudaqRegisterLambdaName(const char *, const char *);
 /// Register a kernel with the runtime for kernel runtime stitching.
 void __cudaq_registerLinkableKernel(void *, const char *, void *);
 
-/// Return the kernel key from a qkernel_ref object. If \p p is a `nullptr` this
+/// Return the kernel key from a `qkernel` object. If \p p is a `nullptr` this
 /// will throw a runtime error.
 std::intptr_t __cudaq_getLinkableKernelKey(void *p);
 

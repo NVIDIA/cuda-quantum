@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // REQUIRES: c++17
-// RUN: nvq++ %cpp_std --enable-mlir %s -o %t && %t | FileCheck %s
+// RUN: nvq++ -std=c++17 --enable-mlir %s -o %t && %t | FileCheck %s
 
 #include <cudaq.h>
 

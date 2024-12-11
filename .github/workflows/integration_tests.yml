@@ -23,6 +23,7 @@ on:
           - quantinuum
           - nvqc
           - orca
+          - fermioniq
       single_test_name:
         type: string
         required: false
@@ -34,7 +35,7 @@ on:
       cudaq_test_image:
         type: string
         required: false
-        default: 'nvcr.io/nvidia/nightly/cuda-quantum:latest' # If changed, update env defaults, too
+        default: '' # picked up from repo variable if not provided
         description: 'CUDA Quantum image to run the tests in. Default to the latest CUDA Quantum nightly image'
       commit_sha:
         type: string
@@ -43,7 +44,7 @@ on:
       cudaq_nvqc_deploy_image:
         type: string
         required: false
-        default: 'nvcr.io/nvidia/nightly/cuda-quantum:latest' # If changed, update env defaults, too
+        default: '' # same as cudaq_test_image if not provided
         description: 'CUDA Quantum image to use for NVQC deployment to NVCF. Default to the latest CUDA Quantum nightly image'
       workflow_id:
         type: string
@@ -52,53 +53,111 @@ on:
       python_version:
         type: choice
         required: true
-        default: '3.10' # If changed, update env defaults, too
         description: 'Python version to run wheel test'
         options:
-        - '3.8'
-        - '3.9'
         - '3.10'
         - '3.11'
+        - '3.12'
 
   schedule:
     - cron: 0 3 * * *
 
 env:
-  # NGC nv-quantum organization: pnyjrcojiblh
   NGC_QUANTUM_ORG: pnyjrcojiblh
   NGC_QUANTUM_TEAM: cuda-quantum
   NVQC_FUNCTION_ID: 3bfa0342-7d2a-4f1b-8e81-b6608d28ca7d
   # <Backend>:<GPU Type>:<Instance Type>:<Min Instances>:<Max Instances>
-  NGC_NVQC_DEPLOYMENT_SPEC: GFN:L40:gl40_1.br20_2xlarge:1:1
-  # If vars below are changed, it is recommended to also update the
-  # workflow_dispatch defaults above so they stay in sync.
-  cudaq_test_image: nvcr.io/nvidia/nightly/cuda-quantum:latest
-  cudaq_nvqc_deploy_image: nvcr.io/nvidia/nightly/cuda-quantum:latest
+  NGC_NVQC_DEPLOYMENT_SPEC: GFN:L40S:gl40s_1.br25_2xlarge:1:1
   python_version: '3.10'
 
 jobs:
   # We need this job purely to choose the container image values because the
   # `env` context is unavailable outside of "steps" contexts.
   setup:
-    name: Set variables
+    name: Configure jobs
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
+
+    environment:
+      name: ghcr-deployment
+      url: ${{ vars.deployment_url }}
+
     outputs:
-      cudaq_test_image: ${{ steps.vars.outputs.cudaq_test_image }}
+      cudaq_test_image: ${{ steps.vars.outputs.cudaq_nightly_image }}@${{ steps.test_image.outputs.digest }}
+      cudaq_nvqc_deploy_image: ${{ inputs.cudaq_nvqc_deploy_image || format('{0}@{1}', steps.vars.outputs.cudaq_nightly_image, steps.test_image.outputs.digest) }}
+
     steps:
       - name: Set variables
         id: vars
         run: |
-          echo "cudaq_test_image=${{ inputs.cudaq_test_image || env.cudaq_test_image }}" >> $GITHUB_OUTPUT
+          cudaq_test_image=${{ inputs.cudaq_test_image || vars.cudaq_test_image }}
+          cudaq_nightly_image=ghcr.io/nvidia/${{ vars.packages_prefix }}cuda-quantum
+
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends curl
+          curl -L https://github.com/regclient/regclient/releases/latest/download/regctl-linux-amd64 > regctl
+          chmod 755 regctl
+
+          manifest=`./regctl image manifest $cudaq_test_image --format "{{ json . }}"`
+          platforms=`echo $manifest | jq -r '.manifests | map("\(.platform.os)/\(.platform.architecture)") | .[]'`
+          echo "FROM $cudaq_test_image" >> test_image.Dockerfile
+
+          echo "platforms=$(echo $platforms | tr ' ' ,)" >> $GITHUB_OUTPUT
+          echo "cudaq_nightly_image=$cudaq_nightly_image" >> $GITHUB_OUTPUT
+
+      - name: Log in to GitHub CR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Set up context for buildx
+        run: |
+          docker context create builder_context
+
+      - name: Set up buildx runner
+        uses: docker/setup-buildx-action@v3
+        with:
+          endpoint: builder_context
+
+      - name: Extract metadata
+        id: metadata
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.vars.outputs.cudaq_nightly_image }}
+          flavor: latest=false
+          tags: type=raw,value=nightly
+          labels: |
+            org.opencontainers.image.title=cuda-quantum
+            org.opencontainers.image.description=CUDA-Q image used for nightly integration tests
+
+      - name: Update nightly image on GHCR
+        id: test_image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: test_image.Dockerfile
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          platforms: ${{ steps.vars.outputs.platforms }}
+          push: true
 
   metadata:
     name: Retrieve commit info
     runs-on: ubuntu-latest
     needs: setup
+
     container:
       image: ${{ needs.setup.outputs.cudaq_test_image }}
       options: --user root
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
+
     outputs:
       cudaq_commit: ${{ steps.commit-sha.outputs.sha }}
+
     steps:
       - name: Get commit SHA
         id: commit-sha
@@ -112,9 +171,14 @@ jobs:
   build_nvqc_image:
     name: Build NVQC deployment image
     runs-on: ubuntu-latest
-    needs: metadata
-    environment: ghcr-deployment
     if: (inputs.target == 'nvqc' || github.event_name == 'schedule' || inputs.target == 'nightly')
+    needs: [setup, metadata]
+    permissions:
+      contents: read
+      packages: write
+
+    environment: ghcr-deployment
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -153,8 +217,8 @@ jobs:
           context: .
           file: ./docker/release/cudaq.nvqc.Dockerfile
           build-args: |
-            base_image=${{ inputs.cudaq_nvqc_deploy_image || env.cudaq_nvqc_deploy_image }}
-          tags: nvcr.io/${{ env.NGC_QUANTUM_ORG }}/${{ env.NGC_QUANTUM_TEAM }}/cuda-quantum:nightly
+            base_image=${{ needs.setup.outputs.cudaq_nvqc_deploy_image }}
+          tags: nvcr.io/${{ env.NGC_QUANTUM_ORG }}/${{ env.NGC_QUANTUM_TEAM }}/${{ vars.packages_prefix }}cuda-quantum:nightly
           platforms: linux/amd64
           provenance: false
           push: true
@@ -164,7 +228,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: [metadata, build_nvqc_image]
     if: (inputs.target == 'nvqc' || github.event_name == 'schedule' || inputs.target == 'nightly')
+    permissions:
+      contents: read
+
+    # Must have environment protection
     environment: ghcr-deployment
+
     outputs:
       nvqc_function_version_id: ${{ steps.deploy.outputs.nvqc_function_version_id }}
 
@@ -187,7 +256,7 @@ jobs:
           NGC_CLI_API_KEY: ${{ secrets.NGC_CREDENTIALS }}
           NGC_CLI_ORG: ${{ env.NGC_QUANTUM_ORG }}
           NGC_CLI_TEAM: cuda-quantum
-        # When a new REST version is introduced, NVQC_REST_PAYLOAD_VERSION needs to be updated in lockstep with the new nightly CUDA Quantum image. 
+        # When a new REST version is introduced, NVQC_REST_PAYLOAD_VERSION needs to be updated in lockstep with the new nightly CUDA Quantum image.
         # Otherwise, deployment of the test function will fail.
         run: |
           # We run with CUDAQ_SER_CODE_EXEC set. The final NVQC deployment may
@@ -229,10 +298,18 @@ jobs:
     name: Integration test with hardware providers
     runs-on: ubuntu-latest
     needs: [setup, metadata]
+    permissions:
+      contents: read
+      packages: read
+
+    # Must have environment protection
     environment: backend-validation
     container:
       image: ${{ needs.setup.outputs.cudaq_test_image }}
       options: --user root
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
 
     steps:
       - name: Get code
@@ -256,7 +333,7 @@ jobs:
             filelist="targettests/*/*.cpp"
             echo "testlist=$filelist" >> $GITHUB_OUTPUT
           fi
-      
+
       - name: Setup anyon account
         # This step is currently bypassed during nightly runs due to
         # maintenance. Restore the if check to the original value when
@@ -264,7 +341,7 @@ jobs:
         #if: github.event_name == 'schedule' || inputs.target == 'nightly' || inputs.target == 'anyon'
         if: inputs.target == 'anyon'
         run: |
-          curl -X POST -H "Content Type: application/json" -d '{ "username":"${{ secrets.BACKEND_LOGIN_USERNAME }}","password":"${{ secrets.BACKEND_LOGIN_PASSWORD }}" }' https://api.anyon.cloud/login > credentials.json
+          curl -X POST --user "${{ secrets.ANYON_USERNAME }}:${{ secrets.ANYON_PASSWORD }}"  -H "Content-Type: application/json" https://api.anyon.cloud:5000/login > credentials.json
           id_token=`cat credentials.json | jq -r '."id_token"'`
           refresh_token=`cat credentials.json | jq -r '."refresh_token"'`
           echo "key: $id_token" > ~/.anyon_config
@@ -393,18 +470,15 @@ jobs:
           fi
         shell: bash
 
-      - name: Submit to IQM Demo server
+      - name: Submit to a mocked IQM Resonance server
         if: (success() || failure()) && (inputs.target == 'iqm' || github.event_name == 'schedule' || inputs.target == 'nightly')
         run: |
-          # Must install iqm-cortex-cli to authenticate
-          pip install iqm-cortex-cli
-          echo "### Submit to IQM Demo server" >> $GITHUB_STEP_SUMMARY
-          # IQM demo server info is from: https://demo.qc.iqm.fi/cocos/info/
-          cortex init --config-file ${HOME}/.config/iqm-cortex-cli/config.json --tokens-file ${HOME}/.cache/iqm-cortex-cli/tokens.json --auth-server-url https://demo.qc.iqm.fi/auth --client-id iqm_client --realm cortex --username '${{ secrets.IQM_USER }}'
-          cortex auth login --username '${{ secrets.IQM_USER }}' --password '${{ secrets.IQM_PASSWORD }}'
-          echo ":white_check_mark: Successfully installed iqm-cortex-cli and logged in" >> $GITHUB_STEP_SUMMARY
-          # Use the demo machine, which is Adonis architecture
-          export IQM_SERVER_URL="https://demo.qc.iqm.fi/cocos"
+          echo "### Submit to IQM Resonance" >> $GITHUB_STEP_SUMMARY
+          # Create a json file with the Resonance auth token
+          echo "{ \"access_token\": \"${{ secrets.IQM_TOKEN }}\" }" > .resonance.api-token.json
+          export IQM_TOKENS_FILE=".resonance.api-token.json"
+          # Use IQM Resonance Pyrite mock, which implements the Adonis architecture
+          export IQM_SERVER_URL="https://cocos.resonance.meetiqm.com/pyrite:test"
           export CUDAQ_LOG_LEVEL="info"
           set +e # Allow script to keep going through errors
           test_err_sum=0
@@ -431,8 +505,6 @@ jobs:
               ;;
             esac
           done
-          set -e # Re-enable exit code error checking
-          cortex auth logout -f
           echo ":white_check_mark: Successfully logged out of IQM" >> $GITHUB_STEP_SUMMARY
           if [ ! $test_err_sum -eq 0 ]; then
             echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
@@ -490,7 +562,7 @@ jobs:
           export ORCA_ACCESS_URL='${{ secrets.ORCA_ACCESS_URL }}'
           set +e # Allow script to keep going through errors
           test_err_sum=0
-          cpp_tests="docs/sphinx/examples/cpp/providers/orca.cpp"
+          cpp_tests="docs/sphinx/targets/cpp/orca.cpp  docs/sphinx/targets/cpp/orca_mqpu.cpp"
           for filename in $cpp_tests; do
             [ -e "$filename" ] || echo "::error::Couldn't find file ($filename)"
             nvq++ --target orca --orca-url $ORCA_ACCESS_URL $filename
@@ -509,7 +581,57 @@ jobs:
               test_err_sum=$((test_err_sum+1))
             fi
           done
-          python_tests="docs/sphinx/examples/python/providers/orca.py"
+          python_tests="docs/sphinx/targets/python/orca.py  docs/sphinx/targets/python/orca_mqpu.py"
+          for filename in $python_tests; do
+            [ -e "$filename" ] || echo "::error::Couldn't find file ($filename)"
+            python3 $filename 1> /dev/null
+            test_status=$?
+            if [ $test_status -eq 0 ]; then
+              echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+            else
+              echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+              test_err_sum=$((test_err_sum+1))
+            fi
+          done
+          set -e # Re-enable exit code error checking
+          if [ ! $test_err_sum -eq 0 ]; then
+            echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Submit to Fermioniq test server
+        if: (success() || failure()) && (inputs.target == 'fermioniq' || github.event_name == 'schedule' || inputs.target == 'nightly')
+        run: |
+          echo "### Submit to Fermioniq server" >> $GITHUB_STEP_SUMMARY
+          export FERMIONIQ_ACCESS_TOKEN_ID='${{ secrets.FERMIONIQ_ACCESS_TOKEN_ID }}'
+          export FERMIONIQ_ACCESS_TOKEN_SECRET='${{ secrets.FERMIONIQ_ACCESS_TOKEN_SECRET }}'
+          export FERMIONIQ_PROJECT_ID='c86e2cb8-d776-41ae-8240-d3d55e18b7c3'
+          set +e # Allow script to keep going through errors
+          test_err_sum=0
+          cpp_tests="docs/sphinx/targets/cpp/fermioniq.cpp"
+          for filename in $cpp_tests; do
+            [ -e "$filename" ] || echo "::error::Couldn't find file ($filename)"
+            nvq++ \
+              --target fermioniq \
+              --fermioniq-project-id $FERMIONIQ_PROJECT_ID \
+              $filename
+            test_status=$?
+            if [ $test_status -eq 0 ]; then
+              ./a.out 1> /dev/null
+              test_status=$?
+              if [ $test_status -eq 0 ]; then
+                echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+              else
+                echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                test_err_sum=$((test_err_sum+1))
+              fi
+            else
+              echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+              test_err_sum=$((test_err_sum+1))
+            fi
+          done
+          python_tests="docs/sphinx/targets/python/fermioniq.py docs/sphinx/targets/python/fermioniq_observables.py"
           for filename in $python_tests; do
             [ -e "$filename" ] || echo "::error::Couldn't find file ($filename)"
             python3 $filename 1> /dev/null
@@ -555,10 +677,21 @@ jobs:
     runs-on: ubuntu-latest
     if: (inputs.target == 'nvqc' || github.event_name == 'schedule' || inputs.target == 'nightly')
     needs: [setup, metadata, build_nvqc_image, deploy_nvqc_test_function]
-    environment: ghcr-deployment
+    permissions:
+      contents: read
+      packages: read
+
+    # Must have environment protection
+    environment:
+      name: ghcr-deployment
+      url: ${{ vars.deployment_url }}
+
     container:
       image: ${{ needs.setup.outputs.cudaq_test_image }}
       options: --user root
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
 
     steps:
       - name: Get code
@@ -636,7 +769,7 @@ jobs:
           done
 
           # Test C++ examples with NVQC
-          for filename in `find examples/cpp/ -name '*.cpp'`; do
+          for filename in `find examples/cpp/ applications/cpp/ targets/cpp/ -name '*.cpp'`; do
             if [[ "$filename" == *"nvqc"* ]]; then
               echo "$filename"
               nvqc_config=""
@@ -672,7 +805,7 @@ jobs:
 
           # Test NVQC Python examples + Python MLIR execution tests (not IR tests)
           python3 -m pip install pytest
-          for ex in `find examples/python python/tests/mlir/target -name '*.py' -not -path '*/python/tutorials/*'`; do
+          for ex in `find examples/python python/tests/mlir/target -name '*.py'`; do
             filename=$(basename -- "$ex")
             filename="${filename%.*}"
             echo "Testing $filename:"
@@ -686,7 +819,8 @@ jobs:
                 echo ":x: Test failed (failed to execute): $ex" >> $GITHUB_STEP_SUMMARY
                 test_err_sum=$((test_err_sum+1))
               fi
-            else
+            # building_kernels.py is disabled due to https://github.com/NVIDIA/cuda-quantum/issues/2299.
+            elif [[ "$ex" != *"building_kernels"* ]]; then
               # Only run examples that are not target-specific (e.g., ionq, iqm)
               if ! grep -q "set_target" "$ex"; then
                 # Use --target command line option to run these examples with nvqc
@@ -712,9 +846,13 @@ jobs:
   nvqc_integration_wheel_test:
     name: NVQC integration test using Python wheels
     runs-on: ubuntu-latest
-    needs: [metadata, build_nvqc_image, deploy_nvqc_test_function]
-    environment: ghcr-deployment
     if: inputs.target == 'nvqc' || github.event_name == 'schedule' || inputs.target == 'nightly'
+    needs: [metadata, build_nvqc_image, deploy_nvqc_test_function]
+    permissions:
+      contents: read
+
+    # Must have environment protection
+    environment: ghcr-deployment
 
     steps:
       - name: Get code
@@ -729,7 +867,7 @@ jobs:
           python_version=${{ inputs.python_version || env.python_version }}
           workflow_id=${{ inputs.workflow_id }}
           # Helper to get the *valid* Publishing run Id for a commit hash
-          # Notes: runs that have 'CUDA Quantum Python wheels' jobs skipped are not considered.
+          # Notes: runs that have 'CUDA-Q Python wheels' jobs skipped are not considered.
           function get_publishing_run_id {
             # Find all Publishing runs, we'll look into its jobs' status later
             if [[ -z "$1" ]]; then
@@ -738,9 +876,9 @@ jobs:
               publishing_run_ids=$(gh run list --commit $1 --workflow Publishing --json databaseId --jq .[].databaseId)
             fi
             for run_id in $publishing_run_ids ; do
-                # Look into its jobs: if "CUDA Quantum Python wheels" matrix build was performed,
-                # then we have multiple jobs, like "CUDA Quantum Python wheels (python_arm64....")
-                cuda_wheel_build_jobs=$(gh run view $run_id --jq '.jobs.[] | select(.name | startswith("CUDA Quantum Python wheels (python_")).name' --json jobs)
+                # Look into its jobs: if "CUDA-Q Python wheels" matrix build was performed,
+                # then we have multiple jobs, like "CUDA-Q Python wheels (python_arm64....")
+                cuda_wheel_build_jobs=$(gh run view $run_id --jq '.jobs.[] | select(.name | startswith("CUDA-Q Python wheels (python_")).name' --json jobs)
                 if [ ! -z "$cuda_wheel_build_jobs" ]; then
                   # This is a valid run that produces wheel artifacts
                   echo $run_id
@@ -756,7 +894,7 @@ jobs:
             echo "Using artifacts from workflow id $workflow_id"
             # Allow error when trying to download wheel artifacts since they might be expired.
             set +e
-            gh run download $workflow_id --name "x86_64-py$python_version-wheels"
+            gh run download $workflow_id --name "x86_64-cu12-py$python_version-wheels"
             retVal=$?
             set -e
             if [ $retVal -ne 0 ]; then
@@ -768,7 +906,7 @@ jobs:
             python_version_filename=$(echo "${python_version//.}")
             # Install Python and the wheel
             apt-get update && apt-get install -y --no-install-recommends python$python_version python3-pip
-            wheelfile=$(find . -name "cuda_quantum*cp$python_version_filename*x86_64.whl")
+            wheelfile=$(find . -name "cuda_quantum_cu12*cp$python_version_filename*x86_64.whl")
             python$python_version -m pip install $wheelfile
             echo "skipped=false" >> $GITHUB_OUTPUT
           else
@@ -779,7 +917,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
       - name: Test NVQC
-        if: ${{ ! steps.install_wheel.skipped }}
+        if: ${{ steps.install_wheel.outputs.skipped != 'true' }}
         run: |
           echo "### Submit to NVQC from Python wheels" >> $GITHUB_STEP_SUMMARY
           python_version=${{ inputs.python_version || env.python_version }}
@@ -789,7 +927,7 @@ jobs:
           set +e # Allow script to keep going through errors
           python$python_version -m pip install pytest
           test_err_sum=0
-          for ex in `find examples/python python/tests/mlir/target -name '*.py' -not -path '*/python/tutorials/*'`; do
+          for ex in `find examples/python python/tests/mlir/target -name '*.py'`; do
             filename=$(basename -- "$ex")
             filename="${filename%.*}"
             echo "Testing $filename:"
@@ -802,7 +940,8 @@ jobs:
                 echo ":x: Test failed (failed to execute): $ex" >> $GITHUB_STEP_SUMMARY
                 test_err_sum=$((test_err_sum+1))
               fi
-            else
+            # building_kernels.py is disabled due to https://github.com/NVIDIA/cuda-quantum/issues/2299.
+            elif [[ "$ex" != *"building_kernels"* ]]; then
               # Only run examples that are not target-specific (e.g., ionq, iqm)
               if ! grep -q "set_target" "$ex"; then
                 # Use --target command line option to run these examples with nvqc
@@ -826,9 +965,14 @@ jobs:
   cleanup_nvqc_resources:
     name: Cleanup NVQC resources
     runs-on: ubuntu-latest
-    needs: [build_nvqc_image, deploy_nvqc_test_function, nvqc_integration_docker_test, nvqc_integration_wheel_test]
     if: (success() || failure()) && (inputs.target == 'nvqc' || github.event_name == 'schedule' || inputs.target == 'nightly')
+    needs: [build_nvqc_image, deploy_nvqc_test_function, nvqc_integration_docker_test, nvqc_integration_wheel_test]
+    permissions:
+      contents: read
+
+    # Must have environment protection
     environment: ghcr-deployment
+
     steps:
       - name: Get code
         uses: actions/checkout@v4

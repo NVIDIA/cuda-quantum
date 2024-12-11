@@ -130,16 +130,19 @@ public:
                     kernelArgs, gradient, H, optimizer, n_params, shots);
   }
 
-  void launchKernel(const std::string &name, void (*kernelFunc)(void *),
-                    void *args, std::uint64_t voidStarSize,
-                    std::uint64_t resultOffset,
-                    const std::vector<void *> &rawArgs) override {
+  cudaq::KernelThunkResultType
+  launchKernel(const std::string &name, cudaq::KernelThunkType kernelFunc,
+               void *args, std::uint64_t voidStarSize,
+               std::uint64_t resultOffset,
+               const std::vector<void *> &rawArgs) override {
     cudaq::info("PyRemoteSimulatorQPU: Launch kernel named '{}' remote QPU {} "
                 "(simulator = {})",
                 name, qpu_id, m_simName);
     ::launchKernelImpl(getExecutionContextForMyThread(), m_client, m_simName,
-                       name, kernelFunc, args, voidStarSize, resultOffset,
-                       rawArgs);
+                       name, make_degenerate_kernel_type(kernelFunc), args,
+                       voidStarSize, resultOffset, rawArgs);
+    // TODO: Python should probably support return values too.
+    return {};
   }
 
   void launchKernel(const std::string &name,
@@ -178,16 +181,19 @@ public:
                     kernelArgs, gradient, H, optimizer, n_params, shots);
   }
 
-  void launchKernel(const std::string &name, void (*kernelFunc)(void *),
-                    void *args, std::uint64_t voidStarSize,
-                    std::uint64_t resultOffset,
-                    const std::vector<void *> &rawArgs) override {
+  cudaq::KernelThunkResultType
+  launchKernel(const std::string &name, cudaq::KernelThunkType kernelFunc,
+               void *args, std::uint64_t voidStarSize,
+               std::uint64_t resultOffset,
+               const std::vector<void *> &rawArgs) override {
     cudaq::info("PyNvcfSimulatorQPU: Launch kernel named '{}' remote QPU {} "
                 "(simulator = {})",
                 name, qpu_id, m_simName);
     ::launchKernelImpl(getExecutionContextForMyThread(), m_client, m_simName,
-                       name, kernelFunc, args, voidStarSize, resultOffset,
-                       rawArgs);
+                       name, make_degenerate_kernel_type(kernelFunc), args,
+                       voidStarSize, resultOffset, rawArgs);
+    // TODO: Python should probably support return values too.
+    return {};
   }
 
   void launchKernel(const std::string &name,

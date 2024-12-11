@@ -273,7 +273,7 @@ def quake_RelaxSizeOp : QuakeOp<"relax_size", [Pure]> {
   let hasCanonicalizer = 1;
 }
 
-def quake_SubVeqOp : QuakeOp<"subveq", [Pure]> {
+def quake_SubVeqOp : QuakeOp<"subveq", [AttrSizedOperandSegments, Pure]> {
   let summary = "Extract a subvector from a veq reference value.";
   let description = [{
     The `subveq` operation returns a subvector of references, type
@@ -298,16 +298,42 @@ def quake_SubVeqOp : QuakeOp<"subveq", [Pure]> {
 
   let arguments = (ins
     VeqType:$veq,
-    AnySignlessIntegerOrIndex:$low,
-    AnySignlessIntegerOrIndex:$high
+    Optional<AnySignlessIntegerOrIndex>:$lower,
+    Optional<AnySignlessIntegerOrIndex>:$upper,
+    I64Attr:$rawLower,
+    I64Attr:$rawUpper
   );
   let results = (outs VeqType:$qsub);
 
   let assemblyFormat = [{
-    operands attr-dict `:` functional-type(operands, results)
+    $veq `,` custom<RawIndex>($lower, $rawLower) `,` custom<RawIndex>($upper,
+      $rawUpper) `:` functional-type(operands, results) attr-dict
   }];
 
   let hasCanonicalizer = 1;
+  let hasVerifier = 1;
+
+  let builders = [
+    OpBuilder<(ins "mlir::Type":$veqTy, "mlir::Value":$input,
+                   "mlir::Value":$lower, "mlir::Value":$upper), [{
+      return build($_builder, $_state, veqTy, input, lower, upper,
+        quake::SubVeqOp::kDynamicIndex, quake::SubVeqOp::kDynamicIndex);
+    }]>,
+    OpBuilder<(ins "mlir::Type":$veqTy, "mlir::Value":$input,
+                   "std::int64_t":$lower, "std::int64_t":$upper), [{
+      return build($_builder, $_state, veqTy, input, {}, {}, lower, upper);
+    }]>
+  ];
+  
+  let extraClassDeclaration = [{
+    static constexpr std::size_t kDynamicIndex =
+      std::numeric_limits<std::size_t>::max();
+
+    bool hasConstantLowerBound() { return getRawLower() != kDynamicIndex; }
+    bool hasConstantUpperBound() { return getRawUpper() != kDynamicIndex; }
+    std::size_t getConstantLowerBound() { return getRawLower(); }
+    std::size_t getConstantUpperBound() { return getRawUpper(); }
+  }];
 }
 
 def quake_VeqSizeOp : QuakeOp<"veq_size", [Pure]> {
@@ -639,6 +665,54 @@ def quake_ReturnWireOp : QuakeOp<"return_wire"> {
     Arg<WireType, "wire to return", [MemRead, MemWrite]>:$target
   );
   let assemblyFormat = "$target `:` type(operands) attr-dict";
+}
+
+//===----------------------------------------------------------------------===//
+// Struq handling
+//===----------------------------------------------------------------------===//
+
+def quake_MakeStruqOp : QuakeOp<"make_struq", [Pure]> {
+  let summary = "create a quantum struct from a set of quantum references";
+  let description = [{
+    Given a list of values of quantum reference type, creates a new quantum
+    product reference type. This is a logical grouping and does not imply any
+    new quantum references are created.
+
+    This operation can be useful for grouping a number of values of type `veq`
+    into a logical product type, which may be passed to a pure device kernel
+    as a single unit, for example. These product types may always be erased into
+    a vector of the quantum references used to compose them via a make_struq op.
+  }];
+
+  let arguments = (ins Variadic<NonStruqRefType>:$veqs);
+  let results = (outs StruqType);
+  let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $veqs `:` functional-type(operands, results) attr-dict
+  }];
+}
+
+def quake_GetMemberOp : QuakeOp<"get_member", [Pure]> {
+  let summary = "extract quantum references from a quantum struct";
+  let description = [{
+    The get_member operation can be used to extract a set of quantum references
+    from a quantum struct (product) type. The fields in the quantum struct are
+    indexed from 0 to $n-1$ where $n$ is the number of fields. An index outside
+    of this range will produce a verification error.
+  }];
+
+  let arguments = (ins
+    StruqType:$struq,
+    I32Attr:$index
+  );
+  let results = (outs NonStruqRefType);
+  let hasCanonicalizer = 1;
+  let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $struq `[` $index `]` `:` functional-type(operands, results) attr-dict
+  }];
 }
 
 //===----------------------------------------------------------------------===//
@@ -1250,11 +1324,12 @@ def ZOp : OneTargetOp<"z", [Hermitian]> {
   }];
 }
 
-def CustomUnitarySymbolOp : QuakeOperator<"custom_op", [], (ins SymbolRefAttr:$generator)> {
+def CustomUnitarySymbolOp :
+    QuakeOperator<"custom_op", [], (ins SymbolRefAttr:$generator)> {
   let summary = "Custom unitary operation.";
   let description = [{
-    Custom unitary operation leveraging a `SymbolRefAttr` describing the unitary 
-    data generator function. 
+    Custom unitary operation leveraging a `SymbolRefAttr` describing the
+    unitary data generator function. 
   }];
 
   let builders = [
@@ -1301,13 +1376,16 @@ def CustomUnitarySymbolOp : QuakeOperator<"custom_op", [], (ins SymbolRefAttr:$g
     OpBuilder<(ins "mlir::SymbolRefAttr":$generator,
                    "mlir::ValueRange":$controls,
                    "mlir::ValueRange":$targets), [{
-      return build($_builder, $_state, generator,  /*is_adj=*/false, controls, targets);
+      return build($_builder, $_state, generator,  /*is_adj=*/false, controls,
+                   targets);
     }]>,
     OpBuilder<(ins "mlir::SymbolRefAttr":$generator, "bool":$is_adj,
                    "mlir::ValueRange":$targets), [{
-      return build($_builder, $_state, generator, is_adj, mlir::ValueRange{}, targets);
+      return build($_builder, $_state, generator, is_adj, mlir::ValueRange{},
+                   targets);
     }]>,
-    OpBuilder<(ins "mlir::SymbolRefAttr":$generator, "mlir::ValueRange":$targets), [{
+    OpBuilder<(ins "mlir::SymbolRefAttr":$generator,
+                   "mlir::ValueRange":$targets), [{
       return build($_builder, $_state, generator, /*is_adj=*/false, targets);
     }]>
   ];

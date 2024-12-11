@@ -91,7 +91,7 @@ public:
         continue;
       if (!funcOp.getName().startswith(cudaq::runtime::cudaqGenPrefixName))
         continue;
-      if (funcOp->hasAttr(cudaq::generatorAnnotation))
+      if (funcOp->hasAttr(cudaq::generatorAnnotation) || funcOp.empty())
         continue;
       auto className =
           funcOp.getName().drop_front(cudaq::runtime::cudaqGenPrefixLength);

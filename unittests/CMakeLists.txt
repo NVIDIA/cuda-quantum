@@ -79,6 +79,9 @@ macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER)
   if (${NVQIR_BACKEND} STREQUAL "dm")
     target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_DM -DCUDAQ_SIMULATION_SCALAR_FP64)
   endif()
+  if (${NVQIR_BACKEND} STREQUAL "stim")
+    target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_STIM -DCUDAQ_SIMULATION_SCALAR_FP64)
+  endif()
   if (${NVQIR_BACKEND} STREQUAL "tensornet")
     target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_TENSORNET -DCUDAQ_SIMULATION_SCALAR_FP64)
     set(TEST_LABELS "gpu_required")
@@ -102,6 +105,7 @@ endmacro()
 # We will always have the QPP backend, create a tester for it
 create_tests_with_backend(qpp backends/QPPTester.cpp)
 create_tests_with_backend(dm backends/QPPDMTester.cpp)
+create_tests_with_backend(stim "")
 
 if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
   create_tests_with_backend(custatevec-fp32 "")
@@ -238,7 +242,7 @@ target_link_libraries(test_photonics
   gtest_main)
 gtest_discover_tests(test_photonics)
 
-add_executable(test_utils main.cpp utils/UtilsTester.cpp)
+add_executable(test_utils main.cpp utils/UtilsTester.cpp utils/Tensor.cpp)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
   target_link_options(test_utils PRIVATE -Wl,--no-as-needed)
 endif()
@@ -281,6 +285,58 @@ endif()
 
 add_subdirectory(backends)
 add_subdirectory(Optimizer)
+
+set(CUDAQ_BRAKET_RUNTIME_TEST_SOURCES
+  # Integration tests
+  integration/adjoint_tester.cpp
+  integration/builder_tester.cpp
+  integration/ccnot_tester.cpp
+  integration/draw_tester.cpp
+  integration/ghz_nisq_tester.cpp
+  integration/gradient_tester.cpp
+  integration/grover_test.cpp
+  integration/nlopt_tester.cpp
+  integration/qpe_ftqc.cpp
+  integration/qpe_nisq.cpp
+  integration/qubit_allocation.cpp
+  integration/vqe_tester.cpp
+  integration/bug67_vqe_then_sample.cpp
+  integration/bug77_vqe_with_shots.cpp
+  integration/bug116_cusv_measure_bug.cpp
+  integration/async_tester.cpp
+  integration/negative_controls_tester.cpp
+  integration/observe_result_tester.cpp
+  integration/noise_tester.cpp
+  integration/get_state_tester.cpp
+  integration/kernels_tester.cpp
+  common/MeasureCountsTester.cpp
+  common/NoiseModelTester.cpp
+  integration/gate_library_tester.cpp
+)
+set(TEST_EXE_NAME "test_runtime_braket")
+set(NVQIR_BACKEND "braket")
+set(NVQIR_BACKEND_NAME "braket")
+add_executable(${TEST_EXE_NAME} main.cpp ${CUDAQ_BRAKET_RUNTIME_TEST_SOURCES} "")
+target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DNVQIR_BACKEND_NAME=braket)
+target_compile_definitions(${TEST_EXE_NAME} PRIVATE __MATH_LONG_DOUBLE_CONSTANTS)
+target_include_directories(${TEST_EXE_NAME} PRIVATE .)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+  target_link_options(${TEST_EXE_NAME} PRIVATE -Wl,--no-as-needed)
+endif()
+target_link_libraries(${TEST_EXE_NAME}
+  PUBLIC
+  nvqir-qpp nvqir
+  cudaq fmt::fmt-header-only
+  cudaq-platform-default
+  cudaq-rest-qpu
+  cudaq-builder
+  gtest_main)
+set(TEST_LABELS "")
+if ("${TEST_LABELS}" STREQUAL "")
+  gtest_discover_tests(${TEST_EXE_NAME})
+else()
+  gtest_discover_tests(${TEST_EXE_NAME} PROPERTIES LABELS "${TEST_LABELS}")
+endif()
 
 if (CUDAQ_ENABLE_PYTHON)
   if (NOT Python_FOUND)

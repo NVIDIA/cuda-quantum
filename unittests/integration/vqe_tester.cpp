@@ -13,6 +13,9 @@
 #include <cudaq/algorithms/gradients/central_difference.h>
 #include <cudaq/optimizers.h>
 
+// Stim does not support rotational gates
+#ifndef CUDAQ_BACKEND_STIM
+
 // Skip these VQE tests for slow backends to reduce test time.
 // Note: CUDA-Q API level tests (e.g., `cudaq::observe`) should cover all
 // backend-specific functionalities required for the `cudaq::vqe` wrapper.
@@ -248,5 +251,7 @@ CUDAQ_TEST_F(VQETester, checkThrowInvalidRuntimeArgs) {
   printf("<H3> = %lf\n", opt_val_0);
   EXPECT_NEAR(opt_val_0, -2.045375, 1e-3);
 }
+
+#endif
 
 #endif

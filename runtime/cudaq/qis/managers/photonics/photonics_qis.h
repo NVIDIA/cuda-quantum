@@ -15,18 +15,31 @@
 #include <vector>
 
 namespace cudaq {
+/// @brief The `create` gate
+// U|0> -> |1>, U|1> -> |2>, ..., and U|d> -> |d>
+template <std::size_t Levels>
+void create(qudit<Levels> &q) {
+  getExecutionManager()->apply("create", {}, {}, {{q.n_levels(), q.id()}});
+}
+
+/// @brief The `annihilate` gate
+// U|0> -> |0>, U|1> -> |0>, ..., and U|d> -> |d-1>
+template <std::size_t Levels>
+void annihilate(qudit<Levels> &q) {
+  getExecutionManager()->apply("annihilate", {}, {}, {{q.n_levels(), q.id()}});
+}
+
 /// @brief The `plus` gate
 // U|0> -> |1>, U|1> -> |2>, ..., and U|d> -> |0>
 template <std::size_t Levels>
 void plus(cudaq::qudit<Levels> &q) {
-  cudaq::getExecutionManager()->apply("plusGate", {}, {},
-                                      {{q.n_levels(), q.id()}});
+  cudaq::getExecutionManager()->apply("plus", {}, {}, {{q.n_levels(), q.id()}});
 }
 
 /// @brief The `phase shift` gate
 template <std::size_t Levels>
 void phase_shift(cudaq::qudit<Levels> &q, const double &phi) {
-  cudaq::getExecutionManager()->apply("phaseShiftGate", {phi}, {},
+  cudaq::getExecutionManager()->apply("phase_shift", {phi}, {},
                                       {{q.n_levels(), q.id()}});
 }
 
@@ -35,7 +48,7 @@ template <std::size_t Levels>
 void beam_splitter(cudaq::qudit<Levels> &q, cudaq::qudit<Levels> &r,
                    const double &theta) {
   cudaq::getExecutionManager()->apply(
-      "beamSplitterGate", {theta}, {},
+      "beam_splitter", {theta}, {},
       {{q.n_levels(), q.id()}, {r.n_levels(), r.id()}});
 }
 

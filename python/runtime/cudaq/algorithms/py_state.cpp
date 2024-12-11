@@ -31,12 +31,15 @@ std::vector<int> bitStringToIntVec(const std::string &bitString) {
   return result;
 }
 } // namespace
+
 namespace cudaq {
 
 void pyAltLaunchKernel(const std::string &, MlirModule, OpaqueArguments &,
                        const std::vector<std::string> &);
+
 cudaq::KernelArgsHolder pyCreateNativeKernel(const std::string &, MlirModule,
                                              cudaq::OpaqueArguments &);
+
 /// @brief If we have any implicit device-to-host data transfers
 /// we will store that data here and ensure it is deleted properly.
 std::vector<std::unique_ptr<void, std::function<void(void *)>>>
@@ -48,10 +51,9 @@ state pyGetState(py::object kernel, py::args args) {
     kernel.attr("compile")();
 
   auto kernelName = kernel.attr("name").cast<std::string>();
-  args = simplifiedValidateInputArguments(args);
-
   auto kernelMod = kernel.attr("module").cast<MlirModule>();
   auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
+
   return details::extractState([&]() mutable {
     pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
     delete argData;
@@ -167,7 +169,6 @@ void bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
       .def("get_rank", &SimulationState::Tensor::get_rank)
       .def("get_element_size", &SimulationState::Tensor::element_size)
       .def("get_num_elements", &SimulationState::Tensor::get_num_elements);
-
   py::class_<state>(
       mod, "State", py::buffer_protocol(),
       "A data-type representing the quantum state of the internal simulator. "
@@ -256,7 +257,7 @@ void bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
           "Returns the number of qubits represented by this state.")
       .def_static(
           "from_data",
-          [](py::buffer data) {
+          [&](py::buffer data) {
             // This is by default host data
             auto info = data.request();
             if (info.format ==
@@ -311,7 +312,11 @@ void bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
           "Return a state from matrix product state tensor data.")
       .def_static(
           "from_data",
-          [](const std::vector<py::object> &tensors) {
+          [](const py::list &tensors) {
+            // Note: we must use Python type (py::list) for proper overload
+            // resolution. The overload for py::object, intended for cupy arrays
+            // (implementing Python array interface), may be overshadowed by any
+            // std::vector overloads.
             cudaq::TensorStateData tensorData;
             for (auto &tensor : tensors) {
               // Make sure this is a CuPy array
@@ -347,7 +352,7 @@ void bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
           "ndarray).")
       .def_static(
           "from_data",
-          [](py::object opaqueData) {
+          [&holder](py::object opaqueData) {
             // Make sure this is a CuPy array
             if (!py::hasattr(opaqueData, "data"))
               throw std::runtime_error(
@@ -373,15 +378,34 @@ void bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
                   "simulation if FP64.");
 
             // Compute the number of elements in the array
+            std::vector<std::size_t> extents;
             auto numElements = [&]() {
               auto shape = opaqueData.attr("shape").cast<py::tuple>();
               std::size_t numElements = 1;
-              for (auto el : shape)
+              for (auto el : shape) {
                 numElements *= el.cast<std::size_t>();
+                extents.emplace_back(el.cast<std::size_t>());
+              }
               return numElements;
             }();
 
             long ptr = data.attr("ptr").cast<long>();
+            if (holder.getTarget().name == "dynamics") {
+              // For dynamics, we need to send on the extents to
+              // distinguish state vector vs density matrix.
+              cudaq::TensorStateData tensorData{
+                  std::pair<const void *, std::vector<std::size_t>>{
+                      reinterpret_cast<std::complex<double> *>(ptr), extents}};
+              return state::from_data(tensorData);
+            }
+
+            // Check that the target is GPU-based, i.e., can handle device
+            // pointer.
+            if (!holder.getTarget().config.GpuRequired)
+              throw std::runtime_error(fmt::format(
+                  "Current target '{}' does not support CuPy arrays.",
+                  holder.getTarget().name));
+
             if (typeStr == "complex64")
               return cudaq::state::from_data(std::make_pair(
                   reinterpret_cast<std::complex<float> *>(ptr), numElements));
@@ -644,7 +668,7 @@ index pair.
         if (holder.getTarget().name == "remote-mqpu" ||
             holder.getTarget().name == "nvqc")
           return pyGetStateRemote(kernel, args);
-        if (holder.getTarget().name == "photonics")
+        if (holder.getTarget().name == "orca-photonics")
           return pyGetStateLibraryMode(kernel, args);
         return pyGetState(kernel, args);
       },
@@ -691,18 +715,13 @@ for more information on this programming pattern.)#")
       [](py::object kernel, py::args args, std::size_t qpu_id) {
         if (py::hasattr(kernel, "compile"))
           kernel.attr("compile")();
-        auto &platform = cudaq::get_platform();
+
         auto kernelName = kernel.attr("name").cast<std::string>();
         auto kernelMod = kernel.attr("module").cast<MlirModule>();
-        auto kernelFunc = getKernelFuncOp(kernelMod, kernelName);
-        args = simplifiedValidateInputArguments(args);
-
-        // The provided kernel is a builder or MLIR kernel
-        auto *argData = new cudaq::OpaqueArguments();
-        cudaq::packArgs(*argData, args, kernelFunc,
-                        [](OpaqueArguments &, py::object &) { return false; });
+        auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
 
         // Launch the asynchronous execution.
+        auto &platform = cudaq::get_platform();
         py::gil_scoped_release release;
         return details::runGetStateAsync(
             [kernelMod, argData, kernelName]() mutable {

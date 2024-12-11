@@ -113,6 +113,7 @@ def test_kernel_conditional_with_sample():
     print(kernel)
 
 
+# CHECK-LABEL: test_kernel_conditional_with_sample
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 # CHECK:           quake.x %[[VAL_0]] : (!quake.ref) -> ()
@@ -155,6 +156,7 @@ def test_cif_extract_ref_bug():
     print(kernel)
 
 
+# CHECK-LABEL: test_cif_extract_ref_bug
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
 # CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<2>) -> !quake.ref

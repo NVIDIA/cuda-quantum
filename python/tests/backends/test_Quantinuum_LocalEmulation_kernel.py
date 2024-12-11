@@ -180,57 +180,6 @@ def test_quantinuum_state_synthesis():
     assert 'Could not successfully apply quake-synth.' in repr(e)
 
 
-def test_arbitrary_unitary_synthesis():
-
-    cudaq.register_operation("custom_h",
-                             1. / np.sqrt(2.) * np.array([1, 1, 1, -1]))
-    cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
-
-    @cudaq.kernel
-    def basic_x():
-        qubit = cudaq.qubit()
-        custom_x(qubit)
-
-    counts = cudaq.sample(basic_x)
-    counts.dump()
-    assert len(counts) == 1 and "1" in counts
-
-    @cudaq.kernel
-    def basic_h():
-        qubit = cudaq.qubit()
-        custom_h(qubit)
-
-    counts = cudaq.sample(basic_h)
-    counts.dump()
-    assert "0" in counts and "1" in counts
-
-    @cudaq.kernel
-    def bell():
-        qubits = cudaq.qvector(2)
-        custom_h(qubits[0])
-        custom_x.ctrl(qubits[0], qubits[1])
-
-    counts = cudaq.sample(bell)
-    counts.dump()
-    assert len(counts) == 2
-    assert "00" in counts and "11" in counts
-
-    cudaq.register_operation("custom_s", np.array([1, 0, 0, 1j]))
-    cudaq.register_operation("custom_s_adj", np.array([1, 0, 0, -1j]))
-
-    @cudaq.kernel
-    def kernel():
-        q = cudaq.qubit()
-        h(q)
-        custom_s.adj(q)
-        custom_s_adj(q)
-        h(q)
-
-    counts = cudaq.sample(kernel)
-    counts.dump()
-    assert counts["1"] == 1000
-
-
 def test_exp_pauli():
 
     @cudaq.kernel
@@ -256,6 +205,105 @@ def test_exp_pauli_param():
     with pytest.raises(RuntimeError) as e:
         counts = cudaq.sample(test_param, cudaq.pauli_word("XX"))
     assert 'Remote rest platform Quake lowering failed.' in repr(e)
+
+
+def test_1q_unitary_synthesis():
+
+    cudaq.register_operation("custom_h",
+                             1. / np.sqrt(2.) * np.array([1, 1, 1, -1]))
+    cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
+
+    @cudaq.kernel
+    def basic_x():
+        qubit = cudaq.qubit()
+        custom_x(qubit)
+
+    counts = cudaq.sample(basic_x)
+    assert len(counts) == 1 and "1" in counts
+
+    @cudaq.kernel
+    def basic_h():
+        qubit = cudaq.qubit()
+        custom_h(qubit)
+
+    counts = cudaq.sample(basic_h)
+    assert "0" in counts and "1" in counts
+
+    @cudaq.kernel
+    def bell():
+        qubits = cudaq.qvector(2)
+        custom_h(qubits[0])
+        custom_x.ctrl(qubits[0], qubits[1])
+
+    counts = cudaq.sample(bell)
+    assert len(counts) == 2
+    assert "00" in counts and "11" in counts
+
+    cudaq.register_operation("custom_s", np.array([1, 0, 0, 1j]))
+    cudaq.register_operation("custom_s_adj", np.array([1, 0, 0, -1j]))
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qubit()
+        h(q)
+        custom_s.adj(q)
+        custom_s_adj(q)
+        h(q)
+
+    counts = cudaq.sample(kernel)
+    assert counts["1"] == 1000
+
+
+def test_2q_unitary_synthesis():
+
+    cudaq.register_operation(
+        "custom_cnot",
+        np.array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0]))
+
+    @cudaq.kernel
+    def bell_pair():
+        qubits = cudaq.qvector(2)
+        h(qubits[0])
+        custom_cnot(qubits[0], qubits[1])
+
+    counts = cudaq.sample(bell_pair)
+    assert len(counts) == 2
+    assert "00" in counts and "11" in counts
+
+    cudaq.register_operation(
+        "custom_cz", np.array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+                               -1]))
+
+    @cudaq.kernel
+    def ctrl_z_kernel():
+        qubits = cudaq.qvector(5)
+        controls = cudaq.qvector(2)
+        custom_cz(qubits[1], qubits[0])
+        x(qubits[2])
+        custom_cz(qubits[3], qubits[2])
+        x(controls)
+
+    counts = cudaq.sample(ctrl_z_kernel)
+    assert counts["0010011"] == 1000
+
+
+def test_3q_unitary_synthesis():
+    cudaq.register_operation(
+        "toffoli",
+        np.array([
+            1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0
+        ]))
+
+    @cudaq.kernel
+    def test_toffoli():
+        q = cudaq.qvector(3)
+        x(q)
+        toffoli(q[0], q[1], q[2])
+
+    with pytest.raises(RuntimeError):
+        cudaq.sample(test_toffoli)
 
 
 # leave for gdb debugging

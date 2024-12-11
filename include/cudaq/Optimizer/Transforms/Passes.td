@@ -141,6 +141,32 @@ def CheckKernelCalls : Pass<"check-kernel-calls", "mlir::func::FuncOp"> {
   }];
 }
 
+def CombineMeasurements :
+    Pass<"combine-measurements", "mlir::func::FuncOp"> {
+  let summary = "Extends mesurements on subveqs adds output names";
+  let description = [{
+    Replace a pattern such as:
+    ```
+    func.func @kernel() attributes {"cudaq-entrypoint"} {
+      %1 = ... : !quake.veq<4>
+      %2 = quake.subveq %1, %c2, %c3 : (!quake.veq<4>, i32, i32) ->
+            !quake.veq<2>
+      %measOut = quake.mz %2 : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+    }
+    ```
+    with:
+    ```
+    func.func @kernel() attributes {"cudaq-entrypoint", ["output_names",
+    "[[[0,[1,\22q0\22]],[1,[2,\22q1\22]]]]"]} {
+      %1 = ... : !quake.veq<4>
+      %measOut = quake.mz %1 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    }
+    ```
+  }];
+  let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
+}
+
+
 def CombineQuantumAllocations :
     Pass<"combine-quantum-alloc", "mlir::func::FuncOp"> {
   let summary = "Combines quake alloca operations.";
@@ -160,7 +186,7 @@ def CombineQuantumAllocations :
   let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
 }
 
-def ConstPropComplex : Pass<"const-prop-complex", "mlir::ModuleOp"> {
+def ConstPropComplex : Pass<"const-prop-complex", "mlir::func::FuncOp"> {
   let summary = "Create and propagate complex constants.";
   let description = [{
     Rewrite the complex.CreateOp to complex.ConstantOp when possible.
@@ -168,8 +194,7 @@ def ConstPropComplex : Pass<"const-prop-complex", "mlir::ModuleOp"> {
   }];
 }
 
-def ConvertToDirectCalls :
-    Pass<"indirect-to-direct-calls", "mlir::func::FuncOp"> {
+def ConvertToDirectCalls : Pass<"indirect-to-direct-calls", "mlir::ModuleOp"> {
   let summary = "Convert calls to direct calls to Quake routines.";
   let description = [{
     Rewrite the calls in the IR so that they point to the generated code and not
@@ -384,11 +409,11 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
 
 def GetConcreteMatrix : Pass<"get-concrete-matrix", "mlir::func::FuncOp"> {
   let summary =
-    "Replace the unitary matrix generator function with concrete matrix.";
+    "Replace the unitary matrix generator function with a constant matrix.";
   let description = [{
     Given a custom operation whose generator attribute is another function 
     within the module, such that if `LiftArrayAlloc` pass has run, there will
-    be a global constant within the module which holds the concrete matrix 
+    be a global constant within the module which holds the constant matrix 
     representation for the custom operation. This pass will find that global
     variable and update the custom operation to directly point to it. 
 
@@ -408,7 +433,7 @@ def GetConcreteMatrix : Pass<"get-concrete-matrix", "mlir::func::FuncOp"> {
           return
         }
 
-        cc.global constant @__nvqpp__mlirgen__function_foo_generator_1.bar.rodata_0 ((dense<[(0.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+        cc.global constant private @__nvqpp__mlirgen__function_foo_generator_1.bar.rodata_0 ((dense<[(0.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
       }
     ```
 
@@ -422,6 +447,22 @@ def GetConcreteMatrix : Pass<"get-concrete-matrix", "mlir::func::FuncOp"> {
       }
     ```
 
+  }];
+}
+
+// GlobalizeArrayValues must be a module pass because it may promoted array
+// constants from functions to global constants (changes their scope).
+def GlobalizeArrayValues : Pass<"globalize-array-values", "mlir::ModuleOp"> {
+  let summary = "Convert const_array ops to globals.";
+  let description = [{
+    Often a `const_array` op can be canonicalized into scalar constants that
+    are then constant propagated to their uses in the quake ops. When this
+    happens, the `const_array` may become unused and be eliminated.
+
+    However, there can also be cases where the `const_array` remains alive, such
+    as when it is used in a `state_init` op. In such cases, we may be able to go
+    ahead and replace the `const_array` with a global constant. This pass makes
+    such conversions.
   }];
 }
 
@@ -440,7 +481,7 @@ def LambdaLifting : Pass<"lambda-lifting", "mlir::ModuleOp"> {
   let constructor = "cudaq::opt::createLambdaLiftingPass()";
 }
 
-def LiftArrayAlloc : Pass<"lift-array-value", "mlir::ModuleOp"> {
+def LiftArrayAlloc : Pass<"lift-array-alloc", "mlir::func::FuncOp"> {
   let summary = "Convert constant arrays built on the stack to array values";
   let description = [{
     The bridge or other passes may generate inline code to build an array of
@@ -477,6 +518,10 @@ def LiftArrayAlloc : Pass<"lift-array-value", "mlir::ModuleOp"> {
     updated or escapes the function, it cannot be replaced by a value. If
     it is elements are accessed in a read-only way, it is a legal transform
     and will enable further constant folding in other passes.
+
+    See the globalize array values pass for converting `const_array` values
+    to global constants. Conversion to globals is intentionally deferred to
+    allow constant propagation to take place correctly.
   }];
 
   let dependentDialects = ["mlir::complex::ComplexDialect"];
@@ -780,7 +825,7 @@ def DeleteStates : Pass<"delete-states", "mlir::ModuleOp"> {
   }];
 }
 
-def StatePreparation : Pass<"state-prep", "mlir::ModuleOp"> {
+def StatePreparation : Pass<"state-prep", "mlir::func::FuncOp"> {
   let summary =
     "Convert state vector data into gates";
   let description = [{
@@ -797,7 +842,7 @@ def StatePreparation : Pass<"state-prep", "mlir::ModuleOp"> {
         %2 = quake.init_state %1, %0 : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f32> x 4>>) -> !quake.veq<2>
         return
       }
-      cc.global constant @foo.rodata_0 (dense<[(0.707106769,0.000000e+00), (0.707106769,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f32>>) : !cc.array<complex<f32> x 4>
+      cc.global constant private @foo.rodata_0 (dense<[(0.707106769,0.000000e+00), (0.707106769,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f32>>) : !cc.array<complex<f32> x 4>
     }
     ```
     Will be rewritten to:

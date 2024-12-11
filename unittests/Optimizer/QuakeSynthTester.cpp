@@ -55,13 +55,13 @@ LogicalResult runQuakeSynth(std::string_view kernelName, void *rawArgs,
   module->getContext()->disableMultithreading();
   pm.enableIRPrinting();
   pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, rawArgs, 0, true));
-  pm.addPass(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
-  pm.addPass(createCanonicalizerPass());
-  pm.addPass(cudaq::opt::createLoopNormalize());
-  pm.addPass(cudaq::opt::createLoopUnroll());
-  pm.addPass(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   return pm.run(*module);
 }
 
@@ -70,19 +70,19 @@ LogicalResult lowerToLLVMDialect(ModuleOp module) {
   PassManager pm(module->getContext());
   module->getContext()->disableMultithreading();
   pm.enableIRPrinting();
-  pm.addPass(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   OpPassManager &optPM = pm.nest<func::FuncOp>();
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
   optPM.addPass(cudaq::opt::createClassicalMemToReg());
-  pm.addPass(createCanonicalizerPass());
-  pm.addPass(cudaq::opt::createLoopUnroll());
-  pm.addPass(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   optPM.addPass(cudaq::opt::createQuakeAddDeallocs());
   optPM.addPass(cudaq::opt::createQuakeAddMetadata());
   optPM.addPass(cudaq::opt::createLowerToCFGPass());
   optPM.addPass(cudaq::opt::createCombineQuantumAllocations());
-  pm.addPass(createCanonicalizerPass());
-  pm.addPass(createCSEPass());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCSEPass());
   pm.addPass(cudaq::opt::createConvertToQIR());
   return pm.run(module);
 }

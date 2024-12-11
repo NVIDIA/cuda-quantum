@@ -477,7 +477,7 @@ void LinkedLibraryHolder::setTarget(
   setQuantumPlatformInternal(platform);
   currentTarget = targetName;
 
-  if ("photonics" == targetName) {
+  if ("orca-photonics" == targetName) {
     std::filesystem::path libPath =
         cudaqLibPath / fmt::format("libcudaq-em-photonics.{}", libSuffix);
     auto *em = getUniquePluginInstance<ExecutionManager>(

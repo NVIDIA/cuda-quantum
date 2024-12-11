@@ -7,7 +7,8 @@
 # ============================================================================ #
 
 import sys, os, numpy, platform, multiprocessing
-from ._packages import *
+from ._packages import get_library_path
+from ._metadata import cuda_major
 
 # Set the multiprocessing start method to 'spawn' if not already set
 if multiprocessing.get_start_method(allow_none=True) is None:
@@ -15,12 +16,12 @@ if multiprocessing.get_start_method(allow_none=True) is None:
 
 # CUDAQ_DYNLIBS must be set before any other imports that would initialize
 # LinkedLibraryHolder.
-if not "CUDAQ_DYNLIBS" in os.environ:
+if not "CUDAQ_DYNLIBS" in os.environ and not cuda_major is None:
     try:
-        custatevec_libs = get_library_path("custatevec-cu11")
+        custatevec_libs = get_library_path(f"custatevec-cu{cuda_major}")
         custatevec_path = os.path.join(custatevec_libs, "libcustatevec.so.1")
 
-        cutensornet_libs = get_library_path("cutensornet-cu11")
+        cutensornet_libs = get_library_path(f"cutensornet-cu{cuda_major}")
         cutensornet_path = os.path.join(cutensornet_libs, "libcutensornet.so.2")
 
         os.environ["CUDAQ_DYNLIBS"] = f"{custatevec_path}:{cutensornet_path}"
@@ -28,13 +29,22 @@ if not "CUDAQ_DYNLIBS" in os.environ:
         # The following package is only available on `x86_64` (not `aarch64`). For
         # `aarch64`, the library must be provided another way (likely with
         # LD_LIBRARY_PATH).
-        if platform.processor() == "x86_64":
-            cudart_libs = get_library_path("nvidia-cuda_runtime-cu11")
-            cudart_path = os.path.join(cudart_libs, "libcudart.so.11.0")
-            os.environ["CUDAQ_DYNLIBS"] += f":{cudart_path}"
+        # Note: platform.processor does not work in all cases (if `uname -p` returns
+        # unknown, e.g. on WSL)
+        if platform.processor() == "x86_64" or platform.uname(
+        ).machine == "x86_64":
+            cudart_libs = get_library_path(
+                f"nvidia-cuda_runtime-cu{cuda_major}")
+            cudart_path = os.path.join(cudart_libs,
+                                       f"libcudart.so.{cuda_major}")
+            cuda_nvrtc_libs = get_library_path(
+                f"nvidia-cuda_nvrtc-cu{cuda_major}")
+            cuda_nvrtc_path = os.path.join(cuda_nvrtc_libs,
+                                           f"libnvrtc.so.{cuda_major}")
+            os.environ["CUDAQ_DYNLIBS"] += f":{cudart_path}:{cuda_nvrtc_path}"
     except:
         import importlib.util
-        package_spec = importlib.util.find_spec("cuda-quantum")
+        package_spec = importlib.util.find_spec(f"cuda-quantum-cu{cuda_major}")
         if not package_spec is None and not package_spec.loader is None:
             print("Could not find a suitable cuQuantum Python package.")
         pass
@@ -47,7 +57,6 @@ from .runtime.sample import sample
 from .runtime.observe import observe
 from .runtime.state import to_cupy
 from .kernel.register_op import register_operation
-
 from .mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 try:
@@ -63,11 +72,9 @@ else:
 parallel = cudaq_runtime.parallel
 
 # Primitive Types
-spin = cudaq_runtime.spin
 qubit = cudaq_runtime.qubit
 qvector = cudaq_runtime.qvector
 qview = cudaq_runtime.qview
-SpinOperator = cudaq_runtime.SpinOperator
 Pauli = cudaq_runtime.Pauli
 Kernel = PyKernel
 Target = cudaq_runtime.Target
@@ -78,6 +85,20 @@ SimulationPrecision = cudaq_runtime.SimulationPrecision
 
 # to be deprecated
 qreg = cudaq_runtime.qvector
+
+# Operator API
+from .operator.definitions import spin, SpinOperator
+# Re-export non-spin-op operators under the `operators` namespace
+# e.g. `cudaq.operators.annihilate`
+from .operator import operators as operators
+# Operator types (in addition to `spin` types)
+# e.g., allows users to use `cudaq.ScalarOperator(lambda...)`
+from .operator import Operator, ElementaryOperator, ScalarOperator
+
+# Time evolution API
+from .operator.schedule import Schedule
+from .operator.evolution import evolve, evolve_async
+from .operator.integrators import *
 
 # Optimizers + Gradients
 optimizers = cudaq_runtime.optimizers
@@ -114,6 +135,8 @@ get_state = cudaq_runtime.get_state
 get_state_async = cudaq_runtime.get_state_async
 SampleResult = cudaq_runtime.SampleResult
 ObserveResult = cudaq_runtime.ObserveResult
+EvolveResult = cudaq_runtime.EvolveResult
+AsyncEvolveResult = cudaq_runtime.AsyncEvolveResult
 AsyncSampleResult = cudaq_runtime.AsyncSampleResult
 AsyncObserveResult = cudaq_runtime.AsyncObserveResult
 AsyncStateResult = cudaq_runtime.AsyncStateResult

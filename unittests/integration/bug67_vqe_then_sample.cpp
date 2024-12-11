@@ -12,7 +12,8 @@
 #include <cudaq/optimizers.h>
 #include <cudaq/platform.h>
 
-#if !defined CUDAQ_BACKEND_DM && !defined CUDAQ_BACKEND_TENSORNET
+#if !defined(CUDAQ_BACKEND_DM) && !defined(CUDAQ_BACKEND_TENSORNET) &&         \
+    !defined(CUDAQ_BACKEND_STIM)
 
 CUDAQ_TEST(VqeThenSample, checkBug67) {
 

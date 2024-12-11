@@ -56,16 +56,17 @@ concept ObserveCallValid =
 
 /// @brief Observe options to provide as an argument to the `observe()`,
 /// `async_observe()` functions.
-///
-/// \p shots is the number of shots to run for the given kernel. The default of
-/// -1 means direct calculations for simulation backends. \p noise is the noise
-/// model to use for the observe operation.
 /// @param shots number of shots to run for the given kernel, or -1 if not
 /// applicable.
 /// @param noise noise model to use for the sample operation
+/// @param num_trajectories is the optional number of trajectories to be used when
+/// computing the expectation values in the presence of noise. This parameter is
+/// only applied to simulation backends that support noisy
+/// simulation of trajectories.
 struct observe_options {
   int shots = -1;
   cudaq::noise_model noise;
+  std::optional<std::size_t> num_trajectories;
 };
 
 namespace details {
@@ -78,13 +79,16 @@ std::optional<observe_result>
 runObservation(KernelFunctor &&k, cudaq::spin_op &h, quantum_platform &platform,
                int shots, const std::string &kernelName, std::size_t qpu_id = 0,
                details::future *futureResult = nullptr,
-               std::size_t batchIteration = 0,
-               std::size_t totalBatchIters = 0) {
+               std::size_t batchIteration = 0, std::size_t totalBatchIters = 0,
+               std::optional<std::size_t> numTrajectories = {}) {
   auto ctx = std::make_unique<ExecutionContext>("observe", shots);
   ctx->kernelName = kernelName;
   ctx->spin = &h;
   if (shots > 0)
     ctx->shots = shots;
+
+  if (numTrajectories.has_value())
+    ctx->numberTrajectories = *numTrajectories;
 
   ctx->batchIteration = batchIteration;
   ctx->totalIterations = totalBatchIters;
@@ -161,7 +165,7 @@ auto runObservationAsync(KernelFunctor &&wrappedKernel, spin_op &H,
   // If the platform is not remote, then we can handle asynchronous execution
   // via a new worker thread.
   KernelExecutionTask task(
-      [&, qpu_id, shots, kernelName,
+      [&, H, qpu_id, shots, kernelName,
        kernel = std::forward<KernelFunctor>(wrappedKernel)]() mutable {
         return details::runObservation(kernel, H, platform, shots, kernelName,
                                        qpu_id)
@@ -478,7 +482,10 @@ observe_result observe(const observe_options &options, QuantumKernel &&kernel,
                    cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
                                        std::forward<Args>(args)...);
                  },
-                 H, platform, shots, kernelName)
+                 H, platform, shots, kernelName, /*qpu_id=*/0,
+                 /*futureResult=*/nullptr,
+                 /*batchIteration=*/0,
+                 /*totalBatchIters=*/0, options.num_trajectories)
                  .value();
 
   platform.reset_noise();
@@ -701,7 +708,8 @@ std::vector<observe_result> observe(cudaq::observe_options &options,
                    [&kernel, &singleIterParameters...]() mutable {
                      kernel(std::forward<Args>(singleIterParameters)...);
                    },
-                   H, platform, shots, kernelName, qpuId, nullptr, counter, N)
+                   H, platform, shots, kernelName, qpuId, nullptr, counter, N,
+                   options.num_trajectories)
                    .value();
     return ret;
   };

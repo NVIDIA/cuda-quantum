@@ -9,10 +9,6 @@ from __future__ import annotations
 import numpy as np
 import cudaq
 
-## [PYTHON_VERSION_FIX]
-## To support Python v3.8, using `typing.List[float]` instead of `list[float]`
-from typing import List
-
 
 def uccsd_get_excitation_list(n_electrons, n_qubits):
 
@@ -334,7 +330,7 @@ def double_excitation_opt(qubits: cudaq.qview, p_occ: int, q_occ: int,
 
 
 @cudaq.kernel
-def uccsd_odd_electrons(qubits: cudaq.qview, thetas: List[float],
+def uccsd_odd_electrons(qubits: cudaq.qview, thetas: list[float],
                         n_electrons: int, n_qubits: int):
     n_spatial_orbitals = n_qubits // 2
     n_occupied = int(np.ceil(n_electrons / 2))
@@ -450,7 +446,7 @@ def uccsd_odd_electrons(qubits: cudaq.qview, thetas: List[float],
 
 
 @cudaq.kernel
-def uccsd_even_electrons(qubits: cudaq.qview, thetas: List[float],
+def uccsd_even_electrons(qubits: cudaq.qview, thetas: list[float],
                          n_electrons: int, n_qubits: int):
     n_spatial_orbitals = n_qubits // 2
     n_occupied = int(np.ceil(n_electrons / 2))
@@ -563,14 +559,14 @@ def uccsd_even_electrons(qubits: cudaq.qview, thetas: List[float],
 
 
 @cudaq.kernel
-def uccsd(qubits: cudaq.qview, thetas: List[float], n_electrons: int,
+def uccsd(qubits: cudaq.qview, thetas: list[float], n_electrons: int,
           n_qubits: int):
     """
     Generate the unitary coupled cluster singlet doublet CUDA-Q kernel.
 
     Args:
         qubits (:class:`qview`): Pre-allocated qubits
-        thetas (List[float]): List of parameters
+        thetas (list[float]): List of parameters
         n_electrons (int): Number of electrons
         n_qubits (int): Number of qubits
     """

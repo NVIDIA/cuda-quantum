@@ -101,22 +101,27 @@ CUDAQ_TEST(AdjointTester, checkSimple) {
   EXPECT_EQ(1, counts2.size());
   EXPECT_TRUE(counts2.begin()->first == "00000");
 
+#ifndef CUDAQ_BACKEND_STIM
   auto counts3 = cudaq::sample(rotation_adjoint_test{});
   counts3.dump();
   EXPECT_EQ(1, counts3.size());
   EXPECT_TRUE(counts3.begin()->first == "0");
+#endif
 
   auto counts4 = cudaq::sample(twoqbit_adjoint_test{});
   counts4.dump();
   EXPECT_EQ(1, counts4.size());
   EXPECT_TRUE(counts4.begin()->first == "00");
 
+#ifndef CUDAQ_BACKEND_STIM
   auto counts5 = cudaq::sample(test_cudaq_adjoint{});
   counts5.dump();
   EXPECT_EQ(1, counts5.size());
   EXPECT_TRUE(counts5.begin()->first == "101");
+#endif
 }
 
+#ifndef CUDAQ_BACKEND_STIM
 CUDAQ_TEST(AdjointTester, checkNestedAdjoint) {
 
   struct xxxh_gates {
@@ -218,6 +223,7 @@ CUDAQ_TEST(AdjointTester, checkNestedAdjoint) {
   // ctrl ry pi / 4 1 2
   // }
 }
+#endif
 
 #ifndef CUDAQ_BACKEND_DM
 
@@ -251,12 +257,14 @@ static __qpu__ void bar() {
   cudaq::adjoint(foo, q);
 }
 
+#ifndef CUDAQ_BACKEND_STIM
 CUDAQ_TEST(AdjointTester, checkEvenAdjointNesting) {
   auto result = cudaq::get_state(bar);
   std::array<std::complex<double>, 2> expected = {1., 0};
   EXPECT_TRUE(essentially_equal(expected[0], result[0]));
   EXPECT_TRUE(essentially_equal(expected[1], result[1]));
 }
+#endif
 
 static __qpu__ void zaz(cudaq::qubit &q) { rz<cudaq::adj>(M_PI_2, q); }
 
@@ -268,11 +276,13 @@ static __qpu__ void bar_2() {
   cudaq::adjoint(foo_2, q);
 }
 
+#ifndef CUDAQ_BACKEND_STIM
 CUDAQ_TEST(AdjointTester, checkOddAdjointNesting) {
   auto result = cudaq::get_state(bar_2);
   std::array<std::complex<double>, 2> expected = {1., 0};
   EXPECT_TRUE(essentially_equal(expected[0], result[0]));
   EXPECT_TRUE(essentially_equal(expected[1], result[1]));
 }
+#endif
 
 #endif
