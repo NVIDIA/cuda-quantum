@@ -92,22 +92,20 @@ cudaq::AutoLaunchRestServerProcess::AutoLaunchRestServerProcess(
       libPaths += ":";
 
     std::set<std::string> libDirs;
-    while(libPaths.size() > 0) {
+    while (libPaths.size() > 0) {
       auto next_delim = libPaths.find(":");
-      if(next_delim < libPaths.size()) {
+      if (next_delim < libPaths.size()) {
         std::filesystem::path lib(libPaths.substr(0, next_delim));
         libPaths = libPaths.substr(next_delim + 1);
         auto libDir = lib.remove_filename().string();
-        if(libDir.size() > 0) 
+        if (libDir.size() > 0)
           libDirs.insert(libDir);
       }
     }
 
-    std::string dynLibs = std::accumulate(std::begin(libDirs), 
-                                          std::end(libDirs), 
-                                          std::string{},
-                                          [](const std::string& a, const std::string &b) {
-                                            return a + b + ':'; });
+    std::string dynLibs = std::accumulate(
+        std::begin(libDirs), std::end(libDirs), std::string{},
+        [](const std::string &a, const std::string &b) { return a + b + ':'; });
     dynLibs.pop_back();
     if (auto *p = getenv("LD_LIBRARY_PATH")) {
       std::string envLibs = p;
