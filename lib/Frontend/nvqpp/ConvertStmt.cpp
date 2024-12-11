@@ -331,7 +331,9 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *x) {
                                                 ValueRange{heapCopy, dynSize});
       };
       IRBuilder irb(builder);
-      Value tySize = irb.getByteSizeOfType(loc, eleTy);
+      Value tySize;
+      if (!cudaq::cc::isDynamicType(eleTy))
+        tySize = irb.getByteSizeOfType(loc, eleTy);
       if (!tySize) {
         TODO_x(toLocation(x), x, mangler, "unhandled vector element type");
         return false;

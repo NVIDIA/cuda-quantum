@@ -109,6 +109,10 @@ protected:
   std::vector<kraus_op> ops;
 
   /// @brief Validate that Sum K_i^† K_i = I
+  // Important: as this function dispatches different implementations based on
+  // `cudaq::complex`, which is a pre-processor define, do not call this in
+  // `NoiseModel.cpp`. `NoiseModel.cpp` is compiled as a `cudaq-common` library,
+  // which is not aware of the backend complex type.
   void validateCompleteness() {
     if constexpr (std::is_same_v<cudaq::complex::value_type, float>) {
       validateCompletenessRelation_fp32(ops);
@@ -122,7 +126,14 @@ public:
   noise_model_type noise_type = noise_model_type::unknown;
 
   /// @brief Noise parameter values
-  std::vector<real> parameters;
+  // Use `double` as the uniform type to store channel parameters (for both
+  // single- and double-precision channel definitions). Some
+  // `kraus_channel` methods, e.g., copy constructor/assignment, are implemented
+  // in `NoiseModel.cpp`, which is compiled to `cudaq-common` with
+  // double-precision configuration regardless of the backends.
+  // Hence, having a templated `parameters` member variable may cause data
+  // corruption.
+  std::vector<double> parameters;
 
   ~kraus_channel() = default;
 
@@ -143,7 +154,9 @@ public:
 
   /// @brief The constructor, take qubits and channel kraus_ops as lvalue
   /// reference
-  kraus_channel(std::vector<kraus_op> &ops);
+  kraus_channel(const std::vector<kraus_op> &inOps) : ops(inOps) {
+    validateCompleteness();
+  }
 
   /// @brief The constructor, take qubits and channel kraus_ops as rvalue
   /// reference
@@ -243,7 +256,7 @@ protected:
   std::unordered_map<std::string, PredicateFuncTy> gatePredicates;
 
   static constexpr const char *availableOps[] = {
-      "x", "y", "z", "h", "s", "t", "rx", "ry", "rz", "r1", "u3"};
+      "x", "y", "z", "h", "s", "t", "rx", "ry", "rz", "r1", "u3", "mz"};
 
 public:
   /// @brief default constructor

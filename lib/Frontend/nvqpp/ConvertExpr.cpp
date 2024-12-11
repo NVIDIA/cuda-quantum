@@ -13,7 +13,6 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/Support/Debug.h"
-#include "mlir/Dialect/SCF/IR/SCF.h"
 
 #define DEBUG_TYPE "lower-ast-expr"
 
@@ -2049,8 +2048,9 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
                                        ValueRange{buffer, start, stop, step});
       return pushValue(call.getResult(0));
     }
-
-    TODO_loc(loc, "unknown function, " + funcName + ", in cudaq namespace");
+    if (!isInNamespace(func, "solvers") && !isInNamespace(func, "qec")) {
+      TODO_loc(loc, "unknown function, " + funcName + ", in cudaq namespace");
+    }
   } // end in cudaq namespace
 
   if (isInNamespace(func, "std")) {
@@ -2310,8 +2310,10 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
         // replace it with an indirect call to the func::ConstantOp.
         auto indirect = popValue();
         auto funcTy = cast<FunctionType>(indirect.getType());
+        auto convertedArgs =
+            convertKernelArgs(builder, loc, 0, args, funcTy.getInputs());
         auto call = builder.create<func::CallIndirectOp>(
-            loc, funcTy.getResults(), indirect, args);
+            loc, funcTy.getResults(), indirect, convertedArgs);
         if (call.getResults().empty())
           return true;
         return pushValue(call.getResult(0));
@@ -2498,8 +2500,10 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
     {
       OpBuilder::InsertionGuard guard(builder);
       builder.setInsertionPointToEnd(module.getBody());
-      builder.create<cc::GlobalOp>(loc, globalTy, name, f64Attr,
-                                   /*constant=*/true);
+      builder
+          .create<cc::GlobalOp>(loc, globalTy, name, f64Attr,
+                                /*constant=*/true, /*external=*/false)
+          .setPrivate();
     }
     auto ptrTy = cc::PointerType::get(globalTy);
     auto globalInit = builder.create<cc::AddressOfOp>(loc, ptrTy, name);
@@ -2902,6 +2906,12 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
         return true;
       }
     }
+  }
+
+  if (isa<quake::StruqType>(ctorTy)) {
+    if (quake::isConstantQuantumRefType(ctorTy))
+      return pushValue(builder.create<quake::AllocaOp>(loc, ctorTy));
+    return true;
   }
 
   auto *parent = ctor->getParent();

@@ -43,7 +43,25 @@ add_cudaq_library(OptCodeGen
     
   LINK_LIBS PUBLIC
     CCDialect
-    MLIRIR
     OptimBuilder
     QuakeDialect
+
+    MLIRArithTransforms
+    MLIRIR
+    MLIRLLVMDialect
+    MLIROpenACCDialect
+    MLIROpenMPDialect
+    MLIRTransforms
+
+    # Conversions
+    MLIRArithToLLVM
+    MLIRComplexToLibm
+    MLIRComplexToLLVM
+    MLIRControlFlowToLLVM
+    MLIRFuncToLLVM
+    MLIRMathToFuncs
+    MLIRMathToLLVM
+
+    # Translation
+    MLIRTargetLLVMIRExport
 )

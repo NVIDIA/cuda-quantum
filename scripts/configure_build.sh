@@ -19,6 +19,8 @@ export BLAS_INSTALL_PREFIX=/usr/local/blas
 export ZLIB_INSTALL_PREFIX=/usr/local/zlib
 export OPENSSL_INSTALL_PREFIX=/usr/local/openssl
 export CURL_INSTALL_PREFIX=/usr/local/curl
+export AWS_INSTALL_PREFIX=/usr/local/aws
+
 # [<InstallLocations]
 
 if [ "$1" == "install-cuda" ]; then
@@ -53,6 +55,7 @@ if [ "$1" == "install-cudart" ]; then
     dnf config-manager --add-repo "${CUDA_DOWNLOAD_URL}/${DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-${DISTRIBUTION}.repo"
     dnf install -y --nobest --setopt=install_weak_deps=False \
         cuda-cudart-${version_suffix} \
+        cuda-nvrtc-${version_suffix} \
         libcusolver-${version_suffix} \
         libcublas-${version_suffix}
     if [ $(echo ${CUDA_VERSION} | cut -d . -f1) -gt 11 ]; then 
@@ -67,7 +70,7 @@ if [ "$1" == "install-cuquantum" ]; then
     CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
 
 # [>cuQuantumInstall]
-    CUQUANTUM_VERSION=24.08.0.5
+    CUQUANTUM_VERSION=24.11.0.21
     CUQUANTUM_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum
 
     cuquantum_archive=cuquantum-linux-${CUDA_ARCH_FOLDER}-${CUQUANTUM_VERSION}_cuda$(echo ${CUDA_VERSION} | cut -d . -f1)-archive.tar.xz
