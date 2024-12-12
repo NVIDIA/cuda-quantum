@@ -250,7 +250,7 @@
 <li class="toctree-l2"><a class="reference internal" href="applications/python/krylov.html">Multi-reference Quantum Krylov Algorithm - <span class="math notranslate nohighlight">\(H_2\)</span> Molecule</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="applications/python/krylov.html#Setup">Setup</a></li>
 <li class="toctree-l3"><a class="reference internal" href="applications/python/krylov.html#Computing-the-matrix-elements">Computing the matrix elements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/krylov.html#Determining-the-ground-state-energy-of-the-Subspace">Determining the ground state energy of the Subspace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="applications/python/krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="applications/python/afqmc.html">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
@@ -1025,6 +1025,8 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16FermioniqBaseQPUE">cudaq::FermioniqBaseQPU (C++ class)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq9get_stateEDaRR13QuantumKernelDpRR4Args">cudaq::get_state (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq8gradientE">cudaq::gradient (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq8gradient5cloneEv">cudaq::gradient::clone (C++ function)</a>
@@ -1165,6 +1167,10 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq18num_available_gpusEv">cudaq::num_available_gpus (C++ function)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I00Dp0EN5cudaq7observeENSt6vectorI14observe_resultEERR13QuantumKernelRK15SpinOpContainerDpRR4Args">cudaq::observe (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I0Dp0EN5cudaq7observeE14observe_resultNSt6size_tERR13QuantumKernel7spin_opDpRR4Args">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4I0Dp0EN5cudaq7observeE14observe_resultRK15observe_optionsRR13QuantumKernel7spin_opDpRR4Args">[2]</a>, <a href="api/languages/cpp_api.html#_CPPv4I0Dp0EN5cudaq7observeE14observe_resultRR13QuantumKernel7spin_opDpRR4Args">[3]</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq15observe_optionsE">cudaq::observe_options (C++ struct)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14observe_resultE">cudaq::observe_result (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq14observe_result6countsE13sample_result10SpinOpType">cudaq::observe_result::counts (C++ function)</a>
@@ -1223,10 +1229,10 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU15onRandomSeedSetENSt6size_tE">cudaq::QPU::onRandomSeedSet (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU3QPUENSt6size_tE">cudaq::QPU::QPU (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU3QPUERR3QPU">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU3QPUEv">[2]</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU3QPUENSt6size_tE">cudaq::QPU::QPU (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU3QPUERR3QPU">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU3QPUEv">[2]</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU21resetExecutionContextEv">cudaq::QPU::resetExecutionContext (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU19setExecutionContextEP16ExecutionContext">cudaq::QPU::setExecutionContext (C++ function)</a>
@@ -1414,6 +1420,10 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq21RemoteSimulationStateE">cudaq::RemoteSimulationState (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq9ResourcesE">cudaq::Resources (C++ class)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I0Dp0EN5cudaq6sampleE13sample_resultRK14sample_optionsRR13QuantumKernelDpRR4Args">cudaq::sample (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I0Dp0EN5cudaq6sampleE13sample_resultRR13QuantumKernelDpRR4Args">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4I0Dp0EN5cudaq6sampleEDaNSt6size_tERR13QuantumKernelDpRR4Args">[2]</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14sample_optionsE">cudaq::sample_options (C++ struct)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_resultE">cudaq::sample_result (C++ class)</a>
 </li>

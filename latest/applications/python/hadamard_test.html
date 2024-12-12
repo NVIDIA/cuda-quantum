@@ -256,7 +256,7 @@
 <li class="toctree-l2"><a class="reference internal" href="krylov.html">Multi-reference Quantum Krylov Algorithm - <span class="math notranslate nohighlight">\(H_2\)</span> Molecule</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="krylov.html#Setup">Setup</a></li>
 <li class="toctree-l3"><a class="reference internal" href="krylov.html#Computing-the-matrix-elements">Computing the matrix elements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="krylov.html#Determining-the-ground-state-energy-of-the-Subspace">Determining the ground state energy of the Subspace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="afqmc.html">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
@@ -728,10 +728,10 @@
              
   <section id="Using-the-Hadamard-Test-to-Determine-Quantum-Krylov-Subspace-Decomposition-Matrix-Elements">
 <h1>Using the Hadamard Test to Determine Quantum Krylov Subspace Decomposition Matrix Elements<a class="headerlink" href="#Using-the-Hadamard-Test-to-Determine-Quantum-Krylov-Subspace-Decomposition-Matrix-Elements" title="Permalink to this heading">¶</a></h1>
-<p>The Hadamard test, is a quantum algorithm for estimating the expectation values and is a useful subroutine for a number of quantum applications ranging from estimation of molecular ground state energies to quantum semidefinite programming. This tutorial will briefly introduce the Hadamard test, and demonstrate how it can be implemented in CUDA-Q and then parallelized for a Quantum Krylov Subspace Diagonalization application.</p>
+<p>The Hadamard test is a quantum algorithm for estimating expectation values and is a useful subroutine for a number of quantum applications ranging from estimation of molecular ground state energies to quantum semidefinite programming. This tutorial will briefly introduce the Hadamard test, demonstrate how it can be implemented in CUDA-Q, and then parallelized for a Quantum Krylov Subspace Diagonalization application.</p>
 <p>The Hadamard test is performed using a register with an ancilla qubit in the <span class="math notranslate nohighlight">\(\ket{0}\)</span> state and a prepared quantum state <span class="math notranslate nohighlight">\(\ket{\psi}\)</span>, the following circuit can be used to extract the expectation value from measurement of the ancilla.</p>
 <p><img alt="Htest" src="../../_images/htest.png" /></p>
-<p>The key insight is to note that</p>
+<p>The key insight is that</p>
 <div class="math notranslate nohighlight">
 \[P(0) = \frac{1}{2} \left[ I + Re \bra{\psi} O \ket{\phi} \right]\]</div>
 <p>and</p>
@@ -739,26 +739,26 @@
 \[P(1) = \frac{1}{2} \left[ I - Re \bra{\psi} O \ket{\phi} \right]\]</div>
 <p>so their difference is equal to</p>
 <div class="math notranslate nohighlight">
-\[P(0)-P(1) = Re \bra{\psi} O \ket{\phi}\]</div>
+\[P(0)-P(1) = Re \bra{\psi} O \ket{\phi}.\]</div>
 <p>More details and a short derivation can be found <a class="reference external" href="https://en.wikipedia.org/wiki/Hadamard_test">here</a>.</p>
 <p>What if you want to perform the Hadamard test to compute an expectation value like <span class="math notranslate nohighlight">\(\bra{\psi} O \ket{\phi}\)</span>, where <span class="math notranslate nohighlight">\(\ket{\psi}\)</span> and <span class="math notranslate nohighlight">\(\ket{\phi}\)</span> are different states and <span class="math notranslate nohighlight">\(O\)</span> is a Pauli Operator? This is a common subroutine for the QKSD, where matrix elements are determined by computing expectation values between different states.</p>
 <p>Defining <span class="math notranslate nohighlight">\(O\)</span> as</p>
 <div class="math notranslate nohighlight">
-\[O = X_1X_2\]</div>
+\[O = X_1X_2,\]</div>
 <p>and given the fact that</p>
 <div class="math notranslate nohighlight">
-\[\ket{\psi} = U_{\psi}\ket{0} \qquad \ket{\phi} = U_{\phi}\ket{0}\]</div>
-<p>We can combine the state preparation steps into the operator resulting in</p>
+\[\ket{\psi} = U_{\psi}\ket{0} \qquad \ket{\phi} = U_{\phi}\ket{0},\]</div>
+<p>we can combine the state preparation steps into the operator resulting in</p>
 <div class="math notranslate nohighlight">
-\[\bra{\psi}O\ket{\phi} = \bra{0}U_\psi^\dagger O U_\phi\ket{0}\]</div>
-<p>Which corresponds to the following circuit <img alt="Htest2" src="../../_images/htestfactored.png" /></p>
-<p>By preparing this circuit, and repeatedly measuring the ancilla qubit, allows for estimation of the expectation value as</p>
+\[\bra{\psi}O\ket{\phi} = \bra{0}U_\psi^\dagger O U_\phi\ket{0},\]</div>
+<p>which corresponds to the following circuit. <img alt="Htest2" src="../../_images/htestfactored.png" /></p>
+<p>By preparing this circuit, and repeatedly measuring the ancilla qubit, we estimate the expectation value as</p>
 <div class="math notranslate nohighlight">
-\[P(0)-P(1) = Re \bra{\psi} O \ket{\phi}\]</div>
+\[P(0)-P(1) = Re \bra{\psi} O \ket{\phi}.\]</div>
 <p>The following sections demonstrate how this can be performed in CUDA-Q.</p>
 <section id="Numerical-result-as-a-reference:">
 <h2>Numerical result as a reference:<a class="headerlink" href="#Numerical-result-as-a-reference:" title="Permalink to this heading">¶</a></h2>
-<p>Before performing the Hadamard test, lets determine the exact expectation value by performing the matrix multiplications explicitly. The code below builds two CUDA-Q kernels corresponding to <span class="math notranslate nohighlight">\(\ket{\psi} = \frac{1}{\sqrt{2}}\begin{pmatrix}1 \\ 0 \\ 1 \\ 0\end{pmatrix}\)</span> and <span class="math notranslate nohighlight">\(\ket{\phi} = \begin{pmatrix}0 \\ 1 \\ 0 \\ 0\end{pmatrix}\)</span></p>
+<p>Before performing the Hadamard test, let’s determine the exact expectation value by performing the matrix multiplications explicitly. The code below builds two CUDA-Q kernels corresponding to <span class="math notranslate nohighlight">\(\ket{\psi} = \frac{1}{\sqrt{2}}\begin{pmatrix}1 \\ 0 \\ 1 \\ 0\end{pmatrix}\)</span> and <span class="math notranslate nohighlight">\(\ket{\phi} = \begin{pmatrix}0 \\ 1 \\ 0 \\ 0\end{pmatrix}.\)</span></p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
@@ -785,7 +785,7 @@
 </pre></div>
 </div>
 </div>
-<p>The state vectors can be accessed using the <code class="docutils literal notranslate"><span class="pre">get_state</span></code> command and printed as numpy arrays</p>
+<p>The state vectors can be accessed using the <code class="docutils literal notranslate"><span class="pre">get_state</span></code> command and printed as numpy arrays:</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
@@ -809,7 +809,7 @@ Phi state:  SV: [(0,0), (1,0), (0,0), (0,0)]
 
 </pre></div></div>
 </div>
-<p>The Hamiltonian operator (<span class="math notranslate nohighlight">\(O\)</span> in the derivation above) is defined as a CUDA-Q spin operator and converted to a matrix withe the <code class="docutils literal notranslate"><span class="pre">to_matrix</span></code>. The following line of code performs the explicit matrix multiplications to produce the exact expectation value.</p>
+<p>The Hamiltonian operator (<span class="math notranslate nohighlight">\(O\)</span> in the derivation above) is defined as a CUDA-Q spin operator and converted to a matrix with <code class="docutils literal notranslate"><span class="pre">to_matrix</span></code>. The following line of code performs the explicit matrix multiplications to produce the exact expectation value.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
@@ -881,7 +881,7 @@ Numerical expectation value:  (0.7071067690849304+0j)
 </pre></div>
 </div>
 </div>
-<p>The CUDA-Q Sample method computes 100000 sample ancilla measurements and uses them to estimate the expectation value. The standard error is provided as well. Try increasing the sample size and note the convergence of the expectation value and the standard error towards the numerical result.</p>
+<p>The CUDA-Q <code class="docutils literal notranslate"><span class="pre">sample</span></code> method computes 100000 sample ancilla measurements, and from them we can estimate the expectation value. The standard error is provided as well. Try increasing the sample size and note the convergence of the expectation value and the standard error towards the numerical result.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
@@ -915,8 +915,8 @@ Numerical result 0.7071067690849304
 <p>This example is small, but a more practical application of the Hadamard test such as QKSD will require much larger circuits. The QKSD method works by reducing the exponential <span class="math notranslate nohighlight">\(2^N\)</span> Hilbert space into an exponentially smaller subspace using a set of non-orthogonal states which are easy to prepare on a quantum computer. The Hadamard test is used to compute the matrix elements of this smaller subspace which is then diagonalized using a classical method to produce the eigenvalues. <a class="reference external" href="https://www.osti.gov/servlets/purl/1962060">This
 paper</a> described the method in more detail and is the source of the figure below.</p>
 <p><img alt="Htest3" src="../../_images/QKSD.png" /></p>
-<p>This method can be easily parallelized and multiple QPUs, if available could compute the matrix elements asynchronously. The CUDA-Q <code class="docutils literal notranslate"><span class="pre">mqpu</span></code> backend allows you to simulate a computation across multiple simulated QPUs. The code below demonstrates how.</p>
-<p>First, the Hadamard test circuit is defined, but this time the <span class="math notranslate nohighlight">\(\ket{\psi}\)</span> and <span class="math notranslate nohighlight">\(\ket{\phi}\)</span> states contain parameterized rotations so that multiple states can be quickly generated for the sake of example.</p>
+<p>This method can be easily parallelized, and multiple QPUs, if available, could compute the matrix elements asynchronously. The CUDA-Q <code class="docutils literal notranslate"><span class="pre">mqpu</span></code> backend allows you to simulate a computation across multiple simulated QPUs. The code below demonstrates how.</p>
+<p>First, the Hadamard test circuit is defined, but this time the <span class="math notranslate nohighlight">\(\ket{\psi}\)</span> and <span class="math notranslate nohighlight">\(\ket{\phi}\)</span> states contain parameterized rotations so that multiple states can be quickly generated, for the sake of example.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
@@ -957,10 +957,10 @@ paper</a> described the method in more detail and is the source of the figure be
 </div>
 <p>Next, the <code class="docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code> backend is specified and the number of GPUs available is determined.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia-mqpu&quot;</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="s2">&quot;mqpu&quot;</span><span class="p">)</span>
 
 <span class="n">target</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_target</span><span class="p">()</span>
 <span class="n">qpu_count</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">num_qpus</span><span class="p">()</span>
@@ -998,7 +998,7 @@ Number of QPUs: 5
 </pre></div>
 </div>
 </div>
-<p>The four matrix elements are shown below and now be classically processed to produce the eigenvalues.</p>
+<p>The four matrix elements are shown below and can be classically processed to produce the eigenvalues.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
