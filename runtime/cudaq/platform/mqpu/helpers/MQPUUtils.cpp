@@ -14,7 +14,9 @@
 #include <arpa/inet.h>
 #include <execinfo.h>
 #include <filesystem>
+#include <numeric>
 #include <random>
+#include <set>
 #include <signal.h>
 #include <sys/socket.h>
 #include <thread>
@@ -79,6 +81,44 @@ cudaq::AutoLaunchRestServerProcess::AutoLaunchRestServerProcess(
   if (!serverApp)
     throw std::runtime_error("Unable to find CUDA-Q REST server to launch.");
 
+  // If the CUDAQ_DYNLIBS env var is set (typically from the Python
+  // environment), add these to the LD_LIBRARY_PATH.
+  std::string libPaths;
+  std::optional<llvm::SmallVector<llvm::StringRef>> Env;
+  if (auto *ch = getenv("CUDAQ_DYNLIBS")) {
+    Env = llvm::SmallVector<llvm::StringRef>();
+    libPaths = ch;
+    if (libPaths.size() > 0)
+      libPaths += ":";
+
+    std::set<std::string> libDirs;
+    while (libPaths.size() > 0) {
+      auto next_delim = libPaths.find(":");
+      if (next_delim < libPaths.size()) {
+        std::filesystem::path lib(libPaths.substr(0, next_delim));
+        libPaths = libPaths.substr(next_delim + 1);
+        auto libDir = lib.remove_filename().string();
+        if (libDir.size() > 0)
+          libDirs.insert(libDir);
+      }
+    }
+
+    std::string dynLibs = std::accumulate(
+        std::begin(libDirs), std::end(libDirs), std::string{},
+        [](const std::string &a, const std::string &b) { return a + b + ':'; });
+    dynLibs.pop_back();
+    if (auto *p = getenv("LD_LIBRARY_PATH")) {
+      std::string envLibs = p;
+      if (envLibs.size() > 0)
+        dynLibs += ":" + envLibs;
+    }
+    for (char **env = environ; *env != nullptr; ++env) {
+      if (!std::string(*env).starts_with("LD_LIBRARY_PATH="))
+        Env->push_back(*env);
+    }
+    Env->push_back("LD_LIBRARY_PATH=" + dynLibs);
+  }
+
   constexpr std::size_t PORT_MAX_RETRIES = 10;
   for (std::size_t j = 0; j < PORT_MAX_RETRIES; j++) {
     /// Step 1: Look up a port
@@ -98,9 +138,8 @@ cudaq::AutoLaunchRestServerProcess::AutoLaunchRestServerProcess(
     llvm::StringRef argv[] = {serverApp.get(), "--port", port.value()};
     std::string errorMsg;
     bool executionFailed = false;
-    auto processInfo =
-        llvm::sys::ExecuteNoWait(serverApp.get(), argv, std::nullopt, {}, 0,
-                                 &errorMsg, &executionFailed);
+    auto processInfo = llvm::sys::ExecuteNoWait(serverApp.get(), argv, Env, {},
+                                                0, &errorMsg, &executionFailed);
     if (executionFailed)
       throw std::runtime_error("Failed to launch " + serverExeName +
                                " at port " + port.value() + ": " + errorMsg);

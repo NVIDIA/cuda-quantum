@@ -96,7 +96,7 @@ QPU via the :code:`cudaq::get_state_async` (C++) or :code:`cudaq.get_state_async
         ./a.out
 
 .. deprecated:: 0.8
-    The :code:`nvidia-mqpu` and :code:`nvidia-mqpu-fp64` targets, which are equivalent to the multi-QPU options `mgpu,fp32` and `mgpu,fp64`, respectively, of the :code:`nvidia` target, are deprecated and will be removed in a future release.
+    The :code:`nvidia-mqpu` and :code:`nvidia-mqpu-fp64` targets, which are equivalent to the multi-QPU options `mqpu,fp32` and `mqpu,fp64`, respectively, of the :code:`nvidia` target, are deprecated and will be removed in a future release.
 
 Parallel distribution mode
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
