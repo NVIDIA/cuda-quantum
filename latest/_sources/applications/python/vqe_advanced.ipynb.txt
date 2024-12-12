@@ -331,7 +331,7 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "[\u001b[38;2;255;000;000mwarning\u001b[0m] Target \u001b[38;2;000;000;255mnvidia-mqpu\u001b[0m: \u001b[38;2;000;000;255mThis target is deprecating. Please use the 'nvidia' target with option 'mqpu,fp32' or 'mqpu' (fp32 is the default precision option) by adding the command line option '--target-option mqpu,fp32' or passing it as cudaq.set_target('nvidia', option='mqpu,fp32') in Python. Please refer to CUDA-Q \u001b]8;;https://nvidia.github.io/cuda-quantum/latest/using/backends/platform.html#nvidia-mqpu-platform\u001b\\documentation\u001b]8;;\u001b\\ for more information.\u001b[0m\n"
+      "[\u001b[38;2;255;000;000mwarning\u001b[0m] Target \u001b[38;2;000;000;255mnvidia-mqpu\u001b[0m: \u001b[38;2;000;000;255mThis target is deprecating. Please use the 'nvidia' target with option 'mqpu,fp32' or 'mqpu' (fp32 is the default precision option) by adding the command line option '--target-option mqpu,fp32' or passing it as cudaq.set_target('nvidia', option='mqpu,fp32') in Python. Please refer to CUDA-Q \u001b]8;;https://nvidia.github.io/cuda-quantum/latest/using/backends/platform\u001b\\documentation\u001b]8;;\u001b\\ for more information.\u001b[0m\n"
      ]
     }
    ],
