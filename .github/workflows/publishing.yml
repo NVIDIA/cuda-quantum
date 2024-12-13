@@ -1135,9 +1135,7 @@ jobs:
           cp -r $GITHUB_WORKSPACE/docs/sphinx/snippets/python /tmp/snippets/
           cp -r $GITHUB_WORKSPACE/python/tests /tmp/tests/
           cp    $GITHUB_WORKSPACE/$readme /tmp/README.md
-
-          # FIXME: setup to run target tests - we need to set env variables for that 
-          #cp -r $GITHUB_WORKSPACE/docs/sphinx/targets/python /tmp/targets/
+          # Target tests should not be run here either, since that requires credentials but doesn't require a GPU runner.
   
           # Run the script w/ -q to run a shortened test
           set +e # Allow script to keep going through errors (needed for skipped tests)
