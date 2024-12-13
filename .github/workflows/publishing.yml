@@ -1090,6 +1090,11 @@ jobs:
         cuda_version: ['11.8', '12.4']
       fail-fast: false
 
+    # Must have environment to access environment secreats
+    environment:
+      name: ghcr-deployment
+      url: ${{ vars.deployment_url }}
+
     container:
       image: ubuntu:22.04
       options: --user root
@@ -1129,13 +1134,16 @@ jobs:
           rm -rf ${cudaq_metapackage} && readme=README.md
 
           # Setup files for validate_pycudaq.sh script
+          # Important: Notebooks are *not* validated by validate_pycudaq.sh.
           cp    $GITHUB_WORKSPACE/scripts/validate_pycudaq.sh .
           cp -r $GITHUB_WORKSPACE/docs/sphinx/examples/python /tmp/examples/
-          cp -r $GITHUB_WORKSPACE/docs/sphinx/applications/python /tmp/applications/
-          cp -r $GITHUB_WORKSPACE/docs/sphinx/targets/python /tmp/targets/
           cp -r $GITHUB_WORKSPACE/docs/sphinx/snippets/python /tmp/snippets/
           cp -r $GITHUB_WORKSPACE/python/tests /tmp/tests/
           cp    $GITHUB_WORKSPACE/$readme /tmp/README.md
+          # Target tests should not be run here either, since that requires credentials but doesn't require a GPU runner.
+
+          # The NVQC API key is needed to validate NVQC related snippets and examples.
+          export NVQC_API_KEY="${{ secrets.NVQC_SERVICE_KEY }}"
 
           # Run the script w/ -q to run a shortened test
           set +e # Allow script to keep going through errors (needed for skipped tests)
