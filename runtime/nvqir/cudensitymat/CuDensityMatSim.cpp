@@ -8,6 +8,8 @@
 
 #include "CircuitSimulator.h"
 #include "CuDensityMatState.h"
+#include "cudaq.h"
+
 namespace {
 
 class CuDensityMatSim : public nvqir::CircuitSimulatorBase<double> {
@@ -30,7 +32,13 @@ protected:
 
 public:
   /// @brief The constructor
-  CuDensityMatSim() {}
+  CuDensityMatSim() {
+    int numDevices{0};
+    HANDLE_CUDA_ERROR(cudaGetDeviceCount(&numDevices));
+    const int deviceId =
+        cudaq::mpi::is_initialized() ? cudaq::mpi::rank() % numDevices : 0;
+    HANDLE_CUDA_ERROR(cudaSetDevice(deviceId));
+  }
 
   /// The destructor
   virtual ~CuDensityMatSim() = default;

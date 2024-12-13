@@ -172,6 +172,16 @@ void broadcast(std::string &data, int rootRank) {
   commPlugin->broadcast(data, rootRank);
 }
 
+std::pair<void *, std::size_t> comm_dup() {
+  auto *commPlugin = getMpiPlugin();
+  cudaqDistributedCommunicator_t *dupComm = nullptr;
+  cudaqDistributedCommunicator_t *comm = commPlugin->getComm();
+  const auto dupStatus = commPlugin->get()->CommDup(comm, &dupComm);
+  if (dupStatus != 0 || dupComm == nullptr)
+    throw std::runtime_error("Failed to duplicate the MPI communicator.");
+  return std::make_pair(dupComm->commPtr, dupComm->commSize);
+}
+
 void finalize() {
   if (rank() == 0)
     cudaq::info("Finalizing MPI.");
