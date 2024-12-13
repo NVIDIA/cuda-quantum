@@ -32,6 +32,8 @@
 
 using namespace mlir;
 
+#include "PeepholePatterns.inc"
+
 /// For a call to `__quantum__rt__qubit_allocate_array`, get the number of
 /// qubits allocated.
 static std::size_t getNumQubits(LLVM::CallOp callOp) {
