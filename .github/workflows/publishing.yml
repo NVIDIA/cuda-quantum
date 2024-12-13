@@ -1129,14 +1129,16 @@ jobs:
           rm -rf ${cudaq_metapackage} && readme=README.md
 
           # Setup files for validate_pycudaq.sh script
+          # Important: Notebooks are *not* validated by validate_pycudaq.sh.
           cp    $GITHUB_WORKSPACE/scripts/validate_pycudaq.sh .
           cp -r $GITHUB_WORKSPACE/docs/sphinx/examples/python /tmp/examples/
-          cp -r $GITHUB_WORKSPACE/docs/sphinx/applications/python /tmp/applications/
-          cp -r $GITHUB_WORKSPACE/docs/sphinx/targets/python /tmp/targets/
           cp -r $GITHUB_WORKSPACE/docs/sphinx/snippets/python /tmp/snippets/
           cp -r $GITHUB_WORKSPACE/python/tests /tmp/tests/
           cp    $GITHUB_WORKSPACE/$readme /tmp/README.md
 
+          # FIXME: setup to run target tests - we need to set env variables for that 
+          #cp -r $GITHUB_WORKSPACE/docs/sphinx/targets/python /tmp/targets/
+  
           # Run the script w/ -q to run a shortened test
           set +e # Allow script to keep going through errors (needed for skipped tests)
           source validate_pycudaq.sh \
@@ -1158,7 +1160,7 @@ jobs:
   create_release:
     name: CUDA-Q Release
     needs: [assets, cudaq_images, cudaq_installers, cudaq_wheels, cudaq_metapackages]
-    if: needs.assets.outputs.release_title && inputs.github_commit == '' && inputs.assets_from_run == '' && inputs.nvidia_mgpu_commit == ''
+    if: needs.assets.outputs.release_title && inputs.github_commit == '' && inputs.nvidia_mgpu_commit == ''
     runs-on: ubuntu-latest
 
     environment:
