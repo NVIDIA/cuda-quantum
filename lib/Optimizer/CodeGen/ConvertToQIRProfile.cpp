@@ -32,6 +32,8 @@
 
 using namespace mlir;
 
+#include "PeepholePatterns.inc"
+
 /// For a call to `__quantum__rt__qubit_allocate_array`, get the number of
 /// qubits allocated.
 static std::size_t getNumQubits(LLVM::CallOp callOp) {
@@ -516,7 +518,7 @@ namespace {
 /// trivial pass only does this preparation work. It performs no analysis and
 /// does not rewrite function body's, etc.
 
-static const std::vector<std::string> measurementFunctionNames{
+static constexpr std::array<const char *, 3> measurementFunctionNames{
     cudaq::opt::QIRMeasureBody, cudaq::opt::QIRMeasure,
     cudaq::opt::QIRMeasureToRegister};
 
@@ -564,7 +566,7 @@ struct QIRProfilePreparationPass
               func.getFunctionType().getParams(), module);
 
     // Apply irreversible attribute to measurement functions
-    for (auto &funcName : measurementFunctionNames) {
+    for (auto *funcName : measurementFunctionNames) {
       Operation *op = SymbolTable::lookupSymbolIn(module, funcName);
       auto funcOp = llvm::dyn_cast_if_present<LLVM::LLVMFuncOp>(op);
       if (funcOp) {

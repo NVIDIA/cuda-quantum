@@ -37,7 +37,6 @@ add_cudaq_library(OptCodeGen
     CodeGenOpsIncGen
     CodeGenTypesIncGen
     OptCodeGenPassIncGen
-    OptPeepholeIncGen
     OptTransformsPassIncGen
     QuakeDialect
     

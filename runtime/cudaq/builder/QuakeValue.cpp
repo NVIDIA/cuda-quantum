@@ -190,7 +190,8 @@ QuakeValue QuakeValue::size() {
 
 std::optional<std::size_t> QuakeValue::constantSize() {
   if (auto qvecTy = dyn_cast<quake::VeqType>(getValue().getType()))
-    return qvecTy.getSize();
+    if (qvecTy.hasSpecifiedSize())
+      return qvecTy.getSize();
 
   return std::nullopt;
 }

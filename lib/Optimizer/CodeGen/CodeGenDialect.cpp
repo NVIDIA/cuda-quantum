@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "CodeGenDialect.h"
+#include "cudaq/Optimizer/CodeGen/CodeGenDialect.h"
 #include "CodeGenOps.h"
 #include "mlir/IR/DialectImplementation.h"
 

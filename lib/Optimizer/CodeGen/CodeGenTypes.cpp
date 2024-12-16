@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "CodeGenTypes.h"
-#include "CodeGenDialect.h"
+#include "cudaq/Optimizer/CodeGen/CodeGenDialect.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/DialectImplementation.h"
