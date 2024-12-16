@@ -1,5 +1,6 @@
-NVIDIA Quantum Cloud
----------------------
+NVIDIA Quantum Cloud (nvqc)
++++++++++++++++++++++++++++
+
 NVIDIA Quantum Cloud (NVQC) offers universal access to the world’s most powerful computing platform, 
 for every quantum researcher to do their life’s work.
 To learn more about NVQC visit this `link <https://www.nvidia.com/en-us/solutions/quantum-computing/cloud>`__. 
@@ -8,7 +9,7 @@ Apply for early access `here <https://developer.nvidia.com/quantum-cloud-early-a
 Access to the Quantum Cloud early access program requires an NVIDIA Developer account.
 
 Quick Start
-+++++++++++
+^^^^^^^^^^^
 Once you have been approved for an early access to NVQC, you will be able to follow these instructions to use it.
 
 1. Follow the instructions in your NVQC Early Access welcome email to obtain an API Key for NVQC. 
@@ -76,7 +77,7 @@ By selecting the `nvqc` target, the quantum circuit simulation will run on NVQC 
 
 
 Simulator Backend Selection
-++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 NVQC hosts all CUDA-Q simulator backends (see :doc:`simulators`). 
 You may use the NVQC `backend` (Python) or `--nvqc-backend` (C++) option to select the simulator to be used by the service.
@@ -101,7 +102,7 @@ For example, to request the `tensornet` simulator backend, the user can do the f
   By default, the single-GPU single-precision `custatevec-fp32` simulator backend will be selected if backend information is not specified.
 
 Multiple GPUs
-+++++++++++++
+^^^^^^^^^^^^^^
 
 Some CUDA-Q simulator backends are capable of multi-GPU distribution as detailed in :doc:`simulators`.
 For example, the `nvidia-mgpu` backend can partition and distribute state vector simulation to multiple GPUs to simulate 
@@ -190,7 +191,7 @@ To select a specific number of GPUs on the NVQC managed service, the following `
     
 
 Multiple QPUs Asynchronous Execution
-+++++++++++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 NVQC provides scalable QPU virtualization services, whereby clients
 can submit asynchronous jobs simultaneously to NVQC. These jobs are
@@ -230,7 +231,7 @@ calculating the expectation value along with parameter-shift gradients simultane
     multi-QPU distribution may not deliver any substantial speedup.  
 
 FAQ
-++++
+^^^^^
 
 1. How do I get more information about my NVQC API submission?
 
