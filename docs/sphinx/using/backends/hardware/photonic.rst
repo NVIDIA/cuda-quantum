@@ -64,7 +64,7 @@ To run the output, invoke the executable
    ./executable
 
 
-To see a complete example for using ORCA server backends, take a look at our :doc:`C++ examples <../examples/hardware_providers>`.
+To see a complete example for using ORCA server backends, take a look at our :doc:`C++ examples <../../examples/hardware_providers>`.
 
 Submission from Python
 `````````````````````````
@@ -90,4 +90,4 @@ You can then execute a time-bin boson sampling experiment against the platform u
     loop_lengths = [1]
     counts = cudaq.orca.sample(input_state, loop_lengths, bs_angles)
 
-To see a complete example for using ORCA's backends, take a look at our :doc:`Python examples <../examples/hardware_providers>`.
+To see a complete example for using ORCA's backends, take a look at our :doc:`Python examples <../../examples/hardware_providers>`.
