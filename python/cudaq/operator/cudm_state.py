@@ -74,7 +74,7 @@ class CuDensityMatState(object):
                     for i in range(len(dm_shape)):
                         slice_obj.append(slice(slice_offsets[i], slice_offsets[i] + slice_shape[i]))
                     slice_obj = tuple(slice_obj)
-                    self.raw_data = cupy.asfortranarray(self.raw_data.reshape(sv_shape))
+                    self.raw_data = cupy.asfortranarray(self.raw_data.reshape(dm_shape))
                     self.raw_data = cupy.asfortranarray(self.raw_data[slice_obj].copy())
                     self.state.attach_storage(self.raw_data)
                 else:
