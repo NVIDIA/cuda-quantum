@@ -219,25 +219,27 @@ for ex in `find "$root_folder/examples" -name '*.py'`; do
 done
 
 # Run target tests if target folder exists.
-for ex in `find "$root_folder/targets" -name '*.py'`; do
-    skip_example=false
-    explicit_targets=`cat $ex | grep -Po '^\s*cudaq.set_target\("\K.*(?=")'`
-    for t in $explicit_targets; do
-        if [ "$t" == "quera" ] || [ "$t" == "braket" ] ; then 
-            # Skipped because GitHub does not have the necessary authentication token 
-            # to submit a (paid) job to Amazon Braket (includes QuEra).
-            echo -e "\e[01;31mWarning: Explicitly set target braket or quera in $ex; skipping validation due to paid submission.\e[0m" >&2
-            skip_example=true
+if [ -d "$root_folder/targets" ]; then
+    for ex in `find "$root_folder/targets" -name '*.py'`; do
+        skip_example=false
+        explicit_targets=`cat $ex | grep -Po '^\s*cudaq.set_target\("\K.*(?=")'`
+        for t in $explicit_targets; do
+            if [ "$t" == "quera" ] || [ "$t" == "braket" ] ; then 
+                # Skipped because GitHub does not have the necessary authentication token 
+                # to submit a (paid) job to Amazon Braket (includes QuEra).
+                echo -e "\e[01;31mWarning: Explicitly set target braket or quera in $ex; skipping validation due to paid submission.\e[0m" >&2
+                skip_example=true
+            fi
+        done
+        if ! $skip_example; then 
+            python3 "$ex"
+            if [ ! $? -eq 0 ]; then
+                echo -e "\e[01;31mFailed to execute $ex.\e[0m" >&2
+                status_sum=$((status_sum+1))
+            fi
         fi
     done
-    if ! $skip_example; then 
-        python3 "$ex"
-        if [ ! $? -eq 0 ]; then
-            echo -e "\e[01;31mFailed to execute $ex.\e[0m" >&2
-            status_sum=$((status_sum+1))
-        fi
-    fi
-done
+fi
 
 # Run remote-mqpu platform test
 # Use cudaq-qpud.py wrapper script to automatically find dependencies for the Python wheel configuration.
