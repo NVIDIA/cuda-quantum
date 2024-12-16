@@ -19,7 +19,7 @@ from .expressions import Operator, RydbergHamiltonian
 from .helpers import NumericType
 from .integrator import BaseIntegrator
 from .schedule import Schedule
-
+from .cudm_state import InitialStateArgT
 from ..kernel.register_op import register_operation
 from ..kernel.utils import ahkPrefix
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
@@ -193,7 +193,7 @@ def evolve_single(
         hamiltonian: Operator,
         dimensions: Mapping[int, int],
         schedule: Schedule,
-        initial_state: cudaq_runtime.State,
+        initial_state: InitialStateArgT,
         collapse_operators: Sequence[Operator] = [],
         observables: Sequence[Operator] = [],
         store_intermediate_results=False,
@@ -292,7 +292,7 @@ def evolve(
     hamiltonian: Operator,
     dimensions: Mapping[int, int] = {},
     schedule: Schedule = None,
-    initial_state: cudaq_runtime.State | Sequence[cudaq_runtime.State] = None,
+    initial_state: InitialStateArgT | Sequence[InitialStateArgT] = None,
     collapse_operators: Sequence[Operator] = [],
     observables: Sequence[Operator] = [],
     store_intermediate_results=False,
@@ -395,7 +395,7 @@ def evolve_single_async(
         hamiltonian: Operator,
         dimensions: Mapping[int, int],
         schedule: Schedule,
-        initial_state: cudaq_runtime.State,
+        initial_state: InitialStateArgT,
         collapse_operators: Sequence[Operator] = [],
         observables: Sequence[Operator] = [],
         store_intermediate_results=False,
@@ -506,7 +506,7 @@ def evolve_async(
     hamiltonian: Operator,
     dimensions: Mapping[int, int] = {},
     schedule: Schedule = None,
-    initial_state: cudaq_runtime.State | Sequence[cudaq_runtime.State] = None,
+    initial_state: InitialStateArgT | Sequence[InitialStateArgT] = None,
     collapse_operators: Sequence[Operator] = [],
     observables: Sequence[Operator] = [],
     store_intermediate_results=False,

@@ -12,6 +12,7 @@ from typing import Sequence
 from cupy.cuda.memory import MemoryPointer, UnownedMemory
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cuquantum.bindings import cudensitymat as cudm
+from enum import Enum
 
 def is_multi_processes():
     return cudaq_runtime.mpi.is_initialized() and cudaq_runtime.mpi.num_ranks() > 1
@@ -30,6 +31,16 @@ def to_cupy_array(state):
                               dtype=dtype,
                               memptr=memptr)
     return cupy_array
+
+
+class InitialState(Enum):
+    """
+    Enum to specify the initial quantum state.
+    """
+    ZERO = 1
+    UNIFORM = 2
+
+InitialStateArgT = cudaq_runtime.State | InitialState
 
 
 # A Python wrapper of `CuDensityMatState` state.
@@ -115,6 +126,52 @@ class CuDensityMatState(object):
     @staticmethod
     def from_data(data):
         return CuDensityMatState(data)
+
+    @staticmethod
+    def create_initial_state(type: InitialState, hilbert_space_dims: Sequence[int], mix_state: bool):
+        new_state = CuDensityMatState(None)
+        new_state.hilbert_space_dims = hilbert_space_dims
+        
+        if mix_state:
+            new_state.state = DenseMixedState(new_state.__ctx,
+                                             new_state.hilbert_space_dims,
+                                             batch_size=1,
+                                             dtype="complex128")
+        else:
+            new_state.state = DensePureState(new_state.__ctx,
+                                             new_state.hilbert_space_dims,
+                                             batch_size=1,
+                                             dtype="complex128")
+        required_buffer_size = new_state.state.storage_size
+        slice_shape, slice_offsets = new_state.state.local_info
+
+        if type == InitialState.ZERO:
+            if mix_state:
+                bit_string = [0] * (2 * len(hilbert_space_dims)) + [0]
+            else:
+                bit_string = [0] * len(hilbert_space_dims) + [0]
+            buffer = cupy.asfortranarray(cupy.zeros((required_buffer_size,), dtype="complex128", order="F"))
+            new_state.state.raw_data = cupy.asfortranarray(buffer.reshape(slice_shape))
+            new_state.state.attach_storage(new_state.state.raw_data)        
+            bitstring_is_local = True
+            state_inds = []
+            # Follow cudm example to set the amplitude based on local_info
+            for slice_dim, slice_offset, state_dit in zip(slice_shape, slice_offsets, bit_string):
+                bitstring_is_local = state_dit in range(slice_offset, slice_offset + slice_dim)
+                if not bitstring_is_local:
+                    break
+                else:
+                    state_inds.append(
+                        range(slice_offset, slice_offset + slice_dim).index(state_dit)
+                    )
+            if bitstring_is_local:
+                strides = (1,) + tuple(numpy.cumprod(numpy.array(slice_shape)[:-1]))
+                ind = numpy.sum(strides * numpy.array(state_inds))
+                new_state.state.storage[ind] = 1.0
+        else: 
+            raise ValueError("Unsupport initial state type")
+
+        return new_state
 
     def get_impl(self):
         return self.state
