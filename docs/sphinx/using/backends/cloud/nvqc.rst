@@ -31,7 +31,7 @@ By selecting the `nvqc` target, the quantum circuit simulation will run on NVQC 
 
 .. tab:: Python
     
-    .. literalinclude:: ../../snippets/python/using/cudaq/nvqc/nvqc_intro.py
+    .. literalinclude:: ../../../snippets/python/using/cudaq/nvqc/nvqc_intro.py
         :language: python
         :start-after: [Begin Documentation]
 
@@ -50,7 +50,7 @@ By selecting the `nvqc` target, the quantum circuit simulation will run on NVQC 
 
 .. tab:: C++
 
-    .. literalinclude:: ../../snippets/cpp/using/cudaq/nvqc/nvqc_intro.cpp
+    .. literalinclude:: ../../../snippets/cpp/using/cudaq/nvqc/nvqc_intro.cpp
         :language: cpp
         :start-after: [Begin Documentation]
 
@@ -203,13 +203,13 @@ calculating the expectation value along with parameter-shift gradients simultane
 
 .. tab:: Python
 
-    .. literalinclude:: ../../snippets/python/using/cudaq/nvqc/nvqc_mqpu.py
+    .. literalinclude:: ../../../snippets/python/using/cudaq/nvqc/nvqc_mqpu.py
         :language: python
         :start-after: [Begin Documentation]
 
 .. tab:: C++
 
-    .. literalinclude:: ../../snippets/cpp/using/cudaq/nvqc/nvqc_mqpu.cpp
+    .. literalinclude:: ../../../snippets/cpp/using/cudaq/nvqc/nvqc_mqpu.cpp
         :language: cpp
         :start-after: [Begin Documentation]
 

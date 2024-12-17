@@ -15,7 +15,6 @@ To submit to a hardware backend, you need an account with the respective provide
         Superconducting QPUs <hardware/superconducting.rst>
         Neutral Atom QPUs <hardware/neutralatom.rst>
         Photonic QPUs <hardware/photonic.rst>
-        Aggregators <hardware/aggregators.rst>
 
 
 

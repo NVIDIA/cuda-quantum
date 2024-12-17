@@ -22,8 +22,8 @@ specific asynchronous function invocations targeting a desired QPU.
 NVIDIA `MQPU` Platform
 ++++++++++++++++++++++
 
-In the multi-QPU mode (:code:`mqpu` option), the NVIDIA target provides a simulated QPU for every available NVIDIA GPU on the underlying system. 
-Each QPU is simulated via a `cuStateVec` simulator backend as defined by the NVIDIA target. For more information about using multiple GPUs 
+In the multi-QPU mode (:code:`mqpu` option), the NVIDIA backend provides a simulated QPU for every available NVIDIA GPU on the underlying system. 
+Each QPU is simulated via a `cuStateVec` simulator backend as defined by the NVIDIA backend. For more information about using multiple GPUs 
 to simulate each virtual QPU, or using a different backend for virtual QPUs, please see :ref:`remote MQPU platform <remote-mqpu-platform>`.
 This target enables asynchronous parallel execution of quantum kernel tasks.
 
@@ -96,6 +96,9 @@ QPU via the :code:`cudaq::get_state_async` (C++) or :code:`cudaq.get_state_async
 
         nvq++ get_state_async.cpp --target nvidia --target-option mqpu
         ./a.out
+
+See the `Hadamard Test notebook <https://nvidia.github.io/cuda-quantum/latest/applications/python/hadamard_test.html>`__ for an application that leverages the mqpu backend. 
+
 
 .. deprecated:: 0.8
     The :code:`nvidia-mqpu` and :code:`nvidia-mqpu-fp64` targets, which are equivalent to the multi-QPU options `mqpu,fp32` and `mqpu,fp64`, respectively, of the :code:`nvidia` target, are deprecated and will be removed in a future release.

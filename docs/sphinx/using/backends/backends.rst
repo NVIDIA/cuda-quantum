@@ -20,4 +20,10 @@ Click on the links below for each catagory to learn more about the backends it c
    :maxdepth: 1
       
         Dynamics (dynamics) <dynamics.rst>
-        NVIDIA Quantum Cloud (nvqc) <nvqc.rst>
+
+.. toctree::
+   :maxdepth: 2
+
+        Cloud  <cloud.rst>
+
+

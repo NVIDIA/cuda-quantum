@@ -1,5 +1,5 @@
-Aggregators
-============
+Amazon Braket
+================
 
 Amazon Braket
 ++++++++++++++

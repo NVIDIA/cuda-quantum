@@ -42,13 +42,13 @@ Single-GPU (nvidia)
 .. _nvidia-backend:
 
 
-The :code:`nvidia` target provides a state vector simulator accelerated with -
+The :code:`nvidia` backend  provides a state vector simulator accelerated with -
 the :code:`cuStateVec` library. The `cuStateVec documentation <https://docs.nvidia.com/cuda/cuquantum/latest/custatevec/index.html>`__ provides a detailed explaination for how the simulations are performed on the GPU.
 
 The :code:`nvidia` target supports multiple configurable options:
 
 
-To execute a program on the :code:`nvidia` target, use the following commands:
+To execute a program on the :code:`nvidia` backend, use the following commands:
 
 .. tab:: Python
 
@@ -77,7 +77,7 @@ To execute a program on the :code:`nvidia` target, use the following commands:
   This backend requires an NVIDIA GPU and CUDA runtime libraries. If you do not have these dependencies installed, you may encounter an error stating `Invalid simulator requested`. See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
 
 
-In the single-GPU mode, the :code:`nvidia` target provides the following
+In the single-GPU mode, the :code:`nvidia` bakend provides the following
 environment variable options. Any environment variables must be set prior to
 setting the target. It is worth drawing attention to gate fusion, a powerful tool for improving simulation performance which is discussed in greater detail `here <https://nvidia.github.io/cuda-quantum/latest/examples/python/performance_optimizations.html>`__.
 
@@ -149,15 +149,17 @@ Multi-node multi-GPU (mgpu)
 
 .. _nvidia-mgpu-backend:
 
-The :code:`nvidia` target also provides a state vector simulator accelerated with 
+The :code:`nvidia` backend also provides a state vector simulator accelerated with 
 the :code:`cuStateVec` library with support for Multi-Node, Multi-GPU distribution of the 
 state vector.
 
-This target is necessary to scale applications that require a state vector that cannot fit on a single GPU memory.
+This backend is necessary to scale applications that require a state vector that cannot fit on a single GPU memory.
 
 The multi-node multi-GPU simulator expects to run within an MPI context.
 To execute a program on the multi-node multi-GPU NVIDIA target, use the following commands 
 (adjust the value of the :code:`-np` flag as needed to reflect available GPU resources on your system):
+
+See the `Divisive Clustering <https://nvidia.github.io/cuda-quantum/latest/applications/python/divisive_clustering_coresets.html>`__ application to see how this backend can be used in practice.
 
 .. tab:: Python
 
@@ -226,7 +228,7 @@ To execute a program on the multi-node multi-GPU NVIDIA target, use the followin
 
 
 In addition to those environment variable options supported in the single-GPU mode,
-the :code:`nvidia` target provides the following environment variable options particularly for 
+the :code:`nvidia` backend provides the following environment variable options particularly for 
 the multi-node multi-GPU configuration. Any environment variables must be set
 prior to setting the target.
 
@@ -262,7 +264,7 @@ prior to setting the target.
     - Specify host-device memory migration w.r.t. the network structure. If provided, this setting determines the position to insert the number of migration index bits to the `CUDAQ_GLOBAL_INDEX_BITS` list. By default, if not set, the number of migration index bits (CPU-GPU data transfers) is appended to the end of the array of index bits (aka, state vector distribution scheme). This default behavior is optimized for systems with fast GPU-GPU interconnects (NVLink, InfiniBand, etc.) 
 
 .. deprecated:: 0.8
-    The :code:`nvidia-mgpu` target, which is equivalent to the multi-node multi-GPU double-precision option (`mgpu,fp64`) of the :code:`nvidia`
+    The :code:`nvidia-mgpu` backend, which is equivalent to the multi-node multi-GPU double-precision option (`mgpu,fp64`) of the :code:`nvidia`
     is deprecated and will be removed in a future release.
 
 The above configuration options of the :code:`nvidia` backend 
