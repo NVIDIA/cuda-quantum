@@ -116,7 +116,9 @@ cudaq::AutoLaunchRestServerProcess::AutoLaunchRestServerProcess(
       if (!std::string(*env).starts_with("LD_LIBRARY_PATH="))
         Env->push_back(*env);
     }
-    Env->push_back("LD_LIBRARY_PATH=" + dynLibs);
+    // Cache the string as a member var to keep the pointer alive.
+    m_ldLibPathEnv = "LD_LIBRARY_PATH=" + dynLibs;
+    Env->push_back(m_ldLibPathEnv);
   }
 
   constexpr std::size_t PORT_MAX_RETRIES = 10;
