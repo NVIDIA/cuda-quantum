@@ -12,6 +12,27 @@ and is also available as a Docker image. More information about installing the n
 - `Documentation <https://nvidia.github.io/cuda-quantum/latest>`__
 - `Examples <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples>`__
 
+**0.9.1**
+
+This release adds support for using 
+`Amazon Braket <https://nvidia.github.io/cuda-quantum/0.9.1/using/backends/hardware.html#amazon-braket>`__ and 
+`Infeqtion's Superstaq <https://nvidia.github.io/cuda-quantum/0.9.1/using/backends/hardware.html#infleqtion>`__ as backends.
+
+Starting with this release, all C++ quantum kernels will be processed by the nvq++ compiler regardless of whether 
+they run on a simulator or on a quantum hardware backend. This change is largely non-breaking, but language constructs 
+that are not officially supported within quantum kernels will now lead to a compilation error whereas previously they 
+could be used when executing on a simulator only. The previous behavior can be forced by passing the `--library-mode` 
+flag to the compiler. Please note that if you do so, however, the code will never be executable outside of a simulator 
+and may not be supported even on simulators.
+
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum>`__
+- `Python wheel <https://pypi.org/project/cudaq/0.9.1>`__
+- `C++ installer <https://github.com/NVIDIA/cuda-quantum/releases/0.9.1>`__
+- `Documentation <https://nvidia.github.io/cuda-quantum/0.9.1>`__
+- `Examples <https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.9.1/docs/sphinx/examples>`__
+
+The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/releases/0.9.1>`__.
+
 **0.9.0**
 
 We are very excited to share a new toolset added for modeling and manipulating the dynamics of physical systems. 
@@ -21,12 +42,12 @@ The 0.9.0 release furthermore includes a range of contribution to add new backen
 from `Anyon Technologies <https://nvidia.github.io/cuda-quantum/0.9.0/using/backends/hardware.html#anyon-technologies-anyon-computing>`__, 
 `Ferimioniq <https://nvidia.github.io/cuda-quantum/0.9.0/using/backends/simulators.html#fermioniq>`__, and 
 `QuEra Computing <https://nvidia.github.io/cuda-quantum/0.9.0/using/backends/hardware.html#quera-computing>`__, 
-as well as updates to existing backends from `ORCA <https://nvidia.github.io/cuda-quantum/latest/using/backends/hardware.html#orca-computing>`__ 
+as well as updates to existing backends from `ORCA <https://nvidia.github.io/cuda-quantum/0.9.0/using/backends/hardware.html#orca-computing>`__ 
 and `OQC <https://nvidia.github.io/cuda-quantum/0.9.0/using/backends/hardware.html#oqc>`__.
 We hope you enjoy the new features - also check out our new notebooks and examples to dive into CUDA-Q.
 
-- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum>`__
-- `Python wheel <https://pypi.org/project/cuda-quantum/0.9.0>`__
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags>`__
+- `Python wheel <https://pypi.org/project/cudaq/0.9.0>`__
 - `C++ installer <https://github.com/NVIDIA/cuda-quantum/releases/0.9.0>`__
 - `Documentation <https://nvidia.github.io/cuda-quantum/0.9.0>`__
 - `Examples <https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.9.0/docs/sphinx/examples>`__
