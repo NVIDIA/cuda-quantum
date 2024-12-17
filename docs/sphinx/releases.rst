@@ -18,7 +18,7 @@ This release adds support for using
 `Amazon Braket <https://nvidia.github.io/cuda-quantum/0.9.1/using/backends/hardware.html#amazon-braket>`__ and 
 `Infeqtion's Superstaq <https://nvidia.github.io/cuda-quantum/0.9.1/using/backends/hardware.html#infleqtion>`__ as backends.
 
-Starting with this release, all C++ quantum kernels will be processed by the nvq++ compiler regardless of whether 
+Starting with this release, all C++ quantum kernels will be processed by the `nvq++` compiler regardless of whether 
 they run on a simulator or on a quantum hardware backend. This change is largely non-breaking, but language constructs 
 that are not officially supported within quantum kernels will now lead to a compilation error whereas previously they 
 could be used when executing on a simulator only. The previous behavior can be forced by passing the `--library-mode` 
