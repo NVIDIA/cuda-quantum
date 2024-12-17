@@ -105,8 +105,8 @@ setting the target. It is worth drawing attention to gate fusion, a powerful too
 
 
 
-Single-GPU (fp64) 
-++++++++++++++++++++++++
+Setting nvidia FP Precision  
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. _nvidia-fp64-backend:
 

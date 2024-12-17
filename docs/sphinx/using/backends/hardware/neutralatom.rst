@@ -25,104 +25,109 @@ it as an environment variable:
 
   export SUPERSTAQ_API_KEY="superstaq_api_key"
 
-Submission from C++
+
+Submitting
 `````````````````````````
 
-To target quantum kernel code for execution on Infleqtion's backends,
-pass the flag ``--target infleqtion`` to the ``nvq++`` compiler.
+.. tab:: Python
 
-.. code:: bash
+        The target to which quantum kernels are submitted
+        can be controlled with the ``cudaq::set_target()`` function.
 
-    nvq++ --target infleqtion src.cpp
+        .. code:: python
 
-This will take the API key and handle all authentication with, and submission to, Infleqtion's QPU 
-(or simulator). By default, quantum kernel code will be submitted to Infleqtion's Sqale
-simulator.
+            cudaq.set_target("infleqtion")
 
-To execute your kernels on a QPU, pass the ``--infleqtion-machine`` flag to the ``nvq++`` compiler
-to specify which machine to submit quantum kernels to:
+        By default, quantum kernel code will be submitted to Infleqtion's Sqale
+        simulator.
 
-.. code:: bash
+        To specify which Infleqtion QPU to use, set the :code:`machine` parameter.
 
-    nvq++ --target infleqtion --infleqtion-machine cq_sqale_qpu src.cpp ...
+        .. code:: python
 
-where ``cq_sqale_qpu`` is an example of a physical QPU.
+            cudaq.set_target("infleqtion", machine="cq_sqale_qpu")
 
-To run an ideal dry-run execution on the QPU, additionally pass ``dry-run`` with the ``--infleqtion-method`` 
-flag to the ``nvq++`` compiler:
+        where ``cq_sqale_qpu`` is an example of a physical QPU.
 
-.. code:: bash
+        To run an ideal dry-run execution of the QPU, additionally set the ``method`` flag to ``"dry-run"``.
 
-    nvq++ --target infleqtion --infleqtion-machine cq_sqale_qpu --infleqtion-method dry-run src.cpp ...
+        .. code:: python
 
-To noisily simulate the QPU instead, pass ``noise-sim`` to the ``--infleqtion-method`` flag like so:
+            cudaq.set_target("infleqtion", machine="cq_sqale_qpu", method="dry-run")
 
-.. code:: bash
+        To noisily simulate the QPU instead, set the ``method`` flag to ``"noise-sim"``.
 
-    nvq++ --target infleqtion --infleqtion-machine cq_sqale_qpu --infleqtion-method noise-sim src.cpp ...
+        .. code:: python
 
-Alternatively, to emulate the Infleqtion machine locally, without submitting through the cloud,
-you can also pass the ``--emulate`` flag to ``nvq++``. This will emit any target
-specific compiler diagnostics, before running a noise free emulation.
+            cudaq.set_target("infleqtion", machine="cq_sqale_qpu", method="noise-sim")
 
-.. code:: bash
+        Alternatively, to emulate the Infleqtion machine locally, without submitting through the cloud,
+        you can also set the ``emulate`` flag to ``True``. This will emit any target
+        specific compiler diagnostics, before running a noise free emulation.
 
-    nvq++ --emulate --target infleqtion src.cpp
+        .. code:: python
 
-To see a complete example for using Infleqtion's backends, take a look at our :doc:`C++ examples <../examples/examples>`.
+            cudaq.set_target("infleqtion", emulate=True)
 
-Submission from Python
-`````````````````````````
+        The number of shots for a kernel execution can be set through
+        the ``shots_count`` argument to ``cudaq.sample`` or ``cudaq.observe``. By default,
+        the ``shots_count`` is set to 1000.
 
-The target to which quantum kernels are submitted
-can be controlled with the ``cudaq::set_target()`` function.
+        .. code:: python
 
-.. code:: python
+            cudaq.sample(kernel, shots_count=100)
 
-    cudaq.set_target("infleqtion")
+        To see a complete example for using Infleqtion's backends, take a look at our :doc:`Python examples <../../examples/examples>`.
+        Moreover, for an end-to-end application workflow example executed on the Infleqtion QPU, take a look at the 
+        :doc:`Anderson Impurity Model ground state solver <../../applications>` notebook.
 
-By default, quantum kernel code will be submitted to Infleqtion's Sqale
-simulator.
 
-To specify which Infleqtion QPU to use, set the :code:`machine` parameter.
+.. tab:: C++
 
-.. code:: python
 
-    cudaq.set_target("infleqtion", machine="cq_sqale_qpu")
+        To target quantum kernel code for execution on Infleqtion's backends,
+        pass the flag ``--target infleqtion`` to the ``nvq++`` compiler.
 
-where ``cq_sqale_qpu`` is an example of a physical QPU.
+        .. code:: bash
 
-To run an ideal dry-run execution of the QPU, additionally set the ``method`` flag to ``"dry-run"``.
+            nvq++ --target infleqtion src.cpp
 
-.. code:: python
+        This will take the API key and handle all authentication with, and submission to, Infleqtion's QPU 
+        (or simulator). By default, quantum kernel code will be submitted to Infleqtion's Sqale
+        simulator.
 
-    cudaq.set_target("infleqtion", machine="cq_sqale_qpu", method="dry-run")
+        To execute your kernels on a QPU, pass the ``--infleqtion-machine`` flag to the ``nvq++`` compiler
+        to specify which machine to submit quantum kernels to:
 
-To noisily simulate the QPU instead, set the ``method`` flag to ``"noise-sim"``.
+        .. code:: bash
 
-.. code:: python
+            nvq++ --target infleqtion --infleqtion-machine cq_sqale_qpu src.cpp ...
 
-    cudaq.set_target("infleqtion", machine="cq_sqale_qpu", method="noise-sim")
+        where ``cq_sqale_qpu`` is an example of a physical QPU.
 
-Alternatively, to emulate the Infleqtion machine locally, without submitting through the cloud,
-you can also set the ``emulate`` flag to ``True``. This will emit any target
-specific compiler diagnostics, before running a noise free emulation.
+        To run an ideal dry-run execution on the QPU, additionally pass ``dry-run`` with the ``--infleqtion-method`` 
+        flag to the ``nvq++`` compiler:
 
-.. code:: python
+        .. code:: bash
 
-    cudaq.set_target("infleqtion", emulate=True)
+            nvq++ --target infleqtion --infleqtion-machine cq_sqale_qpu --infleqtion-method dry-run src.cpp ...
 
-The number of shots for a kernel execution can be set through
-the ``shots_count`` argument to ``cudaq.sample`` or ``cudaq.observe``. By default,
-the ``shots_count`` is set to 1000.
+        To noisily simulate the QPU instead, pass ``noise-sim`` to the ``--infleqtion-method`` flag like so:
 
-.. code:: python
+        .. code:: bash
 
-    cudaq.sample(kernel, shots_count=100)
+            nvq++ --target infleqtion --infleqtion-machine cq_sqale_qpu --infleqtion-method noise-sim src.cpp ...
 
-To see a complete example for using Infleqtion's backends, take a look at our :doc:`Python examples <../examples/examples>`.
-Moreover, for an end-to-end application workflow example executed on the Infleqtion QPU, take a look at the 
-:doc:`Anderson Impurity Model ground state solver <../applications>` notebook.
+        Alternatively, to emulate the Infleqtion machine locally, without submitting through the cloud,
+        you can also pass the ``--emulate`` flag to ``nvq++``. This will emit any target
+        specific compiler diagnostics, before running a noise free emulation.
+
+        .. code:: bash
+
+            nvq++ --emulate --target infleqtion src.cpp
+
+        To see a complete example for using Infleqtion's backends, take a look at our :doc:`C++ examples <../../examples/examples>`.
+
 
 
 
@@ -153,13 +158,6 @@ Alternatively, users can set the following environment variables.
   export AWS_ACCESS_KEY_ID="<key_id>"
   export AWS_SECRET_ACCESS_KEY="<access_key>"
   export AWS_SESSION_TOKEN="<token>"
-
-
-Submission from C++
-`````````````````````````
-
-Not yet supported.
-
 
 Submission from Python
 `````````````````````````
@@ -201,4 +199,4 @@ set to 100.
 
     cudaq.evolve(RydbergHamiltonian(...), schedule=s, shots_count=1000)
 
-To see a complete example for using QuEra's backend, take a look at our :doc:`Python examples <../examples/hardware_providers>`.
+To see a complete example for using QuEra's backend, take a look at our :doc:`Python examples <../../examples/hardware_providers>`.

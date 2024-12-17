@@ -39,55 +39,58 @@ you can set the environment variable as follows:
 
   export ORCA_AUTH_TOKEN="AbCdEf123456"
 
-
-Submission from C++
+Submitting
 `````````````````````````
 
-To execute a boson sampling experiment on the ORCA platform, provide the flag 
-``--target orca`` to the ``nvq++`` compiler. You should then pass the ``--orca-url`` flag set with 
-the previously set environment variable ``$ORCA_ACCESS_URL`` or an :code:`url`.
+.. tab:: Python
 
-.. code:: bash
+        To set which ORCA URL to be used, set the :code:`url` parameter.
 
-    nvq++ --target orca --orca-url $ORCA_ACCESS_URL src.cpp -o executable
+        .. code:: python
 
-or
+            import os
+            import cudaq
+            # ...
+            orca_url = os.getenv("ORCA_ACCESS_URL", "http://localhost/sample")
 
-.. code:: bash
-
-    nvq++ --target orca --orca-url <url> src.cpp -o executable
-
-To run the output, invoke the executable
-
-.. code:: bash
-
-   ./executable
+            cudaq.set_target("orca", url=orca_url)
 
 
-To see a complete example for using ORCA server backends, take a look at our :doc:`C++ examples <../../examples/hardware_providers>`.
+        You can then execute a time-bin boson sampling experiment against the platform using an ORCA device.
 
-Submission from Python
-`````````````````````````
+        .. code:: python
 
-To set which ORCA URL to be used, set the :code:`url` parameter.
+            bs_angles = [np.pi / 3, np.pi / 6]
+            input_state = [1, 1, 1]
+            loop_lengths = [1]
+            counts = cudaq.orca.sample(input_state, loop_lengths, bs_angles)
 
-.. code:: python
-
-    import os
-    import cudaq
-    # ...
-    orca_url = os.getenv("ORCA_ACCESS_URL", "http://localhost/sample")
-
-    cudaq.set_target("orca", url=orca_url)
+        To see a complete example for using ORCA's backends, take a look at our :doc:`Python examples <../../examples/hardware_providers>`.
 
 
-You can then execute a time-bin boson sampling experiment against the platform using an ORCA device.
 
-.. code:: python
+.. tab:: C++
 
-    bs_angles = [np.pi / 3, np.pi / 6]
-    input_state = [1, 1, 1]
-    loop_lengths = [1]
-    counts = cudaq.orca.sample(input_state, loop_lengths, bs_angles)
+        
+        To execute a boson sampling experiment on the ORCA platform, provide the flag 
+        ``--target orca`` to the ``nvq++`` compiler. You should then pass the ``--orca-url`` flag set with 
+        the previously set environment variable ``$ORCA_ACCESS_URL`` or an :code:`url`.
 
-To see a complete example for using ORCA's backends, take a look at our :doc:`Python examples <../../examples/hardware_providers>`.
+        .. code:: bash
+
+            nvq++ --target orca --orca-url $ORCA_ACCESS_URL src.cpp -o executable
+
+        or
+
+        .. code:: bash
+
+            nvq++ --target orca --orca-url <url> src.cpp -o executable
+
+        To run the output, invoke the executable
+
+        .. code:: bash
+
+           ./executable
+
+
+        To see a complete example for using ORCA server backends, take a look at our :doc:`C++ examples <../../examples/hardware_providers>`.

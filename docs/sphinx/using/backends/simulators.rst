@@ -16,7 +16,7 @@ The simulators availible in CUDA-Q are grouped in the figure below. The followin
      - Precision(s)
      - N Qubits
    * - qpp-cpu
-     - Basic testing
+     - Testing and small applications
      - CPU
      - FP32
      - < 10
@@ -27,12 +27,12 @@ The simulators availible in CUDA-Q are grouped in the figure below. The followin
      - < 33 (A100)
    * - mgpu
      - Large SV simulation
-     - MGMN
+     - multi-GPU multi-node
      - FP32/FP64
      - 33 +
    * - tensornet
      - TN simulation of shallow circuits with low entanglement
-     - MGMN
+     - multi-GPU multi_node
      - FP32
      - Thousands 
    * - tensornet-mps
@@ -40,14 +40,19 @@ The simulators availible in CUDA-Q are grouped in the figure below. The followin
      - Single GPU
      - FP32
      - Thousands
+   * - fermioniq
+     - Approximate TN simulation
+     - MGMN
+     - FP32
+     - Thousands
    * - nvidia mqpu
-     - Asynchronous distribution across multiple simulated QPUs
-     - Multiple GPUs 
+     - Asynchronous distribution across multiple simulated QPUs to speedup applications
+     - multi-GPU multi-node
      - FP32/FP64
      - < 33
    * - remote mqpu
      - Combine mqpu with other backend like tensornet and mgpu
-     - MGMN
+     - varies
      - varies
      - varies
    * - density-matrix-cpu
@@ -55,11 +60,6 @@ The simulators availible in CUDA-Q are grouped in the figure below. The followin
      - CPU
      - FP32
      - < 10
-   * - fermioniq
-     - Approximate TN simulation
-     - MGMN
-     - FP32
-     - Thousands
    * - stim
      - QEC simulation
      - CPU
@@ -74,6 +74,5 @@ The simulators availible in CUDA-Q are grouped in the figure below. The followin
         State Vector Simulators <sims/svsims.rst>
         Tensor Network Simulators <sims/tnsims.rst>
         Multi-QPU Simulators <sims/mqpusims.rst>
-        Density Matrix Simulators <sims/densitymatrix.rst>
-        Other Simulators <sims/othersims.rst>
+        Noisy Simulators <sims/noisy.rst>
 

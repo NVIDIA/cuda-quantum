@@ -19,7 +19,7 @@ specific asynchronous function invocations targeting a desired QPU.
 
 .. _mqpu-platform:
 
-NVIDIA `MQPU` Platform
+Multiple QPUs (mqpu)
 ++++++++++++++++++++++
 
 In the multi-QPU mode (:code:`mqpu` option), the NVIDIA backend provides a simulated QPU for every available NVIDIA GPU on the underlying system. 
@@ -145,8 +145,8 @@ CUDA-Q provides MPI utility functions to initialize, finalize, or query (rank, s
 Last but not least, the compiled executable (C++) or Python script needs to be launched with an appropriate MPI command, 
 e.g., :code:`mpiexec`, :code:`mpirun`, :code:`srun`, etc.
 
-Remote `MQPU` Platform
-+++++++++++++++++++++++++++
+Multiple QPUs + Other Backends (remote mqpu)
++++++++++++++++++++++++++++++++++++++++++++++
 
 .. _remote-mqpu-platform:
 
