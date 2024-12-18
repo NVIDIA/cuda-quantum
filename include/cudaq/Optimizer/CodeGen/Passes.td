@@ -212,4 +212,17 @@ def WireSetToProfileQIRPrep :
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
 }
 
+def QuakeToQIRAPI : Pass<"quake-to-qir-api"> {
+  let summary = "";
+  let description = [{
+  }];
+  
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
+
+  let options = [
+    Option<"api", "api", "std::string", /*default=*/"\"full\"",
+           "Select the QIR API to use.">
+  ];
+}
+
 #endif // CUDAQ_OPT_OPTIMIZER_CODEGEN_PASSES

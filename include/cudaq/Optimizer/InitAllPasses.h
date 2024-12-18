@@ -23,6 +23,7 @@ inline void registerCudaqPassesAndPipelines() {
   opt::registerAggressiveEarlyInliningPipeline();
   opt::registerUnrollingPipeline();
   opt::registerToExecutionManagerCCPipeline();
+  opt::registerToQIRAPIPipeline();
   opt::registerTargetPipelines();
   opt::registerWireSetToProfileQIRPipeline();
   opt::registerMappingPipeline();

@@ -32,14 +32,15 @@ namespace cudaq::opt {
 /// @param pm Pass Manager to add QIR passes to
 /// @param convertTo Expected to be `qir-base` or `qir-adaptive` (comes from the
 /// cudaq-translate command line `--convert-to` parameter)
+/// \deprecated No longer supported.
 void addQIRProfilePipeline(mlir::OpPassManager &pm, llvm::StringRef convertTo);
 
 void addLowerToCCPipeline(mlir::OpPassManager &pm);
 void addWiresetToProfileQIRPipeline(mlir::OpPassManager &pm,
                                     llvm::StringRef profile);
 
-/// @brief Verify that all `CallOp` targets are QIR- or NVQIR-defined functions
-/// or in the provided allowed list.
+/// Verify that all `CallOp` targets are QIR- or NVQIR-defined functions or in
+/// the provided allowed list.
 std::unique_ptr<mlir::Pass>
 createVerifyNVQIRCallOpsPass(const std::vector<llvm::StringRef> &allowedFuncs);
 
@@ -58,7 +59,17 @@ void registerCodeGenDialect(mlir::DialectRegistry &registry);
 
 mlir::LLVM::LLVMStructType lambdaAsPairOfPointers(mlir::MLIRContext *context);
 
+/// The pipeline for lowering Quake code to the QIR API. There will be three
+/// distinct flavors of QIR that can be generated with this pipeline. These are
+/// "qir-full", "qir-base", and "qir-adaptive". This pipeline should be run
+/// before conversion to the LLVM-IR dialect.
+void registerToQIRAPIPipeline();
+void addConvertToQIRAPIPipeline(mlir::OpPassManager &pm, mlir::StringRef api);
+
+/// The pipeline for lowering Quake code to the execution manager API. This
+/// pipeline should be run before conversion to the LLVM-IR dialect.
 void registerToExecutionManagerCCPipeline();
+
 void registerWireSetToProfileQIRPipeline();
 void populateCCTypeConversions(mlir::LLVMTypeConverter *converter);
 
