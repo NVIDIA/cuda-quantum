@@ -67,7 +67,7 @@ class QuakeValue(object):
 
             if quake.VeqType.isinstance(type):
                 size = quake.VeqType.getSize(type)
-                if size:
+                if quake.VeqType.hasSpecifiedSize(type):
                     return size
                 return QuakeValue(
                     quake.VeqSizeOp(self.intType, self.mlirValue).result,

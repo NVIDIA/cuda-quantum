@@ -153,9 +153,12 @@ def VeqType : QuakeType<"Veq", "veq"> {
   let hasCustomAssemblyFormat = 1;
   
   let extraClassDeclaration = [{
-    bool hasSpecifiedSize() const { return getSize(); }
+    static constexpr std::size_t kDynamicSize =
+      std::numeric_limits<std::size_t>::max();
+
+    bool hasSpecifiedSize() const { return getSize() != kDynamicSize; }
     static VeqType getUnsized(mlir::MLIRContext *ctx) {
-      return VeqType::get(ctx, 0);
+      return VeqType::get(ctx, kDynamicSize);
     }
   }];
 }

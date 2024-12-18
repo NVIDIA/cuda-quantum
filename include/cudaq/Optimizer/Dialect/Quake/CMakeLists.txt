@@ -9,7 +9,3 @@
 add_cudaq_dialect(Quake quake)
 add_cudaq_interface(QuakeInterfaces)
 add_cudaq_dialect_doc(QuakeDialect quake)
-
-set(LLVM_TARGET_DEFINITIONS Canonical.td)
-mlir_tablegen(Canonical.inc -gen-rewriters)
-add_public_tablegen_target(CanonicalIncGen)

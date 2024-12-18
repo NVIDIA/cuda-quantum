@@ -39,9 +39,9 @@ void quake::VeqType::print(AsmPrinter &os) const {
 Type quake::VeqType::parse(AsmParser &parser) {
   if (parser.parseLess())
     return {};
-  std::size_t size = 0;
+  std::size_t size = kDynamicSize;
   if (succeeded(parser.parseOptionalQuestion()))
-    size = 0;
+    size = kDynamicSize;
   else if (parser.parseInteger(size))
     return {};
   if (parser.parseGreater())
