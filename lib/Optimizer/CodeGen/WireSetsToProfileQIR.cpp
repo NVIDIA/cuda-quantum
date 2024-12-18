@@ -676,15 +676,20 @@ void cudaq::opt::addWiresetToProfileQIRPipeline(OpPassManager &pm,
   // Perform final cleanup for other dialect conversions (like func.func)
   pm.addPass(cudaq::opt::createConvertToQIR());
   if (profile.starts_with("qir"))
-    cudaq::opt::addQIRProfilePipeline(pm, profile, /*performPrep=*/false);
+    cudaq::opt::addQIRProfilePipeline(pm, profile);
 }
 
+namespace {
 // Pipeline option: let the user specify the profile name.
 struct WiresetToProfileQIRPipelineOptions
     : public PassPipelineOptions<WiresetToProfileQIRPipelineOptions> {
   PassOptions::Option<std::string> profile{
-      *this, "convert-to", llvm::cl::desc(""), llvm::cl::init("qir-base")};
+      *this, "convert-to",
+      llvm::cl::desc(
+          "select the profile to convert to [qir-base, qir-adaptive]"),
+      llvm::cl::init("qir-base")};
 };
+} // namespace
 
 void cudaq::opt::registerWireSetToProfileQIRPipeline() {
   PassPipelineRegistration<WiresetToProfileQIRPipelineOptions>(

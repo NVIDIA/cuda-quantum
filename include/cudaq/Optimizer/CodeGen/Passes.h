@@ -32,10 +32,7 @@ namespace cudaq::opt {
 /// @param pm Pass Manager to add QIR passes to
 /// @param convertTo Expected to be `qir-base` or `qir-adaptive` (comes from the
 /// cudaq-translate command line `--convert-to` parameter)
-/// @param performPrep Whether or not to perform the initial prep pass (normally
-/// true, but false for the WireSet QIR path)
-void addQIRProfilePipeline(mlir::OpPassManager &pm, llvm::StringRef convertTo,
-                           bool performPrep = true);
+void addQIRProfilePipeline(mlir::OpPassManager &pm, llvm::StringRef convertTo);
 
 void addLowerToCCPipeline(mlir::OpPassManager &pm);
 void addWiresetToProfileQIRPipeline(mlir::OpPassManager &pm,
