@@ -31,7 +31,7 @@ inline void registerAllDialects(mlir::DialectRegistry &registry) {
     mlir::LLVM::LLVMDialect,
     mlir::math::MathDialect,
 
-    // NVQ++ dialects
+    // CUDA-Q dialects
     cudaq::cc::CCDialect,
     quake::QuakeDialect
   >();

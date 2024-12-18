@@ -1826,7 +1826,11 @@ class PyASTBridge(ast.NodeVisitor):
                 targets = [self.popValue() for _ in range(numTargets)]
                 targets.reverse()
 
-                self.checkControlAndTargetTypes([], targets)
+                for i, t in enumerate(targets):
+                    if not quake.RefType.isinstance(t.type):
+                        self.emitFatalError(
+                            f'invalid target operand {i}, broadcasting is not supported on custom operations.'
+                        )
 
                 globalName = f'{nvqppPrefix}{node.func.id}_generator_{numTargets}.rodata'
 
@@ -2678,6 +2682,12 @@ class PyASTBridge(ast.NodeVisitor):
                 targets = [self.popValue() for _ in range(numTargets)]
                 targets.reverse()
 
+                for i, t in enumerate(targets):
+                    if not quake.RefType.isinstance(t.type):
+                        self.emitFatalError(
+                            f'invalid target operand {i}, broadcasting is not supported on custom operations.'
+                        )
+
                 globalName = f'{nvqppPrefix}{node.func.value.id}_generator_{numTargets}.rodata'
 
                 currentST = SymbolTable(self.module.operation)
@@ -3158,7 +3168,7 @@ class PyASTBridge(ast.NodeVisitor):
             # we currently handle `veq` and `stdvec` types
             if quake.VeqType.isinstance(iterable.type):
                 size = quake.VeqType.getSize(iterable.type)
-                if size:
+                if quake.VeqType.hasSpecifiedSize(iterable.type):
                     totalSize = self.getConstantInt(size)
                 else:
                     totalSize = quake.VeqSizeOp(self.getIntegerType(64),
