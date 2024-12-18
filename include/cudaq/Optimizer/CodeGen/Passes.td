@@ -213,15 +213,26 @@ def WireSetToProfileQIRPrep :
 }
 
 def QuakeToQIRAPI : Pass<"quake-to-qir-api"> {
-  let summary = "";
+  let summary = "Convert the Quake dialect to the QIR API.";
   let description = [{
+    This pass converts Quake operations to the QIR API as expressed in terms
+    of function calls to QIR functions.
+
+    Which QIR functions are to be used is parameterized on the `api` option.
+
+    This pass can lower to either to use the obsolete opaque structure types
+    (per the QIR spec) or to use LLVM's currently supported opaque pointers.
+    In the latter case, type information is fully understood from the function
+    names themselves.
   }];
   
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
 
   let options = [
     Option<"api", "api", "std::string", /*default=*/"\"full\"",
-           "Select the QIR API to use.">
+           "Select the QIR API to use.">,
+    Option<"opaquePtr", "opaque-pointer", "bool", /*default=*/"false",
+           "Use opaque pointers.">
   ];
 }
 
