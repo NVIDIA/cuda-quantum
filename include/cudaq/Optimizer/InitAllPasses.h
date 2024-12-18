@@ -14,21 +14,26 @@
 
 namespace cudaq {
 
-inline void registerAllPasses() {
-  // General MLIR passes
-  mlir::registerTransformsPasses();
-
-  // NVQPP passes
+inline void registerCudaqPassesAndPipelines() {
+  // CUDA-Q passes
   opt::registerOptCodeGenPasses();
   opt::registerOptTransformsPasses();
-  opt::registerAggressiveEarlyInlining();
 
-  // Pipelines
+  // CUDA-Q pipelines
+  opt::registerAggressiveEarlyInliningPipeline();
   opt::registerUnrollingPipeline();
   opt::registerToExecutionManagerCCPipeline();
   opt::registerTargetPipelines();
   opt::registerWireSetToProfileQIRPipeline();
   opt::registerMappingPipeline();
+}
+
+inline void registerAllPasses() {
+  // General MLIR passes
+  mlir::registerTransformsPasses();
+
+  // All the CUDA-Q passes and pipelines.
+  registerCudaqPassesAndPipelines();
 }
 
 } // namespace cudaq
