@@ -236,4 +236,19 @@ def QuakeToQIRAPI : Pass<"quake-to-qir-api"> {
   ];
 }
 
+def QuakeToQIRAPIFinal : Pass<"quake-to-qir-api-final", "mlir::ModuleOp"> {
+  let summary = "Convert the Quake dialect to the QIR API finalization.";
+  let description = [{
+  }];
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
+}
+
+def QuakeToQIRAPIPrep : Pass<"quake-to-qir-api-prep", "mlir::ModuleOp"> {
+  let summary = "Convert the Quake dialect to the QIR API preparation.";
+  let description = [{
+  }];
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
+}
+
+
 #endif // CUDAQ_OPT_OPTIMIZER_CODEGEN_PASSES

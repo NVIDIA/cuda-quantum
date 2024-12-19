@@ -11,8 +11,6 @@
 /// This file provides some common QIR function names for use throughout our
 /// MLIR lowering infrastructure.
 
-#include "mlir/Conversion/LLVMCommon/TypeConverter.h"
-
 namespace cudaq::opt {
 
 /// QIS Function name strings
@@ -88,31 +86,5 @@ static constexpr const char QIRRecordOutput[] =
 /// Custom NVQIR method to cleanup result maps in between consecutive programs.
 static constexpr const char QIRClearResultMaps[] =
     "__quantum__rt__clear_result_maps";
-
-inline mlir::Type getQuantumTypeByName(mlir::StringRef type,
-                                       mlir::MLIRContext *context) {
-  return mlir::LLVM::LLVMStructType::getOpaque(type, context);
-}
-
-inline mlir::Type getQubitType(mlir::MLIRContext *context) {
-  return mlir::LLVM::LLVMPointerType::get(
-      getQuantumTypeByName("Qubit", context));
-}
-
-inline mlir::Type getArrayType(mlir::MLIRContext *context) {
-  return mlir::LLVM::LLVMPointerType::get(
-      getQuantumTypeByName("Array", context));
-}
-
-inline mlir::Type getResultType(mlir::MLIRContext *context) {
-  return mlir::LLVM::LLVMPointerType::get(
-      getQuantumTypeByName("Result", context));
-}
-
-inline mlir::Type getCharPointerType(mlir::MLIRContext *context) {
-  return mlir::LLVM::LLVMPointerType::get(mlir::IntegerType::get(context, 8));
-}
-
-void initializeTypeConversions(mlir::LLVMTypeConverter &typeConverter);
 
 } // namespace cudaq::opt
