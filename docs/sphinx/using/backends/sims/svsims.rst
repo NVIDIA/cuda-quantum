@@ -45,36 +45,51 @@ Single-GPU (nvidia)
 The :code:`nvidia` backend  provides a state vector simulator accelerated with -
 the :code:`cuStateVec` library. The `cuStateVec documentation <https://docs.nvidia.com/cuda/cuquantum/latest/custatevec/index.html>`__ provides a detailed explaination for how the simulations are performed on the GPU.
 
-The :code:`nvidia` target supports multiple configurable options:
-
+The :code:`nvidia` target supports multiple configurable options including specification of floating point precision.
 
 To execute a program on the :code:`nvidia` backend, use the following commands:
 
 .. tab:: Python
 
+    Single Precision (Default):
+
     .. code:: bash 
 
-        python3 program.py [...] --target nvidia
+        python3 program.py [...] --target nvidia --target-option fp32
 
+    Double Precision:
+
+    .. code:: bash 
+
+        python3 program.py [...] --target nvidia --target-option fp64
+    
     The target can also be defined in the application code by calling
 
     .. code:: python 
 
-        cudaq.set_target('nvidia')
+        cudaq.set_target('nvidia', option = 'fp64')
 
     If a target is set in the application code, this target will override the :code:`--target` command line flag given during program invocation.
 
 .. tab:: C++
 
-    .. code:: bash 
+     Single Precision (Default):
 
-        nvq++ --target nvidia program.cpp [...] -o program.x
+     .. code:: bash 
+
+        nvq++ --target nvidia --target-option fp32 program.cpp [...] -o program.x
         ./program.x
 
 
-.. note:: 
+     Double Precision (Default):
 
-  This backend requires an NVIDIA GPU and CUDA runtime libraries. If you do not have these dependencies installed, you may encounter an error stating `Invalid simulator requested`. See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
+     .. code:: bash 
+
+        nvq++ --target nvidia --target-option fp64 program.cpp [...] -o program.x
+        ./program.x
+     
+.. note:: 
+   This backend requires an NVIDIA GPU and CUDA runtime libraries. If you do not have these dependencies installed, you may encounter an error stating `Invalid simulator requested`. See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
 
 
 In the single-GPU mode, the :code:`nvidia` bakend provides the following
@@ -102,41 +117,6 @@ setting the target. It is worth drawing attention to gate fusion, a powerful too
   * - ``CUDAQ_MAX_GPU_MEMORY_GB``
     - positive integer, or `NONE`
     - GPU memory (in GB) allowed for on-device state-vector allocation. As the state-vector size exceeds this limit, host memory will be utilized for migration. `NONE` means unlimited (up to physical memory constraints). This is the default.
-
-
-
-Setting nvidia FP Precision  
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. _nvidia-fp64-backend:
-
-The :code:`nvidia` backend allows specification of the floating point precision of the state vector data and can be configured to either 
-double (`fp64`) or single (`fp32`) precision. This option can be chosen for the optimal performance and accuracy.
-
-
-By default, :code:`nvidia` will leverage :code:`FP32` floating point types for the simulation. To 
-switch to :code:`FP64`, specify the :code:`--target-option fp64` `nvq++` command line option for `C++` and `Python` or 
-use `cudaq.set_target('nvidia', option='fp64')` for Python in-source target modification instead. 
-
-.. tab:: Python
-
-    .. code:: bash 
-
-        python3 program.py [...] --target nvidia --target-option fp64
-
-    The precision of the :code:`nvidia` target can also be modified in the application code by calling
-
-    .. code:: python 
-
-        cudaq.set_target('nvidia', option='fp64')
-
-.. tab:: C++
-
-    .. code:: bash 
-
-        nvq++ --target nvidia --target-option fp64 program.cpp [...] -o program.x
-        ./program.x
-
 
 .. deprecated:: 0.8
     The :code:`nvidia-fp64` targets, which is equivalent setting the `fp64` option on the :code:`nvidia` target, 

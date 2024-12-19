@@ -6,65 +6,76 @@ The simulators availible in CUDA-Q are grouped in the figure below. The followin
    :width: 600
    :align: center
 
-.. list-table:: Example 10x5 Table
+.. list-table:: Simulators In CUDA-Q
    :header-rows: 1
-   :widths: 16 25 10 10 10
+   :widths: 20 20 25 10 10 16
 
    * - Simulator Name
+     - Method
      - Purpose
      - Processor(s)
      - Precision(s)
      - N Qubits
    * - qpp-cpu
+     - State Vector
      - Testing and small applications
      - CPU
      - FP32
-     - < 10
+     - < 28
    * - nvidia
-     - Accelerated SV simulation
+     - State Vector
+     - General purpose (default)
      - Single GPU
      - FP32/FP64
-     - < 33 (A100)
+     - < 33/32 (64 GB)
    * - mgpu
-     - Large SV simulation
+     - State Vector
+     - Large-scale simulation
      - multi-GPU multi-node
      - FP32/FP64
      - 33 +
    * - tensornet
-     - TN simulation of shallow circuits with low entanglement
-     - multi-GPU multi_node
-     - FP32
+     - Tensor Network
+     - Shallow-depth (low-entanglement) and high Wwdth circuits
+     - multi-GPU multi-node
+     - FP32/FP64
      - Thousands 
    * - tensornet-mps
-     - Matrix product state appoximated TN simulations
+     - Matrix Product State
+     - Square-shaped circuits
      - Single GPU
-     - FP32
-     - Thousands
+     - FP32/FP64
+     - Hundreds
    * - fermioniq
-     - Approximate TN simulation
-     - MGMN
-     - FP32
-     - Thousands
+     - Various
+     - Various
+     - Various
+     - Various
+     - Various
    * - nvidia mqpu
+     - State Vector 
      - Asynchronous distribution across multiple simulated QPUs to speedup applications
      - multi-GPU multi-node
      - FP32/FP64
-     - < 33
+     - < 33/32 (64 GB)
    * - remote mqpu
+     - SV/TN
      - Combine mqpu with other backend like tensornet and mgpu
      - varies
      - varies
      - varies
    * - density-matrix-cpu
-     - Noisy simulation
+     - Density Matrix
+     - Noisy simulations
      - CPU
      - FP32
-     - < 10
+     - <14
    * - stim
+     - Stabilizer 
      - QEC simulation
      - CPU
-     - FP32
-     - < 10
+     - N/A
+     - Thousands +
 
 
 
