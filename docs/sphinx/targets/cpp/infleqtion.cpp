@@ -18,8 +18,8 @@
 // --`infleqtion`-method dry-run `infleqtion`.cpp -o out.x && ./out.x
 // ```
 // Note: If targeting ideal cloud simulation, --`infleqtion`-machine
-// `cq`_`sqale`_simulator is optional since it is the default configuration if not
-// provided.
+// `cq`_`sqale`_simulator is optional since it is the default configuration if
+// not provided.
 
 #include <cudaq.h>
 #include <fstream>
