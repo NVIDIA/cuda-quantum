@@ -22,7 +22,6 @@
 #include "nlohmann/json.hpp"
 #include "llvm/ADT/DepthFirstIterator.h"
 #include "llvm/Support/Debug.h"
-#include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Pass/PassOptions.h"

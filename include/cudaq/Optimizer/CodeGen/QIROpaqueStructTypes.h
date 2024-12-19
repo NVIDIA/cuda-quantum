@@ -21,22 +21,38 @@ inline mlir::Type getQuantumTypeByName(mlir::StringRef type,
   return mlir::LLVM::LLVMStructType::getOpaque(type, context);
 }
 
-inline mlir::Type getQubitType(mlir::MLIRContext *context) {
+inline mlir::Type getOpaquePointerType(mlir::MLIRContext *context) {
+  return mlir::LLVM::LLVMPointerType::get(context);
+}
+
+inline mlir::Type getQubitType(mlir::MLIRContext *context,
+                               bool useOpaque = false) {
+  if (useOpaque)
+    return getOpaquePointerType(context);
   return mlir::LLVM::LLVMPointerType::get(
       getQuantumTypeByName("Qubit", context));
 }
 
-inline mlir::Type getArrayType(mlir::MLIRContext *context) {
+inline mlir::Type getArrayType(mlir::MLIRContext *context,
+                               bool useOpaque = false) {
+  if (useOpaque)
+    return getOpaquePointerType(context);
   return mlir::LLVM::LLVMPointerType::get(
       getQuantumTypeByName("Array", context));
 }
 
-inline mlir::Type getResultType(mlir::MLIRContext *context) {
+inline mlir::Type getResultType(mlir::MLIRContext *context,
+                                bool useOpaque = false) {
+  if (useOpaque)
+    return getOpaquePointerType(context);
   return mlir::LLVM::LLVMPointerType::get(
       getQuantumTypeByName("Result", context));
 }
 
-inline mlir::Type getCharPointerType(mlir::MLIRContext *context) {
+inline mlir::Type getCharPointerType(mlir::MLIRContext *context,
+                                     bool useOpaque = false) {
+  if (useOpaque)
+    return getOpaquePointerType(context);
   return mlir::LLVM::LLVMPointerType::get(mlir::IntegerType::get(context, 8));
 }
 
