@@ -324,7 +324,7 @@ jobs:
       - name: Download Cached qutip Wheel
         uses: actions/download-artifact@v4
         with:
-          name: qutip-wheel-${{ inputs.platforms }}
+          name: qutip-wheel-${{ inputs.platforms }} | sed 's/\//-/g'
           path: ./wheelhouse
 
       - name: Build cuda-quantum-dev image (debug)
@@ -592,7 +592,7 @@ jobs:
       - name: Download Cached qutip Wheel
         uses: actions/download-artifact@v4
         with:
-          name: qutip-wheel-${{ inputs.platforms }}
+          name: qutip-wheel-${{ inputs.platforms }} | sed 's/\//-/g'
           path: ./wheelhouse
 
       - name: Build cuda-quantum image

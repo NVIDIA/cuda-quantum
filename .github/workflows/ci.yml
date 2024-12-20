@@ -236,7 +236,7 @@ jobs:
       - name: Upload Wheel Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: qutip-wheel-linux/${{ matrix.platform }}
+          name: qutip-wheel-linux-${{ matrix.platform }}
           path: ./wheelhouse
           retention-days: 7
 
