@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
@@ -75,11 +76,11 @@ struct QIRAPITypeConverter : public TypeConverter {
   QIRAPITypeConverter(MLIRContext *ctx, bool useOpaque)
       : ctx(ctx), useOpaque(useOpaque) {}
 
-  Type getQubitType() { return cudaq::opt::getQubitType(ctx, useOpaque); }
-  Type getArrayType() { return cudaq::opt::getArrayType(ctx, useOpaque); }
-  Type getResultType() { return cudaq::opt::getResultType(ctx, useOpaque); }
+  Type getQubitType() { return cudaq::cg::getQubitType(ctx, useOpaque); }
+  Type getArrayType() { return cudaq::cg::getArrayType(ctx, useOpaque); }
+  Type getResultType() { return cudaq::cg::getResultType(ctx, useOpaque); }
   Type getCharPointerType() {
-    return cudaq::opt::getCharPointerType(ctx, useOpaque);
+    return cudaq::cg::getCharPointerType(ctx, useOpaque);
   }
 
   MLIRContext *ctx;
@@ -355,7 +356,37 @@ struct QuakeToQIRAPIPrepPass
   using QuakeToQIRAPIPrepBase::QuakeToQIRAPIPrepBase;
 
   void runOnOperation() override {
-    if (api != "full") {
+    ModuleOp module = getOperation();
+    auto irBuilder = cudaq::IRBuilder::atBlockEnd(module.getBody());
+
+    // Get the type aliases to use to dynamically configure the prototypes.
+    StringRef typeAliases;
+    if (opaquePtr) {
+      typeAliases = irBuilder.getIntrinsicText("qir_opaque_pointer");
+    } else {
+      typeAliases = irBuilder.getIntrinsicText("qir_opaque_struct");
+    }
+
+    bool usingFullQIR = api == "full";
+    if (usingFullQIR) {
+      if (failed(irBuilder.loadIntrinsicWithAliases(module, "qir_full",
+                                                    typeAliases))) {
+        module.emitError("could not load full QIR declarations.");
+        signalPassFailure();
+        return;
+      }
+
+    } else {
+      if (failed(irBuilder.loadIntrinsicWithAliases(
+              module, "qir_common_profile", typeAliases))) {
+        module.emitError("could not load QIR profile declarations.");
+        signalPassFailure();
+        return;
+      }
+    }
+
+    if (!usingFullQIR) {
+      // TODO: add profile analysis code.
     }
   }
 };

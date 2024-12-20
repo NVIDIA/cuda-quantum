@@ -227,7 +227,8 @@ def QuakeToQIRAPI : Pass<"quake-to-qir-api"> {
   }];
   
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::arith::ArithDialect",
-      "mlir::cf::ControlFlowDialect", "mlir::func::FuncDialect"];
+      "mlir::cf::ControlFlowDialect", "mlir::func::FuncDialect",
+      "mlir::LLVM::LLVMDialect"];
 
   let options = [
     Option<"api", "api", "std::string", /*default=*/"\"full\"",
@@ -242,7 +243,8 @@ def QuakeToQIRAPIFinal : Pass<"quake-to-qir-api-final", "mlir::ModuleOp"> {
   let description = [{
   }];
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::arith::ArithDialect",
-      "mlir::cf::ControlFlowDialect", "mlir::func::FuncDialect"];
+      "mlir::cf::ControlFlowDialect", "mlir::func::FuncDialect",
+      "mlir::LLVM::LLVMDialect"];
 }
 
 def QuakeToQIRAPIPrep : Pass<"quake-to-qir-api-prep", "mlir::ModuleOp"> {
@@ -250,7 +252,8 @@ def QuakeToQIRAPIPrep : Pass<"quake-to-qir-api-prep", "mlir::ModuleOp"> {
   let description = [{
   }];
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::arith::ArithDialect",
-      "mlir::cf::ControlFlowDialect", "mlir::func::FuncDialect"];
+      "mlir::cf::ControlFlowDialect", "mlir::func::FuncDialect",
+      "mlir::LLVM::LLVMDialect"];
   let options = [
     Option<"api", "api", "std::string", /*default=*/"\"full\"",
            "Select the QIR API to use.">,

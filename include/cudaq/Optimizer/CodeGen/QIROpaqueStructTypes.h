@@ -14,8 +14,8 @@
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 #include "mlir/Dialect/LLVMIR/LLVMTypes.h"
 
-namespace cudaq::opt {
-
+namespace cudaq {
+namespace opt {
 inline mlir::Type getQuantumTypeByName(mlir::StringRef type,
                                        mlir::MLIRContext *context) {
   return mlir::LLVM::LLVMStructType::getOpaque(type, context);
@@ -25,37 +25,59 @@ inline mlir::Type getOpaquePointerType(mlir::MLIRContext *context) {
   return mlir::LLVM::LLVMPointerType::get(context);
 }
 
+inline mlir::Type getQubitType(mlir::MLIRContext *context) {
+  return mlir::LLVM::LLVMPointerType::get(
+      getQuantumTypeByName("Qubit", context));
+}
+
+inline mlir::Type getArrayType(mlir::MLIRContext *context) {
+  return mlir::LLVM::LLVMPointerType::get(
+      getQuantumTypeByName("Array", context));
+}
+
+inline mlir::Type getResultType(mlir::MLIRContext *context) {
+  return mlir::LLVM::LLVMPointerType::get(
+      getQuantumTypeByName("Result", context));
+}
+
+inline mlir::Type getCharPointerType(mlir::MLIRContext *context) {
+  return mlir::LLVM::LLVMPointerType::get(mlir::IntegerType::get(context, 8));
+}
+
+void initializeTypeConversions(mlir::LLVMTypeConverter &typeConverter);
+} // namespace opt
+
+namespace cg {
+inline mlir::Type getOpaquePointerType(mlir::MLIRContext *context) {
+  return cc::PointerType::get(mlir::NoneType::get(context));
+}
+
 inline mlir::Type getQubitType(mlir::MLIRContext *context,
                                bool useOpaque = false) {
   if (useOpaque)
     return getOpaquePointerType(context);
-  return mlir::LLVM::LLVMPointerType::get(
-      getQuantumTypeByName("Qubit", context));
+  return cc::PointerType::get(opt::getQuantumTypeByName("Qubit", context));
 }
 
 inline mlir::Type getArrayType(mlir::MLIRContext *context,
                                bool useOpaque = false) {
   if (useOpaque)
     return getOpaquePointerType(context);
-  return mlir::LLVM::LLVMPointerType::get(
-      getQuantumTypeByName("Array", context));
+  return cc::PointerType::get(opt::getQuantumTypeByName("Array", context));
 }
 
 inline mlir::Type getResultType(mlir::MLIRContext *context,
                                 bool useOpaque = false) {
   if (useOpaque)
     return getOpaquePointerType(context);
-  return mlir::LLVM::LLVMPointerType::get(
-      getQuantumTypeByName("Result", context));
+  return cc::PointerType::get(opt::getQuantumTypeByName("Result", context));
 }
 
 inline mlir::Type getCharPointerType(mlir::MLIRContext *context,
                                      bool useOpaque = false) {
   if (useOpaque)
     return getOpaquePointerType(context);
-  return mlir::LLVM::LLVMPointerType::get(mlir::IntegerType::get(context, 8));
+  return cc::PointerType::get(mlir::IntegerType::get(context, 8));
 }
-
-void initializeTypeConversions(mlir::LLVMTypeConverter &typeConverter);
-
-} // namespace cudaq::opt
+} // namespace cg
+} // namespace cudaq

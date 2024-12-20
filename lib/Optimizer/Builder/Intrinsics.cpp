@@ -402,7 +402,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__quantum__rt__qubit_allocate_array_with_state_fp64(i64, !cc.ptr<f64>) -> !qir_array
   func.func private @__quantum__rt__qubit_allocate_array_with_state_fp32(i64, !cc.ptr<f32>) -> !qir_array
   func.func private @__quantum__rt__qubit_allocate_array_with_state_complex64(i64, !cc.ptr<complex<f64>>) -> !qir_array
-  func.func private @__quantum__rt__qubit_allocate_array_with_state_complex32(i64, !cc.ptr<complex<f32>) -> !qir_array
+  func.func private @__quantum__rt__qubit_allocate_array_with_state_complex32(i64, !cc.ptr<complex<f32>>) -> !qir_array
   func.func private @__quantum__rt__qubit_allocate_array_with_state_ptr(!cc.ptr<none>) -> !qir_array
   func.func private @__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(i32, !cc.ptr<!cc.state>) -> !qir_array
 
@@ -601,6 +601,42 @@ LogicalResult IRBuilder::loadIntrinsic(ModuleOp module, StringRef intrinName) {
   // Now load the requested code.
   return parseSourceString(
       iter->code, module.getBody(),
+      ParserConfig{module.getContext(), /*verifyAfterParse=*/false});
+}
+
+StringRef IRBuilder::getIntrinsicText(StringRef intrinName) {
+  auto iter = std::lower_bound(&intrinsicTable[0],
+                               &intrinsicTable[intrinsicTableSize], intrinName);
+  if (iter == &intrinsicTable[intrinsicTableSize])
+    return "";
+  return iter->code;
+}
+
+LogicalResult IRBuilder::loadIntrinsicWithAliases(ModuleOp module,
+                                                  StringRef intrinName,
+                                                  StringRef prefix) {
+  // Check if this intrinsic was already loaded.
+  if (module.lookupSymbol(intrinName))
+    return success();
+  assert(intrinsicTableIsSorted() && "intrinsic table must be sorted");
+  auto iter = std::lower_bound(&intrinsicTable[0],
+                               &intrinsicTable[intrinsicTableSize], intrinName);
+  if (iter == &intrinsicTable[intrinsicTableSize]) {
+    module.emitError(std::string("intrinsic") + intrinName + " not in table.");
+    return failure();
+  }
+  assert(iter->name == intrinName);
+  // First load the prereqs.
+  for (std::size_t i = 0; i < DefaultPrerequisiteSize; ++i) {
+    if (iter->preReqs[i].empty())
+      break;
+    if (failed(loadIntrinsicWithAliases(module, iter->preReqs[i], prefix)))
+      return failure();
+  }
+  // Now load the requested code.
+  std::string code = prefix.str() + std::string(iter->code);
+  return parseSourceString(
+      code, module.getBody(),
       ParserConfig{module.getContext(), /*verifyAfterParse=*/false});
 }
 
