@@ -321,10 +321,16 @@ jobs:
             org.opencontainers.image.title=cuda-quantum-dev
             org.opencontainers.image.description=Dev environment for CUDA Quantum (debug build)
 
+      - name: Transform Platform Name
+        id: transform_platform
+        run: |
+          transformed_platform=$(echo "${{ inputs.platforms }}" | sed 's/\//-/g')
+          echo "transformed_platform=$transformed_platform" >> $GITHUB_ENV
+
       - name: Download Cached qutip Wheel
         uses: actions/download-artifact@v4
         with:
-          name: qutip-wheel-`echo "${{ inputs.platforms }}" | sed 's/\//-/g'`
+          name: qutip-wheel-${{ env.transformed_platform }}
           path: ./wheelhouse
 
       - name: Build cuda-quantum-dev image (debug)
@@ -589,10 +595,16 @@ jobs:
         run: |
           docker run --privileged multiarch/qemu-user-static:latest --reset -p yes --credential yes
 
+      - name: Transform Platform Name
+        id: transform_platform
+        run: |
+          transformed_platform=$(echo "${{ inputs.platforms }}" | sed 's/\//-/g')
+          echo "transformed_platform=$transformed_platform" >> $GITHUB_ENV
+
       - name: Download Cached qutip Wheel
         uses: actions/download-artifact@v4
         with:
-          name: qutip-wheel-`echo "${{ inputs.platforms }}" | sed 's/\//-/g'`
+          name: qutip-wheel-${{ env.transformed_platform }}
           path: ./wheelhouse
 
       - name: Build cuda-quantum image
