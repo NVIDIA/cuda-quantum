@@ -390,6 +390,134 @@ static constexpr IntrinsicCode intrinsicTable[] = {
 
     {"malloc", {}, "func.func private @malloc(i64) -> !cc.ptr<i8>"},
 
+    // Declarations of QIR functions used by codegen that are common to all
+    // subtargets (full, base profle, or adaptive profile).
+    // These include qubit allocation and management, control variants of the
+    // gates, some one offs, and control form invocation helper routines.
+    {"qir_common",
+     {},
+     R"#(
+  func.func private @__quantum__rt__qubit_allocate() -> !qir_qubit
+  func.func private @__quantum__rt__qubit_allocate_array(i64) -> !qir_array
+  func.func private @__quantum__rt__qubit_allocate_array_with_state_fp64(i64, !cc.ptr<f64>) -> !qir_array
+  func.func private @__quantum__rt__qubit_allocate_array_with_state_fp32(i64, !cc.ptr<f32>) -> !qir_array
+  func.func private @__quantum__rt__qubit_allocate_array_with_state_complex64(i64, !cc.ptr<complex<f64>>) -> !qir_array
+  func.func private @__quantum__rt__qubit_allocate_array_with_state_complex32(i64, !cc.ptr<complex<f32>) -> !qir_array
+  func.func private @__quantum__rt__qubit_allocate_array_with_state_ptr(!cc.ptr<none>) -> !qir_array
+  func.func private @__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(i32, !cc.ptr<!cc.state>) -> !qir_array
+
+  func.func private @__quantum__rt__qubit_release_array(!qir_array)
+  func.func private @__quantum__rt__qubit_release(!qir_qubit)
+
+  func.func private @__quantum__rt__array_create_1d(i32, i64) -> !qir_array
+  func.func private @__quantum__rt__array_concatenate(!qir_array, !qir_array) -> !qir_array
+  func.func private @__quantum__rt__array_get_size_1d(!qir_array) -> i64
+  func.func private @__quantum__rt__array_slice(!qir_array, i32, i64, i64, i64) -> !qir_array
+  func.func private @__quantum__rt__array_get_element_ptr_1d(!qir_array, i64) -> !cc.ptr<none>
+
+  func.func private @__quantum__qis__h__ctl(!qir_array, !qir_qubit)
+  func.func private @__quantum__qis__x__ctl(!qir_array, !qir_qubit)
+  func.func private @__quantum__qis__y__ctl(!qir_array, !qir_qubit)
+  func.func private @__quantum__qis__z__ctl(!qir_array, !qir_qubit)
+  func.func private @__quantum__qis__s__ctl(!qir_array, !qir_qubit)
+  func.func private @__quantum__qis__t__ctl(!qir_array, !qir_qubit)
+  func.func private @__quantum__qis__sdg__ctl(!qir_array, !qir_qubit)
+  func.func private @__quantum__qis__tdg__ctl(!qir_array, !qir_qubit)
+  func.func private @__quantum__qis__u3__ctl(f64, f64, f64, !qir_array, !qir_qubit)
+  func.func private @__quantum__qis__swap__ctl(!qir_array, !qir_qubit, !qir_qubit)
+  func.func private @__quantum__qis__rx__ctl(f64, !qir_array, !qir_qubit)
+  func.func private @__quantum__qis__ry__ctl(f64, !qir_array, !qir_qubit)
+  func.func private @__quantum__qis__rz__ctl(f64, !qir_array, !qir_qubit)
+  func.func private @__quantum__qis__r1__ctl(f64, !qir_array, !qir_qubit)
+
+  func.func private @__quantum__qis__exp_pauli(f64, !qir_array, !qir_charptr)
+  func.func private @__quantum__qis__custom_unitary(!cc.ptr<complex<f64>>, !qir_array, !qir_array, !qir_charptr)
+  func.func private @__quantum__qis__custom_unitary__adj(!cc.ptr<complex<f64>>, !qir_array, !qir_array, !qir_charptr)
+
+  func.func private @invokeWithControlQubits(i64, !cc.ptr<none>) attributes { "func.varargs" = true }
+  func.func private @invokeRotationWithControlQubits(f64, i64, !cc.ptr<i64>, !cc.ptr<none>) attributes { "func.varargs" = true }
+  func.func private @invokeU3RotationWithControlQubits(f64, f64, f64, i64, !cc.ptr<i64>, !cc.ptr<none>) attributes { "func.varargs" = true }
+  func.func private @invokeWithControlRegisterOrQubits(i64, !cc.ptr<i64>, i64, !cc.ptr<none>) attributes { "func.varargs" = true }
+)#"},
+
+    // Declarations for base and adaptive profile QIR functions used by codegen.
+    // These include gates, adjoint gates, one offs, and dealing with
+    // measurement results.
+    {"qir_common_profile",
+     {"qir_common"},
+     R"#(
+  func.func private @__quantum__qis__h__body(!qir_qubit)
+  func.func private @__quantum__qis__x__body(!qir_qubit)
+  func.func private @__quantum__qis__y__body(!qir_qubit)
+  func.func private @__quantum__qis__z__body(!qir_qubit)
+  func.func private @__quantum__qis__s__body(!qir_qubit)
+  func.func private @__quantum__qis__t__body(!qir_qubit)
+  func.func private @__quantum__qis__sdg__body(!qir_qubit)
+  func.func private @__quantum__qis__tdg__body(!qir_qubit)
+  func.func private @__quantum__qis__u3__body(f64, f64, f64, !qir_qubit)
+  func.func private @__quantum__qis__reset__body(!qir_qubit)
+  func.func private @__quantum__qis__mz__body(!qir_qubit) -> !qir_result
+  func.func private @__quantum__qis__mz__to__register(!qir_qubit, !qir_charptr) -> !qir_result
+  func.func private @__quantum__qis__swap__body(!qir_qubit, !qir_qubit)
+  func.func private @__quantum__qis__rx__body(f64, !qir_qubit)
+  func.func private @__quantum__qis__ry__body(f64, !qir_qubit)
+  func.func private @__quantum__qis__rz__body(f64, !qir_qubit)
+  func.func private @__quantum__qis__r1__body(f64, !qir_qubit)
+
+  func.func private @__quantum__rt__result_record_output(!qir_result, !qir_charptr)
+  func.func private @__quantum__qis__cnot__body(!qir_qubit, !qir_qubit)
+  func.func private @__quantum__qis__cz__body(!qir_qubit, !qir_qubit)
+  func.func private @__quantum__qis__read_result__body(!qir_result) -> i1
+    )#"},
+
+    // Declarations of all full QIR functions used by codegen.
+    // These include gates (sans the "__body" suffix) and measurements.
+    {"qir_full",
+     {"qir_common"},
+     R"#(
+  func.func private @__quantum__qis__h(!qir_qubit)
+  func.func private @__quantum__qis__x(!qir_qubit)
+  func.func private @__quantum__qis__y(!qir_qubit)
+  func.func private @__quantum__qis__z(!qir_qubit)
+  func.func private @__quantum__qis__s(!qir_qubit)
+  func.func private @__quantum__qis__t(!qir_qubit)
+  func.func private @__quantum__qis__sdg(!qir_qubit)
+  func.func private @__quantum__qis__tdg(!qir_qubit)
+  func.func private @__quantum__qis__u3(f64, f64, f64, !qir_qubit)
+  func.func private @__quantum__qis__reset(!qir_qubit)
+  func.func private @__quantum__qis__mz(!qir_qubit) -> !cc.ptr<i1>
+  func.func private @__quantum__qis__mz__to__register(!qir_qubit, !qir_charptr) -> !cc.ptr<i1>
+  func.func private @__quantum__qis__swap(!qir_qubit, !qir_qubit)
+  func.func private @__quantum__qis__rx(f64, !qir_qubit)
+  func.func private @__quantum__qis__ry(f64, !qir_qubit)
+  func.func private @__quantum__qis__rz(f64, !qir_qubit)
+  func.func private @__quantum__qis__r1(f64, !qir_qubit)
+    )#"},
+
+    // Choose one of the two QIR typing conventions. Opaque pointers are the
+    // current LLVM standard. Opaque struct is from an obsolete LLVM version,
+    // but used by the QIR specification.
+
+    // Use opaque pointers (LLVM's `ptr` type). The type of the referent is
+    // always implicit and unambiguous from its usage.
+    {"qir_opaque_pointer",
+     {},
+     R"#(
+  !qir_array = !cc.ptr<none>
+  !qir_qubit = !cc.ptr<none>
+  !qir_result = !cc.ptr<none>
+  !qir_charptr = !cc.ptr<none>
+    )#"},
+    // Use the obsolete LLVM opaque struct type.
+    {"qir_opaque_struct",
+     {},
+     R"#(
+  !qir_array = !cc.ptr<!llvm.struct<"Array", opaque>>
+  !qir_qubit = !cc.ptr<!llvm.struct<"Qubit", opaque>>
+  !qir_result = !cc.ptr<!llvm.struct<"Result", opaque>>
+  !qir_charptr = !cc.ptr<i8>
+    )#"},
+
     // streamlinedLaunchKernel(kernelName, vectorArgPtrs)
     {cudaq::runtime::launchKernelStreamlinedFuncName,
      {},

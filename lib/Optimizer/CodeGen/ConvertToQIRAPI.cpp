@@ -35,8 +35,28 @@ using namespace mlir;
 
 //===----------------------------------------------------------------------===//
 
+static std::string getGateName(Operation *op) {
+  return op->getName().stripDialect().str();
+}
+
 static std::string getGateFunctionPrefix(Operation *op) {
-  return cudaq::opt::QIRQISPrefix + op->getName().stripDialect().str();
+  return cudaq::opt::QIRQISPrefix + getGateName(op);
+}
+
+constexpr std::array<std::string_view, 2> filterAdjointNames = {"s", "t"};
+
+template <typename OP>
+std::pair<std::string, bool> generateGateFunctionName(OP op) {
+  auto prefix = getGateFunctionPrefix(op.getOperation());
+  auto gateName = getGateName(op.getOperation());
+  if (op.isAdj()) {
+    if (std::find(filterAdjointNames.begin(), filterAdjointNames.end(),
+                  gateName) != filterAdjointNames.end())
+      prefix += "dg";
+  }
+  if (!op.getControls().empty())
+    return {prefix + "__ctl", false};
+  return {prefix, true};
 }
 
 /// Use modifier class classes to specialize the QIR API to a particular flavor
@@ -137,6 +157,73 @@ struct AllocaOpRewrite : public OpConversionPattern<quake::AllocaOp> {
   }
 };
 
+template <typename OP, typename M>
+struct OneTargetRewrite : public OpConversionPattern<OP> {
+  using Base = OpConversionPattern<OP>;
+  using Base::Base;
+
+  LogicalResult
+  matchAndRewrite(OP op, typename Base::OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto forwardOrEraseOp = [&]() {
+      if (op.getResults().empty())
+        rewriter.eraseOp(op);
+      else
+        rewriter.replaceOp(op, adaptor.getTargets());
+      return success();
+    };
+    auto qirFunctionName = M::quakeToFuncName(op);
+
+    // If no control qubits or if there is 1 control and it is already a veq,
+    // just add a call and forward the target qubits as needed.
+    auto loc = op.getLoc();
+    auto numControls = op.getControls().size();
+    if (op.getControls().empty() ||
+        (numControls == 1 &&
+         isa<quake::VeqType>(op.getControls().front().getType()))) {
+      rewriter.create<func::CallOp>(loc, TypeRange{}, qirFunctionName,
+                                    adaptor.getOperands());
+      return forwardOrEraseOp();
+    }
+
+    // Otherwise, we have to use the invoke control wrapper.
+    auto instOperands = adaptor.getOperands();
+    FunctionType qirFunctionTy; // ... lookup the function in the module
+    auto funCon =
+        rewriter.create<func::ConstantOp>(loc, qirFunctionTy, qirFunctionName);
+    auto funPtrTy = getCharPointerType(this->getTypeConverter());
+    auto funPtr =
+        rewriter.create<cudaq::cc::FuncToPtrOp>(loc, funPtrTy, funCon);
+    Value numCtlVal =
+        rewriter.create<arith::ConstantIntOp>(loc, numControls, 64);
+    SmallVector<Value> args;
+    args.push_back(numCtlVal);
+    bool allControlsAreRefs =
+        std::all_of(op.getControls().begin(), op.getControls().end(),
+                    [](auto v) { return isa<quake::RefType>(v.getType()); });
+    StringRef applyMultiControlFunc;
+    auto numTargets = adaptor.getTargets().size();
+    if (allControlsAreRefs && numTargets == 1) {
+      // The simple case. Controls are understood implicitly.
+      applyMultiControlFunc = cudaq::opt::NVQIRInvokeWithControlBits;
+    } else {
+      // The gnarly case. Have to identify controls and targets explicitly.
+      applyMultiControlFunc = cudaq::opt::NVQIRInvokeWithControlRegisterOrBits;
+      // Create the array and length vector.
+      Value arrayAndLengthVec;
+      // ... create the vector of i64 and populate it
+      args.push_back(arrayAndLengthVec);
+      Value numTrg = rewriter.create<arith::ConstantIntOp>(loc, numTargets, 64);
+      args.push_back(numTrg);
+    }
+    args.push_back(funPtr);
+    args.append(instOperands.begin(), instOperands.end());
+    rewriter.create<func::CallOp>(loc, TypeRange{}, applyMultiControlFunc,
+                                  args);
+    return forwardOrEraseOp();
+  }
+};
+
 struct EraseAllocaOp : public OpConversionPattern<quake::AllocaOp> {
   using OpConversionPattern::OpConversionPattern;
 
@@ -158,16 +245,14 @@ struct FullQIR {
 
   template <typename QuakeOp>
   static std::string quakeToFuncName(QuakeOp op) {
-    auto prefix = getGateFunctionPrefix(op.getOperation());
-    if (op.getIsAdj())
-      return prefix + "__adj";
+    auto [prefix, _] = generateGateFunctionName(op);
     return prefix;
   }
 
   static void populateRewritePatterns(RewritePatternSet &patterns,
                                       TypeConverter &typeConverter) {
-    patterns.insert<AllocaOpRewrite<Self>>(typeConverter,
-                                           patterns.getContext());
+    patterns.insert<AllocaOpRewrite<Self>, OneTargetRewrite<quake::HOp, Self>>(
+        typeConverter, patterns.getContext());
   }
 
   static StringRef getQIRQubitAllocate() {
@@ -188,10 +273,8 @@ struct AnyProfileQIR {
 
   template <typename QuakeOp>
   static std::string quakeToFuncName(QuakeOp op) {
-    auto prefix = getGateFunctionPrefix(op.getOperation());
-    if (op.getIsAdj())
-      return getGateFunctionPrefix(op) + "__adj";
-    return prefix + "__body";
+    auto [prefix, isBarePrefix] = generateGateFunctionName(op);
+    return isBarePrefix ? prefix + "__body" : prefix;
   }
 
   static void populateRewritePatterns(RewritePatternSet &patterns,
@@ -271,7 +354,10 @@ struct QuakeToQIRAPIPrepPass
     : public cudaq::opt::impl::QuakeToQIRAPIPrepBase<QuakeToQIRAPIPrepPass> {
   using QuakeToQIRAPIPrepBase::QuakeToQIRAPIPrepBase;
 
-  void runOnOperation() override {}
+  void runOnOperation() override {
+    if (api != "full") {
+    }
+  }
 };
 
 struct QuakeToQIRAPIFinalPass
