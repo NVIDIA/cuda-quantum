@@ -36,7 +36,7 @@ The simulators availible in CUDA-Q are grouped in the figure below. The followin
      - 33 +
    * - tensornet
      - Tensor Network
-     - Shallow-depth (low-entanglement) and high Wwdth circuits
+     - Shallow-depth (low-entanglement) and high width circuits
      - multi-GPU multi-node
      - FP32/FP64
      - Thousands 
@@ -49,7 +49,7 @@ The simulators availible in CUDA-Q are grouped in the figure below. The followin
    * - fermioniq
      - Various
      - Various
-     - Various
+     - Single GPU
      - Various
      - Various
    * - nvidia mqpu
