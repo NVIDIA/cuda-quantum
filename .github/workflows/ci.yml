@@ -229,15 +229,13 @@ jobs:
 
       - name: Build qutip Wheel
         run: |
-          mkdir -p wheelhouse
-          python -m pip wheel qutip --wheel-dir=./wheelhouse
-          ls -lh ./wheelhouse
+          python -m pip wheel qutip --wheel-dir=/tmp/wheels
 
       - name: Upload Wheel Artifact
         uses: actions/upload-artifact@v4
         with:
           name: qutip-wheel-linux-${{ matrix.platform }}
-          path: ./wheelhouse
+          path: /tmp/wheels
           retention-days: 7
 
   docker_image:

@@ -331,7 +331,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: qutip-wheel-${{ env.transformed_platform }}
-          path: ./wheelhouse
+          path: /tmp/wheels
 
       - name: Build cuda-quantum-dev image (debug)
         id: docker_build
@@ -341,7 +341,7 @@ jobs:
           file: ./docker/build/cudaq.dev.Dockerfile
           build-args: |
             base_image=${{ steps.prereqs.outputs.base_image }}
-            QUTIP_WHEEL=./wheelhouse/qutip*.whl
+            QUTIP_WHEEL=/tmp/wheels/qutip*.whl
             install="CMAKE_BUILD_TYPE=Debug"
             git_source_sha=${{ github.sha }}
           tags: ${{ steps.metadata.outputs.tags }}
@@ -605,7 +605,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: qutip-wheel-${{ env.transformed_platform }}
-          path: ./wheelhouse
+          path: /tmp/wheels
 
       - name: Build cuda-quantum image
         id: cudaq_build
@@ -617,7 +617,7 @@ jobs:
           build-args: |
             cudaqdev_image=${{ steps.prereqs.outputs.dev_image_name }}@${{ steps.release_build.outputs.digest }}
             base_image=${{ steps.prereqs.outputs.base_image }}
-            QUTIP_WHEEL=./wheelhouse/qutip*.whl
+            QUTIP_WHEEL=/tmp/wheels/qutip*.whl
             release_version=${{ steps.prereqs.outputs.image_tag }}
           tags: ${{ steps.cudaq_metadata.outputs.tags }}
           labels: ${{ steps.cudaq_metadata.outputs.labels }}
