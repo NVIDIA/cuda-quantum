@@ -250,6 +250,21 @@ Value factory::createLLVMTemporary(Location loc, OpBuilder &builder, Type type,
   return builder.create<LLVM::AllocaOp>(loc, type, ArrayRef<Value>{len});
 }
 
+Value factory::createTemporary(Location loc, OpBuilder &builder, Type type,
+                               std::size_t size) {
+  Operation *op = builder.getBlock()->getParentOp();
+  auto func = dyn_cast<func::FuncOp>(op);
+  if (!func)
+    func = op->getParentOfType<func::FuncOp>();
+  assert(func && "must be in a function");
+  auto *entryBlock = &func.getRegion().front();
+  assert(entryBlock && "function must have an entry block");
+  OpBuilder::InsertionGuard guard(builder);
+  builder.setInsertionPointToStart(entryBlock);
+  Value len = builder.create<arith::ConstantIntOp>(loc, size, 64);
+  return builder.create<cudaq::cc::AllocaOp>(loc, type, ArrayRef<Value>{len});
+}
+
 // This builder will transform the monotonic loop into an invariant loop during
 // construction. This is meant to save some time in loop analysis and
 // normalization, which would perform a similar transformation.

@@ -73,8 +73,22 @@ namespace {
 /// class is used for conversions as well as instantiating QIR types in
 /// conversion patterns.
 struct QIRAPITypeConverter : public TypeConverter {
-  QIRAPITypeConverter(MLIRContext *ctx, bool useOpaque)
-      : ctx(ctx), useOpaque(useOpaque) {}
+  QIRAPITypeConverter(MLIRContext *ctx, bool useOpaque, bool useResult)
+      : ctx(ctx), useOpaque(useOpaque), useResult(useResult) {
+    addConversion([](Type ty) { return ty; });
+    addConversion([&](quake::VeqType ty) { return getArrayType(); });
+    addConversion([&](quake::RefType ty) { return getQubitType(); });
+    addConversion([&](quake::StruqType ty) {
+      SmallVector<Type> mems;
+      for (auto m : ty.getMembers())
+        mems.push_back(convertType(m));
+      return cudaq::cc::StructType::get(ty.getContext(), mems);
+    });
+    addConversion([&](quake::MeasureType ty) {
+      return useResult ? getResultType()
+                       : cudaq::cc::PointerType::get(IntegerType::get(ctx, 1));
+    });
+  }
 
   Type getQubitType() { return cudaq::cg::getQubitType(ctx, useOpaque); }
   Type getArrayType() { return cudaq::cg::getArrayType(ctx, useOpaque); }
@@ -85,7 +99,9 @@ struct QIRAPITypeConverter : public TypeConverter {
 
   MLIRContext *ctx;
   bool useOpaque;
+  bool useResult;
 };
+} // namespace
 
 inline Type getQubitType(TypeConverter *converter) {
   return static_cast<QIRAPITypeConverter *>(converter)->getQubitType();
@@ -102,6 +118,40 @@ inline Type getResultType(TypeConverter *converter) {
 inline Type getCharPointerType(TypeConverter *converter) {
   return static_cast<QIRAPITypeConverter *>(converter)->getCharPointerType();
 }
+
+inline Value packControlsLengthArray(Location loc,
+                                     ConversionPatternRewriter &rewriter,
+                                     ModuleOp parentModule,
+                                     std::size_t numOperands, TypeRange opTys,
+                                     ValueRange operands) {
+  auto i64Ty = rewriter.getI64Type();
+  auto ptrI64Ty = cudaq::cc::PointerType::get(i64Ty);
+  Value isArrayAndLengthArr = cudaq::opt::factory::createTemporary(
+      loc, rewriter, ptrI64Ty, numOperands);
+  Value zero = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
+  for (auto iter : llvm::enumerate(llvm::zip(opTys, operands))) {
+    auto opTy = std::get<Type>(iter.value());
+    auto operand = std::get<Value>(iter.value());
+    std::int32_t i = iter.index();
+    Value idx = rewriter.create<arith::ConstantIntOp>(loc, i, 64);
+    Value ptr = rewriter.create<cudaq::cc::ComputePtrOp>(
+        loc, ptrI64Ty, isArrayAndLengthArr,
+        ArrayRef<cudaq::cc::ComputePtrArg>{idx});
+    auto element = [&]() -> Value {
+      // If it's a single quantum reference, return 0.
+      if (!isa<quake::VeqType>(opTy))
+        return zero;
+      // Otherwise, get array size with the runtime function.
+      auto c = rewriter.create<func::CallOp>(
+          loc, i64Ty, cudaq::opt::QIRArrayGetSize, ValueRange{operand});
+      return c.getResult(0);
+    }();
+    rewriter.create<cudaq::cc::StoreOp>(loc, element, ptr);
+  }
+  return isArrayAndLengthArr;
+}
+
+namespace {
 
 //===----------------------------------------------------------------------===//
 // Conversion patterns
@@ -158,7 +208,7 @@ struct AllocaOpRewrite : public OpConversionPattern<quake::AllocaOp> {
   }
 };
 
-template <typename OP, typename M>
+template <typename M, typename OP>
 struct OneTargetRewrite : public OpConversionPattern<OP> {
   using Base = OpConversionPattern<OP>;
   using Base::Base;
@@ -189,7 +239,14 @@ struct OneTargetRewrite : public OpConversionPattern<OP> {
 
     // Otherwise, we have to use the invoke control wrapper.
     auto instOperands = adaptor.getOperands();
-    FunctionType qirFunctionTy; // ... lookup the function in the module
+    auto module = op->template getParentOfType<ModuleOp>();
+    auto symOp = module.lookupSymbol(qirFunctionName);
+    if (!symOp)
+      return op.emitError("cannot find QIR function");
+    auto funOp = dyn_cast<func::FuncOp>(symOp);
+    if (!funOp)
+      return op.emitError("cannot find " + qirFunctionName);
+    FunctionType qirFunctionTy = funOp.getFunctionType();
     auto funCon =
         rewriter.create<func::ConstantOp>(loc, qirFunctionTy, qirFunctionName);
     auto funPtrTy = getCharPointerType(this->getTypeConverter());
@@ -201,7 +258,7 @@ struct OneTargetRewrite : public OpConversionPattern<OP> {
     args.push_back(numCtlVal);
     bool allControlsAreRefs =
         std::all_of(op.getControls().begin(), op.getControls().end(),
-                    [](auto v) { return isa<quake::RefType>(v.getType()); });
+                    [](auto v) { return !isa<quake::VeqType>(v.getType()); });
     StringRef applyMultiControlFunc;
     auto numTargets = adaptor.getTargets().size();
     if (allControlsAreRefs && numTargets == 1) {
@@ -211,8 +268,9 @@ struct OneTargetRewrite : public OpConversionPattern<OP> {
       // The gnarly case. Have to identify controls and targets explicitly.
       applyMultiControlFunc = cudaq::opt::NVQIRInvokeWithControlRegisterOrBits;
       // Create the array and length vector.
-      Value arrayAndLengthVec;
-      // ... create the vector of i64 and populate it
+      Value arrayAndLengthVec = packControlsLengthArray(
+          loc, rewriter, module, numControls, op.getControls().getTypes(),
+          adaptor.getControls());
       args.push_back(arrayAndLengthVec);
       Value numTrg = rewriter.create<arith::ConstantIntOp>(loc, numTargets, 64);
       args.push_back(numTrg);
@@ -252,8 +310,12 @@ struct FullQIR {
 
   static void populateRewritePatterns(RewritePatternSet &patterns,
                                       TypeConverter &typeConverter) {
-    patterns.insert<AllocaOpRewrite<Self>, OneTargetRewrite<quake::HOp, Self>>(
-        typeConverter, patterns.getContext());
+    auto *ctx = patterns.getContext();
+    patterns.insert<
+        AllocaOpRewrite<Self>, OneTargetRewrite<Self, quake::HOp>,
+        OneTargetRewrite<Self, quake::XOp>, OneTargetRewrite<Self, quake::YOp>,
+        OneTargetRewrite<Self, quake::ZOp>, OneTargetRewrite<Self, quake::SOp>,
+        OneTargetRewrite<Self, quake::TOp>>(typeConverter, ctx);
   }
 
   static StringRef getQIRQubitAllocate() {
@@ -266,6 +328,8 @@ struct FullQIR {
 
   // No quake ops are allowed. We convert them all in the conversion phase.
   static void allowedQuakeOps(ConversionTarget &target) {}
+
+  static bool usesResultType() { return false; }
 };
 
 /// The base modifier class for the "profile QIR" APIs.
@@ -280,7 +344,12 @@ struct AnyProfileQIR {
 
   static void populateRewritePatterns(RewritePatternSet &patterns,
                                       TypeConverter &typeConverter) {
-    patterns.insert<EraseAllocaOp>(typeConverter, patterns.getContext());
+    patterns.insert<
+        EraseAllocaOp, OneTargetRewrite<Self, quake::HOp>,
+        OneTargetRewrite<Self, quake::XOp>, OneTargetRewrite<Self, quake::YOp>,
+        OneTargetRewrite<Self, quake::ZOp>, OneTargetRewrite<Self, quake::SOp>,
+        OneTargetRewrite<Self, quake::TOp>>(typeConverter,
+                                            patterns.getContext());
   }
 
   // Some quake ops are allowed to pass through the conversion step. They will
@@ -288,6 +357,8 @@ struct AnyProfileQIR {
   static void allowedQuakeOps(ConversionTarget &target) {
     target.addLegalOp<quake::AllocaOp>();
   }
+
+  static bool usesResultType() { return true; }
 };
 
 /// The QIR base profile modifier class.
@@ -326,7 +397,7 @@ struct QuakeToQIRAPIPass
     LLVM_DEBUG(llvm::dbgs() << "Before QIR API conversion:\n" << *op << '\n');
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
-    QIRAPITypeConverter typeConverter(ctx, opaquePtr);
+    QIRAPITypeConverter typeConverter(ctx, opaquePtr, A::usesResultType());
     A::populateRewritePatterns(patterns, typeConverter);
     ConversionTarget target(*ctx);
     target.addLegalDialect<arith::ArithDialect, cudaq::cc::CCDialect,
@@ -407,10 +478,11 @@ struct QuakeToQIRAPIFinalPass
 
 } // namespace
 
-void cudaq::opt::addConvertToQIRAPIPipeline(OpPassManager &pm, StringRef api) {
-  QuakeToQIRAPIPrepOptions prepApiOpt{.api = api.str()};
+void cudaq::opt::addConvertToQIRAPIPipeline(OpPassManager &pm, StringRef api,
+                                            bool opaquePtr) {
+  QuakeToQIRAPIPrepOptions prepApiOpt{.api = api.str(), .opaquePtr = opaquePtr};
   pm.addPass(cudaq::opt::createQuakeToQIRAPIPrep(prepApiOpt));
-  QuakeToQIRAPIOptions apiOpt{.api = api.str()};
+  QuakeToQIRAPIOptions apiOpt{.api = api.str(), .opaquePtr = opaquePtr};
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeToQIRAPI(apiOpt));
   pm.addPass(cudaq::opt::createQuakeToQIRAPIFinal());
 }
@@ -423,6 +495,9 @@ struct QIRAPIPipelineOptions
       llvm::cl::desc("select the profile to convert to [full, base-profile, "
                      "adaptive-profile]"),
       llvm::cl::init("full")};
+  PassOptions::Option<bool> opaquePtr{*this, "opaque-pointer",
+                                      llvm::cl::desc("use opaque pointers"),
+                                      llvm::cl::init("false")};
 };
 } // namespace
 
@@ -430,6 +505,6 @@ void cudaq::opt::registerToQIRAPIPipeline() {
   PassPipelineRegistration<QIRAPIPipelineOptions>(
       "convert-to-qir-api", "Convert quake to one of the QIR APIs.",
       [](OpPassManager &pm, const QIRAPIPipelineOptions &opt) {
-        addConvertToQIRAPIPipeline(pm, opt.api);
+        addConvertToQIRAPIPipeline(pm, opt.api, opt.opaquePtr);
       });
 }

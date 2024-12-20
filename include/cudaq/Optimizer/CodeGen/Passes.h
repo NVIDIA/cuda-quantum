@@ -32,7 +32,7 @@ namespace cudaq::opt {
 /// @param pm Pass Manager to add QIR passes to
 /// @param convertTo Expected to be `qir-base` or `qir-adaptive` (comes from the
 /// cudaq-translate command line `--convert-to` parameter)
-/// \deprecated No longer supported.
+/// \deprecated Replaced by the convert to QIR API pipeline.
 void addQIRProfilePipeline(mlir::OpPassManager &pm, llvm::StringRef convertTo);
 
 void addLowerToCCPipeline(mlir::OpPassManager &pm);
@@ -64,7 +64,8 @@ mlir::LLVM::LLVMStructType lambdaAsPairOfPointers(mlir::MLIRContext *context);
 /// "qir-full", "qir-base", and "qir-adaptive". This pipeline should be run
 /// before conversion to the LLVM-IR dialect.
 void registerToQIRAPIPipeline();
-void addConvertToQIRAPIPipeline(mlir::OpPassManager &pm, mlir::StringRef api);
+void addConvertToQIRAPIPipeline(mlir::OpPassManager &pm, mlir::StringRef api,
+                                bool opaquePtr = false);
 
 /// The pipeline for lowering Quake code to the execution manager API. This
 /// pipeline should be run before conversion to the LLVM-IR dialect.
