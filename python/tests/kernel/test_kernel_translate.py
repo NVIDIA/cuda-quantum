@@ -21,6 +21,14 @@ def bell_pair():
 
 
 @cudaq.kernel
+def bell_pair_mx():
+    q = cudaq.qvector(2)
+    h(q[0])
+    cx(q[0], q[1])
+    mx(q)
+
+
+@cudaq.kernel
 def kernel_loop_params(numQubits: int):
     q = cudaq.qvector(numQubits)
     h(q)
@@ -59,6 +67,11 @@ def kernel_with_call():
 
 def test_translate_openqasm():
     asm = cudaq.translate(bell_pair, format="openqasm2")
+    assert "qreg var0[2];" in asm
+
+
+def test_translate_openqasm_for_mx():
+    asm = cudaq.translate(bell_pair_mx, format="openqasm2")
     assert "qreg var0[2];" in asm
 
 
@@ -103,6 +116,11 @@ def test_translate_qir():
     assert "%1 = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 2)" in qir
 
 
+def test_translate_qir_for_mx():
+    qir = cudaq.translate(bell_pair_mx, format="qir")
+    assert "%1 = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 2)" in qir
+
+
 def test_translate_qir_ignored_args():
     qir = cudaq.translate(bell_pair, 5, format="qir")
     assert "%1 = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 2)" in qir
@@ -123,6 +141,11 @@ def test_translate_qir_base():
     assert '"qir_profiles"="base_profile"' in qir
 
 
+def test_translate_qir_base_for_mx():
+    qir = cudaq.translate(bell_pair_mx, format="qir-base")
+    assert '"qir_profiles"="base_profile"' in qir
+
+
 def test_translate_qir_base_ignored_args():
     qir = cudaq.translate(bell_pair, 5, format="qir-base")
     assert '"qir_profiles"="base_profile"' in qir
@@ -136,6 +159,11 @@ def test_translate_qir_base_args():
 
 def test_translate_qir_adaptive():
     qir = cudaq.translate(bell_pair, format="qir-adaptive")
+    assert '"qir_profiles"="adaptive_profile"' in qir
+
+
+def test_translate_qir_adaptive_for_mx():
+    qir = cudaq.translate(bell_pair_mx, format="qir-adaptive")
     assert '"qir_profiles"="adaptive_profile"' in qir
 
 
