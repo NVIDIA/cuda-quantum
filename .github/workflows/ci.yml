@@ -229,7 +229,7 @@ jobs:
 
       - name: Build qutip Wheel
         run: |
-          python -m pip wheel qutip --wheel-dir=/tmp/wheels
+          python -m pip wheel "qutip<5" --wheel-dir=/tmp/wheels
 
       - name: Upload Wheel Artifact
         uses: actions/upload-artifact@v4
