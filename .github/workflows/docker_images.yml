@@ -607,6 +607,11 @@ jobs:
           name: qutip-wheel-${{ env.transformed_platform }}
           path: /tmp/wheels
 
+      - name: Extract qutip Wheel
+        run: |
+          mkdir -p /tmp/wheels
+          unzip /tmp/wheels/qutip-wheel-${{ env.transformed_platform }}.zip -d /tmp/wheels
+
       - name: Build cuda-quantum image
         id: cudaq_build
         if: success() && !cancelled()
