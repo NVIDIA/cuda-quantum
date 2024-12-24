@@ -35,7 +35,7 @@ ARG QUTIP_WHEEL
 
 # Install qutip from the wheel if provided
 RUN if [ -n "$QUTIP_WHEEL" ]; then \
-        pip install $(ls $QUTIP_WHEEL); \
+        pip install $(echo $QUTIP_WHEEL); \
     else \
         pip install qutip; \
     fi
