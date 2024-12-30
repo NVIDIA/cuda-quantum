@@ -808,19 +808,19 @@ class ElementaryOperator(ProductOperator):
             override: if True it allows override the definition. (default: False)
         """
         if not override and op_id in cls._ops:
-            raise ValueError(f"an {cls.__name__} with id {op_id} already exists")
+            raise ValueError(
+                f"an {cls.__name__} with id {op_id} already exists")
 
-        cls._ops[op_id] = cls.Definition(
-            op_id, expected_dimensions, create, cls._create_key
-        )
+        cls._ops[op_id] = cls.Definition(op_id, expected_dimensions, create,
+                                         cls._create_key)
 
     @classmethod
     def zero(cls, degree: int) -> ElementaryOperator:
         op_id = "zero"
         if not op_id in cls._ops:
             cls.define(
-                op_id, [0], lambda dim: numpy.zeros((dim, dim), dtype=numpy.complex128)
-            )
+                op_id, [0], lambda dim: numpy.zeros(
+                    (dim, dim), dtype=numpy.complex128))
         return cls(op_id, (degree,))
 
     @classmethod
