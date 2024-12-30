@@ -16,7 +16,6 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/Math/IR/Math.h"
-#include "mlir/Dialect/MemRef/IR/MemRef.h"
 
 namespace cudaq {
 
@@ -31,7 +30,6 @@ inline void registerAllDialects(mlir::DialectRegistry &registry) {
     mlir::func::FuncDialect,
     mlir::LLVM::LLVMDialect,
     mlir::math::MathDialect,
-    mlir::memref::MemRefDialect,
 
     // CUDA-Q dialects
     cudaq::cc::CCDialect,
