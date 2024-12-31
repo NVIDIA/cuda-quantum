@@ -99,6 +99,14 @@ inline py::args simplifiedValidateInputArguments(py::args &args) {
       if (shape.size() != 1)
         throw std::runtime_error("Cannot pass ndarray with shape != (N,).");
 
+      // Vector size validation
+      size_t size = shape[0].cast<size_t>();
+      if (size == 0 || (size & (size - 1)) != 0) {
+        throw std::invalid_argument(fmt::format(
+            "Invalid vector size: {}. Vector size must be a power of 2.",
+            size));
+      }
+
       arg = args[i].attr("tolist")();
     } else if (py::isinstance<py::str>(arg)) {
       arg = py::cast<std::string>(arg);
