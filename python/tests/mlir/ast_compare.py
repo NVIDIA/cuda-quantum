@@ -8,7 +8,6 @@
 
 import os
 import pytest
-from cudaq.mlir.dialects.arith import CmpIOp, CmpFOp
 
 
 def cmpfop(predicate, left, right):
