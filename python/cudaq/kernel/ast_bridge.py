@@ -3380,28 +3380,25 @@ class PyASTBridge(ast.NodeVisitor):
         left_type = left.type
         right_type = right.type
 
-        if IntegerType.isinstance(left_type) and F64Type.isinstance(
-                right_type):
+        if IntegerType.isinstance(left_type) and F64Type.isinstance(right_type):
             left = arith.SIToFPOp(self.getFloatType(), left).result
         elif F64Type.isinstance(left_type) and IntegerType.isinstance(
                 right_type):
             right = arith.SIToFPOp(self.getFloatType(), right).result
         elif IntegerType.isinstance(left_type) and IntegerType.isinstance(
                 right_type):
-            if IntegerType(left_type).width < IntegerType(
-                    right_type).width:
+            if IntegerType(left_type).width < IntegerType(right_type).width:
                 zeroext = IntegerType(left_type).width == 1
                 left = cc.CastOp(right_type,
                                  left,
                                  sint=not zeroext,
                                  zint=zeroext).result
-            elif IntegerType(left_type).width > IntegerType(
-                    right_type).width:
+            elif IntegerType(left_type).width > IntegerType(right_type).width:
                 zeroext = IntegerType(right_type).width == 1
                 right = cc.CastOp(left_type,
-                                       right,
-                                       sint=not zeroext,
-                                       zint=zeroext).result
+                                  right,
+                                  sint=not zeroext,
+                                  zint=zeroext).result
 
         if isinstance(op, ast.Gt):
             if F64Type.isinstance(left.type):
