@@ -3168,7 +3168,7 @@ class PyASTBridge(ast.NodeVisitor):
             # we currently handle `veq` and `stdvec` types
             if quake.VeqType.isinstance(iterable.type):
                 size = quake.VeqType.getSize(iterable.type)
-                if size:
+                if quake.VeqType.hasSpecifiedSize(iterable.type):
                     totalSize = self.getConstantInt(size)
                 else:
                     totalSize = quake.VeqSizeOp(self.getIntegerType(64),

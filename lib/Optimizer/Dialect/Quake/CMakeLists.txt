@@ -16,7 +16,6 @@ add_cudaq_dialect_library(QuakeDialect
   QuakeDialectIncGen
   QuakeOpsIncGen
   QuakeTypesIncGen
-  CanonicalIncGen
 
   LINK_LIBS
   CCDialect

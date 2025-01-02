@@ -45,6 +45,8 @@ namespace cudaq::opt {
 
 using namespace mlir;
 
+#include "PeepholePatterns.inc"
+
 /// Greedy pass to match subgraphs in the IR and replace them with codegen ops.
 /// This step makes converting a DAG of nodes in the conversion step simpler.
 static LogicalResult fuseSubgraphPatterns(MLIRContext *ctx, ModuleOp module) {
