@@ -96,7 +96,7 @@ ARG COPYRIGHT_NOTICE="=========================\n\
       NVIDIA CUDA-Q      \n\
 =========================\n\n\
 Version: ${CUDA_QUANTUM_VERSION}\n\n\
-Copyright (c) 2024 NVIDIA Corporation & Affiliates \n\
+Copyright (c) 2025 NVIDIA Corporation & Affiliates \n\
 All rights reserved.\n\n\
 To run a command as administrator (user `root`), use `sudo <command>`.\n"
 RUN echo -e "$COPYRIGHT_NOTICE" > "$CUDA_QUANTUM_PATH/Copyright.txt"
