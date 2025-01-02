@@ -307,6 +307,22 @@ static LogicalResult emitOperation(Emitter &emitter,
   return success();
 }
 
+static LogicalResult emitOperation(Emitter &emitter, quake::MxOp op) {
+  if (op.getTargets().size() > 1)
+    return op.emitError(
+        "cannot translate measurements with more than one target");
+
+  auto qref = op.getTargets()[0];
+  auto bitsName = printClassicalAllocation(emitter, op.getMeasOut(), 1);
+
+  // Apply Hadamard gate to rotate measurement basis from X to Z
+  emitter.os << "h " << emitter.getOrAssignName(qref) << ";\n";
+
+  emitter.os << "measure " << emitter.getOrAssignName(qref) << " -> "
+             << bitsName << ";\n";
+  return success();
+}
+
 static LogicalResult emitOperation(Emitter &emitter, quake::MzOp op) {
   if (op.getTargets().size() > 1)
     return op.emitError(
@@ -342,6 +358,7 @@ static LogicalResult emitOperation(Emitter &emitter, Operation &op) {
       .Case<ExtractRefOp>([&](auto op) { return emitOperation(emitter, op); })
       .Case<OperatorInterface>(
           [&](auto optor) { return emitOperation(emitter, optor); })
+      .Case<MxOp>([&](auto op) { return emitOperation(emitter, op); })
       .Case<MzOp>([&](auto op) { return emitOperation(emitter, op); })
       .Case<ResetOp>([&](auto op) { return emitOperation(emitter, op); })
       // Ignore

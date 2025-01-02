@@ -59,9 +59,9 @@ concept ObserveCallValid =
 /// @param shots number of shots to run for the given kernel, or -1 if not
 /// applicable.
 /// @param noise noise model to use for the sample operation
-/// @param num_trajectories is the optional number of trajectories to be used when
-/// computing the expectation values in the presence of noise. This parameter is
-/// only applied to simulation backends that support noisy
+/// @param num_trajectories is the optional number of trajectories to be used
+/// when computing the expectation values in the presence of noise. This
+/// parameter is only applied to simulation backends that support noisy
 /// simulation of trajectories.
 struct observe_options {
   int shots = -1;
