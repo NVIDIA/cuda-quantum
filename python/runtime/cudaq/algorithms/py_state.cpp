@@ -52,6 +52,24 @@ state pyGetState(py::object kernel, py::args args) {
 
   auto kernelName = kernel.attr("name").cast<std::string>();
   auto kernelMod = kernel.attr("module").cast<MlirModule>();
+
+  // Validate vector size if it is used for state initialization
+  if (args.size() == 1) {
+    py::object arg = args[0];
+
+    // Check if the argument is an iterable
+    if (py::hasattr(arg, "__len__")) {
+      size_t size = py::len(arg);
+
+      if (size == 0 || (size & (size - 1)) != 0) {
+        throw std::invalid_argument(
+            fmt::format("Invalid vector size: {}. When initializing a qubit "
+                        "register, the vector size must be a power of 2.",
+                        size));
+      }
+    }
+  }
+
   auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
 
   return details::extractState([&]() mutable {
