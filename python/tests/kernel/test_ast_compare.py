@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -8,6 +8,7 @@
 
 import os
 import pytest
+import cudaq
 
 
 def cmpfop(predicate, left, right):
@@ -90,6 +91,17 @@ def test_visit_compare(left, right, operation, expected):
             result = cmpiop(predicate, left, right)
 
     assert result == expected
+
+
+def test_comparison_operators():
+
+    @cudaq.kernel
+    def test1():
+        a = 0.5 < 1.0
+
+    print(test1)
+
+    # CHECK-LABEL:    %true = arith.constant true
 
 
 if __name__ == "__main__":
