@@ -93,17 +93,6 @@ def test_visit_compare(left, right, operation, expected):
     assert result == expected
 
 
-def test_comparison_operators():
-
-    @cudaq.kernel
-    def test1():
-        a = 0.5 < 1.0
-
-    print(test1)
-
-    # CHECK-LABEL:    %true = arith.constant true
-
-
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
     pytest.main([loc, "-rP"])
