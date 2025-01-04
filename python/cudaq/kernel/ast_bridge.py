@@ -3374,76 +3374,96 @@ class PyASTBridge(ast.NodeVisitor):
         self.visit(node.left)
         left = self.popValue()
         self.visit(node.comparators[0])
-        comparator = self.popValue()
+        right = self.popValue()
         op = node.ops[0]
 
-        if isinstance(op, ast.Gt):
-            if IntegerType.isinstance(left.type):
-                if F64Type.isinstance(comparator.type):
-                    self.emitFatalError(
-                        "invalid rhs for comparison (f64 type and not i64 type).",
-                        node)
+        left_type = left.type
+        right_type = right.type
 
-                self.pushValue(
-                    arith.CmpIOp(self.getIntegerAttr(iTy, 4), left,
-                                 comparator).result)
-            elif F64Type.isinstance(left.type):
-                if IntegerType.isinstance(comparator.type):
-                    comparator = arith.SIToFPOp(self.getFloatType(),
-                                                comparator).result
+        if IntegerType.isinstance(left_type) and F64Type.isinstance(right_type):
+            left = arith.SIToFPOp(self.getFloatType(), left).result
+        elif F64Type.isinstance(left_type) and IntegerType.isinstance(
+                right_type):
+            right = arith.SIToFPOp(self.getFloatType(), right).result
+        elif IntegerType.isinstance(left_type) and IntegerType.isinstance(
+                right_type):
+            if IntegerType(left_type).width < IntegerType(right_type).width:
+                zeroext = IntegerType(left_type).width == 1
+                left = cc.CastOp(right_type,
+                                 left,
+                                 sint=not zeroext,
+                                 zint=zeroext).result
+            elif IntegerType(left_type).width > IntegerType(right_type).width:
+                zeroext = IntegerType(right_type).width == 1
+                right = cc.CastOp(left_type,
+                                  right,
+                                  sint=not zeroext,
+                                  zint=zeroext).result
+
+        if isinstance(op, ast.Gt):
+            if F64Type.isinstance(left.type):
                 self.pushValue(
                     arith.CmpFOp(self.getIntegerAttr(iTy, 2), left,
-                                 comparator).result)
+                                 right).result)
+            else:
+                self.pushValue(
+                    arith.CmpIOp(self.getIntegerAttr(iTy, 4), left,
+                                 right).result)
             return
 
         if isinstance(op, ast.GtE):
-            self.pushValue(
-                arith.CmpIOp(self.getIntegerAttr(iTy, 5), left,
-                             comparator).result)
+            if F64Type.isinstance(left.type):
+                self.pushValue(
+                    arith.CmpFOp(self.getIntegerAttr(iTy, 3), left,
+                                 right).result)
+            else:
+                self.pushValue(
+                    arith.CmpIOp(self.getIntegerAttr(iTy, 5), left,
+                                 right).result)
             return
 
         if isinstance(op, ast.Lt):
-            self.pushValue(
-                arith.CmpIOp(self.getIntegerAttr(iTy, 2), left,
-                             comparator).result)
+            if F64Type.isinstance(left.type):
+                self.pushValue(
+                    arith.CmpFOp(self.getIntegerAttr(iTy, 4), left,
+                                 right).result)
+            else:
+                self.pushValue(
+                    arith.CmpIOp(self.getIntegerAttr(iTy, 2), left,
+                                 right).result)
             return
 
         if isinstance(op, ast.LtE):
-            self.pushValue(
-                arith.CmpIOp(self.getIntegerAttr(iTy, 7), left,
-                             comparator).result)
+            if F64Type.isinstance(left.type):
+                self.pushValue(
+                    arith.CmpFOp(self.getIntegerAttr(iTy, 5), left,
+                                 right).result)
+            else:
+                self.pushValue(
+                    arith.CmpIOp(self.getIntegerAttr(iTy, 7), left,
+                                 right).result)
             return
 
         if isinstance(op, ast.NotEq):
-            if F64Type.isinstance(left.type) and IntegerType.isinstance(
-                    comparator.type):
-                left = arith.FPToSIOp(comparator.type, left).result
-            if IntegerType(left.type).width < IntegerType(
-                    comparator.type).width:
-                zeroext = IntegerType(left.type).width == 1
-                left = cc.CastOp(comparator.type,
-                                 left,
-                                 sint=not zeroext,
-                                 zint=zeroext).result
-            self.pushValue(
-                arith.CmpIOp(self.getIntegerAttr(iTy, 1), left,
-                             comparator).result)
+            if F64Type.isinstance(left.type):
+                self.pushValue(
+                    arith.CmpFOp(self.getIntegerAttr(iTy, 6), left,
+                                 right).result)
+            else:
+                self.pushValue(
+                    arith.CmpIOp(self.getIntegerAttr(iTy, 1), left,
+                                 right).result)
             return
 
         if isinstance(op, ast.Eq):
-            if F64Type.isinstance(left.type) and IntegerType.isinstance(
-                    comparator.type):
-                left = arith.FPToSIOp(comparator.type, left).result
-            if IntegerType(left.type).width < IntegerType(
-                    comparator.type).width:
-                zeroext = IntegerType(left.type).width == 1
-                left = cc.CastOp(comparator.type,
-                                 left,
-                                 sint=not zeroext,
-                                 zint=zeroext).result
-            self.pushValue(
-                arith.CmpIOp(self.getIntegerAttr(iTy, 0), left,
-                             comparator).result)
+            if F64Type.isinstance(left.type):
+                self.pushValue(
+                    arith.CmpFOp(self.getIntegerAttr(iTy, 1), left,
+                                 right).result)
+            else:
+                self.pushValue(
+                    arith.CmpIOp(self.getIntegerAttr(iTy, 0), left,
+                                 right).result)
             return
 
     def visit_AugAssign(self, node):
