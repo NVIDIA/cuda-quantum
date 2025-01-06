@@ -10,6 +10,7 @@ Examples that illustrate how to use CUDA-Q for application development are avail
       Introduction <introduction.rst>
       Building Kernels <building_kernels.rst>
       Quantum Operations <quantum_operations.rst>
+      Photonic Operations <photonic_operations.rst>
       Measuring Kernels <../../examples/python/measuring_kernels.ipynb>
       Visualizing Kernels <../../examples/python/visualization.ipynb>
       Executing Kernels <../../examples/python/executing_kernels.ipynb>
