@@ -2,8 +2,8 @@
 // ```
 // nvq++ --target infleqtion infleqtion.cpp -o out.x && ./out.x
 // ```
-// This will submit the job to the Infleqtion's ideal simulator,
-// cq_sqale_simulator (default). Alternatively, we can enable hardware noise
+// This will submit the job to the ideal simulator for Infleqtion,
+// `cq_sqale_simulator` (default). Alternatively, we can enable hardware noise
 // model simulation by specifying `noise-sim` to the flag `--infleqtion-method`,
 // e.g.,
 // ```
@@ -17,9 +17,9 @@
 // nvq++ --target infleqtion --infleqtion-machine cq_sqale_qpu
 // --infleqtion-method dry-run infleqtion.cpp -o out.x && ./out.x
 // ```
-// Note: If targeting ideal cloud simulation, `--infleqtion-machine
-// cq_sqale_simulator` is optional since it is the default configuration if not
-// provided.
+// Note: If targeting ideal cloud simulation,
+// `--infleqtion-machine cq_sqale_simulator`
+// is optional since it is the default configuration if not provided.
 
 #include <cudaq.h>
 #include <fstream>

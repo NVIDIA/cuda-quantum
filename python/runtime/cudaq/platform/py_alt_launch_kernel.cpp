@@ -666,6 +666,7 @@ std::string getASM(const std::string &name, MlirModule module,
                            "CHToCX", "CCZToCX", "CRzToCX", "CRyToCX", "CRxToCX",
                            "CR1ToCX", "CCZToCX", "RxAdjToRx", "RyAdjToRy",
                            "RzAdjToRz"}}));
+  pm.addPass(cudaq::opt::createQuakeToCCPrep());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlVeqs());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createCombineQuantumAllocations());

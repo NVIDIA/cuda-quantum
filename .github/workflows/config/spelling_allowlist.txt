@@ -108,6 +108,7 @@ SLURM
 SVD
 Stim
 Superpositions
+Superstaq
 TBI
 TCP
 TableGen
@@ -215,6 +216,7 @@ homogenous
 iff
 increment
 incrementing
+infleqtion
 initializer
 initializers
 inlined
