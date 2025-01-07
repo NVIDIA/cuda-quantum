@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -31,6 +31,8 @@
 /// required here.
 
 using namespace mlir;
+
+#include "PeepholePatterns.inc"
 
 /// For a call to `__quantum__rt__qubit_allocate_array`, get the number of
 /// qubits allocated.

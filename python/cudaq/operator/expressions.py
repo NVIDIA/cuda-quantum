@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -768,42 +768,49 @@ class ElementaryOperator(ProductOperator):
     """
 
     @classmethod
-    def define(cls, op_id: str, expected_dimensions: Sequence[int],
-               create: Callable[..., NDArray[numpy.complexfloating]]) -> None:
+    def define(
+        cls,
+        op_id: str,
+        expected_dimensions: Sequence[int],
+        create: Callable[..., NDArray[numpy.complexfloating]],
+        override: bool = False,
+    ) -> None:
         """
         Adds the definition of an elementary operator with the given id to the class.
         After definition, an the defined elementary operator can be instantiated by
         providing the operator id as well as the degree(s) of freedom that it acts on.
-        
-        An elementary operator is a parameterized object acting on certain degrees of 
-        freedom. To evaluate an operator, for example to compute its matrix, the level, 
-        that is the dimension, for each degree of freedom it acts on must be provided, 
-        as well as all additional parameters. Additional parameters must be provided in 
+
+        An elementary operator is a parameterized object acting on certain degrees of
+        freedom. To evaluate an operator, for example to compute its matrix, the level,
+        that is the dimension, for each degree of freedom it acts on must be provided,
+        as well as all additional parameters. Additional parameters must be provided in
         the form of keyword arguments.
 
         Note:
-        The dimensions passed during operator evaluation are automatically validated 
-        against the expected dimensions specified during definition - the `create` 
+        The dimensions passed during operator evaluation are automatically validated
+        against the expected dimensions specified during definition - the `create`
         function does not need to do this.
 
         Arguments:
             op_id: A string that uniquely identifies the defined operator.
             expected_dimensions: defines the number of levels, that is the dimension,
-                for each degree of freedom in canonical (that is sorted) order. A 
-                negative or zero value for one (or more) of the expected dimensions 
-                indicates that the operator is defined for any dimension of the 
+                for each degree of freedom in canonical (that is sorted) order. A
+                negative or zero value for one (or more) of the expected dimensions
+                indicates that the operator is defined for any dimension of the
                 corresponding degree of freedom.
-            create: Takes any number of complex-valued arguments and returns the 
+            create: Takes any number of complex-valued arguments and returns the
                 matrix representing the operator in canonical order. If the matrix can
-                be defined for any number of levels for one or more degree of freedom, 
+                be defined for any number of levels for one or more degree of freedom,
                 the `create` function must take an argument called `dimension` (or `dim`
                 for short), if the operator acts on a single degree of freedom, and an
-                argument called `dimensions` (or `dims` for short), if the operator acts 
+                argument called `dimensions` (or `dims` for short), if the operator acts
                 on multiple degrees of freedom.
+            override: if True it allows override the definition. (default: False)
         """
-        if op_id in cls._ops:
+        if not override and op_id in cls._ops:
             raise ValueError(
                 f"an {cls.__name__} with id {op_id} already exists")
+
         cls._ops[op_id] = cls.Definition(op_id, expected_dimensions, create,
                                          cls._create_key)
 
