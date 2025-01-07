@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -675,10 +675,11 @@ mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
     // Even though we're not lowering all the way to a real QIR profile for this
     // emulated path, we need to pass in the `convertTo` in order to mimic what
     // the non-emulated path would do.
-    if (containsWireSet)
-      cudaq::opt::addWiresetToProfileQIRPipeline(pm, convertTo);
-    else
-      cudaq::opt::commonPipelineConvertToQIR(pm, convertTo);
+    //if (containsWireSet)
+    //  cudaq::opt::addWiresetToProfileQIRPipeline(pm, convertTo);
+    //else
+    //  cudaq::opt::commonPipelineConvertToQIR(pm, convertTo);
+    cudaq::opt::commonPipelineConvertToQIR(pm, "qir-adaptive");
 
     auto enablePrintMLIREachPass =
         getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);

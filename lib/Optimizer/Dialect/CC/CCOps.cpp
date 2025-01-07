@@ -2056,17 +2056,16 @@ struct EraseConstIf : public OpRewritePattern<cudaq::cc::IfOp> {
         auto block =
             value ? ifOp.getThenEntryBlock() : ifOp.getElseEntryBlock();
 
-        if (auto cont = dyn_cast<cudaq::cc::ContinueOp>(block->back())) {
-          for (std::size_t i = 0; auto opnd : ifOp.getResults()) {
-            auto result = cont.getOperand(i);
-            rewriter.replaceAllUsesWith(opnd, result);
-            i++;
+        if (block) {
+          if (auto cont = dyn_cast<cudaq::cc::ContinueOp>(block->back())) {
+            for (std::size_t i = 0; auto opnd : ifOp.getResults())
+              rewriter.replaceAllUsesWith(opnd, cont.getOperand(i++));
+            rewriter.eraseOp(cont);
           }
           rewriter.mergeBlockBefore(block, ifOp);
-          rewriter.eraseOp(ifOp);
-          rewriter.eraseOp(cont);
-          return success();
         }
+        rewriter.eraseOp(ifOp);
+        return success();
       }
     }
     return failure();

@@ -25,6 +25,8 @@
 #include <signal.h>
 #include <string>
 #include <vector>
+
+#include <iostream>
 namespace nvqir {
 void tearDownBeforeMPIFinalize();
 void setRandomSeed(std::size_t);
@@ -219,6 +221,7 @@ void cudaq::registry::__cudaq_deviceCodeHolderAdd(const char *key,
   if (it != quakeRegistry.end()) {
     cudaq::info("Replacing code for kernel {}", key);
     it->second = code;
+    //std::cout << code << std::endl;
     return;
   }
   quakeRegistry.emplace_back(key, code);
