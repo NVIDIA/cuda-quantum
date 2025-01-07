@@ -55,35 +55,37 @@ void initializeTypeConversions(mlir::LLVMTypeConverter &typeConverter);
 namespace cg {
 
 // The following type creators replace the ones above. They are configurable on
-// the fly to either use opaque structs or opaque pointers.
+// the fly to either use opaque structs or opaque pointers. The default is to
+// use pointers to opaque structs, which is no longer supported in modern LLVM.
+
 inline mlir::Type getOpaquePointerType(mlir::MLIRContext *context) {
   return cc::PointerType::get(mlir::NoneType::get(context));
 }
 
 inline mlir::Type getQubitType(mlir::MLIRContext *context,
-                               bool useOpaque = false) {
-  if (useOpaque)
+                               bool useOpaquePtr = false) {
+  if (useOpaquePtr)
     return getOpaquePointerType(context);
   return cc::PointerType::get(getQuantumTypeByName("Qubit", context));
 }
 
 inline mlir::Type getArrayType(mlir::MLIRContext *context,
-                               bool useOpaque = false) {
-  if (useOpaque)
+                               bool useOpaquePtr = false) {
+  if (useOpaquePtr)
     return getOpaquePointerType(context);
   return cc::PointerType::get(getQuantumTypeByName("Array", context));
 }
 
 inline mlir::Type getResultType(mlir::MLIRContext *context,
-                                bool useOpaque = false) {
-  if (useOpaque)
+                                bool useOpaquePtr = false) {
+  if (useOpaquePtr)
     return getOpaquePointerType(context);
   return cc::PointerType::get(getQuantumTypeByName("Result", context));
 }
 
 inline mlir::Type getCharPointerType(mlir::MLIRContext *context,
-                                     bool useOpaque = false) {
-  if (useOpaque)
+                                     bool useOpaquePtr = false) {
+  if (useOpaquePtr)
     return getOpaquePointerType(context);
   return cc::PointerType::get(mlir::IntegerType::get(context, 8));
 }

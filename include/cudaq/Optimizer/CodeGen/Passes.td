@@ -225,7 +225,7 @@ def QuakeToQIRAPI : Pass<"quake-to-qir-api"> {
     In the latter case, type information is fully understood from the function
     names themselves.
   }];
-  
+
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::arith::ArithDialect",
       "mlir::cf::ControlFlowDialect", "mlir::func::FuncDialect",
       "mlir::LLVM::LLVMDialect"];
