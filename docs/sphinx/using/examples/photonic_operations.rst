@@ -47,7 +47,7 @@ Quantum Photonics Gates
 
 We can manipulate the state of a qumode via quantum photonic gates. For
 example, the create gate allows us to increase the number of photons in a
-qumode up to a maximum by the qudit level:
+qumode up to a maximum given by the qudit level :math:`d`:
 
 .. math::  C \ket{0} = \ket{1} 
 
@@ -113,7 +113,7 @@ on multiple qumodes.
 Beam splitters act on two qumodes together and it is parameterized by a single
 angle :math:`\theta`, relating to reflectivity.
 For the annihilation (:math:`a_1` and :math:`a_2`) and creation operators
-(:math:`a_1^\dagger`and :math:`a_2^\dagger`) of two qumodes, the beam splitter
+(:math:`a_1^\dagger` and :math:`a_2^\dagger`) of two qumodes, the beam splitter
 operator is defined by
 
 .. math::
