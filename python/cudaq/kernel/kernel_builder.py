@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -675,8 +675,8 @@ class PyKernel(object):
 
                 if (quake.VeqType.isinstance(inTy) and
                         quake.VeqType.isinstance(argTy)):
-                    if quake.VeqType.getSize(
-                            inTy) and not quake.VeqType.getSize(argTy):
+                    if quake.VeqType.hasSpecifiedSize(
+                            inTy) and not quake.VeqType.hasSpecifiedSize(argTy):
                         value = quake.RelaxSizeOp(argTy, value).result
 
                 mlirValues.append(value)
@@ -1025,8 +1025,8 @@ class PyKernel(object):
                 return
 
             # target is a VeqType
-            size = quake.VeqType.getSize(target.mlirValue.type)
-            if size:
+            if quake.VeqType.hasSpecifiedSize(target.mlirValue.type):
+                size = quake.VeqType.getSize(target.mlirValue.type)
                 for i in range(size):
                     extracted = quake.ExtractRefOp(quake.RefType.get(self.ctx),
                                                    target.mlirValue, i).result

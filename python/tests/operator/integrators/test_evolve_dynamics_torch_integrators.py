@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -7,6 +7,9 @@
 # ============================================================================ #
 import pytest
 import cudaq
+
+torch = pytest.importorskip("torch")
+
 # Note: the test model may create state, hence need to set the target to "dynamics"
 cudaq.set_target("dynamics")
 
