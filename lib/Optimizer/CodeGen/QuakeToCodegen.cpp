@@ -153,6 +153,7 @@ public:
 void cudaq::codegen::populateQuakeToCodegenPatterns(
     mlir::RewritePatternSet &patterns) {
   auto *ctx = patterns.getContext();
-  patterns.insert<CodeGenRAIIPattern, ExpandComplexCast, CreateStateOpPattern,
-                  DeleteStateOpPattern, GetNumberOfQubitsOpPattern>(ctx);
+  patterns
+      .insert<CodeGenRAIIPattern, CreateStateOpPattern, DeleteStateOpPattern,
+              ExpandComplexCast, GetNumberOfQubitsOpPattern>(ctx);
 }

@@ -1401,15 +1401,16 @@ def CustomUnitarySymbolOp :
 // Quantum states
 //===----------------------------------------------------------------------===//
 
-def quake_CreateStateOp : QuakeOp<"create_state", [Pure] > {
+def quake_CreateStateOp : QuakeOp<"create_state", [Pure]> {
   let summary = "Create state from data";
   let description = [{
-    This operation takes a pointer to state data and creates a quantum state.
+    This operation takes a pointer to state data and creates a quantum state,
+    where state data is a pointer to an array of float or complex numbers.
     The operation can be optimized away in DeleteStates pass, or replaced
     by an intrinsic runtime call on simulators.
 
     ```mlir
-      %0 = quake.create_state %data %len: !cc.ptr<!cc.state>
+      %0 = quake.create_state %data %len : (!cc.ptr<!cc.array<complex<f64> x 8>>, i64) -> !cc.ptr<!cc.state>
     ```
   }];
 
@@ -1431,24 +1432,24 @@ def QuakeOp_DeleteStateOp : QuakeOp<"delete_state", [] > {
     by an intrinsic runtime call on simulators.
 
     ```mlir
-      quake.delete_state %state : (!cc.ptr<!cc.state>) -> ()
+      quake.delete_state %state : !cc.ptr<!cc.state>
     ```
   }];
 
   let arguments = (ins cc_PointerType:$state);
   let results = (outs);
   let assemblyFormat = [{
-      $state `:` functional-type(operands, results) attr-dict
+      $state `:` type(operands) attr-dict
   }];
 }
 
 def quake_GetNumberOfQubitsOp : QuakeOp<"get_number_of_qubits", [Pure] > {
   let summary = "Get number of qubits from a quantum state";
   let description = [{
-    This operation takes a state pointer argument and returns a number of
-    qubits in the state. The operation can be optimized away in some passes
-    line ReplaceStateByKernel or DeleteStates, or replaced by an intrinsic
-    runtime call on simulators.
+    This operation takes a pointer to the state as an argument and returns
+    a number of qubits in the state. The operation can be optimized away in
+    some passes like ReplaceStateByKernel or DeleteStates, or replaced by an
+    intrinsic runtime call when the target is one of the simulators.
 
     ```mlir
       %0 = quake.get_number_of_qubits %state : (!cc.ptr<!cc.state>) -> i64

@@ -57,7 +57,7 @@ module {
 // CHECK:           %[[VAL_1:.*]] = cc.address_of @test_state_param1.rodata_synth_0 : !cc.ptr<!cc.array<complex<f32> x 8>>
 // CHECK:           %[[VAL_2:.*]] = quake.create_state %[[VAL_1]], %[[VAL_0]] : (!cc.ptr<!cc.array<complex<f32> x 8>>, i64) -> !cc.ptr<!cc.state>
 // CHECK:           call @sub_kernel(%[[VAL_2]]) : (!cc.ptr<!cc.state>) -> ()
-// CHECK:           quake.delete_state %[[VAL_2]] : (!cc.ptr<!cc.state>) -> ()
+// CHECK:           quake.delete_state %[[VAL_2]] : !cc.ptr<!cc.state>
 // CHECK:           return
 // CHECK:         }
 // CHECK-DAG:     cc.global constant private @test_state_param1.rodata_synth_0 (dense<[(0.707106769,0.000000e+00), (0.707106769,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<8xcomplex<f32>>) : !cc.array<complex<f32> x 8>
