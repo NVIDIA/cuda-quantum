@@ -2250,11 +2250,9 @@ class PyASTBridge(ast.NodeVisitor):
                         # handle `cudaq.qvector(state)`
                         statePtr = self.ifNotPointerThenStore(valueOrPtr)
 
-                        symName = '__nvqpp_cudaq_state_numberOfQubits'
-                        load_intrinsic(self.module, symName)
                         i64Ty = self.getIntegerType()
-                        numQubits = func.CallOp([i64Ty], symName,
-                                                [statePtr]).result
+                        numQubits = quake.GetNumberOfQubitsOp(i64Ty,
+                                                              statePtr).result
 
                         veqTy = quake.VeqType.get(self.ctx)
                         qubits = quake.AllocaOp(veqTy, size=numQubits).result
@@ -3874,6 +3872,9 @@ class PyASTBridge(ast.NodeVisitor):
                     self.pushValue(value)
                     return
                 if cc.StdvecType.isinstance(eleTy):
+                    self.pushValue(value)
+                    return
+                if cc.StateType.isinstance(eleTy):
                     self.pushValue(value)
                     return
                 loaded = cc.LoadOp(value).result
