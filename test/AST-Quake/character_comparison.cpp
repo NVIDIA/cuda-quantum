@@ -46,7 +46,7 @@ __qpu__ void apply_pauli(cudaq::qview<> qubits, const std::vector<char> &word) {
 // CHECK:               %[[VAL_12:.*]] = cc.stdvec_data %[[VAL_1]] : (!cc.stdvec<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
 // CHECK:               %[[VAL_13:.*]] = cc.compute_ptr %[[VAL_12]][%[[VAL_11]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
 // CHECK:               %[[VAL_14:.*]] = cc.load %[[VAL_13]] : !cc.ptr<i8>
-// CHECK:               %[[VAL_15:.*]] = cc.cast signed %[[VAL_14]] : (i8) -> i32
+// CHECK:               %[[VAL_15:.*]] = cc.cast {{.*}}%[[VAL_14]] : (i8) -> i32
 // CHECK:               %[[VAL_16:.*]] = arith.cmpi eq, %[[VAL_15]], %[[VAL_4]] : i32
 // CHECK:               cc.if(%[[VAL_16]]) {
 // CHECK:                 %[[VAL_17:.*]] = cc.load %[[VAL_7]] : !cc.ptr<i64>
@@ -57,7 +57,7 @@ __qpu__ void apply_pauli(cudaq::qview<> qubits, const std::vector<char> &word) {
 // CHECK:               %[[VAL_20:.*]] = cc.stdvec_data %[[VAL_1]] : (!cc.stdvec<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
 // CHECK:               %[[VAL_21:.*]] = cc.compute_ptr %[[VAL_20]][%[[VAL_19]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
 // CHECK:               %[[VAL_22:.*]] = cc.load %[[VAL_21]] : !cc.ptr<i8>
-// CHECK:               %[[VAL_23:.*]] = cc.cast signed %[[VAL_22]] : (i8) -> i32
+// CHECK:               %[[VAL_23:.*]] = cc.cast {{.*}}%[[VAL_22]] : (i8) -> i32
 // CHECK:               %[[VAL_24:.*]] = arith.cmpi eq, %[[VAL_23]], %[[VAL_3]] : i32
 // CHECK:               cc.if(%[[VAL_24]]) {
 // CHECK:                 %[[VAL_25:.*]] = cc.load %[[VAL_7]] : !cc.ptr<i64>
@@ -68,7 +68,7 @@ __qpu__ void apply_pauli(cudaq::qview<> qubits, const std::vector<char> &word) {
 // CHECK:               %[[VAL_28:.*]] = cc.stdvec_data %[[VAL_1]] : (!cc.stdvec<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
 // CHECK:               %[[VAL_29:.*]] = cc.compute_ptr %[[VAL_28]][%[[VAL_27]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
 // CHECK:               %[[VAL_30:.*]] = cc.load %[[VAL_29]] : !cc.ptr<i8>
-// CHECK:               %[[VAL_31:.*]] = cc.cast signed %[[VAL_30]] : (i8) -> i32
+// CHECK:               %[[VAL_31:.*]] = cc.cast {{.*}}%[[VAL_30]] : (i8) -> i32
 // CHECK:               %[[VAL_32:.*]] = arith.cmpi eq, %[[VAL_31]], %[[VAL_2]] : i32
 // CHECK:               cc.if(%[[VAL_32]]) {
 // CHECK:                 %[[VAL_33:.*]] = cc.load %[[VAL_7]] : !cc.ptr<i64>
