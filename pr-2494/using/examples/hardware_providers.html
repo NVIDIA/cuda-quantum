@@ -912,8 +912,8 @@ backends, please take a look at <a class="reference internal" href="../backends/
 <span class="c1">// --infleqtion-method dry-run infleqtion.cpp -o out.x &amp;&amp; ./out.x</span>
 <span class="c1">// ```</span>
 <span class="c1">// Note: If targeting ideal cloud simulation,</span>
-<span class="c1">// `--infleqtion-machine cq_sqale_simulator`</span>
-<span class="c1">// is optional since it is the default configuration if not provided.</span>
+<span class="c1">// `--infleqtion-machine cq_sqale_simulator` is optional since it is the</span>
+<span class="c1">// default configuration if not provided.</span>
 
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;fstream&gt;</span>
@@ -932,7 +932,7 @@ backends, please take a look at <a class="reference internal" href="../backends/
 <span class="p">};</span>
 
 <span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="c1">// Submit to infleqtion asynchronously (e.g., continue executing</span>
+<span class="w">  </span><span class="c1">// Submit to Infleqtion asynchronously (e.g., continue executing</span>
 <span class="w">  </span><span class="c1">// code in the file until the job has been returned).</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">future</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample_async</span><span class="p">(</span><span class="n">ghz</span><span class="p">{});</span>
 <span class="w">  </span><span class="c1">// ... classical code to execute in the meantime ...</span>
@@ -952,7 +952,7 @@ backends, please take a look at <a class="reference internal" href="../backends/
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">async_counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">readIn</span><span class="p">.</span><span class="n">get</span><span class="p">();</span>
 <span class="w">  </span><span class="n">async_counts</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
 
-<span class="w">  </span><span class="c1">// OR: Submit to infleqtion synchronously (e.g., wait for the job</span>
+<span class="w">  </span><span class="c1">// OR: Submit to Infleqtion synchronously (e.g., wait for the job</span>
 <span class="w">  </span><span class="c1">// result to be returned before proceeding).</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">ghz</span><span class="p">{});</span>
 <span class="w">  </span><span class="n">counts</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>

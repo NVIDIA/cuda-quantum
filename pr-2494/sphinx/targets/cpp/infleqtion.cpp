@@ -18,8 +18,8 @@
 // --infleqtion-method dry-run infleqtion.cpp -o out.x && ./out.x
 // ```
 // Note: If targeting ideal cloud simulation,
-// `--infleqtion-machine cq_sqale_simulator`
-// is optional since it is the default configuration if not provided.
+// `--infleqtion-machine cq_sqale_simulator` is optional since it is the
+// default configuration if not provided.
 
 #include <cudaq.h>
 #include <fstream>
@@ -38,7 +38,7 @@ struct ghz {
 };
 
 int main() {
-  // Submit to infleqtion asynchronously (e.g., continue executing
+  // Submit to Infleqtion asynchronously (e.g., continue executing
   // code in the file until the job has been returned).
   auto future = cudaq::sample_async(ghz{});
   // ... classical code to execute in the meantime ...
@@ -58,7 +58,7 @@ int main() {
   auto async_counts = readIn.get();
   async_counts.dump();
 
-  // OR: Submit to infleqtion synchronously (e.g., wait for the job
+  // OR: Submit to Infleqtion synchronously (e.g., wait for the job
   // result to be returned before proceeding).
   auto counts = cudaq::sample(ghz{});
   counts.dump();
