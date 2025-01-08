@@ -499,6 +499,14 @@ bool QuakeBridgeVisitor::VisitIntegerLiteral(clang::IntegerLiteral *x) {
   return pushValue(getConstantInt(builder, loc, intVal, intTy));
 }
 
+bool QuakeBridgeVisitor::VisitCharacterLiteral(clang::CharacterLiteral *x) {
+  auto loc = toLocation(x->getSourceRange());
+  auto intTy =
+      builtinTypeToType(cast<clang::BuiltinType>(x->getType().getTypePtr()));
+  auto intVal = x->getValue();
+  return pushValue(builder.create<arith::ConstantIntOp>(loc, intVal, intTy));
+}
+
 bool QuakeBridgeVisitor::VisitUnaryOperator(clang::UnaryOperator *x) {
   auto loc = toLocation(x->getSourceRange());
   switch (x->getOpcode()) {
