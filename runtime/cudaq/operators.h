@@ -62,8 +62,8 @@ public:
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0:2, 1:2}`.
-  /// @arg `parameters` : A map of the paramter names to their concrete, complex
-  /// values.
+  /// @arg `parameters` : A map of the parameter names to their concrete,
+  /// complex values.
   matrix_2 to_matrix(const std::map<int, int> &dimensions,
                      const std::map<std::string, double> &params = {}) const;
 
@@ -116,13 +116,13 @@ public:
   /// addition is commutative, as is the product of two operators if they
   /// act on different degrees of freedom.
   /// The equality comparison does *not* take commutation relations into
-  /// account, and does not try to reorder terms blockwise; it may hence
+  /// account, and does not try to reorder terms `blockwise`; it may hence
   /// evaluate to False, even if two operators in reality are the same.
   /// If the equality evaluates to True, on the other hand, the operators
   /// are guaranteed to represent the same transformation for all arguments.
   bool operator==(const operator_sum &other) const;
 
-  /// FIXME: Protect this once I can do deeper testing in unittests.
+  /// FIXME: Protect this once I can do deeper testing in `unittests`.
   // protected:
   std::vector<product_operator> get_terms() { return m_terms; }
 };
@@ -183,7 +183,7 @@ public:
   ///  addition is commutative, as is the product of two operators if they
   ///  act on different degrees of freedom.
   ///  The equality comparison does *not* take commutation relations into
-  ///  account, and does not try to reorder terms blockwise; it may hence
+  ///  account, and does not try to reorder terms `blockwise`; it may hence
   ///  evaluate to False, even if two operators in reality are the same.
   ///  If the equality evaluates to True, on the other hand, the operators
   ///  are guaranteed to represent the same transformation for all arguments.
@@ -197,8 +197,8 @@ public:
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0:2, 1:2}`.
-  /// @arg `parameters` : A map of the paramter names to their concrete, complex
-  /// values.
+  /// @arg `parameters` : A map of the parameter names to their concrete,
+  /// complex values.
   matrix_2 to_matrix(std::map<int, int> dimensions,
                      std::map<std::string, std::complex<double>> parameters);
 
@@ -214,7 +214,7 @@ public:
   /// operator.
   int term_count() const { return m_terms.size(); }
 
-  /// FIXME: Protect this once I can do deeper testing in unittests.
+  /// FIXME: Protect this once I can do deeper testing in `unittests`.
   // protected:
   std::vector<std::variant<scalar_operator, elementary_operator>> get_terms() {
     return m_terms;
@@ -419,7 +419,7 @@ public:
   std::vector<scalar_operator> _operators_to_compose;
 
   /// NOTE: We should revisit these constructors and remove any that have
-  /// become unecessary as the implementation improves.
+  /// become unnecessary as the implementation improves.
   scalar_operator() = default;
   // Copy constructor.
   scalar_operator(const scalar_operator &other);

@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -62,7 +62,7 @@ public:
   /// implementation phase.
 
   // Pointers.
-  /// @brief Dereference operator to access the current step value.
+  /// @brief `Dereference` operator to access the current step value.
   /// @return Reference to current complex step value.
   reference operator*() const;
 
@@ -76,7 +76,7 @@ public:
   Schedule &operator++();
 
   // Postfix increment.
-  /// @brief Postfix increment operator to move to the next step in the
+  /// @brief `Postfix` increment operator to move to the next step in the
   /// schedule.
   /// @return Copy of the previous Schedule state.
   Schedule operator++(int);
