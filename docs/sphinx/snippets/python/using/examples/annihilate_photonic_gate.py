@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -8,6 +8,7 @@
 
 #[Begin Docs]
 import cudaq
+
 cudaq.set_target("orca-photonics")
 
 
@@ -18,10 +19,10 @@ def kernel():
     qumode = qudit(level)
 
     # Apply the create gate to the qumode.
-    create(qumode) # |0⟩ -> |1⟩
+    create(qumode)  # |0⟩ -> |1⟩
 
     # Apply the create gate to the qumode.
-    annihilate(qumode) # |1⟩ -> |0⟩
+    annihilate(qumode)  # |1⟩ -> |0⟩
 
     # Measurement operator.
     mz(qumode)

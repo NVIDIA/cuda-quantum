@@ -1,6 +1,7 @@
 #[Begin Docs]
 import cudaq
 import math
+
 cudaq.set_target("orca-photonics")
 
 
@@ -14,13 +15,14 @@ def kernel():
 
     # Apply the create gate to the qumodes.
     for i in range(n_modes):
-        create(qumodes[i]) # |00⟩ -> |11⟩
+        create(qumodes[i])  # |00⟩ -> |11⟩
 
     # Apply the beam_splitter gate to the qumodes.
     beam_splitter(qumodes[0], qumodes[1], math.pi / 4)
 
     # Measurement operator.
     mz(qumodes)
+
 
 # Sample the qumode for 1000 shots to gather statistics.
 result = cudaq.sample(kernel)
