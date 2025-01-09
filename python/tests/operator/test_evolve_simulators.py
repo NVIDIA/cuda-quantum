@@ -172,6 +172,9 @@ expected_result_decay = [
 
 
 def test_evolve():
+    # Set random seed for shots-based observe test.
+    cudaq.set_random_seed(13)
+
     # Qubit Hamiltonian
     hamiltonian = 2 * np.pi * 0.1 * spin.x(0)
 
@@ -242,6 +245,9 @@ def test_evolve():
 
 
 def test_evolve_async():
+    # Set random seed for shots-based observe test.
+    cudaq.set_random_seed(13)
+
     # Qubit Hamiltonian
     hamiltonian = 2 * np.pi * 0.1 * spin.x(0)
 

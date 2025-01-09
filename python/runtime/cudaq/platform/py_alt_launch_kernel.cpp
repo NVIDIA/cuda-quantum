@@ -547,6 +547,7 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   pm.addNestedPass<func::FuncOp>(
       cudaq::opt::createArgumentSynthesisPass(kernels, substs));
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addPass(opt::createDeleteStates());
 
   // Run state preparation for quantum devices (or their emulation) only.
   // Simulators have direct implementation of state initialization
@@ -666,6 +667,7 @@ std::string getASM(const std::string &name, MlirModule module,
                            "CHToCX", "CCZToCX", "CRzToCX", "CRyToCX", "CRxToCX",
                            "CR1ToCX", "CCZToCX", "RxAdjToRx", "RyAdjToRy",
                            "RzAdjToRz"}}));
+  pm.addPass(cudaq::opt::createQuakeToCCPrep());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlVeqs());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createCombineQuantumAllocations());
