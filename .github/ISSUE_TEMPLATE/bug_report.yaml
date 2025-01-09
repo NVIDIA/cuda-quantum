@@ -5,7 +5,7 @@ labels: [triage]
 body:
   - type: markdown
     attributes:
-      value: Thank you for helping us improve CUDA Quantum.
+      value: Thank you for helping us improve CUDA-Q.
 
   - type: checkboxes
     attributes:
@@ -60,7 +60,7 @@ body:
     attributes:
       label: Environment
       description: |
-        For the CUDA Quantum version, please give the actual version number
+        For the CUDA-Q version, please give the actual version number
         (_e.g._ 0.3.0) if you are using a release version, or the first 7-8
         characters of the commit hash if you have built from source. If you are
         using the python interface _and_ have not built it from source, you can
@@ -69,7 +69,7 @@ body:
         is relevant to the list.
       # Keep the trailing spaces on the following lines
       value: |
-        - **CUDA Quantum version**: 
+        - **CUDA-Q version**: 
         - **Python version**: 
         - **C++ compiler**: 
         - **Operating system**: 

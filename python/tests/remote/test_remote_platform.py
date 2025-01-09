@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -13,11 +13,6 @@ import cudaq
 from cudaq import spin
 
 num_qpus = 3
-
-## [PYTHON_VERSION_FIX]
-skipIfPythonLessThan39 = pytest.mark.skipif(
-    sys.version_info < (3, 9),
-    reason="This test is crashing in CI on Python 3.8 (amd64, fedora)")
 
 
 def assert_close(want, got, tolerance=1.e-5) -> bool:
@@ -98,8 +93,6 @@ def check_observe(entity):
     assert abs(res.expectation() - expected_energy) < energy_tol
 
 
-## Ref: https://github.com/NVIDIA/cuda-quantum/issues/2204
-@skipIfPythonLessThan39
 def test_observe():
     # Create the parameterized ansatz
     kernel, theta = cudaq.make_kernel(float)

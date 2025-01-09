@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -1423,7 +1423,7 @@ def test_issue_9():
 
 
 def test_issue_670():
-    
+
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(1)
     kernel.ry(0.1, qubits)

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -15,8 +15,10 @@ namespace nvqir {
 
 TensorNetState::TensorNetState(std::size_t numQubits,
                                ScratchDeviceMem &inScratchPad,
-                               cutensornetHandle_t handle)
-    : m_numQubits(numQubits), m_cutnHandle(handle), scratchPad(inScratchPad) {
+                               cutensornetHandle_t handle,
+                               std::mt19937 &randomEngine)
+    : m_numQubits(numQubits), m_cutnHandle(handle), scratchPad(inScratchPad),
+      m_randomEngine(randomEngine) {
   const std::vector<int64_t> qubitDims(m_numQubits, 2);
   HANDLE_CUTN_ERROR(cutensornetCreateState(
       m_cutnHandle, CUTENSORNET_STATE_PURITY_PURE, m_numQubits,
@@ -25,8 +27,9 @@ TensorNetState::TensorNetState(std::size_t numQubits,
 
 TensorNetState::TensorNetState(const std::vector<int> &basisState,
                                ScratchDeviceMem &inScratchPad,
-                               cutensornetHandle_t handle)
-    : TensorNetState(basisState.size(), inScratchPad, handle) {
+                               cutensornetHandle_t handle,
+                               std::mt19937 &randomEngine)
+    : TensorNetState(basisState.size(), inScratchPad, handle, randomEngine) {
   constexpr std::complex<double> h_xGate[4] = {0.0, 1.0, 1.0, 0.0};
   constexpr auto sizeBytes = 4 * sizeof(std::complex<double>);
   void *d_gate{nullptr};
@@ -43,8 +46,8 @@ TensorNetState::TensorNetState(const std::vector<int> &basisState,
 }
 
 std::unique_ptr<TensorNetState> TensorNetState::clone() const {
-  return createFromOpTensors(m_numQubits, m_tensorOps, scratchPad,
-                             m_cutnHandle);
+  return createFromOpTensors(m_numQubits, m_tensorOps, scratchPad, m_cutnHandle,
+                             m_randomEngine);
 }
 
 void TensorNetState::applyGate(const std::vector<int32_t> &controlQubits,
@@ -166,6 +169,16 @@ TensorNetState::sample(const std::vector<int32_t> &measuredBitIds,
     HANDLE_CUTN_ERROR(cutensornetSamplerConfigure(
         m_cutnHandle, sampler, CUTENSORNET_SAMPLER_OPT_NUM_HYPER_SAMPLES,
         &numHyperSamples, sizeof(numHyperSamples)));
+
+    // Generate a random seed from the backend simulator's random engine.
+    // Note: Even after a random seed setting at the user's level,
+    // consecutive `cudaq::sample` calls will still return different results
+    // (yet deterministic), i.e., the seed that we send to cutensornet should
+    // not be the user's seed.
+    const int32_t rndSeed = m_randomEngine();
+    HANDLE_CUTN_ERROR(cutensornetSamplerConfigure(
+        m_cutnHandle, sampler, CUTENSORNET_SAMPLER_CONFIG_DETERMINISTIC,
+        &rndSeed, sizeof(rndSeed)));
   }
 
   // Prepare the quantum circuit sampler
@@ -525,22 +538,79 @@ TensorNetState::factorizeMPS(int64_t maxExtent, double absCutoff,
   return mpsTensors;
 }
 
-std::complex<double> TensorNetState::computeExpVal(
-    cutensornetNetworkOperator_t tensorNetworkOperator) {
-  cutensornetStateExpectation_t tensorNetworkExpectation;
+std::vector<std::complex<double>> TensorNetState::computeExpVals(
+    const std::vector<std::vector<bool>> &symplecticRepr) {
   LOG_API_TIME();
+  if (symplecticRepr.empty())
+    return {};
+
+  const std::size_t numQubits = getNumQubits();
+  const auto numSpinOps = symplecticRepr[0].size() / 2;
+  std::vector<std::complex<double>> allExpVals;
+  allExpVals.reserve(symplecticRepr.size());
+
+  constexpr int ALIGNMENT_BYTES = 256;
+  const int placeHolderArraySize = ALIGNMENT_BYTES * numQubits;
+
+  void *pauliMats_h = malloc(placeHolderArraySize);
+  void *pauliMats_d{nullptr};
+  HANDLE_CUDA_ERROR(cudaMalloc(&pauliMats_d, placeHolderArraySize));
+  std::vector<const void *> pauliTensorData;
+  std::vector<std::vector<int32_t>> stateModes;
+
+  for (std::size_t i = 0; i < numQubits; ++i) {
+    pauliTensorData.emplace_back(static_cast<char *>(pauliMats_d) +
+                                 ALIGNMENT_BYTES * i);
+    stateModes.emplace_back(std::vector<int32_t>{static_cast<int32_t>(i)});
+  }
+
+  const std::vector<int64_t> qubitDims(numQubits, 2);
+
+  // Initialize device mem for Pauli matrices
+  constexpr std::complex<double> PauliI_h[4] = {
+      {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {1.0, 0.0}};
+
+  constexpr std::complex<double> PauliX_h[4]{
+      {0.0, 0.0}, {1.0, 0.0}, {1.0, 0.0}, {0.0, 0.0}};
+
+  constexpr std::complex<double> PauliY_h[4]{
+      {0.0, 0.0}, {0.0, -1.0}, {0.0, 1.0}, {0.0, 0.0}};
+
+  constexpr std::complex<double> PauliZ_h[4]{
+      {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {-1.0, 0.0}};
+
+  cutensornetNetworkOperator_t cutnNetworkOperator;
+
+  HANDLE_CUTN_ERROR(cutensornetCreateNetworkOperator(
+      m_cutnHandle, numQubits, qubitDims.data(), CUDA_C_64F,
+      &cutnNetworkOperator));
+
+  const std::vector<int32_t> numModes(pauliTensorData.size(), 1);
+  int64_t id;
+  std::vector<const int32_t *> dataStateModes;
+  for (const auto &stateMode : stateModes) {
+    dataStateModes.emplace_back(stateMode.data());
+  }
+  const cuDoubleComplex termCoeff{1.0, 0.0};
+  HANDLE_CUTN_ERROR(cutensornetNetworkOperatorAppendProduct(
+      m_cutnHandle, cutnNetworkOperator, termCoeff, pauliTensorData.size(),
+      numModes.data(), dataStateModes.data(),
+      /*tensorModeStrides*/ nullptr, pauliTensorData.data(), &id));
 
   // Step 1: create
+  cutensornetStateExpectation_t tensorNetworkExpectation;
   {
     ScopedTraceWithContext("cutensornetCreateExpectation");
     HANDLE_CUTN_ERROR(cutensornetCreateExpectation(m_cutnHandle, m_quantumState,
-                                                   tensorNetworkOperator,
+                                                   cutnNetworkOperator,
                                                    &tensorNetworkExpectation));
   }
   // Step 2: configure
+  // Note: as we reuse this path across many contractions, use a higher number
+  // of hyper samples.
   const int32_t numHyperSamples =
-      8; // desired number of hyper samples used in the tensor network
-         // contraction path finder
+      512; // desired number of hyper samples used in the tensor network
+           // contraction path finder
   {
     ScopedTraceWithContext("cutensornetExpectationConfigure");
     HANDLE_CUTN_ERROR(cutensornetExpectationConfigure(
@@ -555,9 +625,10 @@ std::complex<double> TensorNetState::computeExpVal(
       cutensornetCreateWorkspaceDescriptor(m_cutnHandle, &workDesc));
   {
     ScopedTraceWithContext("cutensornetExpectationPrepare");
-    HANDLE_CUTN_ERROR(cutensornetExpectationPrepare(
-        m_cutnHandle, tensorNetworkExpectation, scratchPad.scratchSize,
-        workDesc, /*cudaStream*/ 0));
+    HANDLE_CUTN_ERROR(
+        cutensornetExpectationPrepare(m_cutnHandle, tensorNetworkExpectation,
+                                      scratchPad.scratchSize, workDesc,
+                                      /*cudaStream*/ 0));
   }
 
   // Attach the workspace buffer
@@ -574,29 +645,67 @@ std::complex<double> TensorNetState::computeExpVal(
   }
 
   // Step 4: Compute
-  std::complex<double> expVal;
-  std::complex<double> stateNorm{0.0, 0.0};
-  {
-    ScopedTraceWithContext("cutensornetExpectationCompute");
-    HANDLE_CUTN_ERROR(cutensornetExpectationCompute(
-        m_cutnHandle, tensorNetworkExpectation, workDesc, &expVal,
-        static_cast<void *>(&stateNorm),
-        /*cudaStream*/ 0));
+  for (const auto &term : symplecticRepr) {
+    bool allIdOps = true;
+    for (std::size_t i = 0; i < numQubits; ++i) {
+      // Memory address of this Pauli term in the placeholder array.
+      auto *address = static_cast<char *>(pauliMats_h) + i * ALIGNMENT_BYTES;
+      constexpr int PAULI_ARRAY_SIZE_BYTES = 4 * sizeof(std::complex<double>);
+      // The Pauli matrix data that we want to load to this slot.
+      // Default is the Identity matrix.
+      const std::complex<double> *pauliMatrixPtr = PauliI_h;
+      if (i < numSpinOps) {
+        if (term[i] && term[i + numSpinOps]) {
+          // Y
+          allIdOps = false;
+          pauliMatrixPtr = PauliY_h;
+        } else if (term[i]) {
+          // X
+          allIdOps = false;
+          pauliMatrixPtr = PauliX_h;
+        } else if (term[i + numSpinOps]) {
+          // Z
+          allIdOps = false;
+          pauliMatrixPtr = PauliZ_h;
+        }
+      }
+      // Copy the Pauli matrix data to the placeholder array at the appropriate
+      // slot.
+      std::memcpy(address, pauliMatrixPtr, PAULI_ARRAY_SIZE_BYTES);
+    }
+    if (allIdOps) {
+      allExpVals.emplace_back(1.0);
+    } else {
+      HANDLE_CUDA_ERROR(cudaMemcpy(pauliMats_d, pauliMats_h,
+                                   placeHolderArraySize,
+                                   cudaMemcpyHostToDevice));
+      std::complex<double> expVal;
+      std::complex<double> stateNorm{0.0, 0.0};
+      {
+        ScopedTraceWithContext("cutensornetExpectationCompute");
+        HANDLE_CUTN_ERROR(cutensornetExpectationCompute(
+            m_cutnHandle, tensorNetworkExpectation, workDesc, &expVal,
+            static_cast<void *>(&stateNorm),
+            /*cudaStream*/ 0));
+      }
+      allExpVals.emplace_back(expVal / std::abs(stateNorm));
+    }
   }
-  // Step 5: clean up
-  HANDLE_CUTN_ERROR(cutensornetDestroyExpectation(tensorNetworkExpectation));
-  HANDLE_CUTN_ERROR(cutensornetDestroyWorkspaceDescriptor(workDesc));
-  return expVal / std::abs(stateNorm);
+
+  free(pauliMats_h);
+  HANDLE_CUDA_ERROR(cudaFree(pauliMats_d));
+
+  return allExpVals;
 }
 
 std::unique_ptr<TensorNetState> TensorNetState::createFromMpsTensors(
     const std::vector<MPSTensor> &in_mpsTensors, ScratchDeviceMem &inScratchPad,
-    cutensornetHandle_t handle) {
+    cutensornetHandle_t handle, std::mt19937 &randomEngine) {
   LOG_API_TIME();
   if (in_mpsTensors.empty())
     throw std::invalid_argument("Empty MPS tensor list");
-  auto state = std::make_unique<TensorNetState>(in_mpsTensors.size(),
-                                                inScratchPad, handle);
+  auto state = std::make_unique<TensorNetState>(
+      in_mpsTensors.size(), inScratchPad, handle, randomEngine);
   std::vector<const int64_t *> extents;
   std::vector<void *> tensorData;
   for (const auto &tensor : in_mpsTensors) {
@@ -613,10 +722,11 @@ std::unique_ptr<TensorNetState> TensorNetState::createFromMpsTensors(
 /// operators.
 std::unique_ptr<TensorNetState> TensorNetState::createFromOpTensors(
     std::size_t numQubits, const std::vector<AppliedTensorOp> &opTensors,
-    ScratchDeviceMem &inScratchPad, cutensornetHandle_t handle) {
+    ScratchDeviceMem &inScratchPad, cutensornetHandle_t handle,
+    std::mt19937 &randomEngine) {
   LOG_API_TIME();
-  auto state =
-      std::make_unique<TensorNetState>(numQubits, inScratchPad, handle);
+  auto state = std::make_unique<TensorNetState>(numQubits, inScratchPad, handle,
+                                                randomEngine);
   for (const auto &op : opTensors)
     if (op.isUnitary)
       state->applyGate(op.controlQubitIds, op.targetQubitIds, op.deviceData,
@@ -641,14 +751,13 @@ TensorNetState::reverseQubitOrder(std::span<std::complex<double>> stateVec) {
   return ket;
 }
 
-std::unique_ptr<TensorNetState>
-TensorNetState::createFromStateVector(std::span<std::complex<double>> stateVec,
-                                      ScratchDeviceMem &inScratchPad,
-                                      cutensornetHandle_t handle) {
+std::unique_ptr<TensorNetState> TensorNetState::createFromStateVector(
+    std::span<std::complex<double>> stateVec, ScratchDeviceMem &inScratchPad,
+    cutensornetHandle_t handle, std::mt19937 &randomEngine) {
   LOG_API_TIME();
   const std::size_t numQubits = std::log2(stateVec.size());
-  auto state =
-      std::make_unique<TensorNetState>(numQubits, inScratchPad, handle);
+  auto state = std::make_unique<TensorNetState>(numQubits, inScratchPad, handle,
+                                                randomEngine);
 
   // Support initializing the tensor network in a specific state vector state.
   // Note: this is not intended for large state vector but for relatively small

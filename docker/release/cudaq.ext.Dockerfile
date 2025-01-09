@@ -1,12 +1,12 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-ARG base_image=nvcr.io/nvidia/nightly/cuda-quantum:cu11-latest-base
+ARG base_image=nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest-base
 FROM $base_image
 
 USER root
@@ -30,7 +30,7 @@ RUN if [ -d "$CUDA_QUANTUM_PATH/assets/documentation" ]; then \
 
 # Install additional runtime dependencies.
 RUN cuda_version_suffix=$(echo ${CUDA_VERSION} | tr . -) && \
-    for cudart_dependency in libcusolver libcublas cuda-cudart; do \
+    for cudart_dependency in libcusolver libcublas cuda-cudart cuda-nvrtc; do \
         if [ -z "$(apt list --installed | grep -o ${cudart_dependency}-${cuda_version_suffix})" ]; then \
             apt-get install -y --no-install-recommends \
                 ${cudart_dependency}-${cuda_version_suffix}; \

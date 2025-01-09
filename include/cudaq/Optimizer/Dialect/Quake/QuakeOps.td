@@ -1,5 +1,5 @@
 /***********************************************************-*- tablegen -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -273,7 +273,7 @@ def quake_RelaxSizeOp : QuakeOp<"relax_size", [Pure]> {
   let hasCanonicalizer = 1;
 }
 
-def quake_SubVeqOp : QuakeOp<"subveq", [Pure]> {
+def quake_SubVeqOp : QuakeOp<"subveq", [AttrSizedOperandSegments, Pure]> {
   let summary = "Extract a subvector from a veq reference value.";
   let description = [{
     The `subveq` operation returns a subvector of references, type
@@ -298,16 +298,42 @@ def quake_SubVeqOp : QuakeOp<"subveq", [Pure]> {
 
   let arguments = (ins
     VeqType:$veq,
-    AnySignlessIntegerOrIndex:$low,
-    AnySignlessIntegerOrIndex:$high
+    Optional<AnySignlessIntegerOrIndex>:$lower,
+    Optional<AnySignlessIntegerOrIndex>:$upper,
+    I64Attr:$rawLower,
+    I64Attr:$rawUpper
   );
   let results = (outs VeqType:$qsub);
 
   let assemblyFormat = [{
-    operands attr-dict `:` functional-type(operands, results)
+    $veq `,` custom<RawIndex>($lower, $rawLower) `,` custom<RawIndex>($upper,
+      $rawUpper) `:` functional-type(operands, results) attr-dict
   }];
 
   let hasCanonicalizer = 1;
+  let hasVerifier = 1;
+
+  let builders = [
+    OpBuilder<(ins "mlir::Type":$veqTy, "mlir::Value":$input,
+                   "mlir::Value":$lower, "mlir::Value":$upper), [{
+      return build($_builder, $_state, veqTy, input, lower, upper,
+        quake::SubVeqOp::kDynamicIndex, quake::SubVeqOp::kDynamicIndex);
+    }]>,
+    OpBuilder<(ins "mlir::Type":$veqTy, "mlir::Value":$input,
+                   "std::int64_t":$lower, "std::int64_t":$upper), [{
+      return build($_builder, $_state, veqTy, input, {}, {}, lower, upper);
+    }]>
+  ];
+  
+  let extraClassDeclaration = [{
+    static constexpr std::size_t kDynamicIndex =
+      std::numeric_limits<std::size_t>::max();
+
+    bool hasConstantLowerBound() { return getRawLower() != kDynamicIndex; }
+    bool hasConstantUpperBound() { return getRawUpper() != kDynamicIndex; }
+    std::size_t getConstantLowerBound() { return getRawLower(); }
+    std::size_t getConstantUpperBound() { return getRawUpper(); }
+  }];
 }
 
 def quake_VeqSizeOp : QuakeOp<"veq_size", [Pure]> {
@@ -1298,11 +1324,12 @@ def ZOp : OneTargetOp<"z", [Hermitian]> {
   }];
 }
 
-def CustomUnitarySymbolOp : QuakeOperator<"custom_op", [], (ins SymbolRefAttr:$generator)> {
+def CustomUnitarySymbolOp :
+    QuakeOperator<"custom_op", [], (ins SymbolRefAttr:$generator)> {
   let summary = "Custom unitary operation.";
   let description = [{
-    Custom unitary operation leveraging a `SymbolRefAttr` describing the unitary 
-    data generator function. 
+    Custom unitary operation leveraging a `SymbolRefAttr` describing the
+    unitary data generator function. 
   }];
 
   let builders = [
@@ -1349,13 +1376,16 @@ def CustomUnitarySymbolOp : QuakeOperator<"custom_op", [], (ins SymbolRefAttr:$g
     OpBuilder<(ins "mlir::SymbolRefAttr":$generator,
                    "mlir::ValueRange":$controls,
                    "mlir::ValueRange":$targets), [{
-      return build($_builder, $_state, generator,  /*is_adj=*/false, controls, targets);
+      return build($_builder, $_state, generator,  /*is_adj=*/false, controls,
+                   targets);
     }]>,
     OpBuilder<(ins "mlir::SymbolRefAttr":$generator, "bool":$is_adj,
                    "mlir::ValueRange":$targets), [{
-      return build($_builder, $_state, generator, is_adj, mlir::ValueRange{}, targets);
+      return build($_builder, $_state, generator, is_adj, mlir::ValueRange{},
+                   targets);
     }]>,
-    OpBuilder<(ins "mlir::SymbolRefAttr":$generator, "mlir::ValueRange":$targets), [{
+    OpBuilder<(ins "mlir::SymbolRefAttr":$generator,
+                   "mlir::ValueRange":$targets), [{
       return build($_builder, $_state, generator, /*is_adj=*/false, targets);
     }]>
   ];
@@ -1364,6 +1394,92 @@ def CustomUnitarySymbolOp : QuakeOperator<"custom_op", [], (ins SymbolRefAttr:$g
     ( `<` `adj` $is_adj^ `>` )? ( `(` $parameters^ `)` )?
     (`[` $controls^ (`neg` $negated_qubit_controls^ )? `]`)?
     $targets `:` functional-type(operands, results) attr-dict
+  }];
+}
+
+//===----------------------------------------------------------------------===//
+// Quantum states
+//===----------------------------------------------------------------------===//
+
+def quake_CreateStateOp : QuakeOp<"create_state", [Pure]> {
+  let summary = "Create state from data";
+  let description = [{
+    This operation takes a pointer to state data and creates a quantum state,
+    where state data is a pointer to an array of float or complex numbers.
+    The operation can be optimized away in DeleteStates pass, or replaced
+    by an intrinsic runtime call on simulators.
+
+    ```mlir
+      %0 = quake.create_state %data %len : (!cc.ptr<!cc.array<complex<f64> x 8>>, i64) -> !cc.ptr<!cc.state>
+    ```
+  }];
+
+  let arguments = (ins
+    cc_PointerType:$data,
+    AnySignlessInteger:$length
+  );
+  let results = (outs cc_PointerType:$result);
+  let assemblyFormat = [{
+      $data `,` $length `:` functional-type(operands, results) attr-dict
+  }];
+}
+
+def QuakeOp_DeleteStateOp : QuakeOp<"delete_state", [] > {
+  let summary = "Delete quantum state";
+  let description =  [{
+    This operation takes a pointer to the state and deletes the state object.
+    The operation can be created in in DeleteStates pass, and replaced later
+    by an intrinsic runtime call on simulators.
+
+    ```mlir
+      quake.delete_state %state : !cc.ptr<!cc.state>
+    ```
+  }];
+
+  let arguments = (ins cc_PointerType:$state);
+  let results = (outs);
+  let assemblyFormat = [{
+      $state `:` type(operands) attr-dict
+  }];
+}
+
+def quake_GetNumberOfQubitsOp : QuakeOp<"get_number_of_qubits", [Pure] > {
+  let summary = "Get number of qubits from a quantum state";
+  let description = [{
+    This operation takes a pointer to the state as an argument and returns
+    a number of qubits in the state. The operation can be optimized away in
+    some passes like ReplaceStateByKernel or DeleteStates, or replaced by an
+    intrinsic runtime call when the target is one of the simulators.
+
+    ```mlir
+      %0 = quake.get_number_of_qubits %state : (!cc.ptr<!cc.state>) -> i64
+    ```
+  }];
+
+  let arguments = (ins cc_PointerType:$state);
+  let results = (outs AnySignlessInteger:$result);
+  let assemblyFormat = [{
+      $state `:` functional-type(operands, results) attr-dict
+  }];
+}
+
+def QuakeOp_GetStateOp : QuakeOp<"get_state", [Pure] > {
+  let summary = "Get state from kernel with the provided name.";
+  let description = [{
+    This operation is created by argument synthesis of state pointer arguments
+    for quantum devices. It takes a kernel name as ASCIIZ string literal value
+    and returns the kernel's quantum state. The operation is replaced by a call
+    to the kernel with the provided name in ReplaceStateByKernel pass.
+
+    ```mlir
+      %0 = quake.get_state "callee" : !cc.ptr<!cc.state>
+    ```
+  }];
+
+  let arguments = (ins StrAttr:$calleeName);
+  let results = (outs cc_PointerType:$result);
+  let assemblyFormat = [{
+     $calleeName `:` qualified(type(results)) attr-dict
   }];
 }
 

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -55,13 +55,13 @@ LogicalResult runQuakeSynth(std::string_view kernelName, void *rawArgs,
   module->getContext()->disableMultithreading();
   pm.enableIRPrinting();
   pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, rawArgs, 0, true));
-  pm.addPass(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
-  pm.addPass(createCanonicalizerPass());
-  pm.addPass(cudaq::opt::createLoopNormalize());
-  pm.addPass(cudaq::opt::createLoopUnroll());
-  pm.addPass(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   return pm.run(*module);
 }
 
@@ -70,19 +70,19 @@ LogicalResult lowerToLLVMDialect(ModuleOp module) {
   PassManager pm(module->getContext());
   module->getContext()->disableMultithreading();
   pm.enableIRPrinting();
-  pm.addPass(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   OpPassManager &optPM = pm.nest<func::FuncOp>();
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
   optPM.addPass(cudaq::opt::createClassicalMemToReg());
-  pm.addPass(createCanonicalizerPass());
-  pm.addPass(cudaq::opt::createLoopUnroll());
-  pm.addPass(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   optPM.addPass(cudaq::opt::createQuakeAddDeallocs());
   optPM.addPass(cudaq::opt::createQuakeAddMetadata());
   optPM.addPass(cudaq::opt::createLowerToCFGPass());
   optPM.addPass(cudaq::opt::createCombineQuantumAllocations());
-  pm.addPass(createCanonicalizerPass());
-  pm.addPass(createCSEPass());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCSEPass());
   pm.addPass(cudaq::opt::createConvertToQIR());
   return pm.run(module);
 }
@@ -283,7 +283,10 @@ TEST(QuakeSynthTests, checkVectorOfInt) {
   kernel.h(aq);
   kernel.z(aq);
   kernel.h(q);
-  for (std::size_t i = 0; i < *q.constantSize(); ++i) {
+  // FIXME: This test never really tested the c_if in this loop. The call to
+  // constantSize just returned 0.
+  std::size_t unrollBy = q.constantSize().has_value() ? *q.constantSize() : 0;
+  for (std::size_t i = 0; i < unrollBy; ++i) {
     kernel.c_if(hiddenBits[i], [&]() { kernel.x<cudaq::ctrl>(aq, q[i]); });
   }
   kernel.h(q);

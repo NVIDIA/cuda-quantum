@@ -1,5 +1,5 @@
-/*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+/****************************************************************-*- C++ -*-****
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -82,6 +82,9 @@ public:
 
   cudaq::sample_result processResults(ServerMessage &postJobResponse,
                                       std::string &jobId) override;
+
+  void setOutputNames(const std::string &taskId,
+                      const std::string &output_names);
 
 protected:
   /// @brief Return the headers required for the REST calls

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -12,6 +12,15 @@
 #include "cudaq/algorithms/observe.h"
 
 namespace py = pybind11;
+namespace {
+// FIXME(OperatorCpp): Remove this when the operator class is implemented in
+// C++
+cudaq::spin_op to_spin_op(py::object &obj) {
+  if (py::hasattr(obj, "_to_spinop"))
+    return obj.attr("_to_spinop")().cast<cudaq::spin_op>();
+  return obj.cast<cudaq::spin_op>();
+}
+} // namespace
 
 namespace cudaq {
 /// @brief Bind the `cudaq::observe_result` and `cudaq::async_observe_result`
@@ -24,6 +33,10 @@ void bindObserveResult(py::module &mod) {
       "This includes any measurement counts data, as well as the global "
       "expectation value of the user-defined `spin_operator`.\n")
       .def(py::init<double, spin_op, sample_result>())
+      .def(py::init(
+          [](double exp_val, py::object spin_op, sample_result result) {
+            return observe_result(exp_val, to_spin_op(spin_op), result);
+          }))
       /// @brief Bind the member functions of `cudaq.ObserveResult`.
       .def("dump", &observe_result::dump,
            "Dump the raw data from the :class:`SampleResult` that are stored "
@@ -47,7 +60,21 @@ Args:
 
 Returns:
   :class:`SampleResult`: The measurement counts data for the individual `sub_term`.)#")
+      .def(
+          "counts",
+          [](observe_result &self, py::object sub_term) {
+            return self.counts(to_spin_op(sub_term));
+          },
+          py::arg("sub_term"),
+          R"#(Given a `sub_term` of the global `spin_operator` that was passed 
+to :func:`observe`, return its measurement counts.
 
+Args:
+  sub_term (:class:`SpinOperator`): An individual sub-term of the 
+    `spin_operator`.
+
+Returns:
+  :class:`SampleResult`: The measurement counts data for the individual `sub_term`.)#")
       .def(
           "expectation",
           [](observe_result &self) { return self.expectation(); },
@@ -55,8 +82,8 @@ Returns:
           "provided in :func:`observe`.")
       .def(
           "expectation",
-          [](observe_result &self, spin_op &spin_term) {
-            return self.expectation(spin_term);
+          [](observe_result &self, py::object spin_term) {
+            return self.expectation(to_spin_op(spin_term));
           },
           py::arg("sub_term"),
           R"#(Return the expectation value of an individual `sub_term` of the 
@@ -87,13 +114,13 @@ Note:
   `expectation_z` has been deprecated in favor of `expectation`.)#")
       .def(
           "expectation_z",
-          [](observe_result &self, spin_op &spin_term) {
+          [](observe_result &self, py::object spin_term) {
             PyErr_WarnEx(PyExc_DeprecationWarning,
                          "expectation_z() is deprecated, use expectation() "
                          "with the same "
                          "argument structure.",
                          1);
-            return self.expectation(spin_term);
+            return self.expectation(to_spin_op(spin_term));
           },
           py::arg("sub_term"),
           R"#(Return the expectation value of an individual `sub_term` of the 
@@ -121,8 +148,9 @@ This kicks off a wait on the current thread until the results are available.
 
 See `future <https://en.cppreference.com/w/cpp/thread/future>`_
 for more information on this programming pattern.)#")
-      .def(py::init([](std::string inJson, spin_op &op) {
-        async_observe_result f(&op);
+      .def(py::init([](std::string inJson, py::object op) {
+        auto as_spin_op = to_spin_op(op);
+        async_observe_result f(&as_spin_op);
         std::istringstream is(inJson);
         is >> f;
         return f;

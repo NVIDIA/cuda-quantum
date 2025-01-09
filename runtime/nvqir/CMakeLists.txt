@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -45,6 +45,9 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
 endif() 
 if (CUTENSORNET_ROOT AND CUDA_FOUND)
   add_subdirectory(cutensornet)  
+endif()
+if (CUDA_FOUND)
+  add_subdirectory(cudensitymat)
 endif()
 
 install(EXPORT nvqir-targets

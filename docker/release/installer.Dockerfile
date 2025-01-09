@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -14,7 +14,7 @@
 # Must be built from the repo root with:
 #   DOCKER_BUILDKIT=1 docker build -f docker/release/installer.Dockerfile . --output out
 
-ARG base_image=ghcr.io/nvidia/cuda-quantum-assets:amd64-cu11-llvm-main
+ARG base_image=ghcr.io/nvidia/cuda-quantum-assets:amd64-cu12-llvm-main
 ARG additional_components=none
 
 FROM $base_image AS additional_components_none

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -7,7 +7,7 @@
 # ============================================================================ #
 
 [project]
-name = "cuda-quantum-cu11"
+name = "cuda-quantum-cu12"
 dynamic = ["version"]
 keywords = [ "cudaq", "cuda-quantum", "cuda", "quantum", "quantum computing", "nvidia", "high-performance computing" ]
 description="Python bindings for the CUDA-Q toolkit for heterogeneous quantum-classical workflows."
@@ -18,17 +18,18 @@ requires-python = ">=3.10"
 license = { file="LICENSE" }
 dependencies = [
   'astpretty ~= 3.0',
-  'cuquantum-cu11 ~= 24.08',
+  'cuquantum-python-cu12 >= 24.11',
   'numpy >= 1.24',
+  'scipy >= 1.10.1',
   'requests >= 2.31',
-  'nvidia-cublas-cu11 ~= 11.11; platform_machine == "x86_64"',
-  'nvidia-cuda-runtime-cu11 ~= 11.8; platform_machine == "x86_64"',
-  'nvidia-cusolver-cu11 ~= 11.4; platform_machine == "x86_64"'
+  'nvidia-cublas-cu12 ~= 12.0; platform_machine == "x86_64"',
+  'nvidia-cuda-runtime-cu12 ~= 12.0; platform_machine == "x86_64"',
+  'nvidia-cusolver-cu12 ~= 11.4; platform_machine == "x86_64"',
+  'nvidia-cuda-nvrtc-cu12 ~= 12.0; platform_machine == "x86_64"'
 ]
 classifiers = [
     'Intended Audience :: Science/Research',
     'Intended Audience :: Developers',
-    'License :: OSI Approved :: Apache Software License 2.0 (Apache-2.0)',
     'Programming Language :: Python',
     'Programming Language :: Python :: 3',
     'Programming Language :: Python :: 3.10',
@@ -42,7 +43,7 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://developer.nvidia.com/cuda-quantum"
+Homepage = "https://developer.nvidia.com/cuda-q"
 Documentation = "https://nvidia.github.io/cuda-quantum"
 Repository = "https://github.com/NVIDIA/cuda-quantum"
 Releases = "https://nvidia.github.io/cuda-quantum/latest/releases.html"
@@ -50,8 +51,10 @@ Releases = "https://nvidia.github.io/cuda-quantum/latest/releases.html"
 # We must use h5py<3.11 because 3.11 doesn't include aarch64 Linux wheels.
 # https://github.com/h5py/h5py/issues/2408
 [project.optional-dependencies]
-chemistry = [ "scipy==1.10.1", "openfermionpyscf==0.5", "h5py<3.11"  ]
+chemistry = [ "openfermionpyscf==0.5", "h5py<3.11"  ]
 visualization = [ "qutip<5" , "matplotlib>=3.5" ]
+# Additional torch-based integrator
+integrators = [ "torchdiffeq" ]
 
 [build-system]
 requires = ["scikit-build-core==0.9.10", "cmake>=3.26,<3.29", "numpy>=1.24", "pytest==8.2.0"]
@@ -62,7 +65,7 @@ wheel.packages = ["python/cudaq"]
 wheel.license-files = [ "LICENSE", "NOTICE", "CITATION.cff" ]
 build-dir = "_skbuild"
 metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
-cmake.minimum-version = "3.26"
+cmake.minimum-version = "3.27"
 cmake.build-type = "Release"
 cmake.verbose = false
 cmake.args = [

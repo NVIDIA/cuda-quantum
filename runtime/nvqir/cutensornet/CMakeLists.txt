@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -11,7 +11,7 @@ enable_language(CUDA)
 find_package(CUDAToolkit REQUIRED)
 
 find_library(CUTENSOR_LIB
-    NAMES   cutensor
+    NAMES   cutensor libcutensor.so.2
     HINTS   
         ${CUTENSOR_ROOT}/lib64
         ${CUTENSOR_ROOT}/lib
@@ -20,7 +20,7 @@ find_library(CUTENSOR_LIB
 )
 
 find_library(CUTENSORNET_LIB
-    NAMES   cutensornet
+    NAMES   cutensornet libcutensornet.so.2
     HINTS   
         ${CUTENSORNET_ROOT}/lib64
         ${CUTENSORNET_ROOT}/lib
@@ -60,8 +60,8 @@ set(CUTENSORNET_PATCH ${CMAKE_MATCH_1})
 
 set(CUTENSORNET_VERSION ${CUTENSORNET_MAJOR}.${CUTENSORNET_MINOR}.${CUTENSORNET_PATCH})
 message(STATUS "Found cutensornet version: ${CUTENSORNET_VERSION}")
-# We need cutensornet v2.3+
-if (${CUTENSORNET_VERSION} VERSION_GREATER_EQUAL "2.3")
+# We need cutensornet v2.5.0+
+if (${CUTENSORNET_VERSION} VERSION_GREATER_EQUAL "2.5")
   set (BASE_TENSOR_BACKEND_SRS  
         simulator_cutensornet.cpp 
         tensornet_spin_op.cpp
@@ -88,16 +88,6 @@ if (${CUTENSORNET_VERSION} VERSION_GREATER_EQUAL "2.3")
   target_link_libraries(tensornet-mpi-util PRIVATE cudaq-common fmt::fmt-header-only)
   # Note: only tensornet backend supports MPI at cutensornet level (distributed tensor computation)
   target_link_libraries(nvqir-tensornet PRIVATE tensornet-mpi-util)
-  
-  # Check if the cutensornet plugin lib for expectation value is provided
-  if(NOT CUDAQ_CUTENSORNET_PLUGIN_LIB AND EXISTS "$ENV{CUDAQ_CUTENSORNET_PLUGIN_LIB}")
-    set(CUDAQ_CUTENSORNET_PLUGIN_LIB "$ENV{CUDAQ_CUTENSORNET_PLUGIN_LIB}")
-  endif()
-  if (EXISTS "${CUDAQ_CUTENSORNET_PLUGIN_LIB}")
-    message(STATUS "CUDA Quantum tensornet backends: link additional external plugin ${CUDAQ_CUTENSORNET_PLUGIN_LIB}")
-    target_link_libraries(nvqir-tensornet PRIVATE -Wl,--whole-archive ${CUDAQ_CUTENSORNET_PLUGIN_LIB} -Wl,--no-whole-archive)
-    target_link_libraries(nvqir-tensornet-mps PRIVATE -Wl,--whole-archive ${CUDAQ_CUTENSORNET_PLUGIN_LIB} -Wl,--no-whole-archive)
-  endif()
 else()
   message(WARNING "Skipped tensornet backend due to incompatible cutensornet version. Please install cutensornet v2.3.0+.")
 endif()

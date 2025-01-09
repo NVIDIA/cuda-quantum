@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -24,7 +24,7 @@ import sphinx_rtd_theme
 # -- Project information -----------------------------------------------------
 
 project = 'NVIDIA CUDA-Q'
-copyright = '2024, NVIDIA Corporation & Affiliates'
+copyright = '2025, NVIDIA Corporation & Affiliates'
 author = 'NVIDIA Corporation & Affiliates'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -179,6 +179,10 @@ breathe_show_enumvalue_initializer = True
 
 autosummary_generate = True
 
+# This is unfortunately not sufficient for docs generation, due to the use of Union type;
+# see also https://github.com/sphinx-doc/sphinx/issues/11211. 
+# autodoc_mock_imports = ['cuquantum', 'cupy']
+
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
     'numpy': ('https://numpy.org/doc/stable/', None),
@@ -205,6 +209,7 @@ nitpick_ignore = [
     ('py:class', 'function'),
     ('py:class', 'type'),
     ('py:class', 'cudaq::spin_op'),
+    ('py:class', 'numpy.ndarray[]'),
 ]
 
 napoleon_google_docstring = True

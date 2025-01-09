@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -9,7 +9,7 @@ import os
 
 import pytest
 import numpy as np
-
+from numpy import linalg as LA
 import cudaq
 
 openfermion_pyscf = pytest.importorskip('openfermionpyscf')
@@ -20,7 +20,7 @@ def test_HamiltonianGenH2Sto3g():
     geometry = [('H', (0., 0., 0.)), ('H', (0., 0., .7474))]
     molecule, data = cudaq.chemistry.create_molecular_hamiltonian(
         geometry, 'sto-3g', 1, 0)
-    energy = molecule.to_matrix().minimal_eigenvalue()
+    energy = LA.eigvals(molecule.to_matrix()).min()
     assert np.isclose(energy, -1.137, rtol=1e-3)
 
 
@@ -28,7 +28,7 @@ def test_HamiltonianGenH2631g():
     geometry = [('H', (0., 0., 0.)), ('H', (0., 0., .7474))]
     molecule, data = cudaq.chemistry.create_molecular_hamiltonian(
         geometry, '6-31g', 1, 0)
-    energy = molecule.to_matrix().minimal_eigenvalue()
+    energy = LA.eigvals(molecule.to_matrix()).min()
     assert np.isclose(energy, -1.1516, rtol=1e-3)
 
 

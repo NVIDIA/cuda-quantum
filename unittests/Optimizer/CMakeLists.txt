@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -8,15 +8,10 @@
 
 include(HandleLLVMOptions)
 
-get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
-get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
-
 add_executable(OptimizerUnitTests HermitianTrait.cpp)
 
 target_link_libraries(OptimizerUnitTests
   PRIVATE
-    ${dialect_libs}
-    ${conversion_libs}
     QuakeDialect
     gtest_main
 )

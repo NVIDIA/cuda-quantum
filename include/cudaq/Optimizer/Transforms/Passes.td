@@ -1,5 +1,5 @@
 /********************************************************** -*- tablegen -*- ***
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -140,6 +140,32 @@ def CheckKernelCalls : Pass<"check-kernel-calls", "mlir::func::FuncOp"> {
     any are found.
   }];
 }
+
+def CombineMeasurements :
+    Pass<"combine-measurements", "mlir::func::FuncOp"> {
+  let summary = "Extends mesurements on subveqs adds output names";
+  let description = [{
+    Replace a pattern such as:
+    ```
+    func.func @kernel() attributes {"cudaq-entrypoint"} {
+      %1 = ... : !quake.veq<4>
+      %2 = quake.subveq %1, %c2, %c3 : (!quake.veq<4>, i32, i32) ->
+            !quake.veq<2>
+      %measOut = quake.mz %2 : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+    }
+    ```
+    with:
+    ```
+    func.func @kernel() attributes {"cudaq-entrypoint", ["output_names",
+    "[[[0,[1,\22q0\22]],[1,[2,\22q1\22]]]]"]} {
+      %1 = ... : !quake.veq<4>
+      %measOut = quake.mz %1 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    }
+    ```
+  }];
+  let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
+}
+
 
 def CombineQuantumAllocations :
     Pass<"combine-quantum-alloc", "mlir::func::FuncOp"> {
@@ -407,7 +433,7 @@ def GetConcreteMatrix : Pass<"get-concrete-matrix", "mlir::func::FuncOp"> {
           return
         }
 
-        cc.global constant @__nvqpp__mlirgen__function_foo_generator_1.bar.rodata_0 ((dense<[(0.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+        cc.global constant private @__nvqpp__mlirgen__function_foo_generator_1.bar.rodata_0 ((dense<[(0.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
       }
     ```
 
@@ -752,8 +778,8 @@ def DeleteStates : Pass<"delete-states", "mlir::ModuleOp"> {
     func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
       %c8_i64 = arith.constant 8 : i64
       %0 = cc.address_of @foo.rodata_synth_0 : !cc.ptr<!cc.array<complex<f32> x 8>>
-      %4 = cc.create_state %3, %c8_i64  : (!cc.ptr<!cc.array<complex<f32> x 8>>, i64) -> !cc.ptr<!cc.state>
-      %5 = cc.get_number_of_qubits %4 : (!cc.ptr<!cc.state>) -> i64
+      %4 = quake.create_state %3, %c8_i64  : (!cc.ptr<!cc.array<complex<f32> x 8>>, i64) -> !cc.ptr<!cc.state>
+      %5 = quake.get_number_of_qubits %4 : (!cc.ptr<!cc.state>) -> i64
       %6 = quake.alloca !quake.veq<?>[%5 : i64]
       %7 = quake.init_state %6, %4 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
 
@@ -779,7 +805,7 @@ def DeleteStates : Pass<"delete-states", "mlir::ModuleOp"> {
     Before DeleteStates (delete-states):
     ```  func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
       ...
-      %4 = call @__nvqpp_cudaq_state_createFromData_fp32(%3, %c8_i64) : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
+      %4 = quake.create_state %3, %c8_i64  : (!cc.ptr<!cc.array<complex<f32> x 8>>, i64) -> !cc.ptr<!cc.state>
       call @__nvqpp__mlirgen__sub_kernel(%4) : (!cc.ptr<!cc.state>) -> ()
       return
     }
@@ -789,9 +815,9 @@ def DeleteStates : Pass<"delete-states", "mlir::ModuleOp"> {
     ```
     func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
       ...
-      %4 = call @__nvqpp_cudaq_state_createFromData_fp32(%3, %c8_i64) : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
+      %4 = quake.create_state %3, %c8_i64  : (!cc.ptr<!cc.array<complex<f32> x 8>>, i64) -> !cc.ptr<!cc.state>
       call @__nvqpp__mlirgen__sub_kernel(%4) : (!cc.ptr<!cc.state>) -> ()
-      call @__nvqpp_cudaq_state_delete(%4) : (!cc.ptr<!cc.state>) -> ()
+      quake.delete_state %3 : !cc.ptr<!cc.state>
       return
     }
     ```
@@ -816,12 +842,10 @@ def ReplaceStateWithKernel : Pass<"replace-state-with-kernel", "mlir::func::Func
     Before ReplaceStateWithKernel (replace-state-with-kernel):
     ```
     func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-      %0 = cc.string_literal "__nvqpp__mlirgen__test_init_state.modified_0" : !cc.ptr<!cc.array<i8 x 45>>
-      %1 = cc.cast %0 : (!cc.ptr<!cc.array<i8 x 45>>) -> !cc.ptr<i8>
-      %2 = call @__nvqpp_cudaq_state_get(%1) : (!cc.ptr<i8>) -> !cc.ptr<!cc.state>
-      %3 = call @__nvqpp_cudaq_state_numberOfQubits(%2) : (!cc.ptr<!cc.state>) -> i64
-      %4 = quake.alloca !quake.veq<?>[%3 : i64]
-      %5 = quake.init_state %4, %2 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
+      %0 = quake.get_state "callee.modified_0" : !cc.ptr<!cc.state>
+      %1 = quake.get_number_of_qubits %0 : (!cc.ptr<!cc.state>) -> i64
+      %2 = quake.alloca !quake.veq<?>[%1 : i64]
+      %3 = quake.init_state %2, %0 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
       return
     }
     ```
@@ -829,14 +853,14 @@ def ReplaceStateWithKernel : Pass<"replace-state-with-kernel", "mlir::func::Func
     After ReplaceStateWithKernel (replace-state-with-kernel):
     ```
     func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-      %5 = call @__nvqpp__mlirgen__test_init_state.modified_0() : () -> !quake.veq<?>
+      %3 = call @__nvqpp__mlirgen__test_init_state.modified_0() : () -> !quake.veq<?>
       return
     }
     ```
   }];
 }
 
-def StatePreparation : Pass<"state-prep", "mlir::ModuleOp"> {
+def StatePreparation : Pass<"state-prep", "mlir::func::FuncOp"> {
   let summary =
     "Convert state vector data into gates";
   let description = [{
@@ -853,7 +877,7 @@ def StatePreparation : Pass<"state-prep", "mlir::ModuleOp"> {
         %2 = quake.init_state %1, %0 : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f32> x 4>>) -> !quake.veq<2>
         return
       }
-      cc.global constant @foo.rodata_0 (dense<[(0.707106769,0.000000e+00), (0.707106769,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f32>>) : !cc.array<complex<f32> x 4>
+      cc.global constant private @foo.rodata_0 (dense<[(0.707106769,0.000000e+00), (0.707106769,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f32>>) : !cc.array<complex<f32> x 4>
     }
     ```
     Will be rewritten to:

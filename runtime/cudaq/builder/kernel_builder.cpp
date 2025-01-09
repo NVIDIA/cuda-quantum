@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -17,8 +17,6 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "mlir/Dialect/Affine/IR/AffineOps.h"
-#include "mlir/Dialect/Affine/Passes.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
@@ -514,7 +512,7 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &sizeOrVec) {
     auto eleTy = statePtrTy.getElementType();
     if (auto stateTy = dyn_cast<cc::StateType>(eleTy)) {
       // get the number of qubits
-      auto numQubits = builder.create<cudaq::cc::GetNumberOfQubitsOp>(
+      auto numQubits = builder.create<quake::GetNumberOfQubitsOp>(
           builder.getI64Type(), value);
       // allocate the number of qubits we need
       auto veqTy = quake::VeqType::getUnsized(context);
@@ -948,11 +946,11 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
     pm.addPass(createCanonicalizerPass());
     pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
-    pm.addPass(createCanonicalizerPass());
+    pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     pm.addPass(cudaq::opt::createExpandMeasurementsPass());
-    pm.addPass(cudaq::opt::createLoopNormalize());
-    pm.addPass(cudaq::opt::createLoopUnroll());
-    pm.addPass(createCanonicalizerPass());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll());
+    pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());

@@ -1,5 +1,5 @@
 // ========================================================================== //
-// Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                 //
+// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
 // All rights reserved.                                                       //
 //                                                                            //
 // This source code and the accompanying materials are made available under   //
@@ -9,17 +9,17 @@
 // RUN: cudaq-opt %s | cudaq-opt | FileCheck %s
 
 func.func @test_old_for() {
-  %1 = memref.alloc() : memref<i32>
+  %1 = cc.alloca i32
   %zero = arith.constant 0 : i32
-  memref.store %zero, %1[] : memref<i32>
+  cc.store %zero, %1 : !cc.ptr<i32>
   cc.loop while {
-    %3 = memref.load %1[] : memref<i32>
+    %3 = cc.load %1 : !cc.ptr<i32>
     %ten = arith.constant 10 : i32
     %8 = arith.cmpi slt, %3, %ten : i32
     cc.condition %8
   } do {
     ^bb0:
-      %13 = memref.load %1[] : memref<i32>
+      %13 = cc.load %1 : !cc.ptr<i32>
       %five = arith.constant 5 : i32
       %18 = arith.cmpi slt, %13, %five : i32
       cf.cond_br %18, ^bb1, ^bb2
@@ -29,25 +29,25 @@ func.func @test_old_for() {
       cc.continue
   } step {
     %4 = arith.constant 12 : i32
-    %5 = memref.load %1[] : memref<i32>
+    %5 = cc.load %1 : !cc.ptr<i32>
     %6 = arith.addi %4, %5 : i32
-    memref.store %6, %1[] : memref<i32>
+    cc.store %6, %1 : !cc.ptr<i32>
     cc.continue
   }
   func.return
 }
 
 // CHECK-LABEL:   func.func @test_old_for() {
-// CHECK:           %[[VAL_0:.*]] = memref.alloc() : memref<i32>
+// CHECK:           %[[VAL_0:.*]] = cc.alloca i32
 // CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i32
-// CHECK:           memref.store %[[VAL_1]], %[[VAL_0]][] : memref<i32>
+// CHECK:           cc.store %[[VAL_1]], %[[VAL_0]] : !cc.ptr<i32>
 // CHECK:           cc.loop while {
-// CHECK:             %[[VAL_2:.*]] = memref.load %[[VAL_0]][] : memref<i32>
+// CHECK:             %[[VAL_2:.*]] = cc.load %[[VAL_0]] : !cc.ptr<i32>
 // CHECK:             %[[VAL_3:.*]] = arith.constant 10 : i32
 // CHECK:             %[[VAL_4:.*]] = arith.cmpi slt, %[[VAL_2]], %[[VAL_3]] : i32
 // CHECK:             cc.condition %[[VAL_4]]
 // CHECK:           } do {
-// CHECK:             %[[VAL_5:.*]] = memref.load %[[VAL_0]][] : memref<i32>
+// CHECK:             %[[VAL_5:.*]] = cc.load %[[VAL_0]] : !cc.ptr<i32>
 // CHECK:             %[[VAL_6:.*]] = arith.constant 5 : i32
 // CHECK:             %[[VAL_7:.*]] = arith.cmpi slt, %[[VAL_5]], %[[VAL_6]] : i32
 // CHECK:             cf.cond_br %[[VAL_7]], ^bb1, ^bb2
@@ -57,26 +57,26 @@ func.func @test_old_for() {
 // CHECK:             cc.continue
 // CHECK:           } step {
 // CHECK:             %[[VAL_8:.*]] = arith.constant 12 : i32
-// CHECK:             %[[VAL_9:.*]] = memref.load %[[VAL_0]][] : memref<i32>
+// CHECK:             %[[VAL_9:.*]] = cc.load %[[VAL_0]] : !cc.ptr<i32>
 // CHECK:             %[[VAL_10:.*]] = arith.addi %[[VAL_8]], %[[VAL_9]] : i32
-// CHECK:             memref.store %[[VAL_10]], %[[VAL_0]][] : memref<i32>
+// CHECK:             cc.store %[[VAL_10]], %[[VAL_0]] : !cc.ptr<i32>
 // CHECK:           }
 // CHECK:           return
 // CHECK:         }
 
 func.func @test_scoped_for() {
   cc.scope {
-    %1 = memref.alloc() : memref<i32>
+    %1 = cc.alloca i32
     %zero = arith.constant 0 : i32
-    memref.store %zero, %1[] : memref<i32>
+    cc.store %zero, %1 : !cc.ptr<i32>
     cc.loop while {
-      %3 = memref.load %1[] : memref<i32>
+      %3 = cc.load %1 : !cc.ptr<i32>
       %ten = arith.constant 10 : i32
       %8 = arith.cmpi slt, %3, %ten : i32
       cc.condition %8
     } do {
       ^bb0:
-        %13 = memref.load %1[] : memref<i32>
+        %13 = cc.load %1 : !cc.ptr<i32>
         %five = arith.constant 5 : i32
         %18 = arith.cmpi slt, %13, %five : i32
         cf.cond_br %18, ^bb1, ^bb2
@@ -86,9 +86,9 @@ func.func @test_scoped_for() {
         cc.continue
     } step {
       %4 = arith.constant 12 : i32
-      %5 = memref.load %1[] : memref<i32>
+      %5 = cc.load %1 : !cc.ptr<i32>
       %6 = arith.addi %4, %5 : i32
-      memref.store %6, %1[] : memref<i32>
+      cc.store %6, %1 : !cc.ptr<i32>
       cc.continue
     }
     cc.continue
@@ -98,16 +98,16 @@ func.func @test_scoped_for() {
 
 // CHECK-LABEL:   func.func @test_scoped_for() {
 // CHECK:           cc.scope {
-// CHECK:             %[[VAL_0:.*]] = memref.alloc() : memref<i32>
+// CHECK:             %[[VAL_0:.*]] = cc.alloca i32
 // CHECK:             %[[VAL_1:.*]] = arith.constant 0 : i32
-// CHECK:             memref.store %[[VAL_1]], %[[VAL_0]][] : memref<i32>
+// CHECK:             cc.store %[[VAL_1]], %[[VAL_0]] : !cc.ptr<i32>
 // CHECK:             cc.loop while {
-// CHECK:               %[[VAL_2:.*]] = memref.load %[[VAL_0]][] : memref<i32>
+// CHECK:               %[[VAL_2:.*]] = cc.load %[[VAL_0]] : !cc.ptr<i32>
 // CHECK:               %[[VAL_3:.*]] = arith.constant 10 : i32
 // CHECK:               %[[VAL_4:.*]] = arith.cmpi slt, %[[VAL_2]], %[[VAL_3]] : i32
 // CHECK:               cc.condition %[[VAL_4]]
 // CHECK:             } do {
-// CHECK:               %[[VAL_5:.*]] = memref.load %[[VAL_0]][] : memref<i32>
+// CHECK:               %[[VAL_5:.*]] = cc.load %[[VAL_0]] : !cc.ptr<i32>
 // CHECK:               %[[VAL_6:.*]] = arith.constant 5 : i32
 // CHECK:               %[[VAL_7:.*]] = arith.cmpi slt, %[[VAL_5]], %[[VAL_6]] : i32
 // CHECK:               cf.cond_br %[[VAL_7]], ^bb1, ^bb2
@@ -117,9 +117,9 @@ func.func @test_scoped_for() {
 // CHECK:               cc.continue
 // CHECK:             } step {
 // CHECK:               %[[VAL_8:.*]] = arith.constant 12 : i32
-// CHECK:               %[[VAL_9:.*]] = memref.load %[[VAL_0]][] : memref<i32>
+// CHECK:               %[[VAL_9:.*]] = cc.load %[[VAL_0]] : !cc.ptr<i32>
 // CHECK:               %[[VAL_10:.*]] = arith.addi %[[VAL_8]], %[[VAL_9]] : i32
-// CHECK:               memref.store %[[VAL_10]], %[[VAL_0]][] : memref<i32>
+// CHECK:               cc.store %[[VAL_10]], %[[VAL_0]] : !cc.ptr<i32>
 // CHECK:             }
 // CHECK:           }
 // CHECK:           return
@@ -127,17 +127,17 @@ func.func @test_scoped_for() {
 
 func.func @test_scoped_for_with_args() {
   cc.scope {
-    %1 = memref.alloc() : memref<i32>
+    %1 = cc.alloca i32
     %zero = arith.constant 0 : i32
-    memref.store %zero, %1[] : memref<i32>
+    cc.store %zero, %1 : !cc.ptr<i32>
     %z2 = cc.loop while ((%xtra = %zero) -> i32) {
-      %3 = memref.load %1[] : memref<i32>
+      %3 = cc.load %1 : !cc.ptr<i32>
       %ten = arith.constant 10 : i32
       %8 = arith.cmpi slt, %3, %ten : i32
       cc.condition %8 (%xtra : i32)
     } do {
       ^bb0(%x2 : i32):
-        %13 = memref.load %1[] : memref<i32>
+        %13 = cc.load %1 : !cc.ptr<i32>
         %five = arith.constant 5 : i32
         %18 = arith.cmpi slt, %13, %five : i32
         cf.cond_br %18, ^bb1, ^bb2
@@ -149,9 +149,9 @@ func.func @test_scoped_for_with_args() {
       ^bb4 (%x3 : i32):
         %4 = arith.constant 12 : i32
         %16 = arith.addi %x3, %4 : i32
-        %5 = memref.load %1[] : memref<i32>
+        %5 = cc.load %1 : !cc.ptr<i32>
         %6 = arith.addi %16, %5 : i32
-        memref.store %6, %1[] : memref<i32>
+        cc.store %6, %1 : !cc.ptr<i32>
         cc.continue %x3 : i32
     }
   }
@@ -162,17 +162,17 @@ func.func private @getI32() -> i32
 
 // CHECK-LABEL:   func.func @test_scoped_for_with_args() {
 // CHECK:           cc.scope {
-// CHECK:             %[[VAL_0:.*]] = memref.alloc() : memref<i32>
+// CHECK:             %[[VAL_0:.*]] = cc.alloca i32
 // CHECK:             %[[VAL_1:.*]] = arith.constant 0 : i32
-// CHECK:             memref.store %[[VAL_1]], %[[VAL_0]][] : memref<i32>
+// CHECK:             cc.store %[[VAL_1]], %[[VAL_0]] : !cc.ptr<i32>
 // CHECK:             %[[VAL_2:.*]] = cc.loop while ((%[[VAL_3:.*]] = %[[VAL_1]]) -> (i32)) {
-// CHECK:               %[[VAL_4:.*]] = memref.load %[[VAL_0]][] : memref<i32>
+// CHECK:               %[[VAL_4:.*]] = cc.load %[[VAL_0]] : !cc.ptr<i32>
 // CHECK:               %[[VAL_5:.*]] = arith.constant 10 : i32
 // CHECK:               %[[VAL_6:.*]] = arith.cmpi slt, %[[VAL_4]], %[[VAL_5]] : i32
 // CHECK:               cc.condition %[[VAL_6]](%[[VAL_3]] : i32)
 // CHECK:             } do {
 // CHECK:             ^bb0(%[[VAL_7:.*]]: i32):
-// CHECK:               %[[VAL_8:.*]] = memref.load %[[VAL_0]][] : memref<i32>
+// CHECK:               %[[VAL_8:.*]] = cc.load %[[VAL_0]] : !cc.ptr<i32>
 // CHECK:               %[[VAL_9:.*]] = arith.constant 5 : i32
 // CHECK:               %[[VAL_10:.*]] = arith.cmpi slt, %[[VAL_8]], %[[VAL_9]] : i32
 // CHECK:               cf.cond_br %[[VAL_10]], ^bb1, ^bb2
@@ -184,9 +184,9 @@ func.func private @getI32() -> i32
 // CHECK:             ^bb0(%[[VAL_11:.*]]: i32):
 // CHECK:               %[[VAL_12:.*]] = arith.constant 12 : i32
 // CHECK:               %[[VAL_13:.*]] = arith.addi %[[VAL_11]], %[[VAL_12]] : i32
-// CHECK:               %[[VAL_14:.*]] = memref.load %[[VAL_0]][] : memref<i32>
+// CHECK:               %[[VAL_14:.*]] = cc.load %[[VAL_0]] : !cc.ptr<i32>
 // CHECK:               %[[VAL_15:.*]] = arith.addi %[[VAL_13]], %[[VAL_14]] : i32
-// CHECK:               memref.store %[[VAL_15]], %[[VAL_0]][] : memref<i32>
+// CHECK:               cc.store %[[VAL_15]], %[[VAL_0]] : !cc.ptr<i32>
 // CHECK:               cc.continue %[[VAL_11]] : i32
 // CHECK:             }
 // CHECK:           }
@@ -196,13 +196,13 @@ func.func private @getI32() -> i32
 // CHECK-LABEL:   func.func private @getI32() -> i32
 
 func.func @test_do_while() {
-  %1 = memref.alloc() : memref<i32>
+  %1 = cc.alloca i32
   %zero = arith.constant 0 : i32
-  memref.store %zero, %1[] : memref<i32>
+  cc.store %zero, %1 : !cc.ptr<i32>
   cc.loop do {
     ^bb0:
       %8 = func.call @getI32() : () -> i32
-      memref.store %8, %1[] : memref<i32>
+      cc.store %8, %1 : !cc.ptr<i32>
       cc.continue
   } while {
     %3 = arith.constant 1 : i1
@@ -212,12 +212,12 @@ func.func @test_do_while() {
 }
 
 // CHECK-LABEL:   func.func @test_do_while() {
-// CHECK:           %[[VAL_0:.*]] = memref.alloc() : memref<i32>
+// CHECK:           %[[VAL_0:.*]] = cc.alloca i32
 // CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i32
-// CHECK:           memref.store %[[VAL_1]], %[[VAL_0]][] : memref<i32>
+// CHECK:           cc.store %[[VAL_1]], %[[VAL_0]] : !cc.ptr<i32>
 // CHECK:           cc.loop do {
 // CHECK:             %[[VAL_2:.*]] = func.call @getI32() : () -> i32
-// CHECK:             memref.store %[[VAL_2]], %[[VAL_0]][] : memref<i32>
+// CHECK:             cc.store %[[VAL_2]], %[[VAL_0]] : !cc.ptr<i32>
 // CHECK:           } while {
 // CHECK:             %[[VAL_3:.*]] = arith.constant true
 // CHECK:             cc.condition %[[VAL_3]]
@@ -226,12 +226,12 @@ func.func @test_do_while() {
 // CHECK:         }
 
 func.func @test_do_while_with_args() {
-  %1 = memref.alloc() : memref<i32>
+  %1 = cc.alloca i32
   %zero = arith.constant 0 : i32
-  memref.store %zero, %1[] : memref<i32>
+  cc.store %zero, %1 : !cc.ptr<i32>
   cc.loop do ((%i = %zero) -> i32) {
       %8 = func.call @getI32() : () -> i32
-      memref.store %i, %1[] : memref<i32>
+      cc.store %i, %1 : !cc.ptr<i32>
       cc.continue %i : i32
   } while {
     ^bb9(%arg0 : i32):
@@ -245,12 +245,12 @@ func.func @test_do_while_with_args() {
 }
 
 // CHECK-LABEL:   func.func @test_do_while_with_args() {
-// CHECK:           %[[VAL_0:.*]] = memref.alloc() : memref<i32>
+// CHECK:           %[[VAL_0:.*]] = cc.alloca i32
 // CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i32
-// CHECK:           memref.store %[[VAL_1]], %[[VAL_0]][] : memref<i32>
+// CHECK:           cc.store %[[VAL_1]], %[[VAL_0]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_2:.*]] = cc.loop do ((%[[VAL_3:.*]] = %[[VAL_1]]) -> (i32)) {
 // CHECK:             %[[VAL_4:.*]] = func.call @getI32() : () -> i32
-// CHECK:             memref.store %[[VAL_3]], %[[VAL_0]][] : memref<i32>
+// CHECK:             cc.store %[[VAL_3]], %[[VAL_0]] : !cc.ptr<i32>
 // CHECK:             cc.continue %[[VAL_3]] : i32
 // CHECK:           } while {
 // CHECK:           ^bb0(%[[VAL_5:.*]]: i32):
@@ -264,40 +264,40 @@ func.func @test_do_while_with_args() {
 // CHECK:         }
 
 func.func @test_while() {
-  %1 = memref.alloc() : memref<i32>
+  %1 = cc.alloca i32
   %zero = arith.constant 0 : i32
-  memref.store %zero, %1[] : memref<i32>
+  cc.store %zero, %1 : !cc.ptr<i32>
   cc.loop while {
     %3 = arith.constant 1 : i1
     cc.condition %3
   } do {
     ^bb0:
       %8 = func.call @getI32() : () -> i32
-      memref.store %8, %1[] : memref<i32>
+      cc.store %8, %1 : !cc.ptr<i32>
       cc.continue
   }
   func.return
 }
 
 // CHECK-LABEL:   func.func @test_while() {
-// CHECK:           %[[VAL_0:.*]] = memref.alloc() : memref<i32>
+// CHECK:           %[[VAL_0:.*]] = cc.alloca i32
 // CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i32
-// CHECK:           memref.store %[[VAL_1]], %[[VAL_0]][] : memref<i32>
+// CHECK:           cc.store %[[VAL_1]], %[[VAL_0]] : !cc.ptr<i32>
 // CHECK:           cc.loop while {
 // CHECK:             %[[VAL_2:.*]] = arith.constant true
 // CHECK:             cc.condition %[[VAL_2]]
 // CHECK:           } do {
 // CHECK:             %[[VAL_3:.*]] = func.call @getI32() : () -> i32
-// CHECK:             memref.store %[[VAL_3]], %[[VAL_0]][] : memref<i32>
+// CHECK:             cc.store %[[VAL_3]], %[[VAL_0]] : !cc.ptr<i32>
 // CHECK:             cc.continue
 // CHECK:           }
 // CHECK:           return
 // CHECK:         }
 
 func.func @test_if_else(%c : i1) {
-  %1 = memref.alloc() : memref<i32>
+  %1 = cc.alloca i32
   %zero = arith.constant 0 : i32
-  memref.store %zero, %1[] : memref<i32>
+  cc.store %zero, %1 : !cc.ptr<i32>
   cc.if (%c) {
     ^bb0:
       %3 = arith.constant 1 : i1
@@ -314,9 +314,9 @@ func.func @test_if_else(%c : i1) {
 
 // CHECK-LABEL:   func.func @test_if_else(
 // CHECK-SAME:                            %[[VAL_0:.*]]: i1) {
-// CHECK:           %[[VAL_1:.*]] = memref.alloc() : memref<i32>
+// CHECK:           %[[VAL_1:.*]] = cc.alloca i32
 // CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i32
-// CHECK:           memref.store %[[VAL_2]], %[[VAL_1]][] : memref<i32>
+// CHECK:           cc.store %[[VAL_2]], %[[VAL_1]] : !cc.ptr<i32>
 // CHECK:           cc.if(%[[VAL_0]]) {
 // CHECK:             %[[VAL_3:.*]] = arith.constant true
 // CHECK:           } else {
@@ -329,9 +329,9 @@ func.func @test_if_else(%c : i1) {
 // CHECK:         }
 
 func.func @test_if(%c : i1) {
-  %1 = memref.alloc() : memref<i32>
+  %1 = cc.alloca i32
   %zero = arith.constant 0 : i32
-  memref.store %zero, %1[] : memref<i32>
+  cc.store %zero, %1 : !cc.ptr<i32>
   cc.if (%c) {
     ^bb1:
       %8 = func.call @getI32() : () -> i32
@@ -344,9 +344,9 @@ func.func @test_if(%c : i1) {
 
 // CHECK-LABEL:   func.func @test_if(
 // CHECK-SAME:                       %[[VAL_0:.*]]: i1) {
-// CHECK:           %[[VAL_1:.*]] = memref.alloc() : memref<i32>
+// CHECK:           %[[VAL_1:.*]] = cc.alloca i32
 // CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i32
-// CHECK:           memref.store %[[VAL_2]], %[[VAL_1]][] : memref<i32>
+// CHECK:           cc.store %[[VAL_2]], %[[VAL_1]] : !cc.ptr<i32>
 // CHECK:           cc.if(%[[VAL_0]]) {
 // CHECK:             %[[VAL_3:.*]] = func.call @getI32() : () -> i32
 // CHECK:             cf.br ^bb1
@@ -357,9 +357,9 @@ func.func @test_if(%c : i1) {
 // CHECK:         }
 
 func.func @test_if_else_thread(%c : i1) -> i32 {
-  %1 = memref.alloc() : memref<i32>
+  %1 = cc.alloca i32
   %zero = arith.constant 0 : i32
-  memref.store %zero, %1[] : memref<i32>
+  cc.store %zero, %1 : !cc.ptr<i32>
   %2 = cc.if (%c) -> i32 {
       %3 = arith.constant 1 : i32
       cc.continue %3 : i32
@@ -372,9 +372,9 @@ func.func @test_if_else_thread(%c : i1) -> i32 {
 
 // CHECK-LABEL:   func.func @test_if_else_thread(
 // CHECK-SAME:                                   %[[VAL_0:.*]]: i1) -> i32 {
-// CHECK:           %[[VAL_1:.*]] = memref.alloc() : memref<i32>
+// CHECK:           %[[VAL_1:.*]] = cc.alloca i32
 // CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i32
-// CHECK:           memref.store %[[VAL_2]], %[[VAL_1]][] : memref<i32>
+// CHECK:           cc.store %[[VAL_2]], %[[VAL_1]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_3:.*]] = cc.if(%[[VAL_0]]) -> i32 {
 // CHECK:             %[[VAL_4:.*]] = arith.constant 1 : i32
 // CHECK:             cc.continue %[[VAL_4]] : i32

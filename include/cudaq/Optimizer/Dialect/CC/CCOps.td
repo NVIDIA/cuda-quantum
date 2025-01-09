@@ -1,5 +1,5 @@
 /********************************************************** -*- tablegen -*- ***
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -10,6 +10,7 @@
 #define CUDAQ_OPTIMIZER_DIALECT_CC_OPS
 
 include "mlir/Interfaces/InferTypeOpInterface.td"
+include "mlir/IR/SymbolInterfaces.td"
 include "cudaq/Optimizer/Dialect/Common/Traits.td"
 include "cudaq/Optimizer/Dialect/CC/CCDialect.td"
 include "cudaq/Optimizer/Dialect/CC/CCInterfaces.td"
@@ -898,68 +899,6 @@ def cc_AddressOfOp : CCOp<"address_of", [Pure,
   }];
 }
 
-def cc_CreateStateOp : CCOp<"create_state", [Pure] > {
-  let summary = "Create state from data";
-  let description = [{
-    This operation takes a pointer to state data and creates a quantum state.
-    The operation can be optimized away in DeleteStates pass, or replaced
-    by an intrinsic runtime call on simulators.
-
-    ```mlir
-      %0 = cc.create_state %data: !cc.ptr<!cc.state>
-    ```
-  }];
-
-  let arguments = (ins
-    AnyPointerType:$data,
-    AnySignlessInteger:$length
-  );
-  let results = (outs AnyPointerType:$result);
-  let assemblyFormat = [{
-      $data `,` $length `:` functional-type(operands, results) attr-dict
-  }];
-}
-
-def cc_GetNumberOfQubitsOp : CCOp<"get_number_of_qubits", [Pure] > {
-  let summary = "Get number of qubits from a quantum state";
-  let description = [{
-    This operation takes a state pointer argument and returns a number of
-    qubits in the state. The operation can be optimized away in some passes
-    line ReplaceStateByKernel or DeleteStates, or replaced by an intrinsic
-    runtime call on simulators.
-
-    ```mlir
-      %0 = cc.get_number_of_qubits %state : i64
-    ```
-  }];
-
-  let arguments = (ins cc_PointerType:$state);
-  let results = (outs AnySignlessInteger:$result);
-  let assemblyFormat = [{
-      $state `:` functional-type(operands, results) attr-dict
-  }];
-}
-
-def cc_GetStateOp : CCOp<"get_state", [Pure] > {
-  let summary = "Get state from kernel with the provided name.";
-  let description = [{
-    This operation is created by argument synthesis of state pointer arguments
-    for quantum devices. It takes a kernel name as ASCIIZ string literal value
-    and returns the kernel's quantum state. The operation is replaced by a call
-    to the kernel with the provided name in ReplaceStateByKernel pass.
-
-    ```mlir
-      %0 = cc.get_state "callee" : !cc.ptr<!cc.state>
-    ```
-  }];
-
-  let arguments = (ins StrAttr:$calleeName);
-  let results = (outs cc_PointerType:$result);
-  let assemblyFormat = [{
-     $calleeName `:` qualified(type(results)) attr-dict
-  }];
-}
-
 def cc_GlobalOp : CCOp<"global", [IsolatedFromAbove, Symbol]> {
   let summary = "Create a global constant or variable";
   let description = [{
@@ -973,19 +912,35 @@ def cc_GlobalOp : CCOp<"global", [IsolatedFromAbove, Symbol]> {
 
   let arguments = (ins
     TypeAttr:$global_type,
-    StrAttr:$sym_name,
+    SymbolNameAttr:$sym_name,
     OptionalAttr<AnyAttr>:$value,
+    OptionalAttr<StrAttr>:$sym_visibility,
     UnitAttr:$constant,
     UnitAttr:$external
   );
 
   let hasCustomAssemblyFormat = 1;
 
+  let builders = [
+    OpBuilder<(ins
+      "mlir::Type":$type, "mlir::StringRef":$name,
+      "mlir::Attribute":$value, "bool":$constant, "bool":$external), [{
+        return build($_builder, $_state, type, name, value,
+                     mlir::StringAttr{}, constant, external);
+      }]
+    >];
+
   let extraClassDeclaration = [{
     cudaq::cc::PointerType getType() {
       auto globalTy = getGlobalType();
       return cudaq::cc::PointerType::get(globalTy);
     }
+
+    //===------------------------------------------------------------------===//
+    // SymbolOpInterface Methods
+    //===------------------------------------------------------------------===//
+
+    bool isDeclaration() { return getExternal(); }
   }];
 }
 

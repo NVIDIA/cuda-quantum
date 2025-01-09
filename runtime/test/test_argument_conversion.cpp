@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -15,8 +15,8 @@
 #include "common/ArgumentConversion.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "cudaq/Optimizer/InitAllDialects.h"
 #include "cudaq/qis/pauli_word.h"
-#include "mlir/InitAllDialects.h"
 #include "mlir/Parser/Parser.h"
 #include <numeric>
 
@@ -202,12 +202,11 @@ void test_scalars(mlir::MLIRContext *ctx) {
 // CHECK:       Substitution module:
 
 // CHECK-LABEL:   cc.arg_subst[0] {
-// CHECK:           %[[VAL_0:.*]] = cc.address_of @cstr.58595A00 : !cc.ptr<!llvm.array<4 x i8>>
-// CHECK:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<!llvm.array<4 x i8>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_0:.*]] = cc.string_literal "XYZ" : !cc.ptr<!cc.array<i8 x 4>>
+// CHECK:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_2:.*]] = arith.constant 3 : i64
 // CHECK:           %[[VAL_3:.*]] = cc.stdvec_init %[[VAL_1]], %[[VAL_2]] : (!cc.ptr<i8>, i64) -> !cc.charspan
 // CHECK:         }
-// CHECK-DAG:     llvm.mlir.global private constant @cstr.58595A00("XYZ\00") {addr_space = 0 : i32}
   // clang-format on
 }
 
@@ -250,14 +249,14 @@ void test_vectors(mlir::MLIRContext *ctx) {
   // clang-format off
 // CHECK-LABEL:   cc.arg_subst[0] {
 // CHECK:           %[[VAL_0:.*]] = cc.alloca !cc.array<!cc.charspan x 2>
-// CHECK:           %[[VAL_1:.*]] = cc.address_of @cstr.585800 : !cc.ptr<!llvm.array<3 x i8>>
-// CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!llvm.array<3 x i8>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_1:.*]] = cc.string_literal "XX" : !cc.ptr<!cc.array<i8 x 3>>
+// CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_3:.*]] = arith.constant 2 : i64
 // CHECK:           %[[VAL_4:.*]] = cc.stdvec_init %[[VAL_2]], %[[VAL_3]] : (!cc.ptr<i8>, i64) -> !cc.charspan
 // CHECK:           %[[VAL_5:.*]] = cc.compute_ptr %[[VAL_0]][0] : (!cc.ptr<!cc.array<!cc.charspan x 2>>) -> !cc.ptr<!cc.charspan>
 // CHECK:           cc.store %[[VAL_4]], %[[VAL_5]] : !cc.ptr<!cc.charspan>
-// CHECK:           %[[VAL_6:.*]] = cc.address_of @cstr.585900 : !cc.ptr<!llvm.array<3 x i8>>
-// CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_6]] : (!cc.ptr<!llvm.array<3 x i8>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_6:.*]] = cc.string_literal "XY" : !cc.ptr<!cc.array<i8 x 3>>
+// CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_6]] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_8:.*]] = arith.constant 2 : i64
 // CHECK:           %[[VAL_9:.*]] = cc.stdvec_init %[[VAL_7]], %[[VAL_8]] : (!cc.ptr<i8>, i64) -> !cc.charspan
 // CHECK:           %[[VAL_10:.*]] = cc.compute_ptr %[[VAL_0]][1] : (!cc.ptr<!cc.array<!cc.charspan x 2>>) -> !cc.ptr<!cc.charspan>
@@ -265,8 +264,6 @@ void test_vectors(mlir::MLIRContext *ctx) {
 // CHECK:           %[[VAL_11:.*]] = arith.constant 2 : i64
 // CHECK:           %[[VAL_12:.*]] = cc.stdvec_init %[[VAL_0]], %[[VAL_11]] : (!cc.ptr<!cc.array<!cc.charspan x 2>>, i64) -> !cc.stdvec<!cc.charspan>
 // CHECK:         }
-// CHECK-DAG:     llvm.mlir.global private constant @cstr.585800("XX\00") {addr_space = 0 : i32}
-// CHECK-DAG:     llvm.mlir.global private constant @cstr.585900("XY\00") {addr_space = 0 : i32}
   // clang-format on
 }
 
@@ -381,9 +378,9 @@ void test_state(mlir::MLIRContext *ctx) {
 // CHECK-LABEL:   cc.arg_subst[0] {
 // CHECK:           %[[VAL_0:.*]] = cc.address_of @[[VAL_GC:.*]] : !cc.ptr<!cc.array<complex<f64> x 8>>
 // CHECK:           %[[VAL_1:.*]] = arith.constant 8 : i64
-// CHECK:           %[[VAL_2:.*]] = cc.create_state %[[VAL_0]], %[[VAL_1]] : (!cc.ptr<!cc.array<complex<f64> x 8>>, i64) -> !cc.ptr<!cc.state>
+// CHECK:           %[[VAL_2:.*]] = quake.create_state %[[VAL_0]], %[[VAL_1]] : (!cc.ptr<!cc.array<complex<f64> x 8>>, i64) -> !cc.ptr<!cc.state>
 // CHECK:        }
-// CHECK-DAG:    cc.global constant @[[VAL_GC]] (dense<[(0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<8xcomplex<f64>>) : !cc.array<complex<f64> x 8>
+// CHECK-DAG:    cc.global constant private @[[VAL_GC]] (dense<[(0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<8xcomplex<f64>>) : !cc.array<complex<f64> x 8>
   // clang-format on
 }
 
@@ -485,19 +482,19 @@ void test_combinations(mlir::MLIRContext *ctx) {
 // CHECK-LABEL:   cc.arg_subst[1] {
 // CHECK:           %[[VAL_0:.*]] = cc.address_of @[[VAL_GC:.*]] : !cc.ptr<!cc.array<complex<f64> x 8>>
 // CHECK:           %[[VAL_1:.*]] = arith.constant 8 : i64
-// CHECK:           %[[VAL_5:.*]] = cc.create_state %[[VAL_0]], %[[VAL_1]] : (!cc.ptr<!cc.array<complex<f64> x 8>>, i64) -> !cc.ptr<!cc.state>
+// CHECK:           %[[VAL_5:.*]] = quake.create_state %[[VAL_0]], %[[VAL_1]] : (!cc.ptr<!cc.array<complex<f64> x 8>>, i64) -> !cc.ptr<!cc.state>
 // CHECK:         }
-// CHECK-DAG:     cc.global constant @[[VAL_GC]] (dense<[(0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<8xcomplex<f64>>) : !cc.array<complex<f64> x 8>
+// CHECK-DAG:     cc.global constant private @[[VAL_GC]] (dense<[(0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<8xcomplex<f64>>) : !cc.array<complex<f64> x 8>
 // CHECK-LABEL:   cc.arg_subst[2] {
 // CHECK:           %[[VAL_0:.*]] = cc.alloca !cc.array<!cc.charspan x 2>
-// CHECK:           %[[VAL_1:.*]] = cc.address_of @cstr.585800 : !cc.ptr<!llvm.array<3 x i8>>
-// CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!llvm.array<3 x i8>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_1:.*]] = cc.string_literal "XX" : !cc.ptr<!cc.array<i8 x 3>>
+// CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_3:.*]] = arith.constant 2 : i64
 // CHECK:           %[[VAL_4:.*]] = cc.stdvec_init %[[VAL_2]], %[[VAL_3]] : (!cc.ptr<i8>, i64) -> !cc.charspan
 // CHECK:           %[[VAL_5:.*]] = cc.compute_ptr %[[VAL_0]][0] : (!cc.ptr<!cc.array<!cc.charspan x 2>>) -> !cc.ptr<!cc.charspan>
 // CHECK:           cc.store %[[VAL_4]], %[[VAL_5]] : !cc.ptr<!cc.charspan>
-// CHECK:           %[[VAL_6:.*]] = cc.address_of @cstr.585900 : !cc.ptr<!llvm.array<3 x i8>>
-// CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_6]] : (!cc.ptr<!llvm.array<3 x i8>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_6:.*]] = cc.string_literal "XY" : !cc.ptr<!cc.array<i8 x 3>>
+// CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_6]] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_8:.*]] = arith.constant 2 : i64
 // CHECK:           %[[VAL_9:.*]] = cc.stdvec_init %[[VAL_7]], %[[VAL_8]] : (!cc.ptr<i8>, i64) -> !cc.charspan
 // CHECK:           %[[VAL_10:.*]] = cc.compute_ptr %[[VAL_0]][1] : (!cc.ptr<!cc.array<!cc.charspan x 2>>) -> !cc.ptr<!cc.charspan>
@@ -505,15 +502,12 @@ void test_combinations(mlir::MLIRContext *ctx) {
 // CHECK:           %[[VAL_11:.*]] = arith.constant 2 : i64
 // CHECK:           %[[VAL_12:.*]] = cc.stdvec_init %[[VAL_0]], %[[VAL_11]] : (!cc.ptr<!cc.array<!cc.charspan x 2>>, i64) -> !cc.stdvec<!cc.charspan>
 // CHECK:         }
-// CHECK-DAG:     llvm.mlir.global private constant @cstr.585800("XX\00") {addr_space = 0 : i32}
-// CHECK-DAG:     llvm.mlir.global private constant @cstr.585900("XY\00") {addr_space = 0 : i32}
   // clang-format on
 }
 
 int main() {
   mlir::DialectRegistry registry;
-  mlir::registerAllDialects(registry);
-  registry.insert<cudaq::cc::CCDialect, quake::QuakeDialect>();
+  cudaq::registerAllDialects(registry);
   mlir::MLIRContext context(registry);
   context.loadAllAvailableDialects();
   test_scalars(&context);

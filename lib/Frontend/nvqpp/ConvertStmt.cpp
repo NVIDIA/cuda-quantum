@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -331,7 +331,9 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *x) {
                                                 ValueRange{heapCopy, dynSize});
       };
       IRBuilder irb(builder);
-      Value tySize = irb.getByteSizeOfType(loc, eleTy);
+      Value tySize;
+      if (!cudaq::cc::isDynamicType(eleTy))
+        tySize = irb.getByteSizeOfType(loc, eleTy);
       if (!tySize) {
         TODO_x(toLocation(x), x, mangler, "unhandled vector element type");
         return false;

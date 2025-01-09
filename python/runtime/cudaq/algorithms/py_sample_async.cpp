@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -57,12 +57,8 @@ for more information on this programming pattern.)#")
 
         auto kernelName = kernel.attr("name").cast<std::string>();
         auto kernelMod = kernel.attr("module").cast<MlirModule>();
-        auto kernelFunc = getKernelFuncOp(kernelMod, kernelName);
-
         args = simplifiedValidateInputArguments(args);
-        auto *argData = new cudaq::OpaqueArguments();
-        cudaq::packArgs(*argData, args, kernelFunc,
-                        [](OpaqueArguments &, py::object &) { return false; });
+        auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
 
         // The function below will be executed multiple times
         // if the kernel has conditional feedback. In that case,

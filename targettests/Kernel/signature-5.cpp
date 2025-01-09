@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -15,7 +15,6 @@
 // Test kernels can take arguments of tuple or pair as well as return values of
 // same.
 
-// FIXME: tuple and pair are not handled.
 #define NYI /*__qpu__*/
 
 void ok() { std::cout << "ok\n"; }
@@ -24,7 +23,7 @@ void fail() { std::cout << "fail\n"; }
 using S1 = std::tuple<int, int, int>;
 
 struct QernelS1a {
-  void operator()(S1 s) NYI {
+  void operator()(S1 s) __qpu__ {
     if (std::get<0>(s) == 1 && std::get<1>(s) == 2 && std::get<2>(s) == 4)
       ok();
     else
@@ -38,10 +37,18 @@ struct QernelS1 {
   }
 };
 
+S1 qernel_s1b_helper(S1 s) {
+  return {std::get<2>(s) + 1, std::get<1>(s) + 1, std::get<0>(s) + 1};
+}
+
+struct QernelS1b {
+  S1 operator()(S1 s) NYI { return qernel_s1b_helper(s); }
+};
+
 using S2 = std::tuple<double, float, std::vector<int>>;
 
 struct QernelS2a {
-  void operator()(S2 s) NYI {
+  void operator()(S2 s) __qpu__ {
     if (std::get<0>(s) == 8.16 && std::get<1>(s) == 32.64f &&
         std::get<2>(s).size() == 2)
       ok();
@@ -88,6 +95,13 @@ int main() {
     ok();
   else
     fail();
+  std::cout << "QernelS1b ";
+  auto updated_s1b = QernelS1b{}(s1);
+  if (std::get<0>(updated_s1b) == 5 && std::get<1>(updated_s1b) == 3 &&
+      std::get<2>(updated_s1b) == 2)
+    ok();
+  else
+    fail();
 
   std::vector<int> v = {128, 256};
   S2 s2 = {8.16, 32.64f, v};
@@ -117,6 +131,7 @@ int main() {
 // clang-format off
 // CHECK-LABEL: QernelS1a ok
 // CHECK-NEXT: QernelS1 ok
+// CHECK-NEXT: QernelS1b ok
 // CHECK-NEXT: QernelS2a ok
 // CHECK-NEXT: QernelS2 ok
 // CHECK-NEXT: ok

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -9,7 +9,6 @@
 # RUN: PYTHONPATH=../../ pytest -rP  %s | FileCheck %s
 
 import cudaq
-
 
 
 def test_bug_1875():

@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -93,10 +93,8 @@ protected:
   std::unique_ptr<TensorNetState> m_state;
   std::unordered_map<std::string, void *> m_gateDeviceMemCache;
   ScratchDeviceMem scratchPad;
-  // Note: cutensornet sample API uses an internal random engine that doesn't
-  // support random seed. This engine only affects the mid-circuit measurements
-  // whereby this simulator generates a random probability value.
-  // See also: https://github.com/NVIDIA/cuda-quantum/issues/895
+  // Random number generator for generating 32-bit numbers with a state size of
+  // 19937 bits for measurements.
   std::mt19937 m_randomEngine;
 };
 

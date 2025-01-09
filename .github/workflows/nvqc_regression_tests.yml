@@ -202,7 +202,8 @@ jobs:
 
           # Test NVQC Python examples + Python MLIR execution tests (not IR tests)
           python3 -m pip install pytest
-          for ex in `find examples/python python/tests/mlir/target -name '*.py'`; do
+          # Disabling building_kernels as the state is not yet supported on NVQC
+          for ex in `find examples/python python/tests/mlir/target -name '*.py' ! -name '*building_kernels*'`; do
             filename=$(basename -- "$ex")
             filename="${filename%.*}"
             echo "Testing $filename:"
@@ -262,7 +263,7 @@ jobs:
           python_version=${{ inputs.python_version || env.python_version }}
           workflow_id=${{ inputs.workflow_id }}
           # Helper to get the *valid* Publishing run Id for a commit hash
-          # Notes: runs that have 'CUDA Quantum Python wheels' jobs skipped are not considered.
+          # Notes: runs that have 'CUDA-Q Python wheels' jobs skipped are not considered.
           function get_publishing_run_id {
             # Find all Publishing runs, we'll look into its jobs' status later
             if [[ -z "$1" ]]; then
@@ -271,9 +272,9 @@ jobs:
               publishing_run_ids=$(gh run -R NVIDIA/cuda-quantum list --commit $1 --workflow Publishing --json databaseId --jq .[].databaseId)
             fi
             for run_id in $publishing_run_ids ; do
-                # Look into its jobs: if "CUDA Quantum Python wheels" matrix build was performed,
-                # then we have multiple jobs, like "CUDA Quantum Python wheels (python_arm64....")
-                cuda_wheel_build_jobs=$(gh run -R NVIDIA/cuda-quantum view $run_id --jq '.jobs.[] | select(.name | startswith("CUDA Quantum Python wheels (python_")).name' --json jobs)
+                # Look into its jobs: if "CUDA-Q Python wheels" matrix build was performed,
+                # then we have multiple jobs, like "CUDA-Q Python wheels (python_arm64....")
+                cuda_wheel_build_jobs=$(gh run -R NVIDIA/cuda-quantum view $run_id --jq '.jobs.[] | select(.name | startswith("CUDA-Q Python wheels (python_")).name' --json jobs)
                 if [ ! -z "$cuda_wheel_build_jobs" ]; then
                   # This is a valid run that produces wheel artifacts
                   echo $run_id
@@ -301,7 +302,7 @@ jobs:
             python_version_filename=$(echo "${python_version//.}")
             # Install Python and the wheel
             apt-get update && apt-get install -y --no-install-recommends python$python_version python3-pip
-            wheelfile=$(find . -name "cuda_quantum_cu11*cp$python_version_filename*x86_64.whl")
+            wheelfile=$(find . -name "cuda_quantum_cu12*cp$python_version_filename*x86_64.whl")
             python$python_version -m pip install $wheelfile
             echo "skipped=false" >> $GITHUB_OUTPUT
           else
@@ -312,7 +313,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
       - name: Test NVQC
-        if: ${{ ! steps.install_wheel.skipped }}
+        if: ${{ steps.install_wheel.outputs.skipped != 'true' }}
         run: |
           echo "### Submit to NVQC from Python wheels" >> $GITHUB_STEP_SUMMARY
           python_version=${{ inputs.python_version || env.python_version }}
@@ -320,7 +321,7 @@ jobs:
           set +e # Allow script to keep going through errors
           python$python_version -m pip install pytest
           test_err_sum=0
-          for ex in `find examples/python python/tests/mlir/target -name '*.py'; do
+          for ex in `find examples/python python/tests/mlir/target -name '*.py'`; do
             filename=$(basename -- "$ex")
             filename="${filename%.*}"
             echo "Testing $filename:"

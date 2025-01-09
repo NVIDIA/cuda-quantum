@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -74,7 +74,8 @@ void registerQuakeDialectAndTypes(py::module &m) {
           [](py::object cls, MlirContext ctx, std::size_t size) {
             return wrap(quake::VeqType::get(unwrap(ctx), size));
           },
-          py::arg("cls"), py::arg("context"), py::arg("size") = 0)
+          py::arg("cls"), py::arg("context"),
+          py::arg("size") = std::numeric_limits<std::size_t>::max())
       .def_staticmethod(
           "hasSpecifiedSize",
           [](MlirType type) {

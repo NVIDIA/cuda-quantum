@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -336,7 +336,8 @@ def test_pack_args_pauli_list():
     ts = np.random.rand(len(pauliStings))
 
     exp_val1 = cudaq.observe_async(gqeCirc1, obs, numQubits, list(ts),
-                                   pauliStings[0]).get().expectation()
+                                   cudaq.pauli_word(
+                                       pauliStings[0])).get().expectation()
     print('observe_async exp_val1', exp_val1)
     exp_val2 = cudaq.observe_async(gqeCirc2, obs, numQubits, list(ts),
                                    pauliStings).get().expectation()

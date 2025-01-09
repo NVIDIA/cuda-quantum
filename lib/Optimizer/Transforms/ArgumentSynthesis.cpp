@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -162,4 +162,14 @@ cudaq::opt::createArgumentSynthesisPass(ArrayRef<StringRef> funcNames,
       pairs.emplace_back(name.str() + ":*" + text.str());
   return std::make_unique<ArgumentSynthesisPass>(
       ArgumentSynthesisOptions{pairs});
+}
+
+std::unique_ptr<mlir::Pass>
+cudaq::opt::createArgumentSynthesisPass(const std::vector<std::string>& funcNames,
+                                        const std::vector<std::string>& substitutions) {
+  return cudaq::opt::createArgumentSynthesisPass(
+                mlir::SmallVector<mlir::StringRef>{funcNames.begin(),
+                                                   funcNames.end()},
+                mlir::SmallVector<mlir::StringRef>{substitutions.begin(),
+                                                   substitutions.end()});
 }

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -9,7 +9,6 @@
 import os
 
 import pytest
-
 
 import cudaq
 from cudaq import spin
@@ -413,6 +412,16 @@ def test_spin_op_batch_efficiently():
     assert batched[1].get_term_count() == 2
     assert batched[2].get_term_count() == 2
     assert batched[3].get_term_count() == 1
+
+
+def test_spin_op_equality_compare():
+    op1 = 5.907 - 2.1433 * spin.x(0) * spin.x(1) + spin.y(0) * spin.y(1)
+    op2 = 3.1433 * spin.y(0) * spin.y(1) - .21829 * spin.z(0) + 6.125 * spin.z(
+        1)
+    op = op1 - op2
+    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
+        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+    assert hamiltonian == op
 
 
 # leave for gdb debugging

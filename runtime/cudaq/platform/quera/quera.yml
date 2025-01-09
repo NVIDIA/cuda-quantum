@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -22,3 +22,8 @@ target-arguments:
     type: string
     platform-arg: machine
     help-string: "Specify the QuEra QPU."
+  - key: default_bucket
+    required: false
+    type: string
+    platform-arg: default_bucket
+    help-string: "Specify a default S3 bucket for QuEra results."

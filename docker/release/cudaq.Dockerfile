@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -16,7 +16,7 @@
 #
 # Usage:
 # Must be built from the repo root with:
-#   docker build -t nvcr.io/nvidia/nightly/cuda-quantum:latest-base -f docker/release/cudaq.Dockerfile .
+#   docker build -t nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest-base -f docker/release/cudaq.Dockerfile .
 # 
 # The build argument cudaqdev_image defines the CUDA-Q dev image that contains the CUDA
 # Quantum build. This Dockerfile copies the built components into the base_image. The specified
@@ -32,13 +32,12 @@ FROM $cudaqdev_image AS cudaqbuild
 # access to the environment variables, so that the hardcoded paths in this file don't need to 
 # match the paths in the dev image.
 RUN mkdir /usr/local/cudaq_assets && cd /usr/local/cudaq_assets && \
-    mkdir -p llvm/bin && mkdir -p llvm/lib && mkdir cuquantum && \
+    mkdir -p llvm/bin && mkdir -p llvm/lib && \
     mv "$LLVM_INSTALL_PREFIX/bin/"clang* "/usr/local/cudaq_assets/llvm/bin/" && rm -rf "/usr/local/cudaq_assets/llvm/bin/"clang-format* && \
     mv "$LLVM_INSTALL_PREFIX/lib/"clang* "/usr/local/cudaq_assets/llvm/lib/" && \
     mv "$LLVM_INSTALL_PREFIX/bin/llc" "/usr/local/cudaq_assets/llvm/bin/llc" && \
     mv "$LLVM_INSTALL_PREFIX/bin/lld" "/usr/local/cudaq_assets/llvm/bin/lld" && \
     mv "$LLVM_INSTALL_PREFIX/bin/ld.lld" "/usr/local/cudaq_assets/llvm/bin/ld.lld" && \
-    if [ -d "$CUQUANTUM_INSTALL_PREFIX" ]; then mv "$CUQUANTUM_INSTALL_PREFIX"/* "/usr/local/cudaq_assets/cuquantum"; fi && \
     if [ "$CUDAQ_INSTALL_PREFIX" != "/usr/local/cudaq" ]; then mv "$CUDAQ_INSTALL_PREFIX" "/usr/local/cudaq"; fi
 
 FROM $base_image
@@ -57,11 +56,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install CUDA-Q runtime dependencies.
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        python3 python3-pip libstdc++-12-dev \
+        libstdc++-12-dev python3 python3-pip \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* \
-    && python3 -m pip install --no-cache-dir numpy \
+    && python3 -m pip install --no-cache-dir numpy scipy \
     && ln -s /bin/python3 /bin/python
-    RUN apt-get update && apt-get install -y --no-install-recommends gcc g++ python3-dev \
+RUN apt-get update && apt-get install -y --no-install-recommends gcc g++ python3-dev \
     # Ref: https://github.com/qutip/qutip/issues/2412
     && python3 -m pip install --no-cache-dir notebook==7.1.3 "qutip<5" matplotlib \
     && apt-get remove -y gcc g++ python3-dev \
@@ -97,7 +96,7 @@ ARG COPYRIGHT_NOTICE="=========================\n\
       NVIDIA CUDA-Q      \n\
 =========================\n\n\
 Version: ${CUDA_QUANTUM_VERSION}\n\n\
-Copyright (c) 2024 NVIDIA Corporation & Affiliates \n\
+Copyright (c) 2025 NVIDIA Corporation & Affiliates \n\
 All rights reserved.\n\n\
 To run a command as administrator (user `root`), use `sudo <command>`.\n"
 RUN echo -e "$COPYRIGHT_NOTICE" > "$CUDA_QUANTUM_PATH/Copyright.txt"

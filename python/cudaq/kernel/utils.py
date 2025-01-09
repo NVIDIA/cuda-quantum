@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -25,6 +25,8 @@ pauli_word = cudaq_runtime.pauli_word
 qreg = qvector
 
 nvqppPrefix = '__nvqpp__mlirgen__'
+
+ahkPrefix = '__analog_hamiltonian_kernel__'
 
 # Keep a global registry of all kernel FuncOps
 # keyed on their name (without `__nvqpp__mlirgen__` prefix)

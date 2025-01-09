@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -13,6 +13,9 @@ import numpy as np
 import cudaq
 
 cp = pytest.importorskip('cupy')
+
+if cudaq.num_available_gpus() == 0:
+    pytest.skip("Skipping GPU tests", allow_module_level=True)
 
 
 def assert_close(want, got, tolerance=1.e-5) -> bool:

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -271,7 +271,7 @@ struct V3 {
 // CHECK-LABEL:  func.func @_ZN2V3clESt6vectorIlSaIlEES0_IbSaIbEE(
 // CHECK-SAME: %[[VAL_0:.*]]: !cc.ptr<i8>,
 // CHECK-SAME:     %[[VAL_1:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<i64>, !cc.ptr<i64>, !cc.ptr<i64>}>>,
-// CHECK-SAME:     %[[VAL_2:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>)
+// CHECK-SAME:     %[[VAL_2:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x 32>}>>)
 // clang-format on
 
 //===----------------------------------------------------------------------===//

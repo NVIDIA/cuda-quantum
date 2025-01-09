@@ -5,6 +5,236 @@ CUDA-Q supports submission to a set of hardware providers.
 To submit to a hardware backend, you need an account with the respective provider.
 
 
+Amazon Braket
+==================================
+
+.. _braket-backend:
+
+`Amazon Braket <https://aws.amazon.com/braket/>`__ is a fully managed AWS 
+service which provides Jupyter notebook environments, high-performance quantum 
+circuit simulators, and secure, on-demand access to various quantum computers.
+To get started users must enable Amazon Braket in their AWS account by following 
+`these instructions <https://docs.aws.amazon.com/braket/latest/developerguide/braket-enable-overview.html>`__.
+To learn more about Amazon Braket, you can view the `Amazon Braket Documentation <https://docs.aws.amazon.com/braket/>`__ 
+and `Amazon Braket Examples <https://github.com/amazon-braket/amazon-braket-examples>`__.
+A list of available devices and regions can be found `here <https://docs.aws.amazon.com/braket/latest/developerguide/braket-devices.html>`__. 
+
+Users can run CUDA-Q programs on Amazon Braket with `Hybrid Job <https://docs.aws.amazon.com/braket/latest/developerguide/braket-what-is-hybrid-job.html>`__.
+See `this guide <https://docs.aws.amazon.com/braket/latest/developerguide/braket-jobs-first.html>`__ to get started.
+
+Setting Credentials
+```````````````````
+
+After enabling Amazon Braket in AWS, set credentials using any of the documented `methods <https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html>`__.
+One of the simplest ways is to use `AWS CLI <https://aws.amazon.com/cli/>`__.
+
+.. code:: bash
+
+    aws configure
+
+Alternatively, users can set the following environment variables.
+
+.. code:: bash
+
+  export AWS_DEFAULT_REGION="<region>"
+  export AWS_ACCESS_KEY_ID="<key_id>"
+  export AWS_SECRET_ACCESS_KEY="<access_key>"
+  export AWS_SESSION_TOKEN="<token>"
+
+Submission from C++
+`````````````````````````
+
+To target quantum kernel code for execution in Amazon Braket,
+pass the flag ``--target braket`` to the ``nvq++`` compiler.
+By default jobs are submitted to the state vector simulator, `SV1`.
+
+.. code:: bash
+
+    nvq++ --target braket src.cpp
+
+
+To execute your kernels on different device, pass the ``--braket-machine`` flag to the ``nvq++`` compiler
+to specify which machine to submit quantum kernels to:
+
+.. code:: bash
+
+    nvq++ --target braket --braket-machine "arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet" src.cpp ...
+
+where ``arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet`` refers to IQM Garnet QPU.
+
+To emulate the device locally, without submitting through the cloud,
+you can also pass the ``--emulate`` flag to ``nvq++``. 
+
+.. code:: bash
+
+    nvq++ --emulate --target braket src.cpp
+
+To see a complete example for using Amazon Braket backends, take a look at our :doc:`C++ examples <../examples/examples>`.
+
+Submission from Python
+`````````````````````````
+
+The target to which quantum kernels are submitted 
+can be controlled with the ``cudaq::set_target()`` function.
+
+.. code:: python
+
+    cudaq.set_target("braket")
+
+By default, jobs are submitted to the state vector simulator, `SV1`.
+
+To specify which Amazon Braket device to use, set the :code:`machine` parameter.
+
+.. code:: python
+
+    device_arn = "arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet"
+    cudaq.set_target("braket", machine=device_arn)
+
+where ``arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet`` refers to IQM Garnet QPU.
+
+To emulate the device locally, without submitting through the cloud,
+you can also set the ``emulate`` flag to ``True``.
+
+.. code:: python
+
+    cudaq.set_target("braket", emulate=True)
+
+The number of shots for a kernel execution can be set through the ``shots_count``
+argument to ``cudaq.sample``. By default, the ``shots_count`` is set to 1000.
+
+.. code:: python
+
+    cudaq.sample(kernel, shots_count=100)
+
+To see a complete example for using Amazon Braket backends, take a look at our :doc:`Python examples <../examples/examples>`.
+
+.. note:: 
+
+    The ``cudaq.observe`` API is not yet supported on the `braket` target.
+
+Infleqtion
+==================================
+
+.. _infleqtion-backend:
+
+Infleqtion is a quantum hardware provider of gate-based neutral atom quantum computers. Their backends may be
+accessed via `Superstaq <https://superstaq.infleqtion.com/>`__, Infleqtion’s cross-platform software API
+that performs low-level compilation and cross-layer optimization. To get started users can create a Superstaq
+account by following `these instructions <https://superstaq.readthedocs.io/en/latest/get_started/credentials.html>`__.
+
+For access to Infleqtion's neutral atom quantum computer, Sqale,
+`pre-registration <https://www.infleqtion.com/sqale-preregistration>`__ is now open.
+
+Setting Credentials
+`````````````````````````
+
+Programmers of CUDA-Q may access Infleqtion backends from either C++ or Python. Generate
+an API key from your `Superstaq account <https://superstaq.infleqtion.com/profile>`__ and export
+it as an environment variable:
+
+.. code:: bash
+
+  export SUPERSTAQ_API_KEY="superstaq_api_key"
+
+Submission from C++
+`````````````````````````
+
+To target quantum kernel code for execution on Infleqtion's backends,
+pass the flag ``--target infleqtion`` to the ``nvq++`` compiler.
+
+.. code:: bash
+
+    nvq++ --target infleqtion src.cpp
+
+This will take the API key and handle all authentication with, and submission to, Infleqtion's QPU 
+(or simulator). By default, quantum kernel code will be submitted to Infleqtion's Sqale
+simulator.
+
+To execute your kernels on a QPU, pass the ``--infleqtion-machine`` flag to the ``nvq++`` compiler
+to specify which machine to submit quantum kernels to:
+
+.. code:: bash
+
+    nvq++ --target infleqtion --infleqtion-machine cq_sqale_qpu src.cpp ...
+
+where ``cq_sqale_qpu`` is an example of a physical QPU.
+
+To run an ideal dry-run execution on the QPU, additionally pass ``dry-run`` with the ``--infleqtion-method`` 
+flag to the ``nvq++`` compiler:
+
+.. code:: bash
+
+    nvq++ --target infleqtion --infleqtion-machine cq_sqale_qpu --infleqtion-method dry-run src.cpp ...
+
+To noisily simulate the QPU instead, pass ``noise-sim`` to the ``--infleqtion-method`` flag like so:
+
+.. code:: bash
+
+    nvq++ --target infleqtion --infleqtion-machine cq_sqale_qpu --infleqtion-method noise-sim src.cpp ...
+
+Alternatively, to emulate the Infleqtion machine locally, without submitting through the cloud,
+you can also pass the ``--emulate`` flag to ``nvq++``. This will emit any target
+specific compiler diagnostics, before running a noise free emulation.
+
+.. code:: bash
+
+    nvq++ --emulate --target infleqtion src.cpp
+
+To see a complete example for using Infleqtion's backends, take a look at our :doc:`C++ examples <../examples/examples>`.
+
+Submission from Python
+`````````````````````````
+
+The target to which quantum kernels are submitted
+can be controlled with the ``cudaq::set_target()`` function.
+
+.. code:: python
+
+    cudaq.set_target("infleqtion")
+
+By default, quantum kernel code will be submitted to Infleqtion's Sqale
+simulator.
+
+To specify which Infleqtion QPU to use, set the :code:`machine` parameter.
+
+.. code:: python
+
+    cudaq.set_target("infleqtion", machine="cq_sqale_qpu")
+
+where ``cq_sqale_qpu`` is an example of a physical QPU.
+
+To run an ideal dry-run execution of the QPU, additionally set the ``method`` flag to ``"dry-run"``.
+
+.. code:: python
+
+    cudaq.set_target("infleqtion", machine="cq_sqale_qpu", method="dry-run")
+
+To noisily simulate the QPU instead, set the ``method`` flag to ``"noise-sim"``.
+
+.. code:: python
+
+    cudaq.set_target("infleqtion", machine="cq_sqale_qpu", method="noise-sim")
+
+Alternatively, to emulate the Infleqtion machine locally, without submitting through the cloud,
+you can also set the ``emulate`` flag to ``True``. This will emit any target
+specific compiler diagnostics, before running a noise free emulation.
+
+.. code:: python
+
+    cudaq.set_target("infleqtion", emulate=True)
+
+The number of shots for a kernel execution can be set through
+the ``shots_count`` argument to ``cudaq.sample`` or ``cudaq.observe``. By default,
+the ``shots_count`` is set to 1000.
+
+.. code:: python
+
+    cudaq.sample(kernel, shots_count=100)
+
+To see a complete example for using Infleqtion's backends, take a look at our :doc:`Python examples <../examples/examples>`.
+Moreover, for an end-to-end application workflow example executed on the Infleqtion QPU, take a look at the 
+:doc:`Anderson Impurity Model ground state solver <../applications>` notebook.
+
 IonQ
 ==================================
 
@@ -314,7 +544,7 @@ Setting Credentials
 `````````````````````````
 
 In order to use the OQC devices you will need to register.
-Registration is achieved by contacting oqc_qcaas_support@oxfordquantumcircuits.com
+Registration is achieved by contacting `oqc_qcaas_support@oxfordquantumcircuits.com`.
 
 Once registered you will be able to authenticate with your ``email`` and ``password``
 
@@ -596,4 +826,78 @@ the ``shots_count`` is set to 1000.
 
 To see a complete example for using Quantinuum's backends, take a look at our :doc:`Python examples <../examples/examples>`.
 
+QuEra Computing
+==================================
 
+.. _quera-backend:
+
+Setting Credentials
+```````````````````
+
+Programmers of CUDA-Q may access Aquila, QuEra's first generation of quantum
+processing unit (QPU) via Amazon Braket. Hence, users must first enable Braket by 
+following `these instructions <https://docs.aws.amazon.com/braket/latest/developerguide/braket-enable-overview.html>`__. 
+Then set credentials using any of the documented `methods <https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html>`__.
+One of the simplest ways is to use `AWS CLI <https://aws.amazon.com/cli/>`__.
+
+.. code:: bash
+
+    aws configure
+
+Alternatively, users can set the following environment variables.
+
+.. code:: bash
+
+  export AWS_DEFAULT_REGION="us-east-1"
+  export AWS_ACCESS_KEY_ID="<key_id>"
+  export AWS_SECRET_ACCESS_KEY="<access_key>"
+  export AWS_SESSION_TOKEN="<token>"
+
+
+Submission from C++
+`````````````````````````
+
+Not yet supported.
+
+
+Submission from Python
+`````````````````````````
+
+The target to which quantum kernels are submitted 
+can be controlled with the ``cudaq::set_target()`` function.
+
+.. code:: python
+
+    cudaq.set_target('quera')
+
+By default, analog Hamiltonian will be submitted to the Aquila system.
+
+Aquila is a "field programmable qubit array" operated as an analog 
+Hamiltonian simulator on a user-configurable architecture, executing 
+programmable coherent quantum dynamics on up to 256 neutral-atom qubits.
+Refer to QuEra's `whitepaper <https://cdn.prod.website-files.com/643b94c382e84463a9e52264/648f5bf4d19795aaf36204f7_Whitepaper%20June%2023.pdf>`__ for details.
+
+Due to the nature of the underlying hardware, this target only supports the 
+``evolve`` and ``evolve_async`` APIs.
+The `hamiltonian` must be an `Operator` of the type `RydbergHamiltonian`. Only 
+other parameters supported are `schedule` (mandatory) and `shots_count` (optional).
+
+For example,
+
+.. code:: python
+
+    evolution_result = evolve(RydbergHamiltonian(atom_sites=register,
+                                                 amplitude=omega,
+                                                 phase=phi,
+                                                 delta_global=delta),
+                               schedule=schedule)
+
+The number of shots for a kernel execution can be set through the ``shots_count``
+argument to ``evolve`` or ``evolve_async``. By default, the ``shots_count`` is 
+set to 100.
+
+.. code:: python 
+
+    cudaq.evolve(RydbergHamiltonian(...), schedule=s, shots_count=1000)
+
+To see a complete example for using QuEra's backend, take a look at our :doc:`Python examples <../examples/hardware_providers>`.

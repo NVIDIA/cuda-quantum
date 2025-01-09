@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -20,7 +20,7 @@ bool isIdentity(const EigenMatTy &mat, double threshold = 1e-9) {
 
 template <typename EigenMatTy>
 bool validateCPTP(const std::vector<EigenMatTy> &mats,
-                  double threshold = 1e-9) {
+                  double threshold = 1e-4) {
   if (mats.empty()) {
     return true;
   }
@@ -76,10 +76,6 @@ void validateCompletenessRelation_fp64(const std::vector<kraus_op> &ops) {
   if (!validateCPTP(matrices))
     throw std::runtime_error(
         "Provided kraus_ops are not completely positive and trace preserving.");
-}
-
-kraus_channel::kraus_channel(std::vector<kraus_op> &_ops) : ops(_ops) {
-  validateCompleteness();
 }
 
 kraus_channel::kraus_channel(const kraus_channel &other)

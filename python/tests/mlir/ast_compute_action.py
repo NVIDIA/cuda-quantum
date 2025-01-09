@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -7,8 +7,6 @@
 # ============================================================================ #
 
 # RUN: PYTHONPATH=../../ pytest -rP  %s | FileCheck %s
-
-
 
 import cudaq
 
@@ -36,7 +34,7 @@ def test_control_kernel():
 # CHECK-DAG:           %[[VAL_3:.*]] = arith.constant 1 : i64
 # CHECK:           %[[VAL_4:.*]] = quake.veq_size %[[VAL_0]] : (!quake.veq<?>) -> i64
 # CHECK:           %[[VAL_5:.*]] = arith.subi %[[VAL_4]], %[[VAL_1]] : i64
-# CHECK:           %[[VAL_6:.*]] = quake.subveq %[[VAL_0]], %[[VAL_2]], %[[VAL_5]] : (!quake.veq<?>, i64, i64) -> !quake.veq<?>
+# CHECK:           %[[VAL_6:.*]] = quake.subveq %[[VAL_0]], 0, %[[VAL_5]] : (!quake.veq<?>, i64) -> !quake.veq<?>
 # CHECK:           %[[VAL_7:.*]] = arith.subi %[[VAL_4]], %[[VAL_3]] : i64
 # CHECK:           %[[VAL_8:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_7]]] : (!quake.veq<?>, i64) -> !quake.ref
 # CHECK:           %[[VAL_9:.*]] = cc.create_lambda {

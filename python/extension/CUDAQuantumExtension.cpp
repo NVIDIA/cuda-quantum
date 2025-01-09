@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -10,12 +10,15 @@
 #include "cudaq.h"
 #include "cudaq/Support/Version.h"
 #include "cudaq/platform/orca/orca_qpu.h"
+#include "runtime/common/py_AnalogHamiltonian.h"
 #include "runtime/common/py_CustomOpRegistry.h"
+#include "runtime/common/py_EvolveResult.h"
 #include "runtime/common/py_ExecutionContext.h"
 #include "runtime/common/py_NoiseModel.h"
 #include "runtime/common/py_ObserveResult.h"
 #include "runtime/common/py_SampleResult.h"
 #include "runtime/cudaq/algorithms/py_draw.h"
+#include "runtime/cudaq/algorithms/py_evolve.h"
 #include "runtime/cudaq/algorithms/py_observe_async.h"
 #include "runtime/cudaq/algorithms/py_optimizer.h"
 #include "runtime/cudaq/algorithms/py_sample_async.h"
@@ -100,6 +103,8 @@ PYBIND11_MODULE(_quakeDialects, m) {
   cudaq::bindExecutionContext(cudaqRuntime);
   cudaq::bindExecutionManager(cudaqRuntime);
   cudaq::bindPyState(cudaqRuntime, *holder.get());
+  cudaq::bindPyEvolve(cudaqRuntime);
+  cudaq::bindEvolveResult(cudaqRuntime);
   cudaq::bindPyDraw(cudaqRuntime);
   cudaq::bindPyTranslate(cudaqRuntime);
   cudaq::bindSampleAsync(cudaqRuntime);
@@ -246,6 +251,9 @@ PYBIND11_MODULE(_quakeDialects, m) {
   cudaqRuntime.def("isTerminator", [](MlirOperation op) {
     return unwrap(op)->hasTrait<mlir::OpTrait::IsTerminator>();
   });
+
+  auto ahsSubmodule = cudaqRuntime.def_submodule("ahs");
+  cudaq::bindAnalogHamiltonian(ahsSubmodule);
 
   cudaqRuntime.def(
       "isRegisteredDeviceModule",

@@ -1,5 +1,5 @@
 /********************************************************** -*- tablegen -*- ***
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -119,7 +119,12 @@ def cc_StructType : CCType<"Struct", "struct",
   ];
 
   let extraClassDeclaration = [{
+    // O(1)
     bool isEmpty() const { return getMembers().empty(); }
+
+    // O(n)
+    std::size_t getNumMembers() const { return getMembers().size(); }
+
     Type getMember(unsigned position) { return getMembers()[position]; }
   }];
 }

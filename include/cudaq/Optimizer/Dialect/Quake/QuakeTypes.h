@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -52,5 +52,8 @@ inline bool isLinearType(mlir::Type ty) {
 inline bool isQuantumValueType(mlir::Type ty) {
   return isLinearType(ty) || mlir::isa<quake::ControlType>(ty);
 }
+
+bool isConstantQuantumRefType(mlir::Type ty);
+std::size_t getAllocationSize(mlir::Type ty);
 
 } // namespace quake

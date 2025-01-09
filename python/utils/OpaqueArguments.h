@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -101,7 +101,7 @@ inline py::args simplifiedValidateInputArguments(py::args &args) {
 
       arg = args[i].attr("tolist")();
     } else if (py::isinstance<py::str>(arg)) {
-      arg = cudaq::pauli_word(py::cast<std::string>(arg));
+      arg = py::cast<std::string>(arg);
     } else if (py::isinstance<py::list>(arg)) {
       py::list arg_list = py::cast<py::list>(arg);
       const bool all_strings = [&]() {
@@ -330,8 +330,7 @@ inline void packArgs(OpaqueArguments &argData, py::args args,
           addArgument(argData, arg.cast<long>());
         })
         .Case([&](cudaq::cc::CharspanType ty) {
-          addArgument(argData,
-                      cudaq::pauli_word(arg.cast<cudaq::pauli_word>().str()));
+          addArgument(argData, arg.cast<cudaq::pauli_word>().str());
         })
         .Case([&](cudaq::cc::PointerType ty) {
           if (isa<cudaq::cc::StateType>(ty.getElementType())) {
@@ -432,8 +431,7 @@ inline void packArgs(OpaqueArguments &argData, py::args args,
               .Case([&](cudaq::cc::CharspanType type) {
                 genericVecAllocator.template operator()<cudaq::pauli_word>(
                     [](py::handle element, int index, int elementIndex) {
-                      auto pw = element.cast<cudaq::pauli_word>();
-                      return cudaq::pauli_word(pw.str());
+                      return element.cast<cudaq::pauli_word>().str();
                     });
                 return;
               })

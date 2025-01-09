@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -13,27 +13,30 @@ import pytest
 
 import cudaq
 
+
 def test_custom_quantum_type():
     from dataclasses import dataclass
+
     @dataclass
     class patch:
-        data : cudaq.qview 
-        ancx : cudaq.qview 
-        ancz : cudaq.qview 
-    
+        data: cudaq.qview
+        ancx: cudaq.qview
+        ancz: cudaq.qview
+
     @cudaq.kernel
-    def logicalH(p : patch):
+    def logicalH(p: patch):
         h(p.data)
+
     print(logicalH)
-    
-    @cudaq.kernel 
-    def logicalX(p : patch):
+
+    @cudaq.kernel
+    def logicalX(p: patch):
         x(p.ancx)
-    
-    @cudaq.kernel 
-    def logicalZ(p : patch):
+
+    @cudaq.kernel
+    def logicalZ(p: patch):
         z(p.ancz)
-    
+
     @cudaq.kernel
     def run():
         q = cudaq.qvector(2)
@@ -44,9 +47,10 @@ def test_custom_quantum_type():
         logicalH(p)
         logicalX(p)
         logicalZ(p)
-    
+
     # Test here is that it compiles and runs successfully
     print(run)
+
 
 # NAUGHTY-LABEL:   func.func @__nvqpp__mlirgen__logicalH(
 # NAUGHTY-SAME:      %[[VAL_0:.*]]: !quake.struq<"patch": !quake.veq<?>, !quake.veq<?>, !quake.veq<?>>) {
@@ -79,4 +83,3 @@ def test_custom_quantum_type():
 # CHECK:           call @__nvqpp__mlirgen__logicalZ(%[[VAL_3]]) : (!quake.struq<"patch": !quake.veq<?>, !quake.veq<?>, !quake.veq<?>>) -> ()
 # CHECK:           return
 # CHECK:         }
-

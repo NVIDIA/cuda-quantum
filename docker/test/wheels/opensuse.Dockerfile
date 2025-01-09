@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -11,7 +11,7 @@ FROM ${base_image}
 
 ARG python_version=3.11
 ARG pip_install_flags="--user"
-ARG preinstalled_modules="numpy pytest nvidia-cublas-cu11"
+ARG preinstalled_modules="numpy pytest nvidia-cublas-cu12"
 
 ARG DEBIAN_FRONTEND=noninteractive
 RUN zypper clean --all && zypper ref && zypper --non-interactive up --no-recommends \
@@ -23,7 +23,7 @@ RUN if [ -n "$preinstalled_modules" ]; then \
     fi
 
 ARG optional_dependencies=
-ARG cuda_quantum_wheel=cuda_quantum_cu11-0.0.0-cp39-cp39-manylinux_2_28_x86_64.whl
+ARG cuda_quantum_wheel=cuda_quantum_cu12-0.0.0-cp39-cp39-manylinux_2_28_x86_64.whl
 COPY $cuda_quantum_wheel /tmp/$cuda_quantum_wheel
 COPY docs/sphinx/examples/python /tmp/examples/
 COPY docs/sphinx/applications/python /tmp/applications/

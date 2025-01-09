@@ -2,10 +2,10 @@ header:
   license:
     spdx-id: Apache-2.0
     copyright-owner: NVIDIA Corporation & Affiliates
-    software-name: CUDA Quantum
+    software-name: CUDA-Q
 
     content: |
-      Copyright (c) 2023 - 2024 NVIDIA Corporation & Affiliates.
+      Copyright (c) 2023 - 2025 NVIDIA Corporation & Affiliates.
       All rights reserved.
 
       This source code and the accompanying materials are made available under

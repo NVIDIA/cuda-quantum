@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -29,9 +29,9 @@ namespace cudaq::opt {
 using namespace mlir;
 
 namespace {
-/// For a `cc:CreateStateOp`, get the number of qubits allocated.
+/// For a `quake.create_state`, get the number of qubits allocated.
 static std::size_t getStateSize(Operation *op) {
-  if (auto createStateOp = dyn_cast<cudaq::cc::CreateStateOp>(op)) {
+  if (auto createStateOp = dyn_cast<quake::CreateStateOp>(op)) {
     auto sizeOperand = createStateOp.getOperand(1);
     auto defOp = sizeOperand.getDefiningOp();
     while (defOp && !dyn_cast<arith::ConstantIntOp>(defOp))
@@ -44,28 +44,27 @@ static std::size_t getStateSize(Operation *op) {
 }
 
 // clang-format off
-/// Replace `cc.get_number_of_qubits` by a constant.
+/// Replace `quake.get_number_of_qubits` by a constant.
 /// ```
 /// %c8_i64 = arith.constant 8 : i64
-/// %2 = cc.create_state %3, %c8_i64 : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
-/// %3 = cc.get_number_of_qubits %2 : i64
+/// %2 = quake.create_state %3, %c8_i64 : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
+/// %3 = quake.get_number_of_qubits %2 : i64
 /// ...
 /// ───────────────────────────────────────────
 /// %c8_i64 = arith.constant 8 : i64
-/// %2 = cc.create_state %3, %c8_i64 : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
+/// %2 = quake.create_state %3, %c8_i64 : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
 /// %3 = arith.constant 3 : i64
 /// ```
 // clang-format on
 class NumberOfQubitsPattern
-    : public OpRewritePattern<cudaq::cc::GetNumberOfQubitsOp> {
+    : public OpRewritePattern<quake::GetNumberOfQubitsOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(cudaq::cc::GetNumberOfQubitsOp op,
+  LogicalResult matchAndRewrite(quake::GetNumberOfQubitsOp op,
                                 PatternRewriter &rewriter) const override {
     auto stateOp = op.getOperand();
-    if (auto createStateOp =
-            stateOp.getDefiningOp<cudaq::cc::CreateStateOp>()) {
+    if (auto createStateOp = stateOp.getDefiningOp<quake::CreateStateOp>()) {
       auto size = getStateSize(createStateOp);
       rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(
           op, std::countr_zero(size), rewriter.getI64Type());
@@ -76,11 +75,11 @@ public:
 };
 
 // clang-format off
-/// Remove `cc.create_state` instructions and pass their data directly to
+/// Remove `quake.create_state` instructions and pass their data directly to
 /// the `quake.state_init` instruction instead.
 /// ```
 /// %2 = cc.cast %1 : (!cc.ptr<!cc.array<complex<f32> x 8>>) -> !cc.ptr<i8>
-/// %3 = cc.create_state %3, %c8_i64 : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
+/// %3 = quake.create_state %3, %c8_i64 : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
 /// %4 = quake.alloca !quake.veq<?>[%0 : i64]
 /// %5 = quake.init_state %4, %3 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
 /// ───────────────────────────────────────────
@@ -99,7 +98,7 @@ public:
     auto state = initState.getOperand(1);
     auto targets = initState.getTargets();
 
-    if (auto createStateOp = state.getDefiningOp<cudaq::cc::CreateStateOp>()) {
+    if (auto createStateOp = state.getDefiningOp<quake::CreateStateOp>()) {
       auto dataOp = createStateOp->getOperand(0);
       if (auto cast = dataOp.getDefiningOp<cudaq::cc::CastOp>())
         dataOp = cast.getOperand();
@@ -138,7 +137,7 @@ public:
       llvm::SmallVector<Operation *> usedStates;
 
       func.walk([&](Operation *op) {
-        if (isa<cudaq::cc::CreateStateOp>(op)) {
+        if (isa<quake::CreateStateOp>(op)) {
           if (!op->getUses().empty())
             usedStates.push_back(op);
         }
@@ -157,10 +156,8 @@ public:
 
             builder.setInsertionPoint(op);
             for (auto createStateOp : usedStates) {
-              auto result = cast<cudaq::cc::CreateStateOp>(createStateOp);
-              builder.create<func::CallOp>(loc, std::nullopt,
-                                           cudaq::deleteCudaqState,
-                                           mlir::ValueRange{result});
+              auto result = cast<quake::CreateStateOp>(createStateOp);
+              builder.create<quake::DeleteStateOp>(loc, result);
             }
           }
         });

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
-#include "../../runtime/cudaq/platform/quera/AnalogHamiltonianSimulation.h"
+#include "common/AnalogHamiltonian.h"
 #include <gtest/gtest.h>
 
 namespace {
@@ -222,6 +222,65 @@ const std::string referenceResult = R"(
 }
 )";
 
+const std::string measurements_only = R"(
+{
+  "measurements": [
+    {
+      "shotMetadata": {
+        "shotStatus": "Success"
+      },
+      "shotResult": {
+        "postSequence": [
+          0,
+          1,
+          1,
+          0,
+          0,
+          0,
+          1,
+          1
+        ],
+        "preSequence": [
+          1,
+          1,
+          1,
+          1,
+          0,
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "shotMetadata": {
+        "shotStatus": "Success"
+      },
+      "shotResult": {
+        "postSequence": [
+          1,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "preSequence": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      }
+    }
+  ]
+})";
 } // namespace
 
 CUDAQ_TEST(QueraTester, checkProgramJsonify) {
@@ -235,18 +294,18 @@ CUDAQ_TEST(QueraTester, checkProgramJsonify) {
 
   cudaq::ahs::PhysicalField Omega;
   Omega.time_series = std::vector<std::pair<double, double>>{
-      {0.0, 0.0}, {3.0e-7, 2.51327e7}, {2.7e-6, 2.51327e7}, {3.0e-6, 0.0}};
+      {0.0, 0.0}, {2.51327e7, 3.0e-7}, {2.51327e7, 2.7e-6}, {0.0, 3.0e-6}};
 
   cudaq::ahs::PhysicalField Phi;
   Phi.time_series =
-      std::vector<std::pair<double, double>>{{0.0, 0.0}, {3.0e-6, 0.0}};
+      std::vector<std::pair<double, double>>{{0.0, 0.0}, {0.0, 3.0e-6}};
 
   cudaq::ahs::PhysicalField Delta;
   Delta.time_series =
-      std::vector<std::pair<double, double>>{{0.0, -1.25664e8},
-                                             {3.0e-7, -1.25664e8},
-                                             {2.7e-6, 1.25664e8},
-                                             {3.0e-6, 1.25664e8}};
+      std::vector<std::pair<double, double>>{{-1.25664e8, 0.0},
+                                             {-1.25664e8, 3.0e-7},
+                                             {1.25664e8, 2.7e-6},
+                                             {1.25664e8, 3.0e-6}};
   cudaq::ahs::DrivingField drive;
   drive.amplitude = Omega;
   drive.phase = Phi;
@@ -255,7 +314,7 @@ CUDAQ_TEST(QueraTester, checkProgramJsonify) {
 
   cudaq::ahs::PhysicalField localDetuning;
   localDetuning.time_series = std::vector<std::pair<double, double>>{
-      {0.0, -1.25664e8}, {3.0e-6, 1.25664e8}};
+      {-1.25664e8, 0.0}, {1.25664e8, 3.0e-6}};
   localDetuning.pattern = std::vector<double>{0.5, 1.0, 0.5, 0.5, 0.5, 0.5};
   cudaq::ahs::LocalDetuning detuning;
   detuning.magnitude = localDetuning;
@@ -357,4 +416,48 @@ CUDAQ_TEST(QueraTester, checkResultJsonify) {
   EXPECT_EQ(
       refResult.additionalMetadata.value().queraMetadata.numSuccessfulShots,
       tr.additionalMetadata.value().queraMetadata.numSuccessfulShots);
+}
+
+CUDAQ_TEST(QueraTester, checkProcessResult) {
+  nlohmann::json resultsJson = nlohmann::json::parse(measurements_only);
+  std::unordered_map<std::string, std::size_t> globalReg;
+  std::unordered_map<std::string, std::size_t> preSeqReg;
+  std::unordered_map<std::string, std::size_t> postSeqReg;
+  if (resultsJson.contains("measurements")) {
+    auto const &measurements = resultsJson.at("measurements");
+    for (auto const &m : measurements) {
+      cudaq::ahs::ShotMeasurement sm = m;
+      if (sm.shotMetadata.shotStatus == "Success") {
+        auto pre = sm.shotResult.preSequence.value();
+        std::string preString = "";
+        for (int bit : pre)
+          preString += std::to_string(bit);
+        preSeqReg[preString]++;
+        auto post = sm.shotResult.postSequence.value();
+        std::string postString = "";
+        for (int bit : post)
+          postString += std::to_string(bit);
+        postSeqReg[postString]++;
+        std::vector<int> state_idx(pre.size());
+        for (size_t i = 0; i < pre.size(); ++i)
+          state_idx[i] = pre[i] * (1 + post[i]);
+        std::string bitString = "";
+        for (int bit : state_idx)
+          bitString += std::to_string(bit);
+        globalReg[bitString]++;
+      }
+    }
+  }
+  for (const auto &pair : preSeqReg) {
+    std::cout << pair.first << ": " << pair.second << std::endl;
+    EXPECT_EQ(1, pair.second);
+  }
+  for (const auto &pair : postSeqReg) {
+    std::cout << pair.first << ": " << pair.second << std::endl;
+    EXPECT_EQ(1, pair.second);
+  }
+  for (const auto &pair : globalReg) {
+    std::cout << pair.first << ": " << pair.second << std::endl;
+    EXPECT_EQ(1, pair.second);
+  }
 }

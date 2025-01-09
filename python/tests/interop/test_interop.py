@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -222,9 +222,11 @@ def test_cpp_kernel_from_python_2():
 
     callUCCSD()
 
+
 def test_capture():
+
     @cudaq.kernel
-    def takesCapture(s : int):
+    def takesCapture(s: int):
         pass
 
     spin = 0
@@ -232,4 +234,5 @@ def test_capture():
     @cudaq.kernel(verbose=True)
     def entry():
         takesCapture(spin)
+
     entry.compile()

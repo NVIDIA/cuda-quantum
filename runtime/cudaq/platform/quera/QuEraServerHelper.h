@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -22,6 +22,11 @@ public:
   /// executions and returns the corresponding payload.
   ServerJobPayload
   createJob(std::vector<KernelExecution> &circuitCodes) override;
+
+  /// @brief Given a successful job and the success response,
+  /// retrieve the results and map them to a sample_result.
+  cudaq::sample_result processResults(ServerMessage &postJobResponse,
+                                      std::string &jobId) override;
 };
 
 } // namespace cudaq

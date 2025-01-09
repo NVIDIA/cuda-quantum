@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -49,6 +49,9 @@ protected:
   std::future<sample_result> inFuture;
   bool wrapsFutureSampling = false;
 
+  /// @brief Whether or not this is in support of an "observe" call
+  bool isObserve = false;
+
 public:
   /// @brief The constructor
   future() = default;
@@ -68,6 +71,11 @@ public:
   future(std::vector<Job> &_jobs, std::string &qpuNameIn,
          std::map<std::string, std::string> &config)
       : jobs(_jobs), qpuName(qpuNameIn), serverConfig(config) {}
+
+  future(std::vector<Job> &_jobs, std::string &qpuNameIn,
+         std::map<std::string, std::string> &config, bool isObserve)
+      : jobs(_jobs), qpuName(qpuNameIn), serverConfig(config),
+        isObserve(isObserve) {}
 
   future &operator=(future &other);
   future &operator=(future &&other);
@@ -94,13 +102,19 @@ protected:
   details::future result;
 
   /// @brief A spin operator, used for observe future tasks
-  spin_op *spinOp = nullptr;
+  std::optional<spin_op> spinOp;
 
 public:
   async_result() = default;
-  async_result(spin_op *s) : spinOp(s) {}
+  async_result(spin_op *s) {
+    if (s)
+      spinOp = *s;
+  }
   async_result(details::future &&f, spin_op *op = nullptr)
-      : result(std::move(f)), spinOp(op) {}
+      : result(std::move(f)) {
+    if (op)
+      spinOp = *op;
+  }
 
   /// @brief Return the asynchronously computed data, will
   /// wait until the data is ready.
@@ -111,13 +125,13 @@ public:
       return data;
 
     if constexpr (std::is_same_v<T, observe_result>) {
-      auto checkRegName = spinOp->to_string(false);
-      if (data.has_expectation(checkRegName))
-        return observe_result(data.expectation(checkRegName), *spinOp, data);
-
       if (!spinOp)
         throw std::runtime_error(
             "Returning an observe_result requires a spin_op.");
+
+      auto checkRegName = spinOp->to_string(false);
+      if (data.has_expectation(checkRegName))
+        return observe_result(data.expectation(checkRegName), *spinOp, data);
 
       // this assumes we ran in shots mode.
       double sum = 0.0;

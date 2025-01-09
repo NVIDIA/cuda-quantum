@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -89,7 +89,6 @@ protected:
     pm.addPass(mlir::createCanonicalizerPass());
     pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
     pm.addPass(createInlinerPass());
-    pm.addPass(cudaq::opt::createExpandMeasurementsPass());
     pm.addPass(createCanonicalizerPass());
     pm.addPass(createCSEPass());
     if (failed(pm.run(cloned)))

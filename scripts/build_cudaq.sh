@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -39,9 +39,6 @@
 # see https://developer.nvidia.com/blog/building-cuda-applications-cmake/
 # (specifically also CUDA_SEPARABLE_COMPILATION)
 
-LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-/opt/llvm}
-CUQUANTUM_INSTALL_PREFIX=${CUQUANTUM_INSTALL_PREFIX:-/opt/nvidia/cuquantum}
-CUTENSOR_INSTALL_PREFIX=${CUTENSOR_INSTALL_PREFIX:-/opt/nvidia/cutensor}
 CUDAQ_INSTALL_PREFIX=${CUDAQ_INSTALL_PREFIX:-"$HOME/.cudaq"}
 
 # Process command line arguments
@@ -105,11 +102,18 @@ if [ "$cuda_version" = "" ] || [ "$cuda_major" -lt "11" ] || ([ "$cuda_minor" -l
   unset cuda_driver
 else 
   echo "CUDA version $cuda_version detected."
+  if [ -z "$CUQUANTUM_INSTALL_PREFIX" ] && [ -x "$(command -v pip)" ] && [ -n "$(pip list | grep -o cuquantum-python-cu$cuda_major)" ]; then
+    CUQUANTUM_INSTALL_PREFIX="$(pip show cuquantum-python-cu$cuda_major | sed -nE 's/Location: (.*)$/\1/p')/cuquantum"
+  fi
   if [ ! -d "$CUQUANTUM_INSTALL_PREFIX" ] || [ -z "$(ls -A "$CUQUANTUM_INSTALL_PREFIX"/* 2> /dev/null)" ]; then
     echo "No cuQuantum installation detected. Please set the environment variable CUQUANTUM_INSTALL_PREFIX to enable cuQuantum integration."
     echo "Some backends will be omitted from the build."
   else
     echo "Using cuQuantum installation in $CUQUANTUM_INSTALL_PREFIX."
+  fi
+
+  if [ -z "$CUTENSOR_INSTALL_PREFIX" ] && [ -x "$(command -v pip)" ] && [ -n "$(pip list | grep -o cutensor-cu$cuda_major)" ]; then
+    CUTENSOR_INSTALL_PREFIX="$(pip show cutensor-cu$cuda_major | sed -nE 's/Location: (.*)$/\1/p')/cutensor"
   fi
   if [ ! -d "$CUTENSOR_INSTALL_PREFIX" ] || [ -z "$(ls -A "$CUTENSOR_INSTALL_PREFIX"/* 2> /dev/null)" ]; then
     echo "No cuTensor installation detected. Please set the environment variable CUTENSOR_INSTALL_PREFIX to enable cuTensor integration."
@@ -172,9 +176,18 @@ cmake_args="-G Ninja '"$repo_root"' \
 # here, but keep the definition for CMAKE_CUDA_HOST_COMPILER.
 if $verbose; then 
   echo $cmake_args | xargs cmake
+  status=$?
 else
   echo $cmake_args | xargs cmake \
     2> logs/cmake_error.txt 1> logs/cmake_output.txt
+  status=$?
+fi
+
+# Check if cmake succeeded
+if [ "$status" -ne 0 ]; then
+  echo -e "\e[01;31mError: CMake configuration failed. Please check logs/cmake_error.txt for details.\e[0m" >&2
+  cat logs/cmake_error.txt >&2
+  cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
 fi
 
 # Build and install CUDA-Q

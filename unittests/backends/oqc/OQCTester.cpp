@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -13,10 +13,11 @@
 #include <gtest/gtest.h>
 
 std::string mockPort = "62442";
-std::string email = "test@test.com";
-std::string password = "password";
+std::string auth_token = "fake_auth_token";
+std::string device_id = "qpu:uk:-1:1234567890";
+std::string entry_url = "http://localhost:" + mockPort;
 std::string backendStringTemplate =
-    "oqc;emulate;false;url;http://localhost:{};email;{};password;{}";
+    "oqc;emulate;false;url;http://localhost:{};auth_token;{};device;{};";
 
 bool isValidExpVal(double value) {
   // give us some wiggle room while keep the tests fast
@@ -25,7 +26,7 @@ bool isValidExpVal(double value) {
 
 CUDAQ_TEST(OQCTester, checkSampleSync) {
   auto backendString = fmt::format(fmt::runtime(backendStringTemplate),
-                                   mockPort, email, password);
+                                   mockPort, auth_token, device_id);
 
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendString);
@@ -42,7 +43,7 @@ CUDAQ_TEST(OQCTester, checkSampleSync) {
 
 CUDAQ_TEST(OQCTester, checkSampleAsync) {
   auto backendString = fmt::format(fmt::runtime(backendStringTemplate),
-                                   mockPort, email, password);
+                                   mockPort, auth_token, device_id);
 
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendString);
@@ -59,7 +60,7 @@ CUDAQ_TEST(OQCTester, checkSampleAsync) {
 
 CUDAQ_TEST(OQCTester, checkSampleAsyncLoadFromFile) {
   auto backendString = fmt::format(fmt::runtime(backendStringTemplate),
-                                   mockPort, email, password);
+                                   mockPort, auth_token, device_id);
 
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendString);
@@ -92,7 +93,7 @@ CUDAQ_TEST(OQCTester, checkSampleAsyncLoadFromFile) {
 
 CUDAQ_TEST(OQCTester, checkObserveSync) {
   auto backendString = fmt::format(fmt::runtime(backendStringTemplate),
-                                   mockPort, email, password);
+                                   mockPort, auth_token, device_id);
 
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendString);
@@ -115,7 +116,7 @@ CUDAQ_TEST(OQCTester, checkObserveSync) {
 
 CUDAQ_TEST(OQCTester, checkObserveAsync) {
   auto backendString = fmt::format(fmt::runtime(backendStringTemplate),
-                                   mockPort, email, password);
+                                   mockPort, auth_token, device_id);
 
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendString);
@@ -140,7 +141,7 @@ CUDAQ_TEST(OQCTester, checkObserveAsync) {
 
 CUDAQ_TEST(OQCTester, checkObserveAsyncLoadFromFile) {
   auto backendString = fmt::format(fmt::runtime(backendStringTemplate),
-                                   mockPort, email, password);
+                                   mockPort, auth_token, device_id);
 
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendString);
@@ -177,7 +178,9 @@ CUDAQ_TEST(OQCTester, checkObserveAsyncLoadFromFile) {
 }
 
 int main(int argc, char **argv) {
-  setenv("OQC_PASSWORD", password.c_str(), 0);
+  setenv("OQC_URL", entry_url.c_str(), 0);
+  setenv("OQC_AUTH_TOKEN", auth_token.c_str(), 0);
+  setenv("OQC_DEVICE", device_id.c_str(), 0);
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }

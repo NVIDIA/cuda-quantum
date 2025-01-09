@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -34,8 +34,8 @@ namespace {
 /// the state.
 ///
 /// ```
-///  %0 = cc.get_state "__nvqpp__mlirgen__test_init_state.modified_0" : !cc.ptr<!cc.state>
-///  %1 = cc.get_number_of_qubits %0 : (!cc.ptr<!cc.state>) -> i64
+///  %0 = quake.get_state "callee.modified_0" : !cc.ptr<!cc.state>
+///  %1 = quake.get_number_of_qubits %0 : (!cc.ptr<!cc.state>) -> i64
 ///  %2 = quake.alloca !quake.veq<?>[%1 : i64]
 ///  %3 = quake.init_state %2, %0 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
 /// ───────────────────────────────────────────
@@ -57,7 +57,7 @@ public:
       if (isa<cudaq::cc::StateType>(ptrTy.getElementType())) {
         auto *numOfQubits = alloca->getOperand(0).getDefiningOp();
 
-        if (auto getState = stateOp.getDefiningOp<cudaq::cc::GetStateOp>()) {
+        if (auto getState = stateOp.getDefiningOp<quake::GetStateOp>()) {
           auto calleeName = getState.getCalleeName();
           rewriter.replaceOpWithNewOp<func::CallOp>(
               initState, initState.getType(), calleeName, mlir::ValueRange{});
@@ -70,7 +70,7 @@ public:
             return failure();
           }
 
-          if (isa<cudaq::cc::GetNumberOfQubitsOp>(numOfQubits)) {
+          if (isa<quake::GetNumberOfQubitsOp>(numOfQubits)) {
             if (numOfQubits->getUses().empty())
               rewriter.eraseOp(numOfQubits);
             else {

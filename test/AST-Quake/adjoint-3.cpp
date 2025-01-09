@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -99,7 +99,7 @@ struct run_circuit {
 // ADJOINT:           %[[VAL_10:.*]] = arith.subi %[[VAL_9]], %[[VAL_7]] : i32
 // ADJOINT:           %[[VAL_11:.*]] = cc.cast signed %[[VAL_10]] : (i32) -> i64
 // ADJOINT:           %[[VAL_12:.*]] = arith.subi %[[VAL_11]], %[[VAL_5]] : i64
-// ADJOINT:           %[[VAL_13:.*]] = quake.subveq %[[VAL_0]], %[[VAL_6]], %[[VAL_12]] : (!quake.veq<?>, i64, i64) -> !quake.veq<?>
+// ADJOINT:           %[[VAL_13:.*]] = quake.subveq %[[VAL_0]], 0, %[[VAL_12]] : (!quake.veq<?>, i64) -> !quake.veq<?>
 // ADJOINT:           %[[VAL_14:.*]] = quake.veq_size %[[VAL_13]] : (!quake.veq<?>) -> i64
 // ADJOINT:           %[[VAL_16:.*]] = arith.subi %[[VAL_9]], %[[VAL_7]] : i32
 // ADJOINT:           %[[VAL_18:.*]] = math.fpowi %[[VAL_2]], %[[VAL_16]] : f64, i32

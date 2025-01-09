@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -80,6 +80,6 @@ def test_builder_look_up():
 # CHECK:           quake.custom_op @__nvqpp__mlirgen__foo_2_generator_1.rodata {{\[}}%[[VAL_4]]] %[[VAL_3]] : (!quake.veq<2>, !quake.veq<1>) -> ()
 # CHECK:           return
 # CHECK:         }
-# CHECK-DAG:         cc.global constant @__nvqpp__mlirgen__foo_0_generator_1.rodata (dense<[{{.*}}]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
-# CHECK-DAG:         cc.global constant @__nvqpp__mlirgen__foo_1_generator_1.rodata (dense<[{{.*}}]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
-# CHECK-DAG:         cc.global constant @__nvqpp__mlirgen__foo_2_generator_1.rodata (dense<[{{.*}}]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+# CHECK-DAG:     cc.global constant private @__nvqpp__mlirgen__foo_0_generator_1.rodata (dense<[{{.*}}]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+# CHECK-DAG:     cc.global constant private @__nvqpp__mlirgen__foo_1_generator_1.rodata (dense<[{{.*}}]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+# CHECK-DAG:     cc.global constant private @__nvqpp__mlirgen__foo_2_generator_1.rodata (dense<[{{.*}}]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>

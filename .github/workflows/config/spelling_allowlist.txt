@@ -29,6 +29,7 @@ DOI
 Deuteron
 Doxygen
 FPGAs
+Fock
 Fortran
 Fourier
 GHCR
@@ -44,6 +45,8 @@ Hadamards
 Hamiltonian
 Hamiltonians
 IQM
+InfiniBand
+Infleqtion
 IonQ
 JIT
 JSON
@@ -91,6 +94,7 @@ QPUs
 QPU’s
 QTX
 Qiskit
+QuEra
 QuTiP
 Quake
 Quantinuum
@@ -102,7 +106,9 @@ SLED
 SLES
 SLURM
 SVD
+Stim
 Superpositions
+Superstaq
 TBI
 TCP
 TableGen
@@ -172,6 +178,7 @@ decrementing
 dendrogram
 deserialize
 destructor
+detuning
 dimensionality
 discoverable
 discretization
@@ -215,6 +222,8 @@ inlined
 inlining
 instantiation
 instantiations
+integrator
+integrators
 interferometer
 interoperational
 intrinsics
@@ -301,6 +310,7 @@ templated
 toolchain
 toolchains
 toolset
+transmon
 trotterization
 unary
 uncomputation
@@ -314,5 +324,6 @@ variadic
 variational
 verifier
 vertices
+waveforms
 wavefunction
 workflow

@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -32,8 +32,9 @@ public:
                void *args, std::uint64_t voidStarSize,
                std::uint64_t resultOffset,
                const std::vector<void *> &rawArgs) override {
-    if (kernelName.find(cudaq::runtime::cudaqAHSPrefixName) != 0)
-      throw std::runtime_error("Not supported on this target.");
+    if (kernelName.find(cudaq::runtime::cudaqAHKPrefixName) != 0)
+      throw std::runtime_error(
+          "Arbitrary kernel execution is not supported on this target.");
 
     cudaq::info("Launching remote kernel ({})", kernelName);
     std::vector<cudaq::KernelExecution> codes;
@@ -45,8 +46,18 @@ public:
     std::vector<std::size_t> mapping_reorder_idx;
     codes.emplace_back(name, strArgs, j, mapping_reorder_idx);
 
-    cudaq::details::future future;
-    future = executor->execute(codes);
+    if (executionContext) {
+      executor->setShots(executionContext->shots);
+      cudaq::details::future future;
+      future = executor->execute(codes);
+      // Keep this asynchronous if requested
+      if (executionContext->asyncExec) {
+        executionContext->asyncResult = async_sample_result(std::move(future));
+        return {};
+      }
+      // Otherwise make this synchronous
+      executionContext->result = future.get();
+    }
     return {};
   }
 

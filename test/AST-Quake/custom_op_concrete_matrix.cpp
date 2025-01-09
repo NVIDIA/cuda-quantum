@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -33,5 +33,5 @@ __qpu__ void kernel_1() {
 // CHECK:           return
 // CHECK:         }
 
-// CHECK-DAG:     cc.global constant @__nvqpp__mlirgen__function_custom_h_generator_1._Z20custom_h_generator_{{.*}}vectorId{{.*}}.rodata_{{[0-9]+}} (dense<[(0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (-0.70710678118654757,0.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
-// CHECK-DAG:     cc.global constant @__nvqpp__mlirgen__function_custom_cnot_generator_2._Z23custom_cnot_generator_{{.*}}vectorId{{.*}}.rodata_{{[0-9]+}} (dense<[(1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<16xcomplex<f64>>) : !cc.array<complex<f64> x 16>
+// CHECK-DAG:     cc.global constant private @__nvqpp__mlirgen__function_custom_h_generator_1._Z20custom_h_generator_{{.*}}vectorId{{.*}}.rodata_{{[0-9]+}} (dense<[(0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (-0.70710678118654757,0.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+// CHECK-DAG:     cc.global constant private @__nvqpp__mlirgen__function_custom_cnot_generator_2._Z23custom_cnot_generator_{{.*}}vectorId{{.*}}.rodata_{{[0-9]+}} (dense<[(1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<16xcomplex<f64>>) : !cc.array<complex<f64> x 16>

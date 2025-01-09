@@ -1,5 +1,5 @@
 /***********************************************************-*- tablegen -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -150,13 +150,15 @@ def VeqType : QuakeType<"Veq", "veq"> {
 
   let parameters = (ins "std::size_t":$size);
 
-  let genVerifyDecl = 1;
   let hasCustomAssemblyFormat = 1;
   
   let extraClassDeclaration = [{
-    bool hasSpecifiedSize() const { return getSize(); }
+    static constexpr std::size_t kDynamicSize =
+      std::numeric_limits<std::size_t>::max();
+
+    bool hasSpecifiedSize() const { return getSize() != kDynamicSize; }
     static VeqType getUnsized(mlir::MLIRContext *ctx) {
-      return VeqType::get(ctx, 0);
+      return VeqType::get(ctx, kDynamicSize);
     }
   }];
 }
@@ -177,8 +179,10 @@ def StruqType : QuakeType<"Struq", "struq"> {
 
   let parameters = (ins
     "mlir::StringAttr":$name,
+    // members must be NonStruqRefType.
     ArrayRefParameter<"mlir::Type">:$members
   );
+
   let hasCustomAssemblyFormat = 1;
 
   let extraClassDeclaration = [{
