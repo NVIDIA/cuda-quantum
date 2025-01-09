@@ -1,12 +1,10 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-
-#pragma once
 
 #include "cudaq/qis/state.h"
 #include "cudaq/utils/tensor.h"
@@ -20,14 +18,16 @@
 
 namespace cudaq {
 
+// Limit the signature of the users callback function to accept a vector of ints
+// for the degree of freedom dimensions, and a vector of complex doubles for the
+// concrete parameter values.
 using Func = std::function<matrix_2(
-    std::vector<int>, std::map<std::string, std::complex<double>>)>;
+    std::map<int, int>, std::map<std::string, std::complex<double>>)>;
 
 class CallbackFunction {
 private:
-  // The user provided callback function that takes a vector defining the
-  // dimension for each degree of freedom it acts on, and a map of complex
-  // parameters.
+  // The user provided callback function that takes the degrees of
+  // freedom and a vector of complex parameters.
   Func _callback_func;
 
 public:
@@ -36,7 +36,7 @@ public:
   template <typename Callable>
   CallbackFunction(Callable &&callable) {
     static_assert(
-        std::is_invocable_r_v<matrix_2, Callable, std::vector<int>,
+        std::is_invocable_r_v<matrix_2, Callable, std::map<int, int>,
                               std::map<std::string, std::complex<double>>>,
         "Invalid callback function. Must have signature "
         "matrix_2("
@@ -45,39 +45,19 @@ public:
     _callback_func = std::forward<Callable>(callable);
   }
 
-  // copy constructor
+  // Copy constructor.
+  CallbackFunction(CallbackFunction &other) {
+    _callback_func = other._callback_func;
+  }
+
   CallbackFunction(const CallbackFunction &other) {
     _callback_func = other._callback_func;
   }
 
-  // move constructor.
-  CallbackFunction(CallbackFunction &&other) {
-    _callback_func = std::move(other._callback_func);
-  }
-
-  // assignment operator
-  CallbackFunction &operator=(const CallbackFunction &other) {
-    if (this != &other) {
-      _callback_func = other._callback_func;
-    }
-    return *this;
-  }
-
-  // move assignment operator
-  CallbackFunction &operator=(CallbackFunction &&other) {
-    if (this != &other) {
-      _callback_func = std::move(other._callback_func);
-    }
-    return *this;
-  }
-
-  bool operator!() { return (!_callback_func); }
-
   matrix_2
-  operator()(std::vector<int> relevant_dimensions,
+  operator()(std::map<int, int> degrees,
              std::map<std::string, std::complex<double>> parameters) const {
-    return _callback_func(std::move(relevant_dimensions),
-                          std::move(parameters));
+    return _callback_func(std::move(degrees), std::move(parameters));
   }
 };
 
@@ -104,30 +84,13 @@ public:
     _callback_func = std::forward<Callable>(callable);
   }
 
-  // copy constructor
-  ScalarCallbackFunction(const ScalarCallbackFunction &other) {
+  // Copy constructor.
+  ScalarCallbackFunction(ScalarCallbackFunction &other) {
     _callback_func = other._callback_func;
   }
 
-  // move constructor.
-  ScalarCallbackFunction(ScalarCallbackFunction &&other) {
-    _callback_func = std::move(other._callback_func);
-  }
-
-  // assignment operator
-  ScalarCallbackFunction &operator=(const ScalarCallbackFunction &other) {
-    if (this != &other) {
-      _callback_func = other._callback_func;
-    }
-    return *this;
-  }
-
-  // move assignment operator
-  ScalarCallbackFunction &operator=(ScalarCallbackFunction &&other) {
-    if (this != &other) {
-      _callback_func = std::move(other._callback_func);
-    }
-    return *this;
+  ScalarCallbackFunction(const ScalarCallbackFunction &other) {
+    _callback_func = other._callback_func;
   }
 
   bool operator!() { return (!_callback_func); }
@@ -142,20 +105,32 @@ public:
 /// or scalar operator is instantiated by other means than the `define`
 /// class method.
 class Definition {
-private:
-  std::string id;
-  CallbackFunction generator;
-  std::vector<int> m_expected_dimensions;
-
 public:
-  Definition(const std::string &operator_id,
-             std::vector<int> expected_dimensions, CallbackFunction &&create);
-  Definition(Definition &&def);
+  std::string id;
+
+  // The user-provided generator function should take a variable number of
+  // complex doubles for the parameters. It should return a
+  // `cudaq::tensor` type representing the operator
+  // matrix.
+  CallbackFunction generator;
+
+  // Constructor.
+  Definition();
+
+  // Destructor.
   ~Definition();
+
+  void create_definition(const std::string &operator_id,
+                         std::map<int, int> expected_dimensions,
+                         CallbackFunction &&create);
 
   // To call the generator function
   matrix_2 generate_matrix(
-      const std::vector<int> &relevant_dimensions,
+      const std::map<int, int> &degrees,
       const std::map<std::string, std::complex<double>> &parameters) const;
+
+private:
+  // Member variables
+  std::map<int, int> m_expected_dimensions;
 };
 } // namespace cudaq
