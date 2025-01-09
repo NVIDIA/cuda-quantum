@@ -100,8 +100,8 @@ def test_all_gates():
         rz(np.pi, q)
         s(q)
         t(q)
-        # mx(q) ## Unsupported
-        # my(q) ## Unsupported
+        mx(q)
+        my(q)
         mz(q)
 
     # Test here is that this runs
