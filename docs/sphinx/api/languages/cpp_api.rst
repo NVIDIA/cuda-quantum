@@ -242,7 +242,7 @@ Dynamics
 .. doxygenclass:: cudaq::scalar_operator
     :members:
 
-.. doxygenclass:: cudaq::matrix_operator
+.. doxygenclass:: cudaq::elementary_operator
     :members:
 
 .. doxygenclass:: cudaq::OperatorArithmetics

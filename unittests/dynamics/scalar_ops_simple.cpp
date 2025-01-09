@@ -6,10 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "cudaq/matrix.h"
 #include "cudaq/operators.h"
 #include <gtest/gtest.h>
 
-TEST(OperatorExpressions, checkScalarOpsSimpleComplex) {
+TEST(ExpressionTester, checkScalarOpsSimpleComplex) {
 
   std::complex<double> value_0 = 0.1 + 0.1;
   std::complex<double> value_1 = 0.1 + 1.0;
@@ -23,10 +24,10 @@ TEST(OperatorExpressions, checkScalarOpsSimpleComplex) {
     auto operator_2 = cudaq::scalar_operator(value_2);
     auto operator_3 = cudaq::scalar_operator(value_3);
 
-    auto got_value_0 = operator_0.evaluate();
-    auto got_value_1 = operator_1.evaluate();
-    auto got_value_2 = operator_2.evaluate();
-    auto got_value_3 = operator_3.evaluate();
+    auto got_value_0 = operator_0.evaluate({});
+    auto got_value_1 = operator_1.evaluate({});
+    auto got_value_2 = operator_2.evaluate({});
+    auto got_value_3 = operator_3.evaluate({});
 
     EXPECT_NEAR(std::abs(value_0), std::abs(got_value_0), 1e-5);
     EXPECT_NEAR(std::abs(value_1), std::abs(got_value_1), 1e-5);
@@ -63,7 +64,7 @@ TEST(OperatorExpressions, checkScalarOpsSimpleComplex) {
   }
 }
 
-TEST(OperatorExpressions, checkScalarOpsSimpleDouble) {
+TEST(ExpressionTester, checkScalarOpsSimpleDouble) {
 
   double value_0 = 0.1;
   double value_1 = 0.2;
@@ -77,10 +78,10 @@ TEST(OperatorExpressions, checkScalarOpsSimpleDouble) {
     auto operator_2 = cudaq::scalar_operator(value_2);
     auto operator_3 = cudaq::scalar_operator(value_3);
 
-    auto got_value_0 = operator_0.evaluate();
-    auto got_value_1 = operator_1.evaluate();
-    auto got_value_2 = operator_2.evaluate();
-    auto got_value_3 = operator_3.evaluate();
+    auto got_value_0 = operator_0.evaluate({});
+    auto got_value_1 = operator_1.evaluate({});
+    auto got_value_2 = operator_2.evaluate({});
+    auto got_value_3 = operator_3.evaluate({});
 
     EXPECT_NEAR(std::abs(value_0), std::abs(got_value_0), 1e-5);
     EXPECT_NEAR(std::abs(value_1), std::abs(got_value_1), 1e-5);

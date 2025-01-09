@@ -44,6 +44,11 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   common/NoiseModelTester.cpp
   integration/tracer_tester.cpp
   integration/gate_library_tester.cpp
+  dynamics/scalar_ops_simple.cpp
+  dynamics/scalar_ops_arithmetic.cpp
+  dynamics/elementary_ops_simple.cpp
+  dynamics/elementary_ops_arithmetic.cpp
+  dynamics/product_operators_arithmetic.cpp
 )
 
 # Make it so we can get function symbols
@@ -265,8 +270,8 @@ gtest_discover_tests(test_spin)
 # Create an executable for operators UnitTests
 set(CUDAQ_OPERATOR_TEST_SOURCES 
    dynamics/operator_sum.cpp
-   dynamics/matrix_ops_simple.cpp
-   dynamics/matrix_ops_arithmetic.cpp
+   dynamics/elementary_ops_simple.cpp
+   dynamics/elementary_ops_arithmetic.cpp
    dynamics/scalar_ops_simple.cpp
    dynamics/scalar_ops_arithmetic.cpp
    dynamics/product_operators_arithmetic.cpp
@@ -280,39 +285,9 @@ target_link_libraries(test_operators
   cudaq-spin
   cudaq-operators
   cudaq
-  gtest_main
-  fmt::fmt-header-only)
+  gtest_main)
 gtest_discover_tests(test_operators)
 
-if (CUDA_FOUND)
-  find_package(CUDAToolkit REQUIRED)
-  
-  # Create an executable for dynamics UnitTests
-  set(CUDAQ_DYNAMICS_TEST_SOURCES 
-    dynamics/test_runge_kutta_integrator.cpp
-    dynamics/test_helpers.cpp
-    dynamics/rydberg_hamiltonian.cpp
-    dynamics/test_cudm_helpers.cpp
-    dynamics/test_cudm_state.cpp
-    dynamics/test_cudm_time_stepper.cpp
-    dynamics/test_cudm_op_conversion.cpp
-    dynamics/test_cudm_expectation.cpp
-  )
-  add_executable(test_dynamics main.cpp ${CUDAQ_DYNAMICS_TEST_SOURCES})
-  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-    target_link_options(test_dynamics PRIVATE -Wl,--no-as-needed)
-  endif()
-  target_link_libraries(test_dynamics
-    PRIVATE
-    cudaq-spin
-    cudaq-operators
-    cudaq
-    ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
-    CUDA::cudart_static
-    gtest_main
-    fmt::fmt-header-only)
-  gtest_discover_tests(test_dynamics)
-endif()
 add_subdirectory(plugin)
 
 # build the test qudit execution manager
