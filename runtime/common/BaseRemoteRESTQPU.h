@@ -417,19 +417,6 @@ public:
     moduleOp->setAttrs(m_module->getAttrDictionary());
 
     for (auto &op : m_module.getOps()) {
-      // if (auto funcOp = dyn_cast<mlir::func::FuncOp>(op)) {
-      //   // Add function definitions for runtime functions that must
-      //   // be removed after synthesis in cleanup passes.
-      //   static const std::vector<llvm::StringRef> stateFuncs = {
-      //       cudaq::getNumQubitsFromCudaqState,
-      //       cudaq::createCudaqStateFromDataFP32,
-      //       cudaq::createCudaqStateFromDataFP64};
-
-      //   if (funcOp.getBody().empty() &&
-      //       std::find(stateFuncs.begin(), stateFuncs.end(), funcOp.getName()) !=
-      //           stateFuncs.end())
-      //     moduleOp.push_back(funcOp.clone());
-      // }
       // Add any global symbols, including global constant arrays.
       // Global constant arrays can be created during compilation,
       // `lift-array-alloc`, `argument-synthesis`, `quake-synthesizer`,
@@ -468,17 +455,11 @@ public:
         auto [kernels, substs] = argCon.collectAllSubstitutions();
         pm.addNestedPass<mlir::func::FuncOp>(
             cudaq::opt::createArgumentSynthesisPass(kernels, substs));
-        // pm.addNestedPass<mlir::func::FuncOp>(
-        //     cudaq::opt::createArgumentSynthesisPass(
-        //         mlir::SmallVector<mlir::StringRef>{kernels.begin(),
-        //                                            kernels.end()},
-        //         mlir::SmallVector<mlir::StringRef>{substs.begin(),
-        //                                            substs.end()}));
         pm.addPass(opt::createDeleteStates());
         pm.addNestedPass<mlir::func::FuncOp>(
             opt::createReplaceStateWithKernel());
         pm.addPass(mlir::createSymbolDCEPass());
-      } else if (updatedArgs) {;
+      } else if (updatedArgs) {
         cudaq::info("Run Quake Synth.\n");
         pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));
       }

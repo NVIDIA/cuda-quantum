@@ -7,9 +7,5 @@
 // ========================================================================== //
 
 cc.arg_subst[0] {
-  %0 = cc.string_literal "init" : !cc.ptr<!cc.array<i8 x 46>>
-  %1 = cc.cast %0 : (!cc.ptr<!cc.array<i8 x 46>>) -> !cc.ptr<i8>
-  %2 = func.call @__nvqpp_cudaq_state_get(%1) : (!cc.ptr<i8>) -> !cc.ptr<!cc.state>
-  %3 = cc.cast %2 : (!cc.ptr<!cc.state>) -> !cc.ptr<!cc.state>
+  %0 = quake.get_state "init" : !cc.ptr<!cc.state>
 }
-func.func private @__nvqpp_cudaq_state_get(!cc.ptr<i8>) -> !cc.ptr<!cc.state>

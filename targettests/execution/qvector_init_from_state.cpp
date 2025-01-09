@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -27,7 +27,7 @@
 struct test_init_state {
   void operator()(int n) __qpu__ {
     cudaq::qvector q(n);
-    ry(M_PI/2.0, q[0]);
+    ry(M_PI / 2.0, q[0]);
   }
 };
 
@@ -42,6 +42,26 @@ struct test_state_param2 {
   void operator()(cudaq::state *state, cudaq::pauli_word w) __qpu__ {
     cudaq::qvector q(state);
     cudaq::exp_pauli(1.0, q, w);
+  }
+};
+
+struct test_state_param3 {
+  void operator()(cudaq::state *state,
+                  std::vector<cudaq::pauli_word> &words) __qpu__ {
+    cudaq::qvector q(state);
+    for (std::size_t i = 0; i < words.size(); ++i) {
+      cudaq::exp_pauli(1.0, q, words[i]);
+    }
+  }
+};
+
+struct test_state_param4 {
+  void operator()(cudaq::state *state, std::vector<double> &coefficients,
+                  std::vector<cudaq::pauli_word> &words) __qpu__ {
+    cudaq::qvector q(state);
+    for (std::size_t i = 0; i < words.size(); ++i) {
+      cudaq::exp_pauli(coefficients[i], q, words[i]);
+    }
   }
 };
 
@@ -72,14 +92,13 @@ int main() {
     counts = cudaq::sample(test_state_param{}, &state1);
     printCounts(counts);
   }
-
   // clang-format off
-// CHECK: Passing state created from data as argument (kernel mode)
-// CHECK: 011
-// CHECK: 111
+  // CHECK: Passing state created from data as argument (kernel mode)
+  // CHECK: 011
+  // CHECK: 111
 
-// CHECK: 000
-// CHECK: 100
+  // CHECK: 000
+  // CHECK: 100
   // clang-format on
 
   {
@@ -90,16 +109,17 @@ int main() {
     printCounts(counts);
   }
   // clang-format off
-// CHECK: Passing state from another kernel as argument (kernel mode)
-// CHECK: 01
-// CHECK: 11
+  // CHECK: Passing state from another kernel as argument (kernel mode)
+  // CHECK: 01
+  // CHECK: 11
   // clang-format on
 
   {
     std::cout
         << "Passing large state from another kernel as argument (kernel mode)"
         << std::endl;
-    // TODO: State larger than 5 qubits fails on iqm machines with Adonis architecture
+    // TODO: State larger than 5 qubits fails on iqm machines with Adonis
+    // architecture
     // TODO: State larger than 8 qubits fails on oqc and anyon
     // Up to 14 bits works with quantinuum an ionq
     auto largeState = cudaq::get_state(test_init_state{}, 5);
@@ -107,9 +127,9 @@ int main() {
     printCounts(counts);
   }
   // clang-format off
-// CHECK: Passing large state from another kernel as argument (kernel mode)
-// CHECK: 01111
-// CHECK: 11111
+  // CHECK: Passing large state from another kernel as argument (kernel mode)
+  // CHECK: 01111
+  // CHECK: 11111
   // clang-format on
 
   {
@@ -117,15 +137,16 @@ int main() {
                  " with pauli word arg (kernel mode)"
               << std::endl;
     auto state = cudaq::get_state(test_init_state{}, 2);
-    auto counts = cudaq::sample(test_state_param2{}, &state, cudaq::pauli_word{"XX"});
+    auto counts =
+        cudaq::sample(test_state_param2{}, &state, cudaq::pauli_word{"XX"});
     printCounts(counts);
   }
   // clang-format off
-// CHECK: Passing state from another kernel as argument with pauli word arg (kernel mode)
-// CHECK: 00
-// CHECK: 01
-// CHECK: 10
-// CHECK: 11
+  // CHECK: Passing state from another kernel as argument with pauli word arg (kernel mode)
+  // CHECK: 00
+  // CHECK: 01
+  // CHECK: 10
+  // CHECK: 11
   // clang-format on
 
   {
@@ -141,18 +162,20 @@ int main() {
     }
   }
   // clang-format off
-// CHECK: Passing state from another kernel as argument iteratively (kernel mode)
-// CHECK: Iteration: 0
-// CHECK: 01
-// CHECK: 11
-// CHECK: Iteration: 1
-// CHECK: 00
-// CHECK: 10
-// CHECK: Iteration: 2
-// CHECK: 01
-// CHECK: 11
-// CHECK: Iteration: 3
-// CHECK: 00
-// CHECK: 10
+  // CHECK: Passing state from another kernel as argument iteratively (kernel mode)
+  // CHECK: Iteration: 0
+  // CHECK: 01
+  // CHECK: 11
+  // CHECK: Iteration: 1
+  // CHECK: 00
+  // CHECK: 10
+  // CHECK: Iteration: 2
+  // CHECK: 01
+  // CHECK: 11
+  // CHECK: Iteration: 3
+  // CHECK: 00
+  // CHECK: 10
   // clang-format on
+
+  // TODO: add tests for vectors of pauli words after we can lifts the arrays of pauli words.
 }

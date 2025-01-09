@@ -175,15 +175,16 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
   // Then replace the state with
   //   `quake.get_state "callee.num_qubits_0" "callee.init_state_0"`:
   //
+  // clang-format off
   // ```
-  // func.func @caller(%arg0: !cc.ptr<!cc.state>) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  // func.func @caller(%arg0: !cc.ptr<!cc.state>) {
   //   %1 = quake.get_number_of_qubits %arg0: (!cc.ptr<!cc.state>) -> i64
   //   %2 = quake.alloca !quake.veq<?>[%1 : i64]
   //   %3 = quake.init_state %2, %arg0 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
   //   return
   // }
   //
-  // func.func private @callee(%arg0: i64) attributes {"cudaq-kernel"} {
+  // func.func private @callee(%arg0: i64) {
   //   %cst = arith.constant 1.5707963267948966 : f64
   //   %0 = quake.alloca !quake.veq<?>[%arg0 : i64]
   //   %1 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
@@ -195,11 +196,13 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
   // state = cudaq.get_state(callee, 2)
   // counts = cudaq.sample(caller, state)
   // ```
+  // clang-format on
   //
   // => after argument synthesis:
   //
+  // clang-format off
   // ```
-  // func.func @caller() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  // func.func @caller() {
   //   %0 = quake.get_state "callee.num_qubits_0" "callee.init_state_0" : !cc.ptr<!cc.state>
   //   %1 = quake.get_number_of_qubits %0 : (!cc.ptr<!cc.state>) -> i64
   //   %2 = quake.alloca !quake.veq<?>[%1 : i64]
@@ -207,41 +210,46 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
   //   return
   // }
   //
-  // func.func private @callee.num_qubits_0(%arg0: !quake.veq<?>) -> i64 attributes {"cudaq-kernel"} {
+  // func.func private @callee.num_qubits_0(%arg0: !quake.veq<?>) -> i64 {
   //   %cst = arith.constant 2 : i64
   //   return %cst : i64
   // }
   //
-  // func.func private @callee.init_state_0(%arg0: !quake.veq<?>) attributes {"cudaq-kernel"} {
+  // func.func private @callee.init_state_0(%arg0: !quake.veq<?>) {
   //   %cst = arith.constant 1.5707963267948966 : f64
   //   %1 = quake.extract_ref %arg0[0] : (!quake.veq<2>) -> !quake.ref
   //   quake.ry (%cst) %1 : (f64, !quake.ref) -> ()
   //   return
   // }
   // ```
+  // clang-format on
   //
   // 2. Replace the `quake.get_state` ops with calls to the generated functions
   //    synthesized with the arguments used to create the state:
   //
   // After ReplaceStateWithKernel pass:
   //
-  // func.func @caller() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  // clang-format off
+  // ```
+  // func.func @caller() {
   //   %1 = call "callee.num_qubits_0" : () -> i64
   //   %2 = quake.alloca !quake.veq<?>[%1 : i64]
   //   call "callee.init_0" %2: (!quake.veq<?>) -> ()
   // }
   //
-  // func.func private @callee.get_number_of_qubits_0(%arg0: !quake.veq<?>) -> i64 attributes {"cudaq-kernel"} {
+  // func.func private @callee.num_qubits_0(%arg0: !quake.veq<?>) -> i64 {
   //   %cst = arith.constant 2 : i64
   //   return %cst : i64
   // }
   //
-  // func.func private @callee.init_0(%arg0: !quake.veq<?>) attributes {"cudaq-kernel"} {
+  // func.func private @callee.init_0(%arg0: !quake.veq<?>) {
   //   %cst = arith.constant 1.5707963267948966 : f64
   //   %1 = quake.extract_ref %arg0[0] : (!quake.veq<2>) -> !quake.ref
   //   quake.ry (%cst) %1 : (f64, !quake.ref) -> ()
   //   return
   // }
+  // ```
+  // clang-format on
   if (simState->getKernelInfo().has_value()) {
     auto [calleeName, calleeArgs] = simState->getKernelInfo().value();
 

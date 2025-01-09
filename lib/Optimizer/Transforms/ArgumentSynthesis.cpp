@@ -164,12 +164,11 @@ cudaq::opt::createArgumentSynthesisPass(ArrayRef<StringRef> funcNames,
       ArgumentSynthesisOptions{pairs});
 }
 
-std::unique_ptr<mlir::Pass>
-cudaq::opt::createArgumentSynthesisPass(const std::vector<std::string>& funcNames,
-                                        const std::vector<std::string>& substitutions) {
+std::unique_ptr<mlir::Pass> cudaq::opt::createArgumentSynthesisPass(
+    const std::vector<std::string> &funcNames,
+    const std::vector<std::string> &substitutions) {
   return cudaq::opt::createArgumentSynthesisPass(
-                mlir::SmallVector<mlir::StringRef>{funcNames.begin(),
-                                                   funcNames.end()},
-                mlir::SmallVector<mlir::StringRef>{substitutions.begin(),
-                                                   substitutions.end()});
+      mlir::SmallVector<mlir::StringRef>{funcNames.begin(), funcNames.end()},
+      mlir::SmallVector<mlir::StringRef>{substitutions.begin(),
+                                         substitutions.end()});
 }

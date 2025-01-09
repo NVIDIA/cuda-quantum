@@ -62,8 +62,8 @@ createArgumentSynthesisPass(mlir::ArrayRef<mlir::StringRef> funcNames,
 /// functions and the substitutions text can be built as an unzipped pair of
 /// lists.
 std::unique_ptr<mlir::Pass>
-createArgumentSynthesisPass(const std::vector<std::string>& funcNames,
-                            const std::vector<std::string>& substitutions);
+createArgumentSynthesisPass(const std::vector<std::string> &funcNames,
+                            const std::vector<std::string> &substitutions);
 
 // declarative passes
 #define GEN_PASS_DECL
