@@ -63,6 +63,7 @@ MPI
 MPICH
 MPS
 MSB
+Mandel
 Max-Cut
 MyST
 NGC
@@ -78,10 +79,12 @@ OpenMPI
 OpenQASM
 OpenSSL
 OpenSUSE
+Ou
 POSIX
 PSIRT
 Pauli
 Paulis
+Photonics
 PyPI
 Pygments
 QAOA
@@ -135,6 +138,7 @@ backends
 bitcode
 bitstring
 bitstrings
+bmatrix
 bool
 boolean
 boson
@@ -167,6 +171,7 @@ cuQuantum
 cuTensor
 cudaq
 dataflow
+ddots
 deallocate
 deallocated
 deallocates
@@ -321,6 +326,7 @@ unoptimized
 upvote
 variadic
 variational
+vdots
 verifier
 vertices
 waveforms

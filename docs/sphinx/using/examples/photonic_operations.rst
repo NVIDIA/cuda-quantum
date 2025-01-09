@@ -110,14 +110,20 @@ phase shift operator is defined  by
 Just like the single-qubit gates above, we can define multi-qudit gates to act
 on multiple qumodes.
 
-Beam splitters act on two qumodes together and it is parameterized by a single
-angle :math:`\theta`, relating to reflectivity.
+Beam splitters act on two qumodes together and are parameterized by a single
+angle :math:`\theta`, which is related to the transmission amplitude :math:`t`
+by :math:`t=\cos(\theta)`.
+
 For the annihilation (:math:`a_1` and :math:`a_2`) and creation operators
 (:math:`a_1^\dagger` and :math:`a_2^\dagger`) of two qumodes, the beam splitter
 operator is defined by
 
 .. math::
     B(\theta) = \exp\left[i \theta (a_1^\dagger a_2 + a_1 a_2^\dagger) \right]
+
+As an example, the code below implements a simulation of the Hong-Ou-Mandel
+effect, in which two identical photons that interfere on a balanced beam
+splitter leave the beam splitter together.
 
 .. literalinclude:: ../../snippets/python/using/examples/beam_splitter_photonic_gate.py
     :language: python
@@ -147,6 +153,6 @@ that the probability of observing the qumode in the state
 :math:`0, 1, \dots,` or :math:`d`, is :math:`\lvert \alpha_0 \rvert ^2, \lvert \alpha_1 \rvert ^2, \dots,`
 or :math:`\lvert \alpha_d \rvert ^2`, respectively.
 
-As we see in the example of the `beam_splitter` gate above,
-the result 02 or 20 each is yielded roughly 50% of the times as predicted
-by the postulate stated above thus proving the theory.
+As we see in the example of the `beam_splitter` gate above, states 02 and 20
+are yielded roughly 50% of the times, providing and illustration of the
+Hong-Ou-Mandel effect.

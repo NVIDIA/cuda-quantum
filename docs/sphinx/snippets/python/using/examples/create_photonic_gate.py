@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -8,6 +8,7 @@
 
 #[Begin Docs]
 import cudaq
+
 cudaq.set_target("orca-photonics")
 
 
@@ -18,13 +19,14 @@ def kernel():
     qumode = qudit(level)
 
     # Apply the create gate to the qumode.
-    create(qumode)
+    create(qumode)  # |0⟩ -> |1⟩
 
     # Measurement operator.
     mz(qumode)
 
 
 # Sample the qumode for 1000 shots to gather statistics.
+# In this case, the results are deterministic and all return state 1.
 result = cudaq.sample(kernel)
 print(result)
 #[End Docs]
