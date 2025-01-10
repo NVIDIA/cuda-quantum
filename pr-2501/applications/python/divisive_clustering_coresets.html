@@ -758,18 +758,18 @@ leverage coresets for clustering applications on quantum computers and use far f
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+<span class="kn">from</span> <span class="nn">cudaq</span> <span class="kn">import</span> <span class="n">spin</span>
 
 <span class="c1"># Auxillary Imports</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">networkx</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nx</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tuple</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">divisive_clustering_src.divisive_clustering</span><span class="w"> </span><span class="kn">import</span> <span class="n">Coreset</span><span class="p">,</span> <span class="n">DivisiveClustering</span><span class="p">,</span> <span class="n">Dendrogram</span><span class="p">,</span> <span class="n">Voironi_Tessalation</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">networkx</span> <span class="k">as</span> <span class="nn">nx</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">divisive_clustering_src.divisive_clustering</span> <span class="kn">import</span> <span class="n">Coreset</span><span class="p">,</span> <span class="n">DivisiveClustering</span><span class="p">,</span> <span class="n">Dendrogram</span><span class="p">,</span> <span class="n">Voironi_Tessalation</span>
 
 <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
 </pre></div>
@@ -878,7 +878,7 @@ max-cut Hamiltonian. The <code class="docutils literal notranslate"><span class=
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">get_K2_Hamiltonian</span><span class="p">(</span><span class="n">G</span><span class="p">:</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">:</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">get_K2_Hamiltonian</span><span class="p">(</span><span class="n">G</span><span class="p">:</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns the K2 Hamiltonian for the given graph G</span>
 
 <span class="sd">    Args:</span>
@@ -900,7 +900,7 @@ max-cut Hamiltonian. The <code class="docutils literal notranslate"><span class=
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">get_VQE_circuit</span><span class="p">(</span><span class="n">number_of_qubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">circuit_depth</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">Kernel</span><span class="p">:</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">get_VQE_circuit</span><span class="p">(</span><span class="n">number_of_qubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">circuit_depth</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">Kernel</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns the VQE circuit for the given number of qubits and circuit depth</span>
 
 <span class="sd">    Args:</span>
@@ -912,7 +912,7 @@ max-cut Hamiltonian. The <code class="docutils literal notranslate"><span class=
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">thetas</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">number_of_qubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">circuit_depth</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">thetas</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">number_of_qubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">circuit_depth</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;VQE Circuit</span>
 
 <span class="sd">        Args:</span>
@@ -995,7 +995,7 @@ q4 : ┤ ry(0.791) ├─┤ rz(0.003569) ├───────────�
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">get_optimizer</span><span class="p">(</span><span class="n">optimizer</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">max_iterations</span><span class="p">,</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">get_optimizer</span><span class="p">(</span><span class="n">optimizer</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">max_iterations</span><span class="p">,</span>
                   <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">optimizer</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns the optimizer with the given parameters</span>
 
@@ -1029,15 +1029,15 @@ parameters is sampled using the CUDA-Q <code class="docutils literal notranslate
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">DivisiveClusteringVQA</span><span class="p">(</span><span class="n">DivisiveClustering</span><span class="p">):</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">DivisiveClusteringVQA</span><span class="p">(</span><span class="n">DivisiveClustering</span><span class="p">):</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">run_divisive_clustering</span><span class="p">(</span>
+    <span class="k">def</span> <span class="nf">run_divisive_clustering</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">coreset_vectors_df_for_iteration</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
     <span class="p">):</span>
@@ -1069,7 +1069,7 @@ parameters is sampled using the CUDA-Q <code class="docutils literal notranslate
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_best_bitstring</span><span class="p">(</span><span class="n">counts</span><span class="p">,</span> <span class="n">G</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_counts_from_simulation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">G</span><span class="p">:</span> <span class="n">nx</span><span class="o">.</span><span class="n">graph</span><span class="p">,</span> <span class="n">circuit_depth</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="k">def</span> <span class="nf">get_counts_from_simulation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">G</span><span class="p">:</span> <span class="n">nx</span><span class="o">.</span><span class="n">graph</span><span class="p">,</span> <span class="n">circuit_depth</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
                                    <span class="n">max_iterations</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
                                    <span class="n">max_shots</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SampleResult</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -1095,7 +1095,7 @@ parameters is sampled using the CUDA-Q <code class="docutils literal notranslate
 
         <span class="n">kernel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_circuit</span><span class="p">(</span><span class="n">qubits</span><span class="p">,</span> <span class="n">circuit_depth</span><span class="p">)</span>
 
-        <span class="k">def</span><span class="w"> </span><span class="nf">objective_function</span><span class="p">(</span>
+        <span class="k">def</span> <span class="nf">objective_function</span><span class="p">(</span>
             <span class="n">parameter_vector</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
             <span class="n">hamiltonian</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span> <span class="o">=</span> <span class="n">Hamiltonian</span><span class="p">,</span>
             <span class="n">kernel</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">Kernel</span> <span class="o">=</span> <span class="n">kernel</span><span class="p">,</span>
@@ -1286,7 +1286,7 @@ perform this task.</p>
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">get_QAOA_circuit</span><span class="p">(</span><span class="n">number_of_qubits</span><span class="p">,</span> <span class="n">circuit_depth</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">Kernel</span><span class="p">:</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">get_QAOA_circuit</span><span class="p">(</span><span class="n">number_of_qubits</span><span class="p">,</span> <span class="n">circuit_depth</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">Kernel</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns the QAOA circuit for the given number of qubits and circuit depth</span>
 
 
@@ -1299,7 +1299,7 @@ perform this task.</p>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">thetas</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">number_of_qubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">circuit_depth</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">thetas</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">number_of_qubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">circuit_depth</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
         <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">number_of_qubits</span><span class="p">)</span>
 
         <span class="n">layers</span> <span class="o">=</span> <span class="n">circuit_depth</span>
@@ -1358,7 +1358,7 @@ q4 : ─────────────────────────
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">get_optimizer</span><span class="p">(</span><span class="n">optimizer</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">max_iterations</span><span class="p">,</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">get_optimizer</span><span class="p">(</span><span class="n">optimizer</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">max_iterations</span><span class="p">,</span>
                   <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">optimizer</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns the optimizer with the given parameters</span>

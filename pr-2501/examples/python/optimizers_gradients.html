@@ -739,15 +739,15 @@
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+<span class="kn">from</span> <span class="nn">cudaq</span> <span class="kn">import</span> <span class="n">spin</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <span class="n">hamiltonian</span> <span class="o">=</span> <span class="mf">5.907</span> <span class="o">-</span> <span class="mf">2.1433</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mf">2.1433</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span>
     <span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mf">.21829</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="mf">6.125</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">angles</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
+<span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">angles</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
 
     <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
     <span class="n">x</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
@@ -769,7 +769,7 @@
 <span class="n">gradient</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">gradients</span><span class="o">.</span><span class="n">CentralDifference</span><span class="p">()</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">objective_function</span><span class="p">(</span><span class="n">parameter_vector</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
+<span class="k">def</span> <span class="nf">objective_function</span><span class="p">(</span><span class="n">parameter_vector</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
                        <span class="n">hamiltonian</span><span class="o">=</span><span class="n">hamiltonian</span><span class="p">,</span>
                        <span class="n">gradient_strategy</span><span class="o">=</span><span class="n">gradient</span><span class="p">,</span>
                        <span class="n">kernel</span><span class="o">=</span><span class="n">kernel</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>
@@ -814,9 +814,9 @@ optimal theta 0 = 0.58409164053813
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">scipy.optimize</span><span class="w"> </span><span class="kn">import</span> <span class="n">minimize</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">minimize</span>
 
-<span class="k">def</span><span class="w"> </span><span class="nf">cost</span><span class="p">(</span><span class="n">theta</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">cost</span><span class="p">(</span><span class="n">theta</span><span class="p">):</span>
 
     <span class="n">exp_val</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
 
@@ -853,14 +853,14 @@ optimal theta 0 = 0.58409164053813
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w">  </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span>  <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="c1"># cudaq.set_target(&#39;nvidia&#39;, option = &#39;mqpu&#39;)</span>
 
 <span class="n">num_qpus</span> <span class="o">=</span> <span class="mi">1</span>
 <span class="n">epsilon</span> <span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">4</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">batched_gradient_function</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">batched_gradient_function</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">):</span>
 
     <span class="c1">#Prepare an array of parameters corresponding to the plus and minus shifts</span>
     <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">),</span><span class="mi">1</span><span class="p">))</span>
@@ -897,7 +897,7 @@ optimal theta 0 = 0.58409164053813
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">gradient</span> <span class="o">=</span> <span class="n">batched_gradient_function</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">initial_params</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">objective_function</span><span class="p">(</span><span class="n">parameter_vector</span><span class="p">,</span>
+<span class="k">def</span> <span class="nf">objective_function</span><span class="p">(</span><span class="n">parameter_vector</span><span class="p">,</span>
                        <span class="n">hamiltonian</span><span class="o">=</span><span class="n">hamiltonian</span><span class="p">,</span>
                        <span class="n">gradient</span><span class="o">=</span><span class="n">gradient</span><span class="p">,</span>
                        <span class="n">kernel</span><span class="o">=</span><span class="n">kernel</span><span class="p">):</span>

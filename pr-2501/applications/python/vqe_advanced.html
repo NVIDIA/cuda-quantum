@@ -751,17 +751,17 @@
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">openfermion</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">openfermionpyscf</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">openfermion.transforms</span><span class="w"> </span><span class="kn">import</span> <span class="n">jordan_wigner</span><span class="p">,</span> <span class="n">get_fermion_operator</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">openfermion</span>
+<span class="kn">import</span> <span class="nn">openfermionpyscf</span>
+<span class="kn">from</span> <span class="nn">openfermion.transforms</span> <span class="kn">import</span> <span class="n">jordan_wigner</span><span class="p">,</span> <span class="n">get_fermion_operator</span>
 
-<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">timeit</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">timeit</span>
 
-<span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.optimize</span><span class="w"> </span><span class="kn">import</span> <span class="n">minimize</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">cudaq</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">minimize</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 </pre></div>
 </div>
 </div>
@@ -821,7 +821,7 @@ operations are automatically added to the kernel with the <code class="docutils 
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">qubit_num</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">electron_num</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">thetas</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
+<span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">qubit_num</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">electron_num</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">thetas</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
     <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubit_num</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">electron_num</span><span class="p">):</span>
@@ -850,7 +850,7 @@ operations are automatically added to the kernel with the <code class="docutils 
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">cost</span><span class="p">(</span><span class="n">theta</span><span class="p">):</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">cost</span><span class="p">(</span><span class="n">theta</span><span class="p">):</span>
 
     <span class="n">exp_val</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">spin_ham</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">,</span> <span class="n">electron_count</span><span class="p">,</span>
                             <span class="n">theta</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
@@ -861,7 +861,7 @@ operations are automatically added to the kernel with the <code class="docutils 
 <span class="n">exp_vals</span> <span class="o">=</span> <span class="p">[]</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">callback</span><span class="p">(</span><span class="n">xk</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">callback</span><span class="p">(</span><span class="n">xk</span><span class="p">):</span>
     <span class="n">exp_vals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cost</span><span class="p">(</span><span class="n">xk</span><span class="p">))</span>
 
 
@@ -942,7 +942,7 @@ Total elapsed time (s) =  3.9171073289999185
 <span class="n">epsilon</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">4</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">batched_gradient_function</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">batched_gradient_function</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">):</span>
 
     <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">),</span> <span class="mi">1</span><span class="p">))</span>
 
@@ -1005,7 +1005,7 @@ Total elapsed time (s) =  3.9171073289999185
 <span class="n">exp_vals</span> <span class="o">=</span> <span class="p">[]</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">objective_function</span><span class="p">(</span><span class="n">parameter_vector</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> \
+<span class="k">def</span> <span class="nf">objective_function</span><span class="p">(</span><span class="n">parameter_vector</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> \
                        <span class="n">gradient</span><span class="o">=</span><span class="n">gradient</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="o">=</span><span class="n">spin_ham</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="n">kernel</span><span class="p">):</span>
 
     <span class="n">get_result</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">parameter_vector</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span>\
@@ -1116,7 +1116,7 @@ Total elapsed time (s) =  57.27010986900132
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">qubit_num</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">electron_num</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">thetas</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
+<span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">qubit_num</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">electron_num</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">thetas</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
     <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubit_num</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">electron_num</span><span class="p">):</span>
@@ -1144,7 +1144,7 @@ Total elapsed time (s) =  57.27010986900132
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">cost</span><span class="p">(</span><span class="n">theta</span><span class="p">):</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">cost</span><span class="p">(</span><span class="n">theta</span><span class="p">):</span>
 
     <span class="n">exp_val</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">spin_ham</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">,</span> <span class="n">electron_count</span><span class="p">,</span>
                             <span class="n">theta</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
@@ -1155,7 +1155,7 @@ Total elapsed time (s) =  57.27010986900132
 <span class="n">exp_vals</span> <span class="o">=</span> <span class="p">[]</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">callback</span><span class="p">(</span><span class="n">xk</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">callback</span><span class="p">(</span><span class="n">xk</span><span class="p">):</span>
     <span class="n">exp_vals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cost</span><span class="p">(</span><span class="n">xk</span><span class="p">))</span>
 
 
