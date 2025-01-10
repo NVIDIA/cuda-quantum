@@ -735,8 +735,8 @@
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;qpp-cpu&#39;</span><span class="p">)</span>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">23</span><span class="p">)</span>
@@ -751,7 +751,7 @@
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">teleportation</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">teleportation</span><span class="p">():</span>
 
     <span class="c1"># Initialize a 3 qubit quantum circuit</span>
     <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
@@ -779,7 +779,7 @@
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">teleportation</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">teleportation</span><span class="p">():</span>
 
     <span class="c1"># Initialize a 3 qubit quantum circuit</span>
     <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
@@ -823,7 +823,7 @@
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Function to be used below to calculate the partial trace yielding a density matrix.</span>
 
 
-<span class="k">def</span> <span class="nf">partial_trace</span><span class="p">(</span><span class="n">state_vector</span><span class="p">,</span> <span class="n">trace_systems</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">partial_trace</span><span class="p">(</span><span class="n">state_vector</span><span class="p">,</span> <span class="n">trace_systems</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Partial trace of multi-particle quantum state.</span>
 

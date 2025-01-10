@@ -746,8 +746,8 @@ For example, a superconducting <a class="reference external" href="https://en.wi
 <p>Using CUDA-Q <code class="code docutils literal notranslate"><span class="pre">operator</span></code>, the above time-dependent Hamiltonian can be set up as follows.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">Python</label><div class="tab-content docutils">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">cudaq.operator</span> <span class="kn">import</span> <span class="o">*</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq.operator</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
 
 <span class="c1"># Qubit Hamiltonian</span>
 <span class="n">hamiltonian</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">omega_z</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
@@ -767,8 +767,8 @@ Details about CUDA-Q <code class="code docutils literal notranslate"><span class
 with <code class="code docutils literal notranslate"><span class="pre">cudaq.evolve</span></code>.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">Python</label><div class="tab-content docutils">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
-<span class="kn">import</span> <span class="nn">cupy</span> <span class="k">as</span> <span class="nn">cp</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
 
 <span class="c1"># Set the target to our dynamics simulator</span>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;dynamics&quot;</span><span class="p">)</span>
@@ -824,7 +824,7 @@ as well as intermediate values at each time step (with <code class="code docutil
     <span class="n">exp_vals</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span> <span class="k">for</span> <span class="n">exp_vals</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">expectation_values</span><span class="p">()</span>
 <span class="p">]</span>
 
-<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
 
 <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="n">get_result</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">evolution_result</span><span class="p">))</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="n">get_result</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">evolution_result</span><span class="p">))</span>
@@ -953,13 +953,13 @@ that operator.</p>
 <p>As an example, let’s looks at the <a class="reference external" href="https://en.wikipedia.org/wiki/Displacement_operator">displacement operator</a>. It can be defined as follows:</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--5-input--1" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--1">Python</label><div class="tab-content docutils">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span>
-<span class="kn">import</span> <span class="nn">scipy</span>
-<span class="kn">from</span> <span class="nn">cudaq.operator</span> <span class="kn">import</span> <span class="o">*</span>
-<span class="kn">from</span> <span class="nn">numpy.typing</span> <span class="kn">import</span> <span class="n">NDArray</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">scipy</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq.operator</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">numpy.typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">NDArray</span>
 
 
-<span class="k">def</span> <span class="nf">displacement_matrix</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">displacement_matrix</span><span class="p">(</span>
         <span class="n">dimension</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">displacement</span><span class="p">:</span> <span class="n">NumericType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">complexfloating</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -982,7 +982,7 @@ that operator.</p>
 <span class="n">ElementaryOperator</span><span class="o">.</span><span class="n">define</span><span class="p">(</span><span class="s2">&quot;displace&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">displacement_matrix</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">displacement</span><span class="p">(</span><span class="n">degree</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ElementaryOperator</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">displacement</span><span class="p">(</span><span class="n">degree</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ElementaryOperator</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Instantiates a displacement operator acting on the given degree of freedom.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -997,7 +997,7 @@ that operator.</p>
 operator under a time dependent displacement amplitude, we can define how the amplitude changes in time:</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--6-input--1" name="tab-set--6" type="radio"><label class="tab-label" for="tab-set--6-input--1">Python</label><div class="tab-content docutils">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 
 <span class="c1"># Define a system consisting of a single degree of freedom (0) with dimension 3.</span>
 <span class="n">system_dimensions</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="mi">3</span><span class="p">}</span>
@@ -1025,9 +1025,9 @@ the desired value for each parameter:</p>
 
 <span class="c1"># Define a schedule such that displacement amplitude increases linearly in time</span>
 <span class="c1"># but the squeezing amplitude decreases, that is follows the inverse schedule.</span>
-<span class="k">def</span> <span class="nf">parameter_values</span><span class="p">(</span><span class="n">time_steps</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">parameter_values</span><span class="p">(</span><span class="n">time_steps</span><span class="p">):</span>
 
-    <span class="k">def</span> <span class="nf">compute_value</span><span class="p">(</span><span class="n">param_name</span><span class="p">,</span> <span class="n">step_idx</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_value</span><span class="p">(</span><span class="n">param_name</span><span class="p">,</span> <span class="n">step_idx</span><span class="p">):</span>
         <span class="k">match</span> <span class="n">param_name</span><span class="p">:</span>
             <span class="k">case</span> <span class="s1">&#39;displacement&#39;</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">time_steps</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">step_idx</span><span class="p">)]</span>

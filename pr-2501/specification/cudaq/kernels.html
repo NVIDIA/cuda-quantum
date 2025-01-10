@@ -760,15 +760,15 @@ can take quantum types as input.</p>
 </div>
 <input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span><span class="p">()</span>
-<span class="k">def</span> <span class="nf">my_first_entry_point_kernel</span><span class="p">(</span><span class="n">x</span> <span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">my_first_entry_point_kernel</span><span class="p">(</span><span class="n">x</span> <span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
    <span class="o">...</span> <span class="n">quantum</span> <span class="n">code</span> <span class="o">...</span>
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span><span class="p">()</span>
-<span class="k">def</span> <span class="nf">my_second_entry_point_kernel</span><span class="p">(</span><span class="n">x</span> <span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">params</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">my_second_entry_point_kernel</span><span class="p">(</span><span class="n">x</span> <span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">params</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
    <span class="o">...</span> <span class="n">quantum</span> <span class="n">code</span> <span class="o">...</span>
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span><span class="p">()</span>
-<span class="k">def</span> <span class="nf">my_first_pure_device_kernel</span><span class="p">(</span><span class="n">qubits</span> <span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">my_first_pure_device_kernel</span><span class="p">(</span><span class="n">qubits</span> <span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
    <span class="o">...</span> <span class="n">quantum</span> <span class="n">code</span> <span class="o">...</span>
 </pre></div>
 </div>
@@ -824,17 +824,17 @@ and in variable capture from parent scope.</p>
 </div>
 <input class="tab-input" id="tab-set--1-input--2" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--2">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@dataclass</span>
-<span class="k">class</span> <span class="nc">MySimpleStruct</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MySimpleStruct</span><span class="p">:</span>
     <span class="n">i</span> <span class="p">:</span> <span class="nb">int</span>
     <span class="n">j</span> <span class="p">:</span> <span class="nb">int</span>
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">N</span> <span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">flag</span> <span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">angle</span> <span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">layers</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">N</span> <span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">flag</span> <span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">angle</span> <span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">layers</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
             <span class="n">parameters</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">recursiveList</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]],</span>
             <span class="n">var</span> <span class="p">:</span> <span class="n">MySimpleStruct</span><span class="p">):</span> <span class="o">...</span>
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernelThatReturns</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernelThatReturns</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
     <span class="o">...</span>
     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">2.0</span>
 </pre></div>
@@ -870,7 +870,7 @@ default constructed and later filled with type <code class="code docutils litera
 </div>
 <input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
    <span class="c1"># Not Allowed</span>
    <span class="c1"># i = []</span>
    <span class="c1"># i.append(1)</span>
@@ -913,7 +913,7 @@ default constructed and later filled with type <code class="code docutils litera
 </div>
 <input class="tab-input" id="tab-set--3-input--2" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--2">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">i</span> <span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">v</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">i</span> <span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">v</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
     <span class="c1"># i = 2, allocate 2 qubits</span>
     <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
     <span class="c1"># v[1] == 2.0, angle here is 2.0</span>
@@ -973,7 +973,7 @@ pass-by-value semantics at kernel construction.</p>
 <span class="n">f</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">2.</span>
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
    <span class="c1"># Use captured variables</span>
    <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
    <span class="n">ry</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
@@ -1030,11 +1030,11 @@ code, programmers can leverage standard C++ template definitions or dynamic typi
 </div>
 <input class="tab-input" id="tab-set--5-input--2" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--2">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span><span class="p">()</span>
-<span class="k">def</span> <span class="nf">MyStatePrep</span><span class="p">(</span><span class="n">qubits</span> <span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">MyStatePrep</span><span class="p">(</span><span class="n">qubits</span> <span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
     <span class="o">...</span> <span class="n">apply</span> <span class="n">state</span> <span class="n">prep</span> <span class="n">operations</span> <span class="n">on</span> <span class="n">qubits</span> <span class="o">...</span>
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span><span class="p">()</span>
-<span class="k">def</span> <span class="nf">MyGenericAlgorithm</span><span class="p">(</span><span class="n">statePrep</span> <span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">],</span> <span class="kc">None</span><span class="p">]):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">MyGenericAlgorithm</span><span class="p">(</span><span class="n">statePrep</span> <span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">],</span> <span class="kc">None</span><span class="p">]):</span>
     <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
     <span class="n">statePrep</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
     <span class="o">...</span>

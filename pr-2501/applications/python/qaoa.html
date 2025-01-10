@@ -746,10 +746,10 @@ The cut depicted in the diagram on the right divides the graph vertices into two
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">cudaq</span>
-<span class="kn">from</span> <span class="nn">cudaq</span> <span class="kn">import</span> <span class="n">spin</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
 
 <span class="c1"># We&#39;ll use the graph below to illustrate how QAOA can be used to</span>
 <span class="c1"># solve a max cut problem</span>
@@ -793,7 +793,7 @@ The cut depicted in the diagram on the right divides the graph vertices into two
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">qaoaProblem</span><span class="p">(</span><span class="n">qubit_0</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span> <span class="n">qubit_1</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">qaoaProblem</span><span class="p">(</span><span class="n">qubit_0</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span> <span class="n">qubit_1</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Build the QAOA gate sequence between two qubits that represent an edge of the graph</span>
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -820,7 +820,7 @@ The cut depicted in the diagram on the right divides the graph vertices into two
 <span class="c1"># The types for these variables are restricted to Quake Values (e.g. qubit, int, List[int], ...)</span>
 <span class="c1"># The thetas plaeholder will be our free parameters</span>
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel_qaoa</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">layer_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">edges_src</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel_qaoa</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">layer_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">edges_src</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
                 <span class="n">edges_tgt</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">thetas</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Build the QAOA circuit for max cut of the graph with given edges and nodes</span>
 <span class="sd">    Parameters</span>
@@ -877,7 +877,7 @@ value of the graph for an arbirtrary assignment of variable values by the formul
 <span class="c1"># with the given edges</span>
 
 
-<span class="k">def</span> <span class="nf">hamiltonian_max_cut</span><span class="p">(</span><span class="n">edges_src</span><span class="p">,</span> <span class="n">edges_tgt</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">hamiltonian_max_cut</span><span class="p">(</span><span class="n">edges_src</span><span class="p">,</span> <span class="n">edges_tgt</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Hamiltonian for finding the max cut for the graph with given edges and nodes</span>
 
 <span class="sd">    Parameters</span>
@@ -947,7 +947,7 @@ Initial parameters =  [0.21810696323572243, -0.20613464375211488, 0.254687763981
 <span class="c1"># followed by the parameters to be optimized.</span>
 
 
-<span class="k">def</span> <span class="nf">objective</span><span class="p">(</span><span class="n">parameters</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">objective</span><span class="p">(</span><span class="n">parameters</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel_qaoa</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">,</span> <span class="n">layer_count</span><span class="p">,</span>
                          <span class="n">edges_src</span><span class="p">,</span> <span class="n">edges_tgt</span><span class="p">,</span> <span class="n">parameters</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
 
