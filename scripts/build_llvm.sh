@@ -86,7 +86,6 @@ if [ -z "${llvm_projects##*python-bindings;*}" ]; then
 fi
 
 # Prepare the source and build directory.
-LLVM_APPLY_PATCHES=${LLVM_APPLY_PATCHES:-false}
 if [ ! -d "$LLVM_SOURCE" ] || [ -z "$(ls -A "$LLVM_SOURCE"/* 2> /dev/null)" ]; then
   echo "Cloning LLVM submodule..."
   cd "$this_file_dir" && cd $(git rev-parse --show-toplevel)
@@ -94,29 +93,33 @@ if [ ! -d "$LLVM_SOURCE" ] || [ -z "$(ls -A "$LLVM_SOURCE"/* 2> /dev/null)" ]; t
   llvm_repo="$(git config --file=.gitmodules submodule.tpls/llvm.url)"
   llvm_commit="$(git submodule | grep tpls/llvm | cut -c2- | cut -d ' ' -f1)"
   git clone --filter=tree:0 "$llvm_repo" "$LLVM_SOURCE"
-  LLVM_APPLY_PATCHES=true
 fi
-if $LLVM_APPLY_PATCHES; then
-  cd "$LLVM_SOURCE" && git checkout $llvm_commit
 
-  LLVM_CMAKE_PATCHES=${LLVM_CMAKE_PATCHES:-"$this_file_dir/../tpls/customizations/llvm"}
-  if [ -d "$LLVM_CMAKE_PATCHES" ]; then 
-    echo "Applying LLVM patches in $LLVM_CMAKE_PATCHES..."
-    for patch in `find "$LLVM_CMAKE_PATCHES"/* -maxdepth 0 -type f -name '*.diff'`; do
-      # Check if patch is already applied.
-      git apply "$patch" --ignore-whitespace --reverse --check 2>/dev/null
+# Always apply LLVM patches if patch directory exists; patches will be skipped
+# if they were already applied previously.
+LLVM_CMAKE_PATCHES=${LLVM_CMAKE_PATCHES:-"$this_file_dir/../tpls/customizations/llvm"}
+if [ -d "$LLVM_CMAKE_PATCHES" ]; then 
+  cd "$LLVM_SOURCE" && git checkout $llvm_commit
+  echo "Applying LLVM patches in $LLVM_CMAKE_PATCHES..."
+  for patch in `find "$LLVM_CMAKE_PATCHES"/* -maxdepth 0 -type f -name '*.diff'`; do
+    # Check if patch is already applied.
+    git apply "$patch" --ignore-whitespace --reverse --check 2>/dev/null
+    if [ ! 0 -eq $? ]; then
+      # If the patch is not yet applied, apply the patch.
+      git apply "$patch" --ignore-whitespace
       if [ ! 0 -eq $? ]; then
-        # If the patch is not yet applied, apply the patch.
-        git apply "$patch" --ignore-whitespace
-        if [ ! 0 -eq $? ]; then
-          echo "Applying patch $patch failed. Please update patch."
-          (return 0 2>/dev/null) && return 1 || exit 1
-        else
-          echo "Applied patch $patch."
-        fi
+        echo "Applying patch $patch failed. Please update patch."
+        (return 0 2>/dev/null) && return 1 || exit 1
+      else
+        echo "Applied patch $patch."
       fi
-    done
-  fi
+    else
+      echo "Skipping $patch because it has already been applied."
+    fi
+  done
+else
+  echo "LLVM patch directory not found. You must apply LLVM patches via the LLVM_CMAKE_PATCHES environment variable."
+  (return 0 2>/dev/null) && return 1 || exit 1
 fi
 
 llvm_build_dir="$LLVM_SOURCE/${LLVM_BUILD_FOLDER:-build}"

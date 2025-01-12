@@ -89,7 +89,6 @@ ADD ./tpls/customizations/llvm/ /tpls/customizations/llvm/
 RUN LLVM_PROJECTS='clang;mlir' LLVM_SOURCE=/llvm-project \
     LLVM_CMAKE_CACHE=/cmake/caches/LLVM.cmake \
     LLVM_CMAKE_PATCHES=/tpls/customizations/llvm \
-    LLVM_APPLY_PATCHES=true \
     bash /scripts/build_llvm.sh -c Release -v
     # No clean up of the build or source directory,
     # since we need to re-build llvm for each python version to get the bindings.
