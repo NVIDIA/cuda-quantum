@@ -86,6 +86,7 @@ if [ -z "${llvm_projects##*python-bindings;*}" ]; then
 fi
 
 # Prepare the source and build directory.
+LLVM_APPLY_PATCHES=${LLVM_APPLY_PATCHES:-false}
 if [ ! -d "$LLVM_SOURCE" ] || [ -z "$(ls -A "$LLVM_SOURCE"/* 2> /dev/null)" ]; then
   echo "Cloning LLVM submodule..."
   cd "$this_file_dir" && cd $(git rev-parse --show-toplevel)
@@ -93,6 +94,9 @@ if [ ! -d "$LLVM_SOURCE" ] || [ -z "$(ls -A "$LLVM_SOURCE"/* 2> /dev/null)" ]; t
   llvm_repo="$(git config --file=.gitmodules submodule.tpls/llvm.url)"
   llvm_commit="$(git submodule | grep tpls/llvm | cut -c2- | cut -d ' ' -f1)"
   git clone --filter=tree:0 "$llvm_repo" "$LLVM_SOURCE"
+  LLVM_APPLY_PATCHES=true
+fi
+if $LLVM_APPLY_PATCHES; then
   cd "$LLVM_SOURCE" && git checkout $llvm_commit
 
   LLVM_CMAKE_PATCHES=${LLVM_CMAKE_PATCHES:-"$this_file_dir/../tpls/customizations/llvm"}
