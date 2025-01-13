@@ -36,4 +36,5 @@ int main() {
   // The probability that we get the perfect result (11) should be ~ 0.9 * 0.9 =
   // 0.81
   counts.dump();
+  return 0;
 }
