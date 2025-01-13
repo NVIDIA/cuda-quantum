@@ -125,7 +125,7 @@ Returns:
     else:
         ctx = cudaq_runtime.ExecutionContext('observe', shots_count)
         ctx.setSpinOperator(localOp)
-        if num_trajectories != None:
+        if num_trajectories is not None:
             if noise_model is None:
                 raise RuntimeError(
                     "num_trajectories is provided without a noise_model.")
