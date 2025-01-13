@@ -62,9 +62,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && ln -s /bin/python3 /bin/python
 RUN apt-get update && apt-get install -y --no-install-recommends gcc g++ python3-dev \
     # Ref: https://github.com/qutip/qutip/issues/2412
-    && python3 -m pip install --no-cache-dir notebook==7.1.3 "qutip<5" matplotlib \
+    && python3 -m pip install --no-cache-dir notebook==7.1.3 matplotlib \
     && apt-get remove -y gcc g++ python3-dev \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Accept QUTIP_WHEEL as a build argument
+ARG QUTIP_WHEEL
+
+# Install qutip from the wheel if provided
+RUN if [ -n "$QUTIP_WHEEL" ]; then \
+        pip install $(echo $QUTIP_WHEEL); \
+    else \
+        pip install qutip; \
+    fi
 
 # Copy over the CUDA-Q installation, and the necessary compiler tools.
 
