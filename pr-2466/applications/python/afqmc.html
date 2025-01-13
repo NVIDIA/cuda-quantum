@@ -759,23 +759,23 @@
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Relevant imports</span>
 
-<span class="kn">import</span> <span class="nn">cudaq</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
 
-<span class="kn">from</span> <span class="nn">pyscf</span> <span class="kn">import</span> <span class="n">gto</span><span class="p">,</span> <span class="n">scf</span><span class="p">,</span> <span class="n">ao2mo</span><span class="p">,</span> <span class="n">mcscf</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyscf</span><span class="w"> </span><span class="kn">import</span> <span class="n">gto</span><span class="p">,</span> <span class="n">scf</span><span class="p">,</span> <span class="n">ao2mo</span><span class="p">,</span> <span class="n">mcscf</span>
 
-<span class="kn">from</span> <span class="nn">afqmc_src.vqe_cudaq_qnp</span> <span class="kn">import</span> <span class="n">VQE</span><span class="p">,</span> <span class="n">get_cudaq_hamiltonian</span>
-<span class="kn">from</span> <span class="nn">afqmc_src.utils_ipie</span> <span class="kn">import</span> <span class="n">get_coeff_wf</span><span class="p">,</span> <span class="n">gen_ipie_input_from_pyscf_chk</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">afqmc_src.vqe_cudaq_qnp</span><span class="w"> </span><span class="kn">import</span> <span class="n">VQE</span><span class="p">,</span> <span class="n">get_cudaq_hamiltonian</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">afqmc_src.utils_ipie</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_coeff_wf</span><span class="p">,</span> <span class="n">gen_ipie_input_from_pyscf_chk</span>
 
-<span class="kn">from</span> <span class="nn">ipie.hamiltonians.generic</span> <span class="kn">import</span> <span class="n">Generic</span> <span class="k">as</span> <span class="n">HamGeneric</span>
-<span class="kn">from</span> <span class="nn">ipie.qmc.afqmc</span> <span class="kn">import</span> <span class="n">AFQMC</span>
-<span class="kn">from</span> <span class="nn">ipie.systems.generic</span> <span class="kn">import</span> <span class="n">Generic</span>
-<span class="kn">from</span> <span class="nn">ipie.trial_wavefunction.particle_hole</span> <span class="kn">import</span> <span class="n">ParticleHole</span>
-<span class="kn">from</span> <span class="nn">ipie.analysis.extraction</span> <span class="kn">import</span> <span class="n">extract_observable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ipie.hamiltonians.generic</span><span class="w"> </span><span class="kn">import</span> <span class="n">Generic</span> <span class="k">as</span> <span class="n">HamGeneric</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ipie.qmc.afqmc</span><span class="w"> </span><span class="kn">import</span> <span class="n">AFQMC</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ipie.systems.generic</span><span class="w"> </span><span class="kn">import</span> <span class="n">Generic</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ipie.trial_wavefunction.particle_hole</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParticleHole</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ipie.analysis.extraction</span><span class="w"> </span><span class="kn">import</span> <span class="n">extract_observable</span>
 
-<span class="kn">from</span> <span class="nn">ipie.config</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ipie.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">config</span>
 
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
 
@@ -855,8 +855,8 @@ suppressants, soil remediation and ligands for catalysts. In particular we focus
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">openfermion.transforms</span> <span class="kn">import</span> <span class="n">jordan_wigner</span>
-<span class="kn">from</span> <span class="nn">openfermion</span> <span class="kn">import</span> <span class="n">generate_hamiltonian</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">openfermion.transforms</span><span class="w"> </span><span class="kn">import</span> <span class="n">jordan_wigner</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">openfermion</span><span class="w"> </span><span class="kn">import</span> <span class="n">generate_hamiltonian</span>
 
 <span class="c1"># Run a CASCI simulation for computing the Hamiltonian in the active space.</span>
 <span class="n">casci</span> <span class="o">=</span> <span class="n">mcscf</span><span class="o">.</span><span class="n">CASCI</span><span class="p">(</span><span class="n">hartee_fock</span><span class="p">,</span> <span class="n">num_active_orbitals</span><span class="p">,</span> <span class="n">num_active_electrons</span><span class="p">)</span>

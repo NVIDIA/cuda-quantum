@@ -762,15 +762,15 @@ convert them back into the circuit form. An overview of these steps is provided 
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">genQC</span>
-<span class="kn">from</span> <span class="nn">genQC.imports</span> <span class="kn">import</span> <span class="o">*</span>
-<span class="kn">from</span> <span class="nn">genQC.pipeline.diffusion_pipeline</span> <span class="kn">import</span> <span class="n">DiffusionPipeline</span>
-<span class="kn">from</span> <span class="nn">genQC.inference.export_cudaq</span> <span class="kn">import</span> <span class="n">genqc_to_cudaq</span>
-<span class="kn">import</span> <span class="nn">genQC.inference.infer_compilation</span> <span class="k">as</span> <span class="nn">infer_comp</span>
-<span class="kn">import</span> <span class="nn">genQC.util</span> <span class="k">as</span> <span class="nn">util</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">genQC</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">genQC.imports</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">genQC.pipeline.diffusion_pipeline</span><span class="w"> </span><span class="kn">import</span> <span class="n">DiffusionPipeline</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">genQC.inference.export_cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">genqc_to_cudaq</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">genQC.inference.infer_compilation</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">infer_comp</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">genQC.util</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">util</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
 <span class="c1"># Fixed seed for reproducibility</span>
 <span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
@@ -924,7 +924,7 @@ tensor([[ 5,  3,  0,  0, -5,  3,  3,  0, -5,  0,  0,  0],
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;qpp-cpu&#39;</span><span class="p">)</span>  <span class="c1"># Note that cpu is faster for 3 qubit kernels</span>
 
@@ -1095,7 +1095,7 @@ the desired unitary operation.</p>
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">infidelity</span><span class="p">(</span><span class="n">want_unitary</span><span class="p">,</span> <span class="n">got_unitary</span><span class="p">):</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">infidelity</span><span class="p">(</span><span class="n">want_unitary</span><span class="p">,</span> <span class="n">got_unitary</span><span class="p">):</span>
     <span class="k">return</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span>
         <span class="n">np</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">want_unitary</span><span class="p">)</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">got_unitary</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="o">**</span><span class="n">num_of_qubits</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
 

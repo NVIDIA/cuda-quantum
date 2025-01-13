@@ -776,11 +776,11 @@ device kernel:</p>
 </div>
 <input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span><span class="p">()</span>
-<span class="k">def</span> <span class="nf">x_gate</span><span class="p">(</span><span class="n">q</span> <span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">x_gate</span><span class="p">(</span><span class="n">q</span> <span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">):</span>
     <span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span><span class="p">()</span>
-<span class="k">def</span> <span class="nf">kernelTestControl</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernelTestControl</span><span class="p">():</span>
     <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
     <span class="o">...</span>
     <span class="n">ctrl_bits</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">front</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
@@ -788,12 +788,12 @@ device kernel:</p>
     <span class="o">...</span>
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span><span class="p">()</span>
-<span class="k">def</span> <span class="nf">rx_and_h_gate</span><span class="p">(</span><span class="n">x</span> <span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">q</span> <span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">rx_and_h_gate</span><span class="p">(</span><span class="n">x</span> <span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">q</span> <span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">):</span>
     <span class="n">rx</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
     <span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span><span class="p">()</span>
-<span class="k">def</span> <span class="nf">kernelTestAdjoint</span><span class="p">(</span><span class="n">N</span> <span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernelTestAdjoint</span><span class="p">(</span><span class="n">N</span> <span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
     <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
     <span class="o">...</span>
     <span class="c1"># apply h(q[2]); rx(-pi, q[2])</span>

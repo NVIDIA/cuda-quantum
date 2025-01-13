@@ -744,14 +744,14 @@
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[156]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">math</span> <span class="kn">import</span> <span class="n">gcd</span><span class="p">,</span> <span class="n">log2</span><span class="p">,</span> <span class="n">ceil</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">random</span>
-<span class="kn">import</span> <span class="nn">cudaq</span>
-<span class="kn">from</span> <span class="nn">cudaq</span> <span class="kn">import</span> <span class="o">*</span>
-<span class="kn">import</span> <span class="nn">fractions</span>
-<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
-<span class="kn">import</span> <span class="nn">contfrac</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">math</span><span class="w"> </span><span class="kn">import</span> <span class="n">gcd</span><span class="p">,</span> <span class="n">log2</span><span class="p">,</span> <span class="n">ceil</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">fractions</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">contfrac</span>
 </pre></div>
 </div>
 </div>
@@ -778,7 +778,7 @@
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">shors_algorithm</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">initial</span><span class="p">,</span> <span class="n">quantum</span><span class="p">):</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">shors_algorithm</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">initial</span><span class="p">,</span> <span class="n">quantum</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot; Factor N using Shor&#39;s algorithm with initial starting value and choice of</span>
 <span class="sd">    using either classical or quantum approach for the period finding step</span>
 <span class="sd">    Parameters</span>
@@ -863,7 +863,7 @@
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[157]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">test_order</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">test_order</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Checks whether or not a^(r/2)+1 or a^(r/2)-1 share a non-trivial common factor with N</span>
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -896,7 +896,7 @@
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[158]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">find_order_classical</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">find_order_classical</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;A naive classical method to find the order r of a (mod N).</span>
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -969,7 +969,7 @@ Found factors of N=123 by chance: 3 and 41
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define kernels for the quantum Fourier transform and the inverse quantum Fourier transform</span>
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">quantum_fourier_transform</span><span class="p">(</span><span class="n">qubits</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">quantum_fourier_transform</span><span class="p">(</span><span class="n">qubits</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
     <span class="n">qubit_count</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
     <span class="c1"># Apply Hadamard gates and controlled rotation gates.</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">):</span>
@@ -980,7 +980,7 @@ Found factors of N=123 by chance: 3 and 41
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">inverse_qft</span><span class="p">(</span><span class="n">qubits</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">inverse_qft</span><span class="p">(</span><span class="n">qubits</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
     <span class="n">cudaq</span><span class="o">.</span><span class="n">adjoint</span><span class="p">(</span><span class="n">quantum_fourier_transform</span><span class="p">,</span> <span class="n">qubits</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -998,7 +998,7 @@ Found factors of N=123 by chance: 3 and 41
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">modular_mult_5_21</span><span class="p">(</span><span class="n">work</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">modular_mult_5_21</span><span class="p">(</span><span class="n">work</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;&quot;Kernel for multiplying by 5 mod 21</span>
 <span class="sd">    based off of the circuit diagram in</span>
 <span class="sd">    https://physlab.org/wp-content/uploads/2023/05/Shor_s_Algorithm_23100113_Fin.pdf</span>
@@ -1012,7 +1012,7 @@ Found factors of N=123 by chance: 3 and 41
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">modular_exp_5_21</span><span class="p">(</span><span class="n">exponent</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span> <span class="n">work</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">modular_exp_5_21</span><span class="p">(</span><span class="n">exponent</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span> <span class="n">work</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span>
                      <span class="n">control_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot; Controlled modular exponentiation kernel used in Shor&#39;s algorithm</span>
 <span class="sd">    |x&gt; U^x |y&gt; = |x&gt; |(5^x)y mod 21&gt;</span>
@@ -1032,7 +1032,7 @@ Found factors of N=123 by chance: 3 and 41
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Demonstrate iterated application of 5y mod 21 where y = 1</span>
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">demonstrate_mod_exponentiation</span><span class="p">(</span><span class="n">iterations</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">demonstrate_mod_exponentiation</span><span class="p">(</span><span class="n">iterations</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
     <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
     <span class="n">x</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
      <span class="p">)</span>  <span class="c1"># initalizes the qubits in the state for y = 1 which is |10000&gt;</span>
@@ -1097,7 +1097,7 @@ For x = 1, the computed result of the circuit is 5
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">modular_exp_4_21</span><span class="p">(</span><span class="n">exponent</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span> <span class="n">work</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">modular_exp_4_21</span><span class="p">(</span><span class="n">exponent</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span> <span class="n">work</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot; Controlled modular exponentiation kernel used in Shor&#39;s algorithm</span>
 <span class="sd">     |x&gt; U^x |y&gt; = |x&gt; |(4^x)y mod 21&gt;</span>
 <span class="sd">     based off of the circuit diagram in https://arxiv.org/abs/2103.13855</span>
@@ -1129,7 +1129,7 @@ For x = 1, the computed result of the circuit is 5
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">phase_kernel</span><span class="p">(</span><span class="n">control_register_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">work_register_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">a</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">phase_kernel</span><span class="p">(</span><span class="n">control_register_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">work_register_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">a</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
                  <span class="n">N</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Kernel to estimate the phase of the modular multiplication gate |x&gt; U |y&gt; = |x&gt; |a*y mod 21&gt; for a = 4 or 5</span>
@@ -1260,7 +1260,7 @@ Measurement results for a=5 and N=21 with 3 qubits in the control register
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[202]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">top_results</span><span class="p">(</span><span class="n">sample_results</span><span class="p">,</span> <span class="n">zeros</span><span class="p">,</span> <span class="n">threshold</span><span class="p">):</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">top_results</span><span class="p">(</span><span class="n">sample_results</span><span class="p">,</span> <span class="n">zeros</span><span class="p">,</span> <span class="n">threshold</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Function to output the non-zero results whose counts are above the given threshold</span>
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -1315,7 +1315,7 @@ Measurement results for a=5 and N=21 with 3 qubits in the control register
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[204]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">get_order_from_phase</span><span class="p">(</span><span class="n">phase</span><span class="p">,</span> <span class="n">phase_nbits</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">get_order_from_phase</span><span class="p">(</span><span class="n">phase</span><span class="p">,</span> <span class="n">phase_nbits</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Uses continued fractions to find the order of a mod N</span>
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -1366,7 +1366,7 @@ Measurement results for a=5 and N=21 with 3 qubits in the control register
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[205]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">find_order_quantum</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">find_order_quantum</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;The quantum algorithm to find the order of a mod N, when x = 4 or x =5 and N = 21</span>
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>

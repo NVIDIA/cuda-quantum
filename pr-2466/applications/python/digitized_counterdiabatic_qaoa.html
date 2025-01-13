@@ -748,9 +748,9 @@ produce the maximum weighted clique which corresponds to the best (most strongly
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
-<span class="kn">from</span> <span class="nn">cudaq</span> <span class="kn">import</span> <span class="n">spin</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <br/></pre></div>
 </div>
 </div>
@@ -810,7 +810,7 @@ Non-Edges:  [[0, 3], [1, 4], [2, 5]]
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Generate the Hamiltonian</span>
-<span class="k">def</span> <span class="nf">ham_clique</span><span class="p">(</span><span class="n">penalty</span><span class="p">,</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">non_edges</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">ham_clique</span><span class="p">(</span><span class="n">penalty</span><span class="p">,</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">non_edges</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">:</span>
 
     <span class="n">spin_ham</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="k">for</span> <span class="n">wt</span><span class="p">,</span> <span class="n">node</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">nodes</span><span class="p">):</span>
@@ -834,7 +834,7 @@ Non-Edges:  [[0, 3], [1, 4], [2, 5]]
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Collect coefficients from a spin operator so we can pass them to a kernel</span>
-<span class="k">def</span> <span class="nf">term_coefficients</span><span class="p">(</span><span class="n">ham</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">term_coefficients</span><span class="p">(</span><span class="n">ham</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">]:</span>
     <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">ham</span><span class="o">.</span><span class="n">for_each_term</span><span class="p">(</span><span class="k">lambda</span> <span class="n">term</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">get_coefficient</span><span class="p">()))</span>
     <span class="k">return</span> <span class="n">result</span>
@@ -842,7 +842,7 @@ Non-Edges:  [[0, 3], [1, 4], [2, 5]]
     <span class="c1"># Collect Pauli words from a spin operator so we can pass them to a kernel</span>
 
 
-<span class="k">def</span> <span class="nf">term_words</span><span class="p">(</span><span class="n">ham</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">term_words</span><span class="p">(</span><span class="n">ham</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
     <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">ham</span><span class="o">.</span><span class="n">for_each_term</span><span class="p">(</span><span class="k">lambda</span> <span class="n">term</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="kc">False</span><span class="p">)))</span>
     <span class="k">return</span> <span class="n">result</span>
@@ -886,7 +886,7 @@ QAOA.</p>
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">dc_qaoa</span><span class="p">(</span><span class="n">qubit_num</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span> <span class="n">thetas</span><span class="p">:</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>\
+<span class="k">def</span><span class="w"> </span><span class="nf">dc_qaoa</span><span class="p">(</span><span class="n">qubit_num</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span> <span class="n">thetas</span><span class="p">:</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>\
     <span class="n">coef</span><span class="p">:</span><span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">],</span> <span class="n">words</span><span class="p">:</span><span class="nb">list</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">pauli_word</span><span class="p">]):</span>
 
     <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubit_num</span><span class="p">)</span>
@@ -953,7 +953,7 @@ Initial parameters =  [0.21810696323572243, -0.20613464375211488, 0.254687763981
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cost_values</span> <span class="o">=</span> <span class="p">[]</span>
 
 
-<span class="k">def</span> <span class="nf">objective</span><span class="p">(</span><span class="n">parameters</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">objective</span><span class="p">(</span><span class="n">parameters</span><span class="p">):</span>
 
     <span class="n">cost</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">dc_qaoa</span><span class="p">,</span> <span class="n">ham</span><span class="p">,</span> <span class="n">qubit_num</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">coef</span><span class="p">,</span>
                          <span class="n">words</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
@@ -1015,7 +1015,7 @@ The MVWCP is given by the partition:  111000
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
 
 <span class="n">x_values</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cost_values</span><span class="p">)))</span>
 <span class="n">y_values</span> <span class="o">=</span> <span class="n">cost_values</span>
