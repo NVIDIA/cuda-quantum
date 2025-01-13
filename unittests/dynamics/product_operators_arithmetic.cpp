@@ -104,7 +104,7 @@ cudaq::matrix_2 parity_matrix(std::size_t size) {
 
 /// TODO: Not yet testing the output matrices coming from this arithmetic.
 
-TEST(ExpressionTester, checkProductOperatorSimpleMatrixChecks) {
+TEST(OperatorExpressions, checkProductOperatorSimpleMatrixChecks) {
   std::vector<int> levels = {2, 3, 4};
 
   {
@@ -200,7 +200,7 @@ TEST(ExpressionTester, checkProductOperatorSimpleMatrixChecks) {
   }
 }
 
-TEST(ExpressionTester, checkProductOperatorSimpleContinued) {
+TEST(OperatorExpressions, checkProductOperatorSimpleContinued) {
 
   std::complex<double> value_0 = 0.1 + 0.1;
   std::complex<double> value_1 = 0.1 + 1.0;
@@ -244,7 +244,7 @@ TEST(ExpressionTester, checkProductOperatorSimpleContinued) {
   }
 }
 
-TEST(ExpressionTester, checkProductOperatorAgainstScalars) {
+TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
   std::complex<double> value_0 = 0.1 + 0.1;
 
   /// `product_operator + complex<double>`
@@ -433,7 +433,7 @@ TEST(ExpressionTester, checkProductOperatorAgainstScalars) {
   }
 }
 
-TEST(ExpressionTester, checkProductOperatorAgainstProduct) {
+TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
 
   // `product_operator + product_operator`
   {
@@ -484,7 +484,7 @@ TEST(ExpressionTester, checkProductOperatorAgainstProduct) {
   }
 }
 
-TEST(ExpressionTester, checkProductOperatorAgainstElementary) {
+TEST(OperatorExpressions, checkProductOperatorAgainstElementary) {
 
   // `product_operator + elementary_operator`
   {
@@ -537,7 +537,7 @@ TEST(ExpressionTester, checkProductOperatorAgainstElementary) {
   }
 }
 
-TEST(ExpressionTester, checkProductOperatorAgainstOperatorSum) {
+TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
 
   // `product_operator + operator_sum`
   {
