@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -82,6 +82,7 @@ public:
   /// specified by that variable.
   void setTargetBackend(const std::string &backend) override {
     platformQPUs.clear();
+    threadToQpuId.clear();
     platformQPUs.emplace_back(std::make_unique<DefaultQPU>());
 
     cudaq::info("Backend string is {}", backend);
@@ -121,6 +122,7 @@ public:
       auto qpuName = config.BackendConfig->PlatformQpu;
       cudaq::info("Default platform QPU subtype name: {}", qpuName);
       platformQPUs.clear();
+      threadToQpuId.clear();
       platformQPUs.emplace_back(cudaq::registry::get<cudaq::QPU>(qpuName));
       if (platformQPUs.front() == nullptr)
         throw std::runtime_error(

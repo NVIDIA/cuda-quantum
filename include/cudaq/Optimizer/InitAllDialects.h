@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -16,7 +16,6 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/Math/IR/Math.h"
-#include "mlir/Dialect/MemRef/IR/MemRef.h"
 
 namespace cudaq {
 
@@ -31,9 +30,8 @@ inline void registerAllDialects(mlir::DialectRegistry &registry) {
     mlir::func::FuncDialect,
     mlir::LLVM::LLVMDialect,
     mlir::math::MathDialect,
-    mlir::memref::MemRefDialect,
 
-    // NVQ++ dialects
+    // CUDA-Q dialects
     cudaq::cc::CCDialect,
     quake::QuakeDialect
   >();
