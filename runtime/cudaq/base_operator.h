@@ -31,6 +31,6 @@ public:
     virtual std::string to_string() const = 0;
 
     /// @brief Return the degrees of freedom that the operator acts on.
-    virtual std::vector<int> get_degrees() const = 0;
+    virtual std::vector<int> degrees() const = 0;
 };
 }
