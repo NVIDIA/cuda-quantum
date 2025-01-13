@@ -100,7 +100,7 @@ cudaq::matrix_2 parity_matrix(std::size_t size) {
 
 } // namespace utils_2
 
-// TEST(ExpressionTester, checkProductOperatorSimple) {
+// TEST(OperatorExpressions, checkProductOperatorSimple) {
 //   std::vector<int> levels = {2, 3, 4};
 
 //   // std::set<int> uniqueDegrees;
@@ -188,7 +188,7 @@ cudaq::matrix_2 parity_matrix(std::size_t size) {
 //   }
 // }
 
-// TEST(ExpressionTester, checkProductOperatorSimple) {
+// TEST(OperatorExpressions, checkProductOperatorSimple) {
 
 //   std::complex<double> value_0 = 0.1 + 0.1;
 //   std::complex<double> value_1 = 0.1 + 1.0;
@@ -227,7 +227,7 @@ cudaq::matrix_2 parity_matrix(std::size_t size) {
 //   }
 // }
 
-TEST(ExpressionTester, checkOperatorSumAgainstScalarOperator) {
+TEST(OperatorExpressions, checkOperatorSumAgainstScalarOperator) {
 
   // `operator_sum * scalar_operator` and `scalar_operator * operator_sum`
   {
@@ -307,7 +307,7 @@ TEST(ExpressionTester, checkOperatorSumAgainstScalarOperator) {
   }
 }
 
-TEST(ExpressionTester, checkOperatorSumAgainstScalars) {
+TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
   std::complex<double> value = 0.1 + 0.1;
 
   // `operator_sum * double` and `double * operator_sum`
@@ -468,7 +468,7 @@ TEST(ExpressionTester, checkOperatorSumAgainstScalars) {
   }
 }
 
-TEST(ExpressionTester, checkOperatorSumAgainstOperatorSum) {
+TEST(OperatorExpressions, checkOperatorSumAgainstOperatorSum) {
   // `operator_sum + operator_sum`
   {
     auto sum_0 = cudaq::elementary_operator::create(1) +
@@ -529,7 +529,7 @@ TEST(ExpressionTester, checkOperatorSumAgainstOperatorSum) {
 /// NOTE: Much of the simpler arithmetic between the two is tested in the
 /// product operator test file. This mainly just tests the assignment operators
 /// between the two types.
-TEST(ExpressionTester, checkOperatorSumAgainstProduct) {
+TEST(OperatorExpressions, checkOperatorSumAgainstProduct) {
   // `operator_sum += product_operator`
   {
     auto product = cudaq::elementary_operator::annihilate(0) *

@@ -99,7 +99,7 @@ cudaq::matrix_2 parity_matrix(std::size_t size) {
 
 } // namespace utils
 
-TEST(ExpressionTester, checkPreBuiltElementaryOps) {
+TEST(OperatorExpressions, checkPreBuiltElementaryOps) {
   std::vector<std::size_t> levels = {2, 3, 4, 5};
 
   // Keeping this fixed throughout.
@@ -203,6 +203,6 @@ TEST(ExpressionTester, checkPreBuiltElementaryOps) {
   // TODO: Squeeze operator.
 }
 
-// TEST(ExpressionTester, checkCustomElementaryOps) {
+// TEST(OperatorExpressions, checkCustomElementaryOps) {
 //   // pass
 // }
