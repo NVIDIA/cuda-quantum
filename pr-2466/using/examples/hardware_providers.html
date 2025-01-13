@@ -222,7 +222,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutschs_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutschs_algorithm.html#Phase-oracle">Phase oracle</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutschs_algorithm.html#Quantum-parallelism">Quantum parallelism</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutschs_algorithm.html#Deutschs'-Algorithm:">Deutschs’ Algorithm:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutschs_algorithm.html#Deutsch's-Algorithm:">Deutsch’s Algorithm:</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html">Divisive Clustering With Coresets Using CUDA-Q</a><ul>
@@ -897,8 +897,8 @@ backends, please take a look at <a class="reference internal" href="../backends/
 <span class="c1">// ```</span>
 <span class="c1">// nvq++ --target infleqtion infleqtion.cpp -o out.x &amp;&amp; ./out.x</span>
 <span class="c1">// ```</span>
-<span class="c1">// This will submit the job to the Infleqtion&#39;s ideal simulator,</span>
-<span class="c1">// cq_sqale_simulator (default). Alternatively, we can enable hardware noise</span>
+<span class="c1">// This will submit the job to the ideal simulator for Infleqtion,</span>
+<span class="c1">// `cq_sqale_simulator` (default). Alternatively, we can enable hardware noise</span>
 <span class="c1">// model simulation by specifying `noise-sim` to the flag `--infleqtion-method`,</span>
 <span class="c1">// e.g.,</span>
 <span class="c1">// ```</span>
@@ -912,9 +912,9 @@ backends, please take a look at <a class="reference internal" href="../backends/
 <span class="c1">// nvq++ --target infleqtion --infleqtion-machine cq_sqale_qpu</span>
 <span class="c1">// --infleqtion-method dry-run infleqtion.cpp -o out.x &amp;&amp; ./out.x</span>
 <span class="c1">// ```</span>
-<span class="c1">// Note: If targeting ideal cloud simulation, `--infleqtion-machine</span>
-<span class="c1">// cq_sqale_simulator` is optional since it is the default configuration if not</span>
-<span class="c1">// provided.</span>
+<span class="c1">// Note: If targeting ideal cloud simulation,</span>
+<span class="c1">// `--infleqtion-machine cq_sqale_simulator` is optional since it is the</span>
+<span class="c1">// default configuration if not provided.</span>
 
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;fstream&gt;</span>
@@ -933,7 +933,7 @@ backends, please take a look at <a class="reference internal" href="../backends/
 <span class="p">};</span>
 
 <span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="c1">// Submit to infleqtion asynchronously (e.g., continue executing</span>
+<span class="w">  </span><span class="c1">// Submit to Infleqtion asynchronously (e.g., continue executing</span>
 <span class="w">  </span><span class="c1">// code in the file until the job has been returned).</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">future</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample_async</span><span class="p">(</span><span class="n">ghz</span><span class="p">{});</span>
 <span class="w">  </span><span class="c1">// ... classical code to execute in the meantime ...</span>
@@ -953,7 +953,7 @@ backends, please take a look at <a class="reference internal" href="../backends/
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">async_counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">readIn</span><span class="p">.</span><span class="n">get</span><span class="p">();</span>
 <span class="w">  </span><span class="n">async_counts</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
 
-<span class="w">  </span><span class="c1">// OR: Submit to infleqtion synchronously (e.g., wait for the job</span>
+<span class="w">  </span><span class="c1">// OR: Submit to Infleqtion synchronously (e.g., wait for the job</span>
 <span class="w">  </span><span class="c1">// result to be returned before proceeding).</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">ghz</span><span class="p">{});</span>
 <span class="w">  </span><span class="n">counts</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
@@ -1737,7 +1737,7 @@ parameters of the time bin interferometer.</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2024, NVIDIA Corporation &amp; Affiliates.</p>
+    <p>&#169; Copyright 2025, NVIDIA Corporation &amp; Affiliates.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

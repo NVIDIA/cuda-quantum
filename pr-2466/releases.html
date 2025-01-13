@@ -220,7 +220,7 @@
 <li class="toctree-l3"><a class="reference internal" href="applications/python/deutschs_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
 <li class="toctree-l3"><a class="reference internal" href="applications/python/deutschs_algorithm.html#Phase-oracle">Phase oracle</a></li>
 <li class="toctree-l3"><a class="reference internal" href="applications/python/deutschs_algorithm.html#Quantum-parallelism">Quantum parallelism</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/deutschs_algorithm.html#Deutschs'-Algorithm:">Deutschs’ Algorithm:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="applications/python/deutschs_algorithm.html#Deutsch's-Algorithm:">Deutsch’s Algorithm:</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="applications/python/divisive_clustering_coresets.html">Divisive Clustering With Coresets Using CUDA-Q</a><ul>
@@ -729,6 +729,24 @@ and is also available as a Docker image. More information about installing the n
 <li><p><a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest">Documentation</a></p></li>
 <li><p><a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples">Examples</a></p></li>
 </ul>
+<p><strong>0.9.1</strong></p>
+<p>This release adds support for using
+<a class="reference external" href="https://nvidia.github.io/cuda-quantum/0.9.1/using/backends/hardware.html#amazon-braket">Amazon Braket</a> and
+<a class="reference external" href="https://nvidia.github.io/cuda-quantum/0.9.1/using/backends/hardware.html#infleqtion">Infeqtion’s Superstaq</a> as backends.</p>
+<p>Starting with this release, all C++ quantum kernels will be processed by the <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> compiler regardless of whether
+they run on a simulator or on a quantum hardware backend. This change is largely non-breaking, but language constructs
+that are not officially supported within quantum kernels will now lead to a compilation error whereas previously they
+could be used when executing on a simulator only. The previous behavior can be forced by passing the <code class="code docutils literal notranslate"><span class="pre">--library-mode</span></code>
+flag to the compiler. Please note that if you do so, however, the code will never be executable outside of a simulator
+and may not be supported even on simulators.</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum">Docker image</a></p></li>
+<li><p><a class="reference external" href="https://pypi.org/project/cudaq/0.9.1">Python wheel</a></p></li>
+<li><p><a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases/0.9.1">C++ installer</a></p></li>
+<li><p><a class="reference external" href="https://nvidia.github.io/cuda-quantum/0.9.1">Documentation</a></p></li>
+<li><p><a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.9.1/docs/sphinx/examples">Examples</a></p></li>
+</ul>
+<p>The full change log can be found <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases/0.9.1">here</a>.</p>
 <p><strong>0.9.0</strong></p>
 <p>We are very excited to share a new toolset added for modeling and manipulating the dynamics of physical systems.
 The new API allows to define and execute a time evolution under arbitrary operators. For more information, take
@@ -737,12 +755,12 @@ The 0.9.0 release furthermore includes a range of contribution to add new backen
 from <a class="reference external" href="https://nvidia.github.io/cuda-quantum/0.9.0/using/backends/hardware.html#anyon-technologies-anyon-computing">Anyon Technologies</a>,
 <a class="reference external" href="https://nvidia.github.io/cuda-quantum/0.9.0/using/backends/simulators.html#fermioniq">Ferimioniq</a>, and
 <a class="reference external" href="https://nvidia.github.io/cuda-quantum/0.9.0/using/backends/hardware.html#quera-computing">QuEra Computing</a>,
-as well as updates to existing backends from <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/using/backends/hardware.html#orca-computing">ORCA</a>
+as well as updates to existing backends from <a class="reference external" href="https://nvidia.github.io/cuda-quantum/0.9.0/using/backends/hardware.html#orca-computing">ORCA</a>
 and <a class="reference external" href="https://nvidia.github.io/cuda-quantum/0.9.0/using/backends/hardware.html#oqc">OQC</a>.
 We hope you enjoy the new features - also check out our new notebooks and examples to dive into CUDA-Q.</p>
 <ul class="simple">
-<li><p><a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum">Docker image</a></p></li>
-<li><p><a class="reference external" href="https://pypi.org/project/cuda-quantum/0.9.0">Python wheel</a></p></li>
+<li><p><a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags">Docker image</a></p></li>
+<li><p><a class="reference external" href="https://pypi.org/project/cudaq/0.9.0">Python wheel</a></p></li>
 <li><p><a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases/0.9.0">C++ installer</a></p></li>
 <li><p><a class="reference external" href="https://nvidia.github.io/cuda-quantum/0.9.0">Documentation</a></p></li>
 <li><p><a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.9.0/docs/sphinx/examples">Examples</a></p></li>
@@ -859,7 +877,7 @@ The fully featured version is available as a Docker image for <code class="code 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2024, NVIDIA Corporation &amp; Affiliates.</p>
+    <p>&#169; Copyright 2025, NVIDIA Corporation &amp; Affiliates.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
