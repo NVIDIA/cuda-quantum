@@ -1,5 +1,5 @@
 // ========================================================================== //
-// Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                 //
+// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
 // All rights reserved.                                                       //
 //                                                                            //
 // This source code and the accompanying materials are made available under   //
@@ -27,10 +27,10 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__lambda.main.canHa
     %4 = arith.extsi %c0_i32_0 : i32 to i64
     %5 = quake.extract_ref %1[%4] : (!quake.veq<?>, i64) -> !quake.ref
     %16 = quake.mz %5 name "b" : (!quake.ref) -> !quake.measure
-    %alloca = memref.alloca() : memref<i1>
+    %alloca = cc.alloca i1
     %6 = quake.discriminate %16 : (!quake.measure) -> i1
-    memref.store %6, %alloca[] : memref<i1>
-    %7 = memref.load %alloca[] : memref<i1>
+    cc.store %6, %alloca : !cc.ptr<i1>
+    %7 = cc.load %alloca : !cc.ptr<i1>
     cc.if(%7) {
       cc.scope {
         %c1_i32_1 = arith.constant 1 : i32
@@ -67,9 +67,9 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__lambda.main.canHa
     %5 = quake.extract_ref %1[%4] : (!quake.veq<?>,i64) -> !quake.ref
     %16 = quake.mz %5 name "b" : (!quake.ref) -> !quake.measure
     %6 = quake.discriminate %16 : (!quake.measure) -> i1
-    %alloca = memref.alloca() : memref<i1>
-    memref.store %6, %alloca[] : memref<i1>
-    %7 = memref.load %alloca[] : memref<i1>
+    %alloca = cc.alloca i1
+    cc.store %6, %alloca : !cc.ptr<i1>
+    %7 = cc.load %alloca : !cc.ptr<i1>
     cc.if(%7) {
       cc.scope {
         %c1_i32_1 = arith.constant 1 : i32
