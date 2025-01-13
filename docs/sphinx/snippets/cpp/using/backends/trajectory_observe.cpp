@@ -41,4 +41,5 @@ int main() {
       cudaq::observe({.noise = noise_model, .num_trajectories = 8192}, xOp{},
                      cudaq::spin::z(0));
   std::cout << "Noisy <Z> with 8192 trajectories = " << noisy_exp_val << "\n";
+  return 0;
 }
