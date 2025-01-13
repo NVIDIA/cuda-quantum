@@ -344,12 +344,30 @@ static void createUnrollingPipeline(OpPassManager &pm, unsigned threshold,
                                     bool allowClosedInterval) {
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
+
+  // Run unrolling twice to make sure some nested loops are unrolled
+  // after constant array propagation (for example, in `uccsd` state prep).
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCSEPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLiftArrayAlloc());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCSEPass());
   cudaq::opt::LoopNormalizeOptions lno{allowClosedInterval, allowBreak};
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize(lno));
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  cudaq::opt::LoopUnrollOptions luo{threshold, signalFailure, allowBreak};
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll(luo));
+  cudaq::opt::LoopUnrollOptions luo1{threshold, false, allowBreak};
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll(luo1));
+
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCSEPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLiftArrayAlloc());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCSEPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize(lno));
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  cudaq::opt::LoopUnrollOptions luo2{threshold, signalFailure, allowBreak};
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll(luo2));
+
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUpdateRegisterNames());
 }
 
