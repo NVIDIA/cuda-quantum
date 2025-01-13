@@ -105,7 +105,7 @@ cudaq::matrix_2 parity_matrix(std::size_t size) {
 
 } // namespace utils_0
 
-TEST(ExpressionTester, checkPreBuiltElementaryOpsScalars) {
+TEST(OperatorExpressions, checkPreBuiltElementaryOpsScalars) {
 
   auto function = [](std::map<std::string, std::complex<double>> parameters) {
     return parameters["value"];
@@ -284,7 +284,7 @@ TEST(ExpressionTester, checkPreBuiltElementaryOpsScalars) {
 }
 
 /// Prebuilt elementary ops against one another.
-TEST(ExpressionTester, checkPreBuiltElementaryOpsSelf) {
+TEST(OperatorExpressions, checkPreBuiltElementaryOpsSelf) {
 
   /// Keeping this fixed throughout.
   int level_count = 3;
@@ -412,7 +412,7 @@ TEST(ExpressionTester, checkPreBuiltElementaryOpsSelf) {
 
 /// Testing arithmetic between elementary operators and operator
 /// sums.
-TEST(ExpressionTester, checkElementaryOpsAgainstOpSum) {
+TEST(OperatorExpressions, checkElementaryOpsAgainstOpSum) {
 
   /// Keeping this fixed throughout.
   int level_count = 3;
