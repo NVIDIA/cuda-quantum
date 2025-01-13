@@ -12,8 +12,8 @@ namespace cudaq {
 template <typename TState>
 class BaseTimeStepper {
 public:
-    virtual ~BaseTimeStepper() = default;
+  virtual ~BaseTimeStepper() = default;
 
-    virtual void compute(TState &state, double t) = 0;
+  virtual void compute(TState &state, double t) = 0;
 };
-}
+} // namespace cudaq
