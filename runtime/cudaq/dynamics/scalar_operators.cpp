@@ -219,54 +219,63 @@ ARITHMETIC_OPERATIONS_SCALAR_OPS_ASSIGNMENT(-=);
 ARITHMETIC_OPERATIONS_SCALAR_OPS_ASSIGNMENT(*=);
 ARITHMETIC_OPERATIONS_SCALAR_OPS_ASSIGNMENT(/=);
 
-operator_sum scalar_operator::operator+(elementary_operator other) {
+template <typename HandlerTy>
+operator_sum<HandlerTy> scalar_operator::operator+(elementary_operator<HandlerTy> other) {
   // Operator sum is composed of product operators, so we must convert
   // both underlying types to `product_operators` to perform the arithmetic.
   return operator_sum({product_operator({*this}), product_operator({other})});
 }
 
-operator_sum scalar_operator::operator-(elementary_operator other) {
+template <typename HandlerTy>
+operator_sum<HandlerTy> scalar_operator::operator-(elementary_operator<HandlerTy> other) {
   // Operator sum is composed of product operators, so we must convert
   // both underlying types to `product_operators` to perform the arithmetic.
   return operator_sum(
       {product_operator({*this}), product_operator({-1. * other})});
 }
 
-product_operator scalar_operator::operator*(elementary_operator other) {
+template <typename HandlerTy>
+product_operator<HandlerTy> scalar_operator::operator*(elementary_operator<HandlerTy> other) {
   return product_operator({*this, other});
 }
 
-operator_sum scalar_operator::operator+(product_operator other) {
+template <typename HandlerTy>
+operator_sum<HandlerTy> scalar_operator::operator+(product_operator<HandlerTy> other) {
   return operator_sum({product_operator({*this}), other});
 }
 
-operator_sum scalar_operator::operator-(product_operator other) {
+template <typename HandlerTy>
+operator_sum<HandlerTy> scalar_operator::operator-(product_operator<HandlerTy> other) {
   return operator_sum({product_operator({*this}), (-1. * other)});
 }
 
-product_operator scalar_operator::operator*(product_operator other) {
-  std::vector<std::variant<scalar_operator, elementary_operator>> other_terms =
+template <typename HandlerTy>
+product_operator<HandlerTy> scalar_operator::operator*(product_operator<HandlerTy> other) {
+  std::vector<std::variant<scalar_operator, elementary_operator<HandlerTy>>> other_terms =
       other.get_terms();
   /// Insert this scalar operator to the front of the terms list.
   other_terms.insert(other_terms.begin(), *this);
   return product_operator(other_terms);
 }
 
-operator_sum scalar_operator::operator+(operator_sum other) {
-  std::vector<product_operator> other_terms = other.get_terms();
+template <typename HandlerTy>
+operator_sum<HandlerTy> scalar_operator::operator+(operator_sum<HandlerTy> other) {
+  std::vector<product_operator<HandlerTy>> other_terms = other.get_terms();
   other_terms.insert(other_terms.begin(), *this);
   return operator_sum(other_terms);
 }
 
-operator_sum scalar_operator::operator-(operator_sum other) {
+template <typename HandlerTy>
+operator_sum<HandlerTy> scalar_operator::operator-(operator_sum<HandlerTy> other) {
   auto negative_other = (-1. * other);
-  std::vector<product_operator> other_terms = negative_other.get_terms();
+  std::vector<product_operator<HandlerTy>> other_terms = negative_other.get_terms();
   other_terms.insert(other_terms.begin(), *this);
   return operator_sum(other_terms);
 }
 
-operator_sum scalar_operator::operator*(operator_sum other) {
-  std::vector<product_operator> other_terms = other.get_terms();
+template <typename HandlerTy>
+operator_sum<HandlerTy> scalar_operator::operator*(operator_sum<HandlerTy> other) {
+  std::vector<product_operator<HandlerTy>> other_terms = other.get_terms();
   for (auto &term : other_terms)
     term = *this * term;
   return operator_sum(other_terms);
