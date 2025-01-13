@@ -19,6 +19,8 @@ static constexpr const char QIRMeasureBody[] = "__quantum__qis__mz__body";
 static constexpr const char QIRMeasure[] = "__quantum__qis__mz";
 static constexpr const char QIRMeasureToRegister[] =
     "__quantum__qis__mz__to__register";
+static constexpr const char QIRResetBody[] = "__quantum__qis__reset__body";
+static constexpr const char QIRReset[] = "__quantum__qis__reset";
 
 static constexpr const char QIRCnot[] = "__quantum__qis__cnot";
 static constexpr const char QIRCphase[] = "__quantum__qis__cphase";
@@ -27,6 +29,9 @@ static constexpr const char QIRReadResultBody[] =
     "__quantum__qis__read_result__body";
 
 static constexpr const char QIRCustomOp[] = "__quantum__qis__custom_unitary";
+static constexpr const char QIRCustomAdjOp[] =
+    "__quantum__qis__custom_unitary__adj";
+static constexpr const char QIRExpPauli[] = "__quantum__qis__exp_pauli";
 
 static constexpr const char NVQIRInvokeWithControlBits[] =
     "invokeWithControlQubits";
@@ -36,6 +41,8 @@ static constexpr const char NVQIRInvokeU3RotationWithControlBits[] =
     "invokeU3RotationWithControlQubits";
 static constexpr const char NVQIRInvokeWithControlRegisterOrBits[] =
     "invokeWithControlRegisterOrQubits";
+static constexpr const char NVQIRCommonInvokeAny[] =
+    "commonInvokeWithRotationsControlsTargets";
 static constexpr const char NVQIRPackSingleQubitInArray[] =
     "packSingleQubitInArray";
 static constexpr const char NVQIRReleasePackedQubitArray[] =

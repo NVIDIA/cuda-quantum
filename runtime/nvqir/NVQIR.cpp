@@ -128,15 +128,22 @@ Array *vectorSizetToArray(std::vector<std::size_t> &idxs) {
 /// @brief Utility function mapping a QIR Array pointer to a vector of ids
 std::vector<std::size_t> arrayToVectorSizeT(Array *arr) {
   std::vector<std::size_t> ret;
-  for (std::size_t i = 0; i < arr->size(); i++) {
+  const auto arrSize = arr->size();
+  for (std::size_t i = 0; i < arrSize; ++i) {
     auto arrayPtr = (*arr)[i];
     Qubit *idxVal = *reinterpret_cast<Qubit **>(arrayPtr);
     if (qubitPtrIsIndex)
-      ret.push_back((intptr_t)idxVal);
+      ret.push_back(reinterpret_cast<intptr_t>(idxVal));
     else
       ret.push_back(idxVal->idx);
   }
   return ret;
+}
+
+static std::vector<std::size_t> safeArrayToVectorSizeT(Array *arr) {
+  if (!arr)
+    return {};
+  return arrayToVectorSizeT(arr);
 }
 
 /// @brief Utility function mapping a QIR Qubit pointer to its id
@@ -613,7 +620,7 @@ void __quantum__rt__result_record_output(Result *r, int8_t *name) {
 void __quantum__qis__custom_unitary(std::complex<double> *unitary,
                                     Array *controls, Array *targets,
                                     const char *name) {
-  auto ctrlsVec = arrayToVectorSizeT(controls);
+  auto ctrlsVec = safeArrayToVectorSizeT(controls);
   auto tgtsVec = arrayToVectorSizeT(targets);
   auto numQubits = tgtsVec.size();
   if (numQubits >= 64)
@@ -629,8 +636,7 @@ void __quantum__qis__custom_unitary(std::complex<double> *unitary,
 void __quantum__qis__custom_unitary__adj(std::complex<double> *unitary,
                                          Array *controls, Array *targets,
                                          const char *name) {
-
-  auto ctrlsVec = arrayToVectorSizeT(controls);
+  auto ctrlsVec = safeArrayToVectorSizeT(controls);
   auto tgtsVec = arrayToVectorSizeT(targets);
   auto numQubits = tgtsVec.size();
   if (numQubits >= 64)
@@ -916,7 +922,7 @@ void releasePackedQubitArray(Array *a) {
 /// targets. \p isArrayAndLength is a buffer used to determine the type of the
 /// control arguments and must be present if \p numControlOperands is non-zero.
 /// The length of \p isArrayAndLength must also be \p numControlOperands.
-static void commonInvokeWithRotationsControlsTargets(
+void commonInvokeWithRotationsControlsTargets(
     std::size_t numRotationOperands, double *params,
     std::size_t numControlOperands, std::size_t *isArrayAndLength,
     Qubit **controls, std::size_t numTargetOperands, Qubit **targets,

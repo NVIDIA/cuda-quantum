@@ -434,10 +434,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__quantum__qis__custom_unitary(!cc.ptr<complex<f64>>, !qir_array, !qir_array, !qir_charptr)
   func.func private @__quantum__qis__custom_unitary__adj(!cc.ptr<complex<f64>>, !qir_array, !qir_array, !qir_charptr)
 
-  func.func private @invokeWithControlQubits(i64, !cc.ptr<none>) attributes { "func.varargs" = true }
-  func.func private @invokeRotationWithControlQubits(f64, i64, !cc.ptr<i64>, !cc.ptr<none>) attributes { "func.varargs" = true }
-  func.func private @invokeU3RotationWithControlQubits(f64, f64, f64, i64, !cc.ptr<i64>, !cc.ptr<none>) attributes { "func.varargs" = true }
-  func.func private @invokeWithControlRegisterOrQubits(i64, !cc.ptr<i64>, i64, !cc.ptr<none>) attributes { "func.varargs" = true }
+  func.func private @commonInvokeWithRotationsControlsTargets(i64, !cc.ptr<f64>, i64, !cc.ptr<i64>, !cc.ptr<none>, i64, !cc.ptr<none>, !cc.ptr<none>)
 )#"},
 
     // Declarations for base and adaptive profile QIR functions used by codegen.
@@ -456,8 +453,8 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__quantum__qis__tdg__body(!qir_qubit)
   func.func private @__quantum__qis__u3__body(f64, f64, f64, !qir_qubit)
   func.func private @__quantum__qis__reset__body(!qir_qubit)
-  func.func private @__quantum__qis__mz__body(!qir_qubit) -> !qir_result
-  func.func private @__quantum__qis__mz__to__register(!qir_qubit, !qir_charptr) -> !qir_result
+  func.func private @__quantum__qis__mz__body(!qir_qubit, !qir_result) 
+  func.func private @__quantum__qis__mz__to__register(!qir_qubit, !qir_charptr, !qir_result)
   func.func private @__quantum__qis__swap__body(!qir_qubit, !qir_qubit)
   func.func private @__quantum__qis__rx__body(f64, !qir_qubit)
   func.func private @__quantum__qis__ry__body(f64, !qir_qubit)

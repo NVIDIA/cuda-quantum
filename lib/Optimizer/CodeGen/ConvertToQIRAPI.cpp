@@ -6,8 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "CodeGenOps.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
+#include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
+#include "cudaq/Optimizer/CodeGen/Pipelines.h"
+#include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
@@ -58,6 +62,21 @@ std::pair<std::string, bool> generateGateFunctionName(OP op) {
   if (!op.getControls().empty())
     return {prefix + "__ctl", false};
   return {prefix, true};
+}
+
+static Value createGlobalCString(Operation *op, Location loc,
+                                 ConversionPatternRewriter &rewriter,
+                                 StringRef regName) {
+  cudaq::IRBuilder irb(rewriter.getContext());
+  auto mod = op->getParentOfType<ModuleOp>();
+  auto nameObj = irb.genCStringLiteralAppendNul(loc, mod, regName);
+  auto arrI8Ty =
+      mlir::LLVM::LLVMArrayType::get(rewriter.getI8Type(), regName.size() + 1);
+  auto ptrArrTy = cudaq::cc::PointerType::get(arrI8Ty);
+  Value nameVal =
+      rewriter.create<cudaq::cc::AddressOfOp>(loc, ptrArrTy, nameObj.getName());
+  auto cstrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
+  return rewriter.create<cudaq::cc::CastOp>(loc, cstrTy, nameVal);
 }
 
 /// Use modifier class classes to specialize the QIR API to a particular flavor
@@ -157,8 +176,7 @@ namespace {
 // Conversion patterns
 //===----------------------------------------------------------------------===//
 
-template <typename M>
-struct AllocaOpRewrite : public OpConversionPattern<quake::AllocaOp> {
+struct AllocaOpToCallsRewrite : public OpConversionPattern<quake::AllocaOp> {
   using OpConversionPattern::OpConversionPattern;
 
   LogicalResult
@@ -169,7 +187,7 @@ struct AllocaOpRewrite : public OpConversionPattern<quake::AllocaOp> {
             dyn_cast_if_present<quake::RefType>(alloc.getType())) {
 
       // StringRef qirQubitAllocate = cudaq::opt::QIRQubitAllocate;
-      StringRef qirQubitAllocate = M::getQIRQubitAllocate();
+      StringRef qirQubitAllocate = cudaq::opt::QIRQubitAllocate;
       Type qubitTy = getQubitType(getTypeConverter());
 
       rewriter.replaceOpWithNewOp<func::CallOp>(alloc, TypeRange{qubitTy},
@@ -178,7 +196,7 @@ struct AllocaOpRewrite : public OpConversionPattern<quake::AllocaOp> {
     }
 
     // Create a QIR call to allocate the qubits.
-    StringRef qirQubitArrayAllocate = M::getQIRArrayQubitAllocateArray();
+    StringRef qirQubitArrayAllocate = cudaq::opt::QIRArrayQubitAllocateArray;
     Type arrayQubitTy = getArrayType(getTypeConverter());
 
     // AllocaOp could have a size operand, or the size could
@@ -194,10 +212,14 @@ struct AllocaOpRewrite : public OpConversionPattern<quake::AllocaOp> {
           rewriter.create<arith::ConstantIntOp>(loc, constantSize, 64);
     } else {
       sizeOperand = adaptor.getOperands().front();
-      if (sizeOperand.getType().cast<IntegerType>().getWidth() < 64)
+      auto sizeOpTy = cast<IntegerType>(sizeOperand.getType());
+      if (sizeOpTy.getWidth() < 64)
         sizeOperand = rewriter.create<cudaq::cc::CastOp>(
             loc, rewriter.getI64Type(), sizeOperand,
             cudaq::cc::CastOpMode::Unsigned);
+      else if (sizeOpTy.getWidth() > 64)
+        sizeOperand = rewriter.create<cudaq::cc::CastOp>(
+            loc, rewriter.getI64Type(), sizeOperand);
     }
 
     // Replace the AllocaOp with the QIR call.
@@ -208,8 +230,647 @@ struct AllocaOpRewrite : public OpConversionPattern<quake::AllocaOp> {
   }
 };
 
+struct AllocaOpToIntRewrite : public OpConversionPattern<quake::AllocaOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  // Precondition: every allocation must have been annotated with a starting
+  // index by the preparation phase.
+  LogicalResult
+  matchAndRewrite(quake::AllocaOp alloc, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    if (!alloc->hasAttr(cudaq::opt::StartingOffsetAttrName))
+      return alloc.emitOpError("allocation must be annotated.");
+
+    auto loc = alloc.getLoc();
+    // If this alloc is just returning a qubit, so just replace it with the
+    // attribute.
+    Type ty = alloc.getType();
+    if (!ty)
+      return alloc.emitOpError("quake alloca is malformed");
+    auto startingOffsetAttr =
+        alloc->getAttr(cudaq::opt::StartingOffsetAttrName);
+    auto startingOffset = cast<IntegerAttr>(startingOffsetAttr).getInt();
+
+    // In the case this is allocating a single qubit, we can just substitute
+    // the startingIndex as the qubit value. Voila!
+    if (auto resultType = dyn_cast<quake::RefType>(ty)) {
+      Value index =
+          rewriter.create<arith::ConstantIntOp>(loc, startingOffset, 64);
+      auto qubitTy = getQubitType(getTypeConverter());
+      rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(alloc, qubitTy, index);
+      return success();
+    }
+
+    auto veqTy = dyn_cast<quake::VeqType>(ty);
+    if (!veqTy)
+      return alloc.emitOpError("quake alloca must be a veq");
+    if (!veqTy.hasSpecifiedSize())
+      return alloc.emitOpError("quake alloca must be a veq with constant size");
+
+    // Otherwise, the allocation is of a sequence of qubits. Here, we allocate a
+    // constant array value with the qubit integral values in an ascending
+    // sequence. These will be accessed by extract_value or used collectively.
+    auto *ctx = rewriter.getContext();
+    const std::int64_t veqSize = veqTy.getSize();
+    auto arrTy = cudaq::cc::ArrayType::get(ctx, rewriter.getI64Type(), veqSize);
+    SmallVector<std::int64_t> data;
+    for (std::int64_t i = 0; i < veqSize; ++i)
+      data.emplace_back(startingOffset + i);
+    auto arr = rewriter.create<cudaq::cc::ConstantArrayOp>(
+        loc, arrTy, rewriter.getI64ArrayAttr(data));
+    Type qirArrTy = getArrayType(getTypeConverter());
+    rewriter.replaceOpWithNewOp<cudaq::codegen::MaterializeConstantArrayOp>(
+        alloc, qirArrTy, arr);
+    return success();
+  }
+};
+
+struct MaterializeConstantArrayOpRewrite
+    : public OpConversionPattern<cudaq::codegen::MaterializeConstantArrayOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  // Rewrite this operation into a stack allocation and storing the array value
+  // to that stack slot.
+  // TODO: it is more efficient to use a global constant, which is done by the
+  // pass `globalize-array-values`.
+  LogicalResult
+  matchAndRewrite(cudaq::codegen::MaterializeConstantArrayOp mca,
+                  OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = mca.getLoc();
+    auto arr = adaptor.getConstArray();
+    auto veqSize = cast<cudaq::cc::ArrayType>(arr.getType()).getSize();
+    Value stackObj = cudaq::opt::factory::createTemporary(
+        loc, rewriter, rewriter.getI64Type(), veqSize);
+    rewriter.create<cudaq::cc::StoreOp>(loc, arr, stackObj);
+    auto ty = mca.getType();
+    rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(mca, ty, stackObj);
+    return success();
+  }
+};
+
+template <typename OP>
+struct QubitHelperConversionPattern : public OpConversionPattern<OP> {
+  using Base = OpConversionPattern<OP>;
+  using Base::Base;
+  using Base::getTypeConverter;
+
+  Value wrapQubitAsArray(Location loc, ConversionPatternRewriter &rewriter,
+                         Value val) const {
+    Type qubitTy = getQubitType(getTypeConverter());
+    if (val.getType() != qubitTy)
+      return val;
+
+    // Create a QIR array container of 1 element.
+    auto ptrTy = cudaq::cc::PointerType::get(rewriter.getNoneType());
+    Value sizeofPtrVal =
+        rewriter.create<cudaq::cc::SizeOfOp>(loc, rewriter.getI64Type(), ptrTy);
+    Value one = rewriter.create<arith::ConstantIntOp>(loc, 1, 64);
+    Type arrayTy = getArrayType(getTypeConverter());
+    auto newArr = rewriter.create<func::CallOp>(
+        loc, TypeRange{arrayTy}, cudaq::opt::QIRArrayCreateArray,
+        ArrayRef<Value>{sizeofPtrVal, one});
+    Value result = newArr.getResult(0);
+
+    // Get a pointer to element 0.
+    Value zero = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
+    auto elePtr = rewriter.create<func::CallOp>(
+        loc, TypeRange{ptrTy}, cudaq::opt::QIRArrayGetElementPtr1d,
+        ArrayRef<Value>{result, zero});
+
+    // Write the qubit into the array at position 0.
+    auto castVal = rewriter.create<cudaq::cc::CastOp>(loc, ptrTy, val);
+    rewriter.create<cudaq::cc::StoreOp>(loc, castVal, elePtr.getResult(0));
+
+    return result;
+  }
+};
+
+struct ConcatOpRewrite : public QubitHelperConversionPattern<quake::ConcatOp> {
+  using QubitHelperConversionPattern::QubitHelperConversionPattern;
+
+  // For this rewrite, we walk the list of operands (if any) and for each
+  // operand, $o$, we ensure $o$ is already of type QIR array or convert $o$ to
+  // the array type using QIR functions. Then, we walk the list and pairwise
+  // concatenate each operand. First, take $c$ to be $o_0$ and then update $c$
+  // to be the concat of the previous $c$ and $o_i \forall i \in \{ 1..N \}$.
+  // This algorithm will generate a linear number of concat calls for the number
+  // of operands.
+  LogicalResult
+  matchAndRewrite(quake::ConcatOp concat, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    if (adaptor.getOperands().empty()) {
+      rewriter.eraseOp(concat);
+      return success();
+    }
+
+    auto loc = concat.getLoc();
+    Type arrayTy = getArrayType(getTypeConverter());
+    Value firstOperand = adaptor.getOperands().front();
+    Value resultArray = wrapQubitAsArray(loc, rewriter, firstOperand);
+    for (auto next : adaptor.getOperands().drop_front()) {
+      Value wrapNext = wrapQubitAsArray(loc, rewriter, next);
+      auto appended = rewriter.create<func::CallOp>(
+          loc, arrayTy, cudaq::opt::QIRArrayConcatArray,
+          ArrayRef<Value>{resultArray, wrapNext});
+      resultArray = appended.getResult(0);
+    }
+    rewriter.replaceOp(concat, resultArray);
+    return success();
+  }
+};
+
+struct DeallocOpRewrite : public OpConversionPattern<quake::DeallocOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::DeallocOp dealloc, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto ty = adaptor.getReference().getType();
+    StringRef qirFuncName = isa<quake::VeqType>(ty)
+                                ? cudaq::opt::QIRArrayQubitReleaseArray
+                                : cudaq::opt::QIRArrayQubitReleaseQubit;
+    rewriter.replaceOpWithNewOp<func::CallOp>(dealloc, TypeRange{}, qirFuncName,
+                                              adaptor.getReference());
+    return success();
+  }
+};
+
+struct DeallocOpErase : public OpConversionPattern<quake::DeallocOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::DeallocOp dealloc, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    rewriter.eraseOp(dealloc);
+    return success();
+  }
+};
+
+struct DiscriminateOpRewrite
+    : public OpConversionPattern<quake::DiscriminateOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::DiscriminateOp disc, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    Value m = disc.getMeasurement();
+    rewriter.replaceOp(disc, m);
+    return success();
+  }
+};
+
+struct ExtractRefOpRewrite : public OpConversionPattern<quake::ExtractRefOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  // There are two cases depending on which flavor of QIR is being generated.
+  // For full QIR, we need to generate calls to QIR functions to select the
+  // qubit from a QIR array.
+  // For the profile QIRs, we replace this with a `cc.extract_value` operation,
+  // which will be canonicalized into a constant.
+  LogicalResult
+  matchAndRewrite(quake::ExtractRefOp extract, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = extract.getLoc();
+    auto veq = adaptor.getVeq();
+    auto i64Ty = rewriter.getI64Type();
+
+    Value index;
+    if (!adaptor.getIndex()) {
+      index = rewriter.create<arith::ConstantIntOp>(
+          loc, extract.getConstantIndex(), 64);
+    } else {
+      index = adaptor.getIndex();
+      if (index.getType().isIntOrFloat()) {
+        if (cast<IntegerType>(index.getType()).getWidth() < 64)
+          index = rewriter.create<cudaq::cc::CastOp>(
+              loc, i64Ty, index, cudaq::cc::CastOpMode::Unsigned);
+        else if (cast<IntegerType>(index.getType()).getWidth() > 64)
+          index = rewriter.create<cudaq::cc::CastOp>(loc, i64Ty, index);
+      }
+    }
+    auto qubitTy = getQubitType(getTypeConverter());
+
+    if (auto mca =
+            veq.getDefiningOp<cudaq::codegen::MaterializeConstantArrayOp>()) {
+      // This is the profile QIR case.
+      auto conarr = mca.getConstArray();
+      auto extract =
+          rewriter.create<cudaq::cc::ExtractValueOp>(loc, i64Ty, conarr, index);
+      rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(extract, qubitTy, extract);
+      return success();
+    }
+
+    // Otherwise, this must be full QIR.
+    auto ptrTy = cudaq::cc::PointerType::get(rewriter.getNoneType());
+    auto call = rewriter.create<func::CallOp>(
+        loc, ptrTy, cudaq::opt::QIRArrayGetElementPtr1d,
+        ArrayRef<Value>{veq, index});
+    rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(extract, qubitTy,
+                                                   call.getResult(0));
+    return success();
+  }
+};
+
+struct GetMemberOpRewrite : public OpConversionPattern<quake::GetMemberOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::GetMemberOp member, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto toTy = getTypeConverter()->convertType(member.getType());
+    std::int64_t position = adaptor.getIndex();
+    rewriter.replaceOpWithNewOp<LLVM::ExtractValueOp>(
+        member, toTy, adaptor.getStruq(), ArrayRef<std::int64_t>{position});
+    return success();
+  }
+};
+
+struct VeqSizeOpRewrite : public OpConversionPattern<quake::VeqSizeOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::VeqSizeOp veqsize, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    rewriter.replaceOpWithNewOp<func::CallOp>(
+        veqsize, TypeRange{rewriter.getI64Type()}, cudaq::opt::QIRArrayGetSize,
+        adaptor.getOperands());
+    return success();
+  }
+};
+
+struct MakeStruqOpRewrite : public OpConversionPattern<quake::MakeStruqOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::MakeStruqOp mkstruq, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = mkstruq.getLoc();
+    auto *ctx = rewriter.getContext();
+    auto toTy = getTypeConverter()->convertType(mkstruq.getType());
+    Value result = rewriter.create<LLVM::UndefOp>(loc, toTy);
+    std::int64_t count = 0;
+    for (auto op : adaptor.getOperands()) {
+      auto off = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{count});
+      result = rewriter.create<LLVM::InsertValueOp>(loc, toTy, result, op, off);
+      count++;
+    }
+    rewriter.replaceOp(mkstruq, result);
+    return success();
+  }
+};
+
+struct QmemRAIIOpRewrite : public OpConversionPattern<cudaq::codegen::RAIIOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(cudaq::codegen::RAIIOp raii, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = raii.getLoc();
+    auto arrayTy = getArrayType(getTypeConverter());
+
+    // Get the CC Pointer for the state
+    auto ccState = adaptor.getInitState();
+
+    // Inspect the element type of the complex data, need to
+    // know if its f32 or f64
+    Type eleTy = raii.getInitElementType();
+    if (auto elePtrTy = dyn_cast<cudaq::cc::PointerType>(eleTy))
+      eleTy = elePtrTy.getElementType();
+    if (auto arrayTy = dyn_cast<cudaq::cc::ArrayType>(eleTy))
+      eleTy = arrayTy.getElementType();
+    bool fromComplex = false;
+    if (auto complexTy = dyn_cast<ComplexType>(eleTy)) {
+      fromComplex = true;
+      eleTy = complexTy.getElementType();
+    }
+
+    // Cascade to set functionName.
+    StringRef functionName;
+    if (isa<cudaq::cc::StateType>(eleTy)) {
+      functionName = cudaq::opt::QIRArrayQubitAllocateArrayWithCudaqStatePtr;
+    } else if (eleTy == rewriter.getF64Type()) {
+      if (fromComplex)
+        functionName = cudaq::opt::QIRArrayQubitAllocateArrayWithStateComplex64;
+      else
+        functionName = cudaq::opt::QIRArrayQubitAllocateArrayWithStateFP64;
+    } else if (eleTy == rewriter.getF32Type()) {
+      if (fromComplex)
+        functionName = cudaq::opt::QIRArrayQubitAllocateArrayWithStateComplex32;
+      else
+        functionName = cudaq::opt::QIRArrayQubitAllocateArrayWithStateFP32;
+    }
+
+    if (functionName.empty())
+      return raii.emitOpError("initialize state has an invalid element type.");
+
+    // Get the size of the qubit register
+    Type allocTy = adaptor.getAllocType();
+    auto i64Ty = rewriter.getI64Type();
+
+    Value sizeOperand;
+    if (!adaptor.getAllocSize()) {
+      auto type = cast<quake::VeqType>(allocTy);
+      auto constantSize = type.getSize();
+      sizeOperand =
+          rewriter.create<arith::ConstantIntOp>(loc, constantSize, 64);
+    } else {
+      sizeOperand = adaptor.getAllocSize();
+      auto sizeTy = cast<IntegerType>(sizeOperand.getType());
+      if (sizeTy.getWidth() < 64)
+        sizeOperand = rewriter.create<cudaq::cc::CastOp>(
+            loc, i64Ty, sizeOperand, cudaq::cc::CastOpMode::Unsigned);
+      else if (sizeTy.getWidth() > 64)
+        sizeOperand =
+            rewriter.create<cudaq::cc::CastOp>(loc, i64Ty, sizeOperand);
+    }
+
+    // Create QIR allocation with initializer function.
+    auto ptrTy = cudaq::cc::PointerType::get(rewriter.getNoneType());
+
+    // Call the allocation function
+    Value casted = rewriter.create<cudaq::cc::CastOp>(loc, ptrTy, ccState);
+    rewriter.replaceOpWithNewOp<LLVM::CallOp>(
+        raii, arrayTy, functionName, ArrayRef<Value>{sizeOperand, casted});
+    return success();
+  }
+};
+
+struct RelaxSizeOpErase : public OpConversionPattern<quake::RelaxSizeOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::RelaxSizeOp relax, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    rewriter.replaceOp(relax, relax.getInputVec());
+    return success();
+  }
+};
+
+struct SubveqOpRewrite : public OpConversionPattern<quake::SubVeqOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::SubVeqOp subveq, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = subveq.getLoc();
+
+    auto lowArg = [&]() -> Value {
+      if (!adaptor.getLower())
+        return rewriter.create<arith::ConstantIntOp>(loc, adaptor.getRawLower(),
+                                                     64);
+      return adaptor.getLower();
+    }();
+    auto highArg = [&]() -> Value {
+      if (!adaptor.getUpper())
+        return rewriter.create<arith::ConstantIntOp>(loc, adaptor.getRawUpper(),
+                                                     64);
+      return adaptor.getUpper();
+    }();
+    auto i64Ty = rewriter.getI64Type();
+    auto extend = [&](Value &v) -> Value {
+      if (auto intTy = dyn_cast<IntegerType>(v.getType())) {
+        if (intTy.getWidth() < 64)
+          return rewriter.create<cudaq::cc::CastOp>(
+              loc, i64Ty, v, cudaq::cc::CastOpMode::Unsigned);
+        if (intTy.getWidth() > 64)
+          return rewriter.create<cudaq::cc::CastOp>(loc, i64Ty, v);
+      }
+      return v;
+    };
+    lowArg = extend(lowArg);
+    highArg = extend(highArg);
+    Value inArr = adaptor.getVeq();
+    auto i32Ty = rewriter.getI32Type();
+    Value one32 = rewriter.create<arith::ConstantIntOp>(loc, 1, i32Ty);
+    Value one64 = rewriter.create<arith::ConstantIntOp>(loc, 1, i64Ty);
+    auto arrayTy = getArrayType(getTypeConverter());
+    rewriter.replaceOpWithNewOp<func::CallOp>(
+        subveq, arrayTy, cudaq::opt::QIRArraySlice,
+        ArrayRef<Value>{inArr, one32, lowArg, one64, highArg});
+    return success();
+  }
+};
+
+//===----------------------------------------------------------------------===//
+// Custom handing of irregular quantum gates.
+//===----------------------------------------------------------------------===//
+
+struct CustomUnitaryOpPattern
+    : public QubitHelperConversionPattern<quake::CustomUnitarySymbolOp> {
+  using QubitHelperConversionPattern::QubitHelperConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::CustomUnitarySymbolOp unitary, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    if (!unitary.getParameters().empty())
+      return unitary.emitOpError(
+          "Parameterized custom operations not yet supported.");
+
+    auto loc = unitary.getLoc();
+    auto arrayTy = getArrayType(getTypeConverter());
+
+    if (adaptor.getTargets().empty())
+      return unitary.emitOpError("Custom operations must have targets.");
+
+    // Concat all the targets into an array.
+    auto targetArray =
+        wrapQubitAsArray(loc, rewriter, adaptor.getTargets().front());
+    for (auto next : adaptor.getTargets().drop_front()) {
+      auto wrapNext = wrapQubitAsArray(loc, rewriter, next);
+      auto result = rewriter.create<func::CallOp>(
+          loc, arrayTy, cudaq::opt::QIRArrayConcatArray,
+          ArrayRef<Value>{targetArray, wrapNext});
+      targetArray = result.getResult(0);
+    }
+
+    // Concat all the controls (if any) into an array.
+    Value controlArray;
+    if (adaptor.getControls().empty()) {
+      // Use a nullptr for when 0 control qubits are present.
+      Value zero = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
+      controlArray = rewriter.create<cudaq::cc::CastOp>(loc, arrayTy, zero);
+    } else {
+      controlArray =
+          wrapQubitAsArray(loc, rewriter, adaptor.getControls().front());
+      for (auto next : adaptor.getControls().drop_front()) {
+        auto wrapNext = wrapQubitAsArray(loc, rewriter, next);
+        auto result = rewriter.create<func::CallOp>(
+            loc, arrayTy, cudaq::opt::QIRArrayConcatArray,
+            ArrayRef<Value>{controlArray, wrapNext});
+        controlArray = result.getResult(0);
+      }
+    }
+
+    // Fetch the unitary matrix generator for this custom operation
+    StringRef generatorName = unitary.getGenerator().getRootReference();
+    const auto customOpName = extractCustomNamePart(generatorName);
+
+    // Create a global string for the unitary name.
+    auto nameOp = createGlobalCString(unitary, loc, rewriter, customOpName);
+
+    auto complex64Ty = ComplexType::get(rewriter.getF64Type());
+    auto complex64PtrTy = cudaq::cc::PointerType::get(complex64Ty);
+    Type globalTy = nameOp.getType();
+    auto addrOp =
+        rewriter.create<cudaq::cc::AddressOfOp>(loc, globalTy, generatorName);
+    auto unitaryData =
+        rewriter.create<cudaq::cc::CastOp>(loc, complex64PtrTy, addrOp);
+
+    StringRef functionName =
+        unitary.isAdj() ? cudaq::opt::QIRCustomAdjOp : cudaq::opt::QIRCustomOp;
+
+    rewriter.replaceOpWithNewOp<func::CallOp>(
+        unitary, TypeRange{}, functionName,
+        ArrayRef<Value>{unitaryData, controlArray, targetArray, nameOp});
+
+    return success();
+  }
+
+  // IMPORTANT: this must match the logic to generate global data globalName =
+  // f'{nvqppPrefix}{opName}_generator_{numTargets}.rodata'
+  std::string extractCustomNamePart(StringRef generatorName) const {
+    auto globalName = generatorName.str();
+    if (globalName.starts_with(cudaq::runtime::cudaqGenPrefixName)) {
+      globalName = globalName.substr(cudaq::runtime::cudaqGenPrefixLength);
+      const size_t pos = globalName.find("_generator");
+      if (pos != std::string::npos)
+        return globalName.substr(0, pos);
+    }
+    return {};
+  }
+};
+
+struct ExpPauliOpPattern : public OpConversionPattern<quake::ExpPauliOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::ExpPauliOp pauli, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = pauli.getLoc();
+    SmallVector<Value> operands = adaptor.getOperands();
+
+    // First need to check the type of the Pauli word. We expect
+    // a pauli_word directly `{i8*,i64}` or a string literal
+    // `ptr<i8>`. If it is a string literal, we need to map it to
+    // a pauli word.
+    auto pauliWord = operands.back();
+    auto i8PtrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
+    if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(pauliWord.getType())) {
+      // Make sure we have the right types to extract the
+      // length of the string literal
+      auto arrayTy = dyn_cast<cudaq::cc::ArrayType>(ptrTy.getElementType());
+      if (!arrayTy)
+        return pauli.emitOpError(
+            "exp_pauli string literal must have ptr<array<i8 x N> type.");
+      if (!arrayTy.getSize())
+        return pauli.emitOpError("string literal may not be empty.");
+
+      // We must create the {i8*, i64} struct from the string literal
+      SmallVector<Type> structTys{i8PtrTy, rewriter.getI64Type()};
+      auto structTy =
+          cudaq::cc::StructType::get(rewriter.getContext(), structTys);
+
+      // Allocate the char span struct
+      Value alloca =
+          cudaq::opt::factory::createTemporary(loc, rewriter, structTy);
+
+      // Convert the number of elements to a constant op.
+      auto size =
+          rewriter.create<arith::ConstantIntOp>(loc, arrayTy.getSize() - 1, 64);
+
+      // Set the string literal data
+      auto castedPauli =
+          rewriter.create<cudaq::cc::CastOp>(loc, i8PtrTy, pauliWord);
+      auto strPtr = rewriter.create<cudaq::cc::ComputePtrOp>(
+          loc, i8PtrTy, alloca, ArrayRef<cudaq::cc::ComputePtrArg>{0});
+      rewriter.create<cudaq::cc::StoreOp>(loc, castedPauli, strPtr);
+
+      // Set the integer length
+      auto intPtr = rewriter.create<cudaq::cc::ComputePtrOp>(
+          loc, i8PtrTy, alloca, ArrayRef<cudaq::cc::ComputePtrArg>{1});
+      rewriter.create<LLVM::StoreOp>(loc, size, intPtr);
+
+      // Cast to raw opaque pointer
+      auto castedStore =
+          rewriter.create<cudaq::cc::CastOp>(loc, i8PtrTy, alloca);
+      operands.back() = castedStore;
+      rewriter.replaceOpWithNewOp<func::CallOp>(
+          pauli, TypeRange{}, cudaq::opt::QIRExpPauli, operands);
+      return success();
+    }
+
+    // Here we know we have a pauli word expressed as `{i8*, i64}`.
+    // Allocate a stack slot for it and store what we have to that pointer,
+    // pass the pointer to NVQIR
+    Value alloca = cudaq::opt::factory::createTemporary(loc, rewriter,
+                                                        pauliWord.getType());
+    rewriter.create<LLVM::StoreOp>(loc, pauliWord, alloca);
+    auto castedPauli = rewriter.create<cudaq::cc::CastOp>(loc, i8PtrTy, alloca);
+    operands.back() = castedPauli;
+    rewriter.replaceOpWithNewOp<func::CallOp>(
+        pauli, TypeRange{}, cudaq::opt::QIRExpPauli, operands);
+    return success();
+  }
+};
+
+template <typename M>
+struct MeasurementOpPattern : public OpConversionPattern<quake::MzOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::MzOp mz, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = mz.getLoc();
+    auto regNameAttr = dyn_cast<StringAttr>(mz.getRegisterNameAttr());
+    if (!regNameAttr)
+      return mz.emitOpError("mz operation must have a name.");
+    if (regNameAttr.getValue().empty())
+      return mz.emitOpError("mz name may not be an empty string.");
+    bool notAssigned = !mz->getAttr(cudaq::opt::MzAssignedNameAttrName);
+    SmallVector<Value> args;
+    args.append(adaptor.getTargets().begin(), adaptor.getTargets().end());
+    auto functionName = M::getQIRMeasure();
+    if (notAssigned) {
+      functionName = cudaq::opt::QIRMeasureToRegister;
+      auto cstringGlobal =
+          createGlobalCString(mz, loc, rewriter, regNameAttr.getValue());
+      args.push_back(cstringGlobal);
+    }
+    auto resultTy = getResultType(getTypeConverter());
+    auto call =
+        rewriter.create<func::CallOp>(loc, resultTy, functionName, args);
+    auto i1PtrTy = cudaq::cc::PointerType::get(rewriter.getI1Type());
+    auto casted =
+        rewriter.create<cudaq::cc::CastOp>(loc, i1PtrTy, call.getResult(0));
+    rewriter.replaceOpWithNewOp<cudaq::cc::LoadOp>(mz, casted);
+    return success();
+  }
+};
+
+template <typename M>
+struct ResetOpPattern : public OpConversionPattern<quake::ResetOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::ResetOp reset, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    // Get the reset QIR function name
+    auto qirFunctionName = M::getQIRReset();
+
+    // Replace the quake op with the new call op.
+    rewriter.replaceOpWithNewOp<func::CallOp>(
+        reset, TypeRange{}, qirFunctionName, adaptor.getOperands());
+    return success();
+  }
+};
+
+//===----------------------------------------------------------------------===//
+// Generic handling of regular quantum gates.
+//===----------------------------------------------------------------------===//
+
 template <typename M, typename OP>
-struct OneTargetRewrite : public OpConversionPattern<OP> {
+struct QuantumGatePattern : public OpConversionPattern<OP> {
   using Base = OpConversionPattern<OP>;
   using Base::Base;
 
@@ -225,20 +886,48 @@ struct OneTargetRewrite : public OpConversionPattern<OP> {
     };
     auto qirFunctionName = M::quakeToFuncName(op);
 
+    // Make sure that apply-control-negations pass was run.
+    if (adaptor.getNegatedQubitControls())
+      return op.emitOpError("negated control qubits not allowed.");
+
+    // Prepare any floating-point parameters.
+    auto loc = op.getLoc();
+    auto opParams = adaptor.getParameters();
+    if (!opParams.empty()) {
+      // If this is adjoint, each parameter is negated.
+      if (adaptor.getIsAdj())
+        for (std::size_t i = 0; i < opParams.size(); ++i)
+          opParams[i] = rewriter.create<arith::NegFOp>(loc, opParams[i]);
+
+      // Each parameter must be converted to double-precision.
+      auto f64Ty = rewriter.getF64Type();
+      for (std::size_t i = 0; i < opParams.size(); ++i) {
+        if (opParams[i].getType().getIntOrFloatBitWidth() < 64)
+          opParams[i] = rewriter.create<arith::ExtFOp>(loc, f64Ty, opParams[i]);
+        else if (opParams[i].getType().getIntOrFloatBitWidth() > 64)
+          opParams[i] =
+              rewriter.create<arith::TruncFOp>(loc, f64Ty, opParams[i]);
+      }
+    }
+
     // If no control qubits or if there is 1 control and it is already a veq,
     // just add a call and forward the target qubits as needed.
-    auto loc = op.getLoc();
-    auto numControls = op.getControls().size();
+    auto numControls = adaptor.getControls().size();
     if (op.getControls().empty() ||
         (numControls == 1 &&
          isa<quake::VeqType>(op.getControls().front().getType()))) {
-      rewriter.create<func::CallOp>(loc, TypeRange{}, qirFunctionName,
-                                    adaptor.getOperands());
+      SmallVector<Value> args{opParams.begin(), opParams.end()};
+      args.append(adaptor.getControls().begin(), adaptor.getControls().end());
+      args.append(adaptor.getTargets().begin(), adaptor.getTargets().end());
+      qirFunctionName =
+          specializeFunctionName(op, qirFunctionName, numControls);
+      rewriter.create<func::CallOp>(loc, TypeRange{}, qirFunctionName, args);
       return forwardOrEraseOp();
     }
 
-    // Otherwise, we have to use the invoke control wrapper.
-    auto instOperands = adaptor.getOperands();
+    // Otherwise, we have to use the generalized invoke control wrapper. The
+    // common invoke wrapper supports any gate with any number of parameters,
+    // controls, and targets.
     auto module = op->template getParentOfType<ModuleOp>();
     auto symOp = module.lookupSymbol(qirFunctionName);
     if (!symOp)
@@ -252,45 +941,99 @@ struct OneTargetRewrite : public OpConversionPattern<OP> {
     auto funPtrTy = getCharPointerType(this->getTypeConverter());
     auto funPtr =
         rewriter.create<cudaq::cc::FuncToPtrOp>(loc, funPtrTy, funCon);
+
+    StringRef applyQuantumFunc = cudaq::opt::NVQIRCommonInvokeAny;
+    SmallVector<Value> args;
+    args.push_back(
+        rewriter.create<arith::ConstantIntOp>(loc, opParams.size(), 64));
+    auto ptrF64Ty = cudaq::cc::PointerType::get(rewriter.getF64Type());
+
+    // Process the parameters.
+    if (opParams.empty()) {
+      Value zero = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
+      args.push_back(rewriter.create<cudaq::cc::CastOp>(loc, ptrF64Ty, zero));
+    } else {
+      // Create a buffer to place the parameters in.
+      auto bufferOfParameters = cudaq::opt::factory::createTemporary(
+          loc, rewriter, rewriter.getF64Type(), opParams.size());
+      // Populate that buffer.
+      for (auto pr : llvm::enumerate(opParams)) {
+        std::int32_t idx = pr.index();
+        auto addr = rewriter.create<cudaq::cc::ComputePtrOp>(
+            loc, ptrF64Ty, bufferOfParameters,
+            ArrayRef<cudaq::cc::ComputePtrArg>{idx});
+        rewriter.create<cudaq::cc::StoreOp>(loc, pr.value(), addr);
+      }
+      args.push_back(bufferOfParameters);
+    }
+
+    // Process the controls. Includes an extra descriptor array.
     Value numCtlVal =
         rewriter.create<arith::ConstantIntOp>(loc, numControls, 64);
-    SmallVector<Value> args;
     args.push_back(numCtlVal);
-    bool allControlsAreRefs =
-        std::all_of(op.getControls().begin(), op.getControls().end(),
-                    [](auto v) { return !isa<quake::VeqType>(v.getType()); });
-    StringRef applyMultiControlFunc;
-    auto numTargets = adaptor.getTargets().size();
-    if (allControlsAreRefs && numTargets == 1) {
-      // The simple case. Controls are understood implicitly.
-      applyMultiControlFunc = cudaq::opt::NVQIRInvokeWithControlBits;
+    // Create the array and length vector.
+    Value arrayAndLengthVec = packControlsLengthArray(
+        loc, rewriter, module, numControls, op.getControls().getTypes(),
+        adaptor.getControls());
+    args.push_back(arrayAndLengthVec);
+    auto ptrNoneTy = cudaq::cc::PointerType::get(rewriter.getNoneType());
+    auto ptrPtrNoneTy = cudaq::cc::PointerType::get(ptrNoneTy);
+    if (adaptor.getControls().empty()) {
+      Value zero = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
+      args.push_back(rewriter.create<cudaq::cc::CastOp>(loc, ptrNoneTy, zero));
     } else {
-      // The gnarly case. Have to identify controls and targets explicitly.
-      applyMultiControlFunc = cudaq::opt::NVQIRInvokeWithControlRegisterOrBits;
-      // Create the array and length vector.
-      Value arrayAndLengthVec = packControlsLengthArray(
-          loc, rewriter, module, numControls, op.getControls().getTypes(),
-          adaptor.getControls());
-      args.push_back(arrayAndLengthVec);
-      Value numTrg = rewriter.create<arith::ConstantIntOp>(loc, numTargets, 64);
-      args.push_back(numTrg);
+      // Create a buffer to place the controls in.
+      auto bufferOfControls = cudaq::opt::factory::createTemporary(
+          loc, rewriter, ptrNoneTy, numControls);
+      // Populate the buffer with the control arguments.
+      for (auto pr : llvm::enumerate(adaptor.getControls())) {
+        std::int32_t idx = pr.index();
+        auto addr = rewriter.create<cudaq::cc::ComputePtrOp>(
+            loc, ptrPtrNoneTy, bufferOfControls,
+            ArrayRef<cudaq::cc::ComputePtrArg>{idx});
+        auto casted =
+            rewriter.create<cudaq::cc::CastOp>(loc, ptrNoneTy, pr.value());
+        rewriter.create<cudaq::cc::StoreOp>(loc, casted, addr);
+      }
+      args.push_back(bufferOfControls);
     }
+
+    // Process the targets. There must be at least 1 target.
+    auto numTargets = adaptor.getTargets().size();
+    Value numTrg = rewriter.create<arith::ConstantIntOp>(loc, numTargets, 64);
+    args.push_back(numTrg);
+    if (numTargets == 0)
+      return op.emitOpError("quake op must have at least 1 target.");
+    // Create a buffer to place the targets in.
+    auto bufferOfTargets = cudaq::opt::factory::createTemporary(
+        loc, rewriter, ptrNoneTy, numTargets);
+    // Populate the buffer with the target arguments.
+    for (auto pr : llvm::enumerate(adaptor.getTargets())) {
+      std::int32_t idx = pr.index();
+      auto addr = rewriter.create<cudaq::cc::ComputePtrOp>(
+          loc, ptrPtrNoneTy, bufferOfTargets,
+          ArrayRef<cudaq::cc::ComputePtrArg>{idx});
+      auto casted =
+          rewriter.create<cudaq::cc::CastOp>(loc, ptrNoneTy, pr.value());
+      rewriter.create<cudaq::cc::StoreOp>(loc, casted, addr);
+    }
+    args.push_back(bufferOfTargets);
     args.push_back(funPtr);
-    args.append(instOperands.begin(), instOperands.end());
-    rewriter.create<func::CallOp>(loc, TypeRange{}, applyMultiControlFunc,
-                                  args);
+    rewriter.create<func::CallOp>(loc, TypeRange{}, applyQuantumFunc, args);
     return forwardOrEraseOp();
   }
-};
 
-struct EraseAllocaOp : public OpConversionPattern<quake::AllocaOp> {
-  using OpConversionPattern::OpConversionPattern;
-
-  LogicalResult
-  matchAndRewrite(quake::AllocaOp alloc, OpAdaptor adaptor,
-                  ConversionPatternRewriter &rewriter) const override {
-    rewriter.eraseOp(alloc);
-    return success();
+  static StringRef specializeFunctionName(OP op, StringRef funcName,
+                                          std::size_t numCtrls) {
+    // Last resort to change the names of particular functions from the general
+    // scheme to specialized names under the right conditions.
+    if constexpr (std::is_same_v<OP, quake::XOp>)
+      if (M::convertToCNot() && (numCtrls == 1))
+        return cudaq::opt::QIRCnot;
+    if constexpr (std::is_same_v<OP, quake::ZOp>)
+      if (M::convertToCZ() && (numCtrls == 1))
+        return cudaq::opt::QIRCZ;
+    return funcName;
   }
 };
 
@@ -312,24 +1055,42 @@ struct FullQIR {
                                       TypeConverter &typeConverter) {
     auto *ctx = patterns.getContext();
     patterns.insert<
-        AllocaOpRewrite<Self>, OneTargetRewrite<Self, quake::HOp>,
-        OneTargetRewrite<Self, quake::XOp>, OneTargetRewrite<Self, quake::YOp>,
-        OneTargetRewrite<Self, quake::ZOp>, OneTargetRewrite<Self, quake::SOp>,
-        OneTargetRewrite<Self, quake::TOp>>(typeConverter, ctx);
+        /* Rewrites for qubit management and aggregation. */
+        AllocaOpToCallsRewrite, ConcatOpRewrite, DeallocOpRewrite,
+        DiscriminateOpRewrite, ExtractRefOpRewrite, GetMemberOpRewrite,
+        MakeStruqOpRewrite, QmemRAIIOpRewrite, RelaxSizeOpErase,
+        SubveqOpRewrite, VeqSizeOpRewrite,
+
+        /* Irregular quantum operators. */
+        CustomUnitaryOpPattern, ExpPauliOpPattern, MeasurementOpPattern<Self>,
+        ResetOpPattern<Self>,
+
+        /* Regular quantum operators. */
+        QuantumGatePattern<Self, quake::HOp>,
+        QuantumGatePattern<Self, quake::PhasedRxOp>,
+        QuantumGatePattern<Self, quake::R1Op>,
+        QuantumGatePattern<Self, quake::RxOp>,
+        QuantumGatePattern<Self, quake::RyOp>,
+        QuantumGatePattern<Self, quake::RzOp>,
+        QuantumGatePattern<Self, quake::SOp>,
+        QuantumGatePattern<Self, quake::SwapOp>,
+        QuantumGatePattern<Self, quake::TOp>,
+        QuantumGatePattern<Self, quake::U2Op>,
+        QuantumGatePattern<Self, quake::U3Op>,
+        QuantumGatePattern<Self, quake::XOp>,
+        QuantumGatePattern<Self, quake::YOp>,
+        QuantumGatePattern<Self, quake::ZOp>>(typeConverter, ctx);
   }
 
-  static StringRef getQIRQubitAllocate() {
-    return cudaq::opt::QIRQubitAllocate;
-  }
-
-  static StringRef getQIRArrayQubitAllocateArray() {
-    return cudaq::opt::QIRArrayQubitAllocateArray;
-  }
+  static StringRef getQIRMeasure() { return cudaq::opt::QIRMeasure; }
+  static StringRef getQIRReset() { return cudaq::opt::QIRReset; }
 
   // No quake ops are allowed. We convert them all in the conversion phase.
   static void allowedQuakeOps(ConversionTarget &target) {}
 
   static bool usesResultType() { return false; }
+  static bool convertToCNot() { return false; }
+  static bool convertToCZ() { return false; }
 };
 
 /// The base modifier class for the "profile QIR" APIs.
@@ -345,12 +1106,36 @@ struct AnyProfileQIR {
   static void populateRewritePatterns(RewritePatternSet &patterns,
                                       TypeConverter &typeConverter) {
     patterns.insert<
-        EraseAllocaOp, OneTargetRewrite<Self, quake::HOp>,
-        OneTargetRewrite<Self, quake::XOp>, OneTargetRewrite<Self, quake::YOp>,
-        OneTargetRewrite<Self, quake::ZOp>, OneTargetRewrite<Self, quake::SOp>,
-        OneTargetRewrite<Self, quake::TOp>>(typeConverter,
-                                            patterns.getContext());
+        /* Rewrites for qubit management and aggregation. */
+        AllocaOpToIntRewrite, ConcatOpRewrite, DeallocOpErase,
+        DiscriminateOpRewrite, ExtractRefOpRewrite, GetMemberOpRewrite,
+        MakeStruqOpRewrite, QmemRAIIOpRewrite, RelaxSizeOpErase,
+        SubveqOpRewrite, VeqSizeOpRewrite,
+
+        /* Irregular quantum operators. */
+        CustomUnitaryOpPattern, ExpPauliOpPattern, MeasurementOpPattern<Self>,
+        ResetOpPattern<Self>,
+
+        /* Regular quantum operators. */
+        QuantumGatePattern<Self, quake::HOp>,
+        QuantumGatePattern<Self, quake::PhasedRxOp>,
+        QuantumGatePattern<Self, quake::R1Op>,
+        QuantumGatePattern<Self, quake::RxOp>,
+        QuantumGatePattern<Self, quake::RyOp>,
+        QuantumGatePattern<Self, quake::RzOp>,
+        QuantumGatePattern<Self, quake::SOp>,
+        QuantumGatePattern<Self, quake::SwapOp>,
+        QuantumGatePattern<Self, quake::TOp>,
+        QuantumGatePattern<Self, quake::U2Op>,
+        QuantumGatePattern<Self, quake::U3Op>,
+        QuantumGatePattern<Self, quake::XOp>,
+        QuantumGatePattern<Self, quake::YOp>,
+        QuantumGatePattern<Self, quake::ZOp>>(typeConverter,
+                                              patterns.getContext());
   }
+
+  static StringRef getQIRMeasure() { return cudaq::opt::QIRMeasureBody; }
+  static StringRef getQIRReset() { return cudaq::opt::QIRResetBody; }
 
   // Some quake ops are allowed to pass through the conversion step. They will
   // be erased in finalization.
@@ -359,6 +1144,8 @@ struct AnyProfileQIR {
   }
 
   static bool usesResultType() { return true; }
+  static bool convertToCNot() { return true; }
+  static bool convertToCZ() { return true; }
 };
 
 /// The QIR base profile modifier class.
@@ -457,8 +1244,90 @@ struct QuakeToQIRAPIPrepPass
     }
 
     if (!usingFullQIR) {
-      // TODO: add profile analysis code.
+      // 1) Fuse all returns into an exit block.
+      fuseFuncReturnOps();
+
+      // 2) Perform allocation and measurement analysis
+      auto builder = OpBuilder(module);
+      module.walk([&](func::FuncOp func) {
+        std::size_t totalQubits = 0;
+        std::size_t totalResults = 0;
+        int counter = 0;
+
+        // A map to keep track of wire set usage.
+        DenseMap<StringRef, DenseSet<std::size_t>> borrowSets;
+
+        // Recursive walk in func.
+        func.walk([&](Operation *op) {
+          // Annotate all qubit allocations with the starting qubit index value.
+          // This ought to handle both reference and value semantics. If the
+          // value semantics is using wire sets, no (redundant) annotation is
+          // needed.
+          if (auto alloc = dyn_cast<quake::AllocaOp>(op)) {
+            auto allocTy = alloc.getType();
+            if (isa<quake::RefType>(allocTy)) {
+              alloc->setAttr(cudaq::opt::StartingOffsetAttrName,
+                             builder.getI64IntegerAttr(totalQubits++));
+              return;
+            }
+            if (!isa<quake::VeqType>(allocTy)) {
+              alloc.emitOpError("must be veq type.");
+              return;
+            }
+            auto veqTy = cast<quake::VeqType>(allocTy);
+            if (!veqTy.hasSpecifiedSize()) {
+              alloc.emitOpError("must have a constant size.");
+              return;
+            }
+            alloc->setAttr(cudaq::opt::StartingOffsetAttrName,
+                           builder.getI64IntegerAttr(totalQubits));
+            totalQubits += veqTy.getSize();
+            return;
+          }
+          if (auto nw = dyn_cast<quake::NullWireOp>(op)) {
+            nw->setAttr(cudaq::opt::StartingOffsetAttrName,
+                        builder.getI64IntegerAttr(totalQubits++));
+            return;
+          }
+          if (auto bw = dyn_cast<quake::BorrowWireOp>(op)) {
+            [[maybe_unused]] StringRef name = bw.getSetName();
+            [[maybe_unused]] std::int32_t wire = bw.getIdentity();
+            bw.emitOpError("not implemented.");
+            return;
+          }
+
+          // For each mz, we want to assign it a result index.
+          if (auto mz = dyn_cast<quake::MzOp>(op)) {
+            // Verify there is exactly one qubit being measured.
+            if (mz.getTargets().empty() ||
+                std::distance(mz.getTargets().begin(), mz.getTargets().end()) !=
+                    1) {
+              mz.emitOpError("must measure exactly one qubit.");
+              return;
+            }
+            mz->setAttr(cudaq::opt::ResultIndexAttrName,
+                        builder.getI64IntegerAttr(totalResults++));
+            if (!mz.getRegisterNameAttr()) {
+              // Manufacture a bogus name on demand here.
+              std::string manuName = std::to_string(counter++);
+              constexpr std::size_t padSize = 5;
+              manuName =
+                  std::string(padSize - std::min(padSize, manuName.length()),
+                              '0') +
+                  manuName;
+              mz.setRegisterName("r" + manuName);
+            } else {
+              mz->setAttr(cudaq::opt::MzAssignedNameAttrName,
+                          builder.getUnitAttr());
+            }
+          }
+        });
+      });
     }
+  }
+
+  void fuseFuncReturnOps() {
+    // Fuse all func.return operations together.
   }
 };
 
@@ -470,7 +1339,7 @@ struct QuakeToQIRAPIFinalPass
     auto *ctx = &getContext();
     ModuleOp module = getOperation();
     RewritePatternSet patterns(ctx);
-    patterns.insert<EraseAllocaOp>(ctx);
+    patterns.insert<MaterializeConstantArrayOpRewrite>(ctx);
     if (failed(applyPatternsAndFoldGreedily(module, std::move(patterns))))
       signalPassFailure();
   }
@@ -484,6 +1353,8 @@ void cudaq::opt::addConvertToQIRAPIPipeline(OpPassManager &pm, StringRef api,
   pm.addPass(cudaq::opt::createQuakeToQIRAPIPrep(prepApiOpt));
   QuakeToQIRAPIOptions apiOpt{.api = api.str(), .opaquePtr = opaquePtr};
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeToQIRAPI(apiOpt));
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addPass(cudaq::opt::createGlobalizeArrayValues());
   pm.addPass(cudaq::opt::createQuakeToQIRAPIFinal());
 }
 
