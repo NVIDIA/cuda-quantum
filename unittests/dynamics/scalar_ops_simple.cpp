@@ -10,7 +10,7 @@
 #include "cudaq/operators.h"
 #include <gtest/gtest.h>
 
-TEST(ExpressionTester, checkScalarOpsSimpleComplex) {
+TEST(OperatorExpressions, checkScalarOpsSimpleComplex) {
 
   std::complex<double> value_0 = 0.1 + 0.1;
   std::complex<double> value_1 = 0.1 + 1.0;
@@ -64,7 +64,7 @@ TEST(ExpressionTester, checkScalarOpsSimpleComplex) {
   }
 }
 
-TEST(ExpressionTester, checkScalarOpsSimpleDouble) {
+TEST(OperatorExpressions, checkScalarOpsSimpleDouble) {
 
   double value_0 = 0.1;
   double value_1 = 0.2;
