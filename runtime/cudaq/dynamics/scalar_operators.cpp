@@ -50,6 +50,37 @@ matrix_2 scalar_operator::to_matrix(
   return returnOperator;
 }
 
+// left-hand arithmetics
+
+#define ARITHMETIC_OPERATIONS_DOUBLES_REVERSE(op)                              \
+  scalar_operator operator op(double other, const scalar_operator &self) {     \
+    auto newGenerator =                                                        \
+        [&](std::map<std::string, std::complex<double>> parameters) {          \
+          return other op self.evaluate(parameters);                           \
+        };                                                                     \
+    return scalar_operator(ScalarCallbackFunction(newGenerator));              \
+  }
+
+ARITHMETIC_OPERATIONS_DOUBLES_REVERSE(*);
+ARITHMETIC_OPERATIONS_DOUBLES_REVERSE(/);
+ARITHMETIC_OPERATIONS_DOUBLES_REVERSE(+);
+ARITHMETIC_OPERATIONS_DOUBLES_REVERSE(-);
+
+#define ARITHMETIC_OPERATIONS_COMPLEX_DOUBLES_REVERSE(op)                      \
+  scalar_operator operator op(std::complex<double> other,                      \
+                              const scalar_operator &self) {                   \
+    auto newGenerator =                                                        \
+        [&](std::map<std::string, std::complex<double>> parameters) {          \
+          return other op self.evaluate(parameters);                           \
+        };                                                                     \
+    return scalar_operator(ScalarCallbackFunction(newGenerator));              \
+  }
+
+ARITHMETIC_OPERATIONS_COMPLEX_DOUBLES_REVERSE(*);
+ARITHMETIC_OPERATIONS_COMPLEX_DOUBLES_REVERSE(/);
+ARITHMETIC_OPERATIONS_COMPLEX_DOUBLES_REVERSE(+);
+ARITHMETIC_OPERATIONS_COMPLEX_DOUBLES_REVERSE(-);
+
 // right-hand arithmetics
 
 #define ARITHMETIC_OPERATIONS_DOUBLES(op)                                      \
@@ -153,36 +184,5 @@ ARITHMETIC_OPERATIONS_SCALAR_OPS_ASSIGNMENT(*=);
 ARITHMETIC_OPERATIONS_SCALAR_OPS_ASSIGNMENT(/=);
 ARITHMETIC_OPERATIONS_SCALAR_OPS_ASSIGNMENT(+=);
 ARITHMETIC_OPERATIONS_SCALAR_OPS_ASSIGNMENT(-=);
-
-// left-hand arithmetics
-
-#define ARITHMETIC_OPERATIONS_DOUBLES_REVERSE(op)                              \
-  scalar_operator operator op(double other, const scalar_operator &self) {     \
-    auto newGenerator =                                                        \
-        [&](std::map<std::string, std::complex<double>> parameters) {          \
-          return other op self.evaluate(parameters);                           \
-        };                                                                     \
-    return scalar_operator(ScalarCallbackFunction(newGenerator));              \
-  }
-
-ARITHMETIC_OPERATIONS_DOUBLES_REVERSE(*);
-ARITHMETIC_OPERATIONS_DOUBLES_REVERSE(/);
-ARITHMETIC_OPERATIONS_DOUBLES_REVERSE(+);
-ARITHMETIC_OPERATIONS_DOUBLES_REVERSE(-);
-
-#define ARITHMETIC_OPERATIONS_COMPLEX_DOUBLES_REVERSE(op)                      \
-  scalar_operator operator op(std::complex<double> other,                      \
-                              const scalar_operator &self) {                   \
-    auto newGenerator =                                                        \
-        [&](std::map<std::string, std::complex<double>> parameters) {          \
-          return other op self.evaluate(parameters);                           \
-        };                                                                     \
-    return scalar_operator(ScalarCallbackFunction(newGenerator));              \
-  }
-
-ARITHMETIC_OPERATIONS_COMPLEX_DOUBLES_REVERSE(*);
-ARITHMETIC_OPERATIONS_COMPLEX_DOUBLES_REVERSE(/);
-ARITHMETIC_OPERATIONS_COMPLEX_DOUBLES_REVERSE(+);
-ARITHMETIC_OPERATIONS_COMPLEX_DOUBLES_REVERSE(-);
 
 } // namespace cudaq
