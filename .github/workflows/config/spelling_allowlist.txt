@@ -111,6 +111,7 @@ SLURM
 SVD
 Stim
 Superpositions
+Superstaq
 TBI
 TCP
 TableGen
