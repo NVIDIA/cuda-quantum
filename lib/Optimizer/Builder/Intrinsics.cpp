@@ -482,8 +482,8 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__quantum__qis__tdg(!qir_qubit)
   func.func private @__quantum__qis__u3(f64, f64, f64, !qir_qubit)
   func.func private @__quantum__qis__reset(!qir_qubit)
-  func.func private @__quantum__qis__mz(!qir_qubit) -> !cc.ptr<i1>
-  func.func private @__quantum__qis__mz__to__register(!qir_qubit, !qir_charptr) -> !cc.ptr<i1>
+  func.func private @__quantum__qis__mz(!qir_qubit) -> !qir_result
+  func.func private @__quantum__qis__mz__to__register(!qir_qubit, !qir_charptr) -> !qir_result
   func.func private @__quantum__qis__swap(!qir_qubit, !qir_qubit)
   func.func private @__quantum__qis__rx(f64, !qir_qubit)
   func.func private @__quantum__qis__ry(f64, !qir_qubit)
