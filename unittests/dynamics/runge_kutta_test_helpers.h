@@ -15,10 +15,10 @@ using TestState = double;
 
 // Simple derivative function: dx/dt = -x (exponential decay)
 inline TestState simple_derivative(const TestState &state, double t) {
-    return -state;
+  return -state;
 }
 
 // A complex function: dx/dt = sin(t)
 inline TestState sine_derivative(const TestState &state, double t) {
-    return std::sin(t);
+  return std::sin(t);
 }
