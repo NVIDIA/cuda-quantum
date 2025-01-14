@@ -168,8 +168,17 @@ class CuDensityMatState(object):
                 strides = (1,) + tuple(numpy.cumprod(numpy.array(slice_shape)[:-1]))
                 ind = numpy.sum(strides * numpy.array(state_inds))
                 new_state.state.storage[ind] = 1.0
+        elif type == InitialState.UNIFORM:
+            buffer = cupy.asfortranarray(cupy.zeros((required_buffer_size,), dtype="complex128", order="F"))
+            new_state.state.raw_data = cupy.asfortranarray(buffer.reshape(slice_shape))
+            new_state.state.attach_storage(new_state.state.raw_data)        
+            hilberg_space_size = numpy.cumprod(hilbert_space_dims)
+            if mix_state:
+                raise ValueError("Distributed mixed state initialization is not supported.")
+            else: 
+                new_state.state.storage[:] = 1. / numpy.sqrt(hilberg_space_size)
         else: 
-            raise ValueError("Unsupport initial state type")
+            raise ValueError("Unsupported initial state type")
 
         return new_state
 
