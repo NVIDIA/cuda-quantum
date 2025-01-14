@@ -8,45 +8,39 @@
 
 #pragma once
 
-#include "cudaq/base_integrator.h"
-#include "cudaq/cudm_state.h"
-#include "cudaq/cudm_time_stepper.h"
-#include <iostream>
+#include "base_integrator.h"
+#include "runge_kutta_time_stepper.h"
 #include <memory>
 
 namespace cudaq {
-class runge_kutta_integrator : public BaseIntegrator<cudm_state> {
+template <typename TState>
+class RungeKuttaIntegrator : public BaseIntegrator<TState> {
 public:
-  /// @brief Constructor to initialize the Runge-Kutta integrator
-  /// @param initial_state Initial quantum state.
-  /// @param t0 Initial time.
-  /// @param stepper Time stepper instance.
-  /// @param substeps Number of Runge-Kutta substeps (must be 1, 2, or 4)
-  runge_kutta_integrator(cudm_state &&initial_state, double t0,
-                         std::shared_ptr<cudm_time_stepper> stepper,
-                         int substeps = 4)
-      : BaseIntegrator<cudm_state>(std::move(initial_state), t0, stepper),
-        substeps_(substeps) {
-    if (!stepper) {
-      throw std::invalid_argument("Time stepper must be initialized.");
+    using DerivativeFunction = std::function<TState(const TState &, double)>;
+
+    explicit RungeKuttaIntegrator(DerivativeFunction f) : stepper(std::make_shared<RungeKuttaTimeStepper<TState>>(f)) {}
+
+    // Initializes the integrator
+    void post_init() override {
+        if (!this->stepper) {
+            throw std::runtime_error("Time stepper is not set");
+        }
     }
 
-    if (substeps_ != 1 && substeps_ != 2 && substeps_ != 4) {
-      throw std::invalid_argument("Runge-Kutta substeps must be 1, 2, or 4.");
+    // Advances the system's state from current time to `t`
+    void integrate(double target_t) override {
+        if (!this->schedule || !this->hamiltonian) {
+            throw std::runtime_error("System is not properly set!");
+        }
+
+        while (this->t < target_t) {
+            stepper->compute(this->state, this->t);
+            // Time step size
+            this->t += 0.01;
+        }
     }
-    this->post_init();
-  }
-
-  /// @brief Perform Runge-Kutta integration until the target time.
-  /// @param target_time The final time to integrate to.
-  void integrate(double target_time) override;
-
-protected:
-  /// @brief Any post-initialization setup
-  void post_init() override {}
 
 private:
-  // Number of substeps in RK integration (1, 2, or 4)
-  int substeps_;
+    std::shared_ptr<RungeKuttaTimeStepper<TState>> stepper;
 };
-} // namespace cudaq
+}
