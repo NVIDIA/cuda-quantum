@@ -8,12 +8,17 @@
 
 #pragma once
 
-namespace cudaq {
-template <typename TState>
-class BaseTimeStepper {
-public:
-  virtual ~BaseTimeStepper() = default;
+#include <cmath>
 
-  virtual void compute(TState &state, double t, double step_size) = 0;
-};
-} // namespace cudaq
+// A simple state type
+using TestState = double;
+
+// Simple derivative function: dx/dt = -x (exponential decay)
+inline TestState simple_derivative(const TestState &state, double t) {
+    return -state;
+}
+
+// A complex function: dx/dt = sin(t)
+inline TestState sine_derivative(const TestState &state, double t) {
+    return std::sin(t);
+}
