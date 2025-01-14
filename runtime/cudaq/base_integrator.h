@@ -24,9 +24,9 @@ protected:
   double t;
   std::map<int, int> dimensions;
   std::shared_ptr<Schedule> schedule;
-  std::shared_ptr<base_operator> hamiltonian;
+  std::shared_ptr<operator_sum> hamiltonian;
   std::shared_ptr<BaseTimeStepper<TState>> stepper;
-  std::vector<std::shared_ptr<base_operator>> collapse_operators;
+  std::vector<std::shared_ptr<operator_sum>> collapse_operators;
 
   virtual void post_init() = 0;
 
@@ -40,8 +40,8 @@ public:
 
   void set_system(
       const std::map<int, int> &dimensions, std::shared_ptr<Schedule> schedule,
-      std::shared_ptr<base_operator> hamiltonian,
-      std::vector<std::shared_ptr<base_operator>> collapse_operators = {}) {
+      std::shared_ptr<operator_sum> hamiltonian,
+      std::vector<std::shared_ptr<operator_sum>> collapse_operators = {}) {
     this->dimensions = dimensions;
     this->schedule = schedule;
     this->hamiltonian = hamiltonian;
