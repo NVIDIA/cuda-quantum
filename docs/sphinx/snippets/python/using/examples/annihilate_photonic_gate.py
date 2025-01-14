@@ -29,6 +29,7 @@ def kernel():
 
 
 # Sample the qumode for 1000 shots to gather statistics.
+# In this case, the results are deterministic and all return state 0.
 result = cudaq.sample(kernel)
 print(result)
 #[End Docs]
