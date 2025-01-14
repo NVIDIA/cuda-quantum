@@ -116,68 +116,12 @@ std::vector<int> product_operator<HandlerTy>::degrees() const {
   return std::vector<int>(unique_degrees.begin(), unique_degrees.end());
 }
 
-template <typename HandlerTy>
-operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(const scalar_operator other) const {
-  std::vector<std::variant<scalar_operator, HandlerTy>> _other = {
-      other};
-  return operator_sum<HandlerTy>({*this, product_operator(_other)});
-}
+
+// right-hand arithmetics
 
 template <typename HandlerTy>
-operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(const scalar_operator other) const {
-  std::vector<std::variant<scalar_operator, HandlerTy>> _other = {
-      other};
-  return operator_sum<HandlerTy>({*this, -1. * product_operator(_other)});
-}
-
-template <typename HandlerTy>
-product_operator<HandlerTy> product_operator<HandlerTy>::operator*(const scalar_operator other) const {
-  std::vector<std::variant<scalar_operator, HandlerTy>>
-      combined_terms = ops;
-  combined_terms.push_back(other);
-  return product_operator(combined_terms);
-}
-
-template <typename HandlerTy>
-product_operator<HandlerTy> product_operator<HandlerTy>::operator*=(const scalar_operator other) {
-  *this = *this * other;
-  return *this;
-}
-
-template <typename HandlerTy>
-operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(const std::complex<double> other) const {
-  return *this + scalar_operator(other);
-}
-
-template <typename HandlerTy>
-operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(const std::complex<double> other) const {
-  return *this - scalar_operator(other);
-}
-
-template <typename HandlerTy>
-product_operator<HandlerTy> product_operator<HandlerTy>::operator*(const std::complex<double> other) const {
+product_operator<HandlerTy> product_operator<HandlerTy>::operator*(double other) const {
   return *this * scalar_operator(other);
-}
-
-template <typename HandlerTy>
-product_operator<HandlerTy> product_operator<HandlerTy>::operator*=(const std::complex<double> other) {
-  *this = *this * scalar_operator(other);
-  return *this;
-}
-
-template <typename HandlerTy>
-operator_sum<HandlerTy> operator+(const std::complex<double> other, const product_operator<HandlerTy> self) {
-  return operator_sum<HandlerTy>({scalar_operator(other), self});
-}
-
-template <typename HandlerTy>
-operator_sum<HandlerTy> operator-(const std::complex<double> other, const product_operator<HandlerTy> self) {
-  return scalar_operator(other) - self;
-}
-
-template <typename HandlerTy>
-product_operator<HandlerTy> operator*(const std::complex<double> other, const product_operator<HandlerTy> self) {
-  return scalar_operator(other) * self;
 }
 
 template <typename HandlerTy>
@@ -191,43 +135,90 @@ operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(double other) con
 }
 
 template <typename HandlerTy>
-product_operator<HandlerTy> product_operator<HandlerTy>::operator*(double other) const {
-  return *this * scalar_operator(other);
-}
-
-template <typename HandlerTy>
 product_operator<HandlerTy> product_operator<HandlerTy>::operator*=(double other) {
   *this = *this * scalar_operator(other);
   return *this;
 }
 
 template <typename HandlerTy>
-operator_sum<HandlerTy> operator+(double other, const product_operator<HandlerTy> self) {
-  return operator_sum<HandlerTy>({scalar_operator(other), self});
+product_operator<HandlerTy> product_operator<HandlerTy>::operator*(std::complex<double> other) const {
+  return *this * scalar_operator(other);
 }
 
 template <typename HandlerTy>
-operator_sum<HandlerTy> operator-(double other, const product_operator<HandlerTy> self) {
-  return scalar_operator(other) - self;
+operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(std::complex<double> other) const {
+  return *this + scalar_operator(other);
 }
 
 template <typename HandlerTy>
-product_operator<HandlerTy> operator*(double other, const product_operator<HandlerTy> self) {
-  return scalar_operator(other) * self;
+operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(std::complex<double> other) const {
+  return *this - scalar_operator(other);
 }
 
 template <typename HandlerTy>
-operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(const product_operator<HandlerTy> other) const {
-  return operator_sum<HandlerTy>({*this, other});
+product_operator<HandlerTy> product_operator<HandlerTy>::operator*=(std::complex<double> other) {
+  *this = *this * scalar_operator(other);
+  return *this;
 }
 
 template <typename HandlerTy>
-operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(const product_operator<HandlerTy> other) const {
-  return operator_sum<HandlerTy>({*this, (-1. * other)});
+product_operator<HandlerTy> product_operator<HandlerTy>::operator*(const scalar_operator &other) const {
+  std::vector<std::variant<scalar_operator, HandlerTy>>
+      combined_terms = ops;
+  combined_terms.push_back(other);
+  return product_operator(combined_terms);
 }
 
 template <typename HandlerTy>
-product_operator<HandlerTy> product_operator<HandlerTy>::operator*(const product_operator<HandlerTy> other) const {
+operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(const scalar_operator &other) const {
+  std::vector<std::variant<scalar_operator, HandlerTy>> _other = {
+      other};
+  return operator_sum<HandlerTy>({*this, product_operator(_other)});
+}
+
+template <typename HandlerTy>
+operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(const scalar_operator &other) const {
+  std::vector<std::variant<scalar_operator, HandlerTy>> _other = {
+      other};
+  return operator_sum<HandlerTy>({*this, -1. * product_operator(_other)});
+}
+
+template <typename HandlerTy>
+product_operator<HandlerTy> product_operator<HandlerTy>::operator*=(const scalar_operator &other) {
+  *this = *this * other;
+  return *this;
+}
+
+template <typename HandlerTy>
+product_operator<HandlerTy> product_operator<HandlerTy>::operator*(const HandlerTy &other) const {
+  std::vector<std::variant<scalar_operator, HandlerTy>>
+      combined_terms = ops;
+  combined_terms.push_back(other);
+  return product_operator(combined_terms);
+}
+
+template <typename HandlerTy>
+operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(const HandlerTy &other) const {
+  std::vector<std::variant<scalar_operator, HandlerTy>> _other = {
+      other};
+  return operator_sum<HandlerTy>({*this, product_operator(_other)});
+}
+
+template <typename HandlerTy>
+operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(const HandlerTy &other) const {
+  std::vector<std::variant<scalar_operator, HandlerTy>> _other = {
+      other};
+  return operator_sum<HandlerTy>({*this, -1. * product_operator(_other)});
+}
+
+template <typename HandlerTy>
+product_operator<HandlerTy> product_operator<HandlerTy>::operator*=(const HandlerTy &other) {
+  *this = *this * other;
+  return *this;
+}
+
+template <typename HandlerTy>
+product_operator<HandlerTy> product_operator<HandlerTy>::operator*(const product_operator<HandlerTy> &other) const {
   std::vector<std::variant<scalar_operator, HandlerTy>>
       combined_terms = ops;
   combined_terms.insert(combined_terms.end(),
@@ -237,61 +228,114 @@ product_operator<HandlerTy> product_operator<HandlerTy>::operator*(const product
 }
 
 template <typename HandlerTy>
-product_operator<HandlerTy> product_operator<HandlerTy>::operator*=(const product_operator<HandlerTy> other) {
+operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(const product_operator<HandlerTy> &other) const {
+  return operator_sum<HandlerTy>({*this, other});
+}
+
+template <typename HandlerTy>
+operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(const product_operator<HandlerTy> &other) const {
+  return operator_sum<HandlerTy>({*this, (-1. * other)});
+}
+
+template <typename HandlerTy>
+product_operator<HandlerTy> product_operator<HandlerTy>::operator*=(const product_operator<HandlerTy> &other) {
   *this = *this * other;
   return *this;
 }
 
 template <typename HandlerTy>
-operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(const HandlerTy other) const {
-  std::vector<std::variant<scalar_operator, HandlerTy>> _other = {
-      other};
-  return operator_sum<HandlerTy>({*this, product_operator(_other)});
+operator_sum<HandlerTy> product_operator<HandlerTy>::operator*(const operator_sum<HandlerTy> &other) const {
+  std::vector<product_operator<HandlerTy>> other_terms = other.get_terms();
+  for (auto &term : other_terms) {
+    term = *this * term;
+  }
+  return operator_sum<HandlerTy>(other_terms);
 }
 
 template <typename HandlerTy>
-operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(const HandlerTy other) const {
-  std::vector<std::variant<scalar_operator, HandlerTy>> _other = {
-      other};
-  return operator_sum<HandlerTy>({*this, -1. * product_operator(_other)});
-}
-
-template <typename HandlerTy>
-product_operator<HandlerTy> product_operator<HandlerTy>::operator*(const HandlerTy other) const {
-  std::vector<std::variant<scalar_operator, HandlerTy>>
-      combined_terms = ops;
-  combined_terms.push_back(other);
-  return product_operator(combined_terms);
-}
-
-template <typename HandlerTy>
-product_operator<HandlerTy> product_operator<HandlerTy>::operator*=(const HandlerTy other) {
-  *this = *this * other;
-  return *this;
-}
-
-template <typename HandlerTy>
-operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(const operator_sum<HandlerTy> other) const {
+operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(const operator_sum<HandlerTy> &other) const {
   std::vector<product_operator> other_terms = other.get_terms();
   other_terms.insert(other_terms.begin(), *this);
   return operator_sum<HandlerTy>(other_terms);
 }
 
 template <typename HandlerTy>
-operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(const operator_sum<HandlerTy> other) const {
+operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(const operator_sum<HandlerTy> &other) const {
   auto negative_other = (-1. * other);
   std::vector<product_operator<HandlerTy>> other_terms = negative_other.get_terms();
   other_terms.insert(other_terms.begin(), *this);
   return operator_sum<HandlerTy>(other_terms);
 }
 
+// left-hand arithmetics
+
 template <typename HandlerTy>
-operator_sum<HandlerTy> product_operator<HandlerTy>::operator*(const operator_sum<HandlerTy> other) const {
-  std::vector<product_operator<HandlerTy>> other_terms = other.get_terms();
-  for (auto &term : other_terms) {
-    term = *this * term;
-  }
-  return operator_sum<HandlerTy>(other_terms);
+product_operator<HandlerTy> operator*(double other, const product_operator<HandlerTy> &self) {
+  return scalar_operator(other) * self;
+}
+
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator+(double other, const product_operator<HandlerTy> &self) {
+  return operator_sum<HandlerTy>({scalar_operator(other), self});
+}
+
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator-(double other, const product_operator<HandlerTy> &self) {
+  return scalar_operator(other) - self;
+}
+
+template <typename HandlerTy>
+product_operator<HandlerTy> operator*(const std::complex<double> other, const product_operator<HandlerTy> &self) {
+  return scalar_operator(other) * self;
+}
+
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator+(const std::complex<double> other, const product_operator<HandlerTy> &self) {
+  return operator_sum<HandlerTy>({scalar_operator(other), self});
+}
+
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator-(const std::complex<double> other, const product_operator<HandlerTy> &self) {
+  return scalar_operator(other) - self;
+}
+
+template <typename HandlerTy>
+product_operator<HandlerTy> operator*(const scalar_operator &other, const product_operator<HandlerTy> &self) {
+  std::vector<std::variant<scalar_operator, HandlerTy>> terms =
+      self.get_terms();
+  /// Insert this scalar operator to the front of the terms list.
+  terms.insert(terms.begin(), other);
+  return product_operator(terms);
+}
+
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator+(const scalar_operator &other, const product_operator<HandlerTy> &self) {
+  return operator_sum<HandlerTy>({product_operator({other}), self});
+}
+
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator-(const scalar_operator &other, const product_operator<HandlerTy> &self) {
+  return operator_sum<HandlerTy>({product_operator({other}), (-1. * self)});
+}
+
+template <typename HandlerTy>
+product_operator<HandlerTy> operator*(const HandlerTy &other, const product_operator<HandlerTy> &self) {
+  std::vector<std::variant<scalar_operator, HandlerTy>> terms =
+      self.get_terms();
+  /// Insert this elementary operator to the front of the terms list.
+  terms.insert(terms.begin(), other);
+  return product_operator(terms);
+}
+
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator+(const HandlerTy &other, const product_operator<HandlerTy> &self) {
+  std::vector<std::variant<scalar_operator, HandlerTy>> new_term = {other};
+  return operator_sum({product_operator(new_term), self});
+}
+
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator-(const HandlerTy &other, const product_operator<HandlerTy> &self) {
+  return other + (-1. * self);
 }
 
 } // namespace cudaq
