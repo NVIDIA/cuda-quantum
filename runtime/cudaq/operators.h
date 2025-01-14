@@ -24,7 +24,6 @@ class operator_sum;
 template <typename HandlerTy> 
 class product_operator;
 
-template <typename HandlerTy> 
 class elementary_operator;
 
 class scalar_operator;
@@ -37,24 +36,23 @@ template <typename HandlerTy> // handler needs to inherit from operation_handler
 class operator_sum {
 
 private:
-  std::vector<product_operator<HandlerTy>> m_terms;
+  std::vector<product_operator<HandlerTy>> terms;
 
-  std::vector<std::tuple<scalar_operator, elementary_operator<HandlerTy>>>
+  std::vector<std::tuple<scalar_operator, HandlerTy>>
   canonicalize_product(product_operator<HandlerTy> &prod) const;
 
-  std::vector<std::tuple<scalar_operator, elementary_operator<HandlerTy>>>
+  std::vector<std::tuple<scalar_operator, HandlerTy>>
   _canonical_terms() const;
 
 public:
-  /// @brief Empty constructor that a user can aggregate terms into.
-  // operator_sum<HandlerTy>() = default; // FIXME: NEEDED?
-
   /// @brief Construct a `cudaq::operator_sum<HandlerTy>` given a sequence of
   /// `cudaq::product_operator<HandlerTy>`'s.
   /// This operator expression represents a sum of terms, where each term
   /// is a product of elementary and scalar operators.
   operator_sum(const std::vector<product_operator<HandlerTy>> &terms)
-    : m_terms(terms) {}
+    : terms(terms) {}
+
+  ~operator_sum() = default;
 
   operator_sum<HandlerTy> canonicalize() const;
 
@@ -82,8 +80,8 @@ public:
   // Arithmetic operators
   operator_sum<HandlerTy> operator+(const operator_sum<HandlerTy> &other) const;
   operator_sum<HandlerTy> operator-(const operator_sum<HandlerTy> &other) const;
-  operator_sum<HandlerTy> operator*(operator_sum<HandlerTy> &other) const;
-  operator_sum<HandlerTy> operator*=(operator_sum<HandlerTy> &other);
+  operator_sum<HandlerTy> operator*(const operator_sum<HandlerTy> &other) const;
+  operator_sum<HandlerTy> operator*=(const operator_sum<HandlerTy> &other);
   operator_sum<HandlerTy> operator+=(const operator_sum<HandlerTy> &other);
   operator_sum<HandlerTy> operator-=(const operator_sum<HandlerTy> &other);
   operator_sum<HandlerTy> operator*(const scalar_operator &other) const;
@@ -92,12 +90,12 @@ public:
   operator_sum<HandlerTy> operator*=(const scalar_operator &other);
   operator_sum<HandlerTy> operator+=(const scalar_operator &other);
   operator_sum<HandlerTy> operator-=(const scalar_operator &other);
-  operator_sum<HandlerTy> operator*(std::complex<double> other) const;
-  operator_sum<HandlerTy> operator+(std::complex<double> other) const;
-  operator_sum<HandlerTy> operator-(std::complex<double> other) const;
-  operator_sum<HandlerTy> operator*=(std::complex<double> other);
-  operator_sum<HandlerTy> operator+=(std::complex<double> other);
-  operator_sum<HandlerTy> operator-=(std::complex<double> other);
+  operator_sum<HandlerTy> operator*(const std::complex<double> other) const;
+  operator_sum<HandlerTy> operator+(const std::complex<double> other) const;
+  operator_sum<HandlerTy> operator-(const std::complex<double> other) const;
+  operator_sum<HandlerTy> operator*=(const std::complex<double> other);
+  operator_sum<HandlerTy> operator+=(const std::complex<double> other);
+  operator_sum<HandlerTy> operator-=(const std::complex<double> other);
   operator_sum<HandlerTy> operator*(double other) const;
   operator_sum<HandlerTy> operator+(double other) const;
   operator_sum<HandlerTy> operator-(double other) const;
@@ -110,18 +108,18 @@ public:
   operator_sum<HandlerTy> operator*=(const product_operator<HandlerTy> &other);
   operator_sum<HandlerTy> operator+=(const product_operator<HandlerTy> &other);
   operator_sum<HandlerTy> operator-=(const product_operator<HandlerTy> &other);
-  operator_sum<HandlerTy> operator+(const elementary_operator<HandlerTy> &other) const;
-  operator_sum<HandlerTy> operator-(const elementary_operator<HandlerTy> &other) const;
-  operator_sum<HandlerTy> operator*(const elementary_operator<HandlerTy> &other) const;
-  operator_sum<HandlerTy> operator*=(const elementary_operator<HandlerTy> &other);
-  operator_sum<HandlerTy> operator+=(const elementary_operator<HandlerTy> &other);
-  operator_sum<HandlerTy> operator-=(const elementary_operator<HandlerTy> &other);
+  operator_sum<HandlerTy> operator+(const HandlerTy &other) const;
+  operator_sum<HandlerTy> operator-(const HandlerTy &other) const;
+  operator_sum<HandlerTy> operator*(const HandlerTy &other) const;
+  operator_sum<HandlerTy> operator*=(const HandlerTy &other);
+  operator_sum<HandlerTy> operator+=(const HandlerTy &other);
+  operator_sum<HandlerTy> operator-=(const HandlerTy &other);
 
   /// @brief Return the operator_sum<HandlerTy> as a string.
   std::string to_string() const;
 
   /// @brief Return the number of operator terms that make up this operator sum.
-  int term_count() const { return m_terms.size(); }
+  int term_count() const { return terms.size(); }
 
   /// @brief  True, if the other value is an operator_sum<HandlerTy> with equivalent terms,
   /// and False otherwise. The equality takes into account that operator
@@ -136,21 +134,21 @@ public:
 
   /// FIXME: Protect this once I can do deeper testing in `unittests`.
   // protected:
-  std::vector<product_operator<HandlerTy>> get_terms() { return m_terms; }
+  std::vector<product_operator<HandlerTy>> get_terms() const { return terms; }
 };
 
 template <typename HandlerTy>
-operator_sum<HandlerTy> operator*(std::complex<double> other, operator_sum<HandlerTy> self);
+operator_sum<HandlerTy> operator*(const std::complex<double> other, const operator_sum<HandlerTy> self);
 template <typename HandlerTy> 
-operator_sum<HandlerTy> operator+(std::complex<double> other, operator_sum<HandlerTy> self);
+operator_sum<HandlerTy> operator+(const std::complex<double> other, const operator_sum<HandlerTy> self);
 template <typename HandlerTy> 
-operator_sum<HandlerTy> operator-(std::complex<double> other, operator_sum<HandlerTy> self);
+operator_sum<HandlerTy> operator-(const std::complex<double> other, const operator_sum<HandlerTy> self);
 template <typename HandlerTy> 
-operator_sum<HandlerTy> operator*(double other, operator_sum<HandlerTy> self);
+operator_sum<HandlerTy> operator*(double other, const operator_sum<HandlerTy> self);
 template <typename HandlerTy> 
-operator_sum<HandlerTy> operator+(double other, operator_sum<HandlerTy> self);
+operator_sum<HandlerTy> operator+(double other, const operator_sum<HandlerTy> self);
 template <typename HandlerTy> 
-operator_sum<HandlerTy> operator-(double other, operator_sum<HandlerTy> self);
+operator_sum<HandlerTy> operator-(double other, const operator_sum<HandlerTy> self);
 
 /// @brief Represents an operator expression consisting of a product of
 /// elementary and scalar operators. Operator expressions cannot be used within
@@ -160,45 +158,44 @@ template <typename HandlerTy> // handler needs to inherit from operation_handler
 class product_operator : public operator_sum<HandlerTy> {
 
 private:
-  std::vector<std::variant<scalar_operator, elementary_operator<HandlerTy>>> m_terms;
+  std::vector<std::variant<scalar_operator, HandlerTy>> ops;
 
 public:
-  // product_operator<HandlerTy>() = default; // FIXME: needed?
-  ~product_operator() = default;
-
   // Constructor for an operator expression that represents a product
   // of scalar and elementary operators.
   // arg atomic_operators : The operators of which to compute the product when
   //                         evaluating the operator expression.
   product_operator(
-      std::vector<std::variant<scalar_operator, elementary_operator<HandlerTy>>>
+      std::vector<std::variant<scalar_operator, HandlerTy>>
           atomic_operators)
-      : m_terms(atomic_operators) {}
+      : operator_sum<HandlerTy>({*this}), ops(atomic_operators) {}
+
+  ~product_operator() = default;
 
   // Arithmetic overloads against all other operator types.
-  operator_sum<HandlerTy> operator+(std::complex<double> other);
-  operator_sum<HandlerTy> operator-(std::complex<double> other);
-  product_operator<HandlerTy> operator*(std::complex<double> other);
-  product_operator<HandlerTy> operator*=(std::complex<double> other);
-  operator_sum<HandlerTy> operator+(double other);
-  operator_sum<HandlerTy> operator-(double other);
-  product_operator<HandlerTy> operator*(double other);
+  operator_sum<HandlerTy> operator+(const std::complex<double> other) const;
+  operator_sum<HandlerTy> operator-(const std::complex<double> other) const;
+  product_operator<HandlerTy> operator*(const std::complex<double> other) const;
+  product_operator<HandlerTy> operator*=(const std::complex<double> other);
+  operator_sum<HandlerTy> operator+(double other) const;
+  operator_sum<HandlerTy> operator-(double other) const;
+  product_operator<HandlerTy> operator*(double other) const;
   product_operator<HandlerTy> operator*=(double other);
-  operator_sum<HandlerTy> operator+(scalar_operator other);
-  operator_sum<HandlerTy> operator-(scalar_operator other);
-  product_operator<HandlerTy> operator*(scalar_operator other);
-  product_operator<HandlerTy> operator*=(scalar_operator other);
-  operator_sum<HandlerTy> operator+(product_operator<HandlerTy> other);
-  operator_sum<HandlerTy> operator-(product_operator<HandlerTy> other);
-  product_operator<HandlerTy> operator*(product_operator<HandlerTy> other);
-  product_operator<HandlerTy> operator*=(product_operator<HandlerTy> other);
-  operator_sum<HandlerTy> operator+(elementary_operator<HandlerTy> other);
-  operator_sum<HandlerTy> operator-(elementary_operator<HandlerTy> other);
-  product_operator<HandlerTy> operator*(elementary_operator<HandlerTy> other);
-  product_operator<HandlerTy> operator*=(elementary_operator<HandlerTy> other);
-  operator_sum<HandlerTy> operator+(operator_sum<HandlerTy> other);
-  operator_sum<HandlerTy> operator-(operator_sum<HandlerTy> other);
-  operator_sum<HandlerTy> operator*(operator_sum<HandlerTy> other);
+  operator_sum<HandlerTy> operator+(const scalar_operator other) const;
+  operator_sum<HandlerTy> operator-(const scalar_operator other) const;
+  product_operator<HandlerTy> operator*(const scalar_operator other) const;
+  product_operator<HandlerTy> operator*=(const scalar_operator other);
+  operator_sum<HandlerTy> operator+(const product_operator<HandlerTy> other) const;
+  operator_sum<HandlerTy> operator-(const product_operator<HandlerTy> other) const;
+  product_operator<HandlerTy> operator*(const product_operator<HandlerTy> other) const;
+  product_operator<HandlerTy> operator*=(const product_operator<HandlerTy> other);
+  operator_sum<HandlerTy> operator+(const HandlerTy other) const;
+  operator_sum<HandlerTy> operator-(const HandlerTy other) const;
+  product_operator<HandlerTy> operator*(const HandlerTy other) const;
+  product_operator<HandlerTy> operator*=(const HandlerTy other);
+  operator_sum<HandlerTy> operator+(const operator_sum<HandlerTy> other) const;
+  operator_sum<HandlerTy> operator-(const operator_sum<HandlerTy> other) const;
+  operator_sum<HandlerTy> operator*(const operator_sum<HandlerTy> other) const;
 
   /// @brief True, if the other value is an operator_sum<HandlerTy> with equivalent terms,
   ///  and False otherwise. The equality takes into account that operator
@@ -235,12 +232,12 @@ public:
 
   /// @brief Return the number of operator terms that make up this product
   /// operator.
-  int term_count() const { return m_terms.size(); }
+  int term_count() const { return ops.size(); }
 
   /// FIXME: Protect this once I can do deeper testing in `unittests`.
   // protected:
-  std::vector<std::variant<scalar_operator, elementary_operator<HandlerTy>>> get_terms() {
-    return m_terms;
+  std::vector<std::variant<scalar_operator, HandlerTy>> get_terms() const {
+    return ops;
   };
 };
 
@@ -257,8 +254,122 @@ operator_sum<HandlerTy> operator-(double other, product_operator<HandlerTy> self
 template <typename HandlerTy> 
 product_operator<HandlerTy> operator*(double other, product_operator<HandlerTy> self);
 
-template <typename HandlerTy> 
-class elementary_operator : public product_operator<HandlerTy> {
+// FIXME: check if we really need the inheritance from prod operator, and if so what it should be
+// (check if this really should be its own class?)
+// -> replace elementary operator with the operator handler, the current elem op is the handler for custom op
+// -> scalar remains its own op class, but likely doesn't need to be convertible to operator (i.e. no inheritance)
+class scalar_operator {
+
+private:
+  // If someone gave us a constant value, we will just return that
+  // directly to them when they call `evaluate`.
+  std::complex<double> m_constant_value;
+
+public:
+  /// @brief Constructor that just takes a callback function with no
+  /// arguments.
+
+  scalar_operator(ScalarCallbackFunction &&create) {
+    generator = ScalarCallbackFunction(create);
+  }
+
+  /// @brief Constructor that just takes and returns a complex double value.
+  /// @NOTE: This replicates the behavior of the python `scalar_operator::const`
+  /// without the need for an extra member function.
+  scalar_operator(std::complex<double> value);
+  scalar_operator(double value);
+
+  /// NOTE: We should revisit these constructors and remove any that have
+  /// become unnecessary as the implementation improves.
+  // scalar_operator() = default;
+  // Copy constructor.
+  // scalar_operator(const scalar_operator &other);
+  // scalar_operator(scalar_operator &other);
+
+  ~scalar_operator() = default;
+
+  // Arithmetic overloads against other operator types.
+  scalar_operator operator+(const scalar_operator other) const;
+  scalar_operator operator-(const scalar_operator other) const;
+  scalar_operator operator*(const scalar_operator other) const;
+  scalar_operator operator/(const scalar_operator other) const;
+  scalar_operator operator+(const std::complex<double> other) const;
+  scalar_operator operator-(const std::complex<double> other) const;
+  scalar_operator operator*(const std::complex<double> other) const;
+  scalar_operator operator/(const std::complex<double> other) const;
+  scalar_operator operator+(double other) const;
+  scalar_operator operator-(double other) const;
+  scalar_operator operator*(double other) const;
+  scalar_operator operator/(double other) const;
+
+  void operator+=(const scalar_operator other);
+  void operator-=(const scalar_operator other);
+  void operator*=(const scalar_operator other);
+  void operator/=(const scalar_operator other);
+  void operator+=(const std::complex<double> other);
+  void operator-=(const std::complex<double> other);
+  void operator*=(const std::complex<double> other);
+  void operator/=(const std::complex<double> other);
+  void operator+=(double other);
+  void operator-=(double other);
+  void operator*=(double other);
+  void operator/=(double other);
+
+  /// TODO: implement and test pow
+  scalar_operator pow(const scalar_operator other) const;
+  template <typename HandlerTy> 
+  operator_sum<HandlerTy> operator+(const HandlerTy other) const;
+  template <typename HandlerTy> 
+  operator_sum<HandlerTy> operator-(const HandlerTy other) const;
+  template <typename HandlerTy> 
+  product_operator<HandlerTy> operator*(const HandlerTy other) const;
+  template <typename HandlerTy> 
+  operator_sum<HandlerTy> operator+(const product_operator<HandlerTy> other) const;
+  template <typename HandlerTy> 
+  operator_sum<HandlerTy> operator-(const product_operator<HandlerTy> other) const;
+  template <typename HandlerTy> 
+  product_operator<HandlerTy> operator*(const product_operator<HandlerTy> other) const;
+  template <typename HandlerTy> 
+  operator_sum<HandlerTy> operator+(const operator_sum<HandlerTy> other) const;
+  template <typename HandlerTy> 
+  operator_sum<HandlerTy> operator-(const operator_sum<HandlerTy> other) const;
+  template <typename HandlerTy> 
+  operator_sum<HandlerTy> operator*(const operator_sum<HandlerTy> other) const;
+
+  /// @brief Return the scalar operator as a concrete complex value.
+  std::complex<double>
+  evaluate(const std::map<std::string, std::complex<double>> parameters) const;
+
+  // Return the scalar operator as a 1x1 matrix. This is needed for
+  // compatibility with the other inherited classes.
+  matrix_2 to_matrix(const std::map<int, int> dimensions,
+                     const std::map<std::string, std::complex<double>> parameters) const;
+
+  // /// @brief Returns true if other is a scalar operator with the same
+  // /// generator.
+  // bool operator==(scalar_operator other);
+
+  /// @brief The function that generates the value of the scalar operator.
+  /// The function can take a vector of complex-valued arguments
+  /// and returns a number.
+  ScalarCallbackFunction generator;
+
+  // Need this property for consistency with other inherited types.
+  // Particularly, to be used when the scalar operator is held within
+  // a variant type next to elementary operators.
+  std::vector<int> degrees = {-1};
+};
+
+scalar_operator operator+(const std::complex<double> other, const scalar_operator self);
+scalar_operator operator-(const std::complex<double> other, const scalar_operator self);
+scalar_operator operator*(const std::complex<double> other, const scalar_operator self);
+scalar_operator operator/(const std::complex<double> other, const scalar_operator self);
+scalar_operator operator+(double other, const scalar_operator self);
+scalar_operator operator-(double other, const scalar_operator self);
+scalar_operator operator*(double other, const scalar_operator self);
+scalar_operator operator/(double other, const scalar_operator self);
+
+class elementary_operator : public product_operator<elementary_operator> {
 
 private:
   std::map<std::string, Definition> m_ops;
@@ -271,50 +382,53 @@ public:
   /// defined.
   /// @arg degrees : the degrees of freedom that the operator acts upon.
   elementary_operator(std::string operator_id, std::vector<int> degrees)
-    : id(operator_id), degrees(degrees) {}
+    : id(operator_id), degrees(degrees), 
+      product_operator<elementary_operator>({std::variant<scalar_operator, elementary_operator>{*this}}) { }
 
   // Copy constructor. FIXME: NEEDED?
-  elementary_operator(const elementary_operator<HandlerTy> &other)
+  elementary_operator(const elementary_operator &other)
     : m_ops(other.m_ops), expected_dimensions(other.expected_dimensions),
-      degrees(other.degrees), id(other.id) {}
+      degrees(other.degrees), id(other.id),
+      product_operator<elementary_operator>({std::variant<scalar_operator, elementary_operator>{*this}}) { }
 
-  elementary_operator(elementary_operator<HandlerTy> &other)
+  elementary_operator(elementary_operator &other)
     : m_ops(other.m_ops), expected_dimensions(other.expected_dimensions),
-      degrees(other.degrees), id(other.id) {}
+      degrees(other.degrees), id(other.id),
+      product_operator<elementary_operator>({std::variant<scalar_operator, elementary_operator>{*this}}) { }
+
+  ~elementary_operator() = default;
 
   // Arithmetic overloads against all other operator types.
-  operator_sum<HandlerTy> operator+(std::complex<double> other);
-  operator_sum<HandlerTy> operator-(std::complex<double> other);
-  product_operator<HandlerTy> operator*(std::complex<double> other);
-  operator_sum<HandlerTy> operator+(double other);
-  operator_sum<HandlerTy> operator-(double other);
-  product_operator<HandlerTy> operator*(double other);
-  operator_sum<HandlerTy> operator+(scalar_operator other);
-  operator_sum<HandlerTy> operator-(scalar_operator other);
-  product_operator<HandlerTy> operator*(scalar_operator other);
+  operator_sum<elementary_operator> operator+(const std::complex<double> other) const;
+  operator_sum<elementary_operator> operator-(const std::complex<double> other) const;
+  product_operator<elementary_operator> operator*(const std::complex<double> other) const;
+  operator_sum<elementary_operator> operator+(double other) const;
+  operator_sum<elementary_operator> operator-(double other) const;
+  product_operator<elementary_operator> operator*(double other) const;
+  operator_sum<elementary_operator> operator+(scalar_operator other) const;
+  operator_sum<elementary_operator> operator-(scalar_operator other) const;
+  product_operator<elementary_operator> operator*(scalar_operator other) const;
   // big question regarding templates is whether coefficients are part of product or are part of elem ops - 
   // part of product seems more intuitive to me, and probably simplifies code;
   // that would mean even for eager prod/add, we still get a prod/sum as result
-  operator_sum<HandlerTy> operator+(elementary_operator<HandlerTy> other);
-  operator_sum<HandlerTy> operator-(elementary_operator<HandlerTy> other);
-  product_operator<HandlerTy> operator*(elementary_operator<HandlerTy> other);
-  operator_sum<HandlerTy> operator+(product_operator<HandlerTy> other);
-  operator_sum<HandlerTy> operator-(product_operator<HandlerTy> other);
-  product_operator<HandlerTy> operator*(product_operator<HandlerTy> other);
-  operator_sum<HandlerTy> operator+(operator_sum<HandlerTy> other);
-  operator_sum<HandlerTy> operator-(operator_sum<HandlerTy> other);
-  operator_sum<HandlerTy> operator+=(operator_sum<HandlerTy> other);
-  operator_sum<HandlerTy> operator-=(operator_sum<HandlerTy> other);
-  operator_sum<HandlerTy> operator*(operator_sum<HandlerTy> other);
+  operator_sum<elementary_operator> operator+(const elementary_operator other) const;
+  operator_sum<elementary_operator> operator-(const elementary_operator other) const;
+  product_operator<elementary_operator> operator*(const elementary_operator other) const;
+  operator_sum<elementary_operator> operator+(const product_operator<elementary_operator> other) const;
+  operator_sum<elementary_operator> operator-(const product_operator<elementary_operator> other) const;
+  product_operator<elementary_operator> operator*(const product_operator<elementary_operator> other) const;
+  operator_sum<elementary_operator> operator+(const operator_sum<elementary_operator> other) const;
+  operator_sum<elementary_operator> operator-(const operator_sum<elementary_operator> other) const;
+  operator_sum<elementary_operator> operator*(const operator_sum<elementary_operator> other) const;
 
   /// @brief True, if the other value is an elementary operator with the same id
   /// acting on the same degrees of freedom, and False otherwise.
-  bool operator==(elementary_operator<HandlerTy> other);
+  bool operator==(elementary_operator other);
 
-  /// @brief Return the `elementary_operator<HandlerTy>` as a string.
+  /// @brief Return the `elementary_operator` as a string.
   std::string to_string() const;
 
-  /// @brief Return the `elementary_operator<HandlerTy>` as a matrix.
+  /// @brief Return the `elementary_operator` as a matrix.
   /// @arg  `dimensions` : A map specifying the number of levels,
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
@@ -324,18 +438,18 @@ public:
             const std::map<std::string, std::complex<double>> parameters) const;
 
   // Predefined operators.
-  static elementary_operator<HandlerTy> identity(int degree);
-  static elementary_operator<HandlerTy> zero(int degree);
-  static elementary_operator<HandlerTy> annihilate(int degree);
-  static elementary_operator<HandlerTy> create(int degree);
-  static elementary_operator<HandlerTy> momentum(int degree);
-  static elementary_operator<HandlerTy> number(int degree);
-  static elementary_operator<HandlerTy> parity(int degree);
-  static elementary_operator<HandlerTy> position(int degree);
+  static elementary_operator identity(int degree);
+  static elementary_operator zero(int degree);
+  static elementary_operator annihilate(int degree);
+  static elementary_operator create(int degree);
+  static elementary_operator momentum(int degree);
+  static elementary_operator number(int degree);
+  static elementary_operator parity(int degree);
+  static elementary_operator position(int degree);
   /// FIXME:
-  static elementary_operator<HandlerTy> squeeze(int degree,
+  static elementary_operator squeeze(int degree,
                                      std::complex<double> amplitude);
-  static elementary_operator<HandlerTy> displace(int degree,
+  static elementary_operator displace(int degree,
                                       std::complex<double> amplitude);
 
   /// @brief Adds the definition of an elementary operator with the given id to
@@ -387,139 +501,22 @@ public:
   /// order.
   std::vector<int> degrees;
   std::string id;
-
-  // /// @brief Creates a representation of the operator as `pauli_word` that
-  // can be passed as an argument to quantum kernels.
-  // pauli_word to_pauli_word ovveride();
 };
+
 // Reverse order arithmetic for elementary operators against pure scalars.
 template <typename HandlerTy> 
-operator_sum<HandlerTy> operator+(std::complex<double> other, elementary_operator<HandlerTy> self);
+operator_sum<HandlerTy> operator+(const std::complex<double> other, const elementary_operator self);
 template <typename HandlerTy> 
-operator_sum<HandlerTy> operator-(std::complex<double> other, elementary_operator<HandlerTy> self);
+operator_sum<HandlerTy> operator-(const std::complex<double> other, const elementary_operator self);
 template <typename HandlerTy> 
-product_operator<HandlerTy> operator*(std::complex<double> other,
-                                      elementary_operator<HandlerTy> self);
+product_operator<HandlerTy> operator*(const std::complex<double> other,
+                                      const elementary_operator self);
 template <typename HandlerTy> 
-operator_sum<HandlerTy> operator+(double other, elementary_operator<HandlerTy> self);
+operator_sum<HandlerTy> operator+(double other, const elementary_operator self);
 template <typename HandlerTy> 
-operator_sum<HandlerTy> operator-(double other, elementary_operator<HandlerTy> self);
+operator_sum<HandlerTy> operator-(double other, const elementary_operator self);
 template <typename HandlerTy> 
-product_operator<HandlerTy> operator*(double other, elementary_operator<HandlerTy> self);
-
-// FIXME: check if we really need the inheritance from prod operator, and if so what it should be
-// (check if this really should be its own class?)
-class scalar_operator {
-
-private:
-  // If someone gave us a constant value, we will just return that
-  // directly to them when they call `evaluate`.
-  std::complex<double> m_constant_value;
-
-public:
-  /// @brief Constructor that just takes a callback function with no
-  /// arguments.
-
-  scalar_operator(ScalarCallbackFunction &&create) {
-    generator = ScalarCallbackFunction(create);
-  }
-
-  /// @brief Constructor that just takes and returns a complex double value.
-  /// @NOTE: This replicates the behavior of the python `scalar_operator::const`
-  /// without the need for an extra member function.
-  scalar_operator(std::complex<double> value);
-  scalar_operator(double value);
-
-  // Arithmetic overloads against other operator types.
-  scalar_operator operator+(scalar_operator other);
-  scalar_operator operator-(scalar_operator other);
-  scalar_operator operator*(scalar_operator other);
-  scalar_operator operator/(scalar_operator other);
-  /// TODO: implement and test pow
-  scalar_operator pow(scalar_operator other);
-  template <typename HandlerTy> 
-  operator_sum<HandlerTy> operator+(elementary_operator<HandlerTy> other);
-  template <typename HandlerTy> 
-  operator_sum<HandlerTy> operator-(elementary_operator<HandlerTy> other);
-  template <typename HandlerTy> 
-  product_operator<HandlerTy> operator*(elementary_operator<HandlerTy> other);
-  template <typename HandlerTy> 
-  operator_sum<HandlerTy> operator+(product_operator<HandlerTy> other);
-  template <typename HandlerTy> 
-  operator_sum<HandlerTy> operator-(product_operator<HandlerTy> other);
-  template <typename HandlerTy> 
-  product_operator<HandlerTy> operator*(product_operator<HandlerTy> other);
-  template <typename HandlerTy> 
-  operator_sum<HandlerTy> operator+(operator_sum<HandlerTy> other);
-  template <typename HandlerTy> 
-  operator_sum<HandlerTy> operator-(operator_sum<HandlerTy> other);
-  template <typename HandlerTy> 
-  operator_sum<HandlerTy> operator*(operator_sum<HandlerTy> other);
-
-  /// @brief Return the scalar operator as a concrete complex value.
-  std::complex<double>
-  evaluate(std::map<std::string, std::complex<double>> parameters) const;
-
-  // Return the scalar operator as a 1x1 matrix. This is needed for
-  // compatibility with the other inherited classes.
-  matrix_2 to_matrix(std::map<int, int> dimensions,
-                     std::map<std::string, std::complex<double>> parameters);
-
-  // /// @brief Returns true if other is a scalar operator with the same
-  // /// generator.
-  // bool operator==(scalar_operator other);
-
-  /// @brief The function that generates the value of the scalar operator.
-  /// The function can take a vector of complex-valued arguments
-  /// and returns a number.
-  ScalarCallbackFunction generator;
-
-  // Only populated when we've performed arithmetic between various
-  // scalar operators.
-  std::vector<scalar_operator> _operators_to_compose;
-
-  /// NOTE: We should revisit these constructors and remove any that have
-  /// become unnecessary as the implementation improves.
-  scalar_operator() = default;
-  // Copy constructor.
-  scalar_operator(const scalar_operator &other);
-  scalar_operator(scalar_operator &other);
-
-  ~scalar_operator() = default;
-
-  // Need this property for consistency with other inherited types.
-  // Particularly, to be used when the scalar operator is held within
-  // a variant type next to elementary operators.
-  std::vector<int> degrees = {-1};
-
-  // REMOVEME: just using this as a temporary patch:
-  std::complex<double> get_val() { return m_constant_value; };
-};
-
-scalar_operator operator+(scalar_operator self, std::complex<double> other);
-scalar_operator operator-(scalar_operator self, std::complex<double> other);
-scalar_operator operator*(scalar_operator self, std::complex<double> other);
-scalar_operator operator/(scalar_operator self, std::complex<double> other);
-scalar_operator operator+(std::complex<double> other, scalar_operator self);
-scalar_operator operator-(std::complex<double> other, scalar_operator self);
-scalar_operator operator*(std::complex<double> other, scalar_operator self);
-scalar_operator operator/(std::complex<double> other, scalar_operator self);
-scalar_operator operator+(scalar_operator self, double other);
-scalar_operator operator-(scalar_operator self, double other);
-scalar_operator operator*(scalar_operator self, double other);
-scalar_operator operator/(scalar_operator self, double other);
-scalar_operator operator+(double other, scalar_operator self);
-scalar_operator operator-(double other, scalar_operator self);
-scalar_operator operator*(double other, scalar_operator self);
-scalar_operator operator/(double other, scalar_operator self);
-void operator+=(scalar_operator &self, std::complex<double> other);
-void operator-=(scalar_operator &self, std::complex<double> other);
-void operator*=(scalar_operator &self, std::complex<double> other);
-void operator/=(scalar_operator &self, std::complex<double> other);
-void operator+=(scalar_operator &self, scalar_operator other);
-void operator-=(scalar_operator &self, scalar_operator other);
-void operator*=(scalar_operator &self, scalar_operator other);
-void operator/=(scalar_operator &self, scalar_operator other);
+product_operator<HandlerTy> operator*(double other, const elementary_operator self);
 
 /// @brief Representation of a time-dependent Hamiltonian for Rydberg system
 class rydberg_hamiltonian : public operator_sum {
