@@ -153,11 +153,11 @@ operator_sum<HandlerTy> operator+(const scalar_operator &other, const operator_s
 template <typename HandlerTy> 
 operator_sum<HandlerTy> operator-(const scalar_operator &other, const operator_sum<HandlerTy> &self);
 template <typename HandlerTy> 
-operator_sum<elementary_operator> operator*(const HandlerTy &other, const operator_sum<elementary_operator> self);
+operator_sum<elementary_operator> operator*(const HandlerTy &other, const operator_sum<elementary_operator> &self);
 template <typename HandlerTy> 
-operator_sum<elementary_operator> operator+(const HandlerTy &other, const operator_sum<elementary_operator> self);
+operator_sum<elementary_operator> operator+(const HandlerTy &other, const operator_sum<elementary_operator> &self);
 template <typename HandlerTy> 
-operator_sum<elementary_operator> operator-(const HandlerTy &other, const operator_sum<elementary_operator> self);
+operator_sum<elementary_operator> operator-(const HandlerTy &other, const operator_sum<elementary_operator> &self);
 
 
 /// @brief Represents an operator expression consisting of a product of
@@ -338,14 +338,14 @@ public:
   scalar_operator operator/(std::complex<double> other) const;
   scalar_operator operator+(std::complex<double> other) const;
   scalar_operator operator-(std::complex<double> other) const;
-  scalar_operator operator*(const scalar_operator &other) const;
-  scalar_operator operator/(const scalar_operator &other) const;
-  scalar_operator operator+(const scalar_operator &other) const;
-  scalar_operator operator-(const scalar_operator &other) const;
   void operator*=(std::complex<double> other);
   void operator/=(std::complex<double> other);
   void operator+=(std::complex<double> other);
   void operator-=(std::complex<double> other);
+  scalar_operator operator*(const scalar_operator &other) const;
+  scalar_operator operator/(const scalar_operator &other) const;
+  scalar_operator operator+(const scalar_operator &other) const;
+  scalar_operator operator-(const scalar_operator &other) const;
   void operator*=(const scalar_operator &other);
   void operator/=(const scalar_operator &other);
   void operator+=(const scalar_operator &other);

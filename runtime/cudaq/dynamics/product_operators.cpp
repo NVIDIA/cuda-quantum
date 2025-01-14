@@ -116,7 +116,6 @@ std::vector<int> product_operator<HandlerTy>::degrees() const {
   return std::vector<int>(unique_degrees.begin(), unique_degrees.end());
 }
 
-
 // right-hand arithmetics
 
 template <typename HandlerTy>
@@ -178,9 +177,7 @@ operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(const scalar_oper
 
 template <typename HandlerTy>
 operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(const scalar_operator &other) const {
-  std::vector<std::variant<scalar_operator, HandlerTy>> _other = {
-      other};
-  return operator_sum<HandlerTy>({*this, -1. * product_operator(_other)});
+  return operator_sum<HandlerTy>({*this, product_operator<HandlerTy>({-1. * other})});
 }
 
 template <typename HandlerTy>
@@ -206,9 +203,7 @@ operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(const HandlerTy &
 
 template <typename HandlerTy>
 operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(const HandlerTy &other) const {
-  std::vector<std::variant<scalar_operator, HandlerTy>> _other = {
-      other};
-  return operator_sum<HandlerTy>({*this, -1. * product_operator(_other)});
+  return operator_sum<HandlerTy>({*this, -1. * other});
 }
 
 template <typename HandlerTy>
@@ -234,7 +229,8 @@ operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(const product_ope
 
 template <typename HandlerTy>
 operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(const product_operator<HandlerTy> &other) const {
-  return operator_sum<HandlerTy>({*this, (-1. * other)});
+  std::vector<product_operator<HandlerTy>> combined_terms = {*this, -1. * other};
+  return operator_sum<HandlerTy>(combined_terms);
 }
 
 template <typename HandlerTy>
