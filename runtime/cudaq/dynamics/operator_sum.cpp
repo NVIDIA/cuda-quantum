@@ -312,7 +312,9 @@ operator_sum<HandlerTy> operator_sum<HandlerTy>::operator+(const product_operato
 
 template <typename HandlerTy>
 operator_sum<HandlerTy> operator_sum<HandlerTy>::operator-(const product_operator<HandlerTy> &other) const {
-  return *this + (-1. * other);
+  std::vector<product_operator<HandlerTy>> combined_terms = terms;
+  combined_terms.push_back(other * (-1.));
+  return operator_sum(combined_terms);
 }
 
 template <typename HandlerTy>
@@ -357,12 +359,8 @@ operator_sum<HandlerTy> operator_sum<HandlerTy>::operator+(const operator_sum<Ha
 
 template <typename HandlerTy>
 operator_sum<HandlerTy> operator_sum<HandlerTy>::operator-(const operator_sum<HandlerTy> &other) const {
-  return *this + (-1 * other);
+  return *this + (other * (-1));
 }
-
-//template 
-//operator_sum<elementary_operator> operator_sum<elementary_operator>::operator-(
-//  const operator_sum<elementary_operator> &other) const;
 
 template <typename HandlerTy>
 operator_sum<HandlerTy> operator_sum<HandlerTy>::operator*=(const operator_sum<HandlerTy> &other) {
