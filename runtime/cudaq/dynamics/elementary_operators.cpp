@@ -277,6 +277,67 @@ matrix_2 elementary_operator::to_matrix(
   return m_ops[id].generator(dimensions, parameters);
 }
 
+// left-hand arithmetics
+
+product_operator<elementary_operator> operator*(double other, const elementary_operator &self) {
+  auto other_scalar = scalar_operator(other);
+  std::vector<std::variant<scalar_operator, elementary_operator>> _args = {
+      other_scalar, self};
+  return product_operator(_args);
+}
+
+operator_sum<elementary_operator> operator+(double other, const elementary_operator &self) {
+  auto other_scalar = scalar_operator(other);
+  std::vector<std::variant<scalar_operator, elementary_operator>> _self = {
+      self};
+  std::vector<std::variant<scalar_operator, elementary_operator>> _other = {
+      other_scalar};
+  return operator_sum<elementary_operator>({product_operator(_other), product_operator(_self)});
+}
+
+operator_sum<elementary_operator> operator-(double other, const elementary_operator &self) {
+  auto other_scalar = scalar_operator(other);
+  std::vector<std::variant<scalar_operator, elementary_operator>> _other = {
+      other_scalar};
+  return operator_sum<elementary_operator>({product_operator(_other), (-1. * self)});
+}
+
+product_operator<elementary_operator> operator*(std::complex<double> other, const elementary_operator &self) {
+  auto other_scalar = scalar_operator(other);
+  std::vector<std::variant<scalar_operator, elementary_operator>> _args = {
+      other_scalar, self};
+  return product_operator(_args);
+}
+
+operator_sum<elementary_operator> operator+(std::complex<double> other, const elementary_operator &self) {
+  auto other_scalar = scalar_operator(other);
+  std::vector<std::variant<scalar_operator, elementary_operator>> _self = {
+      self};
+  std::vector<std::variant<scalar_operator, elementary_operator>> _other = {
+      other_scalar};
+  return operator_sum<elementary_operator>({product_operator(_other), product_operator(_self)});
+}
+
+operator_sum<elementary_operator> operator-(std::complex<double> other, const elementary_operator &self) {
+  std::vector<std::variant<scalar_operator, elementary_operator>> _other = {scalar_operator(other)};
+  return operator_sum<elementary_operator>({product_operator(_other), (-1. * self)});
+}
+
+product_operator<elementary_operator> operator*(const scalar_operator &other, const elementary_operator &self) {
+  return product_operator<elementary_operator>({other, self});
+}
+
+operator_sum<elementary_operator> operator+(const scalar_operator &other, const elementary_operator &self) {
+  std::vector<std::variant<scalar_operator, elementary_operator>> _other = {other};
+  std::vector<std::variant<scalar_operator, elementary_operator>> _self = {self};
+  return operator_sum<elementary_operator>({product_operator(_other), product_operator(_self)});
+}
+
+operator_sum<elementary_operator> operator-(const scalar_operator &other, const elementary_operator &self) {
+  std::vector<std::variant<scalar_operator, elementary_operator>> _other = {other};
+  return operator_sum<elementary_operator>({product_operator(_other), -1. * self});
+}
+
 // right-hand arithmetics
 
 product_operator<elementary_operator> elementary_operator::operator*(double other) const {
@@ -367,67 +428,6 @@ operator_sum<elementary_operator> elementary_operator::operator-(const elementar
   std::vector<std::variant<scalar_operator, elementary_operator>> _this = {
       *this};
   return operator_sum({product_operator(_this), (-1. * other)});
-}
-
-// left-hand arithmetics
-
-product_operator<elementary_operator> operator*(double other, const elementary_operator &self) {
-  auto other_scalar = scalar_operator(other);
-  std::vector<std::variant<scalar_operator, elementary_operator>> _args = {
-      other_scalar, self};
-  return product_operator(_args);
-}
-
-operator_sum<elementary_operator> operator+(double other, const elementary_operator &self) {
-  auto other_scalar = scalar_operator(other);
-  std::vector<std::variant<scalar_operator, elementary_operator>> _self = {
-      self};
-  std::vector<std::variant<scalar_operator, elementary_operator>> _other = {
-      other_scalar};
-  return operator_sum<elementary_operator>({product_operator(_other), product_operator(_self)});
-}
-
-operator_sum<elementary_operator> operator-(double other, const elementary_operator &self) {
-  auto other_scalar = scalar_operator(other);
-  std::vector<std::variant<scalar_operator, elementary_operator>> _other = {
-      other_scalar};
-  return operator_sum<elementary_operator>({product_operator(_other), (-1. * self)});
-}
-
-product_operator<elementary_operator> operator*(std::complex<double> other, const elementary_operator &self) {
-  auto other_scalar = scalar_operator(other);
-  std::vector<std::variant<scalar_operator, elementary_operator>> _args = {
-      other_scalar, self};
-  return product_operator(_args);
-}
-
-operator_sum<elementary_operator> operator+(std::complex<double> other, const elementary_operator &self) {
-  auto other_scalar = scalar_operator(other);
-  std::vector<std::variant<scalar_operator, elementary_operator>> _self = {
-      self};
-  std::vector<std::variant<scalar_operator, elementary_operator>> _other = {
-      other_scalar};
-  return operator_sum<elementary_operator>({product_operator(_other), product_operator(_self)});
-}
-
-operator_sum<elementary_operator> operator-(std::complex<double> other, const elementary_operator &self) {
-  std::vector<std::variant<scalar_operator, elementary_operator>> _other = {scalar_operator(other)};
-  return operator_sum<elementary_operator>({product_operator(_other), (-1. * self)});
-}
-
-product_operator<elementary_operator> operator*(const scalar_operator &other, const elementary_operator &self) {
-  return product_operator<elementary_operator>({other, self});
-}
-
-operator_sum<elementary_operator> operator+(const scalar_operator &other, const elementary_operator &self) {
-  std::vector<std::variant<scalar_operator, elementary_operator>> _other = {other};
-  std::vector<std::variant<scalar_operator, elementary_operator>> _self = {self};
-  return operator_sum<elementary_operator>({product_operator(_other), product_operator(_self)});
-}
-
-operator_sum<elementary_operator> operator-(const scalar_operator &other, const elementary_operator &self) {
-  std::vector<std::variant<scalar_operator, elementary_operator>> _other = {other};
-  return operator_sum<elementary_operator>({product_operator(_other), -1. * self});
 }
 
 } // namespace cudaq
