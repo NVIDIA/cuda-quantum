@@ -15,24 +15,28 @@
 #include <iostream>
 #include <map>
 #include <set>
+#include <concepts> 
 
 namespace cudaq {
 
-template <typename HandlerTy> 
-class operator_sum;
-
-template <typename HandlerTy> 
-class product_operator;
+class scalar_operator;
 
 class elementary_operator;
 
-class scalar_operator;
+template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
+class product_operator;
+
+template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
+class operator_sum;
 
 /// @brief Represents an operator expression consisting of a sum of terms, where
 /// each term is a product of elementary and scalar operators. Operator
 /// expressions cannot be used within quantum kernels, but they provide methods
 /// to convert them to data types that can.
 template <typename HandlerTy> // handler needs to inherit from operation_handler
+requires std::derived_from<elementary_operator, HandlerTy>
 class operator_sum {
 
 private:
@@ -138,28 +142,40 @@ public:
 };
 
 template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy> operator*(double other, const operator_sum<HandlerTy> &self);
 template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy> operator+(double other, const operator_sum<HandlerTy> &self);
 template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy> operator-(double other, const operator_sum<HandlerTy> &self);
 template <typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy> operator*(std::complex<double> other, const operator_sum<HandlerTy> &self);
 template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy> operator+(std::complex<double> other, const operator_sum<HandlerTy> &self);
 template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy> operator-(std::complex<double> other, const operator_sum<HandlerTy> &self);
 template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy> operator*(const scalar_operator &other, const operator_sum<HandlerTy> &self);
 template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy> operator+(const scalar_operator &other, const operator_sum<HandlerTy> &self);
 template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy> operator-(const scalar_operator &other, const operator_sum<HandlerTy> &self);
 template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<elementary_operator> operator*(const HandlerTy &other, const operator_sum<elementary_operator> &self);
 template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<elementary_operator> operator+(const HandlerTy &other, const operator_sum<elementary_operator> &self);
 template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<elementary_operator> operator-(const HandlerTy &other, const operator_sum<elementary_operator> &self);
 
 
@@ -168,6 +184,7 @@ operator_sum<elementary_operator> operator-(const HandlerTy &other, const operat
 /// quantum kernels, but they provide methods to convert them to data types
 /// that can.
 template <typename HandlerTy> // handler needs to inherit from operation_handler
+requires std::derived_from<elementary_operator, HandlerTy>
 class product_operator : public operator_sum<HandlerTy> {
 
 private:
@@ -251,28 +268,40 @@ public:
 };
 
 template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
 product_operator<HandlerTy> operator*(double other, const product_operator<HandlerTy> &self);
 template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy> operator+(double other, const product_operator<HandlerTy> &self);
 template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy> operator-(double other, const product_operator<HandlerTy> &self);
 template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
 product_operator<HandlerTy> operator*(std::complex<double> other, const product_operator<HandlerTy> &self);
 template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy> operator+(std::complex<double> other, const product_operator<HandlerTy> &self);
 template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy> operator-(std::complex<double> other, const product_operator<HandlerTy> &self);
 template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
 product_operator<HandlerTy> operator*(const scalar_operator &other, const product_operator<HandlerTy> &self);
 template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy> operator+(const scalar_operator &other, const product_operator<HandlerTy> &self);
 template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy> operator-(const scalar_operator &other, const product_operator<HandlerTy> &self);
 template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
 product_operator<HandlerTy> operator*(const HandlerTy &other, const product_operator<elementary_operator> &self);
 template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy> operator+(const HandlerTy &other, const product_operator<elementary_operator> &self);
 template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy> operator-(const HandlerTy &other, const product_operator<elementary_operator> &self);
 
 
