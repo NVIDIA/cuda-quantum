@@ -92,4 +92,3 @@ if cudaq.mpi.rank() == 0:
     fig.savefig("heisenberg_model.png", dpi=fig.dpi)
 
 cudaq.mpi.finalize()
-

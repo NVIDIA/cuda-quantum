@@ -43,12 +43,17 @@ def evolve_dynamics(
     schedule.reset()
     hilbert_space_dims = tuple(dimensions[d] for d in range(len(dimensions)))
 
-    if cudaq_runtime.mpi.is_initialized() and cudaq_runtime.mpi.num_ranks() > 1 and integrator is not None and not integrator.support_distributed_state():
-        raise ValueError(f"Integrator {type(integrator).__name__} does not support distributed state.")
-    
+    if cudaq_runtime.mpi.is_initialized() and cudaq_runtime.mpi.num_ranks(
+    ) > 1 and integrator is not None and not integrator.support_distributed_state(
+    ):
+        raise ValueError(
+            f"Integrator {type(integrator).__name__} does not support distributed state."
+        )
+
     if isinstance(initial_state, InitialState):
         has_collapse_operators = len(collapse_operators) > 0
-        initial_state = CuDensityMatState.create_initial_state(initial_state, hilbert_space_dims, has_collapse_operators)
+        initial_state = CuDensityMatState.create_initial_state(
+            initial_state, hilbert_space_dims, has_collapse_operators)
     else:
         with ScopeTimer("evolve.as_cudm_state") as timer:
             initial_state = as_cudm_state(initial_state)

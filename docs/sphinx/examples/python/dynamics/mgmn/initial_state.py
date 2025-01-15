@@ -24,7 +24,7 @@ for i in range(N):
     avg_magnetization_op += (spin.z(i) / N)
 
 # Arbitrary coupling constant
-g = 1.0 
+g = 1.0
 # Construct the Hamiltonian
 H = operators.zero()
 for i in range(N):
@@ -56,7 +56,6 @@ exp_val = [
     exp_vals[0].expectation()
     for exp_vals in evolution_result.expectation_values()
 ]
-
 
 if cudaq.mpi.rank() == 0:
     # Plot the results

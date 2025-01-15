@@ -64,7 +64,7 @@ class RungeKuttaIntegrator(BaseIntegrator[CudmStateType]):
 
     def support_distributed_state(self):
         return True
-    
+
     def __post_init__(self):
         if "nsteps" in self.integrator_options:
             self.n_steps = self.integrator_options["nsteps"]

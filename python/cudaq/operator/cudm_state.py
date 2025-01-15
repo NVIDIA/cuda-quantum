@@ -14,8 +14,11 @@ from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cuquantum.bindings import cudensitymat as cudm
 from enum import Enum
 
+
 def is_multi_processes():
-    return cudaq_runtime.mpi.is_initialized() and cudaq_runtime.mpi.num_ranks() > 1
+    return cudaq_runtime.mpi.is_initialized() and cudaq_runtime.mpi.num_ranks(
+    ) > 1
+
 
 # Wrap state data (on device memory) as a `cupy` array.
 # Note: the `cupy` array only holds a reference to the GPU memory buffer, no copy.
@@ -40,13 +43,14 @@ class InitialState(Enum):
     ZERO = 1
     UNIFORM = 2
 
+
 InitialStateArgT = cudaq_runtime.State | InitialState
 
 
 # A Python wrapper of `CuDensityMatState` state.
 class CuDensityMatState(object):
     __ctx = None
-    
+
     def __init__(self, data):
         if self.__ctx is None:
             if (is_multi_processes()):
@@ -54,7 +58,9 @@ class CuDensityMatState(object):
                 # FIXME: use the below once cudensitymat supports raw MPI Comm pointer.
                 # `ctx.set_communicator(comm=cudaq_runtime.mpi.comm_dup(), provider="MPI")`
                 _comm_ptr, _size = cudaq_runtime.mpi.comm_dup()
-                cudm.reset_distributed_configuration(self.__ctx._handle._validated_ptr, cudm.DistributedProvider.MPI, _comm_ptr, _size)
+                cudm.reset_distributed_configuration(
+                    self.__ctx._handle._validated_ptr,
+                    cudm.DistributedProvider.MPI, _comm_ptr, _size)
             else:
                 self.__ctx = WorkStream()
 
@@ -66,7 +72,7 @@ class CuDensityMatState(object):
         else:
             self.raw_data = data
             self.state = None
- 
+
     def init_state(self, hilbert_space_dims: Sequence[int]):
         if self.state is None:
             self.hilbert_space_dims = hilbert_space_dims
@@ -77,16 +83,20 @@ class CuDensityMatState(object):
                                              self.hilbert_space_dims,
                                              batch_size=1,
                                              dtype="complex128")
-                
+
                 slice_shape, slice_offsets = self.state.local_info
                 state_size = numpy.prod(dm_shape)
                 if state_size == self.raw_data.size:
                     slice_obj = []
                     for i in range(len(dm_shape)):
-                        slice_obj.append(slice(slice_offsets[i], slice_offsets[i] + slice_shape[i]))
+                        slice_obj.append(
+                            slice(slice_offsets[i],
+                                  slice_offsets[i] + slice_shape[i]))
                     slice_obj = tuple(slice_obj)
-                    self.raw_data = cupy.asfortranarray(self.raw_data.reshape(dm_shape))
-                    self.raw_data = cupy.asfortranarray(self.raw_data[slice_obj].copy())
+                    self.raw_data = cupy.asfortranarray(
+                        self.raw_data.reshape(dm_shape))
+                    self.raw_data = cupy.asfortranarray(
+                        self.raw_data[slice_obj].copy())
                     self.state.attach_storage(self.raw_data)
                 else:
                     self.raw_data = cupy.asfortranarray(
@@ -103,10 +113,14 @@ class CuDensityMatState(object):
                     if state_size == self.raw_data.size:
                         slice_obj = []
                         for i in range(len(sv_shape)):
-                            slice_obj.append(slice(slice_offsets[i], slice_offsets[i] + slice_shape[i]))
+                            slice_obj.append(
+                                slice(slice_offsets[i],
+                                      slice_offsets[i] + slice_shape[i]))
                         slice_obj = tuple(slice_obj)
-                        self.raw_data = cupy.asfortranarray(self.raw_data.reshape(sv_shape))
-                        self.raw_data = cupy.asfortranarray(self.raw_data[slice_obj].copy())
+                        self.raw_data = cupy.asfortranarray(
+                            self.raw_data.reshape(sv_shape))
+                        self.raw_data = cupy.asfortranarray(
+                            self.raw_data[slice_obj].copy())
                         self.state.attach_storage(self.raw_data)
                     else:
                         self.raw_data = cupy.asfortranarray(
@@ -128,15 +142,17 @@ class CuDensityMatState(object):
         return CuDensityMatState(data)
 
     @staticmethod
-    def create_initial_state(type: InitialState, hilbert_space_dims: Sequence[int], mix_state: bool):
+    def create_initial_state(type: InitialState,
+                             hilbert_space_dims: Sequence[int],
+                             mix_state: bool):
         new_state = CuDensityMatState(None)
         new_state.hilbert_space_dims = hilbert_space_dims
-        
+
         if mix_state:
             new_state.state = DenseMixedState(new_state.__ctx,
-                                             new_state.hilbert_space_dims,
-                                             batch_size=1,
-                                             dtype="complex128")
+                                              new_state.hilbert_space_dims,
+                                              batch_size=1,
+                                              dtype="complex128")
         else:
             new_state.state = DensePureState(new_state.__ctx,
                                              new_state.hilbert_space_dims,
@@ -146,38 +162,50 @@ class CuDensityMatState(object):
         slice_shape, slice_offsets = new_state.state.local_info
 
         if type == InitialState.ZERO:
-            buffer = cupy.asfortranarray(cupy.zeros((required_buffer_size,), dtype="complex128", order="F")) 
+            buffer = cupy.asfortranarray(
+                cupy.zeros((required_buffer_size,),
+                           dtype="complex128",
+                           order="F"))
             bitstring_is_local = False
             # Follow cudm example to set the amplitude based on local_info
             for slice_dim, slice_offset in zip(slice_shape, slice_offsets):
-                bitstring_is_local = 0 in range(slice_offset, slice_offset + slice_dim)
+                bitstring_is_local = 0 in range(slice_offset,
+                                                slice_offset + slice_dim)
                 if not bitstring_is_local:
                     break
             if bitstring_is_local:
                 buffer[0] = 1.0
-            new_state.state.raw_data = cupy.asfortranarray(buffer.reshape(slice_shape))
-            new_state.state.attach_storage(new_state.state.raw_data)       
+            new_state.state.raw_data = cupy.asfortranarray(
+                buffer.reshape(slice_shape))
+            new_state.state.attach_storage(new_state.state.raw_data)
         elif type == InitialState.UNIFORM:
-            buffer = cupy.asfortranarray(cupy.zeros((required_buffer_size,), dtype="complex128", order="F"))
+            buffer = cupy.asfortranarray(
+                cupy.zeros((required_buffer_size,),
+                           dtype="complex128",
+                           order="F"))
             hilberg_space_size = numpy.cumprod(hilbert_space_dims)[-1]
             if mix_state:
-                dm_shape = hilbert_space_dims * 2 
+                dm_shape = hilbert_space_dims * 2
                 # FIXME: currently, we use host-device data transfer, hence a host allocation is required.
-                # A custom GPU memory initialization can be also used so that no host allocation is needed. 
-                host_array = (1. / (hilberg_space_size)) * numpy.identity(hilberg_space_size, dtype="complex128")
+                # A custom GPU memory initialization can be also used so that no host allocation is needed.
+                host_array = (1. / (hilberg_space_size)) * numpy.identity(
+                    hilberg_space_size, dtype="complex128")
                 host_array = host_array.reshape(dm_shape)
                 slice_obj = []
                 for i in range(len(slice_offsets) - 1):
-                    slice_obj.append(slice(slice_offsets[i], slice_offsets[i] + slice_shape[i]))
+                    slice_obj.append(
+                        slice(slice_offsets[i],
+                              slice_offsets[i] + slice_shape[i]))
                 slice_obj = tuple(slice_obj)
                 sliced_host_array = numpy.ravel(host_array[slice_obj].copy())
                 buffer = cupy.array(sliced_host_array)
-            else: 
+            else:
                 buffer[:] = 1. / numpy.sqrt(hilberg_space_size)
-            
-            new_state.state.raw_data = cupy.asfortranarray(buffer.reshape(slice_shape))
-            new_state.state.attach_storage(new_state.state.raw_data)    
-        else: 
+
+            new_state.state.raw_data = cupy.asfortranarray(
+                buffer.reshape(slice_shape))
+            new_state.state.attach_storage(new_state.state.raw_data)
+        else:
             raise ValueError("Unsupported initial state type")
 
         return new_state
