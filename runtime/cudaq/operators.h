@@ -6,6 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#pragma once
+
 #include "definition.h"
 #include "utils/tensor.h"
 
@@ -85,39 +87,39 @@ public:
   operator_sum<HandlerTy> operator*(double other) const;
   operator_sum<HandlerTy> operator+(double other) const;
   operator_sum<HandlerTy> operator-(double other) const;
-  operator_sum<HandlerTy> operator*=(double other);
-  operator_sum<HandlerTy> operator+=(double other);
-  operator_sum<HandlerTy> operator-=(double other);
+  operator_sum<HandlerTy>& operator*=(double other);
+  operator_sum<HandlerTy>& operator+=(double other);
+  operator_sum<HandlerTy>& operator-=(double other);
   operator_sum<HandlerTy> operator*(std::complex<double> other) const;
   operator_sum<HandlerTy> operator+(std::complex<double> other) const;
   operator_sum<HandlerTy> operator-(std::complex<double> other) const;
-  operator_sum<HandlerTy> operator*=(std::complex<double> other);
-  operator_sum<HandlerTy> operator+=(std::complex<double> other);
-  operator_sum<HandlerTy> operator-=(std::complex<double> other);
+  operator_sum<HandlerTy>& operator*=(std::complex<double> other);
+  operator_sum<HandlerTy>& operator+=(std::complex<double> other);
+  operator_sum<HandlerTy>& operator-=(std::complex<double> other);
   operator_sum<HandlerTy> operator*(const scalar_operator &other) const;
   operator_sum<HandlerTy> operator+(const scalar_operator &other) const;
   operator_sum<HandlerTy> operator-(const scalar_operator &other) const;
-  operator_sum<HandlerTy> operator*=(const scalar_operator &other);
-  operator_sum<HandlerTy> operator+=(const scalar_operator &other);
-  operator_sum<HandlerTy> operator-=(const scalar_operator &other);
+  operator_sum<HandlerTy>& operator*=(const scalar_operator &other);
+  operator_sum<HandlerTy>& operator+=(const scalar_operator &other);
+  operator_sum<HandlerTy>& operator-=(const scalar_operator &other);
   operator_sum<HandlerTy> operator+(const HandlerTy &other) const;
   operator_sum<HandlerTy> operator-(const HandlerTy &other) const;
   operator_sum<HandlerTy> operator*(const HandlerTy &other) const;
-  operator_sum<HandlerTy> operator*=(const HandlerTy &other);
-  operator_sum<HandlerTy> operator+=(const HandlerTy &other);
-  operator_sum<HandlerTy> operator-=(const HandlerTy &other);
+  operator_sum<HandlerTy>& operator*=(const HandlerTy &other);
+  operator_sum<HandlerTy>& operator+=(const HandlerTy &other);
+  operator_sum<HandlerTy>& operator-=(const HandlerTy &other);
   operator_sum<HandlerTy> operator*(const product_operator<HandlerTy> &other) const;
   operator_sum<HandlerTy> operator+(const product_operator<HandlerTy> &other) const;
   operator_sum<HandlerTy> operator-(const product_operator<HandlerTy> &other) const;
-  operator_sum<HandlerTy> operator*=(const product_operator<HandlerTy> &other);
-  operator_sum<HandlerTy> operator+=(const product_operator<HandlerTy> &other);
-  operator_sum<HandlerTy> operator-=(const product_operator<HandlerTy> &other);
+  operator_sum<HandlerTy>& operator*=(const product_operator<HandlerTy> &other);
+  operator_sum<HandlerTy>& operator+=(const product_operator<HandlerTy> &other);
+  operator_sum<HandlerTy>& operator-=(const product_operator<HandlerTy> &other);
   operator_sum<HandlerTy> operator+(const operator_sum<HandlerTy> &other) const;
   operator_sum<HandlerTy> operator-(const operator_sum<HandlerTy> &other) const;
   operator_sum<HandlerTy> operator*(const operator_sum<HandlerTy> &other) const;
-  operator_sum<HandlerTy> operator*=(const operator_sum<HandlerTy> &other);
-  operator_sum<HandlerTy> operator+=(const operator_sum<HandlerTy> &other);
-  operator_sum<HandlerTy> operator-=(const operator_sum<HandlerTy> &other);
+  operator_sum<HandlerTy>& operator*=(const operator_sum<HandlerTy> &other);
+  operator_sum<HandlerTy>& operator+=(const operator_sum<HandlerTy> &other);
+  operator_sum<HandlerTy>& operator-=(const operator_sum<HandlerTy> &other);
 
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -198,7 +200,7 @@ public:
 
   /// FIXME: Protect this once I can do deeper testing in `unittests`.
   // protected:
-  std::vector<std::variant<scalar_operator, HandlerTy>> get_terms() const {
+  std::vector<std::variant<scalar_operator, HandlerTy>> get_operators() const {
     return ops;
   };
 
@@ -219,23 +221,23 @@ public:
   product_operator<HandlerTy> operator*(double other) const;
   operator_sum<HandlerTy> operator+(double other) const;
   operator_sum<HandlerTy> operator-(double other) const;
-  product_operator<HandlerTy> operator*=(double other);
+  product_operator<HandlerTy>& operator*=(double other);
   product_operator<HandlerTy> operator*(std::complex<double> other) const;
   operator_sum<HandlerTy> operator+(std::complex<double> other) const;
   operator_sum<HandlerTy> operator-(std::complex<double> other) const;
-  product_operator<HandlerTy> operator*=(std::complex<double> other);
+  product_operator<HandlerTy>& operator*=(std::complex<double> other);
   product_operator<HandlerTy> operator*(const scalar_operator &other) const;
   operator_sum<HandlerTy> operator+(const scalar_operator &other) const;
   operator_sum<HandlerTy> operator-(const scalar_operator &other) const;
-  product_operator<HandlerTy> operator*=(const scalar_operator &other);
+  product_operator<HandlerTy>& operator*=(const scalar_operator &other);
   product_operator<HandlerTy> operator*(const HandlerTy &other) const;
   operator_sum<HandlerTy> operator+(const HandlerTy &other) const;
   operator_sum<HandlerTy> operator-(const HandlerTy &other) const;
-  product_operator<HandlerTy> operator*=(const HandlerTy &other);
+  product_operator<HandlerTy>& operator*=(const HandlerTy &other);
   product_operator<HandlerTy> operator*(const product_operator<HandlerTy> &other) const;
   operator_sum<HandlerTy> operator+(const product_operator<HandlerTy> &other) const;
   operator_sum<HandlerTy> operator-(const product_operator<HandlerTy> &other) const;
-  product_operator<HandlerTy> operator*=(const product_operator<HandlerTy> &other);
+  product_operator<HandlerTy>& operator*=(const product_operator<HandlerTy> &other);
   operator_sum<HandlerTy> operator*(const operator_sum<HandlerTy> &other) const;
   operator_sum<HandlerTy> operator+(const operator_sum<HandlerTy> &other) const;
   operator_sum<HandlerTy> operator-(const operator_sum<HandlerTy> &other) const;
@@ -337,26 +339,26 @@ public:
   scalar_operator operator/(double other) const;
   scalar_operator operator+(double other) const;
   scalar_operator operator-(double other) const;
-  void operator*=(double other);
-  void operator/=(double other);
-  void operator+=(double other);
-  void operator-=(double other);
+  scalar_operator& operator*=(double other);
+  scalar_operator& operator/=(double other);
+  scalar_operator& operator+=(double other);
+  scalar_operator& operator-=(double other);
   scalar_operator operator*(std::complex<double> other) const;
   scalar_operator operator/(std::complex<double> other) const;
   scalar_operator operator+(std::complex<double> other) const;
   scalar_operator operator-(std::complex<double> other) const;
-  void operator*=(std::complex<double> other);
-  void operator/=(std::complex<double> other);
-  void operator+=(std::complex<double> other);
-  void operator-=(std::complex<double> other);
+  scalar_operator& operator*=(std::complex<double> other);
+  scalar_operator& operator/=(std::complex<double> other);
+  scalar_operator& operator+=(std::complex<double> other);
+  scalar_operator& operator-=(std::complex<double> other);
   scalar_operator operator*(const scalar_operator &other) const;
   scalar_operator operator/(const scalar_operator &other) const;
   scalar_operator operator+(const scalar_operator &other) const;
   scalar_operator operator-(const scalar_operator &other) const;
-  void operator*=(const scalar_operator &other);
-  void operator/=(const scalar_operator &other);
-  void operator+=(const scalar_operator &other);
-  void operator-=(const scalar_operator &other);
+  scalar_operator& operator*=(const scalar_operator &other);
+  scalar_operator& operator/=(const scalar_operator &other);
+  scalar_operator& operator+=(const scalar_operator &other);
+  scalar_operator& operator-=(const scalar_operator &other);
   /// TODO: implement and test pow
 
   friend scalar_operator operator*(double other, const scalar_operator &self);
@@ -505,5 +507,13 @@ public:
     m_ops[operator_id] = defn;
   }
 };
+
+#ifdef CUDAQ_INSTANTIATE_TEMPLATES
+template class product_operator<elementary_operator>;
+template class operator_sum<elementary_operator>;
+#else
+extern template class product_operator<elementary_operator>;
+extern template class operator_sum<elementary_operator>;
+#endif
 
 } // namespace cudaq
