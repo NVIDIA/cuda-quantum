@@ -146,37 +146,37 @@ class CuDensityMatState(object):
         slice_shape, slice_offsets = new_state.state.local_info
 
         if type == InitialState.ZERO:
-            if mix_state:
-                bit_string = [0] * (2 * len(hilbert_space_dims)) + [0]
-            else:
-                bit_string = [0] * len(hilbert_space_dims) + [0]
-            buffer = cupy.asfortranarray(cupy.zeros((required_buffer_size,), dtype="complex128", order="F"))
-            new_state.state.raw_data = cupy.asfortranarray(buffer.reshape(slice_shape))
-            new_state.state.attach_storage(new_state.state.raw_data)        
-            bitstring_is_local = True
-            state_inds = []
+            buffer = cupy.asfortranarray(cupy.zeros((required_buffer_size,), dtype="complex128", order="F")) 
+            bitstring_is_local = False
             # Follow cudm example to set the amplitude based on local_info
-            for slice_dim, slice_offset, state_dit in zip(slice_shape, slice_offsets, bit_string):
-                bitstring_is_local = state_dit in range(slice_offset, slice_offset + slice_dim)
+            for slice_dim, slice_offset in zip(slice_shape, slice_offsets):
+                bitstring_is_local = 0 in range(slice_offset, slice_offset + slice_dim)
                 if not bitstring_is_local:
                     break
-                else:
-                    state_inds.append(
-                        range(slice_offset, slice_offset + slice_dim).index(state_dit)
-                    )
             if bitstring_is_local:
-                strides = (1,) + tuple(numpy.cumprod(numpy.array(slice_shape)[:-1]))
-                ind = numpy.sum(strides * numpy.array(state_inds))
-                new_state.state.storage[ind] = 1.0
+                buffer[0] = 1.0
+            new_state.state.raw_data = cupy.asfortranarray(buffer.reshape(slice_shape))
+            new_state.state.attach_storage(new_state.state.raw_data)       
         elif type == InitialState.UNIFORM:
             buffer = cupy.asfortranarray(cupy.zeros((required_buffer_size,), dtype="complex128", order="F"))
-            new_state.state.raw_data = cupy.asfortranarray(buffer.reshape(slice_shape))
-            new_state.state.attach_storage(new_state.state.raw_data)        
-            hilberg_space_size = numpy.cumprod(hilbert_space_dims)
+            hilberg_space_size = numpy.cumprod(hilbert_space_dims)[-1]
             if mix_state:
-                raise ValueError("Distributed mixed state initialization is not supported.")
+                dm_shape = hilbert_space_dims * 2 
+                # FIXME: currently, we use host-device data transfer, hence a host allocation is required.
+                # A custom GPU memory initialization can be also used so that no host allocation is needed. 
+                host_array = (1. / (hilberg_space_size)) * numpy.identity(hilberg_space_size, dtype="complex128")
+                host_array = host_array.reshape(dm_shape)
+                slice_obj = []
+                for i in range(len(slice_offsets) - 1):
+                    slice_obj.append(slice(slice_offsets[i], slice_offsets[i] + slice_shape[i]))
+                slice_obj = tuple(slice_obj)
+                sliced_host_array = numpy.ravel(host_array[slice_obj].copy())
+                buffer = cupy.array(sliced_host_array)
             else: 
-                new_state.state.storage[:] = 1. / numpy.sqrt(hilberg_space_size)
+                buffer[:] = 1. / numpy.sqrt(hilberg_space_size)
+            
+            new_state.state.raw_data = cupy.asfortranarray(buffer.reshape(slice_shape))
+            new_state.state.attach_storage(new_state.state.raw_data)    
         else: 
             raise ValueError("Unsupported initial state type")
 

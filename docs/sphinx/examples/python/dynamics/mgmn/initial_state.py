@@ -32,11 +32,13 @@ for i in range(N - 1):
     H += 2 * np.pi * g * spin.x(i) * spin.x(i + 1)
     H += 2 * np.pi * g * spin.y(i) * spin.z(i + 1)
 
-steps = np.linspace(0.0, 2, 1000)
+steps = np.linspace(0.0, 1, 200)
 schedule = Schedule(steps, ["time"])
 
 # Initial state (expressed as an enum)
 psi0 = cudaq.operator.InitialState.ZERO
+# This can also be used to initialize a uniformly-distributed wave-function instead.
+# `psi0 = cudaq.operator.InitialState.UNIFORM`
 
 # Run the simulation
 evolution_result = cudaq.evolve(H,
