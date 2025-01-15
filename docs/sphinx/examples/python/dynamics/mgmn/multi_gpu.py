@@ -6,6 +6,8 @@ import cupy as cp
 import matplotlib.pyplot as plt
 import os
 
+# On a system with multiple GPUs, `mpiexec` can be used as follows:
+# `mpiexec -np <N> python3 multi_gpu.py `
 cudaq.mpi.initialize()
 
 # Set the target to our dynamics simulator
@@ -15,8 +17,8 @@ cudaq.set_target("dynamics")
 # which exhibits the so-called quantum quench effect.
 # e.g., see `Quantum quenches in the anisotropic spin-1/2 Heisenberg chain: different approaches to many-body dynamics far from equilibrium`
 # (New J. Phys. 12 055017)
-# Number of spins
-N = 9
+# Large number of spins
+N = 25
 dimensions = {}
 for i in range(N):
     dimensions[i] = 2
@@ -51,7 +53,7 @@ for g in [0.0, 0.25, 4.0]:
         H += Jy * spin.y(i) * spin.y(i + 1)
         H += Jz * spin.z(i) * spin.z(i + 1)
 
-    steps = np.linspace(0.0, 5, 1000)
+    steps = np.linspace(0.0, 1, 100)
     schedule = Schedule(steps, ["time"])
 
     # Prepare the initial state vector

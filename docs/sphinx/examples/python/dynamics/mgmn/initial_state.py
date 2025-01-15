@@ -5,6 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
+# On a system with multiple GPUs, `mpiexec` can be used as follows:
+# `mpiexec -np <N> python3 multi_gpu.py `
 cudaq.mpi.initialize()
 
 # Set the target to our dynamics simulator
