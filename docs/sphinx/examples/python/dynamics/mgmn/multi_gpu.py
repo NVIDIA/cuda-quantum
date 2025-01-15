@@ -18,7 +18,7 @@ cudaq.set_target("dynamics")
 # e.g., see `Quantum quenches in the anisotropic spin-1/2 Heisenberg chain: different approaches to many-body dynamics far from equilibrium`
 # (New J. Phys. 12 055017)
 # Large number of spins
-N = 25
+N = 21
 dimensions = {}
 for i in range(N):
     dimensions[i] = 2
@@ -39,7 +39,7 @@ for i in range(N):
 staggered_magnetization_op /= N
 
 observe_results = []
-for g in [0.0, 0.25, 4.0]:
+for g in [0.25, 4.0]:
     # Heisenberg model spin coupling strength
     Jx = 1.0
     Jy = 1.0
