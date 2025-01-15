@@ -953,6 +953,8 @@ struct AnnotateKernelsWithMeasurementStringsPattern
       }
     }
 
+    // Lambda to help recover an integer value (the QIR qubit or result as an
+    // integer).
     auto recoverIntValue = [&](Value v) -> std::optional<std::size_t> {
       auto cast = v.getDefiningOp<cudaq::cc::CastOp>();
       if (!cast)
@@ -960,9 +962,14 @@ struct AnnotateKernelsWithMeasurementStringsPattern
       return cudaq::opt::factory::maybeValueOfIntConstant(cast.getValue());
     };
 
-    // `func` is a kernel, it has a passthrough attribute, and the passthrough
-    // attribute does *not* have an output names entry. Now we try to heroically
-    // generate the output names attribute.
+    // If we're here, then `func` is a kernel, it has a passthrough attribute,
+    // and the passthrough attribute does *not* have an output names entry.
+    //
+    // OUTPUT-NAME-MAP: At this point, we will try to heroically generate the
+    // output names attribute for the QIR consumer. The content of the attribute
+    // is a map from results back to pairs of qubits and names. The map is
+    // encoded in a JSON string. The map is appended to the passthrough
+    // attribute array.
 
     std::map<std::size_t, std::size_t> measMap;
     std::map<std::size_t, std::pair<std::size_t, std::string>> nameMap;
@@ -985,6 +992,11 @@ struct AnnotateKernelsWithMeasurementStringsPattern
       }
     });
 
+    // If there were no measurements, then nothing to see here.
+    if (nameMap.empty())
+      return failure();
+
+    // Append the name map.
     nlohmann::json outputNames(nameMap);
     std::string outputNamesStr = outputNames.dump();
     SmallVector<Attribute> funcAttrs(passthru.begin(), passthru.end());
@@ -1503,6 +1515,9 @@ struct QuakeToQIRAPIPrepPass
         }
       });
 
+      // If the API is one of the profile variants, the QIR consumer expects
+      // some bonus information by way of attributes. Add most of them here.
+      // (See also OUTPUT-NAME-MAP.)
       SmallVector<Attribute> funcAttrs;
       if (api != "full" && func->hasAttr(cudaq::kernelAttrName)) {
         if (func->getAttr(cudaq::entryPointAttrName))
