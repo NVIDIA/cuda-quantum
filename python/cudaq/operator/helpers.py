@@ -21,12 +21,14 @@ elif (3, 10) <= sys.version_info:
 else:
     NumericType = typing.Union[numpy.complexfloating, complex, float, int]
 
+
 class InitialState(Enum):
     """
     Enum to specify the initial quantum state.
     """
     ZERO = 1
     UNIFORM = 2
+
 
 class _OperatorHelpers:
 
