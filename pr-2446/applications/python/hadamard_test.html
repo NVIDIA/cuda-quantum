@@ -33,7 +33,7 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="Variational Quantum Eigensolver" href="vqe.html" />
+    <link rel="next" title="Anderson Impurity Model ground state solver on Infleqtion’s Sqale" href="logical_aim_sqale.html" />
     <link rel="prev" title="VQE with gradients, active spaces, and gate fusion" href="vqe_advanced.html" /> 
 </head>
 
@@ -183,6 +183,8 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/hardware_providers.html">   Using Quantum Hardware Providers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#amazon-braket">Amazon Braket</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#infleqtion">Infleqtion</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#ionq">IonQ</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#iqm">IQM</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#oqc">OQC</a></li>
@@ -223,7 +225,7 @@
 <li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
 <li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Phase-oracle">Phase oracle</a></li>
 <li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Quantum-parallelism">Quantum parallelism</a></li>
-<li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Deutschs'-Algorithm:">Deutschs’ Algorithm:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Deutsch's-Algorithm:">Deutsch’s Algorithm:</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="divisive_clustering_coresets.html">Divisive Clustering With Coresets Using CUDA-Q</a><ul>
@@ -254,7 +256,7 @@
 <li class="toctree-l2"><a class="reference internal" href="krylov.html">Multi-reference Quantum Krylov Algorithm - <span class="math notranslate nohighlight">\(H_2\)</span> Molecule</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="krylov.html#Setup">Setup</a></li>
 <li class="toctree-l3"><a class="reference internal" href="krylov.html#Computing-the-matrix-elements">Computing the matrix elements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="krylov.html#Determining-the-ground-state-energy-of-the-Subspace">Determining the ground state energy of the Subspace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="afqmc.html">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
@@ -281,6 +283,11 @@
 <li class="toctree-l3"><a class="reference internal" href="readout_error_mitigation.html#Inverse-of-full-confusion-matrix">Inverse of full confusion matrix</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="vqe.html">Variational Quantum Eigensolver</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="vqe.html#Using-CUDA-Q-Optimizers">Using CUDA-Q Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="vqe.html#Integration-with-Third-Party-Optimizers">Integration with Third-Party Optimizers</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="vqe_advanced.html">VQE with gradients, active spaces, and gate fusion</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="vqe_advanced.html#The-Basics-of-VQE">The Basics of VQE</a></li>
 <li class="toctree-l3"><a class="reference internal" href="vqe_advanced.html#Installing/Loading-Relevant-Packages">Installing/Loading Relevant Packages</a></li>
@@ -299,9 +306,12 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="vqe.html">Variational Quantum Eigensolver</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="vqe.html#Using-CUDA-Q-Optimizers">Using CUDA-Q Optimizers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="vqe.html#Integration-with-Third-Party-Optimizers">Integration with Third-Party Optimizers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logical_aim_sqale.html">Anderson Impurity Model ground state solver on Infleqtion’s Sqale</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="logical_aim_sqale.html#Performing-logical-Variational-Quantum-Eigensolver-(VQE)-with-CUDA-QX">Performing logical Variational Quantum Eigensolver (VQE) with CUDA-QX</a></li>
+<li class="toctree-l3"><a class="reference internal" href="logical_aim_sqale.html#Constructing-circuits-in-the-[[4,2,2]]-encoding">Constructing circuits in the <code class="docutils literal notranslate"><span class="pre">[[4,2,2]]</span></code> encoding</a></li>
+<li class="toctree-l3"><a class="reference internal" href="logical_aim_sqale.html#Setting-up-submission-and-decoding-workflow">Setting up submission and decoding workflow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="logical_aim_sqale.html#Running-a-CUDA-Q-noisy-simulation">Running a CUDA-Q noisy simulation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="logical_aim_sqale.html#Running-logical-AIM-on-Infleqtion's-hardware">Running logical AIM on Infleqtion’s hardware</a></li>
 </ul>
 </li>
 </ul>
@@ -312,13 +322,17 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#features">Features</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#single-gpu">Single-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#clifford-only-simulation-cpu">Clifford-Only Simulation (CPU)</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/simulators.html#tensor-network-simulators">Tensor Network Simulators</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#id2">Multi-node multi-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#matrix-product-state">Matrix product state</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/backends/simulators.html#clifford-only-simulator">Clifford-Only Simulator</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#stim-cpu">Stim (CPU)</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/simulators.html#fermioniq">Fermioniq</a></li>
@@ -332,46 +346,52 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#submission-from-python">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#ionq">IonQ</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#ionq-backend">Setting Credentials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#infleqtion">Infleqtion</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id1">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id2">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id3">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#anyon-technologies-anyon-computing">Anyon Technologies/Anyon Computing</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#anyon-backend">Setting Credentials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#ionq">IonQ</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#ionq-backend">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id5">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id6">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#iqm">IQM</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id7">Setting Credentials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#anyon-technologies-anyon-computing">Anyon Technologies/Anyon Computing</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#anyon-backend">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id8">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id9">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#oqc">OQC</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#iqm">IQM</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id10">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id11">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id12">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#orca-computing">ORCA Computing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#oqc">OQC</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id13">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id14">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id15">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#quantinuum">Quantinuum</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#quantinuum-backend">Setting Credentials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#orca-computing">ORCA Computing</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id16">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id17">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id18">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#quera-computing">QuEra Computing</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#quera-backend">Setting Credentials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#quantinuum">Quantinuum</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#quantinuum-backend">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id20">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id21">Submission from Python</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#quera-computing">QuEra Computing</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#quera-backend">Setting Credentials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id23">Submission from C++</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id24">Submission from Python</a></li>
 </ul>
 </li>
 </ul>
@@ -700,7 +720,7 @@
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
         <a href="vqe_advanced.html" class="btn btn-neutral float-left" title="VQE with gradients, active spaces, and gate fusion" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="vqe.html" class="btn btn-neutral float-right" title="Variational Quantum Eigensolver" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="logical_aim_sqale.html" class="btn btn-neutral float-right" title="Anderson Impurity Model ground state solver on Infleqtion’s Sqale" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
@@ -709,10 +729,10 @@
              
   <section id="Using-the-Hadamard-Test-to-Determine-Quantum-Krylov-Subspace-Decomposition-Matrix-Elements">
 <h1>Using the Hadamard Test to Determine Quantum Krylov Subspace Decomposition Matrix Elements<a class="headerlink" href="#Using-the-Hadamard-Test-to-Determine-Quantum-Krylov-Subspace-Decomposition-Matrix-Elements" title="Permalink to this heading">¶</a></h1>
-<p>The Hadamard test, is a quantum algorithm for estimating the expectation values and is a useful subroutine for a number of quantum applications ranging from estimation of molecular ground state energies to quantum semidefinite programming. This tutorial will briefly introduce the Hadamard test, and demonstrate how it can be implemented in CUDA-Q and then parallelized for a Quantum Krylov Subspace Diagonalization application.</p>
+<p>The Hadamard test is a quantum algorithm for estimating expectation values and is a useful subroutine for a number of quantum applications ranging from estimation of molecular ground state energies to quantum semidefinite programming. This tutorial will briefly introduce the Hadamard test, demonstrate how it can be implemented in CUDA-Q, and then parallelized for a Quantum Krylov Subspace Diagonalization application.</p>
 <p>The Hadamard test is performed using a register with an ancilla qubit in the <span class="math notranslate nohighlight">\(\ket{0}\)</span> state and a prepared quantum state <span class="math notranslate nohighlight">\(\ket{\psi}\)</span>, the following circuit can be used to extract the expectation value from measurement of the ancilla.</p>
 <p><img alt="Htest" src="../../_images/htest.png" /></p>
-<p>The key insight is to note that</p>
+<p>The key insight is that</p>
 <div class="math notranslate nohighlight">
 \[P(0) = \frac{1}{2} \left[ I + Re \bra{\psi} O \ket{\phi} \right]\]</div>
 <p>and</p>
@@ -720,33 +740,33 @@
 \[P(1) = \frac{1}{2} \left[ I - Re \bra{\psi} O \ket{\phi} \right]\]</div>
 <p>so their difference is equal to</p>
 <div class="math notranslate nohighlight">
-\[P(0)-P(1) = Re \bra{\psi} O \ket{\phi}\]</div>
+\[P(0)-P(1) = Re \bra{\psi} O \ket{\phi}.\]</div>
 <p>More details and a short derivation can be found <a class="reference external" href="https://en.wikipedia.org/wiki/Hadamard_test">here</a>.</p>
 <p>What if you want to perform the Hadamard test to compute an expectation value like <span class="math notranslate nohighlight">\(\bra{\psi} O \ket{\phi}\)</span>, where <span class="math notranslate nohighlight">\(\ket{\psi}\)</span> and <span class="math notranslate nohighlight">\(\ket{\phi}\)</span> are different states and <span class="math notranslate nohighlight">\(O\)</span> is a Pauli Operator? This is a common subroutine for the QKSD, where matrix elements are determined by computing expectation values between different states.</p>
 <p>Defining <span class="math notranslate nohighlight">\(O\)</span> as</p>
 <div class="math notranslate nohighlight">
-\[O = X_1X_2\]</div>
+\[O = X_1X_2,\]</div>
 <p>and given the fact that</p>
 <div class="math notranslate nohighlight">
-\[\ket{\psi} = U_{\psi}\ket{0} \qquad \ket{\phi} = U_{\phi}\ket{0}\]</div>
-<p>We can combine the state preparation steps into the operator resulting in</p>
+\[\ket{\psi} = U_{\psi}\ket{0} \qquad \ket{\phi} = U_{\phi}\ket{0},\]</div>
+<p>we can combine the state preparation steps into the operator resulting in</p>
 <div class="math notranslate nohighlight">
-\[\bra{\psi}O\ket{\phi} = \bra{0}U_\psi^\dagger O U_\phi\ket{0}\]</div>
-<p>Which corresponds to the following circuit <img alt="Htest2" src="../../_images/htestfactored.png" /></p>
-<p>By preparing this circuit, and repeatedly measuring the ancilla qubit, allows for estimation of the expectation value as</p>
+\[\bra{\psi}O\ket{\phi} = \bra{0}U_\psi^\dagger O U_\phi\ket{0},\]</div>
+<p>which corresponds to the following circuit. <img alt="Htest2" src="../../_images/htestfactored.png" /></p>
+<p>By preparing this circuit, and repeatedly measuring the ancilla qubit, we estimate the expectation value as</p>
 <div class="math notranslate nohighlight">
-\[P(0)-P(1) = Re \bra{\psi} O \ket{\phi}\]</div>
+\[P(0)-P(1) = Re \bra{\psi} O \ket{\phi}.\]</div>
 <p>The following sections demonstrate how this can be performed in CUDA-Q.</p>
 <section id="Numerical-result-as-a-reference:">
 <h2>Numerical result as a reference:<a class="headerlink" href="#Numerical-result-as-a-reference:" title="Permalink to this heading">¶</a></h2>
-<p>Before performing the Hadamard test, lets determine the exact expectation value by performing the matrix multiplications explicitly. The code below builds two CUDA-Q kernels corresponding to <span class="math notranslate nohighlight">\(\ket{\psi} = \frac{1}{\sqrt{2}}\begin{pmatrix}1 \\ 0 \\ 1 \\ 0\end{pmatrix}\)</span> and <span class="math notranslate nohighlight">\(\ket{\phi} = \begin{pmatrix}0 \\ 1 \\ 0 \\ 0\end{pmatrix}\)</span></p>
+<p>Before performing the Hadamard test, let’s determine the exact expectation value by performing the matrix multiplications explicitly. The code below builds two CUDA-Q kernels corresponding to <span class="math notranslate nohighlight">\(\ket{\psi} = \frac{1}{\sqrt{2}}\begin{pmatrix}1 \\ 0 \\ 1 \\ 0\end{pmatrix}\)</span> and <span class="math notranslate nohighlight">\(\ket{\phi} = \begin{pmatrix}0 \\ 1 \\ 0 \\ 0\end{pmatrix}.\)</span></p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">reduce</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">reduce</span>
 
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;nvidia&#39;</span><span class="p">)</span>
 
@@ -754,19 +774,19 @@
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">psi</span><span class="p">(</span><span class="n">num</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">psi</span><span class="p">(</span><span class="n">num</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
     <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">num</span><span class="p">)</span>
     <span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">phi</span><span class="p">(</span><span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">phi</span><span class="p">(</span><span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
     <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
     <span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 </pre></div>
 </div>
 </div>
-<p>The state vectors can be accessed using the <code class="docutils literal notranslate"><span class="pre">get_state</span></code> command and printed as numpy arrays</p>
+<p>The state vectors can be accessed using the <code class="docutils literal notranslate"><span class="pre">get_state</span></code> command and printed as numpy arrays:</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
@@ -790,7 +810,7 @@ Phi state:  SV: [(0,0), (1,0), (0,0), (0,0)]
 
 </pre></div></div>
 </div>
-<p>The Hamiltonian operator (<span class="math notranslate nohighlight">\(O\)</span> in the derivation above) is defined as a CUDA-Q spin operator and converted to a matrix withe the <code class="docutils literal notranslate"><span class="pre">to_matrix</span></code>. The following line of code performs the explicit matrix multiplications to produce the exact expectation value.</p>
+<p>The Hamiltonian operator (<span class="math notranslate nohighlight">\(O\)</span> in the derivation above) is defined as a CUDA-Q spin operator and converted to a matrix with <code class="docutils literal notranslate"><span class="pre">to_matrix</span></code>. The following line of code performs the explicit matrix multiplications to produce the exact expectation value.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
@@ -826,29 +846,29 @@ Numerical expectation value:  (0.7071067690849304+0j)
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;nvidia&#39;</span><span class="p">)</span>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">U_psi</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">U_psi</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
     <span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">U_phi</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">U_phi</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
     <span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">ham_cir</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">ham_cir</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
     <span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
     <span class="n">ancilla</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
     <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
     <span class="n">h</span><span class="p">(</span><span class="n">ancilla</span><span class="p">)</span>
@@ -862,7 +882,7 @@ Numerical expectation value:  (0.7071067690849304+0j)
 </pre></div>
 </div>
 </div>
-<p>The CUDA-Q Sample method computes 100000 sample ancilla measurements and uses them to estimate the expectation value. The standard error is provided as well. Try increasing the sample size and note the convergence of the expectation value and the standard error towards the numerical result.</p>
+<p>The CUDA-Q <code class="docutils literal notranslate"><span class="pre">sample</span></code> method computes 100000 sample ancilla measurements, and from them we can estimate the expectation value. The standard error is provided as well. Try increasing the sample size and note the convergence of the expectation value and the standard error towards the numerical result.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
@@ -896,33 +916,33 @@ Numerical result 0.7071067690849304
 <p>This example is small, but a more practical application of the Hadamard test such as QKSD will require much larger circuits. The QKSD method works by reducing the exponential <span class="math notranslate nohighlight">\(2^N\)</span> Hilbert space into an exponentially smaller subspace using a set of non-orthogonal states which are easy to prepare on a quantum computer. The Hadamard test is used to compute the matrix elements of this smaller subspace which is then diagonalized using a classical method to produce the eigenvalues. <a class="reference external" href="https://www.osti.gov/servlets/purl/1962060">This
 paper</a> described the method in more detail and is the source of the figure below.</p>
 <p><img alt="Htest3" src="../../_images/QKSD.png" /></p>
-<p>This method can be easily parallelized and multiple QPUs, if available could compute the matrix elements asynchronously. The CUDA-Q <code class="docutils literal notranslate"><span class="pre">mqpu</span></code> backend allows you to simulate a computation across multiple simulated QPUs. The code below demonstrates how.</p>
-<p>First, the Hadamard test circuit is defined, but this time the <span class="math notranslate nohighlight">\(\ket{\psi}\)</span> and <span class="math notranslate nohighlight">\(\ket{\phi}\)</span> states contain parameterized rotations so that multiple states can be quickly generated for the sake of example.</p>
+<p>This method can be easily parallelized, and multiple QPUs, if available, could compute the matrix elements asynchronously. The CUDA-Q <code class="docutils literal notranslate"><span class="pre">mqpu</span></code> backend allows you to simulate a computation across multiple simulated QPUs. The code below demonstrates how.</p>
+<p>First, the Hadamard test circuit is defined, but this time the <span class="math notranslate nohighlight">\(\ket{\psi}\)</span> and <span class="math notranslate nohighlight">\(\ket{\phi}\)</span> states contain parameterized rotations so that multiple states can be quickly generated, for the sake of example.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">U_psi</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span> <span class="n">theta</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">U_psi</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span> <span class="n">theta</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
     <span class="n">ry</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">U_phi</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span> <span class="n">theta</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">U_phi</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span> <span class="n">theta</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
     <span class="n">rx</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">ham_cir</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">ham_cir</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
     <span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">angle</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">theta</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">angle</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">theta</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
     <span class="n">ancilla</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
     <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
     <span class="n">h</span><span class="p">(</span><span class="n">ancilla</span><span class="p">)</span>
@@ -938,10 +958,10 @@ paper</a> described the method in more detail and is the source of the figure be
 </div>
 <p>Next, the <code class="docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code> backend is specified and the number of GPUs available is determined.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia-mqpu&quot;</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="s2">&quot;mqpu&quot;</span><span class="p">)</span>
 
 <span class="n">target</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_target</span><span class="p">()</span>
 <span class="n">qpu_count</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">num_qpus</span><span class="p">()</span>
@@ -979,7 +999,7 @@ Number of QPUs: 5
 </pre></div>
 </div>
 </div>
-<p>The four matrix elements are shown below and now be classically processed to produce the eigenvalues.</p>
+<p>The four matrix elements are shown below and can be classically processed to produce the eigenvalues.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
@@ -1027,7 +1047,7 @@ QKSD Matrix Element:  -0.00056 + - 0.002236067626884303
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
 <span class="n">my_mat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
 <span class="n">m</span> <span class="o">=</span> <span class="mi">0</span>
@@ -1071,13 +1091,13 @@ Eigenvector:
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="vqe_advanced.html" class="btn btn-neutral float-left" title="VQE with gradients, active spaces, and gate fusion" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="vqe.html" class="btn btn-neutral float-right" title="Variational Quantum Eigensolver" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="logical_aim_sqale.html" class="btn btn-neutral float-right" title="Anderson Impurity Model ground state solver on Infleqtion’s Sqale" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2024, NVIDIA Corporation &amp; Affiliates.</p>
+    <p>&#169; Copyright 2025, NVIDIA Corporation &amp; Affiliates.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
