@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -67,7 +67,7 @@ class QuakeValue(object):
 
             if quake.VeqType.isinstance(type):
                 size = quake.VeqType.getSize(type)
-                if size:
+                if quake.VeqType.hasSpecifiedSize(type):
                     return size
                 return QuakeValue(
                     quake.VeqSizeOp(self.intType, self.mlirValue).result,

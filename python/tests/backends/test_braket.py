@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -100,8 +100,8 @@ def test_all_gates():
         rz(np.pi, q)
         s(q)
         t(q)
-        # mx(q) ## Unsupported
-        # my(q) ## Unsupported
+        mx(q)
+        my(q)
         mz(q)
 
     # Test here is that this runs

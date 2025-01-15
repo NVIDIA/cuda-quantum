@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -19,6 +19,8 @@ export BLAS_INSTALL_PREFIX=/usr/local/blas
 export ZLIB_INSTALL_PREFIX=/usr/local/zlib
 export OPENSSL_INSTALL_PREFIX=/usr/local/openssl
 export CURL_INSTALL_PREFIX=/usr/local/curl
+export AWS_INSTALL_PREFIX=/usr/local/aws
+
 # [<InstallLocations]
 
 if [ "$1" == "install-cuda" ]; then

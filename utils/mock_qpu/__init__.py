@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -8,6 +8,7 @@
 
 from .anyon import *
 from .braket import *
+from .infleqtion import *
 from .ionq import *
 from .iqm import *
 from .quantinuum import *

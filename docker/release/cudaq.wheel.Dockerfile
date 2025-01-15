@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -83,7 +83,8 @@ RUN echo "Building wheel for python${python_version}." \
             --exclude libcutensor.so.2 \
             --exclude libnvToolsExt.so.1 \ 
             --exclude libcudart.so.$cudart_libsuffix \
-            --exclude libnvidia-ml.so.1
+            --exclude libnvidia-ml.so.1 \
+            --exclude libcuda.so.1
 
 FROM scratch
 COPY --from=wheelbuild /cuda-quantum/wheelhouse/*manylinux*.whl . 

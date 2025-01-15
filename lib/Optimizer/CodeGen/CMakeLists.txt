@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -37,7 +37,6 @@ add_cudaq_library(OptCodeGen
     CodeGenOpsIncGen
     CodeGenTypesIncGen
     OptCodeGenPassIncGen
-    OptPeepholeIncGen
     OptTransformsPassIncGen
     QuakeDialect
     
@@ -54,7 +53,6 @@ add_cudaq_library(OptCodeGen
     MLIRTransforms
 
     # Conversions
-    MLIRAffineToStandard
     MLIRArithToLLVM
     MLIRComplexToLibm
     MLIRComplexToLLVM
@@ -62,7 +60,6 @@ add_cudaq_library(OptCodeGen
     MLIRFuncToLLVM
     MLIRMathToFuncs
     MLIRMathToLLVM
-    MLIRSCFToControlFlow
 
     # Translation
     MLIRTargetLLVMIRExport

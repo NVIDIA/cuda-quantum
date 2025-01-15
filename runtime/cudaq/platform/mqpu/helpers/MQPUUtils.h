@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -25,6 +25,7 @@ struct AutoLaunchRestServerProcess {
 private:
   int m_pid;
   std::string m_url;
+  std::string m_ldLibPathEnv;
 };
 
 // Helper to retrieve the number of GPU.

@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -42,7 +42,6 @@ std::unique_ptr<mlir::Pass>
 createQuakeSynthesizer(std::string_view, const void *,
                        std::size_t startingArgIdx = 0,
                        bool sameAddressSpace = false);
-std::unique_ptr<mlir::Pass> createRaiseToAffinePass();
 std::unique_ptr<mlir::Pass> createUnwindLoweringPass();
 
 std::unique_ptr<mlir::Pass>
