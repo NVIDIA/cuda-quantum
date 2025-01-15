@@ -32,6 +32,8 @@ endif()
 
 add_library(${LIBRARY_NAME} SHARED ${CUDAQ_OPS_SRC})
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
+target_compile_definitions(${LIBRARY_NAME} PRIVATE -DCUDAQ_INSTANTIATE_TEMPLATES)
+
 target_include_directories(${LIBRARY_NAME} 
     PUBLIC 
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>

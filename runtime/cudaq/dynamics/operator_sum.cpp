@@ -23,7 +23,7 @@ namespace cudaq {
 // std::vector<scalar_operator> scalars;
 // std::vector<HandlerTy> non_scalars;
 
-// for (const auto &op : prod.get_terms()) {
+// for (const auto &op : prod.get_operators()) {
 //   if (std::holds_alternative<scalar_operator>(op)) {
 //     scalars.push_back(*std::get<scalar_operator>(op));
 //   } else {
@@ -83,7 +83,7 @@ namespace cudaq {
 // std::vector<int> operator_sum<HandlerTy>::degrees() const {
 //   std::set<int> unique_degrees;
 //   for (const auto &term : terms) {
-//     for (const auto &op : term.get_terms()) {
+//     for (const auto &op : term.get_operators()) {
 //       unique_degrees.insert(op.get_degrees().begin(),
 //       op.get_degrees().end());
 //     }
@@ -96,7 +96,7 @@ namespace cudaq {
 // std::map<std::string, std::string> operator_sum<HandlerTy>::parameters() const {
 //   std::map<std::string, std::string> param_map;
 //   for (const auto &term : terms) {
-//     for (const auto &op : term.get_terms()) {
+//     for (const auto &op : term.get_operators()) {
 //       auto op_params = op.parameters();
 //       param_map.insert(op_params.begin(), op.params.end());
 //     }
@@ -109,14 +109,12 @@ namespace cudaq {
 // bool operator_sum<HandlerTy>::_is_spinop() const {
 //   return std::all_of(
 //       terms.begin(), terms.end(), [](product_operator<HandlerTy> &term) {
-//         return std::all_of(term.get_terms().begin(),
-//                            term.get_terms().end(),
+//         return std::all_of(term.get_operators().begin(),
+//                            term.get_operators().end(),
 //                            [](const Operator &op) { return op.is_spinop();
 //                            });
 //       });
 // }
-
-template class operator_sum<elementary_operator>;
 
 // evaluations
 
@@ -235,19 +233,19 @@ operator_sum<HandlerTy> operator_sum<HandlerTy>::operator-(double other) const {
 }
 
 template <typename HandlerTy>
-operator_sum<HandlerTy> operator_sum<HandlerTy>::operator*=(double other) {
+operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator*=(double other) {
   *this *= scalar_operator(other);
   return *this;
 }
 
 template <typename HandlerTy>
-operator_sum<HandlerTy> operator_sum<HandlerTy>::operator+=(double other) {
+operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator+=(double other) {
   *this += scalar_operator(other);
   return *this;
 }
 
 template <typename HandlerTy>
-operator_sum<HandlerTy> operator_sum<HandlerTy>::operator-=(double other) {
+operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator-=(double other) {
   *this -= scalar_operator(other);
   return *this;
 }
@@ -268,19 +266,19 @@ operator_sum<HandlerTy> operator_sum<HandlerTy>::operator-(std::complex<double> 
 }
 
 template <typename HandlerTy>
-operator_sum<HandlerTy> operator_sum<HandlerTy>::operator*=(std::complex<double> other) {
+operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator*=(std::complex<double> other) {
   *this *= scalar_operator(other);
   return *this;
 }
 
 template <typename HandlerTy>
-operator_sum<HandlerTy> operator_sum<HandlerTy>::operator+=(std::complex<double> other) {
+operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator+=(std::complex<double> other) {
   *this += scalar_operator(other);
   return *this;
 }
 
 template <typename HandlerTy>
-operator_sum<HandlerTy> operator_sum<HandlerTy>::operator-=(std::complex<double> other) {
+operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator-=(std::complex<double> other) {
   *this -= scalar_operator(other);
   return *this;
 }
@@ -309,19 +307,19 @@ operator_sum<HandlerTy> operator_sum<HandlerTy>::operator-(const scalar_operator
 }
 
 template <typename HandlerTy>
-operator_sum<HandlerTy> operator_sum<HandlerTy>::operator*=(const scalar_operator &other) {
+operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator*=(const scalar_operator &other) {
   *this = *this * other;
   return *this;
 }
 
 template <typename HandlerTy>
-operator_sum<HandlerTy> operator_sum<HandlerTy>::operator+=(const scalar_operator &other) {
+operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator+=(const scalar_operator &other) {
   *this = *this + other;
   return *this;
 }
 
 template <typename HandlerTy>
-operator_sum<HandlerTy> operator_sum<HandlerTy>::operator-=(const scalar_operator &other) {
+operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator-=(const scalar_operator &other) {
   *this = *this - other;
   return *this;
 }
@@ -352,13 +350,13 @@ operator_sum<HandlerTy> operator_sum<HandlerTy>::operator-(const HandlerTy &othe
 }
 
 template <typename HandlerTy>
-operator_sum<HandlerTy> operator_sum<HandlerTy>::operator*=(const HandlerTy &other) {
+operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator*=(const HandlerTy &other) {
   *this = *this * other;
   return *this;
 }
 
 template <typename HandlerTy>
-operator_sum<HandlerTy> operator_sum<HandlerTy>::operator+=(const HandlerTy &other) {
+operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator+=(const HandlerTy &other) {
   std::vector<std::variant<scalar_operator, HandlerTy>> _other = {
       other};
   *this = *this + product_operator(_other);
@@ -366,7 +364,7 @@ operator_sum<HandlerTy> operator_sum<HandlerTy>::operator+=(const HandlerTy &oth
 }
 
 template <typename HandlerTy>
-operator_sum<HandlerTy> operator_sum<HandlerTy>::operator-=(const HandlerTy &other) {
+operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator-=(const HandlerTy &other) {
   std::vector<std::variant<scalar_operator, HandlerTy>> _other = {
       other};
   *this = *this - product_operator(_other);
@@ -397,19 +395,19 @@ operator_sum<HandlerTy> operator_sum<HandlerTy>::operator-(const product_operato
 }
 
 template <typename HandlerTy>
-operator_sum<HandlerTy> operator_sum<HandlerTy>::operator*=(const product_operator<HandlerTy> &other) {
+operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator*=(const product_operator<HandlerTy> &other) {
   *this = *this * other;
   return *this;
 }
 
 template <typename HandlerTy>
-operator_sum<HandlerTy> operator_sum<HandlerTy>::operator+=(const product_operator<HandlerTy> &other) {
+operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator+=(const product_operator<HandlerTy> &other) {
   *this = *this + other;
   return *this;
 }
 
 template <typename HandlerTy>
-operator_sum<HandlerTy> operator_sum<HandlerTy>::operator-=(const product_operator<HandlerTy> &other) {
+operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator-=(const product_operator<HandlerTy> &other) {
   *this = *this - other;
   return *this;
 }
@@ -442,19 +440,19 @@ operator_sum<HandlerTy> operator_sum<HandlerTy>::operator-(const operator_sum<Ha
 }
 
 template <typename HandlerTy>
-operator_sum<HandlerTy> operator_sum<HandlerTy>::operator*=(const operator_sum<HandlerTy> &other) {
+operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator*=(const operator_sum<HandlerTy> &other) {
   *this = *this * other;
   return *this;
 }
 
 template <typename HandlerTy>
-operator_sum<HandlerTy> operator_sum<HandlerTy>::operator-=(const operator_sum<HandlerTy> &other) {
+operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator-=(const operator_sum<HandlerTy> &other) {
   *this = *this - other;
   return *this;
 }
 
 template <typename HandlerTy>
-operator_sum<HandlerTy> operator_sum<HandlerTy>::operator+=(const operator_sum<HandlerTy> &other) {
+operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator+=(const operator_sum<HandlerTy> &other) {
   *this = *this + other;
   return *this;
 }
