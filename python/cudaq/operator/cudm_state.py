@@ -55,7 +55,7 @@ class CuDensityMatState(object):
         if self.__ctx is None:
             if (is_multi_processes()):
                 self.__ctx = WorkStream(device_id=cupy.cuda.runtime.getDevice())
-                # FIXME: use the below once cudensitymat supports raw MPI Comm pointer.
+                # FIXME: use the below once `cudensitymat` supports raw MPI Comm pointer.
                 # `ctx.set_communicator(comm=cudaq_runtime.mpi.comm_dup(), provider="MPI")`
                 _comm_ptr, _size = cudaq_runtime.mpi.comm_dup()
                 cudm.reset_distributed_configuration(
@@ -167,7 +167,7 @@ class CuDensityMatState(object):
                            dtype="complex128",
                            order="F"))
             bitstring_is_local = False
-            # Follow cudm example to set the amplitude based on local_info
+            # Follow `cudensitymat` example to set the amplitude based on `local_info`
             for slice_dim, slice_offset in zip(slice_shape, slice_offsets):
                 bitstring_is_local = 0 in range(slice_offset,
                                                 slice_offset + slice_dim)
