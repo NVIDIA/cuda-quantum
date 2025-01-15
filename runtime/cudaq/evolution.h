@@ -12,8 +12,8 @@
 #include "cudaq/base_integrator.h"
 #include "cudaq/operators.h"
 #include "cudaq/schedule.h"
+#include "cudaq/utils/tensor.h"
 
-#include <Eigen/Dense>
 #include <map>
 #include <memory>
 #include <string>
@@ -23,11 +23,10 @@ namespace cudaq {
 class Evolution {
 public:
   /// Computes the Taylor series expansion of the matrix exponential.
-  static Eigen::MatrixXcd taylor_series_expm(const Eigen::MatrixXcd &op_matrix,
-                                             int order = 20);
+  static matrix_2 taylor_series_expm(const matrix_2 &op_matrix, int order = 20);
 
   /// Computes the evolution step matrix
-  static Eigen::MatrixXcd compute_step_matrix(
+  static matrix_2 compute_step_matrix(
       const operator_sum &hamiltonian, const std::map<int, int> &dimensions,
       const std::map<std::string, std::complex<double>> &parameters, double dt,
       bool use_gpu = false);
@@ -49,8 +48,8 @@ public:
   /// Generates evolution kernels for the simulation.
   static std::vector<std::string> evolution_kernel(
       int num_qubits,
-      const std::function<Eigen::MatrixXcd(
-          const std::map<std::string, std::complex<double>> &, double)>
+      const std::function<
+          matrix_2(const std::map<std::string, std::complex<double>> &, double)>
           &compute_step_matrix,
       const std::vector<double> tlist,
       const std::vector<std::map<std::string, std::complex<double>>>
