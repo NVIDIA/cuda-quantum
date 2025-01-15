@@ -12,7 +12,7 @@ from typing import Sequence
 from cupy.cuda.memory import MemoryPointer, UnownedMemory
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cuquantum.bindings import cudensitymat as cudm
-from enum import Enum
+from .helpers import InitialState
 
 
 def is_multi_processes():
@@ -34,14 +34,6 @@ def to_cupy_array(state):
                               dtype=dtype,
                               memptr=memptr)
     return cupy_array
-
-
-class InitialState(Enum):
-    """
-    Enum to specify the initial quantum state.
-    """
-    ZERO = 1
-    UNIFORM = 2
 
 
 InitialStateArgT = cudaq_runtime.State | InitialState

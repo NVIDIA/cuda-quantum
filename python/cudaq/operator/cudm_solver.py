@@ -15,7 +15,8 @@ from .schedule import Schedule
 from .expressions import Operator
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 from .cudm_helpers import cudm, CudmStateType
-from .cudm_state import CuDensityMatState, as_cudm_state, InitialState, InitialStateArgT
+from .cudm_state import CuDensityMatState, as_cudm_state, InitialStateArgT
+from .helpers import InitialState
 from .integrator import BaseIntegrator
 from .integrators.builtin_integrators import RungeKuttaIntegrator, cuDensityMatTimeStepper
 import cupy
