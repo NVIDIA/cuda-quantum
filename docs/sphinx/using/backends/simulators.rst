@@ -481,16 +481,13 @@ Specific aspects of the simulation can be configured by setting the following of
 * **`CUDA_VISIBLE_DEVICES=X`**: Makes the process only see GPU X on multi-GPU nodes. Each MPI process must only see its own dedicated GPU. For example, if you run 8 MPI processes on a DGX system with 8 GPUs, each MPI process should be assigned its own dedicated GPU via `CUDA_VISIBLE_DEVICES` when invoking `mpiexec` (or `mpirun`) commands. 
 * **`OMP_PLACES=cores`**: Set this environment variable to improve CPU parallelization.
 * **`OMP_NUM_THREADS=X`**: To enable CPU parallelization, set X to `NUMBER_OF_CORES_PER_NODE/NUMBER_OF_GPUS_PER_NODE`.
+* **`CUDAQ_TENSORNET_CONTROLLED_RANK=X`**: Specify the number of controlled qubits whereby the full tensor body of the controlled gate is expanded. If the number of controlled qubits is greater than this value, the gate is applied as a controlled tensor operator to the tensor network state. Default value is 1.
 
 .. note:: 
 
   This backend requires an NVIDIA GPU and CUDA runtime libraries. 
   If you do not have these dependencies installed, you may encounter an error stating `Invalid simulator requested`. 
   See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
-
-.. note::
-
-  Setting random seed, via :code:`cudaq::set_random_seed`, is not supported for this backend due to a limitation of the :code:`cuTensorNet` library. This will be fixed in future release once this feature becomes available.
 
 
 Matrix product state 
@@ -534,10 +531,6 @@ Specific aspects of the simulation can be configured by defining the following e
   This backend requires an NVIDIA GPU and CUDA runtime libraries. 
   If you do not have these dependencies installed, you may encounter an error stating `Invalid simulator requested`. 
   See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
-
-.. note::
-
-  Setting random seed, via :code:`cudaq::set_random_seed`, is not supported for this backend due to a limitation of the :code:`cuTensorNet` library. This will be fixed in future release once this feature becomes available.
 
 .. note::
     The parallelism of Jacobi method (the default `CUDAQ_MPS_SVD_ALGO` setting) gives GPU better performance on small and medium size matrices.
