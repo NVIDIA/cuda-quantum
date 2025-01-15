@@ -253,7 +253,7 @@ def QuakeToQIRAPIPrep : Pass<"quake-to-qir-api-prep", "mlir::ModuleOp"> {
   }];
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::arith::ArithDialect",
       "mlir::cf::ControlFlowDialect", "mlir::func::FuncDialect",
-      "mlir::LLVM::LLVMDialect"];
+      "mlir::LLVM::LLVMDialect", "cudaq::codegen::CodeGenDialect"];
   let options = [
     Option<"api", "api", "std::string", /*default=*/"\"full\"",
            "Select the QIR API to use.">,

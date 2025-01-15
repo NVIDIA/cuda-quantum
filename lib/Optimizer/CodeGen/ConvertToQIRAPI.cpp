@@ -9,6 +9,7 @@
 #include "CodeGenOps.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
+#include "cudaq/Optimizer/CodeGen/CodeGenDialect.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
@@ -18,6 +19,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "nlohmann/json.hpp"
 #include "llvm/Support/Debug.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -189,8 +191,8 @@ struct AllocaOpToCallsRewrite : public OpConversionPattern<quake::AllocaOp> {
     StringRef qirQubitArrayAllocate = cudaq::opt::QIRArrayQubitAllocateArray;
     Type arrayQubitTy = M::getArrayType(rewriter.getContext());
 
-    // AllocaOp could have a size operand, or the size could
-    // be compile time known and encoded in the veq return type.
+    // AllocaOp could have a size operand, or the size could be compile time
+    // known and encoded in the veq return type.
     Value sizeOperand;
     auto loc = alloc.getLoc();
     if (adaptor.getOperands().empty()) {
@@ -330,7 +332,9 @@ struct QubitHelperConversionPattern : public OpConversionPattern<OP> {
 
     // Write the qubit into the array at position 0.
     auto castVal = rewriter.create<cudaq::cc::CastOp>(loc, ptrTy, val);
-    rewriter.create<cudaq::cc::StoreOp>(loc, castVal, elePtr.getResult(0));
+    auto castAddr = rewriter.create<cudaq::cc::CastOp>(
+        loc, cudaq::cc::PointerType::get(ptrTy), elePtr.getResult(0));
+    rewriter.create<cudaq::cc::StoreOp>(loc, castVal, castAddr);
 
     return result;
   }
@@ -417,6 +421,26 @@ struct DiscriminateOpRewrite
 };
 
 template <typename M>
+struct DiscriminateOpToCallRewrite
+    : public OpConversionPattern<quake::DiscriminateOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::DiscriminateOp disc, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    if constexpr (M::discriminateToClassical) {
+      rewriter.replaceOpWithNewOp<func::CallOp>(disc, rewriter.getI1Type(),
+                                                cudaq::opt::QIRReadResultBody,
+                                                adaptor.getOperands());
+    } else {
+      rewriter.replaceOpWithNewOp<cudaq::cc::PoisonOp>(disc,
+                                                       rewriter.getI1Type());
+    }
+    return success();
+  }
+};
+
+template <typename M>
 struct ExtractRefOpRewrite : public OpConversionPattern<quake::ExtractRefOp> {
   using OpConversionPattern::OpConversionPattern;
 
@@ -452,9 +476,9 @@ struct ExtractRefOpRewrite : public OpConversionPattern<quake::ExtractRefOp> {
             veq.getDefiningOp<cudaq::codegen::MaterializeConstantArrayOp>()) {
       // This is the profile QIR case.
       auto conarr = mca.getConstArray();
-      auto extract =
+      auto ext =
           rewriter.create<cudaq::cc::ExtractValueOp>(loc, i64Ty, conarr, index);
-      rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(extract, qubitTy, extract);
+      rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(extract, qubitTy, ext);
       return success();
     }
 
@@ -832,16 +856,59 @@ struct MeasurementOpPattern : public OpConversionPattern<quake::MzOp> {
     SmallVector<Value> args;
     args.append(adaptor.getTargets().begin(), adaptor.getTargets().end());
     auto functionName = M::getQIRMeasure();
-    if (mz->getAttr(cudaq::opt::MzAssignedNameAttrName)) {
-      functionName = cudaq::opt::QIRMeasureToRegister;
+
+    // Are we using the measurement that returns a result?
+    if constexpr (M::mzReturnsResultType) {
+      // Yes, the measurement results the result, so we can use a
+      // straightforward codegen pattern. Use either the mz or the
+      // mz_to_register call (with the name as an extra argument) and forward
+      // the result of the call as the result.
+
+      if (mz->getAttr(cudaq::opt::MzAssignedNameAttrName)) {
+        functionName = cudaq::opt::QIRMeasureToRegister;
+        auto cstringGlobal =
+            createGlobalCString(mz, loc, rewriter, regNameAttr.getValue());
+        args.push_back(cstringGlobal);
+      }
+      auto resultTy = M::getResultType(rewriter.getContext());
+      auto call = rewriter.replaceOpWithNewOp<func::CallOp>(mz, resultTy,
+                                                            functionName, args);
+      call->setAttr(cudaq::opt::QIRRegisterNameAttr, regNameAttr);
+    } else {
+      // No, the measurement doesn't return any result so use a much more
+      // convoluted pattern.
+      // 1. Cast an integer to the result and append it to the mz call. This
+      // will be the token to identify the result. The value will have been
+      // attached to the MzOp in preprocessing.
+      // 2. Call the mz function.
+      // 3. Call the result_record_output to bind the name, which is not folded
+      // into the mz call. There is always a name in this case.
+
+      auto resultAttr = mz->getAttr(cudaq::opt::ResultIndexAttrName);
+      std::int64_t annInt = cast<IntegerAttr>(resultAttr).getInt();
+      Value intVal = rewriter.create<arith::ConstantIntOp>(loc, annInt, 64);
+      auto resultTy = M::getResultType(rewriter.getContext());
+      Value res = rewriter.create<cudaq::cc::CastOp>(loc, resultTy, intVal);
+      args.push_back(res);
+      auto call =
+          rewriter.create<func::CallOp>(loc, TypeRange{}, functionName, args);
+      call->setAttr(cudaq::opt::QIRRegisterNameAttr, regNameAttr);
       auto cstringGlobal =
           createGlobalCString(mz, loc, rewriter, regNameAttr.getValue());
-      args.push_back(cstringGlobal);
+      if constexpr (!M::discriminateToClassical) {
+        // These QIR profile variants force all record output calls to appear at
+        // the end. In these variants, control-flow isn't allowed in the final
+        // LLVM. Therefore, a single basic block is assumed but unchecked here
+        // as the verifier will raise an error.
+        rewriter.setInsertionPoint(rewriter.getBlock()->getTerminator());
+      }
+      auto recOut = rewriter.create<func::CallOp>(
+          loc, TypeRange{}, cudaq::opt::QIRRecordOutput,
+          ArrayRef<Value>{res, cstringGlobal});
+      recOut->setAttr(cudaq::opt::ResultIndexAttrName, resultAttr);
+      recOut->setAttr(cudaq::opt::QIRRegisterNameAttr, regNameAttr);
+      rewriter.replaceOp(mz, res);
     }
-    auto resultTy = M::getResultType(rewriter.getContext());
-    auto call = rewriter.replaceOpWithNewOp<func::CallOp>(mz, resultTy,
-                                                          functionName, args);
-    call->setAttr(cudaq::opt::QIRRegisterNameAttr, regNameAttr);
     return success();
   }
 };
@@ -859,6 +926,72 @@ struct ResetOpPattern : public OpConversionPattern<quake::ResetOp> {
     // Replace the quake op with the new call op.
     rewriter.replaceOpWithNewOp<func::CallOp>(
         reset, TypeRange{}, qirFunctionName, adaptor.getOperands());
+    return success();
+  }
+};
+
+struct AnnotateKernelsWithMeasurementStringsPattern
+    : public OpConversionPattern<func::FuncOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(func::FuncOp func, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    constexpr const char PassthroughAttr[] = "passthrough";
+    if (!func->hasAttr(cudaq::kernelAttrName))
+      return failure();
+    if (!func->hasAttr(PassthroughAttr))
+      return failure();
+    auto passthru = cast<ArrayAttr>(func->getAttr(PassthroughAttr));
+    for (auto a : passthru) {
+      if (auto strArrAttr = dyn_cast<ArrayAttr>(a)) {
+        auto strAttr = dyn_cast<StringAttr>(strArrAttr[0]);
+        if (!strAttr)
+          continue;
+        if (strAttr.getValue() == cudaq::opt::QIROutputNamesAttrName)
+          return failure();
+      }
+    }
+
+    auto recoverIntValue = [&](Value v) -> std::optional<std::size_t> {
+      auto cast = v.getDefiningOp<cudaq::cc::CastOp>();
+      if (!cast)
+        return {};
+      return cudaq::opt::factory::maybeValueOfIntConstant(cast.getValue());
+    };
+
+    // `func` is a kernel, it has a passthrough attribute, and the passthrough
+    // attribute does *not* have an output names entry. Now we try to heroically
+    // generate the output names attribute.
+
+    std::map<std::size_t, std::size_t> measMap;
+    std::map<std::size_t, std::pair<std::size_t, std::string>> nameMap;
+    func.walk([&](func::CallOp call) {
+      auto calleeName = call.getCallee();
+      if (calleeName == cudaq::opt::QIRMeasureBody) {
+        auto qubit = recoverIntValue(call.getOperand(0));
+        auto meas = recoverIntValue(call.getOperand(1));
+        if (qubit && meas)
+          measMap[*meas] = *qubit;
+      } else if (calleeName == cudaq::opt::QIRRecordOutput) {
+        auto resAttr = call->getAttr(cudaq::opt::ResultIndexAttrName);
+        std::size_t res = cast<IntegerAttr>(resAttr).getInt();
+        auto regNameAttr = call->getAttr(cudaq::opt::QIRRegisterNameAttr);
+        std::string regName = cast<StringAttr>(regNameAttr).getValue().str();
+        if (measMap.count(res)) {
+          std::size_t qubit = measMap[res];
+          nameMap[res] = std::pair{qubit, regName};
+        }
+      }
+    });
+
+    nlohmann::json outputNames(nameMap);
+    std::string outputNamesStr = outputNames.dump();
+    SmallVector<Attribute> funcAttrs(passthru.begin(), passthru.end());
+    funcAttrs.push_back(
+        rewriter.getStrArrayAttr({cudaq::opt::QIROutputNamesAttrName,
+                                  rewriter.getStringAttr(outputNamesStr)}));
+    func->setAttr(PassthroughAttr, rewriter.getArrayAttr(funcAttrs));
     return success();
   }
 };
@@ -1086,9 +1219,6 @@ struct FullQIR {
   static StringRef getQIRMeasure() { return cudaq::opt::QIRMeasure; }
   static StringRef getQIRReset() { return cudaq::opt::QIRReset; }
 
-  // No quake ops are allowed. We convert them all in the conversion phase.
-  static void allowedQuakeOps(ConversionTarget &target) {}
-
   static constexpr bool mzReturnsResultType = true;
   static constexpr bool convertToCNot = false;
   static constexpr bool convertToCZ = false;
@@ -1123,13 +1253,12 @@ struct AnyProfileQIR {
     patterns.insert<
         /* Rewrites for qubit management and aggregation. */
         AllocaOpToIntRewrite<Self>, ConcatOpRewrite<Self>, DeallocOpErase,
-        DiscriminateOpRewrite, ExtractRefOpRewrite<Self>, GetMemberOpRewrite,
-        MakeStruqOpRewrite, QmemRAIIOpRewrite<Self>, RelaxSizeOpErase,
-        SubveqOpRewrite<Self>, VeqSizeOpRewrite,
+        ExtractRefOpRewrite<Self>, GetMemberOpRewrite, MakeStruqOpRewrite,
+        QmemRAIIOpRewrite<Self>, RelaxSizeOpErase, SubveqOpRewrite<Self>,
+        VeqSizeOpRewrite,
 
         /* Irregular quantum operators. */
-        CustomUnitaryOpPattern<Self>, ExpPauliOpPattern,
-        MeasurementOpPattern<Self>, ResetOpPattern<Self>,
+        CustomUnitaryOpPattern<Self>, ExpPauliOpPattern, ResetOpPattern<Self>,
 
         /* Regular quantum operators. */
         QuantumGatePattern<Self, quake::HOp>,
@@ -1151,12 +1280,6 @@ struct AnyProfileQIR {
 
   static StringRef getQIRMeasure() { return cudaq::opt::QIRMeasureBody; }
   static StringRef getQIRReset() { return cudaq::opt::QIRResetBody; }
-
-  // Some quake ops are allowed to pass through the conversion step. They will
-  // be erased in finalization.
-  static void allowedQuakeOps(ConversionTarget &target) {
-    target.addLegalOp<quake::AllocaOp>();
-  }
 
   static constexpr bool mzReturnsResultType = false;
   static constexpr bool convertToCNot = true;
@@ -1185,7 +1308,12 @@ struct BaseProfileQIR : public AnyProfileQIR<opaquePtr> {
   static void populateRewritePatterns(RewritePatternSet &patterns,
                                       TypeConverter &typeConverter) {
     Base::populateRewritePatterns(patterns, typeConverter);
+    patterns
+        .insert<DiscriminateOpToCallRewrite<Self>, MeasurementOpPattern<Self>>(
+            typeConverter, patterns.getContext());
   }
+
+  static constexpr bool discriminateToClassical = false;
 };
 
 /// The QIR adaptive profile modifier class.
@@ -1197,7 +1325,12 @@ struct AdaptiveProfileQIR : public AnyProfileQIR<opaquePtr> {
   static void populateRewritePatterns(RewritePatternSet &patterns,
                                       TypeConverter &typeConverter) {
     Base::populateRewritePatterns(patterns, typeConverter);
+    patterns
+        .insert<DiscriminateOpToCallRewrite<Self>, MeasurementOpPattern<Self>>(
+            typeConverter, patterns.getContext());
   }
+
+  static constexpr bool discriminateToClassical = true;
 };
 
 //===----------------------------------------------------------------------===//
@@ -1220,11 +1353,11 @@ struct QuakeToQIRAPIPass
     auto typeConverter = createQIRAPITypeConverter();
     A::populateRewritePatterns(patterns, typeConverter);
     ConversionTarget target(*ctx);
-    target.addLegalDialect<arith::ArithDialect, cudaq::cc::CCDialect,
-                           cf::ControlFlowDialect, func::FuncDialect,
-                           LLVM::LLVMDialect>();
+    target
+        .addLegalDialect<arith::ArithDialect, cudaq::cc::CCDialect,
+                         cudaq::codegen::CodeGenDialect, cf::ControlFlowDialect,
+                         func::FuncDialect, LLVM::LLVMDialect>();
     target.addIllegalDialect<quake::QuakeDialect>();
-    A::allowedQuakeOps(target);
     if (failed(applyPartialConversion(op, target, std::move(patterns))))
       signalPassFailure();
     LLVM_DEBUG(llvm::dbgs() << "After QIR API conversion:\n" << *op << '\n');
@@ -1248,8 +1381,10 @@ struct QuakeToQIRAPIPass
     } else if (api == "adaptive-profile") {
       if (opaquePtr)
         processOperation<AdaptiveProfileQIR</*opaquePtr=*/true>>();
-      processOperation<BaseProfileQIR</*opaquePtr=*/false>>();
+      processOperation<AdaptiveProfileQIR</*opaquePtr=*/false>>();
     } else {
+      getOperation()->emitOpError("The currently supported APIs are: 'full', "
+                                  "'base-profile', 'adaptive-profile'.");
       signalPassFailure();
     }
   }
@@ -1291,10 +1426,8 @@ struct QuakeToQIRAPIPrepPass
       }
     }
 
-    // 1) Fuse all returns into an exit block.
-    fuseFuncReturnOps();
-
-    // 2) Perform allocation and measurement analysis
+    // Perform allocation and measurement analysis and stick attributes on the
+    // Ops as needed.
     auto builder = OpBuilder(module);
     module.walk([&](func::FuncOp func) {
       std::size_t totalQubits = 0;
@@ -1369,11 +1502,32 @@ struct QuakeToQIRAPIPrepPass
           }
         }
       });
-    });
-  }
 
-  void fuseFuncReturnOps() {
-    // Fuse all func.return operations together.
+      SmallVector<Attribute> funcAttrs;
+      if (api != "full" && func->hasAttr(cudaq::kernelAttrName)) {
+        if (func->getAttr(cudaq::entryPointAttrName))
+          funcAttrs.push_back(
+              builder.getStringAttr(cudaq::opt::QIREntryPointAttrName));
+        if (api == "base-profile")
+          funcAttrs.push_back(builder.getStrArrayAttr(
+              {cudaq::opt::QIRProfilesAttrName, "base_profile"}));
+        else if (api == "adaptive-profile")
+          funcAttrs.push_back(builder.getStrArrayAttr(
+              {cudaq::opt::QIRProfilesAttrName, "adaptive_profile"}));
+        funcAttrs.push_back(builder.getStrArrayAttr(
+            {cudaq::opt::QIROutputLabelingSchemaAttrName, "schema_id"}));
+        if (totalQubits)
+          funcAttrs.push_back(builder.getStrArrayAttr(
+              {cudaq::opt::QIRRequiredQubitsAttrName,
+               builder.getStringAttr(std::to_string(totalQubits))}));
+        if (totalResults)
+          funcAttrs.push_back(builder.getStrArrayAttr(
+              {cudaq::opt::QIRRequiredResultsAttrName,
+               builder.getStringAttr(std::to_string(totalResults))}));
+      }
+      if (!funcAttrs.empty())
+        func->setAttr("passthrough", builder.getArrayAttr(funcAttrs));
+    });
   }
 };
 
@@ -1385,7 +1539,8 @@ struct QuakeToQIRAPIFinalPass
     auto *ctx = &getContext();
     ModuleOp module = getOperation();
     RewritePatternSet patterns(ctx);
-    patterns.insert<MaterializeConstantArrayOpRewrite>(ctx);
+    patterns.insert<MaterializeConstantArrayOpRewrite,
+                    AnnotateKernelsWithMeasurementStringsPattern>(ctx);
     if (failed(applyPatternsAndFoldGreedily(module, std::move(patterns))))
       signalPassFailure();
   }
