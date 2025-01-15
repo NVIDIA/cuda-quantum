@@ -11,3 +11,4 @@ from .evolution import evolve, evolve_async
 from .expressions import Operator, OperatorSum, ProductOperator, ElementaryOperator, ScalarOperator, RydbergHamiltonian
 from .helpers import NumericType
 from .schedule import Schedule
+from .cudm_state import InitialState
