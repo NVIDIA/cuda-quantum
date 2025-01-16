@@ -36,9 +36,6 @@ def to_cupy_array(state):
     return cupy_array
 
 
-InitialStateArgT = cudaq_runtime.State | InitialState
-
-
 # A Python wrapper of `CuDensityMatState` state.
 class CuDensityMatState(object):
     __ctx = None

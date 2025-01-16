@@ -16,10 +16,9 @@ import string
 import warnings
 
 from .expressions import Operator, RydbergHamiltonian
-from .helpers import NumericType
+from .helpers import NumericType, InitialStateArgT
 from .integrator import BaseIntegrator
 from .schedule import Schedule
-from .cudm_state import InitialStateArgT
 from ..kernel.register_op import register_operation
 from ..kernel.utils import ahkPrefix
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime

@@ -29,6 +29,7 @@ class InitialState(Enum):
     ZERO = 1
     UNIFORM = 2
 
+InitialStateArgT = cudaq_runtime.State | InitialState
 
 class _OperatorHelpers:
 
