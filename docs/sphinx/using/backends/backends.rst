@@ -3,7 +3,7 @@ CUDA-Q Backends
 *************************
 The CUDA-Q platform has is a powerful tool with many different backends for running hybrid quatum applications and other simulations.  This page will help you understand what backends are availible and what the best choices are for your purpose. 
 
-The figure below groups the backends into five categories, and described the general purpose for each.  See the following sections for a breakdown of the backends included in each section.
+The figure below groups the backends into four categories, and described the general purpose for each.  See the following sections for a breakdown of the backends included in each section.
 
 .. image:: backends.png
    :width: 1000
