@@ -138,9 +138,9 @@ public:
   friend operator_sum<HandlerTy> operator*(const scalar_operator &other, const operator_sum<HandlerTy> &self);
   friend operator_sum<HandlerTy> operator+(const scalar_operator &other, const operator_sum<HandlerTy> &self);
   friend operator_sum<HandlerTy> operator-(const scalar_operator &other, const operator_sum<HandlerTy> &self);
-  friend operator_sum<elementary_operator> operator*(const HandlerTy &other, const operator_sum<elementary_operator> &self);
-  friend operator_sum<elementary_operator> operator+(const HandlerTy &other, const operator_sum<elementary_operator> &self);
-  friend operator_sum<elementary_operator> operator-(const HandlerTy &other, const operator_sum<elementary_operator> &self);
+  friend operator_sum<HandlerTy> operator*(const HandlerTy &other, const operator_sum<HandlerTy> &self);
+  friend operator_sum<HandlerTy> operator+(const HandlerTy &other, const operator_sum<HandlerTy> &self);
+  friend operator_sum<HandlerTy> operator-(const HandlerTy &other, const operator_sum<HandlerTy> &self);
 #if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
 #pragma GCC diagnostic pop
 #endif
@@ -259,9 +259,9 @@ public:
   friend product_operator<HandlerTy> operator*(const scalar_operator &other, const product_operator<HandlerTy> &self);
   friend operator_sum<HandlerTy> operator+(const scalar_operator &other, const product_operator<HandlerTy> &self);
   friend operator_sum<HandlerTy> operator-(const scalar_operator &other, const product_operator<HandlerTy> &self);
-  friend product_operator<HandlerTy> operator*(const HandlerTy &other, const product_operator<elementary_operator> &self);
-  friend operator_sum<HandlerTy> operator+(const HandlerTy &other, const product_operator<elementary_operator> &self);
-  friend operator_sum<HandlerTy> operator-(const HandlerTy &other, const product_operator<elementary_operator> &self);
+  friend product_operator<HandlerTy> operator*(const HandlerTy &other, const product_operator<HandlerTy> &self);
+  friend operator_sum<HandlerTy> operator+(const HandlerTy &other, const product_operator<HandlerTy> &self);
+  friend operator_sum<HandlerTy> operator-(const HandlerTy &other, const product_operator<HandlerTy> &self);
 #if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
 #pragma GCC diagnostic pop
 #endif
