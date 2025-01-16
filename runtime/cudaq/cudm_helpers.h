@@ -9,6 +9,7 @@
 #pragma once
 
 #include "cudaq/utils/tensor.h"
+#include "cudaq/operators.h"
 #include <cudensitymat.h>
 #include <iostream>
 #include <map>
@@ -33,7 +34,7 @@ compute_lindblad_operator(cudensitymatHandle_t handle,
 
 cudensitymatOperator_t convert_to_cudensitymat_operator(
     cudensitymatHandle_t handle,
-    const std::map<std::string, double> &parameters, const matrix_2 &matrix,
+    const std::map<std::string, double> &parameters, const operator_sum &op,
     const std::vector<int> &mode_extents);
 
 cudensitymatOperator_t construct_liovillian(
