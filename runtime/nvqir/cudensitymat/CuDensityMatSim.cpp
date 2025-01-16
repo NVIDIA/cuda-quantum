@@ -50,9 +50,9 @@ void initCuDensityMatCommLib() {
   // use this builtin plugin shim (redirect MPI calls to CUDA-Q plugin)
   if (std::getenv("CUDENSITYMAT_COMM_LIB") == nullptr) {
     cudaq::info("Enabling cuDensityMat MPI without environment variable "
-               "CUDENSITYMAT_COMM_LIB. \nUse the builtin cuTensorNet "
-               "communicator lib from '{}' - CUDA-Q MPI plugin {}.",
-               getThisSharedLibFilePath(), getMpiPluginFilePath());
+                "CUDENSITYMAT_COMM_LIB. \nUse the builtin cuTensorNet "
+                "communicator lib from '{}' - CUDA-Q MPI plugin {}.",
+                getThisSharedLibFilePath(), getMpiPluginFilePath());
     setenv("CUDENSITYMAT_COMM_LIB", getThisSharedLibFilePath(), 0);
   }
 }
