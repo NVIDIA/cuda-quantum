@@ -413,7 +413,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__quantum__rt__array_concatenate(!qir_array, !qir_array) -> !qir_array
   func.func private @__quantum__rt__array_get_size_1d(!qir_array) -> i64
   func.func private @__quantum__rt__array_slice(!qir_array, i32, i64, i64, i64) -> !qir_array
-  func.func private @__quantum__rt__array_get_element_ptr_1d(!qir_array, i64) -> !cc.ptr<none>
+  func.func private @__quantum__rt__array_get_element_ptr_1d(!qir_array, i64) -> !cc.ptr<!qir_qubit>
 
   func.func private @__quantum__qis__h__ctl(!qir_array, !qir_qubit)
   func.func private @__quantum__qis__x__ctl(!qir_array, !qir_qubit)

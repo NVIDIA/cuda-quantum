@@ -36,9 +36,16 @@ void cudaq::opt::commonPipelineConvertToQIR(
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   if (convertTo && convertTo->equals("qir-base"))
     pm.addNestedPass<func::FuncOp>(createDelayMeasurementsPass());
+  if (!convertTo || convertTo->equals("qir"))
+     cudaq::opt::addConvertToQIRAPIPipeline(pm, "full");
+  if (convertTo && convertTo->equals("qir-base"))
+     cudaq::opt::addConvertToQIRAPIPipeline(pm, "base-profile");
+  if (convertTo && convertTo->equals("qir-adaptive"))
+     cudaq::opt::addConvertToQIRAPIPipeline(pm, "adaptive-profile");
   pm.addPass(createConvertMathToFuncs());
   pm.addPass(createSymbolDCEPass());
-  pm.addPass(createConvertToQIR());
+  pm.addPass(createCCToLLVM());
+  //pm.addPass(createConvertToQIR());
 }
 
 void cudaq::opt::addPipelineTranslateToOpenQASM(PassManager &pm) {

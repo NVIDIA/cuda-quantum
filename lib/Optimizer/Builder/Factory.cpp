@@ -262,7 +262,7 @@ Value factory::createTemporary(Location loc, OpBuilder &builder, Type type,
   OpBuilder::InsertionGuard guard(builder);
   builder.setInsertionPointToStart(entryBlock);
   Value len = builder.create<arith::ConstantIntOp>(loc, size, 64);
-  return builder.create<cudaq::cc::AllocaOp>(loc, type, ArrayRef<Value>{len});
+  return builder.create<cudaq::cc::AllocaOp>(loc, type, len);
 }
 
 // This builder will transform the monotonic loop into an invariant loop during

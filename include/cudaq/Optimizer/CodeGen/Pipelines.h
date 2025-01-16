@@ -40,7 +40,7 @@ inline void addPipelineConvertToQIR(mlir::PassManager &pm) {
 inline void addPipelineConvertToQIR(mlir::PassManager &pm,
                                     mlir::StringRef convertTo) {
   commonPipelineConvertToQIR(pm, convertTo);
-  addQIRProfilePipeline(pm, convertTo);
+  //addQIRProfilePipeline(pm, convertTo);
 }
 
 void addLowerToCCPipeline(mlir::OpPassManager &pm);
