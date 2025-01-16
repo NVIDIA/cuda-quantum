@@ -16,7 +16,7 @@ import string
 import warnings
 
 from .expressions import Operator, RydbergHamiltonian
-from .helpers import NumericType, InitialStateArgT
+from .helpers import NumericType, InitialState, InitialStateArgT
 from .integrator import BaseIntegrator
 from .schedule import Schedule
 from ..kernel.register_op import register_operation
@@ -250,6 +250,25 @@ def evolve_single(
         step_parameters, dt)
     if shots_count is None:
         shots_count = -1
+    if isinstance(initial_state, InitialState):
+        # This is an initial state enum, create concrete state.
+        state_size = 2**num_qubits
+        if initial_state == InitialState.ZERO:
+            state_data = numpy.zeros(state_size, dtype=numpy.complex128)
+            state_data[0] = 1.0
+        elif initial_state == InitialState.UNIFORM:
+            state_data = (1. / numpy.sqrt(state_size)) * numpy.identity(
+                state_size, dtype=numpy.complex128)
+        else:
+            raise ValueError("Unsupported initial state type")
+
+        sim_name = cudaq_runtime.get_target().simulator.strip()
+        if sim_name == "dm":
+            initial_state = cudaq_runtime.State.from_data(
+                numpy.outer(state_data, numpy.conj(state_data)))
+        else:
+            initial_state = cudaq_runtime.State.from_data(state_data)
+
     if store_intermediate_results:
         evolution = _evolution_kernel(
             num_qubits,
