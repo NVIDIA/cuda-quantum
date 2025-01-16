@@ -64,8 +64,9 @@ public:
   ///                      degrees of freedom: `{0:2, 1:2}`.
   /// @arg `parameters` : A map of the parameter names to their concrete,
   /// complex values.
-  matrix_2 to_matrix(const std::map<int, int> &dimensions,
-                     const std::map<std::string, double> &params = {}) const;
+  matrix_2 to_matrix(
+      const std::map<int, int> &dimensions,
+      const std::map<std::string, std::complex<double>> &params = {}) const;
 
   // Arithmetic operators
   operator_sum operator+(const operator_sum &other) const;
@@ -398,7 +399,7 @@ public:
 
   /// @brief Return the scalar operator as a concrete complex value.
   std::complex<double>
-  evaluate(std::map<std::string, std::complex<double>> parameters);
+  evaluate(std::map<std::string, std::complex<double>> parameters) const;
 
   // Return the scalar operator as a 1x1 matrix. This is needed for
   // compatability with the other inherited classes.
@@ -460,5 +461,51 @@ void operator+=(scalar_operator &self, scalar_operator other);
 void operator-=(scalar_operator &self, scalar_operator other);
 void operator*=(scalar_operator &self, scalar_operator other);
 void operator/=(scalar_operator &self, scalar_operator other);
+
+/// @brief Representation of a time-dependent Hamiltonian for Rydberg system
+class rydberg_hamiltonian : public operator_sum {
+public:
+  using Coordinate = std::pair<double, double>;
+
+  /// @brief Constructor.
+  /// @param atom_sites List of 2D coordinates for trap sites.
+  /// @param amplitude Time-dependant driving amplitude, Omega(t).
+  /// @param phase Time-dependant driving phase, phi(t).
+  /// @param delta_global Time-dependant driving detuning, Delta_global(t).
+  /// @param atom_filling Optional. Marks occupied trap sites (1) and empty
+  /// sites (0). Defaults to all sites occupied.
+  /// @param delta_local Optional. A tuple of Delta_local(t) and site dependant
+  /// local detuning factors.
+  rydberg_hamiltonian(
+      const std::vector<Coordinate> &atom_sites,
+      const scalar_operator &amplitude, const scalar_operator &phase,
+      const scalar_operator &delta_global,
+      const std::vector<int> &atom_filling = {},
+      const std::optional<std::pair<scalar_operator, std::vector<double>>>
+          &delta_local = std::nullopt);
+
+  /// @brief Get atom sites.
+  const std::vector<Coordinate> &get_atom_sites() const;
+
+  /// @brief Get atom filling.
+  const std::vector<int> &get_atom_filling() const;
+
+  /// @brief Get amplitude operator.
+  const scalar_operator &get_amplitude() const;
+
+  /// @brief Get phase operator.
+  const scalar_operator &get_phase() const;
+
+  /// @brief Get global detuning operator.
+  const scalar_operator &get_delta_global() const;
+
+private:
+  std::vector<Coordinate> atom_sites;
+  std::vector<int> atom_filling;
+  scalar_operator amplitude;
+  scalar_operator phase;
+  scalar_operator delta_global;
+  std::optional<std::pair<scalar_operator, std::vector<double>>> delta_local;
+};
 
 } // namespace cudaq

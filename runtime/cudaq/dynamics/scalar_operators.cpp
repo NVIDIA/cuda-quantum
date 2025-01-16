@@ -40,7 +40,7 @@ scalar_operator::scalar_operator(double value) {
 }
 
 std::complex<double> scalar_operator::evaluate(
-    std::map<std::string, std::complex<double>> parameters) {
+    std::map<std::string, std::complex<double>> parameters) const {
   return generator(parameters);
 }
 
