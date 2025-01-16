@@ -192,25 +192,25 @@ operator_sum<HandlerTy> operator-(const scalar_operator &other, const operator_s
 }
 
 template <typename HandlerTy>
-operator_sum<elementary_operator> operator*(const HandlerTy &other, const operator_sum<elementary_operator> &self) {
-  std::vector<std::variant<scalar_operator, elementary_operator>> new_term = {other};
-  std::vector<product_operator<elementary_operator>> _prods = {product_operator(new_term)};
+operator_sum<HandlerTy> operator*(const HandlerTy &other, const operator_sum<HandlerTy> &self) {
+  std::vector<std::variant<scalar_operator, HandlerTy>> new_term = {other};
+  std::vector<product_operator<HandlerTy>> _prods = {product_operator(new_term)};
   auto selfOpSum = operator_sum(_prods);
   return selfOpSum * self;
 }
 
 template <typename HandlerTy>
-operator_sum<elementary_operator> operator+(const HandlerTy &other, const operator_sum<elementary_operator> &self) {
-  std::vector<std::variant<scalar_operator, elementary_operator>> new_term = {other};
-  std::vector<product_operator<elementary_operator>> _prods = {product_operator(new_term)};
+operator_sum<HandlerTy> operator+(const HandlerTy &other, const operator_sum<HandlerTy> &self) {
+  std::vector<std::variant<scalar_operator, HandlerTy>> new_term = {other};
+  std::vector<product_operator<HandlerTy>> _prods = {product_operator(new_term)};
   auto selfOpSum = operator_sum(_prods);
   return selfOpSum + self;
 }
 
 template <typename HandlerTy>
-operator_sum<elementary_operator> operator-(const HandlerTy &other, const operator_sum<elementary_operator> &self) {
-  std::vector<std::variant<scalar_operator, elementary_operator>> new_term = {other};
-  std::vector<product_operator<elementary_operator>> _prods = {product_operator(new_term)};
+operator_sum<HandlerTy> operator-(const HandlerTy &other, const operator_sum<HandlerTy> &self) {
+  std::vector<std::variant<scalar_operator, HandlerTy>> new_term = {other};
+  std::vector<product_operator<HandlerTy>> _prods = {product_operator(new_term)};
   auto selfOpSum = operator_sum(_prods);
   return selfOpSum - self;
 }
