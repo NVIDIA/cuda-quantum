@@ -31,6 +31,135 @@ template <typename HandlerTy>
 requires std::derived_from<elementary_operator, HandlerTy>
 class operator_sum;
 
+template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
+product_operator<HandlerTy> operator*(double other, const product_operator<HandlerTy> &self);
+template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
+operator_sum<HandlerTy> operator+(double other, const product_operator<HandlerTy> &self);
+template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
+operator_sum<HandlerTy> operator-(double other, const product_operator<HandlerTy> &self);
+template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
+product_operator<HandlerTy> operator*(std::complex<double> other, const product_operator<HandlerTy> &self);
+template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
+operator_sum<HandlerTy> operator+(std::complex<double> other, const product_operator<HandlerTy> &self);
+template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
+operator_sum<HandlerTy> operator-(std::complex<double> other, const product_operator<HandlerTy> &self);
+template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
+product_operator<HandlerTy> operator*(const scalar_operator &other, const product_operator<HandlerTy> &self);
+template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
+operator_sum<HandlerTy> operator+(const scalar_operator &other, const product_operator<HandlerTy> &self);
+template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
+operator_sum<HandlerTy> operator-(const scalar_operator &other, const product_operator<HandlerTy> &self);
+template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
+product_operator<HandlerTy> operator*(const HandlerTy &other, const product_operator<HandlerTy> &self);
+template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
+operator_sum<HandlerTy> operator+(const HandlerTy &other, const product_operator<HandlerTy> &self);
+template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
+operator_sum<HandlerTy> operator-(const HandlerTy &other, const product_operator<HandlerTy> &self);
+
+template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
+operator_sum<HandlerTy> operator*(double other, const operator_sum<HandlerTy> &self);
+template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
+operator_sum<HandlerTy> operator+(double other, const operator_sum<HandlerTy> &self);
+template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
+operator_sum<HandlerTy> operator-(double other, const operator_sum<HandlerTy> &self);
+template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
+operator_sum<HandlerTy> operator*(std::complex<double> other, const operator_sum<HandlerTy> &self);
+template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
+operator_sum<HandlerTy> operator+(std::complex<double> other, const operator_sum<HandlerTy> &self);
+template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
+operator_sum<HandlerTy> operator-(std::complex<double> other, const operator_sum<HandlerTy> &self);
+template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
+operator_sum<HandlerTy> operator*(const scalar_operator &other, const operator_sum<HandlerTy> &self);
+template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
+operator_sum<HandlerTy> operator+(const scalar_operator &other, const operator_sum<HandlerTy> &self);
+template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
+operator_sum<HandlerTy> operator-(const scalar_operator &other, const operator_sum<HandlerTy> &self);
+template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
+operator_sum<HandlerTy> operator*(const HandlerTy &other, const operator_sum<HandlerTy> &self);
+template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
+operator_sum<HandlerTy> operator+(const HandlerTy &other, const operator_sum<HandlerTy> &self);
+template <typename HandlerTy> 
+requires std::derived_from<elementary_operator, HandlerTy>
+operator_sum<HandlerTy> operator-(const HandlerTy &other, const operator_sum<HandlerTy> &self);
+
+
+#ifdef CUDAQ_INSTANTIATE_TEMPLATES
+#else
+extern template 
+product_operator<elementary_operator> operator*(double other, const product_operator<elementary_operator> &self);
+extern template 
+operator_sum<elementary_operator> operator+(double other, const product_operator<elementary_operator> &self);
+extern template
+operator_sum<elementary_operator> operator-(double other, const product_operator<elementary_operator> &self);
+extern template
+product_operator<elementary_operator> operator*(std::complex<double> other, const product_operator<elementary_operator> &self);
+extern template
+operator_sum<elementary_operator> operator+(std::complex<double> other, const product_operator<elementary_operator> &self);
+extern template
+operator_sum<elementary_operator> operator-(std::complex<double> other, const product_operator<elementary_operator> &self);
+extern template
+product_operator<elementary_operator> operator*(const scalar_operator &other, const product_operator<elementary_operator> &self);
+extern template
+operator_sum<elementary_operator> operator+(const scalar_operator &other, const product_operator<elementary_operator> &self);
+extern template
+operator_sum<elementary_operator> operator-(const scalar_operator &other, const product_operator<elementary_operator> &self);
+extern template
+product_operator<elementary_operator> operator*(const elementary_operator &other, const product_operator<elementary_operator> &self);
+extern template
+operator_sum<elementary_operator> operator+(const elementary_operator &other, const product_operator<elementary_operator> &self);
+extern template
+operator_sum<elementary_operator> operator-(const elementary_operator &other, const product_operator<elementary_operator> &self);
+
+extern template
+operator_sum<elementary_operator> operator*(double other, const operator_sum<elementary_operator> &self);
+extern template
+operator_sum<elementary_operator> operator+(double other, const operator_sum<elementary_operator> &self);
+extern template
+operator_sum<elementary_operator> operator-(double other, const operator_sum<elementary_operator> &self);
+extern template
+operator_sum<elementary_operator> operator*(std::complex<double> other, const operator_sum<elementary_operator> &self);
+extern template
+operator_sum<elementary_operator> operator+(std::complex<double> other, const operator_sum<elementary_operator> &self);
+extern template
+operator_sum<elementary_operator> operator-(std::complex<double> other, const operator_sum<elementary_operator> &self);
+extern template
+operator_sum<elementary_operator> operator*(const scalar_operator &other, const operator_sum<elementary_operator> &self);
+extern template
+operator_sum<elementary_operator> operator+(const scalar_operator &other, const operator_sum<elementary_operator> &self);
+extern template
+operator_sum<elementary_operator> operator-(const scalar_operator &other, const operator_sum<elementary_operator> &self);
+extern template
+operator_sum<elementary_operator> operator*(const elementary_operator &other, const operator_sum<elementary_operator> &self);
+extern template
+operator_sum<elementary_operator> operator+(const elementary_operator &other, const operator_sum<elementary_operator> &self);
+extern template
+operator_sum<elementary_operator> operator-(const elementary_operator &other, const operator_sum<elementary_operator> &self);
+#endif
+
+
 /// @brief Represents an operator expression consisting of a sum of terms, where
 /// each term is a product of elementary and scalar operators. Operator
 /// expressions cannot be used within quantum kernels, but they provide methods
@@ -130,6 +259,7 @@ public:
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnon-template-friend"
 #endif
+/*
   friend operator_sum<HandlerTy> operator*(double other, const operator_sum<HandlerTy> &self);
   friend operator_sum<HandlerTy> operator+(double other, const operator_sum<HandlerTy> &self);
   friend operator_sum<HandlerTy> operator-(double other, const operator_sum<HandlerTy> &self);
@@ -142,6 +272,7 @@ public:
   friend operator_sum<HandlerTy> operator*(const HandlerTy &other, const operator_sum<HandlerTy> &self);
   friend operator_sum<HandlerTy> operator+(const HandlerTy &other, const operator_sum<HandlerTy> &self);
   friend operator_sum<HandlerTy> operator-(const HandlerTy &other, const operator_sum<HandlerTy> &self);
+*/
 #if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
 #pragma GCC diagnostic pop
 #endif
@@ -252,6 +383,7 @@ public:
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnon-template-friend"
 #endif
+/*
   friend product_operator<HandlerTy> operator*(double other, const product_operator<HandlerTy> &self);
   friend operator_sum<HandlerTy> operator+(double other, const product_operator<HandlerTy> &self);
   friend operator_sum<HandlerTy> operator-(double other, const product_operator<HandlerTy> &self);
@@ -264,6 +396,7 @@ public:
   friend product_operator<HandlerTy> operator*(const HandlerTy &other, const product_operator<HandlerTy> &self);
   friend operator_sum<HandlerTy> operator+(const HandlerTy &other, const product_operator<HandlerTy> &self);
   friend operator_sum<HandlerTy> operator-(const HandlerTy &other, const product_operator<HandlerTy> &self);
+*/
 #if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
 #pragma GCC diagnostic pop
 #endif
