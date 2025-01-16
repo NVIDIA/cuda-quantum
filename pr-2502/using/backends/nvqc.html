@@ -331,6 +331,7 @@
 <li class="toctree-l4"><a class="reference internal" href="simulators.html#features">Features</a></li>
 <li class="toctree-l4"><a class="reference internal" href="simulators.html#single-gpu">Single-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="simulators.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
 </ul>
 </li>
@@ -767,7 +768,7 @@ You can also find the instructions <a class="reference external" href="https://d
 By selecting the <code class="code docutils literal notranslate"><span class="pre">nvqc</span></code> target, the quantum circuit simulation will run on NVQC in the cloud, rather than running locally.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">Python</label><div class="tab-content docutils">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvqc&quot;</span><span class="p">)</span>
 <span class="n">num_qubits</span> <span class="o">=</span> <span class="mi">25</span>
@@ -970,9 +971,9 @@ the user instantiates 3 virtual QPU instances to submit simulation jobs to NVQC
 calculating the expectation value along with parameter-shift gradients simultaneously.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">Python</label><div class="tab-content docutils">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
-<span class="kn">from</span> <span class="nn">cudaq</span> <span class="kn">import</span> <span class="n">spin</span>
-<span class="kn">import</span> <span class="nn">math</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
 
 <span class="c1"># Use NVQC with 3 virtual QPUs</span>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvqc&quot;</span><span class="p">,</span> <span class="n">nqpus</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
@@ -991,7 +992,7 @@ calculating the expectation value along with parameter-shift gradients simultane
                <span class="mf">6.125</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
 
 
-<span class="k">def</span> <span class="nf">opt_gradient</span><span class="p">(</span><span class="n">parameter_vector</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">opt_gradient</span><span class="p">(</span><span class="n">parameter_vector</span><span class="p">):</span>
     <span class="c1"># Evaluate energy and gradient on different remote QPUs</span>
     <span class="c1"># (i.e., concurrent job submissions to NVQC)</span>
     <span class="n">energy_future</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span>

@@ -333,6 +333,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#features">Features</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#single-gpu">Single-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
 </ul>
 </li>
@@ -852,7 +853,7 @@ is available, for example, by choosing the target <code class="code docutils lit
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--5-input--1" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel2</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel2</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
     <span class="c1"># Allocate our qubits.</span>
     <span class="n">qvector</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
     <span class="c1"># Place all qubits in a uniform superposition.</span>
@@ -921,15 +922,15 @@ This is followed by the construction of a kernel with a single qubit in an equal
 The Hamiltonian is printed to confirm it has been constructed properly.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--7-input--1" name="tab-set--7" type="radio"><label class="tab-label" for="tab-set--7-input--1">Python</label><div class="tab-content docutils">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
-<span class="kn">from</span> <span class="nn">cudaq</span> <span class="kn">import</span> <span class="n">spin</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span>
 
 <span class="n">operator</span> <span class="o">=</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">operator</span><span class="p">)</span>  <span class="c1"># prints: [1+0j] Z</span>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
     <span class="n">qubit</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
     <span class="n">h</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
 </pre></div>
@@ -1026,8 +1027,8 @@ all of the available targets and ways to accelerate kernel execution, visit the
 <a class="reference internal" href="../backends/backends.html"><span class="doc">Backends</span></a> page.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--11-input--1" name="tab-set--11" type="radio"><label class="tab-label" for="tab-set--11-input--1">Python</label><div class="tab-content docutils">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">sys</span>
-<span class="kn">import</span> <span class="nn">timeit</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">timeit</span>
 
 <span class="c1"># Will time the execution of our sample call.</span>
 <span class="n">code_to_time</span> <span class="o">=</span> <span class="s1">&#39;cudaq.sample(kernel, qubit_count, shots_count=1000000)&#39;</span>

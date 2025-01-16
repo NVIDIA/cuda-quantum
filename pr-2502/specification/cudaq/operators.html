@@ -333,6 +333,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#features">Features</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#single-gpu">Single-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
 </ul>
 </li>
@@ -767,7 +768,7 @@ more complicated Pauli tensor products and their sums.</p>
 </div>
 </div>
 <input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">Python</label><div class="tab-content docutils">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">cudaq</span> <span class="kn">import</span> <span class="n">spin</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span>
 <span class="n">h</span> <span class="o">=</span> <span class="mf">5.907</span> <span class="o">-</span> <span class="mf">2.1433</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mf">2.1433</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> \
          <span class="mf">.21829</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="mf">6.125</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 </pre></div>

@@ -334,6 +334,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#features">Features</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#single-gpu">Single-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
 </ul>
 </li>
@@ -806,13 +807,13 @@ R_k = \begin{bmatrix}
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">quantum_fourier_transform</span><span class="p">(</span><span class="n">input_state</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">quantum_fourier_transform</span><span class="p">(</span><span class="n">input_state</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
 <span class="w">    </span><span class="sd">&#39;&#39;&#39;Args:</span>
 <span class="sd">    input_state (list[int]): specifies the input state to be Fourier transformed.  &#39;&#39;&#39;</span>
 
@@ -898,7 +899,7 @@ q2 : ┤ x ├──────────────────────
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define kernels for the Quantum Fourier Transform and the Inverse Quantum Fourier Transform</span>
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">quantum_fourier_transform2</span><span class="p">(</span><span class="n">qubits</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">quantum_fourier_transform2</span><span class="p">(</span><span class="n">qubits</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&#39;&#39;&#39;Args:</span>
 <span class="sd">    qubits (cudaq.qview): specifies the quantum register to which apply the QFT.&#39;&#39;&#39;</span>
     <span class="n">qubit_count</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
@@ -911,7 +912,7 @@ q2 : ┤ x ├──────────────────────
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">inverse_qft</span><span class="p">(</span><span class="n">qubits</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">inverse_qft</span><span class="p">(</span><span class="n">qubits</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&#39;&#39;&#39;Args:</span>
 <span class="sd">    qubits (cudaq.qview): specifies the quantum register to which apply the inverse QFT.&#39;&#39;&#39;</span>
     <span class="n">cudaq</span><span class="o">.</span><span class="n">adjoint</span><span class="p">(</span><span class="n">quantum_fourier_transform2</span><span class="p">,</span> <span class="n">qubits</span><span class="p">)</span>
@@ -924,7 +925,7 @@ q2 : ┤ x ├──────────────────────
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">verification_example</span><span class="p">(</span><span class="n">input_state</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">verification_example</span><span class="p">(</span><span class="n">input_state</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
 <span class="w">    </span><span class="sd">&#39;&#39;&#39;Args:</span>
 <span class="sd">    input_state (list[int]): specifies the input state to be transformed with QFT and the inverse QFT.  &#39;&#39;&#39;</span>
     <span class="n">qubit_count</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_state</span><span class="p">)</span>

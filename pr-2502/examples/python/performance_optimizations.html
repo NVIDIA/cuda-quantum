@@ -333,6 +333,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#features">Features</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#single-gpu">Single-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
 </ul>
 </li>
@@ -747,9 +748,9 @@
 <section id="Gate-Fusion">
 <h2>Gate Fusion<a class="headerlink" href="#Gate-Fusion" title="Permalink to this heading">¶</a></h2>
 <p>Gate fusion is an optimization technique where consecutive gates are combined into a single gate operation to improve the efficiency of the simulation (See figure below). By targeting the <code class="docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> backend and setting the <code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE</span></code> environment variable, you can select the degree of fusion that takes place. A full command line example would look like <code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE=4</span> <span class="pre">python</span> <span class="pre">c2h2VQE.py</span> <span class="pre">--target</span> <span class="pre">nvidia</span> <span class="pre">--target-option</span> <span class="pre">fp64,mgpu</span></code></p>
-<p><img alt="b4712d3f0a0f4f04952fec2790c0a108" src="../../_images/gate-fuse.png" /></p>
+<p><img alt="f52d530ad2c842db867868b4222a0335" src="../../_images/gate-fuse.png" /></p>
 <p>The importance of gate fusion is system dependent, but can have a large influence on the performance of the simulation. See the example below for a 24 qubit VQE experiment where changing the fusion level resulted in significant performance boosts.</p>
-<p><img alt="a41477bc9a204f1faec770ee39e07b75" src="../../_images/gatefusion.png" /></p>
+<p><img alt="bd4f9a39d63846c8a0ad6aeb5fae1271" src="../../_images/gatefusion.png" /></p>
 </section>
 </section>
 

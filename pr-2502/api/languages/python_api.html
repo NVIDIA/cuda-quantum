@@ -331,6 +331,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#features">Features</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#single-gpu">Single-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
 </ul>
 </li>
@@ -977,7 +978,7 @@ on the platform to target. Defaults to zero. Key-word only.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="cudaq.observe">
-<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">observe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spin_operator</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shots_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">execution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.observe" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">observe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spin_operator</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shots_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_trajectories</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">execution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.observe" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute the expected value of the <code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code> with respect to
 the <code class="code docutils literal notranslate"><span class="pre">kernel</span></code>. If the input <code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code> is a list of <code class="code docutils literal notranslate"><span class="pre">SpinOperator</span></code> then compute
 the expected value of every operator in the list and return a list of results.
@@ -1002,6 +1003,7 @@ execution. Defaults to -1 implying no shots-based sampling. Key-word only.</p></
 <li><p><strong>noise_model</strong> (Optional[<code class="code docutils literal notranslate"><span class="pre">NoiseModel</span></code>]) – The optional <a class="reference internal" href="#cudaq.NoiseModel" title="cudaq.NoiseModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">NoiseModel</span></code></a> to add
 noise to the kernel execution on the simulator. Defaults to an empty
 noise model.</p></li>
+<li><p><strong>num_trajectories</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>]</em>) – The optional number of trajectories for noisy simulation. Only valid if a noise model is provided. Key-word only.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1073,7 +1075,7 @@ function at. Leave empty if the kernel doesn’t accept any arguments.</p></li>
 </dd>
 </dl>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example:</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
 <span class="c1"># Define a kernel that will produced the all |11...1&gt; state.</span>
 <span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
@@ -1202,9 +1204,9 @@ function at. Leave empty if the kernel doesn’t accept any arguments.</p></li>
 </dd>
 </dl>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example</span>
-<span class="kn">import</span> <span class="nn">cudaq</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">bell_pair</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">bell_pair</span><span class="p">():</span>
     <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
     <span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="n">cx</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
@@ -1218,9 +1220,9 @@ function at. Leave empty if the kernel doesn’t accept any arguments.</p></li>
 <span class="c1">#           ╰───╯</span>
 
 <span class="c1"># Example with arguments</span>
-<span class="kn">import</span> <span class="nn">cudaq</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">angle</span><span class="p">:</span><span class="nb">float</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">angle</span><span class="p">:</span><span class="nb">float</span><span class="p">):</span>
     <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
     <span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
     <span class="n">ry</span><span class="p">(</span><span class="n">angle</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
@@ -1259,9 +1261,9 @@ function at. Leave empty if the kernel doesn’t accept any arguments.</p></li>
 </dd>
 </dl>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example</span>
-<span class="kn">import</span> <span class="nn">cudaq</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">bell_pair</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">bell_pair</span><span class="p">():</span>
     <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
     <span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="n">cx</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>

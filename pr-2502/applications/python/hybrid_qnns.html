@@ -334,6 +334,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#features">Features</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#single-gpu">Single-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
 </ul>
 </li>
@@ -763,21 +764,21 @@
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import the relevant libraries</span>
 
-<span class="kn">import</span> <span class="nn">cudaq</span>
-<span class="kn">from</span> <span class="nn">cudaq</span> <span class="kn">import</span> <span class="n">spin</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span>
 
-<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
-<span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">torch.autograd</span> <span class="kn">import</span> <span class="n">Function</span>
-<span class="kn">from</span> <span class="nn">torchvision</span> <span class="kn">import</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">transforms</span>
-<span class="kn">import</span> <span class="nn">torch.optim</span> <span class="k">as</span> <span class="nn">optim</span>
-<span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-<span class="kn">import</span> <span class="nn">torchvision</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.autograd</span><span class="w"> </span><span class="kn">import</span> <span class="n">Function</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchvision</span><span class="w"> </span><span class="kn">import</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">transforms</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.optim</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">optim</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torchvision</span>
 
-<span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="kn">import</span> <span class="n">train_test_split</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">train_test_split</span>
 
 <span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="mi">22</span><span class="p">)</span>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">44</span><span class="p">)</span>
@@ -802,7 +803,7 @@
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">prepare_data</span><span class="p">(</span><span class="n">target_digits</span><span class="p">,</span> <span class="n">sample_count</span><span class="p">,</span> <span class="n">test_size</span><span class="p">):</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">prepare_data</span><span class="p">(</span><span class="n">target_digits</span><span class="p">,</span> <span class="n">sample_count</span><span class="p">,</span> <span class="n">test_size</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Load and prepare the MNIST dataset to be used</span>
 
 <span class="sd">    Args:</span>
@@ -911,15 +912,15 @@
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">QuantumFunction</span><span class="p">(</span><span class="n">Function</span><span class="p">):</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">QuantumFunction</span><span class="p">(</span><span class="n">Function</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Allows the quantum circuit to input data, output expectation values</span>
 <span class="sd">    and calculate gradients of variational parameters via finite difference&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Define the quantum circuit in CUDA Quantum&quot;&quot;&quot;</span>
 
         <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-        <span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">thetas</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">thetas</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
 
             <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
 
@@ -930,7 +931,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">qubit_count</span> <span class="o">=</span> <span class="n">qubit_count</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hamiltonian</span> <span class="o">=</span> <span class="n">hamiltonian</span>
 
-    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta_vals</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta_vals</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Excetute the quantum circuit to output an expectation value&quot;&quot;&quot;</span>
 
         <span class="c1">#If running on GPU, thetas is a torch.tensor that will live on GPU memory. The observe function calls a .tolist() method on inputs which moves thetas from GPU to CPU.</span>
@@ -946,7 +947,7 @@
         <span class="k">return</span> <span class="n">exp_vals</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">thetas</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">,</span> <span class="n">quantum_circuit</span><span class="p">,</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">thetas</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">,</span> <span class="n">quantum_circuit</span><span class="p">,</span>
                 <span class="n">shift</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">:</span>
 
         <span class="c1"># Save shift and quantum_circuit in context to use in backward.</span>
@@ -961,7 +962,7 @@
         <span class="k">return</span> <span class="n">exp_vals</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">grad_output</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">backward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">grad_output</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Backward pass computation via finite difference&quot;&quot;&quot;</span>
 
         <span class="n">thetas</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">saved_tensors</span>
@@ -990,16 +991,16 @@
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">QuantumLayer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">QuantumLayer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Encapsulates a quantum circuit into a quantum layer adhering PyTorch convention&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">shift</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">shift</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">QuantumLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">quantum_circuit</span> <span class="o">=</span> <span class="n">QuantumFunction</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">shift</span> <span class="o">=</span> <span class="n">shift</span>
 
-    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">):</span>
 
         <span class="n">result</span> <span class="o">=</span> <span class="n">QuantumFunction</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">quantum_circuit</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">shift</span><span class="p">)</span>
 
@@ -1011,10 +1012,10 @@
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">Hybrid_QNN</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Hybrid_QNN</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Structure of the hybrid neural network with classical fully connected layers and quantum layers&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">Hybrid_QNN</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">fc1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">28</span> <span class="o">*</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">256</span><span class="p">)</span>
@@ -1029,7 +1030,7 @@
         <span class="c1"># The 2 outputs from PyTorch fc5 layer feed into the 2 variational gates in the quantum circuit.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">quantum</span> <span class="o">=</span> <span class="n">QuantumLayer</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">shift</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
 
         <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">28</span> <span class="o">*</span> <span class="mi">28</span><span class="p">)</span>  <span class="c1"># Turns images into vectors.</span>
 
@@ -1053,7 +1054,7 @@
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">accuracy_score</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">y_hat</span><span class="p">):</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">accuracy_score</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">y_hat</span><span class="p">):</span>
     <span class="k">return</span> <span class="nb">sum</span><span class="p">((</span><span class="n">y</span> <span class="o">==</span> <span class="p">(</span><span class="n">y_hat</span> <span class="o">&gt;=</span> <span class="n">classification_threshold</span><span class="p">)))</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
 </pre></div>
 </div>

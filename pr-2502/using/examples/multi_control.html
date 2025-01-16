@@ -331,6 +331,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#features">Features</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#single-gpu">Single-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
 </ul>
 </li>
@@ -749,13 +750,13 @@ on an arbitrary number of control qubits.</p>
 CUDA-Q kernel.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># A kernel that performs an X-gate on a provided qubit.</span>
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">x_kernel</span><span class="p">(</span><span class="n">qubit</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">x_kernel</span><span class="p">(</span><span class="n">qubit</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">):</span>
     <span class="n">x</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
 
 
 <span class="c1"># A kernel that will call `x_kernel` as a controlled operation.</span>
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
     <span class="n">control_vector</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
     <span class="n">target</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
     <span class="n">x</span><span class="p">(</span><span class="n">control_vector</span><span class="p">)</span>
@@ -771,7 +772,7 @@ CUDA-Q kernel.</p>
 <p>Alternatively, one may pass multiple arguments for control qubits or vectors
 to any controlled operation.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
     <span class="n">qvector</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
     <span class="n">x</span><span class="p">(</span><span class="n">qvector</span><span class="p">)</span>
     <span class="n">x</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>

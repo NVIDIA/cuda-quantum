@@ -331,6 +331,7 @@
 <li class="toctree-l4"><a class="reference internal" href="simulators.html#features">Features</a></li>
 <li class="toctree-l4"><a class="reference internal" href="simulators.html#single-gpu">Single-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="simulators.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
 </ul>
 </li>
@@ -1182,8 +1183,8 @@ You can set this to be either <code class="docutils literal notranslate"><span c
 <p>To set which OQC URL, set the <code class="code docutils literal notranslate"><span class="pre">url</span></code> parameter.
 To set which OQC email, set the <code class="code docutils literal notranslate"><span class="pre">email</span></code> parameter.
 To set which OQC machine, set the <code class="code docutils literal notranslate"><span class="pre">machine</span></code> parameter.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">cudaq</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 <span class="c1"># ...</span>
 <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;OQC_PASSWORD&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">password</span>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;oqc&quot;</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="n">url</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s2">&quot;lucy&quot;</span><span class="p">)</span>
@@ -1247,8 +1248,8 @@ the previously set environment variable <code class="docutils literal notranslat
 <section id="id18">
 <h3>Submission from Python<a class="headerlink" href="#id18" title="Permalink to this heading">¶</a></h3>
 <p>To set which ORCA URL to be used, set the <code class="code docutils literal notranslate"><span class="pre">url</span></code> parameter.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">cudaq</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 <span class="c1"># ...</span>
 <span class="n">orca_url</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;ORCA_ACCESS_URL&quot;</span><span class="p">,</span> <span class="s2">&quot;http://localhost/sample&quot;</span><span class="p">)</span>
 

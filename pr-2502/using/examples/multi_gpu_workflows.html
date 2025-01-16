@@ -333,6 +333,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#features">Features</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#single-gpu">Single-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
 </ul>
 </li>
@@ -761,11 +762,11 @@ multiple virtual quantum processors in parallel, where the backend used to simul
 </ul>
 <p>Please see <a class="reference internal" href="../backends/backends.html"><span class="doc">CUDA-Q Backends</span></a> for a full list of all available backends.
 Below we explore how to effectively utilize multiple CUDA-Q targets with the same GHZ state preparation code</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">ghz_state</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">ghz_state</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
     <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
     <span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">):</span>
@@ -773,7 +774,7 @@ Below we explore how to effectively utilize multiple CUDA-Q targets with the sam
     <span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">sample_ghz_state</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">sample_ghz_state</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;A function that will sample a variable sized GHZ state.&quot;&quot;&quot;</span>
     <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
     <span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">ghz_state</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
@@ -833,8 +834,8 @@ asynchronously processed via the <code class="docutils literal notranslate"><spa
 <code class="docutils literal notranslate"><span class="pre">filename.py</span></code> file and execute via:
 <code class="docutils literal notranslate"><span class="pre">mpirun</span> <span class="pre">-np</span> <span class="pre">n</span> <span class="pre">python3</span> <span class="pre">filename.py</span></code> where <code class="docutils literal notranslate"><span class="pre">n</span></code> is an integer
 specifying the number of GPUs you have access to.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
-<span class="kn">from</span> <span class="nn">cudaq</span> <span class="kn">import</span> <span class="n">spin</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span>
 
 <span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;This example requires a GPU to run. No GPU detected.&quot;</span><span class="p">)</span>
@@ -884,9 +885,9 @@ rank 0 num_ranks 1
 <p>Execution of parameterized circuits with different parameters can be
 executed asynchronously via the <code class="docutils literal notranslate"><span class="pre">mqpu</span></code> platform.</p>
 <img alt="../../_images/circsplit.png" src="../../_images/circsplit.png" />
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
-<span class="kn">from</span> <span class="nn">cudaq</span> <span class="kn">import</span> <span class="n">spin</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
 <span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;This example requires a GPU to run. No GPU detected.&quot;</span><span class="p">)</span>
@@ -916,7 +917,7 @@ executed asynchronously via the <code class="docutils literal notranslate"><span
 </pre></div>
 </div>
 <p>Let’s time the execution on single GPU.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">timeit</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">timeit</span>
 
 <span class="n">timeit</span><span class="o">.</span><span class="n">timeit</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">parameters</span><span class="p">),</span>
               <span class="n">number</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># Single GPU result.</span>

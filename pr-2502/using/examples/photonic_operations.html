@@ -333,6 +333,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#features">Features</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#single-gpu">Single-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
 </ul>
 </li>
@@ -795,13 +796,13 @@ qumode up to a maximum given by the qudit level <span class="math notranslate no
 \end{bmatrix}
 \begin{bmatrix} 1 \\ 0 \\ 0 \\ \vdots \\ 0 \\ 0 \\ 0 \end{bmatrix} =
 \begin{bmatrix} 0 \\ 1 \\ 0 \\ \vdots \\ 0 \\ 0 \\ 0 \end{bmatrix}\end{split}\]</div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;orca-photonics&quot;</span><span class="p">)</span>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
     <span class="c1"># A single qumode with 2 levels initialized to the ground / zero state.</span>
     <span class="n">level</span> <span class="o">=</span> <span class="mi">2</span>
     <span class="n">qumode</span> <span class="o">=</span> <span class="n">qudit</span><span class="p">(</span><span class="n">level</span><span class="p">)</span>
@@ -839,13 +840,13 @@ value 0, the operation has no effect:</p>
 \end{bmatrix}
 \begin{bmatrix} 0 \\ 1 \\ 0 \\ \vdots \\ 0 \\ 0 \\ 0 \end{bmatrix} =
 \begin{bmatrix} 1 \\ 0 \\ 0 \\ \vdots \\ 0 \\ 0 \\ 0 \end{bmatrix}\end{split}\]</div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;orca-photonics&quot;</span><span class="p">)</span>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
     <span class="c1"># A single qumode with 2 levels initialized to the ground / zero state.</span>
     <span class="n">level</span> <span class="o">=</span> <span class="mi">2</span>
     <span class="n">qumode</span> <span class="o">=</span> <span class="n">qudit</span><span class="p">(</span><span class="n">level</span><span class="p">)</span>
@@ -887,14 +888,14 @@ operator is defined by</p>
 <p>As an example, the code below implements a simulation of the Hong-Ou-Mandel
 effect, in which two identical photons that interfere on a balanced beam
 splitter leave the beam splitter together.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
-<span class="kn">import</span> <span class="nn">math</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
 
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;orca-photonics&quot;</span><span class="p">)</span>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
     <span class="n">n_modes</span> <span class="o">=</span> <span class="mi">2</span>
     <span class="n">level</span> <span class="o">=</span> <span class="mi">3</span>  <span class="c1"># qudit level</span>
 

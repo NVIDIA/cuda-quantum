@@ -334,6 +334,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#features">Features</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#single-gpu">Single-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
 </ul>
 </li>
@@ -754,22 +755,22 @@ Infleqtion’s gate-based neutral-atom quantum computer, making the benefits of 
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">try</span><span class="p">:</span>
-    <span class="kn">import</span> <span class="nn">cudaq_solvers</span> <span class="k">as</span> <span class="nn">solvers</span>
-    <span class="kn">import</span> <span class="nn">cudaq</span>
-    <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">cudaq_solvers</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">solvers</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
 <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Installing required packages...&quot;</span><span class="p">)</span>
     <span class="o">%</span><span class="k">pip</span> install --quiet &#39;cudaq-solvers&#39; &#39;matplotlib&#39;
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Installed `cudaq`, `cudaq-solvers`, and `matplotlib` packages.&quot;</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;You may need to restart the kernel to import newly installed packages.&quot;</span><span class="p">)</span>
-    <span class="kn">import</span> <span class="nn">cudaq_solvers</span> <span class="k">as</span> <span class="nn">solvers</span>
-    <span class="kn">import</span> <span class="nn">cudaq</span>
-    <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">cudaq_solvers</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">solvers</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
 
-<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Sequence</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">minimize</span>
-<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.optimize</span><span class="w"> </span><span class="kn">import</span> <span class="n">minimize</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 </pre></div>
 </div>
 </div>
@@ -798,7 +799,7 @@ do not have GPU access), enabled by CUDA-Q, in the absence of noise:</p>
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">ansatz</span><span class="p">(</span><span class="n">n_qubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">Kernel</span><span class="p">:</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">ansatz</span><span class="p">(</span><span class="n">n_qubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">Kernel</span><span class="p">:</span>
     <span class="c1"># Create a CUDA-Q parameterized kernel</span>
     <span class="n">paramterized_ansatz</span><span class="p">,</span> <span class="n">variational_angles</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
     <span class="n">qubits</span> <span class="o">=</span> <span class="n">paramterized_ansatz</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="n">n_qubits</span><span class="p">)</span>
@@ -814,7 +815,7 @@ do not have GPU access), enabled by CUDA-Q, in the absence of noise:</p>
     <span class="k">return</span> <span class="n">paramterized_ansatz</span>
 
 
-<span class="k">def</span> <span class="nf">run_logical_vqe</span><span class="p">(</span><span class="n">cudaq_hamiltonian</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">run_logical_vqe</span><span class="p">(</span><span class="n">cudaq_hamiltonian</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>
     <span class="c1"># Set seed for easier reproduction</span>
     <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
 
@@ -856,7 +857,7 @@ Full details on the circuit constructions are outlined in our <a class="referenc
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">aim_physical_circuit</span><span class="p">(</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">aim_physical_circuit</span><span class="p">(</span>
     <span class="n">angles</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">basis</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">ignore_meas_id</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">Kernel</span><span class="p">:</span>
     <span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
@@ -897,7 +898,7 @@ Full details on the circuit constructions are outlined in our <a class="referenc
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">aim_logical_circuit</span><span class="p">(</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">aim_logical_circuit</span><span class="p">(</span>
     <span class="n">angles</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">basis</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">ignore_meas_id</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">Kernel</span><span class="p">:</span>
     <span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
@@ -946,7 +947,7 @@ Full details on the circuit constructions are outlined in our <a class="referenc
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">generate_circuit_set</span><span class="p">(</span><span class="n">ignore_meas_id</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">generate_circuit_set</span><span class="p">(</span><span class="n">ignore_meas_id</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
     <span class="n">u_vals</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">9</span><span class="p">]</span>
     <span class="n">v_vals</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">9</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">7</span><span class="p">]</span>
     <span class="n">circuit_dict</span> <span class="o">=</span> <span class="p">{}</span>
@@ -1016,14 +1017,14 @@ Finished building optimized circuits!
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">_num_qubits</span><span class="p">(</span><span class="n">counts</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">_num_qubits</span><span class="p">(</span><span class="n">counts</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
     <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">counts</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">isdecimal</span><span class="p">():</span>
             <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
     <span class="k">return</span> <span class="mi">0</span>
 
 
-<span class="k">def</span> <span class="nf">process_counts</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">process_counts</span><span class="p">(</span>
     <span class="n">counts</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span>
     <span class="n">data_qubits</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
     <span class="n">flag_qubits</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
@@ -1044,7 +1045,7 @@ Finished building optimized circuits!
     <span class="k">return</span> <span class="n">new_data</span>
 
 
-<span class="k">def</span> <span class="nf">decode</span><span class="p">(</span><span class="n">counts</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">(</span><span class="n">counts</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Decode physical counts into logical counts. Should be called after `process_counts`.&quot;&quot;&quot;</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">counts</span><span class="p">:</span>
@@ -1076,7 +1077,7 @@ Finished building optimized circuits!
     <span class="k">return</span> <span class="n">new_data</span>
 
 
-<span class="k">def</span> <span class="nf">ev_x</span><span class="p">(</span><span class="n">counts</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">ev_x</span><span class="p">(</span><span class="n">counts</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
     <span class="n">ev</span> <span class="o">=</span> <span class="mf">0.0</span>
 
     <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">counts</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -1087,7 +1088,7 @@ Finished building optimized circuits!
     <span class="k">return</span> <span class="n">ev</span>
 
 
-<span class="k">def</span> <span class="nf">ev_xx</span><span class="p">(</span><span class="n">counts</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">ev_xx</span><span class="p">(</span><span class="n">counts</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
     <span class="n">ev</span> <span class="o">=</span> <span class="mf">0.0</span>
 
     <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">counts</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -1098,7 +1099,7 @@ Finished building optimized circuits!
     <span class="k">return</span> <span class="n">ev</span>
 
 
-<span class="k">def</span> <span class="nf">ev_zz</span><span class="p">(</span><span class="n">counts</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">ev_zz</span><span class="p">(</span><span class="n">counts</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
     <span class="n">ev</span> <span class="o">=</span> <span class="mf">0.0</span>
 
     <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">counts</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -1109,7 +1110,7 @@ Finished building optimized circuits!
     <span class="k">return</span> <span class="n">ev</span>
 
 
-<span class="k">def</span> <span class="nf">aim_logical_energies</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">aim_logical_energies</span><span class="p">(</span>
     <span class="n">data_ordering</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span> <span class="n">counts_list</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="nb">float</span><span class="p">],</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="nb">float</span><span class="p">]]:</span>
     <span class="n">counts_data</span> <span class="o">=</span> <span class="p">{</span>
@@ -1125,7 +1126,7 @@ Finished building optimized circuits!
     <span class="k">return</span> <span class="n">_aim_energies</span><span class="p">(</span><span class="n">counts_data</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">aim_physical_energies</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">aim_physical_energies</span><span class="p">(</span>
     <span class="n">data_ordering</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span> <span class="n">counts_list</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="nb">float</span><span class="p">],</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="nb">float</span><span class="p">]]:</span>
     <span class="n">counts_data</span> <span class="o">=</span> <span class="p">{</span>
@@ -1138,7 +1139,7 @@ Finished building optimized circuits!
     <span class="k">return</span> <span class="n">_aim_energies</span><span class="p">(</span><span class="n">counts_data</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_aim_energies</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_aim_energies</span><span class="p">(</span>
     <span class="n">counts_data</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="nb">float</span><span class="p">],</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="nb">float</span><span class="p">]]:</span>
     <span class="n">evxs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
@@ -1175,7 +1176,7 @@ Finished building optimized circuits!
     <span class="k">return</span> <span class="n">energies</span><span class="p">,</span> <span class="n">uncertainties</span>
 
 
-<span class="k">def</span> <span class="nf">_get_energy_diff</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_energy_diff</span><span class="p">(</span>
     <span class="n">bf_energies</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span>
     <span class="n">physical_energies</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span>
     <span class="n">logical_energies</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span>
@@ -1212,7 +1213,7 @@ Finished building optimized circuits!
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">submit_aim_circuits</span><span class="p">(</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">submit_aim_circuits</span><span class="p">(</span>
     <span class="n">circuit_dict</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">folder_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;future_aim_results&quot;</span><span class="p">,</span>
@@ -1273,7 +1274,7 @@ Finished building optimized circuits!
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">_get_async_results</span><span class="p">(</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">_get_async_results</span><span class="p">(</span>
     <span class="n">layers</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">folder_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;future_aim_results&quot;</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]]:</span>
     <span class="n">aim_results</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;physical&quot;</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">&quot;logical&quot;</span><span class="p">:</span> <span class="p">[]}</span>
@@ -1314,7 +1315,7 @@ Finished building optimized circuits!
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">get_device_noise</span><span class="p">(</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">get_device_noise</span><span class="p">(</span>
     <span class="n">depolar_prob_1q</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="n">depolar_prob_2q</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>

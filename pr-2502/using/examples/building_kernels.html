@@ -331,6 +331,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#features">Features</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#single-gpu">Single-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
 </ul>
 </li>
@@ -751,13 +752,13 @@ Topics include, building kernels, initializing states, and applying gate operati
 
 <span class="c1"># In[14]:</span>
 
-<span class="kn">import</span> <span class="nn">cudaq</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 
 <span class="c1"># In[15]:</span>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
     <span class="n">A</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
     <span class="n">B</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
     <span class="n">C</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
@@ -771,7 +772,7 @@ Topics include, building kernels, initializing states, and applying gate operati
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">N</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">N</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
     <span class="n">register</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
 
 
@@ -792,7 +793,7 @@ Topics include, building kernels, initializing states, and applying gate operati
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">vec</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">]):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">vec</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">]):</span>
     <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">(</span><span class="n">vec</span><span class="p">)</span>
 
 
@@ -801,18 +802,18 @@ Topics include, building kernels, initializing states, and applying gate operati
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
     <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
 
 
 <span class="c1"># Precision-Agnostic API</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
 <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.70710678</span> <span class="o">+</span> <span class="mi">0</span><span class="n">j</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.70710678</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">complex</span><span class="p">())</span>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
     <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
 
 
@@ -821,7 +822,7 @@ Topics include, building kernels, initializing states, and applying gate operati
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
     <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
 
 
@@ -830,7 +831,7 @@ Topics include, building kernels, initializing states, and applying gate operati
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel_initial</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel_initial</span><span class="p">():</span>
     <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
 
 
@@ -838,7 +839,7 @@ Topics include, building kernels, initializing states, and applying gate operati
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="p">):</span>
     <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
 
 
@@ -858,7 +859,7 @@ Topics include, building kernels, initializing states, and applying gate operati
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
     <span class="n">register</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
     <span class="n">h</span><span class="p">(</span><span class="n">register</span><span class="p">)</span>
 
@@ -869,7 +870,7 @@ Topics include, building kernels, initializing states, and applying gate operati
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
     <span class="n">register</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
     <span class="n">h</span><span class="p">(</span><span class="n">register</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>  <span class="c1"># first qubit</span>
     <span class="n">h</span><span class="p">(</span><span class="n">register</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>  <span class="c1"># last qubit</span>
@@ -883,7 +884,7 @@ Topics include, building kernels, initializing states, and applying gate operati
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
     <span class="n">register</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
     <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">register</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
            <span class="n">register</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>  <span class="c1"># CNOT gate applied with qubit 0 as control</span>
@@ -897,7 +898,7 @@ Topics include, building kernels, initializing states, and applying gate operati
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
     <span class="n">register</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
     <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">([</span><span class="n">register</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">register</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span>
            <span class="n">register</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>  <span class="c1"># X applied to qubit two controlled by qubit 0 and 1</span>
@@ -909,13 +910,13 @@ Topics include, building kernels, initializing states, and applying gate operati
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">x_kernel</span><span class="p">(</span><span class="n">qubit</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">x_kernel</span><span class="p">(</span><span class="n">qubit</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">):</span>
     <span class="n">x</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
 
 
 <span class="c1"># A kernel that will call `x_kernel` as a controlled operation.</span>
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
 
     <span class="n">control_vector</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
     <span class="n">target</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
@@ -930,7 +931,7 @@ Topics include, building kernels, initializing states, and applying gate operati
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
     <span class="n">qvector</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
     <span class="n">x</span><span class="p">(</span><span class="n">qvector</span><span class="p">)</span>
     <span class="n">x</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
@@ -949,7 +950,7 @@ Topics include, building kernels, initializing states, and applying gate operati
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
     <span class="n">register</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
     <span class="n">t</span><span class="o">.</span><span class="n">adj</span><span class="p">(</span><span class="n">register</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
@@ -960,13 +961,13 @@ Topics include, building kernels, initializing states, and applying gate operati
 
 <span class="c1"># In[24]:</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
 <span class="n">cudaq</span><span class="o">.</span><span class="n">register_operation</span><span class="p">(</span><span class="s2">&quot;custom_x&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]))</span>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
     <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
     <span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="n">custom_x</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
@@ -981,12 +982,12 @@ Topics include, building kernels, initializing states, and applying gate operati
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel_A</span><span class="p">(</span><span class="n">qubit_0</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span> <span class="n">qubit_1</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel_A</span><span class="p">(</span><span class="n">qubit_0</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span> <span class="n">qubit_1</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">):</span>
     <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">qubit_0</span><span class="p">,</span> <span class="n">qubit_1</span><span class="p">)</span>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel_B</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel_B</span><span class="p">():</span>
     <span class="n">reg</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
         <span class="n">kernel_A</span><span class="p">(</span><span class="n">reg</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">reg</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
@@ -1000,7 +1001,7 @@ Topics include, building kernels, initializing states, and applying gate operati
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">thetas</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">thetas</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
     <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
     <span class="n">rx</span><span class="p">(</span><span class="n">thetas</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="n">ry</span><span class="p">(</span><span class="n">thetas</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>

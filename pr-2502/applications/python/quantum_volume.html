@@ -334,6 +334,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#features">Features</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#single-gpu">Single-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
 </ul>
 </li>
@@ -757,8 +758,8 @@ process is repeated many times and the resulted averaged. The test is passed if 
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
 <span class="c1"># Select an even number</span>
 <span class="n">n</span> <span class="o">=</span> <span class="mi">4</span>
@@ -767,7 +768,7 @@ process is repeated many times and the resulted averaged. The test is passed if 
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">su4_gate</span><span class="p">(</span><span class="n">q0</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span> <span class="n">q1</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">su4_gate</span><span class="p">(</span><span class="n">q0</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span> <span class="n">q1</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
     <span class="n">u3</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">params</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">params</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">q0</span><span class="p">)</span>
     <span class="n">u3</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">params</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="n">params</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span> <span class="n">q1</span><span class="p">)</span>
     <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">q0</span><span class="p">,</span> <span class="n">q1</span><span class="p">)</span>
@@ -781,7 +782,7 @@ process is repeated many times and the resulted averaged. The test is passed if 
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">qv</span><span class="p">(</span><span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">permutations</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">qv</span><span class="p">(</span><span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">permutations</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
 
     <span class="n">reg</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
     <span class="n">param_index</span> <span class="o">=</span> <span class="mi">0</span>
@@ -802,7 +803,7 @@ process is repeated many times and the resulted averaged. The test is passed if 
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">generate_random_params</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">generate_random_params</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
 
     <span class="n">params</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">n_params_in_su4</span> <span class="o">*</span> <span class="n">su4_per_circuit</span><span class="p">)</span>
 
@@ -812,7 +813,7 @@ process is repeated many times and the resulted averaged. The test is passed if 
 
 
 
-<span class="k">def</span> <span class="nf">generate_random_permutations</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">generate_random_permutations</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
 
     <span class="n">circuit_permutations</span> <span class="o">=</span> <span class="p">[]</span>
 
@@ -833,7 +834,7 @@ process is repeated many times and the resulted averaged. The test is passed if 
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">make_bitstring</span><span class="p">(</span><span class="n">integer</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">make_bitstring</span><span class="p">(</span><span class="n">integer</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 
     <span class="k">return</span> <span class="nb">bin</span><span class="p">(</span><span class="n">integer</span><span class="p">)[</span><span class="mi">2</span><span class="p">:]</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="n">n</span><span class="p">)[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 </pre></div>
@@ -847,7 +848,7 @@ process is repeated many times and the resulted averaged. The test is passed if 
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">percent_heavy_sampled</span><span class="p">(</span><span class="n">circuit_params</span><span class="p">,</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">percent_heavy_sampled</span><span class="p">(</span><span class="n">circuit_params</span><span class="p">,</span>
                           <span class="n">layer_permutations</span><span class="p">,</span>
                           <span class="n">error_rate</span><span class="p">,</span>
                           <span class="n">print_output</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
@@ -955,7 +956,7 @@ Percent of time noisy sample returned heavy bitstring
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">calc_qv</span><span class="p">(</span><span class="n">n_circuits</span><span class="p">,</span> <span class="n">circuit_size</span><span class="p">,</span> <span class="n">prob_of_error</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">calc_qv</span><span class="p">(</span><span class="n">n_circuits</span><span class="p">,</span> <span class="n">circuit_size</span><span class="p">,</span> <span class="n">prob_of_error</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 
     <span class="n">n</span> <span class="o">=</span> <span class="n">circuit_size</span>
     <span class="n">su4_per_circuit</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">n</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">n</span><span class="p">)</span>
