@@ -230,7 +230,15 @@ static int mpi_AllgatherV(const cudaqDistributedCommunicator_t *comm,
 /// @brief Wrapper of MPI_Isend and track pending requests for synchronization
 static int mpi_SendAsync(const cudaqDistributedCommunicator_t *comm,
                          const void *buf, int count, DataType dataType,
-                         int peer, int32_t tag) {
+                         int peer, int32_t tag, void *mpiRequest) {
+  // If a specific request was provided, just make MPI_Irecv call
+  if (mpiRequest)
+    return MPI_Isend(buf, count, convertType(dataType), peer, tag,
+                     unpackMpiCommunicator(comm), (MPI_Request *)mpiRequest);
+
+  // Otherwise, use the implicit request tracking mechanism (1 send and 1
+  // receive async call)
+
   std::scoped_lock<std::mutex> lock(PendingRequest::g_mutex);
   if (PendingRequest::g_requests[comm].nActiveRequests == 2)
     return -1;
@@ -249,7 +257,15 @@ static int mpi_SendAsync(const cudaqDistributedCommunicator_t *comm,
 
 /// @brief Wrapper of MPI_Irecv and track pending requests for synchronization
 static int mpi_RecvAsync(const cudaqDistributedCommunicator_t *comm, void *buf,
-                         int count, DataType dataType, int peer, int32_t tag) {
+                         int count, DataType dataType, int peer, int32_t tag,
+                         void *mpiRequest) {
+  // If a specific request was provided, just make MPI_Irecv call
+  if (mpiRequest)
+    return MPI_Irecv(buf, count, convertType(dataType), peer, tag,
+                     unpackMpiCommunicator(comm), (MPI_Request *)mpiRequest);
+
+  // Otherwise, use the implicit request tracking mechanism (1 send and 1
+  // receive async call)
   std::scoped_lock<std::mutex> lock(PendingRequest::g_mutex);
   if (PendingRequest::g_requests[comm].nActiveRequests == 2)
     return -1;
