@@ -72,7 +72,8 @@ struct ScratchDeviceMem {
                   2; // use half of available memory with alignment
   }
 
-  ScratchDeviceMem() {
+  // Allocate scratch device memory based on available memory
+  void allocate() {
     computeScratchSize();
     // Try allocate device memory
     auto errCode = cudaMalloc(&d_scratch, scratchSize);
@@ -86,7 +87,11 @@ struct ScratchDeviceMem {
       HANDLE_CUDA_ERROR(errCode);
     }
   }
-  ~ScratchDeviceMem() { HANDLE_CUDA_ERROR(cudaFree(d_scratch)); }
+
+  ~ScratchDeviceMem() {
+    if (scratchSize > 0)
+      HANDLE_CUDA_ERROR(cudaFree(d_scratch));
+  }
 };
 
 /// Initialize `cutensornet` MPI Comm
