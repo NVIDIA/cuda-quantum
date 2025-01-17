@@ -74,6 +74,10 @@ struct ScratchDeviceMem {
 
   // Allocate scratch device memory based on available memory
   void allocate() {
+    if (d_scratch)
+      throw std::runtime_error(
+          "Multiple scratch device memory allocations is not allowed.");
+
     computeScratchSize();
     // Try allocate device memory
     auto errCode = cudaMalloc(&d_scratch, scratchSize);
