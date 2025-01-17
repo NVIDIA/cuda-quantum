@@ -1,4 +1,4 @@
-Trapped Ion
+Ion Trap
 ============
 
 IonQ

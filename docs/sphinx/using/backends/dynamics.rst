@@ -1,4 +1,4 @@
-Dynamics Simulation (dynamics)
+Dynamics Simulation 
 +++++++++++++++++++++++++++++++
 
 CUDA-Q enables the design, simulation and execution of quantum dynamics via 

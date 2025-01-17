@@ -1,5 +1,5 @@
-CUDA-Q Quantum Hardware (QPU) Backends
-***************************************
+Quantum Hardware (QPU) 
+******************************
 CUDA-Q supports submission to a set of hardware providers.
 To submit to a hardware backend, you need an account with the respective provider.
 

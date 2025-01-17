@@ -8,7 +8,7 @@ Density Matrix (density-matrix-cpu)
 
 .. _density-matrix-cpu-backend:
 
-Unlike state vectors simulation which manipulates the :math:`2^n` state vector, density matrix simulations manipulate the :math:`2^n x 2^n`  density matrix which defines an ensemble of states.  Density matrix simulation is helpful for understanding the impact of noise on quantum applications. To learn how you can leverage the :code:density-matrix-cpu backend to study the impact of noise models on your applications, see the  `example here <https://nvidia.github.io/cuda-quantum/latest/examples/python/noisy_simulations.html>`__.
+Density matrix simulation is helpful for understanding the impact of noise on quantum applications. Unlike state vectors simulation which manipulates the :math:`2^n` state vector, density matrix simulations manipulate the :math:`2^n x 2^n`  density matrix which defines an ensemble of states. To learn how you can leverage the :code:density-matrix-cpu backend to study the impact of noise models on your applications, see the  `example here <https://nvidia.github.io/cuda-quantum/latest/examples/python/noisy_simulations.html>`__.
 
 The `Quantum Volume notebook <https://nvidia.github.io/cuda-quantum/latest/applications/python/quantum_volume.html>`__ also demonstrates a full application that leverages the :code:density-matrix-cpu backend. 
 
@@ -41,7 +41,7 @@ Stim (CPU)
 
 .. _stim-backend:
 
-This target provides a fast simulator for circuits containing *only* Clifford
+This backend provides a fast simulator for circuits containing *only* Clifford
 gates. Any non-Clifford gates (such as T gates and Toffoli gates) are not
 supported. This simulator is based on the `Stim <https://github.com/quantumlib/Stim>`_
 library.

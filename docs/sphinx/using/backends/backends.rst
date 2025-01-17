@@ -19,7 +19,7 @@ Click on the links below for each catagory to learn more about the backends it c
 .. toctree::
    :maxdepth: 1
       
-        Dynamics (dynamics) <dynamics.rst>
+        Dynamics Simulation <dynamics.rst>
 
 .. toctree::
    :maxdepth: 2

@@ -4,7 +4,7 @@ Tensor Network Simulators
 
 .. _tensor-backends:
 
-CUDA-Q provides a couple of tensor-network simulator targets accelerated with 
+CUDA-Q provides a couple of tensor-network simulator backends accelerated with 
 the :code:`cuTensorNet` library. Detailed technical information on the simulator can be found `here <https://docs.nvidia.com/cuda/cuquantum/latest/cutensornet/index.html>`__. 
 These backends are available for use from both C++ and Python.
 
@@ -196,4 +196,37 @@ compute expectation values of observables.
         cudaq.set_target("fermioniq",**{
             "project_id": project_id
         })
+
+.. tab:: C++
+
+    To target quantum kernel code for execution in the Fermioniq backends,
+    pass the flag ``--target fermioniq`` to the ``nvq++`` compiler. CUDA-Q will
+    authenticate via the Fermioniq REST API using the environment variables
+    set earlier.
+
+    .. code:: bash
+
+        nvq++ --target fermioniq src.cpp ...
+
+    You will have to specify a remote configuration id for the Fermioniq backend
+    during compilation.
+
+    .. code:: bash
+
+        nvq++ --target fermioniq --fermioniq-remote-config <remote_config_id> src.cpp ...
+
+    For a comprehensive list of all remote configurations, please contact Fermioniq directly.
+
+    When your organization requires you to define a project id, you have to specify
+    the project id during compilation.
+
+    .. code:: bash
+
+        nvq++ --target fermioniq --fermioniq-project-id <project_id> src.cpp ...
+
+    To specify the bond dimension, you can pass the ``fermioniq-bond-dim`` parameter.
+
+    .. code:: bash
+
+        nvq++ --target fermioniq --fermioniq-bond-dim 10 src.cpp ...       
 
