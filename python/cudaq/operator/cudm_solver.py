@@ -44,6 +44,7 @@ def evolve_dynamics(
     schedule.reset()
     hilbert_space_dims = tuple(dimensions[d] for d in range(len(dimensions)))
 
+    # Check that the integrator can support distributed state if this is a distributed simulation.
     if cudaq_runtime.mpi.is_initialized() and cudaq_runtime.mpi.num_ranks(
     ) > 1 and integrator is not None and not integrator.support_distributed_state(
     ):
