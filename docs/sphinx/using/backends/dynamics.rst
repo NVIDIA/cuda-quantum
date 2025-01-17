@@ -306,7 +306,7 @@ Specifically, it will detect the number of processes (GPUs) and distribute the c
     but the selected integrator does not support distributed state. 
 
 .. warning:: 
-    As of cuquantum version 24.11, there are a couple of `known limitations <https://docs.nvidia.com/cuda/cuquantum/24.11.0/cudensitymat/index.html>`__ for parallel execution:
+    As of cuQuantum version 24.11, there are a couple of `known limitations <https://docs.nvidia.com/cuda/cuquantum/24.11.0/cudensitymat/index.html>`__ for parallel execution:
 
     - Computing the expectation value of a mixed quantum state is not supported. Thus, `collapse_operators` are not supported if expectation calculation is required.
 
