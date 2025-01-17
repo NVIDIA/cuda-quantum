@@ -434,7 +434,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__quantum__qis__custom_unitary(!cc.ptr<complex<f64>>, !qir_array, !qir_array, !qir_charptr)
   func.func private @__quantum__qis__custom_unitary__adj(!cc.ptr<complex<f64>>, !qir_array, !qir_array, !qir_charptr)
 
-  func.func private @commonInvokeWithRotationsControlsTargets(i64, !cc.ptr<f64>, i64, !cc.ptr<i64>, !cc.ptr<none>, i64, !cc.ptr<none>, !cc.ptr<none>)
+  llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i64, !qir_llvmptr, ...)
 )#"},
 
     // Declarations for base and adaptive profile QIR functions used by codegen.
@@ -495,7 +495,8 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     // but used by the QIR specification.
 
     // Use opaque pointers (LLVM's `ptr` type). The type of the referent is
-    // always implicit and unambiguous from its usage.
+    // always implicit and unambiguous from its usage. At the moment, this is
+    // using i8* instead of ptr, since the latter requires some other changes.
     {"qir_opaque_pointer",
      {},
      R"#(
@@ -503,6 +504,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   !qir_qubit = !cc.ptr<none>
   !qir_result = !cc.ptr<none>
   !qir_charptr = !cc.ptr<none>
+  !qir_llvmptr = !llvm.ptr<i8>
     )#"},
     // Use the obsolete LLVM opaque struct type.
     {"qir_opaque_struct",
@@ -512,6 +514,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   !qir_qubit = !cc.ptr<!llvm.struct<"Qubit", opaque>>
   !qir_result = !cc.ptr<!llvm.struct<"Result", opaque>>
   !qir_charptr = !cc.ptr<i8>
+  !qir_llvmptr = !llvm.ptr<i8>
     )#"},
 
     // streamlinedLaunchKernel(kernelName, vectorArgPtrs)

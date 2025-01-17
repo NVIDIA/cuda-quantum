@@ -65,7 +65,10 @@ def ConvertToQIR : Pass<"quake-to-qir", "mlir::ModuleOp"> {
 def LowerToCG : Pass<"lower-to-cg", "mlir::ModuleOp"> {
   let summary = "Lower Quake to CG dialect.";
   let description = [{
-    For testing purposes only.
+    Lower the Quake IR to the codegen dialect. The codegen dialect is used to
+    fuse small DAGs of IR into larger macro operations just prior to the final
+    codegen. This allows conversions to take place on the macro operations and
+    avoid some of the limitations of an MLIR conversion pass.
   }];
   let dependentDialects = [ "cudaq::codegen::CodeGenDialect" ];
 }

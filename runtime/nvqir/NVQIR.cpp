@@ -127,6 +127,7 @@ Array *vectorSizetToArray(std::vector<std::size_t> &idxs) {
 
 /// @brief Utility function mapping a QIR Array pointer to a vector of ids
 std::vector<std::size_t> arrayToVectorSizeT(Array *arr) {
+  assert(arr && "array must not be null");
   std::vector<std::size_t> ret;
   const auto arrSize = arr->size();
   for (std::size_t i = 0; i < arrSize; ++i) {
@@ -140,17 +141,11 @@ std::vector<std::size_t> arrayToVectorSizeT(Array *arr) {
   return ret;
 }
 
-static std::vector<std::size_t> safeArrayToVectorSizeT(Array *arr) {
-  if (!arr)
-    return {};
-  return arrayToVectorSizeT(arr);
-}
-
 /// @brief Utility function mapping a QIR Qubit pointer to its id
 std::size_t qubitToSizeT(Qubit *q) {
   if (qubitPtrIsIndex)
     return (intptr_t)q;
-
+  assert(q && "qubit must not be null");
   return q->idx;
 }
 
@@ -617,6 +612,12 @@ void __quantum__rt__result_record_output(Result *r, int8_t *name) {
                                      reinterpret_cast<const char *>(name));
 }
 
+static std::vector<std::size_t> safeArrayToVectorSizeT(Array *arr) {
+  if (!arr)
+    return {};
+  return arrayToVectorSizeT(arr);
+}
+
 void __quantum__qis__custom_unitary(std::complex<double> *unitary,
                                     Array *controls, Array *targets,
                                     const char *name) {
@@ -922,7 +923,7 @@ void releasePackedQubitArray(Array *a) {
 /// targets. \p isArrayAndLength is a buffer used to determine the type of the
 /// control arguments and must be present if \p numControlOperands is non-zero.
 /// The length of \p isArrayAndLength must also be \p numControlOperands.
-void commonInvokeWithRotationsControlsTargets(
+static void commonInvokeWithRotationsControlsTargets(
     std::size_t numRotationOperands, double *params,
     std::size_t numControlOperands, std::size_t *isArrayAndLength,
     Qubit **controls, std::size_t numTargetOperands, Qubit **targets,
@@ -1005,6 +1006,38 @@ void commonInvokeWithRotationsControlsTargets(
           targets[1]);
     break;
   }
+}
+
+void generalizedInvokeWithRotationsControlsTargets(
+    std::size_t numRotationOperands, std::size_t numControlArrayOperands,
+    std::size_t numControlQubitOperands, std::size_t numTargetOperands,
+    void (*QISFunction)(...), ...) {
+  const std::size_t totalControls =
+      numControlArrayOperands + numControlQubitOperands;
+  double parameters[numRotationOperands];
+  std::size_t arrayAndLength[totalControls];
+  Qubit *controls[totalControls];
+  Qubit *targets[numTargetOperands];
+  std::size_t i;
+  va_list args;
+  va_start(args, QISFunction);
+  for (i = 0; i < numRotationOperands; ++i)
+    parameters[i] = va_arg(args, double);
+  for (i = 0; i < numControlArrayOperands; ++i) {
+    arrayAndLength[i] = va_arg(args, std::size_t);
+    controls[i] = va_arg(args, Qubit *);
+  }
+  for (i = 0; i < numControlQubitOperands; ++i) {
+    arrayAndLength[i] = 0;
+    controls[numControlArrayOperands + i] = va_arg(args, Qubit *);
+  }
+  for (i = 0; i < numTargetOperands; ++i)
+    targets[i] = va_arg(args, Qubit *);
+  va_end(args);
+
+  commonInvokeWithRotationsControlsTargets(
+      numRotationOperands, parameters, totalControls, arrayAndLength, controls,
+      numTargetOperands, targets, reinterpret_cast<void (*)()>(QISFunction));
 }
 
 /// @brief Utility function used by Quake->QIR to invoke a QIR QIS function
