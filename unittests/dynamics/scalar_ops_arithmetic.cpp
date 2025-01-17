@@ -31,6 +31,7 @@ TEST(OperatorExpressions, checkScalarOpsArithmeticDoubles) {
     auto new_scalar_op = value_1 + scalar_op;
     // function + scalar_op;
     auto reverse_order_op = scalar_op + value_1;
+    EXPECT_NEAR(std::abs(scalar_op.evaluate({})), std::abs(value_0), 1e-5);
 
     auto got_value = new_scalar_op.evaluate({});
     auto got_value_1 = reverse_order_op.evaluate({});
@@ -156,13 +157,13 @@ TEST(OperatorExpressions, checkScalarOpsArithmeticDoubles) {
     auto got_value = new_scalar_op.evaluate({});
     auto got_value_1 = reverse_order_op.evaluate({});
 
-    EXPECT_NEAR(std::abs(got_value), std::abs(value_2 / value_3), 1e-5);
-    EXPECT_NEAR(std::abs(got_value_1), std::abs(value_3 / value_2), 1e-5);
+    EXPECT_NEAR(std::abs(got_value), std::abs(value_3 / value_2), 1e-5);
+    EXPECT_NEAR(std::abs(got_value_1), std::abs(value_2 / value_3), 1e-5);
 
     // Checking composition of many scalar operators.
     auto third_op = new_scalar_op / reverse_order_op;
     auto got_value_third = third_op.evaluate({});
-    auto want_value = (value_2 / value_3) / (value_3 / value_2);
+    auto want_value = (value_3 / value_2) / (value_2 / value_3);
     EXPECT_NEAR(std::abs(got_value_third), std::abs(want_value), 1e-5);
   }
 
@@ -176,13 +177,13 @@ TEST(OperatorExpressions, checkScalarOpsArithmeticDoubles) {
     auto got_value = new_scalar_op.evaluate({{"value", value_1}});
     auto got_value_1 = reverse_order_op.evaluate({{"value", value_1}});
 
-    EXPECT_NEAR(std::abs(got_value), std::abs(value_1 / value_3), 1e-5);
-    EXPECT_NEAR(std::abs(got_value_1), std::abs(value_3 / value_1), 1e-5);
+    EXPECT_NEAR(std::abs(got_value), std::abs(value_3 / value_1), 1e-5);
+    EXPECT_NEAR(std::abs(got_value_1), std::abs(value_1 / value_3), 1e-5);
 
     // Checking composition of many scalar operators.
     auto third_op = new_scalar_op / reverse_order_op;
     auto got_value_third = third_op.evaluate({{"value", value_1}});
-    auto want_value = (value_1 / value_3) / (value_3 / value_1);
+    auto want_value = (value_3 / value_1) / (value_1 / value_3);
     EXPECT_NEAR(std::abs(got_value_third), std::abs(want_value), 1e-5);
   }
 
