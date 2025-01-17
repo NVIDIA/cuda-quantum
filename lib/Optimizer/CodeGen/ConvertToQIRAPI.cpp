@@ -95,26 +95,50 @@ namespace {
 /// class is used for conversions as well as instantiating QIR types in
 /// conversion patterns.
 
-template <bool useOpaque>
 struct QIRAPITypeConverter : public TypeConverter {
-  QIRAPITypeConverter() {
-    addConversion([](Type ty) { return ty; });
+  using TypeConverter::convertType;
+
+  QIRAPITypeConverter(bool useOpaque) : useOpaque(useOpaque) {
+    addConversion([&](Type ty) { return ty; });
+    addConversion([&](FunctionType ft) { return convertFunctionType(ft); });
+    addConversion([&](cudaq::cc::PointerType ty) {
+      return cudaq::cc::PointerType::get(convertType(ty.getElementType()));
+    });
+    addConversion([&](cudaq::cc::CallableType ty) {
+      auto newSig = cast<FunctionType>(convertType(ty.getSignature()));
+      return cudaq::cc::CallableType::get(newSig);
+    });
     addConversion(
         [&](quake::VeqType ty) { return getArrayType(ty.getContext()); });
     addConversion(
         [&](quake::RefType ty) { return getQubitType(ty.getContext()); });
-    addConversion([&](quake::StruqType ty) {
-      SmallVector<Type> mems;
-      for (auto m : ty.getMembers())
-        mems.push_back(convertType(m));
-      return cudaq::cc::StructType::get(ty.getContext(), mems);
-    });
-    addConversion([&](quake::MeasureType ty) -> Type {
-      return getResultType(ty.getContext());
-    });
+    addConversion(
+        [&](quake::WireType ty) { return getQubitType(ty.getContext()); });
+    addConversion(
+        [&](quake::ControlType ty) { return getQubitType(ty.getContext()); });
+    addConversion(
+        [&](quake::MeasureType ty) { return getResultType(ty.getContext()); });
+    addConversion([&](quake::StruqType ty) { return convertStruqType(ty); });
   }
 
-private:
+  Type convertFunctionType(FunctionType ty) {
+    SmallVector<Type> args;
+    if (failed(convertTypes(ty.getInputs(), args)))
+      return {};
+    SmallVector<Type> res;
+    if (failed(convertTypes(ty.getResults(), res)))
+      return {};
+    return FunctionType::get(ty.getContext(), args, res);
+  }
+
+  Type convertStruqType(quake::StruqType ty) {
+    SmallVector<Type> mems;
+    mems.reserve(ty.getNumMembers());
+    if (failed(convertTypes(ty.getMembers(), mems)))
+      return {};
+    return cudaq::cc::StructType::get(ty.getContext(), mems);
+  }
+
   Type getQubitType(MLIRContext *ctx) {
     return cudaq::cg::getQubitType(ctx, useOpaque);
   }
@@ -124,9 +148,8 @@ private:
   Type getResultType(MLIRContext *ctx) {
     return cudaq::cg::getResultType(ctx, useOpaque);
   }
-  Type getCharPointerType(MLIRContext *ctx) {
-    return cudaq::cg::getCharPointerType(ctx, useOpaque);
-  }
+
+  bool useOpaque;
 };
 } // namespace
 
@@ -498,9 +521,9 @@ struct GetMemberOpRewrite : public OpConversionPattern<quake::GetMemberOp> {
   matchAndRewrite(quake::GetMemberOp member, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto toTy = getTypeConverter()->convertType(member.getType());
-    std::int64_t position = adaptor.getIndex();
-    rewriter.replaceOpWithNewOp<LLVM::ExtractValueOp>(
-        member, toTy, adaptor.getStruq(), ArrayRef<std::int64_t>{position});
+    std::int32_t position = adaptor.getIndex();
+    rewriter.replaceOpWithNewOp<cudaq::cc::ExtractValueOp>(
+        member, toTy, adaptor.getStruq(), position);
     return success();
   }
 };
@@ -512,7 +535,7 @@ struct VeqSizeOpRewrite : public OpConversionPattern<quake::VeqSizeOp> {
   matchAndRewrite(quake::VeqSizeOp veqsize, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     rewriter.replaceOpWithNewOp<func::CallOp>(
-        veqsize, TypeRange{rewriter.getI64Type()}, cudaq::opt::QIRArrayGetSize,
+        veqsize, TypeRange{veqsize.getType()}, cudaq::opt::QIRArrayGetSize,
         adaptor.getOperands());
     return success();
   }
@@ -806,13 +829,15 @@ struct ExpPauliOpPattern : public OpConversionPattern<quake::ExpPauliOp> {
       auto castedPauli =
           rewriter.create<cudaq::cc::CastOp>(loc, i8PtrTy, pauliWord);
       auto strPtr = rewriter.create<cudaq::cc::ComputePtrOp>(
-          loc, i8PtrTy, alloca, ArrayRef<cudaq::cc::ComputePtrArg>{0});
+          loc, cudaq::cc::PointerType::get(i8PtrTy), alloca,
+          ArrayRef<cudaq::cc::ComputePtrArg>{0, 0});
       rewriter.create<cudaq::cc::StoreOp>(loc, castedPauli, strPtr);
 
       // Set the integer length
       auto intPtr = rewriter.create<cudaq::cc::ComputePtrOp>(
-          loc, i8PtrTy, alloca, ArrayRef<cudaq::cc::ComputePtrArg>{1});
-      rewriter.create<LLVM::StoreOp>(loc, size, intPtr);
+          loc, cudaq::cc::PointerType::get(rewriter.getI64Type()), alloca,
+          ArrayRef<cudaq::cc::ComputePtrArg>{0, 1});
+      rewriter.create<cudaq::cc::StoreOp>(loc, size, intPtr);
 
       // Cast to raw opaque pointer
       auto castedStore =
@@ -1186,6 +1211,173 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
 };
 
 //===----------------------------------------------------------------------===//
+// Handling of functions, calls, and classic memory ops on callables.
+//===----------------------------------------------------------------------===//
+
+struct FuncSignaturePattern : public OpConversionPattern<func::FuncOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(func::FuncOp func, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto funcTy = func.getFunctionType();
+    auto newFuncTy =
+        cast<FunctionType>(getTypeConverter()->convertType(funcTy));
+    if (funcTy == newFuncTy)
+      return failure();
+    if (funcTy.getNumInputs() && !func.getBody().empty()) {
+      // Replace the block argument types.
+      for (auto [blockArg, argTy] : llvm::zip(
+               func.getBody().front().getArguments(), newFuncTy.getInputs()))
+        blockArg.setType(argTy);
+    }
+    // Replace the signature.
+    rewriter.updateRootInPlace(func,
+                               [&]() { func.setFunctionType(newFuncTy); });
+    return success();
+  }
+};
+
+struct CreateLambdaPattern
+    : public OpConversionPattern<cudaq::cc::CreateLambdaOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(cudaq::cc::CreateLambdaOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto sigTy = cast<cudaq::cc::CallableType>(op.getSignature().getType());
+    auto newSigTy =
+        cast<cudaq::cc::CallableType>(getTypeConverter()->convertType(sigTy));
+    if (sigTy == newSigTy)
+      return failure();
+    if (sigTy.getSignature().getNumInputs() && !op.getInitRegion().empty()) {
+      // Replace the block argument types.
+      for (auto [blockArg, argTy] :
+           llvm::zip(op.getInitRegion().front().getArguments(),
+                     newSigTy.getSignature().getInputs()))
+        blockArg.setType(argTy);
+    }
+    // Replace the signature.
+    rewriter.updateRootInPlace(op,
+                               [&]() { op.getSignature().setType(newSigTy); });
+    return success();
+  }
+};
+
+struct CallableFuncPattern
+    : public OpConversionPattern<cudaq::cc::CallableFuncOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(cudaq::cc::CallableFuncOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto funcTy = op.getFunction().getType();
+    auto newFuncTy =
+        cast<FunctionType>(getTypeConverter()->convertType(funcTy));
+    rewriter.replaceOpWithNewOp<cudaq::cc::CallableFuncOp>(op, newFuncTy,
+                                                           op.getCallable());
+    return success();
+  }
+};
+
+template <typename OP>
+struct OpInterfacePattern : public OpConversionPattern<OP> {
+  using Base = OpConversionPattern<OP>;
+  using Base::Base;
+  using Base::getTypeConverter;
+
+  LogicalResult
+  matchAndRewrite(OP op, typename Base::OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto newResultTy = getTypeConverter()->convertType(op.getType());
+    rewriter.replaceOpWithNewOp<OP>(op, newResultTy, adaptor.getOperands(),
+                                    op->getAttrs());
+    return success();
+  }
+};
+
+using FuncConstantPattern = OpInterfacePattern<func::ConstantOp>;
+using FuncToPtrPattern = OpInterfacePattern<cudaq::cc::FuncToPtrOp>;
+using LoadOpPattern = OpInterfacePattern<cudaq::cc::LoadOp>;
+
+struct InstantiateCallablePattern
+    : public OpConversionPattern<cudaq::cc::InstantiateCallableOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(cudaq::cc::InstantiateCallableOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto sigTy = cast<cudaq::cc::CallableType>(op.getSignature().getType());
+    auto newSigTy =
+        cast<cudaq::cc::CallableType>(getTypeConverter()->convertType(sigTy));
+    rewriter.replaceOpWithNewOp<cudaq::cc::InstantiateCallableOp>(
+        op, newSigTy, op.getCallee(), op.getClosureData(),
+        op.getNoCaptureAttr());
+    return success();
+  }
+};
+
+struct StoreOpPattern : public OpConversionPattern<cudaq::cc::StoreOp> {
+  using Base = OpConversionPattern;
+  using Base::Base;
+  using Base::getTypeConverter;
+
+  LogicalResult
+  matchAndRewrite(cudaq::cc::StoreOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    rewriter.replaceOpWithNewOp<cudaq::cc::StoreOp>(
+        op, TypeRange{}, adaptor.getOperands(), op->getAttrs());
+    return success();
+  }
+};
+
+template <typename CALLOP>
+struct CallOpInterfacePattern : public OpConversionPattern<CALLOP> {
+  using Base = OpConversionPattern<CALLOP>;
+  using Base::Base;
+  using Base::getTypeConverter;
+
+  LogicalResult
+  matchAndRewrite(CALLOP op, typename Base::OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    SmallVector<Type> newResultTys;
+    for (auto ty : op.getResultTypes())
+      newResultTys.emplace_back(getTypeConverter()->convertType(ty));
+    rewriter.replaceOpWithNewOp<CALLOP>(op, newResultTys, adaptor.getOperands(),
+                                        op->getAttrs());
+    return success();
+  }
+};
+
+using CallOpPattern = CallOpInterfacePattern<func::CallOp>;
+using CallIndirectOpPattern = CallOpInterfacePattern<func::CallIndirectOp>;
+using CallCallableOpPattern = CallOpInterfacePattern<cudaq::cc::CallCallableOp>;
+using CallIndirectCallableOpPattern =
+    CallOpInterfacePattern<cudaq::cc::CallIndirectCallableOp>;
+
+//===----------------------------------------------------------------------===//
+// Patterns that are common to all QIR conversions.
+//===----------------------------------------------------------------------===//
+
+static void commonClassicalHandlingPatterns(RewritePatternSet &patterns,
+                                            TypeConverter &typeConverter,
+                                            MLIRContext *ctx) {
+  patterns.insert<CallableFuncPattern, CallCallableOpPattern,
+                  CallIndirectCallableOpPattern, CallIndirectOpPattern,
+                  CallOpPattern, CreateLambdaPattern, FuncConstantPattern,
+                  FuncSignaturePattern, FuncToPtrPattern,
+                  InstantiateCallablePattern, LoadOpPattern, StoreOpPattern>(
+      typeConverter, ctx);
+}
+
+static void commonQuakeHandlingPatterns(RewritePatternSet &patterns,
+                                        TypeConverter &typeConverter,
+                                        MLIRContext *ctx) {
+  patterns.insert<GetMemberOpRewrite, MakeStruqOpRewrite, RelaxSizeOpErase,
+                  VeqSizeOpRewrite>(typeConverter, ctx);
+}
+
+//===----------------------------------------------------------------------===//
 // Modifier classes
 //===----------------------------------------------------------------------===//
 
@@ -1206,9 +1398,8 @@ struct FullQIR {
     patterns.insert<
         /* Rewrites for qubit management and aggregation. */
         AllocaOpToCallsRewrite<Self>, ConcatOpRewrite<Self>, DeallocOpRewrite,
-        DiscriminateOpRewrite, ExtractRefOpRewrite<Self>, GetMemberOpRewrite,
-        MakeStruqOpRewrite, QmemRAIIOpRewrite<Self>, RelaxSizeOpErase,
-        SubveqOpRewrite<Self>, VeqSizeOpRewrite,
+        DiscriminateOpRewrite, ExtractRefOpRewrite<Self>,
+        QmemRAIIOpRewrite<Self>, SubveqOpRewrite<Self>,
 
         /* Irregular quantum operators. */
         CustomUnitaryOpPattern<Self>, ExpPauliOpPattern,
@@ -1229,6 +1420,8 @@ struct FullQIR {
         QuantumGatePattern<Self, quake::XOp>,
         QuantumGatePattern<Self, quake::YOp>,
         QuantumGatePattern<Self, quake::ZOp>>(typeConverter, ctx);
+    commonQuakeHandlingPatterns(patterns, typeConverter, ctx);
+    commonClassicalHandlingPatterns(patterns, typeConverter, ctx);
   }
 
   static StringRef getQIRMeasure() { return cudaq::opt::QIRMeasure; }
@@ -1265,12 +1458,12 @@ struct AnyProfileQIR {
 
   static void populateRewritePatterns(RewritePatternSet &patterns,
                                       TypeConverter &typeConverter) {
+    auto *ctx = patterns.getContext();
     patterns.insert<
         /* Rewrites for qubit management and aggregation. */
         AllocaOpToIntRewrite<Self>, ConcatOpRewrite<Self>, DeallocOpErase,
-        ExtractRefOpRewrite<Self>, GetMemberOpRewrite, MakeStruqOpRewrite,
-        QmemRAIIOpRewrite<Self>, RelaxSizeOpErase, SubveqOpRewrite<Self>,
-        VeqSizeOpRewrite,
+        ExtractRefOpRewrite<Self>, QmemRAIIOpRewrite<Self>,
+        SubveqOpRewrite<Self>,
 
         /* Irregular quantum operators. */
         CustomUnitaryOpPattern<Self>, ExpPauliOpPattern, ResetOpPattern<Self>,
@@ -1289,8 +1482,9 @@ struct AnyProfileQIR {
         QuantumGatePattern<Self, quake::U3Op>,
         QuantumGatePattern<Self, quake::XOp>,
         QuantumGatePattern<Self, quake::YOp>,
-        QuantumGatePattern<Self, quake::ZOp>>(typeConverter,
-                                              patterns.getContext());
+        QuantumGatePattern<Self, quake::ZOp>>(typeConverter, ctx);
+    commonQuakeHandlingPatterns(patterns, typeConverter, ctx);
+    commonClassicalHandlingPatterns(patterns, typeConverter, ctx);
   }
 
   static StringRef getQIRMeasure() { return cudaq::opt::QIRMeasureBody; }
@@ -1360,12 +1554,11 @@ struct QuakeToQIRAPIPass
   using QuakeToQIRAPIBase::QuakeToQIRAPIBase;
 
   template <typename A>
-  void processOperation() {
+  void processOperation(QIRAPITypeConverter &typeConverter) {
     auto *op = getOperation();
     LLVM_DEBUG(llvm::dbgs() << "Before QIR API conversion:\n" << *op << '\n');
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
-    auto typeConverter = createQIRAPITypeConverter();
     A::populateRewritePatterns(patterns, typeConverter);
     ConversionTarget target(*ctx);
     target
@@ -1373,30 +1566,73 @@ struct QuakeToQIRAPIPass
                          cudaq::codegen::CodeGenDialect, cf::ControlFlowDialect,
                          func::FuncDialect, LLVM::LLVMDialect>();
     target.addIllegalDialect<quake::QuakeDialect>();
+    target.addDynamicallyLegalOp<func::FuncOp>(
+        [&](func::FuncOp fn) { return !hasQuakeType(fn.getFunctionType()); });
+    target.addDynamicallyLegalOp<func::ConstantOp>([&](func::ConstantOp fn) {
+      return !hasQuakeType(fn.getResult().getType());
+    });
+    target.addDynamicallyLegalOp<cudaq::cc::CallableFuncOp>(
+        [&](cudaq::cc::CallableFuncOp op) {
+          return !hasQuakeType(op.getFunction().getType());
+        });
+    target.addDynamicallyLegalOp<cudaq::cc::CreateLambdaOp>(
+        [&](cudaq::cc::CreateLambdaOp op) {
+          return !hasQuakeType(op.getSignature().getType());
+        });
+    target.addDynamicallyLegalOp<cudaq::cc::InstantiateCallableOp>(
+        [&](cudaq::cc::InstantiateCallableOp op) {
+          return !hasQuakeType(op.getSignature().getType());
+        });
+    target.addDynamicallyLegalOp<
+        func::CallOp, func::CallIndirectOp, cudaq::cc::CallCallableOp,
+        cudaq::cc::CallIndirectCallableOp, cudaq::cc::FuncToPtrOp,
+        cudaq::cc::StoreOp, cudaq::cc::LoadOp>([&](Operation *op) {
+      for (auto opnd : op->getOperands())
+        if (hasQuakeType(opnd.getType()))
+          return false;
+      for (auto res : op->getResults())
+        if (hasQuakeType(res.getType()))
+          return false;
+      return true;
+    });
+    target.markUnknownOpDynamicallyLegal([](Operation *) { return true; });
     if (failed(applyPartialConversion(op, target, std::move(patterns))))
       signalPassFailure();
     LLVM_DEBUG(llvm::dbgs() << "After QIR API conversion:\n" << *op << '\n');
   }
 
-  TypeConverter createQIRAPITypeConverter() {
-    if (opaquePtr)
-      return QIRAPITypeConverter</*opaquePtr=*/true>{};
-    return QIRAPITypeConverter</*opaquePtr=*/false>{};
+  static bool hasQuakeType(Type ty) {
+    if (auto pty = dyn_cast<cudaq::cc::PointerType>(ty))
+      return hasQuakeType(pty.getElementType());
+    if (auto cty = dyn_cast<cudaq::cc::CallableType>(ty))
+      return hasQuakeType(cty.getSignature());
+    if (auto fty = dyn_cast<FunctionType>(ty)) {
+      for (auto t : fty.getInputs())
+        if (hasQuakeType(t))
+          return true;
+      for (auto t : fty.getResults())
+        if (hasQuakeType(t))
+          return true;
+      return false;
+    }
+    return quake::isQuakeType(ty);
   }
 
   void runOnOperation() override {
+    LLVM_DEBUG(llvm::dbgs() << "Begin converting to QIR\n");
+    QIRAPITypeConverter typeConverter(opaquePtr);
     if (api == "full") {
       if (opaquePtr)
-        processOperation<FullQIR</*opaquePtr=*/true>>();
-      processOperation<FullQIR</*opaquePtr=*/false>>();
+        processOperation<FullQIR</*opaquePtr=*/true>>(typeConverter);
+      processOperation<FullQIR</*opaquePtr=*/false>>(typeConverter);
     } else if (api == "base-profile") {
       if (opaquePtr)
-        processOperation<BaseProfileQIR</*opaquePtr=*/true>>();
-      processOperation<BaseProfileQIR</*opaquePtr=*/false>>();
+        processOperation<BaseProfileQIR</*opaquePtr=*/true>>(typeConverter);
+      processOperation<BaseProfileQIR</*opaquePtr=*/false>>(typeConverter);
     } else if (api == "adaptive-profile") {
       if (opaquePtr)
-        processOperation<AdaptiveProfileQIR</*opaquePtr=*/true>>();
-      processOperation<AdaptiveProfileQIR</*opaquePtr=*/false>>();
+        processOperation<AdaptiveProfileQIR</*opaquePtr=*/true>>(typeConverter);
+      processOperation<AdaptiveProfileQIR</*opaquePtr=*/false>>(typeConverter);
     } else {
       getOperation()->emitOpError("The currently supported APIs are: 'full', "
                                   "'base-profile', 'adaptive-profile'.");
@@ -1451,111 +1687,123 @@ struct QuakeToQIRAPIPrepPass
       }
     }
 
-    // Perform allocation and measurement analysis and stick attributes on the
-    // Ops as needed.
-    auto builder = OpBuilder(module);
-    module.walk([&](func::FuncOp func) {
-      std::size_t totalQubits = 0;
-      std::size_t totalResults = 0;
-      int counter = 0;
-
-      // A map to keep track of wire set usage.
-      DenseMap<StringRef, DenseSet<std::size_t>> borrowSets;
-
-      // Recursive walk in func.
-      func.walk([&](Operation *op) {
-        // Annotate all qubit allocations with the starting qubit index value.
-        // This ought to handle both reference and value semantics. If the
-        // value semantics is using wire sets, no (redundant) annotation is
-        // needed.
-        if (auto alloc = dyn_cast<quake::AllocaOp>(op)) {
-          auto allocTy = alloc.getType();
-          if (isa<quake::RefType>(allocTy)) {
-            alloc->setAttr(cudaq::opt::StartingOffsetAttrName,
-                           builder.getI64IntegerAttr(totalQubits++));
-            return;
-          }
-          if (!isa<quake::VeqType>(allocTy)) {
-            alloc.emitOpError("must be veq type.");
-            return;
-          }
-          auto veqTy = cast<quake::VeqType>(allocTy);
-          if (!veqTy.hasSpecifiedSize()) {
-            alloc.emitOpError("must have a constant size.");
-            return;
-          }
-          alloc->setAttr(cudaq::opt::StartingOffsetAttrName,
-                         builder.getI64IntegerAttr(totalQubits));
-          totalQubits += veqTy.getSize();
-          return;
-        }
-        if (auto nw = dyn_cast<quake::NullWireOp>(op)) {
-          nw->setAttr(cudaq::opt::StartingOffsetAttrName,
-                      builder.getI64IntegerAttr(totalQubits++));
-          return;
-        }
-        if (auto bw = dyn_cast<quake::BorrowWireOp>(op)) {
-          [[maybe_unused]] StringRef name = bw.getSetName();
-          [[maybe_unused]] std::int32_t wire = bw.getIdentity();
-          bw.emitOpError("not implemented.");
-          return;
-        }
-
-        // For each mz, we want to assign it a result index.
-        if (auto mz = dyn_cast<quake::MzOp>(op)) {
-          // Verify there is exactly one qubit being measured.
-          if (mz.getTargets().empty() ||
-              std::distance(mz.getTargets().begin(), mz.getTargets().end()) !=
-                  1) {
-            mz.emitOpError("must measure exactly one qubit.");
-            return;
-          }
-          mz->setAttr(cudaq::opt::ResultIndexAttrName,
-                      builder.getI64IntegerAttr(totalResults++));
-          if (!mz.getRegisterNameAttr()) {
-            // Manufacture a bogus name on demand here.
-            std::string manuName = std::to_string(counter++);
-            constexpr std::size_t padSize = 5;
-            manuName =
-                std::string(padSize - std::min(padSize, manuName.length()),
-                            '0') +
-                manuName;
-            mz.setRegisterName("r" + manuName);
-          } else {
-            mz->setAttr(cudaq::opt::MzAssignedNameAttrName,
-                        builder.getUnitAttr());
-          }
-        }
+    if (usingFullQIR) {
+      OpBuilder builder(module);
+      module.walk([&](func::FuncOp func) {
+        int counter = 0;
+        func.walk([&](quake::MzOp mz) {
+          guaranteeMzIsLabeled(mz, counter, builder);
+        });
       });
+    } else {
+      // If the API is one of the profile variants, we must perform allocation
+      // and measurement analysis and stick attributes on the Ops as needed.
+      OpBuilder builder(module);
+      module.walk([&](func::FuncOp func) {
+        std::size_t totalQubits = 0;
+        std::size_t totalResults = 0;
+        int counter = 0;
 
-      // If the API is one of the profile variants, the QIR consumer expects
-      // some bonus information by way of attributes. Add most of them here.
-      // (See also OUTPUT-NAME-MAP.)
-      SmallVector<Attribute> funcAttrs;
-      if (api != "full" && func->hasAttr(cudaq::kernelAttrName)) {
-        if (func->getAttr(cudaq::entryPointAttrName))
-          funcAttrs.push_back(
-              builder.getStringAttr(cudaq::opt::QIREntryPointAttrName));
-        if (api == "base-profile")
+        // A map to keep track of wire set usage.
+        DenseMap<StringRef, DenseSet<std::size_t>> borrowSets;
+
+        // Recursive walk in func.
+        func.walk([&](Operation *op) {
+          // Annotate all qubit allocations with the starting qubit index value.
+          // This ought to handle both reference and value semantics. If the
+          // value semantics is using wire sets, no (redundant) annotation is
+          // needed.
+          if (auto alloc = dyn_cast<quake::AllocaOp>(op)) {
+            auto allocTy = alloc.getType();
+            if (isa<quake::RefType>(allocTy)) {
+              alloc->setAttr(cudaq::opt::StartingOffsetAttrName,
+                             builder.getI64IntegerAttr(totalQubits++));
+              return;
+            }
+            if (!isa<quake::VeqType>(allocTy)) {
+              alloc.emitOpError("must be veq type.");
+              return;
+            }
+            auto veqTy = cast<quake::VeqType>(allocTy);
+            if (!veqTy.hasSpecifiedSize()) {
+              alloc.emitOpError("must have a constant size.");
+              return;
+            }
+            alloc->setAttr(cudaq::opt::StartingOffsetAttrName,
+                           builder.getI64IntegerAttr(totalQubits));
+            totalQubits += veqTy.getSize();
+            return;
+          }
+          if (auto nw = dyn_cast<quake::NullWireOp>(op)) {
+            nw->setAttr(cudaq::opt::StartingOffsetAttrName,
+                        builder.getI64IntegerAttr(totalQubits++));
+            return;
+          }
+          if (auto bw = dyn_cast<quake::BorrowWireOp>(op)) {
+            [[maybe_unused]] StringRef name = bw.getSetName();
+            [[maybe_unused]] std::int32_t wire = bw.getIdentity();
+            bw.emitOpError("not implemented.");
+            return;
+          }
+
+          // For each mz, we want to assign it a result index.
+          if (auto mz = dyn_cast<quake::MzOp>(op)) {
+            // Verify there is exactly one qubit being measured.
+            if (mz.getTargets().empty() ||
+                std::distance(mz.getTargets().begin(), mz.getTargets().end()) !=
+                    1) {
+              mz.emitOpError("must measure exactly one qubit.");
+              return;
+            }
+            mz->setAttr(cudaq::opt::ResultIndexAttrName,
+                        builder.getI64IntegerAttr(totalResults++));
+            guaranteeMzIsLabeled(mz, counter, builder);
+          }
+        });
+
+        // If the API is one of the profile variants, the QIR consumer expects
+        // some bonus information by way of attributes. Add most of them here.
+        // (See also OUTPUT-NAME-MAP.)
+        SmallVector<Attribute> funcAttrs;
+        if (func->hasAttr(cudaq::kernelAttrName)) {
+          if (func->getAttr(cudaq::entryPointAttrName))
+            funcAttrs.push_back(
+                builder.getStringAttr(cudaq::opt::QIREntryPointAttrName));
+          if (api == "base-profile")
+            funcAttrs.push_back(builder.getStrArrayAttr(
+                {cudaq::opt::QIRProfilesAttrName, "base_profile"}));
+          else if (api == "adaptive-profile")
+            funcAttrs.push_back(builder.getStrArrayAttr(
+                {cudaq::opt::QIRProfilesAttrName, "adaptive_profile"}));
           funcAttrs.push_back(builder.getStrArrayAttr(
-              {cudaq::opt::QIRProfilesAttrName, "base_profile"}));
-        else if (api == "adaptive-profile")
-          funcAttrs.push_back(builder.getStrArrayAttr(
-              {cudaq::opt::QIRProfilesAttrName, "adaptive_profile"}));
-        funcAttrs.push_back(builder.getStrArrayAttr(
-            {cudaq::opt::QIROutputLabelingSchemaAttrName, "schema_id"}));
-        if (totalQubits)
-          funcAttrs.push_back(builder.getStrArrayAttr(
-              {cudaq::opt::QIRRequiredQubitsAttrName,
-               builder.getStringAttr(std::to_string(totalQubits))}));
-        if (totalResults)
-          funcAttrs.push_back(builder.getStrArrayAttr(
-              {cudaq::opt::QIRRequiredResultsAttrName,
-               builder.getStringAttr(std::to_string(totalResults))}));
-      }
-      if (!funcAttrs.empty())
-        func->setAttr("passthrough", builder.getArrayAttr(funcAttrs));
-    });
+              {cudaq::opt::QIROutputLabelingSchemaAttrName, "schema_id"}));
+          if (totalQubits)
+            funcAttrs.push_back(builder.getStrArrayAttr(
+                {cudaq::opt::QIRRequiredQubitsAttrName,
+                 builder.getStringAttr(std::to_string(totalQubits))}));
+          if (totalResults)
+            funcAttrs.push_back(builder.getStrArrayAttr(
+                {cudaq::opt::QIRRequiredResultsAttrName,
+                 builder.getStringAttr(std::to_string(totalResults))}));
+        }
+        if (!funcAttrs.empty())
+          func->setAttr("passthrough", builder.getArrayAttr(funcAttrs));
+      });
+    }
+  }
+
+  void guaranteeMzIsLabeled(quake::MzOp mz, int &counter, OpBuilder &builder) {
+    if (!mz.getRegisterNameAttr()) {
+      // Manufacture a bogus name on demand here.
+      std::string manuName = std::to_string(counter++);
+      constexpr std::size_t padSize = 5;
+      manuName =
+          std::string(padSize - std::min(padSize, manuName.length()), '0') +
+          manuName;
+      mz.setRegisterName("r" + manuName);
+    } else {
+      mz->setAttr(cudaq::opt::MzAssignedNameAttrName, builder.getUnitAttr());
+    }
   }
 };
 
@@ -1583,6 +1831,8 @@ void cudaq::opt::addConvertToQIRAPIPipeline(OpPassManager &pm, StringRef api,
   pm.addPass(cudaq::opt::createQuakeToQIRAPIPrep(prepApiOpt));
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeToQIRAPI(apiOpt));
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<LLVM::LLVMFuncOp>(cudaq::opt::createQuakeToQIRAPI(apiOpt));
+  pm.addNestedPass<LLVM::LLVMFuncOp>(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createGlobalizeArrayValues());
   pm.addPass(cudaq::opt::createQuakeToQIRAPIFinal());
 }
