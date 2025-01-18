@@ -356,7 +356,7 @@ copy the built `.whl` file to the host system, and install it using `pip`; e.g.
 .. TODO: update pypi links throughout the docs
 
 To install the necessary CUDA and MPI dependencies for some of the components, 
-you can either follow the instructions on `PyPI.org <https://pypi.org/project/cuda-quantum/>`__, 
+you can either follow the instructions on `PyPI.org <https://pypi.org/project/cudaq/>`__, 
 replacing `pip install cudaq` with the command above, or you can follow the
 instructions in the remaining sections of this document to customize and better
 optimize them for your host system.
