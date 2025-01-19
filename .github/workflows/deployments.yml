@@ -106,10 +106,10 @@ jobs:
         id: build_info
         run: |
           if ${{ github.event_name == 'workflow_dispatch' }}; then 
-            defaults="${{ (inputs.update_registry_cache && 'linux/arm64 linux/amd64') || 'linux/amd64,linux/arm64' }}"
+            defaults="${{ (inputs.update_registry_cache && 'linux/amd64') || 'linux/amd64' }}"
             requested_platforms=`echo "${{ inputs.platforms }}" | tr + , | sed "s#default#$defaults#g"`
           else
-            requested_platforms="linux/arm64 linux/amd64"
+            requested_platforms="linux/amd64"
           fi
 
           if [ -n "$(echo "$requested_platforms" | egrep ',')" ]; then
@@ -221,7 +221,7 @@ jobs:
       dockerfile: build/devdeps.manylinux.Dockerfile
       build_config_id: cu${{ matrix.cuda_version }}-gcc11
       build_args: |
-        base_image=ghcr.io/nvidia/pypa/manylinux_2_28${{ (matrix.platform == 'arm64' && '_aarch64') || (matrix.platform == 'amd64' && '_x86_64') || '' }}:latest
+        base_image=ghcr.io/nvidia/pypa/manylinux_2_28${{ (matrix.platform == 'amd64' && '_x86_64') || '' }}:latest
         cuda_version=${{ matrix.cuda_version }}
         toolchain=gcc11
         distro=rhel8
@@ -309,7 +309,7 @@ jobs:
               workflow_id: 'deployments.yml',
               ref: '${{ needs.metadata.outputs.pull_request_base || github.ref_name }}',
               inputs: {
-                platforms: 'linux/arm64,linux/amd64',
+                platforms: 'linux/amd64',
                 cache_base: '${{ needs.metadata.outputs.cache_base }}',
               },
             })
