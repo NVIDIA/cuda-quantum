@@ -24,6 +24,7 @@ ENV CUDAQ_REPO_ROOT=/workspaces/cuda-quantum
 ENV CUDAQ_INSTALL_PREFIX=/usr/local/cudaq
 ENV PATH="$CUDAQ_INSTALL_PREFIX/bin:${PATH}"
 ENV PYTHONPATH="$CUDAQ_INSTALL_PREFIX:${PYTHONPATH}"
+ENV DOTNET_EnableWriteXorExecute=0
 
 ARG workspace=.
 ARG destination="$CUDAQ_REPO_ROOT"
