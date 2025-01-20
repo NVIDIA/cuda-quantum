@@ -1090,6 +1090,11 @@ jobs:
         cuda_version: ['11.8', '12.4']
       fail-fast: false
 
+    # Must have environment to access environment secreats
+    environment:
+      name: ghcr-deployment
+      url: ${{ vars.deployment_url }}
+
     container:
       image: ubuntu:22.04
       options: --user root
@@ -1128,14 +1133,17 @@ jobs:
           tar xf /tmp/packages/${cudaq_metapackage}.tar.gz && mv -v ${cudaq_metapackage}/README.md .
           rm -rf ${cudaq_metapackage} && readme=README.md
 
-          # Setup links for validate_pycudaq.sh script
-          ln -s $GITHUB_WORKSPACE/scripts/validate_pycudaq.sh .
-          ln -s $GITHUB_WORKSPACE/docs/sphinx/examples/python /tmp/examples
-          ln -s $GITHUB_WORKSPACE/docs/sphinx/applications/python /tmp/applications
-          ln -s $GITHUB_WORKSPACE/docs/sphinx/targets/python /tmp/targets
-          ln -s $GITHUB_WORKSPACE/docs/sphinx/snippets/python /tmp/snippets
-          ln -s $GITHUB_WORKSPACE/python/tests /tmp/tests
-          ln -s $GITHUB_WORKSPACE/$readme /tmp/README.md
+          # Setup files for validate_pycudaq.sh script
+          # Important: Notebooks are *not* validated by validate_pycudaq.sh.
+          cp    $GITHUB_WORKSPACE/scripts/validate_pycudaq.sh .
+          cp -r $GITHUB_WORKSPACE/docs/sphinx/examples/python /tmp/examples/
+          cp -r $GITHUB_WORKSPACE/docs/sphinx/snippets/python /tmp/snippets/
+          cp -r $GITHUB_WORKSPACE/python/tests /tmp/tests/
+          cp    $GITHUB_WORKSPACE/$readme /tmp/README.md
+          # Target tests should not be run here either, since that requires credentials but doesn't require a GPU runner.
+
+          # The NVQC API key is needed to validate NVQC related snippets and examples.
+          export NVQC_API_KEY="${{ secrets.NVQC_PROD_SERVICE_KEY }}"
 
           # Run the script w/ -q to run a shortened test
           set +e # Allow script to keep going through errors (needed for skipped tests)
@@ -1158,7 +1166,7 @@ jobs:
   create_release:
     name: CUDA-Q Release
     needs: [assets, cudaq_images, cudaq_installers, cudaq_wheels, cudaq_metapackages]
-    if: needs.assets.outputs.release_title && inputs.github_commit == '' && inputs.assets_from_run == '' && inputs.nvidia_mgpu_commit == ''
+    if: needs.assets.outputs.release_title && inputs.github_commit == '' && inputs.nvidia_mgpu_commit == ''
     runs-on: ubuntu-latest
 
     environment:

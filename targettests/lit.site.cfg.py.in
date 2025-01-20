@@ -1,7 +1,7 @@
 @LIT_SITE_CFG_IN_HEADER@
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -42,6 +42,13 @@ if cmake_boolvar_to_bool(config.cuda_found):
 config.test_remote_sim = "@CUDAQ_TEST_REMOTE_SIM@"
 if cmake_boolvar_to_bool(config.test_remote_sim):
   config.available_features.add('remote-sim')
+
+config.cudaq_backends_braket = "@CUDAQ_ENABLE_BRAKET_BACKEND@"
+if cmake_boolvar_to_bool(config.cudaq_backends_braket):
+  config.available_features.add('braket')
+  config.substitutions.append(('%braket_avail', 'true'))
+else:
+  config.substitutions.append(('%braket_avail', 'false'))
 
 import lit.llvm
 lit.llvm.initialize(lit_config, config)

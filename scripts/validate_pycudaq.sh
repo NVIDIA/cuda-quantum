@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -25,12 +25,15 @@
 # COPY ${package_folder} ${package_folder}
 # COPY scripts/validate_pycudaq.sh validate_pycudaq.sh
 # COPY docs/sphinx/examples/python /tmp/examples/
-# COPY docs/sphinx/applications/python /tmp/applications/
-# COPY docs/sphinx/targets/python /tmp/targets/
 # COPY docs/sphinx/snippets/python /tmp/snippets/
 # COPY python/tests /tmp/tests/
 # COPY python/README.md.in /tmp/README.md
 # RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates vim wget openssh-client
+
+# Note: To run the target tests, make sure to set all necessary API keys:
+# COPY docs/sphinx/targets/python /tmp/targets/
+# ENV NVQC_API_KEY=...
+# ENV ...
 
 __optind__=$OPTIND
 OPTIND=1
@@ -123,18 +126,6 @@ if [ ! $? -eq 0 ]; then
     status_sum=$((status_sum+1))
 fi
 
-# Run torch integrator tests.
-# This is an optional integrator, which requires torch and torchdiffeq.
-# Install torch separately to match the cuda version.
-# Torch if installed as part of torchdiffeq's dependencies, may default to the latest cuda version. 
-python3 -m pip install torch --index-url https://download.pytorch.org/whl/cu$(echo ${cuda_version//.})
-python3 -m pip install torchdiffeq
-python3 -m pytest -v "$root_folder/tests/operator/integrators"
-if [ ! $? -eq 0 ]; then
-    echo -e "\e[01;31mPython tests failed.\e[0m" >&2
-    status_sum=$((status_sum+1))
-fi
-
 # If this is a quick test, we return here.
 if $quick_test; then
     if [ ! $status_sum -eq 0 ]; then
@@ -169,19 +160,42 @@ for parallelTest in "$root_folder/tests/parallel"/*.py; do
     fi
 done
 
+# Run torch integrator tests.
+# This is an optional integrator, which requires torch and torchdiffeq.
+# Install torch separately to match the cuda version.
+# Torch if installed as part of torchdiffeq's dependencies, may default to the latest cuda version. 
+python3 -m pip install torch --index-url https://download.pytorch.org/whl/cu$(echo $cuda_version | cut -d '.' -f-2 | tr -d .)
+python3 -m pip install torchdiffeq
+python3 -m pytest -v "$root_folder/tests/operator/integrators"
+if [ ! $? -eq 0 ]; then
+    echo -e "\e[01;31mPython tests failed.\e[0m" >&2
+    status_sum=$((status_sum+1))
+fi
+
 # Run snippets in docs
-for ex in `find "$root_folder/snippets" -name '*.py'`; do
+# Some snippets generate plots
+python3 -m pip install --user matplotlib
+for ex in `find "$root_folder/snippets" -name '*.py' -not -path '*/nvqc/*'`; do
     python3 "$ex"
     if [ ! $? -eq 0 ]; then
         echo -e "\e[01;31mFailed to execute $ex.\e[0m" >&2
         status_sum=$((status_sum+1))
     fi
 done
+if [ -n "${NVQC_API_KEY}" ]; then
+    for ex in `find "$root_folder/snippets" -name '*.py' -path '*/nvqc/*'`; do
+        python3 "$ex"
+        if [ ! $? -eq 0 ]; then
+            echo -e "\e[01;31mFailed to execute $ex.\e[0m" >&2
+            status_sum=$((status_sum+1))
+        fi
+    done
+fi
 
 # Run examples
 # Some examples generate plots
 python3 -m pip install --user matplotlib
-for ex in `find "$root_folder/examples" "$root_folder/applications" "$root_folder/targets" -name '*.py'`; do
+for ex in `find "$root_folder/examples" -name '*.py'`; do
     skip_example=false
     explicit_targets=`cat $ex | grep -Po '^\s*cudaq.set_target\("\K.*(?=")'`
     for t in $explicit_targets; do
@@ -189,6 +203,9 @@ for ex in `find "$root_folder/examples" "$root_folder/applications" "$root_folde
             # Skipped because GitHub does not have the necessary authentication token 
             # to submit a (paid) job to Amazon Braket (includes QuEra).
             echo -e "\e[01;31mWarning: Explicitly set target braket or quera in $ex; skipping validation due to paid submission.\e[0m" >&2
+            skip_example=true
+        elif [ "$t" == "nvqc" ] && [ -z "${NVQC_API_KEY}" ]; then 
+            echo -e "\e[01;31mWarning: Explicitly set target nvqc in $ex; skipping validation due to missing API key.\e[0m" >&2
             skip_example=true
         fi
     done
@@ -200,6 +217,29 @@ for ex in `find "$root_folder/examples" "$root_folder/applications" "$root_folde
         fi
     fi
 done
+
+# Run target tests if target folder exists.
+if [ -d "$root_folder/targets" ]; then
+    for ex in `find "$root_folder/targets" -name '*.py'`; do
+        skip_example=false
+        explicit_targets=`cat $ex | grep -Po '^\s*cudaq.set_target\("\K.*(?=")'`
+        for t in $explicit_targets; do
+            if [ "$t" == "quera" ] || [ "$t" == "braket" ] ; then 
+                # Skipped because GitHub does not have the necessary authentication token 
+                # to submit a (paid) job to Amazon Braket (includes QuEra).
+                echo -e "\e[01;31mWarning: Explicitly set target braket or quera in $ex; skipping validation due to paid submission.\e[0m" >&2
+                skip_example=true
+            fi
+        done
+        if ! $skip_example; then 
+            python3 "$ex"
+            if [ ! $? -eq 0 ]; then
+                echo -e "\e[01;31mFailed to execute $ex.\e[0m" >&2
+                status_sum=$((status_sum+1))
+            fi
+        fi
+    done
+fi
 
 # Run remote-mqpu platform test
 # Use cudaq-qpud.py wrapper script to automatically find dependencies for the Python wheel configuration.

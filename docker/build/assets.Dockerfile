@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -230,7 +230,8 @@ RUN echo "Patching up wheel using auditwheel..." && \
         --exclude libcustatevec.so.1 \
         --exclude libcudart.so.11.0 \
         --exclude libnvToolsExt.so.1 \
-        --exclude libnvidia-ml.so.1
+        --exclude libnvidia-ml.so.1 \
+        --exclude libcuda.so.1
     ## [<CUDAQuantumWheel]
 
 # Validate that the nvidia backend was built.

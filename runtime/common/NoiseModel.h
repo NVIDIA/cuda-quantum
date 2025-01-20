@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -256,7 +256,7 @@ protected:
   std::unordered_map<std::string, PredicateFuncTy> gatePredicates;
 
   static constexpr const char *availableOps[] = {
-      "x", "y", "z", "h", "s", "t", "rx", "ry", "rz", "r1", "u3"};
+      "x", "y", "z", "h", "s", "t", "rx", "ry", "rz", "r1", "u3", "mz"};
 
 public:
   /// @brief default constructor

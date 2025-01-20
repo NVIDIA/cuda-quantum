@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -1826,7 +1826,11 @@ class PyASTBridge(ast.NodeVisitor):
                 targets = [self.popValue() for _ in range(numTargets)]
                 targets.reverse()
 
-                self.checkControlAndTargetTypes([], targets)
+                for i, t in enumerate(targets):
+                    if not quake.RefType.isinstance(t.type):
+                        self.emitFatalError(
+                            f'invalid target operand {i}, broadcasting is not supported on custom operations.'
+                        )
 
                 globalName = f'{nvqppPrefix}{node.func.id}_generator_{numTargets}.rodata'
 
@@ -2246,11 +2250,9 @@ class PyASTBridge(ast.NodeVisitor):
                         # handle `cudaq.qvector(state)`
                         statePtr = self.ifNotPointerThenStore(valueOrPtr)
 
-                        symName = '__nvqpp_cudaq_state_numberOfQubits'
-                        load_intrinsic(self.module, symName)
                         i64Ty = self.getIntegerType()
-                        numQubits = func.CallOp([i64Ty], symName,
-                                                [statePtr]).result
+                        numQubits = quake.GetNumberOfQubitsOp(i64Ty,
+                                                              statePtr).result
 
                         veqTy = quake.VeqType.get(self.ctx)
                         qubits = quake.AllocaOp(veqTy, size=numQubits).result
@@ -2677,6 +2679,12 @@ class PyASTBridge(ast.NodeVisitor):
                 numValues = len(self.valueStack)
                 targets = [self.popValue() for _ in range(numTargets)]
                 targets.reverse()
+
+                for i, t in enumerate(targets):
+                    if not quake.RefType.isinstance(t.type):
+                        self.emitFatalError(
+                            f'invalid target operand {i}, broadcasting is not supported on custom operations.'
+                        )
 
                 globalName = f'{nvqppPrefix}{node.func.value.id}_generator_{numTargets}.rodata'
 
@@ -3158,7 +3166,7 @@ class PyASTBridge(ast.NodeVisitor):
             # we currently handle `veq` and `stdvec` types
             if quake.VeqType.isinstance(iterable.type):
                 size = quake.VeqType.getSize(iterable.type)
-                if size:
+                if quake.VeqType.hasSpecifiedSize(iterable.type):
                     totalSize = self.getConstantInt(size)
                 else:
                     totalSize = quake.VeqSizeOp(self.getIntegerType(64),
@@ -3364,76 +3372,96 @@ class PyASTBridge(ast.NodeVisitor):
         self.visit(node.left)
         left = self.popValue()
         self.visit(node.comparators[0])
-        comparator = self.popValue()
+        right = self.popValue()
         op = node.ops[0]
 
-        if isinstance(op, ast.Gt):
-            if IntegerType.isinstance(left.type):
-                if F64Type.isinstance(comparator.type):
-                    self.emitFatalError(
-                        "invalid rhs for comparison (f64 type and not i64 type).",
-                        node)
+        left_type = left.type
+        right_type = right.type
 
-                self.pushValue(
-                    arith.CmpIOp(self.getIntegerAttr(iTy, 4), left,
-                                 comparator).result)
-            elif F64Type.isinstance(left.type):
-                if IntegerType.isinstance(comparator.type):
-                    comparator = arith.SIToFPOp(self.getFloatType(),
-                                                comparator).result
+        if IntegerType.isinstance(left_type) and F64Type.isinstance(right_type):
+            left = arith.SIToFPOp(self.getFloatType(), left).result
+        elif F64Type.isinstance(left_type) and IntegerType.isinstance(
+                right_type):
+            right = arith.SIToFPOp(self.getFloatType(), right).result
+        elif IntegerType.isinstance(left_type) and IntegerType.isinstance(
+                right_type):
+            if IntegerType(left_type).width < IntegerType(right_type).width:
+                zeroext = IntegerType(left_type).width == 1
+                left = cc.CastOp(right_type,
+                                 left,
+                                 sint=not zeroext,
+                                 zint=zeroext).result
+            elif IntegerType(left_type).width > IntegerType(right_type).width:
+                zeroext = IntegerType(right_type).width == 1
+                right = cc.CastOp(left_type,
+                                  right,
+                                  sint=not zeroext,
+                                  zint=zeroext).result
+
+        if isinstance(op, ast.Gt):
+            if F64Type.isinstance(left.type):
                 self.pushValue(
                     arith.CmpFOp(self.getIntegerAttr(iTy, 2), left,
-                                 comparator).result)
+                                 right).result)
+            else:
+                self.pushValue(
+                    arith.CmpIOp(self.getIntegerAttr(iTy, 4), left,
+                                 right).result)
             return
 
         if isinstance(op, ast.GtE):
-            self.pushValue(
-                arith.CmpIOp(self.getIntegerAttr(iTy, 5), left,
-                             comparator).result)
+            if F64Type.isinstance(left.type):
+                self.pushValue(
+                    arith.CmpFOp(self.getIntegerAttr(iTy, 3), left,
+                                 right).result)
+            else:
+                self.pushValue(
+                    arith.CmpIOp(self.getIntegerAttr(iTy, 5), left,
+                                 right).result)
             return
 
         if isinstance(op, ast.Lt):
-            self.pushValue(
-                arith.CmpIOp(self.getIntegerAttr(iTy, 2), left,
-                             comparator).result)
+            if F64Type.isinstance(left.type):
+                self.pushValue(
+                    arith.CmpFOp(self.getIntegerAttr(iTy, 4), left,
+                                 right).result)
+            else:
+                self.pushValue(
+                    arith.CmpIOp(self.getIntegerAttr(iTy, 2), left,
+                                 right).result)
             return
 
         if isinstance(op, ast.LtE):
-            self.pushValue(
-                arith.CmpIOp(self.getIntegerAttr(iTy, 7), left,
-                             comparator).result)
+            if F64Type.isinstance(left.type):
+                self.pushValue(
+                    arith.CmpFOp(self.getIntegerAttr(iTy, 5), left,
+                                 right).result)
+            else:
+                self.pushValue(
+                    arith.CmpIOp(self.getIntegerAttr(iTy, 7), left,
+                                 right).result)
             return
 
         if isinstance(op, ast.NotEq):
-            if F64Type.isinstance(left.type) and IntegerType.isinstance(
-                    comparator.type):
-                left = arith.FPToSIOp(comparator.type, left).result
-            if IntegerType(left.type).width < IntegerType(
-                    comparator.type).width:
-                zeroext = IntegerType(left.type).width == 1
-                left = cc.CastOp(comparator.type,
-                                 left,
-                                 sint=not zeroext,
-                                 zint=zeroext).result
-            self.pushValue(
-                arith.CmpIOp(self.getIntegerAttr(iTy, 1), left,
-                             comparator).result)
+            if F64Type.isinstance(left.type):
+                self.pushValue(
+                    arith.CmpFOp(self.getIntegerAttr(iTy, 6), left,
+                                 right).result)
+            else:
+                self.pushValue(
+                    arith.CmpIOp(self.getIntegerAttr(iTy, 1), left,
+                                 right).result)
             return
 
         if isinstance(op, ast.Eq):
-            if F64Type.isinstance(left.type) and IntegerType.isinstance(
-                    comparator.type):
-                left = arith.FPToSIOp(comparator.type, left).result
-            if IntegerType(left.type).width < IntegerType(
-                    comparator.type).width:
-                zeroext = IntegerType(left.type).width == 1
-                left = cc.CastOp(comparator.type,
-                                 left,
-                                 sint=not zeroext,
-                                 zint=zeroext).result
-            self.pushValue(
-                arith.CmpIOp(self.getIntegerAttr(iTy, 0), left,
-                             comparator).result)
+            if F64Type.isinstance(left.type):
+                self.pushValue(
+                    arith.CmpFOp(self.getIntegerAttr(iTy, 1), left,
+                                 right).result)
+            else:
+                self.pushValue(
+                    arith.CmpIOp(self.getIntegerAttr(iTy, 0), left,
+                                 right).result)
             return
 
     def visit_AugAssign(self, node):
@@ -3844,6 +3872,9 @@ class PyASTBridge(ast.NodeVisitor):
                     self.pushValue(value)
                     return
                 if cc.StdvecType.isinstance(eleTy):
+                    self.pushValue(value)
+                    return
+                if cc.StateType.isinstance(eleTy):
                     self.pushValue(value)
                     return
                 loaded = cc.LoadOp(value).result

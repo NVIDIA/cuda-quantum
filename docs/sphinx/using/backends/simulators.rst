@@ -33,6 +33,11 @@ and multi-QPU (`mqpu` :ref:`platform <mqpu-platform>`) distribution whereby each
 Host CPU memory can be leveraged in addition to GPU memory to accommodate the state vector 
 (i.e., maximizing the number of qubits to be simulated).
 
+* Trajectory simulation for noisy quantum circuits
+
+The :code:`nvidia` target supports noisy quantum circuit simulations using quantum trajectory method across all configurations: single GPU, multi-node multi-GPU, and with host memory.
+When simulating many trajectories with small state vectors, the simulation is batched for optimal performance.
+
 .. _cuQuantum single-GPU:
 
 
@@ -151,7 +156,7 @@ To execute a program on the multi-node multi-GPU NVIDIA target, use the followin
     .. note::
 
       If you installed CUDA-Q via :code:`pip`, you will need to install the necessary MPI dependencies separately;
-      please follow the instructions for installing dependencies in the `Project Description <https://pypi.org/project/cuda-quantum/#description>`__.
+      please follow the instructions for installing dependencies in the `Project Description <https://pypi.org/project/cudaq/#description>`__.
 
     In addition to using MPI in the simulator, you can use it in your application code by installing `mpi4py <https://mpi4py.readthedocs.io/>`__, and 
     invoking the program with the command
@@ -234,7 +239,7 @@ prior to setting the target.
     - Specify the inter-node network structure (faster to slower). For example, assuming a 8 nodes, 4 GPUs/node simulation whereby network communication is faster, this `CUDAQ_GLOBAL_INDEX_BITS` environment variable can be set to `3,2`. The first `3` represents **8** nodes with fast communication and the second `2` represents **4** 8-node groups in those total 32 nodes. Default is an empty list (no customization based on network structure of the cluster).
   * - ``CUDAQ_HOST_DEVICE_MIGRATION_LEVEL``
     - positive integer
-    - Specify host-device memory migration w.r.t. the network structure. 
+    - Specify host-device memory migration w.r.t. the network structure. If provided, this setting determines the position to insert the number of migration index bits to the `CUDAQ_GLOBAL_INDEX_BITS` list. By default, if not set, the number of migration index bits (CPU-GPU data transfers) is appended to the end of the array of index bits (aka, state vector distribution scheme). This default behavior is optimized for systems with fast GPU-GPU interconnects (NVLink, InfiniBand, etc.) 
 
 .. deprecated:: 0.8
     The :code:`nvidia-mgpu` target, which is equivalent to the multi-node multi-GPU double-precision option (`mgpu,fp64`) of the :code:`nvidia`
@@ -265,6 +270,100 @@ environment variable to another integer value as shown below.
 
         nvq++ --target nvidia --target-option mgpu,fp64 program.cpp [...] -o program.x
         CUDAQ_MGPU_FUSE=5 mpiexec -np 2 ./program.x
+
+
+Trajectory Noisy Simulation
+++++++++++++++++++++++++++++++++++
+
+When a :code:`noise_model` is provided to CUDA-Q, the :code:`nvidia` target will incorporate quantum noise into the quantum circuit simulation according to the noise model specified.
+
+
+.. tab:: Python
+
+    .. literalinclude:: ../../snippets/python/using/backends/trajectory.py
+        :language: python
+        :start-after: [Begin Docs]
+
+    .. code:: bash 
+        
+        python3 program.py
+        { 00:15 01:92 10:81 11:812 }
+
+.. tab:: C++
+
+    .. literalinclude:: ../../snippets/cpp/using/backends/trajectory.cpp
+        :language: cpp
+        :start-after: [Begin Documentation]
+
+    .. code:: bash 
+
+        nvq++ --target nvidia program.cpp [...] -o program.x
+        ./program.x
+        { 00:15 01:92 10:81 11:812 }
+
+
+In the case of bit-string measurement sampling as in the above example, each measurement 'shot' is executed as a trajectory, whereby Kraus operators specified in the noise model are sampled.
+
+For observable expectation value estimation, the statistical error scales asymptotically as :math:`1/\sqrt{N_{trajectories}}`, where :math:`N_{trajectories}` is the number of trajectories.
+Hence, depending on the required level of accuracy, the number of trajectories can be specified accordingly.
+
+.. tab:: Python
+
+    .. literalinclude:: ../../snippets/python/using/backends/trajectory_observe.py
+        :language: python
+        :start-after: [Begin Docs]
+
+    .. code:: bash 
+        
+        python3 program.py
+        Noisy <Z> with 1024 trajectories = -0.810546875
+        Noisy <Z> with 8192 trajectories = -0.800048828125
+
+.. tab:: C++
+
+    .. literalinclude:: ../../snippets/cpp/using/backends/trajectory_observe.cpp
+        :language: cpp
+        :start-after: [Begin Documentation]
+
+    .. code:: bash 
+
+        nvq++ --target nvidia program.cpp [...] -o program.x
+        ./program.x
+        Noisy <Z> with 1024 trajectories = -0.810547
+        Noisy <Z> with 8192 trajectories = -0.800049
+
+
+The following environment variable options are applicable to the :code:`nvidia` target for trajectory noisy simulation. Any environment variables must be set
+prior to setting the target.
+
+.. list-table:: **Additional environment variable options for trajectory simulation**
+  :widths: 20 30 50
+
+  * - Option
+    - Value
+    - Description
+  * - ``CUDAQ_OBSERVE_NUM_TRAJECTORIES``
+    - positive integer
+    - The default number of trajectories for observe simulation if none was provided in the `observe` call. The default value is 1000.
+  * - ``CUDAQ_BATCH_SIZE``
+    - positive integer or `NONE`
+    - The number of state vectors in the batched mode. If `NONE`, the batch size will be calculated based on the available device memory. Default is `NONE`.
+  * - ``CUDAQ_BATCHED_SIM_MAX_BRANCHES``
+    - positive integer
+    - The number of trajectory branches to be tracked simultaneously in the gate fusion. Default is 16. 
+  * - ``CUDAQ_BATCHED_SIM_MAX_QUBITS``
+    - positive integer
+    - The max number of qubits for batching. If the qubit count in the circuit is more than this value, batched trajectory simulation will be disabled. The default value is 20.
+  * - ``CUDAQ_BATCHED_SIM_MIN_BATCH_SIZE``
+    - positive integer
+    - The minimum number of trajectories for batching. If the number of trajectories is less than this value, batched trajectory simulation will be disabled. Default value is 4.
+
+.. note::
+    
+    Batched trajectory simulation is only available on the single-GPU execution mode of the :code:`nvidia` target. 
+    
+    If batched trajectory simulation is not activated, e.g., due to problem size, number of trajectories, or the nature of the circuit (dynamic circuits with mid-circuit measurements and conditional branching), the required number of trajectories will be executed sequentially.  
+
 
 .. _OpenMP CPU-only:
 
@@ -299,41 +398,6 @@ use the following commands:
 
         nvq++ --target qpp-cpu program.cpp [...] -o program.x
         ./program.x
-
-
-Clifford-Only Simulation (CPU)
-++++++++++++++++++++++++++++++++++
-
-.. _stim-backend:
-
-This target provides a fast simulator for circuits containing *only* Clifford
-gates. Any non-Clifford gates (such as T gates and Toffoli gates) are not
-supported. This simulator is based on the `Stim <https://github.com/quantumlib/Stim>`_
-library.
-
-To execute a program on the :code:`stim` target, use the following commands:
-
-.. tab:: Python
-
-    .. code:: bash 
-
-        python3 program.py [...] --target stim
-
-    The target can also be defined in the application code by calling
-
-    .. code:: python 
-
-        cudaq.set_target('stim')
-
-    If a target is set in the application code, this target will override the :code:`--target` command line flag given during program invocation.
-
-.. tab:: C++
-
-    .. code:: bash 
-
-        nvq++ --target stim program.cpp [...] -o program.x
-        ./program.x
-
 
 Tensor Network Simulators
 ==================================
@@ -417,16 +481,13 @@ Specific aspects of the simulation can be configured by setting the following of
 * **`CUDA_VISIBLE_DEVICES=X`**: Makes the process only see GPU X on multi-GPU nodes. Each MPI process must only see its own dedicated GPU. For example, if you run 8 MPI processes on a DGX system with 8 GPUs, each MPI process should be assigned its own dedicated GPU via `CUDA_VISIBLE_DEVICES` when invoking `mpiexec` (or `mpirun`) commands. 
 * **`OMP_PLACES=cores`**: Set this environment variable to improve CPU parallelization.
 * **`OMP_NUM_THREADS=X`**: To enable CPU parallelization, set X to `NUMBER_OF_CORES_PER_NODE/NUMBER_OF_GPUS_PER_NODE`.
+* **`CUDAQ_TENSORNET_CONTROLLED_RANK=X`**: Specify the number of controlled qubits whereby the full tensor body of the controlled gate is expanded. If the number of controlled qubits is greater than this value, the gate is applied as a controlled tensor operator to the tensor network state. Default value is 1.
 
 .. note:: 
 
   This backend requires an NVIDIA GPU and CUDA runtime libraries. 
   If you do not have these dependencies installed, you may encounter an error stating `Invalid simulator requested`. 
   See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
-
-.. note::
-
-  Setting random seed, via :code:`cudaq::set_random_seed`, is not supported for this backend due to a limitation of the :code:`cuTensorNet` library. This will be fixed in future release once this feature becomes available.
 
 
 Matrix product state 
@@ -472,12 +533,50 @@ Specific aspects of the simulation can be configured by defining the following e
   See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
 
 .. note::
-
-  Setting random seed, via :code:`cudaq::set_random_seed`, is not supported for this backend due to a limitation of the :code:`cuTensorNet` library. This will be fixed in future release once this feature becomes available.
-
-.. note::
     The parallelism of Jacobi method (the default `CUDAQ_MPS_SVD_ALGO` setting) gives GPU better performance on small and medium size matrices.
     If you expect a large number of singular values (e.g., increasing the `CUDAQ_MPS_MAX_BOND` setting), please adjust the `CUDAQ_MPS_SVD_ALGO` setting accordingly.  
+
+Clifford-Only Simulator
+==================================
+
+Stim (CPU)
+++++++++++++++++++++++++++++++++++
+
+.. _stim-backend:
+
+This target provides a fast simulator for circuits containing *only* Clifford
+gates. Any non-Clifford gates (such as T gates and Toffoli gates) are not
+supported. This simulator is based on the `Stim <https://github.com/quantumlib/Stim>`_
+library.
+
+To execute a program on the :code:`stim` target, use the following commands:
+
+.. tab:: Python
+
+    .. code:: bash 
+
+        python3 program.py [...] --target stim
+
+    The target can also be defined in the application code by calling
+
+    .. code:: python 
+
+        cudaq.set_target('stim')
+
+    If a target is set in the application code, this target will override the :code:`--target` command line flag given during program invocation.
+
+.. tab:: C++
+
+    .. code:: bash 
+
+        nvq++ --target stim program.cpp [...] -o program.x
+        ./program.x
+
+.. note::
+    CUDA-Q currently executes kernels using a "shot-by-shot" execution approach.
+    This allows for conditional gate execution (i.e. full control flow), but it
+    can be slower than executing Stim a single time and generating all the shots
+    from that single execution.
 
 Fermioniq
 ==================================
@@ -515,7 +614,7 @@ compute expectation values of observables.
     .. code:: python
 
         cudaq.set_target("fermioniq", **{
-            "remote-config": remote_config_id
+            "remote_config": remote_config_id
         })
 
     For a comprehensive list of all remote configurations, please contact Fermioniq directly.
@@ -526,15 +625,15 @@ compute expectation values of observables.
     .. code:: python
 
         cudaq.set_target("fermioniq", **{
-            "project-id": project_id
+            "project_id": project_id
         })
 
-    To specify the bond dimension, you can pass the ``fermioniq-bond-dim`` parameter.
+    To specify the bond dimension, you can pass the ``bond_dim`` parameter.
 
     .. code:: python 
 
         cudaq.set_target("fermioniq", **{
-            "bond-dim": 5
+            "bond_dim": 5
         })
 
 .. tab:: C++

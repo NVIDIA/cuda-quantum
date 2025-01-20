@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -51,10 +51,10 @@ def test_multi_qubit_kernel():
         mz(q0)
         mz(q1)
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.sample(kernel, shots_count=100)
-    assert "cannot declare a qubit register. Only 1 qubit register(s) is/are supported" in repr(
-        e)
+    counts = cudaq.sample(kernel, shots_count=100)
+    assert len(counts) == 2
+    assert "00" in counts
+    assert "11" in counts
 
 
 def test_qvector_kernel():
@@ -100,8 +100,8 @@ def test_all_gates():
         rz(np.pi, q)
         s(q)
         t(q)
-        # mx(q) ## Unsupported
-        # my(q) ## Unsupported
+        mx(q)
+        my(q)
         mz(q)
 
     # Test here is that this runs
@@ -129,10 +129,8 @@ def test_multi_qvector():
         h(ancilla)
         mz(ancilla)
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.sample(kernel, shots_count=100)
-    assert "cannot declare a qubit register. Only 1 qubit register(s) is/are supported" in repr(
-        e)
+    # Test here is that this runs
+    cudaq.sample(kernel, shots_count=100).dump()
 
 
 def test_control_modifier():

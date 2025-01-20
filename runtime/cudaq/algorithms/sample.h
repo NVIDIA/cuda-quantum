@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -186,6 +186,7 @@ struct sample_options {
   cudaq::noise_model noise;
 };
 
+/// @overload
 /// @brief Sample the given quantum kernel expression and return the
 /// mapping of observed bit strings to corresponding number of
 /// times observed.
@@ -226,6 +227,7 @@ sample_result sample(QuantumKernel &&kernel, Args &&...args) {
       .value();
 }
 
+/// @overload
 /// @brief Sample the given quantum kernel expression and return the
 /// mapping of observed bit strings to corresponding number of
 /// times observed. Specify the number of shots.

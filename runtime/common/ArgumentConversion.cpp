@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -10,6 +10,7 @@
 #include "cudaq.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Todo.h"
 #include "cudaq/qis/pauli_word.h"
 #include "cudaq/utils/registry.h"
@@ -132,33 +133,18 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
       std::string name =
           kernelName.str() + ".rodata_synth_" + std::to_string(counter++);
       irBuilder.genVectorOfConstants(loc, substMod, name, vec);
-      auto conGlobal = builder.create<cudaq::cc::AddressOfOp>(loc, ptrTy, name);
-      return builder.create<cudaq::cc::LoadOp>(loc, arrTy, conGlobal);
+      return builder.create<cudaq::cc::AddressOfOp>(loc, ptrTy, name);
     };
 
-    auto conArr = is64Bit ? genConArray.template operator()<double>()
+    auto buffer = is64Bit ? genConArray.template operator()<double>()
                           : genConArray.template operator()<float>();
-
-    auto createState = is64Bit ? cudaq::createCudaqStateFromDataFP64
-                               : cudaq::createCudaqStateFromDataFP32;
-    auto result = irBuilder.loadIntrinsic(substMod, createState);
-    assert(succeeded(result) && "loading intrinsic should never fail");
 
     auto arrSize = builder.create<arith::ConstantIntOp>(loc, size, 64);
     auto stateTy = cudaq::cc::StateType::get(ctx);
     auto statePtrTy = cudaq::cc::PointerType::get(stateTy);
-    auto i8PtrTy = cudaq::cc::PointerType::get(builder.getI8Type());
-    auto buffer = builder.create<cudaq::cc::AllocaOp>(loc, arrTy);
-    builder.create<cudaq::cc::StoreOp>(loc, conArr, buffer);
 
-    auto cast = builder.create<cudaq::cc::CastOp>(loc, i8PtrTy, buffer);
-    auto statePtr = builder
-                        .create<func::CallOp>(loc, statePtrTy, createState,
-                                              ValueRange{cast, arrSize})
-                        .getResult(0);
-
-    // TODO: Delete the new state before function exit.
-    return builder.create<cudaq::cc::CastOp>(loc, statePtrTy, statePtr);
+    return builder.create<quake::CreateStateOp>(loc, statePtrTy, buffer,
+                                                arrSize);
   }
   // The program is executed on quantum hardware, state data is not
   // available and needs to be regenerated.

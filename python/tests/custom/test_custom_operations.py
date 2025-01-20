@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -227,6 +227,45 @@ def test_invalid_ctrl():
     with pytest.raises(RuntimeError) as error:
         bell.compile()
     assert 'controlled operation requested without any control argument(s)' in repr(
+        error)
+
+
+def test_bug_2452():
+    cudaq.register_operation("custom_i", np.array([1, 0, 0, 1]))
+
+    @cudaq.kernel
+    def kernel1():
+        qubits = cudaq.qvector(2)
+        custom_i(qubits)
+
+    with pytest.raises(RuntimeError) as error:
+        kernel1.compile()
+    assert 'broadcasting is not supported on custom operations' in repr(error)
+
+    cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
+
+    @cudaq.kernel
+    def kernel2():
+        qubit = cudaq.qubit()
+        ancilla = cudaq.qvector(2)
+        x(ancilla)
+        custom_x.ctrl(ancilla, qubit)  # `controls` can be `qvector`
+
+    counts = cudaq.sample(kernel2)
+    assert len(counts) == 1 and '111' in counts
+
+    cudaq.register_operation(
+        "custom_cz", np.array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+                               -1]))
+
+    @cudaq.kernel
+    def kernel3():
+        qubits = cudaq.qvector(2)
+        custom_cz(qubits)
+
+    with pytest.raises(RuntimeError) as error:
+        cudaq.sample(kernel3)
+    assert 'invalid number of arguments (1) passed to custom_cz (requires 2 arguments)' in repr(
         error)
 
 

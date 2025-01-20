@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -53,7 +53,8 @@ std::unique_ptr<TensorNetState> TensorNetState::clone() const {
 void TensorNetState::applyGate(const std::vector<int32_t> &controlQubits,
                                const std::vector<int32_t> &targetQubits,
                                void *gateDeviceMem, bool adjoint) {
-  LOG_API_TIME();
+  ScopedTraceWithContext("TensorNetState::applyGate", controlQubits.size(),
+                         targetQubits.size());
   if (controlQubits.empty()) {
     HANDLE_CUTN_ERROR(cutensornetStateApplyTensorOperator(
         m_cutnHandle, m_quantumState, targetQubits.size(), targetQubits.data(),
