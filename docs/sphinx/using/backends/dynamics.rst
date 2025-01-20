@@ -84,6 +84,8 @@ For example, we can plot the Pauli expectation value for the above simulation as
 In particular, for each time step, `evolve` captures an array of expectation values, one for each  
 observable. Hence, we convert them into sequences for plotting purposes.
 
+Examples that illustrate how to use the ``dynamics`` target are available 
+in the `CUDA-Q repository <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples/python/dynamics>`__. 
 
 Operator
 +++++++++++
