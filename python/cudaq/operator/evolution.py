@@ -257,7 +257,7 @@ def evolve_single(
             state_data = numpy.zeros(state_size, dtype=numpy.complex128)
             state_data[0] = 1.0
         elif initial_state == InitialState.UNIFORM:
-            state_data = (1. / numpy.sqrt(state_size)) * numpy.identity(
+            state_data = (1. / numpy.sqrt(state_size)) * numpy.ones(
                 state_size, dtype=numpy.complex128)
         else:
             raise ValueError("Unsupported initial state type")
