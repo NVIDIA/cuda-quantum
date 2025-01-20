@@ -78,6 +78,6 @@ class BaseIntegrator(ABC, Generic[TState]):
 
     def support_distributed_state(self):
         """
-        Return true if this integrator supports distributed state
+        Returns true if the integrator supports distributed state else returns false. Default is set to false.
         """
         return False

@@ -63,6 +63,22 @@ class CuDensityMatState(object):
             self.raw_data = data
             self.state = None
 
+    def try_init_state(self, shape):
+        """Try initialize state according to a shape, e.g., density matrix or state vector."""
+        slice_shape, slice_offsets = self.state.local_info
+        state_size = numpy.prod(shape)
+        if state_size == self.raw_data.size:
+            slice_obj = tuple(
+                slice(offset, offset + size) for offset, size in zip(
+                    slice_offsets, slice_shape))[:len(shape)]
+            self.raw_data = cupy.asfortranarray(self.raw_data.reshape(shape))
+            self.raw_data = cupy.asfortranarray(self.raw_data[slice_obj].copy())
+            self.state.attach_storage(self.raw_data)
+        else:
+            self.raw_data = cupy.asfortranarray(
+                self.raw_data.reshape(slice_shape))
+            self.state.attach_storage(self.raw_data)
+
     def init_state(self, hilbert_space_dims: Sequence[int]):
         if self.state is None:
             self.hilbert_space_dims = hilbert_space_dims
@@ -73,49 +89,14 @@ class CuDensityMatState(object):
                                              self.hilbert_space_dims,
                                              batch_size=1,
                                              dtype="complex128")
-
-                slice_shape, slice_offsets = self.state.local_info
-                state_size = numpy.prod(dm_shape)
-                if state_size == self.raw_data.size:
-                    slice_obj = []
-                    for i in range(len(dm_shape)):
-                        slice_obj.append(
-                            slice(slice_offsets[i],
-                                  slice_offsets[i] + slice_shape[i]))
-                    slice_obj = tuple(slice_obj)
-                    self.raw_data = cupy.asfortranarray(
-                        self.raw_data.reshape(dm_shape))
-                    self.raw_data = cupy.asfortranarray(
-                        self.raw_data[slice_obj].copy())
-                    self.state.attach_storage(self.raw_data)
-                else:
-                    self.raw_data = cupy.asfortranarray(
-                        self.raw_data.reshape(slice_shape))
-                    self.state.attach_storage(self.raw_data)
+                self.try_init_state(dm_shape)
             except:
                 try:
                     self.state = DensePureState(self.__ctx,
                                                 self.hilbert_space_dims,
                                                 batch_size=1,
                                                 dtype="complex128")
-                    slice_shape, slice_offsets = self.state.local_info
-                    state_size = numpy.prod(sv_shape)
-                    if state_size == self.raw_data.size:
-                        slice_obj = []
-                        for i in range(len(sv_shape)):
-                            slice_obj.append(
-                                slice(slice_offsets[i],
-                                      slice_offsets[i] + slice_shape[i]))
-                        slice_obj = tuple(slice_obj)
-                        self.raw_data = cupy.asfortranarray(
-                            self.raw_data.reshape(sv_shape))
-                        self.raw_data = cupy.asfortranarray(
-                            self.raw_data[slice_obj].copy())
-                        self.state.attach_storage(self.raw_data)
-                    else:
-                        self.raw_data = cupy.asfortranarray(
-                            self.raw_data.reshape(slice_shape))
-                        self.state.attach_storage(self.raw_data)
+                    self.try_init_state(sv_shape)
                 except:
                     raise ValueError(
                         f"Invalid state data: state data must be either a state vector (equivalent to {sv_shape} shape) or a density matrix (equivalent to {dm_shape} shape)."
