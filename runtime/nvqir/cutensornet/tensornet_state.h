@@ -203,5 +203,14 @@ private:
   std::pair<void *, std::size_t> contractStateVectorInternal(
       const std::vector<int32_t> &projectedModes,
       const std::vector<int64_t> &projectedModeValues = {});
+
+  /// Internal methods to perform MPS factorizations.
+  // Note: `factorizeMPS` is an end-to-end API for factorization.
+  // This factorization can be split into `cutensornetStateFinalizeMPS` and
+  // `cutensornetStateCompute` to facilitate reuse.
+  std::vector<MPSTensor> setupMPSFactorize(int64_t maxExtent, double absCutoff,
+                                           double relCutoff,
+                                           cutensornetTensorSVDAlgo_t algo);
+  void computeMPSFactorize(std::vector<MPSTensor> &mpsTensors);
 };
 } // namespace nvqir

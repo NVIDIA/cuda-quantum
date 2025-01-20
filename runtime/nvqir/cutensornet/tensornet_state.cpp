@@ -344,6 +344,144 @@ std::pair<void *, std::size_t> TensorNetState::contractStateVectorInternal(
   return std::make_pair(d_sv, svDim);
 }
 
+std::vector<MPSTensor>
+TensorNetState::setupMPSFactorize(int64_t maxExtent, double absCutoff,
+                                  double relCutoff,
+                                  cutensornetTensorSVDAlgo_t algo) {
+  LOG_API_TIME();
+  if (m_numQubits == 0)
+    return {};
+  if (m_numQubits == 1) {
+    // Single tensor
+    MPSTensor tensor;
+    tensor.extents = {2};
+    HANDLE_CUDA_ERROR(
+        cudaMalloc(&tensor.deviceData, 2 * sizeof(std::complex<double>)));
+
+    return {tensor};
+  }
+
+  std::vector<MPSTensor> mpsTensors(m_numQubits);
+  std::vector<int64_t *> extentsPtr(m_numQubits);
+  for (std::size_t i = 0; i < m_numQubits; ++i) {
+    if (i == 0) {
+      mpsTensors[i].extents = {2, maxExtent};
+      HANDLE_CUDA_ERROR(
+          cudaMalloc(&mpsTensors[i].deviceData,
+                     2 * maxExtent * sizeof(std::complex<double>)));
+    } else if (i == m_numQubits - 1) {
+      mpsTensors[i].extents = {maxExtent, 2};
+      HANDLE_CUDA_ERROR(
+          cudaMalloc(&mpsTensors[i].deviceData,
+                     2 * maxExtent * sizeof(std::complex<double>)));
+    } else {
+      mpsTensors[i].extents = {maxExtent, 2, maxExtent};
+      HANDLE_CUDA_ERROR(
+          cudaMalloc(&mpsTensors[i].deviceData,
+                     2 * maxExtent * maxExtent * sizeof(std::complex<double>)));
+    }
+    extentsPtr[i] = mpsTensors[i].extents.data();
+  }
+  {
+    ScopedTraceWithContext("cutensornetStateFinalizeMPS");
+    // Specify the final target MPS representation (use default fortran strides)
+    HANDLE_CUTN_ERROR(cutensornetStateFinalizeMPS(
+        m_cutnHandle, m_quantumState, CUTENSORNET_BOUNDARY_CONDITION_OPEN,
+        extentsPtr.data(), /*strides=*/nullptr));
+  }
+  // Set up the SVD method for truncation.
+  HANDLE_CUTN_ERROR(cutensornetStateConfigure(
+      m_cutnHandle, m_quantumState, CUTENSORNET_STATE_CONFIG_MPS_SVD_ALGO,
+      &algo, sizeof(algo)));
+  HANDLE_CUTN_ERROR(cutensornetStateConfigure(
+      m_cutnHandle, m_quantumState, CUTENSORNET_STATE_CONFIG_MPS_SVD_ABS_CUTOFF,
+      &absCutoff, sizeof(absCutoff)));
+  HANDLE_CUTN_ERROR(cutensornetStateConfigure(
+      m_cutnHandle, m_quantumState, CUTENSORNET_STATE_CONFIG_MPS_SVD_REL_CUTOFF,
+      &relCutoff, sizeof(relCutoff)));
+  return mpsTensors;
+}
+
+void TensorNetState::computeMPSFactorize(std::vector<MPSTensor> &mpsTensors) {
+  LOG_API_TIME();
+  if (mpsTensors.empty())
+    return;
+  if (mpsTensors.size() == 1) {
+    MPSTensor &tensor = mpsTensors[0];
+    // Just contract all the gates to the tensor.
+    // Note: if none gates, don't call `getStateVector`, which performs a
+    // contraction (`Flop count is zero` error).
+    const std::vector<std::complex<double>> stateVec =
+        isDirty() ? getStateVector()
+                  : std::vector<std::complex<double>>{1.0, 0.0};
+    assert(stateVec.size() == 2);
+    HANDLE_CUDA_ERROR(cudaMemcpy(tensor.deviceData, stateVec.data(),
+                                 2 * sizeof(std::complex<double>),
+                                 cudaMemcpyHostToDevice));
+    return;
+  }
+
+  std::vector<int64_t *> extentsPtr(mpsTensors.size());
+  std::vector<void *> allData(mpsTensors.size());
+  for (std::size_t i = 0; auto &tensor : mpsTensors) {
+    allData[i] = tensor.deviceData;
+    extentsPtr[i] = tensor.extents.data();
+    ++i;
+  }
+
+  // Prepare the MPS computation and attach workspace
+  cutensornetWorkspaceDescriptor_t workDesc;
+
+  HANDLE_CUTN_ERROR(
+      cutensornetCreateWorkspaceDescriptor(m_cutnHandle, &workDesc));
+  {
+    ScopedTraceWithContext("cutensornetStatePrepare");
+    HANDLE_CUTN_ERROR(cutensornetStatePrepare(
+        m_cutnHandle, m_quantumState, scratchPad.scratchSize, workDesc, 0));
+  }
+  int64_t worksize{0};
+  HANDLE_CUTN_ERROR(cutensornetWorkspaceGetMemorySize(
+      m_cutnHandle, workDesc, CUTENSORNET_WORKSIZE_PREF_RECOMMENDED,
+      CUTENSORNET_MEMSPACE_DEVICE, CUTENSORNET_WORKSPACE_SCRATCH, &worksize));
+  if (worksize <= static_cast<int64_t>(scratchPad.scratchSize)) {
+    HANDLE_CUTN_ERROR(cutensornetWorkspaceSetMemory(
+        m_cutnHandle, workDesc, CUTENSORNET_MEMSPACE_DEVICE,
+        CUTENSORNET_WORKSPACE_SCRATCH, scratchPad.d_scratch, worksize));
+  } else {
+    throw std::runtime_error("ERROR: Insufficient workspace size on Device!");
+  }
+  int64_t hostWorkspaceSize;
+  HANDLE_CUTN_ERROR(cutensornetWorkspaceGetMemorySize(
+      m_cutnHandle, workDesc, CUTENSORNET_WORKSIZE_PREF_RECOMMENDED,
+      CUTENSORNET_MEMSPACE_HOST, CUTENSORNET_WORKSPACE_SCRATCH,
+      &hostWorkspaceSize));
+
+  void *hostWork = nullptr;
+  if (hostWorkspaceSize > 0) {
+    hostWork = malloc(hostWorkspaceSize);
+    if (!hostWork) {
+      throw std::runtime_error("Unable to allocate " +
+                               std::to_string(hostWorkspaceSize) +
+                               " bytes for cuTensorNet host workspace.");
+    }
+  }
+
+  HANDLE_CUTN_ERROR(cutensornetWorkspaceSetMemory(
+      m_cutnHandle, workDesc, CUTENSORNET_MEMSPACE_HOST,
+      CUTENSORNET_WORKSPACE_SCRATCH, hostWork, hostWorkspaceSize));
+
+  {
+    ScopedTraceWithContext("cutensornetStateCompute");
+    // Execute MPS computation
+    HANDLE_CUTN_ERROR(cutensornetStateCompute(
+        m_cutnHandle, m_quantumState, workDesc, extentsPtr.data(),
+        /*strides=*/nullptr, allData.data(), 0));
+  }
+
+  if (hostWork)
+    free(hostWork);
+}
+
 std::vector<std::complex<double>> TensorNetState::getStateVector(
     const std::vector<int32_t> &projectedModes,
     const std::vector<int64_t> &projectedModeValues) {
@@ -439,120 +577,8 @@ TensorNetState::factorizeMPS(int64_t maxExtent, double absCutoff,
                              double relCutoff,
                              cutensornetTensorSVDAlgo_t algo) {
   LOG_API_TIME();
-  if (m_numQubits == 0)
-    return {};
-  if (m_numQubits == 1) {
-    // Single tensor
-    MPSTensor tensor;
-    tensor.extents = {2};
-    HANDLE_CUDA_ERROR(
-        cudaMalloc(&tensor.deviceData, 2 * sizeof(std::complex<double>)));
-    // Just contract all the gates to the tensor.
-    // Note: if none gates, don't call `getStateVector`, which performs a
-    // contraction (`Flop count is zero` error).
-    const std::vector<std::complex<double>> stateVec =
-        isDirty() ? getStateVector()
-                  : std::vector<std::complex<double>>{1.0, 0.0};
-    assert(stateVec.size() == 2);
-    HANDLE_CUDA_ERROR(cudaMemcpy(tensor.deviceData, stateVec.data(),
-                                 2 * sizeof(std::complex<double>),
-                                 cudaMemcpyHostToDevice));
-    return {tensor};
-  }
-  std::vector<MPSTensor> mpsTensors(m_numQubits);
-  std::vector<int64_t *> extentsPtr(m_numQubits);
-  for (std::size_t i = 0; i < m_numQubits; ++i) {
-    if (i == 0) {
-      mpsTensors[i].extents = {2, maxExtent};
-      HANDLE_CUDA_ERROR(
-          cudaMalloc(&mpsTensors[i].deviceData,
-                     2 * maxExtent * sizeof(std::complex<double>)));
-    } else if (i == m_numQubits - 1) {
-      mpsTensors[i].extents = {maxExtent, 2};
-      HANDLE_CUDA_ERROR(
-          cudaMalloc(&mpsTensors[i].deviceData,
-                     2 * maxExtent * sizeof(std::complex<double>)));
-    } else {
-      mpsTensors[i].extents = {maxExtent, 2, maxExtent};
-      HANDLE_CUDA_ERROR(
-          cudaMalloc(&mpsTensors[i].deviceData,
-                     2 * maxExtent * maxExtent * sizeof(std::complex<double>)));
-    }
-    extentsPtr[i] = mpsTensors[i].extents.data();
-  }
-  {
-    ScopedTraceWithContext("cutensornetStateFinalizeMPS");
-    // Specify the final target MPS representation (use default fortran strides)
-    HANDLE_CUTN_ERROR(cutensornetStateFinalizeMPS(
-        m_cutnHandle, m_quantumState, CUTENSORNET_BOUNDARY_CONDITION_OPEN,
-        extentsPtr.data(), /*strides=*/nullptr));
-  }
-  // Set up the SVD method for truncation.
-  HANDLE_CUTN_ERROR(cutensornetStateConfigure(
-      m_cutnHandle, m_quantumState, CUTENSORNET_STATE_CONFIG_MPS_SVD_ALGO,
-      &algo, sizeof(algo)));
-  HANDLE_CUTN_ERROR(cutensornetStateConfigure(
-      m_cutnHandle, m_quantumState, CUTENSORNET_STATE_CONFIG_MPS_SVD_ABS_CUTOFF,
-      &absCutoff, sizeof(absCutoff)));
-  HANDLE_CUTN_ERROR(cutensornetStateConfigure(
-      m_cutnHandle, m_quantumState, CUTENSORNET_STATE_CONFIG_MPS_SVD_REL_CUTOFF,
-      &relCutoff, sizeof(relCutoff)));
-
-  // Prepare the MPS computation and attach workspace
-  cutensornetWorkspaceDescriptor_t workDesc;
-
-  HANDLE_CUTN_ERROR(
-      cutensornetCreateWorkspaceDescriptor(m_cutnHandle, &workDesc));
-  {
-    ScopedTraceWithContext("cutensornetStatePrepare");
-    HANDLE_CUTN_ERROR(cutensornetStatePrepare(
-        m_cutnHandle, m_quantumState, scratchPad.scratchSize, workDesc, 0));
-  }
-  int64_t worksize{0};
-  HANDLE_CUTN_ERROR(cutensornetWorkspaceGetMemorySize(
-      m_cutnHandle, workDesc, CUTENSORNET_WORKSIZE_PREF_RECOMMENDED,
-      CUTENSORNET_MEMSPACE_DEVICE, CUTENSORNET_WORKSPACE_SCRATCH, &worksize));
-  if (worksize <= static_cast<int64_t>(scratchPad.scratchSize)) {
-    HANDLE_CUTN_ERROR(cutensornetWorkspaceSetMemory(
-        m_cutnHandle, workDesc, CUTENSORNET_MEMSPACE_DEVICE,
-        CUTENSORNET_WORKSPACE_SCRATCH, scratchPad.d_scratch, worksize));
-  } else {
-    throw std::runtime_error("ERROR: Insufficient workspace size on Device!");
-  }
-  int64_t hostWorkspaceSize;
-  HANDLE_CUTN_ERROR(cutensornetWorkspaceGetMemorySize(
-      m_cutnHandle, workDesc, CUTENSORNET_WORKSIZE_PREF_RECOMMENDED,
-      CUTENSORNET_MEMSPACE_HOST, CUTENSORNET_WORKSPACE_SCRATCH,
-      &hostWorkspaceSize));
-
-  void *hostWork = nullptr;
-  if (hostWorkspaceSize > 0) {
-    hostWork = malloc(hostWorkspaceSize);
-    if (!hostWork) {
-      throw std::runtime_error("Unable to allocate " +
-                               std::to_string(hostWorkspaceSize) +
-                               " bytes for cuTensorNet host workspace.");
-    }
-  }
-
-  HANDLE_CUTN_ERROR(cutensornetWorkspaceSetMemory(
-      m_cutnHandle, workDesc, CUTENSORNET_MEMSPACE_HOST,
-      CUTENSORNET_WORKSPACE_SCRATCH, hostWork, hostWorkspaceSize));
-
-  std::vector<void *> allData(m_numQubits);
-  for (std::size_t i = 0; auto &tensor : mpsTensors)
-    allData[i++] = tensor.deviceData;
-  {
-    ScopedTraceWithContext("cutensornetStateCompute");
-    // Execute MPS computation
-    HANDLE_CUTN_ERROR(cutensornetStateCompute(
-        m_cutnHandle, m_quantumState, workDesc, extentsPtr.data(),
-        /*strides=*/nullptr, allData.data(), 0));
-  }
-
-  if (hostWork) {
-    free(hostWork);
-  }
+  auto mpsTensors = setupMPSFactorize(maxExtent, absCutoff, relCutoff, algo);
+  computeMPSFactorize(mpsTensors);
   return mpsTensors;
 }
 

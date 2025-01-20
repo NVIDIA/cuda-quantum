@@ -164,10 +164,19 @@ public:
     cudaq::ExecutionResult counts;
     std::vector<int32_t> measuredBitIds(measuredBits.begin(),
                                         measuredBits.end());
+    // We only need to do cutensornetStateFinalizeMPS once
+    for (auto &tensor : m_mpsTensors_d) {
+      HANDLE_CUDA_ERROR(cudaFree(tensor.deviceData));
+    }
+    m_mpsTensors_d.clear();
+    m_mpsTensors_d =
+        m_state->setupMPSFactorize(m_settings.maxBond, m_settings.absCutoff,
+                                   m_settings.relCutoff, m_settings.svdAlgo);
+
     for (int i = 0; i < shots; ++i) {
       // As the Kraus operator sampling may change the MPS state, we need to
       // re-compute the factorization in each trajectory.
-      prepareQubitTensorState();
+      m_state->computeMPSFactorize(m_mpsTensors_d);
       const auto samples = m_state->sample(measuredBitIds, 1);
       assert(samples.size() == 1);
       for (const auto &[bitString, count] : samples)
