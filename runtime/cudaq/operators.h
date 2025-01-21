@@ -200,8 +200,9 @@ public:
   ///                      degrees of freedom: `{0:2, 1:2}`.
   /// @arg `parameters` : A map of the parameter names to their concrete,
   /// complex values.
-  matrix_2 to_matrix(std::map<int, int> dimensions,
-                     std::map<std::string, std::complex<double>> parameters);
+  matrix_2
+  to_matrix(const std::map<int, int> dimensions,
+            const std::map<std::string, std::complex<double>> parameters) const;
 
   /// @brief Creates a representation of the operator as a `cudaq::pauli_word`
   /// that can be passed as an argument to quantum kernels.
@@ -279,8 +280,9 @@ public:
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
-  matrix_2 to_matrix(std::map<int, int> dimensions,
-                     std::map<std::string, std::complex<double>> parameters);
+  matrix_2
+  to_matrix(const std::map<int, int> dimensions,
+            const std::map<std::string, std::complex<double>> parameters) const;
 
   // Predefined operators.
   static elementary_operator identity(int degree);
@@ -403,8 +405,9 @@ public:
 
   // Return the scalar operator as a 1x1 matrix. This is needed for
   // compatability with the other inherited classes.
-  matrix_2 to_matrix(std::map<int, int> dimensions,
-                     std::map<std::string, std::complex<double>> parameters);
+  matrix_2
+  to_matrix(const std::map<int, int> dimensions,
+            const std::map<std::string, std::complex<double>> parameters) const;
 
   // /// @brief Returns true if other is a scalar operator with the same
   // /// generator.
