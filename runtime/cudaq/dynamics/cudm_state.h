@@ -14,14 +14,15 @@
 namespace cudaq {
 class cudm_mat_state {
 public:
-    cudm_mat_state(cudensitymatHandle_t handle, cudensitymatStatePurity_t purity, int num_modes, const std::vector<int64_t> &mode_extents);
-    ~cudm_mat_state();
+  cudm_mat_state(cudensitymatHandle_t handle, cudensitymatStatePurity_t purity,
+                 int num_modes, const std::vector<int64_t> &mode_extents);
+  ~cudm_mat_state();
 
-    void scale(double factor, cudaStream_t stream);
-    cudensitymatState_t get() const;
+  void scale(double factor, cudaStream_t stream);
+  cudensitymatState_t get() const;
 
 private:
-    cudensitymatState_t state;
-    cudensitymatHandle_t handle;
+  cudensitymatState_t state;
+  cudensitymatHandle_t handle;
 };
-}
+} // namespace cudaq
