@@ -39,11 +39,9 @@ public:
       const std::map<std::string, std::complex<double>> &parameters, double dt);
 
   /// Launches an analog Hamiltonian kernel for quantum simulations.
-  static evolve_result
-  launch_analog_hamiltonian_kernel(const std::string &target_name,
-                                   const operator_sum &hamiltonian,
-                                   const std::shared_ptr<Schedule> &schedule,
-                                   int shots_count, bool is_async = false);
+  static evolve_result launch_analog_hamiltonian_kernel(
+      const std::string &target_name, const rydberg_hamiltonian &hamiltonian,
+      const Schedule &schedule, int shots_count, bool is_async = false);
 
   /// Generates evolution kernels for the simulation.
   static std::vector<std::string> evolution_kernel(
@@ -67,6 +65,7 @@ public:
                 std::optional<int> shots_count = std::nullopt);
 
   /// Evolves a single or multiple quantum states under a given hamiltonian.
+  /// Run only for dynamics target else throw error
   static std::vector<evolve_result>
   evolve(const operator_sum &hamiltonian, const std::map<int, int> &dimensions,
          const std::shared_ptr<Schedule> &schedule,
