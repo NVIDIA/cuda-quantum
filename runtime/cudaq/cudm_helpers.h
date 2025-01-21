@@ -19,7 +19,6 @@
 namespace cudaq {
 cudensitymatState_t initialize_state(cudensitymatHandle_t handle,
                                      cudensitymatStatePurity_t purity,
-                                     int num_modes,
                                      const std::vector<int64_t> &mode_extents);
 
 void scale_state(cudensitymatHandle_t handle, cudensitymatState_t state,
