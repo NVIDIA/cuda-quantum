@@ -35,6 +35,53 @@ product_operator::product_operator(
 //                          tensor::identity(1, 1), kronecker);
 // }
 
+matrix_2 product_operator::to_matrix(
+    const std::map<int, int> dimensions,
+    const std::map<std::string, std::complex<double>> parameters) const {
+  // Lambda functions to retrieve degrees and matrices
+  auto getDegrees = [](auto &&term) { return term.degrees; };
+  auto getMatrix = [&](auto &&term) {
+    return term.to_matrix(dimensions, parameters);
+  };
+
+  // Initialize a result matrix with a single identity element
+  matrix_2 result(1, 1);
+  result[{0, 0}] = 1.0;
+
+  // Iterate over all terms in the product operator
+  for (const auto &term : m_terms) {
+    // Get the degrees for the current term
+    auto termDegrees = std::visit(getDegrees, term);
+    bool inserted = false;
+
+    matrix_2 termMatrix(1, 1);
+    termMatrix[{0, 0}] = 1.0;
+
+    // Build the matrix list with identities or operator matrices
+    for (const auto &[degree, dim] : dimensions) {
+      if (std::find(termDegrees.begin(), termDegrees.end(), degree) !=
+              termDegrees.end() &&
+          !inserted) {
+        // Use the operator matrix for the active degree
+        termMatrix.kronecker_inplace(std::visit(getMatrix, term));
+        inserted = true;
+      } else {
+        // Use identity matrix for other degrees
+        matrix_2 identityMatrix(dim, dim);
+        for (std::size_t i = 0; i < dim; i++) {
+          identityMatrix[{i, i}] = 1.0;
+        }
+        termMatrix.kronecker_inplace(identityMatrix);
+      }
+    }
+
+    // Multiply the result matrix by the term matrix
+    result *= termMatrix;
+  }
+
+  return result;
+}
+
 // /// IMPLEMENT:
 // tensor product_operator::to_matrix(
 //     std::map<int, int> dimensions,
