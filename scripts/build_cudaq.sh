@@ -194,7 +194,7 @@ fi
 echo "Building CUDA-Q with configuration $build_configuration..."
 logs_dir=`pwd`/logs
 if $verbose; then 
-  ninja install
+  ninja -j 4 install
   status=$?
 else
   echo "The progress of the build is being logged to $logs_dir/ninja_output.txt."
