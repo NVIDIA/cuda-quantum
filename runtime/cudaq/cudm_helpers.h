@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "cudaq/utils/tensor.h"
 #include "cudaq/operators.h"
+#include "cudaq/utils/tensor.h"
 #include <cudensitymat.h>
 #include <iostream>
 #include <map>
@@ -30,12 +30,12 @@ void destroy_state(cudensitymatState_t state);
 cudensitymatOperator_t
 compute_lindblad_operator(cudensitymatHandle_t handle,
                           const std::vector<matrix_2> &c_ops,
-                          const std::vector<int> &mode_extents);
+                          const std::vector<int64_t> &mode_extents);
 
 cudensitymatOperator_t convert_to_cudensitymat_operator(
     cudensitymatHandle_t handle,
-    const std::map<std::string, double> &parameters, const operator_sum &op,
-    const std::vector<int> &mode_extents);
+    const std::map<std::string, std::complex<double>> &parameters,
+    const operator_sum &op, const std::vector<int64_t> &mode_extents);
 
 cudensitymatOperator_t construct_liovillian(
     cudensitymatHandle_t handle, const cudensitymatOperator_t &hamiltonian,
