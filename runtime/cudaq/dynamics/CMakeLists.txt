@@ -7,12 +7,17 @@
 # ============================================================================ #
 
 set(LIBRARY_NAME cudaq-operators)
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
 set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
 set(CUDAQ_OPS_SRC
-  scalar_operators.cpp elementary_operators.cpp product_operators.cpp operator_sum.cpp schedule.cpp definition.cpp helpers.cpp rydberg_hamiltonian.cpp
+  scalar_operators.cpp elementary_operators.cpp product_operators.cpp operator_sum.cpp schedule.cpp definition.cpp helpers.cpp rydberg_hamiltonian.cpp cudm_helpers.cpp
 )
+
+set(CUQUANTUM_INSTALL_PREFIX "/usr/local/lib/python3.10/dist-packages/cuquantum")
+if (NOT DEFINED CUQUANTUM_INSTALL_PREFIX)
+  message(FATAL_ERROR "CUQUANTUM_INSTALL_PREFIX is not defined.")
+endif()
 
 add_library(${LIBRARY_NAME} SHARED ${CUDAQ_OPS_SRC})
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
@@ -20,8 +25,12 @@ target_include_directories(${LIBRARY_NAME}
     PUBLIC 
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
+       $<BUILD_INTERFACE:${CUQUANTUM_INSTALL_PREFIX}/include>
+       /usr/local/cuda/targets/x86_64-linux/include
        $<INSTALL_INTERFACE:include>
     PRIVATE .)
+
+target_link_libraries(${LIBRARY_NAME} PRIVATE ${CUQUANTUM_INSTALL_PREFIX}/lib/libcudensitymat.so.0)
 
 set (OPERATOR_DEPENDENCIES "")
 list(APPEND OPERATOR_DEPENDENCIES fmt::fmt-header-only)

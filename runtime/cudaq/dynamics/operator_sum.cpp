@@ -347,12 +347,24 @@ operator_sum operator_sum::operator*=(const elementary_operator &other) {
   return *this;
 }
 
-/// FIXME:
-// tensor
-// operator_sum::to_matrix(const std::map<int, int> &dimensions,
-//                         const std::map<std::string, double> &params) const {
-// // todo
-// }
+matrix_2 operator_sum::to_matrix(
+    const std::map<int, int> &dimensions,
+    const std::map<std::string, std::complex<double>> &params) const {
+  std::size_t total_dimension = 1;
+  for (const auto &[_, dim] : dimensions) {
+    total_dimension *= dim;
+  }
+
+  matrix_2 result(total_dimension, total_dimension);
+
+  for (const auto &term : m_terms) {
+    matrix_2 term_matrix = term.to_matrix(dimensions, params);
+
+    result += term_matrix;
+  }
+
+  return result;
+}
 
 // std::string operator_sum::to_string() const {
 //   std::string result;

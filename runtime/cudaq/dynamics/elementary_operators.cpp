@@ -280,9 +280,9 @@ elementary_operator::squeeze(int degree, std::complex<double> amplitude) {
 }
 
 matrix_2 elementary_operator::to_matrix(
-    std::map<int, int> dimensions,
-    std::map<std::string, std::complex<double>> parameters) {
-  return m_ops[id].generator(dimensions, parameters);
+    const std::map<int, int> dimensions,
+    const std::map<std::string, std::complex<double>> parameters) const {
+  return m_ops.at(id).generator(dimensions, parameters);
 }
 
 /// Elementary Operator Arithmetic.
