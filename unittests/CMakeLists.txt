@@ -53,10 +53,13 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   dynamics/test_runge_kutta_integrator.cpp
   dynamics/test_helpers.cpp
   dynamics/rydberg_hamiltonian.cpp
+  dynamics/test_cudm_helpers.cpp
 )
 
 # Make it so we can get function symbols
 set (CMAKE_ENABLE_EXPORTS TRUE)
+
+include_directories(/usr/local/cuda/targets/x86_64-linux/include)
 
 ## This Macro allows us to create a test_runtime executable for 
 ## the sources in CUDAQ_RUNTIME_TEST_SOURCE for a specific backend simulator
@@ -80,7 +83,9 @@ macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER)
     cudaq fmt::fmt-header-only
     cudaq-platform-default
     cudaq-builder
-    gtest_main)
+    gtest_main
+    $ENV{CUQUANTUM_INSTALL_PREFIX}/lib/libcudensitymat.so.0
+    /usr/local/cuda-12.0/targets/x86_64-linux/lib/libcudart.so.12)
   set(TEST_LABELS "")
   if (${NVQIR_BACKEND} STREQUAL "qpp")
     target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_SIMULATION_SCALAR_FP64)
@@ -275,6 +280,7 @@ set(CUDAQ_OPERATOR_TEST_SOURCES
    dynamics/scalar_ops_simple.cpp
    dynamics/scalar_ops_arithmetic.cpp
    dynamics/product_operators_arithmetic.cpp
+   dynamics/test_cudm_helpers.cpp
 )
 add_executable(test_operators main.cpp ${CUDAQ_OPERATOR_TEST_SOURCES})
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
@@ -285,7 +291,9 @@ target_link_libraries(test_operators
   cudaq-spin
   cudaq-operators
   cudaq
-  gtest_main)
+  gtest_main
+  $ENV{CUQUANTUM_INSTALL_PREFIX}/lib/libcudensitymat.so.0
+  /usr/local/cuda-12.0/targets/x86_64-linux/lib/libcudart.so.12)
 gtest_discover_tests(test_operators)
 
 add_subdirectory(plugin)
@@ -406,7 +414,8 @@ target_link_libraries(${TEST_EXE_NAME}
   cudaq-platform-default
   cudaq-rest-qpu
   cudaq-builder
-  gtest_main)
+  gtest_main
+  $ENV{CUQUANTUM_INSTALL_PREFIX}/lib/libcudensitymat.so.0)
 set(TEST_LABELS "")
 if ("${TEST_LABELS}" STREQUAL "")
   gtest_discover_tests(${TEST_EXE_NAME})
