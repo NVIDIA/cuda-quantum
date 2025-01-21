@@ -22,6 +22,8 @@ SimulatorTensorNetBase::SimulatorTensorNetBase()
       cudaq::mpi::is_initialized() ? cudaq::mpi::rank() % numDevices : 0;
   HANDLE_CUDA_ERROR(cudaSetDevice(deviceId));
   HANDLE_CUTN_ERROR(cutensornetCreate(&m_cutnHandle));
+  // The scratch pad must be allocated after we have selected the device.
+  scratchPad.allocate();
 }
 
 static std::vector<std::complex<double>>
