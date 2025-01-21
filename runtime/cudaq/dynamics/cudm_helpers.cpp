@@ -11,15 +11,12 @@
 namespace cudaq {
 cudensitymatState_t initialize_state(cudensitymatHandle_t handle,
                                      cudensitymatStatePurity_t purity,
-                                     int num_modes,
                                      const std::vector<int64_t> &mode_extents) {
   try {
     cudensitymatState_t state;
-    auto status = cudensitymatCreateState(
-        handle, purity, num_modes, mode_extents.data(), 1, CUDA_R_64F, &state);
-    if (status != CUDENSITYMAT_STATUS_SUCCESS) {
-      throw std::runtime_error("Failed to initialize quantum state.");
-    }
+    HANDLE_ERROR(cudensitymatCreateState(handle, purity, mode_extents.size(),
+                                         mode_extents.data(), 1, CUDA_C_64F,
+                                         &state));
     return state;
   } catch (const std::exception &e) {
     std::cerr << "Error in initialize_state: " << e.what() << std::endl;
