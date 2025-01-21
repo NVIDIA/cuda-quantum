@@ -31,17 +31,14 @@ public:
   virtual std::unique_ptr<cudaq::SimulationState>
   createFromData(const cudaq::state_data &data) override {
     throw std::runtime_error("Not implemented");
-    return std::make_unique<FakeSimulationState>(0, nullptr);
   }
 
   virtual Tensor getTensor(std::size_t tensorIdx = 0) const override {
     throw std::runtime_error("Not implemented");
-    return Tensor();
   }
 
   virtual std::vector<Tensor> getTensors() const override {
     throw std::runtime_error("Not implemented");
-    return std::vector<Tensor>();
   }
 
   virtual std::size_t getNumTensors() const override { return 1; }
@@ -52,19 +49,16 @@ public:
 
   virtual std::complex<double> overlap(const SimulationState &other) override {
     throw std::runtime_error("Not implemented");
-    return 0;
   }
 
   virtual std::complex<double>
   getAmplitude(const std::vector<int> &basisState) override {
     throw std::runtime_error("Not implemented");
-    return 0;
   }
 
   virtual std::vector<std::complex<double>>
   getAmplitudes(const std::vector<std::vector<int>> &basisStates) override {
     throw std::runtime_error("Not implemented");
-    return {0};
   }
 
   virtual void dump(std::ostream &os) const override {
