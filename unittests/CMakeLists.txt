@@ -221,6 +221,28 @@ if(TARGET nvqir-tensornet)
       endif() # NGPUS
     endif() # NVIDIA_SMI
   endif() # MPI_CXX_FOUND
+  
+  # Test CUDAQ_TENSORNET_OBSERVE_CONTRACT_PATH_REUSE=ON mode (on a few test cases that have cudaq::observe)
+  add_executable(test_tensornet_observe_path_reuse 
+    integration/builder_tester.cpp  
+    integration/deuteron_variational_tester.cpp
+    integration/observe_result_tester.cpp
+  )
+  target_include_directories(test_tensornet_observe_path_reuse PRIVATE .)
+  target_compile_definitions(test_tensornet_observe_path_reuse 
+                             PRIVATE -DNVQIR_BACKEND_NAME=tensornet)
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+    target_link_options(test_tensornet_observe_path_reuse PRIVATE -Wl,--no-as-needed)
+  endif()
+  target_link_libraries(test_tensornet_observe_path_reuse
+    PRIVATE 
+    cudaq
+    cudaq-builder
+    cudaq-platform-default
+    nvqir-tensornet
+    gtest_main)
+  # Run this test with "CUDAQ_TENSORNET_OBSERVE_CONTRACT_PATH_REUSE=TRUE"
+  gtest_discover_tests(test_tensornet_observe_path_reuse TEST_SUFFIX _PathReuse PROPERTIES ENVIRONMENT "CUDAQ_TENSORNET_OBSERVE_CONTRACT_PATH_REUSE=ON" PROPERTIES LABELS "gpu_required")
 endif() 
 
 # Create an executable for SpinOp UnitTests
