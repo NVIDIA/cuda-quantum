@@ -294,6 +294,9 @@ To enable parallel execution, the application must initialize MPI as follows.
   .. code:: bash 
 
         mpiexec -np <N> python3 program.py 
+  
+  where ``N`` is the number of processes.
+
 
 By initializing the MPI execution environment (via `cudaq.mpi.initialize()`) in the application code and
 invoking it via an MPI launcher, we have activated the multi-node multi-GPU feature of the ``dynamics`` target.

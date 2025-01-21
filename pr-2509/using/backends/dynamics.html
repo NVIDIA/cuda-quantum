@@ -1151,6 +1151,7 @@ To enable parallel execution, the application must initialize MPI as follows.</p
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mpiexec<span class="w"> </span>-np<span class="w"> </span>&lt;N&gt;<span class="w"> </span>python3<span class="w"> </span>program.py
 </pre></div>
 </div>
+<p>where <code class="docutils literal notranslate"><span class="pre">N</span></code> is the number of processes.</p>
 </div>
 </div>
 <p>By initializing the MPI execution environment (via <code class="code docutils literal notranslate"><span class="pre">cudaq.mpi.initialize()</span></code>) in the application code and
