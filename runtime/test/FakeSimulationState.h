@@ -21,7 +21,7 @@ public:
   virtual std::unique_ptr<SimulationState>
   createFromSizeAndPtr(std::size_t size, void *data,
                        std::size_t dataType) override {
-    std::runtime_error("Not implemented");
+    throw std::runtime_error("Not implemented");
     return std::make_unique<FakeSimulationState>(size, data);
   }
 
@@ -30,17 +30,17 @@ public:
 
   virtual std::unique_ptr<cudaq::SimulationState>
   createFromData(const cudaq::state_data &data) override {
-    std::runtime_error("Not implemented");
+    throw std::runtime_error("Not implemented");
     return std::make_unique<FakeSimulationState>(0, nullptr);
   }
 
   virtual Tensor getTensor(std::size_t tensorIdx = 0) const override {
-    std::runtime_error("Not implemented");
+    throw std::runtime_error("Not implemented");
     return Tensor();
   }
 
   virtual std::vector<Tensor> getTensors() const override {
-    std::runtime_error("Not implemented");
+    throw std::runtime_error("Not implemented");
     return std::vector<Tensor>();
   }
 
@@ -51,33 +51,31 @@ public:
   }
 
   virtual std::complex<double> overlap(const SimulationState &other) override {
-    std::runtime_error("Not implemented");
+    throw std::runtime_error("Not implemented");
     return 0;
   }
 
   virtual std::complex<double>
   getAmplitude(const std::vector<int> &basisState) override {
-    std::runtime_error("Not implemented");
+    throw std::runtime_error("Not implemented");
     return 0;
   }
 
   virtual std::vector<std::complex<double>>
   getAmplitudes(const std::vector<std::vector<int>> &basisStates) override {
-    std::runtime_error("Not implemented");
+    throw std::runtime_error("Not implemented");
     return {0};
   }
 
   virtual void dump(std::ostream &os) const override {
-    std::runtime_error("Not implemented");
+    throw std::runtime_error("Not implemented");
   }
 
   virtual precision getPrecision() const override {
     return cudaq::SimulationState::precision::fp64;
   }
 
-  virtual void destroyState() override {
-    std::runtime_error("Not implemented");
-  }
+  virtual void destroyState() override {}
 
   virtual std::complex<double>
   operator()(std::size_t tensorIdx,

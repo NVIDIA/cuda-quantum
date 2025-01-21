@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --argument-synthesis=functions=foo:%S/arg_subst.txt,blink:%S/arg_subst.txt,testy1:%S/arg_subst-1.txt,testy2:%S/arg_subst-2.txt,testy3:%S/arg_subst-3.txt,testy4:%S/arg_subst-4.txt,testy5:%S/arg_subst-5.txt,init:%S/arg_subst-6.txt --canonicalize %s | FileCheck %s
+// RUN: cudaq-opt --argument-synthesis=functions=foo:%S/arg_subst.txt,blink:%S/arg_subst.txt,testy1:%S/arg_subst-1.txt,testy2:%S/arg_subst-2.txt,testy3:%S/arg_subst-3.txt,testy4:%S/arg_subst-4.txt,testy5:%S/arg_subst-5.txt,num_qubits:%S/arg_subst-6.txt,init:%S/arg_subst-6.txt --canonicalize %s | FileCheck %s
 
 func.func private @bar(i32)
 func.func private @baz(f32)
@@ -154,23 +154,25 @@ func.func @testy5(%arg0: !cc.ptr<!cc.state>) {
   return
 }
 
-func.func private @init(%arg0: i32) -> !quake.veq<?> {
-  %cst = arith.constant 1.5707963267948966 : f64
-  %0 = cc.cast signed %arg0 : (i32) -> i64
-  %1 = quake.alloca !quake.veq<?>[%0 : i64]
-  %2 = quake.concat %1 : (!quake.veq<?>) -> !quake.veq<?>
-  return %2 : !quake.veq<?>
+func.func @init(%arg0: i64, %arg1: !quake.veq<?>) -> !quake.veq<?> {
+  return %arg1 : !quake.veq<?>
+}
+
+func.func @num_qubits(%arg0: i64) -> i64 {
+  return %arg0 : i64
 }
 
 // CHECK-LABEL:   func.func @testy5() {
-// CHECK:           %[[VAL_2:.*]] = quake.get_state "init" : !cc.ptr<!cc.state>
+// CHECK:           %[[VAL_2:.*]] = quake.get_state "num_qubits" "init" : !cc.ptr<!cc.state>
 // CHECK:           %[[VAL_3:.*]] = quake.get_number_of_qubits %[[VAL_2]] : (!cc.ptr<!cc.state>) -> i64
 // CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.veq<?>[%[[VAL_3]] : i64]
 // CHECK:           %[[VAL_5:.*]] = quake.init_state %[[VAL_4]], %[[VAL_2]] : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
 // CHECK:           return
 // CHECK:         }
-// CHECK:         func.func private @init() -> !quake.veq<?> {
-// CHECK:           %[[VAL_7:.*]] = quake.alloca !quake.veq<2>
-// CHECK:           %[[VAL_8:.*]] = quake.relax_size %[[VAL_7:.*]] : (!quake.veq<2>) -> !quake.veq<?>
-// CHECK:           return %[[VAL_8]] : !quake.veq<?>
+// CHECK:         func.func @init(%arg0: !quake.veq<?>) -> !quake.veq<?> {
+// CHECK:           return %arg0 : !quake.veq<?>
+// CHECK:         }
+// CHECK:         func.func @num_qubits() -> i64 {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 2 : i64
+// CHECK:           return %[[VAL_0]] : i64
 // CHECK:         }

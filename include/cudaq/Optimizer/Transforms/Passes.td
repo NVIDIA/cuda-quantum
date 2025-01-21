@@ -841,8 +841,8 @@ def ReplaceStateWithKernel : Pass<"replace-state-with-kernel", "mlir::func::Func
 
     Before ReplaceStateWithKernel (replace-state-with-kernel):
     ```
-    func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-      %0 = quake.get_state "callee.modified_0" : !cc.ptr<!cc.state>
+    func.func @foo() {
+      %0 = quake.get_state "callee.num_qubits_0" "callee.init_0": !cc.ptr<!cc.state>
       %1 = quake.get_number_of_qubits %0 : (!cc.ptr<!cc.state>) -> i64
       %2 = quake.alloca !quake.veq<?>[%1 : i64]
       %3 = quake.init_state %2, %0 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
@@ -852,8 +852,10 @@ def ReplaceStateWithKernel : Pass<"replace-state-with-kernel", "mlir::func::Func
 
     After ReplaceStateWithKernel (replace-state-with-kernel):
     ```
-    func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-      %3 = call @__nvqpp__mlirgen__test_init_state.modified_0() : () -> !quake.veq<?>
+    func.func @foo()  {
+      %1 = call @callee.num_qubits_0() : () -> i64
+      %2 = quake.alloca !quake.veq<?>[%1 : i64]
+      %3 = call @callee.init_0(%2) : (!quake.veq<?>) -> !quake.veq<?>
       return
     }
     ```

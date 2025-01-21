@@ -30,59 +30,76 @@ using namespace mlir;
 
 namespace {
 // clang-format off
+/// Replace `quake.get_number_of_qubits` by a call to a a function
+/// that computes the number of qubits for a state.
+///
+/// ```
+///  %0 = quake.get_state "callee.num_qubits_0" "callee.init_0" : !cc.ptr<!cc.state>
+///  %1 = quake.get_number_of_qubits %0 : (!cc.ptr<!cc.state>) -> i64
+/// ───────────────────────────────────────────
+/// ...
+///  %1 = call @callee.num_qubits_0() : () -> i64
+/// ```
+// clang-format on
+class ReplaceGetNumQubitsPattern
+    : public OpRewritePattern<quake::GetNumberOfQubitsOp> {
+public:
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::GetNumberOfQubitsOp numQubits,
+                                PatternRewriter &rewriter) const override {
+
+    auto stateOp = numQubits.getOperand();
+    if (auto getState = stateOp.getDefiningOp<quake::GetStateOp>()) {
+      auto numQubitsName = getState.getNumQubitsFuncName();
+
+      rewriter.setInsertionPoint(numQubits);
+      rewriter.replaceOpWithNewOp<func::CallOp>(
+          numQubits, numQubits.getType(), numQubitsName, mlir::ValueRange{});
+      return success();
+    }
+    return numQubits->emitError(
+        "ReplaceStateWithKernel: failed to replace `quake.get_num_qubits`");
+  }
+};
+
+// clang-format off
 /// Replace `quake.init_state` by a call to a (modified) kernel that produced
 /// the state.
 ///
 /// ```
-///  %0 = quake.get_state "callee.modified_0" : !cc.ptr<!cc.state>
-///  %1 = quake.get_number_of_qubits %0 : (!cc.ptr<!cc.state>) -> i64
-///  %2 = quake.alloca !quake.veq<?>[%1 : i64]
+///  %0 = quake.get_state "callee.num_qubits_0" "callee.init_0" : !cc.ptr<!cc.state>
 ///  %3 = quake.init_state %2, %0 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
 /// ───────────────────────────────────────────
 /// ...
-///  %5 = call @callee.modified_0() : () -> !quake.veq<?>
+/// %3 = call @callee.init_0(%2): (!quake.veq<?>) -> !quake.veq<?>
 /// ```
 // clang-format on
-class ReplaceStateWithKernelPattern
+class ReplaceInitStatePattern
     : public OpRewritePattern<quake::InitializeStateOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
   LogicalResult matchAndRewrite(quake::InitializeStateOp initState,
                                 PatternRewriter &rewriter) const override {
-    auto *alloca = initState.getOperand(0).getDefiningOp();
+    auto allocaOp = initState.getOperand(0);
     auto stateOp = initState.getOperand(1);
 
     if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(stateOp.getType())) {
       if (isa<cudaq::cc::StateType>(ptrTy.getElementType())) {
-        auto *numOfQubits = alloca->getOperand(0).getDefiningOp();
-
         if (auto getState = stateOp.getDefiningOp<quake::GetStateOp>()) {
-          auto calleeName = getState.getCalleeName();
+          auto initName = getState.getInitFuncName();
+
+          rewriter.setInsertionPoint(initState);
           rewriter.replaceOpWithNewOp<func::CallOp>(
-              initState, initState.getType(), calleeName, mlir::ValueRange{});
+              initState, initState.getType(), initName,
+              mlir::ValueRange{allocaOp});
 
-          if (alloca->getUses().empty())
-            rewriter.eraseOp(alloca);
-          else {
-            alloca->emitError(
-                "Failed to remove `quake.alloca` in state synthesis");
-            return failure();
-          }
-
-          if (isa<quake::GetNumberOfQubitsOp>(numOfQubits)) {
-            if (numOfQubits->getUses().empty())
-              rewriter.eraseOp(numOfQubits);
-            else {
-              numOfQubits->emitError("Failed to remove runtime call to get "
-                                     "number of qubits in state synthesis");
-              return failure();
-            }
-          }
           return success();
         }
-        numOfQubits->emitError(
-            "Failed to replace `quake.init_state` in state synthesis");
+
+        return initState->emitError(
+            "ReplaceStateWithKernel: failed to replace `quake.init_state`");
       }
     }
     return failure();
@@ -99,7 +116,7 @@ public:
     auto *ctx = &getContext();
     auto func = getOperation();
     RewritePatternSet patterns(ctx);
-    patterns.insert<ReplaceStateWithKernelPattern>(ctx);
+    patterns.insert<ReplaceGetNumQubitsPattern, ReplaceInitStatePattern>(ctx);
 
     LLVM_DEBUG(llvm::dbgs()
                << "Before replace state with kernel: " << func << '\n');

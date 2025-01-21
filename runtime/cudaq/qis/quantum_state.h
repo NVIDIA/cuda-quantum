@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -76,6 +76,8 @@ public:
     (addArgument(args), ...);
   }
   QuantumState() = default;
+  QuantumState(const QuantumState &other)
+      : kernelName(other.kernelName), args(other.args), deleters() {}
   virtual ~QuantumState();
 
   /// @brief True if the state has amplitudes or density matrix available.
