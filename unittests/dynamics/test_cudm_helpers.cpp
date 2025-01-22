@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include <cudaq/cudm_error_handling.h>
 #include <cudaq/cudm_helpers.h>
 #include <gtest/gtest.h>
 
@@ -32,27 +33,41 @@ cudaq::operator_sum initialize_operator_sum() {
 class CuDensityMatTestFixture : public ::testing::Test {
 protected:
   cudensitymatHandle_t handle;
+  cudaStream_t stream;
 
   void SetUp() override {
-    auto status = cudensitymatCreate(&handle);
-    ASSERT_EQ(status, CUDENSITYMAT_STATUS_SUCCESS);
+    HANDLE_CUDM_ERROR(cudensitymatCreate(&handle));
+    HANDLE_CUDA_ERROR(cudaStreamCreate(&stream));
   }
 
-  void TearDown() override { cudensitymatDestroy(handle); }
+  void TearDown() override {
+    HANDLE_CUDA_ERROR(cudaStreamDestroy(stream));
+    HANDLE_CUDM_ERROR(cudensitymatDestroy(handle));
+  }
 };
 
-// Test for convert_to_cudensitymat_operator
-TEST_F(CuDensityMatTestFixture, ConvertToCuDensityMatOperator) {
+// Test for initialize_state
+TEST_F(CuDensityMatTestFixture, InitializeState) {
   std::vector<int64_t> mode_extents = {2, 2};
 
-  auto op_sum = initialize_operator_sum();
+  auto state = cudaq::initialize_state(handle, CUDENSITYMAT_STATE_PURITY_PURE,
+                                       mode_extents);
+  ASSERT_NE(state, nullptr);
 
-  auto result =
-      cudaq::convert_to_cudensitymat_operator(handle, {}, op_sum, mode_extents);
+  cudaq::destroy_state(state);
+}
 
-  ASSERT_NE(result, nullptr);
+// Test for scale_state
+TEST_F(CuDensityMatTestFixture, ScaleState) {
+  std::vector<int64_t> mode_extents = {2};
 
-  cudensitymatDestroyOperator(result);
+  auto state = cudaq::initialize_state(handle, CUDENSITYMAT_STATE_PURITY_PURE,
+                                       mode_extents);
+  ASSERT_NE(state, nullptr);
+
+  EXPECT_NO_THROW(cudaq::scale_state(handle, state, 2.0, stream));
+
+  cudaq::destroy_state(state);
 }
 
 // Test for compute_lindblad_op
@@ -63,42 +78,24 @@ TEST_F(CuDensityMatTestFixture, ComputeLindbladOp) {
   cudaq::matrix_2 c_op2({{0.0, 0.0}, {0.0, 1.0}}, {2, 2});
   std::vector<cudaq::matrix_2> c_ops = {c_op1, c_op2};
 
-  auto result = cudaq::compute_lindblad_operator(handle, c_ops, mode_extents);
+  auto lindblad_op =
+      cudaq::compute_lindblad_operator(handle, c_ops, mode_extents);
+  ASSERT_NE(lindblad_op, nullptr);
 
+  cudensitymatDestroyOperator(lindblad_op);
+}
+
+// Test for convert_to_cudensitymat_operator
+TEST_F(CuDensityMatTestFixture, ConvertToCuDensityMatOperator) {
+  std::vector<int64_t> mode_extents = {2, 2};
+
+  auto op_sum = initialize_operator_sum();
+
+  auto result =
+      cudaq::convert_to_cudensitymat_operator(handle, {}, op_sum, mode_extents);
   ASSERT_NE(result, nullptr);
 
   cudensitymatDestroyOperator(result);
-}
-
-// Test for initialize_state
-TEST_F(CuDensityMatTestFixture, InitializeState) {
-  std::vector<int64_t> mode_extents = {2, 2};
-
-  auto state = cudaq::initialize_state(handle, CUDENSITYMAT_STATE_PURITY_PURE,
-                                       mode_extents);
-
-  ASSERT_NE(state, nullptr);
-
-  cudaq::destroy_state(state);
-}
-
-// Test for scale_state
-TEST_F(CuDensityMatTestFixture, ScaleState) {
-  std::vector<int64_t> mode_extents = {2, 2};
-
-  ASSERT_NO_THROW({
-    auto state = cudaq::initialize_state(handle, CUDENSITYMAT_STATE_PURITY_PURE,
-                                         mode_extents);
-    ASSERT_NE(state, nullptr);
-
-    cudaStream_t stream;
-    cudaStreamCreate(&stream);
-
-    EXPECT_NO_THROW(cudaq::scale_state(handle, state, 2.0, stream));
-
-    cudaStreamDestroy(stream);
-    cudaq::destroy_state(state);
-  });
 }
 
 // Test invalid handle
