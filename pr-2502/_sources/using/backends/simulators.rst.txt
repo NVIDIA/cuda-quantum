@@ -156,7 +156,7 @@ To execute a program on the multi-node multi-GPU NVIDIA target, use the followin
     .. note::
 
       If you installed CUDA-Q via :code:`pip`, you will need to install the necessary MPI dependencies separately;
-      please follow the instructions for installing dependencies in the `Project Description <https://pypi.org/project/cuda-quantum/#description>`__.
+      please follow the instructions for installing dependencies in the `Project Description <https://pypi.org/project/cudaq/#description>`__.
 
     In addition to using MPI in the simulator, you can use it in your application code by installing `mpi4py <https://mpi4py.readthedocs.io/>`__, and 
     invoking the program with the command
