@@ -30,6 +30,16 @@ ARG destination="$CUDAQ_REPO_ROOT"
 ADD "$workspace" "$destination"
 WORKDIR "$destination"
 
+# Accept QUTIP_WHEEL as a build argument
+ARG QUTIP_WHEEL
+
+# Install qutip from the wheel if provided
+RUN if [ -n "$QUTIP_WHEEL" ]; then \
+        pip install $(echo $QUTIP_WHEEL); \
+    else \
+        pip install qutip; \
+    fi
+
 # mpich or openmpi
 ARG mpi=
 RUN if [ -n "$mpi" ]; \
