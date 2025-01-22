@@ -125,7 +125,7 @@ public:
 
   /// FIXME: Protect this once I can do deeper testing in `unittests`.
   // protected:
-  std::vector<product_operator> get_terms() { return m_terms; }
+  std::vector<product_operator> get_terms() const { return m_terms; }
 };
 operator_sum operator*(std::complex<double> other, operator_sum self);
 operator_sum operator+(std::complex<double> other, operator_sum self);
@@ -218,7 +218,8 @@ public:
 
   /// FIXME: Protect this once I can do deeper testing in `unittests`.
   // protected:
-  std::vector<std::variant<scalar_operator, elementary_operator>> get_terms() {
+  std::vector<std::variant<scalar_operator, elementary_operator>>
+  get_terms() const {
     return m_terms;
   };
 };
