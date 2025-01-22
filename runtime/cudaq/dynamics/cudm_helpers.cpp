@@ -14,14 +14,21 @@ cudensitymatState_t initialize_state(cudensitymatHandle_t handle,
                                      cudensitymatStatePurity_t purity,
                                      const std::vector<int64_t> &mode_extents) {
   cudensitymatState_t state;
-  HANDLE_CUDM_ERROR(cudensitymatCreateState(handle, purity, mode_extents.size(),
-                                            mode_extents.data(), 1, CUDA_C_64F,
-                                            &state));
+  cudensitymatStatus_t status =
+      cudensitymatCreateState(handle, purity, mode_extents.size(),
+                              mode_extents.data(), 1, CUDA_C_64F, &state);
+  if (status != CUDENSITYMAT_STATUS_SUCCESS) {
+    std::cerr << "Error in cudensitymatCreateState: " << status << std::endl;
+  }
   return state;
 }
 
 void scale_state(cudensitymatHandle_t handle, cudensitymatState_t state,
                  double scale_factor, cudaStream_t stream) {
+  if (!state) {
+    throw std::invalid_argument("Invalid state provided to scale_state.");
+  }
+
   HANDLE_CUDM_ERROR(
       cudensitymatStateComputeScaling(handle, state, &scale_factor, stream));
 }
