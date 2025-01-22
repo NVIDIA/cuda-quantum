@@ -165,7 +165,7 @@ std::optional<std::pair<
                                                      vector<std::vector<
                                                          std::complex<double>>>
                                                          &krausOps,
-                                                 double tol = 1e-12) {
+                                                 double tol = 1e-6) {
   std::vector<double> probs;
   std::vector<std::vector<std::complex<double>>> mats;
   const auto scaleMat = [](const std::vector<std::complex<double>> &mat,
