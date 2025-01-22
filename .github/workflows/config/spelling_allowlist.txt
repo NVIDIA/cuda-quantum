@@ -46,6 +46,7 @@ Hamiltonian
 Hamiltonians
 IQM
 InfiniBand
+Infleqtion
 IonQ
 JIT
 JSON
@@ -107,6 +108,7 @@ SLURM
 SVD
 Stim
 Superpositions
+Superstaq
 TBI
 TCP
 TableGen

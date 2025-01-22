@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -497,6 +497,14 @@ bool QuakeBridgeVisitor::VisitIntegerLiteral(clang::IntegerLiteral *x) {
       builtinTypeToType(cast<clang::BuiltinType>(x->getType().getTypePtr()));
   auto intVal = x->getValue().getLimitedValue();
   return pushValue(getConstantInt(builder, loc, intVal, intTy));
+}
+
+bool QuakeBridgeVisitor::VisitCharacterLiteral(clang::CharacterLiteral *x) {
+  auto loc = toLocation(x->getSourceRange());
+  auto intTy =
+      builtinTypeToType(cast<clang::BuiltinType>(x->getType().getTypePtr()));
+  auto intVal = x->getValue();
+  return pushValue(builder.create<arith::ConstantIntOp>(loc, intVal, intTy));
 }
 
 bool QuakeBridgeVisitor::VisitUnaryOperator(clang::UnaryOperator *x) {
@@ -2310,8 +2318,10 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
         // replace it with an indirect call to the func::ConstantOp.
         auto indirect = popValue();
         auto funcTy = cast<FunctionType>(indirect.getType());
+        auto convertedArgs =
+            convertKernelArgs(builder, loc, 0, args, funcTy.getInputs());
         auto call = builder.create<func::CallIndirectOp>(
-            loc, funcTy.getResults(), indirect, args);
+            loc, funcTy.getResults(), indirect, convertedArgs);
         if (call.getResults().empty())
           return true;
         return pushValue(call.getResult(0));
@@ -2696,19 +2706,12 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
             initials = load.getPtrvalue();
         }
         if (isStateType(initials.getType())) {
-          IRBuilder irBuilder(builder.getContext());
-          auto mod =
-              builder.getBlock()->getParentOp()->getParentOfType<ModuleOp>();
-          auto result =
-              irBuilder.loadIntrinsic(mod, getNumQubitsFromCudaqState);
-          assert(succeeded(result) && "loading intrinsic should never fail");
           Value state = initials;
           auto i64Ty = builder.getI64Type();
-          auto numQubits = builder.create<func::CallOp>(
-              loc, i64Ty, getNumQubitsFromCudaqState, ValueRange{state});
+          auto numQubits =
+              builder.create<quake::GetNumberOfQubitsOp>(loc, i64Ty, state);
           auto veqTy = quake::VeqType::getUnsized(ctx);
-          Value alloc = builder.create<quake::AllocaOp>(loc, veqTy,
-                                                        numQubits.getResult(0));
+          Value alloc = builder.create<quake::AllocaOp>(loc, veqTy, numQubits);
           return pushValue(builder.create<quake::InitializeStateOp>(
               loc, veqTy, alloc, state));
         }

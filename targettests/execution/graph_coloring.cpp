@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,8 +8,9 @@
 
 // REQUIRES: c++20
 // clang-format off
+// RUN: nvq++ %s -o %t --target infleqtion --emulate && %t | FileCheck %s
 // RUN: nvq++ %s -o %t --target quantinuum --emulate && %t | FileCheck %s
-// RUN: if $braket_avail; then nvq++ %s -o %t --target braket --emulate && %t | FileCheck %s; fi
+// RUN: if %braket_avail; then nvq++ %s -o %t --target braket --emulate && %t | FileCheck %s; fi
 // clang-format on
 
 #include <cudaq.h>

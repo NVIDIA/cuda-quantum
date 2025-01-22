@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -41,6 +41,7 @@ static LogicalResult translateOperatorName(quake::OperatorInterface optor,
                .Case("ry", "cry")
                .Case("rz", "crz")
                .Case("swap", "cswap")
+               .Case("u3", "cu3")
                .Default(qkeName);
   } else if (optor.getControls().size() == 2) {
     name = StringSwitch<StringRef>(qkeName).Case("x", "ccx").Default("");

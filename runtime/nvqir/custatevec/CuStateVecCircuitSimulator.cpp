@@ -1,5 +1,5 @@
 /*************************************************************** -*- C++ -*- ***
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -216,7 +216,8 @@ protected:
     void *newDeviceStateVector;
     HANDLE_CUDA_ERROR(cudaMalloc((void **)&newDeviceStateVector,
                                  stateDimension * sizeof(CudaDataType)));
-
+    HANDLE_CUDA_ERROR(cudaMemset(newDeviceStateVector, 0,
+                                 stateDimension * sizeof(CudaDataType)));
     // Place the state data on device. Could be that
     // we just need the zero state, or the user could have provided one
     void *otherState;
@@ -282,6 +283,8 @@ protected:
     // Allocate new vector to place the kron prod result
     void *newDeviceStateVector;
     HANDLE_CUDA_ERROR(cudaMalloc((void **)&newDeviceStateVector,
+                                 stateDimension * sizeof(CudaDataType)));
+    HANDLE_CUDA_ERROR(cudaMemset(newDeviceStateVector, 0,
                                  stateDimension * sizeof(CudaDataType)));
     constexpr int32_t threads_per_block = 256;
     uint32_t n_blocks =

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -31,6 +31,7 @@ public:
     // Make sure that we clean up the client QPUs first before cleaning up the
     // remote servers.
     platformQPUs.clear();
+    threadToQpuId.clear();
     platformNumQPUs = 0;
     m_remoteServers.clear();
   }
@@ -154,6 +155,7 @@ public:
                         qpuSubType));
       if (qpuSubType == "NvcfSimulatorQPU") {
         platformQPUs.clear();
+        threadToQpuId.clear();
         auto simName = getOpt(description, "backend");
         if (simName.empty())
           simName = "custatevec-fp32";
@@ -199,6 +201,7 @@ public:
       } else if (qpuSubType == "orca") {
         auto urls = cudaq::split(getOpt(description, "url"), ',');
         platformQPUs.clear();
+        threadToQpuId.clear();
         for (std::size_t qId = 0; qId < urls.size(); ++qId) {
           // Populate the information and add the QPUs
           platformQPUs.emplace_back(cudaq::registry::get<cudaq::QPU>("orca"));
@@ -244,6 +247,7 @@ public:
               "receiving {}, expecting {}.",
               sims.size(), urls.size()));
         platformQPUs.clear();
+        threadToQpuId.clear();
         for (std::size_t qId = 0; qId < urls.size(); ++qId) {
           const auto simName = sims.size() == 1 ? sims.front() : sims[qId];
           // Populate the information and add the QPUs

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -172,6 +172,9 @@ expected_result_decay = [
 
 
 def test_evolve():
+    # Set random seed for shots-based observe test.
+    cudaq.set_random_seed(13)
+
     # Qubit Hamiltonian
     hamiltonian = 2 * np.pi * 0.1 * spin.x(0)
 
@@ -242,6 +245,9 @@ def test_evolve():
 
 
 def test_evolve_async():
+    # Set random seed for shots-based observe test.
+    cudaq.set_random_seed(13)
+
     # Qubit Hamiltonian
     hamiltonian = 2 * np.pi * 0.1 * spin.x(0)
 

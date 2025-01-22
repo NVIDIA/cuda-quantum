@@ -462,6 +462,7 @@ public:
         mlir::SmallVector<mlir::StringRef> substs = {substBuff};
         pm.addNestedPass<mlir::func::FuncOp>(
             opt::createArgumentSynthesisPass(kernels, substs));
+        pm.addPass(opt::createDeleteStates());
       } else if (updatedArgs) {
         cudaq::info("Run Quake Synth.\n");
         pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));

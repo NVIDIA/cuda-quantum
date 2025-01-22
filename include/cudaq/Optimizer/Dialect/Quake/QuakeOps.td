@@ -1,5 +1,5 @@
 /***********************************************************-*- tablegen -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -1394,6 +1394,92 @@ def CustomUnitarySymbolOp :
     ( `<` `adj` $is_adj^ `>` )? ( `(` $parameters^ `)` )?
     (`[` $controls^ (`neg` $negated_qubit_controls^ )? `]`)?
     $targets `:` functional-type(operands, results) attr-dict
+  }];
+}
+
+//===----------------------------------------------------------------------===//
+// Quantum states
+//===----------------------------------------------------------------------===//
+
+def quake_CreateStateOp : QuakeOp<"create_state", [Pure]> {
+  let summary = "Create state from data";
+  let description = [{
+    This operation takes a pointer to state data and creates a quantum state,
+    where state data is a pointer to an array of float or complex numbers.
+    The operation can be optimized away in DeleteStates pass, or replaced
+    by an intrinsic runtime call on simulators.
+
+    ```mlir
+      %0 = quake.create_state %data %len : (!cc.ptr<!cc.array<complex<f64> x 8>>, i64) -> !cc.ptr<!cc.state>
+    ```
+  }];
+
+  let arguments = (ins
+    cc_PointerType:$data,
+    AnySignlessInteger:$length
+  );
+  let results = (outs cc_PointerType:$result);
+  let assemblyFormat = [{
+      $data `,` $length `:` functional-type(operands, results) attr-dict
+  }];
+}
+
+def QuakeOp_DeleteStateOp : QuakeOp<"delete_state", [] > {
+  let summary = "Delete quantum state";
+  let description =  [{
+    This operation takes a pointer to the state and deletes the state object.
+    The operation can be created in in DeleteStates pass, and replaced later
+    by an intrinsic runtime call on simulators.
+
+    ```mlir
+      quake.delete_state %state : !cc.ptr<!cc.state>
+    ```
+  }];
+
+  let arguments = (ins cc_PointerType:$state);
+  let results = (outs);
+  let assemblyFormat = [{
+      $state `:` type(operands) attr-dict
+  }];
+}
+
+def quake_GetNumberOfQubitsOp : QuakeOp<"get_number_of_qubits", [Pure] > {
+  let summary = "Get number of qubits from a quantum state";
+  let description = [{
+    This operation takes a pointer to the state as an argument and returns
+    a number of qubits in the state. The operation can be optimized away in
+    some passes like ReplaceStateByKernel or DeleteStates, or replaced by an
+    intrinsic runtime call when the target is one of the simulators.
+
+    ```mlir
+      %0 = quake.get_number_of_qubits %state : (!cc.ptr<!cc.state>) -> i64
+    ```
+  }];
+
+  let arguments = (ins cc_PointerType:$state);
+  let results = (outs AnySignlessInteger:$result);
+  let assemblyFormat = [{
+      $state `:` functional-type(operands, results) attr-dict
+  }];
+}
+
+def QuakeOp_GetStateOp : QuakeOp<"get_state", [Pure] > {
+  let summary = "Get state from kernel with the provided name.";
+  let description = [{
+    This operation is created by argument synthesis of state pointer arguments
+    for quantum devices. It takes a kernel name as ASCIIZ string literal value
+    and returns the kernel's quantum state. The operation is replaced by a call
+    to the kernel with the provided name in ReplaceStateByKernel pass.
+
+    ```mlir
+      %0 = quake.get_state "callee" : !cc.ptr<!cc.state>
+    ```
+  }];
+
+  let arguments = (ins StrAttr:$calleeName);
+  let results = (outs cc_PointerType:$result);
+  let assemblyFormat = [{
+     $calleeName `:` qualified(type(results)) attr-dict
   }];
 }
 

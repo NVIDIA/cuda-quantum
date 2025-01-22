@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -96,6 +96,13 @@ protected:
   // Random number generator for generating 32-bit numbers with a state size of
   // 19937 bits for measurements.
   std::mt19937 m_randomEngine;
+  // Max number of controlled ranks (qubits) that the full matrix of the
+  // controlled gate is used as tensor op.
+  // Default is 1.
+  // MPS only supports 1 (higher number of controlled ranks must use
+  // cutensornetStateApplyControlledTensorOperator). Tensornet supports
+  // arbitrary values.
+  std::size_t m_maxControlledRankForFullTensorExpansion = 1;
 };
 
 } // end namespace nvqir
