@@ -88,6 +88,10 @@ public:
 
   std::unique_ptr<TensorNetState> clone() const;
 
+  /// Default number of trajectories for observe (with noise) in case no option
+  /// is provided.
+  static inline constexpr int g_numberTrajectoriesForObserve = 1000;
+
   /// Reconstruct/initialize a state from MPS tensors
   static std::unique_ptr<TensorNetState>
   createFromMpsTensors(const std::vector<MPSTensor> &mpsTensors,
@@ -173,7 +177,8 @@ public:
   /// @param symplecticRepr The symplectic representation of the observable
   /// @return
   std::vector<std::complex<double>>
-  computeExpVals(const std::vector<std::vector<bool>> &symplecticRepr);
+  computeExpVals(const std::vector<std::vector<bool>> &symplecticRepr,
+                 const std::optional<std::size_t> &numberTrajectories);
 
   /// @brief Number of qubits that this state represents.
   std::size_t getNumQubits() const { return m_numQubits; }

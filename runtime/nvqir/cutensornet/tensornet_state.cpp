@@ -583,7 +583,8 @@ TensorNetState::factorizeMPS(int64_t maxExtent, double absCutoff,
 }
 
 std::vector<std::complex<double>> TensorNetState::computeExpVals(
-    const std::vector<std::vector<bool>> &symplecticRepr) {
+    const std::vector<std::vector<bool>> &symplecticRepr,
+    const std::optional<std::size_t> &numberTrajectories) {
   LOG_API_TIME();
   if (symplecticRepr.empty())
     return {};
@@ -689,6 +690,13 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
   }
 
   // Step 4: Compute
+  const std::size_t numObserveTrajectories = [&]() -> std::size_t {
+    if (!m_hasNoiseChannel)
+      return 1;
+    if (numberTrajectories.has_value())
+      return numberTrajectories.value();
+    return g_numberTrajectoriesForObserve;
+  }();
   for (const auto &term : symplecticRepr) {
     bool allIdOps = true;
     for (std::size_t i = 0; i < numQubits; ++i) {
@@ -723,16 +731,16 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
       HANDLE_CUDA_ERROR(cudaMemcpy(pauliMats_d, pauliMats_h,
                                    placeHolderArraySize,
                                    cudaMemcpyHostToDevice));
-      std::complex<double> expVal;
-      std::complex<double> stateNorm{0.0, 0.0};
-      {
+      std::complex<double> expVal = 0.0;
+      for (std::size_t trajId = 0; trajId < numObserveTrajectories; ++trajId) {
+        std::complex<double> result;
         ScopedTraceWithContext("cutensornetExpectationCompute");
         HANDLE_CUTN_ERROR(cutensornetExpectationCompute(
-            m_cutnHandle, tensorNetworkExpectation, workDesc, &expVal,
-            static_cast<void *>(&stateNorm),
+            m_cutnHandle, tensorNetworkExpectation, workDesc, &result, nullptr,
             /*cudaStream*/ 0));
+        expVal += (result / static_cast<double>(numObserveTrajectories));
       }
-      allExpVals.emplace_back(expVal / std::abs(stateNorm));
+      allExpVals.emplace_back(expVal);
     }
   }
 

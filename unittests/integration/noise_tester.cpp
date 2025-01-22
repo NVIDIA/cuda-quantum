@@ -652,7 +652,7 @@ CUDAQ_TEST(NoiseTest, checkCustomOperation) {
 }
 #endif
 
-#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM)
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) || defined(CUDAQ_BACKEND_TENSORNET)
 
 CUDAQ_TEST(NoiseTest, checkMeasurementNoise) {
   cudaq::set_random_seed(13);
@@ -691,4 +691,30 @@ CUDAQ_TEST(NoiseTest, checkMeasurementNoise) {
   cudaq::unset_noise(); // clear for subsequent tests
 }
 
+#endif
+
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_TENSORNET)
+CUDAQ_TEST(NoiseTest, checkObserveHamiltonianWithNoise) {
+  using namespace cudaq::spin;
+  cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
+                     .21829 * z(0) - 6.125 * z(1);
+  cudaq::set_random_seed(13);
+  cudaq::depolarization_channel depol(0.1);
+  cudaq::noise_model noise;
+  noise.add_all_qubit_channel<cudaq::types::x>(depol);
+  noise.add_all_qubit_channel<cudaq::types::ry>(depol);
+  cudaq::set_noise(noise);
+
+  auto ansatz = [](double theta) __qpu__ {
+    cudaq::qubit q, r;
+    x(q);
+    ry(theta, r);
+    x<cudaq::ctrl>(r, q);
+  };
+
+  double result = cudaq::observe(ansatz, h, 0.59);
+  printf("Energy value = %lf\n", result);
+  EXPECT_GT(std::abs(result + 1.7487), 0.1);
+  cudaq::unset_noise(); // clear for subsequent tests
+}
 #endif

@@ -486,7 +486,8 @@ SimulatorTensorNetBase::observe(const cudaq::spin_op &ham) {
   });
 
   // Compute the expectation value for all terms
-  const auto termExpVals = m_state->computeExpVals(terms);
+  const auto termExpVals = m_state->computeExpVals(
+      terms, this->executionContext->numberTrajectories);
   std::complex<double> expVal = 0.0;
   // Construct per-term data in the final observe_result
   std::vector<cudaq::ExecutionResult> results;
