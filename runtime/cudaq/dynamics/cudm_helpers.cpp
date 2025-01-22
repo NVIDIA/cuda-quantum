@@ -73,6 +73,15 @@ compute_lindblad_operator(cudensitymatHandle_t handle,
   return lindblad_op;
 }
 
+std::map<int, int>
+convert_dimensions(const std::vector<int64_t> &mode_extents) {
+  std::map<int, int> dimensions;
+  for (size_t i = 0; i < mode_extents.size(); i++) {
+    dimensions[static_cast<int>(i)] = static_cast<int>(mode_extents[i]);
+  }
+  return dimensions;
+}
+
 cudensitymatOperator_t convert_to_cudensitymat_operator(
     cudensitymatHandle_t handle,
     const std::map<std::string, std::complex<double>> &parameters,
@@ -86,71 +95,67 @@ cudensitymatOperator_t convert_to_cudensitymat_operator(
       throw std::runtime_error("Failed to create operator.");
     }
 
-    // Define dimensions for the operator
-    std::map<int, int> dimensions;
-    for (size_t i = 0; i < mode_extents.size(); i++) {
-      dimensions[static_cast<int>(i)] = static_cast<int>(mode_extents[i]);
-    }
+    for (const auto &product_op : op.get_terms()) {
+      cudensitymatOperatorTerm_t term;
 
-    auto matrix = op.to_matrix(dimensions, parameters);
-    size_t dim = matrix.get_rows();
-    if (matrix.get_columns() != dim) {
-      throw std::invalid_argument("Matrix must be a square.");
-    }
+      HANDLE_CUDM_ERROR(cudensitymatCreateOperatorTerm(
+          handle, static_cast<int32_t>(mode_extents.size()),
+          mode_extents.data(), &term));
 
-    std::vector<std::complex<double>> flat_matrix;
-    for (size_t i = 0; i < matrix.get_rows(); i++) {
-      for (size_t j = 0; j < matrix.get_columns(); j++) {
-        flat_matrix.push_back(matrix[{i, j}]);
+      for (const auto &component : product_op.get_terms()) {
+        if (std::holds_alternative<cudaq::elementary_operator>(component)) {
+          const auto &elem_op = std::get<cudaq::elementary_operator>(component);
+
+          // Create a cudensitymat elementary operator
+          cudensitymatElementaryOperator_t cudm_elem_op;
+
+          // Get the matrix representation of elementary operator
+          auto dimensions = convert_dimensions(mode_extents);
+          auto matrix = elem_op.to_matrix(dimensions, parameters);
+
+          // Flatten the matrix into a single-dimensional array
+          std::vector<std::complex<double>> flat_matrix;
+          for (size_t i = 0; i < matrix.get_rows(); i++) {
+            for (size_t j = 0; j < matrix.get_columns(); j++) {
+              flat_matrix.push_back(matrix[{i, j}]);
+            }
+          }
+
+          // Create a cudensitymat elementary operator
+          HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperator(
+              handle, 1, mode_extents.data(),
+              CUDENSITYMAT_OPERATOR_SPARSITY_NONE, 0, nullptr, CUDA_C_64F,
+              flat_matrix.data(), {nullptr, nullptr}, &cudm_elem_op));
+
+          // Append the elementary operator to the term
+          HANDLE_CUDM_ERROR(cudensitymatOperatorTermAppendElementaryProduct(
+              handle, term, 1, &cudm_elem_op, &elem_op.degrees[0], nullptr,
+              make_cuDoubleComplex(1.0, 0.0), {nullptr, nullptr}));
+
+          // Destroy the elementary operator after appending
+          HANDLE_CUDM_ERROR(
+              cudensitymatDestroyElementaryOperator(cudm_elem_op));
+        } else if (std::holds_alternative<cudaq::scalar_operator>(component)) {
+          const auto &scalar_op = std::get<cudaq::scalar_operator>(component);
+
+          // Use the scalar coefficient
+          auto coeff = scalar_op.evaluate(parameters);
+          HANDLE_CUDM_ERROR(cudensitymatOperatorTermAppendElementaryProduct(
+              handle, term, 0, nullptr, nullptr, nullptr,
+              {make_cuDoubleComplex(coeff.real(), coeff.imag())},
+              {nullptr, nullptr}));
+        }
       }
+
+      // Append the product operator term to the top-level operator
+      HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+          handle, operator_handle, term, 0, make_cuDoubleComplex(1.0, 0.0),
+          {nullptr, nullptr}));
+
+      // Destroy the term
+      HANDLE_CUDM_ERROR(cudensitymatDestroyOperatorTerm(term));
     }
 
-    cudensitymatOperatorTerm_t term;
-    status = cudensitymatCreateOperatorTerm(
-        handle, static_cast<int32_t>(mode_extents.size()), mode_extents.data(),
-        &term);
-    if (status != CUDENSITYMAT_STATUS_SUCCESS) {
-      cudensitymatDestroyOperator(operator_handle);
-      throw std::runtime_error("Failed to create operator term.");
-    }
-
-    // Attach flat_matrix to the term
-    int32_t num_elem_operators = 1;
-    int32_t num_operator_modes = static_cast<int32_t>(mode_extents.size());
-    const int64_t *operator_mode_extents = mode_extents.data();
-    const int64_t *operator_mode_strides = nullptr;
-    int32_t state_modes_acted_on[static_cast<int32_t>(mode_extents.size())];
-    for (int32_t i = 0; i < num_operator_modes; i++) {
-      state_modes_acted_on[i] = i;
-    }
-
-    cudensitymatWrappedTensorCallback_t tensorCallback = {nullptr, nullptr};
-    cudensitymatWrappedScalarCallback_t scalarCallback = {nullptr, nullptr};
-
-    void *tensor_data = flat_matrix.data();
-    cuDoubleComplex coefficient = make_cuDoubleComplex(1.0, 0.0);
-
-    status = cudensitymatOperatorTermAppendGeneralProduct(
-        handle, term, num_elem_operators, &num_operator_modes,
-        &operator_mode_extents, &operator_mode_strides, state_modes_acted_on,
-        nullptr, CUDA_C_64F, &tensor_data, &tensorCallback, coefficient,
-        scalarCallback);
-    if (status != CUDENSITYMAT_STATUS_SUCCESS) {
-      cudensitymatDestroyOperatorTerm(term);
-      cudensitymatDestroyOperator(operator_handle);
-      throw std::runtime_error(
-          "Failed to attach flat_matrix to operator term.");
-    }
-
-    status = cudensitymatOperatorAppendTerm(handle, operator_handle, term, 0,
-                                            coefficient, scalarCallback);
-    if (status != CUDENSITYMAT_STATUS_SUCCESS) {
-      cudensitymatDestroyOperatorTerm(term);
-      cudensitymatDestroyOperator(operator_handle);
-      throw std::runtime_error("Failed to attach term to operator.");
-    }
-
-    cudensitymatDestroyOperatorTerm(term);
     return operator_handle;
   } catch (const std::exception &e) {
     std::cerr << "Error in convert_to_cudensitymat_operator: " << e.what()
