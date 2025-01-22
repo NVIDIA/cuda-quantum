@@ -162,6 +162,7 @@ jobs:
         with:
           endpoint: builder_context
           driver-opts: network=host
+          version: v0.17.1
 
       - name: Build Open MPI
         id: docker_build
@@ -309,6 +310,7 @@ jobs:
         with:
           endpoint: builder_context
           driver-opts: network=host
+          version: v0.17.1
 
       - name: Extract metadata
         id: metadata
@@ -513,6 +515,7 @@ jobs:
         with:
           endpoint: builder_context
           driver-opts: network=host
+          version: v0.17.1
 
       - name: Extract cuda-quantum-dev metadata
         id: cudaqdev_metadata
