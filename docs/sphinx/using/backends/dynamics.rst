@@ -1,5 +1,5 @@
 Dynamics Simulation 
-+++++++++++++++++++++++++++++++
++++++++++++++++++++++
 
 CUDA-Q enables the design, simulation and execution of quantum dynamics via 
 the ``evolve`` API. Specifically, this API allows us to solve the time evolution 
