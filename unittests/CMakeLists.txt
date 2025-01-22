@@ -293,7 +293,8 @@ target_link_libraries(test_operators
   cudaq
   gtest_main
   $ENV{CUQUANTUM_INSTALL_PREFIX}/lib/libcudensitymat.so.0
-  /usr/local/cuda-12.0/targets/x86_64-linux/lib/libcudart.so.12)
+  /usr/local/cuda-12.0/targets/x86_64-linux/lib/libcudart.so.12
+  fmt::fmt-header-only)
 gtest_discover_tests(test_operators)
 
 add_subdirectory(plugin)
@@ -457,4 +458,3 @@ if (CUDAQ_ENABLE_PYTHON)
   gtest_discover_tests(test_domains
     TEST_SUFFIX _Sampling PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}/python")
 endif()
-
