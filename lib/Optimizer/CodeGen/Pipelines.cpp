@@ -10,8 +10,9 @@
 
 using namespace mlir;
 
-void cudaq::opt::commonPipelineConvertToQIR(
-    PassManager &pm, const std::optional<StringRef> &convertTo) {
+void cudaq::opt::commonPipelineConvertToQIR(PassManager &pm,
+                                            StringRef codeGenFor,
+                                            StringRef passConfigAs) {
   pm.addNestedPass<func::FuncOp>(createApplyControlNegations());
   addAggressiveEarlyInlining(pm);
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
@@ -26,7 +27,7 @@ void cudaq::opt::commonPipelineConvertToQIR(
   pm.addNestedPass<func::FuncOp>(createQuakeAddMetadata());
   pm.addNestedPass<func::FuncOp>(createLoopNormalize());
   LoopUnrollOptions luo;
-  luo.allowBreak = convertTo && convertTo->equals("qir-adaptive");
+  luo.allowBreak = passConfigAs == "qir-adaptive";
   pm.addNestedPass<func::FuncOp>(createLoopUnroll(luo));
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
@@ -34,18 +35,20 @@ void cudaq::opt::commonPipelineConvertToQIR(
   pm.addNestedPass<func::FuncOp>(createCombineQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
-  if (convertTo && convertTo->equals("qir-base"))
+  if (passConfigAs == "qir-base")
     pm.addNestedPass<func::FuncOp>(createDelayMeasurementsPass());
-  if (!convertTo || convertTo->equals("qir"))
-     cudaq::opt::addConvertToQIRAPIPipeline(pm, "full");
-  if (convertTo && convertTo->equals("qir-base"))
-     cudaq::opt::addConvertToQIRAPIPipeline(pm, "base-profile");
-  if (convertTo && convertTo->equals("qir-adaptive"))
-     cudaq::opt::addConvertToQIRAPIPipeline(pm, "adaptive-profile");
+  if (codeGenFor == "qir")
+    cudaq::opt::addConvertToQIRAPIPipeline(pm, "full");
+  else if (codeGenFor == "qir-base")
+    cudaq::opt::addConvertToQIRAPIPipeline(pm, "base-profile");
+  else if (codeGenFor == "qir-adaptive")
+    cudaq::opt::addConvertToQIRAPIPipeline(pm, "adaptive-profile");
+  else
+    emitError(UnknownLoc::get(pm.getContext()),
+              "convert to QIR must be given a valid specification to use.");
   pm.addPass(createConvertMathToFuncs());
   pm.addPass(createSymbolDCEPass());
   pm.addPass(createCCToLLVM());
-  //pm.addPass(createConvertToQIR());
 }
 
 void cudaq::opt::addPipelineTranslateToOpenQASM(PassManager &pm) {
