@@ -72,12 +72,7 @@ struct ScratchDeviceMem {
                   2; // use half of available memory with alignment
   }
 
-  // Allocate scratch device memory based on available memory
-  void allocate() {
-    if (d_scratch)
-      throw std::runtime_error(
-          "Multiple scratch device memory allocations is not allowed.");
-
+  ScratchDeviceMem() {
     computeScratchSize();
     // Try allocate device memory
     auto errCode = cudaMalloc(&d_scratch, scratchSize);
@@ -91,11 +86,7 @@ struct ScratchDeviceMem {
       HANDLE_CUDA_ERROR(errCode);
     }
   }
-
-  ~ScratchDeviceMem() {
-    if (scratchSize > 0)
-      HANDLE_CUDA_ERROR(cudaFree(d_scratch));
-  }
+  ~ScratchDeviceMem() { HANDLE_CUDA_ERROR(cudaFree(d_scratch)); }
 };
 
 /// Initialize `cutensornet` MPI Comm

@@ -53,8 +53,7 @@ std::unique_ptr<TensorNetState> TensorNetState::clone() const {
 void TensorNetState::applyGate(const std::vector<int32_t> &controlQubits,
                                const std::vector<int32_t> &targetQubits,
                                void *gateDeviceMem, bool adjoint) {
-  ScopedTraceWithContext("TensorNetState::applyGate", controlQubits.size(),
-                         targetQubits.size());
+  LOG_API_TIME();
   if (controlQubits.empty()) {
     HANDLE_CUTN_ERROR(cutensornetStateApplyTensorOperator(
         m_cutnHandle, m_quantumState, targetQubits.size(), targetQubits.data(),

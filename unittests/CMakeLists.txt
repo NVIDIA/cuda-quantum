@@ -198,29 +198,6 @@ if(TARGET nvqir-tensornet)
   message(STATUS "Building cutensornet backend tests.")
   create_tests_with_backend(tensornet "")
   create_tests_with_backend(tensornet-mps "")
-  if (MPI_CXX_FOUND)
-    # Count the number of GPUs
-    find_program(NVIDIA_SMI "nvidia-smi")
-    if(NVIDIA_SMI)
-      execute_process(COMMAND bash -c "nvidia-smi --list-gpus | wc -l" OUTPUT_VARIABLE NGPUS)
-      # Only build this test if we have more than 1 GPUs
-      if (${NGPUS} GREATER_EQUAL 2)
-        message(STATUS "Building cutensornet MPI tests.")
-        add_executable(test_tensornet_mpi mpi/tensornet_mpi_tester.cpp)
-        if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-          target_link_options(test_tensornet_mpi PRIVATE -Wl,--no-as-needed)
-        endif()
-        target_link_libraries(test_tensornet_mpi
-            PRIVATE 
-            cudaq
-            cudaq-platform-default
-            nvqir-tensornet
-            gtest)
-        add_test(NAME TensornetMPITest COMMAND ${MPIEXEC} --allow-run-as-root -np 2 ${CMAKE_BINARY_DIR}/unittests/test_tensornet_mpi)
-        set_tests_properties(TensornetMPITest PROPERTIES LABELS "gpu_required;mgpus_required")
-      endif() # NGPUS
-    endif() # NVIDIA_SMI
-  endif() # MPI_CXX_FOUND
 endif() 
 
 # Create an executable for SpinOp UnitTests
