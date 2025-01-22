@@ -114,23 +114,38 @@ void TensorNetState::addQubits(std::size_t numQubits) {
   // the new wires are all empty (zero state).
   int64_t tensorId = 0;
   for (auto &op : m_tensorOps)
-    if (op.controlQubitIds.empty()) {
-      HANDLE_CUTN_ERROR(cutensornetStateApplyTensorOperator(
-          m_cutnHandle, m_quantumState, op.targetQubitIds.size(),
-          op.targetQubitIds.data(), op.deviceData, nullptr, /*immutable*/ 1,
-          /*adjoint*/ static_cast<int32_t>(op.isAdjoint),
-          /*unitary*/ static_cast<int32_t>(op.isUnitary), &tensorId));
-    } else {
-      HANDLE_CUTN_ERROR(cutensornetStateApplyControlledTensorOperator(
+    if (op.deviceData) {
+      if (op.controlQubitIds.empty()) {
+        HANDLE_CUTN_ERROR(cutensornetStateApplyTensorOperator(
+            m_cutnHandle, m_quantumState, op.targetQubitIds.size(),
+            op.targetQubitIds.data(), op.deviceData, nullptr, /*immutable*/ 1,
+            /*adjoint*/ static_cast<int32_t>(op.isAdjoint),
+            /*unitary*/ static_cast<int32_t>(op.isUnitary), &tensorId));
+      } else {
+        HANDLE_CUTN_ERROR(cutensornetStateApplyControlledTensorOperator(
+            m_cutnHandle, m_quantumState,
+            /*numControlModes=*/op.controlQubitIds.size(),
+            /*stateControlModes=*/op.controlQubitIds.data(),
+            /*stateControlValues=*/nullptr,
+            /*numTargetModes*/ op.targetQubitIds.size(),
+            /*stateTargetModes*/ op.targetQubitIds.data(), op.deviceData,
+            nullptr,
+            /*immutable*/ 1,
+            /*adjoint*/ static_cast<int32_t>(op.isAdjoint),
+            /*unitary*/ static_cast<int32_t>(op.isUnitary), &m_tensorId));
+      }
+    } else if (op.unitaryChannel.has_value()) {
+      HANDLE_CUTN_ERROR(cutensornetStateApplyUnitaryChannel(
           m_cutnHandle, m_quantumState,
-          /*numControlModes=*/op.controlQubitIds.size(),
-          /*stateControlModes=*/op.controlQubitIds.data(),
-          /*stateControlValues=*/nullptr,
-          /*numTargetModes*/ op.targetQubitIds.size(),
-          /*stateTargetModes*/ op.targetQubitIds.data(), op.deviceData, nullptr,
-          /*immutable*/ 1,
-          /*adjoint*/ static_cast<int32_t>(op.isAdjoint),
-          /*unitary*/ static_cast<int32_t>(op.isUnitary), &m_tensorId));
+          /*numStateModes=*/op.targetQubitIds.size(),
+          /*stateModes=*/op.targetQubitIds.data(),
+          /*numTensors=*/op.unitaryChannel->tensorData.size(),
+          /*tensorData=*/op.unitaryChannel->tensorData.data(),
+          /*tensorModeStrides=*/nullptr,
+          /*probabilities=*/op.unitaryChannel->probabilities.data(),
+          &m_tensorId));
+    } else {
+      throw std::runtime_error("Invalid AppliedTensorOp encountered.");
     }
 }
 
@@ -837,7 +852,7 @@ void TensorNetState::applyCachedOps() {
           /*probabilities=*/op.unitaryChannel->probabilities.data(),
           &m_tensorId));
     } else {
-      throw std::runtime_error("Invalid AppliedTensorOp encounterred.");
+      throw std::runtime_error("Invalid AppliedTensorOp encountered.");
     }
 }
 
