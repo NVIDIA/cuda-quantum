@@ -7,102 +7,70 @@
  ******************************************************************************/
 
 #include "cudaq/cudm_helpers.h"
+#include "cudaq/cudm_error_handling.h"
 
 namespace cudaq {
 cudensitymatState_t initialize_state(cudensitymatHandle_t handle,
                                      cudensitymatStatePurity_t purity,
                                      const std::vector<int64_t> &mode_extents) {
-  try {
-    cudensitymatState_t state;
-    HANDLE_ERROR(cudensitymatCreateState(handle, purity, mode_extents.size(),
-                                         mode_extents.data(), 1, CUDA_C_64F,
-                                         &state));
-    return state;
-  } catch (const std::exception &e) {
-    std::cerr << "Error in initialize_state: " << e.what() << std::endl;
-    throw;
-  }
+  cudensitymatState_t state;
+  HANDLE_CUDM_ERROR(cudensitymatCreateState(handle, purity, mode_extents.size(),
+                                            mode_extents.data(), 1, CUDA_C_64F,
+                                            &state));
+  return state;
 }
 
 void scale_state(cudensitymatHandle_t handle, cudensitymatState_t state,
                  double scale_factor, cudaStream_t stream) {
-  try {
-    auto status =
-        cudensitymatStateComputeScaling(handle, state, &scale_factor, stream);
-    if (status != CUDENSITYMAT_STATUS_SUCCESS) {
-      throw std::runtime_error("Failed to scale quantum state.");
-    }
-  } catch (const std::exception &e) {
-    std::cerr << "Error in scale_state: " << e.what() << std::endl;
-    throw;
-  }
+  HANDLE_CUDM_ERROR(
+      cudensitymatStateComputeScaling(handle, state, &scale_factor, stream));
 }
 
 void destroy_state(cudensitymatState_t state) {
-  try {
-    cudensitymatDestroyState(state);
-  } catch (const std::exception &e) {
-    std::cerr << "Error in destroy_state: " << e.what() << std::endl;
-  }
+  cudensitymatDestroyState(state);
 }
 
 cudensitymatOperator_t
 compute_lindblad_operator(cudensitymatHandle_t handle,
                           const std::vector<matrix_2> &c_ops,
                           const std::vector<int64_t> &mode_extents) {
-  try {
-    if (c_ops.empty()) {
-      throw std::invalid_argument("Collapse operators cannot be empty.");
-    }
-
-    cudensitymatOperator_t lindblad_op;
-    auto status = cudensitymatCreateOperator(
-        handle, static_cast<int32_t>(mode_extents.size()), mode_extents.data(),
-        &lindblad_op);
-    if (status != CUDENSITYMAT_STATUS_SUCCESS) {
-      throw std::runtime_error("Failed to create lindblad operator.");
-    }
-
-    for (const auto &c_op : c_ops) {
-      size_t dim = c_op.get_rows();
-      if (dim == 0 || c_op.get_columns() != dim) {
-        throw std::invalid_argument(
-            "Collapse operator must be a square matrix.");
-      }
-
-      std::vector<std::complex<double>> flat_matrix(dim * dim);
-      for (size_t i = 0; i < dim; i++) {
-        for (size_t j = 0; j < dim; j++) {
-          flat_matrix[i * dim + j] = c_op[{i, j}];
-        }
-      }
-
-      // Create Operator term for LtL and add to lindblad_op
-      cudensitymatOperatorTerm_t term;
-      status = cudensitymatCreateOperatorTerm(
-          handle, static_cast<int32_t>(mode_extents.size()),
-          mode_extents.data(), &term);
-      if (status != CUDENSITYMAT_STATUS_SUCCESS) {
-        cudensitymatDestroyOperator(lindblad_op);
-        throw std::runtime_error("Failed to create operator term.");
-      }
-
-      // Attach terms and cleanup
-      cudensitymatWrappedScalarCallback_t scalarCallback = {nullptr, nullptr};
-      status = cudensitymatOperatorAppendTerm(handle, lindblad_op, term, 0,
-                                              {1.0}, scalarCallback);
-      if (status != CUDENSITYMAT_STATUS_SUCCESS) {
-        throw std::runtime_error("Failed to append operator term.");
-      }
-
-      cudensitymatDestroyOperatorTerm(term);
-    }
-
-    return lindblad_op;
-  } catch (const std::exception &e) {
-    std::cerr << "Error in compute_lindblad_op: " << e.what() << std::endl;
-    throw;
+  if (c_ops.empty()) {
+    throw std::invalid_argument("Collapse operators cannot be empty.");
   }
+
+  cudensitymatOperator_t lindblad_op;
+  HANDLE_CUDM_ERROR(cudensitymatCreateOperator(
+      handle, static_cast<int32_t>(mode_extents.size()), mode_extents.data(),
+      &lindblad_op));
+
+  for (const auto &c_op : c_ops) {
+    size_t dim = c_op.get_rows();
+    if (dim == 0 || c_op.get_columns() != dim) {
+      throw std::invalid_argument("Collapse operator must be a square matrix.");
+    }
+
+    std::vector<std::complex<double>> flat_matrix(dim * dim);
+    for (size_t i = 0; i < dim; i++) {
+      for (size_t j = 0; j < dim; j++) {
+        flat_matrix[i * dim + j] = c_op[{i, j}];
+      }
+    }
+
+    // Create Operator term for LtL and add to lindblad_op
+    cudensitymatOperatorTerm_t term;
+    HANDLE_CUDM_ERROR(cudensitymatCreateOperatorTerm(
+        handle, static_cast<int32_t>(mode_extents.size()), mode_extents.data(),
+        &term));
+    cudensitymatDestroyOperator(lindblad_op);
+
+    // Attach terms and cleanup
+    cudensitymatWrappedScalarCallback_t scalarCallback = {nullptr, nullptr};
+    HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(handle, lindblad_op, term,
+                                                     0, {1.0}, scalarCallback));
+    cudensitymatDestroyOperatorTerm(term);
+  }
+
+  return lindblad_op;
 }
 
 cudensitymatOperator_t convert_to_cudensitymat_operator(
