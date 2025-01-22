@@ -75,7 +75,7 @@ TEST_F(CuDensityMatTestFixture, InitializeState) {
   std::vector<int64_t> mode_extents = {2, 2};
 
   auto state = cudaq::initialize_state(handle, CUDENSITYMAT_STATE_PURITY_PURE,
-                                       2, mode_extents);
+                                       mode_extents);
 
   ASSERT_NE(state, nullptr);
 
@@ -88,7 +88,7 @@ TEST_F(CuDensityMatTestFixture, ScaleState) {
 
   ASSERT_NO_THROW({
     auto state = cudaq::initialize_state(handle, CUDENSITYMAT_STATE_PURITY_PURE,
-                                         2, mode_extents);
+                                         mode_extents);
     ASSERT_NE(state, nullptr);
 
     cudaStream_t stream;
