@@ -53,7 +53,6 @@ RUN if [ -n "$install" ]; \
     then \
         expected_prefix=$CUDAQ_INSTALL_PREFIX; \
         install=`echo $install | xargs` && export $install; \
-        ENV MAKEFLAGS="-j 4"; \
         bash scripts/build_cudaq.sh -v; \
         if [ ! "$?" -eq "0" ]; then \
             exit 1; \
