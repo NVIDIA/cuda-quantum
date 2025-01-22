@@ -198,6 +198,78 @@ public:
     return counts;
   }
 
+  cudaq::observe_result observe(const cudaq::spin_op &ham) override {
+    LOG_API_TIME();
+
+    const bool hasNoise = executionContext && executionContext->noiseModel;
+    // If no noise, just use base class implementation.
+    if (!hasNoise)
+      return SimulatorTensorNetBase::observe(ham);
+
+    // We only need to do cutensornetStateFinalizeMPS once
+    for (auto &tensor : m_mpsTensors_d) {
+      HANDLE_CUDA_ERROR(cudaFree(tensor.deviceData));
+    }
+    m_mpsTensors_d.clear();
+    m_mpsTensors_d =
+        m_state->setupMPSFactorize(m_settings.maxBond, m_settings.absCutoff,
+                                   m_settings.relCutoff, m_settings.svdAlgo);
+    const std::size_t numObserveTrajectories =
+        this->executionContext->numberTrajectories.has_value()
+            ? this->executionContext->numberTrajectories.value()
+            : TensorNetState::g_numberTrajectoriesForObserve;
+
+    std::vector<std::string> termStrs;
+    std::vector<cudaq::spin_op::spin_op_term> terms;
+    std::vector<std::complex<double>> coeffs;
+    termStrs.reserve(ham.num_terms());
+    terms.reserve(ham.num_terms());
+    coeffs.reserve(ham.num_terms());
+
+    // Note: as the spin_op terms are stored as an unordered map, we need to
+    // iterate in one loop to collect all the data (string, symplectic data, and
+    // coefficient).
+    ham.for_each_term([&](cudaq::spin_op &term) {
+      termStrs.emplace_back(term.to_string(false));
+      auto [symplecticRep, coeff] = term.get_raw_data();
+      if (symplecticRep.size() != 1 || coeff.size() != 1)
+        throw std::runtime_error(fmt::format(
+            "Unexpected data encountered when iterating spin operator terms: "
+            "expecting a single term, got {} terms.",
+            symplecticRep.size()));
+      terms.emplace_back(symplecticRep[0]);
+      coeffs.emplace_back(coeff[0]);
+    });
+    std::vector<std::complex<double>> termExpVals(terms.size(), 0.0);
+
+    for (std::size_t i = 0; i < numObserveTrajectories; ++i) {
+      // As the Kraus operator sampling may change the MPS state, we need to
+      // re-compute the factorization in each trajectory.
+      m_state->computeMPSFactorize(m_mpsTensors_d);
+      // We run a single trajectory for MPS as the final MPS form depends on the
+      // randomly-selected noise op.
+      const auto trajTermExpVals = m_state->computeExpVals(terms, 1);
+
+      for (std::size_t idx = 0; idx < terms.size(); ++idx) {
+        termExpVals[idx] += (trajTermExpVals[idx] /
+                             static_cast<double>(numObserveTrajectories));
+      }
+    }
+    std::complex<double> expVal = 0.0;
+    // Construct per-term data in the final observe_result
+    std::vector<cudaq::ExecutionResult> results;
+    results.reserve(terms.size());
+
+    for (std::size_t i = 0; i < terms.size(); ++i) {
+      expVal += (coeffs[i] * termExpVals[i]);
+      results.emplace_back(
+          cudaq::ExecutionResult({}, termStrs[i], termExpVals[i].real()));
+    }
+
+    cudaq::sample_result perTermData(expVal.real(), results);
+    return cudaq::observe_result(expVal.real(), ham, perTermData);
+  }
+
   virtual std::string name() const override { return "tensornet-mps"; }
 
   CircuitSimulator *clone() override {

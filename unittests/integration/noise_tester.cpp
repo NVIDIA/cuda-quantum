@@ -652,7 +652,8 @@ CUDAQ_TEST(NoiseTest, checkCustomOperation) {
 }
 #endif
 
-#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) || defined(CUDAQ_BACKEND_TENSORNET)
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) ||                \
+    defined(CUDAQ_BACKEND_TENSORNET)
 
 CUDAQ_TEST(NoiseTest, checkMeasurementNoise) {
   cudaq::set_random_seed(13);

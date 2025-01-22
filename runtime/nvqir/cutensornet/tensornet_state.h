@@ -12,9 +12,9 @@
 #include "cutensornet.h"
 #include "tensornet_utils.h"
 #include "timing_utils.h"
+#include <optional>
 #include <span>
 #include <unordered_map>
-#include <optional>
 
 namespace nvqir {
 /// This is used to track whether the tensor state is default initialized vs
@@ -76,6 +76,7 @@ protected:
   // reseeded by users.
   std::mt19937 &m_randomEngine;
   bool m_hasNoiseChannel = false;
+
 public:
   /// @brief Constructor
   TensorNetState(std::size_t numQubits, ScratchDeviceMem &inScratchPad,
@@ -209,7 +210,7 @@ private:
       const std::vector<int32_t> &projectedModes,
       const std::vector<int64_t> &projectedModeValues = {});
 
-  /// Internal methods to perform MPS factorizations.
+  /// Internal methods to perform MPS factorize.
   // Note: `factorizeMPS` is an end-to-end API for factorization.
   // This factorization can be split into `cutensornetStateFinalizeMPS` and
   // `cutensornetStateCompute` to facilitate reuse.
