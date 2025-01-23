@@ -102,6 +102,8 @@ cudensitymatOperator_t convert_to_cudensitymat_operator(
       throw std::runtime_error("Failed to create operator.");
     }
 
+    std::vector<cudensitymatElementaryOperator_t> elementary_operators;
+
     for (const auto &product_op : op.get_terms()) {
       cudensitymatOperatorTerm_t term;
 
@@ -112,6 +114,14 @@ cudensitymatOperator_t convert_to_cudensitymat_operator(
       for (const auto &component : product_op.get_terms()) {
         if (std::holds_alternative<cudaq::elementary_operator>(component)) {
           const auto &elem_op = std::get<cudaq::elementary_operator>(component);
+
+          std::vector<int64_t> subspace_extents;
+          for (int degree : elem_op.degrees) {
+            if (degree > mode_extents.size()) {
+              throw std::out_of_range("Degree exceeds mode_extents size.");
+            }
+            subspace_extents.push_back(mode_extents[degree]);
+          }
 
           // Create a cudensitymat elementary operator
           cudensitymatElementaryOperator_t cudm_elem_op;
@@ -130,23 +140,28 @@ cudensitymatOperator_t convert_to_cudensitymat_operator(
 
           // Create a cudensitymat elementary operator
           HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperator(
-              handle, 1, mode_extents.data(),
-              CUDENSITYMAT_OPERATOR_SPARSITY_NONE, 0, nullptr, CUDA_C_64F,
-              flat_matrix.data(), {nullptr, nullptr}, &cudm_elem_op));
+              handle, static_cast<int32_t>(subspace_extents.size()),
+              subspace_extents.data(), CUDENSITYMAT_OPERATOR_SPARSITY_NONE, 0,
+              nullptr, CUDA_C_64F, flat_matrix.data(), {nullptr, nullptr},
+              &cudm_elem_op));
+
+          elementary_operators.push_back(cudm_elem_op);
+
+          // Default to left action
+          std::vector<int32_t> modeActionDuality(elem_op.degrees.size(), 0);
 
           // Append the elementary operator to the term
           HANDLE_CUDM_ERROR(cudensitymatOperatorTermAppendElementaryProduct(
-              handle, term, 1, &cudm_elem_op, &elem_op.degrees[0], nullptr,
-              make_cuDoubleComplex(1.0, 0.0), {nullptr, nullptr}));
-
-          // Destroy the elementary operator after appending
-          HANDLE_CUDM_ERROR(
-              cudensitymatDestroyElementaryOperator(cudm_elem_op));
+              handle, term, 1, &cudm_elem_op, elem_op.degrees.data(),
+              modeActionDuality.data(), make_cuDoubleComplex(1.0, 0.0),
+              {nullptr, nullptr}));
         } else if (std::holds_alternative<cudaq::scalar_operator>(component)) {
           const auto &scalar_op = std::get<cudaq::scalar_operator>(component);
 
           // Use the scalar coefficient
           auto coeff = scalar_op.evaluate(parameters);
+          // TODO: Implement handling for time-dependent scalars using
+          // cudensitymatScalarCallback_t
           HANDLE_CUDM_ERROR(cudensitymatOperatorTermAppendElementaryProduct(
               handle, term, 0, nullptr, nullptr, nullptr,
               {make_cuDoubleComplex(coeff.real(), coeff.imag())},
@@ -161,6 +176,11 @@ cudensitymatOperator_t convert_to_cudensitymat_operator(
 
       // Destroy the term
       HANDLE_CUDM_ERROR(cudensitymatDestroyOperatorTerm(term));
+
+      // Cleanup
+      for (auto &elem_op : elementary_operators) {
+        HANDLE_CUDM_ERROR(cudensitymatDestroyElementaryOperator(elem_op));
+      }
     }
 
     return operator_handle;
