@@ -456,6 +456,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__quantum__qis__mz__body(!qir_qubit, !qir_result) attributes {passthrough = ["irreversible"]} 
   func.func private @__quantum__qis__swap__body(!qir_qubit, !qir_qubit)
   func.func private @__quantum__qis__rx__body(f64, !qir_qubit)
+  func.func private @__quantum__qis__phased_rx__body(f64, f64, !qir_qubit)
   func.func private @__quantum__qis__ry__body(f64, !qir_qubit)
   func.func private @__quantum__qis__rz__body(f64, !qir_qubit)
   func.func private @__quantum__qis__r1__body(f64, !qir_qubit)
@@ -485,6 +486,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__quantum__qis__mz__to__register(!qir_qubit, !qir_charptr) -> !qir_result
   func.func private @__quantum__qis__swap(!qir_qubit, !qir_qubit)
   func.func private @__quantum__qis__rx(f64, !qir_qubit)
+  func.func private @__quantum__qis__phased_rx(f64, f64, !qir_qubit)
   func.func private @__quantum__qis__ry(f64, !qir_qubit)
   func.func private @__quantum__qis__rz(f64, !qir_qubit)
   func.func private @__quantum__qis__r1(f64, !qir_qubit)

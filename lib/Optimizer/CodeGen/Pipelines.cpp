@@ -71,3 +71,9 @@ void cudaq::opt::addPipelineTranslateToIQMJson(PassManager &pm) {
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
 }
+
+void cudaq::opt::addPipelineConvertToQIR(PassManager &pm, StringRef convertTo) {
+  commonPipelineConvertToQIR(pm, convertTo, convertTo);
+  if (convertTo != "qir")
+    addQIRProfileVerify(pm, convertTo);
+}

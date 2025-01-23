@@ -35,6 +35,8 @@ namespace cudaq::opt {
 /// \deprecated Replaced by the convert to QIR API pipeline.
 void addQIRProfilePipeline(mlir::OpPassManager &pm, llvm::StringRef convertTo);
 
+void addQIRProfileVerify(mlir::OpPassManager &pm, llvm::StringRef convertTo);
+
 void addLowerToCCPipeline(mlir::OpPassManager &pm);
 void addWiresetToProfileQIRPipeline(mlir::OpPassManager &pm,
                                     llvm::StringRef profile);

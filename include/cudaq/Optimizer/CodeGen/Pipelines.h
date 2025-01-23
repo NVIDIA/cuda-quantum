@@ -40,11 +40,7 @@ inline void addPipelineConvertToQIR(mlir::PassManager &pm) {
 /// Specifies a particular QIR profile in \p convertTo.
 /// \p pm Pass manager to append passes to
 /// \p convertTo name of QIR profile (e.g., `qir-base`, `qir-adaptive`, ...)
-inline void addPipelineConvertToQIR(mlir::PassManager &pm,
-                                    mlir::StringRef convertTo) {
-  commonPipelineConvertToQIR(pm, convertTo, convertTo);
-  // addQIRProfilePipeline(pm, convertTo);
-}
+void addPipelineConvertToQIR(mlir::PassManager &pm, mlir::StringRef convertTo);
 
 void addLowerToCCPipeline(mlir::OpPassManager &pm);
 
