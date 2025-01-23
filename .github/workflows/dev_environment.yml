@@ -312,6 +312,9 @@ jobs:
           restore-keys: |
             ${{ steps.cache.outputs.local_buildcache_key }}
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
       - name: Build ${{ needs.metadata.outputs.image_title }} image
         id: docker_build
         uses: docker/build-push-action@v5
