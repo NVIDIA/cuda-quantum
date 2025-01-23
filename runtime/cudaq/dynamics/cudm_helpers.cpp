@@ -127,19 +127,36 @@ compute_lindblad_operator(cudensitymatHandle_t handle,
       &lindblad_op));
 
   for (const auto &c_op : c_ops) {
+    size_t dim = c_op.get_rows();
+    if (dim == 0 || c_op.get_columns() != dim) {
+      throw std::invalid_argument("Collapse operator must be a square matrix");
+    }
+
     auto flat_matrix = flatten_matrix(c_op);
 
+    // Create Operator term for LtL and add to lindblad_op
     cudensitymatOperatorTerm_t term;
     HANDLE_CUDM_ERROR(cudensitymatCreateOperatorTerm(
         handle, static_cast<int32_t>(mode_extents.size()), mode_extents.data(),
         &term));
-    cudensitymatDestroyOperator(lindblad_op);
+
+    // Create elementary operator form c_op
+    auto cudm_elem_op =
+        create_elementary_operator(handle, mode_extents, flat_matrix);
+
+    // Add the elementary operator to the term
+    // TODO: Fix temp vector below
+    std::vector<int> temp;
+    append_elementary_operator_to_term(handle, term, cudm_elem_op, temp);
 
     // Add term to lindblad operator
     cudensitymatWrappedScalarCallback_t scalarCallback = {nullptr, nullptr};
     HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(handle, lindblad_op, term,
                                                      0, {1.0}, scalarCallback));
-    cudensitymatDestroyOperatorTerm(term);
+
+    // Destroy intermediate resources
+    HANDLE_CUDM_ERROR(cudensitymatDestroyOperatorTerm(term));
+    HANDLE_CUDM_ERROR(cudensitymatDestroyElementaryOperator(cudm_elem_op));
   }
 
   return lindblad_op;

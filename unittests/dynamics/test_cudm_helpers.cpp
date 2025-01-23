@@ -74,8 +74,8 @@ TEST_F(CuDensityMatTestFixture, ScaleState) {
 TEST_F(CuDensityMatTestFixture, ComputeLindbladOp) {
   std::vector<int64_t> mode_extents = {2, 2};
 
-  cudaq::matrix_2 c_op1({{1.0, 0.0}, {0.0, 0.0}}, {2, 2});
-  cudaq::matrix_2 c_op2({{0.0, 0.0}, {0.0, 1.0}}, {2, 2});
+  cudaq::matrix_2 c_op1({1.0, 0.0, 0.0, 0.0}, {2, 2});
+  cudaq::matrix_2 c_op2({0.0, 0.0, 0.0, 1.0}, {2, 2});
   std::vector<cudaq::matrix_2> c_ops = {c_op1, c_op2};
 
   auto lindblad_op =
