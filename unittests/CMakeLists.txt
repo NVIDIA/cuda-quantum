@@ -431,6 +431,7 @@ endif()
 
 add_subdirectory(backends)
 add_subdirectory(Optimizer)
+add_subdirectory(output_record)
 
 if (CUDAQ_ENABLE_PYTHON)
   if (NOT Python_FOUND)
