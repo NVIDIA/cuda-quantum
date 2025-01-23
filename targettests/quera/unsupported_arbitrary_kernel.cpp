@@ -6,10 +6,14 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ %cpp_std --target quera %s -o %t.x
-// RUN: not %t.x 2>&1 | FileCheck %s
-// RUN: nvq++ %cpp_std --target quera --emulate %s -o %t.x
-// RUN: not %t.x 2>&1 | FileCheck %s
+/// NOTE: The `quera` target is available only if AWS SDK is installed, i.e. if
+/// `braket` target is also available.
+// clang-format off
+// RUN: if %braket_avail; then nvq++ %cpp_std --target quera %s -o %t.x; fi
+// RUN: if %braket_avail; then not %t.x 2>&1 | FileCheck %s; fi
+// RUN: if %braket_avail; then nvq++ %cpp_std --target quera --emulate %s -o %t.x; fi
+// RUN: if %braket_avail; then not %t.x 2>&1 | FileCheck %s; fi
+// clang-format on
 
 #include <cudaq.h>
 
