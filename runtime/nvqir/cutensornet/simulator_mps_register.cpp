@@ -172,15 +172,41 @@ public:
     m_mpsTensors_d =
         m_state->setupMPSFactorize(m_settings.maxBond, m_settings.absCutoff,
                                    m_settings.relCutoff, m_settings.svdAlgo);
-
+    std::map<std::vector<int64_t>, std::pair<cutensornetStateSampler_t,
+                                             cutensornetWorkspaceDescriptor_t>>
+        samplerCache;
     for (int i = 0; i < shots; ++i) {
       // As the Kraus operator sampling may change the MPS state, we need to
       // re-compute the factorization in each trajectory.
       m_state->computeMPSFactorize(m_mpsTensors_d);
-      const auto samples = m_state->sample(measuredBitIds, 1);
+      std::vector<int64_t> samplerKey;
+      for (const auto &tensor : m_mpsTensors_d)
+        samplerKey.insert(samplerKey.end(), tensor.extents.begin(),
+                          tensor.extents.end());
+
+      auto iter = samplerCache.find(samplerKey);
+      if (iter == samplerCache.end()) {
+        const auto [itInsert, success] = samplerCache.insert(
+            {samplerKey, m_state->prepareSample(measuredBitIds)});
+        assert(success);
+        iter = itInsert;
+      }
+
+      assert(iter != samplerCache.end());
+      auto &[sampler, workDesc] = iter->second;
+      const auto samples =
+          m_state->executeSample(sampler, workDesc, measuredBitIds, 1);
       assert(samples.size() == 1);
       for (const auto &[bitString, count] : samples)
         counts.appendResult(bitString, count);
+    }
+
+    for (const auto &[k, v] : samplerCache) {
+      auto &[sampler, workDesc] = v;
+      // Destroy the workspace descriptor
+      HANDLE_CUTN_ERROR(cutensornetDestroyWorkspaceDescriptor(workDesc));
+      // Destroy the quantum circuit sampler
+      HANDLE_CUTN_ERROR(cutensornetDestroySampler(sampler));
     }
     double expVal = 0.0;
     // Compute the expectation value from the counts

@@ -178,9 +178,8 @@ void TensorNetState::addQubits(std::span<std::complex<double>> stateVec) {
   m_tempDevicePtrs.emplace_back(d_proj);
 }
 
-std::unordered_map<std::string, size_t>
-TensorNetState::sample(const std::vector<int32_t> &measuredBitIds,
-                       int32_t shots) {
+std::pair<cutensornetStateSampler_t, cutensornetWorkspaceDescriptor_t>
+TensorNetState::prepareSample(const std::vector<int32_t> &measuredBitIds) {
   LOG_API_TIME();
   // Create the quantum circuit sampler
   cutensornetStateSampler_t sampler;
@@ -241,6 +240,14 @@ TensorNetState::sample(const std::vector<int32_t> &measuredBitIds,
     throw std::runtime_error("ERROR: Insufficient workspace size on Device!");
   }
 
+  return std::make_pair(sampler, workDesc);
+}
+
+std::unordered_map<std::string, size_t>
+TensorNetState::executeSample(cutensornetStateSampler_t &sampler,
+                              cutensornetWorkspaceDescriptor_t &workDesc,
+                              const std::vector<int32_t> &measuredBitIds,
+                              int32_t shots) {
   // Sample the quantum circuit state
   std::unordered_map<std::string, size_t> counts;
   // If this is a trajectory simulation, each shot needs an independent
@@ -268,6 +275,16 @@ TensorNetState::sample(const std::vector<int32_t> &measuredBitIds,
     shotsToRun -= numShots;
   }
 
+  return counts;
+}
+
+std::unordered_map<std::string, size_t>
+TensorNetState::sample(const std::vector<int32_t> &measuredBitIds,
+                       int32_t shots) {
+  LOG_API_TIME();
+  auto [sampler, workDesc] = prepareSample(measuredBitIds);
+  std::unordered_map<std::string, size_t> counts =
+      executeSample(sampler, workDesc, measuredBitIds, shots);
   // Destroy the workspace descriptor
   HANDLE_CUTN_ERROR(cutensornetDestroyWorkspaceDescriptor(workDesc));
   // Destroy the quantum circuit sampler

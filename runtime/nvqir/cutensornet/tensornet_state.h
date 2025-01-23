@@ -218,5 +218,14 @@ private:
                                            double relCutoff,
                                            cutensornetTensorSVDAlgo_t algo);
   void computeMPSFactorize(std::vector<MPSTensor> &mpsTensors);
+
+  /// Internal methods for sampling
+  std::pair<cutensornetStateSampler_t, cutensornetWorkspaceDescriptor_t>
+  prepareSample(const std::vector<int32_t> &measuredBitIds);
+
+  std::unordered_map<std::string, size_t>
+  executeSample(cutensornetStateSampler_t &sampler,
+                cutensornetWorkspaceDescriptor_t &workspaceDesc,
+                const std::vector<int32_t> &measuredBitIds, int32_t shots);
 };
 } // namespace nvqir
