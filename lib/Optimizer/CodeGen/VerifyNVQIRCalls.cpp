@@ -39,9 +39,10 @@ struct VerifyNVQIRCallOpsPass
       if (functionName.startswith("__quantum_"))
         return true;
       static const std::vector<llvm::StringRef> NVQIR_FUNCS = {
-          cudaq::opt::NVQIRInvokeWithControlBits,
-          cudaq::opt::NVQIRInvokeRotationWithControlBits,
-          cudaq::opt::NVQIRInvokeWithControlRegisterOrBits,
+          cudaq::opt::NVQIRInvokeWithControlBits,           // obsolete
+          cudaq::opt::NVQIRInvokeRotationWithControlBits,   // obsolete
+          cudaq::opt::NVQIRInvokeWithControlRegisterOrBits, // obsolete
+          cudaq::opt::NVQIRGeneralizedInvokeAny,
           cudaq::opt::NVQIRPackSingleQubitInArray,
           cudaq::opt::NVQIRReleasePackedQubitArray,
           cudaq::opt::QIRArrayQubitAllocateArrayWithStateComplex32,

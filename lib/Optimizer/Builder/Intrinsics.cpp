@@ -404,7 +404,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__quantum__rt__qubit_allocate_array_with_state_complex64(i64, !cc.ptr<complex<f64>>) -> !qir_array
   func.func private @__quantum__rt__qubit_allocate_array_with_state_complex32(i64, !cc.ptr<complex<f32>>) -> !qir_array
   func.func private @__quantum__rt__qubit_allocate_array_with_state_ptr(!cc.ptr<none>) -> !qir_array
-  func.func private @__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(i32, !cc.ptr<!cc.state>) -> !qir_array
+  func.func private @__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(i64, !cc.ptr<!cc.state>) -> !qir_array
 
   func.func private @__quantum__rt__qubit_release_array(!qir_array)
   func.func private @__quantum__rt__qubit_release(!qir_qubit)

@@ -259,7 +259,7 @@ void __quantum__rt__resetExecutionContext() {
 }
 
 /// @brief QIR function for allocated a qubit array
-Array *__quantum__rt__qubit_allocate_array(uint64_t numQubits) {
+Array *__quantum__rt__qubit_allocate_array(std::uint64_t numQubits) {
   ScopedTraceWithContext("NVQIR::qubit_allocate_array", numQubits);
   __quantum__rt__initialize(0, nullptr);
   auto qubitIdxs =
@@ -268,10 +268,10 @@ Array *__quantum__rt__qubit_allocate_array(uint64_t numQubits) {
 }
 
 Array *__quantum__rt__qubit_allocate_array_with_state_complex32(
-    uint64_t numQubits, std::complex<float> *data);
+    std::uint64_t numQubits, std::complex<float> *data);
 
 Array *__quantum__rt__qubit_allocate_array_with_state_complex64(
-    uint64_t numQubits, std::complex<double> *data) {
+    std::uint64_t numQubits, std::complex<double> *data) {
   ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data_complex64",
                          numQubits);
   __quantum__rt__initialize(0, nullptr);
@@ -286,8 +286,9 @@ Array *__quantum__rt__qubit_allocate_array_with_state_complex64(
   return vectorSizetToArray(qubitIdxs);
 }
 
-Array *__quantum__rt__qubit_allocate_array_with_state_fp64(uint64_t numQubits,
-                                                           double *data) {
+Array *
+__quantum__rt__qubit_allocate_array_with_state_fp64(std::uint64_t numQubits,
+                                                    double *data) {
   ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data_fp64",
                          numQubits);
   if (nvqir::getCircuitSimulatorInternal()->isDoublePrecision()) {
@@ -316,7 +317,7 @@ Array *__quantum__rt__qubit_allocate_array_with_state_ptr(
 }
 
 Array *
-__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(int _,
+__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(std::uint64_t,
                                                          cudaq::state *state) {
   if (!state)
     throw std::invalid_argument("[NVQIR] Invalid state encountered "
