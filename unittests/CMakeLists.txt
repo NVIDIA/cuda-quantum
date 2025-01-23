@@ -330,6 +330,7 @@ endif()
 
 add_subdirectory(backends)
 add_subdirectory(Optimizer)
+add_subdirectory(output_record)
 
 set(CUDAQ_BRAKET_RUNTIME_TEST_SOURCES
   # Integration tests
