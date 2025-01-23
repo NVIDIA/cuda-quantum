@@ -10,6 +10,82 @@
 #include "cudaq/cudm_error_handling.h"
 
 namespace cudaq {
+// Function to flatten a matrix into a 1D array
+std::vector<std::complex<double>> flatten_matrix(const matrix_2 &matrix) {
+  std::vector<std::complex<double>> flat_matrix;
+
+  for (size_t i = 0; i < matrix.get_rows(); i++) {
+    for (size_t j = 0; j < matrix.get_columns(); j++) {
+      flat_matrix.push_back(matrix[{i, j}]);
+    }
+  }
+
+  return flat_matrix;
+}
+
+// Function to extract sub-space extents based on degrees
+std::vector<int64_t>
+get_subspace_extents(const std::vector<int64_t> &mode_extents,
+                     const std::vector<int> &degrees) {
+  std::vector<int64_t> subspace_extents;
+
+  for (int degree : degrees) {
+    if (degree >= mode_extents.size()) {
+      throw std::out_of_range("Degree exceeds mode_extents size.");
+    }
+    subspace_extents.push_back(mode_extents[degree]);
+  }
+
+  return subspace_extents;
+}
+
+// Function to create a cudensitymat elementary operator
+cudensitymatElementaryOperator_t create_elementary_operator(
+    cudensitymatHandle_t handle, const std::vector<int64_t> &subspace_extents,
+    const std::vector<std::complex<double>> &flat_matrix) {
+  cudensitymatElementaryOperator_t cudm_elem_op;
+
+  std::vector<double> interleaved_matrix;
+  interleaved_matrix.reserve(flat_matrix.size() * 2);
+
+  for (const auto &value : flat_matrix) {
+    interleaved_matrix.push_back(value.real());
+    interleaved_matrix.push_back(value.imag());
+  }
+
+  HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperator(
+      handle, static_cast<int32_t>(subspace_extents.size()),
+      subspace_extents.data(), CUDENSITYMAT_OPERATOR_SPARSITY_NONE, 0, nullptr,
+      CUDA_C_64F, static_cast<void *>(interleaved_matrix.data()),
+      {nullptr, nullptr}, &cudm_elem_op));
+
+  return cudm_elem_op;
+}
+
+// Function to append an elementary operator to a term
+void append_elementary_operator_to_term(
+    cudensitymatHandle_t handle, cudensitymatOperatorTerm_t term,
+    cudensitymatElementaryOperator_t &elem_op,
+    const std::vector<int> &degrees) {
+  std::vector<int32_t> modeActionDuality(degrees.size(), 0);
+
+  HANDLE_CUDM_ERROR(cudensitymatOperatorTermAppendElementaryProduct(
+      handle, term, static_cast<int32_t>(degrees.size()), &elem_op,
+      degrees.data(), modeActionDuality.data(), make_cuDoubleComplex(1.0, 0.0),
+      {nullptr, nullptr}));
+}
+
+// Function to create and append a scalar to a term
+void append_scalar_to_term(cudensitymatHandle_t handle,
+                           cudensitymatOperatorTerm_t term,
+                           const std::complex<double> &coeff) {
+  // TODO: Implement handling for time-dependent scalars using
+  // cudensitymatScalarCallback_t
+  HANDLE_CUDM_ERROR(cudensitymatOperatorTermAppendElementaryProduct(
+      handle, term, 0, nullptr, nullptr, nullptr,
+      {make_cuDoubleComplex(coeff.real(), coeff.imag())}, {nullptr, nullptr}));
+}
+
 cudensitymatState_t initialize_state(cudensitymatHandle_t handle,
                                      cudensitymatStatePurity_t purity,
                                      const std::vector<int64_t> &mode_extents) {
@@ -51,26 +127,15 @@ compute_lindblad_operator(cudensitymatHandle_t handle,
       &lindblad_op));
 
   for (const auto &c_op : c_ops) {
-    size_t dim = c_op.get_rows();
-    if (dim == 0 || c_op.get_columns() != dim) {
-      throw std::invalid_argument("Collapse operator must be a square matrix.");
-    }
+    auto flat_matrix = flatten_matrix(c_op);
 
-    std::vector<std::complex<double>> flat_matrix(dim * dim);
-    for (size_t i = 0; i < dim; i++) {
-      for (size_t j = 0; j < dim; j++) {
-        flat_matrix[i * dim + j] = c_op[{i, j}];
-      }
-    }
-
-    // Create Operator term for LtL and add to lindblad_op
     cudensitymatOperatorTerm_t term;
     HANDLE_CUDM_ERROR(cudensitymatCreateOperatorTerm(
         handle, static_cast<int32_t>(mode_extents.size()), mode_extents.data(),
         &term));
     cudensitymatDestroyOperator(lindblad_op);
 
-    // Attach terms and cleanup
+    // Add term to lindblad operator
     cudensitymatWrappedScalarCallback_t scalarCallback = {nullptr, nullptr};
     HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(handle, lindblad_op, term,
                                                      0, {1.0}, scalarCallback));
@@ -95,12 +160,9 @@ cudensitymatOperator_t convert_to_cudensitymat_operator(
     const operator_sum &op, const std::vector<int64_t> &mode_extents) {
   try {
     cudensitymatOperator_t operator_handle;
-    auto status = cudensitymatCreateOperator(
+    HANDLE_CUDM_ERROR(cudensitymatCreateOperator(
         handle, static_cast<int32_t>(mode_extents.size()), mode_extents.data(),
-        &operator_handle);
-    if (status != CUDENSITYMAT_STATUS_SUCCESS) {
-      throw std::runtime_error("Failed to create operator.");
-    }
+        &operator_handle));
 
     std::vector<cudensitymatElementaryOperator_t> elementary_operators;
 
@@ -115,57 +177,20 @@ cudensitymatOperator_t convert_to_cudensitymat_operator(
         if (std::holds_alternative<cudaq::elementary_operator>(component)) {
           const auto &elem_op = std::get<cudaq::elementary_operator>(component);
 
-          std::vector<int64_t> subspace_extents;
-          for (int degree : elem_op.degrees) {
-            if (degree > mode_extents.size()) {
-              throw std::out_of_range("Degree exceeds mode_extents size.");
-            }
-            subspace_extents.push_back(mode_extents[degree]);
-          }
-
-          // Create a cudensitymat elementary operator
-          cudensitymatElementaryOperator_t cudm_elem_op;
-
-          // Get the matrix representation of elementary operator
-          auto dimensions = convert_dimensions(mode_extents);
-          auto matrix = elem_op.to_matrix(dimensions, parameters);
-
-          // Flatten the matrix into a single-dimensional array
-          std::vector<std::complex<double>> flat_matrix;
-          for (size_t i = 0; i < matrix.get_rows(); i++) {
-            for (size_t j = 0; j < matrix.get_columns(); j++) {
-              flat_matrix.push_back(matrix[{i, j}]);
-            }
-          }
-
-          // Create a cudensitymat elementary operator
-          HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperator(
-              handle, static_cast<int32_t>(subspace_extents.size()),
-              subspace_extents.data(), CUDENSITYMAT_OPERATOR_SPARSITY_NONE, 0,
-              nullptr, CUDA_C_64F, flat_matrix.data(), {nullptr, nullptr},
-              &cudm_elem_op));
+          auto subspace_extents =
+              get_subspace_extents(mode_extents, elem_op.degrees);
+          auto flat_matrix = flatten_matrix(
+              elem_op.to_matrix(convert_dimensions(mode_extents), parameters));
+          auto cudm_elem_op =
+              create_elementary_operator(handle, subspace_extents, flat_matrix);
 
           elementary_operators.push_back(cudm_elem_op);
-
-          // Default to left action
-          std::vector<int32_t> modeActionDuality(elem_op.degrees.size(), 0);
-
-          // Append the elementary operator to the term
-          HANDLE_CUDM_ERROR(cudensitymatOperatorTermAppendElementaryProduct(
-              handle, term, 1, &cudm_elem_op, elem_op.degrees.data(),
-              modeActionDuality.data(), make_cuDoubleComplex(1.0, 0.0),
-              {nullptr, nullptr}));
+          append_elementary_operator_to_term(handle, term, cudm_elem_op,
+                                             elem_op.degrees);
         } else if (std::holds_alternative<cudaq::scalar_operator>(component)) {
-          const auto &scalar_op = std::get<cudaq::scalar_operator>(component);
-
-          // Use the scalar coefficient
-          auto coeff = scalar_op.evaluate(parameters);
-          // TODO: Implement handling for time-dependent scalars using
-          // cudensitymatScalarCallback_t
-          HANDLE_CUDM_ERROR(cudensitymatOperatorTermAppendElementaryProduct(
-              handle, term, 0, nullptr, nullptr, nullptr,
-              {make_cuDoubleComplex(coeff.real(), coeff.imag())},
-              {nullptr, nullptr}));
+          auto coeff =
+              std::get<cudaq::scalar_operator>(component).evaluate(parameters);
+          append_scalar_to_term(handle, term, coeff);
         }
       }
 
