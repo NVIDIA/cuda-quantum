@@ -1467,19 +1467,29 @@ def QuakeOp_GetStateOp : QuakeOp<"get_state", [Pure] > {
   let summary = "Get state from kernel with the provided name.";
   let description = [{
     This operation is created by argument synthesis of state pointer arguments
-    for quantum devices. It takes a kernel name as ASCIIZ string literal value
-    and returns the kernel's quantum state. The operation is replaced by a call
-    to the kernel with the provided name in ReplaceStateByKernel pass.
+    for quantum devices.
+
+    It takes two kernel names as ASCIIZ string literals:
+      - "num_qubits" for determining the size of the allocation to initialize
+      - "init" for initializing the state the same way as the original kernel
+        passed to `cudaq::get_state`) as ASCIIZ string literal
+
+    And returns the quantum state of the original kernel passed to
+    `cudaq::get_state`. The operation is replaced by calls to the kernels with
+    the provided names in `ReplaceStateByKernel` pass.
 
     ```mlir
-      %0 = quake.get_state "callee" : !cc.ptr<!cc.state>
+      %0 = quake.get_state "num_qubits" "init" : !cc.ptr<!cc.state>
     ```
   }];
 
-  let arguments = (ins StrAttr:$calleeName);
+  let arguments = (ins
+    StrAttr:$numQubitsFuncName,
+    StrAttr:$initFuncName
+  );
   let results = (outs cc_PointerType:$result);
   let assemblyFormat = [{
-     $calleeName `:` qualified(type(results)) attr-dict
+     $numQubitsFuncName $initFuncName `:` qualified(type(results)) attr-dict
   }];
 }
 
