@@ -30,4 +30,3 @@ func.func @test_func(%p : i32) {
 
 // CHECK:         llvm.func @__quantum__rt__qubit_allocate_array(i64) -> !llvm.ptr<struct<"Array", opaque>> attributes {sym_visibility = "private"}
 // CHECK:         llvm.func @__quantum__rt__qubit_release_array(!llvm.ptr<struct<"Array", opaque>>) attributes {sym_visibility = "private"}
-// CHECK:         llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i64, !llvm.ptr<i8>, ...)

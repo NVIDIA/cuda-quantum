@@ -95,14 +95,18 @@ struct ConstantArrayPattern
 
   LogicalResult matchAndRewrite(cudaq::cc::ConstantArrayOp conarr,
                                 PatternRewriter &rewriter) const override {
-    if (!conarr->hasOneUse())
-      return failure();
-    auto store = dyn_cast<cudaq::cc::StoreOp>(*conarr->getUsers().begin());
-    if (!store)
-      return failure();
-    auto alloca = store.getPtrvalue().getDefiningOp<cudaq::cc::AllocaOp>();
-    if (!alloca)
-      return failure();
+    SmallVector<cudaq::cc::AllocaOp> allocas;
+    SmallVector<cudaq::cc::StoreOp> stores;
+    for (auto *usr : conarr->getUsers()) {
+      auto store = dyn_cast<cudaq::cc::StoreOp>(usr);
+      if (!store)
+        return failure();
+      auto alloca = store.getPtrvalue().getDefiningOp<cudaq::cc::AllocaOp>();
+      if (!alloca)
+        return failure();
+      stores.push_back(store);
+      allocas.push_back(alloca);
+    }
     auto func = conarr->getParentOfType<func::FuncOp>();
     if (!func)
       return failure();
@@ -114,9 +118,11 @@ struct ConstantArrayPattern
     if (failed(convertArrayAttrToGlobalConstant(ctx, conarr.getLoc(), valueAttr,
                                                 module, globalName, eleTy)))
       return failure();
-    rewriter.replaceOpWithNewOp<cudaq::cc::AddressOfOp>(
-        alloca, alloca.getType(), globalName);
-    rewriter.eraseOp(store);
+    for (auto alloca : allocas)
+      rewriter.replaceOpWithNewOp<cudaq::cc::AddressOfOp>(
+          alloca, alloca.getType(), globalName);
+    for (auto store : stores)
+      rewriter.eraseOp(store);
     rewriter.eraseOp(conarr);
     return success();
   }

@@ -1624,6 +1624,8 @@ struct QuakeToQIRAPIPass
       return hasQuakeType(pty.getElementType());
     if (auto cty = dyn_cast<cudaq::cc::CallableType>(ty))
       return hasQuakeType(cty.getSignature());
+    if (auto cty = dyn_cast<cudaq::cc::IndirectCallableType>(ty))
+      return hasQuakeType(cty.getSignature());
     if (auto fty = dyn_cast<FunctionType>(ty)) {
       for (auto t : fty.getInputs())
         if (hasQuakeType(t))
@@ -1852,8 +1854,8 @@ void cudaq::opt::addConvertToQIRAPIPipeline(OpPassManager &pm, StringRef api,
   pm.addPass(cudaq::opt::createLowerToCG());
   pm.addPass(cudaq::opt::createQuakeToQIRAPI(apiOpt));
   pm.addPass(createCanonicalizerPass());
-  pm.addPass(cudaq::opt::createGlobalizeArrayValues());
   pm.addPass(cudaq::opt::createQuakeToQIRAPIFinal());
+  pm.addPass(cudaq::opt::createGlobalizeArrayValues());
 }
 
 namespace {
