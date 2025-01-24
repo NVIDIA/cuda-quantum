@@ -10,7 +10,7 @@
 #include "cudaq/operators.h"
 #include <gtest/gtest.h>
 
-TEST(OperatorExpressions, checkScalarOpsArithmeticDoubles) {
+TEST(OperatorExpressions, checkScalarOpsArithmeticComplex) {
   // Arithmetic overloads against complex doubles.
   std::complex<double> value_0 = 0.1 + 0.1;
   std::complex<double> value_1 = 0.1 + 1.0;
