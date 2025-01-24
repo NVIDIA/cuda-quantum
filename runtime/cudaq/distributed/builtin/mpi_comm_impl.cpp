@@ -230,7 +230,15 @@ static int mpi_AllgatherV(const cudaqDistributedCommunicator_t *comm,
 /// @brief Wrapper of MPI_Isend and track pending requests for synchronization
 static int mpi_SendAsync(const cudaqDistributedCommunicator_t *comm,
                          const void *buf, int count, DataType dataType,
-                         int peer, int32_t tag) {
+                         int peer, int32_t tag, void *mpiRequest) {
+  // If a specific request was provided, just make MPI_Irecv call
+  if (mpiRequest)
+    return MPI_Isend(buf, count, convertType(dataType), peer, tag,
+                     unpackMpiCommunicator(comm), (MPI_Request *)mpiRequest);
+
+  // Otherwise, use the implicit request tracking mechanism (1 send and 1
+  // receive async call)
+
   std::scoped_lock<std::mutex> lock(PendingRequest::g_mutex);
   if (PendingRequest::g_requests[comm].nActiveRequests == 2)
     return -1;
@@ -249,7 +257,15 @@ static int mpi_SendAsync(const cudaqDistributedCommunicator_t *comm,
 
 /// @brief Wrapper of MPI_Irecv and track pending requests for synchronization
 static int mpi_RecvAsync(const cudaqDistributedCommunicator_t *comm, void *buf,
-                         int count, DataType dataType, int peer, int32_t tag) {
+                         int count, DataType dataType, int peer, int32_t tag,
+                         void *mpiRequest) {
+  // If a specific request was provided, just make MPI_Irecv call
+  if (mpiRequest)
+    return MPI_Irecv(buf, count, convertType(dataType), peer, tag,
+                     unpackMpiCommunicator(comm), (MPI_Request *)mpiRequest);
+
+  // Otherwise, use the implicit request tracking mechanism (1 send and 1
+  // receive async call)
   std::scoped_lock<std::mutex> lock(PendingRequest::g_mutex);
   if (PendingRequest::g_requests[comm].nActiveRequests == 2)
     return -1;
@@ -339,6 +355,50 @@ static int mpi_CommSplit(const cudaqDistributedCommunicator_t *comm,
   return status;
 }
 
+/// @brief Wrapper MPI_Request malloc
+static int mpi_CreateRequest(void **request) {
+  *request = malloc(sizeof(MPI_Request));
+  if (*request == NULL)
+    return -1;
+  return 0;
+}
+
+/// @brief Wrapper MPI_Request free
+static int mpi_DestroyRequest(void *request) {
+  if (request == NULL)
+    return -1;
+  free(request);
+  return 0;
+}
+
+/// @brief Wrapper MPI_Wait
+static int mpi_WaitRequest(void *request) {
+  MPI_Status waitStatus;
+  return MPI_Wait((MPI_Request *)request, &waitStatus);
+}
+
+/// @brief Wrapper MPI_Test
+static int mpi_TestRequest(void *request, int32_t *completed) {
+  MPI_Status testStatus;
+  return MPI_Test((MPI_Request *)request, completed, &testStatus);
+}
+
+/// @brief Wrapper MPI_Send
+static int mpi_Send(const cudaqDistributedCommunicator_t *comm,
+                    const void *buffer, int count, DataType datatype,
+                    int destination, int32_t tag) {
+  return MPI_Send(buffer, count, convertType(datatype), destination, tag,
+                  unpackMpiCommunicator(comm));
+}
+
+/// @brief Wrapper MPI_Recv
+static int mpi_Recv(const cudaqDistributedCommunicator_t *comm, void *buffer,
+                    int count, DataType datatype, int source, int32_t tag) {
+  MPI_Status recvStatus;
+  return MPI_Recv(buffer, count, convertType(datatype), source, tag,
+                  unpackMpiCommunicator(comm), &recvStatus);
+}
+
 /// @brief Return the underlying MPI_Comm as a type-erased object
 cudaqDistributedCommunicator_t *getMpiCommunicator() {
   static MPI_Comm pluginComm = MPI_COMM_WORLD;
@@ -370,7 +430,14 @@ cudaqDistributedInterface_t *getDistributedInterface() {
       mpi_Synchronize,
       mpi_Abort,
       mpi_CommDup,
-      mpi_CommSplit};
+      mpi_CommSplit,
+      mpi_CreateRequest,
+      mpi_DestroyRequest,
+      mpi_WaitRequest,
+      mpi_TestRequest,
+      mpi_Send,
+      mpi_Recv,
+  };
   return &cudaqDistributedInterface;
 }
 }

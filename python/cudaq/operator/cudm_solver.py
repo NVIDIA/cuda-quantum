@@ -16,6 +16,7 @@ from .expressions import Operator
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 from .cudm_helpers import cudm, CudmStateType
 from .cudm_state import CuDensityMatState, as_cudm_state
+from .helpers import InitialState, InitialStateArgT
 from .integrator import BaseIntegrator
 from .integrators.builtin_integrators import RungeKuttaIntegrator, cuDensityMatTimeStepper
 import cupy
@@ -28,7 +29,7 @@ def evolve_dynamics(
         hamiltonian: Operator,
         dimensions: Mapping[int, int],
         schedule: Schedule,
-        initial_state: cudaq_runtime.State,
+        initial_state: InitialStateArgT,
         collapse_operators: Sequence[Operator] = [],
         observables: Sequence[Operator] = [],
         store_intermediate_results=False,
@@ -43,8 +44,21 @@ def evolve_dynamics(
     schedule.reset()
     hilbert_space_dims = tuple(dimensions[d] for d in range(len(dimensions)))
 
-    with ScopeTimer("evolve.as_cudm_state") as timer:
-        initial_state = as_cudm_state(initial_state)
+    # Check that the integrator can support distributed state if this is a distributed simulation.
+    if cudaq_runtime.mpi.is_initialized() and cudaq_runtime.mpi.num_ranks(
+    ) > 1 and integrator is not None and not integrator.support_distributed_state(
+    ):
+        raise ValueError(
+            f"Integrator {type(integrator).__name__} does not support distributed state."
+        )
+
+    if isinstance(initial_state, InitialState):
+        has_collapse_operators = len(collapse_operators) > 0
+        initial_state = CuDensityMatState.create_initial_state(
+            initial_state, hilbert_space_dims, has_collapse_operators)
+    else:
+        with ScopeTimer("evolve.as_cudm_state") as timer:
+            initial_state = as_cudm_state(initial_state)
 
     if not isinstance(initial_state, CuDensityMatState):
         raise ValueError("Unknown type")
