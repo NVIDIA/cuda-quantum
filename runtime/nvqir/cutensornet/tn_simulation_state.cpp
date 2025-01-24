@@ -75,23 +75,38 @@ TensorNetSimulationState::overlap(const cudaq::SimulationState &other) {
   allTensorOps.insert(allTensorOps.end(), tensorOps.begin(), tensorOps.end());
 
   for (auto &op : allTensorOps) {
-    if (op.controlQubitIds.empty()) {
-      HANDLE_CUTN_ERROR(cutensornetStateApplyTensorOperator(
-          cutnHandle, tempQuantumState, op.targetQubitIds.size(),
-          op.targetQubitIds.data(), op.deviceData, nullptr, /*immutable*/ 1,
-          /*adjoint*/ static_cast<int32_t>(op.isAdjoint),
-          /*unitary*/ static_cast<int32_t>(op.isUnitary), &tensorId));
-    } else {
-      HANDLE_CUTN_ERROR(cutensornetStateApplyControlledTensorOperator(
+    if (op.deviceData) {
+      if (op.controlQubitIds.empty()) {
+        HANDLE_CUTN_ERROR(cutensornetStateApplyTensorOperator(
+            cutnHandle, tempQuantumState, op.targetQubitIds.size(),
+            op.targetQubitIds.data(), op.deviceData, nullptr, /*immutable*/ 1,
+            /*adjoint*/ static_cast<int32_t>(op.isAdjoint),
+            /*unitary*/ static_cast<int32_t>(op.isUnitary), &tensorId));
+      } else {
+        HANDLE_CUTN_ERROR(cutensornetStateApplyControlledTensorOperator(
+            cutnHandle, tempQuantumState,
+            /*numControlModes=*/op.controlQubitIds.size(),
+            /*stateControlModes=*/op.controlQubitIds.data(),
+            /*stateControlValues=*/nullptr,
+            /*numTargetModes*/ op.targetQubitIds.size(),
+            /*stateTargetModes*/ op.targetQubitIds.data(), op.deviceData,
+            nullptr,
+            /*immutable*/ 1,
+            /*adjoint*/ static_cast<int32_t>(op.isAdjoint),
+            /*unitary*/ static_cast<int32_t>(op.isUnitary), &tensorId));
+      }
+    } else if (op.unitaryChannel.has_value()) {
+      HANDLE_CUTN_ERROR(cutensornetStateApplyUnitaryChannel(
           cutnHandle, tempQuantumState,
-          /*numControlModes=*/op.controlQubitIds.size(),
-          /*stateControlModes=*/op.controlQubitIds.data(),
-          /*stateControlValues=*/nullptr,
-          /*numTargetModes*/ op.targetQubitIds.size(),
-          /*stateTargetModes*/ op.targetQubitIds.data(), op.deviceData, nullptr,
-          /*immutable*/ 1,
-          /*adjoint*/ static_cast<int32_t>(op.isAdjoint),
-          /*unitary*/ static_cast<int32_t>(op.isUnitary), &tensorId));
+          /*numStateModes=*/op.targetQubitIds.size(),
+          /*stateModes=*/op.targetQubitIds.data(),
+          /*numTensors=*/op.unitaryChannel->tensorData.size(),
+          /*tensorData=*/op.unitaryChannel->tensorData.data(),
+          /*tensorModeStrides=*/nullptr,
+          /*probabilities=*/op.unitaryChannel->probabilities.data(),
+          &tensorId));
+    } else {
+      throw std::runtime_error("Invalid AppliedTensorOp encountered.");
     }
   }
 
