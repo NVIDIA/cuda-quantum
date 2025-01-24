@@ -103,6 +103,14 @@ protected:
   // cutensornetStateApplyControlledTensorOperator). Tensornet supports
   // arbitrary values.
   std::size_t m_maxControlledRankForFullTensorExpansion = 1;
+
+  // Flag to enable contraction path reuse when computing the expectation value
+  // (observe).
+  //   Default is off (no contraction path reuse).
+  //   Reusing the path, while saving the path finding time, prevents lightcone
+  //   simplification, e.g., when the spin op is sparse (only acting on a few
+  //   qubits).
+  bool m_reuseContractionPathObserve = false;
 };
 
 } // end namespace nvqir

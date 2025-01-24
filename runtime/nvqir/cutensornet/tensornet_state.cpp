@@ -681,15 +681,14 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
                                    placeHolderArraySize,
                                    cudaMemcpyHostToDevice));
       std::complex<double> expVal;
-      std::complex<double> stateNorm{0.0, 0.0};
       {
         ScopedTraceWithContext("cutensornetExpectationCompute");
         HANDLE_CUTN_ERROR(cutensornetExpectationCompute(
             m_cutnHandle, tensorNetworkExpectation, workDesc, &expVal,
-            static_cast<void *>(&stateNorm),
+            /*stateNorm*/ nullptr,
             /*cudaStream*/ 0));
       }
-      allExpVals.emplace_back(expVal / std::abs(stateNorm));
+      allExpVals.emplace_back(expVal);
     }
   }
 
@@ -697,6 +696,69 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
   HANDLE_CUDA_ERROR(cudaFree(pauliMats_d));
 
   return allExpVals;
+}
+
+std::complex<double> TensorNetState::computeExpVal(
+    cutensornetNetworkOperator_t tensorNetworkOperator) {
+  LOG_API_TIME();
+  cutensornetStateExpectation_t tensorNetworkExpectation;
+  // Step 1: create
+  {
+    ScopedTraceWithContext("cutensornetCreateExpectation");
+    HANDLE_CUTN_ERROR(cutensornetCreateExpectation(m_cutnHandle, m_quantumState,
+                                                   tensorNetworkOperator,
+                                                   &tensorNetworkExpectation));
+  }
+  // Step 2: configure
+  const int32_t numHyperSamples =
+      8; // desired number of hyper samples used in the tensor network
+         // contraction path finder
+  {
+    ScopedTraceWithContext("cutensornetExpectationConfigure");
+    HANDLE_CUTN_ERROR(cutensornetExpectationConfigure(
+        m_cutnHandle, tensorNetworkExpectation,
+        CUTENSORNET_EXPECTATION_OPT_NUM_HYPER_SAMPLES, &numHyperSamples,
+        sizeof(numHyperSamples)));
+  }
+
+  // Step 3: Prepare
+  cutensornetWorkspaceDescriptor_t workDesc;
+  HANDLE_CUTN_ERROR(
+      cutensornetCreateWorkspaceDescriptor(m_cutnHandle, &workDesc));
+  {
+    ScopedTraceWithContext("cutensornetExpectationPrepare");
+    HANDLE_CUTN_ERROR(cutensornetExpectationPrepare(
+        m_cutnHandle, tensorNetworkExpectation, scratchPad.scratchSize,
+        workDesc, /*cudaStream*/ 0));
+  }
+
+  // Attach the workspace buffer
+  int64_t worksize{0};
+  HANDLE_CUTN_ERROR(cutensornetWorkspaceGetMemorySize(
+      m_cutnHandle, workDesc, CUTENSORNET_WORKSIZE_PREF_RECOMMENDED,
+      CUTENSORNET_MEMSPACE_DEVICE, CUTENSORNET_WORKSPACE_SCRATCH, &worksize));
+  if (worksize <= static_cast<int64_t>(scratchPad.scratchSize)) {
+    HANDLE_CUTN_ERROR(cutensornetWorkspaceSetMemory(
+        m_cutnHandle, workDesc, CUTENSORNET_MEMSPACE_DEVICE,
+        CUTENSORNET_WORKSPACE_SCRATCH, scratchPad.d_scratch, worksize));
+  } else {
+    throw std::runtime_error("ERROR: Insufficient workspace size on Device!");
+  }
+
+  // Step 4: Compute
+  std::complex<double> expVal;
+
+  {
+    ScopedTraceWithContext("cutensornetExpectationCompute");
+    HANDLE_CUTN_ERROR(cutensornetExpectationCompute(
+        m_cutnHandle, tensorNetworkExpectation, workDesc, &expVal,
+        /*stateNorm*/ nullptr,
+        /*cudaStream*/ 0));
+  }
+  // Step 5: clean up
+  HANDLE_CUTN_ERROR(cutensornetDestroyExpectation(tensorNetworkExpectation));
+  HANDLE_CUTN_ERROR(cutensornetDestroyWorkspaceDescriptor(workDesc));
+  return expVal;
 }
 
 std::unique_ptr<TensorNetState> TensorNetState::createFromMpsTensors(

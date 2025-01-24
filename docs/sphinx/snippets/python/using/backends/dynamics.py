@@ -172,3 +172,44 @@ def parameter_values(time_steps):
 time_dependence = parameter_values(numpy.linspace(0, 1, 100))
 cudaq.evolve(system_operator, system_dimensions, time_dependence, initial_state)
 #[End Schedule2]
+
+import cudaq
+from cudaq import operators, spin, Schedule, RungeKuttaIntegrator
+
+N = 4
+dimensions = {}
+for i in range(N):
+    dimensions[i] = 2
+g = 1.0
+H = operators.zero()
+for i in range(N):
+    H += 2 * np.pi * spin.x(i)
+    H += 2 * np.pi * spin.y(i)
+for i in range(N - 1):
+    H += 2 * np.pi * g * spin.x(i) * spin.x(i + 1)
+    H += 2 * np.pi * g * spin.y(i) * spin.z(i + 1)
+
+steps = np.linspace(0.0, 1, 200)
+schedule = Schedule(steps, ["time"])
+
+#[Begin MPI]
+cudaq.mpi.initialize()
+
+# Set the target to our dynamics simulator
+cudaq.set_target("dynamics")
+
+# Initial state (expressed as an enum)
+psi0 = cudaq.operator.InitialState.ZERO
+
+# Run the simulation
+evolution_result = cudaq.evolve(H,
+                                dimensions,
+                                schedule,
+                                psi0,
+                                observables=[],
+                                collapse_operators=[],
+                                store_intermediate_results=True,
+                                integrator=RungeKuttaIntegrator())
+
+cudaq.mpi.finalize()
+#[End MPI]
