@@ -94,6 +94,10 @@ protected:
   /// @brief Query if direct expectation value calculation is enabled
   virtual bool canHandleObserve() override;
 
+  /// @brief Return true if this simulator can use cache workspace (e.g., for
+  /// intermediate tensors)
+  virtual bool requireCacheWorkspace() const = 0;
+
 protected:
   cutensornetHandle_t m_cutnHandle;
   std::unique_ptr<TensorNetState> m_state;

@@ -420,7 +420,8 @@ SimulatorTensorNetBase::sample(const std::vector<std::size_t> &measuredBits,
   }
 
   prepareQubitTensorState();
-  const auto samples = m_state->sample(measuredBitIds, shots);
+  const auto samples =
+      m_state->sample(measuredBitIds, shots, requireCacheWorkspace());
   cudaq::ExecutionResult counts(samples);
   double expVal = 0.0;
   // Compute the expectation value from the counts

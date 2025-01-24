@@ -151,7 +151,8 @@ public:
 
   /// @brief Perform measurement sampling on the quantum state.
   std::unordered_map<std::string, size_t>
-  sample(const std::vector<int32_t> &measuredBitIds, int32_t shots);
+  sample(const std::vector<int32_t> &measuredBitIds, int32_t shots,
+         bool enableCacheWorkspace);
 
   /// @brief Contract the tensor network representation to retrieve the state
   /// vector.
@@ -226,6 +227,7 @@ private:
   std::unordered_map<std::string, size_t>
   executeSample(cutensornetStateSampler_t &sampler,
                 cutensornetWorkspaceDescriptor_t &workspaceDesc,
-                const std::vector<int32_t> &measuredBitIds, int32_t shots);
+                const std::vector<int32_t> &measuredBitIds, int32_t shots,
+                bool enableCacheWorkspace);
 };
 } // namespace nvqir

@@ -194,8 +194,8 @@ public:
 
       assert(iter != samplerCache.end());
       auto &[sampler, workDesc] = iter->second;
-      const auto samples =
-          m_state->executeSample(sampler, workDesc, measuredBitIds, 1);
+      const auto samples = m_state->executeSample(
+          sampler, workDesc, measuredBitIds, 1, requireCacheWorkspace());
       assert(samples.size() == 1);
       for (const auto &[bitString, count] : samples)
         counts.appendResult(bitString, count);
@@ -390,6 +390,8 @@ public:
         std::move(m_state), std::vector<MPSTensor>{stateTensor}, scratchPad,
         m_cutnHandle, m_randomEngine);
   }
+
+  bool requireCacheWorkspace() const override { return false; }
 
   virtual ~SimulatorMPS() noexcept {
     for (auto &tensor : m_mpsTensors_d) {

@@ -247,7 +247,35 @@ std::unordered_map<std::string, size_t>
 TensorNetState::executeSample(cutensornetStateSampler_t &sampler,
                               cutensornetWorkspaceDescriptor_t &workDesc,
                               const std::vector<int32_t> &measuredBitIds,
-                              int32_t shots) {
+                              int32_t shots, bool enableCacheWorkspace) {
+  int64_t reqCacheSize{0};
+  void *d_cache{nullptr};
+  if (enableCacheWorkspace) {
+    ScopedTraceWithContext("Allocate Cache Workspace");
+    HANDLE_CUTN_ERROR(cutensornetWorkspaceGetMemorySize(
+        m_cutnHandle, workDesc, CUTENSORNET_WORKSIZE_PREF_RECOMMENDED,
+        CUTENSORNET_MEMSPACE_DEVICE, CUTENSORNET_WORKSPACE_CACHE,
+        &reqCacheSize));
+
+    // Query the GPU memory capacity
+    std::size_t freeSize{0}, totalSize{0};
+    HANDLE_CUDA_ERROR(cudaMemGetInfo(&freeSize, &totalSize));
+    // Compute the minimum of [required size, or 90% of the free memory (to
+    // avoid oversubscribing)] (see cutensornet examples)
+    const std::size_t cacheSizeAvailable =
+        std::min(static_cast<size_t>(reqCacheSize),
+                 size_t(freeSize * 0.9) - (size_t(freeSize * 0.9) % 4096));
+    cudaq::info("Cache size = {} bytes", cacheSizeAvailable);
+    const auto errCode = cudaMalloc(&d_cache, cacheSizeAvailable);
+    if (errCode == cudaSuccess) {
+      HANDLE_CUTN_ERROR(cutensornetWorkspaceSetMemory(
+          m_cutnHandle, workDesc, CUTENSORNET_MEMSPACE_DEVICE,
+          CUTENSORNET_WORKSPACE_CACHE, d_cache, cacheSizeAvailable));
+    } else {
+      cudaq::info("Failed to allocate cache workspace memory.");
+      d_cache = nullptr;
+    }
+  }
   // Sample the quantum circuit state
   std::unordered_map<std::string, size_t> counts;
   // If this is a trajectory simulation, each shot needs an independent
@@ -275,16 +303,19 @@ TensorNetState::executeSample(cutensornetStateSampler_t &sampler,
     shotsToRun -= numShots;
   }
 
+  if (enableCacheWorkspace && d_cache) {
+    HANDLE_CUDA_ERROR(cudaFree(d_cache));
+  }
   return counts;
 }
 
 std::unordered_map<std::string, size_t>
 TensorNetState::sample(const std::vector<int32_t> &measuredBitIds,
-                       int32_t shots) {
+                       int32_t shots, bool enableCacheWorkspace) {
   LOG_API_TIME();
   auto [sampler, workDesc] = prepareSample(measuredBitIds);
-  std::unordered_map<std::string, size_t> counts =
-      executeSample(sampler, workDesc, measuredBitIds, shots);
+  std::unordered_map<std::string, size_t> counts = executeSample(
+      sampler, workDesc, measuredBitIds, shots, enableCacheWorkspace);
   // Destroy the workspace descriptor
   HANDLE_CUTN_ERROR(cutensornetDestroyWorkspaceDescriptor(workDesc));
   // Destroy the quantum circuit sampler
