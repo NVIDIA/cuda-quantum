@@ -104,10 +104,12 @@ protected:
   // arbitrary values.
   std::size_t m_maxControlledRankForFullTensorExpansion = 1;
 
-  // Should we reuse contraction path when computing the expectation value
-  // (observe)? Reusing the path, while saving the path finding time, prevents
-  // lightcone simplification, e.g., when the spin op is sparse (only acting on
-  // a few quibits).
+  // Flag to enable contraction path reuse when computing the expectation value
+  // (observe).
+  //   Default is off (no contraction path reuse).
+  //   Reusing the path, while saving the path finding time, prevents lightcone
+  //   simplification, e.g., when the spin op is sparse (only acting on a few
+  //   qubits).
   bool m_reuseContractionPathObserve = false;
 };
 
