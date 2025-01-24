@@ -24,6 +24,10 @@ SimulatorTensorNetBase::SimulatorTensorNetBase()
   HANDLE_CUTN_ERROR(cutensornetCreate(&m_cutnHandle));
   // The scratch pad must be allocated after we have selected the device.
   scratchPad.allocate();
+
+  // Check whether observe path reuse is enabled.
+  m_reuseContractionPathObserve =
+      cudaq::getEnvBool("CUDAQ_TENSORNET_OBSERVE_CONTRACT_PATH_REUSE", false);
 }
 
 static std::vector<std::complex<double>>
@@ -277,6 +281,17 @@ cudaq::observe_result
 SimulatorTensorNetBase::observe(const cudaq::spin_op &ham) {
   LOG_API_TIME();
   prepareQubitTensorState();
+  if (!m_reuseContractionPathObserve) {
+    // If contraction path reuse is disabled, convert spin_op to
+    // cutensornetNetworkOperator_t and compute the expectation value.
+    TensorNetworkSpinOp spinOp(ham, m_cutnHandle);
+    std::complex<double> expVal =
+        m_state->computeExpVal(spinOp.getNetworkOperator());
+    expVal += spinOp.getIdentityTermOffset();
+    return cudaq::observe_result(expVal.real(), ham,
+                                 cudaq::sample_result(cudaq::ExecutionResult(
+                                     {}, ham.to_string(false), expVal.real())));
+  }
 
   std::vector<std::string> termStrs;
   std::vector<cudaq::spin_op::spin_op_term> terms;
