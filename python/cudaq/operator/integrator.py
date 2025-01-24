@@ -75,3 +75,9 @@ class BaseIntegrator(ABC, Generic[TState]):
         Obtain the state of the integrator as a pair (t, state).
         """
         return (self.t, self.state)
+
+    def support_distributed_state(self):
+        """
+        Returns true if the integrator supports distributed state else returns false. Default is set to false.
+        """
+        return False
