@@ -497,6 +497,12 @@ Specific aspects of the simulation can be configured by setting the following of
   As we use an opaque spin operator term as a placeholder for contraction path optimization, the resulting contraction path is not as optimal as if the actual spin operator is used.
   For instance, if the spin operator is sparse (only acting on a few qubits), the contraction can be significantly simplified.  
 
+.. note:: 
+
+  :code:`tensornet` backends only return the overall expectation value for a :class:`cudaq.SpinOperator` when using the `cudaq::observe` method. 
+  Term-by-term expectation values will not be available in the resulting `ObserveResult` object.
+  If needed, these values can be computed by calling `cudaq::observe` on individual terms instead.  
+
 Matrix product state 
 +++++++++++++++++++++++++++++++++++
 
