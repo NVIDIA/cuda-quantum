@@ -94,14 +94,14 @@ typedef struct {
   /// `Synchronize` should be called as appropriate to resolve in-flight
   /// requests before making new ones.
   int (*SendAsync)(const cudaqDistributedCommunicator_t *, const void *, int,
-                   DataType, int, int32_t);
+                   DataType, int, int32_t, void *);
   /// @brief MPI_Irecv
   /// @note The MPI plugin API allows for a maximum of two concurrent
   /// non-blocking requests (e.g., one `Isend` and one `Irecv`). Hence,
   /// `Synchronize` should be called as appropriate to resolve in-flight
   /// requests before making new ones.
   int (*RecvAsync)(const cudaqDistributedCommunicator_t *, void *, int,
-                   DataType, int, int32_t);
+                   DataType, int, int32_t, void *);
   /// @brief MPI_Isend and MPI_Irecv in one call
   /// @note The MPI plugin API allows for a maximum of two concurrent
   /// non-blocking requests (e.g., one `Isend` and one `Irecv`). Since this
@@ -119,5 +119,19 @@ typedef struct {
   /// @brief MPI_Comm_split
   int (*CommSplit)(const cudaqDistributedCommunicator_t *, int32_t, int32_t,
                    cudaqDistributedCommunicator_t **);
+  /// @brief Create an MPI_Request
+  int (*CreateRequest)(void **);
+  /// @brief Free a previously-allocated MPI_Request
+  int (*DestroyRequest)(void *);
+  /// @brief Wait for the completion of a MPI_Request
+  int (*WaitRequest)(void *);
+  /// @brief Test for the completion of a MPI_Request
+  int (*TestRequest)(void *, int32_t *);
+  /// @brief MPI_Send
+  int (*Send)(const cudaqDistributedCommunicator_t *, const void *, int,
+              DataType, int, int32_t);
+  /// @brief MPI_Recv
+  int (*Recv)(const cudaqDistributedCommunicator_t *, void *, int, DataType,
+              int, int32_t);
 } cudaqDistributedInterface_t;
 }

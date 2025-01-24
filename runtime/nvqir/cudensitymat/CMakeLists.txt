@@ -11,13 +11,27 @@ find_package(CUDAToolkit REQUIRED)
 
 set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 set(LIBRARY_NAME nvqir-dynamics)
-add_library(${LIBRARY_NAME} SHARED CuDensityMatSim.cpp)
+
+# Find cudensitymat header (for MPI plugin interface typedef)
+find_file(CUDENSITYMAT_INC
+    NAMES   cudensitymat.h
+    HINTS   
+        $ENV{CUQUANTUM_INSTALL_PREFIX}/include      
+        /usr/include    
+        ENV CPATH
+)
+
+message(STATUS "cudensitymat header: ${CUDENSITYMAT_INC}")
+get_filename_component(CUDENSITYMAT_INCLUDE_DIR ${CUDENSITYMAT_INC} DIRECTORY)
+
+add_library(${LIBRARY_NAME} SHARED CuDensityMatSim.cpp mpi_support.cpp)
 
 target_include_directories(${LIBRARY_NAME}
   PRIVATE 
     . .. 
     ${CUDAToolkit_INCLUDE_DIRS} 
     ${CMAKE_SOURCE_DIR}/runtime/common
+    ${CUDENSITYMAT_INCLUDE_DIR}
 )
 
 target_link_libraries(${LIBRARY_NAME} 

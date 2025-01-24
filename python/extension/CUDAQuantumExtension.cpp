@@ -169,6 +169,14 @@ PYBIND11_MODULE(_quakeDialects, m) {
       "Returns true if MPI has already been initialized.");
   mpiSubmodule.def(
       "finalize", []() { cudaq::mpi::finalize(); }, "Finalize MPI.");
+  mpiSubmodule.def(
+      "comm_dup",
+      []() {
+        const auto [commPtr, commSize] = cudaq::mpi::comm_dup();
+        return std::make_pair(reinterpret_cast<intptr_t>(commPtr), commSize);
+      },
+      "Duplicates the communicator. Return the new communicator address (as an "
+      "integer) and its size in bytes");
 
   auto orcaSubmodule = cudaqRuntime.def_submodule("orca");
   orcaSubmodule.def(

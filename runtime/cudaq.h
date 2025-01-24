@@ -307,6 +307,10 @@ void broadcast(std::vector<double> &data, int rootRank);
 /// @brief Broadcast a string from a process (rootRank) to all other processes.
 void broadcast(std::string &data, int rootRank);
 
+/// @brief Duplicate the communicator. Returns the new communicator (as a void*)
+/// and its size.
+std::pair<void *, std::size_t> comm_dup();
+
 /// @brief Finalize MPI. This function
 /// is a no-op if there CUDA-Q has not been built
 /// against MPI.
