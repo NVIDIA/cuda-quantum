@@ -23,5 +23,7 @@ static constexpr const char QIRRequiredResultsAttrName[] = "requiredResults";
 static constexpr const char QIRIrreversibleFlagName[] = "irreversible";
 
 static constexpr const char StartingOffsetAttrName[] = "StartingOffset";
+static constexpr const char ResultIndexAttrName[] = "ResultIndex";
+static constexpr const char MzAssignedNameAttrName[] = "MzAssignedName";
 
 } // namespace cudaq::opt
