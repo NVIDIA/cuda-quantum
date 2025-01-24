@@ -627,7 +627,7 @@ To execute a program on the :code:`orca-photonics` target, use the following com
 
     .. code:: bash 
 
-        nvq++ --target orca-photonics program.cpp [...] -o program.x
+        nvq++ --library-mode --target orca-photonics program.cpp [...] -o program.x
 
 
 Fermioniq
