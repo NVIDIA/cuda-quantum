@@ -171,7 +171,8 @@ expected_result_decay = [
 ]
 
 
-def test_evolve():
+@pytest.mark.parametrize("init_state", ["array", "enum"])
+def test_evolve(init_state):
     # Set random seed for shots-based observe test.
     cudaq.set_random_seed(13)
 
@@ -182,8 +183,11 @@ def test_evolve():
     dimensions = {0: 2}
 
     # Initial state of the system (ground state).
-    rho0 = cudaq.State.from_data(
-        np.array([[1.0, 0.0], [0.0, 0.0]], dtype=np.complex128))
+    if init_state == "array":
+        rho0 = cudaq.State.from_data(
+            np.array([[1.0, 0.0], [0.0, 0.0]], dtype=np.complex128))
+    elif init_state == "enum":
+        rho0 = InitialState.ZERO
 
     # Schedule of time steps.
     steps = np.linspace(0, 10, 101)
