@@ -15,22 +15,22 @@
 
 namespace cudaq {
 
+std::map<std::string, Definition> elementary_operator::m_ops = {};
+
 elementary_operator elementary_operator::identity(int degree) {
   std::string op_id = "identity";
-  std::vector<int> degrees = {degree};
-  auto op = elementary_operator(op_id, degrees);
+  auto op = elementary_operator(op_id, {degree});
   // A dimension of -1 indicates this operator can act on any dimension.
   op.expected_dimensions[degree] = -1;
   if (op.m_ops.find(op_id) == op.m_ops.end()) {
-    auto func = [&](std::map<int, int> dimensions,
+    auto func = [&, degree](std::map<int, int> dimensions,
                     std::map<std::string, std::complex<double>> _none) {
-      int degree = op.degrees[0];
       std::size_t dimension = dimensions[degree];
       auto mat = matrix_2(dimension, dimension);
 
       // Build up the identity matrix.
       for (std::size_t i = 0; i < dimension; i++) {
-        mat[{i, i}] = 1.0 + 0.0 * 'j';
+        mat[{i, i}] = 1.0 + 0.0j;
       }
 
       std::cout << "dumping the complex mat: \n";
@@ -292,14 +292,14 @@ operator_sum<elementary_operator> operator+(double other, const elementary_opera
       self};
   std::vector<std::variant<scalar_operator, elementary_operator>> _other = {
       other_scalar};
-  return operator_sum<elementary_operator>({product_operator(_other), product_operator(_self)});
+  return operator_sum<elementary_operator>(product_operator(_other), product_operator(_self));
 }
 
 operator_sum<elementary_operator> operator-(double other, const elementary_operator &self) {
   auto other_scalar = scalar_operator(other);
   std::vector<std::variant<scalar_operator, elementary_operator>> _other = {
       other_scalar};
-  return operator_sum<elementary_operator>({product_operator(_other), (-1. * self)});
+  return operator_sum<elementary_operator>(product_operator(_other), (-1. * self));
 }
 
 product_operator<elementary_operator> operator*(std::complex<double> other, const elementary_operator &self) {
@@ -315,12 +315,12 @@ operator_sum<elementary_operator> operator+(std::complex<double> other, const el
       self};
   std::vector<std::variant<scalar_operator, elementary_operator>> _other = {
       other_scalar};
-  return operator_sum<elementary_operator>({product_operator(_other), product_operator(_self)});
+  return operator_sum<elementary_operator>(product_operator(_other), product_operator(_self));
 }
 
 operator_sum<elementary_operator> operator-(std::complex<double> other, const elementary_operator &self) {
   std::vector<std::variant<scalar_operator, elementary_operator>> _other = {scalar_operator(other)};
-  return operator_sum<elementary_operator>({product_operator(_other), (-1. * self)});
+  return operator_sum<elementary_operator>(product_operator(_other), (-1. * self));
 }
 
 product_operator<elementary_operator> operator*(const scalar_operator &other, const elementary_operator &self) {
@@ -330,12 +330,12 @@ product_operator<elementary_operator> operator*(const scalar_operator &other, co
 operator_sum<elementary_operator> operator+(const scalar_operator &other, const elementary_operator &self) {
   std::vector<std::variant<scalar_operator, elementary_operator>> _other = {other};
   std::vector<std::variant<scalar_operator, elementary_operator>> _self = {self};
-  return operator_sum<elementary_operator>({product_operator(_other), product_operator(_self)});
+  return operator_sum<elementary_operator>(product_operator(_other), product_operator(_self));
 }
 
 operator_sum<elementary_operator> operator-(const scalar_operator &other, const elementary_operator &self) {
   std::vector<std::variant<scalar_operator, elementary_operator>> _other = {other};
-  return operator_sum<elementary_operator>({product_operator(_other), -1. * self});
+  return operator_sum<elementary_operator>(product_operator(_other), -1. * self);
 }
 
 // right-hand arithmetics
@@ -370,7 +370,7 @@ operator_sum<elementary_operator> elementary_operator::operator+(std::complex<do
       *this};
   std::vector<std::variant<scalar_operator, elementary_operator>> _other = {
       other_scalar};
-  return operator_sum({product_operator(_this), product_operator(_other)});
+  return operator_sum<elementary_operator>(product_operator(_this), product_operator(_other));
 }
 
 operator_sum<elementary_operator> elementary_operator::operator-(std::complex<double> other) const {
@@ -381,7 +381,7 @@ operator_sum<elementary_operator> elementary_operator::operator-(std::complex<do
       *this};
   std::vector<std::variant<scalar_operator, elementary_operator>> _other = {
       other_scalar};
-  return operator_sum({product_operator(_this), product_operator(_other)});
+  return operator_sum<elementary_operator>(product_operator(_this), product_operator(_other));
 }
 
 product_operator<elementary_operator> elementary_operator::operator*(const scalar_operator &other) const {
@@ -397,7 +397,7 @@ operator_sum<elementary_operator> elementary_operator::operator+(const scalar_op
       *this};
   std::vector<std::variant<scalar_operator, elementary_operator>> _other = {
       other};
-  return operator_sum({product_operator(_this), product_operator(_other)});
+  return operator_sum<elementary_operator>(product_operator(_this), product_operator(_other));
 }
 
 operator_sum<elementary_operator> elementary_operator::operator-(const scalar_operator &other) const {
@@ -407,7 +407,7 @@ operator_sum<elementary_operator> elementary_operator::operator-(const scalar_op
       *this};
   std::vector<std::variant<scalar_operator, elementary_operator>> _other = {
       -1. * other};
-  return operator_sum({product_operator(_this), product_operator(_other)});
+  return operator_sum<elementary_operator>(product_operator(_this), product_operator(_other));
 }
 
 product_operator<elementary_operator> elementary_operator::operator*(const elementary_operator &other) const {
@@ -421,13 +421,13 @@ operator_sum<elementary_operator> elementary_operator::operator+(const elementar
       *this};
   std::vector<std::variant<scalar_operator, elementary_operator>> _other = {
       other};
-  return operator_sum({product_operator(_this), product_operator(_other)});
+  return operator_sum<elementary_operator>(product_operator(_this), product_operator(_other));
 }
 
 operator_sum<elementary_operator> elementary_operator::operator-(const elementary_operator &other) const {
   std::vector<std::variant<scalar_operator, elementary_operator>> _this = {
       *this};
-  return operator_sum({product_operator(_this), (-1. * other)});
+  return operator_sum<elementary_operator>(product_operator(_this), (-1. * other));
 }
 
 } // namespace cudaq
