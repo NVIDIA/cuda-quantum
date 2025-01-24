@@ -16,6 +16,7 @@
 #include <map>
 #include <set>
 #include <concepts> 
+#include <type_traits>
 
 namespace cudaq {
 
@@ -169,21 +170,74 @@ requires std::derived_from<elementary_operator, HandlerTy>
 class operator_sum {
 
 private:
-  std::vector<product_operator<HandlerTy>> terms;
-
   std::vector<std::tuple<scalar_operator, HandlerTy>>
   canonicalize_product(product_operator<HandlerTy> &prod) const;
 
   std::vector<std::tuple<scalar_operator, HandlerTy>>
   _canonical_terms() const;
 
+  void aggregate_terms(const product_operator<HandlerTy>& head) {
+    terms.push_back(head.terms[0]); // ops is a vector of vectors where the outermost vector has only one entry
+  }
+  
+  template <typename ... Args>
+  void aggregate_terms(const product_operator<HandlerTy> &head, Args&& ... args) {
+    terms.push_back(head.terms[0]); // ops is a vector of vectors where the outermost vector has only one entry
+    aggregate_terms(std::forward<Args>(args)...);
+  }
+
+protected:
+  operator_sum() = default;
+  std::vector<std::vector<std::variant<scalar_operator, HandlerTy>>> terms;
+
 public:
+
   /// @brief Construct a `cudaq::operator_sum<HandlerTy>` given a sequence of
   /// `cudaq::product_operator<HandlerTy>`'s.
   /// This operator expression represents a sum of terms, where each term
   /// is a product of elementary and scalar operators.
-  operator_sum(const std::vector<product_operator<HandlerTy>> &terms)
-    : terms(terms) {}
+  template<class... Args, class = std::enable_if_t<std::conjunction<std::is_same<product_operator<HandlerTy>, Args>...>::value, void>>
+  operator_sum(const Args&... args) {
+    std::cout << "op sum constructor" << std::endl;
+    terms.reserve(sizeof...(Args));
+    aggregate_terms(args...);
+  }
+
+  operator_sum(const std::vector<product_operator<HandlerTy>>& terms) { 
+    this->terms.reserve(terms.size());
+    for (const product_operator<HandlerTy>& term : terms) {
+      this->terms.push_back(term.terms[0]);
+    }
+  }
+
+  operator_sum(std::vector<product_operator<HandlerTy>>&& terms) { 
+    this->terms.reserve(terms.size());
+    for (const product_operator<HandlerTy>& term : terms) {
+      this->terms.push_back(std::move(term.terms[0]));
+    }
+  }
+
+  // copy constructor
+  operator_sum(const operator_sum &other)
+    : terms(other.terms) {}
+
+  // move constructor
+  operator_sum(operator_sum &&other) 
+    : terms(std::move(other.terms)) {}
+
+  // assignment operator
+  operator_sum& operator=(const operator_sum& other) {
+    if (this != &other) {
+      terms = other.terms;
+    }
+    return *this;
+  }
+
+  // move assignment operator
+  operator_sum& operator=(operator_sum &&other) {
+    terms = std::move(other.terms);
+    return *this;
+  }
 
   ~operator_sum() = default;
 
@@ -296,7 +350,13 @@ public:
 
   /// FIXME: Protect this once I can do deeper testing in `unittests`.
   // protected:
-  std::vector<product_operator<HandlerTy>> get_terms() const { return terms; }
+  std::vector<product_operator<HandlerTy>> get_terms() const { 
+    std::vector<product_operator<HandlerTy>> prods;
+    prods.reserve(terms.size());
+    for (auto term : terms) {
+      prods.push_back(product_operator<HandlerTy>(term));
+    }
+    return prods; }
 };
 
 /// @brief Represents an operator expression consisting of a product of
@@ -308,17 +368,64 @@ requires std::derived_from<elementary_operator, HandlerTy>
 class product_operator : public operator_sum<HandlerTy> {
 
 private:
-  std::vector<std::variant<scalar_operator, HandlerTy>> ops;
+
+  void aggregate_terms(const HandlerTy& head) {
+    operator_sum<HandlerTy>::terms[0].push_back(head);
+  }
+  
+  template <typename ... Args>
+  void aggregate_terms(const HandlerTy &head, Args&& ... args) {
+    operator_sum<HandlerTy>::terms[0].push_back(head);
+    aggregate_terms(std::forward<Args>(args)...);
+  }
 
 public:
   // Constructor for an operator expression that represents a product
   // of scalar and elementary operators.
   // arg atomic_operators : The operators of which to compute the product when
   //                         evaluating the operator expression.
-  product_operator(
-      std::vector<std::variant<scalar_operator, HandlerTy>>
-          atomic_operators)
-      : operator_sum<HandlerTy>({*this}), ops(atomic_operators) {}
+  template<class... Args, class = std::enable_if_t<std::conjunction<std::is_same<HandlerTy, Args>...>::value, void>>
+  product_operator(const Args&... args) {
+    std::cout << "prod op constructor" << std::endl;
+    std::vector<std::variant<scalar_operator, HandlerTy>> ops = {};
+    ops.reserve(sizeof...(Args));
+    operator_sum<HandlerTy>::terms.push_back(ops);
+    aggregate_terms(args...);
+  }
+
+  product_operator(const std::vector<std::variant<scalar_operator, HandlerTy>>& atomic_operators) { 
+    std::cout << "prod op constructor" << std::endl; 
+    operator_sum<HandlerTy>::terms.push_back(atomic_operators);
+  }
+
+  product_operator(std::vector<std::variant<scalar_operator, HandlerTy>>&& atomic_operators) { 
+    std::cout << "prod op constructor" << std::endl; 
+    operator_sum<HandlerTy>::terms.push_back(std::move(atomic_operators));
+  }
+
+  // copy constructor
+  product_operator(const product_operator &other) {
+    operator_sum<HandlerTy>::terms = other.terms;
+  }
+
+  // move constructor
+  product_operator(product_operator &&other) {
+    operator_sum<HandlerTy>::terms = std::move(other.terms);
+  }
+
+  // assignment operator
+  product_operator& operator=(const product_operator& other) {
+    if (this != &other) {
+      operator_sum<HandlerTy>::terms = other.terms;
+    }
+    return *this;
+  }
+
+  // move assignment operator
+  product_operator& operator=(product_operator &&other) {
+    operator_sum<HandlerTy>::terms = std::move(other.terms);
+    return *this;
+  }
 
   ~product_operator() = default;
 
@@ -328,12 +435,11 @@ public:
 
   /// @brief Return the number of operator terms that make up this product
   /// operator.
-  int term_count() const { return ops.size(); }
+  int term_count() const { return operator_sum<HandlerTy>::terms[0].size(); }
 
-  /// FIXME: Protect this once I can do deeper testing in `unittests`.
-  // protected:
+  /// FIXME: ELIMINATE THIS
   std::vector<std::variant<scalar_operator, HandlerTy>> get_operators() const {
-    return ops;
+    return operator_sum<HandlerTy>::terms[0];
   };
 
   /// @brief Return the `product_operator<HandlerTy>` as a string.
@@ -425,21 +531,57 @@ class scalar_operator {
 private:
   // If someone gave us a constant value, we will just return that
   // directly to them when they call `evaluate`.
-  std::complex<double> m_constant_value;
+  std::optional<std::complex<double>> m_constant_value;
+
+  /// @brief The function that generates the value of the scalar operator.
+  /// The function can take a vector of complex-valued arguments
+  /// and returns a number.
+  ScalarCallbackFunction generator;
 
 public:
-  /// @brief Constructor that just takes a callback function with no
-  /// arguments.
-
-  scalar_operator(ScalarCallbackFunction &&create) {
-    generator = ScalarCallbackFunction(create);
-  }
+  scalar_operator(double value) 
+    : m_constant_value(value), generator() {}
 
   /// @brief Constructor that just takes and returns a complex double value.
   /// @NOTE: This replicates the behavior of the python `scalar_operator::const`
   /// without the need for an extra member function.
-  scalar_operator(std::complex<double> value);
-  scalar_operator(double value);
+  scalar_operator(std::complex<double> value) 
+    : m_constant_value(value), generator() {}
+
+
+  scalar_operator(const ScalarCallbackFunction &create) 
+    : m_constant_value(), generator(create) {}
+
+  /// @brief Constructor that just takes a callback function with no
+  /// arguments.
+  scalar_operator(ScalarCallbackFunction &&create)
+    : m_constant_value() {
+    generator = std::move(create);
+  }
+
+  // copy constructor
+  scalar_operator(const scalar_operator &other) 
+    : m_constant_value(other.m_constant_value), generator(other.generator) {}
+
+  // move constructor
+  scalar_operator(scalar_operator &&other) 
+    : m_constant_value(other.m_constant_value) {
+      generator = std::move(other.generator);
+  }
+
+  // assignment operator
+  scalar_operator& operator=(const scalar_operator &other) {
+      m_constant_value = other.m_constant_value;
+      generator = other.generator;
+      return *this;
+  }
+
+  // move assignment operator
+  scalar_operator& operator=(scalar_operator &&other) {
+      m_constant_value = other.m_constant_value;
+      generator = std::move(other.generator);
+      return *this;
+  }
 
   /// NOTE: We should revisit these constructors and remove any that have
   /// become unnecessary as the implementation improves.
@@ -449,11 +591,6 @@ public:
   // scalar_operator(scalar_operator &other);
 
   ~scalar_operator() = default;
-
-  /// @brief The function that generates the value of the scalar operator.
-  /// The function can take a vector of complex-valued arguments
-  /// and returns a number.
-  ScalarCallbackFunction generator;
 
   // Need this property for consistency with other inherited types.
   // Particularly, to be used when the scalar operator is held within
@@ -511,10 +648,18 @@ public:
 };
 
 
-class elementary_operator : public product_operator<elementary_operator> {
+class elementary_operator {
 
 private:
-  std::map<std::string, Definition> m_ops;
+  static std::map<std::string, Definition> m_ops;
+
+protected:
+  // FIXME: revise implementation
+  /// @brief The number of levels, that is the dimension, for each degree of
+  /// freedom in canonical order that the operator acts on. A value of zero or
+  /// less indicates that the operator is defined for any dimension of that
+  /// degree.
+  std::map<int, int> expected_dimensions;
 
 public:
   // The constructor should never be called directly by the user:
@@ -523,28 +668,43 @@ public:
   /// @arg operator_id : The ID of the operator as specified when it was
   /// defined.
   /// @arg degrees : the degrees of freedom that the operator acts upon.
-  elementary_operator(std::string operator_id, std::vector<int> degrees)
-    : id(operator_id), degrees(degrees), 
-      product_operator<elementary_operator>({std::variant<scalar_operator, elementary_operator>{*this}}) { }
+  elementary_operator(std::string operator_id, const std::vector<int> &degrees)
+    : id(operator_id), degrees(degrees) { 
+      std::cout << "elem op constructor" << std::endl;
+  }
 
-  // Copy constructor. FIXME: NEEDED?
+  // constructor
+  elementary_operator(std::string operator_id, std::vector<int> &&degrees)
+    : id(operator_id), degrees(std::move(degrees)) { 
+      std::cout << "elem op constructor" << std::endl;
+  }
+
+  // copy constructor
   elementary_operator(const elementary_operator &other)
-    : m_ops(other.m_ops), expected_dimensions(other.expected_dimensions),
-      degrees(other.degrees), id(other.id),
-      product_operator<elementary_operator>({std::variant<scalar_operator, elementary_operator>{*this}}) { }
+    : degrees(other.degrees), id(other.id) {}
 
-  elementary_operator(elementary_operator &other)
-    : m_ops(other.m_ops), expected_dimensions(other.expected_dimensions),
-      degrees(other.degrees), id(other.id),
-      product_operator<elementary_operator>({std::variant<scalar_operator, elementary_operator>{*this}}) { }
+  // move constructor
+  elementary_operator(elementary_operator &&other) 
+    : degrees(std::move(other.degrees)), id(other.id) {}
+
+  // assignment operator
+  elementary_operator& operator=(const elementary_operator& other) {
+    if (this != &other) {
+      degrees = other.degrees;
+      id = other.id;
+    }
+    return *this;
+  }
+
+  // move assignment operator
+  elementary_operator& operator=(elementary_operator &&other) {
+    degrees = std::move(other.degrees);
+    id = other.id;  
+    return *this;
+  }
 
   ~elementary_operator() = default;
 
-  /// @brief The number of levels, that is the dimension, for each degree of
-  /// freedom in canonical order that the operator acts on. A value of zero or
-  /// less indicates that the operator is defined for any dimension of that
-  /// degree.
-  std::map<int, int> expected_dimensions;
   /// @brief The degrees of freedom that the operator acts on in canonical
   /// order.
   std::vector<int> degrees;
@@ -634,13 +794,13 @@ public:
   template <typename Func>
   void define(std::string operator_id, std::map<int, int> expected_dimensions,
               Func create) {
-    if (m_ops.find(operator_id) != m_ops.end()) {
+    if (elementary_operator::m_ops.find(operator_id) != elementary_operator::m_ops.end()) {
       // todo: make a nice error message to say op already exists
       throw;
     }
     auto defn = Definition();
     defn.create_definition(operator_id, expected_dimensions, create);
-    m_ops[operator_id] = defn;
+    elementary_operator::m_ops[operator_id] = defn;
   }
 };
 

@@ -149,7 +149,7 @@ std::vector<int> product_operator<HandlerTy>::degrees() const {
   // The variant type makes it difficult
   auto beginFunc = [](auto &&t) { return t.degrees.begin(); };
   auto endFunc = [](auto &&t) { return t.degrees.end(); };
-  for (const auto &term : ops) {
+  for (const auto &term : operator_sum<HandlerTy>::terms[0]) {
     unique_degrees.insert(std::visit(beginFunc, term),
                           std::visit(endFunc, term));
   }
