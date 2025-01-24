@@ -62,9 +62,9 @@ void registerCodeGenDialect(mlir::DialectRegistry &registry);
 mlir::LLVM::LLVMStructType lambdaAsPairOfPointers(mlir::MLIRContext *context);
 
 /// The pipeline for lowering Quake code to the QIR API. There will be three
-/// distinct flavors of QIR that can be generated with this pipeline. These are
-/// "qir-full", "qir-base", and "qir-adaptive". This pipeline should be run
-/// before conversion to the LLVM-IR dialect.
+/// distinct flavors of QIR that can be generated with this pipeline. These
+/// are `"qir-full"`, `"qir-base"`, and `"qir-adaptive"`. This pipeline should
+/// be run before conversion to the LLVM-IR dialect.
 void registerToQIRAPIPipeline();
 void addConvertToQIRAPIPipeline(mlir::OpPassManager &pm, mlir::StringRef api,
                                 bool opaquePtr = false);

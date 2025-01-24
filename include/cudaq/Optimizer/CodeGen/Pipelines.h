@@ -24,8 +24,8 @@ namespace cudaq::opt {
 /// Adds the common pipeline. \p codeGenFor specifies which variant of QIR is to
 /// be generated: full, base-profile, adaptive-profile, etc. \p passConfigAs
 /// specifies which variant of QIR to use with \e other passes, and not the
-/// final codegen, in the pipeline. Typically, \p codeGenFor and \p passConfigAs
-/// will have identical values.
+/// final `codegen`, in the pipeline. Typically, \p codeGenFor and \p
+/// passConfigAs will have identical values.
 void commonPipelineConvertToQIR(mlir::PassManager &pm,
                                 mlir::StringRef codeGenFor = "qir",
                                 mlir::StringRef passConfigAs = "qir");
@@ -52,8 +52,9 @@ inline void addPipelineConvertToQIR_PythonWorkaround(mlir::PassManager &pm) {
 void addPipelineConvertToQIR(mlir::PassManager &pm, mlir::StringRef convertTo);
 
 /// \deprecated{Only for Python, since it can't use the new QIR codegen.}
-inline void addPipelineConvertToQIR_PythonWorkaround(mlir::PassManager &pm,
-                                    mlir::StringRef convertTo) {
+inline void
+addPipelineConvertToQIR_PythonWorkaround(mlir::PassManager &pm,
+                                         mlir::StringRef convertTo) {
   commonPipelineConvertToQIR_PythonWorkaround(pm, convertTo);
   addQIRProfilePipeline(pm, convertTo);
 }
