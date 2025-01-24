@@ -1815,17 +1815,19 @@ struct QuakeToQIRAPIPrepPass
   }
 
   void guaranteeMzIsLabeled(quake::MzOp mz, int &counter, OpBuilder &builder) {
-    if (!mz.getRegisterNameAttr()) {
-      // Manufacture a bogus name on demand here.
-      std::string manuName = std::to_string(counter++);
-      constexpr std::size_t padSize = 5;
-      manuName =
-          std::string(padSize - std::min(padSize, manuName.length()), '0') +
-          manuName;
-      mz.setRegisterName("r" + manuName);
-    } else {
+    if (mz.getRegisterNameAttr() &&
+        /* FIXME: issue 2538: the name should never be empty. */
+        !mz.getRegisterNameAttr().getValue().empty()) {
       mz->setAttr(cudaq::opt::MzAssignedNameAttrName, builder.getUnitAttr());
+      return;
     }
+    // Manufacture a bogus name on demand here.
+    std::string manuName = std::to_string(counter++);
+    constexpr std::size_t padSize = 5;
+    manuName =
+        std::string(padSize - std::min(padSize, manuName.length()), '0') +
+        manuName;
+    mz.setRegisterName("r" + manuName);
   }
 };
 
