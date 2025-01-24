@@ -14,32 +14,12 @@
 
 namespace cudaq {
 
-// constructors 
-
-/// @brief Constructor that just takes and returns a complex double value.
-scalar_operator::scalar_operator(std::complex<double> value) {
-  m_constant_value = value;
-  auto func = [&](std::map<std::string, std::complex<double>> _none) {
-    return m_constant_value;
-  };
-  generator = ScalarCallbackFunction(func);
-}
-
-/// @brief Constructor that just takes a double and returns a complex double.
-scalar_operator::scalar_operator(double value) {
-  std::complex<double> castValue(value, 0.0);
-  m_constant_value = castValue;
-  auto func = [&](std::map<std::string, std::complex<double>> _none) {
-    return m_constant_value;
-  };
-  generator = ScalarCallbackFunction(func);
-}
-
 // evaluations
 
 std::complex<double> scalar_operator::evaluate(
     const std::map<std::string, std::complex<double>> parameters) const {
-  return generator(parameters);
+  if (m_constant_value.has_value()) return m_constant_value.value();
+  else return generator(parameters);
 }
 
 matrix_2 scalar_operator::to_matrix(
@@ -58,7 +38,7 @@ matrix_2 scalar_operator::to_matrix(
         [=](std::map<std::string, std::complex<double>> parameters) {          \
           return other op self.evaluate(parameters);                           \
         };                                                                     \
-    return scalar_operator(ScalarCallbackFunction(newGenerator));              \
+    return scalar_operator(newGenerator);                                      \
   }
 
 ARITHMETIC_OPERATIONS_DOUBLES_REVERSE(*);
@@ -73,7 +53,7 @@ ARITHMETIC_OPERATIONS_DOUBLES_REVERSE(-);
         [=](std::map<std::string, std::complex<double>> parameters) {          \
           return other op self.evaluate(parameters);                           \
         };                                                                     \
-    return scalar_operator(ScalarCallbackFunction(newGenerator));              \
+    return scalar_operator(newGenerator);                                      \
   }
 
 ARITHMETIC_OPERATIONS_COMPLEX_DOUBLES_REVERSE(*);
@@ -89,7 +69,7 @@ ARITHMETIC_OPERATIONS_COMPLEX_DOUBLES_REVERSE(-);
         [=, this](std::map<std::string, std::complex<double>> parameters) {    \
           return this->evaluate(parameters) op other;                          \
         };                                                                     \
-    return scalar_operator(ScalarCallbackFunction(newGenerator));              \
+    return scalar_operator(newGenerator);                                      \
   }
 
 ARITHMETIC_OPERATIONS_DOUBLES(*);
@@ -99,6 +79,10 @@ ARITHMETIC_OPERATIONS_DOUBLES(-);
 
 #define ARITHMETIC_OPERATIONS_DOUBLES_ASSIGNMENT(op)                           \
   scalar_operator& scalar_operator::operator op(double other) {                \
+    if (this->m_constant_value.has_value()) {                                  \
+        this->m_constant_value.value() op other;                               \
+        return *this;                                                          \
+    }                                                                          \
     /* Need to move the existing generating function to a new operator so that \
      * we can modify the generator in-place. */                                \
     scalar_operator prevSelf(*this);                                           \
@@ -106,7 +90,7 @@ ARITHMETIC_OPERATIONS_DOUBLES(-);
         [=](std::map<std::string, std::complex<double>> parameters) {          \
           return prevSelf.evaluate(parameters) op other;                       \
         };                                                                     \
-    this->generator = ScalarCallbackFunction(newGenerator);                    \
+    this->generator = newGenerator;                                            \
     return *this;                                                              \
   }
 
@@ -122,7 +106,7 @@ ARITHMETIC_OPERATIONS_DOUBLES_ASSIGNMENT(-=);
         [=, this](std::map<std::string, std::complex<double>> parameters) {    \
           return this->evaluate(parameters) op other;                          \
         };                                                                     \
-    return scalar_operator(ScalarCallbackFunction(newGenerator));              \
+    return scalar_operator(newGenerator);                                      \
   }
 
 ARITHMETIC_OPERATIONS_COMPLEX_DOUBLES(*);
@@ -133,6 +117,10 @@ ARITHMETIC_OPERATIONS_COMPLEX_DOUBLES(-);
 #define ARITHMETIC_OPERATIONS_COMPLEX_DOUBLES_ASSIGNMENT(op)                   \
   scalar_operator& scalar_operator::operator op(                               \
                                std::complex<double> other) {                   \
+    if (this->m_constant_value.has_value()) {                                  \
+        this->m_constant_value.value() op other;                               \
+        return *this;                                                          \
+    }                                                                          \
     /* Need to move the existing generating function to a new operator so that \
      * we can modify the generator in-place. */                                \
     scalar_operator prevSelf(*this);                                           \
@@ -140,7 +128,7 @@ ARITHMETIC_OPERATIONS_COMPLEX_DOUBLES(-);
         [=](std::map<std::string, std::complex<double>> parameters) {          \
           return prevSelf.evaluate(parameters) op other;                       \
         };                                                                     \
-    this->generator = ScalarCallbackFunction(newGenerator);                    \
+    this->generator = newGenerator;                                            \
     return *this;                                                              \
   }
 
@@ -156,7 +144,7 @@ ARITHMETIC_OPERATIONS_COMPLEX_DOUBLES_ASSIGNMENT(-=);
         [=, this](std::map<std::string, std::complex<double>> parameters) {    \
           return this->evaluate(parameters) op other.evaluate(parameters);     \
         };                                                                     \
-    return scalar_operator(ScalarCallbackFunction(newGenerator));              \
+    return scalar_operator(newGenerator);                                      \
   }
 
 ARITHMETIC_OPERATIONS_SCALAR_OPS(*);
@@ -167,6 +155,11 @@ ARITHMETIC_OPERATIONS_SCALAR_OPS(-);
 #define ARITHMETIC_OPERATIONS_SCALAR_OPS_ASSIGNMENT(op)                        \
   scalar_operator& scalar_operator::operator op(                               \
                                const scalar_operator &other) {                 \
+    if (this->m_constant_value.has_value() &&                                  \
+          other.m_constant_value.has_value()) {                                \
+        this->m_constant_value.value() op other.m_constant_value.value();      \
+        return *this;                                                          \
+    }                                                                          \
     /* Need to move the existing generating function to a new operator so      \
      * that we can modify the generator in-place. */                           \
     scalar_operator prevSelf(*this);                                           \
@@ -174,7 +167,7 @@ ARITHMETIC_OPERATIONS_SCALAR_OPS(-);
         [=](std::map<std::string, std::complex<double>> parameters) {          \
           return prevSelf.evaluate(parameters) op other.evaluate(parameters);  \
         };                                                                     \
-    this->generator = ScalarCallbackFunction(newGenerator);                    \
+    this->generator = newGenerator;                                            \
     return *this;                                                              \
   }
 
