@@ -16,37 +16,18 @@
 #include <vector>
 
 namespace cudaq {
-// Enum to specify the initial quantum state.
-enum class InitialState { ZERO, UNIFORM };
-
-using InitialStateArgT = std::variant<void *, InitialState>;
-
-class cudm_state {
+class cudm_mat_state {
 public:
   /// @brief To initialize state with raw data.
-  explicit cudm_state(cudensitymatHandle_t handle,
-                      const std::vector<std::complex<double>> rawData,
-                      const std::vector<int64_t> &hilbertSpaceDims);
-
-  // Prevent copies (avoids double free issues)
-  cudm_state(const cudm_state &) = delete;
-  cudm_state &operator=(const cudm_state &) = delete;
-
-  // Allow move semantics
-  cudm_state(cudm_state &&other) noexcept;
-  cudm_state &operator=(cudm_state &&other) noexcept;
+  explicit cudm_mat_state(std::vector<std::complex<double>> rawData);
 
   /// @brief Destructor to clean up resources
-  ~cudm_state();
+  ~cudm_mat_state();
 
-  /// @brief Factory method to create an initial state.
-  /// @param InitialStateArgT The type or representation of the initial state.
-  /// @param Dimensions of the Hilbert space.
-  /// @param hasCollapseOps Whether collapse operators are present.
-  /// @return A new 'cudm_state' initialized to the specified state.
-  static cudm_state create_initial_state(
-      cudensitymatHandle_t handle, const InitialStateArgT &initialStateArg,
-      const std::vector<int64_t> &hilbertSpaceDims, bool hasCollapseOps);
+  /// @brief Initialize the state as a density matrix or state vector based on
+  /// dimensions.
+  /// @param hilbertSpaceDims Vector representing the Hilbert Space dimensions.
+  void init_state(const std::vector<int64_t> &hilbertSpaceDims);
 
   /// @brief Check if the state is initialized.
   /// @return True if the state is initialized, false otherwise.
@@ -60,56 +41,22 @@ public:
   /// @return String representation of the state data.
   std::string dump() const;
 
-  /// @brief Dump the state data to the console for debugging purposes.
-  void dumpDeviceData() const;
-
   /// @brief Convert the state vector to a density matrix.
-  /// @return A new cudm_state representing the density matrix.
-  cudm_state to_density_matrix() const;
+  /// @return A new cudm_mat_state representing the density matrix.
+  cudm_mat_state to_density_matrix() const;
 
   /// @brief Get the underlying implementation (if any).
   /// @return The underlying state implementation.
   cudensitymatState_t get_impl() const;
 
-  /// @brief Get a copy of the raw data representing the quantum state.
-  /// @return A copy of the raw data as a vector of complex numbers.
-  std::vector<std::complex<double>> get_raw_data() const;
-
-  /// @brief Get the pointer to device memory buffer storing the state.
-  /// @return GPU device pointer
-  void *get_device_pointer() const;
-
-  /// @brief Get a copy of the hilbert space dimensions for the quantum state.
-  /// @return A copy of the hilbert space dimensions of a vector of integers.
-  std::vector<int64_t> get_hilbert_space_dims() const;
-
-  /// @brief Returns the handle
-  /// @return The handle associated with the state
-  cudensitymatHandle_t get_handle() const;
-
-  /// @brief Addition operator (element-wise)
-  /// @return The new state after the summation of two states.
-  cudm_state operator+(const cudm_state &other) const;
-
-  /// @brief Accumulation operator
-  /// @return Accumulates the summation of two states.
-  cudm_state &operator+=(const cudm_state &other);
-
-  /// @brief Scalar multiplication operator
-  /// @return The new state after multiplying scalar with the current state.
-  cudm_state &operator*=(const std::complex<double> &scalar);
-
-  cudm_state operator*(double scalar) const;
+  /// @brief Attach raw data to the internal state representation
+  void attach_storage();
 
 private:
   std::vector<std::complex<double>> rawData_;
-  std::complex<double> *gpuData_;
   cudensitymatState_t state_;
   cudensitymatHandle_t handle_;
   std::vector<int64_t> hilbertSpaceDims_;
-
-  /// @brief Attach raw data storage to GPU
-  void attach_storage();
 
   /// @brief Calculate the size of the state vector for the given Hilbert space
   /// dimensions.

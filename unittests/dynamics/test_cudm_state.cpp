@@ -18,11 +18,7 @@ using namespace cudaq;
 
 class CuDensityMatStateTest : public ::testing::Test {
 protected:
-  cudensitymatHandle_t handle;
-
   void SetUp() override {
-    HANDLE_CUDM_ERROR(cudensitymatCreate(&handle));
-
     // Set up test data for a single 2-qubit system
     hilbertSpaceDims = {2, 2};
 
@@ -43,7 +39,7 @@ protected:
         std::complex<double>(0.0, 0.0), std::complex<double>(0.0, 0.0)};
   }
 
-  void TearDown() override { cudensitymatDestroy(handle); }
+  void TearDown() override {}
 
   std::vector<int64_t> hilbertSpaceDims;
   std::vector<std::complex<double>> stateVectorData;
@@ -51,85 +47,71 @@ protected:
 };
 
 TEST_F(CuDensityMatStateTest, InitializeWithStateVector) {
-  cudm_state state(handle, stateVectorData, hilbertSpaceDims);
+  cudm_mat_state state(stateVectorData);
+  EXPECT_FALSE(state.is_initialized());
 
+  EXPECT_NO_THROW(state.init_state(hilbertSpaceDims));
   EXPECT_TRUE(state.is_initialized());
   EXPECT_FALSE(state.is_density_matrix());
+
   EXPECT_NO_THROW(state.dump());
 }
 
 TEST_F(CuDensityMatStateTest, InitializeWithDensityMatrix) {
-  cudm_state state(handle, densityMatrixData, hilbertSpaceDims);
+  cudm_mat_state state(densityMatrixData);
+  EXPECT_FALSE(state.is_initialized());
 
+  EXPECT_NO_THROW(state.init_state(hilbertSpaceDims));
   EXPECT_TRUE(state.is_initialized());
   EXPECT_TRUE(state.is_density_matrix());
+
   EXPECT_NO_THROW(state.dump());
 }
 
 TEST_F(CuDensityMatStateTest, InvalidInitialization) {
   // Data size mismatch for hilbertSpaceDims (2x2 system expects size 4 or 16)
-  std::vector<std::complex<double>> invalidData = {{1.0, 0.0}, {0.0, 0.0}};
+  std::vector<std::complex<double>> invalidData = {
+      std::complex<double>(1.0, 0.0), std::complex<double>(0.0, 0.0)};
 
-  EXPECT_THROW(cudm_state state(handle, invalidData, hilbertSpaceDims),
-               std::invalid_argument);
+  cudm_mat_state state(invalidData);
+  EXPECT_THROW(state.init_state(hilbertSpaceDims), std::invalid_argument);
 }
 
 TEST_F(CuDensityMatStateTest, ToDensityMatrixConversion) {
-  cudm_state state(handle, stateVectorData, hilbertSpaceDims);
+  cudm_mat_state state(stateVectorData);
+  state.init_state(hilbertSpaceDims);
+
   EXPECT_FALSE(state.is_density_matrix());
 
-  cudm_state densityMatrixState = state.to_density_matrix();
+  cudm_mat_state densityMatrixState = state.to_density_matrix();
+
   EXPECT_TRUE(densityMatrixState.is_density_matrix());
   EXPECT_TRUE(densityMatrixState.is_initialized());
+
   EXPECT_NO_THROW(densityMatrixState.dump());
 }
 
 TEST_F(CuDensityMatStateTest, AlreadyDensityMatrixConversion) {
-  cudm_state state(handle, densityMatrixData, hilbertSpaceDims);
+  cudm_mat_state state(densityMatrixData);
+  state.init_state(hilbertSpaceDims);
 
   EXPECT_TRUE(state.is_density_matrix());
   EXPECT_THROW(state.to_density_matrix(), std::runtime_error);
 }
 
+TEST_F(CuDensityMatStateTest, DumpUninitializedState) {
+  cudm_mat_state state(stateVectorData);
+  EXPECT_THROW(state.dump(), std::runtime_error);
+}
+
+TEST_F(CuDensityMatStateTest, AttachStorageErrorHandling) {
+  cudm_mat_state state(stateVectorData);
+
+  EXPECT_THROW(state.attach_storage(), std::runtime_error);
+}
+
 TEST_F(CuDensityMatStateTest, DestructorCleansUp) {
-  EXPECT_NO_THROW(
-      { cudm_state state(handle, stateVectorData, hilbertSpaceDims); });
-}
+  cudm_mat_state state(stateVectorData);
 
-TEST_F(CuDensityMatStateTest, InitializeWithEmptyRawData) {
-  std::vector<std::complex<double>> emptyData;
-
-  EXPECT_THROW(cudm_state state(handle, emptyData, hilbertSpaceDims),
-               std::invalid_argument);
-}
-
-TEST_F(CuDensityMatStateTest, ConversionForSingleQubitSystem) {
-  hilbertSpaceDims = {2};
-  stateVectorData = {{1.0, 0.0}, {0.0, 0.0}};
-  cudm_state state(handle, stateVectorData, hilbertSpaceDims);
-
-  EXPECT_FALSE(state.is_density_matrix());
-
-  cudm_state densityMatrixState = state.to_density_matrix();
-  EXPECT_TRUE(densityMatrixState.is_density_matrix());
-  EXPECT_TRUE(densityMatrixState.is_initialized());
-  EXPECT_NO_THROW(densityMatrixState.dump());
-}
-
-TEST_F(CuDensityMatStateTest, InvalidHilbertSpaceDims) {
-  // 3x3 space is not supported by the provided rawData size
-  hilbertSpaceDims = {3, 3};
-  EXPECT_THROW(cudm_state state(handle, stateVectorData, hilbertSpaceDims),
-               std::invalid_argument);
-}
-
-TEST_F(CuDensityMatStateTest, ValidDensityMatrixState) {
-  cudm_state state(handle, densityMatrixData, hilbertSpaceDims);
-  EXPECT_TRUE(state.is_density_matrix());
-  EXPECT_TRUE(state.is_initialized());
-}
-
-TEST_F(CuDensityMatStateTest, DumpWorksForInitializedState) {
-  cudm_state state(handle, stateVectorData, hilbertSpaceDims);
-  EXPECT_NO_THROW(state.dump());
+  EXPECT_NO_THROW(state.init_state(hilbertSpaceDims));
 }
