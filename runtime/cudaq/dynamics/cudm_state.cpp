@@ -1,0 +1,173 @@
+/*******************************************************************************
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+#include <cudaq/cudm_state.h>
+#include <iostream>
+#include <sstream>
+
+namespace cudaq {
+
+cudm_mat_state::cudm_mat_state(std::vector<std::complex<double>> rawData)
+    : rawData_(rawData), state_(nullptr), handle_(nullptr),
+      hilbertSpaceDims_() {
+  HANDLE_CUDM_ERROR(cudensitymatCreate(&handle_));
+}
+
+cudm_mat_state::~cudm_mat_state() {
+  if (state_) {
+    cudensitymatDestroyState(state_);
+  }
+  if (handle_) {
+    cudensitymatDestroy(handle_);
+  }
+}
+
+void cudm_mat_state::init_state(const std::vector<int64_t> &hilbertSpaceDims) {
+  if (state_) {
+    throw std::runtime_error("State is already initialized.");
+  }
+
+  hilbertSpaceDims_ = hilbertSpaceDims;
+  cudensitymatStatePurity_t purity;
+
+  if (rawData_.size() == calculate_density_matrix_size(hilbertSpaceDims)) {
+    purity = CUDENSITYMAT_STATE_PURITY_MIXED;
+  } else if (rawData_.size() == calculate_state_vector_size(hilbertSpaceDims)) {
+    purity = CUDENSITYMAT_STATE_PURITY_PURE;
+  } else {
+    throw std::invalid_argument(
+        "Invalid rawData size for the given Hilbert space dimensions.");
+  }
+
+  HANDLE_CUDM_ERROR(cudensitymatCreateState(
+      handle_, purity, static_cast<int32_t>(hilbertSpaceDims.size()),
+      hilbertSpaceDims.data(), 1, CUDA_C_64F, &state_));
+
+  attach_storage();
+}
+
+bool cudm_mat_state::is_initialized() const { return state_ != nullptr; }
+
+bool cudm_mat_state::is_density_matrix() const {
+  if (!is_initialized()) {
+    return false;
+  }
+
+  return rawData_.size() == calculate_density_matrix_size(hilbertSpaceDims_);
+}
+
+std::string cudm_mat_state::dump() const {
+  if (!is_initialized()) {
+    throw std::runtime_error("State is not initialized.");
+  }
+
+  std::ostringstream oss;
+  oss << "State data: [";
+  for (size_t i = 0; i < rawData_.size(); i++) {
+    oss << rawData_[i];
+    if (i < rawData_.size() - 1) {
+      oss << ", ";
+    }
+  }
+  oss << "]";
+  return oss.str();
+}
+
+cudm_mat_state cudm_mat_state::to_density_matrix() const {
+  if (!is_initialized()) {
+    throw std::runtime_error("State is not initialized.");
+  }
+
+  if (is_density_matrix()) {
+    throw std::runtime_error("State is already a density matrix.");
+  }
+
+  std::vector<std::complex<double>> densityMatrix;
+  size_t vectorSize = calculate_state_vector_size(hilbertSpaceDims_);
+  size_t expectedDensityMatrixSize = vectorSize * vectorSize;
+  densityMatrix.resize(expectedDensityMatrixSize);
+
+  for (size_t i = 0; i < vectorSize; i++) {
+    for (size_t j = 0; j < vectorSize; j++) {
+      densityMatrix[i * vectorSize + j] = rawData_[i] * std::conj(rawData_[j]);
+    }
+  }
+
+  cudm_mat_state densityMatrixState(densityMatrix);
+  densityMatrixState.init_state(hilbertSpaceDims_);
+  return densityMatrixState;
+}
+
+cudensitymatState_t cudm_mat_state::get_impl() const {
+  if (!is_initialized()) {
+    throw std::runtime_error("State is not initialized.");
+  }
+  return state_;
+}
+
+void cudm_mat_state::attach_storage() {
+  if (!state_) {
+    throw std::runtime_error("State is not initialized.");
+  }
+
+  if (rawData_.empty()) {
+    throw std::runtime_error("Raw data is empty. Cannot attach storage.");
+  }
+
+  // Retrieve the number of state components
+  int32_t numStateComponents;
+  HANDLE_CUDM_ERROR(
+      cudensitymatStateGetNumComponents(handle_, state_, &numStateComponents));
+
+  // Retrieve the storage size for each component
+  std::vector<size_t> componentBufferSizes(numStateComponents);
+  HANDLE_CUDM_ERROR(cudensitymatStateGetComponentStorageSize(
+      handle_, state_, numStateComponents, componentBufferSizes.data()));
+
+  // Validate that rawData_ has sufficient space for all components
+  size_t totalSize = 0;
+  for (size_t size : componentBufferSizes) {
+    totalSize += size;
+  }
+  if (rawData_.size() * sizeof(std::complex<double>) < totalSize) {
+    throw std::invalid_argument(
+        "Raw data size is insufficient to cover all components.");
+  }
+
+  // Attach storage for each component
+  std::vector<void *> componentBuffers(numStateComponents);
+  std::vector<std::complex<double> *> rawComponentData(numStateComponents);
+
+  size_t offset = 0;
+  for (int32_t i = 0; i < numStateComponents; i++) {
+    rawComponentData[i] =
+        reinterpret_cast<std::complex<double> *>(rawData_.data()) + offset;
+    componentBuffers[i] = static_cast<void *>(rawComponentData[i]);
+    offset += componentBufferSizes[i] / sizeof(std::complex<double>);
+  }
+
+  HANDLE_CUDM_ERROR(cudensitymatStateAttachComponentStorage(
+      handle_, state_, numStateComponents, componentBuffers.data(),
+      componentBufferSizes.data()));
+}
+
+size_t cudm_mat_state::calculate_state_vector_size(
+    const std::vector<int64_t> &hilbertSpaceDims) const {
+  size_t size = 1;
+  for (auto dim : hilbertSpaceDims) {
+    size *= dim;
+  }
+  return size;
+}
+
+size_t cudm_mat_state::calculate_density_matrix_size(
+    const std::vector<int64_t> &hilbertSpaceDims) const {
+  size_t vectorSize = calculate_state_vector_size(hilbertSpaceDims);
+  return vectorSize * vectorSize;
+}
+} // namespace cudaq
