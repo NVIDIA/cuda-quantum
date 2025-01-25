@@ -11,6 +11,8 @@ description: "CUDA-Q target for QuEra."
 config:
   # Tell DefaultQuantumPlatform what QPU subtype to use
   platform-qpu: quera
+  # Tell NVQ++ to generate glue code to set the target backend name
+  gen-target-backend: true
   # Add the quera-qpu library to the link list
   link-libs: ["-lcudaq-quera-qpu"]
   # Library mode is only for simulators, physical backends must turn this off
