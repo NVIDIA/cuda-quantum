@@ -15,9 +15,16 @@
 #include <numeric>
 #include <regex>
 #include <string>
+#include <variant>
 #include <vector>
 
 namespace cudaq {
+
+// Enum to specify the initial quantum state.
+enum class InitialState { ZERO, UNIFORM };
+
+using InitialStateArgT = std::variant<void *, InitialState>;
+
 class OperatorHelpers {
 public:
   // Aggregate parameters from multiple mappings.
@@ -46,5 +53,9 @@ public:
 
   // Canonicalize degrees by sorting in descending order.
   static std::vector<int> canonicalize_degrees(const std::vector<int> &degrees);
+
+  // Initialize state based on InitialStateArgT.
+  static void initialize_state(const InitialStateArgT &stateArg,
+                               const std::vector<int64_t> &dimensions);
 };
 } // namespace cudaq
