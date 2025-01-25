@@ -33,15 +33,25 @@ void cudm_mat_state::init_state(const std::vector<int64_t> &hilbertSpaceDims) {
   }
 
   hilbertSpaceDims_ = hilbertSpaceDims;
-  cudensitymatStatePurity_t purity;
 
-  if (rawData_.size() == calculate_density_matrix_size(hilbertSpaceDims)) {
-    purity = CUDENSITYMAT_STATE_PURITY_MIXED;
-  } else if (rawData_.size() == calculate_state_vector_size(hilbertSpaceDims)) {
-    purity = CUDENSITYMAT_STATE_PURITY_PURE;
-  } else {
+  size_t rawDataSize = rawData_.size();
+  size_t expectedDensityMatrixSize =
+      calculate_density_matrix_size(hilbertSpaceDims);
+  size_t expectedStateVectorSize =
+      calculate_state_vector_size(hilbertSpaceDims);
+
+  if (rawDataSize != expectedDensityMatrixSize &&
+      rawDataSize != expectedStateVectorSize) {
     throw std::invalid_argument(
         "Invalid rawData size for the given Hilbert space dimensions.");
+  }
+
+  cudensitymatStatePurity_t purity;
+
+  if (rawDataSize == expectedDensityMatrixSize) {
+    purity = CUDENSITYMAT_STATE_PURITY_MIXED;
+  } else if (rawDataSize == expectedStateVectorSize) {
+    purity = CUDENSITYMAT_STATE_PURITY_PURE;
   }
 
   HANDLE_CUDM_ERROR(cudensitymatCreateState(
