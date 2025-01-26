@@ -53,7 +53,7 @@ public:
       const std::vector<std::map<std::string, std::complex<double>>>
           &schedule_parameters);
 
-  /// Evolves a single quantum state under a given hamiltonian.
+  /// Evolves a single quantum state under a given `hamiltonian`.
   static evolve_result
   evolve_single(const operator_sum &hamiltonian,
                 const std::map<int, int> &dimensions,
@@ -64,7 +64,7 @@ public:
                 std::shared_ptr<BaseIntegrator<state>> integrator = nullptr,
                 std::optional<int> shots_count = std::nullopt);
 
-  /// Evolves a single or multiple quantum states under a given hamiltonian.
+  /// Evolves a single or multiple quantum states under a given `hamiltonian`.
   /// Run only for dynamics target else throw error
   static std::vector<evolve_result>
   evolve(const operator_sum &hamiltonian, const std::map<int, int> &dimensions,
