@@ -473,12 +473,12 @@ public:
 
   /// @brief Constructor.
   /// @param atom_sites List of 2D coordinates for trap sites.
-  /// @param amplitude Time-dependant driving amplitude, Omega(t).
-  /// @param phase Time-dependant driving phase, phi(t).
-  /// @param delta_global Time-dependant driving detuning, Delta_global(t).
+  /// @param amplitude Time-dependent driving amplitude, Omega(t).
+  /// @param phase Time-dependent driving phase, phi(t).
+  /// @param delta_global Time-dependent driving detuning, Delta_global(t).
   /// @param atom_filling Optional. Marks occupied trap sites (1) and empty
   /// sites (0). Defaults to all sites occupied.
-  /// @param delta_local Optional. A tuple of Delta_local(t) and site dependant
+  /// @param delta_local Optional. A tuple of Delta_local(t) and site dependent
   /// local detuning factors.
   rydberg_hamiltonian(
       const std::vector<Coordinate> &atom_sites,
