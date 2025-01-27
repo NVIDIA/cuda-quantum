@@ -45,13 +45,30 @@ public:
     _callback_func = std::forward<Callable>(callable);
   }
 
-  // Copy constructor.
-  CallbackFunction(CallbackFunction &other) {
+  // copy constructor
+  CallbackFunction(const CallbackFunction &other) {
     _callback_func = other._callback_func;
   }
 
-  CallbackFunction(const CallbackFunction &other) {
-    _callback_func = other._callback_func;
+  // move constructor.
+  CallbackFunction(CallbackFunction &&other) {
+    _callback_func = std::move(other._callback_func);
+  }
+
+  // assignment operator
+  CallbackFunction& operator=(const CallbackFunction &other) {
+    if (this != &other) {
+      _callback_func = other._callback_func;
+    }
+    return *this;
+  }
+
+  // move assignment operator
+  CallbackFunction& operator=(CallbackFunction &&other) {
+    if (this != &other) {
+      _callback_func = std::move(other._callback_func);
+    }
+    return *this;
   }
 
   matrix_2
@@ -84,13 +101,30 @@ public:
     _callback_func = std::forward<Callable>(callable);
   }
 
-  // Copy constructor.
-  ScalarCallbackFunction(ScalarCallbackFunction &other) {
+  // copy constructor
+  ScalarCallbackFunction(const ScalarCallbackFunction &other) {
     _callback_func = other._callback_func;
   }
 
-  ScalarCallbackFunction(const ScalarCallbackFunction &other) {
-    _callback_func = other._callback_func;
+  // move constructor.
+  ScalarCallbackFunction(ScalarCallbackFunction &&other) {
+    _callback_func = std::move(other._callback_func);
+  }
+
+  // assignment operator
+  ScalarCallbackFunction& operator=(const ScalarCallbackFunction &other) {
+    if (this != &other) {
+      _callback_func = other._callback_func;
+    }
+    return *this;
+  }
+
+  // move assignment operator
+  ScalarCallbackFunction& operator=(ScalarCallbackFunction &&other) {
+    if (this != &other) {
+      _callback_func = std::move(other._callback_func);
+    }
+    return *this;
   }
 
   bool operator!() { return (!_callback_func); }
