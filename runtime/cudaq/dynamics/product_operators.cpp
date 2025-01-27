@@ -95,6 +95,18 @@ namespace cudaq {
 //   return out;
 // }
 
+
+// FIXME: remove - to be replaced with the general implementation for product op
+template<>
+matrix_2 product_operator<elementary_operator>::to_matrix(
+    std::map<int, int> dimensions,
+    std::map<std::string, std::complex<double>> parameters) {
+  if (this->get_coefficient() != scalar_operator(1.) || this->term_count() != 1)
+    throw std::runtime_error("not implemented");
+  return this->get_terms()[0].to_matrix(dimensions, parameters);
+}
+
+
 // Degrees property
 template <typename HandlerTy>
 std::vector<int> product_operator<HandlerTy>::degrees() const {

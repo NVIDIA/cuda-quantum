@@ -143,7 +143,13 @@ public:
 
   // /// @brief Returns true if other is a scalar operator with the same
   // /// generator.
-  // bool operator==(scalar_operator other);
+  bool operator==(scalar_operator other) {
+    if (this->m_constant_value.has_value() && other.m_constant_value.has_value()) {
+      return this->m_constant_value == other.m_constant_value;
+    } else {
+      throw std::runtime_error("not implemented");
+    }
+  }
 };
 
 
@@ -602,30 +608,6 @@ public:
   matrix_2 to_matrix(std::map<int, int> dimensions,
                      std::map<std::string, std::complex<double>> parameters);
 
-  // Arithmetic overloads
-  product_operator<elementary_operator> operator*(double other) const;
-  operator_sum<elementary_operator> operator+(double other) const;
-  operator_sum<elementary_operator> operator-(double other) const;
-  product_operator<elementary_operator> operator*(std::complex<double> other) const;
-  operator_sum<elementary_operator> operator+(std::complex<double> other) const;
-  operator_sum<elementary_operator> operator-(std::complex<double> other) const;
-  product_operator<elementary_operator> operator*(const scalar_operator &other) const;
-  operator_sum<elementary_operator> operator+(const scalar_operator &other) const;
-  operator_sum<elementary_operator> operator-(const scalar_operator &other) const;
-  product_operator<elementary_operator> operator*(const elementary_operator &other) const;
-  operator_sum<elementary_operator> operator+(const elementary_operator &other) const;
-  operator_sum<elementary_operator> operator-(const elementary_operator &other) const;
-
-  friend product_operator<elementary_operator> operator*(double other, const elementary_operator &self);
-  friend operator_sum<elementary_operator> operator+(double other, const elementary_operator &self);
-  friend operator_sum<elementary_operator> operator-(double other, const elementary_operator &self);
-  friend product_operator<elementary_operator> operator*(std::complex<double> other, const elementary_operator &self);
-  friend operator_sum<elementary_operator> operator+(std::complex<double> other, const elementary_operator &self);
-  friend operator_sum<elementary_operator> operator-(std::complex<double> other, const elementary_operator &self);
-  friend product_operator<elementary_operator> operator*(const scalar_operator &other, const elementary_operator &self);
-  friend operator_sum<elementary_operator> operator+(const scalar_operator &other, const elementary_operator &self);
-  friend operator_sum<elementary_operator> operator-(const scalar_operator &other, const elementary_operator &self);
-
   /// @brief True, if the other value is an elementary operator with the same id
   /// acting on the same degrees of freedom, and False otherwise.
   bool operator==(const elementary_operator &other) const {
@@ -633,18 +615,18 @@ public:
   }
 
   // Predefined operators.
-  static elementary_operator identity(int degree);
-  static elementary_operator zero(int degree);
-  static elementary_operator annihilate(int degree);
-  static elementary_operator create(int degree);
-  static elementary_operator momentum(int degree);
-  static elementary_operator number(int degree);
-  static elementary_operator parity(int degree);
-  static elementary_operator position(int degree);
-  /// FIXME:
-  static elementary_operator squeeze(int degree,
+  static product_operator<elementary_operator> identity(int degree);
+  static product_operator<elementary_operator> zero(int degree);
+  static product_operator<elementary_operator> annihilate(int degree);
+  static product_operator<elementary_operator> create(int degree);
+  static product_operator<elementary_operator> momentum(int degree);
+  static product_operator<elementary_operator> number(int degree);
+  static product_operator<elementary_operator> parity(int degree);
+  static product_operator<elementary_operator> position(int degree);
+  /// FIXME: amplitude should be a parameter that is only defined upon evaluation
+  static product_operator<elementary_operator> squeeze(int degree,
                                      std::complex<double> amplitude);
-  static elementary_operator displace(int degree,
+  static product_operator<elementary_operator> displace(int degree,
                                       std::complex<double> amplitude);
 
   /// @brief Adds the definition of an elementary operator with the given id to
