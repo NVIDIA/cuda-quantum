@@ -97,7 +97,7 @@ jobs:
               platforms=`cat "$name.txt" | egrep -o 'platforms?: \S*' | cut -d ' ' -f 2`
               cuda_version=`cat "$name.txt" | egrep -o 'cuda-version: \S*' | cut -d ' ' -f 2`
               image_hash=`cat "$name.txt" | grep -o -e "cuda-quantum-dev-image: \S*" -e "cuda-quantum-assets-image: \S*" -e "cuda-quantum-wheeldeps-image: \S*" | cut -d ' ' -f 2`
-              if [ -n "$(echo $platforms | grep ',')" ]; then runner=linux-amd64-cpu8-testing
+              if [ -n "$(echo $platforms | grep ',')" ]; then runner=linux-amd64-cpu8
               else runner=$(echo $platforms | tr / -)-cpu8
               fi
 
@@ -328,7 +328,7 @@ jobs:
     name: CUDA-Q Docker image
     if: ${{ toJson(fromJson(needs.assets.outputs.docker_images).info_files) != '[]' }}
     needs: assets
-    runs-on: linux-amd64-cpu8-testing
+    runs-on: linux-amd64-cpu8
     permissions:
       contents: read
       packages: write
@@ -530,7 +530,7 @@ jobs:
         info_file: ${{ fromJson(needs.assets.outputs.installers).info_files }}
       fail-fast: false
 
-    runs-on: ${{ (contains(matrix.info_file, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8-testing' }}
+    runs-on: ${{ (contains(matrix.info_file, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
 
     steps:
       - name: Checkout repository
@@ -637,7 +637,7 @@ jobs:
         python_version: ['3.10', '3.11', '3.12']
       fail-fast: false
 
-    runs-on: ${{ (contains(matrix.info_file, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8-testing' }}
+    runs-on: ${{ (contains(matrix.info_file, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
 
     steps:
       - name: Checkout repository
