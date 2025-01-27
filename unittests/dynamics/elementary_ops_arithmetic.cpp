@@ -103,6 +103,15 @@ cudaq::matrix_2 parity_matrix(std::size_t size) {
 //   return mat.exp();
 // }
 
+void assert_product_equal(const cudaq::product_operator<cudaq::elementary_operator> &got, 
+                          const cudaq::product_operator<cudaq::elementary_operator> &expected) {
+
+  auto sumterms_prod = ((cudaq::operator_sum<cudaq::elementary_operator>)got).get_terms();
+  ASSERT_TRUE(sumterms_prod.size() == 1);
+  ASSERT_TRUE(got.get_coefficient().evaluate({}) == expected.get_coefficient().evaluate({}));
+  ASSERT_TRUE(got.get_terms() == expected.get_terms());
+}
+
 } // namespace utils_0
 
 TEST(OperatorExpressions, checkPreBuiltElementaryOpsScalars) {
@@ -236,8 +245,9 @@ TEST(OperatorExpressions, checkPreBuiltElementaryOpsScalars) {
     auto product = self * other;
     auto reverse = other * self;
 
-    ASSERT_TRUE(product.term_count() == 2);
-    ASSERT_TRUE(reverse.term_count() == 2);
+    auto expected = cudaq::product_operator<cudaq::elementary_operator>(const_scale_factor, self);
+    utils_0::assert_product_equal(product, expected);
+    utils_0::assert_product_equal(reverse, expected);
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
@@ -263,8 +273,9 @@ TEST(OperatorExpressions, checkPreBuiltElementaryOpsScalars) {
     auto product = self * other;
     auto reverse = other * self;
 
-    ASSERT_TRUE(product.term_count() == 2);
-    ASSERT_TRUE(reverse.term_count() == 2);
+    auto expected = cudaq::product_operator<cudaq::elementary_operator>(other, self);
+    utils_0::assert_product_equal(product, expected);
+    utils_0::assert_product_equal(reverse, expected);
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.

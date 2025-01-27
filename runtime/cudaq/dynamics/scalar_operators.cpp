@@ -66,7 +66,7 @@ ARITHMETIC_OPERATIONS_COMPLEX_DOUBLES_REVERSE(-);
 #define ARITHMETIC_OPERATIONS_DOUBLES(op)                                      \
   scalar_operator scalar_operator::operator op(double other) const {           \
     auto newGenerator =                                                        \
-        [=, this](std::map<std::string, std::complex<double>> parameters) {    \
+        [=, *this](std::map<std::string, std::complex<double>> parameters) {   \
           return this->evaluate(parameters) op other;                          \
         };                                                                     \
     return scalar_operator(newGenerator);                                      \
@@ -103,7 +103,7 @@ ARITHMETIC_OPERATIONS_DOUBLES_ASSIGNMENT(-=);
   scalar_operator scalar_operator::operator op(                                \
                                     std::complex<double> other) const{         \
     auto newGenerator =                                                        \
-        [=, this](std::map<std::string, std::complex<double>> parameters) {    \
+        [=, *this](std::map<std::string, std::complex<double>> parameters) {   \
           return this->evaluate(parameters) op other;                          \
         };                                                                     \
     return scalar_operator(newGenerator);                                      \
@@ -141,7 +141,7 @@ ARITHMETIC_OPERATIONS_COMPLEX_DOUBLES_ASSIGNMENT(-=);
   scalar_operator scalar_operator::operator op(                                \
                               const scalar_operator &other) const {            \
     auto newGenerator =                                                        \
-        [=, this](std::map<std::string, std::complex<double>> parameters) {    \
+        [=, *this](std::map<std::string, std::complex<double>> parameters) {   \
           return this->evaluate(parameters) op other.evaluate(parameters);     \
         };                                                                     \
     return scalar_operator(newGenerator);                                      \
