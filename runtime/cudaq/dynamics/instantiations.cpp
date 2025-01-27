@@ -22,11 +22,7 @@ namespace cudaq {
 template <typename HandlerTy>
 requires std::derived_from<elementary_operator, HandlerTy>
 product_operator<HandlerTy> operator*(const scalar_operator &other, const product_operator<HandlerTy> &self) {
-  std::vector<std::variant<scalar_operator, HandlerTy>> terms =
-      self.get_operators();
-  /// Insert this scalar operator to the front of the terms list.
-  terms.insert(terms.begin(), other);
-  return product_operator(terms);
+  return product_operator(other * std::move(self.get_coefficient()), std::move(self.get_terms()));
 }
 
 template <typename HandlerTy>
@@ -80,17 +76,15 @@ operator_sum<HandlerTy> operator-(const std::complex<double> other, const produc
 template <typename HandlerTy>
 requires std::derived_from<elementary_operator, HandlerTy>
 product_operator<HandlerTy> operator*(const HandlerTy &other, const product_operator<HandlerTy> &self) {
-  std::vector<std::variant<scalar_operator, HandlerTy>> terms =
-      self.get_operators();
-  /// Insert this elementary operator to the front of the terms list.
+  std::vector<HandlerTy> terms = std::move(self.get_terms());
   terms.insert(terms.begin(), other);
-  return product_operator(terms);
+  return product_operator(std::move(self.get_coefficient()), std::move(terms));
 }
 
 template <typename HandlerTy>
 requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy> operator+(const HandlerTy &other, const product_operator<HandlerTy> &self) {
-  return operator_sum<HandlerTy>(product_operator<HandlerTy>(other), self);
+  return operator_sum<HandlerTy>(product_operator<HandlerTy>(1., other), self);
 }
 
 template <typename HandlerTy>
@@ -114,7 +108,7 @@ template <typename HandlerTy>
 requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy> operator+(const scalar_operator &other, const operator_sum<HandlerTy> &self) {
   std::vector<product_operator<HandlerTy>> terms = self.get_terms();
-  terms.insert(terms.begin(), product_operator<HandlerTy>({other}));
+  terms.insert(terms.begin(), product_operator<HandlerTy>(other));
   return operator_sum(terms);
 }
 
@@ -123,7 +117,7 @@ requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy> operator-(const scalar_operator &other, const operator_sum<HandlerTy> &self) {
   auto negative_self = self * (-1.);
   std::vector<product_operator<HandlerTy>> terms = negative_self.get_terms();
-  terms.insert(terms.begin(), product_operator<HandlerTy>({other}));
+  terms.insert(terms.begin(), product_operator<HandlerTy>(other));
   return operator_sum(terms);
 }
 
@@ -166,28 +160,19 @@ operator_sum<HandlerTy> operator-(std::complex<double> other, const operator_sum
 template <typename HandlerTy>
 requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy> operator*(const HandlerTy &other, const operator_sum<HandlerTy> &self) {
-  std::vector<std::variant<scalar_operator, HandlerTy>> new_term = {other};
-  std::vector<product_operator<HandlerTy>> _prods = {product_operator(new_term)};
-  auto selfOpSum = operator_sum(_prods);
-  return selfOpSum * self;
+  return ((operator_sum<HandlerTy>)product_operator<HandlerTy>(1., other)) * self;
 }
 
 template <typename HandlerTy>
 requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy> operator+(const HandlerTy &other, const operator_sum<HandlerTy> &self) {
-  std::vector<std::variant<scalar_operator, HandlerTy>> new_term = {other};
-  std::vector<product_operator<HandlerTy>> _prods = {product_operator(new_term)};
-  auto selfOpSum = operator_sum(_prods);
-  return selfOpSum + self;
+  return ((operator_sum<HandlerTy>)product_operator<HandlerTy>(1., other)) + self;
 }
 
 template <typename HandlerTy>
 requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy> operator-(const HandlerTy &other, const operator_sum<HandlerTy> &self) {
-  std::vector<std::variant<scalar_operator, HandlerTy>> new_term = {other};
-  std::vector<product_operator<HandlerTy>> _prods = {product_operator(new_term)};
-  auto selfOpSum = operator_sum(_prods);
-  return selfOpSum - self;
+  return ((operator_sum<HandlerTy>)product_operator<HandlerTy>(1., other)) - self;
 }
 
 // operator sum right-hand arithmetics
@@ -273,7 +258,7 @@ operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator-=(std::complex<double
 template <typename HandlerTy>
 requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy> operator_sum<HandlerTy>::operator*(const scalar_operator &other) const {
-  std::vector<product_operator<HandlerTy>> combined_terms = this->get_terms();
+  std::vector<product_operator<HandlerTy>> combined_terms = std::move(this->get_terms());
   for (auto &term : combined_terms) {
     term *= other;
   }
@@ -283,9 +268,9 @@ operator_sum<HandlerTy> operator_sum<HandlerTy>::operator*(const scalar_operator
 template <typename HandlerTy>
 requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy> operator_sum<HandlerTy>::operator+(const scalar_operator &other) const {
-  std::vector<product_operator<HandlerTy>> combined_terms = this->get_terms();
-  std::vector<std::variant<scalar_operator, HandlerTy>> _other = {other};
-  combined_terms.push_back(product_operator(_other));
+  // FIXME: reserve length
+  auto combined_terms = std::move(this->get_terms()); 
+  combined_terms.push_back(product_operator<HandlerTy>(other));
   return operator_sum(combined_terms);
 }
 
@@ -329,18 +314,16 @@ operator_sum<HandlerTy> operator_sum<HandlerTy>::operator*(const HandlerTy &othe
 template <typename HandlerTy>
 requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy> operator_sum<HandlerTy>::operator+(const HandlerTy &other) const {
-  std::vector<product_operator<HandlerTy>> combined_terms = this->get_terms();
-  std::vector<std::variant<scalar_operator, HandlerTy>> _other = {
-      other};
-  combined_terms.push_back(product_operator(_other));
+  auto combined_terms = std::move(this->get_terms()); 
+  combined_terms.push_back(product_operator<HandlerTy>(1., other));
   return operator_sum(combined_terms);
 }
 
 template <typename HandlerTy>
 requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy> operator_sum<HandlerTy>::operator-(const HandlerTy &other) const {
-  std::vector<product_operator<HandlerTy>> combined_terms = this->get_terms();
-  combined_terms.push_back(other * (-1.));
+  std::vector<product_operator<HandlerTy>> combined_terms = std::move(this->get_terms());
+  combined_terms.push_back(product_operator<HandlerTy>(-1., other));
   return operator_sum(combined_terms);
 }
 
@@ -354,16 +337,16 @@ operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator*=(const HandlerTy &ot
 template <typename HandlerTy>
 requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator+=(const HandlerTy &other) {
-  std::vector<std::variant<scalar_operator, HandlerTy>> _other = {other};
-  *this = *this + product_operator(_other);
+  this->coefficients.push_back(1.);
+  this->terms.push_back({other});
   return *this;
 }
 
 template <typename HandlerTy>
 requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator-=(const HandlerTy &other) {
-  std::vector<std::variant<scalar_operator, HandlerTy>> _other = {other};
-  *this = *this - product_operator(_other);
+  this->coefficients.push_back(-1.);
+  this->terms.push_back({other});
   return *this;
 }
 
@@ -431,9 +414,9 @@ operator_sum<HandlerTy> operator_sum<HandlerTy>::operator*(const operator_sum<Ha
 template <typename HandlerTy>
 requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy> operator_sum<HandlerTy>::operator+(const operator_sum<HandlerTy> &other) const {
-  std::vector<product_operator<HandlerTy>> combined_terms = this->get_terms();
-  // make_move_iterator for && overload
-  combined_terms.insert(combined_terms.end(), other.terms.begin(), other.terms.end());
+  std::vector<product_operator<HandlerTy>> combined_terms = std::move(this->get_terms());
+  std::vector<product_operator<HandlerTy>> other_terms = std::move(other.get_terms());
+  combined_terms.insert(combined_terms.end(), std::make_move_iterator(other_terms.begin()), std::make_move_iterator(other_terms.end()));
   return operator_sum(combined_terms);
 }
 
@@ -520,25 +503,21 @@ product_operator<HandlerTy>& product_operator<HandlerTy>::operator*=(std::comple
 template <typename HandlerTy>
 requires std::derived_from<elementary_operator, HandlerTy>
 product_operator<HandlerTy> product_operator<HandlerTy>::operator*(const scalar_operator &other) const {
-  std::vector<std::variant<scalar_operator, HandlerTy>>
-      combined_terms = operator_sum<HandlerTy>::terms[0];
-  combined_terms.push_back(other);
-  return product_operator(combined_terms);
+  return product_operator(this->coefficients[0] * other, this->terms[0]);
 }
 
 template <typename HandlerTy>
 requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(const scalar_operator &other) const {
-  std::vector<std::variant<scalar_operator, HandlerTy>> _other = {
-      other};
-  return operator_sum<HandlerTy>(*this, product_operator(_other));
+  product_operator<HandlerTy> coefficient(other);
+  return operator_sum<HandlerTy>(coefficient, *this);
 }
 
 template <typename HandlerTy>
 requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(const scalar_operator &other) const {
-  std::vector<std::variant<scalar_operator, HandlerTy>> minus_term = {other * (-1.)};
-  return operator_sum<HandlerTy>(*this, product_operator<HandlerTy>(minus_term));
+  product_operator<HandlerTy> coefficient(-1. * other);
+  return operator_sum<HandlerTy>(coefficient, *this);
 }
 
 template <typename HandlerTy>
@@ -551,24 +530,21 @@ product_operator<HandlerTy>& product_operator<HandlerTy>::operator*=(const scala
 template <typename HandlerTy>
 requires std::derived_from<elementary_operator, HandlerTy>
 product_operator<HandlerTy> product_operator<HandlerTy>::operator*(const HandlerTy &other) const {
-  std::vector<std::variant<scalar_operator, HandlerTy>>
-      combined_terms = operator_sum<HandlerTy>::terms[0];
+  auto combined_terms = this->terms[0];
   combined_terms.push_back(other);
-  return product_operator(combined_terms);
+  return product_operator(1., combined_terms);
 }
 
 template <typename HandlerTy>
 requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(const HandlerTy &other) const {
-  std::vector<std::variant<scalar_operator, HandlerTy>> _other = {
-      other};
-  return operator_sum<HandlerTy>(*this, product_operator(_other));
+  return operator_sum<HandlerTy>(*this, product_operator<HandlerTy>(1., other));
 }
 
 template <typename HandlerTy>
 requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(const HandlerTy &other) const {
-  return operator_sum<HandlerTy>(*this, other * (-1.));
+  return operator_sum<HandlerTy>(*this, product_operator<HandlerTy>(-1., other));
 }
 
 template <typename HandlerTy>
@@ -581,10 +557,9 @@ product_operator<HandlerTy>& product_operator<HandlerTy>::operator*=(const Handl
 template <typename HandlerTy>
 requires std::derived_from<elementary_operator, HandlerTy>
 product_operator<HandlerTy> product_operator<HandlerTy>::operator*(const product_operator<HandlerTy> &other) const {
-  std::vector<std::variant<scalar_operator, HandlerTy>>
-      combined_terms = operator_sum<HandlerTy>::terms[0];
+  auto combined_terms = this->terms[0];
   combined_terms.insert(combined_terms.end(), other.terms[0].begin(), other.terms[0].end());
-  return product_operator(combined_terms);
+  return product_operator(1., combined_terms);
 }
 
 template <typename HandlerTy>
