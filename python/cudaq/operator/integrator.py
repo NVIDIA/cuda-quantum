@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -75,3 +75,9 @@ class BaseIntegrator(ABC, Generic[TState]):
         Obtain the state of the integrator as a pair (t, state).
         """
         return (self.t, self.state)
+
+    def support_distributed_state(self):
+        """
+        Returns true if the integrator supports distributed state else returns false. Default is set to false.
+        """
+        return False

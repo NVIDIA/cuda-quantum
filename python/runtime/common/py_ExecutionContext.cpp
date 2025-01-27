@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -28,6 +28,8 @@ void bindExecutionContext(py::module &mod) {
       .def_readwrite("totalIterations",
                      &cudaq::ExecutionContext::totalIterations)
       .def_readwrite("batchIteration", &cudaq::ExecutionContext::batchIteration)
+      .def_readwrite("numberTrajectories",
+                     &cudaq::ExecutionContext::numberTrajectories)
       .def("setSpinOperator", [](cudaq::ExecutionContext &ctx,
                                  cudaq::spin_op &spin) { ctx.spin = &spin; })
       .def("getExpectationValue",

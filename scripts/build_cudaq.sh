@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -176,9 +176,18 @@ cmake_args="-G Ninja '"$repo_root"' \
 # here, but keep the definition for CMAKE_CUDA_HOST_COMPILER.
 if $verbose; then 
   echo $cmake_args | xargs cmake
+  status=$?
 else
   echo $cmake_args | xargs cmake \
     2> logs/cmake_error.txt 1> logs/cmake_output.txt
+  status=$?
+fi
+
+# Check if cmake succeeded
+if [ "$status" -ne 0 ]; then
+  echo -e "\e[01;31mError: CMake configuration failed. Please check logs/cmake_error.txt for details.\e[0m" >&2
+  cat logs/cmake_error.txt >&2
+  cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
 fi
 
 # Build and install CUDA-Q

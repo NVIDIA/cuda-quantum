@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -9,5 +9,5 @@
 from .definitions import operators, spin
 from .evolution import evolve, evolve_async
 from .expressions import Operator, OperatorSum, ProductOperator, ElementaryOperator, ScalarOperator, RydbergHamiltonian
-from .helpers import NumericType
+from .helpers import NumericType, InitialState
 from .schedule import Schedule

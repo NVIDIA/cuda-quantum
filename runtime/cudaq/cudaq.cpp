@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -170,6 +170,16 @@ void broadcast(std::vector<double> &data, int rootRank) {
 void broadcast(std::string &data, int rootRank) {
   auto *commPlugin = getMpiPlugin();
   commPlugin->broadcast(data, rootRank);
+}
+
+std::pair<void *, std::size_t> comm_dup() {
+  auto *commPlugin = getMpiPlugin();
+  cudaqDistributedCommunicator_t *dupComm = nullptr;
+  cudaqDistributedCommunicator_t *comm = commPlugin->getComm();
+  const auto dupStatus = commPlugin->get()->CommDup(comm, &dupComm);
+  if (dupStatus != 0 || dupComm == nullptr)
+    throw std::runtime_error("Failed to duplicate the MPI communicator.");
+  return std::make_pair(dupComm->commPtr, dupComm->commSize);
 }
 
 void finalize() {
