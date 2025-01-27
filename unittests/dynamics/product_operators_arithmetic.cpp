@@ -350,11 +350,16 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     auto product_op = cudaq::elementary_operator::annihilate(0) *
                       cudaq::elementary_operator::annihilate(1);
 
+    ASSERT_TRUE(product_op.term_count() == 2);
+    ASSERT_TRUE(product_op.get_coefficient().evaluate({}) == std::complex<double>(1.));
+
     auto product = value_0 * product_op;
     auto reverse = product_op * value_0;
 
-    ASSERT_TRUE(product.term_count() == 3);
-    ASSERT_TRUE(reverse.term_count() == 3);
+    ASSERT_TRUE(product.term_count() == 2);
+    ASSERT_TRUE(reverse.term_count() == 2);
+    ASSERT_TRUE(product.get_coefficient().evaluate({}) == value_0);
+    ASSERT_TRUE(reverse.get_coefficient().evaluate({}) == value_0);
 
     std::vector<int> want_degrees = {0, 1};
     // ASSERT_TRUE(product.degrees() == want_degrees);
@@ -366,11 +371,16 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     auto product_op = cudaq::elementary_operator::annihilate(0) *
                       cudaq::elementary_operator::annihilate(1);
 
+    ASSERT_TRUE(product_op.term_count() == 2);
+    ASSERT_TRUE(product_op.get_coefficient().evaluate({}) == std::complex<double>(1.));
+
     auto product = 2.0 * product_op;
     auto reverse = product_op * 2.0;
 
-    ASSERT_TRUE(product.term_count() == 3);
-    ASSERT_TRUE(reverse.term_count() == 3);
+    ASSERT_TRUE(product.term_count() == 2);
+    ASSERT_TRUE(reverse.term_count() == 2);
+    ASSERT_TRUE(product.get_coefficient().evaluate({}) == std::complex<double>(2.));
+    ASSERT_TRUE(reverse.get_coefficient().evaluate({}) == std::complex<double>(2.));
 
     std::vector<int> want_degrees = {0, 1};
     // ASSERT_TRUE(product.degrees() == want_degrees);
@@ -381,13 +391,18 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
   {
     auto product_op = cudaq::elementary_operator::annihilate(0) *
                       cudaq::elementary_operator::annihilate(1);
-    auto scalar_op = cudaq::scalar_operator(1.0);
 
+    ASSERT_TRUE(product_op.term_count() == 2);
+    ASSERT_TRUE(product_op.get_coefficient().evaluate({}) == std::complex<double>(1.));
+
+    auto scalar_op = cudaq::scalar_operator(0.1);
     auto product = scalar_op * product_op;
     auto reverse = product_op * scalar_op;
 
-    ASSERT_TRUE(product.term_count() == 3);
-    ASSERT_TRUE(reverse.term_count() == 3);
+    ASSERT_TRUE(product.term_count() == 2);
+    ASSERT_TRUE(reverse.term_count() == 2);
+    ASSERT_TRUE(product.get_coefficient().evaluate({}) == scalar_op.evaluate({}));
+    ASSERT_TRUE(reverse.get_coefficient().evaluate({}) == scalar_op.evaluate({}));
 
     std::vector<int> want_degrees = {0, 1};
     // ASSERT_TRUE(product.degrees() == want_degrees);
@@ -400,7 +415,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
                    cudaq::elementary_operator::annihilate(1);
     product *= value_0;
 
-    ASSERT_TRUE(product.term_count() == 3);
+    ASSERT_TRUE(product.term_count() == 2);
+    ASSERT_TRUE(product.get_coefficient().evaluate({}) == value_0);
 
     std::vector<int> want_degrees = {0, 1};
     // ASSERT_TRUE(product.degrees() == want_degrees);
@@ -412,7 +428,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
                    cudaq::elementary_operator::annihilate(1);
     product *= 2.0;
 
-    ASSERT_TRUE(product.term_count() == 3);
+    ASSERT_TRUE(product.term_count() == 2);
+    ASSERT_TRUE(product.get_coefficient().evaluate({}) == std::complex<double>(2.));
 
     std::vector<int> want_degrees = {0, 1};
     // ASSERT_TRUE(product.degrees() == want_degrees);
@@ -422,11 +439,12 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
   {
     auto product = cudaq::elementary_operator::annihilate(0) *
                    cudaq::elementary_operator::annihilate(1);
-    auto scalar_op = cudaq::scalar_operator(1.0);
-
+    auto scalar_op = cudaq::scalar_operator(0.1);
     product *= scalar_op;
 
-    ASSERT_TRUE(product.term_count() == 3);
+    ASSERT_TRUE(product.term_count() == 2);
+    ASSERT_TRUE(product.get_coefficient().evaluate({}) == scalar_op.evaluate({}));
+    ASSERT_TRUE(scalar_op.evaluate({}) == std::complex<double>(0.1));
 
     std::vector<int> want_degrees = {0, 1};
     // ASSERT_TRUE(product.degrees() == want_degrees);
