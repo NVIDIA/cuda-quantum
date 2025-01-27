@@ -62,7 +62,7 @@ guide][llvm_style]. Please ensure that your code includes comprehensive doc
 comments as well as a comment at the top of the file to indicating its purpose.
 
 `pre-commit` is being test-flown in this repository. If you have the tool
-installed or are using the provided Dev container, run `pre-commit install` to
+installed or are using the provided container, run `pre-commit install` to
 enable the hooks. `clang-format` and `yapf` will be automatically run on all
 staged changes.
 
