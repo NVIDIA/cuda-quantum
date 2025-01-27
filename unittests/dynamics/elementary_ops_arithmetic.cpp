@@ -104,12 +104,13 @@ cudaq::matrix_2 parity_matrix(std::size_t size) {
 // }
 
 void assert_product_equal(const cudaq::product_operator<cudaq::elementary_operator> &got, 
-                          const cudaq::product_operator<cudaq::elementary_operator> &expected) {
+                          const std::complex<double> &expected_coefficient,
+                          const std::vector<cudaq::elementary_operator> &expected_terms) {
 
   auto sumterms_prod = ((cudaq::operator_sum<cudaq::elementary_operator>)got).get_terms();
   ASSERT_TRUE(sumterms_prod.size() == 1);
-  ASSERT_TRUE(got.get_coefficient().evaluate({}) == expected.get_coefficient().evaluate({}));
-  ASSERT_TRUE(got.get_terms() == expected.get_terms());
+  ASSERT_TRUE(got.get_coefficient().evaluate({}) == expected_coefficient);
+  ASSERT_TRUE(got.get_terms() == expected_terms);
 }
 
 } // namespace utils_0
@@ -245,9 +246,8 @@ TEST(OperatorExpressions, checkPreBuiltElementaryOpsScalars) {
     auto product = self * other;
     auto reverse = other * self;
 
-    auto expected = cudaq::product_operator<cudaq::elementary_operator>(const_scale_factor, self);
-    utils_0::assert_product_equal(product, expected);
-    utils_0::assert_product_equal(reverse, expected);
+    utils_0::assert_product_equal(product, const_scale_factor, {cudaq::elementary_operator("annihilate", {0})});
+    utils_0::assert_product_equal(reverse, const_scale_factor, {cudaq::elementary_operator("annihilate", {0})});
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
@@ -273,9 +273,8 @@ TEST(OperatorExpressions, checkPreBuiltElementaryOpsScalars) {
     auto product = self * other;
     auto reverse = other * self;
 
-    auto expected = cudaq::product_operator<cudaq::elementary_operator>(other, self);
-    utils_0::assert_product_equal(product, expected);
-    utils_0::assert_product_equal(reverse, expected);
+    utils_0::assert_product_equal(product, other.evaluate({}), {cudaq::elementary_operator("annihilate", {0})});
+    utils_0::assert_product_equal(reverse, other.evaluate({}), {cudaq::elementary_operator("annihilate", {0})});
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
