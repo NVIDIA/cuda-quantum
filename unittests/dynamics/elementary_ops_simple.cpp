@@ -108,7 +108,6 @@ TEST(OperatorExpressions, checkPreBuiltElementaryOps) {
   // Identity operator.
   {
     for (auto level_count : levels) {
-      // cudaq::operators::identity(int degree)
       auto id = cudaq::elementary_operator::identity(degree_index);
       auto got_id = id.to_matrix({{degree_index, level_count}}, {});
       auto want_id = utils::id_matrix(level_count);
