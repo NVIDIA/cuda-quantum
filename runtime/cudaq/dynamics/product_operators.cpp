@@ -146,18 +146,10 @@ matrix_2 product_operator::to_matrix(
 template <typename HandlerTy>
 std::vector<int> product_operator<HandlerTy>::degrees() const {
   std::set<int> unique_degrees;
-  // The variant type makes it difficult
-  auto beginFunc = [](auto &&t) { return t.degrees.begin(); };
-  auto endFunc = [](auto &&t) { return t.degrees.end(); };
-  for (const auto &term : operator_sum<HandlerTy>::terms[0]) {
-    unique_degrees.insert(std::visit(beginFunc, term),
-                          std::visit(endFunc, term));
+  for (const HandlerTy &term : this->get_terms()) {
+    unique_degrees.insert(term.degrees.begin(), term.degrees.end());
   }
-  // Erase any `-1` degree values that may have come from scalar operators.
-  auto it = unique_degrees.find(-1);
-  if (it != unique_degrees.end()) {
-    unique_degrees.erase(it);
-  }
+  // FIXME: SORT THE DEGREES
   return std::vector<int>(unique_degrees.begin(), unique_degrees.end());
 }
 
