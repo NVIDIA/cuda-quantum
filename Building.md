@@ -19,6 +19,10 @@ To build the CUDA-Q source code locally, fork this repository and follow the
 [instructions for setting up your environment](./Dev_Setup.md). Once you have
 done that, you should be able to run the [build
 script](./scripts/build_cudaq.sh) to build and install CUDA-Q in a local folder.
+If you run out of memory while building CUDA-Q, you can limit the number of
+parallel build jobs by passing `-j N` to the build script, where `N` is the
+number of parallel jobs you wish to allow. Lower values of `N` are less likely
+to run out of memory but will build slower.
 The path where CUDA-Q will be installed can be configured by setting the
 environment variable `CUDAQ_INSTALL_PREFIX`. If you customize this path or do
 not work in our development container, you either need to invoke the
