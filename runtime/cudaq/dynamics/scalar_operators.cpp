@@ -56,16 +56,6 @@ scalar_operator& scalar_operator::operator=(scalar_operator &&other) {
   return *this;
 }
 
-// comparison
-
-bool scalar_operator::operator==(scalar_operator other) {
-  if (this->constant_value.has_value() && other.constant_value.has_value()) {
-    return this->constant_value == other.constant_value;
-  } else {
-    throw std::runtime_error("not implemented");
-  }
-}
-
 // evaluations
 
 std::complex<double> scalar_operator::evaluate(
@@ -80,6 +70,16 @@ matrix_2 scalar_operator::to_matrix(
   auto returnOperator = matrix_2(1, 1);
   returnOperator[{0, 0}] = evaluate(parameters);
   return returnOperator;
+}
+
+// comparison
+
+bool scalar_operator::operator==(scalar_operator other) {
+  if (this->constant_value.has_value() && other.constant_value.has_value()) {
+    return this->constant_value == other.constant_value;
+  } else {
+    throw std::runtime_error("not implemented");
+  }
 }
 
 // right-hand arithmetics
