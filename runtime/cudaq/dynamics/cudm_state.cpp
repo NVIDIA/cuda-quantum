@@ -6,19 +6,22 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include <cmath>
 #include <cudaq/cudm_state.h>
 #include <iostream>
+#include <numeric>
 #include <sstream>
+#include <stdexcept>
 
 namespace cudaq {
 
-cudm_mat_state::cudm_mat_state(std::vector<std::complex<double>> rawData)
+cudm_state::cudm_state(std::vector<std::complex<double>> rawData)
     : rawData_(rawData), state_(nullptr), handle_(nullptr),
       hilbertSpaceDims_() {
   HANDLE_CUDM_ERROR(cudensitymatCreate(&handle_));
 }
 
-cudm_mat_state::~cudm_mat_state() {
+cudm_state::~cudm_state() {
   if (state_) {
     cudensitymatDestroyState(state_);
   }
@@ -27,7 +30,7 @@ cudm_mat_state::~cudm_mat_state() {
   }
 }
 
-void cudm_mat_state::init_state(const std::vector<int64_t> &hilbertSpaceDims) {
+void cudm_state::init_state(const std::vector<int64_t> &hilbertSpaceDims) {
   if (state_) {
     throw std::runtime_error("State is already initialized.");
   }
@@ -61,9 +64,9 @@ void cudm_mat_state::init_state(const std::vector<int64_t> &hilbertSpaceDims) {
   attach_storage();
 }
 
-bool cudm_mat_state::is_initialized() const { return state_ != nullptr; }
+bool cudm_state::is_initialized() const { return state_ != nullptr; }
 
-bool cudm_mat_state::is_density_matrix() const {
+bool cudm_state::is_density_matrix() const {
   if (!is_initialized()) {
     return false;
   }
@@ -71,7 +74,7 @@ bool cudm_mat_state::is_density_matrix() const {
   return rawData_.size() == calculate_density_matrix_size(hilbertSpaceDims_);
 }
 
-std::string cudm_mat_state::dump() const {
+std::string cudm_state::dump() const {
   if (!is_initialized()) {
     throw std::runtime_error("State is not initialized.");
   }
@@ -88,7 +91,7 @@ std::string cudm_mat_state::dump() const {
   return oss.str();
 }
 
-cudm_mat_state cudm_mat_state::to_density_matrix() const {
+cudm_state cudm_state::to_density_matrix() const {
   if (!is_initialized()) {
     throw std::runtime_error("State is not initialized.");
   }
@@ -108,19 +111,19 @@ cudm_mat_state cudm_mat_state::to_density_matrix() const {
     }
   }
 
-  cudm_mat_state densityMatrixState(densityMatrix);
+  cudm_state densityMatrixState(densityMatrix);
   densityMatrixState.init_state(hilbertSpaceDims_);
   return densityMatrixState;
 }
 
-cudensitymatState_t cudm_mat_state::get_impl() const {
+cudensitymatState_t cudm_state::get_impl() const {
   if (!is_initialized()) {
     throw std::runtime_error("State is not initialized.");
   }
   return state_;
 }
 
-void cudm_mat_state::attach_storage() {
+void cudm_state::attach_storage() {
   if (!state_) {
     throw std::runtime_error("State is not initialized.");
   }
@@ -166,7 +169,7 @@ void cudm_mat_state::attach_storage() {
       componentBufferSizes.data()));
 }
 
-size_t cudm_mat_state::calculate_state_vector_size(
+size_t cudm_state::calculate_state_vector_size(
     const std::vector<int64_t> &hilbertSpaceDims) const {
   size_t size = 1;
   for (auto dim : hilbertSpaceDims) {
@@ -175,9 +178,67 @@ size_t cudm_mat_state::calculate_state_vector_size(
   return size;
 }
 
-size_t cudm_mat_state::calculate_density_matrix_size(
+size_t cudm_state::calculate_density_matrix_size(
     const std::vector<int64_t> &hilbertSpaceDims) const {
   size_t vectorSize = calculate_state_vector_size(hilbertSpaceDims);
   return vectorSize * vectorSize;
+}
+
+// Initialize state based on InitialStateArgT
+cudm_state
+cudm_state::create_initial_state(const InitialStateArgT &initialStateArg,
+                                 const std::vector<int64_t> &hilbertSpaceDims,
+                                 bool hasCollapseOps) {
+  size_t stateVectorSize =
+      std::accumulate(hilbertSpaceDims.begin(), hilbertSpaceDims.end(),
+                      static_cast<size_t>(1), std::multiplies<>{});
+
+  std::vector<std::complex<double>> rawData;
+
+  if (std::holds_alternative<InitialState>(initialStateArg)) {
+    InitialState initialState = std::get<InitialState>(initialStateArg);
+
+    if (initialState == InitialState::ZERO) {
+      rawData.resize(stateVectorSize, {0.0, 0.0});
+      // |0> state
+      rawData[0] = {1.0, 0.0};
+    } else if (initialState == InitialState::UNIFORM) {
+      rawData.resize(stateVectorSize, {1.0 / std::sqrt(stateVectorSize), 0.0});
+    } else {
+      throw std::invalid_argument("Unsupported InitialState type.");
+    }
+  } else if (std::holds_alternative<void *>(initialStateArg)) {
+    void *runtimeState = std::get<void *>(initialStateArg);
+    if (!runtimeState) {
+      throw std::invalid_argument("Runtime state pointer is null.");
+    }
+
+    try {
+      auto *externalData =
+          reinterpret_cast<std::vector<std::complex<double>> *>(runtimeState);
+
+      if (!externalData || externalData->empty()) {
+        throw std::invalid_argument(
+            "Runtime state contains invalid or empty data.");
+      }
+
+      rawData = *externalData;
+    } catch (const std::exception &e) {
+      throw std::runtime_error("Failed to interpret runtime state: " +
+                               std::string(e.what()));
+    }
+  } else {
+    throw std::invalid_argument("Unsupported InitialStateArgT type.");
+  }
+
+  cudm_state state(rawData);
+  state.init_state(hilbertSpaceDims);
+
+  // Convert to a density matrix if collapse operators are present.
+  if (hasCollapseOps && !state.is_density_matrix()) {
+    state = state.to_density_matrix();
+  }
+
+  return state;
 }
 } // namespace cudaq
