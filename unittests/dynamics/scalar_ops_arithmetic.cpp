@@ -31,10 +31,10 @@ TEST(OperatorExpressions, checkScalarOpsArithmeticComplex) {
     auto new_scalar_op = value_1 + scalar_op;
     // function + scalar_op;
     auto reverse_order_op = scalar_op + value_1;
-    EXPECT_NEAR(std::abs(scalar_op.evaluate({})), std::abs(value_0), 1e-5);
+    EXPECT_NEAR(std::abs(scalar_op.evaluate()), std::abs(value_0), 1e-5);
 
-    auto got_value = new_scalar_op.evaluate({});
-    auto got_value_1 = reverse_order_op.evaluate({});
+    auto got_value = new_scalar_op.evaluate();
+    auto got_value_1 = reverse_order_op.evaluate();
     auto want_value = value_1 + value_0;
 
     EXPECT_NEAR(std::abs(got_value), std::abs(want_value), 1e-5);
@@ -42,7 +42,7 @@ TEST(OperatorExpressions, checkScalarOpsArithmeticComplex) {
 
     // Checking composition of many scalar operators.
     auto third_op = new_scalar_op + reverse_order_op;
-    auto got_value_third = third_op.evaluate({});
+    auto got_value_third = third_op.evaluate();
     EXPECT_NEAR(std::abs(got_value_third), std::abs(want_value + want_value),
                 1e-5);
   }
@@ -74,15 +74,15 @@ TEST(OperatorExpressions, checkScalarOpsArithmeticComplex) {
     auto new_scalar_op = value_3 - scalar_op;
     auto reverse_order_op = scalar_op - value_3;
 
-    auto got_value = new_scalar_op.evaluate({});
-    auto got_value_1 = reverse_order_op.evaluate({});
+    auto got_value = new_scalar_op.evaluate();
+    auto got_value_1 = reverse_order_op.evaluate();
 
     EXPECT_NEAR(std::abs(got_value), std::abs(value_3 - value_1), 1e-5);
     EXPECT_NEAR(std::abs(got_value_1), std::abs(value_1 - value_3), 1e-5);
 
     // Checking composition of many scalar operators.
     auto third_op = new_scalar_op - reverse_order_op;
-    auto got_value_third = third_op.evaluate({});
+    auto got_value_third = third_op.evaluate();
     auto want_value = (value_3 - value_1) - (value_1 - value_3);
     EXPECT_NEAR(std::abs(got_value_third), std::abs(want_value), 1e-5);
   }
@@ -114,15 +114,15 @@ TEST(OperatorExpressions, checkScalarOpsArithmeticComplex) {
     auto new_scalar_op = value_3 * scalar_op;
     auto reverse_order_op = scalar_op * value_3;
 
-    auto got_value = new_scalar_op.evaluate({});
-    auto got_value_1 = reverse_order_op.evaluate({});
+    auto got_value = new_scalar_op.evaluate();
+    auto got_value_1 = reverse_order_op.evaluate();
 
     EXPECT_NEAR(std::abs(got_value), std::abs(value_3 * value_2), 1e-5);
     EXPECT_NEAR(std::abs(got_value_1), std::abs(value_2 * value_3), 1e-5);
 
     // Checking composition of many scalar operators.
     auto third_op = new_scalar_op * reverse_order_op;
-    auto got_value_third = third_op.evaluate({});
+    auto got_value_third = third_op.evaluate();
     auto want_value = (value_3 * value_2) * (value_2 * value_3);
     EXPECT_NEAR(std::abs(got_value_third), std::abs(want_value), 1e-5);
   }
@@ -154,15 +154,15 @@ TEST(OperatorExpressions, checkScalarOpsArithmeticComplex) {
     auto new_scalar_op = value_3 / scalar_op;
     auto reverse_order_op = scalar_op / value_3;
 
-    auto got_value = new_scalar_op.evaluate({});
-    auto got_value_1 = reverse_order_op.evaluate({});
+    auto got_value = new_scalar_op.evaluate();
+    auto got_value_1 = reverse_order_op.evaluate();
 
     EXPECT_NEAR(std::abs(got_value), std::abs(value_3 / value_2), 1e-5);
     EXPECT_NEAR(std::abs(got_value_1), std::abs(value_2 / value_3), 1e-5);
 
     // Checking composition of many scalar operators.
     auto third_op = new_scalar_op / reverse_order_op;
-    auto got_value_third = third_op.evaluate({});
+    auto got_value_third = third_op.evaluate();
     auto want_value = (value_3 / value_2) / (value_2 / value_3);
     EXPECT_NEAR(std::abs(got_value_third), std::abs(want_value), 1e-5);
   }
@@ -192,7 +192,7 @@ TEST(OperatorExpressions, checkScalarOpsArithmeticComplex) {
     auto scalar_op = cudaq::scalar_operator(value_0);
     scalar_op += value_0;
 
-    auto got_value = scalar_op.evaluate({});
+    auto got_value = scalar_op.evaluate();
     EXPECT_NEAR(std::abs(got_value), std::abs(value_0 + value_0), 1e-5);
   }
 
@@ -210,7 +210,7 @@ TEST(OperatorExpressions, checkScalarOpsArithmeticComplex) {
     auto scalar_op = cudaq::scalar_operator(value_0);
     scalar_op -= value_0;
 
-    auto got_value = scalar_op.evaluate({});
+    auto got_value = scalar_op.evaluate();
     EXPECT_NEAR(std::abs(got_value), std::abs(value_0 - value_0), 1e-5);
   }
 
@@ -228,7 +228,7 @@ TEST(OperatorExpressions, checkScalarOpsArithmeticComplex) {
     auto scalar_op = cudaq::scalar_operator(value_2);
     scalar_op *= value_3;
 
-    auto got_value = scalar_op.evaluate({});
+    auto got_value = scalar_op.evaluate();
     EXPECT_NEAR(std::abs(got_value), std::abs(value_2 * value_3), 1e-5);
   }
 
@@ -246,7 +246,7 @@ TEST(OperatorExpressions, checkScalarOpsArithmeticComplex) {
     auto scalar_op = cudaq::scalar_operator(value_2);
     scalar_op /= value_3;
 
-    auto got_value = scalar_op.evaluate({});
+    auto got_value = scalar_op.evaluate();
     EXPECT_NEAR(std::abs(got_value), std::abs(value_2 / value_3), 1e-5);
   }
 
@@ -293,8 +293,8 @@ TEST(OperatorExpressions, checkScalarOpsArithmeticScalarOps) {
     auto new_scalar_op = other_scalar_op + scalar_op;
     auto reverse_order_op = scalar_op + other_scalar_op;
 
-    auto got_value = new_scalar_op.evaluate({});
-    auto got_value_1 = reverse_order_op.evaluate({});
+    auto got_value = new_scalar_op.evaluate();
+    auto got_value_1 = reverse_order_op.evaluate();
     auto want_value = value_1 + value_0;
 
     EXPECT_NEAR(std::abs(got_value), std::abs(want_value), 1e-5);
@@ -327,8 +327,8 @@ TEST(OperatorExpressions, checkScalarOpsArithmeticScalarOps) {
     auto new_scalar_op = other_scalar_op - scalar_op;
     auto reverse_order_op = scalar_op - other_scalar_op;
 
-    auto got_value = new_scalar_op.evaluate({});
-    auto got_value_1 = reverse_order_op.evaluate({});
+    auto got_value = new_scalar_op.evaluate();
+    auto got_value_1 = reverse_order_op.evaluate();
     auto want_value = value_1 - value_2;
 
     EXPECT_NEAR(std::abs(got_value), std::abs(want_value), 1e-5);
@@ -361,8 +361,8 @@ TEST(OperatorExpressions, checkScalarOpsArithmeticScalarOps) {
     auto new_scalar_op = other_scalar_op * scalar_op;
     auto reverse_order_op = scalar_op * other_scalar_op;
 
-    auto got_value = new_scalar_op.evaluate({});
-    auto got_value_1 = reverse_order_op.evaluate({});
+    auto got_value = new_scalar_op.evaluate();
+    auto got_value_1 = reverse_order_op.evaluate();
     auto want_value = value_3 * value_2;
     auto reverse_want_value = value_2 * value_3;
 
@@ -396,8 +396,8 @@ TEST(OperatorExpressions, checkScalarOpsArithmeticScalarOps) {
     auto new_scalar_op = other_scalar_op / scalar_op;
     auto reverse_order_op = scalar_op / other_scalar_op;
 
-    auto got_value = new_scalar_op.evaluate({});
-    auto got_value_1 = reverse_order_op.evaluate({});
+    auto got_value = new_scalar_op.evaluate();
+    auto got_value_1 = reverse_order_op.evaluate();
     auto want_value = value_2 / value_0;
     auto reverse_want_value = value_0 / value_2;
 
@@ -429,7 +429,7 @@ TEST(OperatorExpressions, checkScalarOpsArithmeticScalarOps) {
     auto other = cudaq::scalar_operator(value_0);
     scalar_op += other;
 
-    auto got_value = scalar_op.evaluate({});
+    auto got_value = scalar_op.evaluate();
     EXPECT_NEAR(std::abs(got_value), std::abs(value_0 + value_0), 1e-5);
   }
 
@@ -455,7 +455,7 @@ TEST(OperatorExpressions, checkScalarOpsArithmeticScalarOps) {
     auto scalar_op = cudaq::scalar_operator(value_0);
     scalar_op -= value_0;
 
-    auto got_value = scalar_op.evaluate({});
+    auto got_value = scalar_op.evaluate();
     EXPECT_NEAR(std::abs(got_value), std::abs(value_0 - value_0), 1e-5);
   }
 
@@ -473,7 +473,7 @@ TEST(OperatorExpressions, checkScalarOpsArithmeticScalarOps) {
     auto scalar_op = cudaq::scalar_operator(value_2);
     scalar_op *= value_3;
 
-    auto got_value = scalar_op.evaluate({});
+    auto got_value = scalar_op.evaluate();
     EXPECT_NEAR(std::abs(got_value), std::abs(value_2 * value_3), 1e-5);
   }
 
@@ -491,7 +491,7 @@ TEST(OperatorExpressions, checkScalarOpsArithmeticScalarOps) {
     auto scalar_op = cudaq::scalar_operator(value_2);
     scalar_op /= value_3;
 
-    auto got_value = scalar_op.evaluate({});
+    auto got_value = scalar_op.evaluate();
     EXPECT_NEAR(std::abs(got_value), std::abs(value_2 / value_3), 1e-5);
   }
 
