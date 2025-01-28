@@ -51,9 +51,8 @@ struct kraus_op {
   // introspect `kraus_op` objects across library boundary (e.g., when dynamic
   // linking is involved).
   const cudaq::simulation_precision precision =
-      std::is_same_v<cudaq::complex::value_type, float>
-          ? cudaq::simulation_precision::fp32
-          : cudaq::simulation_precision::fp64;
+      std::is_same_v<cudaq::real, float> ? cudaq::simulation_precision::fp32
+                                         : cudaq::simulation_precision::fp64;
 
   /// @brief Copy constructor
   kraus_op(const kraus_op &) = default;
