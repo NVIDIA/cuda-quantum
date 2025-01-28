@@ -211,7 +211,7 @@ def evolve_single(
                                collapse_operators, observables,
                                store_intermediate_results, integrator)
 
-    if target_name == "quera":
+    if target_name in ["quera", "pasqal"]:
         ## TODO: Convert result from `sample_result` to `evolve_result`
         return _launch_analog_hamiltonian_kernel(target_name, hamiltonian,
                                                  schedule, shots_count)
@@ -337,7 +337,7 @@ def evolve(
     if not isinstance(schedule, Schedule):
         raise ValueError(
             f"Invalid argument `schedule` for target {target_name}.")
-    if target_name == "quera":
+    if target_name in ["quera", "pasqal"]:
         if not isinstance(hamiltonian, RydbergHamiltonian):
             raise ValueError(
                 f"Invalid argument `hamiltonian` for target {target_name}. Must be `RydbergHamiltonian` operator."
@@ -414,7 +414,7 @@ def evolve_single_async(
             collapse_operators, observables, store_intermediate_results,
             integrator))
 
-    if target_name == "quera":
+    if target_name in ["quera", "pasqal"]:
         return _launch_analog_hamiltonian_kernel(target_name, hamiltonian,
                                                  schedule, shots_count, True)
 
@@ -530,7 +530,7 @@ def evolve_async(
     if not isinstance(schedule, Schedule):
         raise ValueError(
             f"Invalid argument `schedule` for target {target_name}.")
-    if target_name == "quera":
+    if target_name in ["quera", "pasqal"]:
         if not isinstance(hamiltonian, RydbergHamiltonian):
             raise ValueError(
                 f"Invalid argument `hamiltonian` for target {target_name}. Must be `RydbergHamiltonian` operator."

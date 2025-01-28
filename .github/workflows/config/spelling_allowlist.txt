@@ -249,6 +249,7 @@ nullary
 observables
 optimizer
 optimizers
+Pasqal
 parallelization
 parallelize
 parallelizing
