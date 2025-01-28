@@ -16,153 +16,205 @@
 
 namespace cudaq {
 
-// tensor kroneckerHelper(std::vector<tensor> &matrices) {
-//   // essentially we pass in the list of elementary operators to
-//   // this function -- with lowest degree being leftmost -- then it computes
-//   the
-//   // kronecker product of all of them.
-//   auto kronecker = [](tensor self, tensor other) {
-//     return self.kronecker(other);
-//   };
+// private methods
 
-//   return std::accumulate(begin(matrices), end(matrices),
-//                          tensor::identity(1, 1), kronecker);
-// }
+template<typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
+void product_operator<HandlerTy>::aggregate_terms() {}
 
-matrix_2 product_operator::to_matrix(
-    const std::map<int, int> dimensions,
-    const std::map<std::string, std::complex<double>> parameters) const {
-  // Lambda functions to retrieve degrees and matrices
-  auto getDegrees = [](auto &&term) { return term.degrees; };
-  auto getMatrix = [&](auto &&term) {
-    return term.to_matrix(dimensions, parameters);
-  };
-
-  // Initialize a result matrix with a single identity element
-  matrix_2 result(1, 1);
-  result[{0, 0}] = 1.0;
-
-  // Iterate over all terms in the product operator
-  for (const auto &term : m_terms) {
-    // Get the degrees for the current term
-    auto termDegrees = std::visit(getDegrees, term);
-    bool inserted = false;
-
-    matrix_2 termMatrix(1, 1);
-    termMatrix[{0, 0}] = 1.0;
-
-    // Build the matrix list with identities or operator matrices
-    for (const auto &[degree, dim] : dimensions) {
-      if (std::find(termDegrees.begin(), termDegrees.end(), degree) !=
-              termDegrees.end() &&
-          !inserted) {
-        // Use the operator matrix for the active degree
-        termMatrix.kronecker_inplace(std::visit(getMatrix, term));
-        inserted = true;
-      } else {
-        // Use identity matrix for other degrees
-        matrix_2 identityMatrix(dim, dim);
-        for (std::size_t i = 0; i < dim; i++) {
-          identityMatrix[{i, i}] = 1.0;
-        }
-        termMatrix.kronecker_inplace(identityMatrix);
-      }
-    }
-
-    // Multiply the result matrix by the term matrix
-    result *= termMatrix;
-  }
-
-  return result;
+template<typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
+template <typename ... Args>
+void product_operator<HandlerTy>::aggregate_terms(const HandlerTy &head, Args&& ... args) {
+  this->terms[0].push_back(head);
+  aggregate_terms(std::forward<Args>(args)...);
 }
 
-// /// IMPLEMENT:
-// tensor product_operator<HandlerTy>::to_matrix(
-//     std::map<int, int> dimensions,
-//     std::map<std::string, std::complex<double>> parameters) {
+template
+void product_operator<elementary_operator>::aggregate_terms(const elementary_operator &item1, 
+                                                            const elementary_operator &item2);
 
-//   /// TODO: This initial logic may not be needed.
-//   // std::vector<int> degrees, levels;
-//   // for(std::map<int,int>::iterator it = dimensions.begin(); it !=
-//   // dimensions.end(); ++it) {
-//   //   degrees.push_back(it->first);
-//   //   levels.push_back(it->second);
-//   // }
-//   // // Calculate the size of the full Hilbert space of the given product
-//   // operator. int fullSize = std::accumulate(begin(levels), end(levels), 1,
-//   // std::multiplies<int>());
-//   std::cout << "here 49\n";
-//   auto getDegrees = [](auto &&t) { return t.degrees; };
-//   auto getMatrix = [&](auto &&t) {
-//     auto outMatrix = t.to_matrix(dimensions, parameters);
-//     std::cout << "dumping the outMatrix : \n";
-//     outMatrix.dump();
-//     return outMatrix;
-//   };
-//   std::vector<tensor> matricesFullVectorSpace;
-//   for (auto &term : ops) {
-//     auto op_degrees = std::visit(getDegrees, term);
-//     std::cout << "here 58\n";
-//     // Keeps track of if we've already inserted the operator matrix
-//     // into the full list of matrices.
-//     bool alreadyInserted = false;
-//     std::vector<tensor> matrixWithIdentities;
-//     /// General procedure for inserting identities:
-//     // * check if the operator acts on this degree by looking through
-//     // `op_degrees`
-//     // * if not, insert an identity matrix of the proper level size
-//     // * if so, insert the matrix itself
-//     for (auto [degree, level] : dimensions) {
-//       std::cout << "here 68\n";
-//       auto it = std::find(op_degrees.begin(), op_degrees.end(), degree);
-//       if (it != op_degrees.end() && !alreadyInserted) {
-//         std::cout << "here 71\n";
-//         auto matrix = std::visit(getMatrix, term);
-//         std::cout << "here 75\n";
-//         matrixWithIdentities.push_back(matrix);
-//         std::cout << "here 77\n";
-//       } else {
-//         std::cout << "here 80\n";
-//         matrixWithIdentities.push_back(tensor::identity(level,
-//         level));
-//       }
-//     }
-//     std::cout << "here 84\n";
-//     matricesFullVectorSpace.push_back(kroneckerHelper(matrixWithIdentities));
-//   }
-//   // Now just need to accumulate with matrix multiplication all of the
-//   // matrices in `matricesFullVectorSpace` -- they should all be the same
-//   size
-//   // already.
-//   std::cout << "here 89\n";
+template
+void product_operator<elementary_operator>::aggregate_terms(const elementary_operator &item1, 
+                                                            const elementary_operator &item2,
+                                                            const elementary_operator &item3);
 
-//   // temporary
-//   auto out = tensor::identity(1, 1);
-//   std::cout << "here 93\n";
-//   return out;
-// }
+// read-only properties
 
+template<typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
+std::vector<int> product_operator<HandlerTy>::degrees() const {
+  std::set<int> unsorted_degrees;
+  for (const HandlerTy &term : this->terms[0]) {
+    unsorted_degrees.insert(term.degrees.begin(), term.degrees.end());
+  }
+  auto degrees = std::vector<int>(unsorted_degrees.begin(), unsorted_degrees.end());
+  std::sort(degrees.begin(), degrees.end()); // FIXME: DELEGATE ANY CONVENTION RELATED ORDERING TO A GENERAL HELPER FUNCTION
+  return degrees;
+}
 
-// FIXME: remove - to be replaced with the general implementation for product op
-template<>
-matrix_2 product_operator<elementary_operator>::to_matrix(
-    std::map<int, int> dimensions,
-    std::map<std::string, std::complex<double>> parameters) {
+template<typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
+int product_operator<HandlerTy>::n_terms() const { 
+  return this->terms[0].size(); 
+}
+
+template<typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
+std::vector<HandlerTy> product_operator<HandlerTy>::get_terms() const { 
+  return this->terms[0]; 
+}
+
+template<typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
+scalar_operator product_operator<HandlerTy>::get_coefficient() const { 
+  return this->coefficients[0]; 
+}
+
+template
+std::vector<int> product_operator<elementary_operator>::degrees() const;
+
+template
+int product_operator<elementary_operator>::n_terms() const;
+
+template
+std::vector<elementary_operator> product_operator<elementary_operator>::get_terms() const;
+
+template
+scalar_operator product_operator<elementary_operator>::get_coefficient() const;
+
+// constructors
+
+template<typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
+template<class... Args, class>
+product_operator<HandlerTy>::product_operator(scalar_operator coefficient, const Args&... args) {
+  this->coefficients.push_back(std::move(coefficient));
+  std::vector<HandlerTy> ops = {};
+  ops.reserve(sizeof...(Args));
+  this->terms.push_back(ops);
+  aggregate_terms(args...);
+}
+
+template<typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
+product_operator<HandlerTy>::product_operator(scalar_operator coefficient, const std::vector<HandlerTy> &atomic_operators) { 
+  this->terms.push_back(atomic_operators);
+  this->coefficients.push_back(std::move(coefficient));
+}
+
+template<typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
+product_operator<HandlerTy>::product_operator(scalar_operator coefficient, std::vector<HandlerTy> &&atomic_operators) {
+  this->terms.push_back(std::move(atomic_operators));
+  this->coefficients.push_back(std::move(coefficient));
+}
+
+template<typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
+product_operator<HandlerTy>::product_operator(const product_operator<HandlerTy> &other) {
+  this->terms = other.terms;
+  this->coefficients = other.coefficients;
+}
+
+template<typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
+product_operator<HandlerTy>::product_operator(product_operator<HandlerTy> &&other) {
+  this->terms = std::move(other.terms);
+  this->coefficients = std::move(other.coefficients);
+}
+
+template 
+product_operator<elementary_operator>::product_operator(scalar_operator coefficient);
+
+template 
+product_operator<elementary_operator>::product_operator(scalar_operator coefficient,
+                                                        const elementary_operator &item1);
+
+template 
+product_operator<elementary_operator>::product_operator(scalar_operator coefficient,
+                                                        const elementary_operator &item1,
+                                                        const elementary_operator &item2);
+
+template 
+product_operator<elementary_operator>::product_operator(scalar_operator coefficient,
+                                                        const elementary_operator &item1,
+                                                        const elementary_operator &item2,
+                                                        const elementary_operator &item3);
+
+template
+product_operator<elementary_operator>::product_operator(scalar_operator coefficient, const std::vector<elementary_operator> &atomic_operators);
+
+template
+product_operator<elementary_operator>::product_operator(scalar_operator coefficient, std::vector<elementary_operator> &&atomic_operators);
+
+template
+product_operator<elementary_operator>::product_operator(const product_operator<elementary_operator> &other);
+
+template
+product_operator<elementary_operator>::product_operator(product_operator<elementary_operator> &&other);
+
+// assignments
+
+template<typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
+product_operator<HandlerTy>& product_operator<HandlerTy>::operator=(const product_operator<HandlerTy> &other) {
+  if (this != &other) {
+    this->terms = other.terms;
+    this->coefficients = other.coefficients;
+  }
+  return *this;
+}
+
+template<typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
+product_operator<HandlerTy>& product_operator<HandlerTy>::operator=(product_operator<HandlerTy> &&other) {
+  if (this != &other) {
+    this->coefficients = std::move(other.coefficients);
+    this->terms = std::move(other.terms);
+  }
+  return *this;
+}
+
+template
+product_operator<elementary_operator>& product_operator<elementary_operator>::operator=(const product_operator<elementary_operator> &other);
+
+template
+product_operator<elementary_operator>& product_operator<elementary_operator>::operator=(product_operator<elementary_operator> &&other);
+
+// evaluations
+
+template<typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
+std::string product_operator<HandlerTy>::to_string() const {
+  throw std::runtime_error("not implemented");
+}
+
+template<typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
+matrix_2 product_operator<HandlerTy>::to_matrix(std::map<int, int> dimensions,
+                                                std::map<std::string, std::complex<double>> parameters) const {
   if (this->get_coefficient() != scalar_operator(1.) || this->n_terms() != 1)
     throw std::runtime_error("not implemented");
   return this->get_terms()[0].to_matrix(dimensions, parameters);
 }
 
+template
+std::string product_operator<elementary_operator>::to_string() const;
 
-// Degrees property
-template <typename HandlerTy>
-std::vector<int> product_operator<HandlerTy>::degrees() const {
-  std::set<int> unique_degrees;
-  for (const HandlerTy &term : this->get_terms()) {
-    unique_degrees.insert(term.degrees.begin(), term.degrees.end());
-  }
-  // FIXME: SORT THE DEGREES
-  return std::vector<int>(unique_degrees.begin(), unique_degrees.end());
+template
+matrix_2 product_operator<elementary_operator>::to_matrix(std::map<int, int> dimensions,
+                                                          std::map<std::string, std::complex<double>> parameters) const;
+
+// comparisons
+
+template<typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
+bool product_operator<HandlerTy>::operator==(const product_operator<HandlerTy> &other) const {
+  throw std::runtime_error("not implemented");
 }
+
+template
+bool product_operator<elementary_operator>::operator==(const product_operator<elementary_operator> &other) const;
 
 } // namespace cudaq

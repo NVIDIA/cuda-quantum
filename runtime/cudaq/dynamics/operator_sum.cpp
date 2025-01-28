@@ -32,10 +32,7 @@ std::vector<std::tuple<scalar_operator, HandlerTy>> operator_sum<HandlerTy>::_ca
 
 template<typename HandlerTy>
 requires std::derived_from<elementary_operator, HandlerTy>
-void operator_sum<HandlerTy>::aggregate_terms(const product_operator<HandlerTy> &head) {
-    this->terms.push_back(head.terms[0]);
-    this->coefficients.push_back(head.coefficients[0]);
-}
+void operator_sum<HandlerTy>::aggregate_terms() {}
 
 template<typename HandlerTy>
 requires std::derived_from<elementary_operator, HandlerTy>
@@ -51,6 +48,8 @@ std::vector<std::tuple<scalar_operator, elementary_operator>> operator_sum<eleme
 
 template
 std::vector<std::tuple<scalar_operator, elementary_operator>> operator_sum<elementary_operator>::_canonical_terms() const;
+
+// no constructor for a single product, since that one should remain a product op
 
 template
 void operator_sum<elementary_operator>::aggregate_terms(const product_operator<elementary_operator> &item1, 
