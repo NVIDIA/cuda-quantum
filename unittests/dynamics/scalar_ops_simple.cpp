@@ -24,10 +24,10 @@ TEST(OperatorExpressions, checkScalarOpsSimpleComplex) {
     auto operator_2 = cudaq::scalar_operator(value_2);
     auto operator_3 = cudaq::scalar_operator(value_3);
 
-    auto got_value_0 = operator_0.evaluate({});
-    auto got_value_1 = operator_1.evaluate({});
-    auto got_value_2 = operator_2.evaluate({});
-    auto got_value_3 = operator_3.evaluate({});
+    auto got_value_0 = operator_0.evaluate();
+    auto got_value_1 = operator_1.evaluate();
+    auto got_value_2 = operator_2.evaluate();
+    auto got_value_3 = operator_3.evaluate();
 
     EXPECT_NEAR(std::abs(value_0), std::abs(got_value_0), 1e-5);
     EXPECT_NEAR(std::abs(value_1), std::abs(got_value_1), 1e-5);
@@ -78,10 +78,10 @@ TEST(OperatorExpressions, checkScalarOpsSimpleDouble) {
     auto operator_2 = cudaq::scalar_operator(value_2);
     auto operator_3 = cudaq::scalar_operator(value_3);
 
-    auto got_value_0 = operator_0.evaluate({});
-    auto got_value_1 = operator_1.evaluate({});
-    auto got_value_2 = operator_2.evaluate({});
-    auto got_value_3 = operator_3.evaluate({});
+    auto got_value_0 = operator_0.evaluate();
+    auto got_value_1 = operator_1.evaluate();
+    auto got_value_2 = operator_2.evaluate();
+    auto got_value_3 = operator_3.evaluate();
 
     EXPECT_NEAR(std::abs(value_0), std::abs(got_value_0), 1e-5);
     EXPECT_NEAR(std::abs(value_1), std::abs(got_value_1), 1e-5);

@@ -26,7 +26,7 @@ class scalar_operator {
 private:
   // If someone gave us a constant value, we will just return that
   // directly to them when they call `evaluate`.
-  std::optional<std::complex<double>> m_constant_value;
+  std::optional<std::complex<double>> constant_value;
 
   /// @brief The function that generates the value of the scalar operator.
   /// The function can take a vector of complex-valued arguments
@@ -34,78 +34,55 @@ private:
   ScalarCallbackFunction generator;
 
 public:
-  scalar_operator(double value) 
-    : m_constant_value(value), generator() {}
+
+  // constructors and destructors
+
+  scalar_operator(double value);
 
   /// @brief Constructor that just takes and returns a complex double value.
   /// @NOTE: This replicates the behavior of the python `scalar_operator::const`
   /// without the need for an extra member function.
-  scalar_operator(std::complex<double> value) 
-    : m_constant_value(value), generator() {}
+  scalar_operator(std::complex<double> value);
 
-
-  scalar_operator(const ScalarCallbackFunction &create) 
-    : m_constant_value(), generator(create) {}
+  scalar_operator(const ScalarCallbackFunction &create);
 
   /// @brief Constructor that just takes a callback function with no
   /// arguments.
-  scalar_operator(ScalarCallbackFunction &&create)
-    : m_constant_value() {
-    generator = std::move(create);
-  }
+  scalar_operator(ScalarCallbackFunction &&create);
 
   // copy constructor
-  scalar_operator(const scalar_operator &other) 
-    : m_constant_value(other.m_constant_value), generator(other.generator) {}
+  scalar_operator(const scalar_operator &other);
 
   // move constructor
-  scalar_operator(scalar_operator &&other) 
-    : m_constant_value(other.m_constant_value) {
-      generator = std::move(other.generator);
-  }
-
-  // assignment operator
-  scalar_operator& operator=(const scalar_operator &other) {
-    if (this != &other) {
-      m_constant_value = other.m_constant_value;
-      generator = other.generator;
-    }
-    return *this;
-  }
-
-  // move assignment operator
-  scalar_operator& operator=(scalar_operator &&other) {
-    if (this != &other) {
-      m_constant_value = other.m_constant_value;
-      generator = std::move(other.generator);
-    }
-    return *this;
-  }
-
-  /// NOTE: We should revisit these constructors and remove any that have
-  /// become unnecessary as the implementation improves.
-  // scalar_operator() = default;
-  // Copy constructor.
-  // scalar_operator(const scalar_operator &other);
-  // scalar_operator(scalar_operator &other);
+  scalar_operator(scalar_operator &&other);
 
   ~scalar_operator() = default;
 
-  // Need this property for consistency with other inherited types.
-  // Particularly, to be used when the scalar operator is held within
-  // a variant type next to elementary operators.
-  std::vector<int> degrees = {};
+  // assignments
+
+  // assignment operator
+  scalar_operator& operator=(const scalar_operator &other);
+
+  // move assignment operator
+  scalar_operator& operator=(scalar_operator &&other);
+
+  // comparison
+
+  bool operator==(scalar_operator other);
+
+  // evaluations
 
   /// @brief Return the scalar operator as a concrete complex value.
   std::complex<double>
-  evaluate(const std::map<std::string, std::complex<double>> parameters) const;
+  evaluate(const std::map<std::string, std::complex<double>> parameters = {}) const;
 
   // Return the scalar operator as a 1x1 matrix. This is needed for
   // compatibility with the other inherited classes.
-  matrix_2 to_matrix(const std::map<int, int> dimensions,
-                     const std::map<std::string, std::complex<double>> parameters) const;
+  matrix_2 to_matrix(const std::map<int, int> dimensions = {},
+                     const std::map<std::string, std::complex<double>> parameters = {}) const;
 
-  // Arithmetic overloads against other operator types.
+  // right-hand arithmetics
+
   scalar_operator operator*(double other) const;
   scalar_operator operator/(double other) const;
   scalar_operator operator+(double other) const;
@@ -132,6 +109,17 @@ public:
   scalar_operator& operator-=(const scalar_operator &other);
   /// TODO: implement and test pow
 
+  friend scalar_operator operator*(scalar_operator &&self, double other);
+  friend scalar_operator operator/(scalar_operator &&self, double other);
+  friend scalar_operator operator+(scalar_operator &&self, double other);
+  friend scalar_operator operator-(scalar_operator &&self, double other);
+  friend scalar_operator operator+(scalar_operator &&self, std::complex<double> other);
+  friend scalar_operator operator/(scalar_operator &&self, std::complex<double> other);
+  friend scalar_operator operator+(scalar_operator &&self, std::complex<double> other);
+  friend scalar_operator operator-(scalar_operator &&self, std::complex<double> other);
+
+  // left-hand arithmetics
+
   friend scalar_operator operator*(double other, const scalar_operator &self);
   friend scalar_operator operator/(double other, const scalar_operator &self);
   friend scalar_operator operator+(double other, const scalar_operator &self);
@@ -140,16 +128,6 @@ public:
   friend scalar_operator operator/(std::complex<double> other, const scalar_operator &self);
   friend scalar_operator operator+(std::complex<double> other, const scalar_operator &self);
   friend scalar_operator operator-(std::complex<double> other, const scalar_operator &self);
-
-  // /// @brief Returns true if other is a scalar operator with the same
-  // /// generator.
-  bool operator==(scalar_operator other) {
-    if (this->m_constant_value.has_value() && other.m_constant_value.has_value()) {
-      return this->m_constant_value == other.m_constant_value;
-    } else {
-      throw std::runtime_error("not implemented");
-    }
-  }
 };
 
 
