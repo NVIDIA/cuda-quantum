@@ -16,13 +16,28 @@
 #include <vector>
 
 namespace cudaq {
-class cudm_mat_state {
+// Enum to specify the initial quantum state.
+enum class InitialState { ZERO, UNIFORM };
+
+using InitialStateArgT = std::variant<void *, InitialState>;
+
+class cudm_state {
 public:
   /// @brief To initialize state with raw data.
-  explicit cudm_mat_state(std::vector<std::complex<double>> rawData);
+  explicit cudm_state(std::vector<std::complex<double>> rawData);
 
   /// @brief Destructor to clean up resources
-  ~cudm_mat_state();
+  ~cudm_state();
+
+  /// @brief Factory method to create an initial state.
+  /// @param InitialStateArgT The type or representation of the initial state.
+  /// @param Dimensions of the Hilbert space.
+  /// @param hasCollapseOps Whether collapse operators are present.
+  /// @return A new 'cudm_state' initialized to the specified state.
+  static cudm_state
+  create_initial_state(const InitialStateArgT &initialStateArg,
+                       const std::vector<int64_t> &hilbertSpaceDims,
+                       bool hasCollapseOps);
 
   /// @brief Initialize the state as a density matrix or state vector based on
   /// dimensions.
@@ -42,8 +57,8 @@ public:
   std::string dump() const;
 
   /// @brief Convert the state vector to a density matrix.
-  /// @return A new cudm_mat_state representing the density matrix.
-  cudm_mat_state to_density_matrix() const;
+  /// @return A new cudm_state representing the density matrix.
+  cudm_state to_density_matrix() const;
 
   /// @brief Get the underlying implementation (if any).
   /// @return The underlying state implementation.
