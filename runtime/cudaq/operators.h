@@ -66,10 +66,6 @@ public:
   // move assignment operator
   scalar_operator& operator=(scalar_operator &&other);
 
-  // comparison
-
-  bool operator==(scalar_operator other);
-
   // evaluations
 
   /// @brief Return the scalar operator as a concrete complex value.
@@ -80,6 +76,10 @@ public:
   // compatibility with the other inherited classes.
   matrix_2 to_matrix(const std::map<int, int> dimensions = {},
                      const std::map<std::string, std::complex<double>> parameters = {}) const;
+
+  // comparisons
+
+  bool operator==(scalar_operator other);
 
   // right-hand arithmetics
 
@@ -140,23 +140,17 @@ requires std::derived_from<elementary_operator, HandlerTy>
 class operator_sum {
 
 private:
+
   std::vector<std::tuple<scalar_operator, HandlerTy>>
   canonicalize_product(product_operator<HandlerTy> &prod) const;
 
   std::vector<std::tuple<scalar_operator, HandlerTy>>
   _canonical_terms() const;
 
-  void aggregate_terms(const product_operator<HandlerTy>& head) {
-    terms.push_back(head.terms[0]);
-    coefficients.push_back(head.coefficients[0]);
-  }
+  void aggregate_terms(const product_operator<HandlerTy>& head);
 
   template <typename ... Args>
-  void aggregate_terms(const product_operator<HandlerTy> &head, Args&& ... args) {
-    terms.push_back(head.terms[0]);
-    coefficients.push_back(head.coefficients[0]);
-    aggregate_terms(std::forward<Args>(args)...);
-  }
+  void aggregate_terms(const product_operator<HandlerTy> &head, Args&& ... args);
 
 protected:
 
@@ -166,73 +160,43 @@ protected:
 
 public:
 
-  /// @brief Construct a `cudaq::operator_sum<HandlerTy>` given a sequence of
-  /// `cudaq::product_operator<HandlerTy>`'s.
-  /// This operator expression represents a sum of terms, where each term
-  /// is a product of elementary and scalar operators.
-  template<class... Args, class = std::enable_if_t<std::conjunction<std::is_same<product_operator<HandlerTy>, Args>...>::value, void>>
-  operator_sum(const Args&... args) {
-    terms.reserve(sizeof...(Args));
-    coefficients.reserve(sizeof...(Args));
-    aggregate_terms(args...);
-  }
-
-  operator_sum(const std::vector<product_operator<HandlerTy>>& terms) { 
-    this->terms.reserve(terms.size());
-    this->coefficients.reserve(terms.size());
-    for (const product_operator<HandlerTy>& term : terms) {
-      this->terms.push_back(term.terms[0]);
-      this->coefficients.push_back(term.coefficients[0]);
-    }
-  }
-
-  operator_sum(std::vector<product_operator<HandlerTy>>&& terms) { 
-    this->terms.reserve(terms.size());
-    for (const product_operator<HandlerTy>& term : terms) {
-      this->terms.push_back(std::move(term.terms[0]));
-      this->coefficients.push_back(std::move(term.coefficients[0]));
-    }
-  }
-
-  // copy constructor
-  operator_sum(const operator_sum &other)
-    : coefficients(other.coefficients), terms(other.terms) {}
-
-  // move constructor
-  operator_sum(operator_sum &&other) 
-    : coefficients(std::move(other.coefficients)), terms(std::move(other.terms)) {}
-
-  // assignment operator
-  operator_sum& operator=(const operator_sum& other) {
-    if (this != &other) {
-      coefficients = other.coefficients;
-      terms = other.terms;
-    }
-    return *this;
-  }
-
-  // move assignment operator
-  operator_sum& operator=(operator_sum &&other) {
-    if (this != &other) {
-      coefficients = std::move(other.coefficients);
-      terms = std::move(other.terms);
-    }
-    return *this;
-  }
-
-  ~operator_sum() = default;
-
-  operator_sum<HandlerTy> canonicalize() const;
+  // read-only properties
 
   /// @brief The degrees of freedom that the operator acts on in canonical
   /// order.
   std::vector<int> degrees() const;
 
-  bool _is_spinop() const;
+  /// @brief Return the number of operator terms that make up this operator sum.
+  int n_terms() const;
 
-  /// TODO: implement
-  // template<typename TEval>
-  // TEval _evaluate(OperatorArithmetics<TEval> &arithmetics) const;
+  std::vector<product_operator<HandlerTy>> get_terms() const;
+
+  // constructors and destructors
+
+  template<class... Args, class = std::enable_if_t<std::conjunction<std::is_same<product_operator<HandlerTy>, Args>...>::value, void>>
+  operator_sum(const Args&... args);
+
+  operator_sum(const std::vector<product_operator<HandlerTy>> &terms);
+
+  operator_sum(std::vector<product_operator<HandlerTy>> &&terms);
+
+  // copy constructor
+  operator_sum(const operator_sum<HandlerTy> &other);
+
+  // move constructor
+  operator_sum(operator_sum<HandlerTy> &&other);
+
+  ~operator_sum() = default;
+
+  // assignments
+
+  // assignment operator
+  operator_sum<HandlerTy>& operator=(const operator_sum<HandlerTy> &other);
+
+  // move assignment operator
+  operator_sum<HandlerTy>& operator=(operator_sum<HandlerTy> &&other);
+
+  // evaluations
 
   /// @brief Return the operator_sum<HandlerTy> as a string.
   std::string to_string() const;
@@ -247,7 +211,21 @@ public:
   matrix_2 to_matrix(const std::map<int, int> &dimensions,
                      const std::map<std::string, double> &params = {}) const;
 
-  // Arithmetic operators
+  // comparisons
+
+  /// @brief  True, if the other value is an operator_sum<HandlerTy> with equivalent terms,
+  /// and False otherwise. The equality takes into account that operator
+  /// addition is commutative, as is the product of two operators if they
+  /// act on different degrees of freedom.
+  /// The equality comparison does *not* take commutation relations into
+  /// account, and does not try to reorder terms `blockwise`; it may hence
+  /// evaluate to False, even if two operators in reality are the same.
+  /// If the equality evaluates to True, on the other hand, the operators
+  /// are guaranteed to represent the same transformation for all arguments.
+  bool operator==(const operator_sum<HandlerTy> &other) const;
+
+  // right-hand arithmetics
+
   operator_sum<HandlerTy> operator*(double other) const;
   operator_sum<HandlerTy> operator+(double other) const;
   operator_sum<HandlerTy> operator-(double other) const;
@@ -284,59 +262,6 @@ public:
   operator_sum<HandlerTy>& operator*=(const operator_sum<HandlerTy> &other);
   operator_sum<HandlerTy>& operator+=(const operator_sum<HandlerTy> &other);
   operator_sum<HandlerTy>& operator-=(const operator_sum<HandlerTy> &other);
-
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wnon-template-friend"
-#endif
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wnon-template-friend"
-#endif
-/*
-  friend operator_sum<HandlerTy> operator*(double other, const operator_sum<HandlerTy> &self);
-  friend operator_sum<HandlerTy> operator+(double other, const operator_sum<HandlerTy> &self);
-  friend operator_sum<HandlerTy> operator-(double other, const operator_sum<HandlerTy> &self);
-  friend operator_sum<HandlerTy> operator*(std::complex<double> other, const operator_sum<HandlerTy> &self);
-  friend operator_sum<HandlerTy> operator+(std::complex<double> other, const operator_sum<HandlerTy> &self);
-  friend operator_sum<HandlerTy> operator-(std::complex<double> other, const operator_sum<HandlerTy> &self);
-  friend operator_sum<HandlerTy> operator*(const scalar_operator &other, const operator_sum<HandlerTy> &self);
-  friend operator_sum<HandlerTy> operator+(const scalar_operator &other, const operator_sum<HandlerTy> &self);
-  friend operator_sum<HandlerTy> operator-(const scalar_operator &other, const operator_sum<HandlerTy> &self);
-  friend operator_sum<HandlerTy> operator*(const HandlerTy &other, const operator_sum<HandlerTy> &self);
-  friend operator_sum<HandlerTy> operator+(const HandlerTy &other, const operator_sum<HandlerTy> &self);
-  friend operator_sum<HandlerTy> operator-(const HandlerTy &other, const operator_sum<HandlerTy> &self);
-*/
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic pop
-#endif
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
-
-  /// @brief Return the number of operator terms that make up this operator sum.
-  int term_count() const { return terms.size(); }
-
-  /// @brief  True, if the other value is an operator_sum<HandlerTy> with equivalent terms,
-  /// and False otherwise. The equality takes into account that operator
-  /// addition is commutative, as is the product of two operators if they
-  /// act on different degrees of freedom.
-  /// The equality comparison does *not* take commutation relations into
-  /// account, and does not try to reorder terms `blockwise`; it may hence
-  /// evaluate to False, even if two operators in reality are the same.
-  /// If the equality evaluates to True, on the other hand, the operators
-  /// are guaranteed to represent the same transformation for all arguments.
-  bool operator==(const operator_sum<HandlerTy> &other) const;
-
-  /// FIXME: Protect this once I can do deeper testing in `unittests`.
-  // protected:
-  std::vector<product_operator<HandlerTy>> get_terms() const { 
-    std::vector<product_operator<HandlerTy>> prods;
-    prods.reserve(terms.size());
-    for (size_t i = 0; i < terms.size(); ++i) {
-      prods.push_back(product_operator<HandlerTy>(coefficients[i], terms[i]));
-    }
-    return prods; }
 };
 
 /// @brief Represents an operator expression consisting of a product of
@@ -427,7 +352,7 @@ public:
 
   /// @brief Return the number of operator terms that make up this product
   /// operator.
-  int term_count() const { return operator_sum<HandlerTy>::terms[0].size(); }
+  int n_terms() const { return operator_sum<HandlerTy>::terms[0].size(); }
 
   /// @brief Return the `product_operator<HandlerTy>` as a string.
   std::string to_string() const;

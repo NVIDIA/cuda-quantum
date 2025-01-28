@@ -136,8 +136,8 @@ TEST(OperatorExpressions, checkPreBuiltElementaryOpsScalars) {
     auto reverse = other + self;
 
     // Check the `operator_sum` attributes.
-    ASSERT_TRUE(sum.term_count() == 2);
-    ASSERT_TRUE(reverse.term_count() == 2);
+    ASSERT_TRUE(sum.n_terms() == 2);
+    ASSERT_TRUE(reverse.n_terms() == 2);
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
@@ -163,8 +163,8 @@ TEST(OperatorExpressions, checkPreBuiltElementaryOpsScalars) {
     auto sum = self + other;
     auto reverse = other + self;
 
-    ASSERT_TRUE(sum.term_count() == 2);
-    ASSERT_TRUE(reverse.term_count() == 2);
+    ASSERT_TRUE(sum.n_terms() == 2);
+    ASSERT_TRUE(reverse.n_terms() == 2);
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
@@ -191,8 +191,8 @@ TEST(OperatorExpressions, checkPreBuiltElementaryOpsScalars) {
     auto sum = self - other;
     auto reverse = other - self;
 
-    ASSERT_TRUE(sum.term_count() == 2);
-    ASSERT_TRUE(reverse.term_count() == 2);
+    ASSERT_TRUE(sum.n_terms() == 2);
+    ASSERT_TRUE(reverse.n_terms() == 2);
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
@@ -218,8 +218,8 @@ TEST(OperatorExpressions, checkPreBuiltElementaryOpsScalars) {
     auto sum = self - other;
     auto reverse = other - self;
 
-    ASSERT_TRUE(sum.term_count() == 2);
-    ASSERT_TRUE(reverse.term_count() == 2);
+    ASSERT_TRUE(sum.n_terms() == 2);
+    ASSERT_TRUE(reverse.n_terms() == 2);
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
@@ -306,7 +306,7 @@ TEST(OperatorExpressions, checkPreBuiltElementaryOpsSelf) {
 
     // Produces an `operator_sum` type.
     auto sum = self + other;
-    ASSERT_TRUE(sum.term_count() == 2);
+    ASSERT_TRUE(sum.n_terms() == 2);
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
@@ -324,7 +324,7 @@ TEST(OperatorExpressions, checkPreBuiltElementaryOpsSelf) {
 
     // Produces an `operator_sum` type.
     auto sum = self + other;
-    ASSERT_TRUE(sum.term_count() == 2);
+    ASSERT_TRUE(sum.n_terms() == 2);
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
@@ -346,7 +346,7 @@ TEST(OperatorExpressions, checkPreBuiltElementaryOpsSelf) {
 
     // Produces an `operator_sum` type.
     auto sum = self - other;
-    ASSERT_TRUE(sum.term_count() == 2);
+    ASSERT_TRUE(sum.n_terms() == 2);
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
@@ -364,7 +364,7 @@ TEST(OperatorExpressions, checkPreBuiltElementaryOpsSelf) {
 
     // Produces an `operator_sum` type.
     auto sum = self - other;
-    ASSERT_TRUE(sum.term_count() == 2);
+    ASSERT_TRUE(sum.n_terms() == 2);
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
@@ -386,7 +386,7 @@ TEST(OperatorExpressions, checkPreBuiltElementaryOpsSelf) {
 
     // Produces an `product_operator` type.
     auto product = self * other;
-    ASSERT_TRUE(product.term_count() == 2);
+    ASSERT_TRUE(product.n_terms() == 2);
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
@@ -404,7 +404,7 @@ TEST(OperatorExpressions, checkPreBuiltElementaryOpsSelf) {
 
     // Produces an `product_operator` type.
     auto product = self * other;
-    ASSERT_TRUE(product.term_count() == 2);
+    ASSERT_TRUE(product.n_terms() == 2);
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
@@ -438,8 +438,8 @@ TEST(OperatorExpressions, checkElementaryOpsAgainstOpSum) {
     auto got = self + operator_sum;
     auto reverse = operator_sum + self;
 
-    ASSERT_TRUE(got.term_count() == 3);
-    ASSERT_TRUE(reverse.term_count() == 3);
+    ASSERT_TRUE(got.n_terms() == 3);
+    ASSERT_TRUE(reverse.n_terms() == 3);
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
@@ -471,8 +471,8 @@ TEST(OperatorExpressions, checkElementaryOpsAgainstOpSum) {
     auto got = self - operator_sum;
     auto reverse = operator_sum - self;
 
-    ASSERT_TRUE(got.term_count() == 3);
-    ASSERT_TRUE(reverse.term_count() == 3);
+    ASSERT_TRUE(got.n_terms() == 3);
+    ASSERT_TRUE(reverse.n_terms() == 3);
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
@@ -504,14 +504,14 @@ TEST(OperatorExpressions, checkElementaryOpsAgainstOpSum) {
     auto got = self * operator_sum;
     auto reverse = operator_sum * self;
 
-    ASSERT_TRUE(got.term_count() == 2);
-    ASSERT_TRUE(reverse.term_count() == 2);
+    ASSERT_TRUE(got.n_terms() == 2);
+    ASSERT_TRUE(reverse.n_terms() == 2);
 
     for (auto &term : got.get_terms())
-      ASSERT_TRUE(term.term_count() == 2);
+      ASSERT_TRUE(term.n_terms() == 2);
 
     for (auto &term : reverse.get_terms())
-      ASSERT_TRUE(term.term_count() == 2);
+      ASSERT_TRUE(term.n_terms() == 2);
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
@@ -539,7 +539,7 @@ TEST(OperatorExpressions, checkElementaryOpsAgainstOpSum) {
                         cudaq::elementary_operator::identity(1);
     operator_sum += cudaq::elementary_operator::annihilate(0);
 
-    ASSERT_TRUE(operator_sum.term_count() == 3);
+    ASSERT_TRUE(operator_sum.n_terms() == 3);
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
@@ -563,7 +563,7 @@ TEST(OperatorExpressions, checkElementaryOpsAgainstOpSum) {
                         cudaq::elementary_operator::identity(1);
     operator_sum -= cudaq::elementary_operator::annihilate(0);
 
-    ASSERT_TRUE(operator_sum.term_count() == 3);
+    ASSERT_TRUE(operator_sum.n_terms() == 3);
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
@@ -590,10 +590,10 @@ TEST(OperatorExpressions, checkElementaryOpsAgainstOpSum) {
 
     operator_sum *= self;
 
-    ASSERT_TRUE(operator_sum.term_count() == 2);
+    ASSERT_TRUE(operator_sum.n_terms() == 2);
 
     for (auto &term : operator_sum.get_terms())
-      ASSERT_TRUE(term.term_count() == 2);
+      ASSERT_TRUE(term.n_terms() == 2);
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
