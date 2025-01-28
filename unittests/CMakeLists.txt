@@ -55,6 +55,7 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   dynamics/rydberg_hamiltonian.cpp
   dynamics/test_cudm_helpers.cpp
   dynamics/test_cudm_state.cpp
+  dynamics/test_cudm_time_stepper.cpp
 )
 
 # Make it so we can get function symbols
@@ -283,8 +284,6 @@ set(CUDAQ_OPERATOR_TEST_SOURCES
    dynamics/scalar_ops_simple.cpp
    dynamics/scalar_ops_arithmetic.cpp
    dynamics/product_operators_arithmetic.cpp
-   dynamics/test_cudm_helpers.cpp
-   dynamics/test_cudm_state.cpp
 )
 add_executable(test_operators main.cpp ${CUDAQ_OPERATOR_TEST_SOURCES})
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)

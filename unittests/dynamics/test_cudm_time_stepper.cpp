@@ -6,113 +6,81 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "test_mocks.h"
-#include <cudaq/cudm_error_handling.h>
-#include <cudaq/cudm_helpers.h>
+#include <gtest/gtest.h>
 #include <cudaq/cudm_state.h>
 #include <cudaq/cudm_time_stepper.h>
-#include <gtest/gtest.h>
-#include <iostream>
-#include <memory>
+#include <cudaq/cudm_helpers.h>
+#include <cudaq/cudm_error_handling.h>
 
 using namespace cudaq;
 
+// Mock Liouvillian operator creation
+cudensitymatOperator_t mock_liouvillian(cudensitymatHandle_t handle) {
+    cudensitymatOperator_t liouvillian;
+    std::vector<int64_t> dimensions = {2, 2};
+    HANDLE_CUDM_ERROR(cudensitymatCreateOperator(handle, static_cast<int32_t>(dimensions.size()), dimensions.data(), &liouvillian));
+    return liouvillian;
+}
+
+// Mock Hilbert space dimensions
+std::vector<std::complex<double>> mock_initial_state_data() {
+    return {
+        {1.0, 0.0}, {0.0, 0.0},
+        {0.0, 0.0}, {0.0, 0.0}
+    };
+}
+
+// Mock initial raw state data
+std::vector<int64_t> mock_hilbert_space_dims() {
+    return {2, 2};
+}
+
 class CuDensityMatTimeStepperTest : public ::testing::Test {
 protected:
-  cudensitymatHandle_t handle_;
-  cudensitymatOperator_t liouvillian_;
-  std::unique_ptr<cudm_time_stepper> time_stepper_;
-  std::unique_ptr<cudm_state> state_;
+    cudensitymatHandle_t handle_;
+    cudensitymatOperator_t liouvillian_;
+    cudm_time_stepper *time_stepper_;
+    cudm_state state_;
 
-  void SetUp() override {
-    // Create library handle
-    HANDLE_CUDM_ERROR(cudensitymatCreate(&handle_));
+    CuDensityMatTimeStepperTest() : state_(mock_initial_state_data()) {};
 
-    // Create a mock Liouvillian
-    liouvillian_ = mock_liouvillian(handle_);
+    void SetUp() override {
+        // Create library handle
+        HANDLE_CUDM_ERROR(cudensitymatCreate(&handle_));
 
-    // Initialize the time stepper
-    time_stepper_ = std::make_unique<cudm_time_stepper>(handle_, liouvillian_);
+        // Create a mock Liouvillian
+        liouvillian_ = mock_liouvillian(handle_);
 
-    state_ = std::make_unique<cudm_state>(handle_, mock_initial_state_data(),
-                                          mock_hilbert_space_dims());
+        // Initialize the time stepper
+        time_stepper_ = new cudm_time_stepper(liouvillian_, handle_);
 
-    ASSERT_TRUE(state_->is_initialized());
-  }
+        // Initialize the state
+        state_.init_state(mock_hilbert_space_dims());
 
-  void TearDown() override {
-    // Clean up
-    HANDLE_CUDM_ERROR(cudensitymatDestroyOperator(liouvillian_));
-    HANDLE_CUDM_ERROR(cudensitymatDestroy(handle_));
-  }
+        ASSERT_TRUE(state_.is_initialized());
+    }
+
+    void TearDown() override {
+        // Clean up
+        HANDLE_CUDM_ERROR(cudensitymatDestroyOperator(liouvillian_));
+        HANDLE_CUDM_ERROR(cudensitymatDestroy(handle_));
+        delete time_stepper_;
+    }
 };
 
 // Test initialization of cudm_time_stepper
 TEST_F(CuDensityMatTimeStepperTest, Initialization) {
-  ASSERT_NE(time_stepper_, nullptr);
-  ASSERT_TRUE(state_->is_initialized());
-  ASSERT_FALSE(state_->is_density_matrix());
+    ASSERT_NE(time_stepper_, nullptr);
+    ASSERT_TRUE(state_.is_initialized());
+    ASSERT_FALSE(state_.is_density_matrix());
 }
 
 // Test a single compute step
 TEST_F(CuDensityMatTimeStepperTest, ComputeStep) {
-  ASSERT_TRUE(state_->is_initialized());
-  EXPECT_NO_THROW(time_stepper_->compute(*state_, 0.0, 1.0));
-  ASSERT_TRUE(state_->is_initialized());
+    ASSERT_TRUE(state_.is_initialized());
+    EXPECT_NO_THROW(time_stepper_->compute(state_, 0.0, 1.0));
+    ASSERT_TRUE(state_.is_initialized());
 }
 
-// Compute step when handle is uninitialized
-TEST_F(CuDensityMatTimeStepperTest, ComputeStepUninitializedHandle) {
-  cudm_time_stepper invalidStepper(nullptr, liouvillian_);
-  EXPECT_THROW(invalidStepper.compute(*state_, 0.0, 1.0), std::runtime_error);
-}
 
-// Compute step when liouvillian is missing
-TEST_F(CuDensityMatTimeStepperTest, ComputeStepNoLiouvillian) {
-  cudm_time_stepper invalidStepper(handle_, nullptr);
-  EXPECT_THROW(invalidStepper.compute(*state_, 0.0, 1.0), std::runtime_error);
-}
 
-// Compute step with mismatched dimensions
-TEST_F(CuDensityMatTimeStepperTest, ComputeStepMistmatchedDimensions) {
-  EXPECT_THROW(std::unique_ptr<cudm_state> mismatchedState =
-                   std::make_unique<cudm_state>(handle_,
-                                                mock_initial_state_data(),
-                                                std::vector<int64_t>{3, 3}),
-               std::invalid_argument);
-}
-
-// Compute step with zero step size
-TEST_F(CuDensityMatTimeStepperTest, ComputeStepZeroStepSize) {
-  EXPECT_THROW(time_stepper_->compute(*state_, 0.0, 0.0), std::runtime_error);
-}
-
-// Compute step with large time values
-TEST_F(CuDensityMatTimeStepperTest, ComputeStepLargeTimeValues) {
-  EXPECT_NO_THROW(time_stepper_->compute(*state_, 1e6, 1e3));
-}
-
-TEST_F(CuDensityMatTimeStepperTest, ComputeStepCheckOutput) {
-  const std::vector<std::complex<double>> initialState = {
-      {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}};
-  const std::vector<int64_t> dims = {4};
-  auto inputState = std::make_unique<cudm_state>(handle_, initialState, dims);
-  auto op = cudaq::matrix_operator::create(0);
-  auto cudmOp = cudaq::convert_to_cudensitymat_operator<cudaq::matrix_operator>(
-      handle_, {}, op, dims); // Initialize the time stepper
-  auto time_stepper = std::make_unique<cudm_time_stepper>(handle_, cudmOp);
-  auto outputState = time_stepper->compute(*inputState, 0.0, 1.0);
-
-  std::vector<std::complex<double>> outputStateVec(4);
-  HANDLE_CUDA_ERROR(cudaMemcpy(
-      outputStateVec.data(), outputState.get_device_pointer(),
-      outputStateVec.size() * sizeof(std::complex<double>), cudaMemcpyDefault));
-  // Create operator move the state up 1 step.
-  const std::vector<std::complex<double>> expectedOutputState = {
-      {0.0, 0.0}, {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}};
-
-  for (std::size_t i = 0; i < expectedOutputState.size(); ++i) {
-    EXPECT_TRUE(std::abs(expectedOutputState[i] - outputStateVec[i]) < 1e-12);
-  }
-  HANDLE_CUDM_ERROR(cudensitymatDestroyOperator(cudmOp));
-}

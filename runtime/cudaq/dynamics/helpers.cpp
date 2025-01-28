@@ -146,27 +146,4 @@ OperatorHelpers::canonicalize_degrees(const std::vector<int> &degrees) {
   return sorted_degrees;
 }
 
-// Initialize state based on InitialStateArgT
-// TODO: Implement quantum state initialization
-void OperatorHelpers::initialize_state(const InitialStateArgT &stateArg,
-                                       const std::vector<int64_t> &dimensions) {
-  if (std::holds_alternative<InitialState>(stateArg)) {
-    InitialState initState = std::get<InitialState>(stateArg);
-    switch (initState) {
-    case InitialState::ZERO:
-      // ZERO quantum state initialization
-      std::cout << "Initialized to ZERO state." << std::endl;
-      break;
-    case InitialState::UNIFORM:
-      // UNIFORM quantum state initialization
-      std::cout << "Initialized to UNIFORM state." << std::endl;
-      break;
-    }
-  } else if (std::holds_alternative<void *>(stateArg)) {
-    // Initialization from runtime state
-    std::cout << "Initialized using runtime state." << std::endl;
-  } else {
-    throw std::invalid_argument("Unsupported InitialStateArgT type.");
-  }
-}
 } // namespace cudaq
