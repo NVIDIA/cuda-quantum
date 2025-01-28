@@ -11,130 +11,215 @@
 
 #include <iostream>
 #include <set>
+#include <concepts>
+#include <type_traits>
 
 namespace cudaq {
 
-// std::vector<std::tuple<scalar_operator, HandlerTy>>
-// operator_sum<HandlerTy>::canonicalize_product(product_operator<HandlerTy> &prod) const {
-//   std::vector<std::tuple<scalar_operator, HandlerTy>>
-//       canonicalized_terms;
+// private methods
 
-// std::vector<int> all_degrees;
-// std::vector<scalar_operator> scalars;
-// std::vector<HandlerTy> non_scalars;
+template<typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
+std::vector<std::tuple<scalar_operator, HandlerTy>> operator_sum<HandlerTy>::canonicalize_product(product_operator<HandlerTy> &prod) const {
+    throw std::runtime_error("not implemented");
+}
 
-// for (const auto &op : prod.get_operators()) {
-//   if (std::holds_alternative<scalar_operator>(op)) {
-//     scalars.push_back(*std::get<scalar_operator>(op));
-//   } else {
-//     non_scalars.push_back(*std::get<HandlerTy>(op));
-//     all_degrees.insert(all_degrees.end(),
-//                        std::get<HandlerTy>(op).degrees.begin(),
-//                        std::get<HandlerTy>(op).degrees.end());
-//   }
-// }
+template<typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
+std::vector<std::tuple<scalar_operator, HandlerTy>> operator_sum<HandlerTy>::_canonical_terms() const {
+    throw std::runtime_error("not implemented");
+}
 
-// if (all_degrees.size() ==
-//     std::set<int>(all_degrees.begin(), all_degrees.end()).size()) {
-//   std::sort(non_scalars.begin(), non_scalars.end(),
-//             [](const HandlerTy &a, const HandlerTy &b) {
-//               return a.degrees < b.degrees;
-//             });
-// }
+template<typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
+void operator_sum<HandlerTy>::aggregate_terms(const product_operator<HandlerTy> &head) {
+    this->terms.push_back(head.terms[0]);
+    this->coefficients.push_back(head.coefficients[0]);
+}
 
-// for (size_t i = 0; std::min(scalars.size(), non_scalars.size()); i++) {
-//   canonicalized_terms.push_back(std::make_tuple(scalars[i], non_scalars[i]));
-// }
+template<typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
+template <typename ... Args>
+void operator_sum<HandlerTy>::aggregate_terms(const product_operator<HandlerTy> &head, Args&& ... args) {
+    this->terms.push_back(head.terms[0]);
+    this->coefficients.push_back(head.coefficients[0]);
+    aggregate_terms(std::forward<Args>(args)...);
+}
 
-//   return canonicalized_terms;
-// }
+template
+std::vector<std::tuple<scalar_operator, elementary_operator>> operator_sum<elementary_operator>::canonicalize_product(product_operator<elementary_operator> &prod) const;
 
-// std::vector<std::tuple<scalar_operator, HandlerTy>>
-// operator_sum<HandlerTy>::_canonical_terms() const {
-//   std::vector<std::tuple<scalar_operator, HandlerTy>> terms;
-//   // for (const auto &term : terms) {
-//   //   auto canonicalized = canonicalize_product(term);
-//   //   terms.insert(terms.end(), canonicalized.begin(), canonicalized.end());
-//   // }
+template
+std::vector<std::tuple<scalar_operator, elementary_operator>> operator_sum<elementary_operator>::_canonical_terms() const;
 
-//   // std::sort(terms.begin(), terms.end(), [](const auto &a, const auto &b) {
-//   //   // return std::to_string(product_operator(a)) <
-//   //   //        std::to_string(product_operator(b));
-//   //   return product_operator(a).to_string() <
-//   product_operator(b).to_string();
-//   // });
+template
+void operator_sum<elementary_operator>::aggregate_terms(const product_operator<elementary_operator> &item1, 
+                                                        const product_operator<elementary_operator> &item2);
 
-//   return terms;
-// }
+template
+void operator_sum<elementary_operator>::aggregate_terms(const product_operator<elementary_operator> &item1, 
+                                                        const product_operator<elementary_operator> &item2,
+                                                        const product_operator<elementary_operator> &item3);
 
-// operator_sum<HandlerTy> operator_sum<HandlerTy>::canonicalize() const {
-//   std::vector<product_operator> canonical_terms;
-//   for (const auto &term : _canonical_terms()) {
-//     canonical_terms.push_back(product_operator(term));
-//   }
-//   return operator_sum(canonical_terms);
-// }
+// read-only properties
 
-// bool operator_sum<HandlerTy>::operator==(const operator_sum<HandlerTy> &other) const {
-// return _canonical_terms() == other._canonical_terms();
-// }
+template<typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
+std::vector<int> operator_sum<HandlerTy>::degrees() const {
+    throw std::runtime_error("not implemented");
+}
 
-// // Degrees property
-// std::vector<int> operator_sum<HandlerTy>::degrees() const {
-//   std::set<int> unique_degrees;
-//   for (const auto &term : terms) {
-//     for (const auto &op : term.get_operators()) {
-//       unique_degrees.insert(op.get_degrees().begin(),
-//       op.get_degrees().end());
-//     }
-//   }
+template<typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
+int operator_sum<HandlerTy>::n_terms() const { 
+    return this->terms.size(); 
+}
 
-//   return std::vector<int>(unique_degrees.begin(), unique_degrees.end());
-// }
+template<typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
+std::vector<product_operator<HandlerTy>> operator_sum<HandlerTy>::get_terms() const { 
+    std::vector<product_operator<HandlerTy>> prods;
+    prods.reserve(this->terms.size());
+    for (size_t i = 0; i < this->terms.size(); ++i) {
+        prods.push_back(product_operator<HandlerTy>(this->coefficients[i], this->terms[i]));
+    }
+    return prods; 
+}
 
-// // Parameters property
-// std::map<std::string, std::string> operator_sum<HandlerTy>::parameters() const {
-//   std::map<std::string, std::string> param_map;
-//   for (const auto &term : terms) {
-//     for (const auto &op : term.get_operators()) {
-//       auto op_params = op.parameters();
-//       param_map.insert(op_params.begin(), op.params.end());
-//     }
-//   }
+template
+std::vector<int> operator_sum<elementary_operator>::degrees() const;
 
-//   return param_map;
-// }
+template
+int operator_sum<elementary_operator>::n_terms() const;
 
-// // Check if all terms are spin operators
-// bool operator_sum<HandlerTy>::_is_spinop() const {
-//   return std::all_of(
-//       terms.begin(), terms.end(), [](product_operator<HandlerTy> &term) {
-//         return std::all_of(term.get_operators().begin(),
-//                            term.get_operators().end(),
-//                            [](const Operator &op) { return op.is_spinop();
-//                            });
-//       });
-// }
+template
+std::vector<product_operator<elementary_operator>> operator_sum<elementary_operator>::get_terms() const;
+
+// constructors
+
+template<typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
+template<class... Args, class>
+operator_sum<HandlerTy>::operator_sum(const Args&... args) {
+    this->terms.reserve(sizeof...(Args));
+    this->coefficients.reserve(sizeof...(Args));
+    aggregate_terms(args...);
+}
+
+template<typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
+operator_sum<HandlerTy>::operator_sum(const std::vector<product_operator<HandlerTy>> &terms) { 
+    this->terms.reserve(terms.size());
+    this->coefficients.reserve(terms.size());
+    for (const product_operator<HandlerTy>& term : terms) {
+        this->terms.push_back(term.terms[0]);
+        this->coefficients.push_back(term.coefficients[0]);
+    }
+}
+
+template<typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
+operator_sum<HandlerTy>::operator_sum(std::vector<product_operator<HandlerTy>> &&terms) { 
+    this->terms.reserve(terms.size());
+    for (const product_operator<HandlerTy>& term : terms) {
+        this->terms.push_back(std::move(term.terms[0]));
+        this->coefficients.push_back(std::move(term.coefficients[0]));
+    }
+}
+
+template<typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
+operator_sum<HandlerTy>::operator_sum(const operator_sum<HandlerTy> &other)
+    : coefficients(other.coefficients), terms(other.terms) {}
+
+template<typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
+operator_sum<HandlerTy>::operator_sum(operator_sum<HandlerTy> &&other) 
+    : coefficients(std::move(other.coefficients)), terms(std::move(other.terms)) {}
+
+template 
+operator_sum<elementary_operator>::operator_sum(const product_operator<elementary_operator> &item1);
+
+template 
+operator_sum<elementary_operator>::operator_sum(const product_operator<elementary_operator> &item1,
+                                                const product_operator<elementary_operator> &item2);
+
+template 
+operator_sum<elementary_operator>::operator_sum(const product_operator<elementary_operator> &item1,
+                                                const product_operator<elementary_operator> &item2,
+                                                const product_operator<elementary_operator> &item3);
+
+template
+operator_sum<elementary_operator>::operator_sum(const std::vector<product_operator<elementary_operator>> &terms);
+
+template
+operator_sum<elementary_operator>::operator_sum(std::vector<product_operator<elementary_operator>> &&terms);
+
+template
+operator_sum<elementary_operator>::operator_sum(const operator_sum<elementary_operator> &other);
+
+template
+operator_sum<elementary_operator>::operator_sum(operator_sum<elementary_operator> &&other);
+
+// assignments
+
+template<typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
+operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator=(const operator_sum<HandlerTy> &other) {
+    if (this != &other) {
+        coefficients = other.coefficients;
+        terms = other.terms;
+    }
+    return *this;
+}
+
+template<typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
+operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator=(operator_sum<HandlerTy> &&other) {
+    if (this != &other) {
+        coefficients = std::move(other.coefficients);
+        terms = std::move(other.terms);
+    }
+    return *this;
+}
+
+template
+operator_sum<elementary_operator>& operator_sum<elementary_operator>::operator=(const operator_sum<elementary_operator>& other);
+
+template
+operator_sum<elementary_operator>& operator_sum<elementary_operator>::operator=(operator_sum<elementary_operator> &&other);
 
 // evaluations
 
-/// FIXME:
-// tensor
-// operator_sum<HandlerTy>::to_matrix(const std::map<int, int> &dimensions,
-//                         const std::map<std::string, double> &params) const {
-// // todo
-// }
+template<typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
+std::string operator_sum<HandlerTy>::to_string() const {
+    throw std::runtime_error("not implemented");
+}
 
-// std::string operator_sum<HandlerTy>::to_string() const {
-//   std::string result;
-//   // for (const auto &term : terms) {
-//   //   result += term.to_string() + " + ";
-//   // }
-//   // // Remove last " + "
-//   // if (!result.empty())
-//   //   result.pop_back();
-//   return result;
-// }
+template<typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
+matrix_2 operator_sum<HandlerTy>::to_matrix(const std::map<int, int> &dimensions,
+                                            const std::map<std::string, double> &params) const {
+    throw std::runtime_error("not implemented");
+}
 
+template
+std::string operator_sum<elementary_operator>::to_string() const;
+
+template
+matrix_2 operator_sum<elementary_operator>::to_matrix(const std::map<int, int> &dimensions,
+                                                      const std::map<std::string, double> &params) const;
+
+// comparisons
+
+template<typename HandlerTy>
+requires std::derived_from<elementary_operator, HandlerTy>
+bool operator_sum<HandlerTy>::operator==(const operator_sum<HandlerTy> &other) const {
+    throw std::runtime_error("not implemented");
+}
+
+template
+bool operator_sum<elementary_operator>::operator==(const operator_sum<elementary_operator> &other) const;
 
 } // namespace cudaq
