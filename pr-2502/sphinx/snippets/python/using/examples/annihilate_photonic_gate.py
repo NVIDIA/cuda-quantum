@@ -21,7 +21,7 @@ def kernel():
     # Apply the create gate to the qumode.
     create(qumode)  # |0⟩ -> |1⟩
 
-    # Apply the create gate to the qumode.
+    # Apply the annihilate gate to the qumode.
     annihilate(qumode)  # |1⟩ -> |0⟩
 
     # Measurement operator.
