@@ -78,6 +78,10 @@ std::vector<std::complex<double>> cudm_state::get_raw_data() const {
   return rawData_;
 }
 
+std::vector<int64_t> cudm_state::get_hilbert_space_dims() const {
+  return hilbertSpaceDims_;
+}
+
 std::string cudm_state::dump() const {
   if (!is_initialized()) {
     throw std::runtime_error("State is not initialized.");

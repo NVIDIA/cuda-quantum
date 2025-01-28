@@ -71,6 +71,10 @@ public:
   /// @return A copy of the raw data as a vector of complex numbers.
   std::vector<std::complex<double>> get_raw_data() const;
 
+  /// @brief Get a copy of the hilbert space dimensions for the quantum state.
+  /// @return A copy of the hilbert space dimensions of a vector of integers.
+  std::vector<int64_t> get_hilbert_space_dims() const;
+
 private:
   std::vector<std::complex<double>> rawData_;
   cudensitymatState_t state_;
