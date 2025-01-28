@@ -74,6 +74,10 @@ bool cudm_state::is_density_matrix() const {
   return rawData_.size() == calculate_density_matrix_size(hilbertSpaceDims_);
 }
 
+std::vector<std::complex<double>> cudm_state::get_raw_data() const {
+  return rawData_;
+}
+
 std::string cudm_state::dump() const {
   if (!is_initialized()) {
     throw std::runtime_error("State is not initialized.");
