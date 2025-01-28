@@ -109,7 +109,7 @@ void assert_product_equal(const cudaq::product_operator<cudaq::elementary_operat
 
   auto sumterms_prod = ((cudaq::operator_sum<cudaq::elementary_operator>)got).get_terms();
   ASSERT_TRUE(sumterms_prod.size() == 1);
-  ASSERT_TRUE(got.get_coefficient().evaluate({}) == expected_coefficient);
+  ASSERT_TRUE(got.get_coefficient().evaluate() == expected_coefficient);
   ASSERT_TRUE(got.get_terms() == expected_terms);
 }
 
@@ -273,8 +273,8 @@ TEST(OperatorExpressions, checkPreBuiltElementaryOpsScalars) {
     auto product = self * other;
     auto reverse = other * self;
 
-    utils_0::assert_product_equal(product, other.evaluate({}), {cudaq::elementary_operator("annihilate", {0})});
-    utils_0::assert_product_equal(reverse, other.evaluate({}), {cudaq::elementary_operator("annihilate", {0})});
+    utils_0::assert_product_equal(product, other.evaluate(), {cudaq::elementary_operator("annihilate", {0})});
+    utils_0::assert_product_equal(reverse, other.evaluate(), {cudaq::elementary_operator("annihilate", {0})});
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
