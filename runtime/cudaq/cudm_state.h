@@ -67,6 +67,10 @@ public:
   /// @brief Attach raw data to the internal state representation
   void attach_storage();
 
+  /// @brief Get a copy of the raw data representing the quantum state.
+  /// @return A copy of the raw data as a vector of complex numbers.
+  std::vector<std::complex<double>> get_raw_data() const;
+
 private:
   std::vector<std::complex<double>> rawData_;
   cudensitymatState_t state_;
