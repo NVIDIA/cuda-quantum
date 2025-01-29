@@ -76,6 +76,12 @@ The simulators availible in CUDA-Q are grouped in the figure below. The followin
      - CPU
      - N/A
      - Thousands +
+   * - orca-photonics
+     - State Vector
+     - Photonics
+     - CPU
+     - FP64
+     - Varies on qudit level
 
 
 
@@ -86,4 +92,5 @@ The simulators availible in CUDA-Q are grouped in the figure below. The followin
         Tensor Network Simulators <sims/tnsims.rst>
         Multi-QPU Simulators <sims/mqpusims.rst>
         Noisy Simulators <sims/noisy.rst>
+        Photonics Simulators <sims/photonics.rst>
 
