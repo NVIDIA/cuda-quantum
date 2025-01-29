@@ -22,7 +22,6 @@ set(CUDAQ_OPS_SRC
   elementary_operators.cpp 
   product_operators.cpp 
   operator_sum.cpp 
-  arithmetics.cpp
   schedule.cpp
 )
 
