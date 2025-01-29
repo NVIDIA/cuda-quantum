@@ -219,6 +219,78 @@ product_operator<elementary_operator> product_operator<elementary_operator>::ope
 template
 product_operator<elementary_operator> product_operator<elementary_operator>::operator+() const;
 
+// right-hand arithmetics
+
+#define PRODUCT_MULTIPLICATION(otherTy)                                                 \
+  template <typename HandlerTy>                                                         \
+  product_operator<HandlerTy> product_operator<HandlerTy>::operator*(                   \
+                                                           otherTy other) const {       \
+    return product_operator<HandlerTy>(other * this->coefficients[0], this->terms[0]);  \
+  }
+
+PRODUCT_MULTIPLICATION(double);
+PRODUCT_MULTIPLICATION(std::complex<double>);
+PRODUCT_MULTIPLICATION(const scalar_operator &);
+
+#define PRODUCT_ADDITION(otherTy, op)                                                   \
+  template <typename HandlerTy>                                                         \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator op(                     \
+                                                       otherTy other) const {           \
+    return operator_sum<HandlerTy>(product_operator<HandlerTy>(other), op *this);       \
+  }
+
+PRODUCT_ADDITION(double, +);
+PRODUCT_ADDITION(double, -);
+PRODUCT_ADDITION(std::complex<double>, +);
+PRODUCT_ADDITION(std::complex<double>, -);
+PRODUCT_ADDITION(const scalar_operator &, +);
+PRODUCT_ADDITION(const scalar_operator &, -);
+
+template <typename HandlerTy>
+product_operator<HandlerTy> product_operator<HandlerTy>::operator*(const HandlerTy &other) const {
+  std::vector<HandlerTy> terms;
+  terms.reserve(this->terms[0].size() + 1);
+  for (auto term : this->terms[0])
+    terms.push_back(term);
+  terms.push_back(other);
+  return product_operator<HandlerTy>(this->coefficients[0], std::move(terms));
+}
+
+#define PRODUCT_ADDITION_HANDLER(op)                                                    \
+  template <typename HandlerTy>                                                         \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator op(                     \
+                                                       const HandlerTy &other) const {  \
+    return operator_sum<HandlerTy>(product_operator<HandlerTy>(1., other), op *this);   \
+  }
+
+PRODUCT_ADDITION_HANDLER(+)
+PRODUCT_ADDITION_HANDLER(-)
+
+template
+product_operator<elementary_operator> product_operator<elementary_operator>::operator*(double other) const;
+template
+operator_sum<elementary_operator> product_operator<elementary_operator>::operator+(double other) const;
+template
+operator_sum<elementary_operator> product_operator<elementary_operator>::operator-(double other) const;
+template
+product_operator<elementary_operator> product_operator<elementary_operator>::operator*(std::complex<double> other) const;
+template
+operator_sum<elementary_operator> product_operator<elementary_operator>::operator+(std::complex<double> other) const;
+template
+operator_sum<elementary_operator> product_operator<elementary_operator>::operator-(std::complex<double> other) const;
+template
+product_operator<elementary_operator> product_operator<elementary_operator>::operator*(const scalar_operator &other) const;
+template
+operator_sum<elementary_operator> product_operator<elementary_operator>::operator+(const scalar_operator &other) const;
+template
+operator_sum<elementary_operator> product_operator<elementary_operator>::operator-(const scalar_operator &other) const;
+template
+product_operator<elementary_operator> product_operator<elementary_operator>::operator*(const elementary_operator &other) const;
+template
+operator_sum<elementary_operator> product_operator<elementary_operator>::operator+(const elementary_operator &other) const;
+template
+operator_sum<elementary_operator> product_operator<elementary_operator>::operator-(const elementary_operator &other) const;
+
 // left-hand arithmetics
 
 #define PRODUCT_MULTIPLICATION_REVERSE(otherTy)                                         \
@@ -256,15 +328,15 @@ product_operator<HandlerTy> operator*(const HandlerTy &other, const product_oper
   return product_operator<HandlerTy>(self.coefficients[0], std::move(terms));
 }
 
-template <typename HandlerTy>
-operator_sum<HandlerTy> operator+(const HandlerTy &other, const product_operator<HandlerTy> &self) {
-  return operator_sum<HandlerTy>(product_operator<HandlerTy>(1., other), self);
-}
+#define PRODUCT_ADDITION_HANDLER_REVERSE(op)                                            \
+  template <typename HandlerTy>                                                         \
+  operator_sum<HandlerTy> operator op(const HandlerTy &other,                           \
+                                      const product_operator<HandlerTy> &self) {        \
+    return operator_sum<HandlerTy>(product_operator<HandlerTy>(1., other), op self);    \
+  }
 
-template <typename HandlerTy>
-operator_sum<HandlerTy> operator-(const HandlerTy &other, const product_operator<HandlerTy> &self) {
-  return operator_sum<HandlerTy>(product_operator<HandlerTy>(1., other), -self);
-}
+PRODUCT_ADDITION_HANDLER_REVERSE(+)
+PRODUCT_ADDITION_HANDLER_REVERSE(-)
 
 template
 product_operator<elementary_operator> operator*(double other, const product_operator<elementary_operator> &self);
