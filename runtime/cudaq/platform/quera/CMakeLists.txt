@@ -31,3 +31,12 @@ target_link_libraries(${LIBRARY_NAME}
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 
 add_target_config(quera)
+
+add_library(cudaq-serverhelper-quera SHARED QuEraExecutor.cpp QuEraServerHelper.cpp)
+target_link_libraries(cudaq-serverhelper-quera
+  PUBLIC 
+    cudaq-serverhelper-braket
+    cudaq-common 
+    fmt::fmt-header-only 
+)
+install(TARGETS cudaq-serverhelper-quera DESTINATION lib)
