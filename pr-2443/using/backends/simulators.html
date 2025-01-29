@@ -27,6 +27,8 @@
         <script src="../../_static/copybutton.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -128,6 +130,12 @@
 <li class="toctree-l3"><a class="reference internal" href="../examples/quantum_operations.html#measurements">Measurements</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/photonic_operations.html">   Photonic Operations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/photonic_operations.html#quantum-photonic-states">Quantum Photonic States</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/photonic_operations.html#quantum-photonics-gates">Quantum Photonics Gates</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/photonic_operations.html#measurements">Measurements</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/measuring_kernels.html">   Measuring Kernels</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/measuring_kernels.html#Midcircuit-Measurement-and-Conditional-Logic">Midcircuit Measurement and Conditional Logic</a></li>
 </ul>
@@ -147,6 +155,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../../examples/python/executing_kernels.html#Get-State-Async">Get State Async</a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/executing_photonic_kernels.html">   Executing Photonic Kernels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_photonic_kernels.html#Sample">Sample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_photonic_kernels.html#Get-state">Get state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_photonic_kernels.html#Parallelization-Techniques">Parallelization Techniques</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/expectation_values.html">   Computing Expectation Values</a><ul>
@@ -222,7 +236,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutschs_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutschs_algorithm.html#Phase-oracle">Phase oracle</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutschs_algorithm.html#Quantum-parallelism">Quantum parallelism</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutschs_algorithm.html#Deutschs'-Algorithm:">Deutschs’ Algorithm:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutschs_algorithm.html#Deutsch's-Algorithm:">Deutsch’s Algorithm:</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html">Divisive Clustering With Coresets Using CUDA-Q</a><ul>
@@ -253,7 +267,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/krylov.html">Multi-reference Quantum Krylov Algorithm - <span class="math notranslate nohighlight">\(H_2\)</span> Molecule</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/krylov.html#Setup">Setup</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/krylov.html#Computing-the-matrix-elements">Computing the matrix elements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/krylov.html#Determining-the-ground-state-energy-of-the-Subspace">Determining the ground state energy of the Subspace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/afqmc.html">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
@@ -319,6 +333,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#features">Features</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#single-gpu">Single-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#openmp-cpu-only">OpenMP CPU-only</a></li>
 </ul>
 </li>
@@ -329,6 +344,10 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#clifford-only-simulator">Clifford-Only Simulator</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#stim-cpu">Stim (CPU)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#photonics-simulators">Photonics Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id3">OpenMP CPU-only</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#fermioniq">Fermioniq</a></li>
@@ -419,6 +438,7 @@
 <li class="toctree-l2"><a class="reference internal" href="dynamics.html#operator">Operator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="dynamics.html#time-dependent-dynamics">Time-Dependent Dynamics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="dynamics.html#numerical-integrators">Numerical Integrators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dynamics.html#multi-gpu-multi-node-execution">Multi-GPU Multi-Node Execution</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../install/install.html">   Installation</a><ul>
@@ -628,6 +648,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.spin.y"><code class="docutils literal notranslate"><span class="pre">spin.y()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.spin.z"><code class="docutils literal notranslate"><span class="pre">spin.z()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.cudm_state.CuDensityMatState"><code class="docutils literal notranslate"><span class="pre">CuDensityMatState</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.helpers.InitialState"><code class="docutils literal notranslate"><span class="pre">InitialState</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.cudm_state.to_cupy_array"><code class="docutils literal notranslate"><span class="pre">to_cupy_array()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.SampleResult"><code class="docutils literal notranslate"><span class="pre">SampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncSampleResult"><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></li>
@@ -748,6 +769,11 @@ and multi-QPU (<code class="code docutils literal notranslate"><span class="pre"
 </ul>
 <p>Host CPU memory can be leveraged in addition to GPU memory to accommodate the state vector
 (i.e., maximizing the number of qubits to be simulated).</p>
+<ul class="simple">
+<li><p>Trajectory simulation for noisy quantum circuits</p></li>
+</ul>
+<p>The <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target supports noisy quantum circuit simulations using quantum trajectory method across all configurations: single GPU, multi-node multi-GPU, and with host memory.
+When simulating many trajectories with small state vectors, the simulation is batched for optimal performance.</p>
 </section>
 <section id="single-gpu">
 <span id="cuquantum-single-gpu"></span><h3>Single-GPU<a class="headerlink" href="#single-gpu" title="Permalink to this heading">¶</a></h3>
@@ -797,8 +823,8 @@ use <code class="code docutils literal notranslate"><span class="pre">cudaq.set_
 <p>In the single-GPU mode, the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target provides the following
 environment variable options. Any environment variables must be set prior to
 setting the target.</p>
-<table class="docutils align-default" id="id4">
-<caption><span class="caption-text"><strong>Environment variable options supported in single-GPU mode</strong></span><a class="headerlink" href="#id4" title="Permalink to this table">¶</a></caption>
+<table class="docutils align-default" id="id6">
+<caption><span class="caption-text"><strong>Environment variable options supported in single-GPU mode</strong></span><a class="headerlink" href="#id6" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col style="width: 20%" />
 <col style="width: 30%" />
@@ -857,7 +883,7 @@ To execute a program on the multi-node multi-GPU NVIDIA target, use the followin
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>If you installed CUDA-Q via <code class="code docutils literal notranslate"><span class="pre">pip</span></code>, you will need to install the necessary MPI dependencies separately;
-please follow the instructions for installing dependencies in the <a class="reference external" href="https://pypi.org/project/cuda-quantum/#description">Project Description</a>.</p>
+please follow the instructions for installing dependencies in the <a class="reference external" href="https://pypi.org/project/cudaq/#description">Project Description</a>.</p>
 </div>
 <p>In addition to using MPI in the simulator, you can use it in your application code by installing <a class="reference external" href="https://mpi4py.readthedocs.io/">mpi4py</a>, and
 invoking the program with the command</p>
@@ -901,8 +927,8 @@ mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</spa
 the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target provides the following environment variable options particularly for
 the multi-node multi-GPU configuration. Any environment variables must be set
 prior to setting the target.</p>
-<table class="docutils align-default" id="id5">
-<caption><span class="caption-text"><strong>Additional environment variable options for multi-node multi-GPU mode</strong></span><a class="headerlink" href="#id5" title="Permalink to this table">¶</a></caption>
+<table class="docutils align-default" id="id7">
+<caption><span class="caption-text"><strong>Additional environment variable options for multi-node multi-GPU mode</strong></span><a class="headerlink" href="#id7" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col style="width: 20%" />
 <col style="width: 30%" />
@@ -977,6 +1003,228 @@ environment variable to another integer value as shown below.</p>
 </div>
 </div>
 </section>
+<section id="trajectory-noisy-simulation">
+<h3>Trajectory Noisy Simulation<a class="headerlink" href="#trajectory-noisy-simulation" title="Permalink to this heading">¶</a></h3>
+<p>When a <code class="code docutils literal notranslate"><span class="pre">noise_model</span></code> is provided to CUDA-Q, the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target will incorporate quantum noise into the quantum circuit simulation according to the noise model specified.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+
+<span class="c1"># Use the `nvidia` target</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
+
+<span class="c1"># Let&#39;s define a simple kernel that we will add noise to.</span>
+<span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">2</span>
+
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+    <span class="n">qvector</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
+    <span class="n">x</span><span class="p">(</span><span class="n">qvector</span><span class="p">)</span>
+    <span class="n">mz</span><span class="p">(</span><span class="n">qvector</span><span class="p">)</span>
+
+
+<span class="c1"># Add a simple bit-flip noise channel to X gate</span>
+<span class="n">error_probability</span> <span class="o">=</span> <span class="mf">0.1</span>
+<span class="n">bit_flip</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">BitFlipChannel</span><span class="p">(</span><span class="n">error_probability</span><span class="p">)</span>
+
+<span class="c1"># Add noise channels to our noise model.</span>
+<span class="n">noise_model</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">NoiseModel</span><span class="p">()</span>
+<span class="c1"># Apply the bit-flip channel to any X-gate on any qubits</span>
+<span class="n">noise_model</span><span class="o">.</span><span class="n">add_all_qubit_channel</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="n">bit_flip</span><span class="p">)</span>
+
+<span class="c1"># Due to the impact of noise, our measurements will no longer be uniformly</span>
+<span class="c1"># in the |11&gt; state.</span>
+<span class="n">noisy_counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span>
+                            <span class="n">qubit_count</span><span class="p">,</span>
+                            <span class="n">noise_model</span><span class="o">=</span><span class="n">noise_model</span><span class="p">,</span>
+                            <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+
+<span class="c1"># The probability that we get the perfect result (11) should be ~ 0.9 * 0.9 = 0.81</span>
+<span class="n">noisy_counts</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>program.py
+<span class="o">{</span><span class="w"> </span><span class="m">00</span>:15<span class="w"> </span><span class="m">01</span>:92<span class="w"> </span><span class="m">10</span>:81<span class="w"> </span><span class="m">11</span>:812<span class="w"> </span><span class="o">}</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--4-input--2" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
+
+<span class="k">struct</span><span class="w"> </span><span class="nc">xOp</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="kt">int</span><span class="w"> </span><span class="n">qubit_count</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="n">q</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">);</span>
+<span class="w">    </span><span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+<span class="w">    </span><span class="n">mz</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">};</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// Add a simple bit-flip noise channel to X gate</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">error_probability</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.1</span><span class="p">;</span>
+
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">bit_flip_channel</span><span class="w"> </span><span class="n">bit_flip</span><span class="p">(</span><span class="n">error_probability</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// Add noise channels to our noise model.</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">noise_model</span><span class="w"> </span><span class="n">noise_model</span><span class="p">;</span>
+<span class="w">  </span><span class="c1">// Apply the bitflip channel to any X-gate on any qubits</span>
+<span class="w">  </span><span class="n">noise_model</span><span class="p">.</span><span class="n">add_all_qubit_channel</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">types</span><span class="o">::</span><span class="n">x</span><span class="o">&gt;</span><span class="p">(</span><span class="n">bit_flip</span><span class="p">);</span>
+
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">qubit_count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="w">  </span><span class="c1">// Due to the impact of noise, our measurements will no longer be uniformly in</span>
+<span class="w">  </span><span class="c1">// the |11&gt; state.</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">counts</span><span class="w"> </span><span class="o">=</span>
+<span class="w">      </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">({.</span><span class="n">shots</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">noise</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">noise_model</span><span class="p">},</span><span class="w"> </span><span class="n">xOp</span><span class="p">{},</span><span class="w"> </span><span class="n">qubit_count</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// The probability that we get the perfect result (11) should be ~ 0.9 * 0.9 =</span>
+<span class="w">  </span><span class="c1">// 0.81</span>
+<span class="w">  </span><span class="n">counts</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>nvidia<span class="w"> </span>program.cpp<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>-o<span class="w"> </span>program.x
+./program.x
+<span class="o">{</span><span class="w"> </span><span class="m">00</span>:15<span class="w"> </span><span class="m">01</span>:92<span class="w"> </span><span class="m">10</span>:81<span class="w"> </span><span class="m">11</span>:812<span class="w"> </span><span class="o">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>In the case of bit-string measurement sampling as in the above example, each measurement ‘shot’ is executed as a trajectory, whereby Kraus operators specified in the noise model are sampled.</p>
+<p>For observable expectation value estimation, the statistical error scales asymptotically as <span class="math notranslate nohighlight">\(1/\sqrt{N_{trajectories}}\)</span>, where <span class="math notranslate nohighlight">\(N_{trajectories}\)</span> is the number of trajectories.
+Hence, depending on the required level of accuracy, the number of trajectories can be specified accordingly.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--5-input--1" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span>
+
+<span class="c1"># Use the `nvidia` target</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
+
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
+    <span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+
+
+<span class="c1"># Add a simple bit-flip noise channel to X gate</span>
+<span class="n">error_probability</span> <span class="o">=</span> <span class="mf">0.1</span>
+<span class="n">bit_flip</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">BitFlipChannel</span><span class="p">(</span><span class="n">error_probability</span><span class="p">)</span>
+
+<span class="c1"># Add noise channels to our noise model.</span>
+<span class="n">noise_model</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">NoiseModel</span><span class="p">()</span>
+<span class="c1"># Apply the bit-flip channel to any X-gate on any qubits</span>
+<span class="n">noise_model</span><span class="o">.</span><span class="n">add_all_qubit_channel</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="n">bit_flip</span><span class="p">)</span>
+
+<span class="n">noisy_exp_val</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span>
+                              <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                              <span class="n">noise_model</span><span class="o">=</span><span class="n">noise_model</span><span class="p">,</span>
+                              <span class="n">num_trajectories</span><span class="o">=</span><span class="mi">1024</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
+<span class="c1"># True expectation: 0.1 - 0.9 = -0.8 (|1&gt; has &lt;Z&gt; of -1 and |1&gt; has &lt;Z&gt; of +1)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Noisy &lt;Z&gt; with 1024 trajectories =&quot;</span><span class="p">,</span> <span class="n">noisy_exp_val</span><span class="p">)</span>
+
+<span class="c1"># Rerun with a higher number of trajectories</span>
+<span class="n">noisy_exp_val</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span>
+                              <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                              <span class="n">noise_model</span><span class="o">=</span><span class="n">noise_model</span><span class="p">,</span>
+                              <span class="n">num_trajectories</span><span class="o">=</span><span class="mi">8192</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Noisy &lt;Z&gt; with 8192 trajectories =&quot;</span><span class="p">,</span> <span class="n">noisy_exp_val</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>program.py
+Noisy<span class="w"> </span>&lt;Z&gt;<span class="w"> </span>with<span class="w"> </span><span class="m">1024</span><span class="w"> </span><span class="nv">trajectories</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>-0.810546875
+Noisy<span class="w"> </span>&lt;Z&gt;<span class="w"> </span>with<span class="w"> </span><span class="m">8192</span><span class="w"> </span><span class="nv">trajectories</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>-0.800048828125
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--5-input--2" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
+
+<span class="k">struct</span><span class="w"> </span><span class="nc">xOp</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()()</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
+<span class="w">    </span><span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">};</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// Add a simple bit-flip noise channel to X gate</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">error_probability</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.1</span><span class="p">;</span>
+
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">bit_flip_channel</span><span class="w"> </span><span class="n">bit_flip</span><span class="p">(</span><span class="n">error_probability</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// Add noise channels to our noise model.</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">noise_model</span><span class="w"> </span><span class="n">noise_model</span><span class="p">;</span>
+<span class="w">  </span><span class="c1">// Apply the bitflip channel to any X-gate on any qubits</span>
+<span class="w">  </span><span class="n">noise_model</span><span class="p">.</span><span class="n">add_all_qubit_channel</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">types</span><span class="o">::</span><span class="n">x</span><span class="o">&gt;</span><span class="p">(</span><span class="n">bit_flip</span><span class="p">);</span>
+
+<span class="w">  </span><span class="kt">double</span><span class="w"> </span><span class="n">noisy_exp_val</span><span class="w"> </span><span class="o">=</span>
+<span class="w">      </span><span class="n">cudaq</span><span class="o">::</span><span class="n">observe</span><span class="p">({.</span><span class="n">noise</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">noise_model</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">num_trajectories</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1024</span><span class="p">},</span><span class="w"> </span><span class="n">xOp</span><span class="p">{},</span>
+<span class="w">                     </span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin</span><span class="o">::</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">));</span>
+
+<span class="w">  </span><span class="c1">// True expectation: 0.1 - 0.9 = -0.8 (|1&gt; has &lt;Z&gt; of -1 and |1&gt; has &lt;Z&gt; of</span>
+<span class="w">  </span><span class="c1">// +1)</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Noisy &lt;Z&gt; with 1024 trajectories = &quot;</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">noisy_exp_val</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// Rerun with a higher number of trajectories</span>
+<span class="w">  </span><span class="n">noisy_exp_val</span><span class="w"> </span><span class="o">=</span>
+<span class="w">      </span><span class="n">cudaq</span><span class="o">::</span><span class="n">observe</span><span class="p">({.</span><span class="n">noise</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">noise_model</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">num_trajectories</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">8192</span><span class="p">},</span><span class="w"> </span><span class="n">xOp</span><span class="p">{},</span>
+<span class="w">                     </span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin</span><span class="o">::</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">));</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Noisy &lt;Z&gt; with 8192 trajectories = &quot;</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">noisy_exp_val</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>nvidia<span class="w"> </span>program.cpp<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>-o<span class="w"> </span>program.x
+./program.x
+Noisy<span class="w"> </span>&lt;Z&gt;<span class="w"> </span>with<span class="w"> </span><span class="m">1024</span><span class="w"> </span><span class="nv">trajectories</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>-0.810547
+Noisy<span class="w"> </span>&lt;Z&gt;<span class="w"> </span>with<span class="w"> </span><span class="m">8192</span><span class="w"> </span><span class="nv">trajectories</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>-0.800049
+</pre></div>
+</div>
+</div>
+</div>
+<p>The following environment variable options are applicable to the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target for trajectory noisy simulation. Any environment variables must be set
+prior to setting the target.</p>
+<table class="docutils align-default" id="id8">
+<caption><span class="caption-text"><strong>Additional environment variable options for trajectory simulation</strong></span><a class="headerlink" href="#id8" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 30%" />
+<col style="width: 50%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p>Option</p></td>
+<td><p>Value</p></td>
+<td><p>Description</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_OBSERVE_NUM_TRAJECTORIES</span></code></p></td>
+<td><p>positive integer</p></td>
+<td><p>The default number of trajectories for observe simulation if none was provided in the <code class="code docutils literal notranslate"><span class="pre">observe</span></code> call. The default value is 1000.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_BATCH_SIZE</span></code></p></td>
+<td><p>positive integer or <code class="code docutils literal notranslate"><span class="pre">NONE</span></code></p></td>
+<td><p>The number of state vectors in the batched mode. If <code class="code docutils literal notranslate"><span class="pre">NONE</span></code>, the batch size will be calculated based on the available device memory. Default is <code class="code docutils literal notranslate"><span class="pre">NONE</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_BATCHED_SIM_MAX_BRANCHES</span></code></p></td>
+<td><p>positive integer</p></td>
+<td><p>The number of trajectory branches to be tracked simultaneously in the gate fusion. Default is 16.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_BATCHED_SIM_MAX_QUBITS</span></code></p></td>
+<td><p>positive integer</p></td>
+<td><p>The max number of qubits for batching. If the qubit count in the circuit is more than this value, batched trajectory simulation will be disabled. The default value is 20.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_BATCHED_SIM_MIN_BATCH_SIZE</span></code></p></td>
+<td><p>positive integer</p></td>
+<td><p>The minimum number of trajectories for batching. If the number of trajectories is less than this value, batched trajectory simulation will be disabled. Default value is 4.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Batched trajectory simulation is only available on the single-GPU execution mode of the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target.</p>
+<p>If batched trajectory simulation is not activated, e.g., due to problem size, number of trajectories, or the nature of the circuit (dynamic circuits with mid-circuit measurements and conditional branching), the required number of trajectories will be executed sequentially.</p>
+</div>
+</section>
 <section id="openmp-cpu-only">
 <span id="id1"></span><h3>OpenMP CPU-only<a class="headerlink" href="#openmp-cpu-only" title="Permalink to this heading">¶</a></h3>
 <p id="qpp-cpu-backend">This target provides a state vector simulator based on the CPU-only, OpenMP threaded <a class="reference external" href="https://github.com/softwareqinc/qpp">Q++</a> library.
@@ -984,7 +1232,7 @@ This is the default target when running on CPU-only systems.</p>
 <p>To execute a program on the <code class="code docutils literal notranslate"><span class="pre">qpp-cpu</span></code> target even if a GPU-accelerated backend is available,
 use the following commands:</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--6-input--1" name="tab-set--6" type="radio"><label class="tab-label" for="tab-set--6-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>program.py<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>--target<span class="w"> </span>qpp-cpu
 </pre></div>
 </div>
@@ -994,7 +1242,7 @@ use the following commands:</p>
 </div>
 <p>If a target is set in the application code, this target will override the <code class="code docutils literal notranslate"><span class="pre">--target</span></code> command line flag given during program invocation.</p>
 </div>
-<input class="tab-input" id="tab-set--4-input--2" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--6-input--2" name="tab-set--6" type="radio"><label class="tab-label" for="tab-set--6-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>qpp-cpu<span class="w"> </span>program.cpp<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>-o<span class="w"> </span>program.x
 ./program.x
 </pre></div>
@@ -1016,7 +1264,7 @@ Measurement samples and expectation values are computed via tensor network contr
 This backend supports multi-node, multi-GPU distribution of tensor operations required to evaluate and simulate the circuit.</p>
 <p>To execute a program on the <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> target using a <em>single GPU</em>, use the following commands:</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--5-input--1" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--7-input--1" name="tab-set--7" type="radio"><label class="tab-label" for="tab-set--7-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>program.py<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>--target<span class="w"> </span>tensornet
 </pre></div>
 </div>
@@ -1026,7 +1274,7 @@ This backend supports multi-node, multi-GPU distribution of tensor operations re
 </div>
 <p>If a target is set in the application code, this target will override the <code class="code docutils literal notranslate"><span class="pre">--target</span></code> command line flag given during program invocation.</p>
 </div>
-<input class="tab-input" id="tab-set--5-input--2" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--7-input--2" name="tab-set--7" type="radio"><label class="tab-label" for="tab-set--7-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>tensornet<span class="w"> </span>program.cpp<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>-o<span class="w"> </span>program.x
 ./program.x
 </pre></div>
@@ -1041,7 +1289,7 @@ We will add support for it in future releases. For more information, see this <a
 </div>
 <p>Use the following commands to enable distribution across multiple GPUs (adjust the value of the <code class="code docutils literal notranslate"><span class="pre">-np</span></code> flag as needed to reflect available GPU resources on your system):</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--6-input--1" name="tab-set--6" type="radio"><label class="tab-label" for="tab-set--6-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--8-input--1" name="tab-set--8" type="radio"><label class="tab-label" for="tab-set--8-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>python3<span class="w"> </span>program.py<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>--target<span class="w"> </span>tensornet
 </pre></div>
 </div>
@@ -1051,7 +1299,7 @@ invoking the program with the command</p>
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--6-input--2" name="tab-set--6" type="radio"><label class="tab-label" for="tab-set--6-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--8-input--2" name="tab-set--8" type="radio"><label class="tab-label" for="tab-set--8-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>tensornet<span class="w"> </span>program.cpp<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>-o<span class="w"> </span>program.x
 mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>./program.x
 </pre></div>
@@ -1070,6 +1318,8 @@ environment variable to the newly built <code class="code docutils literal notra
 <li><p><strong>`CUDA_VISIBLE_DEVICES=X`</strong>: Makes the process only see GPU X on multi-GPU nodes. Each MPI process must only see its own dedicated GPU. For example, if you run 8 MPI processes on a DGX system with 8 GPUs, each MPI process should be assigned its own dedicated GPU via <code class="code docutils literal notranslate"><span class="pre">CUDA_VISIBLE_DEVICES</span></code> when invoking <code class="code docutils literal notranslate"><span class="pre">mpiexec</span></code> (or <code class="code docutils literal notranslate"><span class="pre">mpirun</span></code>) commands.</p></li>
 <li><p><strong>`OMP_PLACES=cores`</strong>: Set this environment variable to improve CPU parallelization.</p></li>
 <li><p><strong>`OMP_NUM_THREADS=X`</strong>: To enable CPU parallelization, set X to <code class="code docutils literal notranslate"><span class="pre">NUMBER_OF_CORES_PER_NODE/NUMBER_OF_GPUS_PER_NODE</span></code>.</p></li>
+<li><p><strong>`CUDAQ_TENSORNET_CONTROLLED_RANK=X`</strong>: Specify the number of controlled qubits whereby the full tensor body of the controlled gate is expanded. If the number of controlled qubits is greater than this value, the gate is applied as a controlled tensor operator to the tensor network state. Default value is 1.</p></li>
+<li><p><strong>`CUDAQ_TENSORNET_OBSERVE_CONTRACT_PATH_REUSE=X`</strong>: Set this environment variable to <code class="code docutils literal notranslate"><span class="pre">TRUE</span></code> (<code class="code docutils literal notranslate"><span class="pre">ON</span></code>) or <code class="code docutils literal notranslate"><span class="pre">FALSE</span></code> (<code class="code docutils literal notranslate"><span class="pre">OFF</span></code>) to enable or disable contraction path reuse when computing expectation values. Default is <code class="code docutils literal notranslate"><span class="pre">OFF</span></code>.</p></li>
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -1079,7 +1329,15 @@ See the section <a class="reference internal" href="../install/local_installatio
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Setting random seed, via <code class="code docutils literal notranslate"><span class="pre">cudaq::set_random_seed</span></code>, is not supported for this backend due to a limitation of the <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> library. This will be fixed in future release once this feature becomes available.</p>
+<p>When using contraction path reuse (<code class="code docutils literal notranslate"><span class="pre">CUDAQ_TENSORNET_OBSERVE_CONTRACT_PATH_REUSE=TRUE</span></code>), <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> backends perform a single contraction path optimization with an opaque spin operator term. This path is then used to contract all the actual terms in the spin operator, hence saving the path finding time.</p>
+<p>As we use an opaque spin operator term as a placeholder for contraction path optimization, the resulting contraction path is not as optimal as if the actual spin operator is used.
+For instance, if the spin operator is sparse (only acting on a few qubits), the contraction can be significantly simplified.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> backends only return the overall expectation value for a <a class="reference internal" href="../../api/languages/python_api.html#cudaq.SpinOperator" title="cudaq.SpinOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">cudaq.SpinOperator</span></code></a> when using the <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code> method.
+Term-by-term expectation values will not be available in the resulting <code class="code docutils literal notranslate"><span class="pre">ObserveResult</span></code> object.
+If needed, these values can be computed by calling <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code> on individual terms instead.</p>
 </div>
 </section>
 <section id="matrix-product-state">
@@ -1088,7 +1346,7 @@ See the section <a class="reference internal" href="../install/local_installatio
 The <code class="code docutils literal notranslate"><span class="pre">tensornet-mps</span></code> backend only supports single-GPU simulation. Its approximate nature allows the <code class="code docutils literal notranslate"><span class="pre">tensornet-mps</span></code> backend to handle a large number of qubits for certain classes of quantum circuits on a relatively small memory footprint.</p>
 <p>To execute a program on the <code class="code docutils literal notranslate"><span class="pre">tensornet-mps</span></code> target, use the following commands:</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--7-input--1" name="tab-set--7" type="radio"><label class="tab-label" for="tab-set--7-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--9-input--1" name="tab-set--9" type="radio"><label class="tab-label" for="tab-set--9-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>program.py<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>--target<span class="w"> </span>tensornet-mps
 </pre></div>
 </div>
@@ -1098,7 +1356,7 @@ The <code class="code docutils literal notranslate"><span class="pre">tensornet-
 </div>
 <p>If a target is set in the application code, this target will override the <code class="code docutils literal notranslate"><span class="pre">--target</span></code> command line flag given during program invocation.</p>
 </div>
-<input class="tab-input" id="tab-set--7-input--2" name="tab-set--7" type="radio"><label class="tab-label" for="tab-set--7-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--9-input--2" name="tab-set--9" type="radio"><label class="tab-label" for="tab-set--9-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>tensornet-mps<span class="w"> </span>program.cpp<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>-o<span class="w"> </span>program.x
 ./program.x
 </pre></div>
@@ -1120,10 +1378,6 @@ See the section <a class="reference internal" href="../install/local_installatio
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Setting random seed, via <code class="code docutils literal notranslate"><span class="pre">cudaq::set_random_seed</span></code>, is not supported for this backend due to a limitation of the <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> library. This will be fixed in future release once this feature becomes available.</p>
-</div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
 <p>The parallelism of Jacobi method (the default <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MPS_SVD_ALGO</span></code> setting) gives GPU better performance on small and medium size matrices.
 If you expect a large number of singular values (e.g., increasing the <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MPS_MAX_BOND</span></code> setting), please adjust the <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MPS_SVD_ALGO</span></code> setting accordingly.</p>
 </div>
@@ -1139,7 +1393,7 @@ supported. This simulator is based on the <a class="reference external" href="ht
 library.</p>
 <p>To execute a program on the <code class="code docutils literal notranslate"><span class="pre">stim</span></code> target, use the following commands:</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--8-input--1" name="tab-set--8" type="radio"><label class="tab-label" for="tab-set--8-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--10-input--1" name="tab-set--10" type="radio"><label class="tab-label" for="tab-set--10-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>program.py<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>--target<span class="w"> </span>stim
 </pre></div>
 </div>
@@ -1149,7 +1403,7 @@ library.</p>
 </div>
 <p>If a target is set in the application code, this target will override the <code class="code docutils literal notranslate"><span class="pre">--target</span></code> command line flag given during program invocation.</p>
 </div>
-<input class="tab-input" id="tab-set--8-input--2" name="tab-set--8" type="radio"><label class="tab-label" for="tab-set--8-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--10-input--2" name="tab-set--10" type="radio"><label class="tab-label" for="tab-set--10-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>stim<span class="w"> </span>program.cpp<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>-o<span class="w"> </span>program.x
 ./program.x
 </pre></div>
@@ -1162,6 +1416,34 @@ library.</p>
 This allows for conditional gate execution (i.e. full control flow), but it
 can be slower than executing Stim a single time and generating all the shots
 from that single execution.</p>
+</div>
+</section>
+</section>
+<section id="photonics-simulators">
+<h2>Photonics Simulators<a class="headerlink" href="#photonics-simulators" title="Permalink to this heading">¶</a></h2>
+<p>The <code class="code docutils literal notranslate"><span class="pre">orca-photonics</span></code> target provides a state vector simulator with
+the <code class="code docutils literal notranslate"><span class="pre">Q++</span></code> library.</p>
+<p>The <code class="code docutils literal notranslate"><span class="pre">orca-photonics</span></code> target supports supports a double precision simulator that can run in multiple CPUs.</p>
+<section id="id3">
+<h3>OpenMP CPU-only<a class="headerlink" href="#id3" title="Permalink to this heading">¶</a></h3>
+<p id="qpp-cpu-photonics-backend">This target provides a state vector simulator based on the CPU-only, OpenMP threaded <a class="reference external" href="https://github.com/softwareqinc/qpp">Q++</a>  library.</p>
+<p>To execute a program on the <code class="code docutils literal notranslate"><span class="pre">orca-photonics</span></code> target, use the following commands:</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--11-input--1" name="tab-set--11" type="radio"><label class="tab-label" for="tab-set--11-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>program.py<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>--target<span class="w"> </span>orca-photonics
+</pre></div>
+</div>
+<p>The target can also be defined in the application code by calling</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;orca-photonics&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>If a target is set in the application code, this target will override the <code class="code docutils literal notranslate"><span class="pre">--target</span></code> command line flag given during program invocation.</p>
+</div>
+<input class="tab-input" id="tab-set--11-input--2" name="tab-set--11" type="radio"><label class="tab-label" for="tab-set--11-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--library-mode<span class="w"> </span>--target<span class="w"> </span>orca-photonics<span class="w"> </span>program.cpp<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>-o<span class="w"> </span>program.x
+</pre></div>
+</div>
+</div>
 </div>
 </section>
 </section>
@@ -1181,7 +1463,7 @@ compute expectation values of observables.</p>
 <code class="code docutils literal notranslate"><span class="pre">FERMIONIQ_ACCESS_TOKEN_ID</span></code> and <code class="code docutils literal notranslate"><span class="pre">FERMIONIQ_ACCESS_TOKEN_SECRET</span></code>.</p>
 </div>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--9-input--1" name="tab-set--9" type="radio"><label class="tab-label" for="tab-set--9-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--12-input--1" name="tab-set--12" type="radio"><label class="tab-label" for="tab-set--12-input--1">Python</label><div class="tab-content docutils">
 <p>The target to which quantum kernels are submitted
 can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq::set_target()</span></code> function.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;fermioniq&#39;</span><span class="p">)</span>
@@ -1209,7 +1491,7 @@ the project id during compilation.</p>
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--9-input--2" name="tab-set--9" type="radio"><label class="tab-label" for="tab-set--9-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--12-input--2" name="tab-set--12" type="radio"><label class="tab-label" for="tab-set--12-input--2">C++</label><div class="tab-content docutils">
 <p>To target quantum kernel code for execution in the Fermioniq backends,
 pass the flag <code class="docutils literal notranslate"><span class="pre">--target</span> <span class="pre">fermioniq</span></code> to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler. CUDA-Q will
 authenticate via the Fermioniq REST API using the environment variables
@@ -1237,7 +1519,7 @@ the project id during compilation.</p>
 </section>
 <section id="default-simulator">
 <h2>Default Simulator<a class="headerlink" href="#default-simulator" title="Permalink to this heading">¶</a></h2>
-<p id="id3">If no explicit target is set, i.e., if the code is compiled without any <code class="code docutils literal notranslate"><span class="pre">--target</span></code> flags, then CUDA-Q makes a default choice for the simulator.</p>
+<p id="id5">If no explicit target is set, i.e., if the code is compiled without any <code class="code docutils literal notranslate"><span class="pre">--target</span></code> flags, then CUDA-Q makes a default choice for the simulator.</p>
 <p>If an NVIDIA GPU and CUDA runtime libraries are available, the default target is set to <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code>. This will utilize the <a class="reference internal" href="#cuquantum-single-gpu"><span class="std std-ref">cuQuantum single-GPU state vector simulator</span></a>.
 On CPU-only systems, the default target is set to <code class="code docutils literal notranslate"><span class="pre">qpp-cpu</span></code> which uses the <a class="reference internal" href="#openmp-cpu-only"><span class="std std-ref">OpenMP CPU-only simulator</span></a>.</p>
 <p>The default simulator can be overridden by the environment variable <code class="code docutils literal notranslate"><span class="pre">CUDAQ_DEFAULT_SIMULATOR</span></code>. If no target is explicitly specified and the environment variable has a valid value, then it will take effect.
@@ -1245,12 +1527,12 @@ This environment variable can be set to any non-hardware backend. Any invalid va
 <p>For CUDA-Q Python API, the environment variable at the time when <code class="code docutils literal notranslate"><span class="pre">cudaq</span></code> module is imported is relevant, not the value of the environment variable at the time when the simulator is invoked.</p>
 <p>For example,</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--10-input--1" name="tab-set--10" type="radio"><label class="tab-label" for="tab-set--10-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--13-input--1" name="tab-set--13" type="radio"><label class="tab-label" for="tab-set--13-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDAQ_DEFAULT_SIMULATOR</span><span class="o">=</span>density-matrix-cpu<span class="w"> </span>python3<span class="w"> </span>program.py<span class="w"> </span><span class="o">[</span>...<span class="o">]</span>
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--10-input--2" name="tab-set--10" type="radio"><label class="tab-label" for="tab-set--10-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--13-input--2" name="tab-set--13" type="radio"><label class="tab-label" for="tab-set--13-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDAQ_DEFAULT_SIMULATOR</span><span class="o">=</span>density-matrix-cpu<span class="w"> </span>nvq++<span class="w"> </span>program.cpp<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>-o<span class="w"> </span>program.x
 ./program.x
 </pre></div>
@@ -1276,7 +1558,7 @@ This environment variable can be set to any non-hardware backend. Any invalid va
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2024, NVIDIA Corporation &amp; Affiliates.</p>
+    <p>&#169; Copyright 2025, NVIDIA Corporation &amp; Affiliates.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

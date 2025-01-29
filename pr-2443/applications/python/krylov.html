@@ -131,6 +131,12 @@
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/quantum_operations.html#measurements">Measurements</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/examples/photonic_operations.html">   Photonic Operations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/photonic_operations.html#quantum-photonic-states">Quantum Photonic States</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/photonic_operations.html#quantum-photonics-gates">Quantum Photonics Gates</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/photonic_operations.html#measurements">Measurements</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/measuring_kernels.html">   Measuring Kernels</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/measuring_kernels.html#Midcircuit-Measurement-and-Conditional-Logic">Midcircuit Measurement and Conditional Logic</a></li>
 </ul>
@@ -150,6 +156,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../../examples/python/executing_kernels.html#Get-State-Async">Get State Async</a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/executing_photonic_kernels.html">   Executing Photonic Kernels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_photonic_kernels.html#Sample">Sample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_photonic_kernels.html#Get-state">Get state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_photonic_kernels.html#Parallelization-Techniques">Parallelization Techniques</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/expectation_values.html">   Computing Expectation Values</a><ul>
@@ -225,7 +237,7 @@
 <li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
 <li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Phase-oracle">Phase oracle</a></li>
 <li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Quantum-parallelism">Quantum parallelism</a></li>
-<li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Deutschs'-Algorithm:">Deutschs’ Algorithm:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Deutsch's-Algorithm:">Deutsch’s Algorithm:</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="divisive_clustering_coresets.html">Divisive Clustering With Coresets Using CUDA-Q</a><ul>
@@ -256,7 +268,7 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Multi-reference Quantum Krylov Algorithm - <span class="math notranslate nohighlight">\(H_2\)</span> Molecule</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#Setup">Setup</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#Computing-the-matrix-elements">Computing the matrix elements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Determining-the-ground-state-energy-of-the-Subspace">Determining the ground state energy of the Subspace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="afqmc.html">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
@@ -322,6 +334,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#features">Features</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#single-gpu">Single-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
 </ul>
 </li>
@@ -332,6 +345,10 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/simulators.html#clifford-only-simulator">Clifford-Only Simulator</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#stim-cpu">Stim (CPU)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/backends/simulators.html#photonics-simulators">Photonics Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#id3">OpenMP CPU-only</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/simulators.html#fermioniq">Fermioniq</a></li>
@@ -422,6 +439,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../using/backends/dynamics.html#operator">Operator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/backends/dynamics.html#time-dependent-dynamics">Time-Dependent Dynamics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/backends/dynamics.html#numerical-integrators">Numerical Integrators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/backends/dynamics.html#multi-gpu-multi-node-execution">Multi-GPU Multi-Node Execution</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/install/install.html">   Installation</a><ul>
@@ -631,6 +649,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.spin.y"><code class="docutils literal notranslate"><span class="pre">spin.y()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.spin.z"><code class="docutils literal notranslate"><span class="pre">spin.z()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.cudm_state.CuDensityMatState"><code class="docutils literal notranslate"><span class="pre">CuDensityMatState</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.helpers.InitialState"><code class="docutils literal notranslate"><span class="pre">InitialState</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.cudm_state.to_cupy_array"><code class="docutils literal notranslate"><span class="pre">to_cupy_array()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.SampleResult"><code class="docutils literal notranslate"><span class="pre">SampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncSampleResult"><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></li>
@@ -728,30 +747,33 @@
              
   <section id="Multi-reference-Quantum-Krylov-Algorithm---H_2-Molecule">
 <h1>Multi-reference Quantum Krylov Algorithm - <span class="math notranslate nohighlight">\(H_2\)</span> Molecule<a class="headerlink" href="#Multi-reference-Quantum-Krylov-Algorithm---H_2-Molecule" title="Permalink to this heading">¶</a></h1>
-<p>The multireference selected quantum Krylov (MRSQK) algorithm is defined in <a class="reference external" href="https://arxiv.org/pdf/1911.05163">this paper</a> and was developed as a low-cost alternative to quantum phase estimation. This tutorial will demonstrate how this algorithm can be implemented in CUDA-Q and accelerated using multiple GPUs. The CUDA-Q Hadamard test tutorial might provide helpful background information for understanding this tutorial.</p>
+<p>The multireference selected quantum Krylov (MRSQK) algorithm is defined in <a class="reference external" href="https://arxiv.org/pdf/1911.05163">this paper</a> and was developed as a low-cost alternative to quantum phase estimation. This tutorial will demonstrate how this algorithm can be implemented in CUDA-Q and accelerated using multiple GPUs. The <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/applications/python/hadamard_test.html">CUDA-Q Hadamard test tutorial</a> might provide helpful background information for understanding
+this tutorial.</p>
 <p>The algorithm works by preparing an initial state, and then defining this state in a smaller subspace constructed with a basis that corresponds to Trotter steps of the initial state. This subspace can be diagonalized to produce an approximate energy for the system without variational optimization of any parameters.</p>
 <p>In the example below, the initial guess is the ground state of the diagonalized Hamiltonian for demonstration purposes. In practice one could use a number of heuristics to prepare the ground state such as Hartree Fock or CISD. A very promising ground state preparation method which can leverage quantum computers is the linear combination of unitaries (LCU). LCU would allow for the state preparation to occur completely on the quantum computer and avoid storing an inputting the exponentially large
 state vector.</p>
-<p>Regardless of the method used for state preparation, the procedure begins by selecting a <span class="math notranslate nohighlight">\(d\)</span> dimensional basis of reference states <span class="math notranslate nohighlight">\({\Phi_0 \cdots \Phi_d}\)</span> where each is a linear combination of slater determinants.</p>
+<p>Regardless of the method used for state preparation, the procedure begins by selecting a <span class="math notranslate nohighlight">\(d\)</span>-dimensional basis of reference states <span class="math notranslate nohighlight">\({\Phi_0 \cdots \Phi_d},\)</span> where each is a linear combination of Slater determinants:</p>
 <div class="math notranslate nohighlight">
-\[\ket{\Phi_I}  =  \sum_{\mu} d_{\mu I}\ket{\phi_{\mu}}\]</div>
-<p>From this, a non-orthogonal Krylov Space <span class="math notranslate nohighlight">\(\mathcal{K} = \{\psi_{0} \cdots \psi_{N}\}\)</span> is constructed by applying a family of <span class="math notranslate nohighlight">\(s\)</span> unitary operators on each of the <span class="math notranslate nohighlight">\(d\)</span> reference states resulting in <span class="math notranslate nohighlight">\(d*s = N\)</span> elements in the Krylov space where,</p>
+\[\ket{\Phi_I}  =  \sum_{\mu} d_{\mu I}\ket{\phi_{\mu}}.\]</div>
+<p>From this, a non-orthogonal Krylov Space <span class="math notranslate nohighlight">\(\mathcal{K} = \{\psi_{0} \cdots \psi_{N}\}\)</span> is constructed by applying a family of <span class="math notranslate nohighlight">\(s\)</span> unitary operators on each of the <span class="math notranslate nohighlight">\(d\)</span> reference states resulting in <span class="math notranslate nohighlight">\(d*s = N\)</span> elements in the Krylov space where</p>
 <div class="math notranslate nohighlight">
-\[\ket{\psi_{\alpha}} \equiv \ket{\psi_I^{(n)}} = \hat{U}_n\ket{\Phi_I}\]</div>
+\[\ket{\psi_{\alpha}} \equiv \ket{\psi_I^{(n)}} = \hat{U}_n\ket{\Phi_I},\]</div>
 <p>Therefore, the general quantum state that we originally set out to describe is</p>
 <div class="math notranslate nohighlight">
-\[\ket{\Psi} = \sum_{\alpha} c_{\alpha}\ket{\psi_{\alpha}} = \sum_{I=0}^d \sum_{n=0}^s c_I^{(n)}\hat{U}_n\ket{\Phi_I}\]</div>
+\[\ket{\Psi} = \sum_{\alpha} c_{\alpha}\ket{\psi_{\alpha}} = \sum_{I=0}^d \sum_{n=0}^s c_I^{(n)}\hat{U}_n\ket{\Phi_I}.\]</div>
 <p>The energy of this state can be obtained by solving the generalized eigenvalue problem</p>
 <div class="math notranslate nohighlight">
-\[\boldsymbol{Hc}=\boldsymbol{Sc}E\]</div>
-<p>Where the elements of the overlap and Hamiltonian matrix are</p>
+\[\boldsymbol{Hc}=\boldsymbol{Sc}E,\]</div>
+<p>where the elements of the overlap are</p>
 <div class="math notranslate nohighlight">
 \[S_{\alpha \beta} = \braket{\psi_{\alpha}|\psi_{\beta}} =   \braket{\Phi_I|\hat{U}_m^{\dagger}\hat{U}_n|\Phi_J}\]</div>
+<p>and Hamiltonian matrix is</p>
 <div class="math notranslate nohighlight">
-\[H_{\alpha \beta} = \braket{\psi_{\alpha}|\hat{H}|\psi_{\beta}} =   \braket{\Phi_I|\hat{U}_m^{\dagger}\hat{H}\hat{U}_n|\Phi_J}\]</div>
-<p>These matrix elements are computed using a quantum computer and the Hadamard test with a circuit shown below for the case of the overlap matrix elements (The Hamiltonian matrix elements circuit would include controlled application of the Hamiltonian in the circuit). Once the matrices are constructed, the diagonalization is performed classically to produce an estimate for the ground state in question.</p>
+\[H_{\alpha \beta} = \braket{\psi_{\alpha}|\hat{H}|\psi_{\beta}} =   \braket{\Phi_I|\hat{U}_m^{\dagger}\hat{H}\hat{U}_n|\Phi_J}.\]</div>
+<p>The matrix elements for <span class="math notranslate nohighlight">\(S\)</span> are computed with the Hadamard test with a circuit shown below for the case of the overlap matrix elements.</p>
 <p><img alt="Htest" src="../../_images/krylovcircuit.png" /></p>
 <p>The <span class="math notranslate nohighlight">\(2\sigma_+\)</span> term refers to measurement of the expectation value of this circuit with the <span class="math notranslate nohighlight">\(X+iY\)</span> operator.</p>
+<p>The Hamiltonian matrix elements are computed with a circuit that includes controlled application of the Hamiltonian. Once the <span class="math notranslate nohighlight">\(H\)</span> and <span class="math notranslate nohighlight">\(S\)</span> matrices are constructed, the diagonalization is performed classically to produce an estimate for the ground state in question.</p>
 <section id="Setup">
 <h2>Setup<a class="headerlink" href="#Setup" title="Permalink to this heading">¶</a></h2>
 <p>This cell installs the necessary packages. This application can be parallelized, so please uncomment the <code class="docutils literal notranslate"><span class="pre">mgpu</span></code> specification below if you would like to run on more than one GPU.</p>
@@ -759,9 +781,9 @@ state vector.</p>
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">scipy</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">scipy</span>
 
 <span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span><span class="nv">openfermion</span><span class="o">==</span><span class="m">1</span>.6.1<span class="w"> </span><span class="nv">pyscf</span><span class="o">==</span><span class="m">2</span>.6.2<span class="w"> </span><span class="nv">openfermionpyscf</span><span class="o">==</span><span class="m">0</span>.5<span class="w"> </span>-q
 
@@ -809,20 +831,20 @@ state vector.</p>
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Collect coefficients from a spin operator so they can pass to a kernel</span>
-<span class="k">def</span> <span class="nf">termCoefficients</span><span class="p">(</span><span class="n">ham</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">termCoefficients</span><span class="p">(</span><span class="n">ham</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">]:</span>
     <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">ham</span><span class="o">.</span><span class="n">for_each_term</span><span class="p">(</span><span class="k">lambda</span> <span class="n">term</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">get_coefficient</span><span class="p">()))</span>
     <span class="k">return</span> <span class="n">result</span>
 
 
 <span class="c1"># Collect Pauli words from a spin operator so they can pass to a kernel</span>
-<span class="k">def</span> <span class="nf">termWords</span><span class="p">(</span><span class="n">ham</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">termWords</span><span class="p">(</span><span class="n">ham</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
     <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">ham</span><span class="o">.</span><span class="n">for_each_term</span><span class="p">(</span><span class="k">lambda</span> <span class="n">term</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="kc">False</span><span class="p">)))</span>
     <span class="k">return</span> <span class="n">result</span>
 
 
-<span class="c1">#Build the lists of coefficients and Pauli Words from H2 Hamiltonian</span>
+<span class="c1"># Build the lists of coefficients and Pauli Words from the H2 Hamiltonian</span>
 <span class="n">coefficient</span> <span class="o">=</span> <span class="n">termCoefficients</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">)</span>
 <span class="n">pauli_string</span> <span class="o">=</span> <span class="n">termWords</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">)</span>
 
@@ -831,14 +853,14 @@ state vector.</p>
 </pre></div>
 </div>
 </div>
-<p>In the case of this example, the unitary operators that build the Krylov subspace are first-order Trotter operations at different time steps. The performance here could potentially be improved by increasing the size of the time step, using a higher order Trotter approximation, or using other sorts of approximations. The CUDA-Q kernels below define the unitary operations that construct the <span class="math notranslate nohighlight">\(\psi\)</span> basis. Each receives the target qubits, the time step, and components of the Hamiltonian.</p>
+<p>In this example, the unitary operators that build the Krylov subspace are first-order Trotter operations at different time steps. The performance here could potentially be improved by increasing the size of the time step, using a higher order Trotter approximation, or using other sorts of approximations. The CUDA-Q kernels below define the unitary operations that construct the <span class="math notranslate nohighlight">\(\psi\)</span> basis. Each receives the target qubits, the time step, and components of the Hamiltonian.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Applies Unitary operation corresponding to Um</span>
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">U_m</span><span class="p">(</span><span class="n">qubits</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">],</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">U_m</span><span class="p">(</span><span class="n">qubits</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">],</span>
         <span class="n">words</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">pauli_word</span><span class="p">]):</span>
     <span class="c1"># Compute U_m = exp(-i m dt H)</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">coefficients</span><span class="p">)):</span>
@@ -849,7 +871,7 @@ state vector.</p>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">U_n</span><span class="p">(</span><span class="n">qubits</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">],</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">U_n</span><span class="p">(</span><span class="n">qubits</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">],</span>
         <span class="n">words</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">pauli_word</span><span class="p">]):</span>
     <span class="c1"># Compute U_n = exp(-i n dt H)</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">coefficients</span><span class="p">)):</span>
@@ -860,7 +882,7 @@ state vector.</p>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">apply_pauli</span><span class="p">(</span><span class="n">qubits</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span> <span class="n">word</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">apply_pauli</span><span class="p">(</span><span class="n">qubits</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span> <span class="n">word</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
     <span class="c1"># Add H (Hamiltonian operator)</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">word</span><span class="p">)):</span>
         <span class="k">if</span> <span class="n">word</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
@@ -875,7 +897,7 @@ state vector.</p>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">qfd_kernel</span><span class="p">(</span><span class="n">dt_alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">dt_beta</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">],</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">qfd_kernel</span><span class="p">(</span><span class="n">dt_alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">dt_beta</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">],</span>
                <span class="n">words</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">pauli_word</span><span class="p">],</span> <span class="n">word_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
                <span class="n">vec</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">]):</span>
 
@@ -898,7 +920,7 @@ state vector.</p>
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">pauli_str</span><span class="p">(</span><span class="n">pauli_word</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">):</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">pauli_str</span><span class="p">(</span><span class="n">pauli_word</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">):</span>
 
     <span class="n">my_list</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">):</span>
@@ -942,9 +964,9 @@ state vector.</p>
 <section id="Computing-the-matrix-elements">
 <h2>Computing the matrix elements<a class="headerlink" href="#Computing-the-matrix-elements" title="Permalink to this heading">¶</a></h2>
 <p>The cell below computes the overlap matrix. This can be done in serial or in parallel, depending on the <code class="docutils literal notranslate"><span class="pre">multi_gpu</span></code> specification. First, an operator is built to apply the identity to the overlap matrix circuit when <code class="docutils literal notranslate"><span class="pre">apply_pauli</span></code> is called. Next, the <code class="docutils literal notranslate"><span class="pre">wf_overlap</span></code> array is constructed which will hold the matrix elements.</p>
-<p>Next, a pair of nested loops, iterate over the time steps defined by the dimension of the subspace. Each m,n combination corresponds to computation of an off-diagonal matrix element of the overlap matrix <span class="math notranslate nohighlight">\(S\)</span> using the Hadamard test. This is accomplished by calling the CUDA-Q <code class="docutils literal notranslate"><span class="pre">observe</span></code> function with the X and Y operators, along with the time steps, the components of the Hamiltonian matrix, and the initial state vector <code class="docutils literal notranslate"><span class="pre">vec</span></code>.</p>
+<p>Next, a pair of nested loops iterate over the time steps defined by the dimension of the subspace. Each m,n combination corresponds to computation of an off-diagonal matrix element of the overlap matrix <span class="math notranslate nohighlight">\(S\)</span> using the Hadamard test. This is accomplished by calling the CUDA-Q <code class="docutils literal notranslate"><span class="pre">observe</span></code> function with the X and Y operators, along with the time steps, the components of the Hamiltonian matrix, and the initial state vector <code class="docutils literal notranslate"><span class="pre">vec</span></code>.</p>
 <p>The observe function broadcasts over the two provided operators <span class="math notranslate nohighlight">\(X\)</span> and <span class="math notranslate nohighlight">\(Y\)</span> and returns a list of results. The <code class="docutils literal notranslate"><span class="pre">expectation</span></code> function returns the expectation values which are summed and stored in the matrix.</p>
-<p>The multi-gpu case completes the same steps, expect for <code class="docutils literal notranslate"><span class="pre">observe_async</span></code> is used. This allows for the <span class="math notranslate nohighlight">\(X\)</span> and <span class="math notranslate nohighlight">\(Y\)</span> observables to be evaluated at the same time on two different simulated QPUs. In this case, the results are stored in lists corresponding to the real an imaginary parts, and then accessed later with the <code class="docutils literal notranslate"><span class="pre">get</span></code> command to build <span class="math notranslate nohighlight">\(S\)</span></p>
+<p>The multi-gpu case completes the same steps, except the <code class="docutils literal notranslate"><span class="pre">observe_async</span></code> command is used. This allows for the <span class="math notranslate nohighlight">\(X\)</span> and <span class="math notranslate nohighlight">\(Y\)</span> observables to be evaluated at the same time on two different simulated QPUs. In this case, the results are stored in lists corresponding to the real and imaginary parts. These are then accessed later with the <code class="docutils literal notranslate"><span class="pre">get</span></code> command to build <span class="math notranslate nohighlight">\(S\)</span>.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
@@ -1164,23 +1186,23 @@ state vector.</p>
 </div>
 </div>
 </section>
-<section id="Determining-the-ground-state-energy-of-the-Subspace">
-<h2>Determining the ground state energy of the Subspace<a class="headerlink" href="#Determining-the-ground-state-energy-of-the-Subspace" title="Permalink to this heading">¶</a></h2>
+<section id="Determining-the-ground-state-energy-of-the-subspace">
+<h2>Determining the ground state energy of the subspace<a class="headerlink" href="#Determining-the-ground-state-energy-of-the-subspace" title="Permalink to this heading">¶</a></h2>
 <p>The final step is to solve the generalized eigenvaulue problem with the overlap and Hamiltonian matrices constructed using the quantum computer. The procedure begins by diagonalizing <span class="math notranslate nohighlight">\(S\)</span> with the transform</p>
 <div class="math notranslate nohighlight">
 \[S = U\Sigma U^{\dagger}\]</div>
-<p>The eigenvectors <span class="math notranslate nohighlight">\(v\)</span> and eigenvalues <span class="math notranslate nohighlight">\(s\)</span> are used to construct a new matrix <span class="math notranslate nohighlight">\(X'\)</span></p>
+<p>The eigenvectors <span class="math notranslate nohighlight">\(v\)</span> and eigenvalues <span class="math notranslate nohighlight">\(s\)</span> are used to construct a new matrix <span class="math notranslate nohighlight">\(X':\)</span></p>
 <div class="math notranslate nohighlight">
-\[X' = S ^{\frac{-1}{2}} = \sum_k v_{ki} \frac{1}{\sqrt{s_k}} v_{kj}\]</div>
-<p>The <span class="math notranslate nohighlight">\(X'\)</span> matrix diagonalizes <span class="math notranslate nohighlight">\(H\)</span></p>
+\[X' = S ^{\frac{-1}{2}} = \sum_k v_{ki} \frac{1}{\sqrt{s_k}} v_{kj}.\]</div>
+<p>The matrix <span class="math notranslate nohighlight">\(X'\)</span> diagonalizes <span class="math notranslate nohighlight">\(H:\)</span></p>
 <div class="math notranslate nohighlight">
-\[X'^{\dagger}HX' = ES^{\frac{1}{2}}C\]</div>
-<p>Using the eigenvectors of <span class="math notranslate nohighlight">\(H'\)</span>, (<span class="math notranslate nohighlight">\(^{\frac{1}{2}}C\)</span>), the original eigenvectors to the problem can be found by left multiplying by <span class="math notranslate nohighlight">\(S^{\frac{-1}{2}}C\)</span></p>
+\[X'^{\dagger}HX' = ES^{\frac{1}{2}}C.\]</div>
+<p>Using the eigenvectors of <span class="math notranslate nohighlight">\(H'\)</span>, (<span class="math notranslate nohighlight">\(^{\frac{1}{2}}C\)</span>), the original eigenvectors to the problem can be found by left multiplying by <span class="math notranslate nohighlight">\(S^{\frac{-1}{2}}C.\)</span></p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">eig</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">eig</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
     <span class="c1">#Solver for generalized eigenvalue problem</span>
     <span class="c1"># HC = SCE</span>
 
@@ -1233,7 +1255,7 @@ state vector.</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2024, NVIDIA Corporation &amp; Affiliates.</p>
+    <p>&#169; Copyright 2025, NVIDIA Corporation &amp; Affiliates.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
