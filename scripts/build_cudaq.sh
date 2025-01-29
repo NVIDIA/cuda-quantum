@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -45,14 +45,17 @@ CUDAQ_INSTALL_PREFIX=${CUDAQ_INSTALL_PREFIX:-"$HOME/.cudaq"}
 build_configuration=${CMAKE_BUILD_TYPE:-Release}
 verbose=false
 install_toolchain=""
+num_jobs=""
 
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":c:t:v" opt; do
+while getopts ":c:t:j:v" opt; do
   case $opt in
     c) build_configuration="$OPTARG"
     ;;
     t) install_toolchain="$OPTARG"
+    ;;
+    j) num_jobs="-j $OPTARG"
     ;;
     v) verbose=true
     ;;
@@ -176,20 +179,29 @@ cmake_args="-G Ninja '"$repo_root"' \
 # here, but keep the definition for CMAKE_CUDA_HOST_COMPILER.
 if $verbose; then 
   echo $cmake_args | xargs cmake
+  status=$?
 else
   echo $cmake_args | xargs cmake \
     2> logs/cmake_error.txt 1> logs/cmake_output.txt
+  status=$?
+fi
+
+# Check if cmake succeeded
+if [ "$status" -ne 0 ]; then
+  echo -e "\e[01;31mError: CMake configuration failed. Please check logs/cmake_error.txt for details.\e[0m" >&2
+  cat logs/cmake_error.txt >&2
+  cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
 fi
 
 # Build and install CUDA-Q
 echo "Building CUDA-Q with configuration $build_configuration..."
 logs_dir=`pwd`/logs
 if $verbose; then 
-  ninja install
+  ninja ${num_jobs} install
   status=$?
 else
   echo "The progress of the build is being logged to $logs_dir/ninja_output.txt."
-  ninja install 2> "$logs_dir/ninja_error.txt" 1> "$logs_dir/ninja_output.txt"
+  ninja ${num_jobs} install 2> "$logs_dir/ninja_error.txt" 1> "$logs_dir/ninja_output.txt"
   status=$?
 fi
 

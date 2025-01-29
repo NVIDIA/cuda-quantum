@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -457,6 +457,7 @@ public:
         mlir::SmallVector<mlir::StringRef> substs = {substBuff};
         pm.addNestedPass<mlir::func::FuncOp>(
             opt::createArgumentSynthesisPass(kernels, substs));
+        pm.addPass(opt::createDeleteStates());
       } else if (updatedArgs) {
         cudaq::info("Run Quake Synth.\n");
         pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));
@@ -546,6 +547,8 @@ public:
         for (auto &pass : csvSplit)
           if (pass.ends_with("-gate-set-mapping"))
             runPassPipeline(pass, tmpModuleOp);
+        if (!emulate && combineMeasurements)
+          runPassPipeline("func.func(combine-measurements)", tmpModuleOp);
         modules.emplace_back(term.to_string(false), tmpModuleOp);
       }
     } else

@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -63,7 +63,8 @@ public:
 
   void launchKernel(const std::string &kernelName,
                     const std::vector<void *> &rawArgs) override {
-    throw std::runtime_error("Not supported on this target.");
+    throw std::runtime_error(
+        "Arbitrary kernel execution is not supported on this target.");
   }
 };
 } // namespace cudaq

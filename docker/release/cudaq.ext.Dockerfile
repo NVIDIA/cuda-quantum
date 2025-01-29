@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -44,7 +44,7 @@ RUN cuda_version_suffix=$(echo ${CUDA_VERSION} | tr . -) && \
     apt-get install -y --no-install-recommends curl jq 
 RUN if [ -x "$(command -v pip)" ]; then \
         apt-get install -y --no-install-recommends gcc libpython3-dev \
-        && pip install --no-cache-dir jupyterlab; \
+        && pip install --no-cache-dir jupyterlab==4.3.4; \
         if [ -n "$MPI_ROOT" ]; then \
             pip install --no-cache-dir mpi4py~=3.1; \
         fi; \

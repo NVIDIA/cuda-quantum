@@ -1,5 +1,5 @@
 // ========================================================================== //
-// Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                 //
+// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
 // All rights reserved.                                                       //
 //                                                                            //
 // This source code and the accompanying materials are made available under   //
@@ -153,8 +153,22 @@ func.func @quantum_ops() {
   %48 = cc.string_literal "XXY" : !cc.ptr<!cc.array<i8 x 4>>
   quake.exp_pauli %f2, %46, %48 : (f64, !quake.veq<3>, !cc.ptr<!cc.array<i8 x 4>>) -> ()
   
+  // State
+  %i8 = arith.constant 8 : i64
+  %49 = cc.address_of @quantum_ops.rodata_synth_0 : !cc.ptr<!cc.array<complex<f32> x 8>>
+  %50 = quake.create_state %49, %i8 : (!cc.ptr<!cc.array<complex<f32> x 8>>, i64) -> !cc.ptr<!cc.state>
+  %51 = quake.get_number_of_qubits %50 : (!cc.ptr<!cc.state>) -> i64
+  %52 = quake.alloca !quake.veq<?>[%51 : i64]
+  %53 = quake.init_state %52, %50 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
+
+  %54 = quake.create_state %49, %i8 : (!cc.ptr<!cc.array<complex<f32> x 8>>, i64) -> !cc.ptr<!cc.state>
+  quake.delete_state %54: !cc.ptr<!cc.state>
   return
 }
+
+cc.global constant private @quantum_ops.rodata_synth_0 (dense<[(0.707106769,0.000000e+00), (0.707106769,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00
+,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<8xcomplex<f32>>) : !cc.array<complex<f32> x 8>
+
 
 // CHECK-LABEL:   func.func @quantum_ops() {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
@@ -265,6 +279,14 @@ func.func @quantum_ops() {
 // CHECK:           %[[VAL_59:.*]] = arith.constant 1.200000e+01 : f64
 // CHECK:           %[[VAL_60:.*]] = cc.string_literal "XXY" : !cc.ptr<!cc.array<i8 x 4>>
 // CHECK:           quake.exp_pauli %[[VAL_59]], %[[VAL_54]], %[[VAL_60]] : (f64, !quake.veq<3>, !cc.ptr<!cc.array<i8 x 4>>) -> ()
+// CHECK:           %[[VAL_61:.*]] = arith.constant 8 : i64
+// CHECK:           %[[VAL_62:.*]] = cc.address_of @quantum_ops.rodata_synth_0 : !cc.ptr<!cc.array<complex<f32> x 8>>
+// CHECK:           %[[VAL_63:.*]] = quake.create_state %[[VAL_62]], %[[VAL_61]] : (!cc.ptr<!cc.array<complex<f32> x 8>>, i64) -> !cc.ptr<!cc.state>
+// CHECK:           %[[VAL_64:.*]] = quake.get_number_of_qubits %[[VAL_63]] : (!cc.ptr<!cc.state>) -> i64
+// CHECK:           %[[VAL_65:.*]] = quake.alloca !quake.veq<?>[%[[VAL_64]] : i64]
+// CHECK:           %[[VAL_66:.*]] = quake.init_state %[[VAL_65]], %[[VAL_63]] : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
+// CHECK:           %[[VAL_67:.*]] = quake.create_state %[[VAL_62]], %[[VAL_61]] : (!cc.ptr<!cc.array<complex<f32> x 8>>, i64) -> !cc.ptr<!cc.state>
+// CHECK:           quake.delete_state %[[VAL_67]] : !cc.ptr<!cc.state>
 // CHECK:           return
 // CHECK:         }
 

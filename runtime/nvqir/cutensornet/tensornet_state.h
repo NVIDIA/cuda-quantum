@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -150,6 +150,11 @@ public:
   /// @return
   std::vector<std::complex<double>>
   computeExpVals(const std::vector<std::vector<bool>> &symplecticRepr);
+
+  /// @brief Evaluate the expectation value of a given
+  /// `cutensornetNetworkOperator_t`
+  std::complex<double>
+  computeExpVal(cutensornetNetworkOperator_t tensorNetworkOperator);
 
   /// @brief Number of qubits that this state represents.
   std::size_t getNumQubits() const { return m_numQubits; }

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -171,7 +171,11 @@ expected_result_decay = [
 ]
 
 
-def test_evolve():
+@pytest.mark.parametrize("init_state", ["array", "enum"])
+def test_evolve(init_state):
+    # Set random seed for shots-based observe test.
+    cudaq.set_random_seed(13)
+
     # Qubit Hamiltonian
     hamiltonian = 2 * np.pi * 0.1 * spin.x(0)
 
@@ -179,8 +183,11 @@ def test_evolve():
     dimensions = {0: 2}
 
     # Initial state of the system (ground state).
-    rho0 = cudaq.State.from_data(
-        np.array([[1.0, 0.0], [0.0, 0.0]], dtype=np.complex128))
+    if init_state == "array":
+        rho0 = cudaq.State.from_data(
+            np.array([[1.0, 0.0], [0.0, 0.0]], dtype=np.complex128))
+    elif init_state == "enum":
+        rho0 = InitialState.ZERO
 
     # Schedule of time steps.
     steps = np.linspace(0, 10, 101)
@@ -242,6 +249,9 @@ def test_evolve():
 
 
 def test_evolve_async():
+    # Set random seed for shots-based observe test.
+    cudaq.set_random_seed(13)
+
     # Qubit Hamiltonian
     hamiltonian = 2 * np.pi * 0.1 * spin.x(0)
 
