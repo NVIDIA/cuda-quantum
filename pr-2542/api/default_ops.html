@@ -130,6 +130,12 @@
 <li class="toctree-l3"><a class="reference internal" href="../using/examples/quantum_operations.html#measurements">Measurements</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../using/examples/photonic_operations.html">   Photonic Operations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../using/examples/photonic_operations.html#quantum-photonic-states">Quantum Photonic States</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../using/examples/photonic_operations.html#quantum-photonics-gates">Quantum Photonics Gates</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../using/examples/photonic_operations.html#measurements">Measurements</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/python/measuring_kernels.html">   Measuring Kernels</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../examples/python/measuring_kernels.html#Midcircuit-Measurement-and-Conditional-Logic">Midcircuit Measurement and Conditional Logic</a></li>
 </ul>
@@ -149,6 +155,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../examples/python/executing_kernels.html#Get-State-Async">Get State Async</a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/python/executing_photonic_kernels.html">   Executing Photonic Kernels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/executing_photonic_kernels.html#Sample">Sample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/executing_photonic_kernels.html#Get-state">Get state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/executing_photonic_kernels.html#Parallelization-Techniques">Parallelization Techniques</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../using/examples/expectation_values.html">   Computing Expectation Values</a><ul>
@@ -332,6 +344,10 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../using/backends/simulators.html#clifford-only-simulator">Clifford-Only Simulator</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../using/backends/simulators.html#stim-cpu">Stim (CPU)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../using/backends/simulators.html#photonics-simulators">Photonics Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../using/backends/simulators.html#id3">OpenMP CPU-only</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../using/backends/simulators.html#fermioniq">Fermioniq</a></li>
@@ -1393,7 +1409,7 @@ the quantum operations above.</p>
 defined by the qudit level that represents the qumode. If it is applied to a qumode
 where the number of photons is already at the maximum value, the operation has no
 effect.</p>
-<p><span class="math notranslate nohighlight">\(U|0\rangle → |1\rangle, U|1\rangle → |2\rangle, U|2\rangle → |3\rangle, \cdots, U|d\rangle → |d\rangle\)</span>
+<p><span class="math notranslate nohighlight">\(C|0\rangle → |1\rangle, C|1\rangle → |2\rangle, C|2\rangle → |3\rangle, \cdots, C|d\rangle → |d\rangle\)</span>
 where <span class="math notranslate nohighlight">\(d\)</span> is the qudit level.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--19-input--1" name="tab-set--19" type="radio"><label class="tab-label" for="tab-set--19-input--1">Python</label><div class="tab-content docutils">
@@ -1415,7 +1431,7 @@ where <span class="math notranslate nohighlight">\(d\)</span> is the qudit level
 <p>This operation reduces the number of photons in a qumode up to a minimum value of
 0 representing the vacuum state. If it is applied to a qumode where the number of
 photons is already at the minimum value 0, the operation has no effect.</p>
-<p><span class="math notranslate nohighlight">\(U|0\rangle → |0\rangle, U|1\rangle → |0\rangle, U|2\rangle → |1\rangle, \cdots, U|d\rangle → |d-1\rangle\)</span>
+<p><span class="math notranslate nohighlight">\(A|0\rangle → |0\rangle, A|1\rangle → |0\rangle, A|2\rangle → |1\rangle, \cdots, A|d\rangle → |d-1\rangle\)</span>
 where <span class="math notranslate nohighlight">\(d\)</span> is the qudit level.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--20-input--1" name="tab-set--20" type="radio"><label class="tab-label" for="tab-set--20-input--1">Python</label><div class="tab-content docutils">

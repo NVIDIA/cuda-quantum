@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Create your own CUDA-Q Compiler Pass &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>Photonics 101 &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
@@ -27,11 +27,13 @@
         <script src="../../_static/copybutton.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="Specifications" href="../../specification/index.html" />
-    <link rel="prev" title="Working with the CUDA-Q IR" href="cudaq_ir.html" /> 
+    <link rel="next" title="Measurements" href="../../examples/python/measuring_kernels.html" />
+    <link rel="prev" title="Quantum Computing 101" href="quantum_operations.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -119,19 +121,19 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../examples/examples.html">   Examples</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../examples/introduction.html">   Introduction</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/building_kernels.html">   Building Kernels</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/quantum_operations.html">   Quantum Operations</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../examples/quantum_operations.html#quantum-states">Quantum States</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/quantum_operations.html#quantum-gates">Quantum Gates</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/quantum_operations.html#measurements">Measurements</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="examples.html">   Examples</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="introduction.html">   Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="building_kernels.html">   Building Kernels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quantum_operations.html">   Quantum Operations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="quantum_operations.html#quantum-states">Quantum States</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quantum_operations.html#quantum-gates">Quantum Gates</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quantum_operations.html#measurements">Measurements</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/photonic_operations.html">   Photonic Operations</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../examples/photonic_operations.html#quantum-photonic-states">Quantum Photonic States</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/photonic_operations.html#quantum-photonics-gates">Quantum Photonics Gates</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/photonic_operations.html#measurements">Measurements</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">   Photonic Operations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#quantum-photonic-states">Quantum Photonic States</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#quantum-photonics-gates">Quantum Photonics Gates</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#measurements">Measurements</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/measuring_kernels.html">   Measuring Kernels</a><ul>
@@ -161,16 +163,16 @@
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_photonic_kernels.html#Parallelization-Techniques">Parallelization Techniques</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/expectation_values.html">   Computing Expectation Values</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../examples/expectation_values.html#parallelizing-across-multiple-processors">Parallelizing across Multiple Processors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="expectation_values.html">   Computing Expectation Values</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="expectation_values.html#parallelizing-across-multiple-processors">Parallelizing across Multiple Processors</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/multi_control.html">   Multi-Control Synthesis</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/multi_gpu_workflows.html">   Multi-GPU Workflows</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../examples/multi_gpu_workflows.html#available-targets">Available Targets</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/multi_gpu_workflows.html#parallelization-across-multiple-processors">Parallelization across Multiple Processors</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../examples/multi_gpu_workflows.html#batching-hamiltonian-terms">Batching Hamiltonian Terms</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../examples/multi_gpu_workflows.html#circuit-batching">Circuit Batching</a></li>
+<li class="toctree-l2"><a class="reference internal" href="multi_control.html">   Multi-Control Synthesis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="multi_gpu_workflows.html">   Multi-GPU Workflows</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#available-targets">Available Targets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#parallelization-across-multiple-processors">Parallelization across Multiple Processors</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="multi_gpu_workflows.html#batching-hamiltonian-terms">Batching Hamiltonian Terms</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multi_gpu_workflows.html#circuit-batching">Circuit Batching</a></li>
 </ul>
 </li>
 </ul>
@@ -191,15 +193,15 @@
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/performance_optimizations.html#Gate-Fusion">Gate Fusion</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/hardware_providers.html">   Using Quantum Hardware Providers</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#amazon-braket">Amazon Braket</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#infleqtion">Infleqtion</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#ionq">IonQ</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#iqm">IQM</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#oqc">OQC</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#orca-computing">ORCA Computing</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hardware_providers.html">   Using Quantum Hardware Providers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#amazon-braket">Amazon Braket</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#infleqtion">Infleqtion</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#ionq">IonQ</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#iqm">IQM</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#oqc">OQC</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#orca-computing">ORCA Computing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#quantinuum">Quantinuum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#quera-computing">QuEra Computing</a></li>
 </ul>
 </li>
 </ul>
@@ -506,14 +508,14 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="reference internal" href="extending.html">   Extending</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="nvqir_simulator.html">Create a new NVQIR Simulator</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="nvqir_simulator.html#circuitsimulator"><code class="code docutils literal notranslate"><span class="pre">CircuitSimulator</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="nvqir_simulator.html#let-s-see-this-in-action">Let’s see this in action</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../extending/extending.html">   Extending</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../extending/nvqir_simulator.html">Create a new NVQIR Simulator</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../extending/nvqir_simulator.html#circuitsimulator"><code class="code docutils literal notranslate"><span class="pre">CircuitSimulator</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/nvqir_simulator.html#let-s-see-this-in-action">Let’s see this in action</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="cudaq_ir.html">Working with CUDA-Q IR</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Create an MLIR Pass for CUDA-Q</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../extending/cudaq_ir.html">Working with CUDA-Q IR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../extending/mlir_pass.html">Create an MLIR Pass for CUDA-Q</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../specification/index.html">   Specifications</a><ul>
@@ -728,114 +730,226 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
-          <li class="breadcrumb-item"><a href="extending.html">Extending CUDA-Q</a></li>
-      <li class="breadcrumb-item active">Create your own CUDA-Q Compiler Pass</li>
+          <li class="breadcrumb-item"><a href="examples.html">CUDA-Q by Example</a></li>
+      <li class="breadcrumb-item active">Photonics 101</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../_sources/using/extending/mlir_pass.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../../_sources/using/examples/photonic_operations.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="cudaq_ir.html" class="btn btn-neutral float-left" title="Working with the CUDA-Q IR" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../../specification/index.html" class="btn btn-neutral float-right" title="Specifications" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="quantum_operations.html" class="btn btn-neutral float-left" title="Quantum Computing 101" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../examples/python/measuring_kernels.html" class="btn btn-neutral float-right" title="Measurements" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="create-your-own-cuda-q-compiler-pass">
-<h1>Create your own CUDA-Q Compiler Pass<a class="headerlink" href="#create-your-own-cuda-q-compiler-pass" title="Permalink to this heading">¶</a></h1>
-<p>The CUDA-Q IR can be transformed, analyzed, or optimized
-using standard MLIR patterns and tools. CUDA-Q provides a registration
-mechanism for the <code class="code docutils literal notranslate"><span class="pre">cudaq-opt</span></code> tool that allows one to create, load, and
-use custom MLIR passes on Quake code.</p>
-<p>CUDA-Q MLIR Passes can only be created within an existing CUDA-Q
-development environment. Therefore, you must clone the repository and add your
-Pass code as part of the existing CUDA-Q CMake system.</p>
-<p>As an example, clone the repository and add the following directory structure
-under <code class="code docutils literal notranslate"><span class="pre">lib</span></code>, <code class="code docutils literal notranslate"><span class="pre">lib/Plugins/MyCustomPlugin/</span></code>. Within this directory create a
-<code class="code docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code> file and a <code class="code docutils literal notranslate"><span class="pre">MyCustomPlugin.cpp</span></code> file. In the CMake file,
-add the following:</p>
-<div class="highlight-cmake notranslate"><div class="highlight"><pre><span></span><span class="nb">add_llvm_pass_plugin</span><span class="p">(</span><span class="s">MyCustomPlugin</span><span class="w"> </span><span class="s">MyCustomPlugin.cpp</span><span class="p">)</span>
+  <section id="photonics-101">
+<h1>Photonics 101<a class="headerlink" href="#photonics-101" title="Permalink to this heading">¶</a></h1>
+<section id="quantum-photonic-states">
+<h2>Quantum Photonic States<a class="headerlink" href="#quantum-photonic-states" title="Permalink to this heading">¶</a></h2>
+<p>We define a qumode (qudit) to have the states
+<span class="math notranslate nohighlight">\(\ket{0}\)</span>, <span class="math notranslate nohighlight">\(\ket{1}\)</span>, … <span class="math notranslate nohighlight">\(\ket{d}\)</span> in Dirac notation where:</p>
+<div class="math notranslate nohighlight">
+\[\ket{0} = \begin{bmatrix} 1 &amp; 0 &amp; 0 &amp; \dots &amp; 0 \end{bmatrix} ^ \top\]</div>
+<div class="math notranslate nohighlight">
+\[\ket{1} = \begin{bmatrix} 0 &amp; 1 &amp; 0 &amp; \dots &amp; 0 \end{bmatrix}^ \top\]</div>
+<div class="math notranslate nohighlight">
+\[\ket{2} = \begin{bmatrix} 0 &amp; 0 &amp; 1 &amp; \dots &amp; 0 \end{bmatrix}^ \top\]</div>
+<div class="math notranslate nohighlight">
+\[\vdots\]</div>
+<div class="math notranslate nohighlight">
+\[\ket{d} = \begin{bmatrix} 0 &amp; 0 &amp; 0 &amp; \dots &amp; 1 \end{bmatrix}^ \top\]</div>
+<p>where the linear combinations of states or superpositions are:</p>
+<div class="math notranslate nohighlight">
+\[\ket{\psi} = \alpha_0\ket{0} + \alpha_1\ket{1} + \alpha_2\ket{2} + \dots + \alpha_d\ket{d}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\alpha_i \in \mathbb{C}\)</span>. It is important to note that this is
+still the state of one qudit; although we have <span class="math notranslate nohighlight">\(d\)</span> kets, they represent a
+superposition state of one qudit.</p>
+<p>Multiple qudits can be combined and the possible combinations of their states
+used to process information.</p>
+<p>A two qudit system, <span class="math notranslate nohighlight">\(n=2\)</span>, with three levels, <span class="math notranslate nohighlight">\(d=3\)</span>, has
+<span class="math notranslate nohighlight">\(d^n=8\)</span> computational basis states:
+<span class="math notranslate nohighlight">\(\ket{00}, \ket{01}, \ket{02}, \ket{10}, \ket{11}, \ket{12}, \ket{20}, \ket{21}, \ket{22}\)</span>.</p>
+<p>A photonic quantum state of a <span class="math notranslate nohighlight">\(n\)</span> qudit system with <span class="math notranslate nohighlight">\(d\)</span> levels is
+written as a sum of <span class="math notranslate nohighlight">\(d^n\)</span> possible basis states where the coefficients
+track the probability of the system collapsing into that state if a measurement
+is applied.</p>
+<p>Storing the complex numbers associated with <span class="math notranslate nohighlight">\(d^n\)</span> amplitudes would not be
+feasible using bits and classical computations once <span class="math notranslate nohighlight">\(n\)</span> and <span class="math notranslate nohighlight">\(d\)</span> are
+relatively large.</p>
+</section>
+<section id="quantum-photonics-gates">
+<h2>Quantum Photonics Gates<a class="headerlink" href="#quantum-photonics-gates" title="Permalink to this heading">¶</a></h2>
+<p>We can manipulate the state of a qumode via quantum photonic gates. For
+example, the create gate allows us to increase the number of photons in a
+qumode up to a maximum given by the qudit level <span class="math notranslate nohighlight">\(d\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[C \ket{0} = \ket{1}\]</div>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{bmatrix}
+    0 &amp; 0 &amp; \dots &amp; 0 &amp; 0 &amp; 0 &amp; 0 \\
+    1 &amp; 0 &amp; \dots &amp; 0 &amp; 0 &amp; 0 &amp; 0 \\
+    0 &amp; 1 &amp; \dots &amp; 0 &amp; 0 &amp; 0 &amp; 0 \\
+      &amp;   &amp; \ddots &amp;  &amp;   &amp;   &amp; \\
+    0 &amp; 0 &amp; \dots &amp; 1 &amp; 0 &amp; 0 &amp; 0 \\
+    0 &amp; 0 &amp; \dots &amp; 0 &amp; 1 &amp; 0 &amp; 0 \\
+    0 &amp; 0 &amp; \dots &amp; 0 &amp; 0 &amp; 1 &amp; 1
+\end{bmatrix}
+\begin{bmatrix} 1 \\ 0 \\ 0 \\ \vdots \\ 0 \\ 0 \\ 0 \end{bmatrix} =
+\begin{bmatrix} 0 \\ 1 \\ 0 \\ \vdots \\ 0 \\ 0 \\ 0 \end{bmatrix}\end{split}\]</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;orca-photonics&quot;</span><span class="p">)</span>
+
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
+    <span class="c1"># A single qumode with 2 levels initialized to the ground / zero state.</span>
+    <span class="n">level</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">qumode</span> <span class="o">=</span> <span class="n">qudit</span><span class="p">(</span><span class="n">level</span><span class="p">)</span>
+
+    <span class="c1"># Apply the create gate to the qumode.</span>
+    <span class="n">create</span><span class="p">(</span><span class="n">qumode</span><span class="p">)</span>  <span class="c1"># |0⟩ -&gt; |1⟩</span>
+
+    <span class="c1"># Measurement operator.</span>
+    <span class="n">mz</span><span class="p">(</span><span class="n">qumode</span><span class="p">)</span>
+
+
+<span class="c1"># Sample the qumode for 1000 shots to gather statistics.</span>
+<span class="c1"># In this case, the results are deterministic and all return state 1.</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Creating a CUDA-Q IR pass starts with the implementation of an
-<code class="code docutils literal notranslate"><span class="pre">mlir::OperationPass</span></code>. A full discussion of the MLIR Pass infrastructure
-is beyond the scope of this document; please see
-<a class="reference external" href="https://mlir.llvm.org/docs/PassManagement">MLIR Passes</a>. To create such
-a pass, start with the following template in the <code class="code docutils literal notranslate"><span class="pre">MyCustomPlugin.cpp</span></code> file:</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/Optimizer/Dialect/Quake/QuakeDialect.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/Optimizer/Dialect/Quake/QuakeOps.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/Support/Plugin.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;mlir/Rewrite/FrozenRewritePatternSet.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;mlir/Transforms/DialectConversion.h&quot;</span>
-
-<span class="c1">// Here is an example MLIR Pass that one can write externally and</span>
-<span class="c1">// use via the cudaq-opt tool, with the --load-cudaq-plugin flag.</span>
-<span class="c1">// The pass here is simple, replace Hadamard operations with S operations.</span>
-
-<span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">mlir</span><span class="p">;</span>
-
-<span class="k">namespace</span><span class="w"> </span><span class="p">{</span>
-
-<span class="k">struct</span><span class="w"> </span><span class="nc">ReplaceH</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">OpRewritePattern</span><span class="o">&lt;</span><span class="n">quake</span><span class="o">::</span><span class="n">HOp</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">OpRewritePattern</span><span class="o">::</span><span class="n">OpRewritePattern</span><span class="p">;</span>
-<span class="w">  </span><span class="n">LogicalResult</span><span class="w"> </span><span class="nf">matchAndRewrite</span><span class="p">(</span><span class="n">quake</span><span class="o">::</span><span class="n">HOp</span><span class="w"> </span><span class="n">hOp</span><span class="p">,</span>
-<span class="w">                                </span><span class="n">PatternRewriter</span><span class="w"> </span><span class="o">&amp;</span><span class="n">rewriter</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">rewriter</span><span class="p">.</span><span class="n">replaceOpWithNewOp</span><span class="o">&lt;</span><span class="n">quake</span><span class="o">::</span><span class="n">SOp</span><span class="o">&gt;</span><span class="p">(</span>
-<span class="w">        </span><span class="n">hOp</span><span class="p">,</span><span class="w"> </span><span class="n">hOp</span><span class="p">.</span><span class="n">isAdj</span><span class="p">(),</span><span class="w"> </span><span class="n">hOp</span><span class="p">.</span><span class="n">getParameters</span><span class="p">(),</span><span class="w"> </span><span class="n">hOp</span><span class="p">.</span><span class="n">getControls</span><span class="p">(),</span>
-<span class="w">        </span><span class="n">hOp</span><span class="p">.</span><span class="n">getTargets</span><span class="p">());</span>
-<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">success</span><span class="p">();</span>
-<span class="w">  </span><span class="p">}</span>
-<span class="p">};</span>
-
-<span class="k">class</span><span class="w"> </span><span class="nc">CustomPassPlugin</span>
-<span class="w">    </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">PassWrapper</span><span class="o">&lt;</span><span class="n">CustomPassPlugin</span><span class="p">,</span><span class="w"> </span><span class="n">OperationPass</span><span class="o">&lt;</span><span class="n">func</span><span class="o">::</span><span class="n">FuncOp</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="p">{</span>
-<span class="k">public</span><span class="o">:</span>
-<span class="w">  </span><span class="n">MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID</span><span class="p">(</span><span class="n">CustomPassPlugin</span><span class="p">)</span>
-
-<span class="w">  </span><span class="n">llvm</span><span class="o">::</span><span class="n">StringRef</span><span class="w"> </span><span class="n">getArgument</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s">&quot;cudaq-custom-pass&quot;</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
-
-<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">runOnOperation</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">circuit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">getOperation</span><span class="p">();</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ctx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">circuit</span><span class="p">.</span><span class="n">getContext</span><span class="p">();</span>
-
-<span class="w">    </span><span class="n">RewritePatternSet</span><span class="w"> </span><span class="nf">patterns</span><span class="p">(</span><span class="n">ctx</span><span class="p">);</span>
-<span class="w">    </span><span class="n">patterns</span><span class="p">.</span><span class="n">insert</span><span class="o">&lt;</span><span class="n">ReplaceH</span><span class="o">&gt;</span><span class="p">(</span><span class="n">ctx</span><span class="p">);</span>
-<span class="w">    </span><span class="n">ConversionTarget</span><span class="w"> </span><span class="nf">target</span><span class="p">(</span><span class="o">*</span><span class="n">ctx</span><span class="p">);</span>
-<span class="w">    </span><span class="n">target</span><span class="p">.</span><span class="n">addLegalDialect</span><span class="o">&lt;</span><span class="n">quake</span><span class="o">::</span><span class="n">QuakeDialect</span><span class="o">&gt;</span><span class="p">();</span>
-<span class="w">    </span><span class="n">target</span><span class="p">.</span><span class="n">addIllegalOp</span><span class="o">&lt;</span><span class="n">quake</span><span class="o">::</span><span class="n">HOp</span><span class="o">&gt;</span><span class="p">();</span>
-<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">failed</span><span class="p">(</span><span class="n">applyPartialConversion</span><span class="p">(</span><span class="n">circuit</span><span class="p">,</span><span class="w"> </span><span class="n">target</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">patterns</span><span class="p">))))</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="n">circuit</span><span class="p">.</span><span class="n">emitOpError</span><span class="p">(</span><span class="s">&quot;simple pass failed&quot;</span><span class="p">);</span>
-<span class="w">      </span><span class="n">signalPassFailure</span><span class="p">();</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="w">  </span><span class="p">}</span>
-<span class="p">};</span>
-
-<span class="p">}</span><span class="w"> </span><span class="c1">// namespace</span>
-
-<span class="n">CUDAQ_REGISTER_MLIR_PASS</span><span class="p">(</span><span class="n">CustomPassPlugin</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span> <span class="mi">1</span><span class="p">:</span><span class="mi">1000</span> <span class="p">}</span>
 </pre></div>
 </div>
-<p>This example serves as a very simple template for creating custom MLIR
-Passes that analyze the CUDA-Q Quake representation and perform
-some general transformation. In this example, we create a rewrite pattern
-that replaces <code class="code docutils literal notranslate"><span class="pre">Hadamard</span></code> operations with <code class="code docutils literal notranslate"><span class="pre">S</span></code> operations.</p>
-<p>Ensure that <code class="code docutils literal notranslate"><span class="pre">add_subdirectory(Plugins)</span></code> is in the <code class="code docutils literal notranslate"><span class="pre">lib/CMakeLists.txt</span></code> file,
-and also that there is a <code class="code docutils literal notranslate"><span class="pre">lib/Plugins/CMakeLists.txt</span></code> file that adds your
-plugin directory with <code class="code docutils literal notranslate"><span class="pre">add_subdirectory</span></code>.</p>
-<p>Then build CUDA-Q and you will have a <code class="code docutils literal notranslate"><span class="pre">MyCustomPlugin.so</span></code> plugin library
-in the install. You can load the plugin and use it with <code class="code docutils literal notranslate"><span class="pre">cudaq-opt</span></code> as follows:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cudaq-opt<span class="w"> </span>--load-cudaq-plugin<span class="w"> </span>MyCustomPlugin.so<span class="w"> </span>file.qke<span class="w"> </span>-cudaq-custom-pass
+<p>The annihilate gate allows us to decrease the number of photons in a qumode, if
+it is applied to a qumode where the number of photons is already at the minimum
+value 0, the operation has no effect:</p>
+<div class="math notranslate nohighlight">
+\[A \ket{1} =  \ket{0}\]</div>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{bmatrix}
+    1 &amp; 1 &amp; 0 &amp; 0 &amp; \dots &amp; 0 &amp; 0 \\
+    0 &amp; 0 &amp; 1 &amp; 0 &amp; \dots &amp; 0 &amp; 0 \\
+    0 &amp; 0 &amp; 0 &amp; 1 &amp; \dots &amp; 0 &amp; 0 \\
+      &amp;   &amp;   &amp;   &amp; \ddots &amp;  &amp; \\
+    0 &amp; 0 &amp; 0 &amp; 0 &amp; \dots &amp; 1 &amp; 0 \\
+    0 &amp; 0 &amp; 0 &amp; 0 &amp; \dots &amp; 0 &amp; 1 \\
+    0 &amp; 0 &amp; 0 &amp; 0 &amp; \dots &amp; 0 &amp; 0
+\end{bmatrix}
+\begin{bmatrix} 0 \\ 1 \\ 0 \\ \vdots \\ 0 \\ 0 \\ 0 \end{bmatrix} =
+\begin{bmatrix} 1 \\ 0 \\ 0 \\ \vdots \\ 0 \\ 0 \\ 0 \end{bmatrix}\end{split}\]</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;orca-photonics&quot;</span><span class="p">)</span>
+
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
+    <span class="c1"># A single qumode with 2 levels initialized to the ground / zero state.</span>
+    <span class="n">level</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">qumode</span> <span class="o">=</span> <span class="n">qudit</span><span class="p">(</span><span class="n">level</span><span class="p">)</span>
+
+    <span class="c1"># Apply the create gate to the qumode.</span>
+    <span class="n">create</span><span class="p">(</span><span class="n">qumode</span><span class="p">)</span>  <span class="c1"># |0⟩ -&gt; |1⟩</span>
+
+    <span class="c1"># Apply the annihilate gate to the qumode.</span>
+    <span class="n">annihilate</span><span class="p">(</span><span class="n">qumode</span><span class="p">)</span>  <span class="c1"># |1⟩ -&gt; |0⟩</span>
+
+    <span class="c1"># Measurement operator.</span>
+    <span class="n">mz</span><span class="p">(</span><span class="n">qumode</span><span class="p">)</span>
+
+
+<span class="c1"># Sample the qumode for 1000 shots to gather statistics.</span>
+<span class="c1"># In this case, the results are deterministic and all return state 0.</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </pre></div>
 </div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1000</span> <span class="p">}</span>
+</pre></div>
+</div>
+<p>A phase shifter adds a phase <span class="math notranslate nohighlight">\(\phi\)</span> on a qumode. For the annihilation
+(<span class="math notranslate nohighlight">\(a_1\)</span>) and creation operators (<span class="math notranslate nohighlight">\(a_1^\dagger\)</span>) of a qumode, the
+phase shift operator is defined  by</p>
+<div class="math notranslate nohighlight">
+\[P(\phi) = \exp\left(i \phi a_1^\dagger a_1  \right)\]</div>
+<p>Just like the single-qubit gates above, we can define multi-qudit gates to act
+on multiple qumodes.</p>
+<p>Beam splitters act on two qumodes together and are parameterized by a single
+angle <span class="math notranslate nohighlight">\(\theta\)</span>, which is related to the transmission amplitude <span class="math notranslate nohighlight">\(t\)</span>
+by <span class="math notranslate nohighlight">\(t=\cos(\theta)\)</span>.</p>
+<p>For the annihilation (<span class="math notranslate nohighlight">\(a_1\)</span> and <span class="math notranslate nohighlight">\(a_2\)</span>) and creation operators
+(<span class="math notranslate nohighlight">\(a_1^\dagger\)</span> and <span class="math notranslate nohighlight">\(a_2^\dagger\)</span>) of two qumodes, the beam splitter
+operator is defined by</p>
+<div class="math notranslate nohighlight">
+\[B(\theta) = \exp\left[i \theta (a_1^\dagger a_2 + a_1 a_2^\dagger) \right]\]</div>
+<p>As an example, the code below implements a simulation of the Hong-Ou-Mandel
+effect, in which two identical photons that interfere on a balanced beam
+splitter leave the beam splitter together.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;orca-photonics&quot;</span><span class="p">)</span>
+
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
+    <span class="n">n_modes</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">level</span> <span class="o">=</span> <span class="mi">3</span>  <span class="c1"># qudit level</span>
+
+    <span class="c1"># Two qumode with 3 levels initialized to the ground / zero state.</span>
+    <span class="n">qumodes</span> <span class="o">=</span> <span class="p">[</span><span class="n">qudit</span><span class="p">(</span><span class="n">level</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_modes</span><span class="p">)]</span>
+
+    <span class="c1"># Apply the create gate to the qumodes.</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_modes</span><span class="p">):</span>
+        <span class="n">create</span><span class="p">(</span><span class="n">qumodes</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>  <span class="c1"># |00⟩ -&gt; |11⟩</span>
+
+    <span class="c1"># Apply the beam_splitter gate to the qumodes.</span>
+    <span class="n">beam_splitter</span><span class="p">(</span><span class="n">qumodes</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qumodes</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">4</span><span class="p">)</span>
+
+    <span class="c1"># Measurement operator.</span>
+    <span class="n">mz</span><span class="p">(</span><span class="n">qumodes</span><span class="p">)</span>
+
+
+<span class="c1"># Sample the qumode for 1000 shots to gather statistics.</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span> <span class="mi">02</span><span class="p">:</span><span class="mi">491</span> <span class="mi">20</span><span class="p">:</span><span class="mi">509</span> <span class="p">}</span>
+</pre></div>
+</div>
+<p>For a full list of photonic gates supported in CUDA-Q see
+<a class="reference internal" href="../../api/default_ops.html"><span class="doc">Quantum Operations</span></a>.</p>
+</section>
+<section id="measurements">
+<h2>Measurements<a class="headerlink" href="#measurements" title="Permalink to this heading">¶</a></h2>
+<p>Quantum theory is probabilistic and hence requires statistical inference
+to derive observations. Prior to measurement, the state of a qumode is
+all possible combinations of <span class="math notranslate nohighlight">\(\alpha_0, \alpha_1, \dots, \alpha_d\)</span>
+and upon measurement, wave function collapse yields either a classical
+<span class="math notranslate nohighlight">\(0, 1, \dots,\)</span> or <span class="math notranslate nohighlight">\(d\)</span>.</p>
+<p>The mathematical theory devised to explain quantum phenomena tells us
+that the probability of observing the qumode in the state
+<span class="math notranslate nohighlight">\(\ket{0}, \ket{1}, \dots, \ket{d}\)</span>, yielding a classical
+<span class="math notranslate nohighlight">\(0, 1, \dots,\)</span> or <span class="math notranslate nohighlight">\(d\)</span>, is <span class="math notranslate nohighlight">\(\lvert \alpha_0 \rvert ^2, \lvert \alpha_1 \rvert ^2, \dots,\)</span>
+or <span class="math notranslate nohighlight">\(\lvert \alpha_d \rvert ^2\)</span>, respectively.</p>
+<p>As we see in the example of the <code class="code docutils literal notranslate"><span class="pre">beam_splitter</span></code> gate above, states 02 and 20
+are yielded roughly 50% of the times, providing and illustration of the
+Hong-Ou-Mandel effect.</p>
+</section>
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="cudaq_ir.html" class="btn btn-neutral float-left" title="Working with the CUDA-Q IR" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../../specification/index.html" class="btn btn-neutral float-right" title="Specifications" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="quantum_operations.html" class="btn btn-neutral float-left" title="Quantum Computing 101" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../examples/python/measuring_kernels.html" class="btn btn-neutral float-right" title="Measurements" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
