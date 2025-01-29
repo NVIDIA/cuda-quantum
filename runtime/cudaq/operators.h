@@ -19,6 +19,9 @@
 #include <concepts> 
 #include <type_traits>
 
+// FIXME: DO WE REALLY NEED THE HANDLERTY OVERLOADS? -> EVERYTHING SHOULD BE A PRODUCT
+// might be perf relevant to avoid the creation of unnecessary products...
+
 namespace cudaq {
 
 class scalar_operator {
@@ -80,6 +83,11 @@ public:
   // comparisons
 
   bool operator==(scalar_operator other);
+
+  // unary operators
+
+  scalar_operator operator-() const;
+  scalar_operator operator+() const;
 
   // right-hand arithmetics
 
@@ -223,6 +231,11 @@ public:
   /// are guaranteed to represent the same transformation for all arguments.
   bool operator==(const operator_sum<HandlerTy> &other) const;
 
+  // unary operators
+
+  operator_sum<HandlerTy> operator-() const;
+  operator_sum<HandlerTy> operator+() const;
+
   // right-hand arithmetics
 
   operator_sum<HandlerTy> operator*(double other) const;
@@ -261,6 +274,34 @@ public:
   operator_sum<HandlerTy>& operator*=(const operator_sum<HandlerTy> &other);
   operator_sum<HandlerTy>& operator+=(const operator_sum<HandlerTy> &other);
   operator_sum<HandlerTy>& operator-=(const operator_sum<HandlerTy> &other);
+
+  // left-hand arithmetics
+
+  // Being a bit permissive here, since otherwise the explicit template instantiation is a nightmare.
+  template<typename T>
+  friend operator_sum<T> operator*(double other, const operator_sum<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator+(double other, const operator_sum<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator-(double other, const operator_sum<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator*(std::complex<double> other, const operator_sum<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator+(std::complex<double> other, const operator_sum<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator-(std::complex<double> other, const operator_sum<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator*(const scalar_operator &other, const operator_sum<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator+(const scalar_operator &other, const operator_sum<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator-(const scalar_operator &other, const operator_sum<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator*(const T &other, const operator_sum<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator+(const T &other, const operator_sum<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator-(const T &other, const operator_sum<T> &self);  
 };
 
 
@@ -347,6 +388,11 @@ public:
   ///  are guaranteed to represent the same transformation for all arguments.
   bool operator==(const product_operator<HandlerTy> &other) const;
 
+  // unary operators
+
+  product_operator<HandlerTy> operator-() const;
+  product_operator<HandlerTy> operator+() const;
+
   // right-hand arithmetics
 
   product_operator<HandlerTy> operator*(double other) const;
@@ -372,6 +418,34 @@ public:
   operator_sum<HandlerTy> operator*(const operator_sum<HandlerTy> &other) const;
   operator_sum<HandlerTy> operator+(const operator_sum<HandlerTy> &other) const;
   operator_sum<HandlerTy> operator-(const operator_sum<HandlerTy> &other) const;
+
+  // left-hand arithmetics
+
+  // Being a bit permissive here, since otherwise the explicit template instantiation is a nightmare.
+  template<typename T>
+  friend product_operator<T> operator*(double other, const product_operator<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator+(double other, const product_operator<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator-(double other, const product_operator<T> &self);
+  template<typename T>
+  friend product_operator<T> operator*(std::complex<double> other, const product_operator<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator+(std::complex<double> other, const product_operator<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator-(std::complex<double> other, const product_operator<T> &self);
+  template<typename T>
+  friend product_operator<T> operator*(const scalar_operator &other, const product_operator<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator+(const scalar_operator &other, const product_operator<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator-(const scalar_operator &other, const product_operator<T> &self);
+  template<typename T>
+  friend product_operator<T> operator*(const T &other, const product_operator<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator+(const T &other, const product_operator<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator-(const T &other, const product_operator<T> &self);
 };
 
 
