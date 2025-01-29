@@ -250,7 +250,7 @@ template <typename HandlerTy>
 product_operator<HandlerTy> product_operator<HandlerTy>::operator*(const HandlerTy &other) const {
   std::vector<HandlerTy> terms;
   terms.reserve(this->terms[0].size() + 1);
-  for (auto term : this->terms[0])
+  for (auto &term : this->terms[0])
     terms.push_back(term);
   terms.push_back(other);
   return product_operator<HandlerTy>(this->coefficients[0], std::move(terms));
@@ -295,9 +295,9 @@ template <typename HandlerTy>
 product_operator<HandlerTy> product_operator<HandlerTy>::operator*(const product_operator<HandlerTy> &other) const {
   std::vector<HandlerTy> terms;
   terms.reserve(this->terms[0].size() + other.terms[0].size());
-  for (auto term : this->terms[0])
+  for (auto &term : this->terms[0])
     terms.push_back(term);
-  for (auto term : other.terms[0])
+  for (auto &term : other.terms[0])
     terms.push_back(term);
   return product_operator(this->coefficients[0] * other.coefficients[0], std::move(terms));
 }
@@ -316,16 +316,16 @@ template <typename HandlerTy>
 operator_sum<HandlerTy> product_operator<HandlerTy>::operator*(const operator_sum<HandlerTy> &other) const {
   std::vector<scalar_operator> coefficients;
   coefficients.reserve(other.coefficients.size());
-  for (auto coeff : other.coefficients)
+  for (auto &coeff : other.coefficients)
     coefficients.push_back(this->coefficients[0] * coeff);
   std::vector<std::vector<HandlerTy>> terms;
   terms.reserve(other.terms.size());
-  for (auto term : other.terms) {
+  for (auto &term : other.terms) {
     std::vector<HandlerTy> prod;
     prod.reserve(this->terms[0].size() + term.size());
-    for (auto op : this->terms[0])
+    for (auto &op : this->terms[0])
       prod.push_back(op);
-    for (auto op : term) 
+    for (auto &op : term) 
       prod.push_back(op);
     terms.push_back(std::move(prod));
   }
@@ -342,12 +342,12 @@ operator_sum<HandlerTy> product_operator<HandlerTy>::operator*(const operator_su
     std::vector<scalar_operator> coefficients;                                          \
     coefficients.reserve(other.coefficients.size() + 1);                                \
     coefficients.push_back(this->coefficients[0]);                                      \
-    for (auto coeff : other.coefficients)                                               \
+    for (auto &coeff : other.coefficients)                                              \
       coefficients.push_back(op coeff);                                                 \
     std::vector<std::vector<HandlerTy>> terms;                                          \
     terms.reserve(other.terms.size() + 1);                                              \
     terms.push_back(this->terms[0]);                                                    \
-    for (auto term : other.terms)                                                       \
+    for (auto &term : other.terms)                                                      \
       terms.push_back(term);                                                            \
     operator_sum<HandlerTy> sum;                                                        \
     sum.coefficients = std::move(coefficients);                                         \
@@ -370,6 +370,42 @@ template
 operator_sum<elementary_operator> product_operator<elementary_operator>::operator+(const operator_sum<elementary_operator> &other) const;
 template
 operator_sum<elementary_operator> product_operator<elementary_operator>::operator-(const operator_sum<elementary_operator> &other) const;
+
+#define PRODUCT_MULTIPLICATION_ASSIGNMENT(otherTy)                                      \
+  template <typename HandlerTy>                                                         \
+  product_operator<HandlerTy>& product_operator<HandlerTy>::operator*=(otherTy other) { \
+    this->coefficients[0] *= other;                                                     \
+    return *this;                                                                       \
+  }
+
+PRODUCT_MULTIPLICATION_ASSIGNMENT(double);
+PRODUCT_MULTIPLICATION_ASSIGNMENT(std::complex<double>);
+PRODUCT_MULTIPLICATION_ASSIGNMENT(const scalar_operator &);
+
+template <typename HandlerTy>
+product_operator<HandlerTy>& product_operator<HandlerTy>::operator*=(const HandlerTy &other) {
+  this->terms[0].push_back(other);
+  return *this;
+}
+
+template <typename HandlerTy>
+product_operator<HandlerTy>& product_operator<HandlerTy>::operator*=(const product_operator<HandlerTy> &other) {
+  this->coefficients[0] *= other.coefficients[0];
+  this->terms[0].reserve(this->terms[0].size() + other.terms[0].size());
+  this->terms[0].insert(this->terms[0].end(), other.terms[0].begin(), other.terms[0].end());
+  return *this;
+}
+
+template
+product_operator<elementary_operator>& product_operator<elementary_operator>::operator*=(double other);
+template
+product_operator<elementary_operator>& product_operator<elementary_operator>::operator*=(std::complex<double> other);
+template
+product_operator<elementary_operator>& product_operator<elementary_operator>::operator*=(const scalar_operator &other);
+template
+product_operator<elementary_operator>& product_operator<elementary_operator>::operator*=(const elementary_operator &other);
+template
+product_operator<elementary_operator>& product_operator<elementary_operator>::operator*=(const product_operator<elementary_operator> &other);
 
 // left-hand arithmetics
 
@@ -403,7 +439,7 @@ product_operator<HandlerTy> operator*(const HandlerTy &other, const product_oper
   std::vector<HandlerTy> terms;
   terms.reserve(self.terms[0].size() + 1);
   terms.push_back(other);
-  for (auto term : self.terms[0])
+  for (auto &term : self.terms[0])
     terms.push_back(term);
   return product_operator<HandlerTy>(self.coefficients[0], std::move(terms));
 }

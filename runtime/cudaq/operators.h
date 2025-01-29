@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "dynamics/arithmetics.h"
+#include "dynamics/templates.h"
 #include "definition.h"
 #include "utils/tensor.h"
 
@@ -241,36 +241,37 @@ public:
   operator_sum<HandlerTy> operator*(double other) const;
   operator_sum<HandlerTy> operator+(double other) const;
   operator_sum<HandlerTy> operator-(double other) const;
-  operator_sum<HandlerTy>& operator*=(double other);
-  operator_sum<HandlerTy>& operator+=(double other);
-  operator_sum<HandlerTy>& operator-=(double other);
   operator_sum<HandlerTy> operator*(std::complex<double> other) const;
   operator_sum<HandlerTy> operator+(std::complex<double> other) const;
   operator_sum<HandlerTy> operator-(std::complex<double> other) const;
-  operator_sum<HandlerTy>& operator*=(std::complex<double> other);
-  operator_sum<HandlerTy>& operator+=(std::complex<double> other);
-  operator_sum<HandlerTy>& operator-=(std::complex<double> other);
   operator_sum<HandlerTy> operator*(const scalar_operator &other) const;
   operator_sum<HandlerTy> operator+(const scalar_operator &other) const;
   operator_sum<HandlerTy> operator-(const scalar_operator &other) const;
-  operator_sum<HandlerTy>& operator*=(const scalar_operator &other);
-  operator_sum<HandlerTy>& operator+=(const scalar_operator &other);
-  operator_sum<HandlerTy>& operator-=(const scalar_operator &other);
   operator_sum<HandlerTy> operator+(const HandlerTy &other) const;
   operator_sum<HandlerTy> operator-(const HandlerTy &other) const;
   operator_sum<HandlerTy> operator*(const HandlerTy &other) const;
-  operator_sum<HandlerTy>& operator*=(const HandlerTy &other);
-  operator_sum<HandlerTy>& operator+=(const HandlerTy &other);
-  operator_sum<HandlerTy>& operator-=(const HandlerTy &other);
   operator_sum<HandlerTy> operator*(const product_operator<HandlerTy> &other) const;
   operator_sum<HandlerTy> operator+(const product_operator<HandlerTy> &other) const;
   operator_sum<HandlerTy> operator-(const product_operator<HandlerTy> &other) const;
-  operator_sum<HandlerTy>& operator*=(const product_operator<HandlerTy> &other);
-  operator_sum<HandlerTy>& operator+=(const product_operator<HandlerTy> &other);
-  operator_sum<HandlerTy>& operator-=(const product_operator<HandlerTy> &other);
   operator_sum<HandlerTy> operator+(const operator_sum<HandlerTy> &other) const;
   operator_sum<HandlerTy> operator-(const operator_sum<HandlerTy> &other) const;
   operator_sum<HandlerTy> operator*(const operator_sum<HandlerTy> &other) const;
+
+  operator_sum<HandlerTy>& operator*=(double other);
+  operator_sum<HandlerTy>& operator+=(double other);
+  operator_sum<HandlerTy>& operator-=(double other);
+  operator_sum<HandlerTy>& operator*=(std::complex<double> other);
+  operator_sum<HandlerTy>& operator+=(std::complex<double> other);
+  operator_sum<HandlerTy>& operator-=(std::complex<double> other);
+  operator_sum<HandlerTy>& operator*=(const scalar_operator &other);
+  operator_sum<HandlerTy>& operator+=(const scalar_operator &other);
+  operator_sum<HandlerTy>& operator-=(const scalar_operator &other);
+  operator_sum<HandlerTy>& operator*=(const HandlerTy &other);
+  operator_sum<HandlerTy>& operator+=(const HandlerTy &other);
+  operator_sum<HandlerTy>& operator-=(const HandlerTy &other);
+  operator_sum<HandlerTy>& operator*=(const product_operator<HandlerTy> &other);
+  operator_sum<HandlerTy>& operator+=(const product_operator<HandlerTy> &other);
+  operator_sum<HandlerTy>& operator-=(const product_operator<HandlerTy> &other);
   operator_sum<HandlerTy>& operator*=(const operator_sum<HandlerTy> &other);
   operator_sum<HandlerTy>& operator+=(const operator_sum<HandlerTy> &other);
   operator_sum<HandlerTy>& operator-=(const operator_sum<HandlerTy> &other);
@@ -405,26 +406,27 @@ public:
   product_operator<HandlerTy> operator*(double other) const;
   operator_sum<HandlerTy> operator+(double other) const;
   operator_sum<HandlerTy> operator-(double other) const;
-  product_operator<HandlerTy>& operator*=(double other);
   product_operator<HandlerTy> operator*(std::complex<double> other) const;
   operator_sum<HandlerTy> operator+(std::complex<double> other) const;
   operator_sum<HandlerTy> operator-(std::complex<double> other) const;
-  product_operator<HandlerTy>& operator*=(std::complex<double> other);
   product_operator<HandlerTy> operator*(const scalar_operator &other) const;
   operator_sum<HandlerTy> operator+(const scalar_operator &other) const;
   operator_sum<HandlerTy> operator-(const scalar_operator &other) const;
-  product_operator<HandlerTy>& operator*=(const scalar_operator &other);
   product_operator<HandlerTy> operator*(const HandlerTy &other) const;
   operator_sum<HandlerTy> operator+(const HandlerTy &other) const;
   operator_sum<HandlerTy> operator-(const HandlerTy &other) const;
-  product_operator<HandlerTy>& operator*=(const HandlerTy &other);
   product_operator<HandlerTy> operator*(const product_operator<HandlerTy> &other) const;
   operator_sum<HandlerTy> operator+(const product_operator<HandlerTy> &other) const;
   operator_sum<HandlerTy> operator-(const product_operator<HandlerTy> &other) const;
-  product_operator<HandlerTy>& operator*=(const product_operator<HandlerTy> &other);
   operator_sum<HandlerTy> operator*(const operator_sum<HandlerTy> &other) const;
   operator_sum<HandlerTy> operator+(const operator_sum<HandlerTy> &other) const;
   operator_sum<HandlerTy> operator-(const operator_sum<HandlerTy> &other) const;
+
+  product_operator<HandlerTy>& operator*=(double other);
+  product_operator<HandlerTy>& operator*=(std::complex<double> other);
+  product_operator<HandlerTy>& operator*=(const scalar_operator &other);
+  product_operator<HandlerTy>& operator*=(const HandlerTy &other);
+  product_operator<HandlerTy>& operator*=(const product_operator<HandlerTy> &other);
 
   // left-hand arithmetics
 
