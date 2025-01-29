@@ -482,6 +482,7 @@ Specific aspects of the simulation can be configured by setting the following of
 * **`OMP_PLACES=cores`**: Set this environment variable to improve CPU parallelization.
 * **`OMP_NUM_THREADS=X`**: To enable CPU parallelization, set X to `NUMBER_OF_CORES_PER_NODE/NUMBER_OF_GPUS_PER_NODE`.
 * **`CUDAQ_TENSORNET_CONTROLLED_RANK=X`**: Specify the number of controlled qubits whereby the full tensor body of the controlled gate is expanded. If the number of controlled qubits is greater than this value, the gate is applied as a controlled tensor operator to the tensor network state. Default value is 1.
+* **`CUDAQ_TENSORNET_OBSERVE_CONTRACT_PATH_REUSE=X`**: Set this environment variable to `TRUE` (`ON`) or `FALSE` (`OFF`) to enable or disable contraction path reuse when computing expectation values. Default is `OFF`.
 
 .. note:: 
 
@@ -489,6 +490,18 @@ Specific aspects of the simulation can be configured by setting the following of
   If you do not have these dependencies installed, you may encounter an error stating `Invalid simulator requested`. 
   See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
 
+.. note:: 
+
+  When using contraction path reuse (`CUDAQ_TENSORNET_OBSERVE_CONTRACT_PATH_REUSE=TRUE`), :code:`tensornet` backends perform a single contraction path optimization with an opaque spin operator term. This path is then used to contract all the actual terms in the spin operator, hence saving the path finding time.
+
+  As we use an opaque spin operator term as a placeholder for contraction path optimization, the resulting contraction path is not as optimal as if the actual spin operator is used.
+  For instance, if the spin operator is sparse (only acting on a few qubits), the contraction can be significantly simplified.  
+
+.. note:: 
+
+  :code:`tensornet` backends only return the overall expectation value for a :class:`cudaq.SpinOperator` when using the `cudaq::observe` method. 
+  Term-by-term expectation values will not be available in the resulting `ObserveResult` object.
+  If needed, these values can be computed by calling `cudaq::observe` on individual terms instead.  
 
 Matrix product state 
 +++++++++++++++++++++++++++++++++++
@@ -577,6 +590,45 @@ To execute a program on the :code:`stim` target, use the following commands:
     This allows for conditional gate execution (i.e. full control flow), but it
     can be slower than executing Stim a single time and generating all the shots
     from that single execution.
+
+
+Photonics Simulators
+==================================
+
+The :code:`orca-photonics` target provides a state vector simulator with 
+the :code:`Q++` library. 
+
+The :code:`orca-photonics` target supports supports a double precision simulator that can run in multiple CPUs.
+
+OpenMP CPU-only
+++++++++++++++++++++++++++++++++++
+
+.. _qpp-cpu-photonics-backend:
+
+This target provides a state vector simulator based on the CPU-only, OpenMP threaded `Q++ <https://github.com/softwareqinc/qpp>`_  library.
+
+To execute a program on the :code:`orca-photonics` target, use the following commands:
+
+.. tab:: Python
+
+    .. code:: bash 
+
+        python3 program.py [...] --target orca-photonics
+
+    The target can also be defined in the application code by calling
+
+    .. code:: python 
+
+        cudaq.set_target('orca-photonics')
+
+    If a target is set in the application code, this target will override the :code:`--target` command line flag given during program invocation.
+
+.. tab:: C++
+
+    .. code:: bash 
+
+        nvq++ --library-mode --target orca-photonics program.cpp [...] -o program.x
+
 
 Fermioniq
 ==================================

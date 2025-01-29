@@ -130,6 +130,12 @@
 <li class="toctree-l3"><a class="reference internal" href="../examples/quantum_operations.html#measurements">Measurements</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/photonic_operations.html">   Photonic Operations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/photonic_operations.html#quantum-photonic-states">Quantum Photonic States</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/photonic_operations.html#quantum-photonics-gates">Quantum Photonics Gates</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/photonic_operations.html#measurements">Measurements</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/measuring_kernels.html">   Measuring Kernels</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/measuring_kernels.html#Midcircuit-Measurement-and-Conditional-Logic">Midcircuit Measurement and Conditional Logic</a></li>
 </ul>
@@ -149,6 +155,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../../examples/python/executing_kernels.html#Get-State-Async">Get State Async</a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/executing_photonic_kernels.html">   Executing Photonic Kernels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_photonic_kernels.html#Sample">Sample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_photonic_kernels.html#Get-state">Get state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_photonic_kernels.html#Parallelization-Techniques">Parallelization Techniques</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/expectation_values.html">   Computing Expectation Values</a><ul>
@@ -334,6 +346,10 @@
 <li class="toctree-l4"><a class="reference internal" href="simulators.html#stim-cpu">Stim (CPU)</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="simulators.html#photonics-simulators">Photonics Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="simulators.html#id3">OpenMP CPU-only</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="simulators.html#fermioniq">Fermioniq</a></li>
 <li class="toctree-l3"><a class="reference internal" href="simulators.html#default-simulator">Default Simulator</a></li>
 </ul>
@@ -422,6 +438,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#operator">Operator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#time-dependent-dynamics">Time-Dependent Dynamics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#numerical-integrators">Numerical Integrators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#multi-gpu-multi-node-execution">Multi-GPU Multi-Node Execution</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../install/install.html">   Installation</a><ul>
@@ -631,6 +648,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.spin.y"><code class="docutils literal notranslate"><span class="pre">spin.y()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.spin.z"><code class="docutils literal notranslate"><span class="pre">spin.z()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.cudm_state.CuDensityMatState"><code class="docutils literal notranslate"><span class="pre">CuDensityMatState</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.helpers.InitialState"><code class="docutils literal notranslate"><span class="pre">InitialState</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.cudm_state.to_cupy_array"><code class="docutils literal notranslate"><span class="pre">to_cupy_array()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.SampleResult"><code class="docutils literal notranslate"><span class="pre">SampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncSampleResult"><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></li>
@@ -839,6 +857,8 @@ as well as intermediate values at each time step (with <code class="code docutil
 </div>
 <p>In particular, for each time step, <code class="code docutils literal notranslate"><span class="pre">evolve</span></code> captures an array of expectation values, one for each
 observable. Hence, we convert them into sequences for plotting purposes.</p>
+<p>Examples that illustrate how to use the <code class="docutils literal notranslate"><span class="pre">dynamics</span></code> target are available
+in the <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples/python/dynamics">CUDA-Q repository</a>.</p>
 </section>
 <section id="operator">
 <h2>Operator<a class="headerlink" href="#operator" title="Permalink to this heading">¶</a></h2>
@@ -1115,6 +1135,60 @@ the default Torch pip package may not have CUDA support.</p>
 <p>If the output is a ‘<code class="code docutils literal notranslate"><span class="pre">None</span></code>’ string, it indicates that your Torch installation does not support CUDA.
 In this case, you need to install a CUDA-enabled Torch package via other mechanisms, e.g., building Torch from source or
 using their Docker images.</p>
+</div>
+</section>
+<section id="multi-gpu-multi-node-execution">
+<h2>Multi-GPU Multi-Node Execution<a class="headerlink" href="#multi-gpu-multi-node-execution" title="Permalink to this heading">¶</a></h2>
+<p id="cudensitymat-mgmn">CUDA-Q <code class="docutils literal notranslate"><span class="pre">dynamics</span></code> target supports parallel execution on multiple GPUs.
+To enable parallel execution, the application must initialize MPI as follows.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--8-input--1" name="tab-set--8" type="radio"><label class="tab-label" for="tab-set--8-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
+
+<span class="c1"># Set the target to our dynamics simulator</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;dynamics&quot;</span><span class="p">)</span>
+
+<span class="c1"># Initial state (expressed as an enum)</span>
+<span class="n">psi0</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">operator</span><span class="o">.</span><span class="n">InitialState</span><span class="o">.</span><span class="n">ZERO</span>
+
+<span class="c1"># Run the simulation</span>
+<span class="n">evolution_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">H</span><span class="p">,</span>
+                                <span class="n">dimensions</span><span class="p">,</span>
+                                <span class="n">schedule</span><span class="p">,</span>
+                                <span class="n">psi0</span><span class="p">,</span>
+                                <span class="n">observables</span><span class="o">=</span><span class="p">[],</span>
+                                <span class="n">collapse_operators</span><span class="o">=</span><span class="p">[],</span>
+                                <span class="n">store_intermediate_results</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                <span class="n">integrator</span><span class="o">=</span><span class="n">RungeKuttaIntegrator</span><span class="p">())</span>
+
+<span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span>
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mpiexec<span class="w"> </span>-np<span class="w"> </span>&lt;N&gt;<span class="w"> </span>python3<span class="w"> </span>program.py
+</pre></div>
+</div>
+<p>where <code class="docutils literal notranslate"><span class="pre">N</span></code> is the number of processes.</p>
+</div>
+</div>
+<p>By initializing the MPI execution environment (via <code class="code docutils literal notranslate"><span class="pre">cudaq.mpi.initialize()</span></code>) in the application code and
+invoking it via an MPI launcher, we have activated the multi-node multi-GPU feature of the <code class="docutils literal notranslate"><span class="pre">dynamics</span></code> target.
+Specifically, it will detect the number of processes (GPUs) and distribute the computation across all available GPUs.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The number of MPI processes must be a power of 2, one GPU per process.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Not all integrators are capable of handling distributed state. Errors will be raised if parallel execution is activated
+but the selected integrator does not support distributed state.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>As of cuQuantum version 24.11, there are a couple of <a class="reference external" href="https://docs.nvidia.com/cuda/cuquantum/24.11.0/cudensitymat/index.html">known limitations</a> for parallel execution:</p>
+<ul class="simple">
+<li><p>Computing the expectation value of a mixed quantum state is not supported. Thus, <code class="code docutils literal notranslate"><span class="pre">collapse_operators</span></code> are not supported if expectation calculation is required.</p></li>
+<li><p>Some combinations of quantum states and quantum many-body operators are not supported. Errors will be raised in those cases.</p></li>
+</ul>
 </div>
 </section>
 </section>
