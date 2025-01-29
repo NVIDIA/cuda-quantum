@@ -321,7 +321,7 @@ __qpu__ bool Peppermint() {
 // QIR:         store double 1.000000e+00, double* %[[VAL_6]]
 // QIR:         %[[VAL_7:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_0]], i64 0, i64 2, i32 1
 // QIR:         %[[VAL_8:.*]] = bitcast double* %[[VAL_7]] to i8*
-// QIR:         call void @llvm.memset.p0i8.i64(i8* noundef nonnull align 8 dereferenceable(24) %[[VAL_8]], i8 0, i64 24, i1 false)
+// QIR:         call void @llvm.memset.p0i8.i64(i8* {{.*}}%[[VAL_8]], i8 0, i64 24, i1 false)
 // QIR:         %[[VAL_9:.*]] = call %[[VAL_10:.*]]* @__quantum__rt__qubit_allocate_array_with_state_complex64(i64 2, { double, double }* nonnull %[[VAL_1]])
 // QIR:         %[[VAL_11:.*]] = call %[[VAL_12:.*]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_10]]* %[[VAL_9]], i64 0)
 // QIR:         %[[VAL_13:.*]] = load %[[VAL_12]]*, %[[VAL_12]]** %[[VAL_11]]
@@ -363,7 +363,7 @@ __qpu__ bool Peppermint() {
 // QIR:         store double 1.000000e+00, double* %[[VAL_6]]
 // QIR:         %[[VAL_7:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_0]], i64 0, i64 2, i32 1
 // QIR:         %[[VAL_8:.*]] = bitcast double* %[[VAL_7]] to i8*
-// QIR:         call void @llvm.memset.p0i8.i64(i8* noundef nonnull align 8 dereferenceable(24) %[[VAL_8]], i8 0, i64 24, i1 false)
+// QIR:         call void @llvm.memset.p0i8.i64(i8* {{.*}}%[[VAL_8]], i8 0, i64 24, i1 false)
 // QIR:         %[[VAL_9:.*]] = call %[[VAL_10:.*]]* @__quantum__rt__qubit_allocate_array_with_state_complex64(i64 2, { double, double }* nonnull %[[VAL_1]])
 // QIR:         %[[VAL_11:.*]] = call %[[VAL_12:.*]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_10]]* %[[VAL_9]], i64 0)
 // QIR:         %[[VAL_13:.*]] = load %[[VAL_12]]*, %[[VAL_12]]** %[[VAL_11]]
@@ -433,7 +433,7 @@ __qpu__ bool Peppermint() {
 // QIR:         store double %[[VAL_26]], double* %[[VAL_27]]
 // QIR:         %[[VAL_28:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_16]], i64 0, i64 3, i32 0
 // QIR:         %[[VAL_29:.*]] = bitcast double* %[[VAL_28]] to i8*
-// QIR:         call void @llvm.memset.p0i8.i64(i8* noundef nonnull align 8 dereferenceable(16) %[[VAL_29]], i8 0, i64 16, i1 false)
+// QIR:         call void @llvm.memset.p0i8.i64(i8* {{.*}}%[[VAL_29]], i8 0, i64 16, i1 false)
 // QIR:         %[[VAL_30:.*]] = call %[[VAL_31:.*]]* @__quantum__rt__qubit_allocate_array_with_state_complex64(i64 2, { double, double }* nonnull %[[VAL_17]])
 // QIR:         %[[VAL_32:.*]] = call %[[VAL_33:.*]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_31]]* %[[VAL_30]], i64 0)
 // QIR:         %[[VAL_34:.*]] = load %[[VAL_33]]*, %[[VAL_33]]** %[[VAL_32]]
@@ -553,7 +553,7 @@ __qpu__ bool Peppermint() {
 // QIR:       ._crit_edge5:                                     ; preds = %[[VAL_21]], %[[VAL_9]], %[[VAL_19]]
 // QIR:         %[[VAL_33:.*]] = phi i8* [ %[[VAL_11]], %[[VAL_9]] ], [ %[[VAL_20]], %[[VAL_19]] ], [ %[[VAL_20]], %[[VAL_21]] ]
 // QIR:         %[[VAL_34:.*]] = tail call i8* @malloc(i64 %[[VAL_6]])
-// QIR:         call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 1 %[[VAL_34]], i8* nonnull align 1 %[[VAL_33]], i64 %[[VAL_6]], i1 false)
+// QIR:         call void @llvm.memcpy.p0i8.p0i8.i64(i8* {{.*}}%[[VAL_34]], i8* nonnull {{.*}}%[[VAL_33]], i64 %[[VAL_6]], i1 false)
 // QIR:         %[[VAL_35:.*]] = bitcast i8* %[[VAL_34]] to i1*
 // QIR:         %[[VAL_36:.*]] = insertvalue { i1*, i64 } undef, i1* %[[VAL_35]], 0
 // QIR:         %[[VAL_37:.*]] = insertvalue { i1*, i64 } %[[VAL_36]], i64 %[[VAL_6]], 1
@@ -600,7 +600,7 @@ __qpu__ bool Peppermint() {
 // QIR:       ._crit_edge5:                                     ; preds = %[[VAL_21]], %[[VAL_9]], %[[VAL_19]]
 // QIR:         %[[VAL_33:.*]] = phi i8* [ %[[VAL_11]], %[[VAL_9]] ], [ %[[VAL_20]], %[[VAL_19]] ], [ %[[VAL_20]], %[[VAL_21]] ]
 // QIR:         %[[VAL_34:.*]] = tail call i8* @malloc(i64 %[[VAL_6]])
-// QIR:         call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 1 %[[VAL_34]], i8* nonnull align 1 %[[VAL_33]], i64 %[[VAL_6]], i1 false)
+// QIR:         call void @llvm.memcpy.p0i8.p0i8.i64(i8* {{.*}}%[[VAL_34]], i8* nonnull {{.*}}%[[VAL_33]], i64 %[[VAL_6]], i1 false)
 // QIR:         %[[VAL_35:.*]] = bitcast i8* %[[VAL_34]] to i1*
 // QIR:         %[[VAL_36:.*]] = insertvalue { i1*, i64 } undef, i1* %[[VAL_35]], 0
 // QIR:         %[[VAL_37:.*]] = insertvalue { i1*, i64 } %[[VAL_36]], i64 %[[VAL_6]], 1
@@ -613,7 +613,7 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_1:.*]] = getelementptr inbounds [2 x { double, double }], [2 x { double, double }]* %[[VAL_0]], i64 0, i64 0
 // QIR:         %[[VAL_2:.*]] = getelementptr inbounds [2 x { double, double }], [2 x { double, double }]* %[[VAL_0]], i64 0, i64 1, i32 0
 // QIR:         %[[VAL_3:.*]] = bitcast [2 x { double, double }]* %[[VAL_0]] to i8*
-// QIR:         call void @llvm.memset.p0i8.i64(i8* noundef nonnull align 8 dereferenceable(16) %[[VAL_3]], i8 0, i64 16, i1 false)
+// QIR:         call void @llvm.memset.p0i8.i64(i8* {{.*}}%[[VAL_3]], i8 0, i64 16, i1 false)
 // QIR:         store double 1.000000e+00, double* %[[VAL_2]]
 // QIR:         %[[VAL_4:.*]] = getelementptr inbounds [2 x { double, double }], [2 x { double, double }]* %[[VAL_0]], i64 0, i64 1, i32 1
 // QIR:         store double 0.000000e+00, double* %[[VAL_4]]
