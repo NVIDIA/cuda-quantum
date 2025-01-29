@@ -301,7 +301,14 @@ public:
   template<typename T>
   friend operator_sum<T> operator+(const T &other, const operator_sum<T> &self);
   template<typename T>
-  friend operator_sum<T> operator-(const T &other, const operator_sum<T> &self);  
+  friend operator_sum<T> operator-(const T &other, const operator_sum<T> &self); 
+
+  template<typename T>
+  friend operator_sum<T> product_operator<T>::operator*(const operator_sum<T> &other) const;
+  template<typename T>
+  friend operator_sum<T> product_operator<T>::operator+(const operator_sum<T> &other) const;
+  template<typename T>
+  friend operator_sum<T> product_operator<T>::operator-(const operator_sum<T> &other) const;
 };
 
 
