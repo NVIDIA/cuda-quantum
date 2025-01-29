@@ -19,23 +19,19 @@ namespace cudaq {
 // private methods
 
 template<typename HandlerTy>
-requires std::derived_from<elementary_operator, HandlerTy>
 std::vector<std::tuple<scalar_operator, HandlerTy>> operator_sum<HandlerTy>::canonicalize_product(product_operator<HandlerTy> &prod) const {
     throw std::runtime_error("not implemented");
 }
 
 template<typename HandlerTy>
-requires std::derived_from<elementary_operator, HandlerTy>
 std::vector<std::tuple<scalar_operator, HandlerTy>> operator_sum<HandlerTy>::_canonical_terms() const {
     throw std::runtime_error("not implemented");
 }
 
 template<typename HandlerTy>
-requires std::derived_from<elementary_operator, HandlerTy>
 void operator_sum<HandlerTy>::aggregate_terms() {}
 
 template<typename HandlerTy>
-requires std::derived_from<elementary_operator, HandlerTy>
 template <typename ... Args>
 void operator_sum<HandlerTy>::aggregate_terms(const product_operator<HandlerTy> &head, Args&& ... args) {
     this->terms.push_back(head.terms[0]);
@@ -63,19 +59,16 @@ void operator_sum<elementary_operator>::aggregate_terms(const product_operator<e
 // read-only properties
 
 template<typename HandlerTy>
-requires std::derived_from<elementary_operator, HandlerTy>
 std::vector<int> operator_sum<HandlerTy>::degrees() const {
     throw std::runtime_error("not implemented");
 }
 
 template<typename HandlerTy>
-requires std::derived_from<elementary_operator, HandlerTy>
 int operator_sum<HandlerTy>::n_terms() const { 
     return this->terms.size(); 
 }
 
 template<typename HandlerTy>
-requires std::derived_from<elementary_operator, HandlerTy>
 std::vector<product_operator<HandlerTy>> operator_sum<HandlerTy>::get_terms() const { 
     std::vector<product_operator<HandlerTy>> prods;
     prods.reserve(this->terms.size());
@@ -97,7 +90,6 @@ std::vector<product_operator<elementary_operator>> operator_sum<elementary_opera
 // constructors
 
 template<typename HandlerTy>
-requires std::derived_from<elementary_operator, HandlerTy>
 template<class... Args, class>
 operator_sum<HandlerTy>::operator_sum(const Args&... args) {
     this->terms.reserve(sizeof...(Args));
@@ -106,7 +98,6 @@ operator_sum<HandlerTy>::operator_sum(const Args&... args) {
 }
 
 template<typename HandlerTy>
-requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy>::operator_sum(const std::vector<product_operator<HandlerTy>> &terms) { 
     this->terms.reserve(terms.size());
     this->coefficients.reserve(terms.size());
@@ -117,7 +108,6 @@ operator_sum<HandlerTy>::operator_sum(const std::vector<product_operator<Handler
 }
 
 template<typename HandlerTy>
-requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy>::operator_sum(std::vector<product_operator<HandlerTy>> &&terms) { 
     this->terms.reserve(terms.size());
     for (const product_operator<HandlerTy>& term : terms) {
@@ -127,12 +117,10 @@ operator_sum<HandlerTy>::operator_sum(std::vector<product_operator<HandlerTy>> &
 }
 
 template<typename HandlerTy>
-requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy>::operator_sum(const operator_sum<HandlerTy> &other)
     : coefficients(other.coefficients), terms(other.terms) {}
 
 template<typename HandlerTy>
-requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy>::operator_sum(operator_sum<HandlerTy> &&other) 
     : coefficients(std::move(other.coefficients)), terms(std::move(other.terms)) {}
 
@@ -163,7 +151,6 @@ operator_sum<elementary_operator>::operator_sum(operator_sum<elementary_operator
 // assignments
 
 template<typename HandlerTy>
-requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator=(const operator_sum<HandlerTy> &other) {
     if (this != &other) {
         coefficients = other.coefficients;
@@ -173,7 +160,6 @@ operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator=(const operator_sum<H
 }
 
 template<typename HandlerTy>
-requires std::derived_from<elementary_operator, HandlerTy>
 operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator=(operator_sum<HandlerTy> &&other) {
     if (this != &other) {
         coefficients = std::move(other.coefficients);
@@ -191,13 +177,11 @@ operator_sum<elementary_operator>& operator_sum<elementary_operator>::operator=(
 // evaluations
 
 template<typename HandlerTy>
-requires std::derived_from<elementary_operator, HandlerTy>
 std::string operator_sum<HandlerTy>::to_string() const {
     throw std::runtime_error("not implemented");
 }
 
 template<typename HandlerTy>
-requires std::derived_from<elementary_operator, HandlerTy>
 matrix_2 operator_sum<HandlerTy>::to_matrix(const std::map<int, int> &dimensions,
                                             const std::map<std::string, double> &params) const {
     throw std::runtime_error("not implemented");
@@ -213,7 +197,6 @@ matrix_2 operator_sum<elementary_operator>::to_matrix(const std::map<int, int> &
 // comparisons
 
 template<typename HandlerTy>
-requires std::derived_from<elementary_operator, HandlerTy>
 bool operator_sum<HandlerTy>::operator==(const operator_sum<HandlerTy> &other) const {
     throw std::runtime_error("not implemented");
 }
