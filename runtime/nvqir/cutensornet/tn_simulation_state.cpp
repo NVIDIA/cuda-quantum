@@ -125,9 +125,7 @@ TensorNetSimulationState::overlap(const cudaq::SimulationState &other) {
         projectedModes.data(), nullptr, &accessor));
   }
 
-  const int32_t numHyperSamples =
-      8; // desired number of hyper samples used in the tensor network
-         // contraction path finder
+  const int32_t numHyperSamples = TensorNetState::numHyperSamples;
   {
     ScopedTraceWithContext("cutensornetAccessorConfigure");
     HANDLE_CUTN_ERROR(cutensornetAccessorConfigure(

@@ -12,6 +12,27 @@
 #include <cassert>
 
 namespace nvqir {
+std::int32_t TensorNetState::numHyperSamples = []() {
+  constexpr int32_t defaultNumHyperSamples = 8;
+  if (auto envVal = std::getenv("CUDAQ_TENSORNET_NUM_HYPER_SAMPLES")) {
+    int32_t specifiedNumHyperSamples = 0;
+    try {
+      specifiedNumHyperSamples = std::stoi(envVal);
+      if (specifiedNumHyperSamples <= 0) {
+        // for the 'catch' below to handle.
+        throw std::invalid_argument("must be a positive number");
+      }
+      cudaq::info("Update number of hyper samples from {} to {}.",
+                  defaultNumHyperSamples, specifiedNumHyperSamples);
+      return specifiedNumHyperSamples;
+    } catch (...) {
+      throw std::runtime_error(
+          "Invalid CUDAQ_TENSORNET_NUM_HYPER_SAMPLES environment "
+          "variable, must be a positive integer.");
+    }
+  }
+  return defaultNumHyperSamples;
+}();
 
 TensorNetState::TensorNetState(std::size_t numQubits,
                                ScratchDeviceMem &inScratchPad,
@@ -190,10 +211,6 @@ TensorNetState::prepareSample(const std::vector<int32_t> &measuredBitIds) {
         measuredBitIds.data(), &sampler));
   }
 
-  // Configure the quantum circuit sampler
-  constexpr int32_t numHyperSamples =
-      8; // desired number of hyper samples used in the tensor network
-         // contraction path finder
   {
     ScopedTraceWithContext("cutensornetSamplerConfigure");
     HANDLE_CUTN_ERROR(cutensornetSamplerConfigure(
@@ -350,9 +367,6 @@ std::pair<void *, std::size_t> TensorNetState::contractStateVectorInternal(
         projectedModes.data(), nullptr, &accessor));
   }
 
-  const int32_t numHyperSamples =
-      8; // desired number of hyper samples used in the tensor network
-         // contraction path finder
   {
     ScopedTraceWithContext("cutensornetAccessorConfigure");
     HANDLE_CUTN_ERROR(cutensornetAccessorConfigure(
@@ -584,9 +598,6 @@ TensorNetState::computeRDM(const std::vector<int32_t> &qubits) {
         /*marginalTensorStrides*/ nullptr, &marginal));
   }
 
-  const int32_t numHyperSamples =
-      8; // desired number of hyper samples used in the tensor network
-         // contraction path finder
   {
     ScopedTraceWithContext("cutensornetMarginalConfigure");
     HANDLE_CUTN_ERROR(cutensornetMarginalConfigure(
@@ -714,11 +725,6 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
                                                    &tensorNetworkExpectation));
   }
   // Step 2: configure
-  // Note: as we reuse this path across many contractions, use a higher number
-  // of hyper samples.
-  const int32_t numHyperSamples =
-      512; // desired number of hyper samples used in the tensor network
-           // contraction path finder
   {
     ScopedTraceWithContext("cutensornetExpectationConfigure");
     HANDLE_CUTN_ERROR(cutensornetExpectationConfigure(
@@ -826,9 +832,6 @@ std::complex<double> TensorNetState::computeExpVal(
                                                    &tensorNetworkExpectation));
   }
   // Step 2: configure
-  const int32_t numHyperSamples =
-      8; // desired number of hyper samples used in the tensor network
-         // contraction path finder
   {
     ScopedTraceWithContext("cutensornetExpectationConfigure");
     HANDLE_CUTN_ERROR(cutensornetExpectationConfigure(

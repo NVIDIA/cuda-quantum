@@ -78,6 +78,10 @@ protected:
   bool m_hasNoiseChannel = false;
 
 public:
+  // The number of hyper samples used in the tensor network contraction path
+  // finder
+  static std::int32_t numHyperSamples;
+
   /// @brief Constructor
   TensorNetState(std::size_t numQubits, ScratchDeviceMem &inScratchPad,
                  cutensornetHandle_t handle, std::mt19937 &randomEngine);
