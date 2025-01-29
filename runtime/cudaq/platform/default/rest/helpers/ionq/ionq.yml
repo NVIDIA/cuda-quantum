@@ -16,8 +16,8 @@ config:
   # Add the rest-qpu library to the link list
   link-libs: ["-lcudaq-rest-qpu"]
   # Define the lowering pipeline
- # platform-lowering-config: "func.func(const-prop-complex,canonicalize,cse,lift-array-alloc),globalize-array-values,func.func(state-prep),unitary-synthesis,canonicalize,apply-op-specialization,aggressive-early-inlining,expand-measurements,unrolling-pipeline,decomposition{enable-patterns=U3ToRotations},func.func(lower-to-cfg,canonicalize,multicontrol-decomposition),ionq-gate-set-mapping"
-  platform-lowering-config: "func.func(cse)"
+  platform-lowering-config: "func.func(const-prop-complex,canonicalize,cse,lift-array-alloc),globalize-array-values,func.func(state-prep),unitary-synthesis,canonicalize,apply-op-specialization,aggressive-early-inlining,expand-measurements,unrolling-pipeline,decomposition{enable-patterns=U3ToRotations},func.func(lower-to-cfg,canonicalize,multicontrol-decomposition),ionq-gate-set-mapping"
+  #platform-lowering-config: "func.func(cse)"
   #"func.func(const-prop-complex,canonicalize,cse,lift-array-alloc),globalize-array-values"
   #func.func(state-prep),unitary-synthesis,canonicalize,apply-op-specialization,aggressive-early-inlining,expand-measurements,unrolling-pipeline,decomposition{enable-patterns=U3ToRotations},func.func(lower-to-cfg,canonicalize,multicontrol-decomposition),ionq-gate-set-mapping"
   

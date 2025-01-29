@@ -167,6 +167,29 @@ def CombineMeasurements :
 }
 
 
+def CollapseStores : Pass<"collapse-stores", "mlir::func::FuncOp"> {
+  let summary = "Remove stores that are overriden by other stores.";
+  let description = [{
+
+    Example:
+    ```mlir
+    %1 = cc.alloca !cc.array<i64 x 1>
+    %2 = cc.cast %1 : (!cc.ptr<!cc.array<i64 x 1>>) -> !cc.ptr<i64>
+    cc.store %c0_i64, %2 : !cc.ptr<i64>
+    // nothing using %2 until the next instruction
+    cc.store %c1_i64, %2 : !cc.ptr<i64>
+    ```
+
+    would be converted to
+
+    ```mlir
+    %1 = cc.alloca !cc.array<i64 x 1>
+    %2 = cc.cast %1 : (!cc.ptr<!cc.array<i64 x 1>>) -> !cc.ptr<i64>
+    cc.store %c1_i64, %2 : !cc.ptr<i64>
+    ```
+  }];
+}
+
 def CombineQuantumAllocations :
     Pass<"combine-quantum-alloc", "mlir::func::FuncOp"> {
   let summary = "Combines quake alloca operations.";

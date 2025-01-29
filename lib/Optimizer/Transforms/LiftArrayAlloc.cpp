@@ -158,6 +158,7 @@ public:
 
     SmallVector<Operation *> toGlobalUses;
     SmallVector<SmallPtrSet<Operation *, 2>> loadSets(size);
+    SmallVector<SmallPtrSet<Operation *, 2>> storeSets(size);
 
     auto getWriteOp = [&](auto op, std::int32_t index) -> Operation * {
       Operation *theStore = nullptr;
@@ -166,6 +167,7 @@ public:
         if (!u)
           return nullptr;
         if (auto store = dyn_cast<cudaq::cc::StoreOp>(u)) {
+          storeSets[index].insert(u);
           if (op.getOperation() == store.getPtrvalue().getDefiningOp() &&
               isa_and_present<arith::ConstantOp, complex::ConstantOp>(
                   store.getValue().getDefiningOp())) {
@@ -259,6 +261,14 @@ public:
             LLVM_DEBUG(llvm::dbgs()
                        << "store " << scoreboard[i]
                        << " doesn't dominate load: " << *load << '\n');
+            return false;
+          }
+
+        for (auto *store : storeSets[i])
+          if (scoreboard[i] != store && dom.dominates(scoreboard[i], store)) {
+            LLVM_DEBUG(llvm::dbgs()
+                       << "store " << scoreboard[i]
+                       << " dominates another store: " << *store << '\n');
             return false;
           }
       }

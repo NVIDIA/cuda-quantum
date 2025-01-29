@@ -556,7 +556,40 @@ def test_list_creation_with_cast():
     assert len(counts) == 1
     assert '1' * 5 in counts
 
+def test_list_boundaries():
+    @cudaq.kernel
+    def kernel1():
+        qubits = cudaq.qvector(2)
+        r = range(0,0)
+        for i in r:
+            x(qubits[i])
 
+    counts = cudaq.sample(kernel1)
+    assert len(counts) == 1
+    assert '00' in counts
+
+    @cudaq.kernel
+    def kernel2():
+        qubits = cudaq.qvector(2)
+        r = range(1,0)
+        for i in r:
+            x(qubits[i])
+
+    counts = cudaq.sample(kernel2)
+    assert len(counts) == 1
+    assert '00' in counts
+
+    @cudaq.kernel
+    def kernel3():
+        qubits = cudaq.qvector(4)
+        r = [i * 2 + 1 for i in range(2)]
+        for i in range:
+            x(qubits[i])
+
+    counts = cudaq.sample(kernel3)
+    assert len(counts) == 1
+    assert '0101' in counts
+      
 def test_control_operations():
 
     @cudaq.kernel

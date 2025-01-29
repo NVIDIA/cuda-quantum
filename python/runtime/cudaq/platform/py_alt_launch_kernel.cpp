@@ -104,7 +104,7 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
         {.startingArgIdx = startingArgIdx}));
     pm.addPass(cudaq::opt::createLambdaLiftingPass());
     pm.addPass(createSymbolDCEPass());
-    
+
     // TEMP: additional passes from BaseRemoteRESTQpu.h
     // "func.func(memtoreg{quantum=0},canonicalize,cse,lift-array-"
     //                 "alloc,cse,canonicalize),"
@@ -123,7 +123,6 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll(luo));
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createUpdateRegisterNames());
 
-
     // TMP: passes from ionq
     // func.func(const-prop-complex,canonicalize,cse,lift-array-alloc),globalize-array-values,func.func(state-prep),
     // unitary-synthesis,canonicalize,apply-op-specialization,aggressive-early-inlining,
@@ -139,7 +138,7 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
     pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
     cudaq::opt::addAggressiveEarlyInlining(pm);
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandMeasurementsPass());
-    
+
     // unrolling pipeline
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
@@ -170,7 +169,8 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createUpdateRegisterNames());
     // end unrolling pipeline
 
-    pm.addPass(cudaq::opt::createDecompositionPass({.enabledPatterns = {"U3ToRotations"}}));
+    pm.addPass(cudaq::opt::createDecompositionPass(
+        {.enabledPatterns = {"U3ToRotations"}}));
     // pm.addNestedPass<func::FuncOp>(cudaq::opt::createLowerToCFGPass());
     // pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     // pm.addNestedPass<func::FuncOp>(cudaq::opt::createMultiControlDecompositionPass());
@@ -191,8 +191,8 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
         getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
 
     if (enablePrintMLIREachPass) {
-        cloned.getContext()->disableMultithreading();
-        pm.enableIRPrinting();
+      cloned.getContext()->disableMultithreading();
+      pm.enableIRPrinting();
     }
 
     DefaultTimingManager tm;

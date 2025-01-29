@@ -574,10 +574,9 @@ public:
     // Get the code gen translation
     auto translation = cudaq::getTranslation(codegenTranslation);
 
-
     // Apply user-specified codegen
     std::vector<cudaq::KernelExecution> codes;
-/*
+
     for (auto &[name, moduleOpI] : modules) {
       std::string codeStr;
       {
@@ -596,7 +595,6 @@ public:
 
       codes.emplace_back(name, codeStr, j, mapping_reorder_idx);
     }
-*/
 
     cleanupContext(contextPtr);
     return codes;

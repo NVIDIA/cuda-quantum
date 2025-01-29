@@ -2047,6 +2047,19 @@ namespace {
 struct EraseConstIf : public OpRewritePattern<cudaq::cc::IfOp> {
   using OpRewritePattern::OpRewritePattern;
 
+  static bool hasQuantumAllocations(Block &block) {
+    for (auto &op : block) {
+      for (auto &region : op.getRegions())
+        for (auto &b : region)
+          if (hasQuantumAllocations(b))
+            return true;
+
+      if (auto alloc = dyn_cast<quake::AllocaOp>(&op))
+        return true;
+    }
+    return false;
+  }
+
   LogicalResult matchAndRewrite(cudaq::cc::IfOp ifOp,
                                 PatternRewriter &rewriter) const override {
     auto cond = ifOp.getCondition();
@@ -2055,6 +2068,10 @@ struct EraseConstIf : public OpRewritePattern<cudaq::cc::IfOp> {
         auto value = attr.getValue();
         auto block =
             value ? ifOp.getThenEntryBlock() : ifOp.getElseEntryBlock();
+
+        // Prevent quantum allocations from moving to an outer scope.
+        if (block && hasQuantumAllocations(*block))
+          return failure();
 
         if (block) {
           if (auto cont = dyn_cast<cudaq::cc::ContinueOp>(block->back())) {

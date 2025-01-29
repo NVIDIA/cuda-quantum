@@ -1458,11 +1458,13 @@ class PyASTBridge(ast.NodeVisitor):
 
                 # The total number of elements in the iterable
                 # we are generating should be `N == endVal - startVal`
-                totalSize = math.AbsIOp(arith.SubIOp(endVal,
-                                                     startVal).result).result
+                actualSize = arith.SubIOp(endVal, startVal).result
+                totalSize = math.AbsIOp(actualSize).result
 
                 # If the step is not == 1, then we also have
                 # to update the total size for the range iterable
+                actualSize = arith.DivSIOp(actualSize,
+                                          math.AbsIOp(stepVal).result).result
                 totalSize = arith.DivSIOp(totalSize,
                                           math.AbsIOp(stepVal).result).result
 
@@ -1501,7 +1503,7 @@ class PyASTBridge(ast.NodeVisitor):
                                             isDecrementing=isDecrementing)
 
                 self.pushValue(iterable)
-                self.pushValue(totalSize)
+                self.pushValue(actualSize)
                 return
 
             if node.func.id == 'enumerate':

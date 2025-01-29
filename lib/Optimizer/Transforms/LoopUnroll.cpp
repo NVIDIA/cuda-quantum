@@ -255,6 +255,8 @@ public:
       numLoops = countLoopOps(op);
       if (numLoops) {
         op->emitOpError("did not unroll loops");
+        auto module = op->getParentOfType<ModuleOp>();
+        module.dump();
         signalPassFailure();
       }
     }
@@ -350,6 +352,7 @@ static void createUnrollingPipeline(OpPassManager &pm, unsigned threshold,
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLiftArrayAlloc());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createCollapseStores());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   cudaq::opt::LoopNormalizeOptions lno{allowClosedInterval, allowBreak};
@@ -361,6 +364,7 @@ static void createUnrollingPipeline(OpPassManager &pm, unsigned threshold,
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLiftArrayAlloc());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createCollapseStores());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize(lno));

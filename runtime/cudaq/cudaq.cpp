@@ -221,7 +221,7 @@ void cudaq::registry::__cudaq_deviceCodeHolderAdd(const char *key,
   if (it != quakeRegistry.end()) {
     cudaq::info("Replacing code for kernel {}", key);
     it->second = code;
-    //std::cout << code << std::endl;
+    // std::cout << code << std::endl;
     return;
   }
   quakeRegistry.emplace_back(key, code);
