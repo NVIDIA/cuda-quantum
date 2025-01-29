@@ -356,7 +356,7 @@ std::pair<void *, std::size_t> TensorNetState::contractStateVectorInternal(
   {
     ScopedTraceWithContext("cutensornetAccessorConfigure");
     HANDLE_CUTN_ERROR(cutensornetAccessorConfigure(
-        m_cutnHandle, accessor, CUTENSORNET_ACCESSOR_OPT_NUM_HYPER_SAMPLES,
+        m_cutnHandle, accessor, CUTENSORNET_ACCESSOR_CONFIG_NUM_HYPER_SAMPLES,
         &numHyperSamples, sizeof(numHyperSamples)));
   }
   // Prepare the quantum state amplitudes accessor
@@ -590,7 +590,7 @@ TensorNetState::computeRDM(const std::vector<int32_t> &qubits) {
   {
     ScopedTraceWithContext("cutensornetMarginalConfigure");
     HANDLE_CUTN_ERROR(cutensornetMarginalConfigure(
-        m_cutnHandle, marginal, CUTENSORNET_MARGINAL_OPT_NUM_HYPER_SAMPLES,
+        m_cutnHandle, marginal, CUTENSORNET_MARGINAL_CONFIG_NUM_HYPER_SAMPLES,
         &numHyperSamples, sizeof(numHyperSamples)));
   }
 
@@ -723,7 +723,7 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
     ScopedTraceWithContext("cutensornetExpectationConfigure");
     HANDLE_CUTN_ERROR(cutensornetExpectationConfigure(
         m_cutnHandle, tensorNetworkExpectation,
-        CUTENSORNET_EXPECTATION_OPT_NUM_HYPER_SAMPLES, &numHyperSamples,
+        CUTENSORNET_EXPECTATION_CONFIG_NUM_HYPER_SAMPLES, &numHyperSamples,
         sizeof(numHyperSamples)));
   }
 
@@ -833,7 +833,7 @@ std::complex<double> TensorNetState::computeExpVal(
     ScopedTraceWithContext("cutensornetExpectationConfigure");
     HANDLE_CUTN_ERROR(cutensornetExpectationConfigure(
         m_cutnHandle, tensorNetworkExpectation,
-        CUTENSORNET_EXPECTATION_OPT_NUM_HYPER_SAMPLES, &numHyperSamples,
+        CUTENSORNET_EXPECTATION_CONFIG_NUM_HYPER_SAMPLES, &numHyperSamples,
         sizeof(numHyperSamples)));
   }
 

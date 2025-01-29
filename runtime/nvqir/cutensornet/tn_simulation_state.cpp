@@ -131,7 +131,7 @@ TensorNetSimulationState::overlap(const cudaq::SimulationState &other) {
   {
     ScopedTraceWithContext("cutensornetAccessorConfigure");
     HANDLE_CUTN_ERROR(cutensornetAccessorConfigure(
-        cutnHandle, accessor, CUTENSORNET_ACCESSOR_OPT_NUM_HYPER_SAMPLES,
+        cutnHandle, accessor, CUTENSORNET_ACCESSOR_CONFIG_NUM_HYPER_SAMPLES,
         &numHyperSamples, sizeof(numHyperSamples)));
   }
   // Prepare the quantum state amplitudes accessor
