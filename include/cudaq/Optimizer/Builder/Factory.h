@@ -186,6 +186,8 @@ std::optional<double> maybeValueOfFloatConstant(mlir::Value v);
 /// \em{not} control dependent (other than on function entry).
 mlir::Value createLLVMTemporary(mlir::Location loc, mlir::OpBuilder &builder,
                                 mlir::Type type, std::size_t size = 1);
+mlir::Value createTemporary(mlir::Location loc, mlir::OpBuilder &builder,
+                            mlir::Type type, std::size_t size = 1);
 
 //===----------------------------------------------------------------------===//
 

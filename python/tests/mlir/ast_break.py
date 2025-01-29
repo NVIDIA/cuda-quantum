@@ -27,7 +27,7 @@ def test_break():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel(
-# CHECK-SAME:                                        %[[VAL_0:.*]]: f64) attributes {"cudaq-entrypoint"} {
+# CHECK-SAME:                                        %[[VAL_0:.*]]: f64) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 5.000000e+00 : f64
 # CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 2 : i64
 # CHECK-DAG:           %[[VAL_3:.*]] = arith.constant 1 : i64

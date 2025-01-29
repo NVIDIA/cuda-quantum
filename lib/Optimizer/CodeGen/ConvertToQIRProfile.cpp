@@ -587,14 +587,17 @@ std::unique_ptr<Pass> cudaq::opt::createQIRProfilePreparationPass() {
 //===----------------------------------------------------------------------===//
 // The various passes defined here should be added as a pass pipeline.
 
-void cudaq::opt::addQIRProfilePipeline(OpPassManager &pm,
-                                       llvm::StringRef convertTo,
-                                       bool performPrep) {
-  assert(convertTo == "qir-adaptive" || convertTo == "qir-base");
-  if (performPrep)
-    pm.addPass(createQIRProfilePreparationPass());
-  pm.addNestedPass<LLVM::LLVMFuncOp>(createConvertToQIRFuncPass(convertTo));
-  pm.addPass(createQIRToQIRProfilePass(convertTo));
+void cudaq::opt::addQIRProfileVerify(OpPassManager &pm,
+                                     llvm::StringRef convertTo) {
   VerifyQIRProfileOptions vqpo = {convertTo.str()};
   pm.addNestedPass<LLVM::LLVMFuncOp>(createVerifyQIRProfile(vqpo));
+}
+
+void cudaq::opt::addQIRProfilePipeline(OpPassManager &pm,
+                                       llvm::StringRef convertTo) {
+  assert(convertTo == "qir-adaptive" || convertTo == "qir-base");
+  pm.addPass(createQIRProfilePreparationPass());
+  pm.addNestedPass<LLVM::LLVMFuncOp>(createConvertToQIRFuncPass(convertTo));
+  pm.addPass(createQIRToQIRProfilePass(convertTo));
+  addQIRProfileVerify(pm, convertTo);
 }

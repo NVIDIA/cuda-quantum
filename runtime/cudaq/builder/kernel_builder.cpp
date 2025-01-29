@@ -887,6 +887,8 @@ void tagEntryPoint(ImplicitLocOpBuilder &builder, ModuleOp &module,
   module.walk([&](func::FuncOp function) {
     if (function.empty())
       return WalkResult::advance();
+    if (!function->hasAttr(cudaq::kernelAttrName))
+      function->setAttr(cudaq::kernelAttrName, builder.getUnitAttr());
     if (!function->hasAttr(cudaq::entryPointAttrName) &&
         !hasAnyQubitTypes(function.getFunctionType()) &&
         (symbolName.empty() || function.getSymName().equals(symbolName)))
