@@ -814,7 +814,8 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
 }
 
 std::complex<double> TensorNetState::computeExpVal(
-    cutensornetNetworkOperator_t tensorNetworkOperator) {
+    cutensornetNetworkOperator_t tensorNetworkOperator,
+    const std::optional<std::size_t> &numberTrajectories) {
   LOG_API_TIME();
   cutensornetStateExpectation_t tensorNetworkExpectation;
   // Step 1: create
@@ -861,14 +862,23 @@ std::complex<double> TensorNetState::computeExpVal(
   }
 
   // Step 4: Compute
-  std::complex<double> expVal;
+  const std::size_t numObserveTrajectories = [&]() -> std::size_t {
+    if (!m_hasNoiseChannel)
+      return 1;
+    if (numberTrajectories.has_value())
+      return numberTrajectories.value();
+    return g_numberTrajectoriesForObserve;
+  }();
 
-  {
+  std::complex<double> expVal = 0.0;
+  for (std::size_t trajId = 0; trajId < numObserveTrajectories; ++trajId) {
+    std::complex<double> result;
     ScopedTraceWithContext("cutensornetExpectationCompute");
     HANDLE_CUTN_ERROR(cutensornetExpectationCompute(
-        m_cutnHandle, tensorNetworkExpectation, workDesc, &expVal,
+        m_cutnHandle, tensorNetworkExpectation, workDesc, &result,
         /*stateNorm*/ nullptr,
         /*cudaStream*/ 0));
+    expVal += (result / static_cast<double>(numObserveTrajectories));
   }
   // Step 5: clean up
   HANDLE_CUTN_ERROR(cutensornetDestroyExpectation(tensorNetworkExpectation));

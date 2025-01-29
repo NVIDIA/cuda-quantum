@@ -472,7 +472,8 @@ SimulatorTensorNetBase::observe(const cudaq::spin_op &ham) {
     // cutensornetNetworkOperator_t and compute the expectation value.
     TensorNetworkSpinOp spinOp(ham, m_cutnHandle);
     std::complex<double> expVal =
-        m_state->computeExpVal(spinOp.getNetworkOperator());
+        m_state->computeExpVal(spinOp.getNetworkOperator(),
+                               this->executionContext->numberTrajectories);
     expVal += spinOp.getIdentityTermOffset();
     return cudaq::observe_result(expVal.real(), ham,
                                  cudaq::sample_result(cudaq::ExecutionResult(

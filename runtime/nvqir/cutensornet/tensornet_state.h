@@ -185,7 +185,8 @@ public:
   /// @brief Evaluate the expectation value of a given
   /// `cutensornetNetworkOperator_t`
   std::complex<double>
-  computeExpVal(cutensornetNetworkOperator_t tensorNetworkOperator);
+  computeExpVal(cutensornetNetworkOperator_t tensorNetworkOperator,
+                const std::optional<std::size_t> &numberTrajectories);
 
   /// @brief Number of qubits that this state represents.
   std::size_t getNumQubits() const { return m_numQubits; }
