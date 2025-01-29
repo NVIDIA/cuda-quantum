@@ -260,7 +260,7 @@ product_operator<HandlerTy> product_operator<HandlerTy>::operator*(const Handler
   template <typename HandlerTy>                                                         \
   operator_sum<HandlerTy> product_operator<HandlerTy>::operator op(                     \
                                                        const HandlerTy &other) const {  \
-    return operator_sum<HandlerTy>(product_operator<HandlerTy>(1., other), op *this);   \
+    return operator_sum<HandlerTy>(product_operator<HandlerTy>(op 1., other), *this);   \
   }
 
 PRODUCT_ADDITION_HANDLER(+)
@@ -290,6 +290,86 @@ template
 operator_sum<elementary_operator> product_operator<elementary_operator>::operator+(const elementary_operator &other) const;
 template
 operator_sum<elementary_operator> product_operator<elementary_operator>::operator-(const elementary_operator &other) const;
+
+template <typename HandlerTy>
+product_operator<HandlerTy> product_operator<HandlerTy>::operator*(const product_operator<HandlerTy> &other) const {
+  std::vector<HandlerTy> terms;
+  terms.reserve(this->terms[0].size() + other.terms[0].size());
+  for (auto term : this->terms[0])
+    terms.push_back(term);
+  for (auto term : other.terms[0])
+    terms.push_back(term);
+  return product_operator(this->coefficients[0] * other.coefficients[0], std::move(terms));
+}
+
+#define PRODUCT_ADDITION_PRODUCT(op)                                                    \
+  template <typename HandlerTy>                                                         \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator op(                     \
+                                     const product_operator<HandlerTy> &other) const {  \
+    return operator_sum<HandlerTy>(op other, *this);                                    \
+  }
+
+PRODUCT_ADDITION_PRODUCT(+)
+PRODUCT_ADDITION_PRODUCT(-)
+
+template <typename HandlerTy>
+operator_sum<HandlerTy> product_operator<HandlerTy>::operator*(const operator_sum<HandlerTy> &other) const {
+  std::vector<scalar_operator> coefficients;
+  coefficients.reserve(other.coefficients.size());
+  for (auto coeff : other.coefficients)
+    coefficients.push_back(this->coefficients[0] * coeff);
+  std::vector<std::vector<HandlerTy>> terms;
+  terms.reserve(other.terms.size());
+  for (auto term : other.terms) {
+    std::vector<HandlerTy> prod;
+    prod.reserve(this->terms[0].size() + term.size());
+    for (auto op : this->terms[0])
+      prod.push_back(op);
+    for (auto op : term) 
+      prod.push_back(op);
+    terms.push_back(std::move(prod));
+  }
+  operator_sum<HandlerTy> sum;
+  sum.coefficients = std::move(coefficients);
+  sum.terms = std::move(terms);
+  return sum;
+}
+
+#define PRODUCT_ADDITION_SUM(op)                                                        \
+  template <typename HandlerTy>                                                         \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator op(                     \
+                                     const operator_sum<HandlerTy> &other) const {      \
+    std::vector<scalar_operator> coefficients;                                          \
+    coefficients.reserve(other.coefficients.size() + 1);                                \
+    coefficients.push_back(this->coefficients[0]);                                      \
+    for (auto coeff : other.coefficients)                                               \
+      coefficients.push_back(op coeff);                                                 \
+    std::vector<std::vector<HandlerTy>> terms;                                          \
+    terms.reserve(other.terms.size() + 1);                                              \
+    terms.push_back(this->terms[0]);                                                    \
+    for (auto term : other.terms)                                                       \
+      terms.push_back(term);                                                            \
+    operator_sum<HandlerTy> sum;                                                        \
+    sum.coefficients = std::move(coefficients);                                         \
+    sum.terms = std::move(terms);                                                       \
+    return sum;                                                                         \
+  }
+
+PRODUCT_ADDITION_SUM(+)
+PRODUCT_ADDITION_SUM(-)
+
+template
+product_operator<elementary_operator> product_operator<elementary_operator>::operator*(const product_operator<elementary_operator> &other) const;
+template
+operator_sum<elementary_operator> product_operator<elementary_operator>::operator+(const product_operator<elementary_operator> &other) const;
+template
+operator_sum<elementary_operator> product_operator<elementary_operator>::operator-(const product_operator<elementary_operator> &other) const;
+template
+operator_sum<elementary_operator> product_operator<elementary_operator>::operator*(const operator_sum<elementary_operator> &other) const;
+template
+operator_sum<elementary_operator> product_operator<elementary_operator>::operator+(const operator_sum<elementary_operator> &other) const;
+template
+operator_sum<elementary_operator> product_operator<elementary_operator>::operator-(const operator_sum<elementary_operator> &other) const;
 
 // left-hand arithmetics
 
