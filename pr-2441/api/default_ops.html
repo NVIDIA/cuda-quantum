@@ -130,6 +130,12 @@
 <li class="toctree-l3"><a class="reference internal" href="../using/examples/quantum_operations.html#measurements">Measurements</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../using/examples/photonic_operations.html">   Photonic Operations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../using/examples/photonic_operations.html#quantum-photonic-states">Quantum Photonic States</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../using/examples/photonic_operations.html#quantum-photonics-gates">Quantum Photonics Gates</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../using/examples/photonic_operations.html#measurements">Measurements</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/python/measuring_kernels.html">   Measuring Kernels</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../examples/python/measuring_kernels.html#Midcircuit-Measurement-and-Conditional-Logic">Midcircuit Measurement and Conditional Logic</a></li>
 </ul>
@@ -149,6 +155,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../examples/python/executing_kernels.html#Get-State-Async">Get State Async</a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/python/executing_photonic_kernels.html">   Executing Photonic Kernels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/executing_photonic_kernels.html#Sample">Sample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/executing_photonic_kernels.html#Get-state">Get state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/executing_photonic_kernels.html#Parallelization-Techniques">Parallelization Techniques</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../using/examples/expectation_values.html">   Computing Expectation Values</a><ul>
@@ -321,6 +333,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../using/backends/simulators.html#features">Features</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../using/backends/simulators.html#single-gpu">Single-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../using/backends/simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../using/backends/simulators.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../using/backends/simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
 </ul>
 </li>
@@ -331,6 +344,10 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../using/backends/simulators.html#clifford-only-simulator">Clifford-Only Simulator</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../using/backends/simulators.html#stim-cpu">Stim (CPU)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../using/backends/simulators.html#photonics-simulators">Photonics Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../using/backends/simulators.html#id3">OpenMP CPU-only</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../using/backends/simulators.html#fermioniq">Fermioniq</a></li>
@@ -421,6 +438,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../using/backends/dynamics.html#operator">Operator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../using/backends/dynamics.html#time-dependent-dynamics">Time-Dependent Dynamics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../using/backends/dynamics.html#numerical-integrators">Numerical Integrators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../using/backends/dynamics.html#multi-gpu-multi-node-execution">Multi-GPU Multi-Node Execution</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../using/install/install.html">   Installation</a><ul>
@@ -630,6 +648,7 @@
 <li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.spin.y"><code class="docutils literal notranslate"><span class="pre">spin.y()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.spin.z"><code class="docutils literal notranslate"><span class="pre">spin.z()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.operator.cudm_state.CuDensityMatState"><code class="docutils literal notranslate"><span class="pre">CuDensityMatState</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.operator.helpers.InitialState"><code class="docutils literal notranslate"><span class="pre">InitialState</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.operator.cudm_state.to_cupy_array"><code class="docutils literal notranslate"><span class="pre">to_cupy_array()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.SampleResult"><code class="docutils literal notranslate"><span class="pre">SampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.AsyncSampleResult"><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></li>
@@ -1251,15 +1270,15 @@ Custom operations are supported on qubits only (<code class="code docutils liter
 <p>The <code class="code docutils literal notranslate"><span class="pre">cudaq.register_operation</span></code> API accepts an identifier string for
 the custom operation and its unitary matrix. The matrix can be a <code class="code docutils literal notranslate"><span class="pre">list</span></code> or
 <code class="code docutils literal notranslate"><span class="pre">numpy</span></code> array of complex numbers. A 1D matrix is interpreted as row-major.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
 <span class="n">cudaq</span><span class="o">.</span><span class="n">register_operation</span><span class="p">(</span><span class="s2">&quot;custom_h&quot;</span><span class="p">,</span> <span class="mf">1.</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
 
 <span class="n">cudaq</span><span class="o">.</span><span class="n">register_operation</span><span class="p">(</span><span class="s2">&quot;custom_x&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]))</span>
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">bell</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">bell</span><span class="p">():</span>
     <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
     <span class="n">custom_h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="n">custom_x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
@@ -1301,8 +1320,8 @@ i.e. big-endian convention. The following example shows two different custom
 operations, each operating on 2 qubits.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--18-input--1" name="tab-set--18" type="radio"><label class="tab-label" for="tab-set--18-input--1">Python</label><div class="tab-content docutils">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
 <span class="c1"># Create and test a custom CNOT operation.</span>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">register_operation</span><span class="p">(</span><span class="s2">&quot;my_cnot&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
@@ -1311,7 +1330,7 @@ operations, each operating on 2 qubits.</p>
                                               <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]))</span>
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">bell_pair</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">bell_pair</span><span class="p">():</span>
     <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
     <span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="n">my_cnot</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="c1"># `my_cnot(control, target)`</span>
@@ -1330,7 +1349,7 @@ operations, each operating on 2 qubits.</p>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">register_operation</span><span class="p">(</span><span class="s2">&quot;my_XY&quot;</span><span class="p">,</span> <span class="n">XY</span><span class="p">)</span>
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">custom_xy_test</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">custom_xy_test</span><span class="p">():</span>
     <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
     <span class="n">my_XY</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
     <span class="n">y</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="c1"># undo the prior Y gate on qubit 1</span>
@@ -1390,7 +1409,7 @@ the quantum operations above.</p>
 defined by the qudit level that represents the qumode. If it is applied to a qumode
 where the number of photons is already at the maximum value, the operation has no
 effect.</p>
-<p><span class="math notranslate nohighlight">\(U|0\rangle → |1\rangle, U|1\rangle → |2\rangle, U|2\rangle → |3\rangle, \cdots, U|d\rangle → |d\rangle\)</span>
+<p><span class="math notranslate nohighlight">\(C|0\rangle → |1\rangle, C|1\rangle → |2\rangle, C|2\rangle → |3\rangle, \cdots, C|d\rangle → |d\rangle\)</span>
 where <span class="math notranslate nohighlight">\(d\)</span> is the qudit level.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--19-input--1" name="tab-set--19" type="radio"><label class="tab-label" for="tab-set--19-input--1">Python</label><div class="tab-content docutils">
@@ -1412,7 +1431,7 @@ where <span class="math notranslate nohighlight">\(d\)</span> is the qudit level
 <p>This operation reduces the number of photons in a qumode up to a minimum value of
 0 representing the vacuum state. If it is applied to a qumode where the number of
 photons is already at the minimum value 0, the operation has no effect.</p>
-<p><span class="math notranslate nohighlight">\(U|0\rangle → |0\rangle, U|1\rangle → |0\rangle, U|2\rangle → |1\rangle, \cdots, U|d\rangle → |d-1\rangle\)</span>
+<p><span class="math notranslate nohighlight">\(A|0\rangle → |0\rangle, A|1\rangle → |0\rangle, A|2\rangle → |1\rangle, \cdots, A|d\rangle → |d-1\rangle\)</span>
 where <span class="math notranslate nohighlight">\(d\)</span> is the qudit level.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--20-input--1" name="tab-set--20" type="radio"><label class="tab-label" for="tab-set--20-input--1">Python</label><div class="tab-content docutils">
@@ -1506,7 +1525,7 @@ and <span class="math notranslate nohighlight">\(a_2^\dagger\)</span>) of two qu
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2024, NVIDIA Corporation &amp; Affiliates.</p>
+    <p>&#169; Copyright 2025, NVIDIA Corporation &amp; Affiliates.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
