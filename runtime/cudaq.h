@@ -322,6 +322,8 @@ void finalize();
 
 // Users should get sample by default
 #include "cudaq/algorithms/sample.h"
+// Users should get run by default
+#include "cudaq/algorithms/run.h"
 // Users should get observe by default
 #include "cudaq/algorithms/observe.h"
 // Users should get get_state by default
