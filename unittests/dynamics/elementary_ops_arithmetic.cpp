@@ -107,7 +107,7 @@ void assert_product_equal(const cudaq::product_operator<cudaq::elementary_operat
                           const std::complex<double> &expected_coefficient,
                           const std::vector<cudaq::elementary_operator> &expected_terms) {
 
-  auto sumterms_prod = ((cudaq::operator_sum<cudaq::elementary_operator>)got).get_terms();
+  auto sumterms_prod = ((const cudaq::operator_sum<cudaq::elementary_operator>&)got).get_terms();
   ASSERT_TRUE(sumterms_prod.size() == 1);
   ASSERT_TRUE(got.get_coefficient().evaluate() == expected_coefficient);
   ASSERT_TRUE(got.get_terms() == expected_terms);
