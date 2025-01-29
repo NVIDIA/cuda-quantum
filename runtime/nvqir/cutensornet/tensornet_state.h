@@ -182,6 +182,11 @@ public:
   computeExpVals(const std::vector<std::vector<bool>> &symplecticRepr,
                  const std::optional<std::size_t> &numberTrajectories);
 
+  /// @brief Evaluate the expectation value of a given
+  /// `cutensornetNetworkOperator_t`
+  std::complex<double>
+  computeExpVal(cutensornetNetworkOperator_t tensorNetworkOperator);
+
   /// @brief Number of qubits that this state represents.
   std::size_t getNumQubits() const { return m_numQubits; }
 

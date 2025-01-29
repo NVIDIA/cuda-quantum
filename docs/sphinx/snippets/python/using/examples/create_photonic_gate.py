@@ -6,9 +6,27 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-from .anyon import *
-from .braket import *
-from .infleqtion import *
-from .ionq import *
-from .iqm import *
-from .quantinuum import *
+#[Begin Docs]
+import cudaq
+
+cudaq.set_target("orca-photonics")
+
+
+@cudaq.kernel
+def kernel():
+    # A single qumode with 2 levels initialized to the ground / zero state.
+    level = 2
+    qumode = qudit(level)
+
+    # Apply the create gate to the qumode.
+    create(qumode)  # |0⟩ -> |1⟩
+
+    # Measurement operator.
+    mz(qumode)
+
+
+# Sample the qumode for 1000 shots to gather statistics.
+# In this case, the results are deterministic and all return state 1.
+result = cudaq.sample(kernel)
+print(result)
+#[End Docs]
