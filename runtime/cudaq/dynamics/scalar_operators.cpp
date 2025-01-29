@@ -82,6 +82,16 @@ bool scalar_operator::operator==(scalar_operator other) {
   }
 }
 
+// unary operators
+
+scalar_operator scalar_operator::operator-() const {
+  return *this * (-1.);
+}
+
+scalar_operator scalar_operator::operator+() const {
+  return *this;
+}
+
 // right-hand arithmetics
 
 #define ARITHMETIC_OPERATIONS(op, otherTy)                                     \
