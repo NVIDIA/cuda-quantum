@@ -1,5 +1,5 @@
-NVIDIA Quantum Cloud (nvqc)
-+++++++++++++++++++++++++++
+NVIDIA Quantum Cloud
++++++++++++++++++++++
 
 NVIDIA Quantum Cloud (NVQC) offers universal access to the world’s most powerful computing platform, 
 for every quantum researcher to do their life’s work.

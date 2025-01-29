@@ -109,6 +109,7 @@ SLED
 SLES
 SLURM
 SVD
+Sqale
 Stim
 Superpositions
 Superstaq

@@ -7,7 +7,7 @@ Infleqtion
 .. _infleqtion-backend:
 
 Infleqtion is a quantum hardware provider of gate-based neutral atom quantum computers. Their backends may be
-accessed via `Superstaq <https://superstaq.infleqtion.com/>`__, Infleqtion’s cross-platform software API
+accessed via `Superstaq <https://superstaq.infleqtion.com/>`__, a cross-platform software API from Infleqtion,
 that performs low-level compilation and cross-layer optimization. To get started users can create a Superstaq
 account by following `these instructions <https://superstaq.readthedocs.io/en/latest/get_started/credentials.html>`__.
 
