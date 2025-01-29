@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "dynamics/template_declarations.h"
+#include "dynamics/arithmetics.h"
 #include "definition.h"
 #include "utils/tensor.h"
 
@@ -136,7 +136,6 @@ public:
 /// expressions cannot be used within quantum kernels, but they provide methods
 /// to convert them to data types that can.
 template <typename HandlerTy> // handler needs to inherit from operation_handler
-requires std::derived_from<elementary_operator, HandlerTy>
 class operator_sum {
 
 private:
@@ -270,7 +269,6 @@ public:
 /// quantum kernels, but they provide methods to convert them to data types
 /// that can.
 template <typename HandlerTy> // handler needs to inherit from operation_handler
-requires std::derived_from<elementary_operator, HandlerTy>
 class product_operator : public operator_sum<HandlerTy> {
 
 private:

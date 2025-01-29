@@ -16,7 +16,7 @@ set(CUDAQ_OPS_SRC
   elementary_operators.cpp 
   product_operators.cpp 
   operator_sum.cpp 
-  instantiations.cpp
+  arithmetics.cpp
   schedule.cpp
 )
 
