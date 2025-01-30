@@ -25,7 +25,7 @@ std::string checkDeviceArn(const std::string &machine) {
   if (machine.starts_with("arn:aws:braket"))
     return machine;
   const auto errorMessage = fmt::format("Machine \"{}\" is invalid. Machine "
-                                        "must be an Amazon  Braket device ARN.",
+                                        "must be an Amazon Braket device ARN.",
                                         machine);
   throw std::runtime_error(errorMessage);
 }
