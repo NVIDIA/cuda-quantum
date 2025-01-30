@@ -117,8 +117,8 @@ cudaq::matrix_2 squeeze_matrix(std::size_t size,
 //     // Same degrees of freedom.
 //     {
 //       for (auto level_count : levels) {
-//         auto op0 = cudaq::elementary_operator::annihilate(0);
-//         auto op1 = cudaq::elementary_operator::create(0);
+//         auto op0 = cudaq::matrix_operator::annihilate(0);
+//         auto op1 = cudaq::matrix_operator::create(0);
 
 //         cudaq::product_operator got = op0 * op1;
 //         auto got_matrix = got.to_matrix({{0, level_count}}, {});
@@ -134,8 +134,8 @@ cudaq::matrix_2 squeeze_matrix(std::size_t size,
 //     // // Different degrees of freedom.
 //     // {
 //     //   for (auto level_count : levels) {
-//     //     auto op0 = cudaq::elementary_operator::annihilate(0);
-//     //     auto op1 = cudaq::elementary_operator::create(1);
+//     //     auto op0 = cudaq::matrix_operator::annihilate(0);
+//     //     auto op1 = cudaq::matrix_operator::create(1);
 
 //     //     cudaq::product_operator got = op0 * op1;
 //     //     auto got_matrix =
@@ -163,8 +163,8 @@ cudaq::matrix_2 squeeze_matrix(std::size_t size,
 //     // // Different degrees of freedom, non-consecutive.
 //     // {
 //     //   for (auto level_count : levels) {
-//     //     auto op0 = cudaq::elementary_operator::annihilate(0);
-//     //     auto op1 = cudaq::elementary_operator::create(2);
+//     //     auto op0 = cudaq::matrix_operator::annihilate(0);
+//     //     auto op1 = cudaq::matrix_operator::create(2);
 
 //     //     // cudaq::product_operator got = op0 * op1;
 //     //     // auto got_matrix =
@@ -177,8 +177,8 @@ cudaq::matrix_2 squeeze_matrix(std::size_t size,
 //     // // provided.
 //     // {
 //     //   for (auto level_count : levels) {
-//     //     auto op0 = cudaq::elementary_operator::annihilate(0);
-//     //     auto op1 = cudaq::elementary_operator::create(2);
+//     //     auto op0 = cudaq::matrix_operator::annihilate(0);
+//     //     auto op1 = cudaq::matrix_operator::create(2);
 
 //     //     // cudaq::product_operator got = op0 * op1;
 //     //     // auto got_matrix =
@@ -209,7 +209,7 @@ cudaq::matrix_2 squeeze_matrix(std::size_t size,
 //   {
 //     // Identity against constant.
 //     {
-//       auto id_op = cudaq::elementary_operator::identity(0);
+//       auto id_op = cudaq::matrix_operator::identity(0);
 //       auto scalar_op = cudaq::scalar_operator(value_0);
 
 //       // auto multiplication = scalar_op * id_op;
@@ -219,7 +219,7 @@ cudaq::matrix_2 squeeze_matrix(std::size_t size,
 
 //     // Identity against constant from lambda.
 //     {
-//       auto id_op = cudaq::elementary_operator::identity(0);
+//       auto id_op = cudaq::matrix_operator::identity(0);
 //       auto scalar_op = cudaq::scalar_operator(function);
 
 //       // auto multiplication = scalar_op * id_op;
@@ -235,8 +235,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalarOperator) {
 
   // `operator_sum * scalar_operator` and `scalar_operator * operator_sum`
   {
-    auto sum = cudaq::elementary_operator::create(1) +
-               cudaq::elementary_operator::create(2);
+    auto sum = cudaq::matrix_operator::create(1) +
+               cudaq::matrix_operator::create(2);
 
     auto product = sum * cudaq::scalar_operator(value);
     auto reverse = cudaq::scalar_operator(value) * sum;
@@ -279,8 +279,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalarOperator) {
   // `operator_sum + scalar_operator` and `scalar_operator + operator_sum`
   {
     level_count = 2;
-    auto original = cudaq::elementary_operator::create(1) +
-                    cudaq::elementary_operator::create(2);
+    auto original = cudaq::matrix_operator::create(1) +
+                    cudaq::matrix_operator::create(2);
 
     auto sum = original + cudaq::scalar_operator(value);
     auto reverse = cudaq::scalar_operator(value) + original;
@@ -312,8 +312,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalarOperator) {
 
   // `operator_sum - scalar_operator` and `scalar_operator - operator_sum`
   {
-    auto original = cudaq::elementary_operator::create(1) +
-                    cudaq::elementary_operator::create(2);
+    auto original = cudaq::matrix_operator::create(1) +
+                    cudaq::matrix_operator::create(2);
 
     auto difference = original - cudaq::scalar_operator(value);
     auto reverse = cudaq::scalar_operator(value) - original;
@@ -345,8 +345,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalarOperator) {
 
   // `operator_sum *= scalar_operator`
   {
-    auto sum = cudaq::elementary_operator::create(1) +
-               cudaq::elementary_operator::momentum(2);
+    auto sum = cudaq::matrix_operator::create(1) +
+               cudaq::matrix_operator::momentum(2);
 
     sum *= cudaq::scalar_operator(value);
 
@@ -383,8 +383,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalarOperator) {
 
   // `operator_sum += scalar_operator`
   {
-    auto sum = cudaq::elementary_operator::parity(1) +
-               cudaq::elementary_operator::position(2);
+    auto sum = cudaq::matrix_operator::parity(1) +
+               cudaq::matrix_operator::position(2);
 
     sum += cudaq::scalar_operator(value);
 
@@ -417,8 +417,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalarOperator) {
 
   // `operator_sum -= scalar_operator`
   {
-    auto sum = cudaq::elementary_operator::number(1) +
-               cudaq::elementary_operator::annihilate(2);
+    auto sum = cudaq::matrix_operator::number(1) +
+               cudaq::matrix_operator::annihilate(2);
 
     sum -= cudaq::scalar_operator(value);
 
@@ -457,8 +457,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `operator_sum * double` and `double * operator_sum`
   {
-    auto sum = cudaq::elementary_operator::create(1) +
-               cudaq::elementary_operator::create(2);
+    auto sum = cudaq::matrix_operator::create(1) +
+               cudaq::matrix_operator::create(2);
 
     auto product = sum * double_value;
     auto reverse = double_value * sum;
@@ -501,8 +501,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `operator_sum + double` and `double + operator_sum`
   {
-    auto original = cudaq::elementary_operator::momentum(1) +
-                    cudaq::elementary_operator::position(2);
+    auto original = cudaq::matrix_operator::momentum(1) +
+                    cudaq::matrix_operator::position(2);
 
     auto sum = original + double_value;
     auto reverse = double_value + original;
@@ -534,8 +534,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `operator_sum - double` and `double - operator_sum`
   {
-    auto original = cudaq::elementary_operator::parity(1) +
-                    cudaq::elementary_operator::number(2);
+    auto original = cudaq::matrix_operator::parity(1) +
+                    cudaq::matrix_operator::number(2);
 
     auto difference = original - double_value;
     auto reverse = double_value - original;
@@ -567,8 +567,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `operator_sum *= double`
   {
-    auto sum = cudaq::elementary_operator::squeeze(1) +
-               cudaq::elementary_operator::squeeze(2);
+    auto sum = cudaq::matrix_operator::squeeze(1) +
+               cudaq::matrix_operator::squeeze(2);
 
     sum *= double_value;
 
@@ -601,8 +601,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `operator_sum += double`
   {
-    auto sum = cudaq::elementary_operator::create(1) +
-               cudaq::elementary_operator::create(2);
+    auto sum = cudaq::matrix_operator::create(1) +
+               cudaq::matrix_operator::create(2);
 
     sum += double_value;
 
@@ -629,8 +629,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `operator_sum -= double`
   {
-    auto sum = cudaq::elementary_operator::create(1) +
-               cudaq::elementary_operator::create(2);
+    auto sum = cudaq::matrix_operator::create(1) +
+               cudaq::matrix_operator::create(2);
 
     sum -= double_value;
 
@@ -658,8 +658,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
   // `operator_sum * std::complex<double>` and `std::complex<double> *
   // operator_sum`
   {
-    auto sum = cudaq::elementary_operator::create(1) +
-               cudaq::elementary_operator::create(2);
+    auto sum = cudaq::matrix_operator::create(1) +
+               cudaq::matrix_operator::create(2);
 
     auto product = sum * value;
     auto reverse = value * sum;
@@ -702,8 +702,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
   // `operator_sum + std::complex<double>` and `std::complex<double> +
   // operator_sum`
   {
-    auto original = cudaq::elementary_operator::create(1) +
-                    cudaq::elementary_operator::create(2);
+    auto original = cudaq::matrix_operator::create(1) +
+                    cudaq::matrix_operator::create(2);
 
     auto sum = original + value;
     auto reverse = value + original;
@@ -736,8 +736,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
   // `operator_sum - std::complex<double>` and `std::complex<double> -
   // operator_sum`
   {
-    auto original = cudaq::elementary_operator::create(1) +
-                    cudaq::elementary_operator::create(2);
+    auto original = cudaq::matrix_operator::create(1) +
+                    cudaq::matrix_operator::create(2);
 
     auto difference = original - value;
     auto reverse = value - original;
@@ -769,8 +769,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `operator_sum *= std::complex<double>`
   {
-    auto sum = cudaq::elementary_operator::displace(1) +
-               cudaq::elementary_operator::parity(2);
+    auto sum = cudaq::matrix_operator::displace(1) +
+               cudaq::matrix_operator::parity(2);
 
     sum *= value;
 
@@ -802,8 +802,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `operator_sum += std::complex<double>`
   {
-    auto sum = cudaq::elementary_operator::momentum(1) +
-               cudaq::elementary_operator::squeeze(2);
+    auto sum = cudaq::matrix_operator::momentum(1) +
+               cudaq::matrix_operator::squeeze(2);
 
     sum += value;
 
@@ -831,8 +831,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `operator_sum -= std::complex<double>`
   {
-    auto sum = cudaq::elementary_operator::position(1) +
-               cudaq::elementary_operator::number(2);
+    auto sum = cudaq::matrix_operator::position(1) +
+               cudaq::matrix_operator::number(2);
 
     sum -= value;
 
@@ -863,11 +863,11 @@ TEST(OperatorExpressions, checkOperatorSumAgainstOperatorSum) {
 
   // `operator_sum + operator_sum`
   {
-    auto sum_0 = cudaq::elementary_operator::create(1) +
-                 cudaq::elementary_operator::create(2);
-    auto sum_1 = cudaq::elementary_operator::parity(0) +
-                 cudaq::elementary_operator::annihilate(1) +
-                 cudaq::elementary_operator::create(3);
+    auto sum_0 = cudaq::matrix_operator::create(1) +
+                 cudaq::matrix_operator::create(2);
+    auto sum_1 = cudaq::matrix_operator::parity(0) +
+                 cudaq::matrix_operator::annihilate(1) +
+                 cudaq::matrix_operator::create(3);
 
     auto sum = sum_0 + sum_1;
 
@@ -920,11 +920,11 @@ TEST(OperatorExpressions, checkOperatorSumAgainstOperatorSum) {
 
   // `operator_sum - operator_sum`
   {
-    auto sum_0 = cudaq::elementary_operator::create(1) +
-                 cudaq::elementary_operator::position(2);
-    auto sum_1 = cudaq::elementary_operator::parity(0) +
-                 cudaq::elementary_operator::annihilate(1) +
-                 cudaq::elementary_operator::momentum(3);
+    auto sum_0 = cudaq::matrix_operator::create(1) +
+                 cudaq::matrix_operator::position(2);
+    auto sum_1 = cudaq::matrix_operator::parity(0) +
+                 cudaq::matrix_operator::annihilate(1) +
+                 cudaq::matrix_operator::momentum(3);
 
     auto difference = sum_0 - sum_1;
 
@@ -977,11 +977,11 @@ TEST(OperatorExpressions, checkOperatorSumAgainstOperatorSum) {
 
   // `operator_sum * operator_sum`
   {
-    auto sum_0 = cudaq::elementary_operator::create(1) +
-                 cudaq::elementary_operator::create(2);
-    auto sum_1 = cudaq::elementary_operator::parity(0) +
-                 cudaq::elementary_operator::annihilate(1) +
-                 cudaq::elementary_operator::create(3);
+    auto sum_0 = cudaq::matrix_operator::create(1) +
+                 cudaq::matrix_operator::create(2);
+    auto sum_1 = cudaq::matrix_operator::parity(0) +
+                 cudaq::matrix_operator::annihilate(1) +
+                 cudaq::matrix_operator::create(3);
 
     auto sum_product = sum_0 * sum_1;
     auto sum_product_reverse = sum_1 * sum_0;
@@ -1044,11 +1044,11 @@ TEST(OperatorExpressions, checkOperatorSumAgainstOperatorSum) {
 
   // `operator_sum *= operator_sum`
   {
-    auto sum = cudaq::elementary_operator::create(1) +
-               cudaq::elementary_operator::create(2);
-    auto sum_1 = cudaq::elementary_operator::parity(0) +
-                 cudaq::elementary_operator::annihilate(1) +
-                 cudaq::elementary_operator::create(3);
+    auto sum = cudaq::matrix_operator::create(1) +
+               cudaq::matrix_operator::create(2);
+    auto sum_1 = cudaq::matrix_operator::parity(0) +
+                 cudaq::matrix_operator::annihilate(1) +
+                 cudaq::matrix_operator::create(3);
 
     sum *= sum_1;
 
@@ -1110,10 +1110,10 @@ TEST(OperatorExpressions, checkOperatorSumAgainstProduct) {
 
   // `operator_sum += product_operator`
   {
-    auto product = cudaq::elementary_operator::annihilate(0) *
-                   cudaq::elementary_operator::annihilate(1);
-    auto sum = cudaq::elementary_operator::create(1) +
-               cudaq::elementary_operator::create(2);
+    auto product = cudaq::matrix_operator::annihilate(0) *
+                   cudaq::matrix_operator::annihilate(1);
+    auto sum = cudaq::matrix_operator::create(1) +
+               cudaq::matrix_operator::create(2);
 
     sum += product;
 
@@ -1154,10 +1154,10 @@ TEST(OperatorExpressions, checkOperatorSumAgainstProduct) {
 
   // `operator_sum -= product_operator`
   {
-    auto product = cudaq::elementary_operator::annihilate(0) *
-                   cudaq::elementary_operator::annihilate(1);
-    auto sum = cudaq::elementary_operator::create(1) +
-               cudaq::elementary_operator::create(2);
+    auto product = cudaq::matrix_operator::annihilate(0) *
+                   cudaq::matrix_operator::annihilate(1);
+    auto sum = cudaq::matrix_operator::create(1) +
+               cudaq::matrix_operator::create(2);
 
     sum -= product;
 
@@ -1198,10 +1198,10 @@ TEST(OperatorExpressions, checkOperatorSumAgainstProduct) {
 
   // `operator_sum *= product_operator`
   {
-    auto product = cudaq::elementary_operator::annihilate(0) *
-                   cudaq::elementary_operator::annihilate(1);
-    auto sum = cudaq::elementary_operator::create(1) +
-               cudaq::elementary_operator::create(2);
+    auto product = cudaq::matrix_operator::annihilate(0) *
+                   cudaq::matrix_operator::annihilate(1);
+    auto sum = cudaq::matrix_operator::create(1) +
+               cudaq::matrix_operator::create(2);
 
     sum *= product;
 

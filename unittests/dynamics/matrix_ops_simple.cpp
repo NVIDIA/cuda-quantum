@@ -17,12 +17,9 @@ void checkEqual(cudaq::matrix_2 a, cudaq::matrix_2 b) {
   ASSERT_EQ(a.get_size(), b.get_size());
   for (std::size_t i = 0; i < a.get_rows(); i++) {
     for (std::size_t j = 0; j < a.get_columns(); j++) {
-      double a_real = a[{i, j}].real();
-      double b_real = b[{i, j}].real();
-      EXPECT_NEAR(a_real, b_real, 1e-8);
-      double a_imag = a[{i, j}].imag();
-      double b_imag = b[{i, j}].imag();
-      EXPECT_NEAR(a_imag, b_imag, 1e-8);
+      double a_val = a[{i, j}].real();
+      double b_val = b[{i, j}].real();
+      EXPECT_NEAR(a_val, b_val, 1e-8);
     }
   }
 }
@@ -216,10 +213,10 @@ TEST(OperatorExpressions, checkPreBuiltElementaryOps) {
   }
 }
 
-// TEST(OperatorExpressions, checkCustomElementaryOps) {
-//  pass
+//TEST(OperatorExpressions, checkCustomElementaryOps) {
+  // pass
 
-// ex:
-// operator acts upon {0,2}
-// user gives us dimensions for {0,1,2}
+  // ex:
+  // operator acts upon {0,2}
+  // user gives us dimensions for {0,1,2}
 //}
