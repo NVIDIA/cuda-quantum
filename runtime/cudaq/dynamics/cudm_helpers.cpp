@@ -268,4 +268,25 @@ cudensitymatOperator_t construct_liovillian(
     throw;
   }
 }
+
+// Function for creating an array copy in GPU memory
+void *create_array_gpu(const std::vector<std::complex<double>> &cpu_array) {
+  void *gpu_array{nullptr};
+  const std::size_t array_size =
+      cpu_array.size() * sizeof(std::complex<double>);
+  if (array_size > 0) {
+    HANDLE_CUDA_ERROR(cudaMalloc(&gpu_array, array_size));
+    HANDLE_CUDA_ERROR(cudaMemcpy(gpu_array,
+                                 static_cast<const void *>(cpu_array.data()),
+                                 array_size, cudaMemcpyHostToDevice));
+  }
+  return gpu_array;
+}
+
+// Function to detsroy a previously created array copy in GPU memory
+void destroy_array_gpu(void *gpu_array) {
+  if (gpu_array) {
+    HANDLE_CUDA_ERROR(cudaFree(gpu_array));
+  }
+}
 } // namespace cudaq
