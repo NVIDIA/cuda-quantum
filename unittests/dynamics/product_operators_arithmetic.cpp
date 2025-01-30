@@ -307,8 +307,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(reverse.n_terms() == 2);
 
     std::vector<int> want_degrees = {0, 1};
-    // ASSERT_TRUE(sum.degrees() == want_degrees);
-    // ASSERT_TRUE(reverse.degrees() == want_degrees);
+    ASSERT_TRUE(sum.degrees() == want_degrees);
+    ASSERT_TRUE(reverse.degrees() == want_degrees);
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
@@ -345,8 +345,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(reverse.n_terms() == 2);
 
     std::vector<int> want_degrees = {0, 1};
-    // ASSERT_TRUE(sum.degrees() == want_degrees);
-    // ASSERT_TRUE(reverse.degrees() == want_degrees);
+    ASSERT_TRUE(sum.degrees() == want_degrees);
+    ASSERT_TRUE(reverse.degrees() == want_degrees);
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
@@ -383,8 +383,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(reverse.n_terms() == 2);
 
     std::vector<int> want_degrees = {0, 1};
-    // ASSERT_TRUE(sum.degrees() == want_degrees);
-    // ASSERT_TRUE(reverse.degrees() == want_degrees);
+    ASSERT_TRUE(sum.degrees() == want_degrees);
+    ASSERT_TRUE(reverse.degrees() == want_degrees);
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
@@ -421,8 +421,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(reverse.n_terms() == 2);
 
     std::vector<int> want_degrees = {0, 1};
-    // ASSERT_TRUE(difference.degrees() == want_degrees);
-    // ASSERT_TRUE(reverse.degrees() == want_degrees);
+    ASSERT_TRUE(difference.degrees() == want_degrees);
+    ASSERT_TRUE(reverse.degrees() == want_degrees);
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
@@ -459,8 +459,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(reverse.n_terms() == 2);
 
     std::vector<int> want_degrees = {0, 1};
-    // ASSERT_TRUE(difference.degrees() == want_degrees);
-    // ASSERT_TRUE(reverse.degrees() == want_degrees);
+    ASSERT_TRUE(difference.degrees() == want_degrees);
+    ASSERT_TRUE(reverse.degrees() == want_degrees);
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
@@ -497,8 +497,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(reverse.n_terms() == 2);
 
     std::vector<int> want_degrees = {0, 1};
-    // ASSERT_TRUE(difference.degrees() == want_degrees);
-    // ASSERT_TRUE(reverse.degrees() == want_degrees);
+    ASSERT_TRUE(difference.degrees() == want_degrees);
+    ASSERT_TRUE(reverse.degrees() == want_degrees);
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
@@ -539,8 +539,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(reverse.get_coefficient().evaluate() == value_0);
 
     std::vector<int> want_degrees = {0, 1};
-    // ASSERT_TRUE(product.degrees() == want_degrees);
-    // ASSERT_TRUE(reverse.degrees() == want_degrees);
+    ASSERT_TRUE(product.degrees() == want_degrees);
+    ASSERT_TRUE(reverse.degrees() == want_degrees);
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
@@ -581,8 +581,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(reverse.get_coefficient().evaluate() == std::complex<double>(2.));
 
     std::vector<int> want_degrees = {0, 1};
-    // ASSERT_TRUE(product.degrees() == want_degrees);
-    // ASSERT_TRUE(reverse.degrees() == want_degrees);
+    ASSERT_TRUE(product.degrees() == want_degrees);
+    ASSERT_TRUE(reverse.degrees() == want_degrees);
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
@@ -621,8 +621,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(reverse.get_coefficient().evaluate() == scalar_op.evaluate());
 
     std::vector<int> want_degrees = {0, 1};
-    // ASSERT_TRUE(product.degrees() == want_degrees);
-    // ASSERT_TRUE(reverse.degrees() == want_degrees);
+    ASSERT_TRUE(product.degrees() == want_degrees);
+    ASSERT_TRUE(reverse.degrees() == want_degrees);
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
@@ -657,7 +657,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(product.get_coefficient().evaluate() == value_0);
 
     std::vector<int> want_degrees = {0, 1};
-    // ASSERT_TRUE(product.degrees() == want_degrees);
+    ASSERT_TRUE(product.degrees() == want_degrees);
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
@@ -688,7 +688,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(product.get_coefficient().evaluate() == std::complex<double>(2.));
 
     std::vector<int> want_degrees = {0, 1};
-    // ASSERT_TRUE(product.degrees() == want_degrees);
+    ASSERT_TRUE(product.degrees() == want_degrees);
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
@@ -721,7 +721,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(scalar_op.evaluate() == value_0);
 
     std::vector<int> want_degrees = {0, 1};
-    // ASSERT_TRUE(product.degrees() == want_degrees);
+    ASSERT_TRUE(product.degrees() == want_degrees);
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
@@ -759,7 +759,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
     ASSERT_TRUE(sum.n_terms() == 2);
 
     std::vector<int> want_degrees = {0, 1, 2};
-    // ASSERT_TRUE(sum.degrees() == want_degrees);
+    ASSERT_TRUE(sum.degrees() == want_degrees);
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
