@@ -98,6 +98,11 @@ protected:
   /// intermediate tensors)
   virtual bool requireCacheWorkspace() const = 0;
 
+private:
+  // Helper to apply a Kraus channel
+  void applyKrausChannel(const std::vector<int32_t> &qubits,
+                         const cudaq::kraus_channel &channel);
+
 protected:
   cutensornetHandle_t m_cutnHandle;
   std::unique_ptr<TensorNetState> m_state;
