@@ -14,11 +14,11 @@
 
 namespace cudaq {
 
-std::map<std::string, Definition> elementary_operator::m_ops = {};
+std::map<std::string, Definition> matrix_operator::m_ops = {};
 
-product_operator<elementary_operator> elementary_operator::identity(int degree) {
+product_operator<matrix_operator> matrix_operator::identity(int degree) {
   std::string op_id = "identity";
-  auto op = elementary_operator(op_id, {degree});
+  auto op = matrix_operator(op_id, {degree});
   // A dimension of -1 indicates this operator can act on any dimension.
   op.expected_dimensions[degree] = -1;
   if (op.m_ops.find(op_id) == op.m_ops.end()) {
@@ -35,12 +35,12 @@ product_operator<elementary_operator> elementary_operator::identity(int degree) 
     };
     op.define(op_id, op.expected_dimensions, func);
   }
-  return product_operator<elementary_operator>(1., op);
+  return product_operator<matrix_operator>(1., op);
 }
 
-product_operator<elementary_operator> elementary_operator::zero(int degree) {
+product_operator<matrix_operator> matrix_operator::zero(int degree) {
   std::string op_id = "zero";
-  auto op = elementary_operator(op_id, {degree});
+  auto op = matrix_operator(op_id, {degree});
   // A dimension of -1 indicates this operator can act on any dimension.
   op.expected_dimensions[degree] = -1;
   if (op.m_ops.find(op_id) == op.m_ops.end()) {
@@ -55,12 +55,12 @@ product_operator<elementary_operator> elementary_operator::zero(int degree) {
     };
     op.define(op_id, op.expected_dimensions, func);
   }
-  return product_operator<elementary_operator>(1., op);
+  return product_operator<matrix_operator>(1., op);
 }
 
-product_operator<elementary_operator> elementary_operator::annihilate(int degree) {
+product_operator<matrix_operator> matrix_operator::annihilate(int degree) {
   std::string op_id = "annihilate";
-  auto op = elementary_operator(op_id, {degree});
+  auto op = matrix_operator(op_id, {degree});
   // A dimension of -1 indicates this operator can act on any dimension.
   op.expected_dimensions[degree] = -1;
   if (op.m_ops.find(op_id) == op.m_ops.end()) {
@@ -75,12 +75,12 @@ product_operator<elementary_operator> elementary_operator::annihilate(int degree
     };
     op.define(op_id, op.expected_dimensions, func);
   }
-  return product_operator<elementary_operator>(1., op);
+  return product_operator<matrix_operator>(1., op);
 }
 
-product_operator<elementary_operator> elementary_operator::create(int degree) {
+product_operator<matrix_operator> matrix_operator::create(int degree) {
   std::string op_id = "create";
-  auto op = elementary_operator(op_id, {degree});
+  auto op = matrix_operator(op_id, {degree});
   // A dimension of -1 indicates this operator can act on any dimension.
   op.expected_dimensions[degree] = -1;
   if (op.m_ops.find(op_id) == op.m_ops.end()) {
@@ -95,12 +95,12 @@ product_operator<elementary_operator> elementary_operator::create(int degree) {
     };
     op.define(op_id, op.expected_dimensions, func);
   }
-  return product_operator<elementary_operator>(1., op);
+  return product_operator<matrix_operator>(1., op);
 }
 
-product_operator<elementary_operator> elementary_operator::position(int degree) {
+product_operator<matrix_operator> matrix_operator::position(int degree) {
   std::string op_id = "position";
-  auto op = elementary_operator(op_id, {degree});
+  auto op = matrix_operator(op_id, {degree});
   // A dimension of -1 indicates this operator can act on any dimension.
   op.expected_dimensions[degree] = -1;
   if (op.m_ops.find(op_id) == op.m_ops.end()) {
@@ -119,12 +119,12 @@ product_operator<elementary_operator> elementary_operator::position(int degree) 
     };
     op.define(op_id, op.expected_dimensions, func);
   }
-  return product_operator<elementary_operator>(1., op);
+  return product_operator<matrix_operator>(1., op);
 }
 
-product_operator<elementary_operator> elementary_operator::momentum(int degree) {
+product_operator<matrix_operator> matrix_operator::momentum(int degree) {
   std::string op_id = "momentum";
-  auto op = elementary_operator(op_id, {degree});
+  auto op = matrix_operator(op_id, {degree});
   // A dimension of -1 indicates this operator can act on any dimension.
   op.expected_dimensions[degree] = -1;
   if (op.m_ops.find(op_id) == op.m_ops.end()) {
@@ -143,12 +143,12 @@ product_operator<elementary_operator> elementary_operator::momentum(int degree) 
     };
     op.define(op_id, op.expected_dimensions, func);
   }
-  return product_operator<elementary_operator>(1., op);
+  return product_operator<matrix_operator>(1., op);
 }
 
-product_operator<elementary_operator> elementary_operator::number(int degree) {
+product_operator<matrix_operator> matrix_operator::number(int degree) {
   std::string op_id = "number";
-  auto op = elementary_operator(op_id, {degree});
+  auto op = matrix_operator(op_id, {degree});
   // A dimension of -1 indicates this operator can act on any dimension.
   op.expected_dimensions[degree] = -1;
   if (op.m_ops.find(op_id) == op.m_ops.end()) {
@@ -163,12 +163,12 @@ product_operator<elementary_operator> elementary_operator::number(int degree) {
     };
     op.define(op_id, op.expected_dimensions, func);
   }
-  return product_operator<elementary_operator>(1., op);
+  return product_operator<matrix_operator>(1., op);
 }
 
-product_operator<elementary_operator> elementary_operator::parity(int degree) {
+product_operator<matrix_operator> matrix_operator::parity(int degree) {
   std::string op_id = "parity";
-  auto op = elementary_operator(op_id, {degree});
+  auto op = matrix_operator(op_id, {degree});
   // A dimension of -1 indicates this operator can act on any dimension.
   op.expected_dimensions[degree] = -1;
   if (op.m_ops.find(op_id) == op.m_ops.end()) {
@@ -183,12 +183,12 @@ product_operator<elementary_operator> elementary_operator::parity(int degree) {
     };
     op.define(op_id, op.expected_dimensions, func);
   }
-  return product_operator<elementary_operator>(1., op);
+  return product_operator<matrix_operator>(1., op);
 }
 
-product_operator<elementary_operator> elementary_operator::displace(int degree) {
+product_operator<matrix_operator> matrix_operator::displace(int degree) {
   std::string op_id = "displace";
-  auto op = elementary_operator(op_id, {degree});
+  auto op = matrix_operator(op_id, {degree});
   // A dimension of -1 indicates this operator can act on any dimension.
   op.expected_dimensions[degree] = -1;
   if (op.m_ops.find(op_id) == op.m_ops.end()) {
@@ -209,13 +209,13 @@ product_operator<elementary_operator> elementary_operator::displace(int degree) 
     };
     op.define(op_id, op.expected_dimensions, func);
   }
-  return product_operator<elementary_operator>(1., op);
+  return product_operator<matrix_operator>(1., op);
 }
 
 
-product_operator<elementary_operator> elementary_operator::squeeze(int degree) {
+product_operator<matrix_operator> matrix_operator::squeeze(int degree) {
   std::string op_id = "squeeze";
-  auto op = elementary_operator(op_id, {degree});
+  auto op = matrix_operator(op_id, {degree});
   // A dimension of -1 indicates this operator can act on any dimension.
   op.expected_dimensions[degree] = -1;
   if (op.m_ops.find(op_id) == op.m_ops.end()) {
@@ -237,11 +237,11 @@ product_operator<elementary_operator> elementary_operator::squeeze(int degree) {
     };
     op.define(op_id, op.expected_dimensions, func);
   }
-  return product_operator<elementary_operator>(1., op);
+  return product_operator<matrix_operator>(1., op);
 }
 
 
-matrix_2 elementary_operator::to_matrix(
+matrix_2 matrix_operator::to_matrix(
     std::map<int, int> dimensions,
     std::map<std::string, std::complex<double>> parameters) const {
   return m_ops[id].generator(dimensions, parameters);
