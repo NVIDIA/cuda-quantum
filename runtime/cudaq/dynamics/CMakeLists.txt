@@ -19,7 +19,7 @@ set(CUDAQ_OPS_SRC
   runge_kutta_integrator.cpp
   definition.cpp
   scalar_operators.cpp 
-  elementary_operators.cpp 
+  matrix_operators.cpp 
   product_operators.cpp 
   operator_sum.cpp 
   schedule.cpp

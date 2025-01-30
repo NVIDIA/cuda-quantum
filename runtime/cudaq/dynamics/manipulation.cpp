@@ -93,7 +93,7 @@ EvaluatedMatrix MatrixArithmetics::add(EvaluatedMatrix op1,
 }
 
 EvaluatedMatrix MatrixArithmetics::evaluate(
-    std::variant<scalar_operator, elementary_operator, product_operator<elementary_operator>> op) {
+    std::variant<scalar_operator, matrix_operator, product_operator<matrix_operator>> op) {
   // auto getDegrees = [](auto &&t) { return t.degrees; };
   // auto toMatrix = [&](auto &&t) {
   //   return t.to_matrix(this->m_dimensions, this->m_parameters);
