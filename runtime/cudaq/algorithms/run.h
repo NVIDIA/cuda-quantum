@@ -14,6 +14,7 @@
 #include "cudaq/algorithms/broadcast.h"
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
+#include <cstdint>
 
 namespace cudaq {
 
@@ -41,7 +42,9 @@ RunResultSpan runTheKernel(std::function<void()> &&kernel,
 /// cudaq::run allows an entry-point kernel to be executed a \p shots number of
 /// times and return a `std::vector` of results.
 template <typename RESULT, typename... ARGS>
+#if CUDAQ_USE_STD20
   requires(!std::is_void_v<RESULT>)
+#endif
 std::vector<RESULT> run(std::size_t shots,
                         std::function<RESULT(ARGS...)> &&kernel,
                         ARGS &&...args) {
