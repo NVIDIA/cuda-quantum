@@ -15,12 +15,13 @@
 namespace cudaq {
 class cudm_time_stepper : public BaseTimeStepper<cudm_state> {
 public:
-    explicit cudm_time_stepper(cudensitymatHandle_t handle, cudensitymatOperator_t liouvillian);
+  explicit cudm_time_stepper(cudensitymatHandle_t handle,
+                             cudensitymatOperator_t liouvillian);
 
-    void compute(cudm_state &state, double t, double step_size) override;
+  void compute(cudm_state &state, double t, double step_size) override;
 
 private:
-    cudensitymatHandle_t handle_;
-    cudensitymatOperator_t liouvillian_;
+  cudensitymatHandle_t handle_;
+  cudensitymatOperator_t liouvillian_;
 };
-}
+} // namespace cudaq
