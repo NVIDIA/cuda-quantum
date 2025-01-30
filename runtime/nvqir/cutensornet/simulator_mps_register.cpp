@@ -153,6 +153,35 @@ public:
     SimulatorTensorNetBase::applyExpPauli(theta, controls, qubitIds, op);
   }
 
+  // Helper to compute expectation value from a bit string distribution
+  static double computeExpValFromDistribution(
+      const std::unordered_map<std::string, std::size_t> &distribution,
+      int shots) {
+    double expVal = 0.0;
+    // Compute the expectation value from the distribution
+    for (auto &kv : distribution) {
+      auto par = cudaq::sample_result::has_even_parity(kv.first);
+      auto p = kv.second / (double)shots;
+      if (!par) {
+        p = -p;
+      }
+      expVal += p;
+    }
+    return expVal;
+  };
+
+  // Set up the MPS factorization before trajectory simulation run loop.
+  // We only need to do cutensornetStateFinalizeMPS once
+  void setUpFactorizeForTrajectoryRuns() {
+    for (auto &tensor : m_mpsTensors_d) {
+      HANDLE_CUDA_ERROR(cudaFree(tensor.deviceData));
+    }
+    m_mpsTensors_d.clear();
+    m_mpsTensors_d =
+        m_state->setupMPSFactorize(m_settings.maxBond, m_settings.absCutoff,
+                                   m_settings.relCutoff, m_settings.svdAlgo);
+  }
+
   /// @brief Sample a subset of qubits
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &measuredBits,
                                 const int shots) override {
@@ -164,14 +193,8 @@ public:
     cudaq::ExecutionResult counts;
     std::vector<int32_t> measuredBitIds(measuredBits.begin(),
                                         measuredBits.end());
-    // We only need to do cutensornetStateFinalizeMPS once
-    for (auto &tensor : m_mpsTensors_d) {
-      HANDLE_CUDA_ERROR(cudaFree(tensor.deviceData));
-    }
-    m_mpsTensors_d.clear();
-    m_mpsTensors_d =
-        m_state->setupMPSFactorize(m_settings.maxBond, m_settings.absCutoff,
-                                   m_settings.relCutoff, m_settings.svdAlgo);
+
+    setUpFactorizeForTrajectoryRuns();
     std::map<std::vector<int64_t>, std::pair<cutensornetStateSampler_t,
                                              cutensornetWorkspaceDescriptor_t>>
         samplerCache;
@@ -208,43 +231,18 @@ public:
       // Destroy the quantum circuit sampler
       HANDLE_CUTN_ERROR(cutensornetDestroySampler(sampler));
     }
-    double expVal = 0.0;
-    // Compute the expectation value from the counts
-    for (auto &kv : counts.counts) {
-      auto par = cudaq::sample_result::has_even_parity(kv.first);
-      auto p = kv.second / (double)shots;
-      if (!par) {
-        p = -p;
-      }
-      expVal += p;
-    }
 
-    counts.expectationValue = expVal;
+    counts.expectationValue =
+        computeExpValFromDistribution(counts.counts, shots);
 
     return counts;
   }
 
-  cudaq::observe_result observe(const cudaq::spin_op &ham) override {
-    LOG_API_TIME();
-
-    const bool hasNoise = executionContext && executionContext->noiseModel;
-    // If no noise, just use base class implementation.
-    if (!hasNoise)
-      return SimulatorTensorNetBase::observe(ham);
-
-    // We only need to do cutensornetStateFinalizeMPS once
-    for (auto &tensor : m_mpsTensors_d) {
-      HANDLE_CUDA_ERROR(cudaFree(tensor.deviceData));
-    }
-    m_mpsTensors_d.clear();
-    m_mpsTensors_d =
-        m_state->setupMPSFactorize(m_settings.maxBond, m_settings.absCutoff,
-                                   m_settings.relCutoff, m_settings.svdAlgo);
-    const std::size_t numObserveTrajectories =
-        this->executionContext->numberTrajectories.has_value()
-            ? this->executionContext->numberTrajectories.value()
-            : TensorNetState::g_numberTrajectoriesForObserve;
-
+  // Helper to prepare term-by-term data from a spin op
+  static std::tuple<std::vector<std::string>,
+                    std::vector<cudaq::spin_op::spin_op_term>,
+                    std::vector<std::complex<double>>>
+  prepareSpinOpTermData(const cudaq::spin_op &ham) {
     std::vector<std::string> termStrs;
     std::vector<cudaq::spin_op::spin_op_term> terms;
     std::vector<std::complex<double>> coeffs;
@@ -266,6 +264,23 @@ public:
       terms.emplace_back(symplecticRep[0]);
       coeffs.emplace_back(coeff[0]);
     });
+    return std::make_tuple(termStrs, terms, coeffs);
+  }
+
+  cudaq::observe_result observe(const cudaq::spin_op &ham) override {
+    LOG_API_TIME();
+    const bool hasNoise = executionContext && executionContext->noiseModel;
+    // If no noise, just use base class implementation.
+    if (!hasNoise)
+      return SimulatorTensorNetBase::observe(ham);
+
+    setUpFactorizeForTrajectoryRuns();
+    const std::size_t numObserveTrajectories =
+        this->executionContext->numberTrajectories.has_value()
+            ? this->executionContext->numberTrajectories.value()
+            : TensorNetState::g_numberTrajectoriesForObserve;
+
+    auto [termStrs, terms, coeffs] = prepareSpinOpTermData(ham);
     std::vector<std::complex<double>> termExpVals(terms.size(), 0.0);
 
     for (std::size_t i = 0; i < numObserveTrajectories; ++i) {
