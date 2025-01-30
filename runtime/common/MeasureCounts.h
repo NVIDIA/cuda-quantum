@@ -142,8 +142,9 @@ public:
       const std::string_view registerName = GlobalRegisterName) const;
 
   /// @brief Add another `ExecutionResult` to this `sample_result`.
-  /// @param result
-  void append(ExecutionResult &result);
+  /// @param result Result to append
+  /// @param stack If prior results are found, this stacks the bitstrings.
+  void append(ExecutionResult &result, bool stack = false);
 
   /// @brief Return all register names. Can be used in tandem with
   /// sample_result::to_map(regName : string) to retrieve the counts

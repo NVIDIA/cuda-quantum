@@ -192,14 +192,31 @@ sample_result::sample_result(double preComputedExp,
     totalShots += count;
 }
 
-void sample_result::append(ExecutionResult &result) {
-  // If given a result corresponding to the same register name,
-  // replace the existing one if in the map.
+void sample_result::append(ExecutionResult &result, bool stack) {
+  // If given a result corresponding to the same register name, either a)
+  // replace the existing one if in the map if stack is false, or b) if stack is
+  // true, stitch the bitstrings from "result" into the existing one.
   auto iter = sampleResults.find(result.registerName);
-  if (iter != sampleResults.end())
-    iter->second = result;
-  else
+  if (iter != sampleResults.end()) {
+    auto &existingExecResult = iter->second;
+    if (stack) {
+      // Stitch the bitstrings together
+      if (this->totalShots == result.sequentialData.size()) {
+        existingExecResult.counts.clear();
+        for (std::size_t i = 0; i < this->totalShots; i++) {
+          std::string newStr =
+              existingExecResult.sequentialData[i] + result.sequentialData[i];
+          existingExecResult.counts[newStr]++;
+          existingExecResult.sequentialData[i] = std::move(newStr);
+        }
+      }
+    } else {
+      // Replace the existing one
+      existingExecResult = result;
+    }
+  } else {
     sampleResults.insert({result.registerName, result});
+  }
   if (!totalShots)
     for (auto &[bits, count] : result.counts)
       totalShots += count;

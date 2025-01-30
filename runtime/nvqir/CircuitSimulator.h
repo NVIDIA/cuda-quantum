@@ -496,6 +496,11 @@ protected:
       // Add the qubit to the sampling list
       sampleQubits.push_back(qubitIdx);
 
+      // If we're stacking measurements (an optimized sampling mode), then don't
+      // populate registerNameToMeasuredQubit.
+      if (executionContext->stackMeasurements)
+        return true;
+
       auto processForRegName = [&](const std::string &regStr) {
         // Insert the sample qubit into the register name map
         auto iter = registerNameToMeasuredQubit.find(regStr);
@@ -646,13 +651,23 @@ protected:
     if (sampleQubits.empty())
       return;
 
+    // FIXME - make this a base class attribute that subclasses can override?
+    bool requiresUniqueQubitsInSample = name() != "stim";
+    if (executionContext->stackMeasurements && !requiresUniqueQubitsInSample &&
+        !force)
+      return;
+
     if (executionContext->hasConditionalsOnMeasureResults && !force)
       return;
 
-    // Sort the qubit indices
-    std::sort(sampleQubits.begin(), sampleQubits.end());
-    auto last = std::unique(sampleQubits.begin(), sampleQubits.end());
-    sampleQubits.erase(last, sampleQubits.end());
+    // Sort the qubit indices (unless we're in the optimized sampling mode that
+    // simply stacks sequential measurements)
+    auto origSampleQubits = sampleQubits;
+    if (requiresUniqueQubitsInSample || !executionContext->stackMeasurements) {
+      std::sort(sampleQubits.begin(), sampleQubits.end());
+      auto last = std::unique(sampleQubits.begin(), sampleQubits.end());
+      sampleQubits.erase(last, sampleQubits.end());
+    }
 
     cudaq::info("Sampling the current state, with measure qubits = {}",
                 sampleQubits);
@@ -663,8 +678,26 @@ protected:
                                  ? 1
                                  : executionContext->shots);
 
+    if (requiresUniqueQubitsInSample && executionContext->stackMeasurements) {
+      // This is the case where there may be duplicates in origSampleQubits.
+      // We need to update the execResult by duplicating measurements. This is
+      // not particularly efficient, but it is only used in rare use cases.
+      cudaq::ExecutionResult newExecResult;
+      newExecResult.sequentialData.resize(executionContext->shots);
+      for (auto b : origSampleQubits) {
+        auto iter = std::find(sampleQubits.begin(), sampleQubits.end(), b);
+        auto idx = std::distance(sampleQubits.begin(), iter);
+        for (std::size_t s = 0; s < executionContext->shots; s++)
+          newExecResult.sequentialData[s] += execResult.sequentialData[s][idx];
+      }
+      for (auto &bitstring : newExecResult.sequentialData)
+        newExecResult.counts[bitstring]++;
+      execResult = std::move(newExecResult);
+    }
+
     if (registerNameToMeasuredQubit.empty()) {
-      executionContext->result.append(execResult);
+      executionContext->result.append(execResult,
+                                      executionContext->stackMeasurements);
     } else {
 
       for (auto &[regName, qubits] : registerNameToMeasuredQubit) {
@@ -1046,7 +1079,7 @@ public:
     // If we are sampling...
     if (execContextName.find("sample") != std::string::npos) {
       // Sample the state over the specified number of shots
-      if (sampleQubits.empty()) {
+      if (sampleQubits.empty() && !executionContext->stackMeasurements) {
         if (isInBatchMode())
           sampleQubits.resize(batchModeCurrentNumQubits);
         else
