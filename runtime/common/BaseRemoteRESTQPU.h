@@ -294,12 +294,10 @@ public:
     std::string allowEarlyExitSetting =
         (codegenTranslation == "qir-adaptive") ? "1" : "0";
 
-    // Const prop loop boundaries and unroll loops.
     passPipelineConfig =
-        std::string("func.func(memtoreg{quantum=0},canonicalize,cse,lift-array-"
-                    "alloc,cse,canonicalize),"
-                    "cc-loop-unroll{allow-early-exit=") +
-        allowEarlyExitSetting + "}," + passPipelineConfig;
+        std::string(
+            "func.func(memtoreg{quantum=0},cc-loop-unroll{allow-early-exit=") +
+        allowEarlyExitSetting + "})," + passPipelineConfig;
 
     auto disableQM = backendConfig.find("disable_qubit_mapping");
     if (disableQM != backendConfig.end() && disableQM->second == "true") {
@@ -578,7 +576,6 @@ public:
 
     // Apply user-specified codegen
     std::vector<cudaq::KernelExecution> codes;
-
     for (auto &[name, moduleOpI] : modules) {
       std::string codeStr;
       {

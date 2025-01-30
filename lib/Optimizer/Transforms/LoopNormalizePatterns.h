@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "LoopAnalysis.h"
-#include "LoopNormalizePatterns.h"
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -15,30 +14,14 @@
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 
-namespace cudaq::opt {
-#define GEN_PASS_DEF_LOOPNORMALIZE
-#include "cudaq/Optimizer/Transforms/Passes.h.inc"
-} // namespace cudaq::opt
-
-#define DEBUG_TYPE "cc-loop-normalize"
-
-using namespace mlir;
-
-namespace {
-class LoopNormalizePass
-    : public cudaq::opt::impl::LoopNormalizeBase<LoopNormalizePass> {
+class LoopPat : public mlir::OpRewritePattern<cudaq::cc::LoopOp> {
 public:
-  using LoopNormalizeBase::LoopNormalizeBase;
+  explicit LoopPat(mlir::MLIRContext *ctx, bool aci, bool ab)
+      : OpRewritePattern(ctx), allowClosedInterval(aci), allowEarlyExit(ab) {}
 
-  void runOnOperation() override {
-    auto *op = getOperation();
-    auto *ctx = &getContext();
-    RewritePatternSet patterns(ctx);
-    patterns.insert<LoopPat>(ctx, allowClosedInterval, allowBreak);
-    if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns)))) {
-      op->emitOpError("could not normalize loop");
-      signalPassFailure();
-    }
-  }
+  mlir::LogicalResult matchAndRewrite(cudaq::cc::LoopOp loop,
+                                mlir::PatternRewriter &rewriter) const override;
+  bool allowClosedInterval;
+  bool allowEarlyExit;
 };
-} // namespace
+

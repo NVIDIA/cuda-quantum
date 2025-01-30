@@ -64,7 +64,7 @@ func.func @__nvqpp__mlirgen__function_custom_h_generator_1._Z20custom_h_generato
   %7 = cc.stdvec_init %6, %c4_i64 : (!cc.ptr<i8>, i64) -> !cc.stdvec<complex<f64>>
   return %7 : !cc.stdvec<complex<f64>>
 }
-  
+
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_custom_h_generator_1._Z20custom_h_generator_1v() -> !cc.stdvec<complex<f64>> attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 16 : i64
 // CHECK:           %[[VAL_1:.*]] = arith.constant 4 : i64
@@ -129,13 +129,15 @@ func.func @test2() -> !quake.veq<2> {
 func.func @test3() {
   %c0_i64 = arith.constant 0 : i64
   %c1_i64 = arith.constant 1 : i64
+
+  // qubits = cudaq.qvector(2)
   %0 = quake.alloca !quake.veq<2>
 
   // arr1 = [1]
   %1 = cc.alloca !cc.array<i64 x 1>
   %2 = cc.cast %1 : (!cc.ptr<!cc.array<i64 x 1>>) -> !cc.ptr<i64>
   cc.store %c1_i64, %2 : !cc.ptr<i64>
-  
+
   // t = arr1[0]
   %3 = cc.load %2 : !cc.ptr<i64>
 
@@ -144,13 +146,13 @@ func.func @test3() {
   %5 = cc.cast %4 : (!cc.ptr<!cc.array<i64 x 1>>) -> !cc.ptr<i64>
   cc.store %c0_i64, %5 : !cc.ptr<i64> // Dominates the next store, don't lift
 
-  // // arr2[0] = t
+  // arr2[0] = t
   cc.store %3, %5 : !cc.ptr<i64>
 
   // b = arr2[0]
   %6 = cc.load %5 : !cc.ptr<i64>
 
-
+  // x(qubits[b])
   %7 = quake.extract_ref %0[%6] : (!quake.veq<2>, i64) -> !quake.ref
   quake.x %7 : (!quake.ref) -> ()
   return

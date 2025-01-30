@@ -251,7 +251,7 @@ __qpu__ float positive_floor(float x) {
 __qpu__ std::size_t getNumOccupiedAlpha(std::size_t numElectrons,
                                         std::size_t spin,
                                         std::size_t numQubits) {
-  auto numSpatialOrbs = numQubits / 2; // 6/2 = 3
+  auto numSpatialOrbs = numQubits / 2;
   if (spin > 0) {
     auto n_occupied_beta = static_cast<std::size_t>(
         positive_floor((float)(numElectrons - spin) / 2));
@@ -260,7 +260,7 @@ __qpu__ std::size_t getNumOccupiedAlpha(std::size_t numElectrons,
   }
 
   auto n_occupied_alpha = static_cast<std::size_t>(
-      positive_floor((float)numElectrons / 2)); // 2/2=1
+      positive_floor((float)numElectrons / 2));
   return n_occupied_alpha;
 }
 
@@ -268,7 +268,7 @@ __qpu__ std::size_t getNumOccupiedBeta(std::size_t numElectrons,
                                        std::size_t spin,
                                        std::size_t numQubits) {
 
-  auto numSpatialOrbs = numQubits / 2; // 6/2 = 3
+  auto numSpatialOrbs = numQubits / 2;
   if (spin > 0) {
     auto n_occupied_beta = static_cast<std::size_t>(
         positive_floor((float)(numElectrons - spin) / 2));
@@ -276,7 +276,7 @@ __qpu__ std::size_t getNumOccupiedBeta(std::size_t numElectrons,
   }
 
   auto n_occupied_alpha = static_cast<std::size_t>(
-      positive_floor((float)numElectrons / 2)); // 2/2=1
+      positive_floor((float)numElectrons / 2));
   return n_occupied_alpha;
 }
 
@@ -284,7 +284,7 @@ __qpu__ std::size_t getNumVirtualAlpha(std::size_t numElectrons,
                                        std::size_t spin,
                                        std::size_t numQubits) {
 
-  auto numSpatialOrbs = numQubits / 2; // 6/2 = 3
+  auto numSpatialOrbs = numQubits / 2;
   if (spin > 0) {
     auto n_occupied_beta = static_cast<std::size_t>(
         positive_floor((float)(numElectrons - spin) / 2));
@@ -293,8 +293,8 @@ __qpu__ std::size_t getNumVirtualAlpha(std::size_t numElectrons,
     return n_virtual_alpha;
   }
   auto n_occupied_alpha = static_cast<std::size_t>(
-      positive_floor((float)numElectrons / 2));             // 2/2=1
-  auto n_virtual_alpha = numSpatialOrbs - n_occupied_alpha; // 3-1 = 2
+      positive_floor((float)numElectrons / 2));
+  auto n_virtual_alpha = numSpatialOrbs - n_occupied_alpha;
   return n_virtual_alpha;
 }
 
@@ -319,11 +319,11 @@ __qpu__ void uccsd2(cudaq::qview<> qubits, const std::vector<double> &thetas,
                     std::size_t numElectrons, std::size_t spin) {
 
   int numOccAlpha =
-      getNumOccupiedAlpha(numElectrons, spin, qubits.size());              // 1
-  int numOccBeta = getNumOccupiedBeta(numElectrons, spin, qubits.size()); // 1
+      getNumOccupiedAlpha(numElectrons, spin, qubits.size());
+  int numOccBeta = getNumOccupiedBeta(numElectrons, spin, qubits.size());
   int numVirtAlpha =
-      getNumVirtualAlpha(numElectrons, spin, qubits.size());               // 2
-  int numVirtBeta = getNumVirtualBeta(numElectrons, spin, qubits.size()); // 2
+      getNumVirtualAlpha(numElectrons, spin, qubits.size());
+  int numVirtBeta = getNumVirtualBeta(numElectrons, spin, qubits.size());
   std::vector<std::size_t> occupiedAlpha(numOccAlpha),
       virtualAlpha(numVirtAlpha), occupiedBeta(numOccBeta),
       virtualBeta(numVirtBeta);

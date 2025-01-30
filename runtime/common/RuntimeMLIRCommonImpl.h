@@ -679,7 +679,6 @@ mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
       cudaq::opt::addWiresetToProfileQIRPipeline(pm, convertTo);
     else
       cudaq::opt::commonPipelineConvertToQIR(pm, convertTo);
-    // cudaq::opt::commonPipelineConvertToQIR(pm, "qir-adaptive");
 
     auto enablePrintMLIREachPass =
         getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);

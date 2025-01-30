@@ -556,11 +556,13 @@ def test_list_creation_with_cast():
     assert len(counts) == 1
     assert '1' * 5 in counts
 
+
 def test_list_boundaries():
+
     @cudaq.kernel
     def kernel1():
         qubits = cudaq.qvector(2)
-        r = range(0,0)
+        r = range(0, 0)
         for i in r:
             x(qubits[i])
 
@@ -571,7 +573,7 @@ def test_list_boundaries():
     @cudaq.kernel
     def kernel2():
         qubits = cudaq.qvector(2)
-        r = range(1,0)
+        r = range(1, 0)
         for i in r:
             x(qubits[i])
 
@@ -589,7 +591,8 @@ def test_list_boundaries():
     counts = cudaq.sample(kernel3)
     assert len(counts) == 1
     assert '0101' in counts
-      
+
+
 def test_control_operations():
 
     @cudaq.kernel
@@ -1960,7 +1963,9 @@ def test_numpy_functions():
     with pytest.raises(RuntimeError):
         cudaq.sample(invalid_unsupported)
 
+
 def test_array_value_assignment():
+
     @cudaq.kernel()
     def foo():
         a = [1, 1]
@@ -1976,6 +1981,7 @@ def test_array_value_assignment():
 
     counts = cudaq.sample(foo)
     assert "11" in counts
+
 
 # leave for gdb debugging
 if __name__ == "__main__":

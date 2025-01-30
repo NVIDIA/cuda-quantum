@@ -6,12 +6,16 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "CollapseStoresPatterns.h"
+#include "LiftArrayAllocPatterns.h"
 #include "LoopAnalysis.h"
+#include "LoopNormalizePatterns.h"
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
+#include "mlir/Transforms/RegionUtils.h"
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_LOOPUNROLL
@@ -230,6 +234,10 @@ public:
   void runOnOperation() override {
     auto *ctx = &getContext();
     auto *op = getOperation();
+
+    auto func = dyn_cast<func::FuncOp>(op);
+    DominanceInfo domInfo(func);
+
     auto numLoops = countLoopOps(op);
     unsigned progress = 0;
     if (numLoops) {
@@ -238,14 +246,28 @@ public:
         dialect->getCanonicalizationPatterns(patterns);
       for (RegisteredOperationName op : ctx->getRegisteredOperations())
         op.getCanonicalizationPatterns(patterns, ctx);
+
+      patterns.insert<LoopPat>(ctx, allowClosedInterval, allowBreak);
       patterns.insert<UnrollCountedLoop>(ctx, threshold,
                                          /*signalFailure=*/false, allowBreak,
                                          progress);
+
+      if (func)
+        patterns.insert<AllocaPattern>(ctx, domInfo, func.getName());
+      patterns.insert<RemoveUselessStorePattern>(ctx);
+
       FrozenRewritePatternSet frozen(std::move(patterns));
       // Iterate over the loops until a fixed-point is reached. Some loops can
       // only be unrolled if other loops are unrolled first and the constants
       // iteratively propagated.
       do {
+        // Clean up dead code.
+        if (func) {
+          auto builder = OpBuilder(op);
+          IRRewriter rewriter(builder);
+          [[maybe_unused]] auto unused =
+              simplifyRegions(rewriter, {func.getBody()});
+        }
         progress = 0;
         (void)applyPatternsAndFoldGreedily(op, frozen);
       } while (progress);
@@ -255,8 +277,6 @@ public:
       numLoops = countLoopOps(op);
       if (numLoops) {
         op->emitOpError("did not unroll loops");
-        auto module = op->getParentOfType<ModuleOp>();
-        module.dump();
         signalPassFailure();
       }
     }
@@ -346,32 +366,9 @@ static void createUnrollingPipeline(OpPassManager &pm, unsigned threshold,
                                     bool allowClosedInterval) {
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
-
-  // Run unrolling twice to make sure some nested loops are unrolled
-  // after constant array propagation (for example, in `uccsd` state prep).
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(createCSEPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLiftArrayAlloc());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createCollapseStores());
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(createCSEPass());
-  cudaq::opt::LoopNormalizeOptions lno{allowClosedInterval, allowBreak};
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize(lno));
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  cudaq::opt::LoopUnrollOptions luo1{threshold, false, allowBreak};
+  cudaq::opt::LoopUnrollOptions luo1{threshold, signalFailure,
+                                     allowClosedInterval, allowBreak};
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll(luo1));
-
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(createCSEPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLiftArrayAlloc());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createCollapseStores());
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(createCSEPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize(lno));
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  cudaq::opt::LoopUnrollOptions luo2{threshold, signalFailure, allowBreak};
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll(luo2));
-
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUpdateRegisterNames());
 }
 

@@ -1464,7 +1464,7 @@ class PyASTBridge(ast.NodeVisitor):
                 # If the step is not == 1, then we also have
                 # to update the total size for the range iterable
                 actualSize = arith.DivSIOp(actualSize,
-                                          math.AbsIOp(stepVal).result).result
+                                           math.AbsIOp(stepVal).result).result
                 totalSize = arith.DivSIOp(totalSize,
                                           math.AbsIOp(stepVal).result).result
 
