@@ -14,6 +14,7 @@
 #include "cudaq/spin_op.h"
 #include <cmath>
 #include <complex>
+#include <iostream> // FIXME: temporary, remove!
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -402,6 +403,41 @@ void __quantum__rt__deallocate_all(const std::size_t numQubits,
                                    const std::size_t *qubitIdxs) {
   std::vector<std::size_t> qubits(qubitIdxs, qubitIdxs + numQubits);
   nvqir::getCircuitSimulatorInternal()->deallocateQubits(qubits);
+}
+
+void __quantum__rt__bool_record_output(bool val, const char *label) {
+  std::cout << "OUTPUT\tBOOL\t" << (val ? "true" : "false") << '\t';
+  if (label)
+    std::cout << label;
+  std::cout << std::endl;
+}
+
+void __quantum__rt__integer_record_output(std::int64_t val, const char *label) {
+  std::cout << "OUTPUT\tINT\t" << val << '\t';
+  if (label)
+    std::cout << label;
+  std::cout << std::endl;
+}
+
+void __quantum__rt__double_record_output(double val, const char *label) {
+  std::cout << "OUTPUT\tDOUBLE\t" << val << '\t';
+  if (label)
+    std::cout << label;
+  std::cout << std::endl;
+}
+
+void __quantum__rt__tuple_record_output(std::uint64_t len, const char *label) {
+  std::cout << "OUTPUT\tTUPLE\t" << len << '\t';
+  if (label)
+    std::cout << label;
+  std::cout << std::endl;
+}
+
+void __quantum__rt__array_record_output(std::uint64_t len, const char *label) {
+  std::cout << "OUTPUT\tARRAY\t" << len << '\t';
+  if (label)
+    std::cout << label;
+  std::cout << std::endl;
 }
 
 #define ONE_QUBIT_QIS_FUNCTION(GATENAME)                                       \
