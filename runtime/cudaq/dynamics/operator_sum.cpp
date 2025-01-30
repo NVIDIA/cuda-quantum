@@ -6,7 +6,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "common/EigenDense.h"
 #include "cudaq/operators.h"
 
 #include <iostream>
@@ -18,14 +17,124 @@ namespace cudaq {
 
 // private methods
 
-template<typename HandlerTy>
-std::vector<std::tuple<scalar_operator, HandlerTy>> operator_sum<HandlerTy>::canonicalize_product(product_operator<HandlerTy> &prod) const {
-    throw std::runtime_error("not implemented");
+template <typename HandlerTy>
+cudaq::matrix_2 operator_sum<HandlerTy>::m_evaluate(
+    MatrixArithmetics arithmetics, std::map<int, int> dimensions,
+    std::map<std::string, std::complex<double>> parameters, bool pad_terms) const {
+
+  auto terms = this->get_terms();
+
+  std::set<int> degrees_set;
+  for (auto op : terms) {
+    for (auto degree : op.degrees()) {
+      degrees_set.insert(degree);
+    }
+  }
+  std::vector<int> degrees(degrees_set.begin(), degrees_set.end());
+
+  // We need to make sure all matrices are of the same size to sum them up.
+  auto paddedTerm = [&](auto &&term) {
+    std::vector<int> op_degrees;
+    for (auto op : term.get_terms()) {
+      for (auto degree : op.degrees)
+        op_degrees.push_back(degree);
+    }
+    for (auto degree : degrees) {
+      auto it = std::find(op_degrees.begin(), op_degrees.end(), degree);
+      if (it == op_degrees.end()) {
+        term *= elementary_operator::identity(degree);
+      }
+    }
+    return term;
+  };
+
+  auto sum = EvaluatedMatrix();
+  if (pad_terms) {
+
+    sum = EvaluatedMatrix(degrees, paddedTerm(terms[0]).m_evaluate(arithmetics, dimensions,
+                                              parameters, pad_terms));
+    for (auto term_idx = 1; term_idx < terms.size(); ++term_idx) {
+      auto term = terms[term_idx];
+
+      auto eval = paddedTerm(term).m_evaluate(arithmetics, dimensions,
+                                              parameters, pad_terms);
+      sum = arithmetics.add(sum, EvaluatedMatrix(degrees, eval));
+    }
+  } else {
+    sum =
+        EvaluatedMatrix(degrees, terms[0].m_evaluate(arithmetics, dimensions,
+                                                       parameters, pad_terms));
+    for (auto term_idx = 1; term_idx < terms.size(); ++term_idx) {
+      auto term = terms[term_idx];
+      auto eval =
+          term.m_evaluate(arithmetics, dimensions, parameters, pad_terms);
+      sum = arithmetics.add(sum, EvaluatedMatrix(degrees, eval));
+    }
+  }
+  return sum.matrix();
 }
 
 template<typename HandlerTy>
-std::vector<std::tuple<scalar_operator, HandlerTy>> operator_sum<HandlerTy>::_canonical_terms() const {
-    throw std::runtime_error("not implemented");
+std::tuple<std::vector<scalar_operator>, std::vector<HandlerTy>> operator_sum<HandlerTy>::m_canonicalize_product(product_operator<HandlerTy> &prod) const {
+  std::vector<scalar_operator> scalars = {prod.get_coefficient()};
+  auto non_scalars = prod.get_terms();
+
+  std::vector<int> all_degrees;
+  for (auto op : non_scalars) {
+    for (auto degree : op.degrees)
+      all_degrees.push_back(degree);
+  }
+
+  std::set<int> unique_degrees(all_degrees.begin(), all_degrees.end());
+
+  if (all_degrees.size() == unique_degrees.size()) {
+    // Each operator acts on different degrees of freedom; they
+    // hence commute and can be reordered arbitrarily.
+    /// FIXME: Doing nothing for now
+    // std::sort(non_scalars.begin(), non_scalars.end(), [](auto op){ return
+    // op.degrees; })
+  } else {
+    // Some degrees exist multiple times; order the scalars, identities,
+    // and zeros, but do not otherwise try to reorder terms.
+    std::vector<elementary_operator> zero_ops;
+    std::vector<elementary_operator> identity_ops;
+    std::vector<elementary_operator> non_commuting;
+    for (auto op : non_scalars) {
+      if (op.id == "zero")
+        zero_ops.push_back(op);
+      if (op.id == "identity")
+        identity_ops.push_back(op);
+      if (op.id != "zero" || op.id != "identity")
+        non_commuting.push_back(op);
+    }
+
+    /// FIXME: Not doing the same sorting we do in python yet
+    std::vector<elementary_operator> sorted_non_scalars;
+    sorted_non_scalars.insert(sorted_non_scalars.end(), zero_ops.begin(),
+                              zero_ops.end());
+    sorted_non_scalars.insert(sorted_non_scalars.end(), identity_ops.begin(),
+                              identity_ops.end());
+    sorted_non_scalars.insert(sorted_non_scalars.end(), non_commuting.begin(),
+                              non_commuting.end());
+    non_scalars = sorted_non_scalars;
+  }
+  return std::make_tuple(scalars, non_scalars);
+}
+
+template<typename HandlerTy>
+std::tuple<std::vector<scalar_operator>, std::vector<HandlerTy>> operator_sum<HandlerTy>::m_canonical_terms() const {
+  /// FIXME: Not doing the same sorting we do in python yet
+  std::tuple<std::vector<scalar_operator>, std::vector<elementary_operator>> result;
+  std::vector<scalar_operator> scalars;
+  std::vector<elementary_operator> elementary_ops;
+  for (auto term : this->get_terms()) {
+    auto canon_term = m_canonicalize_product(term);
+    auto canon_scalars = std::get<0>(canon_term);
+    auto canon_elementary = std::get<1>(canon_term);
+    scalars.insert(scalars.end(), canon_scalars.begin(), canon_scalars.end());
+    canon_elementary.insert(canon_elementary.end(), canon_elementary.begin(), canon_elementary.end());
+  }
+  return std::make_tuple(scalars, elementary_ops);
 }
 
 template<typename HandlerTy>
@@ -40,10 +149,15 @@ void operator_sum<HandlerTy>::aggregate_terms(const product_operator<HandlerTy> 
 }
 
 template
-std::vector<std::tuple<scalar_operator, elementary_operator>> operator_sum<elementary_operator>::canonicalize_product(product_operator<elementary_operator> &prod) const;
+cudaq::matrix_2 operator_sum<elementary_operator>::m_evaluate(
+    MatrixArithmetics arithmetics, std::map<int, int> dimensions,
+    std::map<std::string, std::complex<double>> parameters, bool pad_terms) const;
 
 template
-std::vector<std::tuple<scalar_operator, elementary_operator>> operator_sum<elementary_operator>::_canonical_terms() const;
+std::tuple<std::vector<scalar_operator>, std::vector<elementary_operator>> operator_sum<elementary_operator>::m_canonicalize_product(product_operator<elementary_operator> &prod) const;
+
+template
+std::tuple<std::vector<scalar_operator>, std::vector<elementary_operator>> operator_sum<elementary_operator>::m_canonical_terms() const;
 
 // no overload for a single product, since we don't want a constructor for a single term
 
@@ -182,8 +296,10 @@ std::string operator_sum<HandlerTy>::to_string() const {
 
 template<typename HandlerTy>
 matrix_2 operator_sum<HandlerTy>::to_matrix(const std::map<int, int> &dimensions,
-                                            const std::map<std::string, double> &params) const {
-    throw std::runtime_error("not implemented");
+                                            const std::map<std::string, std::complex<double>> &parameters) const {
+  /// FIXME: Not doing any conversion to spin op yet.
+  return m_evaluate(MatrixArithmetics(dimensions, parameters), dimensions,
+                    parameters);
 }
 
 template
@@ -191,7 +307,7 @@ std::string operator_sum<elementary_operator>::to_string() const;
 
 template
 matrix_2 operator_sum<elementary_operator>::to_matrix(const std::map<int, int> &dimensions,
-                                                      const std::map<std::string, double> &params) const;
+                                                      const std::map<std::string, std::complex<double>> &params) const;
 
 // comparisons
 
