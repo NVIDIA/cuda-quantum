@@ -13,7 +13,7 @@ set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 set(CUDAQ_OPS_SRC
   definition.cpp
   scalar_operators.cpp 
-  elementary_operators.cpp 
+  matrix_operators.cpp 
   product_operators.cpp 
   operator_sum.cpp 
   schedule.cpp

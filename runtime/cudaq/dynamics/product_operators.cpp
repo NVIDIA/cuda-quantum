@@ -19,7 +19,7 @@ namespace cudaq {
 // private methods
 
 cudaq::matrix_2
-_padded_op(cudaq::MatrixArithmetics arithmetics, cudaq::elementary_operator op,
+_padded_op(cudaq::MatrixArithmetics arithmetics, cudaq::matrix_operator op,
            std::vector<int> degrees, std::map<int, int> dimensions,
            std::map<std::string, std::complex<double>> parameters) {
   /// Creating the tensor product with op being last is most efficient.
@@ -29,7 +29,7 @@ _padded_op(cudaq::MatrixArithmetics arithmetics, cudaq::elementary_operator op,
             op.degrees.end(),
         degree) {
       padded.push_back(
-          arithmetics.evaluate(cudaq::elementary_operator::identity(degree))
+          arithmetics.evaluate(cudaq::matrix_operator::identity(degree))
               .matrix());
     }
     matrix_2 mat = op.to_matrix(dimensions, parameters);
@@ -122,13 +122,13 @@ void product_operator<HandlerTy>::aggregate_terms(const HandlerTy &head, Args&& 
 }
 
 template
-void product_operator<elementary_operator>::aggregate_terms(const elementary_operator &item1, 
-                                                            const elementary_operator &item2);
+void product_operator<matrix_operator>::aggregate_terms(const matrix_operator &item1, 
+                                                            const matrix_operator &item2);
 
 template
-void product_operator<elementary_operator>::aggregate_terms(const elementary_operator &item1, 
-                                                            const elementary_operator &item2,
-                                                            const elementary_operator &item3);
+void product_operator<matrix_operator>::aggregate_terms(const matrix_operator &item1, 
+                                                            const matrix_operator &item2,
+                                                            const matrix_operator &item3);
 
 // read-only properties
 
@@ -159,21 +159,21 @@ scalar_operator product_operator<HandlerTy>::get_coefficient() const {
 }
 
 template
-cudaq::matrix_2 product_operator<elementary_operator>::m_evaluate(
+cudaq::matrix_2 product_operator<matrix_operator>::m_evaluate(
     MatrixArithmetics arithmetics, std::map<int, int> dimensions,
     std::map<std::string, std::complex<double>> parameters, bool pad_terms) const;
 
 template
-std::vector<int> product_operator<elementary_operator>::degrees() const;
+std::vector<int> product_operator<matrix_operator>::degrees() const;
 
 template
-int product_operator<elementary_operator>::n_terms() const;
+int product_operator<matrix_operator>::n_terms() const;
 
 template
-std::vector<elementary_operator> product_operator<elementary_operator>::get_terms() const;
+std::vector<matrix_operator> product_operator<matrix_operator>::get_terms() const;
 
 template
-scalar_operator product_operator<elementary_operator>::get_coefficient() const;
+scalar_operator product_operator<matrix_operator>::get_coefficient() const;
 
 // constructors
 
@@ -212,34 +212,34 @@ product_operator<HandlerTy>::product_operator(product_operator<HandlerTy> &&othe
 }
 
 template 
-product_operator<elementary_operator>::product_operator(scalar_operator coefficient);
+product_operator<matrix_operator>::product_operator(scalar_operator coefficient);
 
 template 
-product_operator<elementary_operator>::product_operator(scalar_operator coefficient,
-                                                        const elementary_operator &item1);
+product_operator<matrix_operator>::product_operator(scalar_operator coefficient,
+                                                        const matrix_operator &item1);
 
 template 
-product_operator<elementary_operator>::product_operator(scalar_operator coefficient,
-                                                        const elementary_operator &item1,
-                                                        const elementary_operator &item2);
+product_operator<matrix_operator>::product_operator(scalar_operator coefficient,
+                                                        const matrix_operator &item1,
+                                                        const matrix_operator &item2);
 
 template 
-product_operator<elementary_operator>::product_operator(scalar_operator coefficient,
-                                                        const elementary_operator &item1,
-                                                        const elementary_operator &item2,
-                                                        const elementary_operator &item3);
+product_operator<matrix_operator>::product_operator(scalar_operator coefficient,
+                                                        const matrix_operator &item1,
+                                                        const matrix_operator &item2,
+                                                        const matrix_operator &item3);
 
 template
-product_operator<elementary_operator>::product_operator(scalar_operator coefficient, const std::vector<elementary_operator> &atomic_operators);
+product_operator<matrix_operator>::product_operator(scalar_operator coefficient, const std::vector<matrix_operator> &atomic_operators);
 
 template
-product_operator<elementary_operator>::product_operator(scalar_operator coefficient, std::vector<elementary_operator> &&atomic_operators);
+product_operator<matrix_operator>::product_operator(scalar_operator coefficient, std::vector<matrix_operator> &&atomic_operators);
 
 template
-product_operator<elementary_operator>::product_operator(const product_operator<elementary_operator> &other);
+product_operator<matrix_operator>::product_operator(const product_operator<matrix_operator> &other);
 
 template
-product_operator<elementary_operator>::product_operator(product_operator<elementary_operator> &&other);
+product_operator<matrix_operator>::product_operator(product_operator<matrix_operator> &&other);
 
 // assignments
 
@@ -262,10 +262,10 @@ product_operator<HandlerTy>& product_operator<HandlerTy>::operator=(product_oper
 }
 
 template
-product_operator<elementary_operator>& product_operator<elementary_operator>::operator=(const product_operator<elementary_operator> &other);
+product_operator<matrix_operator>& product_operator<matrix_operator>::operator=(const product_operator<matrix_operator> &other);
 
 template
-product_operator<elementary_operator>& product_operator<elementary_operator>::operator=(product_operator<elementary_operator> &&other);
+product_operator<matrix_operator>& product_operator<matrix_operator>::operator=(product_operator<matrix_operator> &&other);
 
 // evaluations
 
@@ -284,10 +284,10 @@ matrix_2 product_operator<HandlerTy>::to_matrix(std::map<int, int> dimensions,
 }
 
 template
-std::string product_operator<elementary_operator>::to_string() const;
+std::string product_operator<matrix_operator>::to_string() const;
 
 template
-matrix_2 product_operator<elementary_operator>::to_matrix(std::map<int, int> dimensions,
+matrix_2 product_operator<matrix_operator>::to_matrix(std::map<int, int> dimensions,
                                                           std::map<std::string, std::complex<double>> parameters) const;
 
 // comparisons
@@ -298,7 +298,7 @@ bool product_operator<HandlerTy>::operator==(const product_operator<HandlerTy> &
 }
 
 template
-bool product_operator<elementary_operator>::operator==(const product_operator<elementary_operator> &other) const;
+bool product_operator<matrix_operator>::operator==(const product_operator<matrix_operator> &other) const;
 
 // unary operators
 
@@ -313,10 +313,10 @@ product_operator<HandlerTy> product_operator<HandlerTy>::operator+() const {
 }
 
 template 
-product_operator<elementary_operator> product_operator<elementary_operator>::operator-() const;
+product_operator<matrix_operator> product_operator<matrix_operator>::operator-() const;
 
 template
-product_operator<elementary_operator> product_operator<elementary_operator>::operator+() const;
+product_operator<matrix_operator> product_operator<matrix_operator>::operator+() const;
 
 // right-hand arithmetics
 
@@ -366,29 +366,29 @@ PRODUCT_ADDITION_HANDLER(+)
 PRODUCT_ADDITION_HANDLER(-)
 
 template
-product_operator<elementary_operator> product_operator<elementary_operator>::operator*(double other) const;
+product_operator<matrix_operator> product_operator<matrix_operator>::operator*(double other) const;
 template
-operator_sum<elementary_operator> product_operator<elementary_operator>::operator+(double other) const;
+operator_sum<matrix_operator> product_operator<matrix_operator>::operator+(double other) const;
 template
-operator_sum<elementary_operator> product_operator<elementary_operator>::operator-(double other) const;
+operator_sum<matrix_operator> product_operator<matrix_operator>::operator-(double other) const;
 template
-product_operator<elementary_operator> product_operator<elementary_operator>::operator*(std::complex<double> other) const;
+product_operator<matrix_operator> product_operator<matrix_operator>::operator*(std::complex<double> other) const;
 template
-operator_sum<elementary_operator> product_operator<elementary_operator>::operator+(std::complex<double> other) const;
+operator_sum<matrix_operator> product_operator<matrix_operator>::operator+(std::complex<double> other) const;
 template
-operator_sum<elementary_operator> product_operator<elementary_operator>::operator-(std::complex<double> other) const;
+operator_sum<matrix_operator> product_operator<matrix_operator>::operator-(std::complex<double> other) const;
 template
-product_operator<elementary_operator> product_operator<elementary_operator>::operator*(const scalar_operator &other) const;
+product_operator<matrix_operator> product_operator<matrix_operator>::operator*(const scalar_operator &other) const;
 template
-operator_sum<elementary_operator> product_operator<elementary_operator>::operator+(const scalar_operator &other) const;
+operator_sum<matrix_operator> product_operator<matrix_operator>::operator+(const scalar_operator &other) const;
 template
-operator_sum<elementary_operator> product_operator<elementary_operator>::operator-(const scalar_operator &other) const;
+operator_sum<matrix_operator> product_operator<matrix_operator>::operator-(const scalar_operator &other) const;
 template
-product_operator<elementary_operator> product_operator<elementary_operator>::operator*(const elementary_operator &other) const;
+product_operator<matrix_operator> product_operator<matrix_operator>::operator*(const matrix_operator &other) const;
 template
-operator_sum<elementary_operator> product_operator<elementary_operator>::operator+(const elementary_operator &other) const;
+operator_sum<matrix_operator> product_operator<matrix_operator>::operator+(const matrix_operator &other) const;
 template
-operator_sum<elementary_operator> product_operator<elementary_operator>::operator-(const elementary_operator &other) const;
+operator_sum<matrix_operator> product_operator<matrix_operator>::operator-(const matrix_operator &other) const;
 
 template <typename HandlerTy>
 product_operator<HandlerTy> product_operator<HandlerTy>::operator*(const product_operator<HandlerTy> &other) const {
@@ -458,17 +458,17 @@ PRODUCT_ADDITION_SUM(+)
 PRODUCT_ADDITION_SUM(-)
 
 template
-product_operator<elementary_operator> product_operator<elementary_operator>::operator*(const product_operator<elementary_operator> &other) const;
+product_operator<matrix_operator> product_operator<matrix_operator>::operator*(const product_operator<matrix_operator> &other) const;
 template
-operator_sum<elementary_operator> product_operator<elementary_operator>::operator+(const product_operator<elementary_operator> &other) const;
+operator_sum<matrix_operator> product_operator<matrix_operator>::operator+(const product_operator<matrix_operator> &other) const;
 template
-operator_sum<elementary_operator> product_operator<elementary_operator>::operator-(const product_operator<elementary_operator> &other) const;
+operator_sum<matrix_operator> product_operator<matrix_operator>::operator-(const product_operator<matrix_operator> &other) const;
 template
-operator_sum<elementary_operator> product_operator<elementary_operator>::operator*(const operator_sum<elementary_operator> &other) const;
+operator_sum<matrix_operator> product_operator<matrix_operator>::operator*(const operator_sum<matrix_operator> &other) const;
 template
-operator_sum<elementary_operator> product_operator<elementary_operator>::operator+(const operator_sum<elementary_operator> &other) const;
+operator_sum<matrix_operator> product_operator<matrix_operator>::operator+(const operator_sum<matrix_operator> &other) const;
 template
-operator_sum<elementary_operator> product_operator<elementary_operator>::operator-(const operator_sum<elementary_operator> &other) const;
+operator_sum<matrix_operator> product_operator<matrix_operator>::operator-(const operator_sum<matrix_operator> &other) const;
 
 #define PRODUCT_MULTIPLICATION_ASSIGNMENT(otherTy)                                      \
   template <typename HandlerTy>                                                         \
@@ -496,15 +496,15 @@ product_operator<HandlerTy>& product_operator<HandlerTy>::operator*=(const produ
 }
 
 template
-product_operator<elementary_operator>& product_operator<elementary_operator>::operator*=(double other);
+product_operator<matrix_operator>& product_operator<matrix_operator>::operator*=(double other);
 template
-product_operator<elementary_operator>& product_operator<elementary_operator>::operator*=(std::complex<double> other);
+product_operator<matrix_operator>& product_operator<matrix_operator>::operator*=(std::complex<double> other);
 template
-product_operator<elementary_operator>& product_operator<elementary_operator>::operator*=(const scalar_operator &other);
+product_operator<matrix_operator>& product_operator<matrix_operator>::operator*=(const scalar_operator &other);
 template
-product_operator<elementary_operator>& product_operator<elementary_operator>::operator*=(const elementary_operator &other);
+product_operator<matrix_operator>& product_operator<matrix_operator>::operator*=(const matrix_operator &other);
 template
-product_operator<elementary_operator>& product_operator<elementary_operator>::operator*=(const product_operator<elementary_operator> &other);
+product_operator<matrix_operator>& product_operator<matrix_operator>::operator*=(const product_operator<matrix_operator> &other);
 
 // left-hand arithmetics
 
@@ -554,28 +554,28 @@ PRODUCT_ADDITION_HANDLER_REVERSE(+)
 PRODUCT_ADDITION_HANDLER_REVERSE(-)
 
 template
-product_operator<elementary_operator> operator*(double other, const product_operator<elementary_operator> &self);
+product_operator<matrix_operator> operator*(double other, const product_operator<matrix_operator> &self);
 template
-product_operator<elementary_operator> operator*(std::complex<double> other, const product_operator<elementary_operator> &self);
+product_operator<matrix_operator> operator*(std::complex<double> other, const product_operator<matrix_operator> &self);
 template
-product_operator<elementary_operator> operator*(const scalar_operator &other, const product_operator<elementary_operator> &self);
+product_operator<matrix_operator> operator*(const scalar_operator &other, const product_operator<matrix_operator> &self);
 template
-product_operator<elementary_operator> operator*(const elementary_operator &other, const product_operator<elementary_operator> &self);
+product_operator<matrix_operator> operator*(const matrix_operator &other, const product_operator<matrix_operator> &self);
 template
-operator_sum<elementary_operator> operator+(double other, const product_operator<elementary_operator> &self);
+operator_sum<matrix_operator> operator+(double other, const product_operator<matrix_operator> &self);
 template
-operator_sum<elementary_operator> operator+(std::complex<double> other, const product_operator<elementary_operator> &self);
+operator_sum<matrix_operator> operator+(std::complex<double> other, const product_operator<matrix_operator> &self);
 template
-operator_sum<elementary_operator> operator+(const scalar_operator &other, const product_operator<elementary_operator> &self);
+operator_sum<matrix_operator> operator+(const scalar_operator &other, const product_operator<matrix_operator> &self);
 template
-operator_sum<elementary_operator> operator+(const elementary_operator &other, const product_operator<elementary_operator> &self);
+operator_sum<matrix_operator> operator+(const matrix_operator &other, const product_operator<matrix_operator> &self);
 template
-operator_sum<elementary_operator> operator-(double other, const product_operator<elementary_operator> &self);
+operator_sum<matrix_operator> operator-(double other, const product_operator<matrix_operator> &self);
 template
-operator_sum<elementary_operator> operator-(std::complex<double> other, const product_operator<elementary_operator> &self);
+operator_sum<matrix_operator> operator-(std::complex<double> other, const product_operator<matrix_operator> &self);
 template
-operator_sum<elementary_operator> operator-(const scalar_operator &other, const product_operator<elementary_operator> &self);
+operator_sum<matrix_operator> operator-(const scalar_operator &other, const product_operator<matrix_operator> &self);
 template
-operator_sum<elementary_operator> operator-(const elementary_operator &other, const product_operator<elementary_operator> &self);
+operator_sum<matrix_operator> operator-(const matrix_operator &other, const product_operator<matrix_operator> &self);
 
 } // namespace cudaq

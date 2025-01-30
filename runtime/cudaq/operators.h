@@ -465,7 +465,7 @@ public:
 };
 
 
-class elementary_operator {
+class matrix_operator {
 
 private:
   static std::map<std::string, Definition> m_ops;
@@ -485,23 +485,23 @@ public:
   /// @arg operator_id : The ID of the operator as specified when it was
   /// defined.
   /// @arg degrees : the degrees of freedom that the operator acts upon.
-  elementary_operator(std::string operator_id, const std::vector<int> &degrees)
+  matrix_operator(std::string operator_id, const std::vector<int> &degrees)
     : id(operator_id), degrees(degrees) {}
 
   // constructor
-  elementary_operator(std::string operator_id, std::vector<int> &&degrees)
+  matrix_operator(std::string operator_id, std::vector<int> &&degrees)
     : id(operator_id), degrees(std::move(degrees)) {}
 
   // copy constructor
-  elementary_operator(const elementary_operator &other)
+  matrix_operator(const matrix_operator &other)
     : degrees(other.degrees), id(other.id) {}
 
   // move constructor
-  elementary_operator(elementary_operator &&other) 
+  matrix_operator(matrix_operator &&other) 
     : degrees(std::move(other.degrees)), id(other.id) {}
 
   // assignment operator
-  elementary_operator& operator=(const elementary_operator& other) {
+  matrix_operator& operator=(const matrix_operator& other) {
     if (this != &other) {
       degrees = other.degrees;
       id = other.id;
@@ -510,23 +510,23 @@ public:
   }
 
   // move assignment operator
-  elementary_operator& operator=(elementary_operator &&other) {
+  matrix_operator& operator=(matrix_operator &&other) {
     degrees = std::move(other.degrees);
     id = other.id;  
     return *this;
   }
 
-  ~elementary_operator() = default;
+  ~matrix_operator() = default;
 
   /// @brief The degrees of freedom that the operator acts on in canonical
   /// order.
   std::vector<int> degrees;
   std::string id;
 
-  /// @brief Return the `elementary_operator` as a string.
+  /// @brief Return the `matrix_operator` as a string.
   std::string to_string() const;
 
-  /// @brief Return the `elementary_operator` as a matrix.
+  /// @brief Return the `matrix_operator` as a matrix.
   /// @arg  `dimensions` : A map specifying the number of levels,
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
@@ -536,22 +536,22 @@ public:
 
   /// @brief True, if the other value is an elementary operator with the same id
   /// acting on the same degrees of freedom, and False otherwise.
-  bool operator==(const elementary_operator &other) const {
+  bool operator==(const matrix_operator &other) const {
     return this->id == other.id && this->degrees == other.degrees;
   }
 
   // Predefined operators.
-  static product_operator<elementary_operator> identity(int degree);
-  static product_operator<elementary_operator> zero(int degree);
-  static product_operator<elementary_operator> annihilate(int degree);
-  static product_operator<elementary_operator> create(int degree);
-  static product_operator<elementary_operator> momentum(int degree);
-  static product_operator<elementary_operator> number(int degree);
-  static product_operator<elementary_operator> parity(int degree);
-  static product_operator<elementary_operator> position(int degree);
+  static product_operator<matrix_operator> identity(int degree);
+  static product_operator<matrix_operator> zero(int degree);
+  static product_operator<matrix_operator> annihilate(int degree);
+  static product_operator<matrix_operator> create(int degree);
+  static product_operator<matrix_operator> momentum(int degree);
+  static product_operator<matrix_operator> number(int degree);
+  static product_operator<matrix_operator> parity(int degree);
+  static product_operator<matrix_operator> position(int degree);
   /// Operators that accept parameters at runtime.
-  static product_operator<elementary_operator> squeeze(int degree);
-  static product_operator<elementary_operator> displace(int degree);
+  static product_operator<matrix_operator> squeeze(int degree);
+  static product_operator<matrix_operator> displace(int degree);
 
   /// @brief Adds the definition of an elementary operator with the given id to
   /// the class. After definition, an the defined elementary operator can be
@@ -582,22 +582,22 @@ public:
   template <typename Func>
   void define(std::string operator_id, std::map<int, int> expected_dimensions,
               Func create) {
-    if (elementary_operator::m_ops.find(operator_id) != elementary_operator::m_ops.end()) {
+    if (matrix_operator::m_ops.find(operator_id) != matrix_operator::m_ops.end()) {
       // todo: make a nice error message to say op already exists
       throw;
     }
     auto defn = Definition();
     defn.create_definition(operator_id, expected_dimensions, create);
-    elementary_operator::m_ops[operator_id] = defn;
+    matrix_operator::m_ops[operator_id] = defn;
   }
 };
 
 #ifdef CUDAQ_INSTANTIATE_TEMPLATES
-template class product_operator<elementary_operator>;
-template class operator_sum<elementary_operator>;
+template class product_operator<matrix_operator>;
+template class operator_sum<matrix_operator>;
 #else
-extern template class product_operator<elementary_operator>;
-extern template class operator_sum<elementary_operator>;
+extern template class product_operator<matrix_operator>;
+extern template class operator_sum<matrix_operator>;
 #endif
 
 
@@ -606,7 +606,7 @@ class OperatorArithmetics {
 public:
   /// @brief Accesses the relevant data to evaluate an operator expression
   /// in the leaf nodes, that is in elementary and scalar operators.
-  TEval evaluate(product_operator<elementary_operator> &op);
+  TEval evaluate(product_operator<matrix_operator> &op);
 
   /// @brief Adds two operators that act on the same degrees of freedom.
   TEval add(TEval val1, TEval val2);
@@ -669,7 +669,7 @@ public:
   // Computes the matrix of an ElementaryOperator or ScalarOperator using its
   // `to_matrix` method.
   EvaluatedMatrix
-  evaluate(std::variant<scalar_operator, elementary_operator, product_operator<elementary_operator>> op);
+  evaluate(std::variant<scalar_operator, matrix_operator, product_operator<matrix_operator>> op);
 };
 
 } // namespace cudaq
