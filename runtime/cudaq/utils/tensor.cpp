@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/utils/tensor.h"
-#include <iostream>
+#include <cmath>
 #include <sstream>
 
 inline std::complex<double> &access(std::complex<double> *p,
