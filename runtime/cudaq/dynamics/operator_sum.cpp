@@ -174,7 +174,14 @@ void operator_sum<matrix_operator>::aggregate_terms(const product_operator<matri
 
 template<typename HandlerTy>
 std::vector<int> operator_sum<HandlerTy>::degrees() const {
-    throw std::runtime_error("not implemented");
+  std::set<int> unsorted_degrees;
+  for (const std::vector<HandlerTy> &term : this->terms) {
+    for (const HandlerTy &op : term)
+      unsorted_degrees.insert(op.degrees.begin(), op.degrees.end());
+  }
+  auto degrees = std::vector<int>(unsorted_degrees.begin(), unsorted_degrees.end());
+  std::sort(degrees.begin(), degrees.end()); // FIXME: DELEGATE ANY CONVENTION RELATED ORDERING TO A GENERAL HELPER FUNCTION
+  return degrees;
 }
 
 template<typename HandlerTy>
