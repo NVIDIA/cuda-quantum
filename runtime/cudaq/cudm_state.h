@@ -24,7 +24,8 @@ using InitialStateArgT = std::variant<void *, InitialState>;
 class cudm_state {
 public:
   /// @brief To initialize state with raw data.
-  explicit cudm_state(std::vector<std::complex<double>> rawData);
+  explicit cudm_state(cudensitymatHandle_t handle,
+                      std::vector<std::complex<double>> rawData);
 
   /// @brief Destructor to clean up resources
   ~cudm_state();
@@ -34,10 +35,9 @@ public:
   /// @param Dimensions of the Hilbert space.
   /// @param hasCollapseOps Whether collapse operators are present.
   /// @return A new 'cudm_state' initialized to the specified state.
-  static cudm_state
-  create_initial_state(const InitialStateArgT &initialStateArg,
-                       const std::vector<int64_t> &hilbertSpaceDims,
-                       bool hasCollapseOps);
+  static cudm_state create_initial_state(
+      cudensitymatHandle_t handle, const InitialStateArgT &initialStateArg,
+      const std::vector<int64_t> &hilbertSpaceDims, bool hasCollapseOps);
 
   /// @brief Initialize the state as a density matrix or state vector based on
   /// dimensions.
@@ -77,6 +77,7 @@ public:
 
 private:
   std::vector<std::complex<double>> rawData_;
+  std::complex<double> *gpuData_;
   cudensitymatState_t state_;
   cudensitymatHandle_t handle_;
   std::vector<int64_t> hilbertSpaceDims_;

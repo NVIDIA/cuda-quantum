@@ -15,18 +15,24 @@
 
 namespace cudaq {
 
-cudm_state::cudm_state(std::vector<std::complex<double>> rawData)
-    : rawData_(rawData), state_(nullptr), handle_(nullptr),
-      hilbertSpaceDims_() {
-  HANDLE_CUDM_ERROR(cudensitymatCreate(&handle_));
+cudm_state::cudm_state(cudensitymatHandle_t handle,
+                       std::vector<std::complex<double>> rawData)
+    : rawData_(rawData), state_(nullptr), handle_(handle), hilbertSpaceDims_() {
+  // Allocate device memory
+  size_t dataSize = rawData_.size() * sizeof(std::complex<double>);
+  cudaMalloc(reinterpret_cast<void **>(&gpuData_), dataSize);
+
+  // Copy data from host to device
+  HANDLE_CUDA_ERROR(
+      cudaMemcpy(gpuData_, rawData_.data(), dataSize, cudaMemcpyHostToDevice));
 }
 
 cudm_state::~cudm_state() {
   if (state_) {
     cudensitymatDestroyState(state_);
   }
-  if (handle_) {
-    cudensitymatDestroy(handle_);
+  if (gpuData_) {
+    cudaFree(gpuData_);
   }
 }
 
@@ -119,7 +125,7 @@ cudm_state cudm_state::to_density_matrix() const {
     }
   }
 
-  cudm_state densityMatrixState(densityMatrix);
+  cudm_state densityMatrixState(handle_, densityMatrix);
   densityMatrixState.init_state(hilbertSpaceDims_);
   return densityMatrixState;
 }
@@ -136,8 +142,9 @@ void cudm_state::attach_storage() {
     throw std::runtime_error("State is not initialized.");
   }
 
-  if (rawData_.empty()) {
-    throw std::runtime_error("Raw data is empty. Cannot attach storage.");
+  if (rawData_.empty() || !gpuData_) {
+    throw std::runtime_error("Raw data is empty or device memory not "
+                             "allocated. Cannot attach storage.");
   }
 
   // Retrieve the number of state components
@@ -150,25 +157,19 @@ void cudm_state::attach_storage() {
   HANDLE_CUDM_ERROR(cudensitymatStateGetComponentStorageSize(
       handle_, state_, numStateComponents, componentBufferSizes.data()));
 
-  // Validate that rawData_ has sufficient space for all components
-  size_t totalSize = 0;
-  for (size_t size : componentBufferSizes) {
-    totalSize += size;
-  }
-  if (rawData_.size() * sizeof(std::complex<double>) < totalSize) {
+  // Validate device memory
+  size_t totalSize = std::accumulate(componentBufferSizes.begin(),
+                                     componentBufferSizes.end(), 0);
+  if (totalSize > rawData_.size() * sizeof(std::complex<double>)) {
     throw std::invalid_argument(
-        "Raw data size is insufficient to cover all components.");
+        "Device memory size is insufficient to cover all components.");
   }
 
-  // Attach storage for each component
+  // Attach storage for using device memory (gpuData_)
   std::vector<void *> componentBuffers(numStateComponents);
-  std::vector<std::complex<double> *> rawComponentData(numStateComponents);
-
   size_t offset = 0;
   for (int32_t i = 0; i < numStateComponents; i++) {
-    rawComponentData[i] =
-        reinterpret_cast<std::complex<double> *>(rawData_.data()) + offset;
-    componentBuffers[i] = static_cast<void *>(rawComponentData[i]);
+    componentBuffers[i] = static_cast<void *>(gpuData_ + offset);
     offset += componentBufferSizes[i] / sizeof(std::complex<double>);
   }
 
@@ -193,10 +194,9 @@ size_t cudm_state::calculate_density_matrix_size(
 }
 
 // Initialize state based on InitialStateArgT
-cudm_state
-cudm_state::create_initial_state(const InitialStateArgT &initialStateArg,
-                                 const std::vector<int64_t> &hilbertSpaceDims,
-                                 bool hasCollapseOps) {
+cudm_state cudm_state::create_initial_state(
+    cudensitymatHandle_t handle, const InitialStateArgT &initialStateArg,
+    const std::vector<int64_t> &hilbertSpaceDims, bool hasCollapseOps) {
   size_t stateVectorSize =
       std::accumulate(hilbertSpaceDims.begin(), hilbertSpaceDims.end(),
                       static_cast<size_t>(1), std::multiplies<>{});
@@ -239,7 +239,7 @@ cudm_state::create_initial_state(const InitialStateArgT &initialStateArg,
     throw std::invalid_argument("Unsupported InitialStateArgT type.");
   }
 
-  cudm_state state(rawData);
+  cudm_state state(handle, rawData);
   state.init_state(hilbertSpaceDims);
 
   // Convert to a density matrix if collapse operators are present.
