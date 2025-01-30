@@ -309,8 +309,8 @@ TEST(OperatorExpressions, checkPreBuiltElementaryOpsScalars) {
     utils_0::assert_product_equal(reverse, const_scale_factor, {cudaq::matrix_operator("momentum", {0})});
 
     std::vector<int> want_degrees = {0};
-    // ASSERT_TRUE(product.degrees() == want_degrees);
-    // ASSERT_TRUE(reverse.degrees() == want_degrees);
+    ASSERT_TRUE(product.degrees() == want_degrees);
+    ASSERT_TRUE(reverse.degrees() == want_degrees);
 
     /// Check the matrices.
 
@@ -337,8 +337,8 @@ TEST(OperatorExpressions, checkPreBuiltElementaryOpsScalars) {
     utils_0::assert_product_equal(reverse, other.evaluate(), {cudaq::matrix_operator("create", {0})});
 
     std::vector<int> want_degrees = {0};
-    // ASSERT_TRUE(product.degrees() == want_degrees);
-    // ASSERT_TRUE(reverse.degrees() == want_degrees);
+    ASSERT_TRUE(product.degrees() == want_degrees);
+    ASSERT_TRUE(reverse.degrees() == want_degrees);
 
     /// Check the matrices.
 
@@ -443,7 +443,7 @@ TEST(OperatorExpressions, checkPreBuiltElementaryOpsSelf) {
     ASSERT_TRUE(product.n_terms() == 2);
 
     std::vector<int> want_degrees = {0};
-    // ASSERT_TRUE(product.degrees() == want_degrees);
+    ASSERT_TRUE(product.degrees() == want_degrees);
 
   //   /// Check the matrices.
 
@@ -463,7 +463,7 @@ TEST(OperatorExpressions, checkPreBuiltElementaryOpsSelf) {
     ASSERT_TRUE(product.n_terms() == 2);
 
     std::vector<int> want_degrees = {0, 1};
-    // ASSERT_TRUE(product.degrees() == want_degrees);
+    ASSERT_TRUE(product.degrees() == want_degrees);
 
     /// Check the matrices.
     /// FIXME: Comment me back in when `to_matrix` is implemented.
