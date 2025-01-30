@@ -209,6 +209,18 @@ std::unique_ptr<std::complex<To>[]> convertToComplex(From *data,
 
 using namespace nvqir;
 
+template <typename VAL>
+void quantumRTGenericRecordOutput(const char *type, VAL val,
+                                  const char *label) {
+  auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
+  auto *currentContext = circuitSimulator->getExecutionContext();
+  std::stringstream ss{currentContext->outputLog, std::ios::app};
+  ss << "OUTPUT\t" << type << "\t" << val << '\t';
+  if (label)
+    ss << label;
+  ss << '\n';
+}
+
 extern "C" {
 
 void print_i64(const char *msg, std::size_t i) { printf(msg, i); }
@@ -405,50 +417,24 @@ void __quantum__rt__deallocate_all(const std::size_t numQubits,
   nvqir::getCircuitSimulatorInternal()->deallocateQubits(qubits);
 }
 
-static std::string &getOutputLog() {
-  auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
-  auto *currentContext = circuitSimulator->getExecutionContext();
-  return currentContext->outputLog;
-}
-
 void __quantum__rt__bool_record_output(bool val, const char *label) {
-  std::stringstream ss{getOutputLog()};
-  ss << "OUTPUT\tBOOL\t" << (val ? "true" : "false") << '\t';
-  if (label)
-    ss << label;
-  ss << '\n';
+  quantumRTGenericRecordOutput("BOOL", (val ? "true" : "false"), label);
 }
 
 void __quantum__rt__integer_record_output(std::int64_t val, const char *label) {
-  std::stringstream ss{getOutputLog()};
-  ss << "OUTPUT\tINT\t" << val << '\t';
-  if (label)
-    ss << label;
-  ss << '\n';
+  quantumRTGenericRecordOutput("INT", val, label);
 }
 
 void __quantum__rt__double_record_output(double val, const char *label) {
-  std::stringstream ss{getOutputLog()};
-  ss << "OUTPUT\tDOUBLE\t" << val << '\t';
-  if (label)
-    ss << label;
-  ss << std::endl;
+  quantumRTGenericRecordOutput("DOUBLE", val, label);
 }
 
 void __quantum__rt__tuple_record_output(std::uint64_t len, const char *label) {
-  std::stringstream ss{getOutputLog()};
-  ss << "OUTPUT\tTUPLE\t" << len << '\t';
-  if (label)
-    ss << label;
-  ss << std::endl;
+  quantumRTGenericRecordOutput("TUPLE", len, label);
 }
 
 void __quantum__rt__array_record_output(std::uint64_t len, const char *label) {
-  std::stringstream ss{getOutputLog()};
-  ss << "OUTPUT\tARRAY\t" << len << '\t';
-  if (label)
-    ss << label;
-  ss << std::endl;
+  quantumRTGenericRecordOutput("ARRAY", len, label);
 }
 
 #define ONE_QUBIT_QIS_FUNCTION(GATENAME)                                       \
