@@ -14,7 +14,7 @@
 #include "cudaq/spin_op.h"
 #include <cmath>
 #include <complex>
-#include <iostream> // FIXME: temporary, remove!
+#include <sstream>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -405,39 +405,50 @@ void __quantum__rt__deallocate_all(const std::size_t numQubits,
   nvqir::getCircuitSimulatorInternal()->deallocateQubits(qubits);
 }
 
+static std::string &getOutputLog() {
+  auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
+  auto *currentContext = circuitSimulator->getExecutionContext();
+  return currentContext->outputLog;
+}
+
 void __quantum__rt__bool_record_output(bool val, const char *label) {
-  std::cout << "OUTPUT\tBOOL\t" << (val ? "true" : "false") << '\t';
+  std::stringstream ss{getOutputLog()};
+  ss << "OUTPUT\tBOOL\t" << (val ? "true" : "false") << '\t';
   if (label)
-    std::cout << label;
-  std::cout << std::endl;
+    ss << label;
+  ss << '\n';
 }
 
 void __quantum__rt__integer_record_output(std::int64_t val, const char *label) {
-  std::cout << "OUTPUT\tINT\t" << val << '\t';
+  std::stringstream ss{getOutputLog()};
+  ss << "OUTPUT\tINT\t" << val << '\t';
   if (label)
-    std::cout << label;
-  std::cout << std::endl;
+    ss << label;
+  ss << '\n';
 }
 
 void __quantum__rt__double_record_output(double val, const char *label) {
-  std::cout << "OUTPUT\tDOUBLE\t" << val << '\t';
+  std::stringstream ss{getOutputLog()};
+  ss << "OUTPUT\tDOUBLE\t" << val << '\t';
   if (label)
-    std::cout << label;
-  std::cout << std::endl;
+    ss << label;
+  ss << std::endl;
 }
 
 void __quantum__rt__tuple_record_output(std::uint64_t len, const char *label) {
-  std::cout << "OUTPUT\tTUPLE\t" << len << '\t';
+  std::stringstream ss{getOutputLog()};
+  ss << "OUTPUT\tTUPLE\t" << len << '\t';
   if (label)
-    std::cout << label;
-  std::cout << std::endl;
+    ss << label;
+  ss << std::endl;
 }
 
 void __quantum__rt__array_record_output(std::uint64_t len, const char *label) {
-  std::cout << "OUTPUT\tARRAY\t" << len << '\t';
+  std::stringstream ss{getOutputLog()};
+  ss << "OUTPUT\tARRAY\t" << len << '\t';
   if (label)
-    std::cout << label;
-  std::cout << std::endl;
+    ss << label;
+  ss << std::endl;
 }
 
 #define ONE_QUBIT_QIS_FUNCTION(GATENAME)                                       \
@@ -715,7 +726,7 @@ Result *__quantum__qis__measure__body(Array *pauli_arr, Array *qubits) {
   ScopedTraceWithContext("NVQIR::observe_measure_body");
 
   auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
-  auto currentContext = circuitSimulator->getExecutionContext();
+  auto *currentContext = circuitSimulator->getExecutionContext();
 
   // Some backends may better handle the observe task.
   // Let's give them that opportunity.

@@ -113,6 +113,10 @@ public:
   /// calculation on simulation backends that support trajectory simulation.
   std::optional<std::size_t> numberTrajectories;
 
+  /// A string containing the output logging of a kernel launched with
+  /// cudaq::run.
+  std::string outputLog;
+
   /// @brief The Constructor, takes the name of the context
   /// @param n The name of the context
   ExecutionContext(const std::string n) : name(n) {}
