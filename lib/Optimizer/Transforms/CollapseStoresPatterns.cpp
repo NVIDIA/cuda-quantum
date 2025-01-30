@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "CollapseStoresPatterns.h"
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
@@ -17,7 +18,6 @@
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
-#include "CollapseStoresPatterns.h"
 
 #define DEBUG_TYPE "collapse-stores"
 
@@ -32,8 +32,9 @@ using namespace mlir;
 /// ───────────────────────────────────────────
 /// cc.store %3, %5 : !cc.ptr<i64>
 /// ```
-LogicalResult RemoveUselessStorePattern::matchAndRewrite(cudaq::cc::StoreOp store,
-                              PatternRewriter &rewriter) const {
+LogicalResult
+RemoveUselessStorePattern::matchAndRewrite(cudaq::cc::StoreOp store,
+                                           PatternRewriter &rewriter) const {
   if (isUselessStore(store)) {
     rewriter.eraseOp(store);
     return success();
@@ -77,10 +78,10 @@ bool RemoveUselessStorePattern::isUselessStore(cudaq::cc::StoreOp store) {
 /// Detect stores to stack locations
 /// ```
 /// %1 = cc.alloca !cc.array<i64 x 2>
-/// 
+///
 /// %2 = cc.cast %1 : (!cc.ptr<!cc.array<i64 x 2>>) -> !cc.ptr<i64>
 /// cc.store %c0_i64, %2 : !cc.ptr<i64>
-/// 
+///
 /// %3 = cc.compute_ptr %1[1] : (!cc.ptr<!cc.array<i64 x 2>>) -> !cc.ptr<i64>
 /// cc.store %c0_i64, %3 : !cc.ptr<i64>
 /// ```
@@ -101,12 +102,14 @@ bool RemoveUselessStorePattern::isStoreToStack(cudaq::cc::StoreOp store) {
 /// Detect if value is used in the op or its nested blocks.
 bool RemoveUselessStorePattern::isUsed(Value v, Operation *op) {
   for (auto opnd : op->getOperands())
-    if (opnd == v) return true;
-  
+    if (opnd == v)
+      return true;
+
   for (auto &region : op->getRegions())
-      for (auto &b : region)
-        for (auto &innerOp : b)
-          if (isUsed(v, &innerOp)) return true;
+    for (auto &b : region)
+      for (auto &innerOp : b)
+        if (isUsed(v, &innerOp))
+          return true;
 
   return false;
 }

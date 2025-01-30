@@ -1,4 +1,4 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -19,9 +19,9 @@ public:
   explicit LoopPat(mlir::MLIRContext *ctx, bool aci, bool ab)
       : OpRewritePattern(ctx), allowClosedInterval(aci), allowEarlyExit(ab) {}
 
-  mlir::LogicalResult matchAndRewrite(cudaq::cc::LoopOp loop,
-                                mlir::PatternRewriter &rewriter) const override;
+  mlir::LogicalResult
+  matchAndRewrite(cudaq::cc::LoopOp loop,
+                  mlir::PatternRewriter &rewriter) const override;
   bool allowClosedInterval;
   bool allowEarlyExit;
 };
-

@@ -6,17 +6,17 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-//#include "PassDetails.h"
-//#include "cudaq/Optimizer/Builder/Intrinsics.h"
+// #include "PassDetails.h"
+// #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
-//#include "cudaq/Optimizer/Transforms/Passes.h"
+// #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Dominance.h"
 #include "mlir/IR/PatternMatch.h"
-//#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
-//#include "mlir/Transforms/Passes.h"
+// #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+// #include "mlir/Transforms/Passes.h"
 #include "LiftArrayAllocPatterns.h"
 #include "llvm/Support/Debug.h"
 
@@ -25,7 +25,7 @@
 using namespace mlir;
 
 LogicalResult AllocaPattern::matchAndRewrite(cudaq::cc::AllocaOp alloc,
-                              PatternRewriter &rewriter) const {
+                                             PatternRewriter &rewriter) const {
   SmallVector<Operation *> stores;
   if (!isGoodCandidate(alloc, stores, dom))
     return failure();
@@ -88,8 +88,7 @@ LogicalResult AllocaPattern::matchAndRewrite(cudaq::cc::AllocaOp alloc,
           rewriter.setInsertionPointAfter(useuser);
           LLVM_DEBUG(llvm::dbgs() << "replaced load\n");
           auto extractValue = rewriter.create<cudaq::cc::ExtractValueOp>(
-              loc, eleTy, conArr,
-              ArrayRef<cudaq::cc::ExtractValueArg>{offset});
+              loc, eleTy, conArr, ArrayRef<cudaq::cc::ExtractValueArg>{offset});
           rewriter.replaceAllUsesWith(load, extractValue);
           insertOpToErase(load);
           continue;
@@ -124,8 +123,8 @@ LogicalResult AllocaPattern::matchAndRewrite(cudaq::cc::AllocaOp alloc,
 // is used to track these stores. \p dom is the dominance info for this
 // function (to ensure the stores happen before uses).
 bool AllocaPattern::isGoodCandidate(cudaq::cc::AllocaOp alloc,
-                            SmallVectorImpl<Operation *> &scoreboard,
-                            DominanceInfo &dom) {
+                                    SmallVectorImpl<Operation *> &scoreboard,
+                                    DominanceInfo &dom) {
   LLVM_DEBUG(llvm::dbgs() << "checking candidate\n");
   if (alloc.getSeqSize())
     return false;
@@ -164,7 +163,7 @@ bool AllocaPattern::isGoodCandidate(cudaq::cc::AllocaOp alloc,
                 store.getValue().getDefiningOp())) {
           if (theStore) {
             LLVM_DEBUG(llvm::dbgs()
-                        << "more than 1 store to element of array\n");
+                       << "more than 1 store to element of array\n");
             return nullptr;
           }
           theStore = u;
@@ -250,16 +249,16 @@ bool AllocaPattern::isGoodCandidate(cudaq::cc::AllocaOp alloc,
       for (auto *load : loadSets[i])
         if (!dom.dominates(scoreboard[i], load)) {
           LLVM_DEBUG(llvm::dbgs()
-                      << "store " << scoreboard[i]
-                      << " doesn't dominate load: " << *load << '\n');
+                     << "store " << scoreboard[i]
+                     << " doesn't dominate load: " << *load << '\n');
           return false;
         }
 
       for (auto *store : storeSets[i])
         if (scoreboard[i] != store && dom.dominates(scoreboard[i], store)) {
           LLVM_DEBUG(llvm::dbgs()
-                      << "store " << scoreboard[i]
-                      << " dominates another store: " << *store << '\n');
+                     << "store " << scoreboard[i]
+                     << " dominates another store: " << *store << '\n');
           return false;
         }
     }
@@ -268,13 +267,11 @@ bool AllocaPattern::isGoodCandidate(cudaq::cc::AllocaOp alloc,
     for (auto *glob : toGlobalUses) {
       for (auto *store : scoreboard)
         if (!dom.dominates(store, glob)) {
-          LLVM_DEBUG(llvm::dbgs()
-                      << "store " << store << " doesn't dominate op: " << *glob
-                      << '\n');
+          LLVM_DEBUG(llvm::dbgs() << "store " << store
+                                  << " doesn't dominate op: " << *glob << '\n');
           return false;
         }
     }
   }
   return ok;
 }
-

@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "LoopAnalysis.h"
 #include "LoopNormalizePatterns.h"
+#include "LoopAnalysis.h"
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -31,9 +31,8 @@ static bool isNotMonotonicOrInvariant(cudaq::cc::LoopOp loop,
           !c.isLinearExpr());
 }
 
-
 LogicalResult LoopPat::matchAndRewrite(cudaq::cc::LoopOp loop,
-                              PatternRewriter &rewriter) const {
+                                       PatternRewriter &rewriter) const {
   if (loop->hasAttr(cudaq::opt::NormalizedLoopAttr))
     return failure();
   if (isNotMonotonicOrInvariant(loop, allowClosedInterval, allowEarlyExit))
@@ -107,8 +106,8 @@ LogicalResult LoopPat::matchAndRewrite(cudaq::cc::LoopOp loop,
   Value disp = rewriter.create<arith::AddIOp>(loc, diff, step);
   auto cmpOp = cast<arith::CmpIOp>(c.compareOp);
   Value up1 = rewriter.create<arith::DivSIOp>(loc, disp, step);
-  Value noLoopCond = rewriter.create<arith::CmpIOp>(
-      loc, arith::CmpIPredicate::sgt, up1, zero);
+  Value noLoopCond =
+      rewriter.create<arith::CmpIOp>(loc, arith::CmpIPredicate::sgt, up1, zero);
   Value newUpper =
       rewriter.create<arith::SelectOp>(loc, ty, noLoopCond, up1, zero);
 
@@ -139,7 +138,7 @@ LogicalResult LoopPat::matchAndRewrite(cudaq::cc::LoopOp loop,
     induct.replaceUsesWithIf(newInd, [&](OpOperand &opnd) {
       auto *op = opnd.getOwner();
       return op != newStep.getOperation() && op != mul &&
-              !isa<cudaq::cc::ContinueOp>(op);
+             !isa<cudaq::cc::ContinueOp>(op);
     });
   }
   loop->setAttr(cudaq::opt::NormalizedLoopAttr, rewriter.getUnitAttr());
