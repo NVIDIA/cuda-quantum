@@ -102,6 +102,16 @@ cudaq::matrix_2 squeeze_matrix(std::size_t size,
   return difference.exponential();
 }
 
+void assert_product_equal(const cudaq::product_operator<cudaq::matrix_operator> &got, 
+                          const std::complex<double> &expected_coefficient,
+                          const std::vector<cudaq::matrix_operator> &expected_terms) {
+
+  auto sumterms_prod = ((const cudaq::operator_sum<cudaq::matrix_operator>&)got).get_terms();
+  ASSERT_TRUE(sumterms_prod.size() == 1);
+  ASSERT_TRUE(got.get_coefficient().evaluate() == expected_coefficient);
+  ASSERT_TRUE(got.get_terms() == expected_terms);
+}
+
 } // namespace utils_1
 
 TEST(OperatorExpressions, checkProductOperatorSimpleMatrixChecks) {
@@ -115,6 +125,7 @@ TEST(OperatorExpressions, checkProductOperatorSimpleMatrixChecks) {
         auto op1 = cudaq::matrix_operator::create(0);
 
         cudaq::product_operator got = op0 * op1;
+        utils_1::assert_product_equal(got, 1., {cudaq::matrix_operator("annihilate", {0}), cudaq::matrix_operator("create", {0})});
 
         auto got_matrix = got.to_matrix({{0, level_count}});
         auto matrix0 = utils_1::annihilate_matrix(level_count);
