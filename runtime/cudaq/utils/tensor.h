@@ -99,6 +99,15 @@ public:
   friend matrix_2 kronecker(const matrix_2 &, const matrix_2 &);
   matrix_2 &kronecker_inplace(const matrix_2 &);
 
+  /// Matrix exponential, uses 20 terms of Taylor Series approximation.
+  matrix_2 exponential();
+
+  /// Matrix power.
+  matrix_2 power(int powers);
+
+  /// Return a square identity matrix for the given size.
+  static matrix_2 identity(const std::size_t rows);
+  
   /// Kronecker a list of matrices. The list can be any container that has
   /// iterators defined.
   template <typename Iterable, typename T>
