@@ -227,7 +227,7 @@ void SimulatorTensorNetBase::applyNoiseChannel(
   const std::vector<std::complex<double>> matPauliX{
       {0.0, 0.0}, {1.0, 0.0}, {1.0, 0.0}, {0.0, 0.0}};
   const std::vector<std::complex<double>> matPauliY{
-      {0.0, 0.0}, {0.0, 1.0}, {0.0, -1.0}, {0.0, 0.0}};
+      {0.0, 0.0}, {0.0, -1.0}, {0.0, 1.0}, {0.0, 0.0}};
   const std::vector<std::complex<double>> matPauliZ{
       {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {-1.0, 0.0}};
 
