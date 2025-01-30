@@ -1320,6 +1320,7 @@ environment variable to the newly built <code class="code docutils literal notra
 <li><p><strong>`OMP_NUM_THREADS=X`</strong>: To enable CPU parallelization, set X to <code class="code docutils literal notranslate"><span class="pre">NUMBER_OF_CORES_PER_NODE/NUMBER_OF_GPUS_PER_NODE</span></code>.</p></li>
 <li><p><strong>`CUDAQ_TENSORNET_CONTROLLED_RANK=X`</strong>: Specify the number of controlled qubits whereby the full tensor body of the controlled gate is expanded. If the number of controlled qubits is greater than this value, the gate is applied as a controlled tensor operator to the tensor network state. Default value is 1.</p></li>
 <li><p><strong>`CUDAQ_TENSORNET_OBSERVE_CONTRACT_PATH_REUSE=X`</strong>: Set this environment variable to <code class="code docutils literal notranslate"><span class="pre">TRUE</span></code> (<code class="code docutils literal notranslate"><span class="pre">ON</span></code>) or <code class="code docutils literal notranslate"><span class="pre">FALSE</span></code> (<code class="code docutils literal notranslate"><span class="pre">OFF</span></code>) to enable or disable contraction path reuse when computing expectation values. Default is <code class="code docutils literal notranslate"><span class="pre">OFF</span></code>.</p></li>
+<li><p><strong>`CUDAQ_TENSORNET_NUM_HYPER_SAMPLES=X`</strong>: Specify the number of hyper samples used in the tensor network contraction path finder. Default value is 8 if not specified.</p></li>
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
