@@ -721,3 +721,64 @@ CUDAQ_TEST(NoiseTest, checkObserveHamiltonianWithNoise) {
   cudaq::unset_noise(); // clear for subsequent tests
 }
 #endif
+
+#if defined(CUDAQ_BACKEND_TENSORNET)
+CUDAQ_REGISTER_OPERATION(CustomIdOp, 1, 0, {1, 0, 0, 1});
+
+CUDAQ_TEST(NoiseTest, checkNoiseMatrixRepresentation) {
+  cudaq::set_random_seed(13);
+  cudaq::depolarization_channel depol(
+      1.0); // 1/3 probability of X, Y, Z noise op.
+  cudaq::noise_model noise;
+  noise.add_channel("CustomIdOp", {0}, depol);
+  cudaq::set_noise(noise);
+  const auto noisyCircuit = []() __qpu__ {
+    cudaq::qubit q;
+    h(q);
+    CustomIdOp(q); // inject noise
+  };
+
+  // Referent states for X, Y, or Z noise
+  std::vector<std::complex<double>> stateVecX(2), stateVecY(2), stateVecZ(2);
+
+  cudaq::get_state([]() __qpu__ {
+    cudaq::qubit q;
+    h(q);
+    x(q);
+  }).to_host(stateVecX.data(), 2);
+  cudaq::get_state([]() __qpu__ {
+    cudaq::qubit q;
+    h(q);
+    y(q);
+  }).to_host(stateVecY.data(), 2);
+  cudaq::get_state([]() __qpu__ {
+    cudaq::qubit q;
+    h(q);
+    z(q);
+  }).to_host(stateVecZ.data(), 2);
+
+  const auto checkEqualVec = [](const auto &vec1, const auto &vec2) {
+    constexpr double tol = 1e-12;
+    const auto vecSize = vec1.size();
+    if (vec2.size() != vecSize)
+      return false;
+    for (std::size_t i = 0; i < vecSize; ++i) {
+      if (std::abs(vec1[i] - vec2[i]) > tol)
+        return false;
+    }
+    return true;
+  };
+
+  for (int i = 0; i < 10; ++i) {
+    std::vector<std::complex<double>> noisyStateVec(2);
+    auto noisyState = cudaq::get_state(noisyCircuit);
+    noisyState.to_host(noisyStateVec.data(), 2);
+    const auto equalX = checkEqualVec(noisyStateVec, stateVecX);
+    const auto equalY = checkEqualVec(noisyStateVec, stateVecY);
+    const auto equalZ = checkEqualVec(noisyStateVec, stateVecZ);
+    // One of these expected output states
+    EXPECT_TRUE(equalX || equalY || equalZ);
+  }
+  cudaq::unset_noise(); // clear for subsequent tests
+}
+#endif
