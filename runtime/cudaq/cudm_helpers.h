@@ -40,4 +40,10 @@ cudensitymatOperator_t construct_liovillian(
     cudensitymatHandle_t handle, const cudensitymatOperator_t &hamiltonian,
     const std::vector<cudensitymatOperator_t> &collapse_operators,
     double gamma);
+
+// Function for creating an array copy in GPU memory
+void *create_array_gpu(const std::vector<std::complex<double>> &cpu_array);
+
+// Function to detsroy a previously created array copy in GPU memory
+void destroy_array_gpu(void *gpu_array);
 } // namespace cudaq
