@@ -131,6 +131,12 @@
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/quantum_operations.html#measurements">Measurements</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/examples/photonic_operations.html">   Photonic Operations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/photonic_operations.html#quantum-photonic-states">Quantum Photonic States</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/photonic_operations.html#quantum-photonics-gates">Quantum Photonics Gates</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/photonic_operations.html#measurements">Measurements</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/measuring_kernels.html">   Measuring Kernels</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/measuring_kernels.html#Midcircuit-Measurement-and-Conditional-Logic">Midcircuit Measurement and Conditional Logic</a></li>
 </ul>
@@ -150,6 +156,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../../examples/python/executing_kernels.html#Get-State-Async">Get State Async</a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/executing_photonic_kernels.html">   Executing Photonic Kernels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_photonic_kernels.html#Sample">Sample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_photonic_kernels.html#Get-state">Get state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_photonic_kernels.html#Parallelization-Techniques">Parallelization Techniques</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/expectation_values.html">   Computing Expectation Values</a><ul>
@@ -184,6 +196,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/hardware_providers.html">   Using Quantum Hardware Providers</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#amazon-braket">Amazon Braket</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#infleqtion">Infleqtion</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#ionq">IonQ</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#iqm">IQM</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#oqc">OQC</a></li>
@@ -224,7 +237,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#Quantum-oracles">Quantum oracles</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#Phase-oracle">Phase oracle</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#Quantum-parallelism">Quantum parallelism</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Deutschs'-Algorithm:">Deutschs’ Algorithm:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Deutsch's-Algorithm:">Deutsch’s Algorithm:</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="divisive_clustering_coresets.html">Divisive Clustering With Coresets Using CUDA-Q</a><ul>
@@ -255,7 +268,7 @@
 <li class="toctree-l2"><a class="reference internal" href="krylov.html">Multi-reference Quantum Krylov Algorithm - <span class="math notranslate nohighlight">\(H_2\)</span> Molecule</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="krylov.html#Setup">Setup</a></li>
 <li class="toctree-l3"><a class="reference internal" href="krylov.html#Computing-the-matrix-elements">Computing the matrix elements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="krylov.html#Determining-the-ground-state-energy-of-the-Subspace">Determining the ground state energy of the Subspace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="afqmc.html">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
@@ -282,6 +295,11 @@
 <li class="toctree-l3"><a class="reference internal" href="readout_error_mitigation.html#Inverse-of-full-confusion-matrix">Inverse of full confusion matrix</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="vqe.html">Variational Quantum Eigensolver</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="vqe.html#Using-CUDA-Q-Optimizers">Using CUDA-Q Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="vqe.html#Integration-with-Third-Party-Optimizers">Integration with Third-Party Optimizers</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="vqe_advanced.html">VQE with gradients, active spaces, and gate fusion</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="vqe_advanced.html#The-Basics-of-VQE">The Basics of VQE</a></li>
 <li class="toctree-l3"><a class="reference internal" href="vqe_advanced.html#Installing/Loading-Relevant-Packages">Installing/Loading Relevant Packages</a></li>
@@ -300,9 +318,12 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="vqe.html">Variational Quantum Eigensolver</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="vqe.html#Using-CUDA-Q-Optimizers">Using CUDA-Q Optimizers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="vqe.html#Integration-with-Third-Party-Optimizers">Integration with Third-Party Optimizers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logical_aim_sqale.html">Anderson Impurity Model ground state solver on Infleqtion’s Sqale</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="logical_aim_sqale.html#Performing-logical-Variational-Quantum-Eigensolver-(VQE)-with-CUDA-QX">Performing logical Variational Quantum Eigensolver (VQE) with CUDA-QX</a></li>
+<li class="toctree-l3"><a class="reference internal" href="logical_aim_sqale.html#Constructing-circuits-in-the-[[4,2,2]]-encoding">Constructing circuits in the <code class="docutils literal notranslate"><span class="pre">[[4,2,2]]</span></code> encoding</a></li>
+<li class="toctree-l3"><a class="reference internal" href="logical_aim_sqale.html#Setting-up-submission-and-decoding-workflow">Setting up submission and decoding workflow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="logical_aim_sqale.html#Running-a-CUDA-Q-noisy-simulation">Running a CUDA-Q noisy simulation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="logical_aim_sqale.html#Running-logical-AIM-on-Infleqtion's-hardware">Running logical AIM on Infleqtion’s hardware</a></li>
 </ul>
 </li>
 </ul>
@@ -313,6 +334,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#features">Features</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#single-gpu">Single-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
 </ul>
 </li>
@@ -323,6 +345,10 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/simulators.html#clifford-only-simulator">Clifford-Only Simulator</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#stim-cpu">Stim (CPU)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/backends/simulators.html#photonics-simulators">Photonics Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#id3">OpenMP CPU-only</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/simulators.html#fermioniq">Fermioniq</a></li>
@@ -336,46 +362,52 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#submission-from-python">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#ionq">IonQ</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#ionq-backend">Setting Credentials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#infleqtion">Infleqtion</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id1">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id2">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id3">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#anyon-technologies-anyon-computing">Anyon Technologies/Anyon Computing</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#anyon-backend">Setting Credentials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#ionq">IonQ</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#ionq-backend">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id5">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id6">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#iqm">IQM</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id7">Setting Credentials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#anyon-technologies-anyon-computing">Anyon Technologies/Anyon Computing</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#anyon-backend">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id8">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id9">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#oqc">OQC</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#iqm">IQM</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id10">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id11">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id12">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#orca-computing">ORCA Computing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#oqc">OQC</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id13">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id14">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id15">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#quantinuum">Quantinuum</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#quantinuum-backend">Setting Credentials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#orca-computing">ORCA Computing</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id16">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id17">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id18">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#quera-computing">QuEra Computing</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#quera-backend">Setting Credentials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#quantinuum">Quantinuum</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#quantinuum-backend">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id20">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id21">Submission from Python</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#quera-computing">QuEra Computing</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#quera-backend">Setting Credentials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id23">Submission from C++</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id24">Submission from Python</a></li>
 </ul>
 </li>
 </ul>
@@ -407,6 +439,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../using/backends/dynamics.html#operator">Operator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/backends/dynamics.html#time-dependent-dynamics">Time-Dependent Dynamics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/backends/dynamics.html#numerical-integrators">Numerical Integrators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/backends/dynamics.html#multi-gpu-multi-node-execution">Multi-GPU Multi-Node Execution</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/install/install.html">   Installation</a><ul>
@@ -616,6 +649,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.spin.y"><code class="docutils literal notranslate"><span class="pre">spin.y()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.spin.z"><code class="docutils literal notranslate"><span class="pre">spin.z()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.cudm_state.CuDensityMatState"><code class="docutils literal notranslate"><span class="pre">CuDensityMatState</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.helpers.InitialState"><code class="docutils literal notranslate"><span class="pre">InitialState</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.cudm_state.to_cupy_array"><code class="docutils literal notranslate"><span class="pre">to_cupy_array()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.SampleResult"><code class="docutils literal notranslate"><span class="pre">SampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncSampleResult"><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></li>
@@ -713,12 +747,11 @@
              
   <section id="Deutsch's-Algorithm">
 <h1>Deutsch’s Algorithm<a class="headerlink" href="#Deutsch's-Algorithm" title="Permalink to this heading">¶</a></h1>
-<p>We have a function which takes in a bit and outputs a bit. This can be represented as <span class="math notranslate nohighlight">\(f: \{0,1\} \longrightarrow \{0,1\}\)</span>.</p>
-<p>The function <span class="math notranslate nohighlight">\(f\)</span> has a property; either it is constant or balanced.</p>
-<p>If constant, the outputs are the same regardless of the inputs, i.e., <span class="math notranslate nohighlight">\(f(0) = f(1) = 0\)</span> or <span class="math notranslate nohighlight">\(f(0) = f(1) = 1\)</span>.</p>
-<p>If balanced, the ouputs are balanced across their possibilities, i.e, if <span class="math notranslate nohighlight">\(f(0) = 0\)</span> then <span class="math notranslate nohighlight">\(f(1) = 1\)</span> or if <span class="math notranslate nohighlight">\(f(0) = 1\)</span> then <span class="math notranslate nohighlight">\(f(1) = 0\)</span>.</p>
-<p>The question we would like to answer is if the function is constant or balanced.</p>
-<p>Classically, if we are given a function <span class="math notranslate nohighlight">\(f\)</span>, we can solve to find its property via the code below:</p>
+<p>Deutsch’s Algorithm is a concise demonstration of the differences in computational complexity between classical and quantum algorithms for certain problems. For Desutch’s algorithm, we begin with a function which takes in a bit and outputs a bit. This can be represented as <span class="math notranslate nohighlight">\(f: \{0,1\} \longrightarrow \{0,1\}\)</span>. The function <span class="math notranslate nohighlight">\(f\)</span> has the property that it either constant or balanced. The goal of Deutsch’s Algorithm is to determine whether our given function is constant or whether it is
+balanced.</p>
+<p>A constant function is “A balanced function is a function such that the outputs are the same regardless of the inputs, i.e., if <span class="math notranslate nohighlight">\(f(0) = 0\)</span> then <span class="math notranslate nohighlight">\(f(1) = 1\)</span> or if <span class="math notranslate nohighlight">\(f(0) = 1\)</span> then <span class="math notranslate nohighlight">\(f(1) = 0\)</span>. “, the outputs are the same regardless of the inputs, i.e., in the case of <span class="math notranslate nohighlight">\(f: \{0,1\} \longrightarrow \{0,1\}\)</span>, there are are two ways in which this can occur: <span class="math notranslate nohighlight">\(f(0) = f(1) = 0\)</span> or <span class="math notranslate nohighlight">\(f(0) = f(1) = 1\)</span>.</p>
+<p>A balanced function is defined such that the ouputs are balanced across their possibilities, i.e., if <span class="math notranslate nohighlight">\(f(0) = 0\)</span> then <span class="math notranslate nohighlight">\(f(1) = 1\)</span> or if <span class="math notranslate nohighlight">\(f(0) = 1\)</span> then <span class="math notranslate nohighlight">\(f(1) = 0\)</span>.</p>
+<p>Classically, if we are given a function <span class="math notranslate nohighlight">\(f: \{0,1\} \longrightarrow \{0,1\}\)</span>, we can determine if it is constant or balanced by evaluating the function at <span class="math notranslate nohighlight">\(0\)</span> and at <span class="math notranslate nohighlight">\(1\)</span>. This is carried out in the code below:</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
@@ -726,7 +759,7 @@
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Treat the code snippet below like a black box, i.e., you don&#39;t have access to the value of the property argument and can just query f with different inputs.</span>
 
 
-<span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">property</span><span class="o">=</span><span class="s1">&#39;constant&#39;</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">f</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">property</span><span class="o">=</span><span class="s1">&#39;constant&#39;</span><span class="p">):</span>
 
     <span class="k">if</span> <span class="nb">property</span> <span class="o">==</span> <span class="s1">&#39;constant&#39;</span><span class="p">:</span>
 
@@ -775,9 +808,9 @@
 The function is constant
 </pre></div></div>
 </div>
-<p>If you step through the <code class="docutils literal notranslate"><span class="pre">if</span></code> statements above, one can see that we require 2 calls to the function to determine its property. That is, we have to query <span class="math notranslate nohighlight">\(f\)</span> twice.</p>
-<p>The claim is that Deutsch’s algorithm can solve for this property with 1 function evalulation, demonstrating quantum advantage.</p>
-<p>Below we first go through the math and then the implementation in CUDA Quantum.</p>
+<p>If you step through the <code class="docutils literal notranslate"><span class="pre">if</span></code> statements above, you may notice that we require 2 calls to the function to determine its property. That is, we have to query <span class="math notranslate nohighlight">\(f\)</span> twice.</p>
+<p>The claim is that Deutsch’s Algorithm can determine if a given function is constant or balanced with just 1 function evalulation, demonstrating quantum advantage.</p>
+<p>Below we first outline Deutsch’s Algorithm and work through the math to verify that it does as promised. Then, we provide the implementation in CUDA-Q.</p>
 <section id="XOR-\oplus">
 <h2>XOR <span class="math notranslate nohighlight">\(\oplus\)</span><a class="headerlink" href="#XOR-\oplus" title="Permalink to this heading">¶</a></h2>
 <p>You may have seen the <span class="math notranslate nohighlight">\(\oplus\)</span> symbol floating around. This is the exclusive OR or the XOR operation. It follows the rules of addition modulo 2. For example,</p>
@@ -789,14 +822,14 @@ The function is constant
 </section>
 <section id="Quantum-oracles">
 <h2>Quantum oracles<a class="headerlink" href="#Quantum-oracles" title="Permalink to this heading">¶</a></h2>
-<p><img alt="2b403eb88d184cecbc7eac00771e9a58" class="no-scaled-link" src="../../_images/oracle.png" style="width: 300px; height: 150px;" /></p>
-<p>Suppose we have <span class="math notranslate nohighlight">\(f(x): \{0,1\} \longrightarrow \{0,1\}\)</span>. We can compute this function on a quantum computer using oracles which we treat as black box functions that yield the output with an appropriate sequence of logic gates.</p>
+<p><img alt="502ab534b6db44639cea944f0c4f5622" class="no-scaled-link" src="../../_images/oracle.png" style="width: 300px; height: 150px;" /></p>
+<p>Suppose we have <span class="math notranslate nohighlight">\(f(x): \{0,1\} \longrightarrow \{0,1\}\)</span>. We can compute this function on a quantum computer using oracles which we treat as black box functions that yield the output with an appropriate sequence of logical gates.</p>
 <p>Above you see an oracle represented as <span class="math notranslate nohighlight">\(U_f\)</span> which allows us to transform the state <span class="math notranslate nohighlight">\(\ket{x}\ket{y}\)</span> into:</p>
 <div class="math notranslate nohighlight">
 \[\begin{aligned}
 U_f\ket{x}\ket{y}  =  \ket{x}\ket{y \oplus f(x)}
 \end{aligned}\]</div>
-<p>If <span class="math notranslate nohighlight">\(y = 0\)</span>, then <span class="math notranslate nohighlight">\(U_f\ket{x}\ket{y} = U_f\ket{x}\ket{0} = \ket{x}\ket{0 \oplus f(x)} = \ket{x}\ket{f(x)}\)</span> since <span class="math notranslate nohighlight">\(f(x)\)</span> can either be <span class="math notranslate nohighlight">\(0/1\)</span> and <span class="math notranslate nohighlight">\(0 \oplus 0 = 0\)</span> and <span class="math notranslate nohighlight">\(0 \oplus 1 = 1\)</span>.</p>
+<p>If <span class="math notranslate nohighlight">\(y = 0\)</span>, then <span class="math notranslate nohighlight">\(U_f\ket{x}\ket{y} = U_f\ket{x}\ket{0} = \ket{x}\ket{0 \oplus f(x)} = \ket{x}\ket{f(x)}\)</span>, since <span class="math notranslate nohighlight">\(f(x)\)</span> can either be <span class="math notranslate nohighlight">\(0\)</span> or <span class="math notranslate nohighlight">\(1\)</span> and <span class="math notranslate nohighlight">\(0 \oplus 0 = 0\)</span> and <span class="math notranslate nohighlight">\(0 \oplus 1 = 1\)</span>.</p>
 <p>This is remarkable because by setting <span class="math notranslate nohighlight">\(\ket{y} = \ket{0}\)</span>, we can extract the value of <span class="math notranslate nohighlight">\(f(x)\)</span> by measuring the value of the second qubit.</p>
 </section>
 <section id="Phase-oracle">
@@ -833,11 +866,11 @@ U_f\ket{+}\ket{0} &amp;= U_f \tfrac{1}{\sqrt{2}}(\ket{0}+\ket{1}) \ket{0} \\
 \end{aligned}\end{split}\]</div>
 <p>We have calculated information about both <span class="math notranslate nohighlight">\(f(0)\)</span> and <span class="math notranslate nohighlight">\(f(1)\)</span> simultaneously. Quantum mechanics allows for parallelism by exploiting the ability of superposition states.</p>
 </section>
-<section id="Deutschs'-Algorithm:">
-<h2>Deutschs’ Algorithm:<a class="headerlink" href="#Deutschs'-Algorithm:" title="Permalink to this heading">¶</a></h2>
+<section id="Deutsch's-Algorithm:">
+<h2>Deutsch’s Algorithm:<a class="headerlink" href="#Deutsch's-Algorithm:" title="Permalink to this heading">¶</a></h2>
 <p>Our aim is to find out if <span class="math notranslate nohighlight">\(f: \{0,1\} \longrightarrow \{0,1\}\)</span> is a constant or a balanced function? If constant, <span class="math notranslate nohighlight">\(f(0) = f(1)\)</span>, and if balanced, <span class="math notranslate nohighlight">\(f(0) \neq f(1)\)</span>.</p>
 <p>We step through the circuit diagram below and follow the math after the application of each gate.</p>
-<p><img alt="98b808e692aa43b0b296b08b9a97f286" class="no-scaled-link" src="../../_images/deutsch.png" style="width: 500px; height: 210px;" /></p>
+<p><img alt="72568c1c66a84b5080c0a900ff915d22" class="no-scaled-link" src="../../_images/deutsch.png" style="width: 500px; height: 210px;" /></p>
 <div class="math notranslate nohighlight">
 \[\ket{\psi_0}  =  \ket{01}
 \tag{1}\]</div>
@@ -882,29 +915,20 @@ U_f\ket{+}\ket{0} &amp;= U_f \tfrac{1}{\sqrt{2}}(\ket{0}+\ket{1}) \ket{0} \\
 \end{aligned}\end{split}\]</div>
 <p>We can now measure the first qubit to yield either a <span class="math notranslate nohighlight">\(0\)</span> or a <span class="math notranslate nohighlight">\(1\)</span> to determine if <span class="math notranslate nohighlight">\(f(x)\)</span> is constant or balanced.</p>
 <p>Deutsch’s algorithm may not be practically useful but does demonstrate quantum advantage since it uses one function call to determine the property of <span class="math notranslate nohighlight">\(f\)</span> in comparison to two for classical methods.</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import the CUDA-Q package and set the target to run on NVIDIA GPUs.</span>
 
-<span class="kn">import</span> <span class="nn">cudaq</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
 
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area stderr docutils container">
-<div class="highlight"><pre>
-/usr/local/lib/python3.10/dist-packages/qutip/__init__.py:66: UserWarning: The new version of Cython, (&gt;= 3.0.0) is not supported.
-  warnings.warn(
-</pre></div></div>
 </div>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
@@ -926,7 +950,7 @@ U_f\ket{+}\ket{0} &amp;= U_f \tfrac{1}{\sqrt{2}}(\ket{0}+\ket{1}) \ket{0} \\
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">fx</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">fx</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
     <span class="n">qubit_0</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
     <span class="n">qubit_1</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
 
@@ -977,6 +1001,9 @@ q1 : ┤ x ├┤ h ├┤ x ├─────
 f(x) is a balanced function
 </pre></div></div>
 </div>
+<p>This algorithm can be generalized to determine if a <span class="math notranslate nohighlight">\(n\)</span>-bit function <span class="math notranslate nohighlight">\(f:{0,1}^n\longrightarrow {0,1}\)</span> is constant or a balanced with only <span class="math notranslate nohighlight">\(\frac{n}{2}\)</span> function evaluations, for <span class="math notranslate nohighlight">\(n\)</span> even. A function if balanced if half of the inputs map to <span class="math notranslate nohighlight">\(0\)</span> and half map to <span class="math notranslate nohighlight">\(1\)</span>.</p>
+<p>Here we must assume that the function that we are given is either constant or balanced since there are <span class="math notranslate nohighlight">\(n\)</span>-bit functions that are neither constant, nor balanced. For instance the <span class="math notranslate nohighlight">\(2\)</span>-bit function <span class="math notranslate nohighlight">\(f(b_0,b_1) = \max(b_0,b_1)\)</span> is neither balanced, nor constant.</p>
+<p>A hint on how you might approach this problem is to first solve the problem for <span class="math notranslate nohighlight">\(n=2\)</span> and see if you can then use that approach to handle <span class="math notranslate nohighlight">\(n\)</span>-bit functions for larger values of <span class="math notranslate nohighlight">\(n\)</span>.</p>
 </section>
 </section>
 
@@ -991,7 +1018,7 @@ f(x) is a balanced function
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2024, NVIDIA Corporation &amp; Affiliates.</p>
+    <p>&#169; Copyright 2025, NVIDIA Corporation &amp; Affiliates.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

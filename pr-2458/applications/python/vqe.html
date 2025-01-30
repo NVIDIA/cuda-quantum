@@ -33,8 +33,8 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="CUDA-Q Backends" href="../../using/backends/backends.html" />
-    <link rel="prev" title="Using the Hadamard Test to Determine Quantum Krylov Subspace Decomposition Matrix Elements" href="hadamard_test.html" /> 
+    <link rel="next" title="VQE with gradients, active spaces, and gate fusion" href="vqe_advanced.html" />
+    <link rel="prev" title="Readout Error Mitigation" href="readout_error_mitigation.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -131,6 +131,12 @@
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/quantum_operations.html#measurements">Measurements</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/examples/photonic_operations.html">   Photonic Operations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/photonic_operations.html#quantum-photonic-states">Quantum Photonic States</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/photonic_operations.html#quantum-photonics-gates">Quantum Photonics Gates</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/photonic_operations.html#measurements">Measurements</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/measuring_kernels.html">   Measuring Kernels</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/measuring_kernels.html#Midcircuit-Measurement-and-Conditional-Logic">Midcircuit Measurement and Conditional Logic</a></li>
 </ul>
@@ -150,6 +156,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../../examples/python/executing_kernels.html#Get-State-Async">Get State Async</a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/executing_photonic_kernels.html">   Executing Photonic Kernels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_photonic_kernels.html#Sample">Sample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_photonic_kernels.html#Get-state">Get state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_photonic_kernels.html#Parallelization-Techniques">Parallelization Techniques</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/expectation_values.html">   Computing Expectation Values</a><ul>
@@ -184,6 +196,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/hardware_providers.html">   Using Quantum Hardware Providers</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#amazon-braket">Amazon Braket</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#infleqtion">Infleqtion</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#ionq">IonQ</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#iqm">IQM</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#oqc">OQC</a></li>
@@ -224,7 +237,7 @@
 <li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
 <li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Phase-oracle">Phase oracle</a></li>
 <li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Quantum-parallelism">Quantum parallelism</a></li>
-<li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Deutschs'-Algorithm:">Deutschs’ Algorithm:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Deutsch's-Algorithm:">Deutsch’s Algorithm:</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="divisive_clustering_coresets.html">Divisive Clustering With Coresets Using CUDA-Q</a><ul>
@@ -255,7 +268,7 @@
 <li class="toctree-l2"><a class="reference internal" href="krylov.html">Multi-reference Quantum Krylov Algorithm - <span class="math notranslate nohighlight">\(H_2\)</span> Molecule</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="krylov.html#Setup">Setup</a></li>
 <li class="toctree-l3"><a class="reference internal" href="krylov.html#Computing-the-matrix-elements">Computing the matrix elements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="krylov.html#Determining-the-ground-state-energy-of-the-Subspace">Determining the ground state energy of the Subspace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="afqmc.html">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
@@ -282,6 +295,11 @@
 <li class="toctree-l3"><a class="reference internal" href="readout_error_mitigation.html#Inverse-of-full-confusion-matrix">Inverse of full confusion matrix</a></li>
 </ul>
 </li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Variational Quantum Eigensolver</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Using-CUDA-Q-Optimizers">Using CUDA-Q Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Integration-with-Third-Party-Optimizers">Integration with Third-Party Optimizers</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="vqe_advanced.html">VQE with gradients, active spaces, and gate fusion</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="vqe_advanced.html#The-Basics-of-VQE">The Basics of VQE</a></li>
 <li class="toctree-l3"><a class="reference internal" href="vqe_advanced.html#Installing/Loading-Relevant-Packages">Installing/Loading Relevant Packages</a></li>
@@ -300,9 +318,12 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Variational Quantum Eigensolver</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#Using-CUDA-Q-Optimizers">Using CUDA-Q Optimizers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Integration-with-Third-Party-Optimizers">Integration with Third-Party Optimizers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logical_aim_sqale.html">Anderson Impurity Model ground state solver on Infleqtion’s Sqale</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="logical_aim_sqale.html#Performing-logical-Variational-Quantum-Eigensolver-(VQE)-with-CUDA-QX">Performing logical Variational Quantum Eigensolver (VQE) with CUDA-QX</a></li>
+<li class="toctree-l3"><a class="reference internal" href="logical_aim_sqale.html#Constructing-circuits-in-the-[[4,2,2]]-encoding">Constructing circuits in the <code class="docutils literal notranslate"><span class="pre">[[4,2,2]]</span></code> encoding</a></li>
+<li class="toctree-l3"><a class="reference internal" href="logical_aim_sqale.html#Setting-up-submission-and-decoding-workflow">Setting up submission and decoding workflow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="logical_aim_sqale.html#Running-a-CUDA-Q-noisy-simulation">Running a CUDA-Q noisy simulation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="logical_aim_sqale.html#Running-logical-AIM-on-Infleqtion's-hardware">Running logical AIM on Infleqtion’s hardware</a></li>
 </ul>
 </li>
 </ul>
@@ -313,6 +334,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#features">Features</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#single-gpu">Single-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
 </ul>
 </li>
@@ -323,6 +345,10 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/simulators.html#clifford-only-simulator">Clifford-Only Simulator</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#stim-cpu">Stim (CPU)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/backends/simulators.html#photonics-simulators">Photonics Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#id3">OpenMP CPU-only</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/simulators.html#fermioniq">Fermioniq</a></li>
@@ -336,46 +362,52 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#submission-from-python">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#ionq">IonQ</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#ionq-backend">Setting Credentials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#infleqtion">Infleqtion</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id1">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id2">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id3">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#anyon-technologies-anyon-computing">Anyon Technologies/Anyon Computing</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#anyon-backend">Setting Credentials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#ionq">IonQ</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#ionq-backend">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id5">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id6">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#iqm">IQM</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id7">Setting Credentials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#anyon-technologies-anyon-computing">Anyon Technologies/Anyon Computing</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#anyon-backend">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id8">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id9">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#oqc">OQC</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#iqm">IQM</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id10">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id11">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id12">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#orca-computing">ORCA Computing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#oqc">OQC</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id13">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id14">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id15">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#quantinuum">Quantinuum</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#quantinuum-backend">Setting Credentials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#orca-computing">ORCA Computing</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id16">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id17">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id18">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#quera-computing">QuEra Computing</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#quera-backend">Setting Credentials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#quantinuum">Quantinuum</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#quantinuum-backend">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id20">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id21">Submission from Python</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware.html#quera-computing">QuEra Computing</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#quera-backend">Setting Credentials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id23">Submission from C++</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware.html#id24">Submission from Python</a></li>
 </ul>
 </li>
 </ul>
@@ -407,6 +439,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../using/backends/dynamics.html#operator">Operator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/backends/dynamics.html#time-dependent-dynamics">Time-Dependent Dynamics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/backends/dynamics.html#numerical-integrators">Numerical Integrators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/backends/dynamics.html#multi-gpu-multi-node-execution">Multi-GPU Multi-Node Execution</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/install/install.html">   Installation</a><ul>
@@ -616,6 +649,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.spin.y"><code class="docutils literal notranslate"><span class="pre">spin.y()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.spin.z"><code class="docutils literal notranslate"><span class="pre">spin.z()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.cudm_state.CuDensityMatState"><code class="docutils literal notranslate"><span class="pre">CuDensityMatState</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.helpers.InitialState"><code class="docutils literal notranslate"><span class="pre">InitialState</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.cudm_state.to_cupy_array"><code class="docutils literal notranslate"><span class="pre">to_cupy_array()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.SampleResult"><code class="docutils literal notranslate"><span class="pre">SampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncSampleResult"><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></li>
@@ -703,8 +737,8 @@
             <a href="../../_sources/applications/python/vqe.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="hadamard_test.html" class="btn btn-neutral float-left" title="Using the Hadamard Test to Determine Quantum Krylov Subspace Decomposition Matrix Elements" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../../using/backends/backends.html" class="btn btn-neutral float-right" title="CUDA-Q Backends" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="readout_error_mitigation.html" class="btn btn-neutral float-left" title="Readout Error Mitigation" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="vqe_advanced.html" class="btn btn-neutral float-right" title="VQE with gradients, active spaces, and gate fusion" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
@@ -727,10 +761,10 @@
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
-<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
-<span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">minimize</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.optimize</span><span class="w"> </span><span class="kn">import</span> <span class="n">minimize</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
 <span class="c1"># Single precision</span>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
@@ -769,7 +803,7 @@
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">thetas</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">thetas</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
 
     <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
 
@@ -819,7 +853,7 @@
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define a function to minimize</span>
-<span class="k">def</span> <span class="nf">cost</span><span class="p">(</span><span class="n">theta</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">cost</span><span class="p">(</span><span class="n">theta</span><span class="p">):</span>
 
     <span class="n">exp_val</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
 
@@ -829,7 +863,7 @@
 <span class="n">exp_vals</span> <span class="o">=</span> <span class="p">[]</span>
 
 
-<span class="k">def</span> <span class="nf">callback</span><span class="p">(</span><span class="n">xk</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">callback</span><span class="p">(</span><span class="n">xk</span><span class="p">):</span>
     <span class="n">exp_vals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cost</span><span class="p">(</span><span class="n">xk</span><span class="p">))</span>
 
 
@@ -866,14 +900,14 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="hadamard_test.html" class="btn btn-neutral float-left" title="Using the Hadamard Test to Determine Quantum Krylov Subspace Decomposition Matrix Elements" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../../using/backends/backends.html" class="btn btn-neutral float-right" title="CUDA-Q Backends" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="readout_error_mitigation.html" class="btn btn-neutral float-left" title="Readout Error Mitigation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="vqe_advanced.html" class="btn btn-neutral float-right" title="VQE with gradients, active spaces, and gate fusion" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2024, NVIDIA Corporation &amp; Affiliates.</p>
+    <p>&#169; Copyright 2025, NVIDIA Corporation &amp; Affiliates.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
