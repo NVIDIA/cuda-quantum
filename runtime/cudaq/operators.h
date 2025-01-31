@@ -6,6 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#pragma once
+
 #include "definition.h"
 #include "utils/tensor.h"
 
