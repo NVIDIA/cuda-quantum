@@ -14,12 +14,15 @@
 #include <map>
 #include <sstream>
 
+namespace cudaq {
+namespace detail {
+
 class _OperatorHelpers {
 public:
   _OperatorHelpers() = default;
 
   // Aggregate parameters from multiple mappings.
-  static std::map<std::string, std::string> aggregate_parameters(
+  std::map<std::string, std::string> aggregate_parameters(
       const std::vector<std::map<std::string, std::string>> &parameter_mappings) {
     std::map<std::string, std::string> parameter_descriptions;
 
@@ -37,7 +40,7 @@ public:
   }
 
   // Extract documentation for a specific parameter from docstring.
-  static std::string parameter_docs(const std::string &param_name,
+  std::string parameter_docs(const std::string &param_name,
                                               const std::string &docs) {
     if (param_name.empty() || docs.empty()) {
       return "";
@@ -69,7 +72,7 @@ public:
   }
 
   // Extract positional arguments and keyword-only arguments.
-  static std::pair<std::vector<std::string>, std::map<std::string, std::string>>
+  std::pair<std::vector<std::string>, std::map<std::string, std::string>>
   args_from_kwargs(
       const std::map<std::string, std::string> &kwargs,
       const std::vector<std::string> &required_args,
@@ -96,7 +99,7 @@ public:
 
   /// Generates all possible states for the given dimensions ordered according
   /// to the sequence of degrees (ordering is relevant if dimensions differ).
-  static std::vector<std::string>
+  std::vector<std::string>
   generate_all_states(std::vector<int> degrees, std::map<int, int> dimensions) {
     if (degrees.size() == 0)
       return {};
@@ -121,12 +124,7 @@ public:
     return states;
   }
 
-  // Permutes the given matrix according to the given permutation.
-  // If states is the current order of vector entries on which the given matrix
-  // acts, and permuted_states is the desired order of an array on which the
-  // permuted matrix should act, then the permutation is defined such that
-  // [states[i] for i in permutation] produces permuted_states.
-  static cudaq::matrix_2 permute_matrix(cudaq::matrix_2 matrix,
+  cudaq::matrix_2 permute_matrix(cudaq::matrix_2 matrix,
                                         std::vector<int> permutation) {
     auto result = cudaq::matrix_2(matrix.get_rows(), matrix.get_columns());
     std::vector<std::complex<double>> sorted_values;
@@ -145,9 +143,11 @@ public:
     return result;
   }
 
-  // Returns the degrees sorted in canonical order.
-  static std::vector<int> canonicalize_degrees(std::vector<int> degrees) {
+  std::vector<int> canonicalize_degrees(std::vector<int> degrees) {
     std::sort(degrees.begin(), degrees.end(), std::greater<int>());
     return degrees;
   }
+
 };
+}
+}
