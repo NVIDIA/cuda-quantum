@@ -6,19 +6,16 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "mlir/Bindings/Python/PybindAdaptors.h"
-
+#include "py_register_dialects.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
-#include "cudaq/Optimizer/CAPI/Dialects.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
-#include "cudaq/Optimizer/CodeGen/Pipelines.h"
-#include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
+#include "cudaq/Optimizer/InitAllDialects.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "mlir/InitAllDialects.h"
+#include "mlir/Bindings/Python/PybindAdaptors.h"
+#include "mlir/CAPI/IR.h"
+#include "mlir/Transforms/Passes.h"
 #include <fmt/core.h>
 #include <pybind11/complex.h>
 #include <pybind11/stl.h>
@@ -27,32 +24,8 @@ namespace py = pybind11;
 using namespace mlir::python::adaptors;
 using namespace mlir;
 
-namespace cudaq {
-static bool registered = false;
-
-void registerQuakeDialectAndTypes(py::module &m) {
+static void registerQuakeTypes(py::module &m) {
   auto quakeMod = m.def_submodule("quake");
-
-  quakeMod.def(
-      "register_dialect",
-      [](MlirContext context, bool load) {
-        MlirDialectHandle handle = mlirGetDialectHandle__quake__();
-        mlirDialectHandleRegisterDialect(handle, context);
-        if (load) {
-          mlirDialectHandleLoadDialect(handle, context);
-        }
-
-        if (!registered) {
-          cudaq::opt::registerOptCodeGenPasses();
-          cudaq::opt::registerOptTransformsPasses();
-          cudaq::opt::registerAggressiveEarlyInlining();
-          cudaq::opt::registerUnrollingPipeline();
-          cudaq::opt::registerTargetPipelines();
-          cudaq::opt::registerMappingPipeline();
-          registered = true;
-        }
-      },
-      py::arg("context") = py::none(), py::arg("load") = true);
 
   mlir_type_subclass(quakeMod, "RefType", [](MlirType type) {
     return unwrap(type).isa<quake::RefType>();
@@ -144,20 +117,9 @@ void registerQuakeDialectAndTypes(py::module &m) {
       });
 }
 
-void registerCCDialectAndTypes(py::module &m) {
+static void registerCCTypes(py::module &m) {
 
   auto ccMod = m.def_submodule("cc");
-
-  ccMod.def(
-      "register_dialect",
-      [](MlirContext context, bool load) {
-        MlirDialectHandle ccHandle = mlirGetDialectHandle__cc__();
-        mlirDialectHandleRegisterDialect(ccHandle, context);
-        if (load) {
-          mlirDialectHandleLoadDialect(ccHandle, context);
-        }
-      },
-      py::arg("context") = py::none(), py::arg("load") = true);
 
   mlir_type_subclass(ccMod, "CharspanType", [](MlirType type) {
     return unwrap(type).isa<cudaq::cc::CharspanType>();
@@ -298,10 +260,7 @@ void registerCCDialectAndTypes(py::module &m) {
           });
 }
 
-void bindRegisterDialects(py::module &mod) {
-  registerQuakeDialectAndTypes(mod);
-  registerCCDialectAndTypes(mod);
-
+void cudaq::bindRegisterDialects(py::module &mod) {
   mod.def("load_intrinsic", [](MlirModule module, std::string name) {
     auto unwrapped = unwrap(module);
     cudaq::IRBuilder builder = IRBuilder::atBlockEnd(unwrapped.getBody());
@@ -311,13 +270,24 @@ void bindRegisterDialects(py::module &mod) {
 
   mod.def("register_all_dialects", [](MlirContext context) {
     DialectRegistry registry;
-    registry.insert<quake::QuakeDialect, cudaq::cc::CCDialect>();
+    cudaq::registerAllDialects(registry);
     cudaq::opt::registerCodeGenDialect(registry);
-    registerAllDialects(registry);
-    auto *mlirContext = unwrap(context);
+    MLIRContext *mlirContext = unwrap(context);
     mlirContext->appendDialectRegistry(registry);
     mlirContext->loadAllAvailableDialects();
   });
+
+  // Register type and passes once, when the module is loaded.
+  registerQuakeTypes(mod);
+  registerCCTypes(mod);
+
+  mlir::registerTransformsPasses();
+  cudaq::opt::registerOptCodeGenPasses();
+  cudaq::opt::registerOptTransformsPasses();
+  cudaq::opt::registerAggressiveEarlyInlining();
+  cudaq::opt::registerUnrollingPipeline();
+  cudaq::opt::registerTargetPipelines();
+  cudaq::opt::registerMappingPipeline();
 
   mod.def("gen_vector_of_complex_constant", [](MlirLocation loc,
                                                MlirModule module,
@@ -330,4 +300,3 @@ void bindRegisterDialects(py::module &mod) {
     builder.genVectorOfConstants(unwrap(loc), modOp, name, newValues);
   });
 }
-} // namespace cudaq
