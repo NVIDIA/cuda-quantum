@@ -17,9 +17,12 @@ void checkEqual(cudaq::matrix_2 a, cudaq::matrix_2 b) {
   ASSERT_EQ(a.get_size(), b.get_size());
   for (std::size_t i = 0; i < a.get_rows(); i++) {
     for (std::size_t j = 0; j < a.get_columns(); j++) {
-      double a_val = a[{i, j}].real();
-      double b_val = b[{i, j}].real();
-      EXPECT_NEAR(a_val, b_val, 1e-8);
+      double a_real = a[{i, j}].real();
+      double b_real = b[{i, j}].real();
+      EXPECT_NEAR(a_real, b_real, 1e-8);
+      double a_imag = a[{i, j}].imag();
+      double b_imag = b[{i, j}].imag();
+      EXPECT_NEAR(a_imag, b_imag, 1e-8);
     }
   }
 }
@@ -462,7 +465,7 @@ TEST(OperatorExpressions, checkPreBuiltElementaryOpsSelf) {
     auto product = self * other;
     ASSERT_TRUE(product.n_terms() == 2);
 
-    std::vector<int> want_degrees = {0, 1};
+    std::vector<int> want_degrees = {1, 0};
     ASSERT_TRUE(product.degrees() == want_degrees);
 
     /// Check the matrices.

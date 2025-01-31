@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/operators.h"
-#include "helpers.cpp"
+#include "helpers.h"
 
 namespace cudaq {
 
@@ -15,7 +15,7 @@ std::vector<int>
 MatrixArithmetics::_compute_permutation(std::vector<int> op_degrees,
                                         std::vector<int> canon_degrees) {
   auto states =
-      _OperatorHelpers::generate_all_states(canon_degrees, m_dimensions);
+      cudaq::detail::generate_all_states(canon_degrees, m_dimensions);
 
   std::vector<int> reordering;
   for (auto degree : op_degrees)
@@ -45,12 +45,12 @@ MatrixArithmetics::_compute_permutation(std::vector<int> op_degrees,
 std::tuple<matrix_2, std::vector<int>>
 MatrixArithmetics::_canonicalize(matrix_2 &op_matrix,
                                  std::vector<int> op_degrees) {
-  auto canon_degrees = _OperatorHelpers::canonicalize_degrees(op_degrees);
+  auto canon_degrees = cudaq::detail::canonicalize_degrees(op_degrees);
   if (op_degrees == canon_degrees)
     return std::tuple<matrix_2, std::vector<int>>{op_matrix, canon_degrees};
 
   auto permutation = this->_compute_permutation(op_degrees, canon_degrees);
-  auto result = _OperatorHelpers::permute_matrix(op_matrix, permutation);
+  auto result = cudaq::detail::permute_matrix(op_matrix, permutation);
   return std::tuple<matrix_2, std::vector<int>>{result, canon_degrees};
 }
 
