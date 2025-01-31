@@ -6,17 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/operators.h"
+#include "helpers.h"
 
-#include <ranges>
+namespace cudaq {
+namespace detail {
 
-class _OperatorHelpers {
-public:
-  _OperatorHelpers() = default;
-
-  /// Generates all possible states for the given dimensions ordered according
-  /// to the sequence of degrees (ordering is relevant if dimensions differ).
-  static std::vector<std::string>
+  std::vector<std::string>
   generate_all_states(std::vector<int> degrees, std::map<int, int> dimensions) {
     if (degrees.size() == 0)
       return {};
@@ -41,12 +36,7 @@ public:
     return states;
   }
 
-  // Permutes the given matrix according to the given permutation.
-  // If states is the current order of vector entries on which the given matrix
-  // acts, and permuted_states is the desired order of an array on which the
-  // permuted matrix should act, then the permutation is defined such that
-  // [states[i] for i in permutation] produces permuted_states.
-  static cudaq::matrix_2 permute_matrix(cudaq::matrix_2 matrix,
+  cudaq::matrix_2 permute_matrix(cudaq::matrix_2 matrix,
                                         std::vector<int> permutation) {
     auto result = cudaq::matrix_2(matrix.get_rows(), matrix.get_columns());
     std::vector<std::complex<double>> sorted_values;
@@ -65,9 +55,10 @@ public:
     return result;
   }
 
-  // Returns the degrees sorted in canonical order.
-  static std::vector<int> canonicalize_degrees(std::vector<int> degrees) {
+  std::vector<int> canonicalize_degrees(std::vector<int> degrees) {
     std::sort(degrees.begin(), degrees.end(), std::greater<int>());
     return degrees;
   }
-};
+
+}
+}
