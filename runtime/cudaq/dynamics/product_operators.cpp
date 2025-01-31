@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/operators.h"
-#include "cudaq/dynamics/helpers.cpp"
+#include "helpers.h"
 
 #include <algorithm>
 #include <iostream>
@@ -77,7 +77,7 @@ cudaq::matrix_2 product_operator<HandlerTy>::m_evaluate(
           noncanon_set.insert(degree);
         }
       }
-      auto degrees = _OperatorHelpers::canonicalize_degrees(noncanon_degrees);
+      auto degrees = cudaq::detail::canonicalize_degrees(noncanon_degrees);
       auto evaluated =
           EvaluatedMatrix(degrees, _padded_op(arithmetics, terms[0],
                                               degrees, dimensions, parameters));
@@ -139,8 +139,7 @@ std::vector<int> product_operator<HandlerTy>::degrees() const {
     unsorted_degrees.insert(term.degrees.begin(), term.degrees.end());
   }
   auto degrees = std::vector<int>(unsorted_degrees.begin(), unsorted_degrees.end());
-  std::sort(degrees.begin(), degrees.end()); // FIXME: DELEGATE ANY CONVENTION RELATED ORDERING TO A GENERAL HELPER FUNCTION
-  return degrees;
+  return cudaq::detail::canonicalize_degrees(degrees);
 }
 
 template<typename HandlerTy>
