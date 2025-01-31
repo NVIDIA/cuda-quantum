@@ -331,8 +331,7 @@ private:
   template <typename ... Args>
   void aggregate_terms(const HandlerTy &head, Args&& ... args);
 
-  matrix_2 m_evaluate(MatrixArithmetics arithmetics, std::map<int, int> dimensions,
-    std::map<std::string, std::complex<double>> parameters, bool pad_terms = true) const;
+  matrix_2 m_evaluate(MatrixArithmetics arithmetics, bool pad_terms = true) const;
 
 public:
 
@@ -470,14 +469,6 @@ class matrix_operator {
 private:
   static std::map<std::string, Definition> m_ops;
 
-protected:
-  // FIXME: revise implementation
-  /// @brief The number of levels, that is the dimension, for each degree of
-  /// freedom in canonical order that the operator acts on. A value of zero or
-  /// less indicates that the operator is defined for any dimension of that
-  /// degree.
-  std::map<int, int> expected_dimensions;
-
 public:
   // The constructor should never be called directly by the user:
   // Keeping it internally documented for now, however.
@@ -579,16 +570,14 @@ public:
   ///      degree of freedom, and an argument called `dimensions` (or `dims` for
   ///      short), if the operator acts
   ///     on multiple degrees of freedom.
-  template <typename Func>
-  void define(std::string operator_id, std::map<int, int> expected_dimensions,
-              Func create) {
-    if (matrix_operator::m_ops.find(operator_id) != matrix_operator::m_ops.end()) {
+  static void define(std::string operator_id, std::map<int, int> expected_dimensions,
+              CallbackFunction &&create) {
+    auto defn = Definition(operator_id, expected_dimensions, std::forward<CallbackFunction>(create));
+    auto result = matrix_operator::m_ops.insert({operator_id, std::move(defn)});
+    if (!result.second) {
       // todo: make a nice error message to say op already exists
       throw;
     }
-    auto defn = Definition();
-    defn.create_definition(operator_id, expected_dimensions, create);
-    matrix_operator::m_ops[operator_id] = defn;
   }
 };
 
@@ -645,14 +634,15 @@ public:
 /// of an operator expression.
 class MatrixArithmetics : public OperatorArithmetics<EvaluatedMatrix> {
 private:
-  std::map<int, int> m_dimensions;
-  std::map<std::string, std::complex<double>> m_parameters;
   std::vector<int> _compute_permutation(std::vector<int> op_degrees,
                                         std::vector<int> canon_degrees);
   std::tuple<matrix_2, std::vector<int>>
   _canonicalize(matrix_2 &op_matrix, std::vector<int> op_degrees);
 
 public:
+  std::map<int, int> &m_dimensions; // fixme: make const
+  std::map<std::string, std::complex<double>> &m_parameters; // fixme: make const
+
   MatrixArithmetics(std::map<int, int> dimensions,
                     std::map<std::string, std::complex<double>> parameters)
       : m_dimensions(dimensions), m_parameters(parameters) {}
