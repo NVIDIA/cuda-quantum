@@ -25,7 +25,8 @@ class cudm_state {
 public:
   /// @brief To initialize state with raw data.
   explicit cudm_state(cudensitymatHandle_t handle,
-                      std::vector<std::complex<double>> rawData);
+                      const std::vector<std::complex<double>> rawData,
+                      const std::vector<int64_t> &hilbertSpaceDims);
 
   /// @brief Destructor to clean up resources
   ~cudm_state();
@@ -38,11 +39,6 @@ public:
   static cudm_state create_initial_state(
       cudensitymatHandle_t handle, const InitialStateArgT &initialStateArg,
       const std::vector<int64_t> &hilbertSpaceDims, bool hasCollapseOps);
-
-  /// @brief Initialize the state as a density matrix or state vector based on
-  /// dimensions.
-  /// @param hilbertSpaceDims Vector representing the Hilbert Space dimensions.
-  void init_state(const std::vector<int64_t> &hilbertSpaceDims);
 
   /// @brief Check if the state is initialized.
   /// @return True if the state is initialized, false otherwise.
@@ -63,9 +59,6 @@ public:
   /// @brief Get the underlying implementation (if any).
   /// @return The underlying state implementation.
   cudensitymatState_t get_impl() const;
-
-  /// @brief Attach raw data to the internal state representation
-  void attach_storage();
 
   /// @brief Get a copy of the raw data representing the quantum state.
   /// @return A copy of the raw data as a vector of complex numbers.
@@ -93,6 +86,9 @@ private:
   cudensitymatState_t state_;
   cudensitymatHandle_t handle_;
   std::vector<int64_t> hilbertSpaceDims_;
+
+  /// @brief Attach raw data storage to GPU
+  void attach_storage();
 
   /// @brief Calculate the size of the state vector for the given Hilbert space
   /// dimensions.
