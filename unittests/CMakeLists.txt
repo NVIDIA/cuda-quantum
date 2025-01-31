@@ -49,7 +49,6 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   dynamics/elementary_ops_simple.cpp
   dynamics/elementary_ops_arithmetic.cpp
   dynamics/product_operators_arithmetic.cpp
-  dynamics/test_runge_kutta_time_stepper.cpp
   dynamics/test_runge_kutta_integrator.cpp
   dynamics/test_helpers.cpp
   dynamics/rydberg_hamiltonian.cpp
