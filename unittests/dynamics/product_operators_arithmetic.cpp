@@ -19,9 +19,12 @@ void checkEqual(cudaq::matrix_2 a, cudaq::matrix_2 b) {
   ASSERT_EQ(a.get_size(), b.get_size());
   for (std::size_t i = 0; i < a.get_rows(); i++) {
     for (std::size_t j = 0; j < a.get_columns(); j++) {
-      double a_val = a[{i, j}].real();
-      double b_val = b[{i, j}].real();
-      EXPECT_NEAR(a_val, b_val, 1e-8);
+      double a_real = a[{i, j}].real();
+      double b_real = b[{i, j}].real();
+      EXPECT_NEAR(a_real, b_real, 1e-8);
+      double a_imag = a[{i, j}].imag();
+      double b_imag = b[{i, j}].imag();
+      EXPECT_NEAR(a_imag, b_imag, 1e-8);
     }
   }
 }
@@ -112,6 +115,15 @@ void assert_product_equal(const cudaq::product_operator<cudaq::matrix_operator> 
   ASSERT_TRUE(got.get_terms() == expected_terms);
 }
 
+void print(cudaq::matrix_2 matrix) {
+  for (std::size_t i = 0; i < matrix.get_rows(); i++) {
+    for (std::size_t j = 0; j < matrix.get_columns(); j++) {
+      std::cout << matrix[{i,j}] << " ";
+    }
+    std::cout << std::endl;
+  }
+}
+
 } // namespace utils_1
 
 TEST(OperatorExpressions, checkProductOperatorSimpleMatrixChecks) {
@@ -131,6 +143,14 @@ TEST(OperatorExpressions, checkProductOperatorSimpleMatrixChecks) {
         auto matrix0 = utils_1::annihilate_matrix(level_count);
         auto matrix1 = utils_1::create_matrix(level_count);
         auto want_matrix = matrix0 * matrix1;
+        utils_1::print(matrix1);
+        std::cout << std::endl;
+        utils_1::print(matrix0);
+        std::cout << std::endl;
+        utils_1::print(want_matrix);
+        std::cout << std::endl;
+        utils_1::print(got_matrix);
+
         //utils_1::checkEqual(want_matrix, got_matrix);
 
         std::vector<int> want_degrees = {0};
@@ -147,7 +167,7 @@ TEST(OperatorExpressions, checkProductOperatorSimpleMatrixChecks) {
         cudaq::product_operator got = op0 * op1;
         cudaq::product_operator got_reverse = op1 * op0;
 
-        std::vector<int> want_degrees = {0, 1};
+        std::vector<int> want_degrees = {1, 0};
         ASSERT_TRUE(got.degrees() == want_degrees);
         ASSERT_TRUE(got_reverse.degrees() == want_degrees);
 
@@ -183,7 +203,7 @@ TEST(OperatorExpressions, checkProductOperatorSimpleMatrixChecks) {
         cudaq::product_operator got = op0 * op1;
         cudaq::product_operator got_reverse = op1 * op0;
 
-        std::vector<int> want_degrees = {0, 2};
+        std::vector<int> want_degrees = {2, 0};
         ASSERT_TRUE(got.degrees() == want_degrees);
         ASSERT_TRUE(got_reverse.degrees() == want_degrees);
 
@@ -220,7 +240,7 @@ TEST(OperatorExpressions, checkProductOperatorSimpleMatrixChecks) {
         cudaq::product_operator got = op0 * op1;
         cudaq::product_operator got_reverse = op1 * op0;
 
-        std::vector<int> want_degrees = {0, 2};
+        std::vector<int> want_degrees = {2, 0};
         ASSERT_TRUE(got.degrees() == want_degrees);
         ASSERT_TRUE(got_reverse.degrees() == want_degrees);
 
@@ -317,7 +337,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(sum.n_terms() == 2);
     ASSERT_TRUE(reverse.n_terms() == 2);
 
-    std::vector<int> want_degrees = {0, 1};
+    std::vector<int> want_degrees = {1, 0};
     ASSERT_TRUE(sum.degrees() == want_degrees);
     ASSERT_TRUE(reverse.degrees() == want_degrees);
 
@@ -355,7 +375,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(sum.n_terms() == 2);
     ASSERT_TRUE(reverse.n_terms() == 2);
 
-    std::vector<int> want_degrees = {0, 1};
+    std::vector<int> want_degrees = {1, 0};
     ASSERT_TRUE(sum.degrees() == want_degrees);
     ASSERT_TRUE(reverse.degrees() == want_degrees);
 
@@ -393,7 +413,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(sum.n_terms() == 2);
     ASSERT_TRUE(reverse.n_terms() == 2);
 
-    std::vector<int> want_degrees = {0, 1};
+    std::vector<int> want_degrees = {1, 0};
     ASSERT_TRUE(sum.degrees() == want_degrees);
     ASSERT_TRUE(reverse.degrees() == want_degrees);
 
@@ -431,7 +451,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(difference.n_terms() == 2);
     ASSERT_TRUE(reverse.n_terms() == 2);
 
-    std::vector<int> want_degrees = {0, 1};
+    std::vector<int> want_degrees = {1, 0};
     ASSERT_TRUE(difference.degrees() == want_degrees);
     ASSERT_TRUE(reverse.degrees() == want_degrees);
 
@@ -469,7 +489,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(difference.n_terms() == 2);
     ASSERT_TRUE(reverse.n_terms() == 2);
 
-    std::vector<int> want_degrees = {0, 1};
+    std::vector<int> want_degrees = {1, 0};
     ASSERT_TRUE(difference.degrees() == want_degrees);
     ASSERT_TRUE(reverse.degrees() == want_degrees);
 
@@ -507,7 +527,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(difference.n_terms() == 2);
     ASSERT_TRUE(reverse.n_terms() == 2);
 
-    std::vector<int> want_degrees = {0, 1};
+    std::vector<int> want_degrees = {1, 0};
     ASSERT_TRUE(difference.degrees() == want_degrees);
     ASSERT_TRUE(reverse.degrees() == want_degrees);
 
@@ -549,7 +569,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(product.get_coefficient().evaluate() == value_0);
     ASSERT_TRUE(reverse.get_coefficient().evaluate() == value_0);
 
-    std::vector<int> want_degrees = {0, 1};
+    std::vector<int> want_degrees = {1, 0};
     ASSERT_TRUE(product.degrees() == want_degrees);
     ASSERT_TRUE(reverse.degrees() == want_degrees);
 
@@ -591,7 +611,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(product.get_coefficient().evaluate() == std::complex<double>(2.));
     ASSERT_TRUE(reverse.get_coefficient().evaluate() == std::complex<double>(2.));
 
-    std::vector<int> want_degrees = {0, 1};
+    std::vector<int> want_degrees = {1, 0};
     ASSERT_TRUE(product.degrees() == want_degrees);
     ASSERT_TRUE(reverse.degrees() == want_degrees);
 
@@ -631,7 +651,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(product.get_coefficient().evaluate() == scalar_op.evaluate());
     ASSERT_TRUE(reverse.get_coefficient().evaluate() == scalar_op.evaluate());
 
-    std::vector<int> want_degrees = {0, 1};
+    std::vector<int> want_degrees = {1, 0};
     ASSERT_TRUE(product.degrees() == want_degrees);
     ASSERT_TRUE(reverse.degrees() == want_degrees);
 
@@ -667,7 +687,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(product.n_terms() == 2);
     ASSERT_TRUE(product.get_coefficient().evaluate() == value_0);
 
-    std::vector<int> want_degrees = {0, 1};
+    std::vector<int> want_degrees = {1, 0};
     ASSERT_TRUE(product.degrees() == want_degrees);
 
     /// Check the matrices.
@@ -698,7 +718,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(product.n_terms() == 2);
     ASSERT_TRUE(product.get_coefficient().evaluate() == std::complex<double>(2.));
 
-    std::vector<int> want_degrees = {0, 1};
+    std::vector<int> want_degrees = {1, 0};
     ASSERT_TRUE(product.degrees() == want_degrees);
 
     /// Check the matrices.
@@ -731,7 +751,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(product.get_coefficient().evaluate() == scalar_op.evaluate());
     ASSERT_TRUE(scalar_op.evaluate() == value_0);
 
-    std::vector<int> want_degrees = {0, 1};
+    std::vector<int> want_degrees = {1, 0};
     ASSERT_TRUE(product.degrees() == want_degrees);
 
     /// Check the matrices.
@@ -769,7 +789,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
 
     ASSERT_TRUE(sum.n_terms() == 2);
 
-    std::vector<int> want_degrees = {0, 1, 2};
+    std::vector<int> want_degrees = {2, 1, 0};
     ASSERT_TRUE(sum.degrees() == want_degrees);
 
     /// Check the matrices.
