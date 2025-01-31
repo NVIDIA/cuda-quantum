@@ -14,6 +14,7 @@
 #include "cudaq/spin_op.h"
 #include <cmath>
 #include <complex>
+#include <sstream>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -207,6 +208,18 @@ std::unique_ptr<std::complex<To>[]> convertToComplex(From *data,
 } // namespace nvqir
 
 using namespace nvqir;
+
+template <typename VAL>
+void quantumRTGenericRecordOutput(const char *type, VAL val,
+                                  const char *label) {
+  auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
+  auto *currentContext = circuitSimulator->getExecutionContext();
+  std::stringstream ss{currentContext->outputLog, std::ios::app};
+  ss << "OUTPUT\t" << type << "\t" << val << '\t';
+  if (label)
+    ss << label;
+  ss << '\n';
+}
 
 extern "C" {
 
@@ -402,6 +415,26 @@ void __quantum__rt__deallocate_all(const std::size_t numQubits,
                                    const std::size_t *qubitIdxs) {
   std::vector<std::size_t> qubits(qubitIdxs, qubitIdxs + numQubits);
   nvqir::getCircuitSimulatorInternal()->deallocateQubits(qubits);
+}
+
+void __quantum__rt__bool_record_output(bool val, const char *label) {
+  quantumRTGenericRecordOutput("BOOL", (val ? "true" : "false"), label);
+}
+
+void __quantum__rt__integer_record_output(std::int64_t val, const char *label) {
+  quantumRTGenericRecordOutput("INT", val, label);
+}
+
+void __quantum__rt__double_record_output(double val, const char *label) {
+  quantumRTGenericRecordOutput("DOUBLE", val, label);
+}
+
+void __quantum__rt__tuple_record_output(std::uint64_t len, const char *label) {
+  quantumRTGenericRecordOutput("TUPLE", len, label);
+}
+
+void __quantum__rt__array_record_output(std::uint64_t len, const char *label) {
+  quantumRTGenericRecordOutput("ARRAY", len, label);
 }
 
 #define ONE_QUBIT_QIS_FUNCTION(GATENAME)                                       \
@@ -679,7 +712,7 @@ Result *__quantum__qis__measure__body(Array *pauli_arr, Array *qubits) {
   ScopedTraceWithContext("NVQIR::observe_measure_body");
 
   auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
-  auto currentContext = circuitSimulator->getExecutionContext();
+  auto *currentContext = circuitSimulator->getExecutionContext();
 
   // Some backends may better handle the observe task.
   // Let's give them that opportunity.
