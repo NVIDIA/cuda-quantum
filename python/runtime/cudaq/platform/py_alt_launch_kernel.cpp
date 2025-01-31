@@ -104,7 +104,7 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
         {.startingArgIdx = startingArgIdx}));
     pm.addPass(cudaq::opt::createLambdaLiftingPass());
     pm.addPass(createSymbolDCEPass());
-    cudaq::opt::addPipelineConvertToQIR_PythonWorkaround(pm);
+    cudaq::opt::addPipelineConvertToQIR(pm);
 
     DefaultTimingManager tm;
     tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
@@ -596,9 +596,9 @@ std::string getQIR(const std::string &name, MlirModule module,
   PassManager pm(context);
   pm.addPass(cudaq::opt::createLambdaLiftingPass());
   if (profile.empty())
-    cudaq::opt::addPipelineConvertToQIR_PythonWorkaround(pm);
+    cudaq::opt::addPipelineConvertToQIR(pm);
   else
-    cudaq::opt::addPipelineConvertToQIR_PythonWorkaround(pm, profile);
+    cudaq::opt::addPipelineConvertToQIR(pm, profile);
   DefaultTimingManager tm;
   tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
   auto timingScope = tm.getRootScope(); // starts the timer
