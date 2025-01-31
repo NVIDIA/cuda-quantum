@@ -18,7 +18,7 @@ public:
   explicit cudm_time_stepper(cudensitymatHandle_t handle,
                              cudensitymatOperator_t liouvillian);
 
-  void compute(cudm_state &state, double t, double step_size) override;
+  cudm_state compute(cudm_state &state, double t, double step_size);
 
 private:
   cudensitymatHandle_t handle_;

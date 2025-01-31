@@ -14,6 +14,11 @@ class BaseTimeStepper {
 public:
   virtual ~BaseTimeStepper() = default;
 
-  virtual void compute(TState &state, double t, double step_size) = 0;
+  /// @brief Compute the next time step for the given quantum state.
+  /// @param state The quantum state to evolve.
+  /// @param t Current time.
+  /// @param step_size Time step size.
+  /// @return The updated quantum state after stepping.
+  virtual TState compute(TState &state, double t, double step_size) = 0;
 };
 } // namespace cudaq
