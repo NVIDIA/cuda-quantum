@@ -45,7 +45,7 @@ cudm_state cudm_time_stepper::compute(cudm_state &state, double t,
       state.get_raw_data().size(), {0.0, 0.0});
   cudm_state next_state(handle_, zero_initiailized_data,
                         state.get_hilbert_space_dims());
-  
+
   if (!next_state.is_initialized()) {
     throw std::runtime_error("Next state failed to initialize.");
   }
