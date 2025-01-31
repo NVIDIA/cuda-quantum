@@ -13,102 +13,70 @@
 #include <iostream>
 #include <numeric>
 #include <set>
+#include <iostream>
 
 namespace cudaq {
 
 // private methods
 
-cudaq::matrix_2
-_padded_op(cudaq::MatrixArithmetics arithmetics, cudaq::matrix_operator op,
+EvaluatedMatrix
+_padded_op(MatrixArithmetics &arithmetics, const cudaq::matrix_operator &op,
            std::vector<int> degrees, std::map<int, int> dimensions,
            std::map<std::string, std::complex<double>> parameters) {
   /// Creating the tensor product with op being last is most efficient.
-  std::vector<cudaq::matrix_2> padded;
+  std::vector<EvaluatedMatrix> padded;
   for (const auto &degree : degrees) {
-    if (std::find(op.degrees.begin(), op.degrees.end(), degree) ==
-            op.degrees.end(),
-        degree) {
-      padded.push_back(
-          arithmetics.evaluate(cudaq::matrix_operator::identity(degree))
-              .matrix());
+    if (std::find(op.degrees.begin(), op.degrees.end(), degree) == op.degrees.end()) {
+      // FIXME: EITHER MAKE DIMENSIONS REQUIRED, OR GIVE AN ERROR IF DIMENSIONS ARE REQUIRED.
+      padded.push_back(EvaluatedMatrix({degree}, matrix_operator::identity(degree).to_matrix(dimensions)));
+      // FIXME: avoid creation of a product here - 
+      // but we need to make sure identity is defined before using it (all ops are lazily defined...)
+      //padded.push_back(cudaq::matrix_operator("identity", {degree}).to_matrix());
     }
-    matrix_2 mat = op.to_matrix(dimensions, parameters);
-    padded.push_back(mat);
   }
-  /// FIXME: This directly uses cudaq::kronecker instead of the tensor method.
-  /// I need to double check to make sure this gives the equivalent behavior
-  /// to the method used in python.
-  return cudaq::kronecker(padded.begin(), padded.end());
-  ;
+  matrix_2 mat = op.to_matrix(dimensions, parameters);
+  auto res = EvaluatedMatrix(op.degrees, mat); // FIXME: PUT THIS LAST
+  for(auto &op : padded)
+    res = arithmetics.tensor(res, op);
+  return res;  
 }
 
+// FIXME: EVALUATE IS NOT SUPPOSED TO RETURN A MATRIX - 
+// IT SUPPOSED TO TAKE A TRANSFORMATION (ANY OPERATOR ARITHMETICS) AND APPLY IT
 template <typename HandlerTy>
 cudaq::matrix_2 product_operator<HandlerTy>::m_evaluate(
-    MatrixArithmetics arithmetics, std::map<int, int> dimensions,
-    std::map<std::string, std::complex<double>> parameters, bool pad_terms) const {
-  /// Grab the underlying elementary operators.
-  auto terms = this->get_terms();
+    MatrixArithmetics arithmetics, bool pad_terms) const {
+  const std::vector<HandlerTy> &terms = this->terms[0];
+  auto degrees = this->degrees();
+  cudaq::matrix_2 result;
 
-  std::set<int> noncanon_set;
-  for (const auto &op : terms) {
-    for (const auto &degree : op.degrees) {
-      noncanon_set.insert(degree);
-    }
-  }
-  std::vector<int> noncanon_degrees(noncanon_set.begin(), noncanon_set.end());
-
-  // Calculate the total dimensions of the Hilbert space to create our
-  // identity matrix.
-  auto full_hilbert_size = 1;
-  for (const auto degree : noncanon_degrees)
-    full_hilbert_size *= dimensions[degree];
-  cudaq::matrix_2 result(full_hilbert_size, full_hilbert_size);
-  // If this product operator consists only of scalar operator terms,
-  // we will avoid all of the below logic and just return the scalar value
-  // stored in an identity matrix spanning the full Hilbert space of the
-  // provided `dimensions`.
   if (terms.size() > 0) {
     if (pad_terms) {
-      // Sorting the degrees to avoid unnecessary permutations during the
-      // padding.
-      std::set<int> noncanon_set;
-      for (const auto &op : terms) {
-        for (const auto &degree : op.degrees) {
-          noncanon_set.insert(degree);
-        }
-      }
-      auto degrees = cudaq::detail::canonicalize_degrees(noncanon_degrees);
-      auto evaluated =
-          EvaluatedMatrix(degrees, _padded_op(arithmetics, terms[0],
-                                              degrees, dimensions, parameters));
-
+      auto evaluated = _padded_op(arithmetics, terms[0], degrees, arithmetics.m_dimensions, arithmetics.m_parameters);
       for (auto op_idx = 1; op_idx < terms.size(); ++op_idx) {
-        auto op = terms[op_idx];
-        if (op.degrees.size() != 1) {
-          auto padded_op_to_print =
-              _padded_op(arithmetics, op, degrees, dimensions, parameters);
-          auto padded_mat =
-              EvaluatedMatrix(degrees, _padded_op(arithmetics, op, degrees,
-                                                  dimensions, parameters));
-          evaluated = arithmetics.mul(evaluated, padded_mat);
+        const HandlerTy &op = terms[op_idx];
+        if (op.degrees.size() != 1 || op != cudaq::matrix_operator("identity", op.degrees)) {
+          auto padded = _padded_op(arithmetics, op, degrees, arithmetics.m_dimensions, arithmetics.m_parameters);
+          evaluated = arithmetics.mul(evaluated, padded);
         }
       }
       result = evaluated.matrix();
     } else {
       auto evaluated = arithmetics.evaluate(terms[0]);
       for (auto op_idx = 1; op_idx < terms.size(); ++op_idx) {
-        auto op = terms[op_idx];
-        auto mat = op.to_matrix(dimensions, parameters);
-        evaluated =
-            arithmetics.mul(evaluated, EvaluatedMatrix(op.degrees, mat));
+        auto &op = terms[op_idx];
+        auto mat = op.to_matrix(arithmetics.m_dimensions, arithmetics.m_parameters);
+        evaluated = arithmetics.mul(evaluated, EvaluatedMatrix(op.degrees, mat));
       }
       result = evaluated.matrix();
     }
   } else {
+    auto full_hilbert_size = 1;
+    for (const auto degree : degrees)
+      full_hilbert_size *= arithmetics.m_dimensions[degree];
     result = cudaq::matrix_2::identity(full_hilbert_size);
   }
-  auto coefficient = this->get_coefficient();
-  return coefficient.evaluate(parameters) * result;
+  return this->coefficients[0].evaluate(arithmetics.m_parameters) * result;
 }
 
 template<typename HandlerTy>
@@ -159,8 +127,7 @@ scalar_operator product_operator<HandlerTy>::get_coefficient() const {
 
 template
 cudaq::matrix_2 product_operator<matrix_operator>::m_evaluate(
-    MatrixArithmetics arithmetics, std::map<int, int> dimensions,
-    std::map<std::string, std::complex<double>> parameters, bool pad_terms) const;
+    MatrixArithmetics arithmetics, bool pad_terms) const;
 
 template
 std::vector<int> product_operator<matrix_operator>::degrees() const;
@@ -276,10 +243,7 @@ std::string product_operator<HandlerTy>::to_string() const {
 template<typename HandlerTy>
 matrix_2 product_operator<HandlerTy>::to_matrix(std::map<int, int> dimensions,
                                                 std::map<std::string, std::complex<double>> parameters) const {
-  if (this->get_coefficient() != scalar_operator(1.) || this->n_terms() != 1)
-    return this->m_evaluate(MatrixArithmetics(dimensions, parameters), dimensions,
-                  parameters);
-  return this->get_terms()[0].to_matrix(dimensions, parameters);
+  return this->m_evaluate(MatrixArithmetics(dimensions, parameters));
 }
 
 template
