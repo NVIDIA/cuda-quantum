@@ -178,8 +178,8 @@ splitter leave the beam splitter together.
     { 02:491 20:509 }
 
 
-For a full list of photonic gates supported in CUDA-Q see
-:doc:`../../api/default_ops`.
+For a full list of photonic gates supported in CUDA-Q see 
+:doc:`Photonic Operations on Qudits <../../../api/default_ops>`.
 
 Measurements
 ++++++++++++++

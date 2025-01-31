@@ -28,28 +28,31 @@ parameters = np.random.default_rng(13).uniform(low=0,
                                                high=1,
                                                size=(sample_count,
                                                      parameter_count))
+
+
 @cudaq.kernel
 def kernel(params: list[float]):
 
     qubits = cudaq.qvector(5)
 
     for i in range(5):
-        rx(params[i],qubits[i])
+        rx(params[i], qubits[i])
+
 
 # [End prepare]
 
 # [Begin single]
 import time
+
 start_time = time.time()
 cudaq.observe(kernel, h, parameters)
 end_time = time.time()
 print(end_time - start_time)
-             
+
 # [End single]
 
 # [Begin split]
-print('There are', parameters.shape[0],
-      'parameter sets to execute')
+print('There are', parameters.shape[0], 'parameter sets to execute')
 
 xi = np.split(
     parameters,

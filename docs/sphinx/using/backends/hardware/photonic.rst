@@ -14,7 +14,7 @@ and interfered within a network of delay lines. This can be represented by a cir
 like the one below, where this illustration example corresponds to 4 photons in 8 modes sent into 
 alternating time-bins in a circuit composed of two delay lines in series.
 
-.. image:: ../examples/images/orca_tbi.png
+.. image:: ../../examples/images/orca_tbi.png
    :width: 400px
    :align: center
 

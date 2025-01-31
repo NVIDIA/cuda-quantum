@@ -195,5 +195,6 @@ The default approach uses one GPU per QPU and can both launch and close each ser
             counts = count_futures[idx].get()
             print(counts)
 
-:code:`remote-mqpu` can also be used with MGPU, allowing each QPU to be simulated by multiple GPUs. This requires manual preparation of the servers and detailed instructions are in the :ref:`remote-mqpu-platform`
+:code:`remote-mqpu` can also be used with MGPU, allowing each QPU to be simulated by multiple GPUs. 
+This requires manual preparation of the servers and detailed instructions are in the :ref:`remote MQPU platform <remote-mqpu-platform>`
 section of the docs.            
