@@ -60,3 +60,34 @@ TEST_F(CuDensityMatTimeStepperTest, ComputeStep) {
   EXPECT_NO_THROW(time_stepper_->compute(*state_, 0.0, 1.0));
   ASSERT_TRUE(state_->is_initialized());
 }
+
+// Compute step when handle is uninitialized
+TEST_F(CuDensityMatTimeStepperTest, ComputeStepUninitializedHandle) {
+  cudm_time_stepper invalidStepper(nullptr, liouvillian_);
+  EXPECT_THROW(invalidStepper.compute(*state_, 0.0, 1.0), std::runtime_error);
+}
+
+// Compute step when liouvillian is missing
+TEST_F(CuDensityMatTimeStepperTest, ComputeStepNoLiouvillian) {
+  cudm_time_stepper invalidStepper(handle_, nullptr);
+  EXPECT_THROW(invalidStepper.compute(*state_, 0.0, 1.0), std::runtime_error);
+}
+
+// Compute step with mismatched dimensions
+TEST_F(CuDensityMatTimeStepperTest, ComputeStepMistmatchedDimensions) {
+  EXPECT_THROW(std::unique_ptr<cudm_state> mismatchedState =
+                   std::make_unique<cudm_state>(handle_,
+                                                mock_initial_state_data(),
+                                                std::vector<int64_t>{3, 3}),
+               std::invalid_argument);
+}
+
+// Compute step with zero step size
+TEST_F(CuDensityMatTimeStepperTest, ComputeStepZeroStepSize) {
+  EXPECT_THROW(time_stepper_->compute(*state_, 0.0, 0.0), std::runtime_error);
+}
+
+// Compute step with large time values
+TEST_F(CuDensityMatTimeStepperTest, ComputeStepLargeTimeValues) {
+  EXPECT_NO_THROW(time_stepper_->compute(*state_, 1e6, 1e3));
+}

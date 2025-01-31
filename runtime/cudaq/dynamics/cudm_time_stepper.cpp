@@ -18,12 +18,16 @@ cudm_time_stepper::cudm_time_stepper(cudensitymatHandle_t handle,
 
 cudm_state cudm_time_stepper::compute(cudm_state &state, double t,
                                       double step_size) {
+  if (step_size == 0.0) {
+    throw std::runtime_error("Step size cannot be zero.");
+  }
+
   if (!state.is_initialized()) {
     throw std::runtime_error("State is not initialized.");
   }
 
   if (!handle_) {
-    throw std::runtime_error("cudm_time_stepper handle is not initializes.");
+    throw std::runtime_error("cudm_time_stepper handle is not initialized.");
   }
 
   if (!liouvillian_) {
