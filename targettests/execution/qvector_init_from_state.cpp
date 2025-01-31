@@ -6,12 +6,18 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// REQUIRES: remote-sim
-// REQUIRES: c++20
-
 // clang-format off
-// TODO-FIX-KERNEL-EXEC
-// RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s
+// Simulators
+// RUN: nvq++ %cpp_std --enable-mlir  %s                              -o %t && %t | FileCheck %s
+
+// Quantum emulators
+// RUN: nvq++ %cpp_std --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target ionq                     --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target anyon                    --emulate %s -o %t && %t | FileCheck %s
+// 2 different IQM machines for 2 different topologies
+// RUN: nvq++ %cpp_std --target iqm --iqm-machine Adonis --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target iqm --iqm-machine Apollo --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target oqc                      --emulate %s -o %t && %t | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>
@@ -113,14 +119,18 @@ int main() {
     std::cout
         << "Passing large state from another kernel as argument (kernel mode)"
         << std::endl;
-    auto largeState = cudaq::get_state(test_init_state{}, 14);
+    // TODO: State larger than 5 qubits fails on iqm machines with Adonis
+    // architecture
+    // TODO: State larger than 8 qubits fails on oqc and anyon
+    // Up to 14 bits works with quantinuum an ionq
+    auto largeState = cudaq::get_state(test_init_state{}, 5);
     auto counts = cudaq::sample(test_state_param{}, &largeState);
     printCounts(counts);
   }
   // clang-format off
   // CHECK: Passing large state from another kernel as argument (kernel mode)
-  // CHECK: 01111111111111
-  // CHECK: 11111111111111
+  // CHECK: 01111
+  // CHECK: 11111
   // clang-format on
 
   {
@@ -168,83 +178,5 @@ int main() {
   // CHECK: 10
   // clang-format on
 
-  {
-    std::cout << "Passing state from another kernel as argument iteratively "
-                 "with vector args (kernel mode)"
-              << std::endl;
-    auto state = cudaq::get_state(test_init_state{}, 2);
-    auto words = std::vector<cudaq::pauli_word>{cudaq::pauli_word{"XX"}};
-    for (auto i = 0; i < 4; i++) {
-      auto counts = cudaq::sample(test_state_param3{}, &state, words);
-      std::cout << "Iteration: " << i << std::endl;
-      printCounts(counts);
-      state = cudaq::get_state(test_state_param3{}, &state, words);
-      words = std::vector<cudaq::pauli_word>{cudaq::pauli_word{"XY"}};
-    }
-  }
-  // clang-format off
-  // CHECK: Passing state from another kernel as argument iteratively with vector args (kernel mode)
-  // CHECK: Iteration: 0
-  // CHECK: 00
-  // CHECK: 01
-  // CHECK: 10
-  // CHECK: 11
-  // CHECK: Iteration: 1
-  // CHECK: 00
-  // CHECK: 01
-  // CHECK: 10
-  // CHECK: 11
-  // CHECK: Iteration: 2
-  // CHECK: 00
-  // CHECK: 01
-  // CHECK: 10
-  // CHECK: 11
-  // CHECK: Iteration: 3
-  // CHECK: 00
-  // CHECK: 01
-  // CHECK: 10
-  // CHECK: 11
-  // clang-format on
-
-  {
-    std::cout << "Passing state from another kernel as argument iteratively "
-                 "with vector args with 2 elements (kernel mode)"
-              << std::endl;
-    auto state = cudaq::get_state(test_init_state{}, 2);
-    auto words = std::vector<cudaq::pauli_word>{cudaq::pauli_word{"XX"},
-                                                cudaq::pauli_word{"II"}};
-    auto coeffs = std::vector<double>{1.0, 2.0};
-    for (auto i = 0; i < 4; i++) {
-      auto counts = cudaq::sample(test_state_param4{}, &state, coeffs, words);
-      std::cout << "Iteration: " << i << std::endl;
-      printCounts(counts);
-      state = cudaq::get_state(test_state_param4{}, &state, coeffs, words);
-      words = std::vector<cudaq::pauli_word>{cudaq::pauli_word{"II"},
-                                             cudaq::pauli_word{"XY"}};
-      coeffs = std::vector<double>{1.0, 2.0};
-    }
-  }
-  // clang-format off
-  // CHECK: Passing state from another kernel as argument iteratively with vector args with 2 elements (kernel mode)
-  // CHECK: Iteration: 0
-  // CHECK: 00
-  // CHECK: 01
-  // CHECK: 10
-  // CHECK: 11
-  // CHECK: Iteration: 1
-  // CHECK: 00
-  // CHECK: 01
-  // CHECK: 10
-  // CHECK: 11
-  // CHECK: Iteration: 2
-  // CHECK: 00
-  // CHECK: 01
-  // CHECK: 10
-  // CHECK: 11
-  // CHECK: Iteration: 3
-  // CHECK: 00
-  // CHECK: 01
-  // CHECK: 10
-  // CHECK: 11
-  // clang-format on
+  // TODO: add tests for vectors of pauli words after we can lifts the arrays of pauli words.
 }

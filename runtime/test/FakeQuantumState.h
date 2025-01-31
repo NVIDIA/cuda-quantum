@@ -10,27 +10,39 @@
 #include <cassert>
 #include <memory>
 
+#include <iostream>
+
 /// @cond DO_NOT_DOCUMENT
 /// @brief Fake simulation state to use in tests.
-class FakeSimulationState : public cudaq::SimulationState {
+class FakeQuantumState : public cudaq::SimulationState {
 private:
-  std::size_t size = 0;
-  void *data = 0;
+  std::string kernelName;
+  std::vector<void *> args;
 
 public:
   virtual std::unique_ptr<SimulationState>
   createFromSizeAndPtr(std::size_t size, void *data,
                        std::size_t dataType) override {
     throw std::runtime_error("Not implemented");
-    return std::make_unique<FakeSimulationState>(size, data);
   }
 
-  FakeSimulationState() = default;
-  FakeSimulationState(std::size_t size, void *data) : size(size), data(data) {}
+  FakeQuantumState() = default;
+  FakeQuantumState(const std::string &kernelName,
+                   const std::vector<void *> args)
+      : kernelName(kernelName), args(args) {}
+  FakeQuantumState(const FakeQuantumState &other)
+      : kernelName(other.kernelName), args(other.args) {}
 
   virtual std::unique_ptr<cudaq::SimulationState>
   createFromData(const cudaq::state_data &data) override {
     throw std::runtime_error("Not implemented");
+  }
+
+  virtual bool hasData() const override { return false; }
+
+  virtual std::optional<std::pair<std::string, std::vector<void *>>>
+  getKernelInfo() const override {
+    return std::make_pair(kernelName, args);
   }
 
   virtual Tensor getTensor(std::size_t tensorIdx = 0) const override {
@@ -44,7 +56,7 @@ public:
   virtual std::size_t getNumTensors() const override { return 1; }
 
   virtual std::size_t getNumQubits() const override {
-    return std::countr_zero(size);
+    throw std::runtime_error("Not implemented");
   }
 
   virtual std::complex<double> overlap(const SimulationState &other) override {
@@ -74,12 +86,12 @@ public:
   virtual std::complex<double>
   operator()(std::size_t tensorIdx,
              const std::vector<std::size_t> &indices) override {
-    assert(tensorIdx == 0);
-    assert(indices.size() == 1);
-    return *(static_cast<std::complex<double> *>(data) + indices[0]);
+    throw std::runtime_error("Not implemented");
   }
 
-  virtual std::size_t getNumElements() const override { return size; }
+  virtual std::size_t getNumElements() const override {
+    throw std::runtime_error("Not implemented");
+  }
 
   virtual bool isDeviceData() const override { return false; }
 
@@ -87,16 +99,14 @@ public:
 
   virtual void toHost(std::complex<double> *clientAllocatedData,
                       std::size_t numElements) const override {
-    throw std::runtime_error(
-        "SimulationState::toHost complex128 not implemented.");
+    throw std::runtime_error("Not implemented");
   }
 
   virtual void toHost(std::complex<float> *clientAllocatedData,
                       std::size_t numElements) const override {
-    throw std::runtime_error(
-        "SimulationState::toHost complex64 not implemented.");
+    throw std::runtime_error("Not implemented");
   }
 
-  virtual ~FakeSimulationState() {}
+  virtual ~FakeQuantumState() override {}
 };
 /// @endcond

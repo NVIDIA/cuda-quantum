@@ -11,6 +11,7 @@
 
 // RUN: test_argument_conversion | FileCheck %s
 
+#include "FakeQuantumState.h"
 #include "FakeSimulationState.h"
 #include "common/ArgumentConversion.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
@@ -20,9 +21,28 @@
 #include "mlir/Parser/Parser.h"
 #include <numeric>
 
+extern "C" void __cudaq_deviceCodeHolderAdd(const char *, const char *);
+
+void dumpSubstitutionModules(cudaq::opt::ArgumentConverter &ab) {
+  std::function<void(cudaq::opt::ArgumentConverter &)> dump =
+      [&dump](cudaq::opt::ArgumentConverter &con) {
+        // Dump the conversions
+        llvm::outs() << "========================================\n"
+                        "Substitution module:\n"
+                     << con.getKernelName() << "\n"
+                     << con.getSubstitutionModule() << '\n';
+
+        for (auto &calleeCon : con.getCalleeConverters())
+          dump(calleeCon);
+      };
+
+  dump(ab);
+}
+
 void doSimpleTest(mlir::MLIRContext *ctx, const std::string &typeName,
-                  std::vector<void *> args) {
-  std::string code = R"#(
+                  std::vector<void *> args,
+                  const std::string &additionalCode = "") {
+  std::string code = additionalCode + R"#(
 func.func private @callee(%0: )#" +
                      typeName + R"#()
 func.func @__nvqpp__mlirgen__testy(%0: )#" +
@@ -37,10 +57,10 @@ func.func @__nvqpp__mlirgen__testy(%0: )#" +
   cudaq::opt::ArgumentConverter ab{"testy", *mod};
   // Create the argument conversions
   ab.gen(args);
-  // Dump the conversions
-  llvm::outs() << "========================================\n"
-                  "Substitution module:\n"
-               << ab.getSubstitutionModule() << '\n';
+  // Dump the modified source module
+  llvm::outs() << "Source module (after):\n" << *mod << '\n';
+  // Dump all conversions
+  dumpSubstitutionModules(ab);
 }
 
 void doTest(mlir::MLIRContext *ctx, std::vector<std::string> &typeNames,
@@ -80,14 +100,12 @@ void doTest(mlir::MLIRContext *ctx, std::vector<std::string> &typeNames,
   auto mod = mlir::parseSourceString<mlir::ModuleOp>(code, ctx);
   llvm::outs() << "Source module:\n" << *mod << '\n';
   cudaq::opt::ArgumentConverter ab{"testy", *mod};
-
   // Create the argument conversions
   ab.gen_drop_front(args, startingArgIdx);
-
-  // Dump the conversions
-  llvm::outs() << "========================================\n"
-                  "Substitution module:\n"
-               << ab.getSubstitutionModule() << '\n';
+  // Dump the modified source module
+  llvm::outs() << "Source module (after):\n" << *mod << '\n';
+  // Dump all conversions
+  dumpSubstitutionModules(ab);
 }
 
 void test_scalars(mlir::MLIRContext *ctx) {
@@ -361,7 +379,7 @@ void test_recursive(mlir::MLIRContext *ctx) {
   // clang-format on
 }
 
-void test_state(mlir::MLIRContext *ctx) {
+void test_simulation_state(mlir::MLIRContext *ctx) {
   {
     std::vector<std::complex<double>> data{M_SQRT1_2, M_SQRT1_2, 0., 0.,
                                            0.,        0.,        0., 0.};
@@ -381,6 +399,197 @@ void test_state(mlir::MLIRContext *ctx) {
 // CHECK:           %[[VAL_2:.*]] = quake.create_state %[[VAL_0]], %[[VAL_1]] : (!cc.ptr<!cc.array<complex<f64> x 8>>, i64) -> !cc.ptr<!cc.state>
 // CHECK:        }
 // CHECK-DAG:    cc.global constant private @[[VAL_GC]] (dense<[(0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<8xcomplex<f64>>) : !cc.array<complex<f64> x 8>
+  // clang-format on
+}
+
+void test_quantum_state(mlir::MLIRContext *ctx) {
+  {
+    auto kernel = "init";
+    auto kernelCode =
+        ""
+        "func.func private @__nvqpp__mlirgen__init(%arg0: i64) {\n"
+        "  %0 = quake.alloca !quake.veq<?>[%arg0 : i64]\n"
+        "  %1 = quake.extract_ref %0[0] : (!quake.veq<?>) -> !quake.ref\n"
+        "  quake.x %1 : (!quake.ref) -> ()\n"
+        "  return\n"
+        "}\n";
+    __cudaq_deviceCodeHolderAdd(kernel, kernelCode);
+
+    std::int64_t n = 2;
+    std::vector<void *> a = {static_cast<void *>(&n)};
+    auto x = cudaq::state(new FakeQuantumState(kernel, a));
+    std::vector<void *> v = {static_cast<void *>(&x)};
+    doSimpleTest(ctx, "!cc.ptr<!cc.state>", v, kernelCode);
+  }
+
+  // clang-format off
+// CHECK:       Source module:
+// CHECK:         func.func private @__nvqpp__mlirgen__init(%arg0: i64) {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<?>[%arg0 : i64]
+// CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<?>) -> !quake.ref
+// CHECK:           quake.x %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }
+// CHECK:         func.func private @callee(!cc.ptr<!cc.state>)
+
+// CHECK:       Source module (after):
+// CHECK:         func.func private @__nvqpp__mlirgen__init(%arg0: i64) {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<?>[%arg0 : i64]
+// CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<?>) -> !quake.ref
+// CHECK:           quake.x %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }
+// CHECK:         func.func private @callee(!cc.ptr<!cc.state>)
+// CHECK:         func.func private @__nvqpp__mlirgen__init.init_0(%arg0: i64, %arg1: !quake.veq<?>) -> !quake.veq<?> {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i64
+// CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
+// CHECK:           %[[VAL_2:.*]] = arith.subi %arg0, %[[VAL_1]] : i64
+// CHECK:           %[[VAL_3:.*]] = quake.subveq %arg1, %[[VAL_0]], %[[VAL_2]] : (!quake.veq<?>, i64, i64) -> !quake.veq<?>
+// CHECK:           %[[VAL_4:.*]] = arith.addi %[[VAL_0]], %arg0 : i64
+// CHECK:           %[[VAL_5:.*]] = arith.addi %[[VAL_0]], %arg0 : i64
+// CHECK:           %[[VAL_6:.*]] = quake.extract_ref %[[VAL_3]][0] : (!quake.veq<?>) -> !quake.ref
+// CHECK:           quake.x %[[VAL_6]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_7:.*]] = arith.subi %[[VAL_5]], %[[VAL_1]] : i64
+// CHECK:           %[[VAL_8:.*]] = quake.subveq %arg1, %[[VAL_0]], %[[VAL_7]] : (!quake.veq<?>, i64, i64) -> !quake.veq<?>
+// CHECK:           return %[[VAL_8]] : !quake.veq<?>
+// CHECK:         }
+// CHECK:         func.func private @__nvqpp__mlirgen__init.num_qubits_0(%arg0: i64) -> i64 {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i64
+// CHECK:           %[[VAL_1:.*]] = arith.addi %[[VAL_0]], %arg0 : i64
+// CHECK:           return %[[VAL_1]] : i64
+// CHECK:         }
+
+// CHECK:         ========================================
+// CHECK:         Substitution module:
+// CHECK:         testy
+// CHECK-LABEL:   cc.arg_subst[0] {
+// CHECK:           %[[VAL_0:.*]] = quake.get_state "__nvqpp__mlirgen__init.num_qubits_0" "__nvqpp__mlirgen__init.init_0" : !cc.ptr<!cc.state>
+// CHECK:         }
+// CHECK:         ========================================
+// CHECK:         Substitution module:
+// CHECK:         init.init_0
+// CHECK-LABEL:   cc.arg_subst[0] {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 2 : i64
+// CHECK:         }
+// CHECK:         ========================================
+// CHECK:         Substitution module:
+// CHECK:         init.num_qubits_0
+// CHECK-LABEL:   cc.arg_subst[0] {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 2 : i64
+// CHECK:         }
+  // clang-format on
+
+  {
+    auto kernel = "init";
+    auto kernelCode =
+        ""
+        " func.func private @__nvqpp__mlirgen__init(%arg0: i64) {\n"
+        "   %2 = quake.alloca !quake.veq<?>[%arg0 : i64]\n"
+        "   %3 = quake.extract_ref %2[0] : (!quake.veq<?>) -> !quake.ref\n"
+        "   quake.x %3 : (!quake.ref) -> ()\n"
+        "   %measOut = quake.mz %3 name \"\" : (!quake.ref) -> !quake.measure\n"
+        "   %4 = quake.discriminate %measOut : (!quake.measure) -> i1\n"
+        "   cc.if(%4) {\n"
+        "    %6 = quake.alloca !quake.veq<?>[%arg0 : i64]\n"
+        "    %7 = quake.extract_ref %6[0] : (!quake.veq<?>) -> !quake.ref\n"
+        "    quake.x %7 : (!quake.ref) -> ()\n"
+        "    %8 = quake.extract_ref %2[1] : (!quake.veq<?>) -> !quake.ref\n"
+        "    quake.y %8 : (!quake.ref) -> ()\n"
+        "   }\n"
+        "   return\n"
+        "}\n";
+
+    __cudaq_deviceCodeHolderAdd(kernel, kernelCode);
+
+    std::int64_t n = 2;
+    std::vector<void *> a = {static_cast<void *>(&n)};
+    auto x = cudaq::state(new FakeQuantumState(kernel, a));
+    std::vector<void *> v = {static_cast<void *>(&x)};
+    doSimpleTest(ctx, "!cc.ptr<!cc.state>", v, kernelCode);
+  }
+
+  // clang-format off
+// CHECK:       Source module:
+// CHECK:         func.func private @__nvqpp__mlirgen__init(%arg0: i64) {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<?>[%arg0 : i64]
+// CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<?>) -> !quake.ref
+// CHECK:           quake.x %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] name "" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_3:.*]] = quake.discriminate %[[VAL_2]] : (!quake.measure) -> i1
+// CHECK:           cc.if(%[[VAL_3]]) {
+// CHECK:             %[[VAL_4:.*]] = quake.alloca !quake.veq<?>[%arg0 : i64]
+// CHECK:             %[[VAL_5:.*]] = quake.extract_ref %[[VAL_4]][0] : (!quake.veq<?>) -> !quake.ref
+// CHECK:             quake.x %[[VAL_5]] : (!quake.ref) -> ()
+// CHECK:             %[[VAL_6:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<?>) -> !quake.ref
+// CHECK:             quake.y %[[VAL_6]] : (!quake.ref) -> ()
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }
+// CHECK:         func.func private @callee(!cc.ptr<!cc.state>)
+
+// CHECK:       Source module (after):
+// CHECK:         func.func private @__nvqpp__mlirgen__init(%arg0: i64) {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<?>[%arg0 : i64]
+// CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<?>) -> !quake.ref
+// CHECK:           quake.x %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] name "" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_3:.*]] = quake.discriminate %[[VAL_2]] : (!quake.measure) -> i1
+// CHECK:           cc.if(%[[VAL_3]]) {
+// CHECK:             %[[VAL_4:.*]] = quake.alloca !quake.veq<?>[%arg0 : i64]
+// CHECK:             %[[VAL_5:.*]] = quake.extract_ref %[[VAL_4]][0] : (!quake.veq<?>) -> !quake.ref
+// CHECK:             quake.x %[[VAL_5]] : (!quake.ref) -> ()
+// CHECK:             %[[VAL_6:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<?>) -> !quake.ref
+// CHECK:             quake.y %[[VAL_6]] : (!quake.ref) -> ()
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }
+// CHECK:         func.func private @callee(!cc.ptr<!cc.state>)
+// CHECK:         func.func private @__nvqpp__mlirgen__init.init_1(%arg0: i64, %arg1: !quake.veq<?>) -> !quake.veq<?> {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i64
+// CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
+// CHECK:           %[[VAL_2:.*]] = arith.subi %arg0, %[[VAL_1]] : i64
+// CHECK:           %[[VAL_3:.*]] = quake.subveq %arg1, %[[VAL_0]], %[[VAL_2]] : (!quake.veq<?>, i64, i64) -> !quake.veq<?>
+// CHECK:           %[[VAL_4:.*]] = arith.addi %[[VAL_0]], %arg0 : i64
+// CHECK:           %[[VAL_5:.*]] = arith.addi %[[VAL_0]], %arg0 : i64
+// CHECK:           %[[VAL_6:.*]] = quake.extract_ref %[[VAL_3]][0] : (!quake.veq<?>) -> !quake.ref
+// CHECK:           quake.x %[[VAL_6]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_7:.*]] = quake.mz %[[VAL_6]] name "" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_8:.*]] = quake.discriminate %[[VAL_7]] : (!quake.measure) -> i1
+// CHECK:           cc.if(%[[VAL_8]]) {
+// CHECK:             %[[VAL_11:.*]] = quake.alloca !quake.veq<?>[%arg0 : i64]
+// CHECK:             %[[VAL_12:.*]] = quake.extract_ref %[[VAL_11]][0] : (!quake.veq<?>) -> !quake.ref
+// CHECK:             quake.x %[[VAL_12]] : (!quake.ref) -> ()
+// CHECK:             %[[VAL_13:.*]] = quake.extract_ref %[[VAL_3]][1] : (!quake.veq<?>) -> !quake.ref
+// CHECK:             quake.y %[[VAL_13]] : (!quake.ref) -> ()
+// CHECK:           }
+// CHECK:           %[[VAL_9:.*]] = arith.subi %[[VAL_5]], %[[VAL_1]] : i64
+// CHECK:           %[[VAL_10:.*]] = quake.subveq %arg1, %[[VAL_0]], %[[VAL_9]] : (!quake.veq<?>, i64, i64) -> !quake.veq<?>
+// CHECK:           return %[[VAL_10]] : !quake.veq<?>
+// CHECK:         }
+// CHECK:         func.func private @__nvqpp__mlirgen__init.num_qubits_1(%arg0: i64) -> i64 {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i64
+// CHECK:           %[[VAL_1:.*]] = arith.addi %[[VAL_0]], %arg0 : i64
+// CHECK:           return %[[VAL_1]] : i64
+// CHECK:         }
+
+// CHECK:         ========================================
+// CHECK:         Substitution module:
+// CHECK:         testy
+// CHECK-LABEL:   cc.arg_subst[0] {
+// CHECK:           %[[VAL_0:.*]] = quake.get_state "__nvqpp__mlirgen__init.num_qubits_1" "__nvqpp__mlirgen__init.init_1" : !cc.ptr<!cc.state>
+// CHECK:         }
+// CHECK:         ========================================
+// CHECK:         Substitution module:
+// CHECK:         init.init_1
+// CHECK-LABEL:   cc.arg_subst[0] {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 2 : i64
+// CHECK:         }
+// CHECK:         ========================================
+// CHECK:         Substitution module:
+// CHECK:         init.num_qubits_1
+// CHECK-LABEL:   cc.arg_subst[0] {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 2 : i64
+// CHECK:         }
   // clang-format on
 }
 
@@ -514,7 +723,8 @@ int main() {
   test_vectors(&context);
   test_aggregates(&context);
   test_recursive(&context);
-  test_state(&context);
+  test_simulation_state(&context);
+  test_quantum_state(&context);
   test_combinations(&context);
   return 0;
 }

@@ -778,8 +778,8 @@ def DeleteStates : Pass<"delete-states", "mlir::ModuleOp"> {
     func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
       %c8_i64 = arith.constant 8 : i64
       %0 = cc.address_of @foo.rodata_synth_0 : !cc.ptr<!cc.array<complex<f32> x 8>>
-      %4 = cc.create_state %3, %c8_i64  : (!cc.ptr<!cc.array<complex<f32> x 8>>, i64) -> !cc.ptr<!cc.state>
-      %5 = cc.get_number_of_qubits %4 : (!cc.ptr<!cc.state>) -> i64
+      %4 = quake.create_state %3, %c8_i64  : (!cc.ptr<!cc.array<complex<f32> x 8>>, i64) -> !cc.ptr<!cc.state>
+      %5 = quake.get_number_of_qubits %4 : (!cc.ptr<!cc.state>) -> i64
       %6 = quake.alloca !quake.veq<?>[%5 : i64]
       %7 = quake.init_state %6, %4 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
 
@@ -805,7 +805,7 @@ def DeleteStates : Pass<"delete-states", "mlir::ModuleOp"> {
     Before DeleteStates (delete-states):
     ```  func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
       ...
-      %4 = call @__nvqpp_cudaq_state_createFromData_fp32(%3, %c8_i64) : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
+      %4 = quake.create_state %3, %c8_i64  : (!cc.ptr<!cc.array<complex<f32> x 8>>, i64) -> !cc.ptr<!cc.state>
       call @__nvqpp__mlirgen__sub_kernel(%4) : (!cc.ptr<!cc.state>) -> ()
       return
     }
@@ -815,9 +815,47 @@ def DeleteStates : Pass<"delete-states", "mlir::ModuleOp"> {
     ```
     func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
       ...
-      %4 = call @__nvqpp_cudaq_state_createFromData_fp32(%3, %c8_i64) : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
+      %4 = quake.create_state %3, %c8_i64  : (!cc.ptr<!cc.array<complex<f32> x 8>>, i64) -> !cc.ptr<!cc.state>
       call @__nvqpp__mlirgen__sub_kernel(%4) : (!cc.ptr<!cc.state>) -> ()
-      call @__nvqpp_cudaq_state_delete(%4) : (!cc.ptr<!cc.state>) -> ()
+      quake.delete_state %3 : !cc.ptr<!cc.state>
+      return
+    }
+    ```
+  }];
+}
+
+def ReplaceStateWithKernel : Pass<"replace-state-with-kernel", "mlir::func::FuncOp"> {
+  let summary =
+    "Replace `quake.init_state` instructions with call to the kernel generating the state";
+  let description = [{
+    Argument synthesis for state pointers for quantum devices substitutes state
+    argument by a new state created from `__nvqpp_cudaq_state_get` intrinsic, which
+    in turn accepts the name for the synthesized kernel that generated the state.
+
+    This optimization completes the replacement of `quake.init_state` instruction by:
+
+    - Replace `quake.init_state` by a call that `get_state` call refers to.
+    - Remove all unneeded instructions.
+
+    For example:
+
+    Before ReplaceStateWithKernel (replace-state-with-kernel):
+    ```
+    func.func @foo() {
+      %0 = quake.get_state "callee.num_qubits_0" "callee.init_0": !cc.ptr<!cc.state>
+      %1 = quake.get_number_of_qubits %0 : (!cc.ptr<!cc.state>) -> i64
+      %2 = quake.alloca !quake.veq<?>[%1 : i64]
+      %3 = quake.init_state %2, %0 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
+      return
+    }
+    ```
+
+    After ReplaceStateWithKernel (replace-state-with-kernel):
+    ```
+    func.func @foo()  {
+      %1 = call @callee.num_qubits_0() : () -> i64
+      %2 = quake.alloca !quake.veq<?>[%1 : i64]
+      %3 = call @callee.init_0(%2) : (!quake.veq<?>) -> !quake.veq<?>
       return
     }
     ```
