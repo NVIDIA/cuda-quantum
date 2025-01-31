@@ -16,8 +16,15 @@
 namespace cudaq {
 
 cudm_state::cudm_state(cudensitymatHandle_t handle,
-                       std::vector<std::complex<double>> rawData)
-    : rawData_(rawData), state_(nullptr), handle_(handle), hilbertSpaceDims_() {
+                       const std::vector<std::complex<double>> rawData,
+                       const std::vector<int64_t> &hilbertSpaceDims)
+    : rawData_(rawData), state_(nullptr), handle_(handle),
+      hilbertSpaceDims_(hilbertSpaceDims) {
+
+  if (rawData_.empty()) {
+    throw std::invalid_argument("Raw data cannot be empty.");
+  }
+
   // Allocate device memory
   size_t dataSize = rawData_.size() * sizeof(std::complex<double>);
   cudaMalloc(reinterpret_cast<void **>(&gpuData_), dataSize);
@@ -25,24 +32,8 @@ cudm_state::cudm_state(cudensitymatHandle_t handle,
   // Copy data from host to device
   HANDLE_CUDA_ERROR(
       cudaMemcpy(gpuData_, rawData_.data(), dataSize, cudaMemcpyHostToDevice));
-}
 
-cudm_state::~cudm_state() {
-  if (state_) {
-    cudensitymatDestroyState(state_);
-  }
-  if (gpuData_) {
-    cudaFree(gpuData_);
-  }
-}
-
-void cudm_state::init_state(const std::vector<int64_t> &hilbertSpaceDims) {
-  if (state_) {
-    throw std::runtime_error("State is already initialized.");
-  }
-
-  hilbertSpaceDims_ = hilbertSpaceDims;
-
+  // Determine if this is a denisty matrix or state vector
   size_t rawDataSize = rawData_.size();
   size_t expectedDensityMatrixSize =
       calculate_density_matrix_size(hilbertSpaceDims);
@@ -68,6 +59,15 @@ void cudm_state::init_state(const std::vector<int64_t> &hilbertSpaceDims) {
       hilbertSpaceDims.data(), 1, CUDA_C_64F, &state_));
 
   attach_storage();
+}
+
+cudm_state::~cudm_state() {
+  if (state_) {
+    cudensitymatDestroyState(state_);
+  }
+  if (gpuData_) {
+    cudaFree(gpuData_);
+  }
 }
 
 bool cudm_state::is_initialized() const { return state_ != nullptr; }
@@ -100,8 +100,7 @@ cudm_state cudm_state::operator+(const cudm_state &other) const {
     resultData[i] = rawData_[i] + other.rawData_[i];
   }
 
-  cudm_state result(handle_, resultData);
-  result.init_state({static_cast<int64_t>(resultData.size())});
+  cudm_state result(handle_, resultData, hilbertSpaceDims_);
   return result;
 }
 
@@ -111,8 +110,7 @@ cudm_state cudm_state::operator*(double scalar) const {
     resultData[i] = rawData_[i] * scalar;
   }
 
-  cudm_state result(handle_, resultData);
-  result.init_state({static_cast<int64_t>(resultData.size())});
+  cudm_state result(handle_, resultData, hilbertSpaceDims_);
   return result;
 }
 
@@ -153,8 +151,7 @@ cudm_state cudm_state::to_density_matrix() const {
     }
   }
 
-  cudm_state densityMatrixState(handle_, densityMatrix);
-  densityMatrixState.init_state(hilbertSpaceDims_);
+  cudm_state densityMatrixState(handle_, densityMatrix, hilbertSpaceDims_);
   return densityMatrixState;
 }
 
@@ -208,11 +205,8 @@ void cudm_state::attach_storage() {
 
 size_t cudm_state::calculate_state_vector_size(
     const std::vector<int64_t> &hilbertSpaceDims) const {
-  size_t size = 1;
-  for (auto dim : hilbertSpaceDims) {
-    size *= dim;
-  }
-  return size;
+  return std::accumulate(hilbertSpaceDims.begin(), hilbertSpaceDims.end(), 1,
+                         std::multiplies<>());
 }
 
 size_t cudm_state::calculate_density_matrix_size(
@@ -267,8 +261,7 @@ cudm_state cudm_state::create_initial_state(
     throw std::invalid_argument("Unsupported InitialStateArgT type.");
   }
 
-  cudm_state state(handle, rawData);
-  state.init_state(hilbertSpaceDims);
+  cudm_state state(handle, rawData, hilbertSpaceDims);
 
   // Convert to a density matrix if collapse operators are present.
   if (hasCollapseOps && !state.is_density_matrix()) {
