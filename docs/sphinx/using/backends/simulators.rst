@@ -1,5 +1,7 @@
 CUDA-Q Circuit Simulation Backends
 ************************************
+.. _simulators:
+
 The simulators available in CUDA-Q are grouped in the figure below. The following sections follow the structre of the figure and provide additional technical details and code examples fo using each circuit simulator.
 
 .. figure:: circuitsimulators.png

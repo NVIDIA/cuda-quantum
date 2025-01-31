@@ -79,7 +79,7 @@ By selecting the `nvqc` target, the quantum circuit simulation will run on NVQC 
 Simulator Backend Selection
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-NVQC hosts all CUDA-Q simulator backends (see :doc:`simulators`). 
+NVQC hosts all CUDA-Q simulator backends (see :ref:`simulators <simulators>`). 
 You may use the NVQC `backend` (Python) or `--nvqc-backend` (C++) option to select the simulator to be used by the service.
 
 For example, to request the `tensornet` simulator backend, the user can do the following for C++ or Python.
@@ -104,7 +104,7 @@ For example, to request the `tensornet` simulator backend, the user can do the f
 Multiple GPUs
 ^^^^^^^^^^^^^^
 
-Some CUDA-Q simulator backends are capable of multi-GPU distribution as detailed in :doc:`simulators`.
+Some CUDA-Q simulator backends are capable of multi-GPU distribution as detailed in :ref:`simulators <simulators>`.
 For example, the `nvidia-mgpu` backend can partition and distribute state vector simulation to multiple GPUs to simulate 
 a larger number of qubits, whose state vector size grows beyond the memory size of a single GPU.
 

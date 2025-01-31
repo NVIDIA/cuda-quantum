@@ -5,6 +5,7 @@ State Vector Simulators
 CPU (qpp-cpu)
 +++++++++++++
 
+.. _openmp cpu-only:
 .. _qpp-cpu-backend:
 
 The `qpp-cpu` backend backend provides a state vector simulator based on the CPU-only, OpenMP threaded `Q++ <https://github.com/softwareqinc/qpp>`_ library.
@@ -39,6 +40,8 @@ use the following commands:
 Single-GPU (nvidia) 
 ++++++++++++++++++++
 
+.. _cuquantum single-gpu:
+.. _default-simulator:
 .. _nvidia-backend:
 
 
