@@ -88,6 +88,34 @@ std::vector<int64_t> cudm_state::get_hilbert_space_dims() const {
   return hilbertSpaceDims_;
 }
 
+cudensitymatHandle_t cudm_state::get_handle() const { return handle_; }
+
+cudm_state cudm_state::operator+(const cudm_state &other) const {
+  if (rawData_.size() != other.rawData_.size()) {
+    throw std::invalid_argument("State size mismatch for addition.");
+  }
+
+  std::vector<std::complex<double>> resultData(rawData_.size());
+  for (size_t i = 0; i < rawData_.size(); i++) {
+    resultData[i] = rawData_[i] + other.rawData_[i];
+  }
+
+  cudm_state result(handle_, resultData);
+  result.init_state({static_cast<int64_t>(resultData.size())});
+  return result;
+}
+
+cudm_state cudm_state::operator*(double scalar) const {
+  std::vector<std::complex<double>> resultData(rawData_.size());
+  for (size_t i = 0; i < rawData_.size(); i++) {
+    resultData[i] = rawData_[i] * scalar;
+  }
+
+  cudm_state result(handle_, resultData);
+  result.init_state({static_cast<int64_t>(resultData.size())});
+  return result;
+}
+
 std::string cudm_state::dump() const {
   if (!is_initialized()) {
     throw std::runtime_error("State is not initialized.");

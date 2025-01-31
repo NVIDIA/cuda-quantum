@@ -75,6 +75,18 @@ public:
   /// @return A copy of the hilbert space dimensions of a vector of integers.
   std::vector<int64_t> get_hilbert_space_dims() const;
 
+  /// @brief Returns the handle
+  /// @return The handle associated with the state
+  cudensitymatHandle_t get_handle() const;
+
+  /// @brief Addition operator (element-wise)
+  /// @return The new state after the summation of two states.
+  cudm_state operator+(const cudm_state &other) const;
+
+  /// @brief Scalar multiplication operator
+  /// @return The new state after multiplying scalar with the current state.
+  cudm_state operator*(double scalar) const;
+
 private:
   std::vector<std::complex<double>> rawData_;
   std::complex<double> *gpuData_;
