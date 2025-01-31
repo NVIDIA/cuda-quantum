@@ -52,23 +52,20 @@ cudaq::matrix_2 operator_sum<HandlerTy>::m_evaluate(
   auto sum = EvaluatedMatrix();
   if (pad_terms) {
 
-    sum = EvaluatedMatrix(degrees, paddedTerm(terms[0]).m_evaluate(arithmetics, dimensions,
-                                              parameters, pad_terms));
+    sum = EvaluatedMatrix(degrees, paddedTerm(terms[0]).m_evaluate(arithmetics, pad_terms));
     for (auto term_idx = 1; term_idx < terms.size(); ++term_idx) {
       auto term = terms[term_idx];
 
-      auto eval = paddedTerm(term).m_evaluate(arithmetics, dimensions,
-                                              parameters, pad_terms);
+      auto eval = paddedTerm(term).m_evaluate(arithmetics, pad_terms);
       sum = arithmetics.add(sum, EvaluatedMatrix(degrees, eval));
     }
   } else {
     sum =
-        EvaluatedMatrix(degrees, terms[0].m_evaluate(arithmetics, dimensions,
-                                                       parameters, pad_terms));
+        EvaluatedMatrix(degrees, terms[0].m_evaluate(arithmetics, pad_terms));
     for (auto term_idx = 1; term_idx < terms.size(); ++term_idx) {
       auto term = terms[term_idx];
       auto eval =
-          term.m_evaluate(arithmetics, dimensions, parameters, pad_terms);
+          term.m_evaluate(arithmetics, pad_terms);
       sum = arithmetics.add(sum, EvaluatedMatrix(degrees, eval));
     }
   }
