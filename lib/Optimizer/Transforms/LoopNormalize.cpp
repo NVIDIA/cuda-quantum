@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "LoopAnalysis.h"
-#include "LoopNormalizePatterns.h"
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -23,6 +22,8 @@ namespace cudaq::opt {
 #define DEBUG_TYPE "cc-loop-normalize"
 
 using namespace mlir;
+
+#include "LoopNormalize.inc"
 
 namespace {
 class LoopNormalizePass

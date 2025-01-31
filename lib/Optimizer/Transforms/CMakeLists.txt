@@ -18,7 +18,6 @@ add_cudaq_library(OptTransforms
   ArgumentSynthesis.cpp
   BasisConversion.cpp
   CollapseStores.cpp
-  CollapseStoresPatterns.cpp
   CombineMeasurements.cpp
   CombineQuantumAlloc.cpp
   ConstPropComplex.cpp
@@ -36,11 +35,9 @@ add_cudaq_library(OptTransforms
   GlobalizeArrayValues.cpp
   LambdaLifting.cpp
   LiftArrayAlloc.cpp
-  LiftArrayAllocPatterns.cpp
   LinearCtrlRelations.cpp
   LoopAnalysis.cpp
   LoopNormalize.cpp
-  LoopNormalizePatterns.cpp
   LoopPeeling.cpp
   LoopUnroll.cpp
   LowerToCFG.cpp

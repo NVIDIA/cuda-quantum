@@ -6,12 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "CollapseStoresPatterns.h"
-#include "LiftArrayAllocPatterns.h"
 #include "LoopAnalysis.h"
-#include "LoopNormalizePatterns.h"
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "mlir/IR/Dominance.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
@@ -26,6 +24,10 @@ namespace cudaq::opt {
 #define DEBUG_TYPE "cc-loop-unroll"
 
 using namespace mlir;
+
+#include "CollapseStores.inc"
+#include "LiftArrayAlloc.inc"
+#include "LoopNormalize.inc"
 
 inline std::pair<Block *, Block *> findCloneRange(Block *first, Block *last) {
   return {first->getNextNode(), last->getPrevNode()};

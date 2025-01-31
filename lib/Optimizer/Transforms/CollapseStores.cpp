@@ -6,7 +6,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "CollapseStoresPatterns.h"
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
@@ -27,6 +26,8 @@ namespace cudaq::opt {
 #define DEBUG_TYPE "collapse-stores"
 
 using namespace mlir;
+
+#include "CollapseStores.inc"
 
 namespace {
 class CollapseStoresPass
