@@ -6,40 +6,48 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "LoopAnalysis.h"
 #include "PassDetails.h"
+#include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "mlir/IR/IRMapping.h"
+#include "mlir/Dialect/Complex/IR/Complex.h"
+#include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/Dominance.h"
+#include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 
 namespace cudaq::opt {
-#define GEN_PASS_DEF_LOOPNORMALIZE
+#define GEN_PASS_DEF_COLLAPSESTORES
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
-#define DEBUG_TYPE "cc-loop-normalize"
+#define DEBUG_TYPE "collapse-stores"
 
 using namespace mlir;
 
-#include "LoopNormalize.inc"
+#include "CollapseStores.inc"
 
 namespace {
-class LoopNormalizePass
-    : public cudaq::opt::impl::LoopNormalizeBase<LoopNormalizePass> {
+class CollapseStoresPass
+    : public cudaq::opt::impl::CollapseStoresBase<CollapseStoresPass> {
 public:
-  using LoopNormalizeBase::LoopNormalizeBase;
+  using CollapseStoresBase::CollapseStoresBase;
 
   void runOnOperation() override {
-    auto *op = getOperation();
     auto *ctx = &getContext();
+    auto func = getOperation();
+
     RewritePatternSet patterns(ctx);
-    patterns.insert<LoopPat>(ctx, allowClosedInterval, allowBreak);
-    if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns)))) {
-      op->emitOpError("could not normalize loop");
+    patterns.insert<RemoveUselessStorePattern>(ctx);
+
+    LLVM_DEBUG(llvm::dbgs() << "Before collapsing stores: " << func << '\n');
+
+    if (failed(applyPatternsAndFoldGreedily(func, std::move(patterns))))
       signalPassFailure();
-    }
+
+    LLVM_DEBUG(llvm::dbgs() << "After collapsing stores: " << func << '\n');
   }
 };
 } // namespace

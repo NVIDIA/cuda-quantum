@@ -9,9 +9,11 @@
 #include "LoopAnalysis.h"
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "mlir/IR/Dominance.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
+#include "mlir/Transforms/RegionUtils.h"
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_LOOPUNROLL
@@ -22,6 +24,10 @@ namespace cudaq::opt {
 #define DEBUG_TYPE "cc-loop-unroll"
 
 using namespace mlir;
+
+#include "CollapseStores.inc"
+#include "LiftArrayAlloc.inc"
+#include "LoopNormalize.inc"
 
 inline std::pair<Block *, Block *> findCloneRange(Block *first, Block *last) {
   return {first->getNextNode(), last->getPrevNode()};
@@ -230,6 +236,10 @@ public:
   void runOnOperation() override {
     auto *ctx = &getContext();
     auto *op = getOperation();
+
+    auto func = dyn_cast<func::FuncOp>(op);
+    DominanceInfo domInfo(func);
+
     auto numLoops = countLoopOps(op);
     unsigned progress = 0;
     if (numLoops) {
@@ -238,14 +248,28 @@ public:
         dialect->getCanonicalizationPatterns(patterns);
       for (RegisteredOperationName op : ctx->getRegisteredOperations())
         op.getCanonicalizationPatterns(patterns, ctx);
+
+      patterns.insert<LoopPat>(ctx, allowClosedInterval, allowBreak);
       patterns.insert<UnrollCountedLoop>(ctx, threshold,
                                          /*signalFailure=*/false, allowBreak,
                                          progress);
+
+      if (func)
+        patterns.insert<AllocaPattern>(ctx, domInfo, func.getName());
+      patterns.insert<RemoveUselessStorePattern>(ctx);
+
       FrozenRewritePatternSet frozen(std::move(patterns));
       // Iterate over the loops until a fixed-point is reached. Some loops can
       // only be unrolled if other loops are unrolled first and the constants
       // iteratively propagated.
       do {
+        // Clean up dead code.
+        if (func) {
+          auto builder = OpBuilder(op);
+          IRRewriter rewriter(builder);
+          [[maybe_unused]] auto unused =
+              simplifyRegions(rewriter, {func.getBody()});
+        }
         progress = 0;
         (void)applyPatternsAndFoldGreedily(op, frozen);
       } while (progress);
@@ -344,12 +368,9 @@ static void createUnrollingPipeline(OpPassManager &pm, unsigned threshold,
                                     bool allowClosedInterval) {
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  cudaq::opt::LoopNormalizeOptions lno{allowClosedInterval, allowBreak};
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize(lno));
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  cudaq::opt::LoopUnrollOptions luo{threshold, signalFailure, allowBreak};
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll(luo));
+  cudaq::opt::LoopUnrollOptions luo1{threshold, signalFailure,
+                                     allowClosedInterval, allowBreak};
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll(luo1));
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUpdateRegisterNames());
 }
 

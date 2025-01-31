@@ -1089,6 +1089,9 @@ class PyASTBridge(ast.NodeVisitor):
                 self.subscriptPushPointerValue = True
                 # Visit the subscript node, get the pointer value
                 self.visit(node.targets[0])
+                # Reset the push pointer value flag
+                self.subscriptPushPointerValue = False
+
                 ptrVal = self.popValue()
                 if not cc.PointerType.isinstance(ptrVal.type):
                     self.emitFatalError(
@@ -1109,7 +1112,6 @@ class PyASTBridge(ast.NodeVisitor):
                 # Store the value
                 cc.StoreOp(valueToStore, ptrVal)
                 # Reset the push pointer value flag
-                self.subscriptPushPointerValue = False
                 return
 
         else:
@@ -1456,11 +1458,13 @@ class PyASTBridge(ast.NodeVisitor):
 
                 # The total number of elements in the iterable
                 # we are generating should be `N == endVal - startVal`
-                totalSize = math.AbsIOp(arith.SubIOp(endVal,
-                                                     startVal).result).result
+                actualSize = arith.SubIOp(endVal, startVal).result
+                totalSize = math.AbsIOp(actualSize).result
 
                 # If the step is not == 1, then we also have
                 # to update the total size for the range iterable
+                actualSize = arith.DivSIOp(actualSize,
+                                           math.AbsIOp(stepVal).result).result
                 totalSize = arith.DivSIOp(totalSize,
                                           math.AbsIOp(stepVal).result).result
 
@@ -1499,7 +1503,7 @@ class PyASTBridge(ast.NodeVisitor):
                                             isDecrementing=isDecrementing)
 
                 self.pushValue(iterable)
-                self.pushValue(totalSize)
+                self.pushValue(actualSize)
                 return
 
             if node.func.id == 'enumerate':
@@ -3570,6 +3574,42 @@ class PyASTBridge(ast.NodeVisitor):
                     cc.ContinueOp([])
                 self.popIfStmtBlockStack()
                 self.symbolTable.popScope()
+
+    def visit_IfExp(self, node):
+        """
+        Map a Python `ast.IfExp` node to a `select` in the `arith` dialect.
+        """
+        if self.verbose:
+            print("[Visit IfExp = {}]".format(
+                ast.unparse(node) if hasattr(ast, 'unparse') else node))
+
+        self.currentNode = node
+
+        # Visit the conditional node, retain
+        # measurement results by assigning a dummy variable name
+        self.currentAssignVariableName = ''
+        self.visit(node.test)
+        self.currentAssignVariableName = None
+
+        condition = self.popValue()
+        condition = self.ifPointerThenLoad(condition)
+
+        if self.getIntegerType(1) != condition.type:
+            # not equal to 0, then compare with 1
+            condPred = IntegerAttr.get(self.getIntegerType(), 1)
+            condition = arith.CmpIOp(condPred, condition,
+                                     self.getConstantInt(0)).result
+
+        self.visit(node.body)
+        ifValue = self.popValue()
+        ifValue = self.ifPointerThenLoad(ifValue)
+
+        self.visit(node.orelse)
+        elseValue = self.popValue()
+        elseValue = self.ifPointerThenLoad(elseValue)
+
+        self.pushValue(arith.SelectOp(condition, ifValue, elseValue).result)
+        return
 
     def visit_Return(self, node):
         if self.verbose:
