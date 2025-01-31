@@ -40,8 +40,10 @@ public:
       return failure();
 
     LLVM_DEBUG(llvm::dbgs() << "Candidate was found\n");
-    auto eleTy = alloc.getElementType();
-    auto arrTy = cast<cudaq::cc::ArrayType>(eleTy);
+    auto allocTy = alloc.getElementType();
+    auto arrTy = cast<cudaq::cc::ArrayType>(allocTy);
+    auto eleTy = arrTy.getElementType();
+
     SmallVector<Attribute> values;
 
     // Every element of `stores` must be a cc::StoreOp with a ConstantOp as the
@@ -89,12 +91,16 @@ public:
         cannotEraseAlloc = isLive = true;
       } else {
         for (auto *useuser : user->getUsers()) {
+          if (!useuser)
+            continue;
           if (auto load = dyn_cast<cudaq::cc::LoadOp>(useuser)) {
             rewriter.setInsertionPointAfter(useuser);
             LLVM_DEBUG(llvm::dbgs() << "replaced load\n");
-            rewriter.replaceOpWithNewOp<cudaq::cc::ExtractValueOp>(
-                load, eleTy, conArr,
+            auto extractValue = rewriter.create<cudaq::cc::ExtractValueOp>(
+                loc, eleTy, conArr,
                 ArrayRef<cudaq::cc::ExtractValueArg>{offset});
+            rewriter.replaceAllUsesWith(load, extractValue);
+            insertOpToErase(load);
             continue;
           }
           if (isa<cudaq::cc::StoreOp>(useuser)) {
@@ -152,6 +158,7 @@ public:
 
     SmallVector<Operation *> toGlobalUses;
     SmallVector<SmallPtrSet<Operation *, 2>> loadSets(size);
+    SmallVector<SmallPtrSet<Operation *, 2>> storeSets(size);
 
     auto getWriteOp = [&](auto op, std::int32_t index) -> Operation * {
       Operation *theStore = nullptr;
@@ -160,6 +167,7 @@ public:
         if (!u)
           return nullptr;
         if (auto store = dyn_cast<cudaq::cc::StoreOp>(u)) {
+          storeSets[index].insert(u);
           if (op.getOperation() == store.getPtrvalue().getDefiningOp() &&
               isa_and_present<arith::ConstantOp, complex::ConstantOp>(
                   store.getValue().getDefiningOp())) {
@@ -253,6 +261,14 @@ public:
             LLVM_DEBUG(llvm::dbgs()
                        << "store " << scoreboard[i]
                        << " doesn't dominate load: " << *load << '\n');
+            return false;
+          }
+
+        for (auto *store : storeSets[i])
+          if (scoreboard[i] != store && dom.dominates(scoreboard[i], store)) {
+            LLVM_DEBUG(llvm::dbgs()
+                       << "store " << scoreboard[i]
+                       << " dominates another store: " << *store << '\n');
             return false;
           }
       }
