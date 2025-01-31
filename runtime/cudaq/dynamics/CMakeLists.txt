@@ -11,7 +11,18 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
 set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
 set(CUDAQ_OPS_SRC
-  scalar_operators.cpp elementary_operators.cpp product_operators.cpp operator_sum.cpp schedule.cpp definition.cpp helpers.cpp rydberg_hamiltonian.cpp cudm_helpers.cpp cudm_state.cpp cudm_time_stepper.cpp
+  scalar_operators.cpp
+  elementary_operators.cpp
+  product_operators.cpp
+  operator_sum.cpp
+  schedule.cpp
+  definition.cpp
+  helpers.cpp
+  rydberg_hamiltonian.cpp
+  cudm_helpers.cpp
+  cudm_state.cpp
+  cudm_time_stepper.cpp
+  runge_kutta_integrator.cpp
 )
 
 set(CUQUANTUM_INSTALL_PREFIX "/usr/local/lib/python3.10/dist-packages/cuquantum")

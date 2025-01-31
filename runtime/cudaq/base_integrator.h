@@ -31,13 +31,27 @@ protected:
   virtual void post_init() = 0;
 
 public:
+  /// @brief Default constructor
+  BaseIntegrator() = default;
+
+  /// @brief Constructor to initialize the integrator with a state and time
+  /// stepper.
+  /// @param initial_state Initial quantum state.
+  /// @param t0 Initial time.
+  /// @param stepper Time stepper instance.
+  BaseIntegrator(const TState &initial_state, double t0,
+                 std::shared_ptr<BaseTimeStepper<TState>> stepper)
+      : state(initial_state), t(t0), stepper(std::move(stepper)) {}
+
   virtual ~BaseIntegrator() = default;
 
+  /// @brief Set the initial state and time
   void set_state(const TState &initial_state, double t0 = 0.0) {
     state = initial_state;
     t = t0;
   }
 
+  /// @brief Set the system parameters (dimensions, schedule, and operators)
   void set_system(
       const std::map<int, int> &dimensions, std::shared_ptr<Schedule> schedule,
       std::shared_ptr<operator_sum> hamiltonian,
@@ -48,8 +62,10 @@ public:
     this->collapse_operators = collapse_operators;
   }
 
-  virtual void integrate(double t) = 0;
+  /// @brief Perform integration to the target time.
+  virtual void integrate(double target_time) = 0;
 
+  /// @brief Get the current time and state.
   std::pair<double, TState> get_state() const { return {t, state}; }
 };
 } // namespace cudaq
