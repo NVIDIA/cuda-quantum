@@ -126,7 +126,7 @@ func.func @test2() -> !quake.veq<2> {
 // GLOBAL-DAG:     cc.global constant private @__nvqpp__mlirgen__function_custom_h_generator_1._Z20custom_h_generator_1v.rodata_{{[0-9]+}} (dense<[(0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (-0.70710678118654757,0.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
 // GLOBAL-DAG:     cc.global constant private @test2.rodata_{{[0-9]+}} (dense<[1.000000e+00, 2.000000e+00, 6.000000e+00, 9.000000e+00]>" : tensor<4xf64>) : !cc.array<f64 x 4>
 
-func.func @test3() {
+func.func @test_two_stores() {
   %c0_i64 = arith.constant 0 : i64
   %c1_i64 = arith.constant 1 : i64
 
@@ -158,7 +158,7 @@ func.func @test3() {
   return
 }
 
-// CHECK-LABEL:   func.func @test3() {
+// CHECK-LABEL:   func.func @test_two_stores() {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i64
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           %[[VAL_2:.*]] = cc.const_array [1] : !cc.array<i64 x 1>
