@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/operators.h"
+#include "helpers.h"
 
 #include <iostream>
 #include <set>
@@ -180,8 +181,7 @@ std::vector<int> operator_sum<HandlerTy>::degrees() const {
       unsorted_degrees.insert(op.degrees.begin(), op.degrees.end());
   }
   auto degrees = std::vector<int>(unsorted_degrees.begin(), unsorted_degrees.end());
-  std::sort(degrees.begin(), degrees.end()); // FIXME: DELEGATE ANY CONVENTION RELATED ORDERING TO A GENERAL HELPER FUNCTION
-  return degrees;
+  return cudaq::detail::canonicalize_degrees(degrees);
 }
 
 template<typename HandlerTy>
