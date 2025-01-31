@@ -143,32 +143,20 @@ public:
 /// or scalar operator is instantiated by other means than the `define`
 /// class method.
 class Definition {
-public:
+private: 
   std::string id;
-
-  // The user-provided generator function should take a variable number of
-  // complex doubles for the parameters. It should return a
-  // `cudaq::tensor` type representing the operator
-  // matrix.
   CallbackFunction generator;
+  std::map<int, int> m_expected_dimensions;
 
-  // Constructor.
-  Definition();
+public:
 
-  // Destructor.
+  Definition(const std::string &operator_id, std::map<int, int> expected_dimensions, CallbackFunction &&create);
+  Definition(Definition &&def);
   ~Definition();
-
-  void create_definition(const std::string &operator_id,
-                         std::map<int, int> expected_dimensions,
-                         CallbackFunction &&create);
 
   // To call the generator function
   matrix_2 generate_matrix(
       const std::map<int, int> &degrees,
       const std::map<std::string, std::complex<double>> &parameters) const;
-
-private:
-  // Member variables
-  std::map<int, int> m_expected_dimensions;
 };
 } // namespace cudaq
