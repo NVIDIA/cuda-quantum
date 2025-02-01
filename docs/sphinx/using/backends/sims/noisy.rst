@@ -3,8 +3,8 @@ Density Matrix Simulators
 ==================================
 
 
-Density Matrix (`density-matrix-cpu`)
-++++++++++++++++++++++++++++++++++++++
+Density Matrix 
+++++++++++++++++
 
 .. _density-matrix-cpu-backend:
 
@@ -36,8 +36,8 @@ To execute a program on the :code:`density-matrix-cpu` target, use the following
         ./program.x
 
 
-Stim (CPU)
-++++++++++++++++++++++++++++++++++
+Stim 
+++++++
 
 .. _stim-backend:
 

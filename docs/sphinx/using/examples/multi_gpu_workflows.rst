@@ -40,7 +40,7 @@ As the number of qubits increases to even modest size, the CPU simulation will b
     { 0000000000000000000000000:510 1111111111111111111111111:490 }
 
 
-Pooling the memory of multiple GPUS (`mgpu`)
+Pooling the memory of multiple GPUs (`mgpu`)
 ---------------------------------------------
 
 
@@ -91,7 +91,7 @@ The code is executed with :code:`mpiexec -np n python3 program.py --target nvidi
 Circuit Batching (`mqpu`)
 ----------------------------------
 
-A second way to leverage the `mqpu` backed is to batch circuit evaluations across multiple simulated QPUs.   
+A second way to leverage the `mqpu` backend is to batch circuit evaluations across multiple simulated QPUs.   
 
 
 

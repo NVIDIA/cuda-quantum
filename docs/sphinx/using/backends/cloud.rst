@@ -9,9 +9,3 @@ CUDA-Q provides a number of options to access hardware resources (GPUs and QPUs)
         Amazon Braket (braket) <cloud/braket.rst>
         NVIDIA Quantum Cloud (nvqc) <cloud/nvqc.rst>
 
-
-
-
-
-
-

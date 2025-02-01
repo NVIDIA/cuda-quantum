@@ -32,12 +32,12 @@ technical details and code examples for using each circuit simulator.
      - Single GPU
      - single / double
      - < 33 / 32 (64 GB)
-   * - `mgpu`
+   * - `nvidia, option=mgpu`
      - State Vector
      - Large-scale simulation
      - multi-GPU multi-node
      - single / double
-     - 33 +
+     - 33+
    * - `tensornet`
      - Tensor Network
      - Shallow-depth (low-entanglement) and high width circuits
@@ -56,7 +56,7 @@ technical details and code examples for using each circuit simulator.
      - Single GPU
      - Various
      - Various
-   * - `nvidia mqpu`
+   * - `nvidia, option=mqpu`
      - State Vector 
      - Asynchronous distribution across multiple simulated QPUs to speedup applications
      - multi-GPU multi-node
@@ -73,7 +73,7 @@ technical details and code examples for using each circuit simulator.
      - Noisy simulations
      - CPU
      - single
-     - <14
+     - < 14
    * - `stim`
      - Stabilizer 
      - QEC simulation

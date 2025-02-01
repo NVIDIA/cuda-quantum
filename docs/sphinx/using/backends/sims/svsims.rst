@@ -2,8 +2,8 @@
 State Vector Simulators
 ==================================
 
-CPU (`qpp-cpu`)
-++++++++++++++++
+CPU
+++++
 
 .. _openmp cpu-only:
 .. _qpp-cpu-backend:
@@ -37,8 +37,8 @@ use the following commands:
         ./program.x
 
 
-Single-GPU (`nvidia`) 
-++++++++++++++++++++++
+Single-GPU 
+++++++++++++++
 
 .. _cuquantum single-gpu:
 .. _default-simulator:
@@ -127,8 +127,8 @@ setting the target. It is worth drawing attention to gate fusion, a powerful too
 
 
 
-Multi-node multi-GPU (`mgpu`)
-+++++++++++++++++++++++++++++++++
+Multi-node multi-GPU 
++++++++++++++++++++++++
 
 .. _nvidia-mgpu-backend:
 
