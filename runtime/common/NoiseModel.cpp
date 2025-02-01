@@ -97,7 +97,7 @@ kraus_channel &kraus_channel::operator=(const kraus_channel &other) {
   return *this;
 }
 
-std::vector<kraus_op> kraus_channel::get_ops() { return ops; }
+std::vector<kraus_op> kraus_channel::get_ops() const { return ops; }
 void kraus_channel::push_back(kraus_op op) { ops.push_back(op); }
 
 void noise_model::add_channel(const std::string &quantumOp,
