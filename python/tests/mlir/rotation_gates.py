@@ -39,7 +39,7 @@ def test_control_list_rotation():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
-# CHECK-SAME:      %[[VAL_0:.*]]: f64) attributes {"cudaq-entrypoint"} {
+# CHECK-SAME:      %[[VAL_0:.*]]: f64) attributes {"cudaq-entrypoint"
 # CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 4.000000e+00 : f64
 # CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 3.000000e+00 : f64
 # CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 2.000000e+00 : f64
@@ -80,7 +80,7 @@ def test_rotation_qreg():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
-# CHECK-SAME:                                                                 %[[VAL_0:.*]]: f64) attributes {"cudaq-entrypoint"} {
+# CHECK-SAME:                 %[[VAL_0:.*]]: f64) attributes {"cudaq-entrypoint"
 # CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 3 : i64
 # CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 1.000000e+00 : f64
 # CHECK-DAG:           %[[VAL_3:.*]] = arith.constant 1 : i64

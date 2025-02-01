@@ -11,10 +11,11 @@
 #include "cudaq/Optimizer/CodeGen/CudaqFunctionNames.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
-#include "cudaq/Optimizer/CodeGen/QuakeToCC.h"
+#include "cudaq/Optimizer/CodeGen/QuakeToExecMgr.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/Support/Debug.h"
+#include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
@@ -65,7 +66,8 @@ struct QuakeToCCPass : public cudaq::opt::impl::QuakeToCCBase<QuakeToCCPass> {
     cudaq::opt::populateQuakeToCCPatterns(quakeTypeConverter, patterns);
     ConversionTarget target(*context);
     target.addLegalDialect<arith::ArithDialect, cudaq::cc::CCDialect,
-                           func::FuncDialect, LLVM::LLVMDialect>();
+                           cf::ControlFlowDialect, func::FuncDialect,
+                           LLVM::LLVMDialect>();
     target.addIllegalDialect<quake::QuakeDialect>();
 
     LLVM_DEBUG(llvm::dbgs() << "Module before:\n"; op.dump());

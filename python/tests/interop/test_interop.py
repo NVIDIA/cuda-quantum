@@ -41,7 +41,7 @@ def test_mergeExternal():
     kernel(10)
 
     otherMod = '''module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__test = "__nvqpp__mlirgen__test_PyKernelEntryPointRewrite"}} {
-  func.func @__nvqpp__mlirgen__test() attributes {"cudaq-entrypoint"} {
+  func.func @__nvqpp__mlirgen__test() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
     %0 = quake.alloca !quake.veq<2>
     %1 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
     quake.h %1 : (!quake.ref) -> ()
@@ -64,7 +64,7 @@ def test_synthCallable():
     callee.compile()
 
     otherMod = '''module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__caller = "__nvqpp__mlirgen__caller_PyKernelEntryPointRewrite"}} {
-  func.func @__nvqpp__mlirgen__caller(%arg0: !cc.callable<(!quake.veq<?>) -> ()>) attributes {"cudaq-entrypoint"} {
+  func.func @__nvqpp__mlirgen__caller(%arg0: !cc.callable<(!quake.veq<?>) -> ()>) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
     %0 = quake.alloca !quake.veq<2>
     %1 = quake.relax_size %0 : (!quake.veq<2>) -> !quake.veq<?>
     %2 = cc.callable_func %arg0 : (!cc.callable<(!quake.veq<?>) -> ()>) -> ((!quake.veq<?>) -> ())

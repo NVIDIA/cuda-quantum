@@ -27,7 +27,7 @@ def test_conditional_on_vars():
 
     print(test1)
 
-    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test1() attributes {"cudaq-entrypoint", qubitMeasurementFeedback = true} {
+    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test1() attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
 
     @cudaq.kernel
     def test2():
@@ -40,7 +40,7 @@ def test_conditional_on_vars():
 
     print(test2)
 
-    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test2() attributes {"cudaq-entrypoint", qubitMeasurementFeedback = true} {
+    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test2() attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
 
     @cudaq.kernel
     def test3():
@@ -53,7 +53,7 @@ def test_conditional_on_vars():
 
     print(test3)
 
-    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test3() attributes {"cudaq-entrypoint", qubitMeasurementFeedback = true} {
+    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test3() attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
 
     @cudaq.kernel
     def test4():
@@ -66,7 +66,7 @@ def test_conditional_on_vars():
 
     print(test4)
 
-    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test4() attributes {"cudaq-entrypoint", qubitMeasurementFeedback = true} {
+    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test4() attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
 
     @cudaq.kernel
     def test5():
@@ -79,7 +79,7 @@ def test_conditional_on_vars():
 
     print(test5)
 
-    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test5() attributes {"cudaq-entrypoint", qubitMeasurementFeedback = true} {
+    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test5() attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
 
     @cudaq.kernel
     def test6():
@@ -93,7 +93,7 @@ def test_conditional_on_vars():
     print(test6)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__test6() attributes {"cudaq-entrypoint", qubitMeasurementFeedback = true} {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__test6() attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
 
 
 def test_conditional_on_measure():
@@ -108,7 +108,7 @@ def test_conditional_on_measure():
 
     print(test7)
 
-    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test7() attributes {"cudaq-entrypoint", qubitMeasurementFeedback = true} {
+    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test7() attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
 
     @cudaq.kernel
     def test8():
@@ -120,7 +120,7 @@ def test_conditional_on_measure():
 
     print(test8)
 
-    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test8() attributes {"cudaq-entrypoint", qubitMeasurementFeedback = true} {
+    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test8() attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
 
     @cudaq.kernel
     def test9():
@@ -132,7 +132,7 @@ def test_conditional_on_measure():
 
     print(test9)
 
-    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test9() attributes {"cudaq-entrypoint", qubitMeasurementFeedback = true} {
+    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test9() attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
 
     @cudaq.kernel
     def test10():
@@ -144,7 +144,7 @@ def test_conditional_on_measure():
 
     print(test10)
 
-    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test10() attributes {"cudaq-entrypoint", qubitMeasurementFeedback = true} {
+    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test10() attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
 
     @cudaq.kernel
     def test11():
@@ -157,7 +157,7 @@ def test_conditional_on_measure():
 
     print(test11)
 
-    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test11() attributes {"cudaq-entrypoint", qubitMeasurementFeedback = true} {
+    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test11() attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
 
     @cudaq.kernel
     def test12():
@@ -171,7 +171,7 @@ def test_conditional_on_measure():
 
     print(test12)
 
-    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test12() attributes {"cudaq-entrypoint", qubitMeasurementFeedback = true} {
+    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test12() attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
 
     @cudaq.kernel
     def test13():
@@ -186,7 +186,7 @@ def test_conditional_on_measure():
 
     print(test13)
 
-    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test13() attributes {"cudaq-entrypoint", qubitMeasurementFeedback = true} {
+    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test13() attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
 
     @cudaq.kernel
     def test14():
@@ -202,7 +202,7 @@ def test_conditional_on_measure():
 
     print(test14)
 
-    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test14() attributes {"cudaq-entrypoint", qubitMeasurementFeedback = true} {
+    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test14() attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
 
 
 # leave for gdb debugging

@@ -33,7 +33,7 @@ def test_qft():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__iqft(
-# CHECK-SAME:                                      %[[VAL_0:.*]]: !quake.veq<?>) {
+# CHECK-SAME:             %[[VAL_0:.*]]: !quake.veq<?>)
 # CHECK-DAG:           %[[VAL_1:.*]] = arith.constant -3.1415926535897931 : f64
 # CHECK-DAG:           %[[VAL_2:.*]] = arith.constant -1 : i64
 # CHECK-DAG:           %[[VAL_3:.*]] = arith.constant 1 : i64

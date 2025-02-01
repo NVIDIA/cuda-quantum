@@ -2175,6 +2175,16 @@ struct ReplaceConstantSizes : public OpRewritePattern<cudaq::cc::SizeOfOp> {
     auto inpTy = sizeOp.getInputType();
     if (Value v = cudaq::cc::getByteSizeOfType(rewriter, sizeOp.getLoc(), inpTy,
                                                /*useSizeOf=*/false)) {
+      if (v.getType() != sizeOp.getType()) {
+        auto vSz = v.getType().getIntOrFloatBitWidth();
+        auto sizeOpSz = sizeOp.getType().getIntOrFloatBitWidth();
+        auto loc = sizeOp.getLoc();
+        if (sizeOpSz < vSz)
+          v = rewriter.create<cudaq::cc::CastOp>(loc, sizeOp.getType(), v);
+        else
+          v = rewriter.create<cudaq::cc::CastOp>(
+              loc, sizeOp.getType(), v, cudaq::cc::CastOpMode::Unsigned);
+      }
       rewriter.replaceOp(sizeOp, v);
       return success();
     }

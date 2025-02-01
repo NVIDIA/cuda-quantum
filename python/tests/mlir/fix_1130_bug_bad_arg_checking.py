@@ -23,8 +23,8 @@ def test_bad_arg_checking_fix_1130():
     print(qernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
-# CHECK-SAME:                                                                 %[[VAL_0:.*]]: f64) attributes {"cudaq-entrypoint"} {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_
+# CHECK-SAME:          (%[[VAL_0:.*]]: f64) attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
 # CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_1]][0] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_1]][1] : (!quake.veq<2>) -> !quake.ref
@@ -32,11 +32,12 @@ def test_bad_arg_checking_fix_1130():
 # CHECK:           return
 # CHECK:         }
 
-# CHECK:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(%arg0: !quake.ref, %arg1: !quake.ref, %arg2: f64) {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel
+# CHECK-SAME:    (%[[arg0:.*]]: !quake.ref, %[[arg1:.*]]: !quake.ref, %[[arg2:.*]]: f64)
 # CHECK:     %cst = arith.constant 2.000000e+00 : f64
-# CHECK:     quake.x [%arg0] %arg1 : (!quake.ref, !quake.ref) -> ()
-# CHECK:     %0 = arith.mulf {{%arg2, %cst|%cst, %arg2}} : f64
-# CHECK:     quake.rz (%0) %arg1 : (f64, !quake.ref) -> ()
-# CHECK:     quake.x [%arg0] %arg1 : (!quake.ref, !quake.ref) -> ()
+# CHECK:     quake.x [%[[arg0]]] %[[arg1]] : (!quake.ref, !quake.ref) -> ()
+# CHECK:     %0 = arith.mulf %{{.*}}, %{{.*}} : f64
+# CHECK:     quake.rz (%0) %[[arg1]] : (f64, !quake.ref) -> ()
+# CHECK:     quake.x [%[[arg0]]] %[[arg1]] : (!quake.ref, !quake.ref) -> ()
 # CHECK:     return
 # CHECK:   }

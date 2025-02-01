@@ -24,7 +24,7 @@ def test_list_init():
     kernel()
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 1 : i64
 # CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 0 : i64
 # CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 4 : i64

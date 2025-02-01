@@ -9,6 +9,7 @@
 #pragma once
 
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
+#include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/ADT/StringRef.h"
 #include "mlir/IR/ValueRange.h"

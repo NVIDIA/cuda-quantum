@@ -30,7 +30,7 @@ def test_make_kernel_multiple_floats():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
 # CHECK-SAME:    %[[VAL_0:.*]]: f64,
-# CHECK:         %[[VAL_1:.*]]: f64) attributes {"cudaq-entrypoint"} {
+# CHECK:         %[[VAL_1:.*]]: f64) attributes {"cudaq-entrypoint"
 # CHECK:           return
 # CHECK:         }
 
