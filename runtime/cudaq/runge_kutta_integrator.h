@@ -8,9 +8,10 @@
 
 #pragma once
 
-#include "base_integrator.h"
+#include "cudaq/base_integrator.h"
 #include "cudaq/cudm_state.h"
 #include "cudaq/cudm_time_stepper.h"
+#include <iostream>
 #include <memory>
 
 namespace cudaq {
@@ -21,10 +22,15 @@ public:
   /// @param t0 Initial time.
   /// @param stepper Time stepper instance.
   /// @param substeps Number of Runge-Kutta substeps (must be 1, 2, or 4)
-  runge_kutta_integrator(const cudm_state &initial_state, double t0,
+  runge_kutta_integrator(cudm_state &&initial_state, double t0,
                          std::shared_ptr<cudm_time_stepper> stepper,
                          int substeps = 4)
-      : BaseIntegrator(initial_state, t0, stepper), substeps_(substeps) {
+      : BaseIntegrator(std::move(initial_state), t0, stepper),
+        substeps_(substeps) {
+    if (!stepper) {
+      throw std::invalid_argument("Time stepper must be initialized.");
+    }
+
     if (substeps_ != 1 && substeps_ != 2 && substeps_ != 4) {
       throw std::invalid_argument("Runge-Kutta substeps must be 1, 2, or 4.");
     }
@@ -33,7 +39,7 @@ public:
 
   /// @brief Perform Runge-Kutta integration until the target time.
   /// @param target_time The final time to integrate to.
-  void integrate(double t) override;
+  void integrate(double target_time) override;
 
 protected:
   /// @brief Any post-initialization setup

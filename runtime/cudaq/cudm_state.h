@@ -28,6 +28,14 @@ public:
                       const std::vector<std::complex<double>> rawData,
                       const std::vector<int64_t> &hilbertSpaceDims);
 
+  // Prevent copies (avoids double free issues)
+  cudm_state(const cudm_state &) = delete;
+  cudm_state &operator=(const cudm_state &) = delete;
+
+  // Allow move semantics
+  cudm_state(cudm_state &&other) noexcept;
+  cudm_state &operator=(cudm_state &&other) noexcept;
+
   /// @brief Destructor to clean up resources
   ~cudm_state();
 
