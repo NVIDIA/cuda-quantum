@@ -1,41 +1,32 @@
+*************************
 CUDA-Q Backends
-**********************
+*************************
+.. _backends:
+
+
+The CUDA-Q platform has is a powerful tool with many different backends for running hybrid quantum applications and other simulations.  This page will help you understand what backends are available and what the best choices are for your purpose. 
+
+The figure below groups the backends into four categories, and described the general purpose for each.  See the following sections for a breakdown of the backends included in each section.
+
+.. image:: backends.png
+   :width: 1000
+
+Click on the links below for each category to learn more about the backends it contains.  the list below also covers all of the backends available in CUDA-Q.
 
 .. toctree::
-   :caption: Backend Targets
+   :maxdepth: 3
+      
+        Circuit Simulation <simulators.rst>
+        Quantum Hardware (QPUs) <hardware.rst>
+
+.. toctree::
    :maxdepth: 1
+      
+        Dynamics Simulation <dynamics.rst>
 
-      Simulation <simulators.rst>
-      Quantum Hardware <hardware.rst>
-      NVIDIA Quantum Cloud <nvqc.rst>
-      Multi-Processor Platforms <platform.rst>
+.. toctree::
+   :maxdepth: 2
 
-**The following is a comprehensive list of the available targets in CUDA-Q:**
+        Cloud  <cloud.rst>
 
-* :ref:`anyon <anyon-backend>`
-* :ref:`braket <braket-backend>`
-* :ref:`density-matrix-cpu <default-simulator>`
-* :ref:`fermioniq <fermioniq-backend>`
-* :ref:`infleqtion <infleqtion-backend>`
-* :ref:`ionq <ionq-backend>`
-* :ref:`iqm <iqm-backend>`
-* :ref:`nvidia <nvidia-backend>`
-* :ref:`nvidia-fp64 <nvidia-fp64-backend>`
-* :ref:`nvidia-mgpu <nvidia-mgpu-backend>`
-* :ref:`nvidia-mqpu <mqpu-platform>`
-* :ref:`nvidia-mqpu-fp64 <mqpu-platform>`
-* :doc:`nvqc <nvqc>`
-* :ref:`oqc <oqc-backend>`
-* :ref:`orca <orca-backend>`
-* :ref:`qpp-cpu <qpp-cpu-backend>`
-* :ref:`quantinuum <quantinuum-backend>`
-* :ref:`quera <quera-backend>`
-* :ref:`remote-mqpu <mqpu-platform>`
-* :ref:`stim <stim-backend>`
-* :ref:`tensornet <tensor-backends>`
-* :ref:`tensornet-mps <tensor-backends>`
 
-.. deprecated:: 0.8
-   The `nvidia-fp64`, `nvidia-mgpu`, `nvidia-mqpu`, and `nvidia-mqpu-fp64` targets can be
-   enabled as extensions of the unified `nvidia` target (see `nvidia` :ref:`target documentation <nvidia-backend>`).
-   These target names might be removed in a future release.

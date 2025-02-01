@@ -1,5 +1,5 @@
-CUDA-Q Dynamics 
-*********************************
+Dynamics Simulation 
++++++++++++++++++++++
 
 CUDA-Q enables the design, simulation and execution of quantum dynamics via 
 the ``evolve`` API. Specifically, this API allows us to solve the time evolution 
@@ -8,7 +8,7 @@ backend target, which is based on the cuQuantum library, optimized for performan
 on NVIDIA GPU.
 
 Quick Start
-+++++++++++
+^^^^^^^^^^^^
 
 In the example below, we demonstrate a simple time evolution simulation workflow comprising of the 
 following steps:
@@ -88,7 +88,7 @@ Examples that illustrate how to use the ``dynamics`` target are available
 in the `CUDA-Q repository <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples/python/dynamics>`__. 
 
 Operator
-+++++++++++
+^^^^^^^^^^
 
 .. _operators:
 
@@ -159,7 +159,7 @@ The latter is specified by the dimension map that is provided to the `cudaq.evol
 
 
 Time-Dependent Dynamics
-++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. _time_dependent:
 
@@ -221,7 +221,7 @@ the desired value for each parameter:
         :end-before: [End Schedule2]
 
 Numerical Integrators
-++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. _integrators:
 
@@ -276,7 +276,7 @@ backend target.
     using their Docker images.
 
 Multi-GPU Multi-Node Execution
-+++++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. _cudensitymat_mgmn:
 
@@ -316,3 +316,4 @@ Specifically, it will detect the number of processes (GPUs) and distribute the c
     - Computing the expectation value of a mixed quantum state is not supported. Thus, `collapse_operators` are not supported if expectation calculation is required.
 
     - Some combinations of quantum states and quantum many-body operators are not supported. Errors will be raised in those cases. 
+
