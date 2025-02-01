@@ -28,7 +28,7 @@ configuration.
 
 .. code:: bash
 
-  export ORCA_ACCESS_URL="https://<ORCA API Server>"
+  |:spellcheck-disable:|export ORCA_ACCESS_URL="https://<ORCA API Server>"|:spellcheck-enable:|
 
 
 Sometimes the requests to the PT-1 require an authentication token. This token can be set as an
@@ -37,7 +37,7 @@ you can set the environment variable as follows:
 
 .. code:: bash
 
-  export ORCA_AUTH_TOKEN="AbCdEf123456"
+  |:spellcheck-disable:|export ORCA_AUTH_TOKEN="AbCdEf123456"|:spellcheck-enable:|
 
 Submitting
 `````````````````````````

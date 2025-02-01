@@ -1,8 +1,8 @@
 Photonics Simulators
-==================================
+=======================
 
-CUDA-Q provides the ability to simulate photonics circuits. This page provides the details needed to run photonics simulations followed by an intorduction to photonics kernels.
-
+CUDA-Q provides the ability to simulate photonics circuits. This page provides the details 
+needed to run photonics simulations followed by an introduction to photonics kernels.
 
 
 orca-photonics

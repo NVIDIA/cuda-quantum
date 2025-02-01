@@ -2,8 +2,8 @@
 State Vector Simulators
 ==================================
 
-CPU (qpp-cpu)
-+++++++++++++
+CPU (`qpp-cpu`)
+++++++++++++++++
 
 .. _openmp cpu-only:
 .. _qpp-cpu-backend:
@@ -37,8 +37,8 @@ use the following commands:
         ./program.x
 
 
-Single-GPU (nvidia) 
-++++++++++++++++++++
+Single-GPU (`nvidia`) 
+++++++++++++++++++++++
 
 .. _cuquantum single-gpu:
 .. _default-simulator:
@@ -46,7 +46,7 @@ Single-GPU (nvidia)
 
 
 The :code:`nvidia` backend  provides a state vector simulator accelerated with -
-the :code:`cuStateVec` library. The `cuStateVec documentation <https://docs.nvidia.com/cuda/cuquantum/latest/custatevec/index.html>`__ provides a detailed explaination for how the simulations are performed on the GPU.
+the :code:`cuStateVec` library. The `cuStateVec documentation <https://docs.nvidia.com/cuda/cuquantum/latest/custatevec/index.html>`__ provides a detailed explanation for how the simulations are performed on the GPU.
 
 The :code:`nvidia` target supports multiple configurable options including specification of floating point precision.
 
@@ -95,7 +95,7 @@ To execute a program on the :code:`nvidia` backend, use the following commands:
    This backend requires an NVIDIA GPU and CUDA runtime libraries. If you do not have these dependencies installed, you may encounter an error stating `Invalid simulator requested`. See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
 
 
-In the single-GPU mode, the :code:`nvidia` bakend provides the following
+In the single-GPU mode, the :code:`nvidia` backend provides the following
 environment variable options. Any environment variables must be set prior to
 setting the target. It is worth drawing attention to gate fusion, a powerful tool for improving simulation performance which is discussed in greater detail `here <https://nvidia.github.io/cuda-quantum/latest/examples/python/performance_optimizations.html>`__.
 
@@ -127,7 +127,7 @@ setting the target. It is worth drawing attention to gate fusion, a powerful too
 
 
 
-Multi-node multi-GPU (mgpu)
+Multi-node multi-GPU (`mgpu`)
 +++++++++++++++++++++++++++++++++
 
 .. _nvidia-mgpu-backend:

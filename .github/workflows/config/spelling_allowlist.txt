@@ -84,11 +84,13 @@ POSIX
 PSIRT
 Pauli
 Paulis
+Photonic
 Photonics
 PyPI
 Pygments
 QAOA
 QCaaS
+QEC
 QIR
 QIS
 QPP
@@ -261,6 +263,7 @@ parallelizing
 parameterization
 performant
 photonic
+photonics
 precompute
 precomputed
 prepend
