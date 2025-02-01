@@ -244,7 +244,9 @@ public:
   /// @param index 0-based index of qubit to reset
   void resetQubit(const std::size_t index) override {
     flushGateQueue();
-    flushAnySamplingTasks();
+    if (getExecutionContext() && getExecutionContext()->name == "sample" &&
+        !getExecutionContext()->stackMeasurements)
+      flushAnySamplingTasks();
     applyOpToSims(
         "R", std::vector<std::uint32_t>{static_cast<std::uint32_t>(index)});
   }
@@ -284,6 +286,7 @@ public:
     assert(bits_per_sample >= qubits.size());
     std::size_t first_bit_to_save = bits_per_sample - qubits.size();
     CountsDictionary counts;
+    sequentialData.reserve(shots);
     for (std::size_t shot = 0; shot < shots; shot++) {
       std::string aShot(qubits.size(), '0');
       for (std::size_t b = first_bit_to_save; b < bits_per_sample; b++)
