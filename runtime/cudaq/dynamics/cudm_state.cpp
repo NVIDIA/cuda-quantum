@@ -12,6 +12,7 @@
 #include <numeric>
 #include <sstream>
 #include <stdexcept>
+#include <typeinfo>
 
 namespace cudaq {
 
@@ -61,12 +62,47 @@ cudm_state::cudm_state(cudensitymatHandle_t handle,
   attach_storage();
 }
 
+cudm_state::cudm_state(cudm_state &&other) noexcept
+    : rawData_(std::move(other.rawData_)), gpuData_(other.gpuData_),
+      state_(other.state_), handle_(other.handle_),
+      hilbertSpaceDims_(std::move(other.hilbertSpaceDims_)) {
+  other.gpuData_ = nullptr;
+  other.state_ = nullptr;
+}
+
+cudm_state &cudm_state::operator=(cudm_state &&other) noexcept {
+  if (this != &other) {
+    // Free existing resources
+    if (state_) {
+      cudensitymatDestroyState(state_);
+    }
+    if (gpuData_) {
+      cudaFree(gpuData_);
+    }
+
+    // Move data from other
+    rawData_ = std::move(other.rawData_);
+    gpuData_ = other.gpuData_;
+    state_ = other.state_;
+    handle_ = other.handle_;
+    hilbertSpaceDims_ = std::move(other.hilbertSpaceDims_);
+
+    // Nullify other
+    other.gpuData_ = nullptr;
+    other.state_ = nullptr;
+  }
+
+  return *this;
+}
+
 cudm_state::~cudm_state() {
   if (state_) {
     cudensitymatDestroyState(state_);
+    state_ = nullptr;
   }
   if (gpuData_) {
     cudaFree(gpuData_);
+    gpuData_ = nullptr;
   }
 }
 
@@ -100,8 +136,7 @@ cudm_state cudm_state::operator+(const cudm_state &other) const {
     resultData[i] = rawData_[i] + other.rawData_[i];
   }
 
-  cudm_state result(handle_, resultData, hilbertSpaceDims_);
-  return result;
+  return cudm_state(handle_, resultData, hilbertSpaceDims_);
 }
 
 cudm_state cudm_state::operator*(double scalar) const {
@@ -110,8 +145,7 @@ cudm_state cudm_state::operator*(double scalar) const {
     resultData[i] = rawData_[i] * scalar;
   }
 
-  cudm_state result(handle_, resultData, hilbertSpaceDims_);
-  return result;
+  return cudm_state(handle_, resultData, hilbertSpaceDims_);
 }
 
 std::string cudm_state::dump() const {
@@ -151,8 +185,7 @@ cudm_state cudm_state::to_density_matrix() const {
     }
   }
 
-  cudm_state densityMatrixState(handle_, densityMatrix, hilbertSpaceDims_);
-  return densityMatrixState;
+  return cudm_state(handle_, densityMatrix, hilbertSpaceDims_);
 }
 
 cudensitymatState_t cudm_state::get_impl() const {
