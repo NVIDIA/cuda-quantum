@@ -11,6 +11,8 @@ Applications that give an in depth view of CUDA-Q and its applications in Python
     /applications/python/trotter.ipynb
     /applications/python/cost_minimization.ipynb
     /applications/python/deutschs_algorithm.ipynb
+    /applications/python/deutsch_jozsa.ipynb
+    /applications/python/hamiltonian_simulation.ipynb
     /applications/python/divisive_clustering_coresets.ipynb
     /applications/python/shors.ipynb
     /applications/python/hybrid_qnns.ipynb
