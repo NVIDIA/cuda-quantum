@@ -557,6 +557,74 @@ def test_list_creation_with_cast():
     assert '1' * 5 in counts
 
 
+def test_list_boundaries():
+
+    @cudaq.kernel
+    def kernel1():
+        qubits = cudaq.qvector(2)
+        r = range(0, 0)
+        for i in r:
+            x(qubits[i])
+
+    counts = cudaq.sample(kernel1)
+    assert len(counts) == 1
+    assert '00' in counts
+
+    @cudaq.kernel
+    def kernel2():
+        qubits = cudaq.qvector(2)
+        r = range(1, 0)
+        for i in r:
+            x(qubits[i])
+
+    counts = cudaq.sample(kernel2)
+    assert len(counts) == 1
+    assert '00' in counts
+
+    @cudaq.kernel
+    def kernel3():
+        qubits = cudaq.qvector(2)
+        for i in range(-1):
+            x(qubits[i])
+
+    counts = cudaq.sample(kernel3)
+    assert len(counts) == 1
+    assert '00' in counts
+
+    @cudaq.kernel
+    def kernel4():
+        qubits = cudaq.qvector(4)
+        r = [i * 2 + 1 for i in range(-1)]
+        for i in r:
+            x(qubits[i])
+
+    counts = cudaq.sample(kernel4)
+    assert len(counts) == 1
+    assert '0000' in counts
+
+    @cudaq.kernel
+    def kernel5():
+        qubits = cudaq.qvector(4)
+        r = [i * 2 + 1 for i in range(0)]
+        for i in r:
+            x(qubits[i])
+
+    counts = cudaq.sample(kernel5)
+    assert len(counts) == 1
+    assert '0000' in counts
+
+    @cudaq.kernel
+    def kernel6():
+        qubits = cudaq.qvector(4)
+        r = [i * 2 + 1 for i in range(2)]
+        for i in r:
+            x(qubits[i])
+
+    counts = cudaq.sample(kernel6)
+    assert len(counts) == 1
+    assert '0101' in counts
+
+
 def test_control_operations():
 
     @cudaq.kernel
