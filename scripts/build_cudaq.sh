@@ -45,14 +45,17 @@ CUDAQ_INSTALL_PREFIX=${CUDAQ_INSTALL_PREFIX:-"$HOME/.cudaq"}
 build_configuration=${CMAKE_BUILD_TYPE:-Release}
 verbose=false
 install_toolchain=""
+num_jobs=""
 
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":c:t:v" opt; do
+while getopts ":c:t:j:v" opt; do
   case $opt in
     c) build_configuration="$OPTARG"
     ;;
     t) install_toolchain="$OPTARG"
+    ;;
+    j) num_jobs="-j $OPTARG"
     ;;
     v) verbose=true
     ;;
@@ -194,11 +197,11 @@ fi
 echo "Building CUDA-Q with configuration $build_configuration..."
 logs_dir=`pwd`/logs
 if $verbose; then 
-  ninja install
+  ninja ${num_jobs} install
   status=$?
 else
   echo "The progress of the build is being logged to $logs_dir/ninja_output.txt."
-  ninja install 2> "$logs_dir/ninja_error.txt" 1> "$logs_dir/ninja_output.txt"
+  ninja ${num_jobs} install 2> "$logs_dir/ninja_error.txt" 1> "$logs_dir/ninja_output.txt"
   status=$?
 fi
 

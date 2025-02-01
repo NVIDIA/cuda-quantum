@@ -22,6 +22,12 @@ SimulatorTensorNetBase::SimulatorTensorNetBase()
       cudaq::mpi::is_initialized() ? cudaq::mpi::rank() % numDevices : 0;
   HANDLE_CUDA_ERROR(cudaSetDevice(deviceId));
   HANDLE_CUTN_ERROR(cutensornetCreate(&m_cutnHandle));
+  // The scratch pad must be allocated after we have selected the device.
+  scratchPad.allocate();
+
+  // Check whether observe path reuse is enabled.
+  m_reuseContractionPathObserve =
+      cudaq::getEnvBool("CUDAQ_TENSORNET_OBSERVE_CONTRACT_PATH_REUSE", false);
 }
 
 static std::vector<std::complex<double>>
@@ -90,17 +96,45 @@ void SimulatorTensorNetBase::applyGate(const GateApplicationTask &task) {
     }
     return paramsSs.str() + "__" + std::to_string(vecComplexHash(task.matrix));
   }();
-  const auto iter = m_gateDeviceMemCache.find(gateKey);
 
-  // This is the first time we see this gate, allocate device mem and cache it.
-  if (iter == m_gateDeviceMemCache.end()) {
-    void *dMem = allocateGateMatrix(task.matrix);
-    m_gateDeviceMemCache[gateKey] = dMem;
+  if (controls.size() <= m_maxControlledRankForFullTensorExpansion) {
+    // If the number of controlled qubits is less than the threshold, expand the
+    // full matrix and apply it as a single tensor operation.
+    // Qubit operands are now both control and target qubits.
+    std::vector<std::int32_t> qubitOperands(controls.begin(), controls.end());
+    qubitOperands.insert(qubitOperands.end(), targets.begin(), targets.end());
+    // Use a different key for expanded gate matrix (reflecting the number of
+    // control qubits)
+    const auto expandedMatKey =
+        gateKey + "_c(" + std::to_string(controls.size()) + ")";
+    const auto iter = m_gateDeviceMemCache.find(expandedMatKey);
+    if (iter != m_gateDeviceMemCache.end()) {
+      m_state->applyGate(/*controlQubits=*/{}, qubitOperands, iter->second);
+    } else {
+      // If this is the first time seeing this (gate + number of control qubits)
+      // compo, compute the expanded matrix.
+      const auto expandedGateMat =
+          generateFullGateTensor(controls.size(), task.matrix);
+      void *dMem = allocateGateMatrix(expandedGateMat);
+      m_gateDeviceMemCache[expandedMatKey] = dMem;
+      m_state->applyGate(/*controlQubits=*/{}, qubitOperands, dMem);
+    }
+  } else {
+    // Propagates control qubits to cutensornet.
+    const auto iter = m_gateDeviceMemCache.find(gateKey);
+    // This is the first time we see this gate, allocate device mem and cache
+    // it.
+    if (iter == m_gateDeviceMemCache.end()) {
+      void *dMem = allocateGateMatrix(task.matrix);
+      m_gateDeviceMemCache[gateKey] = dMem;
+    }
+    // Type conversion
+    const std::vector<std::int32_t> ctrlQubits(controls.begin(),
+                                               controls.end());
+    const std::vector<std::int32_t> targetQubits(targets.begin(),
+                                                 targets.end());
+    m_state->applyGate(ctrlQubits, targetQubits, m_gateDeviceMemCache[gateKey]);
   }
-  // Type conversion
-  const std::vector<std::int32_t> ctrlQubits(controls.begin(), controls.end());
-  const std::vector<std::int32_t> targetQubits(targets.begin(), targets.end());
-  m_state->applyGate(ctrlQubits, targetQubits, m_gateDeviceMemCache[gateKey]);
 }
 
 /// @brief Reset the state of a given qubit to zero
@@ -247,6 +281,17 @@ cudaq::observe_result
 SimulatorTensorNetBase::observe(const cudaq::spin_op &ham) {
   LOG_API_TIME();
   prepareQubitTensorState();
+  if (!m_reuseContractionPathObserve) {
+    // If contraction path reuse is disabled, convert spin_op to
+    // cutensornetNetworkOperator_t and compute the expectation value.
+    TensorNetworkSpinOp spinOp(ham, m_cutnHandle);
+    std::complex<double> expVal =
+        m_state->computeExpVal(spinOp.getNetworkOperator());
+    expVal += spinOp.getIdentityTermOffset();
+    return cudaq::observe_result(expVal.real(), ham,
+                                 cudaq::sample_result(cudaq::ExecutionResult(
+                                     {}, ham.to_string(false), expVal.real())));
+  }
 
   std::vector<std::string> termStrs;
   std::vector<cudaq::spin_op::spin_op_term> terms;

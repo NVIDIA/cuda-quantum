@@ -547,6 +547,8 @@ public:
         for (auto &pass : csvSplit)
           if (pass.ends_with("-gate-set-mapping"))
             runPassPipeline(pass, tmpModuleOp);
+        if (!emulate && combineMeasurements)
+          runPassPipeline("func.func(combine-measurements)", tmpModuleOp);
         modules.emplace_back(term.to_string(false), tmpModuleOp);
       }
     } else

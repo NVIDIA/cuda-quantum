@@ -44,10 +44,23 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   common/NoiseModelTester.cpp
   integration/tracer_tester.cpp
   integration/gate_library_tester.cpp
+  dynamics/scalar_ops_simple.cpp
+  dynamics/scalar_ops_arithmetic.cpp
+  dynamics/elementary_ops_simple.cpp
+  dynamics/elementary_ops_arithmetic.cpp
+  dynamics/product_operators_arithmetic.cpp
+  dynamics/test_runge_kutta_integrator.cpp
+  dynamics/test_helpers.cpp
+  dynamics/rydberg_hamiltonian.cpp
+  dynamics/test_cudm_helpers.cpp
+  dynamics/test_cudm_state.cpp
+  dynamics/test_cudm_time_stepper.cpp
 )
 
 # Make it so we can get function symbols
 set (CMAKE_ENABLE_EXPORTS TRUE)
+
+include_directories(/usr/local/cuda/targets/x86_64-linux/include)
 
 ## This Macro allows us to create a test_runtime executable for 
 ## the sources in CUDAQ_RUNTIME_TEST_SOURCE for a specific backend simulator
@@ -71,7 +84,9 @@ macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER)
     cudaq fmt::fmt-header-only
     cudaq-platform-default
     cudaq-builder
-    gtest_main)
+    gtest_main
+    $ENV{CUQUANTUM_INSTALL_PREFIX}/lib/libcudensitymat.so.0
+    /usr/local/cuda-12.0/targets/x86_64-linux/lib/libcudart.so.12)
   set(TEST_LABELS "")
   if (${NVQIR_BACKEND} STREQUAL "qpp")
     target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_SIMULATION_SCALAR_FP64)
@@ -198,6 +213,51 @@ if(TARGET nvqir-tensornet)
   message(STATUS "Building cutensornet backend tests.")
   create_tests_with_backend(tensornet "")
   create_tests_with_backend(tensornet-mps "")
+  if (MPI_CXX_FOUND)
+    # Count the number of GPUs
+    find_program(NVIDIA_SMI "nvidia-smi")
+    if(NVIDIA_SMI)
+      execute_process(COMMAND bash -c "nvidia-smi --list-gpus | wc -l" OUTPUT_VARIABLE NGPUS)
+      # Only build this test if we have more than 1 GPUs
+      if (${NGPUS} GREATER_EQUAL 2)
+        message(STATUS "Building cutensornet MPI tests.")
+        add_executable(test_tensornet_mpi mpi/tensornet_mpi_tester.cpp)
+        if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+          target_link_options(test_tensornet_mpi PRIVATE -Wl,--no-as-needed)
+        endif()
+        target_link_libraries(test_tensornet_mpi
+            PRIVATE 
+            cudaq
+            cudaq-platform-default
+            nvqir-tensornet
+            gtest)
+        add_test(NAME TensornetMPITest COMMAND ${MPIEXEC} --allow-run-as-root -np 2 ${CMAKE_BINARY_DIR}/unittests/test_tensornet_mpi)
+        set_tests_properties(TensornetMPITest PROPERTIES LABELS "gpu_required;mgpus_required")
+      endif() # NGPUS
+    endif() # NVIDIA_SMI
+  endif() # MPI_CXX_FOUND
+  
+  # Test CUDAQ_TENSORNET_OBSERVE_CONTRACT_PATH_REUSE=ON mode (on a few test cases that have cudaq::observe)
+  add_executable(test_tensornet_observe_path_reuse 
+    integration/builder_tester.cpp  
+    integration/deuteron_variational_tester.cpp
+    integration/observe_result_tester.cpp
+  )
+  target_include_directories(test_tensornet_observe_path_reuse PRIVATE .)
+  target_compile_definitions(test_tensornet_observe_path_reuse 
+                             PRIVATE -DNVQIR_BACKEND_NAME=tensornet)
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+    target_link_options(test_tensornet_observe_path_reuse PRIVATE -Wl,--no-as-needed)
+  endif()
+  target_link_libraries(test_tensornet_observe_path_reuse
+    PRIVATE 
+    cudaq
+    cudaq-builder
+    cudaq-platform-default
+    nvqir-tensornet
+    gtest_main)
+  # Run this test with "CUDAQ_TENSORNET_OBSERVE_CONTRACT_PATH_REUSE=TRUE"
+  gtest_discover_tests(test_tensornet_observe_path_reuse TEST_SUFFIX _PathReuse PROPERTIES ENVIRONMENT "CUDAQ_TENSORNET_OBSERVE_CONTRACT_PATH_REUSE=ON" PROPERTIES LABELS "gpu_required")
 endif() 
 
 # Create an executable for SpinOp UnitTests
@@ -211,6 +271,30 @@ target_link_libraries(test_spin
   cudaq-spin
   gtest_main)
 gtest_discover_tests(test_spin)
+
+# Create an executable for operators UnitTests
+set(CUDAQ_OPERATOR_TEST_SOURCES 
+   dynamics/operator_sum.cpp
+   dynamics/elementary_ops_simple.cpp
+   dynamics/elementary_ops_arithmetic.cpp
+   dynamics/scalar_ops_simple.cpp
+   dynamics/scalar_ops_arithmetic.cpp
+   dynamics/product_operators_arithmetic.cpp
+)
+add_executable(test_operators main.cpp ${CUDAQ_OPERATOR_TEST_SOURCES})
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+  target_link_options(test_operators PRIVATE -Wl,--no-as-needed)
+endif()
+target_link_libraries(test_operators
+  PRIVATE
+  cudaq-spin
+  cudaq-operators
+  cudaq
+  gtest_main
+  $ENV{CUQUANTUM_INSTALL_PREFIX}/lib/libcudensitymat.so.0
+  /usr/local/cuda-12.0/targets/x86_64-linux/lib/libcudart.so.12
+  fmt::fmt-header-only)
+gtest_discover_tests(test_operators)
 
 add_subdirectory(plugin)
 
@@ -330,7 +414,8 @@ target_link_libraries(${TEST_EXE_NAME}
   cudaq-platform-default
   cudaq-rest-qpu
   cudaq-builder
-  gtest_main)
+  gtest_main
+  $ENV{CUQUANTUM_INSTALL_PREFIX}/lib/libcudensitymat.so.0)
 set(TEST_LABELS "")
 if ("${TEST_LABELS}" STREQUAL "")
   gtest_discover_tests(${TEST_EXE_NAME})
@@ -372,4 +457,3 @@ if (CUDAQ_ENABLE_PYTHON)
   gtest_discover_tests(test_domains
     TEST_SUFFIX _Sampling PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}/python")
 endif()
-

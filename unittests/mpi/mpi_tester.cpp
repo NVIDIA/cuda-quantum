@@ -166,10 +166,10 @@ TEST(MPITester, checkSendAndRecv) {
   cudaqDistributedCommunicator_t *comm = mpiPlugin->getComm();
   EXPECT_TRUE(comm != nullptr);
   EXPECT_EQ(mpiInterface->RecvAsync(comm, recvBuffer.data(), nElems, FLOAT_64,
-                                    recvRank, 0),
+                                    recvRank, 0, nullptr),
             0);
   EXPECT_EQ(mpiInterface->SendAsync(comm, sendBuffer.data(), nElems, FLOAT_64,
-                                    sendRank, 0),
+                                    sendRank, 0, nullptr),
             0);
   EXPECT_EQ(mpiInterface->Synchronize(comm), 0);
   for (std::size_t i = 0; i < refBuffer.size(); ++i) {

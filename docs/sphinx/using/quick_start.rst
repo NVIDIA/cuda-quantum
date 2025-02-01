@@ -20,7 +20,7 @@ Install CUDA-Q
 .. tab:: Python
 
    To develop CUDA-Q applications using Python, 
-   please follow the instructions for `installing CUDA-Q <https://pypi.org/project/cuda-quantum/>`_ from PyPI. 
+   please follow the instructions for `installing CUDA-Q <https://pypi.org/project/cudaq/>`_ from PyPI. 
    If you have an NVIDIA GPU, make sure to also follow the instructions for enabling GPU-acceleration.
 
    .. include:: ../../../python/README.md

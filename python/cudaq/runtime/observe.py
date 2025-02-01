@@ -43,6 +43,7 @@ def observe(kernel,
             *args,
             shots_count=0,
             noise_model=None,
+            num_trajectories=None,
             execution=None):
     """Compute the expected value of the `spin_operator` with respect to 
 the `kernel`. If the input `spin_operator` is a list of `SpinOperator` then compute 
@@ -67,6 +68,7 @@ Args:
   noise_model (Optional[`NoiseModel`]): The optional :class:`NoiseModel` to add 
     noise to the kernel execution on the simulator. Defaults to an empty 
     noise model.
+  `num_trajectories` (Optional[int]): The optional number of trajectories for noisy simulation. Only valid if a noise model is provided. Key-word only.
 
 Returns:
   :class:`ObserveResult`: 
@@ -123,6 +125,11 @@ Returns:
     else:
         ctx = cudaq_runtime.ExecutionContext('observe', shots_count)
         ctx.setSpinOperator(localOp)
+        if num_trajectories is not None:
+            if noise_model is None:
+                raise RuntimeError(
+                    "num_trajectories is provided without a noise_model.")
+            ctx.numberTrajectories = num_trajectories
         cudaq_runtime.setExecutionContext(ctx)
         kernel(*args)
         res = ctx.result

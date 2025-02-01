@@ -26,3 +26,13 @@ set_tests_properties(
                                    "PYTHONPATH=${CMAKE_BINARY_DIR}/python"
                                    LABELS 
                                    "gpu_required;mgpus_required")
+
+add_test(
+  NAME cudaq-py-parallel-dynamics
+  COMMAND ${MPIEXEC_EXECUTABLE} --allow-run-as-root -np 2 ${PYTHON_EXECUTABLE} test_mpi_dynamics.py
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+set_tests_properties(
+  cudaq-py-parallel-dynamics PROPERTIES ENVIRONMENT
+                                    "PYTHONPATH=${CMAKE_BINARY_DIR}/python"
+                                    LABELS 
+                                    "gpu_required;mgpus_required")

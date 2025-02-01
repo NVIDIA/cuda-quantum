@@ -157,6 +157,8 @@ Data Types
 .. autoclass:: cudaq.operator.cudm_state.CuDensityMatState
     :members:
 
+.. autoclass:: cudaq.operator.helpers.InitialState
+
 .. autofunction:: cudaq.operator.cudm_state.to_cupy_array
 
 .. autoclass:: cudaq::SampleResult

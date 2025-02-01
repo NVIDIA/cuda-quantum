@@ -46,6 +46,14 @@ struct kraus_op {
   /// NOTE we currently assume nRows == nCols
   std::size_t nCols = 0;
 
+  /// @brief The precision of the underlying data
+  // This data is populated when a `kraus_op` is created and can be used to
+  // introspect `kraus_op` objects across library boundary (e.g., when dynamic
+  // linking is involved).
+  const cudaq::simulation_precision precision =
+      std::is_same_v<cudaq::real, float> ? cudaq::simulation_precision::fp32
+                                         : cudaq::simulation_precision::fp64;
+
   /// @brief Copy constructor
   kraus_op(const kraus_op &) = default;
 

@@ -21,22 +21,12 @@ std::string prepareOpenQasm(std::string source) {
 
 namespace cudaq {
 
-std::string getDeviceArn(const std::string &machine) {
-  if (machine.starts_with("arn:aws:braket")) {
+std::string checkDeviceArn(const std::string &machine) {
+  if (machine.starts_with("arn:aws:braket"))
     return machine;
-  }
-
-  if (deviceArns.contains(machine)) {
-    return deviceArns.at(machine);
-  }
-
-  std::string knownMachines;
-  for (const auto &machine : deviceArns)
-    knownMachines += machine.first + " ";
-  const auto errorMessage =
-      fmt::format("Machine \"{}\" is invalid. Machine must be either an Amazon "
-                  "Braket device ARN or one of the known devices: {}",
-                  machine, knownMachines);
+  const auto errorMessage = fmt::format("Machine \"{}\" is invalid. Machine "
+                                        "must be an Amazon Braket device ARN.",
+                                        machine);
   throw std::runtime_error(errorMessage);
 }
 
@@ -51,21 +41,17 @@ BraketServerHelper::getValueOrDefault(const BackendConfig &config,
 // Initialize the Braket server helper with a given backend configuration
 void BraketServerHelper::initialize(BackendConfig config) {
   cudaq::info("Initializing Amazon Braket backend.");
-
   // Fetch machine info before checking emulate because we want to be able to
-  // emulate specific machines.
-  auto machine = getValueOrDefault(config, "machine", SV1);
-  auto deviceArn = getDeviceArn(machine);
+  // emulate specific machines, defaults to state vector simulator
+  auto machine =
+      getValueOrDefault(config, "machine",
+                        "arn:aws:braket:::device/quantum-simulator/amazon/sv1");
+  auto deviceArn = checkDeviceArn(machine);
   cudaq::info("Running on device {}", deviceArn);
-
   config["defaultBucket"] = getValueOrDefault(config, "default_bucket", "");
   config["deviceArn"] = deviceArn;
-  config["qubits"] = deviceQubitCounts.contains(deviceArn)
-                         ? deviceQubitCounts.at(deviceArn)
-                         : DEFAULT_QUBIT_COUNT;
   if (!config["shots"].empty())
     this->setShots(std::stoul(config["shots"]));
-
   const auto emulate_it = config.find("emulate");
   if (emulate_it != config.end() && emulate_it->second == "true") {
     cudaq::info("Emulation is enabled, ignore all Amazon Braket connection "
@@ -73,9 +59,7 @@ void BraketServerHelper::initialize(BackendConfig config) {
     backendConfig = std::move(config);
     return;
   }
-
   parseConfigForCommonParams(config);
-
   // Move the passed config into the member variable backendConfig
   backendConfig = std::move(config);
 };
@@ -90,25 +74,19 @@ BraketServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     ServerMessage taskRequest;
     taskRequest["name"] = circuitCode.name;
     taskRequest["deviceArn"] = backendConfig.at("deviceArn");
-
-    taskRequest["qubits"] = backendConfig.at("qubits");
     taskRequest["input"]["format"] = "qasm2";
     taskRequest["input"]["data"] = circuitCode.code;
-
     auto action = nlohmann::json::parse(
         "{\"braketSchemaHeader\": {\"name\": \"braket.ir.openqasm.program\", "
         "\"version\": \"1\"}, \"source\": \"\", \"inputs\": {}}");
     action["source"] = prepareOpenQasm(circuitCode.code);
     taskRequest["action"] = action.dump();
     taskRequest["shots"] = shots;
-
     tasks.push_back(taskRequest);
   }
-
   cudaq::info("Created job payload for braket, language is OpenQASM 2.0, "
               "targeting device {}",
               backendConfig.at("deviceArn"));
-
   return ret;
 };
 

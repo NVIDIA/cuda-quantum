@@ -9,6 +9,7 @@
 import inspect, itertools, numpy, os, re, sys, typing  # type: ignore
 from typing import Any, Callable, Iterable, Mapping, Optional, Sequence, Tuple
 from numpy.typing import NDArray
+from enum import Enum
 
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
@@ -19,6 +20,17 @@ elif (3, 10) <= sys.version_info:
     NumericType = numpy.complexfloating | complex | float | int
 else:
     NumericType = typing.Union[numpy.complexfloating, complex, float, int]
+
+
+class InitialState(Enum):
+    """
+    Enum to specify the initial quantum state.
+    """
+    ZERO = 1
+    UNIFORM = 2
+
+
+InitialStateArgT = cudaq_runtime.State | InitialState
 
 
 class _OperatorHelpers:

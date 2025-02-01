@@ -83,6 +83,9 @@ CUDAQ_TEST(ObserveResult, checkSimple) {
   EXPECT_TRUE(x0x1Counts.size() == 4);
 }
 
+// By default, tensornet backends only compute the overall expectation value in
+// observe, i.e., no sub-term calculations.
+#ifndef CUDAQ_BACKEND_TENSORNET
 CUDAQ_TEST(ObserveResult, checkExpValBug) {
 
   auto kernel = []() __qpu__ {
@@ -111,4 +114,5 @@ CUDAQ_TEST(ObserveResult, checkExpValBug) {
   printf("exp %lf \n", exp);
   EXPECT_NEAR(exp, .79, 1e-1);
 }
+#endif
 #endif

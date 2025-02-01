@@ -183,8 +183,8 @@ please take a look at the section on :ref:`Development with VS Code <singularity
 Python wheels
 ++++++++++++++++++++++++++++++++++++
 
-CUDA-Q Python wheels are available on `PyPI.org <https://pypi.org/project/cuda-quantum>`__. 
-Installation instructions can be found in the `project description <https://pypi.org/project/cuda-quantum/#description>`__.
+CUDA-Q Python wheels are available on `PyPI.org <https://pypi.org/project/cudaq/>`__. 
+Installation instructions can be found in the `project description <https://pypi.org/project/cudaq/#description>`__.
 For more information about available versions and documentation,
 see :doc:`../../releases`.
 
@@ -218,7 +218,7 @@ Pre-built binaries
 Starting with the 0.6.0 release, we provide pre-built binaries for using 
 CUDA-Q with C++. Support for using CUDA-Q with Python can be installed 
 side-by-side with the pre-built binaries for C++ by following the instructions on 
-`PyPI.org <https://pypi.org/project/cuda-quantum>`__.
+`PyPI.org <https://pypi.org/project/cudaq/>`__.
 The pre-built binaries work across a range of Linux operating systems listed 
 under :ref:`dependencies-and-compatibility`. 
 
@@ -659,7 +659,7 @@ certain CUDA libraries separately to take advantage of these.
 Installation via PyPI
 ++++++++++++++++++++++++++++++++++++
 
-If you installed CUDA-Q via `PyPI <https://pypi.org/project/cuda-quantum>`__, please follow the installation instructions there to install the necessary CUDA dependencies.
+If you installed CUDA-Q via `PyPI <https://pypi.org/project/cudaq/>`__, please follow the installation instructions there to install the necessary CUDA dependencies.
 
 Installation In Container Images
 ++++++++++++++++++++++++++++++++++++

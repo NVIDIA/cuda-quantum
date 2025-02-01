@@ -19,40 +19,6 @@
 
 namespace cudaq {
 
-const std::string SV1 = "sv1";
-const std::string DM1 = "dm1";
-const std::string TN1 = "tn1";
-const std::string ARIA1 = "aria1";
-const std::string ARIA2 = "aria2";
-const std::string GARNET = "garnet";
-const std::string AQUILA = "aquila";
-
-const std::string SV1_ARN =
-    "arn:aws:braket:::device/quantum-simulator/amazon/sv1";
-const std::string DM1_ARN =
-    "arn:aws:braket:::device/quantum-simulator/amazon/dm1";
-const std::string TN1_ARN =
-    "arn:aws:braket:::device/quantum-simulator/amazon/tn1";
-const std::string ARIA1_ARN =
-    "arn:aws:braket:us-east-1::device/qpu/ionq/Aria-1";
-const std::string ARIA2_ARN =
-    "arn:aws:braket:us-east-1::device/qpu/ionq/Aria-2";
-const std::string GARNET_ARN =
-    "arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet";
-const std::string AQUILA_ARN =
-    "arn:aws:braket:us-east-1::device/qpu/quera/Aquila";
-
-const std::map<std::string, std::string> deviceArns = {
-    {SV1, SV1_ARN},      {DM1, DM1_ARN},     {TN1, TN1_ARN},
-    {ARIA1, ARIA1_ARN},  {ARIA2, ARIA2_ARN}, {GARNET, GARNET_ARN},
-    {AQUILA, AQUILA_ARN}};
-
-const std::map<std::string, uint> deviceQubitCounts = {
-    {SV1_ARN, 34},   {DM1_ARN, 17},    {TN1_ARN, 50},    {ARIA1_ARN, 25},
-    {ARIA2_ARN, 25}, {GARNET_ARN, 20}, {AQUILA_ARN, 256}};
-
-const uint DEFAULT_QUBIT_COUNT = 50;
-
 /// @brief The BraketServerHelper class extends the ServerHelper class to handle
 /// interactions with the Amazon Braket server for submitting and retrieving
 /// quantum computation jobs.
