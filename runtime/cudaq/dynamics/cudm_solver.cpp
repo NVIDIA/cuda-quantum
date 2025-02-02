@@ -7,9 +7,9 @@
  ******************************************************************************/
 
 #include "cudaq/cudm_solver.h"
-#include "cudaq/base_time_stepper.h"
 #include "cudaq/cudm_helpers.h"
 #include "cudaq/cudm_state.h"
+#include "cudaq/cudm_time_stepper.h"
 
 namespace cudaq {
 cudm_solver::cudm_solver(const Config &config) : config_(config) {
@@ -55,6 +55,6 @@ void cudm_solver::evolve(
   auto handle = state.get_impl();
 
   // Initialize the stepper
-  BaseTimeStepper timeStepper(liouvillian, handle);
+  cudm_time_stepper time_stepper(handle, liouvillian);
 }
 } // namespace cudaq
