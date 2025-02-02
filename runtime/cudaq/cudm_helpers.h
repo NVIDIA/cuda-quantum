@@ -17,14 +17,8 @@
 #include <vector>
 
 namespace cudaq {
-cudensitymatState_t initialize_state(cudensitymatHandle_t handle,
-                                     cudensitymatStatePurity_t purity,
-                                     const std::vector<int64_t> &mode_extents);
-
 void scale_state(cudensitymatHandle_t handle, cudensitymatState_t state,
                  double scale_factor, cudaStream_t stream);
-
-void destroy_state(cudensitymatState_t state);
 
 cudensitymatOperator_t
 compute_lindblad_operator(cudensitymatHandle_t handle,
