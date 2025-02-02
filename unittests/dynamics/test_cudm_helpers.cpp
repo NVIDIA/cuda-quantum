@@ -8,6 +8,7 @@
 
 #include <cudaq/cudm_error_handling.h>
 #include <cudaq/cudm_helpers.h>
+#include <cudaq/cudm_state.h>
 #include <gtest/gtest.h>
 
 // Initialize operator_sum
@@ -37,37 +38,36 @@ protected:
 
   void SetUp() override {
     HANDLE_CUDM_ERROR(cudensitymatCreate(&handle));
-    HANDLE_CUDA_ERROR(cudaStreamCreate(&stream));
+    stream = 0;
   }
 
   void TearDown() override {
-    HANDLE_CUDA_ERROR(cudaStreamDestroy(stream));
-    HANDLE_CUDM_ERROR(cudensitymatDestroy(handle));
+    cudensitymatDestroy(handle);
   }
 };
 
 // Test for initialize_state
 TEST_F(CuDensityMatTestFixture, InitializeState) {
-  std::vector<int64_t> mode_extents = {2, 2};
+  std::vector<int64_t> mode_extents = {2};
 
-  auto state = cudaq::initialize_state(handle, CUDENSITYMAT_STATE_PURITY_PURE,
-                                       mode_extents);
-  ASSERT_NE(state, nullptr);
+  std::vector<std::complex<double>> rawData = {{1.0, 0.0}, {0.0, 0.0}};
 
-  cudaq::destroy_state(state);
+  cudaq::cudm_state state(handle, rawData, mode_extents);
+
+  ASSERT_TRUE(state.is_initialized());
 }
 
 // Test for scale_state
 TEST_F(CuDensityMatTestFixture, ScaleState) {
   std::vector<int64_t> mode_extents = {2};
 
-  auto state = cudaq::initialize_state(handle, CUDENSITYMAT_STATE_PURITY_PURE,
-                                       mode_extents);
-  ASSERT_NE(state, nullptr);
+  std::vector<std::complex<double>> rawData = {{1.0, 0.0}, {0.0, 0.0}};
 
-  EXPECT_NO_THROW(cudaq::scale_state(handle, state, 2.0, stream));
+  cudaq::cudm_state state(handle, rawData, mode_extents);
 
-  cudaq::destroy_state(state);
+  ASSERT_TRUE(state.is_initialized());
+
+  EXPECT_NO_THROW(cudaq::scale_state(handle, state.get_impl(), 2.0, stream));
 }
 
 // Test for compute_lindblad_op
@@ -78,11 +78,12 @@ TEST_F(CuDensityMatTestFixture, ComputeLindbladOp) {
   cudaq::matrix_2 c_op2({0.0, 0.0, 0.0, 1.0}, {2, 2});
   std::vector<cudaq::matrix_2> c_ops = {c_op1, c_op2};
 
-  auto lindblad_op =
+  EXPECT_NO_THROW({
+    auto lindblad_op =
       cudaq::compute_lindblad_operator(handle, c_ops, mode_extents);
-  ASSERT_NE(lindblad_op, nullptr);
-
-  cudensitymatDestroyOperator(lindblad_op);
+    ASSERT_NE(lindblad_op, nullptr);
+    cudensitymatDestroyOperator(lindblad_op);
+  });
 }
 
 // Test for convert_to_cudensitymat_operator
@@ -91,11 +92,12 @@ TEST_F(CuDensityMatTestFixture, ConvertToCuDensityMatOperator) {
 
   auto op_sum = initialize_operator_sum();
 
-  auto result =
+  EXPECT_NO_THROW({
+    auto result =
       cudaq::convert_to_cudensitymat_operator(handle, {}, op_sum, mode_extents);
-  ASSERT_NE(result, nullptr);
-
-  cudensitymatDestroyOperator(result);
+    ASSERT_NE(result, nullptr);
+    cudensitymatDestroyOperator(result);
+  });
 }
 
 // Test invalid handle

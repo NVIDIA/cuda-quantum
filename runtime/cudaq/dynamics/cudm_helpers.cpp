@@ -43,7 +43,15 @@ get_subspace_extents(const std::vector<int64_t> &mode_extents,
 cudensitymatElementaryOperator_t create_elementary_operator(
     cudensitymatHandle_t handle, const std::vector<int64_t> &subspace_extents,
     const std::vector<std::complex<double>> &flat_matrix) {
-  cudensitymatElementaryOperator_t cudm_elem_op;
+  if (flat_matrix.empty()) {
+    throw std::invalid_argument("Input matrix (flat matrix) cannot be empty.");
+  }
+
+  if (subspace_extents.empty()) {
+    throw std::invalid_argument("subspace_extents cannot be empty.");
+  }
+
+  cudensitymatElementaryOperator_t cudm_elem_op = nullptr;
 
   std::vector<double> interleaved_matrix;
   interleaved_matrix.reserve(flat_matrix.size() * 2);
@@ -53,11 +61,16 @@ cudensitymatElementaryOperator_t create_elementary_operator(
     interleaved_matrix.push_back(value.imag());
   }
 
-  HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperator(
+  cudensitymatStatus_t status = cudensitymatCreateElementaryOperator(
       handle, static_cast<int32_t>(subspace_extents.size()),
       subspace_extents.data(), CUDENSITYMAT_OPERATOR_SPARSITY_NONE, 0, nullptr,
       CUDA_C_64F, static_cast<void *>(interleaved_matrix.data()),
-      {nullptr, nullptr}, &cudm_elem_op));
+      {nullptr, nullptr}, &cudm_elem_op);
+
+  if (status != CUDENSITYMAT_STATUS_SUCCESS) {
+    std::cerr << "Error: Failed to create elementary operator. Status: " << status << std::endl;
+    return nullptr;
+  }
 
   return cudm_elem_op;
 }
@@ -65,12 +78,18 @@ cudensitymatElementaryOperator_t create_elementary_operator(
 // Function to append an elementary operator to a term
 void append_elementary_operator_to_term(
     cudensitymatHandle_t handle, cudensitymatOperatorTerm_t term,
-    cudensitymatElementaryOperator_t &elem_op,
+    const cudensitymatElementaryOperator_t &elem_op,
     const std::vector<int> &degrees) {
+  if (degrees.empty()) {
+    throw std::invalid_argument("Degrees vector cannot be empty.");
+  }
+
+  std::vector<cudensitymatElementaryOperator_t> elem_ops = {elem_op};
+
   std::vector<int32_t> modeActionDuality(degrees.size(), 0);
 
   HANDLE_CUDM_ERROR(cudensitymatOperatorTermAppendElementaryProduct(
-      handle, term, static_cast<int32_t>(degrees.size()), &elem_op,
+      handle, term, static_cast<int32_t>(degrees.size()), elem_ops.data(),
       degrees.data(), modeActionDuality.data(), make_cuDoubleComplex(1.0, 0.0),
       {nullptr, nullptr}));
 }
@@ -86,19 +105,6 @@ void append_scalar_to_term(cudensitymatHandle_t handle,
       {make_cuDoubleComplex(coeff.real(), coeff.imag())}, {nullptr, nullptr}));
 }
 
-cudensitymatState_t initialize_state(cudensitymatHandle_t handle,
-                                     cudensitymatStatePurity_t purity,
-                                     const std::vector<int64_t> &mode_extents) {
-  cudensitymatState_t state;
-  cudensitymatStatus_t status =
-      cudensitymatCreateState(handle, purity, mode_extents.size(),
-                              mode_extents.data(), 1, CUDA_C_64F, &state);
-  if (status != CUDENSITYMAT_STATUS_SUCCESS) {
-    std::cerr << "Error in cudensitymatCreateState: " << status << std::endl;
-  }
-  return state;
-}
-
 void scale_state(cudensitymatHandle_t handle, cudensitymatState_t state,
                  double scale_factor, cudaStream_t stream) {
   if (!state) {
@@ -107,10 +113,6 @@ void scale_state(cudensitymatHandle_t handle, cudensitymatState_t state,
 
   HANDLE_CUDM_ERROR(
       cudensitymatStateComputeScaling(handle, state, &scale_factor, stream));
-}
-
-void destroy_state(cudensitymatState_t state) {
-  cudensitymatDestroyState(state);
 }
 
 cudensitymatOperator_t
@@ -140,14 +142,13 @@ compute_lindblad_operator(cudensitymatHandle_t handle,
         handle, static_cast<int32_t>(mode_extents.size()), mode_extents.data(),
         &term));
 
-    // Create elementary operator form c_op
-    auto cudm_elem_op =
+    // Create elementary operator from c_op
+    cudensitymatElementaryOperator_t cudm_elem_op =
         create_elementary_operator(handle, mode_extents, flat_matrix);
 
-    // Add the elementary operator to the term
-    // TODO: Fix temp vector below
-    std::vector<int> temp;
-    append_elementary_operator_to_term(handle, term, cudm_elem_op, temp);
+    // Append the elementary operator to the term
+    std::vector<int> degrees = {0, 1};
+    append_elementary_operator_to_term(handle, term, cudm_elem_op, degrees);
 
     // Add term to lindblad operator
     cudensitymatWrappedScalarCallback_t scalarCallback = {nullptr, nullptr};
@@ -175,6 +176,10 @@ cudensitymatOperator_t convert_to_cudensitymat_operator(
     cudensitymatHandle_t handle,
     const std::map<std::string, std::complex<double>> &parameters,
     const operator_sum &op, const std::vector<int64_t> &mode_extents) {
+  if (op.get_terms().empty()) {
+    throw std::invalid_argument("Operator sum cannot be empty.");
+  }
+
   try {
     cudensitymatOperator_t operator_handle;
     HANDLE_CUDM_ERROR(cudensitymatCreateOperator(
@@ -233,38 +238,28 @@ cudensitymatOperator_t convert_to_cudensitymat_operator(
   }
 }
 
-cudensitymatOperator_t construct_liovillian(
+cudensitymatOperator_t construct_liouvillian(
     cudensitymatHandle_t handle, const cudensitymatOperator_t &hamiltonian,
     const std::vector<cudensitymatOperator_t> &collapse_operators,
     double gamma) {
   try {
     cudensitymatOperator_t liouvillian;
-    auto status = cudensitymatCreateOperator(handle, 0, nullptr, &liouvillian);
-    if (status != CUDENSITYMAT_STATUS_SUCCESS) {
-      throw std::runtime_error("Failed to create Liouvillian operator.");
-    }
+    HANDLE_CUDM_ERROR(cudensitymatCreateOperator(handle, 0, nullptr, &liouvillian));
 
     cudensitymatWrappedScalarCallback_t scalarCallback = {nullptr, nullptr};
-    status = cudensitymatOperatorAppendTerm(handle, liouvillian, hamiltonian, 0,
-                                            {1.0, 0.0}, scalarCallback);
-    if (status != CUDENSITYMAT_STATUS_SUCCESS) {
-      cudensitymatDestroyOperator(liouvillian);
-      throw std::runtime_error("Failed to add hamiltonian term.");
-    }
+    HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(handle, liouvillian, hamiltonian, 0,
+                                            {1.0, 0.0}, scalarCallback));
 
+    // Collapse operator scaled by gamma
     cuDoubleComplex coefficient = make_cuDoubleComplex(gamma, 0.0);
     for (const auto &c_op : collapse_operators) {
-      status = cudensitymatOperatorAppendTerm(handle, liouvillian, c_op, 0,
-                                              coefficient, scalarCallback);
-      if (status != CUDENSITYMAT_STATUS_SUCCESS) {
-        cudensitymatDestroyOperator(liouvillian);
-        throw std::runtime_error("Failed to add collapse operator term.");
-      }
+      HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(handle, liouvillian, c_op, 0,
+                                              coefficient, scalarCallback));
     }
 
     return liouvillian;
   } catch (const std::exception &e) {
-    std::cerr << "Error in construct_liovillian: " << e.what() << std::endl;
+    std::cerr << "Error in construct_liouvillian: " << e.what() << std::endl;
     throw;
   }
 }
