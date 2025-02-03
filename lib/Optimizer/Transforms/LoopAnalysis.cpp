@@ -73,6 +73,14 @@ static bool isaConstantOf(Value v, std::int64_t hasVal) {
   return false;
 }
 
+static bool isNegativeConstant(Value v) {
+  v = peelCastOps(v);
+  if (auto c = v.getDefiningOp<arith::ConstantOp>())
+    if (auto ia = dyn_cast<IntegerAttr>(c.getValue()))
+      return ia.getInt() < 0;
+  return false;
+}
+
 static bool isClosedIntervalForm(arith::CmpIPredicate p) {
   return p == arith::CmpIPredicate::ule || p == arith::CmpIPredicate::sle;
 }
@@ -274,7 +282,7 @@ bool opt::isaMonotonicLoop(Operation *op, bool allowEarlyExit,
 
 bool opt::isaInvariantLoop(const LoopComponents &c, bool allowClosedInterval) {
   if (isaConstantOf(c.initialValue, 0) && isaConstantOf(c.stepValue, 1) &&
-      isa<arith::AddIOp>(c.stepOp)) {
+      isa<arith::AddIOp>(c.stepOp) && !isNegativeConstant(c.compareValue)) {
     auto cmp = cast<arith::CmpIOp>(c.compareOp);
     return validCountedLoopIntervalForm(cmp, allowClosedInterval);
   }
