@@ -285,6 +285,7 @@ class PyKernel(object):
                                       loc=self.loc)
             self.funcOp.attributes.__setitem__('cudaq-entrypoint',
                                                UnitAttr.get())
+            self.funcOp.attributes.__setitem__('cudaq-kernel', UnitAttr.get())
             e = self.funcOp.add_entry_block()
             self.arguments = [self.__createQuakeValue(b) for b in e.arguments]
             self.argument_count = len(self.arguments)
