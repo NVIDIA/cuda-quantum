@@ -22,10 +22,10 @@ namespace detail {
       states.push_back(std::to_string(state));
     }
 
-    for (auto degree = degrees.begin() + 1; degree != degrees.end(); ++degree) {
+    for (auto idx = 1; idx < degrees.size(); ++idx) {
       std::vector<std::string> result;
       for (auto current : states) {
-        for (auto state = 0; state < dimensions[degrees[*degree]]; state++) {
+        for (auto state = 0; state < dimensions[degrees[idx]]; state++) {
           result.push_back(current + std::to_string(state));
         }
       }
