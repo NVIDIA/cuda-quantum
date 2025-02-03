@@ -1375,9 +1375,8 @@ public:
     auto unitaryData =
         rewriter.create<LLVM::BitcastOp>(loc, complex64PtrTy, addrOp);
 
-    std::string qirFunctionName = cudaq::opt::QIRCustomOp;
-    if (op.isAdj())
-      qirFunctionName += "__adj";
+    StringRef qirFunctionName =
+        op.isAdj() ? cudaq::opt::QIRCustomAdjOp : cudaq::opt::QIRCustomOp;
 
     FlatSymbolRefAttr customSymbolRef =
         cudaq::opt::factory::createLLVMFunctionSymbol(
