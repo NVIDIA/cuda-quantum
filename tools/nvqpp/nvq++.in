@@ -747,7 +747,7 @@ fi
 
 for i in ${SRCS}; do
 	file_with_suffix=$(basename $i)
-	file=${file_with_suffix%%.*}
+	file=${file_with_suffix%.*}
 
 	# If LIBRARY_MODE explicitly requested, then
 	# simply compile with the classical compiler.
