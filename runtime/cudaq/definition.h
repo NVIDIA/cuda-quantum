@@ -18,16 +18,14 @@
 
 namespace cudaq {
 
-// Limit the signature of the users callback function to accept a vector of ints
-// for the degree of freedom dimensions, and a vector of complex doubles for the
-// concrete parameter values.
 using Func = std::function<matrix_2(
-    std::map<int, int>, std::map<std::string, std::complex<double>>)>;
+    std::vector<int>, std::map<std::string, std::complex<double>>)>;
 
 class CallbackFunction {
 private:
-  // The user provided callback function that takes the degrees of
-  // freedom and a vector of complex parameters.
+  // The user provided callback function that takes a vector defining the 
+  // dimension for each degree of freedom it acts on, and a map of complex 
+  // parameters.
   Func _callback_func;
 
 public:
@@ -36,7 +34,7 @@ public:
   template <typename Callable>
   CallbackFunction(Callable &&callable) {
     static_assert(
-        std::is_invocable_r_v<matrix_2, Callable, std::map<int, int>,
+        std::is_invocable_r_v<matrix_2, Callable, std::vector<int>,
                               std::map<std::string, std::complex<double>>>,
         "Invalid callback function. Must have signature "
         "matrix_2("
@@ -74,9 +72,9 @@ public:
   bool operator!() { return (!_callback_func); }
 
   matrix_2
-  operator()(std::map<int, int> degrees,
+  operator()(std::vector<int> relevant_dimensions,
              std::map<std::string, std::complex<double>> parameters) const {
-    return _callback_func(std::move(degrees), std::move(parameters));
+    return _callback_func(std::move(relevant_dimensions), std::move(parameters));
   }
 };
 
@@ -144,17 +142,17 @@ class Definition {
 private: 
   std::string id;
   CallbackFunction generator;
-  std::map<int, int> m_expected_dimensions;
+  std::vector<int> m_expected_dimensions;
 
 public:
 
-  Definition(const std::string &operator_id, std::map<int, int> expected_dimensions, CallbackFunction &&create);
+  Definition(const std::string &operator_id, std::vector<int> expected_dimensions, CallbackFunction &&create);
   Definition(Definition &&def);
   ~Definition();
 
   // To call the generator function
   matrix_2 generate_matrix(
-      const std::map<int, int> &degrees,
+      const std::vector<int> &relevant_dimensions,
       const std::map<std::string, std::complex<double>> &parameters) const;
 };
 } // namespace cudaq

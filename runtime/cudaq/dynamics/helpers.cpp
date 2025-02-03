@@ -23,7 +23,6 @@ namespace detail {
     }
 
     for (auto degree = degrees.begin() + 1; degree != degrees.end(); ++degree) {
-      std::string term;
       std::vector<std::string> result;
       for (auto current : states) {
         for (auto state = 0; state < dimensions[degrees[*degree]]; state++) {
