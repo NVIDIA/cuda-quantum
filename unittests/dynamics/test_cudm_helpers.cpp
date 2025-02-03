@@ -41,9 +41,7 @@ protected:
     stream = 0;
   }
 
-  void TearDown() override {
-    cudensitymatDestroy(handle);
-  }
+  void TearDown() override { cudensitymatDestroy(handle); }
 };
 
 // Test for initialize_state
@@ -80,7 +78,7 @@ TEST_F(CuDensityMatTestFixture, ComputeLindbladOp) {
 
   EXPECT_NO_THROW({
     auto lindblad_op =
-      cudaq::compute_lindblad_operator(handle, c_ops, mode_extents);
+        cudaq::compute_lindblad_operator(handle, c_ops, mode_extents);
     ASSERT_NE(lindblad_op, nullptr);
     cudensitymatDestroyOperator(lindblad_op);
   });
@@ -93,8 +91,8 @@ TEST_F(CuDensityMatTestFixture, ConvertToCuDensityMatOperator) {
   auto op_sum = initialize_operator_sum();
 
   EXPECT_NO_THROW({
-    auto result =
-      cudaq::convert_to_cudensitymat_operator(handle, {}, op_sum, mode_extents);
+    auto result = cudaq::convert_to_cudensitymat_operator(handle, {}, op_sum,
+                                                          mode_extents);
     ASSERT_NE(result, nullptr);
     cudensitymatDestroyOperator(result);
   });
