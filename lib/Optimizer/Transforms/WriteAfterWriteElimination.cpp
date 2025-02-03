@@ -19,11 +19,11 @@
 #include "mlir/Transforms/Passes.h"
 
 namespace cudaq::opt {
-#define GEN_PASS_DEF_REMOVEUSELESSSTORES
+#define GEN_PASS_DEF_WRITEAFTERWRITEELIMINATION
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
-#define DEBUG_TYPE "remove-useless-stores"
+#define DEBUG_TYPE "write-after-write-elimination"
 
 using namespace mlir;
 
@@ -37,16 +37,17 @@ namespace {
 /// ───────────────────────────────────────────
 /// cc.store %0, %1 : !cc.ptr<i64>
 /// ```
-class RemoveUselessStorePattern : public OpRewritePattern<cudaq::cc::StoreOp> {
+class RemoveOverriddenStorePattern
+    : public OpRewritePattern<cudaq::cc::StoreOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  explicit RemoveUselessStorePattern(MLIRContext *ctx, DominanceInfo &di)
+  explicit RemoveOverriddenStorePattern(MLIRContext *ctx, DominanceInfo &di)
       : OpRewritePattern(ctx), dom(di) {}
 
   LogicalResult matchAndRewrite(cudaq::cc::StoreOp store,
                                 PatternRewriter &rewriter) const override {
-    if (isUselessStore(store)) {
+    if (isOverridenStore(store)) {
       rewriter.eraseOp(store);
       return success();
     }
@@ -56,7 +57,7 @@ public:
 private:
   /// Detect if the current store is overriden by another store in the same
   /// block.
-  bool isUselessStore(cudaq::cc::StoreOp store) const {
+  bool isOverridenStore(cudaq::cc::StoreOp store) const {
     Value currentPtr;
 
     if (!isStoreToStack(store))
@@ -73,17 +74,8 @@ private:
           // Found an overriding store, the current store is useless
           if (currentPtr == nextPtr)
             return isReplacement(currentPtr, store, currentStore);
-
-          // // Found a use for a current ptr before the overriding store
-          // if (currentPtr && isUsed(currentPtr, &op))
-          //   return false;
         }
       }
-      // } else {
-      //   // Found a use for a current ptr before the overriding store
-      //   if (currentPtr && isUsed(currentPtr, &op))
-      //     return false;
-      // }
     }
     // No multiple stores to the same location found
     return false;
@@ -107,10 +99,7 @@ private:
     if (auto computePtr = ptrOp.getDefiningOp<cudaq::cc::ComputePtrOp>())
       ptrOp = computePtr.getBase();
 
-    if (auto alloca = ptrOp.getDefiningOp<cudaq::cc::AllocaOp>())
-      return true;
-
-    return false;
+    return isa_and_present<cudaq::cc::AllocaOp>(ptrOp.getDefiningOp());
   }
 
   /// Detect if value is used in the op or its nested blocks.
@@ -130,45 +119,30 @@ private:
     return true;
   }
 
-  // /// Detect if value is used in the op or its nested blocks.
-  // static bool isUsed(Value v, Operation *op) {
-  //   for (auto opnd : op->getOperands())
-  //     if (opnd == v)
-  //       return true;
-
-  //   for (auto &region : op->getRegions())
-  //     for (auto &b : region)
-  //       for (auto &innerOp : b)
-  //         if (isUsed(v, &innerOp))
-  //           return true;
-
-  //   return false;
-  // }
-
   DominanceInfo &dom;
 };
 
-class RemoveUselessStoresPass
-    : public cudaq::opt::impl::RemoveUselessStoresBase<
-          RemoveUselessStoresPass> {
+class WriteAfterWriteEliminationPass
+    : public cudaq::opt::impl::WriteAfterWriteEliminationBase<
+          WriteAfterWriteEliminationPass> {
 public:
-  using RemoveUselessStoresBase::RemoveUselessStoresBase;
+  using WriteAfterWriteEliminationBase::WriteAfterWriteEliminationBase;
 
   void runOnOperation() override {
     auto *ctx = &getContext();
     auto func = getOperation();
     DominanceInfo domInfo(func);
     RewritePatternSet patterns(ctx);
-    patterns.insert<RemoveUselessStorePattern>(ctx, domInfo);
+    patterns.insert<RemoveOverriddenStorePattern>(ctx, domInfo);
 
     LLVM_DEBUG(llvm::dbgs()
-               << "Before removing useless stores: " << func << '\n');
+               << "Before write after write elimination: " << func << '\n');
 
     if (failed(applyPatternsAndFoldGreedily(func, std::move(patterns))))
       signalPassFailure();
 
     LLVM_DEBUG(llvm::dbgs()
-               << "After removing useless stores: " << func << '\n');
+               << "After write after write elimination: " << func << '\n');
   }
 };
 } // namespace

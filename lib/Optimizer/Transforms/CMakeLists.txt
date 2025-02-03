@@ -52,10 +52,10 @@ add_cudaq_library(OptTransforms
   QuakeSynthesizer.cpp
   RefToVeqAlloc.cpp
   RegToMem.cpp
-  RemoveUselessStores.cpp
   StatePreparation.cpp
   UnitarySynthesis.cpp
   WiresToWiresets.cpp
+  WriteAfterWriteElimination.cpp
 
   DEPENDS
     OptTransformsPassIncGen
