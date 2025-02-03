@@ -84,6 +84,10 @@ public:
   /// @return The new state after the summation of two states.
   cudm_state operator+(const cudm_state &other) const;
 
+  /// @brief Accumulation operator
+  /// @return Accumulates the summation of two states.
+  cudm_state &operator+=(const cudm_state &other);
+
   /// @brief Scalar multiplication operator
   /// @return The new state after multiplying scalar with the current state.
   cudm_state operator*(double scalar) const;
