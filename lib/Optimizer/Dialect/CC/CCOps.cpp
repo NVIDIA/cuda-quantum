@@ -11,6 +11,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/ADT/TypeSwitch.h"
+#include "llvm/Support/Debug.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/Dialect/Utils/IndexingUtils.h"
@@ -21,7 +22,11 @@
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeUtilities.h"
 
+#define DEBUG_TYPE "canonicalize"
+
 using namespace mlir;
+
+#include "cudaq/Optimizer/Dialect/CC/LowerToCFGPatterns.inc"
 
 template <typename R>
 R getParentOfType(Operation *op) {
@@ -2038,6 +2043,14 @@ MutableOperandRange cudaq::cc::ConditionOp::getMutableSuccessorOperands(
   return getResultsMutable();
 }
 
+//===----------------------------------------------------------------------===//
+// IfOp
+//===----------------------------------------------------------------------===//
+
+void cudaq::cc::IfOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
+                                                  MLIRContext *context) {
+  patterns.add<RewriteIf>(context);
+}
 //===----------------------------------------------------------------------===//
 // OffsetOfOp
 //===----------------------------------------------------------------------===//
