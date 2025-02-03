@@ -9,6 +9,7 @@
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
+#include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/TargetParser/Host.h"
@@ -247,6 +248,21 @@ Value factory::createLLVMTemporary(Location loc, OpBuilder &builder, Type type,
   builder.setInsertionPointToStart(entryBlock);
   Value len = genLlvmI64Constant(loc, builder, size);
   return builder.create<LLVM::AllocaOp>(loc, type, ArrayRef<Value>{len});
+}
+
+Value factory::createTemporary(Location loc, OpBuilder &builder, Type type,
+                               std::size_t size) {
+  Operation *op = builder.getBlock()->getParentOp();
+  auto func = dyn_cast<func::FuncOp>(op);
+  if (!func)
+    func = op->getParentOfType<func::FuncOp>();
+  assert(func && "must be in a function");
+  auto *entryBlock = &func.getRegion().front();
+  assert(entryBlock && "function must have an entry block");
+  OpBuilder::InsertionGuard guard(builder);
+  builder.setInsertionPointToStart(entryBlock);
+  Value len = builder.create<arith::ConstantIntOp>(loc, size, 64);
+  return builder.create<cudaq::cc::AllocaOp>(loc, type, len);
 }
 
 // This builder will transform the monotonic loop into an invariant loop during

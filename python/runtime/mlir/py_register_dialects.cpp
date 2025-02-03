@@ -6,8 +6,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "mlir/Bindings/Python/PybindAdaptors.h"
-
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CAPI/Dialects.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
@@ -17,7 +15,9 @@
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
+#include "cudaq/Optimizer/InitAllPasses.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/InitAllDialects.h"
 #include <fmt/core.h>
 #include <pybind11/complex.h>
@@ -38,17 +38,11 @@ void registerQuakeDialectAndTypes(py::module &m) {
       [](MlirContext context, bool load) {
         MlirDialectHandle handle = mlirGetDialectHandle__quake__();
         mlirDialectHandleRegisterDialect(handle, context);
-        if (load) {
+        if (load)
           mlirDialectHandleLoadDialect(handle, context);
-        }
 
         if (!registered) {
-          cudaq::opt::registerOptCodeGenPasses();
-          cudaq::opt::registerOptTransformsPasses();
-          cudaq::opt::registerAggressiveEarlyInlining();
-          cudaq::opt::registerUnrollingPipeline();
-          cudaq::opt::registerTargetPipelines();
-          cudaq::opt::registerMappingPipeline();
+          cudaq::registerCudaqPassesAndPipelines();
           registered = true;
         }
       },

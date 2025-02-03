@@ -28,7 +28,7 @@ namespace cudaq::opt {
 using namespace mlir;
 
 template <typename A, typename B>
-SmallVector<A> conversion(ArrayAttr seq) {
+SmallVector<A> conversion(ArrayAttr seq, Type) {
   SmallVector<A> result;
   for (auto v : seq) {
     B c = cast<B>(v);
@@ -37,8 +37,21 @@ SmallVector<A> conversion(ArrayAttr seq) {
   return result;
 }
 template <>
+SmallVector<APInt> conversion<APInt, IntegerAttr>(ArrayAttr seq, Type ty) {
+  SmallVector<APInt> result;
+  for (auto v : seq) {
+    auto c = cast<IntegerAttr>(v);
+    APInt ap = c.getValue();
+    if (c.getType() != ty)
+      result.emplace_back(ty.getIntOrFloatBitWidth(), ap.getLimitedValue());
+    else
+      result.emplace_back(ap);
+  }
+  return result;
+}
+template <>
 SmallVector<std::complex<APFloat>>
-conversion<std::complex<APFloat>, ArrayAttr>(ArrayAttr seq) {
+conversion<std::complex<APFloat>, ArrayAttr>(ArrayAttr seq, Type) {
   SmallVector<std::complex<APFloat>> result;
   for (auto v : seq) {
     auto p = cast<ArrayAttr>(v);
@@ -55,15 +68,16 @@ convertArrayAttrToGlobalConstant(MLIRContext *ctx, Location loc,
   cudaq::IRBuilder irBuilder(ctx);
   auto tensorTy = RankedTensorType::get(arrAttr.size(), eleTy);
   if (isa<ComplexType>(eleTy)) {
-    auto blockValues = conversion<std::complex<APFloat>, ArrayAttr>(arrAttr);
+    auto blockValues =
+        conversion<std::complex<APFloat>, ArrayAttr>(arrAttr, eleTy);
     auto dense = DenseElementsAttr::get(tensorTy, blockValues);
     irBuilder.genVectorOfConstants(loc, module, globalName, dense, eleTy);
   } else if (isa<FloatType>(eleTy)) {
-    auto blockValues = conversion<APFloat, FloatAttr>(arrAttr);
+    auto blockValues = conversion<APFloat, FloatAttr>(arrAttr, eleTy);
     auto dense = DenseElementsAttr::get(tensorTy, blockValues);
     irBuilder.genVectorOfConstants(loc, module, globalName, dense, eleTy);
   } else if (isa<IntegerType>(eleTy)) {
-    auto blockValues = conversion<APInt, IntegerAttr>(arrAttr);
+    auto blockValues = conversion<APInt, IntegerAttr>(arrAttr, eleTy);
     auto dense = DenseElementsAttr::get(tensorTy, blockValues);
     irBuilder.genVectorOfConstants(loc, module, globalName, dense, eleTy);
   } else {
@@ -81,14 +95,18 @@ struct ConstantArrayPattern
 
   LogicalResult matchAndRewrite(cudaq::cc::ConstantArrayOp conarr,
                                 PatternRewriter &rewriter) const override {
-    if (!conarr->hasOneUse())
-      return failure();
-    auto store = dyn_cast<cudaq::cc::StoreOp>(*conarr->getUsers().begin());
-    if (!store)
-      return failure();
-    auto alloca = store.getPtrvalue().getDefiningOp<cudaq::cc::AllocaOp>();
-    if (!alloca)
-      return failure();
+    SmallVector<cudaq::cc::AllocaOp> allocas;
+    SmallVector<cudaq::cc::StoreOp> stores;
+    for (auto *usr : conarr->getUsers()) {
+      auto store = dyn_cast<cudaq::cc::StoreOp>(usr);
+      if (!store)
+        return failure();
+      auto alloca = store.getPtrvalue().getDefiningOp<cudaq::cc::AllocaOp>();
+      if (!alloca)
+        return failure();
+      stores.push_back(store);
+      allocas.push_back(alloca);
+    }
     auto func = conarr->getParentOfType<func::FuncOp>();
     if (!func)
       return failure();
@@ -100,9 +118,11 @@ struct ConstantArrayPattern
     if (failed(convertArrayAttrToGlobalConstant(ctx, conarr.getLoc(), valueAttr,
                                                 module, globalName, eleTy)))
       return failure();
-    rewriter.replaceOpWithNewOp<cudaq::cc::AddressOfOp>(
-        alloca, alloca.getType(), globalName);
-    rewriter.eraseOp(store);
+    for (auto alloca : allocas)
+      rewriter.replaceOpWithNewOp<cudaq::cc::AddressOfOp>(
+          alloca, alloca.getType(), globalName);
+    for (auto store : stores)
+      rewriter.eraseOp(store);
     rewriter.eraseOp(conarr);
     return success();
   }

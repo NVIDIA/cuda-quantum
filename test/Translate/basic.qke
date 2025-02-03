@@ -16,16 +16,16 @@ func.func @test_func(%p : i32) {
 }
 
 // CHECK-LABEL: define void @test_func(i32 
-// CHECK-SAME:                             %[[VAL_0:.*]]) local_unnamed_addr {
+// CHECK-SAME:        %[[VAL_0:.*]]) local_unnamed_addr {
 // CHECK:         %[[VAL_1:.*]] = zext i32 %[[VAL_0]] to i64
-// CHECK:         %[[VAL_2:.*]] = tail call %[[VAL_3:.*]]* @__quantum__rt__qubit_allocate_array(i64 %[[VAL_1]])
-// CHECK:         %[[VAL_4:.*]] = tail call %[[VAL_3]]* @__quantum__rt__qubit_allocate_array(i64 2)
-// CHECK-DAG:     tail call void @__quantum__rt__qubit_release_array(%[[VAL_3]]* %[[VAL_4]])
-// CHECK-DAG:     tail call void @__quantum__rt__qubit_release_array(%[[VAL_3]]* %[[VAL_2]])
+// CHECK:         %[[VAL_2:.*]] = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 %[[VAL_1]])
+// CHECK:         %[[VAL_4:.*]] = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 2)
+// CHECK-DAG:     tail call void @__quantum__rt__qubit_release_array(%Array* %[[VAL_4]])
+// CHECK-DAG:     tail call void @__quantum__rt__qubit_release_array(%Array* %[[VAL_2]])
 // CHECK:         ret void
 // CHECK:       }
 
-func.func @test_func2(){
+func.func @test_func2() {
   %zero = arith.constant 0 : i32
   %one = arith.constant 1 : i32
   %neg = arith.constant -5 : i32
@@ -51,16 +51,15 @@ func.func @test_func2(){
 
 // CHECK-LABEL: define void @test_func2() local_unnamed_addr {
 // CHECK:         %[[VAL_0:.*]] = tail call %[[VAL_1:.*]]* @__quantum__rt__qubit_allocate_array(i64 5)
-// CHECK:         %[[VAL_2:.*]] = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 0)
-// CHECK:         %[[VAL_3:.*]] = bitcast i8* %[[VAL_2]] to %[[VAL_4:.*]]**
-// CHECK:         %[[VAL_5:.*]] = load %[[VAL_4]]*, %[[VAL_4]]** %[[VAL_3]], align 8
-// CHECK:         %[[VAL_6:.*]] = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 3)
-// CHECK:         %[[VAL_7:.*]] = bitcast i8* %[[VAL_6]] to %[[VAL_4]]**
-// CHECK:         %[[VAL_8:.*]] = load %[[VAL_4]]*, %[[VAL_4]]** %[[VAL_7]], align 8
-// CHECK:         tail call void @__quantum__qis__h(%[[VAL_4]]* %[[VAL_5]])
-// CHECK:         tail call void (i64, void (%[[VAL_1]]*, %[[VAL_4]]*)*, ...) @invokeWithControlQubits(i64 1, void (%[[VAL_1]]*, %[[VAL_4]]*)* nonnull @__quantum__qis__x__ctl, %[[VAL_4]]* %[[VAL_5]], %[[VAL_4]]* %[[VAL_8]])
-// CHECK:         tail call void @__quantum__qis__rx(double 4.300000e-01, %[[VAL_4]]* %[[VAL_5]])
-// CHECK:         %[[VAL_9:.*]] = tail call %[[VAL_10:.*]]* @__quantum__qis__mz(%[[VAL_4]]* %[[VAL_5]])
+// CHECK:         %[[VAL_2:.*]] = tail call %[[VAL_3:.*]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 0)
+// CHECK:         %[[VAL_4:.*]] = load %[[VAL_3]]*, %[[VAL_3]]** %[[VAL_2]], align 8
+// CHECK:         %[[VAL_5:.*]] = tail call %[[VAL_3]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 3)
+// CHECK:         %[[VAL_6:.*]] = bitcast %[[VAL_3]]** %[[VAL_5]] to i8**
+// CHECK:         %[[VAL_7:.*]] = load i8*, i8** %[[VAL_6]], align 8
+// CHECK:         tail call void @__quantum__qis__h(%[[VAL_3]]* %[[VAL_4]])
+// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* nonnull bitcast (void (%[[VAL_1]]*, %[[VAL_3]]*)* @__quantum__qis__x__ctl to i8*), %[[VAL_3]]* %[[VAL_4]], i8* %[[VAL_7]])
+// CHECK:         tail call void @__quantum__qis__rx(double 4.300000e-01, %[[VAL_3]]* %[[VAL_4]])
+// CHECK:         %[[VAL_8:.*]] = tail call %[[VAL_9:.*]]* @__quantum__qis__mz(%[[VAL_3]]* %[[VAL_4]])
 // CHECK:         tail call void @__quantum__rt__qubit_release_array(%[[VAL_1]]* %[[VAL_0]])
 // CHECK:         ret void
 // CHECK:       }
@@ -74,20 +73,18 @@ func.func @test_ctrl_swap_basic() {
 }
 
 // CHECK-LABEL: define void @test_ctrl_swap_basic() local_unnamed_addr {
-// CHECK:         %[[VAL_12:.*]] = alloca i64, align 8
-// CHECK:         %[[VAL_0:.*]] = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 3)
-// CHECK:         %[[VAL_2:.*]] = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 0)
-// CHECK:         %[[VAL_3:.*]] = bitcast i8* %[[VAL_2]] to %Qubit**
-// CHECK:         %[[VAL_5:.*]] = load %Qubit*, %Qubit** %[[VAL_3]], align 8
-// CHECK:         %[[VAL_6:.*]] = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 1)
-// CHECK:         %[[VAL_7:.*]] = bitcast i8* %[[VAL_6]] to %Qubit**
-// CHECK:         %[[VAL_8:.*]] = load %Qubit*, %Qubit** %[[VAL_7]], align 8
-// CHECK:         %[[VAL_9:.*]] = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 2)
-// CHECK:         %[[VAL_10:.*]] = bitcast i8* %[[VAL_9]] to %Qubit**
-// CHECK:         %[[VAL_11:.*]] = load %Qubit*, %Qubit** %[[VAL_10]], align 8
-// CHECK:         store i64 0, i64* %[[VAL_12]], align 8
-// CHECK:         call void (i64, i64*, i64, void (%Array*, %Qubit*, %Qubit*)*, ...) @invokeWithControlRegisterOrQubits(i64 1, i64* nonnull %[[VAL_12]], i64 2, void (%Array*, %Qubit*, %Qubit*)* nonnull @__quantum__qis__swap__ctl, %Qubit* %[[VAL_5]], %Qubit* %[[VAL_8]], %Qubit* %[[VAL_11]])
-// CHECK:         call void @__quantum__rt__qubit_release_array(%Array* %[[VAL_0]])
+// CHECK:         %[[VAL_0:.*]] = tail call %[[VAL_1:.*]]* @__quantum__rt__qubit_allocate_array(i64 3)
+// CHECK:         %[[VAL_2:.*]] = tail call %[[VAL_3:.*]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 0)
+// CHECK:         %[[VAL_4:.*]] = bitcast %[[VAL_3]]** %[[VAL_2]] to i8**
+// CHECK:         %[[VAL_5:.*]] = load i8*, i8** %[[VAL_4]], align 8
+// CHECK:         %[[VAL_6:.*]] = tail call %[[VAL_3]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 1)
+// CHECK:         %[[VAL_7:.*]] = bitcast %[[VAL_3]]** %[[VAL_6]] to i8**
+// CHECK:         %[[VAL_8:.*]] = load i8*, i8** %[[VAL_7]], align 8
+// CHECK:         %[[VAL_9:.*]] = tail call %[[VAL_3]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 2)
+// CHECK:         %[[VAL_10:.*]] = bitcast %[[VAL_3]]** %[[VAL_9]] to i8**
+// CHECK:         %[[VAL_11:.*]] = load i8*, i8** %[[VAL_10]], align 8
+// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 2, i8* nonnull bitcast (void (%[[VAL_1]]*, %[[VAL_3]]*, %[[VAL_3]]*)* @__quantum__qis__swap__ctl to i8*), i8* %[[VAL_5]], i8* %[[VAL_8]], i8* %[[VAL_11]])
+// CHECK:         tail call void @__quantum__rt__qubit_release_array(%[[VAL_1]]* %[[VAL_0]])
 // CHECK:         ret void
 // CHECK:       }
 
@@ -103,33 +100,20 @@ func.func @test_ctrl_swap_complex() {
 }
 
 // CHECK-LABEL: define void @test_ctrl_swap_complex() local_unnamed_addr {
-// CHECK:     %[[VAL_17:.*]] = alloca [2 x i64], align 8
-// CHECK:     %[[VAL_13:.*]] = alloca [2 x i64], align 8
-// CHECK:     %[[VAL_14:.*]] = getelementptr inbounds [2 x i64], [2 x i64]* %[[VAL_13]], i64 0, i64 0
-// CHECK:     %[[VAL_18:.*]] = getelementptr inbounds [2 x i64], [2 x i64]* %[[VAL_17]], i64 0, i64 0
-// CHECK:         %[[VAL_0:.*]] = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 7)
-// CHECK:         %[[VAL_2:.*]] = tail call %Array* @__quantum__rt__array_slice(%Array* %[[VAL_0]], i32 1, i64 0, i64 1, i64 3)
-// CHECK:         %[[VAL_3:.*]] = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 4)
-// CHECK:         %[[VAL_4:.*]] = bitcast i8* %[[VAL_3]] to %Qubit**
-// CHECK:         %[[VAL_6:.*]] = load %Qubit*, %Qubit** %[[VAL_4]], align 8
-// CHECK:         %[[VAL_7:.*]] = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 5)
-// CHECK:         %[[VAL_8:.*]] = bitcast i8* %[[VAL_7]] to %Qubit**
-// CHECK:         %[[VAL_9:.*]] = load %Qubit*, %Qubit** %[[VAL_8]], align 8
-// CHECK:         %[[VAL_10:.*]] = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 6)
-// CHECK:         %[[VAL_11:.*]] = bitcast i8* %[[VAL_10]] to %Qubit**
-// CHECK:         %[[VAL_12:.*]] = load %Qubit*, %Qubit** %[[VAL_11]], align 8
-// CHECK:         tail call void @__quantum__qis__swap__ctl(%Array* %[[VAL_2]], %Qubit* %[[VAL_6]], %Qubit* %[[VAL_9]])
-// CHECK:         store i64 0, i64* %[[VAL_14]], align 8
-// CHECK:         %[[VAL_15:.*]] = getelementptr inbounds [2 x i64], [2 x i64]* %[[VAL_13]], i64 0, i64 1
-// CHECK:         %[[VAL_16:.*]] = tail call i64 @__quantum__rt__array_get_size_1d(%Array* %[[VAL_2]])
-// CHECK:         store i64 %[[VAL_16]], i64* %[[VAL_15]], align 8
-// CHECK:         call void (i64, i64*, i64, void (%Array*, %Qubit*, %Qubit*)*, ...) @invokeWithControlRegisterOrQubits(i64 2, i64* nonnull %[[VAL_14]], i64 2, void (%Array*, %Qubit*, %Qubit*)* nonnull @__quantum__qis__swap__ctl, %Qubit* %[[VAL_6]], %Array* %[[VAL_2]], %Qubit* %[[VAL_9]], %Qubit* %[[VAL_12]])
-// CHECK:         %[[VAL_19:.*]] = call i64 @__quantum__rt__array_get_size_1d(%Array* %[[VAL_2]])
-// CHECK:         store i64 %[[VAL_19]], i64* %[[VAL_18]], align 8
-// CHECK:         %[[VAL_20:.*]] = getelementptr inbounds [2 x i64], [2 x i64]* %[[VAL_17]], i64 0, i64 1
-// CHECK:         store i64 0, i64* %[[VAL_20]], align 8
-// CHECK:         call void (i64, i64*, i64, void (%Array*, %Qubit*, %Qubit*)*, ...) @invokeWithControlRegisterOrQubits(i64 2, i64* nonnull %[[VAL_18]], i64 2, void (%Array*, %Qubit*, %Qubit*)* nonnull @__quantum__qis__swap__ctl, %Array* %[[VAL_2]], %Qubit* %[[VAL_9]], %Qubit* %[[VAL_6]], %Qubit* %[[VAL_12]])
-// CHECK:         call void @__quantum__rt__qubit_release_array(%Array* %[[VAL_0]])
+// CHECK:         %[[VAL_0:.*]] = tail call %[[VAL_1:.*]]* @__quantum__rt__qubit_allocate_array(i64 7)
+// CHECK:         %[[VAL_2:.*]] = tail call %[[VAL_1]]* @__quantum__rt__array_slice(%[[VAL_1]]* %[[VAL_0]], i32 1, i64 0, i64 1, i64 3)
+// CHECK:         %[[VAL_3:.*]] = tail call %[[VAL_4:.*]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 4)
+// CHECK:         %[[VAL_5:.*]] = load %[[VAL_4]]*, %[[VAL_4]]** %[[VAL_3]], align 8
+// CHECK:         %[[VAL_6:.*]] = tail call %[[VAL_4]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 5)
+// CHECK:         %[[VAL_7:.*]] = load %[[VAL_4]]*, %[[VAL_4]]** %[[VAL_6]], align 8
+// CHECK:         %[[VAL_8:.*]] = tail call %[[VAL_4]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 6)
+// CHECK:         %[[VAL_9:.*]] = bitcast %[[VAL_4]]** %[[VAL_8]] to i8**
+// CHECK:         %[[VAL_10:.*]] = load i8*, i8** %[[VAL_9]], align 8
+// CHECK:         tail call void @__quantum__qis__swap__ctl(%[[VAL_1]]* %[[VAL_2]], %[[VAL_4]]* %[[VAL_5]], %[[VAL_4]]* %[[VAL_7]])
+// CHECK:         %[[VAL_11:.*]] = tail call i64 @__quantum__rt__array_get_size_1d(%[[VAL_1]]* %[[VAL_2]])
+// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 1, i64 1, i64 2, i8* nonnull bitcast (void (%[[VAL_1]]*, %[[VAL_4]]*, %[[VAL_4]]*)* @__quantum__qis__swap__ctl to i8*), i64 %[[VAL_11]], %[[VAL_1]]* %[[VAL_2]], %[[VAL_4]]* %[[VAL_5]], %[[VAL_4]]* %[[VAL_7]], i8* %[[VAL_10]])
+// CHECK:         %[[VAL_12:.*]] = tail call i64 @__quantum__rt__array_get_size_1d(%[[VAL_1]]* %[[VAL_2]])
+// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 1, i64 1, i64 2, i8* nonnull bitcast (void (%[[VAL_1]]*, %[[VAL_4]]*, %[[VAL_4]]*)* @__quantum__qis__swap__ctl to i8*), i64 %[[VAL_12]], %[[VAL_1]]* %[[VAL_2]], %[[VAL_4]]* %[[VAL_7]], %[[VAL_4]]* %[[VAL_5]], i8* %[[VAL_10]])
+// CHECK:         tail call void @__quantum__rt__qubit_release_array(%[[VAL_1]]* %[[VAL_0]])
 // CHECK:         ret void
 // CHECK:       }
-

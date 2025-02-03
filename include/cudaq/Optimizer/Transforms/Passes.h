@@ -22,7 +22,7 @@ namespace cudaq::opt {
 /// do not go through the runtime layers, inline all calls, and detect if calls
 /// to kernels remain in the fully inlined into entry point kernel.
 void addAggressiveEarlyInlining(mlir::OpPassManager &pm);
-void registerAggressiveEarlyInlining();
+void registerAggressiveEarlyInliningPipeline();
 
 void registerUnrollingPipeline();
 void registerMappingPipeline();

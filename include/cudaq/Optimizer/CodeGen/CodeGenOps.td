@@ -47,4 +47,22 @@ def cgq_RAIIOp : CGQOp<"qmem_raii", [MemoryEffects<[MemAlloc, MemWrite]>]> {
   }];
 }
 
+def cgq_MaterializeConstantArrayOp :
+    CGQOp<"materialize_constant_array", [Pure]> {
+  let summary = "Macro to materialize a cc.const_array into memory.";
+  let description = [{
+    This operation is the equivalent of creating some space in memory (such as
+    on the stack) and storing a cc.const_array value to that memory address.
+    This operation is needed for local rewrites, but is likely to be eliminated
+    if the constant array can be completely folded away.
+  }];
+
+  let arguments = (ins cc_ArrayType:$constArray);
+  let results = (outs cc_PointerType);
+
+  let assemblyFormat = [{
+    $constArray `:` functional-type(operands, results) attr-dict
+  }];
+}
+
 #endif

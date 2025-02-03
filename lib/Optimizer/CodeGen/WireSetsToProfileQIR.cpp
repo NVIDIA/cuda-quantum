@@ -14,14 +14,14 @@
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
-#include "cudaq/Optimizer/CodeGen/QuakeToCC.h"
+#include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
+#include "cudaq/Optimizer/CodeGen/QuakeToExecMgr.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "nlohmann/json.hpp"
 #include "llvm/ADT/DepthFirstIterator.h"
 #include "llvm/Support/Debug.h"
-#include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Pass/PassOptions.h"
@@ -676,15 +676,20 @@ void cudaq::opt::addWiresetToProfileQIRPipeline(OpPassManager &pm,
   // Perform final cleanup for other dialect conversions (like func.func)
   pm.addPass(cudaq::opt::createConvertToQIR());
   if (profile.starts_with("qir"))
-    cudaq::opt::addQIRProfilePipeline(pm, profile, /*performPrep=*/false);
+    cudaq::opt::addQIRProfilePipeline(pm, profile);
 }
 
+namespace {
 // Pipeline option: let the user specify the profile name.
 struct WiresetToProfileQIRPipelineOptions
     : public PassPipelineOptions<WiresetToProfileQIRPipelineOptions> {
   PassOptions::Option<std::string> profile{
-      *this, "convert-to", llvm::cl::desc(""), llvm::cl::init("qir-base")};
+      *this, "convert-to",
+      llvm::cl::desc(
+          "select the profile to convert to [qir-base, qir-adaptive]"),
+      llvm::cl::init("qir-base")};
 };
+} // namespace
 
 void cudaq::opt::registerWireSetToProfileQIRPipeline() {
   PassPipelineRegistration<WiresetToProfileQIRPipelineOptions>(

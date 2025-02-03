@@ -72,7 +72,7 @@ def getNumRequiredQubits(function):
         if "requiredQubits" in str(a):
             return int(
                 str(a).split("requiredQubits\"=")[-1].split(" ")[0].replace(
-                    "\"", ""))
+                    "\"", "").replace("'", ""))
 
 
 # Here we expose a way to post jobs,

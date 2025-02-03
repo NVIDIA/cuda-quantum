@@ -8,7 +8,7 @@
 
 // RUN: cudaq-translate --convert-to=qir-base %s | FileCheck %s
 
-func.func @__nvqpp__mlirgen__ghz() {
+func.func @__nvqpp__mlirgen__ghz() attributes {"cudaq-kernel"} {
   %c2_i32 = arith.constant 2 : i32
   %c1_i32 = arith.constant 1 : i32
   %c1 = arith.constant 1 : index
@@ -30,17 +30,17 @@ func.func @__nvqpp__mlirgen__ghz() {
   return
 }
   
-// CHECK-LABEL: __nvqpp__mlirgen__ghz
-// CHECK: tail call void @__quantum__qis__h__body(%[[VAL_0:.*]]* null)
-// CHECK: tail call void @__quantum__qis__cnot__body(%Qubit* null, %Qubit* nonnull inttoptr (i64 1 to %Qubit*))
-// CHECK: tail call void @__quantum__qis__cnot__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*), %Qubit* nonnull inttoptr (i64 2 to %Qubit*))
-// CHECK: tail call void @__quantum__qis__mz__body(%[[VAL_0]]* null, %[[VAL_1:.*]]* null)
-// CHECK: tail call void @__quantum__qis__mz__body(%[[VAL_0]]* nonnull inttoptr (i64 1 to %[[VAL_0]]*), %[[VAL_1]]* nonnull inttoptr (i64 1 to %[[VAL_1]]*))
-// CHECK: tail call void @__quantum__qis__mz__body(%[[VAL_0]]* nonnull inttoptr (i64 2 to %[[VAL_0]]*), %[[VAL_1]]* nonnull inttoptr (i64 2 to %[[VAL_1]]*))
-// CHECK: tail call void @__quantum__rt__result_record_output(%Result* null, i8* nonnull
-// CHECK: tail call void @__quantum__rt__result_record_output(%Result* nonnull inttoptr (i64 1 to %Result*), i8* nonnull
-// CHECK: tail call void @__quantum__rt__result_record_output(%Result* nonnull inttoptr (i64 2 to %Result*), i8* nonnull
-// CHECK: ret void
+// CHECK-LABEL: define void @__nvqpp__mlirgen__ghz()
+// CHECK:         tail call void @__quantum__qis__h__body(%[[VAL_0:.*]]* null)
+// CHECK:         tail call void @__quantum__qis__cnot__body(%[[VAL_0]]* null, %[[VAL_0]]* nonnull inttoptr (i64 1 to %[[VAL_0]]*))
+// CHECK:         tail call void @__quantum__qis__cnot__body(%[[VAL_0]]* nonnull inttoptr (i64 1 to %[[VAL_0]]*), %[[VAL_0]]* nonnull inttoptr (i64 2 to %[[VAL_0]]*))
+// CHECK:         tail call void @__quantum__qis__mz__body(%[[VAL_0]]* null, %[[VAL_1:.*]]* null)
+// CHECK:         tail call void @__quantum__qis__mz__body(%[[VAL_0]]* nonnull inttoptr (i64 1 to %[[VAL_0]]*), %[[VAL_1]]* nonnull inttoptr (i64 1 to %[[VAL_1]]*))
+// CHECK:         tail call void @__quantum__qis__mz__body(%[[VAL_0]]* nonnull inttoptr (i64 2 to %[[VAL_0]]*), %[[VAL_1]]* nonnull inttoptr (i64 2 to %[[VAL_1]]*))
+// CHECK:         tail call void @__quantum__rt__result_record_output(%[[VAL_1]]* null, i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @cstr.72303030303000, i64 0, i64 0))
+// CHECK:         tail call void @__quantum__rt__result_record_output(%[[VAL_1]]* nonnull inttoptr (i64 1 to %[[VAL_1]]*), i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @cstr.72303030303100, i64 0, i64 0))
+// CHECK:         tail call void @__quantum__rt__result_record_output(%[[VAL_1]]* nonnull inttoptr (i64 2 to %[[VAL_1]]*), i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @cstr.72303030303200, i64 0, i64 0))
+// CHECK:         ret void
+// CHECK:       }
 
-// CHECK: attributes #0 = { "irreversible" }
-// CHECK: attributes #1 = { "entry_point" "output_labeling_schema"="schema_id" "output_names"="{{.*}}" "qir_profiles"="base_profile" "requiredQubits"="3" "requiredResults"="3" }
+// CHECK:       = { "output_labeling_schema"="schema_id" "output_names"="{{\[\[\[}}0,[0,\22r00000\22]],[1,[1,\22r00001\22]],[2,[2,\22r00002\22]]]]" "qir_profiles"="base_profile" "requiredQubits"="3" "requiredResults"="3" }

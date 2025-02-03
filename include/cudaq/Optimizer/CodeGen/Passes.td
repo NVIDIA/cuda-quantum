@@ -65,7 +65,10 @@ def ConvertToQIR : Pass<"quake-to-qir", "mlir::ModuleOp"> {
 def LowerToCG : Pass<"lower-to-cg", "mlir::ModuleOp"> {
   let summary = "Lower Quake to CG dialect.";
   let description = [{
-    For testing purposes only.
+    Lower the Quake IR to the codegen dialect. The codegen dialect is used to
+    fuse small DAGs of IR into larger macro operations just prior to the final
+    codegen. This allows conversions to take place on the macro operations and
+    avoid some of the limitations of an MLIR conversion pass.
   }];
   let dependentDialects = [ "cudaq::codegen::CodeGenDialect" ];
 }
@@ -211,5 +214,62 @@ def WireSetToProfileQIRPrep :
 
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
 }
+
+def QuakeToQIRAPI : Pass<"quake-to-qir-api"> {
+  let summary = "Convert the Quake dialect to the QIR API.";
+  let description = [{
+    This pass converts Quake operations to the QIR API as expressed in terms
+    of function calls to QIR functions.
+
+    Which QIR functions are to be used is parameterized on the `api` option.
+
+    This pass can lower to either use the obsolete opaque structure types (per
+    the QIR spec) or to use LLVM's currently supported opaque pointers. In the
+    latter case, type information is fully understood from the function names
+    themselves.
+  }];
+
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::arith::ArithDialect",
+      "mlir::cf::ControlFlowDialect", "mlir::func::FuncDialect",
+      "mlir::LLVM::LLVMDialect"];
+
+  let options = [
+    Option<"api", "api", "std::string", /*default=*/"\"full\"",
+           "Select the QIR API to use.">,
+    Option<"opaquePtr", "opaque-pointer", "bool", /*default=*/"false",
+           "Use opaque pointers.">
+  ];
+}
+
+def QuakeToQIRAPIFinal : Pass<"quake-to-qir-api-final", "mlir::ModuleOp"> {
+  let summary = "Convert the Quake dialect to the QIR API finalization.";
+  let description = [{
+  }];
+
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::arith::ArithDialect",
+      "mlir::cf::ControlFlowDialect", "mlir::func::FuncDialect",
+      "mlir::LLVM::LLVMDialect"];
+
+  let options = [
+    Option<"api", "api", "std::string", /*default=*/"\"full\"",
+           "Select the QIR API to use.">
+  ];
+}
+
+def QuakeToQIRAPIPrep : Pass<"quake-to-qir-api-prep", "mlir::ModuleOp"> {
+  let summary = "Convert the Quake dialect to the QIR API preparation.";
+  let description = [{
+  }];
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::arith::ArithDialect",
+      "mlir::cf::ControlFlowDialect", "mlir::func::FuncDialect",
+      "mlir::LLVM::LLVMDialect", "cudaq::codegen::CodeGenDialect"];
+  let options = [
+    Option<"api", "api", "std::string", /*default=*/"\"full\"",
+           "Select the QIR API to use.">,
+    Option<"opaquePtr", "opaque-pointer", "bool", /*default=*/"false",
+           "Use opaque pointers.">
+  ];
+}
+
 
 #endif // CUDAQ_OPT_OPTIMIZER_CODEGEN_PASSES

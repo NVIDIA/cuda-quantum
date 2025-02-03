@@ -148,6 +148,11 @@ public:
   mlir::LogicalResult loadIntrinsic(mlir::ModuleOp module,
                                     llvm::StringRef name);
 
+  llvm::StringRef getIntrinsicText(llvm::StringRef name);
+  mlir::LogicalResult loadIntrinsicWithAliases(mlir::ModuleOp module,
+                                               llvm::StringRef name,
+                                               llvm::StringRef prefix);
+
   std::string hashStringByContent(llvm::StringRef sref);
 
   /// Generates code that yields the size of any type that can be reified in
