@@ -988,6 +988,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstElementary) {
 TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
 
   int level_count = 3;
+  std::map<int, int> dimensions = {{0,level_count}, {1,level_count}, {2,level_count+1}};
 
   // `product_operator + operator_sum`
   {
@@ -1002,8 +1003,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
     ASSERT_TRUE(sum.n_terms() == 3);
     ASSERT_TRUE(reverse.n_terms() == 3);
 
-    //auto got_matrix = sum.to_matrix({{0,level_count},{1,level_count},{2,level_count+1}});
-    //auto got_matrix_reverse = reverse.to_matrix({{0,level_count},{1,level_count},{2,level_count+1}});
+    auto got_matrix = sum.to_matrix(dimensions);
+    auto got_matrix_reverse = reverse.to_matrix(dimensions);
 
     // Cast every term to full Hilbert space.
     std::vector<cudaq::matrix_2> matrices_0_0 = {
@@ -1029,8 +1030,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
     auto want_matrix = product_matrix + sum_matrix;
     auto want_matrix_reverse = sum_matrix + product_matrix;
 
-    //utils_1::checkEqual(want_matrix, got_matrix);
-    //utils_1::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    utils_1::checkEqual(want_matrix, got_matrix);
+    utils_1::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
   // `product_operator - operator_sum`
@@ -1046,8 +1047,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
     ASSERT_TRUE(difference.n_terms() == 3);
     ASSERT_TRUE(reverse.n_terms() == 3);
 
-    //auto got_matrix = difference.to_matrix({{0,level_count},{1,level_count},{2,level_count+1}}); 
-    //auto got_matrix_reverse = reverse.to_matrix({{0,level_count},{1,level_count},{2,level_count+1}});
+    auto got_matrix = difference.to_matrix(dimensions); 
+    auto got_matrix_reverse = reverse.to_matrix(dimensions);
 
     // Cast every term to full Hilbert space.
     std::vector<cudaq::matrix_2> matrices_0_0 = {
@@ -1073,8 +1074,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
     auto want_matrix = product_matrix - difference_matrix;
     auto want_matrix_reverse = difference_matrix - product_matrix;
 
-    //utils_1::checkEqual(want_matrix, got_matrix);
-    //utils_1::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    utils_1::checkEqual(want_matrix, got_matrix);
+    utils_1::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
   // `product_operator * operator_sum`
@@ -1090,8 +1091,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
     ASSERT_TRUE(product.n_terms() == 2);
     ASSERT_TRUE(reverse.n_terms() == 2);
 
-    //auto got_matrix = product.to_matrix({{0,level_count},{1,level_count},{2,level_count+1}}); 
-    //auto got_matrix_reverse = reverse.to_matrix({{0,level_count},{1,level_count},{2,level_count+1}});
+    auto got_matrix = product.to_matrix(dimensions); 
+    auto got_matrix_reverse = reverse.to_matrix(dimensions);
 
     // Cast every term to full Hilbert space.
     std::vector<cudaq::matrix_2> matrices_0_0 = {
@@ -1117,7 +1118,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
     auto want_matrix = product_matrix * sum_matrix;
     auto want_matrix_reverse = sum_matrix * product_matrix;
 
-    //utils_1::checkEqual(want_matrix, got_matrix);
-    //utils_1::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    utils_1::checkEqual(want_matrix, got_matrix);
+    utils_1::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 }
