@@ -147,6 +147,25 @@ cudm_state cudm_state::operator+(const cudm_state &other) const {
   return result;
 }
 
+cudm_state &cudm_state::operator+=(const cudm_state &other) {
+  if (rawData_.size() != other.rawData_.size()) {
+    throw std::invalid_argument("State size mismatch for addition.");
+  }
+
+  double scalingFactor = 1.0;
+  double *gpuScalingFactor;
+  cudaMalloc(reinterpret_cast<void **>(&gpuScalingFactor), sizeof(double));
+  cudaMemcpy(gpuScalingFactor, &scalingFactor, sizeof(double),
+             cudaMemcpyHostToDevice);
+
+  HANDLE_CUDM_ERROR(cudensitymatStateComputeAccumulation(
+      handle_, other.get_impl(), state_, gpuScalingFactor, 0));
+
+  cudaFree(gpuScalingFactor);
+
+  return *this;
+}
+
 cudm_state cudm_state::operator*(double scalar) const {
   cudm_state result = cudm_state(handle_, rawData_, hilbertSpaceDims_);
 

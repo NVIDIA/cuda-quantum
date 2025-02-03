@@ -36,12 +36,12 @@ void runge_kutta_integrator::integrate(double target_time) {
     if (substeps_ == 1) {
       // Euler method (1st order)
       cudm_state k1 = stepper->compute(state, t, step_size);
-      state = std::move(k1);
+      state += k1;
     } else if (substeps_ == 2) {
       // Midpoint method (2nd order)
       cudm_state k1 = stepper->compute(state, t, step_size / 2.0);
       cudm_state k2 = stepper->compute(k1, t + step_size / 2.0, step_size);
-      state = std::move((k1 + k2) * 0.5);
+      state += (k1 + k2) * 0.5;
     } else if (substeps_ == 4) {
       // Runge-Kutta method (4th order)
       cudm_state k1 = stepper->compute(state, t, step_size / 2.0);
@@ -49,7 +49,7 @@ void runge_kutta_integrator::integrate(double target_time) {
           stepper->compute(k1, t + step_size / 2.0, step_size / 2.0);
       cudm_state k3 = stepper->compute(k2, t + step_size / 2.0, step_size);
       cudm_state k4 = stepper->compute(k3, t + step_size, step_size);
-      state = std::move((k1 + (k2 + k3) * 2.0 + k4) * (1.0 / 6.0));
+      state += (k1 + (k2 + k3) * 2.0 + k4) * (1.0 / 6.0);
     }
 
     // Update time
