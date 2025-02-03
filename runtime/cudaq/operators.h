@@ -154,8 +154,7 @@ private:
   std::tuple<std::vector<scalar_operator>, std::vector<HandlerTy>>
   m_canonical_terms() const;
 
-  matrix_2 m_evaluate(MatrixArithmetics arithmetics, std::map<int, int> dimensions,
-      std::map<std::string, std::complex<double>> parameters, bool pad_terms = true) const;
+  matrix_2 m_evaluate(MatrixArithmetics arithmetics, bool pad_terms = true) const;
 
   void aggregate_terms();
 
@@ -570,7 +569,7 @@ public:
   ///      degree of freedom, and an argument called `dimensions` (or `dims` for
   ///      short), if the operator acts
   ///     on multiple degrees of freedom.
-  static void define(std::string operator_id, std::map<int, int> expected_dimensions,
+  static void define(std::string operator_id, std::vector<int> expected_dimensions,
               CallbackFunction &&create) {
     auto defn = Definition(operator_id, expected_dimensions, std::forward<CallbackFunction>(create));
     auto result = matrix_operator::m_ops.insert({operator_id, std::move(defn)});

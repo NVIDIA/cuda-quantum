@@ -194,8 +194,8 @@ TEST(OperatorExpressions, checkProductOperatorSimpleMatrixChecks) {
         ASSERT_TRUE(got.degrees() == want_degrees);
         ASSERT_TRUE(got_reverse.degrees() == want_degrees);
 
-        //auto got_matrix = got.to_matrix({{0,level_count},{2,level_count}});
-        //auto got_matrix_reverse = got_reverse.to_matrix({{0,level_count},{2,level_count}});
+        auto got_matrix = got.to_matrix({{0,level_count},{2,level_count}});
+        auto got_matrix_reverse = got_reverse.to_matrix({{0,level_count},{2,level_count}});
 
         auto identity = utils_1::id_matrix(level_count);
         auto matrix0 = utils_1::annihilate_matrix(level_count);
@@ -206,8 +206,8 @@ TEST(OperatorExpressions, checkProductOperatorSimpleMatrixChecks) {
         auto want_matrix = fullHilbert0 * fullHilbert1;
         auto want_matrix_reverse = fullHilbert1 * fullHilbert0;
 
-        //utils_1::checkEqual(want_matrix, got_matrix);
-        //utils_1::checkEqual(want_matrix_reverse, got_matrix_reverse);
+        utils_1::checkEqual(want_matrix, got_matrix);
+        utils_1::checkEqual(want_matrix_reverse, got_matrix_reverse);
       }
     }
 
@@ -225,8 +225,8 @@ TEST(OperatorExpressions, checkProductOperatorSimpleMatrixChecks) {
         ASSERT_TRUE(got.degrees() == want_degrees);
         ASSERT_TRUE(got_reverse.degrees() == want_degrees);
 
-        //auto got_matrix = got.to_matrix({{0,level_count},{1,level_count},{2,level_count}});
-        //auto got_matrix_reverse = got_reverse.to_matrix({{0,level_count},{1,level_count},{2,level_count}});
+        auto got_matrix = got.to_matrix({{0,level_count},{1,level_count},{2,level_count}});
+        auto got_matrix_reverse = got_reverse.to_matrix({{0,level_count},{1,level_count},{2,level_count}});
 
         auto identity = utils_1::id_matrix(level_count);
         auto matrix0 = utils_1::annihilate_matrix(level_count);

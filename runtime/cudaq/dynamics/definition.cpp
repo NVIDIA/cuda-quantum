@@ -16,16 +16,16 @@
 
 namespace cudaq {
 
-Definition::Definition(const std::string &operator_id, std::map<int, int> expected_dimensions, CallbackFunction &&create) 
+Definition::Definition(const std::string &operator_id, std::vector<int> expected_dimensions, CallbackFunction &&create) 
   : id(operator_id), generator(std::move(create)), m_expected_dimensions(std::move(expected_dimensions)) {}
 
 Definition::Definition(Definition &&def) 
   : id(def.id), generator(std::move(def.generator)), m_expected_dimensions(std::move(def.m_expected_dimensions)) {}
 
 matrix_2 Definition::generate_matrix(
-    const std::map<int, int> &degrees,
+    const std::vector<int> &relevant_dimensions,
     const std::map<std::string, std::complex<double>> &parameters) const {
-  return generator(degrees, parameters);
+  return generator(relevant_dimensions, parameters);
 }
 
 Definition::~Definition() = default;
