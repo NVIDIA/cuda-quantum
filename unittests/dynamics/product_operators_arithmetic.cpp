@@ -234,8 +234,8 @@ TEST(OperatorExpressions, checkProductOperatorSimpleMatrixChecks) {
 
         std::vector<cudaq::matrix_2> matrices_0;
         std::vector<cudaq::matrix_2> matrices_1;
-        matrices_0 = {identity, identity, matrix0};
-        matrices_1 = {matrix1, identity, identity};
+        matrices_0 = {identity, matrix0};
+        matrices_1 = {matrix1, identity};
 
         auto fullHilbert0 =
             cudaq::kronecker(matrices_0.begin(), matrices_0.end());
@@ -244,8 +244,8 @@ TEST(OperatorExpressions, checkProductOperatorSimpleMatrixChecks) {
         auto want_matrix = fullHilbert0 * fullHilbert1;
         auto want_matrix_reverse = fullHilbert1 * fullHilbert0;
 
-        //utils_1::checkEqual(want_matrix, got_matrix);
-        //utils_1::checkEqual(got_matrix, want_matrix);
+        utils_1::checkEqual(want_matrix, got_matrix);
+        utils_1::checkEqual(got_matrix, want_matrix);
       }
     }
   }
@@ -660,8 +660,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
   /// `product_operator *= scalar_operator`
   {
-    auto product = cudaq::matrix_operator::annihilate(0) *
-                   cudaq::matrix_operator::annihilate(1);
+    auto product = cudaq::matrix_operator::number(0) *
+                   cudaq::matrix_operator::momentum(1);
     auto scalar_op = cudaq::scalar_operator(value_0);
 
     product *= scalar_op;
@@ -684,8 +684,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
         value_0 * utils_1::id_matrix(level_count * level_count);
 
     auto want_matrix = product_matrix * scaled_identity;
-
-    //utils_1::checkEqual(want_matrix, got_matrix);
+    utils_1::checkEqual(want_matrix, got_matrix);
   }
 }
 
