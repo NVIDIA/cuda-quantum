@@ -16,13 +16,14 @@ add_cudaq_library(OptCodeGen
   CodeGenOps.cpp
   CodeGenTypes.cpp
   ConvertCCToLLVM.cpp
-  ConvertToCC.cpp
+  ConvertToExecMgr.cpp
   ConvertToQIRProfile.cpp
   ConvertToQIR.cpp
+  ConvertToQIRAPI.cpp
   Passes.cpp
   Pipelines.cpp
-  QuakeToCC.cpp
   QuakeToCodegen.cpp
+  QuakeToExecMgr.cpp
   QuakeToLLVM.cpp
   RemoveMeasurements.cpp
   TranslateToIQMJson.cpp
