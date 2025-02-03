@@ -20,18 +20,10 @@ namespace cudaq {
 
 template <typename HandlerTy>
 cudaq::matrix_2 operator_sum<HandlerTy>::m_evaluate(
-    MatrixArithmetics arithmetics, std::map<int, int> dimensions,
-    std::map<std::string, std::complex<double>> parameters, bool pad_terms) const {
+    MatrixArithmetics arithmetics, bool pad_terms) const {
 
   auto terms = this->get_terms();
-
-  std::set<int> degrees_set;
-  for (auto op : terms) {
-    for (auto degree : op.degrees()) {
-      degrees_set.insert(degree);
-    }
-  }
-  std::vector<int> degrees(degrees_set.begin(), degrees_set.end());
+  auto degrees = this->degrees();
 
   // We need to make sure all matrices are of the same size to sum them up.
   auto paddedTerm = [&](auto &&term) {
@@ -51,13 +43,11 @@ cudaq::matrix_2 operator_sum<HandlerTy>::m_evaluate(
 
   auto sum = EvaluatedMatrix();
   if (pad_terms) {
-
-    sum = EvaluatedMatrix(degrees, paddedTerm(terms[0]).m_evaluate(arithmetics, pad_terms));
+    auto padded_term = paddedTerm(terms[0]);
+    sum = EvaluatedMatrix(degrees, padded_term.m_evaluate(arithmetics, pad_terms));
     for (auto term_idx = 1; term_idx < terms.size(); ++term_idx) {
-      auto term = terms[term_idx];
-
-      auto eval = paddedTerm(term).m_evaluate(arithmetics, pad_terms);
-      sum = arithmetics.add(sum, EvaluatedMatrix(degrees, eval));
+      padded_term = paddedTerm(terms[term_idx]);
+      sum = arithmetics.add(sum, EvaluatedMatrix(degrees, padded_term.m_evaluate(arithmetics, pad_terms)));
     }
   } else {
     sum =
@@ -148,8 +138,7 @@ void operator_sum<HandlerTy>::aggregate_terms(const product_operator<HandlerTy> 
 
 template
 cudaq::matrix_2 operator_sum<matrix_operator>::m_evaluate(
-    MatrixArithmetics arithmetics, std::map<int, int> dimensions,
-    std::map<std::string, std::complex<double>> parameters, bool pad_terms) const;
+    MatrixArithmetics arithmetics, bool pad_terms) const;
 
 template
 std::tuple<std::vector<scalar_operator>, std::vector<matrix_operator>> operator_sum<matrix_operator>::m_canonicalize_product(product_operator<matrix_operator> &prod) const;
@@ -301,9 +290,7 @@ std::string operator_sum<HandlerTy>::to_string() const {
 template<typename HandlerTy>
 matrix_2 operator_sum<HandlerTy>::to_matrix(const std::map<int, int> &dimensions,
                                             const std::map<std::string, std::complex<double>> &parameters) const {
-  /// FIXME: Not doing any conversion to spin op yet.
-  return m_evaluate(MatrixArithmetics(dimensions, parameters), dimensions,
-                    parameters);
+  return m_evaluate(MatrixArithmetics(dimensions, parameters));
 }
 
 template
