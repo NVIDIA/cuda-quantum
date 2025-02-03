@@ -1,8 +1,8 @@
 Photonics Simulators
-==================================
+=======================
 
-CUDA-Q provides the ability to simulate photonics circuits. This page provides the details needed to run photonics simulations followed by an intorduction to photonics kernels.
-
+CUDA-Q provides the ability to simulate photonics circuits. This page provides the details 
+needed to run photonics simulations followed by an introduction to photonics kernels.
 
 
 orca-photonics
@@ -178,8 +178,8 @@ splitter leave the beam splitter together.
     { 02:491 20:509 }
 
 
-For a full list of photonic gates supported in CUDA-Q see
-:doc:`../../api/default_ops`.
+For a full list of photonic gates supported in CUDA-Q see 
+:doc:`Photonic Operations on Qudits <../../../api/default_ops>`.
 
 Measurements
 ++++++++++++++

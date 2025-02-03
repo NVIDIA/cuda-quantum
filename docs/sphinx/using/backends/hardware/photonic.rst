@@ -14,7 +14,7 @@ and interfered within a network of delay lines. This can be represented by a cir
 like the one below, where this illustration example corresponds to 4 photons in 8 modes sent into 
 alternating time-bins in a circuit composed of two delay lines in series.
 
-.. image:: ../examples/images/orca_tbi.png
+.. image:: ../../examples/images/orca_tbi.png
    :width: 400px
    :align: center
 
@@ -28,7 +28,7 @@ configuration.
 
 .. code:: bash
 
-  export ORCA_ACCESS_URL="https://<ORCA API Server>"
+  |:spellcheck-disable:|export ORCA_ACCESS_URL="https://<ORCA API Server>"|:spellcheck-enable:|
 
 
 Sometimes the requests to the PT-1 require an authentication token. This token can be set as an
@@ -37,7 +37,7 @@ you can set the environment variable as follows:
 
 .. code:: bash
 
-  export ORCA_AUTH_TOKEN="AbCdEf123456"
+  |:spellcheck-disable:|export ORCA_AUTH_TOKEN="AbCdEf123456"|:spellcheck-enable:|
 
 Submitting
 `````````````````````````

@@ -20,14 +20,16 @@ cudaq.mpi.initialize()
 qubit_count = 15
 term_count = 100000
 
+
 @cudaq.kernel
 def kernel(n_qubits: int):
 
     qubits = cudaq.qvector(n_qubits)
-   
+
     h(qubits[0])
     for i in range(1, n_qubits):
         x.ctrl(qubits[0], qubits[i])
+
 
 # Create a random Hamiltonian
 hamiltonian = cudaq.SpinOperator.random(qubit_count, term_count)
@@ -41,11 +43,17 @@ result.expectation()
 # If multiple GPUs/ QPUs are available, the computation can parallelize with the addition of an argument in the observe call.
 
 # Single node, multi-GPU.
-result = cudaq.observe(kernel, hamiltonian, qubit_count, execution=cudaq.parallel.thread)
+result = cudaq.observe(kernel,
+                       hamiltonian,
+                       qubit_count,
+                       execution=cudaq.parallel.thread)
 result.expectation()
 
 # Multi-node, multi-GPU.
-result = cudaq.observe(kernel, hamiltonian,qubit_count, execution=cudaq.parallel.mpi)
+result = cudaq.observe(kernel,
+                       hamiltonian,
+                       qubit_count,
+                       execution=cudaq.parallel.mpi)
 result.expectation()
 
 cudaq.mpi.finalize()

@@ -1,5 +1,5 @@
 
-Multple QPUs
+Multiple QPUs
 ===========================
 
 The CUDA-Q machine model elucidates the various devices considered in the 
@@ -19,8 +19,8 @@ specific asynchronous function invocations targeting a desired QPU.
 
 .. _mqpu-platform:
 
-Simulate Multiple QPUs in Parallel (mqpu)
-++++++++++++++++++++++++++++++++++++++++++
+Simulate Multiple QPUs in Parallel 
++++++++++++++++++++++++++++++++++++++
 
 In the multi-QPU mode (:code:`mqpu` option), the NVIDIA backend provides a simulated QPU for every available NVIDIA GPU on the underlying system. 
 Each QPU is simulated via a `cuStateVec` simulator backend as defined by the NVIDIA backend. For more information about using multiple GPUs 
@@ -97,7 +97,7 @@ QPU via the :code:`cudaq::get_state_async` (C++) or :code:`cudaq.get_state_async
         nvq++ get_state_async.cpp --target nvidia --target-option mqpu
         ./a.out
 
-See the `Hadamard Test notebook <https://nvidia.github.io/cuda-quantum/latest/applications/python/hadamard_test.html>`__ for an application that leverages the mqpu backend. 
+See the `Hadamard Test notebook <https://nvidia.github.io/cuda-quantum/latest/applications/python/hadamard_test.html>`__ for an application that leverages the `mqpu` backend. 
 
 
 .. deprecated:: 0.8
@@ -145,8 +145,8 @@ CUDA-Q provides MPI utility functions to initialize, finalize, or query (rank, s
 Last but not least, the compiled executable (C++) or Python script needs to be launched with an appropriate MPI command, 
 e.g., :code:`mpiexec`, :code:`mpirun`, :code:`srun`, etc.
 
-MQPU + Other Backends (remote mqpu)
-+++++++++++++++++++++++++++++++++++++++++++++
+Multi-QPU + Other Backends 
++++++++++++++++++++++++++++++
 
 .. _remote-mqpu-platform:
 

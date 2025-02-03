@@ -10,8 +10,8 @@ These backends are available for use from both C++ and Python.
 
 Tensor network simulators are suitable for large-scale simulation of certain classes of quantum circuits involving many qubits beyond the memory limit of state vector based simulators. For example, computing the expectation value of a Hamiltonian via :code:`cudaq::observe` can be performed efficiently, thanks to :code:`cuTensorNet` contraction optimization capability. On the other hand, conditional circuits, i.e., those with mid-circuit measurements or reset, despite being supported by both backends, may result in poor performance. 
 
-Multi-node multi-GPU (tensornet)
-+++++++++++++++++++++++++++++++++++
+Multi-node multi-GPU 
+++++++++++++++++++++++
 
 The :code:`tensornet` backend represents quantum states and circuits as tensor networks in an exact form (no approximation). 
 Measurement samples and expectation values are computed via tensor network contractions. 
@@ -93,8 +93,8 @@ Specific aspects of the simulation can be configured by setting the following of
   Setting random seed, via :code:`cudaq::set_random_seed`, is not supported for this backend due to a limitation of the :code:`cuTensorNet` library. This will be fixed in future release once this feature becomes available.
 
 
-Matrix product state (tensornet-mps)
-+++++++++++++++++++++++++++++++++++++
+Matrix product state 
++++++++++++++++++++++++
 
 The :code:`tensornet-mps` backend is based on the matrix product state (MPS) representation of the state vector/wave function, exploiting the sparsity in the tensor network via tensor decomposition techniques such as QR and SVD. As such, this backend is an approximate simulator, whereby the number of singular values may be truncated to keep the MPS size tractable. 
 The :code:`tensornet-mps` backend only supports single-GPU simulation. Its approximate nature allows the :code:`tensornet-mps` backend to handle a large number of qubits for certain classes of quantum circuits on a relatively small memory footprint.
@@ -142,8 +142,6 @@ Specific aspects of the simulation can be configured by defining the following e
 .. note::
     The parallelism of Jacobi method (the default `CUDAQ_MPS_SVD_ALGO` setting) gives GPU better performance on small and medium size matrices.
     If you expect a large number of singular values (e.g., increasing the `CUDAQ_MPS_MAX_BOND` setting), please adjust the `CUDAQ_MPS_SVD_ALGO` setting accordingly.  
-
-
 
 
 
@@ -229,4 +227,3 @@ compute expectation values of observables.
     .. code:: bash
 
         nvq++ --target fermioniq --fermioniq-bond-dim 10 src.cpp ...       
-

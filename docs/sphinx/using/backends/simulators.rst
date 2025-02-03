@@ -2,7 +2,9 @@ CUDA-Q Circuit Simulation Backends
 ************************************
 .. _simulators:
 
-The simulators available in CUDA-Q are grouped in the figure below. The following sections follow the structre of the figure and provide additional technical details and code examples fo using each circuit simulator.
+The simulators available in CUDA-Q are grouped in the figure below. The 
+following sections follow the structure of the figure and provide additional 
+technical details and code examples for using each circuit simulator.
 
 .. figure:: circuitsimulators.png
    :width: 600
@@ -18,71 +20,71 @@ The simulators available in CUDA-Q are grouped in the figure below. The followin
      - Processor(s)
      - Precision(s)
      - N Qubits
-   * - qpp-cpu
+   * - `qpp-cpu`
      - State Vector
      - Testing and small applications
      - CPU
-     - FP32
+     - single
      - < 28
-   * - nvidia
+   * - `nvidia`
      - State Vector
      - General purpose (default)
      - Single GPU
-     - FP32/FP64
-     - < 33/32 (64 GB)
-   * - mgpu
+     - single / double
+     - < 33 / 32 (64 GB)
+   * - `nvidia, option=mgpu`
      - State Vector
      - Large-scale simulation
      - multi-GPU multi-node
-     - FP32/FP64
-     - 33 +
-   * - tensornet
+     - single / double
+     - 33+
+   * - `tensornet`
      - Tensor Network
      - Shallow-depth (low-entanglement) and high width circuits
      - multi-GPU multi-node
-     - FP32/FP64
+     - single / double
      - Thousands 
-   * - tensornet-mps
+   * - `tensornet-mps`
      - Matrix Product State
      - Square-shaped circuits
      - Single GPU
-     - FP32/FP64
+     - single / double
      - Hundreds
-   * - fermioniq
+   * - `fermioniq`
      - Various
      - Various
      - Single GPU
      - Various
      - Various
-   * - nvidia mqpu
+   * - `nvidia, option=mqpu`
      - State Vector 
      - Asynchronous distribution across multiple simulated QPUs to speedup applications
      - multi-GPU multi-node
-     - FP32/FP64
-     - < 33/32 (64 GB)
-   * - remote mqpu
-     - SV/TN
-     - Combine mqpu with other backend like tensornet and mgpu
+     - single / double
+     - < 33 / 32 (64 GB)
+   * - `remote-mqpu`
+     - State Vector / Tensor Network
+     - Combine `mqpu` with other backend like `tensornet` and `mgpu`
      - varies
      - varies
      - varies
-   * - density-matrix-cpu
+   * - `density-matrix-cpu`
      - Density Matrix
      - Noisy simulations
      - CPU
-     - FP32
-     - <14
-   * - stim
+     - single
+     - < 14
+   * - `stim`
      - Stabilizer 
      - QEC simulation
      - CPU
      - N/A
      - Thousands +
-   * - orca-photonics
+   * - `orca-photonics`
      - State Vector
      - Photonics
      - CPU
-     - FP64
+     - double
      - Varies on qudit level
 
 
