@@ -148,6 +148,9 @@ void SimulatorTensorNetBase::applyGate(const GateApplicationTask &task) {
   }
 }
 
+// Helper to check whether a matrix is a scaled unitary matrix, i.e., `k * U`
+// where U is a unitary matrix. If so, it also returns the `k` factor.
+// Otherwise, return a nullopt.
 template <typename T>
 std::optional<double> isScaledUnitary(const std::vector<std::complex<T>> &mat,
                                       double eps) {
