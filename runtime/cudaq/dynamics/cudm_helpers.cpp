@@ -68,7 +68,8 @@ cudensitymatElementaryOperator_t create_elementary_operator(
       {nullptr, nullptr}, &cudm_elem_op);
 
   if (status != CUDENSITYMAT_STATUS_SUCCESS) {
-    std::cerr << "Error: Failed to create elementary operator. Status: " << status << std::endl;
+    std::cerr << "Error: Failed to create elementary operator. Status: "
+              << status << std::endl;
     return nullptr;
   }
 
@@ -244,17 +245,18 @@ cudensitymatOperator_t construct_liouvillian(
     double gamma) {
   try {
     cudensitymatOperator_t liouvillian;
-    HANDLE_CUDM_ERROR(cudensitymatCreateOperator(handle, 0, nullptr, &liouvillian));
+    HANDLE_CUDM_ERROR(
+        cudensitymatCreateOperator(handle, 0, nullptr, &liouvillian));
 
     cudensitymatWrappedScalarCallback_t scalarCallback = {nullptr, nullptr};
-    HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(handle, liouvillian, hamiltonian, 0,
-                                            {1.0, 0.0}, scalarCallback));
+    HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+        handle, liouvillian, hamiltonian, 0, {1.0, 0.0}, scalarCallback));
 
     // Collapse operator scaled by gamma
     cuDoubleComplex coefficient = make_cuDoubleComplex(gamma, 0.0);
     for (const auto &c_op : collapse_operators) {
-      HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(handle, liouvillian, c_op, 0,
-                                              coefficient, scalarCallback));
+      HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+          handle, liouvillian, c_op, 0, coefficient, scalarCallback));
     }
 
     return liouvillian;
