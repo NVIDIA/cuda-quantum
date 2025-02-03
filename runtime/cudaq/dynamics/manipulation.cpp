@@ -22,18 +22,21 @@ MatrixArithmetics::_compute_permutation(std::vector<int> op_degrees,
     auto it = std::find(canon_degrees.begin(), canon_degrees.end(), degree);
     reordering.push_back(it - canon_degrees.begin());
   }
-  std::vector<int> result;
+
+  std::vector<std::string> op_states = 
+      cudaq::detail::generate_all_states(op_degrees, m_dimensions);
+
+  std::vector<int> permutation;
   for (auto state : states) {
-    int index;
     std::string term;
     for (auto i : reordering) {
       term += state[i];
     }
-    auto it = std::find(states.begin(), states.end(), term);
-    result.push_back(it - states.begin());
+    auto it = std::find(op_states.begin(), op_states.end(), term);
+    permutation.push_back(it - op_states.begin());
   }
 
-  return result;
+  return permutation;
 }
 
 // Given a matrix representation that acts on the given degrees or freedom,
