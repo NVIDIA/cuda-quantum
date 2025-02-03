@@ -158,7 +158,6 @@ public:
     SmallVector<SmallPtrSet<Operation *, 2>> loadSets(size);
 
     auto getWriteOp = [&](auto op, std::int32_t index) -> Operation * {
-      Operation *aStore = nullptr;
       Operation *theStore = nullptr;
       for (auto &use : op->getUses()) {
         Operation *u = use.getOwner();
@@ -166,17 +165,12 @@ public:
           return nullptr;
         if (auto store = dyn_cast<cudaq::cc::StoreOp>(u)) {
           if (op.getOperation() == store.getPtrvalue().getDefiningOp()) {
-            if (aStore) {
+            if (theStore) {
               LLVM_DEBUG(llvm::dbgs()
                          << "more than 1 store to element of array\n");
               return nullptr;
             }
-            aStore = store;
-            if (isa_and_present<arith::ConstantOp, complex::ConstantOp>(
-                    store.getValue().getDefiningOp())) {
-              LLVM_DEBUG(llvm::dbgs() << "found store " << *u << "\n");
-              theStore = u;
-            }
+            theStore = u;
           }
           continue;
         }
@@ -190,7 +184,12 @@ public:
         }
         return nullptr;
       }
-      return theStore;
+      return isa_and_present<arith::ConstantOp, complex::ConstantOp>(
+                 dyn_cast<cudaq::cc::StoreOp>(theStore)
+                     .getValue()
+                     .getDefiningOp())
+                 ? theStore
+                 : nullptr;
     };
 
     auto unsizedArrTy = cudaq::cc::ArrayType::get(arrEleTy);
