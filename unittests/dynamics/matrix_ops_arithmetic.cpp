@@ -334,6 +334,7 @@ TEST(OperatorExpressions, checkPreBuiltElementaryOpsSelf) {
 
   /// Keeping this fixed throughout.
   int level_count = 3;
+  std::map<int, int> dimensions = {{0, level_count}, {1, level_count}};
 
   // Addition, same DOF.
   {
@@ -343,7 +344,7 @@ TEST(OperatorExpressions, checkPreBuiltElementaryOpsSelf) {
     auto sum = self + other;
     ASSERT_TRUE(sum.n_terms() == 2);
 
-    auto got_matrix = sum.to_matrix({{0, level_count}});
+    auto got_matrix = sum.to_matrix(dimensions);
     auto want_matrix = utils_0::annihilate_matrix(level_count) +
                        utils_0::create_matrix(level_count);
     utils_0::checkEqual(want_matrix, got_matrix);
@@ -362,9 +363,9 @@ TEST(OperatorExpressions, checkPreBuiltElementaryOpsSelf) {
                          utils_0::annihilate_matrix(level_count));
     auto create_full = cudaq::kronecker(utils_0::create_matrix(level_count),
                                         utils_0::id_matrix(level_count));
-    //auto got_matrix = sum.to_matrix({{0, level_count}});
+    auto got_matrix = sum.to_matrix({{0, level_count}, {1, level_count}});
     auto want_matrix = annihilate_full + create_full;
-    //utils_0::checkEqual(want_matrix, got_matrix);
+    utils_0::checkEqual(want_matrix, got_matrix);
   }
 
   // Subtraction, same DOF.
@@ -375,7 +376,7 @@ TEST(OperatorExpressions, checkPreBuiltElementaryOpsSelf) {
     auto sum = self - other;
     ASSERT_TRUE(sum.n_terms() == 2);
 
-    auto got_matrix = sum.to_matrix({{0, level_count}});
+    auto got_matrix = sum.to_matrix(dimensions);
     auto want_matrix = utils_0::annihilate_matrix(level_count) -
                        utils_0::create_matrix(level_count);
     utils_0::checkEqual(want_matrix, got_matrix);
@@ -394,9 +395,9 @@ TEST(OperatorExpressions, checkPreBuiltElementaryOpsSelf) {
                          utils_0::annihilate_matrix(level_count));
     auto create_full = cudaq::kronecker(utils_0::create_matrix(level_count),
                                         utils_0::id_matrix(level_count));
-    //auto got_matrix = sum.to_matrix({{0, level_count}});
+    auto got_matrix = sum.to_matrix(dimensions);
     auto want_matrix = annihilate_full - create_full;
-    //utils_0::checkEqual(want_matrix, got_matrix);
+    utils_0::checkEqual(want_matrix, got_matrix);
   }
 
   // Multiplication, same DOF.
@@ -410,7 +411,7 @@ TEST(OperatorExpressions, checkPreBuiltElementaryOpsSelf) {
     std::vector<int> want_degrees = {0};
     ASSERT_TRUE(product.degrees() == want_degrees);
 
-    auto got_matrix = product.to_matrix({{0, level_count}});
+    auto got_matrix = product.to_matrix(dimensions);
     auto want_matrix = utils_0::annihilate_matrix(level_count) *
                        utils_0::create_matrix(level_count);
     utils_0::checkEqual(want_matrix, got_matrix);
@@ -433,9 +434,9 @@ TEST(OperatorExpressions, checkPreBuiltElementaryOpsSelf) {
                          utils_0::annihilate_matrix(level_count));
     auto create_full = cudaq::kronecker(utils_0::create_matrix(level_count),
                                         utils_0::id_matrix(level_count));
-    //auto got_matrix = product.to_matrix({{0, level_count}}, {});
+    auto got_matrix = product.to_matrix(dimensions);
     auto want_matrix = annihilate_full * create_full;
-    //utils_0::checkEqual(want_matrix, got_matrix);
+    utils_0::checkEqual(want_matrix, got_matrix);
   }
 }
 
