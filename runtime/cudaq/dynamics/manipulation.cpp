@@ -18,9 +18,10 @@ MatrixArithmetics::_compute_permutation(std::vector<int> op_degrees,
       cudaq::detail::generate_all_states(canon_degrees, m_dimensions);
 
   std::vector<int> reordering;
-  for (auto degree : op_degrees)
-    reordering.push_back(canon_degrees[degree]);
-
+  for (auto degree : op_degrees) {
+    auto it = std::find(canon_degrees.begin(), canon_degrees.end(), degree);
+    reordering.push_back(it - canon_degrees.begin());
+  }
   std::vector<int> result;
   for (auto state : states) {
     int index;
@@ -29,9 +30,7 @@ MatrixArithmetics::_compute_permutation(std::vector<int> op_degrees,
       term += state[i];
     }
     auto it = std::find(states.begin(), states.end(), term);
-    if (it != states.end())
-      index = std::distance(states.begin(), it);
-    result.push_back(index);
+    result.push_back(it - states.begin());
   }
 
   return result;
@@ -60,9 +59,14 @@ EvaluatedMatrix MatrixArithmetics::tensor(EvaluatedMatrix op1,
   // assert len(frozenset(op1.degrees).intersection(op2.degrees)) == 0, \
   //     "Operators should not have common degrees of freedom."
 
-  auto op_degrees = op1.m_degrees;
-  std::copy(op2.m_degrees.begin(), op2.m_degrees.end(),
-            back_inserter(op_degrees));
+  auto op1_deg = std::move(op1.degrees());
+  auto op2_deg = std::move(op2.degrees());
+  std::vector<int> op_degrees;
+  op_degrees.reserve(op1_deg.size() + op2_deg.size());
+  for (auto d : op1_deg)
+    op_degrees.push_back(d);
+  for (auto d : op2_deg)
+    op_degrees.push_back(d);
   auto op_matrix = cudaq::kronecker(op1.m_matrix, op2.m_matrix);
   auto [new_matrix, new_degrees] = this->_canonicalize(op_matrix, op_degrees);
   return EvaluatedMatrix(new_degrees, new_matrix);
