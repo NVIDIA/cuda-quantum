@@ -624,8 +624,7 @@ public:
                            std::forward<CallbackFunction>(create));
     auto result = matrix_operator::m_ops.insert({operator_id, std::move(defn)});
     if (!result.second) {
-      // todo: make a nice error message to say op already exists
-      // throw;
+      throw std::runtime_error("an matrix operator with name " + operator_id + "is already defined");
     }
   }
 };

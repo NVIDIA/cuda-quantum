@@ -176,7 +176,10 @@ product_operator<matrix_operator> matrix_operator::displace(int degree) {
     auto func = [](std::vector<int> dimensions,
                    std::map<std::string, std::complex<double>> parameters) {
       std::size_t dimension = dimensions[0];
-      auto displacement_amplitude = parameters["displacement"];
+      auto entry = parameters.find("displacement");
+      if (entry == parameters.end())
+          throw std::runtime_error("missing value for parameter 'displacement'");
+      auto displacement_amplitude = entry->second;
       auto create = matrix_2(dimension, dimension);
       auto annihilate = matrix_2(dimension, dimension);
       for (std::size_t i = 0; i + 1 < dimension; i++) {
@@ -200,7 +203,10 @@ product_operator<matrix_operator> matrix_operator::squeeze(int degree) {
     auto func = [](std::vector<int> dimensions,
                    std::map<std::string, std::complex<double>> parameters) {
       std::size_t dimension = dimensions[0];
-      auto squeezing = parameters["squeezing"];
+      auto entry = parameters.find("squeezing");
+      if (entry == parameters.end())
+          throw std::runtime_error("missing value for parameter 'squeezing'");
+      auto squeezing = entry->second;
       auto create = matrix_2(dimension, dimension);
       auto annihilate = matrix_2(dimension, dimension);
       for (std::size_t i = 0; i + 1 < dimension; i++) {
@@ -224,11 +230,15 @@ matrix_2 matrix_operator::to_matrix(
     std::map<std::string, std::complex<double>> parameters) const {
   auto it = matrix_operator::m_ops.find(this->id);
   if (it != matrix_operator::m_ops.end()) {
-    std::vector<int> relevant_dimensions;
-    relevant_dimensions.reserve(this->degrees.size());
-    for (auto d : this->degrees)
-      relevant_dimensions.push_back(dimensions[d]);
-    return it->second.generate_matrix(relevant_dimensions, parameters);
+      std::vector<int> relevant_dimensions;
+      relevant_dimensions.reserve(this->degrees.size());
+      for (auto d : this->degrees) {
+        auto entry = dimensions.find(d);
+        if (entry == dimensions.end())
+            throw std::runtime_error("missing dimension for degree " + std::to_string(d));
+        relevant_dimensions.push_back(entry->second);
+      }
+      return it->second.generate_matrix(relevant_dimensions, parameters);
   }
   throw std::range_error("unable to find operator");
 }
