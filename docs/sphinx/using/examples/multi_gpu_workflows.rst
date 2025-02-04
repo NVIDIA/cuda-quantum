@@ -60,9 +60,14 @@ If you have multiple GPUs, you can use the following command to run the simulati
 
 This code will execute in an MPI context and provide additional memory to simulation much larger state vectors.
 
+You can also set :code:`cudaq.set_target('nvidia', option='mgpu')` within the file to select the target.
 
-Batching Hamiltonian Terms (`mqpu`)
-------------------------------------
+
+Parallel execution over multiple QPUs (`mqpu`)
+------------------------------------------------
+
+Batching Hamiltonian Terms 
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Multiple GPUs can also come in handy for cases where applications might benefit from multiple QPUs running asynchronously.  The `mqpu` backend uses multiple GPUs to simulate each QPU so you can test and accelerate quantum applications with parallelization.
 
@@ -88,8 +93,8 @@ The code is executed with :code:`mpiexec -np n python3 program.py --target nvidi
 
 
 
-Circuit Batching (`mqpu`)
-----------------------------------
+Circuit Batching 
+^^^^^^^^^^^^^^^^^
 
 A second way to leverage the `mqpu` backend is to batch circuit evaluations across multiple simulated QPUs.   
 
