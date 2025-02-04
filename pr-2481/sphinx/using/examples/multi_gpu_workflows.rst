@@ -28,7 +28,7 @@ You can run a state vector simulation using your CPU with the :code:`qpp-cpu` ba
 
     { 00:475 11:525 }
 
-As the number of qubits increases to even modest size, the CPU simulation will become impractically slow.  By switching to the :code:`nvidia` backend, you can accelerate the same code on a single GPU and achieve a speedup of up to **2500x**.  If you have a GPU available, this the default backend to ensure maximum productivity.
+As the number of qubits increases to even modest size, the CPU simulation will become impractically slow.  By switching to the :code:`nvidia` backend, you can accelerate the same code on a single GPU and achieve a speedup of up to **425x**.  If you have a GPU available, this the default backend to ensure maximum productivity.
 
 .. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/multiple_targets.py
     :language: python
@@ -60,11 +60,16 @@ If you have multiple GPUs, you can use the following command to run the simulati
 
 This code will execute in an MPI context and provide additional memory to simulation much larger state vectors.
 
+You can also set :code:`cudaq.set_target('nvidia', option='mgpu')` within the file to select the target.
 
-Batching Hamiltonian Terms (`mqpu`)
-------------------------------------
 
-Multiple GPUs can also come in handy for cases where applications might benefit from multiple QPUs running asynchronously.  The `mqpu` backend uses multiple GPUs to simulate each QPU so you can test and accelerate quantum applications with parallelization.
+Parallel execution over multiple QPUs (`mqpu`)
+------------------------------------------------
+
+Batching Hamiltonian Terms 
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Multiple GPUs can also come in handy for cases where applications might benefit from multiple QPUs running in parallel.  The `mqpu` backend uses multiple GPUs to simulate QPUs so you can accelerate quantum applications with parallelization.
 
 
 .. image:: images/mqpu.png
@@ -88,8 +93,8 @@ The code is executed with :code:`mpiexec -np n python3 program.py --target nvidi
 
 
 
-Circuit Batching (`mqpu`)
-----------------------------------
+Circuit Batching 
+^^^^^^^^^^^^^^^^^
 
 A second way to leverage the `mqpu` backend is to batch circuit evaluations across multiple simulated QPUs.   
 
@@ -147,7 +152,7 @@ Multi-QPU + Other Backends (`remote-mqpu`)
 -------------------------------------------
     
     
-The `mqpu` backend can be extended so that each parallel simulated QPU can be simulated with backends other than :code:`nvidia`.  This provides a way to simulate larger scale circuits and execute parallel algorithms. This accomplished by launching remotes servers which each simulated a QPU.  
+The `mqpu` backend can be extended so that each parallel simulated QPU run backends other than :code:`nvidia`.  This provides a way to simulate larger scale circuits and execute parallel algorithms. This accomplished by launching remotes servers which each simulated a QPU.  
 The code example below demonstrates this using the :code:`tensornet-mps` backend which allows sampling of a 40 qubit circuit too larger for state vector simulation. In this case, the target is specified as :code:`remote-mqpu` while an additional :code:`backend` is specified for the simulator used for each QPU.  
 
 The default approach uses one GPU per QPU and can both launch and close each server automatically. This is accomplished by specifying :code:`auto_launch` and :code"`url` within :code:`cudaq.set_target`.  Running the script below will then sample the 40 qubit circuit using two QPUs each running :code:`tensornet-mps`.  

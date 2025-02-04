@@ -159,8 +159,11 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">   Multi-GPU Workflows</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#from-cpu-to-gpu">From CPU to GPU</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#pooling-the-memory-of-multiple-gpus-mgpu">Pooling the memory of multiple GPUs (<code class="code docutils literal notranslate"><span class="pre">mgpu</span></code>)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#batching-hamiltonian-terms-mqpu">Batching Hamiltonian Terms (<code class="code docutils literal notranslate"><span class="pre">mqpu</span></code>)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#circuit-batching-mqpu">Circuit Batching (<code class="code docutils literal notranslate"><span class="pre">mqpu</span></code>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#parallel-execution-over-multiple-qpus-mqpu">Parallel execution over multiple QPUs (<code class="code docutils literal notranslate"><span class="pre">mqpu</span></code>)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#batching-hamiltonian-terms">Batching Hamiltonian Terms</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#circuit-batching">Circuit Batching</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="#multi-qpu-other-backends-remote-mqpu">Multi-QPU + Other Backends (<code class="code docutils literal notranslate"><span class="pre">remote-mqpu</span></code>)</a></li>
 </ul>
 </li>
@@ -742,7 +745,7 @@ involving multiple architectures working in tandem. This page will walk through 
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span> <span class="mi">00</span><span class="p">:</span><span class="mi">475</span> <span class="mi">11</span><span class="p">:</span><span class="mi">525</span> <span class="p">}</span>
 </pre></div>
 </div>
-<p>As the number of qubits increases to even modest size, the CPU simulation will become impractically slow.  By switching to the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> backend, you can accelerate the same code on a single GPU and achieve a speedup of up to <strong>2500x</strong>.  If you have a GPU available, this the default backend to ensure maximum productivity.</p>
+<p>As the number of qubits increases to even modest size, the CPU simulation will become impractically slow.  By switching to the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> backend, you can accelerate the same code on a single GPU and achieve a speedup of up to <strong>425x</strong>.  If you have a GPU available, this the default backend to ensure maximum productivity.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
     <span class="n">gpu_result</span> <span class="o">=</span> <span class="n">sample_ghz_state</span><span class="p">(</span><span class="n">qubit_count</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
     <span class="n">gpu_result</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
@@ -762,10 +765,13 @@ solved this problem by pooling the memory of multiple GPUs across multiple nodes
 <p>If you have multiple GPUs, you can use the following command to run the simulation across <span class="math notranslate nohighlight">\(n\)</span> GPUs.</p>
 <p><code class="code docutils literal notranslate"><span class="pre">mpiexec</span> <span class="pre">-np</span> <span class="pre">n</span> <span class="pre">python3</span> <span class="pre">program.py</span> <span class="pre">--target</span> <span class="pre">nvidia</span> <span class="pre">--target-option</span> <span class="pre">mgpu</span></code></p>
 <p>This code will execute in an MPI context and provide additional memory to simulation much larger state vectors.</p>
+<p>You can also set <code class="code docutils literal notranslate"><span class="pre">cudaq.set_target('nvidia',</span> <span class="pre">option='mgpu')</span></code> within the file to select the target.</p>
 </section>
-<section id="batching-hamiltonian-terms-mqpu">
-<h2>Batching Hamiltonian Terms (<code class="code docutils literal notranslate"><span class="pre">mqpu</span></code>)<a class="headerlink" href="#batching-hamiltonian-terms-mqpu" title="Permalink to this heading">¶</a></h2>
-<p>Multiple GPUs can also come in handy for cases where applications might benefit from multiple QPUs running asynchronously.  The <code class="code docutils literal notranslate"><span class="pre">mqpu</span></code> backend uses multiple GPUs to simulate each QPU so you can test and accelerate quantum applications with parallelization.</p>
+<section id="parallel-execution-over-multiple-qpus-mqpu">
+<h2>Parallel execution over multiple QPUs (<code class="code docutils literal notranslate"><span class="pre">mqpu</span></code>)<a class="headerlink" href="#parallel-execution-over-multiple-qpus-mqpu" title="Permalink to this heading">¶</a></h2>
+<section id="batching-hamiltonian-terms">
+<h3>Batching Hamiltonian Terms<a class="headerlink" href="#batching-hamiltonian-terms" title="Permalink to this heading">¶</a></h3>
+<p>Multiple GPUs can also come in handy for cases where applications might benefit from multiple QPUs running in parallel.  The <code class="code docutils literal notranslate"><span class="pre">mqpu</span></code> backend uses multiple GPUs to simulate QPUs so you can accelerate quantum applications with parallelization.</p>
 <img alt="../../_images/mqpu.png" src="../../_images/mqpu.png" />
 <p>The most simple example is Hamiltonian Batching. In this case, an expectation value of a large Hamiltonian is distributed across multiple simulated QPUs, where each QPUs evaluates a subset of the Hamiltonian terms.</p>
 <img alt="../../_images/hsplit.png" src="../../_images/hsplit.png" />
@@ -824,8 +830,8 @@ solved this problem by pooling the memory of multiple GPUs across multiple nodes
 </pre></div>
 </div>
 </section>
-<section id="circuit-batching-mqpu">
-<h2>Circuit Batching (<code class="code docutils literal notranslate"><span class="pre">mqpu</span></code>)<a class="headerlink" href="#circuit-batching-mqpu" title="Permalink to this heading">¶</a></h2>
+<section id="circuit-batching">
+<h3>Circuit Batching<a class="headerlink" href="#circuit-batching" title="Permalink to this heading">¶</a></h3>
 <p>A second way to leverage the <code class="code docutils literal notranslate"><span class="pre">mqpu</span></code> backend is to batch circuit evaluations across multiple simulated QPUs.</p>
 <img alt="../../_images/circsplit.png" src="../../_images/circsplit.png" />
 <p>One example where circuit batching is helpful might be evaluating a parameterized circuit many times with different parameters. The code below prepares a list of 10000 parameter sets for a 5 qubit circuit.</p>
@@ -913,9 +919,10 @@ solved this problem by pooling the memory of multiple GPUs across multiple nodes
 </pre></div>
 </div>
 </section>
+</section>
 <section id="multi-qpu-other-backends-remote-mqpu">
 <h2>Multi-QPU + Other Backends (<code class="code docutils literal notranslate"><span class="pre">remote-mqpu</span></code>)<a class="headerlink" href="#multi-qpu-other-backends-remote-mqpu" title="Permalink to this heading">¶</a></h2>
-<p>The <code class="code docutils literal notranslate"><span class="pre">mqpu</span></code> backend can be extended so that each parallel simulated QPU can be simulated with backends other than <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code>.  This provides a way to simulate larger scale circuits and execute parallel algorithms. This accomplished by launching remotes servers which each simulated a QPU.
+<p>The <code class="code docutils literal notranslate"><span class="pre">mqpu</span></code> backend can be extended so that each parallel simulated QPU run backends other than <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code>.  This provides a way to simulate larger scale circuits and execute parallel algorithms. This accomplished by launching remotes servers which each simulated a QPU.
 The code example below demonstrates this using the <code class="code docutils literal notranslate"><span class="pre">tensornet-mps</span></code> backend which allows sampling of a 40 qubit circuit too larger for state vector simulation. In this case, the target is specified as <code class="code docutils literal notranslate"><span class="pre">remote-mqpu</span></code> while an additional <code class="code docutils literal notranslate"><span class="pre">backend</span></code> is specified for the simulator used for each QPU.</p>
 <p>The default approach uses one GPU per QPU and can both launch and close each server automatically. This is accomplished by specifying <code class="code docutils literal notranslate"><span class="pre">auto_launch</span></code> and :code”<code class="code docutils literal notranslate"><span class="pre">url</span></code> within <code class="code docutils literal notranslate"><span class="pre">cudaq.set_target</span></code>.  Running the script below will then sample the 40 qubit circuit using two QPUs each running <code class="code docutils literal notranslate"><span class="pre">tensornet-mps</span></code>.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>

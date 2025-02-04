@@ -159,8 +159,11 @@
 <li class="toctree-l2"><a class="reference internal" href="../../examples/multi_gpu_workflows.html">   Multi-GPU Workflows</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/multi_gpu_workflows.html#from-cpu-to-gpu">From CPU to GPU</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/multi_gpu_workflows.html#pooling-the-memory-of-multiple-gpus-mgpu">Pooling the memory of multiple GPUs (<code class="code docutils literal notranslate"><span class="pre">mgpu</span></code>)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/multi_gpu_workflows.html#batching-hamiltonian-terms-mqpu">Batching Hamiltonian Terms (<code class="code docutils literal notranslate"><span class="pre">mqpu</span></code>)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/multi_gpu_workflows.html#circuit-batching-mqpu">Circuit Batching (<code class="code docutils literal notranslate"><span class="pre">mqpu</span></code>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/multi_gpu_workflows.html#parallel-execution-over-multiple-qpus-mqpu">Parallel execution over multiple QPUs (<code class="code docutils literal notranslate"><span class="pre">mqpu</span></code>)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/multi_gpu_workflows.html#batching-hamiltonian-terms">Batching Hamiltonian Terms</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/multi_gpu_workflows.html#circuit-batching">Circuit Batching</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu">Multi-QPU + Other Backends (<code class="code docutils literal notranslate"><span class="pre">remote-mqpu</span></code>)</a></li>
 </ul>
 </li>
@@ -938,7 +941,7 @@ Hong-Ou-Mandel effect.</p>
 </section>
 <section id="executing-photonics-kernels">
 <h3>Executing Photonics Kernels<a class="headerlink" href="#executing-photonics-kernels" title="Permalink to this heading">¶</a></h3>
-<p>In order to execute a photonics kernel, you need to specific a photonics simulator backend like <code class="code docutils literal notranslate"><span class="pre">orca-photonics</span></code> used in the example below.
+<p>In order to execute a photonics kernel, you need to specify a photonics simulator backend like <code class="code docutils literal notranslate"><span class="pre">orca-photonics</span></code> used in the example below.
 There are two ways to execute photonics kernels <code class="code docutils literal notranslate"><span class="pre">sample</span></code> and <code class="code docutils literal notranslate"><span class="pre">get_state</span></code></p>
 <p>The <code class="code docutils literal notranslate"><span class="pre">sample</span></code> command can be used to generate statistics about the quantum state.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
@@ -1007,7 +1010,7 @@ There are two ways to execute photonics kernels <code class="code docutils liter
 <span class="c1"># Compute the statevector of the kernel</span>
 <span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">qumode_count</span><span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">result</span><span class="p">))</span><span class="n">k</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">result</span><span class="p">))</span>
 </pre></div>
 </div>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span> <span class="mf">0.</span>        <span class="o">+</span><span class="mf">0.</span><span class="n">j</span>  <span class="mf">0.</span>        <span class="o">+</span><span class="mf">0.</span><span class="n">j</span> <span class="o">-</span><span class="mf">0.61237244</span><span class="o">+</span><span class="mf">0.</span><span class="n">j</span>  <span class="mf">0.</span>        <span class="o">+</span><span class="mf">0.</span><span class="n">j</span>

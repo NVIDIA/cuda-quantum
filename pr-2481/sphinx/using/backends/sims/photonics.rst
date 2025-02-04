@@ -202,7 +202,7 @@ Hong-Ou-Mandel effect.
 
 Executing Photonics Kernels
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-In order to execute a photonics kernel, you need to specific a photonics simulator backend like :code:`orca-photonics` used in the example below. 
+In order to execute a photonics kernel, you need to specify a photonics simulator backend like :code:`orca-photonics` used in the example below. 
 There are two ways to execute photonics kernels :code:`sample` and :code:`get_state`
 
 
@@ -282,7 +282,7 @@ The :code:`get_state` command can be used to generate statistics about the quant
         # Compute the statevector of the kernel
         result = cudaq.get_state(kernel, qumode_count)
 
-        print(np.array(result))k
+        print(np.array(result))
 
 
 .. parsed-literal::
