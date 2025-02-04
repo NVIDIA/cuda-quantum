@@ -147,7 +147,7 @@ Multi-QPU + Other Backends (`remote-mqpu`)
 -------------------------------------------
     
     
-The `mqpu` backend can be extended so that each parallel simulated QPU can be simulated with backends other than :code:`nvidia`.  This provides a way to simulate larger scale circuits and execute parallel algorithms. This accomplished by launching remotes servers which each simulated a QPU.  
+The `mqpu` backend can be extended so that each parallel simulated QPU run backends other than :code:`nvidia`.  This provides a way to simulate larger scale circuits and execute parallel algorithms. This accomplished by launching remotes servers which each simulated a QPU.  
 The code example below demonstrates this using the :code:`tensornet-mps` backend which allows sampling of a 40 qubit circuit too larger for state vector simulation. In this case, the target is specified as :code:`remote-mqpu` while an additional :code:`backend` is specified for the simulator used for each QPU.  
 
 The default approach uses one GPU per QPU and can both launch and close each server automatically. This is accomplished by specifying :code:`auto_launch` and :code"`url` within :code:`cudaq.set_target`.  Running the script below will then sample the 40 qubit circuit using two QPUs each running :code:`tensornet-mps`.  
