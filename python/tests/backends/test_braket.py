@@ -20,8 +20,7 @@ pytestmark = pytest.mark.skip("Amazon Braket credentials required")
 
 @pytest.fixture(scope="session", autouse=True)
 def do_something():
-    device_arn = "arn:aws:braket:::device/quantum-simulator/amazon/sv1"
-    cudaq.set_target("braket", machine=device_arn)
+    cudaq.set_target("braket")
     yield "Running the tests."
     cudaq.__clearKernelRegistries()
     cudaq.reset_target()
@@ -101,7 +100,7 @@ def test_all_gates():
         s(q)
         t(q)
         mx(q)
-        my(q)
+        ## my(q) # not supported since the default rewriter uses `sdg`
         mz(q)
 
     # Test here is that this runs
@@ -245,17 +244,13 @@ def test_observe():
         x(qreg[0])
         ry(theta, qreg[1])
         x.ctrl(qreg[1], qreg[0])
-        ## NOTE: Measure required since 'Device requires all qubits in the program to be measured.'
-        mz(qreg)
 
     # Define its spin Hamiltonian.
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.observe(ansatz, hamiltonian, .59, shots_count=100)
-    assert "observe specification violated for 'ansatz': kernels passed to observe cannot have measurements specified." in repr(
-        e)
+    res = cudaq.observe(ansatz, hamiltonian, .59, shots_count=1)
+    print(res.expectation())
 
 
 def test_custom_operations():
