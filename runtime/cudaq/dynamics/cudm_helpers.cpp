@@ -173,10 +173,12 @@ convert_dimensions(const std::vector<int64_t> &mode_extents) {
   return dimensions;
 }
 
+template <typename HandlerTy>
 cudensitymatOperator_t convert_to_cudensitymat_operator(
     cudensitymatHandle_t handle,
     const std::map<std::string, std::complex<double>> &parameters,
-    const operator_sum &op, const std::vector<int64_t> &mode_extents) {
+    const operator_sum<HandlerTy> &op,
+    const std::vector<int64_t> &mode_extents) {
   if (op.get_terms().empty()) {
     throw std::invalid_argument("Operator sum cannot be empty.");
   }
@@ -197,8 +199,8 @@ cudensitymatOperator_t convert_to_cudensitymat_operator(
           mode_extents.data(), &term));
 
       for (const auto &component : product_op.get_terms()) {
-        if (std::holds_alternative<cudaq::elementary_operator>(component)) {
-          const auto &elem_op = std::get<cudaq::elementary_operator>(component);
+        if (std::holds_alternative<cudaq::matrix_operator>(component)) {
+          const auto &elem_op = std::get<cudaq::matrix_operator>(component);
 
           auto subspace_extents =
               get_subspace_extents(mode_extents, elem_op.degrees);
