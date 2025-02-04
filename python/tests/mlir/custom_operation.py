@@ -27,7 +27,7 @@ def test_bell_pair():
     print(bell)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__bell() attributes {"cudaq-entrypoint"} {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__bell() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
 # CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           quake.custom_op @__nvqpp__mlirgen__custom_h_generator_1.rodata %[[VAL_1]] : (!quake.ref) -> ()
@@ -56,7 +56,7 @@ def test_custom_adjoint():
     print(kernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 # CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
 # CHECK:           quake.custom_op @__nvqpp__mlirgen__custom_s_generator_1.rodata<adj> %[[VAL_0]] : (!quake.ref) -> ()
