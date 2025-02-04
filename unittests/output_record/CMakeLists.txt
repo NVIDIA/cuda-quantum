@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_executable(test_record RecordLoggerTester.cpp RecordParserTester.cpp)
+add_executable(test_record RecordParserTester.cpp)
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
   target_link_options(test_record PRIVATE -Wl,--no-as-needed)
