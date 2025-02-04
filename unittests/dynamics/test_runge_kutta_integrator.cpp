@@ -19,7 +19,7 @@ protected:
   cudensitymatHandle_t handle_;
   cudensitymatOperator_t liouvillian_;
   std::shared_ptr<cudm_time_stepper> time_stepper_;
-  std::unique_ptr<runge_kutta_integrator> integrator_;
+  std::unique_ptr<runge_kutta_integrator<void>> integrator_;
   std::unique_ptr<cudm_state> state_;
 
   void SetUp() override {
@@ -41,8 +41,9 @@ protected:
 
     double t0 = 0.0;
     // Initialize the integrator (using substeps = 4, for Runge-Kutta method)
-    ASSERT_NO_THROW(integrator_ = std::make_unique<runge_kutta_integrator>(
-                        std::move(*state_), t0, time_stepper_, 4));
+    ASSERT_NO_THROW(integrator_ =
+                        std::make_unique<runge_kutta_integrator<void>>(
+                            std::move(*state_), t0, time_stepper_, 4));
     ASSERT_NE(integrator_, nullptr);
   }
 
@@ -60,7 +61,7 @@ TEST_F(RungeKuttaIntegratorTest, Initialization) {
 
 // Integration with Euler Method (substeps = 1)
 TEST_F(RungeKuttaIntegratorTest, EulerIntegration) {
-  auto eulerIntegrator = std::make_unique<runge_kutta_integrator>(
+  auto eulerIntegrator = std::make_unique<runge_kutta_integrator<void>>(
       cudm_state(handle_, mock_initial_state_data(), mock_hilbert_space_dims()),
       0.0, time_stepper_, 1);
   eulerIntegrator->set_option("dt", 0.1);
@@ -69,11 +70,11 @@ TEST_F(RungeKuttaIntegratorTest, EulerIntegration) {
 
 // Integration with Midpoint Rule (substeps = 2)
 TEST_F(RungeKuttaIntegratorTest, MidpointIntegration) {
-  auto midpointIntegrator = std::make_unique<runge_kutta_integrator>(
+  auto midpointIntegrator = std::make_unique<runge_kutta_integrator<void>>(
       cudm_state(handle_, mock_initial_state_data(), mock_hilbert_space_dims()),
       0.0, time_stepper_, 2);
-  integrator_->set_option("dt", 0.1);
-  EXPECT_NO_THROW(integrator_->integrate(1.0));
+  midpointIntegrator->set_option("dt", 0.1);
+  EXPECT_NO_THROW(midpointIntegrator->integrate(1.0));
 }
 
 // Integration with Runge-Kutta 4 (substeps = 4, which is the default value)
@@ -109,7 +110,7 @@ TEST_F(RungeKuttaIntegratorTest, MultipleIntegrationSteps) {
 
 // Missing Time Step (dt)
 TEST_F(RungeKuttaIntegratorTest, MissingTimeStepOption) {
-  auto integrator_missing_dt = std::make_unique<runge_kutta_integrator>(
+  auto integrator_missing_dt = std::make_unique<runge_kutta_integrator<void>>(
       cudm_state(handle_, mock_initial_state_data(), mock_hilbert_space_dims()),
       0.0, time_stepper_, 2);
 
@@ -141,7 +142,7 @@ TEST_F(RungeKuttaIntegratorTest, LargeTimeStep) {
 
 // Invalid Substeps
 TEST_F(RungeKuttaIntegratorTest, InvalidSubsteps) {
-  EXPECT_THROW(std::make_unique<runge_kutta_integrator>(
+  EXPECT_THROW(std::make_unique<runge_kutta_integrator<void>>(
                    cudm_state(handle_, mock_initial_state_data(),
                               mock_hilbert_space_dims()),
                    0.0, time_stepper_, 3),
