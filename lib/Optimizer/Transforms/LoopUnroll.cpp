@@ -23,6 +23,11 @@ namespace cudaq::opt {
 
 using namespace mlir;
 
+#include "WriteAfterWriteEliminationPatterns.inc"
+#include "LiftArrayAllocPatterns.inc"
+#include "LoopNormalizePatterns.inc"
+#include "LowerToCfgPatterns.inc"
+
 inline std::pair<Block *, Block *> findCloneRange(Block *first, Block *last) {
   return {first->getNextNode(), last->getPrevNode()};
 }
@@ -246,6 +251,13 @@ public:
       // only be unrolled if other loops are unrolled first and the constants
       // iteratively propagated.
       do {
+        // Clean up dead code.
+        if (func) {
+          auto builder = OpBuilder(op);
+          IRRewriter rewriter(builder);
+          [[maybe_unused]] auto unused =
+              simplifyRegions(rewriter, {func.getBody()});
+        }
         progress = 0;
         (void)applyPatternsAndFoldGreedily(op, frozen);
       } while (progress);
@@ -344,11 +356,8 @@ static void createUnrollingPipeline(OpPassManager &pm, unsigned threshold,
                                     bool allowClosedInterval) {
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  cudaq::opt::LoopNormalizeOptions lno{allowClosedInterval, allowBreak};
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize(lno));
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  cudaq::opt::LoopUnrollOptions luo{threshold, signalFailure, allowBreak};
+  cudaq::opt::LoopUnrollOptions luo{threshold, signalFailure,
+                                     allowClosedInterval, allowBreak};
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll(luo));
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUpdateRegisterNames());
 }
