@@ -117,12 +117,10 @@ void assert_product_equal(
 
 } // namespace utils_0
 
-// FIXME: NO LONGER ACCURATE? ->  NOT TESTED ANYWHERE
-/// We get an error in the test body when evaluating
-/// the return of this function, since the `-1.0` value
-/// is going out of scope somewhere down the line in its
-/// conversion behind the scenes to a scalar operator.
-cudaq::scalar_operator negate(cudaq::scalar_operator op) { return -1.0 * op; }
+TEST(OperatorExpressions, checkElementaryUnary) {
+  auto id = cudaq::matrix_operator::identity(0);
+  utils_0::checkEqual((-id).to_matrix({{0,2}}), -1.0 * utils_0::id_matrix(2));
+}
 
 TEST(OperatorExpressions, checkElementaryAgainstDouble) {
   std::complex<double> value = 0.125 + 0.125j;
@@ -435,7 +433,6 @@ TEST(OperatorExpressions, checkPreBuiltElementaryOpsSelf) {
     auto self = cudaq::matrix_operator::annihilate(0);
     auto other = cudaq::matrix_operator::create(1);
 
-    // Produces an `product_operator` type.
     auto product = self * other;
     ASSERT_TRUE(product.n_terms() == 2);
 
