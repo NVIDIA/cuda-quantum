@@ -16,7 +16,7 @@ template <typename HandlerTy>
 cudaq::operator_sum<HandlerTy> initialize_operator_sum() {
   std::vector<int> degrees = {0, 1};
 
-  // Elementary operators
+  // Matrix operators
   cudaq::matrix_operator pauli_x("pauli_x", {0});
   cudaq::matrix_operator pauli_z("pauli_z", {1});
   cudaq::matrix_operator identity = cudaq::matrix_operator::identity(0);
