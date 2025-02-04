@@ -13,7 +13,7 @@ using namespace cudaq;
 
 TEST(RydbergHamiltonianTest, ConstructorValidInputs) {
   // Valid atom sites
-  std::vector<rydberg_hamiltonian::Coordinate> atom_sites = {
+  std::vector<rydberg_hamiltonian<void>::Coordinate> atom_sites = {
       {0.0, 0.0}, {1.0, 0.0}, {0.0, 1.0}, {1.0, 1.0}};
 
   // Valid operators
@@ -22,7 +22,8 @@ TEST(RydbergHamiltonianTest, ConstructorValidInputs) {
   scalar_operator delta_global(-0.5);
 
   // Valid atom filling
-  rydberg_hamiltonian hamiltonian(atom_sites, amplitude, phase, delta_global);
+  rydberg_hamiltonian<void> hamiltonian(atom_sites, amplitude, phase,
+                                        delta_global);
 
   EXPECT_EQ(hamiltonian.get_atom_sites().size(), atom_sites.size());
   EXPECT_EQ(hamiltonian.get_atom_filling().size(), atom_sites.size());
@@ -35,7 +36,7 @@ TEST(RydbergHamiltonianTest, ConstructorValidInputs) {
 }
 
 TEST(RydbergHamiltonianTest, ConstructorWithAtomFilling) {
-  std::vector<rydberg_hamiltonian::Coordinate> atom_sites = {
+  std::vector<rydberg_hamiltonian<void>::Coordinate> atom_sites = {
       {0.0, 0.0}, {1.0, 0.0}, {0.0, 1.0}};
 
   // Valid operators
@@ -46,15 +47,15 @@ TEST(RydbergHamiltonianTest, ConstructorWithAtomFilling) {
   // Valid atom filling
   std::vector<int> atom_filling = {1, 0, 1};
 
-  rydberg_hamiltonian hamiltonian(atom_sites, amplitude, phase, delta_global,
-                                  atom_filling);
+  rydberg_hamiltonian<void> hamiltonian(atom_sites, amplitude, phase,
+                                        delta_global, atom_filling);
 
   EXPECT_EQ(hamiltonian.get_atom_sites().size(), atom_sites.size());
   EXPECT_EQ(hamiltonian.get_atom_filling(), atom_filling);
 }
 
 TEST(RydbergHamiltonianTest, InvalidAtomFillingSize) {
-  std::vector<rydberg_hamiltonian::Coordinate> atom_sites = {
+  std::vector<rydberg_hamiltonian<void>::Coordinate> atom_sites = {
       {0.0, 0.0}, {1.0, 0.0}, {0.0, 1.0}};
 
   // Valid operators
@@ -65,13 +66,13 @@ TEST(RydbergHamiltonianTest, InvalidAtomFillingSize) {
   // Invalid atom filling size
   std::vector<int> atom_filling = {1, 0};
 
-  EXPECT_THROW(rydberg_hamiltonian(atom_sites, amplitude, phase, delta_global,
-                                   atom_filling),
+  EXPECT_THROW(rydberg_hamiltonian<void>(atom_sites, amplitude, phase,
+                                         delta_global, atom_filling),
                std::invalid_argument);
 }
 
 TEST(RydbergHamiltonianTest, UnsupportedLocalDetuning) {
-  std::vector<rydberg_hamiltonian::Coordinate> atom_sites = {
+  std::vector<rydberg_hamiltonian<void>::Coordinate> atom_sites = {
       {0.0, 0.0}, {1.0, 0.0}, {0.0, 1.0}};
 
   // Valid operators
@@ -83,13 +84,13 @@ TEST(RydbergHamiltonianTest, UnsupportedLocalDetuning) {
   auto delta_local =
       std::make_pair(scalar_operator(0.5), std::vector<double>{0.1, 0.2, 0.3});
 
-  EXPECT_THROW(rydberg_hamiltonian(atom_sites, amplitude, phase, delta_global,
-                                   {}, delta_local),
+  EXPECT_THROW(rydberg_hamiltonian<void>(atom_sites, amplitude, phase,
+                                         delta_global, {}, delta_local),
                std::runtime_error);
 }
 
 TEST(RydbergHamiltonianTest, Accessors) {
-  std::vector<rydberg_hamiltonian::Coordinate> atom_sites = {
+  std::vector<rydberg_hamiltonian<void>::Coordinate> atom_sites = {
       {0.0, 0.0}, {1.0, 0.0}, {0.0, 1.0}};
 
   // Valid operators
@@ -97,7 +98,8 @@ TEST(RydbergHamiltonianTest, Accessors) {
   scalar_operator phase(0.0);
   scalar_operator delta_global(-0.5);
 
-  rydberg_hamiltonian hamiltonian(atom_sites, amplitude, phase, delta_global);
+  rydberg_hamiltonian<void> hamiltonian(atom_sites, amplitude, phase,
+                                        delta_global);
 
   EXPECT_EQ(hamiltonian.get_atom_sites(), atom_sites);
   EXPECT_EQ(hamiltonian.get_amplitude().evaluate({}),
@@ -109,7 +111,7 @@ TEST(RydbergHamiltonianTest, Accessors) {
 }
 
 TEST(RydbergHamiltonianTest, DefaultAtomFilling) {
-  std::vector<rydberg_hamiltonian::Coordinate> atom_sites = {
+  std::vector<rydberg_hamiltonian<void>::Coordinate> atom_sites = {
       {0.0, 0.0}, {1.0, 0.0}, {0.0, 1.0}, {1.0, 1.0}};
 
   // Valid operators
@@ -117,7 +119,8 @@ TEST(RydbergHamiltonianTest, DefaultAtomFilling) {
   scalar_operator phase(0.0);
   scalar_operator delta_global(-0.5);
 
-  rydberg_hamiltonian hamiltonian(atom_sites, amplitude, phase, delta_global);
+  rydberg_hamiltonian<void> hamiltonian(atom_sites, amplitude, phase,
+                                        delta_global);
 
   std::vector<int> expected_filling(atom_sites.size(), 1);
   EXPECT_EQ(hamiltonian.get_atom_filling(), expected_filling);
