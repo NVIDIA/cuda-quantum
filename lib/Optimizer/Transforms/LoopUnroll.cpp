@@ -235,6 +235,10 @@ public:
   void runOnOperation() override {
     auto *ctx = &getContext();
     auto *op = getOperation();
+    DominanceInfo domInfo(op);
+    
+    auto func = dyn_cast<func::FuncOp>(op);
+
     auto numLoops = countLoopOps(op);
     unsigned progress = 0;
     if (numLoops) {
@@ -243,16 +247,25 @@ public:
         dialect->getCanonicalizationPatterns(patterns);
       for (RegisteredOperationName op : ctx->getRegisteredOperations())
         op.getCanonicalizationPatterns(patterns, ctx);
+      
+      patterns.insert<RewriteIf>(ctx);
+      patterns.insert<LoopPat>(ctx, allowClosedInterval, allowBreak);
+      patterns.insert<AllocaPattern>(ctx, domInfo, func == nullptr? "": func.getName());
       patterns.insert<UnrollCountedLoop>(ctx, threshold,
                                          /*signalFailure=*/false, allowBreak,
                                          progress);
+
+
       FrozenRewritePatternSet frozen(std::move(patterns));
       // Iterate over the loops until a fixed-point is reached. Some loops can
       // only be unrolled if other loops are unrolled first and the constants
       // iteratively propagated.
       do {
+        // Remove overridden writes.
+        SimplifyWritesAnalysis(ctx, domInfo, op);
+        analysis.removeOverriddenStores();
         // Clean up dead code.
-        if (func) {
+        {
           auto builder = OpBuilder(op);
           IRRewriter rewriter(builder);
           [[maybe_unused]] auto unused =
