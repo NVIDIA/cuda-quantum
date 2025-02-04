@@ -6,10 +6,45 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+<<<<<<< HEAD
 #include "cudaq/helpers.h"
 #include "cudaq/operators.h"
+=======
+#include "manipulation.h"
+#include "helpers.h"
+>>>>>>> 558b2496f (general clean up)
 
 namespace cudaq {
+
+// EvaluatedMatrix class
+
+const std::vector<int>& EvaluatedMatrix::degrees() const {
+  return this->targets;
+}
+
+const matrix_2& EvaluatedMatrix::matrix() const {
+  return this->value;
+}
+
+EvaluatedMatrix::EvaluatedMatrix(const std::vector<int> &degrees, const matrix_2 &matrix)
+  : targets(degrees), value(matrix) {}
+
+EvaluatedMatrix::EvaluatedMatrix(EvaluatedMatrix &&other)
+  : targets(std::move(other.targets)), value(std::move(other.value)) {}
+
+EvaluatedMatrix& EvaluatedMatrix::operator=(EvaluatedMatrix &&other) {
+  if (this != &other) {
+    this->targets = std::move(other.targets);
+    this->value = std::move(other.value);
+  }
+  return *this;
+}
+
+// MatrixArithmetics
+
+MatrixArithmetics::MatrixArithmetics(std::map<int, int> dimensions,
+                  std::map<std::string, std::complex<double>> parameters)
+  : m_dimensions(dimensions), m_parameters(parameters) {}
 
 std::vector<int>
 MatrixArithmetics::_compute_permutation(std::vector<int> op_degrees,
@@ -61,15 +96,13 @@ EvaluatedMatrix MatrixArithmetics::tensor(EvaluatedMatrix op1,
   // assert len(frozenset(op1.degrees).intersection(op2.degrees)) == 0, \
   //     "Operators should not have common degrees of freedom."
 
-  auto op1_deg = std::move(op1.degrees());
-  auto op2_deg = std::move(op2.degrees());
   std::vector<int> op_degrees;
-  op_degrees.reserve(op1_deg.size() + op2_deg.size());
-  for (auto d : op1_deg)
+  op_degrees.reserve(op1.degrees().size() + op2.degrees().size());
+  for (auto d : op1.degrees())
     op_degrees.push_back(d);
-  for (auto d : op2_deg)
+  for (auto d : op2.degrees())
     op_degrees.push_back(d);
-  auto op_matrix = cudaq::kronecker(op1.m_matrix, op2.m_matrix);
+  auto op_matrix = cudaq::kronecker(op1.matrix(), op2.matrix());
   auto [new_matrix, new_degrees] = this->_canonicalize(op_matrix, op_degrees);
   return EvaluatedMatrix(new_degrees, new_matrix);
 }
@@ -80,10 +113,10 @@ EvaluatedMatrix MatrixArithmetics::mul(EvaluatedMatrix op1,
   // convention for how to define the matrix. Tensor products permute the
   // computed matrix if necessary to guarantee that all operators always have
   // sorted degrees.
-  if (op1.m_degrees != op2.m_degrees)
+  if (op1.degrees() != op2.degrees())
     throw std::runtime_error(
         "Operators should have the same order of degrees.");
-  return EvaluatedMatrix(op1.m_degrees, (op1.m_matrix * op2.m_matrix));
+  return EvaluatedMatrix(op1.degrees(), (op1.matrix() * op2.matrix()));
 }
 
 EvaluatedMatrix MatrixArithmetics::add(EvaluatedMatrix op1,
@@ -92,24 +125,10 @@ EvaluatedMatrix MatrixArithmetics::add(EvaluatedMatrix op1,
   // convention for how to define the matrix. Tensor products permute the
   // computed matrix if necessary to guarantee that all operators always have
   // sorted degrees.
-  if (op1.m_degrees != op2.m_degrees)
+  if (op1.degrees() != op2.degrees())
     throw std::runtime_error(
         "Operators should have the same order of degrees.");
-  return EvaluatedMatrix(op1.m_degrees, (op1.m_matrix + op2.m_matrix));
-}
-
-EvaluatedMatrix
-MatrixArithmetics::evaluate(std::variant<scalar_operator, matrix_operator,
-                                         product_operator<matrix_operator>>
-                                op) {
-  // auto getDegrees = [](auto &&t) { return t.degrees; };
-  // auto toMatrix = [&](auto &&t) {
-  //   return t.to_matrix(this->m_dimensions, this->m_parameters);
-  // };
-  // auto degrees = std::visit(getDegrees, op);
-  // auto matrix = std::visit(toMatrix, op);
-  // return EvaluatedMatrix(degrees, matrix);
-  throw std::runtime_error("implementation broken.");
+  return EvaluatedMatrix(op1.degrees(), (op1.matrix() + op2.matrix()));
 }
 
 } // namespace cudaq
