@@ -26,9 +26,9 @@ def test_list_int():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__oracle(
-# CHECK-SAME:                                        %[[VAL_0:.*]]: !quake.veq<?>,
-# CHECK-SAME:                                        %[[VAL_1:.*]]: !quake.ref,
-# CHECK-SAME:                                        %[[VAL_2:.*]]: !cc.stdvec<i64>) {
+# CHECK-SAME:                %[[VAL_0:.*]]: !quake.veq<?>,
+# CHECK-SAME:                %[[VAL_1:.*]]: !quake.ref,
+# CHECK-SAME:                %[[VAL_2:.*]]: !cc.stdvec<i64>)
 # CHECK-DAG:           %[[VAL_3:.*]] = arith.constant 1 : i64
 # CHECK-DAG:           %[[VAL_4:.*]] = arith.constant 0 : i64
 # CHECK:           %[[VAL_5:.*]] = cc.stdvec_size %[[VAL_2]] : (!cc.stdvec<i64>) -> i64

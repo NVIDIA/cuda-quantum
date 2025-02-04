@@ -22,8 +22,7 @@ func.func @__nvqpp__mlirgen__function_test._Z4testSt6vectorIfSaIfEE(%arg0: !cc.s
 // CHECK:         %[[VAL_1:.*]] = extractvalue { float*, i64 } %[[VAL_0]], 1
 // CHECK:         %[[VAL_2:.*]] = tail call i64 @llvm.cttz.i64(i64 %[[VAL_1]], i1 false), !range !1
 // CHECK:         %[[VAL_3:.*]] = extractvalue { float*, i64 } %[[VAL_0]], 0
-// CHECK:         %[[VAL_4:.*]] = bitcast float* %[[VAL_3]] to i8*
-// CHECK:         %[[VAL_5:.*]] = tail call %Array* @__quantum__rt__qubit_allocate_array_with_state_fp32(i64 %[[VAL_2]], i8* %[[VAL_4]])
+// CHECK:         %[[VAL_5:.*]] = tail call %Array* @__quantum__rt__qubit_allocate_array_with_state_fp32(i64 %[[VAL_2]], float* %[[VAL_3]])
 // CHECK:         tail call void @__quantum__rt__qubit_release_array(
 // CHECK:         ret void
 // CHECK:       }
