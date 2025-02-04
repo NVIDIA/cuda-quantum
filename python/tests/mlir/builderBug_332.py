@@ -27,17 +27,21 @@ def test_recursive_calls():
     print(kernel3)
 
 
-# CHECK-LABEL:  func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
+# CHECK-LABEL:  func.func @__nvqpp__mlirgen____nvqppBuilderKernel_
+# CHECK-SAME: () attributes {"cudaq-entrypoint"
 # CHECK:    %[[VAL_0:.*]] = quake.alloca !quake.veq<1>
 # CHECK:    %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<1>) -> !quake.ref
 # CHECK:    call @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(%[[VAL_1]]) : (!quake.ref) -> ()
 # CHECK:    return
 # CHECK:  }
-# CHECK:  func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(%arg0: !quake.ref) {
+
+# CHECK-LABEL:  func.func @__nvqpp__mlirgen____nvqppBuilderKernel_
+# CHECK-SAME: (%arg0: !quake.ref) {{.*}}{
 # CHECK:    call @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(%arg0) : (!quake.ref) -> ()
 # CHECK:    return
 # CHECK:  }
-# CHECK:  func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(%arg0: !quake.ref) {
+
+# CHECK-LABEL:  func.func @__nvqpp__mlirgen____nvqppBuilderKernel_
+# CHECK-SAME: (%arg0: !quake.ref) {{.*}}{
 # CHECK:    return
 # CHECK:  }
-# CHECK:}

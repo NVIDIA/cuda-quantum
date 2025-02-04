@@ -50,7 +50,7 @@ def test_slice():
     slice()
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__slice() attributes {"cudaq-entrypoint"} {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__slice() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK-DAG:           %[[VAL_0:.*]] = arith.constant 3 : i64
 # CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 4 : i64
 # CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 2 : i64

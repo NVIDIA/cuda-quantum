@@ -11,6 +11,8 @@
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
+#include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
+#include "cudaq/Optimizer/CodeGen/QuakeToExecMgr.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "mlir/Conversion/LLVMCommon/ConversionTarget.h"
@@ -296,9 +298,9 @@ public:
   LogicalResult
   matchAndRewrite(quake::ExtractRefOp extract, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
-    auto loc = extract->getLoc();
+    auto loc = extract.getLoc();
     auto parentModule = extract->getParentOfType<ModuleOp>();
-    auto context = parentModule->getContext();
+    auto *context = rewriter.getContext();
 
     auto qir_array_get_element_ptr_1d = cudaq::opt::QIRArrayGetElementPtr1d;
 
@@ -1140,40 +1142,6 @@ public:
   }
 };
 
-/// Convert a MX operation to a sequence H; MZ.
-class MxToMz : public OpConversionPattern<quake::MxOp> {
-public:
-  using OpConversionPattern::OpConversionPattern;
-
-  LogicalResult
-  matchAndRewrite(quake::MxOp mx, OpAdaptor adaptor,
-                  ConversionPatternRewriter &rewriter) const override {
-    rewriter.create<quake::HOp>(mx.getLoc(), adaptor.getTargets());
-    rewriter.replaceOpWithNewOp<quake::MzOp>(mx, mx.getResultTypes(),
-                                             adaptor.getTargets(),
-                                             mx.getRegisterNameAttr());
-    return success();
-  }
-};
-
-/// Convert a MY operation to a sequence S; H; MZ.
-class MyToMz : public OpConversionPattern<quake::MyOp> {
-public:
-  using OpConversionPattern::OpConversionPattern;
-
-  LogicalResult
-  matchAndRewrite(quake::MyOp my, OpAdaptor adaptor,
-                  ConversionPatternRewriter &rewriter) const override {
-    rewriter.create<quake::SOp>(my.getLoc(), true, ValueRange{}, ValueRange{},
-                                adaptor.getTargets());
-    rewriter.create<quake::HOp>(my.getLoc(), adaptor.getTargets());
-    rewriter.replaceOpWithNewOp<quake::MzOp>(my, my.getResultTypes(),
-                                             adaptor.getTargets(),
-                                             my.getRegisterNameAttr());
-    return success();
-  }
-};
-
 class GetVeqSizeOpRewrite : public OpConversionPattern<quake::VeqSizeOp> {
 public:
   using OpConversionPattern::OpConversionPattern;
@@ -1407,8 +1375,8 @@ public:
     auto unitaryData =
         rewriter.create<LLVM::BitcastOp>(loc, complex64PtrTy, addrOp);
 
-    auto qirFunctionName =
-        std::string{cudaq::opt::QIRCustomOp} + (op.isAdj() ? "__adj" : "");
+    StringRef qirFunctionName =
+        op.isAdj() ? cudaq::opt::QIRCustomAdjOp : cudaq::opt::QIRCustomOp;
 
     FlatSymbolRefAttr customSymbolRef =
         cudaq::opt::factory::createLLVMFunctionSymbol(
@@ -1431,8 +1399,10 @@ void cudaq::opt::populateQuakeToLLVMPatterns(LLVMTypeConverter &typeConverter,
                                              RewritePatternSet &patterns,
                                              unsigned &measureCounter) {
   auto *context = patterns.getContext();
-  patterns.insert<GetVeqSizeOpRewrite, RemoveRelaxSizeRewrite, MxToMz, MyToMz,
-                  ReturnBitRewrite>(context);
+  cudaq::opt::populateQuakeToCCPrepPatterns(patterns);
+  patterns
+      .insert<GetVeqSizeOpRewrite, RemoveRelaxSizeRewrite, ReturnBitRewrite>(
+          context);
   patterns
       .insert<AllocaOpRewrite, ConcatOpRewrite, CustomUnitaryOpRewrite,
               DeallocOpRewrite, DiscriminateOpPattern, ExtractQubitOpRewrite,
