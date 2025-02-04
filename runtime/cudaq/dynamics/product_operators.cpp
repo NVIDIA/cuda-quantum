@@ -18,31 +18,14 @@ namespace cudaq {
 
 // private methods
 
-EvaluatedMatrix
-_padded_op(MatrixArithmetics &arithmetics, const cudaq::matrix_operator &op,
-           std::vector<int> degrees, std::map<int, int> dimensions,
-           std::map<std::string, std::complex<double>> parameters) {
-  /// Creating the tensor product with op being last is most efficient.
-  std::vector<EvaluatedMatrix> padded;
-  for (const auto &degree : degrees) {
-    if (std::find(op.degrees.begin(), op.degrees.end(), degree) ==
-        op.degrees.end()) {
-      // FIXME: EITHER MAKE DIMENSIONS REQUIRED, OR GIVE AN ERROR IF DIMENSIONS
-      // ARE REQUIRED.
-      padded.push_back(EvaluatedMatrix(
-          {degree}, matrix_operator::identity(degree).to_matrix(dimensions)));
-      // FIXME: avoid creation of a product here -
-      // but we need to make sure identity is defined before using it (all ops
-      // are lazily defined...)
-      // padded.push_back(cudaq::matrix_operator("identity",
-      // {degree}).to_matrix());
-    }
-  }
-  matrix_2 mat = op.to_matrix(dimensions, parameters);
-  auto res = EvaluatedMatrix(op.degrees, mat); // FIXME: PUT THIS LAST
-  for (auto &op : padded)
-    res = arithmetics.tensor(res, op);
-  return res;
+template<typename HandlerTy>
+void product_operator<HandlerTy>::aggregate_terms() {}
+
+template<typename HandlerTy>
+template <typename ... Args>
+void product_operator<HandlerTy>::aggregate_terms(const HandlerTy &head, Args&& ... args) {
+  this->terms[0].push_back(head);
+  aggregate_terms(std::forward<Args>(args)...);
 }
 
 // FIXME: EVALUATE IS NOT SUPPOSED TO RETURN A MATRIX -
@@ -55,18 +38,31 @@ product_operator<HandlerTy>::m_evaluate(MatrixArithmetics arithmetics,
   auto degrees = this->degrees();
   cudaq::matrix_2 result;
 
+  auto padded_op = [](MatrixArithmetics &arithmetics, const cudaq::matrix_operator &op,
+                      std::vector<int> degrees, std::map<int, int> dimensions,
+                      std::map<std::string, std::complex<double>> parameters) {
+    std::vector<EvaluatedMatrix> padded;
+    for (const auto &degree : degrees) {
+      if (std::find(op.degrees.begin(), op.degrees.end(), degree) == op.degrees.end()) {
+        padded.push_back(EvaluatedMatrix({degree}, matrix_operator::identity(degree).to_matrix(dimensions)));
+      }
+    }
+    /// Creating the tensor product with op being last is most efficient.
+    if (padded.size() == 0)
+      return EvaluatedMatrix(op.degrees, op.to_matrix(dimensions, parameters));
+    EvaluatedMatrix ids = padded[0];
+    for (auto i = 1; i < padded.size(); ++i)
+      ids = arithmetics.tensor(ids, padded[i]);
+    return arithmetics.tensor(ids, EvaluatedMatrix(op.degrees, op.to_matrix(dimensions, parameters)));
+  };
+
   if (terms.size() > 0) {
     if (pad_terms) {
-      auto evaluated =
-          _padded_op(arithmetics, terms[0], degrees, arithmetics.m_dimensions,
-                     arithmetics.m_parameters);
+      auto evaluated = padded_op(arithmetics, terms[0], degrees, arithmetics.m_dimensions, arithmetics.m_parameters);
       for (auto op_idx = 1; op_idx < terms.size(); ++op_idx) {
         const HandlerTy &op = terms[op_idx];
-        if (op.degrees.size() != 1 ||
-            op != cudaq::matrix_operator("identity", op.degrees)) {
-          auto padded =
-              _padded_op(arithmetics, op, degrees, arithmetics.m_dimensions,
-                         arithmetics.m_parameters);
+        if (op.degrees.size() != 1 || op != cudaq::matrix_operator("identity", op.degrees)) {
+          auto padded = padded_op(arithmetics, op, degrees, arithmetics.m_dimensions, arithmetics.m_parameters);
           evaluated = arithmetics.mul(evaluated, padded);
         }
       }
@@ -91,23 +87,17 @@ product_operator<HandlerTy>::m_evaluate(MatrixArithmetics arithmetics,
   return this->coefficients[0].evaluate(arithmetics.m_parameters) * result;
 }
 
-template <typename HandlerTy>
-void product_operator<HandlerTy>::aggregate_terms() {}
-
-template <typename HandlerTy>
-template <typename... Args>
-void product_operator<HandlerTy>::aggregate_terms(const HandlerTy &head,
-                                                  Args &&...args) {
-  this->terms[0].push_back(head);
-  aggregate_terms(std::forward<Args>(args)...);
-}
-
-template void product_operator<matrix_operator>::aggregate_terms(
-    const matrix_operator &item1, const matrix_operator &item2);
+template
+void product_operator<matrix_operator>::aggregate_terms(const matrix_operator &item1, 
+                                                            const matrix_operator &item2);
 
 template void product_operator<matrix_operator>::aggregate_terms(
     const matrix_operator &item1, const matrix_operator &item2,
     const matrix_operator &item3);
+
+template
+cudaq::matrix_2 product_operator<matrix_operator>::m_evaluate(
+    MatrixArithmetics arithmetics, bool pad_terms) const;
 
 // read-only properties
 
@@ -137,11 +127,8 @@ scalar_operator product_operator<HandlerTy>::get_coefficient() const {
   return this->coefficients[0];
 }
 
-template cudaq::matrix_2
-product_operator<matrix_operator>::m_evaluate(MatrixArithmetics arithmetics,
-                                              bool pad_terms) const;
-
-template std::vector<int> product_operator<matrix_operator>::degrees() const;
+template
+std::vector<int> product_operator<matrix_operator>::degrees() const;
 
 template int product_operator<matrix_operator>::n_terms() const;
 
