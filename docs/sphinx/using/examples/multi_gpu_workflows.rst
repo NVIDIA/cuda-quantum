@@ -28,7 +28,7 @@ You can run a state vector simulation using your CPU with the :code:`qpp-cpu` ba
 
     { 00:475 11:525 }
 
-As the number of qubits increases to even modest size, the CPU simulation will become impractically slow.  By switching to the :code:`nvidia` backend, you can accelerate the same code on a single GPU and achieve a speedup of up to **2500x**.  If you have a GPU available, this the default backend to ensure maximum productivity.
+As the number of qubits increases to even modest size, the CPU simulation will become impractically slow.  By switching to the :code:`nvidia` backend, you can accelerate the same code on a single GPU and achieve a speedup of up to **425x**.  If you have a GPU available, this the default backend to ensure maximum productivity.
 
 .. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/multiple_targets.py
     :language: python
