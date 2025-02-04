@@ -64,7 +64,7 @@ This code will execute in an MPI context and provide additional memory to simula
 Batching Hamiltonian Terms (`mqpu`)
 ------------------------------------
 
-Multiple GPUs can also come in handy for cases where applications might benefit from multiple QPUs running asynchronously.  The `mqpu` backend uses multiple GPUs to simulate each QPU so you can test and accelerate quantum applications with parallelization.
+Multiple GPUs can also come in handy for cases where applications might benefit from multiple QPUs running in parallel.  The `mqpu` backend uses multiple GPUs to simulate QPUs so you can accelerate quantum applications with parallelization.
 
 
 .. image:: images/mqpu.png
