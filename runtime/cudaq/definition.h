@@ -25,8 +25,8 @@ using Func = std::function<matrix_2(
 
 class CallbackFunction {
 private:
-  // The user provided callback function that takes a vector defining the 
-  // dimension for each degree of freedom it acts on, and a map of complex 
+  // The user provided callback function that takes a vector defining the
+  // dimension for each degree of freedom it acts on, and a map of complex
   // parameters.
   Func _callback_func;
 
@@ -56,7 +56,7 @@ public:
   }
 
   // assignment operator
-  CallbackFunction& operator=(const CallbackFunction &other) {
+  CallbackFunction &operator=(const CallbackFunction &other) {
     if (this != &other) {
       _callback_func = other._callback_func;
     }
@@ -64,7 +64,7 @@ public:
   }
 
   // move assignment operator
-  CallbackFunction& operator=(CallbackFunction &&other) {
+  CallbackFunction &operator=(CallbackFunction &&other) {
     if (this != &other) {
       _callback_func = std::move(other._callback_func);
     }
@@ -76,7 +76,8 @@ public:
   matrix_2
   operator()(std::vector<int> relevant_dimensions,
              std::map<std::string, std::complex<double>> parameters) const {
-    return _callback_func(std::move(relevant_dimensions), std::move(parameters));
+    return _callback_func(std::move(relevant_dimensions),
+                          std::move(parameters));
   }
 };
 
@@ -114,7 +115,7 @@ public:
   }
 
   // assignment operator
-  ScalarCallbackFunction& operator=(const ScalarCallbackFunction &other) {
+  ScalarCallbackFunction &operator=(const ScalarCallbackFunction &other) {
     if (this != &other) {
       _callback_func = other._callback_func;
     }
@@ -122,7 +123,7 @@ public:
   }
 
   // move assignment operator
-  ScalarCallbackFunction& operator=(ScalarCallbackFunction &&other) {
+  ScalarCallbackFunction &operator=(ScalarCallbackFunction &&other) {
     if (this != &other) {
       _callback_func = std::move(other._callback_func);
     }
@@ -141,14 +142,14 @@ public:
 /// or scalar operator is instantiated by other means than the `define`
 /// class method.
 class Definition {
-private: 
+private:
   std::string id;
   CallbackFunction generator;
   std::vector<int> m_expected_dimensions;
 
 public:
-
-  Definition(const std::string &operator_id, std::vector<int> expected_dimensions, CallbackFunction &&create);
+  Definition(const std::string &operator_id,
+             std::vector<int> expected_dimensions, CallbackFunction &&create);
   Definition(Definition &&def);
   ~Definition();
 
