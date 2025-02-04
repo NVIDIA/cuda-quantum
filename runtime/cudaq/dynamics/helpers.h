@@ -13,6 +13,20 @@
 namespace cudaq {
 namespace detail {
 
+// Aggregate parameters from multiple mappings.
+std::map<std::string, std::string> aggregate_parameters(
+    const std::vector<std::map<std::string, std::string>> &parameter_mappings);
+
+// Extract documentation for a specific parameter from docstring.
+std::string parameter_docs(const std::string &param_name,
+                           const std::string &docs);
+
+// Extract positional arguments and keyword-only arguments.
+std::pair<std::vector<std::string>, std::map<std::string, std::string>>
+args_from_kwargs(const std::map<std::string, std::string> &kwargs,
+                 const std::vector<std::string> &required_args,
+                 const std::vector<std::string> &kwonly_args);
+
 /// Generates all possible states for the given dimensions ordered according
 /// to the sequence of degrees (ordering is relevant if dimensions differ).
 std::vector<std::string> generate_all_states(std::vector<int> degrees,
