@@ -16,7 +16,7 @@
 #include <vector>
 
 namespace cudaq {
-template <typename TState, typename HandlerTy>
+template <typename TState, typename HandlerTy = std::complex<double>>
 class BaseIntegrator {
 protected:
   std::map<std::string, double> integrator_options;
