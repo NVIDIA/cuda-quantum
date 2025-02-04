@@ -282,7 +282,7 @@ The :code:`get_state` command can be used to generate statistics about the quant
         # Compute the statevector of the kernel
         result = cudaq.get_state(kernel, qumode_count)
 
-        print(np.array(result))k
+        print(np.array(result))
 
 
 .. parsed-literal::
