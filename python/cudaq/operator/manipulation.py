@@ -135,6 +135,30 @@ class MatrixArithmetics(OperatorArithmetics['MatrixArithmetics.Evaluated']):
         _OperatorHelpers.permute_matrix(op_matrix, permutation)
         return op_matrix, canon_degrees
 
+    def _canonicalize(self: MatrixArithmetics, op_matrix: NDArray[numpy.complexfloating], op_degrees: Iterable[int]) -> tuple[NDArray[numpy.complexfloating], tuple[int]]:
+        """
+        Given a matrix representation that acts on the given degrees or freedom, 
+        sorts the degrees and permutes the matrix to match that canonical order.
+
+        Returns:
+            A tuple consisting of the permuted matrix as well as the sequence of degrees
+            of freedom in canonical order.
+        """
+        canon_degrees = _OperatorHelpers.canonicalize_degrees(op_degrees)
+        if op_degrees != canon_degrees:
+            # There may be a more efficient way, but I needed something correct first.
+            states = _OperatorHelpers.generate_all_states(canon_degrees, self._dimensions)
+            indices = dict([(d, idx) for idx, d in enumerate(canon_degrees)])
+            reordering = [indices[op_degree] for op_degree in op_degrees]
+            # [degrees[i] for i in reordering] produces op_degrees
+            op_states = _OperatorHelpers.generate_all_states(op_degrees, self._dimensions)
+            state_indices = dict([(state, idx) for idx, state in enumerate(states)])
+            permutation = [state_indices[op_state] for op_state in op_states]
+            # [states[i] for i in permutation] produces op_states
+            _OperatorHelpers.permute_matrix(op_matrix, permutation)
+            return op_matrix, canon_degrees
+        return op_matrix, canon_degrees
+
     def tensor(self: MatrixArithmetics, op1: MatrixArithmetics.Evaluated,
                op2: MatrixArithmetics.Evaluated) -> MatrixArithmetics.Evaluated:
         """
