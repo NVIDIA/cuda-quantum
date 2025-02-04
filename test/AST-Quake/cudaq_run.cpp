@@ -100,8 +100,8 @@ struct CliffHanger {
 // CHECK:           cc.store %[[VAL_43]], %[[VAL_42]] : !cc.ptr<i8>
 // CHECK:           %[[VAL_44:.*]] = call @__nvqpp_vectorCopyCtor(%[[VAL_14]], %[[VAL_5]], %[[VAL_4]]) : (!cc.ptr<i8>, i64, i64) -> !cc.ptr<i8>
 // CHECK:           call @__quantum__rt__qubit_release_array(%[[VAL_7]]) : (!cc.ptr<!llvm.struct<"Array", opaque>>) -> ()
-// CHECK:           %[[VAL_45:.*]] = cc.string_literal "[5 x i1]" : !cc.ptr<!cc.array<i8 x 9>>
-// CHECK:           %[[VAL_46:.*]] = cc.cast %[[VAL_45]] : (!cc.ptr<!cc.array<i8 x 9>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_45:.*]] = cc.string_literal "array<i1 x 5>" : !cc.ptr<!cc.array<i8 x 14>>
+// CHECK:           %[[VAL_46:.*]] = cc.cast %[[VAL_45]] : (!cc.ptr<!cc.array<i8 x 14>>) -> !cc.ptr<i8>
 // CHECK:           call @__quantum__rt__array_record_output(%[[VAL_5]], %[[VAL_46]]) : (i64, !cc.ptr<i8>) -> ()
 // CHECK:           %[[VAL_47:.*]] = cc.cast %[[VAL_44]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
 // CHECK:           %[[VAL_48:.*]] = cc.load %[[VAL_44]] : !cc.ptr<i8>
@@ -194,8 +194,8 @@ struct CliffHanger {
 // CHECK:           %[[VAL_5:.*]] = cc.compute_ptr %[[VAL_3]][1] : (!cc.ptr<!cc.struct<"Soap" {i1, i32} [64,4]>>) -> !cc.ptr<i32>
 // CHECK:           cc.store %[[VAL_2]], %[[VAL_5]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_6:.*]] = cc.load %[[VAL_3]] : !cc.ptr<!cc.struct<"Soap" {i1, i32} [64,4]>>
-// CHECK:           %[[VAL_7:.*]] = cc.string_literal "{i1, i32}" : !cc.ptr<!cc.array<i8 x 10>>
-// CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_7]] : (!cc.ptr<!cc.array<i8 x 10>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_7:.*]] = cc.string_literal "tuple<i1, i32>" : !cc.ptr<!cc.array<i8 x 15>>
+// CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_7]] : (!cc.ptr<!cc.array<i8 x 15>>) -> !cc.ptr<i8>
 // CHECK:           call @__quantum__rt__tuple_record_output(%[[VAL_0]], %[[VAL_8]]) : (i64, !cc.ptr<i8>) -> ()
 // CHECK:           %[[VAL_9:.*]] = cc.extract_value %[[VAL_6]][0] : (!cc.struct<"Soap" {i1, i32} [64,4]>) -> i1
 // CHECK:           %[[VAL_10:.*]] = cc.string_literal ".0" : !cc.ptr<!cc.array<i8 x 3>>
