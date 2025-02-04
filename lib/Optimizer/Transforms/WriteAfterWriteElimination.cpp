@@ -39,8 +39,7 @@ namespace {
 /// ```
 class SimplifyWritesAnalysis {
 public:
-  SimplifyWritesAnalysis(MLIRContext *ctx, DominanceInfo &di, Operation *op)
-      : ctx(ctx), dom(di) {
+  SimplifyWritesAnalysis(DominanceInfo &di, Operation *op) : dom(di) {
     for (auto &region : op->getRegions())
       for (auto &b : region)
         collectBlockInfo(&b);
@@ -128,7 +127,6 @@ private:
     return isa_and_present<cudaq::cc::AllocaOp>(ptrOp.getDefiningOp());
   }
 
-  MLIRContext *ctx;
   DominanceInfo &dom;
   DenseMap<Block *, DenseMap<Value, SmallVector<cudaq::cc::StoreOp *>>>
       blockInfo;
@@ -141,14 +139,13 @@ public:
   using WriteAfterWriteEliminationBase::WriteAfterWriteEliminationBase;
 
   void runOnOperation() override {
-    auto *ctx = &getContext();
     auto op = getOperation();
     DominanceInfo domInfo(op);
 
     LLVM_DEBUG(llvm::dbgs()
                << "Before write after write elimination: " << *op << '\n');
 
-    auto analysis = SimplifyWritesAnalysis(ctx, domInfo, op);
+    auto analysis = SimplifyWritesAnalysis(domInfo, op);
     analysis.removeOverriddenStores();
 
     LLVM_DEBUG(llvm::dbgs()
