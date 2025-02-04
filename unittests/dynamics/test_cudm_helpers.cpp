@@ -12,22 +12,36 @@
 #include <gtest/gtest.h>
 
 // Initialize operator_sum
-template <typename HandlerTy>
+template <typename HandlerTy = std::complex<double>>
 cudaq::operator_sum<HandlerTy> initialize_operator_sum() {
   std::vector<int> degrees = {0, 1};
 
   // Matrix operators
   cudaq::matrix_operator pauli_x("pauli_x", {0});
   cudaq::matrix_operator pauli_z("pauli_z", {1});
-  cudaq::matrix_operator identity = cudaq::matrix_operator::identity(0);
+  cudaq::product_operator<cudaq::matrix_operator> identity =
+      cudaq::matrix_operator::identity(0);
 
-  auto prod_op_1 = cudaq::scalar_operator(std::complex<double>(1.0, 0.0)) *
-                   pauli_x * pauli_z;
+  std::vector<cudaq::matrix_operator> identity_vec = identity.get_terms();
+  auto identity_op = cudaq::product_operator<cudaq::matrix_operator>(
+      cudaq::scalar_operator(1.0), identity_vec);
+
+  std::vector<cudaq::matrix_operator> pauli_x_vec = {pauli_x};
+  auto prod_op_1 = cudaq::product_operator<cudaq::matrix_operator>(
+      cudaq::scalar_operator(1.0), pauli_x_vec);
+
+  std::vector<cudaq::matrix_operator> pauli_z_vec = {pauli_z};
+  prod_op_1 = prod_op_1 * cudaq::product_operator<cudaq::matrix_operator>(
+                              cudaq::scalar_operator(1.0), pauli_z_vec);
 
   auto prod_op_2 =
-      cudaq::scalar_operator(std::complex<double>(0.5, -0.5)) * identity;
+      cudaq::product_operator<cudaq::matrix_operator>(
+          cudaq::scalar_operator(std::complex<double>(0.5, -0.5))) *
+      identity_op;
 
-  cudaq::operator_sum<HandlerTy> op_sum({prod_op_1, prod_op_2});
+  std::vector<cudaq::product_operator<cudaq::matrix_operator>> terms = {
+      prod_op_1, prod_op_2};
+  cudaq::operator_sum<cudaq::product_operator> op_sum(terms);
 
   return op_sum;
 }
@@ -89,10 +103,10 @@ TEST_F(CuDensityMatTestFixture, ComputeLindbladOp) {
 TEST_F(CuDensityMatTestFixture, ConvertToCuDensityMatOperator) {
   std::vector<int64_t> mode_extents = {2, 2};
 
-  auto op_sum = initialize_operator_sum<void>();
+  auto op_sum = initialize_operator_sum<std::complex<double>>();
 
   EXPECT_NO_THROW({
-    auto result = cudaq::convert_to_cudensitymat_operator<void>(
+    auto result = cudaq::convert_to_cudensitymat_operator<std::complex<double>>(
         handle, {}, op_sum, mode_extents);
     ASSERT_NE(result, nullptr);
     cudensitymatDestroyOperator(result);
@@ -104,9 +118,9 @@ TEST_F(CuDensityMatTestFixture, InvalidHandle) {
   cudensitymatHandle_t invalid_handle = nullptr;
 
   std::vector<int64_t> mode_extents = {2, 2};
-  auto op_sum = initialize_operator_sum<void>();
+  auto op_sum = initialize_operator_sum<std::complex<double>>();
 
-  EXPECT_THROW(cudaq::convert_to_cudensitymat_operator<void>(
+  EXPECT_THROW(cudaq::convert_to_cudensitymat_operator<std::complex<double>>(
                    invalid_handle, {}, op_sum, mode_extents),
                std::runtime_error);
 }
