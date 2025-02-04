@@ -86,7 +86,8 @@ public:
     Type valTy = val.getType();
     TypeSwitch<Type>(valTy)
         .Case([&](IntegerType intTy) {
-          std::string labelStr{"i" + std::to_string(intTy.getWidth())};
+          int width = intTy.getWidth();
+          std::string labelStr{"i" + std::to_string(width)};
           if (prefix)
             labelStr = prefix->str();
           Value label = makeLabel(loc, rewriter, labelStr);
@@ -111,7 +112,8 @@ public:
                                         ArrayRef<Value>{castVal, label});
         })
         .Case([&](FloatType fltTy) {
-          std::string labelStr{"f" + std::to_string(fltTy.getWidth())};
+          int width = fltTy.getWidth();
+          std::string labelStr{"f" + std::to_string(width)};
           if (prefix)
             labelStr = prefix->str();
           Value label = makeLabel(loc, rewriter, labelStr);
@@ -197,10 +199,14 @@ public:
 
   static std::string
   translateType(Type ty, std::optional<std::int32_t> vecSz = std::nullopt) {
-    if (auto intTy = dyn_cast<IntegerType>(ty))
-      return "i" + std::to_string(intTy.getWidth());
-    if (auto fltTy = dyn_cast<FloatType>(ty))
-      return "f" + std::to_string(fltTy.getWidth());
+    if (auto intTy = dyn_cast<IntegerType>(ty)) {
+      int width = intTy.getWidth();
+      return "i" + std::to_string(width);
+    }
+    if (auto fltTy = dyn_cast<FloatType>(ty)) {
+      int width = fltTy.getWidth();
+      return "f" + std::to_string(width);
+    }
     if (auto strTy = dyn_cast<cudaq::cc::StructType>(ty)) {
       if (strTy.getMembers().empty())
         return "{}";
@@ -210,7 +216,8 @@ public:
       return result + "}";
     }
     if (auto arrTy = dyn_cast<cudaq::cc::ArrayType>(ty)) {
-      return "[" + std::to_string(arrTy.getSize()) + " x " +
+      std::int32_t size = arrTy.getSize();
+      return "[" + std::to_string(size) + " x " +
              translateType(arrTy.getElementType()) + "]";
     }
     if (auto arrTy = dyn_cast<cudaq::cc::StdvecType>(ty)) {
