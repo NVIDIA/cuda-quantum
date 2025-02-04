@@ -8,8 +8,8 @@
 
 #include "cudaq/operators.h"
 
-#include <iostream>
 #include <complex>
+#include <iostream>
 #include <set>
 
 namespace cudaq {
@@ -20,7 +20,7 @@ product_operator<matrix_operator> matrix_operator::identity(int degree) {
   std::string op_id = "identity";
   if (matrix_operator::m_ops.find(op_id) == matrix_operator::m_ops.end()) {
     auto func = [](std::vector<int> dimensions,
-                    std::map<std::string, std::complex<double>> _none) {
+                   std::map<std::string, std::complex<double>> _none) {
       std::size_t dimension = dimensions[0];
       auto mat = matrix_2(dimension, dimension);
 
@@ -40,7 +40,7 @@ product_operator<matrix_operator> matrix_operator::zero(int degree) {
   std::string op_id = "zero";
   if (matrix_operator::m_ops.find(op_id) == matrix_operator::m_ops.end()) {
     auto func = [](std::vector<int> dimensions,
-                    std::map<std::string, std::complex<double>> _none) {
+                   std::map<std::string, std::complex<double>> _none) {
       // Need to set the degree via the op itself because the
       // argument to the outer function goes out of scope when
       // the user invokes this later on via, e.g, `to_matrix()`.
@@ -58,7 +58,7 @@ product_operator<matrix_operator> matrix_operator::annihilate(int degree) {
   std::string op_id = "annihilate";
   if (matrix_operator::m_ops.find(op_id) == matrix_operator::m_ops.end()) {
     auto func = [](std::vector<int> dimensions,
-                    std::map<std::string, std::complex<double>> _none) {
+                   std::map<std::string, std::complex<double>> _none) {
       std::size_t dimension = dimensions[0];
       auto mat = matrix_2(dimension, dimension);
       for (std::size_t i = 0; i + 1 < dimension; i++) {
@@ -76,7 +76,7 @@ product_operator<matrix_operator> matrix_operator::create(int degree) {
   std::string op_id = "create";
   if (matrix_operator::m_ops.find(op_id) == matrix_operator::m_ops.end()) {
     auto func = [](std::vector<int> dimensions,
-                    std::map<std::string, std::complex<double>> _none) {
+                   std::map<std::string, std::complex<double>> _none) {
       std::size_t dimension = dimensions[0];
       auto mat = matrix_2(dimension, dimension);
       for (std::size_t i = 0; i + 1 < dimension; i++) {
@@ -94,7 +94,7 @@ product_operator<matrix_operator> matrix_operator::position(int degree) {
   std::string op_id = "position";
   if (matrix_operator::m_ops.find(op_id) == matrix_operator::m_ops.end()) {
     auto func = [](std::vector<int> dimensions,
-                    std::map<std::string, std::complex<double>> _none) {
+                   std::map<std::string, std::complex<double>> _none) {
       std::size_t dimension = dimensions[0];
       auto mat = matrix_2(dimension, dimension);
       // position = 0.5 * (create + annihilate)
@@ -116,7 +116,7 @@ product_operator<matrix_operator> matrix_operator::momentum(int degree) {
   std::string op_id = "momentum";
   if (matrix_operator::m_ops.find(op_id) == matrix_operator::m_ops.end()) {
     auto func = [](std::vector<int> dimensions,
-                    std::map<std::string, std::complex<double>> _none) {
+                   std::map<std::string, std::complex<double>> _none) {
       std::size_t dimension = dimensions[0];
       auto mat = matrix_2(dimension, dimension);
       // momentum = 0.5j * (create - annihilate)
@@ -138,7 +138,7 @@ product_operator<matrix_operator> matrix_operator::number(int degree) {
   std::string op_id = "number";
   if (matrix_operator::m_ops.find(op_id) == matrix_operator::m_ops.end()) {
     auto func = [](std::vector<int> dimensions,
-                    std::map<std::string, std::complex<double>> _none) {
+                   std::map<std::string, std::complex<double>> _none) {
       std::size_t dimension = dimensions[0];
       auto mat = matrix_2(dimension, dimension);
       for (std::size_t i = 0; i < dimension; i++) {
@@ -156,7 +156,7 @@ product_operator<matrix_operator> matrix_operator::parity(int degree) {
   std::string op_id = "parity";
   if (matrix_operator::m_ops.find(op_id) == matrix_operator::m_ops.end()) {
     auto func = [](std::vector<int> dimensions,
-                    std::map<std::string, std::complex<double>> _none) {
+                   std::map<std::string, std::complex<double>> _none) {
       std::size_t dimension = dimensions[0];
       auto mat = matrix_2(dimension, dimension);
       for (std::size_t i = 0; i < dimension; i++) {
@@ -174,7 +174,7 @@ product_operator<matrix_operator> matrix_operator::displace(int degree) {
   std::string op_id = "displace";
   if (matrix_operator::m_ops.find(op_id) == matrix_operator::m_ops.end()) {
     auto func = [](std::vector<int> dimensions,
-                     std::map<std::string, std::complex<double>> parameters) {
+                   std::map<std::string, std::complex<double>> parameters) {
       std::size_t dimension = dimensions[0];
       auto displacement_amplitude = parameters["displacement"];
       auto create = matrix_2(dimension, dimension);
@@ -194,12 +194,11 @@ product_operator<matrix_operator> matrix_operator::displace(int degree) {
   return product_operator<matrix_operator>(1., op);
 }
 
-
 product_operator<matrix_operator> matrix_operator::squeeze(int degree) {
   std::string op_id = "squeeze";
   if (matrix_operator::m_ops.find(op_id) == matrix_operator::m_ops.end()) {
     auto func = [](std::vector<int> dimensions,
-                     std::map<std::string, std::complex<double>> parameters) {
+                   std::map<std::string, std::complex<double>> parameters) {
       std::size_t dimension = dimensions[0];
       auto squeezing = parameters["squeezing"];
       auto create = matrix_2(dimension, dimension);
@@ -220,17 +219,16 @@ product_operator<matrix_operator> matrix_operator::squeeze(int degree) {
   return product_operator<matrix_operator>(1., op);
 }
 
-
 matrix_2 matrix_operator::to_matrix(
     std::map<int, int> dimensions,
     std::map<std::string, std::complex<double>> parameters) const {
   auto it = matrix_operator::m_ops.find(this->id);
   if (it != matrix_operator::m_ops.end()) {
-      std::vector<int> relevant_dimensions;
-      relevant_dimensions.reserve(this->degrees.size());
-      for (auto d : this->degrees)
-        relevant_dimensions.push_back(dimensions[d]);
-      return it->second.generate_matrix(relevant_dimensions, parameters);
+    std::vector<int> relevant_dimensions;
+    relevant_dimensions.reserve(this->degrees.size());
+    for (auto d : this->degrees)
+      relevant_dimensions.push_back(dimensions[d]);
+    return it->second.generate_matrix(relevant_dimensions, parameters);
   }
   throw std::range_error("unable to find operator");
 }

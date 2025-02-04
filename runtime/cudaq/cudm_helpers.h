@@ -25,10 +25,12 @@ compute_lindblad_operator(cudensitymatHandle_t handle,
                           const std::vector<matrix_2> &c_ops,
                           const std::vector<int64_t> &mode_extents);
 
+template <typename HandlerTy>
 cudensitymatOperator_t convert_to_cudensitymat_operator(
     cudensitymatHandle_t handle,
     const std::map<std::string, std::complex<double>> &parameters,
-    const operator_sum &op, const std::vector<int64_t> &mode_extents);
+    const operator_sum<HandlerTy> &op,
+    const std::vector<int64_t> &mode_extents);
 
 cudensitymatOperator_t construct_liovillian(
     cudensitymatHandle_t handle, const cudensitymatOperator_t &hamiltonian,
