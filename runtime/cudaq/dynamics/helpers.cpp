@@ -6,12 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/operators.h"
-#include <ranges>
 #include "cudaq/helpers.h"
 #include "cudaq/cudm_error_handling.h"
+#include "cudaq/operators.h"
 #include <iostream>
 #include <map>
+#include <ranges>
 #include <sstream>
 
 namespace cudaq {
@@ -22,8 +22,9 @@ public:
   _OperatorHelpers() = default;
 
   // Aggregate parameters from multiple mappings.
-  std::map<std::string, std::string> aggregate_parameters(
-      const std::vector<std::map<std::string, std::string>> &parameter_mappings) {
+  std::map<std::string, std::string>
+  aggregate_parameters(const std::vector<std::map<std::string, std::string>>
+                           &parameter_mappings) {
     std::map<std::string, std::string> parameter_descriptions;
 
     for (const auto &descriptions : parameter_mappings) {
@@ -41,17 +42,17 @@ public:
 
   // Extract documentation for a specific parameter from docstring.
   std::string parameter_docs(const std::string &param_name,
-                                              const std::string &docs) {
+                             const std::string &docs) {
     if (param_name.empty() || docs.empty()) {
       return "";
     }
 
     try {
       std::regex keyword_pattern(R"(^\s*(Arguments|Args):\s*$)",
-                                std::regex::multiline);
+                                 std::regex::multiline);
       std::regex param_pattern(R"(^\s*)" + param_name +
-                                  R"(\s*(\(.*\))?:\s*(.*)$)",
-                              std::regex::multiline);
+                                   R"(\s*(\(.*\))?:\s*(.*)$)",
+                               std::regex::multiline);
 
       std::smatch match;
       std::sregex_iterator it(docs.begin(), docs.end(), keyword_pattern);
@@ -73,10 +74,9 @@ public:
 
   // Extract positional arguments and keyword-only arguments.
   std::pair<std::vector<std::string>, std::map<std::string, std::string>>
-  args_from_kwargs(
-      const std::map<std::string, std::string> &kwargs,
-      const std::vector<std::string> &required_args,
-      const std::vector<std::string> &kwonly_args) {
+  args_from_kwargs(const std::map<std::string, std::string> &kwargs,
+                   const std::vector<std::string> &required_args,
+                   const std::vector<std::string> &kwonly_args) {
     std::vector<std::string> extracted_args;
     std::map<std::string, std::string> kwonly_dict;
 
@@ -99,8 +99,8 @@ public:
 
   /// Generates all possible states for the given dimensions ordered according
   /// to the sequence of degrees (ordering is relevant if dimensions differ).
-  std::vector<std::string>
-  generate_all_states(std::vector<int> degrees, std::map<int, int> dimensions) {
+  std::vector<std::string> generate_all_states(std::vector<int> degrees,
+                                               std::map<int, int> dimensions) {
     if (degrees.size() == 0)
       return {};
 
@@ -124,7 +124,7 @@ public:
   }
 
   cudaq::matrix_2 permute_matrix(cudaq::matrix_2 matrix,
-                                        std::vector<int> permutation) {
+                                 std::vector<int> permutation) {
     auto result = cudaq::matrix_2(matrix.get_rows(), matrix.get_columns());
     std::vector<std::complex<double>> sorted_values;
     for (std::size_t permuted : permutation) {
@@ -146,7 +146,6 @@ public:
     std::sort(degrees.begin(), degrees.end(), std::greater<int>());
     return degrees;
   }
-
 };
-}
-}
+} // namespace detail
+} // namespace cudaq

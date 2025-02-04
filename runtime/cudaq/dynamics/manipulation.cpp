@@ -14,8 +14,7 @@ namespace cudaq {
 std::vector<int>
 MatrixArithmetics::_compute_permutation(std::vector<int> op_degrees,
                                         std::vector<int> canon_degrees) {
-  auto states =
-      cudaq::detail::generate_all_states(canon_degrees, m_dimensions);
+  auto states = cudaq::detail::generate_all_states(canon_degrees, m_dimensions);
 
   std::vector<int> reordering;
   for (auto degree : op_degrees) {
@@ -23,7 +22,7 @@ MatrixArithmetics::_compute_permutation(std::vector<int> op_degrees,
     reordering.push_back(it - canon_degrees.begin());
   }
 
-  std::vector<std::string> op_states = 
+  std::vector<std::string> op_states =
       cudaq::detail::generate_all_states(op_degrees, m_dimensions);
 
   std::vector<int> permutation;
@@ -99,8 +98,10 @@ EvaluatedMatrix MatrixArithmetics::add(EvaluatedMatrix op1,
   return EvaluatedMatrix(op1.m_degrees, (op1.m_matrix + op2.m_matrix));
 }
 
-EvaluatedMatrix MatrixArithmetics::evaluate(
-    std::variant<scalar_operator, matrix_operator, product_operator<matrix_operator>> op) {
+EvaluatedMatrix
+MatrixArithmetics::evaluate(std::variant<scalar_operator, matrix_operator,
+                                         product_operator<matrix_operator>>
+                                op) {
   // auto getDegrees = [](auto &&t) { return t.degrees; };
   // auto toMatrix = [&](auto &&t) {
   //   return t.to_matrix(this->m_dimensions, this->m_parameters);

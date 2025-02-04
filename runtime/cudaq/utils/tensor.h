@@ -109,7 +109,7 @@ public:
 
   /// Return a square identity matrix for the given size.
   static matrix_2 identity(const std::size_t rows);
-  
+
   /// Kronecker a list of matrices. The list can be any container that has
   /// iterators defined.
   template <typename Iterable, typename T>

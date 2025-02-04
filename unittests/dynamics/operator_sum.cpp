@@ -238,8 +238,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalarOperator) {
 
   // `operator_sum * scalar_operator` and `scalar_operator * operator_sum`
   {
-    auto sum = cudaq::matrix_operator::create(1) +
-               cudaq::matrix_operator::create(2);
+    auto sum =
+        cudaq::matrix_operator::create(1) + cudaq::matrix_operator::create(2);
 
     auto product = sum * cudaq::scalar_operator(value);
     auto reverse = cudaq::scalar_operator(value) * sum;
@@ -257,8 +257,10 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalarOperator) {
       ASSERT_TRUE(term.get_coefficient().evaluate() == value);
     }
 
-    auto got_matrix = product.to_matrix({{1, level_count}, {2, level_count + 1}});
-    auto got_matrix_reverse = reverse.to_matrix({{1, level_count}, {2, level_count + 1}});
+    auto got_matrix =
+        product.to_matrix({{1, level_count}, {2, level_count + 1}});
+    auto got_matrix_reverse =
+        reverse.to_matrix({{1, level_count}, {2, level_count + 1}});
 
     auto matrix0 = cudaq::kronecker(utils_2::id_matrix(level_count + 1),
                                     utils_2::create_matrix(level_count));
@@ -277,8 +279,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalarOperator) {
   // `operator_sum + scalar_operator` and `scalar_operator + operator_sum`
   {
     level_count = 2;
-    auto original = cudaq::matrix_operator::create(1) +
-                    cudaq::matrix_operator::create(2);
+    auto original =
+        cudaq::matrix_operator::create(1) + cudaq::matrix_operator::create(2);
 
     auto sum = original + cudaq::scalar_operator(value);
     auto reverse = cudaq::scalar_operator(value) + original;
@@ -286,9 +288,9 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalarOperator) {
     ASSERT_TRUE(sum.n_terms() == 3);
     ASSERT_TRUE(reverse.n_terms() == 3);
 
-
-    auto got_matrix = sum.to_matrix({{1, level_count}, {2, level_count+1}});
-    auto got_matrix_reverse = reverse.to_matrix({{1, level_count}, {2,level_count+1}});
+    auto got_matrix = sum.to_matrix({{1, level_count}, {2, level_count + 1}});
+    auto got_matrix_reverse =
+        reverse.to_matrix({{1, level_count}, {2, level_count + 1}});
 
     auto matrix0 = cudaq::kronecker(utils_2::id_matrix(level_count + 1),
                                     utils_2::create_matrix(level_count));
@@ -306,8 +308,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalarOperator) {
 
   // `operator_sum - scalar_operator` and `scalar_operator - operator_sum`
   {
-    auto original = cudaq::matrix_operator::create(1) +
-                    cudaq::matrix_operator::create(2);
+    auto original =
+        cudaq::matrix_operator::create(1) + cudaq::matrix_operator::create(2);
 
     auto difference = original - cudaq::scalar_operator(value);
     auto reverse = cudaq::scalar_operator(value) - original;
@@ -315,8 +317,10 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalarOperator) {
     ASSERT_TRUE(difference.n_terms() == 3);
     ASSERT_TRUE(reverse.n_terms() == 3);
 
-    auto got_matrix = difference.to_matrix({{1, level_count}, {2, level_count+1}}); 
-    auto got_matrix_reverse = reverse.to_matrix({{1, level_count}, {2, level_count+1}});
+    auto got_matrix =
+        difference.to_matrix({{1, level_count}, {2, level_count + 1}});
+    auto got_matrix_reverse =
+        reverse.to_matrix({{1, level_count}, {2, level_count + 1}});
 
     auto matrix0 = cudaq::kronecker(utils_2::id_matrix(level_count + 1),
                                     utils_2::create_matrix(level_count));
@@ -334,8 +338,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalarOperator) {
 
   // `operator_sum *= scalar_operator`
   {
-    auto sum = cudaq::matrix_operator::create(1) +
-               cudaq::matrix_operator::momentum(2);
+    auto sum =
+        cudaq::matrix_operator::create(1) + cudaq::matrix_operator::momentum(2);
 
     sum *= cudaq::scalar_operator(value);
 
@@ -345,7 +349,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalarOperator) {
       ASSERT_TRUE(term.get_coefficient().evaluate() == value);
     }
 
-    auto got_matrix = sum.to_matrix({{0, level_count}, {1, level_count}, {2, level_count+1}});
+    auto got_matrix = sum.to_matrix(
+        {{0, level_count}, {1, level_count}, {2, level_count + 1}});
 
     std::vector<cudaq::matrix_2> matrices_1 = {
         utils_2::id_matrix(level_count + 1),
@@ -355,7 +360,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalarOperator) {
         utils_2::id_matrix(level_count)};
     auto matrix0 = cudaq::kronecker(matrices_1.begin(), matrices_1.end());
     auto matrix1 = cudaq::kronecker(matrices_2.begin(), matrices_2.end());
-    auto scaled_identity = value * utils_2::id_matrix((level_count + 1) * level_count);
+    auto scaled_identity =
+        value * utils_2::id_matrix((level_count + 1) * level_count);
 
     auto want_matrix = (matrix0 + matrix1) * scaled_identity;
     utils_2::checkEqual(want_matrix, got_matrix);
@@ -363,14 +369,15 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalarOperator) {
 
   // `operator_sum += scalar_operator`
   {
-    auto sum = cudaq::matrix_operator::parity(1) +
-               cudaq::matrix_operator::position(2);
+    auto sum =
+        cudaq::matrix_operator::parity(1) + cudaq::matrix_operator::position(2);
 
     sum += cudaq::scalar_operator(value);
 
     ASSERT_TRUE(sum.n_terms() == 3);
 
-    auto got_matrix = sum.to_matrix({{0, level_count}, {1, level_count}, {2, level_count+1}});
+    auto got_matrix = sum.to_matrix(
+        {{0, level_count}, {1, level_count}, {2, level_count + 1}});
 
     std::vector<cudaq::matrix_2> matrices_1 = {
         utils_2::id_matrix(level_count + 1),
@@ -380,7 +387,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalarOperator) {
         utils_2::id_matrix(level_count)};
     auto matrix0 = cudaq::kronecker(matrices_1.begin(), matrices_1.end());
     auto matrix1 = cudaq::kronecker(matrices_2.begin(), matrices_2.end());
-    auto scaled_identity = value * utils_2::id_matrix((level_count + 1) * level_count);
+    auto scaled_identity =
+        value * utils_2::id_matrix((level_count + 1) * level_count);
 
     auto want_matrix = matrix0 + matrix1 + scaled_identity;
     utils_2::checkEqual(want_matrix, got_matrix);
@@ -395,7 +403,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalarOperator) {
 
     ASSERT_TRUE(sum.n_terms() == 3);
 
-    auto got_matrix = sum.to_matrix({{0, level_count}, {1, level_count}, {2, level_count+1}});
+    auto got_matrix = sum.to_matrix(
+        {{0, level_count}, {1, level_count}, {2, level_count + 1}});
 
     std::vector<cudaq::matrix_2> matrices_1 = {
         utils_2::id_matrix(level_count + 1),
@@ -405,7 +414,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalarOperator) {
         utils_2::id_matrix(level_count)};
     auto matrix0 = cudaq::kronecker(matrices_1.begin(), matrices_1.end());
     auto matrix1 = cudaq::kronecker(matrices_2.begin(), matrices_2.end());
-    auto scaled_identity = value * utils_2::id_matrix((level_count + 1) * level_count);
+    auto scaled_identity =
+        value * utils_2::id_matrix((level_count + 1) * level_count);
 
     auto want_matrix = (matrix0 + matrix1) - scaled_identity;
     utils_2::checkEqual(want_matrix, got_matrix);
@@ -419,8 +429,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `operator_sum * double` and `double * operator_sum`
   {
-    auto sum = cudaq::matrix_operator::create(1) +
-               cudaq::matrix_operator::create(2);
+    auto sum =
+        cudaq::matrix_operator::create(1) + cudaq::matrix_operator::create(2);
 
     auto product = sum * double_value;
     auto reverse = double_value * sum;
@@ -430,16 +440,20 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     for (auto term : product.get_terms()) {
       ASSERT_TRUE(term.n_terms() == 1);
-      ASSERT_TRUE(term.get_coefficient().evaluate() == std::complex<double>(double_value));
+      ASSERT_TRUE(term.get_coefficient().evaluate() ==
+                  std::complex<double>(double_value));
     }
 
     for (auto term : reverse.get_terms()) {
       ASSERT_TRUE(term.n_terms() == 1);
-      ASSERT_TRUE(term.get_coefficient().evaluate() == std::complex<double>(double_value));
+      ASSERT_TRUE(term.get_coefficient().evaluate() ==
+                  std::complex<double>(double_value));
     }
 
-    auto got_matrix = product.to_matrix({{1, level_count}, {2, level_count+1}}); 
-    auto got_matrix_reverse = reverse.to_matrix({{1, level_count}, {2, level_count+1}});
+    auto got_matrix =
+        product.to_matrix({{1, level_count}, {2, level_count + 1}});
+    auto got_matrix_reverse =
+        reverse.to_matrix({{1, level_count}, {2, level_count + 1}});
 
     auto matrix0 = cudaq::kronecker(utils_2::id_matrix(level_count + 1),
                                     utils_2::create_matrix(level_count));
@@ -466,8 +480,9 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     ASSERT_TRUE(sum.n_terms() == 3);
     ASSERT_TRUE(reverse.n_terms() == 3);
 
-    auto got_matrix = sum.to_matrix({{1, level_count}, {2, level_count+1}});
-    auto got_matrix_reverse = reverse.to_matrix({{1, level_count}, {2, level_count+1}});
+    auto got_matrix = sum.to_matrix({{1, level_count}, {2, level_count + 1}});
+    auto got_matrix_reverse =
+        reverse.to_matrix({{1, level_count}, {2, level_count + 1}});
 
     auto matrix0 = cudaq::kronecker(utils_2::id_matrix(level_count + 1),
                                     utils_2::momentum_matrix(level_count));
@@ -485,8 +500,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `operator_sum - double` and `double - operator_sum`
   {
-    auto original = cudaq::matrix_operator::parity(1) +
-                    cudaq::matrix_operator::number(2);
+    auto original =
+        cudaq::matrix_operator::parity(1) + cudaq::matrix_operator::number(2);
 
     auto difference = original - double_value;
     auto reverse = double_value - original;
@@ -494,8 +509,10 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     ASSERT_TRUE(difference.n_terms() == 3);
     ASSERT_TRUE(reverse.n_terms() == 3);
 
-    auto got_matrix = difference.to_matrix({{1, level_count}, {2, level_count+1}});
-    auto got_matrix_reverse = reverse.to_matrix({{1, level_count}, {2, level_count+1}});
+    auto got_matrix =
+        difference.to_matrix({{1, level_count}, {2, level_count + 1}});
+    auto got_matrix_reverse =
+        reverse.to_matrix({{1, level_count}, {2, level_count + 1}});
 
     auto matrix0 = cudaq::kronecker(utils_2::id_matrix(level_count + 1),
                                     utils_2::parity_matrix(level_count));
@@ -513,18 +530,20 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `operator_sum *= double`
   {
-    auto sum = cudaq::matrix_operator::squeeze(1) +
-               cudaq::matrix_operator::squeeze(2);
+    auto sum =
+        cudaq::matrix_operator::squeeze(1) + cudaq::matrix_operator::squeeze(2);
 
     sum *= double_value;
 
     ASSERT_TRUE(sum.n_terms() == 2);
     for (auto term : sum.get_terms()) {
       ASSERT_TRUE(term.n_terms() == 1);
-      ASSERT_TRUE(term.get_coefficient().evaluate() == std::complex<double>(double_value));
+      ASSERT_TRUE(term.get_coefficient().evaluate() ==
+                  std::complex<double>(double_value));
     }
 
-    auto got_matrix = sum.to_matrix({{1,level_count}, {2, level_count+1}}, {{"squeezing", value}});
+    auto got_matrix = sum.to_matrix({{1, level_count}, {2, level_count + 1}},
+                                    {{"squeezing", value}});
 
     auto matrix0 =
         cudaq::kronecker(utils_2::id_matrix(level_count + 1),
@@ -542,14 +561,14 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `operator_sum += double`
   {
-    auto sum = cudaq::matrix_operator::create(1) +
-               cudaq::matrix_operator::create(2);
+    auto sum =
+        cudaq::matrix_operator::create(1) + cudaq::matrix_operator::create(2);
 
     sum += double_value;
 
     ASSERT_TRUE(sum.n_terms() == 3);
 
-    auto got_matrix = sum.to_matrix({{1,level_count}, {2, level_count+1}});
+    auto got_matrix = sum.to_matrix({{1, level_count}, {2, level_count + 1}});
 
     auto matrix0 = cudaq::kronecker(utils_2::id_matrix(level_count + 1),
                                     utils_2::create_matrix(level_count));
@@ -566,14 +585,14 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `operator_sum -= double`
   {
-    auto sum = cudaq::matrix_operator::create(1) +
-               cudaq::matrix_operator::create(2);
+    auto sum =
+        cudaq::matrix_operator::create(1) + cudaq::matrix_operator::create(2);
 
     sum -= double_value;
 
     ASSERT_TRUE(sum.n_terms() == 3);
 
-    auto got_matrix = sum.to_matrix({{1,level_count}, {2, level_count+1}});
+    auto got_matrix = sum.to_matrix({{1, level_count}, {2, level_count + 1}});
 
     auto matrix0 = cudaq::kronecker(utils_2::id_matrix(level_count + 1),
                                     utils_2::create_matrix(level_count));
@@ -591,8 +610,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
   // `operator_sum * std::complex<double>` and `std::complex<double> *
   // operator_sum`
   {
-    auto sum = cudaq::matrix_operator::create(1) +
-               cudaq::matrix_operator::create(2);
+    auto sum =
+        cudaq::matrix_operator::create(1) + cudaq::matrix_operator::create(2);
 
     auto product = sum * value;
     auto reverse = value * sum;
@@ -610,8 +629,10 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
       ASSERT_TRUE(term.get_coefficient().evaluate() == value);
     }
 
-    auto got_matrix = product.to_matrix({{1,level_count}, {2, level_count+1}}); 
-    auto got_matrix_reverse = reverse.to_matrix({{1,level_count}, {2, level_count+1}});
+    auto got_matrix =
+        product.to_matrix({{1, level_count}, {2, level_count + 1}});
+    auto got_matrix_reverse =
+        reverse.to_matrix({{1, level_count}, {2, level_count + 1}});
 
     auto matrix0 = cudaq::kronecker(utils_2::id_matrix(level_count + 1),
                                     utils_2::create_matrix(level_count));
@@ -630,8 +651,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
   // `operator_sum + std::complex<double>` and `std::complex<double> +
   // operator_sum`
   {
-    auto original = cudaq::matrix_operator::create(1) +
-                    cudaq::matrix_operator::create(2);
+    auto original =
+        cudaq::matrix_operator::create(1) + cudaq::matrix_operator::create(2);
 
     auto sum = original + value;
     auto reverse = value + original;
@@ -639,8 +660,9 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     ASSERT_TRUE(sum.n_terms() == 3);
     ASSERT_TRUE(reverse.n_terms() == 3);
 
-    auto got_matrix = sum.to_matrix({{1,level_count}, {2, level_count+1}});
-    auto got_matrix_reverse = reverse.to_matrix({{1,level_count}, {2, level_count+1}});
+    auto got_matrix = sum.to_matrix({{1, level_count}, {2, level_count + 1}});
+    auto got_matrix_reverse =
+        reverse.to_matrix({{1, level_count}, {2, level_count + 1}});
 
     auto matrix0 = cudaq::kronecker(utils_2::id_matrix(level_count + 1),
                                     utils_2::create_matrix(level_count));
@@ -659,8 +681,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
   // `operator_sum - std::complex<double>` and `std::complex<double> -
   // operator_sum`
   {
-    auto original = cudaq::matrix_operator::create(1) +
-                    cudaq::matrix_operator::create(2);
+    auto original =
+        cudaq::matrix_operator::create(1) + cudaq::matrix_operator::create(2);
 
     auto difference = original - value;
     auto reverse = value - original;
@@ -668,8 +690,10 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     ASSERT_TRUE(difference.n_terms() == 3);
     ASSERT_TRUE(reverse.n_terms() == 3);
 
-    auto got_matrix = difference.to_matrix({{1,level_count}, {2, level_count+1}}); 
-    auto got_matrix_reverse = reverse.to_matrix({{1,level_count}, {2, level_count+1}});
+    auto got_matrix =
+        difference.to_matrix({{1, level_count}, {2, level_count + 1}});
+    auto got_matrix_reverse =
+        reverse.to_matrix({{1, level_count}, {2, level_count + 1}});
 
     auto matrix0 = cudaq::kronecker(utils_2::id_matrix(level_count + 1),
                                     utils_2::create_matrix(level_count));
@@ -687,8 +711,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `operator_sum *= std::complex<double>`
   {
-    auto sum = cudaq::matrix_operator::displace(1) +
-               cudaq::matrix_operator::parity(2);
+    auto sum =
+        cudaq::matrix_operator::displace(1) + cudaq::matrix_operator::parity(2);
 
     sum *= value;
 
@@ -698,7 +722,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
       ASSERT_TRUE(term.get_coefficient().evaluate() == value);
     }
 
-    auto got_matrix = sum.to_matrix({{1,level_count}, {2, level_count+1}}, {{"displacement", value}});
+    auto got_matrix = sum.to_matrix({{1, level_count}, {2, level_count + 1}},
+                                    {{"displacement", value}});
 
     auto matrix0 =
         cudaq::kronecker(utils_2::id_matrix(level_count + 1),
@@ -722,7 +747,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     ASSERT_TRUE(sum.n_terms() == 3);
 
-    auto got_matrix = sum.to_matrix({{1,level_count}, {2, level_count+1}}, {{"squeezing", value}});
+    auto got_matrix = sum.to_matrix({{1, level_count}, {2, level_count + 1}},
+                                    {{"squeezing", value}});
 
     auto matrix0 = cudaq::kronecker(utils_2::id_matrix(level_count + 1),
                                     utils_2::momentum_matrix(level_count));
@@ -739,14 +765,14 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `operator_sum -= std::complex<double>`
   {
-    auto sum = cudaq::matrix_operator::position(1) +
-               cudaq::matrix_operator::number(2);
+    auto sum =
+        cudaq::matrix_operator::position(1) + cudaq::matrix_operator::number(2);
 
     sum -= value;
 
     ASSERT_TRUE(sum.n_terms() == 3);
 
-    auto got_matrix = sum.to_matrix({{1,level_count}, {2, level_count+1}});
+    auto got_matrix = sum.to_matrix({{1, level_count}, {2, level_count + 1}});
 
     auto matrix0 = cudaq::kronecker(utils_2::id_matrix(level_count + 1),
                                     utils_2::position_matrix(level_count));
@@ -766,8 +792,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstOperatorSum) {
 
   // `operator_sum + operator_sum`
   {
-    auto sum_0 = cudaq::matrix_operator::create(1) +
-                 cudaq::matrix_operator::create(2);
+    auto sum_0 =
+        cudaq::matrix_operator::create(1) + cudaq::matrix_operator::create(2);
     auto sum_1 = cudaq::matrix_operator::parity(0) +
                  cudaq::matrix_operator::annihilate(1) +
                  cudaq::matrix_operator::create(3);
@@ -776,7 +802,10 @@ TEST(OperatorExpressions, checkOperatorSumAgainstOperatorSum) {
 
     ASSERT_TRUE(sum.n_terms() == 5);
 
-    auto got_matrix = sum.to_matrix({{0,level_count}, {1, level_count+1}, {2, level_count+2}, {3, level_count+3}});
+    auto got_matrix = sum.to_matrix({{0, level_count},
+                                     {1, level_count + 1},
+                                     {2, level_count + 2},
+                                     {3, level_count + 3}});
 
     std::vector<cudaq::matrix_2> matrices_0_0;
     std::vector<cudaq::matrix_2> matrices_0_1;
@@ -819,8 +848,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstOperatorSum) {
 
   // `operator_sum - operator_sum`
   {
-    auto sum_0 = cudaq::matrix_operator::create(1) +
-                 cudaq::matrix_operator::position(2);
+    auto sum_0 =
+        cudaq::matrix_operator::create(1) + cudaq::matrix_operator::position(2);
     auto sum_1 = cudaq::matrix_operator::parity(0) +
                  cudaq::matrix_operator::annihilate(1) +
                  cudaq::matrix_operator::momentum(3);
@@ -829,7 +858,10 @@ TEST(OperatorExpressions, checkOperatorSumAgainstOperatorSum) {
 
     ASSERT_TRUE(difference.n_terms() == 5);
 
-    auto got_matrix = difference.to_matrix({{0,level_count}, {1, level_count+1}, {2, level_count+2}, {3, level_count+3}});
+    auto got_matrix = difference.to_matrix({{0, level_count},
+                                            {1, level_count + 1},
+                                            {2, level_count + 2},
+                                            {3, level_count + 3}});
 
     std::vector<cudaq::matrix_2> matrices_0_0;
     std::vector<cudaq::matrix_2> matrices_0_1;
@@ -872,8 +904,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstOperatorSum) {
 
   // `operator_sum * operator_sum`
   {
-    auto sum_0 = cudaq::matrix_operator::create(1) +
-                 cudaq::matrix_operator::create(2);
+    auto sum_0 =
+        cudaq::matrix_operator::create(1) + cudaq::matrix_operator::create(2);
     auto sum_1 = cudaq::matrix_operator::parity(0) +
                  cudaq::matrix_operator::annihilate(1) +
                  cudaq::matrix_operator::create(3);
@@ -888,8 +920,15 @@ TEST(OperatorExpressions, checkOperatorSumAgainstOperatorSum) {
     for (auto term : sum_product_reverse.get_terms())
       ASSERT_TRUE(term.n_terms() == 2);
 
-    auto got_matrix = sum_product.to_matrix({{0,level_count}, {1, level_count+1}, {2, level_count+2}, {3, level_count+3}}); 
-    auto got_matrix_reverse = sum_product_reverse.to_matrix({{0,level_count}, {1, level_count+1}, {2, level_count+2}, {3, level_count+3}});
+    auto got_matrix = sum_product.to_matrix({{0, level_count},
+                                             {1, level_count + 1},
+                                             {2, level_count + 2},
+                                             {3, level_count + 3}});
+    auto got_matrix_reverse =
+        sum_product_reverse.to_matrix({{0, level_count},
+                                       {1, level_count + 1},
+                                       {2, level_count + 2},
+                                       {3, level_count + 3}});
 
     std::vector<cudaq::matrix_2> matrices_0_0;
     std::vector<cudaq::matrix_2> matrices_0_1;
@@ -934,8 +973,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstOperatorSum) {
 
   // `operator_sum *= operator_sum`
   {
-    auto sum = cudaq::matrix_operator::create(1) +
-               cudaq::matrix_operator::create(2);
+    auto sum =
+        cudaq::matrix_operator::create(1) + cudaq::matrix_operator::create(2);
     auto sum_1 = cudaq::matrix_operator::parity(0) +
                  cudaq::matrix_operator::annihilate(1) +
                  cudaq::matrix_operator::create(3);
@@ -946,7 +985,10 @@ TEST(OperatorExpressions, checkOperatorSumAgainstOperatorSum) {
     for (auto term : sum.get_terms())
       ASSERT_TRUE(term.n_terms() == 2);
 
-    auto got_matrix = sum.to_matrix({{0,level_count}, {1, level_count+1}, {2, level_count+2}, {3, level_count+3}});
+    auto got_matrix = sum.to_matrix({{0, level_count},
+                                     {1, level_count + 1},
+                                     {2, level_count + 2},
+                                     {3, level_count + 3}});
 
     std::vector<cudaq::matrix_2> matrices_0_0;
     std::vector<cudaq::matrix_2> matrices_0_1;
@@ -998,14 +1040,15 @@ TEST(OperatorExpressions, checkOperatorSumAgainstProduct) {
   {
     auto product = cudaq::matrix_operator::annihilate(0) *
                    cudaq::matrix_operator::annihilate(1);
-    auto sum = cudaq::matrix_operator::create(1) +
-               cudaq::matrix_operator::create(2);
+    auto sum =
+        cudaq::matrix_operator::create(1) + cudaq::matrix_operator::create(2);
 
     sum += product;
 
     ASSERT_TRUE(sum.n_terms() == 3);
 
-    auto got_matrix = sum.to_matrix({{0, level_count}, {1, level_count+1}, {2, level_count+2}});
+    auto got_matrix = sum.to_matrix(
+        {{0, level_count}, {1, level_count + 1}, {2, level_count + 2}});
     std::vector<cudaq::matrix_2> matrices_0_0 = {
         utils_2::id_matrix(level_count + 2),
         utils_2::id_matrix(level_count + 1),
@@ -1021,8 +1064,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstProduct) {
         utils_2::id_matrix(level_count)};
     std::vector<cudaq::matrix_2> matrices_1_1 = {
         utils_2::create_matrix(level_count + 2),
-        utils_2::id_matrix(level_count + 1), 
-        utils_2::id_matrix(level_count)};
+        utils_2::id_matrix(level_count + 1), utils_2::id_matrix(level_count)};
 
     auto product_matrix =
         cudaq::kronecker(matrices_0_0.begin(), matrices_0_0.end()) *
@@ -1039,14 +1081,15 @@ TEST(OperatorExpressions, checkOperatorSumAgainstProduct) {
   {
     auto product = cudaq::matrix_operator::annihilate(0) *
                    cudaq::matrix_operator::annihilate(1);
-    auto sum = cudaq::matrix_operator::create(1) +
-               cudaq::matrix_operator::create(2);
+    auto sum =
+        cudaq::matrix_operator::create(1) + cudaq::matrix_operator::create(2);
 
     sum -= product;
 
     ASSERT_TRUE(sum.n_terms() == 3);
 
-    auto got_matrix = sum.to_matrix({{0, level_count}, {1, level_count+1}, {2, level_count+2}});
+    auto got_matrix = sum.to_matrix(
+        {{0, level_count}, {1, level_count + 1}, {2, level_count + 2}});
     std::vector<cudaq::matrix_2> matrices_0_0 = {
         utils_2::id_matrix(level_count + 2),
         utils_2::id_matrix(level_count + 1),
@@ -1062,8 +1105,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstProduct) {
         utils_2::id_matrix(level_count)};
     std::vector<cudaq::matrix_2> matrices_1_1 = {
         utils_2::create_matrix(level_count + 2),
-        utils_2::id_matrix(level_count + 1), 
-        utils_2::id_matrix(level_count)};
+        utils_2::id_matrix(level_count + 1), utils_2::id_matrix(level_count)};
 
     auto product_matrix =
         cudaq::kronecker(matrices_0_0.begin(), matrices_0_0.end()) *
@@ -1080,8 +1122,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstProduct) {
   {
     auto product = cudaq::matrix_operator::annihilate(0) *
                    cudaq::matrix_operator::annihilate(1);
-    auto sum = cudaq::matrix_operator::create(1) +
-               cudaq::matrix_operator::create(2);
+    auto sum =
+        cudaq::matrix_operator::create(1) + cudaq::matrix_operator::create(2);
 
     sum *= product;
 
@@ -1090,7 +1132,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstProduct) {
       ASSERT_TRUE(term.n_terms() == 3);
     }
 
-    auto got_matrix = sum.to_matrix({{0, level_count}, {1, level_count+1}, {2, level_count+2}});
+    auto got_matrix = sum.to_matrix(
+        {{0, level_count}, {1, level_count + 1}, {2, level_count + 2}});
     std::vector<cudaq::matrix_2> matrices_0_0 = {
         utils_2::id_matrix(level_count + 2),
         utils_2::id_matrix(level_count + 1),
@@ -1106,8 +1149,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstProduct) {
         utils_2::id_matrix(level_count)};
     std::vector<cudaq::matrix_2> matrices_1_1 = {
         utils_2::create_matrix(level_count + 2),
-        utils_2::id_matrix(level_count + 1), 
-        utils_2::id_matrix(level_count)};
+        utils_2::id_matrix(level_count + 1), utils_2::id_matrix(level_count)};
 
     auto product_matrix =
         cudaq::kronecker(matrices_0_0.begin(), matrices_0_0.end()) *
