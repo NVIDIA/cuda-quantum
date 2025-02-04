@@ -37,48 +37,74 @@ namespace {
 /// ───────────────────────────────────────────
 /// cc.store %0, %1 : !cc.ptr<i64>
 /// ```
-class RemoveOverriddenStorePattern
-    : public OpRewritePattern<cudaq::cc::StoreOp> {
+class SimplifyWritesAnalysis {
 public:
-  using OpRewritePattern::OpRewritePattern;
-
-  explicit RemoveOverriddenStorePattern(MLIRContext *ctx, DominanceInfo &di)
-      : OpRewritePattern(ctx), dom(di) {}
-
-  LogicalResult matchAndRewrite(cudaq::cc::StoreOp store,
-                                PatternRewriter &rewriter) const override {
-    if (isOverridenStore(store)) {
-      rewriter.eraseOp(store);
-      return success();
-    }
-    return failure();
+  SimplifyWritesAnalysis(MLIRContext *ctx, DominanceInfo &di, Operation *op)
+      : ctx(ctx), dom(di) {
+    for (auto &region : op->getRegions())
+      for (auto &b : region)
+        collectBlockInfo(&b);
   }
 
-private:
-  /// Detect if the current store is overriden by another store in the same
-  /// block.
-  bool isOverridenStore(cudaq::cc::StoreOp store) const {
-    Value currentPtr;
+  /// Remove stores followed by a store to the same pointer if the pointer is
+  /// not used in between, using collected block info.
+  void removeOverriddenStores() {
+    SmallVector<Operation *> toErase;
 
-    if (!isStoreToStack(store))
-      return false;
-
-    auto block = store.getOperation()->getBlock();
-    for (auto &op : *block) {
-      if (auto currentStore = dyn_cast<cudaq::cc::StoreOp>(&op)) {
-        auto nextPtr = currentStore.getPtrvalue();
-        if (store == currentStore) {
-          // Start searching from the current store
-          currentPtr = nextPtr;
-        } else {
-          // Found an overriding store, the current store is useless
-          if (currentPtr == nextPtr)
-            return isReplacement(currentPtr, store, currentStore);
+    for (const auto &[block, ptrToStores] : blockInfo) {
+      for (const auto &[ptr, stores] : ptrToStores) {
+        if (stores.size() > 1) {
+          auto replacement = stores.back();
+          for (auto it = stores.rend(); it != stores.rbegin(); it++) {
+            auto store = *it;
+            if (isReplacement(ptr, *store, *replacement)) {
+              LLVM_DEBUG(llvm::dbgs() << "replacing store " << store
+                                      << " by: " << replacement << '\n');
+              toErase.push_back(store->getOperation());
+            }
+          }
         }
       }
     }
-    // No multiple stores to the same location found
-    return false;
+
+    for (auto *op : toErase)
+      op->erase();
+  }
+
+private:
+  /// Detect if value is used in the op or its nested blocks.
+  bool isReplacement(Value ptr, cudaq::cc::StoreOp store,
+                     cudaq::cc::StoreOp replacement) const {
+    // Check that there are no stores dominated by the store and not dominated
+    // by the replacement (i.e. used in between the store and the replacement)
+    for (auto *user : ptr.getUsers()) {
+      if (user != store && user != replacement) {
+        if (dom.dominates(store, user) && !dom.dominates(replacement, user)) {
+          LLVM_DEBUG(llvm::dbgs() << "store " << replacement
+                                  << " is used before: " << store << '\n');
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  /// Collect all stores to a pointer for a block.
+  void collectBlockInfo(Block *block) {
+    for (auto &op : *block) {
+      for (auto &region : op.getRegions())
+        for (auto &b : region)
+          collectBlockInfo(&b);
+
+      if (auto store = dyn_cast<cudaq::cc::StoreOp>(&op)) {
+        auto ptr = store.getPtrvalue();
+        if (isStoreToStack(store)) {
+          auto ptrToStores = blockInfo.FindAndConstruct(block).second;
+          auto stores = ptrToStores.FindAndConstruct(ptr).second;
+          stores.push_back(&store);
+        }
+      }
+    }
   }
 
   /// Detect stores to stack locations, for example:
@@ -102,24 +128,10 @@ private:
     return isa_and_present<cudaq::cc::AllocaOp>(ptrOp.getDefiningOp());
   }
 
-  /// Detect if value is used in the op or its nested blocks.
-  bool isReplacement(Value ptr, cudaq::cc::StoreOp store,
-                     cudaq::cc::StoreOp replacement) const {
-    // Check that there are no stores dominated by the store and not dominated
-    // by the replacement (i.e. used in between the store and the replacement)
-    for (auto *user : ptr.getUsers()) {
-      if (user != store && user != replacement) {
-        if (dom.dominates(store, user) && !dom.dominates(replacement, user)) {
-          LLVM_DEBUG(llvm::dbgs() << "store " << replacement
-                                  << " is used before: " << store << '\n');
-          return false;
-        }
-      }
-    }
-    return true;
-  }
-
+  MLIRContext *ctx;
   DominanceInfo &dom;
+  DenseMap<Block *, DenseMap<Value, SmallVector<cudaq::cc::StoreOp *>>>
+      blockInfo;
 };
 
 class WriteAfterWriteEliminationPass
@@ -130,19 +142,17 @@ public:
 
   void runOnOperation() override {
     auto *ctx = &getContext();
-    auto func = getOperation();
-    DominanceInfo domInfo(func);
-    RewritePatternSet patterns(ctx);
-    patterns.insert<RemoveOverriddenStorePattern>(ctx, domInfo);
+    auto op = getOperation();
+    DominanceInfo domInfo(op);
 
     LLVM_DEBUG(llvm::dbgs()
-               << "Before write after write elimination: " << func << '\n');
+               << "Before write after write elimination: " << *op << '\n');
 
-    if (failed(applyPatternsAndFoldGreedily(func, std::move(patterns))))
-      signalPassFailure();
+    auto analysis = SimplifyWritesAnalysis(ctx, domInfo, op);
+    analysis.removeOverriddenStores();
 
     LLVM_DEBUG(llvm::dbgs()
-               << "After write after write elimination: " << func << '\n');
+               << "After write after write elimination: " << *op << '\n');
   }
 };
 } // namespace
