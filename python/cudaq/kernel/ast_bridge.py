@@ -930,6 +930,7 @@ class PyASTBridge(ast.NodeVisitor):
                     ty) or quake.StruqType.isinstance(ty)
 
             areQuantumTypes = [isQuantumTy(ty) for ty in self.argTypes]
+            f.attributes.__setitem__('cudaq-kernel', UnitAttr.get())
             if True not in areQuantumTypes and not self.disableEntryPointTag:
                 f.attributes.__setitem__('cudaq-entrypoint', UnitAttr.get())
 
