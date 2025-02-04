@@ -208,22 +208,22 @@ public:
       return "f" + std::to_string(width);
     }
     if (auto strTy = dyn_cast<cudaq::cc::StructType>(ty)) {
+      std::string result = "tuple<";
       if (strTy.getMembers().empty())
-        return "{}";
-      std::string result = "{" + translateType(strTy.getMembers().front());
+        return result + '>';
+      result += translateType(strTy.getMembers().front());
       for (auto memTy : strTy.getMembers().drop_front())
         result += ", " + translateType(memTy);
-      return result + "}";
+      return result + '>';
     }
     if (auto arrTy = dyn_cast<cudaq::cc::ArrayType>(ty)) {
       std::int32_t size = arrTy.getSize();
-      return "[" + std::to_string(size) + " x " +
-             translateType(arrTy.getElementType()) + "]";
+      return "array<" + translateType(arrTy.getElementType()) + " x " +
+             std::to_string(size) + '>';
     }
-    if (auto arrTy = dyn_cast<cudaq::cc::StdvecType>(ty)) {
-      return "[" + std::to_string(*vecSz) + " x " +
-             translateType(arrTy.getElementType()) + "]";
-    }
+    if (auto arrTy = dyn_cast<cudaq::cc::StdvecType>(ty))
+      return "array<" + translateType(arrTy.getElementType()) + " x " +
+             std::to_string(*vecSz) + '>';
     return "error";
   }
 
