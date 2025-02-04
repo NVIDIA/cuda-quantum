@@ -12,13 +12,14 @@
 #include <gtest/gtest.h>
 
 // Initialize operator_sum
-cudaq::operator_sum initialize_operator_sum() {
+template <typename HandlerTy>
+cudaq::operator_sum<HandlerTy> initialize_operator_sum() {
   std::vector<int> degrees = {0, 1};
 
   // Elementary operators
-  cudaq::elementary_operator pauli_x("pauli_x", {0});
-  cudaq::elementary_operator pauli_z("pauli_z", {1});
-  cudaq::elementary_operator identity = cudaq::elementary_operator::identity(0);
+  cudaq::matrix_operator pauli_x("pauli_x", {0});
+  cudaq::matrix_operator pauli_z("pauli_z", {1});
+  cudaq::matrix_operator identity = cudaq::matrix_operator::identity(0);
 
   auto prod_op_1 = cudaq::scalar_operator(std::complex<double>(1.0, 0.0)) *
                    pauli_x * pauli_z;
@@ -26,7 +27,7 @@ cudaq::operator_sum initialize_operator_sum() {
   auto prod_op_2 =
       cudaq::scalar_operator(std::complex<double>(0.5, -0.5)) * identity;
 
-  cudaq::operator_sum op_sum({prod_op_1, prod_op_2});
+  cudaq::operator_sum<HandlerTy> op_sum({prod_op_1, prod_op_2});
 
   return op_sum;
 }
@@ -88,11 +89,11 @@ TEST_F(CuDensityMatTestFixture, ComputeLindbladOp) {
 TEST_F(CuDensityMatTestFixture, ConvertToCuDensityMatOperator) {
   std::vector<int64_t> mode_extents = {2, 2};
 
-  auto op_sum = initialize_operator_sum();
+  auto op_sum = initialize_operator_sum<void>();
 
   EXPECT_NO_THROW({
-    auto result = cudaq::convert_to_cudensitymat_operator(handle, {}, op_sum,
-                                                          mode_extents);
+    auto result = cudaq::convert_to_cudensitymat_operator<void>(
+        handle, {}, op_sum, mode_extents);
     ASSERT_NE(result, nullptr);
     cudensitymatDestroyOperator(result);
   });
@@ -103,9 +104,9 @@ TEST_F(CuDensityMatTestFixture, InvalidHandle) {
   cudensitymatHandle_t invalid_handle = nullptr;
 
   std::vector<int64_t> mode_extents = {2, 2};
-  auto op_sum = initialize_operator_sum();
+  auto op_sum = initialize_operator_sum<void>();
 
-  EXPECT_THROW(cudaq::convert_to_cudensitymat_operator(invalid_handle, {},
-                                                       op_sum, mode_extents),
+  EXPECT_THROW(cudaq::convert_to_cudensitymat_operator<void>(
+                   invalid_handle, {}, op_sum, mode_extents),
                std::runtime_error);
 }
