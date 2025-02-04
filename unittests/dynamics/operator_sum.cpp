@@ -105,132 +105,6 @@ cudaq::matrix_2 squeeze_matrix(std::size_t size,
 
 } // namespace utils_2
 
-// TEST(OperatorExpressions, checkProductOperatorSimple) {
-//   std::vector<int> levels = {2, 3, 4};
-
-//   // std::set<int> uniqueDegrees;
-//   // std::copy(this->degrees.begin(), this->degrees.end(),
-//   // std::inserter(uniqueDegrees, uniqueDegrees.begin()));
-//   // std::copy(other.degrees.begin(), other.degrees.end(),
-//   // std::inserter(uniqueDegrees, uniqueDegrees.begin()));
-
-//   // Arithmetic only between elementary operators with
-//   // same number of levels.
-//   {
-//     // Same degrees of freedom.
-//     {
-//       for (auto level_count : levels) {
-//         auto op0 = cudaq::matrix_operator::annihilate(0);
-//         auto op1 = cudaq::matrix_operator::create(0);
-
-//         cudaq::product_operator got = op0 * op1;
-//         auto got_matrix = got.to_matrix({{0, level_count}}, {});
-
-//         auto matrix0 = _annihilate_matrix(level_count);
-//         auto matrix1 = _create_matrix(level_count);
-//         auto want_matrix = matrix0 * matrix1;
-
-//         // ASSERT_TRUE(want_matrix == got_matrix);
-//       }
-//     }
-
-//     // // Different degrees of freedom.
-//     // {
-//     //   for (auto level_count : levels) {
-//     //     auto op0 = cudaq::matrix_operator::annihilate(0);
-//     //     auto op1 = cudaq::matrix_operator::create(1);
-
-//     //     cudaq::product_operator got = op0 * op1;
-//     //     auto got_matrix =
-//     //         got.to_matrix({{0, level_count}, {1, level_count}}, {});
-
-//     //     cudaq::product_operator got_reverse = op1 * op0;
-//     //     auto got_matrix_reverse =
-//     //         got_reverse.to_matrix({{0, level_count}, {1, level_count}},
-//     {});
-
-//     //     auto identity = _id_matrix(level_count);
-//     //     auto matrix0 = _annihilate_matrix(level_count);
-//     //     auto matrix1 = _create_matrix(level_count);
-
-//     //     auto fullHilbert0 = identity.kronecker(matrix0);
-//     //     auto fullHilbert1 = matrix1.kronecker(identity);
-//     //     auto want_matrix = fullHilbert0 * fullHilbert1;
-//     //     auto want_matrix_reverse = fullHilbert1 * fullHilbert0;
-
-//     //     // ASSERT_TRUE(want_matrix == got_matrix);
-//     //     // ASSERT_TRUE(want_matrix_reverse == got_matrix_reverse);
-//     //   }
-//     // }
-
-//     // // Different degrees of freedom, non-consecutive.
-//     // {
-//     //   for (auto level_count : levels) {
-//     //     auto op0 = cudaq::matrix_operator::annihilate(0);
-//     //     auto op1 = cudaq::matrix_operator::create(2);
-
-//     //     // cudaq::product_operator got = op0 * op1;
-//     //     // auto got_matrix =
-//     got.to_matrix({{0,level_count},{2,level_count}},
-//     //     // {});
-//     //   }
-//     // }
-
-//     // // Different degrees of freedom, non-consecutive but all dimensions
-//     // // provided.
-//     // {
-//     //   for (auto level_count : levels) {
-//     //     auto op0 = cudaq::matrix_operator::annihilate(0);
-//     //     auto op1 = cudaq::matrix_operator::create(2);
-
-//     //     // cudaq::product_operator got = op0 * op1;
-//     //     // auto got_matrix =
-//     //     //
-//     got.to_matrix({{0,level_count},{1,level_count},{2,level_count}},
-//     //     {});
-//     //   }
-//     // }
-//   }
-// }
-
-// TEST(OperatorExpressions, checkProductOperatorSimple) {
-
-//   std::complex<double> value_0 = 0.1 + 0.1;
-//   std::complex<double> value_1 = 0.1 + 1.0;
-//   std::complex<double> value_2 = 2.0 + 0.1;
-//   std::complex<double> value_3 = 2.0 + 1.0;
-
-//   auto local_variable = true;
-//   auto function = [&](std::map<std::string, std::complex<double>> parameters)
-//   {
-//     if (!local_variable)
-//       throw std::runtime_error("Local variable not detected.");
-//     return parameters["value"];
-//   };
-
-//   // Scalar Ops against Elementary Ops
-//   {
-//     // Identity against constant.
-//     {
-//       auto id_op = cudaq::matrix_operator::identity(0);
-//       auto scalar_op = cudaq::scalar_operator(value_0);
-
-//       // auto multiplication = scalar_op * id_op;
-//       // auto addition = scalar_op + id_op;
-//       // auto subtraction = scalar_op - id_op;
-//     }
-
-//     // Identity against constant from lambda.
-//     {
-//       auto id_op = cudaq::matrix_operator::identity(0);
-//       auto scalar_op = cudaq::scalar_operator(function);
-
-//       // auto multiplication = scalar_op * id_op;
-//       // auto addition = scalar_op + id_op;
-//       // auto subtraction = scalar_op - id_op;
-//     }
-//   }
-// }
 
 TEST(OperatorExpressions, checkOperatorSumAgainstScalarOperator) {
   int level_count = 3;
@@ -1119,4 +993,78 @@ TEST(OperatorExpressions, checkOperatorSumAgainstProduct) {
     auto want_matrix = sum_matrix * product_matrix;
     utils_2::checkEqual(want_matrix, got_matrix);
   }
+}
+
+TEST(OperatorExpressions, checkCustomOperatorSum) {
+    auto level_count = 2;
+    std::map<int, int> dimensions = {{0, level_count + 1}, {1, level_count + 2}, {2, level_count}, {3, level_count + 3}};
+
+    {
+      auto func0 = [](std::vector<int> dimensions,
+                      std::map<std::string, std::complex<double>> _none) {
+        return cudaq::kronecker(utils_2::momentum_matrix(dimensions[0]),
+                                      utils_2::position_matrix(dimensions[1]));;
+      };
+      auto func1 = [](std::vector<int> dimensions,
+                      std::map<std::string, std::complex<double>> _none) {
+        return cudaq::kronecker(utils_2::create_matrix(dimensions[0]),
+                                      utils_2::number_matrix(dimensions[1]));;
+      };
+      cudaq::matrix_operator::define("custom_op0", {-1, -1}, func0);
+      cudaq::matrix_operator::define("custom_op1", {-1, -1}, func1);
+    }
+
+    auto op0 = cudaq::product_operator<cudaq::matrix_operator>(1., cudaq::matrix_operator("custom_op0", {0, 1}));
+    auto op1 = cudaq::product_operator<cudaq::matrix_operator>(1., cudaq::matrix_operator("custom_op1", {1, 2}));
+    auto sum = op0 + op1;
+    auto sum_reverse = op1 + op0;
+    auto difference = op0 - op1;
+    auto difference_reverse = op1 - op0;
+
+    std::vector<cudaq::matrix_2> matrices_0 = {
+      utils_2::id_matrix(level_count),
+      utils_2::position_matrix(level_count + 2),
+      utils_2::momentum_matrix(level_count + 1)};
+    std::vector<cudaq::matrix_2> matrices_1 = {
+      utils_2::number_matrix(level_count),
+      utils_2::create_matrix(level_count + 2),
+      utils_2::id_matrix(level_count + 1)};
+    auto sum_expected = cudaq::kronecker(matrices_0.begin(), matrices_0.end()) + 
+                        cudaq::kronecker(matrices_1.begin(), matrices_1.end());
+    auto diff_expected = cudaq::kronecker(matrices_0.begin(), matrices_0.end()) - 
+                         cudaq::kronecker(matrices_1.begin(), matrices_1.end());
+    auto diff_reverse_expected = cudaq::kronecker(matrices_1.begin(), matrices_1.end()) -
+                                 cudaq::kronecker(matrices_0.begin(), matrices_0.end());
+
+    utils_2::checkEqual(sum.to_matrix(dimensions), sum_expected);
+    utils_2::checkEqual(sum_reverse.to_matrix(dimensions), sum_expected);
+    utils_2::checkEqual(difference.to_matrix(dimensions), diff_expected);
+    utils_2::checkEqual(difference_reverse.to_matrix(dimensions), diff_reverse_expected);
+
+    op0 = cudaq::product_operator<cudaq::matrix_operator>(1., cudaq::matrix_operator("custom_op0", {2, 3}));
+    op1 = cudaq::product_operator<cudaq::matrix_operator>(1., cudaq::matrix_operator("custom_op1", {2, 0}));
+    sum = op0 + op1;
+    sum_reverse = op1 + op0;
+    difference = op0 - op1;
+    difference_reverse = op1 - op0;
+
+    matrices_0 = {
+      utils_2::position_matrix(level_count + 3),
+      utils_2::momentum_matrix(level_count),
+      utils_2::id_matrix(level_count + 1)};
+    matrices_1 = {
+      utils_2::id_matrix(level_count + 3),
+      utils_2::create_matrix(level_count),
+      utils_2::number_matrix(level_count + 1)};
+    sum_expected = cudaq::kronecker(matrices_0.begin(), matrices_0.end()) + 
+                   cudaq::kronecker(matrices_1.begin(), matrices_1.end());
+    diff_expected = cudaq::kronecker(matrices_0.begin(), matrices_0.end()) - 
+                    cudaq::kronecker(matrices_1.begin(), matrices_1.end());
+    diff_reverse_expected = cudaq::kronecker(matrices_1.begin(), matrices_1.end()) - 
+                            cudaq::kronecker(matrices_0.begin(), matrices_0.end());
+
+    utils_2::checkEqual(sum.to_matrix(dimensions), sum_expected);
+    utils_2::checkEqual(sum_reverse.to_matrix(dimensions), sum_expected);
+    utils_2::checkEqual(difference.to_matrix(dimensions), diff_expected);
+    utils_2::checkEqual(difference_reverse.to_matrix(dimensions), diff_reverse_expected);
 }

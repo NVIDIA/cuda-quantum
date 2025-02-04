@@ -216,10 +216,33 @@ TEST(OperatorExpressions, checkPreBuiltElementaryOps) {
   }
 }
 
-//TEST(OperatorExpressions, checkCustomElementaryOps) {
-  // pass
+TEST(OperatorExpressions, checkCustomElementaryOps) {
+    auto level_count = 2;
+    std::map<int, int> dimensions = {{0, level_count + 1}, {1, level_count + 2}, {2, level_count}};
 
-  // ex:
-  // operator acts upon {0,2}
-  // user gives us dimensions for {0,1,2}
-//}
+    {
+      auto func0 = [](std::vector<int> dimensions,
+                      std::map<std::string, std::complex<double>> _none) {
+        return cudaq::kronecker(utils::momentum_matrix(dimensions[0]),
+                                      utils::position_matrix(dimensions[1]));;
+      };
+      auto func1 = [](std::vector<int> dimensions,
+                      std::map<std::string, std::complex<double>> _none) {
+        return cudaq::kronecker(utils::create_matrix(dimensions[0]),
+                                      utils::number_matrix(dimensions[1]));;
+      };
+      cudaq::matrix_operator::define("custom_op0", {-1, -1}, func0);
+      cudaq::matrix_operator::define("custom_op1", {-1, -1}, func1);
+    }
+
+    auto op0 = cudaq::product_operator<cudaq::matrix_operator>(1., cudaq::matrix_operator("custom_op0", {0, 1}));
+    auto op1 = cudaq::product_operator<cudaq::matrix_operator>(1., cudaq::matrix_operator("custom_op1", {1, 2}));
+
+    auto matrix0 = cudaq::kronecker(utils::momentum_matrix(level_count + 1),
+                                    utils::position_matrix(level_count + 2));
+    auto matrix1 = cudaq::kronecker(utils::create_matrix(level_count + 2),
+                                    utils::number_matrix(level_count));
+
+    utils::checkEqual(op0.to_matrix(dimensions), matrix0);
+    utils::checkEqual(op1.to_matrix(dimensions), matrix1);
+}
