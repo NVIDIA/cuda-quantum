@@ -36,21 +36,15 @@ struct ContainerIterator {
   std::size_t cSize = 0;
   std::size_t cIndex = 0;
   std::size_t remaining = 0;
-  std::vector<OutputType> types;
 
   void initialize(ContainerType c) {
     cTy = c;
     cSize = 0;
     cIndex = 0;
     remaining = 0;
-    types = {};
   }
 
-  bool isFull() {
-    if ((cSize > 0) && (remaining == 0))
-      return true;
-    return false;
-  }
+  bool isFull() { return ((cSize > 0) && (remaining == 0)); }
 };
 
 // A generic parser for QIR output record logs.
