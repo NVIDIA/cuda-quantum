@@ -8,6 +8,8 @@
 
 #include "cudaq/helpers.h"
 #include "cudaq/operators.h"
+#include "helpers.h"
+#include "manipulation.h"
 
 #include <concepts>
 #include <iostream>
@@ -30,7 +32,7 @@ operator_sum<HandlerTy>::m_evaluate(MatrixArithmetics arithmetics,
   auto paddedTerm = [&](auto &&term) {
     std::vector<int> op_degrees;
     for (auto op : term.get_terms()) {
-      for (auto degree : op.degrees)
+      for (auto degree : op.degrees())
         op_degrees.push_back(degree);
     }
     for (auto degree : degrees) {
@@ -42,93 +44,23 @@ operator_sum<HandlerTy>::m_evaluate(MatrixArithmetics arithmetics,
     return term;
   };
 
-  auto sum = EvaluatedMatrix();
   if (pad_terms) {
     auto padded_term = paddedTerm(terms[0]);
-    sum = EvaluatedMatrix(degrees,
-                          padded_term.m_evaluate(arithmetics, pad_terms));
+    EvaluatedMatrix sum(degrees, padded_term.m_evaluate(arithmetics, pad_terms));
     for (auto term_idx = 1; term_idx < terms.size(); ++term_idx) {
       padded_term = paddedTerm(terms[term_idx]);
-      sum = arithmetics.add(
-          sum, EvaluatedMatrix(degrees,
-                               padded_term.m_evaluate(arithmetics, pad_terms)));
+      sum = arithmetics.add(std::move(sum), EvaluatedMatrix(degrees, padded_term.m_evaluate(arithmetics, pad_terms)));
     }
+    return sum.matrix();
   } else {
-    sum = EvaluatedMatrix(degrees, terms[0].m_evaluate(arithmetics, pad_terms));
+    EvaluatedMatrix sum(degrees, terms[0].m_evaluate(arithmetics, pad_terms));
     for (auto term_idx = 1; term_idx < terms.size(); ++term_idx) {
       auto term = terms[term_idx];
       auto eval = term.m_evaluate(arithmetics, pad_terms);
-      sum = arithmetics.add(sum, EvaluatedMatrix(degrees, eval));
+      sum = arithmetics.add(std::move(sum), EvaluatedMatrix(degrees, eval));
     }
+    return sum.matrix();
   }
-  return sum.matrix();
-}
-
-template <typename HandlerTy>
-std::tuple<std::vector<scalar_operator>, std::vector<HandlerTy>>
-operator_sum<HandlerTy>::m_canonicalize_product(
-    product_operator<HandlerTy> &prod) const {
-  std::vector<scalar_operator> scalars = {prod.get_coefficient()};
-  auto non_scalars = prod.get_terms();
-
-  std::vector<int> all_degrees;
-  for (auto op : non_scalars) {
-    for (auto degree : op.degrees)
-      all_degrees.push_back(degree);
-  }
-
-  std::set<int> unique_degrees(all_degrees.begin(), all_degrees.end());
-
-  if (all_degrees.size() == unique_degrees.size()) {
-    // Each operator acts on different degrees of freedom; they
-    // hence commute and can be reordered arbitrarily.
-    /// FIXME: Doing nothing for now
-    // std::sort(non_scalars.begin(), non_scalars.end(), [](auto op){ return
-    // op.degrees; })
-  } else {
-    // Some degrees exist multiple times; order the scalars, identities,
-    // and zeros, but do not otherwise try to reorder terms.
-    std::vector<matrix_operator> zero_ops;
-    std::vector<matrix_operator> identity_ops;
-    std::vector<matrix_operator> non_commuting;
-    for (auto op : non_scalars) {
-      if (op.id == "zero")
-        zero_ops.push_back(op);
-      if (op.id == "identity")
-        identity_ops.push_back(op);
-      if (op.id != "zero" || op.id != "identity")
-        non_commuting.push_back(op);
-    }
-
-    /// FIXME: Not doing the same sorting we do in python yet
-    std::vector<matrix_operator> sorted_non_scalars;
-    sorted_non_scalars.insert(sorted_non_scalars.end(), zero_ops.begin(),
-                              zero_ops.end());
-    sorted_non_scalars.insert(sorted_non_scalars.end(), identity_ops.begin(),
-                              identity_ops.end());
-    sorted_non_scalars.insert(sorted_non_scalars.end(), non_commuting.begin(),
-                              non_commuting.end());
-    non_scalars = sorted_non_scalars;
-  }
-  return std::make_tuple(scalars, non_scalars);
-}
-
-template <typename HandlerTy>
-std::tuple<std::vector<scalar_operator>, std::vector<HandlerTy>>
-operator_sum<HandlerTy>::m_canonical_terms() const {
-  /// FIXME: Not doing the same sorting we do in python yet
-  std::tuple<std::vector<scalar_operator>, std::vector<matrix_operator>> result;
-  std::vector<scalar_operator> scalars;
-  std::vector<matrix_operator> matrix_ops;
-  for (auto term : this->get_terms()) {
-    auto canon_term = m_canonicalize_product(term);
-    auto canon_scalars = std::get<0>(canon_term);
-    auto canon_elementary = std::get<1>(canon_term);
-    scalars.insert(scalars.end(), canon_scalars.begin(), canon_scalars.end());
-    canon_elementary.insert(canon_elementary.end(), canon_elementary.begin(),
-                            canon_elementary.end());
-  }
-  return std::make_tuple(scalars, matrix_ops);
 }
 
 template <typename HandlerTy>
@@ -147,15 +79,7 @@ template cudaq::matrix_2
 operator_sum<matrix_operator>::m_evaluate(MatrixArithmetics arithmetics,
                                           bool pad_terms) const;
 
-template std::tuple<std::vector<scalar_operator>, std::vector<matrix_operator>>
-operator_sum<matrix_operator>::m_canonicalize_product(
-    product_operator<matrix_operator> &prod) const;
-
-template std::tuple<std::vector<scalar_operator>, std::vector<matrix_operator>>
-operator_sum<matrix_operator>::m_canonical_terms() const;
-
-// no overload for a single product, since we don't want a constructor for a
-// single term
+// no overload for a single product, since we don't want a constructor for a single term
 
 template void operator_sum<matrix_operator>::aggregate_terms(
     const product_operator<matrix_operator> &item1,
@@ -173,7 +97,7 @@ std::vector<int> operator_sum<HandlerTy>::degrees() const {
   std::set<int> unsorted_degrees;
   for (const std::vector<HandlerTy> &term : this->terms) {
     for (const HandlerTy &op : term)
-      unsorted_degrees.insert(op.degrees.begin(), op.degrees.end());
+      unsorted_degrees.insert(op.degrees().begin(), op.degrees().end());
   }
   auto degrees =
       std::vector<int>(unsorted_degrees.begin(), unsorted_degrees.end());

@@ -155,14 +155,8 @@ template <typename HandlerTy> // handler needs to inherit from operation_handler
 class operator_sum {
 
 private:
-  std::tuple<std::vector<scalar_operator>, std::vector<HandlerTy>>
-  m_canonicalize_product(product_operator<HandlerTy> &prod) const;
 
-  std::tuple<std::vector<scalar_operator>, std::vector<HandlerTy>>
-  m_canonical_terms() const;
-
-  matrix_2 m_evaluate(MatrixArithmetics arithmetics,
-                      bool pad_terms = true) const;
+  matrix_2 m_evaluate(MatrixArithmetics arithmetics, bool pad_terms = true) const;
 
   void aggregate_terms();
 
@@ -344,8 +338,6 @@ public:
 /// that can.
 template <typename HandlerTy> // handler needs to inherit from operation_handler
 class product_operator : public operator_sum<HandlerTy> {
-  friend class operator_sum<HandlerTy>; // FIXME: explicitly list members
-                                        // instead?
 
 private:
   void aggregate_terms();
@@ -355,6 +347,9 @@ private:
 
   matrix_2 m_evaluate(MatrixArithmetics arithmetics,
                       bool pad_terms = true) const;
+
+  template <typename T>
+  friend matrix_2 operator_sum<T>::m_evaluate(MatrixArithmetics arithmetics, bool pad_terms) const;
 
 public:
   // read-only properties
@@ -513,83 +508,15 @@ public:
 class matrix_operator {
 
 private:
+
   static std::map<std::string, Definition> m_ops;
 
-public:
-  // The constructor should never be called directly by the user:
-  // Keeping it internally documented for now, however.
-  /// @brief Constructor.
-  /// @arg operator_id : The ID of the operator as specified when it was
-  /// defined.
-  /// @arg degrees : the degrees of freedom that the operator acts upon.
-  matrix_operator(std::string operator_id, const std::vector<int> &degrees)
-      : id(operator_id), degrees(degrees) {}
-
-  // constructor
-  matrix_operator(std::string operator_id, std::vector<int> &&degrees)
-      : id(operator_id), degrees(std::move(degrees)) {}
-
-  // copy constructor
-  matrix_operator(const matrix_operator &other)
-      : degrees(other.degrees), id(other.id) {}
-
-  // move constructor
-  matrix_operator(matrix_operator &&other)
-      : degrees(std::move(other.degrees)), id(other.id) {}
-
-  // assignment operator
-  matrix_operator &operator=(const matrix_operator &other) {
-    if (this != &other) {
-      degrees = other.degrees;
-      id = other.id;
-    }
-    return *this;
-  }
-
-  // move assignment operator
-  matrix_operator &operator=(matrix_operator &&other) {
-    degrees = std::move(other.degrees);
-    id = other.id;
-    return *this;
-  }
-
-  virtual ~matrix_operator() = default;
-
-  /// @brief The degrees of freedom that the operator acts on in canonical
-  /// order.
-  std::vector<int> degrees;
+  std::vector<int> targets;
   std::string id;
 
-  /// @brief Return the `matrix_operator` as a string.
-  std::string to_string() const;
+public:
 
-  /// @brief Return the `matrix_operator` as a matrix.
-  /// @arg  `dimensions` : A map specifying the number of levels,
-  ///                      that is, the dimension of each degree of freedom
-  ///                      that the operator acts on. Example for two, 2-level
-  ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
-  matrix_2
-  to_matrix(std::map<int, int> dimensions = {},
-            std::map<std::string, std::complex<double>> parameters = {}) const;
-
-  /// @brief True, if the other value is an elementary operator with the same id
-  /// acting on the same degrees of freedom, and False otherwise.
-  bool operator==(const matrix_operator &other) const {
-    return this->id == other.id && this->degrees == other.degrees;
-  }
-
-  // Predefined operators.
-  static product_operator<matrix_operator> identity(int degree);
-  static product_operator<matrix_operator> zero(int degree);
-  static product_operator<matrix_operator> annihilate(int degree);
-  static product_operator<matrix_operator> create(int degree);
-  static product_operator<matrix_operator> momentum(int degree);
-  static product_operator<matrix_operator> number(int degree);
-  static product_operator<matrix_operator> parity(int degree);
-  static product_operator<matrix_operator> position(int degree);
-  /// Operators that accept parameters at runtime.
-  static product_operator<matrix_operator> squeeze(int degree);
-  static product_operator<matrix_operator> displace(int degree);
+  // tools for custom operators
 
   /// @brief Adds the definition of an elementary operator with the given id to
   /// the class. After definition, an the defined elementary operator can be
@@ -617,16 +544,73 @@ public:
   ///      degree of freedom, and an argument called `dimensions` (or `dims` for
   ///      short), if the operator acts
   ///     on multiple degrees of freedom.
-  static void define(std::string operator_id,
-                     std::vector<int> expected_dimensions,
-                     CallbackFunction &&create) {
-    auto defn = Definition(operator_id, expected_dimensions,
-                           std::forward<CallbackFunction>(create));
-    auto result = matrix_operator::m_ops.insert({operator_id, std::move(defn)});
-    if (!result.second) {
-      throw std::runtime_error("an matrix operator with name " + operator_id + "is already defined");
-    }
-  }
+  static void define(std::string operator_id, std::vector<int> expected_dimensions,
+                     CallbackFunction &&create);
+
+  // read-only properties
+
+  /// @brief The degrees of freedom that the operator acts on in canonical
+  /// order.
+  const std::vector<int>& degrees() const;
+
+  // constructors and destructors
+
+  // The constructor should never be called directly by the user:
+  // Keeping it internally documented for now, however.
+  /// @brief Constructor.
+  /// @arg operator_id : The ID of the operator as specified when it was
+  /// defined.
+  /// @arg degrees : the degrees of freedom that the operator acts upon.
+  matrix_operator(std::string operator_id, const std::vector<int> &degrees);
+
+  // constructor
+  matrix_operator(std::string operator_id, std::vector<int> &&degrees);
+
+  // copy constructor
+  matrix_operator(const matrix_operator &other);
+
+  // move constructor
+  matrix_operator(matrix_operator &&other);
+
+  ~matrix_operator() = default;
+
+  // assignments
+
+  // assignment operator
+  matrix_operator& operator=(const matrix_operator& other);
+
+  // move assignment operator
+  matrix_operator& operator=(matrix_operator &&other);
+
+  // evaluations
+
+  /// @brief Return the `matrix_operator` as a matrix.
+  /// @arg  `dimensions` : A map specifying the number of levels,
+  ///                      that is, the dimension of each degree of freedom
+  ///                      that the operator acts on. Example for two, 2-level
+  ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
+  matrix_2 to_matrix(std::map<int, int> dimensions = {},
+                     std::map<std::string, std::complex<double>> parameters = {}) const;
+
+  // comparisons
+
+  /// @brief True, if the other value is an elementary operator with the same id
+  /// acting on the same degrees of freedom, and False otherwise.
+  bool operator==(const matrix_operator &other) const;
+
+  // predefined operators
+
+  static product_operator<matrix_operator> identity(int degree);
+  static product_operator<matrix_operator> zero(int degree);
+  static product_operator<matrix_operator> annihilate(int degree);
+  static product_operator<matrix_operator> create(int degree);
+  static product_operator<matrix_operator> momentum(int degree);
+  static product_operator<matrix_operator> number(int degree);
+  static product_operator<matrix_operator> parity(int degree);
+  static product_operator<matrix_operator> position(int degree);
+  /// Operators that accept parameters at runtime.
+  static product_operator<matrix_operator> squeeze(int degree);
+  static product_operator<matrix_operator> displace(int degree);
 };
 
 /// @brief Representation of a time-dependent Hamiltonian for Rydberg system
@@ -681,79 +665,5 @@ template class operator_sum<matrix_operator>;
 extern template class product_operator<matrix_operator>;
 extern template class operator_sum<matrix_operator>;
 #endif
-
-template <typename TEval>
-class OperatorArithmetics {
-public:
-  /// @brief Accesses the relevant data to evaluate an operator expression
-  /// in the leaf nodes, that is in elementary and scalar operators.
-  TEval evaluate(product_operator<matrix_operator> &op);
-
-  /// @brief Adds two operators that act on the same degrees of freedom.
-  TEval add(TEval val1, TEval val2);
-
-  /// @brief Multiplies two operators that act on the same degrees of freedom.
-  TEval mul(TEval val1, TEval val2);
-
-  /// @brief Computes the tensor product of two operators that act on different
-  /// degrees of freedom.
-  TEval tensor(TEval val1, TEval val2);
-};
-
-class EvaluatedMatrix {
-  friend class MatrixArithmetics;
-
-private:
-  std::vector<int> m_degrees;
-  matrix_2 m_matrix;
-
-public:
-  EvaluatedMatrix() = default;
-  EvaluatedMatrix(std::vector<int> degrees, matrix_2 matrix)
-      : m_degrees(degrees), m_matrix(matrix) {}
-
-  /// @brief The degrees of freedom that the matrix of the evaluated value
-  /// applies to.
-  std::vector<int> degrees() { return m_degrees; }
-
-  /// @brief The matrix representation of an evaluated operator, according
-  /// to the sequence of degrees of freedom associated with the evaluated
-  /// value.
-  matrix_2 matrix() { return m_matrix; }
-};
-
-/// Encapsulates the functions needed to compute the matrix representation
-/// of an operator expression.
-class MatrixArithmetics : public OperatorArithmetics<EvaluatedMatrix> {
-private:
-  std::vector<int> _compute_permutation(std::vector<int> op_degrees,
-                                        std::vector<int> canon_degrees);
-  std::tuple<matrix_2, std::vector<int>>
-  _canonicalize(matrix_2 &op_matrix, std::vector<int> op_degrees);
-
-public:
-  std::map<int, int> &m_dimensions; // fixme: make const
-  std::map<std::string, std::complex<double>>
-      &m_parameters; // fixme: make const
-
-  MatrixArithmetics(std::map<int, int> dimensions,
-                    std::map<std::string, std::complex<double>> parameters)
-      : m_dimensions(dimensions), m_parameters(parameters) {}
-
-  // Computes the tensor product of two evaluate operators that act on
-  // different degrees of freedom using the kronecker product.
-  EvaluatedMatrix tensor(EvaluatedMatrix op1, EvaluatedMatrix op2);
-  // Multiplies two evaluated operators that act on the same degrees
-  // of freedom.
-  EvaluatedMatrix mul(EvaluatedMatrix op1, EvaluatedMatrix op2);
-  // Adds two evaluated operators that act on the same degrees
-  // of freedom.
-  EvaluatedMatrix add(EvaluatedMatrix op1, EvaluatedMatrix op2);
-  // Computes the matrix of an ElementaryOperator or ScalarOperator using its
-  // `to_matrix` method.
-  EvaluatedMatrix evaluate(std::variant<scalar_operator, matrix_operator,
-                                        product_operator<matrix_operator>>
-                               op);
-};
 
 } // namespace cudaq

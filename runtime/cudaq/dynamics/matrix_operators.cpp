@@ -14,7 +14,84 @@
 
 namespace cudaq {
 
+// tools for custom operators
+
 std::map<std::string, Definition> matrix_operator::m_ops = {};
+
+void matrix_operator::define(std::string operator_id, std::vector<int> expected_dimensions,
+            CallbackFunction &&create) {
+  auto defn = Definition(operator_id, expected_dimensions, std::forward<CallbackFunction>(create));
+  auto result = matrix_operator::m_ops.insert({operator_id, std::move(defn)});
+  if (!result.second) {
+    throw std::runtime_error("an matrix operator with name " + operator_id + "is already defined");
+  }
+}
+
+// read-only properties
+
+const std::vector<int>& matrix_operator::degrees() const {
+  return this->targets;
+}
+
+// constructors
+
+matrix_operator::matrix_operator(std::string operator_id, const std::vector<int> &degrees)
+  : id(operator_id), targets(degrees) {}
+
+matrix_operator::matrix_operator(std::string operator_id, std::vector<int> &&degrees)
+  : id(operator_id), targets(std::move(degrees)) {}
+
+matrix_operator::matrix_operator(const matrix_operator &other)
+  : targets(other.targets), id(other.id) {}
+
+matrix_operator::matrix_operator(matrix_operator &&other) 
+  : targets(std::move(other.targets)), id(other.id) {}
+
+// assignments
+
+matrix_operator& matrix_operator::operator=(const matrix_operator& other) {
+  if (this != &other) {
+    this->targets = other.targets;
+    this->id = other.id;
+  }
+  return *this;
+}
+
+matrix_operator& matrix_operator::operator=(matrix_operator &&other) {
+  if (this != &other) {
+    this->targets = std::move(other.targets);
+    this->id = other.id;  
+  }
+  return *this;
+}
+
+// evaluations
+
+matrix_2 matrix_operator::to_matrix(
+    std::map<int, int> dimensions,
+    std::map<std::string, std::complex<double>> parameters) const {
+  auto it = matrix_operator::m_ops.find(this->id);
+  if (it != matrix_operator::m_ops.end()) {
+      std::vector<int> relevant_dimensions;
+      relevant_dimensions.reserve(this->targets.size());
+      for (auto d : this->targets) {
+        auto entry = dimensions.find(d);
+        if (entry == dimensions.end())
+            throw std::runtime_error("missing dimension for degree " + std::to_string(d));
+        relevant_dimensions.push_back(entry->second);
+      }
+      return it->second.generate_matrix(relevant_dimensions, parameters);
+  }
+  throw std::range_error("unable to find operator");
+}
+
+// comparisons
+
+bool matrix_operator::operator==(const matrix_operator &other) const {
+  return this->id == other.id && this->targets == other.targets;
+}
+
+// predefined operators
 
 product_operator<matrix_operator> matrix_operator::identity(int degree) {
   std::string op_id = "identity";
@@ -225,22 +302,6 @@ product_operator<matrix_operator> matrix_operator::squeeze(int degree) {
   return product_operator<matrix_operator>(1., op);
 }
 
-matrix_2 matrix_operator::to_matrix(
-    std::map<int, int> dimensions,
-    std::map<std::string, std::complex<double>> parameters) const {
-  auto it = matrix_operator::m_ops.find(this->id);
-  if (it != matrix_operator::m_ops.end()) {
-      std::vector<int> relevant_dimensions;
-      relevant_dimensions.reserve(this->degrees.size());
-      for (auto d : this->degrees) {
-        auto entry = dimensions.find(d);
-        if (entry == dimensions.end())
-            throw std::runtime_error("missing dimension for degree " + std::to_string(d));
-        relevant_dimensions.push_back(entry->second);
-      }
-      return it->second.generate_matrix(relevant_dimensions, parameters);
-  }
-  throw std::range_error("unable to find operator");
-}
+// tools for custom operators
 
 } // namespace cudaq

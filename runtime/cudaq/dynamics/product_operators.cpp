@@ -8,6 +8,8 @@
 
 #include "cudaq/helpers.h"
 #include "cudaq/operators.h"
+#include "helpers.h"
+#include "manipulation.h"
 
 #include <algorithm>
 #include <iostream>
@@ -43,38 +45,36 @@ product_operator<HandlerTy>::m_evaluate(MatrixArithmetics arithmetics,
                       std::map<std::string, std::complex<double>> parameters) {
     std::vector<EvaluatedMatrix> padded;
     for (const auto &degree : degrees) {
-      if (std::find(op.degrees.begin(), op.degrees.end(), degree) == op.degrees.end()) {
+      if (std::find(op.degrees().begin(), op.degrees().end(), degree) == op.degrees().end()) {
         padded.push_back(EvaluatedMatrix({degree}, matrix_operator::identity(degree).to_matrix(dimensions)));
       }
     }
     /// Creating the tensor product with op being last is most efficient.
     if (padded.size() == 0)
-      return EvaluatedMatrix(op.degrees, op.to_matrix(dimensions, parameters));
-    EvaluatedMatrix ids = padded[0];
+      return EvaluatedMatrix(op.degrees(), op.to_matrix(dimensions, parameters));
+    EvaluatedMatrix ids(std::move(padded[0]));
     for (auto i = 1; i < padded.size(); ++i)
-      ids = arithmetics.tensor(ids, padded[i]);
-    return arithmetics.tensor(ids, EvaluatedMatrix(op.degrees, op.to_matrix(dimensions, parameters)));
+      ids = arithmetics.tensor(std::move(ids), std::move(padded[i]));
+    return arithmetics.tensor(std::move(ids), EvaluatedMatrix(op.degrees(), op.to_matrix(dimensions, parameters)));
   };
 
   if (terms.size() > 0) {
     if (pad_terms) {
-      auto evaluated = padded_op(arithmetics, terms[0], degrees, arithmetics.m_dimensions, arithmetics.m_parameters);
+      EvaluatedMatrix evaluated(padded_op(arithmetics, terms[0], degrees, arithmetics.m_dimensions, arithmetics.m_parameters));
       for (auto op_idx = 1; op_idx < terms.size(); ++op_idx) {
         const HandlerTy &op = terms[op_idx];
-        if (op.degrees.size() != 1 || op != cudaq::matrix_operator("identity", op.degrees)) {
+        if (op.degrees().size() != 1 || op != cudaq::matrix_operator("identity", op.degrees())) {
           auto padded = padded_op(arithmetics, op, degrees, arithmetics.m_dimensions, arithmetics.m_parameters);
-          evaluated = arithmetics.mul(evaluated, padded);
+          evaluated = arithmetics.mul(std::move(evaluated), std::move(padded));
         }
       }
       result = evaluated.matrix();
     } else {
-      auto evaluated = arithmetics.evaluate(terms[0]);
+      EvaluatedMatrix evaluated(terms[0].degrees(), terms[0].to_matrix(arithmetics.m_dimensions, arithmetics.m_parameters));
       for (auto op_idx = 1; op_idx < terms.size(); ++op_idx) {
         auto &op = terms[op_idx];
-        auto mat =
-            op.to_matrix(arithmetics.m_dimensions, arithmetics.m_parameters);
-        evaluated =
-            arithmetics.mul(evaluated, EvaluatedMatrix(op.degrees, mat));
+        auto mat = op.to_matrix(arithmetics.m_dimensions, arithmetics.m_parameters);
+        evaluated = arithmetics.mul(std::move(evaluated), EvaluatedMatrix(op.degrees(), mat));
       }
       result = evaluated.matrix();
     }
@@ -105,7 +105,7 @@ template <typename HandlerTy>
 std::vector<int> product_operator<HandlerTy>::degrees() const {
   std::set<int> unsorted_degrees;
   for (const HandlerTy &term : this->terms[0]) {
-    unsorted_degrees.insert(term.degrees.begin(), term.degrees.end());
+    unsorted_degrees.insert(term.degrees().begin(), term.degrees().end());
   }
   auto degrees =
       std::vector<int>(unsorted_degrees.begin(), unsorted_degrees.end());
