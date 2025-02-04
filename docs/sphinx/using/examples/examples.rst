@@ -1,6 +1,8 @@
 *************************
 CUDA-Q by Example
 *************************
+.. _examples:
+
 
 Examples that illustrate how to use CUDA-Q for application development are available in C++ and Python.
 
@@ -10,11 +12,9 @@ Examples that illustrate how to use CUDA-Q for application development are avail
       Introduction <introduction.rst>
       Building Kernels <building_kernels.rst>
       Quantum Operations <quantum_operations.rst>
-      Photonic Operations <photonic_operations.rst>
       Measuring Kernels <../../examples/python/measuring_kernels.ipynb>
       Visualizing Kernels <../../examples/python/visualization.ipynb>
       Executing Kernels <../../examples/python/executing_kernels.ipynb>
-      Executing Photonic Kernels <../../examples/python/executing_photonic_kernels.ipynb>
       Computing Expectation Values <expectation_values.rst>
       Multi-Control Synthesis <multi_control.rst>
       Multi-GPU Workflows <multi_gpu_workflows.rst>

@@ -84,11 +84,13 @@ POSIX
 PSIRT
 Pauli
 Paulis
+Photonic
 Photonics
 PyPI
 Pygments
 QAOA
 QCaaS
+QEC
 QIR
 QIS
 QPP
@@ -109,6 +111,7 @@ SLED
 SLES
 SLURM
 SVD
+Sqale
 Stim
 Superpositions
 Superstaq
@@ -260,6 +263,7 @@ parallelizing
 parameterization
 performant
 photonic
+photonics
 precompute
 precomputed
 prepend

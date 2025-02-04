@@ -87,7 +87,7 @@ The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/r
 
 **0.7.0**
 
-The 0.7.0 release adds support for using :doc:`NVIDIA Quantum Cloud <using/backends/nvqc>`,
+The 0.7.0 release adds support for using :doc:`NVIDIA Quantum Cloud <using/backends/cloud/nvqc>`,
 giving you access to our most powerful GPU-accelerated simulators even if you don't have an NVIDIA GPU.
 With 0.7.0, we have furthermore greatly increased expressiveness of the Python and C++ language frontends. 
 Check out our `documentation <https://nvidia.github.io/cuda-quantum/0.7.0/using/quick_start.html>`__ 
