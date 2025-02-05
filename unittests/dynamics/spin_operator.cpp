@@ -11,6 +11,11 @@
 #include <gtest/gtest.h>
 #include "cudaq/dynamics/spin_operators.h"
 
+TEST(OperatorExpressions, checkSpinOpsUnary) {
+  auto op = cudaq::spin_operator::x(0);
+  utils::checkEqual((-op).to_matrix(), -1.0 * utils::PauliX_matrix());
+}
+
 TEST(OperatorExpressions, checkPreBuiltSpinOps) {
 
   // Keeping this fixed throughout.
@@ -48,9 +53,305 @@ TEST(OperatorExpressions, checkPreBuiltSpinOps) {
   {
     auto op = cudaq::spin_operator::y(degree_index);
     auto got = op.to_matrix();
-    auto want = 1.0j * utils::PauliX_matrix() * utils::PauliZ_matrix();
+    auto want = utils::PauliY_matrix();
     utils::checkEqual(want, got);
     utils::checkEqual(id, (op * op).to_matrix());
   }
 }
 
+TEST(OperatorExpressions, checkSpinOpsWithComplex) {
+  std::complex<double> value = 0.125 + 0.125j;
+
+  // `spin_operator` + `complex<double>` and `complex<double>` +
+  // `spin_operator`
+  {
+    auto elementary = cudaq::spin_operator::y(0);
+
+    auto sum = value + elementary;
+    auto reverse = elementary + value;
+
+    auto got_matrix = sum.to_matrix();
+    auto got_matrix_reverse = reverse.to_matrix();
+
+    auto scaled_identity = value * utils::id_matrix(2);
+    auto want_matrix = scaled_identity + utils::PauliY_matrix();
+    auto want_matrix_reverse = utils::PauliY_matrix() + scaled_identity;
+
+    utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+  }
+
+  // `spin_operator` - `complex<double>` and `complex<double>` - `spin_operator`
+  {
+    auto elementary = cudaq::spin_operator::x(0);
+
+    auto difference = value - elementary;
+    auto reverse = elementary - value;
+
+    auto got_matrix = difference.to_matrix();
+    auto got_matrix_reverse = reverse.to_matrix();
+
+    auto scaled_identity = value * utils::id_matrix(2);
+    auto want_matrix = scaled_identity - utils::PauliX_matrix();
+    auto want_matrix_reverse = utils::PauliX_matrix() - scaled_identity;
+
+    utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+  }
+
+  // `spin_operator` * `complex<double>` and `complex<double>` *
+  // `spin_operator`
+  {
+    auto elementary = cudaq::spin_operator::z(0);
+
+    auto product = value * elementary;
+    auto reverse = elementary * value;
+
+    auto got_matrix = product.to_matrix();
+    auto got_matrix_reverse = reverse.to_matrix();
+
+    auto scaled_identity = value * utils::id_matrix(2);
+    auto want_matrix = scaled_identity * utils::PauliZ_matrix();
+    auto want_matrix_reverse = utils::PauliZ_matrix() * scaled_identity;
+
+    utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+  }
+}
+
+TEST(OperatorExpressions, checkSpinOpsWithScalars) {
+
+  auto function = [](std::map<std::string, std::complex<double>> parameters) {
+    return parameters["value"];
+  };
+
+  /// Keeping these fixed for these more simple tests.
+  int degree_index = 0;
+  double const_scale_factor = 2.0;
+
+  // `spin_operator + scalar_operator`
+  {
+    auto self = cudaq::spin_operator::x(0);
+    auto other = cudaq::scalar_operator(const_scale_factor);
+
+    auto sum = self + other;
+    auto reverse = other + self;
+
+    ASSERT_TRUE(sum.n_terms() == 2);
+    ASSERT_TRUE(reverse.n_terms() == 2);
+
+    auto scaled_identity = const_scale_factor * utils::id_matrix(2);
+    auto got_matrix = sum.to_matrix();
+    auto got_reverse_matrix = reverse.to_matrix();
+    auto want_matrix = utils::PauliX_matrix() + scaled_identity;
+    auto want_reverse_matrix = scaled_identity + utils::PauliX_matrix();
+    utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+  }
+
+  // `spin_operator + scalar_operator`
+  {
+    auto self = cudaq::spin_operator::y(0);
+    auto other = cudaq::scalar_operator(function);
+
+    auto sum = self + other;
+    auto reverse = other + self;
+
+    ASSERT_TRUE(sum.n_terms() == 2);
+    ASSERT_TRUE(reverse.n_terms() == 2);
+
+    auto scaled_identity = const_scale_factor * utils::id_matrix(2);
+    auto got_matrix = sum.to_matrix({}, {{"value", const_scale_factor}});
+     auto got_reverse_matrix = reverse.to_matrix({}, {{"value", const_scale_factor}});
+    auto want_matrix = utils::PauliY_matrix() + scaled_identity;
+    auto want_reverse_matrix = scaled_identity + utils::PauliY_matrix();
+    utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+  }
+
+  // `spin_operator - scalar_operator`
+  {
+    auto self = cudaq::spin_operator::i(0);
+    auto other = cudaq::scalar_operator(const_scale_factor);
+
+    auto sum = self - other;
+    auto reverse = other - self;
+
+    ASSERT_TRUE(sum.n_terms() == 2);
+    ASSERT_TRUE(reverse.n_terms() == 2);
+
+    auto scaled_identity = const_scale_factor * utils::id_matrix(2);
+    auto got_matrix = sum.to_matrix();
+    auto got_reverse_matrix = reverse.to_matrix();
+    auto want_matrix = utils::id_matrix(2) - scaled_identity;
+    auto want_reverse_matrix = scaled_identity - utils::id_matrix(2);
+    utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+  }
+
+  // `spin_operator - scalar_operator`
+  {
+    auto self = cudaq::spin_operator::z(0);
+    auto other = cudaq::scalar_operator(function);
+
+    auto sum = self - other;
+    auto reverse = other - self;
+
+    ASSERT_TRUE(sum.n_terms() == 2);
+    ASSERT_TRUE(reverse.n_terms() == 2);
+
+    auto scaled_identity = const_scale_factor * utils::id_matrix(2);
+    auto got_matrix = sum.to_matrix({}, {{"value", const_scale_factor}});
+    auto got_reverse_matrix = reverse.to_matrix({}, {{"value", const_scale_factor}}); 
+    auto want_matrix = utils::PauliZ_matrix() - scaled_identity;
+    auto want_reverse_matrix = scaled_identity - utils::PauliZ_matrix();
+    utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+  }
+
+  // `spin_operator * scalar_operator`
+  {
+    auto self = cudaq::spin_operator::y(0);
+    auto other = cudaq::scalar_operator(const_scale_factor);
+
+    auto product = self * other;
+    auto reverse = other * self;
+
+    std::vector<int> want_degrees = {0};
+    ASSERT_TRUE(product.degrees() == want_degrees);
+    ASSERT_TRUE(reverse.degrees() == want_degrees);
+
+    auto scaled_identity = const_scale_factor * utils::id_matrix(2);
+    auto got_matrix = product.to_matrix();
+    auto got_reverse_matrix = reverse.to_matrix();
+    auto want_matrix = utils::PauliY_matrix() * scaled_identity;
+    auto want_reverse_matrix = scaled_identity * utils::PauliY_matrix();
+    utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+  }
+
+  // `spin_operator * scalar_operator`
+  {
+    auto self = cudaq::spin_operator::z(0);
+    auto other = cudaq::scalar_operator(function);
+
+    auto product = self * other;
+    auto reverse = other * self;
+
+    std::vector<int> want_degrees = {0};
+    ASSERT_TRUE(product.degrees() == want_degrees);
+    ASSERT_TRUE(reverse.degrees() == want_degrees);
+
+    auto scaled_identity = const_scale_factor * utils::id_matrix(2);
+    auto got_matrix = product.to_matrix({}, {{"value", const_scale_factor}});
+    auto got_reverse_matrix = reverse.to_matrix({}, {{"value", const_scale_factor}});
+    auto want_matrix = utils::PauliZ_matrix() * scaled_identity;
+    auto want_reverse_matrix = scaled_identity * utils::PauliZ_matrix();
+    utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+  }
+}
+
+TEST(OperatorExpressions, checkSpinOpsSimpleArithmetics) {
+
+  // Addition, same DOF.
+  {
+    auto self = cudaq::spin_operator::x(0);
+    auto other = cudaq::spin_operator::y(0);
+
+    auto sum = self + other;
+    ASSERT_TRUE(sum.n_terms() == 2);
+
+    auto got_matrix = sum.to_matrix();
+    auto want_matrix = utils::PauliX_matrix() +
+                       utils::PauliY_matrix();
+    utils::checkEqual(want_matrix, got_matrix);
+  }
+
+  // Addition, different DOF's.
+  {
+    auto self = cudaq::spin_operator::z(0);
+    auto other = cudaq::spin_operator::y(1);
+
+    auto sum = self + other;
+    ASSERT_TRUE(sum.n_terms() == 2);
+
+    auto matrix_self = cudaq::kronecker(utils::id_matrix(2),
+                                        utils::PauliZ_matrix());
+    auto matrix_other = cudaq::kronecker(utils::PauliY_matrix(),
+                                         utils::id_matrix(2));
+    auto got_matrix = sum.to_matrix();
+    auto want_matrix = matrix_self + matrix_other;
+    utils::checkEqual(want_matrix, got_matrix);
+  }
+
+  // Subtraction, same DOF.
+  {
+    auto self = cudaq::spin_operator::z(0);
+    auto other = cudaq::spin_operator::x(0);
+
+    auto sum = self - other;
+    ASSERT_TRUE(sum.n_terms() == 2);
+
+    auto got_matrix = sum.to_matrix();
+    auto want_matrix = utils::PauliZ_matrix() -
+                       utils::PauliX_matrix();
+    utils::checkEqual(want_matrix, got_matrix);
+  }
+
+  // Subtraction, different DOF's.
+  {
+    auto self = cudaq::spin_operator::y(0);
+    auto other = cudaq::spin_operator::x(1);
+
+    auto sum = self - other;
+    ASSERT_TRUE(sum.n_terms() == 2);
+
+    auto annihilate_full =
+        cudaq::kronecker(utils::id_matrix(2),
+                         utils::PauliY_matrix());
+    auto create_full = cudaq::kronecker(utils::PauliX_matrix(),
+                                        utils::id_matrix(2));
+    auto got_matrix = sum.to_matrix();
+    auto want_matrix = annihilate_full - create_full;
+    utils::checkEqual(want_matrix, got_matrix);
+  }
+
+  // Multiplication, same DOF.
+  {
+    auto self = cudaq::spin_operator::y(0);
+    auto other = cudaq::spin_operator::z(0);
+
+    auto product = self * other;
+    ASSERT_TRUE(product.n_terms() == 2);
+
+    std::vector<int> want_degrees = {0};
+    ASSERT_TRUE(product.degrees() == want_degrees);
+
+    auto got_matrix = product.to_matrix();
+    auto want_matrix = utils::PauliY_matrix() *
+                       utils::PauliZ_matrix();
+    utils::checkEqual(want_matrix, got_matrix);
+  }
+
+  // Multiplication, different DOF's.
+  {
+    auto self = cudaq::spin_operator::x(0);
+    auto other = cudaq::spin_operator::z(1);
+
+    auto product = self * other;
+    ASSERT_TRUE(product.n_terms() == 2);
+
+    std::vector<int> want_degrees = {1, 0};
+    ASSERT_TRUE(product.degrees() == want_degrees);
+
+    auto annihilate_full =
+        cudaq::kronecker(utils::id_matrix(2),
+                         utils::PauliX_matrix());
+    auto create_full = cudaq::kronecker(utils::PauliZ_matrix(),
+                                        utils::id_matrix(2));
+    auto got_matrix = product.to_matrix();
+    auto want_matrix = annihilate_full * create_full;
+    utils::checkEqual(want_matrix, got_matrix);
+  }
+}
