@@ -58,7 +58,9 @@ public:
 
   /// @brief The degrees of freedom that the operator acts on in canonical
   /// order.
-  virtual const std::vector<int>& degrees() const;
+  virtual std::vector<int> degrees() const;
+
+  virtual bool is_identity() const;
 
   // constructors and destructors
 
@@ -108,7 +110,6 @@ public:
   // predefined operators
 
   static product_operator<matrix_operator> identity(int degree);
-  static product_operator<matrix_operator> zero(int degree);
   static product_operator<matrix_operator> annihilate(int degree);
   static product_operator<matrix_operator> create(int degree);
   static product_operator<matrix_operator> momentum(int degree);

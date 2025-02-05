@@ -6,119 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "utils.h"
 #include "cudaq/operators.h"
-#include "cudaq/dynamics/matrix_operators.h"
 #include <gtest/gtest.h>
 
 #include <numeric>
-
-namespace utils_1 {
-void checkEqual(cudaq::matrix_2 a, cudaq::matrix_2 b) {
-  ASSERT_EQ(a.get_rank(), b.get_rank());
-  ASSERT_EQ(a.get_rows(), b.get_rows());
-  ASSERT_EQ(a.get_columns(), b.get_columns());
-  ASSERT_EQ(a.get_size(), b.get_size());
-  for (std::size_t i = 0; i < a.get_rows(); i++) {
-    for (std::size_t j = 0; j < a.get_columns(); j++) {
-      double a_real = a[{i, j}].real();
-      double b_real = b[{i, j}].real();
-      EXPECT_NEAR(a_real, b_real, 1e-8);
-      double a_imag = a[{i, j}].imag();
-      double b_imag = b[{i, j}].imag();
-      EXPECT_NEAR(a_imag, b_imag, 1e-8);
-    }
-  }
-}
-
-cudaq::matrix_2 zero_matrix(std::size_t size) {
-  auto mat = cudaq::matrix_2(size, size);
-  return mat;
-}
-
-cudaq::matrix_2 id_matrix(std::size_t size) {
-  auto mat = cudaq::matrix_2(size, size);
-  for (std::size_t i = 0; i < size; i++)
-    mat[{i, i}] = 1.0 + 0.0j;
-  return mat;
-}
-
-cudaq::matrix_2 annihilate_matrix(std::size_t size) {
-  auto mat = cudaq::matrix_2(size, size);
-  for (std::size_t i = 0; i + 1 < size; i++)
-    mat[{i, i + 1}] = std::sqrt(static_cast<double>(i + 1)) + 0.0 * 'j';
-  return mat;
-}
-
-cudaq::matrix_2 create_matrix(std::size_t size) {
-  auto mat = cudaq::matrix_2(size, size);
-  for (std::size_t i = 0; i + 1 < size; i++)
-    mat[{i + 1, i}] = std::sqrt(static_cast<double>(i + 1)) + 0.0 * 'j';
-  return mat;
-}
-
-cudaq::matrix_2 position_matrix(std::size_t size) {
-  auto mat = cudaq::matrix_2(size, size);
-  for (std::size_t i = 0; i + 1 < size; i++) {
-    mat[{i + 1, i}] = 0.5 * std::sqrt(static_cast<double>(i + 1)) + 0.0 * 'j';
-    mat[{i, i + 1}] = 0.5 * std::sqrt(static_cast<double>(i + 1)) + 0.0 * 'j';
-  }
-  return mat;
-}
-
-cudaq::matrix_2 momentum_matrix(std::size_t size) {
-  auto mat = cudaq::matrix_2(size, size);
-  for (std::size_t i = 0; i + 1 < size; i++) {
-    mat[{i + 1, i}] =
-        (0.5j) * std::sqrt(static_cast<double>(i + 1)) + 0.0 * 'j';
-    mat[{i, i + 1}] =
-        -1. * (0.5j) * std::sqrt(static_cast<double>(i + 1)) + 0.0 * 'j';
-  }
-  return mat;
-}
-
-cudaq::matrix_2 number_matrix(std::size_t size) {
-  auto mat = cudaq::matrix_2(size, size);
-  for (std::size_t i = 0; i < size; i++)
-    mat[{i, i}] = static_cast<double>(i) + 0.0j;
-  return mat;
-}
-
-cudaq::matrix_2 parity_matrix(std::size_t size) {
-  auto mat = cudaq::matrix_2(size, size);
-  for (std::size_t i = 0; i < size; i++)
-    mat[{i, i}] = std::pow(-1., static_cast<double>(i)) + 0.0j;
-  return mat;
-}
-
-cudaq::matrix_2 displace_matrix(std::size_t size,
-                                std::complex<double> amplitude) {
-  auto term1 = amplitude * create_matrix(size);
-  auto term2 = std::conj(amplitude) * annihilate_matrix(size);
-  auto difference = term1 - term2;
-  return difference.exponential();
-}
-
-cudaq::matrix_2 squeeze_matrix(std::size_t size,
-                               std::complex<double> amplitude) {
-  auto term1 = std::conj(amplitude) * annihilate_matrix(size).power(2);
-  auto term2 = amplitude * create_matrix(size).power(2);
-  auto difference = 0.5 * (term1 - term2);
-  return difference.exponential();
-}
-
-void assert_product_equal(
-    const cudaq::product_operator<cudaq::matrix_operator> &got,
-    const std::complex<double> &expected_coefficient,
-    const std::vector<cudaq::matrix_operator> &expected_terms) {
-
-  auto sumterms_prod =
-      ((const cudaq::operator_sum<cudaq::matrix_operator> &)got).get_terms();
-  ASSERT_TRUE(sumterms_prod.size() == 1);
-  ASSERT_TRUE(got.get_coefficient().evaluate() == expected_coefficient);
-  ASSERT_TRUE(got.get_terms() == expected_terms);
-}
-
-} // namespace utils_1
 
 TEST(OperatorExpressions, checkProductOperatorSimpleMatrixChecks) {
   std::vector<int> levels = {2, 3, 4};
@@ -131,16 +23,13 @@ TEST(OperatorExpressions, checkProductOperatorSimpleMatrixChecks) {
         auto op1 = cudaq::matrix_operator::create(0);
 
         cudaq::product_operator got = op0 * op1;
-        utils_1::assert_product_equal(
-            got, 1.,
-            {cudaq::matrix_operator("annihilate", {0}),
-             cudaq::matrix_operator("create", {0})});
+        utils::assert_product_equal(got, 1., {cudaq::matrix_operator("annihilate", {0}), cudaq::matrix_operator("create", {0})});
 
         auto got_matrix = got.to_matrix({{0, level_count}});
-        auto matrix0 = utils_1::annihilate_matrix(level_count);
-        auto matrix1 = utils_1::create_matrix(level_count);
+        auto matrix0 = utils::annihilate_matrix(level_count);
+        auto matrix1 = utils::create_matrix(level_count);
         auto want_matrix = matrix0 * matrix1;
-        utils_1::checkEqual(want_matrix, got_matrix);
+        utils::checkEqual(want_matrix, got_matrix);
 
         std::vector<int> want_degrees = {0};
         ASSERT_TRUE(got.degrees() == want_degrees);
@@ -164,17 +53,17 @@ TEST(OperatorExpressions, checkProductOperatorSimpleMatrixChecks) {
         auto got_matrix_reverse =
             got_reverse.to_matrix({{0, level_count}, {1, level_count}});
 
-        auto identity = utils_1::id_matrix(level_count);
-        auto matrix0 = utils_1::annihilate_matrix(level_count);
-        auto matrix1 = utils_1::create_matrix(level_count);
+        auto identity = utils::id_matrix(level_count);
+        auto matrix0 = utils::annihilate_matrix(level_count);
+        auto matrix1 = utils::create_matrix(level_count);
 
         auto fullHilbert0 = cudaq::kronecker(identity, matrix0);
         auto fullHilbert1 = cudaq::kronecker(matrix1, identity);
         auto want_matrix = fullHilbert0 * fullHilbert1;
         auto want_matrix_reverse = fullHilbert1 * fullHilbert0;
 
-        utils_1::checkEqual(want_matrix, got_matrix);
-        utils_1::checkEqual(want_matrix_reverse, got_matrix_reverse);
+        utils::checkEqual(want_matrix, got_matrix);
+        utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
       }
     }
 
@@ -196,17 +85,17 @@ TEST(OperatorExpressions, checkProductOperatorSimpleMatrixChecks) {
         auto got_matrix_reverse =
             got_reverse.to_matrix({{0, level_count}, {2, level_count}});
 
-        auto identity = utils_1::id_matrix(level_count);
-        auto matrix0 = utils_1::annihilate_matrix(level_count);
-        auto matrix1 = utils_1::create_matrix(level_count);
+        auto identity = utils::id_matrix(level_count);
+        auto matrix0 = utils::annihilate_matrix(level_count);
+        auto matrix1 = utils::create_matrix(level_count);
 
         auto fullHilbert0 = cudaq::kronecker(identity, matrix0);
         auto fullHilbert1 = cudaq::kronecker(matrix1, identity);
         auto want_matrix = fullHilbert0 * fullHilbert1;
         auto want_matrix_reverse = fullHilbert1 * fullHilbert0;
 
-        utils_1::checkEqual(want_matrix, got_matrix);
-        utils_1::checkEqual(want_matrix_reverse, got_matrix_reverse);
+        utils::checkEqual(want_matrix, got_matrix);
+        utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
       }
     }
 
@@ -229,9 +118,9 @@ TEST(OperatorExpressions, checkProductOperatorSimpleMatrixChecks) {
         auto got_matrix_reverse = got_reverse.to_matrix(
             {{0, level_count}, {1, level_count}, {2, level_count}});
 
-        auto identity = utils_1::id_matrix(level_count);
-        auto matrix0 = utils_1::annihilate_matrix(level_count);
-        auto matrix1 = utils_1::create_matrix(level_count);
+        auto identity = utils::id_matrix(level_count);
+        auto matrix0 = utils::annihilate_matrix(level_count);
+        auto matrix1 = utils::create_matrix(level_count);
 
         std::vector<cudaq::matrix_2> matrices_0;
         std::vector<cudaq::matrix_2> matrices_1;
@@ -245,8 +134,8 @@ TEST(OperatorExpressions, checkProductOperatorSimpleMatrixChecks) {
         auto want_matrix = fullHilbert0 * fullHilbert1;
         auto want_matrix_reverse = fullHilbert1 * fullHilbert0;
 
-        utils_1::checkEqual(want_matrix, got_matrix);
-        utils_1::checkEqual(got_matrix, want_matrix);
+        utils::checkEqual(want_matrix, got_matrix);
+        utils::checkEqual(got_matrix, want_matrix);
       }
     }
   }
@@ -319,19 +208,18 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     auto got_matrix_reverse =
         reverse.to_matrix({{0, level_count}, {1, level_count}});
 
-    auto term_0 = cudaq::kronecker(utils_1::id_matrix(level_count),
-                                   utils_1::annihilate_matrix(level_count));
-    auto term_1 = cudaq::kronecker(utils_1::annihilate_matrix(level_count),
-                                   utils_1::id_matrix(level_count));
+    auto term_0 = cudaq::kronecker(utils::id_matrix(level_count),
+                                   utils::annihilate_matrix(level_count));
+    auto term_1 = cudaq::kronecker(utils::annihilate_matrix(level_count),
+                                   utils::id_matrix(level_count));
     auto product = term_0 * term_1;
-    auto scaled_identity =
-        value_0 * utils_1::id_matrix(level_count * level_count);
+    auto scaled_identity = value_0 * utils::id_matrix(level_count * level_count);
 
     auto want_matrix = scaled_identity + product;
     auto want_matrix_reverse = product + scaled_identity;
 
-    utils_1::checkEqual(want_matrix, got_matrix);
-    utils_1::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
   /// `product_operator + double`
@@ -353,18 +241,18 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     auto got_matrix_reverse =
         reverse.to_matrix({{0, level_count}, {1, level_count}});
 
-    auto term_0 = cudaq::kronecker(utils_1::id_matrix(level_count),
-                                   utils_1::annihilate_matrix(level_count));
-    auto term_1 = cudaq::kronecker(utils_1::annihilate_matrix(level_count),
-                                   utils_1::id_matrix(level_count));
+    auto term_0 = cudaq::kronecker(utils::id_matrix(level_count),
+                                   utils::annihilate_matrix(level_count));
+    auto term_1 = cudaq::kronecker(utils::annihilate_matrix(level_count),
+                                   utils::id_matrix(level_count));
     auto product = term_0 * term_1;
-    auto scaled_identity = 2.0 * utils_1::id_matrix(level_count * level_count);
+    auto scaled_identity = 2.0 * utils::id_matrix(level_count * level_count);
 
     auto want_matrix = scaled_identity + product;
     auto want_matrix_reverse = product + scaled_identity;
 
-    utils_1::checkEqual(want_matrix, got_matrix);
-    utils_1::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
   /// `product_operator + scalar_operator`
@@ -387,19 +275,19 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     auto got_matrix_reverse =
         reverse.to_matrix({{0, level_count}, {1, level_count}});
 
-    auto term_0 = cudaq::kronecker(utils_1::id_matrix(level_count),
-                                   utils_1::annihilate_matrix(level_count));
-    auto term_1 = cudaq::kronecker(utils_1::annihilate_matrix(level_count),
-                                   utils_1::id_matrix(level_count));
+    auto term_0 = cudaq::kronecker(utils::id_matrix(level_count),
+                                   utils::annihilate_matrix(level_count));
+    auto term_1 = cudaq::kronecker(utils::annihilate_matrix(level_count),
+                                   utils::id_matrix(level_count));
     auto product = term_0 * term_1;
     auto scaled_identity =
-        value_0 * utils_1::id_matrix(level_count * level_count);
+        value_0 * utils::id_matrix(level_count * level_count);
 
     auto want_matrix = scaled_identity + product;
     auto want_matrix_reverse = product + scaled_identity;
 
-    utils_1::checkEqual(want_matrix, got_matrix);
-    utils_1::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
   /// `product_operator - complex<double>`
@@ -422,19 +310,19 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     auto got_matrix_reverse =
         reverse.to_matrix({{0, level_count}, {1, level_count}});
 
-    auto term_0 = cudaq::kronecker(utils_1::id_matrix(level_count),
-                                   utils_1::annihilate_matrix(level_count));
-    auto term_1 = cudaq::kronecker(utils_1::annihilate_matrix(level_count),
-                                   utils_1::id_matrix(level_count));
+    auto term_0 = cudaq::kronecker(utils::id_matrix(level_count),
+                                   utils::annihilate_matrix(level_count));
+    auto term_1 = cudaq::kronecker(utils::annihilate_matrix(level_count),
+                                   utils::id_matrix(level_count));
     auto product = term_0 * term_1;
     auto scaled_identity =
-        value_0 * utils_1::id_matrix(level_count * level_count);
+        value_0 * utils::id_matrix(level_count * level_count);
 
     auto want_matrix = scaled_identity - product;
     auto want_matrix_reverse = product - scaled_identity;
 
-    utils_1::checkEqual(want_matrix, got_matrix);
-    utils_1::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
   /// `product_operator - double`
@@ -457,18 +345,18 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     auto got_matrix_reverse =
         reverse.to_matrix({{0, level_count}, {1, level_count}});
 
-    auto term_0 = cudaq::kronecker(utils_1::id_matrix(level_count),
-                                   utils_1::annihilate_matrix(level_count));
-    auto term_1 = cudaq::kronecker(utils_1::annihilate_matrix(level_count),
-                                   utils_1::id_matrix(level_count));
+    auto term_0 = cudaq::kronecker(utils::id_matrix(level_count),
+                                   utils::annihilate_matrix(level_count));
+    auto term_1 = cudaq::kronecker(utils::annihilate_matrix(level_count),
+                                   utils::id_matrix(level_count));
     auto product = term_0 * term_1;
-    auto scaled_identity = 2.0 * utils_1::id_matrix(level_count * level_count);
+    auto scaled_identity = 2.0 * utils::id_matrix(level_count * level_count);
 
     auto want_matrix = scaled_identity - product;
     auto want_matrix_reverse = product - scaled_identity;
 
-    utils_1::checkEqual(want_matrix, got_matrix);
-    utils_1::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
   /// `product_operator - scalar_operator`
@@ -492,19 +380,19 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     auto got_matrix_reverse =
         reverse.to_matrix({{0, level_count}, {1, level_count}});
 
-    auto term_0 = cudaq::kronecker(utils_1::id_matrix(level_count),
-                                   utils_1::momentum_matrix(level_count));
-    auto term_1 = cudaq::kronecker(utils_1::momentum_matrix(level_count),
-                                   utils_1::id_matrix(level_count));
+    auto term_0 = cudaq::kronecker(utils::id_matrix(level_count),
+                                   utils::momentum_matrix(level_count));
+    auto term_1 = cudaq::kronecker(utils::momentum_matrix(level_count),
+                                   utils::id_matrix(level_count));
     auto product = term_0 * term_1;
     auto scaled_identity =
-        value_0 * utils_1::id_matrix(level_count * level_count);
+        value_0 * utils::id_matrix(level_count * level_count);
 
     auto want_matrix = scaled_identity - product;
     auto want_matrix_reverse = product - scaled_identity;
 
-    utils_1::checkEqual(want_matrix, got_matrix);
-    utils_1::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
   /// `product_operator * complex<double>`
@@ -531,19 +419,19 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     auto got_matrix_reverse =
         reverse.to_matrix({{0, level_count}, {1, level_count}});
 
-    auto term_0 = cudaq::kronecker(utils_1::id_matrix(level_count),
-                                   utils_1::number_matrix(level_count));
-    auto term_1 = cudaq::kronecker(utils_1::number_matrix(level_count),
-                                   utils_1::id_matrix(level_count));
+    auto term_0 = cudaq::kronecker(utils::id_matrix(level_count),
+                                   utils::number_matrix(level_count));
+    auto term_1 = cudaq::kronecker(utils::number_matrix(level_count),
+                                   utils::id_matrix(level_count));
     auto product_matrix = term_0 * term_1;
     auto scaled_identity =
-        value_0 * utils_1::id_matrix(level_count * level_count);
+        value_0 * utils::id_matrix(level_count * level_count);
 
     auto want_matrix = scaled_identity * product_matrix;
     auto want_matrix_reverse = product_matrix * scaled_identity;
 
-    utils_1::checkEqual(want_matrix, got_matrix);
-    utils_1::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
   /// `product_operator * double`
@@ -572,18 +460,18 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     auto got_matrix_reverse =
         reverse.to_matrix({{0, level_count}, {1, level_count}});
 
-    auto term_0 = cudaq::kronecker(utils_1::id_matrix(level_count),
-                                   utils_1::parity_matrix(level_count));
-    auto term_1 = cudaq::kronecker(utils_1::parity_matrix(level_count),
-                                   utils_1::id_matrix(level_count));
+    auto term_0 = cudaq::kronecker(utils::id_matrix(level_count),
+                                   utils::parity_matrix(level_count));
+    auto term_1 = cudaq::kronecker(utils::parity_matrix(level_count),
+                                   utils::id_matrix(level_count));
     auto product_matrix = term_0 * term_1;
-    auto scaled_identity = 2.0 * utils_1::id_matrix(level_count * level_count);
+    auto scaled_identity = 2.0 * utils::id_matrix(level_count * level_count);
 
     auto want_matrix = scaled_identity * product_matrix;
     auto want_matrix_reverse = product_matrix * scaled_identity;
 
-    utils_1::checkEqual(want_matrix, got_matrix);
-    utils_1::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
   /// `product_operator * scalar_operator`
@@ -608,19 +496,19 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     auto got_matrix_reverse =
         reverse.to_matrix({{0, level_count}, {1, level_count}});
 
-    auto term_0 = cudaq::kronecker(utils_1::id_matrix(level_count),
-                                   utils_1::position_matrix(level_count));
-    auto term_1 = cudaq::kronecker(utils_1::position_matrix(level_count),
-                                   utils_1::id_matrix(level_count));
+    auto term_0 = cudaq::kronecker(utils::id_matrix(level_count),
+                                   utils::position_matrix(level_count));
+    auto term_1 = cudaq::kronecker(utils::position_matrix(level_count),
+                                   utils::id_matrix(level_count));
     auto product_matrix = term_0 * term_1;
     auto scaled_identity =
-        value_0 * utils_1::id_matrix(level_count * level_count);
+        value_0 * utils::id_matrix(level_count * level_count);
 
     auto want_matrix = scaled_identity * product_matrix;
     auto want_matrix_reverse = product_matrix * scaled_identity;
 
-    utils_1::checkEqual(want_matrix, got_matrix);
-    utils_1::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
   /// `product_operator *= complex<double>`
@@ -637,17 +525,17 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
     auto got_matrix = product.to_matrix({{0, level_count}, {1, level_count}});
 
-    auto term_0 = cudaq::kronecker(utils_1::id_matrix(level_count),
-                                   utils_1::number_matrix(level_count));
-    auto term_1 = cudaq::kronecker(utils_1::momentum_matrix(level_count),
-                                   utils_1::id_matrix(level_count));
+    auto term_0 = cudaq::kronecker(utils::id_matrix(level_count),
+                                   utils::number_matrix(level_count));
+    auto term_1 = cudaq::kronecker(utils::momentum_matrix(level_count),
+                                   utils::id_matrix(level_count));
     auto product_matrix = term_0 * term_1;
     auto scaled_identity =
-        value_0 * utils_1::id_matrix(level_count * level_count);
+        value_0 * utils::id_matrix(level_count * level_count);
 
     auto want_matrix = product_matrix * scaled_identity;
 
-    utils_1::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_matrix, got_matrix);
   }
 
   /// `product_operator *= double`
@@ -665,16 +553,16 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
     auto got_matrix = product.to_matrix({{0, level_count}, {1, level_count}});
 
-    auto term_0 = cudaq::kronecker(utils_1::id_matrix(level_count),
-                                   utils_1::annihilate_matrix(level_count));
-    auto term_1 = cudaq::kronecker(utils_1::create_matrix(level_count),
-                                   utils_1::id_matrix(level_count));
+    auto term_0 = cudaq::kronecker(utils::id_matrix(level_count),
+                                   utils::annihilate_matrix(level_count));
+    auto term_1 = cudaq::kronecker(utils::create_matrix(level_count),
+                                   utils::id_matrix(level_count));
     auto product_matrix = term_0 * term_1;
-    auto scaled_identity = 2.0 * utils_1::id_matrix(level_count * level_count);
+    auto scaled_identity = 2.0 * utils::id_matrix(level_count * level_count);
 
     auto want_matrix = product_matrix * scaled_identity;
 
-    utils_1::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_matrix, got_matrix);
   }
 
   /// `product_operator *= scalar_operator`
@@ -694,16 +582,16 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
     auto got_matrix = product.to_matrix({{0, level_count}, {1, level_count}});
 
-    auto term_0 = cudaq::kronecker(utils_1::id_matrix(level_count),
-                                   utils_1::number_matrix(level_count));
-    auto term_1 = cudaq::kronecker(utils_1::momentum_matrix(level_count),
-                                   utils_1::id_matrix(level_count));
+    auto term_0 = cudaq::kronecker(utils::id_matrix(level_count),
+                                   utils::number_matrix(level_count));
+    auto term_1 = cudaq::kronecker(utils::momentum_matrix(level_count),
+                                   utils::id_matrix(level_count));
     auto product_matrix = term_0 * term_1;
     auto scaled_identity =
-        value_0 * utils_1::id_matrix(level_count * level_count);
+        value_0 * utils::id_matrix(level_count * level_count);
 
     auto want_matrix = product_matrix * scaled_identity;
-    utils_1::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_matrix, got_matrix);
   }
 }
 
@@ -731,21 +619,21 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
 
     std::vector<cudaq::matrix_2> matrices_0_0;
     std::vector<cudaq::matrix_2> matrices_0_1;
-    matrices_0_0 = {utils_1::id_matrix(level_count + 1),
-                    utils_1::id_matrix(level_count),
-                    utils_1::annihilate_matrix(level_count)};
-    matrices_0_1 = {utils_1::id_matrix(level_count + 1),
-                    utils_1::annihilate_matrix(level_count),
-                    utils_1::id_matrix(level_count)};
+    matrices_0_0 = {utils::id_matrix(level_count + 1),
+                    utils::id_matrix(level_count),
+                    utils::annihilate_matrix(level_count)};
+    matrices_0_1 = {utils::id_matrix(level_count + 1),
+                    utils::annihilate_matrix(level_count),
+                    utils::id_matrix(level_count)};
 
     std::vector<cudaq::matrix_2> matrices_1_0;
     std::vector<cudaq::matrix_2> matrices_1_1;
-    matrices_1_0 = {utils_1::id_matrix(level_count + 1),
-                    utils_1::create_matrix(level_count),
-                    utils_1::id_matrix(level_count)};
-    matrices_1_1 = {utils_1::annihilate_matrix(level_count + 1),
-                    utils_1::id_matrix(level_count),
-                    utils_1::id_matrix(level_count)};
+    matrices_1_0 = {utils::id_matrix(level_count + 1),
+                    utils::create_matrix(level_count),
+                    utils::id_matrix(level_count)};
+    matrices_1_1 = {utils::annihilate_matrix(level_count + 1),
+                    utils::id_matrix(level_count),
+                    utils::id_matrix(level_count)};
 
     auto term_0_matrix =
         cudaq::kronecker(matrices_0_0.begin(), matrices_0_0.end()) *
@@ -755,7 +643,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
         cudaq::kronecker(matrices_1_1.begin(), matrices_1_1.end());
 
     auto want_matrix = term_0_matrix + term_1_matrix;
-    utils_1::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_matrix, got_matrix);
   }
 
   // `product_operator - product_operator`
@@ -773,21 +661,21 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
 
     std::vector<cudaq::matrix_2> matrices_0_0;
     std::vector<cudaq::matrix_2> matrices_0_1;
-    matrices_0_0 = {utils_1::id_matrix(level_count + 1),
-                    utils_1::id_matrix(level_count),
-                    utils_1::annihilate_matrix(level_count)};
-    matrices_0_1 = {utils_1::id_matrix(level_count + 1),
-                    utils_1::number_matrix(level_count),
-                    utils_1::id_matrix(level_count)};
+    matrices_0_0 = {utils::id_matrix(level_count + 1),
+                    utils::id_matrix(level_count),
+                    utils::annihilate_matrix(level_count)};
+    matrices_0_1 = {utils::id_matrix(level_count + 1),
+                    utils::number_matrix(level_count),
+                    utils::id_matrix(level_count)};
 
     std::vector<cudaq::matrix_2> matrices_1_0;
     std::vector<cudaq::matrix_2> matrices_1_1;
-    matrices_1_0 = {utils_1::id_matrix(level_count + 1),
-                    utils_1::create_matrix(level_count),
-                    utils_1::id_matrix(level_count)};
-    matrices_1_1 = {utils_1::momentum_matrix(level_count + 1),
-                    utils_1::id_matrix(level_count),
-                    utils_1::id_matrix(level_count)};
+    matrices_1_0 = {utils::id_matrix(level_count + 1),
+                    utils::create_matrix(level_count),
+                    utils::id_matrix(level_count)};
+    matrices_1_1 = {utils::momentum_matrix(level_count + 1),
+                    utils::id_matrix(level_count),
+                    utils::id_matrix(level_count)};
 
     auto term_0_matrix =
         cudaq::kronecker(matrices_0_0.begin(), matrices_0_0.end()) *
@@ -797,7 +685,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
         cudaq::kronecker(matrices_1_1.begin(), matrices_1_1.end());
 
     auto want_matrix = term_0_matrix - term_1_matrix;
-    utils_1::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_matrix, got_matrix);
   }
 
   // `product_operator * product_operator`
@@ -815,21 +703,21 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
 
     std::vector<cudaq::matrix_2> matrices_0_0;
     std::vector<cudaq::matrix_2> matrices_0_1;
-    matrices_0_0 = {utils_1::id_matrix(level_count + 1),
-                    utils_1::id_matrix(level_count),
-                    utils_1::position_matrix(level_count)};
-    matrices_0_1 = {utils_1::id_matrix(level_count + 1),
-                    utils_1::annihilate_matrix(level_count),
-                    utils_1::id_matrix(level_count)};
+    matrices_0_0 = {utils::id_matrix(level_count + 1),
+                    utils::id_matrix(level_count),
+                    utils::position_matrix(level_count)};
+    matrices_0_1 = {utils::id_matrix(level_count + 1),
+                    utils::annihilate_matrix(level_count),
+                    utils::id_matrix(level_count)};
 
     std::vector<cudaq::matrix_2> matrices_1_0;
     std::vector<cudaq::matrix_2> matrices_1_1;
-    matrices_1_0 = {utils_1::id_matrix(level_count + 1),
-                    utils_1::create_matrix(level_count),
-                    utils_1::id_matrix(level_count)};
-    matrices_1_1 = {utils_1::parity_matrix(level_count + 1),
-                    utils_1::id_matrix(level_count),
-                    utils_1::id_matrix(level_count)};
+    matrices_1_0 = {utils::id_matrix(level_count + 1),
+                    utils::create_matrix(level_count),
+                    utils::id_matrix(level_count)};
+    matrices_1_1 = {utils::parity_matrix(level_count + 1),
+                    utils::id_matrix(level_count),
+                    utils::id_matrix(level_count)};
 
     auto term_0_matrix =
         cudaq::kronecker(matrices_0_0.begin(), matrices_0_0.end()) *
@@ -839,7 +727,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
         cudaq::kronecker(matrices_1_1.begin(), matrices_1_1.end());
 
     auto want_matrix = term_0_matrix * term_1_matrix;
-    utils_1::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_matrix, got_matrix);
   }
 
   // `product_operator *= product_operator`
@@ -857,21 +745,21 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
 
     std::vector<cudaq::matrix_2> matrices_0_0;
     std::vector<cudaq::matrix_2> matrices_0_1;
-    matrices_0_0 = {utils_1::id_matrix(level_count + 1),
-                    utils_1::id_matrix(level_count),
-                    utils_1::annihilate_matrix(level_count)};
-    matrices_0_1 = {utils_1::id_matrix(level_count + 1),
-                    utils_1::number_matrix(level_count),
-                    utils_1::id_matrix(level_count)};
+    matrices_0_0 = {utils::id_matrix(level_count + 1),
+                    utils::id_matrix(level_count),
+                    utils::annihilate_matrix(level_count)};
+    matrices_0_1 = {utils::id_matrix(level_count + 1),
+                    utils::number_matrix(level_count),
+                    utils::id_matrix(level_count)};
 
     std::vector<cudaq::matrix_2> matrices_1_0;
     std::vector<cudaq::matrix_2> matrices_1_1;
-    matrices_1_0 = {utils_1::id_matrix(level_count + 1),
-                    utils_1::create_matrix(level_count),
-                    utils_1::id_matrix(level_count)};
-    matrices_1_1 = {utils_1::annihilate_matrix(level_count + 1),
-                    utils_1::id_matrix(level_count),
-                    utils_1::id_matrix(level_count)};
+    matrices_1_0 = {utils::id_matrix(level_count + 1),
+                    utils::create_matrix(level_count),
+                    utils::id_matrix(level_count)};
+    matrices_1_1 = {utils::annihilate_matrix(level_count + 1),
+                    utils::id_matrix(level_count),
+                    utils::id_matrix(level_count)};
 
     auto term_0_matrix =
         cudaq::kronecker(matrices_0_0.begin(), matrices_0_0.end()) *
@@ -881,7 +769,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
         cudaq::kronecker(matrices_1_1.begin(), matrices_1_1.end());
 
     auto want_matrix = term_0_matrix * term_1_matrix;
-    utils_1::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_matrix, got_matrix);
   }
 }
 
@@ -906,18 +794,18 @@ TEST(OperatorExpressions, checkProductOperatorAgainstElementary) {
         reverse.to_matrix({{0, level_count}, {1, level_count}});
 
     auto product_matrix =
-        cudaq::kronecker(utils_1::id_matrix(level_count),
-                         utils_1::annihilate_matrix(level_count)) *
-        cudaq::kronecker(utils_1::annihilate_matrix(level_count),
-                         utils_1::id_matrix(level_count));
+        cudaq::kronecker(utils::id_matrix(level_count),
+                         utils::annihilate_matrix(level_count)) *
+        cudaq::kronecker(utils::annihilate_matrix(level_count),
+                         utils::id_matrix(level_count));
     auto elementary_matrix = cudaq::kronecker(
-        utils_1::create_matrix(level_count), utils_1::id_matrix(level_count));
+        utils::create_matrix(level_count), utils::id_matrix(level_count));
 
     auto want_matrix = product_matrix + elementary_matrix;
     auto want_matrix_reverse = elementary_matrix + product_matrix;
 
-    utils_1::checkEqual(want_matrix, got_matrix);
-    utils_1::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
   // `product_operator - matrix_operator`
@@ -938,18 +826,18 @@ TEST(OperatorExpressions, checkProductOperatorAgainstElementary) {
         reverse.to_matrix({{0, level_count}, {1, level_count}});
 
     auto product_matrix =
-        cudaq::kronecker(utils_1::id_matrix(level_count),
-                         utils_1::annihilate_matrix(level_count)) *
-        cudaq::kronecker(utils_1::annihilate_matrix(level_count),
-                         utils_1::id_matrix(level_count));
+        cudaq::kronecker(utils::id_matrix(level_count),
+                         utils::annihilate_matrix(level_count)) *
+        cudaq::kronecker(utils::annihilate_matrix(level_count),
+                         utils::id_matrix(level_count));
     auto elementary_matrix = cudaq::kronecker(
-        utils_1::create_matrix(level_count), utils_1::id_matrix(level_count));
+        utils::create_matrix(level_count), utils::id_matrix(level_count));
 
     auto want_matrix = product_matrix - elementary_matrix;
     auto want_matrix_reverse = elementary_matrix - product_matrix;
 
-    utils_1::checkEqual(want_matrix, got_matrix);
-    utils_1::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
   // `product_operator * matrix_operator`
@@ -969,18 +857,18 @@ TEST(OperatorExpressions, checkProductOperatorAgainstElementary) {
         reverse.to_matrix({{0, level_count}, {1, level_count}});
 
     auto product_matrix =
-        cudaq::kronecker(utils_1::id_matrix(level_count),
-                         utils_1::annihilate_matrix(level_count)) *
-        cudaq::kronecker(utils_1::annihilate_matrix(level_count),
-                         utils_1::id_matrix(level_count));
+        cudaq::kronecker(utils::id_matrix(level_count),
+                         utils::annihilate_matrix(level_count)) *
+        cudaq::kronecker(utils::annihilate_matrix(level_count),
+                         utils::id_matrix(level_count));
     auto elementary_matrix = cudaq::kronecker(
-        utils_1::create_matrix(level_count), utils_1::id_matrix(level_count));
+        utils::create_matrix(level_count), utils::id_matrix(level_count));
 
     auto want_matrix = product_matrix * elementary_matrix;
     auto want_matrix_reverse = elementary_matrix * product_matrix;
 
-    utils_1::checkEqual(want_matrix, got_matrix);
-    utils_1::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
   // `product_operator *= matrix_operator`
@@ -996,16 +884,16 @@ TEST(OperatorExpressions, checkProductOperatorAgainstElementary) {
     auto got_matrix = product.to_matrix({{0, level_count}, {1, level_count}});
 
     auto product_matrix =
-        cudaq::kronecker(utils_1::id_matrix(level_count),
-                         utils_1::annihilate_matrix(level_count)) *
-        cudaq::kronecker(utils_1::annihilate_matrix(level_count),
-                         utils_1::id_matrix(level_count));
+        cudaq::kronecker(utils::id_matrix(level_count),
+                         utils::annihilate_matrix(level_count)) *
+        cudaq::kronecker(utils::annihilate_matrix(level_count),
+                         utils::id_matrix(level_count));
     auto elementary_matrix = cudaq::kronecker(
-        utils_1::create_matrix(level_count), utils_1::id_matrix(level_count));
+        utils::create_matrix(level_count), utils::id_matrix(level_count));
 
     auto want_matrix = product_matrix * elementary_matrix;
 
-    utils_1::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_matrix, got_matrix);
   }
 }
 
@@ -1033,18 +921,18 @@ TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
 
     // Cast every term to full Hilbert space.
     std::vector<cudaq::matrix_2> matrices_0_0 = {
-        utils_1::id_matrix(level_count + 1), utils_1::id_matrix(level_count),
-        utils_1::annihilate_matrix(level_count)};
+        utils::id_matrix(level_count + 1), utils::id_matrix(level_count),
+        utils::annihilate_matrix(level_count)};
     std::vector<cudaq::matrix_2> matrices_0_1 = {
-        utils_1::id_matrix(level_count + 1),
-        utils_1::annihilate_matrix(level_count),
-        utils_1::id_matrix(level_count)};
+        utils::id_matrix(level_count + 1),
+        utils::annihilate_matrix(level_count),
+        utils::id_matrix(level_count)};
     std::vector<cudaq::matrix_2> matrices_1_0 = {
-        utils_1::id_matrix(level_count + 1),
-        utils_1::create_matrix(level_count), utils_1::id_matrix(level_count)};
+        utils::id_matrix(level_count + 1),
+        utils::create_matrix(level_count), utils::id_matrix(level_count)};
     std::vector<cudaq::matrix_2> matrices_1_1 = {
-        utils_1::create_matrix(level_count + 1),
-        utils_1::id_matrix(level_count), utils_1::id_matrix(level_count)};
+        utils::create_matrix(level_count + 1),
+        utils::id_matrix(level_count), utils::id_matrix(level_count)};
     auto product_matrix =
         cudaq::kronecker(matrices_0_0.begin(), matrices_0_0.end()) *
         cudaq::kronecker(matrices_0_1.begin(), matrices_0_1.end());
@@ -1055,8 +943,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
     auto want_matrix = product_matrix + sum_matrix;
     auto want_matrix_reverse = sum_matrix + product_matrix;
 
-    utils_1::checkEqual(want_matrix, got_matrix);
-    utils_1::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
   // `product_operator - operator_sum`
@@ -1077,18 +965,18 @@ TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
 
     // Cast every term to full Hilbert space.
     std::vector<cudaq::matrix_2> matrices_0_0 = {
-        utils_1::id_matrix(level_count + 1), utils_1::id_matrix(level_count),
-        utils_1::annihilate_matrix(level_count)};
+        utils::id_matrix(level_count + 1), utils::id_matrix(level_count),
+        utils::annihilate_matrix(level_count)};
     std::vector<cudaq::matrix_2> matrices_0_1 = {
-        utils_1::id_matrix(level_count + 1),
-        utils_1::annihilate_matrix(level_count),
-        utils_1::id_matrix(level_count)};
+        utils::id_matrix(level_count + 1),
+        utils::annihilate_matrix(level_count),
+        utils::id_matrix(level_count)};
     std::vector<cudaq::matrix_2> matrices_1_0 = {
-        utils_1::id_matrix(level_count + 1),
-        utils_1::create_matrix(level_count), utils_1::id_matrix(level_count)};
+        utils::id_matrix(level_count + 1),
+        utils::create_matrix(level_count), utils::id_matrix(level_count)};
     std::vector<cudaq::matrix_2> matrices_1_1 = {
-        utils_1::create_matrix(level_count + 1),
-        utils_1::id_matrix(level_count), utils_1::id_matrix(level_count)};
+        utils::create_matrix(level_count + 1),
+        utils::id_matrix(level_count), utils::id_matrix(level_count)};
     auto product_matrix =
         cudaq::kronecker(matrices_0_0.begin(), matrices_0_0.end()) *
         cudaq::kronecker(matrices_0_1.begin(), matrices_0_1.end());
@@ -1099,8 +987,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
     auto want_matrix = product_matrix - difference_matrix;
     auto want_matrix_reverse = difference_matrix - product_matrix;
 
-    utils_1::checkEqual(want_matrix, got_matrix);
-    utils_1::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
   // `product_operator * operator_sum`
@@ -1121,18 +1009,18 @@ TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
 
     // Cast every term to full Hilbert space.
     std::vector<cudaq::matrix_2> matrices_0_0 = {
-        utils_1::id_matrix(level_count + 1), utils_1::id_matrix(level_count),
-        utils_1::annihilate_matrix(level_count)};
+        utils::id_matrix(level_count + 1), utils::id_matrix(level_count),
+        utils::annihilate_matrix(level_count)};
     std::vector<cudaq::matrix_2> matrices_0_1 = {
-        utils_1::id_matrix(level_count + 1),
-        utils_1::annihilate_matrix(level_count),
-        utils_1::id_matrix(level_count)};
+        utils::id_matrix(level_count + 1),
+        utils::annihilate_matrix(level_count),
+        utils::id_matrix(level_count)};
     std::vector<cudaq::matrix_2> matrices_1_0 = {
-        utils_1::id_matrix(level_count + 1),
-        utils_1::create_matrix(level_count), utils_1::id_matrix(level_count)};
+        utils::id_matrix(level_count + 1),
+        utils::create_matrix(level_count), utils::id_matrix(level_count)};
     std::vector<cudaq::matrix_2> matrices_1_1 = {
-        utils_1::create_matrix(level_count + 1),
-        utils_1::id_matrix(level_count), utils_1::id_matrix(level_count)};
+        utils::create_matrix(level_count + 1),
+        utils::id_matrix(level_count), utils::id_matrix(level_count)};
     auto product_matrix =
         cudaq::kronecker(matrices_0_0.begin(), matrices_0_0.end()) *
         cudaq::kronecker(matrices_0_1.begin(), matrices_0_1.end());
@@ -1143,8 +1031,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
     auto want_matrix = product_matrix * sum_matrix;
     auto want_matrix_reverse = sum_matrix * product_matrix;
 
-    utils_1::checkEqual(want_matrix, got_matrix);
-    utils_1::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 }
 
@@ -1155,13 +1043,13 @@ TEST(OperatorExpressions, checkCustomProductOps) {
     {
       auto func0 = [](std::vector<int> dimensions,
                       std::map<std::string, std::complex<double>> _none) {
-        return cudaq::kronecker(utils_1::momentum_matrix(dimensions[0]),
-                                      utils_1::position_matrix(dimensions[1]));;
+        return cudaq::kronecker(utils::momentum_matrix(dimensions[0]),
+                                      utils::position_matrix(dimensions[1]));;
       };
       auto func1 = [](std::vector<int> dimensions,
                       std::map<std::string, std::complex<double>> _none) {
-        return cudaq::kronecker(utils_1::create_matrix(dimensions[0]),
-                                      utils_1::number_matrix(dimensions[1]));;
+        return cudaq::kronecker(utils::create_matrix(dimensions[0]),
+                                      utils::number_matrix(dimensions[1]));;
       };
       cudaq::matrix_operator::define("custom_op0", {-1, -1}, func0);
       cudaq::matrix_operator::define("custom_op1", {-1, -1}, func1);
@@ -1173,19 +1061,19 @@ TEST(OperatorExpressions, checkCustomProductOps) {
     auto reverse = op1 * op0;
 
     std::vector<cudaq::matrix_2> matrices = {
-      utils_1::number_matrix(level_count),
-      utils_1::position_matrix(level_count + 2) * utils_1::create_matrix(level_count + 2),
-      utils_1::momentum_matrix(level_count + 1)};
+      utils::number_matrix(level_count),
+      utils::position_matrix(level_count + 2) * utils::create_matrix(level_count + 2),
+      utils::momentum_matrix(level_count + 1)};
     auto expected = cudaq::kronecker(matrices.begin(), matrices.end());
 
     std::vector<cudaq::matrix_2> matrices_reverse = {
-      utils_1::number_matrix(level_count),
-      utils_1::create_matrix(level_count + 2) * utils_1::position_matrix(level_count + 2),
-      utils_1::momentum_matrix(level_count + 1)};
+      utils::number_matrix(level_count),
+      utils::create_matrix(level_count + 2) * utils::position_matrix(level_count + 2),
+      utils::momentum_matrix(level_count + 1)};
     auto expected_reverse = cudaq::kronecker(matrices_reverse.begin(), matrices_reverse.end());
 
-    utils_1::checkEqual(product.to_matrix(dimensions), expected);
-    utils_1::checkEqual(reverse.to_matrix(dimensions), expected_reverse);
+    utils::checkEqual(product.to_matrix(dimensions), expected);
+    utils::checkEqual(reverse.to_matrix(dimensions), expected_reverse);
 
     op0 = cudaq::product_operator<cudaq::matrix_operator>(1., cudaq::matrix_operator("custom_op0", {2, 3}));
     op1 = cudaq::product_operator<cudaq::matrix_operator>(1., cudaq::matrix_operator("custom_op1", {2, 0}));
@@ -1193,18 +1081,18 @@ TEST(OperatorExpressions, checkCustomProductOps) {
     reverse = op1 * op0;
 
     matrices = {
-      utils_1::position_matrix(level_count + 3),
-      utils_1::momentum_matrix(level_count) * utils_1::create_matrix(level_count),
-      utils_1::number_matrix(level_count + 1)};
+      utils::position_matrix(level_count + 3),
+      utils::momentum_matrix(level_count) * utils::create_matrix(level_count),
+      utils::number_matrix(level_count + 1)};
     expected = cudaq::kronecker(matrices.begin(), matrices.end());
 
     matrices_reverse = {
-      utils_1::position_matrix(level_count + 3),
-      utils_1::create_matrix(level_count) * utils_1::momentum_matrix(level_count),
-      utils_1::number_matrix(level_count + 1)};
+      utils::position_matrix(level_count + 3),
+      utils::create_matrix(level_count) * utils::momentum_matrix(level_count),
+      utils::number_matrix(level_count + 1)};
     expected_reverse = cudaq::kronecker(matrices_reverse.begin(), matrices_reverse.end());
 
-    utils_1::checkEqual(product.to_matrix(dimensions), expected);
-    utils_1::checkEqual(reverse.to_matrix(dimensions), expected_reverse);
+    utils::checkEqual(product.to_matrix(dimensions), expected);
+    utils::checkEqual(reverse.to_matrix(dimensions), expected_reverse);
 }
 

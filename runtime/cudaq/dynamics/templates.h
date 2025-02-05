@@ -148,7 +148,9 @@ operator_sum<HandlerTy> operator-(const HandlerTy &other,
     operator_sum<HandlerTy> operator-(const HandlerTy &other, const operator_sum<HandlerTy> &self);
 
 class matrix_operator;
+class spin_operator;
 EXTERN_TEMPLATE_SPECIALIZATIONS(matrix_operator);
+EXTERN_TEMPLATE_SPECIALIZATIONS(spin_operator);
 #endif
 
 } // namespace cudaq
