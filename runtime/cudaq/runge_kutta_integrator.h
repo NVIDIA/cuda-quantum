@@ -15,7 +15,7 @@
 #include <memory>
 
 namespace cudaq {
-template <typename HandlerTy = std::complex<double>>
+template <typename HandlerTy>
 class runge_kutta_integrator : public BaseIntegrator<cudm_state, HandlerTy> {
 public:
   /// @brief Constructor to initialize the Runge-Kutta integrator
