@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "definition.h"
 #include "dynamics/templates.h"
+#include "dynamics/callback.h"
 #include "utils/tensor.h"
 
 #include <concepts>
@@ -28,12 +28,7 @@ class scalar_operator {
 private:
   // If someone gave us a constant value, we will just return that
   // directly to them when they call `evaluate`.
-  std::optional<std::complex<double>> constant_value;
-
-  /// @brief The function that generates the value of the scalar operator.
-  /// The function can take a vector of complex-valued arguments
-  /// and returns a number.
-  ScalarCallbackFunction generator;
+  std::variant<std::complex<double>, ScalarCallbackFunction> value;
 
 public:
   // constructors and destructors
@@ -545,7 +540,7 @@ public:
   ///      short), if the operator acts
   ///     on multiple degrees of freedom.
   static void define(std::string operator_id, std::vector<int> expected_dimensions,
-                     CallbackFunction &&create);
+                     MatrixCallbackFunction &&create);
 
   // read-only properties
 

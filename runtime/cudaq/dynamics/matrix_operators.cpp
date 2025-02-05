@@ -19,8 +19,8 @@ namespace cudaq {
 std::map<std::string, Definition> matrix_operator::m_ops = {};
 
 void matrix_operator::define(std::string operator_id, std::vector<int> expected_dimensions,
-            CallbackFunction &&create) {
-  auto defn = Definition(operator_id, expected_dimensions, std::forward<CallbackFunction>(create));
+            MatrixCallbackFunction &&create) {
+  auto defn = Definition(operator_id, expected_dimensions, std::forward<MatrixCallbackFunction>(create));
   auto result = matrix_operator::m_ops.insert({operator_id, std::move(defn)});
   if (!result.second) {
     throw std::runtime_error("an matrix operator with name " + operator_id + "is already defined");
