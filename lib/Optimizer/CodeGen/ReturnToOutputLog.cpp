@@ -87,7 +87,7 @@ public:
     TypeSwitch<Type>(valTy)
         .Case([&](IntegerType intTy) {
           int width = intTy.getWidth();
-          std::string labelStr{"i" + std::to_string(width)};
+          std::string labelStr = std::string("i") + std::to_string(width);
           if (prefix)
             labelStr = prefix->str();
           Value label = makeLabel(loc, rewriter, labelStr);
@@ -113,7 +113,7 @@ public:
         })
         .Case([&](FloatType fltTy) {
           int width = fltTy.getWidth();
-          std::string labelStr{"f" + std::to_string(width)};
+          std::string labelStr = std::string("f") + std::to_string(width);
           if (prefix)
             labelStr = prefix->str();
           Value label = makeLabel(loc, rewriter, labelStr);
@@ -138,7 +138,7 @@ public:
                                         ArrayRef<Value>{size, label});
           std::string preStr = prefix ? prefix->str() : std::string{};
           for (std::int32_t i = 0; i < sz; ++i) {
-            std::string offset = preStr + '.' + std::to_string(i);
+            std::string offset = preStr + std::string(".") + std::to_string(i);
             Value w = rewriter.create<cudaq::cc::ExtractValueOp>(
                 loc, strTy.getMember(i), val,
                 ArrayRef<cudaq::cc::ExtractValueArg>{i});
@@ -155,7 +155,8 @@ public:
                                         ArrayRef<Value>{size, label});
           std::string preStr = prefix ? prefix->str() : std::string{};
           for (std::int32_t i = 0; i < sz; ++i) {
-            std::string offset = preStr + '[' + std::to_string(i) + ']';
+            std::string offset = preStr + std::string("[") + std::to_string(i) +
+                                 std::string("]");
             Value w = rewriter.create<cudaq::cc::ExtractValueOp>(
                 loc, arrTy.getElementType(), val,
                 ArrayRef<cudaq::cc::ExtractValueArg>{i});
@@ -187,7 +188,8 @@ public:
               Value buffer =
                   rewriter.create<cudaq::cc::CastOp>(loc, ptrArrTy, rawBuffer);
               for (std::int32_t i = 0; i < sz; ++i) {
-                std::string offset = preStr + '[' + std::to_string(i) + ']';
+                std::string offset = preStr + std::string("[") +
+                                     std::to_string(i) + std::string("]");
                 auto v = rewriter.create<cudaq::cc::ComputePtrOp>(
                     loc, buffTy, buffer, ArrayRef<cudaq::cc::ComputePtrArg>{i});
                 Value w = rewriter.create<cudaq::cc::LoadOp>(loc, v);
@@ -201,30 +203,30 @@ public:
   translateType(Type ty, std::optional<std::int32_t> vecSz = std::nullopt) {
     if (auto intTy = dyn_cast<IntegerType>(ty)) {
       int width = intTy.getWidth();
-      return "i" + std::to_string(width);
+      return {std::string("i") + std::to_string(width)};
     }
     if (auto fltTy = dyn_cast<FloatType>(ty)) {
       int width = fltTy.getWidth();
-      return "f" + std::to_string(width);
+      return {std::string("f") + std::to_string(width)};
     }
     if (auto strTy = dyn_cast<cudaq::cc::StructType>(ty)) {
       std::string result = "tuple<";
       if (strTy.getMembers().empty())
-        return result + '>';
+        return {result + std::string(">")};
       result += translateType(strTy.getMembers().front());
       for (auto memTy : strTy.getMembers().drop_front())
-        result += ", " + translateType(memTy);
-      return result + '>';
+        result += std::string(", ") + translateType(memTy);
+      return {result + std::string(">")};
     }
     if (auto arrTy = dyn_cast<cudaq::cc::ArrayType>(ty)) {
       std::int32_t size = arrTy.getSize();
-      return "array<" + translateType(arrTy.getElementType()) + " x " +
-             std::to_string(size) + '>';
+      return {std::string("array<") + translateType(arrTy.getElementType()) +
+              std::string(" x ") + std::to_string(size) + std::string(">")};
     }
     if (auto arrTy = dyn_cast<cudaq::cc::StdvecType>(ty))
-      return "array<" + translateType(arrTy.getElementType()) + " x " +
-             std::to_string(*vecSz) + '>';
-    return "error";
+      return {std::string("array<") + translateType(arrTy.getElementType()) +
+              std::string(" x ") + std::to_string(*vecSz) + std::string(">")};
+    return {"error"};
   }
 
   static Value makeLabel(Location loc, PatternRewriter &rewriter,
