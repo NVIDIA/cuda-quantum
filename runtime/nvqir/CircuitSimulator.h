@@ -231,6 +231,13 @@ public:
   /// @brief Whether or not this is a state vector simulator
   virtual bool isStateVectorSimulator() const { return false; }
 
+  virtual bool isValidNoiseChannelName(const std::string &name) const {
+    return false;
+  }
+
+  virtual void applyNoise(const cudaq::kraus_channel &channel,
+                          const std::vector<std::size_t> &targets) {}
+
   /// @brief Apply a custom operation described by a matrix of data
   /// represented as 1-D vector of elements in row-major order, as well
   /// as the the control qubit and target indices

@@ -635,6 +635,24 @@ void __quantum__qis__custom_unitary(std::complex<double> *unitary,
       unitaryMatrix, ctrlsVec, tgtsVec, name);
 }
 
+void __quantum__qis__apply_kraus_channel(const char *demangledName,
+                                         double *params, std::size_t numParams,
+                                         Array *qubits) {
+
+  auto *ctx = nvqir::getCircuitSimulatorInternal()->getExecutionContext();
+  if (!ctx)
+    return;
+
+  auto *noise = ctx->noiseModel;
+  if (!noise)
+    return;
+
+  std::vector<double> paramVec(params, params + numParams);
+  auto channel = noise->get_channel(demangledName, paramVec);
+  nvqir::getCircuitSimulatorInternal()->applyNoise(channel,
+                                                   arrayToVectorSizeT(qubits));
+}
+
 void __quantum__qis__custom_unitary__adj(std::complex<double> *unitary,
                                          Array *controls, Array *targets,
                                          const char *name) {

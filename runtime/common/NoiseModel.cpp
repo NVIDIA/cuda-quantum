@@ -267,4 +267,6 @@ noise_model::get_channels(const std::string &quantumOp,
 
   return resultChannels;
 }
+
+noise_model::noise_model() { add_channel<bit_flip_channel>(); }
 } // namespace cudaq

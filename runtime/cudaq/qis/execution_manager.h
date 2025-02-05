@@ -9,6 +9,7 @@
 #pragma once
 
 #include "common/CustomOp.h"
+#include "common/NoiseModel.h"
 #include "common/QuditIdTracker.h"
 #include "cudaq/host_config.h"
 #include "cudaq/spin_op.h"
@@ -131,6 +132,9 @@ public:
                      const std::vector<QuditInfo> &controls,
                      const std::vector<QuditInfo> &targets,
                      bool isAdjoint = false, const spin_op op = spin_op()) = 0;
+
+  virtual void applyNoise(const kraus_channel &channelName,
+                          const std::vector<QuditInfo> &targets) = 0;
 
   /// Reset the qubit to the |0> state
   virtual void reset(const QuditInfo &target) = 0;

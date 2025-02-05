@@ -32,6 +32,34 @@ struct bell {
 #if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_TENSORNET)
 // Stim does not support arbitrary cudaq::kraus_channel specification.
 
+namespace test::hello {
+struct hello_world : public ::cudaq::kraus_channel {
+  void generate(const std::vector<double> &params) override {
+    std::vector<cudaq::complex> k0v{std::sqrt(1 - params[0]), 0, 0,
+                                    std::sqrt(1 - params[0])},
+        k1v{0, std::sqrt(params[0]), std::sqrt(params[0]), 0};
+    push_back(cudaq::kraus_op(k0v));
+    push_back(cudaq::kraus_op(k1v));
+  }
+};
+} // namespace test::hello
+
+__qpu__ void test2(double p) {
+  cudaq::qubit q;
+  x(q);
+  cudaq::apply_noise<test::hello::hello_world>({0.2}, q);
+}
+
+CUDAQ_TEST(NoiseTest, checkFineGrain) {
+
+  cudaq::noise_model noise;
+  noise.add_channel<test::hello::hello_world>();
+
+  auto counts = cudaq::sample({.noise = noise}, test2, .7);
+  counts.dump();
+  EXPECT_TRUE(counts.size() == 2);
+}
+
 CUDAQ_TEST(NoiseTest, checkSimple) {
   cudaq::set_random_seed(13);
   cudaq::kraus_channel depol({cudaq::complex{0.99498743710662, 0.0},

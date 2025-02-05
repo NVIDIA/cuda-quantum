@@ -12,8 +12,11 @@
 
 #include <array>
 #include <complex>
+#include <cxxabi.h>
 #include <functional>
 #include <math.h>
+#include <memory>
+#include <typeindex>
 #include <unordered_map>
 #include <vector>
 
@@ -133,6 +136,8 @@ public:
   /// @brief Noise type enumeration
   noise_model_type noise_type = noise_model_type::unknown;
 
+  std::string name = "unknown";
+
   /// @brief Noise parameter values
   // Use `double` as the uniform type to store channel parameters (for both
   // single- and double-precision channel definitions). Some
@@ -189,6 +194,8 @@ public:
 
   /// @brief Add a kraus_op to this channel.
   void push_back(kraus_op op);
+
+  virtual void generate(const std::vector<double> &p) { return; }
 };
 
 /// @brief The noise_model type keeps track of a set of
@@ -266,9 +273,17 @@ protected:
   static constexpr const char *availableOps[] = {
       "x", "y", "z", "h", "s", "t", "rx", "ry", "rz", "r1", "u3", "mz"};
 
+  // User registered kraus channels for fine grain application
+  std::unordered_map<std::type_index,
+                     std::function<kraus_channel(const std::vector<double> &)>>
+      registeredChannels;
+
+  // Kraus types to type index mapping
+  std::unordered_map<std::string, std::type_index> nameToType;
+
 public:
   /// @brief default constructor
-  noise_model() = default;
+  noise_model();
 
   /// @brief Return true if there are no kraus_channels in this noise model.
   /// @return
@@ -293,6 +308,52 @@ public:
   /// @param quantumOp Quantum operation that the noise channel applies to.
   /// @param pred Callback function that generates a noise channel.
   void add_channel(const std::string &quantumOp, const PredicateFuncTy &pred);
+
+  template <typename KrausChannelT>
+  void add_channel() {
+
+    // Store the demangled type name mapped to its typeindex
+    auto typeName = [](const char *mangled) -> std::string {
+      auto ptr = std::unique_ptr<char, decltype(&std::free)>{
+          abi::__cxa_demangle(mangled, nullptr, nullptr, nullptr), std::free};
+      return {ptr.get()};
+    }(typeid(KrausChannelT).name());
+
+    nameToType.insert({typeName, std::type_index(typeid(KrausChannelT))});
+
+    registeredChannels.insert(
+        {std::type_index(typeid(KrausChannelT)),
+         [typeName](const std::vector<double> &params) -> kraus_channel {
+           KrausChannelT userChannel;
+           userChannel.generate(params);
+           kraus_channel c;
+           c.parameters = params;
+           c.name = userChannel.name == "unknown" ? typeName : userChannel.name;
+           c.noise_type = userChannel.noise_type != noise_model_type::unknown
+                              ? userChannel.noise_type
+                              : noise_model_type::unknown;
+           for (auto &o : userChannel.get_ops())
+             c.push_back(o);
+           return c;
+         }});
+  }
+
+  template <typename T>
+  kraus_channel get_channel(const std::vector<double> &params) const {
+    auto iter = registeredChannels.find(std::type_index(typeid(T)));
+    if (iter == registeredChannels.end())
+      throw std::runtime_error("invalid named kraus channel.");
+    return iter->second(params);
+  }
+
+  // de-mangled name (with namespaces) for NVQIR C API
+  kraus_channel get_channel(const std::string &name,
+                            const std::vector<double> &params) const {
+    auto iter = registeredChannels.find(nameToType.at(name));
+    if (iter == registeredChannels.end())
+      throw std::runtime_error("invalid named kraus channel.");
+    return iter->second(params);
+  }
 
   /// @brief Add the Kraus channel that applies to a quantum operation on any
   /// arbitrary qubits.
@@ -404,7 +465,14 @@ public:
 /// a single-qubit bit flipping error channel.
 class bit_flip_channel : public kraus_channel {
 public:
+  using kraus_channel::kraus_channel;
+
   bit_flip_channel(const real probability) : kraus_channel() {
+    generate({probability});
+  }
+
+  void generate(const std::vector<double> &p) override {
+    cudaq::real probability = p[0];
     std::vector<cudaq::complex> k0v{std::sqrt(1 - probability), 0, 0,
                                     std::sqrt(1 - probability)},
         k1v{0, std::sqrt(probability), std::sqrt(probability), 0};

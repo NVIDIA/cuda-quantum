@@ -10,6 +10,7 @@
 
 #include "common/MeasureCounts.h"
 #include "cudaq/host_config.h"
+#include "cudaq/platform.h"
 #include "cudaq/qis/modifiers.h"
 #include "cudaq/qis/pauli_word.h"
 #include "cudaq/qis/qarray.h"
@@ -17,6 +18,7 @@
 #include "cudaq/qis/qreg.h"
 #include "cudaq/qis/qvector.h"
 #include "cudaq/spin_op.h"
+
 #include <algorithm>
 #include <cstring>
 #include <functional>
@@ -1188,6 +1190,87 @@ void genericApplicator(const std::string &gateName, Args &&...args) {
 
 } // namespace cudaq::details
 
+namespace cudaq {
+#if CUDAQ_USE_STD20
+template <typename T>
+concept ContiguousContainer = requires(T container) {
+  { container.data() } -> std::convertible_to<const typename T::value_type *>;
+  { container.size() } -> std::convertible_to<std::size_t>;
+};
+
+template <ContiguousContainer T, typename... QuantumArgs>
+#else
+// Type trait to check for contiguous container requirements
+template <typename T, typename = void>
+struct is_contiguous_container : std::false_type {};
+
+template <typename T>
+struct is_contiguous_container<
+    T, std::void_t<decltype(std::declval<T>().data()),
+                   decltype(std::declval<T>().size()),
+                   typename std::enable_if_t<
+                       std::is_convertible_v<decltype(std::declval<T>().data()),
+                                             const typename T::value_type *> &&
+                       std::is_convertible_v<decltype(std::declval<T>().size()),
+                                             std::size_t>>>> : std::true_type {
+};
+
+template <typename T>
+inline constexpr bool is_contiguous_container_v =
+    is_contiguous_container<T>::value;
+
+// Modified apply_noise function using SFINAE
+template <typename T, typename... QuantumArgs,
+          typename = std::enable_if_t<is_contiguous_container_v<T>>>
+#endif
+void apply_noise(const std::vector<T> &krausOperators, QuantumArgs &&...args) {
+  // Create a kraus_channel from the provided operators
+  kraus_channel channel;
+  for (const auto &op : krausOperators) {
+    kraus_op kop(std::vector<complex>(op.data(), op.data() + op.size()));
+    channel.push_back(kop);
+  }
+
+  // Convert quantum args to QuditInfo vector
+  std::vector<QuditInfo> qubits;
+  auto argTuple = std::forward_as_tuple(args...);
+  cudaq::tuple_for_each(argTuple, [&qubits](auto &&element) {
+    if constexpr (details::IsQubitType<decltype(element)>::value) {
+      qubits.push_back(qubitToQuditInfo(element));
+    } else {
+      for (auto &qq : element) {
+        qubits.push_back(qubitToQuditInfo(qq));
+      }
+    }
+  });
+
+  // Forward to execution manager
+  getExecutionManager()->applyNoise(channel, qubits);
+}
+
+template <typename T, typename... Q>
+void apply_noise(const std::vector<double> &params, Q &&...args) {
+  auto *ctx = get_platform().get_exec_ctx();
+  if (!ctx)
+    return;
+
+  std::vector<QuditInfo> qubits;
+  auto argTuple = std::forward_as_tuple(args...);
+  cudaq::tuple_for_each(argTuple, [&qubits](auto &&element) {
+    if constexpr (details::IsQubitType<decltype(element)>::value) {
+      qubits.push_back(qubitToQuditInfo(element));
+    } else {
+      for (auto &qq : element) {
+        qubits.push_back(qubitToQuditInfo(qq));
+      }
+    }
+  });
+
+  auto channel = ctx->noiseModel->template get_channel<T>(params);
+  getExecutionManager()->applyNoise(channel, qubits);
+}
+
+} // namespace cudaq
 #define __qop__ __attribute__((annotate("user_custom_quantum_operation")))
 
 /// Register a new custom unitary operation providing a unique name,

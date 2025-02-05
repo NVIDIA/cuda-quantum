@@ -27,12 +27,10 @@ namespace cudaq {
 /// measurement, allocation, and deallocation, and execution context handling
 /// (e.g. sampling)
 class BasicExecutionManager : public cudaq::ExecutionManager {
-private:
+protected:
   bool isInTracerMode() {
     return executionContext && executionContext->name == "tracer";
   }
-
-protected:
   /// @brief An instruction is composed of a operation name,
   /// a optional set of rotation parameters, control qudits,
   /// target qudits, and an optional spin_op.
@@ -233,6 +231,11 @@ public:
     // Add to the instruction queue
     instructionQueue.emplace_back(std::move(mutable_name), mutable_params,
                                   mutable_controls, mutable_targets, op);
+  }
+
+  void applyNoise(const kraus_channel &channel,
+                  const std::vector<QuditInfo> &targets) override {
+    return;
   }
 
   void synchronize() override {

@@ -161,6 +161,34 @@ protected:
     sampleSim->safe_do_circuit(noiseOps);
   }
 
+  bool isValidNoiseChannelName(const std::string &name) const override {
+    return name.find("stim::") != std::string::npos;
+  }
+
+  void applyNoise(const cudaq::kraus_channel &channel,
+                  const std::vector<std::size_t> &qubits) override {
+    flushGateQueue();
+    cudaq::info("[stim] apply kraus channel {}", channel.name);
+    stim::Circuit noiseOps;
+    std::vector<std::uint32_t> stimTargets;
+    stimTargets.reserve(qubits.size());
+    for (auto q : qubits)
+      stimTargets.push_back(static_cast<std::uint32_t>(q));
+
+    if (channel.noise_type == cudaq::noise_model_type::bit_flip_channel)
+      noiseOps.safe_append_ua("X_ERROR", stimTargets, channel.parameters[0]);
+    else if (channel.noise_type == cudaq::noise_model_type::phase_flip_channel)
+      noiseOps.safe_append_ua("Z_ERROR", stimTargets, channel.parameters[0]);
+    else if (channel.noise_type ==
+             cudaq::noise_model_type::depolarization_channel)
+      noiseOps.safe_append_ua("DEPOLARIZE1", stimTargets,
+                              channel.parameters[0]);
+    else
+      noiseOps.safe_append_u(channel.name.substr(6), stimTargets,
+                             channel.parameters);
+    sampleSim->safe_do_circuit(noiseOps);
+  }
+
   void applyGate(const GateApplicationTask &task) override {
     std::string gateName(task.operationName);
     std::transform(gateName.begin(), gateName.end(), gateName.begin(),
