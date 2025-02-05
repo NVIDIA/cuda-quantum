@@ -11,6 +11,7 @@
 #include "helpers.h"
 #include "manipulation.h"
 #include "matrix_operators.h"
+#include "spin_operators.h"
 
 #include <algorithm>
 #include <iostream>
@@ -34,58 +35,53 @@ void product_operator<HandlerTy>::aggregate_terms(const HandlerTy &head, Args&& 
 // FIXME: EVALUATE IS NOT SUPPOSED TO RETURN A MATRIX -
 // IT SUPPOSED TO TAKE A TRANSFORMATION (ANY OPERATOR ARITHMETICS) AND APPLY IT
 template <typename HandlerTy>
-cudaq::matrix_2
-product_operator<HandlerTy>::m_evaluate(MatrixArithmetics arithmetics,
-                                        bool pad_terms) const {
+EvaluatedMatrix product_operator<HandlerTy>::m_evaluate(
+    MatrixArithmetics arithmetics, bool pad_terms) const {
   const std::vector<HandlerTy> &terms = this->terms[0];
   auto degrees = this->degrees();
   cudaq::matrix_2 result;
 
-  auto padded_op = [](MatrixArithmetics &arithmetics, const HandlerTy &op,
-                      std::vector<int> degrees, std::map<int, int> dimensions,
-                      std::map<std::string, std::complex<double>> parameters) {
-    std::vector<EvaluatedMatrix> padded;
-    for (const auto &degree : degrees) {
-      if (std::find(op.degrees().begin(), op.degrees().end(), degree) == op.degrees().end()) {
-        padded.push_back(EvaluatedMatrix({degree}, matrix_operator::identity(degree).to_matrix(dimensions)));
-      }
-    }
-    /// Creating the tensor product with op being last is most efficient.
-    if (padded.size() == 0)
-      return EvaluatedMatrix(op.degrees(), op.to_matrix(dimensions, parameters));
-    EvaluatedMatrix ids(std::move(padded[0]));
-    for (auto i = 1; i < padded.size(); ++i)
-      ids = arithmetics.tensor(std::move(ids), std::move(padded[i]));
-    return arithmetics.tensor(std::move(ids), EvaluatedMatrix(op.degrees(), op.to_matrix(dimensions, parameters)));
-  };
-
-  if (terms.size() > 0) {
-    if (pad_terms) {
-      EvaluatedMatrix evaluated(padded_op(arithmetics, terms[0], degrees, arithmetics.m_dimensions, arithmetics.m_parameters));
-      for (auto op_idx = 1; op_idx < terms.size(); ++op_idx) {
-        const HandlerTy &op = terms[op_idx];
-        if (op.degrees().size() != 1 || op != cudaq::matrix_operator("identity", op.degrees())) {
-          auto padded = padded_op(arithmetics, op, degrees, arithmetics.m_dimensions, arithmetics.m_parameters);
-          evaluated = arithmetics.mul(std::move(evaluated), std::move(padded));
+  auto padded_op = [&arithmetics, &degrees = std::as_const(degrees)](const HandlerTy &op) {
+      std::vector<EvaluatedMatrix> padded;
+      auto op_degrees = op.degrees();
+      for (const auto &degree : degrees) {
+        if (std::find(op_degrees.begin(), op_degrees.end(), degree) == op_degrees.end()) {
+          // FIXME: instead of relying on an identity to exist, replace pad_terms with a function to invoke.
+          auto identity = HandlerTy::identity(degree);
+          padded.push_back(EvaluatedMatrix(identity.degrees(), identity.to_matrix(arithmetics.m_dimensions)));
         }
       }
-      result = evaluated.matrix();
-    } else {
-      EvaluatedMatrix evaluated(terms[0].degrees(), terms[0].to_matrix(arithmetics.m_dimensions, arithmetics.m_parameters));
+      /// Creating the tensor product with op being last is most efficient.
+      if (padded.size() == 0)
+        return EvaluatedMatrix(op_degrees, op.to_matrix(arithmetics.m_dimensions, arithmetics.m_parameters));
+      EvaluatedMatrix ids(std::move(padded[0]));
+      for (auto i = 1; i < padded.size(); ++i)
+        ids = arithmetics.tensor(std::move(ids), std::move(padded[i]));
+      return arithmetics.tensor(std::move(ids), EvaluatedMatrix(op_degrees, op.to_matrix(arithmetics.m_dimensions, arithmetics.m_parameters)));
+  };
+
+  auto coefficient = this->coefficients[0].evaluate(arithmetics.m_parameters);
+  if (terms.size() > 0) {
+    if (pad_terms) {
+      EvaluatedMatrix prod = padded_op(terms[0]);
       for (auto op_idx = 1; op_idx < terms.size(); ++op_idx) {
-        auto &op = terms[op_idx];
-        auto mat = op.to_matrix(arithmetics.m_dimensions, arithmetics.m_parameters);
-        evaluated = arithmetics.mul(std::move(evaluated), EvaluatedMatrix(op.degrees(), mat));
+        auto op_degrees = terms[op_idx].degrees();
+        if (op_degrees.size() != 1 || !terms[op_idx].is_identity())
+          prod = arithmetics.mul(std::move(prod), padded_op(terms[op_idx]));
       }
-      result = evaluated.matrix();
+      return EvaluatedMatrix(std::move(prod.degrees()), coefficient * prod.matrix());
+    } else {
+      EvaluatedMatrix prod(terms[0].degrees(), terms[0].to_matrix(arithmetics.m_dimensions, arithmetics.m_parameters));
+      for (auto op_idx = 1; op_idx < terms.size(); ++op_idx) {
+        auto mat = terms[op_idx].to_matrix(arithmetics.m_dimensions, arithmetics.m_parameters);
+        prod = arithmetics.mul(std::move(prod), EvaluatedMatrix(terms[op_idx].degrees(), mat));
+      }
+      return EvaluatedMatrix(std::move(prod.degrees()), coefficient * prod.matrix());
     }
   } else {
-    auto full_hilbert_size = 1;
-    for (const auto degree : degrees)
-      full_hilbert_size *= arithmetics.m_dimensions[degree];
-    result = cudaq::matrix_2::identity(full_hilbert_size);
+    assert(degrees.size() == 0); // degrees are stored with each term
+    return EvaluatedMatrix({}, coefficient * cudaq::matrix_2::identity(1));
   }
-  return this->coefficients[0].evaluate(arithmetics.m_parameters) * result;
 }
 
 #define INSTANTIATE_PRODUCT_PRIVATE_METHODS(HandlerTy)                                        \
@@ -100,10 +96,11 @@ product_operator<HandlerTy>::m_evaluate(MatrixArithmetics arithmetics,
                                                               const HandlerTy &item3);        \
                                                                                               \
   template                                                                                    \
-  cudaq::matrix_2 product_operator<HandlerTy>::m_evaluate(                                    \
+  EvaluatedMatrix product_operator<HandlerTy>::m_evaluate(                                    \
       MatrixArithmetics arithmetics, bool pad_terms) const;
 
 INSTANTIATE_PRODUCT_PRIVATE_METHODS(matrix_operator);
+INSTANTIATE_PRODUCT_PRIVATE_METHODS(spin_operator);
 
 // read-only properties
 
@@ -111,7 +108,8 @@ template <typename HandlerTy>
 std::vector<int> product_operator<HandlerTy>::degrees() const {
   std::set<int> unsorted_degrees;
   for (const HandlerTy &term : this->terms[0]) {
-    unsorted_degrees.insert(term.degrees().begin(), term.degrees().end());
+    auto term_degrees = term.degrees();
+    unsorted_degrees.insert(term_degrees.begin(), term_degrees.end());
   }
   auto degrees =
       std::vector<int>(unsorted_degrees.begin(), unsorted_degrees.end());
@@ -148,6 +146,7 @@ scalar_operator product_operator<HandlerTy>::get_coefficient() const {
   scalar_operator product_operator<HandlerTy>::get_coefficient() const;
 
 INSTANTIATE_PRODUCT_PROPERTIES(matrix_operator);
+INSTANTIATE_PRODUCT_PROPERTIES(spin_operator);
 
 // constructors
 
@@ -228,6 +227,7 @@ product_operator<HandlerTy>::product_operator(
     product_operator<HandlerTy> &&other);
 
 INSTANTIATE_PRODUCT_CONSTRUCTORS(matrix_operator);
+INSTANTIATE_PRODUCT_CONSTRUCTORS(spin_operator);
 
 // assignments
 
@@ -262,6 +262,7 @@ product_operator<HandlerTy>::operator=(product_operator<HandlerTy> &&other) {
     product_operator<HandlerTy> &&other);
 
 INSTANTIATE_PRODUCT_ASSIGNMENTS(matrix_operator);
+INSTANTIATE_PRODUCT_ASSIGNMENTS(spin_operator);
 
 // evaluations
 
@@ -270,11 +271,10 @@ std::string product_operator<HandlerTy>::to_string() const {
   throw std::runtime_error("not implemented");
 }
 
-template <typename HandlerTy>
-matrix_2 product_operator<HandlerTy>::to_matrix(
-    std::map<int, int> dimensions,
-    std::map<std::string, std::complex<double>> parameters) const {
-  return this->m_evaluate(MatrixArithmetics(dimensions, parameters));
+template<typename HandlerTy>
+matrix_2 product_operator<HandlerTy>::to_matrix(std::map<int, int> dimensions,
+                                                std::map<std::string, std::complex<double>> parameters) const {
+  return this->m_evaluate(MatrixArithmetics(dimensions, parameters)).matrix();
 }
 
 #define INSTANTIATE_PRODUCT_EVALUATIONS(HandlerTy)                                          \
@@ -288,6 +288,7 @@ matrix_2 product_operator<HandlerTy>::to_matrix(
     std::map<std::string, std::complex<double>> parameters) const;
 
 INSTANTIATE_PRODUCT_EVALUATIONS(matrix_operator);
+INSTANTIATE_PRODUCT_EVALUATIONS(spin_operator);
 
 // comparisons
 
@@ -304,6 +305,7 @@ bool product_operator<HandlerTy>::operator==(
     const product_operator<HandlerTy> &other) const;
 
 INSTANTIATE_PRODUCT_COMPARISONS(matrix_operator);
+INSTANTIATE_PRODUCT_COMPARISONS(spin_operator);
 
 // unary operators
 
@@ -327,6 +329,7 @@ product_operator<HandlerTy> product_operator<HandlerTy>::operator+() const {
   product_operator<HandlerTy> product_operator<HandlerTy>::operator+() const;
 
 INSTANTIATE_PRODUCT_UNARY_OPS(matrix_operator);
+INSTANTIATE_PRODUCT_UNARY_OPS(spin_operator);
 
 // right-hand arithmetics
 
@@ -407,6 +410,7 @@ PRODUCT_ADDITION_HANDLER(-)
   operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(const HandlerTy &other) const;
 
 INSTANTIATE_PRODUCT_RHSIMPLE_OPS(matrix_operator);
+INSTANTIATE_PRODUCT_RHSIMPLE_OPS(spin_operator);
 
 template <typename HandlerTy>
 product_operator<HandlerTy> product_operator<HandlerTy>::operator*(
@@ -500,6 +504,7 @@ PRODUCT_ADDITION_SUM(-)
     const operator_sum<HandlerTy> &other) const;
 
 INSTANTIATE_PRODUCT_RHCOMPOSITE_OPS(matrix_operator);
+INSTANTIATE_PRODUCT_RHCOMPOSITE_OPS(spin_operator);
 
 #define PRODUCT_MULTIPLICATION_ASSIGNMENT(otherTy)                             \
   template <typename HandlerTy>                                                \
@@ -544,6 +549,7 @@ product_operator<HandlerTy> &product_operator<HandlerTy>::operator*=(
   product_operator<HandlerTy>& product_operator<HandlerTy>::operator*=(const product_operator<HandlerTy> &other);
 
 INSTANTIATE_PRODUCT_OPASSIGNMENTS(matrix_operator);
+INSTANTIATE_PRODUCT_OPASSIGNMENTS(spin_operator);
 
 // left-hand arithmetics
 
@@ -624,5 +630,6 @@ PRODUCT_ADDITION_HANDLER_REVERSE(-)
   operator_sum<HandlerTy> operator-(const HandlerTy &other, const product_operator<HandlerTy> &self);
 
 INSTANTIATE_PRODUCT_LHCOMPOSITE_OPS(matrix_operator);
+INSTANTIATE_PRODUCT_LHCOMPOSITE_OPS(spin_operator);
 
 } // namespace cudaq
