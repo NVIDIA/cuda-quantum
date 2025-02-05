@@ -1499,31 +1499,19 @@ CUDAQ_TEST(BuilderTester, checkExplicitMeasurements) {
   int n_rounds = 10;
   auto explicit_kernel = cudaq::make_kernel();
   auto q = explicit_kernel.qalloc(n_qubits);
-  for (int round = 0; round < n_rounds; round++)
-    for (int i = 0; i < n_qubits; i++)
-      explicit_kernel.mz(q[i]);
-
-  cudaq::sample_options options{.explicit_measurements = true};
-  auto counts = cudaq::sample(options, explicit_kernel);
-  auto seq = counts.sequential_data();
-  EXPECT_EQ(seq.size(), 1000);
-  EXPECT_EQ(seq[0].size(), n_qubits * n_rounds);
-}
-
-CUDAQ_TEST(BuilderTester, checkExplicitMeasurements2) {
-  int n_qubits = 4;
-  int n_rounds = 10;
-  auto explicit_kernel = cudaq::make_kernel();
-  auto q = explicit_kernel.qalloc(n_qubits);
   for (int round = 0; round < n_rounds; round++) {
-    for (int i = 0; i < n_qubits; i++)
-      explicit_kernel.mz(q[i]);
+    explicit_kernel.h(q[0]);
+    for (int i = 1; i < n_qubits; i++)
+      explicit_kernel.x<cudaq::ctrl>(q[0], q[i]);
+    explicit_kernel.mz(q);
     for (int i = 0; i < n_qubits; i++)
       explicit_kernel.reset(q[i]);
   }
 
   cudaq::sample_options options{.explicit_measurements = true};
   auto counts = cudaq::sample(options, explicit_kernel);
+  counts.dump();
+  EXPECT_GT(counts.to_map().size(), 1);
   auto seq = counts.sequential_data();
   EXPECT_EQ(seq.size(), 1000);
   EXPECT_EQ(seq[0].size(), n_qubits * n_rounds);
