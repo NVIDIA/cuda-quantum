@@ -39,7 +39,7 @@ namespace details {
 template <typename KernelFunctor>
 std::optional<sample_result>
 runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
-            const std::string &kernelName, int shots, bool stackMeasurements,
+            const std::string &kernelName, int shots, bool explicitMeasurements,
             std::size_t qpu_id = 0, details::future *futureResult = nullptr,
             std::size_t batchIteration = 0, std::size_t totalBatchIters = 0) {
   // Create the execution context.
@@ -48,7 +48,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
 
   ctx->batchIteration = batchIteration;
   ctx->totalIterations = totalBatchIters;
-  ctx->stackMeasurements = stackMeasurements;
+  ctx->explicitMeasurements = explicitMeasurements;
 
   // Tell the context if this quantum kernel has
   // conditionals on measure results
@@ -161,8 +161,8 @@ auto runSamplingAsync(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   if (platform.is_remote(qpu_id)) {
     details::future futureResult;
     details::runSampling(std::forward<KernelFunctor>(wrappedKernel), platform,
-                         kernelName, shots, /*stackMeasurements=*/false, qpu_id,
-                         &futureResult);
+                         kernelName, shots, /*explicitMeasurements=*/false,
+                         qpu_id, &futureResult);
     return async_sample_result(std::move(futureResult));
   }
 
@@ -171,7 +171,7 @@ auto runSamplingAsync(KernelFunctor &&wrappedKernel, quantum_platform &platform,
       [qpu_id, shots, kernelName, &platform,
        kernel = std::forward<KernelFunctor>(wrappedKernel)]() mutable {
         return details::runSampling(kernel, platform, kernelName, shots,
-                                    /*stackMeasurements=*/false, qpu_id)
+                                    /*explicitMeasurements=*/false, qpu_id)
             .value();
       });
 
@@ -184,12 +184,12 @@ auto runSamplingAsync(KernelFunctor &&wrappedKernel, quantum_platform &platform,
 ///
 /// @param shots number of shots to run for the given kernel
 /// @param noise noise model to use for the sample operation
-/// @param stack_measurements Whether or not to simply stack measurements in
-/// execution order for the \p sample_result
+/// @param explicit_measurements Whether or not to simply concatenate
+/// measurements in execution order for the \p sample_result
 struct sample_options {
   std::size_t shots = 1000;
   cudaq::noise_model noise;
-  bool stack_measurements = false;
+  bool explicit_measurements = false;
 };
 
 /// @overload
@@ -229,7 +229,7 @@ sample_result sample(QuantumKernel &&kernel, Args &&...args) {
                cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
                                    std::forward<Args>(args)...);
              },
-             platform, kernelName, shots, /*stackMeasurements=*/false)
+             platform, kernelName, shots, /*explicitMeasurements=*/false)
       .value();
 }
 
@@ -270,7 +270,7 @@ auto sample(std::size_t shots, QuantumKernel &&kernel, Args &&...args) {
                cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
                                    std::forward<Args>(args)...);
              },
-             platform, kernelName, shots, /*stackMeasurements=*/false)
+             platform, kernelName, shots, /*explicitMeasurements=*/false)
       .value();
 }
 
@@ -313,7 +313,7 @@ sample_result sample(const sample_options &options, QuantumKernel &&kernel,
                    cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
                                        std::forward<Args>(args)...);
                  },
-                 platform, kernelName, shots, options.stack_measurements)
+                 platform, kernelName, shots, options.explicit_measurements)
                  .value();
   platform.reset_noise();
   return ret;
@@ -493,7 +493,7 @@ std::vector<sample_result> sample(QuantumKernel &&kernel,
                    [&kernel, &singleIterParameters...]() mutable {
                      kernel(std::forward<Args>(singleIterParameters)...);
                    },
-                   platform, kernelName, shots, /*stackMeasurements=*/false,
+                   platform, kernelName, shots, /*explicitMeasurements=*/false,
                    qpuId, nullptr, counter, N)
                    .value();
     return ret;
@@ -536,7 +536,7 @@ std::vector<sample_result> sample(std::size_t shots, QuantumKernel &&kernel,
                    [&kernel, &singleIterParameters...]() mutable {
                      kernel(std::forward<Args>(singleIterParameters)...);
                    },
-                   platform, kernelName, shots, /*stackMeasurements=*/false,
+                   platform, kernelName, shots, /*explicitMeasurements=*/false,
                    qpuId, nullptr, counter, N)
                    .value();
     return ret;
@@ -576,7 +576,7 @@ std::vector<sample_result> sample(const sample_options &options,
   // Create the functor that will broadcast the sampling tasks across
   // all requested argument sets provided.
   details::BroadcastFunctorType<sample_result, Args...> functor =
-      [&, stack = options.stack_measurements](
+      [&, stack = options.explicit_measurements](
           std::size_t qpuId, std::size_t counter, std::size_t N,
           Args &...singleIterParameters) -> sample_result {
     auto kernelName = cudaq::getKernelName(kernel);
@@ -630,7 +630,7 @@ sample_n(QuantumKernel &&kernel, ArgumentSet<Args...> &&params) {
                    [&kernel, &singleIterParameters...]() mutable {
                      kernel(std::forward<Args>(singleIterParameters)...);
                    },
-                   platform, kernelName, shots, /*stackMeasurements=*/false,
+                   platform, kernelName, shots, /*explicitMeasurements=*/false,
                    qpuId, nullptr, counter, N)
                    .value();
     return ret;
@@ -674,7 +674,7 @@ sample_n(std::size_t shots, QuantumKernel &&kernel,
                    [&kernel, &singleIterParameters...]() mutable {
                      kernel(std::forward<Args>(singleIterParameters)...);
                    },
-                   platform, kernelName, shots, /*stackMeasurements=*/false,
+                   platform, kernelName, shots, /*explicitMeasurements=*/false,
                    qpuId, nullptr, counter, N)
                    .value();
     return ret;

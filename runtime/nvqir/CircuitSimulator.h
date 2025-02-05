@@ -496,9 +496,9 @@ protected:
       // Add the qubit to the sampling list
       sampleQubits.push_back(qubitIdx);
 
-      // If we're stacking measurements (an optimized sampling mode), then don't
-      // populate registerNameToMeasuredQubit.
-      if (executionContext->stackMeasurements)
+      // If we're using explicit measurements (an optimized sampling mode), then
+      // don't populate registerNameToMeasuredQubit.
+      if (executionContext->explicitMeasurements)
         return true;
 
       auto processForRegName = [&](const std::string &regStr) {
@@ -653,17 +653,18 @@ protected:
 
     // FIXME - make this a base class attribute that subclasses can override?
     bool requiresUniqueQubitsInSample = name() != "stim";
-    if (executionContext->stackMeasurements && !requiresUniqueQubitsInSample &&
-        !force)
+    if (executionContext->explicitMeasurements &&
+        !requiresUniqueQubitsInSample && !force)
       return;
 
     if (executionContext->hasConditionalsOnMeasureResults && !force)
       return;
 
     // Sort the qubit indices (unless we're in the optimized sampling mode that
-    // simply stacks sequential measurements)
+    // simply concatenates sequential measurements)
     auto origSampleQubits = sampleQubits;
-    if (requiresUniqueQubitsInSample || !executionContext->stackMeasurements) {
+    if (requiresUniqueQubitsInSample ||
+        !executionContext->explicitMeasurements) {
       std::sort(sampleQubits.begin(), sampleQubits.end());
       auto last = std::unique(sampleQubits.begin(), sampleQubits.end());
       sampleQubits.erase(last, sampleQubits.end());
@@ -678,7 +679,8 @@ protected:
                                  ? 1
                                  : executionContext->shots);
 
-    if (requiresUniqueQubitsInSample && executionContext->stackMeasurements) {
+    if (requiresUniqueQubitsInSample &&
+        executionContext->explicitMeasurements) {
       // This is the case where there may be duplicates in origSampleQubits.
       // We need to update the execResult by duplicating measurements. This is
       // not particularly efficient, but it is only used in rare use cases.
@@ -697,7 +699,7 @@ protected:
 
     if (registerNameToMeasuredQubit.empty()) {
       executionContext->result.append(execResult,
-                                      executionContext->stackMeasurements);
+                                      executionContext->explicitMeasurements);
     } else {
 
       for (auto &[regName, qubits] : registerNameToMeasuredQubit) {
@@ -1079,7 +1081,7 @@ public:
     // If we are sampling...
     if (execContextName.find("sample") != std::string::npos) {
       // Sample the state over the specified number of shots
-      if (sampleQubits.empty() && !executionContext->stackMeasurements) {
+      if (sampleQubits.empty() && !executionContext->explicitMeasurements) {
         if (isInBatchMode())
           sampleQubits.resize(batchModeCurrentNumQubits);
         else

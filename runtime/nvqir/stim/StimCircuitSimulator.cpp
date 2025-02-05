@@ -245,7 +245,7 @@ public:
   void resetQubit(const std::size_t index) override {
     flushGateQueue();
     if (getExecutionContext() && getExecutionContext()->name == "sample" &&
-        !getExecutionContext()->stackMeasurements)
+        !getExecutionContext()->explicitMeasurements)
       flushAnySamplingTasks();
     applyOpToSims(
         "R", std::vector<std::uint32_t>{static_cast<std::uint32_t>(index)});
