@@ -94,6 +94,11 @@ protected:
   /// @brief Statistics collected over the life of the simulator.
   SummaryData summaryData;
 
+  /// @brief An "opt-in" way for simulators to tell the base class that they are
+  /// capable of buffering sample results across multiple invocations of the
+  /// sample() function.
+  bool supportsBufferedSample = false;
+
 public:
   /// @brief The constructor
   CircuitSimulator() = default;
@@ -648,6 +653,24 @@ protected:
 
   /// @brief Execute a sampling task with the current set of sample qubits.
   void flushAnySamplingTasks(bool force = false) {
+    if (force && supportsBufferedSample &&
+        executionContext->explicitMeasurements) {
+      int nShots = executionContext->hasConditionalsOnMeasureResults
+                       ? 1
+                       : executionContext->shots;
+      if (!sampleQubits.empty()) {
+        // We have a few more qubits to be sampled. Call sample on the subclass,
+        // but there is no need to save the results this time.
+        sample(sampleQubits, nShots);
+        sampleQubits.clear();
+      }
+      // OK, now we're ready to grab the buffered sample results for the entire
+      // execution context.
+      auto execResult = sample(sampleQubits, nShots);
+      executionContext->result.append(execResult);
+      return;
+    }
+
     if (sampleQubits.empty())
       return;
 
