@@ -576,17 +576,17 @@ std::vector<sample_result> sample(const sample_options &options,
   // Create the functor that will broadcast the sampling tasks across
   // all requested argument sets provided.
   details::BroadcastFunctorType<sample_result, Args...> functor =
-      [&, stack = options.explicit_measurements](
+      [&, explicit_mz = options.explicit_measurements](
           std::size_t qpuId, std::size_t counter, std::size_t N,
           Args &...singleIterParameters) -> sample_result {
     auto kernelName = cudaq::getKernelName(kernel);
-    auto ret =
-        details::runSampling(
-            [&kernel, &singleIterParameters...]() mutable {
-              kernel(std::forward<Args>(singleIterParameters)...);
-            },
-            platform, kernelName, shots, stack, qpuId, nullptr, counter, N)
-            .value();
+    auto ret = details::runSampling(
+                   [&kernel, &singleIterParameters...]() mutable {
+                     kernel(std::forward<Args>(singleIterParameters)...);
+                   },
+                   platform, kernelName, shots, explicit_mz, qpuId, nullptr,
+                   counter, N)
+                   .value();
     return ret;
   };
 

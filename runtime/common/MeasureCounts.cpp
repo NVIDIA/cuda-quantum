@@ -192,14 +192,14 @@ sample_result::sample_result(double preComputedExp,
     totalShots += count;
 }
 
-void sample_result::append(ExecutionResult &result, bool stack) {
+void sample_result::append(ExecutionResult &result, bool concatenate) {
   // If given a result corresponding to the same register name, either a)
-  // replace the existing one if in the map if stack is false, or b) if stack is
+  // replace the existing one if concatenate is false, or b) if concatenate is
   // true, stitch the bitstrings from "result" into the existing one.
   auto iter = sampleResults.find(result.registerName);
   if (iter != sampleResults.end()) {
     auto &existingExecResult = iter->second;
-    if (stack) {
+    if (concatenate) {
       // Stitch the bitstrings together
       if (this->totalShots == result.sequentialData.size()) {
         existingExecResult.counts.clear();
