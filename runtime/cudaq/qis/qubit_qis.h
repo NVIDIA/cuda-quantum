@@ -1140,7 +1140,7 @@ void applyQuantumOperation(const std::string &gateName,
         "cudaq does not support broadcast for multi-qubit operations.");
 
   // Operation on correct number of targets, no controls, possible broadcast
-  if ((std::is_same_v<mod, base> || std::is_same_v<mod, adj>)&&NumT == 1) {
+  if ((std::is_same_v<mod, base> || std::is_same_v<mod, adj>) && NumT == 1) {
     for (auto &qubit : qubits)
       getExecutionManager()->apply(gateName, parameters, {}, {qubit},
                                    std::is_same_v<mod, adj>);
@@ -1249,15 +1249,20 @@ void apply_noise(const std::vector<T> &krausOperators, QuantumArgs &&...args) {
 }
 
 template <typename T, typename... Q>
-void apply_noise(const std::vector<double> &params, Q &&...args) {
+  requires(T::num_parameters + T::num_targets == sizeof...(Q))
+void apply_noise(Q &&...args) {
   auto *ctx = get_platform().get_exec_ctx();
   if (!ctx)
     return;
 
   std::vector<QuditInfo> qubits;
+  std::vector<double> params;
   auto argTuple = std::forward_as_tuple(args...);
-  cudaq::tuple_for_each(argTuple, [&qubits](auto &&element) {
-    if constexpr (details::IsQubitType<decltype(element)>::value) {
+  cudaq::tuple_for_each(argTuple, [&qubits, &params](auto &&element) {
+    if constexpr (std::is_floating_point_v<
+                      std::remove_cvref_t<decltype(element)>>) {
+      params.push_back(element);
+    } else if constexpr (details::IsQubitType<decltype(element)>::value) {
       qubits.push_back(qubitToQuditInfo(element));
     } else {
       for (auto &qq : element) {
