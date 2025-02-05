@@ -138,4 +138,8 @@ cudaq::matrix_2 PauliZ_matrix() {
   return mat;
 }
 
+cudaq::matrix_2 PauliY_matrix() {
+  return 1.0j * utils::PauliX_matrix() * utils::PauliZ_matrix();
+}
+
 } // namespace utils

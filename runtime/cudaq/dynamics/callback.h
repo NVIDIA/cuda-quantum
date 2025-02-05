@@ -100,6 +100,7 @@ private:
   std::vector<int> m_expected_dimensions;
 
 public:
+  const std::vector<int>& expected_dimensions = this->m_expected_dimensions;
 
   Definition(const std::string &operator_id, std::vector<int> expected_dimensions, MatrixCallbackFunction &&create);
   Definition(Definition &&def);
