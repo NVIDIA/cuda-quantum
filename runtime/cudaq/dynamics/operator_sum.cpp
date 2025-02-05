@@ -10,6 +10,7 @@
 #include "helpers.h"
 #include "manipulation.h"
 #include "matrix_operators.h"
+#include "spin_operators.h"
 
 #include <iostream>
 #include <set>
@@ -21,44 +22,40 @@ namespace cudaq {
 // private methods
 
 template <typename HandlerTy>
-cudaq::matrix_2 operator_sum<HandlerTy>::m_evaluate(
+EvaluatedMatrix operator_sum<HandlerTy>::m_evaluate(
     MatrixArithmetics arithmetics, bool pad_terms) const {
 
   auto terms = this->get_terms();
   auto degrees = this->degrees();
 
   // We need to make sure all matrices are of the same size to sum them up.
-  auto paddedTerm = [&](auto &&term) {
-    std::vector<int> op_degrees;
-    for (auto op : term.get_terms()) {
-      for (auto degree : op.degrees())
-        op_degrees.push_back(degree);
-    }
-    for (auto degree : degrees) {
-      auto it = std::find(op_degrees.begin(), op_degrees.end(), degree);
-      if (it == op_degrees.end()) {
-        term *= matrix_operator::identity(degree);
+  auto paddedTerm = 
+    [&arithmetics, &degrees = std::as_const(degrees)](product_operator<HandlerTy> &&term) {
+      auto term_degrees = term.degrees();
+      for (auto degree : degrees) {
+        auto it = std::find(term_degrees.begin(), term_degrees.end(), degree);
+        if (it == term_degrees.end())
+          term *= HandlerTy::identity(degree);
       }
-    }
-    return term;
+      return term;
   };
 
   if (pad_terms) {
-    auto padded_term = paddedTerm(terms[0]);
-    EvaluatedMatrix sum(degrees, padded_term.m_evaluate(arithmetics, pad_terms));
+    auto padded_term = paddedTerm(std::move(terms[0]));
+    EvaluatedMatrix sum = padded_term.m_evaluate(arithmetics, true);
     for (auto term_idx = 1; term_idx < terms.size(); ++term_idx) {
-      padded_term = paddedTerm(terms[term_idx]);
-      sum = arithmetics.add(std::move(sum), EvaluatedMatrix(degrees, padded_term.m_evaluate(arithmetics, pad_terms)));
+      padded_term = paddedTerm(std::move(terms[term_idx]));
+      auto term_eval = padded_term.m_evaluate(arithmetics, true);
+      sum = arithmetics.add(std::move(sum), std::move(term_eval));
     }
-    return sum.matrix();
+    return sum;
   } else {
-    EvaluatedMatrix sum(degrees, terms[0].m_evaluate(arithmetics, pad_terms));
+    EvaluatedMatrix sum = terms[0].m_evaluate(arithmetics, false);
     for (auto term_idx = 1; term_idx < terms.size(); ++term_idx) {
-      auto term = terms[term_idx];
-      auto eval = term.m_evaluate(arithmetics, pad_terms);
-      sum = arithmetics.add(std::move(sum), EvaluatedMatrix(degrees, eval));
+      auto term_eval = terms[term_idx].m_evaluate(arithmetics, false);
+      sum = arithmetics.add(std::move(sum), std::move(term_eval));
     }
-    return sum.matrix();
+    return sum;
   }
 }
 
@@ -76,7 +73,7 @@ void operator_sum<HandlerTy>::aggregate_terms(const product_operator<HandlerTy> 
 #define INSTANTIATE_SUM_PRIVATE_METHODS(HandlerTy)                                            \
                                                                                               \
   template                                                                                    \
-  cudaq::matrix_2 operator_sum<HandlerTy>::m_evaluate(                                        \
+  EvaluatedMatrix operator_sum<HandlerTy>::m_evaluate(                                        \
       MatrixArithmetics arithmetics, bool pad_terms) const;                                   \
                                                                                               \
   /* no overload for a single product, since we don't want a constructor for a single term */ \
@@ -91,6 +88,7 @@ void operator_sum<HandlerTy>::aggregate_terms(const product_operator<HandlerTy> 
                                                 const product_operator<HandlerTy> &item3);
 
 INSTANTIATE_SUM_PRIVATE_METHODS(matrix_operator);
+INSTANTIATE_SUM_PRIVATE_METHODS(spin_operator);
 
 // read-only properties
 
@@ -98,8 +96,10 @@ template<typename HandlerTy>
 std::vector<int> operator_sum<HandlerTy>::degrees() const {
   std::set<int> unsorted_degrees;
   for (const std::vector<HandlerTy> &term : this->terms) {
-    for (const HandlerTy &op : term)
-      unsorted_degrees.insert(op.degrees().begin(), op.degrees().end());
+    for (const HandlerTy &op : term) {
+      auto op_degrees = op.degrees();
+      unsorted_degrees.insert(op_degrees.begin(), op_degrees.end());
+    }
   }
   auto degrees = std::vector<int>(unsorted_degrees.begin(), unsorted_degrees.end());
   return cudaq::detail::canonicalize_degrees(degrees);
@@ -131,6 +131,7 @@ std::vector<product_operator<HandlerTy>> operator_sum<HandlerTy>::get_terms() co
   std::vector<product_operator<HandlerTy>> operator_sum<HandlerTy>::get_terms() const;
 
 INSTANTIATE_SUM_PROPERTIES(matrix_operator);
+INSTANTIATE_SUM_PROPERTIES(spin_operator);
 
 // constructors
 
@@ -195,6 +196,7 @@ operator_sum<HandlerTy>::operator_sum(operator_sum<HandlerTy> &&other)
   operator_sum<HandlerTy>::operator_sum(operator_sum<HandlerTy> &&other);
 
 INSTANTIATE_SUM_CONSTRUCTORS(matrix_operator);
+INSTANTIATE_SUM_CONSTRUCTORS(spin_operator);
 
 // assignments
 
@@ -227,6 +229,7 @@ operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator=(operator_sum<Handler
     operator_sum<HandlerTy> &&other);
 
 INSTANTIATE_SUM_ASSIGNMENTS(matrix_operator);
+INSTANTIATE_SUM_ASSIGNMENTS(spin_operator);
 
 // evaluations
 
@@ -238,7 +241,7 @@ std::string operator_sum<HandlerTy>::to_string() const {
 template<typename HandlerTy>
 matrix_2 operator_sum<HandlerTy>::to_matrix(const std::map<int, int> &dimensions,
                                             const std::map<std::string, std::complex<double>> &parameters) const {
-  return m_evaluate(MatrixArithmetics(dimensions, parameters));
+  return m_evaluate(MatrixArithmetics(dimensions, parameters)).matrix();
 }
 
 #define INSTANTIATE_SUM_EVALUATIONS(HandlerTy)                                              \
@@ -252,6 +255,7 @@ matrix_2 operator_sum<HandlerTy>::to_matrix(const std::map<int, int> &dimensions
     const std::map<std::string, std::complex<double>> &params) const;
 
 INSTANTIATE_SUM_EVALUATIONS(matrix_operator);
+INSTANTIATE_SUM_EVALUATIONS(spin_operator);
 
 // comparisons
 
@@ -266,6 +270,7 @@ bool operator_sum<HandlerTy>::operator==(const operator_sum<HandlerTy> &other) c
   bool operator_sum<HandlerTy>::operator==(const operator_sum<HandlerTy> &other) const;
 
 INSTANTIATE_SUM_COMPARISONS(matrix_operator);
+INSTANTIATE_SUM_COMPARISONS(spin_operator);
 
 // unary operators
 
@@ -295,6 +300,7 @@ operator_sum<HandlerTy> operator_sum<HandlerTy>::operator+() const {
   operator_sum<HandlerTy> operator_sum<HandlerTy>::operator+() const;
 
 INSTANTIATE_SUM_UNARY_OPS(matrix_operator);
+INSTANTIATE_SUM_UNARY_OPS(spin_operator);
 
 // right-hand arithmetics
 
@@ -412,6 +418,7 @@ SUM_ADDITION_HANDLER(-)
   operator_sum<HandlerTy> operator_sum<HandlerTy>::operator-(const HandlerTy &other) const;
 
 INSTANTIATE_SUM_RHSIMPLE_OPS(matrix_operator);
+INSTANTIATE_SUM_RHSIMPLE_OPS(spin_operator);
 
 template <typename HandlerTy>
 operator_sum<HandlerTy> operator_sum<HandlerTy>::operator*(const product_operator<HandlerTy> &other) const {
@@ -533,6 +540,7 @@ SUM_ADDITION_SUM(-);
     const operator_sum<HandlerTy> &other) const;
 
 INSTANTIATE_SUM_RHCOMPOSITE_OPS(matrix_operator);
+INSTANTIATE_SUM_RHCOMPOSITE_OPS(spin_operator);
 
 #define SUM_MULTIPLICATION_ASSIGNMENT(otherTy)                                          \
   template <typename HandlerTy>                                                         \
@@ -670,6 +678,7 @@ SUM_ADDITION_SUM_ASSIGNMENT(-);
   operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator+=(const operator_sum<HandlerTy> &other);
 
 INSTANTIATE_SUM_OPASSIGNMENTS(matrix_operator);
+INSTANTIATE_SUM_OPASSIGNMENTS(spin_operator);
 
 // left-hand arithmetics
 
@@ -789,5 +798,6 @@ SUM_ADDITION_HANDLER_REVERSE(-)
   operator_sum<HandlerTy> operator-(const HandlerTy &other, const operator_sum<HandlerTy> &self);
 
 INSTANTIATE_SUM_LHCOMPOSITE_OPS(matrix_operator);
+INSTANTIATE_SUM_LHCOMPOSITE_OPS(spin_operator);
 
 } // namespace cudaq

@@ -97,10 +97,12 @@ MatrixArithmetics::_canonicalize(matrix_2 &op_matrix,
 EvaluatedMatrix MatrixArithmetics::tensor(EvaluatedMatrix op1,
                                           EvaluatedMatrix op2) {
   std::vector<int> op_degrees;
-  op_degrees.reserve(op1.degrees().size() + op2.degrees().size());
-  for (auto d : op1.degrees())
+  auto op1_degrees = op1.degrees();
+  auto op2_degrees = op2.degrees();
+  op_degrees.reserve(op1_degrees.size() + op2_degrees.size());
+  for (auto d : op1_degrees)
     op_degrees.push_back(d);
-  for (auto d : op2.degrees()) {
+  for (auto d : op2_degrees) {
     assert(std::find(op_degrees.begin(), op_degrees.end(), d) == op_degrees.end());
     op_degrees.push_back(d);
   }
@@ -115,8 +117,9 @@ EvaluatedMatrix MatrixArithmetics::mul(EvaluatedMatrix op1,
   // convention for how to define the matrix. Tensor products permute the
   // computed matrix if necessary to guarantee that all operators always have
   // sorted degrees.
-  assert(op1.degrees() == op2.degrees());
-  return EvaluatedMatrix(op1.degrees(), (op1.matrix() * op2.matrix()));
+  auto degrees = op1.degrees();
+  assert(degrees == op2.degrees());
+  return EvaluatedMatrix(std::move(degrees), (op1.matrix() * op2.matrix()));
 }
 
 EvaluatedMatrix MatrixArithmetics::add(EvaluatedMatrix op1,
@@ -125,8 +128,9 @@ EvaluatedMatrix MatrixArithmetics::add(EvaluatedMatrix op1,
   // convention for how to define the matrix. Tensor products permute the
   // computed matrix if necessary to guarantee that all operators always have
   // sorted degrees.
-  assert(op1.degrees() == op2.degrees());
-  return EvaluatedMatrix(op1.degrees(), (op1.matrix() + op2.matrix()));
+  auto degrees = op1.degrees();
+  assert(degrees == op2.degrees());
+  return EvaluatedMatrix(std::move(degrees), op1.matrix() + op2.matrix());
 }
 
 } // namespace cudaq

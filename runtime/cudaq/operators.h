@@ -22,6 +22,7 @@
 namespace cudaq {
 
 class MatrixArithmetics;
+class EvaluatedMatrix;
 
 
 class scalar_operator {
@@ -143,7 +144,7 @@ class operator_sum {
 
 private:
 
-  matrix_2 m_evaluate(MatrixArithmetics arithmetics, bool pad_terms = true) const;
+  EvaluatedMatrix m_evaluate(MatrixArithmetics arithmetics, bool pad_terms = true) const;
 
   void aggregate_terms();
 
@@ -318,10 +319,10 @@ private:
   template <typename ... Args>
   void aggregate_terms(const HandlerTy &head, Args&& ... args);
 
-  matrix_2 m_evaluate(MatrixArithmetics arithmetics, bool pad_terms = true) const;
+  EvaluatedMatrix m_evaluate(MatrixArithmetics arithmetics, bool pad_terms = true) const;
 
   template <typename T>
-  friend matrix_2 operator_sum<T>::m_evaluate(MatrixArithmetics arithmetics, bool pad_terms) const;
+  friend EvaluatedMatrix operator_sum<T>::m_evaluate(MatrixArithmetics arithmetics, bool pad_terms) const;
 
 public:
 
@@ -458,7 +459,9 @@ class operator_handler {
 public:
   virtual ~operator_handler() = default;
 
-  virtual const std::vector<int>& degrees() const = 0;
+  virtual std::vector<int> degrees() const = 0;
+
+  virtual bool is_identity() const = 0;
 
   /// @brief Return the `matrix_operator` as a matrix.
   /// @arg  `dimensions` : A map specifying the number of levels,
@@ -467,7 +470,6 @@ public:
   ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
   virtual matrix_2 to_matrix(std::map<int, int> dimensions = {},
                              std::map<std::string, std::complex<double>> parameters = {}) const = 0;
-
 };
 
 } // namespace cudaq

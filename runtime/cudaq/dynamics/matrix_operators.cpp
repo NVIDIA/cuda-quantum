@@ -9,7 +9,6 @@
 #include "cudaq/operators.h"
 #include "matrix_operators.h"
 
-#include <iostream>
 #include <complex>
 #include <set>
 
@@ -30,8 +29,12 @@ void matrix_operator::define(std::string operator_id, std::vector<int> expected_
 
 // read-only properties
 
-const std::vector<int>& matrix_operator::degrees() const {
+std::vector<int> matrix_operator::degrees() const {
   return this->targets;
+}
+
+bool matrix_operator::is_identity() const {
+  return this->id == "identity";
 }
 
 // constructors
@@ -109,24 +112,6 @@ product_operator<matrix_operator> matrix_operator::identity(int degree) {
       return mat;
     };
     matrix_operator::define(op_id, {-1}, std::move(func));
-  }
-  auto op = matrix_operator(op_id, {degree});
-  return product_operator<matrix_operator>(1., op);
-}
-
-product_operator<matrix_operator> matrix_operator::zero(int degree) {
-  std::string op_id = "zero";
-  if (matrix_operator::m_ops.find(op_id) == matrix_operator::m_ops.end()) {
-    auto func = [](std::vector<int> dimensions,
-                    std::map<std::string, std::complex<double>> _none) {
-      // Need to set the degree via the op itself because the
-      // argument to the outer function goes out of scope when
-      // the user invokes this later on via, e.g, `to_matrix()`.
-      std::size_t dimension = dimensions[0];
-      auto mat = matrix_2(dimension, dimension);
-      return mat;
-    };
-    matrix_operator::define(op_id, {-1}, func);
   }
   auto op = matrix_operator(op_id, {degree});
   return product_operator<matrix_operator>(1., op);

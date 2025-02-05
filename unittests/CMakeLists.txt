@@ -216,12 +216,12 @@ gtest_discover_tests(test_spin)
 
 # Create an executable for operators UnitTests
 set(CUDAQ_OPERATOR_TEST_SOURCES 
+   dynamics/utils.cpp
    dynamics/operator_sum.cpp
-   dynamics/matrix_ops_simple.cpp
-   dynamics/matrix_ops_arithmetic.cpp
-   dynamics/scalar_ops_simple.cpp
-   dynamics/scalar_ops_arithmetic.cpp
-   dynamics/product_operators_arithmetic.cpp
+   dynamics/spin_operator.cpp
+   dynamics/matrix_operator.cpp
+   dynamics/scalar_operator.cpp
+   dynamics/product_operator.cpp
 )
 add_executable(test_operators main.cpp ${CUDAQ_OPERATOR_TEST_SOURCES})
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
