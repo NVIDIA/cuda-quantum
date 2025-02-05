@@ -11,8 +11,9 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
 set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
 set(CUDAQ_OPS_SRC
-  definition.cpp
+  callback.cpp
   scalar_operators.cpp 
+  spin_operators.cpp
   matrix_operators.cpp 
   product_operators.cpp 
   operator_sum.cpp 

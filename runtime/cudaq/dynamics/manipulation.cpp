@@ -8,6 +8,7 @@
 
 #include "manipulation.h"
 #include "helpers.h"
+#include <set>
 
 namespace cudaq {
 
@@ -22,7 +23,14 @@ const matrix_2& EvaluatedMatrix::matrix() const {
 }
 
 EvaluatedMatrix::EvaluatedMatrix(const std::vector<int> &degrees, const matrix_2 &matrix)
-  : targets(degrees), value(matrix) {}
+  : targets(degrees), value(matrix) {
+#if !defined(NDEBUG)
+    std::set<int> unique_degrees;
+    for (auto d : degrees)
+      unique_degrees.insert(d);
+    assert(unique_degrees.size() == degrees.size());
+#endif
+  }
 
 EvaluatedMatrix::EvaluatedMatrix(EvaluatedMatrix &&other)
   : targets(std::move(other.targets)), value(std::move(other.value)) {}
@@ -88,16 +96,14 @@ MatrixArithmetics::_canonicalize(matrix_2 &op_matrix,
 
 EvaluatedMatrix MatrixArithmetics::tensor(EvaluatedMatrix op1,
                                           EvaluatedMatrix op2) {
-  /// FIXME: do this check:
-  // assert len(frozenset(op1.degrees).intersection(op2.degrees)) == 0, \
-  //     "Operators should not have common degrees of freedom."
-
   std::vector<int> op_degrees;
   op_degrees.reserve(op1.degrees().size() + op2.degrees().size());
   for (auto d : op1.degrees())
     op_degrees.push_back(d);
-  for (auto d : op2.degrees())
+  for (auto d : op2.degrees()) {
+    assert(std::find(op_degrees.begin(), op_degrees.end(), d) == op_degrees.end());
     op_degrees.push_back(d);
+  }
   auto op_matrix = cudaq::kronecker(op1.matrix(), op2.matrix());
   auto [new_matrix, new_degrees] = this->_canonicalize(op_matrix, op_degrees);
   return EvaluatedMatrix(new_degrees, new_matrix);
@@ -109,9 +115,7 @@ EvaluatedMatrix MatrixArithmetics::mul(EvaluatedMatrix op1,
   // convention for how to define the matrix. Tensor products permute the
   // computed matrix if necessary to guarantee that all operators always have
   // sorted degrees.
-  if (op1.degrees() != op2.degrees())
-    throw std::runtime_error(
-        "Operators should have the same order of degrees.");
+  assert(op1.degrees() == op2.degrees());
   return EvaluatedMatrix(op1.degrees(), (op1.matrix() * op2.matrix()));
 }
 
@@ -121,9 +125,7 @@ EvaluatedMatrix MatrixArithmetics::add(EvaluatedMatrix op1,
   // convention for how to define the matrix. Tensor products permute the
   // computed matrix if necessary to guarantee that all operators always have
   // sorted degrees.
-  if (op1.degrees() != op2.degrees())
-    throw std::runtime_error(
-        "Operators should have the same order of degrees.");
+  assert(op1.degrees() == op2.degrees());
   return EvaluatedMatrix(op1.degrees(), (op1.matrix() + op2.matrix()));
 }
 
