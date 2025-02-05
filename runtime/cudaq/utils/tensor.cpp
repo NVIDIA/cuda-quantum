@@ -64,6 +64,23 @@ cudaq::matrix_2 &cudaq::matrix_2::operator-=(const cudaq::matrix_2 &right) {
   return *this;
 }
 
+bool cudaq::operator==(const cudaq::matrix_2 &lhs, const cudaq::matrix_2 &rhs) {
+  if (lhs.get_rows() != rhs.get_rows() ||
+      lhs.get_columns() != rhs.get_columns()) {
+    return false;
+  }
+
+  for (std::size_t i = 0; i < lhs.get_rows(); i++) {
+    for (std::size_t j = 0; j < lhs.get_columns(); j++) {
+      if (lhs[{i, j}] != rhs[{i, j}]) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
 cudaq::matrix_2 &
 cudaq::matrix_2::kronecker_inplace(const cudaq::matrix_2 &right) {
   Dimensions new_dim{get_rows() * right.get_rows(),
