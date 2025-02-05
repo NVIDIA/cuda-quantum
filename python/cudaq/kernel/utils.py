@@ -6,16 +6,16 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 from __future__ import annotations
-
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
-from ..mlir.dialects import quake, cc
-from ..mlir.ir import *
-from ..mlir.passmanager import *
-import numpy as np
-from typing import Callable, List
-import ast, sys, traceback
+import ast
 import re
-from typing import get_origin
+import sys
+import traceback
+import numpy as np
+from typing import get_origin, Callable, List
+
+from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
+from cudaq.mlir.dialects import quake, cc
+from cudaq.mlir.ir import ComplexType, F32Type, F64Type, IntegerType
 
 State = cudaq_runtime.State
 qvector = cudaq_runtime.qvector
