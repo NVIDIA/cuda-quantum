@@ -12,6 +12,7 @@
 #include <iostream>
 #include <map>
 #include <ranges>
+#include <regex>
 #include <sstream>
 
 namespace cudaq {
