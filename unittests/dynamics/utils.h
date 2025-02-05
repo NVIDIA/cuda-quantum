@@ -46,4 +46,6 @@ cudaq::matrix_2 PauliX_matrix();
 
 cudaq::matrix_2 PauliZ_matrix();
 
+cudaq::matrix_2 PauliY_matrix();
+
 } // namespace utils

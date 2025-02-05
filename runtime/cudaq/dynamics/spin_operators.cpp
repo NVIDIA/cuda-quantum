@@ -31,10 +31,12 @@ bool spin_operator::is_identity() const {
 
 // evaluations
 
-matrix_2 spin_operator::to_matrix(std::map<int, int> dimensions,
+matrix_2 spin_operator::to_matrix(std::map<int, int> &dimensions,
                                   std::map<std::string, std::complex<double>> parameters) const {
   auto it = dimensions.find(this->target);
-  if (it != dimensions.end() && it->second != 2)
+  if (it == dimensions.end())
+    dimensions[this->target] = 2;
+  else if (it->second != 2)
     throw std::runtime_error("dimension for spin operator must be 2");
 
   // FIXME: CHECK CONVENTIONS
