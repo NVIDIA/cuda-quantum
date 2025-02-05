@@ -6,31 +6,13 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "PassDetails.h"
-#include "cudaq/Optimizer/Builder/Intrinsics.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
-#include "mlir/Dialect/Complex/IR/Complex.h"
-#include "mlir/IR/BuiltinOps.h"
-#include "mlir/IR/Dominance.h"
-#include "mlir/IR/PatternMatch.h"
-#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
-#include "mlir/Transforms/Passes.h"
+// These patterns are used by the write-after-write-elimination and
+// cc-loop-unroll passes.
 
-namespace cudaq::opt {
-#define GEN_PASS_DEF_WRITEAFTERWRITEELIMINATION
-#include "cudaq/Optimizer/Transforms/Passes.h.inc"
-} // namespace cudaq::opt
-
-#define DEBUG_TYPE "write-after-write-elimination"
-
-using namespace mlir;
-
-#include "WriteAfterWriteEliminationPatterns.inc"
+// This file must be included after a `using namespace mlir;` as it uses bare
+// identifiers from that namespace.
 
 namespace {
-
 /// Remove stores followed by a store to the same pointer
 /// if the pointer is not used in between.
 /// ```
@@ -40,9 +22,9 @@ namespace {
 /// ───────────────────────────────────────────
 /// cc.store %0, %1 : !cc.ptr<i64>
 /// ```
-class SimplifyWritesAnalysis1 {
+class SimplifyWritesAnalysis {
 public:
-  SimplifyWritesAnalysis1(DominanceInfo &di, Operation *op) : dom(di) {
+  SimplifyWritesAnalysis(DominanceInfo &di, Operation *op) : dom(di) {
     for (auto &region : op->getRegions())
       for (auto &b : region)
         collectBlockInfo(&b);
@@ -53,15 +35,20 @@ public:
   void removeOverriddenStores() {
     SmallVector<Operation *> toErase;
 
+    LLVM_DEBUG(llvm::dbgs() << "removing overriden stores" << '\n');
+
     for (const auto &[block, ptrToStores] : blockInfo) {
       for (const auto &[ptr, stores] : ptrToStores) {
+        LLVM_DEBUG(llvm::dbgs() << "processing stores" << '\n');
         if (stores.size() > 1) {
           auto replacement = stores.back();
-          for (auto *store: stores) {
-            if (isReplacement(ptr, store, replacement)) {
-              LLVM_DEBUG(llvm::dbgs() << "replacing store " << *store
-                                      << " by: " << *replacement << '\n');
-              toErase.push_back(store);
+          for (auto it = stores.rend(); it != stores.rbegin(); it++) {
+            auto store = *it;
+            LLVM_DEBUG(llvm::dbgs() << "checking for " << *store << replacement << " "  << *replacement << '\n');
+            if (isReplacement(ptr, *store, *replacement)) {
+              LLVM_DEBUG(llvm::dbgs() << "replacing store " << store
+                                      << " by: " << replacement << '\n');
+              toErase.push_back(store->getOperation());
             }
           }
         }
@@ -74,16 +61,13 @@ public:
 
 private:
   /// Detect if value is used in the op or its nested blocks.
-  bool isReplacement(Operation* ptr, Operation* store,
-                     Operation* replacement) const {
-    if (store == replacement)
-      return false;
-    
+  bool isReplacement(Operation* ptr, cudaq::cc::StoreOp store,
+                     cudaq::cc::StoreOp replacement) const {
     // Check that there are no stores dominated by the store and not dominated
     // by the replacement (i.e. used in between the store and the replacement)
     for (auto *user : ptr->getUsers()) {
       if (user != store && user != replacement) {
-        if (!isStoreToPtr(store, ptr) && dom.dominates(store, user) && !dom.dominates(replacement, user)) {
+        if (dom.dominates(store, user) && !dom.dominates(replacement, user)) {
           LLVM_DEBUG(llvm::dbgs() << "store " << replacement
                                   << " is used before: " << store << '\n');
           return false;
@@ -91,13 +75,6 @@ private:
       }
     }
     return true;
-  }
-
-  /// Detects a store to the pointer.
-  static bool isStoreToPtr(Operation* op, Operation* ptr) {
-    return 
-      isa_and_present<cudaq::cc::StoreOp>(op) && 
-      (dyn_cast<cudaq::cc::StoreOp>(op).getPtrvalue().getDefiningOp() ==  ptr);
   }
 
   /// Collect all stores to a pointer for a block.
@@ -110,9 +87,13 @@ private:
       if (auto store = dyn_cast<cudaq::cc::StoreOp>(&op)) {
         auto ptr = store.getPtrvalue().getDefiningOp();
         if (isStoreToStack(store)) {
-          auto &[b, ptrToStores] = blockInfo.FindAndConstruct(block);
-          auto &[p, stores] = ptrToStores.FindAndConstruct(ptr);
-          stores.push_back(&op);
+          LLVM_DEBUG(llvm::dbgs() << "adding store " << store << " with ptr:  " << ptr << '\n');
+          auto ptrToStores = blockInfo.FindAndConstruct(block).second;
+          auto stores = ptrToStores.FindAndConstruct(ptr).second;
+          LLVM_DEBUG(llvm::dbgs() << "existing stores: " << stores.size() << '\n');
+          stores.push_back(&store);
+        } else {
+          LLVM_DEBUG(llvm::dbgs() << "not adding store " << store << '\n');
         }
       }
     }
@@ -140,27 +121,7 @@ private:
   }
 
   DominanceInfo &dom;
-  DenseMap<Block *, DenseMap<Operation*, SmallVector<Operation*>>> blockInfo;
-};
-
-class WriteAfterWriteEliminationPass
-    : public cudaq::opt::impl::WriteAfterWriteEliminationBase<
-          WriteAfterWriteEliminationPass> {
-public:
-  using WriteAfterWriteEliminationBase::WriteAfterWriteEliminationBase;
-
-  void runOnOperation() override {
-    auto op = getOperation();
-    DominanceInfo domInfo(op);
-
-    LLVM_DEBUG(llvm::dbgs()
-               << "Before write after write elimination: " << *op << '\n');
-
-    auto analysis = SimplifyWritesAnalysis1(domInfo, op);
-    analysis.removeOverriddenStores();
-
-    LLVM_DEBUG(llvm::dbgs()
-               << "After write after write elimination: " << *op << '\n');
-  }
+  DenseMap<Block *, DenseMap<Operation*, SmallVector<cudaq::cc::StoreOp *>>>
+      blockInfo;
 };
 } // namespace

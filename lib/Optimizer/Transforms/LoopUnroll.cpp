@@ -9,9 +9,11 @@
 #include "LoopAnalysis.h"
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "mlir/IR/Dominance.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
+#include "mlir/Transforms/RegionUtils.h"
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_LOOPUNROLL
@@ -23,10 +25,10 @@ namespace cudaq::opt {
 
 using namespace mlir;
 
-#include "WriteAfterWriteEliminationPatterns.inc"
 #include "LiftArrayAllocPatterns.inc"
 #include "LoopNormalizePatterns.inc"
-#include "LowerToCfgPatterns.inc"
+#include "LowerToCFGPatterns.inc"
+#include "WriteAfterWriteEliminationPatterns.inc"
 
 inline std::pair<Block *, Block *> findCloneRange(Block *first, Block *last) {
   return {first->getNextNode(), last->getPrevNode()};
@@ -149,7 +151,7 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
         contBlock = rewriter.createBlock(endBlock, argTys, argLocs);
       }
       // Replace any continue and (possibly) break ops in the body region. They
-      // are repalced with branches to the continue block or exit block, resp.
+      // are replaced with branches to the continue block or exit block, resp.
       for (Block *b = cloneRange.first; b != contBlock; b = b->getNextNode()) {
         auto *term = b->getTerminator();
         if (auto cont = dyn_cast<cudaq::cc::ContinueOp>(term)) {
@@ -236,9 +238,7 @@ public:
     auto *ctx = &getContext();
     auto *op = getOperation();
     DominanceInfo domInfo(op);
-    
     auto func = dyn_cast<func::FuncOp>(op);
-
     auto numLoops = countLoopOps(op);
     unsigned progress = 0;
     if (numLoops) {
@@ -247,14 +247,14 @@ public:
         dialect->getCanonicalizationPatterns(patterns);
       for (RegisteredOperationName op : ctx->getRegisteredOperations())
         op.getCanonicalizationPatterns(patterns, ctx);
-      
+
       patterns.insert<RewriteIf>(ctx);
       patterns.insert<LoopPat>(ctx, allowClosedInterval, allowBreak);
-      patterns.insert<AllocaPattern>(ctx, domInfo, func == nullptr? "": func.getName());
+      patterns.insert<AllocaPattern>(
+          ctx, domInfo, func == nullptr ? "unknown" : func.getName());
       patterns.insert<UnrollCountedLoop>(ctx, threshold,
                                          /*signalFailure=*/false, allowBreak,
                                          progress);
-
 
       FrozenRewritePatternSet frozen(std::move(patterns));
       // Iterate over the loops until a fixed-point is reached. Some loops can
@@ -262,14 +262,14 @@ public:
       // iteratively propagated.
       do {
         // Remove overridden writes.
-        SimplifyWritesAnalysis(ctx, domInfo, op);
+        auto analysis = SimplifyWritesAnalysis(domInfo, op);
         analysis.removeOverriddenStores();
         // Clean up dead code.
         {
           auto builder = OpBuilder(op);
           IRRewriter rewriter(builder);
           [[maybe_unused]] auto unused =
-              simplifyRegions(rewriter, {func.getBody()});
+              simplifyRegions(rewriter, op->getRegions());
         }
         progress = 0;
         (void)applyPatternsAndFoldGreedily(op, frozen);
@@ -370,7 +370,7 @@ static void createUnrollingPipeline(OpPassManager &pm, unsigned threshold,
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
   cudaq::opt::LoopUnrollOptions luo{threshold, signalFailure,
-                                     allowClosedInterval, allowBreak};
+                                    allowClosedInterval, allowBreak};
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll(luo));
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUpdateRegisterNames());
 }
