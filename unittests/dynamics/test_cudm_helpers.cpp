@@ -12,8 +12,7 @@
 #include <gtest/gtest.h>
 
 // Initialize operator_sum
-template <typename HandlerTy = cudaq::matrix_operator>
-cudaq::operator_sum<HandlerTy> initialize_operator_sum() {
+cudaq::operator_sum<cudaq::matrix_operator> initialize_operator_sum() {
   return cudaq::matrix_operator::create(1) + cudaq::matrix_operator::create(2);
 }
 
@@ -74,11 +73,11 @@ TEST_F(CuDensityMatTestFixture, ComputeLindbladOp) {
 TEST_F(CuDensityMatTestFixture, ConvertToCuDensityMatOperator) {
   std::vector<int64_t> mode_extents = {2, 2};
 
-  auto op_sum = initialize_operator_sum<std::complex<double>>();
+  auto op_sum = initialize_operator_sum();
 
   EXPECT_NO_THROW({
-    auto result = cudaq::convert_to_cudensitymat_operator<std::complex<double>>(
-        handle, {}, op_sum, mode_extents);
+    auto result = cudaq::convert_to_cudensitymat_operator(handle, {}, op_sum,
+                                                          mode_extents);
     ASSERT_NE(result, nullptr);
     cudensitymatDestroyOperator(result);
   });
@@ -89,9 +88,9 @@ TEST_F(CuDensityMatTestFixture, InvalidHandle) {
   cudensitymatHandle_t invalid_handle = nullptr;
 
   std::vector<int64_t> mode_extents = {2, 2};
-  auto op_sum = initialize_operator_sum<std::complex<double>>();
+  auto op_sum = initialize_operator_sum();
 
-  EXPECT_THROW(cudaq::convert_to_cudensitymat_operator<std::complex<double>>(
-                   invalid_handle, {}, op_sum, mode_extents),
+  EXPECT_THROW(cudaq::convert_to_cudensitymat_operator(invalid_handle, {},
+                                                       op_sum, mode_extents),
                std::runtime_error);
 }
