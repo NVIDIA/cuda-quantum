@@ -170,6 +170,7 @@ public:
                          << "more than 1 store to element of array\n");
               return nullptr;
             }
+            LLVM_DEBUG(llvm::dbgs() << "found store: " << store << "\n");
             theStore = u;
           }
           continue;
@@ -184,10 +185,11 @@ public:
         }
         return nullptr;
       }
-      return isa_and_present<arith::ConstantOp, complex::ConstantOp>(
-                 dyn_cast<cudaq::cc::StoreOp>(theStore)
-                     .getValue()
-                     .getDefiningOp())
+      return theStore &&
+                     isa_and_present<arith::ConstantOp, complex::ConstantOp>(
+                         dyn_cast<cudaq::cc::StoreOp>(theStore)
+                             .getValue()
+                             .getDefiningOp())
                  ? theStore
                  : nullptr;
     };

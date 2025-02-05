@@ -172,3 +172,26 @@ func.func @test_two_stores() {
 // CHECK:           quake.x %[[VAL_7]] : (!quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
+
+func.func @test_complex_array() {
+  %cst = complex.constant [0.000000e+00 : f32, 1.000000e+00 : f32] : complex<f32>
+  %cst_0 = complex.constant [1.000000e+00 : f32, 0.000000e+00 : f32] : complex<f32>
+  %0 = cc.alloca !cc.array<complex<f32> x 2>
+  %1 = cc.cast %0 : (!cc.ptr<!cc.array<complex<f32> x 2>>) -> !cc.ptr<complex<f32>>
+  cc.store %cst_0, %1 : !cc.ptr<complex<f32>>
+  %2 = cc.compute_ptr %0[1] : (!cc.ptr<!cc.array<complex<f32> x 2>>) -> !cc.ptr<complex<f32>>
+  cc.store %cst, %2 : !cc.ptr<complex<f32>>
+  %3 = quake.alloca !quake.veq<1>
+  %4 = quake.init_state %3, %1 : (!quake.veq<1>, !cc.ptr<complex<f32>>) -> !quake.veq<1>
+  return
+}
+
+// CHECK-LABEL:   func.func @test_complex_array() {
+// CHECK:           %[[VAL_0:.*]] = cc.const_array {{\[}}[1.000000e+00 : f32, 0.000000e+00 : f32], [0.000000e+00 : f32, 1.000000e+00 : f32]{{\]}} : !cc.array<complex<f32> x 2>
+// CHECK:           %[[VAL_1:.*]] = cc.alloca !cc.array<complex<f32> x 2>
+// CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<!cc.array<complex<f32> x 2>>
+// CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!cc.array<complex<f32> x 2>>) -> !cc.ptr<complex<f32>>
+// CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<1>
+// CHECK:           %[[VAL_4:.*]] = quake.init_state %[[VAL_3]], %[[VAL_2]] : (!quake.veq<1>, !cc.ptr<complex<f32>>) -> !quake.veq<1>
+// CHECK:           return
+// CHECK:         }
