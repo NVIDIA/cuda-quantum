@@ -651,20 +651,12 @@ protected:
     if (sampleQubits.empty())
       return;
 
-    // FIXME - make this a base class attribute that subclasses can override?
-    bool requiresUniqueQubitsInSample = name() != "stim";
-    if (executionContext->explicitMeasurements &&
-        !requiresUniqueQubitsInSample && !force)
-      return;
-
     if (executionContext->hasConditionalsOnMeasureResults && !force)
       return;
 
     // Sort the qubit indices (unless we're in the optimized sampling mode that
     // simply concatenates sequential measurements)
-    auto origSampleQubits = sampleQubits;
-    if (requiresUniqueQubitsInSample ||
-        !executionContext->explicitMeasurements) {
+    if (!executionContext->explicitMeasurements) {
       std::sort(sampleQubits.begin(), sampleQubits.end());
       auto last = std::unique(sampleQubits.begin(), sampleQubits.end());
       sampleQubits.erase(last, sampleQubits.end());
@@ -678,24 +670,6 @@ protected:
         sample(sampleQubits, executionContext->hasConditionalsOnMeasureResults
                                  ? 1
                                  : executionContext->shots);
-
-    if (requiresUniqueQubitsInSample &&
-        executionContext->explicitMeasurements) {
-      // This is the case where there may be duplicates in origSampleQubits.
-      // We need to update the execResult by duplicating measurements. This is
-      // not particularly efficient, but it is only used in rare use cases.
-      cudaq::ExecutionResult newExecResult;
-      newExecResult.sequentialData.resize(executionContext->shots);
-      for (auto b : origSampleQubits) {
-        auto iter = std::find(sampleQubits.begin(), sampleQubits.end(), b);
-        auto idx = std::distance(sampleQubits.begin(), iter);
-        for (std::size_t s = 0; s < executionContext->shots; s++)
-          newExecResult.sequentialData[s] += execResult.sequentialData[s][idx];
-      }
-      for (auto &bitstring : newExecResult.sequentialData)
-        newExecResult.counts[bitstring]++;
-      execResult = std::move(newExecResult);
-    }
 
     if (registerNameToMeasuredQubit.empty()) {
       executionContext->result.append(execResult,
