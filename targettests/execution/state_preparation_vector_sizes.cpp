@@ -21,9 +21,6 @@
 #include <cudaq.h>
 #include <iostream>
 
-#include <cudaq.h>
-#include <iostream>
-
 __qpu__ void test(std::vector<cudaq::complex> inState) {
   cudaq::qvector q1 = inState;
 }
