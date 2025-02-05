@@ -7,23 +7,22 @@
 # ============================================================================ #
 
 from __future__ import annotations
-import numpy, scipy, sys, uuid
-from numpy.typing import NDArray
-from typing import Callable, Iterable, Mapping, Optional, Sequence
-import json
+import numpy
 import random
 import string
 import warnings
+import uuid
+from numpy.typing import NDArray
+from typing import Callable, Iterable, Mapping, Optional, Sequence
 
+from cudaq.kernel.kernel_builder import PyKernel, make_kernel
+from cudaq.kernel.register_op import register_operation
+from cudaq.kernel.utils import ahkPrefix
+from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from .expressions import Operator, RydbergHamiltonian
 from .helpers import NumericType, InitialState, InitialStateArgT
 from .integrator import BaseIntegrator
 from .schedule import Schedule
-from ..kernel.register_op import register_operation
-from ..kernel.utils import ahkPrefix
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
-from ..kernel.kernel_builder import PyKernel, make_kernel
-from ..runtime.observe import observe
 
 analog_targets = ["pasqal", "quera"]
 
