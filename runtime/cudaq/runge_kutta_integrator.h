@@ -15,8 +15,7 @@
 #include <memory>
 
 namespace cudaq {
-template <typename HandlerTy>
-class runge_kutta_integrator : public BaseIntegrator<cudm_state, HandlerTy> {
+class runge_kutta_integrator : public BaseIntegrator<cudm_state> {
 public:
   /// @brief Constructor to initialize the Runge-Kutta integrator
   /// @param initial_state Initial quantum state.
@@ -26,8 +25,7 @@ public:
   runge_kutta_integrator(cudm_state &&initial_state, double t0,
                          std::shared_ptr<cudm_time_stepper> stepper,
                          int substeps = 4)
-      : BaseIntegrator<cudm_state, HandlerTy>(std::move(initial_state), t0,
-                                              stepper),
+      : BaseIntegrator<cudm_state>(std::move(initial_state), t0, stepper),
         substeps_(substeps) {
     if (!stepper) {
       throw std::invalid_argument("Time stepper must be initialized.");
