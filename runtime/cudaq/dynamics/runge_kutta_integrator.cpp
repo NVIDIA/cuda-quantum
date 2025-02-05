@@ -12,8 +12,7 @@
 using namespace cudaq;
 
 namespace cudaq {
-template <typename HandlerTy>
-void runge_kutta_integrator<HandlerTy>::integrate(double target_time) {
+void runge_kutta_integrator::integrate(double target_time) {
   if (!this->stepper) {
     throw std::runtime_error("Time stepper is not initialized.");
   }
