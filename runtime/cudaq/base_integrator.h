@@ -16,17 +16,17 @@
 #include <vector>
 
 namespace cudaq {
-template <typename TState, typename HandlerTy>
+template <typename TState>
 class BaseIntegrator {
 protected:
   std::map<std::string, double> integrator_options;
   TState state;
   double t;
-  std::map<int, int> dimensions;
-  std::shared_ptr<Schedule> schedule;
-  std::shared_ptr<operator_sum<HandlerTy>> hamiltonian;
+  // std::map<int, int> dimensions;
+  // std::shared_ptr<Schedule> schedule;
+  // std::shared_ptr<operator_sum<HandlerTy>> hamiltonian;
   std::shared_ptr<BaseTimeStepper<TState>> stepper;
-  std::vector<std::shared_ptr<operator_sum<HandlerTy>>> collapse_operators;
+  // std::vector<std::shared_ptr<operator_sum<HandlerTy>>> collapse_operators;
 
   virtual void post_init() = 0;
 
@@ -61,16 +61,16 @@ public:
   }
 
   /// @brief Set the system parameters (dimensions, schedule, and operators)
-  void set_system(const std::map<int, int> &dimensions,
-                  std::shared_ptr<Schedule> schedule,
-                  std::shared_ptr<operator_sum<HandlerTy>> hamiltonian,
-                  std::vector<std::shared_ptr<operator_sum<HandlerTy>>>
-                      collapse_operators = {}) {
-    this->dimensions = dimensions;
-    this->schedule = schedule;
-    this->hamiltonian = hamiltonian;
-    this->collapse_operators = collapse_operators;
-  }
+  // void set_system(const std::map<int, int> &dimensions,
+  //                 std::shared_ptr<Schedule> schedule,
+  //                 std::shared_ptr<operator_sum<HandlerTy>> hamiltonian,
+  //                 std::vector<std::shared_ptr<operator_sum<HandlerTy>>>
+  //                     collapse_operators = {}) {
+  //   this->dimensions = dimensions;
+  //   this->schedule = schedule;
+  //   this->hamiltonian = hamiltonian;
+  //   this->collapse_operators = collapse_operators;
+  // }
 
   /// @brief Perform integration to the target time.
   virtual void integrate(double target_time) = 0;
