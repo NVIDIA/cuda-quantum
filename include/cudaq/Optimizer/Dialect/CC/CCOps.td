@@ -1022,9 +1022,11 @@ def cc_InsertValueOp : CCOp<"insert_value", [Pure]> {
   let results = (outs AnyAggregateType);
 
   let assemblyFormat = [{
-    $value `,` $container `` $position `:` functional-type(operands, results)
+    $container `` $position `,` $value `:` functional-type(operands, results)
       attr-dict
   }];
+
+  let hasVerifier = 1;
 
   let builders = [
     OpBuilder<(ins "mlir::Type":$resultType, "mlir::Value":$aggregate,
