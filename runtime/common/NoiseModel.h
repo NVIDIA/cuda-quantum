@@ -194,8 +194,6 @@ public:
 
   /// @brief Add a kraus_op to this channel.
   void push_back(kraus_op op);
-
-  virtual void generate(const std::vector<double> &p) { return; }
 };
 
 /// @brief The noise_model type keeps track of a set of
@@ -309,7 +307,12 @@ public:
   /// @param pred Callback function that generates a noise channel.
   void add_channel(const std::string &quantumOp, const PredicateFuncTy &pred);
 
-  template <typename KrausChannelT>
+  template <typename T, typename... Args>
+  using requires_constructor =
+      std::enable_if_t<std::is_constructible_v<T, Args...>>;
+  template <typename KrausChannelT,
+            typename = requires_constructor<KrausChannelT,
+                                            const std::vector<double> &>>
   void add_channel() {
 
     // Store the demangled type name mapped to its typeindex
@@ -324,17 +327,11 @@ public:
     registeredChannels.insert(
         {std::type_index(typeid(KrausChannelT)),
          [typeName](const std::vector<double> &params) -> kraus_channel {
-           KrausChannelT userChannel;
-           userChannel.generate(params);
-           kraus_channel c;
-           c.parameters = params;
-           c.name = userChannel.name == "unknown" ? typeName : userChannel.name;
-           c.noise_type = userChannel.noise_type != noise_model_type::unknown
-                              ? userChannel.noise_type
-                              : noise_model_type::unknown;
-           for (auto &o : userChannel.get_ops())
-             c.push_back(o);
-           return c;
+           KrausChannelT userChannel(params);
+           userChannel.parameters = params;
+           if (userChannel.name == "unknown")
+             userChannel.name = typeName;
+           return userChannel;
          }});
   }
 
@@ -465,13 +462,7 @@ public:
 /// a single-qubit bit flipping error channel.
 class bit_flip_channel : public kraus_channel {
 public:
-  using kraus_channel::kraus_channel;
-
-  bit_flip_channel(const real probability) : kraus_channel() {
-    generate({probability});
-  }
-
-  void generate(const std::vector<double> &p) override {
+  bit_flip_channel(const std::vector<cudaq::real> &p) {
     cudaq::real probability = p[0];
     std::vector<cudaq::complex> k0v{std::sqrt(1 - probability), 0, 0,
                                     std::sqrt(1 - probability)},
@@ -481,6 +472,8 @@ public:
     noise_type = noise_model_type::bit_flip_channel;
     validateCompleteness();
   }
+  bit_flip_channel(const real probability)
+      : bit_flip_channel(std::vector<cudaq::real>{probability}) {}
 };
 
 /// @brief phase_flip_channel is a kraus_channel that
@@ -488,7 +481,8 @@ public:
 /// a single-qubit phase flip error channel.
 class phase_flip_channel : public kraus_channel {
 public:
-  phase_flip_channel(const real probability) : kraus_channel() {
+  phase_flip_channel(const std::vector<cudaq::real> &p) {
+    cudaq::real probability = p[0];
     auto negOne = static_cast<real>(-1.);
     std::vector<cudaq::complex> k0v{std::sqrt(1 - probability), 0, 0,
                                     std::sqrt(1 - probability)},
@@ -498,5 +492,7 @@ public:
     noise_type = noise_model_type::phase_flip_channel;
     validateCompleteness();
   }
+  phase_flip_channel(const real probability)
+      : phase_flip_channel(std::vector<cudaq::real>{probability}) {}
 };
 } // namespace cudaq

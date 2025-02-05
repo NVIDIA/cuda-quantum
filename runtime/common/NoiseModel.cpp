@@ -79,7 +79,7 @@ void validateCompletenessRelation_fp64(const std::vector<kraus_op> &ops) {
 }
 
 kraus_channel::kraus_channel(const kraus_channel &other)
-    : ops(other.ops), noise_type(other.noise_type),
+    : ops(other.ops), noise_type(other.noise_type), name(other.name),
       parameters(other.parameters) {}
 
 std::size_t kraus_channel::size() const { return ops.size(); }
@@ -268,5 +268,8 @@ noise_model::get_channels(const std::string &quantumOp,
   return resultChannels;
 }
 
-noise_model::noise_model() { add_channel<bit_flip_channel>(); }
+noise_model::noise_model() {
+  add_channel<bit_flip_channel>();
+  add_channel<phase_flip_channel>();
+}
 } // namespace cudaq

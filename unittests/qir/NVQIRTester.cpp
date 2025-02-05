@@ -595,7 +595,7 @@ CUDAQ_TEST(NVQIRTester, checkQubitAllocationFromRetrievedStateExpand) {
 
 namespace test::hello {
 struct hello_world : public ::cudaq::kraus_channel {
-  void generate(const std::vector<double> &params) override {
+  hello_world(const std::vector<double> &params) {
     cudaq::real p = params[0];
     std::vector<cudaq::complex> k0v{std::sqrt(1 - p), 0, 0, std::sqrt(1 - p)},
         k1v{0, std::sqrt(p), std::sqrt(p), 0};

@@ -34,7 +34,7 @@ struct bell {
 
 namespace test::hello {
 struct hello_world : public ::cudaq::kraus_channel {
-  void generate(const std::vector<double> &params) override {
+  hello_world(const std::vector<double> &params) {
     std::vector<cudaq::complex> k0v{std::sqrt(1 - params[0]), 0, 0,
                                     std::sqrt(1 - params[0])},
         k1v{0, std::sqrt(params[0]), std::sqrt(params[0]), 0};

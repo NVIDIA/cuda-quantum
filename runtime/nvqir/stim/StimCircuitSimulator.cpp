@@ -40,6 +40,58 @@ protected:
   /// @brief Stim Frame/Flip simulator (used to generate multiple shots)
   std::unique_ptr<stim::FrameSimulator<W>> sampleSim;
 
+  std::optional<std::string>
+  isValidStimNoiseChannel(const kraus_channel &channel) const {
+
+    if (channel.noise_type == cudaq::noise_model_type::bit_flip_channel)
+      return "X_ERROR";
+
+    if (channel.noise_type == cudaq::noise_model_type::phase_flip_channel)
+      return "Z_ERROR";
+
+    if (channel.noise_type == cudaq::noise_model_type::depolarization_channel)
+      return "DEPOLARIZE1";
+
+    auto contains = [](const std::string &str, const std::string &sub) {
+      return str.find(sub) != std::string::npos;
+    };
+
+    auto typeName = channel.name;
+
+    // Check the name of the channel, 
+    // map our builtin noise channels to STIM names
+    if (contains(typeName, "cudaq::")) {
+      if (contains(typeName, "bit_flip_channel"))
+        return "X_ERROR";
+      if (contains(typeName, "phase_flip_channel"))
+        return "Z_ERROR";
+      if (contains(typeName, "depolarization_channel"))
+        return "DEPOLARIZE1";
+    }
+
+    // Final check on the name of the channel, this is 
+    // for custom operations.
+    auto className = [](const std::string &input) -> std::string {
+      // Find the last occurrence of '::'
+      size_t pos = input.find_last_of("::");
+      if (pos == std::string::npos)
+        return input;
+      std::string typeName = input.substr(pos + 1);
+      std::transform(typeName.begin(), typeName.end(), typeName.begin(),
+                     ::toupper);
+      return typeName;
+    }(typeName);
+
+    auto it =
+        std::find_if(stim::GATE_DATA.items.begin(), stim::GATE_DATA.items.end(),
+                     [&](const auto &el) { return el.name == className; });
+
+    if (it != stim::GATE_DATA.items.end())
+      return className;
+
+    return std::nullopt;
+  }
+
   /// @brief Grow the state vector by one qubit.
   void addQubitToState() override { addQubitsToState(1); }
 
@@ -146,15 +198,9 @@ protected:
 
     stim::Circuit noiseOps;
     for (auto &channel : krausChannels) {
-      if (channel.noise_type == cudaq::noise_model_type::bit_flip_channel)
-        noiseOps.safe_append_ua("X_ERROR", stimTargets, channel.parameters[0]);
-      else if (channel.noise_type ==
-               cudaq::noise_model_type::phase_flip_channel)
-        noiseOps.safe_append_ua("Z_ERROR", stimTargets, channel.parameters[0]);
-      else if (channel.noise_type ==
-               cudaq::noise_model_type::depolarization_channel)
-        noiseOps.safe_append_ua("DEPOLARIZE1", stimTargets,
-                                channel.parameters[0]);
+      if (auto stimName = isValidStimNoiseChannel(channel))
+        noiseOps.safe_append_u(stimName.value(), stimTargets,
+                               channel.parameters);
     }
     // Only apply the noise operations to the sample simulator (not the Tableau
     // simulator).
@@ -162,7 +208,9 @@ protected:
   }
 
   bool isValidNoiseChannelName(const std::string &name) const override {
-    return name.find("stim::") != std::string::npos;
+    kraus_channel c;
+    c.name = name; 
+    return isValidStimNoiseChannel(c).has_value();
   }
 
   void applyNoise(const cudaq::kraus_channel &channel,
@@ -175,18 +223,11 @@ protected:
     for (auto q : qubits)
       stimTargets.push_back(static_cast<std::uint32_t>(q));
 
-    if (channel.noise_type == cudaq::noise_model_type::bit_flip_channel)
-      noiseOps.safe_append_ua("X_ERROR", stimTargets, channel.parameters[0]);
-    else if (channel.noise_type == cudaq::noise_model_type::phase_flip_channel)
-      noiseOps.safe_append_ua("Z_ERROR", stimTargets, channel.parameters[0]);
-    else if (channel.noise_type ==
-             cudaq::noise_model_type::depolarization_channel)
-      noiseOps.safe_append_ua("DEPOLARIZE1", stimTargets,
-                              channel.parameters[0]);
-    else
-      noiseOps.safe_append_u(channel.name.substr(6), stimTargets,
-                             channel.parameters);
-    sampleSim->safe_do_circuit(noiseOps);
+    // If we have a valid operation, apply it
+    if (auto stimName = isValidStimNoiseChannel(channel)) {
+      noiseOps.safe_append_u(stimName.value(), stimTargets, channel.parameters);
+      sampleSim->safe_do_circuit(noiseOps);
+    }
   }
 
   void applyGate(const GateApplicationTask &task) override {
