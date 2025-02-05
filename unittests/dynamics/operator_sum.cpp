@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/operators.h"
+#include "cudaq/dynamics/matrix_operators.h"
 #include <gtest/gtest.h>
 
 namespace utils_2 {
