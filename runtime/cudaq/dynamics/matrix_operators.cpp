@@ -72,21 +72,33 @@ matrix_operator& matrix_operator::operator=(matrix_operator &&other) {
 // evaluations
 
 matrix_2 matrix_operator::to_matrix(
-    std::map<int, int> dimensions,
+    std::map<int, int> &dimensions,
     std::map<std::string, std::complex<double>> parameters) const {
   auto it = matrix_operator::m_ops.find(this->id);
-  if (it != matrix_operator::m_ops.end()) {
-      std::vector<int> relevant_dimensions;
-      relevant_dimensions.reserve(this->targets.size());
-      for (auto d : this->targets) {
-        auto entry = dimensions.find(d);
-        if (entry == dimensions.end())
-            throw std::runtime_error("missing dimension for degree " + std::to_string(d));
-        relevant_dimensions.push_back(entry->second);
-      }
-      return it->second.generate_matrix(relevant_dimensions, parameters);
+  if (it == matrix_operator::m_ops.end()) 
+    throw std::range_error("unable to find operator");
+
+  std::vector<int> relevant_dimensions;
+  relevant_dimensions.reserve(this->targets.size());
+  for (auto i = 0; i < this->targets.size(); ++i) {
+    auto entry = dimensions.find(this->targets[i]);
+    auto expected_dim = it->second.expected_dimensions[i];
+    if (expected_dim <= 0) {
+      if (entry == dimensions.end())
+        throw std::runtime_error("missing dimension for degree " + std::to_string(this->targets[i]));
+      relevant_dimensions.push_back(entry->second);
+    } else {
+      if (entry == dimensions.end())
+        dimensions[this->targets[i]] = expected_dim;
+      else if (entry->second != expected_dim)
+        throw std::runtime_error("invalid dimension for degree " + 
+                                  std::to_string(this->targets[i]) + 
+                                  ", expected dimension is " + std::to_string(expected_dim));
+      relevant_dimensions.push_back(expected_dim);
+    }
   }
-  throw std::range_error("unable to find operator");
+
+  return it->second.generate_matrix(relevant_dimensions, parameters);
 }
 
 // comparisons

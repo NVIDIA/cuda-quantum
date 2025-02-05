@@ -98,7 +98,7 @@ public:
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
-  virtual matrix_2 to_matrix(std::map<int, int> dimensions = {},
+  virtual matrix_2 to_matrix(std::map<int, int> &dimensions,
                              std::map<std::string, std::complex<double>> parameters = {}) const;
 
   // comparisons

@@ -10,7 +10,7 @@
 #include "cudaq/operators.h"
 #include <gtest/gtest.h>
 
-TEST(OperatorExpressions, checkElementaryUnary) {
+TEST(OperatorExpressions, checkMatrixOpsUnary) {
   auto create = cudaq::matrix_operator::create(0);
   utils::checkEqual((-create).to_matrix({{0,2}}), -1.0 * utils::create_matrix(2));
 }
@@ -147,7 +147,7 @@ TEST(OperatorExpressions, checkCustomMatrixOps) {
     utils::checkEqual(op1.to_matrix(dimensions), matrix1);
 }
 
-TEST(OperatorExpressions, checkElementaryAgainstDouble) {
+TEST(OperatorExpressions, checkMatrixOpsWithComplex) {
   std::complex<double> value = 0.125 + 0.125j;
 
   // `matrix_operator` + `complex<double>` and `complex<double>` +
@@ -207,7 +207,7 @@ TEST(OperatorExpressions, checkElementaryAgainstDouble) {
   }
 }
 
-TEST(OperatorExpressions, checkPreBuiltElementaryOpsScalars) {
+TEST(OperatorExpressions, checkMatrixOpsWithScalars) {
 
   auto function = [](std::map<std::string, std::complex<double>> parameters) {
     return parameters["value"];
@@ -352,8 +352,7 @@ TEST(OperatorExpressions, checkPreBuiltElementaryOpsScalars) {
   }
 }
 
-/// Prebuilt elementary ops against one another.
-TEST(OperatorExpressions, checkPreBuiltElementaryOpsSelf) {
+TEST(OperatorExpressions, checkMatrixOpsSimpleArithmetics) {
 
   /// Keeping this fixed throughout.
   int level_count = 3;
@@ -462,9 +461,7 @@ TEST(OperatorExpressions, checkPreBuiltElementaryOpsSelf) {
   }
 }
 
-/// Testing arithmetic between elementary operators and operator
-/// sums.
-TEST(OperatorExpressions, checkElementaryOpsAgainstOpSum) {
+TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
 
   /// Keeping this fixed throughout.
   int level_count = 3;
