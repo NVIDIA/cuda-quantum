@@ -27,6 +27,8 @@ matrix_2 kronecker(const matrix_2 &, const matrix_2 &);
 template <typename Iterable,
           typename T = typename std::iterator_traits<Iterable>::value_type>
 matrix_2 kronecker(Iterable begin, Iterable end);
+// Equality comparison operator.
+bool operator==(const matrix_2 &, const matrix_2 &);
 
 //===----------------------------------------------------------------------===//
 
