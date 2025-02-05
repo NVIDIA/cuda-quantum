@@ -1077,9 +1077,9 @@ class PyKernel(object):
                 retTy = stdvecTy
                 measTy = cc.StdvecType.get(self.ctx, measTy)
             if regName is not None:
-                res = quake.MzOp(
-                    measTy, [], [target.mlirValue],
-                    registerName=StringAttr.get(regName, context=self.ctx))
+                res = quake.MzOp(measTy, [], [target.mlirValue],
+                                 registerName=StringAttr.get(regName,
+                                                             context=self.ctx))
             else:
                 res = quake.MzOp(measTy, [], [target.mlirValue])
             disc = quake.DiscriminateOp(retTy, res)

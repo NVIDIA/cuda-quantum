@@ -1752,8 +1752,7 @@ class PyASTBridge(ast.NodeVisitor):
                 label = registerName
                 if not label:
                     label = None
-                measureResult = opCtor(measTy, [],
-                                       qubits,
+                measureResult = opCtor(measTy, [], qubits,
                                        registerName=label).result
                 if pushResultToStack:
                     self.pushValue(
@@ -3210,6 +3209,7 @@ class PyASTBridge(ast.NodeVisitor):
                     beEfficient = True
 
                 if beEfficient:
+
                     def bodyBuilder(iterVar):
                         self.symbolTable.pushScope()
                         values = extractFunctor(iterable, iterVar)
