@@ -76,11 +76,12 @@ private:
     if (store == replacement)
       return false;
 
-    // Check that there are no stores dominated by the store and not dominated
-    // by the replacement (i.e. used in between the store and the replacement)
+    // Check that there are no non-store uses dominated by the store and
+    // not dominated by the replacement, i.e. only uses between the two
+    // stores are other stores to the same pointer.
     for (auto *user : ptr->getUsers()) {
       if (user != store && user != replacement) {
-        if (!isStoreToPtr(store, ptr) && dom.dominates(store, user) &&
+        if (!isStoreToPtr(user, ptr) && dom.dominates(store, user) &&
             !dom.dominates(replacement, user)) {
           LLVM_DEBUG(llvm::dbgs() << "store " << replacement
                                   << " is used before: " << store << '\n');
