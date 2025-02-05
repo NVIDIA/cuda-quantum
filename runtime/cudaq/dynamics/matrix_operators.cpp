@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/operators.h"
+#include "matrix_operators.h"
 
 #include <iostream>
 #include <complex>
