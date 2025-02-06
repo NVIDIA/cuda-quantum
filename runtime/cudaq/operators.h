@@ -551,7 +551,7 @@ public:
     return *this;
   }
 
-  ~matrix_operator() = default;
+  virtual ~matrix_operator() = default;
 
   /// @brief The degrees of freedom that the operator acts on in canonical
   /// order.

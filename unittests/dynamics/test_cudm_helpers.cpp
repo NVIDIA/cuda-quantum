@@ -13,7 +13,7 @@
 
 // Initialize operator_sum
 cudaq::operator_sum<cudaq::matrix_operator> initialize_operator_sum() {
-  return cudaq::matrix_operator::create(1) + cudaq::matrix_operator::create(2);
+  return cudaq::matrix_operator::create(0) + cudaq::matrix_operator::create(1);
 }
 
 class CuDensityMatHelpersTestFixture : public ::testing::Test {
