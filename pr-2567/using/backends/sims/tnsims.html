@@ -227,6 +227,33 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/deutschs_algorithm.html#Deutsch's-Algorithm:">Deutsch’s Algorithm:</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../../applications/python/deutsch_jozsa.html"><em>The Deutsch-Jozsa Algorithm</em></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../applications/python/deutsch_jozsa.html#The-Theory">The Theory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../applications/python/deutsch_jozsa.html#The-Algorithm-Implementation">The Algorithm Implementation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../applications/python/hamiltonian_simulation.html">Spin-Hamiltonian Simulation Using CUDA-Q</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/hamiltonian_simulation.html#Introduction">Introduction</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/hamiltonian_simulation.html#Heisenberg-Hamiltonian">Heisenberg Hamiltonian</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/hamiltonian_simulation.html#Transverse-Field-Ising-Model-(TFIM)">Transverse Field Ising Model (TFIM)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/hamiltonian_simulation.html#Time-Evolution-and-Trotter-Decomposition">Time Evolution and Trotter Decomposition</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/hamiltonian_simulation.html#Key-steps">Key steps</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/hamiltonian_simulation.html#1.-Prepare-initial-state">1. Prepare initial state</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/hamiltonian_simulation.html#2.-Hamiltonian-Trotterization">2. Hamiltonian Trotterization</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/hamiltonian_simulation.html#3.-Compute-overlap">3. <code class="docutils literal notranslate"><span class="pre">Compute</span> <span class="pre">overlap</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/hamiltonian_simulation.html#4.-Construct-Heisenberg-Hamiltonian">4. Construct Heisenberg Hamiltonian</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/hamiltonian_simulation.html#5.-Construct-TFIM-Hamiltonian">5. Construct TFIM Hamiltonian</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/hamiltonian_simulation.html#6.-Extract-coefficients-and-Pauli-words">6. Extract coefficients and Pauli words</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/hamiltonian_simulation.html#Main-code">Main code</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/hamiltonian_simulation.html#Visualization-of-probablity-over-time">Visualization of probablity over time</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/hamiltonian_simulation.html#Expectation-value-over-time:">Expectation value over time:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/hamiltonian_simulation.html#Visualization-of-expectation-over-time">Visualization of expectation over time</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/hamiltonian_simulation.html#Additional-information">Additional information</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/hamiltonian_simulation.html#Relevant-references">Relevant references</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../../applications/python/divisive_clustering_coresets.html">Divisive Clustering With Coresets Using CUDA-Q</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/divisive_clustering_coresets.html#Data-preprocessing">Data preprocessing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/divisive_clustering_coresets.html#Quantum-functions">Quantum functions</a></li>
@@ -774,6 +801,9 @@ environment variable to the newly built <code class="code docutils literal notra
 <li><p><strong>`CUDA_VISIBLE_DEVICES=X`</strong>: Makes the process only see GPU X on multi-GPU nodes. Each MPI process must only see its own dedicated GPU. For example, if you run 8 MPI processes on a DGX system with 8 GPUs, each MPI process should be assigned its own dedicated GPU via <code class="code docutils literal notranslate"><span class="pre">CUDA_VISIBLE_DEVICES</span></code> when invoking <code class="code docutils literal notranslate"><span class="pre">mpiexec</span></code> (or <code class="code docutils literal notranslate"><span class="pre">mpirun</span></code>) commands.</p></li>
 <li><p><strong>`OMP_PLACES=cores`</strong>: Set this environment variable to improve CPU parallelization.</p></li>
 <li><p><strong>`OMP_NUM_THREADS=X`</strong>: To enable CPU parallelization, set X to <code class="code docutils literal notranslate"><span class="pre">NUMBER_OF_CORES_PER_NODE/NUMBER_OF_GPUS_PER_NODE</span></code>.</p></li>
+<li><p><strong>`CUDAQ_TENSORNET_CONTROLLED_RANK=X`</strong>: Specify the number of controlled qubits whereby the full tensor body of the controlled gate is expanded. If the number of controlled qubits is greater than this value, the gate is applied as a controlled tensor operator to the tensor network state. Default value is 1.</p></li>
+<li><p><strong>`CUDAQ_TENSORNET_OBSERVE_CONTRACT_PATH_REUSE=X`</strong>: Set this environment variable to <code class="code docutils literal notranslate"><span class="pre">TRUE</span></code> (<code class="code docutils literal notranslate"><span class="pre">ON</span></code>) or <code class="code docutils literal notranslate"><span class="pre">FALSE</span></code> (<code class="code docutils literal notranslate"><span class="pre">OFF</span></code>) to enable or disable contraction path reuse when computing expectation values. Default is <code class="code docutils literal notranslate"><span class="pre">OFF</span></code>.</p></li>
+<li><p><strong>`CUDAQ_TENSORNET_NUM_HYPER_SAMPLES=X`</strong>: Specify the number of hyper samples used in the tensor network contraction path finder. Default value is 8 if not specified.</p></li>
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
