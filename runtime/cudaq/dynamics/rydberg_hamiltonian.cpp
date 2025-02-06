@@ -11,8 +11,7 @@
 #include <stdexcept>
 
 namespace cudaq {
-template <typename HandlerTy>
-rydberg_hamiltonian<HandlerTy>::rydberg_hamiltonian(
+rydberg_hamiltonian::rydberg_hamiltonian(
     const std::vector<Coordinate> &atom_sites, const scalar_operator &amplitude,
     const scalar_operator &phase, const scalar_operator &delta_global,
     const std::vector<int> &atom_filling,
@@ -35,31 +34,22 @@ rydberg_hamiltonian<HandlerTy>::rydberg_hamiltonian(
   }
 }
 
-template <typename HandlerTy>
-const std::vector<typename rydberg_hamiltonian<HandlerTy>::Coordinate> &
-rydberg_hamiltonian<HandlerTy>::get_atom_sites() const {
+const std::vector<rydberg_hamiltonian::Coordinate> &
+rydberg_hamiltonian::get_atom_sites() const {
   return atom_sites;
 }
 
-template <typename HandlerTy>
-const std::vector<int> &
-rydberg_hamiltonian<HandlerTy>::get_atom_filling() const {
+const std::vector<int> &rydberg_hamiltonian::get_atom_filling() const {
   return atom_filling;
 }
 
-template <typename HandlerTy>
-const scalar_operator &rydberg_hamiltonian<HandlerTy>::get_amplitude() const {
+const scalar_operator &rydberg_hamiltonian::get_amplitude() const {
   return amplitude;
 }
 
-template <typename HandlerTy>
-const scalar_operator &rydberg_hamiltonian<HandlerTy>::get_phase() const {
-  return phase;
-}
+const scalar_operator &rydberg_hamiltonian::get_phase() const { return phase; }
 
-template <typename HandlerTy>
-const scalar_operator &
-rydberg_hamiltonian<HandlerTy>::get_delta_global() const {
+const scalar_operator &rydberg_hamiltonian::get_delta_global() const {
   return delta_global;
 }
 } // namespace cudaq
