@@ -55,6 +55,7 @@ add_cudaq_library(OptTransforms
   StatePreparation.cpp
   UnitarySynthesis.cpp
   WiresToWiresets.cpp
+  WriteAfterWriteElimination.cpp
 
   DEPENDS
     OptTransformsPassIncGen

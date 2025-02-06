@@ -51,27 +51,16 @@ module attributes {
   }
 }
 
-// CHECK-LABEL: define void @__nvqpp__mlirgen__function_test._Z4testSt6vectorIdSaIdEE() local_unnamed_addr {
-// CHECK:         %[[VAL_0:.*]] = alloca [4 x double], align 8
-// CHECK:         %[[VAL_1:.*]] = getelementptr inbounds [4 x double], [4 x double]* %[[VAL_0]], i64 0, i64 0
-// CHECK:         store double 1.000000e+00, double* %[[VAL_1]], align 8
-// CHECK:         %[[VAL_2:.*]] = getelementptr inbounds [4 x double], [4 x double]* %[[VAL_0]], i64 0, i64 1
-// CHECK:         %[[VAL_3:.*]] = getelementptr inbounds [4 x double], [4 x double]* %[[VAL_0]], i64 0, i64 3
-// CHECK:         %[[VAL_4:.*]] = bitcast double* %[[VAL_2]] to i8*
-// CHECK:         call void @llvm.memset.p0i8.i64(i8* noundef nonnull align 8 dereferenceable(16) %[[VAL_4]], i8 0, i64 16, i1 false)
-// CHECK:         store double 1.000000e+00, double* %[[VAL_3]], align 8
-// CHECK:         %[[VAL_5:.*]] = bitcast [4 x double]* %[[VAL_0]] to i8*
-// CHECK:         %[[VAL_6:.*]] = call %[[VAL_7:.*]]* @__quantum__rt__qubit_allocate_array_with_state_fp64(i64 2, i8* nonnull %[[VAL_5]])
-// CHECK:         %[[VAL_8:.*]] = call i8* @__quantum__rt__array_get_element_ptr_1d(%[[VAL_7]]* %[[VAL_6]], i64 0)
-// CHECK:         %[[VAL_9:.*]] = bitcast i8* %[[VAL_8]] to %[[VAL_10:.*]]**
-// CHECK:         %[[VAL_11:.*]] = load %[[VAL_10]]*, %[[VAL_10]]** %[[VAL_9]], align 8
-// CHECK:         call void @__quantum__qis__h(%[[VAL_10]]* %[[VAL_11]])
-// CHECK:         %[[VAL_12:.*]] = call i8* @__quantum__rt__array_get_element_ptr_1d(%[[VAL_7]]* %[[VAL_6]], i64 1)
-// CHECK:         %[[VAL_13:.*]] = bitcast i8* %[[VAL_12]] to %[[VAL_10]]**
-// CHECK:         %[[VAL_14:.*]] = load %[[VAL_10]]*, %[[VAL_10]]** %[[VAL_13]], align 8
-// CHECK:         call void @__quantum__qis__h(%[[VAL_10]]* %[[VAL_14]])
-// CHECK:         call void (i64, void (%[[VAL_7]]*, %[[VAL_10]]*)*, ...) @invokeWithControlQubits(i64 1, void (%[[VAL_7]]*, %[[VAL_10]]*)* nonnull @__quantum__qis__x__ctl, %[[VAL_10]]* %[[VAL_14]], %[[VAL_10]]* %[[VAL_11]])
-// CHECK:         call void @__quantum__rt__qubit_release_array(%[[VAL_7]]* %[[VAL_6]])
+// CHECK-LABEL: define void @__nvqpp__mlirgen__function_test.
+// CHECK:         %[[VAL_0:.*]] = tail call %[[VAL_1:.*]]* @__quantum__rt__qubit_allocate_array_with_state_fp64(i64 2, double* nonnull getelementptr inbounds ([4 x double], [4 x double]* @__nvqpp__mlirgen__function_test._Z4testSt6vectorIdSaIdEE.rodata_0, i64 0, i64 0))
+// CHECK:         %[[VAL_2:.*]] = tail call %[[VAL_3:.*]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 0)
+// CHECK:         %[[VAL_4:.*]] = load %[[VAL_3]]*, %[[VAL_3]]** %[[VAL_2]], align 8
+// CHECK:         tail call void @__quantum__qis__h(%[[VAL_3]]* %[[VAL_4]])
+// CHECK:         %[[VAL_5:.*]] = tail call %[[VAL_3]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 1)
+// CHECK:         %[[VAL_6:.*]] = load %[[VAL_3]]*, %[[VAL_3]]** %[[VAL_5]], align 8
+// CHECK:         tail call void @__quantum__qis__h(%[[VAL_3]]* %[[VAL_6]])
+// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* nonnull bitcast (void (%[[VAL_1]]*, %[[VAL_3]]*)* @__quantum__qis__x__ctl to i8*), %[[VAL_3]]* %[[VAL_6]], %[[VAL_3]]* %[[VAL_4]])
+// CHECK:         tail call void @__quantum__rt__qubit_release_array(%[[VAL_1]]* %[[VAL_0]])
 // CHECK:         ret void
 // CHECK:       }
 
