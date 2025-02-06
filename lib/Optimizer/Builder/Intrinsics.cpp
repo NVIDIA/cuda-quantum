@@ -519,6 +519,17 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   !qir_llvmptr = !llvm.ptr<i8>
     )#"},
 
+    // The QIR defined output logging functions.
+    {"qir_output_logging",
+     {},
+     R"#(
+  func.func private @__quantum__rt__bool_record_output(i1, !cc.ptr<i8>)
+  func.func private @__quantum__rt__integer_record_output(i64, !cc.ptr<i8>)
+  func.func private @__quantum__rt__double_record_output(f64, !cc.ptr<i8>)
+  func.func private @__quantum__rt__tuple_record_output(i64, !cc.ptr<i8>)
+  func.func private @__quantum__rt__array_record_output(i64, !cc.ptr<i8>)
+    )#"},
+
     // streamlinedLaunchKernel(kernelName, vectorArgPtrs)
     {cudaq::runtime::launchKernelStreamlinedFuncName,
      {},
