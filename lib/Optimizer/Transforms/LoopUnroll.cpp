@@ -368,9 +368,11 @@ static void createUnrollingPipeline(OpPassManager &pm, unsigned threshold,
                                     bool signalFailure, bool allowBreak,
                                     bool allowClosedInterval) {
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCSEPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
   cudaq::opt::LoopUnrollOptions luo{threshold, signalFailure,
                                     allowClosedInterval, allowBreak};
+  // TODO: run cse as a part of cc-loop-unroll when we update the llvm version.
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll(luo));
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUpdateRegisterNames());
 }

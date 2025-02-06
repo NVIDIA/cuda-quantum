@@ -123,7 +123,6 @@ public:
   static bool isGoodCandidate(cudaq::cc::AllocaOp alloc,
                               SmallVectorImpl<Operation *> &scoreboard,
                               DominanceInfo &dom) {
-    LLVM_DEBUG(llvm::dbgs() << "checking candidate\n");
     if (alloc.getSeqSize())
       return false;
     auto arrTy = dyn_cast<cudaq::cc::ArrayType>(alloc.getElementType());
@@ -138,7 +137,6 @@ public:
     if (std::distance(alloc->getUses().begin(), alloc->getUses().end()) < size)
       return false;
 
-    LLVM_DEBUG(llvm::dbgs() << "looking for writes\n");
     // Keep a scoreboard for every element in the array. Every element *must* be
     // stored to with a constant exactly one time.
     scoreboard.resize(size);
@@ -154,11 +152,8 @@ public:
         Operation *u = use.getOwner();
         if (!u)
           return nullptr;
-        LLVM_DEBUG(llvm::dbgs() << "processing use of " << *op << ": " << *u << "\n");
+
         if (auto store = dyn_cast<cudaq::cc::StoreOp>(u)) {
-          LLVM_DEBUG(llvm::dbgs() << "processing store: " << store << "\n");
-          op.getOperation()->dump();
-          store.getPtrvalue().getDefiningOp()->dump();
           if (op.getOperation() == store.getPtrvalue().getDefiningOp()) {
             if (theStore) {
               LLVM_DEBUG(llvm::dbgs()
@@ -201,7 +196,6 @@ public:
         return false;
       }
       if (auto cptr = dyn_cast<cudaq::cc::ComputePtrOp>(op)) {
-        LLVM_DEBUG(llvm::dbgs() << "processing cptr\n");
         if (auto index = cptr.getConstantIndex(0))
           if (auto w = getWriteOp(cptr, *index))
             if (!scoreboard[*index]) {
@@ -213,7 +207,6 @@ public:
       if (auto cast = dyn_cast<cudaq::cc::CastOp>(op)) {
         // Process casts that are used in store ops.
         if (cast.getType() == ptrArrEleTy) {
-          LLVM_DEBUG(llvm::dbgs() << "processing cast\n");
           if (auto w = getWriteOp(cast, 0))
             if (!scoreboard[0]) {
               scoreboard[0] = w;
