@@ -104,7 +104,7 @@ private:
     throw std::runtime_error("Index not found in label");
   }
 
-  /// Parse string like "array<3 x i32>"
+  /// Parse string like "array<i32 x 3>"
   std::pair<std::size_t, OutputType>
   extractArrayInfo(const std::string &label) {
     auto isArray = label.find("array");
@@ -114,10 +114,9 @@ private:
     if ((isArray == std::string::npos) || (lessThan == std::string::npos) ||
         (greaterThan == std::string::npos) || (x == std::string::npos))
       throw std::runtime_error("Array label missing keyword");
-    std::size_t arrSize =
-        std::stoi(label.substr(lessThan + 1, x - lessThan - 2));
+    std::size_t arrSize = std::stoi(label.substr(x + 2, greaterThan - x - 2));
     OutputType arrType =
-        extractPrimitiveType(label.substr(x + 2, greaterThan - x - 2));
+        extractPrimitiveType(label.substr(lessThan + 1, x - lessThan - 2));
     return std::make_pair(arrSize, arrType);
   }
 
