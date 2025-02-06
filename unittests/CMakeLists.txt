@@ -227,6 +227,7 @@ if(TARGET nvqir-tensornet)
     integration/builder_tester.cpp  
     integration/deuteron_variational_tester.cpp
     integration/observe_result_tester.cpp
+    integration/noise_tester.cpp # This test contains noisy observe test cases.
   )
   target_include_directories(test_tensornet_observe_path_reuse PRIVATE .)
   target_compile_definitions(test_tensornet_observe_path_reuse 
