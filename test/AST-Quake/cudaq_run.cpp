@@ -20,6 +20,7 @@ struct K9 {
   }
 };
 
+__qpu__ bool kernel_of_truth() { return true; }
 __qpu__ int kernel_of_corn() { return 0xDeadBeef; }
 
 class CliffDiver {
@@ -136,7 +137,17 @@ struct CliffHanger {
 // CHECK:           return
 // CHECK:         }
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_of_corn._Z14kernel_of_cornv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_of_truth.
+// CHECK-SAME:     () attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK:           %[[VAL_0:.*]] = arith.constant true
+// CHECK:           %[[VAL_1:.*]] = cc.string_literal "i1" : !cc.ptr<!cc.array<i8 x 3>>
+// CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
+// CHECK:           call @__quantum__rt__bool_record_output(%[[VAL_0]], %[[VAL_2]]) : (i1, !cc.ptr<i8>) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_of_corn.
+// CHECK-SAME:     () attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant -559038737 : i64
 // CHECK:           %[[VAL_1:.*]] = cc.string_literal "i32" : !cc.ptr<!cc.array<i8 x 4>>
 // CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
@@ -152,7 +163,8 @@ struct CliffHanger {
 // CHECK:           return
 // CHECK:         }
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_of_wheat._Z15kernel_of_wheatv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_of_wheat.
+// CHECK-SAME:     () attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 13.100000381469727 : f64
 // CHECK:           %[[VAL_1:.*]] = cc.string_literal "f32" : !cc.ptr<!cc.array<i8 x 4>>
 // CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
@@ -168,7 +180,8 @@ struct CliffHanger {
 // CHECK:           return
 // CHECK:         }
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_this_is_not_a_drill._Z19this_is_not_a_drillv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_this_is_not_a_drill.
+// CHECK-SAME:     () attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 123400000 : i64
 // CHECK:           %[[VAL_1:.*]] = cc.string_literal "i64" : !cc.ptr<!cc.array<i8 x 4>>
 // CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
@@ -176,7 +189,8 @@ struct CliffHanger {
 // CHECK:           return
 // CHECK:         }
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_this_is_a_hammer._Z16this_is_a_hammerv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_this_is_a_hammer.
+// CHECK-SAME:     () attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 2387 : i64
 // CHECK:           %[[VAL_1:.*]] = cc.string_literal "i16" : !cc.ptr<!cc.array<i8 x 4>>
 // CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
