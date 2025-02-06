@@ -125,13 +125,12 @@ struct ConstantArrayPattern
       auto extract = dyn_cast<cudaq::cc::ExtractValueOp>(usr);
       if (store) {
         auto alloca = store.getPtrvalue().getDefiningOp<cudaq::cc::AllocaOp>();
-        if (!alloca)
+        if (alloca) {
+          stores.push_back(store);
+          allocas.push_back(alloca);
           continue;
-        stores.push_back(store);
-        allocas.push_back(alloca);
-        continue;
-      }
-      if (extract) {
+        }
+      } else if (extract) {
         extracts.push_back(extract);
         continue;
       }
