@@ -44,12 +44,6 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   common/NoiseModelTester.cpp
   integration/tracer_tester.cpp
   integration/gate_library_tester.cpp
-  dynamics/test_runge_kutta_integrator.cpp
-  dynamics/test_helpers.cpp
-  dynamics/rydberg_hamiltonian.cpp
-  dynamics/test_cudm_helpers.cpp
-  dynamics/test_cudm_state.cpp
-  dynamics/test_cudm_time_stepper.cpp
 )
 
 # Make it so we can get function symbols
@@ -81,9 +75,7 @@ macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER)
     fmt::fmt-header-only
     cudaq-platform-default
     cudaq-builder
-    gtest_main
-    $ENV{CUQUANTUM_INSTALL_PREFIX}/lib/libcudensitymat.so.0
-    /usr/local/cuda-12.0/targets/x86_64-linux/lib/libcudart.so.12)
+    gtest_main)
   set(TEST_LABELS "")
   if (${NVQIR_BACKEND} STREQUAL "qpp")
     target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_SIMULATION_SCALAR_FP64)
@@ -289,11 +281,36 @@ target_link_libraries(test_operators
   cudaq-operators
   cudaq
   gtest_main
-  $ENV{CUQUANTUM_INSTALL_PREFIX}/lib/libcudensitymat.so.0
-  /usr/local/cuda-12.0/targets/x86_64-linux/lib/libcudart.so.12
   fmt::fmt-header-only)
 gtest_discover_tests(test_operators)
 
+if (CUDA_FOUND)
+  find_package(CUDAToolkit REQUIRED)
+  
+  # Create an executable for dynamics UnitTests
+  set(CUDAQ_DYNAMICS_TEST_SOURCES 
+    dynamics/test_runge_kutta_integrator.cpp
+    dynamics/test_helpers.cpp
+    dynamics/rydberg_hamiltonian.cpp
+    dynamics/test_cudm_helpers.cpp
+    dynamics/test_cudm_state.cpp
+    dynamics/test_cudm_time_stepper.cpp
+  )
+  add_executable(test_dynamics main.cpp ${CUDAQ_DYNAMICS_TEST_SOURCES})
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+    target_link_options(test_dynamics PRIVATE -Wl,--no-as-needed)
+  endif()
+  target_link_libraries(test_dynamics
+    PRIVATE
+    cudaq-spin
+    cudaq-operators
+    cudaq
+    ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
+    CUDA::cudart_static
+    gtest_main
+    fmt::fmt-header-only)
+  gtest_discover_tests(test_dynamics)
+endif()
 add_subdirectory(plugin)
 
 # build the test qudit execution manager
