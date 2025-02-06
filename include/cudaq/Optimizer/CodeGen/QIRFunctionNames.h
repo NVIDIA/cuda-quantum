@@ -94,4 +94,16 @@ static constexpr const char QIRRecordOutput[] =
 static constexpr const char QIRClearResultMaps[] =
     "__quantum__rt__clear_result_maps";
 
+// Output logging function names.
+static constexpr const char QIRBoolRecordOutput[] =
+    "__quantum__rt__bool_record_output";
+static constexpr const char QIRIntegerRecordOutput[] =
+    "__quantum__rt__integer_record_output";
+static constexpr const char QIRDoubleRecordOutput[] =
+    "__quantum__rt__double_record_output";
+static constexpr const char QIRTupleRecordOutput[] =
+    "__quantum__rt__tuple_record_output";
+static constexpr const char QIRArrayRecordOutput[] =
+    "__quantum__rt__array_record_output";
+
 } // namespace cudaq::opt
