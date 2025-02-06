@@ -25,6 +25,7 @@ set(CUDAQ_OPS_SRC
   schedule.cpp
   manipulation.cpp
   helpers.cpp
+  rydberg_hamiltonian.cpp
 )
 
 set(CUQUANTUM_INSTALL_PREFIX "/usr/local/lib/python3.10/dist-packages/cuquantum")

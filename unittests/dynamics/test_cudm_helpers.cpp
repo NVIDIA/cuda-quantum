@@ -16,7 +16,7 @@ cudaq::operator_sum<cudaq::matrix_operator> initialize_operator_sum() {
   return cudaq::matrix_operator::create(1) + cudaq::matrix_operator::create(2);
 }
 
-class CuDensityMatTestFixture : public ::testing::Test {
+class CuDensityMatHelpersTestFixture : public ::testing::Test {
 protected:
   cudensitymatHandle_t handle;
   cudaStream_t stream;
@@ -30,7 +30,7 @@ protected:
 };
 
 // Test for initialize_state
-TEST_F(CuDensityMatTestFixture, InitializeState) {
+TEST_F(CuDensityMatHelpersTestFixture, InitializeState) {
   std::vector<int64_t> mode_extents = {2};
 
   std::vector<std::complex<double>> rawData = {{1.0, 0.0}, {0.0, 0.0}};
@@ -41,7 +41,7 @@ TEST_F(CuDensityMatTestFixture, InitializeState) {
 }
 
 // Test for scale_state
-TEST_F(CuDensityMatTestFixture, ScaleState) {
+TEST_F(CuDensityMatHelpersTestFixture, ScaleState) {
   std::vector<int64_t> mode_extents = {2};
 
   std::vector<std::complex<double>> rawData = {{1.0, 0.0}, {0.0, 0.0}};
@@ -54,7 +54,7 @@ TEST_F(CuDensityMatTestFixture, ScaleState) {
 }
 
 // Test for compute_lindblad_op
-TEST_F(CuDensityMatTestFixture, ComputeLindbladOp) {
+TEST_F(CuDensityMatHelpersTestFixture, ComputeLindbladOp) {
   std::vector<int64_t> mode_extents = {2, 2};
 
   cudaq::matrix_2 c_op1({1.0, 0.0, 0.0, 0.0}, {2, 2});
@@ -70,7 +70,7 @@ TEST_F(CuDensityMatTestFixture, ComputeLindbladOp) {
 }
 
 // Test for convert_to_cudensitymat_operator
-TEST_F(CuDensityMatTestFixture, ConvertToCuDensityMatOperator) {
+TEST_F(CuDensityMatHelpersTestFixture, ConvertToCuDensityMatOperator) {
   std::vector<int64_t> mode_extents = {2, 2};
 
   auto op_sum = initialize_operator_sum();
@@ -85,7 +85,7 @@ TEST_F(CuDensityMatTestFixture, ConvertToCuDensityMatOperator) {
 }
 
 // Test invalid handle
-TEST_F(CuDensityMatTestFixture, InvalidHandle) {
+TEST_F(CuDensityMatHelpersTestFixture, InvalidHandle) {
   cudensitymatHandle_t invalid_handle = nullptr;
 
   std::vector<int64_t> mode_extents = {2, 2};
