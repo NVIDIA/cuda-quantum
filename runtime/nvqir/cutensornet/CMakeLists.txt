@@ -60,8 +60,8 @@ set(CUTENSORNET_PATCH ${CMAKE_MATCH_1})
 
 set(CUTENSORNET_VERSION ${CUTENSORNET_MAJOR}.${CUTENSORNET_MINOR}.${CUTENSORNET_PATCH})
 message(STATUS "Found cutensornet version: ${CUTENSORNET_VERSION}")
-# We need cutensornet v2.5.0+
-if (${CUTENSORNET_VERSION} VERSION_GREATER_EQUAL "2.5")
+# We need cutensornet v2.6.0+ (cutensornetStateApplyUnitaryChannel)
+if (${CUTENSORNET_VERSION} VERSION_GREATER_EQUAL "2.6")
   set (BASE_TENSOR_BACKEND_SRS  
         simulator_cutensornet.cpp 
         tensornet_spin_op.cpp

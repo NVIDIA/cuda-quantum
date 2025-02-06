@@ -185,7 +185,7 @@ public:
   kraus_channel &operator=(const kraus_channel &other);
 
   /// @brief Return all kraus_ops in this channel
-  std::vector<kraus_op> get_ops();
+  std::vector<kraus_op> get_ops() const;
 
   /// @brief Add a kraus_op to this channel.
   void push_back(kraus_op op);

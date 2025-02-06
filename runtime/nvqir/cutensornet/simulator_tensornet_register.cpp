@@ -134,6 +134,7 @@ public:
       }
     }
   }
+  bool requireCacheWorkspace() const override { return true; }
 
 private:
   friend nvqir::CircuitSimulator * ::getCircuitSimulator_tensornet();

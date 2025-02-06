@@ -81,6 +81,9 @@ Specific aspects of the simulation can be configured by setting the following of
 * **`CUDA_VISIBLE_DEVICES=X`**: Makes the process only see GPU X on multi-GPU nodes. Each MPI process must only see its own dedicated GPU. For example, if you run 8 MPI processes on a DGX system with 8 GPUs, each MPI process should be assigned its own dedicated GPU via `CUDA_VISIBLE_DEVICES` when invoking `mpiexec` (or `mpirun`) commands. 
 * **`OMP_PLACES=cores`**: Set this environment variable to improve CPU parallelization.
 * **`OMP_NUM_THREADS=X`**: To enable CPU parallelization, set X to `NUMBER_OF_CORES_PER_NODE/NUMBER_OF_GPUS_PER_NODE`.
+* **`CUDAQ_TENSORNET_CONTROLLED_RANK=X`**: Specify the number of controlled qubits whereby the full tensor body of the controlled gate is expanded. If the number of controlled qubits is greater than this value, the gate is applied as a controlled tensor operator to the tensor network state. Default value is 1.
+* **`CUDAQ_TENSORNET_OBSERVE_CONTRACT_PATH_REUSE=X`**: Set this environment variable to `TRUE` (`ON`) or `FALSE` (`OFF`) to enable or disable contraction path reuse when computing expectation values. Default is `OFF`.
+* **`CUDAQ_TENSORNET_NUM_HYPER_SAMPLES=X`**: Specify the number of hyper samples used in the tensor network contraction path finder. Default value is 8 if not specified. 
 
 .. note:: 
 
