@@ -629,8 +629,7 @@ public:
 };
 
 /// @brief Representation of a time-dependent Hamiltonian for Rydberg system
-template <typename HandlerTy>
-class rydberg_hamiltonian : public operator_sum<HandlerTy> {
+class rydberg_hamiltonian {
 public:
   using Coordinate = std::pair<double, double>;
 
