@@ -42,7 +42,7 @@ def test_kernel_non_param_1q():
     print(kernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"
 # CHECK:           %0 = quake.alloca !quake.veq<1>
 # CHECK:           %[[VAL_0:.*]] = quake.extract_ref %0[0] : (!quake.veq<1>) -> !quake.ref
 # CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
@@ -83,7 +83,7 @@ def test_kernel_param_1q():
 
 # CHECK-LABEL: test_kernel_param_1q
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
-# CHECK-SAME:                                                                   %[[VAL_0:.*]]: f64) attributes {"cudaq-entrypoint"} {
+# CHECK-SAME:           %[[VAL_0:.*]]: f64) attributes {"cudaq-entrypoint"
 # CHECK:           %0 = quake.alloca !quake.veq<1>
 # CHECK:           %[[VAL_1:.*]] = quake.extract_ref %0[0] : (!quake.veq<1>) -> !quake.ref
 # CHECK:           quake.rx (%[[VAL_0]]) %[[VAL_1]] : (f64, !quake.ref) -> ()

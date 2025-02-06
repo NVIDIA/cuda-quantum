@@ -26,9 +26,9 @@ def test_list_int():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__oracle(
-# CHECK-SAME:                                        %[[VAL_0:.*]]: !quake.veq<?>,
-# CHECK-SAME:                                        %[[VAL_1:.*]]: !quake.ref,
-# CHECK-SAME:                                        %[[VAL_2:.*]]: !cc.stdvec<i64>) {
+# CHECK-SAME:                %[[VAL_0:.*]]: !quake.veq<?>,
+# CHECK-SAME:                %[[VAL_1:.*]]: !quake.ref,
+# CHECK-SAME:                %[[VAL_2:.*]]: !cc.stdvec<i64>)
 # CHECK-DAG:           %[[VAL_3:.*]] = arith.constant 1 : i64
 # CHECK-DAG:           %[[VAL_4:.*]] = arith.constant 0 : i64
 # CHECK:           %[[VAL_5:.*]] = cc.stdvec_size %[[VAL_2]] : (!cc.stdvec<i64>) -> i64
@@ -45,8 +45,8 @@ def test_list_int():
 # CHECK:             %[[VAL_14:.*]] = cc.compute_ptr %[[VAL_13]][%[[VAL_11]]] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
 # CHECK:             %[[VAL_15:.*]] = cc.load %[[VAL_14]] : !cc.ptr<i64>
 # CHECK:             %[[VAL_16:.*]] = cc.compute_ptr %[[VAL_7]]{{\[}}%[[VAL_11]]] : (!cc.ptr<!cc.array<!cc.struct<{i64, i64}> x ?>>, i64) -> !cc.ptr<!cc.struct<{i64, i64}>>
-# CHECK:             %[[VAL_17:.*]] = cc.insert_value %[[VAL_11]], %[[VAL_12]][0] : (!cc.struct<{i64, i64}>, i64) -> !cc.struct<{i64, i64}>
-# CHECK:             %[[VAL_18:.*]] = cc.insert_value %[[VAL_15]], %[[VAL_17]][1] : (!cc.struct<{i64, i64}>, i64) -> !cc.struct<{i64, i64}>
+# CHECK:             %[[VAL_17:.*]] = cc.insert_value %[[VAL_12]][0], %[[VAL_11]] : (!cc.struct<{i64, i64}>, i64) -> !cc.struct<{i64, i64}>
+# CHECK:             %[[VAL_18:.*]] = cc.insert_value %[[VAL_17]][1], %[[VAL_15]] : (!cc.struct<{i64, i64}>, i64) -> !cc.struct<{i64, i64}>
 # CHECK:             cc.store %[[VAL_18]], %[[VAL_16]] : !cc.ptr<!cc.struct<{i64, i64}>>
 # CHECK:             cc.continue %[[VAL_11]] : i64
 # CHECK:           } step {

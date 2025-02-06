@@ -50,7 +50,7 @@ def test_slice():
     slice()
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__slice() attributes {"cudaq-entrypoint"} {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__slice() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK-DAG:           %[[VAL_0:.*]] = arith.constant 3 : i64
 # CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 4 : i64
 # CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 2 : i64
@@ -108,8 +108,8 @@ def test_slice():
 # CHECK:             %[[VAL_39:.*]] = cc.compute_ptr %[[VAL_38]][%[[VAL_36]]] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
 # CHECK:             %[[VAL_40:.*]] = cc.load %[[VAL_39]] : !cc.ptr<i64>
 # CHECK:             %[[VAL_41:.*]] = cc.compute_ptr %[[VAL_32]]{{\[}}%[[VAL_36]]] : (!cc.ptr<!cc.array<!cc.struct<{i64, i64}> x ?>>, i64) -> !cc.ptr<!cc.struct<{i64, i64}>>
-# CHECK:             %[[VAL_42:.*]] = cc.insert_value %[[VAL_36]], %[[VAL_37]][0] : (!cc.struct<{i64, i64}>, i64) -> !cc.struct<{i64, i64}>
-# CHECK:             %[[VAL_43:.*]] = cc.insert_value %[[VAL_40]], %[[VAL_42]][1] : (!cc.struct<{i64, i64}>, i64) -> !cc.struct<{i64, i64}>
+# CHECK:             %[[VAL_42:.*]] = cc.insert_value %[[VAL_37]][0], %[[VAL_36]] : (!cc.struct<{i64, i64}>, i64) -> !cc.struct<{i64, i64}>
+# CHECK:             %[[VAL_43:.*]] = cc.insert_value %[[VAL_42]][1], %[[VAL_40]] : (!cc.struct<{i64, i64}>, i64) -> !cc.struct<{i64, i64}>
 # CHECK:             cc.store %[[VAL_43]], %[[VAL_41]] : !cc.ptr<!cc.struct<{i64, i64}>>
 # CHECK:             cc.continue %[[VAL_36]] : i64
 # CHECK:           } step {
