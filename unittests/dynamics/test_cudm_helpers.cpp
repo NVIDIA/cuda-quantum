@@ -70,28 +70,28 @@ TEST_F(CuDensityMatTestFixture, ComputeLindbladOp) {
 }
 
 // Test for convert_to_cudensitymat_operator
-// TEST_F(CuDensityMatTestFixture, ConvertToCuDensityMatOperator) {
-//   std::vector<int64_t> mode_extents = {2, 2};
+TEST_F(CuDensityMatTestFixture, ConvertToCuDensityMatOperator) {
+  std::vector<int64_t> mode_extents = {2, 2};
 
-//   auto op_sum = initialize_operator_sum();
+  auto op_sum = initialize_operator_sum();
 
-//   EXPECT_NO_THROW({
-//     auto result =
-//         cudaq::convert_to_cudensitymat_operator<cudaq::matrix_operator>(
-//             handle, {}, op_sum, mode_extents);
-//     ASSERT_NE(result, nullptr);
-//     cudensitymatDestroyOperator(result);
-//   });
-// }
+  EXPECT_NO_THROW({
+    auto result =
+        cudaq::convert_to_cudensitymat_operator<cudaq::matrix_operator>(
+            handle, {}, op_sum, mode_extents);
+    ASSERT_NE(result, nullptr);
+    cudensitymatDestroyOperator(result);
+  });
+}
 
 // Test invalid handle
-// TEST_F(CuDensityMatTestFixture, InvalidHandle) {
-//   cudensitymatHandle_t invalid_handle = nullptr;
+TEST_F(CuDensityMatTestFixture, InvalidHandle) {
+  cudensitymatHandle_t invalid_handle = nullptr;
 
-//   std::vector<int64_t> mode_extents = {2, 2};
-//   auto op_sum = initialize_operator_sum();
+  std::vector<int64_t> mode_extents = {2, 2};
+  auto op_sum = initialize_operator_sum();
 
-//   EXPECT_THROW(cudaq::convert_to_cudensitymat_operator<cudaq::matrix_operator>(
-//                    invalid_handle, {}, op_sum, mode_extents),
-//                std::runtime_error);
-// }
+  EXPECT_THROW(cudaq::convert_to_cudensitymat_operator<cudaq::matrix_operator>(
+                   invalid_handle, {}, op_sum, mode_extents),
+               std::runtime_error);
+}
