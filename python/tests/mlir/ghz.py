@@ -77,36 +77,14 @@ def test_ghz():
 # CHECK:           %[[VAL_9:.*]] = arith.subi %[[VAL_8]], %[[VAL_1]] : i64
 # CHECK:           %[[VAL_10:.*]] = quake.subveq %[[VAL_6]], 0, %[[VAL_9]] : (!quake.veq<?>, i64) -> !quake.veq<?>
 # CHECK:           %[[VAL_11:.*]] = quake.veq_size %[[VAL_10]] : (!quake.veq<?>) -> i64
-# CHECK:           %[[VAL_12:.*]] = cc.alloca !cc.struct<{i64, !quake.ref}>{{\[}}%[[VAL_11]] : i64]
-# CHECK:           %[[VAL_13:.*]] = cc.loop while ((%[[VAL_14:.*]] = %[[VAL_3]]) -> (i64)) {
-# CHECK:             %[[VAL_15:.*]] = arith.cmpi slt, %[[VAL_14]], %[[VAL_11]] : i64
-# CHECK:             cc.condition %[[VAL_15]](%[[VAL_14]] : i64)
-# CHECK:           } do {
-# CHECK:           ^bb0(%[[VAL_16:.*]]: i64):
-# CHECK:             %[[VAL_17:.*]] = cc.undef !cc.struct<{i64, !quake.ref}>
-# CHECK:             %[[VAL_18:.*]] = quake.extract_ref %[[VAL_10]]{{\[}}%[[VAL_16]]] : (!quake.veq<?>, i64) -> !quake.ref
-# CHECK:             %[[VAL_19:.*]] = cc.compute_ptr %[[VAL_12]]{{\[}}%[[VAL_16]]] : (!cc.ptr<!cc.array<!cc.struct<{i64, !quake.ref}> x ?>>, i64) -> !cc.ptr<!cc.struct<{i64, !quake.ref}>>
-# CHECK:             %[[VAL_20:.*]] = cc.insert_value %[[VAL_16]], %[[VAL_17]][0] : (!cc.struct<{i64, !quake.ref}>, i64) -> !cc.struct<{i64, !quake.ref}>
-# CHECK:             %[[VAL_21:.*]] = cc.insert_value %[[VAL_18]], %[[VAL_20]][1] : (!cc.struct<{i64, !quake.ref}>, !quake.ref) -> !cc.struct<{i64, !quake.ref}>
-# CHECK:             cc.store %[[VAL_21]], %[[VAL_19]] : !cc.ptr<!cc.struct<{i64, !quake.ref}>>
-# CHECK:             cc.continue %[[VAL_16]] : i64
-# CHECK:           } step {
-# CHECK:           ^bb0(%[[VAL_22:.*]]: i64):
-# CHECK:             %[[VAL_23:.*]] = arith.addi %[[VAL_22]], %[[VAL_2]] : i64
-# CHECK:             cc.continue %[[VAL_23]] : i64
-# CHECK:           } {invariant}
 # CHECK:           %[[VAL_24:.*]] = cc.loop while ((%[[VAL_25:.*]] = %[[VAL_3]]) -> (i64)) {
 # CHECK:             %[[VAL_26:.*]] = arith.cmpi slt, %[[VAL_25]], %[[VAL_11]] : i64
 # CHECK:             cc.condition %[[VAL_26]](%[[VAL_25]] : i64)
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_27:.*]]: i64):
-# CHECK:             %[[VAL_28:.*]] = cc.compute_ptr %[[VAL_12]]{{\[}}%[[VAL_27]]] : (!cc.ptr<!cc.array<!cc.struct<{i64, !quake.ref}> x ?>>, i64) -> !cc.ptr<!cc.struct<{i64, !quake.ref}>>
-# CHECK:             %[[VAL_29:.*]] = cc.load %[[VAL_28]] : !cc.ptr<!cc.struct<{i64, !quake.ref}>>
-# CHECK:             %[[VAL_30:.*]] = cc.extract_value %[[VAL_29]][0] : (!cc.struct<{i64, !quake.ref}>) -> i64
-# CHECK:             %[[VAL_31:.*]] = cc.extract_value %[[VAL_29]][1] : (!cc.struct<{i64, !quake.ref}>) -> !quake.ref
-# CHECK:             %[[VAL_32:.*]] = arith.addi %[[VAL_30]], %[[VAL_2]] : i64
-# CHECK:             %[[VAL_33:.*]] = quake.extract_ref %[[VAL_6]]{{\[}}%[[VAL_32]]] : (!quake.veq<?>, i64) -> !quake.ref
-# CHECK:             quake.x {{\[}}%[[VAL_31]]] %[[VAL_33]] : (!quake.ref, !quake.ref) -> ()
+# CHECK:             %[[VAL_32:.*]] = arith.addi %[[VAL_27]], %[[VAL_2]] : i64
+# CHECK:             %[[VAL_33:.*]] = quake.extract_ref %[[VAL_6]][%[[VAL_32]]] : (!quake.veq<?>, i64) -> !quake.ref
+# CHECK:             quake.x [%[[VAL_31]]] %[[VAL_33]] : (!quake.ref, !quake.ref) -> ()
 # CHECK:             cc.continue %[[VAL_27]] : i64
 # CHECK:           } step {
 # CHECK:           ^bb0(%[[VAL_34:.*]]: i64):

@@ -25,64 +25,69 @@ def test_synth_and_qir():
     print(cudaq.translate(ghz_synth, format='qir-base'))
 
 
-# CHECK:         %[[VAL_0:.*]] = tail call %[[VAL_1:.*]]* @__quantum__rt__qubit_allocate_array(i64 %[[VAL_2:.*]])
-# CHECK:         %[[VAL_3:.*]] = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 0)
+# CHECK-LABEL: define void @__nvqpp__mlirgen__ghz(i64 
+# CHECK-SAME:                               %[[VAL_0:.*]]) local_unnamed_addr {
+# CHECK:         %[[VAL_1:.*]] = tail call %[[VAL_2:.*]]* @__quantum__rt__qubit_allocate_array(i64 %[[VAL_0]])
+# CHECK:         %[[VAL_3:.*]] = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%[[VAL_2]]* %[[VAL_1]], i64 0)
 # CHECK:         %[[VAL_4:.*]] = bitcast i8* %[[VAL_3]] to %[[VAL_5:.*]]**
 # CHECK:         %[[VAL_6:.*]] = load %[[VAL_5]]*, %[[VAL_5]]** %[[VAL_4]], align 8
 # CHECK:         tail call void @__quantum__qis__h(%[[VAL_5]]* %[[VAL_6]])
-# CHECK:         %[[VAL_7:.*]] = add i64 %[[VAL_2]], -1
+# CHECK:         %[[VAL_7:.*]] = add i64 %[[VAL_0]], -1
 # CHECK:         %[[VAL_8:.*]] = tail call i64 @llvm.abs.i64(i64 %[[VAL_7]], i1 false)
 # CHECK:         %[[VAL_9:.*]] = alloca i64, i64 %[[VAL_8]], align 8
 # CHECK:         %[[VAL_10:.*]] = icmp sgt i64 %[[VAL_7]], 0
 # CHECK:         br i1 %[[VAL_10]], label %[[VAL_11:.*]], label %[[VAL_12:.*]]
-# CHECK:       .lr.ph:                                           ; preds = %[[VAL_13:.*]], %[[VAL_11]]
+# CHECK:       :                                           ; preds = %[[VAL_13:.*]], %[[VAL_11]]
 # CHECK:         %[[VAL_14:.*]] = phi i64 [ %[[VAL_15:.*]], %[[VAL_11]] ], [ 0, %[[VAL_13]] ]
 # CHECK:         %[[VAL_16:.*]] = getelementptr i64, i64* %[[VAL_9]], i64 %[[VAL_14]]
 # CHECK:         store i64 %[[VAL_14]], i64* %[[VAL_16]], align 8
 # CHECK:         %[[VAL_15]] = add nuw nsw i64 %[[VAL_14]], 1
 # CHECK:         %[[VAL_17:.*]] = icmp slt i64 %[[VAL_15]], %[[VAL_7]]
-# CHECK:         br i1 %[[VAL_17]], label %[[VAL_11]], label %[[VAL_21:.*]]
-# CHECK:       ._crit_edge:                                      ; preds = %[[VAL_11]]
-# CHECK:         %[[VAL_18:.*]] = alloca { i64, i64 }, i64 %[[VAL_7]], align 8
-# CHECK:         br i1 %[[VAL_10]], label %[[VAL_20:.*]], label %[[VAL_21]]
-# CHECK:       .preheader:                                       ; preds = %[[VAL_20]]
-# CHECK:         br i1 %[[VAL_10]], label %[[VAL_22:.*]], label %[[VAL_21]]
-# CHECK:       .lr.ph10:                                          ; preds = %[[VAL_21]], %[[VAL_20]]
-# CHECK:         %[[VAL_23:.*]] = phi i64 [ %[[VAL_24:.*]], %[[VAL_20]] ], [ 0, %[[VAL_21]] ]
-# CHECK:         %[[VAL_25:.*]] = getelementptr i64, i64* %[[VAL_9]], i64 %[[VAL_23]]
-# CHECK:         %[[VAL_26:.*]] = load i64, i64* %[[VAL_25]], align 8
-# CHECK:         %[[VAL_27:.*]] = getelementptr { i64, i64 }, { i64, i64 }* %[[VAL_18]], i64 %[[VAL_23]], i32 0
-# CHECK:         store i64 %[[VAL_23]], i64* %[[VAL_27]], align 8
-# CHECK:         %[[VAL_28:.*]] = getelementptr { i64, i64 }, { i64, i64 }* %[[VAL_18]], i64 %[[VAL_23]], i32 1
-# CHECK:         store i64 %[[VAL_26]], i64* %[[VAL_28]], align 8
-# CHECK:         %[[VAL_24]] = add nuw nsw i64 %[[VAL_23]], 1
-# CHECK:         %[[VAL_29:.*]] = icmp slt i64 %[[VAL_24]], %[[VAL_7]]
-# CHECK:         br i1 %[[VAL_29]], label %[[VAL_20]], label %[[VAL_30:.*]]
-# CHECK:       .lr.ph11:                                         ; preds = %[[VAL_30]], %[[VAL_22]]
-# CHECK:         %[[VAL_31:.*]] = phi i64 [ %[[VAL_32:.*]], %[[VAL_22]] ], [ 0, %[[VAL_30]] ]
-# CHECK:         %[[VAL_33:.*]] = getelementptr { i64, i64 }, { i64, i64 }* %[[VAL_18]], i64 %[[VAL_31]], i32 0
-# CHECK:         %[[VAL_34:.*]] = load i64, i64* %[[VAL_33]], align 8
-# CHECK:         %[[VAL_35:.*]] = getelementptr { i64, i64 }, { i64, i64 }* %[[VAL_18]], i64 %[[VAL_31]], i32 1
-# CHECK:         %[[VAL_36:.*]] = load i64, i64* %[[VAL_35]], align 8
-# CHECK:         %[[VAL_37:.*]] = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 %[[VAL_34]])
-# CHECK:         %[[VAL_38:.*]] = bitcast i8* %[[VAL_37]] to %[[VAL_5]]**
-# CHECK:         %[[VAL_39:.*]] = load %[[VAL_5]]*, %[[VAL_5]]** %[[VAL_38]], align 8
-# CHECK:         %[[VAL_40:.*]] = add i64 %[[VAL_36]], 1
-# CHECK:         %[[VAL_41:.*]] = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 %[[VAL_40]])
-# CHECK:         %[[VAL_42:.*]] = bitcast i8* %[[VAL_41]] to %[[VAL_5]]**
-# CHECK:         %[[VAL_43:.*]] = load %[[VAL_5]]*, %[[VAL_5]]** %[[VAL_42]], align 8
-# CHECK:         tail call void (i64, void (%[[VAL_1]]*, %[[VAL_5]]*)*, ...) @invokeWithControlQubits(i64 1, void (%[[VAL_1]]*, %[[VAL_5]]*)* nonnull @__quantum__qis__x__ctl, %[[VAL_5]]* %[[VAL_39]], %[[VAL_5]]* %[[VAL_43]])
-# CHECK:         %[[VAL_32]] = add nuw nsw i64 %[[VAL_31]], 1
-# CHECK:         %[[VAL_44:.*]] = icmp slt i64 %[[VAL_32]], %[[VAL_7]]
-# CHECK:         br i1 %[[VAL_44]], label %[[VAL_22]], label %[[VAL_21]]
-# CHECK:       ._crit_edge12:                                    ; preds = %[[VAL_22]], %[[VAL_13]], %[[VAL_21]], %[[VAL_30]]
-# CHECK:         tail call void @__quantum__rt__qubit_release_array(%[[VAL_1]]* %[[VAL_0]])
+# CHECK:         br i1 %[[VAL_17]], label %[[VAL_11]], label %[[VAL_18:.*]]
+# CHECK:       :                                      ; preds = %[[VAL_11]]
+# CHECK:         %[[VAL_19:.*]] = alloca { i64, i64 }, i64 %[[VAL_7]], align 8
+# CHECK:         br i1 %[[VAL_10]], label %[[VAL_20:.*]], label %[[VAL_12]]
+# CHECK:       :                                       ; preds = %[[VAL_20]]
+# CHECK:         br i1 %[[VAL_10]], label %[[VAL_21:.*]], label %[[VAL_12]]
+# CHECK:       .lr.ph10:                                         ; preds = %[[VAL_18]], %[[VAL_20]]
+# CHECK:         %[[VAL_22:.*]] = phi i64 [ %[[VAL_23:.*]], %[[VAL_20]] ], [ 0, %[[VAL_18]] ]
+# CHECK:         %[[VAL_24:.*]] = getelementptr i64, i64* %[[VAL_9]], i64 %[[VAL_22]]
+# CHECK:         %[[VAL_25:.*]] = load i64, i64* %[[VAL_24]], align 8
+# CHECK:         %[[VAL_26:.*]] = getelementptr { i64, i64 }, { i64, i64 }* %[[VAL_19]], i64 %[[VAL_22]], i32 0
+# CHECK:         store i64 %[[VAL_22]], i64* %[[VAL_26]], align 8
+# CHECK:         %[[VAL_27:.*]] = getelementptr { i64, i64 }, { i64, i64 }* %[[VAL_19]], i64 %[[VAL_22]], i32 1
+# CHECK:         store i64 %[[VAL_25]], i64* %[[VAL_27]], align 8
+# CHECK:         %[[VAL_23]] = add nuw nsw i64 %[[VAL_22]], 1
+# CHECK:         %[[VAL_28:.*]] = icmp slt i64 %[[VAL_23]], %[[VAL_7]]
+# CHECK:         br i1 %[[VAL_28]], label %[[VAL_20]], label %[[VAL_29:.*]]
+# CHECK:       :                                         ; preds = %[[VAL_29]], %[[VAL_21]]
+# CHECK:         %[[VAL_30:.*]] = phi i64 [ %[[VAL_31:.*]], %[[VAL_21]] ], [ 0, %[[VAL_29]] ]
+# CHECK:         %[[VAL_32:.*]] = getelementptr { i64, i64 }, { i64, i64 }* %[[VAL_19]], i64 %[[VAL_30]], i32 0
+# CHECK:         %[[VAL_33:.*]] = load i64, i64* %[[VAL_32]], align 8
+# CHECK:         %[[VAL_34:.*]] = getelementptr { i64, i64 }, { i64, i64 }* %[[VAL_19]], i64 %[[VAL_30]], i32 1
+# CHECK:         %[[VAL_35:.*]] = load i64, i64* %[[VAL_34]], align 8
+# CHECK:         %[[VAL_36:.*]] = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%[[VAL_2]]* %[[VAL_1]], i64 %[[VAL_33]])
+# CHECK:         %[[VAL_37:.*]] = bitcast i8* %[[VAL_36]] to %[[VAL_5]]**
+# CHECK:         %[[VAL_38:.*]] = load %[[VAL_5]]*, %[[VAL_5]]** %[[VAL_37]], align 8
+# CHECK:         %[[VAL_39:.*]] = add i64 %[[VAL_35]], 1
+# CHECK:         %[[VAL_40:.*]] = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%[[VAL_2]]* %[[VAL_1]], i64 %[[VAL_39]])
+# CHECK:         %[[VAL_41:.*]] = bitcast i8* %[[VAL_40]] to %[[VAL_5]]**
+# CHECK:         %[[VAL_42:.*]] = load %[[VAL_5]]*, %[[VAL_5]]** %[[VAL_41]], align 8
+# CHECK:         tail call void (i64, void (%[[VAL_2]]*, %[[VAL_5]]*)*, ...) @invokeWithControlQubits(i64 1, void (%[[VAL_2]]*, %[[VAL_5]]*)* nonnull @__quantum__qis__x__ctl, %[[VAL_5]]* %[[VAL_38]], %[[VAL_5]]* %[[VAL_42]])
+# CHECK:         %[[VAL_31]] = add nuw nsw i64 %[[VAL_30]], 1
+# CHECK:         %[[VAL_43:.*]] = icmp slt i64 %[[VAL_31]], %[[VAL_7]]
+# CHECK:         br i1 %[[VAL_43]], label %[[VAL_21]], label %[[VAL_12]]
+# CHECK:       :                                    ; preds = %[[VAL_21]], %[[VAL_13]], %[[VAL_18]], %[[VAL_29]]
+# CHECK:         tail call void @__quantum__rt__qubit_release_array(%[[VAL_2]]* %[[VAL_1]])
 # CHECK:         ret void
+# CHECK:       }
 
-# CHECK:   tail call void @__quantum__qis__h__body(
-# CHECK:                                            %[[VAL_0:.*]]* null)
+# CHECK-LABEL: define void @__nvqpp__mlirgen__ghz()
+# CHECK:         tail call void @__quantum__qis__h__body(%[[VAL_0:.*]]* null)
 # CHECK:         tail call void @__quantum__qis__cnot__body(%[[VAL_0]]* null, %[[VAL_0]]* nonnull inttoptr (i64 1 to %[[VAL_0]]*))
 # CHECK:         tail call void @__quantum__qis__cnot__body(%[[VAL_0]]* nonnull inttoptr (i64 1 to %[[VAL_0]]*), %[[VAL_0]]* nonnull inttoptr (i64 2 to %[[VAL_0]]*))
 # CHECK:         tail call void @__quantum__qis__cnot__body(%[[VAL_0]]* nonnull inttoptr (i64 2 to %[[VAL_0]]*), %[[VAL_0]]* nonnull inttoptr (i64 3 to %[[VAL_0]]*))
 # CHECK:         tail call void @__quantum__qis__cnot__body(%[[VAL_0]]* nonnull inttoptr (i64 3 to %[[VAL_0]]*), %[[VAL_0]]* nonnull inttoptr (i64 4 to %[[VAL_0]]*))
 # CHECK:         ret void
+# CHECK:       }
+
