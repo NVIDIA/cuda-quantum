@@ -26,6 +26,7 @@ add_cudaq_library(OptCodeGen
   QuakeToExecMgr.cpp
   QuakeToLLVM.cpp
   RemoveMeasurements.cpp
+  ReturnToOutputLog.cpp
   TranslateToIQMJson.cpp
   TranslateToOpenQASM.cpp
   VerifyNVQIRCalls.cpp
