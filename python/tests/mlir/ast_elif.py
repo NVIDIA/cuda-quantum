@@ -48,8 +48,8 @@ def test_elif():
 # CHECK:             %[[VAL_14:.*]] = cc.compute_ptr %[[VAL_13]][%[[VAL_11]]] : (!cc.ptr<!cc.array<f64 x ?>>, i64) -> !cc.ptr<f64>
 # CHECK:             %[[VAL_15:.*]] = cc.load %[[VAL_14]] : !cc.ptr<f64>
 # CHECK:             %[[VAL_16:.*]] = cc.compute_ptr %[[VAL_7]]{{\[}}%[[VAL_11]]] : (!cc.ptr<!cc.array<!cc.struct<{i64, f64}> x ?>>, i64) -> !cc.ptr<!cc.struct<{i64, f64}>>
-# CHECK:             %[[VAL_17:.*]] = cc.insert_value %[[VAL_11]], %[[VAL_12]][0] : (!cc.struct<{i64, f64}>, i64) -> !cc.struct<{i64, f64}>
-# CHECK:             %[[VAL_18:.*]] = cc.insert_value %[[VAL_15]], %[[VAL_17]][1] : (!cc.struct<{i64, f64}>, f64) -> !cc.struct<{i64, f64}>
+# CHECK:             %[[VAL_17:.*]] = cc.insert_value %[[VAL_12]][0], %[[VAL_11]] : (!cc.struct<{i64, f64}>, i64) -> !cc.struct<{i64, f64}>
+# CHECK:             %[[VAL_18:.*]] = cc.insert_value %[[VAL_17]][1], %[[VAL_15]] : (!cc.struct<{i64, f64}>, f64) -> !cc.struct<{i64, f64}>
 # CHECK:             cc.store %[[VAL_18]], %[[VAL_16]] : !cc.ptr<!cc.struct<{i64, f64}>>
 # CHECK:             cc.continue %[[VAL_11]] : i64
 # CHECK:           } step {
