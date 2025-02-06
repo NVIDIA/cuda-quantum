@@ -85,6 +85,10 @@ void append_elementary_operator_to_term(
     throw std::invalid_argument("Degrees vector cannot be empty.");
   }
 
+  if (!elem_op) {
+    throw std::invalid_argument("elem_op cannot be null.");
+  }
+
   std::vector<cudensitymatElementaryOperator_t> elem_ops = {elem_op};
 
   std::vector<int32_t> modeActionDuality(degrees.size(), 0);
@@ -147,6 +151,11 @@ compute_lindblad_operator(cudensitymatHandle_t handle,
     cudensitymatElementaryOperator_t cudm_elem_op =
         create_elementary_operator(handle, mode_extents, flat_matrix);
 
+    if (!cudm_elem_op) {
+      throw std::runtime_error(
+          "Failed to create elementary operator in compute_lindblad_operator.");
+    }
+
     // Append the elementary operator to the term
     std::vector<int> degrees = {0, 1};
     append_elementary_operator_to_term(handle, term, cudm_elem_op, degrees);
@@ -199,7 +208,7 @@ cudensitymatOperator_t convert_to_cudensitymat_operator(
           mode_extents.data(), &term));
 
       for (const auto &component : product_op.get_terms()) {
-        if (auto elem_op =
+        if (const auto *elem_op =
                 dynamic_cast<const cudaq::matrix_operator *>(&component)) {
           auto subspace_extents =
               get_subspace_extents(mode_extents, elem_op->degrees);
@@ -211,11 +220,11 @@ cudensitymatOperator_t convert_to_cudensitymat_operator(
           elementary_operators.push_back(cudm_elem_op);
           append_elementary_operator_to_term(handle, term, cudm_elem_op,
                                              elem_op->degrees);
-          // } else if (auto scalar_op = static_cast<const
-          // cudaq::scalar_operator*>(&component)) {
-          //   auto coeff =
-          //       scalar_op->evaluate(parameters);
-          //   append_scalar_to_term(handle, term, coeff);
+        } else if (const auto *scalar_op =
+                       dynamic_cast<const cudaq::scalar_operator *>(
+                           &component)) {
+          auto coeff = scalar_op->evaluate(parameters);
+          append_scalar_to_term(handle, term, coeff);
         }
       }
 
@@ -235,7 +244,9 @@ cudensitymatOperator_t convert_to_cudensitymat_operator(
 
     return operator_handle;
   } catch (const std::exception &e) {
-    throw std::runtime_error("Error in convert_to_cudensitymat_operator!");
+    std::cerr << "Error in convert_to_cudensitymat_operator: " << e.what()
+              << std::endl;
+    throw;
   }
 }
 
