@@ -24,7 +24,8 @@ def AnyCallableType : Type<CPred<"$_self.isa<cudaq::cc::CallableType, "
                           "mlir::FunctionType>()">, "any callable type">;
 
 def AnyAggregateType : Type<CPred<"$_self.isa<cudaq::cc::StructType, "
-                            "cudaq::cc::ArrayType>()">, "any aggregate type">;
+                            "cudaq::cc::ArrayType, mlir::ComplexType>()">,
+                            "any aggregate type">;
 
 //===----------------------------------------------------------------------===//
 // Base operation definition.
