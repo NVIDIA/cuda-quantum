@@ -76,8 +76,9 @@ TEST_F(CuDensityMatTestFixture, ConvertToCuDensityMatOperator) {
   auto op_sum = initialize_operator_sum();
 
   EXPECT_NO_THROW({
-    auto result = cudaq::convert_to_cudensitymat_operator(handle, {}, op_sum,
-                                                          mode_extents);
+    auto result =
+        cudaq::convert_to_cudensitymat_operator<cudaq::matrix_operator>(
+            handle, {}, op_sum, mode_extents);
     ASSERT_NE(result, nullptr);
     cudensitymatDestroyOperator(result);
   });
@@ -90,7 +91,7 @@ TEST_F(CuDensityMatTestFixture, InvalidHandle) {
   std::vector<int64_t> mode_extents = {2, 2};
   auto op_sum = initialize_operator_sum();
 
-  EXPECT_THROW(cudaq::convert_to_cudensitymat_operator(invalid_handle, {},
-                                                       op_sum, mode_extents),
+  EXPECT_THROW(cudaq::convert_to_cudensitymat_operator<cudaq::matrix_operator>(
+                   invalid_handle, {}, op_sum, mode_extents),
                std::runtime_error);
 }
