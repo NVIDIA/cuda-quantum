@@ -355,3 +355,176 @@ TEST(OperatorExpressions, checkSpinOpsSimpleArithmetics) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 }
+
+TEST(OperatorExpressions, checkSpinOpsAdvancedArithmetics) {
+
+  /// Keeping this fixed throughout.
+  std::complex<double> value = 0.125 + 0.5j;
+
+  /// `spin_operator + operator_sum` and `operator_sum +
+  /// spin_operator`
+  {
+    auto self = cudaq::spin_operator::y(2);
+    auto operator_sum = cudaq::spin_operator::y(2) +
+                        cudaq::spin_operator::x(1);
+
+    auto got = self + operator_sum;
+    auto reverse = operator_sum + self;
+
+    ASSERT_TRUE(got.n_terms() == 3);
+    ASSERT_TRUE(reverse.n_terms() == 3);
+
+    auto self_full = cudaq::kronecker(utils::PauliY_matrix(),
+                                      utils::id_matrix(2));
+    auto term_0_full = cudaq::kronecker(utils::PauliY_matrix(),
+                                        utils::id_matrix(2));
+    auto term_1_full = cudaq::kronecker(utils::id_matrix(2),
+                                        utils::PauliX_matrix());
+
+    auto got_matrix = got.to_matrix();
+    auto got_reverse_matrix = reverse.to_matrix();
+    auto want_matrix = self_full + term_0_full + term_1_full;
+    auto want_reverse_matrix = term_0_full + term_1_full + self_full;
+    utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+  }
+
+  /// `spin_operator - operator_sum` and `operator_sum -
+  /// spin_operator`
+  {
+    auto self = cudaq::spin_operator::i(0);
+    auto operator_sum = cudaq::spin_operator::x(0) +
+                        cudaq::spin_operator::z(1);
+
+    auto got = self - operator_sum;
+    auto reverse = operator_sum - self;
+
+    ASSERT_TRUE(got.n_terms() == 3);
+    ASSERT_TRUE(reverse.n_terms() == 3);
+
+    auto self_full = cudaq::kronecker(utils::id_matrix(2),
+                                      utils::id_matrix(2));
+    auto term_0_full = cudaq::kronecker(utils::id_matrix(2),
+                                        utils::PauliX_matrix());
+    auto term_1_full = cudaq::kronecker(utils::PauliZ_matrix(),
+                                        utils::id_matrix(2));
+
+    auto got_matrix = got.to_matrix(); 
+    auto got_reverse_matrix = reverse.to_matrix();
+    auto want_matrix = self_full - term_0_full - term_1_full;
+    auto want_reverse_matrix = term_0_full + term_1_full - self_full;
+    utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+  }
+
+  /// `spin_operator * operator_sum` and `operator_sum *
+  /// spin_operator`
+  {
+    auto self = cudaq::spin_operator::y(0);
+    auto operator_sum = cudaq::spin_operator::x(0) +
+                        cudaq::spin_operator::y(2);
+
+    auto got = self * operator_sum;
+    auto reverse = operator_sum * self;
+
+    ASSERT_TRUE(got.n_terms() == 2);
+    ASSERT_TRUE(reverse.n_terms() == 2);
+    for (auto &term : got.get_terms())
+      ASSERT_TRUE(term.n_terms() == 2);
+    for (auto &term : reverse.get_terms())
+      ASSERT_TRUE(term.n_terms() == 2);
+
+    auto self_full = cudaq::kronecker(utils::id_matrix(2),
+                                      utils::PauliY_matrix());
+    auto term_0_full =
+        cudaq::kronecker(utils::id_matrix(2),
+                         utils::PauliX_matrix());
+    auto term_1_full = cudaq::kronecker(utils::PauliY_matrix(),
+                                        utils::id_matrix(2));
+    auto sum_full = term_0_full + term_1_full;
+
+    auto got_matrix = got.to_matrix(); 
+    auto got_reverse_matrix = reverse.to_matrix();
+    auto want_matrix = self_full * sum_full;
+    auto want_reverse_matrix = sum_full * self_full;
+    utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+  }
+
+  /// `operator_sum += spin_operator`
+  {
+    auto operator_sum = cudaq::spin_operator::z(0) +
+                        cudaq::spin_operator::x(2);
+    operator_sum += cudaq::spin_operator::y(0);
+
+    ASSERT_TRUE(operator_sum.n_terms() == 3);
+
+    auto self_full =
+        cudaq::kronecker(utils::id_matrix(2),
+                         utils::PauliZ_matrix());
+    auto term_0_full = cudaq::kronecker(utils::PauliX_matrix(),
+                                        utils::id_matrix(2));
+    auto term_1_full = cudaq::kronecker(utils::id_matrix(2),
+                                        utils::PauliY_matrix());
+
+    auto got_matrix = operator_sum.to_matrix();
+    auto want_matrix = term_0_full + term_1_full + self_full;
+    utils::checkEqual(want_matrix, got_matrix);
+  }
+
+  /// `operator_sum -= spin_operator`
+  {
+    auto operator_sum = cudaq::spin_operator::x(0) +
+                        cudaq::spin_operator::i(1);
+    operator_sum -= cudaq::spin_operator::x(0);
+
+    ASSERT_TRUE(operator_sum.n_terms() == 3);
+
+    auto self_full = cudaq::kronecker(utils::id_matrix(2),
+                                      utils::PauliX_matrix());
+    auto term_0_full = cudaq::kronecker(utils::id_matrix(2),
+                                        utils::id_matrix(2));
+    auto term_1_full = cudaq::kronecker(utils::id_matrix(2),
+                                        utils::PauliX_matrix());
+
+    auto got_matrix = operator_sum.to_matrix();
+    auto want_matrix = term_0_full + term_1_full - self_full;
+    utils::checkEqual(want_matrix, got_matrix);
+  }
+
+  /// `operator_sum *= spin_operator`
+  {
+    auto self = cudaq::spin_operator::i(0);
+    auto operator_sum = cudaq::spin_operator::y(0) +
+                        cudaq::spin_operator::z(1);
+
+    operator_sum *= self;
+
+    ASSERT_TRUE(operator_sum.n_terms() == 2);
+    for (auto &term : operator_sum.get_terms())
+      ASSERT_TRUE(term.n_terms() == 2);
+
+    auto self_full = cudaq::kronecker(utils::id_matrix(2),
+                                      utils::id_matrix(2));
+    auto term_0_full = cudaq::kronecker(utils::id_matrix(2),
+                                        utils::PauliY_matrix());
+    auto term_1_full = cudaq::kronecker(utils::PauliZ_matrix(),
+                                        utils::id_matrix(2));
+    auto sum_full = term_0_full + term_1_full;
+
+    auto got_matrix = operator_sum.to_matrix();
+    auto want_matrix = sum_full * self_full;
+    utils::checkEqual(want_matrix, got_matrix);
+  }
+}
+
+TEST(OperatorExpressions, checkSpinOpsDegreeVerification) {
+  auto op1 = cudaq::spin_operator::z(1);
+  auto op2 = cudaq::spin_operator::x(0);
+  std::map<int, int> dimensions = {{0, 1}, {1, 3}};
+
+  ASSERT_THROW(op1.to_matrix({{1, 3}}), std::runtime_error);
+  ASSERT_THROW((op1 * op2).to_matrix({{0, 3}, {1, 3}}), std::runtime_error);
+  ASSERT_THROW((op1 + op2).to_matrix({{0, 3}}), std::runtime_error);
+  ASSERT_NO_THROW(op1.to_matrix({{0, 3}}));
+}
