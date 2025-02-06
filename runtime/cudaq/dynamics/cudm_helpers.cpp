@@ -235,9 +235,7 @@ cudensitymatOperator_t convert_to_cudensitymat_operator(
 
     return operator_handle;
   } catch (const std::exception &e) {
-    std::cerr << "Error in convert_to_cudensitymat_operator: " << e.what()
-              << std::endl;
-    throw;
+    throw std::runtime_error("Error in convert_to_cudensitymat_operator!");
   }
 }
 
@@ -288,4 +286,5 @@ void destroy_array_gpu(void *gpu_array) {
     HANDLE_CUDA_ERROR(cudaFree(gpu_array));
   }
 }
+
 } // namespace cudaq
