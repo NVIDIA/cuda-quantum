@@ -45,7 +45,7 @@ public:
                     cudensitymatOperatorTerm_t op);
 
   // Wrap a matrix operator as a cudensitymat tensor callback
-  cudensitymatOperatorTerm_t _wrap_callback_tensor(const matrix_operator &op);
+  cudensitymatTensorCallback_t _wrap_callback_tensor(const matrix_operator &op);
 
 private:
   std::map<int, int> dimensions_;
