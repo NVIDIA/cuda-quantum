@@ -15,11 +15,18 @@ config:
   link-libs: ["-lcudaq-pasqal-qpu"]
   # Library mode is only for simulators, physical backends must turn this off
   library-mode: false
+  # Tell NVQ++ to generate glue code to set the target backend name
+  gen-target-backend: true
 
 target-arguments:
   - key: machine
     required: false
     type: string
     platform-arg: machine
-    help-string: "Specify the pasqal QPU."
+    help-string: "Specify the Pasqal QPU."
+  - key: emulator
+    required: false
+    type: string
+    platform-arg: emulator
+    help-string: "Specify the Pasqal emulator."
 

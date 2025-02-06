@@ -12,29 +12,31 @@
 
 namespace cudaq {
 
-/// @brief The `PasqalBaseQPU` is a QPU that allows users to
-// submit kernels to the Pasqal machine.
+/// @brief The `PasqalBaseQPU` is a QPU that allows users to submit kernels to
+/// the Pasqal machine.
 class PasqalBaseQPU : public BaseRemoteRESTQPU {
 protected:
-  std::tuple<mlir::ModuleOp, mlir::MLIRContext *, void *>
+  virtual std::tuple<mlir::ModuleOp, mlir::MLIRContext *, void *>
   extractQuakeCodeAndContext(const std::string &kernelName,
                              void *data) override {
     throw std::runtime_error("Not supported on this target.");
   }
 
 public:
-  virtual bool isRemote() override { return true; }
-
-  virtual bool isEmulated() override { return false; }
+  void launchKernel(const std::string &kernelName,
+                    const std::vector<void *> &rawArgs) override {
+    throw std::runtime_error("Not supported on this target.");
+  }
 
   KernelThunkResultType
   launchKernel(const std::string &kernelName, KernelThunkType kernelFunc,
                void *args, std::uint64_t voidStarSize,
                std::uint64_t resultOffset,
                const std::vector<void *> &rawArgs) override {
-    if (kernelName.find(cudaq::runtime::cudaqAHKPrefixName) != 0)
-      throw std::runtime_error(
-          "Arbitrary kernel execution is not supported on this target.");
+
+    if (kernelName.find(cudaq::runtime::cudaqAHKPrefixName) != 0) {
+      throw std::runtime_error("Arbitrary kernel execution is not supported on this target.");
+    }
 
     cudaq::info("Launching remote kernel ({})", kernelName);
     std::vector<cudaq::KernelExecution> codes;
@@ -58,12 +60,9 @@ public:
       // Otherwise make this synchronous
       executionContext->result = future.get();
     }
-    return {};
-  }
 
-  void launchKernel(const std::string &kernelName,
-                    const std::vector<void *> &rawArgs) override {
-    throw std::runtime_error("Not supported on this target.");
+    return {};  
   }
 };
+
 } // namespace cudaq

@@ -6,49 +6,50 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "PasqalServerHelper.h"
 #include "common/AnalogHamiltonian.h"
+#include "common/Logger.h"
+#include "PasqalServerHelper.h"
 
 namespace cudaq {
 
 void PasqalServerHelper::initialize(BackendConfig config) {
-  cudaq::info("Initializing pasqal cloud");
+  cudaq::info("Initialize Pasqal Cloud.");
 
-  // Hard-coded for now
+  // Hard-coded for now.
   const std::string FRESNEL = "fresnel1";
   auto machine = FRESNEL;
   const int MAX_QUBITS = 100;
 
   cudaq::info("Running on device {}", machine);
+
   config["machine"] = machine;
   config["qubits"] = MAX_QUBITS;
 
-  if (!config["shots"].empty())
-    this->setShots(std::stoul(config["shots"]));
+  if(!config["shots"].empty())
+    setShots(std::stoul(config["shots"]));
 
   parseConfigForCommonParams(config);
 
-  // Move the passed config into the member variable backendConfig
   backendConfig = std::move(config);
 }
 
-// Get the headers for the API requests
-RestHeaders PasqalServerHelper::getHeaders() { 
-  std::string token, refreshKey, timeStr;
+RestHeaders PasqalServerHelper::getHeaders() {
+  std::string token;
+
   if (auto auth_token = std::getenv("PASQAL_AUTH_TOKEN"))
     token = "Bearer " + std::string(auth_token);
   else
     token = "Bearer ";
 
   std::map<std::string, std::string> headers{
-      {"Authorization", token},
-      {"Content-Type", "application/json"},
-      {"Connection", "keep-alive"},
-      {"Accept", "*/*"}};
-  return headers;
- }
+    {"Authorization", token},
+    {"Content-Type", "application/json"},
+    {"Connection", "keep-alive"},
+    {"Accept", "*/*"}};
 
-// Create a job for the pasqal quantum computer
+  return headers;
+}
+
 ServerJobPayload
 PasqalServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   ServerJobPayload ret;
@@ -65,10 +66,36 @@ PasqalServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
 
     tasks.push_back(taskRequest);
   }
-  cudaq::info("Created job payload for Pasqal, targeting device {}", backendConfig.at("machine"));
+
+  cudaq::info("Created job payload for Pasqal, targeting device {}",
+              backendConfig.at("machine"));
+  
   // Return a tuple containing the job path, headers, and the job message
-  const std::string baseUrl = "https://pasqal.cloud";
-  return std::make_tuple(baseUrl + "v1/batches", getHeaders(), tasks);
+  return std::make_tuple(baseUrl + "/v1/cuda-q/job", getHeaders(), tasks);
+}
+
+std::string PasqalServerHelper::extractJobId(ServerMessage &postResponse) {
+    return "";
+}
+
+std::string PasqalServerHelper::constructGetJobPath(std::string &jobId) {
+  return baseUrl + "";
+}
+
+std::string
+PasqalServerHelper::constructGetJobPath(ServerMessage &postResponse) {
+    return baseUrl + "";
+}
+
+bool PasqalServerHelper::jobIsDone(ServerMessage &getJobResponse) {
+    return false;
+}
+
+sample_result
+PasqalServerHelper::processResults(ServerMessage &postJobResponse,
+                                   std::string &jobId) {
+    sample_result res;
+    return res;
 }
 
 } // namespace cudaq

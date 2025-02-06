@@ -6,25 +6,20 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-target_sources(cudaq-rest-qpu PRIVATE PasqalServerHelper.cpp)
-
-add_library(cudaq-serverhelper-pasqal SHARED PasqalServerHelper.cpp )
-target_link_libraries(cudaq-serverhelper-pasqal
-  PUBLIC 
-    cudaq-common 
-    fmt::fmt-header-only 
-)
-install(TARGETS cudaq-serverhelper-pasqal DESTINATION lib)
-
 set(LIBRARY_NAME cudaq-pasqal-qpu)
 message(STATUS "Building Pasqal REST QPU.")
 
-add_library(${LIBRARY_NAME} SHARED PasqalRemoteRESTQPU.cpp)
+add_library(${LIBRARY_NAME}
+  SHARED
+    PasqalRemoteRESTQPU.cpp
+    PasqalServerHelper.cpp
+)
 
 target_include_directories(${LIBRARY_NAME} PRIVATE .
-    PUBLIC 
-       $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
-       $<INSTALL_INTERFACE:include>)
+  PUBLIC 
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
+    $<INSTALL_INTERFACE:include>
+)
 
 target_link_libraries(${LIBRARY_NAME}
   PUBLIC
@@ -35,8 +30,9 @@ target_link_libraries(${LIBRARY_NAME}
     cudaq-mlir-runtime 
     fmt::fmt-header-only
     cudaq 
-    cudaq-platform-default)
-
+    cudaq-platform-default
+) 
+    
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 
 add_target_config(pasqal)

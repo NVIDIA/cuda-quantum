@@ -1274,10 +1274,9 @@ class RydbergHamiltonian(OperatorSum):
     """
     Representation for the time-dependent Hamiltonian which is simulated by
     analog neutral-atom machines such as QuEra's Aquila and Pasqal's Fresnel.
-
     Ref: https://docs.aws.amazon.com/braket/latest/developerguide/braket-quera-submitting-analog-program-aquila.html#braket-quera-ahs-program-schema
     """
-
+    
     def __init__(self,
                  atom_sites: Iterable[tuple[float, float]],
                  amplitude: ScalarOperator,

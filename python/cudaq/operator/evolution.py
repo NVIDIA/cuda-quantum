@@ -198,6 +198,7 @@ def evolve_single(
         store_intermediate_results=False,
         integrator: Optional[BaseIntegrator] = None,
         shots_count: Optional[int] = None) -> cudaq_runtime.EvolveResult:
+    analog_targets = ["pasqal", "quera"]
     target_name = cudaq_runtime.get_target().name
     if target_name == "dynamics":
         try:
@@ -210,7 +211,7 @@ def evolve_single(
                                collapse_operators, observables,
                                store_intermediate_results, integrator)
 
-    if target_name in ["quera", "pasqal"]:
+    if target_name in analog_targets:
         ## TODO: Convert result from `sample_result` to `evolve_result`
         return _launch_analog_hamiltonian_kernel(target_name, hamiltonian,
                                                  schedule, shots_count)
@@ -350,12 +351,12 @@ def evolve(
         initial state. See `EvolveResult` for more information about the data computed
         during evolution.
     """
+    analog_targets = ["pasqal", "quera"]
     target_name = cudaq_runtime.get_target().name
-
     if not isinstance(schedule, Schedule):
         raise ValueError(
             f"Invalid argument `schedule` for target {target_name}.")
-    if target_name in ["quera", "pasqal"]:
+    if target_name in analog_targets:
         if not isinstance(hamiltonian, RydbergHamiltonian):
             raise ValueError(
                 f"Invalid argument `hamiltonian` for target {target_name}. Must be `RydbergHamiltonian` operator."
@@ -419,6 +420,7 @@ def evolve_single_async(
         store_intermediate_results=False,
         integrator: Optional[BaseIntegrator] = None,
         shots_count: Optional[int] = None) -> cudaq_runtime.AsyncEvolveResult:
+    analog_targets = ["pasqal", "quera"]
     target_name = cudaq_runtime.get_target().name
     if target_name == "dynamics":
         try:
@@ -432,7 +434,7 @@ def evolve_single_async(
             collapse_operators, observables, store_intermediate_results,
             integrator))
 
-    if target_name in ["quera", "pasqal"]:
+    if target_name in analog_targets:
         return _launch_analog_hamiltonian_kernel(target_name, hamiltonian,
                                                  schedule, shots_count, True)
 
@@ -543,12 +545,13 @@ def evolve_async(
         during the evolution of each initial state. See the `EvolveResult` for more 
         information about the data computed during evolution.
     """
+    analog_targets = ["pasqal", "quera"]
     target_name = cudaq_runtime.get_target().name
 
     if not isinstance(schedule, Schedule):
         raise ValueError(
             f"Invalid argument `schedule` for target {target_name}.")
-    if target_name in ["quera", "pasqal"]:
+    if target_name in analog_targets:
         if not isinstance(hamiltonian, RydbergHamiltonian):
             raise ValueError(
                 f"Invalid argument `hamiltonian` for target {target_name}. Must be `RydbergHamiltonian` operator."

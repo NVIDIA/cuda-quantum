@@ -80,6 +80,7 @@ OpenSSL
 OpenSUSE
 POSIX
 PSIRT
+Pasqal
 Pauli
 Paulis
 PyPI
@@ -249,7 +250,6 @@ nullary
 observables
 optimizer
 optimizers
-Pasqal
 parallelization
 parallelize
 parallelizing
