@@ -22,57 +22,40 @@ public:
                      const std::shared_ptr<Schedule> schedule = nullptr);
 
   // Tensor product of two operator terms
-  std::variant<cudensitymatOperatorTerm_t, cudensitymatWrappedScalarCallback_t,
-               std::complex<double>>
-  tensor(const std::variant<cudensitymatOperatorTerm_t,
-                            cudensitymatWrappedScalarCallback_t,
-                            std::complex<double>> &op1,
-         const std::variant<cudensitymatOperatorTerm_t,
-                            cudensitymatWrappedScalarCallback_t,
-                            std::complex<double>> &op2);
+  cudensitymatOperatorTerm_t tensor(const cudensitymatOperatorTerm_t &op1,
+                                    const cudensitymatOperatorTerm_t &op2);
 
   // Multiplication of two operator terms
-  std::variant<cudensitymatOperatorTerm_t, cudensitymatWrappedScalarCallback_t,
-               std::complex<double>>
-  mul(const std::variant<cudensitymatOperatorTerm_t,
-                         cudensitymatWrappedScalarCallback_t,
-                         std::complex<double>> &op1,
-      const std::variant<cudensitymatOperatorTerm_t,
-                         cudensitymatWrappedScalarCallback_t,
-                         std::complex<double>> &op2);
+  cudensitymatOperatorTerm_t mul(const cudensitymatOperatorTerm_t &op1,
+                                 const cudensitymatOperatorTerm_t &op2);
 
   // Addition of two operator terms
-  std::variant<cudensitymatOperatorTerm_t, cudensitymatWrappedScalarCallback_t,
-               std::complex<double>>
-  add(const std::variant<cudensitymatOperatorTerm_t,
-                         cudensitymatWrappedScalarCallback_t,
-                         std::complex<double>> &op1,
-      const std::variant<cudensitymatOperatorTerm_t,
-                         cudensitymatWrappedScalarCallback_t,
-                         std::complex<double>> &op2);
+  cudensitymatOperatorTerm_t add(const cudensitymatOperatorTerm_t &op1,
+                                 const cudensitymatOperatorTerm_t &op2);
 
   // Evaluate an operator and convert it to cudensitymatOperatorTerm_t
-  std::variant<cudensitymatOperatorTerm_t, cudensitymatWrappedScalarCallback_t,
-               std::complex<double>>
-  evaluate(const std::variant<scalar_operator, matrix_operator,
-                              product_operator<matrix_operator>> &op);
+  cudensitymatOperatorTerm_t evaluate(const matrix_operator &op);
+
+  // Convert a scalar to a cudensitymat operator term
+  cudensitymatOperatorTerm_t _scalar_to_op(const scalar_operator &scalar);
+
+  // Multiplies a scalar callback with a cudensitymat operator term
+  cudensitymatOperatorTerm_t
+  _callback_mult_op(cudensitymatScalarCallback_t scalar,
+                    cudensitymatOperatorTerm_t op);
+
+  // Wrap a matrix operator as a cudensitymat tensor callback
+  cudensitymatOperatorTerm_t _wrap_callback_tensor(const matrix_operator &op);
 
 private:
-  cudensitymatHandle_t handle_;
   std::map<int, int> dimensions_;
   std::shared_ptr<Schedule> schedule_;
+  cudensitymatHandle_t handle_;
 
-  cudensitymatOperatorTerm_t
-  _callback_mult_op(const cudensitymatWrappedScalarCallback_t &scalar,
-                    const cudensitymatOperatorTerm_t &op);
-  cudensitymatOperatorTerm_t
-  _scalar_to_op(const cudensitymatWrappedScalarCallback_t &scalar);
-  cudensitymatWrappedScalarCallback_t _wrap_callback(const scalar_operator &op);
-  cudensitymatWrappedTensorCallback_t
-  _wrap_callback_tensor(const matrix_operator &op);
-
-  std::vector<std::complex<double>> get_identity_matrix();
-
-  std::vector<int64_t> get_space_mode_extents();
+  std::map<cudensitymatOperatorTerm_t,
+           std::vector<cudensitymatElementaryOperator_t>>
+      _termtoElemOps;
+  std::map<cudensitymatOperatorTerm_t, std::vector<int32_t>> _termtoModes;
+  std::map<cudensitymatOperatorTerm_t, std::vector<int32_t>> _termtoDuals;
 };
 } // namespace cudaq
