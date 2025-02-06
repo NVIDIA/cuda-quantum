@@ -18,11 +18,9 @@
 #include "cudaq/qis/qreg.h"
 #include "cudaq/qis/qvector.h"
 #include "cudaq/spin_op.h"
-
 #include <algorithm>
 #include <cstring>
 #include <functional>
-#include <iostream>
 
 #define __qpu__ __attribute__((annotate("quantum")))
 
