@@ -196,12 +196,6 @@ public:
   void push_back(kraus_op op);
 };
 
-template<std::size_t NumTargets, std::size_t NumParams> 
-class named_kraus_channel : public kraus_channel {
-  constexpr static std::size_t num_targets = NumTargets; 
-  constexpr static std::size_t num_parameters = NumParams; 
-};
-
 /// @brief The noise_model type keeps track of a set of
 /// kraus_channels to be applied after the execution of
 /// quantum operations. Each quantum operation maps
@@ -332,8 +326,7 @@ public:
 
     registeredChannels.insert(
         {std::type_index(typeid(KrausChannelT)),
-         [typeName](
-             const std::vector<double> &params) -> kraus_channel {
+         [typeName](const std::vector<double> &params) -> kraus_channel {
            KrausChannelT userChannel(params);
            userChannel.parameters = params;
            if (userChannel.name == "unknown")
@@ -469,8 +462,8 @@ public:
 /// a single-qubit bit flipping error channel.
 class bit_flip_channel : public kraus_channel {
 public:
-  constexpr static std::size_t num_parameters = 1; 
-  constexpr static std::size_t num_targets = 1; 
+  constexpr static std::size_t num_parameters = 1;
+  constexpr static std::size_t num_targets = 1;
   bit_flip_channel(const std::vector<cudaq::real> &p) {
     cudaq::real probability = p[0];
     std::vector<cudaq::complex> k0v{std::sqrt(1 - probability), 0, 0,

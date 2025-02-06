@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <cstring>
 #include <functional>
+#include <iostream>
 
 #define __qpu__ __attribute__((annotate("quantum")))
 
@@ -1102,6 +1103,41 @@ void findQubitNegations(const std::tuple<QuantumT...> &quantumTuple,
   });
 }
 
+// 1. Type traits for container detection
+template <typename T>
+struct is_fixed_size_container : std::false_type {};
+
+template <>
+struct is_fixed_size_container<cudaq::qarray_base> : std::true_type {};
+
+// 2. Compile-time qubit counting logic
+template <typename T>
+constexpr std::size_t count_qubits_compile_time() {
+  if constexpr (details::IsQubitType<T>::value) {
+    return 1;
+  } else if constexpr (details::IsQarrayType<T>::value) {
+    return std::tuple_size<std::decay_t<T>>::value;
+  } else {
+    return 0; // Dynamic containers handled at runtime
+  }
+}
+
+template <typename Tuple, std::size_t... Is>
+constexpr std::size_t sum_targets_impl(std::index_sequence<Is...>) {
+  return (count_qubits_compile_time<std::tuple_element_t<Is, Tuple>>() + ...);
+}
+
+// Type trait to check if T has a static constexpr integer 'num_parameters'
+template <typename T, typename = void>
+struct has_num_parameters : std::false_type {};
+
+template <typename T>
+struct has_num_parameters<T, std::void_t<decltype(T::num_parameters)>>
+    : std::bool_constant<std::is_integral_v<decltype(T::num_parameters)>> {};
+
+template <typename T>
+inline constexpr bool has_num_parameters_v = has_num_parameters<T>::value;
+
 /// @brief Generic quantum operation applicator function. Supports the
 /// following signatures for a generic operation name `OP`
 /// `OP(qubit(s))`
@@ -1140,7 +1176,7 @@ void applyQuantumOperation(const std::string &gateName,
         "cudaq does not support broadcast for multi-qubit operations.");
 
   // Operation on correct number of targets, no controls, possible broadcast
-  if ((std::is_same_v<mod, base> || std::is_same_v<mod, adj>) && NumT == 1) {
+  if ((std::is_same_v<mod, base> || std::is_same_v<mod, adj>)&&NumT == 1) {
     for (auto &qubit : qubits)
       getExecutionManager()->apply(gateName, parameters, {}, {qubit},
                                    std::is_same_v<mod, adj>);
@@ -1186,6 +1222,39 @@ void genericApplicator(const std::string &gateName, Args &&...args) {
   applyQuantumOperation<mod, NUMT, NUMP>(
       gateName, tuple_slice<NUMP>(std::forward_as_tuple(args...)),
       tuple_slice_last<sizeof...(Args) - NUMP>(std::forward_as_tuple(args...)));
+}
+
+template <typename T, typename... RotationT, typename... QuantumT,
+          std::size_t NumPProvided = sizeof...(RotationT),
+          std::enable_if_t<T::num_parameters == NumPProvided, std::size_t> = 0>
+void applyNoiseImpl(const std::tuple<RotationT...> &paramTuple,
+                    const std::tuple<QuantumT...> &quantumTuple) {
+  auto *ctx = get_platform().get_exec_ctx();
+  if (!ctx)
+    return;
+  std::vector<double> parameters;
+  cudaq::tuple_for_each(paramTuple,
+                        [&](auto &&element) { parameters.push_back(element); });
+  std::vector<QuditInfo> qubits;
+  // auto argTuple = std::forward_as_tuple(args...);
+  cudaq::tuple_for_each(quantumTuple, [&qubits](auto &&element) {
+    if constexpr (details::IsQubitType<decltype(element)>::value) {
+      qubits.push_back(qubitToQuditInfo(element));
+    } else {
+      for (auto &qq : element) {
+        qubits.push_back(qubitToQuditInfo(qq));
+      }
+    }
+  });
+
+  if (qubits.size() != T::num_targets) {
+    throw std::invalid_argument("Incorrect number of target qubits. Expected " +
+                                std::to_string(T::num_targets) + ", got " +
+                                std::to_string(qubits.size()));
+  }
+
+  auto channel = ctx->noiseModel->template get_channel<T>(parameters);
+  getExecutionManager()->applyNoise(channel, qubits);
 }
 
 } // namespace cudaq::details
@@ -1249,6 +1318,28 @@ void apply_noise(const std::vector<T> &krausOperators, QuantumArgs &&...args) {
 }
 
 template <typename T, typename... Q>
+void apply_noise(const std::vector<double> &params, Q &&...args) {
+  auto *ctx = get_platform().get_exec_ctx();
+  if (!ctx)
+    return;
+
+  std::vector<QuditInfo> qubits;
+  auto argTuple = std::forward_as_tuple(args...);
+  cudaq::tuple_for_each(argTuple, [&qubits](auto &&element) {
+    if constexpr (details::IsQubitType<decltype(element)>::value) {
+      qubits.push_back(qubitToQuditInfo(element));
+    } else {
+      for (auto &qq : element) {
+        qubits.push_back(qubitToQuditInfo(qq));
+      }
+    }
+  });
+
+  auto channel = ctx->noiseModel->template get_channel<T>(params);
+  getExecutionManager()->applyNoise(channel, qubits);
+}
+
+template <typename T, typename... Q>
   requires(T::num_parameters + T::num_targets == sizeof...(Q))
 void apply_noise(Q &&...args) {
   auto *ctx = get_platform().get_exec_ctx();
@@ -1273,6 +1364,33 @@ void apply_noise(Q &&...args) {
 
   auto channel = ctx->noiseModel->template get_channel<T>(params);
   getExecutionManager()->applyNoise(channel, qubits);
+}
+
+template <typename KrausChannelT, typename... Q>
+void apply_noise(Q &&...args) {
+  static_assert(details::has_num_parameters_v<KrausChannelT>,
+                "kraus_channel must have a static constexpr integer member "
+                "'num_parameters'");
+
+  using QuantumArgs =
+      decltype(details::tuple_slice_last<sizeof...(Q) -
+                                         KrausChannelT::num_parameters>(
+          std::forward_as_tuple(args...)));
+
+  constexpr std::size_t quantum_args_size = std::tuple_size_v<QuantumArgs>;
+  constexpr std::size_t num_targets_provided =
+      details::sum_targets_impl<QuantumArgs>(
+          std::make_index_sequence<quantum_args_size>{});
+
+  static_assert(num_targets_provided <= KrausChannelT::num_targets,
+                "Invalid number of quantum targets provided to apply_noise "
+                "(check kraus_channel num_targets member)");
+
+  details::applyNoiseImpl<KrausChannelT>(
+      details::tuple_slice<KrausChannelT::num_parameters>(
+          std::forward_as_tuple(args...)),
+      details::tuple_slice_last<sizeof...(Q) - KrausChannelT::num_parameters>(
+          std::forward_as_tuple(args...)));
 }
 
 } // namespace cudaq

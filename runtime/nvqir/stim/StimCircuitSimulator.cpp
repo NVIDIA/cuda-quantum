@@ -43,6 +43,7 @@ protected:
   std::optional<std::string>
   isValidStimNoiseChannel(const kraus_channel &channel) const {
 
+    // Check the old way first
     if (channel.noise_type == cudaq::noise_model_type::bit_flip_channel)
       return "X_ERROR";
 
@@ -58,7 +59,7 @@ protected:
 
     auto typeName = channel.name;
 
-    // Check the name of the channel, 
+    // Check the name of the channel,
     // map our builtin noise channels to STIM names
     if (contains(typeName, "cudaq::")) {
       if (contains(typeName, "bit_flip_channel"))
@@ -69,7 +70,7 @@ protected:
         return "DEPOLARIZE1";
     }
 
-    // Final check on the name of the channel, this is 
+    // Final check on the name of the channel, this is
     // for custom operations.
     auto className = [](const std::string &input) -> std::string {
       // Find the last occurrence of '::'
@@ -86,8 +87,11 @@ protected:
         std::find_if(stim::GATE_DATA.items.begin(), stim::GATE_DATA.items.end(),
                      [&](const auto &el) { return el.name == className; });
 
-    if (it != stim::GATE_DATA.items.end())
-      return className;
+    if (it != stim::GATE_DATA.items.end()) {
+      // Assert we have the correct number of params
+      if (it->arg_count == channel.parameters.size())
+        return className;
+    }
 
     return std::nullopt;
   }
@@ -209,7 +213,7 @@ protected:
 
   bool isValidNoiseChannelName(const std::string &name) const override {
     kraus_channel c;
-    c.name = name; 
+    c.name = name;
     return isValidStimNoiseChannel(c).has_value();
   }
 
