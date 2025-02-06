@@ -59,8 +59,8 @@ def test_list_init():
 # CHECK:             %[[VAL_24:.*]] = cc.compute_ptr %[[VAL_23]][%[[VAL_21]]] : (!cc.ptr<!cc.array<f64 x ?>>, i64) -> !cc.ptr<f64>
 # CHECK:             %[[VAL_25:.*]] = cc.load %[[VAL_24]] : !cc.ptr<f64>
 # CHECK:             %[[VAL_26:.*]] = cc.compute_ptr %[[VAL_17]][%[[VAL_21]]] : (!cc.ptr<!cc.array<!cc.struct<{i64, f64}> x ?>>, i64) -> !cc.ptr<!cc.struct<{i64, f64}>>
-# CHECK:             %[[VAL_27:.*]] = cc.insert_value %[[VAL_21]], %[[VAL_22]][0] : (!cc.struct<{i64, f64}>, i64) -> !cc.struct<{i64, f64}>
-# CHECK:             %[[VAL_28:.*]] = cc.insert_value %[[VAL_25]], %[[VAL_27]][1] : (!cc.struct<{i64, f64}>, f64) -> !cc.struct<{i64, f64}>
+# CHECK:             %[[VAL_27:.*]] = cc.insert_value %[[VAL_22]][0], %[[VAL_21]] : (!cc.struct<{i64, f64}>, i64) -> !cc.struct<{i64, f64}>
+# CHECK:             %[[VAL_28:.*]] = cc.insert_value %[[VAL_27]][1], %[[VAL_25]] : (!cc.struct<{i64, f64}>, f64) -> !cc.struct<{i64, f64}>
 # CHECK:             cc.store %[[VAL_28]], %[[VAL_26]] : !cc.ptr<!cc.struct<{i64, f64}>>
 # CHECK:             cc.continue %[[VAL_21]] : i64
 # CHECK:           } step {

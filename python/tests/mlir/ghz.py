@@ -86,8 +86,8 @@ def test_ghz():
 # CHECK:             %[[VAL_17:.*]] = cc.undef !cc.struct<{i64, !quake.ref}>
 # CHECK:             %[[VAL_18:.*]] = quake.extract_ref %[[VAL_10]]{{\[}}%[[VAL_16]]] : (!quake.veq<?>, i64) -> !quake.ref
 # CHECK:             %[[VAL_19:.*]] = cc.compute_ptr %[[VAL_12]]{{\[}}%[[VAL_16]]] : (!cc.ptr<!cc.array<!cc.struct<{i64, !quake.ref}> x ?>>, i64) -> !cc.ptr<!cc.struct<{i64, !quake.ref}>>
-# CHECK:             %[[VAL_20:.*]] = cc.insert_value %[[VAL_16]], %[[VAL_17]][0] : (!cc.struct<{i64, !quake.ref}>, i64) -> !cc.struct<{i64, !quake.ref}>
-# CHECK:             %[[VAL_21:.*]] = cc.insert_value %[[VAL_18]], %[[VAL_20]][1] : (!cc.struct<{i64, !quake.ref}>, !quake.ref) -> !cc.struct<{i64, !quake.ref}>
+# CHECK:             %[[VAL_20:.*]] = cc.insert_value %[[VAL_17]][0], %[[VAL_16]] : (!cc.struct<{i64, !quake.ref}>, i64) -> !cc.struct<{i64, !quake.ref}>
+# CHECK:             %[[VAL_21:.*]] = cc.insert_value %[[VAL_20]][1], %[[VAL_18]] : (!cc.struct<{i64, !quake.ref}>, !quake.ref) -> !cc.struct<{i64, !quake.ref}>
 # CHECK:             cc.store %[[VAL_21]], %[[VAL_19]] : !cc.ptr<!cc.struct<{i64, !quake.ref}>>
 # CHECK:             cc.continue %[[VAL_16]] : i64
 # CHECK:           } step {

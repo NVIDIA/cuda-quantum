@@ -1065,6 +1065,45 @@ void cudaq::cc::GlobalOp::print(OpAsmPrinter &p) {
 }
 
 //===----------------------------------------------------------------------===//
+// InsertValueOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult cudaq::cc::InsertValueOp::verify() {
+  Type eleTy = getContainer().getType();
+  auto resultTy = getResult().getType();
+
+  if (!isCompatible(eleTy, resultTy))
+    return emitOpError("result type does not match input");
+
+  for (std::int32_t i : getPosition()) {
+    if (auto arrTy = dyn_cast<cc::ArrayType>(eleTy)) {
+      if (arrTy.isUnknownSize())
+        return emitOpError("array must have constant size");
+      if (i < 0 || static_cast<std::int64_t>(i) >= arrTy.getSize())
+        return emitOpError("array cannot index out of bounds elements");
+      eleTy = arrTy.getElementType();
+    } else if (auto strTy = dyn_cast<cc::StructType>(eleTy)) {
+      if (i < 0 || static_cast<std::size_t>(i) >= strTy.getMembers().size())
+        return emitOpError("struct cannot index out of bounds members");
+      eleTy = strTy.getMember(i);
+    } else if (auto complexTy = dyn_cast<ComplexType>(eleTy)) {
+      if (!(i == 0 || i == 1))
+        return emitOpError("complex index is out of bounds");
+      eleTy = complexTy.getElementType();
+    } else {
+      return emitOpError(std::string{"too many indices ("} +
+                         std::to_string(getPosition().size()) +
+                         ") for the source pointer");
+    }
+  }
+
+  Type valTy = getValue().getType();
+  if (!isCompatible(valTy, eleTy))
+    return emitOpError("value type does not match selected element");
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
 // StdvecDataOp
 //===----------------------------------------------------------------------===//
 
