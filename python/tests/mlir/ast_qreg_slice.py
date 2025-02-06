@@ -108,8 +108,8 @@ def test_slice():
 # CHECK:             %[[VAL_39:.*]] = cc.compute_ptr %[[VAL_38]][%[[VAL_36]]] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
 # CHECK:             %[[VAL_40:.*]] = cc.load %[[VAL_39]] : !cc.ptr<i64>
 # CHECK:             %[[VAL_41:.*]] = cc.compute_ptr %[[VAL_32]]{{\[}}%[[VAL_36]]] : (!cc.ptr<!cc.array<!cc.struct<{i64, i64}> x ?>>, i64) -> !cc.ptr<!cc.struct<{i64, i64}>>
-# CHECK:             %[[VAL_42:.*]] = cc.insert_value %[[VAL_36]], %[[VAL_37]][0] : (!cc.struct<{i64, i64}>, i64) -> !cc.struct<{i64, i64}>
-# CHECK:             %[[VAL_43:.*]] = cc.insert_value %[[VAL_40]], %[[VAL_42]][1] : (!cc.struct<{i64, i64}>, i64) -> !cc.struct<{i64, i64}>
+# CHECK:             %[[VAL_42:.*]] = cc.insert_value %[[VAL_37]][0], %[[VAL_36]] : (!cc.struct<{i64, i64}>, i64) -> !cc.struct<{i64, i64}>
+# CHECK:             %[[VAL_43:.*]] = cc.insert_value %[[VAL_42]][1], %[[VAL_40]] : (!cc.struct<{i64, i64}>, i64) -> !cc.struct<{i64, i64}>
 # CHECK:             cc.store %[[VAL_43]], %[[VAL_41]] : !cc.ptr<!cc.struct<{i64, i64}>>
 # CHECK:             cc.continue %[[VAL_36]] : i64
 # CHECK:           } step {
