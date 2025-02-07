@@ -2078,63 +2078,6 @@ MutableOperandRange cudaq::cc::ConditionOp::getMutableSuccessorOperands(
 }
 
 //===----------------------------------------------------------------------===//
-// IfOp
-//===----------------------------------------------------------------------===//
-
-namespace {
-/// const prop `cc.if($true)` and `cc.if($false)`
-struct EraseConstIf : public OpRewritePattern<cudaq::cc::IfOp> {
-  using OpRewritePattern::OpRewritePattern;
-
-  static bool hasQuantumAllocations(Block &block) {
-    for (auto &op : block) {
-      for (auto &region : op.getRegions())
-        for (auto &b : region)
-          if (hasQuantumAllocations(b))
-            return true;
-
-      if (auto alloc = dyn_cast<quake::AllocaOp>(&op))
-        return true;
-    }
-    return false;
-  }
-
-  LogicalResult matchAndRewrite(cudaq::cc::IfOp ifOp,
-                                PatternRewriter &rewriter) const override {
-    auto cond = ifOp.getCondition();
-    if (auto constCond = cond.getDefiningOp<arith::ConstantOp>()) {
-      if (auto attr = dyn_cast<BoolAttr>(constCond.getValue())) {
-        auto value = attr.getValue();
-        auto block =
-            value ? ifOp.getThenEntryBlock() : ifOp.getElseEntryBlock();
-
-        // Prevent quantum allocations from moving to an outer scope.
-        if (block && hasQuantumAllocations(*block))
-          return failure();
-
-        if (block) {
-          if (auto cont = dyn_cast<cudaq::cc::ContinueOp>(block->back())) {
-            for (std::size_t i = 0; auto opnd : ifOp.getResults())
-              rewriter.replaceAllUsesWith(opnd, cont.getOperand(i++));
-            rewriter.eraseOp(cont);
-          }
-          rewriter.mergeBlockBefore(block, ifOp);
-        }
-        rewriter.eraseOp(ifOp);
-        return success();
-      }
-    }
-    return failure();
-  }
-};
-} // namespace
-
-void cudaq::cc::IfOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
-                                                  MLIRContext *context) {
-  patterns.add<EraseConstIf>(context);
-}
-
-//===----------------------------------------------------------------------===//
 // OffsetOfOp
 //===----------------------------------------------------------------------===//
 
