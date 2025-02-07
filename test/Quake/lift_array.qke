@@ -64,7 +64,7 @@ func.func @__nvqpp__mlirgen__function_custom_h_generator_1._Z20custom_h_generato
   %7 = cc.stdvec_init %6, %c4_i64 : (!cc.ptr<i8>, i64) -> !cc.stdvec<complex<f64>>
   return %7 : !cc.stdvec<complex<f64>>
 }
-
+  
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_custom_h_generator_1._Z20custom_h_generator_1v() -> !cc.stdvec<complex<f64>> attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 16 : i64
 // CHECK:           %[[VAL_1:.*]] = arith.constant 4 : i64
@@ -126,7 +126,7 @@ func.func @test2() -> !quake.veq<2> {
 // GLOBAL-DAG:     cc.global constant private @__nvqpp__mlirgen__function_custom_h_generator_1._Z20custom_h_generator_1v.rodata_{{[0-9]+}} (dense<[(0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (-0.70710678118654757,0.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
 // GLOBAL-DAG:     cc.global constant private @test2.rodata_{{[0-9]+}} (dense<[1.000000e+00, 2.000000e+00, 6.000000e+00, 9.000000e+00]>" : tensor<4xf64>) : !cc.array<f64 x 4>
 
-func.func @test3() {
+func.func @test_two_stores() {
   %c0_i64 = arith.constant 0 : i64
   %c1_i64 = arith.constant 1 : i64
 
@@ -158,7 +158,7 @@ func.func @test3() {
   return
 }
 
-// CHECK-LABEL:   func.func @test3() {
+// CHECK-LABEL:   func.func @test_two_stores() {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i64
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           %[[VAL_2:.*]] = cc.const_array [1] : !cc.array<i64 x 1>
@@ -170,5 +170,28 @@ func.func @test3() {
 // CHECK:           %[[VAL_6:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i64>
 // CHECK:           %[[VAL_7:.*]] = quake.extract_ref %[[VAL_1]][%[[VAL_6]]] : (!quake.veq<2>, i64) -> !quake.ref
 // CHECK:           quake.x %[[VAL_7]] : (!quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }
+
+func.func @test_complex_array() {
+  %cst = complex.constant [0.000000e+00 : f32, 1.000000e+00 : f32] : complex<f32>
+  %cst_0 = complex.constant [1.000000e+00 : f32, 0.000000e+00 : f32] : complex<f32>
+  %0 = cc.alloca !cc.array<complex<f32> x 2>
+  %1 = cc.cast %0 : (!cc.ptr<!cc.array<complex<f32> x 2>>) -> !cc.ptr<complex<f32>>
+  cc.store %cst_0, %1 : !cc.ptr<complex<f32>>
+  %2 = cc.compute_ptr %0[1] : (!cc.ptr<!cc.array<complex<f32> x 2>>) -> !cc.ptr<complex<f32>>
+  cc.store %cst, %2 : !cc.ptr<complex<f32>>
+  %3 = quake.alloca !quake.veq<1>
+  %4 = quake.init_state %3, %1 : (!quake.veq<1>, !cc.ptr<complex<f32>>) -> !quake.veq<1>
+  return
+}
+
+// CHECK-LABEL:   func.func @test_complex_array() {
+// CHECK:           %[[VAL_0:.*]] = cc.const_array {{\[}}[1.000000e+00 : f32, 0.000000e+00 : f32], [0.000000e+00 : f32, 1.000000e+00 : f32]{{\]}} : !cc.array<complex<f32> x 2>
+// CHECK:           %[[VAL_1:.*]] = cc.alloca !cc.array<complex<f32> x 2>
+// CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<!cc.array<complex<f32> x 2>>
+// CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!cc.array<complex<f32> x 2>>) -> !cc.ptr<complex<f32>>
+// CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<1>
+// CHECK:           %[[VAL_4:.*]] = quake.init_state %[[VAL_3]], %[[VAL_2]] : (!quake.veq<1>, !cc.ptr<complex<f32>>) -> !quake.veq<1>
 // CHECK:           return
 // CHECK:         }
