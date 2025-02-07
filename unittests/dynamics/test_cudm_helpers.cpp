@@ -50,7 +50,7 @@ TEST_F(CuDensityMatHelpersTestFixture, ScaleState) {
 
   ASSERT_TRUE(state.is_initialized());
 
-  EXPECT_NO_THROW(cudaq::scale_state(handle, state.get_impl(), 2.0, stream));
+  EXPECT_NO_THROW(cudaq::scale_state(handle, state.get_impl(), {2.0}, stream));
 }
 
 // Test for compute_lindblad_op
