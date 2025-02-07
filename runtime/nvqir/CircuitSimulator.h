@@ -231,7 +231,7 @@ public:
   /// @brief Whether or not this is a state vector simulator
   virtual bool isStateVectorSimulator() const { return false; }
 
-  virtual bool isValidNoiseChannelName(const std::string &name) const {
+  virtual bool isValidNoiseChannel(const cudaq::noise_model_type &type) const {
     return false;
   }
 

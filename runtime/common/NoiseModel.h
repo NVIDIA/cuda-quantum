@@ -39,6 +39,8 @@ enum class noise_model_type {
   depolarization2
 };
 
+std::string get_noise_model_type_name(noise_model_type type);
+
 /// @brief A kraus_op represents a single Kraus operation,
 /// described as a complex matrix of specific size. The matrix
 /// is represented here as a 1d array (specifically a std::vector).
@@ -142,10 +144,6 @@ public:
   /// @brief Noise type enumeration
   noise_model_type noise_type = noise_model_type::unknown;
 
-  // FIXME This may go away with a better key for
-  // the channel registry
-  std::string name = "unknown";
-
   /// @brief Noise parameter values
   // Use `double` as the uniform type to store channel parameters (for both
   // single- and double-precision channel definitions). Some
@@ -202,6 +200,10 @@ public:
 
   /// @brief Add a kraus_op to this channel.
   void push_back(kraus_op op);
+
+  std::string get_type_name() const {
+    return get_noise_model_type_name(noise_type);
+  }
 };
 
 #define REGISTER_KRAUS_CHANNEL(TYPE)                                           \

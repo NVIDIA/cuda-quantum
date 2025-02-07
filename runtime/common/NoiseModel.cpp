@@ -79,7 +79,7 @@ void validateCompletenessRelation_fp64(const std::vector<kraus_op> &ops) {
 }
 
 kraus_channel::kraus_channel(const kraus_channel &other)
-    : ops(other.ops), noise_type(other.noise_type), name(other.name),
+    : ops(other.ops), noise_type(other.noise_type),
       parameters(other.parameters) {}
 
 std::size_t kraus_channel::size() const { return ops.size(); }
@@ -274,4 +274,25 @@ noise_model::noise_model() {
   register_channel<depolarization_channel>();
   register_channel<amplitude_damping_channel>();
 }
+
+constexpr std::array<const char *, 14> noise_model_strings = {
+    "unknown",
+    "depolarization_channel",
+    "amplitude_damping_channel",
+    "bit_flip_channel",
+    "phase_flip_channel",
+    "x_error",
+    "y_error",
+    "z_error",
+    "amplitude_damping",
+    "phase_damping",
+    "pauli1",
+    "pauli2",
+    "depolarization1",
+    "depolarization2"};
+
+std::string get_noise_model_type_name(noise_model_type type) {
+  return noise_model_strings[static_cast<std::size_t>(type)];
+}
+
 } // namespace cudaq

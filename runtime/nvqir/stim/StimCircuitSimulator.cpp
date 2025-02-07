@@ -53,46 +53,6 @@ protected:
     if (channel.noise_type == cudaq::noise_model_type::depolarization_channel)
       return "DEPOLARIZE1";
 
-    auto contains = [](const std::string &str, const std::string &sub) {
-      return str.find(sub) != std::string::npos;
-    };
-
-    auto typeName = channel.name;
-
-    // Check the name of the channel,
-    // map our builtin noise channels to STIM names
-    if (contains(typeName, "cudaq::")) {
-      if (contains(typeName, "bit_flip_channel"))
-        return "X_ERROR";
-      if (contains(typeName, "phase_flip_channel"))
-        return "Z_ERROR";
-      if (contains(typeName, "depolarization_channel"))
-        return "DEPOLARIZE1";
-    }
-
-    // Final check on the name of the channel, this is
-    // for custom operations.
-    auto className = [](const std::string &input) -> std::string {
-      // Find the last occurrence of '::'
-      size_t pos = input.find_last_of("::");
-      if (pos == std::string::npos)
-        return input;
-      std::string typeName = input.substr(pos + 1);
-      std::transform(typeName.begin(), typeName.end(), typeName.begin(),
-                     ::toupper);
-      return typeName;
-    }(typeName);
-
-    auto it =
-        std::find_if(stim::GATE_DATA.items.begin(), stim::GATE_DATA.items.end(),
-                     [&](const auto &el) { return el.name == className; });
-
-    if (it != stim::GATE_DATA.items.end()) {
-      // Assert we have the correct number of params
-      if (it->arg_count == channel.parameters.size())
-        return className;
-    }
-
     return std::nullopt;
   }
 
@@ -211,16 +171,16 @@ protected:
     sampleSim->safe_do_circuit(noiseOps);
   }
 
-  bool isValidNoiseChannelName(const std::string &name) const override {
+  bool isValidNoiseChannel(const cudaq::noise_model_type &type) const override {
     kraus_channel c;
-    c.name = name;
+    c.noise_type = type;
     return isValidStimNoiseChannel(c).has_value();
   }
 
   void applyNoise(const cudaq::kraus_channel &channel,
                   const std::vector<std::size_t> &qubits) override {
     flushGateQueue();
-    cudaq::info("[stim] apply kraus channel {}", channel.name);
+    cudaq::info("[stim] apply kraus channel {}", channel.get_type_name());
     stim::Circuit noiseOps;
     std::vector<std::uint32_t> stimTargets;
     stimTargets.reserve(qubits.size());

@@ -188,10 +188,14 @@ protected:
     }
   }
 
+  bool isValidNoiseChannel(const cudaq::noise_model_type &type) const override {
+    return true; 
+  }
+
   void applyNoise(const cudaq::kraus_channel &channel,
                   const std::vector<std::size_t> &qubits) override {
     flushGateQueue();
-    cudaq::info("[qpp-dm] apply kraus channel {}", channel.name);
+    cudaq::info("[qpp-dm] apply kraus channel {}", channel.get_type_name());
     std::vector<std::size_t> casted_qubits;
     for (auto index : qubits) {
       casted_qubits.push_back(convertQubitIndex(index));

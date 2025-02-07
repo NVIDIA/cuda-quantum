@@ -228,9 +228,9 @@ protected:
     flushGateQueue();
 
     if (channel.empty()) {
-      if (!simulator()->isValidNoiseChannelName(channel.name))
+      if (!simulator()->isValidNoiseChannel(channel.noise_type))
         throw std::runtime_error("this is not a valid kraus channel name (" +
-                                 channel.name +
+                                 channel.get_type_name() +
                                  "), no "
                                  "kraus ops available to construct it.");
     }
@@ -240,7 +240,7 @@ protected:
                    [](auto &&el) { return el.id; });
     cudaq::info(
         "[DefaultExecutionManager] Applying fine-grain kraus channel {}.",
-        channel.name);
+        channel.get_type_name());
     simulator()->applyNoise(channel, localT);
   }
 
