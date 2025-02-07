@@ -120,6 +120,8 @@ std::vector<std::complex<double>> cudm_state::get_raw_data() const {
   return rawData_;
 }
 
+void *cudm_state::get_device_pointer() const { return gpuData_; }
+
 std::vector<int64_t> cudm_state::get_hilbert_space_dims() const {
   return hilbertSpaceDims_;
 }
