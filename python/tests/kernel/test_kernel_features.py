@@ -583,9 +583,8 @@ def test_list_boundaries():
 
     @cudaq.kernel
     def kernel3():
-        qubits = cudaq.qvector(4)
-        r = [i * 2 + 1 for i in range(2)]
-        for i in range:
+        qubits = cudaq.qvector(2)
+        for i in range(-1):
             x(qubits[i])
 
     counts = cudaq.sample(kernel3)

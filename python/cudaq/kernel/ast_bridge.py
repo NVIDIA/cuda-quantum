@@ -930,6 +930,7 @@ class PyASTBridge(ast.NodeVisitor):
                     ty) or quake.StruqType.isinstance(ty)
 
             areQuantumTypes = [isQuantumTy(ty) for ty in self.argTypes]
+            f.attributes.__setitem__('cudaq-kernel', UnitAttr.get())
             if True not in areQuantumTypes and not self.disableEntryPointTag:
                 f.attributes.__setitem__('cudaq-entrypoint', UnitAttr.get())
 
@@ -1091,7 +1092,6 @@ class PyASTBridge(ast.NodeVisitor):
                 self.visit(node.targets[0])
                 # Reset the push pointer value flag
                 self.subscriptPushPointerValue = False
-
                 ptrVal = self.popValue()
                 if not cc.PointerType.isinstance(ptrVal.type):
                     self.emitFatalError(
@@ -1111,7 +1111,6 @@ class PyASTBridge(ast.NodeVisitor):
                 valueToStore = self.popValue()
                 # Store the value
                 cc.StoreOp(valueToStore, ptrVal)
-                # Reset the push pointer value flag
                 return
 
         else:
