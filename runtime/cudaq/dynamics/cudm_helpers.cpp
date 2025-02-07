@@ -9,6 +9,8 @@
 #include "cudaq/cudm_helpers.h"
 #include "cudaq/cudm_error_handling.h"
 
+using namespace cudaq;
+
 namespace cudaq {
 // Function to flatten a matrix into a 1D array (column major)
 std::vector<std::complex<double>> flatten_matrix(const matrix_2 &matrix) {
@@ -51,6 +53,9 @@ cudensitymatElementaryOperator_t create_elementary_operator(
     throw std::invalid_argument("subspace_extents cannot be empty.");
   }
 
+  std::cout << "Subspace extents size: " << subspace_extents.size()
+            << ", Matrix size: " << flat_matrix.size() << std::endl;
+
   cudensitymatElementaryOperator_t cudm_elem_op = nullptr;
 
   // FIXME: leak (need to track this buffer somewhere and delete **after** the
@@ -84,7 +89,19 @@ void append_elementary_operator_to_term(
     throw std::invalid_argument("elem_op cannot be null.");
   }
 
+  std::cout << "Appending Elementary Operator to Term"
+            << " - Degrees: " << degrees.size() << " - Term: " << term
+            << std::endl;
+
+  for (int degree : degrees) {
+    if (degree < 0) {
+      throw std::out_of_range("Degree cannot be negative!");
+    }
+  }
+
   std::vector<cudensitymatElementaryOperator_t> elem_ops = {elem_op};
+
+  std::cout << "elem_ops.data(): " << elem_ops.data() << std::endl;
 
   std::vector<int32_t> modeActionDuality(degrees.size(), 0);
   assert(elem_ops.size() == degrees.size());
@@ -111,8 +128,19 @@ void scale_state(cudensitymatHandle_t handle, cudensitymatState_t state,
     throw std::invalid_argument("Invalid state provided to scale_state.");
   }
 
+  cudaEvent_t start, stop;
+  cudaEventCreate(&start);
+  cudaEventCreate(&stop);
+  cudaEventRecord(start, stream);
+
   HANDLE_CUDM_ERROR(
       cudensitymatStateComputeScaling(handle, state, &scale_factor, stream));
+
+  cudaEventRecord(stop, stream);
+  cudaEventSynchronize(stop);
+  float milliseconds = 0;
+  cudaEventElapsedTime(&milliseconds, start, stop);
+  std::cout << "Time taken: " << milliseconds << " ms" << std::endl;
 }
 
 cudensitymatOperator_t

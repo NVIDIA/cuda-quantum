@@ -28,7 +28,7 @@ cudm_state::cudm_state(cudensitymatHandle_t handle,
 
   // Allocate device memory
   size_t dataSize = rawData_.size() * sizeof(std::complex<double>);
-  cudaMalloc(reinterpret_cast<void **>(&gpuData_), dataSize);
+  HANDLE_CUDA_ERROR(cudaMalloc(reinterpret_cast<void **>(&gpuData_), dataSize));
 
   // Copy data from host to device
   HANDLE_CUDA_ERROR(
