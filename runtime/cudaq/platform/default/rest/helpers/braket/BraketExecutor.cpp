@@ -9,11 +9,11 @@
 #include "common/BraketExecutor.h"
 #include "common/BraketServerHelper.h"
 
+#include <aws/braket/model/Association.h>
+#include <aws/braket/model/AssociationType.h>
 #include <aws/braket/model/CreateQuantumTaskRequest.h>
 #include <aws/braket/model/GetQuantumTaskRequest.h>
 #include <aws/braket/model/QuantumTaskStatus.h>
-#include <aws/braket/model/Association.h>
-#include <aws/braket/model/AssociationType.h>
 
 #include <aws/s3-crt/model/CreateBucketRequest.h>
 #include <aws/s3-crt/model/GetObjectRequest.h>
@@ -102,8 +102,7 @@ void tryCreateBucket(Aws::S3Crt::S3CrtClient &client, std::string const &region,
 
 namespace cudaq {
 BraketExecutor::BraketExecutor()
-    : api(options), 
-      jobToken(std::getenv("AMZN_BRAKET_JOB_TOKEN")),
+    : api(options), jobToken(std::getenv("AMZN_BRAKET_JOB_TOKEN")),
       reservationArn(std::getenv("AMZN_BRAKET_RESERVATION_TIME_WINDOW_ARN")) {}
 
 /// @brief Set the server helper
@@ -198,7 +197,8 @@ BraketExecutor::execute(std::vector<KernelExecution> &codesToExecute,
     if (reservationArn) {
       Aws::Braket::Model::Association assoc;
       assoc.SetArn(reservationArn);
-      assoc.SetType(Aws::Braket::Model::AssociationType::RESERVATION_TIME_WINDOW_ARN);
+      assoc.SetType(
+          Aws::Braket::Model::AssociationType::RESERVATION_TIME_WINDOW_ARN);
       req.AddAssociations(std::move(assoc));
     }
 
