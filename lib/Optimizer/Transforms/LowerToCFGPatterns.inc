@@ -15,6 +15,9 @@ class RewriteIf : public OpRewritePattern<cudaq::cc::IfOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
+  explicit RewriteIf(MLIRContext *ctx, bool rewriteOnlyIfConst)
+      : OpRewritePattern(ctx), rewriteOnlyIfConst(rewriteOnlyIfConst) {}
+
   /// Rewrites an if construct like
   /// ```mlir
   /// (0)
@@ -40,6 +43,13 @@ public:
   /// ```
   LogicalResult matchAndRewrite(cudaq::cc::IfOp ifOp,
                                 PatternRewriter &rewriter) const override {
+
+    if (rewriteOnlyIfConst) {
+      auto cond = ifOp.getCondition();
+      if (!isa<arith::ConstantOp>(cond.getDefiningOp()))
+        return failure();
+    }
+
     auto loc = ifOp.getLoc();
     auto *initBlock = rewriter.getInsertionBlock();
     auto initPos = rewriter.getInsertionPoint();
@@ -83,6 +93,8 @@ public:
       // Other ad-hoc control flow in the region need not be rewritten.
     }
   }
+
+private:
+  bool rewriteOnlyIfConst;
 };
 } // namespace
-

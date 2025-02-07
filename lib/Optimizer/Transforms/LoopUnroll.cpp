@@ -248,7 +248,7 @@ public:
       for (RegisteredOperationName op : ctx->getRegisteredOperations())
         op.getCanonicalizationPatterns(patterns, ctx);
 
-      patterns.insert<RewriteIf>(ctx);
+      patterns.insert<RewriteIf>(ctx, /*rewriteOnlyIfConst=*/true);
       patterns.insert<LoopPat>(ctx, allowClosedInterval, allowBreak);
       patterns.insert<AllocaPattern>(
           ctx, domInfo, func == nullptr ? "unknown" : func.getName());
