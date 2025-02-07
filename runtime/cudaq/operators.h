@@ -141,6 +141,7 @@ public:
 template <typename HandlerTy>
 class operator_sum {
 template <typename T> friend class operator_sum;
+template <typename T> friend class product_operator;
 
 private:
 
@@ -149,13 +150,19 @@ private:
   void aggregate_terms();
 
   template <typename ... Args>
-  void aggregate_terms(const product_operator<HandlerTy> &head, Args&& ... args);
+  void aggregate_terms(product_operator<HandlerTy> &&head, Args&& ... args);
 
 protected:
 
-  operator_sum() = default;
   std::vector<std::vector<HandlerTy>> terms;
   std::vector<scalar_operator> coefficients;
+
+  template<typename... Args, std::enable_if_t<std::conjunction<std::is_same<product_operator<HandlerTy>, Args>...>::value, bool> = true>
+  operator_sum(Args&&... args);
+
+  operator_sum(const std::vector<product_operator<HandlerTy>> &terms);
+
+  operator_sum(std::vector<product_operator<HandlerTy>> &&terms);
 
 public:
 
@@ -168,16 +175,12 @@ public:
   /// @brief Return the number of operator terms that make up this operator sum.
   int n_terms() const;
 
+  /// FIXME: GET RID OF THIS (MAKE ITERABLE INSTEAD)
   std::vector<product_operator<HandlerTy>> get_terms() const;
 
   // constructors and destructors
 
-  template<typename... Args, std::enable_if_t<std::conjunction<std::is_same<product_operator<HandlerTy>, Args>...>::value, bool> = true>
-  operator_sum(const Args&... args);
-
-  operator_sum(const std::vector<product_operator<HandlerTy>> &terms);
-
-  operator_sum(std::vector<product_operator<HandlerTy>> &&terms);
+  operator_sum(const product_operator<HandlerTy>& prod);
 
   template<typename T, std::enable_if_t<!std::is_same<T, HandlerTy>::value && std::is_constructible<HandlerTy, T>::value, bool> = true>
   operator_sum(const operator_sum<T> &other);
@@ -303,11 +306,21 @@ public:
   friend operator_sum<T> operator-(const T &other, const operator_sum<T> &self); 
 
   template<typename T>
-  friend operator_sum<T> product_operator<T>::operator*(const operator_sum<T> &other) const;
+  friend operator_sum<T> operator+(double other, const product_operator<T> &self);
   template<typename T>
-  friend operator_sum<T> product_operator<T>::operator+(const operator_sum<T> &other) const;
+  friend operator_sum<T> operator-(double other, const product_operator<T> &self);
   template<typename T>
-  friend operator_sum<T> product_operator<T>::operator-(const operator_sum<T> &other) const;
+  friend operator_sum<T> operator+(std::complex<double> other, const product_operator<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator-(std::complex<double> other, const product_operator<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator+(const scalar_operator &other, const product_operator<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator-(const scalar_operator &other, const product_operator<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator+(const T &other, const product_operator<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator-(const T &other, const product_operator<T> &self);
 };
 
 
@@ -325,23 +338,21 @@ private:
   void aggregate_terms();
 
   template <typename... Args>
-  void aggregate_terms(const HandlerTy &head, Args&& ... args);
+  void aggregate_terms(HandlerTy &&head, Args&& ... args);
 
   EvaluatedMatrix m_evaluate(MatrixArithmetics arithmetics, bool pad_terms = true) const;
-
-  template <typename T>
-  friend EvaluatedMatrix operator_sum<T>::m_evaluate(MatrixArithmetics arithmetics, bool pad_terms) const;
 
 protected:
 
   std::vector<HandlerTy> operators;
   scalar_operator coefficient;
 
-  template<typename T>
-  friend operator_sum<T>::operator_sum(const std::vector<product_operator<T>> &terms);
+  template<typename... Args, std::enable_if_t<std::conjunction<std::is_same<HandlerTy, Args>...>::value, bool> = true>
+  product_operator(scalar_operator coefficient, Args&&... args);
 
-  template<typename T>
-  friend operator_sum<T>::operator_sum(std::vector<product_operator<T>> &&terms);
+  product_operator(scalar_operator coefficient, const std::vector<HandlerTy> &atomic_operators);
+
+  product_operator(scalar_operator coefficient, std::vector<HandlerTy> &&atomic_operators);
 
 public:
 
@@ -355,18 +366,14 @@ public:
   /// operator.
   int n_terms() const;
 
-  std::vector<HandlerTy> get_terms() const;
+  /// FIXME: GET RID OF THIS (MAKE ITERABLE INSTEAD)
+  const std::vector<HandlerTy>& get_terms() const;
 
   scalar_operator get_coefficient() const;
 
   // constructors and destructors
 
-  template<typename... Args, std::enable_if_t<std::conjunction<std::is_same<HandlerTy, Args>...>::value, bool> = true>
-  product_operator(scalar_operator coefficient, const Args&... args);
-
-  product_operator(scalar_operator coefficient, const std::vector<HandlerTy> &atomic_operators);
-
-  product_operator(scalar_operator coefficient, std::vector<HandlerTy> &&atomic_operators);
+  product_operator(HandlerTy &&atomic);
 
   template<typename T, std::enable_if_t<!std::is_same<T, HandlerTy>::value && std::is_constructible<HandlerTy, T>::value, bool> = true>
   product_operator(const product_operator<T> &other);

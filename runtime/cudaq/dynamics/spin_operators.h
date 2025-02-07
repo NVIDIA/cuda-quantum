@@ -62,7 +62,8 @@ public:
 
   // defined operators
 
-  static spin_operator identity(int degree);
+  // multiplicative identity
+  static spin_operator one(int degree);
   static product_operator<spin_operator> i(int degree);
   static product_operator<spin_operator> z(int degree);
   static product_operator<spin_operator> x(int degree);

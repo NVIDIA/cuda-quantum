@@ -20,8 +20,13 @@ private:
 
   static std::map<std::string, Definition> m_ops;
 
+protected:
+
   std::vector<int> targets;
   std::string id;
+
+  matrix_operator(std::string operator_id, const std::vector<int> &degrees);
+  matrix_operator(std::string operator_id, std::vector<int> &&degrees);
 
 public:
 
@@ -56,6 +61,16 @@ public:
   static void define(std::string operator_id, std::vector<int> expected_dimensions,
                      MatrixCallbackFunction &&create);
 
+  /// @brief Instantiates a custom operator.
+  /// @arg operator_id : The ID of the operator as specified when it was defined.
+  /// @arg degrees : the degrees of freedom that the operator acts upon.
+  static product_operator<matrix_operator> create(std::string operator_id, const std::vector<int> &degrees);
+
+  /// @brief Instantiates a custom operator.
+  /// @arg operator_id : The ID of the operator as specified when it was defined.
+  /// @arg degrees : the degrees of freedom that the operator acts upon.
+  static product_operator<matrix_operator> create(std::string operator_id, std::vector<int> &&degrees);
+
   // read-only properties
 
   /// @brief The degrees of freedom that the operator acts on in canonical
@@ -65,16 +80,6 @@ public:
   virtual bool is_identity() const;
 
   // constructors and destructors
-
-  // The constructor should never be called directly by the user:
-  // Keeping it internally documented for now, however.
-  /// @brief Constructor.
-  /// @arg operator_id : The ID of the operator as specified when it was
-  /// defined.
-  /// @arg degrees : the degrees of freedom that the operator acts upon.
-  matrix_operator(std::string operator_id, const std::vector<int> &degrees);
-
-  matrix_operator(std::string operator_id, std::vector<int> &&degrees);
 
   template<typename T, std::enable_if_t<std::is_base_of_v<operator_handler, T>, bool> = true>
   matrix_operator(const T &other);
@@ -118,6 +123,8 @@ public:
 
   // predefined operators
 
+  // multiplicative identity
+  static matrix_operator one(int degree);
   static product_operator<matrix_operator> identity(int degree);
   static product_operator<matrix_operator> annihilate(int degree);
   static product_operator<matrix_operator> create(int degree);

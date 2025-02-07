@@ -141,8 +141,8 @@ TEST(OperatorExpressions, checkCustomMatrixOps) {
     // op 1:
     // number level on 3
     // create level+2 on 1
-    auto op0 = cudaq::product_operator<cudaq::matrix_operator>(1., cudaq::matrix_operator("custom_op0", {0, 1}));
-    auto op1 = cudaq::product_operator<cudaq::matrix_operator>(1., cudaq::matrix_operator("custom_op1", {1, 3}));
+    auto op0 = cudaq::matrix_operator::create("custom_op0", {0, 1});
+    auto op1 = cudaq::matrix_operator::create("custom_op1", {1, 3});
 
     auto matrix0 = cudaq::kronecker(utils::momentum_matrix(level_count + 1),
                                     utils::position_matrix(level_count + 2));
@@ -345,8 +345,9 @@ TEST(OperatorExpressions, checkMatrixOpsWithScalars) {
     auto product = self * other;
     auto reverse = other * self;
 
-    utils::assert_product_equal(product, const_scale_factor, {cudaq::matrix_operator("momentum", {0})});
-    utils::assert_product_equal(reverse, const_scale_factor, {cudaq::matrix_operator("momentum", {0})});
+    auto momentum = cudaq::matrix_operator::momentum(0).get_terms()[0];
+    utils::assert_product_equal(product, const_scale_factor, {momentum});
+    utils::assert_product_equal(reverse, const_scale_factor, {momentum});
 
     std::vector<int> want_degrees = {0};
     ASSERT_TRUE(product.degrees() == want_degrees);
@@ -370,8 +371,9 @@ TEST(OperatorExpressions, checkMatrixOpsWithScalars) {
     auto product = self * other;
     auto reverse = other * self;
 
-    utils::assert_product_equal(product, other.evaluate(), {cudaq::matrix_operator("create", {0})});
-    utils::assert_product_equal(reverse, other.evaluate(), {cudaq::matrix_operator("create", {0})});
+    auto create = cudaq::matrix_operator::create(0).get_terms()[0];
+    utils::assert_product_equal(product, other.evaluate(), {create});
+    utils::assert_product_equal(reverse, other.evaluate(), {create});
 
     std::vector<int> want_degrees = {0};
     ASSERT_TRUE(product.degrees() == want_degrees);
@@ -680,8 +682,8 @@ TEST(OperatorExpressions, checkMatrixOpsDegreeVerification) {
     cudaq::matrix_operator::define("custom_op1", {-1, -1}, func1);
   }
 
-  auto custom_op0 = cudaq::product_operator<cudaq::matrix_operator>(1., cudaq::matrix_operator("custom_op0", {3, 1}));
-  auto custom_op1 = cudaq::product_operator<cudaq::matrix_operator>(1., cudaq::matrix_operator("custom_op1", {1, 0}));
+  auto custom_op0 = cudaq::matrix_operator::create("custom_op0", {3, 1});
+  auto custom_op1 = cudaq::matrix_operator::create("custom_op1", {1, 0});
 
   ASSERT_THROW(op1.to_matrix(), std::runtime_error);
   ASSERT_THROW(op1.to_matrix({{1, 2}}), std::runtime_error);
