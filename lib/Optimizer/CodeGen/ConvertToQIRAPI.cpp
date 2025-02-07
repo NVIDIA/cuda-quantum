@@ -519,7 +519,7 @@ struct MakeStruqOpRewrite : public OpConversionPattern<quake::MakeStruqOp> {
     auto loc = mkstruq.getLoc();
     auto *ctx = rewriter.getContext();
     auto toTy = getTypeConverter()->convertType(mkstruq.getType());
-    Value result = rewriter.create<LLVM::UndefOp>(loc, toTy);
+    Value result = rewriter.create<cudaq::cc::UndefOp>(loc, toTy);
     std::int64_t count = 0;
     for (auto op : adaptor.getOperands()) {
       auto off = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{count});
