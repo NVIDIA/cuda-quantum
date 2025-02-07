@@ -336,8 +336,9 @@ public:
 /// quantum kernels, but they provide methods to convert them to data types
 /// that can.
 template <typename HandlerTy>
-class product_operator : public operator_sum<HandlerTy> {
+class product_operator {
 template <typename T> friend class product_operator;
+template <typename T> friend class operator_sum;
 
 private:
   void aggregate_terms();
@@ -349,6 +350,17 @@ private:
 
   template <typename T>
   friend EvaluatedMatrix operator_sum<T>::m_evaluate(MatrixArithmetics arithmetics, bool pad_terms) const;
+
+protected:
+
+  std::vector<HandlerTy> operators;
+  scalar_operator coefficient;
+
+  template<typename T>
+  friend operator_sum<T>::operator_sum(const std::vector<product_operator<T>> &terms);
+
+  template<typename T>
+  friend operator_sum<T>::operator_sum(std::vector<product_operator<T>> &&terms);
 
 public:
   // read-only properties
