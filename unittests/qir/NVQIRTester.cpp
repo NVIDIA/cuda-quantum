@@ -69,9 +69,8 @@ void invokeWithControlQubits(const std::size_t nControls,
 void __quantum__qis__apply__general_qubit_array(Array *data, Array *qubits);
 void __quantum__qis__apply__general(Array *data, int64_t n_qubits, ...);
 
-void __quantum__qis__apply_kraus_channel(const char *demangledName,
-                                         double *params, std::size_t numParams,
-                                         Array *qubits);
+void __quantum__qis__apply_kraus_channel(long key, double *params,
+                                         std::size_t numParams, Array *qubits);
 
 // Qubit array allocation / deallocation
 Array *__quantum__rt__qubit_allocate_array(uint64_t idx);
@@ -602,6 +601,7 @@ struct hello_world : public ::cudaq::kraus_channel {
     push_back(cudaq::kraus_op(k0v));
     push_back(cudaq::kraus_op(k1v));
   }
+  REGISTER_KRAUS_CHANNEL(hello_world)
 };
 } // namespace test::hello
 
@@ -623,8 +623,8 @@ CUDAQ_TEST(NVQIRTester, checkKrausApply) {
       __quantum__rt__array_get_element_ptr_1d(qubits, 0));
 
   __quantum__qis__x(q);
-  __quantum__qis__apply_kraus_channel("test::hello::hello_world", params.data(),
-                                      params.size(), qubits);
+  __quantum__qis__apply_kraus_channel(test::hello::hello_world::get_key(),
+                                      params.data(), params.size(), qubits);
 
   __quantum__rt__qubit_release_array(qubits);
   __quantum__rt__resetExecutionContext();

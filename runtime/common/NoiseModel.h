@@ -207,6 +207,9 @@ public:
   void push_back(kraus_op op);
 };
 
+#define REGISTER_KRAUS_CHANNEL(TYPE)                                           \
+  static std::intptr_t get_key() { return (std::intptr_t)&get_key; }
+
 /// @brief The noise_model type keeps track of a set of
 /// kraus_channels to be applied after the execution of
 /// quantum operations. Each quantum operation maps
@@ -283,7 +286,7 @@ protected:
       "x", "y", "z", "h", "s", "t", "rx", "ry", "rz", "r1", "u3", "mz"};
 
   // User registered kraus channels for fine grain application
-  std::unordered_map<std::type_index,
+  std::unordered_map<std::intptr_t,
                      std::function<kraus_channel(const std::vector<double> &)>>
       registeredChannels;
 
@@ -326,38 +329,37 @@ public:
                                             const std::vector<double> &>>
   void register_channel() {
 
-    // Store the demangled type name mapped to its typeindex
-    auto typeName = [](const char *mangled) -> std::string {
-      auto ptr = std::unique_ptr<char, decltype(&std::free)>{
-          abi::__cxa_demangle(mangled, nullptr, nullptr, nullptr), std::free};
-      return {ptr.get()};
-    }(typeid(KrausChannelT).name());
+    // // Store the demangled type name mapped to its typeindex
+    // auto typeName = [](const char *mangled) -> std::string {
+    //   auto ptr = std::unique_ptr<char, decltype(&std::free)>{
+    //       abi::__cxa_demangle(mangled, nullptr, nullptr, nullptr),
+    //       std::free};
+    //   return {ptr.get()};
+    // }(typeid(KrausChannelT).name());
 
-    nameToType.insert({typeName, std::type_index(typeid(KrausChannelT))});
+    // nameToType.insert({typeName, std::type_index(typeid(KrausChannelT))});
 
     registeredChannels.insert(
-        {std::type_index(typeid(KrausChannelT)),
-         [typeName](const std::vector<double> &params) -> kraus_channel {
+        {KrausChannelT::get_key(),
+         [](const std::vector<double> &params) -> kraus_channel {
            KrausChannelT userChannel(params);
            userChannel.parameters = params;
-           if (userChannel.name == "unknown")
-             userChannel.name = typeName;
            return userChannel;
          }});
   }
 
   template <typename T>
   kraus_channel get_channel(const std::vector<double> &params) const {
-    auto iter = registeredChannels.find(std::type_index(typeid(T)));
+    auto iter = registeredChannels.find(T::get_key());
     if (iter == registeredChannels.end())
       throw std::runtime_error("invalid named kraus channel.");
     return iter->second(params);
   }
 
   // de-mangled name (with namespaces) for NVQIR C API
-  kraus_channel get_channel(const std::string &name,
+  kraus_channel get_channel(const std::intptr_t &key,
                             const std::vector<double> &params) const {
-    auto iter = registeredChannels.find(nameToType.at(name));
+    auto iter = registeredChannels.find(key);
     if (iter == registeredChannels.end())
       throw std::runtime_error("invalid named kraus channel.");
     return iter->second(params);
@@ -456,6 +458,7 @@ public:
   }
   depolarization_channel(const real probability)
       : depolarization_channel(std::vector<cudaq::real>{probability}) {}
+  REGISTER_KRAUS_CHANNEL(depolarization_channel)
 };
 
 /// @brief amplitude_damping_channel is a kraus_channel that
@@ -476,6 +479,7 @@ public:
   }
   amplitude_damping_channel(const real probability)
       : amplitude_damping_channel(std::vector<cudaq::real>{probability}) {}
+  REGISTER_KRAUS_CHANNEL(amplitude_damping_channel)
 };
 
 /// @brief bit_flip_channel is a kraus_channel that
@@ -497,6 +501,7 @@ public:
   }
   bit_flip_channel(const real probability)
       : bit_flip_channel(std::vector<cudaq::real>{probability}) {}
+  REGISTER_KRAUS_CHANNEL(bit_flip_channel)
 };
 
 /// @brief phase_flip_channel is a kraus_channel that
@@ -519,5 +524,6 @@ public:
   }
   phase_flip_channel(const real probability)
       : phase_flip_channel(std::vector<cudaq::real>{probability}) {}
+  REGISTER_KRAUS_CHANNEL(phase_flip_channel)
 };
 } // namespace cudaq
