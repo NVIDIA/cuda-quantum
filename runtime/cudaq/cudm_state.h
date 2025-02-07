@@ -60,6 +60,9 @@ public:
   /// @return String representation of the state data.
   std::string dump() const;
 
+  /// @brief Dump the state data to the console for debugging purposes.
+  void dumpDeviceData() const;
+
   /// @brief Convert the state vector to a density matrix.
   /// @return A new cudm_state representing the density matrix.
   cudm_state to_density_matrix() const;
@@ -94,7 +97,7 @@ public:
 
   /// @brief Scalar multiplication operator
   /// @return The new state after multiplying scalar with the current state.
-  cudm_state operator*(double scalar) const;
+  cudm_state &operator*=(const std::complex<double> &scalar);
 
 private:
   std::vector<std::complex<double>> rawData_;
