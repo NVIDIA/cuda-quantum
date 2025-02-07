@@ -12,11 +12,8 @@
 
 #include <array>
 #include <complex>
-#include <cxxabi.h>
 #include <functional>
 #include <math.h>
-#include <memory>
-#include <typeindex>
 #include <unordered_map>
 #include <vector>
 
@@ -289,9 +286,6 @@ protected:
   std::unordered_map<std::intptr_t,
                      std::function<kraus_channel(const std::vector<double> &)>>
       registeredChannels;
-
-  // Kraus types to type index mapping
-  std::unordered_map<std::string, std::type_index> nameToType;
 
 public:
   /// @brief default constructor
