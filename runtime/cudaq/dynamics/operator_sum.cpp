@@ -14,7 +14,6 @@
 
 #include <iostream>
 #include <set>
-#include <concepts>
 #include <type_traits>
 
 namespace cudaq {
@@ -136,7 +135,7 @@ INSTANTIATE_SUM_PROPERTIES(spin_operator);
 // constructors
 
 template<typename HandlerTy>
-template<class... Args, class>
+template<typename... Args, std::enable_if_t<std::conjunction<std::is_same<product_operator<HandlerTy>, Args>...>::value, bool>>
 operator_sum<HandlerTy>::operator_sum(const Args&... args) {
     this->terms.reserve(sizeof...(Args));
     this->coefficients.reserve(sizeof...(Args));
@@ -160,6 +159,20 @@ operator_sum<HandlerTy>::operator_sum(std::vector<product_operator<HandlerTy>> &
         this->terms.push_back(std::move(term.terms[0]));
         this->coefficients.push_back(std::move(term.coefficients[0]));
     }
+}
+
+template<typename HandlerTy>
+template<typename T, std::enable_if_t<!std::is_same<T, HandlerTy>::value && std::is_constructible<HandlerTy, T>::value, bool>>
+operator_sum<HandlerTy>::operator_sum(const operator_sum<T> &other) {
+  this->coefficients = other.coefficients;
+  this->terms.reserve(other.terms.size());
+  for (const auto &term : other.terms) {
+    std::vector<HandlerTy> other_terms;
+    other_terms.reserve(other.terms.size());
+    for (const T &op : term)
+      other_terms.push_back(op);
+    this->terms.push_back(std::move(other_terms));
+  }
 }
 
 template<typename HandlerTy>
@@ -195,10 +208,20 @@ operator_sum<HandlerTy>::operator_sum(operator_sum<HandlerTy> &&other)
   template                                                                                      \
   operator_sum<HandlerTy>::operator_sum(operator_sum<HandlerTy> &&other);
 
+template 
+operator_sum<matrix_operator>::operator_sum(const operator_sum<spin_operator> &other);
+
 INSTANTIATE_SUM_CONSTRUCTORS(matrix_operator);
 INSTANTIATE_SUM_CONSTRUCTORS(spin_operator);
 
 // assignments
+
+template<typename HandlerTy>
+template<typename T, std::enable_if_t<!std::is_same<T, HandlerTy>::value && std::is_constructible<HandlerTy, T>::value, bool>>
+operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator=(const operator_sum<T> &other) {
+  *this = operator_sum<HandlerTy>(other);
+  return *this;
+}
 
 template<typename HandlerTy>
 operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator=(const operator_sum<HandlerTy> &other) {
@@ -227,6 +250,9 @@ operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator=(operator_sum<Handler
   template                                                                                  \
   operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator=(                              \
     operator_sum<HandlerTy> &&other);
+
+template 
+operator_sum<matrix_operator>& operator_sum<matrix_operator>::operator=(const operator_sum<spin_operator> &other);
 
 INSTANTIATE_SUM_ASSIGNMENTS(matrix_operator);
 INSTANTIATE_SUM_ASSIGNMENTS(spin_operator);

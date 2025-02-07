@@ -1,4 +1,4 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -16,7 +16,6 @@
 #include <iostream>
 #include <map>
 #include <set>
-#include <concepts> 
 #include <type_traits>
 
 namespace cudaq {
@@ -139,8 +138,9 @@ public:
 /// each term is a product of elementary and scalar operators. Operator
 /// expressions cannot be used within quantum kernels, but they provide methods
 /// to convert them to data types that can.
-template <typename HandlerTy> // handler needs to inherit from operation_handler
+template <typename HandlerTy>
 class operator_sum {
+template <typename T> friend class operator_sum;
 
 private:
 
@@ -172,12 +172,15 @@ public:
 
   // constructors and destructors
 
-  template<class... Args, class = std::enable_if_t<std::conjunction<std::is_same<product_operator<HandlerTy>, Args>...>::value, void>>
+  template<typename... Args, std::enable_if_t<std::conjunction<std::is_same<product_operator<HandlerTy>, Args>...>::value, bool> = true>
   operator_sum(const Args&... args);
 
   operator_sum(const std::vector<product_operator<HandlerTy>> &terms);
 
   operator_sum(std::vector<product_operator<HandlerTy>> &&terms);
+
+  template<typename T, std::enable_if_t<!std::is_same<T, HandlerTy>::value && std::is_constructible<HandlerTy, T>::value, bool> = true>
+  operator_sum(const operator_sum<T> &other);
 
   // copy constructor
   operator_sum(const operator_sum<HandlerTy> &other);
@@ -188,6 +191,9 @@ public:
   ~operator_sum() = default;
 
   // assignments
+
+  template<typename T, std::enable_if_t<!std::is_same<T, HandlerTy>::value && std::is_constructible<HandlerTy, T>::value, bool> = true>
+  operator_sum<HandlerTy>& operator=(const operator_sum<T> &other);
 
   // assignment operator
   operator_sum<HandlerTy>& operator=(const operator_sum<HandlerTy> &other);
@@ -309,14 +315,15 @@ public:
 /// elementary and scalar operators. Operator expressions cannot be used within
 /// quantum kernels, but they provide methods to convert them to data types
 /// that can.
-template <typename HandlerTy> // handler needs to inherit from operation_handler
+template <typename HandlerTy>
 class product_operator : public operator_sum<HandlerTy> {
+template <typename T> friend class product_operator;
 
 private:
 
   void aggregate_terms();
 
-  template <typename ... Args>
+  template <typename... Args>
   void aggregate_terms(const HandlerTy &head, Args&& ... args);
 
   EvaluatedMatrix m_evaluate(MatrixArithmetics arithmetics, bool pad_terms = true) const;
@@ -342,12 +349,15 @@ public:
 
   // constructors and destructors
 
-  template<class... Args, class = std::enable_if_t<std::conjunction<std::is_same<HandlerTy, Args>...>::value, void>>
+  template<typename... Args, std::enable_if_t<std::conjunction<std::is_same<HandlerTy, Args>...>::value, bool> = true>
   product_operator(scalar_operator coefficient, const Args&... args);
 
   product_operator(scalar_operator coefficient, const std::vector<HandlerTy> &atomic_operators);
 
   product_operator(scalar_operator coefficient, std::vector<HandlerTy> &&atomic_operators);
+
+  template<typename T, std::enable_if_t<!std::is_same<T, HandlerTy>::value && std::is_constructible<HandlerTy, T>::value, bool> = true>
+  product_operator(const product_operator<T> &other);
 
   // copy constructor
   product_operator(const product_operator<HandlerTy> &other);
@@ -358,6 +368,9 @@ public:
   ~product_operator() = default;
 
   // assignments
+
+  template<typename T, std::enable_if_t<!std::is_same<T, HandlerTy>::value && std::is_constructible<HandlerTy, T>::value, bool> = true>
+  product_operator<HandlerTy>& operator=(const product_operator<T> &other);
 
   // assignment operator
   product_operator<HandlerTy>& operator=(const product_operator<HandlerTy> &other);
@@ -470,6 +483,8 @@ public:
   ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
   virtual matrix_2 to_matrix(std::map<int, int> &dimensions,
                              std::map<std::string, std::complex<double>> parameters = {}) const = 0;
+
+  virtual std::string to_string(bool include_degrees = true) const = 0;
 };
 
 } // namespace cudaq

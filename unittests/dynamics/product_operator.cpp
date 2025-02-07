@@ -777,7 +777,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 // FIXME: add tests to combine general products with spin ops
 TEST(OperatorExpressions, checkProductOperatorAgainstElementary) {
 
-  int level_count = 3;
+  int level_count = 2;
 
   // `product_operator + matrix_operator`
   {
@@ -807,6 +807,36 @@ TEST(OperatorExpressions, checkProductOperatorAgainstElementary) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+  }
+
+  // `product_operator + spin_operator`
+  {
+    auto product = cudaq::matrix_operator::annihilate(0) *
+                   cudaq::matrix_operator::annihilate(1);
+    auto elementary = cudaq::spin_operator::x(1);
+
+    auto sum = product + elementary;
+    //auto reverse = elementary + product;
+
+    ASSERT_TRUE(sum.n_terms() == 2);
+    //ASSERT_TRUE(reverse.n_terms() == 2);
+
+    auto got_matrix = sum.to_matrix({{0,level_count},{1,level_count}});
+    //auto got_matrix_reverse = reverse.to_matrix({{0,level_count},{1,level_count}});
+
+    auto product_matrix =
+        cudaq::kronecker(utils::id_matrix(level_count),
+                         utils::annihilate_matrix(level_count)) *
+        cudaq::kronecker(utils::annihilate_matrix(level_count),
+                         utils::id_matrix(level_count));
+    auto elementary_matrix = cudaq::kronecker(
+        utils::PauliX_matrix(), utils::id_matrix(level_count));
+
+    auto want_matrix = product_matrix + elementary_matrix;
+    auto want_matrix_reverse = elementary_matrix + product_matrix;
+
+    utils::checkEqual(want_matrix, got_matrix);
+    //utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
   // `product_operator - matrix_operator`

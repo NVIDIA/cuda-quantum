@@ -26,7 +26,7 @@ template<typename HandlerTy>
 void product_operator<HandlerTy>::aggregate_terms() {}
 
 template<typename HandlerTy>
-template <typename ... Args>
+template<typename... Args>
 void product_operator<HandlerTy>::aggregate_terms(const HandlerTy &head, Args&& ... args) {
   this->terms[0].push_back(head);
   aggregate_terms(std::forward<Args>(args)...);
@@ -88,7 +88,7 @@ EvaluatedMatrix product_operator<HandlerTy>::m_evaluate(
                                                                                               \
   template                                                                                    \
   void product_operator<HandlerTy>::aggregate_terms(const HandlerTy &item1,                   \
-                                                              const HandlerTy &item2);        \
+                                                    const HandlerTy &item2);                  \
                                                                                               \
   template                                                                                    \
   void product_operator<HandlerTy>::aggregate_terms(const HandlerTy &item1,                   \
@@ -150,7 +150,7 @@ INSTANTIATE_PRODUCT_PROPERTIES(spin_operator);
 // constructors
 
 template<typename HandlerTy>
-template<class... Args, class>
+template<typename... Args, std::enable_if_t<std::conjunction<std::is_same<HandlerTy, Args>...>::value, bool>>
 product_operator<HandlerTy>::product_operator(scalar_operator coefficient, const Args&... args) {
   this->coefficients.push_back(std::move(coefficient));
   std::vector<HandlerTy> ops = {};
@@ -169,6 +169,17 @@ template<typename HandlerTy>
 product_operator<HandlerTy>::product_operator(scalar_operator coefficient, std::vector<HandlerTy> &&atomic_operators) {
   this->terms.push_back(std::move(atomic_operators));
   this->coefficients.push_back(std::move(coefficient));
+}
+
+template<typename HandlerTy>
+template<typename T, std::enable_if_t<!std::is_same<T, HandlerTy>::value && std::is_constructible<HandlerTy, T>::value, bool>>
+product_operator<HandlerTy>::product_operator(const product_operator<T> &other) {
+  this->coefficients = other.coefficients;
+  std::vector<HandlerTy> other_terms;
+  other_terms.reserve(other.terms.size());
+  for (const T &term : other.terms[0])
+    other_terms.push_back(term);
+  this->terms.push_back(std::move(other_terms));
 }
 
 template<typename HandlerTy>
@@ -219,10 +230,20 @@ product_operator<HandlerTy>::product_operator(product_operator<HandlerTy> &&othe
   product_operator<HandlerTy>::product_operator(                                             \
     product_operator<HandlerTy> &&other);
 
+template 
+product_operator<matrix_operator>::product_operator(const product_operator<spin_operator> &other);
+
 INSTANTIATE_PRODUCT_CONSTRUCTORS(matrix_operator);
 INSTANTIATE_PRODUCT_CONSTRUCTORS(spin_operator);
 
 // assignments
+
+template<typename HandlerTy>
+template<typename T, std::enable_if_t<!std::is_same<T, HandlerTy>::value && std::is_constructible<HandlerTy, T>::value, bool>>
+product_operator<HandlerTy>& product_operator<HandlerTy>::operator=(const product_operator<T> &other) {
+  *this = product_operator<HandlerTy>(other);
+  return *this;
+}
 
 template<typename HandlerTy>
 product_operator<HandlerTy>& product_operator<HandlerTy>::operator=(const product_operator<HandlerTy> &other) {
@@ -251,6 +272,9 @@ product_operator<HandlerTy>& product_operator<HandlerTy>::operator=(product_oper
   template                                                                                  \
   product_operator<HandlerTy>& product_operator<HandlerTy>::operator=(                      \
     product_operator<HandlerTy> &&other);
+
+template 
+product_operator<matrix_operator>& product_operator<matrix_operator>::operator=(const product_operator<spin_operator> &other);
 
 INSTANTIATE_PRODUCT_ASSIGNMENTS(matrix_operator);
 INSTANTIATE_PRODUCT_ASSIGNMENTS(spin_operator);

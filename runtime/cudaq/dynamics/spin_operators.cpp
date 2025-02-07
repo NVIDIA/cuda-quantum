@@ -57,6 +57,16 @@ matrix_2 spin_operator::to_matrix(std::map<int, int> &dimensions,
   return mat;
 }
 
+std::string spin_operator::to_string(bool include_degrees) const {
+  std::string op_str;
+  if (this->id == 1) op_str = "Z";
+  else if (this->id == 2) op_str = "X";
+  else if (this->id == 3) op_str = "Y";
+  else op_str = "I";
+  if (include_degrees) return op_str + "(" + std::to_string(target) + ")";
+  else return op_str;
+}
+
 // comparisons
 
 bool spin_operator::operator==(const spin_operator &other) const {

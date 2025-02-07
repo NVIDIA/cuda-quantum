@@ -6,6 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#pragma once
+
 #include <map>
 #include <vector>
 #include "cudaq/operators.h"
@@ -72,8 +74,10 @@ public:
   /// @arg degrees : the degrees of freedom that the operator acts upon.
   matrix_operator(std::string operator_id, const std::vector<int> &degrees);
 
-  // constructor
   matrix_operator(std::string operator_id, std::vector<int> &&degrees);
+
+  template<typename T, std::enable_if_t<std::is_base_of_v<operator_handler, T>, bool> = true>
+  matrix_operator(const T &other);
 
   // copy constructor
   matrix_operator(const matrix_operator &other);
@@ -84,6 +88,9 @@ public:
   ~matrix_operator() = default;
 
   // assignments
+
+  template<typename T, std::enable_if_t<!std::is_same<T, matrix_operator>::value && std::is_base_of_v<operator_handler, T>, bool> = true>
+  matrix_operator& operator=(const T& other);
 
   // assignment operator
   matrix_operator& operator=(const matrix_operator& other);
@@ -100,6 +107,8 @@ public:
   ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
   virtual matrix_2 to_matrix(std::map<int, int> &dimensions,
                              std::map<std::string, std::complex<double>> parameters = {}) const;
+
+  virtual std::string to_string(bool include_degrees) const;
 
   // comparisons
 
