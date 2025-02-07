@@ -610,7 +610,7 @@ CUDAQ_TEST(NVQIRTester, checkKrausApply) {
   const int shots = 100;
   cudaq::ExecutionContext ctx("sample", shots);
   cudaq::noise_model noise;
-  noise.add_channel<test::hello::hello_world>();
+  noise.register_channel<test::hello::hello_world>();
   ctx.noiseModel = &noise;
 
   std::vector<double> params{0.2};

@@ -1315,6 +1315,7 @@ void apply_noise(const std::vector<T> &krausOperators, QuantumArgs &&...args) {
   getExecutionManager()->applyNoise(channel, qubits);
 }
 
+// Apply noise with runtime vector of parameters
 template <typename T, typename... Q>
 void apply_noise(const std::vector<double> &params, Q &&...args) {
   auto *ctx = get_platform().get_exec_ctx();
@@ -1337,33 +1338,7 @@ void apply_noise(const std::vector<double> &params, Q &&...args) {
   getExecutionManager()->applyNoise(channel, qubits);
 }
 
-template <typename T, typename... Q>
-  requires(T::num_parameters + T::num_targets == sizeof...(Q))
-void apply_noise(Q &&...args) {
-  auto *ctx = get_platform().get_exec_ctx();
-  if (!ctx)
-    return;
-
-  std::vector<QuditInfo> qubits;
-  std::vector<double> params;
-  auto argTuple = std::forward_as_tuple(args...);
-  cudaq::tuple_for_each(argTuple, [&qubits, &params](auto &&element) {
-    if constexpr (std::is_floating_point_v<
-                      std::remove_cvref_t<decltype(element)>>) {
-      params.push_back(element);
-    } else if constexpr (details::IsQubitType<decltype(element)>::value) {
-      qubits.push_back(qubitToQuditInfo(element));
-    } else {
-      for (auto &qq : element) {
-        qubits.push_back(qubitToQuditInfo(qq));
-      }
-    }
-  });
-
-  auto channel = ctx->noiseModel->template get_channel<T>(params);
-  getExecutionManager()->applyNoise(channel, qubits);
-}
-
+// Apply noise with compile-time known parameter and quantum arguments
 template <typename KrausChannelT, typename... Q>
 void apply_noise(Q &&...args) {
   static_assert(details::has_num_parameters_v<KrausChannelT>,

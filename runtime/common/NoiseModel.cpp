@@ -269,7 +269,9 @@ noise_model::get_channels(const std::string &quantumOp,
 }
 
 noise_model::noise_model() {
-  add_channel<bit_flip_channel>();
-  add_channel<phase_flip_channel>();
+  register_channel<bit_flip_channel>();
+  register_channel<phase_flip_channel>();
+  register_channel<depolarization_channel>();
+  register_channel<amplitude_damping_channel>();
 }
 } // namespace cudaq

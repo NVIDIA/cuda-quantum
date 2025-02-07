@@ -30,7 +30,16 @@ enum class noise_model_type {
   depolarization_channel,
   amplitude_damping_channel,
   bit_flip_channel,
-  phase_flip_channel
+  phase_flip_channel,
+  x_error, // same as bit_flip_channel, that's ok
+  y_error,
+  z_error,
+  amplitude_damping,
+  phase_damping,
+  pauli1,
+  pauli2,
+  depolarization1,
+  depolarization2
 };
 
 /// @brief A kraus_op represents a single Kraus operation,
@@ -136,6 +145,8 @@ public:
   /// @brief Noise type enumeration
   noise_model_type noise_type = noise_model_type::unknown;
 
+  // FIXME This may go away with a better key for
+  // the channel registry
   std::string name = "unknown";
 
   /// @brief Noise parameter values
@@ -424,9 +435,12 @@ public:
 /// a single-qubit depolarization error channel.
 class depolarization_channel : public kraus_channel {
 public:
-  depolarization_channel(const real probability) : kraus_channel() {
+  constexpr static std::size_t num_parameters = 1;
+  constexpr static std::size_t num_targets = 1;
+  depolarization_channel(const std::vector<cudaq::real> &ps) {
     auto three = static_cast<real>(3.);
     auto negOne = static_cast<real>(-1.);
+    auto probability = ps[0];
     std::vector<cudaq::complex> k0v{std::sqrt(1 - probability), 0, 0,
                                     std::sqrt(1 - probability)},
         k1v{0, std::sqrt(probability / three), std::sqrt(probability / three),
@@ -440,6 +454,8 @@ public:
     noise_type = noise_model_type::depolarization_channel;
     validateCompleteness();
   }
+  depolarization_channel(const real probability)
+      : depolarization_channel(std::vector<cudaq::real>{probability}) {}
 };
 
 /// @brief amplitude_damping_channel is a kraus_channel that
@@ -447,7 +463,10 @@ public:
 /// a single-qubit amplitude damping error channel.
 class amplitude_damping_channel : public kraus_channel {
 public:
-  amplitude_damping_channel(const real probability) : kraus_channel() {
+  constexpr static std::size_t num_parameters = 1;
+  constexpr static std::size_t num_targets = 1;
+  amplitude_damping_channel(const std::vector<cudaq::real> &ps) {
+    auto probability = ps[0];
     std::vector<cudaq::complex> k0v{1, 0, 0, std::sqrt(1 - probability)},
         k1v{0, std::sqrt(probability), 0, 0};
     ops = {k0v, k1v};
@@ -455,6 +474,8 @@ public:
     noise_type = noise_model_type::amplitude_damping_channel;
     validateCompleteness();
   }
+  amplitude_damping_channel(const real probability)
+      : amplitude_damping_channel(std::vector<cudaq::real>{probability}) {}
 };
 
 /// @brief bit_flip_channel is a kraus_channel that
@@ -483,6 +504,8 @@ public:
 /// a single-qubit phase flip error channel.
 class phase_flip_channel : public kraus_channel {
 public:
+  constexpr static std::size_t num_parameters = 1;
+  constexpr static std::size_t num_targets = 1;
   phase_flip_channel(const std::vector<cudaq::real> &p) {
     cudaq::real probability = p[0];
     auto negOne = static_cast<real>(-1.);

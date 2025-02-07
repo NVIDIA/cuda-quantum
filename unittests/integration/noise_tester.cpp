@@ -53,7 +53,7 @@ __qpu__ void test2(double p) {
 CUDAQ_TEST(NoiseTest, checkFineGrain) {
 
   cudaq::noise_model noise;
-  noise.add_channel<test::hello::hello_world>();
+  noise.register_channel<test::hello::hello_world>();
 
   auto counts = cudaq::sample({.noise = noise}, test2, .7);
   counts.dump();
