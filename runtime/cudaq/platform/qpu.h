@@ -139,6 +139,9 @@ public:
   /// @brief Return whether this QPU has conditional feedback support
   virtual bool supportsConditionalFeedback() { return false; }
 
+  /// @brief Return whether this QPU supports explicit measurements
+  virtual bool supportsExplicitMeasurements() { return true; }
+
   /// @brief Return the remote capabilities for this platform.
   virtual RemoteCapabilities getRemoteCapabilities() const {
     return RemoteCapabilities(/*initValues=*/false);

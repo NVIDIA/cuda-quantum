@@ -54,6 +54,10 @@ void bindExecutionContext(py::module &mod) {
     auto &platform = cudaq::get_platform();
     return platform.supports_conditional_feedback();
   });
+  mod.def("supportsExplicitMeasurements", []() {
+    auto &platform = cudaq::get_platform();
+    return platform.supports_explicit_measurements();
+  });
   mod.def("getExecutionContextName", []() {
     auto &self = cudaq::get_platform();
     return self.get_exec_ctx()->name;

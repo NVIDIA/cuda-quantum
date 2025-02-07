@@ -42,6 +42,10 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
             const std::string &kernelName, int shots, bool explicitMeasurements,
             std::size_t qpu_id = 0, details::future *futureResult = nullptr,
             std::size_t batchIteration = 0, std::size_t totalBatchIters = 0) {
+
+  if (explicitMeasurements && !platform.supports_explicit_measurements())
+    throw std::runtime_error(
+        "Explicit measurement option is not supported on this target.");
   // Create the execution context.
   auto ctx = std::make_unique<ExecutionContext>("sample", shots);
   ctx->kernelName = kernelName;

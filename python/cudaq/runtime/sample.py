@@ -65,6 +65,11 @@ Returns:
   A dictionary containing the measurement count results for the :class:`Kernel`, 
   or a list of such results in the case of `sample` function broadcasting."""
 
+    if explicit_measurements and not cudaq_runtime.supportsExplicitMeasurements(
+    ):
+        raise RuntimeError(
+            "Explicit measurement option is not supported on this target.")
+
     if noise_model != None:
         cudaq_runtime.set_noise(noise_model)
 
