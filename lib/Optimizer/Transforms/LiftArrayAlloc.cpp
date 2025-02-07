@@ -27,7 +27,7 @@ namespace cudaq::opt {
 
 using namespace mlir;
 
-#include "LiftArrayAlloc.inc"
+#include "LiftArrayAllocPatterns.inc"
 
 namespace {
 class LiftArrayAllocPass

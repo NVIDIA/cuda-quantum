@@ -48,7 +48,6 @@ struct test2 {
 
 struct test3 {
   void operator()(cudaq::qvector<> &q) __qpu__ {
-    // Do not expect this to unroll. Loop must be normalized.
     for (unsigned i = 7; i < 14; i += 3) {
       h(q[i]);
       x(q[i]);
@@ -58,10 +57,15 @@ struct test3 {
 };
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test3(
-// CHECK:           cc.loop while
-// CHECK:           } do {
+// CHECK:           quake.h %{{.*}} : (!quake.ref) -> ()
 // CHECK:           quake.x %{{.*}} : (!quake.ref) -> ()
-// CHECK-NOT:       quake.x %{{.*}} : (!quake.ref) -> ()
+// CHECK:           quake.h %{{.*}} : (!quake.ref) -> ()
+// CHECK:           quake.h %{{.*}} : (!quake.ref) -> ()
+// CHECK:           quake.x %{{.*}} : (!quake.ref) -> ()
+// CHECK:           quake.h %{{.*}} : (!quake.ref) -> ()
+// CHECK:           quake.h %{{.*}} : (!quake.ref) -> ()
+// CHECK:           quake.x %{{.*}} : (!quake.ref) -> ()
+// CHECK:           quake.h %{{.*}} : (!quake.ref) -> ()
 // CHECK:           return
 
 struct test4 {
@@ -85,7 +89,6 @@ struct test4 {
 // CHECK:           return
 
 struct test5 {
-  // Loop that decrements. Loop is not unrolled. It needs to be normalized.
   void operator()() __qpu__ {
     cudaq::qvector reg(1);
     for (size_t i = 3; i > 0; --i)
@@ -95,14 +98,13 @@ struct test5 {
 };
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test5(
-// CHECK:           cc.loop while
-// CHECK:           } do {
+// CHECK:           quake.x %{{.*}} : (!quake.ref) -> ()
+// CHECK:           quake.x %{{.*}} : (!quake.ref) -> ()
 // CHECK:           quake.x %{{.*}} : (!quake.ref) -> ()
 // CHECK-NOT:       quake.x %{{.*}} : (!quake.ref) -> ()
 // CHECK:           return
 
 struct test6 {
-  // Loop that decrements. Loop is not unrolled. It needs to be normalized.
   void operator()() __qpu__ {
     cudaq::qvector reg(1);
     for (size_t i = 3; i-- > 0;)
@@ -112,8 +114,8 @@ struct test6 {
 };
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test6(
-// CHECK:           cc.loop while
-// CHECK:           } do {
+// CHECK:           quake.x %{{.*}} : (!quake.ref) -> ()
+// CHECK:           quake.x %{{.*}} : (!quake.ref) -> ()
 // CHECK:           quake.x %{{.*}} : (!quake.ref) -> ()
 // CHECK-NOT:       quake.x %{{.*}} : (!quake.ref) -> ()
 // CHECK:           return

@@ -23,7 +23,7 @@ namespace cudaq::opt {
 
 using namespace mlir;
 
-#include "LoopNormalize.inc"
+#include "LoopNormalizePatterns.inc"
 
 namespace {
 class LoopNormalizePass
