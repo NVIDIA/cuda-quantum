@@ -64,8 +64,8 @@ void operator_sum<HandlerTy>::aggregate_terms() {}
 template<typename HandlerTy>
 template <typename ... Args>
 void operator_sum<HandlerTy>::aggregate_terms(const product_operator<HandlerTy> &head, Args&& ... args) {
-    this->terms.push_back(head.terms[0]);
-    this->coefficients.push_back(head.coefficients[0]);
+    this->terms.push_back(head.operators);
+    this->coefficients.push_back(head.coefficient);
     aggregate_terms(std::forward<Args>(args)...);
 }
 
@@ -75,7 +75,8 @@ void operator_sum<HandlerTy>::aggregate_terms(const product_operator<HandlerTy> 
   EvaluatedMatrix operator_sum<HandlerTy>::m_evaluate(                                        \
       MatrixArithmetics arithmetics, bool pad_terms) const;                                   \
                                                                                               \
-  /* no overload for a single product, since we don't want a constructor for a single term */ \
+  template                                                                                    \
+  void operator_sum<HandlerTy>::aggregate_terms(const product_operator<HandlerTy> &item2);    \
                                                                                               \
   template                                                                                    \
   void operator_sum<HandlerTy>::aggregate_terms(const product_operator<HandlerTy> &item1,     \
@@ -147,8 +148,8 @@ operator_sum<HandlerTy>::operator_sum(const std::vector<product_operator<Handler
     this->terms.reserve(terms.size());
     this->coefficients.reserve(terms.size());
     for (const product_operator<HandlerTy>& term : terms) {
-        this->terms.push_back(term.terms[0]);
-        this->coefficients.push_back(term.coefficients[0]);
+        this->terms.push_back(term.operators);
+        this->coefficients.push_back(term.coefficient);
     }
 }
 
@@ -156,8 +157,8 @@ template<typename HandlerTy>
 operator_sum<HandlerTy>::operator_sum(std::vector<product_operator<HandlerTy>> &&terms) { 
     this->terms.reserve(terms.size());
     for (const product_operator<HandlerTy>& term : terms) {
-        this->terms.push_back(std::move(term.terms[0]));
-        this->coefficients.push_back(std::move(term.coefficients[0]));
+        this->terms.push_back(std::move(term.operators));
+        this->coefficients.push_back(std::move(term.coefficient));
     }
 }
 
@@ -185,7 +186,8 @@ operator_sum<HandlerTy>::operator_sum(operator_sum<HandlerTy> &&other)
 
 #define INSTANTIATE_SUM_CONSTRUCTORS(HandlerTy)                                                 \
                                                                                                 \
-  /* no constructor for a single product, since that one should remain a product op */          \
+  template                                                                                      \
+  operator_sum<HandlerTy>::operator_sum(const product_operator<HandlerTy> &item2);              \
                                                                                                 \
   template                                                                                      \
   operator_sum<HandlerTy>::operator_sum(const product_operator<HandlerTy> &item1,               \
@@ -451,15 +453,15 @@ operator_sum<HandlerTy> operator_sum<HandlerTy>::operator*(const product_operato
   std::vector<scalar_operator> coefficients;
   coefficients.reserve(this->coefficients.size());
   for (auto &coeff : this->coefficients)
-    coefficients.push_back(other.coefficients[0] * coeff);
+    coefficients.push_back(other.coefficient * coeff);
   std::vector<std::vector<HandlerTy>> terms;
   terms.reserve(this->terms.size());
   for (auto &term : this->terms) {
     std::vector<HandlerTy> prod;
-    prod.reserve(term.size() + other.terms[0].size());
+    prod.reserve(term.size() + other.operators.size());
     for (auto &op : term) 
       prod.push_back(op);
-    for (auto &op : other.terms[0])
+    for (auto &op : other.operators)
       prod.push_back(op);
     terms.push_back(std::move(prod));
   }
@@ -477,12 +479,12 @@ operator_sum<HandlerTy> operator_sum<HandlerTy>::operator*(const product_operato
     coefficients.reserve(this->coefficients.size() + 1);                                \
     for (auto &coeff : this->coefficients)                                              \
       coefficients.push_back(coeff);                                                    \
-    coefficients.push_back(op other.coefficients[0]);                                   \
+    coefficients.push_back(op other.coefficient);                                       \
     std::vector<std::vector<HandlerTy>> terms;                                          \
     terms.reserve(this->terms.size() + 1);                                              \
     for (auto &term : this->terms)                                                      \
       terms.push_back(term);                                                            \
-    terms.push_back(other.terms[0]);                                                    \
+    terms.push_back(other.operators);                                                   \
     operator_sum<HandlerTy> sum;                                                        \
     sum.coefficients = std::move(coefficients);                                         \
     sum.terms = std::move(terms);                                                       \
@@ -620,10 +622,10 @@ SUM_ADDITION_HANDLER_ASSIGNMENT(-)
 template <typename HandlerTy>
 operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator*=(const product_operator<HandlerTy> &other) {
   for (auto &coeff : this->coefficients)
-    coeff *= other.coefficients[0];
+    coeff *= other.coefficient;
   for (auto &term : this->terms) {
-    term.reserve(term.size() + other.terms[0].size());
-    for (auto &op : other.terms[0])
+    term.reserve(term.size() + other.operators.size());
+    for (auto &op : other.operators)
       term.push_back(op);
   }
   return *this;
@@ -633,8 +635,8 @@ operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator*=(const product_opera
   template <typename HandlerTy>                                                         \
   operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator op##=(                     \
                                            const product_operator<HandlerTy> &other) {  \
-    this->coefficients.push_back(op other.coefficients[0]);                             \
-    this->terms.push_back(other.terms[0]);                                              \
+    this->coefficients.push_back(op other.coefficient);                                 \
+    this->terms.push_back(other.operators);                                             \
     return *this;                                                                       \
   }
 
@@ -648,7 +650,7 @@ operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator*=(const operator_sum<
   return *this;
 }
 
-#define SUM_ADDITION_SUM_ASSIGNMENT(op)                                                            \
+#define SUM_ADDITION_SUM_ASSIGNMENT(op)                                                 \
   template <typename HandlerTy>                                                         \
   operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator op##=(                     \
                                                const operator_sum<HandlerTy> &other) {  \

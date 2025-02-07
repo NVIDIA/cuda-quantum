@@ -24,9 +24,8 @@ void print(cudaq::matrix_2 mat) {
 void assert_product_equal(const cudaq::product_operator<cudaq::matrix_operator> &got, 
                           const std::complex<double> &expected_coefficient,
                           const std::vector<cudaq::matrix_operator> &expected_terms) {
-
-  auto sumterms_prod = ((const cudaq::operator_sum<cudaq::matrix_operator>&)got).get_terms();
-  ASSERT_TRUE(sumterms_prod.size() == 1);
+  cudaq::operator_sum<cudaq::matrix_operator> sum = got;
+  ASSERT_TRUE(sum.get_terms().size() == 1);
   ASSERT_TRUE(got.get_coefficient().evaluate() == expected_coefficient);
   ASSERT_TRUE(got.get_terms() == expected_terms);
 }
