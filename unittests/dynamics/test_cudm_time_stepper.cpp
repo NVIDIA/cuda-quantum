@@ -91,3 +91,28 @@ TEST_F(CuDensityMatTimeStepperTest, ComputeStepZeroStepSize) {
 TEST_F(CuDensityMatTimeStepperTest, ComputeStepLargeTimeValues) {
   EXPECT_NO_THROW(time_stepper_->compute(*state_, 1e6, 1e3));
 }
+
+TEST_F(CuDensityMatTimeStepperTest, ComputeStepCheckOutput) {
+  const std::vector<std::complex<double>> initialState = {
+      {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}};
+  const std::vector<int64_t> dims = {4};
+  auto inputState = std::make_unique<cudm_state>(handle_, initialState, dims);
+  auto op = cudaq::matrix_operator::create(0);
+  auto cudmOp = cudaq::convert_to_cudensitymat_operator<cudaq::matrix_operator>(
+      handle_, {}, op, dims); // Initialize the time stepper
+  auto time_stepper = std::make_unique<cudm_time_stepper>(handle_, cudmOp);
+  auto outputState = time_stepper->compute(*inputState, 0.0, 1.0);
+
+  std::vector<std::complex<double>> outputStateVec(4);
+  HANDLE_CUDA_ERROR(cudaMemcpy(
+      outputStateVec.data(), outputState.get_device_pointer(),
+      outputStateVec.size() * sizeof(std::complex<double>), cudaMemcpyDefault));
+  // Create operator move the state up 1 step.
+  const std::vector<std::complex<double>> expectedOutputState = {
+      {0.0, 0.0}, {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}};
+
+  for (std::size_t i = 0; i < expectedOutputState.size(); ++i) {
+    EXPECT_TRUE(std::abs(expectedOutputState[i] - outputStateVec[i]) < 1e-12);
+  }
+  HANDLE_CUDM_ERROR(cudensitymatDestroyOperator(cudmOp));
+}
