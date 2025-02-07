@@ -99,6 +99,10 @@ public:
   /// @return The new state after multiplying scalar with the current state.
   cudm_state &operator*=(const std::complex<double> &scalar);
 
+  cudm_state operator*(double scalar) &&;
+
+  double norm() const;
+
 private:
   std::vector<std::complex<double>> rawData_;
   std::complex<double> *gpuData_;
