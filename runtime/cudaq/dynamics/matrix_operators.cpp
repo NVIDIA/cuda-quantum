@@ -29,6 +29,20 @@ void matrix_operator::define(std::string operator_id, std::vector<int> expected_
   }
 }
 
+product_operator<matrix_operator> matrix_operator::create(std::string operator_id, const std::vector<int> &degrees) {
+  auto it = matrix_operator::m_ops.find(operator_id);
+  if (it == matrix_operator::m_ops.end()) 
+    throw std::range_error("not matrix operator with the name '" + operator_id + "' has been defined");
+  return product_operator(matrix_operator(operator_id, degrees));
+}
+
+product_operator<matrix_operator> matrix_operator::create(std::string operator_id, std::vector<int> &&degrees) {
+  auto it = matrix_operator::m_ops.find(operator_id);
+  if (it == matrix_operator::m_ops.end()) 
+    throw std::range_error("not matrix operator with the name '" + operator_id + "' has been defined");
+  return product_operator(matrix_operator(operator_id, std::move(degrees)));
+}
+
 // read-only properties
 
 std::vector<int> matrix_operator::degrees() const {
@@ -153,7 +167,8 @@ bool matrix_operator::operator==(const matrix_operator &other) const {
 
 // predefined operators
 
-product_operator<matrix_operator> matrix_operator::identity(int degree) {
+// multiplicative identity
+matrix_operator matrix_operator::one(int degree) {
   std::string op_id = "identity";
   if (matrix_operator::m_ops.find(op_id) == matrix_operator::m_ops.end()) {
     auto func = [](std::vector<int> dimensions,
@@ -169,8 +184,11 @@ product_operator<matrix_operator> matrix_operator::identity(int degree) {
     };
     matrix_operator::define(op_id, {-1}, std::move(func));
   }
-  auto op = matrix_operator(op_id, {degree});
-  return product_operator<matrix_operator>(1., op);
+  return matrix_operator(op_id, {degree});
+}
+
+product_operator<matrix_operator> matrix_operator::identity(int degree) {
+  return product_operator(std::move(matrix_operator::one(degree)));
 }
 
 product_operator<matrix_operator> matrix_operator::annihilate(int degree) {
@@ -188,7 +206,7 @@ product_operator<matrix_operator> matrix_operator::annihilate(int degree) {
     matrix_operator::define(op_id, {-1}, func);
   }
   auto op = matrix_operator(op_id, {degree});
-  return product_operator<matrix_operator>(1., op);
+  return product_operator(std::move(op));
 }
 
 product_operator<matrix_operator> matrix_operator::create(int degree) {
@@ -206,7 +224,7 @@ product_operator<matrix_operator> matrix_operator::create(int degree) {
     matrix_operator::define(op_id, {-1}, func);
   }
   auto op = matrix_operator(op_id, {degree});
-  return product_operator<matrix_operator>(1., op);
+  return product_operator(std::move(op));
 }
 
 product_operator<matrix_operator> matrix_operator::position(int degree) {
@@ -228,7 +246,7 @@ product_operator<matrix_operator> matrix_operator::position(int degree) {
     matrix_operator::define(op_id, {-1}, func);
   }
   auto op = matrix_operator(op_id, {degree});
-  return product_operator<matrix_operator>(1., op);
+  return product_operator(std::move(op));
 }
 
 product_operator<matrix_operator> matrix_operator::momentum(int degree) {
@@ -250,7 +268,7 @@ product_operator<matrix_operator> matrix_operator::momentum(int degree) {
     matrix_operator::define(op_id, {-1}, func);
   }
   auto op = matrix_operator(op_id, {degree});
-  return product_operator<matrix_operator>(1., op);
+  return product_operator(std::move(op));
 }
 
 product_operator<matrix_operator> matrix_operator::number(int degree) {
@@ -268,7 +286,7 @@ product_operator<matrix_operator> matrix_operator::number(int degree) {
     matrix_operator::define(op_id, {-1}, func);
   }
   auto op = matrix_operator(op_id, {degree});
-  return product_operator<matrix_operator>(1., op);
+  return product_operator(std::move(op));
 }
 
 product_operator<matrix_operator> matrix_operator::parity(int degree) {
@@ -286,7 +304,7 @@ product_operator<matrix_operator> matrix_operator::parity(int degree) {
     matrix_operator::define(op_id, {-1}, func);
   }
   auto op = matrix_operator(op_id, {degree});
-  return product_operator<matrix_operator>(1., op);
+  return product_operator(std::move(op));
 }
 
 product_operator<matrix_operator> matrix_operator::displace(int degree) {
@@ -313,7 +331,7 @@ product_operator<matrix_operator> matrix_operator::displace(int degree) {
     matrix_operator::define(op_id, {-1}, func);
   }
   auto op = matrix_operator(op_id, {degree});
-  return product_operator<matrix_operator>(1., op);
+  return product_operator(std::move(op));
 }
 
 product_operator<matrix_operator> matrix_operator::squeeze(int degree) {
@@ -341,7 +359,7 @@ product_operator<matrix_operator> matrix_operator::squeeze(int degree) {
     matrix_operator::define(op_id, {-1}, func);
   }
   auto op = matrix_operator(op_id, {degree});
-  return product_operator<matrix_operator>(1., op);
+  return product_operator(std::move(op));
 }
 
 // tools for custom operators

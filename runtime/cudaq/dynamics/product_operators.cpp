@@ -27,7 +27,7 @@ void product_operator<HandlerTy>::aggregate_terms() {}
 
 template<typename HandlerTy>
 template<typename... Args>
-void product_operator<HandlerTy>::aggregate_terms(const HandlerTy &head, Args&& ... args) {
+void product_operator<HandlerTy>::aggregate_terms(HandlerTy &&head, Args&& ... args) {
   this->operators.push_back(head);
   aggregate_terms(std::forward<Args>(args)...);
 }
@@ -46,7 +46,7 @@ EvaluatedMatrix product_operator<HandlerTy>::m_evaluate(
       for (const auto &degree : degrees) {
         if (std::find(op_degrees.begin(), op_degrees.end(), degree) == op_degrees.end()) {
           // FIXME: instead of relying on an identity to exist, replace pad_terms with a function to invoke.
-          auto identity = HandlerTy::identity(degree);
+          auto identity = HandlerTy::one(degree);
           padded.push_back(EvaluatedMatrix(identity.degrees(), identity.to_matrix(arithmetics.m_dimensions)));
         }
       }
@@ -86,13 +86,13 @@ EvaluatedMatrix product_operator<HandlerTy>::m_evaluate(
 #define INSTANTIATE_PRODUCT_PRIVATE_METHODS(HandlerTy)                                        \
                                                                                               \
   template                                                                                    \
-  void product_operator<HandlerTy>::aggregate_terms(const HandlerTy &item1,                   \
-                                                    const HandlerTy &item2);                  \
+  void product_operator<HandlerTy>::aggregate_terms(HandlerTy &&item1,                        \
+                                                    HandlerTy &&item2);                       \
                                                                                               \
   template                                                                                    \
-  void product_operator<HandlerTy>::aggregate_terms(const HandlerTy &item1,                   \
-                                                              const HandlerTy &item2,         \
-                                                              const HandlerTy &item3);        \
+  void product_operator<HandlerTy>::aggregate_terms(HandlerTy &&item1,                        \
+                                                    HandlerTy &&item2,                        \
+                                                    HandlerTy &&item3);                       \
                                                                                               \
   template                                                                                    \
   EvaluatedMatrix product_operator<HandlerTy>::m_evaluate(                                    \
@@ -121,7 +121,7 @@ int product_operator<HandlerTy>::n_terms() const {
 }
 
 template<typename HandlerTy>
-std::vector<HandlerTy> product_operator<HandlerTy>::get_terms() const { 
+const std::vector<HandlerTy>& product_operator<HandlerTy>::get_terms() const { 
   return this->operators; 
 }
 
@@ -139,7 +139,7 @@ scalar_operator product_operator<HandlerTy>::get_coefficient() const {
   int product_operator<HandlerTy>::n_terms() const;                                          \
                                                                                              \
   template                                                                                   \
-  std::vector<HandlerTy> product_operator<HandlerTy>::get_terms() const;                     \
+  const std::vector<HandlerTy>& product_operator<HandlerTy>::get_terms() const;              \
                                                                                              \
   template                                                                                   \
   scalar_operator product_operator<HandlerTy>::get_coefficient() const;
@@ -150,11 +150,17 @@ INSTANTIATE_PRODUCT_PROPERTIES(spin_operator);
 // constructors
 
 template<typename HandlerTy>
+product_operator<HandlerTy>::product_operator(HandlerTy &&atomic)
+  : coefficient(1.) {
+  this->operators.push_back(std::move(atomic));
+}
+
+template<typename HandlerTy>
 template<typename... Args, std::enable_if_t<std::conjunction<std::is_same<HandlerTy, Args>...>::value, bool>>
-product_operator<HandlerTy>::product_operator(scalar_operator coefficient, const Args&... args)
+product_operator<HandlerTy>::product_operator(scalar_operator coefficient, Args&&... args)
   : coefficient(std::move(coefficient)) {
   this->operators.reserve(sizeof...(Args));
-  aggregate_terms(args...);
+  aggregate_terms(std::forward<HandlerTy &&>(args)...);
 }
 
 template<typename HandlerTy>
@@ -195,19 +201,22 @@ product_operator<HandlerTy>::product_operator(product_operator<HandlerTy> &&othe
   product_operator<HandlerTy>::product_operator(scalar_operator coefficient);                \
                                                                                              \
   template                                                                                   \
-  product_operator<HandlerTy>::product_operator(scalar_operator coefficient,                 \
-                                                const HandlerTy &item1);                     \
+  product_operator<HandlerTy>::product_operator(HandlerTy &&atomic);                         \
                                                                                              \
   template                                                                                   \
   product_operator<HandlerTy>::product_operator(scalar_operator coefficient,                 \
-                                                const HandlerTy &item1,                      \
-                                                const HandlerTy &item2);                     \
+                                                HandlerTy &&atomic1);                        \
                                                                                              \
   template                                                                                   \
   product_operator<HandlerTy>::product_operator(scalar_operator coefficient,                 \
-                                                const HandlerTy &item1,                      \
-                                                const HandlerTy &item2,                      \
-                                                const HandlerTy &item3);                     \
+                                                HandlerTy &&atomic1,                         \
+                                                HandlerTy &&atomic2);                        \
+                                                                                             \
+  template                                                                                   \
+  product_operator<HandlerTy>::product_operator(scalar_operator coefficient,                 \
+                                                HandlerTy &&atomic1,                         \
+                                                HandlerTy &&atomic2,                         \
+                                                HandlerTy &&atomic3);                        \
                                                                                              \
   template                                                                                   \
   product_operator<HandlerTy>::product_operator(                                             \
@@ -354,12 +363,12 @@ PRODUCT_MULTIPLICATION(double);
 PRODUCT_MULTIPLICATION(std::complex<double>);
 PRODUCT_MULTIPLICATION(const scalar_operator &);
 
-#define PRODUCT_ADDITION(otherTy, op)                                          \
-  template <typename HandlerTy>                                                \
-  operator_sum<HandlerTy> product_operator<HandlerTy>::operator op(            \
-      otherTy other) const {                                                   \
-    return operator_sum<HandlerTy>(product_operator<HandlerTy>(op other),      \
-                                   *this);                                     \
+#define PRODUCT_ADDITION(otherTy, op)                                                   \
+  template <typename HandlerTy>                                                         \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator op(                     \
+                                                       otherTy other) const {           \
+    return operator_sum<HandlerTy>(product_operator<HandlerTy>(op other),               \
+                                   product_operator<HandlerTy>(*this));                 \
   }
 
 PRODUCT_ADDITION(double, +);
@@ -380,12 +389,12 @@ product_operator<HandlerTy>::operator*(const HandlerTy &other) const {
   return product_operator<HandlerTy>(this->coefficient, std::move(terms));
 }
 
-#define PRODUCT_ADDITION_HANDLER(op)                                           \
-  template <typename HandlerTy>                                                \
-  operator_sum<HandlerTy> product_operator<HandlerTy>::operator op(            \
-      const HandlerTy &other) const {                                          \
-    return operator_sum<HandlerTy>(product_operator<HandlerTy>(op 1., other),  \
-                                   *this);                                     \
+#define PRODUCT_ADDITION_HANDLER(op)                                                      \
+  template <typename HandlerTy>                                                           \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator op(                       \
+                                                       const HandlerTy &other) const {    \
+    return operator_sum<HandlerTy>(product_operator<HandlerTy>(op 1., HandlerTy(other)),  \
+                                   product_operator<HandlerTy>(*this));                   \
   }
 
 PRODUCT_ADDITION_HANDLER(+)
@@ -433,11 +442,11 @@ product_operator<HandlerTy> product_operator<HandlerTy>::operator*(
   return product_operator(this->coefficient * other.coefficient, std::move(terms));
 }
 
-#define PRODUCT_ADDITION_PRODUCT(op)                                           \
-  template <typename HandlerTy>                                                \
-  operator_sum<HandlerTy> product_operator<HandlerTy>::operator op(            \
-      const product_operator<HandlerTy> &other) const {                        \
-    return operator_sum<HandlerTy>(op other, *this);                           \
+#define PRODUCT_ADDITION_PRODUCT(op)                                                    \
+  template <typename HandlerTy>                                                         \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator op(                     \
+                                     const product_operator<HandlerTy> &other) const {  \
+    return operator_sum<HandlerTy>(op other, product_operator<HandlerTy>(*this));       \
   }
 
 PRODUCT_ADDITION_PRODUCT(+)
@@ -594,12 +603,11 @@ product_operator<HandlerTy> operator*(const HandlerTy &other,
   return product_operator<HandlerTy>(self.coefficient, std::move(terms));
 }
 
-#define PRODUCT_ADDITION_HANDLER_REVERSE(op)                                   \
-  template <typename HandlerTy>                                                \
-  operator_sum<HandlerTy> operator op(                                         \
-      const HandlerTy &other, const product_operator<HandlerTy> &self) {       \
-    return operator_sum<HandlerTy>(product_operator<HandlerTy>(1., other),     \
-                                   op self);                                   \
+#define PRODUCT_ADDITION_HANDLER_REVERSE(op)                                                      \
+  template <typename HandlerTy>                                                                   \
+  operator_sum<HandlerTy> operator op(const HandlerTy &other,                                     \
+                                      const product_operator<HandlerTy> &self) {                  \
+    return operator_sum<HandlerTy>(product_operator<HandlerTy>(1., HandlerTy(other)), op self);   \
   }
 
 PRODUCT_ADDITION_HANDLER_REVERSE(+)
