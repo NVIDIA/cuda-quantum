@@ -284,6 +284,21 @@ def test_2q_unitary_synthesis():
     assert counts["0010011"] == 999
 
 
+def test_explicit_measurement():
+
+    @cudaq.kernel
+    def bell_pair():
+        qubits = cudaq.qvector(2)
+        h(qubits[0])
+        x.ctrl(qubits[0], qubits[1])
+        mz(qubits)
+
+    with pytest.raises(RuntimeError) as e:
+        counts = cudaq.sample(bell_pair, explicit_measurements=True)
+    assert "Explicit measurement option is not supported on this target" in repr(
+        e)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

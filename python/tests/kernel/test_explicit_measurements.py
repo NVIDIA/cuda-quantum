@@ -93,7 +93,8 @@ def test_simulators(target):
 @pytest.mark.parametrize("target, env_var",
                          [("anyon", ""), ("braket", ""),
                           ("infleqtion", "SUPERSTAQ_API_KEY"),
-                          ("ionq", "IONQ_API_KEY"), ("quantinuum", "")])
+                          ("ionq", "IONQ_API_KEY"), ("quantinuum", ""),
+                          ("quera", "")])
 def test_unsupported_targets(target, env_var):
     if env_var:
         os.environ[env_var] = "foobar"
