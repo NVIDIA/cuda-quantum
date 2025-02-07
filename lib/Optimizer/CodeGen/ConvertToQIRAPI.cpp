@@ -523,7 +523,8 @@ struct MakeStruqOpRewrite : public OpConversionPattern<quake::MakeStruqOp> {
     std::int64_t count = 0;
     for (auto op : adaptor.getOperands()) {
       auto off = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{count});
-      result = rewriter.create<LLVM::InsertValueOp>(loc, toTy, result, op, off);
+      result =
+          rewriter.create<cudaq::cc::InsertValueOp>(loc, toTy, result, op, off);
       count++;
     }
     rewriter.replaceOp(mkstruq, result);
