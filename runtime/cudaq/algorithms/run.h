@@ -16,6 +16,11 @@
 #include "cudaq/host_config.h"
 #include <cstdint>
 
+extern "C" {
+void __nvqpp_initializer_list_to_vector_bool(std::vector<bool> &, char *,
+                                             std::size_t);
+}
+
 namespace cudaq {
 
 namespace details {
@@ -24,6 +29,7 @@ namespace details {
 // in a contiguous buffer, the start of which is `data`. The size of the buffer
 // must be exactly `lengthInBytes` bytes. `lengthInBytes` is an integer multiple
 // of the size of the result type of the kernel launched.
+// NB: for a vector of bool, each bool value is stored in a byte.
 struct RunResultSpan {
   void *data;
   std::uint64_t lengthInBytes;
@@ -37,6 +43,47 @@ struct RunResultSpan {
 RunResultSpan runTheKernel(std::function<void()> &&kernel,
                            quantum_platform &platform,
                            const std::string &kernel_name, std::size_t shots);
+
+// Template to transfer the ownership of the buffer in a RunResultSpan to a
+// `std::vector<T>` object. This special code is required because a
+// `std::vector<T>` will always construct its own data, and own it, using its
+// standard constructors. In this case, we are transferring ownership of a
+// buffer to the vector, `result`, and do not want to make a copy.
+template <typename T>
+void resultSpanToVectorViaOwnership(std::vector<T> &result,
+                                    RunResultSpan &spanIn) {
+  using raw_vector = struct {
+    T *start;
+    T *end0;
+    T *end1;
+  };
+  static_assert(sizeof(std::vector<T>) == sizeof(raw_vector) &&
+                "std::vector must use the nominal 3 pointer implementation");
+
+  // Swap vec into a local variable. vec's original content, if any will be
+  // reclaimed at the end of this function.
+  std::vector<T> deadEnder;
+  std::swap(deadEnder, result);
+
+  // Initialize the vector `result` in place and without any data copies.
+  if constexpr (std::is_same_v<T, bool>) {
+    // std::vector<bool> is a specialization, so we have to call the
+    // vector<bool> constructor in this case to pack the bools.
+    __nvqpp_initializer_list_to_vector_bool(
+        result, reinterpret_cast<char *>(spanIn.data), spanIn.lengthInBytes);
+  } else {
+    raw_vector *rawVec = reinterpret_cast<raw_vector *>(&result);
+    rawVec->start = reinterpret_cast<T *>(spanIn.data);
+    rawVec->end0 = rawVec->end1 = reinterpret_cast<T *>(
+        reinterpret_cast<char *>(spanIn.data) + spanIn.lengthInBytes);
+  }
+
+  // Destroy the contents of the span. The caller no longer owns the `data`
+  // buffer, the vector `result` does.
+  spanIn.data = nullptr;
+  spanIn.lengthInBytes = 0;
+}
+
 } // namespace details
 
 /// cudaq::run allows an entry-point kernel to be executed a \p shots number of
