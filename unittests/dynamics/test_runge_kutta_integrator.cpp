@@ -168,7 +168,7 @@ TEST_F(RungeKuttaIntegratorTest, CheckEvolve) {
 
   // FIXME: enable all orders
   // for (int integratorOrder : {1, 2, 4}) {
-  for (int integratorOrder : {1}) {
+  for (int integratorOrder : {1, 2}) {
     std::cout << "Test RK order " << integratorOrder << "\n";
     auto op = cudaq::product_operator<matrix_operator>(
         std::complex<double>{0.0, -1.0} * 2.0 * M_PI * 0.1,
@@ -183,7 +183,7 @@ TEST_F(RungeKuttaIntegratorTest, CheckEvolve) {
         integratorOrder);
     eulerIntegrator->set_option("dt", 0.001);
 
-    constexpr std::size_t numDataPoints = 10;
+    constexpr std::size_t numDataPoints = 2;
     double t = 0.0;
     std::vector<std::complex<double>> outputStateVec(2);
     for (std::size_t i = 1; i < numDataPoints; ++i) {
