@@ -6,6 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#pragma once
+
 #include <map>
 #include <vector>
 #include "cudaq/operators.h"
@@ -24,7 +26,7 @@ private:
   int id;
   int target;
 
-  spin_operator(int id, int target);
+  spin_operator(int op, int target);
 
 public:
 
@@ -51,6 +53,8 @@ public:
   ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
   virtual matrix_2 to_matrix(std::map<int, int> &dimensions,
                              std::map<std::string, std::complex<double>> parameters = {}) const;
+
+  virtual std::string to_string(bool include_degrees) const;
 
   // comparisons
 
