@@ -489,24 +489,266 @@ Learn about the Hadamard test and how it can be used to estimate expectation val
 .. raw:: html
 
     </div>
-    <div class="notebook-entry" data-tags="fundamental,mqpu" style="margin-bottom: 50px;">
+    <div class="notebook-entry" data-tags="chemistry,qec,qpu,solvers" style="margin-bottom: 50px;">
 
 .. rst-class:: notebook-title
 
 **The Anderson Impurity Model With Logical Qubits**
 
-.. figure:: /applications/app_title_images/hadamard_preview.png
+.. figure:: /applications/app_title_images/logical_aim_preview.png
     :align: right
     :width: 300px
     :alt: Krylov Preview
     :class: notebook-image
 
-Learn about the Hadamard test and how it can be used to estimate expectation values.  This notebook also explores how the Hadamard test can be used for Krylov subspace method and accelerated with the :code:`mqpu` backend to evaluate execution on multiple simulated QPUs in parallel.
+A recent collaboration between NVIDIA and Infleqtion demonstrated a logical qubit workflow built in CUDA-Q and executed on the Infleqtion's neutral atom QPU.  TO learn more, read the `paper <https://arxiv.org/abs/2412.07670>`_
+  and corresponding `blog <https://blogs.nvidia.com/blog/logical-qubits-cuda-q-demo/>`_.
+.. toctree::
+    :maxdepth: 1
+
+      /applications/python/logical_aim_sqale
+
+.. raw:: html
+
+
+
+
+
+
+.. raw:: html
+
+    </div>
+    <div class="notebook-entry" data-tags="fundamental" style="margin-bottom: 50px;">
+
+.. rst-class:: notebook-title
+
+**Trotterized Hamiltonian Simulation**
+
+.. figure:: /applications/app_title_images/trotter_preview.png
+    :align: right
+    :width: 300px
+    :alt: Krylov Preview
+    :class: notebook-image
+
+Trotterization is an approximation to enable simulation of a Hamiltonian.  Learn how this technique works and simulate the dynamics of the Heisenberg model.
 
 .. toctree::
     :maxdepth: 1
 
-      /applications/python/hadamard_test
+      /applications/python/hamiltonian_simulation
+
+.. raw:: html
+
+
+
+
+.. raw:: html
+
+    </div>
+    <div class="notebook-entry" data-tags="fundamental" style="margin-bottom: 50px;">
+
+.. rst-class:: notebook-title
+
+**The Quantum Fourier Transform**
+
+.. figure:: /applications/app_title_images/qft_preview.png
+    :align: right
+    :width: 300px
+    :alt: QFT Preview
+    :class: notebook-image
+
+The Quantum Fourier transform (QFT) is a fundamental quantum algoithm that is also and important subroutine of quantum phase estimation, Shors's, and other quantum algorithms.  Learn the basics of the QFT and how to implement it in CUDA-Q
+.. toctree::
+    :maxdepth: 1
+
+      /applications/python/quantum_fourier_transform
+
+.. raw:: html
+
+
+
+
+.. raw:: html
+
+    </div>
+    <div class="notebook-entry" data-tags="fundamental" style="margin-bottom: 50px;">
+
+.. rst-class:: notebook-title
+
+**The Quantum Fourier Transform**
+
+.. figure:: /applications/app_title_images/qft_preview.png
+    :align: right
+    :width: 300px
+    :alt: QFT Preview
+    :class: notebook-image
+
+The Quantum Fourier transform (QFT) is a fundamental quantum algoithm that is also and important subroutine of quantum phase estimation, Shors's, and other quantum algorithms.  Learn the basics of the QFT and how to implement it in CUDA-Q
+.. toctree::
+    :maxdepth: 1
+
+      /applications/python/quantum_fourier_transform
+
+.. raw:: html
+
+
+
+
+
+
+.. raw:: html
+
+    </div>
+    <div class="notebook-entry" data-tags="fundamental" style="margin-bottom: 50px;">
+
+.. rst-class:: notebook-title
+
+**Quantum Teleportation**
+
+.. figure:: /applications/app_title_images/teleport_preview.png
+    :align: right
+    :width: 300px
+    :alt: Quantum Teleportation Preview
+    :class: notebook-image
+
+Quantum teleportation of one of the strange phenomena that makes quantum computing so interresting.  Learn how teleportation works and how it can be implemented in CUDA-Q
+.. toctree::
+    :maxdepth: 1
+
+      /applications/python/quantum_teleportation
+
+.. raw:: html
+
+
+
+
+
+
+.. raw:: html
+
+    </div>
+    <div class="notebook-entry" data-tags="aiforq,fundamental,noise" style="margin-bottom: 50px;">
+
+.. rst-class:: notebook-title
+
+**Quantum Volume**
+
+.. figure:: /applications/app_title_images/qv_preview.png
+    :align: right
+    :width: 300px
+    :alt: Quantum Volume Preview
+    :class: notebook-image
+
+
+Benahmarking the performance of quantum computers, especially between different qubit modalities, is challenging.  One method is to experimentally perform the quantum volume test.  Learn how thsi test is performend and how it can be implemented in CUDA-Q.
+.. toctree::
+    :maxdepth: 1
+
+      /applications/python/quantum_volume
+
+.. raw:: html
+
+
+
+
+
+.. raw:: html
+
+    </div>
+    <div class="notebook-entry" data-tags="aiforq,noise" style="margin-bottom: 50px;">
+
+.. rst-class:: notebook-title
+
+**Readout Error Mitigation**
+
+.. figure:: /applications/app_title_images/readout_preview.png
+    :align: right
+    :width: 300px
+    :alt: Readout Error Mitigation Preview
+    :class: notebook-image
+
+
+Quantum computers are limited by their noise, which corrupts the outcome of applications.  Error mitigation is a techniqe used to compensate for such errors via postprocessing.  Learn how to combat noise in this CUDA-Q readout error mitigation tutorial.
+.. toctree::
+    :maxdepth: 1
+
+      /applications/python/readout_error_mitigation
+
+.. raw:: html
+
+
+
+   
+.. raw:: html
+
+    </div>
+    <div class="notebook-entry" data-tags="aiforq" style="margin-bottom: 50px;">
+
+.. rst-class:: notebook-title
+
+**Compiling Unitaries with Diffusion Models**
+
+.. figure:: /applications/app_title_images/diffusion_preview.png
+    :align: right
+    :width: 300px
+    :alt: Readout Diffusion Preview
+    :class: notebook-image
+
+Implementing quantum circuits to apply arbitrary unitary operations is a complex task.  This tutorial explores an AI for quantum application where a diffusion modelc an be used to compile unitaries.
+.. toctree::
+    :maxdepth: 1
+
+      /applications/python/unitary_compilation_diffusion_models
+
+.. raw:: html
+
+
+.. raw:: html
+
+    </div>
+    <div class="notebook-entry" data-tags="chemistry, mqpu" style="margin-bottom: 50px;">
+
+.. rst-class:: notebook-title
+
+**The Variational Quantum Eigensolver**
+
+.. figure:: /applications/app_title_images/vqe_preview.png
+    :align: right
+    :width: 300px
+    :alt: VQE Preview
+    :class: notebook-image
+
+The variational quantum eigensolver is a hybrid quantum classical algorithm for predicting the ground state of a Hamiltonian.  Learn how to predict molecular energies with the VQE in CUDA-Q using active spaces, how to parallelize gradient evaluation, and how to use performance optimizations like gate fusion.
+.. toctree::
+    :maxdepth: 1
+
+      /applications/python/vqe_advanced
+
+.. raw:: html
+
+
+
+
+.. raw:: html
+
+    </div>
+    <div class="notebook-entry" data-tags="chemistry,collab" style="margin-bottom: 50px;">
+
+.. rst-class:: notebook-title
+
+**Quantum Enhanced Auxiliary Field Quantum Monte Carlo**
+
+.. figure:: /applications/app_title_images/afmqc_preview.png
+    :align: right
+    :width: 300px
+    :alt: AFMQC Preview
+    :class: notebook-image
+
+Quantum Enhanced Auxiliary Field Quantum Monte Carlo is and advanced variational technique for simulating molecular energies.  Learn how NVIDIA and BASF collaborated to implement this technique.
+.. toctree::
+    :maxdepth: 1
+
+      /applications/python/afqmc
 
 .. raw:: html
 
