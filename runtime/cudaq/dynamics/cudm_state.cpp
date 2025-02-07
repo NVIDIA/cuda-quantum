@@ -167,20 +167,18 @@ cudm_state &cudm_state::operator+=(const cudm_state &other) {
 
   return *this;
 }
+cudm_state &cudm_state::operator*=(const std::complex<double> &scalar) {
+  void *gpuScalar;
+  HANDLE_CUDA_ERROR(cudaMalloc(&gpuScalar, sizeof(std::complex<double>)));
+  HANDLE_CUDA_ERROR(cudaMemcpy(gpuScalar, &scalar, sizeof(std::complex<double>),
+                               cudaMemcpyHostToDevice));
 
-cudm_state cudm_state::operator*(double scalar) const {
-  cudm_state result = cudm_state(handle_, rawData_, hilbertSpaceDims_);
+  HANDLE_CUDM_ERROR(
+      cudensitymatStateComputeScaling(handle_, state_, gpuScalar, 0));
 
-  double *gpuScalar;
-  cudaMalloc(reinterpret_cast<void **>(&gpuScalar), sizeof(double));
-  cudaMemcpy(gpuScalar, &scalar, sizeof(double), cudaMemcpyHostToDevice);
+  HANDLE_CUDA_ERROR(cudaFree(gpuScalar));
 
-  HANDLE_CUDM_ERROR(cudensitymatStateComputeScaling(handle_, result.get_impl(),
-                                                    gpuScalar, 0));
-
-  cudaFree(gpuScalar);
-
-  return result;
+  return *this;
 }
 
 std::string cudm_state::dump() const {
@@ -198,6 +196,25 @@ std::string cudm_state::dump() const {
   }
   oss << "]";
   return oss.str();
+}
+
+void cudm_state::dumpDeviceData() const {
+  if (!is_initialized()) {
+    throw std::runtime_error("State is not initialized.");
+  }
+
+  std::vector<std::complex<double>> hostBuffer(rawData_.size());
+  HANDLE_CUDA_ERROR(cudaMemcpy(hostBuffer.data(), get_device_pointer(),
+                               hostBuffer.size() * sizeof(std::complex<double>),
+                               cudaMemcpyDefault));
+  std::cout << "State data: [";
+  for (size_t i = 0; i < hostBuffer.size(); i++) {
+    std::cout << hostBuffer[i];
+    if (i < hostBuffer.size() - 1) {
+      std::cout << ", ";
+    }
+  }
+  std::cout << "]\n";
 }
 
 cudm_state cudm_state::to_density_matrix() const {
