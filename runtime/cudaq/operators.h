@@ -73,6 +73,8 @@ public:
   std::complex<double> evaluate(
       const std::map<std::string, std::complex<double>> parameters = {}) const;
 
+  ScalarCallbackFunction get_generator() const;
+
   // Return the scalar operator as a 1x1 matrix. This is needed for
   // compatibility with the other inherited classes.
   matrix_2 to_matrix(
