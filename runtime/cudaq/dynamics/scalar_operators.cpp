@@ -65,6 +65,10 @@ std::complex<double> scalar_operator::evaluate(
     return generator(parameters);
 }
 
+ScalarCallbackFunction scalar_operator::get_generator() const {
+  return generator;
+}
+
 matrix_2 scalar_operator::to_matrix(
     const std::map<int, int> dimensions,
     const std::map<std::string, std::complex<double>> parameters) const {

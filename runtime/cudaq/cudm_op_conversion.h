@@ -47,9 +47,9 @@ public:
 
   // Evaluate an operator and convert it to cudensitymatOperatorTerm_t
   std::variant<cudensitymatOperatorTerm_t, cudensitymatWrappedScalarCallback_t,
-               double>
+               std::complex<double>>
   evaluate(const std::variant<scalar_operator, matrix_operator,
-           product_operator<matrix_operator>> &op);
+                              product_operator<matrix_operator>> &op);
 
 private:
   cudensitymatHandle_t handle_;
@@ -61,7 +61,7 @@ private:
                     const cudensitymatOperatorTerm_t &op);
   cudensitymatOperatorTerm_t
   _scalar_to_op(const cudensitymatWrappedScalarCallback_t &scalar);
-  cudensitymatWrappedTensorCallback_t _wrap_callback(const scalar_operator &op);
+  cudensitymatWrappedScalarCallback_t _wrap_callback(const scalar_operator &op);
   cudensitymatWrappedTensorCallback_t
   _wrap_callback_tensor(const matrix_operator &op);
 };
