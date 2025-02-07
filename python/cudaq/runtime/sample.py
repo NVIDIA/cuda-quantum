@@ -80,10 +80,6 @@ Returns:
     ctx.explicitMeasurements = explicit_measurements
     cudaq_runtime.setExecutionContext(ctx)
 
-    ctx.explicitMeasurements = explicit_measurements
-    ## TODO: If using metadata to check if explicit measurement allowed or not,
-    #        check it here and exit early if not supported
-
     if hasattr(kernel, 'metadata') and kernel.metadata.get(
             'conditionalOnMeasure', False):
         ctx.hasConditionalsOnMeasureResults = True
