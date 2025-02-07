@@ -8,7 +8,6 @@
 
 // RUN: cudaq-opt -write-after-write-elimination %s | FileCheck %s
 
-
 func.func @test_two_stores_same_pointer() {
   %c0_i64 = arith.constant 0 : i64
   %0 = quake.alloca !quake.veq<2>
