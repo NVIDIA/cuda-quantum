@@ -1,13 +1,14 @@
-// // ========================================================================== //
-// // Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
-// // All rights reserved.                                                       //
-// //                                                                            //
-// // This source code and the accompanying materials are made available under   //
-// // the terms of the Apache License 2.0 which accompanies this distribution.   //
-// // ========================================================================== //
+// ========================================================================== //
+// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
 
 // RUN: cudaq-opt -cc-loop-unroll -cse -cc-loop-unroll %s | FileCheck %s
-func.func @__nvqpp__mlirgen__test_loop_unroll() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+
+func.func @test_loop_unroll() {
   %c1_i64 = arith.constant 1 : i64
   %c2_i64 = arith.constant 2 : i64
   %c0_i64 = arith.constant 0 : i64
@@ -218,7 +219,7 @@ func.func @__nvqpp__mlirgen__test_loop_unroll() attributes {"cudaq-entrypoint", 
   return
 }
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__test_loop_unroll() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK-LABEL:   func.func @test_loop_unroll() {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<6>
 // CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<6>) -> !quake.ref
 // CHECK:           quake.x %[[VAL_1]] : (!quake.ref) -> ()
