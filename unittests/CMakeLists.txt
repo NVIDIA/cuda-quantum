@@ -295,6 +295,7 @@ if (CUDA_FOUND)
     dynamics/test_cudm_helpers.cpp
     dynamics/test_cudm_state.cpp
     dynamics/test_cudm_time_stepper.cpp
+    dynamics/test_cudm_op_conversion.cpp
   )
   add_executable(test_dynamics main.cpp ${CUDAQ_DYNAMICS_TEST_SOURCES})
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
