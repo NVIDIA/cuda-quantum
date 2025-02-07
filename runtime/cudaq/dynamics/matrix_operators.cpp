@@ -8,6 +8,7 @@
 
 #include "cudaq/operators.h"
 #include "matrix_operators.h"
+#include "spin_operators.h"
 
 #include <complex>
 #include <iostream>
@@ -41,10 +42,34 @@ bool matrix_operator::is_identity() const {
 // constructors
 
 matrix_operator::matrix_operator(std::string operator_id, const std::vector<int> &degrees)
-  : id(operator_id), targets(degrees) {}
+  : id(operator_id), targets(degrees) {
+    assert(this->targets.size() > 0);
+  }
 
 matrix_operator::matrix_operator(std::string operator_id, std::vector<int> &&degrees)
-  : id(operator_id), targets(std::move(degrees)) {}
+  : id(operator_id), targets(std::move(degrees)) {
+    assert(this->targets.size() > 0);
+  }
+
+template<typename T, std::enable_if_t<std::is_base_of_v<operator_handler, T>, bool>>
+matrix_operator::matrix_operator(const T &other) {
+  this->targets = other.degrees();
+  this->id = typeid(other).name() + std::to_string(this->targets.size()) + other.to_string(false);
+  if (matrix_operator::m_ops.find(this->id) == matrix_operator::m_ops.end()) {
+    auto func = [targets = other.degrees(), other](std::vector<int> dimensions,
+                    std::map<std::string, std::complex<double>> _none) {
+      std::map<int, int> dims;
+      for(auto i = 0; i < dimensions.size(); ++i)
+        dims[targets[i]] = dimensions[i];
+      return other.to_matrix(dims, std::move(_none));
+    };
+    // the to_matrix method on the spin op will check the dimensions, so we allow arbitrary here
+    std::vector<int> required_dimensions (this->targets.size(), -1);
+    matrix_operator::define(this->id, std::move(required_dimensions), func);
+  }
+}
+
+template matrix_operator::matrix_operator(const spin_operator &other);
 
 matrix_operator::matrix_operator(const matrix_operator &other)
   : targets(other.targets), id(other.id) {}
@@ -61,6 +86,14 @@ matrix_operator& matrix_operator::operator=(const matrix_operator& other) {
   }
   return *this;
 }
+
+template<typename T, std::enable_if_t<!std::is_same<T, matrix_operator>::value && std::is_base_of_v<operator_handler, T>, bool>>
+matrix_operator& matrix_operator::operator=(const T& other) {
+  *this = matrix_operator(other);
+  return *this;
+}
+
+template matrix_operator& matrix_operator::operator=(const spin_operator& other);
 
 matrix_operator& matrix_operator::operator=(matrix_operator &&other) {
   if (this != &other) {
@@ -100,6 +133,16 @@ matrix_2 matrix_operator::to_matrix(
   }
 
   return it->second.generate_matrix(relevant_dimensions, parameters);
+}
+
+std::string matrix_operator::to_string(bool include_degrees) const {
+  if (!include_degrees) return this->id;
+  else if (this->targets.size() == 0) return this->id + "()";
+  auto it = this->targets.begin();
+  std::string str = this->id + "(" + std::to_string(*it++);
+  while (it != this->targets.end())
+    str += ", " + std::to_string(*it++);
+  return str + ")";
 }
 
 // comparisons
