@@ -30,6 +30,8 @@ void bindExecutionContext(py::module &mod) {
       .def_readwrite("batchIteration", &cudaq::ExecutionContext::batchIteration)
       .def_readwrite("numberTrajectories",
                      &cudaq::ExecutionContext::numberTrajectories)
+      .def_readwrite("explicitMeasurements",
+                     &cudaq::ExecutionContext::explicitMeasurements)
       .def("setSpinOperator", [](cudaq::ExecutionContext &ctx,
                                  cudaq::spin_op &spin) { ctx.spin = &spin; })
       .def("getExpectationValue",
