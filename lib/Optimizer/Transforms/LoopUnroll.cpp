@@ -248,6 +248,8 @@ public:
       for (RegisteredOperationName op : ctx->getRegisteredOperations())
         op.getCanonicalizationPatterns(patterns, ctx);
 
+      // Add patterns that help const prop loop boundaries computed
+      // in conditionals, other loops, or arrays.
       patterns.insert<RewriteIf>(ctx, /*rewriteOnlyIfConst=*/true);
       patterns.insert<LoopPat>(ctx, allowClosedInterval, allowBreak);
       patterns.insert<AllocaPattern>(
