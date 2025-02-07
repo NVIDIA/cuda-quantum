@@ -218,14 +218,22 @@ cudensitymatOperator_t convert_to_cudensitymat_operator(
         } else if (const auto *scalar_op =
                        dynamic_cast<const cudaq::scalar_operator *>(
                            &component)) {
+          // FIXME: do we need this code path?
+          // The product_op already has get_coefficient method.
           auto coeff = scalar_op->evaluate(parameters);
           append_scalar_to_term(handle, term, coeff);
+        } else {
+          // Catch anything that we don't know
+          throw std::runtime_error("Unhandled type!");
         }
       }
 
+      // Handle the coefficient
+      auto coeff = product_op.get_coefficient().evaluate(parameters);
       // Append the product operator term to the top-level operator
       HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
-          handle, operator_handle, term, 0, make_cuDoubleComplex(1.0, 0.0),
+          handle, operator_handle, term, 0,
+          make_cuDoubleComplex(coeff.real(), coeff.imag()),
           {nullptr, nullptr}));
 
       // FIXME: leak
