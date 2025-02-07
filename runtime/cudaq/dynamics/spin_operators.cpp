@@ -75,24 +75,25 @@ bool spin_operator::operator==(const spin_operator &other) const {
 
 // defined operators
 
-spin_operator spin_operator::identity(int degree) {
+// multiplicative identity
+spin_operator spin_operator::one(int degree) {
   return spin_operator(0, degree);
 }
 
 product_operator<spin_operator> spin_operator::i(int degree) {
-  return product_operator<spin_operator>(1., spin_operator(0, degree));
+  return product_operator(spin_operator(0, degree));
 }
 
 product_operator<spin_operator> spin_operator::z(int degree) {
-  return product_operator<spin_operator>(1., spin_operator(1, degree));
+  return product_operator(spin_operator(1, degree));
 }
 
 product_operator<spin_operator> spin_operator::x(int degree) {
-  return product_operator<spin_operator>(1., spin_operator(2, degree));
+  return product_operator(spin_operator(2, degree));
 }
 
 product_operator<spin_operator> spin_operator::y(int degree) {
-  return product_operator<spin_operator>(1., spin_operator(3, degree));
+  return product_operator(spin_operator(3, degree));
 }
 
 } // namespace cudaq
