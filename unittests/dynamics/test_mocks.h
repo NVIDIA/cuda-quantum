@@ -14,6 +14,13 @@
 #include <cudensitymat.h>
 #include <iostream>
 
+// Mock cudensitymatHandle_t
+inline cudensitymatHandle_t mock_handle() {
+  cudensitymatHandle_t handle;
+  HANDLE_CUDM_ERROR(cudensitymatCreate(&handle));
+  return handle;
+}
+
 // Mock Liouvillian operator creation
 inline cudensitymatOperator_t mock_liouvillian(cudensitymatHandle_t handle) {
   cudensitymatOperator_t liouvillian = nullptr;

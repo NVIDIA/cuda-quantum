@@ -17,6 +17,8 @@
 #include <vector>
 
 namespace cudaq {
+std::vector<std::complex<double>> flatten_matrix(const matrix_2 &matrix);
+
 void scale_state(cudensitymatHandle_t handle, cudensitymatState_t state,
                  double scale_factor, cudaStream_t stream);
 
