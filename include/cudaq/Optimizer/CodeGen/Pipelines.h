@@ -30,19 +30,10 @@ void commonPipelineConvertToQIR(mlir::PassManager &pm,
                                 mlir::StringRef codeGenFor = "qir",
                                 mlir::StringRef passConfigAs = "qir");
 
-/// \deprecated{Only for Python, since it can't use the new QIR codegen.}
-void commonPipelineConvertToQIR_PythonWorkaround(
-    mlir::PassManager &pm, const std::optional<mlir::StringRef> &convertTo);
-
 /// \brief Pipeline builder to convert Quake to QIR.
 /// Does not specify a particular QIR profile.
 inline void addPipelineConvertToQIR(mlir::PassManager &pm) {
   commonPipelineConvertToQIR(pm);
-}
-
-/// \deprecated{Only for Python, since it can't use the new QIR codegen.}
-inline void addPipelineConvertToQIR_PythonWorkaround(mlir::PassManager &pm) {
-  commonPipelineConvertToQIR_PythonWorkaround(pm, std::nullopt);
 }
 
 /// \brief Pipeline builder to convert Quake to QIR.
@@ -50,14 +41,6 @@ inline void addPipelineConvertToQIR_PythonWorkaround(mlir::PassManager &pm) {
 /// \p pm Pass manager to append passes to
 /// \p convertTo name of QIR profile (e.g., `qir-base`, `qir-adaptive`, ...)
 void addPipelineConvertToQIR(mlir::PassManager &pm, mlir::StringRef convertTo);
-
-/// \deprecated{Only for Python, since it can't use the new QIR codegen.}
-inline void
-addPipelineConvertToQIR_PythonWorkaround(mlir::PassManager &pm,
-                                         mlir::StringRef convertTo) {
-  commonPipelineConvertToQIR_PythonWorkaround(pm, convertTo);
-  addQIRProfilePipeline(pm, convertTo);
-}
 
 void addLowerToCCPipeline(mlir::OpPassManager &pm);
 

@@ -1749,9 +1749,11 @@ class PyASTBridge(ast.NodeVisitor):
                     self.ctx) if len(qubits) == 1 and quake.RefType.isinstance(
                         qubits[0].type) else cc.StdvecType.get(
                             self.ctx, quake.MeasureType.get(self.ctx))
-                measureResult = opCtor(measTy, [],
-                                       qubits,
-                                       registerName=registerName).result
+                label = registerName
+                if not label:
+                    label = None
+                measureResult = opCtor(measTy, [], qubits,
+                                       registerName=label).result
                 if pushResultToStack:
                     self.pushValue(
                         quake.DiscriminateOp(resTy, measureResult).result)
@@ -3151,6 +3153,73 @@ class PyASTBridge(ast.NodeVisitor):
                                             stepVal=stepVal,
                                             isDecrementing=isDecrementing)
                 return
+
+        # We can simplify `for i,j in enumerate(L)` MLIR code immensely
+        # by just building a for loop over the iterable object L and using
+        # the index into that iterable and the element.
+        if isinstance(node.iter, ast.Call):
+            if node.iter.func.id == 'enumerate':
+                [self.visit(arg) for arg in node.iter.args]
+                if len(self.valueStack) == 2:
+                    iterable = self.popValue()
+                    self.popValue()
+                else:
+                    assert len(self.valueStack) == 1
+                    iterable = self.popValue()
+                iterable = self.ifPointerThenLoad(iterable)
+                totalSize = None
+                extractFunctor = None
+                varNames = []
+                for elt in node.target.elts:
+                    varNames.append(elt.id)
+
+                beEfficient = False
+                if quake.VeqType.isinstance(iterable.type):
+                    totalSize = quake.VeqSizeOp(self.getIntegerType(),
+                                                iterable).result
+
+                    def functor(seq, idx):
+                        q = quake.ExtractRefOp(self.getRefType(),
+                                               seq,
+                                               -1,
+                                               index=idx).result
+                        return [idx, q]
+
+                    extractFunctor = functor
+                    beEfficient = True
+                elif cc.StdvecType.isinstance(iterable.type):
+                    totalSize = cc.StdvecSizeOp(self.getIntegerType(),
+                                                iterable).result
+
+                    def functor(seq, idx):
+                        vecTy = cc.StdvecType.getElementType(seq.type)
+                        dataTy = cc.PointerType.get(self.ctx, vecTy)
+                        arrTy = vecTy
+                        if not cc.ArrayType.isinstance(arrTy):
+                            arrTy = cc.ArrayType.get(self.ctx, vecTy)
+                        dataArrTy = cc.PointerType.get(self.ctx, arrTy)
+                        data = cc.StdvecDataOp(dataArrTy, seq).result
+                        v = cc.ComputePtrOp(
+                            dataTy, data, [idx],
+                            DenseI32ArrayAttr.get([kDynamicPtrIndex],
+                                                  context=self.ctx)).result
+                        return [idx, v]
+
+                    extractFunctor = functor
+                    beEfficient = True
+
+                if beEfficient:
+
+                    def bodyBuilder(iterVar):
+                        self.symbolTable.pushScope()
+                        values = extractFunctor(iterable, iterVar)
+                        for i, v in enumerate(values):
+                            self.symbolTable[varNames[i]] = v
+                        [self.visit(b) for b in node.body]
+                        self.symbolTable.popScope()
+
+                    self.createInvariantForLoop(totalSize, bodyBuilder)
+                    return
 
         self.visit(node.iter)
         assert len(self.valueStack) > 0 and len(self.valueStack) < 3
