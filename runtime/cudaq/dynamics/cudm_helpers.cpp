@@ -10,13 +10,13 @@
 #include "cudaq/cudm_error_handling.h"
 
 namespace cudaq {
-// Function to flatten a matrix into a 1D array
+// Function to flatten a matrix into a 1D array (column major)
 std::vector<std::complex<double>> flatten_matrix(const matrix_2 &matrix) {
   std::vector<std::complex<double>> flat_matrix;
-
-  for (size_t i = 0; i < matrix.get_rows(); i++) {
-    for (size_t j = 0; j < matrix.get_columns(); j++) {
-      flat_matrix.push_back(matrix[{i, j}]);
+  flat_matrix.reserve(matrix.get_size());
+  for (size_t col = 0; col < matrix.get_columns(); col++) {
+    for (size_t row = 0; row < matrix.get_rows(); row++) {
+      flat_matrix.push_back(matrix[{row, col}]);
     }
   }
 
@@ -53,19 +53,14 @@ cudensitymatElementaryOperator_t create_elementary_operator(
 
   cudensitymatElementaryOperator_t cudm_elem_op = nullptr;
 
-  std::vector<double> interleaved_matrix;
-  interleaved_matrix.reserve(flat_matrix.size() * 2);
-
-  for (const auto &value : flat_matrix) {
-    interleaved_matrix.push_back(value.real());
-    interleaved_matrix.push_back(value.imag());
-  }
+  // FIXME: leak (need to track this buffer somewhere and delete **after** the
+  // whole evolve)
+  auto *elementaryMat_d = create_array_gpu(flat_matrix);
 
   cudensitymatStatus_t status = cudensitymatCreateElementaryOperator(
       handle, static_cast<int32_t>(subspace_extents.size()),
       subspace_extents.data(), CUDENSITYMAT_OPERATOR_SPARSITY_NONE, 0, nullptr,
-      CUDA_C_64F, static_cast<void *>(interleaved_matrix.data()),
-      {nullptr, nullptr}, &cudm_elem_op);
+      CUDA_C_64F, elementaryMat_d, {nullptr, nullptr}, &cudm_elem_op);
 
   if (status != CUDENSITYMAT_STATUS_SUCCESS) {
     std::cerr << "Error: Failed to create elementary operator. Status: "
@@ -92,7 +87,7 @@ void append_elementary_operator_to_term(
   std::vector<cudensitymatElementaryOperator_t> elem_ops = {elem_op};
 
   std::vector<int32_t> modeActionDuality(degrees.size(), 0);
-
+  assert(elem_ops.size() == degrees.size());
   HANDLE_CUDM_ERROR(cudensitymatOperatorTermAppendElementaryProduct(
       handle, term, static_cast<int32_t>(degrees.size()), elem_ops.data(),
       degrees.data(), modeActionDuality.data(), make_cuDoubleComplex(1.0, 0.0),
@@ -233,13 +228,15 @@ cudensitymatOperator_t convert_to_cudensitymat_operator(
           handle, operator_handle, term, 0, make_cuDoubleComplex(1.0, 0.0),
           {nullptr, nullptr}));
 
+      // FIXME: leak
+      // We must track these handles and destroy **after** evolve finishes
       // Destroy the term
-      HANDLE_CUDM_ERROR(cudensitymatDestroyOperatorTerm(term));
+      // HANDLE_CUDM_ERROR(cudensitymatDestroyOperatorTerm(term));
 
-      // Cleanup
-      for (auto &elem_op : elementary_operators) {
-        HANDLE_CUDM_ERROR(cudensitymatDestroyElementaryOperator(elem_op));
-      }
+      // // Cleanup
+      // for (auto &elem_op : elementary_operators) {
+      //   HANDLE_CUDM_ERROR(cudensitymatDestroyElementaryOperator(elem_op));
+      // }
     }
 
     return operator_handle;
