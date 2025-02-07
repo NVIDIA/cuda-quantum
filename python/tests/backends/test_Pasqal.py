@@ -22,7 +22,7 @@ except:
     pytest.skip("Mock qpu not available.", allow_module_level=True)
 
 # Define the port for the mock server
-port = 62444
+port = 62448
 
 
 @pytest.fixture(scope="session", autouse=True)

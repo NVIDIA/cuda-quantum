@@ -16,7 +16,7 @@ void PasqalServerHelper::initialize(BackendConfig config) {
   cudaq::info("Initialize Pasqal Cloud.");
 
   // Hard-coded for now.
-  const std::string FRESNEL = "fresnel1";
+  const std::string FRESNEL = "Fresnel";
   auto machine = FRESNEL;
   const int MAX_QUBITS = 100;
 
@@ -75,7 +75,7 @@ PasqalServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
 }
 
 std::string PasqalServerHelper::extractJobId(ServerMessage &postResponse) {
-    return "";
+    return baseUrl + "";
 }
 
 std::string PasqalServerHelper::constructGetJobPath(std::string &jobId) {

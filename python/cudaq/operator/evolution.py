@@ -26,6 +26,9 @@ from ..kernel.kernel_builder import PyKernel, make_kernel
 from ..runtime.observe import observe
 
 
+analog_targets = ["pasqal", "quera"]
+
+
 def _taylor_series_expm(op_matrix: NDArray[numpy.complexfloating],
                         order: int = 20) -> NDArray[numpy.complexfloating]:
     """
@@ -198,7 +201,6 @@ def evolve_single(
         store_intermediate_results=False,
         integrator: Optional[BaseIntegrator] = None,
         shots_count: Optional[int] = None) -> cudaq_runtime.EvolveResult:
-    analog_targets = ["pasqal", "quera"]
     target_name = cudaq_runtime.get_target().name
     if target_name == "dynamics":
         try:
@@ -351,7 +353,6 @@ def evolve(
         initial state. See `EvolveResult` for more information about the data computed
         during evolution.
     """
-    analog_targets = ["pasqal", "quera"]
     target_name = cudaq_runtime.get_target().name
     if not isinstance(schedule, Schedule):
         raise ValueError(
@@ -420,7 +421,6 @@ def evolve_single_async(
         store_intermediate_results=False,
         integrator: Optional[BaseIntegrator] = None,
         shots_count: Optional[int] = None) -> cudaq_runtime.AsyncEvolveResult:
-    analog_targets = ["pasqal", "quera"]
     target_name = cudaq_runtime.get_target().name
     if target_name == "dynamics":
         try:
@@ -545,7 +545,6 @@ def evolve_async(
         during the evolution of each initial state. See the `EvolveResult` for more 
         information about the data computed during evolution.
     """
-    analog_targets = ["pasqal", "quera"]
     target_name = cudaq_runtime.get_target().name
 
     if not isinstance(schedule, Schedule):
