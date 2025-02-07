@@ -30,31 +30,34 @@ void runge_kutta_integrator::integrate(double target_time) {
   while (this->t < target_time) {
     double step_size = std::min(dt, target_time - this->t);
 
-    std::cout << "Runge-Kutta step at time " << this->t
-              << " with step size: " << step_size << std::endl;
+    // std::cout << "Runge-Kutta step at time " << this->t
+    //           << " with step size: " << step_size << std::endl;
 
     if (this->substeps_ == 1) {
       // Euler method (1st order)
       cudm_state k1 = this->stepper->compute(this->state, this->t, step_size);
+      k1 *= step_size;
       this->state += k1;
     } else if (this->substeps_ == 2) {
+      // FIXME: implement it
       // Midpoint method (2nd order)
-      cudm_state k1 =
-          this->stepper->compute(this->state, this->t, step_size / 2.0);
-      cudm_state k2 =
-          this->stepper->compute(k1, this->t + step_size / 2.0, step_size);
-      this->state += (k1 + k2) * 0.5;
+      // cudm_state k1 =
+      //     this->stepper->compute(this->state, this->t, step_size / 2.0);
+      // cudm_state k2 =
+      //     this->stepper->compute(k1, this->t + step_size / 2.0, step_size);
+      // this->state += (k1 + k2) * 0.5;
     } else if (this->substeps_ == 4) {
+      // FIXME: implement it
       // Runge-Kutta method (4th order)
-      cudm_state k1 =
-          this->stepper->compute(this->state, this->t, step_size / 2.0);
-      cudm_state k2 = this->stepper->compute(k1, this->t + step_size / 2.0,
-                                             step_size / 2.0);
-      cudm_state k3 =
-          this->stepper->compute(k2, this->t + step_size / 2.0, step_size);
-      cudm_state k4 =
-          this->stepper->compute(k3, this->t + step_size, step_size);
-      this->state += (k1 + (k2 + k3) * 2.0 + k4) * (1.0 / 6.0);
+      // cudm_state k1 =
+      //     this->stepper->compute(this->state, this->t, step_size / 2.0);
+      // cudm_state k2 = this->stepper->compute(k1, this->t + step_size / 2.0,
+      //                                        step_size / 2.0);
+      // cudm_state k3 =
+      //     this->stepper->compute(k2, this->t + step_size / 2.0, step_size);
+      // cudm_state k4 =
+      //     this->stepper->compute(k3, this->t + step_size, step_size);
+      // this->state += (k1 + (k2 + k3) * 2.0 + k4) * (1.0 / 6.0);
     }
 
     // Update time
