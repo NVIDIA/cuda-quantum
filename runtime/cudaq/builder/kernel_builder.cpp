@@ -776,16 +776,28 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
 
   cudaq::info("kernel_builder apply measurement");
 
-  auto strAttr = builder.getStringAttr(regName);
+  // FIXME: regName cannot be empty, but the prototypes give an empty string as
+  // the default. This is a workaround to clear out the empty string so we don't
+  // build broken IR.
+  StringAttr strAttr;
+  if (!regName.empty())
+    strAttr = builder.getStringAttr(regName);
+
   Type resTy = builder.getI1Type();
   Type measTy = quake::MeasureType::get(builder.getContext());
   if (!type.isa<quake::RefType>()) {
     resTy = cc::StdvecType::get(resTy);
     measTy = cc::StdvecType::get(measTy);
   }
-  Value measureResult =
-      builder.template create<QuakeMeasureOp>(measTy, value, strAttr)
-          .getMeasOut();
+  Value measureResult;
+  if (strAttr)
+    measureResult =
+        builder.template create<QuakeMeasureOp>(measTy, value, strAttr)
+            .getMeasOut();
+  else
+    measureResult =
+        builder.template create<QuakeMeasureOp>(measTy, value).getMeasOut();
+
   Value bits = builder.create<quake::DiscriminateOp>(resTy, measureResult);
   return QuakeValue(builder, bits);
 }

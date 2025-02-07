@@ -51,37 +51,6 @@ void cudaq::opt::commonPipelineConvertToQIR(PassManager &pm,
   pm.addPass(createCCToLLVM());
 }
 
-void cudaq::opt::commonPipelineConvertToQIR_PythonWorkaround(
-    PassManager &pm, const std::optional<StringRef> &convertTo) {
-  pm.addNestedPass<func::FuncOp>(createApplyControlNegations());
-  addAggressiveEarlyInlining(pm);
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(createUnwindLoweringPass());
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addPass(createApplyOpSpecializationPass());
-  pm.addNestedPass<func::FuncOp>(createExpandMeasurementsPass());
-  pm.addNestedPass<func::FuncOp>(createClassicalMemToReg());
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(createCSEPass());
-  pm.addNestedPass<func::FuncOp>(createQuakeAddDeallocs());
-  pm.addNestedPass<func::FuncOp>(createQuakeAddMetadata());
-  pm.addNestedPass<func::FuncOp>(createLoopNormalize());
-  LoopUnrollOptions luo;
-  luo.allowBreak = convertTo && (*convertTo == "qir-adaptive");
-  pm.addNestedPass<func::FuncOp>(createLoopUnroll(luo));
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(createCSEPass());
-  pm.addNestedPass<func::FuncOp>(createLowerToCFGPass());
-  pm.addNestedPass<func::FuncOp>(createCombineQuantumAllocations());
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(createCSEPass());
-  if (convertTo && (*convertTo == "qir-base"))
-    pm.addNestedPass<func::FuncOp>(createDelayMeasurementsPass());
-  pm.addPass(createConvertMathToFuncs());
-  pm.addPass(createSymbolDCEPass());
-  pm.addPass(createConvertToQIR());
-}
-
 void cudaq::opt::addPipelineTranslateToOpenQASM(PassManager &pm) {
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
