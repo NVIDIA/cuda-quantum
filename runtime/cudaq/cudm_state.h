@@ -101,8 +101,6 @@ public:
 
   cudm_state operator*(double scalar) &&;
 
-  double norm() const;
-
 private:
   std::vector<std::complex<double>> rawData_;
   std::complex<double> *gpuData_;

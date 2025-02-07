@@ -186,16 +186,6 @@ cudm_state cudm_state::operator*(double scalar) && {
   return std::move(*this);
 }
 
-double cudm_state::norm() const {
-  std::vector<std::complex<double>> rawData = this->get_raw_data();
-
-  double norm = 0.0;
-  for (const auto &val : rawData) {
-    norm += std::norm(val);
-  }
-  return std::sqrt(norm);
-}
-
 std::string cudm_state::dump() const {
   if (!is_initialized()) {
     throw std::runtime_error("State is not initialized.");
