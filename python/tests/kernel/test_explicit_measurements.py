@@ -103,7 +103,25 @@ def test_unsupported_targets(target, env_var):
 
     with pytest.raises(RuntimeError) as e:
         test_simple_kernel()
-    assert "Explicit measurement option is not supported on this target" in repr(
+    assert "not supported on this target" in repr(
         e)
     os.environ.pop(env_var, None)
     cudaq.reset_target()
+
+
+def test_error_cases():
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(2)
+        h(q[0])
+        if mz(q[0]):
+            x(q[1])
+
+    # This is allowed
+    cudaq.sample(kernel)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.sample(kernel, explicit_measurements=True)
+    assert "not supported on kernel with conditional logic on a measurement result" in repr(
+        e)

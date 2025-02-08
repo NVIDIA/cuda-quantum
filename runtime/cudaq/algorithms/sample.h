@@ -43,21 +43,24 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
             std::size_t qpu_id = 0, details::future *futureResult = nullptr,
             std::size_t batchIteration = 0, std::size_t totalBatchIters = 0) {
 
-  if (explicitMeasurements && !platform.supports_explicit_measurements())
-    throw std::runtime_error(
-        "Explicit measurement option is not supported on this target.");
+  auto hasConditionalFeebdback =
+      cudaq::kernelHasConditionalFeedback(kernelName);
+  if (explicitMeasurements) {
+    if (!platform.supports_explicit_measurements())
+      throw std::runtime_error(
+          "Explicit measurement option is not supported on this target.");
+    if (hasConditionalFeebdback)
+      throw std::runtime_error(
+          "Explicit measurement option is not supported on kernel with "
+          "conditional logic on a measurement result.");
+  }
   // Create the execution context.
   auto ctx = std::make_unique<ExecutionContext>("sample", shots);
   ctx->kernelName = kernelName;
-
   ctx->batchIteration = batchIteration;
   ctx->totalIterations = totalBatchIters;
+  ctx->hasConditionalsOnMeasureResults = hasConditionalFeebdback;
   ctx->explicitMeasurements = explicitMeasurements;
-
-  // Tell the context if this quantum kernel has
-  // conditionals on measure results
-  ctx->hasConditionalsOnMeasureResults =
-      cudaq::kernelHasConditionalFeedback(kernelName);
 
 #ifdef CUDAQ_LIBRARY_MODE
   // If we have a kernel that has its quake code registered, we

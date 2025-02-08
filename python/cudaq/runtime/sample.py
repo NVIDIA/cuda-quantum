@@ -65,10 +65,19 @@ Returns:
   A dictionary containing the measurement count results for the :class:`Kernel`, 
   or a list of such results in the case of `sample` function broadcasting."""
 
-    if explicit_measurements and not cudaq_runtime.supportsExplicitMeasurements(
-    ):
-        raise RuntimeError(
-            "Explicit measurement option is not supported on this target.")
+    has_conditionals_on_measure_result = False
+    if hasattr(kernel, 'metadata') and kernel.metadata.get(
+            'conditionalOnMeasure', False):
+        has_conditionals_on_measure_result = True
+
+    if explicit_measurements:
+        if not cudaq_runtime.supportsExplicitMeasurements():
+            raise RuntimeError(
+                "Explicit measurement option is not supported on this target.")
+        if has_conditionals_on_measure_result:
+            raise RuntimeError(
+                "Explicit measurement option is not supported on kernel with conditional logic on a measurement result."
+            )
 
     if noise_model != None:
         cudaq_runtime.set_noise(noise_model)
@@ -82,12 +91,9 @@ Returns:
         return res
 
     ctx = cudaq_runtime.ExecutionContext("sample", shots_count)
+    ctx.hasConditionalsOnMeasureResults = has_conditionals_on_measure_result
     ctx.explicitMeasurements = explicit_measurements
     cudaq_runtime.setExecutionContext(ctx)
-
-    if hasattr(kernel, 'metadata') and kernel.metadata.get(
-            'conditionalOnMeasure', False):
-        ctx.hasConditionalsOnMeasureResults = True
 
     platformSupportsConditionalFeedback = cudaq_runtime.supportsConditionalFeedback(
     )
