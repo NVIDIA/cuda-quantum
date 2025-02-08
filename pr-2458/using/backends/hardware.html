@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CUDA-Q Hardware Backends &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>Quantum Hardware (QPU) &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
@@ -30,8 +30,8 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="NVIDIA Quantum Cloud" href="nvqc.html" />
-    <link rel="prev" title="CUDA-Q Simulation Backends" href="simulators.html" /> 
+    <link rel="next" title="Ion Trap" href="hardware/iontrap.html" />
+    <link rel="prev" title="Photonics Simulators" href="sims/photonics.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -128,14 +128,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../examples/quantum_operations.html#measurements">Measurements</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/photonic_operations.html">   Photonic Operations</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../examples/photonic_operations.html#quantum-photonic-states">Quantum Photonic States</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/photonic_operations.html#quantum-photonics-gates">Quantum Photonics Gates</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/photonic_operations.html#measurements">Measurements</a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/measuring_kernels.html">   Measuring Kernels</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/measuring_kernels.html#Midcircuit-Measurement-and-Conditional-Logic">Midcircuit Measurement and Conditional Logic</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/measuring_kernels.html#Mid-circuit-Measurement-and-Conditional-Logic">Mid-circuit Measurement and Conditional Logic</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/visualization.html">   Visualizing Kernels</a><ul>
@@ -155,24 +149,20 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/executing_photonic_kernels.html">   Executing Photonic Kernels</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_photonic_kernels.html#Sample">Sample</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_photonic_kernels.html#Get-state">Get state</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_photonic_kernels.html#Parallelization-Techniques">Parallelization Techniques</a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/expectation_values.html">   Computing Expectation Values</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../examples/expectation_values.html#parallelizing-across-multiple-processors">Parallelizing across Multiple Processors</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/multi_control.html">   Multi-Control Synthesis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/multi_gpu_workflows.html">   Multi-GPU Workflows</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../examples/multi_gpu_workflows.html#available-targets">Available Targets</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/multi_gpu_workflows.html#parallelization-across-multiple-processors">Parallelization across Multiple Processors</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/multi_gpu_workflows.html#from-cpu-to-gpu">From CPU to GPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/multi_gpu_workflows.html#pooling-the-memory-of-multiple-gpus-mgpu">Pooling the memory of multiple GPUs (<code class="code docutils literal notranslate"><span class="pre">mgpu</span></code>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/multi_gpu_workflows.html#parallel-execution-over-multiple-qpus-mqpu">Parallel execution over multiple QPUs (<code class="code docutils literal notranslate"><span class="pre">mqpu</span></code>)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../examples/multi_gpu_workflows.html#batching-hamiltonian-terms">Batching Hamiltonian Terms</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../examples/multi_gpu_workflows.html#circuit-batching">Circuit Batching</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu">Multi-QPU + Other Backends (<code class="code docutils literal notranslate"><span class="pre">remote-mqpu</span></code>)</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/optimizers_gradients.html">   Optimizers &amp; Gradients</a><ul>
@@ -235,6 +225,35 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutschs_algorithm.html#Phase-oracle">Phase oracle</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutschs_algorithm.html#Quantum-parallelism">Quantum parallelism</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutschs_algorithm.html#Deutsch's-Algorithm:">Deutsch’s Algorithm:</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/deutsch_jozsa.html">The Deutsch-Jozsa Algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutsch_jozsa.html#The-Theory">The Theory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutsch_jozsa.html#The-Algorithm-Implementation">The Algorithm Implementation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/hamiltonian_simulation.html">Spin-Hamiltonian Simulation Using CUDA-Q</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/hamiltonian_simulation.html#Introduction">Introduction</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/hamiltonian_simulation.html#Heisenberg-Hamiltonian">Heisenberg Hamiltonian</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/hamiltonian_simulation.html#Transverse-Field-Ising-Model-(TFIM)">Transverse Field Ising Model (TFIM)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/hamiltonian_simulation.html#Time-Evolution-and-Trotter-Decomposition">Time Evolution and Trotter Decomposition</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/hamiltonian_simulation.html#Key-steps">Key steps</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/hamiltonian_simulation.html#1.-Prepare-initial-state">1. Prepare initial state</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/hamiltonian_simulation.html#2.-Hamiltonian-Trotterization">2. Hamiltonian Trotterization</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/hamiltonian_simulation.html#3.-Compute-overlap">3. <code class="docutils literal notranslate"><span class="pre">Compute</span> <span class="pre">overlap</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/hamiltonian_simulation.html#4.-Construct-Heisenberg-Hamiltonian">4. Construct Heisenberg Hamiltonian</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/hamiltonian_simulation.html#5.-Construct-TFIM-Hamiltonian">5. Construct TFIM Hamiltonian</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/hamiltonian_simulation.html#6.-Extract-coefficients-and-Pauli-words">6. Extract coefficients and Pauli words</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/hamiltonian_simulation.html#Main-code">Main code</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/hamiltonian_simulation.html#Visualization-of-probablity-over-time">Visualization of probablity over time</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/hamiltonian_simulation.html#Expectation-value-over-time:">Expectation value over time:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/hamiltonian_simulation.html#Visualization-of-expectation-over-time">Visualization of expectation over time</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/hamiltonian_simulation.html#Additional-information">Additional information</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/hamiltonian_simulation.html#Relevant-references">Relevant references</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html">Divisive Clustering With Coresets Using CUDA-Q</a><ul>
@@ -326,105 +345,79 @@
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="backends.html">   Backends</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="simulators.html">   Simulation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="simulators.html#state-vector-simulators">State Vector Simulators</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="simulators.html#features">Features</a></li>
-<li class="toctree-l4"><a class="reference internal" href="simulators.html#single-gpu">Single-GPU</a></li>
-<li class="toctree-l4"><a class="reference internal" href="simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
-<li class="toctree-l4"><a class="reference internal" href="simulators.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
+<li class="toctree-l2"><a class="reference internal" href="simulators.html">     Circuit Simulation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sims/svsims.html">     State Vector Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sims/svsims.html#cpu">CPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sims/svsims.html#single-gpu">Single-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sims/svsims.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="simulators.html#tensor-network-simulators">Tensor Network Simulators</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="simulators.html#id2">Multi-node multi-GPU</a></li>
-<li class="toctree-l4"><a class="reference internal" href="simulators.html#matrix-product-state">Matrix product state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sims/tnsims.html">     Tensor Network Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sims/tnsims.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sims/tnsims.html#matrix-product-state">Matrix product state</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sims/tnsims.html#fermioniq">Fermioniq</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="simulators.html#clifford-only-simulator">Clifford-Only Simulator</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="simulators.html#stim-cpu">Stim (CPU)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sims/mqpusims.html">     Multi-QPU Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sims/mqpusims.html#simulate-multiple-qpus-in-parallel">Simulate Multiple QPUs in Parallel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sims/mqpusims.html#multi-qpu-other-backends">Multi-QPU + Other Backends</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="simulators.html#photonics-simulators">Photonics Simulators</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="simulators.html#id3">OpenMP CPU-only</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sims/noisy.html">     Noisy Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sims/noisy.html#density-matrix">Density Matrix</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sims/noisy.html#stim">Stim</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="simulators.html#fermioniq">Fermioniq</a></li>
-<li class="toctree-l3"><a class="reference internal" href="simulators.html#default-simulator">Default Simulator</a></li>
-</ul>
-</li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">   Quantum Hardware</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#amazon-braket">Amazon Braket</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#setting-credentials">Setting Credentials</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#submission-from-c">Submission from C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#submission-from-python">Submission from Python</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#infleqtion">Infleqtion</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#id1">Setting Credentials</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id2">Submission from C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id3">Submission from Python</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#ionq">IonQ</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#ionq-backend">Setting Credentials</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id5">Submission from C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id6">Submission from Python</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#anyon-technologies-anyon-computing">Anyon Technologies/Anyon Computing</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#anyon-backend">Setting Credentials</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id8">Submission from C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id9">Submission from Python</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#iqm">IQM</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#id10">Setting Credentials</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id11">Submission from C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id12">Submission from Python</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#oqc">OQC</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#id13">Setting Credentials</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id14">Submission from C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id15">Submission from Python</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#orca-computing">ORCA Computing</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#id16">Setting Credentials</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id17">Submission from C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id18">Submission from Python</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#quantinuum">Quantinuum</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#quantinuum-backend">Setting Credentials</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id20">Submission from C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id21">Submission from Python</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#quera-computing">QuEra Computing</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#quera-backend">Setting Credentials</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id23">Submission from C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id24">Submission from Python</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sims/photonics.html">     Photonics Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sims/photonics.html#orca-photonics">orca-photonics</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="nvqc.html">   NVIDIA Quantum Cloud</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="nvqc.html#quick-start">Quick Start</a></li>
-<li class="toctree-l3"><a class="reference internal" href="nvqc.html#simulator-backend-selection">Simulator Backend Selection</a></li>
-<li class="toctree-l3"><a class="reference internal" href="nvqc.html#multiple-gpus">Multiple GPUs</a></li>
-<li class="toctree-l3"><a class="reference internal" href="nvqc.html#multiple-qpus-asynchronous-execution">Multiple QPUs Asynchronous Execution</a></li>
-<li class="toctree-l3"><a class="reference internal" href="nvqc.html#faq">FAQ</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">     Quantum Hardware (QPUs)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="hardware/iontrap.html">     Ion Trap QPUs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="hardware/iontrap.html#ionq">IonQ</a></li>
+<li class="toctree-l4"><a class="reference internal" href="hardware/iontrap.html#quantinuum">Quantinuum</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="platform.html">   Multi-Processor Platforms</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="platform.html#nvidia-mqpu-platform">NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="platform.html#parallel-distribution-mode">Parallel distribution mode</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware/superconducting.html">     Superconducting QPUs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="hardware/superconducting.html#anyon-technologies-anyon-computing">Anyon Technologies/Anyon Computing</a></li>
+<li class="toctree-l4"><a class="reference internal" href="hardware/superconducting.html#iqm">IQM</a></li>
+<li class="toctree-l4"><a class="reference internal" href="hardware/superconducting.html#oqc">OQC</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="platform.html#remote-mqpu-platform">Remote <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="platform.html#supported-kernel-arguments">Supported Kernel Arguments</a></li>
-<li class="toctree-l4"><a class="reference internal" href="platform.html#accessing-simulated-quantum-state">Accessing Simulated Quantum State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware/neutralatom.html">     Neutral Atom QPUs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="hardware/neutralatom.html#infleqtion">Infleqtion</a></li>
+<li class="toctree-l4"><a class="reference internal" href="hardware/neutralatom.html#quera-computing">QuEra Computing</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="hardware/photonic.html">     Photonic QPUs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="hardware/photonic.html#orca-computing">ORCA Computing</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="dynamics.html">     Dynamics Simulation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="dynamics.html#quick-start">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dynamics.html#operator">Operator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dynamics.html#time-dependent-dynamics">Time-Dependent Dynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dynamics.html#numerical-integrators">Numerical Integrators</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dynamics.html#multi-gpu-multi-node-execution">Multi-GPU Multi-Node Execution</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cloud.html">     Cloud</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cloud/braket.html">     Amazon Braket (braket)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cloud/braket.html#setting-credentials">Setting Credentials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cloud/braket.html#submission-from-c">Submission from C++</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cloud/braket.html#submission-from-python">Submission from Python</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cloud/nvqc.html">     NVIDIA Quantum Cloud (nvqc)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cloud/nvqc.html#quick-start">Quick Start</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cloud/nvqc.html#simulator-backend-selection">Simulator Backend Selection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cloud/nvqc.html#multiple-gpus">Multiple GPUs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cloud/nvqc.html#multiple-qpus-asynchronous-execution">Multiple QPUs Asynchronous Execution</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cloud/nvqc.html#faq">FAQ</a></li>
 </ul>
 </li>
 </ul>
@@ -729,698 +722,58 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="backends.html">CUDA-Q Backends</a></li>
-      <li class="breadcrumb-item active">CUDA-Q Hardware Backends</li>
+      <li class="breadcrumb-item active">Quantum Hardware (QPU)</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../../_sources/using/backends/hardware.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="simulators.html" class="btn btn-neutral float-left" title="CUDA-Q Simulation Backends" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="nvqc.html" class="btn btn-neutral float-right" title="NVIDIA Quantum Cloud" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="sims/photonics.html" class="btn btn-neutral float-left" title="Photonics Simulators" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="hardware/iontrap.html" class="btn btn-neutral float-right" title="Ion Trap" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="cuda-q-hardware-backends">
-<h1>CUDA-Q Hardware Backends<a class="headerlink" href="#cuda-q-hardware-backends" title="Permalink to this heading">¶</a></h1>
+  <section id="quantum-hardware-qpu">
+<h1>Quantum Hardware (QPU)<a class="headerlink" href="#quantum-hardware-qpu" title="Permalink to this heading">¶</a></h1>
 <p>CUDA-Q supports submission to a set of hardware providers.
 To submit to a hardware backend, you need an account with the respective provider.</p>
-<section id="amazon-braket">
-<h2>Amazon Braket<a class="headerlink" href="#amazon-braket" title="Permalink to this heading">¶</a></h2>
-<p id="braket-backend"><a class="reference external" href="https://aws.amazon.com/braket/">Amazon Braket</a> is a fully managed AWS
-service which provides Jupyter notebook environments, high-performance quantum
-circuit simulators, and secure, on-demand access to various quantum computers.
-To get started users must enable Amazon Braket in their AWS account by following
-<a class="reference external" href="https://docs.aws.amazon.com/braket/latest/developerguide/braket-enable-overview.html">these instructions</a>.
-To learn more about Amazon Braket, you can view the <a class="reference external" href="https://docs.aws.amazon.com/braket/">Amazon Braket Documentation</a>
-and <a class="reference external" href="https://github.com/amazon-braket/amazon-braket-examples">Amazon Braket Examples</a>.
-A list of available devices and regions can be found <a class="reference external" href="https://docs.aws.amazon.com/braket/latest/developerguide/braket-devices.html">here</a>.</p>
-<p>Users can run CUDA-Q programs on Amazon Braket with <a class="reference external" href="https://docs.aws.amazon.com/braket/latest/developerguide/braket-what-is-hybrid-job.html">Hybrid Job</a>.
-See <a class="reference external" href="https://docs.aws.amazon.com/braket/latest/developerguide/braket-jobs-first.html">this guide</a> to get started.</p>
-<section id="setting-credentials">
-<h3>Setting Credentials<a class="headerlink" href="#setting-credentials" title="Permalink to this heading">¶</a></h3>
-<p>After enabling Amazon Braket in AWS, set credentials using any of the documented <a class="reference external" href="https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html">methods</a>.
-One of the simplest ways is to use <a class="reference external" href="https://aws.amazon.com/cli/">AWS CLI</a>.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>aws<span class="w"> </span>configure
-</pre></div>
+<figure class="align-center">
+<a class="reference internal image-reference" href="../../_images/qpus.png"><img alt="../../_images/qpus.png" src="../../_images/qpus.png" style="width: 1000px;" /></a>
+</figure>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="hardware/iontrap.html">     Ion Trap QPUs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="hardware/iontrap.html#ionq">IonQ</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hardware/iontrap.html#quantinuum">Quantinuum</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="hardware/superconducting.html">     Superconducting QPUs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="hardware/superconducting.html#anyon-technologies-anyon-computing">Anyon Technologies/Anyon Computing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hardware/superconducting.html#iqm">IQM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hardware/superconducting.html#oqc">OQC</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="hardware/neutralatom.html">     Neutral Atom QPUs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="hardware/neutralatom.html#infleqtion">Infleqtion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hardware/neutralatom.html#quera-computing">QuEra Computing</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="hardware/photonic.html">     Photonic QPUs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="hardware/photonic.html#orca-computing">ORCA Computing</a></li>
+</ul>
+</li>
+</ul>
 </div>
-<p>Alternatively, users can set the following environment variables.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">AWS_DEFAULT_REGION</span><span class="o">=</span><span class="s2">&quot;&lt;region&gt;&quot;</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">AWS_ACCESS_KEY_ID</span><span class="o">=</span><span class="s2">&quot;&lt;key_id&gt;&quot;</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">AWS_SECRET_ACCESS_KEY</span><span class="o">=</span><span class="s2">&quot;&lt;access_key&gt;&quot;</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">AWS_SESSION_TOKEN</span><span class="o">=</span><span class="s2">&quot;&lt;token&gt;&quot;</span>
-</pre></div>
-</div>
-</section>
-<section id="submission-from-c">
-<h3>Submission from C++<a class="headerlink" href="#submission-from-c" title="Permalink to this heading">¶</a></h3>
-<p>To target quantum kernel code for execution in Amazon Braket,
-pass the flag <code class="docutils literal notranslate"><span class="pre">--target</span> <span class="pre">braket</span></code> to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler.
-By default jobs are submitted to the state vector simulator, <code class="code docutils literal notranslate"><span class="pre">SV1</span></code>.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>braket<span class="w"> </span>src.cpp
-</pre></div>
-</div>
-<p>To execute your kernels on different device, pass the <code class="docutils literal notranslate"><span class="pre">--braket-machine</span></code> flag to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler
-to specify which machine to submit quantum kernels to:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>braket<span class="w"> </span>--braket-machine<span class="w"> </span><span class="s2">&quot;arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet&quot;</span><span class="w"> </span>src.cpp<span class="w"> </span>...
-</pre></div>
-</div>
-<p>where <code class="docutils literal notranslate"><span class="pre">arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet</span></code> refers to IQM Garnet QPU.</p>
-<p>To emulate the device locally, without submitting through the cloud,
-you can also pass the <code class="docutils literal notranslate"><span class="pre">--emulate</span></code> flag to <code class="docutils literal notranslate"><span class="pre">nvq++</span></code>.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--emulate<span class="w"> </span>--target<span class="w"> </span>braket<span class="w"> </span>src.cpp
-</pre></div>
-</div>
-<p>To see a complete example for using Amazon Braket backends, take a look at our <a class="reference internal" href="../examples/examples.html"><span class="doc">C++ examples</span></a>.</p>
-</section>
-<section id="submission-from-python">
-<h3>Submission from Python<a class="headerlink" href="#submission-from-python" title="Permalink to this heading">¶</a></h3>
-<p>The target to which quantum kernels are submitted
-can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq::set_target()</span></code> function.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;braket&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>By default, jobs are submitted to the state vector simulator, <code class="code docutils literal notranslate"><span class="pre">SV1</span></code>.</p>
-<p>To specify which Amazon Braket device to use, set the <code class="code docutils literal notranslate"><span class="pre">machine</span></code> parameter.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">device_arn</span> <span class="o">=</span> <span class="s2">&quot;arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet&quot;</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;braket&quot;</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="n">device_arn</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>where <code class="docutils literal notranslate"><span class="pre">arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet</span></code> refers to IQM Garnet QPU.</p>
-<p>To emulate the device locally, without submitting through the cloud,
-you can also set the <code class="docutils literal notranslate"><span class="pre">emulate</span></code> flag to <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;braket&quot;</span><span class="p">,</span> <span class="n">emulate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>The number of shots for a kernel execution can be set through the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code>
-argument to <code class="docutils literal notranslate"><span class="pre">cudaq.sample</span></code>. By default, the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code> is set to 1000.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>To see a complete example for using Amazon Braket backends, take a look at our <a class="reference internal" href="../examples/examples.html"><span class="doc">Python examples</span></a>.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">cudaq.observe</span></code> API is not yet supported on the <code class="code docutils literal notranslate"><span class="pre">braket</span></code> target.</p>
-</div>
-</section>
-</section>
-<section id="infleqtion">
-<h2>Infleqtion<a class="headerlink" href="#infleqtion" title="Permalink to this heading">¶</a></h2>
-<p id="infleqtion-backend">Infleqtion is a quantum hardware provider of gate-based neutral atom quantum computers. Their backends may be
-accessed via <a class="reference external" href="https://superstaq.infleqtion.com/">Superstaq</a>, Infleqtion’s cross-platform software API
-that performs low-level compilation and cross-layer optimization. To get started users can create a Superstaq
-account by following <a class="reference external" href="https://superstaq.readthedocs.io/en/latest/get_started/credentials.html">these instructions</a>.</p>
-<p>For access to Infleqtion’s neutral atom quantum computer, Sqale,
-<a class="reference external" href="https://www.infleqtion.com/sqale-preregistration">pre-registration</a> is now open.</p>
-<section id="id1">
-<h3>Setting Credentials<a class="headerlink" href="#id1" title="Permalink to this heading">¶</a></h3>
-<p>Programmers of CUDA-Q may access Infleqtion backends from either C++ or Python. Generate
-an API key from your <a class="reference external" href="https://superstaq.infleqtion.com/profile">Superstaq account</a> and export
-it as an environment variable:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">SUPERSTAQ_API_KEY</span><span class="o">=</span><span class="s2">&quot;superstaq_api_key&quot;</span>
-</pre></div>
-</div>
-</section>
-<section id="id2">
-<h3>Submission from C++<a class="headerlink" href="#id2" title="Permalink to this heading">¶</a></h3>
-<p>To target quantum kernel code for execution on Infleqtion’s backends,
-pass the flag <code class="docutils literal notranslate"><span class="pre">--target</span> <span class="pre">infleqtion</span></code> to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>infleqtion<span class="w"> </span>src.cpp
-</pre></div>
-</div>
-<p>This will take the API key and handle all authentication with, and submission to, Infleqtion’s QPU
-(or simulator). By default, quantum kernel code will be submitted to Infleqtion’s Sqale
-simulator.</p>
-<p>To execute your kernels on a QPU, pass the <code class="docutils literal notranslate"><span class="pre">--infleqtion-machine</span></code> flag to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler
-to specify which machine to submit quantum kernels to:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>infleqtion<span class="w"> </span>--infleqtion-machine<span class="w"> </span>cq_sqale_qpu<span class="w"> </span>src.cpp<span class="w"> </span>...
-</pre></div>
-</div>
-<p>where <code class="docutils literal notranslate"><span class="pre">cq_sqale_qpu</span></code> is an example of a physical QPU.</p>
-<p>To run an ideal dry-run execution on the QPU, additionally pass <code class="docutils literal notranslate"><span class="pre">dry-run</span></code> with the <code class="docutils literal notranslate"><span class="pre">--infleqtion-method</span></code>
-flag to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>infleqtion<span class="w"> </span>--infleqtion-machine<span class="w"> </span>cq_sqale_qpu<span class="w"> </span>--infleqtion-method<span class="w"> </span>dry-run<span class="w"> </span>src.cpp<span class="w"> </span>...
-</pre></div>
-</div>
-<p>To noisily simulate the QPU instead, pass <code class="docutils literal notranslate"><span class="pre">noise-sim</span></code> to the <code class="docutils literal notranslate"><span class="pre">--infleqtion-method</span></code> flag like so:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>infleqtion<span class="w"> </span>--infleqtion-machine<span class="w"> </span>cq_sqale_qpu<span class="w"> </span>--infleqtion-method<span class="w"> </span>noise-sim<span class="w"> </span>src.cpp<span class="w"> </span>...
-</pre></div>
-</div>
-<p>Alternatively, to emulate the Infleqtion machine locally, without submitting through the cloud,
-you can also pass the <code class="docutils literal notranslate"><span class="pre">--emulate</span></code> flag to <code class="docutils literal notranslate"><span class="pre">nvq++</span></code>. This will emit any target
-specific compiler diagnostics, before running a noise free emulation.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--emulate<span class="w"> </span>--target<span class="w"> </span>infleqtion<span class="w"> </span>src.cpp
-</pre></div>
-</div>
-<p>To see a complete example for using Infleqtion’s backends, take a look at our <a class="reference internal" href="../examples/examples.html"><span class="doc">C++ examples</span></a>.</p>
-</section>
-<section id="id3">
-<h3>Submission from Python<a class="headerlink" href="#id3" title="Permalink to this heading">¶</a></h3>
-<p>The target to which quantum kernels are submitted
-can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq::set_target()</span></code> function.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;infleqtion&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>By default, quantum kernel code will be submitted to Infleqtion’s Sqale
-simulator.</p>
-<p>To specify which Infleqtion QPU to use, set the <code class="code docutils literal notranslate"><span class="pre">machine</span></code> parameter.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;infleqtion&quot;</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s2">&quot;cq_sqale_qpu&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>where <code class="docutils literal notranslate"><span class="pre">cq_sqale_qpu</span></code> is an example of a physical QPU.</p>
-<p>To run an ideal dry-run execution of the QPU, additionally set the <code class="docutils literal notranslate"><span class="pre">method</span></code> flag to <code class="docutils literal notranslate"><span class="pre">&quot;dry-run&quot;</span></code>.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;infleqtion&quot;</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s2">&quot;cq_sqale_qpu&quot;</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;dry-run&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>To noisily simulate the QPU instead, set the <code class="docutils literal notranslate"><span class="pre">method</span></code> flag to <code class="docutils literal notranslate"><span class="pre">&quot;noise-sim&quot;</span></code>.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;infleqtion&quot;</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s2">&quot;cq_sqale_qpu&quot;</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;noise-sim&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>Alternatively, to emulate the Infleqtion machine locally, without submitting through the cloud,
-you can also set the <code class="docutils literal notranslate"><span class="pre">emulate</span></code> flag to <code class="docutils literal notranslate"><span class="pre">True</span></code>. This will emit any target
-specific compiler diagnostics, before running a noise free emulation.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;infleqtion&quot;</span><span class="p">,</span> <span class="n">emulate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>The number of shots for a kernel execution can be set through
-the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code> argument to <code class="docutils literal notranslate"><span class="pre">cudaq.sample</span></code> or <code class="docutils literal notranslate"><span class="pre">cudaq.observe</span></code>. By default,
-the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code> is set to 1000.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>To see a complete example for using Infleqtion’s backends, take a look at our <a class="reference internal" href="../examples/examples.html"><span class="doc">Python examples</span></a>.
-Moreover, for an end-to-end application workflow example executed on the Infleqtion QPU, take a look at the
-<a class="reference internal" href="../applications.html"><span class="doc">Anderson Impurity Model ground state solver</span></a> notebook.</p>
-</section>
-</section>
-<section id="ionq">
-<h2>IonQ<a class="headerlink" href="#ionq" title="Permalink to this heading">¶</a></h2>
-<section id="ionq-backend">
-<span id="id4"></span><h3>Setting Credentials<a class="headerlink" href="#ionq-backend" title="Permalink to this heading">¶</a></h3>
-<p>Programmers of CUDA-Q may access the <a class="reference external" href="https://cloud.ionq.com/">IonQ Quantum Cloud</a> from either C++ or Python. Generate
-an API key from your <a class="reference external" href="https://cloud.ionq.com/">IonQ account</a> and export
-it as an environment variable:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">IONQ_API_KEY</span><span class="o">=</span><span class="s2">&quot;ionq_generated_api_key&quot;</span>
-</pre></div>
-</div>
-</section>
-<section id="id5">
-<h3>Submission from C++<a class="headerlink" href="#id5" title="Permalink to this heading">¶</a></h3>
-<p>To target quantum kernel code for execution in the IonQ Cloud,
-pass the flag <code class="docutils literal notranslate"><span class="pre">--target</span> <span class="pre">ionq</span></code> to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>ionq<span class="w"> </span>src.cpp
-</pre></div>
-</div>
-<p>This will take the API key and handle all authentication with, and submission to,
-the IonQ QPU(s). By default, quantum kernel code will be submitted to the IonQ
-simulator.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>A “target” in <code class="code docutils literal notranslate"><span class="pre">cudaq</span></code> refers to a quantum compute provider, such as <code class="code docutils literal notranslate"><span class="pre">ionq</span></code>.
-However, IonQ’s documentation uses the term “target” to refer to specific QPU’s themselves.</p>
-</div>
-<p>To execute your kernels on a QPU, pass the <code class="docutils literal notranslate"><span class="pre">--ionq-machine</span></code> flag to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler
-to specify which machine to submit quantum kernels to:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>ionq<span class="w"> </span>--ionq-machine<span class="w"> </span>qpu.aria-1<span class="w"> </span>src.cpp<span class="w"> </span>...
-</pre></div>
-</div>
-<p>where <code class="docutils literal notranslate"><span class="pre">qpu.aria-1</span></code> is an example of a physical QPU.</p>
-<p>A list of available QPUs can be found <a class="reference external" href="https://docs.ionq.com/#tag/jobs">in the API documentation</a>. To see which backends are available
-with your subscription login to your <a class="reference external" href="https://cloud.ionq.com/jobs">IonQ account</a>.</p>
-<p>To emulate the IonQ machine locally, without submitting through the cloud,
-you can also pass the <code class="docutils literal notranslate"><span class="pre">--emulate</span></code> flag to <code class="docutils literal notranslate"><span class="pre">nvq++</span></code>. This will emit any target
-specific compiler diagnostics, before running a noise free emulation.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--emulate<span class="w"> </span>--target<span class="w"> </span>ionq<span class="w"> </span>src.cpp
-</pre></div>
-</div>
-<p>To see a complete example for using IonQ’s backends, take a look at our <a class="reference internal" href="../examples/examples.html"><span class="doc">C++ examples</span></a>.</p>
-</section>
-<section id="id6">
-<h3>Submission from Python<a class="headerlink" href="#id6" title="Permalink to this heading">¶</a></h3>
-<p>The target to which quantum kernels are submitted
-can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq::set_target()</span></code> function.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;ionq&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>By default, quantum kernel code will be submitted to the IonQ
-simulator.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>A “target” in <code class="code docutils literal notranslate"><span class="pre">cudaq</span></code> refers to a quantum compute provider, such as <code class="code docutils literal notranslate"><span class="pre">ionq</span></code>.
-However, IonQ’s documentation uses the term “target” to refer to specific QPU’s themselves.</p>
-</div>
-<p>To specify which IonQ QPU to use, set the <code class="code docutils literal notranslate"><span class="pre">qpu</span></code> parameter.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;ionq&quot;</span><span class="p">,</span> <span class="n">qpu</span><span class="o">=</span><span class="s2">&quot;qpu.aria-1&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>where <code class="docutils literal notranslate"><span class="pre">qpu.aria-1</span></code> is an example of a physical QPU.</p>
-<p>A list of available QPUs can be found <a class="reference external" href="https://docs.ionq.com/#tag/jobs">in the API documentation</a>. To see which backends are available
-with your subscription login to your <a class="reference external" href="https://cloud.ionq.com/jobs">IonQ account</a>.</p>
-<p>To emulate the IonQ machine locally, without submitting through the cloud,
-you can also set the <code class="docutils literal notranslate"><span class="pre">emulate</span></code> flag to <code class="docutils literal notranslate"><span class="pre">True</span></code>. This will emit any target
-specific compiler diagnostics, before running a noise free emulation.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;ionq&#39;</span><span class="p">,</span> <span class="n">emulate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>The number of shots for a kernel execution can be set through
-the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code> argument to <code class="docutils literal notranslate"><span class="pre">cudaq.sample</span></code> or <code class="docutils literal notranslate"><span class="pre">cudaq.observe</span></code>. By default,
-the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code> is set to 1000.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">10000</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>To see a complete example for using IonQ’s backends, take a look at our <a class="reference internal" href="../examples/examples.html"><span class="doc">Python examples</span></a>.</p>
-</section>
-</section>
-<section id="anyon-technologies-anyon-computing">
-<h2>Anyon Technologies/Anyon Computing<a class="headerlink" href="#anyon-technologies-anyon-computing" title="Permalink to this heading">¶</a></h2>
-<section id="anyon-backend">
-<span id="id7"></span><h3>Setting Credentials<a class="headerlink" href="#anyon-backend" title="Permalink to this heading">¶</a></h3>
-<p>Programmers of CUDA-Q may access the Anyon API from either
-C++ or Python. Anyon requires a credential configuration file with username and password.
-The configuration file can be generated as follows, replacing
-the <code class="docutils literal notranslate"><span class="pre">&lt;username&gt;</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;password&gt;</span></code> in the first line with your Anyon Technologies
-account details. The credential in the file will be used by CUDA-Q to login to Anyon quantum services
-and will be updated by CUDA-Q with an obtained API token and refresh token.
-Note, the credential line will be deleted in the updated configuration file.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">echo</span><span class="w"> </span><span class="s1">&#39;credentials: {&quot;username&quot;:&quot;&lt;username&gt;&quot;,&quot;password&quot;:&quot;&lt;password&gt;&quot;}&#39;</span><span class="w"> </span>&gt;<span class="w"> </span><span class="nv">$HOME</span>/.anyon_config
-</pre></div>
-</div>
-<p>Users can also login and get the keys manually using the following commands:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># You may need to run: `apt-get update &amp;&amp; apt-get install curl jq`</span>
-curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>--user<span class="w"> </span><span class="s2">&quot;&lt;username&gt;:&lt;password&gt;&quot;</span><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
-https://api.anyon.cloud:5000/login<span class="w"> </span>&gt;<span class="w"> </span>credentials.json
-<span class="nv">id_token</span><span class="o">=</span><span class="sb">`</span>cat<span class="w"> </span>credentials.json<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;.&quot;id_token&quot;&#39;</span><span class="sb">`</span>
-<span class="nv">refresh_token</span><span class="o">=</span><span class="sb">`</span>cat<span class="w"> </span>credentials.json<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;.&quot;refresh_token&quot;&#39;</span><span class="sb">`</span>
-<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;key: </span><span class="nv">$id_token</span><span class="s2">&quot;</span><span class="w"> </span>&gt;<span class="w"> </span>~/.anyon_config
-<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;refresh: </span><span class="nv">$refresh_token</span><span class="s2">&quot;</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>~/.anyon_config
-</pre></div>
-</div>
-<p>The path to the configuration can be specified as an environment variable:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">CUDAQ_ANYON_CREDENTIALS</span><span class="o">=</span><span class="nv">$HOME</span>/.anyon_config
-</pre></div>
-</div>
-</section>
-<section id="id8">
-<h3>Submission from C++<a class="headerlink" href="#id8" title="Permalink to this heading">¶</a></h3>
-<p>To target quantum kernel code for execution in the Anyon Technologies backends,
-pass the flag <code class="docutils literal notranslate"><span class="pre">--target</span> <span class="pre">anyon</span></code> to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler. CUDA-Q will
-authenticate via the Anyon Technologies REST API using the credential in your configuration file.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>anyon<span class="w"> </span>--&lt;backend-type&gt;<span class="w"> </span>&lt;machine&gt;<span class="w"> </span>src.cpp<span class="w"> </span>...
-</pre></div>
-</div>
-<p>To execute your kernels using Anyon Technologies backends, pass the <code class="docutils literal notranslate"><span class="pre">--anyon-machine</span></code> flag to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler
-as the <code class="docutils literal notranslate"><span class="pre">--&lt;backend-type&gt;</span></code> to specify which machine to submit quantum kernels to:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>anyon<span class="w"> </span>--anyon-machine<span class="w"> </span>telegraph-8q<span class="w"> </span>src.cpp<span class="w"> </span>...
-</pre></div>
-</div>
-<p>where <code class="docutils literal notranslate"><span class="pre">telegraph-8q</span></code> is an example of a physical QPU (Architecture: Telegraph, Qubit Count: 8).</p>
-<p>Currently, <code class="docutils literal notranslate"><span class="pre">telegraph-8q</span></code> and <code class="docutils literal notranslate"><span class="pre">berkeley-25q</span></code> are available for access over CUDA-Q.</p>
-<p>To emulate the Anyon Technologies machine locally, without submitting through the cloud,
-you can also pass the <code class="docutils literal notranslate"><span class="pre">--emulate</span></code> flag as the <code class="docutils literal notranslate"><span class="pre">--&lt;backend-type&gt;</span></code> to <code class="docutils literal notranslate"><span class="pre">nvq++</span></code>. This will emit any target
-specific compiler warnings and diagnostics, before running a noise free emulation.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>anyon<span class="w"> </span>--emulate<span class="w"> </span>src.cpp
-</pre></div>
-</div>
-<p>To see a complete example for using Anyon’s backends, take a look at our <a class="reference internal" href="../examples/examples.html"><span class="doc">C++ examples</span></a>.</p>
-</section>
-<section id="id9">
-<h3>Submission from Python<a class="headerlink" href="#id9" title="Permalink to this heading">¶</a></h3>
-<p>The target to which quantum kernels are submitted
-can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq.set_target()</span></code> function.</p>
-<p>To execute your kernels using Anyon Technologies backends, specify which machine to submit quantum kernels to
-by setting the <code class="code docutils literal notranslate"><span class="pre">machine</span></code> parameter of the target.
-If <code class="code docutils literal notranslate"><span class="pre">machine</span></code> is not specified, the default machine will be <code class="docutils literal notranslate"><span class="pre">telegraph-8q</span></code>.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;anyon&#39;</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s1">&#39;telegraph-8q&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>As shown above, <code class="docutils literal notranslate"><span class="pre">telegraph-8q</span></code> is an example of a physical QPU.</p>
-<p>To emulate the Anyon Technologies machine locally, without submitting through the cloud,
-you can also set the <code class="docutils literal notranslate"><span class="pre">emulate</span></code> flag to <code class="docutils literal notranslate"><span class="pre">True</span></code>. This will emit any target
-specific compiler warnings and diagnostics, before running a noise free emulation.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;anyon&#39;</span><span class="p">,</span> <span class="n">emulate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>The number of shots for a kernel execution can be set through
-the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code> argument to <code class="docutils literal notranslate"><span class="pre">cudaq.sample</span></code> or <code class="docutils literal notranslate"><span class="pre">cudaq.observe</span></code>. By default,
-the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code> is set to 1000.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">10000</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>To see a complete example for using Anyon’s backends, take a look at our <a class="reference internal" href="../examples/examples.html"><span class="doc">Python examples</span></a>.</p>
-</section>
-</section>
-<section id="iqm">
-<h2>IQM<a class="headerlink" href="#iqm" title="Permalink to this heading">¶</a></h2>
-<p id="iqm-backend">Support for submissions to IQM is currently under development.
-In particular, two-qubit gates can only be performed on adjacent qubits. For more information, we refer to the respective hardware documentation.
-Support for automatically injecting the necessary operations during compilation to execute arbitrary multi-qubit gates will be added in future versions.</p>
-<section id="id10">
-<h3>Setting Credentials<a class="headerlink" href="#id10" title="Permalink to this heading">¶</a></h3>
-<p>Programmers of CUDA-Q may access the IQM Server from either C++ or Python. Following the <a class="reference external" href="https://iqm-finland.github.io/cortex-cli/readme.html#using-cortex-cli">quick start guide</a>, install <code class="code docutils literal notranslate"><span class="pre">iqm-cortex-cli</span></code> and login to initialize the tokens file.
-The path to the tokens file can either be passed explicitly via an environment variable or it will be loaded automatically if located in
-the default location <code class="code docutils literal notranslate"><span class="pre">~/.cache/iqm-cortex-cli/tokens.json</span></code>.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">IQM_TOKENS_FILE</span><span class="o">=</span><span class="s2">&quot;path/to/tokens.json&quot;</span>
-</pre></div>
-</div>
-</section>
-<section id="id11">
-<h3>Submission from C++<a class="headerlink" href="#id11" title="Permalink to this heading">¶</a></h3>
-<p>To target quantum kernel code for execution on an IQM Server,
-pass the <code class="docutils literal notranslate"><span class="pre">--target</span> <span class="pre">iqm</span></code> flag to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler, along with a specified <code class="docutils literal notranslate"><span class="pre">--iqm-machine</span></code>.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">--iqm-machine</span></code> is  a mandatory argument. This provided architecture must match
-the device architecture that the program has been compiled against. The hardware architecture for a
-specific IQM Server may be checked  via <code class="code docutils literal notranslate"><span class="pre">https://&lt;IQM</span> <span class="pre">server&gt;/cocos/quantum-architecture</span></code>.</p>
-</div>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>iqm<span class="w"> </span>--iqm-machine<span class="w"> </span>Adonis<span class="w"> </span>src.cpp
-</pre></div>
-</div>
-<p>Once the binary for a specific IQM QPU architecture is compiled, it can be executed against any IQM Server with the same QPU architecture:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>iqm<span class="w"> </span>--iqm-machine<span class="w"> </span>Adonis<span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>program
-<span class="nv">IQM_SERVER_URL</span><span class="o">=</span><span class="s2">&quot;https://demo.qc.iqm.fi/cocos&quot;</span><span class="w"> </span>./program
-
-<span class="c1"># Executing the same program against an IQM Server with a different underlying QPU</span>
-<span class="c1"># architecture will result in an error.</span>
-<span class="nv">IQM_SERVER_URL</span><span class="o">=</span><span class="s2">&quot;https://&lt;Apollo IQM Server&gt;/cocos&quot;</span><span class="w"> </span>./program
-</pre></div>
-</div>
-<p>To emulate the IQM machine locally, without submitting to the IQM Server,
-you can also pass the <code class="docutils literal notranslate"><span class="pre">--emulate</span></code> flag to <code class="docutils literal notranslate"><span class="pre">nvq++</span></code>. This will emit any target
-specific compiler diagnostics, before running a noise free emulation.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--emulate<span class="w"> </span>--target<span class="w"> </span>iqm<span class="w"> </span>--iqm-machine<span class="w"> </span>Adonis<span class="w"> </span>src.cpp
-</pre></div>
-</div>
-<p>To see a complete example for using IQM server backends, take a look at our <a class="reference internal" href="../examples/examples.html"><span class="doc">C++ examples</span></a>.</p>
-</section>
-<section id="id12">
-<h3>Submission from Python<a class="headerlink" href="#id12" title="Permalink to this heading">¶</a></h3>
-<p>The target to which quantum kernels are submitted
-can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq::set_target()</span></code> function.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;iqm&quot;</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="s2">&quot;https://&lt;IQM Server&gt;/cocos&quot;</span><span class="p">,</span> <span class="o">**</span><span class="p">{</span><span class="s2">&quot;qpu-architecture&quot;</span><span class="p">:</span> <span class="s2">&quot;Adonis&quot;</span><span class="p">})</span>
-</pre></div>
-</div>
-<p>To emulate the IQM Server locally, without submitting to the IQM Server,
-you can also set the <code class="docutils literal notranslate"><span class="pre">emulate</span></code> flag to <code class="docutils literal notranslate"><span class="pre">True</span></code>. This will emit any target
-specific compiler diagnostics, before running a noise free emulation.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;iqm&#39;</span><span class="p">,</span> <span class="n">emulate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>The number of shots for a kernel execution can be set through
-the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code> argument to <code class="docutils literal notranslate"><span class="pre">cudaq.sample</span></code> or <code class="docutils literal notranslate"><span class="pre">cudaq.observe</span></code>. By default,
-the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code> is set to 1000.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">10000</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>To see a complete example for using IQM server backends, take a look at our <a class="reference internal" href="../examples/examples.html"><span class="doc">Python examples</span></a>.</p>
-</section>
-</section>
-<section id="oqc">
-<h2>OQC<a class="headerlink" href="#oqc" title="Permalink to this heading">¶</a></h2>
-<p id="oqc-backend"><a class="reference external" href="https://oxfordquantumcircuits.com/">Oxford Quantum Circuits</a> (OQC) is currently providing CUDA-Q integration for multiple Quantum Processing Unit types.
-The 8 qubit ring topology Lucy device and the 32 qubit Kagome lattice topology Toshiko device are both supported via machine options described below.</p>
-<section id="id13">
-<h3>Setting Credentials<a class="headerlink" href="#id13" title="Permalink to this heading">¶</a></h3>
-<p>In order to use the OQC devices you will need to register.
-Registration is achieved by contacting <code class="code docutils literal notranslate"><span class="pre">oqc_qcaas_support&#64;oxfordquantumcircuits.com</span></code>.</p>
-<p>Once registered you will be able to authenticate with your <code class="docutils literal notranslate"><span class="pre">email</span></code> and <code class="docutils literal notranslate"><span class="pre">password</span></code></p>
-<p>There are three environment variables that the OQC target will look for during configuration:</p>
-<ol class="arabic simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">OQC_URL</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">OQC_EMAIL</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">OQC_PASSWORD</span></code> - is mandatory</p></li>
-</ol>
-</section>
-<section id="id14">
-<h3>Submission from C++<a class="headerlink" href="#id14" title="Permalink to this heading">¶</a></h3>
-<p>To target quantum kernel code for execution on the OQC platform, provide the flag <code class="docutils literal notranslate"><span class="pre">--target</span> <span class="pre">oqc</span></code> to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler.</p>
-<p>Users may provide their <code class="code docutils literal notranslate"><span class="pre">email</span></code> and <code class="code docutils literal notranslate"><span class="pre">url</span></code> as extra arguments</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>oqc<span class="w"> </span>--oqc-email<span class="w"> </span>&lt;email&gt;<span class="w"> </span>--oqc-url<span class="w"> </span>&lt;url&gt;<span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>executable
-</pre></div>
-</div>
-<p>Where both environment variables and extra arguments are supplied, precedent is given to the extra arguments.
-To run the output, provide the runtime loaded variables and invoke the pre-built executable</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">OQC_PASSWORD</span><span class="o">=</span>&lt;password&gt;<span class="w"> </span>./executable
-</pre></div>
-</div>
-<p>To emulate the OQC device locally, without submitting through the OQC QCaaS services, you can pass the <code class="docutils literal notranslate"><span class="pre">--emulate</span></code> flag to <code class="docutils literal notranslate"><span class="pre">nvq++</span></code>.
-This will emit any target specific compiler warnings and diagnostics, before running a noise free emulation.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--emulate<span class="w"> </span>--target<span class="w"> </span>oqc<span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>executable
-</pre></div>
-</div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>The oqc target supports a <code class="docutils literal notranslate"><span class="pre">--oqc-machine</span></code> option.
-The default is the 8 qubit Lucy device.
-You can set this to be either <code class="docutils literal notranslate"><span class="pre">toshiko</span></code> or <code class="docutils literal notranslate"><span class="pre">lucy</span></code> via this flag.</p>
-</div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>The OQC quantum assembly toolchain (qat) which is used to compile and execute instructions can be found on github as <a class="reference external" href="https://github.com/oqc-community/qat">oqc-community/qat</a></p>
-</div>
-</section>
-<section id="id15">
-<h3>Submission from Python<a class="headerlink" href="#id15" title="Permalink to this heading">¶</a></h3>
-<p>To set which OQC URL, set the <code class="code docutils literal notranslate"><span class="pre">url</span></code> parameter.
-To set which OQC email, set the <code class="code docutils literal notranslate"><span class="pre">email</span></code> parameter.
-To set which OQC machine, set the <code class="code docutils literal notranslate"><span class="pre">machine</span></code> parameter.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
-<span class="c1"># ...</span>
-<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;OQC_PASSWORD&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">password</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;oqc&quot;</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="n">url</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s2">&quot;lucy&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>You can then execute a kernel against the platform using the OQC Lucy device</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
-<span class="n">qvec</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qvec</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">qvec</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qvec</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qvec</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qvec</span><span class="p">)</span>
-<span class="nb">str</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="o">=</span><span class="n">kernel</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">))</span>
-</pre></div>
-</div>
-</section>
-</section>
-<section id="orca-computing">
-<h2>ORCA Computing<a class="headerlink" href="#orca-computing" title="Permalink to this heading">¶</a></h2>
-<p id="orca-backend">ORCA Computing’s PT Series implement the boson sampling model of quantum computation, in which
-multiple single photons are interfered with each other within a network of beam splitters, and
-photon detectors measure where the photons leave this network. This process is implemented within
-a time-bin interferometer (TBI) architecture where photons are created in different time-bins
-and interfered within a network of delay lines. This can be represented by a circuit diagram,
-like the one below, where this illustration example corresponds to 4 photons in 8 modes sent into
-alternating time-bins in a circuit composed of two delay lines in series.</p>
-<a class="reference internal image-reference" href="../../_images/orca_tbi.png"><img alt="../../_images/orca_tbi.png" class="align-center" src="../../_images/orca_tbi.png" style="width: 400px;" /></a>
-<section id="id16">
-<h3>Setting Credentials<a class="headerlink" href="#id16" title="Permalink to this heading">¶</a></h3>
-<p>Programmers of CUDA-Q may access the ORCA API from either C++ or Python. There is an environment
-variable <code class="docutils literal notranslate"><span class="pre">ORCA_ACCESS_URL</span></code> that can be set so that the ORCA target can look for it during
-configuration.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">ORCA_ACCESS_URL</span><span class="o">=</span><span class="s2">&quot;https://&lt;ORCA API Server&gt;&quot;</span>
-</pre></div>
-</div>
-<p>Sometimes the requests to the PT-1 require an authentication token. This token can be set as an
-environment variable named <code class="docutils literal notranslate"><span class="pre">ORCA_AUTH_TOKEN</span></code>. For example, if the token is <code class="code docutils literal notranslate"><span class="pre">AbCdEf123456</span></code>,
-you can set the environment variable as follows:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">ORCA_AUTH_TOKEN</span><span class="o">=</span><span class="s2">&quot;AbCdEf123456&quot;</span>
-</pre></div>
-</div>
-</section>
-<section id="id17">
-<h3>Submission from C++<a class="headerlink" href="#id17" title="Permalink to this heading">¶</a></h3>
-<p>To execute a boson sampling experiment on the ORCA platform, provide the flag
-<code class="docutils literal notranslate"><span class="pre">--target</span> <span class="pre">orca</span></code> to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler. You should then pass the <code class="docutils literal notranslate"><span class="pre">--orca-url</span></code> flag set with
-the previously set environment variable <code class="docutils literal notranslate"><span class="pre">$ORCA_ACCESS_URL</span></code> or an <code class="code docutils literal notranslate"><span class="pre">url</span></code>.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>orca<span class="w"> </span>--orca-url<span class="w"> </span><span class="nv">$ORCA_ACCESS_URL</span><span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>executable
-</pre></div>
-</div>
-<p>or</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>orca<span class="w"> </span>--orca-url<span class="w"> </span>&lt;url&gt;<span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>executable
-</pre></div>
-</div>
-<p>To run the output, invoke the executable</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./executable
-</pre></div>
-</div>
-<p>To see a complete example for using ORCA server backends, take a look at our <a class="reference internal" href="../examples/hardware_providers.html"><span class="doc">C++ examples</span></a>.</p>
-</section>
-<section id="id18">
-<h3>Submission from Python<a class="headerlink" href="#id18" title="Permalink to this heading">¶</a></h3>
-<p>To set which ORCA URL to be used, set the <code class="code docutils literal notranslate"><span class="pre">url</span></code> parameter.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
-<span class="c1"># ...</span>
-<span class="n">orca_url</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;ORCA_ACCESS_URL&quot;</span><span class="p">,</span> <span class="s2">&quot;http://localhost/sample&quot;</span><span class="p">)</span>
-
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;orca&quot;</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="n">orca_url</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>You can then execute a time-bin boson sampling experiment against the platform using an ORCA device.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">bs_angles</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">3</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">6</span><span class="p">]</span>
-<span class="n">input_state</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
-<span class="n">loop_lengths</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-<span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">orca</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">input_state</span><span class="p">,</span> <span class="n">loop_lengths</span><span class="p">,</span> <span class="n">bs_angles</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>To see a complete example for using ORCA’s backends, take a look at our <a class="reference internal" href="../examples/hardware_providers.html"><span class="doc">Python examples</span></a>.</p>
-</section>
-</section>
-<section id="quantinuum">
-<h2>Quantinuum<a class="headerlink" href="#quantinuum" title="Permalink to this heading">¶</a></h2>
-<section id="quantinuum-backend">
-<span id="id19"></span><h3>Setting Credentials<a class="headerlink" href="#quantinuum-backend" title="Permalink to this heading">¶</a></h3>
-<p>Programmers of CUDA-Q may access the Quantinuum API from either
-C++ or Python. Quantinuum requires a credential configuration file.
-The configuration file can be generated as follows, replacing
-the <code class="docutils literal notranslate"><span class="pre">email</span></code> and <code class="docutils literal notranslate"><span class="pre">credentials</span></code> in the first line with your Quantinuum
-account details.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># You may need to run: `apt-get update &amp;&amp; apt-get install curl jq`</span>
-curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Content Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>-d<span class="w"> </span><span class="s1">&#39;{ &quot;email&quot;:&quot;&lt;your_alias&gt;@email.com&quot;,&quot;password&quot;:&quot;&lt;your_password&gt;&quot; }&#39;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>https://qapi.quantinuum.com/v1/login<span class="w"> </span>&gt;<span class="w"> </span><span class="nv">$HOME</span>/credentials.json
-<span class="nv">id_token</span><span class="o">=</span><span class="sb">`</span>cat<span class="w"> </span><span class="nv">$HOME</span>/credentials.json<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;.&quot;id-token&quot;&#39;</span><span class="sb">`</span>
-<span class="nv">refresh_token</span><span class="o">=</span><span class="sb">`</span>cat<span class="w"> </span><span class="nv">$HOME</span>/credentials.json<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;.&quot;refresh-token&quot;&#39;</span><span class="sb">`</span>
-<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;key: </span><span class="nv">$id_token</span><span class="s2">&quot;</span><span class="w"> </span>&gt;&gt;<span class="w"> </span><span class="nv">$HOME</span>/.quantinuum_config
-<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;refresh: </span><span class="nv">$refresh_token</span><span class="s2">&quot;</span><span class="w"> </span>&gt;&gt;<span class="w"> </span><span class="nv">$HOME</span>/.quantinuum_config
-</pre></div>
-</div>
-<p>The path to the configuration can be specified as an environment variable:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">CUDAQ_QUANTINUUM_CREDENTIALS</span><span class="o">=</span><span class="nv">$HOME</span>/.quantinuum_config
-</pre></div>
-</div>
-</section>
-<section id="id20">
-<h3>Submission from C++<a class="headerlink" href="#id20" title="Permalink to this heading">¶</a></h3>
-<p>To target quantum kernel code for execution in the Quantinuum backends,
-pass the flag <code class="docutils literal notranslate"><span class="pre">--target</span> <span class="pre">quantinuum</span></code> to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler. CUDA-Q will
-authenticate via the Quantinuum REST API using the credential in your configuration file.
-By default, quantum kernel code will be submitted to the Quantinuum syntax checker.
-Submission to the syntax checker merely validates the program; the kernels are not executed.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>quantinuum<span class="w"> </span>src.cpp<span class="w"> </span>...
-</pre></div>
-</div>
-<p>To execute your kernels, pass the <code class="docutils literal notranslate"><span class="pre">--quantinuum-machine</span></code> flag to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler
-to specify which machine to submit quantum kernels to:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>quantinuum<span class="w"> </span>--quantinuum-machine<span class="w"> </span>H1-2<span class="w"> </span>src.cpp<span class="w"> </span>...
-</pre></div>
-</div>
-<p>where <code class="docutils literal notranslate"><span class="pre">H1-2</span></code> is an example of a physical QPU. Hardware specific
-emulators may be accessed by appending an <code class="docutils literal notranslate"><span class="pre">E</span></code> to the end (e.g, <code class="docutils literal notranslate"><span class="pre">H1-2E</span></code>). For
-access to the syntax checker for the provided machine, you may append an <code class="docutils literal notranslate"><span class="pre">SC</span></code>
-to the end (e.g, <code class="docutils literal notranslate"><span class="pre">H1-1SC</span></code>).</p>
-<p>For a comprehensive list of available machines, login to your <a class="reference external" href="https://um.qapi.quantinuum.com/user">Quantinuum user account</a>
-and navigate to the “Account” tab, where you should find a table titled “Machines”.</p>
-<p>To emulate the Quantinuum machine locally, without submitting through the cloud,
-you can also pass the <code class="docutils literal notranslate"><span class="pre">--emulate</span></code> flag to <code class="docutils literal notranslate"><span class="pre">nvq++</span></code>. This will emit any target
-specific compiler warnings and diagnostics, before running a noise free emulation.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--emulate<span class="w"> </span>--target<span class="w"> </span>quantinuum<span class="w"> </span>src.cpp
-</pre></div>
-</div>
-<p>To see a complete example for using Quantinuum’s backends, take a look at our <a class="reference internal" href="../examples/examples.html"><span class="doc">C++ examples</span></a>.</p>
-</section>
-<section id="id21">
-<h3>Submission from Python<a class="headerlink" href="#id21" title="Permalink to this heading">¶</a></h3>
-<p>The target to which quantum kernels are submitted
-can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq::set_target()</span></code> function.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;quantinuum&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>By default, quantum kernel code will be submitted to the Quantinuum syntax checker.
-Submission to the syntax checker merely validates the program; the kernels are not executed.</p>
-<p>To execute your kernels, specify which machine to submit quantum kernels to
-by setting the <code class="code docutils literal notranslate"><span class="pre">machine</span></code> parameter of the target.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;quantinuum&#39;</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s1">&#39;H1-2&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>where <code class="docutils literal notranslate"><span class="pre">H1-2</span></code> is an example of a physical QPU. Hardware specific
-emulators may be accessed by appending an <code class="docutils literal notranslate"><span class="pre">E</span></code> to the end (e.g, <code class="docutils literal notranslate"><span class="pre">H1-2E</span></code>). For
-access to the syntax checker for the provided machine, you may append an <code class="docutils literal notranslate"><span class="pre">SC</span></code>
-to the end (e.g, <code class="docutils literal notranslate"><span class="pre">H1-1SC</span></code>).</p>
-<p>For a comprehensive list of available machines, login to your <a class="reference external" href="https://um.qapi.quantinuum.com/user">Quantinuum user account</a>
-and navigate to the “Account” tab, where you should find a table titled “Machines”.</p>
-<p>To emulate the Quantinuum machine locally, without submitting through the cloud,
-you can also set the <code class="docutils literal notranslate"><span class="pre">emulate</span></code> flag to <code class="docutils literal notranslate"><span class="pre">True</span></code>. This will emit any target
-specific compiler warnings and diagnostics, before running a noise free emulation.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;quantinuum&#39;</span><span class="p">,</span> <span class="n">emulate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>The number of shots for a kernel execution can be set through
-the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code> argument to <code class="docutils literal notranslate"><span class="pre">cudaq.sample</span></code> or <code class="docutils literal notranslate"><span class="pre">cudaq.observe</span></code>. By default,
-the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code> is set to 1000.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">10000</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>To see a complete example for using Quantinuum’s backends, take a look at our <a class="reference internal" href="../examples/examples.html"><span class="doc">Python examples</span></a>.</p>
-</section>
-</section>
-<section id="quera-computing">
-<h2>QuEra Computing<a class="headerlink" href="#quera-computing" title="Permalink to this heading">¶</a></h2>
-<section id="quera-backend">
-<span id="id22"></span><h3>Setting Credentials<a class="headerlink" href="#quera-backend" title="Permalink to this heading">¶</a></h3>
-<p>Programmers of CUDA-Q may access Aquila, QuEra’s first generation of quantum
-processing unit (QPU) via Amazon Braket. Hence, users must first enable Braket by
-following <a class="reference external" href="https://docs.aws.amazon.com/braket/latest/developerguide/braket-enable-overview.html">these instructions</a>.
-Then set credentials using any of the documented <a class="reference external" href="https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html">methods</a>.
-One of the simplest ways is to use <a class="reference external" href="https://aws.amazon.com/cli/">AWS CLI</a>.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>aws<span class="w"> </span>configure
-</pre></div>
-</div>
-<p>Alternatively, users can set the following environment variables.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">AWS_DEFAULT_REGION</span><span class="o">=</span><span class="s2">&quot;us-east-1&quot;</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">AWS_ACCESS_KEY_ID</span><span class="o">=</span><span class="s2">&quot;&lt;key_id&gt;&quot;</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">AWS_SECRET_ACCESS_KEY</span><span class="o">=</span><span class="s2">&quot;&lt;access_key&gt;&quot;</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">AWS_SESSION_TOKEN</span><span class="o">=</span><span class="s2">&quot;&lt;token&gt;&quot;</span>
-</pre></div>
-</div>
-</section>
-<section id="id23">
-<h3>Submission from C++<a class="headerlink" href="#id23" title="Permalink to this heading">¶</a></h3>
-<p>Not yet supported.</p>
-</section>
-<section id="id24">
-<h3>Submission from Python<a class="headerlink" href="#id24" title="Permalink to this heading">¶</a></h3>
-<p>The target to which quantum kernels are submitted
-can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq::set_target()</span></code> function.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;quera&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>By default, analog Hamiltonian will be submitted to the Aquila system.</p>
-<p>Aquila is a “field programmable qubit array” operated as an analog
-Hamiltonian simulator on a user-configurable architecture, executing
-programmable coherent quantum dynamics on up to 256 neutral-atom qubits.
-Refer to QuEra’s <a class="reference external" href="https://cdn.prod.website-files.com/643b94c382e84463a9e52264/648f5bf4d19795aaf36204f7_Whitepaper%20June%2023.pdf">whitepaper</a> for details.</p>
-<p>Due to the nature of the underlying hardware, this target only supports the
-<code class="docutils literal notranslate"><span class="pre">evolve</span></code> and <code class="docutils literal notranslate"><span class="pre">evolve_async</span></code> APIs.
-The <code class="code docutils literal notranslate"><span class="pre">hamiltonian</span></code> must be an <code class="code docutils literal notranslate"><span class="pre">Operator</span></code> of the type <code class="code docutils literal notranslate"><span class="pre">RydbergHamiltonian</span></code>. Only
-other parameters supported are <code class="code docutils literal notranslate"><span class="pre">schedule</span></code> (mandatory) and <code class="code docutils literal notranslate"><span class="pre">shots_count</span></code> (optional).</p>
-<p>For example,</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">evolution_result</span> <span class="o">=</span> <span class="n">evolve</span><span class="p">(</span><span class="n">RydbergHamiltonian</span><span class="p">(</span><span class="n">atom_sites</span><span class="o">=</span><span class="n">register</span><span class="p">,</span>
-                                             <span class="n">amplitude</span><span class="o">=</span><span class="n">omega</span><span class="p">,</span>
-                                             <span class="n">phase</span><span class="o">=</span><span class="n">phi</span><span class="p">,</span>
-                                             <span class="n">delta_global</span><span class="o">=</span><span class="n">delta</span><span class="p">),</span>
-                           <span class="n">schedule</span><span class="o">=</span><span class="n">schedule</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>The number of shots for a kernel execution can be set through the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code>
-argument to <code class="docutils literal notranslate"><span class="pre">evolve</span></code> or <code class="docutils literal notranslate"><span class="pre">evolve_async</span></code>. By default, the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code> is
-set to 100.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">RydbergHamiltonian</span><span class="p">(</span><span class="o">...</span><span class="p">),</span> <span class="n">schedule</span><span class="o">=</span><span class="n">s</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>To see a complete example for using QuEra’s backend, take a look at our <a class="reference internal" href="../examples/hardware_providers.html"><span class="doc">Python examples</span></a>.</p>
-</section>
-</section>
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="simulators.html" class="btn btn-neutral float-left" title="CUDA-Q Simulation Backends" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="nvqc.html" class="btn btn-neutral float-right" title="NVIDIA Quantum Cloud" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="sims/photonics.html" class="btn btn-neutral float-left" title="Photonics Simulators" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="hardware/iontrap.html" class="btn btn-neutral float-right" title="Ion Trap" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
