@@ -1029,7 +1029,7 @@ void generalizedInvokeWithRotationsControlsTargets(
     controls[i] = va_arg(args, Qubit *);
   }
   for (i = 0; i < numControlQubitOperands; ++i) {
-    arrayAndLength[i] = 0;
+    arrayAndLength[numControlArrayOperands + i] = 0;
     controls[numControlArrayOperands + i] = va_arg(args, Qubit *);
   }
   for (i = 0; i < numTargetOperands; ++i)
