@@ -655,18 +655,15 @@ protected:
   void flushAnySamplingTasks(bool force = false) {
     if (force && supportsBufferedSample &&
         executionContext->explicitMeasurements) {
-      int nShots = executionContext->hasConditionalsOnMeasureResults
-                       ? 1
-                       : executionContext->shots;
       if (!sampleQubits.empty()) {
         // We have a few more qubits to be sampled. Call sample on the subclass,
         // but there is no need to save the results this time.
-        sample(sampleQubits, nShots);
+        sample(sampleQubits, executionContext->shots);
         sampleQubits.clear();
       }
       // OK, now we're ready to grab the buffered sample results for the entire
       // execution context.
-      auto execResult = sample(sampleQubits, nShots);
+      auto execResult = sample(sampleQubits, executionContext->shots);
       executionContext->result.append(execResult);
       return;
     }
@@ -690,9 +687,7 @@ protected:
 
     // Ask the subtype to sample the current state
     auto execResult =
-        sample(sampleQubits, executionContext->hasConditionalsOnMeasureResults
-                                 ? 1
-                                 : executionContext->shots);
+        sample(sampleQubits, executionContext->shots);
 
     if (registerNameToMeasuredQubit.empty()) {
       executionContext->result.append(execResult,
