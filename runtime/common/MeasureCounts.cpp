@@ -271,6 +271,8 @@ sample_result &sample_result::operator+=(const sample_result &other) {
                                  otherResults.second.sequentialData.begin(),
                                  otherResults.second.sequentialData.end());
     }
+    if (regName == GlobalRegisterName)
+      totalShots += other.totalShots;
   }
   return *this;
 }
@@ -426,6 +428,7 @@ std::vector<std::string> sample_result::register_names() const {
   std::vector<std::string> ret;
   for (auto &kv : sampleResults)
     ret.push_back(kv.first);
+  std::sort(ret.begin(), ret.end());
 
   return ret;
 }

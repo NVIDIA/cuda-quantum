@@ -97,6 +97,25 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   platform.set_current_qpu(qpu_id);
   auto hasCondFeedback = platform.supports_conditional_feedback();
 
+  // Loop until all shots are returned. FIXME: handle efficiency later.
+  cudaq::sample_result counts;
+  while (counts.getTotalShots() < static_cast<std::size_t>(shots)) {
+    wrappedKernel();
+    platform.reset_exec_ctx(qpu_id);
+    counts += ctx->result;
+    ctx->result.clear();
+    // Reset the context for the next round,
+    // don't need to reset on the last exec
+    if (counts.getTotalShots() < static_cast<std::size_t>(shots)) {
+      platform.set_exec_ctx(ctx.get(), qpu_id);
+    }
+  }
+  if (futureResult) {
+    *futureResult = ctx->futureResult;
+    return std::nullopt;
+  }
+  return counts;
+
   bool fastExplicitAllowed = [&]() {
     // Handle trivial case where we aren't even doing explicit measurements.
     if (!explicitMeasurements)

@@ -454,6 +454,18 @@ protected:
   /// @brief Get the name of the current circuit being executed.
   std::string getCircuitName() const { return currentCircuitName; }
 
+  /// @brief Get the number of shots to execute (only valid if executionContext
+  /// is set)
+  int getNumShotsToExec() const {
+    if (!executionContext)
+      return 1;
+    if (executionContext->hasConditionalsOnMeasureResults)
+      return 1;
+    if (executionContext->explicitMeasurements && !supportsBufferedSample)
+      return 1;
+    return static_cast<int>(executionContext->shots);
+  }
+
   /// @brief Return the current multi-qubit state dimension
   virtual std::size_t calculateStateDim(const std::size_t numQubits) {
     assert(numQubits < 64);
@@ -655,15 +667,16 @@ protected:
   void flushAnySamplingTasks(bool force = false) {
     if (force && supportsBufferedSample &&
         executionContext->explicitMeasurements) {
+      int nShots = getNumShotsToExec();
       if (!sampleQubits.empty()) {
         // We have a few more qubits to be sampled. Call sample on the subclass,
         // but there is no need to save the results this time.
-        sample(sampleQubits, executionContext->shots);
+        sample(sampleQubits, nShots);
         sampleQubits.clear();
       }
       // OK, now we're ready to grab the buffered sample results for the entire
       // execution context.
-      auto execResult = sample(sampleQubits, executionContext->shots);
+      auto execResult = sample(sampleQubits, nShots);
       executionContext->result.append(execResult);
       return;
     }
@@ -686,8 +699,7 @@ protected:
                 sampleQubits);
 
     // Ask the subtype to sample the current state
-    auto execResult =
-        sample(sampleQubits, executionContext->shots);
+    auto execResult = sample(sampleQubits, getNumShotsToExec());
 
     if (registerNameToMeasuredQubit.empty()) {
       executionContext->result.append(execResult,
