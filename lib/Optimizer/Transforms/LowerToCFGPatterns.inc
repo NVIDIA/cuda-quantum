@@ -47,9 +47,11 @@ public:
   LogicalResult matchAndRewrite(cudaq::cc::IfOp ifOp,
                                 PatternRewriter &rewriter) const override {
 
+    // Bail out on non-constant conditions if we just need to
+    // const-prop if($const).
     if (rewriteOnlyIfConst) {
       auto cond = ifOp.getCondition();
-      if (!isa<arith::ConstantOp>(cond.getDefiningOp()))
+      if (!isa_and_present<arith::ConstantOp>(cond.getDefiningOp()))
         return failure();
     }
 
