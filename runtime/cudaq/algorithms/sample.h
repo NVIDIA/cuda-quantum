@@ -98,7 +98,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   auto hasCondFeedback = platform.supports_conditional_feedback();
 
   // If no conditionals, nothing special to do for library mode
-  if (!ctx->hasConditionalsOnMeasureResults) {
+  if (!ctx->hasConditionalsOnMeasureResults && !explicitMeasurements) {
     // Execute
     wrappedKernel();
 
@@ -119,6 +119,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
     sample_result counts;
 
     // If it has conditionals, loop over individual circuit executions
+    ctx->shots = 1;
     for (auto &i : cudaq::range(shots)) {
       // Run the kernel
       wrappedKernel();

@@ -1508,17 +1508,19 @@ CUDAQ_TEST(BuilderTester, checkExplicitMeasurements) {
       explicit_kernel.reset(q[i]);
   }
 
-  cudaq::sample_options options{.explicit_measurements = true};
+  std::size_t num_shots = 50;
+  cudaq::sample_options options{.shots = num_shots,
+                                .explicit_measurements = true};
   auto counts = cudaq::sample(options, explicit_kernel);
   // counts.dump();
 
-  // With 1000 shots of multiple rounds, we need to see different shot
+  // With many shots of multiple rounds, we need to see different shot
   // measurements.
   EXPECT_GT(counts.to_map().size(), 1);
 
   // Check some lengths
   auto seq = counts.sequential_data();
-  EXPECT_EQ(seq.size(), 1000);
+  EXPECT_EQ(seq.size(), num_shots);
   EXPECT_EQ(seq[0].size(), n_qubits * n_rounds);
 
   // Check that all rounds are in the bell state (all 0's or all 1's)
