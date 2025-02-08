@@ -15,7 +15,10 @@ class RewriteIf : public OpRewritePattern<cudaq::cc::IfOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  explicit RewriteIf(MLIRContext *ctx, bool rewriteOnlyIfConst)
+  explicit RewriteIf(MLIRContext *ctx)
+      : OpRewritePattern(ctx), rewriteOnlyIfConst(false) {}
+
+  RewriteIf(MLIRContext *ctx, bool rewriteOnlyIfConst)
       : OpRewritePattern(ctx), rewriteOnlyIfConst(rewriteOnlyIfConst) {}
 
   /// Rewrites an if construct like
