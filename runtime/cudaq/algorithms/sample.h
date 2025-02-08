@@ -97,8 +97,21 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   platform.set_current_qpu(qpu_id);
   auto hasCondFeedback = platform.supports_conditional_feedback();
 
+  bool fastExplicitAllowed = [&]() {
+    // Handle trivial case where we aren't even doing explicit measurements.
+    if (!explicitMeasurements)
+      return true;
+    // if (auto *sim = cudaq::get_simulator())
+    //   return sim->name() == "stim";
+    // return platform.supports_fast_explicit_measurements();
+    bool isStim = false;
+    if (auto *ch = getenv("BMH_IS_STIM"))
+      isStim = atoi(ch) > 0;
+    return isStim;
+  }();
+
   // If no conditionals, nothing special to do for library mode
-  if (!ctx->hasConditionalsOnMeasureResults && !explicitMeasurements) {
+  if (!ctx->hasConditionalsOnMeasureResults && fastExplicitAllowed) {
     // Execute
     wrappedKernel();
 
