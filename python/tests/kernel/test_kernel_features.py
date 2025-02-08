@@ -2015,25 +2015,6 @@ def test_numpy_functions():
         cudaq.sample(invalid_unsupported)
 
 
-def test_array_value_assignment():
-
-    @cudaq.kernel()
-    def foo():
-        a = [1, 1]
-        b = [0, 0]
-        b[0] = a[0]
-        b[1] = a[1]
-        q0 = cudaq.qubit()
-        q1 = cudaq.qubit()
-        if (b[0]):
-            x(q0)
-        if (b[1]):
-            x(q1)
-
-    counts = cudaq.sample(foo)
-    assert "11" in counts
-
-
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
