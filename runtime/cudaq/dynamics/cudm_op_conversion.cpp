@@ -184,14 +184,17 @@ cudm_op_conversion::evaluate(
           "Failed to allocate GPU memory for tensor_data.");
     }
 
+    std::vector<int32_t> mode_action_duality(
+        mat_op.degrees.size(), CUDENSITYMAT_OPERATOR_SPARSITY_NONE);
+
     HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperator(
         handle_, mat_op.degrees.size(), space_mode_extents.data(),
-        CUDENSITYMAT_OPERATOR_SPARSITY_NONE, 0, nullptr, CUDA_C_64F,
-        tensor_data, callback, &elem_op));
+        CUDENSITYMAT_OPERATOR_SPARSITY_NONE, 0, mode_action_duality.data(),
+        CUDA_C_64F, tensor_data, callback, &elem_op));
 
     HANDLE_CUDM_ERROR(cudensitymatOperatorTermAppendElementaryProduct(
-        handle_, opterm, 1, &elem_op, mat_op.degrees.data(), nullptr,
-        {1.0, 0.0}, {nullptr, nullptr}));
+        handle_, opterm, 1, &elem_op, mat_op.degrees.data(),
+        mode_action_duality.data(), {1.0, 0.0}, {nullptr, nullptr}));
 
     return opterm;
   }
