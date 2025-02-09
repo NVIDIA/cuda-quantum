@@ -95,21 +95,13 @@ Returns:
     ctx.explicitMeasurements = explicit_measurements
     cudaq_runtime.setExecutionContext(ctx)
 
-    platformSupportsConditionalFeedback = cudaq_runtime.supportsConditionalFeedback(
-    )
-    if ctx.hasConditionalsOnMeasureResults and not platformSupportsConditionalFeedback:
-        counts = cudaq_runtime.SampleResult()
-        for i in range(shots_count):
-            kernel(*args)
-            cudaq_runtime.resetExecutionContext()
-            counts += ctx.result
-            ctx.result.clear()
-            if i < shots_count - 1:
-                cudaq_runtime.setExecutionContext(ctx)
-        return counts
-
-    kernel(*args)
-    res = ctx.result
-    cudaq_runtime.resetExecutionContext()
+    counts = cudaq_runtime.SampleResult()
+    while counts.getTotalShots() < shots_count:
+        kernel(*args)
+        cudaq_runtime.resetExecutionContext()
+        counts += ctx.result
+        ctx.result.clear()
+        if counts.getTotalShots() < shots_count:
+            cudaq_runtime.setExecutionContext(ctx)
     cudaq_runtime.unset_noise()
-    return res
+    return counts

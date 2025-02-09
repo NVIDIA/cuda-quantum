@@ -20,6 +20,8 @@ def do_something():
 
 def test_simple_kernel():
 
+    num_shots = 50
+
     @cudaq.kernel
     def explicit_kernel(n_qubits: int, n_rounds: int):
         q = cudaq.qvector(n_qubits)
@@ -30,19 +32,24 @@ def test_simple_kernel():
             mz(q)
             reset(q)
 
-    counts = cudaq.sample(explicit_kernel, 4, 10, explicit_measurements=True)
+    counts = cudaq.sample(explicit_kernel,
+                          4,
+                          10,
+                          explicit_measurements=True,
+                          shots_count=num_shots)
     # counts.dump()
 
-    # With 1000 shots of multiple rounds, we need to see different shot measurements.
+    # With many shots of multiple rounds, we need to see different shot measurements.
     assert len(counts) > 1
 
     seq = counts.get_sequential_data()
-    assert len(seq) == 1000
+    assert len(seq) == num_shots
     assert len(seq[0]) == 40
 
 
 def test_simple_builder():
 
+    num_shots = 50
     n_qubits = 2
     n_rounds = 20
 
@@ -57,14 +64,16 @@ def test_simple_builder():
         for i in range(n_qubits):
             explicit_kernel.reset(q[i])
 
-    counts = cudaq.sample(explicit_kernel, explicit_measurements=True)
+    counts = cudaq.sample(explicit_kernel,
+                          explicit_measurements=True,
+                          shots_count=num_shots)
     # counts.dump()
 
-    # With 1000 shots of multiple rounds, we need to see different shot measurements.
+    # With many shots of multiple rounds, we need to see different shot measurements.
     assert len(counts) > 1
 
     seq = counts.get_sequential_data()
-    assert len(seq) == 1000
+    assert len(seq) == num_shots
     assert len(seq[0]) == n_qubits * n_rounds
 
 
@@ -103,8 +112,7 @@ def test_unsupported_targets(target, env_var):
 
     with pytest.raises(RuntimeError) as e:
         test_simple_kernel()
-    assert "not supported on this target" in repr(
-        e)
+    assert "not supported on this target" in repr(e)
     os.environ.pop(env_var, None)
     cudaq.reset_target()
 
