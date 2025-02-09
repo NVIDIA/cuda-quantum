@@ -95,7 +95,6 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   // Set the platform and the qpu id.
   platform.set_exec_ctx(ctx.get(), qpu_id);
   platform.set_current_qpu(qpu_id);
-  auto hasCondFeedback = platform.supports_conditional_feedback();
 
   // Loop until all shots are returned. FIXME: handle efficiency later.
   cudaq::sample_result counts;
@@ -115,72 +114,6 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
     }
   }
   return counts;
-
-  bool fastExplicitAllowed = [&]() {
-    // Handle trivial case where we aren't even doing explicit measurements.
-    if (!explicitMeasurements)
-      return true;
-    // if (auto *sim = cudaq::get_simulator())
-    //   return sim->name() == "stim";
-    // return platform.supports_fast_explicit_measurements();
-    bool isStim = false;
-    if (auto *ch = getenv("BMH_IS_STIM"))
-      isStim = atoi(ch) > 0;
-    return isStim;
-  }();
-
-  // If no conditionals, nothing special to do for library mode
-  if (!ctx->hasConditionalsOnMeasureResults && fastExplicitAllowed) {
-    // Execute
-    wrappedKernel();
-
-    // If we have a non-null future, set it and return
-    if (futureResult) {
-      *futureResult = ctx->futureResult;
-      return std::nullopt;
-    }
-
-    // otherwise lets reset the context and set the data
-    platform.reset_exec_ctx(qpu_id);
-    return ctx->result;
-  }
-
-  // If the execution backend does not support
-  // sampling with cond feedback, we'll emulate it here
-  if (!hasCondFeedback) {
-    sample_result counts;
-
-    // If it has conditionals, loop over individual circuit executions
-    ctx->shots = 1;
-    for (auto &i : cudaq::range(shots)) {
-      // Run the kernel
-      wrappedKernel();
-      // Reset the context and get the single measure result,
-      // add it to the sample_result and clear the context result
-      platform.reset_exec_ctx(qpu_id);
-      counts += ctx->result;
-      ctx->result.clear();
-      // Reset the context for the next round,
-      // don't need to reset on the last exec
-      if (i < shots - 1)
-        platform.set_exec_ctx(ctx.get(), qpu_id);
-    }
-
-    return counts;
-  }
-
-  // At this point, the kernel has conditional
-  // feedback, but the backend supports it, so
-  // just run the kernel, context will get the sampling results
-  wrappedKernel();
-  // If we have a non-null future, set it and return
-  if (futureResult) {
-    *futureResult = ctx->futureResult;
-    return std::nullopt;
-  }
-
-  platform.reset_exec_ctx(qpu_id);
-  return ctx->result;
 }
 
 /// @brief Take the input KernelFunctor (a lambda that captures runtime
