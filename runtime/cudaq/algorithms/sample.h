@@ -101,6 +101,10 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   cudaq::sample_result counts;
   while (counts.getTotalShots() < static_cast<std::size_t>(shots)) {
     wrappedKernel();
+    if (futureResult) {
+      *futureResult = ctx->futureResult;
+      return std::nullopt;
+    }
     platform.reset_exec_ctx(qpu_id);
     counts += ctx->result;
     ctx->result.clear();
@@ -109,10 +113,6 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
     if (counts.getTotalShots() < static_cast<std::size_t>(shots)) {
       platform.set_exec_ctx(ctx.get(), qpu_id);
     }
-  }
-  if (futureResult) {
-    *futureResult = ctx->futureResult;
-    return std::nullopt;
   }
   return counts;
 
