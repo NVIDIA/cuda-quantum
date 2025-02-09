@@ -19,7 +19,6 @@ cudm_op_conversion::cudm_op_conversion(const cudensitymatHandle_t handle,
                                        const std::map<int, int> &dimensions,
                                        std::shared_ptr<Schedule> schedule)
     : handle_(handle), dimensions_(dimensions), schedule_(schedule) {
-  std::cout << "Handle: " << handle_ << std::endl;
   if (handle_ == nullptr) {
     throw std::runtime_error("Handle cannot be null.");
   }
@@ -29,19 +28,48 @@ cudm_op_conversion::cudm_op_conversion(const cudensitymatHandle_t handle,
   }
 }
 
+std::vector<std::complex<double>> cudm_op_conversion::get_identity_matrix() {
+  std::vector<std::complex<double>> identity_matrix(
+      dimensions_.size() * dimensions_.size(), {0.0, 0.0});
+  for (size_t i = 0; i < dimensions_.size(); i++) {
+    identity_matrix[i * dimensions_.size() + i] = {1.0, 0.0};
+  }
+
+  return identity_matrix;
+}
+
 cudensitymatOperatorTerm_t cudm_op_conversion::_scalar_to_op(
     const cudensitymatWrappedScalarCallback_t &scalar) {
   cudensitymatOperatorTerm_t op_term;
-  HANDLE_CUDM_ERROR(cudensitymatCreateOperatorTerm(handle_, dimensions_.size(),
-                                                   nullptr, &op_term));
+
+  std::vector<int64_t> space_mode_extents;
+  for (const auto &dim : dimensions_) {
+    space_mode_extents.push_back(dim.second);
+  }
+
+  HANDLE_CUDM_ERROR(cudensitymatCreateOperatorTerm(
+      handle_, dimensions_.size(), space_mode_extents.data(), &op_term));
+
+  void *tensor_data = create_array_gpu(get_identity_matrix());
+  if (!tensor_data) {
+    throw std::runtime_error("Failed to allocate GPU memory for tensor_data.");
+  }
+
+  std::vector<int32_t> mode_action_duality(dimensions_.size(),
+                                           CUDENSITYMAT_OPERATOR_SPARSITY_NONE);
 
   cudensitymatElementaryOperator_t identity;
   HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperator(
-      handle_, 1, nullptr, CUDENSITYMAT_OPERATOR_SPARSITY_NONE, 0, nullptr,
-      CUDA_C_64F, nullptr, {nullptr, nullptr}, &identity));
+      handle_, dimensions_.size(), space_mode_extents.data(),
+      CUDENSITYMAT_OPERATOR_SPARSITY_NONE, 0, mode_action_duality.data(),
+      CUDA_C_64F, tensor_data, {nullptr, nullptr}, &identity));
+
+  std::vector<int32_t> states_modes_acted_on(dimensions_.size());
+  std::iota(states_modes_acted_on.begin(), states_modes_acted_on.end(), 0);
 
   HANDLE_CUDM_ERROR(cudensitymatOperatorTermAppendElementaryProduct(
-      handle_, op_term, 1, &identity, nullptr, nullptr, {1.0, 0.0}, scalar));
+      handle_, op_term, 1, &identity, states_modes_acted_on.data(),
+      mode_action_duality.data(), {1.0, 0.0}, scalar));
 
   return op_term;
 }
@@ -53,12 +81,27 @@ cudensitymatOperatorTerm_t cudm_op_conversion::_callback_mult_op(
     throw std::invalid_argument("Invalid operator term (nullptr).");
   }
 
-  cudensitymatOperatorTerm_t new_opterm;
-  HANDLE_CUDM_ERROR(cudensitymatCreateOperatorTerm(handle_, dimensions_.size(),
-                                                   nullptr, &new_opterm));
+  std::vector<int64_t> space_mode_extents;
+  for (const auto &dim : dimensions_) {
+    space_mode_extents.push_back(dim.second);
+  }
 
-  HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(handle_, new_opterm, op, 0,
-                                                   {1.0, 0.0}, scalar));
+  cudensitymatOperatorTerm_t scalar_term = _scalar_to_op(scalar);
+
+  cudensitymatOperatorTerm_t new_opterm;
+  HANDLE_CUDM_ERROR(cudensitymatCreateOperatorTerm(
+      handle_, static_cast<int32_t>(dimensions_.size()),
+      space_mode_extents.data(), &new_opterm));
+
+  std::vector<int32_t> mode_action_duality(dimensions_.size(),
+                                           CUDENSITYMAT_OPERATOR_SPARSITY_NONE);
+
+  HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+      handle_, new_opterm, scalar_term, mode_action_duality.size(), {1.0, 0.0},
+      scalar));
+
+  HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+      handle_, new_opterm, op, mode_action_duality.size(), {1.0, 0.0}, scalar));
 
   return new_opterm;
 }
