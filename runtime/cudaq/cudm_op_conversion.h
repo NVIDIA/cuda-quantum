@@ -23,19 +23,23 @@ public:
 
   // Tensor product of two operator terms
   std::variant<cudensitymatOperatorTerm_t, cudensitymatWrappedScalarCallback_t,
-               double>
+               std::complex<double>>
   tensor(const std::variant<cudensitymatOperatorTerm_t,
-                            cudensitymatWrappedScalarCallback_t, double> &op1,
+                            cudensitymatWrappedScalarCallback_t,
+                            std::complex<double>> &op1,
          const std::variant<cudensitymatOperatorTerm_t,
-                            cudensitymatWrappedScalarCallback_t, double> &op2);
+                            cudensitymatWrappedScalarCallback_t,
+                            std::complex<double>> &op2);
 
   // Multiplication of two operator terms
   std::variant<cudensitymatOperatorTerm_t, cudensitymatWrappedScalarCallback_t,
-               double>
+               std::complex<double>>
   mul(const std::variant<cudensitymatOperatorTerm_t,
-                         cudensitymatWrappedScalarCallback_t, double> &op1,
+                         cudensitymatWrappedScalarCallback_t,
+                         std::complex<double>> &op1,
       const std::variant<cudensitymatOperatorTerm_t,
-                         cudensitymatWrappedScalarCallback_t, double> &op2);
+                         cudensitymatWrappedScalarCallback_t,
+                         std::complex<double>> &op2);
 
   // Addition of two operator terms
   std::variant<cudensitymatOperatorTerm_t, cudensitymatWrappedScalarCallback_t,
@@ -68,5 +72,7 @@ private:
   _wrap_callback_tensor(const matrix_operator &op);
 
   std::vector<std::complex<double>> get_identity_matrix();
+
+  std::vector<int64_t> get_space_mode_extents();
 };
 } // namespace cudaq
