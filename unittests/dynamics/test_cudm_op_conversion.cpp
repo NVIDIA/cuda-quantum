@@ -121,27 +121,67 @@ TEST_F(CuDmOpConversion, AddScalarAndOperator) {
   ASSERT_TRUE(std::holds_alternative<cudensitymatOperatorTerm_t>(final_result));
 }
 
-TEST_F(CuDmOpConversion, TensorProductOfScalars) {
-  auto result = converter->tensor(2.0, 3.0);
-  EXPECT_TRUE(std::holds_alternative<double>(result));
-  EXPECT_EQ(std::get<double>(result), 6.0);
+TEST_F(CuDmOpConversion, AddMatrixOperators) {
+  matrix_operator mat_op1 = mock_matrix_operator("pauli_x", 0);
+  matrix_operator mat_op2 = mock_matrix_operator("pauli_y", 0);
+
+  auto op_result1 = converter->evaluate(mat_op1);
+  auto op_result2 = converter->evaluate(mat_op2);
+
+  auto final_result = converter->add(op_result1, op_result2);
+
+  ASSERT_TRUE(std::holds_alternative<cudensitymatOperatorTerm_t>(final_result));
 }
 
-// TEST_F(CuDmOpConversion, TensorProductScalarAndOperator) {
-//     cudensitymatOperatorTerm_t op_term;
-//     HANDLE_CUDM_ERROR(cudensitymatCreateOperatorTerm(handle,
-//     dimensions.size(), space_mode_extents.data(), &op_term));
+TEST_F(CuDmOpConversion, MultiplyMatrixOperators) {
+  matrix_operator mat_op1 = mock_matrix_operator("pauli_x", 0);
+  matrix_operator mat_op2 = mock_matrix_operator("pauli_y", 0);
 
-//     auto result = converter->tensor(2.0, op_term);
-//     EXPECT_TRUE(std::holds_alternative<cudensitymatOperatorTerm_t>(result));
+  auto op_result1 = converter->evaluate(mat_op1);
+  auto op_result2 = converter->evaluate(mat_op2);
 
-//     HANDLE_CUDM_ERROR(cudensitymatDestroyOperatorTerm(op_term));
-// }
+  auto final_result = converter->mul(op_result1, op_result2);
+
+  ASSERT_TRUE(std::holds_alternative<cudensitymatOperatorTerm_t>(final_result));
+}
+
+TEST_F(CuDmOpConversion, TensorOfMatrixOperators) {
+  matrix_operator mat_op1 = mock_matrix_operator("pauli_x", 0);
+  matrix_operator mat_op2 = mock_matrix_operator("pauli_y", 0);
+
+  auto op_result1 = converter->evaluate(mat_op1);
+  auto op_result2 = converter->evaluate(mat_op2);
+
+  auto final_result = converter->tensor(op_result1, op_result2);
+
+  ASSERT_TRUE(std::holds_alternative<cudensitymatOperatorTerm_t>(final_result));
+}
+
+TEST_F(CuDmOpConversion, TensorProductOfScalars) {
+  auto result = converter->tensor(2.0, 3.0);
+  EXPECT_TRUE(std::holds_alternative<std::complex<double>>(result));
+  std::complex<double> final_result = std::get<std::complex<double>>(result);
+  EXPECT_EQ(final_result.real(), 6);
+  EXPECT_EQ(final_result.imag(), 0);
+}
+
+TEST_F(CuDmOpConversion, TensorProductScalarAndOperator) {
+  cudensitymatOperatorTerm_t op_term;
+  HANDLE_CUDM_ERROR(cudensitymatCreateOperatorTerm(
+      handle, dimensions.size(), space_mode_extents.data(), &op_term));
+
+  auto result = converter->tensor(2.0, op_term);
+  EXPECT_TRUE(std::holds_alternative<cudensitymatOperatorTerm_t>(result));
+
+  HANDLE_CUDM_ERROR(cudensitymatDestroyOperatorTerm(op_term));
+}
 
 TEST_F(CuDmOpConversion, MultiplyOperators) {
-  auto result = converter->mul(2.0, 3.0);
-  EXPECT_TRUE(std::holds_alternative<double>(result));
-  EXPECT_EQ(std::get<double>(result), 6.0);
+  auto result = converter->mul(6.0, 3.0);
+  EXPECT_TRUE(std::holds_alternative<std::complex<double>>(result));
+  std::complex<double> final_result = std::get<std::complex<double>>(result);
+  EXPECT_EQ(final_result.real(), 18);
+  EXPECT_EQ(final_result.imag(), 0);
 }
 
 TEST_F(CuDmOpConversion, MoveSemantics) {
