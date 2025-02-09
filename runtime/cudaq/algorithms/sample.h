@@ -98,7 +98,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
 
   // Loop until all shots are returned. FIXME: handle efficiency later.
   cudaq::sample_result counts;
-  while (counts.getTotalShots() < static_cast<std::size_t>(shots)) {
+  while (counts.get_total_shots() < static_cast<std::size_t>(shots)) {
     wrappedKernel();
     if (futureResult) {
       *futureResult = ctx->futureResult;
@@ -109,7 +109,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
     ctx->result.clear();
     // Reset the context for the next round,
     // don't need to reset on the last exec
-    if (counts.getTotalShots() < static_cast<std::size_t>(shots)) {
+    if (counts.get_total_shots() < static_cast<std::size_t>(shots)) {
       platform.set_exec_ctx(ctx.get(), qpu_id);
     }
   }

@@ -284,7 +284,7 @@ public:
   CountsDictionary::const_iterator end() const { return cend(); }
 
   /// @brief Get the total number of shots in the result
-  std::size_t getTotalShots() const { return totalShots; }
+  std::size_t get_total_shots() const { return totalShots; }
 
   /// @brief Return true if the bit string has even parity
   /// @param bitString

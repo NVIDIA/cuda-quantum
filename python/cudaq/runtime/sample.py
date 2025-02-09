@@ -96,17 +96,17 @@ Returns:
     cudaq_runtime.setExecutionContext(ctx)
 
     counts = cudaq_runtime.SampleResult()
-    while counts.getTotalShots() < shots_count:
+    while counts.get_total_shots() < shots_count:
         kernel(*args)
         cudaq_runtime.resetExecutionContext()
         counts += ctx.result
-        if counts.getTotalShots() == 0:
+        if counts.get_total_shots() == 0:
             print("WARNING: this kernel invocation produced 0 shots worth " +
                   "of results when executed. Exiting shot loop to avoid " +
                   "infinite loop.")
             break
         ctx.result.clear()
-        if counts.getTotalShots() < shots_count:
+        if counts.get_total_shots() < shots_count:
             cudaq_runtime.setExecutionContext(ctx)
     cudaq_runtime.unset_noise()
     return counts
