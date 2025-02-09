@@ -99,7 +99,7 @@ public:
   /// @return The new state after multiplying scalar with the current state.
   cudm_state &operator*=(const std::complex<double> &scalar);
 
-  cudm_state operator*(double scalar) &&;
+  cudm_state operator*(double scalar) const;
 
 private:
   std::vector<std::complex<double>> rawData_;

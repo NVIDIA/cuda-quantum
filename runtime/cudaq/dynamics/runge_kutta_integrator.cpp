@@ -51,31 +51,29 @@ void runge_kutta_integrator::integrate(double target_time) {
 
       this->state += k2;
     } else if (this->substeps_ == 4) {
-      // FIXME: implement it
       // Runge-Kutta method (4th order)
-      // cudm_state k1 = this->stepper->compute(this->state, this->t,
-      // step_size); k1 *= (step_size / 2.0);
+      cudm_state k1 = this->stepper->compute(this->state, this->t, step_size);
+      k1 *= step_size;
 
-      // this->state += k1;
+      this->state += k1 * 0.5;
 
-      // cudm_state k2 = this->stepper->compute(
-      //     this->state, this->t + step_size / 2.0, step_size);
-      // k2 *= (step_size / 2.0);
+      cudm_state k2 = this->stepper->compute(
+          this->state, this->t + step_size / 2.0, step_size);
+      k2 *= step_size;
 
-      // this->state += k2;
+      this->state += k2 * 0.5;
 
-      // cudm_state k3 = this->stepper->compute(
-      //     this->state, this->t + step_size / 2.0, step_size);
-      // k3 *= step_size;
+      cudm_state k3 = this->stepper->compute(
+          this->state, this->t + step_size / 2.0, step_size);
+      k3 *= step_size;
 
-      // this->state += k3;
+      this->state += k3;
 
-      // cudm_state k4 =
-      //     this->stepper->compute(this->state, this->t + step_size,
-      //     step_size);
-      // k4 *= step_size;
+      cudm_state k4 =
+          this->stepper->compute(this->state, this->t + step_size, step_size);
+      k4 *= step_size;
 
-      // this->state += (k1 + ((k2 + k3) * 2.0) + k4) * (1.0 / 6.0);
+      this->state += (k1 + k2 * 2.0 + k3 * 2.0 + k4) * (1.0 / 6.0);
     }
 
     // Update time
