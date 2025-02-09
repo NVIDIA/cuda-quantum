@@ -66,5 +66,7 @@ private:
   cudensitymatWrappedScalarCallback_t _wrap_callback(const scalar_operator &op);
   cudensitymatWrappedTensorCallback_t
   _wrap_callback_tensor(const matrix_operator &op);
+
+  std::vector<std::complex<double>> get_identity_matrix();
 };
 } // namespace cudaq
