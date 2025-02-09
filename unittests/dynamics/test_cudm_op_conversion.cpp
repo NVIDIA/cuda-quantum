@@ -109,17 +109,17 @@ TEST_F(CuDmOpConversion, AddComplexScalars) {
             std::complex<double>(5.0, 0.0));
 }
 
-// TEST_F(CuDmOpConversion, AddScalarAndOperator) {
-//     scalar_operator scalar_op(1.0);
-//     matrix_operator mat_op = mock_matrix_operator("pauli_x", 0);
+TEST_F(CuDmOpConversion, AddScalarAndOperator) {
+  scalar_operator scalar_op(1.0);
+  matrix_operator mat_op = mock_matrix_operator("pauli_x", 0);
 
-//     auto scalar_result = converter->evaluate(scalar_op);
-//     auto op_result = converter->evaluate(mat_op);
+  auto scalar_result = converter->evaluate(scalar_op);
+  auto op_result = converter->evaluate(mat_op);
 
-//     auto final_result = converter->add(scalar_result, op_result);
+  auto final_result = converter->add(scalar_result, op_result);
 
-//     ASSERT_TRUE(std::holds_alternative<cudensitymatOperatorTerm_t>(final_result));
-// }
+  ASSERT_TRUE(std::holds_alternative<cudensitymatOperatorTerm_t>(final_result));
+}
 
 TEST_F(CuDmOpConversion, TensorProductOfScalars) {
   auto result = converter->tensor(2.0, 3.0);
