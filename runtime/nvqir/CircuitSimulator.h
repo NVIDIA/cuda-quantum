@@ -1090,6 +1090,10 @@ public:
           sampleQubits.resize(batchModeCurrentNumQubits);
         else
           sampleQubits.resize(nQubitsAllocated);
+        if (sampleQubits.empty())
+          throw std::runtime_error(
+              "Sampling detected on a kernel with no qubits. Your kernel must "
+              "have qubits to sample it.");
         std::iota(sampleQubits.begin(), sampleQubits.end(), 0);
       }
 
