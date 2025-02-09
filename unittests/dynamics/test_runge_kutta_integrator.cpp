@@ -166,9 +166,7 @@ TEST_F(RungeKuttaIntegratorTest, CheckEvolve) {
   };
   cudaq::matrix_operator::define(op_id, {-1}, func);
 
-  // FIXME: enable all orders
-  // for (int integratorOrder : {1, 2, 4}) {
-  for (int integratorOrder : {1, 2}) {
+  for (int integratorOrder : {1, 2, 4}) {
     std::cout << "Test RK order " << integratorOrder << "\n";
     auto op = cudaq::product_operator<matrix_operator>(
         std::complex<double>{0.0, -1.0} * 2.0 * M_PI * 0.1,

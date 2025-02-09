@@ -181,9 +181,12 @@ cudm_state &cudm_state::operator*=(const std::complex<double> &scalar) {
   return *this;
 }
 
-cudm_state cudm_state::operator*(double scalar) && {
-  this->operator*=(scalar);
-  return std::move(*this);
+cudm_state cudm_state::operator*(double scalar) const {
+  cudm_state result = cudm_state(handle_, rawData_, hilbertSpaceDims_);
+
+  result *= std::complex<double>(scalar, 0.0);
+
+  return result;
 }
 
 std::string cudm_state::dump() const {
