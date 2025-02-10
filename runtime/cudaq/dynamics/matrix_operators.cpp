@@ -6,12 +6,15 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include <complex>
+#include <map>
+#include <vector>
+
+#include "cudaq/utils/tensor.h"
 #include "cudaq/operators.h"
 #include "matrix_operators.h"
 #include "spin_operators.h"
-
-#include <complex>
-#include <set>
+#include "boson_operators.h"
 
 namespace cudaq {
 
@@ -28,14 +31,14 @@ void matrix_operator::define(std::string operator_id, std::vector<int> expected_
   }
 }
 
-product_operator<matrix_operator> matrix_operator::create(std::string operator_id, const std::vector<int> &degrees) {
+product_operator<matrix_operator> matrix_operator::instantiate(std::string operator_id, const std::vector<int> &degrees) {
   auto it = matrix_operator::m_ops.find(operator_id);
   if (it == matrix_operator::m_ops.end()) 
     throw std::range_error("not matrix operator with the name '" + operator_id + "' has been defined");
   return product_operator(matrix_operator(operator_id, degrees));
 }
 
-product_operator<matrix_operator> matrix_operator::create(std::string operator_id, std::vector<int> &&degrees) {
+product_operator<matrix_operator> matrix_operator::instantiate(std::string operator_id, std::vector<int> &&degrees) {
   auto it = matrix_operator::m_ops.find(operator_id);
   if (it == matrix_operator::m_ops.end()) 
     throw std::range_error("not matrix operator with the name '" + operator_id + "' has been defined");
@@ -83,6 +86,7 @@ matrix_operator::matrix_operator(const T &other) {
 }
 
 template matrix_operator::matrix_operator(const spin_operator &other);
+template matrix_operator::matrix_operator(const boson_operator &other);
 
 matrix_operator::matrix_operator(const matrix_operator &other)
   : targets(other.targets), id(other.id) {}
@@ -107,6 +111,7 @@ matrix_operator& matrix_operator::operator=(const T& other) {
 }
 
 template matrix_operator& matrix_operator::operator=(const spin_operator& other);
+template matrix_operator& matrix_operator::operator=(const boson_operator& other);
 
 matrix_operator& matrix_operator::operator=(matrix_operator &&other) {
   if (this != &other) {

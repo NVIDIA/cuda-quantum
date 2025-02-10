@@ -6,17 +6,17 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include <algorithm>
+#include <numeric>
+#include <set>
+#include <type_traits>
+
 #include "cudaq/operators.h"
 #include "helpers.h"
 #include "manipulation.h"
 #include "matrix_operators.h"
 #include "spin_operators.h"
-
-#include <algorithm>
-#include <iostream>
-#include <numeric>
-#include <set>
-#include <iostream>
+#include "boson_operators.h"
 
 namespace cudaq {
 
@@ -100,6 +100,7 @@ EvaluatedMatrix product_operator<HandlerTy>::m_evaluate(
 
 INSTANTIATE_PRODUCT_PRIVATE_METHODS(matrix_operator);
 INSTANTIATE_PRODUCT_PRIVATE_METHODS(spin_operator);
+INSTANTIATE_PRODUCT_PRIVATE_METHODS(boson_operator);
 
 // read-only properties
 
@@ -145,6 +146,7 @@ scalar_operator product_operator<HandlerTy>::get_coefficient() const {
 
 INSTANTIATE_PRODUCT_PROPERTIES(matrix_operator);
 INSTANTIATE_PRODUCT_PROPERTIES(spin_operator);
+INSTANTIATE_PRODUCT_PROPERTIES(boson_operator);
 
 // constructors
 
@@ -235,9 +237,12 @@ product_operator<HandlerTy>::product_operator(product_operator<HandlerTy> &&othe
 
 template 
 product_operator<matrix_operator>::product_operator(const product_operator<spin_operator> &other);
+template 
+product_operator<matrix_operator>::product_operator(const product_operator<boson_operator> &other);
 
 INSTANTIATE_PRODUCT_CONSTRUCTORS(matrix_operator);
 INSTANTIATE_PRODUCT_CONSTRUCTORS(spin_operator);
+INSTANTIATE_PRODUCT_CONSTRUCTORS(boson_operator);
 
 // assignments
 
@@ -278,9 +283,12 @@ product_operator<HandlerTy>& product_operator<HandlerTy>::operator=(product_oper
 
 template 
 product_operator<matrix_operator>& product_operator<matrix_operator>::operator=(const product_operator<spin_operator> &other);
+template 
+product_operator<matrix_operator>& product_operator<matrix_operator>::operator=(const product_operator<boson_operator> &other);
 
 INSTANTIATE_PRODUCT_ASSIGNMENTS(matrix_operator);
 INSTANTIATE_PRODUCT_ASSIGNMENTS(spin_operator);
+INSTANTIATE_PRODUCT_ASSIGNMENTS(boson_operator);
 
 // evaluations
 
@@ -307,6 +315,7 @@ matrix_2 product_operator<HandlerTy>::to_matrix(std::map<int, int> dimensions,
 
 INSTANTIATE_PRODUCT_EVALUATIONS(matrix_operator);
 INSTANTIATE_PRODUCT_EVALUATIONS(spin_operator);
+INSTANTIATE_PRODUCT_EVALUATIONS(boson_operator);
 
 // comparisons
 
@@ -323,6 +332,7 @@ bool product_operator<HandlerTy>::operator==(const product_operator<HandlerTy> &
 
 INSTANTIATE_PRODUCT_COMPARISONS(matrix_operator);
 INSTANTIATE_PRODUCT_COMPARISONS(spin_operator);
+INSTANTIATE_PRODUCT_COMPARISONS(boson_operator);
 
 // unary operators
 
@@ -346,6 +356,7 @@ product_operator<HandlerTy> product_operator<HandlerTy>::operator+() const {
 
 INSTANTIATE_PRODUCT_UNARY_OPS(matrix_operator);
 INSTANTIATE_PRODUCT_UNARY_OPS(spin_operator);
+INSTANTIATE_PRODUCT_UNARY_OPS(boson_operator);
 
 // right-hand arithmetics
 
@@ -425,6 +436,7 @@ PRODUCT_ADDITION_HANDLER(-)
 
 INSTANTIATE_PRODUCT_RHSIMPLE_OPS(matrix_operator);
 INSTANTIATE_PRODUCT_RHSIMPLE_OPS(spin_operator);
+INSTANTIATE_PRODUCT_RHSIMPLE_OPS(boson_operator);
 
 template <typename HandlerTy>
 product_operator<HandlerTy> product_operator<HandlerTy>::operator*(const product_operator<HandlerTy> &other) const {
@@ -516,6 +528,7 @@ PRODUCT_ADDITION_SUM(-)
 
 INSTANTIATE_PRODUCT_RHCOMPOSITE_OPS(matrix_operator);
 INSTANTIATE_PRODUCT_RHCOMPOSITE_OPS(spin_operator);
+INSTANTIATE_PRODUCT_RHCOMPOSITE_OPS(boson_operator);
 
 #define PRODUCT_MULTIPLICATION_ASSIGNMENT(otherTy)                                      \
   template <typename HandlerTy>                                                         \
@@ -557,6 +570,7 @@ product_operator<HandlerTy>& product_operator<HandlerTy>::operator*=(const produ
 
 INSTANTIATE_PRODUCT_OPASSIGNMENTS(matrix_operator);
 INSTANTIATE_PRODUCT_OPASSIGNMENTS(spin_operator);
+INSTANTIATE_PRODUCT_OPASSIGNMENTS(boson_operator);
 
 // left-hand arithmetics
 
@@ -634,5 +648,46 @@ PRODUCT_ADDITION_HANDLER_REVERSE(-)
 
 INSTANTIATE_PRODUCT_LHCOMPOSITE_OPS(matrix_operator);
 INSTANTIATE_PRODUCT_LHCOMPOSITE_OPS(spin_operator);
+INSTANTIATE_PRODUCT_LHCOMPOSITE_OPS(boson_operator);
+
+// arithmetics that require conversions
+
+#define PRODUCT_CONVERSIONS_OPS(op, returnTy)                                                 \
+  template <typename LHtype, typename RHtype,                                                 \
+            TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>                                \
+  returnTy<matrix_operator> operator op(const product_operator<LHtype> &other,                \
+                                        const product_operator<RHtype> &self) {               \
+    return product_operator<matrix_operator>(other) op self;                                  \
+  }
+
+PRODUCT_CONVERSIONS_OPS(*, product_operator);
+PRODUCT_CONVERSIONS_OPS(+, operator_sum);
+PRODUCT_CONVERSIONS_OPS(-, operator_sum);
+
+#define INSTANTIATE_PRODUCT_CONVERSION_OPS(op, returnTy)                                      \
+                                                                                              \
+  template                                                                                    \
+  returnTy<matrix_operator> operator op(const product_operator<spin_operator> &other,         \
+                                        const product_operator<matrix_operator> &self);       \
+  template                                                                                    \
+  returnTy<matrix_operator> operator op(const product_operator<boson_operator> &other,        \
+                                        const product_operator<matrix_operator> &self);       \
+  template                                                                                    \
+  returnTy<matrix_operator> operator op(const product_operator<spin_operator> &other,         \
+                                        const product_operator<boson_operator> &self);        \
+  template                                                                                    \
+  returnTy<matrix_operator> operator op(const product_operator<boson_operator> &other,        \
+                                        const product_operator<spin_operator> &self);
+
+INSTANTIATE_PRODUCT_CONVERSION_OPS(*, product_operator);
+INSTANTIATE_PRODUCT_CONVERSION_OPS(+, operator_sum);
+INSTANTIATE_PRODUCT_CONVERSION_OPS(-, operator_sum);
+
+
+#ifdef CUDAQ_INSTANTIATE_TEMPLATES
+template class product_operator<matrix_operator>;
+template class product_operator<spin_operator>;
+template class product_operator<boson_operator>;
+#endif
 
 } // namespace cudaq

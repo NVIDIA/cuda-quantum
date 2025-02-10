@@ -811,18 +811,28 @@ TEST(OperatorExpressions, checkProductOperatorAgainstElementary) {
 
   // `product_operator + spin_operator`
   {
+    auto mp = cudaq::matrix_operator::annihilate(0);
+    auto me = mp.get_terms()[0];
+    auto sp = cudaq::spin_operator::x(1) * cudaq::spin_operator::x(1);
+    //auto fp = cudaq::fermion_operator::?
+    //auto s = me + sp;
+    auto s = mp + sp;
+    //auto r = sp + me;
+    auto r = sp + mp;
+    // auto r = fp + sp; auto r = sp + fp;
+
     auto product = cudaq::matrix_operator::annihilate(0) *
                    cudaq::matrix_operator::annihilate(1);
     auto elementary = cudaq::spin_operator::x(1);
 
     auto sum = product + elementary;
-    //auto reverse = elementary + product;
+    auto reverse = elementary + product;
 
     ASSERT_TRUE(sum.n_terms() == 2);
-    //ASSERT_TRUE(reverse.n_terms() == 2);
+    ASSERT_TRUE(reverse.n_terms() == 2);
 
     auto got_matrix = sum.to_matrix({{0,level_count},{1,level_count}});
-    //auto got_matrix_reverse = reverse.to_matrix({{0,level_count},{1,level_count}});
+    auto got_matrix_reverse = reverse.to_matrix({{0,level_count},{1,level_count}});
 
     auto product_matrix =
         cudaq::kronecker(utils::id_matrix(level_count),
@@ -836,7 +846,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstElementary) {
     auto want_matrix_reverse = elementary_matrix + product_matrix;
 
     utils::checkEqual(want_matrix, got_matrix);
-    //utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
   // `product_operator - matrix_operator`
@@ -1552,8 +1562,8 @@ TEST(OperatorExpressions, checkCustomProductOps) {
       cudaq::matrix_operator::define("custom_op1", {-1, -1}, func1);
     }
 
-    auto op0 = cudaq::matrix_operator::create("custom_op0", {0, 1});
-    auto op1 = cudaq::matrix_operator::create("custom_op1", {1, 2});
+    auto op0 = cudaq::matrix_operator::instantiate("custom_op0", {0, 1});
+    auto op1 = cudaq::matrix_operator::instantiate("custom_op1", {1, 2});
     auto product = op0 * op1;
     auto reverse = op1 * op0;
 
@@ -1572,8 +1582,8 @@ TEST(OperatorExpressions, checkCustomProductOps) {
     utils::checkEqual(product.to_matrix(dimensions), expected);
     utils::checkEqual(reverse.to_matrix(dimensions), expected_reverse);
 
-    op0 = cudaq::matrix_operator::create("custom_op0", {2, 3});
-    op1 = cudaq::matrix_operator::create("custom_op1", {2, 0});
+    op0 = cudaq::matrix_operator::instantiate("custom_op0", {2, 3});
+    op1 = cudaq::matrix_operator::instantiate("custom_op1", {2, 0});
     product = op0 * op1;
     reverse = op1 * op0;
 
