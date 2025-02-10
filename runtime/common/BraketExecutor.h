@@ -55,6 +55,7 @@ protected:
 
   std::shared_future<std::string> defaultBucketFuture;
   char const *jobToken;
+  char const *reservationArn;
 
   std::chrono::microseconds pollingInterval = std::chrono::milliseconds{100};
 

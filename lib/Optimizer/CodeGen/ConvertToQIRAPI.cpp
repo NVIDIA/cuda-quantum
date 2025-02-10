@@ -1092,7 +1092,7 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
 
     // Process the controls, sorting them by type.
     for (auto pr : llvm::zip(op.getControls(), adaptor.getControls())) {
-      if (isa<quake::VeqType>(std::get<0>(pr).getType())) {
+      if (isaVeqArgument(std::get<0>(pr).getType())) {
         numArrayCtrls++;
         auto sizeCall = rewriter.create<func::CallOp>(
             loc, i64Ty, cudaq::opt::QIRArrayGetSize,
@@ -1153,6 +1153,18 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
     rewriter.create<LLVM::CallOp>(loc, TypeRange{},
                                   cudaq::opt::NVQIRGeneralizedInvokeAny, args);
     return forwardOrEraseOp();
+  }
+
+  static bool isaVeqArgument(Type ty) {
+    // TODO: Need a way to identify arrays when using the opaque pointer
+    // variant. (In Python, the arguments may already be converted.)
+    auto alreadyConverted = [](Type ty) {
+      if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(ty))
+        if (auto strTy = dyn_cast<LLVM::LLVMStructType>(ptrTy.getElementType()))
+          return strTy.isIdentified() && strTy.getName() == "Array";
+      return false;
+    };
+    return isa<quake::VeqType>(ty) || alreadyConverted(ty);
   }
 
   static bool conformsToIntendedCall(std::size_t numControls, Value ctrl, OP op,
@@ -1819,9 +1831,7 @@ struct QuakeToQIRAPIPrepPass
   }
 
   void guaranteeMzIsLabeled(quake::MzOp mz, int &counter, OpBuilder &builder) {
-    if (mz.getRegisterNameAttr() &&
-        /* FIXME: issue 2538: the name should never be empty. */
-        !mz.getRegisterNameAttr().getValue().empty()) {
+    if (mz.getRegisterNameAttr()) {
       mz->setAttr(cudaq::opt::MzAssignedNameAttrName, builder.getUnitAttr());
       return;
     }
