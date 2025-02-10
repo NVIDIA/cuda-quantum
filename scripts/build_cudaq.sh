@@ -70,7 +70,7 @@ repo_root=$(cd "$this_file_dir" && git rev-parse --show-toplevel)
 
 # Prepare the build directory
 mkdir -p "$CUDAQ_INSTALL_PREFIX/bin"
-mkdir -p "$working_dir/build" && cd "$working_dir/build" # && rm -rf * 
+mkdir -p "$working_dir/build" && cd "$working_dir/build" && rm -rf * 
 mkdir -p logs && rm -rf logs/*
 
 if [ -n "$install_toolchain" ]; then
