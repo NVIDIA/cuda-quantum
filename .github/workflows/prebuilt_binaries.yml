@@ -35,7 +35,7 @@ name: Pre-built binaries
 jobs:
   build_installer:
     name: Build CUDA Quantum assets
-    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8-testing' }}
+    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
       packages: write
@@ -197,7 +197,7 @@ jobs:
 
   build_openmpi:
     name: Minimal OpenMPI installation
-    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8-testing' }}
+    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
       packages: write
@@ -278,7 +278,7 @@ jobs:
     name: Validate installer
     needs: [build_installer, build_openmpi, create_test_config]
     if: toJson(fromJSON(needs.create_test_config.outputs.json).operating_systems) != '[]'
-    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8-testing' }}
+    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
       packages: read
