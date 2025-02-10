@@ -182,9 +182,20 @@ cudm_state &cudm_state::operator*=(const std::complex<double> &scalar) {
 }
 
 cudm_state cudm_state::operator*(double scalar) const {
-  cudm_state result = cudm_state(handle_, rawData_, hilbertSpaceDims_);
+  void *gpuScalar;
+  HANDLE_CUDA_ERROR(cudaMalloc(&gpuScalar, sizeof(std::complex<double>)));
 
-  result *= std::complex<double>(scalar, 0.0);
+  std::complex<double> complexScalar(scalar, 0.0);
+  HANDLE_CUDA_ERROR(cudaMemcpy(gpuScalar, &complexScalar,
+                               sizeof(std::complex<double>),
+                               cudaMemcpyHostToDevice));
+
+  cudm_state result(handle_, rawData_, hilbertSpaceDims_);
+
+  HANDLE_CUDM_ERROR(
+      cudensitymatStateComputeScaling(handle_, result.state_, gpuScalar, 0));
+
+  HANDLE_CUDA_ERROR(cudaFree(gpuScalar));
 
   return result;
 }
