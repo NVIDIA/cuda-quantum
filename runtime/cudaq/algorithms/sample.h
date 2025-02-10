@@ -123,6 +123,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
 template <typename KernelFunctor>
 auto runSamplingAsync(KernelFunctor &&wrappedKernel, quantum_platform &platform,
                       const std::string &kernelName, int shots,
+                      bool explicitMeasurements = false,
                       std::size_t qpu_id = 0) {
   if (qpu_id >= platform.num_qpus()) {
     throw std::invalid_argument(
@@ -134,17 +135,17 @@ auto runSamplingAsync(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   if (platform.is_remote(qpu_id)) {
     details::future futureResult;
     details::runSampling(std::forward<KernelFunctor>(wrappedKernel), platform,
-                         kernelName, shots, /*explicitMeasurements=*/false,
-                         qpu_id, &futureResult);
+                         kernelName, shots, explicitMeasurements, qpu_id,
+                         &futureResult);
     return async_sample_result(std::move(futureResult));
   }
 
   // Otherwise we'll create our own future/promise and return it
   KernelExecutionTask task(
-      [qpu_id, shots, kernelName, &platform,
+      [qpu_id, explicitMeasurements, shots, kernelName, &platform,
        kernel = std::forward<KernelFunctor>(wrappedKernel)]() mutable {
         return details::runSampling(kernel, platform, kernelName, shots,
-                                    /*explicitMeasurements=*/false, qpu_id)
+                                    explicitMeasurements, qpu_id)
             .value();
       });
 
@@ -333,7 +334,7 @@ async_sample_result sample_async(const std::size_t qpu_id,
         cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
                             std::forward<Args>(args)...);
       },
-      platform, kernelName, shots, qpu_id);
+      platform, kernelName, shots, /*explicitMeasurements=*/false, qpu_id);
 #else
   return details::runSamplingAsync(
       detail::make_copyable_function([&kernel,
@@ -346,7 +347,7 @@ async_sample_result sample_async(const std::size_t qpu_id,
             },
             std::move(args));
       }),
-      platform, kernelName, shots, qpu_id);
+      platform, kernelName, shots, /*explicitMeasurements=*/false, qpu_id);
 #endif
 }
 
@@ -355,6 +356,8 @@ async_sample_result sample_async(const std::size_t qpu_id,
 /// times observed.
 ///
 /// @param shots The number of samples to collect.
+/// @param explicitMeasurements The flag to indicate whether or not to
+/// concatenate measurements
 /// @param qpu_id The id of the QPU to run asynchronously on.
 /// @param kernel The kernel expression, must contain final measurements.
 /// @param args The variadic concrete arguments for evaluation of the kernel.
@@ -373,8 +376,9 @@ template <typename QuantumKernel, typename... Args,
           typename = std::enable_if_t<
               std::is_invocable_r_v<void, QuantumKernel, Args...>>>
 #endif
-async_sample_result sample_async(std::size_t shots, std::size_t qpu_id,
-                                 QuantumKernel &&kernel, Args &&...args) {
+async_sample_result sample_async(std::size_t shots, bool explicitMeasurements,
+                                 std::size_t qpu_id, QuantumKernel &&kernel,
+                                 Args &&...args) {
   // Need the code to be lowered to llvm and the kernel to be registered
   // so that we can check for conditional feedback / mid circ measurement
   if constexpr (has_name<QuantumKernel>::value) {
@@ -391,7 +395,7 @@ async_sample_result sample_async(std::size_t shots, std::size_t qpu_id,
         cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
                             std::forward<Args>(args)...);
       },
-      platform, kernelName, shots, qpu_id);
+      platform, kernelName, shots, explicitMeasurements, qpu_id);
 #else
   return details::runSamplingAsync(
       detail::make_copyable_function([&kernel,
@@ -404,7 +408,7 @@ async_sample_result sample_async(std::size_t shots, std::size_t qpu_id,
             },
             std::move(args));
       }),
-      platform, kernelName, shots, qpu_id);
+      platform, kernelName, shots, explicitMeasurements, qpu_id);
 #endif
 }
 

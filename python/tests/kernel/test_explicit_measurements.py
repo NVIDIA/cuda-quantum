@@ -9,6 +9,7 @@
 import cudaq
 import pytest
 import os
+import numpy as np
 
 
 @pytest.fixture(autouse=True)
@@ -78,6 +79,33 @@ def test_simple_builder():
     assert len(seq[0]) == n_qubits * n_rounds
 
 
+def test_sample_async():
+
+    num_shots = 100
+
+    @cudaq.kernel
+    def kernel(theta: float, phi: float):
+        qubits = cudaq.qvector(2)
+        for round in range(10):
+            rx(theta, qubits[0])
+            ry(phi, qubits[0])
+            x.ctrl(qubits[0], qubits[1])
+            mz(qubits)
+
+    future = cudaq.sample_async(kernel,
+                                np.pi,
+                                np.pi / 2.,
+                                shots_count=num_shots,
+                                explicit_measurements=True)
+    counts = future.get()
+    # Without explicit measurements, and only one round, we expect result like `{ 00:45 11:55 }`
+    assert len(counts) > 2
+
+    seq = counts.get_sequential_data()
+    assert len(seq) == num_shots
+    assert len(seq[0]) == 20  # num qubits * num_rounds
+
+
 # NOTE: Ref - https://github.com/NVIDIA/cuda-quantum/issues/1925
 @pytest.mark.parametrize("target",
                          ["density-matrix-cpu", "nvidia", "qpp-cpu", "stim"])
@@ -133,3 +161,5 @@ def test_error_cases():
         cudaq.sample(kernel, explicit_measurements=True)
     assert "not supported on kernel with conditional logic on a measurement result" in repr(
         e)
+
+    cudaq.__clearKernelRegistries()
