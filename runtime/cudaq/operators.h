@@ -58,7 +58,7 @@ public:
   std::vector<int> degrees() const;
 
   /// @brief Return the number of operator terms that make up this operator sum.
-  int n_terms() const;
+  int num_terms() const;
 
   /// FIXME: GET RID OF THIS (MAKE ITERABLE INSTEAD)
   std::vector<product_operator<HandlerTy>> get_terms() const;
@@ -134,37 +134,38 @@ public:
   operator_sum<HandlerTy> operator*(const scalar_operator &other) const;
   operator_sum<HandlerTy> operator+(const scalar_operator &other) const;
   operator_sum<HandlerTy> operator-(const scalar_operator &other) const;
+  /*
   operator_sum<HandlerTy> operator+(const HandlerTy &other) const;
   operator_sum<HandlerTy> operator-(const HandlerTy &other) const;
   operator_sum<HandlerTy> operator*(const HandlerTy &other) const;
-  operator_sum<HandlerTy>
-  operator*(const product_operator<HandlerTy> &other) const;
-  operator_sum<HandlerTy>
-  operator+(const product_operator<HandlerTy> &other) const;
-  operator_sum<HandlerTy>
-  operator-(const product_operator<HandlerTy> &other) const;
+  */
+  operator_sum<HandlerTy> operator*(const product_operator<HandlerTy> &other) const;
+  operator_sum<HandlerTy> operator+(const product_operator<HandlerTy> &other) const;
+  operator_sum<HandlerTy> operator-(const product_operator<HandlerTy> &other) const;
   operator_sum<HandlerTy> operator+(const operator_sum<HandlerTy> &other) const;
   operator_sum<HandlerTy> operator-(const operator_sum<HandlerTy> &other) const;
   operator_sum<HandlerTy> operator*(const operator_sum<HandlerTy> &other) const;
 
-  operator_sum<HandlerTy> &operator*=(double other);
-  operator_sum<HandlerTy> &operator+=(double other);
-  operator_sum<HandlerTy> &operator-=(double other);
-  operator_sum<HandlerTy> &operator*=(std::complex<double> other);
-  operator_sum<HandlerTy> &operator+=(std::complex<double> other);
-  operator_sum<HandlerTy> &operator-=(std::complex<double> other);
-  operator_sum<HandlerTy> &operator*=(const scalar_operator &other);
-  operator_sum<HandlerTy> &operator+=(const scalar_operator &other);
-  operator_sum<HandlerTy> &operator-=(const scalar_operator &other);
-  operator_sum<HandlerTy> &operator*=(const HandlerTy &other);
-  operator_sum<HandlerTy> &operator+=(const HandlerTy &other);
-  operator_sum<HandlerTy> &operator-=(const HandlerTy &other);
-  operator_sum<HandlerTy> &operator*=(const product_operator<HandlerTy> &other);
-  operator_sum<HandlerTy> &operator+=(const product_operator<HandlerTy> &other);
-  operator_sum<HandlerTy> &operator-=(const product_operator<HandlerTy> &other);
-  operator_sum<HandlerTy> &operator*=(const operator_sum<HandlerTy> &other);
-  operator_sum<HandlerTy> &operator+=(const operator_sum<HandlerTy> &other);
-  operator_sum<HandlerTy> &operator-=(const operator_sum<HandlerTy> &other);
+  operator_sum<HandlerTy>& operator*=(double other);
+  operator_sum<HandlerTy>& operator+=(double other);
+  operator_sum<HandlerTy>& operator-=(double other);
+  operator_sum<HandlerTy>& operator*=(std::complex<double> other);
+  operator_sum<HandlerTy>& operator+=(std::complex<double> other);
+  operator_sum<HandlerTy>& operator-=(std::complex<double> other);
+  operator_sum<HandlerTy>& operator*=(const scalar_operator &other);
+  operator_sum<HandlerTy>& operator+=(const scalar_operator &other);
+  operator_sum<HandlerTy>& operator-=(const scalar_operator &other);
+  /*
+  operator_sum<HandlerTy>& operator*=(const HandlerTy &other);
+  operator_sum<HandlerTy>& operator+=(const HandlerTy &other);
+  operator_sum<HandlerTy>& operator-=(const HandlerTy &other);
+  */
+  operator_sum<HandlerTy>& operator*=(const product_operator<HandlerTy> &other);
+  operator_sum<HandlerTy>& operator+=(const product_operator<HandlerTy> &other);
+  operator_sum<HandlerTy>& operator-=(const product_operator<HandlerTy> &other);
+  operator_sum<HandlerTy>& operator*=(const operator_sum<HandlerTy> &other);
+  operator_sum<HandlerTy>& operator+=(const operator_sum<HandlerTy> &other);
+  operator_sum<HandlerTy>& operator-=(const operator_sum<HandlerTy> &other);
 
   // left-hand arithmetics
 
@@ -176,30 +177,26 @@ public:
   friend operator_sum<T> operator+(double other, const operator_sum<T> &self);
   template <typename T>
   friend operator_sum<T> operator-(double other, const operator_sum<T> &self);
-  template <typename T>
-  friend operator_sum<T> operator*(std::complex<double> other,
-                                   const operator_sum<T> &self);
-  template <typename T>
-  friend operator_sum<T> operator+(std::complex<double> other,
-                                   const operator_sum<T> &self);
-  template <typename T>
-  friend operator_sum<T> operator-(std::complex<double> other,
-                                   const operator_sum<T> &self);
-  template <typename T>
-  friend operator_sum<T> operator*(const scalar_operator &other,
-                                   const operator_sum<T> &self);
-  template <typename T>
-  friend operator_sum<T> operator+(const scalar_operator &other,
-                                   const operator_sum<T> &self);
-  template <typename T>
-  friend operator_sum<T> operator-(const scalar_operator &other,
-                                   const operator_sum<T> &self);
-  template <typename T>
+  template<typename T>
+  friend operator_sum<T> operator*(std::complex<double> other, const operator_sum<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator+(std::complex<double> other, const operator_sum<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator-(std::complex<double> other, const operator_sum<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator*(const scalar_operator &other, const operator_sum<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator+(const scalar_operator &other, const operator_sum<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator-(const scalar_operator &other, const operator_sum<T> &self);
+  /*
+  template<typename T>
   friend operator_sum<T> operator*(const T &other, const operator_sum<T> &self);
   template <typename T>
   friend operator_sum<T> operator+(const T &other, const operator_sum<T> &self);
-  template <typename T>
-  friend operator_sum<T> operator-(const T &other, const operator_sum<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator-(const T &other, const operator_sum<T> &self); 
+  */
 
   template<typename T>
   friend operator_sum<T> operator+(double other, const product_operator<T> &self);
@@ -213,10 +210,13 @@ public:
   friend operator_sum<T> operator+(const scalar_operator &other, const product_operator<T> &self);
   template<typename T>
   friend operator_sum<T> operator-(const scalar_operator &other, const product_operator<T> &self);
+
+  /*
   template<typename T>
   friend operator_sum<T> operator+(const T &other, const product_operator<T> &self);
   template<typename T>
   friend operator_sum<T> operator-(const T &other, const product_operator<T> &self);
+  */
 };
 
 /// @brief Represents an operator expression consisting of a product of
@@ -257,7 +257,7 @@ public:
 
   /// @brief Return the number of operator terms that make up this product
   /// operator.
-  int n_terms() const;
+  int num_terms() const;
 
   /// FIXME: GET RID OF THIS (MAKE ITERABLE INSTEAD)
   const std::vector<HandlerTy>& get_terms() const;
@@ -337,66 +337,53 @@ public:
   product_operator<HandlerTy> operator*(const scalar_operator &other) const;
   operator_sum<HandlerTy> operator+(const scalar_operator &other) const;
   operator_sum<HandlerTy> operator-(const scalar_operator &other) const;
+  /*
   product_operator<HandlerTy> operator*(const HandlerTy &other) const;
   operator_sum<HandlerTy> operator+(const HandlerTy &other) const;
   operator_sum<HandlerTy> operator-(const HandlerTy &other) const;
-  product_operator<HandlerTy>
-  operator*(const product_operator<HandlerTy> &other) const;
-  operator_sum<HandlerTy>
-  operator+(const product_operator<HandlerTy> &other) const;
-  operator_sum<HandlerTy>
-  operator-(const product_operator<HandlerTy> &other) const;
+  */
+  product_operator<HandlerTy> operator*(const product_operator<HandlerTy> &other) const;
+  operator_sum<HandlerTy> operator+(const product_operator<HandlerTy> &other) const;
+  operator_sum<HandlerTy> operator-(const product_operator<HandlerTy> &other) const;
   operator_sum<HandlerTy> operator*(const operator_sum<HandlerTy> &other) const;
   operator_sum<HandlerTy> operator+(const operator_sum<HandlerTy> &other) const;
   operator_sum<HandlerTy> operator-(const operator_sum<HandlerTy> &other) const;
 
-  product_operator<HandlerTy> &operator*=(double other);
-  product_operator<HandlerTy> &operator*=(std::complex<double> other);
-  product_operator<HandlerTy> &operator*=(const scalar_operator &other);
-  product_operator<HandlerTy> &operator*=(const HandlerTy &other);
-  product_operator<HandlerTy> &
-  operator*=(const product_operator<HandlerTy> &other);
+  product_operator<HandlerTy>& operator*=(double other);
+  product_operator<HandlerTy>& operator*=(std::complex<double> other);
+  product_operator<HandlerTy>& operator*=(const scalar_operator &other);
+  // product_operator<HandlerTy>& operator*=(const HandlerTy &other);
+  product_operator<HandlerTy>& operator*=(const product_operator<HandlerTy> &other);
 
   // left-hand arithmetics
 
-  // Being a bit permissive here, since otherwise the explicit template
-  // instantiation is a nightmare.
-  template <typename T>
-  friend product_operator<T> operator*(double other,
-                                       const product_operator<T> &self);
-  template <typename T>
-  friend operator_sum<T> operator+(double other,
-                                   const product_operator<T> &self);
-  template <typename T>
-  friend operator_sum<T> operator-(double other,
-                                   const product_operator<T> &self);
-  template <typename T>
-  friend product_operator<T> operator*(std::complex<double> other,
-                                       const product_operator<T> &self);
-  template <typename T>
-  friend operator_sum<T> operator+(std::complex<double> other,
-                                   const product_operator<T> &self);
-  template <typename T>
-  friend operator_sum<T> operator-(std::complex<double> other,
-                                   const product_operator<T> &self);
-  template <typename T>
-  friend product_operator<T> operator*(const scalar_operator &other,
-                                       const product_operator<T> &self);
-  template <typename T>
-  friend operator_sum<T> operator+(const scalar_operator &other,
-                                   const product_operator<T> &self);
-  template <typename T>
-  friend operator_sum<T> operator-(const scalar_operator &other,
-                                   const product_operator<T> &self);
-  template <typename T>
-  friend product_operator<T> operator*(const T &other,
-                                       const product_operator<T> &self);
-  template <typename T>
-  friend operator_sum<T> operator+(const T &other,
-                                   const product_operator<T> &self);
-  template <typename T>
-  friend operator_sum<T> operator-(const T &other,
-                                   const product_operator<T> &self);
+  // Being a bit permissive here, since otherwise the explicit template instantiation is a nightmare.
+  template<typename T>
+  friend product_operator<T> operator*(double other, const product_operator<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator+(double other, const product_operator<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator-(double other, const product_operator<T> &self);
+  template<typename T>
+  friend product_operator<T> operator*(std::complex<double> other, const product_operator<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator+(std::complex<double> other, const product_operator<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator-(std::complex<double> other, const product_operator<T> &self);
+  template<typename T>
+  friend product_operator<T> operator*(const scalar_operator &other, const product_operator<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator+(const scalar_operator &other, const product_operator<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator-(const scalar_operator &other, const product_operator<T> &self);
+  /*
+  template<typename T>
+  friend product_operator<T> operator*(const T &other, const product_operator<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator+(const T &other, const product_operator<T> &self);
+  template<typename T>
+  friend operator_sum<T> operator-(const T &other, const product_operator<T> &self);
+  */
 };
 
 #ifndef CUDAQ_INSTANTIATE_TEMPLATES

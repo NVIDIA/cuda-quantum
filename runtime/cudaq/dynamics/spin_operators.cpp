@@ -15,6 +15,18 @@
 
 namespace cudaq {
 
+// private helper to optimize arithmetics
+
+std::complex<double> spin_operator::in_place_mult(const spin_operator &other) {
+  assert(this->target == other.target); // FIXME: make cleaner
+  std::complex<double> factor;
+  if (this->id == 0 || other.id == 0 || this->id == other.id) factor = 1.0;
+  else if (this->id + 1 == other.id || this->id - 2 == other.id) factor = 1.0j;
+  else factor = -1.0j;
+  this->id ^= other.id;
+  return factor;
+}
+
 // read-only properties
 
 std::vector<int> spin_operator::degrees() const {

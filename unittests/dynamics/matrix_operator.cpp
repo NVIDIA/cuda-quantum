@@ -262,8 +262,8 @@ TEST(OperatorExpressions, checkMatrixOpsWithScalars) {
     auto sum = self + other;
     auto reverse = other + self;
 
-    ASSERT_TRUE(sum.n_terms() == 2);
-    ASSERT_TRUE(reverse.n_terms() == 2);
+    ASSERT_TRUE(sum.num_terms() == 2);
+    ASSERT_TRUE(reverse.num_terms() == 2);
 
     auto scaled_identity = const_scale_factor * utils::id_matrix(level_count);
     auto got_matrix = sum.to_matrix({{degree_index, level_count}});
@@ -284,8 +284,8 @@ TEST(OperatorExpressions, checkMatrixOpsWithScalars) {
     auto sum = self + other;
     auto reverse = other + self;
 
-    ASSERT_TRUE(sum.n_terms() == 2);
-    ASSERT_TRUE(reverse.n_terms() == 2);
+    ASSERT_TRUE(sum.num_terms() == 2);
+    ASSERT_TRUE(reverse.num_terms() == 2);
 
     auto scaled_identity = const_scale_factor * utils::id_matrix(level_count);
     auto got_matrix = sum.to_matrix({{degree_index, level_count}},  {{"value", const_scale_factor}});
@@ -305,8 +305,8 @@ TEST(OperatorExpressions, checkMatrixOpsWithScalars) {
     auto sum = self - other;
     auto reverse = other - self;
 
-    ASSERT_TRUE(sum.n_terms() == 2);
-    ASSERT_TRUE(reverse.n_terms() == 2);
+    ASSERT_TRUE(sum.num_terms() == 2);
+    ASSERT_TRUE(reverse.num_terms() == 2);
 
     auto scaled_identity = const_scale_factor * utils::id_matrix(level_count);
     auto got_matrix = sum.to_matrix({{degree_index, level_count}});
@@ -325,8 +325,8 @@ TEST(OperatorExpressions, checkMatrixOpsWithScalars) {
     auto sum = self - other;
     auto reverse = other - self;
 
-    ASSERT_TRUE(sum.n_terms() == 2);
-    ASSERT_TRUE(reverse.n_terms() == 2);
+    ASSERT_TRUE(sum.num_terms() == 2);
+    ASSERT_TRUE(reverse.num_terms() == 2);
 
     auto scaled_identity = const_scale_factor * utils::id_matrix(level_count);
     auto got_matrix = sum.to_matrix({{degree_index, level_count}}, {{"value", const_scale_factor}});
@@ -402,7 +402,7 @@ TEST(OperatorExpressions, checkMatrixOpsSimpleArithmetics) {
     auto other = cudaq::matrix_operator::create(0);
 
     auto sum = self + other;
-    ASSERT_TRUE(sum.n_terms() == 2);
+    ASSERT_TRUE(sum.num_terms() == 2);
 
     auto got_matrix = sum.to_matrix(dimensions);
     auto want_matrix = utils::annihilate_matrix(level_count) +
@@ -416,7 +416,7 @@ TEST(OperatorExpressions, checkMatrixOpsSimpleArithmetics) {
     auto other = cudaq::matrix_operator::create(1);
 
     auto sum = self + other;
-    ASSERT_TRUE(sum.n_terms() == 2);
+    ASSERT_TRUE(sum.num_terms() == 2);
 
     auto annihilate_full =
         cudaq::kronecker(utils::id_matrix(level_count),
@@ -434,7 +434,7 @@ TEST(OperatorExpressions, checkMatrixOpsSimpleArithmetics) {
     auto other = cudaq::matrix_operator::create(0);
 
     auto sum = self - other;
-    ASSERT_TRUE(sum.n_terms() == 2);
+    ASSERT_TRUE(sum.num_terms() == 2);
 
     auto got_matrix = sum.to_matrix(dimensions);
     auto want_matrix = utils::annihilate_matrix(level_count) -
@@ -448,7 +448,7 @@ TEST(OperatorExpressions, checkMatrixOpsSimpleArithmetics) {
     auto other = cudaq::matrix_operator::create(1);
 
     auto sum = self - other;
-    ASSERT_TRUE(sum.n_terms() == 2);
+    ASSERT_TRUE(sum.num_terms() == 2);
 
     auto annihilate_full =
         cudaq::kronecker(utils::id_matrix(level_count),
@@ -466,7 +466,7 @@ TEST(OperatorExpressions, checkMatrixOpsSimpleArithmetics) {
     auto other = cudaq::matrix_operator::create(0);
 
     auto product = self * other;
-    ASSERT_TRUE(product.n_terms() == 2);
+    ASSERT_TRUE(product.num_terms() == 2);
 
     std::vector<int> want_degrees = {0};
     ASSERT_TRUE(product.degrees() == want_degrees);
@@ -483,7 +483,7 @@ TEST(OperatorExpressions, checkMatrixOpsSimpleArithmetics) {
     auto other = cudaq::matrix_operator::create(1);
 
     auto product = self * other;
-    ASSERT_TRUE(product.n_terms() == 2);
+    ASSERT_TRUE(product.num_terms() == 2);
 
     std::vector<int> want_degrees = {1, 0};
     ASSERT_TRUE(product.degrees() == want_degrees);
@@ -515,8 +515,8 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
     auto got = self + operator_sum;
     auto reverse = operator_sum + self;
 
-    ASSERT_TRUE(got.n_terms() == 3);
-    ASSERT_TRUE(reverse.n_terms() == 3);
+    ASSERT_TRUE(got.num_terms() == 3);
+    ASSERT_TRUE(reverse.num_terms() == 3);
 
     auto self_full = cudaq::kronecker(utils::id_matrix(level_count),
                                       utils::annihilate_matrix(level_count));
@@ -543,8 +543,8 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
     auto got = self - operator_sum;
     auto reverse = operator_sum - self;
 
-    ASSERT_TRUE(got.n_terms() == 3);
-    ASSERT_TRUE(reverse.n_terms() == 3);
+    ASSERT_TRUE(got.num_terms() == 3);
+    ASSERT_TRUE(reverse.num_terms() == 3);
 
     auto self_full = cudaq::kronecker(utils::id_matrix(level_count),
                                       utils::annihilate_matrix(level_count));
@@ -571,12 +571,12 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
     auto got = self * operator_sum;
     auto reverse = operator_sum * self;
 
-    ASSERT_TRUE(got.n_terms() == 2);
-    ASSERT_TRUE(reverse.n_terms() == 2);
+    ASSERT_TRUE(got.num_terms() == 2);
+    ASSERT_TRUE(reverse.num_terms() == 2);
     for (auto &term : got.get_terms())
-      ASSERT_TRUE(term.n_terms() == 2);
+      ASSERT_TRUE(term.num_terms() == 2);
     for (auto &term : reverse.get_terms())
-      ASSERT_TRUE(term.n_terms() == 2);
+      ASSERT_TRUE(term.num_terms() == 2);
 
     auto self_full = cudaq::kronecker(utils::id_matrix(level_count),
                                       utils::annihilate_matrix(level_count));
@@ -601,7 +601,7 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
                         cudaq::matrix_operator::identity(1);
     operator_sum += cudaq::matrix_operator::displace(0);
 
-    ASSERT_TRUE(operator_sum.n_terms() == 3);
+    ASSERT_TRUE(operator_sum.num_terms() == 3);
 
     auto self_full =
         cudaq::kronecker(utils::id_matrix(level_count),
@@ -622,7 +622,7 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
                         cudaq::matrix_operator::identity(1);
     operator_sum -= cudaq::matrix_operator::annihilate(0);
 
-    ASSERT_TRUE(operator_sum.n_terms() == 3);
+    ASSERT_TRUE(operator_sum.num_terms() == 3);
 
     auto self_full = cudaq::kronecker(utils::id_matrix(level_count),
                                       utils::annihilate_matrix(level_count));
@@ -644,9 +644,9 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
 
     operator_sum *= self;
 
-    ASSERT_TRUE(operator_sum.n_terms() == 2);
+    ASSERT_TRUE(operator_sum.num_terms() == 2);
     for (auto &term : operator_sum.get_terms())
-      ASSERT_TRUE(term.n_terms() == 2);
+      ASSERT_TRUE(term.num_terms() == 2);
 
     auto self_full = cudaq::kronecker(utils::id_matrix(level_count),
                                       utils::annihilate_matrix(level_count));
