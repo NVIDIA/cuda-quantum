@@ -22,6 +22,7 @@ class product_operator;
 
 // FIXME: rename to spin ...
 class spin_operator : operator_handler{
+friend class product_operator<spin_operator>;
 
 private:
 
@@ -30,6 +31,10 @@ private:
   int target;
 
   spin_operator(int op, int target);
+
+  // private helper to optimize arithmetics
+
+  std::complex<double> in_place_mult(const spin_operator &other);
 
 public:
 
