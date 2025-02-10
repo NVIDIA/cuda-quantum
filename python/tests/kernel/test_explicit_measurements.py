@@ -13,6 +13,7 @@ import os
 
 @pytest.fixture(autouse=True)
 def do_something():
+    cudaq.reset_target()
     yield
     cudaq.__clearKernelRegistries()
     cudaq.reset_target()
@@ -77,10 +78,9 @@ def test_simple_builder():
     assert len(seq[0]) == n_qubits * n_rounds
 
 
-@pytest.mark.parametrize("target", [
-    "density-matrix-cpu", "nvidia", "nvidia-mqpu-mps", "qpp-cpu", "stim",
-    "tensornet", "tensornet-mps"
-])
+# NOTE: Ref - https://github.com/NVIDIA/cuda-quantum/issues/1925
+@pytest.mark.parametrize("target",
+                         ["density-matrix-cpu", "nvidia", "qpp-cpu", "stim"])
 def test_simulators(target):
 
     def can_set_target(name):
