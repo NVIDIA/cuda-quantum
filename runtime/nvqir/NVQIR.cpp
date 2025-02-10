@@ -635,8 +635,9 @@ void __quantum__qis__custom_unitary(std::complex<double> *unitary,
       unitaryMatrix, ctrlsVec, tgtsVec, name);
 }
 
-void __quantum__qis__apply_kraus_channel(long krausChannelKey, double *params,
-                                         std::size_t numParams, Array *qubits) {
+void __quantum__qis__apply_kraus_channel(std::int64_t krausChannelKey,
+                                         double *params, std::size_t numParams,
+                                         Array *qubits) {
 
   auto *ctx = nvqir::getCircuitSimulatorInternal()->getExecutionContext();
   if (!ctx)
@@ -650,6 +651,27 @@ void __quantum__qis__apply_kraus_channel(long krausChannelKey, double *params,
   auto channel = noise->get_channel(krausChannelKey, paramVec);
   nvqir::getCircuitSimulatorInternal()->applyNoise(channel,
                                                    arrayToVectorSizeT(qubits));
+}
+
+void __quantum__qis__apply_kraus_channel_generalized(
+    std::int64_t krausChannelKey, std::size_t numParams, std::size_t numTargets,
+    ...) {
+  va_list args;
+  va_start(args, numTargets);
+  double *params =
+      reinterpret_cast<double *>(alloca(numParams * sizeof(double)));
+  for (std::size_t i = 0; i < numParams; ++i) {
+    auto *dblPtr = va_arg(args, double *);
+    params[i] = *dblPtr;
+  }
+  std::vector<std::size_t> qubits;
+  for (std::size_t i = 0; i < numTargets; ++i) {
+    auto *qbPtr = va_arg(args, Qubit *);
+    qubits[i] = reinterpret_cast<std::size_t>(qbPtr);
+  }
+  auto *asArray = vectorSizetToArray(qubits);
+  __quantum__qis__apply_kraus_channel(krausChannelKey, params, numParams,
+                                      asArray);
 }
 
 void __quantum__qis__custom_unitary__adj(std::complex<double> *unitary,

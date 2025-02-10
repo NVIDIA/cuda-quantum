@@ -477,6 +477,37 @@ def quake_ComputeActionOp : QuakeOp<"compute_action"> {
   }];
 }
 
+def quake_ApplyNoiseOp : QuakeOp<"apply_noise", [AttrSizedOperandSegments]> {
+  let summary = "Apply a noise operation to qubits.";
+  let description = [{
+    This operation provides support for the `cudaq::apply_noise` template
+    function. This function is only valid is simulation contexts where the
+    simulator is part of the same process as the C++ host executable itself.
+
+    A noise operator is the application of a Kraus channel to a selected set
+    of qubits. This is a point-wise annotation approach that a user might
+    deploy to introduce "noise" to their circuit under simulation. It is unlike
+    a general (unitary) gate application in that there is no notion of controls
+    or an adjoint.
+  }];
+
+  let arguments = (ins
+    FlatSymbolRefAttr:$noise_func,
+    Optional<cc_PointerType>:$key,
+    Variadic<AnyType>:$parameters,
+    Variadic<NonStruqRefType>:$qubits
+  );
+
+  let hasVerifier = 1;
+  let hasCustomAssemblyFormat = 1;
+
+  let extraClassDeclaration = [{
+    static constexpr mlir::StringRef getNoiseFuncAttrNameStr() {
+      return "noise_func";
+    }
+  }];
+}
+
 //===----------------------------------------------------------------------===//
 // Memory and register conversion instructions: These operations are useful for
 // intermediate conversions between memory-SSA and value-SSA semantics and vice

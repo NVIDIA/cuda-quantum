@@ -288,6 +288,106 @@ ParseResult quake::ApplyOp::parse(OpAsmParser &parser, OperationState &result) {
 }
 
 //===----------------------------------------------------------------------===//
+// ApplyNoiseOp
+//===----------------------------------------------------------------------===//
+
+void quake::ApplyNoiseOp::print(OpAsmPrinter &p) {
+  // noise_func or key
+  p << ' ';
+  if (auto fn = getNoiseFuncAttr())
+    p << fn;
+  else
+    p << getKey();
+  p << '(' << getParameters() << ") " << getQubits() << " : ";
+  SmallVector<Type> operandTys{(*this)->getOperandTypes().begin(),
+                               (*this)->getOperandTypes().end()};
+  p.printFunctionalType(operandTys, (*this)->getResultTypes());
+  p.printOptionalAttrDict((*this)->getAttrs(),
+                          {"operand_segment_sizes", getNoiseFuncAttrName()});
+}
+
+ParseResult quake::ApplyNoiseOp::parse(OpAsmParser &parser,
+                                       OperationState &result) {
+  SmallVector<OpAsmParser::UnresolvedOperand> keyOperand;
+  if (parser.parseOperandList(keyOperand))
+    return failure();
+  bool isDirect = keyOperand.empty();
+  if (keyOperand.size() > 1)
+    return failure();
+  if (isDirect) {
+    NamedAttrList attrs;
+    SymbolRefAttr funcAttr;
+    if (parser.parseCustomAttributeWithFallback(
+            funcAttr, parser.getBuilder().getType<NoneType>(),
+            getNoiseFuncAttrNameStr(), attrs))
+      return failure();
+    result.addAttribute(getNoiseFuncAttrNameStr(), funcAttr);
+  }
+
+  SmallVector<OpAsmParser::UnresolvedOperand> parameterOperands;
+  if (succeeded(parser.parseOptionalLParen()))
+    if (parser.parseOperandList(parameterOperands) || parser.parseRParen())
+      return failure();
+
+  SmallVector<OpAsmParser::UnresolvedOperand> targetOperands;
+  if (parser.parseOperandList(targetOperands) || parser.parseColon())
+    return failure();
+
+  FunctionType applyTy;
+  if (parser.parseType(applyTy) ||
+      parser.parseOptionalAttrDict(result.attributes))
+    return failure();
+  result.addAttribute("operand_segment_sizes",
+                      parser.getBuilder().getDenseI32ArrayAttr(
+                          {static_cast<int32_t>(keyOperand.size()),
+                           static_cast<int32_t>(parameterOperands.size()),
+                           static_cast<int32_t>(targetOperands.size())}));
+  result.addTypes(applyTy.getResults());
+  if (parser.resolveOperands(llvm::concat<const OpAsmParser::UnresolvedOperand>(
+                                 keyOperand, parameterOperands, targetOperands),
+                             applyTy.getInputs(), parser.getNameLoc(),
+                             result.operands))
+    return failure();
+  return success();
+}
+
+LogicalResult quake::ApplyNoiseOp::verify() {
+  // Must have either a noise_func or a key and not both.
+  if (!getNoiseFuncAttr()) {
+    if (!getKey())
+      return emitOpError("must have a noise function or a key");
+  } else {
+    if (getKey())
+      return emitOpError("cannot have a noise function and a key");
+  }
+
+  // Parameters must be exactly one stdvec or 0 or more ptr<floating-point>.
+  auto params = getParameters();
+  if (params.size() == 1) {
+    if (auto stdvecTy = dyn_cast<cudaq::cc::StdvecType>(params[0].getType())) {
+      if (stdvecTy.getElementType() != Float64Type::get(getContext()))
+        return emitOpError("must be std::vector<double>");
+    } else if (auto ptrTy =
+                   dyn_cast<cudaq::cc::PointerType>(params[0].getType())) {
+      if (!isa<FloatType>(ptrTy.getElementType()))
+        return emitOpError("must be floating-point");
+    } else {
+      return emitOpError("must be std::vector<double> or floating-point");
+    }
+  } else {
+    for (auto p : params)
+      if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(p.getType()))
+        if (!isa<FloatType>(ptrTy.getElementType()))
+          return emitOpError("must be floating-point");
+  }
+
+  // Must have at least 1 qubit in qubits.
+  if (getQubits().empty())
+    return emitOpError("must have at least one qubit");
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
 // BorrowWire
 //===----------------------------------------------------------------------===//
 

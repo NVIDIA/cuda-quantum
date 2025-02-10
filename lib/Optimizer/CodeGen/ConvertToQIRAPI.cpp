@@ -274,6 +274,113 @@ struct AllocaOpToIntRewrite : public OpConversionPattern<quake::AllocaOp> {
   }
 };
 
+struct ApplyNoiseOpRewrite : public OpConversionPattern<quake::ApplyNoiseOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::ApplyNoiseOp noise, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = noise.getLoc();
+    if (!noise.getNoiseFuncAttr()) {
+      // This is the key-based variant. Call the generalized version of the
+      // apply_kraus_channel helper function. Let it do all the conversions into
+      // contiguous buffers for us, greatly simplifying codegen here.
+      SmallVector<Value> args = {adaptor.getKey()};
+      auto numParams = std::distance(adaptor.getParameters().begin(),
+                                     adaptor.getParameters().end());
+      args.push_back(rewriter.create<arith::ConstantIntOp>(loc, numParams, 64));
+      auto numTargets =
+          std::distance(adaptor.getQubits().begin(), adaptor.getQubits().end());
+      args.push_back(
+          rewriter.create<arith::ConstantIntOp>(loc, numTargets, 64));
+      args.append(adaptor.getParameters().begin(),
+                  adaptor.getParameters().end());
+      args.append(adaptor.getQubits().begin(), adaptor.getQubits().end());
+
+      rewriter.replaceOpWithNewOp<LLVM::CallOp>(
+          noise, TypeRange{}, cudaq::opt::QISApplyKrausChannel, args);
+      return success();
+    }
+
+    // This is a noise_func variant. Call the noise function. There are two
+    // cases that must be considered.
+    //
+    // 1. The parameters to the Kraus channel are passed in an object of type
+    // `std::vector<double>`. To do that requires a bunch of code to translate
+    // the span of doubles on the device side into a `std::vector<double>` on
+    // the stack for passing to the host-side function. It is ABSOLUTELY
+    // CRITICAL that the host side NOT use move semantics or otherwise try to
+    // claim ownership of the fake vector being passed back as that will crash
+    // the executable. The host side should not modify the content of the vector
+    // either. These assumptions are made in this code as the argument to the
+    // host side is `const std::vector<double>&`. This code must also modify the
+    // signature of the called function since the bridge will have assumed it
+    // was a span. Again all of this chicanery is so we don't call the function
+    // with the wrong data type and/or have the callee try to modify the vector.
+    // Such actions will result in the executable CRASHING or giving WRONG
+    // ANSWERS.
+    //
+    // 2. Easier by a jaw-dropping margin, just pass rvalue references to double
+    // values, each individually, back to the host-side function. Since that's
+    // already the case, we just append the operands.
+    SmallVector<Value> args;
+    if (adaptor.getParameters().size() == 1 &&
+        isa<cudaq::cc::StdvecType>(adaptor.getParameters()[0].getType())) {
+      Value svp = adaptor.getParameters()[0];
+      // Convert the device-side span back to a host-side vector so that C++
+      // doesn't crash.
+      auto stdvecTy = cast<cudaq::cc::StdvecType>(svp.getType());
+      auto *ctx = rewriter.getContext();
+      auto ptrTy = cudaq::cc::PointerType::get(stdvecTy.getElementType());
+      auto ptrArrTy = cudaq::cc::PointerType::get(
+          cudaq::cc::ArrayType::get(stdvecTy.getElementType()));
+      auto hostVecTy = cudaq::cc::ArrayType::get(ctx, ptrTy, 3);
+      auto hostVec = rewriter.create<cudaq::cc::AllocaOp>(loc, hostVecTy);
+      Value startPtr =
+          rewriter.create<cudaq::cc::StdvecDataOp>(loc, ptrArrTy, svp);
+      auto i64Ty = rewriter.getI64Type();
+      Value len = rewriter.create<cudaq::cc::StdvecSizeOp>(loc, i64Ty, svp);
+      Value endPtr = rewriter.create<cudaq::cc::ComputePtrOp>(
+          loc, ptrTy, startPtr, ArrayRef<cudaq::cc::ComputePtrArg>{len});
+      Value castStartPtr =
+          rewriter.create<cudaq::cc::CastOp>(loc, ptrTy, startPtr);
+      auto ptrPtrTy = cudaq::cc::PointerType::get(ptrTy);
+      Value ptr0 = rewriter.create<cudaq::cc::ComputePtrOp>(
+          loc, ptrPtrTy, hostVec, ArrayRef<cudaq::cc::ComputePtrArg>{0});
+      rewriter.create<cudaq::cc::StoreOp>(loc, castStartPtr, ptr0);
+      Value ptr1 = rewriter.create<cudaq::cc::ComputePtrOp>(
+          loc, ptrPtrTy, hostVec, ArrayRef<cudaq::cc::ComputePtrArg>{1});
+      rewriter.create<cudaq::cc::StoreOp>(loc, endPtr, ptr1);
+      Value ptr2 = rewriter.create<cudaq::cc::ComputePtrOp>(
+          loc, ptrPtrTy, hostVec, ArrayRef<cudaq::cc::ComputePtrArg>{2});
+      rewriter.create<cudaq::cc::StoreOp>(loc, endPtr, ptr2);
+
+      // N.B. This pointer must be treated as const by the C++ side and should
+      // never have move semantics!
+      args.push_back(hostVec);
+
+      // Finally, we need to modify the called function's signature.
+      auto module = noise->getParentOfType<ModuleOp>();
+      auto funcTy = FunctionType::get(ctx, {}, {});
+      auto [fn, flag] = cudaq::opt::factory::getOrAddFunc(
+          loc, noise.getNoiseFunc(), funcTy, module);
+      funcTy = fn.getFunctionType();
+      SmallVector<Type> inputTys{funcTy.getInputs().begin(),
+                                 funcTy.getInputs().end()};
+      inputTys[0] = hostVec.getType();
+      auto newFuncTy = FunctionType::get(ctx, inputTys, funcTy.getResults());
+      fn.setFunctionType(newFuncTy);
+    } else {
+      args.append(adaptor.getParameters().begin(),
+                  adaptor.getParameters().end());
+    }
+    args.append(adaptor.getQubits().begin(), adaptor.getQubits().end());
+    rewriter.replaceOpWithNewOp<func::CallOp>(noise, TypeRange{},
+                                              noise.getNoiseFunc(), args);
+    return success();
+  }
+};
+
 struct MaterializeConstantArrayOpRewrite
     : public OpConversionPattern<cudaq::codegen::MaterializeConstantArrayOp> {
   using OpConversionPattern::OpConversionPattern;
@@ -906,10 +1013,10 @@ struct MeasurementOpPattern : public OpConversionPattern<quake::MzOp> {
       auto cstringGlobal =
           createGlobalCString(mz, loc, rewriter, regNameAttr.getValue());
       if constexpr (!M::discriminateToClassical) {
-        // These QIR profile variants force all record output calls to appear at
-        // the end. In these variants, control-flow isn't allowed in the final
-        // LLVM. Therefore, a single basic block is assumed but unchecked here
-        // as the verifier will raise an error.
+        // These QIR profile variants force all record output calls to appear
+        // at the end. In these variants, control-flow isn't allowed in the
+        // final LLVM. Therefore, a single basic block is assumed but unchecked
+        // here as the verifier will raise an error.
         rewriter.setInsertionPoint(rewriter.getBlock()->getTerminator());
       }
       auto recOut = rewriter.create<func::CallOp>(
@@ -1441,8 +1548,8 @@ static void commonClassicalHandlingPatterns(RewritePatternSet &patterns,
 static void commonQuakeHandlingPatterns(RewritePatternSet &patterns,
                                         TypeConverter &typeConverter,
                                         MLIRContext *ctx) {
-  patterns.insert<GetMemberOpRewrite, MakeStruqOpRewrite, RelaxSizeOpErase,
-                  VeqSizeOpRewrite>(typeConverter, ctx);
+  patterns.insert<ApplyNoiseOpRewrite, GetMemberOpRewrite, MakeStruqOpRewrite,
+                  RelaxSizeOpErase, VeqSizeOpRewrite>(typeConverter, ctx);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1825,10 +1932,10 @@ struct QuakeToQIRAPIPrepPass
 
         // Recursive walk in func.
         func.walk([&](Operation *op) {
-          // Annotate all qubit allocations with the starting qubit index value.
-          // This ought to handle both reference and value semantics. If the
-          // value semantics is using wire sets, no (redundant) annotation is
-          // needed.
+          // Annotate all qubit allocations with the starting qubit index
+          // value. This ought to handle both reference and value semantics. If
+          // the value semantics is using wire sets, no (redundant) annotation
+          // is needed.
           if (auto alloc = dyn_cast<quake::AllocaOp>(op)) {
             auto allocTy = alloc.getType();
             if (isa<quake::RefType>(allocTy)) {

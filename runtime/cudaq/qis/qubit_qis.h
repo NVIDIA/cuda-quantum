@@ -1315,8 +1315,13 @@ void apply_noise(const std::vector<T> &krausOperators, QuantumArgs &&...args) {
   getExecutionManager()->applyNoise(channel, qubits);
 }
 
+template <typename... Args>
+constexpr bool any_float =
+    std::disjunction_v<std::is_floating_point<std::remove_cvref<Args>...>>;
+
 // Apply noise with runtime vector of parameters
 template <typename T, typename... Q>
+  requires(!any_float<Q...>)
 void apply_noise(const std::vector<double> &params, Q &&...args) {
   auto *ctx = get_platform().get_exec_ctx();
   if (!ctx)
@@ -1338,6 +1343,39 @@ void apply_noise(const std::vector<double> &params, Q &&...args) {
   getExecutionManager()->applyNoise(channel, qubits);
 }
 
+class kraus_channel;
+
+template <unsigned len, typename A, typename... As>
+constexpr unsigned count_leading_floats() {
+  // Note: don't use remove_cvref to keep this C++17 clean.
+  if constexpr (std::is_floating_point_v<
+                    std::remove_reference_t<std::remove_cv_t<A>>>) {
+    return count_leading_floats<len + 1, As...>();
+  } else {
+    return len;
+  }
+}
+template <unsigned len>
+constexpr unsigned count_leading_floats() {
+  return len;
+}
+template <typename... Args>
+constexpr bool any_vector_of_float = std::disjunction_v<
+    std::is_same<std::vector<double>, std::remove_cvref<Args>>...>;
+
+template <typename KrausChannelT, typename... Args>
+  requires(std::derived_from<KrausChannelT, cudaq::kraus_channel> &&
+           !any_vector_of_float<Args...>)
+void apply_noise(Args &&...args) {
+  constexpr auto ctor_arity = count_leading_floats<0, Args...>();
+  constexpr auto qubit_arity = sizeof...(args) - ctor_arity;
+
+  details::applyNoiseImpl<KrausChannelT>(
+      details::tuple_slice<ctor_arity>(std::forward_as_tuple(args...)),
+      details::tuple_slice_last<qubit_arity>(std::forward_as_tuple(args...)));
+}
+
+#if 0
 // Apply noise with compile-time known parameter and quantum arguments
 template <typename KrausChannelT, typename... Q>
 void apply_noise(Q &&...args) {
@@ -1365,6 +1403,7 @@ void apply_noise(Q &&...args) {
       details::tuple_slice_last<sizeof...(Q) - KrausChannelT::num_parameters>(
           std::forward_as_tuple(args...)));
 }
+#endif
 
 } // namespace cudaq
 #define __qop__ __attribute__((annotate("user_custom_quantum_operation")))

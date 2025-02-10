@@ -859,7 +859,7 @@ func.func @quantum_product_type() {
   %24 = quake.get_member %22[1] : (!quake.struq<!quake.veq<7>, !quake.veq<8>>) -> !quake.veq<8>
   %25 = quake.alloca !quake.struq<!quake.veq<8>, !quake.veq<5>>
   return
- }
+}
 
 // CHECK-LABEL:   func.func @quantum_product_type() {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<3>
@@ -878,5 +878,28 @@ func.func @quantum_product_type() {
 // CHECK:           %[[VAL_13:.*]] = quake.get_member %[[VAL_12]][0] : (!quake.struq<!quake.veq<7>, !quake.veq<8>>) -> !quake.veq<7>
 // CHECK:           %[[VAL_14:.*]] = quake.get_member %[[VAL_12]][1] : (!quake.struq<!quake.veq<7>, !quake.veq<8>>) -> !quake.veq<8>
 // CHECK:           %[[VAL_15:.*]] = quake.alloca !quake.struq<!quake.veq<8>, !quake.veq<5>>
+// CHECK:           return
+// CHECK:         }
+
+func.func private @santa_kraus(!cc.ptr<f64>, !quake.ref)
+func.func private @otto_kraus(!quake.ref, !quake.veq<3>)
+func.func private @oskar_kraus(!cc.ptr<f64>, !cc.ptr<f32>, !quake.veq<3>)
+
+func.func @quantum_apply_noise(%0 : !cc.ptr<f64>, %3 : !cc.ptr<f32>) {
+  %1 = quake.alloca !quake.ref
+  quake.apply_noise @santa_kraus(%0) %1 : !cc.ptr<f64>, !quake.ref
+  %2 = quake.alloca !quake.veq<3>
+  quake.apply_noise @otto_kraus() %1, %2 : !quake.ref, !quake.veq<3>
+  quake.apply_noise @oskar_kraus(%0, %3) %2 : !cc.ptr<f64>, !cc.ptr<f32>, !quake.veq<3>
+  return
+}
+
+// CHECK-LABEL:   func.func @quantum_apply_noise(
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.ptr<f64>, %[[VAL_1:.*]]: !cc.ptr<f32>) {
+// CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref
+// CHECK:           quake.apply_noise @santa_kraus(%[[VAL_0]]) %[[VAL_2]] : !cc.ptr<f64>, !quake.ref
+// CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<3>
+// CHECK:           quake.apply_noise @otto_kraus() %[[VAL_2]], %[[VAL_3]] : !quake.ref, !quake.veq<3>
+// CHECK:           quake.apply_noise @oskar_kraus(%[[VAL_0]], %[[VAL_1]]) %[[VAL_3]] : !cc.ptr<f64>, !cc.ptr<f32>, !quake.veq<3>
 // CHECK:           return
 // CHECK:         }
