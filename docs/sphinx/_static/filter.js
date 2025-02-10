@@ -14,6 +14,14 @@
 document.addEventListener('DOMContentLoaded', function() {
     const notebooks = document.querySelectorAll('.notebook-entry');
     const tagButtons = document.querySelectorAll('.tag-button');
+    
+    // Track active filters for each group
+    const activeFilters = {
+        domain: 'all',
+        backend: 'all',
+        library: 'all',
+        occasion: 'all'
+    };
 
     const activeFilters = {
         domain: 'all',
