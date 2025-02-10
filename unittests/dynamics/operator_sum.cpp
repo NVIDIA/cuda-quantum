@@ -1300,8 +1300,8 @@ TEST(OperatorExpressions, checkCustomOperatorSum) {
       cudaq::matrix_operator::define("custom_op1", {-1, -1}, func1);
     }
 
-    auto op0 = cudaq::matrix_operator::create("custom_op0", {0, 1});
-    auto op1 = cudaq::matrix_operator::create("custom_op1", {1, 2});
+    auto op0 = cudaq::matrix_operator::instantiate("custom_op0", {0, 1});
+    auto op1 = cudaq::matrix_operator::instantiate("custom_op1", {1, 2});
     auto sum = op0 + op1;
     auto sum_reverse = op1 + op0;
     auto difference = op0 - op1;
@@ -1327,8 +1327,8 @@ TEST(OperatorExpressions, checkCustomOperatorSum) {
     utils::checkEqual(difference.to_matrix(dimensions), diff_expected);
     utils::checkEqual(difference_reverse.to_matrix(dimensions), diff_reverse_expected);
 
-    op0 = cudaq::matrix_operator::create("custom_op0", {2, 3});
-    op1 = cudaq::matrix_operator::create("custom_op1", {2, 0});
+    op0 = cudaq::matrix_operator::instantiate("custom_op0", {2, 3});
+    op1 = cudaq::matrix_operator::instantiate("custom_op1", {2, 0});
     sum = op0 + op1;
     sum_reverse = op1 + op0;
     difference = op0 - op1;

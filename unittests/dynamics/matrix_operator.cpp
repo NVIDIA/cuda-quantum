@@ -141,8 +141,8 @@ TEST(OperatorExpressions, checkCustomMatrixOps) {
     // op 1:
     // number level on 3
     // create level+2 on 1
-    auto op0 = cudaq::matrix_operator::create("custom_op0", {0, 1});
-    auto op1 = cudaq::matrix_operator::create("custom_op1", {1, 3});
+    auto op0 = cudaq::matrix_operator::instantiate("custom_op0", {0, 1});
+    auto op1 = cudaq::matrix_operator::instantiate("custom_op1", {1, 3});
 
     auto matrix0 = cudaq::kronecker(utils::momentum_matrix(level_count + 1),
                                     utils::position_matrix(level_count + 2));
@@ -682,8 +682,8 @@ TEST(OperatorExpressions, checkMatrixOpsDegreeVerification) {
     cudaq::matrix_operator::define("custom_op1", {-1, -1}, func1);
   }
 
-  auto custom_op0 = cudaq::matrix_operator::create("custom_op0", {3, 1});
-  auto custom_op1 = cudaq::matrix_operator::create("custom_op1", {1, 0});
+  auto custom_op0 = cudaq::matrix_operator::instantiate("custom_op0", {3, 1});
+  auto custom_op1 = cudaq::matrix_operator::instantiate("custom_op1", {1, 0});
 
   ASSERT_THROW(op1.to_matrix(), std::runtime_error);
   ASSERT_THROW(op1.to_matrix({{1, 2}}), std::runtime_error);

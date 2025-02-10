@@ -6,9 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/operators.h"
-#include "spin_operators.h"
+#include <complex>
+#include <map>
 #include <vector>
+
+#include "cudaq/utils/tensor.h"
+#include "spin_operators.h"
 
 namespace cudaq {
 

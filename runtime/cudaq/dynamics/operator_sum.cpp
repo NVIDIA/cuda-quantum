@@ -6,17 +6,17 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/helpers.h"
+#include <algorithm>
+#include <numeric>
+#include <set>
+#include <type_traits>
+
 #include "cudaq/operators.h"
 #include "helpers.h"
 #include "manipulation.h"
 #include "matrix_operators.h"
 #include "spin_operators.h"
-
-#include <concepts>
-#include <iostream>
-#include <set>
-#include <type_traits>
+#include "boson_operators.h"
 
 namespace cudaq {
 
@@ -94,6 +94,7 @@ void operator_sum<HandlerTy>::aggregate_terms(product_operator<HandlerTy> &&head
 
 INSTANTIATE_SUM_PRIVATE_METHODS(matrix_operator);
 INSTANTIATE_SUM_PRIVATE_METHODS(spin_operator);
+INSTANTIATE_SUM_PRIVATE_METHODS(boson_operator);
 
 // read-only properties
 
@@ -140,6 +141,7 @@ operator_sum<HandlerTy>::get_terms() const {
 
 INSTANTIATE_SUM_PROPERTIES(matrix_operator);
 INSTANTIATE_SUM_PROPERTIES(spin_operator);
+INSTANTIATE_SUM_PROPERTIES(boson_operator);
 
 // constructors
 
@@ -230,9 +232,12 @@ operator_sum<HandlerTy>::operator_sum(operator_sum<HandlerTy> &&other)
 
 template 
 operator_sum<matrix_operator>::operator_sum(const operator_sum<spin_operator> &other);
+template 
+operator_sum<matrix_operator>::operator_sum(const operator_sum<boson_operator> &other);
 
 INSTANTIATE_SUM_CONSTRUCTORS(matrix_operator);
 INSTANTIATE_SUM_CONSTRUCTORS(spin_operator);
+INSTANTIATE_SUM_CONSTRUCTORS(boson_operator);
 
 // assignments
 
@@ -274,9 +279,12 @@ operator_sum<HandlerTy>::operator=(operator_sum<HandlerTy> &&other) {
 
 template 
 operator_sum<matrix_operator>& operator_sum<matrix_operator>::operator=(const operator_sum<spin_operator> &other);
+template 
+operator_sum<matrix_operator>& operator_sum<matrix_operator>::operator=(const operator_sum<boson_operator> &other);
 
 INSTANTIATE_SUM_ASSIGNMENTS(matrix_operator);
 INSTANTIATE_SUM_ASSIGNMENTS(spin_operator);
+INSTANTIATE_SUM_ASSIGNMENTS(boson_operator);
 
 // evaluations
 
@@ -303,6 +311,7 @@ matrix_2 operator_sum<HandlerTy>::to_matrix(const std::map<int, int> &dimensions
 
 INSTANTIATE_SUM_EVALUATIONS(matrix_operator);
 INSTANTIATE_SUM_EVALUATIONS(spin_operator);
+INSTANTIATE_SUM_EVALUATIONS(boson_operator);
 
 // comparisons
 
@@ -319,6 +328,7 @@ bool operator_sum<HandlerTy>::operator==(
 
 INSTANTIATE_SUM_COMPARISONS(matrix_operator);
 INSTANTIATE_SUM_COMPARISONS(spin_operator);
+INSTANTIATE_SUM_COMPARISONS(boson_operator);
 
 // unary operators
 
@@ -349,6 +359,7 @@ operator_sum<HandlerTy> operator_sum<HandlerTy>::operator+() const {
 
 INSTANTIATE_SUM_UNARY_OPS(matrix_operator);
 INSTANTIATE_SUM_UNARY_OPS(spin_operator);
+INSTANTIATE_SUM_UNARY_OPS(boson_operator);
 
 // right-hand arithmetics
 
@@ -470,6 +481,7 @@ SUM_ADDITION_HANDLER(-)
 
 INSTANTIATE_SUM_RHSIMPLE_OPS(matrix_operator);
 INSTANTIATE_SUM_RHSIMPLE_OPS(spin_operator);
+INSTANTIATE_SUM_RHSIMPLE_OPS(boson_operator);
 
 template <typename HandlerTy>
 operator_sum<HandlerTy> operator_sum<HandlerTy>::operator*(
@@ -595,6 +607,7 @@ SUM_ADDITION_SUM(-);
 
 INSTANTIATE_SUM_RHCOMPOSITE_OPS(matrix_operator);
 INSTANTIATE_SUM_RHCOMPOSITE_OPS(spin_operator);
+INSTANTIATE_SUM_RHCOMPOSITE_OPS(boson_operator);
 
 #define SUM_MULTIPLICATION_ASSIGNMENT(otherTy)                                 \
   template <typename HandlerTy>                                                \
@@ -739,6 +752,7 @@ SUM_ADDITION_SUM_ASSIGNMENT(-);
 
 INSTANTIATE_SUM_OPASSIGNMENTS(matrix_operator);
 INSTANTIATE_SUM_OPASSIGNMENTS(spin_operator);
+INSTANTIATE_SUM_OPASSIGNMENTS(boson_operator);
 
 // left-hand arithmetics
 
@@ -860,5 +874,87 @@ SUM_ADDITION_HANDLER_REVERSE(-)
 
 INSTANTIATE_SUM_LHCOMPOSITE_OPS(matrix_operator);
 INSTANTIATE_SUM_LHCOMPOSITE_OPS(spin_operator);
+INSTANTIATE_SUM_LHCOMPOSITE_OPS(boson_operator);
+
+// arithmetics that require conversions
+
+#define SUM_CONVERSIONS_OPS(op)                                                               \
+                                                                                              \
+  template <typename LHtype, typename RHtype,                                                 \
+            TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>                                \
+  operator_sum<matrix_operator> operator op(const operator_sum<LHtype> &other,                \
+                                            const product_operator<RHtype> &self) {           \
+    return operator_sum<matrix_operator>(other) op self;                                      \
+  }                                                                                           \
+                                                                                              \
+  template <typename LHtype, typename RHtype,                                                 \
+            TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>                                \
+  operator_sum<matrix_operator> operator op(const product_operator<LHtype> &other,            \
+                                            const operator_sum<RHtype> &self) {               \
+    return product_operator<matrix_operator>(other) op self;                                  \
+  }                                                                                           \
+                                                                                              \
+  template <typename LHtype, typename RHtype,                                                 \
+            TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>                                \
+  operator_sum<matrix_operator> operator op(const operator_sum<LHtype> &other,                \
+                                            const operator_sum<RHtype> &self) {               \
+    return operator_sum<matrix_operator>(other) op self;                                      \
+  }
+
+SUM_CONVERSIONS_OPS(*);
+SUM_CONVERSIONS_OPS(+);
+SUM_CONVERSIONS_OPS(-);
+
+#define INSTANTIATE_SUM_CONVERSION_OPS(op)                                                    \
+                                                                                              \
+  template                                                                                    \
+  operator_sum<matrix_operator> operator op(const operator_sum<spin_operator> &other,         \
+                                            const product_operator<matrix_operator> &self);   \
+  template                                                                                    \
+  operator_sum<matrix_operator> operator op(const operator_sum<boson_operator> &other,        \
+                                            const product_operator<matrix_operator> &self);   \
+  template                                                                                    \
+  operator_sum<matrix_operator> operator op(const operator_sum<spin_operator> &other,         \
+                                            const product_operator<boson_operator> &self);    \
+  template                                                                                    \
+  operator_sum<matrix_operator> operator op(const operator_sum<boson_operator> &other,        \
+                                            const product_operator<spin_operator> &self);     \
+                                                                                              \
+  template                                                                                    \
+  operator_sum<matrix_operator> operator op(const product_operator<spin_operator> &other,     \
+                                            const operator_sum<matrix_operator> &self);       \
+  template                                                                                    \
+  operator_sum<matrix_operator> operator op(const product_operator<boson_operator> &other,    \
+                                            const operator_sum<matrix_operator> &self);       \
+  template                                                                                    \
+  operator_sum<matrix_operator> operator op(const product_operator<spin_operator> &other,     \
+                                            const operator_sum<boson_operator> &self);        \
+  template                                                                                    \
+  operator_sum<matrix_operator> operator op(const product_operator<boson_operator> &other,    \
+                                            const operator_sum<spin_operator> &self);         \
+                                                                                              \
+  template                                                                                    \
+  operator_sum<matrix_operator> operator op(const operator_sum<spin_operator> &other,         \
+                                            const operator_sum<matrix_operator> &self);       \
+  template                                                                                    \
+  operator_sum<matrix_operator> operator op(const operator_sum<boson_operator> &other,        \
+                                            const operator_sum<matrix_operator> &self);       \
+  template                                                                                    \
+  operator_sum<matrix_operator> operator op(const operator_sum<spin_operator> &other,         \
+                                            const operator_sum<boson_operator> &self);        \
+  template                                                                                    \
+  operator_sum<matrix_operator> operator op(const operator_sum<boson_operator> &other,        \
+                                            const operator_sum<spin_operator> &self);         \
+
+INSTANTIATE_SUM_CONVERSION_OPS(*);
+INSTANTIATE_SUM_CONVERSION_OPS(+);
+INSTANTIATE_SUM_CONVERSION_OPS(-);
+
+
+#ifdef CUDAQ_INSTANTIATE_TEMPLATES
+template class operator_sum<matrix_operator>;
+template class operator_sum<spin_operator>;
+template class operator_sum<boson_operator>;
+#endif
 
 } // namespace cudaq

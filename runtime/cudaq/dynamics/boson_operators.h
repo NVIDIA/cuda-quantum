@@ -20,16 +20,16 @@ namespace cudaq {
 template <typename HandlerTy> 
 class product_operator;
 
-// FIXME: rename to spin ...
-class spin_operator : operator_handler{
+// FIXME: rename?
+class boson_operator : operator_handler{
 
 private:
 
-  // I = 0, Z = 1, X = 2, Y = 3
+  // ...
   int id;
   int target;
 
-  spin_operator(int op, int target);
+  boson_operator(int op, int target);
 
 public:
 
@@ -43,7 +43,7 @@ public:
 
   // constructors and destructors
 
-  ~spin_operator() = default;
+  ~boson_operator() = default;
 
   // assignments
 
@@ -61,16 +61,16 @@ public:
 
   // comparisons
 
-  bool operator==(const spin_operator &other) const;
+  bool operator==(const boson_operator &other) const;
 
   // defined operators
 
   // multiplicative identity
-  static spin_operator one(int degree);
-  static product_operator<spin_operator> i(int degree);
-  static product_operator<spin_operator> z(int degree);
-  static product_operator<spin_operator> x(int degree);
-  static product_operator<spin_operator> y(int degree);
+  static boson_operator one(int degree);
+  static product_operator<boson_operator> identity(int degree);
+  static product_operator<boson_operator> create(int degree);
+  static product_operator<boson_operator> annihilate(int degree);
+  static product_operator<boson_operator> number(int degree);
 };
 
 } // namespace cudaq
