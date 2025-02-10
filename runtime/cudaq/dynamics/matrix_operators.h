@@ -8,11 +8,17 @@
 
 #pragma once
 
+#include <complex>
 #include <map>
 #include <vector>
+
+#include "cudaq/utils/tensor.h"
 #include "cudaq/operators.h"
 
 namespace cudaq {
+
+template <typename HandlerTy> 
+class product_operator;
 
 class matrix_operator : operator_handler{
 
@@ -64,12 +70,12 @@ public:
   /// @brief Instantiates a custom operator.
   /// @arg operator_id : The ID of the operator as specified when it was defined.
   /// @arg degrees : the degrees of freedom that the operator acts upon.
-  static product_operator<matrix_operator> create(std::string operator_id, const std::vector<int> &degrees);
+  static product_operator<matrix_operator> instantiate(std::string operator_id, const std::vector<int> &degrees);
 
   /// @brief Instantiates a custom operator.
   /// @arg operator_id : The ID of the operator as specified when it was defined.
   /// @arg degrees : the degrees of freedom that the operator acts upon.
-  static product_operator<matrix_operator> create(std::string operator_id, std::vector<int> &&degrees);
+  static product_operator<matrix_operator> instantiate(std::string operator_id, std::vector<int> &&degrees);
 
   // read-only properties
 
@@ -136,13 +142,5 @@ public:
   static product_operator<matrix_operator> squeeze(int degree);
   static product_operator<matrix_operator> displace(int degree);
 };
-
-#ifdef CUDAQ_INSTANTIATE_TEMPLATES
-template class product_operator<matrix_operator>;
-template class operator_sum<matrix_operator>;
-#else
-extern template class product_operator<matrix_operator>;
-extern template class operator_sum<matrix_operator>;
-#endif
 
 } // namespace cudaq

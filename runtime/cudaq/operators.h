@@ -8,140 +8,17 @@
 
 #pragma once
 
-#include "dynamics/templates.h"
-#include "dynamics/callback.h"
-#include "utils/tensor.h"
-
-#include <concepts>
-#include <functional>
-#include <iostream>
 #include <map>
-#include <set>
 #include <type_traits>
+
+#include "utils/tensor.h"
+#include "dynamics/operator_leafs.h"
+#include "dynamics/templates.h"
 
 namespace cudaq {
 
 class MatrixArithmetics;
 class EvaluatedMatrix;
-
-class scalar_operator {
-
-private:
-  // If someone gave us a constant value, we will just return that
-  // directly to them when they call `evaluate`.
-  std::variant<std::complex<double>, ScalarCallbackFunction> value;
-
-public:
-  // constructors and destructors
-
-  scalar_operator(double value);
-
-  /// @brief Constructor that just takes and returns a complex double value.
-  /// @NOTE: This replicates the behavior of the python `scalar_operator::const`
-  /// without the need for an extra member function.
-  scalar_operator(std::complex<double> value);
-
-  scalar_operator(const ScalarCallbackFunction &create);
-
-  /// @brief Constructor that just takes a callback function with no
-  /// arguments.
-  scalar_operator(ScalarCallbackFunction &&create);
-
-  // copy constructor
-  scalar_operator(const scalar_operator &other);
-
-  // move constructor
-  scalar_operator(scalar_operator &&other);
-
-  ~scalar_operator() = default;
-
-  // assignments
-
-  // assignment operator
-  scalar_operator &operator=(const scalar_operator &other);
-
-  // move assignment operator
-  scalar_operator &operator=(scalar_operator &&other);
-
-  // evaluations
-
-  /// @brief Return the scalar operator as a concrete complex value.
-  std::complex<double> evaluate(
-      const std::map<std::string, std::complex<double>> parameters = {}) const;
-
-  ScalarCallbackFunction get_generator() const;
-
-  // Return the scalar operator as a 1x1 matrix. This is needed for
-  // compatibility with the other inherited classes.
-  matrix_2 to_matrix(
-      const std::map<int, int> dimensions = {},
-      const std::map<std::string, std::complex<double>> parameters = {}) const;
-
-  // comparisons
-
-  bool operator==(scalar_operator other);
-
-  // unary operators
-
-  scalar_operator operator-() const;
-  scalar_operator operator+() const;
-
-  // right-hand arithmetics
-
-  scalar_operator operator*(double other) const;
-  scalar_operator operator/(double other) const;
-  scalar_operator operator+(double other) const;
-  scalar_operator operator-(double other) const;
-  scalar_operator &operator*=(double other);
-  scalar_operator &operator/=(double other);
-  scalar_operator &operator+=(double other);
-  scalar_operator &operator-=(double other);
-  scalar_operator operator*(std::complex<double> other) const;
-  scalar_operator operator/(std::complex<double> other) const;
-  scalar_operator operator+(std::complex<double> other) const;
-  scalar_operator operator-(std::complex<double> other) const;
-  scalar_operator &operator*=(std::complex<double> other);
-  scalar_operator &operator/=(std::complex<double> other);
-  scalar_operator &operator+=(std::complex<double> other);
-  scalar_operator &operator-=(std::complex<double> other);
-  scalar_operator operator*(const scalar_operator &other) const;
-  scalar_operator operator/(const scalar_operator &other) const;
-  scalar_operator operator+(const scalar_operator &other) const;
-  scalar_operator operator-(const scalar_operator &other) const;
-  scalar_operator &operator*=(const scalar_operator &other);
-  scalar_operator &operator/=(const scalar_operator &other);
-  scalar_operator &operator+=(const scalar_operator &other);
-  scalar_operator &operator-=(const scalar_operator &other);
-  /// TODO: implement and test pow
-
-  friend scalar_operator operator*(scalar_operator &&self, double other);
-  friend scalar_operator operator/(scalar_operator &&self, double other);
-  friend scalar_operator operator+(scalar_operator &&self, double other);
-  friend scalar_operator operator-(scalar_operator &&self, double other);
-  friend scalar_operator operator+(scalar_operator &&self,
-                                   std::complex<double> other);
-  friend scalar_operator operator/(scalar_operator &&self,
-                                   std::complex<double> other);
-  friend scalar_operator operator+(scalar_operator &&self,
-                                   std::complex<double> other);
-  friend scalar_operator operator-(scalar_operator &&self,
-                                   std::complex<double> other);
-
-  // left-hand arithmetics
-
-  friend scalar_operator operator*(double other, const scalar_operator &self);
-  friend scalar_operator operator/(double other, const scalar_operator &self);
-  friend scalar_operator operator+(double other, const scalar_operator &self);
-  friend scalar_operator operator-(double other, const scalar_operator &self);
-  friend scalar_operator operator*(std::complex<double> other,
-                                   const scalar_operator &self);
-  friend scalar_operator operator/(std::complex<double> other,
-                                   const scalar_operator &self);
-  friend scalar_operator operator+(std::complex<double> other,
-                                   const scalar_operator &self);
-  friend scalar_operator operator-(std::complex<double> other,
-                                   const scalar_operator &self);
-};
 
 /// @brief Represents an operator expression consisting of a sum of terms, where
 /// each term is a product of elementary and scalar operators. Operator
@@ -522,25 +399,15 @@ public:
                                    const product_operator<T> &self);
 };
 
+#ifndef CUDAQ_INSTANTIATE_TEMPLATES
+extern template class product_operator<matrix_operator>;
+extern template class product_operator<spin_operator>;
+extern template class product_operator<boson_operator>;
 
-class operator_handler {
-public:
-  virtual ~operator_handler() = default;
-
-  virtual std::vector<int> degrees() const = 0;
-
-  virtual bool is_identity() const = 0;
-
-  /// @brief Return the `matrix_operator` as a matrix.
-  /// @arg  `dimensions` : A map specifying the number of levels,
-  ///                      that is, the dimension of each degree of freedom
-  ///                      that the operator acts on. Example for two, 2-level
-  ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
-  virtual matrix_2 to_matrix(std::map<int, int> &dimensions,
-                             std::map<std::string, std::complex<double>> parameters = {}) const = 0;
-
-  virtual std::string to_string(bool include_degrees = true) const = 0;
-};
+extern template class operator_sum<matrix_operator>;
+extern template class operator_sum<spin_operator>;
+extern template class operator_sum<boson_operator>;
+#endif
 
 /// @brief Representation of a time-dependent Hamiltonian for Rydberg system
 class rydberg_hamiltonian {
