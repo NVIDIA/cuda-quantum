@@ -700,3 +700,18 @@ TEST(OperatorExpressions, checkMatrixOpsDegreeVerification) {
   ASSERT_NO_THROW((custom_op0 + custom_op1).to_matrix(dimensions));
 }
 
+TEST(OperatorExpressions, checkMatrixOpsParameterVerification) {
+
+  std::map<std::string, std::complex<double>> parameters = {{"squeezing", 0.5}, {"displacement", 0.25}};
+  std::map<int, int> dimensions = {{0, 2}, {1, 2}};
+
+  auto squeeze = cudaq::matrix_operator::squeeze(1);
+  auto displace = cudaq::matrix_operator::displace(0);
+
+  ASSERT_THROW(squeeze.to_matrix(dimensions), std::runtime_error);
+  ASSERT_THROW(squeeze.to_matrix(dimensions, {{"displacement", 0.25}}), std::runtime_error);
+  ASSERT_THROW((squeeze * displace).to_matrix(dimensions, {{"displacement", 0.25}}), std::runtime_error);
+  ASSERT_THROW((squeeze + displace).to_matrix(dimensions, {{"squeezing", 0.5}}), std::runtime_error);
+  ASSERT_NO_THROW((squeeze * displace).to_matrix(dimensions, parameters));
+  ASSERT_NO_THROW((squeeze + displace).to_matrix(dimensions, parameters));
+}
