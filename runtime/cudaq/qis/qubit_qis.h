@@ -42,6 +42,13 @@ ConcreteQubitOp(h) ConcreteQubitOp(x) ConcreteQubitOp(y) ConcreteQubitOp(z)
 
 } // namespace qubit_op
 
+// Apply noise with Krauss channel parameters and quantum arguments.
+template <typename KrausChannelT, typename... Q>
+void apply_noise(Q &&...args) {
+  // FIXME: This is just a stub.
+  KrausChannelT channel;
+}
+
 // Convert a qubit to its unique id representation
 inline QuditInfo qubitToQuditInfo(qubit &q) { return {q.n_levels(), q.id()}; }
 inline bool qubitIsNegative(qubit &q) { return q.is_negative(); }

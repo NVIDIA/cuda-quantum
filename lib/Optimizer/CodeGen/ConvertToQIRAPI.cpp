@@ -271,6 +271,21 @@ struct AllocaOpToIntRewrite : public OpConversionPattern<quake::AllocaOp> {
   }
 };
 
+struct ApplyNoiseOpRewrite : public OpConversionPattern<quake::ApplyNoiseOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::ApplyNoiseOp noise, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    SmallVector<Value> args{adaptor.getParameters().begin(),
+                            adaptor.getParameters().end()};
+    args.append(adaptor.getQubits().begin(), adaptor.getQubits().end());
+    rewriter.replaceOpWithNewOp<func::CallOp>(noise, TypeRange{},
+                                              noise.getNoiseFunc(), args);
+    return success();
+  }
+};
+
 struct MaterializeConstantArrayOpRewrite
     : public OpConversionPattern<cudaq::codegen::MaterializeConstantArrayOp> {
   using OpConversionPattern::OpConversionPattern;
@@ -1381,8 +1396,8 @@ static void commonClassicalHandlingPatterns(RewritePatternSet &patterns,
 static void commonQuakeHandlingPatterns(RewritePatternSet &patterns,
                                         TypeConverter &typeConverter,
                                         MLIRContext *ctx) {
-  patterns.insert<GetMemberOpRewrite, MakeStruqOpRewrite, RelaxSizeOpErase,
-                  VeqSizeOpRewrite>(typeConverter, ctx);
+  patterns.insert<ApplyNoiseOpRewrite, GetMemberOpRewrite, MakeStruqOpRewrite,
+                  RelaxSizeOpErase, VeqSizeOpRewrite>(typeConverter, ctx);
 }
 
 //===----------------------------------------------------------------------===//

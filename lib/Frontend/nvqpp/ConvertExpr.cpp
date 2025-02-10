@@ -1503,6 +1503,49 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       return true;
     }
 
+    if (funcName == "apply_noise") {
+      SmallVector<Value> params;
+      SmallVector<Value> qubits;
+      bool inParams = true;
+      for (auto a : args) {
+        if (inParams && isa<FloatType>(a.getType())) {
+          params.push_back(a);
+        } else {
+          // The first argument that is not floating-point must be a qubit. If
+          // the user has interleaved floating-point and qubit arguments, that's
+          // an error.
+          inParams = false;
+          if (isa<quake::RefType, quake::VeqType>(a.getType())) {
+            qubits.push_back(a);
+          } else {
+            reportClangError(x, mangler,
+                             "apply_noise argument types not supported.");
+            return false;
+          }
+        }
+      }
+
+      if (auto callee = calleeOp.getDefiningOp<func::ConstantOp>()) {
+        auto calleeName = callee.getValue().str();
+        builder.create<quake::ApplyNoiseOp>(loc, TypeRange{}, calleeName,
+                                            params, qubits);
+
+        // Add the declaration of the function to the module.
+        SmallVector<Type> argTys;
+        for (auto p : params)
+          argTys.push_back(p.getType());
+        for (auto q : qubits)
+          argTys.push_back(q.getType());
+        auto calleeTy = FunctionType::get(builder.getContext(), argTys, {});
+        cudaq::opt::factory::getOrAddFunc(loc, calleeName, calleeTy, module);
+        return true;
+      }
+
+      reportClangError(x, mangler,
+                       "apply_noise with a vector argument is deprecated.");
+      return false;
+    }
+
     if (funcName.equals("mx") || funcName.equals("my") ||
         funcName.equals("mz")) {
       // Measurements always return a bool or a std::vector<bool>.
@@ -1807,8 +1850,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
                                        kernelArgs);
         return inlinedFinishControlNegations();
       }
-      if (auto func =
-              dyn_cast_or_null<func::ConstantOp>(calleeValue.getDefiningOp())) {
+      if (auto func = calleeValue.getDefiningOp<func::ConstantOp>()) {
         auto funcTy = cast<FunctionType>(func.getType());
         auto callableSym = func.getValueAttr();
         inlinedStartControlNegations();
@@ -1920,8 +1962,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
                                               /*isAdjoint=*/true, ValueRange{},
                                               kernArgs);
       }
-      if (auto func =
-              dyn_cast_or_null<func::ConstantOp>(kernelValue.getDefiningOp())) {
+      if (auto func = kernelValue.getDefiningOp<func::ConstantOp>()) {
         auto kernSym = func.getValueAttr();
         auto funcTy = cast<FunctionType>(func.getType());
         auto kernArgs =
