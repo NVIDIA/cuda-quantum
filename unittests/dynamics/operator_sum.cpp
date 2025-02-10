@@ -265,8 +265,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto sum = original + double_value;
     auto reverse = double_value + original;
 
-    ASSERT_TRUE(sum.n_terms() == 3);
-    ASSERT_TRUE(reverse.n_terms() == 3);
+    ASSERT_TRUE(sum.num_terms() == 3);
+    ASSERT_TRUE(reverse.num_terms() == 3);
 
     auto got_matrix = sum.to_matrix({{1, level_count}, {2, level_count+1}});
     auto got_matrix_reverse = reverse.to_matrix({{1, level_count}, {2, level_count+1}});
@@ -290,8 +290,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto sum = original + value;
     auto reverse = value + original;
 
-    ASSERT_TRUE(sum.n_terms() == 3);
-    ASSERT_TRUE(reverse.n_terms() == 3);
+    ASSERT_TRUE(sum.num_terms() == 3);
+    ASSERT_TRUE(reverse.num_terms() == 3);
 
     auto got_matrix = sum.to_matrix({{1,level_count}, {2, level_count+1}});
     auto got_matrix_reverse = reverse.to_matrix({{1,level_count}, {2, level_count+1}});
@@ -315,8 +315,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto sum = original + value;
     auto reverse = value + original;
 
-    ASSERT_TRUE(sum.n_terms() == 3);
-    ASSERT_TRUE(reverse.n_terms() == 3);
+    ASSERT_TRUE(sum.num_terms() == 3);
+    ASSERT_TRUE(reverse.num_terms() == 3);
 
     auto got_matrix = sum.to_matrix();
     auto got_matrix_reverse = reverse.to_matrix();
@@ -341,8 +341,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto sum = original + cudaq::scalar_operator(value);
     auto reverse = cudaq::scalar_operator(value) + original;
 
-    ASSERT_TRUE(sum.n_terms() == 3);
-    ASSERT_TRUE(reverse.n_terms() == 3);
+    ASSERT_TRUE(sum.num_terms() == 3);
+    ASSERT_TRUE(reverse.num_terms() == 3);
 
 
     auto got_matrix = sum.to_matrix({{1, level_count}, {2, level_count+1}});
@@ -370,8 +370,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto difference = original - double_value;
     auto reverse = double_value - original;
 
-    ASSERT_TRUE(difference.n_terms() == 3);
-    ASSERT_TRUE(reverse.n_terms() == 3);
+    ASSERT_TRUE(difference.num_terms() == 3);
+    ASSERT_TRUE(reverse.num_terms() == 3);
 
     auto got_matrix = difference.to_matrix({{1, level_count}, {2, level_count+1}});
     auto got_matrix_reverse = reverse.to_matrix({{1, level_count}, {2, level_count+1}});
@@ -397,8 +397,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto difference = original - double_value;
     auto reverse = double_value - original;
 
-    ASSERT_TRUE(difference.n_terms() == 3);
-    ASSERT_TRUE(reverse.n_terms() == 3);
+    ASSERT_TRUE(difference.num_terms() == 3);
+    ASSERT_TRUE(reverse.num_terms() == 3);
 
     auto got_matrix = difference.to_matrix();
     auto got_matrix_reverse = reverse.to_matrix();
@@ -424,8 +424,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto difference = original - value;
     auto reverse = value - original;
 
-    ASSERT_TRUE(difference.n_terms() == 3);
-    ASSERT_TRUE(reverse.n_terms() == 3);
+    ASSERT_TRUE(difference.num_terms() == 3);
+    ASSERT_TRUE(reverse.num_terms() == 3);
 
     auto got_matrix = difference.to_matrix({{1,level_count}, {2, level_count+1}}); 
     auto got_matrix_reverse = reverse.to_matrix({{1,level_count}, {2, level_count+1}});
@@ -451,8 +451,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto difference = original - cudaq::scalar_operator(value);
     auto reverse = cudaq::scalar_operator(value) - original;
 
-    ASSERT_TRUE(difference.n_terms() == 3);
-    ASSERT_TRUE(reverse.n_terms() == 3);
+    ASSERT_TRUE(difference.num_terms() == 3);
+    ASSERT_TRUE(reverse.num_terms() == 3);
 
     auto got_matrix = difference.to_matrix({{1, level_count}, {2, level_count+1}}); 
     auto got_matrix_reverse = reverse.to_matrix({{1, level_count}, {2, level_count+1}});
@@ -479,16 +479,16 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto product = sum * double_value;
     auto reverse = double_value * sum;
 
-    ASSERT_TRUE(product.n_terms() == 2);
-    ASSERT_TRUE(reverse.n_terms() == 2);
+    ASSERT_TRUE(product.num_terms() == 2);
+    ASSERT_TRUE(reverse.num_terms() == 2);
 
     for (auto term : product.get_terms()) {
-      ASSERT_TRUE(term.n_terms() == 1);
+      ASSERT_TRUE(term.num_terms() == 1);
       ASSERT_TRUE(term.get_coefficient().evaluate() == std::complex<double>(double_value));
     }
 
     for (auto term : reverse.get_terms()) {
-      ASSERT_TRUE(term.n_terms() == 1);
+      ASSERT_TRUE(term.num_terms() == 1);
       ASSERT_TRUE(term.get_coefficient().evaluate() == std::complex<double>(double_value));
     }
 
@@ -514,16 +514,16 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto product = sum * value;
     auto reverse = value * sum;
 
-    ASSERT_TRUE(product.n_terms() == 2);
-    ASSERT_TRUE(reverse.n_terms() == 2);
+    ASSERT_TRUE(product.num_terms() == 2);
+    ASSERT_TRUE(reverse.num_terms() == 2);
 
     for (auto term : product.get_terms()) {
-      ASSERT_TRUE(term.n_terms() == 1);
+      ASSERT_TRUE(term.num_terms() == 1);
       ASSERT_TRUE(term.get_coefficient().evaluate() == value);
     }
 
     for (auto term : reverse.get_terms()) {
-      ASSERT_TRUE(term.n_terms() == 1);
+      ASSERT_TRUE(term.num_terms() == 1);
       ASSERT_TRUE(term.get_coefficient().evaluate() == value);
     }
 
@@ -549,16 +549,16 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto product = sum * cudaq::scalar_operator(value);
     auto reverse = cudaq::scalar_operator(value) * sum;
 
-    ASSERT_TRUE(product.n_terms() == 2);
-    ASSERT_TRUE(reverse.n_terms() == 2);
+    ASSERT_TRUE(product.num_terms() == 2);
+    ASSERT_TRUE(reverse.num_terms() == 2);
 
     for (auto term : product.get_terms()) {
-      ASSERT_TRUE(term.n_terms() == 1);
+      ASSERT_TRUE(term.num_terms() == 1);
       ASSERT_TRUE(term.get_coefficient().evaluate() == value);
     }
 
     for (auto term : reverse.get_terms()) {
-      ASSERT_TRUE(term.n_terms() == 1);
+      ASSERT_TRUE(term.num_terms() == 1);
       ASSERT_TRUE(term.get_coefficient().evaluate() == value);
     }
 
@@ -589,16 +589,16 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto product = sum * cudaq::scalar_operator(value);
     auto reverse = cudaq::scalar_operator(value) * sum;
 
-    ASSERT_TRUE(product.n_terms() == 2);
-    ASSERT_TRUE(reverse.n_terms() == 2);
+    ASSERT_TRUE(product.num_terms() == 2);
+    ASSERT_TRUE(reverse.num_terms() == 2);
 
     for (auto term : product.get_terms()) {
-      ASSERT_TRUE(term.n_terms() == 1);
+      ASSERT_TRUE(term.num_terms() == 1);
       ASSERT_TRUE(term.get_coefficient().evaluate() == value);
     }
 
     for (auto term : reverse.get_terms()) {
-      ASSERT_TRUE(term.n_terms() == 1);
+      ASSERT_TRUE(term.num_terms() == 1);
       ASSERT_TRUE(term.get_coefficient().evaluate() == value);
     }
 
@@ -623,9 +623,9 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     sum *= double_value;
 
-    ASSERT_TRUE(sum.n_terms() == 2);
+    ASSERT_TRUE(sum.num_terms() == 2);
     for (auto term : sum.get_terms()) {
-      ASSERT_TRUE(term.n_terms() == 1);
+      ASSERT_TRUE(term.num_terms() == 1);
       ASSERT_TRUE(term.get_coefficient().evaluate() == std::complex<double>(double_value));
     }
 
@@ -651,9 +651,9 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     sum *= double_value;
 
-    ASSERT_TRUE(sum.n_terms() == 2);
+    ASSERT_TRUE(sum.num_terms() == 2);
     for (auto term : sum.get_terms()) {
-      ASSERT_TRUE(term.n_terms() == 1);
+      ASSERT_TRUE(term.num_terms() == 1);
       ASSERT_TRUE(term.get_coefficient().evaluate() == std::complex<double>(double_value));
     }
 
@@ -673,9 +673,9 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     sum *= value;
 
-    ASSERT_TRUE(sum.n_terms() == 2);
+    ASSERT_TRUE(sum.num_terms() == 2);
     for (auto term : sum.get_terms()) {
-      ASSERT_TRUE(term.n_terms() == 1);
+      ASSERT_TRUE(term.num_terms() == 1);
       ASSERT_TRUE(term.get_coefficient().evaluate() == value);
     }
 
@@ -699,9 +699,9 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     sum *= cudaq::scalar_operator(value);
 
-    ASSERT_TRUE(sum.n_terms() == 2);
+    ASSERT_TRUE(sum.num_terms() == 2);
     for (auto term : sum.get_terms()) {
-      ASSERT_TRUE(term.n_terms() == 1);
+      ASSERT_TRUE(term.num_terms() == 1);
       ASSERT_TRUE(term.get_coefficient().evaluate() == value);
     }
 
@@ -729,7 +729,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     sum += double_value;
 
-    ASSERT_TRUE(sum.n_terms() == 3);
+    ASSERT_TRUE(sum.num_terms() == 3);
 
     auto got_matrix = sum.to_matrix({{1,level_count}, {2, level_count+1}});
 
@@ -749,7 +749,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
                cudaq::spin_operator::y(2);
 
     sum += double_value;
-    ASSERT_TRUE(sum.n_terms() == 3);
+    ASSERT_TRUE(sum.num_terms() == 3);
 
     auto got_matrix = sum.to_matrix({{1, 2}, {2, 2}});
     auto matrix0 = cudaq::kronecker(utils::id_matrix(2),
@@ -769,7 +769,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     sum += value;
 
-    ASSERT_TRUE(sum.n_terms() == 3);
+    ASSERT_TRUE(sum.num_terms() == 3);
 
     auto got_matrix = sum.to_matrix({{1,level_count}, {2, level_count+1}}, {{"squeezing", value}});
 
@@ -791,7 +791,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     sum += cudaq::scalar_operator(value);
 
-    ASSERT_TRUE(sum.n_terms() == 3);
+    ASSERT_TRUE(sum.num_terms() == 3);
 
     auto got_matrix = sum.to_matrix(
         {{0, level_count}, {1, level_count}, {2, level_count + 1}});
@@ -817,7 +817,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     sum -= double_value;
 
-    ASSERT_TRUE(sum.n_terms() == 3);
+    ASSERT_TRUE(sum.num_terms() == 3);
 
     auto got_matrix = sum.to_matrix({{1,level_count}, {2, level_count+1}});
 
@@ -840,7 +840,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     sum -= value;
 
-    ASSERT_TRUE(sum.n_terms() == 3);
+    ASSERT_TRUE(sum.num_terms() == 3);
 
     auto got_matrix = sum.to_matrix({{1,level_count}, {2, level_count+1}});
 
@@ -861,7 +861,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     sum -= cudaq::scalar_operator(value);
 
-    ASSERT_TRUE(sum.n_terms() == 3);
+    ASSERT_TRUE(sum.num_terms() == 3);
 
     auto got_matrix = sum.to_matrix(
         {{0, level_count}, {1, level_count}, {2, level_count + 1}});
@@ -886,7 +886,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
                cudaq::spin_operator::y(2);
 
     sum -= cudaq::scalar_operator(value);
-    ASSERT_TRUE(sum.n_terms() == 3);
+    ASSERT_TRUE(sum.num_terms() == 3);
 
     auto got_matrix = sum.to_matrix();
 
@@ -919,7 +919,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstProduct) {
 
     sum += product;
 
-    ASSERT_TRUE(sum.n_terms() == 3);
+    ASSERT_TRUE(sum.num_terms() == 3);
 
     auto got_matrix = sum.to_matrix({{0, level_count}, {1, level_count+1}, {2, level_count+2}});
     std::vector<cudaq::matrix_2> matrices_0_0 = {
@@ -960,7 +960,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstProduct) {
 
     sum -= product;
 
-    ASSERT_TRUE(sum.n_terms() == 3);
+    ASSERT_TRUE(sum.num_terms() == 3);
 
     auto got_matrix = sum.to_matrix({{0, level_count}, {1, level_count+1}, {2, level_count+2}});
     std::vector<cudaq::matrix_2> matrices_0_0 = {
@@ -1001,9 +1001,9 @@ TEST(OperatorExpressions, checkOperatorSumAgainstProduct) {
 
     sum *= product;
 
-    ASSERT_TRUE(sum.n_terms() == 2);
+    ASSERT_TRUE(sum.num_terms() == 2);
     for (auto term : sum.get_terms()) {
-      ASSERT_TRUE(term.n_terms() == 3);
+      ASSERT_TRUE(term.num_terms() == 3);
     }
 
     auto got_matrix = sum.to_matrix({{0, level_count}, {1, level_count+1}, {2, level_count+2}});
@@ -1051,7 +1051,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstOperatorSum) {
 
     auto sum = sum_0 + sum_1;
 
-    ASSERT_TRUE(sum.n_terms() == 5);
+    ASSERT_TRUE(sum.num_terms() == 5);
 
     auto got_matrix = sum.to_matrix({{0, level_count},
                                      {1, level_count + 1},
@@ -1107,7 +1107,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstOperatorSum) {
 
     auto difference = sum_0 - sum_1;
 
-    ASSERT_TRUE(difference.n_terms() == 5);
+    ASSERT_TRUE(difference.num_terms() == 5);
 
     auto got_matrix = difference.to_matrix({{0, level_count},
                                             {1, level_count + 1},
@@ -1164,12 +1164,12 @@ TEST(OperatorExpressions, checkOperatorSumAgainstOperatorSum) {
     auto sum_product = sum_0 * sum_1;
     auto sum_product_reverse = sum_1 * sum_0;
 
-    ASSERT_TRUE(sum_product.n_terms() == 6);
-    ASSERT_TRUE(sum_product_reverse.n_terms() == 6);
+    ASSERT_TRUE(sum_product.num_terms() == 6);
+    ASSERT_TRUE(sum_product_reverse.num_terms() == 6);
     for (auto term : sum_product.get_terms())
-      ASSERT_TRUE(term.n_terms() == 2);
+      ASSERT_TRUE(term.num_terms() == 2);
     for (auto term : sum_product_reverse.get_terms())
-      ASSERT_TRUE(term.n_terms() == 2);
+      ASSERT_TRUE(term.num_terms() == 2);
 
     auto got_matrix = sum_product.to_matrix({{0, level_count},
                                              {1, level_count + 1},
@@ -1232,9 +1232,9 @@ TEST(OperatorExpressions, checkOperatorSumAgainstOperatorSum) {
 
     sum *= sum_1;
 
-    ASSERT_TRUE(sum.n_terms() == 6);
+    ASSERT_TRUE(sum.num_terms() == 6);
     for (auto term : sum.get_terms())
-      ASSERT_TRUE(term.n_terms() == 2);
+      ASSERT_TRUE(term.num_terms() == 2);
 
     auto got_matrix = sum.to_matrix({{0, level_count},
                                      {1, level_count + 1},

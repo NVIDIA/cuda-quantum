@@ -46,12 +46,15 @@ template <typename HandlerTy>
 operator_sum<HandlerTy> operator+(const scalar_operator &other, const product_operator<HandlerTy> &self);
 template <typename HandlerTy> 
 operator_sum<HandlerTy> operator-(const scalar_operator &other, const product_operator<HandlerTy> &self);
+
+/*
 template <typename HandlerTy> 
 product_operator<HandlerTy> operator*(const HandlerTy &other, const product_operator<HandlerTy> &self);
 template <typename HandlerTy> 
 operator_sum<HandlerTy> operator+(const HandlerTy &other, const product_operator<HandlerTy> &self);
 template <typename HandlerTy> 
 operator_sum<HandlerTy> operator-(const HandlerTy &other, const product_operator<HandlerTy> &self);
+*/
 
 template <typename LHtype, typename RHtype, TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
 product_operator<matrix_operator> operator*(const product_operator<LHtype> &other, const product_operator<RHtype> &self);
@@ -78,12 +81,14 @@ template <typename HandlerTy>
 operator_sum<HandlerTy> operator+(const scalar_operator &other, const operator_sum<HandlerTy> &self);
 template <typename HandlerTy> 
 operator_sum<HandlerTy> operator-(const scalar_operator &other, const operator_sum<HandlerTy> &self);
+/*
 template <typename HandlerTy> 
 operator_sum<HandlerTy> operator*(const HandlerTy &other, const operator_sum<HandlerTy> &self);
 template <typename HandlerTy> 
 operator_sum<HandlerTy> operator+(const HandlerTy &other, const operator_sum<HandlerTy> &self);
 template <typename HandlerTy> 
 operator_sum<HandlerTy> operator-(const HandlerTy &other, const operator_sum<HandlerTy> &self);
+*/
 
 template <typename LHtype, typename RHtype, TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
 operator_sum<matrix_operator> operator*(const operator_sum<LHtype> &other, const product_operator<RHtype> &self);
@@ -126,12 +131,6 @@ operator_sum<matrix_operator> operator-(const operator_sum<LHtype> &other, const
     operator_sum<HandlerTy> operator+(const scalar_operator &other, const product_operator<HandlerTy> &self);       \
     extern template                                                                                                 \
     operator_sum<HandlerTy> operator-(const scalar_operator &other, const product_operator<HandlerTy> &self);       \
-    extern template                                                                                                 \
-    product_operator<HandlerTy> operator*(const HandlerTy &other, const product_operator<HandlerTy> &self);         \
-    extern template                                                                                                 \
-    operator_sum<HandlerTy> operator+(const HandlerTy &other, const product_operator<HandlerTy> &self);             \
-    extern template                                                                                                 \
-    operator_sum<HandlerTy> operator-(const HandlerTy &other, const product_operator<HandlerTy> &self);             \
                                                                                                                     \
     extern template                                                                                                 \
     operator_sum<HandlerTy> operator*(double other, const operator_sum<HandlerTy> &self);                           \
@@ -151,12 +150,22 @@ operator_sum<matrix_operator> operator-(const operator_sum<LHtype> &other, const
     operator_sum<HandlerTy> operator+(const scalar_operator &other, const operator_sum<HandlerTy> &self);           \
     extern template                                                                                                 \
     operator_sum<HandlerTy> operator-(const scalar_operator &other, const operator_sum<HandlerTy> &self);           \
+
+/*
+    extern template                                                                                                 \
+    product_operator<HandlerTy> operator*(const HandlerTy &other, const product_operator<HandlerTy> &self);         \
+    extern template                                                                                                 \
+    operator_sum<HandlerTy> operator+(const HandlerTy &other, const product_operator<HandlerTy> &self);             \
+    extern template                                                                                                 \
+    operator_sum<HandlerTy> operator-(const HandlerTy &other, const product_operator<HandlerTy> &self);             \
+
     extern template                                                                                                 \
     operator_sum<HandlerTy> operator*(const HandlerTy &other, const operator_sum<HandlerTy> &self);                 \
     extern template                                                                                                 \
     operator_sum<HandlerTy> operator+(const HandlerTy &other, const operator_sum<HandlerTy> &self);                 \
     extern template                                                                                                 \
     operator_sum<HandlerTy> operator-(const HandlerTy &other, const operator_sum<HandlerTy> &self);
+*/
 
 EXTERN_TEMPLATE_SPECIALIZATIONS(matrix_operator);
 EXTERN_TEMPLATE_SPECIALIZATIONS(spin_operator);
