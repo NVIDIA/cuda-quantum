@@ -231,7 +231,7 @@ endif()
 target_link_libraries(test_operators
   PRIVATE
   cudaq-spin
-  cudaq-operators
+  cudaq-operator
   cudaq
   gtest_main)
 gtest_discover_tests(test_operators)

@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-set(LIBRARY_NAME cudaq-operators)
+set(LIBRARY_NAME cudaq-operator)
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
 set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
@@ -43,6 +43,6 @@ target_link_libraries(${LIBRARY_NAME} PRIVATE ${OPERATOR_DEPENDENCIES})
 install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-operator-targets DESTINATION lib)
 
 install(EXPORT cudaq-operator-targets
-        FILE CUDAQSpinTargets.cmake
+        FILE CUDAQOperatorTargets.cmake
         NAMESPACE cudaq::
         DESTINATION lib/cmake/cudaq)

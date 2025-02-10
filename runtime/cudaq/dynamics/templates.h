@@ -220,4 +220,4 @@ EXTERN_CONVERSION_TEMPLATE_SPECIALIZATIONS(+, operator_sum);
 EXTERN_CONVERSION_TEMPLATE_SPECIALIZATIONS(-, operator_sum);
 #endif
 
-}
+} // namespace cudaq
