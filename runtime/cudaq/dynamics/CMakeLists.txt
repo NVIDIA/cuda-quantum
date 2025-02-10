@@ -27,6 +27,7 @@ set(CUDAQ_OPS_SRC
   helpers.cpp
   rydberg_hamiltonian.cpp
   cudm_op_conversion.cpp
+  cudm_expectation.cpp
 )
 
 set(CUQUANTUM_INSTALL_PREFIX "/usr/local/lib/python3.10/dist-packages/cuquantum")
