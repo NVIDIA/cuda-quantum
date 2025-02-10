@@ -227,8 +227,7 @@ def test_1q_unitary_synthesis():
         custom_x(qubit)
 
     counts = cudaq.sample(basic_x)
-    counts.dump()
-    # Gives result like { 1:999 0:0 }
+    # Gives result like { 0:0 1:1000 }
     assert counts['0'] == 0
 
     @cudaq.kernel
@@ -237,8 +236,8 @@ def test_1q_unitary_synthesis():
         custom_h(qubit)
 
     counts = cudaq.sample(basic_h)
-    counts.dump()
-    assert "0" in counts and "1" in counts
+    # Gives result like { 0:500 1:500 }
+    assert counts['0'] > 0 and counts['1'] > 0
 
     @cudaq.kernel
     def bell():
@@ -247,7 +246,7 @@ def test_1q_unitary_synthesis():
         custom_x.ctrl(qubits[0], qubits[1])
 
     counts = cudaq.sample(bell)
-    # Gives result like { 11:499 10:0 01:0 00:499 }
+    # Gives result like { 00:500 01:0 10:0 11:500 }
     assert counts['01'] == 0 and counts['10'] == 0
 
 
@@ -264,7 +263,7 @@ def test_2q_unitary_synthesis():
         custom_cnot(qubits[0], qubits[1])
 
     counts = cudaq.sample(bell_pair)
-    # Gives result like { 11:499 10:0 01:0 00:499 }
+    # Gives result like { 00:500 01:0 10:0 11:500 }
     assert counts['01'] == 0 and counts['10'] == 0
 
     cudaq.register_operation(
@@ -281,7 +280,7 @@ def test_2q_unitary_synthesis():
         x(controls)
 
     counts = cudaq.sample(ctrl_z_kernel)
-    assert counts["0010011"] == 999
+    assert counts["0010011"] == 1000
 
 
 def test_explicit_measurement():
