@@ -517,38 +517,41 @@ void quake::WrapOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
 //===----------------------------------------------------------------------===//
 
 // Common verification for measurement operations.
-static LogicalResult verifyMeasurements(Operation *const op,
-                                        TypeRange targetsType,
-                                        const Type bitsType) {
+template <typename MEAS>
+LogicalResult verifyMeasurements(MEAS op, TypeRange targetsType,
+                                 const Type bitsType) {
   if (failed(verifyWireResultsAreLinear(op)))
     return failure();
   bool mustBeStdvec =
       targetsType.size() > 1 ||
       (targetsType.size() == 1 && isa<quake::VeqType>(targetsType[0]));
   if (mustBeStdvec) {
-    if (!isa<cudaq::cc::StdvecType>(op->getResult(0).getType()))
-      return op->emitOpError("must return `!cc.stdvec<!quake.measure>`, when "
-                             "measuring a qreg, a series of qubits, or both");
+    if (!isa<cudaq::cc::StdvecType>(op.getMeasOut().getType()))
+      return op.emitOpError("must return `!cc.stdvec<!quake.measure>`, when "
+                            "measuring a qreg, a series of qubits, or both");
   } else {
-    if (!isa<quake::MeasureType>(op->getResult(0).getType()))
+    if (!isa<quake::MeasureType>(op.getMeasOut().getType()))
       return op->emitOpError(
           "must return `!quake.measure` when measuring exactly one qubit");
   }
+  if (op.getRegisterName())
+    if (op.getRegisterName()->empty())
+      return op->emitError("quake measurement name cannot be empty.");
   return success();
 }
 
 LogicalResult quake::MxOp::verify() {
-  return verifyMeasurements(getOperation(), getTargets().getType(),
+  return verifyMeasurements(*this, getTargets().getType(),
                             getMeasOut().getType());
 }
 
 LogicalResult quake::MyOp::verify() {
-  return verifyMeasurements(getOperation(), getTargets().getType(),
+  return verifyMeasurements(*this, getTargets().getType(),
                             getMeasOut().getType());
 }
 
 LogicalResult quake::MzOp::verify() {
-  return verifyMeasurements(getOperation(), getTargets().getType(),
+  return verifyMeasurements(*this, getTargets().getType(),
                             getMeasOut().getType());
 }
 

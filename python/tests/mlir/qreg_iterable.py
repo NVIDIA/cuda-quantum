@@ -23,7 +23,7 @@ def test_qreg_iter():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__foo(
-# CHECK-SAME:                                     %[[VAL_0:.*]]: i64) attributes {"cudaq-entrypoint"} {
+# CHECK-SAME:                                     %[[VAL_0:.*]]: i64) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 1 : i64
 # CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 0 : i64
 # CHECK:           %[[VAL_3:.*]] = cc.alloca i64

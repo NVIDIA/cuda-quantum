@@ -92,7 +92,7 @@ class PyKernelDecorator(object):
         # Register any external class types that may be used
         # in the kernel definition
         for name, var in self.globalScopedVars.items():
-            if isinstance(var, type):
+            if isinstance(var, type) and hasattr(var, '__annotations__'):
                 globalRegisteredTypes[name] = (var, var.__annotations__)
 
         # Once the kernel is compiled to MLIR, we

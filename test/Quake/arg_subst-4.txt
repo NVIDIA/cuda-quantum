@@ -10,35 +10,35 @@ cc.arg_subst[0] {
   %0 = cc.alloca !cc.array<!cc.struct<{i32, f64, i8, i16}> x 3>
   %1 = cc.undef !cc.struct<{i32, f64, i8, i16}>
   %c-889275714_i32 = arith.constant -889275714 : i32
-  %2 = cc.insert_value %c-889275714_i32, %1[0] : (!cc.struct<{i32, f64, i8, i16}>, i32) -> !cc.struct<{i32, f64, i8, i16}>
+  %2 = cc.insert_value %1[0], %c-889275714_i32 : (!cc.struct<{i32, f64, i8, i16}>, i32) -> !cc.struct<{i32, f64, i8, i16}>
   %cst = arith.constant 87.654499999999998 : f64
-  %3 = cc.insert_value %cst, %2[1] : (!cc.struct<{i32, f64, i8, i16}>, f64) -> !cc.struct<{i32, f64, i8, i16}>
+  %3 = cc.insert_value %2[1], %cst : (!cc.struct<{i32, f64, i8, i16}>, f64) -> !cc.struct<{i32, f64, i8, i16}>
   %c65_i8 = arith.constant 65 : i8
-  %4 = cc.insert_value %c65_i8, %3[2] : (!cc.struct<{i32, f64, i8, i16}>, i8) -> !cc.struct<{i32, f64, i8, i16}>
+  %4 = cc.insert_value %3[2], %c65_i8 : (!cc.struct<{i32, f64, i8, i16}>, i8) -> !cc.struct<{i32, f64, i8, i16}>
   %c-1314_i16 = arith.constant -1314 : i16
-  %5 = cc.insert_value %c-1314_i16, %4[3] : (!cc.struct<{i32, f64, i8, i16}>, i16) -> !cc.struct<{i32, f64, i8, i16}>
+  %5 = cc.insert_value %4[3], %c-1314_i16 : (!cc.struct<{i32, f64, i8, i16}>, i16) -> !cc.struct<{i32, f64, i8, i16}>
   %6 = cc.compute_ptr %0[0] : (!cc.ptr<!cc.array<!cc.struct<{i32, f64, i8, i16}> x 3>>) -> !cc.ptr<!cc.struct<{i32, f64, i8, i16}>>
   cc.store %5, %6 : !cc.ptr<!cc.struct<{i32, f64, i8, i16}>>
   %7 = cc.undef !cc.struct<{i32, f64, i8, i16}>
   %c5412_i32 = arith.constant 5412 : i32
-  %8 = cc.insert_value %c5412_i32, %7[0] : (!cc.struct<{i32, f64, i8, i16}>, i32) -> !cc.struct<{i32, f64, i8, i16}>
+  %8 = cc.insert_value %7[0], %c5412_i32 : (!cc.struct<{i32, f64, i8, i16}>, i32) -> !cc.struct<{i32, f64, i8, i16}>
   %cst_0 = arith.constant 2.389450e+04 : f64
-  %9 = cc.insert_value %cst_0, %8[1] : (!cc.struct<{i32, f64, i8, i16}>, f64) -> !cc.struct<{i32, f64, i8, i16}>
+  %9 = cc.insert_value %8[1], %cst_0 : (!cc.struct<{i32, f64, i8, i16}>, f64) -> !cc.struct<{i32, f64, i8, i16}>
   %c66_i8 = arith.constant 66 : i8
-  %10 = cc.insert_value %c66_i8, %9[2] : (!cc.struct<{i32, f64, i8, i16}>, i8) -> !cc.struct<{i32, f64, i8, i16}>
+  %10 = cc.insert_value %9[2], %c66_i8 : (!cc.struct<{i32, f64, i8, i16}>, i8) -> !cc.struct<{i32, f64, i8, i16}>
   %c2778_i16 = arith.constant 2778 : i16
-  %11 = cc.insert_value %c2778_i16, %10[3] : (!cc.struct<{i32, f64, i8, i16}>, i16) -> !cc.struct<{i32, f64, i8, i16}>
+  %11 = cc.insert_value %10[3], %c2778_i16 : (!cc.struct<{i32, f64, i8, i16}>, i16) -> !cc.struct<{i32, f64, i8, i16}>
   %12 = cc.compute_ptr %0[1] : (!cc.ptr<!cc.array<!cc.struct<{i32, f64, i8, i16}> x 3>>) -> !cc.ptr<!cc.struct<{i32, f64, i8, i16}>>
   cc.store %11, %12 : !cc.ptr<!cc.struct<{i32, f64, i8, i16}>>
   %13 = cc.undef !cc.struct<{i32, f64, i8, i16}>
   %c90210_i32 = arith.constant 90210 : i32
-  %14 = cc.insert_value %c90210_i32, %13[0] : (!cc.struct<{i32, f64, i8, i16}>, i32) -> !cc.struct<{i32, f64, i8, i16}>
+  %14 = cc.insert_value %13[0], %c90210_i32 : (!cc.struct<{i32, f64, i8, i16}>, i32) -> !cc.struct<{i32, f64, i8, i16}>
   %cst_1 = arith.constant 782934.78922999999 : f64
-  %15 = cc.insert_value %cst_1, %14[1] : (!cc.struct<{i32, f64, i8, i16}>, f64) -> !cc.struct<{i32, f64, i8, i16}>
+  %15 = cc.insert_value %14[1], %cst_1 : (!cc.struct<{i32, f64, i8, i16}>, f64) -> !cc.struct<{i32, f64, i8, i16}>
   %c67_i8 = arith.constant 67 : i8
-  %16 = cc.insert_value %c67_i8, %15[2] : (!cc.struct<{i32, f64, i8, i16}>, i8) -> !cc.struct<{i32, f64, i8, i16}>
+  %16 = cc.insert_value %15[2], %c67_i8 : (!cc.struct<{i32, f64, i8, i16}>, i8) -> !cc.struct<{i32, f64, i8, i16}>
   %c747_i16 = arith.constant 747 : i16
-  %17 = cc.insert_value %c747_i16, %16[3] : (!cc.struct<{i32, f64, i8, i16}>, i16) -> !cc.struct<{i32, f64, i8, i16}>
+  %17 = cc.insert_value %16[3], %c747_i16 : (!cc.struct<{i32, f64, i8, i16}>, i16) -> !cc.struct<{i32, f64, i8, i16}>
   %18 = cc.compute_ptr %0[2] : (!cc.ptr<!cc.array<!cc.struct<{i32, f64, i8, i16}> x 3>>) -> !cc.ptr<!cc.struct<{i32, f64, i8, i16}>>
   cc.store %17, %18 : !cc.ptr<!cc.struct<{i32, f64, i8, i16}>>
   %c3_i64 = arith.constant 3 : i64

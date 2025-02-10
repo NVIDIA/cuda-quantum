@@ -13,23 +13,14 @@ namespace cudaq {
 
 void QuEraServerHelper::initialize(BackendConfig config) {
   cudaq::info("Initializing QuEra via Amazon Braket.");
-
   // Hard-coded for now
-  auto machine = AQUILA;
-  auto deviceArn = AQUILA_ARN;
-
+  auto deviceArn = "arn:aws:braket:us-east-1::device/qpu/quera/Aquila";
   cudaq::info("Running on device {}", deviceArn);
-
   config["defaultBucket"] = getValueOrDefault(config, "default_bucket", "");
   config["deviceArn"] = deviceArn;
-  config["qubits"] = deviceQubitCounts.contains(deviceArn)
-                         ? deviceQubitCounts.at(deviceArn)
-                         : DEFAULT_QUBIT_COUNT;
   if (!config["shots"].empty())
     this->setShots(std::stoul(config["shots"]));
-
   parseConfigForCommonParams(config);
-
   // Move the passed config into the member variable backendConfig
   backendConfig = std::move(config);
 }

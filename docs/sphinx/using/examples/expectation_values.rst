@@ -32,10 +32,9 @@ at an example of this:
 Parallelizing across Multiple Processors
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:doc:`multi-processor platforms <../backends/platform>` page.
 
 
-One typical use case of :doc:`multi-processor platforms <../backends/platform>` is to distribute the
+One typical use case of :ref:`multi-processor platforms <mqpu-platform>` is to distribute the
 expectation value computations of a multi-term Hamiltonian across multiple virtual QPUs.
 
 The following shows an example using the :code:`nvidia-mqpu` platform:

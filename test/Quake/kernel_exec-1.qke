@@ -130,8 +130,8 @@ module attributes {quake.mangled_name_map = {
 // ALT:           %[[VAL_0:.*]] = arith.constant 0 : i64
 // ALT:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (i64) -> !cc.ptr<i8>
 // ALT:           %[[VAL_2:.*]] = cc.undef !cc.struct<{!cc.ptr<i8>, i64}>
-// ALT:           %[[VAL_3:.*]] = cc.insert_value %[[VAL_1]], %[[VAL_2]][0] : (!cc.struct<{!cc.ptr<i8>, i64}>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
-// ALT:           %[[VAL_4:.*]] = cc.insert_value %[[VAL_0]], %[[VAL_3]][1] : (!cc.struct<{!cc.ptr<i8>, i64}>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// ALT:           %[[VAL_3:.*]] = cc.insert_value %[[VAL_2]][0], %[[VAL_1]] : (!cc.struct<{!cc.ptr<i8>, i64}>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// ALT:           %[[VAL_4:.*]] = cc.insert_value %[[VAL_3]][1], %[[VAL_0]] : (!cc.struct<{!cc.ptr<i8>, i64}>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // ALT:           return %[[VAL_4]] : !cc.struct<{!cc.ptr<i8>, i64}>
 // ALT:         }
 
@@ -152,8 +152,8 @@ module attributes {quake.mangled_name_map = {
 // ALT:           %[[VAL_12:.*]] = cc.compute_ptr %[[VAL_8]]{{\[}}%[[VAL_1]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
 // ALT:           call @llvm.memcpy.p0i8.p0i8.i64(%[[VAL_12]], %[[VAL_11]], %[[VAL_5]], %[[VAL_9]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
 // ALT:           %[[VAL_13:.*]] = cc.undef !cc.struct<{!cc.ptr<i8>, i64}>
-// ALT:           %[[VAL_14:.*]] = cc.insert_value %[[VAL_7]], %[[VAL_13]][0] : (!cc.struct<{!cc.ptr<i8>, i64}>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
-// ALT:           %[[VAL_15:.*]] = cc.insert_value %[[VAL_6]], %[[VAL_14]][1] : (!cc.struct<{!cc.ptr<i8>, i64}>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// ALT:           %[[VAL_14:.*]] = cc.insert_value %[[VAL_13]][0], %[[VAL_7]] : (!cc.struct<{!cc.ptr<i8>, i64}>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// ALT:           %[[VAL_15:.*]] = cc.insert_value %[[VAL_14]][1], %[[VAL_6]] : (!cc.struct<{!cc.ptr<i8>, i64}>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // ALT:           %[[VAL_16:.*]] = cc.compute_ptr %[[VAL_8]]{{\[}}%[[VAL_3]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
 // ALT:           %[[VAL_17:.*]] = cc.cast %[[VAL_16]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.ptr<i8>>
 // ALT:           cc.store %[[VAL_12]], %[[VAL_17]] : !cc.ptr<!cc.ptr<i8>>
@@ -257,8 +257,8 @@ module attributes {quake.mangled_name_map = {
 // STREAMLINED:           %[[VAL_0:.*]] = arith.constant 0 : i64
 // STREAMLINED:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (i64) -> !cc.ptr<i8>
 // STREAMLINED:           %[[VAL_2:.*]] = cc.undef !cc.struct<{!cc.ptr<i8>, i64}>
-// STREAMLINED:           %[[VAL_3:.*]] = cc.insert_value %[[VAL_1]], %[[VAL_2]][0] : (!cc.struct<{!cc.ptr<i8>, i64}>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
-// STREAMLINED:           %[[VAL_4:.*]] = cc.insert_value %[[VAL_0]], %[[VAL_3]][1] : (!cc.struct<{!cc.ptr<i8>, i64}>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// STREAMLINED:           %[[VAL_3:.*]] = cc.insert_value %[[VAL_2]][0], %[[VAL_1]] : (!cc.struct<{!cc.ptr<i8>, i64}>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// STREAMLINED:           %[[VAL_4:.*]] = cc.insert_value %[[VAL_3]][1], %[[VAL_0]] : (!cc.struct<{!cc.ptr<i8>, i64}>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // STREAMLINED:           return %[[VAL_4]] : !cc.struct<{!cc.ptr<i8>, i64}>
 // STREAMLINED:         }
 
@@ -279,8 +279,8 @@ module attributes {quake.mangled_name_map = {
 // STREAMLINED:           %[[VAL_12:.*]] = cc.compute_ptr %[[VAL_8]]{{\[}}%[[VAL_1]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
 // STREAMLINED:           call @llvm.memcpy.p0i8.p0i8.i64(%[[VAL_12]], %[[VAL_11]], %[[VAL_5]], %[[VAL_9]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
 // STREAMLINED:           %[[VAL_13:.*]] = cc.undef !cc.struct<{!cc.ptr<i8>, i64}>
-// STREAMLINED:           %[[VAL_14:.*]] = cc.insert_value %[[VAL_7]], %[[VAL_13]][0] : (!cc.struct<{!cc.ptr<i8>, i64}>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
-// STREAMLINED:           %[[VAL_15:.*]] = cc.insert_value %[[VAL_6]], %[[VAL_14]][1] : (!cc.struct<{!cc.ptr<i8>, i64}>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// STREAMLINED:           %[[VAL_14:.*]] = cc.insert_value %[[VAL_13]][0], %[[VAL_7]] : (!cc.struct<{!cc.ptr<i8>, i64}>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// STREAMLINED:           %[[VAL_15:.*]] = cc.insert_value %[[VAL_14]][1], %[[VAL_6]] : (!cc.struct<{!cc.ptr<i8>, i64}>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // STREAMLINED:           %[[VAL_16:.*]] = cc.compute_ptr %[[VAL_8]]{{\[}}%[[VAL_3]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
 // STREAMLINED:           %[[VAL_17:.*]] = cc.cast %[[VAL_16]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.ptr<i8>>
 // STREAMLINED:           cc.store %[[VAL_12]], %[[VAL_17]] : !cc.ptr<!cc.ptr<i8>>
@@ -366,8 +366,8 @@ module attributes {quake.mangled_name_map = {
 // HYBRID:           %[[VAL_0:.*]] = arith.constant 0 : i64
 // HYBRID:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (i64) -> !cc.ptr<i8>
 // HYBRID:           %[[VAL_2:.*]] = cc.undef !cc.struct<{!cc.ptr<i8>, i64}>
-// HYBRID:           %[[VAL_3:.*]] = cc.insert_value %[[VAL_1]], %[[VAL_2]][0] : (!cc.struct<{!cc.ptr<i8>, i64}>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
-// HYBRID:           %[[VAL_4:.*]] = cc.insert_value %[[VAL_0]], %[[VAL_3]][1] : (!cc.struct<{!cc.ptr<i8>, i64}>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// HYBRID:           %[[VAL_3:.*]] = cc.insert_value %[[VAL_2]][0], %[[VAL_1]] : (!cc.struct<{!cc.ptr<i8>, i64}>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// HYBRID:           %[[VAL_4:.*]] = cc.insert_value %[[VAL_3]][1], %[[VAL_0]] : (!cc.struct<{!cc.ptr<i8>, i64}>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // HYBRID:           return %[[VAL_4]] : !cc.struct<{!cc.ptr<i8>, i64}>
 // HYBRID:         }
 
@@ -388,8 +388,8 @@ module attributes {quake.mangled_name_map = {
 // HYBRID:           %[[VAL_12:.*]] = cc.compute_ptr %[[VAL_8]]{{\[}}%[[VAL_1]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
 // HYBRID:           call @llvm.memcpy.p0i8.p0i8.i64(%[[VAL_12]], %[[VAL_11]], %[[VAL_5]], %[[VAL_9]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
 // HYBRID:           %[[VAL_13:.*]] = cc.undef !cc.struct<{!cc.ptr<i8>, i64}>
-// HYBRID:           %[[VAL_14:.*]] = cc.insert_value %[[VAL_7]], %[[VAL_13]][0] : (!cc.struct<{!cc.ptr<i8>, i64}>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
-// HYBRID:           %[[VAL_15:.*]] = cc.insert_value %[[VAL_6]], %[[VAL_14]][1] : (!cc.struct<{!cc.ptr<i8>, i64}>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// HYBRID:           %[[VAL_14:.*]] = cc.insert_value %[[VAL_13]][0], %[[VAL_7]] : (!cc.struct<{!cc.ptr<i8>, i64}>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// HYBRID:           %[[VAL_15:.*]] = cc.insert_value %[[VAL_14]][1], %[[VAL_6]] : (!cc.struct<{!cc.ptr<i8>, i64}>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // HYBRID:           %[[VAL_16:.*]] = cc.compute_ptr %[[VAL_8]]{{\[}}%[[VAL_3]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
 // HYBRID:           %[[VAL_17:.*]] = cc.cast %[[VAL_16]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.ptr<i8>>
 // HYBRID:           cc.store %[[VAL_12]], %[[VAL_17]] : !cc.ptr<!cc.ptr<i8>>

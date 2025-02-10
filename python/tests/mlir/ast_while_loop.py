@@ -27,7 +27,7 @@ def test_while():
     # cost()
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__cost() attributes {"cudaq-entrypoint"} {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__cost() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK:           %[[VAL_0:.*]] = arith.constant 1 : i64
 # CHECK:           %[[VAL_1:.*]] = arith.constant 3.1415926535897931 : f64
 # CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i64
@@ -65,7 +65,7 @@ def test_complex_conditional():
     print(cost)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__cost() attributes {"cudaq-entrypoint"} {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__cost() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK-DAG:           %[[VAL_0:.*]] = arith.constant 1 : i64
 # CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 3.1415926535897931 : f64
 # CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 14 : i64

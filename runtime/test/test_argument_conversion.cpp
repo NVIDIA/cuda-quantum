@@ -288,13 +288,13 @@ void test_aggregates(mlir::MLIRContext *ctx) {
 // CHECK-LABEL:   cc.arg_subst[0] {
 // CHECK:           %[[VAL_0:.*]] = cc.undef !cc.struct<{i32, f64, i8, i16}>
 // CHECK:           %[[VAL_1:.*]] = arith.constant -889275714 : i32
-// CHECK:           %[[VAL_2:.*]] = cc.insert_value %[[VAL_1]], %[[VAL_0]][0] : (!cc.struct<{i32, f64, i8, i16}>, i32) -> !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_2:.*]] = cc.insert_value %[[VAL_0]][0], %[[VAL_1]]  : (!cc.struct<{i32, f64, i8, i16}>, i32) -> !cc.struct<{i32, f64, i8, i16}>
 // CHECK:           %[[VAL_3:.*]] = arith.constant 87.654499999999998 : f64
-// CHECK:           %[[VAL_4:.*]] = cc.insert_value %[[VAL_3]], %[[VAL_2]][1] : (!cc.struct<{i32, f64, i8, i16}>, f64) -> !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_4:.*]] = cc.insert_value %[[VAL_2]][1], %[[VAL_3]] : (!cc.struct<{i32, f64, i8, i16}>, f64) -> !cc.struct<{i32, f64, i8, i16}>
 // CHECK:           %[[VAL_5:.*]] = arith.constant 65 : i8
-// CHECK:           %[[VAL_6:.*]] = cc.insert_value %[[VAL_5]], %[[VAL_4]][2] : (!cc.struct<{i32, f64, i8, i16}>, i8) -> !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_6:.*]] = cc.insert_value %[[VAL_4]][2], %[[VAL_5]] : (!cc.struct<{i32, f64, i8, i16}>, i8) -> !cc.struct<{i32, f64, i8, i16}>
 // CHECK:           %[[VAL_7:.*]] = arith.constant -1314 : i16
-// CHECK:           %[[VAL_8:.*]] = cc.insert_value %[[VAL_7]], %[[VAL_6]][3] : (!cc.struct<{i32, f64, i8, i16}>, i16) -> !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_8:.*]] = cc.insert_value %[[VAL_6]][3], %[[VAL_7]] : (!cc.struct<{i32, f64, i8, i16}>, i16) -> !cc.struct<{i32, f64, i8, i16}>
 // CHECK:         }
   // clang-format on
 }
@@ -324,35 +324,35 @@ void test_recursive(mlir::MLIRContext *ctx) {
 // CHECK:           %[[VAL_0:.*]] = cc.alloca !cc.array<!cc.struct<{i32, f64, i8, i16}> x 3>
 // CHECK:           %[[VAL_1:.*]] = cc.undef !cc.struct<{i32, f64, i8, i16}>
 // CHECK:           %[[VAL_2:.*]] = arith.constant -889275714 : i32
-// CHECK:           %[[VAL_3:.*]] = cc.insert_value %[[VAL_2]], %[[VAL_1]][0] : (!cc.struct<{i32, f64, i8, i16}>, i32) -> !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_3:.*]] = cc.insert_value %[[VAL_1]][0], %[[VAL_2]] : (!cc.struct<{i32, f64, i8, i16}>, i32) -> !cc.struct<{i32, f64, i8, i16}>
 // CHECK:           %[[VAL_4:.*]] = arith.constant 87.654499999999998 : f64
-// CHECK:           %[[VAL_5:.*]] = cc.insert_value %[[VAL_4]], %[[VAL_3]][1] : (!cc.struct<{i32, f64, i8, i16}>, f64) -> !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_5:.*]] = cc.insert_value %[[VAL_3]][1], %[[VAL_4]] : (!cc.struct<{i32, f64, i8, i16}>, f64) -> !cc.struct<{i32, f64, i8, i16}>
 // CHECK:           %[[VAL_6:.*]] = arith.constant 65 : i8
-// CHECK:           %[[VAL_7:.*]] = cc.insert_value %[[VAL_6]], %[[VAL_5]][2] : (!cc.struct<{i32, f64, i8, i16}>, i8) -> !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_7:.*]] = cc.insert_value %[[VAL_5]][2], %[[VAL_6]] : (!cc.struct<{i32, f64, i8, i16}>, i8) -> !cc.struct<{i32, f64, i8, i16}>
 // CHECK:           %[[VAL_8:.*]] = arith.constant -1314 : i16
-// CHECK:           %[[VAL_9:.*]] = cc.insert_value %[[VAL_8]], %[[VAL_7]][3] : (!cc.struct<{i32, f64, i8, i16}>, i16) -> !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_9:.*]] = cc.insert_value %[[VAL_7]][3], %[[VAL_8]] : (!cc.struct<{i32, f64, i8, i16}>, i16) -> !cc.struct<{i32, f64, i8, i16}>
 // CHECK:           %[[VAL_10:.*]] = cc.compute_ptr %[[VAL_0]][0] : (!cc.ptr<!cc.array<!cc.struct<{i32, f64, i8, i16}> x 3>>) -> !cc.ptr<!cc.struct<{i32, f64, i8, i16}>>
 // CHECK:           cc.store %[[VAL_9]], %[[VAL_10]] : !cc.ptr<!cc.struct<{i32, f64, i8, i16}>>
 // CHECK:           %[[VAL_11:.*]] = cc.undef !cc.struct<{i32, f64, i8, i16}>
 // CHECK:           %[[VAL_12:.*]] = arith.constant 5412 : i32
-// CHECK:           %[[VAL_13:.*]] = cc.insert_value %[[VAL_12]], %[[VAL_11]][0] : (!cc.struct<{i32, f64, i8, i16}>, i32) -> !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_13:.*]] = cc.insert_value %[[VAL_11]][0], %[[VAL_12]] : (!cc.struct<{i32, f64, i8, i16}>, i32) -> !cc.struct<{i32, f64, i8, i16}>
 // CHECK:           %[[VAL_14:.*]] = arith.constant 2.389450e+04 : f64
-// CHECK:           %[[VAL_15:.*]] = cc.insert_value %[[VAL_14]], %[[VAL_13]][1] : (!cc.struct<{i32, f64, i8, i16}>, f64) -> !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_15:.*]] = cc.insert_value %[[VAL_13]][1], %[[VAL_14]] : (!cc.struct<{i32, f64, i8, i16}>, f64) -> !cc.struct<{i32, f64, i8, i16}>
 // CHECK:           %[[VAL_16:.*]] = arith.constant 66 : i8
-// CHECK:           %[[VAL_17:.*]] = cc.insert_value %[[VAL_16]], %[[VAL_15]][2] : (!cc.struct<{i32, f64, i8, i16}>, i8) -> !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_17:.*]] = cc.insert_value %[[VAL_15]][2], %[[VAL_16]] : (!cc.struct<{i32, f64, i8, i16}>, i8) -> !cc.struct<{i32, f64, i8, i16}>
 // CHECK:           %[[VAL_18:.*]] = arith.constant 2778 : i16
-// CHECK:           %[[VAL_19:.*]] = cc.insert_value %[[VAL_18]], %[[VAL_17]][3] : (!cc.struct<{i32, f64, i8, i16}>, i16) -> !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_19:.*]] = cc.insert_value %[[VAL_17]][3], %[[VAL_18]] : (!cc.struct<{i32, f64, i8, i16}>, i16) -> !cc.struct<{i32, f64, i8, i16}>
 // CHECK:           %[[VAL_20:.*]] = cc.compute_ptr %[[VAL_0]][1] : (!cc.ptr<!cc.array<!cc.struct<{i32, f64, i8, i16}> x 3>>) -> !cc.ptr<!cc.struct<{i32, f64, i8, i16}>>
 // CHECK:           cc.store %[[VAL_19]], %[[VAL_20]] : !cc.ptr<!cc.struct<{i32, f64, i8, i16}>>
 // CHECK:           %[[VAL_21:.*]] = cc.undef !cc.struct<{i32, f64, i8, i16}>
 // CHECK:           %[[VAL_22:.*]] = arith.constant 90210 : i32
-// CHECK:           %[[VAL_23:.*]] = cc.insert_value %[[VAL_22]], %[[VAL_21]][0] : (!cc.struct<{i32, f64, i8, i16}>, i32) -> !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_23:.*]] = cc.insert_value %[[VAL_21]][0], %[[VAL_22]] : (!cc.struct<{i32, f64, i8, i16}>, i32) -> !cc.struct<{i32, f64, i8, i16}>
 // CHECK:           %[[VAL_24:.*]] = arith.constant 782934.78922999999 : f64
-// CHECK:           %[[VAL_25:.*]] = cc.insert_value %[[VAL_24]], %[[VAL_23]][1] : (!cc.struct<{i32, f64, i8, i16}>, f64) -> !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_25:.*]] = cc.insert_value %[[VAL_23]][1], %[[VAL_24]] : (!cc.struct<{i32, f64, i8, i16}>, f64) -> !cc.struct<{i32, f64, i8, i16}>
 // CHECK:           %[[VAL_26:.*]] = arith.constant 67 : i8
-// CHECK:           %[[VAL_27:.*]] = cc.insert_value %[[VAL_26]], %[[VAL_25]][2] : (!cc.struct<{i32, f64, i8, i16}>, i8) -> !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_27:.*]] = cc.insert_value %[[VAL_25]][2], %[[VAL_26]] : (!cc.struct<{i32, f64, i8, i16}>, i8) -> !cc.struct<{i32, f64, i8, i16}>
 // CHECK:           %[[VAL_28:.*]] = arith.constant 747 : i16
-// CHECK:           %[[VAL_29:.*]] = cc.insert_value %[[VAL_28]], %[[VAL_27]][3] : (!cc.struct<{i32, f64, i8, i16}>, i16) -> !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_29:.*]] = cc.insert_value %[[VAL_27]][3], %[[VAL_28]] : (!cc.struct<{i32, f64, i8, i16}>, i16) -> !cc.struct<{i32, f64, i8, i16}>
 // CHECK:           %[[VAL_30:.*]] = cc.compute_ptr %[[VAL_0]][2] : (!cc.ptr<!cc.array<!cc.struct<{i32, f64, i8, i16}> x 3>>) -> !cc.ptr<!cc.struct<{i32, f64, i8, i16}>>
 // CHECK:           cc.store %[[VAL_29]], %[[VAL_30]] : !cc.ptr<!cc.struct<{i32, f64, i8, i16}>>
 // CHECK:           %[[VAL_31:.*]] = arith.constant 3 : i64

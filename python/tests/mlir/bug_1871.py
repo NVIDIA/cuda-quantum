@@ -39,7 +39,7 @@ def test_control_on_adjoint():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__my_func(
 # CHECK-SAME:                                         %[[VAL_0:.*]]: !quake.ref,
-# CHECK-SAME:                                         %[[VAL_1:.*]]: f64) {
+# CHECK-SAME:                                         %[[VAL_1:.*]]: f64)
 # CHECK:           %[[VAL_2:.*]] = cc.alloca f64
 # CHECK:           cc.store %[[VAL_1]], %[[VAL_2]] : !cc.ptr<f64>
 # CHECK:           %[[VAL_3:.*]] = cc.load %[[VAL_2]] : !cc.ptr<f64>
@@ -51,7 +51,7 @@ def test_control_on_adjoint():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__adj_func(
 # CHECK-SAME:                                          %[[VAL_0:.*]]: !quake.ref,
-# CHECK-SAME:                                          %[[VAL_1:.*]]: f64) {
+# CHECK-SAME:                                          %[[VAL_1:.*]]: f64)
 # CHECK:           %[[VAL_2:.*]] = cc.alloca f64
 # CHECK:           cc.store %[[VAL_1]], %[[VAL_2]] : !cc.ptr<f64>
 # CHECK:           %[[VAL_3:.*]] = cc.load %[[VAL_2]] : !cc.ptr<f64>
@@ -60,7 +60,7 @@ def test_control_on_adjoint():
 # CHECK:         }
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel(
-# CHECK-SAME:                                        %[[VAL_0:.*]]: f64) attributes {"cudaq-entrypoint"} {
+# CHECK-SAME:                                        %[[VAL_0:.*]]: f64) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK:           %[[VAL_1:.*]] = cc.alloca f64
 # CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<f64>
 # CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref

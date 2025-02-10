@@ -1,6 +1,8 @@
 *************************
 CUDA-Q by Example
 *************************
+.. _examples:
+
 
 Examples that illustrate how to use CUDA-Q for application development are available in C++ and Python.
 

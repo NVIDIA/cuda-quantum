@@ -40,8 +40,10 @@ public:
       return failure();
 
     LLVM_DEBUG(llvm::dbgs() << "Candidate was found\n");
-    auto eleTy = alloc.getElementType();
-    auto arrTy = cast<cudaq::cc::ArrayType>(eleTy);
+    auto allocTy = alloc.getElementType();
+    auto arrTy = cast<cudaq::cc::ArrayType>(allocTy);
+    auto eleTy = arrTy.getElementType();
+
     SmallVector<Attribute> values;
 
     // Every element of `stores` must be a cc::StoreOp with a ConstantOp as the
@@ -89,6 +91,8 @@ public:
         cannotEraseAlloc = isLive = true;
       } else {
         for (auto *useuser : user->getUsers()) {
+          if (!useuser)
+            continue;
           if (auto load = dyn_cast<cudaq::cc::LoadOp>(useuser)) {
             rewriter.setInsertionPointAfter(useuser);
             LLVM_DEBUG(llvm::dbgs() << "replaced load\n");
@@ -160,14 +164,13 @@ public:
         if (!u)
           return nullptr;
         if (auto store = dyn_cast<cudaq::cc::StoreOp>(u)) {
-          if (op.getOperation() == store.getPtrvalue().getDefiningOp() &&
-              isa_and_present<arith::ConstantOp, complex::ConstantOp>(
-                  store.getValue().getDefiningOp())) {
+          if (op.getOperation() == store.getPtrvalue().getDefiningOp()) {
             if (theStore) {
               LLVM_DEBUG(llvm::dbgs()
                          << "more than 1 store to element of array\n");
               return nullptr;
             }
+            LLVM_DEBUG(llvm::dbgs() << "found store: " << store << "\n");
             theStore = u;
           }
           continue;
@@ -182,7 +185,13 @@ public:
         }
         return nullptr;
       }
-      return theStore;
+      return theStore &&
+                     isa_and_present<arith::ConstantOp, complex::ConstantOp>(
+                         dyn_cast<cudaq::cc::StoreOp>(theStore)
+                             .getValue()
+                             .getDefiningOp())
+                 ? theStore
+                 : nullptr;
     };
 
     auto unsizedArrTy = cudaq::cc::ArrayType::get(arrEleTy);

@@ -19,6 +19,7 @@ find_file(CUDENSITYMAT_INC
         $ENV{CUQUANTUM_INSTALL_PREFIX}/include      
         /usr/include    
         ENV CPATH
+    REQUIRED
 )
 
 message(STATUS "cudensitymat header: ${CUDENSITYMAT_INC}")

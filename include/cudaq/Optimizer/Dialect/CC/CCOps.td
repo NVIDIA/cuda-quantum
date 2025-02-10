@@ -24,7 +24,8 @@ def AnyCallableType : Type<CPred<"$_self.isa<cudaq::cc::CallableType, "
                           "mlir::FunctionType>()">, "any callable type">;
 
 def AnyAggregateType : Type<CPred<"$_self.isa<cudaq::cc::StructType, "
-                            "cudaq::cc::ArrayType>()">, "any aggregate type">;
+                            "cudaq::cc::ArrayType, mlir::ComplexType>()">,
+                            "any aggregate type">;
 
 //===----------------------------------------------------------------------===//
 // Base operation definition.
@@ -1022,9 +1023,11 @@ def cc_InsertValueOp : CCOp<"insert_value", [Pure]> {
   let results = (outs AnyAggregateType);
 
   let assemblyFormat = [{
-    $value `,` $container `` $position `:` functional-type(operands, results)
+    $container `` $position `,` $value `:` functional-type(operands, results)
       attr-dict
   }];
+
+  let hasVerifier = 1;
 
   let builders = [
     OpBuilder<(ins "mlir::Type":$resultType, "mlir::Value":$aggregate,

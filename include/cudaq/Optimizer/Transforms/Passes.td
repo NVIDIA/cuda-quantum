@@ -1038,4 +1038,29 @@ def UpdateRegisterNames : Pass<"update-register-names"> {
   }];
 }
 
+def WriteAfterWriteElimination : Pass<"write-after-write-elimination"> {
+  let summary = "Remove stores that are overridden by subsequent store";
+  let description = [{
+    Remove stores to a location on the stack that have a subsequent store
+    to the same location without a use between them:
+
+    Example:
+    ```mlir
+    %1 = cc.alloca !cc.array<i64 x 1>
+    %2 = cc.cast %1 : (!cc.ptr<!cc.array<i64 x 1>>) -> !cc.ptr<i64>
+    cc.store %c0_i64, %2 : !cc.ptr<i64>
+    // nothing using %2 until the next instruction
+    cc.store %c1_i64, %2 : !cc.ptr<i64>
+    ```
+
+    would be converted to
+
+    ```mlir
+    %1 = cc.alloca !cc.array<i64 x 1>
+    %2 = cc.cast %1 : (!cc.ptr<!cc.array<i64 x 1>>) -> !cc.ptr<i64>
+    cc.store %c1_i64, %2 : !cc.ptr<i64>
+    ```
+  }];
+}
+
 #endif // CUDAQ_OPT_OPTIMIZER_TRANSFORMS_PASSES

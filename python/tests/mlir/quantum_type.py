@@ -53,21 +53,21 @@ def test_custom_quantum_type():
 
 
 # NAUGHTY-LABEL:   func.func @__nvqpp__mlirgen__logicalH(
-# NAUGHTY-SAME:      %[[VAL_0:.*]]: !quake.struq<"patch": !quake.veq<?>, !quake.veq<?>, !quake.veq<?>>) {
+# NAUGHTY-SAME:      %[[VAL_0:.*]]: !quake.struq<"patch": !quake.veq<?>, !quake.veq<?>, !quake.veq<?>>)
 # NAUGHTY:           %[[VAL_3:.*]] = quake.get_member %[[VAL_0]][0] : (!quake.struq<"patch": !quake.veq<?>, !quake.veq<?>, !quake.veq<?>>) -> !quake.veq<?>
 # NAUGHTY:           %[[VAL_4:.*]] = quake.veq_size %[[VAL_3]] : (!quake.veq<?>) -> i64
 # NAUGHTY:           return
 # NAUGHTY:         }
 
 # NICE-LABEL:   func.func @__nvqpp__mlirgen__logicalX(
-# NICE-SAME:      %[[VAL_0:.*]]: !quake.struq<"patch": !quake.veq<?>, !quake.veq<?>, !quake.veq<?>>) {
+# NICE-SAME:      %[[VAL_0:.*]]: !quake.struq<"patch": !quake.veq<?>, !quake.veq<?>, !quake.veq<?>>)
 # NICE:           %[[VAL_3:.*]] = quake.get_member %[[VAL_0]][1] : (!quake.struq<"patch": !quake.veq<?>, !quake.veq<?>, !quake.veq<?>>) -> !quake.veq<?>
 # NICE:           %[[VAL_4:.*]] = quake.veq_size %[[VAL_3]] : (!quake.veq<?>) -> i64
 # NICE:           return
 # NICE:         }
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__logicalZ(
-# CHECK-SAME:      %[[VAL_0:.*]]: !quake.struq<"patch": !quake.veq<?>, !quake.veq<?>, !quake.veq<?>>) {
+# CHECK-SAME:      %[[VAL_0:.*]]: !quake.struq<"patch": !quake.veq<?>, !quake.veq<?>, !quake.veq<?>>)
 # CHECK:           %[[VAL_3:.*]] = quake.get_member %[[VAL_0]][2] : (!quake.struq<"patch": !quake.veq<?>, !quake.veq<?>, !quake.veq<?>>) -> !quake.veq<?>
 # CHECK:           %[[VAL_4:.*]] = quake.veq_size %[[VAL_3]] : (!quake.veq<?>) -> i64
 # CHECK:           return
