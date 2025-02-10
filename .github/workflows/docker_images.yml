@@ -316,6 +316,11 @@ jobs:
       #    echo "sudo apt-cache policy qemu | grep Installed"
       #    sudo apt-cache policy qemu | grep Installed
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v8.1.5
+
       - name: Set up context for buildx
         run: |
           echo uname -rv
@@ -537,6 +542,11 @@ jobs:
       #    sudo apt-cache policy qemu
       #    echo "sudo apt-cache policy qemu | grep Installed"
       #    sudo apt-cache policy qemu | grep Installed
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v8.1.5
 
       - name: Set up context for buildx
         run: |
