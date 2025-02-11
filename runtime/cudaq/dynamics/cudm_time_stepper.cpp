@@ -88,8 +88,8 @@ cudm_state cudm_time_stepper::compute(cudm_state &state, double t,
   // Apply the operator action
   HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
   HANDLE_CUDM_ERROR(cudensitymatOperatorComputeAction(
-      handle_, liouvillian_, t, 1, std::vector<double>({step_size}).data(),
-      state.get_impl(), next_state.get_impl(), workspace, 0x0));
+      handle_, liouvillian_, t, 0, nullptr, state.get_impl(),
+      next_state.get_impl(), workspace, 0x0));
   HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
 
   // Cleanup

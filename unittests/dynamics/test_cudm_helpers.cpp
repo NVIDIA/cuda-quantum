@@ -188,8 +188,7 @@ TEST_F(CuDensityMatHelpersTestFixture, AppendElementaryOperatorToTerm) {
   ASSERT_NE(elementary_op, nullptr);
 
   EXPECT_NO_THROW(cudaq::append_elementary_operator_to_term(
-      handle, term, elementary_op, {0, 1}, mode_extents,
-      wrapped_tensor_callback));
+      handle, term, elementary_op, {0, 1}));
 
   cudensitymatDestroyOperatorTerm(term);
   cudensitymatDestroyElementaryOperator(elementary_op);
