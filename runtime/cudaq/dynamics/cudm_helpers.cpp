@@ -202,7 +202,7 @@ cudensitymatElementaryOperator_t cudm_helper::create_elementary_operator(
   HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperator(
       handle, static_cast<int32_t>(subspace_extents.size()),
       subspace_extents.data(), CUDENSITYMAT_OPERATOR_SPARSITY_NONE, 0, nullptr,
-      CUDA_C_64F, elementaryMat_d, {nullptr, nullptr}, &cudm_elem_op));
+      CUDA_C_64F, elementaryMat_d, wrapped_tensor_callback, &cudm_elem_op));
 
   return cudm_elem_op;
 }
