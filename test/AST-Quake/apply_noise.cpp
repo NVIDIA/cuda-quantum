@@ -8,7 +8,7 @@
 
 // clang-format off
 // RUN: cudaq-quake %cpp_std %s | cudaq-opt | FileCheck --check-prefixes=CHECK,ALIVE %s
-// RUN: cudaq-quake %cpp_std %s | cudaq-opt -erase-noise | FileCheck %s
+// RUN: cudaq-quake %cpp_std %s | cudaq-opt -erase-noise | FileCheck --check-prefixes=CHECK,DEAD %s
 // RUN: cudaq-quake %cpp_std %s | cudaq-opt | cudaq-translate --convert-to=qir | FileCheck --check-prefix=QIR %s
 // clang-format on
 
@@ -30,6 +30,7 @@ struct testApplyNoise {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
 // ALIVE:           quake.apply_noise @_ZN5cudaq11apply_noiseI{{.*}}SantaKraus{{.*}}() %[[VAL_0]], %[[VAL_1]] : !quake.ref, !quake.ref
+// DEAD-NOT:        quake.apply_noise @_ZN5cudaq11apply_noiseI{{.*}}SantaKraus{{.*}}() %[[VAL_0]], %[[VAL_1]] : !quake.ref, !quake.ref
 // CHECK:           return
 // CHECK:         }
 
