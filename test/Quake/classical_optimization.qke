@@ -9,6 +9,7 @@
 // RUN: cudaq-opt -classical-optimization -cse -classical-optimization %s | FileCheck %s
 // RUN: cudaq-opt -classical-optimization-pipeline %s | FileCheck %s
 
+
 func.func @test_array_copy() -> i1 {
   %c0_i64 = arith.constant 0 : i64
   %0 = cc.alloca !cc.array<i64 x 1>
