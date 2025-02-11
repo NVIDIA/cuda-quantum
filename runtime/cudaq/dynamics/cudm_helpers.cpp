@@ -12,6 +12,124 @@
 using namespace cudaq;
 
 namespace cudaq {
+cudensitymatWrappedScalarCallback_t
+_wrap_callback(const scalar_operator &scalar_op) {
+  try {
+    std::complex<double> evaluatedValue = scalar_op.evaluate({});
+
+    cudensitymatWrappedScalarCallback_t wrapped_callback;
+    wrapped_callback.callback = nullptr;
+    wrapped_callback.wrapper = new std::complex<double>(evaluatedValue);
+    return wrapped_callback;
+  } catch (const std::exception &) {
+  }
+
+  ScalarCallbackFunction generator = scalar_op.get_generator();
+
+  if (!generator) {
+    throw std::runtime_error(
+        "scalar_operator does not have a valid generator function.");
+  }
+
+  auto callback = [](double time, int32_t num_params, const double params[],
+                     cudaDataType_t data_type,
+                     void *scalar_storage) -> int32_t {
+    try {
+      scalar_operator *scalar_op =
+          static_cast<scalar_operator *>(scalar_storage);
+
+      std::map<std::string, std::complex<double>> param_map;
+      for (size_t i = 0; i < num_params; i++) {
+        param_map[std::to_string(i)] = params[i];
+      }
+
+      std::complex<double> result = scalar_op->evaluate(param_map);
+
+      if (data_type == CUDA_C_64F) {
+        *reinterpret_cast<cuDoubleComplex *>(scalar_storage) =
+            make_cuDoubleComplex(result.real(), result.imag());
+      } else if (data_type == CUDA_C_32F) {
+        *reinterpret_cast<cuFloatComplex *>(scalar_storage) =
+            make_cuFloatComplex(static_cast<float>(result.real()),
+                                static_cast<float>(result.imag()));
+      } else {
+        return CUDENSITYMAT_STATUS_INVALID_VALUE;
+      }
+
+      return CUDENSITYMAT_STATUS_SUCCESS;
+    } catch (const std::exception &e) {
+      std::cerr << "Error in scalar callback: " << e.what() << std::endl;
+      return CUDENSITYMAT_STATUS_INTERNAL_ERROR;
+    }
+  };
+
+  cudensitymatWrappedScalarCallback_t wrappedCallback;
+  wrappedCallback.callback = callback;
+  wrappedCallback.wrapper = new scalar_operator(scalar_op);
+
+  return wrappedCallback;
+}
+
+cudensitymatWrappedTensorCallback_t
+_wrap_callback_tensor(const matrix_operator &op) {
+  auto callback =
+      [](cudensitymatElementaryOperatorSparsity_t sparsity, int32_t num_modes,
+         const int64_t mode_extents[], const int32_t diagonal_offsets[],
+         double time, int32_t num_params, const double params[],
+         cudaDataType_t data_type, void *tensor_storage) -> int32_t {
+    try {
+      matrix_operator *mat_op = static_cast<matrix_operator *>(tensor_storage);
+
+      std::map<std::string, std::complex<double>> param_map;
+      for (size_t i = 0; i < num_params; i++) {
+        param_map[std::to_string(i)] = params[i];
+      }
+
+      matrix_2 matrix_data = mat_op->to_matrix({}, param_map);
+
+      std::size_t rows = matrix_data.get_rows();
+      std::size_t cols = matrix_data.get_columns();
+
+      if (num_modes != rows) {
+        return CUDENSITYMAT_STATUS_INVALID_VALUE;
+      }
+
+      if (data_type == CUDA_C_64F) {
+        cuDoubleComplex *storage =
+            static_cast<cuDoubleComplex *>(tensor_storage);
+        for (size_t i = 0; i < rows; i++) {
+          for (size_t j = 0; j < cols; j++) {
+            storage[i * cols + j] = make_cuDoubleComplex(
+                matrix_data[{i, j}].real(), matrix_data[{i, j}].imag());
+          }
+        }
+      } else if (data_type == CUDA_C_32F) {
+        cuFloatComplex *storage = static_cast<cuFloatComplex *>(tensor_storage);
+        for (size_t i = 0; i < rows; i++) {
+          for (size_t j = 0; j < cols; j++) {
+            storage[i * cols + j] = make_cuFloatComplex(
+                static_cast<float>(matrix_data[{i, j}].real()),
+                static_cast<float>(matrix_data[{i, j}].imag()));
+          }
+        }
+      } else {
+        return CUDENSITYMAT_STATUS_INVALID_VALUE;
+      }
+
+      return CUDENSITYMAT_STATUS_SUCCESS;
+    } catch (const std::exception &e) {
+      std::cerr << "Error in tensor callback: " << e.what() << std::endl;
+      return CUDENSITYMAT_STATUS_INTERNAL_ERROR;
+    }
+  };
+
+  cudensitymatWrappedTensorCallback_t wrapped_callback;
+  wrapped_callback.callback = callback;
+  wrapped_callback.wrapper = new matrix_operator(op);
+
+  return wrapped_callback;
+}
+
 // Function to flatten a matrix into a 1D array (column major)
 std::vector<std::complex<double>> flatten_matrix(const matrix_2 &matrix) {
   std::vector<std::complex<double>> flat_matrix;
@@ -42,6 +160,7 @@ get_subspace_extents(const std::vector<int64_t> &mode_extents,
 }
 
 // Function to create a cudensitymat elementary operator
+// Need to use std::variant
 cudensitymatElementaryOperator_t create_elementary_operator(
     cudensitymatHandle_t handle, const std::vector<int64_t> &subspace_extents,
     const std::vector<std::complex<double>> &flat_matrix) {
@@ -52,9 +171,6 @@ cudensitymatElementaryOperator_t create_elementary_operator(
   if (subspace_extents.empty()) {
     throw std::invalid_argument("subspace_extents cannot be empty.");
   }
-
-  std::cout << "Subspace extents size: " << subspace_extents.size()
-            << ", Matrix size: " << flat_matrix.size() << std::endl;
 
   cudensitymatElementaryOperator_t cudm_elem_op = nullptr;
 
@@ -80,7 +196,8 @@ cudensitymatElementaryOperator_t create_elementary_operator(
 void append_elementary_operator_to_term(
     cudensitymatHandle_t handle, cudensitymatOperatorTerm_t term,
     const cudensitymatElementaryOperator_t &elem_op,
-    const std::vector<int> &degrees) {
+    const std::vector<int> &degrees, const std::vector<int64_t> &mode_extents,
+    const cudensitymatWrappedTensorCallback_t &wrapped_tensor_callback) {
   if (degrees.empty()) {
     throw std::invalid_argument("Degrees vector cannot be empty.");
   }
@@ -89,10 +206,6 @@ void append_elementary_operator_to_term(
     throw std::invalid_argument("elem_op cannot be null.");
   }
 
-  std::cout << "Appending Elementary Operator to Term"
-            << " - Degrees: " << degrees.size() << " - Term: " << term
-            << std::endl;
-
   for (int degree : degrees) {
     if (degree < 0) {
       throw std::out_of_range("Degree cannot be negative!");
@@ -100,26 +213,47 @@ void append_elementary_operator_to_term(
   }
 
   std::vector<cudensitymatElementaryOperator_t> elem_ops = {elem_op};
+  std::vector<int32_t> mode_action_duality(degrees.size(), 0);
 
-  std::cout << "elem_ops.data(): " << elem_ops.data() << std::endl;
+  int32_t num_elementary_operators = 1;
+  int32_t num_operator_modes[] = {static_cast<int32_t>(degrees.size()) * 2};
 
-  std::vector<int32_t> modeActionDuality(degrees.size(), 0);
+  const int64_t *operator_mode_extents[] = {mode_extents.data()};
+  const int64_t *operator_mode_strides[] = {nullptr};
+
+  std::vector<int32_t> state_modes_acted_on = degrees;
+  cudaDataType_t data_tye = CUDA_C_64F;
+  void *tensor_data[] = {elem_op};
+
+  cudensitymatWrappedTensorCallback_t tensor_callbacks[] = {
+      wrapped_tensor_callback};
+  cuDoubleComplex coefficient = make_cuDoubleComplex(1.0, 0.0);
+
   assert(elem_ops.size() == degrees.size());
-  HANDLE_CUDM_ERROR(cudensitymatOperatorTermAppendElementaryProduct(
-      handle, term, static_cast<int32_t>(degrees.size()), elem_ops.data(),
-      degrees.data(), modeActionDuality.data(), make_cuDoubleComplex(1.0, 0.0),
-      {nullptr, nullptr}));
+  HANDLE_CUDM_ERROR(cudensitymatOperatorTermAppendGeneralProduct(
+      handle, term, num_elementary_operators, num_operator_modes,
+      operator_mode_extents, operator_mode_strides, state_modes_acted_on.data(),
+      mode_action_duality.data(), data_tye, tensor_data, tensor_callbacks,
+      coefficient, {nullptr, nullptr}));
 }
 
 // Function to create and append a scalar to a term
 void append_scalar_to_term(cudensitymatHandle_t handle,
                            cudensitymatOperatorTerm_t term,
-                           const std::complex<double> &coeff) {
-  // TODO: Implement handling for time-dependent scalars using
-  // cudensitymatScalarCallback_t
-  HANDLE_CUDM_ERROR(cudensitymatOperatorTermAppendElementaryProduct(
-      handle, term, 0, nullptr, nullptr, nullptr,
-      {make_cuDoubleComplex(coeff.real(), coeff.imag())}, {nullptr, nullptr}));
+                           const scalar_operator &scalar_op) {
+  cudensitymatWrappedScalarCallback_t wrapped_callback = {nullptr, nullptr};
+
+  if (!scalar_op.get_generator()) {
+    std::complex<double> coeff = scalar_op.evaluate({});
+    HANDLE_CUDM_ERROR(cudensitymatOperatorTermAppendElementaryProduct(
+        handle, term, 0, nullptr, nullptr, nullptr,
+        {make_cuDoubleComplex(coeff.real(), coeff.imag())}, wrapped_callback));
+  } else {
+    wrapped_callback = _wrap_callback(scalar_op);
+    HANDLE_CUDM_ERROR(cudensitymatOperatorTermAppendElementaryProduct(
+        handle, term, 0, nullptr, nullptr, nullptr,
+        {make_cuDoubleComplex(1.0, 0.0)}, wrapped_callback));
+  }
 }
 
 void scale_state(cudensitymatHandle_t handle, cudensitymatState_t state,
@@ -128,19 +262,8 @@ void scale_state(cudensitymatHandle_t handle, cudensitymatState_t state,
     throw std::invalid_argument("Invalid state provided to scale_state.");
   }
 
-  cudaEvent_t start, stop;
-  cudaEventCreate(&start);
-  cudaEventCreate(&stop);
-  cudaEventRecord(start, stream);
-
   HANDLE_CUDM_ERROR(
       cudensitymatStateComputeScaling(handle, state, &scale_factor, stream));
-
-  cudaEventRecord(stop, stream);
-  cudaEventSynchronize(stop);
-  float milliseconds = 0;
-  cudaEventElapsedTime(&milliseconds, start, stop);
-  std::cout << "Time taken: " << milliseconds << " ms" << std::endl;
 }
 
 cudensitymatOperator_t
@@ -181,7 +304,8 @@ compute_lindblad_operator(cudensitymatHandle_t handle,
 
     // Append the elementary operator to the term
     std::vector<int> degrees = {0, 1};
-    append_elementary_operator_to_term(handle, term, cudm_elem_op, degrees);
+    // FIXME
+    // append_elementary_operator_to_term(handle, term, cudm_elem_op, degrees);
 
     // Add term to lindblad operator
     cudensitymatWrappedScalarCallback_t scalarCallback = {nullptr, nullptr};
@@ -221,7 +345,7 @@ cudensitymatOperator_t convert_to_cudensitymat_operator(
         handle, static_cast<int32_t>(mode_extents.size()), mode_extents.data(),
         &operator_handle));
 
-    std::vector<cudensitymatElementaryOperator_t> elementary_operators;
+    // std::vector<cudensitymatElementaryOperator_t> elementary_operators;
 
     for (const auto &product_op : op.get_terms()) {
       cudensitymatOperatorTerm_t term;
@@ -235,21 +359,26 @@ cudensitymatOperator_t convert_to_cudensitymat_operator(
                 dynamic_cast<const cudaq::matrix_operator *>(&component)) {
           auto subspace_extents =
               get_subspace_extents(mode_extents, elem_op->degrees);
+          cudensitymatWrappedTensorCallback_t wrapped_tensor_callback = {
+              nullptr, nullptr};
+          if (!parameters.empty()) {
+            wrapped_tensor_callback = _wrap_callback_tensor(*elem_op);
+          }
+
           auto flat_matrix = flatten_matrix(
               elem_op->to_matrix(convert_dimensions(mode_extents), parameters));
           auto cudm_elem_op =
               create_elementary_operator(handle, subspace_extents, flat_matrix);
 
-          elementary_operators.push_back(cudm_elem_op);
+          // elementary_operators.push_back(cudm_elem_op);
           append_elementary_operator_to_term(handle, term, cudm_elem_op,
-                                             elem_op->degrees);
+                                             elem_op->degrees, mode_extents,
+                                             wrapped_tensor_callback);
         } else if (const auto *scalar_op =
                        dynamic_cast<const cudaq::scalar_operator *>(
                            &component)) {
-          // FIXME: do we need this code path?
-          // The product_op already has get_coefficient method.
-          auto coeff = scalar_op->evaluate(parameters);
-          append_scalar_to_term(handle, term, coeff);
+          // Need to confirm with Bettina
+          append_scalar_to_term(handle, term, *scalar_op);
         } else {
           // Catch anything that we don't know
           throw std::runtime_error("Unhandled type!");
@@ -257,12 +386,18 @@ cudensitymatOperator_t convert_to_cudensitymat_operator(
       }
 
       // Handle the coefficient
-      auto coeff = product_op.get_coefficient().evaluate(parameters);
-      // Append the product operator term to the top-level operator
+      // Static value without parameter: as it is
+      // Static value with parameter: Callback
+      auto coeff = product_op.get_coefficient();
+      cudensitymatWrappedScalarCallback_t wrapped_callback = {nullptr, nullptr};
+
+      if (!coeff.get_generator()) {
+        wrapped_callback = _wrap_callback(coeff);
+      }
+
       HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
-          handle, operator_handle, term, 0,
-          make_cuDoubleComplex(coeff.real(), coeff.imag()),
-          {nullptr, nullptr}));
+          handle, operator_handle, term, 0, make_cuDoubleComplex(1.0, 0.0),
+          wrapped_callback));
 
       // FIXME: leak
       // We must track these handles and destroy **after** evolve finishes
