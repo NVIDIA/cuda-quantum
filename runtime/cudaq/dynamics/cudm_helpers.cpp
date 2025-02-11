@@ -71,7 +71,7 @@ _wrap_callback(const scalar_operator &scalar_op) {
 }
 
 cudensitymatWrappedTensorCallback_t
-_wrap_callback_tensor(const matrix_operator &op) {
+_wrap_tensor_callback(const matrix_operator &op) {
   auto callback =
       [](cudensitymatElementaryOperatorSparsity_t sparsity, int32_t num_modes,
          const int64_t mode_extents[], const int32_t diagonal_offsets[],
@@ -264,6 +264,8 @@ void scale_state(cudensitymatHandle_t handle, cudensitymatState_t state,
 
   HANDLE_CUDM_ERROR(
       cudensitymatStateComputeScaling(handle, state, &scale_factor, stream));
+
+  HANDLE_CUDA_ERROR(cudaStreamSynchronize(stream));
 }
 
 cudensitymatOperator_t
@@ -279,42 +281,55 @@ compute_lindblad_operator(cudensitymatHandle_t handle,
       handle, static_cast<int32_t>(mode_extents.size()), mode_extents.data(),
       &lindblad_op));
 
-  for (const auto &c_op : c_ops) {
-    size_t dim = c_op.get_rows();
-    if (dim == 0 || c_op.get_columns() != dim) {
-      throw std::invalid_argument("Collapse operator must be a square matrix");
+  try {
+    for (const auto &c_op : c_ops) {
+      size_t dim = c_op.get_rows();
+      if (dim == 0 || c_op.get_columns() != dim) {
+        throw std::invalid_argument(
+            "Collapse operator must be a square matrix.");
+      }
+
+      auto flat_matrix = flatten_matrix(c_op);
+
+      // Create Operator term for LtL and add to lindblad_op
+      cudensitymatOperatorTerm_t term;
+      HANDLE_CUDM_ERROR(cudensitymatCreateOperatorTerm(
+          handle, static_cast<int32_t>(mode_extents.size()),
+          mode_extents.data(), &term));
+
+      // Create elementary operator from c_op
+      cudensitymatElementaryOperator_t cudm_elem_op =
+          create_elementary_operator(handle, mode_extents, flat_matrix);
+
+      if (!cudm_elem_op) {
+        throw std::runtime_error("Failed to create elementary operator in "
+                                 "compute_lindblad_operator.");
+      }
+
+      // Append the elementary operator to the term
+      std::vector<int> degrees = {0};
+      cudensitymatWrappedTensorCallback_t wrapped_tensor_callback = {nullptr,
+                                                                     nullptr};
+      append_elementary_operator_to_term(handle, term, cudm_elem_op, degrees,
+                                         mode_extents, wrapped_tensor_callback);
+
+      // Add term to lindblad operator
+      cudensitymatWrappedScalarCallback_t scalarCallback = {nullptr, nullptr};
+      HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+          handle, lindblad_op, term, 0, make_cuDoubleComplex(1.0, 0.0),
+          scalarCallback));
+
+      // Destroy intermediate resources
+      HANDLE_CUDM_ERROR(cudensitymatDestroyOperatorTerm(term));
+      HANDLE_CUDM_ERROR(cudensitymatDestroyElementaryOperator(cudm_elem_op));
     }
 
-    auto flat_matrix = flatten_matrix(c_op);
-
-    // Create Operator term for LtL and add to lindblad_op
-    cudensitymatOperatorTerm_t term;
-    HANDLE_CUDM_ERROR(cudensitymatCreateOperatorTerm(
-        handle, static_cast<int32_t>(mode_extents.size()), mode_extents.data(),
-        &term));
-
-    // Create elementary operator from c_op
-    cudensitymatElementaryOperator_t cudm_elem_op =
-        create_elementary_operator(handle, mode_extents, flat_matrix);
-
-    if (!cudm_elem_op) {
-      throw std::runtime_error(
-          "Failed to create elementary operator in compute_lindblad_operator.");
-    }
-
-    // Append the elementary operator to the term
-    std::vector<int> degrees = {0, 1};
-    // FIXME
-    // append_elementary_operator_to_term(handle, term, cudm_elem_op, degrees);
-
-    // Add term to lindblad operator
-    cudensitymatWrappedScalarCallback_t scalarCallback = {nullptr, nullptr};
-    HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(handle, lindblad_op, term,
-                                                     0, {1.0}, scalarCallback));
-
-    // Destroy intermediate resources
-    HANDLE_CUDM_ERROR(cudensitymatDestroyOperatorTerm(term));
-    HANDLE_CUDM_ERROR(cudensitymatDestroyElementaryOperator(cudm_elem_op));
+    HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
+  } catch (const std::exception &e) {
+    std::cerr << "Exception in compute_lindblad_operator: " << e.what()
+              << std::endl;
+    cudensitymatDestroyOperator(lindblad_op);
+    return nullptr;
   }
 
   return lindblad_op;
@@ -355,6 +370,8 @@ cudensitymatOperator_t convert_to_cudensitymat_operator(
           mode_extents.data(), &term));
 
       for (const auto &component : product_op.get_terms()) {
+        // No need to check type
+        // just call to_matrix on it
         if (const auto *elem_op =
                 dynamic_cast<const cudaq::matrix_operator *>(&component)) {
           auto subspace_extents =
@@ -362,7 +379,7 @@ cudensitymatOperator_t convert_to_cudensitymat_operator(
           cudensitymatWrappedTensorCallback_t wrapped_tensor_callback = {
               nullptr, nullptr};
           if (!parameters.empty()) {
-            wrapped_tensor_callback = _wrap_callback_tensor(*elem_op);
+            wrapped_tensor_callback = _wrap_tensor_callback(*elem_op);
           }
 
           auto flat_matrix = flatten_matrix(
@@ -374,11 +391,6 @@ cudensitymatOperator_t convert_to_cudensitymat_operator(
           append_elementary_operator_to_term(handle, term, cudm_elem_op,
                                              elem_op->degrees, mode_extents,
                                              wrapped_tensor_callback);
-        } else if (const auto *scalar_op =
-                       dynamic_cast<const cudaq::scalar_operator *>(
-                           &component)) {
-          // Need to confirm with Bettina
-          append_scalar_to_term(handle, term, *scalar_op);
         } else {
           // Catch anything that we don't know
           throw std::runtime_error("Unhandled type!");

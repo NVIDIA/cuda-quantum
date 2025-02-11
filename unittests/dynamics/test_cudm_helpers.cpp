@@ -52,25 +52,29 @@ TEST_F(CuDensityMatHelpersTestFixture, InitializeState) {
 
 //   ASSERT_TRUE(state.is_initialized());
 
-//   EXPECT_NO_THROW(cudaq::scale_state(handle, state.get_impl(), {2.0},
+//   EXPECT_NO_THROW(cudaq::scale_state(handle, state.get_impl(), 2.0,
 //   stream));
 // }
 
 // Test for compute_lindblad_op
-// TEST_F(CuDensityMatHelpersTestFixture, ComputeLindbladOp) {
-//   std::vector<int64_t> mode_extents = {2, 2};
+TEST_F(CuDensityMatHelpersTestFixture, ComputeLindbladOp) {
+  std::vector<int64_t> mode_extents = {2, 2};
 
-//   cudaq::matrix_2 c_op1({1.0, 0.0, 0.0, 0.0}, {2, 2});
-//   cudaq::matrix_2 c_op2({0.0, 0.0, 0.0, 1.0}, {2, 2});
-//   std::vector<cudaq::matrix_2> c_ops = {c_op1, c_op2};
+  cudaq::matrix_2 c_op1({1.0, 0.0, 0.0, 0.0}, {2, 2});
+  cudaq::matrix_2 c_op2({0.0, 0.0, 0.0, 1.0}, {2, 2});
+  std::vector<cudaq::matrix_2> c_ops = {c_op1, c_op2};
 
-//   EXPECT_NO_THROW({
-//     auto lindblad_op =
-//         cudaq::compute_lindblad_operator(handle, c_ops, mode_extents);
-//     ASSERT_NE(lindblad_op, nullptr);
-//     cudensitymatDestroyOperator(lindblad_op);
-//   });
-// }
+  EXPECT_NO_THROW({
+    auto lindblad_op =
+        cudaq::compute_lindblad_operator(handle, c_ops, mode_extents);
+    ASSERT_NE(lindblad_op, nullptr)
+        << "Error: Lindblad operator creation failed!";
+
+    HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
+
+    cudensitymatDestroyOperator(lindblad_op);
+  });
+}
 
 // Test for convert_to_cudensitymat_operator
 TEST_F(CuDensityMatHelpersTestFixture, ConvertToCuDensityMatOperator) {
@@ -82,6 +86,7 @@ TEST_F(CuDensityMatHelpersTestFixture, ConvertToCuDensityMatOperator) {
     auto result =
         cudaq::convert_to_cudensitymat_operator<cudaq::matrix_operator>(
             handle, {}, op_sum, mode_extents);
+
     ASSERT_NE(result, nullptr);
     cudensitymatDestroyOperator(result);
   });
@@ -129,7 +134,7 @@ TEST_F(CuDensityMatHelpersTestFixture, ConvertOperatorWithTensorCallback) {
 
   cudaq::matrix_operator matrix_op("CustomOp", {0, 1});
 
-  auto wrapped_tensor_callback = cudaq::_wrap_callback_tensor(matrix_op);
+  auto wrapped_tensor_callback = cudaq::_wrap_tensor_callback(matrix_op);
 
   ASSERT_NE(wrapped_tensor_callback.callback, nullptr);
 
@@ -171,7 +176,7 @@ TEST_F(CuDensityMatHelpersTestFixture, AppendElementaryOperatorToTerm) {
       &term));
 
   cudaq::matrix_operator matrix_op = mock_matrix_operator("CustomOp", 0);
-  auto wrapped_tensor_callback = cudaq::_wrap_callback_tensor(matrix_op);
+  auto wrapped_tensor_callback = cudaq::_wrap_tensor_callback(matrix_op);
   ASSERT_NE(wrapped_tensor_callback.callback, nullptr);
 
   auto flat_matrix = cudaq::flatten_matrix(

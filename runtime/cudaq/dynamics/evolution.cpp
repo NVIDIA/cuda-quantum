@@ -58,7 +58,8 @@ namespace cudaq {
 //     const std::string &step_kernel_name, cudaq::noise_model &noise_model,
 //     const std::vector<operator_sum> &collapse_operators,
 //     const std::map<int, int> &dimensions,
-//     const std::map<std::string, std::complex<double>> &parameters, double dt) {
+//     const std::map<std::string, std::complex<double>> &parameters, double dt)
+//     {
 //   for (const auto &collapse_op : collapse_operators) {
 //     matrix_2 L = collapse_op.to_matrix(dimensions, parameters);
 //     matrix_2 G = std::complex<double>(-0.5, 0.0) * (L * L);
