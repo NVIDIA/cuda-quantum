@@ -57,18 +57,18 @@ constexpr unsigned count_leading_floats() {
   return len;
 }
 
-template <typename KrausChannelT, typename... Q>
+template <typename KrausChannelT, typename... Args>
 #if CUDAQ_USE_STD20
   requires(std::derived_from<KrausChannelT, cudaq::kraus_channel>)
 #endif
-void apply_noise(Q &&...qs) {
-  constexpr auto ctor_arity = count_leading_floats<0, Q...>();
-  constexpr auto qubit_arity = sizeof...(qs) - ctor_arity;
+void apply_noise(Args &&...args) {
+  constexpr auto ctor_arity = count_leading_floats<0, Args...>();
+  constexpr auto qubit_arity = sizeof...(args) - ctor_arity;
 
 #if 0
   details::applyNoiseImpl<KrausChannelT>(
-      details::tuple_slice<ctor_arity>(std::forward_as_tuple(qs...)),
-      details::tuple_slice_last<qubit_arity>(std::forward_as_tuple(qs...)));
+      details::tuple_slice<ctor_arity>(std::forward_as_tuple(args...)),
+      details::tuple_slice_last<qubit_arity>(std::forward_as_tuple(args...)));
 #endif
 }
 
