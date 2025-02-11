@@ -119,12 +119,16 @@ evolve_result evolve_single(
     std::optional<int> shots_count) {
   cudensitymatHandle_t handle;
   HANDLE_CUDM_ERROR(cudensitymatCreate(&handle));
+
+  cudm_helper helper(handle);
+
   std::vector<int64_t> dims;
   for (const auto &[id, dim] : dimensions)
     dims.emplace_back(dim);
-  auto cudmOp = cudaq::convert_to_cudensitymat_operator<cudaq::matrix_operator>(
-      handle, {}, hamiltonian, dims);
-  auto time_stepper = std::make_shared<cudm_time_stepper>(handle, cudmOp);
+  helper.convert_to_cudensitymat_operator<cudaq::matrix_operator>(
+      {}, hamiltonian, dims);
+  // Need to pass liouvillian here
+  auto time_stepper = std::make_shared<cudm_time_stepper>(handle, nullptr);
   const std::vector<std::complex<double>> initialState = {{1.0, 0.0},
                                                           {0.0, 0.0}};
   auto integrator = std::make_unique<runge_kutta_integrator>(
@@ -134,8 +138,8 @@ evolve_result evolve_single(
   std::vector<cudm_expectation> expectations;
   for (auto &obs : observables)
     expectations.emplace_back(cudm_expectation(
-        handle, cudaq::convert_to_cudensitymat_operator<cudaq::matrix_operator>(
-                    handle, {}, *obs, dims)));
+        handle, helper.convert_to_cudensitymat_operator<cudaq::matrix_operator>(
+                    {}, *obs, dims)));
 
   for (const auto &step : schedule) {
     std::cout << "Step: " << step << "\n";
