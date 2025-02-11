@@ -62,8 +62,7 @@ cudensitymatElementaryOperator_t create_elementary_operator(
 void append_elementary_operator_to_term(
     cudensitymatHandle_t handle, cudensitymatOperatorTerm_t term,
     const cudensitymatElementaryOperator_t &elem_op,
-    const std::vector<int> &degrees, const std::vector<int64_t> &mode_extents,
-    const cudensitymatWrappedTensorCallback_t &wrapped_tensor_callback);
+    const std::vector<int> &degrees);
 
 // Function for creating an array copy in GPU memory
 void *create_array_gpu(const std::vector<std::complex<double>> &cpu_array);

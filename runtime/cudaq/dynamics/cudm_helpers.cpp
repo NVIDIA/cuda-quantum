@@ -196,8 +196,8 @@ cudensitymatElementaryOperator_t create_elementary_operator(
 void append_elementary_operator_to_term(
     cudensitymatHandle_t handle, cudensitymatOperatorTerm_t term,
     const cudensitymatElementaryOperator_t &elem_op,
-    const std::vector<int> &degrees, const std::vector<int64_t> &mode_extents,
-    const cudensitymatWrappedTensorCallback_t &wrapped_tensor_callback) {
+    const std::vector<int> &degrees) {
+
   if (degrees.empty()) {
     throw std::invalid_argument("Degrees vector cannot be empty.");
   }
@@ -213,28 +213,13 @@ void append_elementary_operator_to_term(
   }
 
   std::vector<cudensitymatElementaryOperator_t> elem_ops = {elem_op};
-  std::vector<int32_t> mode_action_duality(degrees.size(), 0);
 
-  int32_t num_elementary_operators = 1;
-  int32_t num_operator_modes[] = {static_cast<int32_t>(degrees.size()) * 2};
-
-  const int64_t *operator_mode_extents[] = {mode_extents.data()};
-  const int64_t *operator_mode_strides[] = {nullptr};
-
-  std::vector<int32_t> state_modes_acted_on = degrees;
-  cudaDataType_t data_tye = CUDA_C_64F;
-  void *tensor_data[] = {elem_op};
-
-  cudensitymatWrappedTensorCallback_t tensor_callbacks[] = {
-      wrapped_tensor_callback};
-  cuDoubleComplex coefficient = make_cuDoubleComplex(1.0, 0.0);
-
+  std::vector<int32_t> modeActionDuality(degrees.size(), 0);
   assert(elem_ops.size() == degrees.size());
-  HANDLE_CUDM_ERROR(cudensitymatOperatorTermAppendGeneralProduct(
-      handle, term, num_elementary_operators, num_operator_modes,
-      operator_mode_extents, operator_mode_strides, state_modes_acted_on.data(),
-      mode_action_duality.data(), data_tye, tensor_data, tensor_callbacks,
-      coefficient, {nullptr, nullptr}));
+  HANDLE_CUDM_ERROR(cudensitymatOperatorTermAppendElementaryProduct(
+      handle, term, static_cast<int32_t>(degrees.size()), elem_ops.data(),
+      degrees.data(), modeActionDuality.data(), make_cuDoubleComplex(1.0, 0.0),
+      {nullptr, nullptr}));
 }
 
 // Function to create and append a scalar to a term
@@ -308,10 +293,7 @@ compute_lindblad_operator(cudensitymatHandle_t handle,
 
       // Append the elementary operator to the term
       std::vector<int> degrees = {0};
-      cudensitymatWrappedTensorCallback_t wrapped_tensor_callback = {nullptr,
-                                                                     nullptr};
-      append_elementary_operator_to_term(handle, term, cudm_elem_op, degrees,
-                                         mode_extents, wrapped_tensor_callback);
+      append_elementary_operator_to_term(handle, term, cudm_elem_op, degrees);
 
       // Add term to lindblad operator
       cudensitymatWrappedScalarCallback_t scalarCallback = {nullptr, nullptr};
@@ -379,6 +361,7 @@ cudensitymatOperator_t convert_to_cudensitymat_operator(
           cudensitymatWrappedTensorCallback_t wrapped_tensor_callback = {
               nullptr, nullptr};
           if (!parameters.empty()) {
+            std::cout << "_wrap_tensor_callback\n"; 
             wrapped_tensor_callback = _wrap_tensor_callback(*elem_op);
           }
 
@@ -389,8 +372,7 @@ cudensitymatOperator_t convert_to_cudensitymat_operator(
 
           // elementary_operators.push_back(cudm_elem_op);
           append_elementary_operator_to_term(handle, term, cudm_elem_op,
-                                             elem_op->degrees, mode_extents,
-                                             wrapped_tensor_callback);
+                                             elem_op->degrees);
         } else {
           // Catch anything that we don't know
           throw std::runtime_error("Unhandled type!");
@@ -404,12 +386,17 @@ cudensitymatOperator_t convert_to_cudensitymat_operator(
       cudensitymatWrappedScalarCallback_t wrapped_callback = {nullptr, nullptr};
 
       if (!coeff.get_generator()) {
+        const auto coeffVal = coeff.evaluate();
+        HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+            handle, operator_handle, term, 0,
+            make_cuDoubleComplex(coeffVal.real(), coeffVal.imag()),
+            wrapped_callback));
+      } else {
         wrapped_callback = _wrap_callback(coeff);
+        HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+            handle, operator_handle, term, 0, make_cuDoubleComplex(1.0, 0.0),
+            wrapped_callback));
       }
-
-      HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
-          handle, operator_handle, term, 0, make_cuDoubleComplex(1.0, 0.0),
-          wrapped_callback));
 
       // FIXME: leak
       // We must track these handles and destroy **after** evolve finishes
