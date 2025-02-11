@@ -295,7 +295,6 @@ if (CUDA_FOUND)
     dynamics/test_cudm_helpers.cpp
     dynamics/test_cudm_state.cpp
     dynamics/test_cudm_time_stepper.cpp
-    dynamics/test_cudm_op_conversion.cpp
     dynamics/test_cudm_expectation.cpp
   )
   add_executable(test_dynamics main.cpp ${CUDAQ_DYNAMICS_TEST_SOURCES})

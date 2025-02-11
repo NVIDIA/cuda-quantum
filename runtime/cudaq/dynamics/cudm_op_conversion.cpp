@@ -15,397 +15,283 @@
 using namespace cudaq;
 
 namespace cudaq {
-cudm_op_conversion::cudm_op_conversion(const cudensitymatHandle_t handle,
-                                       const std::map<int, int> &dimensions,
-                                       std::shared_ptr<Schedule> schedule)
-    : handle_(handle), dimensions_(dimensions), schedule_(schedule) {
-  if (handle_ == nullptr) {
-    throw std::runtime_error("Handle cannot be null.");
-  }
-
-  if (dimensions_.empty()) {
-    throw std::invalid_argument("Dimensions map must not be empty.");
-  }
-}
-
-std::vector<std::complex<double>> cudm_op_conversion::get_identity_matrix() {
-  size_t dim = 1;
-  for (const auto &entry : dimensions_) {
-    dim *= entry.second;
-  }
-
-  std::vector<std::complex<double>> identity_matrix(dim * dim, {0.0, 0.0});
-  for (size_t i = 0; i < dim; i++) {
-    identity_matrix[i * dim + i] = {1.0, 0.0};
-  }
-
-  return identity_matrix;
-}
-
-std::vector<int64_t> cudm_op_conversion::get_space_mode_extents() {
-  std::vector<int64_t> space_mode_extents;
-  for (const auto &dim : dimensions_) {
-    space_mode_extents.push_back(dim.second);
-  }
-
-  return space_mode_extents;
-}
-
-cudensitymatOperatorTerm_t cudm_op_conversion::_scalar_to_op(
-    const cudensitymatWrappedScalarCallback_t &scalar) {
-  std::vector<int64_t> space_mode_extents = get_space_mode_extents();
-
-  cudensitymatOperatorTerm_t op_term;
-  HANDLE_CUDM_ERROR(cudensitymatCreateOperatorTerm(
-      handle_, dimensions_.size(), space_mode_extents.data(), &op_term));
-
-  void *tensor_data = create_array_gpu(get_identity_matrix());
-  if (!tensor_data) {
-    throw std::runtime_error("Failed to allocate GPU memory for tensor_data.");
-  }
-
-  std::vector<int32_t> mode_action_duality(dimensions_.size(),
-                                           CUDENSITYMAT_OPERATOR_SPARSITY_NONE);
-
-  cudensitymatElementaryOperator_t identity;
-  HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperator(
-      handle_, dimensions_.size(), space_mode_extents.data(),
-      CUDENSITYMAT_OPERATOR_SPARSITY_NONE, 0, mode_action_duality.data(),
-      CUDA_C_64F, tensor_data, {nullptr, nullptr}, &identity));
-
-  std::vector<int32_t> states_modes_acted_on(dimensions_.size());
-  std::iota(states_modes_acted_on.begin(), states_modes_acted_on.end(), 0);
-
-  HANDLE_CUDM_ERROR(cudensitymatOperatorTermAppendElementaryProduct(
-      handle_, op_term, 1, &identity, states_modes_acted_on.data(),
-      mode_action_duality.data(), {1.0, 0.0}, scalar));
-
-  return op_term;
-}
-
-cudensitymatOperator_t cudm_op_conversion::_callback_mult_op(
-    const cudensitymatWrappedScalarCallback_t &scalar,
-    const cudensitymatOperatorTerm_t &op) {
-  if (!op) {
-    throw std::invalid_argument("Invalid operator term (nullptr).");
-  }
-
-  std::vector<int64_t> space_mode_extents = get_space_mode_extents();
-
-  cudensitymatOperatorTerm_t scalar_op = _scalar_to_op(scalar);
-
-  if (!scalar_op) {
-    throw std::runtime_error("scalar_op is NULL.");
-  }
-
-  cudensitymatOperator_t new_op;
-  HANDLE_CUDM_ERROR(cudensitymatCreateOperator(
-      handle_, static_cast<int32_t>(dimensions_.size()),
-      space_mode_extents.data(), &new_op));
-
-  std::vector<int32_t> mode_action_duality(dimensions_.size(),
-                                           CUDENSITYMAT_OPERATOR_SPARSITY_NONE);
-
-  HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(handle_, new_op, scalar_op,
-                                                   mode_action_duality.size(),
-                                                   {1.0, 0.0}, scalar));
-
-  HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
-      handle_, new_op, op, mode_action_duality.size(), {1.0, 0.0},
-      {nullptr, nullptr}));
-
-  return new_op;
-}
-
-std::variant<cudensitymatOperatorTerm_t, cudensitymatWrappedScalarCallback_t,
-             std::complex<double>>
-cudm_op_conversion::tensor(
-    const std::variant<cudensitymatOperatorTerm_t,
-                       cudensitymatWrappedScalarCallback_t,
-                       std::complex<double>> &op1,
-    const std::variant<cudensitymatOperatorTerm_t,
-                       cudensitymatWrappedScalarCallback_t,
-                       std::complex<double>> &op2) {
-  if (std::holds_alternative<std::complex<double>>(op1) &&
-      std::holds_alternative<std::complex<double>>(op2)) {
-    return std::get<std::complex<double>>(op1) *
-           std::get<std::complex<double>>(op2);
-  }
-
-  if (std::holds_alternative<std::complex<double>>(op1)) {
-    return _callback_mult_op(
-        _wrap_callback(scalar_operator(std::get<std::complex<double>>(op1))),
-        std::get<cudensitymatOperatorTerm_t>(op2));
-  }
-
-  if (std::holds_alternative<std::complex<double>>(op2)) {
-    return _callback_mult_op(
-        _wrap_callback(scalar_operator(std::get<std::complex<double>>(op2))),
-        std::get<cudensitymatOperatorTerm_t>(op1));
-  }
-
-  if (std::holds_alternative<cudensitymatWrappedScalarCallback_t>(op1)) {
-    return tensor(
-        _scalar_to_op(std::get<cudensitymatWrappedScalarCallback_t>(op1)),
-        std::get<cudensitymatOperatorTerm_t>(op2));
-  }
-
-  if (std::holds_alternative<cudensitymatWrappedScalarCallback_t>(op2)) {
-    return tensor(
-        _scalar_to_op(std::get<cudensitymatWrappedScalarCallback_t>(op2)),
-        std::get<cudensitymatOperatorTerm_t>(op1));
-  }
-
-  std::vector<int64_t> space_mode_extents = get_space_mode_extents();
-
-  cudensitymatOperator_t result;
-  HANDLE_CUDM_ERROR(cudensitymatCreateOperator(
-      handle_, dimensions_.size(), space_mode_extents.data(), &result));
-
-  HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
-      handle_, result, std::get<cudensitymatOperatorTerm_t>(op1), 0, {1.0, 0.0},
-      {nullptr, nullptr}));
-  HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
-      handle_, result, std::get<cudensitymatOperatorTerm_t>(op2), 0, {1.0, 0.0},
-      {nullptr, nullptr}));
-
-  return result;
-}
-
-std::variant<cudensitymatOperatorTerm_t, cudensitymatWrappedScalarCallback_t,
-             std::complex<double>>
-cudm_op_conversion::mul(const std::variant<cudensitymatOperatorTerm_t,
-                                           cudensitymatWrappedScalarCallback_t,
-                                           std::complex<double>> &op1,
-                        const std::variant<cudensitymatOperatorTerm_t,
-                                           cudensitymatWrappedScalarCallback_t,
-                                           std::complex<double>> &op2) {
-  return tensor(op1, op2);
-}
-
-std::variant<cudensitymatOperatorTerm_t, cudensitymatWrappedScalarCallback_t,
-             std::complex<double>>
-cudm_op_conversion::add(const std::variant<cudensitymatOperatorTerm_t,
-                                           cudensitymatWrappedScalarCallback_t,
-                                           std::complex<double>> &op1,
-                        const std::variant<cudensitymatOperatorTerm_t,
-                                           cudensitymatWrappedScalarCallback_t,
-                                           std::complex<double>> &op2) {
-  if (std::holds_alternative<std::complex<double>>(op1) &&
-      std::holds_alternative<std::complex<double>>(op2)) {
-    return std::get<std::complex<double>>(op1) +
-           std::get<std::complex<double>>(op2);
-  }
-
-  if (std::holds_alternative<std::complex<double>>(op1)) {
-    return _callback_mult_op(
-        _wrap_callback(scalar_operator(std::get<std::complex<double>>(op1))),
-        std::get<cudensitymatOperatorTerm_t>(op2));
-  }
-
-  if (std::holds_alternative<std::complex<double>>(op2)) {
-    return _callback_mult_op(
-        _wrap_callback(scalar_operator(std::get<std::complex<double>>(op2))),
-        std::get<cudensitymatOperatorTerm_t>(op1));
-  }
-
-  // FIXME: Need to check later
-  int32_t num_space_modes =
-      std::max(static_cast<int32_t>(dimensions_.size()), 1);
-  std::vector<int64_t> space_mode_extents = get_space_mode_extents();
-
-  cudensitymatOperator_t result;
-  HANDLE_CUDM_ERROR(cudensitymatCreateOperator(
-      handle_, num_space_modes, space_mode_extents.data(), &result));
-
-  HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
-      handle_, result, std::get<cudensitymatOperatorTerm_t>(op1), 0, {1.0, 0.0},
-      {nullptr, nullptr}));
-  HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
-      handle_, result, std::get<cudensitymatOperatorTerm_t>(op2), 0, {1.0, 0.0},
-      {nullptr, nullptr}));
-
-  return result;
-}
-
-std::variant<cudensitymatOperatorTerm_t, cudensitymatWrappedScalarCallback_t,
-             std::complex<double>>
-cudm_op_conversion::evaluate(
-    const std::variant<scalar_operator, matrix_operator,
-                       product_operator<matrix_operator>> &op) {
-  if (std::holds_alternative<scalar_operator>(op)) {
-    const scalar_operator &scalar_op = std::get<scalar_operator>(op);
-
-    ScalarCallbackFunction generator = scalar_op.get_generator();
-
-    if (!generator) {
-      return scalar_op.evaluate({});
-    } else {
-      return _wrap_callback(scalar_op);
-    }
-  }
-
-  if (std::holds_alternative<matrix_operator>(op)) {
-    const matrix_operator &mat_op = std::get<matrix_operator>(op);
-
-    std::vector<int64_t> space_mode_extents = get_space_mode_extents();
-
-    cudensitymatOperatorTerm_t opterm;
-    HANDLE_CUDM_ERROR(cudensitymatCreateOperatorTerm(
-        handle_, dimensions_.size(), space_mode_extents.data(), &opterm));
-
-    cudensitymatElementaryOperator_t elem_op;
-    cudensitymatWrappedTensorCallback_t callback =
-        _wrap_callback_tensor(mat_op);
-
-    auto flat_matrix = flatten_matrix(mat_op.to_matrix(dimensions_, {}));
-
-    void *tensor_data = create_array_gpu(flat_matrix);
-    if (!tensor_data) {
-      throw std::runtime_error(
-          "Failed to allocate GPU memory for tensor_data.");
-    }
-
-    std::vector<int32_t> mode_action_duality(
-        mat_op.degrees.size(), CUDENSITYMAT_OPERATOR_SPARSITY_NONE);
-
-    HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperator(
-        handle_, mat_op.degrees.size(), space_mode_extents.data(),
-        CUDENSITYMAT_OPERATOR_SPARSITY_NONE, 0, mode_action_duality.data(),
-        CUDA_C_64F, tensor_data, callback, &elem_op));
-
-    HANDLE_CUDM_ERROR(cudensitymatOperatorTermAppendElementaryProduct(
-        handle_, opterm, 1, &elem_op, mat_op.degrees.data(),
-        mode_action_duality.data(), {1.0, 0.0}, {nullptr, nullptr}));
-
-    return opterm;
-  }
-
-  if (std::holds_alternative<product_operator<matrix_operator>>(op)) {
-    throw std::runtime_error(
-        "Handling of product_operator<matrix_operator> is not implemented.");
-  }
-
-  throw std::runtime_error(
-      "Unknown operator type in cudm_op_conversion::evaluate.");
-}
-
-cudensitymatWrappedScalarCallback_t
-cudm_op_conversion::_wrap_callback(const scalar_operator &scalar_op) {
-  try {
-    std::complex<double> evaluatedValue = scalar_op.evaluate({});
-
-    cudensitymatWrappedScalarCallback_t wrapped_callback;
-    wrapped_callback.callback = nullptr;
-    wrapped_callback.wrapper = new std::complex<double>(evaluatedValue);
-    return wrapped_callback;
-  } catch (const std::exception &) {
-  }
-
-  ScalarCallbackFunction generator = scalar_op.get_generator();
-
-  if (!generator) {
-    throw std::runtime_error(
-        "scalar_operator does not have a valid generator function.");
-  }
-
-  auto callback = [](double time, int32_t num_params, const double params[],
-                     cudaDataType_t data_type,
-                     void *scalar_storage) -> int32_t {
-    try {
-      scalar_operator *scalar_op =
-          static_cast<scalar_operator *>(scalar_storage);
-
-      std::map<std::string, std::complex<double>> param_map;
-      for (size_t i = 0; i < num_params; i++) {
-        param_map[std::to_string(i)] = params[i];
-      }
-
-      std::complex<double> result = scalar_op->evaluate(param_map);
-
-      if (data_type == CUDA_C_64F) {
-        *reinterpret_cast<cuDoubleComplex *>(scalar_storage) =
-            make_cuDoubleComplex(result.real(), result.imag());
-      } else if (data_type == CUDA_C_32F) {
-        *reinterpret_cast<cuFloatComplex *>(scalar_storage) =
-            make_cuFloatComplex(static_cast<float>(result.real()),
-                                static_cast<float>(result.imag()));
-      } else {
-        return CUDENSITYMAT_STATUS_INVALID_VALUE;
-      }
-
-      return CUDENSITYMAT_STATUS_SUCCESS;
-    } catch (const std::exception &e) {
-      std::cerr << "Error in scalar callback: " << e.what() << std::endl;
-      return CUDENSITYMAT_STATUS_INTERNAL_ERROR;
-    }
-  };
-
-  cudensitymatWrappedScalarCallback_t wrappedCallback;
-  wrappedCallback.callback = callback;
-  wrappedCallback.wrapper = new scalar_operator(scalar_op);
-
-  return wrappedCallback;
-}
-
-cudensitymatWrappedTensorCallback_t
-cudm_op_conversion::_wrap_callback_tensor(const matrix_operator &op) {
-  auto callback =
-      [](cudensitymatElementaryOperatorSparsity_t sparsity, int32_t num_modes,
-         const int64_t mode_extents[], const int32_t diagonal_offsets[],
-         double time, int32_t num_params, const double params[],
-         cudaDataType_t data_type, void *tensor_storage) -> int32_t {
-    try {
-      matrix_operator *mat_op = static_cast<matrix_operator *>(tensor_storage);
-
-      std::map<std::string, std::complex<double>> param_map;
-      for (size_t i = 0; i < num_params; i++) {
-        param_map[std::to_string(i)] = params[i];
-      }
-
-      matrix_2 matrix_data = mat_op->to_matrix({}, param_map);
-
-      std::size_t rows = matrix_data.get_rows();
-      std::size_t cols = matrix_data.get_columns();
-
-      if (num_modes != rows) {
-        return CUDENSITYMAT_STATUS_INVALID_VALUE;
-      }
-
-      if (data_type == CUDA_C_64F) {
-        cuDoubleComplex *storage =
-            static_cast<cuDoubleComplex *>(tensor_storage);
-        for (size_t i = 0; i < rows; i++) {
-          for (size_t j = 0; j < cols; j++) {
-            storage[i * cols + j] = make_cuDoubleComplex(
-                matrix_data[{i, j}].real(), matrix_data[{i, j}].imag());
-          }
-        }
-      } else if (data_type == CUDA_C_32F) {
-        cuFloatComplex *storage = static_cast<cuFloatComplex *>(tensor_storage);
-        for (size_t i = 0; i < rows; i++) {
-          for (size_t j = 0; j < cols; j++) {
-            storage[i * cols + j] = make_cuFloatComplex(
-                static_cast<float>(matrix_data[{i, j}].real()),
-                static_cast<float>(matrix_data[{i, j}].imag()));
-          }
-        }
-      } else {
-        return CUDENSITYMAT_STATUS_INVALID_VALUE;
-      }
-
-      return CUDENSITYMAT_STATUS_SUCCESS;
-    } catch (const std::exception &e) {
-      std::cerr << "Error in tensor callback: " << e.what() << std::endl;
-      return CUDENSITYMAT_STATUS_INTERNAL_ERROR;
-    }
-  };
-
-  cudensitymatWrappedTensorCallback_t wrapped_callback;
-  wrapped_callback.callback = callback;
-  wrapped_callback.wrapper = new matrix_operator(op);
-
-  return wrapped_callback;
-}
+// cudm_op_conversion::cudm_op_conversion(const cudensitymatHandle_t handle,
+//                                        const std::map<int, int> &dimensions,
+//                                        std::shared_ptr<Schedule> schedule)
+//     : handle_(handle), dimensions_(dimensions), schedule_(schedule) {
+//   if (handle_ == nullptr) {
+//     throw std::runtime_error("Handle cannot be null.");
+//   }
+
+//   if (dimensions_.empty()) {
+//     throw std::invalid_argument("Dimensions map must not be empty.");
+//   }
+// }
+
+// std::vector<std::complex<double>> cudm_op_conversion::get_identity_matrix() {
+//   size_t dim = 1;
+//   for (const auto &entry : dimensions_) {
+//     dim *= entry.second;
+//   }
+
+//   std::vector<std::complex<double>> identity_matrix(dim * dim, {0.0, 0.0});
+//   for (size_t i = 0; i < dim; i++) {
+//     identity_matrix[i * dim + i] = {1.0, 0.0};
+//   }
+
+//   return identity_matrix;
+// }
+
+// std::vector<int64_t> cudm_op_conversion::get_space_mode_extents() {
+//   std::vector<int64_t> space_mode_extents;
+//   for (const auto &dim : dimensions_) {
+//     space_mode_extents.push_back(dim.second);
+//   }
+
+//   return space_mode_extents;
+// }
+
+// cudensitymatOperatorTerm_t cudm_op_conversion::_scalar_to_op(
+//     const cudensitymatWrappedScalarCallback_t &scalar) {
+//   std::vector<int64_t> space_mode_extents = get_space_mode_extents();
+
+//   cudensitymatOperatorTerm_t op_term;
+//   HANDLE_CUDM_ERROR(cudensitymatCreateOperatorTerm(
+//       handle_, dimensions_.size(), space_mode_extents.data(), &op_term));
+
+//   void *tensor_data = create_array_gpu(get_identity_matrix());
+//   if (!tensor_data) {
+//     throw std::runtime_error("Failed to allocate GPU memory for
+//     tensor_data.");
+//   }
+
+//   std::vector<int32_t> mode_action_duality(dimensions_.size(),
+//                                            CUDENSITYMAT_OPERATOR_SPARSITY_NONE);
+
+//   cudensitymatElementaryOperator_t identity;
+//   HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperator(
+//       handle_, dimensions_.size(), space_mode_extents.data(),
+//       CUDENSITYMAT_OPERATOR_SPARSITY_NONE, 0, mode_action_duality.data(),
+//       CUDA_C_64F, tensor_data, {nullptr, nullptr}, &identity));
+
+//   std::vector<int32_t> states_modes_acted_on(dimensions_.size());
+//   std::iota(states_modes_acted_on.begin(), states_modes_acted_on.end(), 0);
+
+//   HANDLE_CUDM_ERROR(cudensitymatOperatorTermAppendElementaryProduct(
+//       handle_, op_term, 1, &identity, states_modes_acted_on.data(),
+//       mode_action_duality.data(), {1.0, 0.0}, scalar));
+
+//   return op_term;
+// }
+
+// cudensitymatOperator_t cudm_op_conversion::_callback_mult_op(
+//     const cudensitymatWrappedScalarCallback_t &scalar,
+//     const cudensitymatOperatorTerm_t &op) {
+//   if (!op) {
+//     throw std::invalid_argument("Invalid operator term (nullptr).");
+//   }
+
+//   std::vector<int64_t> space_mode_extents = get_space_mode_extents();
+
+//   cudensitymatOperatorTerm_t scalar_op = _scalar_to_op(scalar);
+
+//   if (!scalar_op) {
+//     throw std::runtime_error("scalar_op is NULL.");
+//   }
+
+//   cudensitymatOperator_t new_op;
+//   HANDLE_CUDM_ERROR(cudensitymatCreateOperator(
+//       handle_, static_cast<int32_t>(dimensions_.size()),
+//       space_mode_extents.data(), &new_op));
+
+//   std::vector<int32_t> mode_action_duality(dimensions_.size(),
+//                                            CUDENSITYMAT_OPERATOR_SPARSITY_NONE);
+
+//   HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(handle_, new_op,
+//   scalar_op,
+//                                                    mode_action_duality.size(),
+//                                                    {1.0, 0.0}, scalar));
+
+//   HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+//       handle_, new_op, op, mode_action_duality.size(), {1.0, 0.0},
+//       {nullptr, nullptr}));
+
+//   return new_op;
+// }
+
+// std::variant<cudensitymatOperatorTerm_t, cudensitymatWrappedScalarCallback_t,
+//              std::complex<double>>
+// cudm_op_conversion::tensor(
+//     const std::variant<cudensitymatOperatorTerm_t,
+//                        cudensitymatWrappedScalarCallback_t,
+//                        std::complex<double>> &op1,
+//     const std::variant<cudensitymatOperatorTerm_t,
+//                        cudensitymatWrappedScalarCallback_t,
+//                        std::complex<double>> &op2) {
+//   if (std::holds_alternative<std::complex<double>>(op1) &&
+//       std::holds_alternative<std::complex<double>>(op2)) {
+//     return std::get<std::complex<double>>(op1) *
+//            std::get<std::complex<double>>(op2);
+//   }
+
+//   if (std::holds_alternative<std::complex<double>>(op1)) {
+//     return _callback_mult_op(
+//         _wrap_callback(scalar_operator(std::get<std::complex<double>>(op1))),
+//         std::get<cudensitymatOperatorTerm_t>(op2));
+//   }
+
+//   if (std::holds_alternative<std::complex<double>>(op2)) {
+//     return _callback_mult_op(
+//         _wrap_callback(scalar_operator(std::get<std::complex<double>>(op2))),
+//         std::get<cudensitymatOperatorTerm_t>(op1));
+//   }
+
+//   if (std::holds_alternative<cudensitymatWrappedScalarCallback_t>(op1)) {
+//     return tensor(
+//         _scalar_to_op(std::get<cudensitymatWrappedScalarCallback_t>(op1)),
+//         std::get<cudensitymatOperatorTerm_t>(op2));
+//   }
+
+//   if (std::holds_alternative<cudensitymatWrappedScalarCallback_t>(op2)) {
+//     return tensor(
+//         _scalar_to_op(std::get<cudensitymatWrappedScalarCallback_t>(op2)),
+//         std::get<cudensitymatOperatorTerm_t>(op1));
+//   }
+
+//   std::vector<int64_t> space_mode_extents = get_space_mode_extents();
+
+//   cudensitymatOperator_t result;
+//   HANDLE_CUDM_ERROR(cudensitymatCreateOperator(
+//       handle_, dimensions_.size(), space_mode_extents.data(), &result));
+
+//   HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+//       handle_, result, std::get<cudensitymatOperatorTerm_t>(op1), 0, {1.0,
+//       0.0}, {nullptr, nullptr}));
+//   HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+//       handle_, result, std::get<cudensitymatOperatorTerm_t>(op2), 0, {1.0,
+//       0.0}, {nullptr, nullptr}));
+
+//   return result;
+// }
+
+// std::variant<cudensitymatOperatorTerm_t, cudensitymatWrappedScalarCallback_t,
+//              std::complex<double>>
+// cudm_op_conversion::mul(const std::variant<cudensitymatOperatorTerm_t,
+//                                            cudensitymatWrappedScalarCallback_t,
+//                                            std::complex<double>> &op1,
+//                         const std::variant<cudensitymatOperatorTerm_t,
+//                                            cudensitymatWrappedScalarCallback_t,
+//                                            std::complex<double>> &op2) {
+//   return tensor(op1, op2);
+// }
+
+// std::variant<cudensitymatOperatorTerm_t, cudensitymatWrappedScalarCallback_t,
+//              std::complex<double>>
+// cudm_op_conversion::add(const std::variant<cudensitymatOperatorTerm_t,
+//                                            cudensitymatWrappedScalarCallback_t,
+//                                            std::complex<double>> &op1,
+//                         const std::variant<cudensitymatOperatorTerm_t,
+//                                            cudensitymatWrappedScalarCallback_t,
+//                                            std::complex<double>> &op2) {
+//   if (std::holds_alternative<std::complex<double>>(op1) &&
+//       std::holds_alternative<std::complex<double>>(op2)) {
+//     return std::get<std::complex<double>>(op1) +
+//            std::get<std::complex<double>>(op2);
+//   }
+
+//   if (std::holds_alternative<std::complex<double>>(op1)) {
+//     return _callback_mult_op(
+//         _wrap_callback(scalar_operator(std::get<std::complex<double>>(op1))),
+//         std::get<cudensitymatOperatorTerm_t>(op2));
+//   }
+
+//   if (std::holds_alternative<std::complex<double>>(op2)) {
+//     return _callback_mult_op(
+//         _wrap_callback(scalar_operator(std::get<std::complex<double>>(op2))),
+//         std::get<cudensitymatOperatorTerm_t>(op1));
+//   }
+
+//   // FIXME: Need to check later
+//   int32_t num_space_modes =
+//       std::max(static_cast<int32_t>(dimensions_.size()), 1);
+//   std::vector<int64_t> space_mode_extents = get_space_mode_extents();
+
+//   cudensitymatOperator_t result;
+//   HANDLE_CUDM_ERROR(cudensitymatCreateOperator(
+//       handle_, num_space_modes, space_mode_extents.data(), &result));
+
+//   HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+//       handle_, result, std::get<cudensitymatOperatorTerm_t>(op1), 0, {1.0,
+//       0.0}, {nullptr, nullptr}));
+//   HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+//       handle_, result, std::get<cudensitymatOperatorTerm_t>(op2), 0, {1.0,
+//       0.0}, {nullptr, nullptr}));
+
+//   return result;
+// }
+
+// std::variant<cudensitymatOperatorTerm_t, cudensitymatWrappedScalarCallback_t,
+//              std::complex<double>>
+// cudm_op_conversion::evaluate(
+//     const std::variant<scalar_operator, matrix_operator,
+//                        product_operator<matrix_operator>> &op) {
+//   if (std::holds_alternative<scalar_operator>(op)) {
+//     const scalar_operator &scalar_op = std::get<scalar_operator>(op);
+
+//     ScalarCallbackFunction generator = scalar_op.get_generator();
+
+//     if (!generator) {
+//       return scalar_op.evaluate({});
+//     } else {
+//       return _wrap_callback(scalar_op);
+//     }
+//   }
+
+//   if (std::holds_alternative<matrix_operator>(op)) {
+//     const matrix_operator &mat_op = std::get<matrix_operator>(op);
+
+//     std::vector<int64_t> space_mode_extents = get_space_mode_extents();
+
+//     cudensitymatOperatorTerm_t opterm;
+//     HANDLE_CUDM_ERROR(cudensitymatCreateOperatorTerm(
+//         handle_, dimensions_.size(), space_mode_extents.data(), &opterm));
+
+//     cudensitymatElementaryOperator_t elem_op;
+//     // Need to check if it is a static, use nullptr
+//     // or a callback and then only use callback
+//     cudensitymatWrappedTensorCallback_t callback =
+//         _wrap_callback_tensor(mat_op);
+
+//     auto flat_matrix = flatten_matrix(mat_op.to_matrix(dimensions_, {}));
+
+//     void *tensor_data = create_array_gpu(flat_matrix);
+//     if (!tensor_data) {
+//       throw std::runtime_error(
+//           "Failed to allocate GPU memory for tensor_data.");
+//     }
+
+//     std::vector<int32_t> mode_action_duality(
+//         mat_op.degrees.size(), CUDENSITYMAT_OPERATOR_SPARSITY_NONE);
+
+//     HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperator(
+//         handle_, mat_op.degrees.size(), space_mode_extents.data(),
+//         CUDENSITYMAT_OPERATOR_SPARSITY_NONE, 0, mode_action_duality.data(),
+//         CUDA_C_64F, tensor_data, callback, &elem_op));
+
+//     HANDLE_CUDM_ERROR(cudensitymatOperatorTermAppendElementaryProduct(
+//         handle_, opterm, 1, &elem_op, mat_op.degrees.data(),
+//         mode_action_duality.data(), {1.0, 0.0}, {nullptr, nullptr}));
+
+//     return opterm;
+//   }
+
+//   if (std::holds_alternative<product_operator<matrix_operator>>(op)) {
+//     throw std::runtime_error(
+//         "Handling of product_operator<matrix_operator> is not implemented.");
+//   }
+
+//   throw std::runtime_error(
+//       "Unknown operator type in cudm_op_conversion::evaluate.");
+// }
 
 } // namespace cudaq
