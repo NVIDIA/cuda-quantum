@@ -43,7 +43,7 @@ cudensitymatWrappedScalarCallback_t
 _wrap_callback(const scalar_operator &scalar_op);
 
 cudensitymatWrappedTensorCallback_t
-_wrap_callback_tensor(const matrix_operator &op);
+_wrap_tensor_callback(const matrix_operator &op);
 
 void append_scalar_to_term(cudensitymatHandle_t handle,
                            cudensitymatOperatorTerm_t term,
