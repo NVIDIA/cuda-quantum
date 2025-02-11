@@ -307,57 +307,87 @@ __qpu__ bool Peppermint() {
 // QIR:       }
 
 // QIR-LABEL: define { i1*, i64 } @__nvqpp__mlirgen__Cherry()
-// QIR:         %[[VAL_0:.*]] = tail call %[[VAL_1:.*]]* @__quantum__rt__qubit_allocate_array_with_state_complex64(i64 2, { double, double }* nonnull getelementptr inbounds ([4 x { double, double }], [4 x { double, double }]* @__nvqpp__mlirgen__Cherry.rodata_1, i64 0, i64 0))
-// QIR:         %[[VAL_2:.*]] = tail call %[[VAL_3:.*]]** @__quantum__rt__array_get_element_ptr_1d(%Array* %1, i64 0)
-// QIR:         %[[VAL_4:.*]] = load %[[VAL_3]]*, %[[VAL_3]]** %[[VAL_2]], align 8
-// QIR:         tail call void @__quantum__qis__h(%[[VAL_3]]* %[[VAL_4]])
-// QIR:         %[[VAL_5:.*]] = tail call %[[VAL_3]]** @__quantum__rt__array_get_element_ptr_1d(%Array* %1, i64 1)
-// QIR:         %[[VAL_6:.*]] = load %[[VAL_3]]*, %[[VAL_3]]** %[[VAL_5]], align 8
-// QIR:         tail call void @__quantum__qis__h(%[[VAL_3]]* %[[VAL_6]])
-// QIR:         %[[VAL_7:.*]] = tail call %[[VAL_8:.*]]* @__quantum__qis__mz(%[[VAL_3]]* %[[VAL_4]])
-// QIR:         %[[VAL_9:.*]] = bitcast %[[VAL_8]]* %[[VAL_7]] to i1*
-// QIR:         %[[VAL_10:.*]] = load i1, i1* %[[VAL_9]], align 1
-// QIR:         %[[VAL_11:.*]] = zext i1 %[[VAL_10:.*]] to i8
-// QIR:         %[[VAL_12:.*]] = tail call %[[VAL_8]]* @__quantum__qis__mz(%[[VAL_3]]* %[[VAL_6]])
-// QIR:         %[[VAL_13:.*]] = bitcast %[[VAL_8]]* %[[VAL_12]] to i1*
-// QIR:         %[[VAL_14:.*]] = load i1, i1* %[[VAL_13]], align 1
-// QIR:         %[[VAL_15:.*]] = zext i1 %[[VAL_14]] to i8
-// QIR:         %[[VAL_16:.*]] = tail call dereferenceable_or_null(2) i8* @malloc(i64 2)
-// QIR:         store i8 %[[VAL_11]], i8* %[[VAL_16]], align 1
-// QIR:         %[[VAL_17:.*]] = getelementptr inbounds i8, i8* %[[VAL_16]], i64 1
-// QIR:         store i8 %[[VAL_15]], i8* %[[VAL_17]], align 1
-// QIR:         %[[VAL_18:.*]] = bitcast i8* %[[VAL_16]] to i1*
-// QIR:         %[[VAL_19:.*]] = insertvalue { i1*, i64 } undef, i1* %[[VAL_18]], 0
-// QIR:         %[[VAL_20:.*]] = insertvalue { i1*, i64 } %[[VAL_19]], i64 2, 1
-// QIR:         tail call void @__quantum__rt__qubit_release_array(%[[VAL_1]]* %[[VAL_0]])
-// QIR:         ret { i1*, i64 } %[[VAL_20]]
+// QIR:         %[[VAL_0:.*]] = alloca [4 x { double, double }]
+// QIR:         %[[VAL_1:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_0]], i64 0, i64 0
+// QIR:         %[[VAL_2:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_0]], i64 0, i64 0, i32 0
+// QIR:         store double 0.000000e+00, double* %[[VAL_2]]
+// QIR:         %[[VAL_3:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_0]], i64 0, i64 0, i32 1
+// QIR:         store double 1.000000e+00, double* %[[VAL_3]]
+// QIR:         %[[VAL_4:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_0]], i64 0, i64 1, i32 0
+// QIR:         store double 6.000000e-01, double* %[[VAL_4]]
+// QIR:         %[[VAL_5:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_0]], i64 0, i64 1, i32 1
+// QIR:         store double 4.000000e-01, double* %[[VAL_5]]
+// QIR:         %[[VAL_6:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_0]], i64 0, i64 2, i32 0
+// QIR:         store double 1.000000e+00, double* %[[VAL_6]]
+// QIR:         %[[VAL_7:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_0]], i64 0, i64 2, i32 1
+// QIR:         %[[VAL_8:.*]] = bitcast double* %[[VAL_7]] to i8*
+// QIR:         call void @llvm.memset.p0i8.i64(i8* {{.*}}%[[VAL_8]], i8 0, i64 24, i1 false)
+// QIR:         %[[VAL_9:.*]] = call %[[VAL_10:.*]]* @__quantum__rt__qubit_allocate_array_with_state_complex64(i64 2, { double, double }* nonnull %[[VAL_1]])
+// QIR:         %[[VAL_11:.*]] = call %[[VAL_12:.*]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_10]]* %[[VAL_9]], i64 0)
+// QIR:         %[[VAL_13:.*]] = load %[[VAL_12]]*, %[[VAL_12]]** %[[VAL_11]]
+// QIR:         call void @__quantum__qis__h(%[[VAL_12]]* %[[VAL_13]])
+// QIR:         %[[VAL_14:.*]] = call %[[VAL_12]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_10]]* %[[VAL_9]], i64 1)
+// QIR:         %[[VAL_15:.*]] = load %[[VAL_12]]*, %[[VAL_12]]** %[[VAL_14]]
+// QIR:         call void @__quantum__qis__h(%[[VAL_12]]* %[[VAL_15]])
+// QIR:         %[[VAL_16:.*]] = call %[[VAL_17:.*]]* @__quantum__qis__mz(%[[VAL_12]]* %[[VAL_13]])
+// QIR:         %[[VAL_18:.*]] = bitcast %[[VAL_17]]* %[[VAL_16]] to i1*
+// QIR:         %[[VAL_19:.*]] = load i1, i1* %[[VAL_18]]
+// QIR:         %[[VAL_20:.*]] = zext i1 %[[VAL_19]] to i8
+// QIR:         %[[VAL_21:.*]] = call %[[VAL_17]]* @__quantum__qis__mz(%[[VAL_12]]* %[[VAL_15]])
+// QIR:         %[[VAL_22:.*]] = bitcast %[[VAL_17]]* %[[VAL_21]] to i1*
+// QIR:         %[[VAL_23:.*]] = load i1, i1* %[[VAL_22]]
+// QIR:         %[[VAL_24:.*]] = zext i1 %[[VAL_23]] to i8
+// QIR:         %[[VAL_25:.*]] = call dereferenceable_or_null(2) i8* @malloc(i64 2)
+// QIR:         store i8 %[[VAL_20]], i8* %[[VAL_25]]
+// QIR:         %[[VAL_26:.*]] = getelementptr inbounds i8, i8* %[[VAL_25]], i64 1
+// QIR:         store i8 %[[VAL_24]], i8* %[[VAL_26]]
+// QIR:         %[[VAL_27:.*]] = bitcast i8* %[[VAL_25]] to i1*
+// QIR:         %[[VAL_28:.*]] = insertvalue { i1*, i64 } undef, i1* %[[VAL_27]], 0
+// QIR:         %[[VAL_29:.*]] = insertvalue { i1*, i64 } %[[VAL_28]], i64 2, 1
+// QIR:         call void @__quantum__rt__qubit_release_array(%[[VAL_10]]* %[[VAL_9]])
+// QIR:         ret { i1*, i64 } %[[VAL_29]]
 // QIR:       }
 
 // QIR-LABEL: define { i1*, i64 } @__nvqpp__mlirgen__MooseTracks()
-// QIR:         %[[VAL_0:.*]] = tail call %[[VAL_1:.*]]* @__quantum__rt__qubit_allocate_array_with_state_complex64(i64 2, { double, double }* nonnull getelementptr inbounds ([4 x { double, double }], [4 x { double, double }]* @__nvqpp__mlirgen__MooseTracks.rodata_0, i64 0, i64 0))
-// QIR:         %[[VAL_2:.*]] = tail call %[[VAL_3:.*]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 0)
-// QIR:         %[[VAL_4:.*]] = load %[[VAL_3]]*, %[[VAL_3]]** %[[VAL_2]], align 8
-// QIR:         tail call void @__quantum__qis__h(%[[VAL_3]]* %[[VAL_4]])
-// QIR:         %[[VAL_5:.*]] = tail call %[[VAL_3]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 1)
-// QIR:         %[[VAL_6:.*]] = load %[[VAL_3]]*, %[[VAL_3]]** %[[VAL_5]], align 8
-// QIR:         tail call void @__quantum__qis__h(%[[VAL_3]]* %[[VAL_6]])
-// QIR:         %[[VAL_8:.*]] = tail call %[[VAL_7:.*]]* @__quantum__qis__mz(%[[VAL_3]]* %[[VAL_4]])
-// QIR:         %[[VAL_9:.*]] = bitcast %[[VAL_7]]* %[[VAL_8]] to i1*
-// QIR:         %[[VAL_10:.*]] = load i1, i1* %[[VAL_9]], align 1
-// QIR:         %[[VAL_11:.*]] = zext i1 %[[VAL_10]] to i8
-// QIR:         %[[VAL_12:.*]] = tail call %[[VAL_7]]* @__quantum__qis__mz(%[[VAL_3]]* %[[VAL_6]])
-// QIR:         %[[VAL_13:.*]] = bitcast %[[VAL_7]]* %[[VAL_12]] to i1*
-// QIR:         %[[VAL_14:.*]] = load i1, i1* %[[VAL_13]], align 1
-// QIR:         %[[VAL_15:.*]] = zext i1 %[[VAL_14]] to i8
-// QIR:         %[[VAL_16:.*]] = tail call dereferenceable_or_null(2) i8* @malloc(i64 2)
-// QIR:         store i8 %[[VAL_11]], i8* %[[VAL_16]], align 1
-// QIR:         %[[VAL_17:.*]] = getelementptr inbounds i8, i8* %[[VAL_16]], i64 1
-// QIR:         store i8 %[[VAL_15]], i8* %[[VAL_17]], align 1
-// QIR:         %[[VAL_18:.*]] = bitcast i8* %[[VAL_16]] to i1*
-// QIR:         %[[VAL_19:.*]] = insertvalue { i1*, i64 } undef, i1* %[[VAL_18]], 0
-// QIR:         %[[VAL_20]] = insertvalue { i1*, i64 } %[[VAL_19]], i64 2, 1
-// QIR:         tail call void @__quantum__rt__qubit_release_array(%[[VAL_1]]* %[[VAL_0]])
-// QIR:         ret { i1*, i64 } %[[VAL_20]]
+// QIR:         %[[VAL_0:.*]] = alloca [4 x { double, double }]
+// QIR:         %[[VAL_1:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_0]], i64 0, i64 0
+// QIR:         %[[VAL_2:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_0]], i64 0, i64 0, i32 0
+// QIR:         store double 0.000000e+00, double* %[[VAL_2]]
+// QIR:         %[[VAL_3:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_0]], i64 0, i64 0, i32 1
+// QIR:         store double 1.000000e+00, double* %[[VAL_3]]
+// QIR:         %[[VAL_4:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_0]], i64 0, i64 1, i32 0
+// QIR:         store double 7.500000e-01, double* %[[VAL_4]]
+// QIR:         %[[VAL_5:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_0]], i64 0, i64 1, i32 1
+// QIR:         store double 2.500000e-01, double* %[[VAL_5]]
+// QIR:         %[[VAL_6:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_0]], i64 0, i64 2, i32 0
+// QIR:         store double 1.000000e+00, double* %[[VAL_6]]
+// QIR:         %[[VAL_7:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_0]], i64 0, i64 2, i32 1
+// QIR:         %[[VAL_8:.*]] = bitcast double* %[[VAL_7]] to i8*
+// QIR:         call void @llvm.memset.p0i8.i64(i8* {{.*}}%[[VAL_8]], i8 0, i64 24, i1 false)
+// QIR:         %[[VAL_9:.*]] = call %[[VAL_10:.*]]* @__quantum__rt__qubit_allocate_array_with_state_complex64(i64 2, { double, double }* nonnull %[[VAL_1]])
+// QIR:         %[[VAL_11:.*]] = call %[[VAL_12:.*]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_10]]* %[[VAL_9]], i64 0)
+// QIR:         %[[VAL_13:.*]] = load %[[VAL_12]]*, %[[VAL_12]]** %[[VAL_11]]
+// QIR:         call void @__quantum__qis__h(%[[VAL_12]]* %[[VAL_13]])
+// QIR:         %[[VAL_14:.*]] = call %[[VAL_12]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_10]]* %[[VAL_9]], i64 1)
+// QIR:         %[[VAL_15:.*]] = load %[[VAL_12]]*, %[[VAL_12]]** %[[VAL_14]]
+// QIR:         call void @__quantum__qis__h(%[[VAL_12]]* %[[VAL_15]])
+// QIR:         %[[VAL_16:.*]] = call %[[VAL_17:.*]]* @__quantum__qis__mz(%[[VAL_12]]* %[[VAL_13]])
+// QIR:         %[[VAL_18:.*]] = bitcast %[[VAL_17]]* %[[VAL_16]] to i1*
+// QIR:         %[[VAL_19:.*]] = load i1, i1* %[[VAL_18]]
+// QIR:         %[[VAL_20:.*]] = zext i1 %[[VAL_19]] to i8
+// QIR:         %[[VAL_21:.*]] = call %[[VAL_17]]* @__quantum__qis__mz(%[[VAL_12]]* %[[VAL_15]])
+// QIR:         %[[VAL_22:.*]] = bitcast %[[VAL_17]]* %[[VAL_21]] to i1*
+// QIR:         %[[VAL_23:.*]] = load i1, i1* %[[VAL_22]]
+// QIR:         %[[VAL_24:.*]] = zext i1 %[[VAL_23]] to i8
+// QIR:         %[[VAL_25:.*]] = call dereferenceable_or_null(2) i8* @malloc(i64 2)
+// QIR:         store i8 %[[VAL_20]], i8* %[[VAL_25]]
+// QIR:         %[[VAL_26:.*]] = getelementptr inbounds i8, i8* %[[VAL_25]], i64 1
+// QIR:         store i8 %[[VAL_24]], i8* %[[VAL_26]]
+// QIR:         %[[VAL_27:.*]] = bitcast i8* %[[VAL_25]] to i1*
+// QIR:         %[[VAL_28:.*]] = insertvalue { i1*, i64 } undef, i1* %[[VAL_27]], 0
+// QIR:         %[[VAL_29:.*]] = insertvalue { i1*, i64 } %[[VAL_28]], i64 2, 1
+// QIR:         call void @__quantum__rt__qubit_release_array(%[[VAL_10]]* %[[VAL_9]])
+// QIR:         ret { i1*, i64 } %[[VAL_29]]
 // QIR:       }
 
 // QIR-LABEL: define { i1*, i64 } @__nvqpp__mlirgen__RockyRoad()

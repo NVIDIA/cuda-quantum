@@ -6,7 +6,8 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt -cc-loop-unroll -cse -cc-loop-unroll %s | FileCheck %s
+// RUN: cudaq-opt -classical-optimization -cse -classical-optimization %s | FileCheck %s
+// RUN: cudaq-opt -classical-optimization-pipeline %s | FileCheck %s
 
 func.func @test_loop_unroll() {
   %c1_i64 = arith.constant 1 : i64

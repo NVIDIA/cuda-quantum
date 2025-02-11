@@ -141,6 +141,40 @@ def CheckKernelCalls : Pass<"check-kernel-calls", "mlir::func::FuncOp"> {
   }];
 }
 
+def ClassicalOptimization : Pass<"classical-optimization"> {
+  let summary = "Perform classical optimizations until a fix point is reached.";
+  let description = [{
+    Performs a number of classical optimizations greedily until a fix point
+    is reached:
+    - canonicalization
+    - simplify regions
+    - write-after-write-elimination
+    - lift-array-alloc
+    - cc-loop-unroll
+
+    The signal-failure-if-any-loop-cannot-be-completely-unrolled option controls
+    whether to signal a failure if all loops cannot be fully unrolled. This is
+    necessary when synthesizing quantum circuits from CUDA-Q kernels, such
+    as when generating a QIR base profile. A quantum circuit requires all loops
+    be completely unrolled.
+  }];
+
+  let dependentDialects = ["mlir::arith::ArithDialect",
+                           "mlir::cf::ControlFlowDialect"];
+
+  let options = [
+    Option<"threshold", "maximum-iterations", "unsigned", /*default=*/"50",
+      "Maximum iterations to unroll.">,
+    Option<"signalFailure",
+      "signal-failure-if-any-loop-cannot-be-completely-unrolled", "bool",
+      /*default=*/"false", "Signal failure if pass can't unroll all loops.">,
+    Option<"allowClosedInterval", "allow-closed-interval", "bool",
+      /*default=*/"true", "Allow loop iterations on a closed interval.">,
+    Option<"allowBreak", "allow-early-exit", "bool", /*default=*/"false",
+      "Allow unrolling of loop with early exit (i.e. break statement).">
+  ];
+}
+
 def CombineMeasurements :
     Pass<"combine-measurements", "mlir::func::FuncOp"> {
   let summary = "Extends mesurements on subveqs adds output names";
@@ -623,8 +657,6 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
     Option<"signalFailure",
       "signal-failure-if-any-loop-cannot-be-completely-unrolled", "bool",
       /*default=*/"false", "Signal failure if pass can't unroll all loops.">,
-    Option<"allowClosedInterval", "allow-closed-interval", "bool",
-      /*default=*/"true", "Allow loop iterations on a closed interval.">,
     Option<"allowBreak", "allow-early-exit", "bool", /*default=*/"false",
       "Allow unrolling of loop with early exit (i.e. break statement).">
   ];
