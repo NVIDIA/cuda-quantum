@@ -18,7 +18,7 @@ public:
   explicit RewriteIf(MLIRContext *ctx)
       : OpRewritePattern(ctx), rewriteOnlyIfConst(false) {}
 
-  explicit RewriteIf(MLIRContext *ctx, bool rewriteOnlyIfConst)
+  RewriteIf(MLIRContext *ctx, bool rewriteOnlyIfConst)
       : OpRewritePattern(ctx), rewriteOnlyIfConst(rewriteOnlyIfConst) {}
 
   /// Rewrites an if construct like
@@ -46,7 +46,6 @@ public:
   /// ```
   LogicalResult matchAndRewrite(cudaq::cc::IfOp ifOp,
                                 PatternRewriter &rewriter) const override {
-
     // Bail out on non-constant conditions if we just need to
     // const-prop if($const).
     if (rewriteOnlyIfConst) {
