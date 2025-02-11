@@ -93,13 +93,14 @@ TEST_F(CuDensityMatTimeStepperTest, ComputeStepLargeTimeValues) {
 }
 
 TEST_F(CuDensityMatTimeStepperTest, ComputeStepCheckOutput) {
+  cudm_helper helper(handle_);
   const std::vector<std::complex<double>> initialState = {
       {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}};
   const std::vector<int64_t> dims = {4};
   auto inputState = std::make_unique<cudm_state>(handle_, initialState, dims);
   auto op = cudaq::matrix_operator::create(0);
-  auto cudmOp = cudaq::convert_to_cudensitymat_operator<cudaq::matrix_operator>(
-      handle_, {}, op, dims); // Initialize the time stepper
+  auto cudmOp = helper.convert_to_cudensitymat_operator<cudaq::matrix_operator>(
+      {}, op, dims); // Initialize the time stepper
   auto time_stepper = std::make_unique<cudm_time_stepper>(handle_, cudmOp);
   auto outputState = time_stepper->compute(*inputState, 0.0, 1.0);
 

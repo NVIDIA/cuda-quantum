@@ -33,11 +33,12 @@ protected:
 };
 
 TEST_F(CuDensityExpectationTest, checkCompute) {
+  cudm_helper helper(handle_);
   const std::vector<int64_t> dims = {10};
   // Check number operator on boson Fock space
   auto op = cudaq::matrix_operator::number(0);
-  auto cudmOp = cudaq::convert_to_cudensitymat_operator<cudaq::matrix_operator>(
-      handle_, {}, op, dims);
+  auto cudmOp = helper.convert_to_cudensitymat_operator<cudaq::matrix_operator>(
+      {}, op, dims);
 
   cudm_expectation expectation(handle_, cudmOp);
 

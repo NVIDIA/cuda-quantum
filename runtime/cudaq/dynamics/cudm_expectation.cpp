@@ -50,7 +50,7 @@ std::complex<double> cudm_expectation::compute(cudensitymatState_t state,
     // Allocate GPU storage for workspace buffer
     const std::size_t bufferVolume =
         requiredBufferSize / sizeof(std::complex<double>);
-    workspaceBuffer = create_array_gpu(
+    workspaceBuffer = cudm_helper::create_array_gpu(
         std::vector<std::complex<double>>(bufferVolume, {0.0, 0.0}));
 
     // Attach workspace buffer
@@ -59,8 +59,8 @@ std::complex<double> cudm_expectation::compute(cudensitymatState_t state,
         CUDENSITYMAT_WORKSPACE_SCRATCH, workspaceBuffer, requiredBufferSize));
   }
 
-  auto *expectationValue_d =
-      create_array_gpu(std::vector<std::complex<double>>(1, {0.0, 0.0}));
+  auto *expectationValue_d = cudm_helper::create_array_gpu(
+      std::vector<std::complex<double>>(1, {0.0, 0.0}));
   HANDLE_CUDM_ERROR(cudensitymatExpectationCompute(
       m_handle, m_expectation, time, 0, nullptr, state, expectationValue_d,
       m_workspace, 0x0));
@@ -68,9 +68,9 @@ std::complex<double> cudm_expectation::compute(cudensitymatState_t state,
   HANDLE_CUDA_ERROR(cudaMemcpy(&result, expectationValue_d,
                                sizeof(std::complex<double>),
                                cudaMemcpyDefault));
-  destroy_array_gpu(expectationValue_d);
+  cudm_helper::destroy_array_gpu(expectationValue_d);
   if (workspaceBuffer) {
-    destroy_array_gpu(workspaceBuffer);
+    cudm_helper::destroy_array_gpu(workspaceBuffer);
   }
   return result;
 }

@@ -17,61 +17,72 @@
 #include <vector>
 
 namespace cudaq {
-std::vector<std::complex<double>> flatten_matrix(const matrix_2 &matrix);
+class cudm_helper {
+public:
+  explicit cudm_helper(cudensitymatHandle_t handle);
+  ~cudm_helper();
 
-void scale_state(cudensitymatHandle_t handle, cudensitymatState_t state,
-                 double scale_factor, cudaStream_t stream);
+  // Matrix flattening
+  std::vector<std::complex<double>> flatten_matrix(const matrix_2 &matrix);
 
-cudensitymatOperator_t
-compute_lindblad_operator(cudensitymatHandle_t handle,
-                          const std::vector<matrix_2> &c_ops,
-                          const std::vector<int64_t> &mode_extents);
+  // State Operations
+  void scale_state(cudensitymatState_t state, double scale_factor,
+                   cudaStream_t stream);
 
-template <typename HandlerTy>
-cudensitymatOperator_t convert_to_cudensitymat_operator(
-    cudensitymatHandle_t handle,
-    const std::map<std::string, std::complex<double>> &parameters,
-    const operator_sum<HandlerTy> &op,
-    const std::vector<int64_t> &mode_extents);
+  // Compute Lindblad Operator
+  cudensitymatOperator_t
+  compute_lindblad_operator(const std::vector<matrix_2> &c_ops,
+                            const std::vector<int64_t> &mode_extents);
 
-cudensitymatOperator_t construct_liovillian(
-    cudensitymatHandle_t handle, const cudensitymatOperator_t &hamiltonian,
-    const std::vector<cudensitymatOperator_t> &collapse_operators,
-    double gamma);
+  // Convert operator sum to cudensitymat operator
+  template <typename HandlerTy>
+  cudensitymatOperator_t convert_to_cudensitymat_operator(
+      const std::map<std::string, std::complex<double>> &parameters,
+      const operator_sum<HandlerTy> &op,
+      const std::vector<int64_t> &mode_extents);
 
-cudensitymatWrappedScalarCallback_t
-_wrap_callback(const scalar_operator &scalar_op);
+  // Construct Liouvillian
+  cudensitymatOperator_t construct_liouvillian(
+      const cudensitymatOperator_t &hamiltonian,
+      const std::vector<cudensitymatOperator_t> &collapse_operators,
+      double gamma);
 
-cudensitymatWrappedTensorCallback_t
-_wrap_tensor_callback(const matrix_operator &op);
+  // Helper Functions
+  std::map<int, int>
+  convert_dimensions(const std::vector<int64_t> &mode_extents);
+  std::vector<int64_t>
+  get_subspace_extents(const std::vector<int64_t> &mode_extents,
+                       const std::vector<int> &degrees);
 
-void append_scalar_to_term(cudensitymatHandle_t handle,
-                           cudensitymatOperatorTerm_t term,
-                           const scalar_operator &scalar_op);
+  // Callback Wrappers
+  cudensitymatWrappedScalarCallback_t
+  _wrap_callback(const scalar_operator &scalar_op);
+  cudensitymatWrappedTensorCallback_t
+  _wrap_tensor_callback(const matrix_operator &op);
 
-std::map<int, int> convert_dimensions(const std::vector<int64_t> &mode_extents);
+  // Elementary Operator Functions
+  void append_scalar_to_term(cudensitymatOperatorTerm_t term,
+                             const scalar_operator &scalar_op);
+  cudensitymatElementaryOperator_t create_elementary_operator(
+      const cudaq::matrix_operator *elem_op,
+      const std::map<std::string, std::complex<double>> &parameters,
+      const std::vector<int64_t> &mode_extents);
+  void append_elementary_operator_to_term(
+      cudensitymatOperatorTerm_t term,
+      const cudensitymatElementaryOperator_t &elem_op,
+      const std::vector<int> &degrees);
 
-std::vector<int64_t>
-get_subspace_extents(const std::vector<int64_t> &mode_extents,
-                     const std::vector<int> &degrees);
+  // GPU memory management
+  static void *
+  create_array_gpu(const std::vector<std::complex<double>> &cpu_array);
+  static void destroy_array_gpu(void *gpu_array);
 
-cudensitymatElementaryOperator_t create_elementary_operator(
-    cudensitymatHandle_t handle, const std::vector<int64_t> &subspace_extents,
-    const std::vector<std::complex<double>> &flat_matrix);
-
-void append_elementary_operator_to_term(
-    cudensitymatHandle_t handle, cudensitymatOperatorTerm_t term,
-    const cudensitymatElementaryOperator_t &elem_op,
-    const std::vector<int> &degrees);
-
-// Function for creating an array copy in GPU memory
-void *create_array_gpu(const std::vector<std::complex<double>> &cpu_array);
-
-// Function to detsroy a previously created array copy in GPU memory
-void destroy_array_gpu(void *gpu_array);
+private:
+  cudensitymatHandle_t handle;
+};
 
 extern template cudensitymatOperator_t
-convert_to_cudensitymat_operator<cudaq::matrix_operator>(
-    cudensitymatHandle_t, const std::map<std::string, std::complex<double>> &,
+cudm_helper::convert_to_cudensitymat_operator<cudaq::matrix_operator>(
+    const std::map<std::string, std::complex<double>> &,
     const operator_sum<cudaq::matrix_operator> &, const std::vector<int64_t> &);
 } // namespace cudaq
