@@ -41,12 +41,6 @@ public:
     DominanceInfo domInfo(func);
     StringRef funcName = func.getName();
     RewritePatternSet patterns(ctx);
-
-    for (auto *dialect : ctx->getLoadedDialects())
-      dialect->getCanonicalizationPatterns(patterns);
-    for (RegisteredOperationName op : ctx->getRegisteredOperations())
-      op.getCanonicalizationPatterns(patterns, ctx);
-
     patterns.insert<AllocaPattern>(ctx, domInfo, funcName);
 
     LLVM_DEBUG(llvm::dbgs()
