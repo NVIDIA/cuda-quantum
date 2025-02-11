@@ -650,7 +650,7 @@ defined by the qudit level that represents the qumode. If it is applied to a qum
 where the number of photons is already at the maximum value, the operation has no
 effect.
 
-:math:`U|0\rangle → |1\rangle, U|1\rangle → |2\rangle, U|2\rangle → |3\rangle, \cdots, U|d\rangle → |d\rangle`
+:math:`C|0\rangle → |1\rangle, C|1\rangle → |2\rangle, C|2\rangle → |3\rangle, \cdots, C|d\rangle → |d\rangle`
 where :math:`d` is the qudit level.
 
 .. tab:: Python
@@ -674,7 +674,7 @@ This operation reduces the number of photons in a qumode up to a minimum value o
 0 representing the vacuum state. If it is applied to a qumode where the number of
 photons is already at the minimum value 0, the operation has no effect.
 
-:math:`U|0\rangle → |0\rangle, U|1\rangle → |0\rangle, U|2\rangle → |1\rangle, \cdots, U|d\rangle → |d-1\rangle`
+:math:`A|0\rangle → |0\rangle, A|1\rangle → |0\rangle, A|2\rangle → |1\rangle, \cdots, A|d\rangle → |d-1\rangle`
 where :math:`d` is the qudit level.
 
 .. tab:: Python
