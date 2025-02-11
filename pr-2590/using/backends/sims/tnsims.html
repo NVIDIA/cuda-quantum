@@ -227,9 +227,11 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/deutschs_algorithm.html#Deutsch's-Algorithm:">Deutsch’s Algorithm:</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../../applications/python/deutsch_jozsa.html"><em>The Deutsch-Jozsa Algorithm</em></a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../applications/python/deutsch_jozsa.html#The-Theory">The Theory</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../applications/python/deutsch_jozsa.html#The-Algorithm-Implementation">The Algorithm Implementation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../applications/python/deutsch_jozsa.html">The Deutsch-Jozsa Algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/deutsch_jozsa.html#The-Theory">The Theory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/deutsch_jozsa.html#The-Algorithm-Implementation">The Algorithm Implementation</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../../applications/python/hamiltonian_simulation.html">Spin-Hamiltonian Simulation Using CUDA-Q</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/hamiltonian_simulation.html#Introduction">Introduction</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../applications/python/hamiltonian_simulation.html#Heisenberg-Hamiltonian">Heisenberg Hamiltonian</a></li>
@@ -801,6 +803,9 @@ environment variable to the newly built <code class="code docutils literal notra
 <li><p><strong>`CUDA_VISIBLE_DEVICES=X`</strong>: Makes the process only see GPU X on multi-GPU nodes. Each MPI process must only see its own dedicated GPU. For example, if you run 8 MPI processes on a DGX system with 8 GPUs, each MPI process should be assigned its own dedicated GPU via <code class="code docutils literal notranslate"><span class="pre">CUDA_VISIBLE_DEVICES</span></code> when invoking <code class="code docutils literal notranslate"><span class="pre">mpiexec</span></code> (or <code class="code docutils literal notranslate"><span class="pre">mpirun</span></code>) commands.</p></li>
 <li><p><strong>`OMP_PLACES=cores`</strong>: Set this environment variable to improve CPU parallelization.</p></li>
 <li><p><strong>`OMP_NUM_THREADS=X`</strong>: To enable CPU parallelization, set X to <code class="code docutils literal notranslate"><span class="pre">NUMBER_OF_CORES_PER_NODE/NUMBER_OF_GPUS_PER_NODE</span></code>.</p></li>
+<li><p><strong>`CUDAQ_TENSORNET_CONTROLLED_RANK=X`</strong>: Specify the number of controlled qubits whereby the full tensor body of the controlled gate is expanded. If the number of controlled qubits is greater than this value, the gate is applied as a controlled tensor operator to the tensor network state. Default value is 1.</p></li>
+<li><p><strong>`CUDAQ_TENSORNET_OBSERVE_CONTRACT_PATH_REUSE=X`</strong>: Set this environment variable to <code class="code docutils literal notranslate"><span class="pre">TRUE</span></code> (<code class="code docutils literal notranslate"><span class="pre">ON</span></code>) or <code class="code docutils literal notranslate"><span class="pre">FALSE</span></code> (<code class="code docutils literal notranslate"><span class="pre">OFF</span></code>) to enable or disable contraction path reuse when computing expectation values. Default is <code class="code docutils literal notranslate"><span class="pre">OFF</span></code>.</p></li>
+<li><p><strong>`CUDAQ_TENSORNET_NUM_HYPER_SAMPLES=X`</strong>: Specify the number of hyper samples used in the tensor network contraction path finder. Default value is 8 if not specified.</p></li>
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
