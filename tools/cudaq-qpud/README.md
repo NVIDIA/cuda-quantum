@@ -5,8 +5,8 @@ This file contains tips and tricks for when you are performing manual testing/
 debugging for `remote-mqpu` or `nvqc` targets. This file is primarily intended
 for **CUDA-Q developers, not end users**. See the user-facing docs here:
 
-- [`remote-mqpu`](https://nvidia.github.io/cuda-quantum/latest/using/backends/platform.html#remote-mqpu-platform)
-- [`nvqc`](https://nvidia.github.io/cuda-quantum/latest/using/backends/nvqc.html)
+- [`remote-mqpu`](https://nvidia.github.io/cuda-quantum/latest/using/backends/sims/mqpusims.html#multi-qpu-other-backends)
+- [`nvqc`](https://nvidia.github.io/cuda-quantum/latest/using/backends/cloud/nvqc.html)
 
 ## Fully local within `cuda-quantum-dev` container
 
