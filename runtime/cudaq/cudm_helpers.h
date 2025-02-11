@@ -39,6 +39,32 @@ cudensitymatOperator_t construct_liovillian(
     const std::vector<cudensitymatOperator_t> &collapse_operators,
     double gamma);
 
+cudensitymatWrappedScalarCallback_t
+_wrap_callback(const scalar_operator &scalar_op);
+
+cudensitymatWrappedTensorCallback_t
+_wrap_callback_tensor(const matrix_operator &op);
+
+void append_scalar_to_term(cudensitymatHandle_t handle,
+                           cudensitymatOperatorTerm_t term,
+                           const scalar_operator &scalar_op);
+
+std::map<int, int> convert_dimensions(const std::vector<int64_t> &mode_extents);
+
+std::vector<int64_t>
+get_subspace_extents(const std::vector<int64_t> &mode_extents,
+                     const std::vector<int> &degrees);
+
+cudensitymatElementaryOperator_t create_elementary_operator(
+    cudensitymatHandle_t handle, const std::vector<int64_t> &subspace_extents,
+    const std::vector<std::complex<double>> &flat_matrix);
+
+void append_elementary_operator_to_term(
+    cudensitymatHandle_t handle, cudensitymatOperatorTerm_t term,
+    const cudensitymatElementaryOperator_t &elem_op,
+    const std::vector<int> &degrees, const std::vector<int64_t> &mode_extents,
+    const cudensitymatWrappedTensorCallback_t &wrapped_tensor_callback);
+
 // Function for creating an array copy in GPU memory
 void *create_array_gpu(const std::vector<std::complex<double>> &cpu_array);
 
