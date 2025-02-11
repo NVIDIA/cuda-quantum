@@ -26,7 +26,6 @@ set(CUDAQ_OPS_SRC
   manipulation.cpp
   helpers.cpp
   rydberg_hamiltonian.cpp
-  cudm_op_conversion.cpp
   cudm_expectation.cpp
 )
 
