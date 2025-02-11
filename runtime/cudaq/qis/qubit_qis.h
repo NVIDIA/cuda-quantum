@@ -42,11 +42,34 @@ ConcreteQubitOp(h) ConcreteQubitOp(x) ConcreteQubitOp(y) ConcreteQubitOp(z)
 
 } // namespace qubit_op
 
-// Apply noise with Krauss channel parameters and quantum arguments.
+class kraus_channel;
+
+template <unsigned len, typename A, typename... As>
+constexpr unsigned count_leading_floats() {
+  if constexpr (std::is_floating_point_v<A>) {
+    return count_leading_floats<len + 1, As...>();
+  } else {
+    return len;
+  }
+}
+template <unsigned len>
+constexpr unsigned count_leading_floats() {
+  return len;
+}
+
 template <typename KrausChannelT, typename... Q>
-void apply_noise(Q &&...args) {
-  // FIXME: This is just a stub.
-  KrausChannelT channel;
+#if CUDAQ_USE_STD20
+  requires(std::derived_from<KrausChannelT, cudaq::kraus_channel>)
+#endif
+void apply_noise(Q &&...qs) {
+  constexpr auto ctor_arity = count_leading_floats<0, Q...>();
+  constexpr auto qubit_arity = sizeof...(qs) - ctor_arity;
+
+#if 0
+  details::applyNoiseImpl<KrausChannelT>(
+      details::tuple_slice<ctor_arity>(std::forward_as_tuple(qs...)),
+      details::tuple_slice_last<qubit_arity>(std::forward_as_tuple(qs...)));
+#endif
 }
 
 // Convert a qubit to its unique id representation

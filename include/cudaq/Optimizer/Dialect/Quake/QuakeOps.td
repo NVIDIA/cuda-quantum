@@ -493,7 +493,7 @@ def quake_ApplyNoiseOp : QuakeOp<"apply_noise", [AttrSizedOperandSegments]> {
 
   let arguments = (ins
     FlatSymbolRefAttr:$noise_func,
-    Variadic<AnyFloat>:$parameters,
+    Variadic<PointerOf<[AnyFloat]>>:$parameters,
     Variadic<NonStruqRefType>:$qubits
   );
 

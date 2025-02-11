@@ -1508,20 +1508,23 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       SmallVector<Value> qubits;
       bool inParams = true;
       for (auto a : args) {
-        if (inParams && isa<FloatType>(a.getType())) {
-          params.push_back(a);
-        } else {
-          // The first argument that is not floating-point must be a qubit. If
-          // the user has interleaved floating-point and qubit arguments, that's
-          // an error.
+        if (inParams) {
+          if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(a.getType()))
+            if (isa<FloatType>(ptrTy.getElementType())) {
+              params.push_back(a);
+              continue;
+            }
           inParams = false;
-          if (isa<quake::RefType, quake::VeqType>(a.getType())) {
-            qubits.push_back(a);
-          } else {
-            reportClangError(x, mangler,
-                             "apply_noise argument types not supported.");
-            return false;
-          }
+        }
+        // The first argument that is not floating-point must be a qubit. If
+        // the user has interleaved floating-point and qubit arguments, that's
+        // an error.
+        if (isa<quake::RefType, quake::VeqType>(a.getType())) {
+          qubits.push_back(a);
+        } else {
+          reportClangError(x, mangler,
+                           "apply_noise argument types not supported.");
+          return false;
         }
       }
 
