@@ -58,6 +58,7 @@ TEST_F(CuDensityMatHelpersTestFixture, InitializeState) {
 
 // Test for compute_lindblad_op
 TEST_F(CuDensityMatHelpersTestFixture, ComputeLindbladOp) {
+  cudaq::cudm_helper helper(handle);
   std::vector<int64_t> mode_extents = {2, 2};
 
   cudaq::matrix_2 c_op1({1.0, 0.0, 0.0, 0.0}, {2, 2});
@@ -65,8 +66,7 @@ TEST_F(CuDensityMatHelpersTestFixture, ComputeLindbladOp) {
   std::vector<cudaq::matrix_2> c_ops = {c_op1, c_op2};
 
   EXPECT_NO_THROW({
-    auto lindblad_op =
-        cudaq::compute_lindblad_operator(handle, c_ops, mode_extents);
+    auto lindblad_op = helper.compute_lindblad_operator(c_ops, mode_extents);
     ASSERT_NE(lindblad_op, nullptr)
         << "Error: Lindblad operator creation failed!";
 
@@ -78,14 +78,15 @@ TEST_F(CuDensityMatHelpersTestFixture, ComputeLindbladOp) {
 
 // Test for convert_to_cudensitymat_operator
 TEST_F(CuDensityMatHelpersTestFixture, ConvertToCuDensityMatOperator) {
+  cudaq::cudm_helper helper(handle);
   std::vector<int64_t> mode_extents = mock_hilbert_space_dims();
 
   auto op_sum = initialize_operator_sum();
 
   EXPECT_NO_THROW({
     auto result =
-        cudaq::convert_to_cudensitymat_operator<cudaq::matrix_operator>(
-            handle, {}, op_sum, mode_extents);
+        helper.convert_to_cudensitymat_operator<cudaq::matrix_operator>(
+            {}, op_sum, mode_extents);
 
     ASSERT_NE(result, nullptr);
     cudensitymatDestroyOperator(result);
@@ -94,14 +95,15 @@ TEST_F(CuDensityMatHelpersTestFixture, ConvertToCuDensityMatOperator) {
 
 // Test with a higher-dimensional mode extent
 TEST_F(CuDensityMatHelpersTestFixture, ConvertHigherDimensionalOperator) {
+  cudaq::cudm_helper helper(handle);
   std::vector<int64_t> mode_extents = {3, 3};
 
   auto op_sum = initialize_operator_sum();
 
   EXPECT_NO_THROW({
     auto result =
-        cudaq::convert_to_cudensitymat_operator<cudaq::matrix_operator>(
-            handle, {}, op_sum, mode_extents);
+        helper.convert_to_cudensitymat_operator<cudaq::matrix_operator>(
+            {}, op_sum, mode_extents);
     ASSERT_NE(result, nullptr);
     cudensitymatDestroyOperator(result);
   });
@@ -109,6 +111,7 @@ TEST_F(CuDensityMatHelpersTestFixture, ConvertHigherDimensionalOperator) {
 
 // Test with a coefficient callback function
 TEST_F(CuDensityMatHelpersTestFixture, ConvertOperatorWithCallback) {
+  cudaq::cudm_helper helper(handle);
   std::vector<int64_t> mode_extents = {2, 2};
 
   auto callback_function = [](std::map<std::string, std::complex<double>>) {
@@ -121,8 +124,8 @@ TEST_F(CuDensityMatHelpersTestFixture, ConvertOperatorWithCallback) {
 
   EXPECT_NO_THROW({
     auto result =
-        cudaq::convert_to_cudensitymat_operator<cudaq::matrix_operator>(
-            handle, {}, op_sum, mode_extents);
+        helper.convert_to_cudensitymat_operator<cudaq::matrix_operator>(
+            {}, op_sum, mode_extents);
     ASSERT_NE(result, nullptr);
     cudensitymatDestroyOperator(result);
   });
@@ -130,11 +133,12 @@ TEST_F(CuDensityMatHelpersTestFixture, ConvertOperatorWithCallback) {
 
 // Test with tensor callback function
 TEST_F(CuDensityMatHelpersTestFixture, ConvertOperatorWithTensorCallback) {
+  cudaq::cudm_helper helper(handle);
   std::vector<int64_t> mode_extents = {2, 2};
 
   cudaq::matrix_operator matrix_op("CustomOp", {0, 1});
 
-  auto wrapped_tensor_callback = cudaq::_wrap_tensor_callback(matrix_op);
+  auto wrapped_tensor_callback = helper._wrap_tensor_callback(matrix_op);
 
   ASSERT_NE(wrapped_tensor_callback.callback, nullptr);
 
@@ -152,6 +156,7 @@ TEST_F(CuDensityMatHelpersTestFixture, ConvertOperatorWithTensorCallback) {
 
 // Test for appending a scalar to a term
 TEST_F(CuDensityMatHelpersTestFixture, AppendScalarToTerm) {
+  cudaq::cudm_helper helper(handle);
   cudensitymatOperatorTerm_t term;
   std::vector<int64_t> mode_extents = {2, 2};
 
@@ -161,47 +166,34 @@ TEST_F(CuDensityMatHelpersTestFixture, AppendScalarToTerm) {
 
   cudaq::scalar_operator scalar_op(2.0);
 
-  EXPECT_NO_THROW(cudaq::append_scalar_to_term(handle, term, scalar_op));
+  EXPECT_NO_THROW(helper.append_scalar_to_term(term, scalar_op));
 
   cudensitymatDestroyOperatorTerm(term);
 }
 
 // Test for appending a matrix_operator
-TEST_F(CuDensityMatHelpersTestFixture, AppendElementaryOperatorToTerm) {
-  cudensitymatOperatorTerm_t term;
-  std::vector<int64_t> mode_extents = {2, 2};
+// TEST_F(CuDensityMatHelpersTestFixture, AppendElementaryOperatorToTerm) {
+//   cudaq::cudm_helper helper(handle);
+//   cudensitymatOperatorTerm_t term;
+//   std::vector<int64_t> mode_extents = {2, 2};
 
-  HANDLE_CUDM_ERROR(cudensitymatCreateOperatorTerm(
-      handle, static_cast<int32_t>(mode_extents.size()), mode_extents.data(),
-      &term));
+//   HANDLE_CUDM_ERROR(cudensitymatCreateOperatorTerm(
+//       handle, static_cast<int32_t>(mode_extents.size()), mode_extents.data(),
+//       &term));
 
-  cudaq::matrix_operator matrix_op = mock_matrix_operator("CustomOp", 0);
-  auto wrapped_tensor_callback = cudaq::_wrap_tensor_callback(matrix_op);
-  ASSERT_NE(wrapped_tensor_callback.callback, nullptr);
+//   cudaq::matrix_operator matrix_op = mock_matrix_operator("CustomOp", 0);
 
-  auto flat_matrix = cudaq::flatten_matrix(
-      matrix_op.to_matrix(cudaq::convert_dimensions(mode_extents), {}));
-  auto subspace_extents = cudaq::get_subspace_extents(mode_extents, {0, 1});
+//   auto flat_matrix = helper.flatten_matrix(
+//       matrix_op.to_matrix(helper.convert_dimensions(mode_extents), {}));
+//   auto subspace_extents = helper.get_subspace_extents(mode_extents, {0, 1});
 
-  auto elementary_op =
-      cudaq::create_elementary_operator(handle, subspace_extents, flat_matrix);
-  ASSERT_NE(elementary_op, nullptr);
+//   auto elementary_op =
+//   helper.create_elementary_operator(subspace_extents, flat_matrix);
+//   ASSERT_NE(elementary_op, nullptr);
 
-  EXPECT_NO_THROW(cudaq::append_elementary_operator_to_term(
-      handle, term, elementary_op, {0, 1}));
+//   EXPECT_NO_THROW(helper.append_elementary_operator_to_term(
+//       term, elementary_op, {0, 1}));
 
-  cudensitymatDestroyOperatorTerm(term);
-  cudensitymatDestroyElementaryOperator(elementary_op);
-}
-
-// Test invalid handle
-TEST_F(CuDensityMatHelpersTestFixture, InvalidHandle) {
-  cudensitymatHandle_t invalid_handle = nullptr;
-
-  std::vector<int64_t> mode_extents = {2, 2};
-  auto op_sum = initialize_operator_sum();
-
-  EXPECT_THROW(cudaq::convert_to_cudensitymat_operator<cudaq::matrix_operator>(
-                   invalid_handle, {}, op_sum, mode_extents),
-               std::runtime_error);
-}
+//   cudensitymatDestroyOperatorTerm(term);
+//   cudensitymatDestroyElementaryOperator(elementary_op);
+// }

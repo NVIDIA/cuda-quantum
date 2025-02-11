@@ -12,8 +12,16 @@
 using namespace cudaq;
 
 namespace cudaq {
+cudm_helper::cudm_helper(cudensitymatHandle_t handle) : handle(handle) {}
+
+cudm_helper::~cudm_helper() {
+  if (handle) {
+    cudensitymatDestroy(handle);
+  }
+}
+
 cudensitymatWrappedScalarCallback_t
-_wrap_callback(const scalar_operator &scalar_op) {
+cudm_helper::_wrap_callback(const scalar_operator &scalar_op) {
   try {
     std::complex<double> evaluatedValue = scalar_op.evaluate({});
 
@@ -71,7 +79,7 @@ _wrap_callback(const scalar_operator &scalar_op) {
 }
 
 cudensitymatWrappedTensorCallback_t
-_wrap_tensor_callback(const matrix_operator &op) {
+cudm_helper::_wrap_tensor_callback(const matrix_operator &op) {
   auto callback =
       [](cudensitymatElementaryOperatorSparsity_t sparsity, int32_t num_modes,
          const int64_t mode_extents[], const int32_t diagonal_offsets[],
@@ -131,7 +139,8 @@ _wrap_tensor_callback(const matrix_operator &op) {
 }
 
 // Function to flatten a matrix into a 1D array (column major)
-std::vector<std::complex<double>> flatten_matrix(const matrix_2 &matrix) {
+std::vector<std::complex<double>>
+cudm_helper::flatten_matrix(const matrix_2 &matrix) {
   std::vector<std::complex<double>> flat_matrix;
   flat_matrix.reserve(matrix.get_size());
   for (size_t col = 0; col < matrix.get_columns(); col++) {
@@ -145,8 +154,8 @@ std::vector<std::complex<double>> flatten_matrix(const matrix_2 &matrix) {
 
 // Function to extract sub-space extents based on degrees
 std::vector<int64_t>
-get_subspace_extents(const std::vector<int64_t> &mode_extents,
-                     const std::vector<int> &degrees) {
+cudm_helper::get_subspace_extents(const std::vector<int64_t> &mode_extents,
+                                  const std::vector<int> &degrees) {
   std::vector<int64_t> subspace_extents;
 
   for (int degree : degrees) {
@@ -161,9 +170,14 @@ get_subspace_extents(const std::vector<int64_t> &mode_extents,
 
 // Function to create a cudensitymat elementary operator
 // Need to use std::variant
-cudensitymatElementaryOperator_t create_elementary_operator(
-    cudensitymatHandle_t handle, const std::vector<int64_t> &subspace_extents,
-    const std::vector<std::complex<double>> &flat_matrix) {
+cudensitymatElementaryOperator_t cudm_helper::create_elementary_operator(
+    const cudaq::matrix_operator *elem_op,
+    const std::map<std::string, std::complex<double>> &parameters,
+    const std::vector<int64_t> &mode_extents) {
+  auto subspace_extents = get_subspace_extents(mode_extents, elem_op->degrees);
+  auto flat_matrix = flatten_matrix(
+      elem_op->to_matrix(convert_dimensions(mode_extents), parameters));
+
   if (flat_matrix.empty()) {
     throw std::invalid_argument("Input matrix (flat matrix) cannot be empty.");
   }
@@ -172,29 +186,30 @@ cudensitymatElementaryOperator_t create_elementary_operator(
     throw std::invalid_argument("subspace_extents cannot be empty.");
   }
 
+  cudensitymatWrappedTensorCallback_t wrapped_tensor_callback = {nullptr,
+                                                                 nullptr};
+  if (!parameters.empty()) {
+    std::cout << "_wrap_tensor_callback\n";
+    wrapped_tensor_callback = _wrap_tensor_callback(*elem_op);
+  }
+
   cudensitymatElementaryOperator_t cudm_elem_op = nullptr;
 
   // FIXME: leak (need to track this buffer somewhere and delete **after** the
   // whole evolve)
   auto *elementaryMat_d = create_array_gpu(flat_matrix);
 
-  cudensitymatStatus_t status = cudensitymatCreateElementaryOperator(
+  HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperator(
       handle, static_cast<int32_t>(subspace_extents.size()),
       subspace_extents.data(), CUDENSITYMAT_OPERATOR_SPARSITY_NONE, 0, nullptr,
-      CUDA_C_64F, elementaryMat_d, {nullptr, nullptr}, &cudm_elem_op);
-
-  if (status != CUDENSITYMAT_STATUS_SUCCESS) {
-    std::cerr << "Error: Failed to create elementary operator. Status: "
-              << status << std::endl;
-    return nullptr;
-  }
+      CUDA_C_64F, elementaryMat_d, {nullptr, nullptr}, &cudm_elem_op));
 
   return cudm_elem_op;
 }
 
 // Function to append an elementary operator to a term
-void append_elementary_operator_to_term(
-    cudensitymatHandle_t handle, cudensitymatOperatorTerm_t term,
+void cudm_helper::append_elementary_operator_to_term(
+    cudensitymatOperatorTerm_t term,
     const cudensitymatElementaryOperator_t &elem_op,
     const std::vector<int> &degrees) {
 
@@ -223,9 +238,8 @@ void append_elementary_operator_to_term(
 }
 
 // Function to create and append a scalar to a term
-void append_scalar_to_term(cudensitymatHandle_t handle,
-                           cudensitymatOperatorTerm_t term,
-                           const scalar_operator &scalar_op) {
+void cudm_helper::append_scalar_to_term(cudensitymatOperatorTerm_t term,
+                                        const scalar_operator &scalar_op) {
   cudensitymatWrappedScalarCallback_t wrapped_callback = {nullptr, nullptr};
 
   if (!scalar_op.get_generator()) {
@@ -241,8 +255,8 @@ void append_scalar_to_term(cudensitymatHandle_t handle,
   }
 }
 
-void scale_state(cudensitymatHandle_t handle, cudensitymatState_t state,
-                 double scale_factor, cudaStream_t stream) {
+void cudm_helper::scale_state(cudensitymatState_t state, double scale_factor,
+                              cudaStream_t stream) {
   if (!state) {
     throw std::invalid_argument("Invalid state provided to scale_state.");
   }
@@ -253,10 +267,9 @@ void scale_state(cudensitymatHandle_t handle, cudensitymatState_t state,
   HANDLE_CUDA_ERROR(cudaStreamSynchronize(stream));
 }
 
-cudensitymatOperator_t
-compute_lindblad_operator(cudensitymatHandle_t handle,
-                          const std::vector<matrix_2> &c_ops,
-                          const std::vector<int64_t> &mode_extents) {
+cudensitymatOperator_t cudm_helper::compute_lindblad_operator(
+    const std::vector<matrix_2> &c_ops,
+    const std::vector<int64_t> &mode_extents) {
   if (c_ops.empty()) {
     throw std::invalid_argument("Collapse operators cannot be empty.");
   }
@@ -283,8 +296,8 @@ compute_lindblad_operator(cudensitymatHandle_t handle,
           mode_extents.data(), &term));
 
       // Create elementary operator from c_op
-      cudensitymatElementaryOperator_t cudm_elem_op =
-          create_elementary_operator(handle, mode_extents, flat_matrix);
+      cudensitymatElementaryOperator_t cudm_elem_op = nullptr;
+      // create_elementary_operator(c_op, {}, mode_extents);
 
       if (!cudm_elem_op) {
         throw std::runtime_error("Failed to create elementary operator in "
@@ -293,7 +306,7 @@ compute_lindblad_operator(cudensitymatHandle_t handle,
 
       // Append the elementary operator to the term
       std::vector<int> degrees = {0};
-      append_elementary_operator_to_term(handle, term, cudm_elem_op, degrees);
+      append_elementary_operator_to_term(term, cudm_elem_op, degrees);
 
       // Add term to lindblad operator
       cudensitymatWrappedScalarCallback_t scalarCallback = {nullptr, nullptr};
@@ -318,7 +331,7 @@ compute_lindblad_operator(cudensitymatHandle_t handle,
 }
 
 std::map<int, int>
-convert_dimensions(const std::vector<int64_t> &mode_extents) {
+cudm_helper::convert_dimensions(const std::vector<int64_t> &mode_extents) {
   std::map<int, int> dimensions;
   for (size_t i = 0; i < mode_extents.size(); i++) {
     dimensions[static_cast<int>(i)] = static_cast<int>(mode_extents[i]);
@@ -327,8 +340,7 @@ convert_dimensions(const std::vector<int64_t> &mode_extents) {
 }
 
 template <typename HandlerTy>
-cudensitymatOperator_t convert_to_cudensitymat_operator(
-    cudensitymatHandle_t handle,
+cudensitymatOperator_t cudm_helper::convert_to_cudensitymat_operator(
     const std::map<std::string, std::complex<double>> &parameters,
     const operator_sum<HandlerTy> &op,
     const std::vector<int64_t> &mode_extents) {
@@ -356,22 +368,11 @@ cudensitymatOperator_t convert_to_cudensitymat_operator(
         // just call to_matrix on it
         if (const auto *elem_op =
                 dynamic_cast<const cudaq::matrix_operator *>(&component)) {
-          auto subspace_extents =
-              get_subspace_extents(mode_extents, elem_op->degrees);
-          cudensitymatWrappedTensorCallback_t wrapped_tensor_callback = {
-              nullptr, nullptr};
-          if (!parameters.empty()) {
-            std::cout << "_wrap_tensor_callback\n"; 
-            wrapped_tensor_callback = _wrap_tensor_callback(*elem_op);
-          }
-
-          auto flat_matrix = flatten_matrix(
-              elem_op->to_matrix(convert_dimensions(mode_extents), parameters));
           auto cudm_elem_op =
-              create_elementary_operator(handle, subspace_extents, flat_matrix);
+              create_elementary_operator(elem_op, parameters, mode_extents);
 
           // elementary_operators.push_back(cudm_elem_op);
-          append_elementary_operator_to_term(handle, term, cudm_elem_op,
+          append_elementary_operator_to_term(term, cudm_elem_op,
                                              elem_op->degrees);
         } else {
           // Catch anything that we don't know
@@ -417,8 +418,8 @@ cudensitymatOperator_t convert_to_cudensitymat_operator(
   }
 }
 
-cudensitymatOperator_t construct_liouvillian(
-    cudensitymatHandle_t handle, const cudensitymatOperator_t &hamiltonian,
+cudensitymatOperator_t cudm_helper::construct_liouvillian(
+    const cudensitymatOperator_t &hamiltonian,
     const std::vector<cudensitymatOperator_t> &collapse_operators,
     double gamma) {
   try {
@@ -445,7 +446,8 @@ cudensitymatOperator_t construct_liouvillian(
 }
 
 // Function for creating an array copy in GPU memory
-void *create_array_gpu(const std::vector<std::complex<double>> &cpu_array) {
+void *cudm_helper::create_array_gpu(
+    const std::vector<std::complex<double>> &cpu_array) {
   void *gpu_array{nullptr};
   const std::size_t array_size =
       cpu_array.size() * sizeof(std::complex<double>);
@@ -459,15 +461,15 @@ void *create_array_gpu(const std::vector<std::complex<double>> &cpu_array) {
 }
 
 // Function to detsroy a previously created array copy in GPU memory
-void destroy_array_gpu(void *gpu_array) {
+void cudm_helper::destroy_array_gpu(void *gpu_array) {
   if (gpu_array) {
     HANDLE_CUDA_ERROR(cudaFree(gpu_array));
   }
 }
 
 template cudensitymatOperator_t
-convert_to_cudensitymat_operator<cudaq::matrix_operator>(
-    cudensitymatHandle_t, const std::map<std::string, std::complex<double>> &,
+cudm_helper::convert_to_cudensitymat_operator<cudaq::matrix_operator>(
+    const std::map<std::string, std::complex<double>> &,
     const operator_sum<cudaq::matrix_operator> &, const std::vector<int64_t> &);
 
 } // namespace cudaq

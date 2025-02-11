@@ -76,7 +76,7 @@ cudm_state cudm_time_stepper::compute(cudm_state &state, double t,
     // Allocate GPU storage for workspace buffer
     const std::size_t bufferVolume =
         requiredBufferSize / sizeof(std::complex<double>);
-    workspaceBuffer = create_array_gpu(
+    workspaceBuffer = cudm_helper::create_array_gpu(
         std::vector<std::complex<double>>(bufferVolume, {0.0, 0.0}));
 
     // Attach workspace buffer
@@ -93,7 +93,7 @@ cudm_state cudm_time_stepper::compute(cudm_state &state, double t,
   HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
 
   // Cleanup
-  destroy_array_gpu(workspaceBuffer);
+  cudm_helper::destroy_array_gpu(workspaceBuffer);
   HANDLE_CUDM_ERROR(cudensitymatDestroyWorkspace(workspace));
 
   return next_state;

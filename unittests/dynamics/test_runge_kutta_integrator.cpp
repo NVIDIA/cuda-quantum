@@ -149,6 +149,7 @@ TEST_F(RungeKuttaIntegratorTest, InvalidSubsteps) {
 }
 
 TEST_F(RungeKuttaIntegratorTest, CheckEvolve) {
+  cudm_helper helper(handle_);
   const std::vector<std::complex<double>> initialState = {{1.0, 0.0},
                                                           {0.0, 0.0}};
   const std::vector<int64_t> dims = {2};
@@ -172,8 +173,8 @@ TEST_F(RungeKuttaIntegratorTest, CheckEvolve) {
         std::complex<double>{0.0, -1.0} * 2.0 * M_PI * 0.1,
         cudaq::matrix_operator(op_id, {0}));
     auto cudmOp =
-        cudaq::convert_to_cudensitymat_operator<cudaq::matrix_operator>(
-            handle_, {}, op, dims);
+        helper.convert_to_cudensitymat_operator<cudaq::matrix_operator>({}, op,
+                                                                        dims);
     auto time_stepper = std::make_shared<cudm_time_stepper>(handle_, cudmOp);
 
     auto eulerIntegrator = std::make_unique<runge_kutta_integrator>(
