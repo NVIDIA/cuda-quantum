@@ -67,9 +67,9 @@ private:
                     const cudensitymatOperatorTerm_t &op);
   cudensitymatOperatorTerm_t
   _scalar_to_op(const cudensitymatWrappedScalarCallback_t &scalar);
-  cudensitymatWrappedScalarCallback_t _wrap_callback(const scalar_operator &op);
-  cudensitymatWrappedTensorCallback_t
-  _wrap_callback_tensor(const matrix_operator &op);
+  // cudensitymatWrappedScalarCallback_t _wrap_callback(const scalar_operator
+  // &op); cudensitymatWrappedTensorCallback_t _wrap_callback_tensor(const
+  // matrix_operator &op);
 
   std::vector<std::complex<double>> get_identity_matrix();
 
