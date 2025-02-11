@@ -205,4 +205,6 @@ TEST_F(RungeKuttaIntegratorTest, CheckEvolve) {
 
     HANDLE_CUDM_ERROR(cudensitymatDestroyOperator(cudmOp));
   }
+
+  // Add test to test tensor_callback
 }

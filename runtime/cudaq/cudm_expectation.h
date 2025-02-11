@@ -22,7 +22,6 @@ public:
   ~cudm_expectation();
   void prepare(cudensitymatState_t state);
   std::complex<double> compute(cudensitymatState_t state, double time);
-
 };
 
 } // namespace cudaq
