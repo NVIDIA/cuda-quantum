@@ -1315,11 +1315,12 @@ void apply_noise(const std::vector<T> &krausOperators, QuantumArgs &&...args) {
   getExecutionManager()->applyNoise(channel, qubits);
 }
 
+// Apply noise with runtime vector of parameters
+#if CUDAQ_USE_STD20
 template <typename... Args>
 constexpr bool any_float =
     std::disjunction_v<std::is_floating_point<std::remove_cvref<Args>...>>;
 
-// Apply noise with runtime vector of parameters
 template <typename T, typename... Q>
   requires(!any_float<Q...>)
 void apply_noise(const std::vector<double> &params, Q &&...args) {
@@ -1342,6 +1343,7 @@ void apply_noise(const std::vector<double> &params, Q &&...args) {
   auto channel = ctx->noiseModel->template get_channel<T>(params);
   getExecutionManager()->applyNoise(channel, qubits);
 }
+#endif
 
 class kraus_channel;
 
@@ -1359,6 +1361,8 @@ template <unsigned len>
 constexpr unsigned count_leading_floats() {
   return len;
 }
+
+#if CUDAQ_USE_STD20
 template <typename... Args>
 constexpr bool any_vector_of_float = std::disjunction_v<
     std::is_same<std::vector<double>, std::remove_cvref<Args>>...>;
@@ -1373,35 +1377,6 @@ void apply_noise(Args &&...args) {
   details::applyNoiseImpl<KrausChannelT>(
       details::tuple_slice<ctor_arity>(std::forward_as_tuple(args...)),
       details::tuple_slice_last<qubit_arity>(std::forward_as_tuple(args...)));
-}
-
-#if 0
-// Apply noise with compile-time known parameter and quantum arguments
-template <typename KrausChannelT, typename... Q>
-void apply_noise(Q &&...args) {
-  static_assert(details::has_num_parameters_v<KrausChannelT>,
-                "kraus_channel must have a static constexpr integer member "
-                "'num_parameters'");
-
-  using QuantumArgs =
-      decltype(details::tuple_slice_last<sizeof...(Q) -
-                                         KrausChannelT::num_parameters>(
-          std::forward_as_tuple(args...)));
-
-  constexpr std::size_t quantum_args_size = std::tuple_size_v<QuantumArgs>;
-  constexpr std::size_t num_targets_provided =
-      details::sum_targets_impl<QuantumArgs>(
-          std::make_index_sequence<quantum_args_size>{});
-
-  static_assert(num_targets_provided <= KrausChannelT::num_targets,
-                "Invalid number of quantum targets provided to apply_noise "
-                "(check kraus_channel num_targets member)");
-
-  details::applyNoiseImpl<KrausChannelT>(
-      details::tuple_slice<KrausChannelT::num_parameters>(
-          std::forward_as_tuple(args...)),
-      details::tuple_slice_last<sizeof...(Q) - KrausChannelT::num_parameters>(
-          std::forward_as_tuple(args...)));
 }
 #endif
 
