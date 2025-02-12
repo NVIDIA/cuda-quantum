@@ -44,6 +44,15 @@ public:
 
   // Construct Liouvillian
   cudensitymatOperator_t construct_liouvillian(
+      const operator_sum<cudaq::matrix_operator> &op,
+      const std::vector<operator_sum<cudaq::matrix_operator> *>
+          &collapse_operators,
+      const std::vector<int64_t> &mode_extents,
+      const std::map<std::string, std::complex<double>> &parameters,
+      bool is_master_equation);
+
+  // Construct Liouvillian
+  cudensitymatOperator_t construct_liouvillian(
       const cudensitymatOperator_t &hamiltonian,
       const std::vector<cudensitymatOperator_t> &collapse_operators,
       double gamma);
@@ -70,8 +79,8 @@ public:
       const std::vector<int64_t> &mode_extents);
   void append_elementary_operator_to_term(
       cudensitymatOperatorTerm_t term,
-      const cudensitymatElementaryOperator_t &elem_op,
-      const std::vector<int> &degrees);
+      const std::vector<cudensitymatElementaryOperator_t> &elem_ops,
+      const std::vector<std::vector<int>> &degrees);
 
   // GPU memory management
   static void *

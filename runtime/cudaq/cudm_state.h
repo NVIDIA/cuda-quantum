@@ -28,6 +28,13 @@ public:
                       const std::vector<std::complex<double>> rawData,
                       const std::vector<int64_t> &hilbertSpaceDims);
 
+  /// @brief To initialize state from a `cudaq::state`
+  explicit cudm_state(cudensitymatHandle_t handle, const cudaq::state &simState,
+                      const std::vector<int64_t> &hilbertSpaceDims);
+
+  // @brief Create a zero state
+  static cudm_state zero_like(const cudm_state &other);
+
   // Prevent copies (avoids double free issues)
   cudm_state(const cudm_state &) = delete;
   cudm_state &operator=(const cudm_state &) = delete;
@@ -102,12 +109,16 @@ public:
   cudm_state operator*(double scalar) const;
 
 private:
+  // TODO: remove this host raw data, we shouldn't keep this as it will be
+  // decoupled to the GPU data.
   std::vector<std::complex<double>> rawData_;
+  int64_t gpuDataSize_ = 0;
   std::complex<double> *gpuData_;
   cudensitymatState_t state_;
   cudensitymatHandle_t handle_;
   std::vector<int64_t> hilbertSpaceDims_;
-
+  // Private default constructor
+  cudm_state() = default;
   /// @brief Attach raw data storage to GPU
   void attach_storage();
 
@@ -115,15 +126,15 @@ private:
   /// dimensions.
   /// @param hilbertSpaceDims Hilbert space dimensions.
   /// @return Size of the state vector.
-  size_t calculate_state_vector_size(
-      const std::vector<int64_t> &hilbertSpaceDims) const;
+  static size_t calculate_state_vector_size(
+      const std::vector<int64_t> &hilbertSpaceDims);
 
   /// @brief Calculate the size of the density matrix for the given Hilbert
   /// space dimensions.
   /// @param hilbertSpaceDims Hilbert space dimensions.
   /// @return Size of the density matrix.
-  size_t calculate_density_matrix_size(
-      const std::vector<int64_t> &hilbertSpaceDims) const;
+  static size_t
+  calculate_density_matrix_size(const std::vector<int64_t> &hilbertSpaceDims);
 };
 
 } // namespace cudaq
