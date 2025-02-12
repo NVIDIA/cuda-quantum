@@ -150,24 +150,17 @@ def ClassicalOptimization : Pass<"classical-optimization"> {
     - simplify regions
     - write-after-write-elimination
     - lift-array-alloc
+    - cc-loop-normalize
     - cc-loop-unroll
-
-    The signal-failure-if-any-loop-cannot-be-completely-unrolled option controls
-    whether to signal a failure if all loops cannot be fully unrolled. This is
-    necessary when synthesizing quantum circuits from CUDA-Q kernels, such
-    as when generating a QIR base profile. A quantum circuit requires all loops
-    be completely unrolled.
   }];
 
   let dependentDialects = ["mlir::arith::ArithDialect",
-                           "mlir::cf::ControlFlowDialect"];
+                           "mlir::cf::ControlFlowDialect",
+                           "cudaq::cc::CCDialect"];
 
   let options = [
     Option<"threshold", "maximum-iterations", "unsigned", /*default=*/"50",
       "Maximum iterations to unroll.">,
-    Option<"signalFailure",
-      "signal-failure-if-any-loop-cannot-be-completely-unrolled", "bool",
-      /*default=*/"false", "Signal failure if pass can't unroll all loops.">,
     Option<"allowClosedInterval", "allow-closed-interval", "bool",
       /*default=*/"true", "Allow loop iterations on a closed interval.">,
     Option<"allowBreak", "allow-early-exit", "bool", /*default=*/"false",
@@ -177,7 +170,7 @@ def ClassicalOptimization : Pass<"classical-optimization"> {
 
 def CombineMeasurements :
     Pass<"combine-measurements", "mlir::func::FuncOp"> {
-  let summary = "Extends mesurements on subveqs adds output names";
+  let summary = "Extends measurements on subveqs adds output names";
   let description = [{
     Replace a pattern such as:
     ```
