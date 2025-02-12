@@ -13,9 +13,9 @@
 #include "cudaq/qis/state.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/Types.h"
+#include <list>
 #include <unordered_set>
 #include <vector>
-#include <list>
 
 namespace cudaq::opt {
 
@@ -53,9 +53,7 @@ public:
   mlir::StringRef getKernelName() { return kernelName; }
 
   void genCallee(mlir::StringRef calleeName, std::vector<void *> &args) {
-    // auto converter = ArgumentConverter(calleeName, sourceModule);
-    // converter.gen(args);
-    auto converter = calleeConverters.emplace_back(ArgumentConverter(calleeName, sourceModule));
+    auto &converter = calleeConverters.emplace_back(calleeName, sourceModule);
     converter.gen(args);
   }
 
@@ -63,10 +61,15 @@ public:
     return calleeConverters;
   }
 
-  std::pair<mlir::SmallVector<std::string>, mlir::SmallVector<std::string>>
-  collectAllSubstitutions();
+  static const std::string &registerKernelName(const std::string &kernelName) {
+    return kernelNameRegistry.emplace_back(kernelName);
+  }
 
 private:
+  // Note: use std::list to make sure we always return valid references
+  // when registering new kernel names.
+  static std::list<std::string> kernelNameRegistry;
+
   mlir::ModuleOp sourceModule;
   mlir::ModuleOp substModule;
   mlir::OpBuilder builder;

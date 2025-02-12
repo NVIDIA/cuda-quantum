@@ -463,7 +463,7 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
 // CHECK:         Substitution module:
 // CHECK:         testy
 // CHECK-LABEL:   cc.arg_subst[0] {
-// CHECK:           %[[VAL_0:.*]] = quake.get_state "__nvqpp__mlirgen__init.num_qubits_0" "__nvqpp__mlirgen__init.init_0" : !cc.ptr<!cc.state>
+// CHECK:           %[[VAL_0:.*]] = quake.get_state @__nvqpp__mlirgen__init.num_qubits_0 @__nvqpp__mlirgen__init.init_0 : !cc.ptr<!cc.state>
 // CHECK:         }
 // CHECK:         ========================================
 // CHECK:         Substitution module:
@@ -487,7 +487,8 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
         "   %2 = quake.alloca !quake.veq<?>[%arg0 : i64]\n"
         "   %3 = quake.extract_ref %2[0] : (!quake.veq<?>) -> !quake.ref\n"
         "   quake.x %3 : (!quake.ref) -> ()\n"
-        "   %measOut = quake.mz %3 name \"q0\" : (!quake.ref) -> !quake.measure\n"
+        "   %measOut = quake.mz %3 name \"q0\" : (!quake.ref) -> "
+        "!quake.measure\n"
         "   %4 = quake.discriminate %measOut : (!quake.measure) -> i1\n"
         "   cc.if(%4) {\n"
         "    %6 = quake.alloca !quake.veq<?>[%arg0 : i64]\n"
@@ -576,7 +577,7 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
 // CHECK:         Substitution module:
 // CHECK:         testy
 // CHECK-LABEL:   cc.arg_subst[0] {
-// CHECK:           %[[VAL_0:.*]] = quake.get_state "__nvqpp__mlirgen__init.num_qubits_1" "__nvqpp__mlirgen__init.init_1" : !cc.ptr<!cc.state>
+// CHECK:           %[[VAL_0:.*]] = quake.get_state @__nvqpp__mlirgen__init.num_qubits_1 @__nvqpp__mlirgen__init.init_1 : !cc.ptr<!cc.state>
 // CHECK:         }
 // CHECK:         ========================================
 // CHECK:         Substitution module:

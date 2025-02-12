@@ -163,7 +163,7 @@ func.func @num_qubits(%arg0: i64) -> i64 {
 }
 
 // CHECK-LABEL:   func.func @testy5() {
-// CHECK:           %[[VAL_2:.*]] = quake.get_state "num_qubits" "init" : !cc.ptr<!cc.state>
+// CHECK:           %[[VAL_2:.*]] = quake.get_state @num_qubits @init : !cc.ptr<!cc.state>
 // CHECK:           %[[VAL_3:.*]] = quake.get_number_of_qubits %[[VAL_2]] : (!cc.ptr<!cc.state>) -> i64
 // CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.veq<?>[%[[VAL_3]] : i64]
 // CHECK:           %[[VAL_5:.*]] = quake.init_state %[[VAL_4]], %[[VAL_2]] : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>

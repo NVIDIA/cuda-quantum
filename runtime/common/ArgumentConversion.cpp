@@ -120,8 +120,7 @@ static Value genConstant(OpBuilder &, cudaq::cc::ArrayType, void *,
 ///   return %arg0: !quake.veq<?>
 /// }
 static void createInitFunc(OpBuilder &builder, ModuleOp sourceMod,
-                           func::FuncOp calleeFunc,
-                           StringRef initKernelName) {
+                           func::FuncOp calleeFunc, StringRef initKernelName) {
   OpBuilder::InsertionGuard guard(builder);
   builder.setInsertionPointToEnd(sourceMod.getBody());
 
@@ -394,7 +393,7 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
   //    Initializes the veq passed as a parameter
   //
   // Then replace the state with
-  //   `quake.get_state "callee.num_qubits_0" "callee.init_state_0"`:
+  //   `quake.get_state @callee.num_qubits_0 @callee.init_state_0`:
   //
   // clang-format off
   // ```
@@ -423,7 +422,7 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
   // clang-format off
   // ```
   // func.func @caller() {
-  //   %0 = quake.get_state "callee.num_qubits_0" "callee.init_state_0" : !cc.ptr<!cc.state>
+  //   %0 = quake.get_state @callee.num_qubits_0 @callee.init_state_0 : !cc.ptr<!cc.state>
   //   %1 = quake.get_number_of_qubits %0 : (!cc.ptr<!cc.state>) -> i64
   //   %2 = quake.alloca !quake.veq<?>[%1 : i64]
   //   %3 = quake.init_state %2, %0 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
@@ -480,15 +479,17 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
     auto code = cudaq::get_quake_by_name(calleeName, /*throwException=*/false);
     assert(!code.empty() && "Quake code not found for callee");
     auto fromModule = parseSourceString<ModuleOp>(code, ctx);
-    
+
     auto calleeFunc = fromModule->lookupSymbol<func::FuncOp>(calleeKernelName);
     assert(calleeFunc && "callee func is missing");
 
     static unsigned counter = 0;
     auto initName = calleeName + ".init_" + std::to_string(counter);
-    auto numQubitsName = calleeName + ".num_qubits_" + std::to_string(counter++);
+    auto numQubitsName =
+        calleeName + ".num_qubits_" + std::to_string(counter++);
     auto initKernelName = cudaq::runtime::cudaqGenPrefixName + initName;
-    auto numQubitsKernelName = cudaq::runtime::cudaqGenPrefixName + numQubitsName;
+    auto numQubitsKernelName =
+        cudaq::runtime::cudaqGenPrefixName + numQubitsName;
 
     // Create `callee.init_N` and `callee.num_qubits_N` used for
     // `quake.get_state` replacement later in ReplaceStateWithKernel pass
@@ -497,9 +498,11 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
 
     // Create and register names for new `init` and `num_qubits` kernels so
     // ArgumentConverters can keep a string reference to a valid memory.
-    auto registeredInitName = cudaq::registry::cudaqRegisterAuxKernelName(initName.c_str());
-    auto registeredNumQubitsName = cudaq::registry::cudaqRegisterAuxKernelName(numQubitsName.c_str());
-    
+    auto &registeredInitName =
+        cudaq::opt::ArgumentConverter::registerKernelName(initName);
+    auto &registeredNumQubitsName =
+        cudaq::opt::ArgumentConverter::registerKernelName(numQubitsName);
+
     // Create substitutions for `callee.init_N` and `callee.num_qubits_N`.
     converter.genCallee(registeredInitName, calleeArgs);
     converter.genCallee(registeredNumQubitsName, calleeArgs);
@@ -817,30 +820,4 @@ void cudaq::opt::ArgumentConverter::gen_drop_front(
     partialArgs.push_back(arg);
   }
   gen(partialArgs);
-}
-
-std::pair<SmallVector<std::string>, SmallVector<std::string>>
-cudaq::opt::ArgumentConverter::collectAllSubstitutions() {
-  SmallVector<std::string> kernels;
-  SmallVector<std::string> substs;
-
-  std::function<void(ArgumentConverter &)> collect =
-      [&kernels, &substs, &collect](ArgumentConverter &con) {
-        auto name = con.getKernelName();
-        std::string kernName = cudaq::runtime::cudaqGenPrefixName + name.str();
-        kernels.emplace_back(kernName);
-
-        {
-          std::string substBuff;
-          llvm::raw_string_ostream ss(substBuff);
-          ss << con.getSubstitutionModule();
-          substs.emplace_back(substBuff);
-        }
-
-        for (auto &calleeCon : con.getCalleeConverters())
-          collect(calleeCon);
-      };
-
-  collect(*this);
-  return {kernels, substs};
 }

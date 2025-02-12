@@ -34,7 +34,7 @@ namespace {
 /// that computes the number of qubits for a state.
 ///
 /// ```
-///  %0 = quake.get_state "callee.num_qubits_0" "callee.init_0" : !cc.ptr<!cc.state>
+///  %0 = quake.get_state @callee.num_qubits_0 @callee.init_0 : !cc.ptr<!cc.state>
 ///  %1 = quake.get_number_of_qubits %0 : (!cc.ptr<!cc.state>) -> i64
 /// ───────────────────────────────────────────
 /// ...
@@ -51,11 +51,11 @@ public:
 
     auto stateOp = numQubits.getOperand();
     if (auto getState = stateOp.getDefiningOp<quake::GetStateOp>()) {
-      auto numQubitsName = getState.getNumQubitsFuncName();
+      auto numQubitsFunc = getState.getNumQubitsFunc();
 
       rewriter.setInsertionPoint(numQubits);
       rewriter.replaceOpWithNewOp<func::CallOp>(
-          numQubits, numQubits.getType(), numQubitsName, mlir::ValueRange{});
+          numQubits, numQubits.getType(), numQubitsFunc, mlir::ValueRange{});
       return success();
     }
     return numQubits->emitError(
@@ -68,7 +68,7 @@ public:
 /// the state.
 ///
 /// ```
-///  %0 = quake.get_state "callee.num_qubits_0" "callee.init_0" : !cc.ptr<!cc.state>
+///  %0 = quake.get_state @callee.num_qubits_0 @callee.init_0 : !cc.ptr<!cc.state>
 ///  %3 = quake.init_state %2, %0 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
 /// ───────────────────────────────────────────
 /// ...
@@ -88,7 +88,7 @@ public:
     if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(stateOp.getType())) {
       if (isa<cudaq::cc::StateType>(ptrTy.getElementType())) {
         if (auto getState = stateOp.getDefiningOp<quake::GetStateOp>()) {
-          auto initName = getState.getInitFuncName();
+          auto initName = getState.getInitFunc();
 
           rewriter.setInsertionPoint(initState);
           rewriter.replaceOpWithNewOp<func::CallOp>(

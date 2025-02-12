@@ -7,5 +7,5 @@
 // ========================================================================== //
 
 cc.arg_subst[0] {
-  %0 = quake.get_state "num_qubits" "init" : !cc.ptr<!cc.state>
+  %0 = quake.get_state @num_qubits @init : !cc.ptr<!cc.state>
 }

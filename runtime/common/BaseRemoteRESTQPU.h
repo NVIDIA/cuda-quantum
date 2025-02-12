@@ -450,31 +450,41 @@ public:
         opt::ArgumentConverter argCon(kernelName, moduleOp);
         argCon.gen(rawArgs);
 
-        // For quantum hardware, we traverse the tree of ArgumentConverters
-        // for the call tree of states and collect substitutions for all calls.
+        // For quantum devices, we've created a tree of ArgumentConverters
+        // with nodes corresponding to `init` and `num_qubits` functions
+        // created from a kernel that generated the state argument.
+        // Traverse the tree and collect substitutions for all those
+        // functions.
+
+        // Store kernel and substitution strings on the stack.
+        // We pass string references to the `createArgumentSynthesisPass`.
         mlir::SmallVector<std::string> kernels;
         mlir::SmallVector<std::string> substs;
 
         std::function<void(opt::ArgumentConverter &)> collect =
-          [&kernels, &substs, &collect](opt::ArgumentConverter &con) {
-            auto name = con.getKernelName();
-            std::string kernName = cudaq::runtime::cudaqGenPrefixName + name.str();
-            kernels.emplace_back(kernName);
-          
-            std::string substBuff;
-            llvm::raw_string_ostream ss(substBuff);
-            ss << con.getSubstitutionModule();
-            substs.emplace_back(substBuff);
+            [&kernels, &substs, &collect](opt::ArgumentConverter &con) {
+              {
+                auto name = con.getKernelName();
+                std::string kernName =
+                    cudaq::runtime::cudaqGenPrefixName + name.str();
+                kernels.emplace_back(kernName);
+              }
+              {
+                std::string substBuff;
+                llvm::raw_string_ostream ss(substBuff);
+                ss << con.getSubstitutionModule();
+                substs.emplace_back(substBuff);
+              }
 
-            for (auto &calleeCon : con.getCalleeConverters())
-              collect(calleeCon);
-          };
-
+              for (auto &calleeCon : con.getCalleeConverters())
+                collect(calleeCon);
+            };
         collect(argCon);
 
-        mlir::SmallVector<mlir::StringRef> funcNames{kernels.begin(), kernels.end()};
-        mlir::SmallVector<mlir::StringRef> substitutions{substs.begin(), substs.end()};
-
+        mlir::SmallVector<mlir::StringRef> funcNames{kernels.begin(),
+                                                     kernels.end()};
+        mlir::SmallVector<mlir::StringRef> substitutions{substs.begin(),
+                                                         substs.end()};
         pm.addNestedPass<mlir::func::FuncOp>(
             cudaq::opt::createArgumentSynthesisPass(funcNames, substitutions));
         pm.addPass(opt::createDeleteStates());

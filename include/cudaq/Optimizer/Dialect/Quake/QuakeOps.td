@@ -1418,7 +1418,7 @@ def quake_CreateStateOp : QuakeOp<"create_state", [Pure]> {
     cc_PointerType:$data,
     AnySignlessInteger:$length
   );
-  let results = (outs cc_PointerType:$result);
+  let results = (outs AnyStatePointerType:$result);
   let assemblyFormat = [{
       $data `,` $length `:` functional-type(operands, results) attr-dict
   }];
@@ -1436,7 +1436,7 @@ def QuakeOp_DeleteStateOp : QuakeOp<"delete_state", [] > {
     ```
   }];
 
-  let arguments = (ins cc_PointerType:$state);
+  let arguments = (ins AnyStatePointerType:$state);
   let results = (outs);
   let assemblyFormat = [{
       $state `:` type(operands) attr-dict
@@ -1456,7 +1456,7 @@ def quake_GetNumberOfQubitsOp : QuakeOp<"get_number_of_qubits", [Pure] > {
     ```
   }];
 
-  let arguments = (ins cc_PointerType:$state);
+  let arguments = (ins AnyStatePointerType:$state);
   let results = (outs AnySignlessInteger:$result);
   let assemblyFormat = [{
       $state `:` functional-type(operands, results) attr-dict
@@ -1479,17 +1479,17 @@ def QuakeOp_GetStateOp : QuakeOp<"get_state", [Pure] > {
     the provided names in `ReplaceStateByKernel` pass.
 
     ```mlir
-      %0 = quake.get_state "num_qubits" "init" : !cc.ptr<!cc.state>
+      %0 = quake.get_state @num_qubits @init : !cc.ptr<!cc.state>
     ```
   }];
 
   let arguments = (ins
-    StrAttr:$numQubitsFuncName,
-    StrAttr:$initFuncName
+    FlatSymbolRefAttr:$numQubitsFunc,
+    FlatSymbolRefAttr:$initFunc
   );
-  let results = (outs cc_PointerType:$result);
+  let results = (outs AnyStatePointerType:$result);
   let assemblyFormat = [{
-     $numQubitsFuncName $initFuncName `:` qualified(type(results)) attr-dict
+     $numQubitsFunc $initFunc `:` qualified(type(results)) attr-dict
   }];
 }
 
