@@ -356,6 +356,8 @@ LogicalResult quake::ApplyNoiseOp::verify() {
   if (!getNoiseFuncAttr()) {
     if (!getKey())
       return emitOpError("must have a noise function or a key");
+    if (getKey().getType() != IntegerType::get(getContext(), 64))
+      return emitOpError("key must be i64");
   } else {
     if (getKey())
       return emitOpError("cannot have a noise function and a key");
