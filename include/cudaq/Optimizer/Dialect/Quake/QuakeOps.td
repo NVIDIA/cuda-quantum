@@ -492,7 +492,7 @@ def quake_ApplyNoiseOp : QuakeOp<"apply_noise", [AttrSizedOperandSegments]> {
   }];
 
   let arguments = (ins
-    FlatSymbolRefAttr:$noise_func,
+    OptionalAttr<FlatSymbolRefAttr>:$noise_func,
     Optional<AnySignlessInteger>:$key,
     Variadic<AnyType>:$parameters,
     Variadic<NonStruqRefType>:$qubits
@@ -500,6 +500,28 @@ def quake_ApplyNoiseOp : QuakeOp<"apply_noise", [AttrSizedOperandSegments]> {
 
   let hasVerifier = 1;
   let hasCustomAssemblyFormat = 1;
+
+  let builders = [
+    OpBuilder<(ins "mlir::StringRef":$noise_func,
+                   "mlir::ValueRange":$parameters,
+                   "mlir::ValueRange":$targets), [{
+      return build($_builder, $_state, mlir::TypeRange{},
+        mlir::FlatSymbolRefAttr::get($_builder.getContext(), noise_func), {},
+        parameters, targets);
+    }]>,
+    OpBuilder<(ins "mlir::FlatSymbolRefAttr":$noise_func,
+                   "mlir::ValueRange":$parameters,
+                   "mlir::ValueRange":$targets), [{
+      return build($_builder, $_state, mlir::TypeRange{}, noise_func, {},
+        parameters, targets);
+    }]>,
+    OpBuilder<(ins "mlir::Value":$key,
+                   "mlir::ValueRange":$parameters,
+                   "mlir::ValueRange":$targets), [{
+      return build($_builder, $_state, mlir::TypeRange{},
+        mlir::FlatSymbolRefAttr{}, key, parameters, targets);
+    }]>
+  ];
 
   let extraClassDeclaration = [{
     static constexpr mlir::StringRef getNoiseFuncAttrNameStr() {

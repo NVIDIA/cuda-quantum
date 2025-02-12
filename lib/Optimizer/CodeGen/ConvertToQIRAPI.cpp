@@ -281,7 +281,7 @@ struct ApplyNoiseOpRewrite : public OpConversionPattern<quake::ApplyNoiseOp> {
   matchAndRewrite(quake::ApplyNoiseOp noise, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = noise.getLoc();
-    if (!noise.getNoiseFuncAttr()) {
+    if (!noise.getNoiseFunc()) {
       // This is the key-based variant. Call the generalized version of the
       // apply_kraus_channel helper function. Let it do all the conversions into
       // contiguous buffers for us, greatly simplifying codegen here.
@@ -363,7 +363,7 @@ struct ApplyNoiseOpRewrite : public OpConversionPattern<quake::ApplyNoiseOp> {
       auto module = noise->getParentOfType<ModuleOp>();
       auto funcTy = FunctionType::get(ctx, {}, {});
       auto [fn, flag] = cudaq::opt::factory::getOrAddFunc(
-          loc, noise.getNoiseFunc(), funcTy, module);
+          loc, *noise.getNoiseFunc(), funcTy, module);
       funcTy = fn.getFunctionType();
       SmallVector<Type> inputTys{funcTy.getInputs().begin(),
                                  funcTy.getInputs().end()};
@@ -376,7 +376,7 @@ struct ApplyNoiseOpRewrite : public OpConversionPattern<quake::ApplyNoiseOp> {
     }
     args.append(adaptor.getQubits().begin(), adaptor.getQubits().end());
     rewriter.replaceOpWithNewOp<func::CallOp>(noise, TypeRange{},
-                                              noise.getNoiseFunc(), args);
+                                              *noise.getNoiseFunc(), args);
     return success();
   }
 };

@@ -1538,9 +1538,8 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       }
 
       if (auto callee = calleeOp.getDefiningOp<func::ConstantOp>()) {
-        auto calleeName = callee.getValue().str();
-        builder.create<quake::ApplyNoiseOp>(loc, TypeRange{}, calleeName,
-                                            Value{}, params, qubits);
+        StringRef calleeName = callee.getValue();
+        builder.create<quake::ApplyNoiseOp>(loc, calleeName, params, qubits);
 
         // Add the declaration of the function to the module.
         SmallVector<Type> argTys;
