@@ -14,6 +14,8 @@
 #include <gtest/gtest.h>
 #include <iostream>
 #include <memory>
+#include "common/EigenDense.h"
+#include <unsupported/Eigen/KroneckerProduct>
 
 using namespace cudaq;
 
@@ -48,6 +50,36 @@ TEST_F(CuDensityExpectationTest, checkCompute) {
     auto inputState = std::make_unique<cudm_state>(handle_, initialState, dims);
     expectation.prepare(inputState->get_impl());
     const auto expVal = expectation.compute(inputState->get_impl(), 0.0);
+    EXPECT_NEAR(expVal.real(), 1.0 * stateIdx, 1e-12);
+    EXPECT_NEAR(expVal.imag(), 0.0, 1e-12);
+  }
+}
+
+
+TEST_F(CuDensityExpectationTest, checkCompositeSystem) {
+  cudm_helper helper(handle_);
+  const std::vector<int64_t> dims = {2, 10};
+  // Check number operator on boson Fock space
+  auto op = cudaq::matrix_operator::number(1);
+  auto cudmOp = helper.convert_to_cudensitymat_operator<cudaq::matrix_operator>(
+      {}, op, dims);
+
+  cudm_expectation expectation(handle_, cudmOp);
+
+  for (std::size_t stateIdx = 0; stateIdx < dims[1]; ++stateIdx) {
+    Eigen::Vector2cd qubit_state;
+    qubit_state << 1.0, 0.0;
+    Eigen::VectorXcd cavity_state = Eigen::VectorXcd::Zero(dims[1]);
+    cavity_state[stateIdx] = 1.0;
+    Eigen::VectorXcd initial_state_vec =
+        Eigen::kroneckerProduct(cavity_state, qubit_state);
+    std::vector<std::complex<double>> initialState(
+        initial_state_vec.data(),
+        initial_state_vec.data() + initial_state_vec.size());
+    auto inputState = std::make_unique<cudm_state>(handle_, initialState, dims);
+    expectation.prepare(inputState->get_impl());
+    const auto expVal = expectation.compute(inputState->get_impl(), 0.0);
+    std::cout << "Result: " << expVal << "\n";
     EXPECT_NEAR(expVal.real(), 1.0 * stateIdx, 1e-12);
     EXPECT_NEAR(expVal.imag(), 0.0, 1e-12);
   }

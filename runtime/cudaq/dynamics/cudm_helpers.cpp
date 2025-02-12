@@ -220,30 +220,48 @@ cudensitymatElementaryOperator_t cudm_helper::create_elementary_operator(
 // Function to append an elementary operator to a term
 void cudm_helper::append_elementary_operator_to_term(
     cudensitymatOperatorTerm_t term,
-    const cudensitymatElementaryOperator_t &elem_op,
-    const std::vector<int> &degrees) {
+    const std::vector<cudensitymatElementaryOperator_t> &elem_ops,
+    const std::vector<std::vector<int>> &degrees) {
 
   if (degrees.empty()) {
     throw std::invalid_argument("Degrees vector cannot be empty.");
   }
 
-  if (!elem_op) {
-    throw std::invalid_argument("elem_op cannot be null.");
+  if (elem_ops.empty()) {
+    throw std::invalid_argument("elem_ops cannot be null.");
   }
 
-  for (int degree : degrees) {
-    if (degree < 0) {
-      throw std::out_of_range("Degree cannot be negative!");
+  if (degrees.size() != elem_ops.size()) {
+    throw std::invalid_argument(
+        "elem_ops and degrees must have the same size.");
+  }
+
+  std::vector<int32_t> allDegrees;
+  std::vector<int32_t> allModeActionDuality;
+  for (const auto &sub_degrees : degrees) {
+    if (sub_degrees.size() != 1) {
+      throw std::runtime_error(
+          "Elementary operator must act on a single degree.");
+    }
+    for (int degree : sub_degrees) {
+      if (degree < 0) {
+        throw std::out_of_range("Degree cannot be negative!");
+      }
+      allDegrees.emplace_back(degree);
+      allModeActionDuality.emplace_back(0); // left side
     }
   }
 
-  std::vector<cudensitymatElementaryOperator_t> elem_ops = {elem_op};
+  // std::cout << "append_elementary_operator_to_term: " << elem_op << " -> " <<
+  // term << ": degree = "; for (int degree : degrees) {
+  //   std::cout << degree << " ";
+  // }
+  // std::cout << "\n";
 
-  std::vector<int32_t> modeActionDuality(degrees.size(), 0);
   assert(elem_ops.size() == degrees.size());
   HANDLE_CUDM_ERROR(cudensitymatOperatorTermAppendElementaryProduct(
-      handle, term, static_cast<int32_t>(degrees.size()), elem_ops.data(),
-      degrees.data(), modeActionDuality.data(), make_cuDoubleComplex(1.0, 0.0),
+      handle, term, static_cast<int32_t>(allDegrees.size()), elem_ops.data(),
+      allDegrees.data(), allModeActionDuality.data(), make_cuDoubleComplex(1.0, 0.0),
       {nullptr, nullptr}));
 }
 
@@ -343,9 +361,9 @@ cudensitymatOperator_t cudm_helper::compute_lindblad_operator(
           handle, static_cast<int32_t>(mode_extents.size()),
           mode_extents.data(), &term_D1));
 
-      append_elementary_operator_to_term(term_D1, L_elem_op, {0});
+      append_elementary_operator_to_term(term_D1, {L_elem_op}, {{0}});
 
-      append_elementary_operator_to_term(term_D1, L_dagger_elem_op, {0});
+      append_elementary_operator_to_term(term_D1, {L_dagger_elem_op}, {{0}});
 
       // Add term D1 to the Lindblad operator
 
@@ -360,9 +378,9 @@ cudensitymatOperator_t cudm_helper::compute_lindblad_operator(
           handle, static_cast<int32_t>(mode_extents.size()),
           mode_extents.data(), &term_D2));
 
-      append_elementary_operator_to_term(term_D2, L_dagger_elem_op, {0});
+      append_elementary_operator_to_term(term_D2, {L_dagger_elem_op}, {{0}});
 
-      append_elementary_operator_to_term(term_D2, L_elem_op, {0});
+      append_elementary_operator_to_term(term_D2, {L_elem_op}, {{0}});
 
       // Add term D2 to the Lindblad operator
       HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
@@ -374,8 +392,8 @@ cudensitymatOperator_t cudm_helper::compute_lindblad_operator(
       HANDLE_CUDM_ERROR(cudensitymatCreateOperatorTerm(
           handle, static_cast<int32_t>(mode_extents.size()),
           mode_extents.data(), &term_D3));
-      append_elementary_operator_to_term(term_D3, L_elem_op, {0});
-      append_elementary_operator_to_term(term_D3, L_dagger_elem_op, {0});
+      append_elementary_operator_to_term(term_D3, {L_elem_op}, {{0}});
+      append_elementary_operator_to_term(term_D3, {L_dagger_elem_op}, {{0}});
 
       // Add term D3 to the Lindblad operator
       HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
@@ -441,11 +459,16 @@ cudensitymatOperator_t cudm_helper::convert_to_cudensitymat_operator(
 
     for (const auto &product_op : op.get_terms()) {
       cudensitymatOperatorTerm_t term;
-
+      // std::cout << "mode_extent: ";
+      // for (const auto& mode_extent: mode_extents)
+      //   std::cout << mode_extent << " ";
+      // std::cout << "\n";  
       HANDLE_CUDM_ERROR(cudensitymatCreateOperatorTerm(
           handle, static_cast<int32_t>(mode_extents.size()),
           mode_extents.data(), &term));
 
+      std::vector<cudensitymatElementaryOperator_t> elem_ops;
+      std::vector<std::vector<int>> all_degrees;
       for (const auto &component : product_op.get_terms()) {
         // No need to check type
         // just call to_matrix on it
@@ -453,16 +476,14 @@ cudensitymatOperator_t cudm_helper::convert_to_cudensitymat_operator(
                 dynamic_cast<const cudaq::matrix_operator *>(&component)) {
           auto cudm_elem_op =
               create_elementary_operator(*elem_op, parameters, mode_extents);
-
-          // elementary_operators.push_back(cudm_elem_op);
-          append_elementary_operator_to_term(term, cudm_elem_op,
-                                             elem_op->degrees);
+          elem_ops.emplace_back(cudm_elem_op);
+          all_degrees.emplace_back(elem_op->degrees);
         } else {
           // Catch anything that we don't know
           throw std::runtime_error("Unhandled type!");
         }
       }
-
+      append_elementary_operator_to_term(term, elem_ops, all_degrees);
       // Handle the coefficient
       // Static value without parameter: as it is
       // Static value with parameter: Callback
@@ -471,6 +492,7 @@ cudensitymatOperator_t cudm_helper::convert_to_cudensitymat_operator(
 
       if (!coeff.get_generator()) {
         const auto coeffVal = coeff.evaluate();
+        // std::cout << "Append product term " << term << " with coeff = " << coeffVal << " to operator " << operator_handle << "\n";
         HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
             handle, operator_handle, term, 0,
             make_cuDoubleComplex(coeffVal.real(), coeffVal.imag()),
@@ -498,6 +520,22 @@ cudensitymatOperator_t cudm_helper::convert_to_cudensitymat_operator(
     std::cerr << "Error in convert_to_cudensitymat_operator: " << e.what()
               << std::endl;
     throw;
+  }
+}
+
+cudensitymatOperator_t cudm_helper::construct_liouvillian(
+    const operator_sum<cudaq::matrix_operator> &op,
+    const std::vector<operator_sum<cudaq::matrix_operator> *>
+        &collapse_operators,
+    const std::vector<int64_t> &mode_extents,
+    const std::map<std::string, std::complex<double>> &parameters,
+    bool is_master_equation) {
+  if (!is_master_equation && collapse_operators.empty()) {
+    auto liouvillian = op * std::complex<double>(0.0, -1.0);
+    return convert_to_cudensitymat_operator(parameters, liouvillian,
+                                            mode_extents);
+  } else {
+    throw std::runtime_error("TODO: handle Lindblad equation");
   }
 }
 

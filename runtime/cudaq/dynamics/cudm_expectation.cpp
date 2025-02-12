@@ -22,8 +22,10 @@ cudm_expectation::cudm_expectation(cudensitymatHandle_t handle,
 }
 
 cudm_expectation::~cudm_expectation() {
-  cudensitymatDestroyWorkspace(m_workspace);
-  cudensitymatDestroyExpectation(m_expectation);
+  if (m_workspace)
+    cudensitymatDestroyWorkspace(m_workspace);
+  if (m_expectation)
+    cudensitymatDestroyExpectation(m_expectation);
 }
 
 void cudm_expectation::prepare(cudensitymatState_t state) {
