@@ -1222,10 +1222,9 @@ void genericApplicator(const std::string &gateName, Args &&...args) {
       tuple_slice_last<sizeof...(Args) - NUMP>(std::forward_as_tuple(args...)));
 }
 
-template <
-    typename T, typename... RotationT, typename... QuantumT,
-    std::size_t NumPProvided = sizeof...(RotationT),
-    std::enable_if_t<T::num_parameters == NumPProvided, std::size_t> = 0>
+template <typename T, typename... RotationT, typename... QuantumT,
+          std::size_t NumPProvided = sizeof...(RotationT),
+          std::enable_if_t<T::num_parameters == NumPProvided, std::size_t> = 0>
 void applyNoiseImpl(const std::tuple<RotationT...> &paramTuple,
                     const std::tuple<QuantumT...> &quantumTuple) {
   auto *ctx = get_platform().get_exec_ctx();
@@ -1316,13 +1315,21 @@ void apply_noise(const std::vector<T> &krausOperators, QuantumArgs &&...args) {
 }
 
 // Apply noise with runtime vector of parameters
-#if CUDAQ_USE_STD20
 template <typename... Args>
-constexpr bool any_float =
-    std::disjunction_v<std::is_floating_point<std::remove_cvref<Args>...>>;
+constexpr bool any_float = std::disjunction_v<
+    std::is_floating_point<std::remove_cv_t<std::remove_reference_t<Args>>>...>;
 
+#if CUDAQ_USE_STD20
 template <typename T, typename... Q>
-  requires(!any_float<Q...>)
+  requires(std::derived_from<T, cudaq::kraus_channel> && !any_float<Q...>)
+#else
+template <typename T, typename... Q,
+          typename = std::enable_if_t<
+              std::is_base_of_v<cudaq::kraus_channel, T> &&
+              std::is_convertible_v<const volatile T *,
+                                    const volatile cudaq::kraus_channel *> &&
+              !any_float<Q...>>>
+#endif
 void apply_noise(const std::vector<double> &params, Q &&...args) {
   auto *ctx = get_platform().get_exec_ctx();
   if (!ctx)
@@ -1343,7 +1350,6 @@ void apply_noise(const std::vector<double> &params, Q &&...args) {
   auto channel = ctx->noiseModel->template get_channel<T>(params);
   getExecutionManager()->applyNoise(channel, qubits);
 }
-#endif
 
 class kraus_channel;
 
@@ -1351,7 +1357,7 @@ template <unsigned len, typename A, typename... As>
 constexpr unsigned count_leading_floats() {
   // Note: don't use remove_cvref to keep this C++17 clean.
   if constexpr (std::is_floating_point_v<
-                    std::remove_reference_t<std::remove_cv_t<A>>>) {
+                    std::remove_cv_t<std::remove_reference_t<A>>>) {
     return count_leading_floats<len + 1, As...>();
   } else {
     return len;
@@ -1362,14 +1368,22 @@ constexpr unsigned count_leading_floats() {
   return len;
 }
 
-#if CUDAQ_USE_STD20
 template <typename... Args>
-constexpr bool any_vector_of_float = std::disjunction_v<
-    std::is_same<std::vector<double>, std::remove_cvref<Args>>...>;
+constexpr bool any_vector_of_float = std::disjunction_v<std::is_same<
+    std::vector<double>, std::remove_cv_t<std::remove_reference_t<Args>>>...>;
 
+#if CUDAQ_USE_STD20
 template <typename KrausChannelT, typename... Args>
   requires(std::derived_from<KrausChannelT, cudaq::kraus_channel> &&
            !any_vector_of_float<Args...>)
+#else
+template <typename KrausChannelT, typename... Args,
+          typename = std::enable_if_t<
+              std::is_base_of_v<cudaq::kraus_channel, KrausChannelT> &&
+              std::is_convertible_v<const volatile KrausChannelT *,
+                                    const volatile cudaq::kraus_channel *> &&
+              !any_vector_of_float<Args...>>>
+#endif
 void apply_noise(Args &&...args) {
   constexpr auto ctor_arity = count_leading_floats<0, Args...>();
   constexpr auto qubit_arity = sizeof...(args) - ctor_arity;
@@ -1378,7 +1392,6 @@ void apply_noise(Args &&...args) {
       details::tuple_slice<ctor_arity>(std::forward_as_tuple(args...)),
       details::tuple_slice_last<qubit_arity>(std::forward_as_tuple(args...)));
 }
-#endif
 
 } // namespace cudaq
 #define __qop__ __attribute__((annotate("user_custom_quantum_operation")))

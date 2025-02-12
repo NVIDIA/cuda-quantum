@@ -6,7 +6,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// REQUIRES: c++20
 // clang-format off
 // RUN: cudaq-quake %cpp_std %s | cudaq-opt | FileCheck --check-prefixes=CHECK,ALIVE %s
 // RUN: cudaq-quake %cpp_std %s | cudaq-opt -erase-noise | FileCheck --check-prefixes=CHECK,DEAD %s
