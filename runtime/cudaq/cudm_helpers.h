@@ -23,7 +23,8 @@ public:
   ~cudm_helper();
 
   // Matrix flattening
-  std::vector<std::complex<double>> flatten_matrix(const matrix_2 &matrix);
+  static std::vector<std::complex<double>>
+  flatten_matrix(const matrix_2 &matrix);
 
   // State Operations
   void scale_state(cudensitymatState_t state, double scale_factor,
@@ -55,16 +56,16 @@ public:
                        const std::vector<int> &degrees);
 
   // Callback Wrappers
-  cudensitymatWrappedScalarCallback_t
+  static cudensitymatWrappedScalarCallback_t
   _wrap_callback(const scalar_operator &scalar_op);
-  cudensitymatWrappedTensorCallback_t
+  static cudensitymatWrappedTensorCallback_t
   _wrap_tensor_callback(const matrix_operator &op);
 
   // Elementary Operator Functions
   void append_scalar_to_term(cudensitymatOperatorTerm_t term,
                              const scalar_operator &scalar_op);
   cudensitymatElementaryOperator_t create_elementary_operator(
-      const cudaq::matrix_operator *elem_op,
+      const cudaq::matrix_operator &elem_op,
       const std::map<std::string, std::complex<double>> &parameters,
       const std::vector<int64_t> &mode_extents);
   void append_elementary_operator_to_term(
