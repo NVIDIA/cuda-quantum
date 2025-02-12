@@ -8,7 +8,7 @@
 
 // REQUIRES: c++20
 // clang-format off
-// RUN: nvq++ --target stim                               %s -o %t && %t
+// RUN: nvq++ --target stim %s -o %t && CUDAQ_LOG_LEVEL=info %t | grep "Creating new Stim frame simulator" | wc -l | FileCheck %s
 // RUN: nvq++ --target anyon                    --emulate %s -o %t && %t 2>&1 | FileCheck %s -check-prefix=FAIL
 // RUN: nvq++ --target braket                   --emulate %s -o %t && %t 2>&1 | FileCheck %s -check-prefix=FAIL
 // RUN: nvq++ --target infleqtion               --emulate %s -o %t && %t 2>&1 | FileCheck %s -check-prefix=FAIL
@@ -42,5 +42,7 @@ int main() {
   results.dump();
   return 0;
 }
+
+// CHECK: 1
 
 // FAIL: Explicit measurement option is not supported on this target

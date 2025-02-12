@@ -106,6 +106,45 @@ def test_sample_async():
     assert len(seq[0]) == 20  # num qubits * num_rounds
 
 
+def test_named_measurment():
+    """ Test for while using "explicit measurements" mode, the sample result 
+        will not be saved to a mid-circuit measurement register. """
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(2)
+        x(q[0])
+        val = mz(q[1])
+
+    counts = cudaq.sample(kernel)
+    assert '__global__' in counts.register_names
+    assert 'val' in counts.register_names
+
+    counts = cudaq.sample(kernel, explicit_measurements=True)
+    assert '__global__' in counts.register_names
+    assert 'val' not in counts.register_names
+
+
+def test_measurement_order():
+    """ Test for if the "explicit measurements" option is enabled, the global 
+        register contains the concatenated measurements in the order they were
+        executed in the kernel. """
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(3)
+        x(q[0])
+        mz(q[1])
+        mz(q[0])
+        mz(q[2])
+
+    counts = cudaq.sample(kernel)
+    assert counts["100"] == 1000
+
+    counts = cudaq.sample(kernel, explicit_measurements=True)
+    assert counts["010"] == 1000
+
+
 # NOTE: Ref - https://github.com/NVIDIA/cuda-quantum/issues/1925
 @pytest.mark.parametrize("target",
                          ["density-matrix-cpu", "nvidia", "qpp-cpu", "stim"])
@@ -146,20 +185,41 @@ def test_unsupported_targets(target, env_var):
 
 
 def test_error_cases():
+    """ Test for throw error if user attempts to use a measurement result in 
+        conditional logic. """
 
     @cudaq.kernel
-    def kernel():
+    def kernel_with_conditional_on_measure():
         q = cudaq.qvector(2)
         h(q[0])
         if mz(q[0]):
             x(q[1])
 
     # This is allowed
-    cudaq.sample(kernel)
+    cudaq.sample(kernel_with_conditional_on_measure).dump()
 
     with pytest.raises(RuntimeError) as e:
-        cudaq.sample(kernel, explicit_measurements=True)
+        cudaq.sample(kernel_with_conditional_on_measure,
+                     explicit_measurements=True)
     assert "not supported on kernel with conditional logic on a measurement result" in repr(
         e)
+
+    ## NOTE: The following does not fail.
+    # @cudaq.kernel
+    # def measure(q: cudaq.qubit) -> bool:
+    #     return mz(q)
+
+    # @cudaq.kernel
+    # def kernel_with_conditional_on_function():
+    #     q = cudaq.qvector(2)
+    #     h(q[0])
+    #     if measure(q[0]):
+    #         x(q[1])
+
+    # with pytest.raises(RuntimeError) as e:
+    #     cudaq.sample(kernel_with_conditional_on_function,
+    #                  explicit_measurements=True)
+    # assert "not supported on kernel with conditional logic on a measurement result" in repr(
+    #     e)
 
     cudaq.__clearKernelRegistries()
