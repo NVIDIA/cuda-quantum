@@ -20,6 +20,8 @@
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/Parser/Parser.h"
 
+#include <iostream>
+
 using namespace mlir;
 
 template <typename A>
@@ -119,7 +121,7 @@ static Value genConstant(OpBuilder &, cudaq::cc::ArrayType, void *,
 /// }
 static void createInitFunc(OpBuilder &builder, ModuleOp sourceMod,
                            func::FuncOp calleeFunc,
-                           std::string &initKernelName) {
+                           StringRef initKernelName) {
   OpBuilder::InsertionGuard guard(builder);
   builder.setInsertionPointToEnd(sourceMod.getBody());
 
@@ -242,7 +244,7 @@ static void createInitFunc(OpBuilder &builder, ModuleOp sourceMod,
 /// }
 static void createNumQubitsFunc(OpBuilder &builder, ModuleOp sourceMod,
                                 func::FuncOp calleeFunc,
-                                std::string &numQubitsKernelName) {
+                                StringRef numQubitsKernelName) {
   OpBuilder::InsertionGuard guard(builder);
   builder.setInsertionPointToEnd(sourceMod.getBody());
 
@@ -478,27 +480,29 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
     auto code = cudaq::get_quake_by_name(calleeName, /*throwException=*/false);
     assert(!code.empty() && "Quake code not found for callee");
     auto fromModule = parseSourceString<ModuleOp>(code, ctx);
+    
+    auto calleeFunc = fromModule->lookupSymbol<func::FuncOp>(calleeKernelName);
+    assert(calleeFunc && "callee func is missing");
 
     static unsigned counter = 0;
-    std::string initName = calleeName + ".init_" + std::to_string(counter);
-    std::string initKernelName = cudaq::runtime::cudaqGenPrefixName + initName;
-
-    std::string numQubitsName =
-        calleeName + ".num_qubits_" + std::to_string(counter++);
-    std::string numQubitsKernelName =
-        cudaq::runtime::cudaqGenPrefixName + numQubitsName;
-
-    auto calleeFunc = fromModule->lookupSymbol<func::FuncOp>(calleeKernelName);
-    assert(calleeFunc && "callee is missing");
+    auto initName = calleeName + ".init_" + std::to_string(counter);
+    auto numQubitsName = calleeName + ".num_qubits_" + std::to_string(counter++);
+    auto initKernelName = cudaq::runtime::cudaqGenPrefixName + initName;
+    auto numQubitsKernelName = cudaq::runtime::cudaqGenPrefixName + numQubitsName;
 
     // Create `callee.init_N` and `callee.num_qubits_N` used for
     // `quake.get_state` replacement later in ReplaceStateWithKernel pass
     createInitFunc(builder, sourceMod, calleeFunc, initKernelName);
     createNumQubitsFunc(builder, sourceMod, calleeFunc, numQubitsKernelName);
 
-    // Create substitutions for the `callee.init_N` and `callee.num_qubits_N`.
-    converter.genCallee(initName, calleeArgs);
-    converter.genCallee(numQubitsName, calleeArgs);
+    // Create and register names for new `init` and `num_qubits` kernels so
+    // ArgumentConverters can keep a string reference to a valid memory.
+    auto registeredInitName = cudaq::registry::cudaqRegisterAuxKernelName(initName.c_str());
+    auto registeredNumQubitsName = cudaq::registry::cudaqRegisterAuxKernelName(numQubitsName.c_str());
+    
+    // Create substitutions for `callee.init_N` and `callee.num_qubits_N`.
+    converter.genCallee(registeredInitName, calleeArgs);
+    converter.genCallee(registeredNumQubitsName, calleeArgs);
 
     // Create a substitution for the state pointer.
     auto statePtrTy =
@@ -682,8 +686,7 @@ Value genConstant(OpBuilder &builder, cudaq::cc::IndirectCallableType indCallTy,
 //===----------------------------------------------------------------------===//
 
 cudaq::opt::ArgumentConverter::ArgumentConverter(StringRef kernelName,
-                                                 ModuleOp sourceModule,
-                                                 bool isSimulator)
+                                                 ModuleOp sourceModule)
     : sourceModule(sourceModule), builder(sourceModule.getContext()),
       kernelName(kernelName) {
   substModule = builder.create<ModuleOp>(builder.getUnknownLoc());
@@ -694,7 +697,7 @@ void cudaq::opt::ArgumentConverter::gen(const std::vector<void *> &arguments) {
   // We should look up the input type signature here.
 
   auto fun = sourceModule.lookupSymbol<func::FuncOp>(
-      cudaq::runtime::cudaqGenPrefixName + kernelName);
+      cudaq::runtime::cudaqGenPrefixName + kernelName.str());
   FunctionType fromFuncTy = fun.getFunctionType();
   for (auto iter :
        llvm::enumerate(llvm::zip(fromFuncTy.getInputs(), arguments))) {
@@ -816,22 +819,22 @@ void cudaq::opt::ArgumentConverter::gen_drop_front(
   gen(partialArgs);
 }
 
-std::pair<std::vector<std::string>, std::vector<std::string>>
+std::pair<SmallVector<std::string>, SmallVector<std::string>>
 cudaq::opt::ArgumentConverter::collectAllSubstitutions() {
-  std::vector<std::string> kernels;
-  std::vector<std::string> substs;
+  SmallVector<std::string> kernels;
+  SmallVector<std::string> substs;
 
   std::function<void(ArgumentConverter &)> collect =
       [&kernels, &substs, &collect](ArgumentConverter &con) {
         auto name = con.getKernelName();
         std::string kernName = cudaq::runtime::cudaqGenPrefixName + name.str();
-        kernels.push_back(kernName);
+        kernels.emplace_back(kernName);
 
         {
           std::string substBuff;
           llvm::raw_string_ostream ss(substBuff);
           ss << con.getSubstitutionModule();
-          substs.push_back(substBuff);
+          substs.emplace_back(substBuff);
         }
 
         for (auto &calleeCon : con.getCalleeConverters())

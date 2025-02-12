@@ -447,14 +447,36 @@ public:
     if (!rawArgs.empty() || updatedArgs) {
       mlir::PassManager pm(&context);
       if (!rawArgs.empty()) {
-        // For quantum hardware, we collect substitutions for the
-        // whole call tree of states, which are treated as calls to
-        // the kernels and their arguments that produced the state.
         opt::ArgumentConverter argCon(kernelName, moduleOp);
         argCon.gen(rawArgs);
-        auto [kernels, substs] = argCon.collectAllSubstitutions();
+
+        // For quantum hardware, we traverse the tree of ArgumentConverters
+        // for the call tree of states and collect substitutions for all calls.
+        mlir::SmallVector<std::string> kernels;
+        mlir::SmallVector<std::string> substs;
+
+        std::function<void(opt::ArgumentConverter &)> collect =
+          [&kernels, &substs, &collect](opt::ArgumentConverter &con) {
+            auto name = con.getKernelName();
+            std::string kernName = cudaq::runtime::cudaqGenPrefixName + name.str();
+            kernels.emplace_back(kernName);
+          
+            std::string substBuff;
+            llvm::raw_string_ostream ss(substBuff);
+            ss << con.getSubstitutionModule();
+            substs.emplace_back(substBuff);
+
+            for (auto &calleeCon : con.getCalleeConverters())
+              collect(calleeCon);
+          };
+
+        collect(argCon);
+
+        mlir::SmallVector<mlir::StringRef> funcNames{kernels.begin(), kernels.end()};
+        mlir::SmallVector<mlir::StringRef> substitutions{substs.begin(), substs.end()};
+
         pm.addNestedPass<mlir::func::FuncOp>(
-            cudaq::opt::createArgumentSynthesisPass(kernels, substs));
+            cudaq::opt::createArgumentSynthesisPass(funcNames, substitutions));
         pm.addPass(opt::createDeleteStates());
         pm.addNestedPass<mlir::func::FuncOp>(
             opt::createReplaceStateWithKernel());

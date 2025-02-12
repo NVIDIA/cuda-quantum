@@ -487,7 +487,7 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
         "   %2 = quake.alloca !quake.veq<?>[%arg0 : i64]\n"
         "   %3 = quake.extract_ref %2[0] : (!quake.veq<?>) -> !quake.ref\n"
         "   quake.x %3 : (!quake.ref) -> ()\n"
-        "   %measOut = quake.mz %3 name \"\" : (!quake.ref) -> !quake.measure\n"
+        "   %measOut = quake.mz %3 name \"q0\" : (!quake.ref) -> !quake.measure\n"
         "   %4 = quake.discriminate %measOut : (!quake.measure) -> i1\n"
         "   cc.if(%4) {\n"
         "    %6 = quake.alloca !quake.veq<?>[%arg0 : i64]\n"
@@ -514,7 +514,7 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<?>[%arg0 : i64]
 // CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<?>) -> !quake.ref
 // CHECK:           quake.x %[[VAL_1]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] name "" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] name "q0" : (!quake.ref) -> !quake.measure
 // CHECK:           %[[VAL_3:.*]] = quake.discriminate %[[VAL_2]] : (!quake.measure) -> i1
 // CHECK:           cc.if(%[[VAL_3]]) {
 // CHECK:             %[[VAL_4:.*]] = quake.alloca !quake.veq<?>[%arg0 : i64]
@@ -532,7 +532,7 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<?>[%arg0 : i64]
 // CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<?>) -> !quake.ref
 // CHECK:           quake.x %[[VAL_1]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] name "" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] name "q0" : (!quake.ref) -> !quake.measure
 // CHECK:           %[[VAL_3:.*]] = quake.discriminate %[[VAL_2]] : (!quake.measure) -> i1
 // CHECK:           cc.if(%[[VAL_3]]) {
 // CHECK:             %[[VAL_4:.*]] = quake.alloca !quake.veq<?>[%arg0 : i64]
@@ -553,7 +553,7 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
 // CHECK:           %[[VAL_5:.*]] = arith.addi %[[VAL_0]], %arg0 : i64
 // CHECK:           %[[VAL_6:.*]] = quake.extract_ref %[[VAL_3]][0] : (!quake.veq<?>) -> !quake.ref
 // CHECK:           quake.x %[[VAL_6]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_7:.*]] = quake.mz %[[VAL_6]] name "" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_7:.*]] = quake.mz %[[VAL_6]] name "q0" : (!quake.ref) -> !quake.measure
 // CHECK:           %[[VAL_8:.*]] = quake.discriminate %[[VAL_7]] : (!quake.measure) -> i1
 // CHECK:           cc.if(%[[VAL_8]]) {
 // CHECK:             %[[VAL_11:.*]] = quake.alloca !quake.veq<?>[%arg0 : i64]

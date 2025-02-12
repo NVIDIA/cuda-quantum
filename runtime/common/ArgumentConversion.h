@@ -15,6 +15,7 @@
 #include "mlir/IR/Types.h"
 #include <unordered_set>
 #include <vector>
+#include <list>
 
 namespace cudaq::opt {
 
@@ -22,8 +23,7 @@ class ArgumentConverter {
 public:
   /// Build an instance to create argument substitutions for a specified \p
   /// kernelName in \p sourceModule.
-  ArgumentConverter(mlir::StringRef kernelName, mlir::ModuleOp sourceModule,
-                    bool isSimulator = true);
+  ArgumentConverter(mlir::StringRef kernelName, mlir::ModuleOp sourceModule);
 
   /// Generate a substitution ModuleOp for the vector of arguments presented.
   /// The arguments are those presented to the kernel, kernelName.
@@ -52,24 +52,25 @@ public:
 
   mlir::StringRef getKernelName() { return kernelName; }
 
-  void genCallee(std::string &calleeName, std::vector<void *> &args) {
-    auto converter = ArgumentConverter(calleeName, sourceModule);
+  void genCallee(mlir::StringRef calleeName, std::vector<void *> &args) {
+    // auto converter = ArgumentConverter(calleeName, sourceModule);
+    // converter.gen(args);
+    auto converter = calleeConverters.emplace_back(ArgumentConverter(calleeName, sourceModule));
     converter.gen(args);
-    calleeConverters.push_back(converter);
   }
 
   std::vector<ArgumentConverter> &getCalleeConverters() {
     return calleeConverters;
   }
 
-  std::pair<std::vector<std::string>, std::vector<std::string>>
+  std::pair<mlir::SmallVector<std::string>, mlir::SmallVector<std::string>>
   collectAllSubstitutions();
 
 private:
   mlir::ModuleOp sourceModule;
   mlir::ModuleOp substModule;
   mlir::OpBuilder builder;
-  std::string kernelName;
+  mlir::StringRef kernelName;
   mlir::SmallVector<cc::ArgumentSubstitutionOp> substitutions;
   std::vector<ArgumentConverter> calleeConverters;
 };
