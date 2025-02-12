@@ -12,10 +12,10 @@
 namespace cudaq {
 
 class cudm_expectation {
-  cudensitymatHandle_t m_handle;
-  cudensitymatOperator_t m_hamOp;
-  cudensitymatExpectation_t m_expectation;
-  cudensitymatWorkspaceDescriptor_t m_workspace;
+  cudensitymatHandle_t m_handle{nullptr};
+  cudensitymatOperator_t m_hamOp{nullptr};
+  cudensitymatExpectation_t m_expectation{nullptr};
+  cudensitymatWorkspaceDescriptor_t m_workspace{nullptr};
 
 public:
   cudm_expectation(cudensitymatHandle_t handle, cudensitymatOperator_t op);

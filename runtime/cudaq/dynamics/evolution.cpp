@@ -125,16 +125,14 @@ evolve_result evolve_single(
   std::vector<int64_t> dims;
   for (const auto &[id, dim] : dimensions)
     dims.emplace_back(dim);
-  auto liouvillian =
-      helper.convert_to_cudensitymat_operator<cudaq::matrix_operator>(
-          {}, hamiltonian, dims);
+  auto liouvillian = helper.construct_liouvillian(
+      hamiltonian, collapse_operators, dims, {}, false);
+  std::cout << "Evolve Liouvillian: " << liouvillian << "\n";
   // Need to pass liouvillian here
   auto time_stepper = std::make_shared<cudm_time_stepper>(handle, liouvillian);
-  const std::vector<std::complex<double>> initialState = {{1.0, 0.0},
-                                                          {0.0, 0.0}};
   auto integrator = std::make_unique<runge_kutta_integrator>(
-      cudm_state(handle, initialState, dims), 0.0, time_stepper, 1);
-  integrator->set_option("dt", 0.001);
+      cudm_state(handle, initial_state, dims), 0.0, time_stepper, 1);
+  integrator->set_option("dt", 0.0001);
 
   std::vector<cudm_expectation> expectations;
   for (auto &obs : observables)
@@ -144,7 +142,6 @@ evolve_result evolve_single(
 
   std::vector<std::vector<double>> expectationVals;
   for (const auto &step : schedule) {
-    std::cout << "Step: " << step << "\n";
     integrator->integrate(step);
     auto [t, currentState] = integrator->get_state();
     if (store_intermediate_results) {
