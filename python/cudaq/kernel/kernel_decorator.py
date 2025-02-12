@@ -15,7 +15,7 @@ from ..mlir.passmanager import *
 from ..mlir.dialects import quake, cc, func
 from .ast_bridge import compile_to_mlir, PyASTBridge
 from .utils import mlirTypeFromPyType, nvqppPrefix, mlirTypeToPyType, globalAstRegistry, emitFatalError, emitErrorIfInvalidPauli, globalRegisteredTypes
-from .analysis import MidCircuitMeasurementAnalyzer, HasReturnNodeVisitor
+from .analysis import HasReturnNodeVisitor
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 from .captured_data import CapturedDataStorage
 from ..handlers import PhotonicsHandler
@@ -159,11 +159,6 @@ class PyKernelDecorator(object):
                 'CUDA-Q kernel has return statement but no return type annotation.'
             )
 
-        # Run analyzers and attach metadata (only have 1 right now)
-        analyzer = MidCircuitMeasurementAnalyzer()
-        analyzer.visit(self.astModule)
-        self.metadata = {'conditionalOnMeasure': analyzer.hasMidCircuitMeasures}
-
         # Store the AST for this kernel, it is needed for
         # building up call graphs. We also must retain
         # the source code location for error diagnostics
@@ -174,6 +169,15 @@ class PyKernelDecorator(object):
         Compile the Python function AST to MLIR. This is a no-op 
         if the kernel is already compiled. 
         """
+
+        # TODO: Refactor this check
+        try:
+            target_name = cudaq_runtime.get_target().name
+        except RuntimeError:
+            target_name = None
+
+        if 'orca-photonics' == target_name:
+            return
 
         # Before we can execute, we need to make sure
         # variables from the parent frame that we captured
@@ -209,7 +213,6 @@ class PyKernelDecorator(object):
 
         self.module, self.argTypes, extraMetadata = compile_to_mlir(
             self.astModule,
-            self.metadata,
             self.capturedDataStorage,
             verbose=self.verbose,
             returnType=self.returnType,
