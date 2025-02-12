@@ -1222,9 +1222,10 @@ void genericApplicator(const std::string &gateName, Args &&...args) {
       tuple_slice_last<sizeof...(Args) - NUMP>(std::forward_as_tuple(args...)));
 }
 
-template <typename T, typename... RotationT, typename... QuantumT,
-          std::size_t NumPProvided = sizeof...(RotationT),
-          std::enable_if_t<T::num_parameters == NumPProvided, std::size_t> = 0>
+template <
+    typename T, typename... RotationT, typename... QuantumT,
+    std::size_t NumPProvided = sizeof...(RotationT),
+    std::enable_if_t<T::num_parameters == NumPProvided, std::size_t> = 0>
 void applyNoiseImpl(const std::tuple<RotationT...> &paramTuple,
                     const std::tuple<QuantumT...> &quantumTuple) {
   auto *ctx = get_platform().get_exec_ctx();
@@ -1254,7 +1255,6 @@ void applyNoiseImpl(const std::tuple<RotationT...> &paramTuple,
   auto channel = ctx->noiseModel->template get_channel<T>(parameters);
   getExecutionManager()->applyNoise(channel, qubits);
 }
-
 } // namespace cudaq::details
 
 namespace cudaq {

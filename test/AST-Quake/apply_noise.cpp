@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// REQUIRES: c++20
 // clang-format off
 // RUN: cudaq-quake %cpp_std %s | cudaq-opt | FileCheck --check-prefixes=CHECK,ALIVE %s
 // RUN: cudaq-quake %cpp_std %s | cudaq-opt -erase-noise | FileCheck --check-prefixes=CHECK,DEAD %s
@@ -15,6 +16,9 @@
 #include <cudaq.h>
 
 struct SantaKraus : public cudaq::kraus_channel {
+  constexpr static std::size_t num_parameters = 0;
+  constexpr static std::size_t num_targets = 2;
+  static std::size_t get_key() { return (std::size_t)&get_key; }
   SantaKraus() {}
 };
 
@@ -29,7 +33,7 @@ struct testApplyNoise {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__testApplyNoise() attributes
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
-// ALIVE:           quake.apply_noise @_ZN5cudaq11apply_noiseI{{.*}}SantaKraus{{.*}}() %[[VAL_0]], %[[VAL_1]] : !quake.ref, !quake.ref
+// ALIVE:           quake.apply_noise @_ZN5cudaq11apply_noiseI{{.*}}SantaKraus{{.*}}() %[[VAL_0]], %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
 // DEAD-NOT:        quake.apply_noise
 // CHECK:           return
 // CHECK:         }
@@ -47,6 +51,9 @@ struct testApplyNoise {
 // clang-format on
 
 struct SarahKraus : public cudaq::kraus_channel {
+  constexpr static std::size_t num_parameters = 2;
+  constexpr static std::size_t num_targets = 1;
+  static std::size_t get_key() { return (std::size_t)&get_key; }
   SarahKraus(double dip, float around) {}
 };
 
@@ -59,7 +66,7 @@ struct testApplyMoreNoise {
   }
 };
 
-// clang-format on
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__testApplyMoreNoise()
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 5.000000e+00 : f32
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 4.000000e+00 : f64
@@ -68,7 +75,7 @@ struct testApplyMoreNoise {
 // CHECK:           %[[VAL_3:.*]] = cc.alloca f32
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_3]] : !cc.ptr<f32>
 // CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.ref
-// ALIVE:           quake.apply_noise @_ZN5cudaq11apply_noise{{.*}}SarahKraus{{.*}}(%[[VAL_2]], %[[VAL_3]]) %[[VAL_4]] : !cc.ptr<f64>, !cc.ptr<f32>, !quake.ref
+// ALIVE:           quake.apply_noise @_ZN5cudaq11apply_noise{{.*}}SarahKraus{{.*}}(%[[VAL_2]], %[[VAL_3]]) %[[VAL_4]] : (!cc.ptr<f64>, !cc.ptr<f32>, !quake.ref) -> ()
 // DEAD-NOT:        quake.apply_noise
 // CHECK:           return
 // CHECK:         }
@@ -85,4 +92,4 @@ struct testApplyMoreNoise {
 // QIR:         call void @__quantum__rt__qubit_release_array(%[[VAL_1]]* %[[VAL_0]])
 // QIR:         ret void
 // QIR:       }
-// clang-format off
+// clang-format on
