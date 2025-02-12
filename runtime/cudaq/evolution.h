@@ -24,7 +24,7 @@ namespace cudaq {
 evolve_result evolve_single(
     const operator_sum<cudaq::matrix_operator> &hamiltonian,
     const std::map<int, int> &dimensions, const Schedule &schedule,
-    state initial_state,
+    const state &initial_state,
     const std::vector<operator_sum<cudaq::matrix_operator> *>
         &collapse_operators = {},
     const std::vector<operator_sum<cudaq::matrix_operator> *> &observables = {},

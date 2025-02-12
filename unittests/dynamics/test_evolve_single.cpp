@@ -29,9 +29,39 @@ TEST(EvolveTester, checkSimple) {
   auto ham = cudaq::product_operator<cudaq::matrix_operator>(
       std::complex<double>{0.0, -1.0} * 2.0 * M_PI * 0.1,
       cudaq::matrix_operator(op_id, {0}));
-  cudaq::Schedule schedule({0.0, 0.1, 0.2});
+  constexpr int numSteps = 10;
+  cudaq::Schedule schedule(cudaq::linspace(0.0, 1.0, numSteps));
+
+  cudaq::matrix_operator::define(
+      "pauli_z", {-1},
+      [](std::vector<int> dimensions,
+         std::map<std::string, std::complex<double>> _none) {
+        if (dimensions.size() != 1)
+          throw std::invalid_argument("Must have a singe dimension");
+        if (dimensions[0] != 2)
+          throw std::invalid_argument("Must have dimension 2");
+        auto mat = cudaq::matrix_2(2, 2);
+        mat[{0, 0}] = 1.0;
+        mat[{1, 1}] = -1.0;
+        return mat;
+      });
+  auto pauliZ = cudaq::product_operator<cudaq::matrix_operator>(
+      std::complex<double>{1.0, 0.0}, cudaq::matrix_operator("pauli_z", {0}));
   auto initialState =
       cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
-  auto result =
-      cudaq::evolve_single(ham, dims, schedule, initialState, {}, {&ham});
+  auto result = cudaq::evolve_single(ham, dims, schedule, initialState, {},
+                                     {&pauliZ}, true);
+  EXPECT_TRUE(result.get_expectation_values().has_value());
+  EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
+  std::vector<double> theoryResults;
+  for (const auto &t : schedule) {
+    const double expected = std::cos(2 * 2.0 * M_PI * 0.1 * t);
+    theoryResults.emplace_back(expected);
+  }
+
+  int count = 0;
+  for (auto expVals : result.get_expectation_values().value()) {
+    EXPECT_EQ(expVals.size(), 1);
+    EXPECT_NEAR((double)expVals[0], theoryResults[count++], 1e-3);
+  }
 }

@@ -19,6 +19,14 @@ class cudm_expectation {
 
 public:
   cudm_expectation(cudensitymatHandle_t handle, cudensitymatOperator_t op);
+  cudm_expectation(const cudm_expectation &) = delete;
+  cudm_expectation &operator=(const cudm_expectation &) = delete;
+  cudm_expectation(cudm_expectation &&src) {
+    std::swap(m_handle, src.m_handle);
+    std::swap(m_hamOp, src.m_hamOp);
+    std::swap(m_expectation, src.m_expectation);
+    std::swap(m_workspace, src.m_workspace);
+  }
   ~cudm_expectation();
   void prepare(cudensitymatState_t state);
   std::complex<double> compute(cudensitymatState_t state, double time);
