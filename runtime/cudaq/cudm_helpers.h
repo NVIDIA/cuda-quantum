@@ -80,7 +80,7 @@ public:
   void append_elementary_operator_to_term(
       cudensitymatOperatorTerm_t term,
       const std::vector<cudensitymatElementaryOperator_t> &elem_ops,
-      const std::vector<std::vector<int>> &degrees);
+      const std::vector<std::vector<int>> &degrees, bool is_dagger);
 
   // GPU memory management
   static void *
