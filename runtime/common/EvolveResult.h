@@ -108,8 +108,8 @@ public:
     return final_expectation_values;
   }
 
-  std::optional<std::vector<std::vector<observe_result>>>
-  get_expectation_values() {
+  const std::optional<std::vector<std::vector<observe_result>>> &
+  get_expectation_values() const {
     return expectation_values;
   }
 

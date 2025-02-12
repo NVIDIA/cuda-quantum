@@ -110,7 +110,7 @@ namespace cudaq {
 evolve_result evolve_single(
     const operator_sum<cudaq::matrix_operator> &hamiltonian,
     const std::map<int, int> &dimensions, const Schedule &schedule,
-    state initial_state,
+    const state &initial_state,
     const std::vector<operator_sum<cudaq::matrix_operator> *>
         &collapse_operators,
     const std::vector<operator_sum<cudaq::matrix_operator> *> &observables,
@@ -125,10 +125,10 @@ evolve_result evolve_single(
   std::vector<int64_t> dims;
   for (const auto &[id, dim] : dimensions)
     dims.emplace_back(dim);
-  helper.convert_to_cudensitymat_operator<cudaq::matrix_operator>(
+  auto liouvillian = helper.convert_to_cudensitymat_operator<cudaq::matrix_operator>(
       {}, hamiltonian, dims);
   // Need to pass liouvillian here
-  auto time_stepper = std::make_shared<cudm_time_stepper>(handle, nullptr);
+  auto time_stepper = std::make_shared<cudm_time_stepper>(handle, liouvillian);
   const std::vector<std::complex<double>> initialState = {{1.0, 0.0},
                                                           {0.0, 0.0}};
   auto integrator = std::make_unique<runge_kutta_integrator>(
@@ -141,18 +141,37 @@ evolve_result evolve_single(
         handle, helper.convert_to_cudensitymat_operator<cudaq::matrix_operator>(
                     {}, *obs, dims)));
 
+  std::vector<std::vector<double>> expectationVals;
   for (const auto &step : schedule) {
     std::cout << "Step: " << step << "\n";
     integrator->integrate(step);
     auto [t, currentState] = integrator->get_state();
-    for (auto &expectation : expectations) {
-      const auto expVal = expectation.compute(currentState.get_impl(), step);
-      std::cout << "Expectation value = " << expVal << "\n";
+    if (store_intermediate_results) {
+      std::vector<double> expVals;
+      for (auto &expectation : expectations) {
+        expectation.prepare(currentState.get_impl());
+        const auto expVal = expectation.compute(currentState.get_impl(), step);
+        expVals.emplace_back(expVal.real());
+      }
+      expectationVals.emplace_back(std::move(expVals));
     }
   }
 
-  // TODO
-  return evolve_result(sample_result());
+  if (store_intermediate_results) {
+    // TODO: need to convert to proper state
+    return evolve_result({initial_state}, expectationVals);
+  } else {
+    // Only final state is needed
+    auto [finalTime, finalState] = integrator->get_state();
+    std::vector<double> expVals;
+    for (auto &expectation : expectations) {
+      expectation.prepare(finalState.get_impl());
+      const auto expVal = expectation.compute(finalState.get_impl(), finalTime);
+      expVals.emplace_back(expVal.real());
+    }
+    // TODO: need to convert to proper state
+    return evolve_result(initial_state, expVals);
+  }
 }
 
 } // namespace cudaq
