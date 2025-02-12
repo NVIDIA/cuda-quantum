@@ -83,14 +83,6 @@ public:
       progress = 0;
       (void)applyPatternsAndFoldGreedily(op, frozen);
     } while (progress);
-
-    if (signalFailure) {
-      numLoops = countLoopOps(op);
-      if (numLoops) {
-        op->emitOpError("did not unroll loops");
-        signalPassFailure();
-      }
-    }
   }
 
   static unsigned countLoopOps(Operation *op) {
@@ -110,11 +102,6 @@ struct ClassicalOptimizationPipelineOptions
       *this, "threshold",
       llvm::cl::desc("Maximum iterations to unroll. (default: 1024)"),
       llvm::cl::init(1024)};
-  PassOptions::Option<bool> signalFailure{
-      *this, "signal-failure-if-any-loop-cannot-be-completely-unrolled",
-      llvm::cl::desc(
-          "Signal failure if pass can't unroll all loops. (default: true)"),
-      llvm::cl::init(true)};
   PassOptions::Option<bool> allowBreak{
       *this, "allow-early-exit",
       llvm::cl::desc("Allow unrolling of loop with early exit (i.e. break "
@@ -134,25 +121,23 @@ struct ClassicalOptimizationPipelineOptions
 /// if any loop in the module cannot be fully unrolled and signalFailure is set.
 static void createClassicalOptimizationPipeline(OpPassManager &pm,
                                                 unsigned threshold,
-                                                bool signalFailure,
                                                 bool allowBreak,
                                                 bool allowClosedInterval) {
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
-  cudaq::opt::ClassicalOptimizationOptions options{
-      threshold, false, allowClosedInterval, allowBreak};
+ 
   // Run classical optimization twice with a cse in between to optimize more
   // code.
   // TODO: run cse as a part of classical-optimization when we update the llvm
   // version.
+  cudaq::opt::ClassicalOptimizationOptions options{
+    threshold, allowClosedInterval, allowBreak};
   pm.addNestedPass<func::FuncOp>(
       cudaq::opt::createClassicalOptimization(options));
   pm.addNestedPass<func::FuncOp>(createCSEPass());
-  cudaq::opt::ClassicalOptimizationOptions options2{
-      threshold, signalFailure, allowClosedInterval, allowBreak};
   pm.addNestedPass<func::FuncOp>(
-      cudaq::opt::createClassicalOptimization(options2));
+      cudaq::opt::createClassicalOptimization(options));
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUpdateRegisterNames());
 }
 
@@ -162,7 +147,7 @@ void cudaq::opt::registerClassicalOptimizationPipeline() {
       [](OpPassManager &pm,
          const ClassicalOptimizationPipelineOptions &options) {
         createClassicalOptimizationPipeline(
-            pm, options.threshold, options.signalFailure, options.allowBreak,
+            pm, options.threshold, options.allowBreak,
             options.allowClosedInterval);
       });
 }
