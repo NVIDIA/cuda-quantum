@@ -297,7 +297,7 @@ struct ApplyNoiseOpRewrite : public OpConversionPattern<quake::ApplyNoiseOp> {
                   adaptor.getParameters().end());
       args.append(adaptor.getQubits().begin(), adaptor.getQubits().end());
 
-      rewriter.replaceOpWithNewOp<LLVM::CallOp>(
+      rewriter.replaceOpWithNewOp<cudaq::cc::VarargCallOp>(
           noise, TypeRange{}, cudaq::opt::QISApplyKrausChannel, args);
       return success();
     }
