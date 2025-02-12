@@ -125,8 +125,9 @@ evolve_result evolve_single(
   std::vector<int64_t> dims;
   for (const auto &[id, dim] : dimensions)
     dims.emplace_back(dim);
-  auto liouvillian = helper.convert_to_cudensitymat_operator<cudaq::matrix_operator>(
-      {}, hamiltonian, dims);
+  auto liouvillian =
+      helper.convert_to_cudensitymat_operator<cudaq::matrix_operator>(
+          {}, hamiltonian, dims);
   // Need to pass liouvillian here
   auto time_stepper = std::make_shared<cudm_time_stepper>(handle, liouvillian);
   const std::vector<std::complex<double>> initialState = {{1.0, 0.0},
