@@ -35,8 +35,7 @@ CUDA-Q Applications
             <button class="tag-button" data-group="domain" data-tag="chemistry">Chemistry</button>
             <button class="tag-button" data-group="domain" data-tag="fundamental">Fundamental Algorithms</button>
             <button class="tag-button" data-group="domain" data-tag="aiforq">AI for Quantum</button>
-            <button class="tag-button" data-group="domain" data-tag="qforai">QML</button>
-            <button class="tag-button" data-group="domain" data-tag="qec">QEC</button>
+            <button class="tag-button" data-group="domain" data-tag="qforai">Quantum for AI</button>
         </div>
         
 
