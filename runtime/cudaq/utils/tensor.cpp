@@ -197,3 +197,18 @@ cudaq::matrix_2 cudaq::matrix_2::identity(const std::size_t rows) {
     result[{i, i}] = 1. + 0.0j;
   return result;
 }
+
+// Transpose + Conjugate
+cudaq::matrix_2 cudaq::matrix_2::adjoint(const matrix_2 &matrix) {
+  std::size_t rows = matrix.get_rows();
+  std::size_t cols = matrix.get_columns();
+  matrix_2 result(cols, rows);
+
+  for (std::size_t i = 0; i < rows; i++) {
+    for (std::size_t j = 0; j < cols; j++) {
+      result[{j, i}] = std::conj(matrix[{i, j}]);
+    }
+  }
+
+  return result;
+}

@@ -625,7 +625,7 @@ public:
     auto result = matrix_operator::m_ops.insert({operator_id, std::move(defn)});
     if (!result.second) {
       // todo: make a nice error message to say op already exists
-      throw;
+      // throw;
     }
   }
 };
