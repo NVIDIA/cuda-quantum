@@ -293,8 +293,8 @@ int main() {
         leaf_ops.push_back(cudaq::spin_operator::i(i));
     }
 
-    auto term_length = 100;
-    auto nr_terms = 20;
+    auto term_length = 1000;
+    auto nr_terms = 200;
     srand(5); // random number seed
     std::vector<std::vector<int>> indices;
     for (auto i = 0; i < nr_terms; ++i) {
