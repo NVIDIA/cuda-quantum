@@ -6,9 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "manipulation.h"
-#include "helpers.h"
 #include <set>
+#include <unordered_map>
+
+#include "helpers.h"
+#include "manipulation.h"
 
 namespace cudaq {
 
@@ -45,19 +47,21 @@ EvaluatedMatrix& EvaluatedMatrix::operator=(EvaluatedMatrix &&other) {
 
 // MatrixArithmetics
 
-MatrixArithmetics::MatrixArithmetics(std::map<int, int> dimensions,
-                  std::map<std::string, std::complex<double>> parameters)
+MatrixArithmetics::MatrixArithmetics(
+                  std::unordered_map<int, int> &dimensions,
+                  const std::unordered_map<std::string, std::complex<double>> &parameters)
   : m_dimensions(dimensions), m_parameters(parameters) {}
 
 std::vector<int>
-MatrixArithmetics::_compute_permutation(std::vector<int> op_degrees,
-                                        std::vector<int> canon_degrees) {
+MatrixArithmetics::compute_permutation(const std::vector<int> &op_degrees,
+                                        const std::vector<int> &canon_degrees) {
+  assert(op_degrees.size() == canon_degrees.size());
   auto states = cudaq::detail::generate_all_states(canon_degrees, m_dimensions);
 
   std::vector<int> reordering;
   for (auto degree : op_degrees) {
-    auto it = std::find(canon_degrees.begin(), canon_degrees.end(), degree);
-    reordering.push_back(it - canon_degrees.begin());
+    auto it = std::find(canon_degrees.cbegin(), canon_degrees.cend(), degree);
+    reordering.push_back(it - canon_degrees.cbegin());
   }
 
   std::vector<std::string> op_states =
@@ -69,8 +73,8 @@ MatrixArithmetics::_compute_permutation(std::vector<int> op_degrees,
     for (auto i : reordering) {
       term += state[i];
     }
-    auto it = std::find(op_states.begin(), op_states.end(), term);
-    permutation.push_back(it - op_states.begin());
+    auto it = std::find(op_states.cbegin(), op_states.cend(), term);
+    permutation.push_back(it - op_states.cbegin());
   }
 
   return permutation;
@@ -81,33 +85,30 @@ MatrixArithmetics::_compute_permutation(std::vector<int> op_degrees,
 // Returns:
 //     A tuple consisting of the permuted matrix as well as the sequence of
 //     degrees of freedom in canonical order.
-std::tuple<matrix_2, std::vector<int>>
-MatrixArithmetics::_canonicalize(matrix_2 &op_matrix,
-                                 std::vector<int> op_degrees) {
-  auto canon_degrees = cudaq::detail::canonicalize_degrees(op_degrees);
-  if (op_degrees == canon_degrees)
-    return std::tuple<matrix_2, std::vector<int>>{op_matrix, canon_degrees};
-
-  auto permutation = this->_compute_permutation(op_degrees, canon_degrees);
-  auto result = cudaq::detail::permute_matrix(op_matrix, permutation);
-  return std::tuple<matrix_2, std::vector<int>>{result, canon_degrees};
+void MatrixArithmetics::canonicalize(matrix_2 &matrix, std::vector<int> &degrees) {
+  auto current_degrees = degrees;
+  cudaq::detail::canonicalize_degrees(degrees);
+  if (current_degrees != degrees) {
+    auto permutation = this->compute_permutation(current_degrees, degrees);
+    cudaq::detail::permute_matrix(matrix, permutation);   
+  }
 }
 
 EvaluatedMatrix MatrixArithmetics::tensor(EvaluatedMatrix op1,
                                           EvaluatedMatrix op2) {
-  std::vector<int> op_degrees;
+  std::vector<int> degrees;
   auto op1_degrees = op1.degrees();
   auto op2_degrees = op2.degrees();
-  op_degrees.reserve(op1_degrees.size() + op2_degrees.size());
+  degrees.reserve(op1_degrees.size() + op2_degrees.size());
   for (auto d : op1_degrees)
-    op_degrees.push_back(d);
+    degrees.push_back(d);
   for (auto d : op2_degrees) {
-    assert(std::find(op_degrees.begin(), op_degrees.end(), d) == op_degrees.end());
-    op_degrees.push_back(d);
+    assert(std::find(degrees.cbegin(), degrees.cend(), d) == degrees.cend());
+    degrees.push_back(d);
   }
-  auto op_matrix = cudaq::kronecker(op1.matrix(), op2.matrix());
-  auto [new_matrix, new_degrees] = this->_canonicalize(op_matrix, op_degrees);
-  return EvaluatedMatrix(new_degrees, new_matrix);
+  auto matrix = cudaq::kronecker(op1.matrix(), op2.matrix());
+  this->canonicalize(matrix, degrees);
+  return EvaluatedMatrix(std::move(degrees), std::move(matrix));
 }
 
 EvaluatedMatrix MatrixArithmetics::mul(EvaluatedMatrix op1,

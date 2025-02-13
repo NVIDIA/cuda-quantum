@@ -46,11 +46,14 @@ TEST(OperatorExpressions, checkScalarOpsSimpleComplex) {
 
   // From a lambda function.
   {
-    auto function = [](std::map<std::string, std::complex<double>> parameters) {
-      return parameters["value"];
+    auto function = [](const std::unordered_map<std::string, std::complex<double>> &parameters) {
+      auto entry = parameters.find("value");
+      if (entry == parameters.end())
+        throw std::runtime_error("value not defined in parameters");
+      return entry->second;
     };
 
-    std::map<std::string, std::complex<double>> parameter_map;
+    std::unordered_map<std::string, std::complex<double>> parameter_map;
 
     auto operator_0 = cudaq::scalar_operator(function);
     auto operator_1 = cudaq::scalar_operator(function);
@@ -100,11 +103,14 @@ TEST(OperatorExpressions, checkScalarOpsSimpleDouble) {
 
   // From a lambda function.
   {
-    auto function = [](std::map<std::string, std::complex<double>> parameters) {
-      return parameters["value"];
+    auto function = [](const std::unordered_map<std::string, std::complex<double>> &parameters) {
+      auto entry = parameters.find("value");
+      if (entry == parameters.end())
+        throw std::runtime_error("value not defined in parameters");
+      return entry->second;
     };
 
-    std::map<std::string, std::complex<double>> parameter_map;
+    std::unordered_map<std::string, std::complex<double>> parameter_map;
 
     auto operator_0 = cudaq::scalar_operator(function);
     auto operator_1 = cudaq::scalar_operator(function);
@@ -134,11 +140,11 @@ TEST(OperatorExpressions, checkScalarOpsArithmeticComplex) {
   std::complex<double> value_2 = 2.0 + 0.1;
   std::complex<double> value_3 = 2.0 + 1.0;
 
-  auto local_variable = true;
-  auto function = [&](std::map<std::string, std::complex<double>> parameters) {
-    if (!local_variable)
-      throw std::runtime_error("Local variable not detected.");
-    return parameters["value"];
+  auto function = [](const std::unordered_map<std::string, std::complex<double>> &parameters) {
+    auto entry = parameters.find("value");
+    if (entry == parameters.end())
+      throw std::runtime_error("value not defined in parameters");
+    return entry->second;
   };
 
   // + : Constant scalar operator.
@@ -375,23 +381,22 @@ TEST(OperatorExpressions, checkScalarOpsArithmeticScalarOps) {
   std::complex<double> value_2 = 2.0 + 0.1;
   std::complex<double> value_3 = 2.0 + 1.0;
 
-  auto local_variable = true;
-  auto function = [&](std::map<std::string, std::complex<double>> parameters) {
-    if (!local_variable)
-      throw std::runtime_error("Local variable not detected.");
-    return parameters["value"];
+  auto function = [](const std::unordered_map<std::string, std::complex<double>> &parameters) {
+    auto entry = parameters.find("value");
+    if (entry == parameters.end())
+      throw std::runtime_error("value not defined in parameters");
+    return entry->second;
   };
 
   // I use another function here to make sure that local variables
   // that may be unique to each ScalarOp's generators are both kept
   // track of when we merge the generators.
-  auto alternative_local_variable = true;
-  auto alternative_function =
-      [&](std::map<std::string, std::complex<double>> parameters) {
-        if (!alternative_local_variable)
-          throw std::runtime_error("Local variable not detected.");
-        return parameters["other"];
-      };
+  auto alternative_function = [](const std::unordered_map<std::string, std::complex<double>> &parameters) {
+    auto entry = parameters.find("other");
+    if (entry == parameters.end())
+      throw std::runtime_error("other not defined in parameters");
+    return entry->second;
+  };
 
   // + : Constant scalar operator.
   {
@@ -417,7 +422,7 @@ TEST(OperatorExpressions, checkScalarOpsArithmeticScalarOps) {
     auto new_scalar_op = other_scalar_op + scalar_op;
     auto reverse_order_op = scalar_op + other_scalar_op;
 
-    std::map<std::string, std::complex<double>> parameter_map = {
+    std::unordered_map<std::string, std::complex<double>> parameter_map = {
         {"value", value_1}, {"other", value_0}};
 
     auto got_value = new_scalar_op.evaluate(parameter_map);
@@ -451,7 +456,7 @@ TEST(OperatorExpressions, checkScalarOpsArithmeticScalarOps) {
     auto new_scalar_op = other_scalar_op - scalar_op;
     auto reverse_order_op = scalar_op - other_scalar_op;
 
-    std::map<std::string, std::complex<double>> parameter_map = {
+    std::unordered_map<std::string, std::complex<double>> parameter_map = {
         {"value", value_1}, {"other", value_3}};
 
     auto got_value = new_scalar_op.evaluate(parameter_map);
@@ -486,7 +491,7 @@ TEST(OperatorExpressions, checkScalarOpsArithmeticScalarOps) {
     auto new_scalar_op = other_scalar_op * scalar_op;
     auto reverse_order_op = scalar_op * other_scalar_op;
 
-    std::map<std::string, std::complex<double>> parameter_map = {
+    std::unordered_map<std::string, std::complex<double>> parameter_map = {
         {"value", value_1}, {"other", value_3}};
 
     auto got_value = new_scalar_op.evaluate(parameter_map);
@@ -521,7 +526,7 @@ TEST(OperatorExpressions, checkScalarOpsArithmeticScalarOps) {
     auto new_scalar_op = other_scalar_op / scalar_op;
     auto reverse_order_op = scalar_op / other_scalar_op;
 
-    std::map<std::string, std::complex<double>> parameter_map = {
+    std::unordered_map<std::string, std::complex<double>> parameter_map = {
         {"value", value_0}, {"other", value_3}};
 
     auto got_value = new_scalar_op.evaluate(parameter_map);

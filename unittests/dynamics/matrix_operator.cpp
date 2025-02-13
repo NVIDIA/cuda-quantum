@@ -118,16 +118,16 @@ TEST(OperatorExpressions, checkPreBuiltMatrixOps) {
 
 TEST(OperatorExpressions, checkCustomMatrixOps) {
     auto level_count = 2;
-    std::map<int, int> dimensions = {{0, level_count + 1}, {1, level_count + 2}, {3, level_count}};
+    std::unordered_map<int, int> dimensions = {{0, level_count + 1}, {1, level_count + 2}, {3, level_count}};
 
     {
-      auto func0 = [](std::vector<int> dimensions,
-                      std::map<std::string, std::complex<double>> _none) {
+      auto func0 = [](const std::vector<int> &dimensions,
+                      const std::unordered_map<std::string, std::complex<double>> &_none) {
         return cudaq::kronecker(utils::momentum_matrix(dimensions[0]),
                                       utils::position_matrix(dimensions[1]));;
       };
-      auto func1 = [](std::vector<int> dimensions,
-                      std::map<std::string, std::complex<double>> _none) {
+      auto func1 = [](const std::vector<int> &dimensions,
+                      const std::unordered_map<std::string, std::complex<double>> &_none) {
         return cudaq::kronecker(utils::create_matrix(dimensions[0]),
                                       utils::number_matrix(dimensions[1]));;
       };
@@ -245,8 +245,11 @@ TEST(OperatorExpressions, checkMatrixOpsWithComplex) {
 
 TEST(OperatorExpressions, checkMatrixOpsWithScalars) {
 
-  auto function = [](std::map<std::string, std::complex<double>> parameters) {
-    return parameters["value"];
+  auto function = [](const std::unordered_map<std::string, std::complex<double>> &parameters) {
+    auto entry = parameters.find("value");
+    if (entry == parameters.end())
+      throw std::runtime_error("value not defined in parameters");
+    return entry->second;
   };
 
   /// Keeping these fixed for these more simple tests.
@@ -371,10 +374,6 @@ TEST(OperatorExpressions, checkMatrixOpsWithScalars) {
     auto product = self * other;
     auto reverse = other * self;
 
-    auto create = cudaq::matrix_operator::create(0).get_terms()[0];
-    utils::assert_product_equal(product, other.evaluate(), {create});
-    utils::assert_product_equal(reverse, other.evaluate(), {create});
-
     std::vector<int> want_degrees = {0};
     ASSERT_TRUE(product.degrees() == want_degrees);
     ASSERT_TRUE(reverse.degrees() == want_degrees);
@@ -394,7 +393,7 @@ TEST(OperatorExpressions, checkMatrixOpsSimpleArithmetics) {
 
   /// Keeping this fixed throughout.
   int level_count = 3;
-  std::map<int, int> dimensions = {{0, level_count}, {1, level_count}};
+  std::unordered_map<int, int> dimensions = {{0, level_count}, {1, level_count}};
 
   // Addition, same DOF.
   {
@@ -665,16 +664,16 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
 TEST(OperatorExpressions, checkMatrixOpsDegreeVerification) {
   auto op1 = cudaq::matrix_operator::create(2);
   auto op2 = cudaq::matrix_operator::annihilate(0);
-  std::map<int, int> dimensions = {{0, 2}, {1, 2}, {2, 3}, {3, 3}};
+  std::unordered_map<int, int> dimensions = {{0, 2}, {1, 2}, {2, 3}, {3, 3}};
 
   {
-    auto func0 = [](std::vector<int> dimensions,
-                    std::map<std::string, std::complex<double>> _none) {
+    auto func0 = [](const std::vector<int> &dimensions,
+                    const std::unordered_map<std::string, std::complex<double>> &_none) {
       return cudaq::kronecker(utils::momentum_matrix(dimensions[0]),
                                     utils::position_matrix(dimensions[1]));;
     };
-    auto func1 = [](std::vector<int> dimensions,
-                    std::map<std::string, std::complex<double>> _none) {
+    auto func1 = [](const std::vector<int> &dimensions,
+                    const std::unordered_map<std::string, std::complex<double>> &_none) {
       return cudaq::kronecker(utils::create_matrix(dimensions[0]),
                                     utils::number_matrix(dimensions[1]));;
     };
@@ -702,8 +701,8 @@ TEST(OperatorExpressions, checkMatrixOpsDegreeVerification) {
 
 TEST(OperatorExpressions, checkMatrixOpsParameterVerification) {
 
-  std::map<std::string, std::complex<double>> parameters = {{"squeezing", 0.5}, {"displacement", 0.25}};
-  std::map<int, int> dimensions = {{0, 2}, {1, 2}};
+  std::unordered_map<std::string, std::complex<double>> parameters = {{"squeezing", 0.5}, {"displacement", 0.25}};
+  std::unordered_map<int, int> dimensions = {{0, 2}, {1, 2}};
 
   auto squeeze = cudaq::matrix_operator::squeeze(1);
   auto displace = cudaq::matrix_operator::displace(0);

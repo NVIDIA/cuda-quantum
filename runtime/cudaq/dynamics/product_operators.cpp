@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <numeric>
 #include <set>
+#include <unordered_map>
 #include <type_traits>
 
 #include "cudaq/operators.h"
@@ -22,13 +23,64 @@ namespace cudaq {
 
 // private methods
 
+#if !defined(NDEBUG)
+// check canonicalization by default, individual handlers can set it to false to disable the check
+bool operator_handler::can_be_canonicalized = true;
+
+// returns true if and only if applying the operators in sequence acts only once on each degree of freedom and in canonical order
+template <typename HandlerTy>
+bool product_operator<HandlerTy>::is_canonicalized() const {
+  auto canon_degrees = this->degrees();
+  std::vector<int> degrees;
+  degrees.reserve(canon_degrees.size());
+  for (const auto &op : this->operators) {
+    for (auto d : op.degrees())
+      degrees.push_back(d);
+  }
+  return degrees == canon_degrees;
+}
+#endif
+
+template<typename HandlerTy>
+std::vector<HandlerTy>::const_iterator product_operator<HandlerTy>::find_insert_at(const HandlerTy &other) const {
+  // the logic below just ensures that terms are fully or partially ordered in canonical order -
+  // a best effort is made to order terms, but a full canonical ordering is not possible for certain handlers
+  return std::find_if(this->operators.crbegin(), this->operators.crend(), 
+              [&other_degrees = static_cast<const std::vector<int>&>(other.degrees())] 
+              (const HandlerTy& self_op) { 
+    const std::vector<int> &self_op_degrees = self_op.degrees();
+    for (auto other_degree : other_degrees) { // fixme: special case on single qubit handlers instead?
+      auto item_it = std::find_if(self_op_degrees.crbegin(), self_op_degrees.crend(), 
+        [other_degree](int self_degree) { return other_degree <= self_degree; }); // FIXME: relies on canonical order
+      if (item_it != self_op_degrees.crend()) return true;
+    }
+    return false;
+  }).base(); // base causes insert after for reverse iterator
+}
+
+template<typename HandlerTy>
+template<typename T, std::enable_if_t<std::is_same<HandlerTy, T>::value && !product_operator<T>::supports_inplace_mult, int>>
+void product_operator<HandlerTy>::insert(T &&other) {  
+  auto pos = this->find_insert_at(other);
+  this->operators.insert(pos, other);
+}
+
+template<typename HandlerTy>
+template <typename T, std::enable_if_t<std::is_same<HandlerTy, T>::value && product_operator<T>::supports_inplace_mult, bool>>
+void product_operator<HandlerTy>::insert(T &&other) {
+  auto pos = this->find_insert_at(other);
+  if (pos != this->operators.begin() && (pos - 1)->target == other.target) 
+    this->coefficient *= this->operators.erase(pos - 1, pos - 1)->inplace_mult(other); // erase: constant time conversion to non-const iterator
+  else this->operators.insert(pos, std::move(other));
+}
+
 template<typename HandlerTy>
 void product_operator<HandlerTy>::aggregate_terms() {}
 
 template<typename HandlerTy>
 template<typename... Args>
 void product_operator<HandlerTy>::aggregate_terms(HandlerTy &&head, Args&& ... args) {
-  this->operators.push_back(head);
+  this->insert(std::forward<HandlerTy>(head));
   aggregate_terms(std::forward<Args>(args)...);
 }
 
@@ -44,9 +96,8 @@ EvaluatedMatrix product_operator<HandlerTy>::m_evaluate(
       std::vector<EvaluatedMatrix> padded;
       auto op_degrees = op.degrees();
       for (const auto &degree : degrees) {
-        if (std::find(op_degrees.begin(), op_degrees.end(), degree) == op_degrees.end()) {
-          // FIXME: instead of relying on an identity to exist, replace pad_terms with a function to invoke.
-          auto identity = HandlerTy::one(degree);
+        if (std::find(op_degrees.cbegin(), op_degrees.cend(), degree) == op_degrees.cend()) {
+          auto identity = HandlerTy(degree);
           padded.push_back(EvaluatedMatrix(identity.degrees(), identity.to_matrix(arithmetics.m_dimensions)));
         }
       }
@@ -65,7 +116,7 @@ EvaluatedMatrix product_operator<HandlerTy>::m_evaluate(
       EvaluatedMatrix prod = padded_op(this->operators[0]);
       for (auto op_idx = 1; op_idx < this->operators.size(); ++op_idx) {
         auto op_degrees = this->operators[op_idx].degrees();
-        if (op_degrees.size() != 1 || !this->operators[op_idx].is_identity())
+        if (op_degrees.size() != 1 || this->operators[op_idx] != HandlerTy(op_degrees[0]))
           prod = arithmetics.mul(std::move(prod), padded_op(this->operators[op_idx]));
       }
       return EvaluatedMatrix(std::move(prod.degrees()), coefficient * prod.matrix());
@@ -109,11 +160,11 @@ std::vector<int> product_operator<HandlerTy>::degrees() const {
   std::set<int> unsorted_degrees;
   for (const HandlerTy &term : this->operators) {
     auto term_degrees = term.degrees();
-    unsorted_degrees.insert(term_degrees.begin(), term_degrees.end());
+    unsorted_degrees.insert(term_degrees.cbegin(), term_degrees.cend());
   }
-  auto degrees =
-      std::vector<int>(unsorted_degrees.begin(), unsorted_degrees.end());
-  return cudaq::detail::canonicalize_degrees(degrees);
+  auto degrees = std::vector<int>(unsorted_degrees.cbegin(), unsorted_degrees.cend());
+  cudaq::detail::canonicalize_degrees(degrees);
+  return degrees;
 }
 
 template<typename HandlerTy>
@@ -152,9 +203,14 @@ INSTANTIATE_PRODUCT_PROPERTIES(boson_operator);
 // constructors
 
 template<typename HandlerTy>
+product_operator<HandlerTy>::product_operator(double coefficient)
+  : coefficient(coefficient) {}
+
+template<typename HandlerTy>
 product_operator<HandlerTy>::product_operator(HandlerTy &&atomic)
   : coefficient(1.) {
   this->operators.push_back(std::move(atomic));
+  assert (!HandlerTy::can_be_canonicalized || this->is_canonicalized()); // relevant for custom matrix operators acting on multiple degrees of freedom
 }
 
 template<typename HandlerTy>
@@ -163,18 +219,21 @@ product_operator<HandlerTy>::product_operator(scalar_operator coefficient, Args&
   : coefficient(std::move(coefficient)) {
   this->operators.reserve(sizeof...(Args));
   aggregate_terms(std::forward<HandlerTy &&>(args)...);
+  assert (!HandlerTy::can_be_canonicalized || this->is_canonicalized());
 }
 
 template<typename HandlerTy>
 product_operator<HandlerTy>::product_operator(scalar_operator coefficient, const std::vector<HandlerTy> &atomic_operators) 
   : coefficient(std::move(coefficient)){ 
-  this->operators = atomic_operators;
+  this->operators = atomic_operators; // assumes canonical ordering (if possible)
+  assert (!HandlerTy::can_be_canonicalized || this->is_canonicalized());
 }
 
 template<typename HandlerTy>
 product_operator<HandlerTy>::product_operator(scalar_operator coefficient, std::vector<HandlerTy> &&atomic_operators)
   : coefficient(std::move(coefficient)) {
-  this->operators = std::move(atomic_operators);
+  this->operators = std::move(atomic_operators); // assumes canonical ordering (if possible)
+  assert (!HandlerTy::can_be_canonicalized || this->is_canonicalized());
 }
 
 template<typename HandlerTy>
@@ -198,6 +257,9 @@ product_operator<HandlerTy>::product_operator(product_operator<HandlerTy> &&othe
 }
 
 #define INSTANTIATE_PRODUCT_CONSTRUCTORS(HandlerTy)                                          \
+                                                                                             \
+  template                                                                                   \
+  product_operator<HandlerTy>::product_operator(double coefficient);                         \
                                                                                              \
   template                                                                                   \
   product_operator<HandlerTy>::product_operator(scalar_operator coefficient);                \
@@ -300,8 +362,8 @@ std::string product_operator<HandlerTy>::to_string() const {
 }
 
 template<typename HandlerTy>
-matrix_2 product_operator<HandlerTy>::to_matrix(std::map<int, int> dimensions,
-                                                std::map<std::string, std::complex<double>> parameters) const {
+matrix_2 product_operator<HandlerTy>::to_matrix(std::unordered_map<int, int> dimensions,
+                                                const std::unordered_map<std::string, std::complex<double>> &parameters) const {
   return this->m_evaluate(MatrixArithmetics(dimensions, parameters)).matrix();
 }
 
@@ -312,8 +374,8 @@ matrix_2 product_operator<HandlerTy>::to_matrix(std::map<int, int> dimensions,
                                                                                             \
   template                                                                                  \
   matrix_2 product_operator<HandlerTy>::to_matrix(                                          \
-    std::map<int, int> dimensions,                                                          \
-    std::map<std::string, std::complex<double>> parameters) const;
+    std::unordered_map<int, int> dimensions,                                               \
+    const std::unordered_map<std::string, std::complex<double>> &parameters) const;
 
 INSTANTIATE_PRODUCT_EVALUATIONS(matrix_operator);
 INSTANTIATE_PRODUCT_EVALUATIONS(spin_operator);
@@ -321,10 +383,12 @@ INSTANTIATE_PRODUCT_EVALUATIONS(boson_operator);
 
 // comparisons
 
-template <typename HandlerTy>
-bool product_operator<HandlerTy>::operator==(
-    const product_operator<HandlerTy> &other) const {
-  throw std::runtime_error("not implemented");
+template<typename HandlerTy>
+bool product_operator<HandlerTy>::operator==(const product_operator<HandlerTy> &other) const {
+  bool are_same = this->operators.size() == other.operators.size() && this->coefficient == other.coefficient;
+  for (auto i = 0; are_same && i < this->operators.size(); ++i)
+    are_same = this->operators[i] == other.operators[i];
+  return are_same;
 }
 
 #define INSTANTIATE_PRODUCT_COMPARISONS(HandlerTy)                                          \
@@ -477,26 +541,23 @@ operator_sum<HandlerTy> product_operator<HandlerTy>::operator*(const operator_su
     sum.coefficients.push_back(std::move(prod.coefficient));
     sum.terms.push_back(std::move(prod.operators));
   }
+  sum.aggregate_all();
   return sum;
 }
 
+// FIXME: potentially unnecessary copy of this
 #define PRODUCT_ADDITION_SUM(op)                                                        \
   template <typename HandlerTy>                                                         \
   operator_sum<HandlerTy> product_operator<HandlerTy>::operator op(                     \
                                      const operator_sum<HandlerTy> &other) const {      \
-    std::vector<scalar_operator> coefficients;                                          \
-    coefficients.reserve(other.coefficients.size() + 1);                                \
-    coefficients.push_back(this->coefficient);                                          \
-    for (auto &coeff : other.coefficients)                                              \
-      coefficients.push_back(op coeff);                                                 \
-    std::vector<std::vector<HandlerTy>> terms;                                          \
-    terms.reserve(other.terms.size() + 1);                                              \
-    terms.push_back(this->operators);                                                   \
-    for (auto &term : other.terms)                                                      \
-      terms.push_back(term);                                                            \
     operator_sum<HandlerTy> sum;                                                        \
-    sum.coefficients = std::move(coefficients);                                         \
-    sum.terms = std::move(terms);                                                       \
+    sum.coefficients.reserve(other.coefficients.size() + 1);                            \
+    sum.terms.reserve(other.terms.size() + 1);                                          \
+    for (auto &coeff : other.coefficients)                                              \
+      sum.coefficients.push_back(op coeff);                                             \
+    for (auto &term : other.terms)                                                      \
+      sum.terms.push_back(term);                                                        \
+    sum.insert(product_operator<HandlerTy>(*this));                                     \
     return sum;                                                                         \
   }
 
@@ -551,23 +612,8 @@ template <typename HandlerTy>
 product_operator<HandlerTy>& product_operator<HandlerTy>::operator*=(const product_operator<HandlerTy> &other) {
   this->coefficient *= other.coefficient;
   this->operators.reserve(this->operators.size() + other.operators.size());
-  this->operators.insert(this->operators.end(), other.operators.begin(), other.operators.end());
-  return *this;
-}
-
-template <> // specialization for term aggregation
-product_operator<spin_operator>& product_operator<spin_operator>::operator*=(const product_operator<spin_operator> &other) {
-  this->operators.reserve(this->operators.size() + other.operators.size()); // worst case, may not be needed
-  std::complex<double> spin_factor = 1.0;
-  for (const spin_operator &op : other.operators) {
-    auto it = std::find_if(this->operators.rbegin(), this->operators.rend(), 
-                [op_target = op.target] (const spin_operator& self_op) { return self_op.target == op_target; });
-    if (it != this->operators.rend())
-      spin_factor *= it->in_place_mult(op);
-    else
-      this->operators.push_back(op);
-  }
-  this->coefficient *= other.coefficient * spin_factor;
+  for (HandlerTy other_op : other.operators)
+    this->insert(std::move(other_op));
   return *this;
 }
 
@@ -708,6 +754,22 @@ PRODUCT_CONVERSIONS_OPS(-, operator_sum);
 INSTANTIATE_PRODUCT_CONVERSION_OPS(*, product_operator);
 INSTANTIATE_PRODUCT_CONVERSION_OPS(+, operator_sum);
 INSTANTIATE_PRODUCT_CONVERSION_OPS(-, operator_sum);
+
+// common operators
+
+template<typename HandlerTy, typename... Args, std::enable_if_t<std::conjunction<std::is_same<int, Args>...>::value, bool> = true>
+product_operator<HandlerTy> operator_handler::identity(Args... targets) {
+  static_assert (std::is_constructible_v<HandlerTy, int>, "operator handlers must have a constructor that take a single degree of freedom and returns the identity operator on that degree.");
+  return product_operator<HandlerTy>(1.0, HandlerTy(targets)...);
+}
+
+template product_operator<matrix_operator> operator_handler::identity();
+template product_operator<spin_operator> operator_handler::identity();
+template product_operator<boson_operator> operator_handler::identity();
+
+template product_operator<matrix_operator> operator_handler::identity(int target);
+template product_operator<spin_operator> operator_handler::identity(int target);
+template product_operator<boson_operator> operator_handler::identity(int target);
 
 
 #ifdef CUDAQ_INSTANTIATE_TEMPLATES

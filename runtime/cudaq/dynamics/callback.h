@@ -14,7 +14,7 @@
 #include <complex>
 #include <functional>
 #include <iostream>
-#include <map>
+#include <unordered_map>
 #include <string>
 #include <vector>
 
@@ -24,16 +24,16 @@ class ScalarCallbackFunction {
 private:
   // The user provided callback function that takes a map of complex 
   // parameters.
-  std::function<std::complex<double>(std::map<std::string, std::complex<double>>)> _callback_func;
+  std::function<std::complex<double>(const std::unordered_map<std::string, std::complex<double>>&)> _callback_func;
 
 public:
   template <typename Callable>
   ScalarCallbackFunction(Callable &&callable) {
     static_assert(
         std::is_invocable_r_v<std::complex<double>, Callable,
-                              std::map<std::string, std::complex<double>>>,
+                              const std::unordered_map<std::string, std::complex<double>>&>,
         "Invalid callback function. Must have signature std::complex<double>("
-        "std::map<std::string, std::complex<double>>)");
+        "const std::unordered_map<std::string, std::complex<double>>&)");
     _callback_func = std::forward<Callable>(callable);
   }
 
@@ -50,7 +50,7 @@ public:
   ScalarCallbackFunction& operator=(ScalarCallbackFunction &&other);
 
   std::complex<double>
-  operator()(std::map<std::string, std::complex<double>> parameters) const;
+  operator()(const std::unordered_map<std::string, std::complex<double>> &parameters) const;
 };
 
 
@@ -59,18 +59,16 @@ private:
   // The user provided callback function that takes a vector defining the 
   // dimension for each degree of freedom it acts on, and a map of complex 
   // parameters.
-  std::function<matrix_2(std::vector<int>, std::map<std::string, std::complex<double>>)> _callback_func;
+  std::function<matrix_2(const std::vector<int>&, const std::unordered_map<std::string, std::complex<double>>&)> _callback_func;
 
 public:
   template <typename Callable>
   MatrixCallbackFunction(Callable &&callable) {
     static_assert(
-        std::is_invocable_r_v<matrix_2, Callable, std::vector<int>,
-                              std::map<std::string, std::complex<double>>>,
+        std::is_invocable_r_v<matrix_2, Callable, const std::vector<int>&,
+                              const std::unordered_map<std::string, std::complex<double>>&>,
         "Invalid callback function. Must have signature "
-        "matrix_2("
-        "std::map<int,int>, "
-        "std::map<std::string, std::complex<double>>)");
+        "matrix_2(const std::vector<int>&, const std::unordered_map<std::string, std::complex<double>>&)");
     _callback_func = std::forward<Callable>(callable);
   }
 
@@ -87,8 +85,8 @@ public:
   MatrixCallbackFunction& operator=(MatrixCallbackFunction &&other);
 
   matrix_2
-  operator()(std::vector<int> relevant_dimensions,
-             std::map<std::string, std::complex<double>> parameters) const;
+  operator()(const std::vector<int> &relevant_dimensions,
+             const std::unordered_map<std::string, std::complex<double>> &parameters) const;
 };
 
 
@@ -102,13 +100,13 @@ private:
 public:
   const std::vector<int>& expected_dimensions = this->m_expected_dimensions;
 
-  Definition(const std::string &operator_id, std::vector<int> expected_dimensions, MatrixCallbackFunction &&create);
+  Definition(std::string operator_id, const std::vector<int> &expected_dimensions, MatrixCallbackFunction &&create);
   Definition(Definition &&def);
   ~Definition();
 
   // To call the generator function
   matrix_2 generate_matrix(
       const std::vector<int> &relevant_dimensions,
-      const std::map<std::string, std::complex<double>> &parameters) const;
+      const std::unordered_map<std::string, std::complex<double>> &parameters) const;
 };
 } // namespace cudaq

@@ -9,7 +9,7 @@
 #pragma once
 
 #include <complex>
-#include <map>
+#include <unordered_map>
 #include <vector>
 
 #include "cudaq/utils/tensor.h"
@@ -21,7 +21,7 @@ template <typename HandlerTy>
 class product_operator;
 
 // FIXME: rename?
-class boson_operator : operator_handler{
+class boson_operator : public operator_handler{
 
 private:
 
@@ -29,7 +29,7 @@ private:
   int id;
   int target;
 
-  boson_operator(int op, int target);
+  boson_operator(int target, int op);
 
 public:
 
@@ -39,13 +39,11 @@ public:
   /// order.
   virtual std::vector<int> degrees() const;
 
-  virtual bool is_identity() const;
-
   // constructors and destructors
 
-  ~boson_operator() = default;
+  boson_operator(int target);
 
-  // assignments
+  ~boson_operator() = default;
 
   // evaluations
 
@@ -54,8 +52,8 @@ public:
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
-  virtual matrix_2 to_matrix(std::map<int, int> &dimensions,
-                             std::map<std::string, std::complex<double>> parameters = {}) const;
+  virtual matrix_2 to_matrix(std::unordered_map<int, int> &dimensions,
+                             const std::unordered_map<std::string, std::complex<double>> &parameters = {}) const;
 
   virtual std::string to_string(bool include_degrees) const;
 
@@ -65,8 +63,9 @@ public:
 
   // defined operators
 
-  // multiplicative identity
-  static boson_operator one(int degree);
+  static operator_sum<boson_operator> empty();
+  static product_operator<boson_operator> identity();
+
   static product_operator<boson_operator> identity(int degree);
   static product_operator<boson_operator> create(int degree);
   static product_operator<boson_operator> annihilate(int degree);

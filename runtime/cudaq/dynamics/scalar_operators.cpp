@@ -50,15 +50,14 @@ scalar_operator& scalar_operator::operator=(scalar_operator &&other) {
 // evaluations
 
 std::complex<double> scalar_operator::evaluate(
-    const std::map<std::string, std::complex<double>> parameters) const {
+    const std::unordered_map<std::string, std::complex<double>> &parameters) const {
   if (std::holds_alternative<ScalarCallbackFunction>(this->value)) 
     return std::get<ScalarCallbackFunction>(this->value)(parameters);
   return std::get<std::complex<double>>(this->value);
 }
 
 matrix_2 scalar_operator::to_matrix(
-    const std::map<int, int> dimensions,
-    const std::map<std::string, std::complex<double>> parameters) const {
+    const std::unordered_map<std::string, std::complex<double>> &parameters) const {
   auto returnOperator = matrix_2(1, 1);
   returnOperator[{0, 0}] = evaluate(parameters);
   return returnOperator;
@@ -66,7 +65,7 @@ matrix_2 scalar_operator::to_matrix(
 
 // comparison
 
-bool scalar_operator::operator==(scalar_operator other) {
+bool scalar_operator::operator==(scalar_operator other) const {
   if (std::holds_alternative<ScalarCallbackFunction>(this->value)) {
     return std::holds_alternative<ScalarCallbackFunction>(other.value) &&
            &std::get<ScalarCallbackFunction>(this->value) == &std::get<ScalarCallbackFunction>(other.value);
@@ -92,7 +91,7 @@ scalar_operator scalar_operator::operator+() const { return *this; }
     }                                                                                 \
     auto newGenerator =                                                               \
       [other, generator = std::get<ScalarCallbackFunction>(this->value)](             \
-          std::map<std::string, std::complex<double>> parameters) {                   \
+          const std::unordered_map<std::string, std::complex<double>> &parameters) {  \
         return generator(parameters) op other;                                        \
       };                                                                              \
     return scalar_operator(newGenerator);                                             \
@@ -117,10 +116,10 @@ ARITHMETIC_OPERATIONS(-, std::complex<double>);
         std::get<std::complex<double>>(other.value));                                 \
     }                                                                                 \
     auto newGenerator =                                                               \
-        [other, *this](                                                               \
-            std::map<std::string, std::complex<double>> parameters) {                 \
-          return this->evaluate(parameters) op other.evaluate(parameters);            \
-        };                                                                            \
+      [other, *this](                                                                 \
+          const std::unordered_map<std::string, std::complex<double>> &parameters) {  \
+        return this->evaluate(parameters) op other.evaluate(parameters);              \
+      };                                                                              \
     return scalar_operator(newGenerator);                                             \
   }
 
@@ -137,7 +136,7 @@ ARITHMETIC_OPERATIONS_SCALAR_OPS(-);
     }                                                                                 \
     auto newGenerator =                                                               \
       [other, generator = std::move(std::get<ScalarCallbackFunction>(this->value))](  \
-          std::map<std::string, std::complex<double>> parameters) {                   \
+          const std::unordered_map<std::string, std::complex<double>> &parameters) {  \
         return generator(parameters) op##= other;                                     \
       };                                                                              \
     this->value = newGenerator;                                                       \
@@ -164,10 +163,10 @@ ARITHMETIC_OPERATIONS_ASSIGNMENT(-, std::complex<double>);
       return *this;                                                                   \
     }                                                                                 \
     auto newGenerator =                                                               \
-        [other, *this](                                                               \
-            std::map<std::string, std::complex<double>> parameters) {                 \
-          return this->evaluate(parameters) op##= other.evaluate(parameters);         \
-        };                                                                            \
+      [other, *this](                                                                 \
+          const std::unordered_map<std::string, std::complex<double>> &parameters) {  \
+        return this->evaluate(parameters) op##= other.evaluate(parameters);           \
+      };                                                                              \
     this->value = newGenerator;                                                       \
     return *this;                                                                     \
   }
@@ -201,7 +200,7 @@ ARITHMETIC_OPERATIONS_RVALUE(-, std::complex<double>);
     }                                                                                 \
     auto newGenerator =                                                               \
       [other, generator = std::get<ScalarCallbackFunction>(self.value)](              \
-          std::map<std::string, std::complex<double>> parameters) {                   \
+          const std::unordered_map<std::string, std::complex<double>> &parameters) {  \
         return other op generator(parameters);                                        \
       };                                                                              \
     return scalar_operator(newGenerator);                                             \

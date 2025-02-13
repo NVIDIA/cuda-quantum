@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include <complex>
-#include <map>
+#include <unordered_map>
 #include <vector>
 
 #include "cudaq/utils/tensor.h"
@@ -17,7 +17,7 @@ namespace cudaq {
 
 // private helper to optimize arithmetics
 
-std::complex<double> spin_operator::in_place_mult(const spin_operator &other) {
+std::complex<double> spin_operator::inplace_mult(const spin_operator &other) {
   assert(this->target == other.target); // FIXME: make cleaner
   std::complex<double> factor;
   if (this->id == 0 || other.id == 0 || this->id == other.id) factor = 1.0;
@@ -35,26 +35,24 @@ std::vector<int> spin_operator::degrees() const {
 
 // constructors
 
-spin_operator::spin_operator(int op_id, int target) 
+spin_operator::spin_operator(int target) 
+  : id(0), target(target) {}
+
+spin_operator::spin_operator(int target, int op_id) 
   : id(op_id), target(target) {
     assert(0 <= op_id < 4);
 }
 
-bool spin_operator::is_identity() const {
-    return this->id == 0;
-}
-
 // evaluations
 
-matrix_2 spin_operator::to_matrix(std::map<int, int> &dimensions,
-                                  std::map<std::string, std::complex<double>> parameters) const {
+matrix_2 spin_operator::to_matrix(std::unordered_map<int, int> &dimensions,
+                                  const std::unordered_map<std::string, std::complex<double>> &parameters) const {
   auto it = dimensions.find(this->target);
   if (it == dimensions.end())
     dimensions[this->target] = 2;
   else if (it->second != 2)
     throw std::runtime_error("dimension for spin operator must be 2");
 
-  // FIXME: CHECK CONVENTIONS
   auto mat = matrix_2(2, 2);
   if (this->id == 1) { // Z
     mat[{0, 0}] = 1.0;
@@ -90,25 +88,28 @@ bool spin_operator::operator==(const spin_operator &other) const {
 
 // defined operators
 
-// multiplicative identity
-spin_operator spin_operator::one(int degree) {
-  return spin_operator(0, degree);
+operator_sum<spin_operator> spin_operator::empty() {
+  return operator_handler::empty<spin_operator>();
+}
+
+product_operator<spin_operator> spin_operator::identity() {
+  return operator_handler::identity<spin_operator>();
 }
 
 product_operator<spin_operator> spin_operator::i(int degree) {
-  return product_operator(spin_operator(0, degree));
+  return product_operator(spin_operator(degree));
 }
 
 product_operator<spin_operator> spin_operator::z(int degree) {
-  return product_operator(spin_operator(1, degree));
+  return product_operator(spin_operator(degree, 1));
 }
 
 product_operator<spin_operator> spin_operator::x(int degree) {
-  return product_operator(spin_operator(2, degree));
+  return product_operator(spin_operator(degree, 2));
 }
 
 product_operator<spin_operator> spin_operator::y(int degree) {
-  return product_operator(spin_operator(3, degree));
+  return product_operator(spin_operator(degree, 3));
 }
 
 } // namespace cudaq
