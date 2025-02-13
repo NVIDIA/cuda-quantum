@@ -1,0 +1,253 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -classical-optimization-pipeline %s | FileCheck %s
+
+func.func @test_array_copy() -> i1 {
+  %c0_i64 = arith.constant 0 : i64
+  %0 = cc.alloca !cc.array<i64 x 1>
+  %1 = cc.cast %0 : (!cc.ptr<!cc.array<i64 x 1>>) -> !cc.ptr<i64>
+  cc.store %c0_i64, %1 : !cc.ptr<i64>
+  %2 = cc.alloca !cc.array<i64 x 1>
+  %3 = cc.load %1 : !cc.ptr<i64>
+  %4 = cc.cast %2 : (!cc.ptr<!cc.array<i64 x 1>>) -> !cc.ptr<i64>
+  cc.store %3, %4 : !cc.ptr<i64>
+  %6 = cc.load %1 : !cc.ptr<i64>
+  %7 = cc.load %4 : !cc.ptr<i64>
+  %8 = arith.cmpi eq, %6, %7 : i64
+  return %8 : i1
+}
+
+// CHECK-LABEL:   func.func @test_array_copy() -> i1 {
+// CHECK:           %[[VAL_0:.*]] = arith.constant true
+// CHECK:           return %[[VAL_0]] : i1
+// CHECK:         }
+
+func.func @test_nested_loop_unroll() {
+  %c1_i64 = arith.constant 1 : i64
+  %c2_i64 = arith.constant 2 : i64
+  %c0_i64 = arith.constant 0 : i64
+  %0 = quake.alloca !quake.veq<6>
+  %1 = quake.extract_ref %0[0] : (!quake.veq<6>) -> !quake.ref
+  quake.x %1 : (!quake.ref) -> ()
+  %2 = math.absi %c2_i64 : i64
+  %3 = cc.alloca i64[%2 : i64]
+  %4:2 = cc.loop while ((%arg0 = %c0_i64, %arg1 = %c0_i64) -> (i64, i64)) {
+    %25 = arith.cmpi slt, %arg0, %c2_i64 : i64
+    cc.condition %25(%arg0, %arg1 : i64, i64)
+  } do {
+  ^bb0(%arg0: i64, %arg1: i64):
+    %25 = cc.compute_ptr %3[%arg1] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
+    cc.store %arg1, %25 : !cc.ptr<i64>
+    %26 = arith.addi %arg1, %c1_i64 : i64
+    cc.continue %arg0, %26 : i64, i64
+  } step {
+  ^bb0(%arg0: i64, %arg1: i64):
+    %25 = arith.addi %arg0, %c1_i64 : i64
+    cc.continue %25, %arg1 : i64, i64
+  } {invariant}
+  %5 = cc.alloca i64[%c2_i64 : i64]
+  %6 = cc.loop while ((%arg0 = %c0_i64) -> (i64)) {
+    %25 = arith.cmpi slt, %arg0, %c2_i64 : i64
+    cc.condition %25(%arg0 : i64)
+  } do {
+  ^bb0(%arg0: i64):
+    %25 = cc.compute_ptr %3[%arg0] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
+    %26 = cc.load %25 : !cc.ptr<i64>
+    %27 = arith.muli %26, %c2_i64 : i64
+    %28 = cc.compute_ptr %5[%arg0] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
+    cc.store %27, %28 : !cc.ptr<i64>
+    cc.continue %arg0 : i64
+  } step {
+  ^bb0(%arg0: i64):
+    %25 = arith.addi %arg0, %c1_i64 : i64
+    cc.continue %25 : i64
+  } {invariant}
+  %7 = cc.stdvec_init %5, %c2_i64 : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.stdvec<i64>
+  %8 = cc.stdvec_size %7 : (!cc.stdvec<i64>) -> i64
+  %9 = arith.subi %8, %c1_i64 : i64
+  %10:2 = cc.loop while ((%arg0 = %c0_i64, %arg1 = %c0_i64) -> (i64, i64)) {
+    %25 = arith.cmpi slt, %arg0, %9 : i64
+    cc.condition %25(%arg0, %arg1 : i64, i64)
+  } do {
+  ^bb0(%arg0: i64, %arg1: i64):
+    %25 = arith.addi %arg0, %c1_i64 : i64
+    %26:2 = cc.loop while ((%arg2 = %25, %arg3 = %arg1) -> (i64, i64)) {
+      %27 = arith.cmpi slt, %arg2, %8 : i64
+      cc.condition %27(%arg2, %arg3 : i64, i64)
+    } do {
+    ^bb0(%arg2: i64, %arg3: i64):
+      %27 = arith.addi %arg3, %c1_i64 : i64
+      cc.continue %arg2, %27 : i64, i64
+    } step {
+    ^bb0(%arg2: i64, %arg3: i64):
+      %27 = arith.addi %arg2, %c1_i64 : i64
+      cc.continue %27, %arg3 : i64, i64
+    } {invariant}
+    cc.continue %arg0, %26#1 : i64, i64
+  } step {
+  ^bb0(%arg0: i64, %arg1: i64):
+    %25 = arith.addi %arg0, %c1_i64 : i64
+    cc.continue %25, %arg1 : i64, i64
+  } {invariant}
+  %11 = math.absi %10#1 : i64
+  %12 = cc.alloca i64[%11 : i64]
+  %13:2 = cc.loop while ((%arg0 = %c0_i64, %arg1 = %c0_i64) -> (i64, i64)) {
+    %25 = arith.cmpi slt, %arg0, %10#1 : i64
+    cc.condition %25(%arg0, %arg1 : i64, i64)
+  } do {
+  ^bb0(%arg0: i64, %arg1: i64):
+    %25 = cc.compute_ptr %12[%arg1] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
+    cc.store %arg1, %25 : !cc.ptr<i64>
+    %26 = arith.addi %arg1, %c1_i64 : i64
+    cc.continue %arg0, %26 : i64, i64
+  } step {
+  ^bb0(%arg0: i64, %arg1: i64):
+    %25 = arith.addi %arg0, %c1_i64 : i64
+    cc.continue %25, %arg1 : i64, i64
+  } {invariant}
+  %14 = cc.alloca i64[%10#1 : i64]
+  %15 = cc.loop while ((%arg0 = %c0_i64) -> (i64)) {
+    %25 = arith.cmpi slt, %arg0, %10#1 : i64
+    cc.condition %25(%arg0 : i64)
+  } do {
+  ^bb0(%arg0: i64):
+    %25 = cc.compute_ptr %14[%arg0] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
+    cc.store %c0_i64, %25 : !cc.ptr<i64>
+    cc.continue %arg0 : i64
+  } step {
+  ^bb0(%arg0: i64):
+    %25 = arith.addi %arg0, %c1_i64 : i64
+    cc.continue %25 : i64
+  } {invariant}
+  %16 = cc.stdvec_init %14, %10#1 : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.stdvec<i64>
+  %17 = cc.alloca i64[%11 : i64]
+  %18:2 = cc.loop while ((%arg0 = %c0_i64, %arg1 = %c0_i64) -> (i64, i64)) {
+    %25 = arith.cmpi slt, %arg0, %10#1 : i64
+    cc.condition %25(%arg0, %arg1 : i64, i64)
+  } do {
+  ^bb0(%arg0: i64, %arg1: i64):
+    %25 = cc.compute_ptr %17[%arg1] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
+    cc.store %arg1, %25 : !cc.ptr<i64>
+    %26 = arith.addi %arg1, %c1_i64 : i64
+    cc.continue %arg0, %26 : i64, i64
+  } step {
+  ^bb0(%arg0: i64, %arg1: i64):
+    %25 = arith.addi %arg0, %c1_i64 : i64
+    cc.continue %25, %arg1 : i64, i64
+  } {invariant}
+  %19 = cc.alloca i64[%10#1 : i64]
+  %20 = cc.loop while ((%arg0 = %c0_i64) -> (i64)) {
+    %25 = arith.cmpi slt, %arg0, %10#1 : i64
+    cc.condition %25(%arg0 : i64)
+  } do {
+  ^bb0(%arg0: i64):
+    %25 = cc.compute_ptr %19[%arg0] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
+    cc.store %c0_i64, %25 : !cc.ptr<i64>
+    cc.continue %arg0 : i64
+  } step {
+  ^bb0(%arg0: i64):
+    %25 = arith.addi %arg0, %c1_i64 : i64
+    cc.continue %25 : i64
+  } {invariant}
+  %21 = cc.stdvec_init %19, %10#1 : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.stdvec<i64>
+  %22:2 = cc.loop while ((%arg0 = %c0_i64, %arg1 = %c0_i64) -> (i64, i64)) {
+    %25 = arith.cmpi slt, %arg0, %9 : i64
+    cc.condition %25(%arg0, %arg1 : i64, i64)
+  } do {
+  ^bb0(%arg0: i64, %arg1: i64):
+    %25 = arith.addi %arg0, %c1_i64 : i64
+    %26:2 = cc.loop while ((%arg2 = %25, %arg3 = %arg1) -> (i64, i64)) {
+      %27 = arith.cmpi slt, %arg2, %8 : i64
+      cc.condition %27(%arg2, %arg3 : i64, i64)
+    } do {
+    ^bb0(%arg2: i64, %arg3: i64):
+      %27 = cc.stdvec_data %16 : (!cc.stdvec<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
+      %28 = cc.compute_ptr %27[%arg3] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
+      %29 = cc.stdvec_data %7 : (!cc.stdvec<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
+      %30 = cc.compute_ptr %29[%arg0] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
+      %31 = cc.load %30 : !cc.ptr<i64>
+      cc.store %31, %28 : !cc.ptr<i64>
+      %32 = cc.stdvec_data %21 : (!cc.stdvec<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
+      %33 = cc.compute_ptr %32[%arg3] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
+      %34 = cc.compute_ptr %29[%arg2] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
+      %35 = cc.load %34 : !cc.ptr<i64>
+      cc.store %35, %33 : !cc.ptr<i64>
+      %36 = arith.addi %arg3, %c1_i64 : i64
+      cc.continue %arg2, %36 : i64, i64
+    } step {
+    ^bb0(%arg2: i64, %arg3: i64):
+      %27 = arith.addi %arg2, %c1_i64 : i64
+      cc.continue %27, %arg3 : i64, i64
+    } {invariant}
+    cc.continue %arg0, %26#1 : i64, i64
+  } step {
+  ^bb0(%arg0: i64, %arg1: i64):
+    %25 = arith.addi %arg0, %c1_i64 : i64
+    cc.continue %25, %arg1 : i64, i64
+  } {invariant}
+  %23 = cc.stdvec_size %16 : (!cc.stdvec<i64>) -> i64
+  %24 = cc.loop while ((%arg0 = %c0_i64) -> (i64)) {
+    %25 = arith.cmpi slt, %arg0, %23 : i64
+    cc.condition %25(%arg0 : i64)
+  } do {
+  ^bb0(%arg0: i64):
+    %25 = cc.stdvec_data %16 : (!cc.stdvec<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
+    %26 = cc.compute_ptr %25[%arg0] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
+    %27 = cc.load %26 : !cc.ptr<i64>
+    %28 = cc.stdvec_data %21 : (!cc.stdvec<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
+    %29 = cc.compute_ptr %28[%arg0] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
+    %30 = cc.load %29 : !cc.ptr<i64>
+    %31 = arith.cmpi slt, %27, %30 : i64
+    %32:2 = cc.if(%31) -> (i64, i64) {
+      cc.continue %27, %30 : i64, i64
+    } else {
+      %34 = arith.cmpi sgt, %27, %30 : i64
+      %35:2 = cc.if(%34) -> (i64, i64) {
+        cc.continue %30, %27 : i64, i64
+      } else {
+        cc.continue %c0_i64, %c0_i64 : i64, i64
+      }
+      cc.continue %35#0, %35#1 : i64, i64
+    }
+    %33 = cc.loop while ((%arg1 = %32#0) -> (i64)) {
+      %34 = arith.cmpi slt, %arg1, %32#1 : i64
+      cc.condition %34(%arg1 : i64)
+    } do {
+    ^bb0(%arg1: i64):
+      %34 = quake.extract_ref %0[%arg1] : (!quake.veq<6>, i64) -> !quake.ref
+      %35 = arith.addi %arg1, %c1_i64 : i64
+      %36 = quake.extract_ref %0[%35] : (!quake.veq<6>, i64) -> !quake.ref
+      quake.x [%34] %36 : (!quake.ref, !quake.ref) -> ()
+      cc.continue %arg1 : i64
+    } step {
+    ^bb0(%arg1: i64):
+      %34 = arith.addi %arg1, %c1_i64 : i64
+      cc.continue %34 : i64
+    } {invariant}
+    cc.continue %arg0 : i64
+  } step {
+  ^bb0(%arg0: i64):
+    %25 = arith.addi %arg0, %c1_i64 : i64
+    cc.continue %25 : i64
+  } {invariant}
+  return
+}
+
+// CHECK-LABEL:   func.func @test_nested_loop_unroll() {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<6>
+// CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<6>) -> !quake.ref
+// CHECK:           quake.x %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<6>) -> !quake.ref
+// CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<6>) -> !quake.ref
+// CHECK:           quake.x [%[[VAL_2]]] %[[VAL_3]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<6>) -> !quake.ref
+// CHECK:           %[[VAL_5:.*]] = quake.extract_ref %[[VAL_0]][2] : (!quake.veq<6>) -> !quake.ref
+// CHECK:           quake.x [%[[VAL_4]]] %[[VAL_5]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }

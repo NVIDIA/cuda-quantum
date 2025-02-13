@@ -25,6 +25,7 @@ void addAggressiveEarlyInlining(mlir::OpPassManager &pm);
 void registerAggressiveEarlyInliningPipeline();
 
 void registerUnrollingPipeline();
+void registerClassicalOptimizationPipeline();
 void registerMappingPipeline();
 
 std::unique_ptr<mlir::Pass> createApplyOpSpecializationPass();
