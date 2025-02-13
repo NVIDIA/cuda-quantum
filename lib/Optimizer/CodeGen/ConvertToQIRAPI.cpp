@@ -281,20 +281,42 @@ struct ApplyNoiseOpRewrite : public OpConversionPattern<quake::ApplyNoiseOp> {
   matchAndRewrite(quake::ApplyNoiseOp noise, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = noise.getLoc();
+
     if (!noise.getNoiseFunc()) {
       // This is the key-based variant. Call the generalized version of the
       // apply_kraus_channel helper function. Let it do all the conversions into
       // contiguous buffers for us, greatly simplifying codegen here.
       SmallVector<Value> args = {adaptor.getKey()};
-      auto numParams = std::distance(adaptor.getParameters().begin(),
-                                     adaptor.getParameters().end());
-      args.push_back(rewriter.create<arith::ConstantIntOp>(loc, numParams, 64));
+      const bool pushASpan =
+          adaptor.getParameters().size() == 1 &&
+          isa<cudaq::cc::StdvecType>(adaptor.getParameters()[0].getType());
+      if (pushASpan) {
+        args.push_back(rewriter.create<arith::ConstantIntOp>(loc, 1, 64));
+        args.push_back(rewriter.create<arith::ConstantIntOp>(loc, 0, 64));
+      } else {
+        args.push_back(rewriter.create<arith::ConstantIntOp>(loc, 0, 64));
+        auto numParams = std::distance(adaptor.getParameters().begin(),
+                                       adaptor.getParameters().end());
+        args.push_back(
+            rewriter.create<arith::ConstantIntOp>(loc, numParams, 64));
+      }
       auto numTargets =
           std::distance(adaptor.getQubits().begin(), adaptor.getQubits().end());
       args.push_back(
           rewriter.create<arith::ConstantIntOp>(loc, numTargets, 64));
-      args.append(adaptor.getParameters().begin(),
-                  adaptor.getParameters().end());
+      if (pushASpan) {
+        Value stdvec = adaptor.getParameters()[0];
+        auto stdvecTy = cast<cudaq::cc::StdvecType>(stdvec.getType());
+        auto dataTy = cudaq::cc::PointerType::get(
+            cudaq::cc::ArrayType::get(stdvecTy.getElementType()));
+        args.push_back(
+            rewriter.create<cudaq::cc::StdvecDataOp>(loc, dataTy, stdvec));
+        args.push_back(rewriter.create<cudaq::cc::StdvecSizeOp>(
+            loc, rewriter.getI64Type(), stdvec));
+      } else {
+        args.append(adaptor.getParameters().begin(),
+                    adaptor.getParameters().end());
+      }
       args.append(adaptor.getQubits().begin(), adaptor.getQubits().end());
 
       rewriter.replaceOpWithNewOp<cudaq::cc::VarargCallOp>(

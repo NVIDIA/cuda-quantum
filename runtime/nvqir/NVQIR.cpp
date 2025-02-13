@@ -654,23 +654,55 @@ void __quantum__qis__apply_kraus_channel(std::int64_t krausChannelKey,
 }
 
 void __quantum__qis__apply_kraus_channel_generalized(
-    std::int64_t krausChannelKey, std::size_t numParams, std::size_t numTargets,
-    ...) {
+    std::int64_t krausChannelKey, std::size_t numSpans, std::size_t numParams,
+    std::size_t numTargets, ...) {
+  struct basic_span {
+    double *_0;
+    std::size_t _1;
+  };
+
+  double *params;
+  std::size_t totalParams;
+
   va_list args;
   va_start(args, numTargets);
-  double *params =
-      reinterpret_cast<double *>(alloca(numParams * sizeof(double)));
-  for (std::size_t i = 0; i < numParams; ++i) {
-    auto *dblPtr = va_arg(args, double *);
-    params[i] = *dblPtr;
+
+  // We assume either a span OR a list of doubles, but not both (for now).
+  if (numSpans) {
+    // 1a. A set of basic spans, `{ptr, i64}`. Pop the varargs and build the
+    // spans.
+    if (numSpans != 1)
+      throw std::invalid_argument("Too many spans (> 1), not supported");
+    basic_span *spans =
+        reinterpret_cast<basic_span *>(alloca(numSpans * sizeof(basic_span)));
+    for (std::size_t i = 0; i < numParams; ++i) {
+      auto *dataPtr = va_arg(args, double *);
+      auto dataLen = va_arg(args, std::size_t);
+      spans[i] = basic_span{dataPtr, dataLen};
+    }
+
+    // There can be only one.
+    params = spans[0]._0;
+    totalParams = spans[0]._1;
+  } else {
+    // 1b. A set of parameters. Pop the varargs as double values.
+    params = reinterpret_cast<double *>(alloca(numParams * sizeof(double)));
+    for (std::size_t i = 0; i < numParams; ++i) {
+      auto *dblPtr = va_arg(args, double *);
+      params[i] = *dblPtr;
+    }
+
+    totalParams = numParams;
   }
+
+  // 2. A set of qubits. Pop the varargs as qubit* values.
   std::vector<std::size_t> qubits(numTargets);
   for (std::size_t i = 0; i < numTargets; ++i) {
     auto *qbPtr = va_arg(args, Qubit *);
-    qubits[i] = qubitToSizeT(qbPtr); 
+    qubits[i] = qubitToSizeT(qbPtr);
   }
   auto *asArray = vectorSizetToArray(qubits);
-  __quantum__qis__apply_kraus_channel(krausChannelKey, params, numParams,
+  __quantum__qis__apply_kraus_channel(krausChannelKey, params, totalParams,
                                       asArray);
 }
 
