@@ -99,6 +99,6 @@ public:
   }
 
 private:
-  bool rewriteOnlyIfConst;
+  bool rewriteOnlyIfConst = false;
 };
 } // namespace

@@ -117,8 +117,7 @@ struct ClassicalOptimizationPipelineOptions
 
 /// Add a pass pipeline to apply the requisite passes to optimize classical
 /// code. When converting to a quantum circuit, the static control program is
-/// fully expanded to eliminate control flow. This pipeline will raise an error
-/// if any loop in the module cannot be fully unrolled and signalFailure is set.
+/// fully expanded to eliminate control flow.
 static void createClassicalOptimizationPipeline(OpPassManager &pm,
                                                 unsigned threshold,
                                                 bool allowBreak,
@@ -126,13 +125,13 @@ static void createClassicalOptimizationPipeline(OpPassManager &pm,
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
- 
+
   // Run classical optimization twice with a cse in between to optimize more
   // code.
   // TODO: run cse as a part of classical-optimization when we update the llvm
   // version.
   cudaq::opt::ClassicalOptimizationOptions options{
-    threshold, allowClosedInterval, allowBreak};
+      threshold, allowClosedInterval, allowBreak};
   pm.addNestedPass<func::FuncOp>(
       cudaq::opt::createClassicalOptimization(options));
   pm.addNestedPass<func::FuncOp>(createCSEPass());
@@ -146,8 +145,8 @@ void cudaq::opt::registerClassicalOptimizationPipeline() {
       "classical-optimization-pipeline", "Fully optimize classical code.",
       [](OpPassManager &pm,
          const ClassicalOptimizationPipelineOptions &options) {
-        createClassicalOptimizationPipeline(
-            pm, options.threshold, options.allowBreak,
-            options.allowClosedInterval);
+        createClassicalOptimizationPipeline(pm, options.threshold,
+                                            options.allowBreak,
+                                            options.allowClosedInterval);
       });
 }
