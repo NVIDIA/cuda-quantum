@@ -6,14 +6,14 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import cudaq
 import pytest
 import os
 from typing import List
+import cudaq
+import cudaq.kernels.uccsd
 
 
 def test_cudaq_uccsd():
-    from cudaq.kernels import uccsd
 
     num_electrons = 2
     num_qubits = 8
@@ -34,7 +34,7 @@ def test_cudaq_uccsd():
         qubits = cudaq.qvector(num_qubits)
         for i in range(num_electrons):
             x(qubits[i])
-        uccsd(qubits, thetas, num_electrons, num_qubits)
+        cudaq.kernels.uccsd(qubits, thetas, num_electrons, num_qubits)
 
     counts = cudaq.sample(kernel, shots_count=1000)
     assert len(counts) == 6
