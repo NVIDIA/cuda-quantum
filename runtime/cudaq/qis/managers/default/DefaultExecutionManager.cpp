@@ -225,15 +225,15 @@ protected:
                   const std::vector<QuditInfo> &targets) override {
     if (isInTracerMode())
       return;
+
     flushGateQueue();
 
-    if (channel.empty()) {
+    if (channel.empty())
       if (!simulator()->isValidNoiseChannel(channel.noise_type))
         throw std::runtime_error("this is not a valid kraus channel name (" +
                                  channel.get_type_name() +
                                  "), no "
                                  "kraus ops available to construct it.");
-    }
 
     std::vector<std::size_t> localT;
     std::transform(targets.begin(), targets.end(), std::back_inserter(localT),

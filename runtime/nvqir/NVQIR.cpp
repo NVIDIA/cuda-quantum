@@ -664,10 +664,10 @@ void __quantum__qis__apply_kraus_channel_generalized(
     auto *dblPtr = va_arg(args, double *);
     params[i] = *dblPtr;
   }
-  std::vector<std::size_t> qubits;
+  std::vector<std::size_t> qubits(numTargets);
   for (std::size_t i = 0; i < numTargets; ++i) {
     auto *qbPtr = va_arg(args, Qubit *);
-    qubits[i] = reinterpret_cast<std::size_t>(qbPtr);
+    qubits[i] = qubitToSizeT(qbPtr); 
   }
   auto *asArray = vectorSizetToArray(qubits);
   __quantum__qis__apply_kraus_channel(krausChannelKey, params, numParams,

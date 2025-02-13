@@ -154,7 +154,7 @@ public:
   // corruption.
   std::vector<double> parameters;
 
-  ~kraus_channel() = default;
+  virtual ~kraus_channel() = default;
 
   /// @brief The nullary constructor
   kraus_channel() = default;
@@ -324,17 +324,6 @@ public:
             typename = requires_constructor<KrausChannelT,
                                             const std::vector<double> &>>
   void register_channel() {
-
-    // // Store the demangled type name mapped to its typeindex
-    // auto typeName = [](const char *mangled) -> std::string {
-    //   auto ptr = std::unique_ptr<char, decltype(&std::free)>{
-    //       abi::__cxa_demangle(mangled, nullptr, nullptr, nullptr),
-    //       std::free};
-    //   return {ptr.get()};
-    // }(typeid(KrausChannelT).name());
-
-    // nameToType.insert({typeName, std::type_index(typeid(KrausChannelT))});
-
     registeredChannels.insert(
         {KrausChannelT::get_key(),
          [](const std::vector<double> &params) -> kraus_channel {
@@ -344,11 +333,18 @@ public:
          }});
   }
 
+  void register_channel(
+      std::size_t key,
+      const std::function<kraus_channel(const std::vector<double> &)> &gen) {
+    registeredChannels.insert({key, gen});
+  }
+
   template <typename T>
   kraus_channel get_channel(const std::vector<double> &params) const {
     auto iter = registeredChannels.find(T::get_key());
     if (iter == registeredChannels.end())
-      throw std::runtime_error("invalid named kraus channel.");
+      throw std::runtime_error(
+          "kraus channel not registered with this noise_model.");
     return iter->second(params);
   }
 
@@ -357,7 +353,8 @@ public:
                             const std::vector<double> &params) const {
     auto iter = registeredChannels.find(key);
     if (iter == registeredChannels.end())
-      throw std::runtime_error("invalid named kraus channel.");
+      throw std::runtime_error(
+          "kraus channel not registered with this noise_model.");
     return iter->second(params);
   }
 

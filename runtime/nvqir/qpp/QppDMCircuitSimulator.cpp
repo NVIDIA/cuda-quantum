@@ -188,10 +188,12 @@ protected:
     }
   }
 
+  /// @brief This simulator supports all noise channels
   bool isValidNoiseChannel(const cudaq::noise_model_type &type) const override {
     return true; 
   }
 
+  /// @brief Apply the given noise channel
   void applyNoise(const cudaq::kraus_channel &channel,
                   const std::vector<std::size_t> &qubits) override {
     flushGateQueue();

@@ -28,9 +28,12 @@ namespace cudaq {
 /// (e.g. sampling)
 class BasicExecutionManager : public cudaq::ExecutionManager {
 protected:
+  
+  /// @brief Return true if we are in tracer mode
   bool isInTracerMode() {
     return executionContext && executionContext->name == "tracer";
   }
+
   /// @brief An instruction is composed of a operation name,
   /// a optional set of rotation parameters, control qudits,
   /// target qudits, and an optional spin_op.

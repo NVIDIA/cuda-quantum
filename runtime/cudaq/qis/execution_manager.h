@@ -133,6 +133,7 @@ public:
                      const std::vector<QuditInfo> &targets,
                      bool isAdjoint = false, const spin_op op = spin_op()) = 0;
 
+  /// @brief Apply a fine-grain noise operation within a kernel. 
   virtual void applyNoise(const kraus_channel &channelName,
                           const std::vector<QuditInfo> &targets) = 0;
 
