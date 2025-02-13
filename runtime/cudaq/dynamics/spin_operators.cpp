@@ -15,19 +15,31 @@
 
 namespace cudaq {
 
-// private helper to optimize arithmetics
+// private helpers
+
+std::string spin_operator::op_code_to_string() const {
+  if (this->op_code == 1) return "Z";
+  else if (this->op_code == 2) return "X";
+  else if (this->op_code == 3) return "Y";
+  else return "I";
+}
 
 std::complex<double> spin_operator::inplace_mult(const spin_operator &other) {
-  assert(this->target == other.target); // FIXME: make cleaner
+  assert(this->target == other.target);
   std::complex<double> factor;
-  if (this->id == 0 || other.id == 0 || this->id == other.id) factor = 1.0;
-  else if (this->id + 1 == other.id || this->id - 2 == other.id) factor = 1.0j;
+  if (this->op_code == 0 || other.op_code == 0 || this->op_code == other.op_code) factor = 1.0;
+  else if (this->op_code + 1 == other.op_code || this->op_code - 2 == other.op_code) factor = 1.0j;
   else factor = -1.0j;
-  this->id ^= other.id;
+  this->op_code ^= other.op_code;
+  this->id = this->op_code_to_string() + std::to_string(target);
   return factor;
 }
 
 // read-only properties
+
+const std::string& spin_operator::unique_id() const {
+  return this->id;
+}
 
 std::vector<int> spin_operator::degrees() const {
   return {this->target};
@@ -36,11 +48,12 @@ std::vector<int> spin_operator::degrees() const {
 // constructors
 
 spin_operator::spin_operator(int target) 
-  : id(0), target(target) {}
+  : op_code(0), target(target), id("I" + std::to_string(target)) {}
 
 spin_operator::spin_operator(int target, int op_id) 
-  : id(op_id), target(target) {
+  : op_code(op_id), target(target) {
     assert(0 <= op_id < 4);
+    this->id = this->op_code_to_string() + std::to_string(target);
 }
 
 // evaluations
@@ -54,13 +67,13 @@ matrix_2 spin_operator::to_matrix(std::unordered_map<int, int> &dimensions,
     throw std::runtime_error("dimension for spin operator must be 2");
 
   auto mat = matrix_2(2, 2);
-  if (this->id == 1) { // Z
+  if (this->op_code == 1) { // Z
     mat[{0, 0}] = 1.0;
     mat[{1, 1}] = -1.0;
-  } else if (this->id == 2) { // X
+  } else if (this->op_code == 2) { // X
     mat[{0, 1}] = 1.0;
     mat[{1, 0}] = 1.0;
-  } else if (this->id == 3) { // Y
+  } else if (this->op_code == 3) { // Y
     mat[{0, 1}] = -1.0j;
     mat[{1, 0}] = 1.0j;
   } else { // I
@@ -71,19 +84,14 @@ matrix_2 spin_operator::to_matrix(std::unordered_map<int, int> &dimensions,
 }
 
 std::string spin_operator::to_string(bool include_degrees) const {
-  std::string op_str;
-  if (this->id == 1) op_str = "Z";
-  else if (this->id == 2) op_str = "X";
-  else if (this->id == 3) op_str = "Y";
-  else op_str = "I";
-  if (include_degrees) return op_str + "(" + std::to_string(target) + ")";
-  else return op_str;
+  if (include_degrees) return this->op_code_to_string() + "(" + std::to_string(target) + ")";
+  else return this->op_code_to_string();
 }
 
 // comparisons
 
 bool spin_operator::operator==(const spin_operator &other) const {
-  return this->id == other.id && this->target == other.target;
+  return this->op_code == other.op_code && this->target == other.target;
 }
 
 // defined operators

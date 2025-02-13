@@ -27,18 +27,23 @@ friend class product_operator<spin_operator>;
 private:
 
   // I = 0, Z = 1, X = 2, Y = 3
-  int id;
+  int op_code;
   int target;
+  std::string id;
 
-  spin_operator(int target, int op_id);
+  spin_operator(int target, int op_code);
 
-  // private helper to optimize arithmetics
+  // private helpers
+
+  std::string op_code_to_string() const;
 
   std::complex<double> inplace_mult(const spin_operator &other);
 
 public:
 
   // read-only properties
+
+  virtual const std::string& unique_id() const;
 
   /// @brief The degrees of freedom that the operator acts on in canonical
   /// order.

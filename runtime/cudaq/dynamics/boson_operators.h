@@ -25,15 +25,20 @@ class boson_operator : public operator_handler{
 
 private:
 
-  // ...
-  int id;
+  // 0 = I, 1 = Ad (create), 2 = A (annihilate), 3 = AdA (number)
+  int op_code;
   int target;
+  std::string id;
 
-  boson_operator(int target, int op);
+  boson_operator(int target, int op_code);
+
+  std::string op_code_to_string() const;
 
 public:
 
   // read-only properties
+
+  virtual const std::string& unique_id() const;
 
   /// @brief The degrees of freedom that the operator acts on in canonical
   /// order.
