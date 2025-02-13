@@ -22,6 +22,62 @@ namespace cudaq {
 
 // private methods
 
+template<typename HandlerTy>
+void operator_sum<HandlerTy>::insert(product_operator<HandlerTy> &&other) {
+  // the logic below just ensures that terms are properly combined, if possible
+  auto it = std::find_if(this->terms.cbegin(), this->terms.cend(), 
+    [&other_ops = static_cast<const std::vector<HandlerTy>&>(other.operators)](const std::vector<HandlerTy> &self_ops) { 
+      bool are_same = other_ops.size() == self_ops.size();
+      for (auto i = 0; are_same && i < other_ops.size(); ++i)
+        are_same = other_ops[i] == self_ops[i];
+      return are_same;
+  });
+
+  if (it == this->terms.end()) {
+    this->terms.push_back(std::move(other.operators));
+    this->coefficients.push_back(std::move(other.coefficient));
+  } else {
+    this->coefficients[std::distance(this->terms.cbegin(), it)] += other.coefficient;
+  }
+}
+
+template<typename HandlerTy>
+void operator_sum<HandlerTy>::aggregate_all() {
+  std::unordered_map<std::string, std::vector<int>> term_map;
+  for (auto i = 0; i < this->terms.size(); ++i) {
+    std::string key;
+    for (const HandlerTy &op : this->terms[i])
+      key += op.to_string(true); // includes degree(s)
+    term_map[key].push_back(i);
+  }
+
+  std::vector<std::vector<HandlerTy>> terms;
+  terms.reserve(this->terms.size());
+  std::vector<scalar_operator> coefficients;
+  coefficients.reserve(this->coefficients.size());
+  for (const auto &entry : term_map) {
+    auto coefficient = std::move(this->coefficients[entry.second[0]]);
+    for (auto i = 1; i < entry.second.size(); ++i) {
+      // FIXME: maybe double check equality here if we don't want to rely on to_string too much?
+      coefficient += this->coefficients[entry.second[i]];
+    }
+    coefficients.push_back(std::move(coefficient));
+    terms.push_back(std::move(this->terms[entry.second[0]])); // fine to move
+  }
+  this->terms = std::move(terms);
+  this->coefficients = std::move(coefficients);
+}
+
+template<typename HandlerTy>
+void operator_sum<HandlerTy>::aggregate_terms() {}
+
+template<typename HandlerTy>
+template <typename ... Args>
+void operator_sum<HandlerTy>::aggregate_terms(product_operator<HandlerTy> &&head, Args&& ... args) {
+  this->insert(std::forward<product_operator<HandlerTy>>(head));
+  aggregate_terms(std::forward<Args>(args)...);
+}
+
 template <typename HandlerTy>
 EvaluatedMatrix operator_sum<HandlerTy>::m_evaluate(
     MatrixArithmetics arithmetics, bool pad_terms) const {
@@ -32,16 +88,17 @@ EvaluatedMatrix operator_sum<HandlerTy>::m_evaluate(
   // We need to make sure all matrices are of the same size to sum them up.
   auto paddedTerm = 
     [&arithmetics, &degrees = std::as_const(degrees)](product_operator<HandlerTy> &&term) {
-      std::vector<HandlerTy> prod;
-      prod.reserve(degrees.size());
+      std::vector<HandlerTy> prod_ops;
+      prod_ops.reserve(degrees.size());
       auto term_degrees = term.degrees();
       for (auto degree : degrees) {
         auto it = std::find(term_degrees.begin(), term_degrees.end(), degree);
         if (it == term_degrees.end())
-          prod.push_back(HandlerTy::one(degree));
+          prod_ops.push_back(HandlerTy(degree));
       }
-      prod.insert(prod.end(), std::make_move_iterator(term.operators.begin()), std::make_move_iterator(term.operators.end()));
-      return product_operator<HandlerTy>(std::move(term.coefficient), std::move(prod));
+      product_operator<HandlerTy> prod(1, std::move(prod_ops));
+      prod *= term; // ensures canonical ordering
+      return prod;
   };
 
   if (pad_terms) {
@@ -63,22 +120,7 @@ EvaluatedMatrix operator_sum<HandlerTy>::m_evaluate(
   }
 }
 
-template<typename HandlerTy>
-void operator_sum<HandlerTy>::aggregate_terms() {}
-
-template<typename HandlerTy>
-template <typename ... Args>
-void operator_sum<HandlerTy>::aggregate_terms(product_operator<HandlerTy> &&head, Args&& ... args) {
-    this->terms.push_back(std::move(head.operators));
-    this->coefficients.push_back(std::move(head.coefficient));
-    aggregate_terms(std::forward<Args>(args)...);
-}
-
 #define INSTANTIATE_SUM_PRIVATE_METHODS(HandlerTy)                                            \
-                                                                                              \
-  template                                                                                    \
-  EvaluatedMatrix operator_sum<HandlerTy>::m_evaluate(                                        \
-      MatrixArithmetics arithmetics, bool pad_terms) const;                                   \
                                                                                               \
   template                                                                                    \
   void operator_sum<HandlerTy>::aggregate_terms(product_operator<HandlerTy> &&item2);         \
@@ -90,7 +132,11 @@ void operator_sum<HandlerTy>::aggregate_terms(product_operator<HandlerTy> &&head
   template                                                                                    \
   void operator_sum<HandlerTy>::aggregate_terms(product_operator<HandlerTy> &&item1,          \
                                                 product_operator<HandlerTy> &&item2,          \
-                                                product_operator<HandlerTy> &&item3);
+                                                product_operator<HandlerTy> &&item3);         \
+                                                                                              \
+  template                                                                                    \
+  EvaluatedMatrix operator_sum<HandlerTy>::m_evaluate(                                        \
+      MatrixArithmetics arithmetics, bool pad_terms) const;
 
 INSTANTIATE_SUM_PRIVATE_METHODS(matrix_operator);
 INSTANTIATE_SUM_PRIVATE_METHODS(spin_operator);
@@ -104,11 +150,12 @@ std::vector<int> operator_sum<HandlerTy>::degrees() const {
   for (const std::vector<HandlerTy> &term : this->terms) {
     for (const HandlerTy &op : term) {
       auto op_degrees = op.degrees();
-      unsorted_degrees.insert(op_degrees.begin(), op_degrees.end());
+      unsorted_degrees.insert(op_degrees.cbegin(), op_degrees.cend());
     }
   }
-  auto degrees = std::vector<int>(unsorted_degrees.begin(), unsorted_degrees.end());
-  return cudaq::detail::canonicalize_degrees(degrees);
+  auto degrees = std::vector<int>(unsorted_degrees.cbegin(), unsorted_degrees.cend());
+  cudaq::detail::canonicalize_degrees(degrees);
+  return degrees;
 }
 
 template<typename HandlerTy>
@@ -151,28 +198,16 @@ operator_sum<HandlerTy>::operator_sum(const product_operator<HandlerTy> &prod) {
 template<typename HandlerTy>
 template<typename... Args, std::enable_if_t<std::conjunction<std::is_same<product_operator<HandlerTy>, Args>...>::value, bool>>
 operator_sum<HandlerTy>::operator_sum(Args&&... args) {
-    this->terms.reserve(sizeof...(Args));
-    this->coefficients.reserve(sizeof...(Args));
-    aggregate_terms(std::forward<product_operator<HandlerTy>&&>(args)...);
-}
-
-template<typename HandlerTy>
-operator_sum<HandlerTy>::operator_sum(const std::vector<product_operator<HandlerTy>> &terms) { 
-    this->terms.reserve(terms.size());
-    this->coefficients.reserve(terms.size());
-    for (const product_operator<HandlerTy>& term : terms) {
-        this->terms.push_back(term.operators);
-        this->coefficients.push_back(term.coefficient);
-    }
+  this->terms.reserve(sizeof...(Args));
+  this->coefficients.reserve(sizeof...(Args));
+  aggregate_terms(std::forward<product_operator<HandlerTy>&&>(args)...);
 }
 
 template<typename HandlerTy>
 operator_sum<HandlerTy>::operator_sum(std::vector<product_operator<HandlerTy>> &&terms) { 
-    this->terms.reserve(terms.size());
-    for (const product_operator<HandlerTy>& term : terms) {
-        this->terms.push_back(std::move(term.operators));
-        this->coefficients.push_back(std::move(term.coefficient));
-    }
+  this->terms.reserve(terms.size());
+  for (auto i = 0; i < terms.size(); ++i)
+    this->insert(std::move(terms[i]));
 }
 
 template<typename HandlerTy>
@@ -191,11 +226,11 @@ operator_sum<HandlerTy>::operator_sum(const operator_sum<T> &other) {
 
 template<typename HandlerTy>
 operator_sum<HandlerTy>::operator_sum(const operator_sum<HandlerTy> &other)
-    : coefficients(other.coefficients), terms(other.terms) {}
+  : coefficients(other.coefficients), terms(other.terms) {}
 
 template<typename HandlerTy>
 operator_sum<HandlerTy>::operator_sum(operator_sum<HandlerTy> &&other) 
-    : coefficients(std::move(other.coefficients)), terms(std::move(other.terms)) {}
+  : coefficients(std::move(other.coefficients)), terms(std::move(other.terms)) {}
 
 #define INSTANTIATE_SUM_CONSTRUCTORS(HandlerTy)                                                 \
                                                                                                 \
@@ -213,9 +248,6 @@ operator_sum<HandlerTy>::operator_sum(operator_sum<HandlerTy> &&other)
   operator_sum<HandlerTy>::operator_sum(product_operator<HandlerTy> &&item1,                    \
                                         product_operator<HandlerTy> &&item2,                    \
                                         product_operator<HandlerTy> &&item3);                   \
-                                                                                                \
-  template                                                                                      \
-  operator_sum<HandlerTy>::operator_sum(const std::vector<product_operator<HandlerTy>> &terms); \
                                                                                                 \
   template                                                                                      \
   operator_sum<HandlerTy>::operator_sum(std::vector<product_operator<HandlerTy>> &&terms);      \
@@ -238,6 +270,38 @@ INSTANTIATE_SUM_CONSTRUCTORS(boson_operator);
 // assignments
 
 template<typename HandlerTy>
+  template<typename T, std::enable_if_t<!std::is_same<T, HandlerTy>::value && std::is_constructible<HandlerTy, T>::value, bool>>
+operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator=(const product_operator<T> &other) {
+  this->coefficients.clear();
+  this->terms.clear();
+  std::vector<HandlerTy> operators;
+  operators.reserve(other.operators.size());
+  for (const T &op : other.operators)
+    operators.push_back(op);
+  this->coefficients.push_back(other.coefficient);
+  this->terms.push_back(std::move(operators));
+  return *this;
+}
+
+template<typename HandlerTy>
+operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator=(product_operator<HandlerTy> &&other) {
+  this->coefficients.clear();
+  this->terms.clear();
+  this->coefficients.push_back(std::move(other.coefficient));
+  this->terms.push_back(std::move(other.operators));
+  return *this;
+}
+
+template<typename HandlerTy>
+operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator=(const product_operator<HandlerTy> &other) {
+  this->coefficients.clear();
+  this->terms.clear();
+  this->coefficients.push_back(other.coefficient);
+  this->terms.push_back(other.operators);
+  return *this;
+}
+
+template<typename HandlerTy>
 template<typename T, std::enable_if_t<!std::is_same<T, HandlerTy>::value && std::is_constructible<HandlerTy, T>::value, bool>>
 operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator=(const operator_sum<T> &other) {
   *this = operator_sum<HandlerTy>(other);
@@ -246,32 +310,44 @@ operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator=(const operator_sum<T
 
 template<typename HandlerTy>
 operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator=(const operator_sum<HandlerTy> &other) {
-    if (this != &other) {
-        coefficients = other.coefficients;
-        terms = other.terms;
-    }
-    return *this;
+  if (this != &other) {
+      this->coefficients = other.coefficients;
+      this->terms = other.terms;
+  }
+  return *this;
 }
 
 template<typename HandlerTy>
 operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator=(operator_sum<HandlerTy> &&other) {
-    if (this != &other) {
-        coefficients = std::move(other.coefficients);
-        terms = std::move(other.terms);
-    }
-    return *this;
+  if (this != &other) {
+      this->coefficients = std::move(other.coefficients);
+      this->terms = std::move(other.terms);
+  }
+  return *this;
 }
 
 #define INSTANTIATE_SUM_ASSIGNMENTS(HandlerTy)                                              \
                                                                                             \
   template                                                                                  \
   operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator=(                              \
-    const operator_sum<HandlerTy>& other);                                                  \
+    product_operator<HandlerTy> &&other);                                                   \
+                                                                                            \
+  template                                                                                  \
+  operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator=(                              \
+    const product_operator<HandlerTy> &other);                                              \
+                                                                                            \
+  template                                                                                  \
+  operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator=(                              \
+    const operator_sum<HandlerTy> &other);                                                  \
                                                                                             \
   template                                                                                  \
   operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator=(                              \
     operator_sum<HandlerTy> &&other);
 
+template 
+operator_sum<matrix_operator>& operator_sum<matrix_operator>::operator=(const product_operator<spin_operator> &other);
+template 
+operator_sum<matrix_operator>& operator_sum<matrix_operator>::operator=(const product_operator<boson_operator> &other);
 template 
 operator_sum<matrix_operator>& operator_sum<matrix_operator>::operator=(const operator_sum<spin_operator> &other);
 template 
@@ -289,8 +365,8 @@ std::string operator_sum<HandlerTy>::to_string() const {
 }
 
 template<typename HandlerTy>
-matrix_2 operator_sum<HandlerTy>::to_matrix(const std::map<int, int> &dimensions,
-                                            const std::map<std::string, std::complex<double>> &parameters) const {
+matrix_2 operator_sum<HandlerTy>::to_matrix(std::unordered_map<int, int> dimensions,
+                                            const std::unordered_map<std::string, std::complex<double>> &parameters) const {
   return m_evaluate(MatrixArithmetics(dimensions, parameters)).matrix();
 }
 
@@ -301,8 +377,8 @@ matrix_2 operator_sum<HandlerTy>::to_matrix(const std::map<int, int> &dimensions
                                                                                             \
   template                                                                                  \
   matrix_2 operator_sum<HandlerTy>::to_matrix(                                              \
-    const std::map<int, int> &dimensions,                                                   \
-    const std::map<std::string, std::complex<double>> &params) const;
+    std::unordered_map<int, int> dimensions,                                               \
+    const std::unordered_map<std::string, std::complex<double>> &params) const;
 
 INSTANTIATE_SUM_EVALUATIONS(matrix_operator);
 INSTANTIATE_SUM_EVALUATIONS(spin_operator);
@@ -312,7 +388,11 @@ INSTANTIATE_SUM_EVALUATIONS(boson_operator);
 
 template<typename HandlerTy>
 bool operator_sum<HandlerTy>::operator==(const operator_sum<HandlerTy> &other) const {
-    throw std::runtime_error("not implemented");
+  bool are_same = this->terms.size() == other.terms.size();
+  for (auto i = 0; are_same && i < this->terms.size(); ++i)
+    are_same = product_operator<HandlerTy>(this->coefficients[i], this->terms[i]) ==
+               product_operator<HandlerTy>(other.coefficients[i], other.terms[i]);
+  return are_same;
 }
 
 #define INSTANTIATE_SUM_COMPARISONS(HandlerTy)                                              \
@@ -497,19 +577,14 @@ operator_sum<HandlerTy> operator_sum<HandlerTy>::operator*(const product_operato
   template <typename HandlerTy>                                                         \
   operator_sum<HandlerTy> operator_sum<HandlerTy>::operator op(                         \
                                      const product_operator<HandlerTy> &other) const {  \
-    std::vector<scalar_operator> coefficients;                                          \
-    coefficients.reserve(this->coefficients.size() + 1);                                \
-    for (auto &coeff : this->coefficients)                                              \
-      coefficients.push_back(coeff);                                                    \
-    coefficients.push_back(op other.coefficient);                                       \
-    std::vector<std::vector<HandlerTy>> terms;                                          \
-    terms.reserve(this->terms.size() + 1);                                              \
-    for (auto &term : this->terms)                                                      \
-      terms.push_back(term);                                                            \
-    terms.push_back(other.operators);                                                   \
     operator_sum<HandlerTy> sum;                                                        \
-    sum.coefficients = std::move(coefficients);                                         \
-    sum.terms = std::move(terms);                                                       \
+    sum.coefficients.reserve(this->coefficients.size() + 1);                            \
+    sum.terms.reserve(this->terms.size() + 1);                                          \
+    for (auto &coeff : this->coefficients)                                              \
+      sum.coefficients.push_back(coeff);                                                \
+    for (auto &term : this->terms)                                                      \
+      sum.terms.push_back(term);                                                        \
+    sum.insert(op other);                                                               \
     return sum;                                                                         \
   }
 
@@ -525,10 +600,12 @@ operator_sum<HandlerTy> operator_sum<HandlerTy>::operator*(const operator_sum<Ha
     for (auto j = 0; j < other.terms.size(); ++j) {
       product_operator<HandlerTy> prod(this->coefficients[i], this->terms[i]);
       prod *= product_operator<HandlerTy>(other.coefficients[j], other.terms[j]);
+      // if we do an insert here it can get *very* expensive, hence merge terms at the end
       sum.coefficients.push_back(std::move(prod.coefficient));
       sum.terms.push_back(std::move(prod.operators));
     }
   }
+  sum.aggregate_all();
   return sum;
 }
 
@@ -536,21 +613,18 @@ operator_sum<HandlerTy> operator_sum<HandlerTy>::operator*(const operator_sum<Ha
   template <typename HandlerTy>                                                         \
   operator_sum<HandlerTy> operator_sum<HandlerTy>::operator op(                         \
                                          const operator_sum<HandlerTy> &other) const {  \
-    std::vector<scalar_operator> coefficients;                                          \
-    coefficients.reserve(this->coefficients.size() + other.coefficients.size());        \
-    for (auto &coeff : this->coefficients)                                              \
-      coefficients.push_back(coeff);                                                    \
-    for (auto &coeff : other.coefficients)                                              \
-      coefficients.push_back(op coeff);                                                 \
-    std::vector<std::vector<HandlerTy>> terms;                                          \
-    terms.reserve(this->terms.size() + other.terms.size());                             \
-    for (auto &term : this->terms)                                                      \
-      terms.push_back(term);                                                            \
-    for (auto &term : other.terms)                                                      \
-      terms.push_back(term);                                                            \
     operator_sum<HandlerTy> sum;                                                        \
-    sum.coefficients = std::move(coefficients);                                         \
-    sum.terms = std::move(terms);                                                       \
+    sum.coefficients.reserve(this->coefficients.size() + other.coefficients.size());    \
+    sum.terms.reserve(this->terms.size() + other.terms.size());                         \
+    for (auto &coeff : this->coefficients)                                              \
+      sum.coefficients.push_back(coeff);                                                \
+    for (auto &coeff : other.coefficients)                                              \
+      sum.coefficients.push_back(op coeff);                                             \
+    for (auto &term : this->terms)                                                      \
+      sum.terms.push_back(term);                                                        \
+    for (auto &term : other.terms)                                                      \
+      sum.terms.push_back(term);                                                        \
+    sum.aggregate_all();                                                                \
     return sum;                                                                         \
   }
 
@@ -648,8 +722,7 @@ operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator*=(const product_opera
   template <typename HandlerTy>                                                         \
   operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator op##=(                     \
                                            const product_operator<HandlerTy> &other) {  \
-    this->coefficients.push_back(op other.coefficient);                                 \
-    this->terms.push_back(other.operators);                                             \
+    this->insert(op other);                                                             \
     return *this;                                                                       \
   }
 
@@ -668,11 +741,12 @@ operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator*=(const operator_sum<
   operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator op##=(                     \
                                                const operator_sum<HandlerTy> &other) {  \
     this->coefficients.reserve(this->coefficients.size() + other.coefficients.size());  \
+    this->terms.reserve(this->terms.size() + other.terms.size());                       \
     for (auto &coeff : other.coefficients)                                              \
       this->coefficients.push_back(op coeff);                                           \
-    this->terms.reserve(this->terms.size() + other.terms.size());                       \
     for (auto &term : other.terms)                                                      \
       this->terms.push_back(term);                                                      \
+    this->aggregate_all();                                                              \
     return *this;                                                                       \
   }
 
@@ -925,6 +999,17 @@ SUM_CONVERSIONS_OPS(-);
 INSTANTIATE_SUM_CONVERSION_OPS(*);
 INSTANTIATE_SUM_CONVERSION_OPS(+);
 INSTANTIATE_SUM_CONVERSION_OPS(-);
+
+// common operators
+
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator_handler::empty() {
+  return operator_sum<HandlerTy>();
+}
+
+template operator_sum<matrix_operator> operator_handler::empty();
+template operator_sum<spin_operator> operator_handler::empty();
+template operator_sum<boson_operator> operator_handler::empty();
 
 
 #ifdef CUDAQ_INSTANTIATE_TEMPLATES

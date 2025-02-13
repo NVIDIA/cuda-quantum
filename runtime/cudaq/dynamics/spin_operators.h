@@ -9,7 +9,7 @@
 #pragma once
 
 #include <complex>
-#include <map>
+#include <unordered_map>
 #include <vector>
 
 #include "cudaq/utils/tensor.h"
@@ -21,7 +21,7 @@ template <typename HandlerTy>
 class product_operator;
 
 // FIXME: rename to spin ...
-class spin_operator : operator_handler{
+class spin_operator : public operator_handler{
 friend class product_operator<spin_operator>;
 
 private:
@@ -30,11 +30,11 @@ private:
   int id;
   int target;
 
-  spin_operator(int op, int target);
+  spin_operator(int target, int op_id);
 
   // private helper to optimize arithmetics
 
-  std::complex<double> in_place_mult(const spin_operator &other);
+  std::complex<double> inplace_mult(const spin_operator &other);
 
 public:
 
@@ -44,13 +44,11 @@ public:
   /// order.
   virtual std::vector<int> degrees() const;
 
-  virtual bool is_identity() const;
-
   // constructors and destructors
 
-  ~spin_operator() = default;
+  spin_operator(int target);
 
-  // assignments
+  ~spin_operator() = default;
 
   // evaluations
 
@@ -59,8 +57,8 @@ public:
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
-  virtual matrix_2 to_matrix(std::map<int, int> &dimensions,
-                             std::map<std::string, std::complex<double>> parameters = {}) const;
+  virtual matrix_2 to_matrix(std::unordered_map<int, int> &dimensions,
+                             const std::unordered_map<std::string, std::complex<double>> &parameters = {}) const;
 
   virtual std::string to_string(bool include_degrees) const;
 
@@ -70,8 +68,9 @@ public:
 
   // defined operators
 
-  // multiplicative identity
-  static spin_operator one(int degree);
+  static operator_sum<spin_operator> empty();
+  static product_operator<spin_operator> identity();
+
   static product_operator<spin_operator> i(int degree);
   static product_operator<spin_operator> z(int degree);
   static product_operator<spin_operator> x(int degree);

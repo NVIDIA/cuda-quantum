@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include <complex>
-#include <map>
+#include <unordered_map>
 #include <vector>
 
 #include "cudaq/utils/tensor.h"
@@ -24,19 +24,18 @@ std::vector<int> boson_operator::degrees() const {
 
 // constructors
 
-boson_operator::boson_operator(int op_id, int target) 
+boson_operator::boson_operator(int target) 
+  : id(0), target(target) {}
+
+boson_operator::boson_operator(int target, int op_id) 
   : id(op_id), target(target) {
     assert(0 <= op_id < 4);
 }
 
-bool boson_operator::is_identity() const {
-    return this->id == 0;
-}
-
 // evaluations
 
-matrix_2 boson_operator::to_matrix(std::map<int, int> &dimensions,
-                                   std::map<std::string, std::complex<double>> parameters) const {
+matrix_2 boson_operator::to_matrix(std::unordered_map<int, int> &dimensions,
+                                   const std::unordered_map<std::string, std::complex<double>> &parameters) const {
   auto it = dimensions.find(this->target);
   if (it == dimensions.end())
     throw std::runtime_error("missing dimension for degree " + std::to_string(this->target));
@@ -77,25 +76,28 @@ bool boson_operator::operator==(const boson_operator &other) const {
 
 // defined operators
 
-// multiplicative identity
-boson_operator boson_operator::one(int degree) {
-  return boson_operator(0, degree);
+operator_sum<boson_operator> boson_operator::empty() {
+  return operator_handler::empty<boson_operator>();
+}
+
+product_operator<boson_operator> boson_operator::identity() {
+  return operator_handler::identity<boson_operator>();
 }
 
 product_operator<boson_operator> boson_operator::identity(int degree) {
-  return product_operator(boson_operator(0, degree));
+  return product_operator(boson_operator(degree));
 }
 
 product_operator<boson_operator> boson_operator::create(int degree) {
-  return product_operator(boson_operator(1, degree));
+  return product_operator(boson_operator(degree, 1));
 }
 
 product_operator<boson_operator> boson_operator::annihilate(int degree) {
-  return product_operator(boson_operator(2, degree));
+  return product_operator(boson_operator(degree, 2));
 }
 
 product_operator<boson_operator> boson_operator::number(int degree) {
-  return product_operator(boson_operator(3, degree));
+  return product_operator(boson_operator(degree, 3));
 }
 
 // FIXME: add position, momentum, others?

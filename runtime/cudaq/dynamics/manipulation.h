@@ -8,7 +8,7 @@
 
 #pragma once 
 
-#include <map>
+#include <unordered_map>
 #include <vector>
 #include "cudaq/utils/tensor.h"
 
@@ -58,17 +58,17 @@ public:
 /// of an operator expression.
 class MatrixArithmetics : public OperatorArithmetics<EvaluatedMatrix> {
 private:
-  std::vector<int> _compute_permutation(std::vector<int> op_degrees,
-                                        std::vector<int> canon_degrees);
-  std::tuple<matrix_2, std::vector<int>>
-  _canonicalize(matrix_2 &op_matrix, std::vector<int> op_degrees);
+  std::vector<int> compute_permutation(const std::vector<int> &op_degrees,
+                                       const std::vector<int> &canon_degrees);
+  
+  void canonicalize(matrix_2 &op_matrix, std::vector<int> &op_degrees);
 
 public:
-  std::map<int, int> &m_dimensions; // fixme: make const
-  std::map<std::string, std::complex<double>> &m_parameters; // fixme: make const
+  std::unordered_map<int, int> m_dimensions; // may be updated during evaluation
+  const std::unordered_map<std::string, std::complex<double>> m_parameters;
 
-  MatrixArithmetics(std::map<int, int> dimensions,
-                    std::map<std::string, std::complex<double>> parameters);
+  MatrixArithmetics(std::unordered_map<int, int> &dimensions,
+                    const std::unordered_map<std::string, std::complex<double>> &parameters);
 
   // Computes the tensor product of two evaluate operators that act on
   // different degrees of freedom using the kronecker product.
