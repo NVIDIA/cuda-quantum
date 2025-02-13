@@ -23,11 +23,12 @@ def configureTarget():
 
 
 def test_Ionq_cudaq_uccsd():
-    repro_num_electrons = 2
-    repro_num_qubits = 8
+    from cudaq.kernels import uccsd
 
-    # # should be 3 thetas
-    repro_thetas = [
+    num_electrons = 2
+    num_qubits = 8
+
+    thetas = [
         -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
         -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
         -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
@@ -39,19 +40,13 @@ def test_Ionq_cudaq_uccsd():
     ]
 
     @cudaq.kernel
-    def repro_trial_state(qubits: cudaq.qvector, num_electrons: int,
-                          num_qubits: int, thetas: List[float]):
+    def kernel():
+        qubits = cudaq.qvector(num_qubits)
         for i in range(num_electrons):
             x(qubits[i])
         uccsd(qubits, thetas, num_electrons, num_qubits)
 
-    @cudaq.kernel
-    def repro():
-        repro_qubits = cudaq.qvector(repro_num_qubits)
-        repro_trial_state(repro_qubits, repro_num_electrons, repro_num_qubits,
-                          repro_thetas)
-
-    counts = cudaq.sample(repro, shots_count=1000)
+    counts = cudaq.sample(kernel, shots_count=1000)
     assert len(counts) == 6
     assert '00000011' in counts
     assert '00000110' in counts
