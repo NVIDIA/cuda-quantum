@@ -125,12 +125,12 @@ static void createClassicalOptimizationPipeline(OpPassManager &pm,
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
-  cudaq::opt::ClassicalOptimizationOptions options{
-      threshold, allowClosedInterval, allowBreak};
   // Run classical optimization twice with a cse in between to optimize more
   // code.
   // TODO: run cse as a part of classical-optimization when we update the llvm
   // version.
+  cudaq::opt::ClassicalOptimizationOptions options{
+      threshold, allowClosedInterval, allowBreak};
   pm.addNestedPass<func::FuncOp>(
       cudaq::opt::createClassicalOptimization(options));
   pm.addNestedPass<func::FuncOp>(createCSEPass());
