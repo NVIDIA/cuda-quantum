@@ -176,7 +176,7 @@ if __name__ == "__main__":
 System: uname_result(system='Linux', node='gorby', release='5.4.0-195-generic', version='#215-Ubuntu SMP Fri Aug 2 18:28:05 UTC 2024', machine='x86_64')  Threads 128
 Python 3.10.12 (main, Jan 17 2025, 14:35:34) [GCC 11.4.0]
 numpy 1.26.4  scipy 1.12.0  h5py 3.12.1
-Date: Mon Feb 10 20:18:10 2025
+Date: Wed Feb 12 16:48:27 2025
 PySCF version 2.6.2
 PySCF path  /home/cudaq/.local/lib/python3.10/site-packages/pyscf
 
@@ -199,7 +199,7 @@ number of NR pGTOs = 21
 number of NR cGTOs = 7
 basis = sto-3g
 ecp = {}
-CPU time:        15.21
+CPU time:        13.93
 
 
 ******** <class 'pyscf.scf.hf.RHF'> ********
@@ -221,18 +221,18 @@ max_memory 4000 MB (current use 124 MB)
 Set gradient conv threshold to 3.16228e-05
 Initial guess from minao.
 init E= -74.8367651840778
-  HOMO = -0.39318669569659  LUMO = 0.426670666551946
+  HOMO = -0.393186695696589  LUMO = 0.426670666551945
 cycle= 1 E= -74.9128067382225  delta_E= -0.076  |g|= 0.37  |ddm|= 1.69
-  HOMO = -0.267778861217974  LUMO = 0.644307637668772
+  HOMO = -0.267778861217972  LUMO = 0.644307637668771
 cycle= 2 E= -74.9624642067631  delta_E= -0.0497  |g|= 0.0425  |ddm|= 0.56
-  HOMO = -0.390842909270736  LUMO = 0.605168728587115
+  HOMO = -0.390842909270736  LUMO = 0.605168728587113
 cycle= 3 E= -74.9629672954461  delta_E= -0.000503  |g|= 0.00833  |ddm|= 0.0433
-  HOMO = -0.391259864920884  LUMO = 0.605476833848671
+  HOMO = -0.391259864920884  LUMO = 0.605476833848675
 cycle= 4 E= -74.9629935280688  delta_E= -2.62e-05  |g|= 6.23e-05  |ddm|= 0.015
-  HOMO = -0.39125203316731  LUMO = 0.605390386198235
+  HOMO = -0.391252033167311  LUMO = 0.605390386198253
 cycle= 5 E= -74.9629935296333  delta_E= -1.56e-09  |g|= 1.39e-05  |ddm|= 9.8e-05
-  HOMO = -0.391254010534432  LUMO = 0.605398054565096
+  HOMO = -0.391254010534431  LUMO = 0.605398054565099
 cycle= 6 E= -74.9629935297764  delta_E= -1.43e-10  |g|= 3.41e-06  |ddm|= 4e-05
-  HOMO = -0.391254902959831  LUMO = 0.605400203573901
-Extra cycle  E= -74.9629935297838  delta_E= -7.42e-12  |g|= 1.45e-06  |ddm|= 7.35e-06
+  HOMO = -0.391254902959831  LUMO = 0.605400203573902
+Extra cycle  E= -74.9629935297838  delta_E= -7.38e-12  |g|= 1.45e-06  |ddm|= 7.35e-06
 converged SCF energy = -74.9629935297838
