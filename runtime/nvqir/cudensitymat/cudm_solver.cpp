@@ -6,10 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/cudm_solver.h"
-#include "cudaq/cudm_helpers.h"
-#include "cudaq/cudm_state.h"
-#include "cudaq/cudm_time_stepper.h"
+#include "cudm_solver.h"
+#include "cudm_helpers.h"
+#include "cudm_state.h"
+#include "cudm_time_stepper.h"
 
 namespace cudaq {
 cudm_solver::cudm_solver(const Config &config) : config_(config) {

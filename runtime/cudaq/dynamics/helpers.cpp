@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "cudaq/helpers.h"
-#include "cudaq/cudm_error_handling.h"
 #include "cudaq/operators.h"
 #include <iostream>
 #include <map>

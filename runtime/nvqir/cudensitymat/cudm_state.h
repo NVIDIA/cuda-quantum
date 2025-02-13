@@ -9,11 +9,12 @@
 #pragma once
 
 #include <complex>
-#include <cudaq/cudm_error_handling.h>
-#include <cudaq/cudm_helpers.h>
+#include "cudm_error_handling.h"
+#include "cudm_helpers.h"
 #include <cudensitymat.h>
 #include <stdexcept>
 #include <vector>
+#include <variant>
 
 namespace cudaq {
 // Enum to specify the initial quantum state.
@@ -34,7 +35,7 @@ public:
 
   // @brief Create a zero state
   static cudm_state zero_like(const cudm_state &other);
-
+  static cudm_state clone(const cudm_state &other);
   // Prevent copies (avoids double free issues)
   cudm_state(const cudm_state &) = delete;
   cudm_state &operator=(const cudm_state &) = delete;

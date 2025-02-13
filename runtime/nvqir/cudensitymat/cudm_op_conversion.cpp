@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/cudm_op_conversion.h"
-#include "cudaq/cudm_error_handling.h"
+#include "cudm_op_conversion.h"
+#include "cudm_error_handling.h"
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
