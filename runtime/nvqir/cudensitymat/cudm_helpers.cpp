@@ -15,11 +15,6 @@ namespace cudaq {
 cudm_helper::cudm_helper(cudensitymatHandle_t handle) : handle(handle) {}
 
 cudm_helper::~cudm_helper() {
-  if (handle) {
-    cudensitymatDestroy(handle);
-    handle = nullptr;
-  }
-
   cudaDeviceSynchronize();
 }
 
