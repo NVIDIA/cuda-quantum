@@ -141,6 +141,8 @@ public:
 
   virtual ~operator_handler() = default;
 
+  virtual const std::string& unique_id() const = 0;
+
   virtual std::vector<int> degrees() const = 0;
 
   /// @brief Return the `matrix_operator` as a matrix.
