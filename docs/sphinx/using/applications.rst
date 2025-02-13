@@ -10,7 +10,7 @@ CUDA-Q Applications
    /applications/python/krylov
    /applications/python/bernstein_vazirani
    /applications/python/cost_minimization
-   /applications/python/deutsch_jozsa
+   /applications/python/deutschs_algorithm
    /applications/python/divisive_clustering_coresets
    /applications/python/hadamard_test
    /applications/python/logical_aim_sqale
@@ -106,7 +106,7 @@ CUDA-Q Applications
 
 
     <div class="notebook-entry" data-tags="fundamental,noiseless,gpu">
-        <a href="/applications/python/deutsch_jozsa.html" class="notebook-title">The Deutsch-Jozsa Algorithm</a>
+        <a href="/applications/python/deutsch_jozsa.html" class="notebook-title">Deutsch's Algorithm</a>
         <div class="notebook-content">
             Learn how quantum computers can provide an exponential speedup for identifying if a Boolean function is constant or balanced.
         </div>
