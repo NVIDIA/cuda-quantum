@@ -14,272 +14,360 @@
 
 int main() {
 
+  bool run_old = false;
+  bool run_new = true;
+
+  std::vector<int> repetitions = {100, 1000, 10000};
+
   // multiplication inplace with itself
+  std::cout << std::endl << "multiplication inplace with itself" << std::endl;
+
+  for (auto nr_reps : repetitions) {
 
   cudaq::spin_op spin_op = cudaq::spin_op();
   cudaq::product_operator<cudaq::spin_operator> prod_op =
       cudaq::spin_operator::identity();
 
-  int nr_reps = 1000;
-  std::cout << "multiplication inplace with itself" << std::endl;
+    std::cout << "nr ops:  " << nr_reps << std::endl;
+  
+    if (run_old) {
+        auto start = std::chrono::high_resolution_clock::now();
+        for (auto i = 0; i < nr_reps; ++i)
+            spin_op *= cudaq::spin::x(0);
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration<double>(stop - start);
+        std::cout << "Old setup took " << duration.count() << " seconds.\n";
+    } 
 
-  auto start = std::chrono::high_resolution_clock::now();
-  for (auto i = 0; i < nr_reps; ++i)
-    spin_op *= cudaq::spin::x(0);
-  auto stop = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration<double>(stop - start);
-  std::cout << "Old setup took " << duration.count() << " seconds.\n";
+    if (run_new) {
+        auto start = std::chrono::high_resolution_clock::now();
+        for (auto i = 0; i < nr_reps; ++i)
+            prod_op *= cudaq::spin_operator::x(0);
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration<double>(stop - start);
+        std::cout << "New setup took " << duration.count() << " seconds.\n";
+    }
+  }
 
-  start = std::chrono::high_resolution_clock::now();
-  for (auto i = 0; i < nr_reps; ++i)
-    prod_op *= cudaq::spin_operator::x(0);
-  stop = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration<double>(stop - start);
-  std::cout << "New setup took " << duration.count() << " seconds.\n";
-
+  std::cout << std::endl << "multiplication inplace with other" << std::endl;
   // multiplication inplace with other
 
-  spin_op = cudaq::spin_op();
-  prod_op = cudaq::spin_operator::identity();
+  for (auto nr_reps : repetitions) {
 
-  nr_reps = 1000;
-  std::cout << "multiplication inplace with other" << std::endl;
+    cudaq::spin_op spin_op = cudaq::spin_op();
+    cudaq::product_operator<cudaq::spin_operator> prod_op = cudaq::spin_operator::identity();
 
-  start = std::chrono::high_resolution_clock::now();
-  for (auto i = 0; i < nr_reps; ++i)
-    spin_op *= cudaq::spin::x(i);
-  stop = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration<double>(stop - start);
-  std::cout << "Old setup took " << duration.count() << " seconds.\n";
+    std::cout << "nr ops:  " << nr_reps << std::endl;
 
-  start = std::chrono::high_resolution_clock::now();
-  for (auto i = 0; i < nr_reps; ++i)
-    prod_op *= cudaq::spin_operator::x(i);
-  stop = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration<double>(stop - start);
-  std::cout << "New setup took " << duration.count() << " seconds.\n";
+    if (run_old) {
+        auto start = std::chrono::high_resolution_clock::now();
+        for (auto i = 0; i < nr_reps; ++i)
+            spin_op *= cudaq::spin::x(i);
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration<double>(stop - start);
+        std::cout << "Old setup took " << duration.count() << " seconds.\n";
+    } 
+
+    if (run_new) {
+        auto start = std::chrono::high_resolution_clock::now();
+        for (auto i = 0; i < nr_reps; ++i)
+            prod_op *= cudaq::spin_operator::x(i);
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration<double>(stop - start);
+        std::cout << "New setup took " << duration.count() << " seconds.\n";
+    }
+  }
 
   // multiplication inplace with other (reverse order)
+  std::cout << std::endl << "multiplication inplace with other (reverse order)" << std::endl;
 
-  spin_op = cudaq::spin_op();
-  prod_op = cudaq::spin_operator::identity();
+  for (auto nr_reps : repetitions) {
 
-  nr_reps = 1000;
-  std::cout << "multiplication inplace with other (reverse order)" << std::endl;
+    cudaq::spin_op spin_op = cudaq::spin_op();
+    cudaq::product_operator<cudaq::spin_operator> prod_op = cudaq::spin_operator::identity();
 
-  start = std::chrono::high_resolution_clock::now();
-  for (auto i = 0; i < nr_reps; ++i)
-    spin_op *= cudaq::spin::x(nr_reps - i);
-  stop = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration<double>(stop - start);
-  std::cout << "Old setup took " << duration.count() << " seconds.\n";
+    std::cout << "nr ops:  " << nr_reps << std::endl;
 
-  start = std::chrono::high_resolution_clock::now();
-  for (auto i = 0; i < nr_reps; ++i)
-    prod_op *= cudaq::spin_operator::x(nr_reps - i);
-  stop = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration<double>(stop - start);
-  std::cout << "New setup took " << duration.count() << " seconds.\n";
+    if (run_old) {
+        auto start = std::chrono::high_resolution_clock::now();
+        for (auto i = 0; i < nr_reps; ++i)
+            spin_op *= cudaq::spin::x(nr_reps - i);
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration<double>(stop - start);
+        std::cout << "Old setup took " << duration.count() << " seconds.\n";
+    } 
+
+    if (run_new) {
+        auto start = std::chrono::high_resolution_clock::now();
+        for (auto i = 0; i < nr_reps; ++i)
+            prod_op *= cudaq::spin_operator::x(nr_reps - i);
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration<double>(stop - start);
+        std::cout << "New setup took " << duration.count() << " seconds.\n";
+    }
+  }
 
   // addition inplace with itself
+  std::cout << std::endl << "addition inplace with itself" << std::endl;
 
-  spin_op = cudaq::spin_op();
-  cudaq::operator_sum op_sum = cudaq::spin_operator::empty();
+  for (auto nr_reps : repetitions) {
 
-  nr_reps = 1000;
-  std::cout << "addition inplace with itself" << std::endl;
+    cudaq::spin_op spin_op = cudaq::spin_op();
+    cudaq::operator_sum op_sum = cudaq::spin_operator::empty();
 
-  start = std::chrono::high_resolution_clock::now();
-  for (auto i = 0; i < nr_reps; ++i)
-    spin_op += cudaq::spin::x(0);
-  stop = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration<double>(stop - start);
-  std::cout << "Old setup took " << duration.count() << " seconds.\n";
+    std::cout << "nr ops:  " << nr_reps << std::endl;
 
-  start = std::chrono::high_resolution_clock::now();
-  for (auto i = 0; i < nr_reps; ++i)
-    op_sum += cudaq::spin_operator::x(0);
-  stop = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration<double>(stop - start);
-  std::cout << "New setup took " << duration.count() << " seconds.\n";
+    if (run_old) {
+        auto start = std::chrono::high_resolution_clock::now();
+        for (auto i = 0; i < nr_reps; ++i)
+            spin_op += cudaq::spin::x(0);
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration<double>(stop - start);
+        std::cout << "Old setup took " << duration.count() << " seconds.\n";
+    } 
+
+    if (run_new) {
+        auto start = std::chrono::high_resolution_clock::now();
+        for (auto i = 0; i < nr_reps; ++i)
+            op_sum += cudaq::spin_operator::x(0);
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration<double>(stop - start);
+        std::cout << "New setup took " << duration.count() << " seconds.\n";
+    }
+  }
 
   // addition inplace with other
+  std::cout << std::endl << "addition inplace with other" << std::endl;
 
-  spin_op = cudaq::spin_op();
-  op_sum = cudaq::spin_operator::empty();
+  for (auto nr_reps : repetitions) {
 
-  nr_reps = 1000;
-  std::cout << "addition inplace with other" << std::endl;
+    cudaq::spin_op spin_op = cudaq::spin_op();
+    cudaq::operator_sum op_sum = cudaq::spin_operator::empty();
 
-  start = std::chrono::high_resolution_clock::now();
-  for (auto i = 0; i < nr_reps; ++i)
-    spin_op += cudaq::spin::x(i);
-  stop = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration<double>(stop - start);
-  std::cout << "Old setup took " << duration.count() << " seconds.\n";
+    std::cout << "nr ops:  " << nr_reps << std::endl;
 
-  start = std::chrono::high_resolution_clock::now();
-  for (auto i = 0; i < nr_reps; ++i)
-    op_sum += cudaq::spin_operator::x(i);
-  stop = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration<double>(stop - start);
-  std::cout << "New setup took " << duration.count() << " seconds.\n";
+    if (run_old && nr_reps <= 1000) {
+        auto start = std::chrono::high_resolution_clock::now();
+        for (auto i = 0; i < nr_reps; ++i)
+            spin_op += cudaq::spin::x(i);
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration<double>(stop - start);
+        std::cout << "Old setup took " << duration.count() << " seconds.\n";
+    } 
+
+    if (run_new) {
+        auto start = std::chrono::high_resolution_clock::now();
+        for (auto i = 0; i < nr_reps; ++i)
+            op_sum += cudaq::spin_operator::x(i);
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration<double>(stop - start);
+        std::cout << "New setup took " << duration.count() << " seconds.\n";
+    }
+  }
 
   // addition inplace with other (reverse order)
+  std::cout << std::endl << "addition inplace with other (reverse order)" << std::endl;
 
-  spin_op = cudaq::spin_op();
-  op_sum = cudaq::spin_operator::empty();
+  for (auto nr_reps : repetitions) {
 
-  nr_reps = 1000;
-  std::cout << "addition inplace with other (reverse order)" << std::endl;
+    cudaq::spin_op spin_op = cudaq::spin_op();
+    cudaq::operator_sum op_sum = cudaq::spin_operator::empty();
 
-  start = std::chrono::high_resolution_clock::now();
-  for (auto i = 0; i < nr_reps; ++i)
-    spin_op += cudaq::spin::x(nr_reps - i);
-  stop = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration<double>(stop - start);
-  std::cout << "Old setup took " << duration.count() << " seconds.\n";
+    std::cout << "nr ops:  " << nr_reps << std::endl;
 
-  start = std::chrono::high_resolution_clock::now();
-  for (auto i = 0; i < nr_reps; ++i)
-    op_sum += cudaq::spin_operator::x(nr_reps - i);
-  stop = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration<double>(stop - start);
-  std::cout << "New setup took " << duration.count() << " seconds.\n";
+    if (run_old && nr_reps <= 1000) {
+        auto start = std::chrono::high_resolution_clock::now();
+        for (auto i = 0; i < nr_reps; ++i)
+            spin_op += cudaq::spin::x(nr_reps - i);
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration<double>(stop - start);
+        std::cout << "Old setup took " << duration.count() << " seconds.\n";
+    } 
+
+    if (run_new) {
+        auto start = std::chrono::high_resolution_clock::now();
+        for (auto i = 0; i < nr_reps; ++i)
+            op_sum += cudaq::spin_operator::x(nr_reps - i);
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration<double>(stop - start);
+        std::cout << "New setup took " << duration.count() << " seconds.\n";
+    }
+  }
 
   // addition inplace with product self
+  std::cout << std::endl << "addition inplace with product self" << std::endl;
 
-  auto spin_prod = cudaq::spin_op();
-  for (auto i = 0; i < 100; ++i)
-    spin_prod *= cudaq::spin::x(i);
-  spin_op = spin_prod;
-  prod_op = cudaq::spin_operator::identity();
-  for (auto i = 0; i < 100; ++i)
-    prod_op *= cudaq::spin_operator::x(i);
-  op_sum = prod_op;
+  for (auto nr_reps : repetitions) {
 
-  nr_reps = 1000;
-  std::cout << "addition inplace with product self" << std::endl;
+    auto spin_prod = cudaq::spin_op();
+    for (auto i = 0; i < 100; ++i)
+        spin_prod *= cudaq::spin::x(i);
+    cudaq::spin_op spin_op = spin_prod;
+    auto prod_op = cudaq::spin_operator::identity();
+    for (auto i = 0; i < 100; ++i)
+        prod_op *= cudaq::spin_operator::x(i);
+    cudaq::operator_sum op_sum = prod_op;
 
-  start = std::chrono::high_resolution_clock::now();
-  for (auto i = 0; i < nr_reps; ++i)
-    spin_op += spin_prod;
-  stop = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration<double>(stop - start);
-  std::cout << "Old setup took " << duration.count() << " seconds.\n";
+    std::cout << "nr ops:  " << nr_reps << std::endl;
 
-  start = std::chrono::high_resolution_clock::now();
-  for (auto i = 0; i < nr_reps; ++i)
-    op_sum += prod_op;
-  stop = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration<double>(stop - start);
-  std::cout << "New setup took " << duration.count() << " seconds.\n";
+    if (run_old) {
+        auto start = std::chrono::high_resolution_clock::now();
+        for (auto i = 0; i < nr_reps; ++i)
+            spin_op += spin_prod;
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration<double>(stop - start);
+        std::cout << "Old setup took " << duration.count() << " seconds.\n";
+    } 
+
+    if (run_new) {
+        auto start = std::chrono::high_resolution_clock::now();
+        for (auto i = 0; i < nr_reps; ++i)
+            op_sum += prod_op;
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration<double>(stop - start);
+        std::cout << "New setup took " << duration.count() << " seconds.\n";
+    }
+  }
 
   // addition inplace with product self (reverse order)
+  std::cout << std::endl << "addition inplace with product self (reverse order)" << std::endl;
 
-  spin_prod = cudaq::spin_op();
-  for (auto i = 0; i < 100; ++i)
-    spin_prod *= cudaq::spin::x(100 - i);
-  spin_op = spin_prod;
-  prod_op = cudaq::spin_operator::identity();
-  for (auto i = 0; i < 100; ++i)
-    prod_op *= cudaq::spin_operator::x(100 - i);
-  op_sum = prod_op;
+  for (auto nr_reps : repetitions) {
 
-  nr_reps = 1000;
-  std::cout << "addition inplace with product self" << std::endl;
+    auto spin_prod = cudaq::spin_op();
+    for (auto i = 0; i < 100; ++i)
+        spin_prod *= cudaq::spin::x(100 - i);
+    cudaq::spin_op spin_op = spin_prod;
+    auto prod_op = cudaq::spin_operator::identity();
+    for (auto i = 0; i < 100; ++i)
+        prod_op *= cudaq::spin_operator::x(100 - i);
+    cudaq::operator_sum op_sum = prod_op;
 
-  start = std::chrono::high_resolution_clock::now();
-  for (auto i = 0; i < nr_reps; ++i)
-    spin_op += spin_prod;
-  stop = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration<double>(stop - start);
-  std::cout << "Old setup took " << duration.count() << " seconds.\n";
+    std::cout << "nr ops:  " << nr_reps << std::endl;
 
-  start = std::chrono::high_resolution_clock::now();
-  for (auto i = 0; i < nr_reps; ++i)
-    op_sum += prod_op;
-  stop = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration<double>(stop - start);
-  std::cout << "New setup took " << duration.count() << " seconds.\n";
+    if (run_old) {
+        auto start = std::chrono::high_resolution_clock::now();
+        for (auto i = 0; i < nr_reps; ++i)
+            spin_op += spin_prod;
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration<double>(stop - start);
+        std::cout << "Old setup took " << duration.count() << " seconds.\n";
+    } 
+
+    if (run_new) {
+        auto start = std::chrono::high_resolution_clock::now();
+        for (auto i = 0; i < nr_reps; ++i)
+            op_sum += prod_op;
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration<double>(stop - start);
+        std::cout << "New setup took " << duration.count() << " seconds.\n";
+    }
+  }
 
   // product inplace with 2-term sum on fixed degrees
+  std::cout << std::endl << "product inplace with 2-term sum on fixed degrees" << std::endl;
 
-  auto spin_term = cudaq::spin::x(0) + cudaq::spin::y(1);
-  spin_op = spin_term;
-  auto prod_term = cudaq::spin_operator::x(0) + cudaq::spin_operator::y(1);
-  op_sum = prod_term;
+  for (auto nr_reps : repetitions) {
 
-  nr_reps = 20;
-  std::cout << "product inplace with 2-term sum on fixed degrees" << std::endl;
+    auto spin_term = cudaq::spin::x(0) + cudaq::spin::y(1);
+    cudaq::spin_op spin_op = spin_term;
+    auto prod_term = cudaq::spin_operator::x(0) + cudaq::spin_operator::y(1);
+    cudaq::operator_sum op_sum = prod_term;
 
-  start = std::chrono::high_resolution_clock::now();
-  for (auto i = 0; i < nr_reps; ++i)
-    spin_op *= spin_term;
-  stop = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration<double>(stop - start);
-  std::cout << "Old setup took " << duration.count() << " seconds.\n";
+    std::cout << "nr ops:  " << nr_reps << std::endl;
 
-  start = std::chrono::high_resolution_clock::now();
-  for (auto i = 0; i < nr_reps; ++i)
-    op_sum *= prod_term;
-  stop = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration<double>(stop - start);
-  std::cout << "New setup took " << duration.count() << " seconds.\n";
+    if (run_old) {
+        auto start = std::chrono::high_resolution_clock::now();
+        for (auto i = 0; i < nr_reps; ++i)
+            spin_op *= spin_term;
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration<double>(stop - start);
+        std::cout << "Old setup took " << duration.count() << " seconds.\n";
+    } 
+
+    if (run_new) {
+        auto start = std::chrono::high_resolution_clock::now();
+        for (auto i = 0; i < nr_reps; ++i)
+            op_sum *= prod_term;
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration<double>(stop - start);
+        std::cout << "New setup took " << duration.count() << " seconds.\n";
+    }
+  }
+
+
+
+  repetitions = {10, 20, 30};
+
 
   // product inplace with 2-term sum on varying degrees
+  std::cout << std::endl << "product inplace with 2-term sum on varying degrees" << std::endl;
 
-  spin_op = cudaq::spin_op();
-  op_sum = cudaq::spin_operator::identity();
+  for (auto nr_reps : repetitions) {
 
-  nr_reps = 20;
-  std::cout << "product inplace with 2-term sum on varying degrees"
-            << std::endl;
+    cudaq::spin_op spin_op = cudaq::spin_op();
+    cudaq::operator_sum op_sum = cudaq::spin_operator::empty();
+    op_sum = cudaq::spin_operator::identity();
 
-  start = std::chrono::high_resolution_clock::now();
-  for (auto i = 0; i < nr_reps; ++i)
-    spin_op *= (cudaq::spin::x(i) + cudaq::spin::z(i + 1));
-  stop = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration<double>(stop - start);
-  std::cout << "Old setup took " << duration.count() << " seconds.\n";
+    std::cout << "nr ops:  " << nr_reps << std::endl;
 
-  start = std::chrono::high_resolution_clock::now();
-  for (auto i = 0; i < nr_reps; ++i)
-    op_sum *= (cudaq::spin_operator::x(i) + cudaq::spin_operator::z(i + 1));
-  stop = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration<double>(stop - start);
-  std::cout << "New setup took " << duration.count() << " seconds.\n";
+    if (run_old && nr_reps <= 20) {
+        auto start = std::chrono::high_resolution_clock::now();
+        for (auto i = 0; i < nr_reps; ++i)
+            spin_op *= (cudaq::spin::x(i) + cudaq::spin::z(i + 1));
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration<double>(stop - start);
+        std::cout << "Old setup took " << duration.count() << " seconds.\n";
+    } 
+
+    if (run_new && nr_reps <= 20) {
+        auto start = std::chrono::high_resolution_clock::now();
+        for (auto i = 0; i < nr_reps; ++i)
+            op_sum *= (cudaq::spin_operator::x(i) + cudaq::spin_operator::z(i + 1));
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration<double>(stop - start);
+        std::cout << "New setup took " << duration.count() << " seconds.\n";
+    }
+  }
 
   // product inplace with 2-term sum on varying degrees (reverse order)
+  std::cout << std::endl << "product inplace with 2-term sum on varying degrees (reverse order)" << std::endl;
 
-  spin_op = cudaq::spin_op();
-  op_sum = cudaq::spin_operator::identity();
+  for (auto nr_reps : repetitions) {
 
-  nr_reps = 20;
-  std::cout
-      << "product inplace with 2-term sum on varying degrees (reverse order)"
-      << std::endl;
+    cudaq::spin_op spin_op = cudaq::spin_op();
+    cudaq::operator_sum op_sum = cudaq::spin_operator::empty(); // fixme: only const & constructor is public
+    op_sum = cudaq::spin_operator::identity();
 
-  /*
-  start = std::chrono::high_resolution_clock::now();
-  for (auto i = 0; i < nr_reps; ++i)
-      spin_op *= (cudaq::spin::x(nr_reps - i) + cudaq::spin::z(nr_reps - i -
-  1)); stop = std::chrono::high_resolution_clock::now(); duration =
-  std::chrono::duration<double>(stop - start); std::cout << "Old setup took " <<
-  duration.count() << " seconds.\n";
-  */
-  std::cout << "Old setup segfaults" << std::endl;
+    std::cout << "nr ops:  " << nr_reps << std::endl;
 
-  start = std::chrono::high_resolution_clock::now();
-  for (auto i = 0; i < nr_reps; ++i)
-    op_sum *= (cudaq::spin_operator::x(nr_reps - i) +
-               cudaq::spin_operator::z(nr_reps - i - 1));
-  stop = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration<double>(stop - start);
-  std::cout << "New setup took " << duration.count() << " seconds.\n";
+    if (run_old && nr_reps <= 20) {
+        /*
+        start = std::chrono::high_resolution_clock::now();
+        for (auto i = 0; i < nr_reps; ++i)
+            spin_op *= (cudaq::spin::x(nr_reps - i) + cudaq::spin::z(nr_reps - i - 1));
+        stop = std::chrono::high_resolution_clock::now();
+        duration = std::chrono::duration<double>(stop - start);
+        std::cout << "Old setup took " << duration.count() << " seconds.\n";
+        */
+        std::cout << "Old setup segfaults" << std::endl;
+    } 
+
+    if (run_new && nr_reps <= 20) {
+        auto start = std::chrono::high_resolution_clock::now();
+        for (auto i = 0; i < nr_reps; ++i)
+            op_sum *= (cudaq::spin_operator::x(nr_reps - i) + cudaq::spin_operator::z(nr_reps - i - 1));
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration<double>(stop - start);
+        std::cout << "New setup took " << duration.count() << " seconds.\n";
+    }
+  }
 
   // sum of products of random terms
+  std::cout << std::endl << "sum of products of random terms" << std::endl;
 
+  std::vector<int> nr_sum_terms = { 10, 100, 1000 };
+  std::vector<int> nr_product_terms = { 100, 1000, 10000 };
   auto nr_degrees = 100;
   std::vector<cudaq::spin_op> spin_ops;
   for (auto i = 0; i < nr_degrees; ++i) {
@@ -295,43 +383,49 @@ int main() {
     leaf_ops.push_back(cudaq::spin_operator::z(i));
     leaf_ops.push_back(cudaq::spin_operator::i(i));
   }
-
-  auto term_length = 1000;
-  auto nr_terms = 200;
   srand(5); // random number seed
-  std::vector<std::vector<int>> indices;
-  for (auto i = 0; i < nr_terms; ++i) {
-    indices.push_back({});
-    for (auto j = 0; j < term_length; ++j)
-      indices[i].push_back(rand() % 400);
+
+  for (auto nr_sums : nr_sum_terms) {
+    for (auto nr_prods : nr_product_terms) {
+
+        std::vector<std::vector<int>> indices;
+        for (auto i = 0; i < nr_sums; ++i) {
+            indices.push_back({});
+            for (auto j = 0; j < nr_prods; ++j)
+                indices[i].push_back(rand() % 400);
+        }
+
+        std::cout << "nr terms " << nr_sums << ", term length " << nr_prods << std::endl;
+
+        auto spin_op = cudaq::spin_op();
+        auto op_sum = cudaq::spin_operator::empty();
+
+        if (run_old) {
+            auto start = std::chrono::high_resolution_clock::now();
+            for (auto i = 0; i < nr_sums; ++i) {
+                auto term = cudaq::spin_op();
+                for (auto j = 0; j < nr_prods; ++j)
+                    term *= spin_ops[indices[i][j]];
+                spin_op += term;
+            }
+            auto stop = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration<double>(stop - start);
+            std::cout << "Old setup took " << duration.count() << " seconds.\n";
+        } 
+
+        if (run_new) {
+            auto start = std::chrono::high_resolution_clock::now();
+            for (auto i = 0; i < nr_sums; ++i) {
+                auto term = cudaq::spin_operator::identity();
+                for (auto j = 0; j < nr_prods; ++j)
+                    term *= leaf_ops[indices[i][j]];
+                op_sum += term;
+            }
+            auto stop = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration<double>(stop - start);
+            std::cout << "New setup took " << duration.count() << " seconds.\n";
+        }
+    }
   }
-
-  spin_op = cudaq::spin_op();
-  op_sum = cudaq::spin_operator::empty();
-
-  std::cout << "sum of products of random terms" << std::endl;
-
-  start = std::chrono::high_resolution_clock::now();
-  for (auto i = 0; i < nr_terms; ++i) {
-    auto term = cudaq::spin_op();
-    for (auto j = 0; j < term_length; ++j)
-      term *= spin_ops[indices[i][j]];
-    spin_op += term;
-  }
-  stop = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration<double>(stop - start);
-  std::cout << "Old setup took " << duration.count() << " seconds.\n";
-
-  start = std::chrono::high_resolution_clock::now();
-  for (auto i = 0; i < nr_terms; ++i) {
-    auto term = cudaq::spin_operator::identity();
-    for (auto j = 0; j < term_length; ++j)
-      term *= leaf_ops[indices[i][j]];
-    op_sum += term;
-  }
-  stop = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration<double>(stop - start);
-  std::cout << "New setup took " << duration.count() << " seconds.\n";
-
   return 0;
 }
