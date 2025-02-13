@@ -12,6 +12,8 @@
 #include <iostream>
 #include "common/EigenDense.h"
 #include <unsupported/Eigen/KroneckerProduct>
+#include "cudaq/runge_kutta_integrator.h"
+#include "cudm_state.h"
 
 TEST(EvolveTester, checkSimple) {
   const std::map<int, int> dims = {{0, 2}};
@@ -50,8 +52,12 @@ TEST(EvolveTester, checkSimple) {
       std::complex<double>{1.0, 0.0}, cudaq::matrix_operator("pauli_z", {0}));
   auto initialState =
       cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
-  auto result = cudaq::evolve_single(ham, dims, schedule, initialState, {},
-                                     {&pauliZ}, true);
+  
+  cudaq::runge_kutta_integrator integrator;
+  integrator.dt = 0.001;
+  integrator.order = 1;
+  auto result = cudaq::evolve_single(ham, dims, schedule, initialState,
+                                     integrator, {}, {&pauliZ}, true);
   EXPECT_TRUE(result.get_expectation_values().has_value());
   EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
   std::vector<double> theoryResults;
@@ -89,26 +95,25 @@ TEST(EvolveTester, checkCompositeSystem) {
   cavity_state[num_photons] = 1.0;
   Eigen::VectorXcd initial_state_vec =
       Eigen::kroneckerProduct(cavity_state, qubit_state);
-  std::cout << "Initial state: \n" << initial_state_vec << "\n";
-  constexpr int num_steps = 201;
-  cudaq::Schedule schedule(cudaq::linspace(0.0, 10, num_steps));
+  constexpr int num_steps = 21;
+  cudaq::Schedule schedule(cudaq::linspace(0.0, 1, num_steps));
   auto initialState = cudaq::state::from_data(
       std::make_pair(initial_state_vec.data(), initial_state_vec.size()));
-
+  cudaq::runge_kutta_integrator integrator;
+  integrator.dt = 0.000001;
+  integrator.order = 1;
   auto result = cudaq::evolve_single(hamiltonian, dims, schedule, initialState,
-                                     {}, {&cavity_occ_op, &atom_occ_op}, true);
+                                     integrator, {},
+                                     {&cavity_occ_op, &atom_occ_op}, true);
   EXPECT_TRUE(result.get_expectation_values().has_value());
   EXPECT_EQ(result.get_expectation_values().value().size(), num_steps);
-  // std::vector<double> theoryResults;
-  // for (const auto &t : schedule) {
-  //   const double expected = std::cos(2 * 2.0 * M_PI * 0.1 * t);
-  //   theoryResults.emplace_back(expected);
-  // }
 
   int count = 0;
   for (auto expVals : result.get_expectation_values().value()) {
     EXPECT_EQ(expVals.size(), 2);
-    std::cout << expVals[0] << "\n";
-    // EXPECT_NEAR((double)expVals[0], theoryResults[count++], 1e-3);
+    std::cout << expVals[0] << " | ";
+    std::cout << expVals[1] << "\n";
+    // This should be an exchanged interaction
+    EXPECT_NEAR((double)expVals[0] + (double)expVals[1], num_photons, 1e-2);
   }
 }

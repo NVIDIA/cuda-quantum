@@ -312,6 +312,7 @@ if (CUDA_FOUND)
     CUDA::cudart_static
     gtest_main
     fmt::fmt-header-only)
+  target_include_directories(test_dynamics PRIVATE ${CMAKE_SOURCE_DIR}/runtime/nvqir/cudensitymat)
   gtest_discover_tests(test_dynamics)
 endif()
 add_subdirectory(plugin)

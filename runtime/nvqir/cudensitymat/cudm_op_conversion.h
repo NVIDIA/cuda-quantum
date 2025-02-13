@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "cudaq/cudm_helpers.h"
+#include "cudm_helpers.h"
 #include "cudaq/operators.h"
 #include "cudaq/schedule.h"
 #include <cudensitymat.h>

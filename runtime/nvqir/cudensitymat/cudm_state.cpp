@@ -7,12 +7,14 @@
  ******************************************************************************/
 
 #include <cmath>
-#include <cudaq/cudm_state.h>
+#include "cudm_state.h"
+#include "cudm_error_handling.h"
 #include <cudaq/qis/state.h>
 #include <iostream>
 #include <numeric>
 #include <sstream>
 #include <stdexcept>
+#include <cassert>
 #include <typeinfo>
 
 namespace cudaq {
@@ -73,6 +75,52 @@ cudm_state cudm_state::zero_like(const cudm_state &other) {
   HANDLE_CUDA_ERROR(
       cudaMalloc(reinterpret_cast<void **>(&state.gpuData_), dataSize));
   HANDLE_CUDA_ERROR(cudaMemset(state.gpuData_, 0, dataSize));
+
+  const size_t expectedDensityMatrixSize =
+      calculate_density_matrix_size(state.hilbertSpaceDims_);
+  const bool isDensityMat = expectedDensityMatrixSize == state.gpuDataSize_;
+  const cudensitymatStatePurity_t purity = isDensityMat
+                                               ? CUDENSITYMAT_STATE_PURITY_MIXED
+                                               : CUDENSITYMAT_STATE_PURITY_PURE;
+  HANDLE_CUDM_ERROR(cudensitymatCreateState(
+      state.handle_, purity,
+      static_cast<int32_t>(state.hilbertSpaceDims_.size()),
+      state.hilbertSpaceDims_.data(), 1, CUDA_C_64F, &state.state_));
+
+  // Query the size of the quantum state storage
+  std::size_t storageSize{0}; // only one storage component (tensor) is needed
+  HANDLE_CUDM_ERROR(cudensitymatStateGetComponentStorageSize(
+      state.handle_, state.state_,
+      1,              // only one storage component
+      &storageSize)); // storage size in bytes
+  const std::size_t stateVolume =
+      storageSize / sizeof(std::complex<double>); // quantum state tensor volume
+                                                  // (number of elements)
+  assert(stateVolume == state.gpuDataSize_);
+  // std::cout << "Quantum state storage size (bytes) = " << storageSize
+  //           << std::endl;
+
+  // Attach initialized GPU storage to the input quantum state
+  HANDLE_CUDM_ERROR(cudensitymatStateAttachComponentStorage(
+      state.handle_, state.state_,
+      1, // only one storage component (tensor)
+      std::vector<void *>({state.gpuData_})
+          .data(), // pointer to the GPU storage for the quantum state
+      std::vector<std::size_t>({storageSize})
+          .data())); // size of the GPU storage for the quantum state
+  return state;
+}
+
+cudm_state cudm_state::clone(const cudm_state &other) {
+  cudm_state state;
+  state.handle_ = other.handle_;
+  state.hilbertSpaceDims_ = other.hilbertSpaceDims_;
+  state.gpuDataSize_ = other.gpuDataSize_;
+  const size_t dataSize = state.gpuDataSize_ * sizeof(std::complex<double>);
+  HANDLE_CUDA_ERROR(
+      cudaMalloc(reinterpret_cast<void **>(&state.gpuData_), dataSize));
+  HANDLE_CUDA_ERROR(
+      cudaMemcpy(state.gpuData_, other.gpuData_, dataSize, cudaMemcpyDefault));
 
   const size_t expectedDensityMatrixSize =
       calculate_density_matrix_size(state.hilbertSpaceDims_);
@@ -225,11 +273,11 @@ std::vector<int64_t> cudm_state::get_hilbert_space_dims() const {
 cudensitymatHandle_t cudm_state::get_handle() const { return handle_; }
 
 cudm_state cudm_state::operator+(const cudm_state &other) const {
-  if (rawData_.size() != other.rawData_.size()) {
+  if (gpuDataSize_ != other.gpuDataSize_) {
     throw std::invalid_argument("State size mismatch for addition.");
   }
 
-  cudm_state result = cudm_state(handle_, rawData_, hilbertSpaceDims_);
+  cudm_state result = cudm_state::clone(*this);
 
   double scalingFactor = 1.0;
   double *gpuScalingFactor;
@@ -246,8 +294,10 @@ cudm_state cudm_state::operator+(const cudm_state &other) const {
 }
 
 cudm_state &cudm_state::operator+=(const cudm_state &other) {
-  if (rawData_.size() != other.rawData_.size()) {
-    throw std::invalid_argument("State size mismatch for addition.");
+  if (gpuDataSize_ != other.gpuDataSize_) {
+    throw std::invalid_argument(
+        fmt::format("State size mismatch for addition ({} vs {}).",
+                    gpuDataSize_, other.gpuDataSize_));
   }
 
   double scalingFactor = 1.0;
@@ -286,7 +336,7 @@ cudm_state cudm_state::operator*(double scalar) const {
                                sizeof(std::complex<double>),
                                cudaMemcpyHostToDevice));
 
-  cudm_state result(handle_, rawData_, hilbertSpaceDims_);
+  cudm_state result = cudm_state::clone(*this);
 
   HANDLE_CUDM_ERROR(
       cudensitymatStateComputeScaling(handle_, result.state_, gpuScalar, 0));

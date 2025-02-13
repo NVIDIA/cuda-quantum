@@ -11,8 +11,8 @@
 #include "runtime/common/EvolveResult.h"
 #include <complex>
 #include <cudaq/base_integrator.h>
-#include <cudaq/cudm_helpers.h>
-#include <cudaq/cudm_state.h>
+#include "cudm_helpers.h>
+#include "cudm_state.h>
 #include <cudaq/helpers.h>
 #include <cudaq/operators.h>
 #include <cudaq/schedule.h>
