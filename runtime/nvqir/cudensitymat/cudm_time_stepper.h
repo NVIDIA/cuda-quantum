@@ -9,7 +9,7 @@
 #pragma once
 
 #include "cudaq/base_time_stepper.h"
-#include "cudaq/cudm_state.h"
+#include "cudm_state.h"
 #include <cudensitymat.h>
 
 namespace cudaq {

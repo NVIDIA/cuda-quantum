@@ -23,10 +23,19 @@ find_file(CUDENSITYMAT_INC
 )
 
 message(STATUS "cudensitymat header: ${CUDENSITYMAT_INC}")
-get_filename_component(CUDENSITYMAT_INCLUDE_DIR ${CUDENSITYMAT_INC} DIRECTORY)
 
-add_library(${LIBRARY_NAME} SHARED CuDensityMatSim.cpp mpi_support.cpp)
+add_library(${LIBRARY_NAME} SHARED 
+  CuDensityMatSim.cpp 
+  mpi_support.cpp
+  cudm_helpers.cpp
+  cudm_state.cpp
+  cudm_time_stepper.cpp
+  runge_kutta_integrator.cpp
+  cudm_expectation.cpp
+  cudm_evolution.cpp
+)
 
+message("CUDAToolkit_INCLUDE_DIRS = ${CUDAToolkit_INCLUDE_DIRS}")
 target_include_directories(${LIBRARY_NAME}
   PRIVATE 
     . .. 

@@ -6,10 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/cudm_expectation.h"
+#include "cudm_expectation.h"
 #include "common/Logger.h"
-#include "cudaq/cudm_error_handling.h"
-#include "cudaq/cudm_helpers.h"
+#include "cudm_error_handling.h"
+#include "cudm_helpers.h"
 #include <iostream>
 
 namespace cudaq {
