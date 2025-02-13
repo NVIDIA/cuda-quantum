@@ -1150,8 +1150,8 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
     args.append(opTargs.begin(), opTargs.end());
 
     // Call the generalized version of the gate invocation.
-    rewriter.create<LLVM::CallOp>(loc, TypeRange{},
-                                  cudaq::opt::NVQIRGeneralizedInvokeAny, args);
+    rewriter.create<cudaq::cc::VarargCallOp>(
+        loc, TypeRange{}, cudaq::opt::NVQIRGeneralizedInvokeAny, args);
     return forwardOrEraseOp();
   }
 
