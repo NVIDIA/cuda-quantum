@@ -10,6 +10,7 @@
 
 #include <complex>
 #include <functional>
+#include <unordered_map>
 #include <string>
 #include <vector>
 
@@ -40,8 +41,8 @@ ScalarCallbackFunction& ScalarCallbackFunction::operator=(ScalarCallbackFunction
 }
 
 std::complex<double>
-ScalarCallbackFunction::operator()(std::map<std::string, std::complex<double>> parameters) const {
-  return _callback_func(std::move(parameters));
+ScalarCallbackFunction::operator()(const std::unordered_map<std::string, std::complex<double>> &parameters) const {
+  return _callback_func(parameters);
 }
 
 // MatrixCallbackFunction
@@ -69,22 +70,22 @@ MatrixCallbackFunction& MatrixCallbackFunction::operator=(MatrixCallbackFunction
 }
 
 matrix_2
-MatrixCallbackFunction::operator()(std::vector<int> relevant_dimensions,
-            std::map<std::string, std::complex<double>> parameters) const {
-  return _callback_func(std::move(relevant_dimensions), std::move(parameters));
+MatrixCallbackFunction::operator()(const std::vector<int> &relevant_dimensions,
+                                   const std::unordered_map<std::string, std::complex<double>> &parameters) const {
+  return _callback_func(relevant_dimensions, parameters);
 }
 
 // Definition
 
-Definition::Definition(const std::string &operator_id, std::vector<int> expected_dimensions, MatrixCallbackFunction &&create) 
-  : id(operator_id), generator(std::move(create)), m_expected_dimensions(std::move(expected_dimensions)) {}
+Definition::Definition(std::string operator_id, const std::vector<int> &expected_dimensions, MatrixCallbackFunction &&create) 
+  : id(operator_id), generator(std::move(create)), m_expected_dimensions(expected_dimensions) {}
 
 Definition::Definition(Definition &&def) 
   : id(def.id), generator(std::move(def.generator)), m_expected_dimensions(std::move(def.m_expected_dimensions)) {}
 
 matrix_2 Definition::generate_matrix(
     const std::vector<int> &relevant_dimensions,
-    const std::map<std::string, std::complex<double>> &parameters) const {
+    const std::unordered_map<std::string, std::complex<double>> &parameters) const {
   return generator(relevant_dimensions, parameters);
 }
 

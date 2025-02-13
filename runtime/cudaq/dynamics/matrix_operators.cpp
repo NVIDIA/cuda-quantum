@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include <complex>
-#include <map>
+#include <unordered_map>
 #include <vector>
 
 #include "cudaq/utils/tensor.h"
@@ -18,9 +18,13 @@
 
 namespace cudaq {
 
+#if !defined(NDEBUG)
+bool matrix_operator::can_be_canonicalized = false;
+#endif
+
 // tools for custom operators
 
-std::map<std::string, Definition> matrix_operator::m_ops = {};
+std::unordered_map<std::string, Definition> matrix_operator::m_ops = {};
 
 void matrix_operator::define(std::string operator_id, std::vector<int> expected_dimensions,
             MatrixCallbackFunction &&create) {
@@ -51,11 +55,27 @@ std::vector<int> matrix_operator::degrees() const {
   return this->targets;
 }
 
-bool matrix_operator::is_identity() const {
-  return this->id == "identity";
-}
-
 // constructors
+
+matrix_operator::matrix_operator(int degree) {
+  std::string op_id = "identity";
+  if (matrix_operator::m_ops.find(op_id) == matrix_operator::m_ops.end()) {
+    auto func = [](const std::vector<int> &dimensions,
+                    const std::unordered_map<std::string, std::complex<double>> &_none) {
+      std::size_t dimension = dimensions[0];
+      auto mat = matrix_2(dimension, dimension);
+
+      // Build up the identity matrix.
+      for (std::size_t i = 0; i < dimension; i++) {
+        mat[{i, i}] = 1.0 + 0.0j;
+      }
+      return mat;
+    };
+    matrix_operator::define(op_id, {-1}, std::move(func));
+  }
+  this->id = op_id;
+  this->targets.push_back(degree);
+}
 
 matrix_operator::matrix_operator(std::string operator_id, const std::vector<int> &degrees)
   : id(operator_id), targets(degrees) {
@@ -72,9 +92,9 @@ matrix_operator::matrix_operator(const T &other) {
   this->targets = other.degrees();
   this->id = typeid(other).name() + std::to_string(this->targets.size()) + other.to_string(false);
   if (matrix_operator::m_ops.find(this->id) == matrix_operator::m_ops.end()) {
-    auto func = [targets = other.degrees(), other](std::vector<int> dimensions,
-                    std::map<std::string, std::complex<double>> _none) {
-      std::map<int, int> dims;
+    auto func = [targets = other.degrees(), other]
+      (const std::vector<int> &dimensions, const std::unordered_map<std::string, std::complex<double>> &_none) {
+      std::unordered_map<int, int> dims;
       for(auto i = 0; i < dimensions.size(); ++i)
         dims[targets[i]] = dimensions[i];
       return other.to_matrix(dims, std::move(_none));
@@ -124,8 +144,8 @@ matrix_operator& matrix_operator::operator=(matrix_operator &&other) {
 // evaluations
 
 matrix_2 matrix_operator::to_matrix(
-    std::map<int, int> &dimensions,
-    std::map<std::string, std::complex<double>> parameters) const {
+    std::unordered_map<int, int> &dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters) const {
   auto it = matrix_operator::m_ops.find(this->id);
   if (it == matrix_operator::m_ops.end()) 
     throw std::range_error("unable to find operator");
@@ -156,9 +176,9 @@ matrix_2 matrix_operator::to_matrix(
 std::string matrix_operator::to_string(bool include_degrees) const {
   if (!include_degrees) return this->id;
   else if (this->targets.size() == 0) return this->id + "()";
-  auto it = this->targets.begin();
+  auto it = this->targets.cbegin();
   std::string str = this->id + "(" + std::to_string(*it++);
-  while (it != this->targets.end())
+  while (it != this->targets.cend())
     str += ", " + std::to_string(*it++);
   return str + ")";
 }
@@ -171,35 +191,23 @@ bool matrix_operator::operator==(const matrix_operator &other) const {
 
 // predefined operators
 
-// multiplicative identity
-matrix_operator matrix_operator::one(int degree) {
-  std::string op_id = "identity";
-  if (matrix_operator::m_ops.find(op_id) == matrix_operator::m_ops.end()) {
-    auto func = [](std::vector<int> dimensions,
-                   std::map<std::string, std::complex<double>> _none) {
-      std::size_t dimension = dimensions[0];
-      auto mat = matrix_2(dimension, dimension);
+operator_sum<matrix_operator> matrix_operator::empty() {
+  return operator_handler::empty<matrix_operator>();
+}
 
-      // Build up the identity matrix.
-      for (std::size_t i = 0; i < dimension; i++) {
-        mat[{i, i}] = 1.0 + 0.0j;
-      }
-      return mat;
-    };
-    matrix_operator::define(op_id, {-1}, std::move(func));
-  }
-  return matrix_operator(op_id, {degree});
+product_operator<matrix_operator> matrix_operator::identity() {
+  return operator_handler::identity<matrix_operator>();
 }
 
 product_operator<matrix_operator> matrix_operator::identity(int degree) {
-  return product_operator(std::move(matrix_operator::one(degree)));
+  return product_operator(matrix_operator(degree));
 }
 
 product_operator<matrix_operator> matrix_operator::annihilate(int degree) {
   std::string op_id = "annihilate";
   if (matrix_operator::m_ops.find(op_id) == matrix_operator::m_ops.end()) {
-    auto func = [](std::vector<int> dimensions,
-                   std::map<std::string, std::complex<double>> _none) {
+    auto func = [](const std::vector<int> &dimensions,
+                    const std::unordered_map<std::string, std::complex<double>> &_none) {
       std::size_t dimension = dimensions[0];
       auto mat = matrix_2(dimension, dimension);
       for (std::size_t i = 0; i + 1 < dimension; i++) {
@@ -216,8 +224,8 @@ product_operator<matrix_operator> matrix_operator::annihilate(int degree) {
 product_operator<matrix_operator> matrix_operator::create(int degree) {
   std::string op_id = "create";
   if (matrix_operator::m_ops.find(op_id) == matrix_operator::m_ops.end()) {
-    auto func = [](std::vector<int> dimensions,
-                   std::map<std::string, std::complex<double>> _none) {
+    auto func = [](const std::vector<int> &dimensions,
+                    const std::unordered_map<std::string, std::complex<double>> &_none) {
       std::size_t dimension = dimensions[0];
       auto mat = matrix_2(dimension, dimension);
       for (std::size_t i = 0; i + 1 < dimension; i++) {
@@ -234,8 +242,8 @@ product_operator<matrix_operator> matrix_operator::create(int degree) {
 product_operator<matrix_operator> matrix_operator::position(int degree) {
   std::string op_id = "position";
   if (matrix_operator::m_ops.find(op_id) == matrix_operator::m_ops.end()) {
-    auto func = [](std::vector<int> dimensions,
-                   std::map<std::string, std::complex<double>> _none) {
+    auto func = [](const std::vector<int> &dimensions,
+                    const std::unordered_map<std::string, std::complex<double>> &_none) {
       std::size_t dimension = dimensions[0];
       auto mat = matrix_2(dimension, dimension);
       // position = 0.5 * (create + annihilate)
@@ -256,8 +264,8 @@ product_operator<matrix_operator> matrix_operator::position(int degree) {
 product_operator<matrix_operator> matrix_operator::momentum(int degree) {
   std::string op_id = "momentum";
   if (matrix_operator::m_ops.find(op_id) == matrix_operator::m_ops.end()) {
-    auto func = [](std::vector<int> dimensions,
-                   std::map<std::string, std::complex<double>> _none) {
+    auto func = [](const std::vector<int> &dimensions,
+                    const std::unordered_map<std::string, std::complex<double>> &_none) {
       std::size_t dimension = dimensions[0];
       auto mat = matrix_2(dimension, dimension);
       // momentum = 0.5j * (create - annihilate)
@@ -278,8 +286,8 @@ product_operator<matrix_operator> matrix_operator::momentum(int degree) {
 product_operator<matrix_operator> matrix_operator::number(int degree) {
   std::string op_id = "number";
   if (matrix_operator::m_ops.find(op_id) == matrix_operator::m_ops.end()) {
-    auto func = [](std::vector<int> dimensions,
-                   std::map<std::string, std::complex<double>> _none) {
+    auto func = [](const std::vector<int> &dimensions,
+                    const std::unordered_map<std::string, std::complex<double>> &_none) {
       std::size_t dimension = dimensions[0];
       auto mat = matrix_2(dimension, dimension);
       for (std::size_t i = 0; i < dimension; i++) {
@@ -296,8 +304,8 @@ product_operator<matrix_operator> matrix_operator::number(int degree) {
 product_operator<matrix_operator> matrix_operator::parity(int degree) {
   std::string op_id = "parity";
   if (matrix_operator::m_ops.find(op_id) == matrix_operator::m_ops.end()) {
-    auto func = [](std::vector<int> dimensions,
-                   std::map<std::string, std::complex<double>> _none) {
+    auto func = [](const std::vector<int> &dimensions,
+                    const std::unordered_map<std::string, std::complex<double>> &_none) {
       std::size_t dimension = dimensions[0];
       auto mat = matrix_2(dimension, dimension);
       for (std::size_t i = 0; i < dimension; i++) {
@@ -314,8 +322,8 @@ product_operator<matrix_operator> matrix_operator::parity(int degree) {
 product_operator<matrix_operator> matrix_operator::displace(int degree) {
   std::string op_id = "displace";
   if (matrix_operator::m_ops.find(op_id) == matrix_operator::m_ops.end()) {
-    auto func = [](std::vector<int> dimensions,
-                   std::map<std::string, std::complex<double>> parameters) {
+    auto func = [](const std::vector<int> &dimensions,
+                     const std::unordered_map<std::string, std::complex<double>> &parameters) {
       std::size_t dimension = dimensions[0];
       auto entry = parameters.find("displacement");
       if (entry == parameters.end())
@@ -341,8 +349,8 @@ product_operator<matrix_operator> matrix_operator::displace(int degree) {
 product_operator<matrix_operator> matrix_operator::squeeze(int degree) {
   std::string op_id = "squeeze";
   if (matrix_operator::m_ops.find(op_id) == matrix_operator::m_ops.end()) {
-    auto func = [](std::vector<int> dimensions,
-                   std::map<std::string, std::complex<double>> parameters) {
+    auto func = [](const std::vector<int> &dimensions,
+                     const std::unordered_map<std::string, std::complex<double>> &parameters) {
       std::size_t dimension = dimensions[0];
       auto entry = parameters.find("squeezing");
       if (entry == parameters.end())
