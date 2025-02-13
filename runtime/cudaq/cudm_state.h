@@ -126,8 +126,8 @@ private:
   /// dimensions.
   /// @param hilbertSpaceDims Hilbert space dimensions.
   /// @return Size of the state vector.
-  static size_t calculate_state_vector_size(
-      const std::vector<int64_t> &hilbertSpaceDims);
+  static size_t
+  calculate_state_vector_size(const std::vector<int64_t> &hilbertSpaceDims);
 
   /// @brief Calculate the size of the density matrix for the given Hilbert
   /// space dimensions.
