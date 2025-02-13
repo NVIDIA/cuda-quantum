@@ -17,7 +17,6 @@ def test_cudaq_uccsd():
     repro_num_electrons = 2
     repro_num_qubits = 8
 
-    # # should be 3 thetas
     repro_thetas = [
         -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
         -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
