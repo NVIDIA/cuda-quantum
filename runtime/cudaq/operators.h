@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <vector>
 #include <unordered_map>
 #include <type_traits>
 
@@ -222,7 +223,7 @@ private:
   bool is_canonicalized() const;
 #endif
  
-  std::vector<HandlerTy>::const_iterator find_insert_at(const HandlerTy &other) const;
+  typename std::vector<HandlerTy>::const_iterator find_insert_at(const HandlerTy &other) const;
 
   template<typename T, std::enable_if_t<std::is_same<HandlerTy, T>::value && !product_operator<T>::supports_inplace_mult, int> = 0>
   void insert(T &&other, bool update_id);
