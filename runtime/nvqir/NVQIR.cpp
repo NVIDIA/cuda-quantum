@@ -675,7 +675,7 @@ void __quantum__qis__apply_kraus_channel_generalized(
       throw std::invalid_argument("Too many spans (> 1), not supported");
     basic_span *spans =
         reinterpret_cast<basic_span *>(alloca(numSpans * sizeof(basic_span)));
-    for (std::size_t i = 0; i < numParams; ++i) {
+    for (std::size_t i = 0; i < numSpans; ++i) {
       auto *dataPtr = va_arg(args, double *);
       auto dataLen = va_arg(args, std::size_t);
       spans[i] = basic_span{dataPtr, dataLen};
