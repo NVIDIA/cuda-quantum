@@ -63,26 +63,26 @@ void runge_kutta_integrator::integrate(double target_time) {
     } else if (substeps == 4) {
       // Runge-Kutta method (4th order)
       cudm_state k1 = m_stepper->compute(*m_state, m_t, step_size);
-      k1 *= step_size;
 
-      *m_state += k1 * 0.5;
+      cudm_state rho_temp = cudm_state::clone(*m_state);
+      rho_temp += (k1 * (step_size / 2));
 
       cudm_state k2 =
-          m_stepper->compute(*m_state, m_t + step_size / 2.0, step_size);
-      k2 *= step_size;
+          m_stepper->compute(rho_temp, m_t + step_size / 2.0, step_size);
 
-      *m_state += k2 * 0.5;
+      cudm_state rho_temp_2 = cudm_state::clone(*m_state);
+      rho_temp_2 += (k2 * (step_size / 2));
 
       cudm_state k3 =
-          m_stepper->compute(*m_state, m_t + step_size / 2.0, step_size);
-      k3 *= step_size;
+          m_stepper->compute(rho_temp_2, m_t + step_size / 2.0, step_size);
 
-      *m_state += k3;
+      cudm_state rho_temp_3 = cudm_state::clone(*m_state);
+      rho_temp_3 += (k3 * step_size);
 
-      cudm_state k4 = m_stepper->compute(*m_state, m_t + step_size, step_size);
-      k4 *= step_size;
+      cudm_state k4 =
+          m_stepper->compute(rho_temp_3, m_t + step_size, step_size);
 
-      *m_state += (k1 + k2 * 2.0 + k3 * 2.0 + k4) * (1.0 / 6.0);
+      *m_state += (k1 + k2 * 2.0 + k3 * 2.0 + k4) * (step_size / 6.0);
     } else {
       throw std::runtime_error("Invalid integrator order");
     }
