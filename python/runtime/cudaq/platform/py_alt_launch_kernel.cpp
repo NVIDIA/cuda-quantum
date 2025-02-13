@@ -535,7 +535,7 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   auto isLocalSimulator = platform.is_simulator() && !platform.is_emulated();
   auto isSimulator = isLocalSimulator || isRemoteSimulator;
 
-  opt::ArgumentConverter argCon(name, unwrap(module));
+  cudaq::opt::ArgumentConverter argCon(name, unwrap(module));
   argCon.gen(runtimeArgs.getArgs());
   std::string kernName = cudaq::runtime::cudaqGenPrefixName + name;
   SmallVector<StringRef> kernels = {kernName};

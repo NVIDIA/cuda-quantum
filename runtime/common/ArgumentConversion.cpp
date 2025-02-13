@@ -20,8 +20,6 @@
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/Parser/Parser.h"
 
-#include <iostream>
-
 using namespace mlir;
 
 template <typename A>
