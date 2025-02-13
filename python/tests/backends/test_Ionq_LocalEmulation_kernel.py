@@ -10,7 +10,6 @@ import cudaq
 import pytest
 import os
 from typing import List
-import cudaq.kernels.uccsd
 
 
 @pytest.fixture(scope="function", autouse=True)
