@@ -2348,6 +2348,50 @@ LogicalResult cudaq::cc::UnwindReturnOp::verify() {
 }
 
 //===----------------------------------------------------------------------===//
+// VarargCallOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult
+cudaq::cc::VarargCallOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
+  // Check that the callee attribute was specified.
+  auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("callee");
+  if (!fnAttr)
+    return emitOpError("requires a 'callee' symbol reference attribute");
+  LLVM::LLVMFuncOp fn =
+      symbolTable.lookupNearestSymbolFrom<LLVM::LLVMFuncOp>(*this, fnAttr);
+  if (!fn)
+    return emitOpError() << "'" << fnAttr.getValue()
+                         << "' does not reference a valid LLVM function";
+
+  // Verify that the operand and result types match the callee.
+  auto fnType = fn.getFunctionType();
+  if (fnType.getNumParams() > getNumOperands())
+    return emitOpError("incorrect number of operands for callee");
+
+  for (unsigned i = 0, e = fnType.getNumParams(); i != e; ++i)
+    if (getOperand(i).getType() != fnType.getParams()[i]) {
+      return emitOpError("operand type mismatch: expected operand type ")
+             << fnType.getParams()[i] << ", but provided "
+             << getOperand(i).getType() << " for operand number " << i;
+    }
+
+  if (fnType.getReturnType() == LLVM::LLVMVoidType::get(getContext()) &&
+      getNumResults() == 0)
+    return success();
+
+  if (getNumResults() > 1)
+    return emitOpError("wrong number of result types: ") << getNumResults();
+
+  if (getResult(1).getType() != fnType.getReturnType()) {
+    auto diag = emitOpError("result type mismatch ");
+    diag.attachNote() << "      op result types: " << getResultTypes();
+    diag.attachNote() << "function result types: " << fnType.getReturnType();
+    return diag;
+  }
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
 // Generated logic
 //===----------------------------------------------------------------------===//
 
