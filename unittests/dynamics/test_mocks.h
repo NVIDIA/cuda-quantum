@@ -12,7 +12,7 @@
 #include "cudaq/utils/tensor.h"
 #include <cmath>
 #include <complex>
-#include <cudaq/cudm_error_handling.h>
+#include <cudm_error_handling.h>
 #include <cudensitymat.h>
 #include <iostream>
 

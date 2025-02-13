@@ -8,10 +8,10 @@
 
 #include "common/EigenDense.h"
 #include "test_mocks.h"
-#include <cudaq/cudm_error_handling.h>
-#include <cudaq/cudm_expectation.h>
-#include <cudaq/cudm_helpers.h>
-#include <cudaq/cudm_state.h>
+#include <cudm_error_handling.h>
+#include <cudm_expectation.h>
+#include <cudm_helpers.h>
+#include <cudm_state.h>
 #include <gtest/gtest.h>
 #include <iostream>
 #include <memory>

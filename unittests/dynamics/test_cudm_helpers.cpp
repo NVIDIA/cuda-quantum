@@ -7,9 +7,9 @@
  ******************************************************************************/
 
 #include "test_mocks.h"
-#include <cudaq/cudm_error_handling.h>
-#include <cudaq/cudm_helpers.h>
-#include <cudaq/cudm_state.h>
+#include <cudm_error_handling.h>
+#include <cudm_helpers.h>
+#include <cudm_state.h>
 #include <cudaq/operators.h>
 #include <gtest/gtest.h>
 

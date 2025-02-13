@@ -7,10 +7,10 @@
  ******************************************************************************/
 
 #include "test_mocks.h"
-#include <cudaq/cudm_error_handling.h>
-#include <cudaq/cudm_helpers.h>
-#include <cudaq/cudm_state.h>
-#include <cudaq/cudm_time_stepper.h>
+#include <cudm_error_handling.h>
+#include <cudm_helpers.h>
+#include <cudm_state.h>
+#include <cudm_time_stepper.h>
 #include <gtest/gtest.h>
 #include <iostream>
 #include <memory>
