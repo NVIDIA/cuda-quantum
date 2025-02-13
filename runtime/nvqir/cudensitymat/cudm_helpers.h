@@ -26,6 +26,9 @@ public:
   static std::vector<std::complex<double>>
   flatten_matrix(const matrix_2 &matrix);
 
+  static void
+  print_complex_vector(const std::vector<std::complex<double>> &vec);
+
   // State Operations
   void scale_state(cudensitymatState_t state, double scale_factor,
                    cudaStream_t stream);
@@ -80,7 +83,8 @@ public:
   void append_elementary_operator_to_term(
       cudensitymatOperatorTerm_t term,
       const std::vector<cudensitymatElementaryOperator_t> &elem_ops,
-      const std::vector<std::vector<int>> &degrees, bool is_dagger);
+      const std::vector<std::vector<int>> &degrees,
+      const std::vector<std::vector<int>> &all_action_dual_modalities);
 
   // GPU memory management
   static void *

@@ -6,11 +6,11 @@
 //  * the terms of the Apache License 2.0 which accompanies this distribution. *
 //  ******************************************************************************/
 
+#include "common/EigenDense.h"
 #include "cudaq/evolution.h"
 #include <cmath>
 #include <gtest/gtest.h>
 #include <iostream>
-#include "common/EigenDense.h"
 #include <unsupported/Eigen/KroneckerProduct>
 #include "cudaq/runge_kutta_integrator.h"
 #include "cudm_state.h"
