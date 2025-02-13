@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "common/EigenDense.h"
 #include "test_mocks.h"
 #include <cudm_error_handling.h>
 #include <cudm_expectation.h>
@@ -14,7 +15,6 @@
 #include <gtest/gtest.h>
 #include <iostream>
 #include <memory>
-#include "common/EigenDense.h"
 #include <unsupported/Eigen/KroneckerProduct>
 
 using namespace cudaq;
@@ -54,7 +54,6 @@ TEST_F(CuDensityExpectationTest, checkCompute) {
     EXPECT_NEAR(expVal.imag(), 0.0, 1e-12);
   }
 }
-
 
 TEST_F(CuDensityExpectationTest, checkCompositeSystem) {
   cudm_helper helper(handle_);

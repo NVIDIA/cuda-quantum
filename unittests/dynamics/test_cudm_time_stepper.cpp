@@ -23,10 +23,14 @@ protected:
   cudensitymatOperator_t liouvillian_;
   std::unique_ptr<cudm_time_stepper> time_stepper_;
   std::unique_ptr<cudm_state> state_;
+  std::unique_ptr<cudm_helper> helper_;
 
   void SetUp() override {
     // Create library handle
     HANDLE_CUDM_ERROR(cudensitymatCreate(&handle_));
+
+    // Create helper
+    helper_ = std::make_unique<cudm_helper>(handle_);
 
     // Create a mock Liouvillian
     liouvillian_ = mock_liouvillian(handle_);
@@ -43,7 +47,7 @@ protected:
   void TearDown() override {
     // Clean up
     HANDLE_CUDM_ERROR(cudensitymatDestroyOperator(liouvillian_));
-    HANDLE_CUDM_ERROR(cudensitymatDestroy(handle_));
+    // HANDLE_CUDM_ERROR(cudensitymatDestroy(handle_));
   }
 };
 
@@ -93,14 +97,14 @@ TEST_F(CuDensityMatTimeStepperTest, ComputeStepLargeTimeValues) {
 }
 
 TEST_F(CuDensityMatTimeStepperTest, ComputeStepCheckOutput) {
-  cudm_helper helper(handle_);
   const std::vector<std::complex<double>> initialState = {
       {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}};
   const std::vector<int64_t> dims = {4};
   auto inputState = std::make_unique<cudm_state>(handle_, initialState, dims);
   auto op = cudaq::matrix_operator::create(0);
-  auto cudmOp = helper.convert_to_cudensitymat_operator<cudaq::matrix_operator>(
-      {}, op, dims); // Initialize the time stepper
+  auto cudmOp =
+      helper_->convert_to_cudensitymat_operator<cudaq::matrix_operator>(
+          {}, op, dims); // Initialize the time stepper
   auto time_stepper = std::make_unique<cudm_time_stepper>(handle_, cudmOp);
   auto outputState = time_stepper->compute(*inputState, 0.0, 1.0);
 
@@ -116,4 +120,38 @@ TEST_F(CuDensityMatTimeStepperTest, ComputeStepCheckOutput) {
     EXPECT_TRUE(std::abs(expectedOutputState[i] - outputStateVec[i]) < 1e-12);
   }
   HANDLE_CUDM_ERROR(cudensitymatDestroyOperator(cudmOp));
+}
+
+TEST_F(CuDensityMatTimeStepperTest, TimeSteppingWithLindblad) {
+  std::vector<std::complex<double>> initial_state;
+  initial_state.resize(100, {0.0, 0.0});
+  initial_state[5 * 10 + 5] = {1.0, 0.0};
+
+  const std::vector<int64_t> dims = {10};
+  auto input_state = std::make_unique<cudm_state>(handle_, initial_state, dims);
+
+  // auto c_op_0 = cudaq::matrix_operator::annihilate(0);
+  auto c_op_0 = cudaq::matrix_operator::create(0);
+  auto cudm_lindblad_op =
+      helper_->compute_lindblad_operator({c_op_0.to_matrix({{0, 10}})}, dims);
+
+  auto time_stepper =
+      std::make_unique<cudm_time_stepper>(handle_, cudm_lindblad_op);
+  auto output_state = time_stepper_->compute(*input_state, 0.0, 1.0);
+
+  std::cout << "Printing output_state ..." << std::endl;
+  output_state.dumpDeviceData();
+
+  std::vector<std::complex<double>> output_state_vec(100);
+  HANDLE_CUDA_ERROR(
+      cudaMemcpy(output_state_vec.data(), output_state.get_device_pointer(),
+                 output_state_vec.size() * sizeof(std::complex<double>),
+                 cudaMemcpyDefault));
+
+  helper_->print_complex_vector(output_state_vec);
+
+  EXPECT_TRUE(std::abs(output_state_vec[4 * 10 + 4] -
+                       std::complex<double>(1.0, 0.0)) < 1e-12);
+
+  HANDLE_CUDM_ERROR(cudensitymatDestroyOperator(cudm_lindblad_op));
 }
