@@ -100,7 +100,8 @@ static Value genConstant(OpBuilder &, cudaq::cc::ArrayType, void *,
                          ModuleOp substMod, llvm::DataLayout &);
 
 /// Create callee.init_N that initializes the state
-/// Callee:
+/// Callee (the kernel captured by state):
+// clang-format off
 /// func.func @__nvqpp__mlirgen__callee(%arg0: i64) {
 ///   %0 = cc.alloca i64
 ///   cc.store %arg0, %0 : !cc.ptr<i64>
@@ -117,6 +118,7 @@ static Value genConstant(OpBuilder &, cudaq::cc::ArrayType, void *,
 ///   quake.x %1 : (f64, !quake.ref) -> ()
 ///   return %arg0: !quake.veq<?>
 /// }
+// clang-format on
 static void createInitFunc(OpBuilder &builder, ModuleOp sourceMod,
                            func::FuncOp calleeFunc, StringRef initKernelName) {
   OpBuilder::InsertionGuard guard(builder);
@@ -139,9 +141,8 @@ static void createInitFunc(OpBuilder &builder, ModuleOp sourceMod,
 
   auto *entryBlock = &initFunc.getRegion().front();
   newBuilder.setInsertionPointToStart(entryBlock);
-  auto intType = newBuilder.getI64Type();
-  Value zero = newBuilder.create<arith::ConstantIntOp>(loc, 0, intType);
-  Value one = newBuilder.create<arith::ConstantIntOp>(loc, 1, intType);
+  Value zero = newBuilder.create<arith::ConstantIntOp>(loc, 0, 64);
+  Value one = newBuilder.create<arith::ConstantIntOp>(loc, 1, 64);
   Value begin = zero;
 
   auto argPos = initFunc.getArguments().size();
@@ -149,10 +150,10 @@ static void createInitFunc(OpBuilder &builder, ModuleOp sourceMod,
   // Detect errors in kernel passed to get_state.
   std::function<void(Block &)> processInner = [&](Block &block) {
     for (auto &op : block) {
-      for (auto &region : op.getRegions()) {
+      for (auto &region : op.getRegions())
         for (auto &b : region)
           processInner(b);
-      }
+
       // Don't allow returns in inner scopes
       if (auto retOp = dyn_cast<func::ReturnOp>(&op))
         calleeFunc.emitError("Encountered return in inner scope in a kernel "
@@ -222,7 +223,10 @@ static void createInitFunc(OpBuilder &builder, ModuleOp sourceMod,
 }
 
 /// Create callee.num_qubits_N that calculates the number of qubits to
-/// initialize Callee: func.func @callee(%arg0: i64) {
+/// initialize the state
+/// Callee: (the kernel captured by state):
+// clang-format off
+/// func.func @callee(%arg0: i64) {
 ///   %0 = cc.alloca i64
 ///   cc.store %arg0, %0 : !cc.ptr<i64>
 ///   %1 = cc.load %0 : !cc.ptr<i64>
@@ -239,6 +243,7 @@ static void createInitFunc(OpBuilder &builder, ModuleOp sourceMod,
 ///   %1 = cc.load %0 : !cc.ptr<i64>
 ///   return %1 : i64
 /// }
+// clang-format on
 static void createNumQubitsFunc(OpBuilder &builder, ModuleOp sourceMod,
                                 func::FuncOp calleeFunc,
                                 StringRef numQubitsKernelName) {

@@ -22,7 +22,6 @@ public:
   createFromSizeAndPtr(std::size_t size, void *data,
                        std::size_t dataType) override {
     throw std::runtime_error("Not implemented");
-    return std::make_unique<FakeSimulationState>(size, data);
   }
 
   FakeSimulationState() = default;

@@ -10,14 +10,14 @@
 #include <cassert>
 #include <memory>
 
-#include <iostream>
-
 /// @cond DO_NOT_DOCUMENT
 /// @brief Fake simulation state to use in tests.
-class FakeQuantumState : public cudaq::SimulationState {
+class FakeDeviceState : public cudaq::SimulationState {
 private:
   std::string kernelName;
   std::vector<void *> args;
+  std::size_t size = 0;
+  void *data = 0;
 
 public:
   virtual std::unique_ptr<SimulationState>
@@ -26,11 +26,11 @@ public:
     throw std::runtime_error("Not implemented");
   }
 
-  FakeQuantumState() = default;
-  FakeQuantumState(const std::string &kernelName,
-                   const std::vector<void *> args)
+  FakeDeviceState() = default;
+  FakeDeviceState(std::size_t size, void *data) : size(size), data(data) {}
+  FakeDeviceState(const std::string &kernelName, const std::vector<void *> args)
       : kernelName(kernelName), args(args) {}
-  FakeQuantumState(const FakeQuantumState &other)
+  FakeDeviceState(const FakeDeviceState &other)
       : kernelName(other.kernelName), args(other.args) {}
 
   virtual std::unique_ptr<cudaq::SimulationState>
@@ -38,7 +38,7 @@ public:
     throw std::runtime_error("Not implemented");
   }
 
-  virtual bool hasData() const override { return false; }
+  virtual bool hasData() const override { return data != nullptr; }
 
   virtual std::optional<std::pair<std::string, std::vector<void *>>>
   getKernelInfo() const override {
@@ -53,9 +53,15 @@ public:
     throw std::runtime_error("Not implemented");
   }
 
-  virtual std::size_t getNumTensors() const override { return 1; }
+  virtual std::size_t getNumTensors() const override {
+    if (hasData())
+      return 1;
+    throw std::runtime_error("Not implemented");
+  }
 
   virtual std::size_t getNumQubits() const override {
+    if (hasData())
+      return std::countr_zero(size);
     throw std::runtime_error("Not implemented");
   }
 
@@ -78,7 +84,9 @@ public:
   }
 
   virtual precision getPrecision() const override {
-    return cudaq::SimulationState::precision::fp64;
+    if (hasData())
+      return cudaq::SimulationState::precision::fp64;
+    throw std::runtime_error("Not implemented");
   }
 
   virtual void destroyState() override {}
@@ -86,10 +94,17 @@ public:
   virtual std::complex<double>
   operator()(std::size_t tensorIdx,
              const std::vector<std::size_t> &indices) override {
+    if (hasData()) {
+      assert(tensorIdx == 0);
+      assert(indices.size() == 1);
+      return *(static_cast<std::complex<double> *>(data) + indices[0]);
+    }
     throw std::runtime_error("Not implemented");
   }
 
   virtual std::size_t getNumElements() const override {
+    if (hasData())
+      return size;
     throw std::runtime_error("Not implemented");
   }
 
@@ -107,6 +122,6 @@ public:
     throw std::runtime_error("Not implemented");
   }
 
-  virtual ~FakeQuantumState() override {}
+  virtual ~FakeDeviceState() override {}
 };
 /// @endcond

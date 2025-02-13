@@ -828,14 +828,44 @@ def ReplaceStateWithKernel : Pass<"replace-state-with-kernel", "mlir::func::Func
   let summary =
     "Replace `quake.init_state` instructions with call to the kernel generating the state";
   let description = [{
-    Argument synthesis for state pointers for quantum devices substitutes state
-    argument by a new state created from `__nvqpp_cudaq_state_get` intrinsic, which
-    in turn accepts the name for the synthesized kernel that generated the state.
+    This optimization replaces `quake.init_state`, `quake.get_number_of_qubits`, 
+    and `quake.get_state` operations.
 
-    This optimization completes the replacement of `quake.init_state` instruction by:
+    Before this optimization, argument synthesis for state pointers for quantum
+    devices substituted a new state created from the `quake.get_state` operation
+    for the state argument. 
+    
+    The `quake.get_state` operation accepts symbols for the synthesized kernels
+    `num_qubits` and `init` that argument synthesis generated from the original
+    kernel call that generated the state, e.g., the `cudaq::get_state` call that
+    refers to the result of a specific quantum kernel being invoked with a set
+    of parameters
 
-    - Replace `quake.init_state` by a call that `get_state` call refers to.
-    - Remove all unneeded instructions.
+    For example, for the user code:
+      ```
+      state = cudaq::get_state(callee, args)
+      caller(state)
+      ```
+
+    The argument synthesis generated the following new kernels from the `callee`
+    and synthesized them to substitute their arguments with `args`:
+      ```
+      func.func @callee_init(qubits: !quake.veq<?>, arguments) -> !quake.veq<?>
+      func.func @callee_num_qubits(arguments) -> i64
+      ```
+
+    The argument synthesis also substituted the state argument in the `caller`
+    with:
+      ```
+      quake.get_state @callee_num_qubits @callee_init: !cc.ptr<!cc.state>
+      ```
+
+    This optimization performs the replacements for the the following operations 
+    that use a state produced by  `quake.get_state @num_qubits @init` operation:
+
+    - Replace `quake.get_number_of_qubits` operation by the @num_qubits call
+    - Replace `quake.init_state` operation by the @init call
+    - Clean up unused `quake.get_state` operation
 
     For example:
 

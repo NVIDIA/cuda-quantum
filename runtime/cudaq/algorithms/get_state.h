@@ -119,17 +119,16 @@ auto get_state(QuantumKernel &&kernel, Args &&...args) {
     return state(new RemoteSimulationState(std::forward<QuantumKernel>(kernel),
                                            std::forward<Args>(args)...));
   }
-#endif
+#else
 #if defined(CUDAQ_QUANTUM_DEVICE)
   // Store kernel name and arguments for quantum states.
-  if (!cudaq::get_quake_by_name(cudaq::getKernelName(kernel), false).empty()) {
+  if (!cudaq::get_quake_by_name(cudaq::getKernelName(kernel), false).empty())
     return state(new QuantumState(std::forward<QuantumKernel>(kernel),
                                   std::forward<Args>(args)...));
-  } else {
-    throw std::runtime_error(
-        "cudaq::state* argument synthesis is not supported for quantum hardware"
-        "for c-like functions, use class kernels instead");
-  }
+  throw std::runtime_error(
+      "cudaq::state* argument synthesis is not supported for quantum hardware"
+      "for c-like functions, use class kernels instead");
+#endif
 #endif
   return details::extractState([&]() mutable {
     cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),

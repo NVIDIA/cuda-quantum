@@ -1469,14 +1469,17 @@ def QuakeOp_GetStateOp : QuakeOp<"get_state", [Pure] > {
     This operation is created by argument synthesis of state pointer arguments
     for quantum devices.
 
-    It takes two kernel names as ASCIIZ string literals:
-      - "num_qubits" for determining the size of the allocation to initialize
-      - "init" for initializing the state the same way as the original kernel
-        passed to `cudaq::get_state`) as ASCIIZ string literal
+    It takes two kernel names as symbol references:
+      - @num_qubits for determining the size of the allocation to initialize
+      - @init for initializing the state the same way as the original kernel
+        passed to `cudaq::get_state`.
 
-    And returns the quantum state of the original kernel passed to
-    `cudaq::get_state`. The operation is replaced by calls to the kernels with
-    the provided names in `ReplaceStateByKernel` pass.
+    This operation will return of the original kernel passed to
+    `cudaq::get_state`. `cudaq::get_state`. 
+    
+    The operation may be replaced by calls to the @num_qubits and @init calls,
+    which will reproduce the specified state in the `ReplaceStateByKernel`
+    pass.
 
     ```mlir
       %0 = quake.get_state @num_qubits @init : !cc.ptr<!cc.state>

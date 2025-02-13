@@ -11,15 +11,134 @@
 
 // RUN: test_argument_conversion | FileCheck %s
 
-#include "FakeQuantumState.h"
-#include "FakeSimulationState.h"
+// #include "FakeQuantumState.h"
+// #include "FakeSimulationState.h"
 #include "common/ArgumentConversion.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/InitAllDialects.h"
 #include "cudaq/qis/pauli_word.h"
+#include "cudaq/qis/state.h"
 #include "mlir/Parser/Parser.h"
+#include <cassert>
+#include <memory>
 #include <numeric>
+
+/// @cond DO_NOT_DOCUMENT
+/// @brief Fake simulation state to use in tests.
+class FakeDeviceState : public cudaq::SimulationState {
+private:
+  std::string kernelName;
+  std::vector<void *> args;
+  std::size_t size = 0;
+  void *data = 0;
+
+public:
+  virtual std::unique_ptr<SimulationState>
+  createFromSizeAndPtr(std::size_t size, void *data,
+                       std::size_t dataType) override {
+    throw std::runtime_error("Not implemented");
+  }
+
+  FakeDeviceState() = default;
+  FakeDeviceState(std::size_t size, void *data) : size(size), data(data) {}
+  FakeDeviceState(const std::string &kernelName, const std::vector<void *> args)
+      : kernelName(kernelName), args(args) {}
+  FakeDeviceState(const FakeDeviceState &other)
+      : kernelName(other.kernelName), args(other.args) {}
+
+  virtual std::unique_ptr<cudaq::SimulationState>
+  createFromData(const cudaq::state_data &data) override {
+    throw std::runtime_error("Not implemented");
+  }
+
+  virtual bool hasData() const override { return data != nullptr; }
+
+  virtual std::optional<std::pair<std::string, std::vector<void *>>>
+  getKernelInfo() const override {
+    return std::make_pair(kernelName, args);
+  }
+
+  virtual Tensor getTensor(std::size_t tensorIdx = 0) const override {
+    throw std::runtime_error("Not implemented");
+  }
+
+  virtual std::vector<Tensor> getTensors() const override {
+    throw std::runtime_error("Not implemented");
+  }
+
+  virtual std::size_t getNumTensors() const override {
+    if (hasData())
+      return 1;
+    throw std::runtime_error("Not implemented");
+  }
+
+  virtual std::size_t getNumQubits() const override {
+    if (hasData())
+      return std::countr_zero(size);
+    throw std::runtime_error("Not implemented");
+  }
+
+  virtual std::complex<double> overlap(const SimulationState &other) override {
+    throw std::runtime_error("Not implemented");
+  }
+
+  virtual std::complex<double>
+  getAmplitude(const std::vector<int> &basisState) override {
+    throw std::runtime_error("Not implemented");
+  }
+
+  virtual std::vector<std::complex<double>>
+  getAmplitudes(const std::vector<std::vector<int>> &basisStates) override {
+    throw std::runtime_error("Not implemented");
+  }
+
+  virtual void dump(std::ostream &os) const override {
+    throw std::runtime_error("Not implemented");
+  }
+
+  virtual precision getPrecision() const override {
+    if (hasData())
+      return cudaq::SimulationState::precision::fp64;
+    throw std::runtime_error("Not implemented");
+  }
+
+  virtual void destroyState() override {}
+
+  virtual std::complex<double>
+  operator()(std::size_t tensorIdx,
+             const std::vector<std::size_t> &indices) override {
+    if (hasData()) {
+      assert(tensorIdx == 0);
+      assert(indices.size() == 1);
+      return *(static_cast<std::complex<double> *>(data) + indices[0]);
+    }
+    throw std::runtime_error("Not implemented");
+  }
+
+  virtual std::size_t getNumElements() const override {
+    if (hasData())
+      return size;
+    throw std::runtime_error("Not implemented");
+  }
+
+  virtual bool isDeviceData() const override { return false; }
+
+  virtual bool isArrayLike() const override { return true; }
+
+  virtual void toHost(std::complex<double> *clientAllocatedData,
+                      std::size_t numElements) const override {
+    throw std::runtime_error("Not implemented");
+  }
+
+  virtual void toHost(std::complex<float> *clientAllocatedData,
+                      std::size_t numElements) const override {
+    throw std::runtime_error("Not implemented");
+  }
+
+  virtual ~FakeDeviceState() override {}
+};
+/// @endcond
 
 extern "C" void __cudaq_deviceCodeHolderAdd(const char *, const char *);
 
@@ -383,7 +502,7 @@ void test_simulation_state(mlir::MLIRContext *ctx) {
   {
     std::vector<std::complex<double>> data{M_SQRT1_2, M_SQRT1_2, 0., 0.,
                                            0.,        0.,        0., 0.};
-    auto x = cudaq::state(new FakeSimulationState(data.size(), data.data()));
+    auto x = cudaq::state(new FakeDeviceState(data.size(), data.data()));
     std::vector<void *> v = {static_cast<void *>(&x)};
     doSimpleTest(ctx, "!cc.ptr<!cc.state>", v);
   }
@@ -406,7 +525,6 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
   {
     auto kernel = "init";
     auto kernelCode =
-        ""
         "func.func private @__nvqpp__mlirgen__init(%arg0: i64) {\n"
         "  %0 = quake.alloca !quake.veq<?>[%arg0 : i64]\n"
         "  %1 = quake.extract_ref %0[0] : (!quake.veq<?>) -> !quake.ref\n"
@@ -417,7 +535,7 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
 
     std::int64_t n = 2;
     std::vector<void *> a = {static_cast<void *>(&n)};
-    auto x = cudaq::state(new FakeQuantumState(kernel, a));
+    auto x = cudaq::state(new FakeDeviceState(kernel, a));
     std::vector<void *> v = {static_cast<void *>(&x)};
     doSimpleTest(ctx, "!cc.ptr<!cc.state>", v, kernelCode);
   }
@@ -482,7 +600,6 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
   {
     auto kernel = "init";
     auto kernelCode =
-        ""
         " func.func private @__nvqpp__mlirgen__init(%arg0: i64) {\n"
         "   %2 = quake.alloca !quake.veq<?>[%arg0 : i64]\n"
         "   %3 = quake.extract_ref %2[0] : (!quake.veq<?>) -> !quake.ref\n"
@@ -504,7 +621,7 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
 
     std::int64_t n = 2;
     std::vector<void *> a = {static_cast<void *>(&n)};
-    auto x = cudaq::state(new FakeQuantumState(kernel, a));
+    auto x = cudaq::state(new FakeDeviceState(kernel, a));
     std::vector<void *> v = {static_cast<void *>(&x)};
     doSimpleTest(ctx, "!cc.ptr<!cc.state>", v, kernelCode);
   }
