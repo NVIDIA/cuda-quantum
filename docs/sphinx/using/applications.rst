@@ -311,7 +311,7 @@ This notebook explains the theory behind the Quantum Approximate Optimization Al
 
 
     <div class="notebook-entry" data-tags="fundamental,noiseless,gpu">
-        <a href="/applications/python/deutsch_jozsa.html" class="notebook-title">The Deutsch-Jozsa Algorithm</a>
+        <a href="/applications/python/deutsch_jozsa.html" class="notebook-title">Deutsch's Algorithm</a>
         <div class="notebook-content">
             Learn how quantum computers can provide an exponential speedup for identifying if a Boolean function is constant or balanced.
         </div>
