@@ -94,13 +94,5 @@ struct VerifyQIRProfilePass
       signalPassFailure();
     }
   }
-
-  // if (signalFailure) {
-  //   numLoops = countLoopOps(op);
-  //   if (numLoops) {
-  //     op->emitOpError("did not unroll loops");
-  //     signalPassFailure();
-  //   }
-  // }
 };
 } // namespace
