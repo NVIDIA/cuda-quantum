@@ -504,8 +504,7 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
   int level_count = 3;
   std::complex<double> value = 0.125 + 0.5j;
 
-  /// `matrix_operator + operator_sum` and `operator_sum +
-  /// matrix_operator`
+  // `matrix_operator + operator_sum`
   {
     auto self = cudaq::matrix_operator::annihilate(0);
     auto operator_sum = cudaq::matrix_operator::create(0) +
@@ -532,8 +531,7 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  /// `matrix_operator - operator_sum` and `operator_sum -
-  /// matrix_operator`
+  // `matrix_operator - operator_sum`
   {
     auto self = cudaq::matrix_operator::annihilate(0);
     auto operator_sum = cudaq::matrix_operator::create(0) +
@@ -560,8 +558,7 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  /// `matrix_operator * operator_sum` and `operator_sum *
-  /// matrix_operator`
+  // `matrix_operator * operator_sum`
   {
     auto self = cudaq::matrix_operator::annihilate(0);
     auto operator_sum = cudaq::matrix_operator::squeeze(0) +
@@ -594,7 +591,7 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  /// `operator_sum += matrix_operator`
+  // `operator_sum += matrix_operator`
   {
     auto operator_sum = cudaq::matrix_operator::create(0) +
                         cudaq::matrix_operator::identity(1);
@@ -615,7 +612,7 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  /// `operator_sum -= matrix_operator`
+  // `operator_sum -= matrix_operator`
   {
     auto operator_sum = cudaq::matrix_operator::create(0) +
                         cudaq::matrix_operator::identity(1);
@@ -635,7 +632,7 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  /// `operator_sum *= matrix_operator`
+  // `operator_sum *= matrix_operator`
   {
     auto self = cudaq::matrix_operator::annihilate(0);
     auto operator_sum = cudaq::matrix_operator::create(0) +

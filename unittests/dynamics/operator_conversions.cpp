@@ -329,7 +329,6 @@ TEST(OperatorExpressions, checkOperatorSumConversions) {
     checkSumEquals(boson_product * spin_sum, boson_product_expected * spin_sum_expected, 2);
   }
 
-
   // `sum * sum`
   {
     checkSumEquals(matrix_sum * matrix_sum, matrix_sum_expected * matrix_sum_expected, 3);
