@@ -121,8 +121,11 @@ TEST(OperatorExpressions, checkSpinOpsWithComplex) {
 
 TEST(OperatorExpressions, checkSpinOpsWithScalars) {
 
-  auto function = [](std::map<std::string, std::complex<double>> parameters) {
-    return parameters["value"];
+  auto function = [](const std::unordered_map<std::string, std::complex<double>> &parameters) {
+    auto entry = parameters.find("value");
+    if (entry == parameters.end())
+      throw std::runtime_error("value not defined in parameters");
+    return entry->second;
   };
 
   /// Keeping these fixed for these more simple tests.
@@ -370,8 +373,8 @@ TEST(OperatorExpressions, checkSpinOpsAdvancedArithmetics) {
     auto got = self + operator_sum;
     auto reverse = operator_sum + self;
 
-    ASSERT_TRUE(got.num_terms() == 3);
-    ASSERT_TRUE(reverse.num_terms() == 3);
+    ASSERT_TRUE(got.num_terms() == 2);
+    ASSERT_TRUE(reverse.num_terms() == 2);
 
     auto self_full = cudaq::kronecker(utils::PauliY_matrix(),
                                       utils::id_matrix(2));
@@ -475,7 +478,7 @@ TEST(OperatorExpressions, checkSpinOpsAdvancedArithmetics) {
                         cudaq::spin_operator::i(1);
     operator_sum -= cudaq::spin_operator::x(0);
 
-    ASSERT_TRUE(operator_sum.num_terms() == 3);
+    ASSERT_TRUE(operator_sum.num_terms() == 2);
 
     auto self_full = cudaq::kronecker(utils::id_matrix(2),
                                       utils::PauliX_matrix());

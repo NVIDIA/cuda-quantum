@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include <map>
+#include <unordered_map>
 #include <type_traits>
 
 #include "utils/tensor.h"
@@ -31,12 +31,17 @@ template <typename T> friend class product_operator;
 
 private:
 
-  EvaluatedMatrix m_evaluate(MatrixArithmetics arithmetics, bool pad_terms = true) const;
+  // inserts a new term combining it with an existing one if possible
+  void insert(product_operator<HandlerTy> &&other);
+
+  void aggregate_all();
 
   void aggregate_terms();
 
   template <typename ... Args>
   void aggregate_terms(product_operator<HandlerTy> &&head, Args&& ... args);
+
+  EvaluatedMatrix m_evaluate(MatrixArithmetics arithmetics, bool pad_terms = true) const;
 
 protected:
 
@@ -45,8 +50,6 @@ protected:
 
   template<typename... Args, std::enable_if_t<std::conjunction<std::is_same<product_operator<HandlerTy>, Args>...>::value, bool> = true>
   operator_sum(Args&&... args);
-
-  operator_sum(const std::vector<product_operator<HandlerTy>> &terms);
 
   operator_sum(std::vector<product_operator<HandlerTy>> &&terms);
 
@@ -65,7 +68,7 @@ public:
 
   // constructors and destructors
 
-  operator_sum(const product_operator<HandlerTy>& prod);
+  operator_sum(const product_operator<HandlerTy> &other);
 
   template<typename T, std::enable_if_t<!std::is_same<T, HandlerTy>::value && std::is_constructible<HandlerTy, T>::value, bool> = true>
   operator_sum(const operator_sum<T> &other);
@@ -79,6 +82,13 @@ public:
   ~operator_sum() = default;
 
   // assignments
+
+  template<typename T, std::enable_if_t<!std::is_same<T, HandlerTy>::value && std::is_constructible<HandlerTy, T>::value, bool> = true>
+  operator_sum<HandlerTy>& operator=(const product_operator<T> &other);
+
+  operator_sum<HandlerTy>& operator=(const product_operator<HandlerTy> &other);
+
+  operator_sum<HandlerTy>& operator=(product_operator<HandlerTy> &&other);
 
   template<typename T, std::enable_if_t<!std::is_same<T, HandlerTy>::value && std::is_constructible<HandlerTy, T>::value, bool> = true>
   operator_sum<HandlerTy>& operator=(const operator_sum<T> &other);
@@ -101,9 +111,8 @@ public:
   ///                      degrees of freedom: `{0:2, 1:2}`.
   /// @arg `parameters` : A map of the parameter names to their concrete,
   /// complex values.
-  matrix_2 to_matrix(
-      const std::map<int, int> &dimensions = {},
-      const std::map<std::string, std::complex<double>> &parameters = {}) const;
+  matrix_2 to_matrix(std::unordered_map<int, int> dimensions = {},
+                     const std::unordered_map<std::string, std::complex<double>> &parameters = {}) const;
 
   // comparisons
 
@@ -217,6 +226,11 @@ public:
   template<typename T>
   friend operator_sum<T> operator-(const T &other, const product_operator<T> &self);
   */
+
+  // common operators
+
+  template<typename T>
+  friend operator_sum<T> operator_handler::empty();
 };
 
 /// @brief Represents an operator expression consisting of a product of
@@ -229,6 +243,26 @@ template <typename T> friend class product_operator;
 template <typename T> friend class operator_sum;
 
 private:
+  // template defined as long as T implements an in-place multiplication -
+  // won't work if the in-place multiplication was inherited from a base class
+  template <typename T, std::enable_if_t<!std::is_same<decltype(&T::inplace_mult), std::false_type>::value, bool> = true>
+  static std::true_type handler_mult(int);
+	template<typename> 
+  static std::false_type handler_mult(...); // ellipsis ensures the template above is picked if it exists
+	static constexpr bool supports_inplace_mult = std::is_same<decltype(handler_mult<HandlerTy>(0)), std::true_type>::value;
+
+#if !defined(NDEBUG)
+  bool is_canonicalized() const;
+#endif
+ 
+  std::vector<HandlerTy>::const_iterator find_insert_at(const HandlerTy &other) const;
+
+  template<typename T, std::enable_if_t<std::is_same<HandlerTy, T>::value && !product_operator<T>::supports_inplace_mult, int> = 0>
+  void insert(T &&other);
+
+  template <typename T, std::enable_if_t<std::is_same<HandlerTy, T>::value && product_operator<T>::supports_inplace_mult, bool> = true>
+  void insert(T &&other);
+
   void aggregate_terms();
 
   template <typename... Args>
@@ -244,8 +278,10 @@ protected:
   template<typename... Args, std::enable_if_t<std::conjunction<std::is_same<HandlerTy, Args>...>::value, bool> = true>
   product_operator(scalar_operator coefficient, Args&&... args);
 
+  // keep this constructor protected (otherwise it needs to ensure canonical order)
   product_operator(scalar_operator coefficient, const std::vector<HandlerTy> &atomic_operators);
 
+  // keep this constructor protected (otherwise it needs to ensure canonical order)
   product_operator(scalar_operator coefficient, std::vector<HandlerTy> &&atomic_operators);
 
 public:
@@ -265,6 +301,8 @@ public:
   scalar_operator get_coefficient() const;
 
   // constructors and destructors
+
+  product_operator(double coefficient);
 
   product_operator(HandlerTy &&atomic);
 
@@ -303,9 +341,8 @@ public:
   ///                      degrees of freedom: `{0:2, 1:2}`.
   /// @arg `parameters` : A map of the parameter names to their concrete,
   /// complex values.
-  matrix_2
-  to_matrix(std::map<int, int> dimensions = {},
-            std::map<std::string, std::complex<double>> parameters = {}) const;
+  matrix_2 to_matrix(std::unordered_map<int, int> dimensions = {},
+                     const std::unordered_map<std::string, std::complex<double>> &parameters = {}) const;
 
   // comparisons
 
@@ -384,6 +421,11 @@ public:
   template<typename T>
   friend operator_sum<T> operator-(const T &other, const product_operator<T> &self);
   */
+
+  // common operators
+
+  template<typename T, typename... Args, std::enable_if_t<std::conjunction<std::is_same<int, Args>...>::value, bool>>
+  friend product_operator<T> operator_handler::identity(Args... targets);
 };
 
 #ifndef CUDAQ_INSTANTIATE_TEMPLATES

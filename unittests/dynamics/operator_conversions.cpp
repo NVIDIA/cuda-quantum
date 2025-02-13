@@ -12,8 +12,8 @@
 
 TEST(OperatorExpressions, checkElementaryOpsConversions) {
 
-  std::map<std::string, std::complex<double>> parameters = {{"squeezing", 0.5}, {"displacement", 0.25}};
-  std::map<int, int> dimensions = {{0, 2}, {1, 2}};
+  std::unordered_map<std::string, std::complex<double>> parameters = {{"squeezing", 0.5}, {"displacement", 0.25}};
+  std::unordered_map<int, int> dimensions = {{0, 2}, {1, 2}};
 
   auto matrix_elementary = cudaq::matrix_operator::parity(1);
   auto matrix_elementary_expected = utils::parity_matrix(2);
@@ -24,9 +24,9 @@ TEST(OperatorExpressions, checkElementaryOpsConversions) {
 
   auto checkSumEquals = [dimensions, parameters](
                           cudaq::operator_sum<cudaq::matrix_operator> sum, 
-                          cudaq::matrix_2 expected) {
+                          cudaq::matrix_2 expected, int expected_num_terms = 2) {
     auto got = sum.to_matrix(dimensions, parameters);
-    ASSERT_TRUE(sum.num_terms() == 2);
+    ASSERT_TRUE(sum.num_terms() == expected_num_terms);
     utils::checkEqual(got, expected);
   };
 
@@ -42,9 +42,9 @@ TEST(OperatorExpressions, checkElementaryOpsConversions) {
 
   // `elementary + elementary`
   {
-    checkSumEquals(matrix_elementary + matrix_elementary, matrix_elementary_expected + matrix_elementary_expected);
-    checkSumEquals(spin_elementary + spin_elementary, spin_elementary_expected + spin_elementary_expected);
-    checkSumEquals(boson_elementary + boson_elementary, boson_elementary_expected + boson_elementary_expected);
+    checkSumEquals(matrix_elementary + matrix_elementary, matrix_elementary_expected + matrix_elementary_expected, 1);
+    checkSumEquals(spin_elementary + spin_elementary, spin_elementary_expected + spin_elementary_expected, 1);
+    checkSumEquals(boson_elementary + boson_elementary, boson_elementary_expected + boson_elementary_expected, 1);
     checkSumEquals(matrix_elementary + spin_elementary, matrix_elementary_expected + spin_elementary_expected);
     checkSumEquals(spin_elementary + matrix_elementary, matrix_elementary_expected + spin_elementary_expected);
     checkSumEquals(matrix_elementary + boson_elementary, matrix_elementary_expected + boson_elementary_expected);
@@ -55,9 +55,9 @@ TEST(OperatorExpressions, checkElementaryOpsConversions) {
 
   // `elementary - elementary`
   {
-    checkSumEquals(matrix_elementary - matrix_elementary, matrix_elementary_expected - matrix_elementary_expected);
-    checkSumEquals(spin_elementary - spin_elementary, spin_elementary_expected - spin_elementary_expected);
-    checkSumEquals(boson_elementary - boson_elementary, boson_elementary_expected - boson_elementary_expected);
+    checkSumEquals(matrix_elementary - matrix_elementary, matrix_elementary_expected - matrix_elementary_expected, 1);
+    checkSumEquals(spin_elementary - spin_elementary, spin_elementary_expected - spin_elementary_expected, 1);
+    checkSumEquals(boson_elementary - boson_elementary, boson_elementary_expected - boson_elementary_expected, 1);
     checkSumEquals(matrix_elementary - spin_elementary, matrix_elementary_expected - spin_elementary_expected);
     checkSumEquals(spin_elementary - matrix_elementary, spin_elementary_expected - matrix_elementary_expected);
     checkSumEquals(matrix_elementary - boson_elementary, matrix_elementary_expected - boson_elementary_expected);
@@ -105,8 +105,8 @@ TEST(OperatorExpressions, checkElementaryOpsConversions) {
 
 TEST(OperatorExpressions, checkProductOperatorConversions) {
 
-  std::map<std::string, std::complex<double>> parameters = {{"squeezing", 0.5}, {"displacement", 0.25}};
-  std::map<int, int> dimensions = {{0, 2}, {1, 2}};
+  std::unordered_map<std::string, std::complex<double>> parameters = {{"squeezing", 0.5}, {"displacement", 0.25}};
+  std::unordered_map<int, int> dimensions = {{0, 2}, {1, 2}};
   auto matrix_product = cudaq::matrix_operator::squeeze(0) * cudaq::matrix_operator::displace(1);
   auto matrix_product_expected = cudaq::kronecker(utils::displace_matrix(2, 0.25), utils::squeeze_matrix(2, 0.5));
   auto spin_product = cudaq::spin_operator::y(1) * cudaq::spin_operator::x(0);
@@ -116,9 +116,9 @@ TEST(OperatorExpressions, checkProductOperatorConversions) {
 
   auto checkSumEquals = [dimensions, parameters](
                           cudaq::operator_sum<cudaq::matrix_operator> sum, 
-                          cudaq::matrix_2 expected) {
+                          cudaq::matrix_2 expected, int expected_num_terms = 2) {
     auto got = sum.to_matrix(dimensions, parameters);
-    ASSERT_TRUE(sum.num_terms() == 2);
+    ASSERT_TRUE(sum.num_terms() == expected_num_terms);
     utils::checkEqual(got, expected);
   };
 
@@ -134,9 +134,9 @@ TEST(OperatorExpressions, checkProductOperatorConversions) {
 
   // `product + product`
   {
-    checkSumEquals(matrix_product + matrix_product, matrix_product_expected + matrix_product_expected);
-    checkSumEquals(spin_product + spin_product, spin_product_expected + spin_product_expected);
-    checkSumEquals(boson_product + boson_product, boson_product_expected + boson_product_expected);
+    checkSumEquals(matrix_product + matrix_product, matrix_product_expected + matrix_product_expected, 1);
+    checkSumEquals(spin_product + spin_product, spin_product_expected + spin_product_expected, 1);
+    checkSumEquals(boson_product + boson_product, boson_product_expected + boson_product_expected, 1);
     checkSumEquals(matrix_product + spin_product, matrix_product_expected + spin_product_expected);
     checkSumEquals(spin_product + matrix_product, matrix_product_expected + spin_product_expected);
     checkSumEquals(matrix_product + boson_product, matrix_product_expected + boson_product_expected);
@@ -147,9 +147,9 @@ TEST(OperatorExpressions, checkProductOperatorConversions) {
 
   // `product - product`
   {
-    checkSumEquals(matrix_product - matrix_product, matrix_product_expected - matrix_product_expected);
-    checkSumEquals(spin_product - spin_product, spin_product_expected - spin_product_expected);
-    checkSumEquals(boson_product - boson_product, boson_product_expected - boson_product_expected);
+    checkSumEquals(matrix_product - matrix_product, matrix_product_expected - matrix_product_expected, 1);
+    checkSumEquals(spin_product - spin_product, spin_product_expected - spin_product_expected, 1);
+    checkSumEquals(boson_product - boson_product, boson_product_expected - boson_product_expected, 1);
     checkSumEquals(matrix_product - spin_product, matrix_product_expected - spin_product_expected);
     checkSumEquals(spin_product - matrix_product, spin_product_expected - matrix_product_expected);
     checkSumEquals(matrix_product - boson_product, matrix_product_expected - boson_product_expected);
@@ -197,8 +197,8 @@ TEST(OperatorExpressions, checkProductOperatorConversions) {
 
 TEST(OperatorExpressions, checkOperatorSumConversions) {
 
-  std::map<std::string, std::complex<double>> parameters = {{"squeezing", 0.5}, {"displacement", 0.25}};
-  std::map<int, int> dimensions = {{0, 2}, {1, 2}};
+  std::unordered_map<std::string, std::complex<double>> parameters = {{"squeezing", 0.5}, {"displacement", 0.25}};
+  std::unordered_map<int, int> dimensions = {{0, 2}, {1, 2}};
 
   auto matrix_product = cudaq::matrix_operator::squeeze(0) * cudaq::matrix_operator::displace(1);
   auto matrix_product_expected = cudaq::kronecker(utils::displace_matrix(2, 0.25), utils::squeeze_matrix(2, 0.5));
@@ -253,9 +253,9 @@ TEST(OperatorExpressions, checkOperatorSumConversions) {
 
   // `sum + sum`
   {
-    checkSumEquals(matrix_sum + matrix_sum, matrix_sum_expected + matrix_sum_expected);
-    checkSumEquals(spin_sum + spin_sum, spin_sum_expected + spin_sum_expected);
-    checkSumEquals(boson_sum + boson_sum, boson_sum_expected + boson_sum_expected);
+    checkSumEquals(matrix_sum + matrix_sum, matrix_sum_expected + matrix_sum_expected, 2);
+    checkSumEquals(spin_sum + spin_sum, spin_sum_expected + spin_sum_expected, 2);
+    checkSumEquals(boson_sum + boson_sum, boson_sum_expected + boson_sum_expected, 2);
     checkSumEquals(matrix_sum + spin_sum, matrix_sum_expected + spin_sum_expected);
     checkSumEquals(spin_sum + matrix_sum, matrix_sum_expected + spin_sum_expected);
     checkSumEquals(matrix_sum + boson_sum, matrix_sum_expected + boson_sum_expected);
@@ -292,9 +292,9 @@ TEST(OperatorExpressions, checkOperatorSumConversions) {
 
   // `sum - sum`
   {
-    checkSumEquals(matrix_sum - matrix_sum, matrix_sum_expected - matrix_sum_expected);
-    checkSumEquals(spin_sum - spin_sum, spin_sum_expected - spin_sum_expected);
-    checkSumEquals(boson_sum - boson_sum, boson_sum_expected - boson_sum_expected);
+    checkSumEquals(matrix_sum - matrix_sum, matrix_sum_expected - matrix_sum_expected, 2);
+    checkSumEquals(spin_sum - spin_sum, spin_sum_expected - spin_sum_expected, 2);
+    checkSumEquals(boson_sum - boson_sum, boson_sum_expected - boson_sum_expected, 2);
     checkSumEquals(matrix_sum - spin_sum, matrix_sum_expected - spin_sum_expected);
     checkSumEquals(spin_sum - matrix_sum, spin_sum_expected - matrix_sum_expected);
     checkSumEquals(matrix_sum - boson_sum, matrix_sum_expected - boson_sum_expected);
@@ -329,11 +329,12 @@ TEST(OperatorExpressions, checkOperatorSumConversions) {
     checkSumEquals(boson_product * spin_sum, boson_product_expected * spin_sum_expected, 2);
   }
 
+
   // `sum * sum`
   {
-    checkSumEquals(matrix_sum * matrix_sum, matrix_sum_expected * matrix_sum_expected);
-    checkSumEquals(spin_sum * spin_sum, spin_sum_expected * spin_sum_expected);
-    checkSumEquals(boson_sum * boson_sum, boson_sum_expected * boson_sum_expected);
+    checkSumEquals(matrix_sum * matrix_sum, matrix_sum_expected * matrix_sum_expected, 3);
+    checkSumEquals(spin_sum * spin_sum, spin_sum_expected * spin_sum_expected, 3);
+    checkSumEquals(boson_sum * boson_sum, boson_sum_expected * boson_sum_expected, 3);
     checkSumEquals(matrix_sum * spin_sum, matrix_sum_expected * spin_sum_expected);
     checkSumEquals(spin_sum * matrix_sum, spin_sum_expected * matrix_sum_expected);
     checkSumEquals(matrix_sum * boson_sum, matrix_sum_expected * boson_sum_expected);
@@ -369,15 +370,15 @@ TEST(OperatorExpressions, checkOperatorSumConversions) {
   {
     auto matrix_sum_0 = matrix_sum;
     matrix_sum_0 += matrix_sum;
-    checkSumEquals(matrix_sum_0, matrix_sum_expected + matrix_sum_expected);
+    checkSumEquals(matrix_sum_0, matrix_sum_expected + matrix_sum_expected, 2);
 
     auto spin_sum_0 = spin_sum;
     spin_sum_0 += spin_sum;
-    checkSumEquals(spin_sum_0, spin_sum_expected + spin_sum_expected);
+    checkSumEquals(spin_sum_0, spin_sum_expected + spin_sum_expected, 2);
 
     auto boson_sum_0 = boson_sum;
     boson_sum_0 += boson_sum;
-    checkSumEquals(boson_sum_0, boson_sum_expected + boson_sum_expected);
+    checkSumEquals(boson_sum_0, boson_sum_expected + boson_sum_expected, 2);
 
     matrix_sum_0 = matrix_sum;
     matrix_sum_0 += spin_sum;
@@ -415,15 +416,15 @@ TEST(OperatorExpressions, checkOperatorSumConversions) {
   {
     auto matrix_sum_0 = matrix_sum;
     matrix_sum_0 -= matrix_sum;
-    checkSumEquals(matrix_sum_0, matrix_sum_expected - matrix_sum_expected);
+    checkSumEquals(matrix_sum_0, matrix_sum_expected - matrix_sum_expected, 2);
 
     auto spin_sum_0 = spin_sum;
     spin_sum_0 -= spin_sum;
-    checkSumEquals(spin_sum_0, spin_sum_expected - spin_sum_expected);
+    checkSumEquals(spin_sum_0, spin_sum_expected - spin_sum_expected, 2);
 
     auto boson_sum_0 = boson_sum;
     boson_sum_0 -= boson_sum;
-    checkSumEquals(boson_sum_0, boson_sum_expected - boson_sum_expected);
+    checkSumEquals(boson_sum_0, boson_sum_expected - boson_sum_expected, 2);
 
     matrix_sum_0 = matrix_sum;
     matrix_sum_0 -= spin_sum;
@@ -461,15 +462,15 @@ TEST(OperatorExpressions, checkOperatorSumConversions) {
   {
     auto matrix_sum_0 = matrix_sum;
     matrix_sum_0 *= matrix_sum;
-    checkSumEquals(matrix_sum_0, matrix_sum_expected * matrix_sum_expected);
+    checkSumEquals(matrix_sum_0, matrix_sum_expected * matrix_sum_expected, 3);
 
     auto spin_sum_0 = spin_sum;
     spin_sum_0 *= spin_sum;
-    checkSumEquals(spin_sum_0, spin_sum_expected * spin_sum_expected);
+    checkSumEquals(spin_sum_0, spin_sum_expected * spin_sum_expected, 3);
 
     auto boson_sum_0 = boson_sum;
     boson_sum_0 *= boson_sum;
-    checkSumEquals(boson_sum_0, boson_sum_expected * boson_sum_expected);
+    checkSumEquals(boson_sum_0, boson_sum_expected * boson_sum_expected, 3);
 
     matrix_sum_0 = matrix_sum;
     matrix_sum_0 *= spin_sum;

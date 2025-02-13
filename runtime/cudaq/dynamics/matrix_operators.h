@@ -9,7 +9,7 @@
 #pragma once
 
 #include <complex>
-#include <map>
+#include <unordered_map>
 #include <vector>
 
 #include "cudaq/utils/tensor.h"
@@ -20,11 +20,11 @@ namespace cudaq {
 template <typename HandlerTy> 
 class product_operator;
 
-class matrix_operator : operator_handler{
+class matrix_operator : public operator_handler{
 
 private:
 
-  static std::map<std::string, Definition> m_ops;
+  static std::unordered_map<std::string, Definition> m_ops;
 
 protected:
 
@@ -35,6 +35,9 @@ protected:
   matrix_operator(std::string operator_id, std::vector<int> &&degrees);
 
 public:
+#if !defined(NDEBUG)
+  static bool can_be_canonicalized; // needs to be false; no canonical order can be defined for matrix operator expressions
+#endif
 
   // tools for custom operators
 
@@ -83,9 +86,9 @@ public:
   /// order.
   virtual std::vector<int> degrees() const;
 
-  virtual bool is_identity() const;
-
   // constructors and destructors
+
+  matrix_operator(int target);
 
   template<typename T, std::enable_if_t<std::is_base_of_v<operator_handler, T>, bool> = true>
   matrix_operator(const T &other);
@@ -116,8 +119,8 @@ public:
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
-  virtual matrix_2 to_matrix(std::map<int, int> &dimensions,
-                             std::map<std::string, std::complex<double>> parameters = {}) const;
+  virtual matrix_2 to_matrix(std::unordered_map<int, int> &dimensions,
+                             const std::unordered_map<std::string, std::complex<double>> &parameters = {}) const;
 
   virtual std::string to_string(bool include_degrees) const;
 
@@ -129,8 +132,9 @@ public:
 
   // predefined operators
 
-  // multiplicative identity
-  static matrix_operator one(int degree);
+  static operator_sum<matrix_operator> empty();
+  static product_operator<matrix_operator> identity();
+
   static product_operator<matrix_operator> identity(int degree);
   static product_operator<matrix_operator> annihilate(int degree);
   static product_operator<matrix_operator> create(int degree);
