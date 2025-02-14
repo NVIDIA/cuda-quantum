@@ -389,60 +389,76 @@ bool opt::LoopComponents::hasAlwaysTrueCondition() const {
   auto pred = cast<arith::CmpIOp>(compareOp).getPredicate();
   switch (width) {
   case 8: {
-    if (pred == arith::CmpIPredicate::sge)
+    switch (pred) {
+    case arith::CmpIPredicate::sge:
       return static_cast<std::int8_t>(cmpVal) ==
              std::numeric_limits<std::int8_t>::min();
-    if (pred == arith::CmpIPredicate::sle)
+    case arith::CmpIPredicate::sle:
       return static_cast<std::int8_t>(cmpVal) ==
              std::numeric_limits<std::int8_t>::max();
-    if (pred == arith::CmpIPredicate::uge)
+    case arith::CmpIPredicate::uge:
       return static_cast<std::uint8_t>(cmpVal) ==
              std::numeric_limits<std::uint8_t>::min();
-    if (pred == arith::CmpIPredicate::ule)
+    case arith::CmpIPredicate::ule:
       return static_cast<std::uint8_t>(cmpVal) ==
              std::numeric_limits<std::uint8_t>::max();
+    default:
+      break;
+    }
   } break;
   case 16: {
-    if (pred == arith::CmpIPredicate::sge)
+    switch (pred) {
+    case arith::CmpIPredicate::sge:
       return static_cast<std::int16_t>(cmpVal) ==
              std::numeric_limits<std::int16_t>::min();
-    if (pred == arith::CmpIPredicate::sle)
+    case arith::CmpIPredicate::sle:
       return static_cast<std::int16_t>(cmpVal) ==
              std::numeric_limits<std::int16_t>::max();
-    if (pred == arith::CmpIPredicate::uge)
+    case arith::CmpIPredicate::uge:
       return static_cast<std::uint16_t>(cmpVal) ==
              std::numeric_limits<std::uint16_t>::min();
-    if (pred == arith::CmpIPredicate::ule)
+    case arith::CmpIPredicate::ule:
       return static_cast<std::uint16_t>(cmpVal) ==
              std::numeric_limits<std::uint16_t>::max();
+    default:
+      break;
+    }
   } break;
   case 32: {
-    if (pred == arith::CmpIPredicate::sge)
+    switch (pred) {
+    case arith::CmpIPredicate::sge:
       return static_cast<std::int32_t>(cmpVal) ==
              std::numeric_limits<std::int32_t>::min();
-    if (pred == arith::CmpIPredicate::sle)
+    case arith::CmpIPredicate::sle:
       return static_cast<std::int32_t>(cmpVal) ==
              std::numeric_limits<std::int32_t>::max();
-    if (pred == arith::CmpIPredicate::uge)
+    case arith::CmpIPredicate::uge:
       return static_cast<std::uint32_t>(cmpVal) ==
              std::numeric_limits<std::uint32_t>::min();
-    if (pred == arith::CmpIPredicate::ule)
+    case arith::CmpIPredicate::ule:
       return static_cast<std::uint32_t>(cmpVal) ==
              std::numeric_limits<std::uint32_t>::max();
+    default:
+      break;
+    }
   } break;
   case 64: {
-    if (pred == arith::CmpIPredicate::sge)
+    switch (pred) {
+    case arith::CmpIPredicate::sge:
       return static_cast<std::int64_t>(cmpVal) ==
              std::numeric_limits<std::int64_t>::min();
-    if (pred == arith::CmpIPredicate::sle)
+    case arith::CmpIPredicate::sle:
       return static_cast<std::int64_t>(cmpVal) ==
              std::numeric_limits<std::int64_t>::max();
-    if (pred == arith::CmpIPredicate::uge)
+    case arith::CmpIPredicate::uge:
       return static_cast<std::uint64_t>(cmpVal) ==
              std::numeric_limits<std::uint64_t>::min();
-    if (pred == arith::CmpIPredicate::ule)
+    case arith::CmpIPredicate::ule:
       return static_cast<std::uint64_t>(cmpVal) ==
              std::numeric_limits<std::uint64_t>::max();
+    default:
+      break;
+    }
   } break;
   default:
     break;
