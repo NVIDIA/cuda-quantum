@@ -36,15 +36,17 @@ evolve_result evolve_single(
   std::vector<int64_t> dims;
   for (const auto &[id, dim] : dimensions)
     dims.emplace_back(dim);
+
+  auto cudmState = cudm_state(handle, initial_state, dims);
   auto liouvillian = helper.construct_liouvillian(
-      hamiltonian, collapse_operators, dims, {}, false);
+      hamiltonian, collapse_operators, dims, {}, cudmState.is_density_matrix());
   // std::cout << "Evolve Liouvillian: " << liouvillian << "\n";
   // Need to pass liouvillian here
   auto time_stepper = std::make_shared<cudm_time_stepper>(handle, liouvillian);
   runge_kutta_integrator &integrator =
       dynamic_cast<runge_kutta_integrator &>(in_integrator);
   integrator.set_stepper(time_stepper);
-  integrator.set_state(cudm_state(handle, initial_state, dims));
+  integrator.set_state(std::move(cudmState));
   // auto integrator = std::make_unique<runge_kutta_integrator>(
   //     cudm_state(handle, initial_state, dims), 0.0, time_stepper, 1);
   // integrator.set_option("dt", 0.000001);
