@@ -6,14 +6,17 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "common/RestClient.h"
 #include "common/ServerHelper.h"
 
 namespace cudaq {
 
-class PasqalServerHelper : public ServerHelper {
+class PasqalServerHelper : public ServerHelper {  
 protected:
+  /// @brief Pasqal's REST API.
   const std::string baseUrl = "https://apis.pasqal.cloud";
-  
+  const std::string apiPath = "/core-fast/api";
+
 public:
   /// @brief Returns the name of the server helper.
   const std::string name() const override { return "pasqal"; }
@@ -46,7 +49,7 @@ public:
   /// @return
   std::chrono::microseconds
   nextResultPollingInterval(ServerMessage &postResponse) override {
-    return std::chrono::milliseconds(1000);
+    return std::chrono::seconds(1);
   }
 
   /// @brief Return true if the job is done.
@@ -58,7 +61,7 @@ public:
   /// @param jobId
   /// @return
   sample_result processResults(ServerMessage &postJobResponse,
-                                      std::string &jobId) override;
+                               std::string &jobId) override;  
 };
 
 } // namespace cudaq

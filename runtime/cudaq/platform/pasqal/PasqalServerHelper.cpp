@@ -10,6 +10,9 @@
 #include "common/Logger.h"
 #include "PasqalServerHelper.h"
 
+#include <unordered_map>
+#include <unordered_set>
+
 namespace cudaq {
 
 void PasqalServerHelper::initialize(BackendConfig config) {
@@ -44,6 +47,7 @@ RestHeaders PasqalServerHelper::getHeaders() {
   std::map<std::string, std::string> headers{
     {"Authorization", token},
     {"Content-Type", "application/json"},
+    {"User-Agent", "cudaq/Pasqal"},
     {"Connection", "keep-alive"},
     {"Accept", "*/*"}};
 
@@ -52,50 +56,67 @@ RestHeaders PasqalServerHelper::getHeaders() {
 
 ServerJobPayload
 PasqalServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
-  ServerJobPayload ret;
-  std::vector<ServerMessage> &tasks = std::get<2>(ret);
+  std::vector<ServerMessage> tasks;
+
   for (auto &circuitCode : circuitCodes) {
-    // Construct the job message
-    ServerMessage taskRequest;
+    ServerMessage message;
+    message["name"] = circuitCode.name;
+    message["machine"] = backendConfig.at("machine");
+    message["shots"] = shots;
 
-    taskRequest["name"] = circuitCode.name;
-    taskRequest["device"] = backendConfig.at("machine");
     auto action = nlohmann::json::parse(circuitCode.code);
-    taskRequest["action"] = action.dump();
-    taskRequest["shots"] = shots;
+    message["action"] = action.dump();
 
-    tasks.push_back(taskRequest);
+    tasks.push_back(message);
   }
 
   cudaq::info("Created job payload for Pasqal, targeting device {}",
               backendConfig.at("machine"));
   
   // Return a tuple containing the job path, headers, and the job message
-  return std::make_tuple(baseUrl + "/v1/cuda-q/job", getHeaders(), tasks);
+  return std::make_tuple(baseUrl + apiPath + "/cudaq/job", getHeaders(), tasks);
 }
 
 std::string PasqalServerHelper::extractJobId(ServerMessage &postResponse) {
-    return baseUrl + "";
+    return postResponse["id"].get<std::string>();
 }
 
 std::string PasqalServerHelper::constructGetJobPath(std::string &jobId) {
-  return baseUrl + "";
+  return baseUrl + apiPath + "/v1/jobs/" + jobId + "/results";
 }
 
 std::string
 PasqalServerHelper::constructGetJobPath(ServerMessage &postResponse) {
-    return baseUrl + "";
+    return baseUrl + apiPath + "/v1/jobs/" +
+      postResponse["id"].get<std::string>() + "/results";
 }
 
 bool PasqalServerHelper::jobIsDone(ServerMessage &getJobResponse) {
-    return false;
+  std::unordered_set<std::string>
+  terminals = {"PENDING", "RUNNING", "DONE", "ERROR", "CANCEL"};
+  
+  auto jobStatus = getJobResponse["data"]["status"].get<std::string>();
+  return terminals.find(jobStatus) != terminals.end();
 }
 
+// TODO: Implementing `processResults`.
 sample_result
 PasqalServerHelper::processResults(ServerMessage &postJobResponse,
                                    std::string &jobId) {
-    sample_result res;
-    return res;
+
+  auto jobStatus = postJobResponse["data"]["status"].get<std::string>();
+  if (jobStatus != "DONE") 
+    throw std::runtime_error("Job status: " + jobStatus);
+
+  std::vector<ExecutionResult> results;
+  auto jobs = postJobResponse["data"]["jobs"];
+  for (auto &job : jobs) {
+    auto result = job["full_result"]["counter"].get<std::unordered_map<std::string, std::size_t>>();
+    results.push_back(ExecutionResult(result));
+  }
+
+  // TODO: Check the index order.
+  return sample_result(results);
 }
 
 } // namespace cudaq

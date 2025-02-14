@@ -11,6 +11,5 @@ from .braket import *
 from .infleqtion import *
 from .ionq import *
 from .iqm import *
-from .pasqal import *
 from .quantinuum import *
 from .quera import *
