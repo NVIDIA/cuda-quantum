@@ -7,7 +7,6 @@
 # ============================================================================ #
 
 import cudaq
-import cudaq.kernels.uccsd
 import pytest
 import os
 from typing import List
@@ -24,6 +23,7 @@ def configureTarget():
 
 
 def test_Ionq_cudaq_uccsd():
+    import cudaq.kernels.uccsd
 
     num_electrons = 2
     num_qubits = 8
