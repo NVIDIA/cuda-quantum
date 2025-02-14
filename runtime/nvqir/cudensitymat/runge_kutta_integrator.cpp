@@ -91,7 +91,7 @@ void runge_kutta_integrator::integrate(double target_time) {
     m_t += step_size;
   }
 
-  std::cout << "Integration complete. Final time: " << m_t << std::endl;
+  // std::cout << "Integration complete. Final time: " << m_t << std::endl;
 }
 
 // TODO: remove this
