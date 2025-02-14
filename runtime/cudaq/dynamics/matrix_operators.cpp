@@ -113,8 +113,6 @@ matrix_operator::matrix_operator(const T &other) {
   this->targets = other.degrees();
   this->op_code = type_prefix + other.to_string(false) + std::to_string(this->targets.size());
   this->id = type_prefix + other.unique_id();
-  for (auto t : this->targets)
-    this->id += std::to_string(t);
   if (matrix_operator::m_ops.find(this->op_code) == matrix_operator::m_ops.end()) {
     auto func = [targets = other.degrees(), other]
       (const std::vector<int> &dimensions, const std::unordered_map<std::string, std::complex<double>> &_none) {
