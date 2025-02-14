@@ -25,10 +25,9 @@ cudm_state::cudm_state(cudensitymatHandle_t handle,
   if (!simState.is_on_gpu())
     throw std::runtime_error("Unexpected state. This must be a state created "
                              "by the dynamics target");
-  const bool isDensityMat = simState.get_tensor().extents.size() == 2;
-
-  gpuDataSize_ = isDensityMat ? calculate_density_matrix_size(hilbertSpaceDims)
-                              : calculate_state_vector_size(hilbertSpaceDims);
+  const bool isDensityMat = simState.get_tensor().get_num_elements() ==
+                            calculate_density_matrix_size(hilbertSpaceDims);
+  gpuDataSize_ = simState.get_tensor().get_num_elements();
 
   const size_t dataSize = gpuDataSize_ * sizeof(std::complex<double>);
   HANDLE_CUDA_ERROR(cudaMalloc(reinterpret_cast<void **>(&gpuData_), dataSize));
@@ -257,7 +256,7 @@ bool cudm_state::is_density_matrix() const {
     return false;
   }
 
-  return rawData_.size() == calculate_density_matrix_size(hilbertSpaceDims_);
+  return gpuDataSize_ == calculate_density_matrix_size(hilbertSpaceDims_);
 }
 
 std::vector<std::complex<double>> cudm_state::get_raw_data() const {
