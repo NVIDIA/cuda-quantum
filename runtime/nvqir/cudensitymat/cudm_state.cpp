@@ -158,7 +158,7 @@ cudm_state cudm_state::clone(const cudm_state &other) {
 }
 
 cudm_state::cudm_state(cudensitymatHandle_t handle,
-                       const std::vector<std::complex<double>> rawData,
+                       const std::vector<std::complex<double>> &rawData,
                        const std::vector<int64_t> &hilbertSpaceDims)
     : rawData_(rawData), gpuDataSize_(rawData.size()), state_(nullptr),
       handle_(handle), hilbertSpaceDims_(hilbertSpaceDims) {

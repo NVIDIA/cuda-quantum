@@ -15,7 +15,7 @@
 #include <map>
 #include <stdexcept>
 #include <vector>
-
+#include <unordered_set>
 namespace cudaq {
 class cudm_helper {
 public:
@@ -93,6 +93,11 @@ public:
 
 private:
   cudensitymatHandle_t handle;
+  // Things that we create that need to be cleaned up.
+  // Use a set so that it's safe to push pointer multiple times.
+  std::unordered_set<void*> m_deviceBuffers;
+  std::unordered_set<cudensitymatElementaryOperator_t> m_elementaryOperators;
+  std::unordered_set<cudensitymatOperatorTerm_t> m_operatorTerms;
 };
 
 extern template cudensitymatOperator_t
