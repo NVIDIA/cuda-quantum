@@ -210,7 +210,7 @@ BraketExecutor::execute(std::vector<KernelExecution> &codesToExecute,
 
   return std::async(
       std::launch::async,
-      [this, codesToExecute](
+      [this, codesToExecute, isObserve](
           std::vector<Aws::Braket::Model::CreateQuantumTaskOutcomeCallable>
               createOutcomes) {
         std::vector<ExecutionResult> results;
@@ -271,9 +271,16 @@ BraketExecutor::execute(std::vector<KernelExecution> &codesToExecute,
 
           auto c = serverHelper->processResults(resultsJson, taskArn);
 
-          for (auto &regName : c.register_names()) {
-            results.emplace_back(c.to_map(regName), regName);
-            results.back().sequentialData = c.sequential_data(regName);
+          if (isObserve) {
+            // Use the job name instead of the global register.
+            results.emplace_back(c.to_map(), codesToExecute[i].name);
+            results.back().sequentialData = c.sequential_data();
+          } else {
+            // For each register, add the results into result.
+            for (auto &regName : c.register_names()) {
+              results.emplace_back(c.to_map(regName), regName);
+              results.back().sequentialData = c.sequential_data(regName);
+            }
           }
           i++;
         }
