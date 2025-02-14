@@ -1,80 +1,83 @@
 
 multiplication inplace with itself
 nr ops:  100
-Old setup took 0.000989452 seconds.
+Old setup took 0.000145484 seconds.
 nr ops:  1000
-Old setup took 0.00629858 seconds.
+Old setup took 0.0010659 seconds.
 nr ops:  10000
-Old setup took 0.0611419 seconds.
+Old setup took 0.00943221 seconds.
 
 multiplication inplace with other
 nr ops:  100
-Old setup took 0.00300721 seconds.
+Old setup took 0.000267917 seconds.
 nr ops:  1000
-Old setup took 0.200118 seconds.
+Old setup took 0.00509327 seconds.
 nr ops:  10000
-Old setup took 18.4632 seconds.
+Old setup took 0.402641 seconds.
 
 multiplication inplace with other (reverse order)
 nr ops:  100
-Old setup took 0.00385455 seconds.
+Old setup took 0.000178547 seconds.
 nr ops:  1000
-Old setup took 0.26617 seconds.
+Old setup took 0.00640537 seconds.
 nr ops:  10000
-Old setup took 26.2626 seconds.
+Old setup took 0.558541 seconds.
 
 addition inplace with itself
 nr ops:  100
-Old setup took 0.000757876 seconds.
+Old setup took 7.7252e-05 seconds.
 nr ops:  1000
-Old setup took 0.00587647 seconds.
+Old setup took 0.00067837 seconds.
 nr ops:  10000
-Old setup took 0.059795 seconds.
+Old setup took 0.00674406 seconds.
 
 addition inplace with other
 nr ops:  100
-Old setup took 0.0500884 seconds.
+Old setup took 0.00211015 seconds.
 nr ops:  1000
-Old setup took 19.3641 seconds.
+Old setup took 0.765903 seconds.
 nr ops:  10000
+Old setup takes minutes - skipped
 
 addition inplace with other (reverse order)
 nr ops:  100
-Old setup took 0.0191391 seconds.
+Old setup took 0.000765763 seconds.
 nr ops:  1000
-Old setup took 15.3959 seconds.
+Old setup took 0.526556 seconds.
 nr ops:  10000
+Old setup takes minutes - skipped
 
 addition inplace with product self
 nr ops:  100
-Old setup took 0.00115114 seconds.
+Old setup took 8.0988e-05 seconds.
 nr ops:  1000
-Old setup took 0.0128529 seconds.
+Old setup took 0.000713935 seconds.
 nr ops:  10000
-Old setup took 0.126899 seconds.
+Old setup took 0.00660016 seconds.
 
 addition inplace with product self (reverse order)
 nr ops:  100
-Old setup took 0.002065 seconds.
+Old setup took 7.1369e-05 seconds.
 nr ops:  1000
-Old setup took 0.0172566 seconds.
+Old setup took 0.000466354 seconds.
 nr ops:  10000
-Old setup took 0.123577 seconds.
+Old setup took 0.00452788 seconds.
 
 product inplace with 2-term sum on fixed degrees
 nr ops:  100
-Old setup took 0.00136818 seconds.
+Old setup took 0.000101042 seconds.
 nr ops:  1000
-Old setup took 0.0159856 seconds.
+Old setup took 0.000903594 seconds.
 nr ops:  10000
-Old setup took 0.140271 seconds.
+Old setup took 0.0091517 seconds.
 
 product inplace with 2-term sum on varying degrees
 nr ops:  10
-Old setup took 0.0362399 seconds.
+Old setup took 0.0103578 seconds.
 nr ops:  20
-Old setup took 11.1247 seconds.
+Old setup took 1.60473 seconds.
 nr ops:  30
+Old setup is killed (out of memory?) - skipped
 
 product inplace with 2-term sum on varying degrees (reverse order)
 nr ops:  10
@@ -82,23 +85,24 @@ Old setup segfaults
 nr ops:  20
 Old setup segfaults
 nr ops:  30
+Old setup segfaults
 
 sum of products of random terms
 nr terms 10, term length 100
-Old setup took 0.0286609 seconds.
+Old setup took 0.00225446 seconds.
 nr terms 10, term length 1000
-Old setup took 0.30442 seconds.
+Old setup took 0.0125959 seconds.
 nr terms 10, term length 10000
-Old setup took 3.1964 seconds.
+Old setup took 0.121102 seconds.
 nr terms 100, term length 100
-Old setup took 0.319011 seconds.
+Old setup took 0.0117404 seconds.
 nr terms 100, term length 1000
-Old setup took 3.07269 seconds.
+Old setup took 0.116341 seconds.
 nr terms 100, term length 10000
-Old setup took 30.7527 seconds.
+Old setup took 1.17402 seconds.
 nr terms 1000, term length 100
-Old setup took 3.64059 seconds.
+Old setup took 0.12738 seconds.
 nr terms 1000, term length 1000
-Old setup took 31.0172 seconds.
+Old setup took 1.17435 seconds.
 nr terms 1000, term length 10000
-Old setup took 311.449 seconds.
+Old setup took 11.5931 seconds.
