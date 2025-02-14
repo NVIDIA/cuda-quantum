@@ -6,30 +6,29 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
- #pragma once
+#pragma once
 
- #include "operators.h"
- #include "schedule.h"
- #include <map>
- #include <memory>
- #include <vector>
- 
- namespace cudaq {
- class BaseIntegrator {
- public:
-   /// @brief Default constructor
-   BaseIntegrator() = default;
- 
-   virtual ~BaseIntegrator() = default;
- 
-   /// @brief Set the initial state and time
-   virtual void set_state(cudaq::state initial_state, double t0) = 0;
- 
-   /// @brief Perform integration to the target time.
-   virtual void integrate(double target_time) = 0;
- 
-   /// @brief Get the current time and state.
-   virtual std::pair<double, cudaq::state> get_state() = 0;
- };
- } // namespace cudaq
- 
+#include "operators.h"
+#include "schedule.h"
+#include <map>
+#include <memory>
+#include <vector>
+
+namespace cudaq {
+class BaseIntegrator {
+public:
+  /// @brief Default constructor
+  BaseIntegrator() = default;
+
+  virtual ~BaseIntegrator() = default;
+
+  /// @brief Set the initial state and time
+  virtual void set_state(cudaq::state initial_state, double t0) = 0;
+
+  /// @brief Perform integration to the target time.
+  virtual void integrate(double target_time) = 0;
+
+  /// @brief Get the current time and state.
+  virtual std::pair<double, cudaq::state> get_state() = 0;
+};
+} // namespace cudaq

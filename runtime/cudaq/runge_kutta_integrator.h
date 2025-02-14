@@ -31,7 +31,8 @@ public:
   void set_state(cudm_state &&initial_state);
   void set_stepper(std::shared_ptr<cudm_time_stepper> stepper);
   std::pair<double, cudaq::state> get_state() override;
-  std::pair<double, cudm_state*> get_cudm_state();
+  std::pair<double, cudm_state *> get_cudm_state();
+
 private:
   std::unique_ptr<cudm_state> m_state;
   double m_t;

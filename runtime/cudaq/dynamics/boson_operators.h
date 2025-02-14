@@ -12,19 +12,18 @@
 #include <unordered_map>
 #include <vector>
 
-#include "cudaq/utils/tensor.h"
 #include "cudaq/operators.h"
+#include "cudaq/utils/tensor.h"
 
 namespace cudaq {
 
-template <typename HandlerTy> 
+template <typename HandlerTy>
 class product_operator;
 
 // FIXME: rename?
-class boson_operator : public operator_handler{
+class boson_operator : public operator_handler {
 
 private:
-
   // 0 = I, 1 = Ad (create), 2 = A (annihilate), 3 = AdA (number)
   int op_code;
   int target;
@@ -35,10 +34,9 @@ private:
   std::string op_code_to_string() const;
 
 public:
-
   // read-only properties
 
-  virtual const std::string& unique_id() const;
+  virtual const std::string &unique_id() const;
 
   /// @brief The degrees of freedom that the operator acts on in canonical
   /// order.
@@ -57,8 +55,10 @@ public:
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
-  virtual matrix_2 to_matrix(std::unordered_map<int, int> &dimensions,
-                             const std::unordered_map<std::string, std::complex<double>> &parameters = {}) const;
+  virtual matrix_2
+  to_matrix(std::unordered_map<int, int> &dimensions,
+            const std::unordered_map<std::string, std::complex<double>>
+                &parameters = {}) const;
 
   virtual std::string to_string(bool include_degrees) const;
 

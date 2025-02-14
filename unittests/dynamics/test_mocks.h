@@ -12,32 +12,9 @@
 #include "cudaq/utils/tensor.h"
 #include <cmath>
 #include <complex>
-#include <cudm_error_handling.h>
 #include <cudensitymat.h>
+#include <cudm_error_handling.h>
 #include <iostream>
-
-// Mock matrix_operator
-inline cudaq::matrix_operator mock_matrix_operator(const std::string &op_id,
-                                                   int qubit_index) {
-  try {
-    auto callback = [](std::vector<int> dimensions,
-                       std::map<std::string, std::complex<double>>) {
-      if (dimensions.size() != 1 || dimensions[0] != 2) {
-        throw std::invalid_argument("Invalid dimensions for operator.");
-      }
-
-      cudaq::matrix_2 matrix(2, 2);
-      matrix[{0, 1}] = 1.0;
-      matrix[{1, 0}] = 1.0;
-      return matrix;
-    };
-
-    cudaq::matrix_operator::define(op_id, {-1}, callback);
-  } catch (...) {
-  }
-
-  return cudaq::matrix_operator(op_id, {qubit_index});
-}
 
 // Mock cudensitymatHandle_t
 inline cudensitymatHandle_t mock_handle() {

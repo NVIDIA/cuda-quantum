@@ -39,9 +39,7 @@ cudm_helper::_wrap_callback(const scalar_operator &scalar_op) {
   } catch (const std::exception &) {
   }
 
-  ScalarCallbackFunction generator = scalar_op.get_generator();
-
-  if (!generator) {
+  if (scalar_op.is_constant()) {
     throw std::runtime_error(
         "scalar_operator does not have a valid generator function.");
   }
@@ -53,7 +51,8 @@ cudm_helper::_wrap_callback(const scalar_operator &scalar_op) {
       scalar_operator *scalar_op =
           static_cast<scalar_operator *>(scalar_storage);
 
-      std::map<std::string, std::complex<double>> param_map;
+      std::unordered_map<std::string, std::complex<double>> param_map;
+      // FIXME: Figure how to populate the param map
       for (size_t i = 0; i < num_params; i++) {
         param_map[std::to_string(i)] = params[i];
       }
@@ -95,12 +94,13 @@ cudm_helper::_wrap_tensor_callback(const matrix_operator &op) {
     try {
       matrix_operator *mat_op = static_cast<matrix_operator *>(tensor_storage);
 
-      std::map<std::string, std::complex<double>> param_map;
+      std::unordered_map<std::string, std::complex<double>> param_map;
       for (size_t i = 0; i < num_params; i++) {
         param_map[std::to_string(i)] = params[i];
       }
 
-      matrix_2 matrix_data = mat_op->to_matrix({}, param_map);
+      std::unordered_map<int, int> dimensions = {};
+      matrix_2 matrix_data = mat_op->to_matrix(dimensions, param_map);
 
       std::size_t rows = matrix_data.get_rows();
       std::size_t cols = matrix_data.get_columns();
@@ -195,11 +195,11 @@ void cudm_helper::print_complex_vector(
 // Need to use std::variant
 cudensitymatElementaryOperator_t cudm_helper::create_elementary_operator(
     const cudaq::matrix_operator &elem_op,
-    const std::map<std::string, std::complex<double>> &parameters,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
     const std::vector<int64_t> &mode_extents) {
-  auto subspace_extents = get_subspace_extents(mode_extents, elem_op.degrees);
-  auto flat_matrix = flatten_matrix(
-      elem_op.to_matrix(convert_dimensions(mode_extents), parameters));
+  auto subspace_extents = get_subspace_extents(mode_extents, elem_op.degrees());
+  std::unordered_map<int, int> dimensions = convert_dimensions(mode_extents);
+  auto flat_matrix = flatten_matrix(elem_op.to_matrix(dimensions, parameters));
 
   if (flat_matrix.empty()) {
     throw std::invalid_argument("Input matrix (flat matrix) cannot be empty.");
@@ -304,7 +304,7 @@ void cudm_helper::append_scalar_to_term(cudensitymatOperatorTerm_t term,
                                         const scalar_operator &scalar_op) {
   cudensitymatWrappedScalarCallback_t wrapped_callback = {nullptr, nullptr};
 
-  if (!scalar_op.get_generator()) {
+  if (scalar_op.is_constant()) {
     std::complex<double> coeff = scalar_op.evaluate({});
     HANDLE_CUDM_ERROR(cudensitymatOperatorTermAppendElementaryProduct(
         handle, term, 0, nullptr, nullptr, nullptr,
@@ -333,7 +333,7 @@ std::pair<cudensitymatOperatorTerm_t, cudensitymatOperatorTerm_t>
 cudm_helper::compute_lindblad_operator_terms(
     operator_sum<cudaq::matrix_operator> &collapseOp,
     const std::vector<int64_t> &mode_extents) {
-  std::map<int, int> dimensions;
+  std::unordered_map<int, int> dimensions;
   for (int i = 0; i < mode_extents.size(); ++i)
     dimensions[i] = mode_extents[i];
   auto c_op = collapseOp.to_matrix(dimensions);
@@ -548,10 +548,10 @@ cudensitymatOperator_t cudm_helper::compute_lindblad_operator(
   return liouvillian;
 }
 
-std::map<int, int>
+std::unordered_map<int, int>
 cudm_helper::convert_dimensions(const std::vector<int64_t> &mode_extents) {
 
-  std::map<int, int> dimensions;
+  std::unordered_map<int, int> dimensions;
   for (size_t i = 0; i < mode_extents.size(); i++) {
     dimensions[static_cast<int>(i)] = static_cast<int>(mode_extents[i]);
   }
@@ -586,7 +586,7 @@ cudm_helper::convert_to_cudensitymat(
         auto cudm_elem_op =
             create_elementary_operator(*elem_op, {}, mode_extents);
         elem_ops.emplace_back(cudm_elem_op);
-        all_degrees.emplace_back(elem_op->degrees);
+        all_degrees.emplace_back(elem_op->degrees());
       } else {
         // Catch anything that we don't know
         throw std::runtime_error("Unhandled type!");
@@ -600,7 +600,7 @@ cudm_helper::convert_to_cudensitymat(
 
 template <typename HandlerTy>
 cudensitymatOperator_t cudm_helper::convert_to_cudensitymat_operator(
-    const std::map<std::string, std::complex<double>> &parameters,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
     const operator_sum<HandlerTy> &op,
     const std::vector<int64_t> &mode_extents) {
   if (op.get_terms().empty()) {
@@ -615,7 +615,7 @@ cudensitymatOperator_t cudm_helper::convert_to_cudensitymat_operator(
   for (auto &[coeff, term] : convert_to_cudensitymat(op, mode_extents)) {
     cudensitymatWrappedScalarCallback_t wrapped_callback = {nullptr, nullptr};
 
-    if (!coeff.get_generator()) {
+    if (coeff.is_constant()) {
       const auto coeffVal = coeff.evaluate();
       HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
           handle, operator_handle, term, 0,
@@ -637,7 +637,7 @@ cudensitymatOperator_t cudm_helper::construct_liouvillian(
     const std::vector<operator_sum<cudaq::matrix_operator> *>
         &collapse_operators,
     const std::vector<int64_t> &mode_extents,
-    const std::map<std::string, std::complex<double>> &parameters,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool is_master_equation) {
   if (!is_master_equation && collapse_operators.empty()) {
     cudaq::info("Construct state vector Liouvillian");
@@ -654,7 +654,7 @@ cudensitymatOperator_t cudm_helper::construct_liouvillian(
     // Handle the Hamiltonian
     for (auto &[coeff, term] : convert_to_cudensitymat(op, mode_extents)) {
       cudensitymatWrappedScalarCallback_t wrapped_callback = {nullptr, nullptr};
-      if (!coeff.get_generator()) {
+      if (coeff.is_constant()) {
         const auto coeffVal = coeff.evaluate();
         const auto leftCoeff = std::complex<double>(0.0, -1.0) * coeffVal;
         // -i constant (left multiplication)
@@ -765,7 +765,7 @@ void cudm_helper::destroy_array_gpu(void *gpu_array) {
 
 template cudensitymatOperator_t
 cudm_helper::convert_to_cudensitymat_operator<cudaq::matrix_operator>(
-    const std::map<std::string, std::complex<double>> &,
+    const std::unordered_map<std::string, std::complex<double>> &,
     const operator_sum<cudaq::matrix_operator> &, const std::vector<int64_t> &);
 
 } // namespace cudaq

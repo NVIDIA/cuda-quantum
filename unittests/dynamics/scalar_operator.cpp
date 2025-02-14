@@ -9,9 +9,7 @@
 #include "cudaq/operators.h"
 #include <gtest/gtest.h>
 
-cudaq::scalar_operator negate(cudaq::scalar_operator op) {
-  return -1.0 * op;
-}
+cudaq::scalar_operator negate(cudaq::scalar_operator op) { return -1.0 * op; }
 
 TEST(OperatorExpressions, checkScalarOpsUnary) {
   auto scalar = cudaq::scalar_operator(1.0);
@@ -46,12 +44,14 @@ TEST(OperatorExpressions, checkScalarOpsSimpleComplex) {
 
   // From a lambda function.
   {
-    auto function = [](const std::unordered_map<std::string, std::complex<double>> &parameters) {
-      auto entry = parameters.find("value");
-      if (entry == parameters.end())
-        throw std::runtime_error("value not defined in parameters");
-      return entry->second;
-    };
+    auto function =
+        [](const std::unordered_map<std::string, std::complex<double>>
+               &parameters) {
+          auto entry = parameters.find("value");
+          if (entry == parameters.end())
+            throw std::runtime_error("value not defined in parameters");
+          return entry->second;
+        };
 
     std::unordered_map<std::string, std::complex<double>> parameter_map;
 
@@ -103,12 +103,14 @@ TEST(OperatorExpressions, checkScalarOpsSimpleDouble) {
 
   // From a lambda function.
   {
-    auto function = [](const std::unordered_map<std::string, std::complex<double>> &parameters) {
-      auto entry = parameters.find("value");
-      if (entry == parameters.end())
-        throw std::runtime_error("value not defined in parameters");
-      return entry->second;
-    };
+    auto function =
+        [](const std::unordered_map<std::string, std::complex<double>>
+               &parameters) {
+          auto entry = parameters.find("value");
+          if (entry == parameters.end())
+            throw std::runtime_error("value not defined in parameters");
+          return entry->second;
+        };
 
     std::unordered_map<std::string, std::complex<double>> parameter_map;
 
@@ -140,7 +142,8 @@ TEST(OperatorExpressions, checkScalarOpsArithmeticComplex) {
   std::complex<double> value_2 = 2.0 + 0.1;
   std::complex<double> value_3 = 2.0 + 1.0;
 
-  auto function = [](const std::unordered_map<std::string, std::complex<double>> &parameters) {
+  auto function = [](const std::unordered_map<std::string, std::complex<double>>
+                         &parameters) {
     auto entry = parameters.find("value");
     if (entry == parameters.end())
       throw std::runtime_error("value not defined in parameters");
@@ -381,7 +384,8 @@ TEST(OperatorExpressions, checkScalarOpsArithmeticScalarOps) {
   std::complex<double> value_2 = 2.0 + 0.1;
   std::complex<double> value_3 = 2.0 + 1.0;
 
-  auto function = [](const std::unordered_map<std::string, std::complex<double>> &parameters) {
+  auto function = [](const std::unordered_map<std::string, std::complex<double>>
+                         &parameters) {
     auto entry = parameters.find("value");
     if (entry == parameters.end())
       throw std::runtime_error("value not defined in parameters");
@@ -391,12 +395,14 @@ TEST(OperatorExpressions, checkScalarOpsArithmeticScalarOps) {
   // I use another function here to make sure that local variables
   // that may be unique to each ScalarOp's generators are both kept
   // track of when we merge the generators.
-  auto alternative_function = [](const std::unordered_map<std::string, std::complex<double>> &parameters) {
-    auto entry = parameters.find("other");
-    if (entry == parameters.end())
-      throw std::runtime_error("other not defined in parameters");
-    return entry->second;
-  };
+  auto alternative_function =
+      [](const std::unordered_map<std::string, std::complex<double>>
+             &parameters) {
+        auto entry = parameters.find("other");
+        if (entry == parameters.end())
+          throw std::runtime_error("other not defined in parameters");
+        return entry->second;
+      };
 
   // + : Constant scalar operator.
   {
