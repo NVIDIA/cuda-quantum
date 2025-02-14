@@ -710,18 +710,33 @@ public:
     return success();
   }
 };
+
+class VarargCallPattern
+    : public ConvertOpToLLVMPattern<cudaq::cc::VarargCallOp> {
+  using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+
+  LogicalResult
+  matchAndRewrite(cudaq::cc::VarargCallOp vcall, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    SmallVector<Type> types;
+    for (auto ty : vcall.getResultTypes())
+      types.push_back(getTypeConverter()->convertType(ty));
+    rewriter.replaceOpWithNewOp<LLVM::CallOp>(vcall, types, vcall.getCallee(),
+                                              adaptor.getArgs());
+    return success();
+  }
+};
 } // namespace
 
 void cudaq::opt::populateCCToLLVMPatterns(LLVMTypeConverter &typeConverter,
                                           RewritePatternSet &patterns) {
-  patterns.insert<AddressOfOpPattern, AllocaOpPattern, CallableClosureOpPattern,
-                  CallableFuncOpPattern, CallCallableOpPattern,
-                  CallIndirectCallableOpPattern, CastOpPattern,
-                  ComputePtrOpPattern, CreateStringLiteralOpPattern,
-                  ExtractValueOpPattern, FuncToPtrOpPattern, GlobalOpPattern,
-                  InsertValueOpPattern, InstantiateCallableOpPattern,
-                  LoadOpPattern, OffsetOfOpPattern, PoisonOpPattern,
-                  SizeOfOpPattern, StdvecDataOpPattern, StdvecInitOpPattern,
-                  StdvecSizeOpPattern, StoreOpPattern, UndefOpPattern>(
-      typeConverter);
+  patterns.insert<
+      AddressOfOpPattern, AllocaOpPattern, CallableClosureOpPattern,
+      CallableFuncOpPattern, CallCallableOpPattern,
+      CallIndirectCallableOpPattern, CastOpPattern, ComputePtrOpPattern,
+      CreateStringLiteralOpPattern, ExtractValueOpPattern, FuncToPtrOpPattern,
+      GlobalOpPattern, InsertValueOpPattern, InstantiateCallableOpPattern,
+      LoadOpPattern, OffsetOfOpPattern, PoisonOpPattern, SizeOfOpPattern,
+      StdvecDataOpPattern, StdvecInitOpPattern, StdvecSizeOpPattern,
+      StoreOpPattern, UndefOpPattern, VarargCallPattern>(typeConverter);
 }
