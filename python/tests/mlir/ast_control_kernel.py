@@ -27,12 +27,12 @@ def test_control_kernel():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__applyX(
-# CHECK-SAME:                                        %[[VAL_0:.*]]: !quake.ref) {
+# CHECK-SAME:                            %[[VAL_0:.*]]: !quake.ref)
 # CHECK:           quake.x %[[VAL_0]] : (!quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
 
-# CHECK-LABEL:     func.func @__nvqpp__mlirgen__bell() attributes {"cudaq-entrypoint"} {
+# CHECK-LABEL:     func.func @__nvqpp__mlirgen__bell() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK:      %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
 # CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()

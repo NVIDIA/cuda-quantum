@@ -17,6 +17,7 @@ add_cudaq_library(OptTransforms
   ApplyOpSpecialization.cpp
   ArgumentSynthesis.cpp
   BasisConversion.cpp
+  ClassicalOptimization.cpp
   CombineMeasurements.cpp
   CombineQuantumAlloc.cpp
   ConstPropComplex.cpp
@@ -54,7 +55,9 @@ add_cudaq_library(OptTransforms
   RegToMem.cpp
   StatePreparation.cpp
   UnitarySynthesis.cpp
+  UpdateRegisterNames.cpp
   WiresToWiresets.cpp
+  WriteAfterWriteElimination.cpp
 
   DEPENDS
     OptTransformsPassIncGen

@@ -227,6 +227,7 @@ if(TARGET nvqir-tensornet)
     integration/builder_tester.cpp  
     integration/deuteron_variational_tester.cpp
     integration/observe_result_tester.cpp
+    integration/noise_tester.cpp # This test contains noisy observe test cases.
   )
   target_include_directories(test_tensornet_observe_path_reuse PRIVATE .)
   target_compile_definitions(test_tensornet_observe_path_reuse 
@@ -330,58 +331,6 @@ endif()
 
 add_subdirectory(backends)
 add_subdirectory(Optimizer)
-
-set(CUDAQ_BRAKET_RUNTIME_TEST_SOURCES
-  # Integration tests
-  integration/adjoint_tester.cpp
-  integration/builder_tester.cpp
-  integration/ccnot_tester.cpp
-  integration/draw_tester.cpp
-  integration/ghz_nisq_tester.cpp
-  integration/gradient_tester.cpp
-  integration/grover_test.cpp
-  integration/nlopt_tester.cpp
-  integration/qpe_ftqc.cpp
-  integration/qpe_nisq.cpp
-  integration/qubit_allocation.cpp
-  integration/vqe_tester.cpp
-  integration/bug67_vqe_then_sample.cpp
-  integration/bug77_vqe_with_shots.cpp
-  integration/bug116_cusv_measure_bug.cpp
-  integration/async_tester.cpp
-  integration/negative_controls_tester.cpp
-  integration/observe_result_tester.cpp
-  integration/noise_tester.cpp
-  integration/get_state_tester.cpp
-  integration/kernels_tester.cpp
-  common/MeasureCountsTester.cpp
-  common/NoiseModelTester.cpp
-  integration/gate_library_tester.cpp
-)
-set(TEST_EXE_NAME "test_runtime_braket")
-set(NVQIR_BACKEND "braket")
-set(NVQIR_BACKEND_NAME "braket")
-add_executable(${TEST_EXE_NAME} main.cpp ${CUDAQ_BRAKET_RUNTIME_TEST_SOURCES} "")
-target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DNVQIR_BACKEND_NAME=braket)
-target_compile_definitions(${TEST_EXE_NAME} PRIVATE __MATH_LONG_DOUBLE_CONSTANTS)
-target_include_directories(${TEST_EXE_NAME} PRIVATE .)
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(${TEST_EXE_NAME} PRIVATE -Wl,--no-as-needed)
-endif()
-target_link_libraries(${TEST_EXE_NAME}
-  PUBLIC
-  nvqir-qpp nvqir
-  cudaq fmt::fmt-header-only
-  cudaq-platform-default
-  cudaq-rest-qpu
-  cudaq-builder
-  gtest_main)
-set(TEST_LABELS "")
-if ("${TEST_LABELS}" STREQUAL "")
-  gtest_discover_tests(${TEST_EXE_NAME})
-else()
-  gtest_discover_tests(${TEST_EXE_NAME} PROPERTIES LABELS "${TEST_LABELS}")
-endif()
 
 if (CUDAQ_ENABLE_PYTHON)
   if (NOT Python_FOUND)
