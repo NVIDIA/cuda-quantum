@@ -25,7 +25,7 @@
 #include <numeric>
 
 /// @cond DO_NOT_DOCUMENT
-/// @brief Fake simulation state to use in tests.
+/// @brief Fake simulation or quantum device state to use in tests.
 class FakeDeviceState : public cudaq::SimulationState {
 private:
   std::string kernelName;
@@ -56,7 +56,9 @@ public:
 
   virtual std::optional<std::pair<std::string, std::vector<void *>>>
   getKernelInfo() const override {
-    return std::make_pair(kernelName, args);
+    if (!hasData())
+      return std::make_pair(kernelName, args);
+    throw std::runtime_error("Not implemented");
   }
 
   virtual Tensor getTensor(std::size_t tensorIdx = 0) const override {
@@ -771,7 +773,7 @@ void test_combinations(mlir::MLIRContext *ctx) {
                                            0.,        0.,        0., 0.};
 
     std::vector<double> x = {0.5, 0.6};
-    cudaq::state y{new FakeSimulationState(data.size(), data.data())};
+    cudaq::state y{new FakeDeviceState(data.size(), data.data())};
     std::vector<cudaq::pauli_word> z = {
         cudaq::pauli_word{"XX"},
         cudaq::pauli_word{"XY"},

@@ -450,6 +450,7 @@ public:
     if (!rawArgs.empty() || updatedArgs) {
       mlir::PassManager pm(&context);
       if (!rawArgs.empty()) {
+        cudaq::info("Run Argument Synth.\n");
         opt::ArgumentConverter argCon(kernelName, moduleOp);
         argCon.gen(rawArgs);
 

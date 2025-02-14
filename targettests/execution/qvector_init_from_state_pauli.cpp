@@ -18,7 +18,6 @@
 // RUN: nvq++ %cpp_std --target iqm --iqm-machine Adonis --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std --target iqm --iqm-machine Apollo --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std --target oqc                      --emulate %s -o %t && %t | FileCheck %s
-// RUN: if %braket_avail; then nvq++ %cpp_std --target braket --emulate %s -o %t && %t | FileCheck %s; fi
 // clang-format on
 
 #include <cudaq.h>
@@ -34,9 +33,9 @@ struct test_init_state {
 };
 
 struct test_state_param {
-  void operator()(cudaq::state *state) __qpu__ {
+  void operator()(cudaq::state *state, cudaq::pauli_word w) __qpu__ {
     cudaq::qvector q(state);
-    x(q);
+    cudaq::exp_pauli(1.0, q, w);
   }
 };
 
@@ -59,79 +58,21 @@ int main() {
   auto state = cudaq::state::from_data(vec);
   auto state1 = cudaq::state::from_data(vec1);
   {
-    std::cout << "Passing state created from data as argument (kernel mode)"
-              << std::endl;
-    auto counts = cudaq::sample(test_state_param{}, &state);
-    printCounts(counts);
-
-    counts = cudaq::sample(test_state_param{}, &state1);
-    printCounts(counts);
-  }
-  // clang-format off
-  // CHECK: Passing state created from data as argument (kernel mode)
-  // CHECK: 011
-  // CHECK: 111
-
-  // CHECK: 000
-  // CHECK: 100
-  // clang-format on
-
-  {
-    std::cout << "Passing state from another kernel as argument (kernel mode)"
+    std::cout << "Passing state from another kernel as argument"
+                 " with pauli word arg (kernel mode)"
               << std::endl;
     auto state = cudaq::get_state(test_init_state{}, 2);
-    auto counts = cudaq::sample(test_state_param{}, &state);
+    auto counts =
+        cudaq::sample(test_state_param{}, &state, cudaq::pauli_word{"XX"});
     printCounts(counts);
   }
   // clang-format off
-  // CHECK: Passing state from another kernel as argument (kernel mode)
+  // CHECK: Passing state from another kernel as argument with pauli word arg (kernel mode)
+  // CHECK: 00
   // CHECK: 01
+  // CHECK: 10
   // CHECK: 11
   // clang-format on
 
-  {
-    std::cout
-        << "Passing large state from another kernel as argument (kernel mode)"
-        << std::endl;
-    // TODO: State larger than 5 qubits fails on iqm machines with Adonis
-    // architecture
-    // TODO: State larger than 8 qubits fails on oqc and anyon
-    // Up to 14 bits works with quantinuum an ionq
-    auto largeState = cudaq::get_state(test_init_state{}, 5);
-    auto counts = cudaq::sample(test_state_param{}, &largeState);
-    printCounts(counts);
-  }
-  // clang-format off
-  // CHECK: Passing large state from another kernel as argument (kernel mode)
-  // CHECK: 01111
-  // CHECK: 11111
-  // clang-format on
-
-  {
-    std::cout << "Passing state from another kernel as argument iteratively "
-                 "(kernel mode)"
-              << std::endl;
-    auto state = cudaq::get_state(test_init_state{}, 2);
-    for (auto i = 0; i < 4; i++) {
-      auto counts = cudaq::sample(test_state_param{}, &state);
-      std::cout << "Iteration: " << i << std::endl;
-      printCounts(counts);
-      state = cudaq::get_state(test_state_param{}, &state);
-    }
-  }
-  // clang-format off
-  // CHECK: Passing state from another kernel as argument iteratively (kernel mode)
-  // CHECK: Iteration: 0
-  // CHECK: 01
-  // CHECK: 11
-  // CHECK: Iteration: 1
-  // CHECK: 00
-  // CHECK: 10
-  // CHECK: Iteration: 2
-  // CHECK: 01
-  // CHECK: 11
-  // CHECK: Iteration: 3
-  // CHECK: 00
-  // CHECK: 10
-  // clang-format on
+  // TODO: add tests for vectors of pauli words after we can lifts the arrays of pauli words.
 }

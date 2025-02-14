@@ -30,7 +30,7 @@ using namespace mlir;
 
 namespace {
 // clang-format off
-/// Replace `quake.get_number_of_qubits` by a call to a a function
+/// Replace `quake.get_number_of_qubits` by a call to a function
 /// that computes the number of qubits for a state.
 ///
 /// ```

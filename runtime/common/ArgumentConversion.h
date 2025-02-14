@@ -66,8 +66,11 @@ public:
   }
 
 private:
-  // Note: use std::list to make sure we always return valid references
-  // when registering new kernel names.
+  /// Keeps kernel names created during argument conversion in memory.
+  /// References to those names are used by the argument converters for
+  /// those kernels.
+  /// Note: use std::list to make sure we always return valid references
+  /// when registering new kernel names.
   static std::list<std::string> kernelNameRegistry;
 
   mlir::ModuleOp sourceModule;

@@ -1475,8 +1475,8 @@ def QuakeOp_GetStateOp : QuakeOp<"get_state", [Pure] > {
         passed to `cudaq::get_state`.
 
     This operation will return of the original kernel passed to
-    `cudaq::get_state`. `cudaq::get_state`. 
-    
+    `cudaq::get_state`. `cudaq::get_state`.
+
     The operation may be replaced by calls to the @num_qubits and @init calls,
     which will reproduce the specified state in the `ReplaceStateByKernel`
     pass.

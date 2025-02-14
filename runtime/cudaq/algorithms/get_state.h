@@ -120,14 +120,25 @@ auto get_state(QuantumKernel &&kernel, Args &&...args) {
                                            std::forward<Args>(args)...));
   }
 #else
-#if defined(CUDAQ_QUANTUM_DEVICE)
+#if defined(CUDAQ_QUANTUM_DEVICE) && !defined(CUDAQ_LIBRARY_MODE)
   // Store kernel name and arguments for quantum states.
   if (!cudaq::get_quake_by_name(cudaq::getKernelName(kernel), false).empty())
     return state(new QuantumState(std::forward<QuantumKernel>(kernel),
                                   std::forward<Args>(args)...));
   throw std::runtime_error(
       "cudaq::state* argument synthesis is not supported for quantum hardware"
-      "for c-like functions, use class kernels instead");
+      " for c-like functions, use class kernels instead");
+#else
+#if defined(CUDAQ_QUANTUM_DEVICE)
+  // Kernel builder is MLIR-based kernel.
+  if constexpr (has_name<QuantumKernel>::value)
+    return state(new QuantumState(std::forward<QuantumKernel>(kernel),
+                                  std::forward<Args>(args)...));
+
+  throw std::runtime_error(
+      "cudaq::state* argument synthesis is not supported for quantum hardware"
+      " for c-like functions in library mode");
+#endif
 #endif
 #endif
   return details::extractState([&]() mutable {

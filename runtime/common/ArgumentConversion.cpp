@@ -334,7 +334,10 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
 
   // If the state has amplitude data, we materialize the data as a state
   // vector and create a new state from it.
-  // TODO: how to handle density matrices? Should we just inline calls?
+  // TODO: add an option to use the kernel info if available, i.e. for
+  // remote simulators
+  // TODO: add an option of storing the kernel info on simulators if
+  // preferred i.e. to support synthesis of density matrices.
   if (simState->hasData()) {
     // The call below might cause lazy execution of the state kernel.
     // TODO: For lazy execution scenario on remote simulators, we have the
@@ -384,7 +387,8 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
                                                 arrSize);
   }
 
-  // For quantum hardware, we aim at replacing states with calls to kernels
+  // Otherwise (ie quantum hardware, where getting the amplitude data is not
+  // efficient) we aim at replacing states with calls to kernels (`callees`)
   // that generated them. This is done in 2 stages:
   //
   // 1. Replace state by quake.get_state instruction during argument conversion:
@@ -392,11 +396,11 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
   // Create two functions:
   // - callee.num_qubits_N
   //    Calculates the number of qubits needed for the veq allocation
-  // - callee.init_state_N
+  // - callee.init_N
   //    Initializes the veq passed as a parameter
   //
   // Then replace the state with
-  //   `quake.get_state @callee.num_qubits_0 @callee.init_state_0`:
+  //   `quake.get_state @callee.num_qubits_0 @callee.init_0`:
   //
   // clang-format off
   // ```
@@ -436,7 +440,7 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
   //   return %arg0 : i64
   // }
   //
-  // func.func private @callee.init_state_0(%arg0: i64, %arg1: !quake.veq<?>) {
+  // func.func private @callee.init_0(%arg0: i64, %arg1: !quake.veq<?>) {
   //   %1 = quake.extract_ref %arg0[0] : (!quake.veq<2>) -> !quake.ref
   //   quake.x %1 : (f64, !quake.ref) -> ()
   //   return
@@ -444,15 +448,16 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
   // ```
   // clang-format on
   //
-  // 2. Replace the `quake.get_state` ops with calls to the generated functions
-  //    synthesized with the arguments used to create the state:
+  // 2. Replace the `quake.get_state` and ops that use its state with calls to
+  // the generated functions, synthesized with the arguments used to create the
+  // original state:
   //
   // After ReplaceStateWithKernel pass:
   //
   // clang-format off
   // ```
   // func.func @caller() {
-  //   %1 = call 2callee.num_qubits_0() : () -> i64
+  //   %1 = call callee.num_qubits_0() : () -> i64
   //   %2 = quake.alloca !quake.veq<?>[%1 : i64]
   //   %3 = call @callee.init_0(%2): (!quake.veq<?>) -> !quake.veq<?>
   // }
@@ -506,7 +511,7 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
     auto &registeredNumQubitsName =
         cudaq::opt::ArgumentConverter::registerKernelName(numQubitsName);
 
-    // Create substitutions for `callee.init_N` and `callee.num_qubits_N`.
+    // Convert arguments  for `callee.init_N` and `callee.num_qubits_N`.
     converter.genCallee(registeredInitName, calleeArgs);
     converter.genCallee(registeredNumQubitsName, calleeArgs);
 
@@ -690,6 +695,9 @@ Value genConstant(OpBuilder &builder, cudaq::cc::IndirectCallableType indCallTy,
 }
 
 //===----------------------------------------------------------------------===//
+
+std::list<std::string> cudaq::opt::ArgumentConverter::kernelNameRegistry =
+    std::list<std::string>();
 
 cudaq::opt::ArgumentConverter::ArgumentConverter(StringRef kernelName,
                                                  ModuleOp sourceModule)
