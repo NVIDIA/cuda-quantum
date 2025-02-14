@@ -8,19 +8,18 @@
 
 #pragma once
 
-#include <unordered_map>
-#include <type_traits>
-
-#include "utils/tensor.h"
 #include "dynamics/operator_leafs.h"
 #include "dynamics/templates.h"
+#include "utils/tensor.h"
+#include <type_traits>
+#include <unordered_map>
 
 namespace cudaq {
 
 class MatrixArithmetics;
 class EvaluatedMatrix;
 
-// fixme: write overloads with rvalue qualifiers 
+// fixme: write overloads with rvalue qualifiers
 // https://stackoverflow.com/questions/37737798/c-is-it-possible-to-overload-the-unary-minus-operator-of-an-rvalue-reference
 
 /// @brief Represents an operator expression consisting of a sum of terms, where
@@ -29,11 +28,12 @@ class EvaluatedMatrix;
 /// to convert them to data types that can.
 template <typename HandlerTy>
 class operator_sum {
-template <typename T> friend class operator_sum;
-template <typename T> friend class product_operator;
+  template <typename T>
+  friend class operator_sum;
+  template <typename T>
+  friend class product_operator;
 
 private:
-
   // inserts a new term combining it with an existing one if possible
   void insert(product_operator<HandlerTy> &&other);
   void insert(const product_operator<HandlerTy> &other);
@@ -42,17 +42,20 @@ private:
 
   void aggregate_terms();
 
-  template <typename ... Args>
-  void aggregate_terms(product_operator<HandlerTy> &&head, Args&& ... args);
+  template <typename... Args>
+  void aggregate_terms(product_operator<HandlerTy> &&head, Args &&...args);
 
-  EvaluatedMatrix m_evaluate(MatrixArithmetics arithmetics, bool pad_terms = true) const;
+  EvaluatedMatrix m_evaluate(MatrixArithmetics arithmetics,
+                             bool pad_terms = true) const;
 
 protected:
-
   std::unordered_map<std::string, product_operator<HandlerTy>> tmap;
 
-  template<typename... Args, std::enable_if_t<std::conjunction<std::is_same<product_operator<HandlerTy>, Args>...>::value, bool> = true>
-  operator_sum(Args&&... args);
+  template <typename... Args,
+            std::enable_if_t<std::conjunction<std::is_same<
+                                 product_operator<HandlerTy>, Args>...>::value,
+                             bool> = true>
+  operator_sum(Args &&...args);
 
   operator_sum(std::vector<product_operator<HandlerTy>> &&terms);
 
@@ -73,7 +76,10 @@ public:
 
   operator_sum(const product_operator<HandlerTy> &other);
 
-  template<typename T, std::enable_if_t<!std::is_same<T, HandlerTy>::value && std::is_constructible<HandlerTy, T>::value, bool> = true>
+  template <typename T,
+            std::enable_if_t<!std::is_same<T, HandlerTy>::value &&
+                                 std::is_constructible<HandlerTy, T>::value,
+                             bool> = true>
   operator_sum(const operator_sum<T> &other);
 
   // copy constructor
@@ -86,15 +92,21 @@ public:
 
   // assignments
 
-  template<typename T, std::enable_if_t<!std::is_same<T, HandlerTy>::value && std::is_constructible<HandlerTy, T>::value, bool> = true>
-  operator_sum<HandlerTy>& operator=(const product_operator<T> &other);
+  template <typename T,
+            std::enable_if_t<!std::is_same<T, HandlerTy>::value &&
+                                 std::is_constructible<HandlerTy, T>::value,
+                             bool> = true>
+  operator_sum<HandlerTy> &operator=(const product_operator<T> &other);
 
-  operator_sum<HandlerTy>& operator=(const product_operator<HandlerTy> &other);
+  operator_sum<HandlerTy> &operator=(const product_operator<HandlerTy> &other);
 
-  operator_sum<HandlerTy>& operator=(product_operator<HandlerTy> &&other);
+  operator_sum<HandlerTy> &operator=(product_operator<HandlerTy> &&other);
 
-  template<typename T, std::enable_if_t<!std::is_same<T, HandlerTy>::value && std::is_constructible<HandlerTy, T>::value, bool> = true>
-  operator_sum<HandlerTy>& operator=(const operator_sum<T> &other);
+  template <typename T,
+            std::enable_if_t<!std::is_same<T, HandlerTy>::value &&
+                                 std::is_constructible<HandlerTy, T>::value,
+                             bool> = true>
+  operator_sum<HandlerTy> &operator=(const operator_sum<T> &other);
 
   // assignment operator
   operator_sum<HandlerTy> &operator=(const operator_sum<HandlerTy> &other);
@@ -115,7 +127,8 @@ public:
   /// @arg `parameters` : A map of the parameter names to their concrete,
   /// complex values.
   matrix_2 to_matrix(std::unordered_map<int, int> dimensions = {},
-                     const std::unordered_map<std::string, std::complex<double>> &parameters = {}) const;
+                     const std::unordered_map<std::string, std::complex<double>>
+                         &parameters = {}) const;
 
   // unary operators
 
@@ -134,28 +147,31 @@ public:
   operator_sum<HandlerTy> operator*(const scalar_operator &other) const;
   operator_sum<HandlerTy> operator+(const scalar_operator &other) const;
   operator_sum<HandlerTy> operator-(const scalar_operator &other) const;
-  operator_sum<HandlerTy> operator*(const product_operator<HandlerTy> &other) const;
-  operator_sum<HandlerTy> operator+(const product_operator<HandlerTy> &other) const;
-  operator_sum<HandlerTy> operator-(const product_operator<HandlerTy> &other) const;
+  operator_sum<HandlerTy>
+  operator*(const product_operator<HandlerTy> &other) const;
+  operator_sum<HandlerTy>
+  operator+(const product_operator<HandlerTy> &other) const;
+  operator_sum<HandlerTy>
+  operator-(const product_operator<HandlerTy> &other) const;
   operator_sum<HandlerTy> operator+(const operator_sum<HandlerTy> &other) const;
   operator_sum<HandlerTy> operator-(const operator_sum<HandlerTy> &other) const;
   operator_sum<HandlerTy> operator*(const operator_sum<HandlerTy> &other) const;
 
-  operator_sum<HandlerTy>& operator*=(double other);
-  operator_sum<HandlerTy>& operator+=(double other);
-  operator_sum<HandlerTy>& operator-=(double other);
-  operator_sum<HandlerTy>& operator*=(std::complex<double> other);
-  operator_sum<HandlerTy>& operator+=(std::complex<double> other);
-  operator_sum<HandlerTy>& operator-=(std::complex<double> other);
-  operator_sum<HandlerTy>& operator*=(const scalar_operator &other);
-  operator_sum<HandlerTy>& operator+=(const scalar_operator &other);
-  operator_sum<HandlerTy>& operator-=(const scalar_operator &other);
-  operator_sum<HandlerTy>& operator*=(const product_operator<HandlerTy> &other);
-  operator_sum<HandlerTy>& operator+=(const product_operator<HandlerTy> &other);
-  operator_sum<HandlerTy>& operator-=(const product_operator<HandlerTy> &other);
-  operator_sum<HandlerTy>& operator*=(const operator_sum<HandlerTy> &other);
-  operator_sum<HandlerTy>& operator+=(const operator_sum<HandlerTy> &other);
-  operator_sum<HandlerTy>& operator-=(const operator_sum<HandlerTy> &other);
+  operator_sum<HandlerTy> &operator*=(double other);
+  operator_sum<HandlerTy> &operator+=(double other);
+  operator_sum<HandlerTy> &operator-=(double other);
+  operator_sum<HandlerTy> &operator*=(std::complex<double> other);
+  operator_sum<HandlerTy> &operator+=(std::complex<double> other);
+  operator_sum<HandlerTy> &operator-=(std::complex<double> other);
+  operator_sum<HandlerTy> &operator*=(const scalar_operator &other);
+  operator_sum<HandlerTy> &operator+=(const scalar_operator &other);
+  operator_sum<HandlerTy> &operator-=(const scalar_operator &other);
+  operator_sum<HandlerTy> &operator*=(const product_operator<HandlerTy> &other);
+  operator_sum<HandlerTy> &operator+=(const product_operator<HandlerTy> &other);
+  operator_sum<HandlerTy> &operator-=(const product_operator<HandlerTy> &other);
+  operator_sum<HandlerTy> &operator*=(const operator_sum<HandlerTy> &other);
+  operator_sum<HandlerTy> &operator+=(const operator_sum<HandlerTy> &other);
+  operator_sum<HandlerTy> &operator-=(const operator_sum<HandlerTy> &other);
 
   // left-hand arithmetics
 
@@ -167,35 +183,47 @@ public:
   friend operator_sum<T> operator+(double other, const operator_sum<T> &self);
   template <typename T>
   friend operator_sum<T> operator-(double other, const operator_sum<T> &self);
-  template<typename T>
-  friend operator_sum<T> operator*(std::complex<double> other, const operator_sum<T> &self);
-  template<typename T>
-  friend operator_sum<T> operator+(std::complex<double> other, const operator_sum<T> &self);
-  template<typename T>
-  friend operator_sum<T> operator-(std::complex<double> other, const operator_sum<T> &self);
-  template<typename T>
-  friend operator_sum<T> operator*(const scalar_operator &other, const operator_sum<T> &self);
-  template<typename T>
-  friend operator_sum<T> operator+(const scalar_operator &other, const operator_sum<T> &self);
-  template<typename T>
-  friend operator_sum<T> operator-(const scalar_operator &other, const operator_sum<T> &self);
+  template <typename T>
+  friend operator_sum<T> operator*(std::complex<double> other,
+                                   const operator_sum<T> &self);
+  template <typename T>
+  friend operator_sum<T> operator+(std::complex<double> other,
+                                   const operator_sum<T> &self);
+  template <typename T>
+  friend operator_sum<T> operator-(std::complex<double> other,
+                                   const operator_sum<T> &self);
+  template <typename T>
+  friend operator_sum<T> operator*(const scalar_operator &other,
+                                   const operator_sum<T> &self);
+  template <typename T>
+  friend operator_sum<T> operator+(const scalar_operator &other,
+                                   const operator_sum<T> &self);
+  template <typename T>
+  friend operator_sum<T> operator-(const scalar_operator &other,
+                                   const operator_sum<T> &self);
 
-  template<typename T>
-  friend operator_sum<T> operator+(double other, const product_operator<T> &self);
-  template<typename T>
-  friend operator_sum<T> operator-(double other, const product_operator<T> &self);
-  template<typename T>
-  friend operator_sum<T> operator+(std::complex<double> other, const product_operator<T> &self);
-  template<typename T>
-  friend operator_sum<T> operator-(std::complex<double> other, const product_operator<T> &self);
-  template<typename T>
-  friend operator_sum<T> operator+(const scalar_operator &other, const product_operator<T> &self);
-  template<typename T>
-  friend operator_sum<T> operator-(const scalar_operator &other, const product_operator<T> &self);
+  template <typename T>
+  friend operator_sum<T> operator+(double other,
+                                   const product_operator<T> &self);
+  template <typename T>
+  friend operator_sum<T> operator-(double other,
+                                   const product_operator<T> &self);
+  template <typename T>
+  friend operator_sum<T> operator+(std::complex<double> other,
+                                   const product_operator<T> &self);
+  template <typename T>
+  friend operator_sum<T> operator-(std::complex<double> other,
+                                   const product_operator<T> &self);
+  template <typename T>
+  friend operator_sum<T> operator+(const scalar_operator &other,
+                                   const product_operator<T> &self);
+  template <typename T>
+  friend operator_sum<T> operator-(const scalar_operator &other,
+                                   const product_operator<T> &self);
 
   // common operators
 
-  template<typename T>
+  template <typename T>
   friend operator_sum<T> operator_handler::empty();
 };
 
@@ -205,28 +233,42 @@ public:
 /// that can.
 template <typename HandlerTy>
 class product_operator {
-template <typename T> friend class product_operator;
-template <typename T> friend class operator_sum;
+  template <typename T>
+  friend class product_operator;
+  template <typename T>
+  friend class operator_sum;
 
 private:
   // template defined as long as T implements an in-place multiplication -
   // won't work if the in-place multiplication was inherited from a base class
-  template <typename T, std::enable_if_t<!std::is_same<decltype(&T::inplace_mult), std::false_type>::value, bool> = true>
+  template <typename T,
+            std::enable_if_t<!std::is_same<decltype(&T::inplace_mult),
+                                           std::false_type>::value,
+                             bool> = true>
   static std::true_type handler_mult(int);
-	template<typename> 
-  static std::false_type handler_mult(...); // ellipsis ensures the template above is picked if it exists
-	static constexpr bool supports_inplace_mult = std::is_same<decltype(handler_mult<HandlerTy>(0)), std::true_type>::value;
+  template <typename>
+  static std::false_type handler_mult(
+      ...); // ellipsis ensures the template above is picked if it exists
+  static constexpr bool supports_inplace_mult =
+      std::is_same<decltype(handler_mult<HandlerTy>(0)), std::true_type>::value;
 
 #if !defined(NDEBUG)
   bool is_canonicalized() const;
 #endif
- 
-  std::vector<HandlerTy>::const_iterator find_insert_at(const HandlerTy &other) const;
 
-  template<typename T, std::enable_if_t<std::is_same<HandlerTy, T>::value && !product_operator<T>::supports_inplace_mult, int> = 0>
+  std::vector<HandlerTy>::const_iterator
+  find_insert_at(const HandlerTy &other) const;
+
+  template <typename T,
+            std::enable_if_t<std::is_same<HandlerTy, T>::value &&
+                                 !product_operator<T>::supports_inplace_mult,
+                             int> = 0>
   void insert(T &&other, bool update_id);
 
-  template <typename T, std::enable_if_t<std::is_same<HandlerTy, T>::value && product_operator<T>::supports_inplace_mult, bool> = true>
+  template <typename T,
+            std::enable_if_t<std::is_same<HandlerTy, T>::value &&
+                                 product_operator<T>::supports_inplace_mult,
+                             bool> = true>
   void insert(T &&other, bool update_id);
 
   void update_id();
@@ -234,24 +276,33 @@ private:
   void aggregate_terms();
 
   template <typename... Args>
-  void aggregate_terms(HandlerTy &&head, Args&& ... args);
+  void aggregate_terms(HandlerTy &&head, Args &&...args);
 
-  EvaluatedMatrix m_evaluate(MatrixArithmetics arithmetics, bool pad_terms = true) const;
+  EvaluatedMatrix m_evaluate(MatrixArithmetics arithmetics,
+                             bool pad_terms = true) const;
 
 protected:
-
   std::vector<HandlerTy> operators;
   scalar_operator coefficient;
   std::string term_id;
 
-  template<typename... Args, std::enable_if_t<std::conjunction<std::is_same<HandlerTy, Args>...>::value, bool> = true>
-  product_operator(scalar_operator coefficient, Args&&... args);
+  template <typename... Args,
+            std::enable_if_t<
+                std::conjunction<std::is_same<HandlerTy, Args>...>::value,
+                bool> = true>
+  product_operator(scalar_operator coefficient, Args &&...args);
 
-  // keep this constructor protected (otherwise it needs to ensure canonical order)
-  product_operator(scalar_operator coefficient, const std::vector<HandlerTy> &atomic_operators, const std::string &term_id);
+  // keep this constructor protected (otherwise it needs to ensure canonical
+  // order)
+  product_operator(scalar_operator coefficient,
+                   const std::vector<HandlerTy> &atomic_operators,
+                   const std::string &term_id);
 
-  // keep this constructor protected (otherwise it needs to ensure canonical order)
-  product_operator(scalar_operator coefficient, std::vector<HandlerTy> &&atomic_operators, std::string &&term_id);
+  // keep this constructor protected (otherwise it needs to ensure canonical
+  // order)
+  product_operator(scalar_operator coefficient,
+                   std::vector<HandlerTy> &&atomic_operators,
+                   std::string &&term_id);
 
 public:
   // read-only properties
@@ -265,7 +316,7 @@ public:
   int num_terms() const;
 
   /// FIXME: GET RID OF THIS (MAKE ITERABLE INSTEAD)
-  const std::vector<HandlerTy>& get_terms() const;
+  const std::vector<HandlerTy> &get_terms() const;
 
   scalar_operator get_coefficient() const;
 
@@ -275,7 +326,10 @@ public:
 
   product_operator(HandlerTy &&atomic);
 
-  template<typename T, std::enable_if_t<!std::is_same<T, HandlerTy>::value && std::is_constructible<HandlerTy, T>::value, bool> = true>
+  template <typename T,
+            std::enable_if_t<!std::is_same<T, HandlerTy>::value &&
+                                 std::is_constructible<HandlerTy, T>::value,
+                             bool> = true>
   product_operator(const product_operator<T> &other);
 
   // copy constructor
@@ -288,8 +342,11 @@ public:
 
   // assignments
 
-  template<typename T, std::enable_if_t<!std::is_same<T, HandlerTy>::value && std::is_constructible<HandlerTy, T>::value, bool> = true>
-  product_operator<HandlerTy>& operator=(const product_operator<T> &other);
+  template <typename T,
+            std::enable_if_t<!std::is_same<T, HandlerTy>::value &&
+                                 std::is_constructible<HandlerTy, T>::value,
+                             bool> = true>
+  product_operator<HandlerTy> &operator=(const product_operator<T> &other);
 
   // assignment operator
   product_operator<HandlerTy> &
@@ -311,7 +368,8 @@ public:
   /// @arg `parameters` : A map of the parameter names to their concrete,
   /// complex values.
   matrix_2 to_matrix(std::unordered_map<int, int> dimensions = {},
-                     const std::unordered_map<std::string, std::complex<double>> &parameters = {}) const;
+                     const std::unordered_map<std::string, std::complex<double>>
+                         &parameters = {}) const;
 
   // comparisons
 
@@ -344,61 +402,83 @@ public:
   product_operator<HandlerTy> operator*(const scalar_operator &other) const;
   operator_sum<HandlerTy> operator+(const scalar_operator &other) const;
   operator_sum<HandlerTy> operator-(const scalar_operator &other) const;
-  product_operator<HandlerTy> operator*(const product_operator<HandlerTy> &other) const;
-  operator_sum<HandlerTy> operator+(const product_operator<HandlerTy> &other) const;
-  operator_sum<HandlerTy> operator-(const product_operator<HandlerTy> &other) const;
+  product_operator<HandlerTy>
+  operator*(const product_operator<HandlerTy> &other) const;
+  operator_sum<HandlerTy>
+  operator+(const product_operator<HandlerTy> &other) const;
+  operator_sum<HandlerTy>
+  operator-(const product_operator<HandlerTy> &other) const;
   operator_sum<HandlerTy> operator*(const operator_sum<HandlerTy> &other) const;
   operator_sum<HandlerTy> operator+(const operator_sum<HandlerTy> &other) const;
   operator_sum<HandlerTy> operator-(const operator_sum<HandlerTy> &other) const;
 
-  product_operator<HandlerTy>& operator*=(double other);
-  product_operator<HandlerTy>& operator*=(std::complex<double> other);
-  product_operator<HandlerTy>& operator*=(const scalar_operator &other);
-  product_operator<HandlerTy>& operator*=(const product_operator<HandlerTy> &other);
+  product_operator<HandlerTy> &operator*=(double other);
+  product_operator<HandlerTy> &operator*=(std::complex<double> other);
+  product_operator<HandlerTy> &operator*=(const scalar_operator &other);
+  product_operator<HandlerTy> &
+  operator*=(const product_operator<HandlerTy> &other);
 
   // left-hand arithmetics
 
-  // Being a bit permissive here, since otherwise the explicit template instantiation is a nightmare.
-  template<typename T>
-  friend product_operator<T> operator*(double other, const product_operator<T> &self);
-  template<typename T>
-  friend operator_sum<T> operator+(double other, const product_operator<T> &self);
-  template<typename T>
-  friend operator_sum<T> operator-(double other, const product_operator<T> &self);
-  template<typename T>
+  // Being a bit permissive here, since otherwise the explicit template
+  // instantiation is a nightmare.
+  template <typename T>
+  friend product_operator<T> operator*(double other,
+                                       const product_operator<T> &self);
+  template <typename T>
+  friend operator_sum<T> operator+(double other,
+                                   const product_operator<T> &self);
+  template <typename T>
+  friend operator_sum<T> operator-(double other,
+                                   const product_operator<T> &self);
+  template <typename T>
   friend operator_sum<T> operator*(double other, const operator_sum<T> &self);
-  template<typename T>
+  template <typename T>
   friend operator_sum<T> operator+(double other, const operator_sum<T> &self);
-  template<typename T>
+  template <typename T>
   friend operator_sum<T> operator-(double other, const operator_sum<T> &self);
-  template<typename T>
-  friend product_operator<T> operator*(std::complex<double> other, const product_operator<T> &self);
-  template<typename T>
-  friend operator_sum<T> operator+(std::complex<double> other, const product_operator<T> &self);
-  template<typename T>
-  friend operator_sum<T> operator-(std::complex<double> other, const product_operator<T> &self);
-  template<typename T>
-  friend operator_sum<T> operator*(std::complex<double> other, const operator_sum<T> &self);
-  template<typename T>
-  friend operator_sum<T> operator+(std::complex<double> other, const operator_sum<T> &self);
-  template<typename T>
-  friend operator_sum<T> operator-(std::complex<double> other, const operator_sum<T> &self);
-  template<typename T>
-  friend product_operator<T> operator*(const scalar_operator &other, const product_operator<T> &self);
-  template<typename T>
-  friend operator_sum<T> operator+(const scalar_operator &other, const product_operator<T> &self);
-  template<typename T>
-  friend operator_sum<T> operator-(const scalar_operator &other, const product_operator<T> &self);
-  template<typename T>
-  friend operator_sum<T> operator*(const scalar_operator &other, const operator_sum<T> &self);
-  template<typename T>
-  friend operator_sum<T> operator+(const scalar_operator &other, const operator_sum<T> &self);
-  template<typename T>
-  friend operator_sum<T> operator-(const scalar_operator &other, const operator_sum<T> &self);
+  template <typename T>
+  friend product_operator<T> operator*(std::complex<double> other,
+                                       const product_operator<T> &self);
+  template <typename T>
+  friend operator_sum<T> operator+(std::complex<double> other,
+                                   const product_operator<T> &self);
+  template <typename T>
+  friend operator_sum<T> operator-(std::complex<double> other,
+                                   const product_operator<T> &self);
+  template <typename T>
+  friend operator_sum<T> operator*(std::complex<double> other,
+                                   const operator_sum<T> &self);
+  template <typename T>
+  friend operator_sum<T> operator+(std::complex<double> other,
+                                   const operator_sum<T> &self);
+  template <typename T>
+  friend operator_sum<T> operator-(std::complex<double> other,
+                                   const operator_sum<T> &self);
+  template <typename T>
+  friend product_operator<T> operator*(const scalar_operator &other,
+                                       const product_operator<T> &self);
+  template <typename T>
+  friend operator_sum<T> operator+(const scalar_operator &other,
+                                   const product_operator<T> &self);
+  template <typename T>
+  friend operator_sum<T> operator-(const scalar_operator &other,
+                                   const product_operator<T> &self);
+  template <typename T>
+  friend operator_sum<T> operator*(const scalar_operator &other,
+                                   const operator_sum<T> &self);
+  template <typename T>
+  friend operator_sum<T> operator+(const scalar_operator &other,
+                                   const operator_sum<T> &self);
+  template <typename T>
+  friend operator_sum<T> operator-(const scalar_operator &other,
+                                   const operator_sum<T> &self);
 
   // common operators
 
-  template<typename T, typename... Args, std::enable_if_t<std::conjunction<std::is_same<int, Args>...>::value, bool>>
+  template <typename T, typename... Args,
+            std::enable_if_t<
+                std::conjunction<std::is_same<int, Args>...>::value, bool>>
   friend product_operator<T> operator_handler::identity(Args... targets);
 };
 

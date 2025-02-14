@@ -8,13 +8,13 @@
 
 #pragma once
 
-#include <complex>
 #include "cudm_error_handling.h"
 #include "cudm_helpers.h"
+#include <complex>
 #include <cudensitymat.h>
 #include <stdexcept>
-#include <vector>
 #include <variant>
+#include <vector>
 
 namespace cudaq {
 // Enum to specify the initial quantum state.

@@ -14,8 +14,8 @@
 #include <iostream>
 #include <map>
 #include <stdexcept>
-#include <vector>
 #include <unordered_set>
+#include <vector>
 namespace cudaq {
 class cudm_helper {
 public:
@@ -41,7 +41,7 @@ public:
   // Convert operator sum to cudensitymat operator
   template <typename HandlerTy>
   cudensitymatOperator_t convert_to_cudensitymat_operator(
-      const std::map<std::string, std::complex<double>> &parameters,
+      const std::unordered_map<std::string, std::complex<double>> &parameters,
       const operator_sum<HandlerTy> &op,
       const std::vector<int64_t> &mode_extents);
 
@@ -54,7 +54,7 @@ public:
       const std::vector<operator_sum<cudaq::matrix_operator> *>
           &collapse_operators,
       const std::vector<int64_t> &mode_extents,
-      const std::map<std::string, std::complex<double>> &parameters,
+      const std::unordered_map<std::string, std::complex<double>> &parameters,
       bool is_master_equation);
 
   // Construct Liouvillian
@@ -69,7 +69,7 @@ public:
       const std::vector<int64_t> &mode_extents);
 
   // Helper Functions
-  std::map<int, int>
+  std::unordered_map<int, int>
   convert_dimensions(const std::vector<int64_t> &mode_extents);
   std::vector<int64_t>
   get_subspace_extents(const std::vector<int64_t> &mode_extents,
@@ -86,7 +86,7 @@ public:
                              const scalar_operator &scalar_op);
   cudensitymatElementaryOperator_t create_elementary_operator(
       const cudaq::matrix_operator &elem_op,
-      const std::map<std::string, std::complex<double>> &parameters,
+      const std::unordered_map<std::string, std::complex<double>> &parameters,
       const std::vector<int64_t> &mode_extents);
   void append_elementary_operator_to_term(
       cudensitymatOperatorTerm_t term,
@@ -103,13 +103,13 @@ private:
   cudensitymatHandle_t handle;
   // Things that we create that need to be cleaned up.
   // Use a set so that it's safe to push pointer multiple times.
-  std::unordered_set<void*> m_deviceBuffers;
+  std::unordered_set<void *> m_deviceBuffers;
   std::unordered_set<cudensitymatElementaryOperator_t> m_elementaryOperators;
   std::unordered_set<cudensitymatOperatorTerm_t> m_operatorTerms;
 };
 
 extern template cudensitymatOperator_t
 cudm_helper::convert_to_cudensitymat_operator<cudaq::matrix_operator>(
-    const std::map<std::string, std::complex<double>> &,
+    const std::unordered_map<std::string, std::complex<double>> &,
     const operator_sum<cudaq::matrix_operator> &, const std::vector<int64_t> &);
 } // namespace cudaq

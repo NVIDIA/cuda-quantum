@@ -14,7 +14,7 @@ void runge_kutta_integrator::set_state(cudaq::state initial_state, double t0) {
   // TODO
 }
 std::pair<double, cudaq::state> runge_kutta_integrator::get_state() {
-  // TODO: 
+  // TODO:
   return std::make_pair(0.0, cudaq::state(nullptr));
 }
 
@@ -102,7 +102,8 @@ runge_kutta_integrator::runge_kutta_integrator(
 
   m_state = std::make_unique<cudm_state>(std::move(initial_state));
 }
-void runge_kutta_integrator::set_stepper(std::shared_ptr<cudm_time_stepper> stepper) {
+void runge_kutta_integrator::set_stepper(
+    std::shared_ptr<cudm_time_stepper> stepper) {
   m_stepper = stepper;
 }
 

@@ -7,10 +7,10 @@
  ******************************************************************************/
 
 #include "test_mocks.h"
+#include <cudaq/operators.h>
 #include <cudm_error_handling.h>
 #include <cudm_helpers.h>
 #include <cudm_state.h>
-#include <cudaq/operators.h>
 #include <gtest/gtest.h>
 
 // Initialize operator_sum
@@ -124,11 +124,13 @@ TEST_F(CuDensityMatHelpersTestFixture, ConvertHigherDimensionalOperator) {
 TEST_F(CuDensityMatHelpersTestFixture, ConvertOperatorWithCallback) {
   std::vector<int64_t> mode_extents = {2, 2};
 
-  auto callback_function = [](std::map<std::string, std::complex<double>>) {
-    return std::complex<double>(1.5, 0.0);
-  };
+  auto callback_function =
+      [](std::unordered_map<std::string, std::complex<double>>) {
+        return std::complex<double>(1.5, 0.0);
+      };
 
-  cudaq::scalar_operator scalar_callback(callback_function);
+  cudaq::ScalarCallbackFunction scalar_callback_function(callback_function);
+  cudaq::scalar_operator scalar_callback(scalar_callback_function);
 
   auto op_sum = scalar_callback * cudaq::matrix_operator::create(0);
 
@@ -147,7 +149,7 @@ TEST_F(CuDensityMatHelpersTestFixture, ConvertOperatorWithTensorCallback) {
 
   const std::string op_id = "custom_op";
   auto func = [](std::vector<int> dimensions,
-                 std::map<std::string, std::complex<double>> _none) {
+                 std::unordered_map<std::string, std::complex<double>> _none) {
     if (dimensions.size() != 1)
       throw std::invalid_argument("Must have a singe dimension");
     if (dimensions[0] != 2)
@@ -158,7 +160,8 @@ TEST_F(CuDensityMatHelpersTestFixture, ConvertOperatorWithTensorCallback) {
     return mat;
   };
   cudaq::matrix_operator::define(op_id, {-1}, func);
-  cudaq::matrix_operator matrix_op(op_id, {0});
+  auto matrix_op =
+      cudaq::matrix_operator::instantiate(op_id, {0}).get_terms()[0];
 
   auto wrapped_tensor_callback =
       cudaq::cudm_helper::_wrap_tensor_callback(matrix_op);

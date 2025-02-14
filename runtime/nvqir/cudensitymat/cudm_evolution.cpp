@@ -7,27 +7,25 @@
  ******************************************************************************/
 
 #include "cudaq/evolution.h"
-#include "cudm_error_handling.h"
 #include "cudaq/runge_kutta_integrator.h"
-#include <Eigen/Dense>
+#include "cudm_error_handling.h"
 #include "cudm_expectation.h"
+#include "cudm_helpers.h"
+#include "cudm_state.h"
 #include "cudm_time_stepper.h"
+#include <Eigen/Dense>
 #include <iostream>
 #include <random>
 #include <stdexcept>
-#include "cudm_helpers.h"
-#include "cudm_state.h"
 namespace cudaq {
 evolve_result evolve_single(
     const operator_sum<cudaq::matrix_operator> &hamiltonian,
     const std::map<int, int> &dimensions, const Schedule &schedule,
-    const state &initial_state,
-    BaseIntegrator& in_integrator,
+    const state &initial_state, BaseIntegrator &in_integrator,
     const std::vector<operator_sum<cudaq::matrix_operator> *>
         &collapse_operators,
     const std::vector<operator_sum<cudaq::matrix_operator> *> &observables,
-    bool store_intermediate_results,
-    std::optional<int> shots_count) {
+    bool store_intermediate_results, std::optional<int> shots_count) {
   cudensitymatHandle_t handle;
   HANDLE_CUDM_ERROR(cudensitymatCreate(&handle));
 
@@ -81,7 +79,8 @@ evolve_result evolve_single(
     std::vector<double> expVals;
     for (auto &expectation : expectations) {
       expectation.prepare(finalState->get_impl());
-      const auto expVal = expectation.compute(finalState->get_impl(), finalTime);
+      const auto expVal =
+          expectation.compute(finalState->get_impl(), finalTime);
       expVals.emplace_back(expVal.real());
     }
     // TODO: need to convert to proper state
