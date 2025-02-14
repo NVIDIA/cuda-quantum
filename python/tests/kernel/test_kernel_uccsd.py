@@ -10,6 +10,7 @@ import pytest
 import os
 from typing import List
 import cudaq
+import cudaq.kernels.uccsd
 
 
 def test_cudaq_uccsd():

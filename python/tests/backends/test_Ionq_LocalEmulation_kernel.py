@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 import cudaq
+import cudaq.kernels.uccsd
 import pytest
 import os
 from typing import List
