@@ -26,7 +26,7 @@ class cudm_state {
 public:
   /// @brief To initialize state with raw data.
   explicit cudm_state(cudensitymatHandle_t handle,
-                      const std::vector<std::complex<double>> rawData,
+                      const std::vector<std::complex<double>> &rawData,
                       const std::vector<int64_t> &hilbertSpaceDims);
 
   /// @brief To initialize state from a `cudaq::state`

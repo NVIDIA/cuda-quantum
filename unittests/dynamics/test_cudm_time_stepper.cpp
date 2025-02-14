@@ -130,14 +130,13 @@ TEST_F(CuDensityMatTimeStepperTest, TimeSteppingWithLindblad) {
   const std::vector<int64_t> dims = {10};
   auto input_state = std::make_unique<cudm_state>(handle_, initial_state, dims);
 
-  // auto c_op_0 = cudaq::matrix_operator::annihilate(0);
-  auto c_op_0 = cudaq::matrix_operator::create(0);
+  auto c_op_0 = cudaq::matrix_operator::annihilate(0);
   auto cudm_lindblad_op =
       helper_->compute_lindblad_operator({c_op_0.to_matrix({{0, 10}})}, dims);
 
   auto time_stepper =
       std::make_unique<cudm_time_stepper>(handle_, cudm_lindblad_op);
-  auto output_state = time_stepper_->compute(*input_state, 0.0, 1.0);
+  auto output_state = time_stepper->compute(*input_state, 0.0, 1.0);
 
   std::cout << "Printing output_state ..." << std::endl;
   output_state.dumpDeviceData();
@@ -150,8 +149,12 @@ TEST_F(CuDensityMatTimeStepperTest, TimeSteppingWithLindblad) {
 
   helper_->print_complex_vector(output_state_vec);
 
-  EXPECT_TRUE(std::abs(output_state_vec[4 * 10 + 4] -
-                       std::complex<double>(1.0, 0.0)) < 1e-12);
+  EXPECT_NEAR(
+      std::abs(output_state_vec[4 * 10 + 4] - std::complex<double>(5.0, 0.0)),
+      0.0, 1e-12);
+  EXPECT_NEAR(
+      std::abs(output_state_vec[5 * 10 + 5] - std::complex<double>(-5.0, 0.0)),
+      0.0, 1e-12);
 
   HANDLE_CUDM_ERROR(cudensitymatDestroyOperator(cudm_lindblad_op));
 }

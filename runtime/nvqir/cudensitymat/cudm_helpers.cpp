@@ -16,6 +16,15 @@ cudm_helper::cudm_helper(cudensitymatHandle_t handle) : handle(handle) {}
 
 cudm_helper::~cudm_helper() {
   cudaDeviceSynchronize();
+  for (auto term : m_operatorTerms) {
+    cudensitymatDestroyOperatorTerm(term);
+  }
+  for (auto op : m_elementaryOperators) {
+    cudensitymatDestroyElementaryOperator(op);
+  }
+  for (auto *buffer : m_deviceBuffers) {
+    cudaFree(buffer);
+  }
 }
 
 cudensitymatWrappedScalarCallback_t
@@ -207,8 +216,6 @@ cudensitymatElementaryOperator_t cudm_helper::create_elementary_operator(
     wrapped_tensor_callback = _wrap_tensor_callback(elem_op);
   }
 
-  // FIXME: leak (need to track this buffer somewhere and delete **after** the
-  // whole evolve)
   auto *elementaryMat_d = create_array_gpu(flat_matrix);
   cudensitymatElementaryOperator_t cudm_elem_op = nullptr;
 
@@ -223,7 +230,8 @@ cudensitymatElementaryOperator_t cudm_helper::create_elementary_operator(
     destroy_array_gpu(elementaryMat_d);
     throw std::runtime_error("Failed to create elementary operator.");
   }
-
+  m_elementaryOperators.emplace(cudm_elem_op);
+  m_deviceBuffers.emplace(elementaryMat_d);
   return cudm_elem_op;
 }
 
@@ -321,6 +329,7 @@ void cudm_helper::scale_state(cudensitymatState_t state, double scale_factor,
   HANDLE_CUDA_ERROR(cudaStreamSynchronize(stream));
 }
 
+// TODO: fix the signature
 // c_ops: std::vector<operator_sum>
 cudensitymatOperator_t cudm_helper::compute_lindblad_operator(
     const std::vector<matrix_2> &c_ops,
@@ -329,175 +338,126 @@ cudensitymatOperator_t cudm_helper::compute_lindblad_operator(
     throw std::invalid_argument("Collapse operators cannot be empty.");
   }
 
-  cudensitymatOperator_t lindblad_op;
+  cudensitymatOperator_t liouvillian;
+
+  //  Create an empty operator (super-operator)
   HANDLE_CUDM_ERROR(cudensitymatCreateOperator(
-      handle, static_cast<int32_t>(mode_extents.size()), mode_extents.data(),
-      &lindblad_op));
+      handle,
+      mode_extents.size(), // Hilbert space rank (number of dimensions)
+      mode_extents.data(), // Hilbert space shape
+      &liouvillian));      // the created empty operator (super-operator)
 
-  std::vector<cudensitymatOperatorTerm_t> terms;
-  std::vector<cudensitymatElementaryOperator_t> elem_ops;
-  std::vector<std::vector<int>> all_degrees;
-  std::vector<std::vector<int>> all_action_dual_modalities;
+  for (auto &c_op : c_ops) {
 
-  try {
-    for (const auto &c_op : c_ops) {
-      size_t dim = c_op.get_rows();
+    cudensitymatElementaryOperator_t LOp, LOpDagger, LdaggerLOp;
+    auto adjointMat = matrix_2::adjoint(c_op);
+    auto *LOp_d = create_array_gpu(flatten_matrix(c_op));
+    auto *LOpDagger_d = create_array_gpu(flatten_matrix(adjointMat));
+    auto *LdaggerL_d = create_array_gpu(flatten_matrix(adjointMat * c_op));
+    m_deviceBuffers.emplace(LOp_d);
+    m_deviceBuffers.emplace(LOpDagger_d);
+    m_deviceBuffers.emplace(LdaggerL_d);
+    // FIXME: assume degree 0 as we don't have that info here
+    auto subspace_extents = get_subspace_extents(mode_extents, {0});
+    HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperator(
+        handle, 1, subspace_extents.data(), CUDENSITYMAT_OPERATOR_SPARSITY_NONE,
+        0, nullptr, CUDA_C_64F, LOp_d, {nullptr, nullptr}, &LOp));
 
-      if (dim == 0 || c_op.get_columns() != dim) {
-        throw std::invalid_argument(
-            "Collapse operator must be a square matrix.");
-      }
+    HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperator(
+        handle, 1, subspace_extents.data(), CUDENSITYMAT_OPERATOR_SPARSITY_NONE,
+        0, nullptr, CUDA_C_64F, LOpDagger_d, {nullptr, nullptr}, &LOpDagger));
 
-      matrix_2 L_dagger_op_matrix = matrix_2::adjoint(c_op);
-
-      const std::string L_id = "L_op";
-      const std::string L_dagger_id = "L_dagger_op";
-
-      cudaq::matrix_operator::define(
-          L_id, {-1},
-          [c_op](std::vector<int> dims,
-                 std::map<std::string, std::complex<double>>) { return c_op; });
-
-      cudaq::matrix_operator::define(
-          L_dagger_id, {-1},
-          [L_dagger_op_matrix](std::vector<int> dims,
-                               std::map<std::string, std::complex<double>>) {
-            return L_dagger_op_matrix;
-          });
-
-      matrix_operator L_op(L_id, {0});
-      matrix_operator L_dagger_op(L_dagger_id, {0});
-
-      cudensitymatElementaryOperator_t L_elem_op =
-          create_elementary_operator(L_op, {}, mode_extents);
-
-      cudensitymatElementaryOperator_t L_dagger_elem_op =
-          create_elementary_operator(L_dagger_op, {}, mode_extents);
-
-      if (!L_elem_op || !L_dagger_elem_op) {
-        throw std::runtime_error("Failed to create elementary operators in "
-                                 "compute_lindblad_operator.");
-      }
-
-      elem_ops.emplace_back(L_elem_op);
-      all_degrees.emplace_back(L_op.degrees);
-
-      std::vector<int> mod_vec(L_op.degrees.size(), 1);
-      all_action_dual_modalities.emplace_back(mod_vec);
-
-      elem_ops.emplace_back(L_dagger_elem_op);
-      all_degrees.emplace_back(L_dagger_op.degrees);
-
-      mod_vec = std::vector<int>(L_dagger_op.degrees.size(), 0);
-      all_action_dual_modalities.emplace_back(mod_vec);
-
-      // D1 = L * Lt
-      cudensitymatOperatorTerm_t term_D1;
+    HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperator(
+        handle, 1, subspace_extents.data(), CUDENSITYMAT_OPERATOR_SPARSITY_NONE,
+        0, nullptr, CUDA_C_64F, LdaggerL_d, {nullptr, nullptr}, &LdaggerLOp));
+    m_elementaryOperators.emplace(LOp);
+    m_elementaryOperators.emplace(LOpDagger);
+    m_elementaryOperators.emplace(LdaggerLOp);
+    {
+      cudensitymatOperatorTerm_t D1_term;
+      //  Create an empty operator term
       HANDLE_CUDM_ERROR(cudensitymatCreateOperatorTerm(
-          handle, static_cast<int32_t>(mode_extents.size()),
-          mode_extents.data(), &term_D1));
+          handle,
+          mode_extents.size(), // Hilbert space rank (number of dimensions)
+          mode_extents.data(), // Hilbert space shape
+          &D1_term));          // the created empty operator term
+      m_operatorTerms.emplace(D1_term);
+      //  Define the operator term
+      HANDLE_CUDM_ERROR(cudensitymatOperatorTermAppendElementaryProduct(
+          handle, D1_term,
+          2, // number of elementary tensor operators in the product
+          std::vector<cudensitymatElementaryOperator_t>({LOp, LOpDagger})
+              .data(), // elementary tensor operators forming the product
+          std::vector<int32_t>({0, 0})
+              .data(), // space modes acted on by the operator product (from
+                       // different sides)
+          std::vector<int32_t>({0, 1})
+              .data(),                    // space mode action duality (0: from
+                                          // the left; 1: from the right)
+          make_cuDoubleComplex(1.0, 0.0), // default coefficient: Always
+                                          // 64-bit-precision complex number
+          {nullptr, nullptr})); // no time-dependent coefficient associated with
+                                // the operator product
 
-      append_elementary_operator_to_term(term_D1, elem_ops, all_degrees,
-                                         all_action_dual_modalities);
-
-      elem_ops.clear();
-      all_degrees.clear();
-      all_action_dual_modalities.clear();
-
-      // Add term D1 to the Lindblad operator
-      cudensitymatWrappedScalarCallback_t scalar_callback = {nullptr, nullptr};
       HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
-          handle, lindblad_op, term_D1, 0, make_cuDoubleComplex(1.0, 0.0),
-          scalar_callback));
-
-      // elem_ops.emplace_back(L_dagger_elem_op);
-      // all_degrees.emplace_back(L_dagger_op.degrees);
-
-      // elem_ops.emplace_back(L_elem_op);
-      // all_degrees.emplace_back(L_op.degrees);
-
-      // mod_vec = std::vector<int>(L_dagger_op.degrees.size(), 0);
-      // all_action_dual_modalities.emplace_back(mod_vec);
-
-      // mod_vec = std::vector<int>(L_op.degrees.size(), 0);
-      // all_action_dual_modalities.emplace_back(mod_vec);
-
-      // // D2 = -0.5 * (Lt * L)
-      // cudensitymatOperatorTerm_t term_D2;
-      // HANDLE_CUDM_ERROR(cudensitymatCreateOperatorTerm(
-      //     handle, static_cast<int32_t>(mode_extents.size()),
-      //     mode_extents.data(), &term_D2));
-
-      // append_elementary_operator_to_term(term_D2, elem_ops, all_degrees,
-      // all_action_dual_modalities);
-
-      // // Clear vectors
-      // elem_ops.clear();
-      // all_degrees.clear();
-      // all_action_dual_modalities.clear();
-
-      // Add term D2 to the Lindblad operator
-      // HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
-      //     handle, lindblad_op, term_D2, 0, make_cuDoubleComplex(-0.5, 0.0),
-      //     scalar_callback));
-
-      // elem_ops.emplace_back(L_elem_op);
-      // all_degrees.emplace_back(L_op.degrees);
-
-      // elem_ops.emplace_back(L_dagger_elem_op);
-      // all_degrees.emplace_back(L_dagger_op.degrees);
-
-      // mod_vec = std::vector<int>(L_op.degrees.size(), 1);
-      // all_action_dual_modalities.emplace_back(mod_vec);
-
-      // mod_vec = std::vector<int>(L_dagger_op.degrees.size(), 1);
-      // all_action_dual_modalities.emplace_back(mod_vec);
-
-      // // D3 = -0.5 * (L * Lt)
-      // cudensitymatOperatorTerm_t term_D3;
-      // HANDLE_CUDM_ERROR(cudensitymatCreateOperatorTerm(
-      //     handle, static_cast<int32_t>(mode_extents.size()),
-      //     mode_extents.data(), &term_D3));
-      // append_elementary_operator_to_term(term_D3, elem_ops, all_degrees,
-      // all_action_dual_modalities);
-
-      // // Clear vectors
-      // elem_ops.clear();
-      // all_degrees.clear();
-      // all_action_dual_modalities.clear();
-
-      // // Add term D3 to the Lindblad operator
-      // HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
-      //     handle, lindblad_op, term_D3, 0, make_cuDoubleComplex(-0.5, 0.0),
-      //     scalar_callback));
+          handle, liouvillian,
+          D1_term, // appended operator term
+          0, // operator term action duality as a whole (no duality reversing in
+             // this case)
+          make_cuDoubleComplex(1, 0.0), // constant coefficient associated with
+                                        // the operator term as a whole
+          {nullptr,
+           nullptr})); // no time-dependent coefficient associated with the
     }
+    {
+      cudensitymatOperatorTerm_t D2_term;
+      //  Create an empty operator term
+      HANDLE_CUDM_ERROR(cudensitymatCreateOperatorTerm(
+          handle,
+          mode_extents.size(), // Hilbert space rank (number of dimensions)
+          mode_extents.data(), // Hilbert space shape
+          &D2_term));          // the created empty operator term
+      m_operatorTerms.emplace(D2_term);
+      //  Define the operator term
+      HANDLE_CUDM_ERROR(cudensitymatOperatorTermAppendElementaryProduct(
+          handle, D2_term,
+          1, // number of elementary tensor operators in the product
+          std::vector<cudensitymatElementaryOperator_t>({LdaggerLOp})
+              .data(), // elementary tensor operators forming the product
+          std::vector<int32_t>({0})
+              .data(), // space modes acted on by the operator product (from
+                       // different sides)
+          std::vector<int32_t>({0}).data(), // space mode action duality (0:
+                                            // from the left; 1: from the right)
+          make_cuDoubleComplex(-0.5, 0.0),  // default coefficient: Always
+                                            // 64-bit-precision complex number
+          {nullptr, nullptr})); // no time-dependent coefficient associated with
+                                // the operator product
 
-    HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
-  } catch (const std::exception &e) {
-    std::cerr << "Exception in compute_lindblad_operator: " << e.what()
-              << std::endl;
+      HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+          handle, liouvillian,
+          D2_term, // appended operator term
+          0, // operator term action duality as a whole (no duality reversing in
+             // this case)
+          make_cuDoubleComplex(1, 0.0), // constant coefficient associated with
+                                        // the operator term as a whole
+          {nullptr,
+           nullptr})); // no time-dependent coefficient associated with the
 
-    for (auto term : terms) {
-      HANDLE_CUDM_ERROR(cudensitymatDestroyOperatorTerm(term));
+      HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+          handle, liouvillian,
+          D2_term, // appended operator term
+          1, // operator term action duality as a whole (no duality reversing in
+             // this case)
+          make_cuDoubleComplex(1, 0.0), // constant coefficient associated with
+                                        // the operator term as a whole
+          {nullptr,
+           nullptr})); // no time-dependent coefficient associated with the
     }
-
-    for (auto elem_op : elem_ops) {
-      HANDLE_CUDM_ERROR(cudensitymatDestroyElementaryOperator(elem_op));
-    }
-
-    cudensitymatDestroyOperator(lindblad_op);
-    return nullptr;
   }
-
-  // for (auto term : terms) {
-  //   HANDLE_CUDM_ERROR(cudensitymatDestroyOperatorTerm(term));
-  // }
-
-  // for (auto elem_op : elem_ops) {
-  //   HANDLE_CUDM_ERROR(cudensitymatDestroyElementaryOperator(elem_op));
-  // }
-
-  return lindblad_op;
+  // operator term as a whole
+  std::cout << "Constructed the Liouvillian operator\n";
+  return liouvillian;
 }
 
 std::map<int, int>
@@ -533,7 +493,7 @@ cudensitymatOperator_t cudm_helper::convert_to_cudensitymat_operator(
       HANDLE_CUDM_ERROR(cudensitymatCreateOperatorTerm(
           handle, static_cast<int32_t>(mode_extents.size()),
           mode_extents.data(), &term));
-
+      m_operatorTerms.emplace(term);
       std::vector<cudensitymatElementaryOperator_t> elem_ops;
       std::vector<std::vector<int>> all_degrees;
       for (const auto &component : product_op.get_terms()) {
