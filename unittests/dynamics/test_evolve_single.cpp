@@ -17,39 +17,16 @@
 
 TEST(EvolveTester, checkSimple) {
   const std::map<int, int> dims = {{0, 2}};
-  const std::string op_id = "pauli_x";
-  auto func = [](std::vector<int> dimensions,
-                 std::map<std::string, std::complex<double>> _none) {
-    if (dimensions.size() != 1)
-      throw std::invalid_argument("Must have a singe dimension");
-    if (dimensions[0] != 2)
-      throw std::invalid_argument("Must have dimension 2");
-    auto mat = cudaq::matrix_2(2, 2);
-    mat[{1, 0}] = 1.0;
-    mat[{0, 1}] = 1.0;
-    return mat;
-  };
-  cudaq::matrix_operator::define(op_id, {-1}, func);
-  auto ham = cudaq::product_operator<cudaq::matrix_operator>(
-      2.0 * M_PI * 0.1, cudaq::matrix_operator(op_id, {0}));
+  cudaq::product_operator<cudaq::matrix_operator> ham1 =
+      (2.0 * M_PI * 0.1 * cudaq::spin_operator::x(0));
+  cudaq::operator_sum<cudaq::matrix_operator> ham(ham1);
+
   constexpr int numSteps = 10;
   cudaq::Schedule schedule(cudaq::linspace(0.0, 1.0, numSteps));
 
-  cudaq::matrix_operator::define(
-      "pauli_z", {-1},
-      [](std::vector<int> dimensions,
-         std::map<std::string, std::complex<double>> _none) {
-        if (dimensions.size() != 1)
-          throw std::invalid_argument("Must have a singe dimension");
-        if (dimensions[0] != 2)
-          throw std::invalid_argument("Must have dimension 2");
-        auto mat = cudaq::matrix_2(2, 2);
-        mat[{0, 0}] = 1.0;
-        mat[{1, 1}] = -1.0;
-        return mat;
-      });
-  auto pauliZ = cudaq::product_operator<cudaq::matrix_operator>(
-      std::complex<double>{1.0, 0.0}, cudaq::matrix_operator("pauli_z", {0}));
+  cudaq::product_operator<cudaq::matrix_operator> pauliZ_t =
+      cudaq::spin_operator::z(0);
+  cudaq::operator_sum<cudaq::matrix_operator> pauliZ(pauliZ_t);
   auto initialState =
       cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
 
@@ -75,39 +52,16 @@ TEST(EvolveTester, checkSimple) {
 
 TEST(EvolveTester, checkSimpleDensityMatrix) {
   const std::map<int, int> dims = {{0, 2}};
-  const std::string op_id = "pauli_x";
-  auto func = [](std::vector<int> dimensions,
-                 std::map<std::string, std::complex<double>> _none) {
-    if (dimensions.size() != 1)
-      throw std::invalid_argument("Must have a singe dimension");
-    if (dimensions[0] != 2)
-      throw std::invalid_argument("Must have dimension 2");
-    auto mat = cudaq::matrix_2(2, 2);
-    mat[{1, 0}] = 1.0;
-    mat[{0, 1}] = 1.0;
-    return mat;
-  };
-  cudaq::matrix_operator::define(op_id, {-1}, func);
-  auto ham = cudaq::product_operator<cudaq::matrix_operator>(
-      2.0 * M_PI * 0.1, cudaq::matrix_operator(op_id, {0}));
+  cudaq::product_operator<cudaq::matrix_operator> ham1 =
+      (2.0 * M_PI * 0.1 * cudaq::spin_operator::x(0));
+  cudaq::operator_sum<cudaq::matrix_operator> ham(ham1);
+
   constexpr int numSteps = 10;
   cudaq::Schedule schedule(cudaq::linspace(0.0, 1.0, numSteps));
 
-  cudaq::matrix_operator::define(
-      "pauli_z", {-1},
-      [](std::vector<int> dimensions,
-         std::map<std::string, std::complex<double>> _none) {
-        if (dimensions.size() != 1)
-          throw std::invalid_argument("Must have a singe dimension");
-        if (dimensions[0] != 2)
-          throw std::invalid_argument("Must have dimension 2");
-        auto mat = cudaq::matrix_2(2, 2);
-        mat[{0, 0}] = 1.0;
-        mat[{1, 1}] = -1.0;
-        return mat;
-      });
-  auto pauliZ = cudaq::product_operator<cudaq::matrix_operator>(
-      std::complex<double>{1.0, 0.0}, cudaq::matrix_operator("pauli_z", {0}));
+  cudaq::product_operator<cudaq::matrix_operator> pauliZ_t =
+      cudaq::spin_operator::z(0);
+  cudaq::operator_sum<cudaq::matrix_operator> pauliZ(pauliZ_t);
   auto initialState = cudaq::state::from_data(
       std::vector<std::complex<double>>{1.0, 0.0, 0.0, 0.0});
 
@@ -140,8 +94,14 @@ TEST(EvolveTester, checkCompositeSystem) {
   auto sm = cudaq::matrix_operator::annihilate(0);
   auto sm_dag = cudaq::matrix_operator::create(0);
 
-  auto atom_occ_op = cudaq::matrix_operator::number(0);
-  auto cavity_occ_op = cudaq::matrix_operator::number(1);
+  cudaq::product_operator<cudaq::matrix_operator> atom_occ_op_t =
+      cudaq::matrix_operator::number(0);
+  cudaq::operator_sum<cudaq::matrix_operator> atom_occ_op(atom_occ_op_t);
+
+  cudaq::product_operator<cudaq::matrix_operator> cavity_occ_op_t =
+      cudaq::matrix_operator::number(1);
+  cudaq::operator_sum<cudaq::matrix_operator> cavity_occ_op(cavity_occ_op_t);
+
   auto hamiltonian = 2 * M_PI * atom_occ_op + 2 * M_PI * cavity_occ_op +
                      2 * M_PI * 0.25 * (sm * a_dag + sm_dag * a);
   // auto matrix = hamiltonian.to_matrix(dims);
@@ -160,6 +120,7 @@ TEST(EvolveTester, checkCompositeSystem) {
   cudaq::runge_kutta_integrator integrator;
   integrator.dt = 0.001;
   integrator.order = 4;
+
   auto result = cudaq::evolve_single(hamiltonian, dims, schedule, initialState,
                                      integrator, {},
                                      {&cavity_occ_op, &atom_occ_op}, true);
@@ -185,8 +146,14 @@ TEST(EvolveTester, checkCompositeSystemWithCollapse) {
   auto sm = cudaq::matrix_operator::annihilate(0);
   auto sm_dag = cudaq::matrix_operator::create(0);
 
-  auto atom_occ_op = cudaq::matrix_operator::number(0);
-  auto cavity_occ_op = cudaq::matrix_operator::number(1);
+  cudaq::product_operator<cudaq::matrix_operator> atom_occ_op_t =
+      cudaq::matrix_operator::number(0);
+  cudaq::operator_sum<cudaq::matrix_operator> atom_occ_op(atom_occ_op_t);
+
+  cudaq::product_operator<cudaq::matrix_operator> cavity_occ_op_t =
+      cudaq::matrix_operator::number(1);
+  cudaq::operator_sum<cudaq::matrix_operator> cavity_occ_op(cavity_occ_op_t);
+
   auto hamiltonian = 2 * M_PI * atom_occ_op + 2 * M_PI * cavity_occ_op +
                      2 * M_PI * 0.25 * (sm * a_dag + sm_dag * a);
   // auto matrix = hamiltonian.to_matrix(dims);
@@ -209,10 +176,12 @@ TEST(EvolveTester, checkCompositeSystemWithCollapse) {
   integrator.dt = 0.001;
   integrator.order = 4;
   constexpr double decayRate = 0.1;
-  auto collapsedOp = std::sqrt(decayRate) * a;
-  auto result = cudaq::evolve_single(hamiltonian, dims, schedule, initialState,
-                                     integrator, {&collapsedOp},
-                                     {&cavity_occ_op, &atom_occ_op}, true);
+  cudaq::product_operator<cudaq::matrix_operator> collapsedOp_t =
+      std::sqrt(decayRate) * a;
+  cudaq::operator_sum<cudaq::matrix_operator> collapsedOp(collapsedOp_t);
+  cudaq::evolve_result result = cudaq::evolve_single(
+      hamiltonian, dims, schedule, initialState, integrator, {&collapsedOp},
+      {&cavity_occ_op, &atom_occ_op}, true);
   EXPECT_TRUE(result.get_expectation_values().has_value());
   EXPECT_EQ(result.get_expectation_values().value().size(), num_steps);
 

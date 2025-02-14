@@ -16,28 +16,27 @@ namespace cudaq {
 
 // EvaluatedMatrix class
 
-const std::vector<int>& EvaluatedMatrix::degrees() const {
+const std::vector<int> &EvaluatedMatrix::degrees() const {
   return this->targets;
 }
 
-const matrix_2& EvaluatedMatrix::matrix() const {
-  return this->value;
+const matrix_2 &EvaluatedMatrix::matrix() const { return this->value; }
+
+EvaluatedMatrix::EvaluatedMatrix(const std::vector<int> &degrees,
+                                 const matrix_2 &matrix)
+    : targets(degrees), value(matrix) {
+#if !defined(NDEBUG)
+  std::set<int> unique_degrees;
+  for (auto d : degrees)
+    unique_degrees.insert(d);
+  assert(unique_degrees.size() == degrees.size());
+#endif
 }
 
-EvaluatedMatrix::EvaluatedMatrix(const std::vector<int> &degrees, const matrix_2 &matrix)
-  : targets(degrees), value(matrix) {
-#if !defined(NDEBUG)
-    std::set<int> unique_degrees;
-    for (auto d : degrees)
-      unique_degrees.insert(d);
-    assert(unique_degrees.size() == degrees.size());
-#endif
-  }
-
 EvaluatedMatrix::EvaluatedMatrix(EvaluatedMatrix &&other)
-  : targets(std::move(other.targets)), value(std::move(other.value)) {}
+    : targets(std::move(other.targets)), value(std::move(other.value)) {}
 
-EvaluatedMatrix& EvaluatedMatrix::operator=(EvaluatedMatrix &&other) {
+EvaluatedMatrix &EvaluatedMatrix::operator=(EvaluatedMatrix &&other) {
   if (this != &other) {
     this->targets = std::move(other.targets);
     this->value = std::move(other.value);
@@ -48,13 +47,13 @@ EvaluatedMatrix& EvaluatedMatrix::operator=(EvaluatedMatrix &&other) {
 // MatrixArithmetics
 
 MatrixArithmetics::MatrixArithmetics(
-                  std::unordered_map<int, int> &dimensions,
-                  const std::unordered_map<std::string, std::complex<double>> &parameters)
-  : m_dimensions(dimensions), m_parameters(parameters) {}
+    std::unordered_map<int, int> &dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters)
+    : m_dimensions(dimensions), m_parameters(parameters) {}
 
 std::vector<int>
 MatrixArithmetics::compute_permutation(const std::vector<int> &op_degrees,
-                                        const std::vector<int> &canon_degrees) {
+                                       const std::vector<int> &canon_degrees) {
   assert(op_degrees.size() == canon_degrees.size());
   auto states = cudaq::detail::generate_all_states(canon_degrees, m_dimensions);
 
@@ -85,12 +84,13 @@ MatrixArithmetics::compute_permutation(const std::vector<int> &op_degrees,
 // Returns:
 //     A tuple consisting of the permuted matrix as well as the sequence of
 //     degrees of freedom in canonical order.
-void MatrixArithmetics::canonicalize(matrix_2 &matrix, std::vector<int> &degrees) {
+void MatrixArithmetics::canonicalize(matrix_2 &matrix,
+                                     std::vector<int> &degrees) {
   auto current_degrees = degrees;
   cudaq::detail::canonicalize_degrees(degrees);
   if (current_degrees != degrees) {
     auto permutation = this->compute_permutation(current_degrees, degrees);
-    cudaq::detail::permute_matrix(matrix, permutation);   
+    cudaq::detail::permute_matrix(matrix, permutation);
   }
 }
 

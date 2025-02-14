@@ -6,17 +6,17 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/utils/tensor.h"
 #include "cudaq/operators.h"
-#include "cudaq/dynamics/matrix_operators.h"
+#include "cudaq/utils/tensor.h"
 
 namespace utils {
 
 void print(cudaq::matrix_2 mat);
 
-void assert_product_equal(const cudaq::product_operator<cudaq::matrix_operator> &got, 
-                          const std::complex<double> &expected_coefficient,
-                          const std::vector<cudaq::matrix_operator> &expected_terms);
+void assert_product_equal(
+    const cudaq::product_operator<cudaq::matrix_operator> &got,
+    const std::complex<double> &expected_coefficient,
+    const std::vector<cudaq::matrix_operator> &expected_terms);
 
 void checkEqual(cudaq::matrix_2 a, cudaq::matrix_2 b);
 

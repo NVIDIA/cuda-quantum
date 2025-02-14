@@ -7,7 +7,7 @@
 # ============================================================================ #
 
 set(LIBRARY_NAME cudaq-operator)
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
 set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
 set(CUDAQ_OPS_SRC
@@ -21,7 +21,6 @@ set(CUDAQ_OPS_SRC
   schedule.cpp
   manipulation.cpp
   helpers.cpp
-  rydberg_hamiltonian.cpp
 )
 
 add_library(${LIBRARY_NAME} SHARED ${CUDAQ_OPS_SRC})

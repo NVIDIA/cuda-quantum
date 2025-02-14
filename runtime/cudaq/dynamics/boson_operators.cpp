@@ -10,49 +10,52 @@
 #include <unordered_map>
 #include <vector>
 
-#include "cudaq/utils/tensor.h"
-#include "cudaq/operators.h"
 #include "boson_operators.h"
+#include "cudaq/operators.h"
+#include "cudaq/utils/tensor.h"
 
 namespace cudaq {
 
 // private helpers
 
 std::string boson_operator::op_code_to_string() const {
-  if (this->op_code == 1) return "Ad";
-  else if (this->op_code == 2) return "A";
-  else if (this->op_code == 3) return "AdA";
-  else return "I";
+  if (this->op_code == 1)
+    return "Ad";
+  else if (this->op_code == 2)
+    return "A";
+  else if (this->op_code == 3)
+    return "AdA";
+  else
+    return "I";
 }
 
 // read-only properties
 
-const std::string& boson_operator::unique_id() const {
-  return this->id;
-}
+const std::string &boson_operator::unique_id() const { return this->id; }
 
-std::vector<int> boson_operator::degrees() const {
-  return {this->target};
-}
+std::vector<int> boson_operator::degrees() const { return {this->target}; }
 
 // constructors
 
-boson_operator::boson_operator(int target) 
-  : op_code(0), target(target), id("I" + std::to_string(target)) {}
+boson_operator::boson_operator(int target)
+    : op_code(0), target(target), id("I" + std::to_string(target)) {}
 
-boson_operator::boson_operator(int target, int op_id) 
-  : op_code(op_id), target(target) {
-    assert(0 <= op_id < 4);
-    this->id = this->op_code_to_string() + std::to_string(target);
+boson_operator::boson_operator(int target, int op_id)
+    : op_code(op_id), target(target) {
+  assert(0 <= op_id < 4);
+  this->id = this->op_code_to_string() + std::to_string(target);
 }
 
 // evaluations
 
-matrix_2 boson_operator::to_matrix(std::unordered_map<int, int> &dimensions,
-                                   const std::unordered_map<std::string, std::complex<double>> &parameters) const {
+matrix_2 boson_operator::to_matrix(
+    std::unordered_map<int, int> &dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters)
+    const {
   auto it = dimensions.find(this->target);
   if (it == dimensions.end())
-    throw std::runtime_error("missing dimension for degree " + std::to_string(this->target));
+    throw std::runtime_error("missing dimension for degree " +
+                             std::to_string(this->target));
   auto dim = it->second;
 
   auto mat = matrix_2(dim, dim);
@@ -61,7 +64,7 @@ matrix_2 boson_operator::to_matrix(std::unordered_map<int, int> &dimensions,
       mat[{i + 1, i}] = std::sqrt(static_cast<double>(i + 1)) + 0.0 * 'j';
   } else if (this->op_code == 2) { // annihilate
     for (std::size_t i = 0; i + 1 < dim; i++)
-        mat[{i, i + 1}] = std::sqrt(static_cast<double>(i + 1)) + 0.0j;
+      mat[{i, i + 1}] = std::sqrt(static_cast<double>(i + 1)) + 0.0j;
   } else if (this->op_code == 3) { // number
     for (std::size_t i = 0; i < dim; i++)
       mat[{i, i}] = static_cast<double>(i) + 0.0j;
@@ -73,8 +76,10 @@ matrix_2 boson_operator::to_matrix(std::unordered_map<int, int> &dimensions,
 }
 
 std::string boson_operator::to_string(bool include_degrees) const {
-  if (include_degrees) return this->op_code_to_string() + "(" + std::to_string(target) + ")";
-  else return this->op_code_to_string();
+  if (include_degrees)
+    return this->op_code_to_string() + "(" + std::to_string(target) + ")";
+  else
+    return this->op_code_to_string();
 }
 
 // comparisons

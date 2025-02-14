@@ -6,15 +6,15 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include <cmath>
 #include "cudm_state.h"
 #include "cudm_error_handling.h"
+#include <cassert>
+#include <cmath>
 #include <cudaq/qis/state.h>
 #include <iostream>
 #include <numeric>
 #include <sstream>
 #include <stdexcept>
-#include <cassert>
 #include <typeinfo>
 
 namespace cudaq {
