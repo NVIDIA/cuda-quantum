@@ -145,13 +145,16 @@ int main() {
 
     std::cout << "nr ops:  " << nr_reps << std::endl;
 
-    if (run_old && nr_reps <= 1000) {
-        auto start = std::chrono::high_resolution_clock::now();
-        for (auto i = 0; i < nr_reps; ++i)
-            spin_op += cudaq::spin::x(i);
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration<double>(stop - start);
-        std::cout << "Old setup took " << duration.count() << " seconds.\n";
+    if (run_old) {
+        if (nr_reps > 1000) std::cout << "Old setup takes minutes - skipped" << std::endl;
+        else {
+            auto start = std::chrono::high_resolution_clock::now();
+            for (auto i = 0; i < nr_reps; ++i)
+                spin_op += cudaq::spin::x(i);
+            auto stop = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration<double>(stop - start);
+            std::cout << "Old setup took " << duration.count() << " seconds.\n";
+        }
     } 
 
     if (run_new) {
@@ -174,13 +177,16 @@ int main() {
 
     std::cout << "nr ops:  " << nr_reps << std::endl;
 
-    if (run_old && nr_reps <= 1000) {
-        auto start = std::chrono::high_resolution_clock::now();
-        for (auto i = 0; i < nr_reps; ++i)
-            spin_op += cudaq::spin::x(nr_reps - i);
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration<double>(stop - start);
-        std::cout << "Old setup took " << duration.count() << " seconds.\n";
+    if (run_old) {
+        if (nr_reps > 1000) std::cout << "Old setup takes minutes - skipped" << std::endl;
+        else {
+            auto start = std::chrono::high_resolution_clock::now();
+            for (auto i = 0; i < nr_reps; ++i)
+                spin_op += cudaq::spin::x(nr_reps - i);
+            auto stop = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration<double>(stop - start);
+            std::cout << "Old setup took " << duration.count() << " seconds.\n";
+        }
     } 
 
     if (run_new) {
@@ -310,16 +316,19 @@ int main() {
 
     std::cout << "nr ops:  " << nr_reps << std::endl;
 
-    if (run_old && nr_reps <= 20) {
-        auto start = std::chrono::high_resolution_clock::now();
-        for (auto i = 0; i < nr_reps; ++i)
-            spin_op *= (cudaq::spin::x(i) + cudaq::spin::z(i + 1));
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration<double>(stop - start);
-        std::cout << "Old setup took " << duration.count() << " seconds.\n";
+    if (run_old) {
+        if (nr_reps >= 30) std::cout << "Old setup is killed (out of memory?) - skipped" << std::endl;
+        else {
+            auto start = std::chrono::high_resolution_clock::now();
+            for (auto i = 0; i < nr_reps; ++i)
+                spin_op *= (cudaq::spin::x(i) + cudaq::spin::z(i + 1));
+            auto stop = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration<double>(stop - start);
+            std::cout << "Old setup took " << duration.count() << " seconds.\n";
+        }
     } 
 
-    if (run_new && nr_reps <= 20) {
+    if (run_new) {
         auto start = std::chrono::high_resolution_clock::now();
         for (auto i = 0; i < nr_reps; ++i)
             op_sum *= (cudaq::spin_operator::x(i) + cudaq::spin_operator::z(i + 1));
@@ -340,7 +349,7 @@ int main() {
 
     std::cout << "nr ops:  " << nr_reps << std::endl;
 
-    if (run_old && nr_reps <= 20) {
+    if (run_old) {
         /*
         start = std::chrono::high_resolution_clock::now();
         for (auto i = 0; i < nr_reps; ++i)
@@ -352,7 +361,7 @@ int main() {
         std::cout << "Old setup segfaults" << std::endl;
     } 
 
-    if (run_new && nr_reps <= 20) {
+    if (run_new) {
         auto start = std::chrono::high_resolution_clock::now();
         for (auto i = 0; i < nr_reps; ++i)
             op_sum *= (cudaq::spin_operator::x(nr_reps - i) + cudaq::spin_operator::z(nr_reps - i - 1));
