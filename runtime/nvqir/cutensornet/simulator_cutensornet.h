@@ -30,6 +30,12 @@ public:
   /// @brief Apply quantum gate
   void applyGate(const GateApplicationTask &task) override;
 
+  /// @brief Apply a noise channel
+  void applyNoiseChannel(const std::string_view gateName,
+                         const std::vector<std::size_t> &controls,
+                         const std::vector<std::size_t> &targets,
+                         const std::vector<double> &params) override;
+
   // Override base calculateStateDim (we don't instantiate full state vector in
   // the tensornet backend). When the user want to retrieve the state vector, we
   // check if it is feasible to do so.
@@ -88,6 +94,15 @@ protected:
   /// @brief Query if direct expectation value calculation is enabled
   virtual bool canHandleObserve() override;
 
+  /// @brief Return true if this simulator can use cache workspace (e.g., for
+  /// intermediate tensors)
+  virtual bool requireCacheWorkspace() const = 0;
+
+private:
+  // Helper to apply a Kraus channel
+  void applyKrausChannel(const std::vector<int32_t> &qubits,
+                         const cudaq::kraus_channel &channel);
+
 protected:
   cutensornetHandle_t m_cutnHandle;
   std::unique_ptr<TensorNetState> m_state;
@@ -96,6 +111,21 @@ protected:
   // Random number generator for generating 32-bit numbers with a state size of
   // 19937 bits for measurements.
   std::mt19937 m_randomEngine;
+  // Max number of controlled ranks (qubits) that the full matrix of the
+  // controlled gate is used as tensor op.
+  // Default is 1.
+  // MPS only supports 1 (higher number of controlled ranks must use
+  // cutensornetStateApplyControlledTensorOperator). Tensornet supports
+  // arbitrary values.
+  std::size_t m_maxControlledRankForFullTensorExpansion = 1;
+
+  // Flag to enable contraction path reuse when computing the expectation value
+  // (observe).
+  //   Default is off (no contraction path reuse).
+  //   Reusing the path, while saving the path finding time, prevents lightcone
+  //   simplification, e.g., when the spin op is sparse (only acting on a few
+  //   qubits).
+  bool m_reuseContractionPathObserve = false;
 };
 
 } // end namespace nvqir

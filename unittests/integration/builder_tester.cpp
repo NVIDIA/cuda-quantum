@@ -1060,7 +1060,7 @@ CUDAQ_TEST(BuilderTester, checkEntryPointAttribute) {
   std::cout << quake;
 
   std::regex functionDecleration(
-      R"(func\.func @__nvqpp__mlirgen\w+\(\) attributes \{"cudaq-entrypoint"\})");
+      R"(func\.func @__nvqpp__mlirgen\w+\(\) attributes \{"cudaq-entrypoint")");
   EXPECT_TRUE(std::regex_search(quake, functionDecleration));
 }
 

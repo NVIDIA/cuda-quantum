@@ -43,7 +43,7 @@ def test_builder_look_up():
     counts = cudaq.sample(kernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_0:.*]] = arith.constant 2 : i64
 # CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
 # CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i64

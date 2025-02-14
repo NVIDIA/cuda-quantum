@@ -293,8 +293,11 @@ public:
     }
     std::string allowEarlyExitSetting =
         (codegenTranslation == "qir-adaptive") ? "1" : "0";
-    passPipelineConfig = std::string("cc-loop-unroll{allow-early-exit=") +
-                         allowEarlyExitSetting + "}," + passPipelineConfig;
+
+    passPipelineConfig =
+        std::string(
+            "func.func(memtoreg{quantum=0},cc-loop-unroll{allow-early-exit=") +
+        allowEarlyExitSetting + "})," + passPipelineConfig;
 
     auto disableQM = backendConfig.find("disable_qubit_mapping");
     if (disableQM != backendConfig.end() && disableQM->second == "true") {
@@ -547,6 +550,8 @@ public:
         for (auto &pass : csvSplit)
           if (pass.ends_with("-gate-set-mapping"))
             runPassPipeline(pass, tmpModuleOp);
+        if (!emulate && combineMeasurements)
+          runPassPipeline("func.func(combine-measurements)", tmpModuleOp);
         modules.emplace_back(term.to_string(false), tmpModuleOp);
       }
     } else
