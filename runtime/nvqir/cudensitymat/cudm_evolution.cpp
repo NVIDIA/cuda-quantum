@@ -38,7 +38,7 @@ evolve_result evolve_single(
     dims.emplace_back(dim);
   auto liouvillian = helper.construct_liouvillian(
       hamiltonian, collapse_operators, dims, {}, false);
-  std::cout << "Evolve Liouvillian: " << liouvillian << "\n";
+  // std::cout << "Evolve Liouvillian: " << liouvillian << "\n";
   // Need to pass liouvillian here
   auto time_stepper = std::make_shared<cudm_time_stepper>(handle, liouvillian);
   runge_kutta_integrator &integrator =
