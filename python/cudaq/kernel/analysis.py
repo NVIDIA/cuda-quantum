@@ -177,7 +177,7 @@ class FindDepKernelsVisitor(ast.NodeVisitor):
 
                     if name not in globalAstRegistry:
                         raise RuntimeError(
-                            f"{name} is not a valid kernel to call ({'.'.join(moduleNames)})."
+                            f"{name} is not a valid kernel to call ({'.'.join(moduleNames)}). Registry: {globalAstRegistry}"
                         )
 
                     self.depKernels[name] = globalAstRegistry[name]

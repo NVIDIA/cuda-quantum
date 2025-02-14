@@ -18,7 +18,7 @@ config:
   # Library mode is only for simulators, physical backends must turn this off
   library-mode: false
   # lowering config
-  platform-lowering-config: "func.func(const-prop-complex,canonicalize,cse,lift-array-alloc),globalize-array-values,func.func(state-prep),unitary-synthesis,canonicalize,apply-op-specialization,aggressive-early-inlining,expand-measurements,unrolling-pipeline,decomposition{enable-patterns=U3ToRotations},func.func(lower-to-cfg,canonicalize,multicontrol-decomposition),fermioniq-gate-set-mapping"
+  platform-lowering-config: "classical-optimization-pipeline,globalize-array-values,func.func(state-prep),unitary-synthesis,canonicalize,apply-op-specialization,aggressive-early-inlining,expand-measurements,classical-optimization-pipeline,decomposition{enable-patterns=U3ToRotations},func.func(lower-to-cfg,canonicalize,multicontrol-decomposition),fermioniq-gate-set-mapping"
   # Tell the rest-qpu that we are generating QIR.
   codegen-emission: qir-base
 

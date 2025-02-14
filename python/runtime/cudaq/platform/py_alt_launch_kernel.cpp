@@ -106,6 +106,14 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
     pm.addPass(createSymbolDCEPass());
     cudaq::opt::addPipelineConvertToQIR(pm);
 
+    auto enablePrintMLIREachPass =
+        getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
+
+    if (enablePrintMLIREachPass) {
+      cloned.getContext()->disableMultithreading();
+      pm.enableIRPrinting();
+    }
+
     DefaultTimingManager tm;
     tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
     auto timingScope = tm.getRootScope(); // starts the timer
