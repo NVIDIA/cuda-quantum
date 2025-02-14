@@ -158,8 +158,8 @@ auto runSamplingAsync(KernelFunctor &&wrappedKernel, quantum_platform &platform,
 ///
 /// @param shots number of shots to run for the given kernel
 /// @param noise noise model to use for the sample operation
-/// @param explicit_measurements Whether or not to simply concatenate
-/// measurements in execution order for the \p sample_result
+/// @param explicit_measurements whether or not to form the global register
+/// based on user-supplied measurement order.
 struct sample_options {
   std::size_t shots = 1000;
   cudaq::noise_model noise;

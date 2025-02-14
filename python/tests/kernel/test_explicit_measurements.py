@@ -144,6 +144,59 @@ def test_measurement_order():
     counts = cudaq.sample(kernel, explicit_measurements=True)
     assert counts["010"] == 1000
 
+    @cudaq.kernel
+    def kernel_with_loop():
+        q = cudaq.qvector(3)
+        for _ in range(3):
+            x(q[0])
+            mz(q[1])
+            mz(q[0])
+            mz(q[2])
+            reset(q)
+
+    counts = cudaq.sample(kernel_with_loop)
+    assert counts["000"] == 1000  # due to reset
+
+    counts = cudaq.sample(kernel_with_loop, explicit_measurements=True)
+    assert counts["010010010"] == 1000
+
+
+def test_multiple_measurements():
+
+    @cudaq.kernel
+    def measure_twice():
+        q = cudaq.qubit()
+        x(q)
+        mz(q)
+        mz(q)
+
+    cudaq.sample(measure_twice)
+
+    ## NOTE: Stim simulator returns `{ 11:1000 }`
+    with pytest.raises(RuntimeError) as _:
+        cudaq.sample(measure_twice, explicit_measurements=True)
+
+
+def test_no_measurements():
+    """ Test for "explicit measurements" option when kernel has no user 
+        provided measurements. """
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(2)
+        h(q[0])
+        cx(q[0], q[1])
+
+    counts = cudaq.sample(kernel)
+    assert len(counts) == 2
+
+    ## NOTE: Following will result in a warning - 'WARNING: this kernel
+    # invocation produced 0 shots worth of results when executed. Exiting shot
+    # loop to avoid infinite loop.'
+    counts = cudaq.sample(kernel, explicit_measurements=True)
+    ## NOTE: Stim simulator returns `{ :1000 }`
+    assert len(counts) == 0
+
 
 # NOTE: Ref - https://github.com/NVIDIA/cuda-quantum/issues/1925
 @pytest.mark.parametrize("target",
