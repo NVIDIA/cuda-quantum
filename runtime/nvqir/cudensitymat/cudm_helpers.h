@@ -45,6 +45,9 @@ public:
       const operator_sum<HandlerTy> &op,
       const std::vector<int64_t> &mode_extents);
 
+  std::vector<std::pair<cudaq::scalar_operator, cudensitymatOperatorTerm_t>>
+  convert_to_cudensitymat(const operator_sum<cudaq::matrix_operator> &op,
+                          const std::vector<int64_t> &mode_extents);
   // Construct Liouvillian
   cudensitymatOperator_t construct_liouvillian(
       const operator_sum<cudaq::matrix_operator> &op,
@@ -60,6 +63,10 @@ public:
       const std::vector<cudensitymatOperator_t> &collapse_operators,
       double gamma);
 
+    //   std::vector<std::pair<cudaq::scalar_operator, cudensitymatOperatorTerm_t>>    compute_lindblad_operator(const std::vector<matrix_2> &c_ops,
+    //     const std::vector<int64_t> &mode_extents);
+  
+  
   // Helper Functions
   std::map<int, int>
   convert_dimensions(const std::vector<int64_t> &mode_extents);
