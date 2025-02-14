@@ -658,6 +658,73 @@ class PyASTBridge(ast.NodeVisitor):
         func.CallOp(printFunc, [strLit, value])
         return
 
+    def __get_vector_size(self, vector):
+        """
+        Get the size of a vector or array type.
+        
+        Args:
+            vector: MLIR Value of vector/array type
+            
+        Returns:
+            MLIR Value containing the size as an integer
+        """
+        if cc.StdvecType.isinstance(vector.type):
+            return cc.StdvecSizeOp(self.getIntegerType(), vector).result
+        return self.getConstantInt(
+            cc.ArrayType.getSize(cc.PointerType.getElementType(vector.type)))
+
+    def __load_vector_element(self, vector, index):
+        """
+        Load an element from a vector or array at the given index.
+        
+        Args:
+            vector: MLIR Value of vector/array type
+            index: MLIR Value containing integer index
+            
+        Returns:
+            MLIR Value containing the loaded element
+        """
+        if cc.StdvecType.isinstance(vector.type):
+            data_ptr = cc.StdvecDataOp(
+                cc.PointerType.get(
+                    self.ctx,
+                    cc.ArrayType.get(self.ctx,
+                                     cc.StdvecType.getElementType(
+                                         vector.type))), vector).result
+            return cc.LoadOp(
+                cc.ComputePtrOp(
+                    cc.PointerType.get(
+                        self.ctx,
+                        cc.StdvecType.getElementType(vector.type)), data_ptr,
+                    [index], DenseI32ArrayAttr.get([kDynamicPtrIndex]))).result
+        return cc.LoadOp(
+            cc.ComputePtrOp(
+                cc.PointerType.get(
+                    self.ctx,
+                    cc.ArrayType.getElementType(
+                        cc.PointerType.getElementType(vector.type))), vector,
+                [index], DenseI32ArrayAttr.get([kDynamicPtrIndex]))).result
+
+    def __get_superior_type(self, a, b):
+        """
+        Get the superior numeric type between two MLIR Values.
+        F64 > F32 > Integer, with integers promoting to the wider width.
+        
+        Args:
+            a: First MLIR Value
+            b: Second MLIR Value
+            
+        Returns:
+            MLIR Type representing the superior type
+        """
+        if F64Type.isinstance(a.type) or F64Type.isinstance(b.type):
+            return F64Type.get()
+        if F32Type.isinstance(a.type) or F32Type.isinstance(b.type):
+            return F32Type.get()
+        return self.getIntegerType(
+            max(IntegerType(a.type).width,
+                IntegerType(b.type).width))
+
     def convertArithmeticToSuperiorType(self, values, type):
         """
         Assuming all values provided are arithmetic, convert each one to the 
@@ -3534,6 +3601,50 @@ class PyASTBridge(ast.NodeVisitor):
                 self.pushValue(
                     arith.CmpIOp(self.getIntegerAttr(iTy, 0), left,
                                  right).result)
+            return
+
+        if isinstance(op, (ast.In, ast.NotIn)):
+            right_val = right
+            left_val = left
+
+            # Type validation and vector initialization
+            if not (cc.StdvecType.isinstance(right_val.type) or
+                    cc.ArrayType.isinstance(right_val.type)):
+                self.emitFatalError(
+                    "Right operand must be a list/vector for 'in' comparison")
+
+            # Loop setup
+            i1_type = self.getIntegerType(1)
+            accumulator = cc.AllocaOp(cc.PointerType.get(self.ctx, i1_type),
+                                      TypeAttr.get(i1_type)).result
+            cc.StoreOp(self.getConstantInt(0, 1), accumulator)
+
+            # Element comparison loop
+            def check_element(idx):
+                element = self.__load_vector_element(right_val, idx)
+                promoted_left, promoted_element = self.convertArithmeticToSuperiorType(
+                    [left_val, element],
+                    self.__get_superior_type(left_val, element))
+
+                iCondPred = IntegerAttr.get(self.getIntegerType(), 0)
+                fCondPred = IntegerAttr.get(self.getIntegerType(), 0)
+                cmp_result = (
+                    arith.CmpIOp(iCondPred, promoted_left, promoted_element)
+                    if IntegerType.isinstance(promoted_left.type) else
+                    arith.CmpFOp(fCondPred, promoted_left, promoted_element))
+
+                current = cc.LoadOp(accumulator).result
+                cc.StoreOp(arith.OrIOp(current, cmp_result.result), accumulator)
+
+            self.createInvariantForLoop(self.__get_vector_size(right_val),
+                                        check_element)
+
+            final_result = cc.LoadOp(accumulator).result
+            if isinstance(op, ast.NotIn):
+                final_result = arith.XOrIOp(final_result,
+                                            self.getConstantInt(1, 1)).result
+            self.pushValue(final_result)
+
             return
 
     def visit_AugAssign(self, node):
