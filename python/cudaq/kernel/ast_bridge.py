@@ -3642,7 +3642,7 @@ class PyASTBridge(ast.NodeVisitor):
             final_result = cc.LoadOp(accumulator).result
             if isinstance(op, ast.NotIn):
                 final_result = arith.XOrIOp(final_result,
-                                           self.getConstantInt(1, 1)).result
+                                            self.getConstantInt(1, 1)).result
             self.pushValue(final_result)
 
             return
