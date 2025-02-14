@@ -146,7 +146,7 @@ void cudaq::opt::addAggressiveEarlyInlining(OpPassManager &pm) {
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createCheckKernelCalls());
 }
 
-void cudaq::opt::registerAggressiveEarlyInlining() {
+void cudaq::opt::registerAggressiveEarlyInliningPipeline() {
   PassPipelineRegistration<>(
       "aggressive-early-inlining",
       "Convert calls between kernels to direct calls and inline functions.",
