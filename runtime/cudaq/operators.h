@@ -22,9 +22,6 @@ namespace cudaq {
 class MatrixArithmetics;
 class EvaluatedMatrix;
 
-// fixme: write overloads with rvalue qualifiers
-// https://stackoverflow.com/questions/37737798/c-is-it-possible-to-overload-the-unary-minus-operator-of-an-rvalue-reference
-
 /// @brief Represents an operator expression consisting of a sum of terms, where
 /// each term is a product of elementary and scalar operators. Operator
 /// expressions cannot be used within quantum kernels, but they provide methods
@@ -137,28 +134,41 @@ public:
 
   operator_sum<HandlerTy> operator-() const &;
   operator_sum<HandlerTy> operator-() &&;
-  operator_sum<HandlerTy> operator+() const;
+  operator_sum<HandlerTy> operator+() const &;
+  operator_sum<HandlerTy> operator+() &&;
 
   // right-hand arithmetics
 
-  operator_sum<HandlerTy> operator*(double other) const;
-  operator_sum<HandlerTy> operator+(double other) const;
-  operator_sum<HandlerTy> operator-(double other) const;
-  operator_sum<HandlerTy> operator*(std::complex<double> other) const;
-  operator_sum<HandlerTy> operator+(std::complex<double> other) const;
-  operator_sum<HandlerTy> operator-(std::complex<double> other) const;
-  operator_sum<HandlerTy> operator*(const scalar_operator &other) const;
-  operator_sum<HandlerTy> operator+(const scalar_operator &other) const;
-  operator_sum<HandlerTy> operator-(const scalar_operator &other) const;
-  operator_sum<HandlerTy>
-  operator*(const product_operator<HandlerTy> &other) const;
-  operator_sum<HandlerTy>
-  operator+(const product_operator<HandlerTy> &other) const;
-  operator_sum<HandlerTy>
-  operator-(const product_operator<HandlerTy> &other) const;
-  operator_sum<HandlerTy> operator+(const operator_sum<HandlerTy> &other) const;
-  operator_sum<HandlerTy> operator-(const operator_sum<HandlerTy> &other) const;
-  operator_sum<HandlerTy> operator*(const operator_sum<HandlerTy> &other) const;
+  operator_sum<HandlerTy> operator*(double other) const &;
+  operator_sum<HandlerTy> operator*(double other) &&;
+  operator_sum<HandlerTy> operator+(double other) const &;
+  operator_sum<HandlerTy> operator+(double other) &&;
+  operator_sum<HandlerTy> operator-(double other) const &;
+  operator_sum<HandlerTy> operator-(double other) &&;
+  operator_sum<HandlerTy> operator*(std::complex<double> other) const &;
+  operator_sum<HandlerTy> operator*(std::complex<double> other) &&;
+  operator_sum<HandlerTy> operator+(std::complex<double> other) const &;
+  operator_sum<HandlerTy> operator+(std::complex<double> other) &&;
+  operator_sum<HandlerTy> operator-(std::complex<double> other) const &;
+  operator_sum<HandlerTy> operator-(std::complex<double> other) &&;
+  operator_sum<HandlerTy> operator*(const scalar_operator &other) const &;
+  operator_sum<HandlerTy> operator*(const scalar_operator &other) &&;
+  operator_sum<HandlerTy> operator+(const scalar_operator &other) const &;
+  operator_sum<HandlerTy> operator+(const scalar_operator &other) &&;
+  operator_sum<HandlerTy> operator-(const scalar_operator &other) const &;
+  operator_sum<HandlerTy> operator-(const scalar_operator &other) &&;
+  operator_sum<HandlerTy> operator*(const product_operator<HandlerTy> &other) const &;
+  operator_sum<HandlerTy> operator*(const product_operator<HandlerTy> &other) &&;
+  operator_sum<HandlerTy> operator+(const product_operator<HandlerTy> &other) const &;
+  operator_sum<HandlerTy> operator+(const product_operator<HandlerTy> &other) &&;
+  operator_sum<HandlerTy> operator-(const product_operator<HandlerTy> &other) const &;
+  operator_sum<HandlerTy> operator-(const product_operator<HandlerTy> &other) &&;
+  operator_sum<HandlerTy> operator*(const operator_sum<HandlerTy> &other) const &;
+  operator_sum<HandlerTy> operator*(const operator_sum<HandlerTy> &other) &&;
+  operator_sum<HandlerTy> operator+(const operator_sum<HandlerTy> &other) const &;
+  operator_sum<HandlerTy> operator+(const operator_sum<HandlerTy> &other) &&;
+  operator_sum<HandlerTy> operator-(const operator_sum<HandlerTy> &other) const &;
+  operator_sum<HandlerTy> operator-(const operator_sum<HandlerTy> &other) &&;
 
   operator_sum<HandlerTy> &operator*=(double other);
   operator_sum<HandlerTy> &operator+=(double other);
