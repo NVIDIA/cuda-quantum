@@ -41,6 +41,9 @@ namespace cudaq::opt {
 
 using namespace mlir;
 
+// Attribute name used to mark kernels that have been processed.
+static constexpr const char FuncIsQIRAPI[] = "qir-api";
+
 //===----------------------------------------------------------------------===//
 
 static std::string getGateName(Operation *op) {
@@ -1150,8 +1153,8 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
     args.append(opTargs.begin(), opTargs.end());
 
     // Call the generalized version of the gate invocation.
-    rewriter.create<LLVM::CallOp>(loc, TypeRange{},
-                                  cudaq::opt::NVQIRGeneralizedInvokeAny, args);
+    rewriter.create<cudaq::cc::VarargCallOp>(
+        loc, TypeRange{}, cudaq::opt::NVQIRGeneralizedInvokeAny, args);
     return forwardOrEraseOp();
   }
 
@@ -1228,17 +1231,30 @@ struct FuncSignaturePattern : public OpConversionPattern<func::FuncOp> {
     auto funcTy = func.getFunctionType();
     auto newFuncTy =
         cast<FunctionType>(getTypeConverter()->convertType(funcTy));
-    if (funcTy == newFuncTy)
-      return failure();
-    if (funcTy.getNumInputs() && !func.getBody().empty()) {
-      // Replace the block argument types.
-      for (auto [blockArg, argTy] : llvm::zip(
-               func.getBody().front().getArguments(), newFuncTy.getInputs()))
-        blockArg.setType(argTy);
+    if (funcTy != newFuncTy) {
+      // Convert the entry block to the new argument types.
+      if (funcTy.getNumInputs() && !func.getBody().empty()) {
+        // Replace the block argument types.
+        for (auto [blockArg, argTy] : llvm::zip(
+                 func.getBody().front().getArguments(), newFuncTy.getInputs()))
+          blockArg.setType(argTy);
+      }
+    }
+    // Convert any other blocks, as needed.
+    for (auto &block : func.getBody().getBlocks()) {
+      if (&block == &func.getBody().front())
+        continue;
+      SmallVector<Type> newTypes;
+      for (auto blockArg : block.getArguments())
+        newTypes.push_back(getTypeConverter()->convertType(blockArg.getType()));
+      for (auto [blockArg, newTy] : llvm::zip(block.getArguments(), newTypes))
+        blockArg.setType(newTy);
     }
     // Replace the signature.
-    rewriter.updateRootInPlace(func,
-                               [&]() { func.setFunctionType(newFuncTy); });
+    rewriter.updateRootInPlace(func, [&]() {
+      func.setFunctionType(newFuncTy);
+      func->setAttr(FuncIsQIRAPI, rewriter.getUnitAttr());
+    });
     return success();
   }
 };
@@ -1359,9 +1375,35 @@ struct CallOpInterfacePattern : public OpConversionPattern<CALLOP> {
 
 using CallOpPattern = CallOpInterfacePattern<func::CallOp>;
 using CallIndirectOpPattern = CallOpInterfacePattern<func::CallIndirectOp>;
+using CallVarargOpPattern = CallOpInterfacePattern<cudaq::cc::VarargCallOp>;
 using CallCallableOpPattern = CallOpInterfacePattern<cudaq::cc::CallCallableOp>;
 using CallIndirectCallableOpPattern =
     CallOpInterfacePattern<cudaq::cc::CallIndirectCallableOp>;
+
+struct BranchOpPattern : public OpConversionPattern<cf::BranchOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(cf::BranchOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    rewriter.replaceOpWithNewOp<cf::BranchOp>(op, adaptor.getDestOperands(),
+                                              op.getDest());
+    return success();
+  }
+};
+
+struct CondBranchOpPattern : public OpConversionPattern<cf::CondBranchOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(cf::CondBranchOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    rewriter.replaceOpWithNewOp<cf::CondBranchOp>(
+        op, adaptor.getCondition(), adaptor.getTrueDestOperands(),
+        adaptor.getFalseDestOperands(), op.getTrueDest(), op.getFalseDest());
+    return success();
+  }
+};
 
 //===----------------------------------------------------------------------===//
 // Patterns that are common to all QIR conversions.
@@ -1370,9 +1412,10 @@ using CallIndirectCallableOpPattern =
 static void commonClassicalHandlingPatterns(RewritePatternSet &patterns,
                                             TypeConverter &typeConverter,
                                             MLIRContext *ctx) {
-  patterns.insert<AllocaOpPattern, CallableFuncPattern, CallCallableOpPattern,
-                  CallIndirectCallableOpPattern, CallIndirectOpPattern,
-                  CallOpPattern, CastOpPattern, CreateLambdaPattern,
+  patterns.insert<AllocaOpPattern, BranchOpPattern, CallableFuncPattern,
+                  CallCallableOpPattern, CallIndirectCallableOpPattern,
+                  CallIndirectOpPattern, CallOpPattern, CallVarargOpPattern,
+                  CastOpPattern, CondBranchOpPattern, CreateLambdaPattern,
                   FuncConstantPattern, FuncSignaturePattern, FuncToPtrPattern,
                   InstantiateCallablePattern, LoadOpPattern, PoisonOpPattern,
                   StoreOpPattern, UndefOpPattern>(typeConverter, ctx);
@@ -1590,8 +1633,10 @@ struct QuakeToQIRAPIPass
     target.addIllegalDialect<quake::QuakeDialect,
                              cudaq::codegen::CodeGenDialect>();
     target.addLegalOp<cudaq::codegen::MaterializeConstantArrayOp>();
-    target.addDynamicallyLegalOp<func::FuncOp>(
-        [&](func::FuncOp fn) { return !hasQuakeType(fn.getFunctionType()); });
+    target.addDynamicallyLegalOp<func::FuncOp>([&](func::FuncOp fn) {
+      return !hasQuakeType(fn.getFunctionType()) &&
+             (!fn->hasAttr(cudaq::kernelAttrName) || fn->hasAttr(FuncIsQIRAPI));
+    });
     target.addDynamicallyLegalOp<func::ConstantOp>([&](func::ConstantOp fn) {
       return !hasQuakeType(fn.getResult().getType());
     });
@@ -1615,19 +1660,26 @@ struct QuakeToQIRAPIPass
         [&](cudaq::cc::AllocaOp op) {
           return !hasQuakeType(op.getElementType());
         });
-    target.addDynamicallyLegalOp<
-        func::CallOp, func::CallIndirectOp, cudaq::cc::CallCallableOp,
-        cudaq::cc::CallIndirectCallableOp, cudaq::cc::CastOp,
-        cudaq::cc::FuncToPtrOp, cudaq::cc::StoreOp, cudaq::cc::LoadOp>(
+    target.addDynamicallyLegalOp<cf::BranchOp, cf::CondBranchOp>(
         [&](Operation *op) {
           for (auto opnd : op->getOperands())
             if (hasQuakeType(opnd.getType()))
               return false;
-          for (auto res : op->getResults())
-            if (hasQuakeType(res.getType()))
-              return false;
           return true;
         });
+    target.addDynamicallyLegalOp<
+        func::CallOp, func::CallIndirectOp, cudaq::cc::VarargCallOp,
+        cudaq::cc::CallCallableOp, cudaq::cc::CallIndirectCallableOp,
+        cudaq::cc::CastOp, cudaq::cc::FuncToPtrOp, cudaq::cc::StoreOp,
+        cudaq::cc::LoadOp>([&](Operation *op) {
+      for (auto opnd : op->getOperands())
+        if (hasQuakeType(opnd.getType()))
+          return false;
+      for (auto res : op->getResults())
+        if (hasQuakeType(res.getType()))
+          return false;
+      return true;
+    });
     target.markUnknownOpDynamicallyLegal([](Operation *) { return true; });
     if (failed(applyPartialConversion(op, target, std::move(patterns))))
       signalPassFailure();
