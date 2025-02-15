@@ -510,6 +510,13 @@ protected:
                            const std::string &regName) {
     if (executionContext && executionContext->name == "sample" &&
         !executionContext->hasConditionalsOnMeasureResults) {
+
+      // Handle duplicate measurements
+      /// TODO: Do this efficiently
+      auto iter = std::find(sampleQubits.begin(), sampleQubits.end(), qubitIdx);
+      if (iter != sampleQubits.end())
+        flushAnySamplingTasks(/*force this*/ true);
+
       // Add the qubit to the sampling list
       sampleQubits.push_back(qubitIdx);
 
