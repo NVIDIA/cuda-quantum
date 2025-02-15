@@ -402,3 +402,278 @@ __qpu__ void linear_expr6() {
 // CHECK:             %[[VAL_15:.*]] = arith.addi %[[VAL_14]], %[[VAL_1]] : i32
 // CHECK:             cc.continue %[[VAL_15]] : i32
 // CHECK:           } {normalized}
+
+// In cases where the number of iterations is invalid, we should normalize to
+// a count of 0.
+
+__qpu__ void non_iterating_loop2() {
+  cudaq::qvector q(100);
+  for (std::int64_t i = 1; i < -1; i++)
+    x(q[i]);   
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_non_iterating_loop2._Z19non_iterating_loop2v() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 0 : i64
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[VAL_2:.*]] = quake.alloca !quake.veq<100>
+// CHECK:           %[[VAL_3:.*]] = cc.loop while ((%[[VAL_4:.*]] = %[[VAL_0]]) -> (i64)) {
+// CHECK:             %[[VAL_5:.*]] = arith.cmpi ne, %[[VAL_4]], %[[VAL_0]] : i64
+// CHECK:             cc.condition %[[VAL_5]](%[[VAL_4]] : i64)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_6:.*]]: i64):
+// CHECK:             %[[VAL_7:.*]] = arith.addi %[[VAL_6]], %[[VAL_1]] : i64
+// CHECK:             %[[VAL_8:.*]] = quake.extract_ref %[[VAL_2]]{{\[}}%[[VAL_7]]] : (!quake.veq<100>, i64) -> !quake.ref
+// CHECK:             quake.x %[[VAL_8]] : (!quake.ref) -> ()
+// CHECK:             cc.continue %[[VAL_6]] : i64
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_9:.*]]: i64):
+// CHECK:             %[[VAL_10:.*]] = arith.addi %[[VAL_9]], %[[VAL_1]] : i64
+// CHECK:             cc.continue %[[VAL_10]] : i64
+// CHECK:           } {normalized}
+// CHECK:           return
+// CHECK:         }
+
+__qpu__ int f2a() {
+  cudaq::qubit q;
+  for (int u = 1; u < 0; u++)
+    x(q);
+  return 0;
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_f2a._Z3f2av() -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 0 : i32
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i32
+// CHECK-DAG:       %[[VAL_2:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_3:.*]] = cc.loop while ((%[[VAL_4:.*]] = %[[VAL_0]]) -> (i32)) {
+// CHECK:             %[[VAL_5:.*]] = arith.cmpi ne, %[[VAL_4]], %[[VAL_0]] : i32
+// CHECK:             cc.condition %[[VAL_5]](%[[VAL_4]] : i32)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_6:.*]]: i32):
+// CHECK:             quake.x %[[VAL_2]] : (!quake.ref) -> ()
+// CHECK:             cc.continue %[[VAL_6]] : i32
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_7:.*]]: i32):
+// CHECK:             %[[VAL_8:.*]] = arith.addi %[[VAL_7]], %[[VAL_1]] : i32
+// CHECK:             cc.continue %[[VAL_8]] : i32
+// CHECK:           } {normalized}
+// CHECK:           return %[[VAL_0]] : i32
+// CHECK:         }
+
+__qpu__ int f2b() {
+  cudaq::qubit q;
+  for (int u = 10; u < 0; u++)
+    x(q);
+  return 0;
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_f2b._Z3f2bv() -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 0 : i32
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i32
+// CHECK-DAG:       %[[VAL_2:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_3:.*]] = cc.loop while ((%[[VAL_4:.*]] = %[[VAL_0]]) -> (i32)) {
+// CHECK:             %[[VAL_5:.*]] = arith.cmpi ne, %[[VAL_4]], %[[VAL_0]] : i32
+// CHECK:             cc.condition %[[VAL_5]](%[[VAL_4]] : i32)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_6:.*]]: i32):
+// CHECK:             quake.x %[[VAL_2]] : (!quake.ref) -> ()
+// CHECK:             cc.continue %[[VAL_6]] : i32
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_7:.*]]: i32):
+// CHECK:             %[[VAL_8:.*]] = arith.addi %[[VAL_7]], %[[VAL_1]] : i32
+// CHECK:             cc.continue %[[VAL_8]] : i32
+// CHECK:           } {normalized}
+// CHECK:           return %[[VAL_0]] : i32
+// CHECK:         }
+
+__qpu__ int f4() {
+  cudaq::qubit q;
+  for (std::int64_t u = 6; u < 0; u++)
+    x(q);
+  return 0;
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_f4._Z2f4v() -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 0 : i64
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i32
+// CHECK-DAG:       %[[VAL_3:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_4:.*]] = cc.loop while ((%[[VAL_5:.*]] = %[[VAL_0]]) -> (i64)) {
+// CHECK:             %[[VAL_6:.*]] = arith.cmpi ne, %[[VAL_5]], %[[VAL_0]] : i64
+// CHECK:             cc.condition %[[VAL_6]](%[[VAL_5]] : i64)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_7:.*]]: i64):
+// CHECK:             quake.x %[[VAL_3]] : (!quake.ref) -> ()
+// CHECK:             cc.continue %[[VAL_7]] : i64
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_8:.*]]: i64):
+// CHECK:             %[[VAL_9:.*]] = arith.addi %[[VAL_8]], %[[VAL_1]] : i64
+// CHECK:             cc.continue %[[VAL_9]] : i64
+// CHECK:           } {normalized}
+// CHECK:           return %[[VAL_2]] : i32
+// CHECK:         }
+
+__qpu__ int m1(unsigned z) {
+  cudaq::qubit q;
+  for (unsigned u = 1; u < z; u++)
+    x(q);
+  return 0;
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_m1._Z2m1j(
+// CHECK-SAME:      %[[VAL_0:.*]]: i32) -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 0 : i32
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 1 : i32
+// CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_4:.*]] = arith.subi %[[VAL_0]], %[[VAL_2]] : i32
+// CHECK:           %[[VAL_7:.*]] = cc.loop while ((%[[VAL_8:.*]] = %[[VAL_1]]) -> (i32)) {
+// CHECK:             %[[VAL_9:.*]] = arith.cmpi ne, %[[VAL_8]], %[[VAL_4]] : i32
+// CHECK:             cc.condition %[[VAL_9]](%[[VAL_8]] : i32)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_10:.*]]: i32):
+// CHECK:             quake.x %[[VAL_3]] : (!quake.ref) -> ()
+// CHECK:             cc.continue %[[VAL_10]] : i32
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_11:.*]]: i32):
+// CHECK:             %[[VAL_12:.*]] = arith.addi %[[VAL_11]], %[[VAL_2]] : i32
+// CHECK:             cc.continue %[[VAL_12]] : i32
+// CHECK:           } {normalized}
+// CHECK:           return %[[VAL_1]] : i32
+// CHECK:         }
+
+__qpu__ int m2(int z) {
+  cudaq::qubit q;
+  for (int u = 1; u < z; u++)
+    x(q);
+  return 0;
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_m2._Z2m2i(
+// CHECK-SAME:      %[[VAL_0:.*]]: i32) -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 0 : i32
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 1 : i32
+// CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_4:.*]] = arith.subi %[[VAL_0]], %[[VAL_2]] : i32
+// CHECK:           %[[VAL_5:.*]] = arith.cmpi sgt, %[[VAL_4]], %[[VAL_1]] : i32
+// CHECK:           %[[VAL_6:.*]] = arith.select %[[VAL_5]], %[[VAL_4]], %[[VAL_1]] : i32
+// CHECK:           %[[VAL_7:.*]] = cc.loop while ((%[[VAL_8:.*]] = %[[VAL_1]]) -> (i32)) {
+// CHECK:             %[[VAL_9:.*]] = arith.cmpi ne, %[[VAL_8]], %[[VAL_6]] : i32
+// CHECK:             cc.condition %[[VAL_9]](%[[VAL_8]] : i32)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_10:.*]]: i32):
+// CHECK:             quake.x %[[VAL_3]] : (!quake.ref) -> ()
+// CHECK:             cc.continue %[[VAL_10]] : i32
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_11:.*]]: i32):
+// CHECK:             %[[VAL_12:.*]] = arith.addi %[[VAL_11]], %[[VAL_2]] : i32
+// CHECK:             cc.continue %[[VAL_12]] : i32
+// CHECK:           } {normalized}
+// CHECK:           return %[[VAL_1]] : i32
+// CHECK:         }
+
+// Dead loops: no unsigned value will ever be less than 0, so these loops will
+// never execute. Make sure they are marked "dead" by the normalizer.
+
+__qpu__ void non_iterating_loop1() {
+  cudaq::qvector q(100);
+  for (std::uint64_t i = 1; i < 0; i++)
+    x(q[i]);   
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_non_iterating_loop1._Z19non_iterating_loop1v() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK:           %[[VAL_0:.*]] = arith.constant false
+// CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
+// CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<100>
+// CHECK:           %[[VAL_3:.*]] = cc.loop while ((%[[VAL_4:.*]] = %[[VAL_1]]) -> (i64)) {
+// CHECK:             cc.condition %[[VAL_0]](%[[VAL_4]] : i64)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_5:.*]]: i64):
+// CHECK:             %[[VAL_6:.*]] = quake.extract_ref %[[VAL_2]]{{\[}}%[[VAL_5]]] : (!quake.veq<100>, i64) -> !quake.ref
+// CHECK:             quake.x %[[VAL_6]] : (!quake.ref) -> ()
+// CHECK:             cc.continue %[[VAL_5]] : i64
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_7:.*]]: i64):
+// CHECK:             %[[VAL_8:.*]] = arith.addi %[[VAL_7]], %[[VAL_1]] : i64
+// CHECK:             cc.continue %[[VAL_8]] : i64
+// CHECK:           } {dead}
+// CHECK:           return
+// CHECK:         }
+
+__qpu__ int f1a() {
+  cudaq::qubit q;
+  for (unsigned u = 1; u < 0; u++)
+    x(q);
+  return 0;
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_f1a._Z3f1av() -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK:           %[[VAL_0:.*]] = arith.constant false
+// CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i32
+// CHECK:           %[[VAL_2:.*]] = arith.constant 1 : i32
+// CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_4:.*]] = cc.loop while ((%[[VAL_5:.*]] = %[[VAL_2]]) -> (i32)) {
+// CHECK:             cc.condition %[[VAL_0]](%[[VAL_5]] : i32)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_6:.*]]: i32):
+// CHECK:             quake.x %[[VAL_3]] : (!quake.ref) -> ()
+// CHECK:             cc.continue %[[VAL_6]] : i32
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_7:.*]]: i32):
+// CHECK:             %[[VAL_8:.*]] = arith.addi %[[VAL_7]], %[[VAL_2]] : i32
+// CHECK:             cc.continue %[[VAL_8]] : i32
+// CHECK:           } {dead}
+// CHECK:           return %[[VAL_1]] : i32
+// CHECK:         }
+
+__qpu__ int f1b() {
+  cudaq::qubit q;
+  for (unsigned u = 10; u < 0; u++)
+    x(q);
+  return 0;
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_f1b._Z3f1bv() -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK:           %[[VAL_0:.*]] = arith.constant false
+// CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i32
+// CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i32
+// CHECK:           %[[VAL_3:.*]] = arith.constant 10 : i32
+// CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_5:.*]] = cc.loop while ((%[[VAL_6:.*]] = %[[VAL_3]]) -> (i32)) {
+// CHECK:             cc.condition %[[VAL_0]](%[[VAL_6]] : i32)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_7:.*]]: i32):
+// CHECK:             quake.x %[[VAL_4]] : (!quake.ref) -> ()
+// CHECK:             cc.continue %[[VAL_7]] : i32
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_8:.*]]: i32):
+// CHECK:             %[[VAL_9:.*]] = arith.addi %[[VAL_8]], %[[VAL_1]] : i32
+// CHECK:             cc.continue %[[VAL_9]] : i32
+// CHECK:           } {dead}
+// CHECK:           return %[[VAL_2]] : i32
+// CHECK:         }
+
+__qpu__ int f3() {
+  cudaq::qubit q;
+  for (std::uint64_t u = 22; u < 0; u++)
+    x(q);
+  return 0;
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_f3._Z2f3v() -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK:           %[[VAL_0:.*]] = arith.constant false
+// CHECK:           %[[VAL_1:.*]] = arith.constant 22 : i64
+// CHECK:           %[[VAL_2:.*]] = arith.constant 1 : i64
+// CHECK:           %[[VAL_3:.*]] = arith.constant 0 : i32
+// CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_5:.*]] = cc.loop while ((%[[VAL_6:.*]] = %[[VAL_1]]) -> (i64)) {
+// CHECK:             cc.condition %[[VAL_0]](%[[VAL_6]] : i64)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_7:.*]]: i64):
+// CHECK:             quake.x %[[VAL_4]] : (!quake.ref) -> ()
+// CHECK:             cc.continue %[[VAL_7]] : i64
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_8:.*]]: i64):
+// CHECK:             %[[VAL_9:.*]] = arith.addi %[[VAL_8]], %[[VAL_2]] : i64
+// CHECK:             cc.continue %[[VAL_9]] : i64
+// CHECK:           } {dead}
+// CHECK:           return %[[VAL_3]] : i32
+// CHECK:         }
