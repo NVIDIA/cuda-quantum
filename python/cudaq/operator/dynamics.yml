@@ -11,3 +11,5 @@ description: "Dynamics simulation backend"
 gpu-requirements: true
 config:
   nvqir-simulation-backend: dynamics
+  preprocessor-defines: ["-D CUDAQ_DYNAMICS_TARGET"]
+
