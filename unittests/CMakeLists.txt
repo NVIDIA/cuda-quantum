@@ -297,8 +297,10 @@ if (CUDA_FOUND)
     dynamics/test_cudm_time_stepper.cpp
     dynamics/test_cudm_expectation.cpp
     dynamics/test_evolve_single.cpp
+    dynamics/test_evolve_api.cpp
   )
   add_executable(test_dynamics main.cpp ${CUDAQ_DYNAMICS_TEST_SOURCES})
+  target_compile_definitions(test_dynamics PRIVATE -DCUDAQ_DYNAMICS_TARGET)
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
     target_link_options(test_dynamics PRIVATE -Wl,--no-as-needed)
   endif()
