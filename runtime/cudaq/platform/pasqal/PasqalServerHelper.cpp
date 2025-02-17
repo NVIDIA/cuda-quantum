@@ -82,13 +82,13 @@ std::string PasqalServerHelper::extractJobId(ServerMessage &postResponse) {
 }
 
 std::string PasqalServerHelper::constructGetJobPath(std::string &jobId) {
-  return baseUrl + apiPath + "/v1/jobs/" + jobId + "/results";
+  return baseUrl + apiPath + "/v1/batches/" + jobId + "/results";
 }
 
 std::string
 PasqalServerHelper::constructGetJobPath(ServerMessage &postResponse) {
-    return baseUrl + apiPath + "/v1/jobs/" +
-      postResponse["id"].get<std::string>() + "/results";
+    return baseUrl + apiPath + "/v1/batches/" +
+      postResponse["data"]["id"].get<std::string>() + "/results";
 }
 
 bool PasqalServerHelper::jobIsDone(ServerMessage &getJobResponse) {
@@ -99,7 +99,6 @@ bool PasqalServerHelper::jobIsDone(ServerMessage &getJobResponse) {
   return terminals.find(jobStatus) != terminals.end();
 }
 
-// TODO: Implementing `processResults`.
 sample_result
 PasqalServerHelper::processResults(ServerMessage &postJobResponse,
                                    std::string &jobId) {
