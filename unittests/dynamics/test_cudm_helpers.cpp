@@ -23,7 +23,7 @@ protected:
   cudensitymatHandle_t handle;
   cudaStream_t stream;
   std::unique_ptr<cudaq::cudm_helper> helper;
-  std::unique_ptr<cudaq::cudm_state> state;
+  std::unique_ptr<cudaq::CuDensityMatState> state;
 
   void SetUp() override {
     HANDLE_CUDM_ERROR(cudensitymatCreate(&handle));
@@ -32,7 +32,7 @@ protected:
 
     std::vector<int64_t> mode_extents = {2};
     std::vector<std::complex<double>> rawData = {{1.0, 0.0}, {0.0, 0.0}};
-    state = std::make_unique<cudaq::cudm_state>(handle, rawData, mode_extents);
+    state = std::make_unique<cudaq::CuDensityMatState>(handle, rawData, mode_extents);
   }
 
   void TearDown() override { HANDLE_CUDA_ERROR(cudaDeviceSynchronize()); }
@@ -44,7 +44,7 @@ TEST_F(CuDensityMatHelpersTestFixture, InitializeState) {
 
   std::vector<std::complex<double>> rawData = {{1.0, 0.0}, {0.0, 0.0}};
 
-  cudaq::cudm_state state(handle, rawData, mode_extents);
+  cudaq::CuDensityMatState state(handle, rawData, mode_extents);
 
   ASSERT_TRUE(state.is_initialized());
 }
