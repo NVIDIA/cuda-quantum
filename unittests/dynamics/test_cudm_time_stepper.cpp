@@ -84,8 +84,8 @@ TEST_F(CuDensityMatTimeStepperTest, ComputeStepNoLiouvillian) {
 
 // Compute step with mismatched dimensions
 TEST_F(CuDensityMatTimeStepperTest, ComputeStepMistmatchedDimensions) {
-  EXPECT_THROW(std::unique_ptr<cudm_state> mismatchedState =
-                   std::make_unique<cudm_state>(handle_,
+  EXPECT_THROW(std::unique_ptr<CuDensityMatState> mismatchedState =
+                   std::make_unique<CuDensityMatState>(handle_,
                                                 mock_initial_state_data(),
                                                 std::vector<int64_t>{3, 3}),
                std::invalid_argument);
