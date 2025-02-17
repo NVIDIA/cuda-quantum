@@ -148,6 +148,4 @@ public:
   CuDensityMatState operator*(double scalar) const;
 };
 /// @endcond
-
-typedef CuDensityMatState cudm_state;
 } // namespace cudaq

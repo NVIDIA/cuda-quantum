@@ -22,7 +22,7 @@ protected:
   cudensitymatHandle_t handle_;
   cudensitymatOperator_t liouvillian_;
   std::unique_ptr<runge_kutta> integrator_;
-  std::unique_ptr<cudm_state> state_;
+  std::unique_ptr<CuDensityMatState> state_;
 
   void SetUp() override {
     // Create library handle
@@ -32,7 +32,7 @@ protected:
     liouvillian_ = mock_liouvillian(handle_);
 
     // Create initial state
-    state_ = std::make_unique<cudm_state>(handle_, mock_initial_state_data(),
+    state_ = std::make_unique<CuDensityMatState>(handle_, mock_initial_state_data(),
                                           mock_hilbert_space_dims());
     ASSERT_NE(state_, nullptr);
     ASSERT_TRUE(state_->is_initialized());
@@ -59,7 +59,7 @@ TEST_F(RungeKuttaIntegratorTest, Initialization) {
 // Integration with Euler Method (substeps = 1)
 TEST_F(RungeKuttaIntegratorTest, EulerIntegration) {
   // auto integrator = std::make_unique<runge_kutta>(
-  //     cudm_state(handle_, mock_initial_state_data(),
+  //     CuDensityMatState(handle_, mock_initial_state_data(),
   //     mock_hilbert_space_dims()), 0.0, time_stepper_, 1);
   // integrator->set_option("dt", 0.1);
   // EXPECT_NO_THROW(integrator->integrate(1.0));
@@ -68,7 +68,7 @@ TEST_F(RungeKuttaIntegratorTest, EulerIntegration) {
 // Integration with Midpoint Rule (substeps = 2)
 TEST_F(RungeKuttaIntegratorTest, MidpointIntegration) {
   // auto midpointIntegrator = std::make_unique<runge_kutta>(
-  //     cudm_state(handle_, mock_initial_state_data(),
+  //     CuDensityMatState(handle_, mock_initial_state_data(),
   //     mock_hilbert_space_dims()), 0.0, time_stepper_, 2);
   // midpointIntegrator->set_option("dt", 0.1);
   // EXPECT_NO_THROW(midpointIntegrator->integrate(1.0));
@@ -108,7 +108,7 @@ TEST_F(RungeKuttaIntegratorTest, MultipleIntegrationSteps) {
 // Missing Time Step (dt)
 TEST_F(RungeKuttaIntegratorTest, MissingTimeStepOption) {
   // auto integrator_missing_dt = std::make_unique<runge_kutta>(
-  //     cudm_state(handle_, mock_initial_state_data(),
+  //     CuDensityMatState(handle_, mock_initial_state_data(),
   //     mock_hilbert_space_dims()), 0.0, time_stepper_, 2);
 
   // EXPECT_THROW(integrator_missing_dt->integrate(1.0), std::invalid_argument);
@@ -140,7 +140,7 @@ TEST_F(RungeKuttaIntegratorTest, LargeTimeStep) {
 // Invalid Substeps
 TEST_F(RungeKuttaIntegratorTest, InvalidSubsteps) {
   // EXPECT_THROW(std::make_unique<runge_kutta>(
-  //                  cudm_state(handle_, mock_initial_state_data(),
+  //                  CuDensityMatState(handle_, mock_initial_state_data(),
   //                             mock_hilbert_space_dims()),
   //                  0.0, time_stepper_, 3),
   //              std::invalid_argument);
