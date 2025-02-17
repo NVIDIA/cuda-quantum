@@ -10,7 +10,7 @@
 #include <cudaq/operators.h>
 #include <cudm_error_handling.h>
 #include <cudm_helpers.h>
-#include <cudm_state.h>
+#include "CuDensityMatState.h"
 #include <gtest/gtest.h>
 
 // Initialize operator_sum
