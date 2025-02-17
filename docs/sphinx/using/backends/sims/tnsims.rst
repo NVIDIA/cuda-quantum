@@ -70,11 +70,12 @@ Use the following commands to enable distribution across multiple GPUs (adjust t
         mpiexec -np 2 ./program.x
 
 .. note::
+  MPI parallelization on the :code:`tensornet` backend requires CUDA-Q's MPI support. 
+  Please refer to the instructions on how to :ref:`enable MPI parallelization <distributed-computing-with-mpi>` within CUDA-Q.  
+  CUDA-Q containers are shipped with a pre-built MPI plugin; hence no additional setup is needed.  
 
-  If the `CUTENSORNET_COMM_LIB` environment variable is not set, MPI parallelization on the :code:`tensornet` backend may fail.
-  If you are using a CUDA-Q container, this variable is pre-configured and no additional setup is needed. If you are customizing your installation or have built CUDA-Q from source, please follow the instructions for `activating the distributed interface <https://docs.nvidia.com/cuda/cuquantum/latest/getting-started/index.html#from-nvidia-devzone>`__ for the `cuTensorNet` library. This requires 
-  :ref:`installing CUDA development dependencies <additional-cuda-tools>`, and setting the `CUTENSORNET_COMM_LIB`
-  environment variable to the newly built `libcutensornet_distributed_interface_mpi.so` library.
+.. note::  
+  If the `CUTENSORNET_COMM_LIB` environment variable is set following the activation procedure described in the `cuTensorNet documentation <https://docs.nvidia.com/cuda/cuquantum/latest/getting-started/index.html#from-nvidia-devzone>`__, the cuTensorNet MPI plugin will take precedence over the builtin support from CUDA-Q.
 
 Specific aspects of the simulation can be configured by setting the following of environment variables:
 
