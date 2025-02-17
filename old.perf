@@ -76,15 +76,11 @@ nr ops:  10
 Old setup took 0.0103578 seconds.
 nr ops:  20
 Old setup took 1.60473 seconds.
-nr ops:  30
-Old setup is killed (out of memory?) - skipped
 
 product inplace with 2-term sum on varying degrees (reverse order)
 nr ops:  10
 Old setup segfaults
 nr ops:  20
-Old setup segfaults
-nr ops:  30
 Old setup segfaults
 
 sum of products of random terms
