@@ -772,8 +772,8 @@ protected:
       } catch (std::exception &e) {
         while (!gateQueue.empty())
           gateQueue.pop();
-        throw std::runtime_error(
-            std::string("Exception in applyGate: ") + e.what());
+        throw std::runtime_error(std::string("Exception in applyGate: ") +
+                                 e.what());
       } catch (...) {
         while (!gateQueue.empty())
           gateQueue.pop();
