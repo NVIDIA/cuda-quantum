@@ -262,15 +262,22 @@ product_operator<HandlerTy>::product_operator(scalar_operator coefficient,
 
 // assumes canonical ordering (if possible)
 template<typename HandlerTy>
-product_operator<HandlerTy>::product_operator(scalar_operator coefficient, const std::vector<HandlerTy> &atomic_operators) 
-  : coefficient(std::move(coefficient)), operators(atomic_operators) { 
+product_operator<HandlerTy>::product_operator(scalar_operator coefficient, const std::vector<HandlerTy> &atomic_operators, int size) 
+  : coefficient(std::move(coefficient)) { 
+  if (size <= 0) this->operators = atomic_operators;
+  else {
+    this->operators.reserve(size);
+    for (const auto &op : atomic_operators)
+      this->operators.push_back(op);
+  }
   assert (!HandlerTy::can_be_canonicalized || this->is_canonicalized());
 }
 
 // assumes canonical ordering (if possible)
 template<typename HandlerTy>
-product_operator<HandlerTy>::product_operator(scalar_operator coefficient, std::vector<HandlerTy> &&atomic_operators)
+product_operator<HandlerTy>::product_operator(scalar_operator coefficient, std::vector<HandlerTy> &&atomic_operators, int size)
   : coefficient(std::move(coefficient)), operators(std::move(atomic_operators)) {
+  if (size > 0) this->operators.reserve(size);
   assert (!HandlerTy::can_be_canonicalized || this->is_canonicalized());
 }
 
@@ -330,11 +337,11 @@ product_operator<HandlerTy>::product_operator(product_operator<HandlerTy> &&othe
                                                                                              \
   template                                                                                   \
   product_operator<HandlerTy>::product_operator(scalar_operator coefficient,                 \
-    const std::vector<HandlerTy> &atomic_operators);                                         \
+    const std::vector<HandlerTy> &atomic_operators, int size);                               \
                                                                                              \
   template                                                                                   \
   product_operator<HandlerTy>::product_operator(scalar_operator coefficient,                 \
-    std::vector<HandlerTy> &&atomic_operators);                                              \
+    std::vector<HandlerTy> &&atomic_operators, int size);                                    \
                                                                                              \
   template                                                                                   \
   product_operator<HandlerTy>::product_operator(                                             \
@@ -461,7 +468,7 @@ product_operator<HandlerTy> product_operator<HandlerTy>::operator-() const & {
 template <typename HandlerTy>
 product_operator<HandlerTy> product_operator<HandlerTy>::operator-() && {
   this->coefficient *= -1.;
-  return *this;
+  return std::move(*this);
 }
 
 template <typename HandlerTy>
@@ -491,24 +498,40 @@ INSTANTIATE_PRODUCT_UNARY_OPS(boson_operator);
 // right-hand arithmetics
 
 #define PRODUCT_MULTIPLICATION(otherTy)                                                 \
+                                                                                        \
   template <typename HandlerTy>                                                         \
   product_operator<HandlerTy> product_operator<HandlerTy>::operator*(                   \
-                                                           otherTy other) const {       \
+                                                           otherTy other) const & {     \
     return product_operator<HandlerTy>(other * this->coefficient,                       \
                                        this->operators);                                \
-  }
+  }                                                                                     \
+                                                                                        \
+  template <typename HandlerTy>                                                         \
+  product_operator<HandlerTy> product_operator<HandlerTy>::operator*(                   \
+                                                           otherTy other) && {          \
+    this->coefficient *= other;                                                         \
+    return std::move(*this);                                                            \
+  }                                                                                     \
 
 PRODUCT_MULTIPLICATION(double);
 PRODUCT_MULTIPLICATION(std::complex<double>);
 PRODUCT_MULTIPLICATION(const scalar_operator &);
 
-#define PRODUCT_ADDITION(otherTy, op)                                          \
-  template <typename HandlerTy>                                                \
-  operator_sum<HandlerTy> product_operator<HandlerTy>::operator op(            \
-      otherTy other) const {                                                   \
-    return operator_sum<HandlerTy>(product_operator<HandlerTy>(op other),      \
-                                   product_operator<HandlerTy>(*this));        \
-  }
+#define PRODUCT_ADDITION(otherTy, op)                                                   \
+                                                                                        \
+  template <typename HandlerTy>                                                         \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator op(                     \
+                                                       otherTy other) const & {         \
+    return operator_sum<HandlerTy>(product_operator<HandlerTy>(op other),               \
+                                   product_operator<HandlerTy>(*this));                 \
+  }                                                                                     \
+                                                                                        \
+  template <typename HandlerTy>                                                         \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator op(                     \
+                                                       otherTy other) && {              \
+    return operator_sum<HandlerTy>(product_operator<HandlerTy>(op other),               \
+                                   std::move(*this));                                   \
+  }                                                                                     \
 
 PRODUCT_ADDITION(double, +);
 PRODUCT_ADDITION(double, -);
@@ -517,43 +540,111 @@ PRODUCT_ADDITION(std::complex<double>, -);
 PRODUCT_ADDITION(const scalar_operator &, +);
 PRODUCT_ADDITION(const scalar_operator &, -);
 
-#define INSTANTIATE_PRODUCT_RHSIMPLE_OPS(HandlerTy)                            \
-                                                                               \
-  template product_operator<HandlerTy> product_operator<HandlerTy>::operator*( \
-      double other) const;                                                     \
-  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(     \
-      double other) const;                                                     \
-  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(     \
-      double other) const;                                                     \
-  template product_operator<HandlerTy> product_operator<HandlerTy>::operator*( \
-      std::complex<double> other) const;                                       \
-  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(     \
-      std::complex<double> other) const;                                       \
-  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(     \
-      std::complex<double> other) const;                                       \
-  template product_operator<HandlerTy> product_operator<HandlerTy>::operator*( \
-      const scalar_operator &other) const;                                     \
-  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(     \
-      const scalar_operator &other) const;                                     \
-  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(     \
-      const scalar_operator &other) const;
+#define INSTANTIATE_PRODUCT_RHSIMPLE_OPS(HandlerTy)                                                         \
+                                                                                                            \
+  template                                                                                                  \
+  product_operator<HandlerTy> product_operator<HandlerTy>::operator*(double other) const &;                 \
+  template                                                                                                  \
+  product_operator<HandlerTy> product_operator<HandlerTy>::operator*(double other) &&;                      \
+  template                                                                                                  \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(double other) const &;                     \
+  template                                                                                                  \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(double other) &&;                          \
+  template                                                                                                  \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(double other) const &;                     \
+  template                                                                                                  \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(double other) &&;                          \
+  template                                                                                                  \
+  product_operator<HandlerTy> product_operator<HandlerTy>::operator*(std::complex<double> other) const &;   \
+  template                                                                                                  \
+  product_operator<HandlerTy> product_operator<HandlerTy>::operator*(std::complex<double> other) &&;        \
+  template                                                                                                  \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(std::complex<double> other) const &;       \
+  template                                                                                                  \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(std::complex<double> other) &&;            \
+  template                                                                                                  \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(std::complex<double> other) const &;       \
+  template                                                                                                  \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(std::complex<double> other) &&;            \
+  template                                                                                                  \
+  product_operator<HandlerTy> product_operator<HandlerTy>::operator*(const scalar_operator &other) const &; \
+  template                                                                                                  \
+  product_operator<HandlerTy> product_operator<HandlerTy>::operator*(const scalar_operator &other) &&;      \
+  template                                                                                                  \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(const scalar_operator &other) const &;     \
+  template                                                                                                  \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(const scalar_operator &other) &&;          \
+  template                                                                                                  \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(const scalar_operator &other) const &;     \
+  template                                                                                                  \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(const scalar_operator &other) &&;          \
 
 INSTANTIATE_PRODUCT_RHSIMPLE_OPS(matrix_operator);
 INSTANTIATE_PRODUCT_RHSIMPLE_OPS(spin_operator);
 INSTANTIATE_PRODUCT_RHSIMPLE_OPS(boson_operator);
 
 template <typename HandlerTy>
-product_operator<HandlerTy> product_operator<HandlerTy>::operator*(const product_operator<HandlerTy> &other) const {
-  product_operator<HandlerTy> prod(*this, this->operators.size() + other.operators.size());
-  return std::move(prod *= other);
+product_operator<HandlerTy> product_operator<HandlerTy>::operator*(const product_operator<HandlerTy> &other) const & {
+  product_operator<HandlerTy> prod(this->coefficient * other.coefficient, this->operators,
+                                   this->operators.size() + other.operators.size());
+  for (HandlerTy op : other.operators)
+    prod.insert(std::move(op));
+  return std::move(prod);
+}
+
+template <typename HandlerTy>
+product_operator<HandlerTy> product_operator<HandlerTy>::operator*(const product_operator<HandlerTy> &other) && {
+  this->coefficient *= other.coefficient;
+  this->operators.reserve(this->operators.size() + other.operators.size());
+  for (HandlerTy op : other.operators)
+    this->insert(std::move(op));
+  return std::move(*this);
+}
+
+template <typename HandlerTy>
+product_operator<HandlerTy> product_operator<HandlerTy>::operator*(product_operator<HandlerTy> &&other) const & {
+  product_operator<HandlerTy> prod(this->coefficient * std::move(other.coefficient), 
+    this->operators, this->operators.size() + other.operators.size());
+  for (auto &&op : other.operators)
+    prod.insert(std::move(op));
+  return std::move(prod);
+}
+
+template <typename HandlerTy>
+product_operator<HandlerTy> product_operator<HandlerTy>::operator*(product_operator<HandlerTy> &&other) && {
+  this->coefficient *= std::move(other.coefficient);
+  this->operators.reserve(this->operators.size() + other.operators.size());
+  for (auto &&op : other.operators)
+    this->insert(std::move(op));
+  return std::move(*this);
 }
 
 #define PRODUCT_ADDITION_PRODUCT(op)                                                    \
+                                                                                        \
   template <typename HandlerTy>                                                         \
   operator_sum<HandlerTy> product_operator<HandlerTy>::operator op(                     \
-                                     const product_operator<HandlerTy> &other) const {  \
+                                   const product_operator<HandlerTy> &other) const & {  \
     return operator_sum<HandlerTy>(product_operator<HandlerTy>(*this), op other);       \
-  }
+  }                                                                                     \
+                                                                                        \
+  template <typename HandlerTy>                                                         \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator op(                     \
+                                     const product_operator<HandlerTy> &other) && {     \
+    return operator_sum<HandlerTy>(std::move(*this), op other);                         \
+  }                                                                                     \
+                                                                                        \
+  template <typename HandlerTy>                                                         \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator op(                     \
+                                        product_operator<HandlerTy> &&other) const & {  \
+    return operator_sum<HandlerTy>(product_operator<HandlerTy>(*this),                  \
+                                   op std::move(other));                                \
+  }                                                                                     \
+                                                                                        \
+  template <typename HandlerTy>                                                         \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator op(                     \
+                                          product_operator<HandlerTy> &&other) && {     \
+    return operator_sum<HandlerTy>(std::move(*this), op std::move(other));              \
+  }                                                                                     \
 
 PRODUCT_ADDITION_PRODUCT(+)
 PRODUCT_ADDITION_PRODUCT(-)
@@ -568,13 +659,14 @@ operator_sum<HandlerTy> product_operator<HandlerTy>::operator*(const operator_su
     auto prod = *this * product_operator<HandlerTy>(other.coefficients[i], other.terms[i]);
     sum.insert(std::move(prod));
   }
-  return sum;
+  return std::move(sum);
 }
 
 #define PRODUCT_ADDITION_SUM(op)                                                        \
+                                                                                        \
   template <typename HandlerTy>                                                         \
   operator_sum<HandlerTy> product_operator<HandlerTy>::operator op(                     \
-                                     const operator_sum<HandlerTy> &other) const {      \
+                                     const operator_sum<HandlerTy> &other) const & {    \
     operator_sum<HandlerTy> sum;                                                        \
     sum.coefficients.reserve(other.coefficients.size() + 1);                            \
     sum.term_map = other.term_map;                                                      \
@@ -582,26 +674,99 @@ operator_sum<HandlerTy> product_operator<HandlerTy>::operator*(const operator_su
     for (auto &coeff : other.coefficients)                                              \
       sum.coefficients.push_back(op coeff);                                             \
     sum.insert(*this);                                                                  \
-    return sum;                                                                         \
-  }
+    return std::move(sum);                                                              \
+  }                                                                                     \
+                                                                                        \
+  template <typename HandlerTy>                                                         \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator op(                     \
+                                     const operator_sum<HandlerTy> &other) && {         \
+    operator_sum<HandlerTy> sum;                                                        \
+    sum.coefficients.reserve(other.coefficients.size() + 1);                            \
+    sum.term_map = other.term_map;                                                      \
+    sum.terms = other.terms;                                                            \
+    for (auto &coeff : other.coefficients)                                              \
+      sum.coefficients.push_back(op coeff);                                             \
+    sum.insert(std::move(*this));                                                       \
+    return std::move(sum);                                                              \
+  }                                                                                     \
+  template <typename HandlerTy>                                                         \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator op(                     \
+                                          operator_sum<HandlerTy> &&other) const & {    \
+    operator_sum<HandlerTy> sum(op std::move(other));                                   \
+    sum.insert(*this);                                                                  \
+    return std::move(sum);                                                              \
+  }                                                                                     \
+                                                                                        \
+  template <typename HandlerTy>                                                         \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator op(                     \
+                                          operator_sum<HandlerTy> &&other) && {         \
+    operator_sum<HandlerTy> sum(op std::move(other));                                   \
+    sum.insert(std::move(*this));                                                       \
+    return std::move(sum);                                                              \
+  }                                                                                     \
 
 PRODUCT_ADDITION_SUM(+)
 PRODUCT_ADDITION_SUM(-)
 
-#define INSTANTIATE_PRODUCT_RHCOMPOSITE_OPS(HandlerTy)                         \
-                                                                               \
-  template product_operator<HandlerTy> product_operator<HandlerTy>::operator*( \
-      const product_operator<HandlerTy> &other) const;                         \
-  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(     \
-      const product_operator<HandlerTy> &other) const;                         \
-  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(     \
-      const product_operator<HandlerTy> &other) const;                         \
-  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator*(     \
-      const operator_sum<HandlerTy> &other) const;                             \
-  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(     \
-      const operator_sum<HandlerTy> &other) const;                             \
-  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(     \
-      const operator_sum<HandlerTy> &other) const;
+#define INSTANTIATE_PRODUCT_RHCOMPOSITE_OPS(HandlerTy)                                  \
+                                                                                        \
+  template                                                                              \
+  product_operator<HandlerTy> product_operator<HandlerTy>::operator*(                   \
+    const product_operator<HandlerTy> &other) const &;                                  \
+  template                                                                              \
+  product_operator<HandlerTy> product_operator<HandlerTy>::operator*(                   \
+    const product_operator<HandlerTy> &other) &&;                                       \
+  template                                                                              \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(                       \
+    const product_operator<HandlerTy> &other) const &;                                  \
+  template                                                                              \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(                       \
+    const product_operator<HandlerTy> &other) &&;                                       \
+  template                                                                              \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(                       \
+    product_operator<HandlerTy> &&other) const &;                                       \
+  template                                                                              \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(                       \
+    product_operator<HandlerTy> &&other) &&;                                            \
+  template                                                                              \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(                       \
+    const product_operator<HandlerTy> &other) const &;                                  \
+  template                                                                              \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(                       \
+    const product_operator<HandlerTy> &other) &&;                                       \
+  template                                                                              \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(                       \
+    product_operator<HandlerTy> &&other) const &;                                       \
+  template                                                                              \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(                       \
+    product_operator<HandlerTy> &&other) &&;                                            \
+  template                                                                              \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator*(                       \
+    const operator_sum<HandlerTy> &other) const;                                        \
+  template                                                                              \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(                       \
+    const operator_sum<HandlerTy> &other) const &;                                      \
+  template                                                                              \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(                       \
+    const operator_sum<HandlerTy> &other) &&;                                           \
+  template                                                                              \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(                       \
+    operator_sum<HandlerTy> &&other) const &;                                           \
+  template                                                                              \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(                       \
+    operator_sum<HandlerTy> &&other) &&;                                                \
+  template                                                                              \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(                       \
+    const operator_sum<HandlerTy> &other) const &;                                      \
+  template                                                                              \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(                       \
+    const operator_sum<HandlerTy> &other) &&;                                           \
+  template                                                                              \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(                       \
+    operator_sum<HandlerTy> &&other) const &;                                           \
+  template                                                                              \
+  operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(                       \
+    operator_sum<HandlerTy> &&other) &&;                                                \
 
 INSTANTIATE_PRODUCT_RHCOMPOSITE_OPS(matrix_operator);
 INSTANTIATE_PRODUCT_RHCOMPOSITE_OPS(spin_operator);
@@ -624,22 +789,32 @@ product_operator<HandlerTy> &product_operator<HandlerTy>::operator*=(
     const product_operator<HandlerTy> &other) {
   this->coefficient *= other.coefficient;
   this->operators.reserve(this->operators.size() + other.operators.size());
-  for (HandlerTy other_op : other.operators)
-    this->insert(std::move(other_op));
+  for (HandlerTy op : other.operators)
+    this->insert(std::move(op));
   return *this;
 }
 
-#define INSTANTIATE_PRODUCT_OPASSIGNMENTS(HandlerTy)                           \
-                                                                               \
-  template product_operator<HandlerTy> &                                       \
-  product_operator<HandlerTy>::operator*=(double other);                       \
-  template product_operator<HandlerTy> &                                       \
-  product_operator<HandlerTy>::operator*=(std::complex<double> other);         \
-  template product_operator<HandlerTy> &                                       \
-  product_operator<HandlerTy>::operator*=(const scalar_operator &other);       \
-  template product_operator<HandlerTy> &                                       \
-  product_operator<HandlerTy>::operator*=(                                     \
-      const product_operator<HandlerTy> &other);
+template <typename HandlerTy>
+product_operator<HandlerTy>& product_operator<HandlerTy>::operator*=(product_operator<HandlerTy> &&other) {
+  this->coefficient *= std::move(other.coefficient);
+  this->operators.reserve(this->operators.size() + other.operators.size());
+  for (auto &&op : other.operators)
+    this->insert(std::move(op));
+  return *this;
+}
+
+#define INSTANTIATE_PRODUCT_OPASSIGNMENTS(HandlerTy)                                                              \
+                                                                                                                  \
+  template                                                                                                        \
+  product_operator<HandlerTy>& product_operator<HandlerTy>::operator*=(double other);                             \
+  template                                                                                                        \
+  product_operator<HandlerTy>& product_operator<HandlerTy>::operator*=(std::complex<double> other);               \
+  template                                                                                                        \
+  product_operator<HandlerTy>& product_operator<HandlerTy>::operator*=(const scalar_operator &other);             \
+  template                                                                                                        \
+  product_operator<HandlerTy>& product_operator<HandlerTy>::operator*=(const product_operator<HandlerTy> &other); \
+  template                                                                                                        \
+  product_operator<HandlerTy>& product_operator<HandlerTy>::operator*=(product_operator<HandlerTy> &&other);      \
 
 INSTANTIATE_PRODUCT_OPASSIGNMENTS(matrix_operator);
 INSTANTIATE_PRODUCT_OPASSIGNMENTS(spin_operator);
@@ -648,24 +823,39 @@ INSTANTIATE_PRODUCT_OPASSIGNMENTS(boson_operator);
 // left-hand arithmetics
 
 #define PRODUCT_MULTIPLICATION_REVERSE(otherTy)                                         \
+                                                                                        \
   template <typename HandlerTy>                                                         \
   product_operator<HandlerTy> operator*(otherTy other,                                  \
                                         const product_operator<HandlerTy> &self) {      \
     return product_operator<HandlerTy>(other * self.coefficient,                        \
                                        self.operators);                                 \
-  }
+  }                                                                                     \
+                                                                                        \
+  template <typename HandlerTy>                                                         \
+  product_operator<HandlerTy> operator*(otherTy other,                                  \
+                                        product_operator<HandlerTy> &&self) {           \
+    self.coefficient *= other;                                                          \
+    return std::move(self);                                                             \
+  }                                                                                     \
 
 PRODUCT_MULTIPLICATION_REVERSE(double);
 PRODUCT_MULTIPLICATION_REVERSE(std::complex<double>);
 PRODUCT_MULTIPLICATION_REVERSE(const scalar_operator &);
 
-#define PRODUCT_ADDITION_REVERSE(otherTy, op)                                  \
-  template <typename HandlerTy>                                                \
-  operator_sum<HandlerTy> operator op(                                         \
-      otherTy other, const product_operator<HandlerTy> &self) {                \
-    return operator_sum<HandlerTy>(product_operator<HandlerTy>(other),         \
-                                   op self);                                   \
-  }
+#define PRODUCT_ADDITION_REVERSE(otherTy, op)                                           \
+                                                                                        \
+  template <typename HandlerTy>                                                         \
+  operator_sum<HandlerTy> operator op(otherTy other,                                    \
+                                      const product_operator<HandlerTy> &self) {        \
+    return operator_sum<HandlerTy>(product_operator<HandlerTy>(other), op self);        \
+  }                                                                                     \
+                                                                                        \
+  template <typename HandlerTy>                                                         \
+  operator_sum<HandlerTy> operator op(otherTy other,                                    \
+                                      product_operator<HandlerTy> &&self) {             \
+    return operator_sum<HandlerTy>(product_operator<HandlerTy>(other),                  \
+                                   op std::move(self));                                 \
+  }                                                                                     \
 
 PRODUCT_ADDITION_REVERSE(double, +);
 PRODUCT_ADDITION_REVERSE(double, -);
@@ -674,26 +864,44 @@ PRODUCT_ADDITION_REVERSE(std::complex<double>, -);
 PRODUCT_ADDITION_REVERSE(const scalar_operator &, +);
 PRODUCT_ADDITION_REVERSE(const scalar_operator &, -);
 
-#define INSTANTIATE_PRODUCT_LHCOMPOSITE_OPS(HandlerTy)                         \
-                                                                               \
-  template product_operator<HandlerTy> operator*(                              \
-      double other, const product_operator<HandlerTy> &self);                  \
-  template operator_sum<HandlerTy> operator+(                                  \
-      double other, const product_operator<HandlerTy> &self);                  \
-  template operator_sum<HandlerTy> operator-(                                  \
-      double other, const product_operator<HandlerTy> &self);                  \
-  template product_operator<HandlerTy> operator*(                              \
-      std::complex<double> other, const product_operator<HandlerTy> &self);    \
-  template operator_sum<HandlerTy> operator+(                                  \
-      std::complex<double> other, const product_operator<HandlerTy> &self);    \
-  template operator_sum<HandlerTy> operator-(                                  \
-      std::complex<double> other, const product_operator<HandlerTy> &self);    \
-  template product_operator<HandlerTy> operator*(                              \
-      const scalar_operator &other, const product_operator<HandlerTy> &self);  \
-  template operator_sum<HandlerTy> operator+(                                  \
-      const scalar_operator &other, const product_operator<HandlerTy> &self);  \
-  template operator_sum<HandlerTy> operator-(                                  \
-      const scalar_operator &other, const product_operator<HandlerTy> &self);
+#define INSTANTIATE_PRODUCT_LHCOMPOSITE_OPS(HandlerTy)                                                              \
+                                                                                                                    \
+  template                                                                                                          \
+  product_operator<HandlerTy> operator*(double other, const product_operator<HandlerTy> &self);                     \
+  template                                                                                                          \
+  product_operator<HandlerTy> operator*(double other, product_operator<HandlerTy> &&self);                          \
+  template                                                                                                          \
+  operator_sum<HandlerTy> operator+(double other, const product_operator<HandlerTy> &self);                         \
+  template                                                                                                          \
+  operator_sum<HandlerTy> operator+(double other, product_operator<HandlerTy> &&self);                              \
+  template                                                                                                          \
+  operator_sum<HandlerTy> operator-(double other, const product_operator<HandlerTy> &self);                         \
+  template                                                                                                          \
+  operator_sum<HandlerTy> operator-(double other, product_operator<HandlerTy> &&self);                              \
+  template                                                                                                          \
+  product_operator<HandlerTy> operator*(std::complex<double> other, const product_operator<HandlerTy> &self);       \
+  template                                                                                                          \
+  product_operator<HandlerTy> operator*(std::complex<double> other, product_operator<HandlerTy> &&self);            \
+  template                                                                                                          \
+  operator_sum<HandlerTy> operator+(std::complex<double> other, const product_operator<HandlerTy> &self);           \
+  template                                                                                                          \
+  operator_sum<HandlerTy> operator+(std::complex<double> other, product_operator<HandlerTy> &&self);                \
+  template                                                                                                          \
+  operator_sum<HandlerTy> operator-(std::complex<double> other, const product_operator<HandlerTy> &self);           \
+  template                                                                                                          \
+  operator_sum<HandlerTy> operator-(std::complex<double> other, product_operator<HandlerTy> &&self);                \
+  template                                                                                                          \
+  product_operator<HandlerTy> operator*(const scalar_operator &other, const product_operator<HandlerTy> &self);     \
+  template                                                                                                          \
+  product_operator<HandlerTy> operator*(const scalar_operator &other, product_operator<HandlerTy> &&self);          \
+  template                                                                                                          \
+  operator_sum<HandlerTy> operator+(const scalar_operator &other, const product_operator<HandlerTy> &self);         \
+  template                                                                                                          \
+  operator_sum<HandlerTy> operator+(const scalar_operator &other, product_operator<HandlerTy> &&self);              \
+  template                                                                                                          \
+  operator_sum<HandlerTy> operator-(const scalar_operator &other, const product_operator<HandlerTy> &self);         \
+  template                                                                                                          \
+  operator_sum<HandlerTy> operator-(const scalar_operator &other, product_operator<HandlerTy> &&self);              \
 
 INSTANTIATE_PRODUCT_LHCOMPOSITE_OPS(matrix_operator);
 INSTANTIATE_PRODUCT_LHCOMPOSITE_OPS(spin_operator);
