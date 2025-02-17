@@ -16,6 +16,11 @@
 
 namespace cudaq {
 
+// FIXME: GET RID OF THIS AND INSTEAD MAKE SURE WE AGGREGATE TERMS PROPERLY
+#if !defined(NDEBUG)
+bool boson_operator::can_be_canonicalized = false;
+#endif
+
 // private helpers
 
 std::string boson_operator::op_code_to_string() const {
@@ -31,19 +36,20 @@ std::string boson_operator::op_code_to_string() const {
 
 // read-only properties
 
-const std::string &boson_operator::unique_id() const { return this->id; }
+std::string boson_operator::unique_id() const {
+  return this->op_code_to_string() + std::to_string(target);
+}
 
 std::vector<int> boson_operator::degrees() const { return {this->target}; }
 
 // constructors
 
-boson_operator::boson_operator(int target)
-    : op_code(0), target(target), id("I" + std::to_string(target)) {}
+boson_operator::boson_operator(int target) 
+  : op_code(0), target(target) {}
 
-boson_operator::boson_operator(int target, int op_id)
-    : op_code(op_id), target(target) {
-  assert(0 <= op_id < 4);
-  this->id = this->op_code_to_string() + std::to_string(target);
+boson_operator::boson_operator(int target, int op_id) 
+  : op_code(op_id), target(target) {
+    assert(0 <= op_id < 4);
 }
 
 // evaluations
