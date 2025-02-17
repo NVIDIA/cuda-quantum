@@ -167,3 +167,39 @@ TEST_F(CuDensityMatTimeStepperTest, TimeSteppingWithLindblad) {
 
   HANDLE_CUDM_ERROR(cudensitymatDestroyOperator(cudm_lindblad_op));
 }
+
+TEST_F(CuDensityMatTimeStepperTest, CheckScalarCallback) {
+  const std::vector<std::complex<double>> initialState = {
+      {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}};
+  const std::vector<int64_t> dims = {4};
+  auto inputState = cudaq::state::from_data(initialState);
+  auto *simState = cudaq::state_helper::getSimulationState(&inputState);
+  auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
+  EXPECT_TRUE(castSimState != nullptr);
+  castSimState->initialize_cudm(handle_, dims);
+  auto function = [](const std::unordered_map<std::string, std::complex<double>>
+                         &parameters) {
+    auto entry = parameters.find("alpha");
+    if (entry == parameters.end())
+      throw std::runtime_error("Cannot find time value");
+    return entry->second;
+  };
+  auto op =
+      cudaq::scalar_operator(function) * cudaq::matrix_operator::create(0);
+  auto cudmOp =
+      helper_->convert_to_cudensitymat_operator<cudaq::matrix_operator>(
+          {}, op, dims); // Initialize the time stepper
+  auto time_stepper = std::make_unique<cudmStepper>(handle_, cudmOp);
+  auto outputState = time_stepper->compute(inputState, 1.0, 1.0, {{"alpha", 2.0}});
+  outputState.dump(std::cout);
+  std::vector<std::complex<double>> outputStateVec(4);
+  outputState.to_host(outputStateVec.data(), outputStateVec.size());
+  // Create operator move the state up 1 step.
+  const std::vector<std::complex<double>> expectedOutputState = {
+      {0.0, 0.0}, {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}};
+
+  for (std::size_t i = 0; i < expectedOutputState.size(); ++i) {
+    EXPECT_TRUE(std::abs(expectedOutputState[i] - outputStateVec[i]) < 1e-12);
+  }
+  HANDLE_CUDM_ERROR(cudensitymatDestroyOperator(cudmOp));
+}
