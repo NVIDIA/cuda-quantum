@@ -399,7 +399,7 @@ operator_sum<HandlerTy> operator_sum<HandlerTy>::operator-() const & {
   sum.terms = this->terms;
   for (auto &coeff : this->coefficients)
     sum.coefficients.push_back(-1. * coeff);
-  return sum;
+  return std::move(sum);
 }
 
 template <typename HandlerTy>
@@ -449,12 +449,14 @@ INSTANTIATE_SUM_UNARY_OPS(boson_operator);
     sum.terms = this->terms;                                                            \
     for (const auto &coeff : this->coefficients)                                        \
       sum.coefficients.push_back(coeff * other);                                        \
-    return sum;                                                                         \
+    return std::move(sum);                                                              \
   }                                                                                     \
                                                                                         \
   template <typename HandlerTy>                                                         \
   operator_sum<HandlerTy> operator_sum<HandlerTy>::operator*(otherTy other) && {        \
-    return std::move(*this *= other);                                                   \
+    for (auto &coeff : this->coefficients)                                              \
+      coeff *= other;                                                                   \
+    return std::move(*this);                                                            \
   }
 
 SUM_MULTIPLICATION(double);
@@ -472,7 +474,8 @@ SUM_MULTIPLICATION(const scalar_operator &);
                                                                                         \
   template <typename HandlerTy>                                                         \
   operator_sum<HandlerTy> operator_sum<HandlerTy>::operator op(otherTy other) && {      \
-    return std::move(*this op##= other);                                                \
+    this->insert(product_operator<HandlerTy>(op other));                                \
+    return std::move(*this);                                                            \
   }                                                                                     \
 
 SUM_ADDITION(double, +);
@@ -526,26 +529,19 @@ INSTANTIATE_SUM_RHSIMPLE_OPS(spin_operator);
 INSTANTIATE_SUM_RHSIMPLE_OPS(boson_operator);
 
 template <typename HandlerTy>
-operator_sum<HandlerTy> operator_sum<HandlerTy>::operator*(const product_operator<HandlerTy> &other) const & {
-  operator_sum<HandlerTy> sum;
+operator_sum<HandlerTy> operator_sum<HandlerTy>::operator*(const product_operator<HandlerTy> &other) const {
+  operator_sum<HandlerTy> sum; // the entire sum needs to be rebuilt
   sum.coefficients.reserve(this->coefficients.size());
   sum.term_map.reserve(this->terms.size());
   sum.terms.reserve(this->terms.size());
   for (auto i = 0; i < this->terms.size(); ++i) {
-    product_operator<HandlerTy> prod(this->coefficients[i] * other.coefficient);
-    prod.operators.reserve(this->terms[i].size() + other.operators.size());
-    for (const auto &op : this->terms[i])
-      prod.operators.push_back(op); // no need to insert here - should be canonicalized already
+    auto max_size = this->terms[i].size() + other.operators.size();
+    product_operator<HandlerTy> prod(this->coefficients[i] * other.coefficient, this->terms[i], max_size);
     for (HandlerTy op : other.operators)
       prod.insert(std::move(op));
     sum.insert(std::move(prod));
   }
   return std::move(sum);
-}
-
-template <typename HandlerTy>
-operator_sum<HandlerTy> operator_sum<HandlerTy>::operator*(const product_operator<HandlerTy> &other) && {
-  return std::move(*this *= other);
 }
 
 #define SUM_ADDITION_PRODUCT(op)                                                        \
@@ -561,36 +557,45 @@ operator_sum<HandlerTy> operator_sum<HandlerTy>::operator*(const product_operato
   template <typename HandlerTy>                                                         \
   operator_sum<HandlerTy> operator_sum<HandlerTy>::operator op(                         \
                                      const product_operator<HandlerTy> &other) && {     \
-    return std::move(*this op##= other);                                                \
-  } 
+    this->insert(op other);                                                             \
+    return std::move(*this);                                                            \
+  }                                                                                     \
+                                                                                        \
+  template <typename HandlerTy>                                                         \
+  operator_sum<HandlerTy> operator_sum<HandlerTy>::operator op(                         \
+                                         product_operator<HandlerTy> &&other) const & { \
+    operator_sum<HandlerTy> sum(*this, this->terms.size() + 1);                         \
+    sum.insert(op std::move(other));                                                    \
+    return std::move(sum);                                                              \
+  }                                                                                     \
+                                                                                        \
+  template <typename HandlerTy>                                                         \
+  operator_sum<HandlerTy> operator_sum<HandlerTy>::operator op(                         \
+                                          product_operator<HandlerTy> &&other) && {     \
+    this->insert(op std::move(other));                                                  \
+    return std::move(*this);                                                            \
+  }                                                                                     \
 
 SUM_ADDITION_PRODUCT(+)
 SUM_ADDITION_PRODUCT(-)
 
 template <typename HandlerTy>
-operator_sum<HandlerTy> operator_sum<HandlerTy>::operator*(const operator_sum<HandlerTy> &other) const & {
-  operator_sum<HandlerTy> sum;
+operator_sum<HandlerTy> operator_sum<HandlerTy>::operator*(const operator_sum<HandlerTy> &other) const {
+  operator_sum<HandlerTy> sum; // the entire sum needs to be rebuilt
   auto max_size = this->terms.size() * other.terms.size();
   sum.coefficients.reserve(max_size);
   sum.term_map.reserve(max_size);
   sum.terms.reserve(max_size);
   for (auto i = 0; i < this->terms.size(); ++i) {
     for (auto j = 0; j < other.terms.size(); ++j) {
-      product_operator<HandlerTy> prod(this->coefficients[i] * other.coefficients[j]);
-      prod.operators.reserve(this->terms[i].size() + other.terms[j].size());
-      for (const auto &op : this->terms[i])
-        prod.operators.push_back(op); // no need to insert here - should be canonicalized already
+      auto max_size = this->terms[i].size() + other.terms[j].size();
+      product_operator<HandlerTy> prod(this->coefficients[i] * other.coefficients[j], this->terms[i], max_size);
       for (HandlerTy op : other.terms[j])
         prod.insert(std::move(op));
       sum.insert(std::move(prod));
     }
   }
-  return sum;
-}
-
-template <typename HandlerTy>
-operator_sum<HandlerTy> operator_sum<HandlerTy>::operator*(const operator_sum<HandlerTy> &other) && {
-  return std::move(*this *= other);
+  return std::move(sum);
 }
 
 #define SUM_ADDITION_SUM(op)                                                            \
@@ -603,13 +608,45 @@ operator_sum<HandlerTy> operator_sum<HandlerTy>::operator*(const operator_sum<Ha
       product_operator<HandlerTy> prod(op other.coefficients[i], other.terms[i]);       \
       sum.insert(std::move(prod));                                                      \
     }                                                                                   \
-    return sum;                                                                         \
+    return std::move(sum);                                                              \
   }                                                                                     \
                                                                                         \
   template <typename HandlerTy>                                                         \
   operator_sum<HandlerTy> operator_sum<HandlerTy>::operator op(                         \
                                       const operator_sum<HandlerTy> &other) && {        \
-    return std::move(*this op##= other);                                                \
+    auto max_size = this->terms.size() + other.terms.size();                            \
+    this->coefficients.reserve(max_size);                                               \
+    this->term_map.reserve(max_size);                                                   \
+    this->terms.reserve(max_size);                                                      \
+    for (auto i = 0; i < other.terms.size(); ++i)                                       \
+      this->insert(product_operator<HandlerTy>(                                         \
+                   op other.coefficients[i], other.terms[i]));                          \
+    return std::move(*this);                                                            \
+  }                                                                                     \
+                                                                                        \
+  template <typename HandlerTy>                                                         \
+  operator_sum<HandlerTy> operator_sum<HandlerTy>::operator op(                         \
+                                           operator_sum<HandlerTy> &&other) const & {   \
+    operator_sum<HandlerTy> sum(*this, this->terms.size() + other.terms.size());        \
+    for (auto i = 0; i < other.terms.size(); ++i) {                                     \
+      product_operator<HandlerTy> prod(                                                 \
+        op std::move(other.coefficients[i]), std::move(other.terms[i]));                \
+      sum.insert(std::move(prod));                                                      \
+    }                                                                                   \
+    return std::move(sum);                                                              \
+  }                                                                                     \
+                                                                                        \
+  template <typename HandlerTy>                                                         \
+  operator_sum<HandlerTy> operator_sum<HandlerTy>::operator op(                         \
+                                           operator_sum<HandlerTy> &&other) && {        \
+    auto max_size = this->terms.size() + other.terms.size();                            \
+    this->coefficients.reserve(max_size);                                               \
+    this->term_map.reserve(max_size);                                                   \
+    this->terms.reserve(max_size);                                                      \
+    for (auto i = 0; i < other.terms.size(); ++i)                                       \
+      this->insert(product_operator<HandlerTy>(                                         \
+        op std::move(other.coefficients[i]), std::move(other.terms[i])));               \
+    return std::move(*this);                                                            \
   }                                                                                     \
 
 SUM_ADDITION_SUM(+);
@@ -619,10 +656,7 @@ SUM_ADDITION_SUM(-);
                                                                                         \
   template                                                                              \
   operator_sum<HandlerTy> operator_sum<HandlerTy>::operator*(                           \
-    const product_operator<HandlerTy> &other) const &;                                  \
-  template                                                                              \
-  operator_sum<HandlerTy> operator_sum<HandlerTy>::operator*(                           \
-    const product_operator<HandlerTy> &other) &&;                                       \
+    const product_operator<HandlerTy> &other) const;                                    \
   template                                                                              \
   operator_sum<HandlerTy> operator_sum<HandlerTy>::operator+(                           \
     const product_operator<HandlerTy> &other) const &;                                  \
@@ -630,29 +664,50 @@ SUM_ADDITION_SUM(-);
   operator_sum<HandlerTy> operator_sum<HandlerTy>::operator+(                           \
     const product_operator<HandlerTy> &other) &&;                                       \
   template                                                                              \
+  operator_sum<HandlerTy> operator_sum<HandlerTy>::operator+(                           \
+    product_operator<HandlerTy> &&other) const &;                                       \
+  template                                                                              \
+  operator_sum<HandlerTy> operator_sum<HandlerTy>::operator+(                           \
+    product_operator<HandlerTy> &&other) &&;                                            \
+  template                                                                              \
   operator_sum<HandlerTy> operator_sum<HandlerTy>::operator-(                           \
     const product_operator<HandlerTy> &other) const &;                                  \
   template                                                                              \
   operator_sum<HandlerTy> operator_sum<HandlerTy>::operator-(                           \
     const product_operator<HandlerTy> &other) &&;                                       \
   template                                                                              \
+  operator_sum<HandlerTy> operator_sum<HandlerTy>::operator-(                           \
+    product_operator<HandlerTy> &&other) const &;                                       \
+  template                                                                              \
+  operator_sum<HandlerTy> operator_sum<HandlerTy>::operator-(                           \
+    product_operator<HandlerTy> &&other) &&;                                            \
+  template                                                                              \
   operator_sum<HandlerTy> operator_sum<HandlerTy>::operator*(                           \
+    const operator_sum<HandlerTy> &other) const;                                        \
+  template                                                                              \
+  operator_sum<HandlerTy> operator_sum<HandlerTy>::operator+(                           \
     const operator_sum<HandlerTy> &other) const &;                                      \
   template                                                                              \
-  operator_sum<HandlerTy> operator_sum<HandlerTy>::operator*(                           \
+  operator_sum<HandlerTy> operator_sum<HandlerTy>::operator+(                           \
     const operator_sum<HandlerTy> &other) &&;                                           \
   template                                                                              \
   operator_sum<HandlerTy> operator_sum<HandlerTy>::operator+(                           \
-    const operator_sum<HandlerTy> &other) const &;                                      \
+    operator_sum<HandlerTy> &&other) const &;                                           \
   template                                                                              \
   operator_sum<HandlerTy> operator_sum<HandlerTy>::operator+(                           \
+    operator_sum<HandlerTy> &&other) &&;                                                \
+  template                                                                              \
+  operator_sum<HandlerTy> operator_sum<HandlerTy>::operator-(                           \
+    const operator_sum<HandlerTy> &other) const &;                                      \
+  template                                                                              \
+  operator_sum<HandlerTy> operator_sum<HandlerTy>::operator-(                           \
     const operator_sum<HandlerTy> &other) &&;                                           \
   template                                                                              \
   operator_sum<HandlerTy> operator_sum<HandlerTy>::operator-(                           \
-    const operator_sum<HandlerTy> &other) const &;                                      \
+    operator_sum<HandlerTy> &&other) const &;                                           \
   template                                                                              \
   operator_sum<HandlerTy> operator_sum<HandlerTy>::operator-(                           \
-    const operator_sum<HandlerTy> &other) &&;
+    operator_sum<HandlerTy> &&other) &&;                                                \
 
 INSTANTIATE_SUM_RHCOMPOSITE_OPS(matrix_operator);
 INSTANTIATE_SUM_RHCOMPOSITE_OPS(spin_operator);
@@ -664,19 +719,18 @@ INSTANTIATE_SUM_RHCOMPOSITE_OPS(boson_operator);
     for (auto &coeff : this->coefficients)                                              \
       coeff *= other;                                                                   \
     return *this;                                                                       \
-  }
+  }                                                                                     \
 
 SUM_MULTIPLICATION_ASSIGNMENT(double);
 SUM_MULTIPLICATION_ASSIGNMENT(std::complex<double>);
 SUM_MULTIPLICATION_ASSIGNMENT(const scalar_operator &);
 
-#define SUM_ADDITION_ASSIGNMENT(otherTy, op)                                   \
-  template <typename HandlerTy>                                                \
-  operator_sum<HandlerTy> &operator_sum<HandlerTy>::operator op##=(            \
-      otherTy other) {                                                         \
-    this->insert(product_operator<HandlerTy>(op other));                       \
-    return *this;                                                              \
-  }
+#define SUM_ADDITION_ASSIGNMENT(otherTy, op)                                            \
+  template <typename HandlerTy>                                                         \
+  operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator op##=(otherTy other) {     \
+    this->insert(product_operator<HandlerTy>(op other));                                \
+    return *this;                                                                       \
+  }                                                                                     \
 
 SUM_ADDITION_ASSIGNMENT(double, +);
 SUM_ADDITION_ASSIGNMENT(double, -);
@@ -687,15 +741,13 @@ SUM_ADDITION_ASSIGNMENT(const scalar_operator &, -);
 
 template <typename HandlerTy>
 operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator*=(const product_operator<HandlerTy> &other) {
-  operator_sum<HandlerTy> sum; // the entire sum needs to be rebuilt
+  operator_sum<HandlerTy> sum;
   sum.coefficients.reserve(this->coefficients.size());
   sum.term_map.reserve(this->terms.size());
   sum.terms.reserve(this->terms.size());
   for (auto i = 0; i < this->terms.size(); ++i) {
-    product_operator<HandlerTy> prod(this->coefficients[i] * other.coefficient);
-    prod.operators.reserve(this->terms[i].size() + other.operators.size());
-    for (const auto &op : this->terms[i])
-      prod.operators.push_back(op); // no need to insert here - should be canonicalized already
+    auto max_size = this->terms[i].size() + other.operators.size();
+    product_operator<HandlerTy> prod(this->coefficients[i] * other.coefficient, this->terms[i], max_size);
     for (HandlerTy op : other.operators)
       prod.insert(std::move(op));
     sum.insert(std::move(prod));
@@ -704,30 +756,36 @@ operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator*=(const product_opera
   return *this;
 }
 
-#define SUM_ADDITION_PRODUCT_ASSIGNMENT(op)                                    \
-  template <typename HandlerTy>                                                \
-  operator_sum<HandlerTy> &operator_sum<HandlerTy>::operator op##=(            \
-      const product_operator<HandlerTy> &other) {                              \
-    this->insert(op other);                                                    \
-    return *this;                                                              \
-  }
+#define SUM_ADDITION_PRODUCT_ASSIGNMENT(op)                                             \
+                                                                                        \
+  template <typename HandlerTy>                                                         \
+  operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator op##=(                     \
+                                           const product_operator<HandlerTy> &other) {  \
+    this->insert(op other);                                                             \
+    return *this;                                                                       \
+  }                                                                                     \
+                                                                                        \
+  template <typename HandlerTy>                                                         \
+  operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator op##=(                     \
+                                                product_operator<HandlerTy> &&other) {  \
+    this->insert(op std::move(other));                                                  \
+    return *this;                                                                       \
+  }                                                                                     \
 
 SUM_ADDITION_PRODUCT_ASSIGNMENT(+)
 SUM_ADDITION_PRODUCT_ASSIGNMENT(-)
 
 template <typename HandlerTy>
 operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator*=(const operator_sum<HandlerTy> &other) {
-  auto max_size = this->terms.size() * other.terms.size();
   operator_sum<HandlerTy> sum; // the entire sum needs to be rebuilt
+  auto max_size = this->terms.size() * other.terms.size();
   sum.coefficients.reserve(max_size);
   sum.term_map.reserve(max_size);
   sum.terms.reserve(max_size);
   for (auto i = 0; i < this->terms.size(); ++i) {
     for (auto j = 0; j < other.terms.size(); ++j) {
-      product_operator<HandlerTy> prod(this->coefficients[i] * other.coefficients[j]);
-      prod.operators.reserve(this->terms[i].size() + other.terms[j].size());
-      for (const auto &op : this->terms[i])
-        prod.operators.push_back(op); // no need to insert here - should be canonicalized already
+      auto max_size = this->terms[i].size() + other.terms[j].size();
+      product_operator<HandlerTy> prod(this->coefficients[i] * other.coefficients[j], this->terms[i], max_size);
       for (HandlerTy op : other.terms[j])
         prod.insert(std::move(op));
       sum.insert(std::move(prod));
@@ -738,6 +796,7 @@ operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator*=(const operator_sum<
 }
 
 #define SUM_ADDITION_SUM_ASSIGNMENT(op)                                                 \
+                                                                                        \
   template <typename HandlerTy>                                                         \
   operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator op##=(                     \
                                                const operator_sum<HandlerTy> &other) {  \
@@ -749,43 +808,64 @@ operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator*=(const operator_sum<
       this->insert(product_operator<HandlerTy>(                                         \
                    op other.coefficients[i], other.terms[i]));                          \
     return *this;                                                                       \
-  }
+  }                                                                                     \
+                                                                                        \
+  template <typename HandlerTy>                                                         \
+  operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator op##=(                     \
+                                                    operator_sum<HandlerTy> &&other) {  \
+    auto max_size = this->terms.size() + other.terms.size();                            \
+    this->coefficients.reserve(max_size);                                               \
+    this->term_map.reserve(max_size);                                                   \
+    this->terms.reserve(max_size);                                                      \
+    for (auto i = 0; i < other.terms.size(); ++i)                                       \
+      this->insert(product_operator<HandlerTy>(                                         \
+        op std::move(other.coefficients[i]), std::move(other.terms[i])));               \
+    return *this;                                                                       \
+  }                                                                                     \
 
 SUM_ADDITION_SUM_ASSIGNMENT(+);
 SUM_ADDITION_SUM_ASSIGNMENT(-);
 
-#define INSTANTIATE_SUM_OPASSIGNMENTS(HandlerTy)                               \
-                                                                               \
-  template operator_sum<HandlerTy> &operator_sum<HandlerTy>::operator*=(       \
-      double other);                                                           \
-  template operator_sum<HandlerTy> &operator_sum<HandlerTy>::operator+=(       \
-      double other);                                                           \
-  template operator_sum<HandlerTy> &operator_sum<HandlerTy>::operator-=(       \
-      double other);                                                           \
-  template operator_sum<HandlerTy> &operator_sum<HandlerTy>::operator*=(       \
-      std::complex<double> other);                                             \
-  template operator_sum<HandlerTy> &operator_sum<HandlerTy>::operator+=(       \
-      std::complex<double> other);                                             \
-  template operator_sum<HandlerTy> &operator_sum<HandlerTy>::operator-=(       \
-      std::complex<double> other);                                             \
-  template operator_sum<HandlerTy> &operator_sum<HandlerTy>::operator*=(       \
-      const scalar_operator &other);                                           \
-  template operator_sum<HandlerTy> &operator_sum<HandlerTy>::operator+=(       \
-      const scalar_operator &other);                                           \
-  template operator_sum<HandlerTy> &operator_sum<HandlerTy>::operator-=(       \
-      const scalar_operator &other);                                           \
-  template operator_sum<HandlerTy> &operator_sum<HandlerTy>::operator*=(       \
-      const product_operator<HandlerTy> &other);                               \
-  template operator_sum<HandlerTy> &operator_sum<HandlerTy>::operator+=(       \
-      const product_operator<HandlerTy> &other);                               \
-  template operator_sum<HandlerTy> &operator_sum<HandlerTy>::operator-=(       \
-      const product_operator<HandlerTy> &other);                               \
-  template operator_sum<HandlerTy> &operator_sum<HandlerTy>::operator*=(       \
-      const operator_sum<HandlerTy> &other);                                   \
-  template operator_sum<HandlerTy> &operator_sum<HandlerTy>::operator-=(       \
-      const operator_sum<HandlerTy> &other);                                   \
-  template operator_sum<HandlerTy> &operator_sum<HandlerTy>::operator+=(       \
-      const operator_sum<HandlerTy> &other);
+#define INSTANTIATE_SUM_OPASSIGNMENTS(HandlerTy)                                                            \
+                                                                                                            \
+  template                                                                                                  \
+  operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator*=(double other);                               \
+  template                                                                                                  \
+  operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator+=(double other);                               \
+  template                                                                                                  \
+  operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator-=(double other);                               \
+  template                                                                                                  \
+  operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator*=(std::complex<double> other);                 \
+  template                                                                                                  \
+  operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator+=(std::complex<double> other);                 \
+  template                                                                                                  \
+  operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator-=(std::complex<double> other);                 \
+  template                                                                                                  \
+  operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator*=(const scalar_operator &other);               \
+  template                                                                                                  \
+  operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator+=(const scalar_operator &other);               \
+  template                                                                                                  \
+  operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator-=(const scalar_operator &other);               \
+  template                                                                                                  \
+  operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator*=(const product_operator<HandlerTy> &other);   \
+  template                                                                                                  \
+  operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator+=(const product_operator<HandlerTy> &other);   \
+  template                                                                                                  \
+  operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator+=(product_operator<HandlerTy> &&other);        \
+  template                                                                                                  \
+  operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator-=(const product_operator<HandlerTy> &other);   \
+  template                                                                                                  \
+  operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator-=(product_operator<HandlerTy> &&other);        \
+  template                                                                                                  \
+  operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator*=(const operator_sum<HandlerTy> &other);       \
+  template                                                                                                  \
+  operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator+=(const operator_sum<HandlerTy> &other);       \
+  template                                                                                                  \
+  operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator+=(operator_sum<HandlerTy> &&other);            \
+  template                                                                                                  \
+  operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator-=(const operator_sum<HandlerTy> &other);       \
+  template                                                                                                  \
+  operator_sum<HandlerTy>& operator_sum<HandlerTy>::operator-=(operator_sum<HandlerTy> &&other);            \
 
 INSTANTIATE_SUM_OPASSIGNMENTS(matrix_operator);
 INSTANTIATE_SUM_OPASSIGNMENTS(spin_operator);
@@ -794,6 +874,7 @@ INSTANTIATE_SUM_OPASSIGNMENTS(boson_operator);
 // left-hand arithmetics
 
 #define SUM_MULTIPLICATION_REVERSE(otherTy)                                             \
+                                                                                        \
   template <typename HandlerTy>                                                         \
   operator_sum<HandlerTy> operator*(otherTy other,                                      \
                                     const operator_sum<HandlerTy> &self) {              \
@@ -803,19 +884,39 @@ INSTANTIATE_SUM_OPASSIGNMENTS(boson_operator);
     sum.term_map = self.term_map;                                                       \
     for (const auto &coeff : self.coefficients)                                         \
       sum.coefficients.push_back(coeff * other);                                        \
-    return sum;                                                                         \
-  }
+    return std::move(sum);                                                              \
+  }                                                                                     \
+                                                                                        \
+  template <typename HandlerTy>                                                         \
+  operator_sum<HandlerTy> operator*(otherTy other,                                      \
+                                    operator_sum<HandlerTy> &&self) {                   \
+    for (auto &&coeff : self.coefficients)                                              \
+      coeff *= other;                                                                   \
+    return std::move(self);                                                             \
+  }                                                                                     \
 
 SUM_MULTIPLICATION_REVERSE(double);
 SUM_MULTIPLICATION_REVERSE(std::complex<double>);
 SUM_MULTIPLICATION_REVERSE(const scalar_operator &);
 
 #define SUM_ADDITION_REVERSE(otherTy, op)                                               \
+                                                                                        \
   template <typename HandlerTy>                                                         \
   operator_sum<HandlerTy> operator op(otherTy other,                                    \
                                       const operator_sum<HandlerTy> &self) {            \
-    return std::move((op self) += other);                                               \
-  }
+    operator_sum<HandlerTy> sum(op self);                                               \
+    sum.insert(product_operator<HandlerTy>(other));                                     \
+    return std::move(sum);                                                              \
+  }                                                                                     \
+                                                                                        \
+  template <typename HandlerTy>                                                         \
+  operator_sum<HandlerTy> operator op(otherTy other,                                    \
+                                      operator_sum<HandlerTy> &&self) {                 \
+    for (auto &&coeff : self.coefficients)                                              \
+      coeff = std::move(op coeff);                                                      \
+    self.insert(product_operator<HandlerTy>(other));                                    \
+    return std::move(self);                                                             \
+  }                                                                                     \
 
 SUM_ADDITION_REVERSE(double, +);
 SUM_ADDITION_REVERSE(double, -);
@@ -824,26 +925,44 @@ SUM_ADDITION_REVERSE(std::complex<double>, -);
 SUM_ADDITION_REVERSE(const scalar_operator &, +);
 SUM_ADDITION_REVERSE(const scalar_operator &, -);
 
-#define INSTANTIATE_SUM_LHCOMPOSITE_OPS(HandlerTy)                             \
-                                                                               \
-  template operator_sum<HandlerTy> operator*(                                  \
-      double other, const operator_sum<HandlerTy> &self);                      \
-  template operator_sum<HandlerTy> operator+(                                  \
-      double other, const operator_sum<HandlerTy> &self);                      \
-  template operator_sum<HandlerTy> operator-(                                  \
-      double other, const operator_sum<HandlerTy> &self);                      \
-  template operator_sum<HandlerTy> operator*(                                  \
-      std::complex<double> other, const operator_sum<HandlerTy> &self);        \
-  template operator_sum<HandlerTy> operator+(                                  \
-      std::complex<double> other, const operator_sum<HandlerTy> &self);        \
-  template operator_sum<HandlerTy> operator-(                                  \
-      std::complex<double> other, const operator_sum<HandlerTy> &self);        \
-  template operator_sum<HandlerTy> operator*(                                  \
-      const scalar_operator &other, const operator_sum<HandlerTy> &self);      \
-  template operator_sum<HandlerTy> operator+(                                  \
-      const scalar_operator &other, const operator_sum<HandlerTy> &self);      \
-  template operator_sum<HandlerTy> operator-(                                  \
-      const scalar_operator &other, const operator_sum<HandlerTy> &self);
+#define INSTANTIATE_SUM_LHCOMPOSITE_OPS(HandlerTy)                                                        \
+                                                                                                          \
+  template                                                                                                \
+  operator_sum<HandlerTy> operator*(double other, const operator_sum<HandlerTy> &self);                   \
+  template                                                                                                \
+  operator_sum<HandlerTy> operator*(double other, operator_sum<HandlerTy> &&self);                        \
+  template                                                                                                \
+  operator_sum<HandlerTy> operator+(double other, const operator_sum<HandlerTy> &self);                   \
+  template                                                                                                \
+  operator_sum<HandlerTy> operator+(double other, operator_sum<HandlerTy> &&self);                        \
+  template                                                                                                \
+  operator_sum<HandlerTy> operator-(double other, const operator_sum<HandlerTy> &self);                   \
+  template                                                                                                \
+  operator_sum<HandlerTy> operator-(double other, operator_sum<HandlerTy> &&self);                        \
+  template                                                                                                \
+  operator_sum<HandlerTy> operator*(std::complex<double> other, const operator_sum<HandlerTy> &self);     \
+  template                                                                                                \
+  operator_sum<HandlerTy> operator*(std::complex<double> other, operator_sum<HandlerTy> &&self);          \
+  template                                                                                                \
+  operator_sum<HandlerTy> operator+(std::complex<double> other, const operator_sum<HandlerTy> &self);     \
+  template                                                                                                \
+  operator_sum<HandlerTy> operator+(std::complex<double> other, operator_sum<HandlerTy> &&self);          \
+  template                                                                                                \
+  operator_sum<HandlerTy> operator-(std::complex<double> other, const operator_sum<HandlerTy> &self);     \
+  template                                                                                                \
+  operator_sum<HandlerTy> operator-(std::complex<double> other, operator_sum<HandlerTy> &&self);          \
+  template                                                                                                \
+  operator_sum<HandlerTy> operator*(const scalar_operator &other, const operator_sum<HandlerTy> &self);   \
+  template                                                                                                \
+  operator_sum<HandlerTy> operator*(const scalar_operator &other, operator_sum<HandlerTy> &&self);        \
+  template                                                                                                \
+  operator_sum<HandlerTy> operator+(const scalar_operator &other, const operator_sum<HandlerTy> &self);   \
+  template                                                                                                \
+  operator_sum<HandlerTy> operator+(const scalar_operator &other, operator_sum<HandlerTy> &&self);        \
+  template                                                                                                \
+  operator_sum<HandlerTy> operator-(const scalar_operator &other, const operator_sum<HandlerTy> &self);   \
+  template                                                                                                \
+  operator_sum<HandlerTy> operator-(const scalar_operator &other, operator_sum<HandlerTy> &&self);        \
 
 INSTANTIATE_SUM_LHCOMPOSITE_OPS(matrix_operator);
 INSTANTIATE_SUM_LHCOMPOSITE_OPS(spin_operator);
