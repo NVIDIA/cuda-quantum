@@ -46,10 +46,20 @@ std::vector<HandlerTy>::const_iterator product_operator<HandlerTy>::find_insert_
   // the logic below just ensures that terms are fully or partially ordered in canonical order -
   // a best effort is made to order terms, but a full canonical ordering is not possible for certain handlers
   return std::find_if(this->operators.crbegin(), this->operators.crend(), 
+              [other_target = other.target] (const HandlerTy& self_op) { 
+    return other_target <= self_op.target; // FIXME: relies on canonical order
+  }).base(); // base causes insert after for reverse iterator
+}
+
+template<>
+std::vector<matrix_operator>::const_iterator product_operator<matrix_operator>::find_insert_at(const matrix_operator &other) const {
+  // the logic below just ensures that terms are fully or partially ordered in canonical order -
+  // a best effort is made to order terms, but a full canonical ordering is not possible for certain handlers
+  return std::find_if(this->operators.crbegin(), this->operators.crend(), 
               [&other_degrees = static_cast<const std::vector<int>&>(other.degrees())] 
-              (const HandlerTy& self_op) { 
+              (const matrix_operator& self_op) { 
     const std::vector<int> &self_op_degrees = self_op.degrees();
-    for (auto other_degree : other_degrees) { // fixme: special case on single qubit handlers instead?
+    for (auto other_degree : other_degrees) {
       auto item_it = std::find_if(self_op_degrees.crbegin(), self_op_degrees.crend(), 
         [other_degree](int self_degree) { return other_degree <= self_degree; }); // FIXME: relies on canonical order
       if (item_it != self_op_degrees.crend()) return true;
@@ -60,27 +70,26 @@ std::vector<HandlerTy>::const_iterator product_operator<HandlerTy>::find_insert_
 
 template<typename HandlerTy>
 template<typename T, std::enable_if_t<std::is_same<HandlerTy, T>::value && !product_operator<T>::supports_inplace_mult, int>>
-void product_operator<HandlerTy>::insert(T &&other, bool update_id) {  
+void product_operator<HandlerTy>::insert(T &&other) {  
   auto pos = this->find_insert_at(other);
   this->operators.insert(pos, other);
-  if (update_id) this->update_id();
 }
 
 template<typename HandlerTy>
 template <typename T, std::enable_if_t<std::is_same<HandlerTy, T>::value && product_operator<T>::supports_inplace_mult, bool>>
-void product_operator<HandlerTy>::insert(T &&other, bool update_id) {
+void product_operator<HandlerTy>::insert(T &&other) {
   auto pos = this->find_insert_at(other);
   if (pos != this->operators.begin() && (pos - 1)->target == other.target) 
     this->coefficient *= this->operators.erase(pos - 1, pos - 1)->inplace_mult(other); // erase: constant time conversion to non-const iterator
   else this->operators.insert(pos, std::move(other));
-  if (update_id) this->update_id();
 }
 
 template<typename HandlerTy>
-void product_operator<HandlerTy>::update_id() {
-  this->term_id = "";
+std::string product_operator<HandlerTy>::get_term_id() const {
+  std::string term_id;
   for (const auto &op : this->operators)
-    this->term_id += op.unique_id();
+    term_id += op.unique_id();
+  return std::move(term_id);
 }
 
 template<typename HandlerTy>
@@ -89,7 +98,7 @@ void product_operator<HandlerTy>::aggregate_terms() {}
 template<typename HandlerTy>
 template<typename... Args>
 void product_operator<HandlerTy>::aggregate_terms(HandlerTy &&head, Args&& ... args) {
-  this->insert(std::forward<HandlerTy>(head), false);
+  this->insert(std::forward<HandlerTy>(head));
   aggregate_terms(std::forward<Args>(args)...);
 }
 
@@ -173,7 +182,7 @@ std::vector<int> product_operator<HandlerTy>::degrees() const {
   }
   auto degrees = std::vector<int>(unsorted_degrees.cbegin(), unsorted_degrees.cend());
   cudaq::detail::canonicalize_degrees(degrees);
-  return degrees;
+  return std::move(degrees);
 }
 
 template<typename HandlerTy>
@@ -213,11 +222,11 @@ INSTANTIATE_PRODUCT_PROPERTIES(boson_operator);
 
 template<typename HandlerTy>
 product_operator<HandlerTy>::product_operator(double coefficient)
-  : coefficient(coefficient), term_id() {}
+  : coefficient(coefficient) {}
 
 template<typename HandlerTy>
 product_operator<HandlerTy>::product_operator(HandlerTy &&atomic)
-  : coefficient(1.), term_id(atomic.unique_id()) {
+  : coefficient(1.) {
   this->operators.push_back(std::move(atomic));
   assert (!HandlerTy::can_be_canonicalized || this->is_canonicalized()); // relevant for custom matrix operators acting on multiple degrees of freedom
 }
@@ -228,21 +237,20 @@ product_operator<HandlerTy>::product_operator(scalar_operator coefficient, Args&
   : coefficient(std::move(coefficient)) {
   this->operators.reserve(sizeof...(Args));
   aggregate_terms(std::forward<HandlerTy &&>(args)...);
-  this->update_id();
   assert (!HandlerTy::can_be_canonicalized || this->is_canonicalized());
 }
 
 // assumes canonical ordering (if possible)
 template<typename HandlerTy>
-product_operator<HandlerTy>::product_operator(scalar_operator coefficient, const std::vector<HandlerTy> &atomic_operators, const std::string &term_id) 
-  : coefficient(std::move(coefficient)), operators(atomic_operators), term_id(term_id) { 
+product_operator<HandlerTy>::product_operator(scalar_operator coefficient, const std::vector<HandlerTy> &atomic_operators) 
+  : coefficient(std::move(coefficient)), operators(atomic_operators) { 
   assert (!HandlerTy::can_be_canonicalized || this->is_canonicalized());
 }
 
 // assumes canonical ordering (if possible)
 template<typename HandlerTy>
-product_operator<HandlerTy>::product_operator(scalar_operator coefficient, std::vector<HandlerTy> &&atomic_operators, std::string &&term_id)
-  : coefficient(std::move(coefficient)), operators(std::move(atomic_operators)), term_id(std::move(term_id)) {
+product_operator<HandlerTy>::product_operator(scalar_operator coefficient, std::vector<HandlerTy> &&atomic_operators)
+  : coefficient(std::move(coefficient)), operators(std::move(atomic_operators)) {
   assert (!HandlerTy::can_be_canonicalized || this->is_canonicalized());
 }
 
@@ -250,23 +258,28 @@ template<typename HandlerTy>
 template<typename T, std::enable_if_t<!std::is_same<T, HandlerTy>::value && std::is_constructible<HandlerTy, T>::value, bool>>
 product_operator<HandlerTy>::product_operator(const product_operator<T> &other) 
   : coefficient(other.coefficient) {
+  this->operators.reserve(other.operators.size());
   for (const T &other_op : other.operators) {
     HandlerTy op(other_op);
     this->operators.push_back(op);
-    this->term_id += op.unique_id();
   }
 }
 
 template<typename HandlerTy>
-product_operator<HandlerTy>::product_operator(const product_operator<HandlerTy> &other) 
-  : coefficient(other.coefficient), term_id(other.term_id) {
-  this->operators = other.operators;
+product_operator<HandlerTy>::product_operator(const product_operator<HandlerTy> &other, int size) 
+  : coefficient(other.coefficient) {
+  if (size <= 0) this->operators = other.operators;
+  else {
+    this->operators.reserve(size);
+    for (const auto &op : other.operators)
+      this->operators.push_back(op);
+  }
 }
 
 template<typename HandlerTy>
-product_operator<HandlerTy>::product_operator(product_operator<HandlerTy> &&other) 
-  : coefficient(std::move(other.coefficient)), term_id(std::move(other.term_id)) {
-  this->operators = std::move(other.operators);
+product_operator<HandlerTy>::product_operator(product_operator<HandlerTy> &&other, int size) 
+  : coefficient(std::move(other.coefficient)), operators(std::move(other.operators)) {
+  if (size > 0) this->operators.reserve(size);
 }
 
 #define INSTANTIATE_PRODUCT_CONSTRUCTORS(HandlerTy)                                          \
@@ -297,19 +310,19 @@ product_operator<HandlerTy>::product_operator(product_operator<HandlerTy> &&othe
                                                                                              \
   template                                                                                   \
   product_operator<HandlerTy>::product_operator(scalar_operator coefficient,                 \
-    const std::vector<HandlerTy> &atomic_operators, const std::string &term_id);             \
+    const std::vector<HandlerTy> &atomic_operators);                                         \
                                                                                              \
   template                                                                                   \
   product_operator<HandlerTy>::product_operator(scalar_operator coefficient,                 \
-    std::vector<HandlerTy> &&atomic_operators, std::string &&term_id);                       \
+    std::vector<HandlerTy> &&atomic_operators);                                              \
                                                                                              \
   template                                                                                   \
   product_operator<HandlerTy>::product_operator(                                             \
-    const product_operator<HandlerTy> &other);                                               \
+    const product_operator<HandlerTy> &other, int size);                                     \
                                                                                              \
   template                                                                                   \
   product_operator<HandlerTy>::product_operator(                                             \
-    product_operator<HandlerTy> &&other);
+    product_operator<HandlerTy> &&other, int size);
 
 template 
 product_operator<matrix_operator>::product_operator(const product_operator<spin_operator> &other);
@@ -334,7 +347,6 @@ product_operator<HandlerTy>& product_operator<HandlerTy>::operator=(const produc
   if (this != &other) {
     this->coefficient = other.coefficient;
     this->operators = other.operators;
-    this->term_id = other.term_id;
   }
   return *this;
 }
@@ -344,7 +356,6 @@ product_operator<HandlerTy>& product_operator<HandlerTy>::operator=(product_oper
   if (this != &other) {
     this->coefficient = std::move(other.coefficient);
     this->operators = std::move(other.operators);
-    this->term_id = std::move(other.term_id);
   }
   return *this;
 }
@@ -372,13 +383,16 @@ INSTANTIATE_PRODUCT_ASSIGNMENTS(boson_operator);
 
 template<typename HandlerTy>
 std::string product_operator<HandlerTy>::to_string() const {
-  return this->term_id;
+  auto str = "(" + this->coefficient.to_string() + ") * ";
+  for (const auto &op : this->operators)
+    str += op.to_string(true);
+  return std::move(str);
 }
 
 template<typename HandlerTy>
 matrix_2 product_operator<HandlerTy>::to_matrix(std::unordered_map<int, int> dimensions,
                                                 const std::unordered_map<std::string, std::complex<double>> &parameters) const {
-  return this->m_evaluate(MatrixArithmetics(dimensions, parameters)).matrix();
+  return std::move(this->m_evaluate(MatrixArithmetics(dimensions, parameters)).matrix());
 }
 
 #define INSTANTIATE_PRODUCT_EVALUATIONS(HandlerTy)                                          \
@@ -399,7 +413,7 @@ INSTANTIATE_PRODUCT_EVALUATIONS(boson_operator);
 
 template<typename HandlerTy>
 bool product_operator<HandlerTy>::operator==(const product_operator<HandlerTy> &other) const {
-  return this->term_id == other.term_id && this->coefficient == other.coefficient;
+  return this->coefficient == other.coefficient && this->get_term_id() == other.get_term_id();
 }
 
 #define INSTANTIATE_PRODUCT_COMPARISONS(HandlerTy)                                          \
@@ -416,7 +430,7 @@ INSTANTIATE_PRODUCT_COMPARISONS(boson_operator);
 
 template <typename HandlerTy>
 product_operator<HandlerTy> product_operator<HandlerTy>::operator-() const & {
-  return product_operator<HandlerTy>(-1. * this->coefficient, this->operators, this->term_id);
+  return product_operator<HandlerTy>(-1. * this->coefficient, this->operators);
 }
 
 template <typename HandlerTy>
@@ -426,20 +440,24 @@ product_operator<HandlerTy> product_operator<HandlerTy>::operator-() && {
 }
 
 template <typename HandlerTy>
-product_operator<HandlerTy> product_operator<HandlerTy>::operator+() const {
+product_operator<HandlerTy> product_operator<HandlerTy>::operator+() const & {
   return *this;
 }
 
+template <typename HandlerTy>
+product_operator<HandlerTy> product_operator<HandlerTy>::operator+() && {
+  return std::move(*this);
+}
+
 #define INSTANTIATE_PRODUCT_UNARY_OPS(HandlerTy)                                            \
-                                                                                            \
   template                                                                                  \
   product_operator<HandlerTy> product_operator<HandlerTy>::operator-() const &;             \
-                                                                                            \
   template                                                                                  \
   product_operator<HandlerTy> product_operator<HandlerTy>::operator-() &&;                  \
-                                                                                            \
   template                                                                                  \
-  product_operator<HandlerTy> product_operator<HandlerTy>::operator+() const;
+  product_operator<HandlerTy> product_operator<HandlerTy>::operator+() const &;             \
+  template                                                                                  \
+  product_operator<HandlerTy> product_operator<HandlerTy>::operator+() &&;
 
 INSTANTIATE_PRODUCT_UNARY_OPS(matrix_operator);
 INSTANTIATE_PRODUCT_UNARY_OPS(spin_operator);
@@ -452,7 +470,7 @@ INSTANTIATE_PRODUCT_UNARY_OPS(boson_operator);
   product_operator<HandlerTy> product_operator<HandlerTy>::operator*(                   \
                                                            otherTy other) const {       \
     return product_operator<HandlerTy>(other * this->coefficient,                       \
-                                       this->operators, this->term_id);                 \
+                                       this->operators);                                \
   }
 
 PRODUCT_MULTIPLICATION(double);
@@ -501,19 +519,15 @@ INSTANTIATE_PRODUCT_RHSIMPLE_OPS(boson_operator);
 
 template <typename HandlerTy>
 product_operator<HandlerTy> product_operator<HandlerTy>::operator*(const product_operator<HandlerTy> &other) const {
-  std::vector<HandlerTy> terms;
-  terms.reserve(this->operators.size() + other.operators.size());
-  for (auto &term : this->operators)
-    terms.push_back(term);
-  product_operator<HandlerTy> self(this->coefficient, std::move(terms), this->term_id);
-  return self *= other;
+  product_operator<HandlerTy> prod(*this, this->operators.size() + other.operators.size());
+  return std::move(prod *= other);
 }
 
 #define PRODUCT_ADDITION_PRODUCT(op)                                                    \
   template <typename HandlerTy>                                                         \
   operator_sum<HandlerTy> product_operator<HandlerTy>::operator op(                     \
                                      const product_operator<HandlerTy> &other) const {  \
-    return operator_sum<HandlerTy>(op other, product_operator<HandlerTy>(*this));       \
+    return operator_sum<HandlerTy>(product_operator<HandlerTy>(*this), op other);       \
   }
 
 PRODUCT_ADDITION_PRODUCT(+)
@@ -521,10 +535,14 @@ PRODUCT_ADDITION_PRODUCT(-)
 
 template <typename HandlerTy>
 operator_sum<HandlerTy> product_operator<HandlerTy>::operator*(const operator_sum<HandlerTy> &other) const {
-  operator_sum<HandlerTy> sum;
-  sum.tmap.reserve(other.tmap.size());
-  for (const auto &entry : other.tmap)
-    sum.insert(*this * entry.second);
+  operator_sum<HandlerTy> sum; // everything needs to be updated, so creating a new sum makes sense
+  sum.coefficients.reserve(other.coefficients.size());
+  sum.term_map.reserve(other.terms.size());
+  sum.terms.reserve(other.terms.size());
+  for (auto i = 0; i < other.terms.size(); ++i) {
+    auto prod = *this * product_operator<HandlerTy>(other.coefficients[i], other.terms[i]);
+    sum.insert(std::move(prod));
+  }
   return sum;
 }
 
@@ -533,9 +551,11 @@ operator_sum<HandlerTy> product_operator<HandlerTy>::operator*(const operator_su
   operator_sum<HandlerTy> product_operator<HandlerTy>::operator op(                     \
                                      const operator_sum<HandlerTy> &other) const {      \
     operator_sum<HandlerTy> sum;                                                        \
-    sum.tmap.reserve(other.tmap.size() + 1);                                            \
-    for (auto entry : other.tmap) /* copy here so pair doesn't copy */                  \
-      sum.tmap.insert(std::make_pair(entry.first, op entry.second));                    \
+    sum.coefficients.reserve(other.coefficients.size() + 1);                            \
+    sum.term_map = other.term_map;                                                      \
+    sum.terms = other.terms;                                                            \
+    for (auto &coeff : other.coefficients)                                              \
+      sum.coefficients.push_back(op coeff);                                             \
     sum.insert(*this);                                                                  \
     return sum;                                                                         \
   }
@@ -584,8 +604,7 @@ product_operator<HandlerTy>& product_operator<HandlerTy>::operator*=(const produ
   this->coefficient *= other.coefficient;
   this->operators.reserve(this->operators.size() + other.operators.size());
   for (HandlerTy other_op : other.operators)
-    this->insert(std::move(other_op), false);
-  this->update_id();
+    this->insert(std::move(other_op));
   return *this;
 }
 
@@ -611,7 +630,7 @@ INSTANTIATE_PRODUCT_OPASSIGNMENTS(boson_operator);
   product_operator<HandlerTy> operator*(otherTy other,                                  \
                                         const product_operator<HandlerTy> &self) {      \
     return product_operator<HandlerTy>(other * self.coefficient,                        \
-                                       self.operators, self.term_id);                   \
+                                       self.operators);                                 \
   }
 
 PRODUCT_MULTIPLICATION_REVERSE(double);

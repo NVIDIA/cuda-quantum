@@ -60,8 +60,12 @@ product_operator<matrix_operator> matrix_operator::instantiate(std::string opera
 
 // read-only properties
 
-const std::string& matrix_operator::unique_id() const {
-  return this->id;
+std::string matrix_operator::unique_id() const {
+  auto it = this->targets.cbegin();
+  auto str = this->op_code + std::to_string(*it);
+  while (++it != this->targets.cend())
+    str += "." + std::to_string(*it);
+  return str;
 }
 
 std::vector<int> matrix_operator::degrees() const {
@@ -71,7 +75,7 @@ std::vector<int> matrix_operator::degrees() const {
 // constructors
 
 matrix_operator::matrix_operator(int degree) {
-  std::string op_code = "identity";
+  std::string op_code = "I";
   if (matrix_operator::m_ops.find(op_code) == matrix_operator::m_ops.end()) {
     auto func = [](const std::vector<int> &dimensions,
                     const std::unordered_map<std::string, std::complex<double>> &_none) {
@@ -88,31 +92,22 @@ matrix_operator::matrix_operator(int degree) {
   }
   this->op_code = op_code;
   this->targets.push_back(degree);
-  this->id = "I";
-  for (auto t : this->targets)
-    this->id += std::to_string(t);
 }
 
 matrix_operator::matrix_operator(std::string operator_id, const std::vector<int> &degrees)
-  : op_code(operator_id), targets(degrees), id(operator_id) {
+  : op_code(operator_id), targets(degrees) {
     assert(this->targets.size() > 0);
-    for (auto t : this->targets)
-      this->id += std::to_string(t);
   }
 
 matrix_operator::matrix_operator(std::string operator_id, std::vector<int> &&degrees)
-  : op_code(operator_id), targets(std::move(degrees)), id(operator_id) {
+  : op_code(operator_id), targets(std::move(degrees)) {
     assert(this->targets.size() > 0);
-    for (auto t : this->targets)
-      this->id += std::to_string(t);
   }
 
 template<typename T, std::enable_if_t<std::is_base_of_v<operator_handler, T>, bool>>
 matrix_operator::matrix_operator(const T &other) {
-  std::string type_prefix = matrix_operator::type_prefix<T>();
   this->targets = other.degrees();
-  this->op_code = type_prefix + other.to_string(false) + std::to_string(this->targets.size());
-  this->id = type_prefix + other.unique_id();
+  this->op_code = matrix_operator::type_prefix<T>() + other.to_string(false);
   if (matrix_operator::m_ops.find(this->op_code) == matrix_operator::m_ops.end()) {
     auto func = [targets = other.degrees(), other]
       (const std::vector<int> &dimensions, const std::unordered_map<std::string, std::complex<double>> &_none) {
@@ -131,10 +126,10 @@ template matrix_operator::matrix_operator(const spin_operator &other);
 template matrix_operator::matrix_operator(const boson_operator &other);
 
 matrix_operator::matrix_operator(const matrix_operator &other)
-  : targets(other.targets), op_code(other.op_code), id(other.id) {}
+  : targets(other.targets), op_code(other.op_code) {}
 
 matrix_operator::matrix_operator(matrix_operator &&other) 
-  : targets(std::move(other.targets)), op_code(other.op_code), id(other.id) {}
+  : targets(std::move(other.targets)), op_code(other.op_code) {}
 
 // assignments
 
@@ -142,7 +137,6 @@ matrix_operator& matrix_operator::operator=(const matrix_operator& other) {
   if (this != &other) {
     this->targets = other.targets;
     this->op_code = other.op_code;
-    this->id = other.id;
   }
   return *this;
 }
@@ -160,7 +154,6 @@ matrix_operator& matrix_operator::operator=(matrix_operator &&other) {
   if (this != &other) {
     this->targets = std::move(other.targets);
     this->op_code = other.op_code;
-    this->id = other.id;
   }
   return *this;
 }
@@ -201,9 +194,9 @@ std::string matrix_operator::to_string(bool include_degrees) const {
   if (!include_degrees) return this->op_code;
   else if (this->targets.size() == 0) return this->op_code + "()";
   auto it = this->targets.cbegin();
-  std::string str = this->op_code + "(" + std::to_string(*it++);
-  while (it != this->targets.cend())
-    str += ", " + std::to_string(*it++);
+  std::string str = this->op_code + "(" + std::to_string(*it);
+  while (++it != this->targets.cend())
+    str += ", " + std::to_string(*it);
   return str + ")";
 }
 

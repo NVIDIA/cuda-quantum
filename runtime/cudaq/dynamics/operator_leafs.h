@@ -69,6 +69,8 @@ public:
   // compatibility with the other inherited classes.
   matrix_2 to_matrix(const std::unordered_map<std::string, std::complex<double>> &parameters = {}) const;
 
+  std::string to_string() const;
+
   // comparisons
 
   bool operator==(scalar_operator other) const;
@@ -141,7 +143,7 @@ public:
 
   virtual ~operator_handler() = default;
 
-  virtual const std::string& unique_id() const = 0;
+  virtual std::string unique_id() const = 0;
 
   virtual std::vector<int> degrees() const = 0;
 

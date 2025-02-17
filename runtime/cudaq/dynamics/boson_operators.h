@@ -22,13 +22,13 @@ class product_operator;
 
 // FIXME: rename?
 class boson_operator : public operator_handler{
+template <typename T> friend class product_operator;
 
 private:
 
   // 0 = I, 1 = Ad (create), 2 = A (annihilate), 3 = AdA (number)
   int op_code;
   int target;
-  std::string id;
 
   boson_operator(int target, int op_code);
 
@@ -36,9 +36,14 @@ private:
 
 public:
 
+// FIXME: GET RID OF THIS
+#if !defined(NDEBUG)
+  static bool can_be_canonicalized; // needs to be false; no canonical order can be defined for matrix operator expressions
+#endif
+
   // read-only properties
 
-  virtual const std::string& unique_id() const;
+  virtual std::string unique_id() const;
 
   /// @brief The degrees of freedom that the operator acts on in canonical
   /// order.

@@ -302,7 +302,7 @@ int main() {
 
 
 
-  repetitions = {10, 20, 30};
+  repetitions = {10, 20}; // we run out of memory if we go to 30 here
 
 
   // product inplace with 2-term sum on varying degrees
@@ -317,15 +317,12 @@ int main() {
     std::cout << "nr ops:  " << nr_reps << std::endl;
 
     if (run_old) {
-        if (nr_reps >= 30) std::cout << "Old setup is killed (out of memory?) - skipped" << std::endl;
-        else {
-            auto start = std::chrono::high_resolution_clock::now();
-            for (auto i = 0; i < nr_reps; ++i)
-                spin_op *= (cudaq::spin::x(i) + cudaq::spin::z(i + 1));
-            auto stop = std::chrono::high_resolution_clock::now();
-            auto duration = std::chrono::duration<double>(stop - start);
-            std::cout << "Old setup took " << duration.count() << " seconds.\n";
-        }
+        auto start = std::chrono::high_resolution_clock::now();
+        for (auto i = 0; i < nr_reps; ++i)
+            spin_op *= (cudaq::spin::x(i) + cudaq::spin::z(i + 1));
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration<double>(stop - start);
+        std::cout << "Old setup took " << duration.count() << " seconds.\n";
     } 
 
     if (run_new) {

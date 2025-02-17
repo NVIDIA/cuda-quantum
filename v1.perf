@@ -1,106 +1,104 @@
 
 multiplication inplace with itself
 nr ops:  100
-New setup took 0.000605938 seconds.
+New setup took 2.8217e-05 seconds.
 nr ops:  1000
-New setup took 0.00326204 seconds.
+New setup took 0.000122433 seconds.
 nr ops:  10000
-New setup took 0.0268849 seconds.
+New setup took 0.0011764 seconds.
 
 multiplication inplace with other
 nr ops:  100
-New setup took 0.00259074 seconds.
+New setup took 5.8016e-05 seconds.
 nr ops:  1000
-New setup took 0.178419 seconds.
+New setup took 0.00074998 seconds.
 nr ops:  10000
-New setup took 17.7425 seconds.
+New setup took 0.112577 seconds.
 
 multiplication inplace with other (reverse order)
 nr ops:  100
-New setup took 0.000488501 seconds.
+New setup took 2.5015e-05 seconds.
 nr ops:  1000
-New setup took 0.0257551 seconds.
+New setup took 0.000481467 seconds.
 nr ops:  10000
-New setup took 2.63377 seconds.
+New setup took 0.0743091 seconds.
 
 addition inplace with itself
 nr ops:  100
-New setup took 0.000423601 seconds.
+New setup took 3.7362e-05 seconds.
 nr ops:  1000
-New setup took 0.00248007 seconds.
+New setup took 0.000141091 seconds.
 nr ops:  10000
-New setup took 0.0197457 seconds.
+New setup took 0.00151542 seconds.
 
 addition inplace with other
 nr ops:  100
-New setup took 0.000704163 seconds.
+New setup took 4.2818e-05 seconds.
 nr ops:  1000
-New setup took 0.0130536 seconds.
+New setup took 0.000304375 seconds.
 nr ops:  10000
-New setup took 1.08428 seconds.
+New setup took 0.00325976 seconds.
 
 addition inplace with other (reverse order)
 nr ops:  100
-New setup took 0.000478452 seconds.
+New setup took 3.1124e-05 seconds.
 nr ops:  1000
-New setup took 0.0126688 seconds.
+New setup took 0.000248507 seconds.
 nr ops:  10000
-New setup took 1.03774 seconds.
+New setup took 0.00285919 seconds.
 
 addition inplace with product self
 nr ops:  100
-New setup took 0.000741696 seconds.
+New setup took 0.00024566 seconds.
 nr ops:  1000
-New setup took 0.00571034 seconds.
+New setup took 0.00236887 seconds.
 nr ops:  10000
-New setup took 0.0663077 seconds.
+New setup took 0.0230741 seconds.
 
 addition inplace with product self (reverse order)
 nr ops:  100
-New setup took 0.000913494 seconds.
+New setup took 0.000246139 seconds.
 nr ops:  1000
-New setup took 0.0076885 seconds.
+New setup took 0.00232941 seconds.
 nr ops:  10000
-New setup took 0.0662493 seconds.
+New setup took 0.0231446 seconds.
 
 product inplace with 2-term sum on fixed degrees
 nr ops:  100
-New setup took 0.0125319 seconds.
+New setup took 0.000190887 seconds.
 nr ops:  1000
-New setup took 0.0631849 seconds.
+New setup took 0.00181602 seconds.
 nr ops:  10000
-New setup took 0.740012 seconds.
+New setup took 0.0201958 seconds.
 
 product inplace with 2-term sum on varying degrees
 nr ops:  10
-New setup took 0.0349756 seconds.
+New setup took 0.00175238 seconds.
 nr ops:  20
-New setup took 65.7295 seconds.
-nr ops:  30
+New setup took 3.00176 seconds.
 
 product inplace with 2-term sum on varying degrees (reverse order)
 nr ops:  10
-New setup took 0.028038 seconds.
+New setup took 0.0012573 seconds.
 nr ops:  20
-New setup took 56.2411 seconds.
-nr ops:  30
+New setup took 2.47935 seconds.
 
 sum of products of random terms
 nr terms 10, term length 100
-New setup took 0.00712887 seconds.
+New setup took 0.000131233 seconds.
 nr terms 10, term length 1000
-New setup took 0.146541 seconds.
+New setup took 0.000725484 seconds.
 nr terms 10, term length 10000
-New setup took 1.54605 seconds.
+New setup took 0.00554068 seconds.
 nr terms 100, term length 100
-New setup took 0.0734078 seconds.
+New setup took 0.00098111 seconds.
 nr terms 100, term length 1000
-New setup took 1.41369 seconds.
+New setup took 0.00613552 seconds.
 nr terms 100, term length 10000
-New setup took 15.3141 seconds.
+New setup took 0.0517298 seconds.
 nr terms 1000, term length 100
-New setup took 0.849971 seconds.
+New setup took 0.0115695 seconds.
 nr terms 1000, term length 1000
-New setup took 14.1757 seconds.
+New setup took 0.062983 seconds.
 nr terms 1000, term length 10000
-New setup took 152.821 seconds.
+New setup took 0.503548 seconds.

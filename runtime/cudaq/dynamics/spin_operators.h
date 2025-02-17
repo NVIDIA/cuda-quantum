@@ -22,14 +22,13 @@ class product_operator;
 
 // FIXME: rename to spin ...
 class spin_operator : public operator_handler{
-friend class product_operator<spin_operator>;
+template <typename T> friend class product_operator;
 
 private:
 
   // I = 0, Z = 1, X = 2, Y = 3
   int op_code;
   int target;
-  std::string id;
 
   spin_operator(int target, int op_code);
 
@@ -43,7 +42,7 @@ public:
 
   // read-only properties
 
-  virtual const std::string& unique_id() const;
+  virtual std::string unique_id() const;
 
   /// @brief The degrees of freedom that the operator acts on in canonical
   /// order.
