@@ -25,7 +25,7 @@ def test_decrementing_range():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test(
 # CHECK-SAME:                                      %[[VAL_0:.*]]: i64,
-# CHECK-SAME:                                      %[[VAL_1:.*]]: i64) attributes {"cudaq-entrypoint"} {
+# CHECK-SAME:                                      %[[VAL_1:.*]]: i64) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK:           %[[VAL_2:.*]] = arith.constant -1 : i64
 # CHECK:           %[[VAL_3:.*]] = cc.alloca i64
 # CHECK:           cc.store %[[VAL_0]], %[[VAL_3]] : !cc.ptr<i64>

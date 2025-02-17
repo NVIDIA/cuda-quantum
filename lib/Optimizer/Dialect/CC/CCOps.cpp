@@ -1065,6 +1065,45 @@ void cudaq::cc::GlobalOp::print(OpAsmPrinter &p) {
 }
 
 //===----------------------------------------------------------------------===//
+// InsertValueOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult cudaq::cc::InsertValueOp::verify() {
+  Type eleTy = getContainer().getType();
+  auto resultTy = getResult().getType();
+
+  if (!isCompatible(eleTy, resultTy))
+    return emitOpError("result type does not match input");
+
+  for (std::int32_t i : getPosition()) {
+    if (auto arrTy = dyn_cast<cc::ArrayType>(eleTy)) {
+      if (arrTy.isUnknownSize())
+        return emitOpError("array must have constant size");
+      if (i < 0 || static_cast<std::int64_t>(i) >= arrTy.getSize())
+        return emitOpError("array cannot index out of bounds elements");
+      eleTy = arrTy.getElementType();
+    } else if (auto strTy = dyn_cast<cc::StructType>(eleTy)) {
+      if (i < 0 || static_cast<std::size_t>(i) >= strTy.getMembers().size())
+        return emitOpError("struct cannot index out of bounds members");
+      eleTy = strTy.getMember(i);
+    } else if (auto complexTy = dyn_cast<ComplexType>(eleTy)) {
+      if (!(i == 0 || i == 1))
+        return emitOpError("complex index is out of bounds");
+      eleTy = complexTy.getElementType();
+    } else {
+      return emitOpError(std::string{"too many indices ("} +
+                         std::to_string(getPosition().size()) +
+                         ") for the source pointer");
+    }
+  }
+
+  Type valTy = getValue().getType();
+  if (!isCompatible(valTy, eleTy))
+    return emitOpError("value type does not match selected element");
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
 // StdvecDataOp
 //===----------------------------------------------------------------------===//
 
@@ -2175,6 +2214,16 @@ struct ReplaceConstantSizes : public OpRewritePattern<cudaq::cc::SizeOfOp> {
     auto inpTy = sizeOp.getInputType();
     if (Value v = cudaq::cc::getByteSizeOfType(rewriter, sizeOp.getLoc(), inpTy,
                                                /*useSizeOf=*/false)) {
+      if (v.getType() != sizeOp.getType()) {
+        auto vSz = v.getType().getIntOrFloatBitWidth();
+        auto sizeOpSz = sizeOp.getType().getIntOrFloatBitWidth();
+        auto loc = sizeOp.getLoc();
+        if (sizeOpSz < vSz)
+          v = rewriter.create<cudaq::cc::CastOp>(loc, sizeOp.getType(), v);
+        else
+          v = rewriter.create<cudaq::cc::CastOp>(
+              loc, sizeOp.getType(), v, cudaq::cc::CastOpMode::Unsigned);
+      }
       rewriter.replaceOp(sizeOp, v);
       return success();
     }
@@ -2295,6 +2344,50 @@ LogicalResult cudaq::cc::UnwindReturnOp::verify() {
   for (auto p : llvm::zip(getOperands().getTypes(), resultTypes))
     if (std::get<0>(p) != std::get<1>(p))
       return emitOpError("argument type mismatch with function/lambda result");
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
+// VarargCallOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult
+cudaq::cc::VarargCallOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
+  // Check that the callee attribute was specified.
+  auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("callee");
+  if (!fnAttr)
+    return emitOpError("requires a 'callee' symbol reference attribute");
+  LLVM::LLVMFuncOp fn =
+      symbolTable.lookupNearestSymbolFrom<LLVM::LLVMFuncOp>(*this, fnAttr);
+  if (!fn)
+    return emitOpError() << "'" << fnAttr.getValue()
+                         << "' does not reference a valid LLVM function";
+
+  // Verify that the operand and result types match the callee.
+  auto fnType = fn.getFunctionType();
+  if (fnType.getNumParams() > getNumOperands())
+    return emitOpError("incorrect number of operands for callee");
+
+  for (unsigned i = 0, e = fnType.getNumParams(); i != e; ++i)
+    if (getOperand(i).getType() != fnType.getParams()[i]) {
+      return emitOpError("operand type mismatch: expected operand type ")
+             << fnType.getParams()[i] << ", but provided "
+             << getOperand(i).getType() << " for operand number " << i;
+    }
+
+  if (fnType.getReturnType() == LLVM::LLVMVoidType::get(getContext()) &&
+      getNumResults() == 0)
+    return success();
+
+  if (getNumResults() > 1)
+    return emitOpError("wrong number of result types: ") << getNumResults();
+
+  if (getResult(1).getType() != fnType.getReturnType()) {
+    auto diag = emitOpError("result type mismatch ");
+    diag.attachNote() << "      op result types: " << getResultTypes();
+    diag.attachNote() << "function result types: " << fnType.getReturnType();
+    return diag;
+  }
   return success();
 }
 
