@@ -9,34 +9,28 @@
 #include "cudm_time_stepper.h"
 #include "cudm_error_handling.h"
 #include "cudm_helpers.h"
-#include <iostream>
 
 namespace cudaq {
-cudm_time_stepper::cudm_time_stepper(cudensitymatHandle_t handle,
-                                     cudensitymatOperator_t liouvillian)
-    : handle_(handle), liouvillian_(liouvillian) {}
+cudmStepper::cudmStepper(cudensitymatHandle_t handle,
+                         cudensitymatOperator_t liouvillian)
+    : m_handle(handle), m_liouvillian(liouvillian){};
 
-cudm_state cudm_time_stepper::compute(cudm_state &state, double t,
-                                      double step_size) {
+state cudmStepper::compute(
+    const state &inputState, double t, double step_size,
+    const std::unordered_map<std::string, std::complex<double>> &parameters) {
   if (step_size == 0.0) {
     throw std::runtime_error("Step size cannot be zero.");
   }
 
-  if (!state.is_initialized()) {
-    throw std::runtime_error("State is not initialized.");
-  }
-
-  if (!handle_) {
-    throw std::runtime_error("cudm_time_stepper handle is not initialized.");
-  }
-
-  if (!liouvillian_) {
-    throw std::runtime_error("Liouvillian is not initialized.");
-  }
-
+  auto *simState =
+      cudaq::state_helper::getSimulationState(const_cast<state *>(&inputState));
+  auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
+  if (!castSimState)
+    throw std::runtime_error("Invalid state.");
+  CuDensityMatState &state = *castSimState;
   // Prepare workspace
   cudensitymatWorkspaceDescriptor_t workspace;
-  HANDLE_CUDM_ERROR(cudensitymatCreateWorkspace(handle_, &workspace));
+  HANDLE_CUDM_ERROR(cudensitymatCreateWorkspace(m_handle, &workspace));
 
   // Query free gpu memory and allocate workspace buffer
   std::size_t freeMem = 0, totalMem = 0;
@@ -45,27 +39,27 @@ cudm_state cudm_time_stepper::compute(cudm_state &state, double t,
   freeMem = static_cast<std::size_t>(static_cast<double>(freeMem) * 0.80);
 
   // Create a new state for the next step
-  cudm_state next_state = cudm_state::zero_like(state);
+  auto next_state = CuDensityMatState::zero_like(state);
 
   if (!next_state.is_initialized()) {
     throw std::runtime_error("Next state failed to initialize.");
   }
 
   if (state.get_hilbert_space_dims() != next_state.get_hilbert_space_dims()) {
-    throw std::runtime_error(
-        "As the dimensions of both the old and the new state do no match, the "
-        "operator cannot act on the states.");
+    throw std::runtime_error("As the dimensions of both the old and the new "
+                             "state do no match, the "
+                             "operator cannot act on the states.");
   }
 
   // Prepare the operator for action
   HANDLE_CUDM_ERROR(cudensitymatOperatorPrepareAction(
-      handle_, liouvillian_, state.get_impl(), next_state.get_impl(),
+      m_handle, m_liouvillian, state.get_impl(), next_state.get_impl(),
       CUDENSITYMAT_COMPUTE_64F, freeMem, workspace, 0x0));
 
   // Query required workspace buffer size
   std::size_t requiredBufferSize = 0;
   HANDLE_CUDM_ERROR(cudensitymatWorkspaceGetMemorySize(
-      handle_, workspace, CUDENSITYMAT_MEMSPACE_DEVICE,
+      m_handle, workspace, CUDENSITYMAT_MEMSPACE_DEVICE,
       CUDENSITYMAT_WORKSPACE_SCRATCH, &requiredBufferSize));
 
   void *workspaceBuffer = nullptr;
@@ -78,14 +72,14 @@ cudm_state cudm_time_stepper::compute(cudm_state &state, double t,
 
     // Attach workspace buffer
     HANDLE_CUDM_ERROR(cudensitymatWorkspaceSetMemory(
-        handle_, workspace, CUDENSITYMAT_MEMSPACE_DEVICE,
+        m_handle, workspace, CUDENSITYMAT_MEMSPACE_DEVICE,
         CUDENSITYMAT_WORKSPACE_SCRATCH, workspaceBuffer, requiredBufferSize));
   }
 
   // Apply the operator action
   HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
   HANDLE_CUDM_ERROR(cudensitymatOperatorComputeAction(
-      handle_, liouvillian_, t, 0, nullptr, state.get_impl(),
+      m_handle, m_liouvillian, t, 0, nullptr, state.get_impl(),
       next_state.get_impl(), workspace, 0x0));
   HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
 
@@ -93,6 +87,8 @@ cudm_state cudm_time_stepper::compute(cudm_state &state, double t,
   cudm_helper::destroy_array_gpu(workspaceBuffer);
   HANDLE_CUDM_ERROR(cudensitymatDestroyWorkspace(workspace));
 
-  return next_state;
+  return cudaq::state(
+      std::make_unique<CuDensityMatState>(std::move(next_state)).release());
 }
+
 } // namespace cudaq

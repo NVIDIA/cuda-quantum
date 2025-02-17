@@ -7,7 +7,7 @@
 //  ******************************************************************************/
 
 #include "CuDensityMatState.h"
-#include "cudaq/runge_kutta_integrator.h"
+#include "cudaq/dynamics_integrators.h"
 #include "cudm_helpers.h"
 #include "cudm_time_stepper.h"
 #include "test_mocks.h"
@@ -21,8 +21,7 @@ class RungeKuttaIntegratorTest : public ::testing::Test {
 protected:
   cudensitymatHandle_t handle_;
   cudensitymatOperator_t liouvillian_;
-  std::shared_ptr<cudm_time_stepper> time_stepper_;
-  std::unique_ptr<runge_kutta_integrator> integrator_;
+  std::unique_ptr<runge_kutta> integrator_;
   std::unique_ptr<cudm_state> state_;
 
   void SetUp() override {
@@ -32,10 +31,6 @@ protected:
     // Create a mock Liouvillian
     liouvillian_ = mock_liouvillian(handle_);
 
-    // Initialize the time stepper
-    time_stepper_ = std::make_shared<cudm_time_stepper>(handle_, liouvillian_);
-    ASSERT_NE(time_stepper_, nullptr);
-
     // Create initial state
     state_ = std::make_unique<cudm_state>(handle_, mock_initial_state_data(),
                                           mock_hilbert_space_dims());
@@ -44,9 +39,9 @@ protected:
 
     double t0 = 0.0;
     // Initialize the integrator (using substeps = 4, for Runge-Kutta method)
-    ASSERT_NO_THROW(integrator_ = std::make_unique<runge_kutta_integrator>(
-                        std::move(*state_), t0, time_stepper_, 4));
+    ASSERT_NO_THROW(integrator_ = std::make_unique<runge_kutta>());
     ASSERT_NE(integrator_, nullptr);
+    integrator_->order = 4;
   }
 
   void TearDown() override {
@@ -63,7 +58,7 @@ TEST_F(RungeKuttaIntegratorTest, Initialization) {
 
 // Integration with Euler Method (substeps = 1)
 TEST_F(RungeKuttaIntegratorTest, EulerIntegration) {
-  // auto integrator = std::make_unique<runge_kutta_integrator>(
+  // auto integrator = std::make_unique<runge_kutta>(
   //     cudm_state(handle_, mock_initial_state_data(),
   //     mock_hilbert_space_dims()), 0.0, time_stepper_, 1);
   // integrator->set_option("dt", 0.1);
@@ -72,7 +67,7 @@ TEST_F(RungeKuttaIntegratorTest, EulerIntegration) {
 
 // Integration with Midpoint Rule (substeps = 2)
 TEST_F(RungeKuttaIntegratorTest, MidpointIntegration) {
-  // auto midpointIntegrator = std::make_unique<runge_kutta_integrator>(
+  // auto midpointIntegrator = std::make_unique<runge_kutta>(
   //     cudm_state(handle_, mock_initial_state_data(),
   //     mock_hilbert_space_dims()), 0.0, time_stepper_, 2);
   // midpointIntegrator->set_option("dt", 0.1);
@@ -112,7 +107,7 @@ TEST_F(RungeKuttaIntegratorTest, MultipleIntegrationSteps) {
 
 // Missing Time Step (dt)
 TEST_F(RungeKuttaIntegratorTest, MissingTimeStepOption) {
-  // auto integrator_missing_dt = std::make_unique<runge_kutta_integrator>(
+  // auto integrator_missing_dt = std::make_unique<runge_kutta>(
   //     cudm_state(handle_, mock_initial_state_data(),
   //     mock_hilbert_space_dims()), 0.0, time_stepper_, 2);
 
@@ -144,7 +139,7 @@ TEST_F(RungeKuttaIntegratorTest, LargeTimeStep) {
 
 // Invalid Substeps
 TEST_F(RungeKuttaIntegratorTest, InvalidSubsteps) {
-  // EXPECT_THROW(std::make_unique<runge_kutta_integrator>(
+  // EXPECT_THROW(std::make_unique<runge_kutta>(
   //                  cudm_state(handle_, mock_initial_state_data(),
   //                             mock_hilbert_space_dims()),
   //                  0.0, time_stepper_, 3),
@@ -153,39 +148,38 @@ TEST_F(RungeKuttaIntegratorTest, InvalidSubsteps) {
 
 TEST_F(RungeKuttaIntegratorTest, CheckEvolve) {
   cudm_helper helper(handle_);
-  const std::vector<std::complex<double>> initialState = {{1.0, 0.0},
+  const std::vector<std::complex<double>> initialStateVec = {{1.0, 0.0},
                                                           {0.0, 0.0}};
   const std::vector<int64_t> dims = {2};
   auto spin_op_x = cudaq::spin_operator::x(0);
+  cudaq::product_operator<cudaq::matrix_operator> ham1 = 2.0 * M_PI * 0.1 * spin_op_x;
+  cudaq::operator_sum<cudaq::matrix_operator> ham(ham1);
+  SystemDynamics system;
+  system.hamiltonian = &ham;
+  system.modeExtents = dims;
 
   for (int integratorOrder : {1, 2, 4}) {
     std::cout << "Test RK order " << integratorOrder << "\n";
-    cudaq::product_operator<cudaq::matrix_operator> ham1 =
-        (std::complex<double>{0.0, -1.0} * 2.0 * M_PI * 0.1 * spin_op_x);
-    cudaq::operator_sum<cudaq::matrix_operator> ham(ham1);
-    auto cudmOp =
-        helper.convert_to_cudensitymat_operator<cudaq::matrix_operator>({}, ham,
-                                                                        dims);
-    auto time_stepper = std::make_shared<cudm_time_stepper>(handle_, cudmOp);
-
-    auto integrator = std::make_unique<runge_kutta_integrator>(
-        cudm_state(handle_, initialState, dims), 0.0, time_stepper,
-        integratorOrder);
-    integrator->dt = 0.001;
-
+    cudaq::runge_kutta integrator;
+    integrator.dt = 0.001;
+    integrator.order = integratorOrder;
     constexpr std::size_t numDataPoints = 10;
     double t = 0.0;
+    auto initialState = cudaq::state::from_data(initialStateVec);
+    // initialState.dump();
+    auto *simState = cudaq::state_helper::getSimulationState(&initialState);
+    auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
+    EXPECT_TRUE(castSimState != nullptr);
+    castSimState->initialize_cudm(handle_, dims);
+    integrator.set_state(initialState, 0.0);
+    integrator.set_system(system);
     std::vector<std::complex<double>> outputStateVec(2);
     for (std::size_t i = 1; i < numDataPoints; ++i) {
-      integrator->integrate(i);
-      auto [t, statePtr] = integrator->get_cudm_state();
-      auto &state = *statePtr;
+      integrator.integrate(i);
+      auto [t, state] = integrator.get_state();
       // std::cout << "Time = " << t << "\n";
-      // state.dumpDeviceData();
-      HANDLE_CUDA_ERROR(
-          cudaMemcpy(outputStateVec.data(), state.get_device_pointer(),
-                     outputStateVec.size() * sizeof(std::complex<double>),
-                     cudaMemcpyDefault));
+      // state.dump();
+      state.to_host(outputStateVec.data(), outputStateVec.size());
       // Check state vector norm
       EXPECT_NEAR(std::norm(outputStateVec[0]) + std::norm(outputStateVec[1]),
                   1.0, 1e-2);
@@ -195,8 +189,6 @@ TEST_F(RungeKuttaIntegratorTest, CheckEvolve) {
       EXPECT_NEAR(outputStateVec[0].real(), std::cos(2.0 * M_PI * 0.1 * t),
                   1e-2);
     }
-
-    HANDLE_CUDM_ERROR(cudensitymatDestroyOperator(cudmOp));
   }
 
   // Add test to test tensor_callback
