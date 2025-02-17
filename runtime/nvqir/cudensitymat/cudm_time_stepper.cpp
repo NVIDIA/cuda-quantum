@@ -77,10 +77,17 @@ state cudmStepper::compute(
   }
 
   // Apply the operator action
+  std::map<std::string, std::complex<double>> sortedParameters(
+      parameters.begin(), parameters.end());
+  std::vector<double> paramValues;
+  for (const auto &[k, v] : sortedParameters) {
+    paramValues.emplace_back(v.real());
+    paramValues.emplace_back(v.imag());
+  }
   HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
   HANDLE_CUDM_ERROR(cudensitymatOperatorComputeAction(
-      m_handle, m_liouvillian, t, 0, nullptr, state.get_impl(),
-      next_state.get_impl(), workspace, 0x0));
+      m_handle, m_liouvillian, t, paramValues.size(), paramValues.data(),
+      state.get_impl(), next_state.get_impl(), workspace, 0x0));
   HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
 
   // Cleanup
