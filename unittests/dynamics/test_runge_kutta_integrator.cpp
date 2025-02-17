@@ -6,8 +6,9 @@
 //  * the terms of the Apache License 2.0 which accompanies this distribution. *
 //  ******************************************************************************/
 
+#include "CuDensityMatState.h"
 #include "cudaq/runge_kutta_integrator.h"
-#include "cudm_state.h"
+#include "cudm_helpers.h"
 #include "cudm_time_stepper.h"
 #include "test_mocks.h"
 #include <cmath>

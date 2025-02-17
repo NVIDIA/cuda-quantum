@@ -9,7 +9,7 @@
 #include <complex>
 #include <cudm_error_handling.h>
 #include <cudm_helpers.h>
-#include <cudm_state.h>
+#include "CuDensityMatState.h"
 #include <gtest/gtest.h>
 #include <stdexcept>
 #include <vector>
@@ -55,7 +55,7 @@ TEST_F(CuDensityMatStateTest, InitializeWithStateVector) {
 
   EXPECT_TRUE(state.is_initialized());
   EXPECT_FALSE(state.is_density_matrix());
-  EXPECT_NO_THROW(state.dump());
+  EXPECT_NO_THROW(state.dump(std::cout));
 }
 
 TEST_F(CuDensityMatStateTest, InitializeWithDensityMatrix) {
@@ -63,7 +63,7 @@ TEST_F(CuDensityMatStateTest, InitializeWithDensityMatrix) {
 
   EXPECT_TRUE(state.is_initialized());
   EXPECT_TRUE(state.is_density_matrix());
-  EXPECT_NO_THROW(state.dump());
+  EXPECT_NO_THROW(state.dump(std::cout));
 }
 
 TEST_F(CuDensityMatStateTest, InvalidInitialization) {
@@ -81,7 +81,7 @@ TEST_F(CuDensityMatStateTest, ToDensityMatrixConversion) {
   cudm_state densityMatrixState = state.to_density_matrix();
   EXPECT_TRUE(densityMatrixState.is_density_matrix());
   EXPECT_TRUE(densityMatrixState.is_initialized());
-  EXPECT_NO_THROW(densityMatrixState.dump());
+  EXPECT_NO_THROW(densityMatrixState.dump(std::cout));
 }
 
 TEST_F(CuDensityMatStateTest, AlreadyDensityMatrixConversion) {
@@ -113,7 +113,7 @@ TEST_F(CuDensityMatStateTest, ConversionForSingleQubitSystem) {
   cudm_state densityMatrixState = state.to_density_matrix();
   EXPECT_TRUE(densityMatrixState.is_density_matrix());
   EXPECT_TRUE(densityMatrixState.is_initialized());
-  EXPECT_NO_THROW(densityMatrixState.dump());
+  EXPECT_NO_THROW(densityMatrixState.dump(std::cout));
 }
 
 TEST_F(CuDensityMatStateTest, InvalidHilbertSpaceDims) {
@@ -131,5 +131,5 @@ TEST_F(CuDensityMatStateTest, ValidDensityMatrixState) {
 
 TEST_F(CuDensityMatStateTest, DumpWorksForInitializedState) {
   cudm_state state(handle, stateVectorData, hilbertSpaceDims);
-  EXPECT_NO_THROW(state.dump());
+  EXPECT_NO_THROW(state.dump(std::cout));
 }

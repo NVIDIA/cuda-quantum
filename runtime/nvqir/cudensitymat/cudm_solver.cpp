@@ -8,7 +8,7 @@
 
 #include "cudm_solver.h"
 #include "cudm_helpers.h"
-#include "cudm_state.h"
+#include "CuDensityMatState.h"
 #include "cudm_time_stepper.h"
 
 namespace cudaq {

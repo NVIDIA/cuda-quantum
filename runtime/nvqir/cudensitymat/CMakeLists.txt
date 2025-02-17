@@ -28,11 +28,12 @@ add_library(${LIBRARY_NAME} SHARED
   CuDensityMatSim.cpp 
   mpi_support.cpp
   cudm_helpers.cpp
-  cudm_state.cpp
+  # cudm_state.cpp
   cudm_time_stepper.cpp
   runge_kutta_integrator.cpp
   cudm_expectation.cpp
   cudm_evolution.cpp
+  CuDensityMatState.cpp
 )
 
 message("CUDAToolkit_INCLUDE_DIRS = ${CUDAToolkit_INCLUDE_DIRS}")
