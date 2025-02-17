@@ -8,20 +8,22 @@
 
 #pragma once
 
-#include "cudaq/base_time_stepper.h"
 #include "CuDensityMatState.h"
+#include "cudaq/base_time_stepper.h"
 #include <cudensitymat.h>
 
 namespace cudaq {
-class cudm_time_stepper : public BaseTimeStepper<cudm_state> {
+class cudmStepper : public TimeStepper {
 public:
-  explicit cudm_time_stepper(cudensitymatHandle_t handle,
-                             cudensitymatOperator_t liouvillian);
+  explicit cudmStepper(cudensitymatHandle_t handle,
+                       cudensitymatOperator_t liouvillian);
 
-  cudm_state compute(cudm_state &state, double t, double step_size);
+  state compute(const state &inputState, double t, double step_size,
+                const std::unordered_map<std::string, std::complex<double>>
+                    &parameters) override;
 
 private:
-  cudensitymatHandle_t handle_;
-  cudensitymatOperator_t liouvillian_;
+  cudensitymatHandle_t m_handle;
+  cudensitymatOperator_t m_liouvillian;
 };
 } // namespace cudaq
