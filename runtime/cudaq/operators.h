@@ -38,8 +38,6 @@ private:
   void insert(product_operator<HandlerTy> &&other);
   void insert(const product_operator<HandlerTy> &other);
 
-  void aggregate_all();
-
   void aggregate_terms();
 
   template <typename... Args>
@@ -49,15 +47,16 @@ private:
                              bool pad_terms = true) const;
 
 protected:
-  std::unordered_map<std::string, product_operator<HandlerTy>> tmap;
+
+  std::unordered_map<std::string, int> term_map; // quick access to term index given its id (used for aggregating terms)
+  std::vector<std::vector<HandlerTy>> terms;
+  std::vector<scalar_operator> coefficients;
 
   template <typename... Args,
             std::enable_if_t<std::conjunction<std::is_same<
                                  product_operator<HandlerTy>, Args>...>::value,
                              bool> = true>
   operator_sum(Args &&...args);
-
-  operator_sum(std::vector<product_operator<HandlerTy>> &&terms);
 
 public:
   // read-only properties
@@ -83,10 +82,10 @@ public:
   operator_sum(const operator_sum<T> &other);
 
   // copy constructor
-  operator_sum(const operator_sum<HandlerTy> &other);
+  operator_sum(const operator_sum<HandlerTy> &other, int size = 0);
 
   // move constructor
-  operator_sum(operator_sum<HandlerTy> &&other);
+  operator_sum(operator_sum<HandlerTy> &&other, int size = 0);
 
   ~operator_sum() = default;
 
@@ -271,19 +270,13 @@ private:
  
   typename std::vector<HandlerTy>::const_iterator find_insert_at(const HandlerTy &other) const;
 
-  template <typename T,
-            std::enable_if_t<std::is_same<HandlerTy, T>::value &&
-                                 !product_operator<T>::supports_inplace_mult,
-                             int> = 0>
-  void insert(T &&other, bool update_id);
+  template<typename T, std::enable_if_t<std::is_same<HandlerTy, T>::value && !product_operator<T>::supports_inplace_mult, int> = 0>
+  void insert(T &&other);
 
-  template <typename T,
-            std::enable_if_t<std::is_same<HandlerTy, T>::value &&
-                                 product_operator<T>::supports_inplace_mult,
-                             bool> = true>
-  void insert(T &&other, bool update_id);
+  template <typename T, std::enable_if_t<std::is_same<HandlerTy, T>::value && product_operator<T>::supports_inplace_mult, bool> = true>
+  void insert(T &&other);
 
-  void update_id();
+  std::string get_term_id() const;
 
   void aggregate_terms();
 
@@ -296,7 +289,6 @@ private:
 protected:
   std::vector<HandlerTy> operators;
   scalar_operator coefficient;
-  std::string term_id;
 
   template <typename... Args,
             std::enable_if_t<
@@ -304,17 +296,11 @@ protected:
                 bool> = true>
   product_operator(scalar_operator coefficient, Args &&...args);
 
-  // keep this constructor protected (otherwise it needs to ensure canonical
-  // order)
-  product_operator(scalar_operator coefficient,
-                   const std::vector<HandlerTy> &atomic_operators,
-                   const std::string &term_id);
+  // keep this constructor protected (otherwise it needs to ensure canonical order)
+  product_operator(scalar_operator coefficient, const std::vector<HandlerTy> &atomic_operators);
 
-  // keep this constructor protected (otherwise it needs to ensure canonical
-  // order)
-  product_operator(scalar_operator coefficient,
-                   std::vector<HandlerTy> &&atomic_operators,
-                   std::string &&term_id);
+  // keep this constructor protected (otherwise it needs to ensure canonical order)
+  product_operator(scalar_operator coefficient, std::vector<HandlerTy> &&atomic_operators);
 
 public:
   // read-only properties
@@ -345,10 +331,10 @@ public:
   product_operator(const product_operator<T> &other);
 
   // copy constructor
-  product_operator(const product_operator<HandlerTy> &other);
+  product_operator(const product_operator<HandlerTy> &other, int size = 0);
 
   // move constructor
-  product_operator(product_operator<HandlerTy> &&other);
+  product_operator(product_operator<HandlerTy> &&other, int size = 0);
 
   ~product_operator() = default;
 
@@ -401,7 +387,8 @@ public:
 
   product_operator<HandlerTy> operator-() const &;
   product_operator<HandlerTy> operator-() &&;
-  product_operator<HandlerTy> operator+() const;
+  product_operator<HandlerTy> operator+() const &;
+  product_operator<HandlerTy> operator+() &&;
 
   // right-hand arithmetics
 

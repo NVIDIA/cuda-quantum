@@ -32,7 +32,6 @@ private:
 protected:
   std::vector<int> targets;
   std::string op_code;
-  std::string id;
 
   matrix_operator(std::string operator_id, const std::vector<int> &degrees);
   matrix_operator(std::string operator_id, std::vector<int> &&degrees);
@@ -92,7 +91,7 @@ public:
 
   // read-only properties
 
-  virtual const std::string &unique_id() const;
+  virtual std::string unique_id() const;
 
   /// @brief The degrees of freedom that the operator acts on in canonical
   /// order.
