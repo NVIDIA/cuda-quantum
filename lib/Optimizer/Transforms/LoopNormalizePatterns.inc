@@ -1,4 +1,4 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -13,8 +13,8 @@
 // identifiers from that namespace.
 
 // Return true if \p loop is not monotonic or it is an invariant loop.
-// Normalization is to be done on any loop that is monotonic and not
-// invariant (which includes loops that are already in counted form).
+// Normalization is to be done on any loop that is monotonic and not invariant
+// (which includes loops that are already in counted form).
 static bool isNotMonotonicOrInvariant(cudaq::cc::LoopOp loop,
                                       bool allowClosedInterval,
                                       bool allowEarlyExit) {
@@ -32,7 +32,8 @@ public:
 
   LogicalResult matchAndRewrite(cudaq::cc::LoopOp loop,
                                 PatternRewriter &rewriter) const override {
-    if (loop->hasAttr(cudaq::opt::NormalizedLoopAttr))
+    if (loop->hasAttr(cudaq::opt::NormalizedLoopAttr) ||
+        loop->hasAttr(cudaq::opt::DeadLoopAttr))
       return failure();
     if (isNotMonotonicOrInvariant(loop, allowClosedInterval, allowEarlyExit))
       return failure();
@@ -42,6 +43,19 @@ public:
     auto componentsOpt = cudaq::opt::getLoopComponents(loop);
     assert(componentsOpt && "loop must have components");
     auto c = *componentsOpt;
+    if (c.hasAlwaysTrueCondition()) {
+      loop->emitWarning("Loop condition is always true. This loop is not "
+                        "supported in a kernel.");
+      return failure();
+    }
+
+    if (c.hasAlwaysFalseCondition()) {
+      rewriter.startRootUpdate(loop);
+      rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(c.compareOp, 0, 1);
+      loop->setAttr(cudaq::opt::DeadLoopAttr, rewriter.getUnitAttr());
+      rewriter.finalizeRootUpdate(loop);
+      return success();
+    }
     auto loc = loop.getLoc();
 
     // 1) Set initial value to 0.
@@ -104,11 +118,13 @@ public:
     Value diff = rewriter.create<arith::SubIOp>(loc, upper, lower);
     Value disp = rewriter.create<arith::AddIOp>(loc, diff, step);
     auto cmpOp = cast<arith::CmpIOp>(c.compareOp);
-    Value up1 = rewriter.create<arith::DivSIOp>(loc, disp, step);
-    Value noLoopCond = rewriter.create<arith::CmpIOp>(
-        loc, arith::CmpIPredicate::sgt, up1, zero);
-    Value newUpper =
-        rewriter.create<arith::SelectOp>(loc, ty, noLoopCond, up1, zero);
+    Value newUpper = rewriter.create<arith::DivSIOp>(loc, disp, step);
+    if (cudaq::opt::isSignedPredicate(cmpOp.getPredicate())) {
+      Value noLoopCond = rewriter.create<arith::CmpIOp>(
+          loc, arith::CmpIPredicate::sgt, newUpper, zero);
+      newUpper =
+          rewriter.create<arith::SelectOp>(loc, ty, noLoopCond, newUpper, zero);
+    }
 
     // 3) Rewrite the comparison (!=) and step operations (+1).
     Value v1 = c.getCompareInduction();
