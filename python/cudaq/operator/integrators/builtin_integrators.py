@@ -109,7 +109,7 @@ class RungeKuttaIntegrator(BaseIntegrator[CudmStateType]):
             k1 = self.stepper.compute(self.state, current_t)
             if self.order == 1:
                 # First order Euler method
-                k1.inplace_scale(dt / 6)
+                k1.inplace_scale(dt)
                 self.state.inplace_accumulate(k1)
             else:
                 # Continue computing the higher-order terms
