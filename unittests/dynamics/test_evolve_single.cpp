@@ -6,10 +6,10 @@
 //  * the terms of the Apache License 2.0 which accompanies this distribution. *
 //  ******************************************************************************/
 
+#include "CuDensityMatState.h"
 #include "common/EigenDense.h"
+#include "cudaq/dynamics_integrators.h"
 #include "cudaq/evolution.h"
-#include "cudaq/runge_kutta_integrator.h"
-#include "cudm_state.h"
 #include <cmath>
 #include <gtest/gtest.h>
 #include <iostream>
@@ -30,7 +30,7 @@ TEST(EvolveTester, checkSimple) {
   auto initialState =
       cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
 
-  cudaq::runge_kutta_integrator integrator;
+  cudaq::runge_kutta integrator;
   integrator.dt = 0.001;
   integrator.order = 1;
   auto result = cudaq::evolve_single(ham, dims, schedule, initialState,
@@ -50,7 +50,7 @@ TEST(EvolveTester, checkSimple) {
   }
 }
 
-TEST(EvolveTester, checkSimpleDensityMatrix) {
+TEST(EvolveTester, checkDensityMatrixSimple) {
   const std::map<int, int> dims = {{0, 2}};
   cudaq::product_operator<cudaq::matrix_operator> ham1 =
       (2.0 * M_PI * 0.1 * cudaq::spin_operator::x(0));
@@ -65,7 +65,7 @@ TEST(EvolveTester, checkSimpleDensityMatrix) {
   auto initialState = cudaq::state::from_data(
       std::vector<std::complex<double>>{1.0, 0.0, 0.0, 0.0});
 
-  cudaq::runge_kutta_integrator integrator;
+  cudaq::runge_kutta integrator;
   integrator.dt = 0.001;
   integrator.order = 1;
   auto result = cudaq::evolve_single(ham, dims, schedule, initialState,
@@ -117,7 +117,7 @@ TEST(EvolveTester, checkCompositeSystem) {
   cudaq::Schedule schedule(cudaq::linspace(0.0, 1, num_steps));
   auto initialState = cudaq::state::from_data(
       std::make_pair(initial_state_vec.data(), initial_state_vec.size()));
-  cudaq::runge_kutta_integrator integrator;
+  cudaq::runge_kutta integrator;
   integrator.dt = 0.001;
   integrator.order = 4;
 
@@ -172,7 +172,7 @@ TEST(EvolveTester, checkCompositeSystemWithCollapse) {
   cudaq::Schedule schedule(timeSteps);
   auto initialState =
       cudaq::state::from_data(std::make_pair(rho0.data(), rho0.size()));
-  cudaq::runge_kutta_integrator integrator;
+  cudaq::runge_kutta integrator;
   integrator.dt = 0.001;
   integrator.order = 4;
   constexpr double decayRate = 0.1;

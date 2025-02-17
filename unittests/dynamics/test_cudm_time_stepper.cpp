@@ -9,7 +9,7 @@
 #include "test_mocks.h"
 #include <cudm_error_handling.h>
 #include <cudm_helpers.h>
-#include <cudm_state.h>
+#include "CuDensityMatState.h"
 #include <cudm_time_stepper.h>
 #include <gtest/gtest.h>
 #include <iostream>
@@ -139,7 +139,7 @@ TEST_F(CuDensityMatTimeStepperTest, TimeSteppingWithLindblad) {
   auto output_state = time_stepper->compute(*input_state, 0.0, 1.0);
 
   std::cout << "Printing output_state ..." << std::endl;
-  output_state.dumpDeviceData();
+  output_state.dump(std::cout);
 
   std::vector<std::complex<double>> output_state_vec(100);
   HANDLE_CUDA_ERROR(

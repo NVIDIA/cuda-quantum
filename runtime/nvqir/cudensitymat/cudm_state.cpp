@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudm_state.h"
+#include "CuDensityMatState.h"
 #include "cudm_error_handling.h"
 #include <cassert>
 #include <cmath>

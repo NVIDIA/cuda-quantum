@@ -11,7 +11,7 @@
 #include <cudm_error_handling.h>
 #include <cudm_expectation.h>
 #include <cudm_helpers.h>
-#include <cudm_state.h>
+#include "CuDensityMatState.h"
 #include <gtest/gtest.h>
 #include <iostream>
 #include <memory>

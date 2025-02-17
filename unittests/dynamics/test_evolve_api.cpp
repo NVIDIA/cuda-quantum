@@ -28,22 +28,21 @@ TEST(EvolveAPITester, checkSimple) {
       cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
 
   auto integrator = std::make_shared<cudaq::runge_kutta>();
-  integrator->dt = 0.001;
   integrator->order = 1;
+  integrator->dt = 0.001;
   auto result = cudaq::evolve(ham, dims, schedule, initialState, integrator, {},
                               {pauliZ}, true);
-  // TODO: enable runge_kutta (fixing the dependency to cudm types)
-  // EXPECT_TRUE(result.get_expectation_values().has_value());
-  // EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
-  // std::vector<double> theoryResults;
-  // for (const auto &t : schedule) {
-  //   const double expected = std::cos(2 * 2.0 * M_PI * 0.1 * t);
-  //   theoryResults.emplace_back(expected);
-  // }
+  EXPECT_TRUE(result.get_expectation_values().has_value());
+  EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
+  std::vector<double> theoryResults;
+  for (const auto &t : schedule) {
+    const double expected = std::cos(2 * 2.0 * M_PI * 0.1 * t);
+    theoryResults.emplace_back(expected);
+  }
 
-  // int count = 0;
-  // for (auto expVals : result.get_expectation_values().value()) {
-  //   EXPECT_EQ(expVals.size(), 1);
-  //   EXPECT_NEAR((double)expVals[0], theoryResults[count++], 1e-3);
-  // }
+  int count = 0;
+  for (auto expVals : result.get_expectation_values().value()) {
+    EXPECT_EQ(expVals.size(), 1);
+    EXPECT_NEAR((double)expVals[0], theoryResults[count++], 1e-3);
+  }
 }

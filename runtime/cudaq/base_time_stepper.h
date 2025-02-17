@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #pragma once
+#include "cudaq/qis/state.h"
 
 namespace cudaq {
 template <typename TState>
@@ -20,5 +21,15 @@ public:
   /// @param step_size Time step size.
   /// @return The updated quantum state after stepping.
   virtual TState compute(TState &state, double t, double step_size) = 0;
+};
+
+class TimeStepper {
+public:
+  virtual ~TimeStepper() = default;
+
+  virtual state
+  compute(const state &inputState, double t, double step_size,
+          const std::unordered_map<std::string, std::complex<double>>
+              &parameters) = 0;
 };
 } // namespace cudaq
