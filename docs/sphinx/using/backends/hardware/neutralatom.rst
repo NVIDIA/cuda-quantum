@@ -130,6 +130,63 @@ Submitting
 
 
 
+Pasqal
+++++++++++++++++
+
+Pasqal's QPU is an an analog quantum simulator
+https://quantum-journal.org/papers/q-2020-09-21-327/
+https://quantum-journal.org/papers/q-2022-01-24-629/
+
+.. _pasqal-backend:
+
+Setting Credentials
+```````````````````
+
+Use in Python
+https://github.com/pasqal-io/pasqal-cloud
+
+Alternatively, users can set the following environment variables.
+
+.. code:: bash
+
+  export PASQAL_TOKEN=<>
+
+Submission from Python
+`````````````````````````
+
+The target to which quantum kernels are submitted 
+can be controlled with the ``cudaq::set_target()`` function.
+
+.. code:: python
+
+    cudaq.set_target('pasqal')
+
+
+Due to the nature of the underlying hardware, this target only supports the 
+``evolve`` and ``evolve_async`` APIs.
+The `hamiltonian` must be an `Operator` of the type `RydbergHamiltonian`. Only 
+other parameters supported are `schedule` (mandatory) and `shots_count` (optional).
+
+For example,
+
+.. code:: python
+
+    evolution_result = evolve(RydbergHamiltonian(atom_sites=register,
+                                                 amplitude=omega,
+                                                 phase=phi,
+                                                 delta_global=delta),
+                               schedule=schedule)
+
+The number of shots for a kernel execution can be set through the ``shots_count``
+argument to ``evolve`` or ``evolve_async``. By default, the ``shots_count`` is 
+set to 100.
+
+.. code:: python 
+
+    cudaq.evolve(RydbergHamiltonian(...), schedule=s, shots_count=1000)
+
+To see a complete example for using QuEra's backend, take a look at our :doc:`Python examples <../../examples/hardware_providers>`.
+
 
 QuEra Computing
 ++++++++++++++++
