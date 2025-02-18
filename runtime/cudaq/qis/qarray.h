@@ -107,7 +107,7 @@ public:
 
 } // namespace cudaq
 
-// enable one to get the size of the qarray at 
+// enable one to get the size of the qarray at
 // compile time with std::tuple_size<qarray>
 namespace std {
 template <std::size_t N, std::size_t Levels>
