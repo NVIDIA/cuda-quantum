@@ -32,7 +32,7 @@ std::string boson_operator::op_code_to_string() const {
   return std::move(str);
 }
 
-bool boson_operator::_inplace_mult(const boson_operator &other) {
+bool boson_operator::inplace_mult(const boson_operator &other) {
   if (this->a != 0 && other.ad != 0) return false;
   this->a += other.a;
   this->ad += other.ad;
