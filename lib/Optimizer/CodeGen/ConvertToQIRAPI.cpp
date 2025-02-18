@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -1405,22 +1405,6 @@ struct CondBranchOpPattern : public OpConversionPattern<cf::CondBranchOp> {
   }
 };
 
-struct CallableClosurePattern
-    : public OpConversionPattern<cudaq::cc::CallableClosureOp> {
-  using OpConversionPattern::OpConversionPattern;
-
-  LogicalResult
-  matchAndRewrite(cudaq::cc::CallableClosureOp op, OpAdaptor adaptor,
-                  ConversionPatternRewriter &rewriter) const override {
-    SmallVector<Type> newTys;
-    for (auto ty : op.getResultTypes())
-      newTys.push_back(getTypeConverter()->convertType(ty));
-    rewriter.replaceOpWithNewOp<cudaq::cc::CallableClosureOp>(
-        op, newTys, adaptor.getCallable());
-    return success();
-  }
-};
-
 //===----------------------------------------------------------------------===//
 // Patterns that are common to all QIR conversions.
 //===----------------------------------------------------------------------===//
@@ -1428,14 +1412,13 @@ struct CallableClosurePattern
 static void commonClassicalHandlingPatterns(RewritePatternSet &patterns,
                                             TypeConverter &typeConverter,
                                             MLIRContext *ctx) {
-  patterns.insert<
-      AllocaOpPattern, BranchOpPattern, CallableClosurePattern,
-      CallableFuncPattern, CallCallableOpPattern, CallIndirectCallableOpPattern,
-      CallIndirectOpPattern, CallOpPattern, CallVarargOpPattern, CastOpPattern,
-      CondBranchOpPattern, CreateLambdaPattern, FuncConstantPattern,
-      FuncSignaturePattern, FuncToPtrPattern, InstantiateCallablePattern,
-      LoadOpPattern, PoisonOpPattern, StoreOpPattern, UndefOpPattern>(
-      typeConverter, ctx);
+  patterns.insert<AllocaOpPattern, BranchOpPattern, CallableFuncPattern,
+                  CallCallableOpPattern, CallIndirectCallableOpPattern,
+                  CallIndirectOpPattern, CallOpPattern, CallVarargOpPattern,
+                  CastOpPattern, CondBranchOpPattern, CreateLambdaPattern,
+                  FuncConstantPattern, FuncSignaturePattern, FuncToPtrPattern,
+                  InstantiateCallablePattern, LoadOpPattern, PoisonOpPattern,
+                  StoreOpPattern, UndefOpPattern>(typeConverter, ctx);
 }
 
 static void commonQuakeHandlingPatterns(RewritePatternSet &patterns,
@@ -1654,8 +1637,8 @@ struct QuakeToQIRAPIPass
       return !hasQuakeType(fn.getFunctionType()) &&
              (!fn->hasAttr(cudaq::kernelAttrName) || fn->hasAttr(FuncIsQIRAPI));
     });
-    target.addDynamicallyLegalOp<func::ConstantOp>([&](func::ConstantOp op) {
-      return !hasQuakeType(op.getResult().getType());
+    target.addDynamicallyLegalOp<func::ConstantOp>([&](func::ConstantOp fn) {
+      return !hasQuakeType(fn.getResult().getType());
     });
     target.addDynamicallyLegalOp<cudaq::cc::UndefOp, cudaq::cc::PoisonOp>(
         [&](Operation *op) {
