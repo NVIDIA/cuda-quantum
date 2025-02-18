@@ -266,7 +266,7 @@ public:
         auto thunk = build.create<func::FuncOp>(
             loc, getThunkLambdaName(counter), funTy, emptyDict);
         thunk.setPrivate();
-	thunk->setAttr(cudaq::kernelAttrName, build.getUnitAttr());
+        thunk->setAttr(cudaq::kernelAttrName, build.getUnitAttr());
         auto *entry = thunk.addEntryBlock();
         build.setInsertionPointToEnd(entry);
         SmallVector<Value> callableArgs;
@@ -296,7 +296,7 @@ public:
         auto func = build.create<func::FuncOp>(
             loc, getLiftedLambdaName(counter), funTy, emptyDict);
         func.setPrivate();
-	func->setAttr(cudaq::kernelAttrName, build.getUnitAttr());
+        func->setAttr(cudaq::kernelAttrName, build.getUnitAttr());
         auto *entry = func.addEntryBlock();
         // Add entry block, block arguments for free variables to a renaming
         // map.
