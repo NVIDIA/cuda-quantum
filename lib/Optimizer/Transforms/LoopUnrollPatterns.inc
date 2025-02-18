@@ -1,4 +1,4 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -20,17 +20,24 @@ static std::size_t
 unrollLoopByValue(cudaq::cc::LoopOp loop,
                   const cudaq::opt::LoopComponents &components) {
   auto c = components.compareValue.getDefiningOp<arith::ConstantOp>();
-  return cast<IntegerAttr>(c.getValue()).getInt();
-}
-
-static std::size_t unrollLoopByValue(cudaq::cc::LoopOp loop) {
-  auto components = cudaq::opt::getLoopComponents(loop);
-  return unrollLoopByValue(loop, *components);
+  if (loop->hasAttr(cudaq::opt::NormalizedLoopAttr))
+    return cast<IntegerAttr>(c.getValue()).getInt();
+  if (components.hasAlwaysFalseCondition())
+    return 0;
+  auto resultOpt = components.getIterationsConstant();
+  assert(resultOpt.has_value() && "must be counted loop");
+  return *resultOpt;
 }
 
 static bool exceedsThresholdValue(cudaq::cc::LoopOp loop,
                                   std::size_t threshold) {
-  auto upperBound = unrollLoopByValue(loop);
+  auto components = cudaq::opt::getLoopComponents(loop);
+  if (components->hasAlwaysTrueCondition()) {
+    loop->emitWarning("Loop condition is always true. This loop is not "
+                      "supported in a kernel.");
+    return true;
+  }
+  auto upperBound = unrollLoopByValue(loop, *components);
   return upperBound >= threshold;
 }
 
@@ -58,6 +65,8 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
     // requires that all LoopOp operations be rewritten. Despite the setting of
     // this flag, it may not be possible to fully unroll every LoopOp anyway.
     // Check for cases that are clearly not going to be unrolled.
+    if (loop->hasAttr(cudaq::opt::DeadLoopAttr))
+      return failure();
     if (!allowBreak && !cudaq::opt::isaCountedLoop(loop)) {
       if (signalFailure)
         loop.emitOpError("not a simple counted loop");
@@ -82,8 +91,6 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
     auto components = cudaq::opt::getLoopComponents(loop);
     assert(components && "counted loop must have components");
     auto unrollBy = unrollLoopByValue(loop, *components);
-    if (components->isClosedIntervalForm())
-      ++unrollBy;
     Type inductionTy = loop.getOperands()[components->induction].getType();
     LLVM_DEBUG(llvm::dbgs()
                << "unrolling loop by " << unrollBy << " iterations\n");
