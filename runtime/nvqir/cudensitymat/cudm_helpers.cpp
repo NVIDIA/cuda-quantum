@@ -9,7 +9,6 @@
 #include "cudm_helpers.h"
 #include "common/Logger.h"
 #include "cudm_error_handling.h"
-#include <mutex>
 
 using namespace cudaq;
 
