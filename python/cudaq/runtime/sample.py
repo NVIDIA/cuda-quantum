@@ -99,6 +99,12 @@ Returns:
     while counts.get_total_shots() < shots_count:
         kernel(*args)
         cudaq_runtime.resetExecutionContext()
+        if counts.get_total_shots() == 0 and ctx.result.get_total_shots(
+        ) == shots_count:
+            # Early return for case where all shots were gathered in the first
+            # time through this loop. This avoids an additional copy.
+            cudaq_runtime.unset_noise()
+            return ctx.result
         counts += ctx.result
         if counts.get_total_shots() == 0:
             print("WARNING: this kernel invocation produced 0 shots worth " +
