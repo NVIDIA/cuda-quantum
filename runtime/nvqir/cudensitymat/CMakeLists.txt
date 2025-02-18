@@ -23,6 +23,7 @@ find_file(CUDENSITYMAT_INC
 )
 
 message(STATUS "cudensitymat header: ${CUDENSITYMAT_INC}")
+get_filename_component(CUDENSITYMAT_INCLUDE_DIR ${CUDENSITYMAT_INC} DIRECTORY)
 
 add_library(${LIBRARY_NAME} SHARED 
   CuDensityMatSim.cpp 
