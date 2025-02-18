@@ -2426,7 +2426,7 @@ class PyASTBridge(ast.NodeVisitor):
                     values.reverse()
                     # First one should be the number of Kraus channel parameters
                     numParamsVal = values[0]
-                    # Shrink the arguments down 
+                    # Shrink the arguments down
                     values = values[1:]
 
                     # Need to get the number of parameters as an integer
@@ -2443,15 +2443,15 @@ class PyASTBridge(ast.NodeVisitor):
                     # our Kraus channel parameters
                     params = values[:numParams]
                     for i, p in enumerate(params):
-                        # If we have a F64 value, we want to 
+                        # If we have a F64 value, we want to
                         # store it to a pointer
                         if F64Type.isinstance(p.type):
                             alloca = cc.AllocaOp(
                                 cc.PointerType.get(self.ctx, p.type),
                                 TypeAttr.get(p.type)).result
                             cc.StoreOp(p, alloca)
-                            params[i] = alloca 
-                    
+                            params[i] = alloca
+
                     # The remaining arguments are the qubits
                     qubits = values[numParams:]
                     quake.ApplyNoiseOp(params, qubits, key=key)
@@ -4188,8 +4188,8 @@ class PyASTBridge(ast.NodeVisitor):
 
             if issubclass(value, cudaq_runtime.KrausChannel):
                 # Here we have a KrausChannel as part of the AST
-                # We want to create a hash value from it, and 
-                # we then want to push the number of parameters and 
+                # We want to create a hash value from it, and
+                # we then want to push the number of parameters and
                 # that hash value. This can only be used with apply_noise
                 self.pushValue(self.getConstantInt(value.num_parameters))
                 self.pushValue(self.getConstantInt(hash(value)))
