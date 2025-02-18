@@ -153,12 +153,10 @@ public:
   static product_operator<matrix_operator> identity();
 
   static product_operator<matrix_operator> identity(int degree);
-  static product_operator<matrix_operator> annihilate(int degree);
-  static product_operator<matrix_operator> create(int degree);
-  static product_operator<matrix_operator> momentum(int degree);
   static product_operator<matrix_operator> number(int degree);
   static product_operator<matrix_operator> parity(int degree);
   static product_operator<matrix_operator> position(int degree);
+  static product_operator<matrix_operator> momentum(int degree);
   /// Operators that accept parameters at runtime.
   static product_operator<matrix_operator> squeeze(int degree);
   static product_operator<matrix_operator> displace(int degree);
