@@ -32,9 +32,7 @@ TEST(OperatorExpressions, checkElementaryOpsConversions) {
 
   auto checkProductEquals = [dimensions, parameters](
                               cudaq::product_operator<cudaq::matrix_operator> prod, 
-                              cudaq::matrix_2 expected, bool aggregated_prod = false) {
-    auto expected_num_terms = 2;
-    if (aggregated_prod) expected_num_terms = prod.degrees().size();
+                              cudaq::matrix_2 expected, int expected_num_terms = 2) {
     auto got = prod.to_matrix(dimensions, parameters);
     ASSERT_TRUE(prod.num_terms() == expected_num_terms);
     utils::checkEqual(got, expected);
@@ -69,8 +67,8 @@ TEST(OperatorExpressions, checkElementaryOpsConversions) {
   // `elementary * elementary`
   {
     checkProductEquals(matrix_elementary * matrix_elementary, matrix_elementary_expected * matrix_elementary_expected);
-    checkProductEquals(spin_elementary * spin_elementary, spin_elementary_expected * spin_elementary_expected, true);
-    checkProductEquals(boson_elementary * boson_elementary, boson_elementary_expected * boson_elementary_expected);
+    checkProductEquals(spin_elementary * spin_elementary, spin_elementary_expected * spin_elementary_expected, 1);
+    checkProductEquals(boson_elementary * boson_elementary, boson_elementary_expected * boson_elementary_expected, 1);
     checkProductEquals(matrix_elementary * spin_elementary, matrix_elementary_expected * spin_elementary_expected);
     checkProductEquals(spin_elementary * matrix_elementary, spin_elementary_expected * matrix_elementary_expected);
     checkProductEquals(matrix_elementary * boson_elementary, matrix_elementary_expected * boson_elementary_expected);
@@ -87,11 +85,11 @@ TEST(OperatorExpressions, checkElementaryOpsConversions) {
 
     auto spin_product = cudaq::product_operator(spin_elementary);
     spin_product *= spin_elementary;
-    checkProductEquals(spin_product, spin_elementary_expected * spin_elementary_expected, true);
+    checkProductEquals(spin_product, spin_elementary_expected * spin_elementary_expected, 1);
 
     auto boson_product = cudaq::product_operator(boson_elementary);
     boson_product *= boson_elementary;
-    checkProductEquals(boson_product, boson_elementary_expected * boson_elementary_expected);
+    checkProductEquals(boson_product, boson_elementary_expected * boson_elementary_expected, 1);
 
     matrix_product = cudaq::product_operator(matrix_elementary);
     matrix_product *= spin_elementary;
@@ -124,9 +122,7 @@ TEST(OperatorExpressions, checkProductOperatorConversions) {
 
   auto checkProductEquals = [dimensions, parameters](
                               cudaq::product_operator<cudaq::matrix_operator> prod, 
-                              cudaq::matrix_2 expected, bool aggregated_prod = false) {
-    auto expected_num_terms = 4;
-    if (aggregated_prod) expected_num_terms = prod.degrees().size();
+                              cudaq::matrix_2 expected, int expected_num_terms = 4) {
     auto got = prod.to_matrix(dimensions, parameters);
     ASSERT_TRUE(prod.num_terms() == expected_num_terms);
     utils::checkEqual(got, expected);
@@ -161,8 +157,8 @@ TEST(OperatorExpressions, checkProductOperatorConversions) {
   // `product * product`
   {
     checkProductEquals(matrix_product * matrix_product, matrix_product_expected * matrix_product_expected);
-    checkProductEquals(spin_product * spin_product, spin_product_expected * spin_product_expected, true);
-    checkProductEquals(boson_product * boson_product, boson_product_expected * boson_product_expected);
+    checkProductEquals(spin_product * spin_product, spin_product_expected * spin_product_expected, 2);
+    checkProductEquals(boson_product * boson_product, boson_product_expected * boson_product_expected, 3);
     checkProductEquals(matrix_product * spin_product, matrix_product_expected * spin_product_expected);
     checkProductEquals(spin_product * matrix_product, spin_product_expected * matrix_product_expected);
     checkProductEquals(matrix_product * boson_product, matrix_product_expected * boson_product_expected);
@@ -179,11 +175,11 @@ TEST(OperatorExpressions, checkProductOperatorConversions) {
 
     auto spin_product_0 = spin_product;
     spin_product_0 *= spin_product;
-    checkProductEquals(spin_product_0, spin_product_expected * spin_product_expected, true);
+    checkProductEquals(spin_product_0, spin_product_expected * spin_product_expected, 2);
 
     auto boson_product_0 = boson_product;
     boson_product_0 *= boson_product;
-    checkProductEquals(boson_product_0, boson_product_expected * boson_product_expected);
+    checkProductEquals(boson_product_0, boson_product_expected * boson_product_expected, 3);
 
     matrix_product_0 = matrix_product;
     matrix_product_0 *= spin_product;
