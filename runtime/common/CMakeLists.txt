@@ -86,6 +86,7 @@ endif()
 add_library(cudaq-mlir-runtime
   SHARED
     ArgumentConversion.cpp
+    StateAggregator.cpp
     Environment.cpp
     JIT.cpp
     Logger.cpp

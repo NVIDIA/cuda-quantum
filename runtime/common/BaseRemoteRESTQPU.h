@@ -16,6 +16,7 @@
 #include "common/Logger.h"
 #include "common/RestClient.h"
 #include "common/RuntimeMLIR.h"
+#include "common/StateAggregator.h"
 #include "cudaq.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
@@ -451,44 +452,51 @@ public:
       mlir::PassManager pm(&context);
       if (!rawArgs.empty()) {
         cudaq::info("Run Argument Synth.\n");
+
+        // Convert the arguments to the kernel.
         opt::ArgumentConverter argCon(kernelName, moduleOp);
         argCon.gen(rawArgs);
 
-        // For quantum devices, we've created a tree of ArgumentConverters
-        // with nodes corresponding to `init` and `num_qubits` functions
-        // created from a kernel that generated the state argument.
-        // Traverse the tree and collect substitutions for all those
-        // functions.
+        std::string kernName = cudaq::runtime::cudaqGenPrefixName + kernelName;
+        mlir::SmallVector<mlir::StringRef> funcNames{kernName};
 
-        // Store kernel and substitution strings on the stack.
-        // We pass string references to the `createArgumentSynthesisPass`.
+        std::string substBuff;
+        {
+          llvm::raw_string_ostream ss(substBuff);
+          ss << argCon.getSubstitutionModule();
+        }
+        mlir::SmallVector<mlir::StringRef> substitutions{substBuff};
+
+        // Convert the arguments to all the callee kernels from states
+        // used in the kernel.
+        opt::StateAggregator aggregator(moduleOp);
+        aggregator.collect(kernelName, rawArgs);
+
+        // Store kernel and substitution strings on the stack. We pass
+        // string references to them to the `createArgumentSynthesisPass`.
         mlir::SmallVector<std::string> kernels;
         mlir::SmallVector<std::string> substs;
 
-        std::function<void(opt::ArgumentConverter &)> collect =
-            [&kernels, &substs, &collect](opt::ArgumentConverter &con) {
-              {
-                auto name = con.getKernelName();
-                std::string kernName =
-                    cudaq::runtime::cudaqGenPrefixName + name.str();
-                kernels.emplace_back(kernName);
-              }
-              {
-                std::string substBuff;
-                llvm::raw_string_ostream ss(substBuff);
-                ss << con.getSubstitutionModule();
-                substs.emplace_back(substBuff);
-              }
+        // For quantum devices, we've created a list of kernel names and
+        // their arguments for  `init` and `num_qubits` functions,
+        // created from a kernel that generated the state argument.
+        // Traverse the list and collect substitutions for all those
+        // functions.
+        for (auto &[kName, kArgs] : aggregator.getKernelInfo()) {
+          opt::ArgumentConverter argCon(kName, moduleOp);
+          argCon.gen(kArgs);
 
-              for (auto &calleeCon : con.getCalleeConverters())
-                collect(calleeCon);
-            };
-        collect(argCon);
+          std::string kernName = cudaq::runtime::cudaqGenPrefixName + kName;
+          kernels.emplace_back(kernName);
 
-        mlir::SmallVector<mlir::StringRef> funcNames{kernels.begin(),
-                                                     kernels.end()};
-        mlir::SmallVector<mlir::StringRef> substitutions{substs.begin(),
-                                                         substs.end()};
+          std::string substBuff;
+          llvm::raw_string_ostream ss(substBuff);
+          ss << argCon.getSubstitutionModule();
+          substs.emplace_back(substBuff);
+        }
+
+        funcNames.append(kernels.begin(), kernels.end());
+        substitutions.append(substs.begin(), substs.end());
         pm.addNestedPass<mlir::func::FuncOp>(
             cudaq::opt::createArgumentSynthesisPass(funcNames, substitutions));
         pm.addPass(opt::createDeleteStates());

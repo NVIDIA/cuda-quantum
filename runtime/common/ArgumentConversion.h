@@ -52,33 +52,12 @@ public:
 
   mlir::StringRef getKernelName() { return kernelName; }
 
-  void genCallee(mlir::StringRef calleeName, std::vector<void *> &args) {
-    auto &converter = calleeConverters.emplace_back(calleeName, sourceModule);
-    converter.gen(args);
-  }
-
-  std::vector<ArgumentConverter> &getCalleeConverters() {
-    return calleeConverters;
-  }
-
-  static const std::string &registerKernelName(const std::string &kernelName) {
-    return kernelNameRegistry.emplace_back(kernelName);
-  }
-
 private:
-  /// Keeps kernel names created during argument conversion in memory.
-  /// References to those names are used by the argument converters for
-  /// those kernels.
-  /// Note: use std::list to make sure we always return valid references
-  /// when registering new kernel names.
-  static std::list<std::string> kernelNameRegistry;
-
   mlir::ModuleOp sourceModule;
   mlir::ModuleOp substModule;
   mlir::OpBuilder builder;
   mlir::StringRef kernelName;
   mlir::SmallVector<cc::ArgumentSubstitutionOp> substitutions;
-  std::vector<ArgumentConverter> calleeConverters;
 };
 
 } // namespace cudaq::opt
