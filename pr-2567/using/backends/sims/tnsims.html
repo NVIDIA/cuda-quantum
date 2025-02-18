@@ -793,10 +793,13 @@ mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</spa
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>If the <code class="code docutils literal notranslate"><span class="pre">CUTENSORNET_COMM_LIB</span></code> environment variable is not set, MPI parallelization on the <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> backend may fail.
-If you are using a CUDA-Q container, this variable is pre-configured and no additional setup is needed. If you are customizing your installation or have built CUDA-Q from source, please follow the instructions for <a class="reference external" href="https://docs.nvidia.com/cuda/cuquantum/latest/getting-started/index.html#from-nvidia-devzone">activating the distributed interface</a> for the <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> library. This requires
-<a class="reference internal" href="../../install/local_installation.html#additional-cuda-tools"><span class="std std-ref">installing CUDA development dependencies</span></a>, and setting the <code class="code docutils literal notranslate"><span class="pre">CUTENSORNET_COMM_LIB</span></code>
-environment variable to the newly built <code class="code docutils literal notranslate"><span class="pre">libcutensornet_distributed_interface_mpi.so</span></code> library.</p>
+<p>MPI parallelization on the <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> backend requires CUDA-Q’s MPI support.
+Please refer to the instructions on how to <a class="reference internal" href="../../install/local_installation.html#distributed-computing-with-mpi"><span class="std std-ref">enable MPI parallelization</span></a> within CUDA-Q.
+CUDA-Q containers are shipped with a pre-built MPI plugin; hence no additional setup is needed.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the <code class="code docutils literal notranslate"><span class="pre">CUTENSORNET_COMM_LIB</span></code> environment variable is set following the activation procedure described in the <a class="reference external" href="https://docs.nvidia.com/cuda/cuquantum/latest/getting-started/index.html#from-nvidia-devzone">cuTensorNet documentation</a>, the cuTensorNet MPI plugin will take precedence over the builtin support from CUDA-Q.</p>
 </div>
 <p>Specific aspects of the simulation can be configured by setting the following of environment variables:</p>
 <ul class="simple">
