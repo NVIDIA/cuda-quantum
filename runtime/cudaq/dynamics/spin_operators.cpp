@@ -86,7 +86,7 @@ matrix_2 spin_operator::to_matrix(
     mat[{0, 0}] = 1.0;
     mat[{1, 1}] = 1.0;
   }
-  return mat;
+  return std::move(mat);
 }
 
 std::string spin_operator::to_string(bool include_degrees) const {
