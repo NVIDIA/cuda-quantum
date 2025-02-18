@@ -13,7 +13,7 @@ and `Amazon Braket Examples <https://github.com/amazon-braket/amazon-braket-exam
 A list of available devices and regions can be found `here <https://docs.aws.amazon.com/braket/latest/developerguide/braket-devices.html>`__. 
 
 Users can run CUDA-Q programs on Amazon Braket with `Hybrid Job <https://docs.aws.amazon.com/braket/latest/developerguide/braket-what-is-hybrid-job.html>`__.
-See `this guide <https://docs.aws.amazon.com/braket/latest/developerguide/braket-jobs-first.html>`__
+See `this guide <https://docs.aws.amazon.com/braket/latest/developerguide/braket-jobs-first.html>`__ to get started with Hybrid jobs and `this guide <https://docs.aws.amazon.com/braket/latest/developerguide/braket-using-cuda-q.html>`__ on how to use CUDA-Q with Amazon Braket.
 and `this guide <https://docs.aws.amazon.com/braket/latest/developerguide/braket-using-cuda-q.html>`__ to get started.
 
 Setting Credentials
