@@ -133,6 +133,8 @@ Submitting
 Pasqal
 ++++++++++++++++
 
+WIP
+
 Pasqal's QPU is an an analog quantum simulator
 https://quantum-journal.org/papers/q-2020-09-21-327/
 https://quantum-journal.org/papers/q-2022-01-24-629/
@@ -149,7 +151,7 @@ Alternatively, users can set the following environment variables.
 
 .. code:: bash
 
-  export PASQAL_TOKEN=<>
+  export PASQAL_AUTH_TOKEN=<>
 
 Submission from Python
 `````````````````````````
@@ -185,7 +187,7 @@ set to 100.
 
     cudaq.evolve(RydbergHamiltonian(...), schedule=s, shots_count=1000)
 
-To see a complete example for using QuEra's backend, take a look at our :doc:`Python examples <../../examples/hardware_providers>`.
+To see a complete example for using Pasqal's backend, take a look at our :doc:`Python examples <../../examples/hardware_providers>`.
 
 
 QuEra Computing
