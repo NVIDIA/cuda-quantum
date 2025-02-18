@@ -26,7 +26,7 @@ from ..kernel.kernel_builder import PyKernel, make_kernel
 from ..runtime.observe import observe
 
 
-analog_targets = ["pasqal", "quera"]
+analog_targets = ["pasqal", "quera"] 
 
 
 def _taylor_series_expm(op_matrix: NDArray[numpy.complexfloating],
