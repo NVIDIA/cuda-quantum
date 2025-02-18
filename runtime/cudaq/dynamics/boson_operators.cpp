@@ -16,7 +16,6 @@
 
 namespace cudaq {
 
-// FIXME: GET RID OF THIS AND INSTEAD MAKE SURE WE AGGREGATE TERMS PROPERLY
 #if !defined(NDEBUG)
 bool boson_operator::can_be_canonicalized = false;
 #endif
@@ -24,14 +23,20 @@ bool boson_operator::can_be_canonicalized = false;
 // private helpers
 
 std::string boson_operator::op_code_to_string() const {
-  if (this->op_code == 1)
-    return "Ad";
-  else if (this->op_code == 2)
-    return "A";
-  else if (this->op_code == 3)
-    return "AdA";
-  else
-    return "I";
+  if (this->ad == 0 && this->a == 0) return "I";
+  std::string str;
+  for (auto i = 0; i < ad; ++i)
+    str += "Ad";
+  for (auto i = 0; i < a; ++i)
+    str += "A";
+  return std::move(str);
+}
+
+bool boson_operator::_inplace_mult(const boson_operator &other) {
+  if (this->a != 0 && other.ad != 0) return false;
+  this->a += other.a;
+  this->ad += other.ad;
+  return true;
 }
 
 // read-only properties
@@ -44,11 +49,12 @@ std::vector<int> boson_operator::degrees() const { return {this->target}; }
 
 // constructors
 
-boson_operator::boson_operator(int target) : op_code(0), target(target) {}
+boson_operator::boson_operator(int target) 
+  : ad(0), a(0), target(target) {}
 
-boson_operator::boson_operator(int target, int op_id)
-    : op_code(op_id), target(target) {
-  assert(0 <= op_id < 4);
+boson_operator::boson_operator(int target, int op_id) 
+  : ad(op_id & 1), a((op_id & 2) >> 1), target(target) {
+    assert(0 <= op_id < 4);
 }
 
 // evaluations
@@ -63,21 +69,24 @@ matrix_2 boson_operator::to_matrix(
                              std::to_string(this->target));
   auto dim = it->second;
 
+  // fixme: make matrix computation more efficient
   auto mat = matrix_2(dim, dim);
-  if (this->op_code == 1) { // create
-    for (std::size_t i = 0; i + 1 < dim; i++)
-      mat[{i + 1, i}] = std::sqrt(static_cast<double>(i + 1)) + 0.0 * 'j';
-  } else if (this->op_code == 2) { // annihilate
-    for (std::size_t i = 0; i + 1 < dim; i++)
-      mat[{i, i + 1}] = std::sqrt(static_cast<double>(i + 1)) + 0.0j;
-  } else if (this->op_code == 3) { // number
-    for (std::size_t i = 0; i < dim; i++)
-      mat[{i, i}] = static_cast<double>(i) + 0.0j;
-  } else { // id
-    mat[{0, 0}] = 1.0;
-    mat[{1, 1}] = 1.0;
-  }
-  return mat;
+  mat[{0, 0}] = 1.0;
+  mat[{1, 1}] = 1.0;
+  if (this->ad == 0 && this->a == 0)
+    return std::move(mat);
+
+  auto create_mat = matrix_2(dim, dim);
+  for (std::size_t i = 0; i + 1 < dim; i++)
+    create_mat[{i + 1, i}] = std::sqrt(static_cast<double>(i + 1)) + 0.0j;
+  auto annihilate_mat = matrix_2(dim, dim);
+  for (std::size_t i = 0; i + 1 < dim; i++)
+    annihilate_mat[{i, i + 1}] = std::sqrt(static_cast<double>(i + 1)) + 0.0j;
+  for (auto i = 0; i < ad; ++i)
+    mat *= create_mat;
+  for (auto i = 0; i < a; ++i) 
+    mat *= annihilate_mat;
+  return std::move(mat);
 }
 
 std::string boson_operator::to_string(bool include_degrees) const {
@@ -90,7 +99,7 @@ std::string boson_operator::to_string(bool include_degrees) const {
 // comparisons
 
 bool boson_operator::operator==(const boson_operator &other) const {
-  return this->op_code == other.op_code && this->target == other.target;
+  return this->ad == other.ad && this->a == other.a && this->target == other.target;
 }
 
 // defined operators

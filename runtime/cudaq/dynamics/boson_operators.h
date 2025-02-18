@@ -1,4 +1,4 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -26,20 +26,24 @@ class boson_operator : public operator_handler {
   friend class product_operator;
 
 private:
-  // 0 = I, 1 = Ad (create), 2 = A (annihilate), 3 = AdA (number)
-  int op_code;
+
+  // ad * a always, otherwise define new term
+  // if we use the anticommutation relation, we just trade product term length for sum term length
+  // e.g. a ad a a ad = 2 a + 4 ad a a + ad ad a a a
+  uint16_t ad;
+  uint16_t a;
   int target;
 
+  // 0 = I, ad = 1, a = 2, ada = 3
   boson_operator(int target, int op_code);
 
   std::string op_code_to_string() const;
 
+  bool _inplace_mult(const boson_operator &other);
+
 public:
-// FIXME: GET RID OF THIS
 #if !defined(NDEBUG)
-  static bool
-      can_be_canonicalized; // needs to be false; no canonical order can be
-                            // defined for matrix operator expressions
+  static bool can_be_canonicalized; // cannot be canonicalized without splitting a product term into a sum of terms
 #endif
 
   // read-only properties

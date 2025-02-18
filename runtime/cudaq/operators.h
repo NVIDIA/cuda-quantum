@@ -312,16 +312,11 @@ class product_operator {
 private:
   // template defined as long as T implements an in-place multiplication -
   // won't work if the in-place multiplication was inherited from a base class
-  template <typename T,
-            std::enable_if_t<!std::is_same<decltype(&T::inplace_mult),
-                                           std::false_type>::value,
-                             bool> = true>
-  static std::true_type handler_mult(int);
-  template <typename>
-  static std::false_type handler_mult(
-      ...); // ellipsis ensures the template above is picked if it exists
-  static constexpr bool supports_inplace_mult =
-      std::is_same<decltype(handler_mult<HandlerTy>(0)), std::true_type>::value;
+  template <typename T>
+  static decltype(std::declval<T>().inplace_mult(std::declval<T>())) handler_mult(int);
+	template<typename T> 
+  static std::false_type handler_mult(...); // ellipsis ensures the template above is picked if it exists
+	static constexpr bool supports_inplace_mult = !std::is_same<decltype(handler_mult<HandlerTy>(0)), std::false_type>::value;
 
 #if !defined(NDEBUG)
   bool is_canonicalized() const;
@@ -330,16 +325,14 @@ private:
   typename std::vector<HandlerTy>::const_iterator
   find_insert_at(const HandlerTy &other) const;
 
-  template <typename T,
-            std::enable_if_t<std::is_same<HandlerTy, T>::value &&
-                                 !product_operator<T>::supports_inplace_mult,
-                             int> = 0>
+  template<typename T, std::enable_if_t<std::is_same<HandlerTy, T>::value && 
+                                        !product_operator<T>::supports_inplace_mult, 
+                       std::false_type> = std::false_type()>
   void insert(T &&other);
 
-  template <typename T,
-            std::enable_if_t<std::is_same<HandlerTy, T>::value &&
-                                 product_operator<T>::supports_inplace_mult,
-                             bool> = true>
+  template<typename T, std::enable_if_t<std::is_same<HandlerTy, T>::value && 
+                                        product_operator<T>::supports_inplace_mult,
+                       std::true_type> = std::true_type()>
   void insert(T &&other);
 
   std::string get_term_id() const;
