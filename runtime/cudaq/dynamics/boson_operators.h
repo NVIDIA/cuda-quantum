@@ -27,7 +27,7 @@ class boson_operator : public operator_handler {
 
 private:
 
-  // ad * a always, otherwise define new term
+  // ad * a always, otherwise define new product operator
   // if we use the anticommutation relation, we just trade product term length for sum term length
   // e.g. a ad a a ad = 2 a + 4 ad a a + ad ad a a a
   uint16_t ad;
@@ -39,7 +39,7 @@ private:
 
   std::string op_code_to_string() const;
 
-  bool _inplace_mult(const boson_operator &other);
+  bool inplace_mult(const boson_operator &other);
 
 public:
 #if !defined(NDEBUG)
