@@ -151,7 +151,8 @@ func.func @quantum_ops() {
   // Exp Pauli and StringLiteral
   %f2 = arith.constant 12.0 : f64
   %48 = cc.string_literal "XXY" : !cc.ptr<!cc.array<i8 x 4>>
-  quake.exp_pauli %f2, %46, %48 : (f64, !quake.veq<3>, !cc.ptr<!cc.array<i8 x 4>>) -> ()
+  quake.exp_pauli (%f2) %46 to %48 : (f64, !quake.veq<3>, !cc.ptr<!cc.array<i8 x 4>>) -> ()
+  quake.exp_pauli (%f2) %46 to "XYZ" : (f64, !quake.veq<3>) -> ()
   
   // State
   %i8 = arith.constant 8 : i64
@@ -278,7 +279,8 @@ cc.global constant private @quantum_ops.rodata_synth_0 (dense<[(0.707106769,0.00
 // CHECK:           quake.u3 (%[[VAL_20]], %[[VAL_21]], %[[VAL_53]]) {{\[}}%[[VAL_54]]] %[[VAL_10]] : (f32, f32, f64, !quake.veq<3>, !quake.ref) -> ()
 // CHECK:           %[[VAL_59:.*]] = arith.constant 1.200000e+01 : f64
 // CHECK:           %[[VAL_60:.*]] = cc.string_literal "XXY" : !cc.ptr<!cc.array<i8 x 4>>
-// CHECK:           quake.exp_pauli %[[VAL_59]], %[[VAL_54]], %[[VAL_60]] : (f64, !quake.veq<3>, !cc.ptr<!cc.array<i8 x 4>>) -> ()
+// CHECK:           quake.exp_pauli (%[[VAL_59]]) %[[VAL_54]] to %[[VAL_60]] : (f64, !quake.veq<3>, !cc.ptr<!cc.array<i8 x 4>>) -> ()
+// CHECK:           quake.exp_pauli (%[[VAL_59]]) %[[VAL_54]] to "XYZ" : (f64, !quake.veq<3>) -> ()
 // CHECK:           %[[VAL_61:.*]] = arith.constant 8 : i64
 // CHECK:           %[[VAL_62:.*]] = cc.address_of @quantum_ops.rodata_synth_0 : !cc.ptr<!cc.array<complex<f32> x 8>>
 // CHECK:           %[[VAL_63:.*]] = quake.create_state %[[VAL_62]], %[[VAL_61]] : (!cc.ptr<!cc.array<complex<f32> x 8>>, i64) -> !cc.ptr<!cc.state>
