@@ -40,13 +40,14 @@ def to_cupy_array(state):
 class CuDensityMatState(object):
     __ctx = None
     __is_multi_process = False
+
     def __init__(self, data):
         if self.__ctx is None:
             if (is_multi_processes()):
                 NUM_DEVICES = cupy.cuda.runtime.getDeviceCount()
                 rank = cudaq_runtime.mpi.rank()
                 dev = cupy.cuda.Device(rank % NUM_DEVICES)
-                dev.use()                
+                dev.use()
                 self.__ctx = WorkStream(device_id=cupy.cuda.runtime.getDevice())
                 # FIXME: use the below once `cudensitymat` supports raw MPI Comm pointer.
                 # `ctx.set_communicator(comm=cudaq_runtime.mpi.comm_dup(), provider="MPI")`
@@ -70,7 +71,7 @@ class CuDensityMatState(object):
 
     @staticmethod
     def is_multi_process():
-        # Returns true if MPI distribution is activated 
+        # Returns true if MPI distribution is activated
         return CuDensityMatState.__is_multi_process
 
     def try_init_state(self, shape):

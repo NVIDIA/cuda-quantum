@@ -44,7 +44,7 @@ class cuDensityMatTimeStepper(BaseTimeStepper[CudmStateType]):
         # Currently, we cannot return a reference since the caller might call compute() multiple times during a single integrate step.
         timer = ScopeTimer("compute.action_result")
         with timer:
-             action_result = self.state.clone(cp.zeros_like(self.state.storage))
+            action_result = self.state.clone(cp.zeros_like(self.state.storage))
         timer = ScopeTimer("liouvillian_action.compute")
         with timer:
             self.liouvillian_action.compute(t, (), (self.state,), action_result)
@@ -53,8 +53,9 @@ class cuDensityMatTimeStepper(BaseTimeStepper[CudmStateType]):
 
 class RungeKuttaIntegrator(BaseIntegrator[CudmStateType]):
     n_steps = 10
-    # Order of the integrator: supporting 1st order (Euler) or 4th order (Runge-Kutta).
+    # Order of the integrator: supporting `1st` order (Euler) or `4th` order (`Runge-Kutta`).
     order = 4
+
     def __init__(self,
                  stepper: BaseTimeStepper[CudmStateType] = None,
                  **kwargs):
@@ -116,17 +117,17 @@ class RungeKuttaIntegrator(BaseIntegrator[CudmStateType]):
                 rho_temp = cp.copy(self.state.storage)
                 rho_temp += ((dt / 2) * k1.storage)
                 k2 = self.stepper.compute(self.state.clone(rho_temp),
-                                        current_t + dt / 2)
+                                          current_t + dt / 2)
 
                 rho_temp = cp.copy(self.state.storage)
                 rho_temp += ((dt / 2) * k2.storage)
                 k3 = self.stepper.compute(self.state.clone(rho_temp),
-                                        current_t + dt / 2)
+                                          current_t + dt / 2)
 
                 rho_temp = cp.copy(self.state.storage)
                 rho_temp += ((dt) * k3.storage)
                 k4 = self.stepper.compute(self.state.clone(rho_temp),
-                                        current_t + dt)
+                                          current_t + dt)
 
                 # Scale
                 k1.inplace_scale(dt / 6)
