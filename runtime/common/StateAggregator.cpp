@@ -259,12 +259,12 @@ void cudaq::opt::StateAggregator::collectKernelInfo(const cudaq::state *v) {
   if (simState->hasData()) {
     return;
   }
- 
+
   // Otherwise (ie quantum hardware, where getting the amplitude data is not
   // efficient) we aim at replacing states with calls to kernels (`callees`)
   // that generated them. This is done in three stages:
   //
-  // 1) (done here) Generate @callee.num_qubits_0 @callee.init_0` for the callee 
+  // 1) (done here) Generate @callee.num_qubits_0 @callee.init_0` for the callee
   //    function and its arguments stored in a state.
 
   //    Create two functions:
@@ -369,7 +369,7 @@ void cudaq::opt::StateAggregator::collectKernelInfo(const cudaq::state *v) {
     auto initName = calleeName + ".init_" + std::to_string(counter);
     auto numQubitsName =
         calleeName + ".num_qubits_" + std::to_string(counter++);
-    
+
     if (!hasKernelInfo(initName) && !hasKernelInfo(numQubitsName)) {
       auto initKernelName = cudaq::runtime::cudaqGenPrefixName + initName;
       auto numQubitsKernelName =
@@ -396,18 +396,17 @@ void cudaq::opt::StateAggregator::collectKernelInfo(const cudaq::state *v) {
 
 //===----------------------------------------------------------------------===//
 
-
 cudaq::opt::StateAggregator::StateAggregator(ModuleOp moduleOp)
-    : moduleOp(moduleOp), builder(moduleOp.getContext()) {
-}
+    : moduleOp(moduleOp), builder(moduleOp.getContext()) {}
 
-void cudaq::opt::StateAggregator::collect(StringRef kernelName, const std::vector<void *> &arguments) {
+void cudaq::opt::StateAggregator::collect(
+    StringRef kernelName, const std::vector<void *> &arguments) {
   auto *ctx = builder.getContext();
 
   auto fun = moduleOp.lookupSymbol<func::FuncOp>(
       cudaq::runtime::cudaqGenPrefixName + kernelName.str());
   assert(fun && "callee func is missing in state aggregator");
-  
+
   FunctionType fromFuncTy = fun.getFunctionType();
   for (auto iter :
        llvm::enumerate(llvm::zip(fromFuncTy.getInputs(), arguments))) {
@@ -421,5 +420,3 @@ void cudaq::opt::StateAggregator::collect(StringRef kernelName, const std::vecto
         collectKernelInfo(static_cast<const state *>(argPtr));
   }
 }
-
-
