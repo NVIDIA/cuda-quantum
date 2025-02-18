@@ -2,6 +2,7 @@ import cudaq
 from cudaq.operator import *
 
 # This example illustrates how to use Pasqal's Fresnel device over Pasqal's cloud via CUDA-Q.
+# WIP
 
 cudaq.set_target("pasqal")
 
