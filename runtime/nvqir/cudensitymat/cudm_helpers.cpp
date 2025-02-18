@@ -9,6 +9,8 @@
 #include "cudm_helpers.h"
 #include "common/Logger.h"
 #include "cudm_error_handling.h"
+#include <mutex>
+
 using namespace cudaq;
 
 namespace cudaq {
@@ -16,6 +18,7 @@ cudm_helper::cudm_helper(cudensitymatHandle_t handle) : handle(handle) {}
 
 cudm_helper::~cudm_helper() {
   cudaDeviceSynchronize();
+
   for (auto term : m_operatorTerms) {
     cudensitymatDestroyOperatorTerm(term);
   }
@@ -34,16 +37,18 @@ cudm_helper::_wrap_callback(const scalar_operator &scalar_op) {
         "scalar_operator does not have a valid generator function.");
   }
 
-  auto callback = [](double time, int32_t num_params, const double params[],
-                     cudaDataType_t data_type,
-                     void *scalar_storage) -> int32_t {
+  auto *stored_scalar_op = new scalar_operator(scalar_op);
+
+  using WrapperFuncType =
+      int32_t (*)(cudensitymatScalarCallback_t, double, int32_t, const double[],
+                  cudaDataType_t, void *);
+
+  auto wrapper = [](cudensitymatScalarCallback_t callback, double time,
+                    int32_t num_params, const double params[],
+                    cudaDataType_t data_type, void *scalar_storage) -> int32_t {
     try {
-      std::cout << "Time = " << time << "\n";
-      std::cout << "Params: ";
-      for (int i = 0; i < num_params; ++i)
-        std::cout << params[i] << " ";
-      std::cout << "\n";
-      std::cout << "scalar_storage = " << scalar_storage << "\n";
+      scalar_operator *stored_op =
+          reinterpret_cast<scalar_operator *>(callback);
 
       std::unordered_map<std::string, std::complex<double>> param_map;
       // FIXME: Figure how to populate the param map
@@ -52,12 +57,10 @@ cudm_helper::_wrap_callback(const scalar_operator &scalar_op) {
         param_map[std::to_string(i)] = params[i];
       }
       param_map["time"] = time;
-      // TODO: figure out how to capture the scalar_op.
-      // Note: cudensitymat expects a pure C function pointer, no state....
-      // std::complex<double> result = scalar_op.evaluate(param_map);
-      // std::cout << "Result = " << result << "\n";
+
+      std::complex<double> result = stored_op->evaluate(param_map);
       auto *tdCoef = static_cast<std::complex<double> *>(scalar_storage);
-      *tdCoef = 2.0;
+      *tdCoef = result;
       return CUDENSITYMAT_STATUS_SUCCESS;
     } catch (const std::exception &e) {
       std::cerr << "Error in scalar callback: " << e.what() << std::endl;
@@ -66,9 +69,10 @@ cudm_helper::_wrap_callback(const scalar_operator &scalar_op) {
   };
 
   cudensitymatWrappedScalarCallback_t wrappedCallback;
-  wrappedCallback.callback = callback;
-  // Note: the wrapper must be nullptr 
-  wrappedCallback.wrapper = nullptr;
+  wrappedCallback.callback =
+      reinterpret_cast<cudensitymatScalarCallback_t>(stored_scalar_op);
+  wrappedCallback.wrapper =
+      reinterpret_cast<void *>(static_cast<WrapperFuncType>(wrapper));
   return wrappedCallback;
 }
 

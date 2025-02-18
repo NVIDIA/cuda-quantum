@@ -53,12 +53,11 @@ std::vector<int> spin_operator::degrees() const { return {this->target}; }
 
 // constructors
 
-spin_operator::spin_operator(int target) 
-  : op_code(0), target(target) {}
+spin_operator::spin_operator(int target) : op_code(0), target(target) {}
 
-spin_operator::spin_operator(int target, int op_id) 
-  : op_code(op_id), target(target) {
-    assert(0 <= op_id < 4);
+spin_operator::spin_operator(int target, int op_id)
+    : op_code(op_id), target(target) {
+  assert(0 <= op_id < 4);
 }
 
 // evaluations

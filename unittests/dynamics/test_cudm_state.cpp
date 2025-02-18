@@ -6,10 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "CuDensityMatState.h"
 #include <complex>
 #include <cudm_error_handling.h>
 #include <cudm_helpers.h>
-#include "CuDensityMatState.h"
 #include <gtest/gtest.h>
 #include <stdexcept>
 #include <vector>
@@ -119,8 +119,9 @@ TEST_F(CuDensityMatStateTest, ConversionForSingleQubitSystem) {
 TEST_F(CuDensityMatStateTest, InvalidHilbertSpaceDims) {
   // 3x3 space is not supported by the provided rawData size
   hilbertSpaceDims = {3, 3};
-  EXPECT_THROW(CuDensityMatState state(handle, stateVectorData, hilbertSpaceDims),
-               std::invalid_argument);
+  EXPECT_THROW(
+      CuDensityMatState state(handle, stateVectorData, hilbertSpaceDims),
+      std::invalid_argument);
 }
 
 TEST_F(CuDensityMatStateTest, ValidDensityMatrixState) {

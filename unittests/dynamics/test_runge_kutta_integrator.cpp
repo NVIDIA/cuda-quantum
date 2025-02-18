@@ -32,8 +32,8 @@ protected:
     liouvillian_ = mock_liouvillian(handle_);
 
     // Create initial state
-    state_ = std::make_unique<CuDensityMatState>(handle_, mock_initial_state_data(),
-                                          mock_hilbert_space_dims());
+    state_ = std::make_unique<CuDensityMatState>(
+        handle_, mock_initial_state_data(), mock_hilbert_space_dims());
     ASSERT_NE(state_, nullptr);
     ASSERT_TRUE(state_->is_initialized());
 
@@ -149,10 +149,11 @@ TEST_F(RungeKuttaIntegratorTest, InvalidSubsteps) {
 TEST_F(RungeKuttaIntegratorTest, CheckEvolve) {
   cudm_helper helper(handle_);
   const std::vector<std::complex<double>> initialStateVec = {{1.0, 0.0},
-                                                          {0.0, 0.0}};
+                                                             {0.0, 0.0}};
   const std::vector<int64_t> dims = {2};
   auto spin_op_x = cudaq::spin_operator::x(0);
-  cudaq::product_operator<cudaq::matrix_operator> ham1 = 2.0 * M_PI * 0.1 * spin_op_x;
+  cudaq::product_operator<cudaq::matrix_operator> ham1 =
+      2.0 * M_PI * 0.1 * spin_op_x;
   cudaq::operator_sum<cudaq::matrix_operator> ham(ham1);
   SystemDynamics system;
   system.hamiltonian = &ham;

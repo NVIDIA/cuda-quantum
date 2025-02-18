@@ -6,12 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "CuDensityMatState.h"
 #include "common/EigenDense.h"
 #include "test_mocks.h"
 #include <cudm_error_handling.h>
 #include <cudm_expectation.h>
 #include <cudm_helpers.h>
-#include "CuDensityMatState.h"
 #include <gtest/gtest.h>
 #include <iostream>
 #include <memory>
@@ -47,7 +47,8 @@ TEST_F(CuDensityExpectationTest, checkCompute) {
   for (std::size_t stateIdx = 0; stateIdx < dims[0]; ++stateIdx) {
     std::vector<std::complex<double>> initialState(dims[0], 0.0);
     initialState[stateIdx] = 1.0;
-    auto inputState = std::make_unique<CuDensityMatState>(handle_, initialState, dims);
+    auto inputState =
+        std::make_unique<CuDensityMatState>(handle_, initialState, dims);
     expectation.prepare(inputState->get_impl());
     const auto expVal = expectation.compute(inputState->get_impl(), 0.0);
     EXPECT_NEAR(expVal.real(), 1.0 * stateIdx, 1e-12);
@@ -75,7 +76,8 @@ TEST_F(CuDensityExpectationTest, checkCompositeSystem) {
     std::vector<std::complex<double>> initialState(
         initial_state_vec.data(),
         initial_state_vec.data() + initial_state_vec.size());
-    auto inputState = std::make_unique<CuDensityMatState>(handle_, initialState, dims);
+    auto inputState =
+        std::make_unique<CuDensityMatState>(handle_, initialState, dims);
     expectation.prepare(inputState->get_impl());
     const auto expVal = expectation.compute(inputState->get_impl(), 0.0);
     std::cout << "Result: " << expVal << "\n";

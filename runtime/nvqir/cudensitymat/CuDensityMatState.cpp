@@ -505,9 +505,8 @@ cudensitymatHandle_t cudaq::CuDensityMatState::get_handle() const {
   return cudmHandle;
 }
 
-void CuDensityMatState::initialize_cudm(
-    cudensitymatHandle_t handleToSet,
-    const std::vector<int64_t> &dims) {
+void CuDensityMatState::initialize_cudm(cudensitymatHandle_t handleToSet,
+                                        const std::vector<int64_t> &dims) {
   cudmHandle = handleToSet;
   hilbertSpaceDims = dims;
   size_t expectedDensityMatrixSize =
