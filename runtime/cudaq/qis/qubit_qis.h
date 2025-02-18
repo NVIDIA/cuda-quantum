@@ -1174,7 +1174,7 @@ void applyQuantumOperation(const std::string &gateName,
         "cudaq does not support broadcast for multi-qubit operations.");
 
   // Operation on correct number of targets, no controls, possible broadcast
-  if ((std::is_same_v<mod, base> || std::is_same_v<mod, adj>) && NumT == 1) {
+  if ((std::is_same_v<mod, base> || std::is_same_v<mod, adj>)&&NumT == 1) {
     for (auto &qubit : qubits)
       getExecutionManager()->apply(gateName, parameters, {}, {qubit},
                                    std::is_same_v<mod, adj>);

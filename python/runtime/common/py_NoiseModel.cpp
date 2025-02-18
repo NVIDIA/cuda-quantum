@@ -62,8 +62,7 @@ void bindNoiseModel(py::module &mod) {
           [](noise_model &self, const py::type krausT) {
             auto key = py::hash(krausT);
             self.register_channel(
-                key,
-                [krausT](const std::vector<double> &p) -> kraus_channel {
+                key, [krausT](const std::vector<double> &p) -> kraus_channel {
                   return krausT(p).cast<kraus_channel>();
                 });
           },
@@ -152,7 +151,7 @@ void bindKrausOp(py::module &mod) {
 
 // Need a trampoline class to make this sub-class-able from Python
 class PyKrausChannel : public kraus_channel {
-  public: 
+public:
   using kraus_channel::kraus_channel;
 };
 
@@ -175,10 +174,11 @@ void bindNoiseChannels(py::module &mod) {
       .value("Depolarization1", cudaq::noise_model_type::depolarization1)
       .value("Depolarization2", cudaq::noise_model_type::depolarization2);
 
-  py::class_<kraus_channel, PyKrausChannel>(mod, "KrausChannel", py::dynamic_attr(),
-                            "The `KrausChannel` is composed of a list of "
-                            ":class:`KrausOperator`'s and "
-                            "is applied to a specific qubit or set of qubits.")
+  py::class_<kraus_channel, PyKrausChannel>(
+      mod, "KrausChannel", py::dynamic_attr(),
+      "The `KrausChannel` is composed of a list of "
+      ":class:`KrausOperator`'s and "
+      "is applied to a specific qubit or set of qubits.")
       .def(py::init<>(), "Create an empty :class:`KrausChannel`")
       .def(py::init<const std::vector<kraus_op> &>(),
            "Create a :class:`KrausChannel` composed of a list of "

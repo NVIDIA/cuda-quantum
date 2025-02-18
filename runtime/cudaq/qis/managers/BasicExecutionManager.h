@@ -28,7 +28,6 @@ namespace cudaq {
 /// (e.g. sampling)
 class BasicExecutionManager : public cudaq::ExecutionManager {
 protected:
-  
   /// @brief Return true if we are in tracer mode
   bool isInTracerMode() {
     return executionContext && executionContext->name == "tracer";

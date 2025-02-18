@@ -2424,7 +2424,7 @@ class PyASTBridge(ast.NodeVisitor):
                     ]
                     # They are in reverse order
                     values.reverse()
-                    # First one should be the number of kraus channel parameters
+                    # First one should be the number of Kraus channel parameters
                     numParamsVal = values[0]
                     # Shrink the arguments down 
                     values = values[1:]
@@ -2439,8 +2439,8 @@ class PyASTBridge(ast.NodeVisitor):
                     key = values[0]
                     values = values[1:]
 
-                    # Now we know the next numParams arguments are 
-                    # our kraus channel parameters
+                    # Now we know the next `numParams` arguments are
+                    # our Kraus channel parameters
                     params = values[:numParams]
                     for i, p in enumerate(params):
                         # If we have a F64 value, we want to 

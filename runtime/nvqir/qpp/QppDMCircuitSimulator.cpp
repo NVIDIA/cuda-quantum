@@ -190,7 +190,7 @@ protected:
 
   /// @brief This simulator supports all noise channels
   bool isValidNoiseChannel(const cudaq::noise_model_type &type) const override {
-    return true; 
+    return true;
   }
 
   /// @brief Apply the given noise channel
