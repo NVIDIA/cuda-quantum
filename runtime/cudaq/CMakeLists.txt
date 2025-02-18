@@ -17,10 +17,10 @@ add_library(${LIBRARY_NAME}
          SHARED cudaq.cpp 
                 target_control.cpp
                 algorithms/draw.cpp
+                platform/qpu_state.cpp
                 platform/quantum_platform.cpp
                 qis/execution_manager_c_api.cpp
                 qis/execution_manager.cpp
-                qis/quantum_state.cpp
                 qis/remote_state.cpp
                 qis/state.cpp
                 utils/cudaq_utils.cpp

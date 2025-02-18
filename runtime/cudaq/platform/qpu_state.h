@@ -17,7 +17,7 @@ namespace cudaq {
 // The state is represented by a quantum kernel.
 // Quantum state contains all the information we need to replicate a
 // call to kernel that created the state.
-class QuantumState : public cudaq::SimulationState {
+class QPUState : public cudaq::SimulationState {
 protected:
   std::string kernelName;
   // Lazily-evaluated state data (just keeping the kernel name and arguments).
@@ -65,7 +65,7 @@ public:
 
   /// @brief Constructor
   template <typename QuantumKernel, typename... Args>
-  QuantumState(QuantumKernel &&kernel, Args &&...args) {
+  QPUState(QuantumKernel &&kernel, Args &&...args) {
     if constexpr (has_name<QuantumKernel>::value) {
       // kernel_builder kernel: need to JIT code to get it registered.
       static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
@@ -75,10 +75,10 @@ public:
     }
     (addArgument(args), ...);
   }
-  QuantumState() = default;
-  QuantumState(const QuantumState &other)
+  QPUState() = default;
+  QPUState(const QPUState &other)
       : kernelName(other.kernelName), args(other.args), deleters() {}
-  virtual ~QuantumState();
+  virtual ~QPUState();
 
   /// @brief True if the state has amplitudes or density matrix available.
   virtual bool hasData() const override { return false; }
