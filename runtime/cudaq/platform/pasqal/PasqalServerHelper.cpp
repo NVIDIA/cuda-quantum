@@ -115,6 +115,7 @@ PasqalServerHelper::processResults(ServerMessage &postJobResponse,
     throw std::runtime_error("Job status: " + jobStatus);
 
   std::vector<ExecutionResult> results;
+  
   auto jobs = postJobResponse["data"]["jobs"];
   for (auto &job : jobs) {
     auto result = job["full_result"]["counter"].get<std::unordered_map<std::string, std::size_t>>();
