@@ -32,6 +32,7 @@ def test_stim_non_clifford():
     with pytest.raises(RuntimeError) as e:
         # Cannot perform non-Clifford gates in Stim simulator
         cudaq.sample(kernel)
+    assert 'Gate not supported by Stim simulator' in repr(e)
 
 
 def test_stim_toffoli_gates():
@@ -44,6 +45,7 @@ def test_stim_toffoli_gates():
     with pytest.raises(RuntimeError) as e:
         # Cannot perform Toffoli gates in Stim simulator
         cudaq.sample(kernel)
+    assert 'Gates with >1 controls not supported by Stim simulator' in repr(e)
 
 
 def test_stim_sample():
@@ -61,6 +63,19 @@ def test_stim_sample():
     assert (len(counts) == 2)
     assert ('0' * 250 in counts)
     assert ('1' * 250 in counts)
+
+
+def test_stim_all_mz_types():
+    # Create the kernel we'd like to execute on Stim
+    @cudaq.kernel
+    def kernel():
+        qubits = cudaq.qvector(10)
+        mx(qubits)
+        my(qubits)
+        mz(qubits)
+
+    counts = cudaq.sample(kernel)
+    assert (len(counts) > 1)
 
 
 def test_stim_state_preparation():
