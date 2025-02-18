@@ -295,8 +295,7 @@ def test_explicit_measurement():
 
     with pytest.raises(RuntimeError) as e:
         counts = cudaq.sample(bell_pair, explicit_measurements=True)
-    assert "Explicit measurement option is not supported on this target" in repr(
-        e)
+    assert "not supported on this target" in repr(e)
 
 
 # leave for gdb debugging

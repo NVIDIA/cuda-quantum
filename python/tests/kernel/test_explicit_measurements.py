@@ -188,7 +188,7 @@ def test_no_measurements():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.sample(no_measure_ops, explicit_measurements=True)
-    assert "must contain measurements" in repr(e)
+    assert "not supported on a kernel without any measurement" in repr(e)
 
 
 def test_mx_my():

@@ -73,10 +73,11 @@ Returns:
     if explicit_measurements:
         if not cudaq_runtime.supportsExplicitMeasurements():
             raise RuntimeError(
-                "Explicit measurement option is not supported on this target.")
+                "The sampling option `explicit_measurements` is not supported on this target."
+            )
         if has_conditionals_on_measure_result:
             raise RuntimeError(
-                "Explicit measurement option is not supported on kernel with conditional logic on a measurement result."
+                "The sampling option `explicit_measurements` is not supported on kernel with conditional logic on a measurement result."
             )
 
     if noise_model != None:
@@ -109,7 +110,7 @@ Returns:
         if explicit_measurements is True and (not counts.register_names or
                                               not counts.most_probable()):
             raise RuntimeError(
-                "Kernels executed in explicit measurements mode must contain measurements."
+                "The sampling option `explicit_measurements` is not supported on a kernel without any measurement operation."
             )
         if counts.get_total_shots() == 0:
             print("WARNING: this kernel invocation produced 0 shots worth " +

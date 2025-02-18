@@ -47,12 +47,12 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
       cudaq::kernelHasConditionalFeedback(kernelName);
   if (explicitMeasurements) {
     if (!platform.supports_explicit_measurements())
-      throw std::runtime_error(
-          "Explicit measurement option is not supported on this target.");
+      throw std::runtime_error("The sampling option `explicit_measurements` is "
+                               "not supported on this target.");
     if (hasConditionalFeebdback)
       throw std::runtime_error(
-          "Explicit measurement option is not supported on kernel with "
-          "conditional logic on a measurement result.");
+          "The sampling option `explicit_measurements` is not supported on a "
+          "kernel with conditional logic on a measurement result.");
   }
   // Create the execution context.
   auto ctx = std::make_unique<ExecutionContext>("sample", shots);
@@ -114,8 +114,9 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
 
     if (explicitMeasurements &&
         (counts.register_names().empty() || counts.most_probable().empty()))
-      throw std::runtime_error("Kernels executed in explicit measurements mode "
-                               "must contain measurements.");
+      throw std::runtime_error(
+          "The sampling option `explicit_measurements` is not supported on a "
+          "kernel without any measurement operation.");
 
     if (counts.get_total_shots() == 0) {
       printf("WARNING: this kernel invocation produced 0 shots worth "

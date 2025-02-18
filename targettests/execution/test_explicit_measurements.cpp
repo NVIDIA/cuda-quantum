@@ -45,4 +45,4 @@ int main() {
 
 // CHECK: 1
 
-// FAIL: Explicit measurement option is not supported on this target
+// FAIL: not supported on this target
