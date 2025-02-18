@@ -33,13 +33,13 @@ def test_swap_2q():
     print(kernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
 # CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           quake.x %[[VAL_1]] : (!quake.ref) -> ()
 # CHECK:           quake.swap %[[VAL_1]], %[[VAL_2]] : (!quake.ref, !quake.ref) -> ()
-# CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_0]] name "" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+# CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 # CHECK:           return
 # CHECK:         }
 

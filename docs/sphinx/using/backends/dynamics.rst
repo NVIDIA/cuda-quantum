@@ -1,5 +1,5 @@
-CUDA-Q Dynamics 
-*********************************
+Dynamics Simulation 
++++++++++++++++++++++
 
 CUDA-Q enables the design, simulation and execution of quantum dynamics via 
 the ``evolve`` API. Specifically, this API allows us to solve the time evolution 
@@ -8,7 +8,7 @@ backend target, which is based on the cuQuantum library, optimized for performan
 on NVIDIA GPU.
 
 Quick Start
-+++++++++++
+^^^^^^^^^^^^
 
 In the example below, we demonstrate a simple time evolution simulation workflow comprising of the 
 following steps:
@@ -84,9 +84,11 @@ For example, we can plot the Pauli expectation value for the above simulation as
 In particular, for each time step, `evolve` captures an array of expectation values, one for each  
 observable. Hence, we convert them into sequences for plotting purposes.
 
+Examples that illustrate how to use the ``dynamics`` target are available 
+in the `CUDA-Q repository <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples/python/dynamics>`__. 
 
 Operator
-+++++++++++
+^^^^^^^^^^
 
 .. _operators:
 
@@ -157,7 +159,7 @@ The latter is specified by the dimension map that is provided to the `cudaq.evol
 
 
 Time-Dependent Dynamics
-++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. _time_dependent:
 
@@ -219,7 +221,7 @@ the desired value for each parameter:
         :end-before: [End Schedule2]
 
 Numerical Integrators
-++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. _integrators:
 
@@ -272,4 +274,46 @@ backend target.
     If the output is a '`None`' string, it indicates that your Torch installation does not support CUDA.
     In this case, you need to install a CUDA-enabled Torch package via other mechanisms, e.g., building Torch from source or
     using their Docker images.
- 
+
+Multi-GPU Multi-Node Execution
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. _cudensitymat_mgmn:
+
+CUDA-Q ``dynamics`` target supports parallel execution on multiple GPUs. 
+To enable parallel execution, the application must initialize MPI as follows.
+
+
+.. tab:: Python
+
+  .. literalinclude:: ../../snippets/python/using/backends/dynamics.py
+        :language: python
+        :start-after: [Begin MPI]
+        :end-before: [End MPI]
+
+  .. code:: bash 
+
+        mpiexec -np <N> python3 program.py 
+  
+  where ``N`` is the number of processes.
+
+
+By initializing the MPI execution environment (via `cudaq.mpi.initialize()`) in the application code and
+invoking it via an MPI launcher, we have activated the multi-node multi-GPU feature of the ``dynamics`` target.
+Specifically, it will detect the number of processes (GPUs) and distribute the computation across all available GPUs.
+
+
+.. note::
+    The number of MPI processes must be a power of 2, one GPU per process.
+
+.. note::
+    Not all integrators are capable of handling distributed state. Errors will be raised if parallel execution is activated 
+    but the selected integrator does not support distributed state. 
+
+.. warning:: 
+    As of cuQuantum version 24.11, there are a couple of `known limitations <https://docs.nvidia.com/cuda/cuquantum/24.11.0/cudensitymat/index.html>`__ for parallel execution:
+
+    - Computing the expectation value of a mixed quantum state is not supported. Thus, `collapse_operators` are not supported if expectation calculation is required.
+
+    - Some combinations of quantum states and quantum many-body operators are not supported. Errors will be raised in those cases. 
+

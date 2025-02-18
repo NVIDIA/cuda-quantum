@@ -37,16 +37,16 @@ def test_kernel_measure_1q():
     print(kernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<2>
 # CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_2]][0] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_2]][1] : (!quake.veq<2>) -> !quake.ref
-# CHECK:           %[[VAL_5:.*]] = quake.mx %[[VAL_3]] name "" : (!quake.ref) -> !quake.measure
-# CHECK:           %[[VAL_6:.*]] = quake.mx %[[VAL_4]] name "" : (!quake.ref) -> !quake.measure
-# CHECK:           %[[VAL_7:.*]] = quake.my %[[VAL_3]] name "" : (!quake.ref) -> !quake.measure
-# CHECK:           %[[VAL_8:.*]] = quake.my %[[VAL_4]] name "" : (!quake.ref) -> !quake.measure
-# CHECK:           %[[VAL_9:.*]] = quake.mz %[[VAL_3]] name "" : (!quake.ref) -> !quake.measure
-# CHECK:           %[[VAL_10:.*]] = quake.mz %[[VAL_4]] name "" : (!quake.ref) -> !quake.measure
+# CHECK:           %[[VAL_5:.*]] = quake.mx %[[VAL_3]] : (!quake.ref) -> !quake.measure
+# CHECK:           %[[VAL_6:.*]] = quake.mx %[[VAL_4]] : (!quake.ref) -> !quake.measure
+# CHECK:           %[[VAL_7:.*]] = quake.my %[[VAL_3]] : (!quake.ref) -> !quake.measure
+# CHECK:           %[[VAL_8:.*]] = quake.my %[[VAL_4]] : (!quake.ref) -> !quake.measure
+# CHECK:           %[[VAL_9:.*]] = quake.mz %[[VAL_3]] : (!quake.ref) -> !quake.measure
+# CHECK:           %[[VAL_10:.*]] = quake.mz %[[VAL_4]] : (!quake.ref) -> !quake.measure
 # CHECK:           return
 # CHECK:         }
 
@@ -68,11 +68,11 @@ def test_kernel_measure_qreg():
     print(kernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<3>
-# CHECK:           %[[VAL_1:.*]] = quake.mx %[[VAL_0]] name "" : (!quake.veq<3>) -> !cc.stdvec<!quake.measure>
-# CHECK:           %[[VAL_2:.*]] = quake.my %[[VAL_0]] name "" : (!quake.veq<3>) -> !cc.stdvec<!quake.measure>
-# CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_0]] name "" : (!quake.veq<3>) -> !cc.stdvec<!quake.measure>
+# CHECK:           %[[VAL_1:.*]] = quake.mx %[[VAL_0]] : (!quake.veq<3>) -> !cc.stdvec<!quake.measure>
+# CHECK:           %[[VAL_2:.*]] = quake.my %[[VAL_0]] : (!quake.veq<3>) -> !cc.stdvec<!quake.measure>
+# CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<3>) -> !cc.stdvec<!quake.measure>
 # CHECK:           return
 # CHECK:         }
 

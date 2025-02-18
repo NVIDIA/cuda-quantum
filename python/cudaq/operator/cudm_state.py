@@ -11,6 +11,13 @@ import numpy, cupy, atexit
 from typing import Sequence
 from cupy.cuda.memory import MemoryPointer, UnownedMemory
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
+from cuquantum.bindings import cudensitymat as cudm
+from .helpers import InitialState
+
+
+def is_multi_processes():
+    return cudaq_runtime.mpi.is_initialized() and cudaq_runtime.mpi.num_ranks(
+    ) > 1
 
 
 # Wrap state data (on device memory) as a `cupy` array.
@@ -35,7 +42,17 @@ class CuDensityMatState(object):
 
     def __init__(self, data):
         if self.__ctx is None:
-            self.__ctx = WorkStream()
+            if (is_multi_processes()):
+                self.__ctx = WorkStream(device_id=cupy.cuda.runtime.getDevice())
+                # FIXME: use the below once `cudensitymat` supports raw MPI Comm pointer.
+                # `ctx.set_communicator(comm=cudaq_runtime.mpi.comm_dup(), provider="MPI")`
+                # At the moment, only `mpi4py` communicator objects are supported, thus we use the underlying `reset_distributed_configuration` API.
+                _comm_ptr, _size = cudaq_runtime.mpi.comm_dup()
+                cudm.reset_distributed_configuration(
+                    self.__ctx._handle._validated_ptr,
+                    cudm.DistributedProvider.MPI, _comm_ptr, _size)
+            else:
+                self.__ctx = WorkStream()
 
         self.hilbert_space_dims = None
         if isinstance(data, DenseMixedState) or isinstance(
@@ -46,28 +63,40 @@ class CuDensityMatState(object):
             self.raw_data = data
             self.state = None
 
+    def try_init_state(self, shape):
+        """Try initialize state according to a shape, e.g., density matrix or state vector."""
+        slice_shape, slice_offsets = self.state.local_info
+        state_size = numpy.prod(shape)
+        if state_size == self.raw_data.size:
+            slice_obj = tuple(
+                slice(offset, offset + size) for offset, size in zip(
+                    slice_offsets, slice_shape))[:len(shape)]
+            self.raw_data = cupy.asfortranarray(self.raw_data.reshape(shape))
+            self.raw_data = cupy.asfortranarray(self.raw_data[slice_obj].copy())
+            self.state.attach_storage(self.raw_data)
+        else:
+            self.raw_data = cupy.asfortranarray(
+                self.raw_data.reshape(slice_shape))
+            self.state.attach_storage(self.raw_data)
+
     def init_state(self, hilbert_space_dims: Sequence[int]):
         if self.state is None:
             self.hilbert_space_dims = hilbert_space_dims
             dm_shape = hilbert_space_dims * 2
             sv_shape = hilbert_space_dims
             try:
-                self.raw_data = cupy.asfortranarray(
-                    self.raw_data.reshape(dm_shape))
                 self.state = DenseMixedState(self.__ctx,
                                              self.hilbert_space_dims,
                                              batch_size=1,
                                              dtype="complex128")
-                self.state.attach_storage(self.raw_data)
+                self.try_init_state(dm_shape)
             except:
                 try:
-                    self.raw_data = cupy.asfortranarray(
-                        self.raw_data.reshape(sv_shape))
                     self.state = DensePureState(self.__ctx,
                                                 self.hilbert_space_dims,
                                                 batch_size=1,
                                                 dtype="complex128")
-                    self.state.attach_storage(self.raw_data)
+                    self.try_init_state(sv_shape)
                 except:
                     raise ValueError(
                         f"Invalid state data: state data must be either a state vector (equivalent to {sv_shape} shape) or a density matrix (equivalent to {dm_shape} shape)."
@@ -82,6 +111,75 @@ class CuDensityMatState(object):
     @staticmethod
     def from_data(data):
         return CuDensityMatState(data)
+
+    @staticmethod
+    def create_initial_state(type: InitialState,
+                             hilbert_space_dims: Sequence[int],
+                             mix_state: bool):
+        new_state = CuDensityMatState(None)
+        new_state.hilbert_space_dims = hilbert_space_dims
+
+        if mix_state:
+            new_state.state = DenseMixedState(new_state.__ctx,
+                                              new_state.hilbert_space_dims,
+                                              batch_size=1,
+                                              dtype="complex128")
+        else:
+            new_state.state = DensePureState(new_state.__ctx,
+                                             new_state.hilbert_space_dims,
+                                             batch_size=1,
+                                             dtype="complex128")
+        required_buffer_size = new_state.state.storage_size
+        slice_shape, slice_offsets = new_state.state.local_info
+
+        if type == InitialState.ZERO:
+            buffer = cupy.asfortranarray(
+                cupy.zeros((required_buffer_size,),
+                           dtype="complex128",
+                           order="F"))
+            bitstring_is_local = False
+            # Follow `cudensitymat` example to set the amplitude based on `local_info`
+            for slice_dim, slice_offset in zip(slice_shape, slice_offsets):
+                bitstring_is_local = 0 in range(slice_offset,
+                                                slice_offset + slice_dim)
+                if not bitstring_is_local:
+                    break
+            if bitstring_is_local:
+                buffer[0] = 1.0
+            new_state.state.raw_data = cupy.asfortranarray(
+                buffer.reshape(slice_shape))
+            new_state.state.attach_storage(new_state.state.raw_data)
+        elif type == InitialState.UNIFORM:
+            buffer = cupy.asfortranarray(
+                cupy.zeros((required_buffer_size,),
+                           dtype="complex128",
+                           order="F"))
+            hilberg_space_size = numpy.cumprod(hilbert_space_dims)[-1]
+            if mix_state:
+                dm_shape = hilbert_space_dims * 2
+                # FIXME: currently, we use host-device data transfer, hence a host allocation is required.
+                # A custom GPU memory initialization can be also used so that no host allocation is needed.
+                host_array = (1. / (hilberg_space_size)) * numpy.identity(
+                    hilberg_space_size, dtype="complex128")
+                host_array = host_array.reshape(dm_shape)
+                slice_obj = []
+                for i in range(len(slice_offsets) - 1):
+                    slice_obj.append(
+                        slice(slice_offsets[i],
+                              slice_offsets[i] + slice_shape[i]))
+                slice_obj = tuple(slice_obj)
+                sliced_host_array = numpy.ravel(host_array[slice_obj].copy())
+                buffer = cupy.array(sliced_host_array)
+            else:
+                buffer[:] = 1. / numpy.sqrt(hilberg_space_size)
+
+            new_state.state.raw_data = cupy.asfortranarray(
+                buffer.reshape(slice_shape))
+            new_state.state.attach_storage(new_state.state.raw_data)
+        else:
+            raise ValueError("Unsupported initial state type")
+
+        return new_state
 
     def get_impl(self):
         return self.state

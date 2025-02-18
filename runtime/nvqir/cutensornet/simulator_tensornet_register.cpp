@@ -28,7 +28,25 @@ public:
       initCuTensornetComm(m_cutnHandle);
       m_cutnMpiInitialized = true;
     }
+
+    // Retrieve user-defined controlled rank setting if provided.
+    if (auto *maxControlledRankEnvVar =
+            std::getenv("CUDAQ_TENSORNET_CONTROLLED_RANK")) {
+      auto maxControlledRank = std::atoi(maxControlledRankEnvVar);
+      if (maxControlledRank <= 0)
+        throw std::runtime_error(
+            fmt::format("Invalid CUDAQ_TENSORNET_CONTROLLED_RANK environment "
+                        "variable setting. Expecting a "
+                        "positive integer value, got '{}'.",
+                        maxControlledRank));
+
+      cudaq::info("Setting max controlled rank for full tensor expansion from "
+                  "{} to {}.",
+                  m_maxControlledRankForFullTensorExpansion, maxControlledRank);
+      m_maxControlledRankForFullTensorExpansion = maxControlledRank;
+    }
   }
+
   // Nothing to do for state preparation
   virtual void prepareQubitTensorState() override {}
   virtual std::string name() const override { return "tensornet"; }
@@ -116,6 +134,7 @@ public:
       }
     }
   }
+  bool requireCacheWorkspace() const override { return true; }
 
 private:
   friend nvqir::CircuitSimulator * ::getCircuitSimulator_tensornet();

@@ -30,7 +30,7 @@ def test_make_kernel_list():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
-# CHECK-SAME:    %[[VAL_0:.*]]: !cc.stdvec<f64>) attributes {"cudaq-entrypoint"} {
+# CHECK-SAME:    %[[VAL_0:.*]]: !cc.stdvec<f64>) attributes {"cudaq-entrypoint"
 # CHECK:           return
 # CHECK:         }
 
