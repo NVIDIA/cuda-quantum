@@ -19,17 +19,23 @@ void PasqalServerHelper::initialize(BackendConfig config) {
   cudaq::info("Initialize Pasqal Cloud.");
 
   // Hard-coded for now.
-  const std::string FRESNEL = "Fresnel";
-  auto machine = FRESNEL;
+  const std::string MACHINE = "Fresnel";
   const int MAX_QUBITS = 100;
 
-  cudaq::info("Running on device {}", machine);
+  cudaq::info("Running on device {}", MACHINE);
 
-  config["machine"] = machine;
+  if (!config.contains("machine"))
+    config["machine"] = MACHINE;
+    
   config["qubits"] = MAX_QUBITS;
 
   if(!config["shots"].empty())
     setShots(std::stoul(config["shots"]));
+
+  if (auto project_id = std::getenv("PASQAL_PROJECT_ID"))
+    config["project_id"] = project_id;
+    else
+    config["project_id"] = "";
 
   parseConfigForCommonParams(config);
 
@@ -47,7 +53,7 @@ RestHeaders PasqalServerHelper::getHeaders() {
   std::map<std::string, std::string> headers{
     {"Authorization", token},
     {"Content-Type", "application/json"},
-    {"User-Agent", "cudaq/Pasqal"},
+    {"User-Agent", "Cudaq/Pasqal"},
     {"Connection", "keep-alive"},
     {"Accept", "*/*"}};
 
@@ -63,6 +69,7 @@ PasqalServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     message["name"] = circuitCode.name;
     message["machine"] = backendConfig.at("machine");
     message["shots"] = shots;
+    message["project_id"] = backendConfig.at("project_id");
 
     auto sequence = nlohmann::json::parse(circuitCode.code);
     message["sequence"] = sequence.dump();
@@ -78,7 +85,7 @@ PasqalServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
 }
 
 std::string PasqalServerHelper::extractJobId(ServerMessage &postResponse) {
-    return postResponse["id"].get<std::string>();
+    return postResponse["data"]["id"].get<std::string>();
 }
 
 std::string PasqalServerHelper::constructGetJobPath(std::string &jobId) {
