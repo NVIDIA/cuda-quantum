@@ -109,24 +109,29 @@ matrix_operator::matrix_operator(int degree) {
   this->targets.push_back(degree);
 }
 
-matrix_operator::matrix_operator(std::string operator_id, const std::vector<int> &degrees)
-  : op_code(operator_id), targets(degrees) {
-    assert(this->targets.size() > 0);
-  }
+matrix_operator::matrix_operator(std::string operator_id,
+                                 const std::vector<int> &degrees)
+    : op_code(operator_id), targets(degrees) {
+  assert(this->targets.size() > 0);
+}
 
-matrix_operator::matrix_operator(std::string operator_id, std::vector<int> &&degrees)
-  : op_code(operator_id), targets(std::move(degrees)) {
-    assert(this->targets.size() > 0);
-  }
+matrix_operator::matrix_operator(std::string operator_id,
+                                 std::vector<int> &&degrees)
+    : op_code(operator_id), targets(std::move(degrees)) {
+  assert(this->targets.size() > 0);
+}
 
 template <typename T,
           std::enable_if_t<std::is_base_of_v<operator_handler, T>, bool>>
 matrix_operator::matrix_operator(const T &other) {
   this->targets = other.degrees();
   this->op_code = matrix_operator::type_prefix<T>() + other.to_string(false);
-  if (matrix_operator::m_ops.find(this->op_code) == matrix_operator::m_ops.end()) {
-    auto func = [targets = other.degrees(), other]
-      (const std::vector<int> &dimensions, const std::unordered_map<std::string, std::complex<double>> &_none) {
+  if (matrix_operator::m_ops.find(this->op_code) ==
+      matrix_operator::m_ops.end()) {
+    auto func = [targets = other.degrees(), other](
+                    const std::vector<int> &dimensions,
+                    const std::unordered_map<std::string, std::complex<double>>
+                        &_none) {
       std::unordered_map<int, int> dims;
       for (auto i = 0; i < dimensions.size(); ++i)
         dims[targets[i]] = dimensions[i];
@@ -144,10 +149,10 @@ template matrix_operator::matrix_operator(const spin_operator &other);
 template matrix_operator::matrix_operator(const boson_operator &other);
 
 matrix_operator::matrix_operator(const matrix_operator &other)
-  : targets(other.targets), op_code(other.op_code) {}
+    : targets(other.targets), op_code(other.op_code) {}
 
-matrix_operator::matrix_operator(matrix_operator &&other) 
-  : targets(std::move(other.targets)), op_code(other.op_code) {}
+matrix_operator::matrix_operator(matrix_operator &&other)
+    : targets(std::move(other.targets)), op_code(other.op_code) {}
 
 // assignments
 
