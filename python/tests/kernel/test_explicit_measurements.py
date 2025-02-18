@@ -177,21 +177,18 @@ def test_multiple_measurements():
     assert counts["11"] == 1000
 
 
-@pytest.mark.skip(reason="WIP: Not failing as expected")
 def test_no_measurements():
     """ Test for kernels executed in "explicit measurements" mode must contain measurements. """
 
     @cudaq.kernel
-    def kernel():
+    def no_measure_ops():
         q = cudaq.qvector(2)
         h(q[0])
         cx(q[0], q[1])
 
-    counts = cudaq.sample(kernel)
-    assert len(counts) == 2
-
-    with pytest.raises(RuntimeError) as _:
-        cudaq.sample(kernel, explicit_measurements=True)
+    with pytest.raises(RuntimeError) as e:
+        cudaq.sample(no_measure_ops, explicit_measurements=True)
+    assert "must contain measurements" in repr(e)
 
 
 def test_mx_my():
@@ -204,12 +201,11 @@ def test_mx_my():
         mx(q[0])
         my(q[1])
 
-    ## TODO: Check expected behavior
     counts = cudaq.sample(my_kernel)
-    counts.dump()  # gives `{ 0:488 1:512 }`
+    assert len(counts) == 2
 
     counts = cudaq.sample(my_kernel, explicit_measurements=True)
-    counts.dump()  # gives `{ 00:256 01:253 10:234 11:257 }`
+    assert len(counts) == 4
 
 
 # NOTE: Ref - https://github.com/NVIDIA/cuda-quantum/issues/1925

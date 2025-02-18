@@ -511,9 +511,8 @@ protected:
     if (executionContext && executionContext->name == "sample" &&
         !executionContext->hasConditionalsOnMeasureResults) {
 
-      // Handle duplicate measurements
+      // Handle duplicate measurements in explicit measurements mode
       if (executionContext->explicitMeasurements) {
-        /// TODO: Do this efficiently
         auto iter =
             std::find(sampleQubits.begin(), sampleQubits.end(), qubitIdx);
         if (iter != sampleQubits.end())

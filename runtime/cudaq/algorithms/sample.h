@@ -111,6 +111,12 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
       counts += ctx->result;
 
     ctx->result.clear();
+
+    if (explicitMeasurements &&
+        (counts.register_names().empty() || counts.most_probable().empty()))
+      throw std::runtime_error("Kernels executed in explicit measurements mode "
+                               "must contain measurements.");
+
     if (counts.get_total_shots() == 0) {
       printf("WARNING: this kernel invocation produced 0 shots worth "
              "of results when executed. Exiting shot loop to avoid "

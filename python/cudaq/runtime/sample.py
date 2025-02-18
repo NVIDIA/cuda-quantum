@@ -106,6 +106,11 @@ Returns:
             cudaq_runtime.unset_noise()
             return ctx.result
         counts += ctx.result
+        if explicit_measurements is True and (not counts.register_names or
+                                              not counts.most_probable()):
+            raise RuntimeError(
+                "Kernels executed in explicit measurements mode must contain measurements."
+            )
         if counts.get_total_shots() == 0:
             print("WARNING: this kernel invocation produced 0 shots worth " +
                   "of results when executed. Exiting shot loop to avoid " +
