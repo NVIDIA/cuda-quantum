@@ -65,7 +65,7 @@ std::string matrix_operator::unique_id() const {
   auto str = this->op_code + std::to_string(*it);
   while (++it != this->targets.cend())
     str += "." + std::to_string(*it);
-  return str;
+  return std::move(str);
 }
 
 std::vector<int> matrix_operator::degrees() const {
