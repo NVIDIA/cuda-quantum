@@ -31,42 +31,60 @@ class operator_sum;
                        std::is_base_of<operator_handler, RHtype>::value,       \
                    bool>
 
-template <typename HandlerTy> 
-product_operator<HandlerTy> operator*(double other, const product_operator<HandlerTy> &self);
-template <typename HandlerTy> 
-product_operator<HandlerTy> operator*(double other, product_operator<HandlerTy> &&self);
-template <typename HandlerTy> 
-operator_sum<HandlerTy> operator+(double other, const product_operator<HandlerTy> &self);
-template <typename HandlerTy> 
-operator_sum<HandlerTy> operator+(double other, product_operator<HandlerTy> &&self);
-template <typename HandlerTy> 
-operator_sum<HandlerTy> operator-(double other, const product_operator<HandlerTy> &self);
-template <typename HandlerTy> 
-operator_sum<HandlerTy> operator-(double other, product_operator<HandlerTy> &&self);
-template <typename HandlerTy> 
-product_operator<HandlerTy> operator*(std::complex<double> other, const product_operator<HandlerTy> &self);
-template <typename HandlerTy> 
-product_operator<HandlerTy> operator*(std::complex<double> other, product_operator<HandlerTy> &&self);
-template <typename HandlerTy> 
-operator_sum<HandlerTy> operator+(std::complex<double> other, const product_operator<HandlerTy> &self);
-template <typename HandlerTy> 
-operator_sum<HandlerTy> operator+(std::complex<double> other, product_operator<HandlerTy> &&self);
-template <typename HandlerTy> 
-operator_sum<HandlerTy> operator-(std::complex<double> other, const product_operator<HandlerTy> &self);
-template <typename HandlerTy> 
-operator_sum<HandlerTy> operator-(std::complex<double> other, product_operator<HandlerTy> &&self);
-template <typename HandlerTy> 
-product_operator<HandlerTy> operator*(const scalar_operator &other, const product_operator<HandlerTy> &self);
-template <typename HandlerTy> 
-product_operator<HandlerTy> operator*(const scalar_operator &other, product_operator<HandlerTy> &&self);
-template <typename HandlerTy> 
-operator_sum<HandlerTy> operator+(const scalar_operator &other, const product_operator<HandlerTy> &self);
-template <typename HandlerTy> 
-operator_sum<HandlerTy> operator+(const scalar_operator &other, product_operator<HandlerTy> &&self);
-template <typename HandlerTy> 
-operator_sum<HandlerTy> operator-(const scalar_operator &other, const product_operator<HandlerTy> &self);
-template <typename HandlerTy> 
-operator_sum<HandlerTy> operator-(const scalar_operator &other, product_operator<HandlerTy> &&self);
+template <typename HandlerTy>
+product_operator<HandlerTy> operator*(double other,
+                                      const product_operator<HandlerTy> &self);
+template <typename HandlerTy>
+product_operator<HandlerTy> operator*(double other,
+                                      product_operator<HandlerTy> &&self);
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator+(double other,
+                                  const product_operator<HandlerTy> &self);
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator+(double other,
+                                  product_operator<HandlerTy> &&self);
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator-(double other,
+                                  const product_operator<HandlerTy> &self);
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator-(double other,
+                                  product_operator<HandlerTy> &&self);
+template <typename HandlerTy>
+product_operator<HandlerTy> operator*(std::complex<double> other,
+                                      const product_operator<HandlerTy> &self);
+template <typename HandlerTy>
+product_operator<HandlerTy> operator*(std::complex<double> other,
+                                      product_operator<HandlerTy> &&self);
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator+(std::complex<double> other,
+                                  const product_operator<HandlerTy> &self);
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator+(std::complex<double> other,
+                                  product_operator<HandlerTy> &&self);
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator-(std::complex<double> other,
+                                  const product_operator<HandlerTy> &self);
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator-(std::complex<double> other,
+                                  product_operator<HandlerTy> &&self);
+template <typename HandlerTy>
+product_operator<HandlerTy> operator*(const scalar_operator &other,
+                                      const product_operator<HandlerTy> &self);
+template <typename HandlerTy>
+product_operator<HandlerTy> operator*(const scalar_operator &other,
+                                      product_operator<HandlerTy> &&self);
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator+(const scalar_operator &other,
+                                  const product_operator<HandlerTy> &self);
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator+(const scalar_operator &other,
+                                  product_operator<HandlerTy> &&self);
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator-(const scalar_operator &other,
+                                  const product_operator<HandlerTy> &self);
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator-(const scalar_operator &other,
+                                  product_operator<HandlerTy> &&self);
 
 template <typename LHtype, typename RHtype,
           TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
@@ -82,61 +100,94 @@ template <typename LHtype, typename RHtype,
 operator_sum<matrix_operator> operator-(const product_operator<LHtype> &other,
                                         const product_operator<RHtype> &self);
 
-template <typename HandlerTy> 
-operator_sum<HandlerTy> operator*(double other, const operator_sum<HandlerTy> &self);
-template <typename HandlerTy> 
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator*(double other,
+                                  const operator_sum<HandlerTy> &self);
+template <typename HandlerTy>
 operator_sum<HandlerTy> operator*(double other, operator_sum<HandlerTy> &&self);
-template <typename HandlerTy> 
-operator_sum<HandlerTy> operator+(double other, const operator_sum<HandlerTy> &self);
-template <typename HandlerTy> 
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator+(double other,
+                                  const operator_sum<HandlerTy> &self);
+template <typename HandlerTy>
 operator_sum<HandlerTy> operator+(double other, operator_sum<HandlerTy> &&self);
-template <typename HandlerTy> 
-operator_sum<HandlerTy> operator-(double other, const operator_sum<HandlerTy> &self);
-template <typename HandlerTy> 
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator-(double other,
+                                  const operator_sum<HandlerTy> &self);
+template <typename HandlerTy>
 operator_sum<HandlerTy> operator-(double other, operator_sum<HandlerTy> &&self);
-template <typename HandlerTy> 
-operator_sum<HandlerTy> operator*(std::complex<double> other, const operator_sum<HandlerTy> &self);
-template <typename HandlerTy> 
-operator_sum<HandlerTy> operator*(std::complex<double> other, operator_sum<HandlerTy> &&self);
-template <typename HandlerTy> 
-operator_sum<HandlerTy> operator+(std::complex<double> other, const operator_sum<HandlerTy> &self);
-template <typename HandlerTy> 
-operator_sum<HandlerTy> operator+(std::complex<double> other, operator_sum<HandlerTy> &&self);
-template <typename HandlerTy> 
-operator_sum<HandlerTy> operator-(std::complex<double> other, const operator_sum<HandlerTy> &self);
-template <typename HandlerTy> 
-operator_sum<HandlerTy> operator-(std::complex<double> other, operator_sum<HandlerTy> &&self);
-template <typename HandlerTy> 
-operator_sum<HandlerTy> operator*(const scalar_operator &other, const operator_sum<HandlerTy> &self);
-template <typename HandlerTy> 
-operator_sum<HandlerTy> operator*(const scalar_operator &other, operator_sum<HandlerTy> &&self);
-template <typename HandlerTy> 
-operator_sum<HandlerTy> operator+(const scalar_operator &other, const operator_sum<HandlerTy> &self);
-template <typename HandlerTy> 
-operator_sum<HandlerTy> operator+(const scalar_operator &other, operator_sum<HandlerTy> &&self);
-template <typename HandlerTy> 
-operator_sum<HandlerTy> operator-(const scalar_operator &other, const operator_sum<HandlerTy> &self);
-template <typename HandlerTy> 
-operator_sum<HandlerTy> operator-(const scalar_operator &other, operator_sum<HandlerTy> &&self);
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator*(std::complex<double> other,
+                                  const operator_sum<HandlerTy> &self);
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator*(std::complex<double> other,
+                                  operator_sum<HandlerTy> &&self);
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator+(std::complex<double> other,
+                                  const operator_sum<HandlerTy> &self);
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator+(std::complex<double> other,
+                                  operator_sum<HandlerTy> &&self);
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator-(std::complex<double> other,
+                                  const operator_sum<HandlerTy> &self);
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator-(std::complex<double> other,
+                                  operator_sum<HandlerTy> &&self);
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator*(const scalar_operator &other,
+                                  const operator_sum<HandlerTy> &self);
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator*(const scalar_operator &other,
+                                  operator_sum<HandlerTy> &&self);
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator+(const scalar_operator &other,
+                                  const operator_sum<HandlerTy> &self);
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator+(const scalar_operator &other,
+                                  operator_sum<HandlerTy> &&self);
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator-(const scalar_operator &other,
+                                  const operator_sum<HandlerTy> &self);
+template <typename HandlerTy>
+operator_sum<HandlerTy> operator-(const scalar_operator &other,
+                                  operator_sum<HandlerTy> &&self);
 
-template <typename LHtype, typename RHtype, TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
-operator_sum<matrix_operator> operator*(const operator_sum<LHtype> &other, const product_operator<RHtype> &self);
-template <typename LHtype, typename RHtype, TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
-operator_sum<matrix_operator> operator+(const operator_sum<LHtype> &other, const product_operator<RHtype> &self);
-template <typename LHtype, typename RHtype, TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
-operator_sum<matrix_operator> operator-(const operator_sum<LHtype> &other, const product_operator<RHtype> &self);
-template <typename LHtype, typename RHtype, TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
-operator_sum<matrix_operator> operator*(const product_operator<LHtype> &other, const operator_sum<RHtype> &self);
-template <typename LHtype, typename RHtype, TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
-operator_sum<matrix_operator> operator+(const product_operator<LHtype> &other, const operator_sum<RHtype> &self);
-template <typename LHtype, typename RHtype, TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
-operator_sum<matrix_operator> operator-(const product_operator<LHtype> &other, const operator_sum<RHtype> &self);
-template <typename LHtype, typename RHtype, TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
-operator_sum<matrix_operator> operator*(const operator_sum<LHtype> &other, const operator_sum<RHtype> &self);
-template <typename LHtype, typename RHtype, TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
-operator_sum<matrix_operator> operator+(const operator_sum<LHtype> &other, const operator_sum<RHtype> &self);
-template <typename LHtype, typename RHtype, TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
-operator_sum<matrix_operator> operator-(const operator_sum<LHtype> &other, const operator_sum<RHtype> &self);
+template <typename LHtype, typename RHtype,
+          TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
+operator_sum<matrix_operator> operator*(const operator_sum<LHtype> &other,
+                                        const product_operator<RHtype> &self);
+template <typename LHtype, typename RHtype,
+          TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
+operator_sum<matrix_operator> operator+(const operator_sum<LHtype> &other,
+                                        const product_operator<RHtype> &self);
+template <typename LHtype, typename RHtype,
+          TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
+operator_sum<matrix_operator> operator-(const operator_sum<LHtype> &other,
+                                        const product_operator<RHtype> &self);
+template <typename LHtype, typename RHtype,
+          TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
+operator_sum<matrix_operator> operator*(const product_operator<LHtype> &other,
+                                        const operator_sum<RHtype> &self);
+template <typename LHtype, typename RHtype,
+          TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
+operator_sum<matrix_operator> operator+(const product_operator<LHtype> &other,
+                                        const operator_sum<RHtype> &self);
+template <typename LHtype, typename RHtype,
+          TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
+operator_sum<matrix_operator> operator-(const product_operator<LHtype> &other,
+                                        const operator_sum<RHtype> &self);
+template <typename LHtype, typename RHtype,
+          TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
+operator_sum<matrix_operator> operator*(const operator_sum<LHtype> &other,
+                                        const operator_sum<RHtype> &self);
+template <typename LHtype, typename RHtype,
+          TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
+operator_sum<matrix_operator> operator+(const operator_sum<LHtype> &other,
+                                        const operator_sum<RHtype> &self);
+template <typename LHtype, typename RHtype,
+          TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
+operator_sum<matrix_operator> operator-(const operator_sum<LHtype> &other,
+                                        const operator_sum<RHtype> &self);
 
 template <typename LHtype, typename RHtype,
           TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
@@ -176,81 +227,81 @@ operator_sum<matrix_operator> operator-(const operator_sum<LHtype> &other,
                                         const operator_sum<RHtype> &self);
 
 #ifndef CUDAQ_INSTANTIATE_TEMPLATES
-#define EXTERN_TEMPLATE_SPECIALIZATIONS(HandlerTy)                                                                  \
-                                                                                                                    \
-    extern template                                                                                                 \
-    product_operator<HandlerTy> operator*(double other, const product_operator<HandlerTy> &self);                   \
-    extern template                                                                                                 \
-    product_operator<HandlerTy> operator*(double other, product_operator<HandlerTy> &&self);                        \
-    extern template                                                                                                 \
-    operator_sum<HandlerTy> operator+(double other, const product_operator<HandlerTy> &self);                       \
-    extern template                                                                                                 \
-    operator_sum<HandlerTy> operator+(double other, product_operator<HandlerTy> &&self);                            \
-    extern template                                                                                                 \
-    operator_sum<HandlerTy> operator-(double other, const product_operator<HandlerTy> &self);                       \
-    extern template                                                                                                 \
-    operator_sum<HandlerTy> operator-(double other, product_operator<HandlerTy> &&self);                            \
-    extern template                                                                                                 \
-    product_operator<HandlerTy> operator*(std::complex<double> other, const product_operator<HandlerTy> &self);     \
-    extern template                                                                                                 \
-    product_operator<HandlerTy> operator*(std::complex<double> other, product_operator<HandlerTy> &&self);          \
-    extern template                                                                                                 \
-    operator_sum<HandlerTy> operator+(std::complex<double> other, const product_operator<HandlerTy> &self);         \
-    extern template                                                                                                 \
-    operator_sum<HandlerTy> operator+(std::complex<double> other, product_operator<HandlerTy> &&self);              \
-    extern template                                                                                                 \
-    operator_sum<HandlerTy> operator-(std::complex<double> other, const product_operator<HandlerTy> &self);         \
-    extern template                                                                                                 \
-    operator_sum<HandlerTy> operator-(std::complex<double> other, product_operator<HandlerTy> &&self);              \
-    extern template                                                                                                 \
-    product_operator<HandlerTy> operator*(const scalar_operator &other, const product_operator<HandlerTy> &self);   \
-    extern template                                                                                                 \
-    product_operator<HandlerTy> operator*(const scalar_operator &other, product_operator<HandlerTy> &&self);        \
-    extern template                                                                                                 \
-    operator_sum<HandlerTy> operator+(const scalar_operator &other, const product_operator<HandlerTy> &self);       \
-    extern template                                                                                                 \
-    operator_sum<HandlerTy> operator+(const scalar_operator &other, product_operator<HandlerTy> &&self);            \
-    extern template                                                                                                 \
-    operator_sum<HandlerTy> operator-(const scalar_operator &other, const product_operator<HandlerTy> &self);       \
-    extern template                                                                                                 \
-    operator_sum<HandlerTy> operator-(const scalar_operator &other, product_operator<HandlerTy> &&self);            \
-                                                                                                                    \
-    extern template                                                                                                 \
-    operator_sum<HandlerTy> operator*(double other, const operator_sum<HandlerTy> &self);                           \
-    extern template                                                                                                 \
-    operator_sum<HandlerTy> operator*(double other, operator_sum<HandlerTy> &&self);                                \
-    extern template                                                                                                 \
-    operator_sum<HandlerTy> operator+(double other, const operator_sum<HandlerTy> &self);                           \
-    extern template                                                                                                 \
-    operator_sum<HandlerTy> operator+(double other, operator_sum<HandlerTy> &&self);                                \
-    extern template                                                                                                 \
-    operator_sum<HandlerTy> operator-(double other, const operator_sum<HandlerTy> &self);                           \
-    extern template                                                                                                 \
-    operator_sum<HandlerTy> operator-(double other, operator_sum<HandlerTy> &&self);                                \
-    extern template                                                                                                 \
-    operator_sum<HandlerTy> operator*(std::complex<double> other, const operator_sum<HandlerTy> &self);             \
-    extern template                                                                                                 \
-    operator_sum<HandlerTy> operator*(std::complex<double> other, operator_sum<HandlerTy> &&self);                  \
-    extern template                                                                                                 \
-    operator_sum<HandlerTy> operator+(std::complex<double> other, const operator_sum<HandlerTy> &self);             \
-    extern template                                                                                                 \
-    operator_sum<HandlerTy> operator+(std::complex<double> other, operator_sum<HandlerTy> &&self);                  \
-    extern template                                                                                                 \
-    operator_sum<HandlerTy> operator-(std::complex<double> other, const operator_sum<HandlerTy> &self);             \
-    extern template                                                                                                 \
-    operator_sum<HandlerTy> operator-(std::complex<double> other, operator_sum<HandlerTy> &&self);                  \
-    extern template                                                                                                 \
-    operator_sum<HandlerTy> operator*(const scalar_operator &other, const operator_sum<HandlerTy> &self);           \
-    extern template                                                                                                 \
-    operator_sum<HandlerTy> operator*(const scalar_operator &other, operator_sum<HandlerTy> &&self);                \
-    extern template                                                                                                 \
-    operator_sum<HandlerTy> operator+(const scalar_operator &other, const operator_sum<HandlerTy> &self);           \
-    extern template                                                                                                 \
-    operator_sum<HandlerTy> operator+(const scalar_operator &other, operator_sum<HandlerTy> &&self);                \
-    extern template                                                                                                 \
-    operator_sum<HandlerTy> operator-(const scalar_operator &other, const operator_sum<HandlerTy> &self);           \
-    extern template                                                                                                 \
-    operator_sum<HandlerTy> operator-(const scalar_operator &other, operator_sum<HandlerTy> &&self);                \
+#define EXTERN_TEMPLATE_SPECIALIZATIONS(HandlerTy)                             \
+                                                                               \
+  extern template product_operator<HandlerTy> operator*(                       \
+      double other, const product_operator<HandlerTy> &self);                  \
+  extern template product_operator<HandlerTy> operator*(                       \
+      double other, product_operator<HandlerTy> &&self);                       \
+  extern template operator_sum<HandlerTy> operator+(                           \
+      double other, const product_operator<HandlerTy> &self);                  \
+  extern template operator_sum<HandlerTy> operator+(                           \
+      double other, product_operator<HandlerTy> &&self);                       \
+  extern template operator_sum<HandlerTy> operator-(                           \
+      double other, const product_operator<HandlerTy> &self);                  \
+  extern template operator_sum<HandlerTy> operator-(                           \
+      double other, product_operator<HandlerTy> &&self);                       \
+  extern template product_operator<HandlerTy> operator*(                       \
+      std::complex<double> other, const product_operator<HandlerTy> &self);    \
+  extern template product_operator<HandlerTy> operator*(                       \
+      std::complex<double> other, product_operator<HandlerTy> &&self);         \
+  extern template operator_sum<HandlerTy> operator+(                           \
+      std::complex<double> other, const product_operator<HandlerTy> &self);    \
+  extern template operator_sum<HandlerTy> operator+(                           \
+      std::complex<double> other, product_operator<HandlerTy> &&self);         \
+  extern template operator_sum<HandlerTy> operator-(                           \
+      std::complex<double> other, const product_operator<HandlerTy> &self);    \
+  extern template operator_sum<HandlerTy> operator-(                           \
+      std::complex<double> other, product_operator<HandlerTy> &&self);         \
+  extern template product_operator<HandlerTy> operator*(                       \
+      const scalar_operator &other, const product_operator<HandlerTy> &self);  \
+  extern template product_operator<HandlerTy> operator*(                       \
+      const scalar_operator &other, product_operator<HandlerTy> &&self);       \
+  extern template operator_sum<HandlerTy> operator+(                           \
+      const scalar_operator &other, const product_operator<HandlerTy> &self);  \
+  extern template operator_sum<HandlerTy> operator+(                           \
+      const scalar_operator &other, product_operator<HandlerTy> &&self);       \
+  extern template operator_sum<HandlerTy> operator-(                           \
+      const scalar_operator &other, const product_operator<HandlerTy> &self);  \
+  extern template operator_sum<HandlerTy> operator-(                           \
+      const scalar_operator &other, product_operator<HandlerTy> &&self);       \
+                                                                               \
+  extern template operator_sum<HandlerTy> operator*(                           \
+      double other, const operator_sum<HandlerTy> &self);                      \
+  extern template operator_sum<HandlerTy> operator*(                           \
+      double other, operator_sum<HandlerTy> &&self);                           \
+  extern template operator_sum<HandlerTy> operator+(                           \
+      double other, const operator_sum<HandlerTy> &self);                      \
+  extern template operator_sum<HandlerTy> operator+(                           \
+      double other, operator_sum<HandlerTy> &&self);                           \
+  extern template operator_sum<HandlerTy> operator-(                           \
+      double other, const operator_sum<HandlerTy> &self);                      \
+  extern template operator_sum<HandlerTy> operator-(                           \
+      double other, operator_sum<HandlerTy> &&self);                           \
+  extern template operator_sum<HandlerTy> operator*(                           \
+      std::complex<double> other, const operator_sum<HandlerTy> &self);        \
+  extern template operator_sum<HandlerTy> operator*(                           \
+      std::complex<double> other, operator_sum<HandlerTy> &&self);             \
+  extern template operator_sum<HandlerTy> operator+(                           \
+      std::complex<double> other, const operator_sum<HandlerTy> &self);        \
+  extern template operator_sum<HandlerTy> operator+(                           \
+      std::complex<double> other, operator_sum<HandlerTy> &&self);             \
+  extern template operator_sum<HandlerTy> operator-(                           \
+      std::complex<double> other, const operator_sum<HandlerTy> &self);        \
+  extern template operator_sum<HandlerTy> operator-(                           \
+      std::complex<double> other, operator_sum<HandlerTy> &&self);             \
+  extern template operator_sum<HandlerTy> operator*(                           \
+      const scalar_operator &other, const operator_sum<HandlerTy> &self);      \
+  extern template operator_sum<HandlerTy> operator*(                           \
+      const scalar_operator &other, operator_sum<HandlerTy> &&self);           \
+  extern template operator_sum<HandlerTy> operator+(                           \
+      const scalar_operator &other, const operator_sum<HandlerTy> &self);      \
+  extern template operator_sum<HandlerTy> operator+(                           \
+      const scalar_operator &other, operator_sum<HandlerTy> &&self);           \
+  extern template operator_sum<HandlerTy> operator-(                           \
+      const scalar_operator &other, const operator_sum<HandlerTy> &self);      \
+  extern template operator_sum<HandlerTy> operator-(                           \
+      const scalar_operator &other, operator_sum<HandlerTy> &&self);
 
 EXTERN_TEMPLATE_SPECIALIZATIONS(matrix_operator);
 EXTERN_TEMPLATE_SPECIALIZATIONS(spin_operator);

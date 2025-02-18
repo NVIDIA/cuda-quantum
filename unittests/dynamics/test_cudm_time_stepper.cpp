@@ -84,11 +84,11 @@ TEST_F(CuDensityMatTimeStepperTest, ComputeStepNoLiouvillian) {
 
 // Compute step with mismatched dimensions
 TEST_F(CuDensityMatTimeStepperTest, ComputeStepMistmatchedDimensions) {
-  EXPECT_THROW(std::unique_ptr<CuDensityMatState> mismatchedState =
-                   std::make_unique<CuDensityMatState>(handle_,
-                                                mock_initial_state_data(),
-                                                std::vector<int64_t>{3, 3}),
-               std::invalid_argument);
+  EXPECT_THROW(
+      std::unique_ptr<CuDensityMatState> mismatchedState =
+          std::make_unique<CuDensityMatState>(
+              handle_, mock_initial_state_data(), std::vector<int64_t>{3, 3}),
+      std::invalid_argument);
 }
 
 // Compute step with zero step size
@@ -150,9 +150,6 @@ TEST_F(CuDensityMatTimeStepperTest, TimeSteppingWithLindblad) {
   auto time_stepper = std::make_unique<cudmStepper>(handle_, cudm_lindblad_op);
   auto output_state = time_stepper->compute(input_state, 0.0, 1.0, {});
 
-  std::cout << "Printing output_state ..." << std::endl;
-  output_state.dump(std::cout);
-
   std::vector<std::complex<double>> output_state_vec(100);
   output_state.to_host(output_state_vec.data(), output_state_vec.size());
 
@@ -179,7 +176,7 @@ TEST_F(CuDensityMatTimeStepperTest, CheckScalarCallback) {
   castSimState->initialize_cudm(handle_, dims);
   auto function = [](const std::unordered_map<std::string, std::complex<double>>
                          &parameters) {
-    auto entry = parameters.find("alpha");
+    auto entry = parameters.find("time");
     if (entry == parameters.end())
       throw std::runtime_error("Cannot find time value");
     return entry->second;
@@ -187,10 +184,12 @@ TEST_F(CuDensityMatTimeStepperTest, CheckScalarCallback) {
   auto op =
       cudaq::scalar_operator(function) * cudaq::matrix_operator::create(0);
   auto cudmOp =
-      helper_->convert_to_cudensitymat_operator<cudaq::matrix_operator>(
-          {}, op, dims); // Initialize the time stepper
+      helper_->convert_to_cudensitymat_operator<cudaq::matrix_operator>({}, op,
+                                                                        dims);
+  // Initialize the time stepper
   auto time_stepper = std::make_unique<cudmStepper>(handle_, cudmOp);
-  auto outputState = time_stepper->compute(inputState, 1.0, 1.0, {{"alpha", 2.0}});
+  auto outputState =
+      time_stepper->compute(inputState, 1.0, 1.0, {{"time", 2.0}});
   outputState.dump(std::cout);
   std::vector<std::complex<double>> outputStateVec(4);
   outputState.to_host(outputStateVec.data(), outputStateVec.size());

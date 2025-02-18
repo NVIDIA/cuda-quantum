@@ -73,7 +73,7 @@ public:
   Schedule(const std::vector<double> &steps,
            const std::vector<std::string> &parameters = {},
            std::function<std::complex<double>(
-            const std::unordered_map<std::string, std::complex<double>> &)>
+               const std::unordered_map<std::string, std::complex<double>> &)>
                value_function = {});
 };
 } // namespace cudaq

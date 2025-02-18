@@ -44,12 +44,11 @@ std::vector<int> boson_operator::degrees() const { return {this->target}; }
 
 // constructors
 
-boson_operator::boson_operator(int target) 
-  : op_code(0), target(target) {}
+boson_operator::boson_operator(int target) : op_code(0), target(target) {}
 
-boson_operator::boson_operator(int target, int op_id) 
-  : op_code(op_id), target(target) {
-    assert(0 <= op_id < 4);
+boson_operator::boson_operator(int target, int op_id)
+    : op_code(op_id), target(target) {
+  assert(0 <= op_id < 4);
 }
 
 // evaluations

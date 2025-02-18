@@ -75,7 +75,8 @@ matrix_2 scalar_operator::to_matrix(
 std::string scalar_operator::to_string() const {
   if (std::holds_alternative<std::complex<double>>(this->value)) {
     auto value = std::get<std::complex<double>>(this->value);
-    return "(" + std::to_string(value.real()) + "+" + std::to_string(value.imag()) + "i)";
+    return "(" + std::to_string(value.real()) + "+" +
+           std::to_string(value.imag()) + "i)";
   }
   return "scalar";
 }

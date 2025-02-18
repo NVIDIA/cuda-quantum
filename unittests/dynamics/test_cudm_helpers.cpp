@@ -6,11 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "CuDensityMatState.h"
 #include "test_mocks.h"
 #include <cudaq/operators.h>
 #include <cudm_error_handling.h>
 #include <cudm_helpers.h>
-#include "CuDensityMatState.h"
 #include <gtest/gtest.h>
 
 // Initialize operator_sum
@@ -32,7 +32,8 @@ protected:
 
     std::vector<int64_t> mode_extents = {2};
     std::vector<std::complex<double>> rawData = {{1.0, 0.0}, {0.0, 0.0}};
-    state = std::make_unique<cudaq::CuDensityMatState>(handle, rawData, mode_extents);
+    state = std::make_unique<cudaq::CuDensityMatState>(handle, rawData,
+                                                       mode_extents);
   }
 
   void TearDown() override { HANDLE_CUDA_ERROR(cudaDeviceSynchronize()); }
