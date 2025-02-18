@@ -131,7 +131,13 @@ public:
   sample_result(double preComputedExp, std::vector<ExecutionResult> &results);
 
   /// @brief Copy Constructor
-  sample_result(const sample_result &);
+  sample_result(const sample_result &) = default;
+
+  /// @brief Move constructor
+  sample_result(sample_result &&) = default;
+
+  /// @brief Move assignment constructor
+  sample_result &operator=(sample_result &&counts) = default;
 
   /// @brief The destructor
   ~sample_result() = default;
@@ -156,8 +162,8 @@ public:
   /// @brief Set this sample_result equal to the provided one
   /// @param counts
   /// @return
-  sample_result &operator=(sample_result &counts);
-  sample_result &operator=(const sample_result &counts);
+  sample_result &operator=(sample_result &counts) = default;
+  sample_result &operator=(const sample_result &counts) = default;
 
   /// @brief Append all the data from other to this sample_result.
   /// Merge when necessary.

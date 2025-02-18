@@ -222,26 +222,6 @@ void sample_result::append(ExecutionResult &result, bool concatenate) {
       totalShots += count;
 }
 
-sample_result::sample_result(const sample_result &m)
-    : sampleResults(m.sampleResults), totalShots(m.totalShots) {}
-
-sample_result &sample_result::operator=(sample_result &counts) {
-  sampleResults.clear();
-  for (auto &[name, sampleResult] : counts.sampleResults) {
-    sampleResults.insert({name, sampleResult});
-  }
-  totalShots = counts.totalShots;
-  return *this;
-}
-sample_result &sample_result::operator=(const sample_result &counts) {
-  sampleResults.clear();
-  for (auto &[name, sampleResult] : counts.sampleResults) {
-    sampleResults.insert({name, sampleResult});
-  }
-  totalShots = counts.totalShots;
-  return *this;
-}
-
 bool sample_result::operator==(const sample_result &counts) const {
   return sampleResults == counts.sampleResults;
 }
