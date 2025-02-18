@@ -329,7 +329,7 @@ struct FuseConstantToSubveqPattern : public OpRewritePattern<quake::SubVeqOp> {
     auto veqSize = [&]() -> std::int64_t {
       auto size = cast<quake::VeqType>(subveq.getVeq().getType()).getSize();
       // Note: do not support more than 2^32 qubits.
-      if (size == quake::SubVeqOp::kDynamicIndex)
+      if (size == quake::VeqType::kDynamicSize)
         return std::numeric_limits<std::int32_t>::max();
       return size - 1;
     }();
