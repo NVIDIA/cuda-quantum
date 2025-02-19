@@ -6,13 +6,14 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/operators.h"
+#include <iostream>
 #include "cudaq/utils/tensor.h"
 #include <gtest/gtest.h>
 
 namespace utils {
 
-void print(cudaq::matrix_2 mat) {
+void print(cudaq::matrix_2 mat, std::string name = "") {
+  if (name != "") std::cout << name << ":" << std::endl;
   for (std::size_t i = 0; i < mat.get_rows(); i++) {
     for (std::size_t j = 0; j < mat.get_columns(); j++)
       std::cout << mat[{i, j}] << " ";
@@ -31,18 +32,19 @@ void assert_product_equal(
 }
 
 void checkEqual(cudaq::matrix_2 a, cudaq::matrix_2 b) {
+  print(a, "matrix a");
+  print(b, "matrix b");
+
   ASSERT_EQ(a.get_rank(), b.get_rank());
   ASSERT_EQ(a.get_rows(), b.get_rows());
   ASSERT_EQ(a.get_columns(), b.get_columns());
   ASSERT_EQ(a.get_size(), b.get_size());
   for (std::size_t i = 0; i < a.get_rows(); i++) {
     for (std::size_t j = 0; j < a.get_columns(); j++) {
-      double a_real = a[{i, j}].real();
-      double b_real = b[{i, j}].real();
-      EXPECT_NEAR(a_real, b_real, 1e-8);
-      double a_imag = a[{i, j}].imag();
-      double b_imag = b[{i, j}].imag();
-      EXPECT_NEAR(a_imag, b_imag, 1e-8);
+      auto a_val = a[{i, j}];
+      auto b_val = b[{i, j}];
+      EXPECT_NEAR(a_val.real(), b_val.real(), 1e-8);
+      EXPECT_NEAR(a_val.imag(), b_val.imag(), 1e-8);
     }
   }
 }

@@ -206,7 +206,7 @@ TEST(OperatorExpressions, checkProductOperatorConversions) {
   {
     checkProductEquals(matrix_product * matrix_product, matrix_product_expected * matrix_product_expected);
     checkProductEquals(spin_product * spin_product, spin_product_expected * spin_product_expected, 2);
-    checkProductEquals(boson_product * boson_product, boson_product_expected * boson_product_expected, 3);
+    checkProductEquals(boson_product * boson_product, boson_product_expected * boson_product_expected, 2);
     checkProductEquals(matrix_product * spin_product, matrix_product_expected * spin_product_expected);
     checkProductEquals(spin_product * matrix_product, spin_product_expected * matrix_product_expected);
     checkProductEquals(matrix_product * boson_product, matrix_product_expected * boson_product_expected);
@@ -228,7 +228,7 @@ TEST(OperatorExpressions, checkProductOperatorConversions) {
 
     auto boson_product_0 = boson_product;
     boson_product_0 *= boson_product;
-    checkProductEquals(boson_product_0, boson_product_expected * boson_product_expected, 3);
+    checkProductEquals(boson_product_0, boson_product_expected * boson_product_expected, 2);
 
     matrix_product_0 = matrix_product;
     matrix_product_0 *= spin_product;
