@@ -223,11 +223,11 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
     auto calleeFunc = fromModule->lookupSymbol<func::FuncOp>(calleeKernelName);
     assert(calleeFunc && "callee func is missing");
 
-    // TODO: use hash of arguments instead?
-    auto counter = reinterpret_cast<std::size_t>(v);
-    auto initName = calleeName + ".init_" + std::to_string(counter);
-    auto numQubitsName =
-        calleeName + ".num_qubits_" + std::to_string(counter++);
+    // Use the state pointer as hash to look up the function name
+    // that was created using the same hash in StateAggregator.
+    auto hash = std::to_string(reinterpret_cast<std::size_t>(v));
+    auto initName = calleeName + ".init_" + hash;
+    auto numQubitsName = calleeName + ".num_qubits_" + hash;
     auto initKernelName = cudaq::runtime::cudaqGenPrefixName + initName;
     auto numQubitsKernelName =
         cudaq::runtime::cudaqGenPrefixName + numQubitsName;
