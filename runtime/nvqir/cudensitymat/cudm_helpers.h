@@ -46,8 +46,10 @@ public:
       const std::vector<int64_t> &mode_extents);
 
   std::vector<std::pair<cudaq::scalar_operator, cudensitymatOperatorTerm_t>>
-  convert_to_cudensitymat(const operator_sum<cudaq::matrix_operator> &op,
-                          const std::vector<int64_t> &mode_extents);
+  convert_to_cudensitymat(
+      const operator_sum<cudaq::matrix_operator> &op,
+      const std::unordered_map<std::string, std::complex<double>> &parameters,
+      const std::vector<int64_t> &mode_extents);
   // Construct Liouvillian
   cudensitymatOperator_t construct_liouvillian(
       const operator_sum<cudaq::matrix_operator> &op,
@@ -80,7 +82,8 @@ public:
   _wrap_callback(const scalar_operator &scalar_op,
                  const std::vector<std::string> &paramNames);
   static cudensitymatWrappedTensorCallback_t
-  _wrap_tensor_callback(const matrix_operator &op);
+  _wrap_tensor_callback(const matrix_operator &op,
+                        const std::vector<std::string> &paramNames);
 
   cudensitymatElementaryOperator_t create_elementary_operator(
       const cudaq::matrix_operator &elem_op,
