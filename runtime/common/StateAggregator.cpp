@@ -375,8 +375,8 @@ void cudaq::opt::StateAggregator::collectKernelInfo(const cudaq::state *v) {
       auto numQubitsKernelName =
           cudaq::runtime::cudaqGenPrefixName + numQubitsName;
 
-      // Create `callee.init_N` and `callee.num_qubits_N` used for
-      // `quake.get_state` replacement later in ReplaceStateWithKernel pass
+      // Create `callee.init_N` and `callee.num_qubits_N` functions used to
+      // replace `quake.get_state` later in ReplaceStateWithKernel pass
       createInitFunc(builder, moduleOp, calleeFunc, initKernelName);
       createNumQubitsFunc(builder, moduleOp, calleeFunc, numQubitsKernelName);
 
@@ -384,7 +384,7 @@ void cudaq::opt::StateAggregator::collectKernelInfo(const cudaq::state *v) {
       addKernelInfo(initName, calleeArgs);
       addKernelInfo(numQubitsName, calleeArgs);
 
-      // Collect kernel info from the callee state recursively
+      // Collect kernel info from the callee arguments recursively
       collect(initName, calleeArgs);
       collect(numQubitsName, calleeArgs);
     }

@@ -48,8 +48,7 @@ public:
   /// created.
   mlir::ModuleOp getSubstitutionModule() { return substModule; }
 
-  mlir::ModuleOp getSourceModule() { return sourceModule; }
-
+  /// Kernel name we are converting the arguments for.
   mlir::StringRef getKernelName() { return kernelName; }
 
 private:

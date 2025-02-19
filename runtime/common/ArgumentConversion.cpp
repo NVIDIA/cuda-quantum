@@ -105,9 +105,6 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
   auto simState =
       cudaq::state_helper::getSimulationState(const_cast<cudaq::state *>(v));
 
-  auto kernelName = converter.getKernelName();
-  auto substMod = converter.getSubstitutionModule();
-
   // If the state has amplitude data, we materialize the data as a state
   // vector and create a new state from it.
   // TODO: add an option to use the kernel info if available, i.e. for
@@ -115,6 +112,9 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
   // TODO: add an option of storing the kernel info on simulators if
   // preferred i.e. to support synthesis of density matrices.
   if (simState->hasData()) {
+    auto kernelName = converter.getKernelName();
+    auto substMod = converter.getSubstitutionModule();
+
     // The call below might cause lazy execution of the state kernel.
     // TODO: For lazy execution scenario on remote simulators, we have the
     // kernel info available on the state as well, before we needed to run
