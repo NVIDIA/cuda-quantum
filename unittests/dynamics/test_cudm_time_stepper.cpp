@@ -174,28 +174,35 @@ TEST_F(CuDensityMatTimeStepperTest, CheckScalarCallback) {
   auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
   EXPECT_TRUE(castSimState != nullptr);
   castSimState->initialize_cudm(handle_, dims);
-  auto function = [](const std::unordered_map<std::string, std::complex<double>>
-                         &parameters) {
-    auto entry = parameters.find("time");
-    if (entry == parameters.end())
-      throw std::runtime_error("Cannot find time value");
-    return entry->second;
-  };
+  const std::string paramName = "alpha";
+  const std::complex<double> paramValue{2.0, 3.0};
+  std::unordered_map<std::string, std::complex<double>> params{
+      {paramName, paramValue}};
+
+  auto function =
+      [paramName](const std::unordered_map<std::string, std::complex<double>>
+                      &parameters) {
+        auto entry = parameters.find(paramName);
+        if (entry == parameters.end())
+          throw std::runtime_error(
+              "Cannot find value of expected parameter named " + paramName);
+        return entry->second;
+      };
+
   auto op =
       cudaq::scalar_operator(function) * cudaq::matrix_operator::create(0);
   auto cudmOp =
-      helper_->convert_to_cudensitymat_operator<cudaq::matrix_operator>({}, op,
-                                                                        dims);
+      helper_->convert_to_cudensitymat_operator<cudaq::matrix_operator>(
+          params, op, dims);
   // Initialize the time stepper
   auto time_stepper = std::make_unique<cudmStepper>(handle_, cudmOp);
-  auto outputState =
-      time_stepper->compute(inputState, 1.0, 1.0, {{"time", 2.0}});
+  auto outputState = time_stepper->compute(inputState, 1.0, 1.0, params);
   outputState.dump(std::cout);
   std::vector<std::complex<double>> outputStateVec(4);
   outputState.to_host(outputStateVec.data(), outputStateVec.size());
   // Create operator move the state up 1 step.
   const std::vector<std::complex<double>> expectedOutputState = {
-      {0.0, 0.0}, {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}};
+      {0.0, 0.0}, paramValue, {0.0, 0.0}, {0.0, 0.0}};
 
   for (std::size_t i = 0; i < expectedOutputState.size(); ++i) {
     EXPECT_TRUE(std::abs(expectedOutputState[i] - outputStateVec[i]) < 1e-12);
