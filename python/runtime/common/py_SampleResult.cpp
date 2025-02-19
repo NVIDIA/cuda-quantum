@@ -47,6 +47,8 @@ Attributes:
       .def("deserialize", &sample_result::deserialize,
            "Deserialize this SampleResult from an existing vector of integers "
            "adhering to the implicit encoding.")
+      .def("get_total_shots", &sample_result::get_total_shots,
+           "Get the total number of shots in the sample result")
       .def(
           "__str__",
           [](sample_result &self) {
