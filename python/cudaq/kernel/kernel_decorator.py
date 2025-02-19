@@ -208,15 +208,15 @@ class PyKernelDecorator(object):
                 break
             s = s.f_back
 
-        if self.module != None:
+        if self.module is not None:
             return
 
-        # FIX: Cleanup up the captured data if the module needs recompilation.
-        if self.capturedDataStorage != None:
+        # Cleanup up the captured data if the module needs recompilation.
+        if self.capturedDataStorage is not None:
             self.capturedDataStorage.__del__()
         self.capturedDataStorage = self.createStorage()
 
-        # Caches the module and stores captured data into self.capturedDataStorage.
+        # Caches the module and stores captured data into `self.capturedDataStorage`.
         self.module, self.argTypes, extraMetadata = compile_to_mlir(
             self.astModule,
             self.capturedDataStorage,
@@ -425,10 +425,6 @@ class PyKernelDecorator(object):
             PhotonicsHandler(self.kernelFunction)(*callable_args)
             return
 
-        # Prepare captured state storage for the run
-        # FIX: moved to compile()
-        # self.capturedDataStorage = self.createStorage()
-
         # Compile, no-op if the module is not None
         self.compile()
 
@@ -508,9 +504,7 @@ class PyKernelDecorator(object):
                                             self.module,
                                             *processedArgs,
                                             callable_names=callableNames)
-            # FIX: do not delete the captured storage
-            # self.capturedDataStorage.__del__()
-            # self.capturedDataStorage = None
+
         else:
             result = cudaq_runtime.pyAltLaunchKernelR(
                 self.name,
@@ -519,10 +513,12 @@ class PyKernelDecorator(object):
                 *processedArgs,
                 callable_names=callableNames)
 
-            # FIX: do not delete the captured storage
-            # self.capturedDataStorage.__del__()
-            # self.capturedDataStorage = None
             return result
+
+    def __del__(self):
+        if self.capturedDataStorage is not None:
+            self.capturedDataStorage.__del__()
+        self.capturedDataStorage = None
 
 
 def kernel(function=None, **kwargs):
