@@ -20,7 +20,6 @@ Schedule::Schedule(
         value_function)
     : _steps(steps), _parameters(parameters), _value_function(value_function) {
   if (!_value_function) {
-    printf("HEY\n");
     _value_function = [&](const std::string &paramName,
                           double value) -> std::complex<double> {
       if (std::find(_parameters.begin(), _parameters.end(), paramName) ==

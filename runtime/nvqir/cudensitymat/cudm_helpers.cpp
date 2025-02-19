@@ -363,7 +363,8 @@ void cudm_helper::scale_state(cudensitymatState_t state, double scale_factor,
 std::pair<cudensitymatOperatorTerm_t, cudensitymatOperatorTerm_t>
 cudm_helper::compute_lindblad_operator_terms(
     operator_sum<cudaq::matrix_operator> &collapseOp,
-    const std::vector<int64_t> &mode_extents) {
+    const std::vector<int64_t> &mode_extents,
+    const std::unordered_map<std::string, std::complex<double>> &parameters) {
   std::unordered_map<int, int> dimensions;
   for (int i = 0; i < mode_extents.size(); ++i)
     dimensions[i] = mode_extents[i];
@@ -726,8 +727,8 @@ cudensitymatOperator_t cudm_helper::construct_liouvillian(
 
     // Handle collapsed operators
     for (auto &collapse_operators : collapse_operators) {
-      auto [d1Term, d2Term] =
-          compute_lindblad_operator_terms(*collapse_operators, mode_extents);
+      auto [d1Term, d2Term] = compute_lindblad_operator_terms(
+          *collapse_operators, mode_extents, parameters);
 
       HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
           handle, liouvillian,
