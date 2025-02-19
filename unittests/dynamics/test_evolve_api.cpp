@@ -93,11 +93,13 @@ TEST(EvolveAPITester, checkCavityModel) {
 //   constexpr double decay_rate = 0.1;
 
 //   auto td_function =
-//       [decay_rate](const std::unordered_map<std::string, std::complex<double>>
+//       [decay_rate](const std::unordered_map<std::string,
+//       std::complex<double>>
 //                        &parameters) {
 //         auto entry = parameters.find("t");
 //         if (entry == parameters.end())
-//           throw std::runtime_error("Cannot find value of expected parameter");
+//           throw std::runtime_error("Cannot find value of expected
+//           parameter");
 //         const auto t = entry->second.real();
 //         return std::sqrt(decay_rate * std::exp(-t));
 //       };
