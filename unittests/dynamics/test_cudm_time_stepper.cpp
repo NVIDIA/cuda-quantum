@@ -211,9 +211,9 @@ TEST_F(CuDensityMatTimeStepperTest, CheckScalarCallback) {
 }
 
 TEST_F(CuDensityMatTimeStepperTest, CheckTensorCallback) {
-  const std::vector<std::complex<double>> initialState = {
-      {1.0, 0.0}, {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}};
-  const std::vector<int64_t> dims = {4};
+  const std::vector<std::complex<double>> initialState = {{1.0, 0.0},
+                                                          {1.0, 0.0}};
+  const std::vector<int64_t> dims = {2};
   auto inputState = cudaq::state::from_data(initialState);
   auto *simState = cudaq::state_helper::getSimulationState(&inputState);
   auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
@@ -229,6 +229,10 @@ TEST_F(CuDensityMatTimeStepperTest, CheckTensorCallback) {
       [paramName](const std::vector<int> &dimensions,
                   const std::unordered_map<std::string, std::complex<double>>
                       &parameters) -> matrix_2 {
+    if (dimensions.empty()) {
+      throw std::runtime_error("Empty dimensions vector received!");
+    }
+
     auto entry = parameters.find(paramName);
     if (entry == parameters.end())
       throw std::runtime_error(
@@ -243,7 +247,7 @@ TEST_F(CuDensityMatTimeStepperTest, CheckTensorCallback) {
     return mat;
   };
 
-  matrix_operator::define("CustomTensorOp", {-1}, tensorFunction);
+  matrix_operator::define("CustomTensorOp", {2}, tensorFunction);
   auto op = cudaq::matrix_operator::instantiate("CustomTensorOp", {0});
   auto cudmOp =
       helper_->convert_to_cudensitymat_operator<cudaq::matrix_operator>(
@@ -252,11 +256,11 @@ TEST_F(CuDensityMatTimeStepperTest, CheckTensorCallback) {
   auto time_stepper = std::make_unique<cudmStepper>(handle_, cudmOp);
   auto outputState = time_stepper->compute(inputState, 1.0, 1.0, params);
   outputState.dump(std::cout);
-  std::vector<std::complex<double>> outputStateVec(4);
+  std::vector<std::complex<double>> outputStateVec(2);
   outputState.to_host(outputStateVec.data(), outputStateVec.size());
   // Create operator move the state up 1 step.
   const std::vector<std::complex<double>> expectedOutputState = {
-      paramValue, {0.0, 0.0}, {0.0, 0.0}, std::conj(paramValue)};
+      paramValue, std::conj(paramValue)};
 
   for (std::size_t i = 0; i < expectedOutputState.size(); ++i) {
     EXPECT_TRUE(std::abs(expectedOutputState[i] - outputStateVec[i]) < 1e-12);
