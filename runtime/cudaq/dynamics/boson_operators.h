@@ -20,22 +20,31 @@ namespace cudaq {
 template <typename HandlerTy> 
 class product_operator;
 
+template <typename HandlerTy> 
+class operator_sum;
+
 // FIXME: rename?
 class boson_operator : public operator_handler{
 template <typename T> friend class product_operator;
 
 private:
 
-  int target;
+  // Each boson operator is represented as number operators along with an
+  // offset to add to each number operator, as well as an integer indicating
+  // how many creation or annihilation terms follow the number operators.
+  // See the implementation of the in-place multiplication to understand
+  // the meaning and purpose of this representation. In short, this
+  // representation allows us to perform a perfect in-place multiplication.
   int additional_terms;
   std::vector<int> number_offsets;
+  int target;
 
   // 0 = I, ad = 1, a = 2, ada = 3
   boson_operator(int target, int op_code);
 
   std::string op_code_to_string() const;
 
-  bool inplace_mult(const boson_operator &other);
+  void inplace_mult(const boson_operator &other);
 
 public:
 
@@ -78,6 +87,9 @@ public:
   static product_operator<boson_operator> create(int degree);
   static product_operator<boson_operator> annihilate(int degree);
   static product_operator<boson_operator> number(int degree);
+
+  static operator_sum<boson_operator> position(int degree);
+  static operator_sum<boson_operator> momentum(int degree);
 };
 
 } // namespace cudaq

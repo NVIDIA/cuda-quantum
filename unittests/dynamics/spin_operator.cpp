@@ -62,8 +62,7 @@ TEST(OperatorExpressions, checkPreBuiltSpinOps) {
 TEST(OperatorExpressions, checkSpinOpsWithComplex) {
   std::complex<double> value = 0.125 + 0.125j;
 
-  // `spin_operator` + `complex<double>` and `complex<double>` +
-  // `spin_operator`
+  // `spin_operator` + `complex<double>`
   {
     auto elementary = cudaq::spin_operator::y(0);
 
@@ -81,7 +80,7 @@ TEST(OperatorExpressions, checkSpinOpsWithComplex) {
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
-  // `spin_operator` - `complex<double>` and `complex<double>` - `spin_operator`
+  // `spin_operator` - `complex<double>`
   {
     auto elementary = cudaq::spin_operator::x(0);
 
@@ -99,8 +98,7 @@ TEST(OperatorExpressions, checkSpinOpsWithComplex) {
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
-  // `spin_operator` * `complex<double>` and `complex<double>` *
-  // `spin_operator`
+  // `spin_operator` * `complex<double>`
   {
     auto elementary = cudaq::spin_operator::z(0);
 
