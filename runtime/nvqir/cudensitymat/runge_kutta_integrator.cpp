@@ -58,8 +58,8 @@ void runge_kutta::integrate(double target_time) {
     }
 
     auto liouvillian = helper.construct_liouvillian(
-        *m_system.hamiltonian, m_system.collapseOps, m_system.modeExtents, params,
-        castSimState.is_density_matrix());
+        *m_system.hamiltonian, m_system.collapseOps, m_system.modeExtents,
+        params, castSimState.is_density_matrix());
     m_stepper =
         std::make_unique<cudmStepper>(castSimState.get_handle(), liouvillian);
   }
@@ -95,8 +95,8 @@ void runge_kutta::integrate(double target_time) {
         params[param] =
             m_schedule.value_function()(param, m_t + step_size / 2.0);
       }
-      auto k2State =
-          m_stepper->compute(*m_state, m_t + step_size / 2.0, step_size, params);
+      auto k2State = m_stepper->compute(*m_state, m_t + step_size / 2.0,
+                                        step_size, params);
       auto &k2 = *asCudmState(k2State);
       k2 *= (step_size / 2.0);
 

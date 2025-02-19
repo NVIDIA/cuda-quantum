@@ -32,7 +32,8 @@ public:
   void integrate(double target_time) override;
   void set_state(cudaq::state initial_state, double t0) override;
   std::pair<double, cudaq::state> get_state() override;
-  void set_system(const SystemDynamics &system, const cudaq::Schedule& schedule);
+  void set_system(const SystemDynamics &system,
+                  const cudaq::Schedule &schedule);
 
 private:
   double m_t;
