@@ -31,23 +31,23 @@ TEST(OperatorExpressions, checkPreBuiltMatrixOps) {
     }
   }
 
-  // Annihilation operator.
+  // Number operator.
   {
     for (auto level_count : levels) {
-      auto annihilate = cudaq::matrix_operator::momentum(degree_index);
-      auto got_annihilate = annihilate.to_matrix({{degree_index, level_count}});
-      auto want_annihilate = utils::momentum_matrix(level_count);
-      utils::checkEqual(want_annihilate, got_annihilate);
+      auto number = cudaq::matrix_operator::number(degree_index);
+      auto got_number = number.to_matrix({{degree_index, level_count}});
+      auto want_number = utils::number_matrix(level_count);
+      utils::checkEqual(want_number, got_number);
     }
   }
 
-  // Creation operator.
+  // Parity operator.
   {
     for (auto level_count : levels) {
-      auto create = cudaq::matrix_operator::position(degree_index);
-      auto got_create = create.to_matrix({{degree_index, level_count}});
-      auto want_create = utils::position_matrix(level_count);
-      utils::checkEqual(want_create, got_create);
+      auto parity = cudaq::matrix_operator::parity(degree_index);
+      auto got_parity = parity.to_matrix({{degree_index, level_count}});
+      auto want_parity = utils::parity_matrix(level_count);
+      utils::checkEqual(want_parity, got_parity);
     }
   }
 
@@ -68,26 +68,6 @@ TEST(OperatorExpressions, checkPreBuiltMatrixOps) {
       auto got_momentum = momentum.to_matrix({{degree_index, level_count}});
       auto want_momentum = utils::momentum_matrix(level_count);
       utils::checkEqual(want_momentum, got_momentum);
-    }
-  }
-
-  // Number operator.
-  {
-    for (auto level_count : levels) {
-      auto number = cudaq::matrix_operator::number(degree_index);
-      auto got_number = number.to_matrix({{degree_index, level_count}});
-      auto want_number = utils::number_matrix(level_count);
-      utils::checkEqual(want_number, got_number);
-    }
-  }
-
-  // Parity operator.
-  {
-    for (auto level_count : levels) {
-      auto parity = cudaq::matrix_operator::parity(degree_index);
-      auto got_parity = parity.to_matrix({{degree_index, level_count}});
-      auto want_parity = utils::parity_matrix(level_count);
-      utils::checkEqual(want_parity, got_parity);
     }
   }
 
