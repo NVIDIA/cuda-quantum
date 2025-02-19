@@ -49,7 +49,7 @@ for more information on this programming pattern.)#")
   mod.def(
       "sample_async",
       [&](py::object kernel, py::args args, std::size_t shots,
-          std::size_t qpu_id) {
+          bool explicitMeasurements, std::size_t qpu_id) {
         kernel.inc_ref();
         auto &platform = cudaq::get_platform();
         if (py::hasattr(kernel, "compile"))
@@ -87,10 +87,10 @@ for more information on this programming pattern.)#")
                 kernel.dec_ref();
               }
             },
-            platform, kernelName, shots, qpu_id);
+            platform, kernelName, shots, explicitMeasurements, qpu_id);
       },
       py::arg("kernel"), py::kw_only(), py::arg("shots_count") = 1000,
-      py::arg("qpu_id") = 0,
+      py::arg("explicit_measurements") = false, py::arg("qpu_id") = 0,
       R"#(Asynchronously sample the state of the provided `kernel` at the 
 specified number of circuit executions (`shots_count`).
 When targeting a quantum platform with more than one QPU, the optional
@@ -104,6 +104,8 @@ Args:
     function at. Leave empty if the kernel doesn't accept any arguments.
   shots_count (Optional[int]): The number of kernel executions on the 
     QPU. Defaults to 1000. Key-word only.
+  explicit_measurements (Optional[bool]): A flag to indicate whether or not to 
+    concatenate measurements in execution order for the returned sample result.
   qpu_id (Optional[int]): The optional identification for which QPU 
     on the platform to target. Defaults to zero. Key-word only.
 
