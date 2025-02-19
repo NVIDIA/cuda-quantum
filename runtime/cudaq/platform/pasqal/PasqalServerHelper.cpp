@@ -71,8 +71,7 @@ PasqalServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     message["shots"] = shots;
     message["project_id"] = backendConfig.at("project_id");
 
-    auto sequence = nlohmann::json::parse(circuitCode.code);
-    message["sequence"] = sequence.dump();
+    message["sequence"] = nlohmann::json::parse(circuitCode.code);
 
     tasks.push_back(message);
   }
