@@ -262,6 +262,12 @@ public:
   /// measurements.
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &qubits,
                                 const int shots) override {
+    if (executionContext->explicitMeasurements && qubits.empty() &&
+        num_measurements == 0)
+      throw std::runtime_error(
+          "The sampling option `explicit_measurements` is not supported on a "
+          "kernel without any measurement operation.");
+
     bool populateResult = [&]() {
       if (executionContext->explicitMeasurements)
         return qubits.empty();

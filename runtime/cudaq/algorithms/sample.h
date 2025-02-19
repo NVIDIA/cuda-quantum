@@ -111,14 +111,11 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
       counts += ctx->result;
 
     ctx->result.clear();
-
-    if (explicitMeasurements &&
-        (counts.register_names().empty() || counts.most_probable().empty()))
-      throw std::runtime_error(
-          "The sampling option `explicit_measurements` is not supported on a "
-          "kernel without any measurement operation.");
-
     if (counts.get_total_shots() == 0) {
+      if (explicitMeasurements)
+        throw std::runtime_error(
+            "The sampling option `explicit_measurements` is not supported on a "
+            "kernel without any measurement operation.");
       printf("WARNING: this kernel invocation produced 0 shots worth "
              "of results when executed. Exiting shot loop to avoid "
              "infinite loop.");

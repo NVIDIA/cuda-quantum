@@ -107,12 +107,10 @@ Returns:
             cudaq_runtime.unset_noise()
             return ctx.result
         counts += ctx.result
-        if explicit_measurements is True and (not counts.register_names or
-                                              not counts.most_probable()):
-            raise RuntimeError(
-                "The sampling option `explicit_measurements` is not supported on a kernel without any measurement operation."
-            )
         if counts.get_total_shots() == 0:
+            if explicit_measurements is True:
+                raise RuntimeError("The sampling option `explicit_measurements` " +
+                                   "is not supported on a kernel without any measurement operation.")
             print("WARNING: this kernel invocation produced 0 shots worth " +
                   "of results when executed. Exiting shot loop to avoid " +
                   "infinite loop.")
