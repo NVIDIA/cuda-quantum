@@ -169,23 +169,21 @@ cudm_helper::_wrap_tensor_callback(const matrix_operator &op,
         return CUDENSITYMAT_STATUS_INVALID_VALUE;
       }
 
+      std::vector<std::complex<double>> flat_matrix =
+          flatten_matrix(matrix_data);
+
       if (data_type == CUDA_C_64F) {
-        auto *storage = static_cast<cuDoubleComplex *>(tensor_storage);
-        for (size_t i = 0; i < rows; i++) {
-          for (size_t j = 0; j < cols; j++) {
-            storage[i * cols + j] = make_cuDoubleComplex(
-                matrix_data[{i, j}].real(), matrix_data[{i, j}].imag());
-          }
-        }
+        memcpy(tensor_storage, flat_matrix.data(),
+               flat_matrix.size() * sizeof(cuDoubleComplex));
       } else if (data_type == CUDA_C_32F) {
-        auto *storage = static_cast<cuFloatComplex *>(tensor_storage);
-        for (size_t i = 0; i < rows; i++) {
-          for (size_t j = 0; j < cols; j++) {
-            storage[i * cols + j] = make_cuFloatComplex(
-                static_cast<float>(matrix_data[{i, j}].real()),
-                static_cast<float>(matrix_data[{i, j}].imag()));
-          }
+        std::vector<cuFloatComplex> flat_matrix_float(flat_matrix.size());
+        for (size_t i = 0; i < flat_matrix.size(); i++) {
+          flat_matrix_float[i] =
+              make_cuFloatComplex(static_cast<float>(flat_matrix[i].real()),
+                                  static_cast<float>(flat_matrix[i].imag()));
         }
+        memcpy(tensor_storage, flat_matrix_float.data(),
+               flat_matrix_float.size() * sizeof(cuFloatComplex));
       } else {
         std::cerr << "Invalid CUDA data type: " << data_type << std::endl;
         return CUDENSITYMAT_STATUS_INVALID_VALUE;
