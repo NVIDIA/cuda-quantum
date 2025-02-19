@@ -211,6 +211,12 @@ class PyKernelDecorator(object):
         if self.module != None:
             return
 
+        # FIX: Cleanup up the captured data if the module needs recompilation.
+        if self.capturedDataStorage != None:
+            self.capturedDataStorage.__del__()
+        self.capturedDataStorage = self.createStorage()
+
+        # Caches the module and stores captured data into self.capturedDataStorage.
         self.module, self.argTypes, extraMetadata = compile_to_mlir(
             self.astModule,
             self.capturedDataStorage,
@@ -420,7 +426,8 @@ class PyKernelDecorator(object):
             return
 
         # Prepare captured state storage for the run
-        self.capturedDataStorage = self.createStorage()
+        # FIX: moved to compile()
+        # self.capturedDataStorage = self.createStorage()
 
         # Compile, no-op if the module is not None
         self.compile()
@@ -501,8 +508,9 @@ class PyKernelDecorator(object):
                                             self.module,
                                             *processedArgs,
                                             callable_names=callableNames)
-            self.capturedDataStorage.__del__()
-            self.capturedDataStorage = None
+            # FIX: do not delete the captured storage
+            # self.capturedDataStorage.__del__()
+            # self.capturedDataStorage = None
         else:
             result = cudaq_runtime.pyAltLaunchKernelR(
                 self.name,
@@ -511,8 +519,9 @@ class PyKernelDecorator(object):
                 *processedArgs,
                 callable_names=callableNames)
 
-            self.capturedDataStorage.__del__()
-            self.capturedDataStorage = None
+            # FIX: do not delete the captured storage
+            # self.capturedDataStorage.__del__()
+            # self.capturedDataStorage = None
             return result
 
 

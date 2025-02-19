@@ -175,7 +175,6 @@ def test_kernel_complex_params_f32():
 
 
 @skipIfNvidiaFP64NotInstalled
-@pytest.mark.skip(reason="kernel.compile() causes a crash")
 def test_kernel_complex_capture_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia', option='fp64')
@@ -228,7 +227,6 @@ def test_kernel_complex128_capture_f64():
 
 
 @skipIfNvidiaNotInstalled
-@pytest.mark.skip(reason="kernel.compile() causes a crash")
 def test_kernel_complex64_capture_f32():
     cudaq.reset_target()
     cudaq.set_target('nvidia')
@@ -316,7 +314,6 @@ def test_kernel_simulation_dtype_complex_params_f32():
 
 
 @skipIfNvidiaFP64NotInstalled
-@pytest.mark.skip(reason="kernel.compile() causes a crash")
 def test_kernel_simulation_dtype_capture_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia', option='fp64')
@@ -337,7 +334,6 @@ def test_kernel_simulation_dtype_capture_f64():
 
 
 @skipIfNvidiaNotInstalled
-@pytest.mark.skip(reason="kernel.compile() causes a crash")
 def test_kernel_simulation_dtype_capture_f32():
     cudaq.reset_target()
     cudaq.set_target('nvidia')
@@ -418,7 +414,6 @@ def test_init_from_other_kernel_state_f32():
     assert not '01' in counts
 
 
-@pytest.mark.skip(reason="kernel0.compile() causes a crash")
 def test_inner_kernels_state():
     c = np.array([1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)],
                  dtype=cudaq.complex())

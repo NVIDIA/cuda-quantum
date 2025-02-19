@@ -154,7 +154,6 @@ def test_kernel_complex_params_f32():
 
 
 @skipIfNvidiaFP64NotInstalled
-@pytest.mark.skip(reason="kernel.compile() causes a crash")
 def test_kernel_complex_capture_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia-fp64')
@@ -207,7 +206,6 @@ def test_kernel_complex128_capture_f64():
 
 
 @skipIfNvidiaNotInstalled
-@pytest.mark.skip(reason="kernel.compile() causes a crash")
 def test_kernel_complex64_capture_f32():
     cudaq.reset_target()
     cudaq.set_target('nvidia')
