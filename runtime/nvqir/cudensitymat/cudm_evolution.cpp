@@ -47,7 +47,7 @@ evolve_result evolve_single(
       const_cast<operator_sum<cudaq::matrix_operator> *>(&hamiltonian);
   system.collapseOps = collapse_operators;
   system.modeExtents = dims;
-  integrator.set_system(system);
+  integrator.set_system(system, schedule);
 
   integrator.set_state(initial_state, 0.0);
 

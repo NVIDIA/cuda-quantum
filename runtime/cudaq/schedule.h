@@ -23,8 +23,7 @@ class Schedule {
 private:
   std::vector<double> _steps;
   std::vector<std::string> _parameters;
-  std::function<std::complex<double>(
-      const std::unordered_map<std::string, std::complex<double>> &)>
+  std::function<std::complex<double>(const std::string &, double)>
       _value_function;
 
 public:
@@ -54,8 +53,7 @@ public:
 
   const std::vector<std::string> &parameters() const { return _parameters; }
 
-  std::function<std::complex<double>(
-      const std::unordered_map<std::string, std::complex<double>> &)>
+  std::function<std::complex<double>(const std::string &, double)>
   value_function() const {
     return _value_function;
   }
@@ -72,8 +70,8 @@ public:
   /// _current_idx will be used to track the position in the sequence of steps.
   Schedule(const std::vector<double> &steps,
            const std::vector<std::string> &parameters = {},
-           std::function<std::complex<double>(
-               const std::unordered_map<std::string, std::complex<double>> &)>
+           std::function<std::complex<double>(const std::string &, double)>
                value_function = {});
+  Schedule() = default;
 };
 } // namespace cudaq

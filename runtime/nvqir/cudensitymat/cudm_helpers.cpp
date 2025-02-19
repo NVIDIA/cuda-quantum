@@ -649,6 +649,10 @@ cudensitymatOperator_t cudm_helper::construct_liouvillian(
         &liouvillian));
     // Append an operator term to the operator (super-operator)
     // Handle the Hamiltonian
+    const std::map<std::string, std::complex<double>> sortedParameters(
+        parameters.begin(), parameters.end());
+    auto ks = std::views::keys(sortedParameters);
+    const std::vector<std::string> keys{ks.begin(), ks.end()};
     for (auto &[coeff, term] : convert_to_cudensitymat(op, mode_extents)) {
       cudensitymatWrappedScalarCallback_t wrapped_callback = {nullptr, nullptr};
       if (coeff.is_constant()) {
@@ -667,7 +671,16 @@ cudensitymatOperator_t cudm_helper::construct_liouvillian(
             make_cuDoubleComplex(rightCoeff.real(), rightCoeff.imag()),
             wrapped_callback));
       } else {
-        throw std::runtime_error("TODO: implement callback");
+        wrapped_callback = _wrap_callback(coeff, keys);
+        // -i constant (left multiplication)
+        HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+            handle, liouvillian, term, 0, make_cuDoubleComplex(0.0, -1.0),
+            wrapped_callback));
+
+        // +i constant (right multiplication, i.e., dual)
+        HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+            handle, liouvillian, term, 1, make_cuDoubleComplex(0.0, 1.0),
+            wrapped_callback));
       }
     }
 
