@@ -231,3 +231,56 @@ TEST(EvolveTester, checkCompositeSystemWithCollapse) {
     EXPECT_NEAR(totalParticleCount, expectedResult, 0.1);
   }
 }
+
+TEST(EvolveTester, checkScalarTd) {
+  const std::map<int, int> dims = {{0, 10}};
+
+  constexpr int numSteps = 101;
+  const auto steps = cudaq::linspace(0.0, 10.0, numSteps);
+  cudaq::Schedule schedule(steps, {"t"});
+
+  auto function = [](const std::unordered_map<std::string, std::complex<double>>
+                         &parameters) {
+    auto entry = parameters.find("t");
+    if (entry == parameters.end())
+      throw std::runtime_error("Cannot find value of expected parameter");
+    return 1.0;
+  };
+  cudaq::product_operator<cudaq::matrix_operator> ham1 =
+      cudaq::scalar_operator(function) * cudaq::boson_operator::number(0);
+  cudaq::operator_sum<cudaq::matrix_operator> ham(ham1);
+  cudaq::product_operator<cudaq::matrix_operator> obs1 =
+      cudaq::boson_operator::number(0);
+  cudaq::operator_sum<cudaq::matrix_operator> obs(obs1);
+  const double decayRate = 0.1;
+  cudaq::product_operator<cudaq::matrix_operator> collapseOp1 =
+      std::sqrt(decayRate) * cudaq::boson_operator::annihilate(0);
+  cudaq::operator_sum<cudaq::matrix_operator> collapseOp(collapseOp1);
+  Eigen::VectorXcd initial_state_vec = Eigen::VectorXcd::Zero(10);
+  initial_state_vec[9] = 1.0;
+  Eigen::MatrixXcd rho0 = initial_state_vec * initial_state_vec.transpose();
+  auto initialState =
+      cudaq::state::from_data(std::make_pair(rho0.data(), rho0.size()));
+  cudaq::runge_kutta integrator;
+  integrator.dt = 0.001;
+  integrator.order = 4;
+  auto result = cudaq::evolve_single(ham, dims, schedule, initialState,
+                                     integrator, {&collapseOp}, {&obs}, true);
+  EXPECT_TRUE(result.get_expectation_values().has_value());
+  EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
+  std::vector<double> theoryResults;
+  int idx = 0;
+  for (const auto &t : schedule) {
+    const double expected = 9.0 * std::exp(-decayRate * steps[idx++]);
+    theoryResults.emplace_back(expected);
+  }
+
+  int count = 0;
+  for (auto expVals : result.get_expectation_values().value()) {
+    EXPECT_EQ(expVals.size(), 1);
+    std::cout << "Result = " << (double)expVals[0]
+              << "; expected = " << theoryResults[count] << "\n";
+    EXPECT_NEAR((double)expVals[0], theoryResults[count], 1e-3);
+    count++;
+  }
+}

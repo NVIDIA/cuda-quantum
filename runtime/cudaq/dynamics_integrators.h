@@ -32,12 +32,13 @@ public:
   void integrate(double target_time) override;
   void set_state(cudaq::state initial_state, double t0) override;
   std::pair<double, cudaq::state> get_state() override;
-  void set_system(const SystemDynamics &system);
+  void set_system(const SystemDynamics &system, const cudaq::Schedule& schedule);
 
 private:
   double m_t;
   std::shared_ptr<cudaq::state> m_state;
   SystemDynamics m_system;
   std::unique_ptr<TimeStepper> m_stepper;
+  cudaq::Schedule m_schedule;
 };
 } // namespace cudaq
