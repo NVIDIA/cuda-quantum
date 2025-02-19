@@ -109,8 +109,9 @@ Returns:
         counts += ctx.result
         if counts.get_total_shots() == 0:
             if explicit_measurements is True:
-                raise RuntimeError("The sampling option `explicit_measurements` " +
-                                   "is not supported on a kernel without any measurement operation.")
+                raise RuntimeError(
+                    "The sampling option `explicit_measurements` is not " +
+                    "supported on a kernel without any measurement operation.")
             print("WARNING: this kernel invocation produced 0 shots worth " +
                   "of results when executed. Exiting shot loop to avoid " +
                   "infinite loop.")
