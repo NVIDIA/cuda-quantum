@@ -90,7 +90,7 @@ cudaq::matrix_2 momentum_matrix(std::size_t size) {
     mat[{i + 1, i}] =
         (0.5j) * std::sqrt(static_cast<double>(i + 1)) + 0.0 * 'j';
     mat[{i, i + 1}] =
-        -1. * (0.5j) * std::sqrt(static_cast<double>(i + 1)) + 0.0 * 'j';
+        (-0.5j) * std::sqrt(static_cast<double>(i + 1)) + 0.0 * 'j';
   }
   return mat;
 }

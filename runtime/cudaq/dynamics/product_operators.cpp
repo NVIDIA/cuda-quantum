@@ -90,8 +90,7 @@ void product_operator<HandlerTy>::insert(T &&other) {
   auto pos = this->find_insert_at(other);
   if (pos != this->operators.begin() && (pos - 1)->target == other.target) {
     auto it = this->operators.erase(pos - 1, pos - 1); // erase: constant time conversion to non-const iterator
-    auto succeeded = it->inplace_mult(other);
-    if (!succeeded) this->operators.insert(pos, std::move(other));
+    it->inplace_mult(other);
   }
   else this->operators.insert(pos, std::move(other));
 }
