@@ -4186,14 +4186,17 @@ class PyASTBridge(ast.NodeVisitor):
             if (isinstance(value, list)):
                 errorType = f"{errorType}[{type(value[0]).__name__}]"
 
-            if issubclass(value, cudaq_runtime.KrausChannel):
-                # Here we have a KrausChannel as part of the AST
-                # We want to create a hash value from it, and
-                # we then want to push the number of parameters and
-                # that hash value. This can only be used with apply_noise
-                self.pushValue(self.getConstantInt(value.num_parameters))
-                self.pushValue(self.getConstantInt(hash(value)))
-                return
+            try:
+                if issubclass(value, cudaq_runtime.KrausChannel):
+                    # Here we have a KrausChannel as part of the AST
+                    # We want to create a hash value from it, and
+                    # we then want to push the number of parameters and
+                    # that hash value. This can only be used with apply_noise
+                    self.pushValue(self.getConstantInt(value.num_parameters))
+                    self.pushValue(self.getConstantInt(hash(value)))
+                    return
+            except TypeError:
+               pass
 
             self.emitFatalError(
                 f"Invalid type for variable ({node.id}) captured from parent scope (only int, bool, float, complex, cudaq.State, and list/np.ndarray[int|bool|float|complex] accepted, type was {errorType}).",
