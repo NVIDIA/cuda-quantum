@@ -68,7 +68,8 @@ public:
   std::pair<cudensitymatOperatorTerm_t, cudensitymatOperatorTerm_t>
   compute_lindblad_operator_terms(
       operator_sum<cudaq::matrix_operator> &collapseOp,
-      const std::vector<int64_t> &mode_extents);
+      const std::vector<int64_t> &mode_extents,
+      const std::unordered_map<std::string, std::complex<double>> &parameters);
 
   // Helper Functions
   std::unordered_map<int, int>

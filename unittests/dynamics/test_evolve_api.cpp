@@ -46,3 +46,83 @@ TEST(EvolveAPITester, checkSimple) {
     EXPECT_NEAR((double)expVals[0], theoryResults[count++], 1e-3);
   }
 }
+
+TEST(EvolveAPITester, checkCavityModel) {
+  constexpr int N = 10;
+  constexpr int numSteps = 101;
+  const auto steps = cudaq::linspace(0, 10, numSteps);
+  cudaq::Schedule schedule(steps, {"t"});
+  auto hamiltonian = cudaq::boson_operator::number(0);
+  const std::map<int, int> dimensions{{0, N}};
+  std::vector<std::complex<double>> psi0_(N, 0.0);
+  psi0_.back() = 1.0;
+  auto psi0 = cudaq::state::from_data(psi0_);
+  constexpr double decay_rate = 0.1;
+  auto collapseOperator =
+      std::sqrt(decay_rate) * cudaq::boson_operator::annihilate(0);
+  auto integrator = std::make_shared<cudaq::runge_kutta>();
+  integrator->dt = 0.01;
+  auto result =
+      cudaq::evolve(hamiltonian, dimensions, schedule, psi0, integrator,
+                    {collapseOperator}, {hamiltonian}, true);
+  EXPECT_TRUE(result.get_expectation_values().has_value());
+  EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
+  std::vector<double> theoryResults;
+  for (const auto &t : schedule) {
+    const double expected = (N - 1) * std::exp(-decay_rate * t);
+    theoryResults.emplace_back(expected);
+  }
+
+  int count = 0;
+  for (auto expVals : result.get_expectation_values().value()) {
+    EXPECT_EQ(expVals.size(), 1);
+    EXPECT_NEAR((double)expVals[0], theoryResults[count++], 1e-3);
+  }
+}
+
+// TEST(EvolveAPITester, checkTimeDependent) {
+//   constexpr int N = 10;
+//   constexpr int numSteps = 101;
+//   const auto steps = cudaq::linspace(0, 10, numSteps);
+//   cudaq::Schedule schedule(steps, {"t"});
+//   auto hamiltonian = cudaq::boson_operator::number(0);
+//   const std::map<int, int> dimensions{{0, N}};
+//   std::vector<std::complex<double>> psi0_(N, 0.0);
+//   psi0_.back() = 1.0;
+//   auto psi0 = cudaq::state::from_data(psi0_);
+//   constexpr double decay_rate = 0.1;
+
+//   auto td_function =
+//       [decay_rate](const std::unordered_map<std::string, std::complex<double>>
+//                        &parameters) {
+//         auto entry = parameters.find("t");
+//         if (entry == parameters.end())
+//           throw std::runtime_error("Cannot find value of expected parameter");
+//         const auto t = entry->second.real();
+//         return std::sqrt(decay_rate * std::exp(-t));
+//       };
+
+//   auto collapseOperator = cudaq::scalar_operator(td_function) *
+//                           cudaq::boson_operator::annihilate(0);
+//   auto integrator = std::make_shared<cudaq::runge_kutta>();
+//   integrator->dt = 0.01;
+//   auto result =
+//       cudaq::evolve(hamiltonian, dimensions, schedule, psi0, integrator,
+//                     {collapseOperator}, {hamiltonian}, true);
+//   EXPECT_TRUE(result.get_expectation_values().has_value());
+//   EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
+//   std::vector<double> theoryResults;
+//   for (const auto &t : schedule) {
+//     const double expected =
+//         (N - 1) * std::exp(-decay_rate * (1.0 - std::exp(-t)) * t);
+//     theoryResults.emplace_back(expected);
+//   }
+
+//   int count = 0;
+//   for (auto expVals : result.get_expectation_values().value()) {
+//     EXPECT_EQ(expVals.size(), 1);
+//     std::cout << "Result = " << (double)expVals[0] << "; expected "
+//               << theoryResults[count] << "\n";
+//     EXPECT_NEAR((double)expVals[0], theoryResults[count++], 1e-3);
+//   }
+// }

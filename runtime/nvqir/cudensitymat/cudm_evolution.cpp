@@ -21,7 +21,7 @@ namespace cudaq {
 evolve_result evolve_single(
     const operator_sum<cudaq::matrix_operator> &hamiltonian,
     const std::map<int, int> &dimensions, const Schedule &schedule,
-    const state &initial_state, BaseIntegrator &in_integrator,
+    const state &initialState, BaseIntegrator &in_integrator,
     const std::vector<operator_sum<cudaq::matrix_operator> *>
         &collapse_operators,
     const std::vector<operator_sum<cudaq::matrix_operator> *> &observables,
@@ -38,8 +38,16 @@ evolve_result evolve_single(
       throw std::runtime_error("Invalid state.");
     return castSimState;
   };
-  asCudmState(const_cast<state &>(initial_state))
-      ->initialize_cudm(handle, dims);
+
+  auto *cudmState = asCudmState(const_cast<state &>(initialState));
+  cudmState->initialize_cudm(handle, dims);
+
+  state initial_state = [&]() {
+    if (!collapse_operators.empty() && !cudmState->is_density_matrix()) {
+      return state(new CuDensityMatState(cudmState->to_density_matrix()));
+    }
+    return initialState;
+  }();
 
   runge_kutta &integrator = dynamic_cast<runge_kutta &>(in_integrator);
   SystemDynamics system;

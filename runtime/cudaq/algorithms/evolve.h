@@ -157,90 +157,115 @@ evolve_async(std::function<evolve_result()> evolveFunctor,
 }
 } // namespace __internal__
 
-template <typename OperatorTy,
-          typename = std::enable_if_t<
-              std::is_same_v<std::decay_t<OperatorTy>,
-                             cudaq::operator_sum<cudaq::matrix_operator>> ||
-              std::is_constructible_v<
-                  cudaq::operator_sum<cudaq::matrix_operator>, OperatorTy>>>
-evolve_result evolve(const OperatorTy &hamiltonian,
-                     const std::map<int, int> &dimensions,
-                     const Schedule &schedule, const state &initial_state,
-                     std::shared_ptr<BaseIntegrator> integrator = {},
-                     const std::vector<OperatorTy> &collapse_operators = {},
-                     const std::vector<OperatorTy> &observables = {},
-                     bool store_intermediate_results = false,
-                     std::optional<int> shots_count = std::nullopt) {
+inline evolve_result
+evolve(const cudaq::operator_sum<cudaq::matrix_operator> &hamiltonian,
+       const std::map<int, int> &dimensions, const Schedule &schedule,
+       const state &initial_state,
+       std::shared_ptr<BaseIntegrator> integrator = {},
+       const std::vector<cudaq::operator_sum<cudaq::matrix_operator>>
+           &collapse_operators = {},
+       const std::vector<cudaq::operator_sum<cudaq::matrix_operator>>
+           &observables = {},
+       bool store_intermediate_results = false,
+       std::optional<int> shots_count = std::nullopt) {
 #if defined(CUDAQ_DYNAMICS_TARGET)
-  if constexpr (std::is_same_v<std::decay_t<OperatorTy>,
-                               cudaq::operator_sum<cudaq::matrix_operator>>) {
-    std::vector<cudaq::operator_sum<cudaq::matrix_operator> *> collapseOpsPtr;
-    for (const auto &cOp : collapse_operators) {
-      collapseOpsPtr.emplace_back(
-          const_cast<cudaq::operator_sum<cudaq::matrix_operator> *>(&cOp));
-    }
-    std::vector<cudaq::operator_sum<cudaq::matrix_operator> *> observeOpsPtr;
-    for (const auto &obsOp : observables) {
-      observeOpsPtr.emplace_back(
-          const_cast<cudaq::operator_sum<cudaq::matrix_operator> *>(&obsOp));
-    }
-    // FIXME: change signature of `evolve_single` so that we don't need to
-    // create the list of pointers.
-    return evolve_single(hamiltonian, dimensions, schedule, initial_state,
-                         *integrator, collapseOpsPtr, observeOpsPtr,
-                         store_intermediate_results);
-  } else {
-    std::vector<cudaq::operator_sum<cudaq::matrix_operator>>
-        convertedCollapseOps;
-    for (const auto &cOp : collapse_operators) {
-      convertedCollapseOps.emplace_back(cOp);
-    }
-    std::vector<cudaq::operator_sum<cudaq::matrix_operator>>
-        convertedObserveOps;
-    for (const auto &obsOp : observables) {
-      convertedObserveOps.emplace_back(obsOp);
-    }
-    std::vector<cudaq::operator_sum<cudaq::matrix_operator> *> collapseOpsPtr;
-    for (const auto &cOp : convertedCollapseOps) {
-      collapseOpsPtr.emplace_back(
-          const_cast<cudaq::operator_sum<cudaq::matrix_operator> *>(&cOp));
-    }
-    std::vector<cudaq::operator_sum<cudaq::matrix_operator> *> observeOpsPtr;
-    for (const auto &obsOp : convertedObserveOps) {
-      observeOpsPtr.emplace_back(
-          const_cast<cudaq::operator_sum<cudaq::matrix_operator> *>(&obsOp));
-    }
-    return evolve_single(hamiltonian, dimensions, schedule, initial_state,
-                         *integrator, collapseOpsPtr, observeOpsPtr,
-                         store_intermediate_results);
+
+  std::vector<cudaq::operator_sum<cudaq::matrix_operator> *> collapseOpsPtr;
+  for (const auto &cOp : collapse_operators) {
+    collapseOpsPtr.emplace_back(
+        const_cast<cudaq::operator_sum<cudaq::matrix_operator> *>(&cOp));
   }
+  std::vector<cudaq::operator_sum<cudaq::matrix_operator> *> observeOpsPtr;
+  for (const auto &obsOp : observables) {
+    observeOpsPtr.emplace_back(
+        const_cast<cudaq::operator_sum<cudaq::matrix_operator> *>(&obsOp));
+  }
+  // FIXME: change signature of `evolve_single` so that we don't need to
+  // create the list of pointers.
+  return evolve_single(hamiltonian, dimensions, schedule, initial_state,
+                       *integrator, collapseOpsPtr, observeOpsPtr,
+                       store_intermediate_results);
+
 #else
   throw std::runtime_error(
       "cudaq::evolve is only supported on the 'dynamics' target. Please "
       "recompile your application with '--target dynamics' flag.");
 #endif
 }
-template <typename OperatorTy,
-          typename = std::enable_if_t<
-              std::is_same_v<std::decay_t<OperatorTy>,
-                             cudaq::operator_sum<cudaq::matrix_operator>> ||
-              std::is_constructible_v<
-                  cudaq::operator_sum<cudaq::matrix_operator>, OperatorTy>>>
-// Multiple input state
-std::vector<evolve_result>
-evolve(const OperatorTy &hamiltonian, const std::map<int, int> &dimensions,
-       const Schedule &schedule, const std::vector<state> &initial_states,
+
+inline evolve_result
+evolve(const cudaq::product_operator<cudaq::matrix_operator> &hamiltonian,
+       const std::map<int, int> &dimensions, const Schedule &schedule,
+       const state &initial_state,
        std::shared_ptr<BaseIntegrator> integrator = {},
-       const std::vector<OperatorTy> &collapse_operators = {},
-       const std::vector<OperatorTy> &observables = {},
+       const std::vector<cudaq::product_operator<cudaq::matrix_operator>>
+           &collapse_operators = {},
+       const std::vector<cudaq::product_operator<cudaq::matrix_operator>>
+           &observables = {},
        bool store_intermediate_results = false,
        std::optional<int> shots_count = std::nullopt) {
-  std::vector<evolve_result> results;
-  for (const auto &initial_state : initial_states)
-    results.emplace_back(evolve(hamiltonian, dimensions, schedule,
-                                initial_states, integrator, collapse_operators,
-                                observables, store_intermediate_results,
-                                shots_count));
-  return results;
+  std::vector<cudaq::operator_sum<cudaq::matrix_operator>> convertedCollapseOps;
+  for (const auto &cOp : collapse_operators) {
+    convertedCollapseOps.emplace_back(cOp);
+  }
+  std::vector<cudaq::operator_sum<cudaq::matrix_operator>> convertedObserveOps;
+  for (const auto &obsOp : observables) {
+    convertedObserveOps.emplace_back(obsOp);
+  }
+  cudaq::operator_sum<cudaq::matrix_operator> convertedHam(hamiltonian);
+  return evolve(convertedHam, dimensions, schedule, initial_state, integrator,
+                convertedCollapseOps, convertedObserveOps,
+                store_intermediate_results, shots_count);
 }
+
+inline evolve_result
+evolve(const cudaq::product_operator<cudaq::boson_operator> &hamiltonian,
+       const std::map<int, int> &dimensions, const Schedule &schedule,
+       const state &initial_state,
+       std::shared_ptr<BaseIntegrator> integrator = {},
+       const std::vector<cudaq::product_operator<cudaq::boson_operator>>
+           &collapse_operators = {},
+       const std::vector<cudaq::product_operator<cudaq::boson_operator>>
+           &observables = {},
+       bool store_intermediate_results = false,
+       std::optional<int> shots_count = std::nullopt) {
+  std::vector<cudaq::product_operator<cudaq::matrix_operator>>
+      convertedCollapseOps;
+  for (const auto &cOp : collapse_operators) {
+    convertedCollapseOps.emplace_back(cOp);
+  }
+  std::vector<cudaq::product_operator<cudaq::matrix_operator>>
+      convertedObserveOps;
+  for (const auto &obsOp : observables) {
+    convertedObserveOps.emplace_back(obsOp);
+  }
+  cudaq::product_operator<cudaq::matrix_operator> convertedHam(hamiltonian);
+  return evolve(convertedHam, dimensions, schedule, initial_state, integrator,
+                convertedCollapseOps, convertedObserveOps,
+                store_intermediate_results, shots_count);
+}
+
+// template <typename OperatorTy,
+//           typename = std::enable_if_t<
+//               std::is_same_v<std::decay_t<OperatorTy>,
+//                              cudaq::operator_sum<cudaq::matrix_operator>> ||
+//               std::is_constructible_v<
+//                   cudaq::operator_sum<cudaq::matrix_operator>, OperatorTy>>>
+// // Multiple input state
+// std::vector<evolve_result>
+// evolve(const OperatorTy &hamiltonian, const std::map<int, int> &dimensions,
+//        const Schedule &schedule, const std::vector<state> &initial_states,
+//        std::shared_ptr<BaseIntegrator> integrator = {},
+//        const std::vector<OperatorTy> &collapse_operators = {},
+//        const std::vector<OperatorTy> &observables = {},
+//        bool store_intermediate_results = false,
+//        std::optional<int> shots_count = std::nullopt) {
+//   std::vector<evolve_result> results;
+//   for (const auto &initial_state : initial_states)
+//     results.emplace_back(evolve(hamiltonian, dimensions, schedule,
+//                                 initial_states, integrator,
+//                                 collapse_operators, observables,
+//                                 store_intermediate_results, shots_count));
+//   return results;
+// }
 } // namespace cudaq
