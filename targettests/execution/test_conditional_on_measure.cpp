@@ -23,4 +23,4 @@ int main() {
   return 0;
 }
 
-// FAIL: not supported on kernel with conditional logic on a measurement result
+// FAIL: not supported on a kernel with conditional logic on a measurement result
