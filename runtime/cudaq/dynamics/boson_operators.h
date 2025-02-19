@@ -26,12 +26,9 @@ template <typename T> friend class product_operator;
 
 private:
 
-  // ad * a always, otherwise define new product operator
-  // if we use the anticommutation relation, we just trade product term length for sum term length
-  // e.g. a ad a a ad = 2 a + 4 ad a a + ad ad a a a
-  uint16_t ad;
-  uint16_t a;
   int target;
+  int additional_terms;
+  std::vector<int> number_offsets;
 
   // 0 = I, ad = 1, a = 2, ada = 3
   boson_operator(int target, int op_code);
@@ -41,9 +38,6 @@ private:
   bool inplace_mult(const boson_operator &other);
 
 public:
-#if !defined(NDEBUG)
-  static bool can_be_canonicalized; // cannot be canonicalized without splitting a product term into a sum of terms
-#endif
 
   // read-only properties
 
