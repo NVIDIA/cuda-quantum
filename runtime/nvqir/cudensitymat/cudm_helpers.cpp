@@ -125,6 +125,11 @@ cudm_helper::_wrap_tensor_callback(const matrix_operator &op,
       auto *context = reinterpret_cast<TensorCallBackContext *>(callback);
       matrix_operator &stored_op = context->tensorOp;
 
+      if (num_modes <= 0) {
+        std::cerr << "num_modes is invalid: " << num_modes << std::endl;
+        return CUDENSITYMAT_STATUS_INVALID_VALUE;
+      }
+
       if (num_params != 2 * context->paramNames.size())
         throw std::runtime_error(
             fmt::format("[Internal Error] Invalid number of tensor callback "
@@ -143,13 +148,24 @@ cudm_helper::_wrap_tensor_callback(const matrix_operator &op,
                      context->paramNames[i], param_map[context->paramNames[i]]);
       }
 
-      std::unordered_map<int, int> dimensions = {};
+      std::unordered_map<int, int> dimensions;
+      for (int i = 0; i < num_modes; ++i) {
+        dimensions[i] = static_cast<int>(mode_extents[i]);
+      }
+
+      if (dimensions.empty()) {
+        std::cerr << "Dimension map is empty!" << std::endl;
+        return CUDENSITYMAT_STATUS_INVALID_VALUE;
+      }
+
       matrix_2 matrix_data = stored_op.to_matrix(dimensions, param_map);
 
       std::size_t rows = matrix_data.get_rows();
       std::size_t cols = matrix_data.get_columns();
 
-      if (num_modes != rows) {
+      if (rows != cols) {
+        std::cerr << "Non-square matrix encountered: " << rows << "x" << cols
+                  << std::endl;
         return CUDENSITYMAT_STATUS_INVALID_VALUE;
       }
 
@@ -171,6 +187,7 @@ cudm_helper::_wrap_tensor_callback(const matrix_operator &op,
           }
         }
       } else {
+        std::cerr << "Invalid CUDA data type: " << data_type << std::endl;
         return CUDENSITYMAT_STATUS_INVALID_VALUE;
       }
 
