@@ -9,6 +9,7 @@
 #include "cudm_helpers.h"
 #include "common/Logger.h"
 #include "cudm_error_handling.h"
+#include <ranges>
 
 using namespace cudaq;
 
@@ -29,15 +30,25 @@ cudm_helper::~cudm_helper() {
   }
 }
 
+struct ScalarCallBackContext {
+  scalar_operator scalarOp;
+  std::vector<std::string> paramNames;
+  ScalarCallBackContext(const scalar_operator &scalar_op,
+                        const std::vector<std::string> &paramNames)
+      : scalarOp(scalar_op), paramNames(paramNames){};
+};
+
 cudensitymatWrappedScalarCallback_t
-cudm_helper::_wrap_callback(const scalar_operator &scalar_op) {
+cudm_helper::_wrap_callback(const scalar_operator &scalar_op,
+                            const std::vector<std::string> &paramNames) {
   if (scalar_op.is_constant()) {
     throw std::runtime_error(
         "scalar_operator does not have a valid generator function.");
   }
 
-  auto *stored_scalar_op = new scalar_operator(scalar_op);
-
+  // FIXME: leak
+  auto *stored_callback_context =
+      new ScalarCallBackContext(scalar_op, paramNames);
   using WrapperFuncType =
       int32_t (*)(cudensitymatScalarCallback_t, double, int32_t, const double[],
                   cudaDataType_t, void *);
@@ -46,18 +57,27 @@ cudm_helper::_wrap_callback(const scalar_operator &scalar_op) {
                     int32_t num_params, const double params[],
                     cudaDataType_t data_type, void *scalar_storage) -> int32_t {
     try {
-      scalar_operator *stored_op =
-          reinterpret_cast<scalar_operator *>(callback);
+      ScalarCallBackContext *context =
+          reinterpret_cast<ScalarCallBackContext *>(callback);
+      scalar_operator &stored_op = context->scalarOp;
+      if (num_params != 2 * context->paramNames.size())
+        throw std::runtime_error(
+            fmt::format("[Internal Error] Invalid number of callback "
+                        "parameters encountered. Expected {} double params "
+                        "representing {} complex values but received {}.",
+                        2 * context->paramNames.size(),
+                        context->paramNames.size(), num_params));
 
       std::unordered_map<std::string, std::complex<double>> param_map;
-      // FIXME: Figure how to populate the param map
-      // This param map was sorted in cudmStepper::compute
-      for (size_t i = 0; i < num_params; i++) {
-        param_map[std::to_string(i)] = params[i];
+      for (size_t i = 0; i < context->paramNames.size(); ++i) {
+        param_map[context->paramNames[i]] =
+            std::complex<double>(params[2 * i], params[2 * i + 1]);
+        cudaq::debug("Callback param name {}, value {}", context->paramNames[i],
+                     param_map[context->paramNames[i]]);
       }
-      param_map["time"] = time;
 
-      std::complex<double> result = stored_op->evaluate(param_map);
+      std::complex<double> result = stored_op.evaluate(param_map);
+      cudaq::debug("Scalar callback evaluated result = {}", result);
       auto *tdCoef = static_cast<std::complex<double> *>(scalar_storage);
       *tdCoef = result;
       return CUDENSITYMAT_STATUS_SUCCESS;
@@ -69,7 +89,7 @@ cudm_helper::_wrap_callback(const scalar_operator &scalar_op) {
 
   cudensitymatWrappedScalarCallback_t wrappedCallback;
   wrappedCallback.callback =
-      reinterpret_cast<cudensitymatScalarCallback_t>(stored_scalar_op);
+      reinterpret_cast<cudensitymatScalarCallback_t>(stored_callback_context);
   wrappedCallback.wrapper =
       reinterpret_cast<void *>(static_cast<WrapperFuncType>(wrapper));
   return wrappedCallback;
@@ -288,24 +308,6 @@ void cudm_helper::append_elementary_operator_to_term(
       handle, term, static_cast<int32_t>(elem_ops.size()), elem_ops.data(),
       allDegrees.data(), allModeActionDuality.data(),
       make_cuDoubleComplex(1.0, 0.0), {nullptr, nullptr}));
-}
-
-// Function to create and append a scalar to a term
-void cudm_helper::append_scalar_to_term(cudensitymatOperatorTerm_t term,
-                                        const scalar_operator &scalar_op) {
-  cudensitymatWrappedScalarCallback_t wrapped_callback = {nullptr, nullptr};
-
-  if (scalar_op.is_constant()) {
-    std::complex<double> coeff = scalar_op.evaluate({});
-    HANDLE_CUDM_ERROR(cudensitymatOperatorTermAppendElementaryProduct(
-        handle, term, 0, nullptr, nullptr, nullptr,
-        {make_cuDoubleComplex(coeff.real(), coeff.imag())}, wrapped_callback));
-  } else {
-    wrapped_callback = _wrap_callback(scalar_op);
-    HANDLE_CUDM_ERROR(cudensitymatOperatorTermAppendElementaryProduct(
-        handle, term, 0, nullptr, nullptr, nullptr,
-        {make_cuDoubleComplex(1.0, 0.0)}, wrapped_callback));
-  }
 }
 
 void cudm_helper::scale_state(cudensitymatState_t state, double scale_factor,
@@ -603,6 +605,10 @@ cudensitymatOperator_t cudm_helper::convert_to_cudensitymat_operator(
       handle, static_cast<int32_t>(mode_extents.size()), mode_extents.data(),
       &operator_handle));
 
+  const std::map<std::string, std::complex<double>> sortedParameters(
+      parameters.begin(), parameters.end());
+  auto ks = std::views::keys(sortedParameters);
+  const std::vector<std::string> keys{ks.begin(), ks.end()};
   for (auto &[coeff, term] : convert_to_cudensitymat(op, mode_extents)) {
     cudensitymatWrappedScalarCallback_t wrapped_callback = {nullptr, nullptr};
 
@@ -613,7 +619,7 @@ cudensitymatOperator_t cudm_helper::convert_to_cudensitymat_operator(
           make_cuDoubleComplex(coeffVal.real(), coeffVal.imag()),
           wrapped_callback));
     } else {
-      wrapped_callback = _wrap_callback(coeff);
+      wrapped_callback = _wrap_callback(coeff, keys);
       HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
           handle, operator_handle, term, 0, make_cuDoubleComplex(1.0, 0.0),
           wrapped_callback));

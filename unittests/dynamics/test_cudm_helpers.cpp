@@ -179,19 +179,3 @@ TEST_F(CuDensityMatHelpersTestFixture, ConvertOperatorWithTensorCallback) {
   //   cudensitymatDestroyOperator(result);
   // });
 }
-
-// Test for appending a scalar to a term
-TEST_F(CuDensityMatHelpersTestFixture, AppendScalarToTerm) {
-  cudensitymatOperatorTerm_t term;
-  std::vector<int64_t> mode_extents = {2, 2};
-
-  HANDLE_CUDM_ERROR(cudensitymatCreateOperatorTerm(
-      handle, static_cast<int32_t>(mode_extents.size()), mode_extents.data(),
-      &term));
-
-  cudaq::scalar_operator scalar_op(2.0);
-
-  EXPECT_NO_THROW(helper->append_scalar_to_term(term, scalar_op));
-
-  cudensitymatDestroyOperatorTerm(term);
-}

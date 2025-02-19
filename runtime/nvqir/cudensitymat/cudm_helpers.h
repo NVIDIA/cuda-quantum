@@ -77,13 +77,11 @@ public:
 
   // Callback Wrappers
   static cudensitymatWrappedScalarCallback_t
-  _wrap_callback(const scalar_operator &scalar_op);
+  _wrap_callback(const scalar_operator &scalar_op,
+                 const std::vector<std::string> &paramNames);
   static cudensitymatWrappedTensorCallback_t
   _wrap_tensor_callback(const matrix_operator &op);
 
-  // Elementary Operator Functions
-  void append_scalar_to_term(cudensitymatOperatorTerm_t term,
-                             const scalar_operator &scalar_op);
   cudensitymatElementaryOperator_t create_elementary_operator(
       const cudaq::matrix_operator &elem_op,
       const std::unordered_map<std::string, std::complex<double>> &parameters,
