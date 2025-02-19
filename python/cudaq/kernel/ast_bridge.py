@@ -4196,7 +4196,7 @@ class PyASTBridge(ast.NodeVisitor):
                     self.pushValue(self.getConstantInt(hash(value)))
                     return
             except TypeError:
-               pass
+                pass
 
             self.emitFatalError(
                 f"Invalid type for variable ({node.id}) captured from parent scope (only int, bool, float, complex, cudaq.State, and list/np.ndarray[int|bool|float|complex] accepted, type was {errorType}).",
