@@ -173,7 +173,9 @@ TEST_F(RungeKuttaIntegratorTest, CheckEvolve) {
     EXPECT_TRUE(castSimState != nullptr);
     castSimState->initialize_cudm(handle_, dims);
     integrator.set_state(initialState, 0.0);
-    integrator.set_system(system);
+    cudaq::Schedule schedule(
+        cudaq::linspace(0, 1.0 * numDataPoints, numDataPoints));
+    integrator.set_system(system, schedule);
     std::vector<std::complex<double>> outputStateVec(2);
     for (std::size_t i = 1; i < numDataPoints; ++i) {
       integrator.integrate(i);

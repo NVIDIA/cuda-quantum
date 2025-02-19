@@ -13,8 +13,10 @@
 #include "cudm_time_stepper.h"
 namespace cudaq {
 
-void runge_kutta::set_system(const SystemDynamics &system) {
+void runge_kutta::set_system(const SystemDynamics &system,
+                             const cudaq::Schedule &schedule) {
   m_system = system;
+  m_schedule = schedule;
 }
 
 void runge_kutta::set_state(cudaq::state initial_state, double t0) {
@@ -44,14 +46,19 @@ void runge_kutta::integrate(double target_time) {
     return castSimState;
   };
   auto &castSimState = *asCudmState(*m_state);
+  std::unordered_map<std::string, std::complex<double>> params;
   if (!m_stepper) {
     static std::unordered_map<void *, std::unique_ptr<cudm_helper>> helpers;
     if (helpers.find(castSimState.get_handle()) == helpers.end())
       helpers[castSimState.get_handle()] =
           std::make_unique<cudm_helper>(castSimState.get_handle());
     auto &helper = *(helpers.find(castSimState.get_handle())->second);
+    for (const auto &param : m_schedule.parameters()) {
+      params[param] = m_schedule.value_function()(param, 0.0);
+    }
+
     auto liouvillian = helper.construct_liouvillian(
-        *m_system.hamiltonian, m_system.collapseOps, m_system.modeExtents, {},
+        *m_system.hamiltonian, m_system.collapseOps, m_system.modeExtents, params,
         castSimState.is_density_matrix());
     m_stepper =
         std::make_unique<cudmStepper>(castSimState.get_handle(), liouvillian);
@@ -66,49 +73,68 @@ void runge_kutta::integrate(double target_time) {
 
     if (substeps == 1) {
       // Euler method (1st order)
-      auto k1State = m_stepper->compute(*m_state, m_t, step_size, {});
+      for (const auto &param : m_schedule.parameters()) {
+        params[param] = m_schedule.value_function()(param, m_t);
+      }
+      auto k1State = m_stepper->compute(*m_state, m_t, step_size, params);
       auto &k1 = *asCudmState(k1State);
       // k1.dump(std::cout);
       k1 *= step_size;
       castSimState += k1;
     } else if (substeps == 2) {
       // Midpoint method (2nd order)
-      auto k1State = m_stepper->compute(*m_state, m_t, step_size, {});
+      for (const auto &param : m_schedule.parameters()) {
+        params[param] = m_schedule.value_function()(param, m_t);
+      }
+      auto k1State = m_stepper->compute(*m_state, m_t, step_size, params);
       auto &k1 = *asCudmState(k1State);
       k1 *= (step_size / 2.0);
 
       castSimState += k1;
-
+      for (const auto &param : m_schedule.parameters()) {
+        params[param] =
+            m_schedule.value_function()(param, m_t + step_size / 2.0);
+      }
       auto k2State =
-          m_stepper->compute(*m_state, m_t + step_size / 2.0, step_size, {});
+          m_stepper->compute(*m_state, m_t + step_size / 2.0, step_size, params);
       auto &k2 = *asCudmState(k2State);
       k2 *= (step_size / 2.0);
 
       castSimState += k2;
     } else if (substeps == 4) {
       // Runge-Kutta method (4th order)
-      auto k1State = m_stepper->compute(*m_state, m_t, step_size, {});
+      for (const auto &param : m_schedule.parameters()) {
+        params[param] = m_schedule.value_function()(param, m_t);
+      }
+      auto k1State = m_stepper->compute(*m_state, m_t, step_size, params);
       auto &k1 = *asCudmState(k1State);
       CuDensityMatState rho_temp = CuDensityMatState::clone(castSimState);
       rho_temp += (k1 * (step_size / 2));
 
+      for (const auto &param : m_schedule.parameters()) {
+        params[param] =
+            m_schedule.value_function()(param, m_t + step_size / 2.0);
+      }
       auto k2State = m_stepper->compute(
           cudaq::state(new CuDensityMatState(std::move(rho_temp))),
-          m_t + step_size / 2.0, step_size, {});
+          m_t + step_size / 2.0, step_size, params);
       auto &k2 = *asCudmState(k2State);
       CuDensityMatState rho_temp_2 = CuDensityMatState::clone(castSimState);
       rho_temp_2 += (k2 * (step_size / 2));
 
       auto k3State = m_stepper->compute(
           cudaq::state(new CuDensityMatState(std::move(rho_temp_2))),
-          m_t + step_size / 2.0, step_size, {});
+          m_t + step_size / 2.0, step_size, params);
       auto &k3 = *asCudmState(k3State);
       CuDensityMatState rho_temp_3 = CuDensityMatState::clone(castSimState);
       rho_temp_3 += (k3 * step_size);
 
+      for (const auto &param : m_schedule.parameters()) {
+        params[param] = m_schedule.value_function()(param, m_t + step_size);
+      }
       auto k4State = m_stepper->compute(
           cudaq::state(new CuDensityMatState(std::move(rho_temp_3))),
-          m_t + step_size, step_size, {});
+          m_t + step_size, step_size, params);
       auto &k4 = *asCudmState(k4State);
       castSimState += (k1 + k2 * 2.0 + k3 * 2.0 + k4) * (step_size / 6.0);
     } else {
