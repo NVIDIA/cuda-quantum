@@ -111,28 +111,28 @@ cudm_helper::_wrap_tensor_callback(const matrix_operator &op,
 
   using WrapperFuncType = int32_t (*)(
       cudensitymatTensorCallback_t, cudensitymatElementaryOperatorSparsity_t,
-      int32_t, const int64_t[], const int32_t[], double, int64_t, int32_t,
+      int32_t, const int64_t[], const int32_t[], double, int32_t,
       const double[], cudaDataType_t, void *, cudaStream_t);
 
   auto wrapper = [](cudensitymatTensorCallback_t callback,
                     cudensitymatElementaryOperatorSparsity_t sparsity,
                     int32_t num_modes, const int64_t mode_extents[],
                     const int32_t diagonal_offsets[], double time,
-                    int64_t batch_size, int32_t num_params,
-                    const double params[], cudaDataType_t data_type,
-                    void *tensor_storage, cudaStream_t stream) -> int32_t {
+                    int32_t num_params, const double params[],
+                    cudaDataType_t data_type, void *tensor_storage,
+                    cudaStream_t stream) -> int32_t {
     try {
       auto *context = reinterpret_cast<TensorCallBackContext *>(callback);
       matrix_operator &stored_op = context->tensorOp;
 
-      // if (num_params != 2 * context->paramNames.size())
-      //   throw std::runtime_error(
-      //       fmt::format("[Internal Error] Invalid number of tensor callback "
-      //                   "parameters. Expected {} double values "
-      //                   "representing {} complex parameters but received
-      //                   {}.", std::to_string(2 * context->paramNames.size()),
-      //                   std::to_string(context->paramNames.size()),
-      //                   std::to_string(num_params)));
+      if (num_params != 2 * context->paramNames.size())
+        throw std::runtime_error(
+            fmt::format("[Internal Error] Invalid number of tensor callback "
+                        "parameters. Expected {} double values "
+                        "representing {} complex parameters but received
+                        {}.", std::to_string(2 * context->paramNames.size()),
+                        std::to_string(context->paramNames.size()),
+                        std::to_string(num_params)));
 
       std::unordered_map<std::string, std::complex<double>> param_map;
       for (size_t i = 0; i < context->paramNames.size(); ++i) {
@@ -694,7 +694,8 @@ cudensitymatOperator_t cudm_helper::construct_liouvillian(
         parameters.begin(), parameters.end());
     auto ks = std::views::keys(sortedParameters);
     const std::vector<std::string> keys{ks.begin(), ks.end()};
-    for (auto &[coeff, term] : convert_to_cudensitymat(op, parameters, mode_extents)) {
+    for (auto &[coeff, term] :
+         convert_to_cudensitymat(op, parameters, mode_extents)) {
       cudensitymatWrappedScalarCallback_t wrapped_callback = {nullptr, nullptr};
       if (coeff.is_constant()) {
         const auto coeffVal = coeff.evaluate();
