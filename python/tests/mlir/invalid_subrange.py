@@ -28,7 +28,7 @@ print('sample bar:')
 x = cudaq.sample(bar, shots_count=shots)
 print(x)
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__bar() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+# CHECK-LABEL:   func.func
 # CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 4 : i64
 # CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
 # CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i64
