@@ -209,3 +209,57 @@ TEST_F(CuDensityMatTimeStepperTest, CheckScalarCallback) {
   }
   HANDLE_CUDM_ERROR(cudensitymatDestroyOperator(cudmOp));
 }
+
+TEST_F(CuDensityMatTimeStepperTest, CheckTensorCallback) {
+  const std::vector<std::complex<double>> initialState = {
+      {1.0, 0.0}, {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}};
+  const std::vector<int64_t> dims = {4};
+  auto inputState = cudaq::state::from_data(initialState);
+  auto *simState = cudaq::state_helper::getSimulationState(&inputState);
+  auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
+  EXPECT_TRUE(castSimState != nullptr);
+  castSimState->initialize_cudm(handle_, dims);
+
+  const std::string paramName = "beta";
+  const std::complex<double> paramValue{2.0, 3.0};
+  std::unordered_map<std::string, std::complex<double>> params{
+      {paramName, paramValue}};
+
+  auto tensorFunction =
+      [paramName](const std::vector<int> &dimensions,
+                  const std::unordered_map<std::string, std::complex<double>>
+                      &parameters) -> matrix_2 {
+    auto entry = parameters.find(paramName);
+    if (entry == parameters.end())
+      throw std::runtime_error(
+          "Cannot find value of expected parameter named " + paramName);
+
+    std::complex<double> value = entry->second;
+    matrix_2 mat(2, 2);
+    mat[{0, 0}] = value;
+    mat[{1, 1}] = std::conj(value);
+    mat[{0, 1}] = {0.0, 0.0};
+    mat[{1, 0}] = {0.0, 0.0};
+    return mat;
+  };
+
+  matrix_operator::define("CustomTensorOp", {-1}, tensorFunction);
+  auto op = cudaq::matrix_operator::instantiate("CustomTensorOp", {0});
+  auto cudmOp =
+      helper_->convert_to_cudensitymat_operator<cudaq::matrix_operator>(
+          params, op, dims);
+  // Initialize the time stepper
+  auto time_stepper = std::make_unique<cudmStepper>(handle_, cudmOp);
+  auto outputState = time_stepper->compute(inputState, 1.0, 1.0, params);
+  outputState.dump(std::cout);
+  std::vector<std::complex<double>> outputStateVec(4);
+  outputState.to_host(outputStateVec.data(), outputStateVec.size());
+  // Create operator move the state up 1 step.
+  const std::vector<std::complex<double>> expectedOutputState = {
+      paramValue, {0.0, 0.0}, {0.0, 0.0}, std::conj(paramValue)};
+
+  for (std::size_t i = 0; i < expectedOutputState.size(); ++i) {
+    EXPECT_TRUE(std::abs(expectedOutputState[i] - outputStateVec[i]) < 1e-12);
+  }
+  HANDLE_CUDM_ERROR(cudensitymatDestroyOperator(cudmOp));
+}

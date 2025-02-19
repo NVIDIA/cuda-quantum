@@ -38,6 +38,15 @@ struct ScalarCallBackContext {
       : scalarOp(scalar_op), paramNames(paramNames){};
 };
 
+struct TensorCallBackContext {
+  matrix_operator tensorOp;
+  std::vector<std::string> paramNames;
+
+  TensorCallBackContext(const matrix_operator &tensor_op,
+                        const std::vector<std::string> &param_names)
+      : tensorOp(tensor_op), paramNames(param_names){};
+};
+
 cudensitymatWrappedScalarCallback_t
 cudm_helper::_wrap_callback(const scalar_operator &scalar_op,
                             const std::vector<std::string> &paramNames) {
@@ -96,22 +105,45 @@ cudm_helper::_wrap_callback(const scalar_operator &scalar_op,
 }
 
 cudensitymatWrappedTensorCallback_t
-cudm_helper::_wrap_tensor_callback(const matrix_operator &op) {
-  auto callback =
-      [](cudensitymatElementaryOperatorSparsity_t sparsity, int32_t num_modes,
-         const int64_t mode_extents[], const int32_t diagonal_offsets[],
-         double time, int32_t num_params, const double params[],
-         cudaDataType_t data_type, void *tensor_storage) -> int32_t {
+cudm_helper::_wrap_tensor_callback(const matrix_operator &op,
+                                   const std::vector<std::string> &paramNames) {
+  auto *stored_callback_context = new TensorCallBackContext(op, paramNames);
+
+  using WrapperFuncType = int32_t (*)(
+      cudensitymatTensorCallback_t, cudensitymatElementaryOperatorSparsity_t,
+      int32_t, const int64_t[], const int32_t[], double, int64_t, int32_t,
+      const double[], cudaDataType_t, void *, cudaStream_t);
+
+  auto wrapper = [](cudensitymatTensorCallback_t callback,
+                    cudensitymatElementaryOperatorSparsity_t sparsity,
+                    int32_t num_modes, const int64_t mode_extents[],
+                    const int32_t diagonal_offsets[], double time,
+                    int64_t batch_size, int32_t num_params,
+                    const double params[], cudaDataType_t data_type,
+                    void *tensor_storage, cudaStream_t stream) -> int32_t {
     try {
-      matrix_operator *mat_op = static_cast<matrix_operator *>(tensor_storage);
+      auto *context = reinterpret_cast<TensorCallBackContext *>(callback);
+      matrix_operator &stored_op = context->tensorOp;
+
+      // if (num_params != 2 * context->paramNames.size())
+      //   throw std::runtime_error(
+      //       fmt::format("[Internal Error] Invalid number of tensor callback "
+      //                   "parameters. Expected {} double values "
+      //                   "representing {} complex parameters but received
+      //                   {}.", std::to_string(2 * context->paramNames.size()),
+      //                   std::to_string(context->paramNames.size()),
+      //                   std::to_string(num_params)));
 
       std::unordered_map<std::string, std::complex<double>> param_map;
-      for (size_t i = 0; i < num_params; i++) {
-        param_map[std::to_string(i)] = params[i];
+      for (size_t i = 0; i < context->paramNames.size(); ++i) {
+        param_map[context->paramNames[i]] =
+            std::complex<double>(params[2 * i], params[2 * i + 1]);
+        cudaq::debug("Tensor callback param name {}, value {}",
+                     context->paramNames[i], param_map[context->paramNames[i]]);
       }
 
       std::unordered_map<int, int> dimensions = {};
-      matrix_2 matrix_data = mat_op->to_matrix(dimensions, param_map);
+      matrix_2 matrix_data = stored_op.to_matrix(dimensions, param_map);
 
       std::size_t rows = matrix_data.get_rows();
       std::size_t cols = matrix_data.get_columns();
@@ -121,8 +153,7 @@ cudm_helper::_wrap_tensor_callback(const matrix_operator &op) {
       }
 
       if (data_type == CUDA_C_64F) {
-        cuDoubleComplex *storage =
-            static_cast<cuDoubleComplex *>(tensor_storage);
+        auto *storage = static_cast<cuDoubleComplex *>(tensor_storage);
         for (size_t i = 0; i < rows; i++) {
           for (size_t j = 0; j < cols; j++) {
             storage[i * cols + j] = make_cuDoubleComplex(
@@ -130,7 +161,7 @@ cudm_helper::_wrap_tensor_callback(const matrix_operator &op) {
           }
         }
       } else if (data_type == CUDA_C_32F) {
-        cuFloatComplex *storage = static_cast<cuFloatComplex *>(tensor_storage);
+        auto *storage = static_cast<cuFloatComplex *>(tensor_storage);
         for (size_t i = 0; i < rows; i++) {
           for (size_t j = 0; j < cols; j++) {
             storage[i * cols + j] = make_cuFloatComplex(
@@ -150,8 +181,10 @@ cudm_helper::_wrap_tensor_callback(const matrix_operator &op) {
   };
 
   cudensitymatWrappedTensorCallback_t wrapped_callback;
-  wrapped_callback.callback = callback;
-  wrapped_callback.wrapper = new matrix_operator(op);
+  wrapped_callback.callback =
+      reinterpret_cast<cudensitymatTensorCallback_t>(stored_callback_context);
+  wrapped_callback.wrapper =
+      reinterpret_cast<void *>(static_cast<WrapperFuncType>(wrapper));
 
   return wrapped_callback;
 }
@@ -224,7 +257,12 @@ cudensitymatElementaryOperator_t cudm_helper::create_elementary_operator(
                                                                  nullptr};
 
   if (!parameters.empty()) {
-    wrapped_tensor_callback = _wrap_tensor_callback(elem_op);
+    const std::map<std::string, std::complex<double>> sortedParameters(
+        parameters.begin(), parameters.end());
+    auto ks = std::views::keys(sortedParameters);
+    const std::vector<std::string> keys{ks.begin(), ks.end()};
+
+    wrapped_tensor_callback = _wrap_tensor_callback(elem_op, keys);
   }
 
   auto *elementaryMat_d = create_array_gpu(flat_matrix);
@@ -555,6 +593,7 @@ cudm_helper::convert_dimensions(const std::vector<int64_t> &mode_extents) {
 std::vector<std::pair<cudaq::scalar_operator, cudensitymatOperatorTerm_t>>
 cudm_helper::convert_to_cudensitymat(
     const operator_sum<cudaq::matrix_operator> &op,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
     const std::vector<int64_t> &mode_extents) {
   if (op.get_terms().empty()) {
     throw std::invalid_argument("Operator sum cannot be empty.");
@@ -577,7 +616,7 @@ cudm_helper::convert_to_cudensitymat(
       if (const auto *elem_op =
               dynamic_cast<const cudaq::matrix_operator *>(&component)) {
         auto cudm_elem_op =
-            create_elementary_operator(*elem_op, {}, mode_extents);
+            create_elementary_operator(*elem_op, parameters, mode_extents);
         elem_ops.emplace_back(cudm_elem_op);
         all_degrees.emplace_back(elem_op->degrees());
       } else {
@@ -609,7 +648,8 @@ cudensitymatOperator_t cudm_helper::convert_to_cudensitymat_operator(
       parameters.begin(), parameters.end());
   auto ks = std::views::keys(sortedParameters);
   const std::vector<std::string> keys{ks.begin(), ks.end()};
-  for (auto &[coeff, term] : convert_to_cudensitymat(op, mode_extents)) {
+  for (auto &[coeff, term] :
+       convert_to_cudensitymat(op, parameters, mode_extents)) {
     cudensitymatWrappedScalarCallback_t wrapped_callback = {nullptr, nullptr};
 
     if (coeff.is_constant()) {
@@ -653,7 +693,7 @@ cudensitymatOperator_t cudm_helper::construct_liouvillian(
         parameters.begin(), parameters.end());
     auto ks = std::views::keys(sortedParameters);
     const std::vector<std::string> keys{ks.begin(), ks.end()};
-    for (auto &[coeff, term] : convert_to_cudensitymat(op, mode_extents)) {
+    for (auto &[coeff, term] : convert_to_cudensitymat(op, parameters, mode_extents)) {
       cudensitymatWrappedScalarCallback_t wrapped_callback = {nullptr, nullptr};
       if (coeff.is_constant()) {
         const auto coeffVal = coeff.evaluate();

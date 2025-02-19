@@ -165,7 +165,7 @@ TEST_F(CuDensityMatHelpersTestFixture, ConvertOperatorWithTensorCallback) {
       cudaq::matrix_operator::instantiate(op_id, {0}).get_terms()[0];
 
   auto wrapped_tensor_callback =
-      cudaq::cudm_helper::_wrap_tensor_callback(matrix_op);
+      cudaq::cudm_helper::_wrap_tensor_callback(matrix_op, {});
 
   ASSERT_NE(wrapped_tensor_callback.callback, nullptr);
 
