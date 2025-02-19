@@ -30,9 +30,9 @@ __qpu__ void kernel(test t) {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel._Z6kernel4test(
-// CHECK-SAME:      %[[VAL_0:.*]]: !quake.struq<!quake.veq<?>, !quake.veq<?>>) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-// CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
-// CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i64
+// CHECK-SAME:      %[[VAL_0:.*]]: !quake.struq<!quake.veq<?>, !quake.veq<?>>) attributes {"cudaq-kernel", no_this} {
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i64
 // CHECK:           %[[VAL_3:.*]] = quake.get_member %[[VAL_0]][0] : (!quake.struq<!quake.veq<?>, !quake.veq<?>>) -> !quake.veq<?>
 // CHECK:           %[[VAL_4:.*]] = quake.veq_size %[[VAL_3]] : (!quake.veq<?>) -> i64
 // CHECK:           %[[VAL_12:.*]] = quake.get_member %[[VAL_0]][1] : (!quake.struq<!quake.veq<?>, !quake.veq<?>>) -> !quake.veq<?>
@@ -77,9 +77,7 @@ __qpu__ void entry_ctor() {
 // CHECK:           quake.h %[[VAL_2]] : (!quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
-// clang-format on
 
-// clang-format off
 // QIR-LABEL: define void @__nvqpp__mlirgen__function_kernel._Z6kernel4test({ 
 // QIR-SAME:    %Array*, %Array* } %[[VAL_1:.*]]) local_unnamed_addr {
 // QIR:         %[[VAL_2:.*]] = extractvalue { %Array*, %Array* } %[[VAL_1]], 0
