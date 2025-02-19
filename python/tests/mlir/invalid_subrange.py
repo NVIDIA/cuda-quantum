@@ -10,23 +10,25 @@
 
 import cudaq
 
-@cudaq.kernel
-def bar():
-    ancilla = cudaq.qubit()
-    qubits = cudaq.qvector(4)
-    qubit_num = qubits.size()
 
-    for i in range(qubit_num):
-        if i == 0:
-            x.ctrl(ancilla, qubits[0])
-        else:
-            x.ctrl([ancilla, qubits[0:i]], qubits[i])
-
-print(bar)
-shots=10000
-print('sample bar:')
-x = cudaq.sample(bar, shots_count=shots)
-print(x)
+def test_banjo():
+    @cudaq.kernel
+    def bar():
+        ancilla = cudaq.qubit()
+        qubits = cudaq.qvector(4)
+        qubit_num = qubits.size()
+    
+        for i in range(qubit_num):
+            if i == 0:
+                x.ctrl(ancilla, qubits[0])
+            else:
+                x.ctrl([ancilla, qubits[0:i]], qubits[i])
+    
+    print(bar)
+    shots=10000
+    print('sample bar:')
+    x = cudaq.sample(bar, shots_count=shots)
+    print(x)
 
 # CHECK-LABEL:   func.func
 # CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 4 : i64
