@@ -128,6 +128,11 @@ bool quantum_platform::supports_conditional_feedback(
   return platformQPUs[qpu_id]->supportsConditionalFeedback();
 }
 
+bool quantum_platform::supports_explicit_measurements(
+    const std::size_t qpu_id) const {
+  return platformQPUs[qpu_id]->supportsExplicitMeasurements();
+}
+
 void quantum_platform::launchVQE(const std::string kernelName,
                                  const void *kernelArgs, gradient *gradient,
                                  spin_op H, optimizer &optimizer,

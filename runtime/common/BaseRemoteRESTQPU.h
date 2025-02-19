@@ -163,6 +163,9 @@ public:
     return codegenTranslation == "qir-adaptive";
   }
 
+  /// @brief Return true if the current backend supports explicit measurements
+  bool supportsExplicitMeasurements() override { return false; }
+
   /// Provide the number of shots
   void setShots(int _nShots) override {
     nShots = _nShots;

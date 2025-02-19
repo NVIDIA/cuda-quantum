@@ -97,7 +97,7 @@ cudaq::sample_result sampleJitCode(ExecutionEngine *jit,
                                             kernelName);
                ASSERT_TRUE(!err);
              },
-             p, kernelName, 1000)
+             p, kernelName, 1000, /*explicitMeasurements=*/false)
       .value();
 }
 

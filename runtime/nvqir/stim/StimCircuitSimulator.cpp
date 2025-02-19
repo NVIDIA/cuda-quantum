@@ -100,6 +100,8 @@ protected:
   /// @brief Apply operation to all Stim simulators.
   void applyOpToSims(const std::string &gate_name,
                      const std::vector<uint32_t> &targets) {
+    if (targets.empty())
+      return;
     stim::Circuit tempCircuit;
     cudaq::info("Calling applyOpToSims {} - {}", gate_name, targets);
     tempCircuit.safe_append_u(gate_name, targets);
@@ -233,6 +235,10 @@ public:
     // Populate the correct name so it is printed correctly during
     // deconstructor.
     summaryData.name = name();
+    // Set supportsBufferedSample = true to tell the base class that this
+    // simulator knows how to buffer the results across multiple sample()
+    // invocations.
+    supportsBufferedSample = true;
   }
   virtual ~StimCircuitSimulator() = default;
 
@@ -251,13 +257,29 @@ public:
         "R", std::vector<std::uint32_t>{static_cast<std::uint32_t>(index)});
   }
 
-  /// @brief Sample the multi-qubit state.
+  /// @brief Sample the multi-qubit state. If \p qubits is empty and
+  /// explicitMeasurements is set, this returns all previously saved
+  /// measurements.
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &qubits,
                                 const int shots) override {
+    if (executionContext->explicitMeasurements && qubits.empty() &&
+        num_measurements == 0)
+      throw std::runtime_error(
+          "The sampling option `explicit_measurements` is not supported on a "
+          "kernel without any measurement operation.");
+
+    bool populateResult = [&]() {
+      if (executionContext->explicitMeasurements)
+        return qubits.empty();
+      return true;
+    }();
     assert(shots <= sampleSim->batch_size);
     std::vector<std::uint32_t> stimTargetQubits(qubits.begin(), qubits.end());
     applyOpToSims("M", stimTargetQubits);
     num_measurements += stimTargetQubits.size();
+
+    if (!populateResult)
+      return cudaq::ExecutionResult();
 
     // Generate a reference sample
     const std::vector<bool> &v = tableau->measurement_record.storage;
@@ -284,10 +306,13 @@ public:
     // measurements were mid-circuit measurements that have been previously
     // accounted for and saved.
     assert(bits_per_sample >= qubits.size());
-    std::size_t first_bit_to_save = bits_per_sample - qubits.size();
+    std::size_t first_bit_to_save = executionContext->explicitMeasurements
+                                        ? 0
+                                        : bits_per_sample - qubits.size();
     CountsDictionary counts;
+    sequentialData.reserve(shots);
     for (std::size_t shot = 0; shot < shots; shot++) {
-      std::string aShot(qubits.size(), '0');
+      std::string aShot(bits_per_sample - first_bit_to_save, '0');
       for (std::size_t b = first_bit_to_save; b < bits_per_sample; b++)
         aShot[b - first_bit_to_save] = sample[shot][b] ? '1' : '0';
       counts[aShot]++;

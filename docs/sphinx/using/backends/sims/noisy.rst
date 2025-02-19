@@ -70,7 +70,8 @@ To execute a program on the :code:`stim` target, use the following commands:
         ./program.x
 
 .. note::
-    CUDA-Q currently executes kernels using a "shot-by-shot" execution approach.
+    By default CUDA-Q executes kernels using a "shot-by-shot" execution approach.
     This allows for conditional gate execution (i.e. full control flow), but it
     can be slower than executing Stim a single time and generating all the shots
     from that single execution.
+    Set the `explicit_measurements` flag with `sample` API for efficient execution.

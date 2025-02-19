@@ -102,6 +102,9 @@ public:
   /// @brief Return whether the QPU has conditional feedback support
   bool supports_conditional_feedback(const std::size_t qpu_id = 0) const;
 
+  /// @brief Return whether the QPU supports explicit measurements.
+  bool supports_explicit_measurements(const std::size_t qpu_id = 0) const;
+
   /// The name of the platform, which also corresponds to the name of the
   /// platform file.
   std::string name() const { return platformName; }

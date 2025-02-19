@@ -94,6 +94,11 @@ protected:
   /// @brief Statistics collected over the life of the simulator.
   SummaryData summaryData;
 
+  /// @brief An "opt-in" way for simulators to tell the base class that they are
+  /// capable of buffering sample results across multiple invocations of the
+  /// sample() function.
+  bool supportsBufferedSample = false;
+
 public:
   /// @brief The constructor
   CircuitSimulator() = default;
@@ -449,6 +454,18 @@ protected:
   /// @brief Get the name of the current circuit being executed.
   std::string getCircuitName() const { return currentCircuitName; }
 
+  /// @brief Get the number of shots to execute (only valid if executionContext
+  /// is set)
+  int getNumShotsToExec() const {
+    if (!executionContext)
+      return 1;
+    if (executionContext->hasConditionalsOnMeasureResults)
+      return 1;
+    if (executionContext->explicitMeasurements && !supportsBufferedSample)
+      return 1;
+    return static_cast<int>(executionContext->shots);
+  }
+
   /// @brief Return the current multi-qubit state dimension
   virtual std::size_t calculateStateDim(const std::size_t numQubits) {
     assert(numQubits < 64);
@@ -493,8 +510,21 @@ protected:
                            const std::string &regName) {
     if (executionContext && executionContext->name == "sample" &&
         !executionContext->hasConditionalsOnMeasureResults) {
+
+      // Handle duplicate measurements in explicit measurements mode
+      if (executionContext->explicitMeasurements) {
+        auto iter =
+            std::find(sampleQubits.begin(), sampleQubits.end(), qubitIdx);
+        if (iter != sampleQubits.end())
+          flushAnySamplingTasks(/*force this*/ true);
+      }
       // Add the qubit to the sampling list
       sampleQubits.push_back(qubitIdx);
+
+      // If we're using explicit measurements (an optimized sampling mode), then
+      // don't populate registerNameToMeasuredQubit.
+      if (executionContext->explicitMeasurements)
+        return true;
 
       auto processForRegName = [&](const std::string &regStr) {
         // Insert the sample qubit into the register name map
@@ -643,28 +673,45 @@ protected:
 
   /// @brief Execute a sampling task with the current set of sample qubits.
   void flushAnySamplingTasks(bool force = false) {
+    if (force && supportsBufferedSample &&
+        executionContext->explicitMeasurements) {
+      int nShots = getNumShotsToExec();
+      if (!sampleQubits.empty()) {
+        // We have a few more qubits to be sampled. Call sample on the subclass,
+        // but there is no need to save the results this time.
+        sample(sampleQubits, nShots);
+        sampleQubits.clear();
+      }
+      // OK, now we're ready to grab the buffered sample results for the entire
+      // execution context.
+      auto execResult = sample(sampleQubits, nShots);
+      executionContext->result.append(execResult);
+      return;
+    }
+
     if (sampleQubits.empty())
       return;
 
     if (executionContext->hasConditionalsOnMeasureResults && !force)
       return;
 
-    // Sort the qubit indices
-    std::sort(sampleQubits.begin(), sampleQubits.end());
-    auto last = std::unique(sampleQubits.begin(), sampleQubits.end());
-    sampleQubits.erase(last, sampleQubits.end());
+    // Sort the qubit indices (unless we're in the optimized sampling mode that
+    // simply concatenates sequential measurements)
+    if (!executionContext->explicitMeasurements) {
+      std::sort(sampleQubits.begin(), sampleQubits.end());
+      auto last = std::unique(sampleQubits.begin(), sampleQubits.end());
+      sampleQubits.erase(last, sampleQubits.end());
+    }
 
     cudaq::info("Sampling the current state, with measure qubits = {}",
                 sampleQubits);
 
     // Ask the subtype to sample the current state
-    auto execResult =
-        sample(sampleQubits, executionContext->hasConditionalsOnMeasureResults
-                                 ? 1
-                                 : executionContext->shots);
+    auto execResult = sample(sampleQubits, getNumShotsToExec());
 
     if (registerNameToMeasuredQubit.empty()) {
-      executionContext->result.append(execResult);
+      executionContext->result.append(execResult,
+                                      executionContext->explicitMeasurements);
     } else {
 
       for (auto &[regName, qubits] : registerNameToMeasuredQubit) {
@@ -1047,11 +1094,15 @@ public:
     // If we are sampling...
     if (execContextName.find("sample") != std::string::npos) {
       // Sample the state over the specified number of shots
-      if (sampleQubits.empty()) {
+      if (sampleQubits.empty() && !executionContext->explicitMeasurements) {
         if (isInBatchMode())
           sampleQubits.resize(batchModeCurrentNumQubits);
         else
           sampleQubits.resize(nQubitsAllocated);
+        if (sampleQubits.empty())
+          throw std::runtime_error(
+              "Sampling detected on a kernel with no qubits. Your kernel must "
+              "have qubits to sample it.");
         std::iota(sampleQubits.begin(), sampleQubits.end(), 0);
       }
 

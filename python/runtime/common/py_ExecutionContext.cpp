@@ -30,6 +30,8 @@ void bindExecutionContext(py::module &mod) {
       .def_readwrite("batchIteration", &cudaq::ExecutionContext::batchIteration)
       .def_readwrite("numberTrajectories",
                      &cudaq::ExecutionContext::numberTrajectories)
+      .def_readwrite("explicitMeasurements",
+                     &cudaq::ExecutionContext::explicitMeasurements)
       .def("setSpinOperator", [](cudaq::ExecutionContext &ctx,
                                  cudaq::spin_op &spin) { ctx.spin = &spin; })
       .def("getExpectationValue",
@@ -51,6 +53,10 @@ void bindExecutionContext(py::module &mod) {
   mod.def("supportsConditionalFeedback", []() {
     auto &platform = cudaq::get_platform();
     return platform.supports_conditional_feedback();
+  });
+  mod.def("supportsExplicitMeasurements", []() {
+    auto &platform = cudaq::get_platform();
+    return platform.supports_explicit_measurements();
   });
   mod.def("getExecutionContextName", []() {
     auto &self = cudaq::get_platform();

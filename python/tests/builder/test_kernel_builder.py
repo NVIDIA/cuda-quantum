@@ -1216,10 +1216,13 @@ def test_call_kernel_expressions_List():
                       atol=1e-2)
 
     kernelAndArgs = cudaq.make_kernel(List[bool])
+    qubits = kernelAndArgs[0].qalloc(1)
     cudaq.sample(kernelAndArgs[0], [False, True, False])
     kernelAndArgs = cudaq.make_kernel(List[int])
+    qubits = kernelAndArgs[0].qalloc(1)
     cudaq.sample(kernelAndArgs[0], [1, 2, 3, 4])
     kernelAndArgs = cudaq.make_kernel(List[float])
+    qubits = kernelAndArgs[0].qalloc(1)
     cudaq.sample(kernelAndArgs[0], [5.5, 6.5, 7.5])
 
 
@@ -1260,11 +1263,20 @@ def test_call_kernel_expressions_list():
                       atol=1e-2)
 
     kernelAndArgs = cudaq.make_kernel(list[bool])
+    qubits = kernelAndArgs[0].qalloc(1)
     cudaq.sample(kernelAndArgs[0], [False, True, False])
     kernelAndArgs = cudaq.make_kernel(list[int])
+    qubits = kernelAndArgs[0].qalloc(1)
     cudaq.sample(kernelAndArgs[0], [1, 2, 3, 4])
     kernelAndArgs = cudaq.make_kernel(list[float])
+    qubits = kernelAndArgs[0].qalloc(1)
     cudaq.sample(kernelAndArgs[0], [5.5, 6.5, 7.5])
+
+
+def test_sample_with_no_qubits():
+    kernel = cudaq.make_kernel()
+    with pytest.raises(RuntimeError) as e:
+        cudaq.sample(kernel)
 
 
 def test_adequate_number_params():
@@ -1352,6 +1364,7 @@ def test_list_subscript():
     kernelAndArgs = cudaq.make_kernel(bool, list[bool], List[int], list[float])
     print(kernelAndArgs[0])
     assert len(kernelAndArgs) == 5 and len(kernelAndArgs[0].arguments) == 4
+    qubits = kernelAndArgs[0].qalloc(1)
     cudaq.sample(kernelAndArgs[0], False, [False], [3], [3.5])
 
     # Test can call with empty list
