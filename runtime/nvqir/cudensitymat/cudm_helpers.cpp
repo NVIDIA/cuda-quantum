@@ -129,8 +129,9 @@ cudm_helper::_wrap_tensor_callback(const matrix_operator &op,
         throw std::runtime_error(
             fmt::format("[Internal Error] Invalid number of tensor callback "
                         "parameters. Expected {} double values "
-                        "representing {} complex parameters but received
-                        {}.", std::to_string(2 * context->paramNames.size()),
+                        "representing {} complex parameters but received "
+                        "{}.",
+                        std::to_string(2 * context->paramNames.size()),
                         std::to_string(context->paramNames.size()),
                         std::to_string(num_params)));
 
