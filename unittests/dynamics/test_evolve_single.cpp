@@ -34,7 +34,7 @@ TEST(EvolveTester, checkSimple) {
   integrator.dt = 0.001;
   integrator.order = 1;
   auto result = cudaq::evolve_single(ham, dims, schedule, initialState,
-                                     integrator, {}, {&pauliZ}, true);
+                                     integrator, {}, {pauliZ}, true);
   EXPECT_TRUE(result.get_expectation_values().has_value());
   EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
   std::vector<double> theoryResults;
@@ -69,7 +69,7 @@ TEST(EvolveTester, checkSimpleRK4) {
   integrator.dt = 0.001;
   integrator.order = 4;
   auto result = cudaq::evolve_single(ham, dims, schedule, initialState,
-                                     integrator, {}, {&pauliZ}, true);
+                                     integrator, {}, {pauliZ}, true);
   EXPECT_TRUE(result.get_expectation_values().has_value());
   EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
   std::vector<double> theoryResults;
@@ -104,7 +104,7 @@ TEST(EvolveTester, checkDensityMatrixSimple) {
   integrator.dt = 0.001;
   integrator.order = 1;
   auto result = cudaq::evolve_single(ham, dims, schedule, initialState,
-                                     integrator, {}, {&pauliZ}, true);
+                                     integrator, {}, {pauliZ}, true);
   EXPECT_TRUE(result.get_expectation_values().has_value());
   EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
   std::vector<double> theoryResults;
@@ -158,7 +158,7 @@ TEST(EvolveTester, checkCompositeSystem) {
 
   auto result = cudaq::evolve_single(hamiltonian, dims, schedule, initialState,
                                      integrator, {},
-                                     {&cavity_occ_op, &atom_occ_op}, true);
+                                     {cavity_occ_op, atom_occ_op}, true);
   EXPECT_TRUE(result.get_expectation_values().has_value());
   EXPECT_EQ(result.get_expectation_values().value().size(), num_steps);
 
@@ -215,8 +215,8 @@ TEST(EvolveTester, checkCompositeSystemWithCollapse) {
       std::sqrt(decayRate) * a;
   cudaq::operator_sum<cudaq::matrix_operator> collapsedOp(collapsedOp_t);
   cudaq::evolve_result result = cudaq::evolve_single(
-      hamiltonian, dims, schedule, initialState, integrator, {&collapsedOp},
-      {&cavity_occ_op, &atom_occ_op}, true);
+      hamiltonian, dims, schedule, initialState, integrator, {collapsedOp},
+      {cavity_occ_op, atom_occ_op}, true);
   EXPECT_TRUE(result.get_expectation_values().has_value());
   EXPECT_EQ(result.get_expectation_values().value().size(), num_steps);
 
@@ -265,7 +265,7 @@ TEST(EvolveTester, checkScalarTd) {
   integrator.dt = 0.001;
   integrator.order = 4;
   auto result = cudaq::evolve_single(ham, dims, schedule, initialState,
-                                     integrator, {&collapseOp}, {&obs}, true);
+                                     integrator, {collapseOp}, {obs}, true);
   EXPECT_TRUE(result.get_expectation_values().has_value());
   EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
   std::vector<double> theoryResults;

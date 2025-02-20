@@ -12,7 +12,6 @@
 #include "cudaq/evolution.h"
 #include "cudm_error_handling.h"
 #include "cudm_expectation.h"
-#include "cudm_helpers.h"
 #include "cudm_time_stepper.h"
 #include <random>
 #include <stdexcept>
@@ -21,9 +20,9 @@ evolve_result evolve_single(
     const operator_sum<cudaq::matrix_operator> &hamiltonian,
     const std::map<int, int> &dimensions, const Schedule &schedule,
     const state &initialState, BaseIntegrator &in_integrator,
-    const std::vector<operator_sum<cudaq::matrix_operator> *>
+    const std::vector<operator_sum<cudaq::matrix_operator>>
         &collapse_operators,
-    const std::vector<operator_sum<cudaq::matrix_operator> *> &observables,
+    const std::vector<operator_sum<cudaq::matrix_operator>> &observables,
     bool store_intermediate_results, std::optional<int> shots_count) {
   cudensitymatHandle_t handle =
       dynamics::Context::getCurrentContext()->getHandle();
@@ -55,15 +54,13 @@ evolve_result evolve_single(
   system.collapseOps = collapse_operators;
   system.modeExtents = dims;
   integrator.set_system(system, schedule);
-
   integrator.set_state(initial_state, 0.0);
-
-  cudm_helper helper(handle);
   std::vector<cudm_expectation> expectations;
   for (auto &obs : observables)
     expectations.emplace_back(cudm_expectation(
-        handle, helper.convert_to_cudensitymat_operator<cudaq::matrix_operator>(
-                    {}, *obs, dims)));
+        handle, cudaq::dynamics::Context::getCurrentContext()
+                    ->getOpConverter()
+                    .convertToCudensitymatOperator({}, obs, dims)));
 
   std::vector<std::vector<double>> expectationVals;
   std::vector<cudaq::state> intermediateStates;
