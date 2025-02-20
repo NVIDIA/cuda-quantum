@@ -16,7 +16,7 @@
 namespace cudaq {
 struct SystemDynamics {
   operator_sum<cudaq::matrix_operator> *hamiltonian = nullptr;
-  std::vector<operator_sum<cudaq::matrix_operator> *> collapseOps;
+  std::vector<operator_sum<cudaq::matrix_operator>> collapseOps;
   std::vector<int64_t> modeExtents;
   std::unordered_map<std::string, std::complex<double>> parameters;
 };

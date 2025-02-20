@@ -169,21 +169,8 @@ evolve(const cudaq::operator_sum<cudaq::matrix_operator> &hamiltonian,
        bool store_intermediate_results = false,
        std::optional<int> shots_count = std::nullopt) {
 #if defined(CUDAQ_DYNAMICS_TARGET)
-
-  std::vector<cudaq::operator_sum<cudaq::matrix_operator> *> collapseOpsPtr;
-  for (const auto &cOp : collapse_operators) {
-    collapseOpsPtr.emplace_back(
-        const_cast<cudaq::operator_sum<cudaq::matrix_operator> *>(&cOp));
-  }
-  std::vector<cudaq::operator_sum<cudaq::matrix_operator> *> observeOpsPtr;
-  for (const auto &obsOp : observables) {
-    observeOpsPtr.emplace_back(
-        const_cast<cudaq::operator_sum<cudaq::matrix_operator> *>(&obsOp));
-  }
-  // FIXME: change signature of `evolve_single` so that we don't need to
-  // create the list of pointers.
   return evolve_single(hamiltonian, dimensions, schedule, initial_state,
-                       *integrator, collapseOpsPtr, observeOpsPtr,
+                       *integrator, collapse_operators, observables,
                        store_intermediate_results);
 
 #else

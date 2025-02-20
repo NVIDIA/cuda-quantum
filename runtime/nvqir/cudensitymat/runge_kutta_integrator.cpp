@@ -9,8 +9,9 @@
 #include "CuDensityMatState.h"
 #include "cudaq/dynamics_integrators.h"
 #include "cudm_error_handling.h"
-#include "cudm_helpers.h"
 #include "cudm_time_stepper.h"
+#include "CuDensityMatContext.h"
+
 namespace cudaq {
 
 void runge_kutta::set_system(const SystemDynamics &system,
@@ -48,18 +49,16 @@ void runge_kutta::integrate(double target_time) {
   auto &castSimState = *asCudmState(*m_state);
   std::unordered_map<std::string, std::complex<double>> params;
   if (!m_stepper) {
-    static std::unordered_map<void *, std::unique_ptr<cudm_helper>> helpers;
-    if (helpers.find(castSimState.get_handle()) == helpers.end())
-      helpers[castSimState.get_handle()] =
-          std::make_unique<cudm_helper>(castSimState.get_handle());
-    auto &helper = *(helpers.find(castSimState.get_handle())->second);
     for (const auto &param : m_schedule.parameters()) {
       params[param] = m_schedule.value_function()(param, 0.0);
     }
 
-    auto liouvillian = helper.construct_liouvillian(
-        *m_system.hamiltonian, m_system.collapseOps, m_system.modeExtents,
-        params, castSimState.is_density_matrix());
+    auto liouvillian =
+        cudaq::dynamics::Context::getCurrentContext()
+            ->getOpConverter()
+            .constructLiouvillian(*m_system.hamiltonian, m_system.collapseOps,
+                                  m_system.modeExtents, params,
+                                  castSimState.is_density_matrix());
     m_stepper =
         std::make_unique<cudmStepper>(castSimState.get_handle(), liouvillian);
   }
