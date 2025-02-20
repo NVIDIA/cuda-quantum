@@ -26,82 +26,21 @@ namespace cudaq::opt {
 using namespace mlir;
 
 namespace {
-
-class Analysis {
-public:
-  Analysis(MLIRContext *ctx, mlir::Pass::ListOption<std::string> &funcList)
-      : ctx(ctx), funcList(funcList) {
-    parseSubstModules();
-  }
-
-  void parseSubstModules() {
-    for (auto &item : funcList) {
-      auto pos = item.find(':');
-      if (pos == std::string::npos)
-        continue;
-
-      std::string funcName = item.substr(0, pos);
-      std::string text = item.substr(pos + 1);
-
-      // If there are no substitutions, continue to the next subst
-      if (text.empty()) {
-        LLVM_DEBUG(llvm::dbgs() << funcName << " has no substitutions.");
-        continue;
-      }
-
-      // If we're here, we have a FuncOp and we have substitutions that can be
-      // applied.
-      //
-      // 1. Create a Module with the substitutions that we'll be making.
-      LLVM_DEBUG(llvm::dbgs()
-                 << funcName << " : substitution pattern: '" << text << "'\n");
-      auto substModule = [&]() -> OwningOpRef<ModuleOp> {
-        if (text.front() == '*') {
-          // Substitutions are a raw string after the '*' character.
-          return parseSourceString<ModuleOp>(text.substr(1), ctx);
-        }
-        // Substitutions are in a text file (command-line usage).
-        return parseSourceFile<ModuleOp>(text, ctx);
-      }();
-      assert(*substModule && "module must have been created");
-      auto &name = funcNames.emplace_back(funcName);
-      substModules.try_emplace(name, std::move(substModule));
-      // substModules[funcName]->dump();
-    }
-  }
-
-  MLIRContext *ctx;
-  mlir::Pass::ListOption<std::string> &funcList;
-  std::list<std::string> funcNames;
-  DenseMap<StringRef, OwningOpRef<ModuleOp>> substModules;
-};
-
 class ArgumentSynthesisPass
     : public cudaq::opt::impl::ArgumentSynthesisBase<ArgumentSynthesisPass> {
 public:
   using ArgumentSynthesisBase::ArgumentSynthesisBase;
 
-  void mergeSymbols(ModuleOp mod, Analysis &analysis) {
-    for (auto &[funcName, substMod] : analysis.substModules) {
-      // 2. Go through the Module and merge in all its symbols.
-      for (auto &op : *substMod) {
-        if (auto symInterface = dyn_cast<SymbolOpInterface>(op)) {
-          auto name = symInterface.getName();
-          auto obj = mod.lookupSymbol(name);
-          if (!obj)
-            mod.getBody()->push_back(op.clone());
-        }
-      }
-    }
-  }
-
-  void processFunction(func::FuncOp func, Analysis &analysis) {
+  void
+  applySubstitutions(func::FuncOp func,
+                     DenseMap<StringRef, OwningOpRef<ModuleOp>> &substModules) {
     MLIRContext *ctx = func.getContext();
     auto funcName = func.getName();
     LLVM_DEBUG(llvm::dbgs() << "processing : '" << funcName << "'\n");
 
-    auto it = analysis.substModules.find(funcName);
-    if (it == analysis.substModules.end()) {
+    // 1. Find substitution module with argument replacements for the function.
+    auto it = substModules.find(funcName);
+    if (it == substModules.end()) {
       // If the function isn't on the list, do nothing.
       LLVM_DEBUG(llvm::dbgs() << funcName << " has no substitutions.\n");
       return;
@@ -116,7 +55,6 @@ public:
       auto subst = dyn_cast<cudaq::cc::ArgumentSubstitutionOp>(op);
       if (!subst)
         continue;
-
       auto pos = subst.getPosition();
       if (pos >= processedArgs.size()) {
         func.emitError("Argument " + std::to_string(pos) + " is invalid.");
@@ -179,11 +117,57 @@ public:
 
   void runOnOperation() override {
     ModuleOp mod = getOperation();
-    Analysis analysis(mod.getContext(), funcList);
+    MLIRContext *ctx = mod.getContext();
 
-    mergeSymbols(mod, analysis);
+    // 1. Collect all substitution modules.
+    std::list<std::string> funcNames;
+    DenseMap<StringRef, OwningOpRef<ModuleOp>> substModules;
 
-    mod->walk([&](func::FuncOp func) { processFunction(func, analysis); });
+    for (auto &item : funcList) {
+      auto pos = item.find(':');
+      if (pos == std::string::npos)
+        continue;
+
+      std::string funcName = item.substr(0, pos);
+      std::string text = item.substr(pos + 1);
+
+      if (text.empty()) {
+        LLVM_DEBUG(llvm::dbgs() << funcName << " has no substitutions.");
+        continue;
+      }
+
+      // Create a Module with the substitutions that we'll be making.
+      LLVM_DEBUG(llvm::dbgs()
+                 << funcName << " : substitution pattern: '" << text << "'\n");
+      auto substModule = [&]() -> OwningOpRef<ModuleOp> {
+        if (text.front() == '*') {
+          // Substitutions are a raw string after the '*' character.
+          return parseSourceString<ModuleOp>(text.substr(1), ctx);
+        }
+        // Substitutions are in a text file (command-line usage).
+        return parseSourceFile<ModuleOp>(text, ctx);
+      }();
+      assert(*substModule && "module must have been created");
+
+      auto &name = funcNames.emplace_back(funcName);
+      substModules.try_emplace(name, std::move(substModule));
+    }
+
+    // 2. Merge symbols from substitution modules into the source module.
+    for (auto &[funcName, substMod] : substModules) {
+      for (auto &op : *substMod) {
+        if (auto symInterface = dyn_cast<SymbolOpInterface>(op)) {
+          auto name = symInterface.getName();
+          auto obj = mod.lookupSymbol(name);
+          if (!obj)
+            mod.getBody()->push_back(op.clone());
+        }
+      }
+    }
+
+    // 3. Apply all substitutions.
+    mod->walk(
+        [&](func::FuncOp func) { applySubstitutions(func, substModules); });
   }
 };
 } // namespace
