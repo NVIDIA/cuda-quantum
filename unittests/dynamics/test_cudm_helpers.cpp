@@ -15,7 +15,7 @@
 
 // Initialize operator_sum
 cudaq::operator_sum<cudaq::matrix_operator> initialize_operator_sum() {
-  return cudaq::matrix_operator::create(0) + cudaq::matrix_operator::create(1);
+  return cudaq::boson_operator::create(0) + cudaq::boson_operator::create(1);
 }
 
 class CuDensityMatHelpersTestFixture : public ::testing::Test {
@@ -133,7 +133,9 @@ TEST_F(CuDensityMatHelpersTestFixture, ConvertOperatorWithCallback) {
   cudaq::ScalarCallbackFunction scalar_callback_function(callback_function);
   cudaq::scalar_operator scalar_callback(scalar_callback_function);
 
-  auto op_sum = scalar_callback * cudaq::matrix_operator::create(0);
+  cudaq::product_operator<cudaq::matrix_operator> op_sum_1 =
+      scalar_callback * cudaq::boson_operator::create(0);
+  cudaq::operator_sum<cudaq::matrix_operator> op_sum(op_sum_1);
 
   EXPECT_NO_THROW({
     auto result =

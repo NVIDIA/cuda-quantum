@@ -6,14 +6,16 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include <iostream>
+#include "cudaq/operators.h"
 #include "cudaq/utils/tensor.h"
 #include <gtest/gtest.h>
+#include <iostream>
 
 namespace utils {
 
 void print(cudaq::matrix_2 mat, std::string name = "") {
-  if (name != "") std::cout << name << ":" << std::endl;
+  if (name != "")
+    std::cout << name << ":" << std::endl;
   for (std::size_t i = 0; i < mat.get_rows(); i++) {
     for (std::size_t j = 0; j < mat.get_columns(); j++)
       std::cout << mat[{i, j}] << " ";
