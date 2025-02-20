@@ -756,3 +756,27 @@ TEST(OperatorExpressions, checkBosonOpsDegreeVerification) {
   ASSERT_NO_THROW((op1 * op2).to_matrix(dimensions));
   ASSERT_NO_THROW((op1 + op2).to_matrix(dimensions));
 }
+
+TEST(OperatorExpressions, checkCommutationRelations) {
+
+  auto ad_mat = utils::create_matrix(5);
+  auto a_mat = utils::annihilate_matrix(5);
+
+  auto padded_commutator = a_mat * ad_mat - ad_mat * a_mat;
+  cudaq::matrix_2 commutator(4, 4);
+  for (size_t i = 0; i < 4; ++i) {
+    for (size_t j = 0; j < 4; ++j)
+      commutator[{i, j}] = padded_commutator[{i, j}];
+  }
+
+  auto padded_aad = a_mat * ad_mat;
+  cudaq::matrix_2 aad_mat(4, 4);
+  for (size_t i = 0; i < 4; ++i) {
+    for (size_t j = 0; j < 4; ++j)
+      aad_mat[{i, j}] = padded_aad[{i, j}];
+  }
+
+  utils::checkEqual(commutator, utils::id_matrix(4));
+  utils::checkEqual(ad_mat * a_mat, utils::number_matrix(5));
+  utils::checkEqual(aad_mat, utils::number_matrix(4) + utils::id_matrix(4));
+}

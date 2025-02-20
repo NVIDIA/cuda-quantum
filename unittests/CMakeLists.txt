@@ -269,6 +269,7 @@ set(CUDAQ_OPERATOR_TEST_SOURCES
    dynamics/matrix_operator.cpp
    dynamics/spin_operator.cpp
    dynamics/boson_operator.cpp
+   dynamics/fermion_operator.cpp
    dynamics/operator_conversions.cpp
    dynamics/product_operator.cpp
    dynamics/operator_sum.cpp
