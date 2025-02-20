@@ -403,6 +403,10 @@ cudaq::dynamics::OpConverter::convertToCudensitymat(
         throw std::runtime_error("Unhandled type!");
       }
     }
+    // Note: the order of operator application is the opposite of the writing:
+    // i.e., ABC means C to be applied first.
+    std::reverse(elemOps.begin(), elemOps.end());
+    std::reverse(allDegrees.begin(), allDegrees.end());
     result.emplace_back(std::make_pair(
         productOp.get_coefficient(),
         createProductOperatorTerm(elemOps, modeExtents, allDegrees, {})));
