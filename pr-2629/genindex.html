@@ -981,6 +981,8 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext16expectationValueE">cudaq::ExecutionContext::expectationValue (C++ member)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext20explicitMeasurementsE">cudaq::ExecutionContext::explicitMeasurements (C++ member)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext12futureResultE">cudaq::ExecutionContext::futureResult (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext31hasConditionalsOnMeasureResultsE">cudaq::ExecutionContext::hasConditionalsOnMeasureResults (C++ member)</a>
@@ -1243,10 +1245,10 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU15onRandomSeedSetENSt6size_tE">cudaq::QPU::onRandomSeedSet (C++ function)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU3QPUENSt6size_tE">cudaq::QPU::QPU (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU3QPUERR3QPU">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU3QPUEv">[2]</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU21resetExecutionContextEv">cudaq::QPU::resetExecutionContext (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU19setExecutionContextEP16ExecutionContext">cudaq::QPU::setExecutionContext (C++ function)</a>
@@ -1256,6 +1258,8 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU8setShotsEi">cudaq::QPU::setShots (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU27supportsConditionalFeedbackEv">cudaq::QPU::supportsConditionalFeedback (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU28supportsExplicitMeasurementsEv">cudaq::QPU::supportsExplicitMeasurements (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPUD0Ev">cudaq::QPU::~QPU (C++ function)</a>
 </li>
@@ -1367,6 +1371,8 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform29supports_conditional_feedbackEKNSt6size_tE">cudaq::quantum_platform::supports_conditional_feedback (C++ function)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform30supports_explicit_measurementsEKNSt6size_tE">cudaq::quantum_platform::supports_explicit_measurements (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform26supports_task_distributionEv">cudaq::quantum_platform::supports_task_distribution (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq11QuantumTaskE">cudaq::QuantumTask (C++ type)</a>
@@ -1441,7 +1447,7 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_resultE">cudaq::sample_result (C++ class)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result6appendER15ExecutionResult">cudaq::sample_result::append (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result6appendER15ExecutionResultb">cudaq::sample_result::append (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result5beginEv">cudaq::sample_result::begin (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4NK5cudaq13sample_result5beginEv">[1]</a>
 </li>
@@ -1465,6 +1471,8 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result12get_marginalERKNSt6vectorINSt6size_tEEEKNSt11string_viewE">cudaq::sample_result::get_marginal (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result12get_marginalERRKNSt6vectorINSt6size_tEEEKNSt11string_viewE">[1]</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq13sample_result15get_total_shotsEv">cudaq::sample_result::get_total_shots (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result15has_even_parityENSt11string_viewE">cudaq::sample_result::has_even_parity (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq13sample_result15has_expectationEKNSt11string_viewE">cudaq::sample_result::has_expectation (C++ function)</a>
@@ -1473,7 +1481,7 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_resultpLERK13sample_result">cudaq::sample_result::operator+= (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_resultaSER13sample_result">cudaq::sample_result::operator= (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_resultaSER13sample_result">cudaq::sample_result::operator= (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_resultaSERR13sample_result">[1]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq13sample_resulteqERK13sample_result">cudaq::sample_result::operator== (C++ function)</a>
 </li>
@@ -1483,7 +1491,7 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result7reorderERKNSt6vectorINSt6size_tEEEKNSt11string_viewE">cudaq::sample_result::reorder (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result13sample_resultER15ExecutionResult">cudaq::sample_result::sample_result (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result13sample_resultERK13sample_result">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result13sample_resultERNSt6vectorI15ExecutionResultEE">[2]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result13sample_resultERR15ExecutionResult">[3]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result13sample_resultEdRNSt6vectorI15ExecutionResultEE">[4]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result13sample_resultEv">[5]</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result13sample_resultER15ExecutionResult">cudaq::sample_result::sample_result (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result13sample_resultERK13sample_result">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result13sample_resultERNSt6vectorI15ExecutionResultEE">[2]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result13sample_resultERR13sample_result">[3]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result13sample_resultERR15ExecutionResult">[4]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result13sample_resultEdRNSt6vectorI15ExecutionResultEE">[5]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result13sample_resultEv">[6]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq13sample_result9serializeEv">cudaq::sample_result::serialize (C++ function)</a>
 </li>
@@ -1748,6 +1756,8 @@
       <li><a href="api/languages/python_api.html#cudaq.get_target">get_target() (in module cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.get_targets">get_targets() (in module cudaq)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.SampleResult.get_total_shots">get_total_shots() (cudaq.SampleResult method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.State.getTensor">getTensor() (cudaq.State method)</a>
 </li>

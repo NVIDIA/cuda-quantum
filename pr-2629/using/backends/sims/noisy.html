@@ -791,10 +791,11 @@ library.</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>CUDA-Q currently executes kernels using a “shot-by-shot” execution approach.
+<p>By default CUDA-Q executes kernels using a “shot-by-shot” execution approach.
 This allows for conditional gate execution (i.e. full control flow), but it
 can be slower than executing Stim a single time and generating all the shots
-from that single execution.</p>
+from that single execution.
+Set the <code class="code docutils literal notranslate"><span class="pre">explicit_measurements</span></code> flag with <code class="code docutils literal notranslate"><span class="pre">sample</span></code> API for efficient execution.</p>
 </div>
 </section>
 </section>
