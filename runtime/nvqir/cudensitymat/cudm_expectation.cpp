@@ -7,10 +7,10 @@
  ******************************************************************************/
 
 #include "cudm_expectation.h"
+#include "CuDensityMatContext.h"
 #include "common/Logger.h"
 #include "cudm_error_handling.h"
 #include "cudm_helpers.h"
-#include <iostream>
 
 namespace cudaq {
 cudm_expectation::cudm_expectation(cudensitymatHandle_t handle,
@@ -29,17 +29,12 @@ cudm_expectation::~cudm_expectation() {
 }
 
 void cudm_expectation::prepare(cudensitymatState_t state) {
-  std::size_t freeMem = 0, totalMem = 0;
-  HANDLE_CUDA_ERROR(cudaMemGetInfo(&freeMem, &totalMem));
-  freeMem = static_cast<std::size_t>(static_cast<double>(freeMem) * 0.80);
-
   HANDLE_CUDM_ERROR(cudensitymatExpectationPrepare(
-      m_handle, m_expectation, state, CUDENSITYMAT_COMPUTE_64F, freeMem,
-      m_workspace, 0x0));
+      m_handle, m_expectation, state, CUDENSITYMAT_COMPUTE_64F,
+      dynamics::Context::getRecommendedWorkSpaceLimit(), m_workspace, 0x0));
 }
 std::complex<double> cudm_expectation::compute(cudensitymatState_t state,
                                                double time) {
-  // TODO: create a global scratch buffer
   std::size_t requiredBufferSize = 0;
   HANDLE_CUDM_ERROR(cudensitymatWorkspaceGetMemorySize(
       m_handle, m_workspace, CUDENSITYMAT_MEMSPACE_DEVICE,
@@ -49,11 +44,9 @@ std::complex<double> cudm_expectation::compute(cudensitymatState_t state,
   if (requiredBufferSize > 0) {
     cudaq::info("Required buffer size for expectation compute: {}",
                 requiredBufferSize);
-    // Allocate GPU storage for workspace buffer
-    const std::size_t bufferVolume =
-        requiredBufferSize / sizeof(std::complex<double>);
-    workspaceBuffer = cudm_helper::create_array_gpu(
-        std::vector<std::complex<double>>(bufferVolume, {0.0, 0.0}));
+
+    workspaceBuffer = dynamics::Context::getCurrentContext()->getScratchSpace(
+        requiredBufferSize);
 
     // Attach workspace buffer
     HANDLE_CUDM_ERROR(cudensitymatWorkspaceSetMemory(
@@ -71,9 +64,6 @@ std::complex<double> cudm_expectation::compute(cudensitymatState_t state,
                                sizeof(std::complex<double>),
                                cudaMemcpyDefault));
   cudm_helper::destroy_array_gpu(expectationValue_d);
-  if (workspaceBuffer) {
-    cudm_helper::destroy_array_gpu(workspaceBuffer);
-  }
   return result;
 }
 } // namespace cudaq
