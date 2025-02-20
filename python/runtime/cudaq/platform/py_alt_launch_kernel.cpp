@@ -552,8 +552,7 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   ss << argCon.getSubstitutionModule();
   SmallVector<StringRef> substs = {substBuff};
   PassManager pm(context);
-  pm.addNestedPass<func::FuncOp>(
-      cudaq::opt::createArgumentSynthesisPass(kernels, substs));
+  pm.addPass(opt::createArgumentSynthesisPass(kernels, substs));
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(opt::createDeleteStates());
 

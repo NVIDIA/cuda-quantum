@@ -492,8 +492,7 @@ public:
                                                      kernels.end()};
         mlir::SmallVector<mlir::StringRef> substitutions{substs.begin(),
                                                          substs.end()};
-        pm.addNestedPass<mlir::func::FuncOp>(
-            cudaq::opt::createArgumentSynthesisPass(funcNames, substitutions));
+        pm.addPass(opt::createArgumentSynthesisPass(funcNames, substitutions));
         pm.addPass(opt::createDeleteStates());
         pm.addNestedPass<mlir::func::FuncOp>(
             opt::createReplaceStateWithKernel());
