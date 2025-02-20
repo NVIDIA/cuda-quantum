@@ -14,6 +14,7 @@ from .builtin_integrators import cuDensityMatTimeStepper
 has_cupy = True
 has_torch = True
 has_torchdiffeq = True
+has_torch_without_cuda = False
 
 try:
     import cupy as cp
@@ -24,6 +25,8 @@ try:
     import torch
     import torch.utils
     import torch.utils.dlpack
+    if torch.version.cuda is None:
+        has_torch_without_cuda = True
 except ImportError:
     has_torch = False
 
@@ -45,6 +48,10 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[CudmStateType]):
             # If users don't have torch (hence, no `torchdiffeq` as well), raise an error when they want to use it.
             raise ImportError(
                 'torch and torchdiffeq are required to use Torch-based integrators.'
+            )
+        if has_torch_without_cuda:
+            raise ImportError(
+                'Please install a compatible version of PyTorch with CUDA support.'
             )
         if not has_torchdiffeq:
             raise ImportError(
