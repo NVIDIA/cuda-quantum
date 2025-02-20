@@ -12,7 +12,8 @@
 
 TEST(OperatorExpressions, checkMatrixOpsUnary) {
   auto create = cudaq::matrix_operator::position(0);
-  utils::checkEqual((-create).to_matrix({{0,2}}), -1.0 * utils::position_matrix(2));
+  utils::checkEqual((-create).to_matrix({{0, 2}}),
+                    -1.0 * utils::position_matrix(2));
 }
 
 TEST(OperatorExpressions, checkPreBuiltMatrixOps) {
@@ -101,20 +102,24 @@ TEST(OperatorExpressions, checkCustomMatrixOps) {
   std::unordered_map<int, int> dimensions = {
       {0, level_count + 1}, {1, level_count + 2}, {3, level_count}};
 
-    {
-      auto func0 = [](const std::vector<int> &dimensions,
-                      const std::unordered_map<std::string, std::complex<double>> &_none) {
-        return cudaq::kronecker(utils::momentum_matrix(dimensions[0]),
-                                      utils::position_matrix(dimensions[1]));;
-      };
-      auto func1 = [](const std::vector<int> &dimensions,
-                      const std::unordered_map<std::string, std::complex<double>> &_none) {
-        return cudaq::kronecker(utils::position_matrix(dimensions[0]),
-                                      utils::number_matrix(dimensions[1]));;
-      };
-      cudaq::matrix_operator::define("custom_op0", {-1, -1}, func0);
-      cudaq::matrix_operator::define("custom_op1", {-1, -1}, func1);
-    }
+  {
+    auto func0 =
+        [](const std::vector<int> &dimensions,
+           const std::unordered_map<std::string, std::complex<double>> &_none) {
+          return cudaq::kronecker(utils::momentum_matrix(dimensions[0]),
+                                  utils::position_matrix(dimensions[1]));
+          ;
+        };
+    auto func1 =
+        [](const std::vector<int> &dimensions,
+           const std::unordered_map<std::string, std::complex<double>> &_none) {
+          return cudaq::kronecker(utils::position_matrix(dimensions[0]),
+                                  utils::number_matrix(dimensions[1]));
+          ;
+        };
+    cudaq::matrix_operator::define("custom_op0", {-1, -1}, func0);
+    cudaq::matrix_operator::define("custom_op1", {-1, -1}, func1);
+  }
 
   // op 0:
   // momentum level+1 on 0
@@ -125,31 +130,28 @@ TEST(OperatorExpressions, checkCustomMatrixOps) {
   auto op0 = cudaq::matrix_operator::instantiate("custom_op0", {0, 1});
   auto op1 = cudaq::matrix_operator::instantiate("custom_op1", {1, 3});
 
-    auto matrix0 = cudaq::kronecker(utils::momentum_matrix(level_count + 1),
-                                    utils::position_matrix(level_count + 2));
-    auto matrix1 = cudaq::kronecker(utils::position_matrix(level_count + 2),
-                                    utils::number_matrix(level_count));
+  auto matrix0 = cudaq::kronecker(utils::momentum_matrix(level_count + 1),
+                                  utils::position_matrix(level_count + 2));
+  auto matrix1 = cudaq::kronecker(utils::position_matrix(level_count + 2),
+                                  utils::number_matrix(level_count));
 
   std::vector<cudaq::matrix_2> product_matrices = {
       utils::number_matrix(level_count),
-      utils::position_matrix(level_count + 2) * utils::position_matrix(level_count + 2),
-      utils::momentum_matrix(level_count + 1)
-    };
-    std::vector<cudaq::matrix_2> product_reverse_matrices = {
+      utils::position_matrix(level_count + 2) *
+          utils::position_matrix(level_count + 2),
+      utils::momentum_matrix(level_count + 1)};
+  std::vector<cudaq::matrix_2> product_reverse_matrices = {
       utils::number_matrix(level_count),
-      utils::position_matrix(level_count + 2) * utils::position_matrix(level_count + 2),
-      utils::momentum_matrix(level_count + 1)
-    };
-    std::vector<cudaq::matrix_2> sum_matrices_term0 = {
-      utils::id_matrix(level_count),
-      utils::position_matrix(level_count + 2),
-      utils::momentum_matrix(level_count + 1)
-    };
-    std::vector<cudaq::matrix_2> sum_matrices_term1 = {
+      utils::position_matrix(level_count + 2) *
+          utils::position_matrix(level_count + 2),
+      utils::momentum_matrix(level_count + 1)};
+  std::vector<cudaq::matrix_2> sum_matrices_term0 = {
+      utils::id_matrix(level_count), utils::position_matrix(level_count + 2),
+      utils::momentum_matrix(level_count + 1)};
+  std::vector<cudaq::matrix_2> sum_matrices_term1 = {
       utils::number_matrix(level_count),
       utils::position_matrix(level_count + 2),
-      utils::id_matrix(level_count + 1)
-    };
+      utils::id_matrix(level_count + 1)};
 
   auto expected_product =
       cudaq::kronecker(product_matrices.begin(), product_matrices.end());
@@ -269,8 +271,7 @@ TEST(OperatorExpressions, checkMatrixOpsWithScalars) {
     auto scaled_identity = const_scale_factor * utils::id_matrix(level_count);
     auto got_matrix = sum.to_matrix({{degree_index, level_count}});
     auto got_reverse_matrix = reverse.to_matrix({{degree_index, level_count}});
-    auto want_matrix =
-        utils::momentum_matrix(level_count) + scaled_identity;
+    auto want_matrix = utils::momentum_matrix(level_count) + scaled_identity;
     auto want_reverse_matrix =
         scaled_identity + utils::momentum_matrix(level_count);
     utils::checkEqual(want_matrix, got_matrix);
@@ -383,8 +384,10 @@ TEST(OperatorExpressions, checkMatrixOpsWithScalars) {
     ASSERT_TRUE(reverse.degrees() == want_degrees);
 
     auto scaled_identity = const_scale_factor * utils::id_matrix(level_count);
-    auto got_matrix = product.to_matrix({{degree_index, level_count}}, {{"value", const_scale_factor}});
-    auto got_reverse_matrix = reverse.to_matrix({{degree_index, level_count}}, {{"value", const_scale_factor}});
+    auto got_matrix = product.to_matrix({{degree_index, level_count}},
+                                        {{"value", const_scale_factor}});
+    auto got_reverse_matrix = reverse.to_matrix(
+        {{degree_index, level_count}}, {{"value", const_scale_factor}});
     auto want_matrix = utils::position_matrix(level_count) * scaled_identity;
     auto want_reverse_matrix =
         scaled_identity * utils::position_matrix(level_count);
@@ -422,9 +425,8 @@ TEST(OperatorExpressions, checkMatrixOpsSimpleArithmetics) {
     auto sum = self + other;
     ASSERT_TRUE(sum.num_terms() == 2);
 
-    auto annihilate_full =
-        cudaq::kronecker(utils::id_matrix(level_count),
-                         utils::momentum_matrix(level_count));
+    auto annihilate_full = cudaq::kronecker(
+        utils::id_matrix(level_count), utils::momentum_matrix(level_count));
     auto create_full = cudaq::kronecker(utils::position_matrix(level_count),
                                         utils::id_matrix(level_count));
     auto got_matrix = sum.to_matrix({{0, level_count}, {1, level_count}});
@@ -454,9 +456,8 @@ TEST(OperatorExpressions, checkMatrixOpsSimpleArithmetics) {
     auto sum = self - other;
     ASSERT_TRUE(sum.num_terms() == 2);
 
-    auto annihilate_full =
-        cudaq::kronecker(utils::id_matrix(level_count),
-                         utils::momentum_matrix(level_count));
+    auto annihilate_full = cudaq::kronecker(
+        utils::id_matrix(level_count), utils::momentum_matrix(level_count));
     auto create_full = cudaq::kronecker(utils::position_matrix(level_count),
                                         utils::id_matrix(level_count));
     auto got_matrix = sum.to_matrix(dimensions);
@@ -492,9 +493,8 @@ TEST(OperatorExpressions, checkMatrixOpsSimpleArithmetics) {
     std::vector<int> want_degrees = {1, 0};
     ASSERT_TRUE(product.degrees() == want_degrees);
 
-    auto annihilate_full =
-        cudaq::kronecker(utils::id_matrix(level_count),
-                         utils::momentum_matrix(level_count));
+    auto annihilate_full = cudaq::kronecker(
+        utils::id_matrix(level_count), utils::momentum_matrix(level_count));
     auto create_full = cudaq::kronecker(utils::position_matrix(level_count),
                                         utils::id_matrix(level_count));
     auto got_matrix = product.to_matrix(dimensions);
@@ -676,16 +676,20 @@ TEST(OperatorExpressions, checkMatrixOpsDegreeVerification) {
   std::unordered_map<int, int> dimensions = {{0, 2}, {1, 2}, {2, 3}, {3, 3}};
 
   {
-    auto func0 = [](const std::vector<int> &dimensions,
-                    const std::unordered_map<std::string, std::complex<double>> &_none) {
-      return cudaq::kronecker(utils::momentum_matrix(dimensions[0]),
-                                    utils::position_matrix(dimensions[1]));;
-    };
-    auto func1 = [](const std::vector<int> &dimensions,
-                    const std::unordered_map<std::string, std::complex<double>> &_none) {
-      return cudaq::kronecker(utils::position_matrix(dimensions[0]),
-                                    utils::number_matrix(dimensions[1]));;
-    };
+    auto func0 =
+        [](const std::vector<int> &dimensions,
+           const std::unordered_map<std::string, std::complex<double>> &_none) {
+          return cudaq::kronecker(utils::momentum_matrix(dimensions[0]),
+                                  utils::position_matrix(dimensions[1]));
+          ;
+        };
+    auto func1 =
+        [](const std::vector<int> &dimensions,
+           const std::unordered_map<std::string, std::complex<double>> &_none) {
+          return cudaq::kronecker(utils::position_matrix(dimensions[0]),
+                                  utils::number_matrix(dimensions[1]));
+          ;
+        };
     cudaq::matrix_operator::define("custom_op0", {-1, -1}, func0);
     cudaq::matrix_operator::define("custom_op1", {-1, -1}, func1);
   }

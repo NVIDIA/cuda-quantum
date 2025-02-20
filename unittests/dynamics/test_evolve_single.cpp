@@ -123,11 +123,11 @@ TEST(EvolveTester, checkDensityMatrixSimple) {
 TEST(EvolveTester, checkCompositeSystem) {
   constexpr int cavity_levels = 10;
   const std::map<int, int> dims = {{0, 2}, {1, cavity_levels}};
-  auto a = cudaq::matrix_operator::annihilate(1);
-  auto a_dag = cudaq::matrix_operator::create(1);
+  auto a = cudaq::boson_operator::annihilate(1);
+  auto a_dag = cudaq::boson_operator::create(1);
 
-  auto sm = cudaq::matrix_operator::annihilate(0);
-  auto sm_dag = cudaq::matrix_operator::create(0);
+  auto sm = cudaq::boson_operator::annihilate(0);
+  auto sm_dag = cudaq::boson_operator::create(0);
 
   cudaq::product_operator<cudaq::matrix_operator> atom_occ_op_t =
       cudaq::matrix_operator::number(0);
@@ -156,9 +156,9 @@ TEST(EvolveTester, checkCompositeSystem) {
   integrator.dt = 0.001;
   integrator.order = 4;
 
-  auto result = cudaq::evolve_single(hamiltonian, dims, schedule, initialState,
-                                     integrator, {},
-                                     {cavity_occ_op, atom_occ_op}, true);
+  auto result =
+      cudaq::evolve_single(hamiltonian, dims, schedule, initialState,
+                           integrator, {}, {cavity_occ_op, atom_occ_op}, true);
   EXPECT_TRUE(result.get_expectation_values().has_value());
   EXPECT_EQ(result.get_expectation_values().value().size(), num_steps);
 
@@ -175,11 +175,11 @@ TEST(EvolveTester, checkCompositeSystem) {
 TEST(EvolveTester, checkCompositeSystemWithCollapse) {
   constexpr int cavity_levels = 10;
   const std::map<int, int> dims = {{0, 2}, {1, cavity_levels}};
-  auto a = cudaq::matrix_operator::annihilate(1);
-  auto a_dag = cudaq::matrix_operator::create(1);
+  auto a = cudaq::boson_operator::annihilate(1);
+  auto a_dag = cudaq::boson_operator::create(1);
 
-  auto sm = cudaq::matrix_operator::annihilate(0);
-  auto sm_dag = cudaq::matrix_operator::create(0);
+  auto sm = cudaq::boson_operator::annihilate(0);
+  auto sm_dag = cudaq::boson_operator::create(0);
 
   cudaq::product_operator<cudaq::matrix_operator> atom_occ_op_t =
       cudaq::matrix_operator::number(0);

@@ -11,8 +11,8 @@
 #include "cudaq/operators.h"
 #include "cudaq/utils/tensor.h"
 #include <cudensitymat.h>
-#include <unordered_set>
 #include <deque>
+#include <unordered_set>
 
 namespace cudaq {
 namespace dynamics {
@@ -51,7 +51,6 @@ private:
       const std::vector<std::vector<int>> &degrees,
       const std::vector<std::vector<int>> &dualModalities);
 
-  
   std::vector<std::pair<cudaq::scalar_operator, cudensitymatOperatorTerm_t>>
   computeLindbladTerms(
       const operator_sum<cudaq::matrix_operator> &collapseOp,

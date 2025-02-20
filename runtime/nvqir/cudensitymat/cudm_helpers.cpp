@@ -448,8 +448,7 @@ computeDagger(const operator_sum<matrix_operator> &sumOp) {
   product_operator<matrix_operator> firstDaggerTerm =
       computeDagger(productTerms[0]);
   operator_sum<matrix_operator> daggerOpSum(firstDaggerTerm);
-  
-  
+
   for (std::size_t i = 1; i < productTerms.size(); ++i) {
     daggerOpSum += computeDagger(productTerms[i]);
   }
@@ -520,7 +519,7 @@ cudm_helper::compute_lindblad_terms(
         lindbladTerms.emplace_back(std::make_pair(coeff, D1_term));
       }
 
-      product_operator<matrix_operator> L_daggerTimesL = -0.5  *  ldag * l_op;
+      product_operator<matrix_operator> L_daggerTimesL = -0.5 * ldag * l_op;
       {
         std::vector<cudensitymatElementaryOperator_t> elem_ops;
         std::vector<std::vector<int>> all_degrees;
@@ -582,12 +581,11 @@ cudm_helper::compute_lindblad_terms(
   return lindbladTerms;
 }
 
-std::pair<cudensitymatOperatorTerm_t, cudensitymatOperatorTerm_t> cudm_helper::
-    compute_lindblad_operator_terms(
-        operator_sum<cudaq::matrix_operator> &collapseOp,
-        const std::vector<int64_t> &mode_extents,
-        const std::unordered_map<std::string, std::complex<double>>
-            &parameters) {
+std::pair<cudensitymatOperatorTerm_t, cudensitymatOperatorTerm_t>
+cudm_helper::compute_lindblad_operator_terms(
+    operator_sum<cudaq::matrix_operator> &collapseOp,
+    const std::vector<int64_t> &mode_extents,
+    const std::unordered_map<std::string, std::complex<double>> &parameters) {
   std::unordered_map<int, int> dimensions;
   for (int i = 0; i < mode_extents.size(); ++i)
     dimensions[i] = mode_extents[i];

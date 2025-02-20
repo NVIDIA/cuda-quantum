@@ -6,11 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "CuDensityMatContext.h"
 #include "CuDensityMatState.h"
 #include "cudaq/dynamics_integrators.h"
 #include "cudm_error_handling.h"
 #include "cudm_time_stepper.h"
-#include "CuDensityMatContext.h"
 
 namespace cudaq {
 
