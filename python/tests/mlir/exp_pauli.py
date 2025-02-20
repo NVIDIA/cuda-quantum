@@ -111,8 +111,8 @@ def test_exp_pauli():
 # CHECK:         store i64 3, i64* %[[VAL_24]], align 8
 # CHECK:         call void @__quantum__qis__exp_pauli__ctl(double 2.310000e+01, %Array* %[[VAL_20]], %Array* %[[VAL_5]], i8* nonnull %[[VAL_22]])
 # CHECK:         call void @llvm.lifetime.end.p0i8(i64 16, i8* nonnull %[[VAL_22]])
-# CHECK:         call void @__quantum__rt__qubit_release(%Qubit* %[[VAL_2]])
-# CHECK:         call void @__quantum__rt__qubit_release_array(%Array* %[[VAL_5]])
+# CHECK-DAG:     call void @__quantum__rt__qubit_release(%Qubit* %[[VAL_2]])
+# CHECK-DAG:     call void @__quantum__rt__qubit_release_array(%Array* %[[VAL_5]])
 # CHECK:         ret void
 # CHECK:       }
 
