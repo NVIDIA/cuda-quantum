@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "CuDensityMatContext.h"
 #include "CuDensityMatState.h"
 #include "cudaq/dynamics_integrators.h"
 #include "cudaq/evolution.h"
@@ -13,8 +14,6 @@
 #include "cudm_expectation.h"
 #include "cudm_helpers.h"
 #include "cudm_time_stepper.h"
-#include <Eigen/Dense>
-#include <iostream>
 #include <random>
 #include <stdexcept>
 namespace cudaq {
@@ -26,8 +25,8 @@ evolve_result evolve_single(
         &collapse_operators,
     const std::vector<operator_sum<cudaq::matrix_operator> *> &observables,
     bool store_intermediate_results, std::optional<int> shots_count) {
-  cudensitymatHandle_t handle;
-  HANDLE_CUDM_ERROR(cudensitymatCreate(&handle));
+  cudensitymatHandle_t handle =
+      dynamics::Context::getCurrentContext()->getHandle();
   std::vector<int64_t> dims;
   for (const auto &[id, dim] : dimensions)
     dims.emplace_back(dim);

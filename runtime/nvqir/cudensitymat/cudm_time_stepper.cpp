@@ -7,9 +7,9 @@
  ******************************************************************************/
 
 #include "cudm_time_stepper.h"
+#include "CuDensityMatContext.h"
 #include "cudm_error_handling.h"
 #include "cudm_helpers.h"
-
 namespace cudaq {
 cudmStepper::cudmStepper(cudensitymatHandle_t handle,
                          cudensitymatOperator_t liouvillian)
@@ -32,12 +32,6 @@ state cudmStepper::compute(
   cudensitymatWorkspaceDescriptor_t workspace;
   HANDLE_CUDM_ERROR(cudensitymatCreateWorkspace(m_handle, &workspace));
 
-  // Query free gpu memory and allocate workspace buffer
-  std::size_t freeMem = 0, totalMem = 0;
-  HANDLE_CUDA_ERROR(cudaMemGetInfo(&freeMem, &totalMem));
-  // Take 80% of free memory
-  freeMem = static_cast<std::size_t>(static_cast<double>(freeMem) * 0.80);
-
   // Create a new state for the next step
   auto next_state = CuDensityMatState::zero_like(state);
 
@@ -54,7 +48,8 @@ state cudmStepper::compute(
   // Prepare the operator for action
   HANDLE_CUDM_ERROR(cudensitymatOperatorPrepareAction(
       m_handle, m_liouvillian, state.get_impl(), next_state.get_impl(),
-      CUDENSITYMAT_COMPUTE_64F, freeMem, workspace, 0x0));
+      CUDENSITYMAT_COMPUTE_64F,
+      dynamics::Context::getRecommendedWorkSpaceLimit(), workspace, 0x0));
 
   // Query required workspace buffer size
   std::size_t requiredBufferSize = 0;
@@ -64,11 +59,8 @@ state cudmStepper::compute(
 
   void *workspaceBuffer = nullptr;
   if (requiredBufferSize > 0) {
-    // Allocate GPU storage for workspace buffer
-    const std::size_t bufferVolume =
-        requiredBufferSize / sizeof(std::complex<double>);
-    workspaceBuffer = cudm_helper::create_array_gpu(
-        std::vector<std::complex<double>>(bufferVolume, {0.0, 0.0}));
+    workspaceBuffer = dynamics::Context::getCurrentContext()->getScratchSpace(
+        requiredBufferSize);
 
     // Attach workspace buffer
     HANDLE_CUDM_ERROR(cudensitymatWorkspaceSetMemory(
@@ -91,7 +83,6 @@ state cudmStepper::compute(
   HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
 
   // Cleanup
-  cudm_helper::destroy_array_gpu(workspaceBuffer);
   HANDLE_CUDM_ERROR(cudensitymatDestroyWorkspace(workspace));
 
   return cudaq::state(

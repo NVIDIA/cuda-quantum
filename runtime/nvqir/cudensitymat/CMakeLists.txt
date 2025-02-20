@@ -33,6 +33,7 @@ add_library(${LIBRARY_NAME} SHARED
   cudm_expectation.cpp
   cudm_evolution.cpp
   CuDensityMatState.cpp
+  CuDensityMatContext.cpp
 )
 
 message("CUDAToolkit_INCLUDE_DIRS = ${CUDAToolkit_INCLUDE_DIRS}")
