@@ -154,14 +154,6 @@ func.func @testy5(%arg0: !cc.ptr<!cc.state>) {
   return
 }
 
-func.func @init(%arg0: i64, %arg1: !quake.veq<?>) -> !quake.veq<?> {
-  return %arg1 : !quake.veq<?>
-}
-
-func.func @num_qubits(%arg0: i64) -> i64 {
-  return %arg0 : i64
-}
-
 // CHECK-LABEL:   func.func @testy5() {
 // CHECK:           %[[VAL_2:.*]] = quake.get_state @num_qubits @init : !cc.ptr<!cc.state>
 // CHECK:           %[[VAL_3:.*]] = quake.get_number_of_qubits %[[VAL_2]] : (!cc.ptr<!cc.state>) -> i64

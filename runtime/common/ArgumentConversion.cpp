@@ -329,7 +329,7 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
       cudaq::state_helper::getSimulationState(const_cast<cudaq::state *>(v));
 
   auto kernelName = converter.getKernelName();
-  auto sourceMod = converter.getSourceModule();
+  // auto sourceMod = converter.getSourceModule();
   auto substMod = converter.getSubstitutionModule();
 
   // If the state has amplitude data, we materialize the data as a state
@@ -491,29 +491,35 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
     auto calleeFunc = fromModule->lookupSymbol<func::FuncOp>(calleeKernelName);
     assert(calleeFunc && "callee func is missing");
 
-    static unsigned counter = 0;
-    auto initName = calleeName + ".init_" + std::to_string(counter);
-    auto numQubitsName =
-        calleeName + ".num_qubits_" + std::to_string(counter++);
+    // Use the state pointer as a hash to create the new kernel names.
+    // We can reuse the functions previously created from the same state.
+    auto hash = std::to_string(reinterpret_cast<std::size_t>(v));
+    auto initName = calleeName + ".init_" + hash;
+    auto numQubitsName = calleeName + ".num_qubits_" + hash;
+
+    // Function names in the IR
     auto initKernelName = cudaq::runtime::cudaqGenPrefixName + initName;
     auto numQubitsKernelName =
         cudaq::runtime::cudaqGenPrefixName + numQubitsName;
 
-    // Create `callee.init_N` and `callee.num_qubits_N` used for
-    // `quake.get_state` replacement later in ReplaceStateWithKernel pass
-    createInitFunc(builder, sourceMod, calleeFunc, initKernelName);
-    createNumQubitsFunc(builder, sourceMod, calleeFunc, numQubitsKernelName);
+    if (!cudaq::opt::ArgumentConverter::isRegisteredKernelName(initName) ||
+        !cudaq::opt::ArgumentConverter::isRegisteredKernelName(numQubitsName)) {
+      // Create `callee.init_N` and `callee.num_qubits_N` used for
+      // `quake.get_state` replacement later in ReplaceStateWithKernel pass
+      createInitFunc(builder, substMod, calleeFunc, initKernelName);
+      createNumQubitsFunc(builder, substMod, calleeFunc, numQubitsKernelName);
 
-    // Create and register names for new `init` and `num_qubits` kernels so
-    // ArgumentConverters can keep a string reference to a valid memory.
-    auto &registeredInitName =
-        cudaq::opt::ArgumentConverter::registerKernelName(initName);
-    auto &registeredNumQubitsName =
-        cudaq::opt::ArgumentConverter::registerKernelName(numQubitsName);
+      // Create and register names for new `init` and `num_qubits` kernels so
+      // ArgumentConverters can keep a string reference to a valid memory.
+      auto &registeredInitName =
+          cudaq::opt::ArgumentConverter::registerKernelName(initName);
+      auto &registeredNumQubitsName =
+          cudaq::opt::ArgumentConverter::registerKernelName(numQubitsName);
 
-    // Convert arguments  for `callee.init_N` and `callee.num_qubits_N`.
-    converter.genCallee(registeredInitName, calleeArgs);
-    converter.genCallee(registeredNumQubitsName, calleeArgs);
+      // Convert arguments  for `callee.init_N` and `callee.num_qubits_N`.
+      converter.genCallee(registeredInitName, calleeArgs);
+      converter.genCallee(registeredNumQubitsName, calleeArgs);
+    }
 
     // Create a substitution for the state pointer.
     auto statePtrTy =

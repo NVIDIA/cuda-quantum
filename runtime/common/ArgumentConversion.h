@@ -53,12 +53,17 @@ public:
   mlir::StringRef getKernelName() { return kernelName; }
 
   void genCallee(mlir::StringRef calleeName, std::vector<void *> &args) {
-    auto &converter = calleeConverters.emplace_back(calleeName, sourceModule);
+    auto &converter = calleeConverters.emplace_back(calleeName, substModule);
     converter.gen(args);
   }
 
   std::vector<ArgumentConverter> &getCalleeConverters() {
     return calleeConverters;
+  }
+
+  static bool isRegisteredKernelName(const std::string &kernelName) {
+    return std::find(kernelNameRegistry.begin(), kernelNameRegistry.end(),
+                     kernelName) != kernelNameRegistry.end();
   }
 
   static const std::string &registerKernelName(const std::string &kernelName) {

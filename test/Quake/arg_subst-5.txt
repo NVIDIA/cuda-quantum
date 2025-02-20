@@ -6,6 +6,14 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-cc.arg_subst[0] {
-  %0 = quake.get_state @num_qubits @init : !cc.ptr<!cc.state>
+module {
+  cc.arg_subst[0] {
+    %0 = quake.get_state @num_qubits @init : !cc.ptr<!cc.state>
+  }
+  func.func @init(%arg0: i64, %arg1: !quake.veq<?>) -> !quake.veq<?> {
+    return %arg1 : !quake.veq<?>
+  }
+  func.func @num_qubits(%arg0: i64) -> i64 {
+    return %arg0 : i64
+  }
 }
