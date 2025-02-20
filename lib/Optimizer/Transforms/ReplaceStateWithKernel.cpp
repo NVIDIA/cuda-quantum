@@ -17,7 +17,6 @@
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
-#include <span>
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_REPLACESTATEWITHKERNEL
@@ -33,11 +32,10 @@ namespace {
 /// Replace `quake.get_number_of_qubits` by a call to a function
 /// that computes the number of qubits for a state.
 ///
-/// ```
-///  %0 = quake.get_state @callee.num_qubits_0 @callee.init_0 : !cc.ptr<!cc.state>
+/// ```mlir
+///  %0 = quake.materialize_state @callee.num_qubits_0 @callee.init_0 : !cc.ptr<!cc.state>
 ///  %1 = quake.get_number_of_qubits %0 : (!cc.ptr<!cc.state>) -> i64
 /// ───────────────────────────────────────────
-/// ...
 ///  %1 = call @callee.num_qubits_0() : () -> i64
 /// ```
 // clang-format on
@@ -50,16 +48,16 @@ public:
                                 PatternRewriter &rewriter) const override {
 
     auto stateOp = numQubits.getOperand();
-    if (auto getState = stateOp.getDefiningOp<quake::GetStateOp>()) {
-      auto numQubitsFunc = getState.getNumQubitsFunc();
+    auto materializeState = stateOp.getDefiningOp<quake::MaterializeStateOp>();
+    if (!materializeState)
+      return numQubits->emitError(
+          "ReplaceStateWithKernel: failed to replace `quake.get_num_qubits`");
 
-      rewriter.setInsertionPoint(numQubits);
-      rewriter.replaceOpWithNewOp<func::CallOp>(
-          numQubits, numQubits.getType(), numQubitsFunc, mlir::ValueRange{});
-      return success();
-    }
-    return numQubits->emitError(
-        "ReplaceStateWithKernel: failed to replace `quake.get_num_qubits`");
+    auto numQubitsFunc = materializeState.getNumQubitsFunc();
+    rewriter.setInsertionPoint(numQubits);
+    rewriter.replaceOpWithNewOp<func::CallOp>(
+        numQubits, numQubits.getType(), numQubitsFunc, mlir::ValueRange{});
+    return success();
   }
 };
 
@@ -67,11 +65,10 @@ public:
 /// Replace `quake.init_state` by a call to a (modified) kernel that produced
 /// the state.
 ///
-/// ```
-///  %0 = quake.get_state @callee.num_qubits_0 @callee.init_0 : !cc.ptr<!cc.state>
+/// ```mlir
+///  %0 = quake.materialize_state @callee.num_qubits_0 @callee.init_0 : !cc.ptr<!cc.state>
 ///  %3 = quake.init_state %2, %0 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
 /// ───────────────────────────────────────────
-/// ...
 /// %3 = call @callee.init_0(%2): (!quake.veq<?>) -> !quake.veq<?>
 /// ```
 // clang-format on
@@ -87,19 +84,19 @@ public:
 
     if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(stateOp.getType())) {
       if (isa<cudaq::cc::StateType>(ptrTy.getElementType())) {
-        if (auto getState = stateOp.getDefiningOp<quake::GetStateOp>()) {
-          auto initName = getState.getInitFunc();
+        auto materializeState =
+            stateOp.getDefiningOp<quake::MaterializeStateOp>();
+        if (!materializeState)
+          return initState->emitError(
+              "ReplaceStateWithKernel: failed to replace `quake.init_state`");
 
-          rewriter.setInsertionPoint(initState);
-          rewriter.replaceOpWithNewOp<func::CallOp>(
-              initState, initState.getType(), initName,
-              mlir::ValueRange{allocaOp});
+        auto initName = materializeState.getInitFunc();
+        rewriter.setInsertionPoint(initState);
+        rewriter.replaceOpWithNewOp<func::CallOp>(initState,
+                                                  initState.getType(), initName,
+                                                  mlir::ValueRange{allocaOp});
 
-          return success();
-        }
-
-        return initState->emitError(
-            "ReplaceStateWithKernel: failed to replace `quake.init_state`");
+        return success();
       }
     }
     return failure();

@@ -1463,7 +1463,7 @@ def quake_GetNumberOfQubitsOp : QuakeOp<"get_number_of_qubits", [Pure] > {
   }];
 }
 
-def QuakeOp_GetStateOp : QuakeOp<"get_state", [Pure] > {
+def QuakeOp_MaterializeStateOp : QuakeOp<"materialize_state", [Pure] > {
   let summary = "Get state from kernel with the provided name.";
   let description = [{
     This operation is created by argument synthesis of state pointer arguments
@@ -1482,7 +1482,7 @@ def QuakeOp_GetStateOp : QuakeOp<"get_state", [Pure] > {
     pass.
 
     ```mlir
-      %0 = quake.get_state @num_qubits @init : !cc.ptr<!cc.state>
+      %0 = quake.materialize_state @num_qubits @init : !cc.ptr<!cc.state>
     ```
   }];
 

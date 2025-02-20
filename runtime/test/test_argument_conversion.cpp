@@ -561,7 +561,7 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
 // CHECK:         Substitution module:
 // CHECK:         testy
 // CHECK-LABEL:   cc.arg_subst[0] {
-// CHECK:           %[[VAL_0:.*]] = quake.get_state @__nvqpp__mlirgen__init.num_qubits_[[HASH_0:.*]] @__nvqpp__mlirgen__init.init_[[HASH_0]] : !cc.ptr<!cc.state>
+// CHECK:           %[[VAL_0:.*]] = quake.materialize_state @__nvqpp__mlirgen__init.num_qubits_[[HASH_0:.*]] @__nvqpp__mlirgen__init.init_[[HASH_0]] : !cc.ptr<!cc.state>
 // CHECK:         }
 // CHECK:         func.func private @__nvqpp__mlirgen__init.init_[[HASH_0]](%arg0: i64, %arg1: !quake.veq<?>) -> !quake.veq<?> {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i64
@@ -668,7 +668,7 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
 // CHECK:         Substitution module:
 // CHECK:         testy
 // CHECK-LABEL:   cc.arg_subst[0] {
-// CHECK:           %0 = quake.get_state @__nvqpp__mlirgen__state_param.num_qubits_[[HASH_0:.*]] @__nvqpp__mlirgen__state_param.init_[[HASH_0]] : !cc.ptr<!cc.state>
+// CHECK:           %0 = quake.materialize_state @__nvqpp__mlirgen__state_param.num_qubits_[[HASH_0:.*]] @__nvqpp__mlirgen__state_param.init_[[HASH_0]] : !cc.ptr<!cc.state>
 // CHECK:         }
 // CHECK:         func.func private @__nvqpp__mlirgen__state_param.init_[[HASH_0]](%arg0: !cc.ptr<!cc.state>, %arg1: !quake.veq<?>) -> !quake.veq<?> {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i64
@@ -693,7 +693,7 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
 // CHECK:         Substitution module:
 // CHECK:         state_param.init_[[HASH_0]]
 // CHECK-LABEL:   cc.arg_subst[0] {
-// CHECK:           %0 = quake.get_state @__nvqpp__mlirgen__init1.num_qubits_[[HASH_1:.*]] @__nvqpp__mlirgen__init1.init_[[HASH_1]] : !cc.ptr<!cc.state>
+// CHECK:           %0 = quake.materialize_state @__nvqpp__mlirgen__init1.num_qubits_[[HASH_1:.*]] @__nvqpp__mlirgen__init1.init_[[HASH_1]] : !cc.ptr<!cc.state>
 // CHECK:         }
 // CHECK:         func.func private @__nvqpp__mlirgen__init1.init_[[HASH_1]](%arg0: i64, %arg1: !quake.veq<?>) -> !quake.veq<?> {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i64
@@ -729,7 +729,7 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
 // CHECK:         Substitution module:
 // CHECK:         state_param.num_qubits_[[HASH_0]]
 // CHECK-LABEL:   cc.arg_subst[0] {
-// CHECK:           %[[VAL_0:.*]] = quake.get_state @__nvqpp__mlirgen__init1.num_qubits_[[HASH_1]] @__nvqpp__mlirgen__init1.init_[[HASH_1]] : !cc.ptr<!cc.state>
+// CHECK:           %[[VAL_0:.*]] = quake.materialize_state @__nvqpp__mlirgen__init1.num_qubits_[[HASH_1]] @__nvqpp__mlirgen__init1.init_[[HASH_1]] : !cc.ptr<!cc.state>
 // CHECK:         }
 
   // clang-format on
@@ -801,7 +801,7 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
 // CHECK:         Substitution module:
 // CHECK:         testy
 // CHECK-LABEL:   cc.arg_subst[0] {
-// CHECK:           %[[VAL_0:.*]] = quake.get_state @__nvqpp__mlirgen__init2.num_qubits_[[HASH_1:.*]] @__nvqpp__mlirgen__init2.init_[[HASH_1]] : !cc.ptr<!cc.state>
+// CHECK:           %[[VAL_0:.*]] = quake.materialize_state @__nvqpp__mlirgen__init2.num_qubits_[[HASH_1:.*]] @__nvqpp__mlirgen__init2.init_[[HASH_1]] : !cc.ptr<!cc.state>
 // CHECK:         }
 // CHECK:         func.func private @__nvqpp__mlirgen__init2.init_[[HASH_1]](%arg0: i64, %arg1: !quake.veq<?>) -> !quake.veq<?> {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i64

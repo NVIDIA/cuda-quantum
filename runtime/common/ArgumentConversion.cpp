@@ -329,15 +329,10 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
       cudaq::state_helper::getSimulationState(const_cast<cudaq::state *>(v));
 
   auto kernelName = converter.getKernelName();
-  // auto sourceMod = converter.getSourceModule();
   auto substMod = converter.getSubstitutionModule();
 
   // If the state has amplitude data, we materialize the data as a state
   // vector and create a new state from it.
-  // TODO: add an option to use the kernel info if available, i.e. for
-  // remote simulators
-  // TODO: add an option of storing the kernel info on simulators if
-  // preferred i.e. to support synthesis of density matrices.
   if (simState->hasData()) {
     // The call below might cause lazy execution of the state kernel.
     // TODO: For lazy execution scenario on remote simulators, we have the
@@ -391,7 +386,8 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
   // efficient) we aim at replacing states with calls to kernels (`callees`)
   // that generated them. This is done in 2 stages:
   //
-  // 1. Replace state by quake.get_state instruction during argument conversion:
+  // 1. Replace state by quake.materialize_state instruction during argument
+  // conversion:
   //
   // Create two functions:
   // - callee.num_qubits_N
@@ -400,7 +396,7 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
   //    Initializes the veq passed as a parameter
   //
   // Then replace the state with
-  //   `quake.get_state @callee.num_qubits_0 @callee.init_0`:
+  //   `quake.materialize_state @callee.num_qubits_0 @callee.init_0`:
   //
   // clang-format off
   // ```
@@ -429,7 +425,7 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
   // clang-format off
   // ```
   // func.func @caller() {
-  //   %0 = quake.get_state @callee.num_qubits_0 @callee.init_state_0 : !cc.ptr<!cc.state>
+  //   %0 = quake.materialize_state @callee.num_qubits_0 @callee.init_state_0 : !cc.ptr<!cc.state>
   //   %1 = quake.get_number_of_qubits %0 : (!cc.ptr<!cc.state>) -> i64
   //   %2 = quake.alloca !quake.veq<?>[%1 : i64]
   //   %3 = quake.init_state %2, %0 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
@@ -448,9 +444,9 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
   // ```
   // clang-format on
   //
-  // 2. Replace the `quake.get_state` and ops that use its state with calls to
-  // the generated functions, synthesized with the arguments used to create the
-  // original state:
+  // 2. Replace the `quake.materialize_state` and ops that use its state with
+  // calls to the generated functions, synthesized with the arguments used to
+  // create the original state:
   //
   // After ReplaceStateWithKernel pass:
   //
@@ -505,7 +501,8 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
     if (!cudaq::opt::ArgumentConverter::isRegisteredKernelName(initName) ||
         !cudaq::opt::ArgumentConverter::isRegisteredKernelName(numQubitsName)) {
       // Create `callee.init_N` and `callee.num_qubits_N` used for
-      // `quake.get_state` replacement later in ReplaceStateWithKernel pass
+      // `quake.materialize_state` replacement later in ReplaceStateWithKernel
+      // pass
       createInitFunc(builder, substMod, calleeFunc, initKernelName);
       createNumQubitsFunc(builder, substMod, calleeFunc, numQubitsKernelName);
 
@@ -524,7 +521,7 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
     // Create a substitution for the state pointer.
     auto statePtrTy =
         cudaq::cc::PointerType::get(cudaq::cc::StateType::get(ctx));
-    return builder.create<quake::GetStateOp>(
+    return builder.create<quake::MaterializeStateOp>(
         loc, statePtrTy, builder.getStringAttr(numQubitsKernelName),
         builder.getStringAttr(initKernelName));
   }

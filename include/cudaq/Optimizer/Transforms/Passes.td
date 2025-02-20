@@ -856,18 +856,18 @@ def ReplaceStateWithKernel : Pass<"replace-state-with-kernel", "mlir::func::Func
     "Replace `quake.init_state` instructions with call to the kernel generating the state";
   let description = [{
     This optimization replaces `quake.init_state`, `quake.get_number_of_qubits`,
-    and `quake.get_state` operations invoked on state pointers during argument
-    synthesis for quantum devices.
+    and `quake.materialize_state` operations invoked on state pointers during
+    argument synthesis for quantum devices.
 
     Before this optimization, argument synthesis for state pointers for quantum
-    devices substituted a state created from the `quake.get_state` operation
-    for the state argument.
+    devices substituted a state created from the `quake.materialize_state`
+    operation for the state argument.
 
-    The `quake.get_state` operation accepts symbols for the synthesized kernels
-    `@num_qubits` and `@init` that argument synthesis generated from the original
-    kernel call that generated the state, e.g., the `cudaq::get_state` call that
-    refers to the result of a specific quantum kernel being invoked with a set
-    of parameters
+    The `quake.materialize_state` operation accepts symbols for the synthesized
+    kernels `@num_qubits` and `@init` that argument synthesis generated from
+    the original kernel call that generated the state, e.g., 
+    the `cudaq::get_state` call that refers to the result of a specific quantum
+    kernel being invoked with a set of parameters
 
     For example, for the user code:
       ```
@@ -885,22 +885,23 @@ def ReplaceStateWithKernel : Pass<"replace-state-with-kernel", "mlir::func::Func
     The argument synthesis also substituted the state argument in the `caller`
     with:
       ```
-      quake.get_state @callee_num_qubits @callee_init: !cc.ptr<!cc.state>
+      quake.materialize_state @callee_num_qubits @callee_init: !cc.ptr<!cc.state>
       ```
 
     This optimization performs the replacements for the the following operations 
-    that use a state produced by  `quake.get_state @num_qubits @init` operation:
+    that use a state produced by  `quake.materialize_state @num_qubits @init`
+    operation:
 
-    - Replace `quake.get_number_of_qubits` operation by the call to `@num_qubits`
-    - Replace `quake.init_state` operation by the call to `@init`
-    - Clean up unused `quake.get_state` operation
+    - Replace `quake.get_number_of_qubits` operation by call to `@num_qubits`
+    - Replace `quake.init_state` operation by call to `@init`
+    - Clean up unused `quake.materialize_state` operation
 
     For example:
 
     Before ReplaceStateWithKernel (replace-state-with-kernel):
     ```
     func.func @foo() {
-      %0 = quake.get_state @callee.num_qubits_0 @callee.init_0: !cc.ptr<!cc.state>
+      %0 = quake.materialize_state @callee.num_qubits_0 @callee.init_0: !cc.ptr<!cc.state>
       %1 = quake.get_number_of_qubits %0 : (!cc.ptr<!cc.state>) -> i64
       %2 = quake.alloca !quake.veq<?>[%1 : i64]
       %3 = quake.init_state %2, %0 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
