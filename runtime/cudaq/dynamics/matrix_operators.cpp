@@ -15,6 +15,7 @@
 #include "matrix_operators.h"
 #include "spin_operators.h"
 #include "boson_operators.h"
+#include "fermion_operators.h"
 
 namespace cudaq {
 
@@ -34,6 +35,7 @@ std::string matrix_operator::type_prefix() {
 // no need to prefix the operator id and op code with the type name for these (same names mean the same thing)
 template<> std::string matrix_operator::type_prefix<spin_operator>() { return ""; }
 template<> std::string matrix_operator::type_prefix<boson_operator>() { return ""; }
+template<> std::string matrix_operator::type_prefix<fermion_operator>() { return ""; }
 
 void matrix_operator::define(std::string operator_id, std::vector<int> expected_dimensions,
             MatrixCallbackFunction &&create) {
@@ -124,6 +126,7 @@ matrix_operator::matrix_operator(const T &other) {
 
 template matrix_operator::matrix_operator(const spin_operator &other);
 template matrix_operator::matrix_operator(const boson_operator &other);
+template matrix_operator::matrix_operator(const fermion_operator &other);
 
 matrix_operator::matrix_operator(const matrix_operator &other)
   : targets(other.targets), op_code(other.op_code) {}
@@ -149,6 +152,7 @@ matrix_operator& matrix_operator::operator=(const T& other) {
 
 template matrix_operator& matrix_operator::operator=(const spin_operator& other);
 template matrix_operator& matrix_operator::operator=(const boson_operator& other);
+template matrix_operator& matrix_operator::operator=(const fermion_operator& other);
 
 matrix_operator& matrix_operator::operator=(matrix_operator &&other) {
   if (this != &other) {

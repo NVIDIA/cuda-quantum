@@ -18,6 +18,7 @@
 #include "matrix_operators.h"
 #include "spin_operators.h"
 #include "boson_operators.h"
+#include "fermion_operators.h"
 
 namespace cudaq {
 
@@ -71,7 +72,7 @@ std::vector<matrix_operator>::const_iterator product_operator<matrix_operator>::
 template<typename HandlerTy>
 template<typename T, std::enable_if_t<std::is_same<HandlerTy, T>::value && 
                                       !product_operator<T>::supports_inplace_mult, std::false_type>>
-void product_operator<HandlerTy>::insert(T &&other) {  
+void product_operator<HandlerTy>::insert(T &&other) {
   auto pos = this->find_insert_at(other);
   this->operators.insert(pos, other);
 }
@@ -186,6 +187,7 @@ EvaluatedMatrix product_operator<HandlerTy>::m_evaluate(
 INSTANTIATE_PRODUCT_PRIVATE_METHODS(matrix_operator);
 INSTANTIATE_PRODUCT_PRIVATE_METHODS(spin_operator);
 INSTANTIATE_PRODUCT_PRIVATE_METHODS(boson_operator);
+INSTANTIATE_PRODUCT_PRIVATE_METHODS(fermion_operator);
 
 // read-only properties
 
@@ -233,6 +235,7 @@ scalar_operator product_operator<HandlerTy>::get_coefficient() const {
 INSTANTIATE_PRODUCT_PROPERTIES(matrix_operator);
 INSTANTIATE_PRODUCT_PROPERTIES(spin_operator);
 INSTANTIATE_PRODUCT_PROPERTIES(boson_operator);
+INSTANTIATE_PRODUCT_PROPERTIES(fermion_operator);
 
 // constructors
 
@@ -351,10 +354,13 @@ template
 product_operator<matrix_operator>::product_operator(const product_operator<spin_operator> &other);
 template 
 product_operator<matrix_operator>::product_operator(const product_operator<boson_operator> &other);
+template 
+product_operator<matrix_operator>::product_operator(const product_operator<fermion_operator> &other);
 
 INSTANTIATE_PRODUCT_CONSTRUCTORS(matrix_operator);
 INSTANTIATE_PRODUCT_CONSTRUCTORS(spin_operator);
 INSTANTIATE_PRODUCT_CONSTRUCTORS(boson_operator);
+INSTANTIATE_PRODUCT_CONSTRUCTORS(fermion_operator);
 
 // assignments
 
@@ -397,10 +403,13 @@ template
 product_operator<matrix_operator>& product_operator<matrix_operator>::operator=(const product_operator<spin_operator> &other);
 template 
 product_operator<matrix_operator>& product_operator<matrix_operator>::operator=(const product_operator<boson_operator> &other);
+template 
+product_operator<matrix_operator>& product_operator<matrix_operator>::operator=(const product_operator<fermion_operator> &other);
 
 INSTANTIATE_PRODUCT_ASSIGNMENTS(matrix_operator);
 INSTANTIATE_PRODUCT_ASSIGNMENTS(spin_operator);
 INSTANTIATE_PRODUCT_ASSIGNMENTS(boson_operator);
+INSTANTIATE_PRODUCT_ASSIGNMENTS(fermion_operator);
 
 // evaluations
 
@@ -431,6 +440,7 @@ matrix_2 product_operator<HandlerTy>::to_matrix(std::unordered_map<int, int> dim
 INSTANTIATE_PRODUCT_EVALUATIONS(matrix_operator);
 INSTANTIATE_PRODUCT_EVALUATIONS(spin_operator);
 INSTANTIATE_PRODUCT_EVALUATIONS(boson_operator);
+INSTANTIATE_PRODUCT_EVALUATIONS(fermion_operator);
 
 // comparisons
 
@@ -448,6 +458,7 @@ bool product_operator<HandlerTy>::operator==(const product_operator<HandlerTy> &
 INSTANTIATE_PRODUCT_COMPARISONS(matrix_operator);
 INSTANTIATE_PRODUCT_COMPARISONS(spin_operator);
 INSTANTIATE_PRODUCT_COMPARISONS(boson_operator);
+INSTANTIATE_PRODUCT_COMPARISONS(fermion_operator);
 
 // unary operators
 
@@ -485,6 +496,7 @@ product_operator<HandlerTy> product_operator<HandlerTy>::operator+() && {
 INSTANTIATE_PRODUCT_UNARY_OPS(matrix_operator);
 INSTANTIATE_PRODUCT_UNARY_OPS(spin_operator);
 INSTANTIATE_PRODUCT_UNARY_OPS(boson_operator);
+INSTANTIATE_PRODUCT_UNARY_OPS(fermion_operator);
 
 // right-hand arithmetics
 
@@ -573,6 +585,7 @@ PRODUCT_ADDITION(const scalar_operator &, -);
 INSTANTIATE_PRODUCT_RHSIMPLE_OPS(matrix_operator);
 INSTANTIATE_PRODUCT_RHSIMPLE_OPS(spin_operator);
 INSTANTIATE_PRODUCT_RHSIMPLE_OPS(boson_operator);
+INSTANTIATE_PRODUCT_RHSIMPLE_OPS(fermion_operator);
 
 template <typename HandlerTy>
 product_operator<HandlerTy> product_operator<HandlerTy>::operator*(const product_operator<HandlerTy> &other) const & {
@@ -762,6 +775,7 @@ PRODUCT_ADDITION_SUM(-)
 INSTANTIATE_PRODUCT_RHCOMPOSITE_OPS(matrix_operator);
 INSTANTIATE_PRODUCT_RHCOMPOSITE_OPS(spin_operator);
 INSTANTIATE_PRODUCT_RHCOMPOSITE_OPS(boson_operator);
+INSTANTIATE_PRODUCT_RHCOMPOSITE_OPS(fermion_operator);
 
 #define PRODUCT_MULTIPLICATION_ASSIGNMENT(otherTy)                                      \
   template <typename HandlerTy>                                                         \
@@ -808,6 +822,7 @@ product_operator<HandlerTy>& product_operator<HandlerTy>::operator*=(product_ope
 INSTANTIATE_PRODUCT_OPASSIGNMENTS(matrix_operator);
 INSTANTIATE_PRODUCT_OPASSIGNMENTS(spin_operator);
 INSTANTIATE_PRODUCT_OPASSIGNMENTS(boson_operator);
+INSTANTIATE_PRODUCT_OPASSIGNMENTS(fermion_operator);
 
 // left-hand arithmetics
 
@@ -895,6 +910,7 @@ PRODUCT_ADDITION_REVERSE(const scalar_operator &, -);
 INSTANTIATE_PRODUCT_LHCOMPOSITE_OPS(matrix_operator);
 INSTANTIATE_PRODUCT_LHCOMPOSITE_OPS(spin_operator);
 INSTANTIATE_PRODUCT_LHCOMPOSITE_OPS(boson_operator);
+INSTANTIATE_PRODUCT_LHCOMPOSITE_OPS(fermion_operator);
 
 // arithmetics that require conversions
 
@@ -919,11 +935,26 @@ PRODUCT_CONVERSIONS_OPS(-, operator_sum);
   returnTy<matrix_operator> operator op(const product_operator<boson_operator> &other,        \
                                         const product_operator<matrix_operator> &self);       \
   template                                                                                    \
+  returnTy<matrix_operator> operator op(const product_operator<fermion_operator> &other,      \
+                                        const product_operator<matrix_operator> &self);       \
+  template                                                                                    \
   returnTy<matrix_operator> operator op(const product_operator<spin_operator> &other,         \
                                         const product_operator<boson_operator> &self);        \
   template                                                                                    \
   returnTy<matrix_operator> operator op(const product_operator<boson_operator> &other,        \
-                                        const product_operator<spin_operator> &self);
+                                        const product_operator<spin_operator> &self);         \
+  template                                                                                    \
+  returnTy<matrix_operator> operator op(const product_operator<spin_operator> &other,         \
+                                        const product_operator<fermion_operator> &self);      \
+  template                                                                                    \
+  returnTy<matrix_operator> operator op(const product_operator<fermion_operator> &other,      \
+                                        const product_operator<spin_operator> &self);         \
+  template                                                                                    \
+  returnTy<matrix_operator> operator op(const product_operator<boson_operator> &other,        \
+                                        const product_operator<fermion_operator> &self);      \
+  template                                                                                    \
+  returnTy<matrix_operator> operator op(const product_operator<fermion_operator> &other,      \
+                                        const product_operator<boson_operator> &self);        \
 
 INSTANTIATE_PRODUCT_CONVERSION_OPS(*, product_operator);
 INSTANTIATE_PRODUCT_CONVERSION_OPS(+, operator_sum);
@@ -940,16 +971,19 @@ product_operator<HandlerTy> operator_handler::identity(Args... targets) {
 template product_operator<matrix_operator> operator_handler::identity();
 template product_operator<spin_operator> operator_handler::identity();
 template product_operator<boson_operator> operator_handler::identity();
+template product_operator<fermion_operator> operator_handler::identity();
 
 template product_operator<matrix_operator> operator_handler::identity(int target);
 template product_operator<spin_operator> operator_handler::identity(int target);
 template product_operator<boson_operator> operator_handler::identity(int target);
+template product_operator<fermion_operator> operator_handler::identity(int target);
 
 
 #ifdef CUDAQ_INSTANTIATE_TEMPLATES
 template class product_operator<matrix_operator>;
 template class product_operator<spin_operator>;
 template class product_operator<boson_operator>;
+template class product_operator<fermion_operator>;
 #endif
 
 } // namespace cudaq

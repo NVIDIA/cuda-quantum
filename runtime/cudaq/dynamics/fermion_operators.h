@@ -24,27 +24,20 @@ template <typename HandlerTy>
 class operator_sum;
 
 // FIXME: rename?
-class boson_operator : public operator_handler{
+class fermion_operator : public operator_handler{
 template <typename T> friend class product_operator;
 
 private:
 
-  // Each boson operator is represented as number operators along with an
-  // offset to add to each number operator, as well as an integer indicating
-  // how many creation or annihilation terms follow the number operators.
-  // See the implementation of the in-place multiplication to understand
-  // the meaning and purpose of this representation. In short, this
-  // representation allows us to perform a perfect in-place multiplication.
-  int additional_terms;
-  std::vector<int> number_offsets;
+  int op_code;
   int target;
 
-  // 0 = I, ad = 1, a = 2, ada = 3
-  boson_operator(int target, int op_code);
+  // 0 = I, 1 = Cd, 2 = C, 3 = Z
+  fermion_operator(int target, int op_code);
 
   std::string op_code_to_string() const;
 
-  void inplace_mult(const boson_operator &other);
+  void inplace_mult(const fermion_operator &other);
 
 public:
 
@@ -58,9 +51,9 @@ public:
 
   // constructors and destructors
 
-  boson_operator(int target);
+  fermion_operator(int target);
 
-  ~boson_operator() = default;
+  ~fermion_operator() = default;
 
   // evaluations
 
@@ -74,20 +67,23 @@ public:
   // comparisons
 
   /// @returns True if, and only if, the two operators have the same effect on any state.
-  bool operator==(const boson_operator &other) const;
+  bool operator==(const fermion_operator &other) const;
 
   // defined operators
 
-  static operator_sum<boson_operator> empty();
-  static product_operator<boson_operator> identity();
+  static operator_sum<fermion_operator> empty();
+  static product_operator<fermion_operator> identity();
 
-  static product_operator<boson_operator> identity(int degree);
-  static product_operator<boson_operator> create(int degree);
-  static product_operator<boson_operator> annihilate(int degree);
-  static product_operator<boson_operator> number(int degree);
+  static product_operator<fermion_operator> identity(int degree);
+  static product_operator<fermion_operator> create(int degree);
+  static product_operator<fermion_operator> annihilate(int degree);
+  static product_operator<fermion_operator> number(int degree);
 
-  static operator_sum<boson_operator> position(int degree);
-  static operator_sum<boson_operator> momentum(int degree);
+  //static operator_sum<fermion_operator> position(int degree);
+  //static operator_sum<fermion_operator> momentum(int degree);
+
+  // FIXME: position, momentum may not make sense, but parity instead?
+  // see also https://physics.stackexchange.com/questions/319296/why-does-a-fermionic-hamiltonian-always-obey-fermionic-parity-symmetry
 };
 
 } // namespace cudaq

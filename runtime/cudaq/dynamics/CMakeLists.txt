@@ -15,6 +15,7 @@ set(CUDAQ_OPS_SRC
   scalar_operators.cpp 
   spin_operators.cpp
   boson_operators.cpp
+  fermion_operators.cpp
   matrix_operators.cpp 
   product_operators.cpp 
   operator_sum.cpp 
