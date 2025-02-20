@@ -9,7 +9,6 @@
 #include "CuDensityMatState.h"
 #include <complex>
 #include <cudm_error_handling.h>
-#include <cudm_helpers.h>
 #include <gtest/gtest.h>
 #include <stdexcept>
 #include <vector>

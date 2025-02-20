@@ -6,12 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "CuDensityMatContext.h"
 #include "CuDensityMatState.h"
 #include "common/EigenDense.h"
 #include "test_mocks.h"
 #include <cudm_error_handling.h>
 #include <cudm_expectation.h>
-#include <cudm_helpers.h>
 #include <gtest/gtest.h>
 #include <iostream>
 #include <memory>
@@ -35,12 +35,12 @@ protected:
 };
 
 TEST_F(CuDensityExpectationTest, checkCompute) {
-  cudm_helper helper(handle_);
   const std::vector<int64_t> dims = {10};
   // Check number operator on boson Fock space
   auto op = cudaq::matrix_operator::number(0);
-  auto cudmOp = helper.convert_to_cudensitymat_operator<cudaq::matrix_operator>(
-      {}, op, dims);
+  auto cudmOp = cudaq::dynamics::Context::getCurrentContext()
+                    ->getOpConverter()
+                    .convertToCudensitymatOperator({}, op, dims);
 
   cudm_expectation expectation(handle_, cudmOp);
 
@@ -57,12 +57,12 @@ TEST_F(CuDensityExpectationTest, checkCompute) {
 }
 
 TEST_F(CuDensityExpectationTest, checkCompositeSystem) {
-  cudm_helper helper(handle_);
   const std::vector<int64_t> dims = {2, 10};
   // Check number operator on boson Fock space
   auto op = cudaq::matrix_operator::number(1);
-  auto cudmOp = helper.convert_to_cudensitymat_operator<cudaq::matrix_operator>(
-      {}, op, dims);
+  auto cudmOp = cudaq::dynamics::Context::getCurrentContext()
+                    ->getOpConverter()
+                    .convertToCudensitymatOperator({}, op, dims);
 
   cudm_expectation expectation(handle_, cudmOp);
 

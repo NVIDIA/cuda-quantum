@@ -293,7 +293,6 @@ if (CUDA_FOUND)
   set(CUDAQ_DYNAMICS_TEST_SOURCES 
     dynamics/test_runge_kutta_integrator.cpp
     dynamics/test_helpers.cpp
-    dynamics/test_cudm_helpers.cpp
     dynamics/test_cudm_state.cpp
     dynamics/test_cudm_time_stepper.cpp
     dynamics/test_cudm_expectation.cpp
