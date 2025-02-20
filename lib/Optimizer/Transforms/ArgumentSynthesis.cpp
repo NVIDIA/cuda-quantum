@@ -14,6 +14,7 @@
 #include "mlir/Parser/Parser.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
+#include <list>
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_ARGUMENTSYNTHESIS
@@ -30,64 +31,30 @@ class ArgumentSynthesisPass
 public:
   using ArgumentSynthesisBase::ArgumentSynthesisBase;
 
-  void runOnOperation() override {
-    func::FuncOp func = getOperation();
-    StringRef funcName = func.getName();
-    std::string text;
-    if (std::find_if(funcList.begin(), funcList.end(),
-                     [&](const std::string &item) {
-                       auto pos = item.find(':');
-                       if (pos == std::string::npos)
-                         return false;
-                       std::string itemName = item.substr(0, pos);
-                       bool result = itemName == funcName;
-                       if (result)
-                         text = item.substr(pos + 1);
-                       return result;
-                     }) == funcList.end()) {
+  void
+  applySubstitutions(func::FuncOp func,
+                     DenseMap<StringRef, OwningOpRef<ModuleOp>> &substModules) {
+    MLIRContext *ctx = func.getContext();
+    auto funcName = func.getName();
+    LLVM_DEBUG(llvm::dbgs() << "processing : '" << funcName << "'\n");
+
+    // 1. Find substitution module with argument replacements for the function.
+    auto it = substModules.find(funcName);
+    if (it == substModules.end()) {
       // If the function isn't on the list, do nothing.
-      LLVM_DEBUG(llvm::dbgs() << funcName << " not in list.\n");
+      LLVM_DEBUG(llvm::dbgs() << funcName << " has no substitutions.\n");
       return;
     }
-
-    // If there are no substitutions, we're done.
-    if (text.empty()) {
-      LLVM_DEBUG(llvm::dbgs() << funcName << " has no substitutions.");
-      return;
-    }
-
-    // If we're here, we have a FuncOp and we have substitutions that can be
-    // applied.
-    //
-    // 1. Create a Module with the substitutions that we'll be making.
-    auto *ctx = func.getContext();
-    LLVM_DEBUG(llvm::dbgs() << "substitution pattern: '" << text << "'\n");
-    auto substMod = [&]() -> OwningOpRef<ModuleOp> {
-      if (text.front() == '*') {
-        // Substitutions are a raw string after the '*' character.
-        return parseSourceString<ModuleOp>(text.substr(1), ctx);
-      }
-      // Substitutions are in a text file (command-line usage).
-      return parseSourceFile<ModuleOp>(text, ctx);
-    }();
-    assert(*substMod && "module must have been created");
+    auto substMod = *(it->second);
 
     // 2. Go through the Module and process each substitution.
     SmallVector<bool> processedArgs(func.getFunctionType().getNumInputs());
     SmallVector<std::tuple<unsigned, Value, Value>> replacements;
     BitVector replacedArgs(processedArgs.size());
-    for (auto &op : *substMod) {
+    for (auto &op : substMod) {
       auto subst = dyn_cast<cudaq::cc::ArgumentSubstitutionOp>(op);
-      if (!subst) {
-        if (auto symInterface = dyn_cast<SymbolOpInterface>(op)) {
-          auto name = symInterface.getName();
-          auto srcMod = func->getParentOfType<ModuleOp>();
-          auto obj = srcMod.lookupSymbol(name);
-          if (!obj)
-            srcMod.getBody()->push_back(op.clone());
-        }
+      if (!subst)
         continue;
-      }
       auto pos = subst.getPosition();
       if (pos >= processedArgs.size()) {
         func.emitError("Argument " + std::to_string(pos) + " is invalid.");
@@ -146,6 +113,61 @@ public:
     // 4. Finish specializing func and erase any of func's arguments that were
     // substituted.
     func.eraseArguments(replacedArgs);
+  }
+
+  void runOnOperation() override {
+    ModuleOp mod = getOperation();
+    MLIRContext *ctx = mod.getContext();
+
+    // 1. Collect all substitution modules.
+    std::list<std::string> funcNames;
+    DenseMap<StringRef, OwningOpRef<ModuleOp>> substModules;
+
+    for (auto &item : funcList) {
+      auto pos = item.find(':');
+      if (pos == std::string::npos)
+        continue;
+
+      std::string funcName = item.substr(0, pos);
+      std::string text = item.substr(pos + 1);
+
+      if (text.empty()) {
+        LLVM_DEBUG(llvm::dbgs() << funcName << " has no substitutions.");
+        continue;
+      }
+
+      // Create a Module with the substitutions that we'll be making.
+      LLVM_DEBUG(llvm::dbgs()
+                 << funcName << " : substitution pattern: '" << text << "'\n");
+      auto substModule = [&]() -> OwningOpRef<ModuleOp> {
+        if (text.front() == '*') {
+          // Substitutions are a raw string after the '*' character.
+          return parseSourceString<ModuleOp>(text.substr(1), ctx);
+        }
+        // Substitutions are in a text file (command-line usage).
+        return parseSourceFile<ModuleOp>(text, ctx);
+      }();
+      assert(*substModule && "module must have been created");
+
+      auto &name = funcNames.emplace_back(funcName);
+      substModules.try_emplace(name, std::move(substModule));
+    }
+
+    // 2. Merge symbols from substitution modules into the source module.
+    for (auto &[funcName, substMod] : substModules) {
+      for (auto &op : *substMod) {
+        if (auto symInterface = dyn_cast<SymbolOpInterface>(op)) {
+          auto name = symInterface.getName();
+          auto obj = mod.lookupSymbol(name);
+          if (!obj)
+            mod.getBody()->push_back(op.clone());
+        }
+      }
+    }
+
+    // 3. Apply all substitutions.
+    mod->walk(
+        [&](func::FuncOp func) { applySubstitutions(func, substModules); });
   }
 };
 } // namespace
