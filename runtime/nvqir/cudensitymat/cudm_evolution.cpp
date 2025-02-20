@@ -20,8 +20,7 @@ evolve_result evolve_single(
     const operator_sum<cudaq::matrix_operator> &hamiltonian,
     const std::map<int, int> &dimensions, const Schedule &schedule,
     const state &initialState, BaseIntegrator &in_integrator,
-    const std::vector<operator_sum<cudaq::matrix_operator>>
-        &collapse_operators,
+    const std::vector<operator_sum<cudaq::matrix_operator>> &collapse_operators,
     const std::vector<operator_sum<cudaq::matrix_operator>> &observables,
     bool store_intermediate_results, std::optional<int> shots_count) {
   cudensitymatHandle_t handle =

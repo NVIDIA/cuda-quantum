@@ -112,7 +112,9 @@ TEST_F(CuDensityMatTimeStepperTest, ComputeStepCheckOutput) {
   EXPECT_TRUE(castSimState != nullptr);
   castSimState->initialize_cudm(handle_, dims);
 
-  auto op = cudaq::matrix_operator::create(0);
+  cudaq::product_operator<cudaq::boson_operator> op_1 =
+      cudaq::boson_operator::create(0);
+  cudaq::operator_sum<cudaq::matrix_operator> op(op_1);
   auto cudmOp =
       helper_->convert_to_cudensitymat_operator<cudaq::matrix_operator>(
           {}, op, dims); // Initialize the time stepper
@@ -143,7 +145,7 @@ TEST_F(CuDensityMatTimeStepperTest, TimeSteppingWithLindblad) {
   EXPECT_TRUE(castSimState != nullptr);
   castSimState->initialize_cudm(handle_, dims);
   cudaq::product_operator<cudaq::matrix_operator> c_op_0 =
-      cudaq::matrix_operator::annihilate(0);
+      cudaq::boson_operator::annihilate(0);
   cudaq::operator_sum<cudaq::matrix_operator> c_op(c_op_0);
   cudaq::operator_sum<cudaq::matrix_operator> zero_op = 0.0 * c_op;
   auto cudm_lindblad_op =
@@ -191,8 +193,9 @@ TEST_F(CuDensityMatTimeStepperTest, CheckScalarCallback) {
         return entry->second;
       };
 
-  auto op =
-      cudaq::scalar_operator(function) * cudaq::matrix_operator::create(0);
+  cudaq::product_operator<cudaq::matrix_operator> op_t =
+      cudaq::scalar_operator(function) * cudaq::boson_operator::create(0);
+  cudaq::operator_sum<cudaq::matrix_operator> op(op_t);
   auto cudmOp =
       helper_->convert_to_cudensitymat_operator<cudaq::matrix_operator>(
           params, op, dims);

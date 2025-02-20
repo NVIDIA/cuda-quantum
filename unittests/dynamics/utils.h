@@ -6,6 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#pragma once
+
+#include "cudaq/dynamics/matrix_operators.h"
 #include "cudaq/operators.h"
 #include "cudaq/utils/tensor.h"
 

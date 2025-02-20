@@ -112,7 +112,7 @@ public:
   scalar_operator& operator+=(std::complex<double> other);
   scalar_operator& operator-=(std::complex<double> other);
   scalar_operator operator*(const scalar_operator &other) const &;
-  scalar_operator operator*(const scalar_operator &other) &&;
+  // scalar_operator operator*(const scalar_operator &other) &&;
   scalar_operator operator/(const scalar_operator &other) const &;
   scalar_operator operator/(const scalar_operator &other) &&;
   scalar_operator operator+(const scalar_operator &other) const &;
