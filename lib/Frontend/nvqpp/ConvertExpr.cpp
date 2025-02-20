@@ -1501,8 +1501,8 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         addTheString(args[1]);
       }
 
-      builder.create<quake::ExpPauliOp>(loc, parameters, ValueRange{},
-                                        targets, pauliWord);
+      builder.create<quake::ExpPauliOp>(loc, parameters, ValueRange{}, targets,
+                                        pauliWord);
       return true;
     }
 
