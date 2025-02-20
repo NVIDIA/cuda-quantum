@@ -27,7 +27,7 @@ struct AdjustAdjointExpPauliPattern : OpRewritePattern<quake::ExpPauliOp> {
       negp.push_back(rewriter.create<arith::NegFOp>(pauli.getLoc(),
                                                     pauli.getParameters()[0]));
     rewriter.replaceOpWithNewOp<quake::ExpPauliOp>(
-        pauli, TypeRange{}, UnitAttr{}, negp, pauli.getControls(),
+        pauli, pauli.getResultTypes(), UnitAttr{}, negp, pauli.getControls(),
         pauli.getTargets(), pauli.getNegatedQubitControlsAttr(),
         pauli.getPauli(), pauli.getPauliLiteralAttr());
     return success();

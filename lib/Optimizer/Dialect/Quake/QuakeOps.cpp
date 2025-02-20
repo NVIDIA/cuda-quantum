@@ -346,8 +346,6 @@ void printRawString(OpAsmPrinter &printer, OP refOp, Value stringVal,
     printer << rawString;
 }
 
-namespace {}
-
 void quake::ExpPauliOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
                                                     MLIRContext *context) {
   patterns.add<AdjustAdjointExpPauliPattern>(context);
