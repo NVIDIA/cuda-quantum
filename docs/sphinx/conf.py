@@ -53,7 +53,6 @@ extensions = [
     #'sphinx.ext.linkcode',
     'sphinx_reredirects',
     'breathe',
-    'sphinx_needs',
     'sphinx_tags',
     'enum_tools.autoenum',  # for pretty-print Python enums
     'myst_parser',  # for including markdown files
@@ -121,6 +120,12 @@ master_doc = 'index'
 exclude_patterns = [
     '**/_*', '.DS_Store', 'examples/python/building_kernels.ipynb'
 ]
+
+#redirect links 
+redirects = {
+    "backends/dynamics": "../dynamics.html"
+}
+
 
 # Generate OpenAPI spec for the REST API
 import ruamel.yaml
