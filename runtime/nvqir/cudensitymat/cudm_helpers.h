@@ -44,7 +44,11 @@ public:
       const std::unordered_map<std::string, std::complex<double>> &parameters,
       const operator_sum<HandlerTy> &op,
       const std::vector<int64_t> &mode_extents);
-
+  std::vector<std::pair<cudaq::scalar_operator, cudensitymatOperatorTerm_t>>
+  compute_lindblad_terms(
+      operator_sum<cudaq::matrix_operator> &collapseOp,
+      const std::vector<int64_t> &mode_extents,
+      const std::unordered_map<std::string, std::complex<double>> &parameters);
   std::vector<std::pair<cudaq::scalar_operator, cudensitymatOperatorTerm_t>>
   convert_to_cudensitymat(
       const operator_sum<cudaq::matrix_operator> &op,
