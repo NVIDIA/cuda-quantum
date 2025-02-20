@@ -1335,7 +1335,7 @@ struct InstantiateCallablePattern
     auto newSigTy =
         cast<cudaq::cc::CallableType>(getTypeConverter()->convertType(sigTy));
     rewriter.replaceOpWithNewOp<cudaq::cc::InstantiateCallableOp>(
-        op, newSigTy, op.getCallee(), op.getClosureData(),
+        op, newSigTy, op.getCallee(), adaptor.getClosureData(),
         op.getNoCaptureAttr());
     return success();
   }
@@ -1405,6 +1405,22 @@ struct CondBranchOpPattern : public OpConversionPattern<cf::CondBranchOp> {
   }
 };
 
+struct CallableClosurePattern
+    : public OpConversionPattern<cudaq::cc::CallableClosureOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(cudaq::cc::CallableClosureOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    SmallVector<Type> newTys;
+    for (auto ty : op.getResultTypes())
+      newTys.push_back(getTypeConverter()->convertType(ty));
+    rewriter.replaceOpWithNewOp<cudaq::cc::CallableClosureOp>(
+        op, newTys, adaptor.getCallable());
+    return success();
+  }
+};
+
 //===----------------------------------------------------------------------===//
 // Patterns that are common to all QIR conversions.
 //===----------------------------------------------------------------------===//
@@ -1412,13 +1428,14 @@ struct CondBranchOpPattern : public OpConversionPattern<cf::CondBranchOp> {
 static void commonClassicalHandlingPatterns(RewritePatternSet &patterns,
                                             TypeConverter &typeConverter,
                                             MLIRContext *ctx) {
-  patterns.insert<AllocaOpPattern, BranchOpPattern, CallableFuncPattern,
-                  CallCallableOpPattern, CallIndirectCallableOpPattern,
-                  CallIndirectOpPattern, CallOpPattern, CallVarargOpPattern,
-                  CastOpPattern, CondBranchOpPattern, CreateLambdaPattern,
-                  FuncConstantPattern, FuncSignaturePattern, FuncToPtrPattern,
-                  InstantiateCallablePattern, LoadOpPattern, PoisonOpPattern,
-                  StoreOpPattern, UndefOpPattern>(typeConverter, ctx);
+  patterns.insert<
+      AllocaOpPattern, BranchOpPattern, CallableClosurePattern,
+      CallableFuncPattern, CallCallableOpPattern, CallIndirectCallableOpPattern,
+      CallIndirectOpPattern, CallOpPattern, CallVarargOpPattern, CastOpPattern,
+      CondBranchOpPattern, CreateLambdaPattern, FuncConstantPattern,
+      FuncSignaturePattern, FuncToPtrPattern, InstantiateCallablePattern,
+      LoadOpPattern, PoisonOpPattern, StoreOpPattern, UndefOpPattern>(
+      typeConverter, ctx);
 }
 
 static void commonQuakeHandlingPatterns(RewritePatternSet &patterns,
@@ -1637,8 +1654,8 @@ struct QuakeToQIRAPIPass
       return !hasQuakeType(fn.getFunctionType()) &&
              (!fn->hasAttr(cudaq::kernelAttrName) || fn->hasAttr(FuncIsQIRAPI));
     });
-    target.addDynamicallyLegalOp<func::ConstantOp>([&](func::ConstantOp fn) {
-      return !hasQuakeType(fn.getResult().getType());
+    target.addDynamicallyLegalOp<func::ConstantOp>([&](func::ConstantOp op) {
+      return !hasQuakeType(op.getResult().getType());
     });
     target.addDynamicallyLegalOp<cudaq::cc::UndefOp, cudaq::cc::PoisonOp>(
         [&](Operation *op) {
@@ -1654,7 +1671,17 @@ struct QuakeToQIRAPIPass
         });
     target.addDynamicallyLegalOp<cudaq::cc::InstantiateCallableOp>(
         [&](cudaq::cc::InstantiateCallableOp op) {
+          for (auto d : op.getClosureData())
+            if (hasQuakeType(d.getType()))
+              return false;
           return !hasQuakeType(op.getSignature().getType());
+        });
+    target.addDynamicallyLegalOp<cudaq::cc::CallableClosureOp>(
+        [&](cudaq::cc::CallableClosureOp op) {
+          for (auto ty : op.getResultTypes())
+            if (hasQuakeType(ty))
+              return false;
+          return !hasQuakeType(op.getCallable().getType());
         });
     target.addDynamicallyLegalOp<cudaq::cc::AllocaOp>(
         [&](cudaq::cc::AllocaOp op) {
