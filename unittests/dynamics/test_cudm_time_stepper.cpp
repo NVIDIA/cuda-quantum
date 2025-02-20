@@ -142,10 +142,12 @@ TEST_F(CuDensityMatTimeStepperTest, TimeSteppingWithLindblad) {
   auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
   EXPECT_TRUE(castSimState != nullptr);
   castSimState->initialize_cudm(handle_, dims);
-
-  auto c_op_0 = cudaq::matrix_operator::annihilate(0);
+  cudaq::product_operator<cudaq::matrix_operator> c_op_0 =
+      cudaq::matrix_operator::annihilate(0);
+  cudaq::operator_sum<cudaq::matrix_operator> c_op(c_op_0);
+  cudaq::operator_sum<cudaq::matrix_operator> zero_op = 0.0 * c_op;
   auto cudm_lindblad_op =
-      helper_->compute_lindblad_operator({c_op_0.to_matrix({{0, 10}})}, dims);
+      helper_->construct_liouvillian(zero_op, {&c_op}, dims, {}, true);
 
   auto time_stepper = std::make_unique<cudmStepper>(handle_, cudm_lindblad_op);
   auto output_state = time_stepper->compute(input_state, 0.0, 1.0, {});

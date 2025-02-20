@@ -76,9 +76,6 @@ protected:
   using nvqir::CircuitSimulatorBase<ScalarType>::shouldObserveFromSampling;
   using nvqir::CircuitSimulatorBase<ScalarType>::summaryData;
 
-private:
-  cudensitymatHandle_t m_cudmHandle = nullptr;
-
 public:
   /// @brief The constructor
   CuDensityMatSim() {
@@ -89,12 +86,10 @@ public:
     if (cudaq::mpi::is_initialized())
       initCuDensityMatCommLib();
     HANDLE_CUDA_ERROR(cudaSetDevice(deviceId));
-    HANDLE_CUDM_ERROR(cudensitymatCreate(&m_cudmHandle));
   }
 
   /// The destructor
-  virtual ~CuDensityMatSim() { cudensitymatDestroy(m_cudmHandle); }
-  cudensitymatHandle_t getHandle() const { return m_cudmHandle; }
+  virtual ~CuDensityMatSim() {}
   std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
     return std::make_unique<cudaq::CuDensityMatState>();
   }
@@ -136,11 +131,3 @@ public:
 } // namespace
 
 NVQIR_REGISTER_SIMULATOR(CuDensityMatSim, dynamics)
-
-extern "C" {
-cudensitymatHandle_t getCudensitymatHandle() {
-  auto *sim = dynamic_cast<CuDensityMatSim *>(getCircuitSimulator_dynamics());
-  assert(sim);
-  return sim->getHandle();
-}
-}
