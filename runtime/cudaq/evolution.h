@@ -25,9 +25,9 @@ evolve_result evolve_single(
     const operator_sum<cudaq::matrix_operator> &hamiltonian,
     const std::map<int, int> &dimensions, const Schedule &schedule,
     const state &initial_state, BaseIntegrator &integrator,
-    const std::vector<operator_sum<cudaq::matrix_operator> *>
+    const std::vector<operator_sum<cudaq::matrix_operator>>
         &collapse_operators = {},
-    const std::vector<operator_sum<cudaq::matrix_operator> *> &observables = {},
+    const std::vector<operator_sum<cudaq::matrix_operator>> &observables = {},
     bool store_intermediate_results = false,
     std::optional<int> shots_count = std::nullopt);
 // class Evolution {

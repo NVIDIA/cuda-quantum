@@ -7,9 +7,9 @@
  ******************************************************************************/
 
 #pragma once
+#include "CuDensityMatOpConverter.h"
 #include <cuda_runtime.h>
 #include <cudensitymat.h>
-
 namespace cudaq {
 namespace dynamics {
 class Context {
@@ -19,7 +19,7 @@ public:
   ~Context();
 
   cudensitymatHandle_t getHandle() const { return m_cudmHandle; }
-
+  OpConverter &getOpConverter() { return *m_opConverter; }
   static Context *getCurrentContext();
   void *getScratchSpace(std::size_t minSizeBytes);
   static std::size_t getRecommendedWorkSpaceLimit();
@@ -27,6 +27,7 @@ public:
 private:
   Context(int deviceId);
   cudensitymatHandle_t m_cudmHandle;
+  std::unique_ptr<OpConverter> m_opConverter;
   int m_deviceId;
   void *m_scratchSpace{nullptr};
   std::size_t m_scratchSpaceSizeBytes{0};
