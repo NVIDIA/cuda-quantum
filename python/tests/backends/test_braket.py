@@ -26,6 +26,10 @@ def do_something():
     cudaq.reset_target()
 
 
+def assert_close(got) -> bool:
+    return got < -1.5 and got > -1.9
+
+
 def test_simple_kernel():
 
     @cudaq.kernel
@@ -249,8 +253,23 @@ def test_observe():
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
 
-    res = cudaq.observe(ansatz, hamiltonian, .59, shots_count=1)
+    res = cudaq.observe(ansatz, hamiltonian, .59, shots_count=2000)
     print(res.expectation())
+    assert assert_close(res.expectation())
+
+
+def test_observe_async():
+
+    @cudaq.kernel
+    def kernel():
+        qubits = cudaq.qvector(2)
+        x(qubits[0])
+
+    hamiltonian = spin.z(0) * spin.z(1)
+    future = cudaq.observe_async(kernel, hamiltonian, shots_count=1)
+    result = future.get()
+    print(result.expectation())
+    assert result.expectation() == -1.0
 
 
 def test_custom_operations():
