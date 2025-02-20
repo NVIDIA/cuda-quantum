@@ -18,14 +18,10 @@ namespace cudaq {
 // private helpers
 
 std::string spin_operator::op_code_to_string() const {
-  if (this->op_code == 1)
-    return "Z";
-  else if (this->op_code == 2)
-    return "X";
-  else if (this->op_code == 3)
-    return "Y";
-  else
-    return "I";
+  if (this->op_code == 1) return "Z";
+  if (this->op_code == 2) return "X";
+  if (this->op_code == 3) return "Y";
+  return "I";
 }
 
 std::complex<double> spin_operator::inplace_mult(const spin_operator &other) {
