@@ -6,15 +6,14 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "CuDensityMatContext.h"
 #include "CuDensityMatState.h"
 #include "cudm_time_stepper.h"
 #include "test_mocks.h"
 #include <cudm_error_handling.h>
-#include <cudm_helpers.h>
 #include <gtest/gtest.h>
 #include <iostream>
 #include <memory>
-
 using namespace cudaq;
 
 class CuDensityMatTimeStepperTest : public ::testing::Test {
@@ -23,14 +22,10 @@ protected:
   cudensitymatOperator_t liouvillian_;
   std::unique_ptr<cudmStepper> time_stepper_;
   cudaq::state state_ = cudaq::state(nullptr);
-  std::unique_ptr<cudm_helper> helper_;
 
   void SetUp() override {
     // Create library handle
     HANDLE_CUDM_ERROR(cudensitymatCreate(&handle_));
-
-    // Create helper
-    helper_ = std::make_unique<cudm_helper>(handle_);
 
     // Create a mock Liouvillian
     liouvillian_ = mock_liouvillian(handle_);
@@ -115,9 +110,10 @@ TEST_F(CuDensityMatTimeStepperTest, ComputeStepCheckOutput) {
   cudaq::product_operator<cudaq::boson_operator> op_1 =
       cudaq::boson_operator::create(0);
   cudaq::operator_sum<cudaq::matrix_operator> op(op_1);
-  auto cudmOp =
-      helper_->convert_to_cudensitymat_operator<cudaq::matrix_operator>(
-          {}, op, dims); // Initialize the time stepper
+  auto cudmOp = cudaq::dynamics::Context::getCurrentContext()
+                    ->getOpConverter()
+                    .convertToCudensitymatOperator(
+                        {}, op, dims); // Initialize the time stepper
   auto time_stepper = std::make_unique<cudmStepper>(handle_, cudmOp);
   auto outputState = time_stepper->compute(inputState, 0.0, 1.0, {});
 
@@ -149,16 +145,15 @@ TEST_F(CuDensityMatTimeStepperTest, TimeSteppingWithLindblad) {
   cudaq::operator_sum<cudaq::matrix_operator> c_op(c_op_0);
   cudaq::operator_sum<cudaq::matrix_operator> zero_op = 0.0 * c_op;
   auto cudm_lindblad_op =
-      helper_->construct_liouvillian(zero_op, {&c_op}, dims, {}, true);
+      cudaq::dynamics::Context::getCurrentContext()
+          ->getOpConverter()
+          .constructLiouvillian(zero_op, {c_op}, dims, {}, true);
 
   auto time_stepper = std::make_unique<cudmStepper>(handle_, cudm_lindblad_op);
   auto output_state = time_stepper->compute(input_state, 0.0, 1.0, {});
 
   std::vector<std::complex<double>> output_state_vec(100);
   output_state.to_host(output_state_vec.data(), output_state_vec.size());
-
-  helper_->print_complex_vector(output_state_vec);
-
   EXPECT_NEAR(
       std::abs(output_state_vec[4 * 10 + 4] - std::complex<double>(5.0, 0.0)),
       0.0, 1e-12);
@@ -196,9 +191,9 @@ TEST_F(CuDensityMatTimeStepperTest, CheckScalarCallback) {
   cudaq::product_operator<cudaq::matrix_operator> op_t =
       cudaq::scalar_operator(function) * cudaq::boson_operator::create(0);
   cudaq::operator_sum<cudaq::matrix_operator> op(op_t);
-  auto cudmOp =
-      helper_->convert_to_cudensitymat_operator<cudaq::matrix_operator>(
-          params, op, dims);
+  auto cudmOp = cudaq::dynamics::Context::getCurrentContext()
+                    ->getOpConverter()
+                    .convertToCudensitymatOperator(params, op, dims);
   // Initialize the time stepper
   auto time_stepper = std::make_unique<cudmStepper>(handle_, cudmOp);
   auto outputState = time_stepper->compute(inputState, 1.0, 1.0, params);
@@ -254,9 +249,9 @@ TEST_F(CuDensityMatTimeStepperTest, CheckTensorCallback) {
 
   matrix_operator::define("CustomTensorOp", {2}, tensorFunction);
   auto op = cudaq::matrix_operator::instantiate("CustomTensorOp", {0});
-  auto cudmOp =
-      helper_->convert_to_cudensitymat_operator<cudaq::matrix_operator>(
-          params, op, dims);
+  auto cudmOp = cudaq::dynamics::Context::getCurrentContext()
+                    ->getOpConverter()
+                    .convertToCudensitymatOperator(params, op, dims);
   // Initialize the time stepper
   auto time_stepper = std::make_unique<cudmStepper>(handle_, cudmOp);
   auto outputState = time_stepper->compute(inputState, 1.0, 1.0, params);
@@ -271,4 +266,83 @@ TEST_F(CuDensityMatTimeStepperTest, CheckTensorCallback) {
     EXPECT_TRUE(std::abs(expectedOutputState[i] - outputStateVec[i]) < 1e-12);
   }
   HANDLE_CUDM_ERROR(cudensitymatDestroyOperator(cudmOp));
+}
+
+TEST_F(CuDensityMatTimeStepperTest, ComputeOperatorOrder) {
+  const std::vector<std::complex<double>> initialState = {
+      {1.0, 0.0}, {1.0, 0.0}, {1.0, 0.0}, {1.0, 0.0}};
+  const std::vector<int64_t> dims = {4};
+  auto inputState = cudaq::state::from_data(initialState);
+  auto *simState = cudaq::state_helper::getSimulationState(&inputState);
+  auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
+  EXPECT_TRUE(castSimState != nullptr);
+  castSimState->initialize_cudm(handle_, dims);
+
+  cudaq::product_operator<cudaq::matrix_operator> op_t =
+      cudaq::boson_operator::create(0) *
+      cudaq::boson_operator::annihilate(0); // a_dagger * a
+  cudaq::operator_sum<cudaq::matrix_operator> op(op_t);
+  const auto opMat = op.to_matrix({{0, 4}});
+
+  std::cout << "Op matrix:\n" << opMat.dump() << "\n";
+  auto cudmOp = cudaq::dynamics::Context::getCurrentContext()
+                    ->getOpConverter()
+                    .convertToCudensitymatOperator(
+                        {}, op, dims); // Initialize the time stepper
+  auto time_stepper = std::make_unique<cudmStepper>(handle_, cudmOp);
+  auto outputState = time_stepper->compute(inputState, 0.0, 1.0, {});
+  std::vector<std::complex<double>> expectedOutputStateVec(4);
+  // Diagonal elements
+  for (std::size_t i = 0; i < expectedOutputStateVec.size(); ++i)
+    expectedOutputStateVec[i] = opMat[{i, i}];
+
+  std::vector<std::complex<double>> outputStateVec(4);
+  outputState.to_host(outputStateVec.data(), outputStateVec.size());
+  HANDLE_CUDM_ERROR(cudensitymatDestroyOperator(cudmOp));
+  for (std::size_t i = 0; i < expectedOutputStateVec.size(); ++i) {
+    std::cout << "Result = " << outputStateVec[i]
+              << "; vs. expected = " << expectedOutputStateVec[i] << "\n";
+    EXPECT_TRUE(std::abs(expectedOutputStateVec[i] - outputStateVec[i]) <
+                1e-12);
+  }
+}
+
+TEST_F(CuDensityMatTimeStepperTest, ComputeOperatorOrderDensityMatrix) {
+  constexpr int N = 4;
+  const std::vector<std::complex<double>> initialState(N * N, 1.0);
+  const std::vector<int64_t> dims = {N};
+  auto inputState = cudaq::state::from_data(initialState);
+  auto *simState = cudaq::state_helper::getSimulationState(&inputState);
+  auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
+  EXPECT_TRUE(castSimState != nullptr);
+  castSimState->initialize_cudm(handle_, dims);
+
+  cudaq::product_operator<cudaq::matrix_operator> op_t =
+      cudaq::boson_operator::create(0) *
+      cudaq::boson_operator::annihilate(0); // a_dagger * a
+  cudaq::operator_sum<cudaq::matrix_operator> op(op_t);
+  const auto opMat = op.to_matrix({{0, N}});
+  cudaq::matrix_2 rho = cudaq::matrix_2::identity(N);
+  for (std::size_t col = 0; col < N; ++col)
+    for (std::size_t row = 0; row < N; ++row)
+      rho[{row, col}] = 1.0;
+  const auto expectedResult =
+      std::complex<double>(0.0, -1.0) * (opMat * rho - rho * opMat);
+  std::cout << "Expected result:\n" << expectedResult.dump() << "\n";
+  auto cudmOp = cudaq::dynamics::Context::getCurrentContext()
+                    ->getOpConverter()
+                    .constructLiouvillian(op, {}, dims, {}, true);
+  auto time_stepper = std::make_unique<cudmStepper>(handle_, cudmOp);
+  auto outputState = time_stepper->compute(inputState, 0.0, 1.0, {});
+  std::vector<std::complex<double>> outputStateVec(initialState.size());
+  outputState.to_host(outputStateVec.data(), outputStateVec.size());
+  HANDLE_CUDM_ERROR(cudensitymatDestroyOperator(cudmOp));
+  for (std::size_t i = 0; i < outputStateVec.size(); ++i) {
+    const auto col = i / N;
+    const auto row = i % N;
+    std::cout << "Result = " << outputStateVec[i]
+              << "; vs. expected = " << expectedResult[{row, col}] << "\n";
+    EXPECT_TRUE(std::abs(outputStateVec[i] - expectedResult[{row, col}]) <
+                1e-12);
+  }
 }

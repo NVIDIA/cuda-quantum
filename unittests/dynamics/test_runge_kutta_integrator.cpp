@@ -8,7 +8,6 @@
 
 #include "CuDensityMatState.h"
 #include "cudaq/dynamics_integrators.h"
-#include "cudm_helpers.h"
 #include "cudm_time_stepper.h"
 #include "test_mocks.h"
 #include <cmath>
@@ -57,7 +56,6 @@ TEST_F(RungeKuttaIntegratorTest, Initialization) {
 }
 
 TEST_F(RungeKuttaIntegratorTest, CheckEvolve) {
-  cudm_helper helper(handle_);
   const std::vector<std::complex<double>> initialStateVec = {{1.0, 0.0},
                                                              {0.0, 0.0}};
   const std::vector<int64_t> dims = {2};

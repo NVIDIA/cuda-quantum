@@ -10,8 +10,7 @@
 #include "CuDensityMatContext.h"
 #include "common/Logger.h"
 #include "cudm_error_handling.h"
-#include "cudm_helpers.h"
-
+#include "CuDensityMatUtils.h"
 namespace cudaq {
 cudm_expectation::cudm_expectation(cudensitymatHandle_t handle,
                                    cudensitymatOperator_t op)
@@ -54,7 +53,7 @@ std::complex<double> cudm_expectation::compute(cudensitymatState_t state,
         CUDENSITYMAT_WORKSPACE_SCRATCH, workspaceBuffer, requiredBufferSize));
   }
 
-  auto *expectationValue_d = cudm_helper::create_array_gpu(
+  auto *expectationValue_d = cudaq::dynamics::createArrayGpu(
       std::vector<std::complex<double>>(1, {0.0, 0.0}));
   HANDLE_CUDM_ERROR(cudensitymatExpectationCompute(
       m_handle, m_expectation, time, 0, nullptr, state, expectationValue_d,
@@ -63,7 +62,7 @@ std::complex<double> cudm_expectation::compute(cudensitymatState_t state,
   HANDLE_CUDA_ERROR(cudaMemcpy(&result, expectationValue_d,
                                sizeof(std::complex<double>),
                                cudaMemcpyDefault));
-  cudm_helper::destroy_array_gpu(expectationValue_d);
+  cudaq::dynamics::destroyArrayGpu(expectationValue_d);
   return result;
 }
 } // namespace cudaq
