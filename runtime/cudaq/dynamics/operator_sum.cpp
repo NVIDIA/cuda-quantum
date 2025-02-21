@@ -80,7 +80,7 @@ EvaluatedMatrix operator_sum<HandlerTy>::m_evaluate(
         }
       }
       product_operator<HandlerTy> prod(1, std::move(prod_ops));
-      prod *= term; // ensures canonical ordering
+      prod *= term; // ensures canonical ordering (if possible)
       return prod;
   };
 
