@@ -69,8 +69,9 @@ void invokeWithControlQubits(const std::size_t nControls,
 void __quantum__qis__apply__general_qubit_array(Array *data, Array *qubits);
 void __quantum__qis__apply__general(Array *data, int64_t n_qubits, ...);
 
-void __quantum__qis__apply_kraus_channel(long key, double *params,
-                                         std::size_t numParams, Array *qubits);
+void __quantum__qis__apply_kraus_channel_generalized(
+    std::int64_t krausChannelKey, std::size_t numSpans, std::size_t numParams,
+    std::size_t numTargets, ...);
 
 // Qubit array allocation / deallocation
 Array *__quantum__rt__qubit_allocate_array(uint64_t idx);
@@ -623,8 +624,9 @@ CUDAQ_TEST(NVQIRTester, checkKrausApply) {
       __quantum__rt__array_get_element_ptr_1d(qubits, 0));
 
   __quantum__qis__x(q);
-  __quantum__qis__apply_kraus_channel(test::hello::hello_world::get_key(),
-                                      params.data(), params.size(), qubits);
+  __quantum__qis__apply_kraus_channel_generalized(
+      test::hello::hello_world::get_key(), 1, 0, 1, params.data(),
+      params.size(), qubits);
 
   __quantum__rt__qubit_release_array(qubits);
   __quantum__rt__resetExecutionContext();

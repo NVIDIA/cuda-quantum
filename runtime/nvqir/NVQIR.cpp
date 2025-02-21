@@ -619,25 +619,9 @@ static std::vector<std::size_t> safeArrayToVectorSizeT(Array *arr) {
   return arrayToVectorSizeT(arr);
 }
 
-void __quantum__qis__custom_unitary(std::complex<double> *unitary,
-                                    Array *controls, Array *targets,
-                                    const char *name) {
-  auto ctrlsVec = safeArrayToVectorSizeT(controls);
-  auto tgtsVec = arrayToVectorSizeT(targets);
-  auto numQubits = tgtsVec.size();
-  if (numQubits >= 64)
-    throw std::invalid_argument("Too many qubits (>=64), not supported");
-  auto nToPowTwo = (1ULL << numQubits);
-  auto numElements = nToPowTwo * nToPowTwo;
-  std::vector<std::complex<double>> unitaryMatrix(unitary,
-                                                  unitary + numElements);
-  nvqir::getCircuitSimulatorInternal()->applyCustomOperation(
-      unitaryMatrix, ctrlsVec, tgtsVec, name);
-}
-
-void __quantum__qis__apply_kraus_channel(std::int64_t krausChannelKey,
-                                         double *params, std::size_t numParams,
-                                         Array *qubits) {
+static void __quantum__qis__apply_kraus_channel_double(
+    std::int64_t krausChannelKey, double *params, std::size_t numParams,
+    Array *qubits) {
 
   auto *ctx = nvqir::getCircuitSimulatorInternal()->getExecutionContext();
   if (!ctx)
@@ -648,6 +632,25 @@ void __quantum__qis__apply_kraus_channel(std::int64_t krausChannelKey,
     return;
 
   std::vector<double> paramVec(params, params + numParams);
+  auto channel = noise->get_channel(krausChannelKey, paramVec);
+  nvqir::getCircuitSimulatorInternal()->applyNoise(channel,
+                                                   arrayToVectorSizeT(qubits));
+}
+
+static void
+__quantum__qis__apply_kraus_channel_float(std::int64_t krausChannelKey,
+                                          float *params, std::size_t numParams,
+                                          Array *qubits) {
+
+  auto *ctx = nvqir::getCircuitSimulatorInternal()->getExecutionContext();
+  if (!ctx)
+    return;
+
+  auto *noise = ctx->noiseModel;
+  if (!noise)
+    return;
+
+  std::vector<float> paramVec(params, params + numParams);
   auto channel = noise->get_channel(krausChannelKey, paramVec);
   nvqir::getCircuitSimulatorInternal()->applyNoise(channel,
                                                    arrayToVectorSizeT(qubits));
@@ -702,8 +705,24 @@ void __quantum__qis__apply_kraus_channel_generalized(
     qubits[i] = qubitToSizeT(qbPtr);
   }
   auto *asArray = vectorSizetToArray(qubits);
-  __quantum__qis__apply_kraus_channel(krausChannelKey, params, totalParams,
-                                      asArray);
+  __quantum__qis__apply_kraus_channel_double(krausChannelKey, params,
+                                             totalParams, asArray);
+}
+
+void __quantum__qis__custom_unitary(std::complex<double> *unitary,
+                                    Array *controls, Array *targets,
+                                    const char *name) {
+  auto ctrlsVec = safeArrayToVectorSizeT(controls);
+  auto tgtsVec = arrayToVectorSizeT(targets);
+  auto numQubits = tgtsVec.size();
+  if (numQubits >= 64)
+    throw std::invalid_argument("Too many qubits (>=64), not supported");
+  auto nToPowTwo = (1ULL << numQubits);
+  auto numElements = nToPowTwo * nToPowTwo;
+  std::vector<std::complex<double>> unitaryMatrix(unitary,
+                                                  unitary + numElements);
+  nvqir::getCircuitSimulatorInternal()->applyCustomOperation(
+      unitaryMatrix, ctrlsVec, tgtsVec, name);
 }
 
 void __quantum__qis__custom_unitary__adj(std::complex<double> *unitary,

@@ -61,10 +61,11 @@ void bindNoiseModel(py::module &mod) {
           "register_channel",
           [](noise_model &self, const py::type krausT) {
             auto key = py::hash(krausT);
-            self.register_channel(
-                key, [krausT](const std::vector<double> &p) -> kraus_channel {
-                  return krausT(p).cast<kraus_channel>();
-                });
+            std::function<kraus_channel(const std::vector<double> &)> lambda =
+                [krausT](const std::vector<double> &p) -> kraus_channel {
+              return krausT(p).cast<kraus_channel>();
+            };
+            self.register_channel(key, lambda);
           },
           "")
       .def(

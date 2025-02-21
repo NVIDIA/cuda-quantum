@@ -9,12 +9,12 @@
 #pragma once
 
 #include "cudaq/host_config.h"
-
 #include <array>
 #include <complex>
 #include <functional>
 #include <math.h>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 namespace cudaq::details {
@@ -292,8 +292,10 @@ protected:
       "x", "y", "z", "h", "s", "t", "rx", "ry", "rz", "r1", "u3", "mz"};
 
   // User registered kraus channels for fine grain application
-  std::unordered_map<std::intptr_t,
-                     std::function<kraus_channel(const std::vector<double> &)>>
+  std::unordered_map<
+      std::intptr_t,
+      std::variant<std::function<kraus_channel(const std::vector<float> &)>,
+                   std::function<kraus_channel(const std::vector<double> &)>>>
       registeredChannels;
 
 public:
@@ -327,27 +329,29 @@ public:
   template <typename T, typename... Args>
   using requires_constructor =
       std::enable_if_t<std::is_constructible_v<T, Args...>>;
+
   template <typename KrausChannelT,
             typename = requires_constructor<KrausChannelT,
-                                            const std::vector<double> &>>
+                                            const std::vector<cudaq::real> &>>
   void register_channel() {
     registeredChannels.insert(
         {KrausChannelT::get_key(),
-         [](const std::vector<double> &params) -> kraus_channel {
+         [](const std::vector<cudaq::real> &params) -> kraus_channel {
            KrausChannelT userChannel(params);
            userChannel.parameters = params;
            return userChannel;
          }});
   }
 
+  template <typename REAL>
   void register_channel(
       std::intptr_t key,
-      const std::function<kraus_channel(const std::vector<double> &)> &gen) {
+      const std::function<kraus_channel(const std::vector<REAL> &)> &gen) {
     registeredChannels.insert({key, gen});
   }
 
-  template <typename T>
-  kraus_channel get_channel(const std::vector<double> &params) const {
+  template <typename T, typename REAL>
+  kraus_channel get_channel(const std::vector<REAL> &params) const {
     auto iter = registeredChannels.find(T::get_key());
     // per spec - caller provides noise model, but channel not registered,
     // warning generated, no channel application.
@@ -356,17 +360,20 @@ public:
                     "noise_model. skipping channel application.");
       return kraus_channel();
     }
-    return iter->second(params);
+    return std::get<std::function<kraus_channel(const std::vector<REAL> &)>>(
+        iter->second)(params);
   }
 
   // de-mangled name (with namespaces) for NVQIR C API
+  template <typename REAL>
   kraus_channel get_channel(const std::intptr_t &key,
-                            const std::vector<double> &params) const {
+                            const std::vector<REAL> &params) const {
     auto iter = registeredChannels.find(key);
     if (iter == registeredChannels.end())
       throw std::runtime_error(
           "kraus channel not registered with this noise_model.");
-    return iter->second(params);
+    return std::get<std::function<kraus_channel(const std::vector<REAL> &)>>(
+        iter->second)(params);
   }
 
   /// @brief Add the Kraus channel that applies to a quantum operation on any
