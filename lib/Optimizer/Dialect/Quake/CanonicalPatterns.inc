@@ -15,6 +15,25 @@
 
 namespace {
 
+struct AdjustAdjointExpPauliPattern : OpRewritePattern<quake::ExpPauliOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::ExpPauliOp pauli,
+                                PatternRewriter &rewriter) const override {
+    if (!pauli.isAdj())
+      return failure();
+    SmallVector<Value> negp;
+    if (!pauli.getParameters().empty())
+      negp.push_back(rewriter.create<arith::NegFOp>(pauli.getLoc(),
+                                                    pauli.getParameters()[0]));
+    rewriter.replaceOpWithNewOp<quake::ExpPauliOp>(
+        pauli, pauli.getResultTypes(), UnitAttr{}, negp, pauli.getControls(),
+        pauli.getTargets(), pauli.getNegatedQubitControlsAttr(),
+        pauli.getPauli(), pauli.getPauliLiteralAttr());
+    return success();
+  }
+};
+
 // %4 = quake.veq_size %3 : (!quake.veq<10>) -> 164
 // ────────────────────────────────────────────────
 // %4 = constant 10 : i64

@@ -771,24 +771,86 @@ struct CustomUnitaryOpPattern
   }
 };
 
-struct ExpPauliOpPattern : public OpConversionPattern<quake::ExpPauliOp> {
-  using OpConversionPattern::OpConversionPattern;
+template <typename M>
+struct ExpPauliOpPattern
+    : public QubitHelperConversionPattern<M, quake::ExpPauliOp> {
+  using Base = QubitHelperConversionPattern<M, quake::ExpPauliOp>;
+  using Base::Base;
 
   LogicalResult
-  matchAndRewrite(quake::ExpPauliOp pauli, OpAdaptor adaptor,
+  matchAndRewrite(quake::ExpPauliOp pauli, Base::OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = pauli.getLoc();
-    SmallVector<Value> operands = adaptor.getOperands();
+    // Make sure that apply-control-negations pass was run.
+    if (adaptor.getNegatedQubitControls())
+      return pauli->emitOpError("negated control qubits not allowed.");
+    SmallVector<Value> controls;
+    if (adaptor.getControls().empty()) {
+      // do nothing
+    } else if (adaptor.getControls().size() > 1 ||
+               !isa<quake::VeqType>(adaptor.getControls().front().getType())) {
+      // Concat all controls into a single Array.
+      Type arrayTy = M::getArrayType(rewriter.getContext());
+      Value firstOperand = adaptor.getControls().front();
+      Value resultArray = Base::wrapQubitAsArray(loc, rewriter, firstOperand);
+      for (auto next : adaptor.getControls().drop_front()) {
+        Value wrapNext = Base::wrapQubitAsArray(loc, rewriter, next);
+        auto appended = rewriter.create<func::CallOp>(
+            loc, arrayTy, cudaq::opt::QIRArrayConcatArray,
+            ArrayRef<Value>{resultArray, wrapNext});
+        resultArray = appended.getResult(0);
+      }
+      controls.push_back(resultArray);
+    } else {
+      controls.push_back(adaptor.getControls().front());
+    }
+    SmallVector<Value> targets;
+    if (adaptor.getTargets().size() > 1 ||
+        !isa<quake::VeqType>(adaptor.getTargets().front().getType())) {
+      // Concat all targets into a single Array.
+      Type arrayTy = M::getArrayType(rewriter.getContext());
+      Value firstOperand = adaptor.getTargets().front();
+      Value resultArray = Base::wrapQubitAsArray(loc, rewriter, firstOperand);
+      for (auto next : adaptor.getTargets().drop_front()) {
+        Value wrapNext = Base::wrapQubitAsArray(loc, rewriter, next);
+        auto appended = rewriter.create<func::CallOp>(
+            loc, arrayTy, cudaq::opt::QIRArrayConcatArray,
+            ArrayRef<Value>{resultArray, wrapNext});
+        resultArray = appended.getResult(0);
+      }
+      targets.push_back(resultArray);
+    } else {
+      targets.push_back(adaptor.getTargets().front());
+    }
 
-    // First need to check the type of the Pauli word. We expect
-    // a pauli_word directly `{i8*,i64}` or a string literal
-    // `ptr<i8>`. If it is a string literal, we need to map it to
-    // a pauli word.
-    auto pauliWord = operands.back();
+    SmallVector<Value> operands;
+    auto qirFunctionName = M::quakeToFuncName(pauli);
+    if (pauli.isAdj()) {
+      for (auto v : adaptor.getParameters())
+        operands.push_back(rewriter.create<arith::NegFOp>(loc, v));
+    } else {
+      operands.append(adaptor.getParameters().begin(),
+                      adaptor.getParameters().end());
+    }
+    operands.append(controls.begin(), controls.end());
+    operands.append(targets.begin(), targets.end());
+
+    auto pauliWord = [&]() -> Value {
+      if (auto pauliLiteral = pauli.getPauliLiteralAttr())
+        return createGlobalCString(pauli, loc, rewriter,
+                                   pauliLiteral.getValue());
+      return adaptor.getPauli();
+    }();
+
+    operands.push_back(pauliWord);
+
+    // First need to check the type of the Pauli word. We expect a pauli_word
+    // directly `{i8*,i64}` or a string literal `ptr<i8>`. If it is a string
+    // literal, we need to map it to a pauli word.
     auto i8PtrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
     if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(pauliWord.getType())) {
-      // Make sure we have the right types to extract the
-      // length of the string literal
+      // Make sure we have the right types to extract the length of the string
+      // literal
       auto arrayTy = dyn_cast<cudaq::cc::ArrayType>(ptrTy.getElementType());
       if (!arrayTy)
         return pauli.emitOpError(
@@ -827,15 +889,15 @@ struct ExpPauliOpPattern : public OpConversionPattern<quake::ExpPauliOp> {
       auto castedStore =
           rewriter.create<cudaq::cc::CastOp>(loc, i8PtrTy, alloca);
       operands.back() = castedStore;
-      rewriter.replaceOpWithNewOp<func::CallOp>(
-          pauli, TypeRange{}, cudaq::opt::QIRExpPauli, operands);
+      rewriter.replaceOpWithNewOp<func::CallOp>(pauli, TypeRange{},
+                                                qirFunctionName, operands);
       return success();
     }
 
-    // Here we know we have a pauli word expressed as `{i8*, i64}`.
-    // Allocate a stack slot for it and store what we have to that pointer,
-    // pass the pointer to NVQIR
-    auto newPauliWord = adaptor.getOperands().back();
+    // Here we know we have a pauli word expressed as `{i8*, i64}`. Allocate a
+    // stack slot for it and store what we have to that pointer, pass the
+    // pointer to NVQIR.
+    auto newPauliWord = pauliWord;
     auto newPauliWordTy = newPauliWord.getType();
     Value alloca =
         cudaq::opt::factory::createTemporary(loc, rewriter, newPauliWordTy);
@@ -844,8 +906,8 @@ struct ExpPauliOpPattern : public OpConversionPattern<quake::ExpPauliOp> {
     rewriter.create<cudaq::cc::StoreOp>(loc, newPauliWord, castedVar);
     auto castedPauli = rewriter.create<cudaq::cc::CastOp>(loc, i8PtrTy, alloca);
     operands.back() = castedPauli;
-    rewriter.replaceOpWithNewOp<func::CallOp>(
-        pauli, TypeRange{}, cudaq::opt::QIRExpPauli, operands);
+    rewriter.replaceOpWithNewOp<func::CallOp>(pauli, TypeRange{},
+                                              qirFunctionName, operands);
     return success();
   }
 };
@@ -906,10 +968,10 @@ struct MeasurementOpPattern : public OpConversionPattern<quake::MzOp> {
       auto cstringGlobal =
           createGlobalCString(mz, loc, rewriter, regNameAttr.getValue());
       if constexpr (!M::discriminateToClassical) {
-        // These QIR profile variants force all record output calls to appear at
-        // the end. In these variants, control-flow isn't allowed in the final
-        // LLVM. Therefore, a single basic block is assumed but unchecked here
-        // as the verifier will raise an error.
+        // These QIR profile variants force all record output calls to appear
+        // at the end. In these variants, control-flow isn't allowed in the
+        // final LLVM. Therefore, a single basic block is assumed but unchecked
+        // here as the verifier will raise an error.
         rewriter.setInsertionPoint(rewriter.getBlock()->getTerminator());
       }
       auto recOut = rewriter.create<func::CallOp>(
@@ -976,9 +1038,9 @@ struct AnnotateKernelsWithMeasurementStringsPattern
     // and the passthrough attribute does *not* have an output names entry.
     //
     // OUTPUT-NAME-MAP: At this point, we will try to heroically generate the
-    // output names attribute for the QIR consumer. The content of the attribute
-    // is a map from results back to pairs of qubits and names. The map is
-    // encoded in a JSON string. The map is appended to the passthrough
+    // output names attribute for the QIR consumer. The content of the
+    // attribute is a map from results back to pairs of qubits and names. The
+    // map is encoded in a JSON string. The map is appended to the passthrough
     // attribute array.
 
     std::map<std::size_t, std::size_t> measMap;
@@ -1083,9 +1145,9 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
     // Otherwise, we'll use the generalized invoke helper function. This
     // function takes 4 size_t values, which delimit the different argument
     // types, a pointer to the function to be invoked, and varargs of all the
-    // arguments being used. This function's signature is tuned so as to reduce
-    // or eliminate the creation of auxiliary temporaries needs to make the
-    // call to the helper.
+    // arguments being used. This function's signature is tuned so as to
+    // reduce or eliminate the creation of auxiliary temporaries needs to make
+    // the call to the helper.
     std::size_t numArrayCtrls = 0;
     SmallVector<Value> opArrCtrls;
     std::size_t numQubitCtrls = 0;
@@ -1184,8 +1246,8 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
 
   static StringRef specializeFunctionName(OP op, StringRef funcName,
                                           std::size_t numCtrls) {
-    // Last resort to change the names of particular functions from the general
-    // scheme to specialized names under the right conditions.
+    // Last resort to change the names of particular functions from the
+    // general scheme to specialized names under the right conditions.
     if constexpr (std::is_same_v<OP, quake::XOp> && M::convertToCNot) {
       if (numCtrls == 1)
         return cudaq::opt::QIRCnot;
@@ -1479,7 +1541,7 @@ struct FullQIR {
         QmemRAIIOpRewrite<Self>, SubveqOpRewrite<Self>,
 
         /* Irregular quantum operators. */
-        CustomUnitaryOpPattern<Self>, ExpPauliOpPattern,
+        CustomUnitaryOpPattern<Self>, ExpPauliOpPattern<Self>,
         MeasurementOpPattern<Self>, ResetOpPattern<Self>,
 
         /* Regular quantum operators. */
@@ -1546,7 +1608,8 @@ struct AnyProfileQIR {
         SubveqOpRewrite<Self>,
 
         /* Irregular quantum operators. */
-        CustomUnitaryOpPattern<Self>, ExpPauliOpPattern, ResetOpPattern<Self>,
+        CustomUnitaryOpPattern<Self>, ExpPauliOpPattern<Self>,
+        ResetOpPattern<Self>,
 
         /* Regular quantum operators. */
         QuantumGatePattern<Self, quake::HOp>,
@@ -1825,10 +1888,10 @@ struct QuakeToQIRAPIPrepPass
 
         // Recursive walk in func.
         func.walk([&](Operation *op) {
-          // Annotate all qubit allocations with the starting qubit index value.
-          // This ought to handle both reference and value semantics. If the
-          // value semantics is using wire sets, no (redundant) annotation is
-          // needed.
+          // Annotate all qubit allocations with the starting qubit index
+          // value. This ought to handle both reference and value semantics. If
+          // the value semantics is using wire sets, no (redundant) annotation
+          // is needed.
           if (auto alloc = dyn_cast<quake::AllocaOp>(op)) {
             auto allocTy = alloc.getType();
             if (isa<quake::RefType>(allocTy)) {
