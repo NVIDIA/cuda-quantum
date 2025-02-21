@@ -58,53 +58,73 @@ product_operator<HandlerTy>::find_insert_at(const HandlerTy &other) const {
       .base(); // base causes insert after for reverse iterator
 }
 
-template<>
-std::vector<matrix_operator>::const_iterator product_operator<matrix_operator>::find_insert_at(const matrix_operator &other) const {
-  // the logic below just ensures that terms are fully or partially ordered in canonical order -
-  // a best effort is made to order terms, but a full canonical ordering is not possible for certain handlers
-  return std::find_if(this->operators.crbegin(), this->operators.crend(), 
-              [&other_degrees = static_cast<const std::vector<int>&>(other.degrees())] 
-              (const matrix_operator& self_op) { 
-    const std::vector<int> &self_op_degrees = self_op.degrees();
-    for (auto other_degree : other_degrees) {
-      auto item_it = std::find_if(self_op_degrees.crbegin(), self_op_degrees.crend(), 
-        [other_degree](int self_degree) { return other_degree <= self_degree; }); // FIXME: depends on canonical order (otherwise matrix computation is rather inefficient)
-      if (item_it != self_op_degrees.crend()) return true;
-    }
-    return false;
-  }).base(); // base causes insert after for reverse iterator
+template <>
+std::vector<matrix_operator>::const_iterator
+product_operator<matrix_operator>::find_insert_at(
+    const matrix_operator &other) const {
+  // the logic below just ensures that terms are fully or partially ordered in
+  // canonical order - a best effort is made to order terms, but a full
+  // canonical ordering is not possible for certain handlers
+  return std::find_if(
+             this->operators.crbegin(), this->operators.crend(),
+             [&other_degrees = static_cast<const std::vector<int> &>(
+                  other.degrees())](const matrix_operator &self_op) {
+               const std::vector<int> &self_op_degrees = self_op.degrees();
+               for (auto other_degree : other_degrees) {
+                 auto item_it = std::find_if(
+                     self_op_degrees.crbegin(), self_op_degrees.crend(),
+                     [other_degree](int self_degree) {
+                       return other_degree <= self_degree;
+                     }); // FIXME: depends on canonical order (otherwise matrix
+                         // computation is rather inefficient)
+                 if (item_it != self_op_degrees.crend())
+                   return true;
+               }
+               return false;
+             })
+      .base(); // base causes insert after for reverse iterator
 }
 
-template<typename HandlerTy>
-template<typename T, std::enable_if_t<std::is_same<HandlerTy, T>::value && 
-                                      !product_operator<T>::supports_inplace_mult, std::false_type>>
-void product_operator<HandlerTy>::insert(T &&other) {  
+template <typename HandlerTy>
+template <typename T,
+          std::enable_if_t<std::is_same<HandlerTy, T>::value &&
+                               !product_operator<T>::supports_inplace_mult,
+                           std::false_type>>
+void product_operator<HandlerTy>::insert(T &&other) {
   auto pos = this->find_insert_at(other);
   this->operators.insert(pos, other);
 }
 
-template<typename HandlerTy>
-template<typename T, std::enable_if_t<std::is_same<HandlerTy, T>::value && 
-                                      product_operator<T>::supports_inplace_mult, std::true_type>>
+template <typename HandlerTy>
+template <typename T,
+          std::enable_if_t<std::is_same<HandlerTy, T>::value &&
+                               product_operator<T>::supports_inplace_mult,
+                           std::true_type>>
 void product_operator<HandlerTy>::insert(T &&other) {
   auto pos = this->find_insert_at(other);
   if (pos != this->operators.begin() && (pos - 1)->target == other.target) {
-    auto it = this->operators.erase(pos - 1, pos - 1); // erase: constant time conversion to non-const iterator
+    auto it = this->operators.erase(
+        pos - 1,
+        pos - 1); // erase: constant time conversion to non-const iterator
     it->inplace_mult(other);
-  }
-  else this->operators.insert(pos, std::move(other));
+  } else
+    this->operators.insert(pos, std::move(other));
 }
 
-template<>
-template<typename T, std::enable_if_t<std::is_same<spin_operator, T>::value && 
-                                      product_operator<T>::supports_inplace_mult, std::true_type>>
+template <>
+template <typename T,
+          std::enable_if_t<std::is_same<spin_operator, T>::value &&
+                               product_operator<T>::supports_inplace_mult,
+                           std::true_type>>
 void product_operator<spin_operator>::insert(T &&other) {
   auto pos = this->find_insert_at(other);
   if (pos != this->operators.begin() && (pos - 1)->target == other.target) {
-    auto it = this->operators.erase(pos - 1, pos - 1); // erase: constant time conversion to non-const iterator
+    auto it = this->operators.erase(
+        pos - 1,
+        pos - 1); // erase: constant time conversion to non-const iterator
     this->coefficient *= it->inplace_mult(other);
-  }
-  else this->operators.insert(pos, std::move(other));
+  } else
+    this->operators.insert(pos, std::move(other));
 }
 
 template <typename HandlerTy>

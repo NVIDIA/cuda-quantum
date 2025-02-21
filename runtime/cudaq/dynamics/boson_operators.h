@@ -20,7 +20,7 @@ namespace cudaq {
 template <typename HandlerTy>
 class product_operator;
 
-template <typename HandlerTy> 
+template <typename HandlerTy>
 class operator_sum;
 
 // FIXME: rename?
@@ -29,7 +29,6 @@ class boson_operator : public operator_handler {
   friend class product_operator;
 
 private:
-
   // Each boson operator is represented as number operators along with an
   // offset to add to each number operator, as well as an integer indicating
   // how many creation or annihilation terms follow the number operators.
@@ -48,7 +47,6 @@ private:
   void inplace_mult(const boson_operator &other);
 
 public:
-
   // read-only properties
 
   virtual std::string unique_id() const;
