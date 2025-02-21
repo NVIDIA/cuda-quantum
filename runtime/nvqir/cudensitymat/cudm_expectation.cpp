@@ -8,9 +8,9 @@
 
 #include "cudm_expectation.h"
 #include "CuDensityMatContext.h"
+#include "CuDensityMatUtils.h"
 #include "common/Logger.h"
 #include "cudm_error_handling.h"
-#include "CuDensityMatUtils.h"
 namespace cudaq {
 cudm_expectation::cudm_expectation(cudensitymatHandle_t handle,
                                    cudensitymatOperator_t op)
