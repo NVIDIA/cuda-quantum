@@ -18,6 +18,10 @@
 
 namespace cudaq {
 
+#if !defined(NDEBUG)
+bool fermion_operator::can_be_canonicalized = false;
+#endif
+
 // private helpers
 
 #if !defined(NDEBUG)
