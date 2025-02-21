@@ -9,6 +9,7 @@
 #pragma once
 
 #include "common/ArgumentConversion.h"
+#include "common/StateAggregator.h"
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
 #include "common/Executor.h"
@@ -454,40 +455,69 @@ public:
       mlir::PassManager pm(&context);
       if (!rawArgs.empty()) {
         cudaq::info("Run Argument Synth.\n");
-        std::list<std::string> kernelRegistry;
-        opt::ArgumentConverter argCon(kernelRegistry, kernelName, moduleOp);
-        argCon.gen(rawArgs);
-
-        // For quantum devices, we've created a tree of ArgumentConverters
+        // For quantum devices, create a list of ArgumentConverters
         // with nodes corresponding to `init` and `num_qubits` functions
         // created from a kernel that generated the state argument.
         // Traverse the tree and collect substitutions for all those
         // functions.
+        cudaq::opt::StateAggregator aggregator;
+        aggregator.collect(moduleOp, kernelName, rawArgs);
 
         // Store kernel and substitution strings on the stack.
         // We pass string references to the `createArgumentSynthesisPass`.
         mlir::SmallVector<std::string> kernels;
         mlir::SmallVector<std::string> substs;
+        for (auto &kInfo : aggregator.getKernelInfo()) {
+          auto con = kInfo.converter;
+          con.gen(kInfo.args);
+          {
+            auto name = con.getKernelName();
+            std::string kernName =
+                cudaq::runtime::cudaqGenPrefixName + name.str();
+            kernels.emplace_back(kernName);
+          }
+          {
+            std::string substBuff;
+            llvm::raw_string_ostream ss(substBuff);
+            ss << con.getSubstitutionModule();
+            substs.emplace_back(substBuff);
+          }
+        }
 
-        std::function<void(opt::ArgumentConverter &)> collect =
-            [&kernels, &substs, &collect](opt::ArgumentConverter &con) {
-              {
-                auto name = con.getKernelName();
-                std::string kernName =
-                    cudaq::runtime::cudaqGenPrefixName + name.str();
-                kernels.emplace_back(kernName);
-              }
-              {
-                std::string substBuff;
-                llvm::raw_string_ostream ss(substBuff);
-                ss << con.getSubstitutionModule();
-                substs.emplace_back(substBuff);
-              }
+        // std::list<std::string> kernelRegistry;
+        // opt::ArgumentConverter argCon(kernelRegistry, kernelName, moduleOp);
+        // argCon.gen(rawArgs);
 
-              for (auto &calleeCon : con.getCalleeConverters())
-                collect(calleeCon);
-            };
-        collect(argCon);
+        // // For quantum devices, we've created a tree of ArgumentConverters
+        // // with nodes corresponding to `init` and `num_qubits` functions
+        // // created from a kernel that generated the state argument.
+        // // Traverse the tree and collect substitutions for all those
+        // // functions.
+
+        // // Store kernel and substitution strings on the stack.
+        // // We pass string references to the `createArgumentSynthesisPass`.
+        // mlir::SmallVector<std::string> kernels;
+        // mlir::SmallVector<std::string> substs;
+
+        // std::function<void(opt::ArgumentConverter &)> collect =
+        //     [&kernels, &substs, &collect](opt::ArgumentConverter &con) {
+        //       {
+        //         auto name = con.getKernelName();
+        //         std::string kernName =
+        //             cudaq::runtime::cudaqGenPrefixName + name.str();
+        //         kernels.emplace_back(kernName);
+        //       }
+        //       {
+        //         std::string substBuff;
+        //         llvm::raw_string_ostream ss(substBuff);
+        //         ss << con.getSubstitutionModule();
+        //         substs.emplace_back(substBuff);
+        //       }
+
+        //       for (auto &calleeCon : con.getCalleeConverters())
+        //         collect(calleeCon);
+        //     };
+        // collect(argCon);
 
         // Collect references for the argument synthesis.
         mlir::SmallVector<mlir::StringRef> funcNames{kernels.begin(),
