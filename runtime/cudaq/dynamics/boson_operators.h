@@ -39,7 +39,7 @@ private:
   std::vector<int> number_offsets;
   int target;
 
-  // 0 = I, ad = 1, a = 2, ada = 3
+  // 0 = I, Ad = 1, A = 2, AdA = 3
   boson_operator(int target, int op_code);
 
   std::string op_code_to_string() const;
