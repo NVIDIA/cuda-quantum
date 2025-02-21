@@ -191,8 +191,7 @@ public:
           llvm::raw_string_ostream ss(substBuff);
           ss << argCon.getSubstitutionModule();
           mlir::SmallVector<mlir::StringRef> substs = {substBuff};
-          pm.addNestedPass<mlir::func::FuncOp>(
-              opt::createArgumentSynthesisPass(kernels, substs));
+          pm.addPass(opt::createArgumentSynthesisPass(kernels, substs));
           pm.addPass(mlir::createCanonicalizerPass());
           pm.addPass(opt::createDeleteStates());
         } else if (args) {
@@ -329,8 +328,8 @@ public:
       if (!castedState1 || !castedState2)
         throw std::runtime_error(
             "Invalid execution context: input states are not compatible");
-      auto [kernelName1, args1] = castedState1->getKernelInfo();
-      auto [kernelName2, args2] = castedState2->getKernelInfo();
+      auto [kernelName1, args1] = castedState1->getKernelInfo().value();
+      auto [kernelName2, args2] = castedState2->getKernelInfo().value();
       cudaq::IRPayLoad stateIrPayload1, stateIrPayload2;
 
       stateIrPayload1.entryPoint = kernelName1;
