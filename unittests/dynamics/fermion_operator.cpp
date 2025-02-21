@@ -12,72 +12,9 @@
 #include <gtest/gtest.h>
 #include "cudaq/dynamics/fermion_operators.h"
 
-TEST(OperatorExpressions, checkAntiCommutationRelations) {
-
-  auto ad_mat = utils::fermionic_create_matrix(5);
-  auto a_mat = utils::fermionic_annihilate_matrix(5);
-
-  /*
-
-  ad a = i1 N i1 
-
-  i1d ad i2d   i2 a i1 = N 
-
-  i2 a ad i2d + i1d ad a i1 = id
-
-  a ad = 1 - N
-  */
-
-  auto padded_anticommutator = a_mat * ad_mat + ad_mat * a_mat;
-  cudaq::matrix_2 anticommutator(4, 4);
-  for (size_t i = 0; i < 4; ++i) {
-    for (size_t j = 0; j < 4; ++j)
-      anticommutator[{i, j}] = padded_anticommutator[{i, j}];
-  }
-
-  utils::print(ad_mat, "Ad");
-  utils::print(a_mat, "a");
-  utils::print(ad_mat * a_mat, "ad a");
-  utils::print(a_mat * ad_mat, "a ad");
-
-  utils::print(anticommutator, "anticommutator");
-
-  //utils::print(ad_mat * a_mat, "N");
-
-  auto is = cudaq::matrix_2(5, 5);
-  for (std::size_t i = 0; i < 5; ++i)
-    is[{i, i}] = i & 1 ? 1.j : 1.;
-
-  utils::print(is * padded_anticommutator * is, "corrected anticommutator");
-
-  // is a ad  +  ad a is = 1 
-  // o a o od ad od +  od ad od o a o = 1 
-
-  /*
-  auto o = cudaq::matrix_2(5, 5);
-  for (std::size_t i = 0; i < 5; ++i)
-    o[{i, i}] = i & 1 ? std::exp(std::complex<double>(1.j * M_PI / 2.)) : 1.;
-  auto od = cudaq::matrix_2(5, 5);
-  for (std::size_t i = 0; i < 5; ++i)
-    od[{i, i}] = i & 1 ? std::exp(std::complex<double>(1.j * M_PI / 2.)) : 1.;
-  */
-
-  auto o = cudaq::matrix_2(5, 5);
-  for (std::size_t i = 0; i < 4; ++i)
-    o[{i, i}] = (i + 1) & 1 ? std::exp(std::complex<double>(1.j * M_PI / 4.)) : 1.;
-  auto od = cudaq::matrix_2(5, 5);
-  for (std::size_t i = 0; i < 4; ++i)
-    od[{i, i}] = (i + 1) & 1 ? std::exp(std::complex<double>(1.j * M_PI / 4.)) : 1.;
-  //utils::print(o * a_mat * od * od * ad_mat * o + od * ad_mat * o * o * a_mat * od, "should be I");
-
-  utils::print(od * a_mat * od * ad_mat + ad_mat * od * a_mat * od, "should be I");
-
-  utils::checkEqual(anticommutator, utils::id_matrix(4));
-}
-
 TEST(OperatorExpressions, checkFermionOpsUnary) {
   auto op = cudaq::fermion_operator::number(0);
-  utils::checkEqual((-op).to_matrix({{0, 3}}), -1.0 * utils::number_matrix(3));
+  utils::checkEqual((-op).to_matrix(), -1.0 * utils::number_matrix(2));
 }
 
 TEST(OperatorExpressions, checkPreBuiltFermionOps) {
@@ -85,258 +22,214 @@ TEST(OperatorExpressions, checkPreBuiltFermionOps) {
   // number operator
   {
     auto nr_op = cudaq::fermion_operator::number(0);
-    for (auto d = 2; d < 7; ++d) {
-      auto nr_mat = utils::number_matrix(d);
-      for (auto pow = 1; pow < 4; ++pow) {
-        auto expected = nr_mat;
-        auto got = nr_op;
-        for (auto i = 1; i < pow; ++i) {
-          expected *= nr_mat;      
-          got *= nr_op;
-        }
-        utils::checkEqual(expected, got.to_matrix({{0, d}}));
+    auto nr_mat = utils::number_matrix(2);
+    for (auto pow = 1; pow < 4; ++pow) {
+      auto expected = nr_mat;
+      auto got = nr_op;
+      for (auto i = 1; i < pow; ++i) {
+        expected *= nr_mat;      
+        got *= nr_op;
       }
-    }  
+      utils::checkEqual(expected, got.to_matrix());
+    }
   }
 
   // creation operator
   {
     auto ad_op = cudaq::fermion_operator::create(0);
-    for (auto d = 2; d < 7; ++d) {
-      auto ad_mat = utils::create_matrix(d);
-      for (auto pow = 1; pow < 4; ++pow) {
-        auto expected = ad_mat;
-        auto got = ad_op;
-        for (auto i = 1; i < pow; ++i) {
-          expected *= ad_mat;      
-          got *= ad_op;
-        }
-        utils::checkEqual(expected, got.to_matrix({{0, d}}));
+    auto ad_mat = utils::create_matrix(2);
+    for (auto pow = 1; pow < 4; ++pow) {
+      auto expected = ad_mat;
+      auto got = ad_op;
+      for (auto i = 1; i < pow; ++i) {
+        expected *= ad_mat;      
+        got *= ad_op;
       }
-    }  
+      utils::checkEqual(expected, got.to_matrix());
+    }
   }
 
   // annihilation operator
   {
     auto a_op = cudaq::fermion_operator::annihilate(0);
-    for (auto d = 2; d < 7; ++d) {
-      auto a_mat = utils::annihilate_matrix(d);
-      for (auto pow = 1; pow < 4; ++pow) {
-        auto expected = a_mat;
-        auto got = a_op;
-        for (auto i = 1; i < pow; ++i) {
-          expected *= a_mat;      
-          got *= a_op;
-        }
-        utils::checkEqual(expected, got.to_matrix({{0, d}}));
+    auto a_mat = utils::annihilate_matrix(2);
+    for (auto pow = 1; pow < 4; ++pow) {
+      auto expected = a_mat;
+      auto got = a_op;
+      for (auto i = 1; i < pow; ++i) {
+        expected *= a_mat;      
+        got *= a_op;
       }
-    }  
+      utils::checkEqual(expected, got.to_matrix());
+    }
   }
 
-  /*
   // basic in-place multiplication
   {
-    auto max_nr_consecutive = 6;
+    auto max_nr_consecutive = 3;
     auto nr_op = cudaq::fermion_operator::number(0);
     auto ad_op = cudaq::fermion_operator::create(0);
     auto a_op = cudaq::fermion_operator::annihilate(0);
-    for (auto d = 3; d < 4; ++d) {
 
-      // we use a larger dimension to compute the correct expected matrices
-      // to ensure the expected matrix is no impacted by finite-size errors
-      auto nr_mat = utils::number_matrix(d + max_nr_consecutive);
-      auto ad_mat = utils::create_matrix(d + max_nr_consecutive);
-      auto a_mat = utils::annihilate_matrix(d + max_nr_consecutive);
+    auto nr_mat = utils::number_matrix(2);
+    auto ad_mat = utils::create_matrix(2);
+    auto a_mat = utils::annihilate_matrix(2);
 
-      for (auto nrs = 0; nrs < max_nr_consecutive; ++nrs) {
-        for (auto ads = 0; ads < max_nr_consecutive; ++ ads) {
-          for (auto as = 0; as < max_nr_consecutive; ++ as) {
+    for (auto nrs = 0; nrs < max_nr_consecutive; ++nrs) {
+      for (auto ads = 0; ads < max_nr_consecutive; ++ ads) {
+        for (auto as = 0; as < max_nr_consecutive; ++ as) {
 
-            // Check Ads * Ns * As
+          // Check Ads * Ns * As
 
-            std::cout << "# Ads: " << ads << ", ";
-            std::cout << "# Ns: " << nrs << ", ";
-            std::cout << "# As: " << as << std::endl;
+          std::cout << "# Ads: " << ads << ", ";
+          std::cout << "# Ns: " << nrs << ", ";
+          std::cout << "# As: " << as << std::endl;
 
-            auto padded = utils::id_matrix(d + max_nr_consecutive);
-            for (auto i = 0; i < ads; ++i)
-              padded *= ad_mat;
-            for (auto i = 0; i < nrs; ++i)
-              padded *= nr_mat;
-            for (auto i = 0; i < as; ++i)
-              padded *= a_mat;
-            auto expected = cudaq::matrix_2(d, d);
-            for (std::size_t i = 0; i < d; i++) {
-              for (std::size_t j = 0; j < d; j++)
-                expected[{i, j}] = padded[{i, j}];
-            }
+          auto expected = utils::id_matrix(2);
+          for (auto i = 0; i < ads; ++i)
+            expected *= ad_mat;
+          for (auto i = 0; i < nrs; ++i)
+            expected *= nr_mat;
+          for (auto i = 0; i < as; ++i)
+            expected *= a_mat;
 
-            auto got = cudaq::fermion_operator::identity(0);
-            for (auto i = 0; i < ads; ++i)
-              got *= ad_op;
-            for (auto i = 0; i < nrs; ++i)
-              got *= nr_op;
-            for (auto i = 0; i < as; ++i)
-              got *= a_op;
+          auto got = cudaq::fermion_operator::identity(0);
+          for (auto i = 0; i < ads; ++i)
+            got *= ad_op;
+          for (auto i = 0; i < nrs; ++i)
+            got *= nr_op;
+          for (auto i = 0; i < as; ++i)
+            got *= a_op;
 
-            utils::checkEqual(expected, got.to_matrix({{0, d}}));
+          utils::checkEqual(expected, got.to_matrix());
 
-            // Check  Ads * As * Ns
+          // Check  Ads * As * Ns
 
-            std::cout << "# Ads: " << ads << ", ";
-            std::cout << "# As: " << as << ", ";
-            std::cout << "# Ns: " << nrs << std::endl;
+          std::cout << "# Ads: " << ads << ", ";
+          std::cout << "# As: " << as << ", ";
+          std::cout << "# Ns: " << nrs << std::endl;
 
-            padded = utils::id_matrix(d + max_nr_consecutive);
-            for (auto i = 0; i < ads; ++i)
-              padded *= ad_mat;
-            for (auto i = 0; i < as; ++i)
-              padded *= a_mat;
-            for (auto i = 0; i < nrs; ++i)
-              padded *= nr_mat;
-            expected = cudaq::matrix_2(d, d);
-            for (std::size_t i = 0; i < d; i++) {
-              for (std::size_t j = 0; j < d; j++)
-                expected[{i, j}] = padded[{i, j}];
-            }
+          expected = utils::id_matrix(2);
+          for (auto i = 0; i < ads; ++i)
+            expected *= ad_mat;
+          for (auto i = 0; i < as; ++i)
+            expected *= a_mat;
+          for (auto i = 0; i < nrs; ++i)
+            expected *= nr_mat;
 
-            got = cudaq::fermion_operator::identity(0);
-            for (auto i = 0; i < ads; ++i)
-              got *= ad_op;
-            for (auto i = 0; i < as; ++i)
-              got *= a_op;
-            for (auto i = 0; i < nrs; ++i)
-              got *= nr_op;
+          got = cudaq::fermion_operator::identity(0);
+          for (auto i = 0; i < ads; ++i)
+            got *= ad_op;
+          for (auto i = 0; i < as; ++i)
+            got *= a_op;
+          for (auto i = 0; i < nrs; ++i)
+            got *= nr_op;
 
-            utils::checkEqual(expected, got.to_matrix({{0, d}}));            
+          utils::checkEqual(expected, got.to_matrix());            
 
-            // Check Ns * Ads * As
+          // Check Ns * Ads * As
 
-            std::cout << "# Ns: " << nrs << ", ";
-            std::cout << "# Ads: " << ads << ", ";
-            std::cout << "# As: " << as << std::endl;
+          std::cout << "# Ns: " << nrs << ", ";
+          std::cout << "# Ads: " << ads << ", ";
+          std::cout << "# As: " << as << std::endl;
 
-            padded = utils::id_matrix(d + max_nr_consecutive);
-            for (auto i = 0; i < nrs; ++i)
-              padded *= nr_mat;
-            for (auto i = 0; i < ads; ++i)
-              padded *= ad_mat;
-            for (auto i = 0; i < as; ++i)
-              padded *= a_mat;
-            expected = cudaq::matrix_2(d, d);
-            for (std::size_t i = 0; i < d; i++) {
-              for (std::size_t j = 0; j < d; j++)
-                expected[{i, j}] = padded[{i, j}];
-            }
+          expected = utils::id_matrix(2);
+          for (auto i = 0; i < nrs; ++i)
+            expected *= nr_mat;
+          for (auto i = 0; i < ads; ++i)
+            expected *= ad_mat;
+          for (auto i = 0; i < as; ++i)
+            expected *= a_mat;
 
-            got = cudaq::fermion_operator::identity(0);
-            for (auto i = 0; i < nrs; ++i)
-              got *= nr_op;
-            for (auto i = 0; i < ads; ++i)
-              got *= ad_op;
-            for (auto i = 0; i < as; ++i)
-              got *= a_op;
+          got = cudaq::fermion_operator::identity(0);
+          for (auto i = 0; i < nrs; ++i)
+            got *= nr_op;
+          for (auto i = 0; i < ads; ++i)
+            got *= ad_op;
+          for (auto i = 0; i < as; ++i)
+            got *= a_op;
 
-            utils::checkEqual(expected, got.to_matrix({{0, d}})); 
+          utils::checkEqual(expected, got.to_matrix()); 
 
-            // check Ns * As * Ads
+          // check Ns * As * Ads
 
-            std::cout << "# Ns: " << nrs << ", ";
-            std::cout << "# As: " << as << ", "; 
-            std::cout << "# Ads: " << ads << std::endl;
+          std::cout << "# Ns: " << nrs << ", ";
+          std::cout << "# As: " << as << ", "; 
+          std::cout << "# Ads: " << ads << std::endl;
 
-            padded = utils::id_matrix(d + max_nr_consecutive);
-            for (auto i = 0; i < nrs; ++i)
-              padded *= nr_mat;
-            for (auto i = 0; i < as; ++i)
-              padded *= a_mat;
-            for (auto i = 0; i < ads; ++i)
-              padded *= ad_mat;
-            expected = cudaq::matrix_2(d, d);
-            for (std::size_t i = 0; i < d; i++) {
-              for (std::size_t j = 0; j < d; j++)
-                expected[{i, j}] = padded[{i, j}];
-            }
+          expected = utils::id_matrix(2);
+          for (auto i = 0; i < nrs; ++i)
+            expected *= nr_mat;
+          for (auto i = 0; i < as; ++i)
+            expected *= a_mat;
+          for (auto i = 0; i < ads; ++i)
+            expected *= ad_mat;
 
-            got = cudaq::fermion_operator::identity(0);
-            for (auto i = 0; i < nrs; ++i)
-              got *= nr_op;
-            for (auto i = 0; i < as; ++i)
-              got *= a_op;
-            for (auto i = 0; i < ads; ++i)
-              got *= ad_op;
+          got = cudaq::fermion_operator::identity(0);
+          for (auto i = 0; i < nrs; ++i)
+            got *= nr_op;
+          for (auto i = 0; i < as; ++i)
+            got *= a_op;
+          for (auto i = 0; i < ads; ++i)
+            got *= ad_op;
 
-            utils::checkEqual(expected, got.to_matrix({{0, d}})); 
+          utils::checkEqual(expected, got.to_matrix()); 
 
-            // check As * Ns * Ads
+          // check As * Ns * Ads
 
-            std::cout << "# As: " << as << ", "; 
-            std::cout << "# Ns: " << nrs << ", ";
-            std::cout << "# Ads: " << ads << std::endl;
+          std::cout << "# As: " << as << ", "; 
+          std::cout << "# Ns: " << nrs << ", ";
+          std::cout << "# Ads: " << ads << std::endl;
 
-            padded = utils::id_matrix(d + max_nr_consecutive);
-            for (auto i = 0; i < as; ++i)
-              padded *= a_mat;
-            for (auto i = 0; i < nrs; ++i)
-              padded *= nr_mat;
-            for (auto i = 0; i < ads; ++i)
-              padded *= ad_mat;
-            expected = cudaq::matrix_2(d, d);
-            for (std::size_t i = 0; i < d; i++) {
-              for (std::size_t j = 0; j < d; j++)
-                expected[{i, j}] = padded[{i, j}];
-            }
+          expected = utils::id_matrix(2);
+          for (auto i = 0; i < as; ++i)
+            expected *= a_mat;
+          for (auto i = 0; i < nrs; ++i)
+            expected *= nr_mat;
+          for (auto i = 0; i < ads; ++i)
+            expected *= ad_mat;
 
-            got = cudaq::fermion_operator::identity(0);
-            for (auto i = 0; i < as; ++i)
-              got *= a_op;
-            for (auto i = 0; i < nrs; ++i)
-              got *= nr_op;
-            for (auto i = 0; i < ads; ++i)
-              got *= ad_op;
+          got = cudaq::fermion_operator::identity(0);
+          for (auto i = 0; i < as; ++i)
+            got *= a_op;
+          for (auto i = 0; i < nrs; ++i)
+            got *= nr_op;
+          for (auto i = 0; i < ads; ++i)
+            got *= ad_op;
 
-            utils::checkEqual(expected, got.to_matrix({{0, d}})); 
+          utils::checkEqual(expected, got.to_matrix()); 
 
-            // check As * Ads * Ns
+          // check As * Ads * Ns
 
-            std::cout << "# As: " << as << ", "; 
-            std::cout << "# Ads: " << ads << ", ";
-            std::cout << "# Ns: " << nrs << std::endl;
+          std::cout << "# As: " << as << ", "; 
+          std::cout << "# Ads: " << ads << ", ";
+          std::cout << "# Ns: " << nrs << std::endl;
 
-            padded = utils::id_matrix(d + max_nr_consecutive);
-            for (auto i = 0; i < as; ++i)
-              padded *= a_mat;
-            for (auto i = 0; i < ads; ++i)
-              padded *= ad_mat;
-            for (auto i = 0; i < nrs; ++i)
-              padded *= nr_mat;
-            expected = cudaq::matrix_2(d, d);
-            for (std::size_t i = 0; i < d; i++) {
-              for (std::size_t j = 0; j < d; j++)
-                expected[{i, j}] = padded[{i, j}];
-            }
+          expected = utils::id_matrix(2);
+          for (auto i = 0; i < as; ++i)
+            expected *= a_mat;
+          for (auto i = 0; i < ads; ++i)
+            expected *= ad_mat;
+          for (auto i = 0; i < nrs; ++i)
+            expected *= nr_mat;
 
-            got = cudaq::fermion_operator::identity(0);
-            for (auto i = 0; i < as; ++i)
-              got *= a_op;
-            for (auto i = 0; i < ads; ++i)
-              got *= ad_op;
-            for (auto i = 0; i < nrs; ++i)
-              got *= nr_op;
+          got = cudaq::fermion_operator::identity(0);
+          for (auto i = 0; i < as; ++i)
+            got *= a_op;
+          for (auto i = 0; i < ads; ++i)
+            got *= ad_op;
+          for (auto i = 0; i < nrs; ++i)
+            got *= nr_op;
 
-            utils::checkEqual(expected, got.to_matrix({{0, d}})); 
-          }
+          utils::checkEqual(expected, got.to_matrix()); 
         }
       }
     }
   }
-  */
 }
 
-/*
 TEST(OperatorExpressions, checkFermionOpsWithComplex) {
     std::complex<double> value = 0.125 + 0.125j;
-    auto dimension = 3;
 
     // `fermion_operator` + `complex<double>`
     {
@@ -345,12 +238,12 @@ TEST(OperatorExpressions, checkFermionOpsWithComplex) {
       auto sum = value + elementary;
       auto reverse = elementary + value;
   
-      auto got_matrix = sum.to_matrix({{0, dimension}});
-      auto got_matrix_reverse = reverse.to_matrix({{0, dimension}});
+      auto got_matrix = sum.to_matrix();
+      auto got_matrix_reverse = reverse.to_matrix();
   
-      auto scaled_identity = value * utils::id_matrix(dimension);
-      auto want_matrix = scaled_identity + utils::create_matrix(dimension);
-      auto want_matrix_reverse = utils::create_matrix(dimension) + scaled_identity;
+      auto scaled_identity = value * utils::id_matrix(2);
+      auto want_matrix = scaled_identity + utils::create_matrix(2);
+      auto want_matrix_reverse = utils::create_matrix(2) + scaled_identity;
   
       utils::checkEqual(want_matrix, got_matrix);
       utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
@@ -363,12 +256,12 @@ TEST(OperatorExpressions, checkFermionOpsWithComplex) {
       auto difference = value - elementary;
       auto reverse = elementary - value;
   
-      auto got_matrix = difference.to_matrix({{0, dimension}});
-      auto got_matrix_reverse = reverse.to_matrix({{0, dimension}});
+      auto got_matrix = difference.to_matrix();
+      auto got_matrix_reverse = reverse.to_matrix();
   
-      auto scaled_identity = value * utils::id_matrix(dimension);
-      auto want_matrix = scaled_identity - utils::number_matrix(dimension);
-      auto want_matrix_reverse = utils::number_matrix(dimension) - scaled_identity;
+      auto scaled_identity = value * utils::id_matrix(2);
+      auto want_matrix = scaled_identity - utils::number_matrix(2);
+      auto want_matrix_reverse = utils::number_matrix(2) - scaled_identity;
   
       utils::checkEqual(want_matrix, got_matrix);
       utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
@@ -381,12 +274,12 @@ TEST(OperatorExpressions, checkFermionOpsWithComplex) {
       auto product = value * elementary;
       auto reverse = elementary * value;
   
-      auto got_matrix = product.to_matrix({{0, dimension}});
-      auto got_matrix_reverse = reverse.to_matrix({{0, dimension}});
+      auto got_matrix = product.to_matrix();
+      auto got_matrix_reverse = reverse.to_matrix();
   
-      auto scaled_identity = value * utils::id_matrix(dimension);
-      auto want_matrix = scaled_identity * utils::annihilate_matrix(dimension);
-      auto want_matrix_reverse = utils::annihilate_matrix(dimension) * scaled_identity;
+      auto scaled_identity = value * utils::id_matrix(2);
+      auto want_matrix = scaled_identity * utils::annihilate_matrix(2);
+      auto want_matrix_reverse = utils::annihilate_matrix(2) * scaled_identity;
   
       utils::checkEqual(want_matrix, got_matrix);
       utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
@@ -403,8 +296,6 @@ TEST(OperatorExpressions, checkFermionOpsWithScalars) {
   };
 
   /// Keeping these fixed for these more simple tests.
-  int degree_index = 0;
-  int dimension = 3;
   double const_scale_factor = 2.0;
 
   // `fermion_operator + scalar_operator`
@@ -418,11 +309,11 @@ TEST(OperatorExpressions, checkFermionOpsWithScalars) {
     ASSERT_TRUE(sum.num_terms() == 2);
     ASSERT_TRUE(reverse.num_terms() == 2);
 
-    auto scaled_identity = const_scale_factor * utils::id_matrix(dimension);
-    auto got_matrix = sum.to_matrix({{0, dimension}});
-    auto got_reverse_matrix = reverse.to_matrix({{0, dimension}});
-    auto want_matrix = utils::number_matrix(dimension) + scaled_identity;
-    auto want_reverse_matrix = scaled_identity + utils::number_matrix(dimension);
+    auto scaled_identity = const_scale_factor * utils::id_matrix(2);
+    auto got_matrix = sum.to_matrix();
+    auto got_reverse_matrix = reverse.to_matrix();
+    auto want_matrix = utils::number_matrix(2) + scaled_identity;
+    auto want_reverse_matrix = scaled_identity + utils::number_matrix(2);
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
@@ -438,11 +329,11 @@ TEST(OperatorExpressions, checkFermionOpsWithScalars) {
     ASSERT_TRUE(sum.num_terms() == 2);
     ASSERT_TRUE(reverse.num_terms() == 2);
 
-    auto scaled_identity = const_scale_factor * utils::id_matrix(dimension);
-    auto got_matrix = sum.to_matrix({{0, dimension}}, {{"value", const_scale_factor}});
-     auto got_reverse_matrix = reverse.to_matrix({{0, dimension}}, {{"value", const_scale_factor}});
-    auto want_matrix = utils::annihilate_matrix(dimension) + scaled_identity;
-    auto want_reverse_matrix = scaled_identity + utils::annihilate_matrix(dimension);
+    auto scaled_identity = const_scale_factor * utils::id_matrix(2);
+    auto got_matrix = sum.to_matrix({}, {{"value", const_scale_factor}});
+     auto got_reverse_matrix = reverse.to_matrix({}, {{"value", const_scale_factor}});
+    auto want_matrix = utils::annihilate_matrix(2) + scaled_identity;
+    auto want_reverse_matrix = scaled_identity + utils::annihilate_matrix(2);
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
@@ -458,11 +349,11 @@ TEST(OperatorExpressions, checkFermionOpsWithScalars) {
     ASSERT_TRUE(sum.num_terms() == 2);
     ASSERT_TRUE(reverse.num_terms() == 2);
 
-    auto scaled_identity = const_scale_factor * utils::id_matrix(dimension);
-    auto got_matrix = sum.to_matrix({{0, dimension}});
-    auto got_reverse_matrix = reverse.to_matrix({{0, dimension}});
-    auto want_matrix = utils::id_matrix(dimension) - scaled_identity;
-    auto want_reverse_matrix = scaled_identity - utils::id_matrix(dimension);
+    auto scaled_identity = const_scale_factor * utils::id_matrix(2);
+    auto got_matrix = sum.to_matrix();
+    auto got_reverse_matrix = reverse.to_matrix();
+    auto want_matrix = utils::id_matrix(2) - scaled_identity;
+    auto want_reverse_matrix = scaled_identity - utils::id_matrix(2);
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
@@ -478,11 +369,11 @@ TEST(OperatorExpressions, checkFermionOpsWithScalars) {
     ASSERT_TRUE(sum.num_terms() == 2);
     ASSERT_TRUE(reverse.num_terms() == 2);
 
-    auto scaled_identity = const_scale_factor * utils::id_matrix(dimension);
-    auto got_matrix = sum.to_matrix({{0, dimension}}, {{"value", const_scale_factor}});
-    auto got_reverse_matrix = reverse.to_matrix({{0, dimension}}, {{"value", const_scale_factor}}); 
-    auto want_matrix = utils::create_matrix(dimension) - scaled_identity;
-    auto want_reverse_matrix = scaled_identity - utils::create_matrix(dimension);
+    auto scaled_identity = const_scale_factor * utils::id_matrix(2);
+    auto got_matrix = sum.to_matrix({}, {{"value", const_scale_factor}});
+    auto got_reverse_matrix = reverse.to_matrix({}, {{"value", const_scale_factor}}); 
+    auto want_matrix = utils::create_matrix(2) - scaled_identity;
+    auto want_reverse_matrix = scaled_identity - utils::create_matrix(2);
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
@@ -499,11 +390,11 @@ TEST(OperatorExpressions, checkFermionOpsWithScalars) {
     ASSERT_TRUE(product.degrees() == want_degrees);
     ASSERT_TRUE(reverse.degrees() == want_degrees);
 
-    auto scaled_identity = const_scale_factor * utils::id_matrix(dimension);
-    auto got_matrix = product.to_matrix({{0, dimension}});
-    auto got_reverse_matrix = reverse.to_matrix({{0, dimension}});
-    auto want_matrix = utils::number_matrix(dimension) * scaled_identity;
-    auto want_reverse_matrix = scaled_identity * utils::number_matrix(dimension);
+    auto scaled_identity = const_scale_factor * utils::id_matrix(2);
+    auto got_matrix = product.to_matrix();
+    auto got_reverse_matrix = reverse.to_matrix();
+    auto want_matrix = utils::number_matrix(2) * scaled_identity;
+    auto want_reverse_matrix = scaled_identity * utils::number_matrix(2);
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
@@ -520,18 +411,17 @@ TEST(OperatorExpressions, checkFermionOpsWithScalars) {
     ASSERT_TRUE(product.degrees() == want_degrees);
     ASSERT_TRUE(reverse.degrees() == want_degrees);
 
-    auto scaled_identity = const_scale_factor * utils::id_matrix(dimension);
-    auto got_matrix = product.to_matrix({{0, dimension}}, {{"value", const_scale_factor}});
-    auto got_reverse_matrix = reverse.to_matrix({{0, dimension}}, {{"value", const_scale_factor}});
-    auto want_matrix = utils::annihilate_matrix(dimension) * scaled_identity;
-    auto want_reverse_matrix = scaled_identity * utils::annihilate_matrix(dimension);
+    auto scaled_identity = const_scale_factor * utils::id_matrix(2);
+    auto got_matrix = product.to_matrix({}, {{"value", const_scale_factor}});
+    auto got_reverse_matrix = reverse.to_matrix({}, {{"value", const_scale_factor}});
+    auto want_matrix = utils::annihilate_matrix(2) * scaled_identity;
+    auto want_reverse_matrix = scaled_identity * utils::annihilate_matrix(2);
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 }
 
 TEST(OperatorExpressions, checkFermionOpsSimpleArithmetics) {
-  std::unordered_map<int, int> dimensions = {{0, 3}, {1, 2}, {2, 4}};
 
   // Addition, same DOF.
   {
@@ -541,9 +431,9 @@ TEST(OperatorExpressions, checkFermionOpsSimpleArithmetics) {
     auto sum = self + other;
     ASSERT_TRUE(sum.num_terms() == 2);
 
-    auto got_matrix = sum.to_matrix(dimensions);
-    auto want_matrix = utils::number_matrix(3) +
-                        utils::annihilate_matrix(3);
+    auto got_matrix = sum.to_matrix();
+    auto want_matrix = utils::number_matrix(2) +
+                        utils::annihilate_matrix(2);
     utils::checkEqual(want_matrix, got_matrix);
   }
 
@@ -556,10 +446,10 @@ TEST(OperatorExpressions, checkFermionOpsSimpleArithmetics) {
     ASSERT_TRUE(sum.num_terms() == 2);
 
     auto matrix_self = cudaq::kronecker(utils::id_matrix(2),
-                                        utils::create_matrix(3));
+                                        utils::create_matrix(2));
     auto matrix_other = cudaq::kronecker(utils::id_matrix(2),
-                                        utils::id_matrix(3));
-    auto got_matrix = sum.to_matrix(dimensions);
+                                        utils::id_matrix(2));
+    auto got_matrix = sum.to_matrix();
     auto want_matrix = matrix_self + matrix_other;
     utils::checkEqual(want_matrix, got_matrix);
   }
@@ -572,9 +462,9 @@ TEST(OperatorExpressions, checkFermionOpsSimpleArithmetics) {
     auto sum = self - other;
     ASSERT_TRUE(sum.num_terms() == 2);
 
-    auto got_matrix = sum.to_matrix(dimensions);
-    auto want_matrix = utils::id_matrix(3) -
-                        utils::number_matrix(3);
+    auto got_matrix = sum.to_matrix();
+    auto want_matrix = utils::id_matrix(2) -
+                        utils::number_matrix(2);
     utils::checkEqual(want_matrix, got_matrix);
   }
   
@@ -588,10 +478,10 @@ TEST(OperatorExpressions, checkFermionOpsSimpleArithmetics) {
 
     auto annihilate_full =
         cudaq::kronecker(utils::id_matrix(2),
-                        utils::annihilate_matrix(3));
+                        utils::annihilate_matrix(2));
     auto create_full = cudaq::kronecker(utils::create_matrix(2),
-                                        utils::id_matrix(3));
-    auto got_matrix = sum.to_matrix(dimensions);
+                                        utils::id_matrix(2));
+    auto got_matrix = sum.to_matrix();
     auto want_matrix = annihilate_full - create_full;
     utils::checkEqual(want_matrix, got_matrix);
   }
@@ -607,28 +497,28 @@ TEST(OperatorExpressions, checkFermionOpsSimpleArithmetics) {
     std::vector<int> want_degrees = {0};
     ASSERT_TRUE(product.degrees() == want_degrees);
 
-    auto got_matrix = product.to_matrix(dimensions);
-    auto want_matrix = utils::number_matrix(3);
+    auto got_matrix = product.to_matrix();
+    auto want_matrix = utils::number_matrix(2);
     utils::checkEqual(want_matrix, got_matrix);
   }
   
   // Multiplication, different DOF's.
   {
-    auto self = cudaq::fermion_operator::position(0);
-    auto other = cudaq::fermion_operator::momentum(1);
+    auto self = cudaq::fermion_operator::identity(0);
+    auto other = cudaq::fermion_operator::annihilate(1);
 
-    auto result = self * other; // nnote that position and momentum are each 2-term sums
-    ASSERT_TRUE(result.num_terms() == 4);
+    auto result = self * other;
+    ASSERT_TRUE(result.num_terms() == 2);
 
     std::vector<int> want_degrees = {1, 0};
     ASSERT_TRUE(result.degrees() == want_degrees);
 
     auto annihilate_full =
         cudaq::kronecker(utils::id_matrix(2),
-                        utils::position_matrix(3));
-    auto create_full = cudaq::kronecker(utils::momentum_matrix(2),
-                                        utils::id_matrix(3));
-    auto got_matrix = result.to_matrix(dimensions);
+                        utils::id_matrix(2));
+    auto create_full = cudaq::kronecker(utils::annihilate_matrix(2),
+                                        utils::id_matrix(2));
+    auto got_matrix = result.to_matrix();
     auto want_matrix = annihilate_full * create_full;
     utils::checkEqual(want_matrix, got_matrix);
   }
@@ -638,7 +528,6 @@ TEST(OperatorExpressions, checkFermionOpsAdvancedArithmetics) {
 
   // Keeping this fixed throughout.
   std::complex<double> value = 0.125 + 0.5j;
-  std::unordered_map<int, int> dimensions = {{0, 3}, {1, 2}, {2, 4}, {3, 2}};
 
   // `fermion_operator + operator_sum`
   {
@@ -652,15 +541,15 @@ TEST(OperatorExpressions, checkFermionOpsAdvancedArithmetics) {
     ASSERT_TRUE(got.num_terms() == 3);
     ASSERT_TRUE(reverse.num_terms() == 3);
 
-    auto self_full = cudaq::kronecker(utils::create_matrix(4),
+    auto self_full = cudaq::kronecker(utils::create_matrix(2),
                                       utils::id_matrix(2));
-    auto term_0_full = cudaq::kronecker(utils::annihilate_matrix(4),
+    auto term_0_full = cudaq::kronecker(utils::annihilate_matrix(2),
                                         utils::id_matrix(2));
-    auto term_1_full = cudaq::kronecker(utils::id_matrix(4),
+    auto term_1_full = cudaq::kronecker(utils::id_matrix(2),
                                         utils::number_matrix(2));
 
-    auto got_matrix = got.to_matrix(dimensions);
-    auto got_reverse_matrix = reverse.to_matrix(dimensions);
+    auto got_matrix = got.to_matrix();
+    auto got_reverse_matrix = reverse.to_matrix();
     auto want_matrix = self_full + term_0_full + term_1_full;
     auto want_reverse_matrix = term_0_full + term_1_full + self_full;
     utils::checkEqual(want_matrix, got_matrix);
@@ -680,14 +569,14 @@ TEST(OperatorExpressions, checkFermionOpsAdvancedArithmetics) {
     ASSERT_TRUE(reverse.num_terms() == 3);
 
     auto self_full = cudaq::kronecker(utils::id_matrix(2),
-                                      utils::annihilate_matrix(3));
+                                      utils::annihilate_matrix(2));
     auto term_0_full = cudaq::kronecker(utils::id_matrix(2),
-                                        utils::create_matrix(3));
+                                        utils::create_matrix(2));
     auto term_1_full = cudaq::kronecker(utils::id_matrix(2),
-                                        utils::id_matrix(3));
+                                        utils::id_matrix(2));
 
-    auto got_matrix = got.to_matrix(dimensions); 
-    auto got_reverse_matrix = reverse.to_matrix(dimensions);
+    auto got_matrix = got.to_matrix(); 
+    auto got_reverse_matrix = reverse.to_matrix();
     auto want_matrix = self_full - term_0_full - term_1_full;
     auto want_reverse_matrix = term_0_full + term_1_full - self_full;
     utils::checkEqual(want_matrix, got_matrix);
@@ -710,17 +599,17 @@ TEST(OperatorExpressions, checkFermionOpsAdvancedArithmetics) {
     for (auto &term : reverse.get_terms())
       ASSERT_TRUE(term.num_terms() == term.degrees().size());
 
-    auto self_full = cudaq::kronecker(utils::id_matrix(4),
-                                      utils::number_matrix(3));
+    auto self_full = cudaq::kronecker(utils::id_matrix(2),
+                                      utils::number_matrix(2));
     auto term_0_full =
-        cudaq::kronecker(utils::id_matrix(4),
-                         utils::create_matrix(3));
-    auto term_1_full = cudaq::kronecker(utils::number_matrix(4),
-                                        utils::id_matrix(3));
+        cudaq::kronecker(utils::id_matrix(2),
+                         utils::create_matrix(2));
+    auto term_1_full = cudaq::kronecker(utils::number_matrix(2),
+                                        utils::id_matrix(2));
     auto sum_full = term_0_full + term_1_full;
 
-    auto got_matrix = got.to_matrix(dimensions); 
-    auto got_reverse_matrix = reverse.to_matrix(dimensions);
+    auto got_matrix = got.to_matrix(); 
+    auto got_reverse_matrix = reverse.to_matrix();
     auto want_matrix = self_full * sum_full;
     auto want_reverse_matrix = sum_full * self_full;
     utils::checkEqual(want_matrix, got_matrix);
@@ -729,20 +618,20 @@ TEST(OperatorExpressions, checkFermionOpsAdvancedArithmetics) {
 
   // `operator_sum += fermion_operator`
   {
-    auto operator_sum = cudaq::fermion_operator::momentum(0) +
+    auto operator_sum = cudaq::fermion_operator::create(0) +
                         cudaq::fermion_operator::annihilate(2);
-    operator_sum += cudaq::fermion_operator::position(0);
+    operator_sum += cudaq::fermion_operator::number(0);
 
     ASSERT_TRUE(operator_sum.num_terms() == 3);
 
-    auto term_0_full = cudaq::kronecker(utils::annihilate_matrix(4),
-                                        utils::id_matrix(3));
-    auto term_1_full = cudaq::kronecker(utils::id_matrix(4),
-                                        utils::position_matrix(3));
-    auto added_full  = cudaq::kronecker(utils::id_matrix(4),
-                                        utils::momentum_matrix(3));
+    auto term_0_full = cudaq::kronecker(utils::annihilate_matrix(2),
+                                        utils::id_matrix(2));
+    auto term_1_full = cudaq::kronecker(utils::id_matrix(2),
+                                        utils::number_matrix(2));
+    auto added_full  = cudaq::kronecker(utils::id_matrix(2),
+                                        utils::create_matrix(2));
 
-    auto got_matrix = operator_sum.to_matrix(dimensions);
+    auto got_matrix = operator_sum.to_matrix();
     auto want_matrix = term_0_full + term_1_full + added_full;
     utils::checkEqual(want_matrix, got_matrix);
   }
@@ -751,64 +640,65 @@ TEST(OperatorExpressions, checkFermionOpsAdvancedArithmetics) {
   {
     auto operator_sum = cudaq::fermion_operator::create(0) +
                         cudaq::fermion_operator::annihilate(1);
-    operator_sum -= cudaq::fermion_operator::momentum(0);
+    operator_sum -= cudaq::fermion_operator::identity(0);
 
     ASSERT_TRUE(operator_sum.num_terms() == 3);
 
     auto term_0_full = cudaq::kronecker(utils::id_matrix(2),
-                                        utils::create_matrix(3));
+                                        utils::create_matrix(2));
     auto term_1_full = cudaq::kronecker(utils::annihilate_matrix(2),
-                                        utils::id_matrix(3));
+                                        utils::id_matrix(2));
     auto subtr_full  = cudaq::kronecker(utils::id_matrix(2),
-                                        utils::momentum_matrix(3));
+                                        utils::id_matrix(2));
 
-    auto got_matrix = operator_sum.to_matrix(dimensions);
+    auto got_matrix = operator_sum.to_matrix();
     auto want_matrix = term_0_full + term_1_full - subtr_full;
     utils::checkEqual(want_matrix, got_matrix);
   }
 
   // `operator_sum *= fermion_operator`
   {
-    auto operator_sum = cudaq::fermion_operator::momentum(0) +
-                        cudaq::fermion_operator::momentum(1);
-    auto self = cudaq::fermion_operator::position(0);
+    auto operator_sum = cudaq::fermion_operator::number(0) +
+                        cudaq::fermion_operator::annihilate(1);
+    auto self = cudaq::fermion_operator::create(0);
 
     operator_sum *= self;
 
-    ASSERT_TRUE(operator_sum.num_terms() == 8);
+    ASSERT_TRUE(operator_sum.num_terms() == 2);
     for (auto &term : operator_sum.get_terms())
       ASSERT_TRUE(term.num_terms() == term.degrees().size());
 
-    // Note that here we need to again expand the matrices for the product
-    // computation to ensure that the expected matrix is correct.
-    // (naive construction with "the right size" will lead to finite size errors). 
-    auto padded_term0 = utils::momentum_matrix(5) * utils::position_matrix(5);
-    auto term0 = cudaq::matrix_2(3, 3);
-    for (size_t i = 0; i < 3; ++i) {
-      for (size_t j = 0; j < 3; ++j)
-        term0[{i, j}] = padded_term0[{i, j}];
-    }
+    auto expected_term0 = cudaq::kronecker(utils::id_matrix(2), utils::number_matrix(2) * utils::create_matrix(2));
+    auto expected_term1 = cudaq::kronecker(utils::annihilate_matrix(2), utils::create_matrix(2));
 
-    auto expected_term0 = cudaq::kronecker(utils::id_matrix(2), term0);
-    auto expected_term1 = cudaq::kronecker(utils::momentum_matrix(2), utils::position_matrix(3));
-
-    auto got_matrix = operator_sum.to_matrix(dimensions);
+    auto got_matrix = operator_sum.to_matrix();
     auto want_matrix = expected_term0 + expected_term1;
     utils::checkEqual(want_matrix, got_matrix);
   }
 }
-*/
 
 TEST(OperatorExpressions, checkFermionOpsDegreeVerification) {
   auto op1 = cudaq::fermion_operator::create(2);
   auto op2 = cudaq::fermion_operator::annihilate(0);
-  std::unordered_map<int, int> dimensions = {{0, 2}, {1, 2}, {2, 3}, {3, 3}};
 
-  ASSERT_THROW(op1.to_matrix({}), std::runtime_error);
-  ASSERT_THROW(op1.to_matrix({{1, 2}}), std::runtime_error);
-  ASSERT_THROW((op1 * op2).to_matrix({{2, 3}}), std::runtime_error);
+  std::map<int, int> dimensions = {{0, 1}, {2, 3}};
+
+  ASSERT_THROW(op1.to_matrix({{2, 3}}), std::runtime_error);
+  ASSERT_THROW((op1 * op2).to_matrix({{0, 3}, {2, 3}}), std::runtime_error);
   ASSERT_THROW((op1 + op2).to_matrix({{0, 3}}), std::runtime_error);
-  ASSERT_NO_THROW((op1 * op2).to_matrix(dimensions));
-  ASSERT_NO_THROW((op1 + op2).to_matrix(dimensions));
+  ASSERT_NO_THROW(op1.to_matrix({{0, 3}}));
 }
-  
+
+TEST(OperatorExpressions, checkAntiCommutationRelations) {
+
+  // Doing some testing for the tests - if the reference matrices do not satisfy
+  // the correct relations, then all tests are wrong...
+
+  auto ad_mat = utils::create_matrix(2);
+  auto a_mat = utils::annihilate_matrix(2);
+
+  auto anticommutator = a_mat * ad_mat + ad_mat * a_mat;
+  utils::checkEqual(anticommutator, utils::id_matrix(2));
+  utils::checkEqual(ad_mat * a_mat, utils::number_matrix(2));
+  utils::checkEqual(a_mat * ad_mat, utils::id_matrix(2) - utils::number_matrix(2));
+}

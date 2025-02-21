@@ -72,11 +72,11 @@ TEST(OperatorExpressions, checkPreBuiltBosonOps) {
 
   // basic in-place multiplication
   {
-    auto max_nr_consecutive = 6;
+    auto max_nr_consecutive = 5;
     auto nr_op = cudaq::boson_operator::number(0);
     auto ad_op = cudaq::boson_operator::create(0);
     auto a_op = cudaq::boson_operator::annihilate(0);
-    for (auto d = 3; d < 4; ++d) {
+    for (auto d = 2; d < 5; ++d) {
 
       // we use a larger dimension to compute the correct expected matrices
       // to ensure the expected matrix is no impacted by finite-size errors
@@ -746,6 +746,9 @@ TEST(OperatorExpressions, checkBosonOpsDegreeVerification) {
 }
 
 TEST(OperatorExpressions, checkCommutationRelations) {
+
+  // Doing some testing for the tests - if the reference matrices do not satisfy
+  // the correct relations, then all tests are wrong...
 
   auto ad_mat = utils::create_matrix(5);
   auto a_mat = utils::annihilate_matrix(5);
