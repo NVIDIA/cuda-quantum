@@ -27,12 +27,29 @@ class operator_sum;
 class fermion_operator : public operator_handler{
 template <typename T> friend class product_operator;
 
+  // N N = N
+  // N (1 - N) = 0
+
+  // C Cd = 1 - N
+  // Z N = N
+  // N Cd = Cd (1 - N) = Cd
+  // N C = O = Cd N
+  // C N = (1 - N) C = C
+  // (1 - N) Cd = O = C (1 - N)
+
 private:
 
-  int op_code;
+  // Given that the dimension for fermion operators has to be 2,
+  // we could almost just as well store a 2 x 2 matrix of int8_t.
+  // That would be less cryptic, but makes identifying the operator
+  // a bit awkward.
+  bool quenched; // whether operator is zero
+  bool phase; // phase follows C but precedes Cd (since Z C = C and Cd Z = Cd)
+  int8_t additional_term; // 1 means Cd, -1 means C, 0 means I 
+  int8_t number_factor; // 1 means Nf, -1 means 1-Nf, 0 means I
   int target;
 
-  // 0 = I, 1 = Cd, 2 = C, 3 = Z
+  // 0 = I, Cd = 1, C = 2, CdC = 3
   fermion_operator(int target, int op_code);
 
   std::string op_code_to_string() const;
