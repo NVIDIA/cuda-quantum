@@ -37,6 +37,36 @@ def test_all(model, integrator):
     model().run_tests(integrator)
 
 
+def test_euler_integrator():
+    """
+    Test first-order Euler integration
+    """
+    N = 10
+    steps = np.linspace(0, 10, 101)
+    schedule = Schedule(steps, ["t"])
+    hamiltonian = operators.number(0)
+    dimensions = {0: N}
+    # initial state
+    psi0_ = cp.zeros(N, dtype=cp.complex128)
+    psi0_[-1] = 1.0
+    psi0 = cudaq.State.from_data(psi0_)
+    decay_rate = 0.1
+    evolution_result = evolve(
+        hamiltonian,
+        dimensions,
+        schedule,
+        psi0,
+        observables=[hamiltonian],
+        collapse_operators=[np.sqrt(decay_rate) * operators.annihilate(0)],
+        store_intermediate_results=True,
+        integrator=RungeKuttaIntegrator(order=1))
+    expt = []
+    for exp_vals in evolution_result.expectation_values():
+        expt.append(exp_vals[0].expectation())
+    expected_answer = (N - 1) * np.exp(-decay_rate * steps)
+    np.testing.assert_allclose(expected_answer, expt, 1e-3)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
