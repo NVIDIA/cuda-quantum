@@ -20,12 +20,16 @@ namespace cudaq {
 // private helpers
 
 std::string boson_operator::op_code_to_string() const {
-  if (this->additional_terms == 0 && this->number_offsets.size() == 0) return "I";
+  if (this->additional_terms == 0 && this->number_offsets.size() == 0)
+    return "I";
   std::string str;
   for (auto offset : this->number_offsets) {
-    if (offset == 0) str += "N";
-    else if (offset > 0) str += "(N+" + std::to_string(offset) + ")";
-    else str += "(N" + std::to_string(offset) + ")";
+    if (offset == 0)
+      str += "N";
+    else if (offset > 0)
+      str += "(N+" + std::to_string(offset) + ")";
+    else
+      str += "(N" + std::to_string(offset) + ")";
   }
   for (auto i = 0; i < this->additional_terms; ++i)
     str += "Ad";
@@ -35,26 +39,32 @@ std::string boson_operator::op_code_to_string() const {
 }
 
 void boson_operator::inplace_mult(const boson_operator &other) {
-  this->number_offsets.reserve(this->number_offsets.size() + other.number_offsets.size());
+  this->number_offsets.reserve(this->number_offsets.size() +
+                               other.number_offsets.size());
 
-  // first permute all number operators of RHS to the left; for x = # permutations,
-  // if we have "unpaired" creation operators, the number operator becomes (N + x),
-  // if we have "unpaired" annihilation operators, the number operator becomes (N - x).
+  // first permute all number operators of RHS to the left; for x = #
+  // permutations, if we have "unpaired" creation operators, the number operator
+  // becomes (N + x), if we have "unpaired" annihilation operators, the number
+  // operator becomes (N - x).
   for (auto offset : other.number_offsets)
     this->number_offsets.push_back(offset - this->additional_terms);
 
   // now we can combine the creation and annihilation operators;
   if (this->additional_terms > 0) { // we have "unpaired" creation operators
-    // using ad*a = N and ad*N = (N - 1)*ad, each created number operator has an offset 
-    // of -(x - 1 - i), where x is the number of creation operators, and i is the number 
-    // of creation operators we already combined
-    for (auto i = 1; i <= this->additional_terms && i <= -other.additional_terms; ++i)
+    // using ad*a = N and ad*N = (N - 1)*ad, each created number operator has an
+    // offset of -(x - 1 - i), where x is the number of creation operators, and
+    // i is the number of creation operators we already combined
+    for (auto i = 1;
+         i <= this->additional_terms && i <= -other.additional_terms; ++i)
       this->number_offsets.push_back(i - this->additional_terms);
-  } else if (this->additional_terms < 0) { // we have "unpaired" annihilation operators
-    // using a*ad = (N + 1) and a*N = (N + 1)*a, each created number operator has an offset 
-    // of (x - i), where x is the number of annihilation operators, and i is the number 
-    // of annihilation operators we already combined
-    for (auto i = 0; i > this->additional_terms && i > -other.additional_terms; --i)
+  } else if (this->additional_terms <
+             0) { // we have "unpaired" annihilation operators
+    // using a*ad = (N + 1) and a*N = (N + 1)*a, each created number operator
+    // has an offset of (x - i), where x is the number of annihilation
+    // operators, and i is the number of annihilation operators we already
+    // combined
+    for (auto i = 0; i > this->additional_terms && i > -other.additional_terms;
+         --i)
       this->number_offsets.push_back(i - this->additional_terms);
   }
 
@@ -72,18 +82,18 @@ std::vector<int> boson_operator::degrees() const { return {this->target}; }
 
 // constructors
 
-boson_operator::boson_operator(int target) 
-  : target(target), additional_terms(0) {}
+boson_operator::boson_operator(int target)
+    : target(target), additional_terms(0) {}
 
-boson_operator::boson_operator(int target, int op_id) 
-  : target(target), additional_terms(0) {
-    assert(0 <= op_id < 4);
-    if (op_id == 1) // create
-      this->additional_terms = 1;
-    else if (op_id == 2) // annihilate
-      this->additional_terms = -1;
-    else if (op_id == 3) // number
-      this->number_offsets.push_back(0);
+boson_operator::boson_operator(int target, int op_id)
+    : target(target), additional_terms(0) {
+  assert(0 <= op_id < 4);
+  if (op_id == 1) // create
+    this->additional_terms = 1;
+  else if (op_id == 2) // annihilate
+    this->additional_terms = -1;
+  else if (op_id == 3) // number
+    this->number_offsets.push_back(0);
 }
 
 // evaluations
@@ -100,7 +110,8 @@ matrix_2 boson_operator::to_matrix(
 
   auto mat = matrix_2(dim, dim);
   if (this->additional_terms > 0) {
-    for (std::size_t column = 0; column + this->additional_terms < dim; column++) {
+    for (std::size_t column = 0; column + this->additional_terms < dim;
+         column++) {
       auto row = column + this->additional_terms;
       mat[{row, column}] = 1.;
       for (auto offset : this->number_offsets)
@@ -122,7 +133,7 @@ matrix_2 boson_operator::to_matrix(
       mat[{i, i}] = 1.;
       for (auto offset : this->number_offsets)
         mat[{i, i}] *= (i + offset);
-    }  
+    }
   }
   return std::move(mat);
 }
@@ -137,8 +148,8 @@ std::string boson_operator::to_string(bool include_degrees) const {
 // comparisons
 
 bool boson_operator::operator==(const boson_operator &other) const {
-  return this->additional_terms == other.additional_terms && 
-         this->number_offsets == other.number_offsets && 
+  return this->additional_terms == other.additional_terms &&
+         this->number_offsets == other.number_offsets &&
          this->target == other.target;
 }
 
@@ -169,11 +180,13 @@ product_operator<boson_operator> boson_operator::number(int degree) {
 }
 
 operator_sum<boson_operator> boson_operator::position(int degree) {
-  return 0.5 * (boson_operator::create(degree) + boson_operator::annihilate(degree));
+  return 0.5 *
+         (boson_operator::create(degree) + boson_operator::annihilate(degree));
 }
 
 operator_sum<boson_operator> boson_operator::momentum(int degree) {
-  return 0.5j * (boson_operator::create(degree) - boson_operator::annihilate(degree));
+  return 0.5j *
+         (boson_operator::create(degree) - boson_operator::annihilate(degree));
 }
 
 } // namespace cudaq
