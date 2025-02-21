@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "cudaq/operators.h"
 #include "cudaq/utils/tensor.h"
 #include "spin_operators.h"
 
@@ -18,9 +19,12 @@ namespace cudaq {
 // private helpers
 
 std::string spin_operator::op_code_to_string() const {
-  if (this->op_code == 1) return "Z";
-  if (this->op_code == 2) return "X";
-  if (this->op_code == 3) return "Y";
+  if (this->op_code == 1)
+    return "Z";
+  if (this->op_code == 2)
+    return "X";
+  if (this->op_code == 3)
+    return "Y";
   return "I";
 }
 

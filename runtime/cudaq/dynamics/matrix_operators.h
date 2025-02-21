@@ -8,12 +8,12 @@
 
 #pragma once
 
-#include "cudaq/operators.h"
-#include "cudaq/utils/tensor.h"
-#include "templates.h"
 #include <complex>
 #include <unordered_map>
 #include <vector>
+
+#include "cudaq/operators.h"
+#include "cudaq/utils/tensor.h"
 
 namespace cudaq {
 

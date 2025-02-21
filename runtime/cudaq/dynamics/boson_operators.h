@@ -63,16 +63,21 @@ public:
 
   // evaluations
 
-  /// @brief Return the matrix representation of the operator in the eigenbasis of the number operator.
-  /// @arg  `dimensions` : A map specifying the dimension, that is the number of eigenstates, for each degree of freedom.
-  virtual matrix_2 to_matrix(std::unordered_map<int, int> &dimensions,
-                             const std::unordered_map<std::string, std::complex<double>> &parameters = {}) const;
+  /// @brief Return the matrix representation of the operator in the eigenbasis
+  /// of the number operator.
+  /// @arg  `dimensions` : A map specifying the dimension, that is the number of
+  /// eigenstates, for each degree of freedom.
+  virtual matrix_2
+  to_matrix(std::unordered_map<int, int> &dimensions,
+            const std::unordered_map<std::string, std::complex<double>>
+                &parameters = {}) const;
 
   virtual std::string to_string(bool include_degrees) const;
 
   // comparisons
 
-  /// @returns True if, and only if, the two operators have the same effect on any state.
+  /// @returns True if, and only if, the two operators have the same effect on
+  /// any state.
   bool operator==(const boson_operator &other) const;
 
   // defined operators
