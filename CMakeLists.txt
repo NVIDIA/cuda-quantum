@@ -554,6 +554,10 @@ endif()
 add_subdirectory(tools)
 add_subdirectory(utils)
 
+if(CUDAQ_BUILD_TESTS)
+  enable_testing()
+endif()
+
 if (CUDAQ_ENABLE_PYTHON)
   find_package(Python 3 COMPONENTS Interpreter Development)
   

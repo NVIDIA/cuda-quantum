@@ -446,6 +446,7 @@ SimulatorTensorNetBase::sample(const std::vector<std::size_t> &measuredBits,
       m_state->sample(measuredBitIds, shots, requireCacheWorkspace());
   cudaq::ExecutionResult counts(samples);
   double expVal = 0.0;
+  std::size_t sum_counts = 0;
   // Compute the expectation value from the counts
   for (auto &kv : counts.counts) {
     auto par = cudaq::sample_result::has_even_parity(kv.first);
@@ -454,9 +455,15 @@ SimulatorTensorNetBase::sample(const std::vector<std::size_t> &measuredBits,
       p = -p;
     }
     expVal += p;
+    sum_counts += kv.second;
   }
 
   counts.expectationValue = expVal;
+  counts.sequentialData.resize(sum_counts);
+  std::size_t s = 0;
+  for (auto &kv : counts.counts)
+    for (std::size_t c = 0; c < kv.second; c++)
+      counts.sequentialData[s++] = kv.first;
 
   return counts;
 }
