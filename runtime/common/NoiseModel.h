@@ -206,7 +206,7 @@ public:
   }
 };
 
-#define REGISTER_KRAUS_CHANNEL(TYPE)                                           \
+#define REGISTER_KRAUS_CHANNEL()                                               \
   static std::intptr_t get_key() { return (std::intptr_t)&get_key; }
 
 /// @brief The noise_model type keeps track of a set of
@@ -334,7 +334,7 @@ public:
   }
 
   void register_channel(
-      std::size_t key,
+      std::intptr_t key,
       const std::function<kraus_channel(const std::vector<double> &)> &gen) {
     registeredChannels.insert({key, gen});
   }
@@ -451,7 +451,7 @@ public:
   }
   depolarization_channel(const real probability)
       : depolarization_channel(std::vector<cudaq::real>{probability}) {}
-  REGISTER_KRAUS_CHANNEL(depolarization_channel)
+  REGISTER_KRAUS_CHANNEL()
 };
 
 /// @brief amplitude_damping_channel is a kraus_channel that
@@ -472,7 +472,7 @@ public:
   }
   amplitude_damping_channel(const real probability)
       : amplitude_damping_channel(std::vector<cudaq::real>{probability}) {}
-  REGISTER_KRAUS_CHANNEL(amplitude_damping_channel)
+  REGISTER_KRAUS_CHANNEL()
 };
 
 /// @brief bit_flip_channel is a kraus_channel that
@@ -494,7 +494,7 @@ public:
   }
   bit_flip_channel(const real probability)
       : bit_flip_channel(std::vector<cudaq::real>{probability}) {}
-  REGISTER_KRAUS_CHANNEL(bit_flip_channel)
+  REGISTER_KRAUS_CHANNEL()
 };
 
 /// @brief phase_flip_channel is a kraus_channel that
@@ -517,6 +517,6 @@ public:
   }
   phase_flip_channel(const real probability)
       : phase_flip_channel(std::vector<cudaq::real>{probability}) {}
-  REGISTER_KRAUS_CHANNEL(phase_flip_channel)
+  REGISTER_KRAUS_CHANNEL()
 };
 } // namespace cudaq
