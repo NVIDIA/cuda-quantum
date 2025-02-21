@@ -13,29 +13,29 @@
 #include <string>
 #include <vector>
 
-inline void export_csv_helper(std::vector<std::string> & /*headers*/, 
-    std::vector<const std::vector<double>*>& /*columns*/){}
+inline void
+export_csv_helper(std::vector<std::string> & /*headers*/,
+                  std::vector<const std::vector<double> *> & /*columns*/) {}
 
 template <typename... Rest>
-inline void export_csv_helper(std::vector<std::string> &headers, 
-    std::vector<const std::vector<double>*> &columns, 
-    const std::string &header, 
-    const std::vector<double> &column, 
-    const Rest&... rest) {
+inline void export_csv_helper(std::vector<std::string> &headers,
+                              std::vector<const std::vector<double> *> &columns,
+                              const std::string &header,
+                              const std::vector<double> &column,
+                              const Rest &...rest) {
   headers.push_back(header);
   columns.push_back(&column);
   export_csv_helper(headers, columns, rest...);
 }
 
 template <typename... Args>
-void export_csv(const std::string &filename, const std::string &header1, 
-    const std::vector<double> &col1, 
-    const Args &... args) {
-  static_assert(sizeof...(args) % 2 == 0, 
-    "Parameters must be provided in header/vector pairs.");
-  
+void export_csv(const std::string &filename, const std::string &header1,
+                const std::vector<double> &col1, const Args &...args) {
+  static_assert(sizeof...(args) % 2 == 0,
+                "Parameters must be provided in header/vector pairs.");
+
   std::vector<std::string> headers;
-  std::vector<const std::vector<double>*> columns;
+  std::vector<const std::vector<double> *> columns;
   headers.push_back(header1);
   columns.push_back(&col1);
   export_csv_helper(headers, columns, args...);
@@ -43,34 +43,33 @@ void export_csv(const std::string &filename, const std::string &header1,
   size_t n = columns.front()->size();
   for (const auto *column : columns) {
     if (column->size() != n) {
-      std::cerr << "Error: all columns must have the same length." 
-        << std::endl;
+      std::cerr << "Error: all columns must have the same length." << std::endl;
       return;
     }
   }
 
-    std::ofstream file(filename);
-    if (!file.is_open()) {
-      std::cerr << "Error: could not open file " << filename << std::endl;
-      return;
-    }
+  std::ofstream file(filename);
+  if (!file.is_open()) {
+    std::cerr << "Error: could not open file " << filename << std::endl;
+    return;
+  }
 
-    for (size_t i = 0; i < headers.size(); ++i) {
-      file << headers[i];
-      if (i < headers.size() - 1) {
+  for (size_t i = 0; i < headers.size(); ++i) {
+    file << headers[i];
+    if (i < headers.size() - 1) {
+      file << ",";
+    }
+  }
+  file << std::endl;
+
+  for (size_t i = 0; i < n; ++i) {
+    for (size_t j = 0; j < columns.size(); ++j) {
+      file << (*columns[j])[i];
+      if (j < columns.size() - 1) {
         file << ",";
       }
     }
     file << std::endl;
-
-    for (size_t i = 0; i < n; ++i) {
-      for (size_t j = 0; j < columns.size(); ++j) {
-        file << (*columns[j])[i];
-        if (j < columns.size() - 1) {
-          file << ",";
-        }
-      }
-      file << std::endl;
-    }
-    file.close();
+  }
+  file.close();
 }
