@@ -393,11 +393,11 @@ inline void packArgs(OpaqueArguments &argData, py::args args,
               .Case([&](IntegerType type) {
                 // Handle vec<bool> and vec<int>
                 if (type.getIntOrFloatBitWidth() == 1) {
-                  genericVecAllocator.template operator()<bool>(
+                  genericVecAllocator.template operator()<char>(
                       [](py::handle element, int index, int elementIndex) {
                         checkListElementType<py::bool_>(element, index,
                                                         elementIndex);
-                        return element.cast<bool>();
+                        return static_cast<char>(element.cast<bool>());
                       });
                   return;
                 }
