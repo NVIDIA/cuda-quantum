@@ -27,33 +27,38 @@ class operator_sum;
 class fermion_operator : public operator_handler{
 template <typename T> friend class product_operator;
 
-  // N N = N
-  // N (1 - N) = 0
-
-  // C Cd = 1 - N
-  // Z N = N
-  // N Cd = Cd (1 - N) = Cd
-  // N C = O = Cd N
-  // C N = (1 - N) C = C
-  // (1 - N) Cd = O = C (1 - N)
-
 private:
 
   // Given that the dimension for fermion operators has to be 2,
-  // we could almost just as well store a 2 x 2 matrix of int8_t.
-  // That would be less cryptic, but makes identifying the operator
-  // a bit awkward.
-  bool quenched; // whether operator is zero
-  bool phase; // phase follows C but precedes Cd (since Z C = C and Cd Z = Cd)
-  int8_t additional_term; // 1 means Cd, -1 means C, 0 means I 
-  int8_t number_factor; // 1 means Nf, -1 means 1-Nf, 0 means I
+  // we effectively may just as well store a 2 x 2 matrix.
+  // Since we only ever need the operator Ad, A, N, (1-N), I, 0
+  // as well as their negatives (except for I and 0, which should
+  // never become negative), we choose to store this merely as a 
+  // single integer whose bits correspond to the quadrant entry.
+  // That is: 
+  // 0 = 0000 = 0,
+  // 1 = 0001 = (1-N),
+  // 2 = 0010 = A,
+  // 4 = 0100 = Ad
+  // 8 = 1000 = N
+  // 9 = 1001 = I
+  // The sign bit indicates the sign of the operator.
+  int op_code;
   int target;
 
-  // 0 = I, Cd = 1, C = 2, CdC = 3
-  fermion_operator(int target, int op_code);
+  // Note that this constructor is chosen to be independent
+  // on the internal encoding; to be less critic, we here use the usual
+  // 0 = I, Ad = 1, A = 2, AdA = 3
+  fermion_operator(int target, int op_id);
 
   std::string op_code_to_string() const;
 
+  #if !defined(NDEBUG)
+  // Here to check if my reasoning regarding only ever needing the operators 
+  // above were correct.
+  void validate_opcode() const;
+  #endif
+  
   void inplace_mult(const fermion_operator &other);
 
 public:
@@ -96,11 +101,8 @@ public:
   static product_operator<fermion_operator> annihilate(int degree);
   static product_operator<fermion_operator> number(int degree);
 
-  //static operator_sum<fermion_operator> position(int degree);
-  //static operator_sum<fermion_operator> momentum(int degree);
-
-  // FIXME: position, momentum may not make sense, but parity instead?
-  // see also https://physics.stackexchange.com/questions/319296/why-does-a-fermionic-hamiltonian-always-obey-fermionic-parity-symmetry
+  // Note that we don't define position and momentum here, since physically they do not make much sense; see e.g.
+  // https://physics.stackexchange.com/questions/319296/why-does-a-fermionic-hamiltonian-always-obey-fermionic-parity-symmetry
 };
 
 } // namespace cudaq

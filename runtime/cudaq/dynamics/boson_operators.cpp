@@ -20,8 +20,16 @@ namespace cudaq {
 // private helpers
 
 std::string boson_operator::op_code_to_string() const {
-  if (this->additional_terms == 0 && this->number_offsets.size() == 0)
-    return "I";
+  // Note that we can (and should) have the same op codes across boson, fermion, and spin ops, 
+  // since individual operators with the same op codes are actually equal.
+  // Note that the matrix definition for creation, annihilation and number operators are 
+  // equal despite the different commutation/anticommutation relations; what makes them 
+  // behave differently is effectively the "finite size effects" for fermions. Specifically,
+  // if we were to blindly multiply the matrices for d=2 for bosons, we would get the same
+  // behavior as we have for a single fermion due to the finite size of the matrix. 
+  // To avoid this, we ensure that we reorder the operators for bosons appropriately as part of
+  // the in-place multiplication, whereas for fermions, this effect is desired/correct. 
+  if (this->additional_terms == 0 && this->number_offsets.size() == 0) return "I";
   std::string str;
   for (auto offset : this->number_offsets) {
     if (offset == 0)
