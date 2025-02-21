@@ -70,8 +70,8 @@ void __quantum__qis__apply__general_qubit_array(Array *data, Array *qubits);
 void __quantum__qis__apply__general(Array *data, int64_t n_qubits, ...);
 
 void __quantum__qis__apply_kraus_channel_generalized(
-    std::int64_t krausChannelKey, std::size_t numSpans, std::size_t numParams,
-    std::size_t numTargets, ...);
+    std::int64_t dataKind, std::int64_t krausChannelKey, std::size_t numSpans,
+    std::size_t numParams, std::size_t numTargets, ...);
 
 // Qubit array allocation / deallocation
 Array *__quantum__rt__qubit_allocate_array(uint64_t idx);
@@ -625,7 +625,7 @@ CUDAQ_TEST(NVQIRTester, checkKrausApply) {
 
   __quantum__qis__x(q);
   __quantum__qis__apply_kraus_channel_generalized(
-      test::hello::hello_world::get_key(), 1, 0, 1, params.data(),
+      1, test::hello::hello_world::get_key(), 1, 0, 1, params.data(),
       params.size(), qubits);
 
   __quantum__rt__qubit_release_array(qubits);

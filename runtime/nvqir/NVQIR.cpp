@@ -612,6 +612,7 @@ void __quantum__rt__result_record_output(Result *r, int8_t *name) {
     __quantum__qis__mz__to__register(measRes2QB[r],
                                      reinterpret_cast<const char *>(name));
 }
+}
 
 static std::vector<std::size_t> safeArrayToVectorSizeT(Array *arr) {
   if (!arr)
@@ -656,21 +657,22 @@ __quantum__qis__apply_kraus_channel_float(std::int64_t krausChannelKey,
                                                    arrayToVectorSizeT(qubits));
 }
 
-void __quantum__qis__apply_kraus_channel_generalized(
-    std::int64_t krausChannelKey, std::size_t numSpans, std::size_t numParams,
-    std::size_t numTargets, ...) {
+template <typename REAL,
+          typename = std::enable_if_t<std::is_same_v<REAL, float> ||
+                                      std::is_same_v<REAL, double>>>
+void vapply_kraus_channel_generalized(std::int64_t krausChannelKey,
+                                      std::size_t numSpans,
+                                      std::size_t numParams,
+                                      std::size_t numTargets, va_list args) {
   struct basic_span {
-    double *_0;
+    REAL *_0;
     std::size_t _1;
   };
 
-  double *params;
+  REAL *params;
   std::size_t totalParams;
 
-  va_list args;
-  va_start(args, numTargets);
-
-  // We assume either a span OR a list of doubles, but not both (for now).
+  // We assume either a span OR a list of REALs, but not both (for now).
   if (numSpans) {
     // 1a. A set of basic spans, `{ptr, i64}`. Pop the varargs and build the
     // spans.
@@ -679,7 +681,7 @@ void __quantum__qis__apply_kraus_channel_generalized(
     basic_span *spans =
         reinterpret_cast<basic_span *>(alloca(numSpans * sizeof(basic_span)));
     for (std::size_t i = 0; i < numSpans; ++i) {
-      auto *dataPtr = va_arg(args, double *);
+      auto *dataPtr = va_arg(args, REAL *);
       auto dataLen = va_arg(args, std::size_t);
       spans[i] = basic_span{dataPtr, dataLen};
     }
@@ -688,10 +690,10 @@ void __quantum__qis__apply_kraus_channel_generalized(
     params = spans[0]._0;
     totalParams = spans[0]._1;
   } else {
-    // 1b. A set of parameters. Pop the varargs as double values.
-    params = reinterpret_cast<double *>(alloca(numParams * sizeof(double)));
+    // 1b. A set of parameters. Pop the varargs as REAL values.
+    params = reinterpret_cast<REAL *>(alloca(numParams * sizeof(REAL)));
     for (std::size_t i = 0; i < numParams; ++i) {
-      auto *dblPtr = va_arg(args, double *);
+      auto *dblPtr = va_arg(args, REAL *);
       params[i] = *dblPtr;
     }
 
@@ -705,8 +707,30 @@ void __quantum__qis__apply_kraus_channel_generalized(
     qubits[i] = qubitToSizeT(qbPtr);
   }
   auto *asArray = vectorSizetToArray(qubits);
-  __quantum__qis__apply_kraus_channel_double(krausChannelKey, params,
-                                             totalParams, asArray);
+  if constexpr (std::is_same_v<REAL, float>) {
+    __quantum__qis__apply_kraus_channel_float(krausChannelKey, params,
+                                              totalParams, asArray);
+  } else {
+    __quantum__qis__apply_kraus_channel_double(krausChannelKey, params,
+                                               totalParams, asArray);
+  }
+}
+
+extern "C" {
+// The dataKind encoding is defined in QIRFunctionNames.h. 0 is float, 1 is
+// double.
+void __quantum__qis__apply_kraus_channel_generalized(
+    std::int64_t dataKind, std::int64_t krausChannelKey, std::size_t numSpans,
+    std::size_t numParams, std::size_t numTargets, ...) {
+  va_list args;
+  va_start(args, numTargets);
+  if (dataKind == 0)
+    vapply_kraus_channel_generalized<float>(krausChannelKey, numSpans,
+                                            numParams, numTargets, args);
+  else
+    vapply_kraus_channel_generalized<double>(krausChannelKey, numSpans,
+                                             numParams, numTargets, args);
+  va_end(args);
 }
 
 void __quantum__qis__custom_unitary(std::complex<double> *unitary,

@@ -94,6 +94,10 @@ static constexpr const char QIRRecordOutput[] =
 static constexpr const char QIRClearResultMaps[] =
     "__quantum__rt__clear_result_maps";
 
+/// Used to specify the type of the data elements in the `QISApplyKrausChannel`
+/// call. (`float` or `double`)
+enum class KrausChannelDataKind { FloatKind, DoubleKind };
+
 static constexpr const char QISApplyKrausChannel[] =
     "__quantum__qis__apply_kraus_channel_generalized";
 

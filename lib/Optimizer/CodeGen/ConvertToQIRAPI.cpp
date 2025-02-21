@@ -286,10 +286,30 @@ struct ApplyNoiseOpRewrite : public OpConversionPattern<quake::ApplyNoiseOp> {
       // This is the key-based variant. Call the generalized version of the
       // apply_kraus_channel helper function. Let it do all the conversions into
       // contiguous buffers for us, greatly simplifying codegen here.
-      SmallVector<Value> args = {adaptor.getKey()};
+      SmallVector<Value> args;
       const bool pushASpan =
           adaptor.getParameters().size() == 1 &&
           isa<cudaq::cc::StdvecType>(adaptor.getParameters()[0].getType());
+      const bool usingDouble = [&]() {
+        if (adaptor.getParameters().empty())
+          return true;
+        auto param0 = adaptor.getParameters()[0];
+        if (pushASpan)
+          return cast<cudaq::cc::StdvecType>(param0.getType())
+                     .getElementType() == rewriter.getF64Type();
+        return cast<cudaq::cc::PointerType>(param0.getType())
+                   .getElementType() == rewriter.getF64Type();
+      }();
+      if (usingDouble) {
+        auto code = static_cast<std::int64_t>(
+            cudaq::opt::KrausChannelDataKind::DoubleKind);
+        args.push_back(rewriter.create<arith::ConstantIntOp>(loc, code, 64));
+      } else {
+        auto code = static_cast<std::int64_t>(
+            cudaq::opt::KrausChannelDataKind::FloatKind);
+        args.push_back(rewriter.create<arith::ConstantIntOp>(loc, code, 64));
+      }
+      args.push_back(adaptor.getKey());
       if (pushASpan) {
         args.push_back(rewriter.create<arith::ConstantIntOp>(loc, 1, 64));
         args.push_back(rewriter.create<arith::ConstantIntOp>(loc, 0, 64));
