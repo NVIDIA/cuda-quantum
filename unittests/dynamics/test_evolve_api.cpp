@@ -14,24 +14,16 @@
 
 TEST(EvolveAPITester, checkSimple) {
   const std::map<int, int> dims = {{0, 2}};
-  cudaq::product_operator<cudaq::matrix_operator> ham1 =
-      (2.0 * M_PI * 0.1 * cudaq::spin_operator::x(0));
-  cudaq::operator_sum<cudaq::matrix_operator> ham(ham1);
-
+  auto ham = 2.0 * M_PI * 0.1 * cudaq::spin_operator::x(0);
   constexpr int numSteps = 10;
   cudaq::Schedule schedule(cudaq::linspace(0.0, 1.0, numSteps));
-
-  cudaq::product_operator<cudaq::matrix_operator> pauliZ_t =
-      cudaq::spin_operator::z(0);
-  cudaq::operator_sum<cudaq::matrix_operator> pauliZ(pauliZ_t);
   auto initialState =
       cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
-
   auto integrator = std::make_shared<cudaq::runge_kutta>();
   integrator->order = 1;
   integrator->dt = 0.001;
   auto result = cudaq::evolve(ham, dims, schedule, initialState, integrator, {},
-                              {pauliZ}, true);
+                              {cudaq::spin_operator::z(0)}, true);
   EXPECT_TRUE(result.get_expectation_values().has_value());
   EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
   std::vector<double> theoryResults;
@@ -58,13 +50,12 @@ TEST(EvolveAPITester, checkCavityModel) {
   psi0_.back() = 1.0;
   auto psi0 = cudaq::state::from_data(psi0_);
   constexpr double decay_rate = 0.1;
-  auto collapseOperator =
-      std::sqrt(decay_rate) * cudaq::boson_operator::annihilate(0);
   auto integrator = std::make_shared<cudaq::runge_kutta>();
   integrator->dt = 0.01;
-  auto result =
-      cudaq::evolve(hamiltonian, dimensions, schedule, psi0, integrator,
-                    {collapseOperator}, {hamiltonian}, true);
+  auto result = cudaq::evolve(
+      hamiltonian, dimensions, schedule, psi0, integrator,
+      {std::sqrt(decay_rate) * cudaq::boson_operator::annihilate(0)},
+      {hamiltonian}, true);
   EXPECT_TRUE(result.get_expectation_values().has_value());
   EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
   std::vector<double> theoryResults;
