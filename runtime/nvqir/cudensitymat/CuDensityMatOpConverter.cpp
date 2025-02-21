@@ -228,8 +228,40 @@ cudaq::dynamics::OpConverter::createElementaryOperator(
   std::unordered_map<int, int> dimensions = convertDimensions(modeExtents);
   cudensitymatWrappedTensorCallback_t wrappedTensorCallback = {nullptr,
                                                                nullptr};
+
+  static const std::vector<std::string> g_knownNonParametricOps = []() {
+    std::vector<std::string> opNames;
+    opNames.emplace_back(
+        cudaq::boson_operator::identity(0).get_terms()[0].to_string(false));
+    // These are ops that we created during lindblad generation
+    opNames.emplace_back(opNames.back() + "_dagger");
+    opNames.emplace_back(
+        cudaq::boson_operator::create(0).get_terms()[0].to_string(false));
+    opNames.emplace_back(opNames.back() + "_dagger");
+    opNames.emplace_back(
+        cudaq::boson_operator::annihilate(0).get_terms()[0].to_string(false));
+    opNames.emplace_back(opNames.back() + "_dagger");
+    opNames.emplace_back(
+        cudaq::boson_operator::number(0).get_terms()[0].to_string(false));
+    opNames.emplace_back(opNames.back() + "_dagger");
+    opNames.emplace_back(
+        cudaq::spin_operator::i(0).get_terms()[0].to_string(false));
+    opNames.emplace_back(opNames.back() + "_dagger");
+    opNames.emplace_back(
+        cudaq::spin_operator::x(0).get_terms()[0].to_string(false));
+    opNames.emplace_back(opNames.back() + "_dagger");
+    opNames.emplace_back(
+        cudaq::spin_operator::y(0).get_terms()[0].to_string(false));
+    opNames.emplace_back(opNames.back() + "_dagger");
+    opNames.emplace_back(
+        cudaq::spin_operator::z(0).get_terms()[0].to_string(false));
+    return opNames;
+  }();
+
   // This is a callback
-  if (!parameters.empty()) {
+  if (!parameters.empty() &&
+      std::find(g_knownNonParametricOps.begin(), g_knownNonParametricOps.end(),
+                elemOp.to_string(false)) == g_knownNonParametricOps.end()) {
     const std::map<std::string, std::complex<double>> sortedParameters(
         parameters.begin(), parameters.end());
     auto ks = std::views::keys(sortedParameters);
