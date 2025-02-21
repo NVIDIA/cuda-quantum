@@ -454,7 +454,8 @@ public:
       mlir::PassManager pm(&context);
       if (!rawArgs.empty()) {
         cudaq::info("Run Argument Synth.\n");
-        opt::ArgumentConverter argCon(kernelName, moduleOp);
+        std::list<std::string> kernelRegistry;
+        opt::ArgumentConverter argCon(kernelRegistry, kernelName, moduleOp);
         argCon.gen(rawArgs);
 
         // For quantum devices, we've created a tree of ArgumentConverters
@@ -488,6 +489,7 @@ public:
             };
         collect(argCon);
 
+        // Collect references for the argument synthesis.
         mlir::SmallVector<mlir::StringRef> funcNames{kernels.begin(),
                                                      kernels.end()};
         mlir::SmallVector<mlir::StringRef> substitutions{substs.begin(),

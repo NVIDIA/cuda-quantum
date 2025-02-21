@@ -25,6 +25,12 @@ public:
   /// kernelName in \p sourceModule.
   ArgumentConverter(mlir::StringRef kernelName, mlir::ModuleOp sourceModule);
 
+  /// Build an instance to create argument substitutions for a specified \p
+  /// kernelName in \p sourceModule. Use \p kernelRegistry to store newly
+  /// generated functions.
+  ArgumentConverter(std::list<std::string> &kernelRegistry,
+                    mlir::StringRef kernelName, mlir::ModuleOp sourceModule);
+
   /// Generate a substitution ModuleOp for the vector of arguments presented.
   /// The arguments are those presented to the kernel, kernelName.
   void gen(const std::vector<void *> &arguments);
@@ -48,42 +54,61 @@ public:
   /// created.
   mlir::ModuleOp getSubstitutionModule() { return substModule; }
 
-  mlir::ModuleOp getSourceModule() { return sourceModule; }
-
+  /// Kernel we are converting the arguments for.
   mlir::StringRef getKernelName() { return kernelName; }
 
-  void genCallee(mlir::StringRef calleeName, std::vector<void *> &args) {
-    auto &converter = calleeConverters.emplace_back(calleeName, substModule);
-    converter.gen(args);
-  }
-
+  /// Return child converters for functions created from kernel used in state
+  /// arguments.
   std::vector<ArgumentConverter> &getCalleeConverters() {
     return calleeConverters;
   }
 
-  static bool isRegisteredKernelName(const std::string &kernelName) {
-    return std::find(kernelNameRegistry.begin(), kernelNameRegistry.end(),
-                     kernelName) != kernelNameRegistry.end();
+  /// Is kernel name already created?
+  bool isRegisteredKernel(const std::string &kernelName) {
+    return std::find(kernelRegistry.begin(), kernelRegistry.end(),
+                     kernelName) != kernelRegistry.end();
   }
 
-  static const std::string &registerKernelName(const std::string &kernelName) {
-    return kernelNameRegistry.emplace_back(kernelName);
+  /// Store kernel name in memory for newly created kernels.
+  const std::string &registerKernel(const std::string &kernelName) {
+    return kernelRegistry.emplace_back(kernelName);
   }
 
 private:
-  /// Keeps kernel names created during argument conversion in memory.
-  /// References to those names are used by the argument converters for
-  /// those kernels.
-  /// Note: use std::list to make sure we always return valid references
-  /// when registering new kernel names.
-  static std::list<std::string> kernelNameRegistry;
+  /// Default registry to use when state synthesis is not needed.
+  static std::list<std::string> emptyRegistry;
+
+  /// Create a child converter for the new callee created from a
+  /// state argument.
+  ArgumentConverter &createCalleeConverter(mlir::StringRef calleeName) {
+    assert(&kernelRegistry != &emptyRegistry &&
+           "Argument converter is missing a kernel registry");
+    return calleeConverters.emplace_back(kernelRegistry, calleeName,
+                                         substModule);
+  }
 
   mlir::ModuleOp sourceModule;
   mlir::ModuleOp substModule;
   mlir::OpBuilder builder;
   mlir::StringRef kernelName;
   mlir::SmallVector<cc::ArgumentSubstitutionOp> substitutions;
+
+  /// Converters for functions created during state argument conversion.
   std::vector<ArgumentConverter> calleeConverters;
+
+  /// Keeps new kernel names created during argument conversion in memory.
+  /// References to the names are used by the argument converters for
+  /// their kernels.
+  /// NOTE: use `std::list` to make sure we always return valid references
+  /// when registering new kernel names, as the references are taken while
+  /// the list is growing.
+  std::list<std::string> &kernelRegistry;
+
+  friend ArgumentConverter &createChildConverter(ArgumentConverter &parent,
+                                                 std::string &calleeName);
 };
+
+ArgumentConverter &createChildConverter(ArgumentConverter &parent,
+                                        std::string &calleeName);
 
 } // namespace cudaq::opt
