@@ -607,6 +607,50 @@ struct hello_world : public ::cudaq::kraus_channel {
   }
   REGISTER_KRAUS_CHANNEL()
 };
+
+struct adios : public ::cudaq::kraus_channel {
+  constexpr static std::size_t num_parameters = 2;
+  constexpr static std::size_t num_targets = 2;
+  adios(const std::vector<double> &params) {
+    cudaq::real p = params[0];
+    cudaq::real q = params[0];
+    std::vector<cudaq::complex> k0v{std::sqrt(1 - p),
+                                    0,
+                                    0,
+                                    std::sqrt(1 - q),
+                                    std::sqrt(1 - p),
+                                    0,
+                                    0,
+                                    std::sqrt(1 - q),
+                                    0,
+                                    std::sqrt(p),
+                                    std::sqrt(q),
+                                    0,
+                                    0,
+                                    std::sqrt(p),
+                                    std::sqrt(q),
+                                    0};
+    std::vector<cudaq::complex> k1v{0,
+                                    std::sqrt(p),
+                                    std::sqrt(q),
+                                    0,
+                                    0,
+                                    std::sqrt(p),
+                                    std::sqrt(q),
+                                    0,
+                                    std::sqrt(1 - p),
+                                    0,
+                                    0,
+                                    std::sqrt(1 - q),
+                                    std::sqrt(1 - p),
+                                    0,
+                                    0,
+                                    std::sqrt(1 - q)};
+    push_back(cudaq::kraus_op(k0v));
+    push_back(cudaq::kraus_op(k1v));
+  }
+  REGISTER_KRAUS_CHANNEL()
+};
 } // namespace test::hello
 
 CUDAQ_TEST(NVQIRTester, checkKrausApply) {
@@ -667,7 +711,7 @@ CUDAQ_TEST(NVQIRTester, checkKrausApplyGeneralUno) {
   __quantum__rt__finalize();
 }
 
-CUDAQ_TEST(NVQIRTester, checkKrausApplyGeneralDuo) {
+CUDAQ_TEST(NVQIRTester, checkKrausApplyGeneralDue) {
 
   const int shots = 100;
   cudaq::ExecutionContext ctx("sample", shots);
@@ -686,6 +730,38 @@ CUDAQ_TEST(NVQIRTester, checkKrausApplyGeneralDuo) {
   __quantum__qis__x(q);
   __quantum__qis__apply_kraus_channel_generalized(
       1, test::hello::hello_world::get_key(), 0, 1, 1, params.data(), qubits);
+
+  __quantum__rt__qubit_release_array(qubits);
+  __quantum__rt__resetExecutionContext();
+
+  cudaq::sample_result counts = ctx.result;
+  counts.dump();
+  __quantum__rt__finalize();
+}
+
+CUDAQ_TEST(NVQIRTester, checkKrausApplyGeneralTre) {
+
+  const int shots = 100;
+  cudaq::ExecutionContext ctx("sample", shots);
+  cudaq::noise_model noise;
+  noise.register_channel<test::hello::adios>();
+  ctx.noiseModel = &noise;
+
+  std::vector<double> params{0.2, 0.4};
+  __quantum__rt__setExecutionContext(&ctx);
+
+  __quantum__rt__initialize(0, nullptr);
+  auto qubits = __quantum__rt__qubit_allocate_array(2);
+  Qubit *q = *reinterpret_cast<Qubit **>(
+      __quantum__rt__array_get_element_ptr_1d(qubits, 0));
+  Qubit *r = *reinterpret_cast<Qubit **>(
+      __quantum__rt__array_get_element_ptr_1d(qubits, 0));
+
+  __quantum__qis__x(q);
+  __quantum__qis__x(r);
+  __quantum__qis__apply_kraus_channel_generalized(
+      1, test::hello::adios::get_key(), 1, 0, 2, params.data(), params.size(),
+      qubits);
 
   __quantum__rt__qubit_release_array(qubits);
   __quantum__rt__resetExecutionContext();
