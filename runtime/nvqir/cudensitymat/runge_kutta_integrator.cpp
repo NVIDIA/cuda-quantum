@@ -18,6 +18,7 @@ void runge_kutta::set_system(const SystemDynamics &system,
                              const cudaq::Schedule &schedule) {
   m_system = system;
   m_schedule = schedule;
+  m_stepper.reset();
 }
 
 void runge_kutta::set_state(cudaq::state initial_state, double t0) {
