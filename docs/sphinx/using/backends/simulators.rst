@@ -72,7 +72,7 @@ technical details and code examples for using each circuit simulator.
      - Density Matrix
      - Noisy simulations
      - CPU
-     - single
+     - double
      - < 14
    * - `stim`
      - Stabilizer 
