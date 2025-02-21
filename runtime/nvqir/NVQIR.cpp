@@ -612,7 +612,6 @@ void __quantum__rt__result_record_output(Result *r, int8_t *name) {
     __quantum__qis__mz__to__register(measRes2QB[r],
                                      reinterpret_cast<const char *>(name));
 }
-}
 
 static std::vector<std::size_t> safeArrayToVectorSizeT(Array *arr) {
   if (!arr)
@@ -620,9 +619,10 @@ static std::vector<std::size_t> safeArrayToVectorSizeT(Array *arr) {
   return arrayToVectorSizeT(arr);
 }
 
-static void __quantum__qis__apply_kraus_channel_double(
-    std::int64_t krausChannelKey, double *params, std::size_t numParams,
-    Array *qubits) {
+void __quantum__qis__apply_kraus_channel_double(std::int64_t krausChannelKey,
+                                                double *params,
+                                                std::size_t numParams,
+                                                Array *qubits) {
 
   auto *ctx = nvqir::getCircuitSimulatorInternal()->getExecutionContext();
   if (!ctx)
@@ -657,7 +657,6 @@ __quantum__qis__apply_kraus_channel_float(std::int64_t krausChannelKey,
                                                    arrayToVectorSizeT(qubits));
 }
 
-extern "C" {
 // The dataKind encoding is defined in QIRFunctionNames.h. 0 is float, 1 is
 // double.
 void __quantum__qis__apply_kraus_channel_generalized(
@@ -704,12 +703,14 @@ void __quantum__qis__apply_kraus_channel_generalized(
     }
 
     // 2. A set of qubits. Pop the varargs as qubit* values.
-    std::vector<std::size_t> qubits(numTargets);
+    std::vector<Array *> qubits(numTargets);
     for (std::size_t i = 0; i < numTargets; ++i) {
-      auto *qbPtr = va_arg(args, Qubit *);
-      qubits[i] = qubitToSizeT(qbPtr);
+      auto *qbPtr = va_arg(args, Array *);
+      qubits[i] = qbPtr;
     }
-    auto *asArray = vectorSizetToArray(qubits);
+    // There can be only one.
+    Array *asArray = qubits[0];
+
     if constexpr (std::is_same_v<REAL, float>) {
       __quantum__qis__apply_kraus_channel_float(krausChannelKey, params,
                                                 totalParams, asArray);
@@ -719,10 +720,16 @@ void __quantum__qis__apply_kraus_channel_generalized(
     }
   };
 
-  if (dataKind == 0)
+  switch (dataKind) {
+  case 0:
     vapplyKrausChannel.template operator()<float>();
-  else
+    break;
+  case 1:
     vapplyKrausChannel.template operator()<double>();
+    break;
+  default:
+    throw std::runtime_error("apply_noise: unknown data kind.");
+  }
   va_end(args);
 }
 

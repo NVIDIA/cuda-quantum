@@ -72,7 +72,10 @@ void __quantum__qis__apply__general(Array *data, int64_t n_qubits, ...);
 void __quantum__qis__apply_kraus_channel_generalized(
     std::int64_t dataKind, std::int64_t krausChannelKey, std::size_t numSpans,
     std::size_t numParams, std::size_t numTargets, ...);
-
+void __quantum__qis__apply_kraus_channel_double(std::int64_t krausChannelKey,
+                                                double *params,
+                                                std::size_t numParams,
+                                                Array *qubits);
 // Qubit array allocation / deallocation
 Array *__quantum__rt__qubit_allocate_array(uint64_t idx);
 Array *__quantum__rt__qubit_allocate_array_with_state_complex64(
@@ -615,7 +618,35 @@ CUDAQ_TEST(NVQIRTester, checkKrausApply) {
   ctx.noiseModel = &noise;
 
   std::vector<double> params{0.2};
+  __quantum__rt__setExecutionContext(&ctx);
 
+  __quantum__rt__initialize(0, nullptr);
+  auto qubits = __quantum__rt__qubit_allocate_array(1);
+  Qubit *q = *reinterpret_cast<Qubit **>(
+      __quantum__rt__array_get_element_ptr_1d(qubits, 0));
+
+  __quantum__qis__x(q);
+  __quantum__qis__apply_kraus_channel_double(
+      test::hello::hello_world::get_key(), params.data(), params.size(),
+      qubits);
+
+  __quantum__rt__qubit_release_array(qubits);
+  __quantum__rt__resetExecutionContext();
+
+  cudaq::sample_result counts = ctx.result;
+  counts.dump();
+  __quantum__rt__finalize();
+}
+
+CUDAQ_TEST(NVQIRTester, checkKrausApplyGeneralUno) {
+
+  const int shots = 100;
+  cudaq::ExecutionContext ctx("sample", shots);
+  cudaq::noise_model noise;
+  noise.register_channel<test::hello::hello_world>();
+  ctx.noiseModel = &noise;
+
+  std::vector<double> params{0.2};
   __quantum__rt__setExecutionContext(&ctx);
 
   __quantum__rt__initialize(0, nullptr);
@@ -635,4 +666,33 @@ CUDAQ_TEST(NVQIRTester, checkKrausApply) {
   counts.dump();
   __quantum__rt__finalize();
 }
+
+CUDAQ_TEST(NVQIRTester, checkKrausApplyGeneralDuo) {
+
+  const int shots = 100;
+  cudaq::ExecutionContext ctx("sample", shots);
+  cudaq::noise_model noise;
+  noise.register_channel<test::hello::hello_world>();
+  ctx.noiseModel = &noise;
+
+  std::vector<double> params{0.2};
+  __quantum__rt__setExecutionContext(&ctx);
+
+  __quantum__rt__initialize(0, nullptr);
+  auto qubits = __quantum__rt__qubit_allocate_array(1);
+  Qubit *q = *reinterpret_cast<Qubit **>(
+      __quantum__rt__array_get_element_ptr_1d(qubits, 0));
+
+  __quantum__qis__x(q);
+  __quantum__qis__apply_kraus_channel_generalized(
+      1, test::hello::hello_world::get_key(), 0, 1, 1, params.data(), qubits);
+
+  __quantum__rt__qubit_release_array(qubits);
+  __quantum__rt__resetExecutionContext();
+
+  cudaq::sample_result counts = ctx.result;
+  counts.dump();
+  __quantum__rt__finalize();
+}
+
 #endif
