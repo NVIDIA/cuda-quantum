@@ -657,65 +657,6 @@ __quantum__qis__apply_kraus_channel_float(std::int64_t krausChannelKey,
                                                    arrayToVectorSizeT(qubits));
 }
 
-template <typename REAL,
-          typename = std::enable_if_t<std::is_same_v<REAL, float> ||
-                                      std::is_same_v<REAL, double>>>
-void vapply_kraus_channel_generalized(std::int64_t krausChannelKey,
-                                      std::size_t numSpans,
-                                      std::size_t numParams,
-                                      std::size_t numTargets, va_list args) {
-  struct basic_span {
-    REAL *_0;
-    std::size_t _1;
-  };
-
-  REAL *params;
-  std::size_t totalParams;
-
-  // We assume either a span OR a list of REALs, but not both (for now).
-  if (numSpans) {
-    // 1a. A set of basic spans, `{ptr, i64}`. Pop the varargs and build the
-    // spans.
-    if (numSpans != 1)
-      throw std::invalid_argument("Too many spans (> 1), not supported");
-    basic_span *spans =
-        reinterpret_cast<basic_span *>(alloca(numSpans * sizeof(basic_span)));
-    for (std::size_t i = 0; i < numSpans; ++i) {
-      auto *dataPtr = va_arg(args, REAL *);
-      auto dataLen = va_arg(args, std::size_t);
-      spans[i] = basic_span{dataPtr, dataLen};
-    }
-
-    // There can be only one.
-    params = spans[0]._0;
-    totalParams = spans[0]._1;
-  } else {
-    // 1b. A set of parameters. Pop the varargs as REAL values.
-    params = reinterpret_cast<REAL *>(alloca(numParams * sizeof(REAL)));
-    for (std::size_t i = 0; i < numParams; ++i) {
-      auto *dblPtr = va_arg(args, REAL *);
-      params[i] = *dblPtr;
-    }
-
-    totalParams = numParams;
-  }
-
-  // 2. A set of qubits. Pop the varargs as qubit* values.
-  std::vector<std::size_t> qubits(numTargets);
-  for (std::size_t i = 0; i < numTargets; ++i) {
-    auto *qbPtr = va_arg(args, Qubit *);
-    qubits[i] = qubitToSizeT(qbPtr);
-  }
-  auto *asArray = vectorSizetToArray(qubits);
-  if constexpr (std::is_same_v<REAL, float>) {
-    __quantum__qis__apply_kraus_channel_float(krausChannelKey, params,
-                                              totalParams, asArray);
-  } else {
-    __quantum__qis__apply_kraus_channel_double(krausChannelKey, params,
-                                               totalParams, asArray);
-  }
-}
-
 extern "C" {
 // The dataKind encoding is defined in QIRFunctionNames.h. 0 is float, 1 is
 // double.
@@ -724,12 +665,64 @@ void __quantum__qis__apply_kraus_channel_generalized(
     std::size_t numParams, std::size_t numTargets, ...) {
   va_list args;
   va_start(args, numTargets);
+
+  auto vapplyKrausChannel = [&]<typename REAL>() {
+    struct basic_span {
+      REAL *_0;
+      std::size_t _1;
+    };
+
+    REAL *params;
+    std::size_t totalParams;
+
+    // We assume either a span OR a list of REALs, but not both (for now).
+    if (numSpans) {
+      // 1a. A set of basic spans, `{ptr, i64}`. Pop the varargs and build the
+      // spans.
+      if (numSpans != 1)
+        throw std::invalid_argument("Too many spans (> 1), not supported");
+      basic_span *spans =
+          reinterpret_cast<basic_span *>(alloca(numSpans * sizeof(basic_span)));
+      for (std::size_t i = 0; i < numSpans; ++i) {
+        auto *dataPtr = va_arg(args, REAL *);
+        auto dataLen = va_arg(args, std::size_t);
+        spans[i] = basic_span{dataPtr, dataLen};
+      }
+
+      // There can be only one.
+      params = spans[0]._0;
+      totalParams = spans[0]._1;
+    } else {
+      // 1b. A set of parameters. Pop the varargs as REAL values.
+      params = reinterpret_cast<REAL *>(alloca(numParams * sizeof(REAL)));
+      for (std::size_t i = 0; i < numParams; ++i) {
+        auto *dblPtr = va_arg(args, REAL *);
+        params[i] = *dblPtr;
+      }
+
+      totalParams = numParams;
+    }
+
+    // 2. A set of qubits. Pop the varargs as qubit* values.
+    std::vector<std::size_t> qubits(numTargets);
+    for (std::size_t i = 0; i < numTargets; ++i) {
+      auto *qbPtr = va_arg(args, Qubit *);
+      qubits[i] = qubitToSizeT(qbPtr);
+    }
+    auto *asArray = vectorSizetToArray(qubits);
+    if constexpr (std::is_same_v<REAL, float>) {
+      __quantum__qis__apply_kraus_channel_float(krausChannelKey, params,
+                                                totalParams, asArray);
+    } else {
+      __quantum__qis__apply_kraus_channel_double(krausChannelKey, params,
+                                                 totalParams, asArray);
+    }
+  };
+
   if (dataKind == 0)
-    vapply_kraus_channel_generalized<float>(krausChannelKey, numSpans,
-                                            numParams, numTargets, args);
+    vapplyKrausChannel.template operator()<float>();
   else
-    vapply_kraus_channel_generalized<double>(krausChannelKey, numSpans,
-                                             numParams, numTargets, args);
+    vapplyKrausChannel.template operator()<double>();
   va_end(args);
 }
 
