@@ -255,15 +255,16 @@ product_operator<matrix_operator> matrix_operator::identity(int degree) {
 product_operator<matrix_operator> matrix_operator::number(int degree) {
   std::string op_code = "number";
   if (matrix_operator::m_ops.find(op_code) == matrix_operator::m_ops.end()) {
-    auto func = [](const std::vector<int> &dimensions,
-                    const std::unordered_map<std::string, std::complex<double>> &_none) {
-      std::size_t dimension = dimensions[0];
-      auto mat = matrix_2(dimension, dimension);
-      for (std::size_t i = 0; i < dimension; i++) {
-        mat[{i, i}] = static_cast<double>(i) + 0.0j;
-      }
-      return mat;
-    };
+    auto func =
+        [](const std::vector<int> &dimensions,
+           const std::unordered_map<std::string, std::complex<double>> &_none) {
+          std::size_t dimension = dimensions[0];
+          auto mat = matrix_2(dimension, dimension);
+          for (std::size_t i = 0; i < dimension; i++) {
+            mat[{i, i}] = static_cast<double>(i) + 0.0j;
+          }
+          return mat;
+        };
     matrix_operator::define(op_code, {-1}, func);
   }
   auto op = matrix_operator(op_code, {degree});
@@ -273,15 +274,16 @@ product_operator<matrix_operator> matrix_operator::number(int degree) {
 product_operator<matrix_operator> matrix_operator::parity(int degree) {
   std::string op_code = "parity";
   if (matrix_operator::m_ops.find(op_code) == matrix_operator::m_ops.end()) {
-    auto func = [](const std::vector<int> &dimensions,
-                    const std::unordered_map<std::string, std::complex<double>> &_none) {
-      std::size_t dimension = dimensions[0];
-      auto mat = matrix_2(dimension, dimension);
-      for (std::size_t i = 0; i < dimension; i++) {
-        mat[{i, i}] = std::pow(-1., static_cast<double>(i)) + 0.0j;
-      }
-      return mat;
-    };
+    auto func =
+        [](const std::vector<int> &dimensions,
+           const std::unordered_map<std::string, std::complex<double>> &_none) {
+          std::size_t dimension = dimensions[0];
+          auto mat = matrix_2(dimension, dimension);
+          for (std::size_t i = 0; i < dimension; i++) {
+            mat[{i, i}] = std::pow(-1., static_cast<double>(i)) + 0.0j;
+          }
+          return mat;
+        };
     matrix_operator::define(op_code, {-1}, func);
   }
   auto op = matrix_operator(op_code, {degree});

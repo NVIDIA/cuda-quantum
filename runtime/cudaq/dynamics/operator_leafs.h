@@ -95,10 +95,10 @@ public:
   scalar_operator operator+(double other) &&;
   scalar_operator operator-(double other) const &;
   scalar_operator operator-(double other) &&;
-  scalar_operator& operator*=(double other);
-  scalar_operator& operator/=(double other);
-  scalar_operator& operator+=(double other);
-  scalar_operator& operator-=(double other);
+  scalar_operator &operator*=(double other);
+  scalar_operator &operator/=(double other);
+  scalar_operator &operator+=(double other);
+  scalar_operator &operator-=(double other);
   scalar_operator operator*(std::complex<double> other) const &;
   scalar_operator operator*(std::complex<double> other) &&;
   scalar_operator operator/(std::complex<double> other) const &;
@@ -107,10 +107,10 @@ public:
   scalar_operator operator+(std::complex<double> other) &&;
   scalar_operator operator-(std::complex<double> other) const &;
   scalar_operator operator-(std::complex<double> other) &&;
-  scalar_operator& operator*=(std::complex<double> other);
-  scalar_operator& operator/=(std::complex<double> other);
-  scalar_operator& operator+=(std::complex<double> other);
-  scalar_operator& operator-=(std::complex<double> other);
+  scalar_operator &operator*=(std::complex<double> other);
+  scalar_operator &operator/=(std::complex<double> other);
+  scalar_operator &operator+=(std::complex<double> other);
+  scalar_operator &operator-=(std::complex<double> other);
   scalar_operator operator*(const scalar_operator &other) const &;
   // scalar_operator operator*(const scalar_operator &other) &&;
   scalar_operator operator/(const scalar_operator &other) const &;
@@ -119,10 +119,10 @@ public:
   scalar_operator operator+(const scalar_operator &other) &&;
   scalar_operator operator-(const scalar_operator &other) const &;
   scalar_operator operator-(const scalar_operator &other) &&;
-  scalar_operator& operator*=(const scalar_operator &other);
-  scalar_operator& operator/=(const scalar_operator &other);
-  scalar_operator& operator+=(const scalar_operator &other);
-  scalar_operator& operator-=(const scalar_operator &other);
+  scalar_operator &operator*=(const scalar_operator &other);
+  scalar_operator &operator/=(const scalar_operator &other);
+  scalar_operator &operator+=(const scalar_operator &other);
+  scalar_operator &operator-=(const scalar_operator &other);
 
   // left-hand arithmetics
 
@@ -134,14 +134,22 @@ public:
   friend scalar_operator operator+(double other, scalar_operator &&self);
   friend scalar_operator operator-(double other, const scalar_operator &self);
   friend scalar_operator operator-(double other, scalar_operator &&self);
-  friend scalar_operator operator*(std::complex<double> other, const scalar_operator &self);
-  friend scalar_operator operator*(std::complex<double> other, scalar_operator &&self);
-  friend scalar_operator operator/(std::complex<double> other, const scalar_operator &self);
-  friend scalar_operator operator/(std::complex<double> other, scalar_operator &&self);
-  friend scalar_operator operator+(std::complex<double> other, const scalar_operator &self);
-  friend scalar_operator operator+(std::complex<double> other, scalar_operator &&self);
-  friend scalar_operator operator-(std::complex<double> other, const scalar_operator &self);
-  friend scalar_operator operator-(std::complex<double> other, scalar_operator &&self);
+  friend scalar_operator operator*(std::complex<double> other,
+                                   const scalar_operator &self);
+  friend scalar_operator operator*(std::complex<double> other,
+                                   scalar_operator &&self);
+  friend scalar_operator operator/(std::complex<double> other,
+                                   const scalar_operator &self);
+  friend scalar_operator operator/(std::complex<double> other,
+                                   scalar_operator &&self);
+  friend scalar_operator operator+(std::complex<double> other,
+                                   const scalar_operator &self);
+  friend scalar_operator operator+(std::complex<double> other,
+                                   scalar_operator &&self);
+  friend scalar_operator operator-(std::complex<double> other,
+                                   const scalar_operator &self);
+  friend scalar_operator operator-(std::complex<double> other,
+                                   scalar_operator &&self);
 };
 
 template <typename HandlerTy>
