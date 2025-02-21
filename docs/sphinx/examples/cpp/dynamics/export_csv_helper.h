@@ -9,10 +9,10 @@
 #pragma once
 
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <string>
 #include <vector>
-
 inline void
 export_csv_helper(std::vector<std::string> & /*headers*/,
                   std::vector<const std::vector<double> *> & /*columns*/) {}
@@ -64,7 +64,7 @@ void export_csv(const std::string &filename, const std::string &header1,
 
   for (size_t i = 0; i < n; ++i) {
     for (size_t j = 0; j < columns.size(); ++j) {
-      file << (*columns[j])[i];
+      file << std::fixed << std::setprecision(8) << (*columns[j])[i];
       if (j < columns.size() - 1) {
         file << ",";
       }
