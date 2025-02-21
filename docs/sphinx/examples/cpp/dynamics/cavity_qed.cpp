@@ -97,10 +97,12 @@ int main() {
   auto decay_result1 = get_expectation(1, evolve_result_decay);
 
   auto steps = cudaq::linspace(0.0, 10.0, num_steps);
-  export_csv("ideal_result.csv", "time", steps, "cavity_photon_number",
-             ideal_result0, "atom_excitation_probability", ideal_result1);
-  export_csv("decay_result.csv", "time", steps, "cavity_photon_number",
-             decay_result0, "atom_excitation_probability", decay_result1);
+  export_csv("cavity_qed_ideal_result.csv", "time", steps,
+             "cavity_photon_number", ideal_result0,
+             "atom_excitation_probability", ideal_result1);
+  export_csv("cavity_qed_decay_result.csv", "time", steps,
+             "cavity_photon_number", decay_result0,
+             "atom_excitation_probability", decay_result1);
 
   std::cout << "Simulation complete. The results are saved in ideal_result.csv "
                "and decay_result.csv files."
