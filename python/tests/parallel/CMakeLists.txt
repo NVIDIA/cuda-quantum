@@ -7,7 +7,7 @@
 
 add_test(
   NAME cudaq-py-parallel-mqpu
-  COMMAND ${PYTHON_EXECUTABLE} test_mqpu.py
+  COMMAND ${Python_EXECUTABLE} test_mqpu.py
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 set_tests_properties(
   cudaq-py-parallel-mqpu PROPERTIES ENVIRONMENT
@@ -29,7 +29,7 @@ set_tests_properties(
 
 add_test(
   NAME cudaq-py-parallel-dynamics
-  COMMAND ${MPIEXEC_EXECUTABLE} --allow-run-as-root -np 2 ${PYTHON_EXECUTABLE} test_mpi_dynamics.py
+  COMMAND ${MPIEXEC_EXECUTABLE} --allow-run-as-root -np 2 ${Python_EXECUTABLE} test_mpi_dynamics.py
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 set_tests_properties(
   cudaq-py-parallel-dynamics PROPERTIES ENVIRONMENT
