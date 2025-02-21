@@ -7,28 +7,21 @@
  ******************************************************************************/
 
 #include "cudaq/algorithms/evolve.h"
-#include "cudaq/base_integrator.h"
 #include "cudaq/dynamics_integrators.h"
-#include "cudaq/evolution.h"
 #include "cudaq/operators.h"
-#include "cudaq/schedule.h"
 #include "export_csv_helper.h"
 #include <cudaq.h>
 
 int main() {
   // Qubit hamiltonian: 2 * pi * 0.1 * sigma_x
-  cudaq::product_operator<cudaq::matrix_operator> ham =
-      2.0 * M_PI * 0.1 * cudaq::spin_operator::x(0);
-  cudaq::operator_sum<cudaq::matrix_operator> hamiltonian(ham);
+  auto hamiltonian = 2.0 * M_PI * 0.1 * cudaq::spin_operator::x(0);
 
   // Dimensions: one subsystem of dimension 2 (a two-level system)
   const std::map<int, int> dimensions = {{0, 2}};
 
-  // Initial state (density matrix) of the system, given as a 2x2 matrix
-  // Ground state: [ [1, 0],
-  //                 [0, 0] ]
-  std::vector<std::complex<double>> initial_state_vec = {1.0, 0.0, 0.0, 0.0};
-  auto rho0 = cudaq::state::from_data(initial_state_vec);
+  // Initial state: ground state
+  std::vector<std::complex<double>> initial_state_vec = {1.0, 0.0};
+  auto psi0 = cudaq::state::from_data(initial_state_vec);
 
   // Create a schedule of time steps from 0 to 10 with 101 points
   auto steps = cudaq::linspace(0.0, 10.0, 101);
@@ -37,36 +30,21 @@ int main() {
   // Runge-Kutta integrator with a time step of 0.001 and order 4
   std::shared_ptr<cudaq::runge_kutta> integrator =
       std::make_shared<cudaq::runge_kutta>();
-  integrator->dt = 0.001;
+  integrator->dt = 0.01;
   integrator->order = 4;
-
-  cudaq::product_operator<cudaq::matrix_operator> spin_op_y_t =
-      cudaq::spin_operator::y(0);
-  cudaq::operator_sum<cudaq::matrix_operator> spin_op_y(spin_op_y_t);
-  cudaq::product_operator<cudaq::matrix_operator> spin_op_z_t =
-      cudaq::spin_operator::z(0);
-  cudaq::operator_sum<cudaq::matrix_operator> spin_op_z(spin_op_z_t);
-  auto collapse_operators = {spin_op_y, spin_op_z};
 
   // Run the simulation without collapse operators (ideal evolution)
-  auto evolve_result = cudaq::evolve(hamiltonian, dimensions, schedule, rho0,
-                                     integrator, {}, collapse_operators, true);
-
-  std::shared_ptr<cudaq::runge_kutta> integrator_1 =
-      std::make_shared<cudaq::runge_kutta>();
-  integrator->dt = 0.001;
-  integrator->order = 4;
+  auto evolve_result = cudaq::evolve(
+      hamiltonian, dimensions, schedule, psi0, integrator, {},
+      {cudaq::spin_operator::y(0), cudaq::spin_operator::z(0)}, true);
 
   constexpr double decay_rate = 0.05;
-  cudaq::product_operator<cudaq::matrix_operator> collapse_operator_t =
-      std::sqrt(decay_rate) * cudaq::spin_operator::x(0);
-  cudaq::operator_sum<cudaq::matrix_operator> collapse_operator(
-      collapse_operator_t);
+  auto collapse_operator = std::sqrt(decay_rate) * cudaq::spin_operator::x(0);
 
   // Evolve with collapse operators
-  cudaq::evolve_result evolve_result_decay =
-      cudaq::evolve(hamiltonian, dimensions, schedule, rho0, integrator_1,
-                    {collapse_operator}, {collapse_operator}, true);
+  cudaq::evolve_result evolve_result_decay = cudaq::evolve(
+      hamiltonian, dimensions, schedule, psi0, integrator, {collapse_operator},
+      {cudaq::spin_operator::y(0), cudaq::spin_operator::z(0)}, true);
 
   // Lambda to extract expectation values for a given observable index
   auto get_expectation = [](int idx,
