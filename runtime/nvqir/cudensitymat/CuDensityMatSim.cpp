@@ -81,8 +81,11 @@ public:
   CuDensityMatSim() {
     int numDevices{0};
     HANDLE_CUDA_ERROR(cudaGetDeviceCount(&numDevices));
-    const int deviceId =
-        cudaq::mpi::is_initialized() ? cudaq::mpi::rank() % numDevices : 0;
+    int currentDevice = -1;
+    HANDLE_CUDA_ERROR(cudaGetDevice(&currentDevice));
+    const int deviceId = cudaq::mpi::is_initialized()
+                             ? cudaq::mpi::rank() % numDevices
+                             : currentDevice;
     if (cudaq::mpi::is_initialized())
       initCuDensityMatCommLib();
     HANDLE_CUDA_ERROR(cudaSetDevice(deviceId));
