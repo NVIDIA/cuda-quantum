@@ -9,7 +9,6 @@
 #include "cudm_time_stepper.h"
 #include "CuDensityMatContext.h"
 #include "cudm_error_handling.h"
-#include "cudm_helpers.h"
 namespace cudaq {
 cudmStepper::cudmStepper(cudensitymatHandle_t handle,
                          cudensitymatOperator_t liouvillian)
