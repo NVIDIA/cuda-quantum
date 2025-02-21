@@ -29,6 +29,10 @@
 
 namespace cudaq {
 
+namespace details {
+void warn(const std::string_view msg);
+}
+
 // Define the common single qubit operations.
 namespace qubit_op {
 #define ConcreteQubitOp(NAME)                                                  \
@@ -1230,6 +1234,11 @@ void applyNoiseImpl(const std::tuple<RotationT...> &paramTuple,
   auto *ctx = get_platform().get_exec_ctx();
   if (!ctx)
     return;
+
+  // per-spec, no noise model provided, emit warning, no application
+  if (!ctx->noiseModel)
+    return details::warn("apply_noise called without a noise model provided.");
+
   std::vector<double> parameters;
   cudaq::tuple_for_each(paramTuple,
                         [&](auto &&element) { parameters.push_back(element); });
@@ -1252,6 +1261,11 @@ void applyNoiseImpl(const std::tuple<RotationT...> &paramTuple,
   }
 
   auto channel = ctx->noiseModel->template get_channel<T>(parameters);
+  // per spec - caller provides noise model, but channel not registered,
+  // warning generated, no channel application.
+  if (channel.empty())
+    return;
+
   getExecutionManager()->applyNoise(channel, qubits);
 }
 } // namespace cudaq::details
@@ -1279,6 +1293,11 @@ void apply_noise(const std::vector<double> &params, Q &&...args) {
   if (!ctx)
     return;
 
+  // per-spec, no noise model provided, emit warning, no application
+  if (!ctx->noiseModel)
+    return details::warn("apply_noise called without a noise model provided. "
+                         "skipping kraus channel application.");
+
   std::vector<QuditInfo> qubits;
   auto argTuple = std::forward_as_tuple(args...);
   cudaq::tuple_for_each(argTuple, [&qubits](auto &&element) {
@@ -1292,6 +1311,10 @@ void apply_noise(const std::vector<double> &params, Q &&...args) {
   });
 
   auto channel = ctx->noiseModel->template get_channel<T>(params);
+  // per spec - caller provides noise model, but channel not registered,
+  // warning generated, no channel application.
+  if (channel.empty())
+    return;
   getExecutionManager()->applyNoise(channel, qubits);
 }
 

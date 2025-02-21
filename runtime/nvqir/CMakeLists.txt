@@ -47,7 +47,7 @@ if (CUTENSORNET_ROOT AND CUDA_FOUND)
   add_subdirectory(cutensornet)  
 endif()
 if (CUDA_FOUND)
-  add_subdirectory(cudensitymat)
+  # add_subdirectory(cudensitymat)
 endif()
 
 install(EXPORT nvqir-targets

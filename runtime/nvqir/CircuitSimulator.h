@@ -240,7 +240,10 @@ public:
   /// @brief Apply the given kraus_channel on the provided targets.
   /// Only supported for noise backends. By default do nothing
   virtual void applyNoise(const cudaq::kraus_channel &channel,
-                          const std::vector<std::size_t> &targets) {}
+                          const std::vector<std::size_t> &targets) {
+    cudaq::warn("kraus_channel application not supported on {} simulator.",
+                name());
+  }
 
   /// @brief Apply a custom operation described by a matrix of data
   /// represented as 1-D vector of elements in row-major order, as well

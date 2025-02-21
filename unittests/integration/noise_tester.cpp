@@ -34,7 +34,10 @@ struct bell {
 
 namespace test::hello {
 struct hello_world : public ::cudaq::kraus_channel {
-  hello_world(const std::vector<double> &params) {
+  static constexpr std::size_t num_parameters = 1;
+  static constexpr std::size_t num_targets = 1;
+
+  hello_world(const std::vector<cudaq::real> &params) {
     std::vector<cudaq::complex> k0v{std::sqrt(1 - params[0]), 0, 0,
                                     std::sqrt(1 - params[0])},
         k1v{0, std::sqrt(params[0]), std::sqrt(params[0]), 0};
@@ -51,14 +54,62 @@ __qpu__ void test2(double p) {
   cudaq::apply_noise<test::hello::hello_world>({0.2}, q);
 }
 
-CUDAQ_TEST(NoiseTest, checkFineGrain) {
+__qpu__ void test3(double p) {
+  cudaq::qubit q;
+  x(q);
+  cudaq::apply_noise<test::hello::hello_world>(0.2, q);
+}
 
-  cudaq::noise_model noise;
-  noise.register_channel<test::hello::hello_world>();
+CUDAQ_TEST(NoiseTest, checkFineGrainArg) {
+  {
+    cudaq::noise_model noise;
+    noise.register_channel<test::hello::hello_world>();
 
-  auto counts = cudaq::sample({.noise = noise}, test2, .7);
-  counts.dump();
-  EXPECT_TRUE(counts.size() == 2);
+    auto counts = cudaq::sample({.noise = noise}, test3, .7);
+    counts.dump();
+    EXPECT_TRUE(counts.size() == 2);
+  }
+  {
+    // test warning emitted / no noise applied for case where
+    // no noise model is specified
+    auto counts = cudaq::sample(test3, .7);
+    counts.dump();
+    EXPECT_TRUE(counts.size() == 1);
+  }
+  {
+    // test warning emitted / no noise applied for case where
+    // noise mnodel is provided but custom channel not registered.
+    cudaq::noise_model noise;
+    auto counts = cudaq::sample({.noise = noise}, test3, .7);
+    counts.dump();
+    EXPECT_TRUE(counts.size() == 1);
+  }
+}
+
+CUDAQ_TEST(NoiseTest, checkFineGrainVec) {
+  {
+    cudaq::noise_model noise;
+    noise.register_channel<test::hello::hello_world>();
+
+    auto counts = cudaq::sample({.noise = noise}, test2, .7);
+    counts.dump();
+    EXPECT_TRUE(counts.size() == 2);
+  }
+  {
+    // test warning emitted / no noise applied for case where
+    // no noise model is specified
+    auto counts = cudaq::sample(test2, .7);
+    counts.dump();
+    EXPECT_TRUE(counts.size() == 1);
+  }
+  {
+    // test warning emitted / no noise applied for case where
+    // noise mnodel is provided but custom channel not registered.
+    cudaq::noise_model noise;
+    auto counts = cudaq::sample({.noise = noise}, test2, .7);
+    counts.dump();
+    EXPECT_TRUE(counts.size() == 1);
+  }
 }
 
 CUDAQ_TEST(NoiseTest, checkSimple) {

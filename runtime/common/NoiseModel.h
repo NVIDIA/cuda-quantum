@@ -17,26 +17,33 @@
 #include <unordered_map>
 #include <vector>
 
-namespace cudaq {
+namespace cudaq::details {
+void warn(const std::string_view msg);
+}
 
-/// @brief Noise model enumerated type that allows downstream simulators of
-/// `kraus_channel` objects to apply simulator-specific logic for well-known
-/// noise models.
+namespace cudaq {
+// Define the mapping in one place
+#define NOISE_MODEL_TYPES                                                      \
+  X(unknown)                                                                   \
+  X(depolarization_channel)                                                    \
+  X(amplitude_damping_channel)                                                 \
+  X(bit_flip_channel)                                                          \
+  X(phase_flip_channel)                                                        \
+  X(x_error)                                                                   \
+  X(y_error)                                                                   \
+  X(z_error)                                                                   \
+  X(amplitude_damping)                                                         \
+  X(phase_damping)                                                             \
+  X(pauli1)                                                                    \
+  X(pauli2)                                                                    \
+  X(depolarization1)                                                           \
+  X(depolarization2)
+
+// Generate the enum
 enum class noise_model_type {
-  unknown,
-  depolarization_channel,
-  amplitude_damping_channel,
-  bit_flip_channel,
-  phase_flip_channel,
-  x_error, // same as bit_flip_channel, that's ok
-  y_error,
-  z_error,
-  amplitude_damping,
-  phase_damping,
-  pauli1,
-  pauli2,
-  depolarization1,
-  depolarization2
+#define X(name) name,
+  NOISE_MODEL_TYPES
+#undef X
 };
 
 std::string get_noise_model_type_name(noise_model_type type);
@@ -342,9 +349,13 @@ public:
   template <typename T>
   kraus_channel get_channel(const std::vector<double> &params) const {
     auto iter = registeredChannels.find(T::get_key());
-    if (iter == registeredChannels.end())
-      throw std::runtime_error(
-          "kraus channel not registered with this noise_model.");
+    // per spec - caller provides noise model, but channel not registered,
+    // warning generated, no channel application.
+    if (iter == registeredChannels.end()) {
+      details::warn("requested kraus channel not registered with this "
+                    "noise_model. skipping channel application.");
+      return kraus_channel();
+    }
     return iter->second(params);
   }
 
