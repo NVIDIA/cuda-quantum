@@ -316,6 +316,33 @@ if (CUDA_FOUND)
     fmt::fmt-header-only)
   target_include_directories(test_dynamics PRIVATE ${CMAKE_SOURCE_DIR}/runtime/nvqir/cudensitymat)
   gtest_discover_tests(test_dynamics)
+
+  # Multi-QPU evolve_async test
+  # Count the number of GPUs
+  find_program(NVIDIA_SMI "nvidia-smi")
+  if(NVIDIA_SMI)
+    execute_process(COMMAND bash -c "nvidia-smi --list-gpus | wc -l" OUTPUT_VARIABLE NGPUS)
+    # Only build this test if we have more than 1 GPU
+    if (${NGPUS} GREATER_EQUAL 2)
+      add_executable(test_evolve_async mqpu/dynamics_async_tester.cpp)
+      if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+        target_link_options(test_evolve_async PRIVATE -Wl,--no-as-needed)
+      endif()
+      target_compile_definitions(test_evolve_async PRIVATE -DCUDAQ_DYNAMICS_TARGET)
+      target_link_libraries(test_evolve_async
+        PRIVATE
+        cudaq-spin
+        cudaq-operator
+        cudaq
+        cudaq-platform-mqpu
+        nvqir-dynamics
+        ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
+        CUDA::cudart_static
+        gtest_main
+        fmt::fmt-header-only)
+      gtest_discover_tests(test_evolve_async)
+    endif()
+  endif() 
 endif()
 add_subdirectory(plugin)
 
