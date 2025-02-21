@@ -72,21 +72,21 @@ operator_sum<HandlerTy>::m_evaluate(MatrixArithmetics arithmetics,
   auto degrees = this->degrees();
 
   // We need to make sure all matrices are of the same size to sum them up.
-  auto paddedTerm = [&arithmetics, &degrees = std::as_const(degrees)](
-                        product_operator<HandlerTy> &&term) {
-    std::vector<HandlerTy> prod_ops;
-    prod_ops.reserve(degrees.size());
-    auto term_degrees = term.degrees();
-    for (auto degree : degrees) {
-      auto it = std::find(term_degrees.begin(), term_degrees.end(), degree);
-      if (it == term_degrees.end()) {
-        HandlerTy identity(degree);
-        prod_ops.push_back(std::move(identity));
+  auto paddedTerm = 
+    [&arithmetics, &degrees = std::as_const(degrees)](product_operator<HandlerTy> &&term) {
+      std::vector<HandlerTy> prod_ops;
+      prod_ops.reserve(degrees.size());
+      auto term_degrees = term.degrees();
+      for (auto degree : degrees) {
+        auto it = std::find(term_degrees.begin(), term_degrees.end(), degree);
+        if (it == term_degrees.end()) {
+          HandlerTy identity(degree);
+          prod_ops.push_back(std::move(identity));
+        }
       }
-    }
-    product_operator<HandlerTy> prod(1, std::move(prod_ops));
-    prod *= term; // ensures canonical ordering
-    return prod;
+      product_operator<HandlerTy> prod(1, std::move(prod_ops));
+      prod *= term; // ensures canonical ordering (if possible)
+      return prod;
   };
 
   if (pad_terms) {
