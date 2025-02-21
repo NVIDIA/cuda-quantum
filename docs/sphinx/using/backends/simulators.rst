@@ -24,7 +24,7 @@ technical details and code examples for using each circuit simulator.
      - State Vector
      - Testing and small applications
      - CPU
-     - single
+     - double
      - < 28
    * - `nvidia`
      - State Vector
