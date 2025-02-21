@@ -106,10 +106,17 @@ set_target_properties(cudaq::cudaq-qpp-cpu-target PROPERTIES
 
 # QPP CPU DensityMatrix Target
 add_library(cudaq::cudaq-qpp-density-matrix-cpu-target SHARED IMPORTED)
-  set_target_properties(cudaq::cudaq-qpp-density-matrix-cpu-target PROPERTIES
-    IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-dm${CMAKE_SHARED_LIBRARY_SUFFIX}"
-    IMPORTED_SONAME "libnvqir-dm${CMAKE_SHARED_LIBRARY_SUFFIX}"
-    IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-default;cudaq::cudaq-em-default")
+set_target_properties(cudaq::cudaq-qpp-density-matrix-cpu-target PROPERTIES
+  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-dm${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_SONAME "libnvqir-dm${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-default;cudaq::cudaq-em-default")
+
+# Stim Target
+add_library(cudaq::cudaq-stim-target SHARED IMPORTED)
+set_target_properties(cudaq::cudaq-stim-target PROPERTIES
+  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-stim${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_SONAME "libnvqir-stim${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-default;cudaq::cudaq-em-default")
 # -------------------------
 
 if(NOT TARGET cudaq::cudaq)
