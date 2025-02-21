@@ -100,11 +100,27 @@ static Value genConstant(OpBuilder &, cudaq::cc::ArrayType, void *,
                          ModuleOp substMod, llvm::DataLayout &);
 
 static Value genConstant(OpBuilder &builder, const cudaq::state *v,
-                         ModuleOp substMod, llvm::DataLayout &layout,
-                         llvm::StringRef kernelName, bool isSimulator) {
-  if (isSimulator) {
-    // The program is executed remotely, materialize the simulation data
-    // into an array and create a new state from it.
+                         llvm::DataLayout &layout,
+                         cudaq::opt::ArgumentConverter &converter) {
+  auto simState =
+      cudaq::state_helper::getSimulationState(const_cast<cudaq::state *>(v));
+
+  // If the state has amplitude data, we materialize the data as a state
+  // vector and create a new state from it.
+  // TODO: add an option to use the kernel info if available, i.e. for
+  // remote simulators
+  // TODO: add an option of storing the kernel info on simulators if
+  // preferred i.e. to support synthesis of density matrices.
+  if (simState->hasData()) {
+    auto kernelName = converter.getKernelName();
+    auto substMod = converter.getSubstitutionModule();
+
+    // The call below might cause lazy execution of the state kernel.
+    // TODO: For lazy execution scenario on remote simulators, we have the
+    // kernel info available on the state as well, before we needed to run
+    // the state kernel and compute its data, which might cause significant
+    // data transfer). Investigate if it is more performant to use the other
+    // synthesis option in that case (see the next `if`).
     auto numQubits = v->get_num_qubits();
 
     // We currently only synthesize small states.
@@ -146,9 +162,85 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
     return builder.create<quake::CreateStateOp>(loc, statePtrTy, buffer,
                                                 arrSize);
   }
-  // The program is executed on quantum hardware, state data is not
-  // available and needs to be regenerated.
-  TODO("cudaq::state* argument synthesis for quantum hardware");
+
+  // Otherwise (ie quantum hardware, where getting the amplitude data is not
+  // efficient) we aim at replacing states with calls to kernels (`callees`)
+  // that generated them.
+  // Note: this is the second stage of state synthesis. See full description
+  // in `cudaq::opt::StateAggregator::collectKernelInfo`
+  //
+  // Replace the state with
+  //   `quake.get_state @callee.num_qubits_0 @callee.init_0`:
+  //
+  // clang-format off
+  // ```
+  // func.func @caller(%arg0: !cc.ptr<!cc.state>) {
+  //   %1 = quake.get_number_of_qubits %arg0: (!cc.ptr<!cc.state>) -> i64
+  //   %2 = quake.alloca !quake.veq<?>[%1 : i64]
+  //   %3 = quake.init_state %2, %arg0 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
+  //   return
+  // }
+  //
+  // func.func private @callee(%arg0: i64) {
+  //   %0 = quake.alloca !quake.veq<?>[%arg0 : i64]
+  //   %1 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+  //   quake.x %1 : (!quake.ref) -> ()
+  //   return
+  // }
+  //
+  // Call from the user host code:
+  // state = cudaq.get_state(callee, 2)
+  // counts = cudaq.sample(caller, state)
+  // ```
+  // clang-format on
+  //
+  // => after argument synthesis:
+  //
+  // clang-format off
+  // ```
+  // func.func @caller() {
+  //   %0 = quake.get_state @callee.num_qubits_0 @callee.init_state_0 : !cc.ptr<!cc.state>
+  //   %1 = quake.get_number_of_qubits %0 : (!cc.ptr<!cc.state>) -> i64
+  //   %2 = quake.alloca !quake.veq<?>[%1 : i64]
+  //   %3 = quake.init_state %2, %0 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
+  //   return
+  // }
+  // ```
+  // clang-format on
+  if (simState->getKernelInfo().has_value()) {
+    auto [calleeName, calleeArgs] = simState->getKernelInfo().value();
+
+    std::string calleeKernelName =
+        cudaq::runtime::cudaqGenPrefixName + calleeName;
+
+    auto ctx = builder.getContext();
+    auto loc = builder.getUnknownLoc();
+
+    auto code = cudaq::get_quake_by_name(calleeName, /*throwException=*/false);
+    assert(!code.empty() && "Quake code not found for callee");
+    auto fromModule = parseSourceString<ModuleOp>(code, ctx);
+
+    auto calleeFunc = fromModule->lookupSymbol<func::FuncOp>(calleeKernelName);
+    assert(calleeFunc && "callee func is missing");
+
+    // Use the state pointer as hash to look up the function name
+    // that was created using the same hash in StateAggregator.
+    auto hash = std::to_string(reinterpret_cast<std::size_t>(v));
+    auto initName = calleeName + ".init_" + hash;
+    auto numQubitsName = calleeName + ".num_qubits_" + hash;
+    auto initKernelName = cudaq::runtime::cudaqGenPrefixName + initName;
+    auto numQubitsKernelName =
+        cudaq::runtime::cudaqGenPrefixName + numQubitsName;
+
+    // Create a substitution for the state pointer.
+    auto statePtrTy =
+        cudaq::cc::PointerType::get(cudaq::cc::StateType::get(ctx));
+    return builder.create<quake::GetStateOp>(
+        loc, statePtrTy, builder.getStringAttr(numQubitsKernelName),
+        builder.getStringAttr(initKernelName));
+  }
+
+  TODO("cudaq::state* argument synthesis for quantum hardware for c functions");
   return {};
 }
 
@@ -322,10 +414,9 @@ Value genConstant(OpBuilder &builder, cudaq::cc::IndirectCallableType indCallTy,
 //===----------------------------------------------------------------------===//
 
 cudaq::opt::ArgumentConverter::ArgumentConverter(StringRef kernelName,
-                                                 ModuleOp sourceModule,
-                                                 bool isSimulator)
+                                                 ModuleOp sourceModule)
     : sourceModule(sourceModule), builder(sourceModule.getContext()),
-      kernelName(kernelName), isSimulator(isSimulator) {
+      kernelName(kernelName) {
   substModule = builder.create<ModuleOp>(builder.getUnknownLoc());
 }
 
@@ -402,8 +493,7 @@ void cudaq::opt::ArgumentConverter::gen(const std::vector<void *> &arguments) {
             .Case([&](cc::PointerType ptrTy) -> cc::ArgumentSubstitutionOp {
               if (ptrTy.getElementType() == cc::StateType::get(ctx))
                 return buildSubst(static_cast<const state *>(argPtr),
-                                  substModule, dataLayout, kernelName,
-                                  isSimulator);
+                                  dataLayout, *this);
               return {};
             })
             .Case([&](cc::StdvecType ty) {

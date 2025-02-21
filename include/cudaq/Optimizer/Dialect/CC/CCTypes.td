@@ -313,4 +313,10 @@ def AnyStateInitLike : TypeConstraint<cc_PointerType.predicate,
                          "state initializer types">;
 def AnyStateInitType : Type<AnyStateInitLike.predicate, "initial state type">;
 
+def AnyStatePointerType : Type<
+  And<[
+    cc_PointerType.predicate,
+    CPred<"$_self.cast<cudaq::cc::PointerType>().getElementType().isa<cudaq::cc::StateType>()">
+    ]>,
+    "state pointer type">;
 #endif // CUDAQ_DIALECT_CC_TYPES_TD
