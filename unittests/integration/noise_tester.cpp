@@ -60,6 +60,13 @@ __qpu__ void test3(double p) {
   cudaq::apply_noise<test::hello::hello_world>(0.2, q);
 }
 
+__qpu__ int test4(double p) {
+  cudaq::qubit q;
+  x(q);
+  cudaq::apply_noise<test::hello::hello_world>(0.2, q);
+  return mz(q);
+}
+
 CUDAQ_TEST(NoiseTest, checkFineGrainArg) {
   {
     cudaq::noise_model noise;
@@ -83,6 +90,36 @@ CUDAQ_TEST(NoiseTest, checkFineGrainArg) {
     auto counts = cudaq::sample({.noise = noise}, test3, .7);
     counts.dump();
     EXPECT_TRUE(counts.size() == 1);
+  }
+  {
+    // test noisy kernel invocation
+    cudaq::noise_model noise;
+    noise.register_channel<test::hello::hello_world>();
+    cudaq::set_noise(noise);
+    std::set<int> res;
+    for (std::size_t i = 0; i < 100; i++)
+      res.insert(test4(.7));
+    EXPECT_EQ(res.size(), 2);
+    cudaq::unset_noise();
+  }
+  {
+    // test noisy kernel invocation,
+    // channel not registered, should get no noise
+    cudaq::noise_model noise;
+    cudaq::set_noise(noise);
+    std::set<int> res;
+    for (std::size_t i = 0; i < 100; i++)
+      res.insert(test4(.7));
+    EXPECT_EQ(res.size(), 1);
+    cudaq::unset_noise();
+  }
+  {
+    // test noisy kernel invocation,
+    // no noise, should get no application
+    std::set<int> res;
+    for (std::size_t i = 0; i < 100; i++)
+      res.insert(test4(.7));
+    EXPECT_EQ(res.size(), 1);
   }
 }
 

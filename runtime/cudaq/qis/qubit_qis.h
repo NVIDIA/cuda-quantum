@@ -1231,12 +1231,11 @@ template <typename T, typename... RotationT, typename... QuantumT,
           std::enable_if_t<T::num_parameters == NumPProvided, std::size_t> = 0>
 void applyNoiseImpl(const std::tuple<RotationT...> &paramTuple,
                     const std::tuple<QuantumT...> &quantumTuple) {
-  auto *ctx = get_platform().get_exec_ctx();
-  if (!ctx)
-    return;
+  auto &platform = get_platform();
+  const auto *noiseModel = platform.get_noise();
 
   // per-spec, no noise model provided, emit warning, no application
-  if (!ctx->noiseModel)
+  if (!noiseModel)
     return details::warn("apply_noise called without a noise model provided.");
 
   std::vector<double> parameters;
@@ -1260,7 +1259,7 @@ void applyNoiseImpl(const std::tuple<RotationT...> &paramTuple,
                                 std::to_string(qubits.size()));
   }
 
-  auto channel = ctx->noiseModel->template get_channel<T>(parameters);
+  auto channel = noiseModel->template get_channel<T>(parameters);
   // per spec - caller provides noise model, but channel not registered,
   // warning generated, no channel application.
   if (channel.empty())
@@ -1289,12 +1288,11 @@ template <typename T, typename... Q,
               !any_float<Q...>>>
 #endif
 void apply_noise(const std::vector<double> &params, Q &&...args) {
-  auto *ctx = get_platform().get_exec_ctx();
-  if (!ctx)
-    return;
+  auto &platform = get_platform();
+  const auto *noiseModel = platform.get_noise();
 
   // per-spec, no noise model provided, emit warning, no application
-  if (!ctx->noiseModel)
+  if (!noiseModel)
     return details::warn("apply_noise called without a noise model provided. "
                          "skipping kraus channel application.");
 
@@ -1310,7 +1308,7 @@ void apply_noise(const std::vector<double> &params, Q &&...args) {
     }
   });
 
-  auto channel = ctx->noiseModel->template get_channel<T>(params);
+  auto channel = noiseModel->template get_channel<T>(params);
   // per spec - caller provides noise model, but channel not registered,
   // warning generated, no channel application.
   if (channel.empty())

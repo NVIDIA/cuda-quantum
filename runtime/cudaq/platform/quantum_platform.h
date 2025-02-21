@@ -125,6 +125,9 @@ public:
   /// quantum kernels.
   void set_noise(const noise_model *model);
 
+  /// @brief Return the current noise model or nullptr if none set.
+  const noise_model *get_noise();
+
   /// @brief Get the remote capabilities (only applicable for remote platforms)
   RemoteCapabilities get_remote_capabilities(const std::size_t qpuId = 0) const;
 
