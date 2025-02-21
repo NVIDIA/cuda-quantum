@@ -522,7 +522,11 @@ protected:
   std::map<std::string, std::string> getHeaders() const {
     std::map<std::string, std::string> header{
         {"Authorization", fmt::format("Bearer {}", m_apiKey)},
-        {"Content-type", "application/json"}};
+        {"Content-type", "application/json"},
+        {"nvcf-feature-enable-gateway-timeout", "true"},
+        // The max timeout for the polling response is 20 minutes
+        // https://docs.nvidia.com/cloud-functions/user-guide/latest/cloud-function/api.html#http-polling
+        {"NVCF-POLL-SECONDS", "1200"}};
     return header;
   };
   // Helper to retrieve the list of all available versions of the specified
