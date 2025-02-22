@@ -14,7 +14,7 @@
 
 namespace utils {
 
-void print(cudaq::matrix_2 mat);
+void print(cudaq::matrix_2 mat, std::string name = "");
 
 void assert_product_equal(
     const cudaq::product_operator<cudaq::matrix_operator> &got,

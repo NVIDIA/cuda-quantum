@@ -8,17 +8,11 @@
 
 #include "cudaq/algorithms/evolve.h"
 #include "cudaq/dynamics_integrators.h"
-#include "cudaq/evolution.h"
 #include "cudaq/operators.h"
-#include "cudaq/schedule.h"
-#include "matplotlibcpp.h"
+#include "export_csv_helper.h"
 #include <cudaq.h>
 
-namespace plt = matplotlibcpp;
-
 int main() {
-
-  cudaq::set_target_backend("dynamics");
 
   // Detuning between two qubits
   double delta = 100 * 2 * M_PI;
@@ -29,33 +23,26 @@ int main() {
   // Drive strength
   double Omega = 20 * 2 * M_PI;
 
-  auto hamiltonian =
-      (delta / 2.0) * cudaq::spin_operator::z(0) +
-      J * (cudaq::spin_operator::minus(1) * cudaq::spin_operator::plus(0) +
-           cudaq::spin_operator::plus(1) * cudaq::spin_operator::minus(0)) +
-      Omega * cudaq::spin_operator::x(0) +
-      m_12 * Omega * cudaq::spin_operator::x(1);
+  auto hamiltonian = (delta / 2.0) * cudaq::spin_operator::z(0) +
+                     J * (cudaq::fermion_operator::annihilate(1) *
+                              cudaq::fermion_operator::create(0) +
+                          cudaq::fermion_operator::create(1) *
+                              cudaq::fermion_operator::annihilate(0)) +
+                     Omega * cudaq::spin_operator::x(0) +
+                     m_12 * Omega * cudaq::spin_operator::x(1);
 
   std::map<int, int> dimensions{{0, 2}, {1, 2}};
 
   // Build the initial state
-  cudaq::matrix_2 rho_mat({1.0, 0.0}, {0.0, 0.0});
-
-  // Flatten the matrix
-  std::vector<std::complex<double>> flat_rho;
-  for (size_t j = 0; j < rho_mat.get_columns(); ++j) {
-    for (size_t i = 0; i < rho_mat.get_rows(); ++i) {
-      flat_rho.push_back(rho_mat[{i, j}]);
-    }
-  }
-
-  cudaq::state_data rho_data = flat_rho;
-  auto rho0 = cudaq::state::from_data(rho_data);
+  std::vector<std::complex<double>> psi00_data = {
+      {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}};
+  std::vector<std::complex<double>> psi10_data = {
+      {0.0, 0.0}, {0.0, 0.0}, {1.0, 0.0}, {0.0, 0.0}};
 
   // Two initial state vectors for the 2-qubit system (dimension 4)
   // psi_00 corresponds to |00> and psi_10 corresponds to |10>
-  auto psi_00 = cudaq::state::from_data({1.0, 0.0, 0.0, 0.0});
-  auto psi_10 = cudaq::state::from_data({0.0, 0.0, 1.0, 0.0});
+  auto psi_00 = cudaq::state::from_data(psi00_data);
+  auto psi_10 = cudaq::state::from_data(psi10_data);
 
   // Create a schedule of time steps
   const int num_steps = 1001;
@@ -68,71 +55,64 @@ int main() {
   std::vector<std::string> labels = {"time"};
   cudaq::Schedule schedule(steps, labels);
 
-  cudaq::runge_kutta integrator;
-  integrator.dt = 0.001;
-  integrator.order = 1;
+  std::shared_ptr<cudaq::runge_kutta> integrator =
+      std::make_shared<cudaq::runge_kutta>();
+  integrator->dt = 0.01;
+  integrator->order = 1;
 
-  std::vector<cudaq::spin_operator> observables = {
-      cudaq::spin_operator::x(0), cudaq::spin_operator::y(0),
-      cudaq::spin_operator::z(0), cudaq::spin_operator::x(1),
-      cudaq::spin_operator::y(1), cudaq::spin_operator::z(1)};
+  auto observables = {cudaq::spin_operator::x(0), cudaq::spin_operator::y(0),
+                      cudaq::spin_operator::z(0), cudaq::spin_operator::x(1),
+                      cudaq::spin_operator::y(1), cudaq::spin_operator::z(1)};
 
   // Evolution for initial state |00>
   auto evolution_result_00 =
-      cudaq::evolve(hamiltonian, dimensions, schedule, psi_00, observables, {},
-                    true, integrator);
+      cudaq::evolve(hamiltonian, dimensions, schedule, psi_00, integrator, {},
+                    observables, true);
 
   // Evolution for initial state |10>
   auto evolution_result_10 =
-      cudaq::evolve(hamiltonian, dimensions, schedule, psi_10, observables, {},
-                    true, integrator);
+      cudaq::evolve(hamiltonian, dimensions, schedule, psi_10, integrator, {},
+                    observables, true);
 
-  auto get_result = [](int idx, const auto &result) -> std::vector<double> {
+  // Lambda to extract expectation values for a given observable index
+  auto get_expectation = [](int idx,
+                            const auto &result) -> std::vector<double> {
     std::vector<double> expectations;
+
     auto all_exps = result.get_expectation_values().value();
-    for (const auto &exp_vals : all_exps) {
+    for (auto exp_vals : all_exps) {
       expectations.push_back((double)exp_vals[idx]);
     }
     return expectations;
   };
 
   // For the two evolutions, extract the six observable trajectories.
-  auto result_00_0 = get_result(0, evolution_result_00);
-  auto result_00_1 = get_result(1, evolution_result_00);
-  auto result_00_2 = get_result(2, evolution_result_00);
-  auto result_00_3 = get_result(3, evolution_result_00);
-  auto result_00_4 = get_result(4, evolution_result_00);
-  auto result_00_5 = get_result(5, evolution_result_00);
+  auto result_00_0 = get_expectation(0, evolution_result_00);
+  auto result_00_1 = get_expectation(1, evolution_result_00);
+  auto result_00_2 = get_expectation(2, evolution_result_00);
+  auto result_00_3 = get_expectation(3, evolution_result_00);
+  auto result_00_4 = get_expectation(4, evolution_result_00);
+  auto result_00_5 = get_expectation(5, evolution_result_00);
 
-  auto result_10_0 = get_result(0, evolution_result_10);
-  auto result_10_1 = get_result(1, evolution_result_10);
-  auto result_10_2 = get_result(2, evolution_result_10);
-  auto result_10_3 = get_result(3, evolution_result_10);
-  auto result_10_4 = get_result(4, evolution_result_10);
-  auto result_10_5 = get_result(5, evolution_result_10);
+  auto result_10_0 = get_expectation(0, evolution_result_10);
+  auto result_10_1 = get_expectation(1, evolution_result_10);
+  auto result_10_2 = get_expectation(2, evolution_result_10);
+  auto result_10_3 = get_expectation(3, evolution_result_10);
+  auto result_10_4 = get_expectation(4, evolution_result_10);
+  auto result_10_5 = get_expectation(5, evolution_result_10);
 
-  // Plot the results
-  plt::figure_size(1000, 600);
+  // Export the results to a CSV file
+  export_csv("cross_resonance_00.csv", "time", steps, "sigma_x_0", result_00_0,
+             "sigma_y_0", result_00_1, "sigma_z_0", result_00_2, "sigma_x_1",
+             result_00_3, "sigma_y_1", result_00_4, "sigma_z_1", result_00_5);
 
-  // Subplot 1: Expectation value <Z> for qubit 1.
-  plt::subplot(1, 2, 1);
-  plt::plot(steps, result_00_5, {{"label", "$|\\psi_0\\rangle=|00\\rangle$"}});
-  plt::plot(steps, result_10_5, {{"label", "$|\\psi_0\\rangle=|10\\rangle$"}});
-  plt::xlabel("Time");
-  plt::ylabel("$\\langle Z_2 \\rangle$");
-  plt::legend();
+  export_csv("cross_resonance_10.csv", "time", steps, "sigma_x_0", result_10_0,
+             "sigma_y_0", result_10_1, "sigma_z_0", result_10_2, "sigma_x_1",
+             result_10_3, "sigma_y_1", result_10_4, "sigma_z_1", result_10_5);
 
-  // Subplot 2: Expectation value <Y> for qubit 1.
-  plt::subplot(1, 2, 2);
-  plt::plot(steps, result_00_4, {{"label", "$|\\psi_0\\rangle=|00\\rangle$"}});
-  plt::plot(steps, result_10_4, {{"label", "$|\\psi_0\\rangle=|10\\rangle$"}});
-  plt::xlabel("Time");
-  plt::ylabel("$\\langle Y_2 \\rangle$");
-  plt::legend();
-
-  plt::save("cross_resonance.png");
-
-  std::cout << "Simulation complete. Plot saved to cross_resonance.png"
-            << std::endl;
+  std::cout
+      << "Simulation complete. The results are saved in cross_resonance_00.csv "
+         "and cross_resonance_10.csv files."
+      << std::endl;
   return 0;
 }

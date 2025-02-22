@@ -39,7 +39,7 @@ private:
   std::vector<int> number_offsets;
   int target;
 
-  // 0 = I, ad = 1, a = 2, ada = 3
+  // 0 = I, Ad = 1, A = 2, AdA = 3
   boson_operator(int target, int op_code);
 
   std::string op_code_to_string() const;
@@ -63,11 +63,10 @@ public:
 
   // evaluations
 
-  /// @brief Return the `matrix_operator` as a matrix.
-  /// @arg  `dimensions` : A map specifying the number of levels,
-  ///                      that is, the dimension of each degree of freedom
-  ///                      that the operator acts on. Example for two, 2-level
-  ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
+  /// @brief Return the matrix representation of the operator in the eigenbasis
+  /// of the number operator.
+  /// @arg  `dimensions` : A map specifying the dimension, that is the number of
+  /// eigenstates, for each degree of freedom.
   virtual matrix_2
   to_matrix(std::unordered_map<int, int> &dimensions,
             const std::unordered_map<std::string, std::complex<double>>
@@ -77,6 +76,8 @@ public:
 
   // comparisons
 
+  /// @returns True if, and only if, the two operators have the same effect on
+  /// any state.
   bool operator==(const boson_operator &other) const;
 
   // defined operators

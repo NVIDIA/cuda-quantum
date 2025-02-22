@@ -20,6 +20,17 @@ namespace cudaq {
 // private helpers
 
 std::string boson_operator::op_code_to_string() const {
+  // Note that we can (and should) have the same op codes across boson, fermion,
+  // and spin ops, since individual operators with the same op codes are
+  // actually equal. Note that the matrix definition for creation, annihilation
+  // and number operators are equal despite the different
+  // commutation/anticommutation relations; what makes them behave differently
+  // is effectively the "finite size effects" for fermions. Specifically, if we
+  // were to blindly multiply the matrices for d=2 for bosons, we would get the
+  // same behavior as we have for a single fermion due to the finite size of the
+  // matrix. To avoid this, we ensure that we reorder the operators for bosons
+  // appropriately as part of the in-place multiplication, whereas for fermions,
+  // this effect is desired/correct.
   if (this->additional_terms == 0 && this->number_offsets.size() == 0)
     return "I";
   std::string str;
@@ -46,30 +57,58 @@ void boson_operator::inplace_mult(const boson_operator &other) {
   // permutations, if we have "unpaired" creation operators, the number operator
   // becomes (N + x), if we have "unpaired" annihilation operators, the number
   // operator becomes (N - x).
-  for (auto offset : other.number_offsets)
-    this->number_offsets.push_back(offset - this->additional_terms);
+  auto it = this->number_offsets
+                .cbegin(); // we will sort the offsets from biggest to smallest
+  for (auto offset : other.number_offsets) {
+    while (it != this->number_offsets.cend() &&
+           *it >= offset - this->additional_terms)
+      ++it;
+    this->number_offsets.insert(it, offset - this->additional_terms);
+  }
 
   // now we can combine the creation and annihilation operators;
   if (this->additional_terms > 0) { // we have "unpaired" creation operators
     // using ad*a = N and ad*N = (N - 1)*ad, each created number operator has an
     // offset of -(x - 1 - i), where x is the number of creation operators, and
     // i is the number of creation operators we already combined
-    for (auto i = 1;
-         i <= this->additional_terms && i <= -other.additional_terms; ++i)
-      this->number_offsets.push_back(i - this->additional_terms);
+    it = this->number_offsets.cbegin();
+    for (auto i = std::min(this->additional_terms, -other.additional_terms);
+         i > 0; --i) {
+      // we make sure to have offsets get smaller as we go to keep the sorting
+      // cheap
+      while (it != this->number_offsets.cend() &&
+             *it >= i - this->additional_terms)
+        ++it;
+      this->number_offsets.insert(it, i - this->additional_terms);
+    }
   } else if (this->additional_terms <
              0) { // we have "unpaired" annihilation operators
     // using a*ad = (N + 1) and a*N = (N + 1)*a, each created number operator
     // has an offset of (x - i), where x is the number of annihilation
     // operators, and i is the number of annihilation operators we already
     // combined
+    it = this->number_offsets.cbegin();
     for (auto i = 0; i > this->additional_terms && i > -other.additional_terms;
-         --i)
-      this->number_offsets.push_back(i - this->additional_terms);
+         --i) {
+      // we make sure to have offsets get smaller as we go to keep the sorting
+      // cheap
+      while (it != this->number_offsets.cend() &&
+             *it >= i - this->additional_terms)
+        ++it;
+      this->number_offsets.insert(it, i - this->additional_terms);
+    }
   }
 
   // finally, we update the number of remaining unpaired operators
   this->additional_terms += other.additional_terms;
+
+#if !defined(NDEBUG)
+  // we sort the number offsets, such that the equality comparison and the
+  // operator id perfectly reflects the mathematical evaluation of the operator
+  auto sorted_offsets = this->number_offsets;
+  std::sort(sorted_offsets.begin(), sorted_offsets.end(), std::greater<int>());
+  // assert(sorted_offsets == this->number_offsets);
+#endif
 }
 
 // read-only properties
@@ -148,9 +187,9 @@ std::string boson_operator::to_string(bool include_degrees) const {
 // comparisons
 
 bool boson_operator::operator==(const boson_operator &other) const {
-  return this->additional_terms == other.additional_terms &&
-         this->number_offsets == other.number_offsets &&
-         this->target == other.target;
+  return this->target == other.target &&
+         this->additional_terms == other.additional_terms &&
+         this->number_offsets == other.number_offsets;
 }
 
 // defined operators

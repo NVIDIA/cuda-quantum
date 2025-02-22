@@ -13,6 +13,7 @@
 #include "boson_operators.h"
 #include "cudaq/operators.h"
 #include "cudaq/utils/tensor.h"
+#include "fermion_operators.h"
 #include "matrix_operators.h"
 #include "spin_operators.h"
 
@@ -39,6 +40,10 @@ std::string matrix_operator::type_prefix<spin_operator>() {
 }
 template <>
 std::string matrix_operator::type_prefix<boson_operator>() {
+  return "";
+}
+template <>
+std::string matrix_operator::type_prefix<fermion_operator>() {
   return "";
 }
 
@@ -147,6 +152,7 @@ matrix_operator::matrix_operator(const T &other) {
 
 template matrix_operator::matrix_operator(const spin_operator &other);
 template matrix_operator::matrix_operator(const boson_operator &other);
+template matrix_operator::matrix_operator(const fermion_operator &other);
 
 matrix_operator::matrix_operator(const matrix_operator &other)
     : targets(other.targets), op_code(other.op_code) {}
@@ -177,6 +183,8 @@ template matrix_operator &
 matrix_operator::operator=(const spin_operator &other);
 template matrix_operator &
 matrix_operator::operator=(const boson_operator &other);
+template matrix_operator &
+matrix_operator::operator=(const fermion_operator &other);
 
 matrix_operator &matrix_operator::operator=(matrix_operator &&other) {
   if (this != &other) {

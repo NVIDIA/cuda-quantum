@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "cudaq/operators.h"
 #include "cudaq/utils/tensor.h"
 #include "spin_operators.h"
 
@@ -20,12 +21,11 @@ namespace cudaq {
 std::string spin_operator::op_code_to_string() const {
   if (this->op_code == 1)
     return "Z";
-  else if (this->op_code == 2)
+  if (this->op_code == 2)
     return "X";
-  else if (this->op_code == 3)
+  if (this->op_code == 3)
     return "Y";
-  else
-    return "I";
+  return "I";
 }
 
 std::complex<double> spin_operator::inplace_mult(const spin_operator &other) {

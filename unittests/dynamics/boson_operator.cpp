@@ -71,11 +71,11 @@ TEST(OperatorExpressions, checkPreBuiltBosonOps) {
 
   // basic in-place multiplication
   {
-    auto max_nr_consecutive = 6;
+    auto max_nr_consecutive = 5;
     auto nr_op = cudaq::boson_operator::number(0);
     auto ad_op = cudaq::boson_operator::create(0);
     auto a_op = cudaq::boson_operator::annihilate(0);
-    for (auto d = 3; d < 4; ++d) {
+    for (auto d = 2; d < 5; ++d) {
 
       // we use a larger dimension to compute the correct expected matrices
       // to ensure the expected matrix is no impacted by finite-size errors
@@ -755,4 +755,31 @@ TEST(OperatorExpressions, checkBosonOpsDegreeVerification) {
   ASSERT_THROW((op1 + op2).to_matrix({{0, 3}}), std::runtime_error);
   ASSERT_NO_THROW((op1 * op2).to_matrix(dimensions));
   ASSERT_NO_THROW((op1 + op2).to_matrix(dimensions));
+}
+
+TEST(OperatorExpressions, checkCommutationRelations) {
+
+  // Doing some testing for the tests - if the reference matrices do not satisfy
+  // the correct relations, then all tests are wrong...
+
+  auto ad_mat = utils::create_matrix(5);
+  auto a_mat = utils::annihilate_matrix(5);
+
+  auto padded_commutator = a_mat * ad_mat - ad_mat * a_mat;
+  cudaq::matrix_2 commutator(4, 4);
+  for (size_t i = 0; i < 4; ++i) {
+    for (size_t j = 0; j < 4; ++j)
+      commutator[{i, j}] = padded_commutator[{i, j}];
+  }
+
+  auto padded_aad = a_mat * ad_mat;
+  cudaq::matrix_2 aad_mat(4, 4);
+  for (size_t i = 0; i < 4; ++i) {
+    for (size_t j = 0; j < 4; ++j)
+      aad_mat[{i, j}] = padded_aad[{i, j}];
+  }
+
+  utils::checkEqual(commutator, utils::id_matrix(4));
+  utils::checkEqual(ad_mat * a_mat, utils::number_matrix(5));
+  utils::checkEqual(aad_mat, utils::number_matrix(4) + utils::id_matrix(4));
 }
