@@ -309,6 +309,33 @@ void SimulatorTensorNetBase::applyKrausChannel(
   }
 }
 
+bool SimulatorTensorNetBase::isValidNoiseChannel(
+    const cudaq::noise_model_type &type) const {
+  return true;
+}
+
+void SimulatorTensorNetBase::applyNoise(
+    const cudaq::kraus_channel &channel,
+    const std::vector<std::size_t> &targets) {
+  LOG_API_TIME();
+  // Do nothing if no execution context
+  if (!executionContext)
+    return;
+
+  // Do nothing if no noise model
+  if (!executionContext->noiseModel)
+    return;
+
+  // Apply all prior gates before applying noise.
+  std::vector<int32_t> qubits{targets.begin(), targets.end()};
+  cudaq::info(
+      "[SimulatorTensorNetBase] Applying kraus channel {} on qubits: {}",
+      cudaq::get_noise_model_type_name(channel.noise_type), qubits);
+
+  flushGateQueue();
+  applyKrausChannel(qubits, channel);
+}
+
 void SimulatorTensorNetBase::applyNoiseChannel(
     const std::string_view gateName, const std::vector<std::size_t> &controls,
     const std::vector<std::size_t> &targets,
