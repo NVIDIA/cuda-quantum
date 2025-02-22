@@ -594,13 +594,13 @@ def test_list_boundaries():
     @cudaq.kernel
     def kernel4():
         qubits = cudaq.qvector(4)
-        r = [i * 2 + 1 for i in range(-1)]
+        r = [i * 2 + 1 for i in range(1)]
         for i in r:
             x(qubits[i])
 
     counts = cudaq.sample(kernel4)
     assert len(counts) == 1
-    assert '0000' in counts
+    assert '0100' in counts
 
     @cudaq.kernel
     def kernel5():
@@ -623,6 +623,25 @@ def test_list_boundaries():
     counts = cudaq.sample(kernel6)
     assert len(counts) == 1
     assert '0101' in counts
+
+
+def test_array_value_assignment():
+
+    @cudaq.kernel()
+    def foo():
+        a = [1, 1]
+        b = [0, 0]
+        b[0] = a[0]
+        b[1] = a[1]
+        q0 = cudaq.qubit()
+        q1 = cudaq.qubit()
+        if (b[0]):
+            x(q0)
+        if (b[1]):
+            x(q1)
+
+    counts = cudaq.sample(foo)
+    assert "11" in counts
 
 
 def test_control_operations():
@@ -1995,6 +2014,41 @@ def test_numpy_functions():
     with pytest.raises(RuntimeError):
         cudaq.sample(invalid_unsupported)
 
+def test_in_comparator():
+
+    @cudaq.kernel
+    def kernel(ind: int):
+        q = cudaq.qubit()
+        if ind in [6, 13, 20, 27, 34]:
+            x(q)    
+
+    c = cudaq.sample(kernel, 1)
+    assert len(c) == 1 and '0' in c
+    c = cudaq.sample(kernel, 20)
+    assert len(c) == 1 and '1' in c
+    c = cudaq.sample(kernel, 14)
+    assert len(c) == 1 and '0' in c
+    c = cudaq.sample(kernel, 13)
+    assert len(c) == 1 and '1' in c
+    c = cudaq.sample(kernel, 26)
+    assert len(c) == 1 and '0' in c
+    c = cudaq.sample(kernel, 27)
+    assert len(c) == 1 and '1' in c
+    c = cudaq.sample(kernel, 34)
+    assert len(c) == 1 and '1' in c
+    c = cudaq.sample(kernel, 36)
+    assert len(c) == 1 and '0' in c
+
+    @cudaq.kernel
+    def kernel(ind: int):
+        q = cudaq.qubit()
+        if ind not in [6, 13, 20, 27, 34]:
+            x(q)    
+
+    c = cudaq.sample(kernel, 1)
+    assert len(c) == 1 and '1' in c
+    c = cudaq.sample(kernel, 20)
+    assert len(c) == 1 and '0' in c
 
 # leave for gdb debugging
 if __name__ == "__main__":

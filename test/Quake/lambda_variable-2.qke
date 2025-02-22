@@ -10,58 +10,6 @@
 // RUN: cudaq-opt --lambda-lifting --canonicalize %s | \
 // RUN:   cudaq-translate --convert-to=qir | FileCheck --check-prefix=QIR %s
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_b(
-// CHECK-SAME:        %[[VAL_0:.*]]: !cc.callable<() -> ()>)
-// CHECK:           return
-// CHECK:         }
-
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_a()
-// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<4>
-// CHECK:           %[[VAL_2:.*]] = cc.instantiate_callable @__nvqpp__callable.thunk.lambda.0(%[[VAL_0]]) : (!quake.veq<4>) -> !cc.callable<() -> ()>
-// CHECK:           call @__nvqpp__mlirgen__kernel_b(%[[VAL_2]]) : (!cc.callable<() -> ()>) -> ()
-// CHECK:           return
-// CHECK:         }
-
-// CHECK-LABEL:   func.func private @__nvqpp__callable.thunk.lambda.0(
-// CHECK-SAME:        %[[VAL_0:.*]]: !cc.callable<() -> ()>) {
-// CHECK:           %[[VAL_1:.*]] = cc.callable_closure %[[VAL_0]] : (!cc.callable<() -> ()>) -> !quake.veq<4>
-// CHECK:           call @__nvqpp__lifted.lambda.0(%[[VAL_1]]) : (!quake.veq<4>) -> ()
-// CHECK:           return
-// CHECK:         }
-
-// CHECK-LABEL:   func.func private @__nvqpp__lifted.lambda.0(
-// CHECK-SAME:        %[[VAL_0:.*]]: !quake.veq<4>) {
-// CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i32
-// CHECK:           %[[VAL_2:.*]] = arith.constant 4 : i32
-// CHECK:           %[[VAL_3:.*]] = arith.constant 0 : i32
-// CHECK:           cc.scope {
-// CHECK:             %[[VAL_4:.*]] = cc.alloca i32
-// CHECK:             cc.store %[[VAL_3]], %[[VAL_4]] : !cc.ptr<i32>
-// CHECK:             cc.loop while {
-// CHECK:               %[[VAL_5:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i32>
-// CHECK:               %[[VAL_6:.*]] = arith.cmpi slt, %[[VAL_5]], %[[VAL_2]] : i32
-// CHECK:               cc.condition %[[VAL_6]]
-// CHECK:             } do {
-// CHECK:               %[[VAL_7:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i32>
-// CHECK:               %[[VAL_8:.*]] = arith.extsi %[[VAL_7]] : i32 to i64
-// CHECK:               %[[VAL_9:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_8]]] : (!quake.veq<4>, i64) -> !quake.ref
-// CHECK:               quake.h %[[VAL_9]] :
-// CHECK:               cc.continue
-// CHECK:             } step {
-// CHECK:               %[[VAL_10:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i32>
-// CHECK:               %[[VAL_11:.*]] = arith.addi %[[VAL_10]], %[[VAL_1]] : i32
-// CHECK:               cc.store %[[VAL_11]], %[[VAL_4]] : !cc.ptr<i32>
-// CHECK:             }
-// CHECK:           }
-// CHECK:           return
-// CHECK:         }
-
-// QIR-LABEL: define void @__nvqpp__mlirgen__kernel_b({ i8*, i8* } 
-
-// QIR-LABEL: define void @__nvqpp__mlirgen__kernel_a()
-// QIR:         call {{.*}} @__quantum__rt__qubit_allocate_array(i64 4)
-// QIR:         call void @__quantum__rt__qubit_release_array(
-
 module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel_a = "_ZN8kernel_aclEv", __nvqpp__mlirgen__kernel_b = "_ZN8kernel_bclEOSt8functionIFvvEE"}} {
   func.func @__nvqpp__mlirgen__kernel_b(%arg0: !cc.callable<() -> ()>) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
     return
@@ -98,3 +46,55 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel_a = "_ZN8k
     return
   }
 }
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_b(
+// CHECK-SAME:        %[[VAL_0:.*]]: !cc.callable<() -> ()>)
+// CHECK:           return
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_a()
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<4>
+// CHECK:           %[[VAL_2:.*]] = cc.instantiate_callable @__nvqpp__callable.thunk.lambda.0(%[[VAL_0]]) : (!quake.veq<4>) -> !cc.callable<() -> ()>
+// CHECK:           call @__nvqpp__mlirgen__kernel_b(%[[VAL_2]]) : (!cc.callable<() -> ()>) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// CHECK-LABEL:   func.func private @__nvqpp__callable.thunk.lambda.0(
+// CHECK-SAME:        %[[VAL_0:.*]]: !cc.callable<() -> ()>) {{.*}}{
+// CHECK:           %[[VAL_1:.*]] = cc.callable_closure %[[VAL_0]] : (!cc.callable<() -> ()>) -> !quake.veq<4>
+// CHECK:           call @__nvqpp__lifted.lambda.0(%[[VAL_1]]) : (!quake.veq<4>) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// CHECK-LABEL:   func.func private @__nvqpp__lifted.lambda.0(
+// CHECK-SAME:        %[[VAL_0:.*]]: !quake.veq<4>) {{.*}}{
+// CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i32
+// CHECK:           %[[VAL_2:.*]] = arith.constant 4 : i32
+// CHECK:           %[[VAL_3:.*]] = arith.constant 0 : i32
+// CHECK:           cc.scope {
+// CHECK:             %[[VAL_4:.*]] = cc.alloca i32
+// CHECK:             cc.store %[[VAL_3]], %[[VAL_4]] : !cc.ptr<i32>
+// CHECK:             cc.loop while {
+// CHECK:               %[[VAL_5:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i32>
+// CHECK:               %[[VAL_6:.*]] = arith.cmpi slt, %[[VAL_5]], %[[VAL_2]] : i32
+// CHECK:               cc.condition %[[VAL_6]]
+// CHECK:             } do {
+// CHECK:               %[[VAL_7:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i32>
+// CHECK:               %[[VAL_8:.*]] = arith.extsi %[[VAL_7]] : i32 to i64
+// CHECK:               %[[VAL_9:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_8]]] : (!quake.veq<4>, i64) -> !quake.ref
+// CHECK:               quake.h %[[VAL_9]] :
+// CHECK:               cc.continue
+// CHECK:             } step {
+// CHECK:               %[[VAL_10:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i32>
+// CHECK:               %[[VAL_11:.*]] = arith.addi %[[VAL_10]], %[[VAL_1]] : i32
+// CHECK:               cc.store %[[VAL_11]], %[[VAL_4]] : !cc.ptr<i32>
+// CHECK:             }
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }
+
+// QIR-LABEL: define void @__nvqpp__mlirgen__kernel_b({ i8*, i8* } 
+
+// QIR-LABEL: define void @__nvqpp__mlirgen__kernel_a()
+// QIR:         call {{.*}} @__quantum__rt__qubit_allocate_array(i64 4)
+// QIR:         call void @__quantum__rt__qubit_release_array(

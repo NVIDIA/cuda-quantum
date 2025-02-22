@@ -76,13 +76,13 @@ struct test5_caller {
 
 // LIFT-LABEL:   func.func private @__nvqpp__callable.thunk.lambda.0
 // LIFT-SAME:        (%[[VAL_0:.*]]: !cc.callable<(!quake.ref) -> ()>,
-// LIFT-SAME:        %[[VAL_1:.*]]: !quake.ref) {
+// LIFT-SAME:        %[[VAL_1:.*]]: !quake.ref) {{.*}}{
 // LIFT: call @__nvqpp__lifted.lambda.0(%[[VAL_1]]) : (!quake.ref) -> ()
 // LIFT: return
 // LIFT: }
 
 // LIFT-LABEL: func.func private @__nvqpp__lifted.lambda.0
-// LIFT-SAME:   (%[[VAL_0:.*]]: !quake.ref) {
+// LIFT-SAME:   (%[[VAL_0:.*]]: !quake.ref) {{.*}}{
 // LIFT: call @__nvqpp__mlirgen__test5_callable{{.*}}(%[[VAL_0]]) : (!quake.ref) -> ()
 // LIFT: return
 // LIFT: }
