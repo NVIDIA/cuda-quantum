@@ -26,7 +26,7 @@ isScaledUnitary(const std::vector<std::complex<double>> &mat, double eps) {
   const int dim = std::log2(mat.size());
   Eigen::Map<const RowMajorMatTy> kMat(mat.data(), dim, dim);
   if (kMat.isZero())
-    return std::nullopt;
+    return 0.0;
   // Check that (K_dag * K) is a scaled identity matrix
   // i.e., the K matrix is a scaled unitary.
   auto kdK = kMat.adjoint() * kMat;
@@ -55,8 +55,12 @@ computeUnitaryMixture(
   const auto scaleMat = [](const std::vector<std::complex<double>> &mat,
                            double scaleFactor) {
     std::vector<std::complex<double>> scaledMat = mat;
-    for (auto &x : scaledMat)
-      x /= scaleFactor;
+    // If scaleFactor is 0, then it means the original matrix was likely all
+    // zeros. In that case, the probability will be 0, so the matrix doesn't
+    // matter, but we don't want NaNs to trickle in anywhere.
+    if (scaleFactor != 0.0)
+      for (auto &x : scaledMat)
+        x /= scaleFactor;
     return scaledMat;
   };
   for (const auto &op : krausOps) {
@@ -64,7 +68,7 @@ computeUnitaryMixture(
     if (!scaledFactor.has_value())
       return std::nullopt;
     probs.emplace_back(scaledFactor.value());
-    mats.emplace_back(scaleMat(op, scaledFactor.value()));
+    mats.emplace_back(scaleMat(op, std::sqrt(scaledFactor.value())));
   }
 
   if (std::abs(1.0 - std::reduce(probs.begin(), probs.end())) > tol)
