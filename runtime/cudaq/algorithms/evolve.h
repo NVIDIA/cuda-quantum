@@ -397,6 +397,44 @@ evolve_result evolve(const HamTy &hamiltonian,
 template <typename HamTy,
           typename CollapseOpTy = cudaq::operator_sum<cudaq::matrix_operator>,
           typename ObserveOpTy = cudaq::operator_sum<cudaq::matrix_operator>>
+std::vector<evolve_result>
+evolve(const HamTy &hamiltonian, const std::map<int, int> &dimensions,
+       const Schedule &schedule, const std::vector<state> &initial_states,
+       std::shared_ptr<BaseIntegrator> integrator = {},
+       std::initializer_list<CollapseOpTy> collapse_operators = {},
+       std::initializer_list<ObserveOpTy> observables = {},
+       bool store_intermediate_results = false,
+       std::optional<int> shots_count = std::nullopt) {
+  std::vector<evolve_result> results;
+  for (const auto &initial_state : initial_states)
+    results.emplace_back(evolve(hamiltonian, dimensions, schedule,
+                                initial_state, integrator, collapse_operators,
+                                observables, store_intermediate_results,
+                                shots_count));
+  return results;
+}
+
+template <typename HamTy, typename CollapseOpTy, typename ObserveOpTy>
+std::vector<evolve_result>
+evolve(const HamTy &hamiltonian, const std::map<int, int> &dimensions,
+       const Schedule &schedule, const std::vector<state> &initial_states,
+       std::shared_ptr<BaseIntegrator> integrator = {},
+       const std::vector<CollapseOpTy> &collapse_operators = {},
+       const std::vector<ObserveOpTy> &observables = {},
+       bool store_intermediate_results = false,
+       std::optional<int> shots_count = std::nullopt) {
+  std::vector<evolve_result> results;
+  for (const auto &initial_state : initial_states)
+    results.emplace_back(evolve(hamiltonian, dimensions, schedule,
+                                initial_state, integrator, collapse_operators,
+                                observables, store_intermediate_results,
+                                shots_count));
+  return results;
+}
+
+template <typename HamTy,
+          typename CollapseOpTy = cudaq::operator_sum<cudaq::matrix_operator>,
+          typename ObserveOpTy = cudaq::operator_sum<cudaq::matrix_operator>>
 async_evolve_result
 evolve_async(const HamTy &hamiltonian, const std::map<int, int> &dimensions,
              const Schedule &schedule, const state &initial_state,

@@ -23,13 +23,23 @@ int main() {
   // Drive strength
   double Omega = 20 * 2 * M_PI;
 
-  auto hamiltonian = (delta / 2.0) * cudaq::spin_operator::z(0) +
-                     J * (cudaq::fermion_operator::annihilate(1) *
-                              cudaq::fermion_operator::create(0) +
-                          cudaq::fermion_operator::create(1) *
-                              cudaq::fermion_operator::annihilate(0)) +
-                     Omega * cudaq::spin_operator::x(0) +
-                     m_12 * Omega * cudaq::spin_operator::x(1);
+  auto spin_plus = [](int degree) {
+    return 0.5 *
+           (cudaq::spin_operator::x(degree) +
+            std::complex<double>(0.0, 1.0) * cudaq::spin_operator::y(degree));
+  };
+
+  auto spin_minus = [](int degree) {
+    return 0.5 *
+           (cudaq::spin_operator::x(degree) -
+            std::complex<double>(0.0, 1.0) * cudaq::spin_operator::y(degree));
+  };
+
+  auto hamiltonian =
+      (delta / 2.0) * cudaq::spin_operator::z(0) +
+      J * (spin_minus(1) * spin_plus(0) + spin_plus(1) * spin_minus(0)) +
+      Omega * cudaq::spin_operator::x(0) +
+      m_12 * Omega * cudaq::spin_operator::x(1);
 
   std::map<int, int> dimensions{{0, 2}, {1, 2}};
 
@@ -37,7 +47,7 @@ int main() {
   std::vector<std::complex<double>> psi00_data = {
       {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}};
   std::vector<std::complex<double>> psi10_data = {
-      {0.0, 0.0}, {0.0, 0.0}, {1.0, 0.0}, {0.0, 0.0}};
+      {0.0, 0.0}, {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}};
 
   // Two initial state vectors for the 2-qubit system (dimension 4)
   // psi_00 corresponds to |00> and psi_10 corresponds to |10>
@@ -46,33 +56,25 @@ int main() {
 
   // Create a schedule of time steps
   const int num_steps = 1001;
-  const double t0 = 0.0, t1 = 1.0;
-  std::vector<double> steps(num_steps);
-  double dt = (t1 - t0) / (num_steps - 1);
-  for (int i = 0; i < num_steps; ++i) {
-    steps[i] = t0 + i * dt;
-  }
-  std::vector<std::string> labels = {"time"};
-  cudaq::Schedule schedule(steps, labels);
+  std::vector<double> steps = cudaq::linspace(0.0, 1.0, num_steps);
+  cudaq::Schedule schedule(steps);
 
   std::shared_ptr<cudaq::runge_kutta> integrator =
       std::make_shared<cudaq::runge_kutta>();
-  integrator->dt = 0.01;
-  integrator->order = 1;
+  integrator->dt = 0.0001;
+  integrator->order = 4;
 
   auto observables = {cudaq::spin_operator::x(0), cudaq::spin_operator::y(0),
                       cudaq::spin_operator::z(0), cudaq::spin_operator::x(1),
                       cudaq::spin_operator::y(1), cudaq::spin_operator::z(1)};
 
-  // Evolution for initial state |00>
-  auto evolution_result_00 =
-      cudaq::evolve(hamiltonian, dimensions, schedule, psi_00, integrator, {},
-                    observables, true);
+  // Evolution with 2 initial states
+  const auto evolution_results =
+      cudaq::evolve(hamiltonian, dimensions, schedule, {psi_00, psi_10},
+                    integrator, {}, observables, true);
 
-  // Evolution for initial state |10>
-  auto evolution_result_10 =
-      cudaq::evolve(hamiltonian, dimensions, schedule, psi_10, integrator, {},
-                    observables, true);
+  auto &evolution_result_00 = evolution_results[0];
+  auto &evolution_result_10 = evolution_results[1];
 
   // Lambda to extract expectation values for a given observable index
   auto get_expectation = [](int idx,
@@ -102,17 +104,14 @@ int main() {
   auto result_10_5 = get_expectation(5, evolution_result_10);
 
   // Export the results to a CSV file
-  export_csv("cross_resonance_00.csv", "time", steps, "sigma_x_0", result_00_0,
-             "sigma_y_0", result_00_1, "sigma_z_0", result_00_2, "sigma_x_1",
-             result_00_3, "sigma_y_1", result_00_4, "sigma_z_1", result_00_5);
-
-  export_csv("cross_resonance_10.csv", "time", steps, "sigma_x_0", result_10_0,
-             "sigma_y_0", result_10_1, "sigma_z_0", result_10_2, "sigma_x_1",
-             result_10_3, "sigma_y_1", result_10_4, "sigma_z_1", result_10_5);
+  export_csv("cross_resonance_z.csv", "time", steps, "<Z1>_00", result_00_5,
+             "<Z1>_10", result_10_5);
+  export_csv("cross_resonance_y.csv", "time", steps, "<Y1>_00", result_00_4,
+             "<Y1>_10", result_10_4);
 
   std::cout
-      << "Simulation complete. The results are saved in cross_resonance_00.csv "
-         "and cross_resonance_10.csv files."
+      << "Simulation complete. The results are saved in cross_resonance_z.csv "
+         "and cross_resonance_y.csv files."
       << std::endl;
   return 0;
 }
