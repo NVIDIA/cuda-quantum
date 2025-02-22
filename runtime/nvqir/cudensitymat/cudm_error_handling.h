@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #pragma once
+#include <cublas_v2.h>
 #include <cudensitymat.h>
 #include <fmt/core.h>
 #include <stdexcept>
@@ -28,3 +29,12 @@
                                            __FUNCTION__, __LINE__));           \
     }                                                                          \
   }
+
+#define HANDLE_CUBLAS_ERROR(err)                                               \
+  do {                                                                         \
+    cublasStatus_t err_ = (err);                                               \
+    if (err_ != CUBLAS_STATUS_SUCCESS) {                                       \
+      std::printf("[cublas] error %d at %s:%d\n", err_, __FILE__, __LINE__);   \
+      throw std::runtime_error("cublas error");                                \
+    }                                                                          \
+  } while (0)
