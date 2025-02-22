@@ -89,8 +89,9 @@ int main() {
              "cavity_photon_number", decay_result0,
              "atom_excitation_probability", decay_result1);
 
-  std::cout << "Simulation complete. The results are saved in ideal_result.csv "
-               "and decay_result.csv files."
+  std::cout << "Simulation complete. The results are saved in "
+               "cavity_qed_ideal_result.csv "
+               "and cavity_qed_decay_result.csv files."
             << std::endl;
   return 0;
 }
