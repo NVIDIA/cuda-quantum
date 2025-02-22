@@ -46,8 +46,6 @@ int main() {
   // expectation values
   std::vector<std::pair<double, std::vector<double>>> observe_results;
 
-  std::vector<double> g_values = {0.0, 0.25, 4.0};
-
   const int num_steps = 1000;
   std::vector<double> steps(num_steps);
   double t0 = 0.0, tf = 5.0;
@@ -55,13 +53,7 @@ int main() {
     steps[i] = t0 + i * (tf - t0) / (num_steps - 1);
   }
 
-  cudaq::Schedule schedule(steps, {"time"});
-
-  // Initial state vector
-  const int state_size = 1 << num_spins;
-  std::vector<std::complex<double>> psi0_data(state_size, {0.0, 0.0});
-  psi0_data[initial_state_index] = {1.0, 0.0};
-  auto psi0 = cudaq::state::from_data(psi0_data);
+  std::vector<double> g_values = {0.0, 0.25, 4.0};
 
   for (auto g : g_values) {
     double Jx = 1.0, Jy = 1.0, Jz = g;
@@ -75,6 +67,14 @@ int main() {
       hamiltonian = hamiltonian + Jz * cudaq::spin_operator::z(i) *
                                       cudaq::spin_operator::z(i + 1);
     }
+
+    // Initial state vector
+    const int state_size = 1 << num_spins;
+    std::vector<std::complex<double>> psi0_data(state_size, {0.0, 0.0});
+    psi0_data[initial_state_index] = {1.0, 0.0};
+    auto psi0 = cudaq::state::from_data(psi0_data);
+
+    cudaq::Schedule schedule(steps, {"time"});
 
     std::shared_ptr<cudaq::runge_kutta> integrator =
         std::make_shared<cudaq::runge_kutta>();
