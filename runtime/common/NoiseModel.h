@@ -189,18 +189,6 @@ protected:
     validateCompletenessRelation_fp64(ops);
   }
 
-  /// @brief Checks if Kraus ops have unitary representations and saves them if
-  /// they do.
-  void generateUnitaryParameters() {
-    unitary_ops.clear();
-    probabilities.clear();
-    if constexpr (std::is_same_v<cudaq::complex::value_type, float>) {
-      generateUnitaryParameters_fp32(ops, this->unitary_ops, this->probabilities);
-      return;
-    }
-    generateUnitaryParameters_fp64(ops, this->unitary_ops, this->probabilities);
-  }
-
 public:
   /// @brief Noise type enumeration
   noise_model_type noise_type = noise_model_type::unknown;
@@ -279,6 +267,20 @@ public:
 
   std::string get_type_name() const {
     return get_noise_model_type_name(noise_type);
+  }
+
+  /// @brief Checks if Kraus ops have unitary representations and saves them if
+  /// they do. Users should only need to call this if they have modified the
+  /// Kraus ops and want to recompute these values.
+  void generateUnitaryParameters() {
+    unitary_ops.clear();
+    probabilities.clear();
+    if constexpr (std::is_same_v<cudaq::complex::value_type, float>) {
+      generateUnitaryParameters_fp32(ops, this->unitary_ops,
+                                     this->probabilities);
+      return;
+    }
+    generateUnitaryParameters_fp64(ops, this->unitary_ops, this->probabilities);
   }
 };
 
@@ -557,7 +559,8 @@ public:
     this->parameters.push_back(probability);
     noise_type = noise_model_type::amplitude_damping_channel;
     validateCompleteness();
-    generateUnitaryParameters();
+    // Note: amplitude damping is non-unitary, so there is no value in calling
+    // generateUnitaryParameters().
   }
   amplitude_damping_channel(const real probability)
       : amplitude_damping_channel(std::vector<cudaq::real>{probability}) {}

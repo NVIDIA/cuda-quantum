@@ -495,71 +495,71 @@ CUDAQ_TEST(NoiseTest, checkAllQubitChannel) {
 // Stim does not support arbitrary cudaq::kraus_op specification.
 
 static cudaq::kraus_channel create2pNoiseChannel() {
-  // 1% depolarization
-  cudaq::kraus_op op0{cudaq::complex{0.94868329805, 0.0},
+  // 20% depolarization
+  cudaq::kraus_op op0{cudaq::complex{0.894427191, 0.0},
                       {0.0, 0.0},
                       {0.0, 0.0},
                       {0.0, 0.0},
                       {0.0, 0.0},
-                      {0.94868329805, 0.0},
+                      {0.894427191, 0.0},
                       {0.0, 0.0},
                       {0.0, 0.0},
                       {0.0, 0.0},
                       {0.0, 0.0},
-                      {0.94868329805, 0.0},
+                      {0.894427191, 0.0},
                       {0.0, 0.0},
                       {0.0, 0.0},
                       {0.0, 0.0},
                       {0.0, 0.0},
-                      {0.94868329805, 0.0}},
+                      {0.894427191, 0.0}},
       op1{cudaq::complex{0.0, 0.0},
           {0.0, 0.0},
-          {0.18257418583, 0.0},
+          {0.25819888974, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
-          {0.18257418583, 0.0},
-          {0.18257418583, 0.0},
+          {0.25819888974, 0.0},
+          {0.25819888974, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
-          {0.18257418583, 0.0},
+          {0.25819888974, 0.0},
           {0.0, 0.0},
           {0.0, 0.0}},
       op2{cudaq::complex{0.0, 0.0},
           {0.0, 0.0},
-          {0.0, -0.18257418583},
+          {0.0, -0.25819888974},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
-          {0.0, -0.18257418583},
-          {0.0, 0.18257418583},
+          {0.0, -0.25819888974},
+          {0.0, 0.25819888974},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
-          {0.0, 0.18257418583},
+          {0.0, 0.25819888974},
           {0.0, 0.0},
           {0.0, 0.0}},
-      op3{cudaq::complex{0.18257418583, 0.0},
+      op3{cudaq::complex{0.25819888974, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
-          {0.18257418583, 0.0},
+          {0.25819888974, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
-          {-0.18257418583, 0.0},
+          {-0.25819888974, 0.0},
           {-0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
           {-0.0, 0.0},
-          {-0.18257418583, 0.0}};
+          {-0.25819888974, 0.0}};
   cudaq::kraus_channel noise2q(
       std::vector<cudaq::kraus_op>{op0, op1, op2, op3});
   return noise2q;
@@ -598,6 +598,7 @@ CUDAQ_TEST(NoiseTest, checkAllQubitChannelWithControl) {
     auto counts =
         cudaq::sample({.shots = shots, .noise = noise}, bellRandom<numQubits>{},
                       qubitIds[0], qubitIds[1]);
+    counts.dump();
     // More than 2 entangled states due to the noise.
     EXPECT_GT(counts.size(), 2);
   } while (std::next_permutation(qubitIds.begin(), qubitIds.end()));
@@ -626,6 +627,7 @@ CUDAQ_TEST(NoiseTest, checkAllQubitChannelWithControlPrefix) {
     auto counts =
         cudaq::sample({.shots = shots, .noise = noise}, bellRandom<numQubits>{},
                       qubitIds[0], qubitIds[1]);
+    counts.dump();
     // More than 2 entangled states due to the noise.
     EXPECT_GT(counts.size(), 2);
   } while (std::next_permutation(qubitIds.begin(), qubitIds.end()));
