@@ -64,12 +64,14 @@ std::size_t Context::getRecommendedWorkSpaceLimit() {
 Context::Context(int deviceId) : m_deviceId(deviceId) {
   HANDLE_CUDA_ERROR(cudaSetDevice(deviceId));
   HANDLE_CUDM_ERROR(cudensitymatCreate(&m_cudmHandle));
+  HANDLE_CUBLAS_ERROR(cublasCreate(&m_cublasHandle));
   m_opConverter = std::make_unique<OpConverter>(m_cudmHandle);
 }
 
 Context::~Context() {
   m_opConverter.reset();
   cudensitymatDestroy(m_cudmHandle);
+  cublasDestroy(m_cublasHandle);
   if (m_scratchSpaceSizeBytes > 0)
     cudaFree(m_scratchSpace);
 }

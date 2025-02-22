@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "CuDensityMatState.h"
+#include "CuDensityMatContext.h"
 #include "common/EigenDense.h"
 #include "common/Logger.h"
 #include "cudaq/utils/cudaq_utils.h"
@@ -550,17 +551,7 @@ cudaq::CuDensityMatState::operator+(const CuDensityMatState &other) const {
 
   CuDensityMatState result = CuDensityMatState::clone(*this);
 
-  double scalingFactor = 1.0;
-  double *gpuScalingFactor;
-  HANDLE_CUDA_ERROR(
-      cudaMalloc(reinterpret_cast<void **>(&gpuScalingFactor), sizeof(double)));
-  HANDLE_CUDA_ERROR(cudaMemcpy(gpuScalingFactor, &scalingFactor, sizeof(double),
-                               cudaMemcpyHostToDevice));
-
-  HANDLE_CUDM_ERROR(cudensitymatStateComputeAccumulation(
-      cudmHandle, other.get_impl(), result.get_impl(), gpuScalingFactor, 0));
-
-  HANDLE_CUDA_ERROR(cudaFree(gpuScalingFactor));
+  result += other;
 
   return result;
 }
@@ -573,51 +564,47 @@ cudaq::CuDensityMatState::operator+=(const CuDensityMatState &other) {
                     other.dimension));
   }
 
-  double scalingFactor = 1.0;
-  double *gpuScalingFactor;
-  cudaMalloc(reinterpret_cast<void **>(&gpuScalingFactor), sizeof(double));
-  cudaMemcpy(gpuScalingFactor, &scalingFactor, sizeof(double),
-             cudaMemcpyHostToDevice);
+  // double scalingFactor = 1.0;
+  // double *gpuScalingFactor;
+  // cudaMalloc(reinterpret_cast<void **>(&gpuScalingFactor), sizeof(double));
+  // cudaMemcpy(gpuScalingFactor, &scalingFactor, sizeof(double),
+  //            cudaMemcpyHostToDevice);
 
-  HANDLE_CUDM_ERROR(cudensitymatStateComputeAccumulation(
-      cudmHandle, other.get_impl(), cudmState, gpuScalingFactor, 0));
+  // HANDLE_CUDM_ERROR(cudensitymatStateComputeAccumulation(
+  //     cudmHandle, other.get_impl(), cudmState, gpuScalingFactor, 0));
 
-  cudaFree(gpuScalingFactor);
-
+  // cudaFree(gpuScalingFactor);
+  cuDoubleComplex scalar{1.0, 0.0};
+  HANDLE_CUBLAS_ERROR(cublasZaxpy(
+      dynamics::Context::getCurrentContext()->getCublasHandle(), dimension,
+      &scalar, reinterpret_cast<const cuDoubleComplex *>(other.devicePtr), 1,
+      reinterpret_cast<cuDoubleComplex *>(devicePtr), 1));
   return *this;
 }
 
 CuDensityMatState &
 cudaq::CuDensityMatState::operator*=(const std::complex<double> &scalar) {
-  void *gpuScalar;
-  HANDLE_CUDA_ERROR(cudaMalloc(&gpuScalar, sizeof(std::complex<double>)));
-  HANDLE_CUDA_ERROR(cudaMemcpy(gpuScalar, &scalar, sizeof(std::complex<double>),
-                               cudaMemcpyHostToDevice));
+  // void *gpuScalar;
+  // HANDLE_CUDA_ERROR(cudaMalloc(&gpuScalar, sizeof(std::complex<double>)));
+  // HANDLE_CUDA_ERROR(cudaMemcpy(gpuScalar, &scalar,
+  // sizeof(std::complex<double>),
+  //                              cudaMemcpyHostToDevice));
 
-  HANDLE_CUDM_ERROR(
-      cudensitymatStateComputeScaling(cudmHandle, cudmState, gpuScalar, 0));
+  // HANDLE_CUDM_ERROR(
+  //     cudensitymatStateComputeScaling(cudmHandle, cudmState, gpuScalar, 0));
 
-  HANDLE_CUDA_ERROR(cudaFree(gpuScalar));
+  // HANDLE_CUDA_ERROR(cudaFree(gpuScalar));
+  HANDLE_CUBLAS_ERROR(
+      cublasZscal(dynamics::Context::getCurrentContext()->getCublasHandle(),
+                  dimension, reinterpret_cast<const cuDoubleComplex *>(&scalar),
+                  reinterpret_cast<cuDoubleComplex *>(devicePtr), 1));
 
   return *this;
 }
 
 CuDensityMatState cudaq::CuDensityMatState::operator*(double scalar) const {
-  void *gpuScalar;
-  HANDLE_CUDA_ERROR(cudaMalloc(&gpuScalar, sizeof(std::complex<double>)));
-
-  std::complex<double> complexScalar(scalar, 0.0);
-  HANDLE_CUDA_ERROR(cudaMemcpy(gpuScalar, &complexScalar,
-                               sizeof(std::complex<double>),
-                               cudaMemcpyHostToDevice));
-
   CuDensityMatState result = CuDensityMatState::clone(*this);
-
-  HANDLE_CUDM_ERROR(cudensitymatStateComputeScaling(
-      cudmHandle, result.cudmState, gpuScalar, 0));
-
-  HANDLE_CUDA_ERROR(cudaFree(gpuScalar));
-
+  result *= scalar;
   return result;
 }
 } // namespace cudaq
