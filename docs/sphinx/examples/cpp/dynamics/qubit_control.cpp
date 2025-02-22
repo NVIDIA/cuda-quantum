@@ -95,8 +95,8 @@ int main() {
              ideal_result_x, "sigma_y", ideal_result_y, "sigma_z",
              ideal_result_z);
   export_csv("qubit_control_decoherence_result.csv", "t", steps, "sigma_x",
-             decoherence_result_x, "sigma_y", decoherence_result_y,
-             "sigma_z", decoherence_result_z);
+             decoherence_result_x, "sigma_y", decoherence_result_y, "sigma_z",
+             decoherence_result_z);
 
   std::cout << "Results exported to qubit_control_ideal_result.csv and "
                "qubit_control_decoherence_result.csv"
