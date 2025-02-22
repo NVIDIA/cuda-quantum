@@ -429,8 +429,11 @@ struct DiscriminateOpToCallRewrite
                                                 cudaq::opt::QIRReadResultBody,
                                                 adaptor.getOperands());
     } else {
-      rewriter.replaceOpWithNewOp<cudaq::cc::PoisonOp>(disc,
-                                                       rewriter.getI1Type());
+      auto loc = disc.getLoc();
+      auto ptrI1Ty = cudaq::cc::PointerType::get(rewriter.getI1Type());
+      auto bit = rewriter.create<cudaq::cc::CastOp>(loc, ptrI1Ty,
+                                                    adaptor.getOperands());
+      rewriter.replaceOpWithNewOp<cudaq::cc::LoadOp>(disc, bit);
     }
     return success();
   }
