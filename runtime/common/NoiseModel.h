@@ -432,7 +432,8 @@ public:
     this->parameters.push_back(probability);
     noise_type = noise_model_type::amplitude_damping_channel;
     validateCompleteness();
-    generateUnitaryParameters();
+    // Note: amplitude damping is non-unitary, so there is no value in calling
+    // generateUnitaryParameters().
   }
 };
 
