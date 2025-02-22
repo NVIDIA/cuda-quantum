@@ -61,7 +61,7 @@ jobs:
         run: |
           if [ -n "$(echo ${{ inputs.platforms }} | grep ',')" ]; then
             # multi-platform builds get no platform tag
-            echo "runner=linux-amd64-cpu16-testing" >> $GITHUB_OUTPUT
+            echo "runner=linux-amd64-cpu16" >> $GITHUB_OUTPUT
             echo "build_docs=${{ inputs.build_docs != 'false' }}" >> $GITHUB_OUTPUT
             is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
             has_continuous_deployment=${{ startsWith(github.ref_name, 'experimental/') || github.ref_name == 'main' }}
@@ -76,7 +76,7 @@ jobs:
           else
             platform_tag=`echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr -d ' '`
             echo "platform_tag=$platform_tag" >> $GITHUB_OUTPUT
-            echo "runner=linux-amd64-cpu16-testing" >> $GITHUB_OUTPUT
+            echo "runner=linux-amd64-cpu16" >> $GITHUB_OUTPUT
             echo "build_docs=${{ inputs.build_docs != 'false' }}" >> $GITHUB_OUTPUT
           fi
 
@@ -300,31 +300,8 @@ jobs:
             echo "docker_output=type=docker,dest=$tar_archive" >> $GITHUB_OUTPUT
           fi
 
-      # Commenting out because this was installed in the base image for -testing
-      #- name: Install specific QEMU
-      #  run: |
-      #    echo sudo add-apt-repository ppa:mruffell/lp2096782-test-qemu
-      #    sudo add-apt-repository ppa:mruffell/lp2096782-test-qemu
-      #    echo sudo apt update
-      #    sudo apt update
-      #    echo sudo apt-cache policy qemu
-      #    sudo apt-cache policy qemu
-      #    echo sudo apt upgrade -y qemu
-      #    sudo apt upgrade -y qemu
-      #    echo sudo apt-cache policy qemu
-      #    sudo apt-cache policy qemu
-      #    echo "sudo apt-cache policy qemu | grep Installed"
-      #    sudo apt-cache policy qemu | grep Installed
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          image: tonistiigi/binfmt:qemu-v9.2.0-51
-
       - name: Set up context for buildx
         run: |
-          echo uname -rv
-          uname -rv
           docker context create builder_context
 
       - name: Set up buildx runner
@@ -527,31 +504,8 @@ jobs:
             echo "docker_output=type=docker,dest=$tar_archive" >> $GITHUB_OUTPUT
           fi
 
-      # Commenting out because this was installed in the base image for -testing
-      #- name: Install specific QEMU
-      #  run: |
-      #    echo sudo add-apt-repository ppa:mruffell/lp2096782-test-qemu
-      #    sudo add-apt-repository ppa:mruffell/lp2096782-test-qemu
-      #    echo sudo apt update
-      #    sudo apt update
-      #    echo sudo apt-cache policy qemu
-      #    sudo apt-cache policy qemu
-      #    echo sudo apt upgrade -y qemu
-      #    sudo apt upgrade -y qemu
-      #    echo sudo apt-cache policy qemu
-      #    sudo apt-cache policy qemu
-      #    echo "sudo apt-cache policy qemu | grep Installed"
-      #    sudo apt-cache policy qemu | grep Installed
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          image: tonistiigi/binfmt:qemu-v9.2.0-51
-
       - name: Set up context for buildx
         run: |
-          echo uname -rv
-          uname -rv
           docker context create builder_context
 
       - name: Set up buildx runner
