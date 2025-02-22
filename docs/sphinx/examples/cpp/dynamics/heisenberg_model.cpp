@@ -47,12 +47,7 @@ int main() {
   std::vector<std::pair<double, std::vector<double>>> observe_results;
 
   const int num_steps = 1000;
-  std::vector<double> steps(num_steps);
-  double t0 = 0.0, tf = 5.0;
-  for (int i = 0; i < num_steps; i++) {
-    steps[i] = t0 + i * (tf - t0) / (num_steps - 1);
-  }
-
+  const auto steps = cudaq::linspace(0.0, 5.0, num_steps);
   std::vector<double> g_values = {0.0, 0.25, 4.0};
 
   for (auto g : g_values) {
@@ -78,7 +73,7 @@ int main() {
 
     std::shared_ptr<cudaq::runge_kutta> integrator =
         std::make_shared<cudaq::runge_kutta>();
-    integrator->dt = 0.01;
+    integrator->dt = 0.001;
     integrator->order = 4;
 
     auto evolve_result =
