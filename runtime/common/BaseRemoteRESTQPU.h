@@ -461,8 +461,7 @@ public:
         llvm::raw_string_ostream ss(substBuff);
         ss << argCon.getSubstitutionModule();
         mlir::SmallVector<mlir::StringRef> substs = {substBuff};
-        pm.addNestedPass<mlir::func::FuncOp>(
-            opt::createArgumentSynthesisPass(kernels, substs));
+        pm.addPass(opt::createArgumentSynthesisPass(kernels, substs));
         pm.addPass(opt::createDeleteStates());
       } else if (updatedArgs) {
         cudaq::info("Run Quake Synth.\n");
