@@ -192,6 +192,8 @@ protected:
   /// @brief Checks if Kraus ops have unitary representations and saves them if
   /// they do.
   void generateUnitaryParameters() {
+    unitary_ops.clear();
+    probabilities.clear();
     if constexpr (std::is_same_v<cudaq::complex::value_type, float>) {
       generateUnitaryParameters_fp32(ops, this->unitary_ops, this->probabilities);
       return;
@@ -273,7 +275,7 @@ public:
   void push_back(kraus_op op);
 
   /// @brief Returns whether or not this is a unitary mixture.
-  bool is_unitary_mixture() { return !unitary_ops.empty(); }
+  bool is_unitary_mixture() const { return !unitary_ops.empty(); }
 
   std::string get_type_name() const {
     return get_noise_model_type_name(noise_type);
