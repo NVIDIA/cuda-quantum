@@ -156,6 +156,12 @@ struct kraus_op {
 
 void validateCompletenessRelation_fp32(const std::vector<kraus_op> &ops);
 void validateCompletenessRelation_fp64(const std::vector<kraus_op> &ops);
+void generateUnitaryParameters_fp32(
+    const std::vector<kraus_op> &ops,
+    std::vector<std::vector<std::complex<double>>> &, std::vector<double> &);
+void generateUnitaryParameters_fp64(
+    const std::vector<kraus_op> &ops,
+    std::vector<std::vector<std::complex<double>>> &, std::vector<double> &);
 
 /// @brief A kraus_channel represents a quantum noise channel
 /// on specific qubits. The action of the noise channel is
@@ -183,6 +189,16 @@ protected:
     validateCompletenessRelation_fp64(ops);
   }
 
+  /// @brief Checks if Kraus ops have unitary representations and saves them if
+  /// they do.
+  void generateUnitaryParameters() {
+    if constexpr (std::is_same_v<cudaq::complex::value_type, float>) {
+      generateUnitaryParameters_fp32(ops, this->unitary_ops, this->probabilities);
+      return;
+    }
+    generateUnitaryParameters_fp64(ops, this->unitary_ops, this->probabilities);
+  }
+
 public:
   /// @brief Noise type enumeration
   noise_model_type noise_type = noise_model_type::unknown;
@@ -196,6 +212,16 @@ public:
   // Hence, having a templated `parameters` member variable may cause data
   // corruption.
   std::vector<double> parameters;
+
+  /// @brief If all Kraus ops are - when scaled - unitary, this holds the
+  /// unitary versions of those ops. These values are always "double" regardless
+  /// of whether cudaq::real is float or double.
+  std::vector<std::vector<std::complex<double>>> unitary_ops;
+
+  /// @brief If all Kraus ops are - when scaled - unitary, this holds the
+  /// probabilities of those ops. These values are always "double" regardless
+  /// of whether cudaq::real is float or double.
+  std::vector<double> probabilities;
 
   virtual ~kraus_channel() = default;
 
@@ -212,12 +238,14 @@ public:
   kraus_channel(std::initializer_list<T> &&...inputLists) {
     (ops.emplace_back(std::move(inputLists)), ...);
     validateCompleteness();
+    generateUnitaryParameters();
   }
 
   /// @brief The constructor, take qubits and channel kraus_ops as lvalue
   /// reference
   kraus_channel(const std::vector<kraus_op> &inOps) : ops(inOps) {
     validateCompleteness();
+    generateUnitaryParameters();
   }
 
   /// @brief The constructor, take qubits and channel kraus_ops as rvalue
@@ -243,6 +271,9 @@ public:
 
   /// @brief Add a kraus_op to this channel.
   void push_back(kraus_op op);
+
+  /// @brief Returns whether or not this is a unitary mixture.
+  bool is_unitary_mixture() { return !unitary_ops.empty(); }
 
   std::string get_type_name() const {
     return get_noise_model_type_name(noise_type);
@@ -502,6 +533,7 @@ public:
     this->parameters.push_back(probability);
     noise_type = noise_model_type::depolarization_channel;
     validateCompleteness();
+    generateUnitaryParameters();
   }
   depolarization_channel(const real probability)
       : depolarization_channel(std::vector<cudaq::real>{probability}) {}
@@ -523,6 +555,7 @@ public:
     this->parameters.push_back(probability);
     noise_type = noise_model_type::amplitude_damping_channel;
     validateCompleteness();
+    generateUnitaryParameters();
   }
   amplitude_damping_channel(const real probability)
       : amplitude_damping_channel(std::vector<cudaq::real>{probability}) {}
@@ -545,6 +578,7 @@ public:
     this->parameters.push_back(probability);
     noise_type = noise_model_type::bit_flip_channel;
     validateCompleteness();
+    generateUnitaryParameters();
   }
   bit_flip_channel(const real probability)
       : bit_flip_channel(std::vector<cudaq::real>{probability}) {}
@@ -568,6 +602,7 @@ public:
     this->parameters.push_back(probability);
     noise_type = noise_model_type::phase_flip_channel;
     validateCompleteness();
+    generateUnitaryParameters();
   }
   phase_flip_channel(const real probability)
       : phase_flip_channel(std::vector<cudaq::real>{probability}) {}
@@ -640,6 +675,7 @@ public:
     this->parameters.push_back(probability);
     noise_type = noise_model_type::y_error;
     validateCompleteness();
+    generateUnitaryParameters();
   }
   y_error(const real probability)
       : y_error(std::vector<cudaq::real>{probability}) {}
@@ -683,6 +719,7 @@ public:
       this->parameters.push_back(pp);
     noise_type = cudaq::noise_model_type::pauli1;
     validateCompleteness();
+    generateUnitaryParameters();
   }
   REGISTER_KRAUS_CHANNEL()
 };
@@ -736,6 +773,7 @@ public:
       this->parameters.push_back(pp);
     noise_type = cudaq::noise_model_type::pauli2;
     validateCompleteness();
+    generateUnitaryParameters();
   }
   REGISTER_KRAUS_CHANNEL()
 };
@@ -780,6 +818,7 @@ public:
     this->parameters.push_back(probability);
     noise_type = cudaq::noise_model_type::depolarization2;
     validateCompleteness();
+    generateUnitaryParameters();
   }
   /// @brief Construct a two qubit kraus channel that applies a depolarization
   /// channel on either qubit independently.
