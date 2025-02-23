@@ -65,6 +65,7 @@ protected:
       return "PAULI_CHANNEL_2";
     case cudaq::noise_model_type::amplitude_damping_channel:
     case cudaq::noise_model_type::amplitude_damping:
+    case cudaq::noise_model_type::unknown:
       return std::nullopt;
     }
 
