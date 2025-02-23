@@ -184,15 +184,14 @@ bool SimulatorTensorNetBase::isValidNoiseChannel(
   case cudaq::noise_model_type::pauli2:
   case cudaq::noise_model_type::depolarization1:
   case cudaq::noise_model_type::depolarization2:
+  case cudaq::noise_model_type::unknown: // may be unitary, so return true
     return true;
   // These are explicitly non-unitary and unsupported
   case cudaq::noise_model_type::amplitude_damping_channel:
   case cudaq::noise_model_type::amplitude_damping:
+  default:
     return false;
   }
-  // This is either cudaq::noise_model_type::unknown or some other enum type
-  // that we don't know about at this time.
-  return true;
 }
 
 void SimulatorTensorNetBase::applyNoise(
