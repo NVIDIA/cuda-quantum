@@ -25,8 +25,19 @@ find_file(CUDENSITYMAT_INC
 message(STATUS "cudensitymat header: ${CUDENSITYMAT_INC}")
 get_filename_component(CUDENSITYMAT_INCLUDE_DIR ${CUDENSITYMAT_INC} DIRECTORY)
 
-add_library(${LIBRARY_NAME} SHARED CuDensityMatSim.cpp mpi_support.cpp)
+add_library(${LIBRARY_NAME} SHARED 
+  CuDensityMatSim.cpp 
+  mpi_support.cpp
+  cudm_time_stepper.cpp
+  runge_kutta_integrator.cpp
+  cudm_expectation.cpp
+  cudm_evolution.cpp
+  CuDensityMatState.cpp
+  CuDensityMatContext.cpp
+  CuDensityMatOpConverter.cpp
+)
 
+message("CUDAToolkit_INCLUDE_DIRS = ${CUDAToolkit_INCLUDE_DIRS}")
 target_include_directories(${LIBRARY_NAME}
   PRIVATE 
     . .. 
@@ -39,6 +50,7 @@ target_link_libraries(${LIBRARY_NAME}
                       PRIVATE
                         fmt::fmt-header-only
                         cudaq-common
+                        ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
                         CUDA::cudart_static
                      )
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)

@@ -12,6 +12,7 @@ include(CMakeFindDependencyMacro)
 get_filename_component(PARENT_DIRECTORY ${NVQIR_CMAKE_DIR} DIRECTORY)
 
 find_dependency(CUDAQSpin REQUIRED HINTS "${PARENT_DIRECTORY}/cudaq")
+find_dependency(CUDAQOperator REQUIRED HINTS "${PARENT_DIRECTORY}/cudaq")
 find_dependency(CUDAQCommon REQUIRED HINTS "${PARENT_DIRECTORY}/cudaq")
 find_package(fmt QUIET)
 if (NOT fmt_FOUND)
