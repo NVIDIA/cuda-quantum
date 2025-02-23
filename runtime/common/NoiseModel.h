@@ -825,6 +825,7 @@ public:
     validateCompleteness();
     generateUnitaryParameters();
   }
+
   /// @brief Construct a two qubit kraus channel that applies a depolarization
   /// channel on either qubit independently.
   ///
