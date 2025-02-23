@@ -156,8 +156,9 @@ void generateUnitaryParameters_fp32(
     // data for this specific routine is actually fp32.
     const std::complex<float> *ptr =
         reinterpret_cast<const std::complex<float> *>(op.data.data());
+    // Use 2 * size because pointer arithmetic is on fp32 instead of fp64
     double_kraus_ops.emplace_back(
-        std::vector<std::complex<double>>(ptr, ptr + op.data.size()));
+        std::vector<std::complex<double>>(ptr, ptr + 2 * op.data.size()));
   }
 
   auto asUnitaryMixture = computeUnitaryMixture(double_kraus_ops);
