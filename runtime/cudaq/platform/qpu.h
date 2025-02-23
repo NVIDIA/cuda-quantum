@@ -128,6 +128,7 @@ public:
   }
 
   virtual void setNoiseModel(const noise_model *model) { noiseModel = model; }
+  virtual const noise_model *getNoiseModel() { return noiseModel; }
 
   /// Return the number of qubits
   std::size_t getNumQubits() { return numQubits; }
