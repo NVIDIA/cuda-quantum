@@ -33,12 +33,12 @@ std::complex<double> spin_operator::inplace_mult(const spin_operator &other) {
   std::complex<double> factor;
   if (this->op_code == 0 || other.op_code == 0 ||
       this->op_code == other.op_code)
-    factor = 1.0;
+    factor = std::complex<double>(1.0, 0.0);
   else if (this->op_code + 1 == other.op_code ||
            this->op_code - 2 == other.op_code)
-    factor = 1.0j;
+    factor = std::complex<double>(0.0, 1.0);
   else
-    factor = -1.0j;
+    factor = std::complex<double>(0.0, -1.0);
   this->op_code ^= other.op_code;
   return factor;
 }
@@ -80,8 +80,8 @@ matrix_2 spin_operator::to_matrix(
     mat[{0, 1}] = 1.0;
     mat[{1, 0}] = 1.0;
   } else if (this->op_code == 3) { // Y
-    mat[{0, 1}] = -1.0j;
-    mat[{1, 0}] = 1.0j;
+    mat[{0, 1}] = std::complex<double>(0.0, -1.0);
+    mat[{1, 0}] = std::complex<double>(0.0, 1.0);
   } else { // I
     mat[{0, 0}] = 1.0;
     mat[{1, 1}] = 1.0;
