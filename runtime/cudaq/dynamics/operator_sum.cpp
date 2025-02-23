@@ -1014,7 +1014,7 @@ INSTANTIATE_SUM_LHCOMPOSITE_OPS(fermion_operator);
 #define SUM_CONVERSIONS_OPS(op)                                                \
                                                                                \
   template <typename LHtype, typename RHtype,                                  \
-            TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>                 \
+            TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype)>                        \
   operator_sum<matrix_operator> operator op(                                   \
       const operator_sum<LHtype> &other,                                       \
       const product_operator<RHtype> &self) {                                  \
@@ -1022,7 +1022,7 @@ INSTANTIATE_SUM_LHCOMPOSITE_OPS(fermion_operator);
   }                                                                            \
                                                                                \
   template <typename LHtype, typename RHtype,                                  \
-            TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>                 \
+            TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype)>                        \
   operator_sum<matrix_operator> operator op(                                   \
       const product_operator<LHtype> &other,                                   \
       const operator_sum<RHtype> &self) {                                      \
@@ -1030,7 +1030,7 @@ INSTANTIATE_SUM_LHCOMPOSITE_OPS(fermion_operator);
   }                                                                            \
                                                                                \
   template <typename LHtype, typename RHtype,                                  \
-            TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>                 \
+            TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype)>                        \
   operator_sum<matrix_operator> operator op(                                   \
       const operator_sum<LHtype> &other, const operator_sum<RHtype> &self) {   \
     return operator_sum<matrix_operator>(other) op self;                       \
