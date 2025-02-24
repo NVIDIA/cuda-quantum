@@ -17,14 +17,11 @@
 
 namespace cudaq {
 
-template <typename HandlerTy> 
-class product_operator;
-
 class matrix_operator : public operator_handler{
 
 private:
 
-  static std::unordered_map<std::string, Definition> m_ops;
+  static std::unordered_map<std::string, Definition> defined_ops;
 
   // used when converting other operators to matrix operators
   template <typename T>

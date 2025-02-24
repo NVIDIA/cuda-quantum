@@ -13,24 +13,31 @@
 #include "cudaq/utils/tensor.h"
 
 namespace cudaq {
+  
+class operator_handler;
+class scalar_operator;
 
-template <typename TEval>
+template <typename EvalTy>
 class OperatorArithmetics {
 public:
+  OperatorArithmetics(std::unordered_map<int, int> &dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters);
+
   /// @brief Accesses the relevant data to evaluate an operator expression
   /// in the leaf nodes, that is in elementary and scalar operators.
-  // template <typename HandlerTy>
-  //TEval evaluate(HandlerTy &op);
-
-  /// @brief Adds two operators that act on the same degrees of freedom.
-  TEval add(TEval val1, TEval val2);
-
-  /// @brief Multiplies two operators that act on the same degrees of freedom.
-  TEval mul(TEval val1, TEval val2);
+  EvalTy evaluate(const operator_handler &op);
+  EvalTy evaluate(const scalar_operator &op);
 
   /// @brief Computes the tensor product of two operators that act on different
   /// degrees of freedom.
-  TEval tensor(TEval val1, TEval val2);
+  EvalTy tensor(const scalar_operator &scalar, EvalTy &&op);
+  EvalTy tensor(EvalTy &&val1, EvalTy &&val2);
+
+  /// @brief Multiplies two operators that act on the same degrees of freedom.
+  EvalTy mul(EvalTy &&val1, EvalTy &&val2);
+
+  /// @brief Adds two operators that act on the same degrees of freedom.
+  EvalTy add(EvalTy &&val1, EvalTy &&val2);
 };
 
 class EvaluatedMatrix {
@@ -44,7 +51,7 @@ public:
 
   const matrix_2& matrix() const;
 
-  EvaluatedMatrix(const std::vector<int> &degrees, const matrix_2 &matrix);
+  EvaluatedMatrix(std::vector<int> &&degrees, matrix_2 &&matrix);
   EvaluatedMatrix(EvaluatedMatrix &&other);
 
   // delete copy constructor and copy assignment to avoid unnecessary copies
@@ -54,31 +61,8 @@ public:
   EvaluatedMatrix& operator=(EvaluatedMatrix &&other);
 };
 
-/// Encapsulates the functions needed to compute the matrix representation
-/// of an operator expression.
-class MatrixArithmetics : public OperatorArithmetics<EvaluatedMatrix> {
-private:
-  std::vector<int> compute_permutation(const std::vector<int> &op_degrees,
-                                       const std::vector<int> &canon_degrees);
-  
-  void canonicalize(matrix_2 &op_matrix, std::vector<int> &op_degrees);
-
-public:
-  std::unordered_map<int, int> m_dimensions; // may be updated during evaluation
-  const std::unordered_map<std::string, std::complex<double>> m_parameters;
-
-  MatrixArithmetics(std::unordered_map<int, int> &dimensions,
-                    const std::unordered_map<std::string, std::complex<double>> &parameters);
-
-  // Computes the tensor product of two evaluate operators that act on
-  // different degrees of freedom using the kronecker product.
-  EvaluatedMatrix tensor(EvaluatedMatrix op1, EvaluatedMatrix op2);
-  // Multiplies two evaluated operators that act on the same degrees
-  // of freedom.
-  EvaluatedMatrix mul(EvaluatedMatrix op1, EvaluatedMatrix op2);
-  // Adds two evaluated operators that act on the same degrees
-  // of freedom.
-  EvaluatedMatrix add(EvaluatedMatrix op1, EvaluatedMatrix op2);
-};
+#ifndef CUDAQ_INSTANTIATE_TEMPLATES
+extern template class OperatorArithmetics<EvaluatedMatrix>;
+#endif  
 
 }
