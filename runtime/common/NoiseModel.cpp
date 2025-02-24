@@ -25,19 +25,19 @@ isScaledUnitary(const std::vector<std::complex<double>> &mat, double eps) {
       RowMajorMatTy;
   const int dim = std::log2(mat.size());
   Eigen::Map<const RowMajorMatTy> kMat(mat.data(), dim, dim);
-  if (kMat.isZero())
+  if (kMat.isZero(eps))
     return 0.0;
   // Check that (K_dag * K) is a scaled identity matrix
   // i.e., the K matrix is a scaled unitary.
   auto kdK = kMat.adjoint() * kMat;
-  if (!kdK.isDiagonal())
+  if (!kdK.isDiagonal(eps))
     return std::nullopt;
   // First element
   std::complex<double> val = kdK(0, 0);
-  if (std::abs(val) > eps && std::abs(val.imag()) < eps) {
+  if (val.real() > eps && std::abs(val.imag()) < eps) {
     auto scaledKdK = (std::complex<double>{1.0} / val) * kdK;
     if (scaledKdK.isIdentity())
-      return val.real();
+      return std::sqrt(val.real());
   }
   return std::nullopt;
 }
@@ -67,8 +67,8 @@ computeUnitaryMixture(
     const auto scaledFactor = isScaledUnitary(op, tol);
     if (!scaledFactor.has_value())
       return std::nullopt;
-    probs.emplace_back(scaledFactor.value());
-    mats.emplace_back(scaleMat(op, std::sqrt(scaledFactor.value())));
+    probs.emplace_back(scaledFactor.value() * scaledFactor.value());
+    mats.emplace_back(scaleMat(op, scaledFactor.value()));
   }
 
   if (std::abs(1.0 - std::reduce(probs.begin(), probs.end())) > tol)
