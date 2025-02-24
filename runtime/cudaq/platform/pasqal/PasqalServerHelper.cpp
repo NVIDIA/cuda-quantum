@@ -19,7 +19,7 @@ void PasqalServerHelper::initialize(BackendConfig config) {
   cudaq::info("Initialize Pasqal Cloud.");
 
   // Hard-coded for now.
-  const std::string MACHINE = "Fresnel";
+  const std::string MACHINE = "EMU_MPS";
   const int MAX_QUBITS = 100;
 
   cudaq::info("Running on device {}", MACHINE);
@@ -66,13 +66,10 @@ PasqalServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
 
   for (auto &circuitCode : circuitCodes) {
     ServerMessage message;
-    message["name"] = circuitCode.name;
     message["machine"] = backendConfig.at("machine");
     message["shots"] = shots;
     message["project_id"] = backendConfig.at("project_id");
-
     message["sequence"] = nlohmann::json::parse(circuitCode.code);
-
     tasks.push_back(message);
   }
 
