@@ -211,6 +211,10 @@ ARITHMETIC_OPERATIONS_RVALUE(*, std::complex<double>);
 ARITHMETIC_OPERATIONS_RVALUE(/, std::complex<double>);
 ARITHMETIC_OPERATIONS_RVALUE(+, std::complex<double>);
 ARITHMETIC_OPERATIONS_RVALUE(-, std::complex<double>);
+ARITHMETIC_OPERATIONS_RVALUE(*, const scalar_operator &);
+ARITHMETIC_OPERATIONS_RVALUE(/, const scalar_operator &);
+ARITHMETIC_OPERATIONS_RVALUE(+, const scalar_operator &);
+ARITHMETIC_OPERATIONS_RVALUE(-, const scalar_operator &);
 
 // left-hand arithmetics
 
