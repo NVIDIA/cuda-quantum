@@ -62,38 +62,57 @@ spin_operator::spin_operator(int target, int op_id)
 
 // evaluations
 
-matrix_2 spin_operator::to_matrix(
-    std::unordered_map<int, int> &dimensions,
-    const std::unordered_map<std::string, std::complex<double>> &parameters)
-    const {
+matrix_2 spin_operator::to_matrix(std::string pauli_word, std::complex<double> coeff) {
+  auto map_state = [&pauli_word](char pauli, bool state) {
+    if (state) { // state is 1 -> row 1 of matrix
+      if (pauli == 'Z') return std::make_pair<std::complex<double>, bool>(-1., bool(state));
+      if (pauli == 'X') return std::make_pair<std::complex<double>, bool>(1., !state);
+      if (pauli == 'Y') return std::make_pair<std::complex<double>, bool>(-1.j, !state);
+      return std::make_pair<std::complex<double>, bool>(1., bool(state));
+    } else { // state is 0 -> row 0 of matrix
+      if (pauli == 'Z') return std::make_pair<std::complex<double>, bool>(1., bool(state));
+      if (pauli == 'X') return std::make_pair<std::complex<double>, bool>(1., !state);
+      if (pauli == 'Y') return std::make_pair<std::complex<double>, bool>(1.j, !state);
+      return std::make_pair<std::complex<double>, bool>(1., bool(state));
+    }
+  };
+
+  // fixme: assumes canonical ordering
+  auto dim = 1 << pauli_word.size();
+  auto nr_deg = pauli_word.size();
+
+  matrix_2 matrix(dim, dim);
+  for (std::size_t old_state = 0; old_state < dim; ++old_state) {
+    std::size_t new_state = 0;
+    std::complex<double> entry = 1.;
+    for (auto degree = 0; degree < nr_deg; ++degree) {
+      auto state = (old_state & (1 << degree)) >> degree; 
+      auto mapped = map_state(pauli_word[nr_deg - 1 - degree], state); // FIXME: order dependent - operators are ordered from largest to smallest...
+      entry *= mapped.first;
+      new_state |= (mapped.second << degree);
+    }
+    matrix[{new_state, old_state}] = coeff * entry;
+  }
+  return std::move(matrix);
+}
+
+matrix_2 spin_operator::to_matrix(std::unordered_map<int, int> &dimensions,
+                                  const std::unordered_map<std::string, std::complex<double>> &parameters) const {
   auto it = dimensions.find(this->target);
   if (it == dimensions.end())
     dimensions[this->target] = 2;
   else if (it->second != 2)
     throw std::runtime_error("dimension for spin operator must be 2");
-
-  auto mat = matrix_2(2, 2);
-  if (this->op_code == 1) { // Z
-    mat[{0, 0}] = 1.0;
-    mat[{1, 1}] = -1.0;
-  } else if (this->op_code == 2) { // X
-    mat[{0, 1}] = 1.0;
-    mat[{1, 0}] = 1.0;
-  } else if (this->op_code == 3) { // Y
-    mat[{0, 1}] = -1.0j;
-    mat[{1, 0}] = 1.0j;
-  } else { // I
-    mat[{0, 0}] = 1.0;
-    mat[{1, 1}] = 1.0;
-  }
-  return std::move(mat);
+  return spin_operator::to_matrix(this->op_code_to_string());
 }
 
-std::string spin_operator::to_string(bool include_degrees) const {
-  if (include_degrees)
-    return this->op_code_to_string() + "(" + std::to_string(target) + ")";
-  else
-    return this->op_code_to_string();
+std::string spin_operator::to_string(bool include_degrees, const std::unordered_map<int, int> &dimensions) const {
+  auto it = dimensions.find(this->target);
+  if (it != dimensions.cend() && it->second != 2)
+    throw std::runtime_error("dimension for spin operator must be 2");
+
+  if (include_degrees) return this->op_code_to_string() + "(" + std::to_string(target) + ")";
+  else return this->op_code_to_string();
 }
 
 // comparisons

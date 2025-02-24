@@ -177,11 +177,9 @@ matrix_2 boson_operator::to_matrix(
   return std::move(mat);
 }
 
-std::string boson_operator::to_string(bool include_degrees) const {
-  if (include_degrees)
-    return this->op_code_to_string() + "(" + std::to_string(target) + ")";
-  else
-    return this->op_code_to_string();
+std::string boson_operator::to_string(bool include_degrees, const std::unordered_map<int, int> &dimensions) const {
+  if (include_degrees) return this->op_code_to_string() + "(" + std::to_string(target) + ")";
+  else return this->op_code_to_string();
 }
 
 // comparisons

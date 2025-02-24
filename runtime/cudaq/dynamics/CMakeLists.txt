@@ -20,7 +20,6 @@ set(CUDAQ_OPS_SRC
   product_operators.cpp 
   operator_sum.cpp 
   schedule.cpp
-  manipulation.cpp
   helpers.cpp
 )
 

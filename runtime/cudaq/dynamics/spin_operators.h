@@ -52,6 +52,8 @@ public:
 
   // evaluations
 
+  static matrix_2 to_matrix(std::string pauli, std::complex<double> coeff = 1.);
+
   /// @brief Return the `matrix_operator` as a matrix.
   /// @arg  `dimensions` : A map specifying the number of levels,
   ///                      that is, the dimension of each degree of freedom
@@ -62,7 +64,7 @@ public:
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {}) const;
 
-  virtual std::string to_string(bool include_degrees) const;
+  virtual std::string to_string(bool include_degrees, const std::unordered_map<int, int> &dimensions = {}) const; // FIXME: CONST OK?
 
   // comparisons
 
