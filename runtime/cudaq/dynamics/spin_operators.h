@@ -12,17 +12,17 @@
 #include <unordered_map>
 #include <vector>
 
-#include "cudaq/utils/tensor.h"
 #include "cudaq/operators.h"
+#include "cudaq/utils/tensor.h"
 
 namespace cudaq {
 
 // FIXME: rename to spin ...
-class spin_operator : public operator_handler{
-template <typename T> friend class product_operator;
+class spin_operator : public operator_handler {
+  template <typename T>
+  friend class product_operator;
 
 private:
-
   // I = 0, Z = 1, X = 2, Y = 3
   int op_code;
   int target;
@@ -36,7 +36,6 @@ private:
   std::complex<double> inplace_mult(const spin_operator &other);
 
 public:
-
   // read-only properties
 
   virtual std::string unique_id() const;
@@ -60,10 +59,14 @@ public:
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
-  virtual matrix_2 to_matrix(std::unordered_map<int, int> &dimensions,
-                             const std::unordered_map<std::string, std::complex<double>> &parameters = {}) const;
+  virtual matrix_2
+  to_matrix(std::unordered_map<int, int> &dimensions,
+            const std::unordered_map<std::string, std::complex<double>>
+                &parameters = {}) const;
 
-  virtual std::string to_string(bool include_degrees, const std::unordered_map<int, int> &dimensions = {}) const; // FIXME: CONST OK?
+  virtual std::string to_string(bool include_degrees,
+                                const std::unordered_map<int, int> &dimensions =
+                                    {}) const; // FIXME: CONST OK?
 
   // comparisons
 

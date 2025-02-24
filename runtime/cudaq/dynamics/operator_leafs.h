@@ -27,7 +27,6 @@ private:
   std::variant<std::complex<double>, ScalarCallbackFunction> value;
 
 public:
-
   // constructors and destructors
 
   scalar_operator(double value);
@@ -54,20 +53,22 @@ public:
   // assignments
 
   // assignment operator
-  scalar_operator& operator=(const scalar_operator &other);
+  scalar_operator &operator=(const scalar_operator &other);
 
   // move assignment operator
-  scalar_operator& operator=(scalar_operator &&other);
+  scalar_operator &operator=(scalar_operator &&other);
 
   // evaluations
 
   /// @brief Return the scalar operator as a concrete complex value.
   std::complex<double>
-  evaluate(const std::unordered_map<std::string, std::complex<double>> &parameters = {}) const;
+  evaluate(const std::unordered_map<std::string, std::complex<double>>
+               &parameters = {}) const;
 
   // Return the scalar operator as a 1x1 matrix. This is needed for
   // compatibility with the other inherited classes.
-  matrix_2 to_matrix(const std::unordered_map<std::string, std::complex<double>> &parameters = {}) const;
+  matrix_2 to_matrix(const std::unordered_map<std::string, std::complex<double>>
+                         &parameters = {}) const;
 
   std::string to_string() const;
 
@@ -92,10 +93,10 @@ public:
   scalar_operator operator+(double other) &&;
   scalar_operator operator-(double other) const &;
   scalar_operator operator-(double other) &&;
-  scalar_operator& operator*=(double other);
-  scalar_operator& operator/=(double other);
-  scalar_operator& operator+=(double other);
-  scalar_operator& operator-=(double other);
+  scalar_operator &operator*=(double other);
+  scalar_operator &operator/=(double other);
+  scalar_operator &operator+=(double other);
+  scalar_operator &operator-=(double other);
   scalar_operator operator*(std::complex<double> other) const &;
   scalar_operator operator*(std::complex<double> other) &&;
   scalar_operator operator/(std::complex<double> other) const &;
@@ -104,10 +105,10 @@ public:
   scalar_operator operator+(std::complex<double> other) &&;
   scalar_operator operator-(std::complex<double> other) const &;
   scalar_operator operator-(std::complex<double> other) &&;
-  scalar_operator& operator*=(std::complex<double> other);
-  scalar_operator& operator/=(std::complex<double> other);
-  scalar_operator& operator+=(std::complex<double> other);
-  scalar_operator& operator-=(std::complex<double> other);
+  scalar_operator &operator*=(std::complex<double> other);
+  scalar_operator &operator/=(std::complex<double> other);
+  scalar_operator &operator+=(std::complex<double> other);
+  scalar_operator &operator-=(std::complex<double> other);
   scalar_operator operator*(const scalar_operator &other) const &;
   scalar_operator operator*(const scalar_operator &other) &&;
   scalar_operator operator/(const scalar_operator &other) const &;
@@ -116,10 +117,10 @@ public:
   scalar_operator operator+(const scalar_operator &other) &&;
   scalar_operator operator-(const scalar_operator &other) const &;
   scalar_operator operator-(const scalar_operator &other) &&;
-  scalar_operator& operator*=(const scalar_operator &other);
-  scalar_operator& operator/=(const scalar_operator &other);
-  scalar_operator& operator+=(const scalar_operator &other);
-  scalar_operator& operator-=(const scalar_operator &other);
+  scalar_operator &operator*=(const scalar_operator &other);
+  scalar_operator &operator/=(const scalar_operator &other);
+  scalar_operator &operator+=(const scalar_operator &other);
+  scalar_operator &operator-=(const scalar_operator &other);
 
   // left-hand arithmetics
 
@@ -131,16 +132,23 @@ public:
   friend scalar_operator operator+(double other, scalar_operator &&self);
   friend scalar_operator operator-(double other, const scalar_operator &self);
   friend scalar_operator operator-(double other, scalar_operator &&self);
-  friend scalar_operator operator*(std::complex<double> other, const scalar_operator &self);
-  friend scalar_operator operator*(std::complex<double> other, scalar_operator &&self);
-  friend scalar_operator operator/(std::complex<double> other, const scalar_operator &self);
-  friend scalar_operator operator/(std::complex<double> other, scalar_operator &&self);
-  friend scalar_operator operator+(std::complex<double> other, const scalar_operator &self);
-  friend scalar_operator operator+(std::complex<double> other, scalar_operator &&self);
-  friend scalar_operator operator-(std::complex<double> other, const scalar_operator &self);
-  friend scalar_operator operator-(std::complex<double> other, scalar_operator &&self);
+  friend scalar_operator operator*(std::complex<double> other,
+                                   const scalar_operator &self);
+  friend scalar_operator operator*(std::complex<double> other,
+                                   scalar_operator &&self);
+  friend scalar_operator operator/(std::complex<double> other,
+                                   const scalar_operator &self);
+  friend scalar_operator operator/(std::complex<double> other,
+                                   scalar_operator &&self);
+  friend scalar_operator operator+(std::complex<double> other,
+                                   const scalar_operator &self);
+  friend scalar_operator operator+(std::complex<double> other,
+                                   scalar_operator &&self);
+  friend scalar_operator operator-(std::complex<double> other,
+                                   const scalar_operator &self);
+  friend scalar_operator operator-(std::complex<double> other,
+                                   scalar_operator &&self);
 };
-
 
 template <typename HandlerTy>
 class product_operator;
@@ -151,7 +159,8 @@ class operator_sum;
 class operator_handler {
 public:
 #if !defined(NDEBUG)
-  static bool can_be_canonicalized; // whether a canonical order can be defined for operator expressions
+  static bool can_be_canonicalized; // whether a canonical order can be defined
+                                    // for operator expressions
 #endif
 
   virtual ~operator_handler() = default;
@@ -165,15 +174,22 @@ public:
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
-  virtual matrix_2 to_matrix(std::unordered_map<int, int> &dimensions,
-                             const std::unordered_map<std::string, std::complex<double>> &parameters = {}) const = 0;
+  virtual matrix_2
+  to_matrix(std::unordered_map<int, int> &dimensions,
+            const std::unordered_map<std::string, std::complex<double>>
+                &parameters = {}) const = 0;
 
-  virtual std::string to_string(bool include_degrees = true, const std::unordered_map<int, int> &dimensions = {}) const = 0;
+  virtual std::string
+  to_string(bool include_degrees = true,
+            const std::unordered_map<int, int> &dimensions = {}) const = 0;
 
   template <typename HandlerTy>
   static operator_sum<HandlerTy> empty();
 
-  template<typename HandlerTy, typename... Args, std::enable_if_t<std::conjunction<std::is_same<int, Args>...>::value, bool> = true>
+  template <
+      typename HandlerTy, typename... Args,
+      std::enable_if_t<std::conjunction<std::is_same<int, Args>...>::value,
+                       bool> = true>
   static product_operator<HandlerTy> identity(Args... targets);
 };
 

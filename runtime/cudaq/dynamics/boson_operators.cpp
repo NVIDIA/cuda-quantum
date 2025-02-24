@@ -11,30 +11,36 @@
 #include <unordered_map>
 #include <vector>
 
-#include "cudaq/utils/tensor.h"
-#include "cudaq/operators.h"
 #include "boson_operators.h"
+#include "cudaq/operators.h"
+#include "cudaq/utils/tensor.h"
 
 namespace cudaq {
 
 // private helpers
 
 std::string boson_operator::op_code_to_string() const {
-  // Note that we can (and should) have the same op codes across boson, fermion, and spin ops, 
-  // since individual operators with the same op codes are actually equal.
-  // Note that the matrix definition for creation, annihilation and number operators are 
-  // equal despite the different commutation/anticommutation relations; what makes them 
-  // behave differently is effectively the "finite size effects" for fermions. Specifically,
-  // if we were to blindly multiply the matrices for d=2 for bosons, we would get the same
-  // behavior as we have for a single fermion due to the finite size of the matrix. 
-  // To avoid this, we ensure that we reorder the operators for bosons appropriately as part of
-  // the in-place multiplication, whereas for fermions, this effect is desired/correct. 
-  if (this->additional_terms == 0 && this->number_offsets.size() == 0) return "I";
+  // Note that we can (and should) have the same op codes across boson, fermion,
+  // and spin ops, since individual operators with the same op codes are
+  // actually equal. Note that the matrix definition for creation, annihilation
+  // and number operators are equal despite the different
+  // commutation/anticommutation relations; what makes them behave differently
+  // is effectively the "finite size effects" for fermions. Specifically, if we
+  // were to blindly multiply the matrices for d=2 for bosons, we would get the
+  // same behavior as we have for a single fermion due to the finite size of the
+  // matrix. To avoid this, we ensure that we reorder the operators for bosons
+  // appropriately as part of the in-place multiplication, whereas for fermions,
+  // this effect is desired/correct.
+  if (this->additional_terms == 0 && this->number_offsets.size() == 0)
+    return "I";
   std::string str;
   for (auto offset : this->number_offsets) {
-    if (offset == 0) str += "N";
-    else if (offset > 0) str += "(N+" + std::to_string(offset) + ")";
-    else str += "(N" + std::to_string(offset) + ")";
+    if (offset == 0)
+      str += "N";
+    else if (offset > 0)
+      str += "(N+" + std::to_string(offset) + ")";
+    else
+      str += "(N" + std::to_string(offset) + ")";
   }
   for (auto i = 0; i < this->additional_terms; ++i)
     str += "Ad";
@@ -44,36 +50,51 @@ std::string boson_operator::op_code_to_string() const {
 }
 
 void boson_operator::inplace_mult(const boson_operator &other) {
-  this->number_offsets.reserve(this->number_offsets.size() + other.number_offsets.size());
+  this->number_offsets.reserve(this->number_offsets.size() +
+                               other.number_offsets.size());
 
-  // first permute all number operators of RHS to the left; for x = # permutations,
-  // if we have "unpaired" creation operators, the number operator becomes (N + x),
-  // if we have "unpaired" annihilation operators, the number operator becomes (N - x).
-  auto it = this->number_offsets.cbegin(); // we will sort the offsets from biggest to smallest
+  // first permute all number operators of RHS to the left; for x = #
+  // permutations, if we have "unpaired" creation operators, the number operator
+  // becomes (N + x), if we have "unpaired" annihilation operators, the number
+  // operator becomes (N - x).
+  auto it = this->number_offsets
+                .cbegin(); // we will sort the offsets from biggest to smallest
   for (auto offset : other.number_offsets) {
-    while (it != this->number_offsets.cend() && *it >= offset - this->additional_terms) ++it;
+    while (it != this->number_offsets.cend() &&
+           *it >= offset - this->additional_terms)
+      ++it;
     this->number_offsets.insert(it, offset - this->additional_terms);
   }
 
   // now we can combine the creation and annihilation operators;
   if (this->additional_terms > 0) { // we have "unpaired" creation operators
-    // using ad*a = N and ad*N = (N - 1)*ad, each created number operator has an offset 
-    // of -(x - 1 - i), where x is the number of creation operators, and i is the number 
-    // of creation operators we already combined
+    // using ad*a = N and ad*N = (N - 1)*ad, each created number operator has an
+    // offset of -(x - 1 - i), where x is the number of creation operators, and
+    // i is the number of creation operators we already combined
     it = this->number_offsets.cbegin();
-    for (auto i = std::min(this->additional_terms, -other.additional_terms); i > 0; --i) {
-      // we make sure to have offsets get smaller as we go to keep the sorting cheap
-      while (it != this->number_offsets.cend() && *it >= i - this->additional_terms) ++it;
+    for (auto i = std::min(this->additional_terms, -other.additional_terms);
+         i > 0; --i) {
+      // we make sure to have offsets get smaller as we go to keep the sorting
+      // cheap
+      while (it != this->number_offsets.cend() &&
+             *it >= i - this->additional_terms)
+        ++it;
       this->number_offsets.insert(it, i - this->additional_terms);
     }
-  } else if (this->additional_terms < 0) { // we have "unpaired" annihilation operators
-    // using a*ad = (N + 1) and a*N = (N + 1)*a, each created number operator has an offset 
-    // of (x - i), where x is the number of annihilation operators, and i is the number 
-    // of annihilation operators we already combined
+  } else if (this->additional_terms <
+             0) { // we have "unpaired" annihilation operators
+    // using a*ad = (N + 1) and a*N = (N + 1)*a, each created number operator
+    // has an offset of (x - i), where x is the number of annihilation
+    // operators, and i is the number of annihilation operators we already
+    // combined
     it = this->number_offsets.cbegin();
-    for (auto i = 0; i > this->additional_terms && i > -other.additional_terms; --i) {
-      // we make sure to have offsets get smaller as we go to keep the sorting cheap
-      while (it != this->number_offsets.cend() && *it >= i - this->additional_terms) ++it;
+    for (auto i = 0; i > this->additional_terms && i > -other.additional_terms;
+         --i) {
+      // we make sure to have offsets get smaller as we go to keep the sorting
+      // cheap
+      while (it != this->number_offsets.cend() &&
+             *it >= i - this->additional_terms)
+        ++it;
       this->number_offsets.insert(it, i - this->additional_terms);
     }
   }
@@ -82,11 +103,11 @@ void boson_operator::inplace_mult(const boson_operator &other) {
   this->additional_terms += other.additional_terms;
 
 #if !defined(NDEBUG)
-  // we sort the number offsets, such that the equality comparison and the operator id
-  // perfectly reflects the mathematical evaluation of the operator
+  // we sort the number offsets, such that the equality comparison and the
+  // operator id perfectly reflects the mathematical evaluation of the operator
   auto sorted_offsets = this->number_offsets;
   std::sort(sorted_offsets.begin(), sorted_offsets.end(), std::greater<int>());
-  //assert(sorted_offsets == this->number_offsets);
+  // assert(sorted_offsets == this->number_offsets);
 #endif
 }
 
@@ -96,38 +117,40 @@ std::string boson_operator::unique_id() const {
   return this->op_code_to_string() + std::to_string(target);
 }
 
-std::vector<int> boson_operator::degrees() const {
-  return {this->target};
-}
+std::vector<int> boson_operator::degrees() const { return {this->target}; }
 
 // constructors
 
-boson_operator::boson_operator(int target) 
-  : target(target), additional_terms(0) {}
+boson_operator::boson_operator(int target)
+    : target(target), additional_terms(0) {}
 
-boson_operator::boson_operator(int target, int op_id) 
-  : target(target), additional_terms(0) {
-    assert(0 <= op_id < 4);
-    if (op_id == 1) // create
-      this->additional_terms = 1;
-    else if (op_id == 2) // annihilate
-      this->additional_terms = -1;
-    else if (op_id == 3) // number
-      this->number_offsets.push_back(0);
+boson_operator::boson_operator(int target, int op_id)
+    : target(target), additional_terms(0) {
+  assert(0 <= op_id < 4);
+  if (op_id == 1) // create
+    this->additional_terms = 1;
+  else if (op_id == 2) // annihilate
+    this->additional_terms = -1;
+  else if (op_id == 3) // number
+    this->number_offsets.push_back(0);
 }
 
 // evaluations
 
-matrix_2 boson_operator::to_matrix(std::unordered_map<int, int> &dimensions,
-                                   const std::unordered_map<std::string, std::complex<double>> &parameters) const {
+matrix_2 boson_operator::to_matrix(
+    std::unordered_map<int, int> &dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters)
+    const {
   auto it = dimensions.find(this->target);
   if (it == dimensions.end())
-    throw std::runtime_error("missing dimension for degree " + std::to_string(this->target));
+    throw std::runtime_error("missing dimension for degree " +
+                             std::to_string(this->target));
   auto dim = it->second;
 
   auto mat = matrix_2(dim, dim);
   if (this->additional_terms > 0) {
-    for (std::size_t column = 0; column + this->additional_terms < dim; column++) {
+    for (std::size_t column = 0; column + this->additional_terms < dim;
+         column++) {
       auto row = column + this->additional_terms;
       mat[{row, column}] = 1.;
       for (auto offset : this->number_offsets)
@@ -149,14 +172,18 @@ matrix_2 boson_operator::to_matrix(std::unordered_map<int, int> &dimensions,
       mat[{i, i}] = 1.;
       for (auto offset : this->number_offsets)
         mat[{i, i}] *= (i + offset);
-    }  
+    }
   }
   return std::move(mat);
 }
 
-std::string boson_operator::to_string(bool include_degrees, const std::unordered_map<int, int> &dimensions) const {
-  if (include_degrees) return this->op_code_to_string() + "(" + std::to_string(target) + ")";
-  else return this->op_code_to_string();
+std::string boson_operator::to_string(
+    bool include_degrees,
+    const std::unordered_map<int, int> &dimensions) const {
+  if (include_degrees)
+    return this->op_code_to_string() + "(" + std::to_string(target) + ")";
+  else
+    return this->op_code_to_string();
 }
 
 // comparisons
@@ -194,11 +221,13 @@ product_operator<boson_operator> boson_operator::number(int degree) {
 }
 
 operator_sum<boson_operator> boson_operator::position(int degree) {
-  return 0.5 * (boson_operator::create(degree) + boson_operator::annihilate(degree));
+  return 0.5 *
+         (boson_operator::create(degree) + boson_operator::annihilate(degree));
 }
 
 operator_sum<boson_operator> boson_operator::momentum(int degree) {
-  return 0.5j * (boson_operator::create(degree) - boson_operator::annihilate(degree));
+  return 0.5j *
+         (boson_operator::create(degree) - boson_operator::annihilate(degree));
 }
 
 } // namespace cudaq

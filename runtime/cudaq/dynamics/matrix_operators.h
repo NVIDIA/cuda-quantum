@@ -12,15 +12,14 @@
 #include <unordered_map>
 #include <vector>
 
-#include "cudaq/utils/tensor.h"
 #include "cudaq/operators.h"
+#include "cudaq/utils/tensor.h"
 
 namespace cudaq {
 
-class matrix_operator : public operator_handler{
+class matrix_operator : public operator_handler {
 
 private:
-
   static std::unordered_map<std::string, Definition> defined_ops;
 
   // used when converting other operators to matrix operators
@@ -28,7 +27,6 @@ private:
   static std::string type_prefix();
 
 protected:
-
   std::vector<int> targets;
   std::string op_code;
 
@@ -37,7 +35,9 @@ protected:
 
 public:
 #if !defined(NDEBUG)
-  static bool can_be_canonicalized; // needs to be false; no canonical order can be defined for matrix operator expressions
+  static bool
+      can_be_canonicalized; // needs to be false; no canonical order can be
+                            // defined for matrix operator expressions
 #endif
 
   // tools for custom operators
@@ -68,18 +68,23 @@ public:
   ///      degree of freedom, and an argument called `dimensions` (or `dims` for
   ///      short), if the operator acts
   ///     on multiple degrees of freedom.
-  static void define(std::string operator_id, std::vector<int> expected_dimensions,
+  static void define(std::string operator_id,
+                     std::vector<int> expected_dimensions,
                      MatrixCallbackFunction &&create);
 
   /// @brief Instantiates a custom operator.
-  /// @arg operator_id : The ID of the operator as specified when it was defined.
+  /// @arg operator_id : The ID of the operator as specified when it was
+  /// defined.
   /// @arg degrees : the degrees of freedom that the operator acts upon.
-  static product_operator<matrix_operator> instantiate(std::string operator_id, const std::vector<int> &degrees);
+  static product_operator<matrix_operator>
+  instantiate(std::string operator_id, const std::vector<int> &degrees);
 
   /// @brief Instantiates a custom operator.
-  /// @arg operator_id : The ID of the operator as specified when it was defined.
+  /// @arg operator_id : The ID of the operator as specified when it was
+  /// defined.
   /// @arg degrees : the degrees of freedom that the operator acts upon.
-  static product_operator<matrix_operator> instantiate(std::string operator_id, std::vector<int> &&degrees);
+  static product_operator<matrix_operator>
+  instantiate(std::string operator_id, std::vector<int> &&degrees);
 
   // read-only properties
 
@@ -93,7 +98,8 @@ public:
 
   matrix_operator(int target);
 
-  template<typename T, std::enable_if_t<std::is_base_of_v<operator_handler, T>, bool> = true>
+  template <typename T, std::enable_if_t<std::is_base_of_v<operator_handler, T>,
+                                         bool> = true>
   matrix_operator(const T &other);
 
   // copy constructor
@@ -106,14 +112,17 @@ public:
 
   // assignments
 
-  template<typename T, std::enable_if_t<!std::is_same<T, matrix_operator>::value && std::is_base_of_v<operator_handler, T>, bool> = true>
-  matrix_operator& operator=(const T& other);
+  template <typename T,
+            std::enable_if_t<!std::is_same<T, matrix_operator>::value &&
+                                 std::is_base_of_v<operator_handler, T>,
+                             bool> = true>
+  matrix_operator &operator=(const T &other);
 
   // assignment operator
-  matrix_operator& operator=(const matrix_operator& other);
+  matrix_operator &operator=(const matrix_operator &other);
 
   // move assignment operator
-  matrix_operator& operator=(matrix_operator &&other);
+  matrix_operator &operator=(matrix_operator &&other);
 
   // evaluations
 
@@ -122,10 +131,14 @@ public:
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
-  virtual matrix_2 to_matrix(std::unordered_map<int, int> &dimensions,
-                             const std::unordered_map<std::string, std::complex<double>> &parameters = {}) const;
+  virtual matrix_2
+  to_matrix(std::unordered_map<int, int> &dimensions,
+            const std::unordered_map<std::string, std::complex<double>>
+                &parameters = {}) const;
 
-  virtual std::string to_string(bool include_degrees, const std::unordered_map<int, int> &dimensions = {}) const;
+  virtual std::string
+  to_string(bool include_degrees,
+            const std::unordered_map<int, int> &dimensions = {}) const;
 
   // comparisons
 

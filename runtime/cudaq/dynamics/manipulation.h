@@ -6,12 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#pragma once 
+#pragma once
 
+#include "cudaq/utils/tensor.h"
 #include <set>
 #include <unordered_map>
 #include <vector>
-#include "cudaq/utils/tensor.h"
 
 #include "helpers.h"
 #include "operator_leafs.h"
@@ -20,21 +20,16 @@ namespace cudaq {
 
 class EvaluatedMatrix {
 private:
-
   std::vector<int> targets;
   matrix_2 value;
 
 public:
-  const std::vector<int>& degrees() const {
-    return this->targets;
-  }
+  const std::vector<int> &degrees() const { return this->targets; }
 
-  const matrix_2& matrix() const {
-    return this->value;
-  }
+  const matrix_2 &matrix() const { return this->value; }
 
   EvaluatedMatrix(std::vector<int> &&degrees, matrix_2 &&matrix)
-  : targets(std::move(degrees)), value(std::move(matrix)) {
+      : targets(std::move(degrees)), value(std::move(matrix)) {
 #if !defined(NDEBUG)
     std::set<int> unique_degrees;
     for (auto d : degrees)
@@ -44,13 +39,13 @@ public:
   }
 
   EvaluatedMatrix(EvaluatedMatrix &&other)
-  : targets(std::move(other.targets)), value(std::move(other.value)) {}
+      : targets(std::move(other.targets)), value(std::move(other.value)) {}
 
   // delete copy constructor and copy assignment to avoid unnecessary copies
   EvaluatedMatrix(const EvaluatedMatrix &other) = delete;
-  EvaluatedMatrix& operator=(const EvaluatedMatrix &other) = delete;
+  EvaluatedMatrix &operator=(const EvaluatedMatrix &other) = delete;
 
-  EvaluatedMatrix& operator=(EvaluatedMatrix &&other) {
+  EvaluatedMatrix &operator=(EvaluatedMatrix &&other) {
     if (this != &other) {
       this->targets = std::move(other.targets);
       this->value = std::move(other.value);
@@ -59,12 +54,12 @@ public:
   }
 };
 
-
 template <typename EvalTy>
 class OperatorArithmetics {
 public:
-  OperatorArithmetics(std::unordered_map<int, int> &dimensions,
-    const std::unordered_map<std::string, std::complex<double>> &parameters);
+  OperatorArithmetics(
+      std::unordered_map<int, int> &dimensions,
+      const std::unordered_map<std::string, std::complex<double>> &parameters);
 
   /// @brief Accesses the relevant data to evaluate an operator expression
   /// in the leaf nodes, that is in elementary and scalar operators.
@@ -83,29 +78,28 @@ public:
   EvalTy add(EvalTy &&val1, EvalTy &&val2);
 };
 
-
-template<>
+template <>
 class OperatorArithmetics<EvaluatedMatrix> {
 
 private:
-
   std::unordered_map<int, int> dimensions; // may be updated during evaluation
   const std::unordered_map<std::string, std::complex<double>> parameters;
 
   std::vector<int> compute_permutation(const std::vector<int> &op_degrees,
-                                          const std::vector<int> &canon_degrees) {
+                                       const std::vector<int> &canon_degrees) {
     assert(op_degrees.size() == canon_degrees.size());
-    auto states = cudaq::detail::generate_all_states(canon_degrees, this->dimensions);
-  
+    auto states =
+        cudaq::detail::generate_all_states(canon_degrees, this->dimensions);
+
     std::vector<int> reordering;
     for (auto degree : op_degrees) {
       auto it = std::find(canon_degrees.cbegin(), canon_degrees.cend(), degree);
       reordering.push_back(it - canon_degrees.cbegin());
     }
-  
-    std::vector<std::string> op_states = 
+
+    std::vector<std::string> op_states =
         cudaq::detail::generate_all_states(op_degrees, this->dimensions);
-  
+
     std::vector<int> permutation;
     for (auto state : states) {
       std::string term;
@@ -115,10 +109,10 @@ private:
       auto it = std::find(op_states.cbegin(), op_states.cend(), term);
       permutation.push_back(it - op_states.cbegin());
     }
-  
+
     return permutation;
   }
-  
+
   // Given a matrix representation that acts on the given degrees or freedom,
   // sorts the degrees and permutes the matrix to match that canonical order.
   void canonicalize(matrix_2 &matrix, std::vector<int> &degrees) {
@@ -126,18 +120,19 @@ private:
     cudaq::detail::canonicalize_degrees(degrees);
     if (current_degrees != degrees) {
       auto permutation = this->compute_permutation(current_degrees, degrees);
-      cudaq::detail::permute_matrix(matrix, permutation);   
+      cudaq::detail::permute_matrix(matrix, permutation);
     }
   }
 
 public:
+  OperatorArithmetics(
+      std::unordered_map<int, int> &dimensions,
+      const std::unordered_map<std::string, std::complex<double>> &parameters)
+      : dimensions(dimensions), parameters(parameters) {}
 
-  OperatorArithmetics(std::unordered_map<int, int> &dimensions,
-    const std::unordered_map<std::string, std::complex<double>> &parameters)
-  : dimensions(dimensions), parameters(parameters) {}
-  
   EvaluatedMatrix evaluate(const operator_handler &op) {
-    return EvaluatedMatrix(op.degrees(), op.to_matrix(this->dimensions, this->parameters));    
+    return EvaluatedMatrix(op.degrees(),
+                           op.to_matrix(this->dimensions, this->parameters));
   }
 
   EvaluatedMatrix evaluate(const scalar_operator &op) {
@@ -149,9 +144,8 @@ public:
     auto matrix = scalar.evaluate(this->parameters) * op.matrix();
     return EvaluatedMatrix(std::move(degrees), std::move(matrix));
   }
-  
-  EvaluatedMatrix tensor(EvaluatedMatrix op1,
-                                            EvaluatedMatrix op2) {
+
+  EvaluatedMatrix tensor(EvaluatedMatrix op1, EvaluatedMatrix op2) {
     std::vector<int> degrees;
     auto op1_degrees = op1.degrees();
     auto op2_degrees = op2.degrees();
@@ -166,9 +160,8 @@ public:
     this->canonicalize(matrix, degrees);
     return EvaluatedMatrix(std::move(degrees), std::move(matrix));
   }
-  
-  EvaluatedMatrix mul(EvaluatedMatrix op1,
-                                         EvaluatedMatrix op2) {
+
+  EvaluatedMatrix mul(EvaluatedMatrix op1, EvaluatedMatrix op2) {
     // Elementary operators have sorted degrees such that we have a unique
     // convention for how to define the matrix. Tensor products permute the
     // computed matrix if necessary to guarantee that all operators always have
@@ -177,9 +170,8 @@ public:
     assert(degrees == op2.degrees());
     return EvaluatedMatrix(std::move(degrees), (op1.matrix() * op2.matrix()));
   }
-  
-  EvaluatedMatrix add(EvaluatedMatrix op1,
-                                         EvaluatedMatrix op2) {
+
+  EvaluatedMatrix add(EvaluatedMatrix op1, EvaluatedMatrix op2) {
     // Elementary operators have sorted degrees such that we have a unique
     // convention for how to define the matrix. Tensor products permute the
     // computed matrix if necessary to guarantee that all operators always have
@@ -189,7 +181,6 @@ public:
     return EvaluatedMatrix(std::move(degrees), op1.matrix() + op2.matrix());
   }
 };
-
 
 class EvaluatedCanonicalized {
   friend class OperatorArithmetics<EvaluatedCanonicalized>;
@@ -201,14 +192,11 @@ private:
   EvaluatedCanonicalized() = default;
 
 public:
-
-  const std::vector<std::complex<double>>& coefficients() {
+  const std::vector<std::complex<double>> &coefficients() {
     return this->coeffs;
   }
 
-  const std::vector<std::string>& products() {
-    return this->terms;
-  }
+  const std::vector<std::string> &products() { return this->terms; }
 
   void push_back(std::complex<double> coeff) {
     this->coeffs.push_back(coeff);
@@ -225,20 +213,20 @@ template <>
 class OperatorArithmetics<EvaluatedCanonicalized> {
 
 private:
-
   std::unordered_map<int, int> dimensions; // may be updated during evaluation
   const std::unordered_map<std::string, std::complex<double>> parameters;
 
-
 public:
-  OperatorArithmetics(std::unordered_map<int, int> &dimensions,
-    const std::unordered_map<std::string, std::complex<double>> &parameters) 
-    : parameters(parameters), dimensions(dimensions) {}
+  OperatorArithmetics(
+      std::unordered_map<int, int> &dimensions,
+      const std::unordered_map<std::string, std::complex<double>> &parameters)
+      : parameters(parameters), dimensions(dimensions) {}
 
   /// @brief Accesses the relevant data to evaluate an operator expression
   /// in the leaf nodes, that is in elementary and scalar operators.
   EvaluatedCanonicalized evaluate(const operator_handler &op) {
-    // FIXME: VALIDATE DIMENSIONS PROPERLY HERE - maybe don't use the to_string method here but a dedicated one?
+    // FIXME: VALIDATE DIMENSIONS PROPERLY HERE - maybe don't use the to_string
+    // method here but a dedicated one?
     EvaluatedCanonicalized eval;
     eval.push_back(1.);
     eval.push_back(op.to_string(false, this->dimensions));
@@ -253,24 +241,31 @@ public:
 
   /// @brief Computes the tensor product of two operators that act on different
   /// degrees of freedom.
-  EvaluatedCanonicalized tensor(const scalar_operator &scalar, EvaluatedCanonicalized &&op) {
-    throw std::runtime_error("tensor product should never be called on canonicalized operator - disable padding");
+  EvaluatedCanonicalized tensor(const scalar_operator &scalar,
+                                EvaluatedCanonicalized &&op) {
+    throw std::runtime_error("tensor product should never be called on "
+                             "canonicalized operator - disable padding");
   }
 
-  EvaluatedCanonicalized tensor(EvaluatedCanonicalized &&val1, EvaluatedCanonicalized &&val2) {
-    throw std::runtime_error("tensor product should never be called on canonicalized operator - disable padding");
+  EvaluatedCanonicalized tensor(EvaluatedCanonicalized &&val1,
+                                EvaluatedCanonicalized &&val2) {
+    throw std::runtime_error("tensor product should never be called on "
+                             "canonicalized operator - disable padding");
   }
 
   /// @brief Multiplies two operators that act on the same degrees of freedom.
-  EvaluatedCanonicalized mul(EvaluatedCanonicalized &&val1, EvaluatedCanonicalized &&val2) {
+  EvaluatedCanonicalized mul(EvaluatedCanonicalized &&val1,
+                             EvaluatedCanonicalized &&val2) {
     // fixme: assert val1 and val2 only have 1 term
-    // FIXME: assert val2 does not have a non-trivial coefficient, or implement differently
+    // FIXME: assert val2 does not have a non-trivial coefficient, or implement
+    // differently
     val1.push_back(val2.products().back());
     return std::move(val1);
   }
 
   /// @brief Adds two operators that act on the same degrees of freedom.
-  EvaluatedCanonicalized add(EvaluatedCanonicalized &&val1, EvaluatedCanonicalized &&val2) {
+  EvaluatedCanonicalized add(EvaluatedCanonicalized &&val1,
+                             EvaluatedCanonicalized &&val2) {
     // fixme: assert val2 only have 1 term
     val1.push_back(val2.coefficients().back());
     val1.push_back(val2.products().back());
@@ -278,4 +273,4 @@ public:
   }
 };
 
-}
+} // namespace cudaq
