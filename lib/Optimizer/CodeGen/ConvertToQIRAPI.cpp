@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -1335,7 +1335,7 @@ struct InstantiateCallablePattern
     auto newSigTy =
         cast<cudaq::cc::CallableType>(getTypeConverter()->convertType(sigTy));
     rewriter.replaceOpWithNewOp<cudaq::cc::InstantiateCallableOp>(
-        op, newSigTy, op.getCallee(), op.getClosureData(),
+        op, newSigTy, op.getCallee(), adaptor.getClosureData(),
         op.getNoCaptureAttr());
     return success();
   }
@@ -1654,7 +1654,17 @@ struct QuakeToQIRAPIPass
         });
     target.addDynamicallyLegalOp<cudaq::cc::InstantiateCallableOp>(
         [&](cudaq::cc::InstantiateCallableOp op) {
+          for (auto d : op.getClosureData())
+            if (hasQuakeType(d.getType()))
+              return false;
           return !hasQuakeType(op.getSignature().getType());
+        });
+    target.addDynamicallyLegalOp<cudaq::cc::CallableClosureOp>(
+        [&](cudaq::cc::CallableClosureOp op) {
+          for (auto ty : op.getResultTypes())
+            if (hasQuakeType(ty))
+              return false;
+          return !hasQuakeType(op.getCallable().getType());
         });
     target.addDynamicallyLegalOp<cudaq::cc::AllocaOp>(
         [&](cudaq::cc::AllocaOp op) {
@@ -1905,9 +1915,8 @@ struct QuakeToQIRAPIFinalPass
     auto *ctx = &getContext();
     ModuleOp module = getOperation();
     RewritePatternSet patterns(ctx);
-    patterns.insert<MaterializeConstantArrayOpRewrite>(ctx);
-    if (api == "base-profile")
-      patterns.insert<AnnotateKernelsWithMeasurementStringsPattern>(ctx);
+    patterns.insert<MaterializeConstantArrayOpRewrite,
+                    AnnotateKernelsWithMeasurementStringsPattern>(ctx);
     if (failed(applyPatternsAndFoldGreedily(module, std::move(patterns))))
       signalPassFailure();
   }

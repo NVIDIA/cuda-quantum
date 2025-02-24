@@ -31,6 +31,7 @@ target_include_directories(${LIBRARY_NAME}
     PUBLIC 
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
+       $<BUILD_INTERFACE:${CUQUANTUM_INSTALL_PREFIX}/include>
        $<INSTALL_INTERFACE:include>
     PRIVATE .)
 

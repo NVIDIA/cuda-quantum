@@ -49,6 +49,8 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
 # Make it so we can get function symbols
 set (CMAKE_ENABLE_EXPORTS TRUE)
 
+include_directories(/usr/local/cuda/targets/x86_64-linux/include)
+
 ## This Macro allows us to create a test_runtime executable for 
 ## the sources in CUDAQ_RUNTIME_TEST_SOURCE for a specific backend simulator
 macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER) 
@@ -281,9 +283,68 @@ target_link_libraries(test_operators
   cudaq-spin
   cudaq-operator
   cudaq
-  gtest_main)
+  gtest_main
+  fmt::fmt-header-only)
 gtest_discover_tests(test_operators)
 
+if (CUDA_FOUND)
+  find_package(CUDAToolkit REQUIRED)
+  
+  # Create an executable for dynamics UnitTests
+  set(CUDAQ_DYNAMICS_TEST_SOURCES 
+    dynamics/test_runge_kutta_integrator.cpp
+    dynamics/test_helpers.cpp
+    dynamics/test_cudm_state.cpp
+    dynamics/test_cudm_time_stepper.cpp
+    dynamics/test_cudm_expectation.cpp
+    dynamics/test_evolve_single.cpp
+    dynamics/test_evolve_api.cpp
+  )
+  add_executable(test_dynamics main.cpp ${CUDAQ_DYNAMICS_TEST_SOURCES})
+  target_compile_definitions(test_dynamics PRIVATE -DCUDAQ_DYNAMICS_TARGET)
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+    target_link_options(test_dynamics PRIVATE -Wl,--no-as-needed)
+  endif()
+  target_link_libraries(test_dynamics
+    PRIVATE
+    cudaq-spin
+    cudaq-operator
+    cudaq
+    nvqir-dynamics
+    ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
+    CUDA::cudart_static
+    gtest_main
+    fmt::fmt-header-only)
+  target_include_directories(test_dynamics PRIVATE ${CMAKE_SOURCE_DIR}/runtime/nvqir/cudensitymat)
+  gtest_discover_tests(test_dynamics)
+
+  # Multi-QPU evolve_async test
+  # Count the number of GPUs
+  find_program(NVIDIA_SMI "nvidia-smi")
+  if(NVIDIA_SMI)
+    execute_process(COMMAND bash -c "nvidia-smi --list-gpus | wc -l" OUTPUT_VARIABLE NGPUS)
+    # Only build this test if we have more than 1 GPU
+    if (${NGPUS} GREATER_EQUAL 2)
+      add_executable(test_evolve_async mqpu/dynamics_async_tester.cpp)
+      if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+        target_link_options(test_evolve_async PRIVATE -Wl,--no-as-needed)
+      endif()
+      target_compile_definitions(test_evolve_async PRIVATE -DCUDAQ_DYNAMICS_TARGET)
+      target_link_libraries(test_evolve_async
+        PRIVATE
+        cudaq-spin
+        cudaq-operator
+        cudaq
+        cudaq-platform-mqpu
+        nvqir-dynamics
+        ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
+        CUDA::cudart_static
+        gtest_main
+        fmt::fmt-header-only)
+      gtest_discover_tests(test_evolve_async)
+    endif()
+  endif() 
+endif()
 add_subdirectory(plugin)
 
 # build the test qudit execution manager
@@ -392,4 +453,3 @@ if (CUDAQ_ENABLE_PYTHON)
   gtest_discover_tests(test_domains
     TEST_SUFFIX _Sampling PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}/python")
 endif()
-

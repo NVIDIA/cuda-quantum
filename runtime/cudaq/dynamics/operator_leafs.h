@@ -31,6 +31,8 @@ public:
 
   scalar_operator(double value);
 
+  bool is_constant() const;
+
   /// @brief Constructor that just takes and returns a complex double value.
   /// @NOTE: This replicates the behavior of the python `scalar_operator::const`
   /// without the need for an extra member function.

@@ -14,6 +14,9 @@
 namespace cudaq {
 
 // constructors and destructors
+bool scalar_operator::is_constant() const {
+  return std::holds_alternative<std::complex<double>>(value);
+}
 
 scalar_operator::scalar_operator(double value)
     : value(std::variant<std::complex<double>, ScalarCallbackFunction>(
@@ -118,8 +121,8 @@ scalar_operator scalar_operator::operator+() && { return std::move(*this); }
             const std::unordered_map<std::string, std::complex<double>>        \
                 &parameters) { return generator(parameters) op other; };       \
     return scalar_operator(std::move(newGenerator));                           \
-  }
-
+  }                                                                            \
+  
 ARITHMETIC_OPERATIONS(*, double);
 ARITHMETIC_OPERATIONS(/, double);
 ARITHMETIC_OPERATIONS(+, double);
@@ -144,7 +147,7 @@ ARITHMETIC_OPERATIONS(-, std::complex<double>);
           return this->evaluate(parameters) op other.evaluate(parameters);     \
         };                                                                     \
     return scalar_operator(std::move(newGenerator));                           \
-  }
+  }                                                                            \
 
 ARITHMETIC_OPERATIONS_SCALAR_OPS(*);
 ARITHMETIC_OPERATIONS_SCALAR_OPS(/);
@@ -213,6 +216,10 @@ ARITHMETIC_OPERATIONS_RVALUE(*, std::complex<double>);
 ARITHMETIC_OPERATIONS_RVALUE(/, std::complex<double>);
 ARITHMETIC_OPERATIONS_RVALUE(+, std::complex<double>);
 ARITHMETIC_OPERATIONS_RVALUE(-, std::complex<double>);
+ARITHMETIC_OPERATIONS_RVALUE(*, const scalar_operator &);
+ARITHMETIC_OPERATIONS_RVALUE(/, const scalar_operator &);
+ARITHMETIC_OPERATIONS_RVALUE(+, const scalar_operator &);
+ARITHMETIC_OPERATIONS_RVALUE(-, const scalar_operator &);
 
 // left-hand arithmetics
 

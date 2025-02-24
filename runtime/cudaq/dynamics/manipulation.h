@@ -220,7 +220,7 @@ public:
   OperatorArithmetics(
       std::unordered_map<int, int> &dimensions,
       const std::unordered_map<std::string, std::complex<double>> &parameters)
-      : parameters(parameters), dimensions(dimensions) {}
+      : dimensions(dimensions), parameters(parameters) {}
 
   /// @brief Accesses the relevant data to evaluate an operator expression
   /// in the leaf nodes, that is in elementary and scalar operators.
@@ -244,13 +244,13 @@ public:
   EvaluatedCanonicalized tensor(const scalar_operator &scalar,
                                 EvaluatedCanonicalized &&op) {
     throw std::runtime_error("tensor product should never be called on "
-                             "canonicalized operator - disable padding");
+                             "canonicalized operator - disable product padding");
   }
 
   EvaluatedCanonicalized tensor(EvaluatedCanonicalized &&val1,
                                 EvaluatedCanonicalized &&val2) {
     throw std::runtime_error("tensor product should never be called on "
-                             "canonicalized operator - disable padding");
+                             "canonicalized operator - disable product padding");
   }
 
   /// @brief Multiplies two operators that act on the same degrees of freedom.
