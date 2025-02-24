@@ -197,7 +197,7 @@ module attributes {cc.sizeof_string = 32 : i64, llvm.data_layout = "e-m:e-p270:3
 // CHECK:         func.func private @__quantum__qis__z__body(!cc.ptr<!llvm.struct<"Qubit", opaque>>)
 // CHECK:         func.func private @__quantum__qis__s__body(!cc.ptr<!llvm.struct<"Qubit", opaque>>)
 // CHECK:         func.func private @__quantum__qis__t__body(!cc.ptr<!llvm.struct<"Qubit", opaque>>)
-// CHECK:         func.func private @__quantum__qis__sdg__body(!cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__qis__s__adj(!cc.ptr<!llvm.struct<"Qubit", opaque>>)
 // CHECK:         func.func private @__quantum__qis__t__adj(!cc.ptr<!llvm.struct<"Qubit", opaque>>)
 // CHECK:         func.func private @__quantum__qis__u3__body(f64, f64, f64, !cc.ptr<!llvm.struct<"Qubit", opaque>>)
 // CHECK:         func.func private @__quantum__qis__reset__body(!cc.ptr<!llvm.struct<"Qubit", opaque>>)

@@ -62,12 +62,16 @@ std::pair<std::string, bool> generateGateFunctionName(OP op) {
   auto gateName = getGateName(op.getOperation());
   if (op.isAdj()) {
     if (std::find(filterAdjointNames.begin(), filterAdjointNames.end(),
-                  gateName) != filterAdjointNames.end())
+                  gateName) != filterAdjointNames.end()) {
       if constexpr (M::dgSuffix) {
         prefix += "dg";
       } else {
-        return {prefix + "__adj", false};
+        if (!op.getControls().empty())
+          prefix += "dg";
+        else
+          return {prefix + "__adj", false};
       }
+    }
   }
   if (!op.getControls().empty())
     return {prefix + "__ctl", false};
