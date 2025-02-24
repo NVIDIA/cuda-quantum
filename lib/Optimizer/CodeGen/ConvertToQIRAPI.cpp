@@ -2081,9 +2081,8 @@ struct QuakeToQIRAPIFinalPass
     auto *ctx = &getContext();
     ModuleOp module = getOperation();
     RewritePatternSet patterns(ctx);
-    patterns.insert<MaterializeConstantArrayOpRewrite>(ctx);
-    if (api == "base-profile")
-      patterns.insert<AnnotateKernelsWithMeasurementStringsPattern>(ctx);
+    patterns.insert<MaterializeConstantArrayOpRewrite,
+                    AnnotateKernelsWithMeasurementStringsPattern>(ctx);
     if (failed(applyPatternsAndFoldGreedily(module, std::move(patterns))))
       signalPassFailure();
   }
