@@ -214,10 +214,10 @@ def test_kernel_complex64_capture_f32():
     state = cudaq.State.from_data(c)
 
     @cudaq.kernel
-    def kernel():
+    def kernel_foo():
         q = cudaq.qvector(state)
 
-    counts = cudaq.sample(kernel)
+    counts = cudaq.sample(kernel_foo)
     print(counts)
     assert '11' in counts
     assert '00' in counts
