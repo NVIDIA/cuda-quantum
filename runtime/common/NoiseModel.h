@@ -44,7 +44,7 @@ enum class noise_model_type {
 
 // Keep the noise_model_type and noise_model_strings in sync. We don't use
 // macros to work around bugs in the documentation generation.
-static constexpr std::array<const char *, 14> noise_model_strings = {
+static constexpr const char *noise_model_strings[] = {
     "unknown",
     "depolarization_channel",
     "amplitude_damping_channel",
@@ -262,8 +262,10 @@ public:
   }
 };
 
-#define REGISTER_KRAUS_CHANNEL()                                               \
-  static std::intptr_t get_key() { return (std::intptr_t)&get_key; }
+#define REGISTER_KRAUS_CHANNEL(NAME)                                           \
+  static std::intptr_t get_key() __attribute__((noinline)) {                   \
+    return (std::intptr_t)std::hash<std::string>{}(std::string{NAME});         \
+  }
 
 /// @brief The noise_model type keeps track of a set of
 /// kraus_channels to be applied after the execution of
@@ -519,7 +521,8 @@ public:
   }
   depolarization_channel(const real probability)
       : depolarization_channel(std::vector<cudaq::real>{probability}) {}
-  REGISTER_KRAUS_CHANNEL()
+  REGISTER_KRAUS_CHANNEL(
+      noise_model_strings[(int)noise_model_type::depolarization_channel])
 };
 
 /// @brief amplitude_damping_channel is a kraus_channel that
@@ -542,7 +545,8 @@ public:
   }
   amplitude_damping_channel(const real probability)
       : amplitude_damping_channel(std::vector<cudaq::real>{probability}) {}
-  REGISTER_KRAUS_CHANNEL()
+  REGISTER_KRAUS_CHANNEL(
+      noise_model_strings[(int)noise_model_type::amplitude_damping_channel])
 };
 
 /// @brief bit_flip_channel is a kraus_channel that
@@ -565,7 +569,8 @@ public:
   }
   bit_flip_channel(const real probability)
       : bit_flip_channel(std::vector<cudaq::real>{probability}) {}
-  REGISTER_KRAUS_CHANNEL()
+  REGISTER_KRAUS_CHANNEL(
+      noise_model_strings[(int)noise_model_type::bit_flip_channel])
 };
 
 /// @brief phase_flip_channel is a kraus_channel that
@@ -589,6 +594,7 @@ public:
   }
   phase_flip_channel(const real probability)
       : phase_flip_channel(std::vector<cudaq::real>{probability}) {}
-  REGISTER_KRAUS_CHANNEL()
+  REGISTER_KRAUS_CHANNEL(
+      noise_model_strings[(int)noise_model_type::phase_flip_channel])
 };
 } // namespace cudaq

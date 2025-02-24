@@ -605,7 +605,7 @@ struct hello_world : public ::cudaq::kraus_channel {
     push_back(cudaq::kraus_op(k0v));
     push_back(cudaq::kraus_op(k1v));
   }
-  REGISTER_KRAUS_CHANNEL()
+  REGISTER_KRAUS_CHANNEL("test::hello::world")
 };
 
 struct adios : public ::cudaq::kraus_channel {
@@ -649,7 +649,7 @@ struct adios : public ::cudaq::kraus_channel {
     push_back(cudaq::kraus_op(k0v));
     push_back(cudaq::kraus_op(k1v));
   }
-  REGISTER_KRAUS_CHANNEL()
+  REGISTER_KRAUS_CHANNEL("test::hello::adios")
 };
 } // namespace test::hello
 
