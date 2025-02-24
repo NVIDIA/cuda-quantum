@@ -6,16 +6,21 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-find_package(Python COMPONENTS Interpreter)
-if (OPENSSL_FOUND AND CUDAQ_ENABLE_PYTHON AND CUDAQ_TEST_MOCK_SERVERS)
-  add_subdirectory(anyon)
-  add_subdirectory(braket)
-  add_subdirectory(infleqtion)
-  add_subdirectory(ionq)
-  add_subdirectory(iqm)
-  add_subdirectory(oqc)
-  add_subdirectory(quantinuum)  
-endif()
-add_subdirectory(pasqal)
-add_subdirectory(qpp_observe)
-add_subdirectory(quera)
+name: pasqal
+description: "CUDA-Q target for pasqal."
+config:
+  # Tell DefaultQuantumPlatform what QPU subtype to use
+  platform-qpu: pasqal
+  # Add the pasqal-qpu library to the link list
+  link-libs: ["-lcudaq-pasqal-qpu"]
+  # Library mode is only for simulators, physical backends must turn this off
+  library-mode: false
+  # Tell NVQ++ to generate glue code to set the target backend name
+  gen-target-backend: true
+
+target-arguments:
+  - key: machine
+    required: false
+    type: string
+    platform-arg: machine
+    help-string: "Specify the Pasqal QPU."

@@ -19,3 +19,5 @@ add_subdirectory(fermioniq)
 if (AWSSDK_ROOT)
   add_subdirectory(quera)
 endif()
+
+add_subdirectory(pasqal)

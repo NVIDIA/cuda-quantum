@@ -6,16 +6,19 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-find_package(Python COMPONENTS Interpreter)
-if (OPENSSL_FOUND AND CUDAQ_ENABLE_PYTHON AND CUDAQ_TEST_MOCK_SERVERS)
-  add_subdirectory(anyon)
-  add_subdirectory(braket)
-  add_subdirectory(infleqtion)
-  add_subdirectory(ionq)
-  add_subdirectory(iqm)
-  add_subdirectory(oqc)
-  add_subdirectory(quantinuum)  
+add_executable(test_pasqal PasqalTester.cpp)
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+    target_link_options(test_pasqal PRIVATE -Wl,--no-as-needed)
 endif()
-add_subdirectory(pasqal)
-add_subdirectory(qpp_observe)
-add_subdirectory(quera)
+
+target_include_directories(test_pasqal PRIVATE ../..)
+
+target_link_libraries(test_pasqal
+  PRIVATE
+    fmt::fmt-header-only 
+    cudaq-common 
+    gtest_main
+)
+
+gtest_discover_tests(test_pasqal)
