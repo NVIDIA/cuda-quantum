@@ -40,6 +40,22 @@ protected:
   /// @brief Stim Frame/Flip simulator (used to generate multiple shots)
   std::unique_ptr<stim::FrameSimulator<W>> sampleSim;
 
+  std::optional<std::string>
+  isValidStimNoiseChannel(const kraus_channel &channel) const {
+
+    // Check the old way first
+    if (channel.noise_type == cudaq::noise_model_type::bit_flip_channel)
+      return "X_ERROR";
+
+    if (channel.noise_type == cudaq::noise_model_type::phase_flip_channel)
+      return "Z_ERROR";
+
+    if (channel.noise_type == cudaq::noise_model_type::depolarization_channel)
+      return "DEPOLARIZE1";
+
+    return std::nullopt;
+  }
+
   /// @brief Grow the state vector by one qubit.
   void addQubitToState() override { addQubitsToState(1); }
 
@@ -146,19 +162,36 @@ protected:
 
     stim::Circuit noiseOps;
     for (auto &channel : krausChannels) {
-      if (channel.noise_type == cudaq::noise_model_type::bit_flip_channel)
-        noiseOps.safe_append_ua("X_ERROR", stimTargets, channel.parameters[0]);
-      else if (channel.noise_type ==
-               cudaq::noise_model_type::phase_flip_channel)
-        noiseOps.safe_append_ua("Z_ERROR", stimTargets, channel.parameters[0]);
-      else if (channel.noise_type ==
-               cudaq::noise_model_type::depolarization_channel)
-        noiseOps.safe_append_ua("DEPOLARIZE1", stimTargets,
-                                channel.parameters[0]);
+      if (auto stimName = isValidStimNoiseChannel(channel))
+        noiseOps.safe_append_u(stimName.value(), stimTargets,
+                               channel.parameters);
     }
     // Only apply the noise operations to the sample simulator (not the Tableau
     // simulator).
     sampleSim->safe_do_circuit(noiseOps);
+  }
+
+  bool isValidNoiseChannel(const cudaq::noise_model_type &type) const override {
+    kraus_channel c;
+    c.noise_type = type;
+    return isValidStimNoiseChannel(c).has_value();
+  }
+
+  void applyNoise(const cudaq::kraus_channel &channel,
+                  const std::vector<std::size_t> &qubits) override {
+    flushGateQueue();
+    cudaq::info("[stim] apply kraus channel {}", channel.get_type_name());
+    stim::Circuit noiseOps;
+    std::vector<std::uint32_t> stimTargets;
+    stimTargets.reserve(qubits.size());
+    for (auto q : qubits)
+      stimTargets.push_back(static_cast<std::uint32_t>(q));
+
+    // If we have a valid operation, apply it
+    if (auto stimName = isValidStimNoiseChannel(channel)) {
+      noiseOps.safe_append_u(stimName.value(), stimTargets, channel.parameters);
+      sampleSim->safe_do_circuit(noiseOps);
+    }
   }
 
   void applyGate(const GateApplicationTask &task) override {

@@ -188,6 +188,36 @@ protected:
     }
   }
 
+  /// @brief This simulator supports all noise channels
+  bool isValidNoiseChannel(const cudaq::noise_model_type &type) const override {
+    return true;
+  }
+
+  /// @brief Apply the given noise channel
+  void applyNoise(const cudaq::kraus_channel &channel,
+                  const std::vector<std::size_t> &qubits) override {
+    flushGateQueue();
+    cudaq::info("[qpp-dm] apply kraus channel {}", channel.get_type_name());
+    std::vector<std::size_t> casted_qubits;
+    for (auto index : qubits) {
+      casted_qubits.push_back(convertQubitIndex(index));
+    }
+    // Map our kraus ops to the qpp::cmat
+    std::vector<qpp::cmat> K;
+    auto ops = channel.get_ops();
+    std::transform(
+        ops.begin(), ops.end(), std::back_inserter(K), [&](auto &el) {
+          // Note: Kraus channel flattened matrix data is
+          // **row-major**.
+          return Eigen::Map<Eigen::Matrix<std::complex<double>, Eigen::Dynamic,
+                                          Eigen::Dynamic, Eigen::RowMajor>>(
+              el.data.data(), el.nRows, el.nCols);
+        });
+
+    // Apply K rho Kdag
+    state = qpp::apply(state, K, casted_qubits);
+  }
+
   /// @brief Grow the density matrix by one qubit.
   void addQubitToState() override { addQubitsToState(1); }
 

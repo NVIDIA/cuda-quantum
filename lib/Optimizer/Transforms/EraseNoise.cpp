@@ -14,43 +14,39 @@
 #include "mlir/Transforms/Passes.h"
 
 namespace cudaq::opt {
-#define GEN_PASS_DEF_ERASENOPCALLS
+#define GEN_PASS_DEF_ERASENOISE
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
-#define DEBUG_TYPE "erase-nop-calls"
+#define DEBUG_TYPE "erase-noise"
 
 using namespace mlir;
 
+/// \file
+/// This pass exists simply to remove all the quake.apply_noise Ops from the IR.
+
 namespace {
-// Erase the std::move() call here.
-class EraseStdMovePattern : public OpRewritePattern<func::CallOp> {
+class EraseApplyNoisePattern : public OpRewritePattern<quake::ApplyNoiseOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(func::CallOp call,
+  LogicalResult matchAndRewrite(quake::ApplyNoiseOp noise,
                                 PatternRewriter &rewriter) const override {
-    auto callee = call.getCallee();
-    if (callee.equals(cudaq::stdMoveBuiltin)) {
-      rewriter.replaceOp(call, call.getOperands());
-      rewriter.eraseOp(call);
-      return success();
-    }
-    return failure();
+    rewriter.eraseOp(noise);
+    return success();
   }
 };
 
-class EraseNopCallsPass
-    : public cudaq::opt::impl::EraseNopCallsBase<EraseNopCallsPass> {
+class EraseNoisePass : public cudaq::opt::impl::EraseNoiseBase<EraseNoisePass> {
 public:
-  using EraseNopCallsBase::EraseNopCallsBase;
+  using EraseNoiseBase::EraseNoiseBase;
 
   void runOnOperation() override {
     auto *op = getOperation();
     LLVM_DEBUG(llvm::dbgs() << "Before erasure:\n" << *op << "\n\n");
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
-    patterns.insert<EraseStdMovePattern>(ctx);
+    patterns.insert<EraseApplyNoisePattern>(ctx);
     if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns))))
       signalPassFailure();
     LLVM_DEBUG(llvm::dbgs() << "After erasure:\n" << *op << "\n\n");

@@ -25,7 +25,8 @@ void extractKrausData(py::buffer_info &info, complex *data) {
         "Incompatible buffer format, must be np.complex128.");
 
   if (info.ndim != 2)
-    throw std::runtime_error("Incompatible buffer shape.");
+    throw std::runtime_error("Incompatible buffer shape " +
+                             std::to_string(info.ndim) + ".");
 
   constexpr bool rowMajor = true;
   typedef Eigen::MatrixXcd::Scalar Scalar;
@@ -56,6 +57,17 @@ void bindNoiseModel(py::module &mod) {
       "The `NoiseModel` defines a set of :class:`KrausChannel`'s applied to "
       "specific qubits after the invocation of specified quantum operations.")
       .def(py::init<>(), "Construct an empty noise model.")
+      .def(
+          "register_channel",
+          [](noise_model &self, const py::type krausT) {
+            auto key = py::hash(krausT);
+            std::function<kraus_channel(const std::vector<double> &)> lambda =
+                [krausT](const std::vector<double> &p) -> kraus_channel {
+              return krausT(p).cast<kraus_channel>();
+            };
+            self.register_channel(key, lambda);
+          },
+          "")
       .def(
           "add_channel",
           [](noise_model &self, std::string &opName,
@@ -138,13 +150,38 @@ void bindKrausOp(py::module &mod) {
                     "this :class:`KrausOperator`.");
 }
 
+// Need a trampoline class to make this sub-class-able from Python
+class PyKrausChannel : public kraus_channel {
+public:
+  using kraus_channel::kraus_channel;
+};
+
 void bindNoiseChannels(py::module &mod) {
-  py::class_<kraus_channel>(mod, "KrausChannel",
-                            "The `KrausChannel` is composed of a list of "
-                            ":class:`KrausOperator`'s and "
-                            "is applied to a specific qubit or set of qubits.")
+  py::enum_<cudaq::noise_model_type>(mod, "NoiseModelType")
+      .value("Unknown", cudaq::noise_model_type::unknown)
+      .value("DepolarizationChannel",
+             cudaq::noise_model_type::depolarization_channel)
+      .value("AmplitudeDampingChannel",
+             cudaq::noise_model_type::amplitude_damping_channel)
+      .value("BitFlipChannel", cudaq::noise_model_type::bit_flip_channel)
+      .value("PhaseFlipChannel", cudaq::noise_model_type::phase_flip_channel)
+      .value("XError", cudaq::noise_model_type::x_error)
+      .value("YError", cudaq::noise_model_type::y_error)
+      .value("ZError", cudaq::noise_model_type::z_error)
+      .value("AmplitudeDamping", cudaq::noise_model_type::amplitude_damping)
+      .value("PhaseDamping", cudaq::noise_model_type::phase_damping)
+      .value("Pauli1", cudaq::noise_model_type::pauli1)
+      .value("Pauli2", cudaq::noise_model_type::pauli2)
+      .value("Depolarization1", cudaq::noise_model_type::depolarization1)
+      .value("Depolarization2", cudaq::noise_model_type::depolarization2);
+
+  py::class_<kraus_channel, PyKrausChannel>(
+      mod, "KrausChannel", py::dynamic_attr(),
+      "The `KrausChannel` is composed of a list of "
+      ":class:`KrausOperator`'s and "
+      "is applied to a specific qubit or set of qubits.")
       .def(py::init<>(), "Create an empty :class:`KrausChannel`")
-      .def(py::init<std::vector<kraus_op>>(),
+      .def(py::init<const std::vector<kraus_op> &>(),
            "Create a :class:`KrausChannel` composed of a list of "
            ":class:`KrausOperator`'s.")
       .def(py::init([](py::list ops) {
@@ -161,6 +198,8 @@ void bindNoiseChannels(py::module &mod) {
            }),
            "Create a :class:`KrausChannel` given a list of "
            ":class:`KrausOperator`'s.")
+      .def_readwrite("parameters", &kraus_channel::parameters)
+      .def_readwrite("noise_type", &kraus_channel::noise_type)
       .def(
           "__getitem__",
           [](kraus_channel &self, std::size_t idx) { return self[idx]; },
