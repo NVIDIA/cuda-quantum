@@ -519,8 +519,8 @@ endfunction()
 
 if(CMAKE_CUDA_COMPILER)
   if (NOT CUDA_TARGET_ARCHS)
-    # Volta, Ampere, Hopper
-    set(CUDA_TARGET_ARCHS  "70;80;90")
+    # Volta, Ampere, Hopper, Blackwell
+    set(CUDA_TARGET_ARCHS  "70;80;90;100")
   endif()
   CUDA_get_gencode_args(CUDA_gencode_flags ${CUDA_TARGET_ARCHS})
   set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -shared -std=c++17 ${CUDA_gencode_flags} --compiler-options -fPIC")

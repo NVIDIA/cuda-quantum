@@ -12,7 +12,7 @@ on:
       cuda_versions:
         required: true
         type: string
-        description: Json array of the CUDA versions to test the packages with (e.g. ['11.8', '12.0']).
+        description: Json array of the CUDA versions to test the packages with (e.g. ['11.8', '12.8']).
       wheel_artifacts:
         required: true
         type: string
