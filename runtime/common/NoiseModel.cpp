@@ -385,12 +385,6 @@ noise_model::noise_model() {
   register_channel<amplitude_damping_channel>();
 }
 
-constexpr std::array<const char *, 14> noise_model_strings = {
-#define X(name) #name,
-    NOISE_MODEL_TYPES
-#undef X
-};
-
 std::string get_noise_model_type_name(noise_model_type type) {
   return noise_model_strings[static_cast<std::size_t>(type)];
 }

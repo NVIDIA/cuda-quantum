@@ -22,29 +22,43 @@ void warn(const std::string_view msg);
 }
 
 namespace cudaq {
-// Define the mapping in one place
-#define NOISE_MODEL_TYPES                                                      \
-  X(unknown)                                                                   \
-  X(depolarization_channel)                                                    \
-  X(amplitude_damping_channel)                                                 \
-  X(bit_flip_channel)                                                          \
-  X(phase_flip_channel)                                                        \
-  X(x_error)                                                                   \
-  X(y_error)                                                                   \
-  X(z_error)                                                                   \
-  X(amplitude_damping)                                                         \
-  X(phase_damping)                                                             \
-  X(pauli1)                                                                    \
-  X(pauli2)                                                                    \
-  X(depolarization1)                                                           \
-  X(depolarization2)
 
-// Generate the enum
+// Keep the noise_model_type and noise_model_strings in sync. We don't use
+// macros to work around bugs in the documentation generation.
 enum class noise_model_type {
-#define X(name) name,
-  NOISE_MODEL_TYPES
-#undef X
+  unknown,
+  depolarization_channel,
+  amplitude_damping_channel,
+  bit_flip_channel,
+  phase_flip_channel,
+  x_error,
+  y_error,
+  z_error,
+  amplitude_damping,
+  phase_damping,
+  pauli1,
+  pauli2,
+  depolarization1,
+  depolarization2
 };
+
+// Keep the noise_model_type and noise_model_strings in sync. We don't use
+// macros to work around bugs in the documentation generation.
+static constexpr std::array<const char *, 14> noise_model_strings = {
+    "unknown",
+    "depolarization_channel",
+    "amplitude_damping_channel",
+    "bit_flip_channel",
+    "phase_flip_channel",
+    "x_error",
+    "y_error",
+    "z_error",
+    "amplitude_damping",
+    "phase_damping",
+    "pauli1",
+    "pauli2",
+    "depolarization1",
+    "depolarization2"};
 
 std::string get_noise_model_type_name(noise_model_type type);
 
