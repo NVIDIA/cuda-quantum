@@ -194,7 +194,7 @@ matrix_2 matrix_operator::to_matrix(
   return it->second.generate_matrix(relevant_dimensions, parameters);
 }
 
-std::string matrix_operator::to_string(bool include_degrees) const {
+std::string matrix_operator::to_string(bool include_degrees, const std::unordered_map<int, int> &dimensions) const {
   if (!include_degrees) return this->op_code;
   else if (this->targets.size() == 0) return this->op_code + "()";
   auto it = this->targets.cbegin();

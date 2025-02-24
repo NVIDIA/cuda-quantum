@@ -168,7 +168,7 @@ public:
   virtual matrix_2 to_matrix(std::unordered_map<int, int> &dimensions,
                              const std::unordered_map<std::string, std::complex<double>> &parameters = {}) const = 0;
 
-  virtual std::string to_string(bool include_degrees = true) const = 0;
+  virtual std::string to_string(bool include_degrees = true, const std::unordered_map<int, int> &dimensions = {}) const = 0;
 
   template <typename HandlerTy>
   static operator_sum<HandlerTy> empty();

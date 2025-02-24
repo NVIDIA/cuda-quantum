@@ -125,7 +125,7 @@ public:
   virtual matrix_2 to_matrix(std::unordered_map<int, int> &dimensions,
                              const std::unordered_map<std::string, std::complex<double>> &parameters = {}) const;
 
-  virtual std::string to_string(bool include_degrees) const;
+  virtual std::string to_string(bool include_degrees, const std::unordered_map<int, int> &dimensions = {}) const;
 
   // comparisons
 

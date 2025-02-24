@@ -137,7 +137,11 @@ matrix_2 fermion_operator::to_matrix(std::unordered_map<int, int> &dimensions,
   return std::move(mat);
 }
 
-std::string fermion_operator::to_string(bool include_degrees) const {
+std::string fermion_operator::to_string(bool include_degrees, const std::unordered_map<int, int> &dimensions) const {
+  auto it = dimensions.find(this->target);
+  if (it != dimensions.cend() && it->second != 2)
+    throw std::runtime_error("dimension for fermion operator must be 2");
+
   if (include_degrees) return this->op_code_to_string() + "(" + std::to_string(target) + ")";
   else return this->op_code_to_string();
 }
