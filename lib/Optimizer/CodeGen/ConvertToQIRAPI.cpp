@@ -430,10 +430,13 @@ struct DiscriminateOpToCallRewrite
                                                 adaptor.getOperands());
     } else {
       auto loc = disc.getLoc();
+      // NB: the double cast here is to avoid folding the pointer casts.
+      auto i64Ty = rewriter.getI64Type();
+      auto unu =
+          rewriter.create<cudaq::cc::CastOp>(loc, i64Ty, adaptor.getOperands());
       auto ptrI1Ty = cudaq::cc::PointerType::get(rewriter.getI1Type());
-      auto bit = rewriter.create<cudaq::cc::CastOp>(loc, ptrI1Ty,
-                                                    adaptor.getOperands());
-      rewriter.replaceOpWithNewOp<cudaq::cc::LoadOp>(disc, bit);
+      auto du = rewriter.create<cudaq::cc::CastOp>(loc, ptrI1Ty, unu);
+      rewriter.replaceOpWithNewOp<cudaq::cc::LoadOp>(disc, du);
     }
     return success();
   }
