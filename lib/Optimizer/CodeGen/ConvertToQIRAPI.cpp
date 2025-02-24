@@ -67,9 +67,8 @@ std::pair<std::string, bool> generateGateFunctionName(OP op) {
         prefix += "dg";
       } else {
         if (!op.getControls().empty())
-          prefix += "dg";
-        else
-          return {prefix + "__adj", false};
+          return {prefix + "dg__ctl", false};
+        return {prefix + "__adj", false};
       }
     }
   }
