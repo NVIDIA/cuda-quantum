@@ -25,7 +25,7 @@ bool matrix_operator::can_be_canonicalized = false;
 
 // tools for custom operators
 
-std::unordered_map<std::string, Definition> matrix_operator::m_ops = {};
+std::unordered_map<std::string, Definition> matrix_operator::defined_ops = {};
 
 template <typename T>
 std::string matrix_operator::type_prefix() {
@@ -47,35 +47,27 @@ std::string matrix_operator::type_prefix<fermion_operator>() {
   return "";
 }
 
-void matrix_operator::define(std::string operator_id,
-                             std::vector<int> expected_dimensions,
-                             MatrixCallbackFunction &&create) {
-  auto defn = Definition(operator_id, expected_dimensions,
-                         std::forward<MatrixCallbackFunction>(create));
-  auto result = matrix_operator::m_ops.insert({operator_id, std::move(defn)});
+void matrix_operator::define(std::string operator_id, std::vector<int> expected_dimensions,
+            MatrixCallbackFunction &&create) {
+  auto defn = Definition(operator_id, expected_dimensions, std::forward<MatrixCallbackFunction>(create));
+  auto result = matrix_operator::defined_ops.insert({operator_id, std::move(defn)});
   if (!result.second) {
     throw std::runtime_error("an matrix operator with name " + operator_id +
                              "is already defined");
   }
 }
 
-product_operator<matrix_operator>
-matrix_operator::instantiate(std::string operator_id,
-                             const std::vector<int> &degrees) {
-  auto it = matrix_operator::m_ops.find(operator_id);
-  if (it == matrix_operator::m_ops.end())
-    throw std::range_error("not matrix operator with the name '" + operator_id +
-                           "' has been defined");
+product_operator<matrix_operator> matrix_operator::instantiate(std::string operator_id, const std::vector<int> &degrees) {
+  auto it = matrix_operator::defined_ops.find(operator_id);
+  if (it == matrix_operator::defined_ops.end()) 
+    throw std::range_error("not matrix operator with the name '" + operator_id + "' has been defined");
   return product_operator(matrix_operator(operator_id, degrees));
 }
 
-product_operator<matrix_operator>
-matrix_operator::instantiate(std::string operator_id,
-                             std::vector<int> &&degrees) {
-  auto it = matrix_operator::m_ops.find(operator_id);
-  if (it == matrix_operator::m_ops.end())
-    throw std::range_error("not matrix operator with the name '" + operator_id +
-                           "' has been defined");
+product_operator<matrix_operator> matrix_operator::instantiate(std::string operator_id, std::vector<int> &&degrees) {
+  auto it = matrix_operator::defined_ops.find(operator_id);
+  if (it == matrix_operator::defined_ops.end()) 
+    throw std::range_error("not matrix operator with the name '" + operator_id + "' has been defined");
   return product_operator(matrix_operator(operator_id, std::move(degrees)));
 }
 
@@ -95,12 +87,11 @@ std::vector<int> matrix_operator::degrees() const { return this->targets; }
 
 matrix_operator::matrix_operator(int degree) {
   std::string op_code = "I";
-  if (matrix_operator::m_ops.find(op_code) == matrix_operator::m_ops.end()) {
-    auto func =
-        [](const std::vector<int> &dimensions,
-           const std::unordered_map<std::string, std::complex<double>> &_none) {
-          std::size_t dimension = dimensions[0];
-          auto mat = matrix_2(dimension, dimension);
+  if (matrix_operator::defined_ops.find(op_code) == matrix_operator::defined_ops.end()) {
+    auto func = [](const std::vector<int> &dimensions,
+                    const std::unordered_map<std::string, std::complex<double>> &_none) {
+      std::size_t dimension = dimensions[0];
+      auto mat = matrix_2(dimension, dimension);
 
           // Build up the identity matrix.
           for (std::size_t i = 0; i < dimension; i++) {
@@ -131,12 +122,9 @@ template <typename T,
 matrix_operator::matrix_operator(const T &other) {
   this->targets = other.degrees();
   this->op_code = matrix_operator::type_prefix<T>() + other.to_string(false);
-  if (matrix_operator::m_ops.find(this->op_code) ==
-      matrix_operator::m_ops.end()) {
-    auto func = [targets = other.degrees(), other](
-                    const std::vector<int> &dimensions,
-                    const std::unordered_map<std::string, std::complex<double>>
-                        &_none) {
+  if (matrix_operator::defined_ops.find(this->op_code) == matrix_operator::defined_ops.end()) {
+    auto func = [targets = other.degrees(), other]
+      (const std::vector<int> &dimensions, const std::unordered_map<std::string, std::complex<double>> &_none) {
       std::unordered_map<int, int> dims;
       for (auto i = 0; i < dimensions.size(); ++i)
         dims[targets[i]] = dimensions[i];
@@ -198,10 +186,9 @@ matrix_operator &matrix_operator::operator=(matrix_operator &&other) {
 
 matrix_2 matrix_operator::to_matrix(
     std::unordered_map<int, int> &dimensions,
-    const std::unordered_map<std::string, std::complex<double>> &parameters)
-    const {
-  auto it = matrix_operator::m_ops.find(this->op_code);
-  if (it == matrix_operator::m_ops.end())
+    const std::unordered_map<std::string, std::complex<double>> &parameters) const {
+  auto it = matrix_operator::defined_ops.find(this->op_code);
+  if (it == matrix_operator::defined_ops.end()) 
     throw std::range_error("unable to find operator");
 
   std::vector<int> relevant_dimensions;
@@ -262,17 +249,16 @@ product_operator<matrix_operator> matrix_operator::identity(int degree) {
 
 product_operator<matrix_operator> matrix_operator::number(int degree) {
   std::string op_code = "number";
-  if (matrix_operator::m_ops.find(op_code) == matrix_operator::m_ops.end()) {
-    auto func =
-        [](const std::vector<int> &dimensions,
-           const std::unordered_map<std::string, std::complex<double>> &_none) {
-          std::size_t dimension = dimensions[0];
-          auto mat = matrix_2(dimension, dimension);
-          for (std::size_t i = 0; i < dimension; i++) {
-            mat[{i, i}] = static_cast<double>(i) + 0.0j;
-          }
-          return mat;
-        };
+  if (matrix_operator::defined_ops.find(op_code) == matrix_operator::defined_ops.end()) {
+    auto func = [](const std::vector<int> &dimensions,
+                    const std::unordered_map<std::string, std::complex<double>> &_none) {
+      std::size_t dimension = dimensions[0];
+      auto mat = matrix_2(dimension, dimension);
+      for (std::size_t i = 0; i < dimension; i++) {
+        mat[{i, i}] = static_cast<double>(i) + 0.0j;
+      }
+      return mat;
+    };
     matrix_operator::define(op_code, {-1}, func);
   }
   auto op = matrix_operator(op_code, {degree});
@@ -281,17 +267,16 @@ product_operator<matrix_operator> matrix_operator::number(int degree) {
 
 product_operator<matrix_operator> matrix_operator::parity(int degree) {
   std::string op_code = "parity";
-  if (matrix_operator::m_ops.find(op_code) == matrix_operator::m_ops.end()) {
-    auto func =
-        [](const std::vector<int> &dimensions,
-           const std::unordered_map<std::string, std::complex<double>> &_none) {
-          std::size_t dimension = dimensions[0];
-          auto mat = matrix_2(dimension, dimension);
-          for (std::size_t i = 0; i < dimension; i++) {
-            mat[{i, i}] = std::pow(-1., static_cast<double>(i)) + 0.0j;
-          }
-          return mat;
-        };
+  if (matrix_operator::defined_ops.find(op_code) == matrix_operator::defined_ops.end()) {
+    auto func = [](const std::vector<int> &dimensions,
+                    const std::unordered_map<std::string, std::complex<double>> &_none) {
+      std::size_t dimension = dimensions[0];
+      auto mat = matrix_2(dimension, dimension);
+      for (std::size_t i = 0; i < dimension; i++) {
+        mat[{i, i}] = std::pow(-1., static_cast<double>(i)) + 0.0j;
+      }
+      return mat;
+    };
     matrix_operator::define(op_code, {-1}, func);
   }
   auto op = matrix_operator(op_code, {degree});
@@ -300,21 +285,20 @@ product_operator<matrix_operator> matrix_operator::parity(int degree) {
 
 product_operator<matrix_operator> matrix_operator::position(int degree) {
   std::string op_code = "position";
-  if (matrix_operator::m_ops.find(op_code) == matrix_operator::m_ops.end()) {
-    auto func =
-        [](const std::vector<int> &dimensions,
-           const std::unordered_map<std::string, std::complex<double>> &_none) {
-          std::size_t dimension = dimensions[0];
-          auto mat = matrix_2(dimension, dimension);
-          // position = 0.5 * (create + annihilate)
-          for (std::size_t i = 0; i + 1 < dimension; i++) {
-            mat[{i + 1, i}] =
-                0.5 * std::sqrt(static_cast<double>(i + 1)) + 0.0 * 'j';
-            mat[{i, i + 1}] =
-                0.5 * std::sqrt(static_cast<double>(i + 1)) + 0.0 * 'j';
-          }
-          return mat;
-        };
+  if (matrix_operator::defined_ops.find(op_code) == matrix_operator::defined_ops.end()) {
+    auto func = [](const std::vector<int> &dimensions,
+                    const std::unordered_map<std::string, std::complex<double>> &_none) {
+      std::size_t dimension = dimensions[0];
+      auto mat = matrix_2(dimension, dimension);
+      // position = 0.5 * (create + annihilate)
+      for (std::size_t i = 0; i + 1 < dimension; i++) {
+        mat[{i + 1, i}] =
+            0.5 * std::sqrt(static_cast<double>(i + 1)) + 0.0 * 'j';
+        mat[{i, i + 1}] =
+            0.5 * std::sqrt(static_cast<double>(i + 1)) + 0.0 * 'j';
+      }
+      return mat;
+    };
     matrix_operator::define(op_code, {-1}, func);
   }
   auto op = matrix_operator(op_code, {degree});
@@ -323,22 +307,20 @@ product_operator<matrix_operator> matrix_operator::position(int degree) {
 
 product_operator<matrix_operator> matrix_operator::momentum(int degree) {
   std::string op_code = "momentum";
-  if (matrix_operator::m_ops.find(op_code) == matrix_operator::m_ops.end()) {
-    auto func =
-        [](const std::vector<int> &dimensions,
-           const std::unordered_map<std::string, std::complex<double>> &_none) {
-          std::size_t dimension = dimensions[0];
-          auto mat = matrix_2(dimension, dimension);
-          // momentum = 0.5j * (create - annihilate)
-          for (std::size_t i = 0; i + 1 < dimension; i++) {
-            mat[{i + 1, i}] =
-                (0.5j) * std::sqrt(static_cast<double>(i + 1)) + 0.0 * 'j';
-            mat[{i, i + 1}] =
-                -1. * (0.5j) * std::sqrt(static_cast<double>(i + 1)) +
-                0.0 * 'j';
-          }
-          return mat;
-        };
+  if (matrix_operator::defined_ops.find(op_code) == matrix_operator::defined_ops.end()) {
+    auto func = [](const std::vector<int> &dimensions,
+                    const std::unordered_map<std::string, std::complex<double>> &_none) {
+      std::size_t dimension = dimensions[0];
+      auto mat = matrix_2(dimension, dimension);
+      // momentum = 0.5j * (create - annihilate)
+      for (std::size_t i = 0; i + 1 < dimension; i++) {
+        mat[{i + 1, i}] =
+            (0.5j) * std::sqrt(static_cast<double>(i + 1)) + 0.0 * 'j';
+        mat[{i, i + 1}] =
+            -1. * (0.5j) * std::sqrt(static_cast<double>(i + 1)) + 0.0 * 'j';
+      }
+      return mat;
+    };
     matrix_operator::define(op_code, {-1}, func);
   }
   auto op = matrix_operator(op_code, {degree});
@@ -347,7 +329,7 @@ product_operator<matrix_operator> matrix_operator::momentum(int degree) {
 
 product_operator<matrix_operator> matrix_operator::displace(int degree) {
   std::string op_code = "displace";
-  if (matrix_operator::m_ops.find(op_code) == matrix_operator::m_ops.end()) {
+  if (matrix_operator::defined_ops.find(op_code) == matrix_operator::defined_ops.end()) {
     auto func = [](const std::vector<int> &dimensions,
                    const std::unordered_map<std::string, std::complex<double>>
                        &parameters) {
@@ -375,7 +357,7 @@ product_operator<matrix_operator> matrix_operator::displace(int degree) {
 
 product_operator<matrix_operator> matrix_operator::squeeze(int degree) {
   std::string op_code = "squeeze";
-  if (matrix_operator::m_ops.find(op_code) == matrix_operator::m_ops.end()) {
+  if (matrix_operator::defined_ops.find(op_code) == matrix_operator::defined_ops.end()) {
     auto func = [](const std::vector<int> &dimensions,
                    const std::unordered_map<std::string, std::complex<double>>
                        &parameters) {

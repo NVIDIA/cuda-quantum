@@ -85,15 +85,11 @@ matrix_2 MatrixCallbackFunction::operator()(
 
 // Definition
 
-Definition::Definition(std::string operator_id,
-                       const std::vector<int> &expected_dimensions,
-                       MatrixCallbackFunction &&create)
-    : id(operator_id), generator(std::move(create)),
-      m_expected_dimensions(expected_dimensions) {}
+Definition::Definition(std::string operator_id, const std::vector<int> &expected_dimensions, MatrixCallbackFunction &&create) 
+  : id(operator_id), generator(std::move(create)), required_dimensions(expected_dimensions) {}
 
-Definition::Definition(Definition &&def)
-    : id(def.id), generator(std::move(def.generator)),
-      m_expected_dimensions(std::move(def.m_expected_dimensions)) {}
+Definition::Definition(Definition &&def) 
+  : id(def.id), generator(std::move(def.generator)), required_dimensions(std::move(def.expected_dimensions)) {}
 
 matrix_2 Definition::generate_matrix(
     const std::vector<int> &relevant_dimensions,

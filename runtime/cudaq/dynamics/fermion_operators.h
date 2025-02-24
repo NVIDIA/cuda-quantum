@@ -17,12 +17,6 @@
 
 namespace cudaq {
 
-template <typename HandlerTy>
-class product_operator;
-
-template <typename HandlerTy>
-class operator_sum;
-
 // FIXME: rename?
 class fermion_operator : public operator_handler {
   template <typename T>

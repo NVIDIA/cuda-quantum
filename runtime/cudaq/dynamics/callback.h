@@ -103,10 +103,10 @@ class Definition {
 private:
   std::string id;
   MatrixCallbackFunction generator;
-  std::vector<int> m_expected_dimensions;
+  std::vector<int> required_dimensions;
 
 public:
-  const std::vector<int> &expected_dimensions = this->m_expected_dimensions;
+  const std::vector<int>& expected_dimensions = this->required_dimensions;
 
   Definition(std::string operator_id,
              const std::vector<int> &expected_dimensions,

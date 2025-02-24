@@ -12,14 +12,13 @@
 #include <unordered_map>
 #include <vector>
 
+#include "utils/tensor.h"
+#include "dynamics/manipulation.h"
 #include "dynamics/operator_leafs.h"
 #include "dynamics/templates.h"
 #include "utils/tensor.h"
 
 namespace cudaq {
-
-class MatrixArithmetics;
-class EvaluatedMatrix;
 
 /// @brief Represents an operator expression consisting of a sum of terms, where
 /// each term is a product of elementary and scalar operators. Operator
@@ -42,8 +41,8 @@ private:
   template <typename... Args>
   void aggregate_terms(product_operator<HandlerTy> &&head, Args &&...args);
 
-  EvaluatedMatrix m_evaluate(MatrixArithmetics arithmetics,
-                             bool pad_terms = true) const;
+  template <typename EvalTy>
+  EvalTy evaluate(OperatorArithmetics<EvalTy> arithmetics, bool pad_terms = true) const;
 
 protected:
   std::unordered_map<std::string, int>
@@ -348,8 +347,8 @@ private:
   template <typename... Args>
   void aggregate_terms(HandlerTy &&head, Args &&...args);
 
-  EvaluatedMatrix m_evaluate(MatrixArithmetics arithmetics,
-                             bool pad_terms = true) const;
+  template <typename EvalTy>
+  EvalTy evaluate(OperatorArithmetics<EvalTy> arithmetics, bool pad_terms = true) const;
 
 protected:
   std::vector<HandlerTy> operators;
@@ -638,10 +637,12 @@ public:
 extern template class product_operator<matrix_operator>;
 extern template class product_operator<spin_operator>;
 extern template class product_operator<boson_operator>;
+extern template class product_operator<fermion_operator>;
 
 extern template class operator_sum<matrix_operator>;
 extern template class operator_sum<spin_operator>;
 extern template class operator_sum<boson_operator>;
+extern template class operator_sum<fermion_operator>;
 #endif
 
 /// @brief Representation of a time-dependent Hamiltonian for Rydberg system

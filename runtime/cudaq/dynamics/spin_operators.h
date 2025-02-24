@@ -17,9 +17,6 @@
 
 namespace cudaq {
 
-template <typename HandlerTy>
-class product_operator;
-
 // FIXME: rename to spin ...
 class spin_operator : public operator_handler {
   template <typename T>
