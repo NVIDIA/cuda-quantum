@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // RUN: cudaq-quake -std=c++17 -verify -D CUDAQ_REMOTE_SIM=1 %s
-// RUN: cudaq-quake -std=c++20 -verify -D ONE_MORE_NOTE -D CUDAQ_REMOTE_SIM=1 %s
+// RUN: cudaq-quake -std=c++20 -verify -D CUDAQ_REMOTE_SIM=1 %s
 
 #include <cudaq.h>
 
