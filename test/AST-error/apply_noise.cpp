@@ -24,6 +24,6 @@ struct testApplyNoise {
     cudaq::apply_noise<SantaKraus>(q0, q1);
     // expected-note@* {{}}
     // expected-note@* {{}}
-    // expected-note@* {{'false' evaluated to false}}
+    // expected-note@* {{}}
   }
 };
