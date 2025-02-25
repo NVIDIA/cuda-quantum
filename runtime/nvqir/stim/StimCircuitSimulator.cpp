@@ -51,7 +51,6 @@ protected:
     case cudaq::noise_model_type::y_error:
       return "Y_ERROR";
     case cudaq::noise_model_type::phase_flip_channel:
-    case cudaq::noise_model_type::phase_damping:
     case cudaq::noise_model_type::z_error:
       return "Z_ERROR";
     case cudaq::noise_model_type::depolarization_channel:
@@ -65,6 +64,7 @@ protected:
       return "PAULI_CHANNEL_2";
     case cudaq::noise_model_type::amplitude_damping_channel:
     case cudaq::noise_model_type::amplitude_damping:
+    case cudaq::noise_model_type::phase_damping:
     case cudaq::noise_model_type::unknown:
       return std::nullopt;
     }

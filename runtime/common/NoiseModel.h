@@ -649,15 +649,24 @@ public:
       noise_model_strings[(int)noise_model_type::amplitude_damping])
 };
 
-/// @brief phase_damping is the same as phase_flip_channel.
-class phase_damping : public phase_flip_channel {
+/// @brief phase_damping is similar to amplitude_damping but for phase instead.
+class phase_damping : public kraus_channel {
 public:
-  phase_damping(const std::vector<cudaq::real> &p) : phase_flip_channel(p) {
+  constexpr static std::size_t num_parameters = 1;
+  constexpr static std::size_t num_targets = 1;
+  phase_damping(const std::vector<cudaq::real> &ps) {
+    auto probability = ps[0];
+    std::vector<cudaq::complex> k0v{1, 0, 0, std::sqrt(1 - probability)},
+        k1v{0, 0, 0, std::sqrt(probability)};
+    ops = {k0v, k1v};
+    this->parameters.push_back(probability);
     noise_type = noise_model_type::phase_damping;
+    validateCompleteness();
+    // Note: phase damping is non-unitary, so there is no value in calling
+    // generateUnitaryParameters().
   }
-  phase_damping(const real probability) : phase_flip_channel(probability) {
-    noise_type = noise_model_type::phase_damping;
-  }
+  phase_damping(const real probability)
+      : phase_damping(std::vector<cudaq::real>{probability}) {}
   REGISTER_KRAUS_CHANNEL(
       noise_model_strings[(int)noise_model_type::phase_damping])
 };
@@ -747,7 +756,7 @@ public:
     validateCompleteness();
     generateUnitaryParameters();
   }
-  REGISTER_KRAUS_CHANNEL()
+  REGISTER_KRAUS_CHANNEL(noise_model_strings[(int)noise_model_type::pauli1])
 };
 
 class pauli2 : public kraus_channel {
@@ -774,6 +783,7 @@ public:
     cudaq::real pii = std::sqrt(std::max(static_cast<cudaq::real>(1.0 - sum),
                                          static_cast<cudaq::real>(0)));
 
+    ops.reserve(16);
     ops.push_back(details::scale(pii, details::kron(I, 2, 2, I, 2, 2)));
     ops.push_back(details::scale(p[0], details::kron(I, 2, 2, X, 2, 2)));
     ops.push_back(details::scale(p[1], details::kron(I, 2, 2, Y, 2, 2)));
@@ -801,7 +811,7 @@ public:
     validateCompleteness();
     generateUnitaryParameters();
   }
-  REGISTER_KRAUS_CHANNEL()
+  REGISTER_KRAUS_CHANNEL(noise_model_strings[(int)noise_model_type::pauli2])
 };
 
 /// @brief depolarization1 is the same as depolarization_channel
@@ -815,7 +825,7 @@ public:
       : depolarization_channel(probability) {
     noise_type = noise_model_type::depolarization1;
   }
-  REGISTER_KRAUS_CHANNEL()
+  REGISTER_KRAUS_CHANNEL(noise_model_strings[(int)noise_model_type::depolarization1])
 };
 
 class depolarization2 : public kraus_channel {
@@ -836,6 +846,7 @@ public:
          negOne * std::sqrt(probability / three)}};
 
     // Generate 2-qubit Kraus operators
+    ops.reserve(singleQubitKraus.size() * singleQubitKraus.size());
     for (const auto &k1 : singleQubitKraus) {
       for (const auto &k2 : singleQubitKraus) {
         ops.push_back(details::kron(k1, 2, 2, k2, 2, 2));
@@ -855,7 +866,7 @@ public:
   /// mixing occurs at p = 0.9375.)
   depolarization2(const real probability)
       : depolarization2(std::vector<cudaq::real>{probability}) {}
-  REGISTER_KRAUS_CHANNEL()
+  REGISTER_KRAUS_CHANNEL(noise_model_strings[(int)noise_model_type::depolarization2])
 };
 
 } // namespace cudaq

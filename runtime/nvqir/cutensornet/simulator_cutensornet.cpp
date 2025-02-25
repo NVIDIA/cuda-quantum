@@ -179,7 +179,6 @@ bool SimulatorTensorNetBase::isValidNoiseChannel(
   case cudaq::noise_model_type::x_error:
   case cudaq::noise_model_type::y_error:
   case cudaq::noise_model_type::z_error:
-  case cudaq::noise_model_type::phase_damping:
   case cudaq::noise_model_type::pauli1:
   case cudaq::noise_model_type::pauli2:
   case cudaq::noise_model_type::depolarization1:
@@ -189,6 +188,7 @@ bool SimulatorTensorNetBase::isValidNoiseChannel(
   // These are explicitly non-unitary and unsupported
   case cudaq::noise_model_type::amplitude_damping_channel:
   case cudaq::noise_model_type::amplitude_damping:
+  case cudaq::noise_model_type::phase_damping:
   default:
     return false;
   }
