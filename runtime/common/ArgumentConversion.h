@@ -13,7 +13,9 @@
 #include "cudaq/qis/state.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/Types.h"
+#include <list>
 #include <unordered_set>
+#include <vector>
 
 namespace cudaq::opt {
 
@@ -21,8 +23,7 @@ class ArgumentConverter {
 public:
   /// Build an instance to create argument substitutions for a specified \p
   /// kernelName in \p sourceModule.
-  ArgumentConverter(mlir::StringRef kernelName, mlir::ModuleOp sourceModule,
-                    bool isSimulator = true);
+  ArgumentConverter(mlir::StringRef kernelName, mlir::ModuleOp sourceModule);
 
   /// Generate a substitution ModuleOp for the vector of arguments presented.
   /// The arguments are those presented to the kernel, kernelName.
@@ -47,13 +48,42 @@ public:
   /// created.
   mlir::ModuleOp getSubstitutionModule() { return substModule; }
 
+  mlir::ModuleOp getSourceModule() { return sourceModule; }
+
+  mlir::StringRef getKernelName() { return kernelName; }
+
+  void genCallee(mlir::StringRef calleeName, std::vector<void *> &args) {
+    auto &converter = calleeConverters.emplace_back(calleeName, substModule);
+    converter.gen(args);
+  }
+
+  std::vector<ArgumentConverter> &getCalleeConverters() {
+    return calleeConverters;
+  }
+
+  static bool isRegisteredKernelName(const std::string &kernelName) {
+    return std::find(kernelNameRegistry.begin(), kernelNameRegistry.end(),
+                     kernelName) != kernelNameRegistry.end();
+  }
+
+  static const std::string &registerKernelName(const std::string &kernelName) {
+    return kernelNameRegistry.emplace_back(kernelName);
+  }
+
 private:
+  /// Keeps kernel names created during argument conversion in memory.
+  /// References to those names are used by the argument converters for
+  /// those kernels.
+  /// Note: use std::list to make sure we always return valid references
+  /// when registering new kernel names.
+  static std::list<std::string> kernelNameRegistry;
+
   mlir::ModuleOp sourceModule;
   mlir::ModuleOp substModule;
   mlir::OpBuilder builder;
   mlir::StringRef kernelName;
   mlir::SmallVector<cc::ArgumentSubstitutionOp> substitutions;
-  bool isSimulator;
+  std::vector<ArgumentConverter> calleeConverters;
 };
 
 } // namespace cudaq::opt

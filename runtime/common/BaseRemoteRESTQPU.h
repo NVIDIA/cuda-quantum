@@ -18,6 +18,7 @@
 #include "common/RuntimeMLIR.h"
 #include "cudaq.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
+#include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
@@ -424,8 +425,8 @@ public:
     for (auto &op : m_module.getOps()) {
       // Add any global symbols, including global constant arrays.
       // Global constant arrays can be created during compilation,
-      // `lift-array-alloc`, `quake-synthesizer`, and `get-concrete-matrix`
-      // passes.
+      // `lift-array-alloc`, `argument-synthesis`, `quake-synthesizer`,
+      // and `get-concrete-matrix` passes.
       if (auto globalOp = dyn_cast<cudaq::cc::GlobalOp>(op))
         moduleOp.push_back(globalOp.clone());
     }
@@ -453,17 +454,49 @@ public:
       mlir::PassManager pm(&context);
       if (!rawArgs.empty()) {
         cudaq::info("Run Argument Synth.\n");
-        opt::ArgumentConverter argCon(kernelName, moduleOp, false);
+        opt::ArgumentConverter argCon(kernelName, moduleOp);
         argCon.gen(rawArgs);
-        std::string kernName = cudaq::runtime::cudaqGenPrefixName + kernelName;
-        mlir::SmallVector<mlir::StringRef> kernels = {kernName};
-        std::string substBuff;
-        llvm::raw_string_ostream ss(substBuff);
-        ss << argCon.getSubstitutionModule();
-        mlir::SmallVector<mlir::StringRef> substs = {substBuff};
-        pm.addNestedPass<mlir::func::FuncOp>(
-            opt::createArgumentSynthesisPass(kernels, substs));
+
+        // For quantum devices, we've created a tree of ArgumentConverters
+        // with nodes corresponding to `init` and `num_qubits` functions
+        // created from a kernel that generated the state argument.
+        // Traverse the tree and collect substitutions for all those
+        // functions.
+
+        // Store kernel and substitution strings on the stack.
+        // We pass string references to the `createArgumentSynthesisPass`.
+        mlir::SmallVector<std::string> kernels;
+        mlir::SmallVector<std::string> substs;
+
+        std::function<void(opt::ArgumentConverter &)> collect =
+            [&kernels, &substs, &collect](opt::ArgumentConverter &con) {
+              {
+                auto name = con.getKernelName();
+                std::string kernName =
+                    cudaq::runtime::cudaqGenPrefixName + name.str();
+                kernels.emplace_back(kernName);
+              }
+              {
+                std::string substBuff;
+                llvm::raw_string_ostream ss(substBuff);
+                ss << con.getSubstitutionModule();
+                substs.emplace_back(substBuff);
+              }
+
+              for (auto &calleeCon : con.getCalleeConverters())
+                collect(calleeCon);
+            };
+        collect(argCon);
+
+        mlir::SmallVector<mlir::StringRef> funcNames{kernels.begin(),
+                                                     kernels.end()};
+        mlir::SmallVector<mlir::StringRef> substitutions{substs.begin(),
+                                                         substs.end()};
+        pm.addPass(opt::createArgumentSynthesisPass(funcNames, substitutions));
         pm.addPass(opt::createDeleteStates());
+        pm.addNestedPass<mlir::func::FuncOp>(
+            opt::createReplaceStateWithKernel());
+        pm.addPass(mlir::createSymbolDCEPass());
       } else if (updatedArgs) {
         cudaq::info("Run Quake Synth.\n");
         pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));
