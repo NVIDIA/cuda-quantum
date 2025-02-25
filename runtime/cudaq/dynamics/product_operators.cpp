@@ -13,7 +13,7 @@
 #include <unordered_map>
 
 #include "helpers.h"
-#include "manipulation.h"
+#include "evaluation.h"
 #include "cudaq/operators.h"
 #include "cudaq/spin_op.h"
 
@@ -41,46 +41,31 @@ bool product_operator<HandlerTy>::is_canonicalized() const {
 }
 #endif
 
-template <typename HandlerTy>
-std::vector<HandlerTy>::const_iterator
-product_operator<HandlerTy>::find_insert_at(const HandlerTy &other) const {
-  // the logic below just ensures that terms are fully or partially ordered in
-  // canonical order - a best effort is made to order terms, but a full
-  // canonical ordering is not possible for certain handlers
-  return std::find_if(
-             this->operators.crbegin(), this->operators.crend(),
-             [other_target = other.target](const HandlerTy &self_op) {
-               return other_target <=
-                      self_op.target; // FIXME: relies on canonical order
-             })
-      .base(); // base causes insert after for reverse iterator
+template<typename HandlerTy>
+std::vector<HandlerTy>::const_iterator product_operator<HandlerTy>::find_insert_at(const HandlerTy &other) const {
+  // the logic below just ensures that terms are fully or partially ordered in canonical order -
+  // a best effort is made to order terms, but a full canonical ordering is not possible for certain handlers
+  return std::find_if(this->operators.crbegin(), this->operators.crend(), 
+              [other_target = other.target] (const HandlerTy& self_op) { 
+    return !operator_handler::canonical_order(other_target, self_op.target);
+  }).base(); // base causes insert after for reverse iterator
 }
 
-template <>
-std::vector<matrix_operator>::const_iterator
-product_operator<matrix_operator>::find_insert_at(
-    const matrix_operator &other) const {
-  // the logic below just ensures that terms are fully or partially ordered in
-  // canonical order - a best effort is made to order terms, but a full
-  // canonical ordering is not possible for certain handlers
-  return std::find_if(
-             this->operators.crbegin(), this->operators.crend(),
-             [&other_degrees = static_cast<const std::vector<int> &>(
-                  other.degrees())](const matrix_operator &self_op) {
-               const std::vector<int> &self_op_degrees = self_op.degrees();
-               for (auto other_degree : other_degrees) {
-                 auto item_it = std::find_if(
-                     self_op_degrees.crbegin(), self_op_degrees.crend(),
-                     [other_degree](int self_degree) {
-                       return other_degree <= self_degree;
-                     }); // FIXME: depends on canonical order (otherwise matrix
-                         // computation is rather inefficient)
-                 if (item_it != self_op_degrees.crend())
-                   return true;
-               }
-               return false;
-             })
-      .base(); // base causes insert after for reverse iterator
+template<>
+std::vector<matrix_operator>::const_iterator product_operator<matrix_operator>::find_insert_at(const matrix_operator &other) const {
+  // the logic below just ensures that terms are fully or partially ordered in canonical order -
+  // a best effort is made to order terms, but a full canonical ordering is not possible for certain handlers
+  return std::find_if(this->operators.crbegin(), this->operators.crend(), 
+              [&other_degrees = static_cast<const std::vector<int>&>(other.degrees())] 
+              (const matrix_operator& self_op) { 
+    const std::vector<int> &self_op_degrees = self_op.degrees();
+    for (auto other_degree : other_degrees) {
+      auto item_it = std::find_if(self_op_degrees.crbegin(), self_op_degrees.crend(), 
+        [other_degree](int self_degree) { return !operator_handler::canonical_order(other_degree, self_degree); });
+      if (item_it != self_op_degrees.crend()) return true;
+    }
+    return false;
+  }).base(); // base causes insert after for reverse iterator
 }
 
 template <typename HandlerTy>
@@ -174,7 +159,7 @@ void product_operator<HandlerTy>::aggregate_terms(HandlerTy &&head,
 template <typename HandlerTy>
 template <typename EvalTy>
 EvalTy product_operator<HandlerTy>::evaluate(
-    OperatorArithmetics<EvalTy> arithmetics) const {
+    operator_arithmetics<EvalTy> arithmetics) const {
   auto degrees = this->degrees();
   cudaq::matrix_2 result;
 
@@ -205,12 +190,12 @@ EvalTy product_operator<HandlerTy>::evaluate(
       if (op_degrees.size() != 1 || this->operators[op_idx] != HandlerTy(op_degrees[0]))
         prod = arithmetics.mul(std::move(prod), padded_op(this->operators[op_idx]));
     }
-    return arithmetics.tensor(this->coefficient, std::move(prod));
+    return arithmetics.mul(this->coefficient, std::move(prod));
   } else {
     EvalTy prod = arithmetics.evaluate(this->coefficient);
     for (auto op_idx = 0; op_idx < this->operators.size(); ++op_idx) {
       EvalTy eval = arithmetics.evaluate(this->operators[op_idx]);
-      prod = arithmetics.mul(std::move(prod), std::move(eval));
+      prod = arithmetics.tensor(std::move(prod), std::move(eval));
     }
     return std::move(prod);
   }
@@ -236,12 +221,12 @@ INSTANTIATE_PRODUCT_PRIVATE_METHODS(fermion_operator);
                                                                                               \
   template                                                                                    \
   EvalTy product_operator<HandlerTy>::evaluate(                                               \
-    OperatorArithmetics<EvalTy> arithmetics) const;                                           \
+    operator_arithmetics<EvalTy> arithmetics) const;                                           \
 
-INSTANTIATE_PRODUCT_EVALUATE_METHODS(matrix_operator, EvaluatedMatrix);
-INSTANTIATE_PRODUCT_EVALUATE_METHODS(spin_operator, EvaluatedCanonicalized);
-INSTANTIATE_PRODUCT_EVALUATE_METHODS(boson_operator, EvaluatedMatrix);
-INSTANTIATE_PRODUCT_EVALUATE_METHODS(fermion_operator, EvaluatedMatrix);
+INSTANTIATE_PRODUCT_EVALUATE_METHODS(matrix_operator, operator_handler::matrix_evaluation);
+INSTANTIATE_PRODUCT_EVALUATE_METHODS(spin_operator, operator_handler::canonical_evaluation);
+INSTANTIATE_PRODUCT_EVALUATE_METHODS(boson_operator, operator_handler::matrix_evaluation);
+INSTANTIATE_PRODUCT_EVALUATE_METHODS(fermion_operator, operator_handler::matrix_evaluation);
 
 // read-only properties
 
@@ -252,9 +237,8 @@ std::vector<int> product_operator<HandlerTy>::degrees() const {
     auto term_degrees = term.degrees();
     unsorted_degrees.insert(term_degrees.cbegin(), term_degrees.cend());
   }
-  auto degrees =
-      std::vector<int>(unsorted_degrees.cbegin(), unsorted_degrees.cend());
-  cudaq::detail::canonicalize_degrees(degrees);
+  auto degrees = std::vector<int>(unsorted_degrees.cbegin(), unsorted_degrees.cend());
+  std::sort(degrees.begin(), degrees.end(), operator_handler::canonical_order);
   return std::move(degrees);
 }
 
@@ -495,13 +479,13 @@ std::string product_operator<HandlerTy>::to_string() const {
 template<typename HandlerTy>
 matrix_2 product_operator<HandlerTy>::to_matrix(std::unordered_map<int, int> dimensions,
                                                 const std::unordered_map<std::string, std::complex<double>> &parameters) const {
-  return this->evaluate(OperatorArithmetics<EvaluatedMatrix>(dimensions, parameters)).matrix();
+  return this->evaluate(matrix_arithmetics(dimensions, parameters)).matrix();
 }
 
 template<>
 matrix_2 product_operator<spin_operator>::to_matrix(std::unordered_map<int, int> dimensions,
                                                 const std::unordered_map<std::string, std::complex<double>> &parameters) const {
-  auto evaluated = this->evaluate(OperatorArithmetics<EvaluatedCanonicalized>(dimensions, parameters));
+  auto evaluated = this->evaluate(canonical_arithmetics(dimensions, parameters));
   auto terms = evaluated.get_terms();
   assert(terms.size() == 1);
   return spin_operator::to_matrix(terms[0].second, terms[0].first);

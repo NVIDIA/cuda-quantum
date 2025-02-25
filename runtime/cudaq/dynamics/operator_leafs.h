@@ -165,6 +165,8 @@ public:
                                     // for operator expressions
 #endif
 
+  static constexpr auto canonical_order = std::greater<int>();
+
   virtual ~operator_handler() = default;
 
   virtual std::string unique_id() const = 0;
@@ -191,6 +193,40 @@ public:
       std::enable_if_t<std::conjunction<std::is_same<int, Args>...>::value,
                        bool> = true>
   static product_operator<HandlerTy> identity(Args... targets);
+
+  // data storage classes for evaluation
+
+  class matrix_evaluation {
+  private:
+    std::vector<int> targets;
+    matrix_2 value;
+  public: 
+    const std::vector<int>& degrees() const;
+    const matrix_2& matrix() const;
+    matrix_evaluation();
+    matrix_evaluation(std::vector<int> &&degrees, matrix_2 &&matrix);
+    matrix_evaluation(matrix_evaluation &&other);
+    matrix_evaluation& operator=(matrix_evaluation &&other);
+    // delete copy constructor and copy assignment to avoid unnecessary copies
+    matrix_evaluation(const matrix_evaluation &other) = delete;
+    matrix_evaluation& operator=(const matrix_evaluation &other) = delete;
+  };
+
+  class canonical_evaluation {
+  private:
+    std::vector<std::pair<std::complex<double>, std::string>> terms;
+  public:
+    const std::vector<std::pair<std::complex<double>, std::string>>& get_terms();
+    canonical_evaluation();
+    canonical_evaluation(canonical_evaluation &&other);
+    canonical_evaluation& operator=(canonical_evaluation &&other);
+    // delete copy constructor and copy assignment to avoid unnecessary copies
+    canonical_evaluation(const canonical_evaluation &other) = delete;
+    canonical_evaluation& operator=(const canonical_evaluation &other) = delete;
+    void push_back(std::pair<std::complex<double>, std::string> &&term);
+    void push_back(const std::string &op);
+  };
+
 };
 
 } // namespace cudaq
