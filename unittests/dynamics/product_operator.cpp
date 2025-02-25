@@ -1389,51 +1389,51 @@ TEST(OperatorExpressions, checkCustomProductOps) {
       auto func0 = [](const std::vector<int> &dimensions,
                       const std::unordered_map<std::string, std::complex<double>> &_none) {
         return cudaq::kronecker(utils::momentum_matrix(dimensions[0]),
-                                      utils::position_matrix(dimensions[1]));;
+                                utils::position_matrix(dimensions[1]));
       };
       auto func1 = [](const std::vector<int> &dimensions,
                       const std::unordered_map<std::string, std::complex<double>> &_none) {
         return cudaq::kronecker(utils::momentum_matrix(dimensions[0]),
-                                      utils::number_matrix(dimensions[1]));;
+                                utils::number_matrix(dimensions[1]));
       };
       cudaq::matrix_operator::define("custom_op0", {-1, -1}, func0);
       cudaq::matrix_operator::define("custom_op1", {-1, -1}, func1);
     }
 
-    auto op0 = cudaq::matrix_operator::instantiate("custom_op0", {0, 1});
-    auto op1 = cudaq::matrix_operator::instantiate("custom_op1", {1, 2});
+    auto op0 = cudaq::matrix_operator::instantiate("custom_op0", {1, 0});
+    auto op1 = cudaq::matrix_operator::instantiate("custom_op1", {2, 1});
     auto product = op0 * op1;
     auto reverse = op1 * op0;
 
     std::vector<cudaq::matrix_2> matrices = {
-      utils::number_matrix(level_count),
-      utils::position_matrix(level_count + 2) * utils::momentum_matrix(level_count + 2),
-      utils::momentum_matrix(level_count + 1)};
+      utils::momentum_matrix(level_count),
+      utils::momentum_matrix(level_count + 2) * utils::number_matrix(level_count + 2),
+      utils::position_matrix(level_count + 1)};
     auto expected = cudaq::kronecker(matrices.begin(), matrices.end());
 
     std::vector<cudaq::matrix_2> matrices_reverse = {
-      utils::number_matrix(level_count),
-      utils::momentum_matrix(level_count + 2) * utils::position_matrix(level_count + 2),
-      utils::momentum_matrix(level_count + 1)};
+      utils::momentum_matrix(level_count),
+      utils::number_matrix(level_count + 2) * utils::momentum_matrix(level_count + 2),
+      utils::position_matrix(level_count + 1)};
     auto expected_reverse = cudaq::kronecker(matrices_reverse.begin(), matrices_reverse.end());
 
     utils::checkEqual(product.to_matrix(dimensions), expected);
     utils::checkEqual(reverse.to_matrix(dimensions), expected_reverse);
 
-    op0 = cudaq::matrix_operator::instantiate("custom_op0", {2, 3});
+    op0 = cudaq::matrix_operator::instantiate("custom_op0", {3, 2});
     op1 = cudaq::matrix_operator::instantiate("custom_op1", {2, 0});
     product = op0 * op1;
     reverse = op1 * op0;
 
     matrices = {
-      utils::position_matrix(level_count + 3),
-      utils::momentum_matrix(level_count) * utils::momentum_matrix(level_count),
+      utils::momentum_matrix(level_count + 3),
+      utils::position_matrix(level_count) * utils::momentum_matrix(level_count),
       utils::number_matrix(level_count + 1)};
     expected = cudaq::kronecker(matrices.begin(), matrices.end());
 
     matrices_reverse = {
-      utils::position_matrix(level_count + 3),
-      utils::momentum_matrix(level_count) * utils::momentum_matrix(level_count),
+      utils::momentum_matrix(level_count + 3),
+      utils::momentum_matrix(level_count) * utils::position_matrix(level_count),
       utils::number_matrix(level_count + 1)};
     expected_reverse = cudaq::kronecker(matrices_reverse.begin(), matrices_reverse.end());
 

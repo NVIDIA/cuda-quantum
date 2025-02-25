@@ -28,7 +28,7 @@ bool operator_handler::can_be_canonicalized = true;
 // returns true if and only if applying the operators in sequence acts only once on each degree of freedom and in canonical order
 template <typename HandlerTy>
 bool product_operator<HandlerTy>::is_canonicalized() const {
-  auto canon_degrees = this->degrees();
+  auto canon_degrees = this->degrees(false);
   std::vector<int> degrees;
   degrees.reserve(canon_degrees.size());
   for (const auto &op : this->operators) {
@@ -139,10 +139,8 @@ void product_operator<HandlerTy>::aggregate_terms(HandlerTy &&head, Args&& ... a
 
 template <typename HandlerTy>
 template <typename EvalTy>
-EvalTy product_operator<HandlerTy>::evaluate(
-    operator_arithmetics<EvalTy> arithmetics) const {
-  auto degrees = this->degrees();
-  cudaq::matrix_2 result;
+EvalTy product_operator<HandlerTy>::evaluate(operator_arithmetics<EvalTy> arithmetics) const {
+  auto degrees = this->degrees(false); // keep in canonical order
 
   auto padded_op = [&arithmetics, &degrees = std::as_const(degrees)](const HandlerTy &op) {
       std::vector<EvalTy> padding;
@@ -212,14 +210,15 @@ INSTANTIATE_PRODUCT_EVALUATE_METHODS(fermion_operator, operator_handler::matrix_
 // read-only properties
 
 template<typename HandlerTy>
-std::vector<int> product_operator<HandlerTy>::degrees() const {
+std::vector<int> product_operator<HandlerTy>::degrees(bool application_order) const {
   std::set<int> unsorted_degrees;
   for (const HandlerTy &term : this->operators) {
     auto term_degrees = term.degrees();
     unsorted_degrees.insert(term_degrees.cbegin(), term_degrees.cend());
   }
   auto degrees = std::vector<int>(unsorted_degrees.cbegin(), unsorted_degrees.cend());
-  std::sort(degrees.begin(), degrees.end(), operator_handler::canonical_order);
+  if (application_order) std::sort(degrees.begin(), degrees.end(), operator_handler::user_facing_order);
+  else std::sort(degrees.begin(), degrees.end(), operator_handler::canonical_order);
   return std::move(degrees);
 }
 
@@ -241,10 +240,10 @@ scalar_operator product_operator<HandlerTy>::get_coefficient() const {
 #define INSTANTIATE_PRODUCT_PROPERTIES(HandlerTy)                                            \
                                                                                              \
   template                                                                                   \
-  std::vector<int> product_operator<HandlerTy>::degrees() const;                             \
+  std::vector<int> product_operator<HandlerTy>::degrees(bool application_order) const;       \
                                                                                              \
   template                                                                                   \
-  int product_operator<HandlerTy>::num_terms() const;                                          \
+  int product_operator<HandlerTy>::num_terms() const;                                        \
                                                                                              \
   template                                                                                   \
   const std::vector<HandlerTy>& product_operator<HandlerTy>::get_terms() const;              \
@@ -443,17 +442,31 @@ std::string product_operator<HandlerTy>::to_string() const {
 
 template<typename HandlerTy>
 matrix_2 product_operator<HandlerTy>::to_matrix(std::unordered_map<int, int> dimensions,
-                                                const std::unordered_map<std::string, std::complex<double>> &parameters) const {
-  return this->evaluate(matrix_arithmetics(dimensions, parameters)).matrix();
+                                                const std::unordered_map<std::string, std::complex<double>> &parameters,
+                                                bool application_order) const {
+  auto evaluated = this->evaluate(matrix_arithmetics(dimensions, parameters));
+  auto matrix = std::move(evaluated.matrix()); // FIXME: avoid the additional copy
+  if (!application_order || operator_handler::canonical_order(1, 0) == operator_handler::user_facing_order(1, 0))
+    return std::move(matrix);
+
+  auto current_degrees = evaluated.degrees(); // FIXME: avoid the additional copy
+  auto degrees = current_degrees;
+  std::sort(degrees.begin(), degrees.end(), operator_handler::user_facing_order);
+  auto permutation = cudaq::detail::compute_permutation(current_degrees, degrees, dimensions);
+  cudaq::detail::permute_matrix(matrix, permutation); 
+  return std::move(matrix);
 }
 
 template<>
 matrix_2 product_operator<spin_operator>::to_matrix(std::unordered_map<int, int> dimensions,
-                                                const std::unordered_map<std::string, std::complex<double>> &parameters) const {
+                                                const std::unordered_map<std::string, std::complex<double>> &parameters, 
+                                                bool application_order) const {
   auto evaluated = this->evaluate(canonical_arithmetics(dimensions, parameters));
   auto terms = evaluated.get_terms();
   assert(terms.size() == 1);
-  return spin_operator::to_matrix(terms[0].second, terms[0].first);
+  bool invert_order = application_order && operator_handler::canonical_order(1, 0) != operator_handler::user_facing_order(1, 0);
+  auto matrix = spin_operator::to_matrix(terms[0].second, terms[0].first, invert_order);
+  return std::move(matrix);
 }
 
 #define INSTANTIATE_PRODUCT_EVALUATIONS(HandlerTy)                                          \
@@ -464,7 +477,8 @@ matrix_2 product_operator<spin_operator>::to_matrix(std::unordered_map<int, int>
   template                                                                                  \
   matrix_2 product_operator<HandlerTy>::to_matrix(                                          \
     std::unordered_map<int, int> dimensions,                                                \
-    const std::unordered_map<std::string, std::complex<double>> &parameters) const;         \
+    const std::unordered_map<std::string, std::complex<double>> &parameters,                \
+    bool application_order) const;                                                          \
 
 INSTANTIATE_PRODUCT_EVALUATIONS(matrix_operator);
 INSTANTIATE_PRODUCT_EVALUATIONS(spin_operator);

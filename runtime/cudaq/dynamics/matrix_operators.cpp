@@ -41,15 +41,24 @@ void matrix_operator::define(std::string operator_id, std::vector<int> expected_
             MatrixCallbackFunction &&create) {
   auto defn = Definition(operator_id, expected_dimensions, std::forward<MatrixCallbackFunction>(create));
   auto result = matrix_operator::defined_ops.insert({operator_id, std::move(defn)});
-  if (!result.second) {
+  if (!result.second)
     throw std::runtime_error("an matrix operator with name " + operator_id + "is already defined");
-  }
 }
 
 product_operator<matrix_operator> matrix_operator::instantiate(std::string operator_id, const std::vector<int> &degrees) {
   auto it = matrix_operator::defined_ops.find(operator_id);
   if (it == matrix_operator::defined_ops.end()) 
     throw std::range_error("not matrix operator with the name '" + operator_id + "' has been defined");
+  auto application_degrees = degrees;
+  std::sort(application_degrees.begin(), application_degrees.end(), operator_handler::user_facing_order);
+  if (application_degrees != degrees) {
+    std::stringstream err_msg;
+    err_msg << "incorrect ordering of degrees (expected order {" << application_degrees[0];
+    for (auto i = 1; i < application_degrees.size(); ++i)
+      err_msg << ", " << std::to_string(application_degrees[i]);
+    err_msg << "})";
+    throw std::runtime_error(err_msg.str());
+  }
   return product_operator(matrix_operator(operator_id, degrees));
 }
 
@@ -57,6 +66,16 @@ product_operator<matrix_operator> matrix_operator::instantiate(std::string opera
   auto it = matrix_operator::defined_ops.find(operator_id);
   if (it == matrix_operator::defined_ops.end()) 
     throw std::range_error("not matrix operator with the name '" + operator_id + "' has been defined");
+  auto application_degrees = degrees;
+  std::sort(application_degrees.begin(), application_degrees.end(), operator_handler::user_facing_order);
+  if (application_degrees != degrees) {
+    std::stringstream err_msg;
+    err_msg << "incorrect ordering of degrees (expected order {" << application_degrees[0];
+    for (auto i = 1; i < application_degrees.size(); ++i)
+      err_msg << ", " << std::to_string(application_degrees[i]);
+    err_msg << "})";
+    throw std::runtime_error(err_msg.str());
+  }
   return product_operator(matrix_operator(operator_id, std::move(degrees)));
 }
 

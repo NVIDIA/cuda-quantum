@@ -1268,19 +1268,19 @@ TEST(OperatorExpressions, checkCustomOperatorSum) {
       auto func0 = [](const std::vector<int> &dimensions,
                       const std::unordered_map<std::string, std::complex<double>> &_none) {
         return cudaq::kronecker(utils::momentum_matrix(dimensions[0]),
-                                      utils::position_matrix(dimensions[1]));;
+                                utils::position_matrix(dimensions[1]));
       };
       auto func1 = [](const std::vector<int> &dimensions,
                       const std::unordered_map<std::string, std::complex<double>> &_none) {
         return cudaq::kronecker(utils::parity_matrix(dimensions[0]),
-                                      utils::number_matrix(dimensions[1]));;
+                                utils::number_matrix(dimensions[1]));
       };
       cudaq::matrix_operator::define("custom_op0", {-1, -1}, func0);
       cudaq::matrix_operator::define("custom_op1", {-1, -1}, func1);
     }
 
-    auto op0 = cudaq::matrix_operator::instantiate("custom_op0", {0, 1});
-    auto op1 = cudaq::matrix_operator::instantiate("custom_op1", {1, 2});
+    auto op0 = cudaq::matrix_operator::instantiate("custom_op0", {1, 0});
+    auto op1 = cudaq::matrix_operator::instantiate("custom_op1", {2, 1});
     auto sum = op0 + op1;
     auto sum_reverse = op1 + op0;
     auto difference = op0 - op1;
@@ -1288,11 +1288,11 @@ TEST(OperatorExpressions, checkCustomOperatorSum) {
 
     std::vector<cudaq::matrix_2> matrices_0 = {
       utils::id_matrix(level_count),
-      utils::position_matrix(level_count + 2),
-      utils::momentum_matrix(level_count + 1)};
+      utils::momentum_matrix(level_count + 2),
+      utils::position_matrix(level_count + 1)};
     std::vector<cudaq::matrix_2> matrices_1 = {
-      utils::number_matrix(level_count),
-      utils::parity_matrix(level_count + 2),
+      utils::parity_matrix(level_count),
+      utils::number_matrix(level_count + 2),
       utils::id_matrix(level_count + 1)};
     auto sum_expected = cudaq::kronecker(matrices_0.begin(), matrices_0.end()) + 
                         cudaq::kronecker(matrices_1.begin(), matrices_1.end());
@@ -1306,7 +1306,7 @@ TEST(OperatorExpressions, checkCustomOperatorSum) {
     utils::checkEqual(difference.to_matrix(dimensions), diff_expected);
     utils::checkEqual(difference_reverse.to_matrix(dimensions), diff_reverse_expected);
 
-    op0 = cudaq::matrix_operator::instantiate("custom_op0", {2, 3});
+    op0 = cudaq::matrix_operator::instantiate("custom_op0", {3, 2});
     op1 = cudaq::matrix_operator::instantiate("custom_op1", {2, 0});
     sum = op0 + op1;
     sum_reverse = op1 + op0;
@@ -1314,8 +1314,8 @@ TEST(OperatorExpressions, checkCustomOperatorSum) {
     difference_reverse = op1 - op0;
 
     matrices_0 = {
-      utils::position_matrix(level_count + 3),
-      utils::momentum_matrix(level_count),
+      utils::momentum_matrix(level_count + 3),
+      utils::position_matrix(level_count),
       utils::id_matrix(level_count + 1)};
     matrices_1 = {
       utils::id_matrix(level_count + 3),

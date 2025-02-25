@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <functional>
 #include <complex>
 #include <map>
 #include <type_traits>
@@ -154,7 +155,9 @@ public:
   static bool can_be_canonicalized; // whether a canonical order can be defined for operator expressions
 #endif
 
-  static constexpr auto canonical_order = std::greater<int>();
+  // individual handlers should *not* override this but rather adhere to it
+  static constexpr auto canonical_order = std::less<int>();
+  static constexpr auto user_facing_order = std::greater<int>();
 
   virtual ~operator_handler() = default;
 
@@ -170,6 +173,7 @@ public:
   virtual matrix_2 to_matrix(std::unordered_map<int, int> &dimensions,
                              const std::unordered_map<std::string, std::complex<double>> &parameters = {}) const = 0;
 
+  // FIXME: move the dimensions check into a separate function an use that to update dimensions
   virtual std::string to_string(bool include_degrees = true, const std::unordered_map<int, int> &dimensions = {}) const = 0;
 
   template <typename HandlerTy>

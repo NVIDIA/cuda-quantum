@@ -68,6 +68,11 @@ namespace detail {
   }
 
   void permute_matrix(cudaq::matrix_2 &matrix, const std::vector<int> &permutation) {
+    if (permutation.size() == 0) {
+      assert(matrix.get_rows() == matrix.get_columns() == 1);
+      return;
+    }
+
     std::vector<std::complex<double>> sorted_values;
     for (std::size_t permuted : permutation) {
       for (std::size_t permuted_again : permutation) {
