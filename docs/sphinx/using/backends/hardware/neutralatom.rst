@@ -133,25 +133,43 @@ Submitting
 Pasqal
 ++++++++++++++++
 
-WIP
+Pasqal is a quantum computing hardware company that builds quantum processors from ordered neutral atoms in 2D and 3D arrays to bring a practical quantum advantage to its customers and address real-world problems.
+The currently available Pasqal QPUs are analog quantum computers.
 
-Pasqal's QPU is an an analog quantum simulator
-https://quantum-journal.org/papers/q-2020-09-21-327/
-https://quantum-journal.org/papers/q-2022-01-24-629/
+In order to access Pasqal's devices you need an account for `Pasqal's cloud platform <https://portal.pasqal.cloud>`__
+and an active project. Although a different interface `Pasqal's Pulser library <https://pulser.readthedocs.io/en/latest/>`__ is a good
+way of getting started with analog neutral atom quantum computing. For support you can also use `Pasqal Community <https://community.pasqal.com/>`__.
+
 
 .. _pasqal-backend:
 
 Setting Credentials
 ```````````````````
 
-Use in Python
-https://github.com/pasqal-io/pasqal-cloud
+An authentication token for the session must be obtained from Pasqal's cloud platform.
+For example from Python one can use the `pasqal-cloud package <https://github.com/pasqal-io/pasqal-cloud>`__ as below:
+.. code:: python
+    from pasqal_cloud import SDK
+    import os
+    username = <Your email on Pasqal's cloud platform>
+    password = <The corresponding password or None to enter from CMD line>
+    project_id = <The project_id to bill against>
+    sdk = SDK(
+        username=username,
+        password=password,
+        project_id=project_id,
+    )
+    token = sdk._client.authenticator.token_provider.get_token()
+    os.environ["PASQAL_AUTH_TOKEN"] = str(token)
+    os.environ["PASQAL_PROJECT_ID"] = project_id
 
-Alternatively, users can set the following environment variables.
+
+Alternatively, users can set the following environment variables directly.
 
 .. code:: bash
-
   export PASQAL_AUTH_TOKEN=<>
+  export PASQAL_PROJECT_ID=<>
+
 
 Submission from Python
 `````````````````````````

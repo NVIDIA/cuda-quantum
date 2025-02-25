@@ -12,34 +12,15 @@ import json
 import numpy as np
 import os
 import pytest
-from multiprocessing import Process
-from network_utils import check_server_connection
-
-try:
-    from utils.mock_qpu.Pasqal import startServer
-except:
-    print("Mock qpu not available, skipping Pasqal tests.")
-    pytest.skip("Mock qpu not available.", allow_module_level=True)
-
-# Define the port for the mock server
-port = 62448
-
 
 @pytest.fixture(scope="session", autouse=True)
-def startUpMockServer():
+def do_something():
     # NOTE: Credentials can be set with environment variables
-    cudaq.set_target('Pasqal')
-    # Launch the Mock Server
-    p = Process(target=startServer, args=(port,))
-    p.start()
-    if not check_server_connection(port):
-        p.terminate()
-        pytest.exit("Mock server did not start in time, skipping tests.",
-                    returncode=1)
+    cudaq.set_target("pasqal")
     yield "Running the tests."
-    p.terminate()
+    cudaq.reset_target()
 
-
+@pytest.mark.skip(reason="Pasqal Cloud credentials must be set")
 def test_JSON_payload():
     input = {
         "setup": {
@@ -79,7 +60,7 @@ def test_JSON_payload():
     cudaq.cudaq_runtime.pyAltLaunchAnalogKernel("__analog_hamiltonian_kernel__",
                                                 json.dumps(input))
 
-
+@pytest.mark.skip(reason="Pasqal Cloud credentials must be set")
 def test_ahs_hello():
 
     a = 5.7e-6

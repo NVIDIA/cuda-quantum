@@ -19,7 +19,7 @@ protected:
   virtual std::tuple<mlir::ModuleOp, mlir::MLIRContext *, void *>
   extractQuakeCodeAndContext(const std::string &kernelName,
                              void *data) override {
-    
+
     throw std::runtime_error("Not supported on this target.");
   }
 
@@ -36,7 +36,8 @@ public:
                const std::vector<void *> &rawArgs) override {
 
     if (kernelName.find(cudaq::runtime::cudaqAHKPrefixName) != 0) {
-      throw std::runtime_error("Arbitrary kernel execution is not supported on this target.");
+      throw std::runtime_error(
+          "Arbitrary kernel execution is not supported on this target.");
     }
 
     cudaq::info("Launching remote kernel ({})", kernelName);
@@ -62,7 +63,7 @@ public:
       executionContext->result = future.get();
     }
 
-    return {};  
+    return {};
   }
 };
 

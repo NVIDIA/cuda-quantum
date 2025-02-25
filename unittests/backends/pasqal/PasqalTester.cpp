@@ -9,7 +9,6 @@
 #include "CUDAQTestUtils.h"
 #include "common/AnalogHamiltonian.h"
 
-
 const std::string sampleSequence = R"(
 {
   "setup": {
@@ -94,12 +93,11 @@ CUDAQ_TEST(PasqalTester, checkHamiltonianJson) {
 
   cudaq::ahs::PhysicalField amplitude;
   amplitude.time_series = std::vector<std::pair<double, double>>{
-    {0.0, 0.0}, {1.07e7, 1.0e-6}, {1.07e7, 2.0e-6}, {0.0, 3.0e-6}
-  };
+      {0.0, 0.0}, {1.07e7, 1.0e-6}, {1.07e7, 2.0e-6}, {0.0, 3.0e-6}};
 
   cudaq::ahs::PhysicalField detuning;
   detuning.time_series =
-  std::vector<std::pair<double, double>>{{-5.4e6, 0.0}, {5.4e6, 3.0e-6}};
+      std::vector<std::pair<double, double>>{{-5.4e6, 0.0}, {5.4e6, 3.0e-6}};
 
   cudaq::ahs::PhysicalField phase;
   phase.time_series = std::vector<std::pair<double, double>>{{0.0, 0.0}};

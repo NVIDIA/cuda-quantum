@@ -3,23 +3,12 @@ from cudaq.operator import *
 
 # This example illustrates how to use Pasqal's Fresnel device over Pasqal's cloud via CUDA-Q.
 
-# To login via Pasqal's SDK uncomment these lines
-# We recommend filling in password via an environment variable
-# or leave it empty in an interactive session as you will be
-# promted to enter the password securely via the command line.
-# from pasqal_cloud import SDK
-# import os
-# username = <Your email on Pasqal's cloud platform>
-# password = <The corresponding password or None to enter from CMD line>
-# project_id = <The project_id to bill against>
-# sdk = SDK(
-#     username=username,
-#     password=password,
-#     project_id=project_id,
-# )
-# token = sdk._client.authenticator.token_provider.get_token()
-# os.environ["PASQAL_AUTH_TOKEN"] = str(token)
-# os.environ["PASQAL_PROJECT_ID"] = project_id
+# To login to Pasqal's cloud platform you need to authenticate and export these two
+# environment variables
+# export PASQAL_AUTH_TOKEN = <>
+# export PASQAL_PROJECT_ID = <>
+# The cloud portal can be found at https://portal.pasqal.cloud, and you can contact
+# Pasqal at help@pasqal.com or at https://community.pasqal.com for assistance.
 
 
 cudaq.set_target("pasqal")

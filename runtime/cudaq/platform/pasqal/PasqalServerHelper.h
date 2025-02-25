@@ -11,9 +11,10 @@
 
 namespace cudaq {
 
-class PasqalServerHelper : public ServerHelper {  
+class PasqalServerHelper : public ServerHelper {
 protected:
-  /// @brief Pasqal's REST API.
+  /// @brief Server helper implementation for communicating with the REST API of
+  /// Pasqal.
   const std::string baseUrl = "https://apis.pasqal.cloud";
   const std::string apiPath = "/core-fast/api";
 
@@ -61,7 +62,7 @@ public:
   /// @param jobId
   /// @return
   sample_result processResults(ServerMessage &postJobResponse,
-                               std::string &jobId) override;  
+                               std::string &jobId) override;
 };
 
 } // namespace cudaq

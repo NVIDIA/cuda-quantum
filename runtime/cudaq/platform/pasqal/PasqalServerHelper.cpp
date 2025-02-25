@@ -6,9 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "PasqalServerHelper.h"
 #include "common/AnalogHamiltonian.h"
 #include "common/Logger.h"
-#include "PasqalServerHelper.h"
 
 #include <unordered_map>
 #include <unordered_set>
@@ -26,15 +26,15 @@ void PasqalServerHelper::initialize(BackendConfig config) {
 
   if (!config.contains("machine"))
     config["machine"] = MACHINE;
-    
+
   config["qubits"] = MAX_QUBITS;
 
-  if(!config["shots"].empty())
+  if (!config["shots"].empty())
     setShots(std::stoul(config["shots"]));
 
   if (auto project_id = std::getenv("PASQAL_PROJECT_ID"))
     config["project_id"] = project_id;
-    else
+  else
     config["project_id"] = "";
 
   parseConfigForCommonParams(config);
@@ -51,11 +51,11 @@ RestHeaders PasqalServerHelper::getHeaders() {
     token = "Bearer ";
 
   std::map<std::string, std::string> headers{
-    {"Authorization", token},
-    {"Content-Type", "application/json"},
-    {"User-Agent", "Cudaq/Pasqal"},
-    {"Connection", "keep-alive"},
-    {"Accept", "*/*"}};
+      {"Authorization", token},
+      {"Content-Type", "application/json"},
+      {"User-Agent", "Cudaq/Pasqal"},
+      {"Connection", "keep-alive"},
+      {"Accept", "*/*"}};
 
   return headers;
 }
@@ -75,13 +75,14 @@ PasqalServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
 
   cudaq::info("Created job payload for Pasqal, targeting device {}",
               backendConfig.at("machine"));
-  
+
   // Return a tuple containing the job path, headers, and the job message
-  return std::make_tuple(baseUrl + apiPath + "/v1/cudaq/job", getHeaders(), tasks);
+  return std::make_tuple(baseUrl + apiPath + "/v1/cudaq/job", getHeaders(),
+                         tasks);
 }
 
 std::string PasqalServerHelper::extractJobId(ServerMessage &postResponse) {
-    return postResponse["data"]["id"].get<std::string>();
+  return postResponse["data"]["id"].get<std::string>();
 }
 
 std::string PasqalServerHelper::constructGetJobPath(std::string &jobId) {
@@ -90,30 +91,30 @@ std::string PasqalServerHelper::constructGetJobPath(std::string &jobId) {
 
 std::string
 PasqalServerHelper::constructGetJobPath(ServerMessage &postResponse) {
-    return baseUrl + apiPath + "/v1/batches/" +
-      postResponse["data"]["id"].get<std::string>() + "/results";
+  return baseUrl + apiPath + "/v1/batches/" +
+         postResponse["data"]["id"].get<std::string>() + "/results";
 }
 
 bool PasqalServerHelper::jobIsDone(ServerMessage &getJobResponse) {
-  std::unordered_set<std::string>
-  terminals = {"PENDING", "RUNNING", "DONE", "ERROR", "CANCEL"};
-  
+  std::unordered_set<std::string> terminals = {"PENDING", "RUNNING", "DONE",
+                                               "ERROR", "CANCEL"};
+
   auto jobStatus = getJobResponse["data"]["status"].get<std::string>();
   return terminals.find(jobStatus) != terminals.end();
 }
 
-sample_result
-PasqalServerHelper::processResults(ServerMessage &postJobResponse,
-                                   std::string &jobId) {
+sample_result PasqalServerHelper::processResults(ServerMessage &postJobResponse,
+                                                 std::string &jobId) {
 
   auto jobStatus = postJobResponse["data"]["status"].get<std::string>();
-  if (jobStatus != "DONE") 
+  if (jobStatus != "DONE")
     throw std::runtime_error("Job status: " + jobStatus);
 
   std::vector<ExecutionResult> results;
   auto jobs = postJobResponse["data"]["jobs"];
   for (auto &job : jobs) {
-    auto result = job["full_result"]["counter"].get<std::unordered_map<std::string, std::size_t>>();
+    auto result = job["full_result"]["counter"]
+                      .get<std::unordered_map<std::string, std::size_t>>();
     results.push_back(ExecutionResult(result));
   }
 
