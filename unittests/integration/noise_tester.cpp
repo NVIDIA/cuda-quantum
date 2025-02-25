@@ -346,7 +346,6 @@ CUDAQ_TEST(NoiseTest, checkApplyDepol2) {
   cudaq::set_random_seed(13);
   double probability = 0.1;
   cudaq::noise_model noise{};
-  noise.register_channel<cudaq::depolarization2>();
   cudaq::set_noise(noise);
   auto counts = cudaq::sample(bell_depolarization2{}, probability);
   counts.dump();
