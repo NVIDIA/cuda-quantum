@@ -218,6 +218,7 @@ Noisy Simulation
 
 .. autoclass:: cudaq::NoiseModel
     :members:
+    :exclude-members: register_channel
     :special-members: __init__
 
 .. autoclass:: cudaq::BitFlipChannel

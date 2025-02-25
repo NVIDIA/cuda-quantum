@@ -364,6 +364,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/sims/noisy.html">     Noisy Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/noisy.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/noisy.html#density-matrix">Density Matrix</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/noisy.html#stim">Stim</a></li>
 </ul>
@@ -2656,6 +2657,18 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dd><p>Add a <a class="reference internal" href="#structcudaq_1_1kraus__op"><span class="std std-ref">kraus_op</span></a> to this channel. </p>
 </dd></dl>
 
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq13kraus_channel18is_unitary_mixtureEv">
+<span class="target" id="classcudaq_1_1kraus__channel_1abf8effbbbb302ff37450202b25ffe721"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_unitary_mixture</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq13kraus_channel18is_unitary_mixtureEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Returns whether or not this is a unitary mixture. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13kraus_channel25generateUnitaryParametersEv">
+<span class="target" id="classcudaq_1_1kraus__channel_1a49b36a2b346c14e4cbd6bdabdc2b04fa"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">generateUnitaryParameters</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq13kraus_channel25generateUnitaryParametersEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Checks if Kraus ops have unitary representations and saves them if they do. Users should only need to call this if they have modified the Kraus ops and want to recompute these values. </p>
+</dd></dl>
+
 </div>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
@@ -2669,6 +2682,18 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq13kraus_channel10parametersE">
 <span class="target" id="classcudaq_1_1kraus__channel_1ad78d39ae4ebfcfcb2bfd91f9b5a4ebb5"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">parameters</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq13kraus_channel10parametersE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Noise parameter values. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13kraus_channel11unitary_opsE">
+<span class="target" id="classcudaq_1_1kraus__channel_1a96c9b610069e9ff86ef5597bff834c28"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">unitary_ops</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq13kraus_channel11unitary_opsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>If all Kraus ops are - when scaled - unitary, this holds the unitary versions of those ops. These values are always “double” regardless of whether cudaq::real is float or double. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13kraus_channel13probabilitiesE">
+<span class="target" id="classcudaq_1_1kraus__channel_1a9f9cfb565a7013493a72d67602442bca"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">probabilities</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq13kraus_channel13probabilitiesE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>If all Kraus ops are - when scaled - unitary, this holds the probabilities of those ops. These values are always “double” regardless of whether cudaq::real is float or double. </p>
 </dd></dl>
 
 </div>
@@ -2715,7 +2740,7 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq11noise_model11noise_modelEv">
-<span class="target" id="classcudaq_1_1noise__model_1a5c366911696095b18a8bcf1c55fe1dac"></span><span class="sig-name descname"><span class="n"><span class="pre">noise_model</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N5cudaq11noise_model11noise_modelEv" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="classcudaq_1_1noise__model_1adc4449f34e0319ce95a80bc6124f5d15"></span><span class="sig-name descname"><span class="n"><span class="pre">noise_model</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq11noise_model11noise_modelEv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>default constructor </p>
 </dd></dl>
 
@@ -2801,8 +2826,7 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dl class="cpp enum-class">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_typeE">
 <span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">noise_model_type</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_typeE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Noise model enumerated type that allows downstream simulators of <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1kraus__channel"><span class="std std-ref"><span class="pre">kraus_channel</span></span></a></code> objects to apply simulator-specific logic for well-known noise models. </p>
-<p><em>Values:</em></p>
+<dd><p><em>Values:</em></p>
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type7unknownE">
 <span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5aad921d60486366258809553a3db49a4a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">unknown</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type7unknownE" title="Permalink to this definition">¶</a><br /></dt>
@@ -2826,6 +2850,51 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type18phase_flip_channelE">
 <span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5a47d7b6d93e6a7373d773f10e9971fba6"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">phase_flip_channel</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type18phase_flip_channelE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type7x_errorE">
+<span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5a20ccc71de1bdb05475ee924e5f8ecf41"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">x_error</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type7x_errorE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type7y_errorE">
+<span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5aeeb6d6807691c67a1110e04a3cde2cec"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">y_error</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type7y_errorE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type7z_errorE">
+<span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5a743745d72843c03bf23ecf46214237ac"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">z_error</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type7z_errorE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type17amplitude_dampingE">
+<span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5ab3de5faaf1f45abc76779a1236609b86"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">amplitude_damping</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type17amplitude_dampingE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type13phase_dampingE">
+<span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5a9110851341133106609dc4567991cb25"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">phase_damping</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type13phase_dampingE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type6pauli1E">
+<span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5a444d61d3ef68f4747f0e2e7a8ac9de4e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pauli1</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type6pauli1E" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type6pauli2E">
+<span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5a8069aa5fd7f7d50ae0efd4444f372ec1"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pauli2</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type6pauli2E" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type15depolarization1E">
+<span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5abf9638080b9c0e60da383218767d187d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">depolarization1</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type15depolarization1E" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type15depolarization2E">
+<span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5a91509198e0aaa4c1ebb996ca0bb1ae70"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">depolarization2</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type15depolarization2E" title="Permalink to this definition">¶</a><br /></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -3838,6 +3907,12 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16quantum_platform9set_noiseEPK11noise_model">
 <span class="target" id="classcudaq_1_1quantum__platform_1a6e798c291d46aff40ce8fdad40e6fb90"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_noise</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq11noise_modelE" title="cudaq::noise_model"><span class="n"><span class="pre">noise_model</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">model</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq16quantum_platform9set_noiseEPK11noise_model" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the noise model for future invocations of quantum kernels. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16quantum_platform9get_noiseEv">
+<span class="target" id="classcudaq_1_1quantum__platform_1aa523466e2bde7c9d7e4bce7ef4322f73"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq11noise_modelE" title="cudaq::noise_model"><span class="n"><span class="pre">noise_model</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_noise</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq16quantum_platform9get_noiseEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Return the current noise model or <code class="docutils literal notranslate"><span class="pre">nullptr</span></code> if none set. </p>
 </dd></dl>
 
 <dl class="cpp function">
