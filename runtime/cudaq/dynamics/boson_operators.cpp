@@ -224,7 +224,7 @@ operator_sum<boson_operator> boson_operator::position(int degree) {
 }
 
 operator_sum<boson_operator> boson_operator::momentum(int degree) {
-  return std::complex<double>(0, 0.5) *
+  return 0.5j *
          (boson_operator::create(degree) - boson_operator::annihilate(degree));
 }
 
