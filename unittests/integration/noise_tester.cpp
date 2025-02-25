@@ -28,6 +28,24 @@ struct bell {
   }
 };
 
+struct bell_depolarization2 {
+  void operator()(double prob) __qpu__ {
+    cudaq::qubit q, r;
+    h(q);
+    x<cudaq::ctrl>(q, r);
+    cudaq::apply_noise<cudaq::depolarization2>(prob, q, r);
+  }
+};
+
+struct bell_depolarization2_vec {
+  void operator()(double prob) __qpu__ {
+    cudaq::qvector q(2);
+    h(q[0]);
+    x<cudaq::ctrl>(q[0], q[1]);
+    cudaq::apply_noise<cudaq::depolarization2>(prob, q);
+  }
+};
+
 #endif
 #if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_TENSORNET)
 // Stim does not support arbitrary cudaq::kraus_channel specification.
@@ -319,6 +337,21 @@ CUDAQ_TEST(NoiseTest, checkDepolType) {
   auto counts = cudaq::sample(xOp{});
   counts.dump();
   EXPECT_EQ(2, counts.size());
+  cudaq::unset_noise(); // clear for subsequent tests
+}
+
+CUDAQ_TEST(NoiseTest, checkApplyDepol2) {
+  cudaq::set_random_seed(13);
+  double probability = 0.1;
+  cudaq::noise_model noise{};
+  noise.register_channel<cudaq::depolarization2>();
+  cudaq::set_noise(noise);
+  auto counts = cudaq::sample(bell_depolarization2{}, probability);
+  counts.dump();
+  EXPECT_EQ(4, counts.size());
+  counts = cudaq::sample(bell_depolarization2_vec{}, probability);
+  counts.dump();
+  EXPECT_EQ(4, counts.size());
   cudaq::unset_noise(); // clear for subsequent tests
 }
 

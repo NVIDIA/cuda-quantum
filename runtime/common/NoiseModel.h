@@ -19,7 +19,43 @@
 
 namespace cudaq::details {
 void warn(const std::string_view msg);
+
+/// @brief Typedef for a matrix wrapper using std::vector<cudaq::complex>
+using matrix_wrapper = std::vector<cudaq::complex>;
+
+/// @brief Compute the Kronecker product of two matrices
+///
+/// @param A First matrix
+/// @param rowsA Number of rows in matrix A
+/// @param colsA Number of columns in matrix A
+/// @param B Second matrix
+/// @param rowsB Number of rows in matrix B
+/// @param colsB Number of columns in matrix B
+/// @return matrix_wrapper Result of the Kronecker product
+inline matrix_wrapper kron(const matrix_wrapper &A, int rowsA, int colsA,
+                           const matrix_wrapper &B, int rowsB, int colsB) {
+  matrix_wrapper C((rowsA * rowsB) * (colsA * colsB));
+  for (int i = 0; i < rowsA; ++i) {
+    for (int j = 0; j < colsA; ++j) {
+      for (int k = 0; k < rowsB; ++k) {
+        for (int l = 0; l < colsB; ++l) {
+          C[(i * rowsB + k) * (colsA * colsB) + (j * colsB + l)] =
+              A[i * colsA + j] * B[k * colsB + l];
+        }
+      }
+    }
+  }
+  return C;
 }
+
+inline matrix_wrapper scale(const cudaq::real s, const matrix_wrapper &A) {
+  matrix_wrapper result;
+  result.reserve(A.size());
+  for (auto a : A)
+    result.push_back(s * a);
+  return result;
+}
+} // namespace cudaq::details
 
 namespace cudaq {
 
@@ -597,4 +633,229 @@ public:
   REGISTER_KRAUS_CHANNEL(
       noise_model_strings[(int)noise_model_type::phase_flip_channel])
 };
+
+/// @brief amplitude_damping is the same as amplitude_damping_channel.
+class amplitude_damping : public amplitude_damping_channel {
+public:
+  amplitude_damping(const std::vector<cudaq::real> &p)
+      : amplitude_damping_channel(p) {
+    noise_type = noise_model_type::amplitude_damping;
+  }
+  amplitude_damping(const real probability)
+      : amplitude_damping_channel(probability) {
+    noise_type = noise_model_type::amplitude_damping;
+  }
+  REGISTER_KRAUS_CHANNEL(
+      noise_model_strings[(int)noise_model_type::amplitude_damping])
+};
+
+/// @brief phase_damping is the same as phase_flip_channel.
+class phase_damping : public phase_flip_channel {
+public:
+  phase_damping(const std::vector<cudaq::real> &p) : phase_flip_channel(p) {
+    noise_type = noise_model_type::phase_damping;
+  }
+  phase_damping(const real probability) : phase_flip_channel(probability) {
+    noise_type = noise_model_type::phase_damping;
+  }
+  REGISTER_KRAUS_CHANNEL(
+      noise_model_strings[(int)noise_model_type::phase_damping])
+};
+
+/// @brief z_error is the same as phase_flip_channel.
+class z_error : public phase_flip_channel {
+public:
+  z_error(const std::vector<cudaq::real> &p) : phase_flip_channel(p) {
+    noise_type = noise_model_type::z_error;
+  }
+  z_error(const real probability) : phase_flip_channel(probability) {
+    noise_type = noise_model_type::z_error;
+  }
+  REGISTER_KRAUS_CHANNEL(noise_model_strings[(int)noise_model_type::z_error])
+};
+
+/// @brief x_error is the same as bit_flip_channel
+class x_error : public bit_flip_channel {
+public:
+  x_error(const std::vector<cudaq::real> &p) : bit_flip_channel(p) {
+    noise_type = noise_model_type::x_error;
+  }
+  x_error(const real probability) : bit_flip_channel(probability) {
+    noise_type = noise_model_type::x_error;
+  }
+  REGISTER_KRAUS_CHANNEL(noise_model_strings[(int)noise_model_type::x_error])
+};
+
+/// @brief y_error is the same as bit_flip_channel
+class y_error : public kraus_channel {
+public:
+  constexpr static std::size_t num_parameters = 1;
+  constexpr static std::size_t num_targets = 1;
+  y_error(const std::vector<cudaq::real> &p) {
+    cudaq::real probability = p[0];
+    std::complex<cudaq::real> i{0, 1};
+    std::vector<cudaq::complex> k0v{std::sqrt(1 - probability), 0, 0,
+                                    std::sqrt(1 - probability)},
+        k1v{0, -i * std::sqrt(probability), i * std::sqrt(probability), 0};
+    ops = {k0v, k1v};
+    this->parameters.push_back(probability);
+    noise_type = noise_model_type::y_error;
+    validateCompleteness();
+    generateUnitaryParameters();
+  }
+  y_error(const real probability)
+      : y_error(std::vector<cudaq::real>{probability}) {}
+  REGISTER_KRAUS_CHANNEL(noise_model_strings[(int)noise_model_type::y_error])
+};
+
+class pauli1 : public kraus_channel {
+public:
+  constexpr static std::size_t num_parameters = 3;
+  constexpr static std::size_t num_targets = 1;
+  pauli1(const std::vector<cudaq::real> &p) {
+    if (p.size() == num_parameters)
+      throw std::runtime_error(
+          "Invalid number of elements to pauli1 constructor. Must be 3.");
+    cudaq::real sum = 0;
+    for (auto pp : p)
+      sum += pp;
+    // This is just a first-level error check. Additional checks are done in
+    // validateCompleteness.
+    if (sum > static_cast<cudaq::real>(1.0 + 1e-6))
+      throw std::runtime_error("Sum of pauli1 parameters is >1. Must be <= 1.");
+
+    std::complex<cudaq::real> i{0, 1};
+    cudaq::details::matrix_wrapper I({1, 0, 0, 1});
+    cudaq::details::matrix_wrapper X({0, 1, 1, 0});
+    cudaq::details::matrix_wrapper Y({0, -i, i, 0});
+    cudaq::details::matrix_wrapper Z({1, 0, 0, -1});
+    cudaq::real p0 =
+        std::sqrt(std::max(static_cast<cudaq::real>(1.0 - p[0] - p[1] - p[2]),
+                           static_cast<cudaq::real>(0)));
+    cudaq::real px = std::sqrt(p[0]);
+    cudaq::real py = std::sqrt(p[1]);
+    cudaq::real pz = std::sqrt(p[2]);
+    std::vector<cudaq::complex> k0v = details::scale(p0, I);
+    std::vector<cudaq::complex> k1v = details::scale(px, X);
+    std::vector<cudaq::complex> k2v = details::scale(py, Y);
+    std::vector<cudaq::complex> k3v = details::scale(pz, Z);
+    ops = {k0v, k1v, k2v, k3v};
+    this->parameters.reserve(p.size());
+    for (auto pp : p)
+      this->parameters.push_back(pp);
+    noise_type = cudaq::noise_model_type::pauli1;
+    validateCompleteness();
+    generateUnitaryParameters();
+  }
+  REGISTER_KRAUS_CHANNEL()
+};
+
+class pauli2 : public kraus_channel {
+public:
+  constexpr static std::size_t num_parameters = 15;
+  constexpr static std::size_t num_targets = 2;
+  pauli2(const std::vector<cudaq::real> &p) {
+    if (p.size() == num_parameters)
+      throw std::runtime_error(
+          "Invalid number of elements to pauli2 constructor. Must be 15.");
+    cudaq::real sum = 0;
+    for (auto pp : p)
+      sum += pp;
+    // This is just a first-level error check. Additional checks are done in
+    // validateCompleteness.
+    if (sum > static_cast<cudaq::real>(1.0 + 1e-6))
+      throw std::runtime_error("Sum of pauli2 parameters is >1. Must be <= 1.");
+
+    std::complex<cudaq::real> i{0, 1};
+    cudaq::details::matrix_wrapper I({1, 0, 0, 1});
+    cudaq::details::matrix_wrapper X({0, 1, 1, 0});
+    cudaq::details::matrix_wrapper Y({0, -i, i, 0});
+    cudaq::details::matrix_wrapper Z({1, 0, 0, -1});
+    cudaq::real pii = std::sqrt(std::max(static_cast<cudaq::real>(1.0 - sum),
+                                         static_cast<cudaq::real>(0)));
+
+    ops.push_back(details::scale(pii, details::kron(I, 2, 2, I, 2, 2)));
+    ops.push_back(details::scale(p[0], details::kron(I, 2, 2, X, 2, 2)));
+    ops.push_back(details::scale(p[1], details::kron(I, 2, 2, Y, 2, 2)));
+    ops.push_back(details::scale(p[2], details::kron(I, 2, 2, Z, 2, 2)));
+
+    ops.push_back(details::scale(p[3], details::kron(X, 2, 2, I, 2, 2)));
+    ops.push_back(details::scale(p[4], details::kron(X, 2, 2, X, 2, 2)));
+    ops.push_back(details::scale(p[5], details::kron(X, 2, 2, Y, 2, 2)));
+    ops.push_back(details::scale(p[6], details::kron(X, 2, 2, Z, 2, 2)));
+
+    ops.push_back(details::scale(p[7], details::kron(Y, 2, 2, I, 2, 2)));
+    ops.push_back(details::scale(p[8], details::kron(Y, 2, 2, X, 2, 2)));
+    ops.push_back(details::scale(p[9], details::kron(Y, 2, 2, Y, 2, 2)));
+    ops.push_back(details::scale(p[10], details::kron(Y, 2, 2, Z, 2, 2)));
+
+    ops.push_back(details::scale(p[11], details::kron(Z, 2, 2, I, 2, 2)));
+    ops.push_back(details::scale(p[12], details::kron(Z, 2, 2, X, 2, 2)));
+    ops.push_back(details::scale(p[13], details::kron(Z, 2, 2, Y, 2, 2)));
+    ops.push_back(details::scale(p[14], details::kron(Z, 2, 2, Z, 2, 2)));
+
+    this->parameters.reserve(p.size());
+    for (auto pp : p)
+      this->parameters.push_back(pp);
+    noise_type = cudaq::noise_model_type::pauli2;
+    validateCompleteness();
+    generateUnitaryParameters();
+  }
+  REGISTER_KRAUS_CHANNEL()
+};
+
+/// @brief depolarization1 is the same as depolarization_channel
+class depolarization1 : public depolarization_channel {
+public:
+  depolarization1(const std::vector<cudaq::real> &p)
+      : depolarization_channel(p) {
+    noise_type = noise_model_type::depolarization1;
+  }
+  depolarization1(const real probability)
+      : depolarization_channel(probability) {
+    noise_type = noise_model_type::depolarization1;
+  }
+  REGISTER_KRAUS_CHANNEL()
+};
+
+class depolarization2 : public kraus_channel {
+public:
+  constexpr static std::size_t num_parameters = 1;
+  constexpr static std::size_t num_targets = 2;
+  depolarization2(const std::vector<cudaq::real> p) : kraus_channel() {
+    auto three = static_cast<cudaq::real>(3.);
+    auto negOne = static_cast<cudaq::real>(-1.);
+    auto probability = p[0];
+
+    std::vector<std::vector<cudaq::complex>> singleQubitKraus = {
+        {std::sqrt(1 - probability), 0, 0, std::sqrt(1 - probability)},
+        {0, std::sqrt(probability / three), std::sqrt(probability / three), 0},
+        {0, cudaq::complex{0, negOne * std::sqrt(probability / three)},
+         cudaq::complex{0, std::sqrt(probability / three)}, 0},
+        {std::sqrt(probability / three), 0, 0,
+         negOne * std::sqrt(probability / three)}};
+
+    // Generate 2-qubit Kraus operators
+    for (const auto &k1 : singleQubitKraus) {
+      for (const auto &k2 : singleQubitKraus) {
+        ops.push_back(details::kron(k1, 2, 2, k2, 2, 2));
+      }
+    }
+    this->parameters.push_back(probability);
+    noise_type = cudaq::noise_model_type::depolarization2;
+    validateCompleteness();
+    generateUnitaryParameters();
+  }
+
+  /// @brief Construct a two qubit kraus channel that applies a depolarization
+  /// channel on either qubit independently.
+  ///
+  /// @param p The probability of any depolarizing error happening in the 2
+  /// qubits. (Setting this to 1.0 ensures that "II" cannot happen; maximal
+  /// mixing occurs at p = 0.9375.)
+  depolarization2(const real probability)
+      : depolarization2(std::vector<cudaq::real>{probability}) {}
+  REGISTER_KRAUS_CHANNEL()
+};
+
 } // namespace cudaq

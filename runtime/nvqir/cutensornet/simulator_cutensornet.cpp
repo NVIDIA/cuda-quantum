@@ -170,6 +170,52 @@ void SimulatorTensorNetBase::applyKrausChannel(
   }
 }
 
+bool SimulatorTensorNetBase::isValidNoiseChannel(
+    const cudaq::noise_model_type &type) const {
+  switch (type) {
+  case cudaq::noise_model_type::depolarization_channel:
+  case cudaq::noise_model_type::bit_flip_channel:
+  case cudaq::noise_model_type::phase_flip_channel:
+  case cudaq::noise_model_type::x_error:
+  case cudaq::noise_model_type::y_error:
+  case cudaq::noise_model_type::z_error:
+  case cudaq::noise_model_type::phase_damping:
+  case cudaq::noise_model_type::pauli1:
+  case cudaq::noise_model_type::pauli2:
+  case cudaq::noise_model_type::depolarization1:
+  case cudaq::noise_model_type::depolarization2:
+  case cudaq::noise_model_type::unknown: // may be unitary, so return true
+    return true;
+  // These are explicitly non-unitary and unsupported
+  case cudaq::noise_model_type::amplitude_damping_channel:
+  case cudaq::noise_model_type::amplitude_damping:
+  default:
+    return false;
+  }
+}
+
+void SimulatorTensorNetBase::applyNoise(
+    const cudaq::kraus_channel &channel,
+    const std::vector<std::size_t> &targets) {
+  LOG_API_TIME();
+  // Do nothing if no execution context
+  if (!executionContext)
+    return;
+
+  // Do nothing if no noise model
+  if (!executionContext->noiseModel)
+    return;
+
+  // Apply all prior gates before applying noise.
+  std::vector<int32_t> qubits{targets.begin(), targets.end()};
+  cudaq::info(
+      "[SimulatorTensorNetBase] Applying kraus channel {} on qubits: {}",
+      cudaq::get_noise_model_type_name(channel.noise_type), qubits);
+
+  flushGateQueue();
+  applyKrausChannel(qubits, channel);
+}
+
 void SimulatorTensorNetBase::applyNoiseChannel(
     const std::string_view gateName, const std::vector<std::size_t> &controls,
     const std::vector<std::size_t> &targets,
