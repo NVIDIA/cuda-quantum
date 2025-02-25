@@ -122,6 +122,7 @@ unset_noise = cudaq_runtime.unset_noise
 # Noise Modeling
 KrausChannel = cudaq_runtime.KrausChannel
 KrausOperator = cudaq_runtime.KrausOperator
+NoiseModelType = cudaq_runtime.NoiseModelType
 NoiseModel = cudaq_runtime.NoiseModel
 DepolarizationChannel = cudaq_runtime.DepolarizationChannel
 AmplitudeDampingChannel = cudaq_runtime.AmplitudeDampingChannel

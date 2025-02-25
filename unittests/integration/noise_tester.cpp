@@ -32,6 +32,123 @@ struct bell {
 #if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_TENSORNET)
 // Stim does not support arbitrary cudaq::kraus_channel specification.
 
+namespace test::hello {
+struct hello_world : public ::cudaq::kraus_channel {
+  static constexpr std::size_t num_parameters = 1;
+  static constexpr std::size_t num_targets = 1;
+
+  hello_world(const std::vector<cudaq::real> &params) {
+    std::vector<cudaq::complex> k0v{std::sqrt(1 - params[0]), 0, 0,
+                                    std::sqrt(1 - params[0])},
+        k1v{0, std::sqrt(params[0]), std::sqrt(params[0]), 0};
+    push_back(cudaq::kraus_op(k0v));
+    push_back(cudaq::kraus_op(k1v));
+  }
+  REGISTER_KRAUS_CHANNEL("test::hello::hello_world");
+};
+} // namespace test::hello
+
+__qpu__ void test2(double p) {
+  cudaq::qubit q;
+  x(q);
+  cudaq::apply_noise<test::hello::hello_world>({0.2}, q);
+}
+
+__qpu__ void test3(double p) {
+  cudaq::qubit q;
+  x(q);
+  cudaq::apply_noise<test::hello::hello_world>(0.2, q);
+}
+
+__qpu__ int test4(double p) {
+  cudaq::qubit q;
+  x(q);
+  cudaq::apply_noise<test::hello::hello_world>(0.2, q);
+  return mz(q);
+}
+
+CUDAQ_TEST(NoiseTest, checkFineGrainArg) {
+  {
+    cudaq::noise_model noise;
+    noise.register_channel<test::hello::hello_world>();
+
+    auto counts = cudaq::sample({.noise = noise}, test3, .7);
+    counts.dump();
+    EXPECT_TRUE(counts.size() == 2);
+  }
+  {
+    // test warning emitted / no noise applied for case where
+    // no noise model is specified
+    auto counts = cudaq::sample(test3, .7);
+    counts.dump();
+    EXPECT_TRUE(counts.size() == 1);
+  }
+  {
+    // test warning emitted / no noise applied for case where
+    // noise mnodel is provided but custom channel not registered.
+    cudaq::noise_model noise;
+    auto counts = cudaq::sample({.noise = noise}, test3, .7);
+    counts.dump();
+    EXPECT_TRUE(counts.size() == 1);
+  }
+  {
+    // test noisy kernel invocation
+    cudaq::noise_model noise;
+    noise.register_channel<test::hello::hello_world>();
+    cudaq::set_noise(noise);
+    std::set<int> res;
+    for (std::size_t i = 0; i < 100; i++)
+      res.insert(test4(.7));
+    EXPECT_EQ(res.size(), 2);
+    cudaq::unset_noise();
+  }
+  {
+    // test noisy kernel invocation,
+    // channel not registered, should get no noise
+    cudaq::noise_model noise;
+    cudaq::set_noise(noise);
+    std::set<int> res;
+    for (std::size_t i = 0; i < 100; i++)
+      res.insert(test4(.7));
+    EXPECT_EQ(res.size(), 1);
+    cudaq::unset_noise();
+  }
+  {
+    // test noisy kernel invocation,
+    // no noise, should get no application
+    std::set<int> res;
+    for (std::size_t i = 0; i < 100; i++)
+      res.insert(test4(.7));
+    EXPECT_EQ(res.size(), 1);
+  }
+}
+
+CUDAQ_TEST(NoiseTest, checkFineGrainVec) {
+  {
+    cudaq::noise_model noise;
+    noise.register_channel<test::hello::hello_world>();
+
+    auto counts = cudaq::sample({.noise = noise}, test2, .7);
+    counts.dump();
+    EXPECT_TRUE(counts.size() == 2);
+  }
+  {
+    // test warning emitted / no noise applied for case where
+    // no noise model is specified
+    auto counts = cudaq::sample(test2, .7);
+    counts.dump();
+    EXPECT_TRUE(counts.size() == 1);
+  }
+  {
+    // test warning emitted / no noise applied for case where
+    // noise mnodel is provided but custom channel not registered.
+    cudaq::noise_model noise;
+    auto counts = cudaq::sample({.noise = noise}, test2, .7);
+    counts.dump();
+    EXPECT_TRUE(counts.size() == 1);
+  }
+}
+
 CUDAQ_TEST(NoiseTest, checkSimple) {
   cudaq::set_random_seed(13);
   cudaq::kraus_channel depol({cudaq::complex{0.99498743710662, 0.0},
