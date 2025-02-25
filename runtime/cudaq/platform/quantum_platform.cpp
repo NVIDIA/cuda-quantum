@@ -53,6 +53,14 @@ void quantum_platform::set_noise(const noise_model *model) {
   platformQPU->setNoiseModel(model);
 }
 
+const noise_model *quantum_platform::get_noise() {
+  if (executionContext)
+    return executionContext->noiseModel;
+
+  auto &platformQPU = platformQPUs[platformCurrentQPU];
+  return platformQPU->getNoiseModel();
+}
+
 void quantum_platform::reset_noise() { set_noise(nullptr); }
 
 std::future<sample_result>

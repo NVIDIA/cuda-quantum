@@ -310,7 +310,16 @@ def DependencyAnalysis : Pass<"dep-analysis", "mlir::ModuleOp"> {
   ];
 }
 
-def EraseNopCalls : Pass<"erase-nop-calls", "mlir::func::FuncOp"> {
+def EraseNoise : Pass<"erase-noise"> {
+  let summary = "Erase the inject of noise via Kraus channels.";
+  let description = [{
+    Although CUDA-Q allows the user to specify the application of noise via
+    Kraus channels, these are not needed and must be removed if the code is to
+    run on quantum hardware, for example.
+  }];
+}
+
+def EraseNopCalls : Pass<"erase-nop-calls"> {
   let summary = "Erase calls to any builtin intrinsics that are NOPs.";
   let description = [{
     The code may contain marker function calls that do not generate any actual
