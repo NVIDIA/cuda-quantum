@@ -174,7 +174,7 @@ void product_operator<HandlerTy>::aggregate_terms(HandlerTy &&head,
 template <typename HandlerTy>
 template <typename EvalTy>
 EvalTy product_operator<HandlerTy>::evaluate(
-    OperatorArithmetics<EvalTy> arithmetics, bool pad_terms) const {
+    OperatorArithmetics<EvalTy> arithmetics) const {
   auto degrees = this->degrees();
   cudaq::matrix_2 result;
 
@@ -197,7 +197,7 @@ EvalTy product_operator<HandlerTy>::evaluate(
       return arithmetics.tensor(std::move(ids), arithmetics.evaluate(op));
   };
 
-  if (pad_terms) {
+  if (arithmetics.pad_product_terms) {
     if (degrees.size() == 0) return arithmetics.evaluate(this->coefficient);
     EvalTy prod = padded_op(this->operators[0]);
     for (auto op_idx = 1; op_idx < this->operators.size(); ++op_idx) {
@@ -236,7 +236,7 @@ INSTANTIATE_PRODUCT_PRIVATE_METHODS(fermion_operator);
                                                                                               \
   template                                                                                    \
   EvalTy product_operator<HandlerTy>::evaluate(                                               \
-    OperatorArithmetics<EvalTy> arithmetics, bool pad_terms) const;                           \
+    OperatorArithmetics<EvalTy> arithmetics) const;                                           \
 
 INSTANTIATE_PRODUCT_EVALUATE_METHODS(matrix_operator, EvaluatedMatrix);
 INSTANTIATE_PRODUCT_EVALUATE_METHODS(spin_operator, EvaluatedCanonicalized);
@@ -495,18 +495,16 @@ std::string product_operator<HandlerTy>::to_string() const {
 template<typename HandlerTy>
 matrix_2 product_operator<HandlerTy>::to_matrix(std::unordered_map<int, int> dimensions,
                                                 const std::unordered_map<std::string, std::complex<double>> &parameters) const {
-  return std::move(this->evaluate(OperatorArithmetics<EvaluatedMatrix>(dimensions, parameters)).matrix());
+  return this->evaluate(OperatorArithmetics<EvaluatedMatrix>(dimensions, parameters)).matrix();
 }
 
 template<>
 matrix_2 product_operator<spin_operator>::to_matrix(std::unordered_map<int, int> dimensions,
                                                 const std::unordered_map<std::string, std::complex<double>> &parameters) const {
-  auto evaluated = this->evaluate(OperatorArithmetics<EvaluatedCanonicalized>(dimensions, parameters), false);
-  // FIXME: ASSERTS
-  auto coeff = evaluated.coefficients()[0];
-  auto term = evaluated.products()[0];
-  auto matrix = spin_operator::to_matrix(term, coeff);
-  return std::move(matrix);
+  auto evaluated = this->evaluate(OperatorArithmetics<EvaluatedCanonicalized>(dimensions, parameters));
+  auto terms = evaluated.get_terms();
+  assert(terms.size() == 1);
+  return spin_operator::to_matrix(terms[0].second, terms[0].first);
 }
 
 #define INSTANTIATE_PRODUCT_EVALUATIONS(HandlerTy)                                          \

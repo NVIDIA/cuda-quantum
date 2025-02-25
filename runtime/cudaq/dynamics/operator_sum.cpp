@@ -61,9 +61,9 @@ void operator_sum<HandlerTy>::aggregate_terms(
 
 template <typename HandlerTy>
 template <typename EvalTy>
-EvalTy operator_sum<HandlerTy>::evaluate(
-    OperatorArithmetics<EvalTy> arithmetics, bool pad_sum_terms, bool pad_product_terms) const {
+EvalTy operator_sum<HandlerTy>::evaluate(OperatorArithmetics<EvalTy> arithmetics) const {
 
+  if (terms.size() == 0) return EvalTy();
   auto terms = this->get_terms();
   auto degrees = this->degrees();
 
@@ -87,19 +87,19 @@ EvalTy operator_sum<HandlerTy>::evaluate(
     return prod;
   };
 
-  if (pad_sum_terms) {
+  if (arithmetics.pad_sum_terms) {
     product_operator<HandlerTy> padded_term = paddedTerm(std::move(terms[0]));
-    EvalTy sum = padded_term.template evaluate<EvalTy>(arithmetics, pad_product_terms);
+    EvalTy sum = padded_term.template evaluate<EvalTy>(arithmetics);
     for (auto term_idx = 1; term_idx < terms.size(); ++term_idx) {
       padded_term = paddedTerm(std::move(terms[term_idx]));
-      EvalTy term_eval = padded_term.template evaluate<EvalTy>(arithmetics, pad_product_terms);
+      EvalTy term_eval = padded_term.template evaluate<EvalTy>(arithmetics);
       sum = arithmetics.add(std::move(sum), std::move(term_eval));
     }
     return sum;
   } else {
-    EvalTy sum = terms[0].template evaluate<EvalTy>(arithmetics, pad_product_terms);
+    EvalTy sum = terms[0].template evaluate<EvalTy>(arithmetics);
     for (auto term_idx = 1; term_idx < terms.size(); ++term_idx) {
-      EvalTy term_eval = terms[term_idx].template evaluate<EvalTy>(arithmetics, pad_product_terms);
+      EvalTy term_eval = terms[term_idx].template evaluate<EvalTy>(arithmetics);
       sum = arithmetics.add(std::move(sum), std::move(term_eval));
     }
     return sum;
@@ -129,7 +129,7 @@ INSTANTIATE_SUM_PRIVATE_METHODS(fermion_operator);
                                                                                               \
   template                                                                                    \
   EvalTy operator_sum<HandlerTy>::evaluate(                                                   \
-    OperatorArithmetics<EvalTy> arithmetics, bool pad_sum, bool pad_products) const;          \
+    OperatorArithmetics<EvalTy> arithmetics) const;                                           \
 
 INSTANTIATE_SUM_EVALUATE_METHODS(matrix_operator, EvaluatedMatrix);
 INSTANTIATE_SUM_EVALUATE_METHODS(spin_operator, EvaluatedCanonicalized);
@@ -413,20 +413,19 @@ std::string operator_sum<HandlerTy>::to_string() const {
 template<typename HandlerTy>
 matrix_2 operator_sum<HandlerTy>::to_matrix(std::unordered_map<int, int> dimensions,
                                             const std::unordered_map<std::string, std::complex<double>> &parameters) const {
-  return std::move(this->evaluate(OperatorArithmetics<EvaluatedMatrix>(dimensions, parameters)).matrix());
+  return this->evaluate(OperatorArithmetics<EvaluatedMatrix>(dimensions, parameters)).matrix();
 }
 
 template<>
 matrix_2 operator_sum<spin_operator>::to_matrix(std::unordered_map<int, int> dimensions,
                                             const std::unordered_map<std::string, std::complex<double>> &parameters) const {
-  auto evaluated = this->evaluate(OperatorArithmetics<EvaluatedCanonicalized>(dimensions, parameters), true, false); // FIXME: clean up ...
-  auto coeffs = evaluated.coefficients();
-  auto terms = evaluated.products();
+  auto evaluated = this->evaluate(OperatorArithmetics<EvaluatedCanonicalized>(dimensions, parameters));
+  auto terms = evaluated.get_terms();
+  if (terms.size() == 0) return cudaq::matrix_2(0, 0);
 
-  // FIXME: CHECK THE CASE WHERE WE HAVE ONLY A COEFFICIENT WORKS
-  auto matrix = spin_operator::to_matrix(terms[0], coeffs[0]);
-  for (auto i = 1; i < coeffs.size(); ++i) 
-     matrix += spin_operator::to_matrix(terms[i], coeffs[i]);
+  auto matrix = spin_operator::to_matrix(terms[0].second, terms[0].first);
+  for (auto i = 1; i < terms.size(); ++i) 
+     matrix += spin_operator::to_matrix(terms[i].second, terms[i].first);
   return std::move(matrix);
 }
 
