@@ -1277,10 +1277,27 @@ constexpr bool any_float = std::disjunction_v<
     std::is_floating_point<std::remove_cv_t<std::remove_reference_t<Args>>>...>;
 
 #if CUDAQ_USE_STD20
-template <typename T, typename... Q>
-  requires(std::derived_from<T, cudaq::kraus_channel> && !any_float<Q...>)
+#ifdef CUDAQ_REMOTE_SIM
+#define TARGET_OK_FOR_APPLY_NOISE false
 #else
-template <typename T, typename... Q,
+#define TARGET_OK_FOR_APPLY_NOISE true
+#endif
+#else
+#ifdef CUDAQ_REMOTE_SIM
+#define TARGET_OK_FOR_APPLY_NOISE                                              \
+  typename = std::enable_if_t<std::is_same_v<T, int>>
+#else
+#define TARGET_OK_FOR_APPLY_NOISE                                              \
+  typename = std::enable_if_t<std::is_same_v<T, T>>
+#endif
+#endif
+
+#if CUDAQ_USE_STD20
+template <typename T, typename... Q>
+  requires(std::derived_from<T, cudaq::kraus_channel> && !any_float<Q...> &&
+           TARGET_OK_FOR_APPLY_NOISE)
+#else
+template <typename T, typename... Q, TARGET_OK_FOR_APPLY_NOISE,
           typename = std::enable_if_t<
               std::is_base_of_v<cudaq::kraus_channel, T> &&
               std::is_convertible_v<const volatile T *,
@@ -1338,14 +1355,14 @@ constexpr bool any_vector_of_float = std::disjunction_v<std::is_same<
     std::vector<double>, std::remove_cv_t<std::remove_reference_t<Args>>>...>;
 
 #if CUDAQ_USE_STD20
-template <typename KrausChannelT, typename... Args>
-  requires(std::derived_from<KrausChannelT, cudaq::kraus_channel> &&
-           !any_vector_of_float<Args...>)
+template <typename T, typename... Args>
+  requires(std::derived_from<T, cudaq::kraus_channel> &&
+           !any_vector_of_float<Args...> && TARGET_OK_FOR_APPLY_NOISE)
 #else
-template <typename KrausChannelT, typename... Args,
+template <typename T, typename... Args, TARGET_OK_FOR_APPLY_NOISE,
           typename = std::enable_if_t<
-              std::is_base_of_v<cudaq::kraus_channel, KrausChannelT> &&
-              std::is_convertible_v<const volatile KrausChannelT *,
+              std::is_base_of_v<cudaq::kraus_channel, T> &&
+              std::is_convertible_v<const volatile T *,
                                     const volatile cudaq::kraus_channel *> &&
               !any_vector_of_float<Args...>>>
 #endif
@@ -1353,7 +1370,7 @@ void apply_noise(Args &&...args) {
   constexpr auto ctor_arity = count_leading_floats<0, Args...>();
   constexpr auto qubit_arity = sizeof...(args) - ctor_arity;
 
-  details::applyNoiseImpl<KrausChannelT>(
+  details::applyNoiseImpl<T>(
       details::tuple_slice<ctor_arity>(std::forward_as_tuple(args...)),
       details::tuple_slice_last<qubit_arity>(std::forward_as_tuple(args...)));
 }
