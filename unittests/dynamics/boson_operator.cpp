@@ -14,7 +14,55 @@
 
 TEST(OperatorExpressions, checkBosonOpsUnary) {
   auto op = cudaq::boson_operator::number(0);
+  utils::checkEqual((+op).to_matrix({{0, 3}}), utils::number_matrix(3));
   utils::checkEqual((-op).to_matrix({{0, 3}}), -1.0 * utils::number_matrix(3));
+  utils::checkEqual(op.to_matrix({{0, 3}}), utils::number_matrix(3));
+}
+
+TEST(OperatorExpressions, checkBosonOpsConstruction) {
+  auto prod = cudaq::boson_operator::identity();
+  cudaq::matrix_2 expected(1, 1);
+
+  expected[{0, 0}] = 1.;  
+  utils::checkEqual(prod.to_matrix(), expected);
+
+  prod *= -1.j;
+  expected[{0, 0}] = std::complex<double>(-1.j);
+  utils::checkEqual(prod.to_matrix(), expected);
+
+  prod *= cudaq::boson_operator::number(0);
+  expected = cudaq::matrix_2(3, 3);
+  expected[{1, 1}] = std::complex<double>(-1.j);
+  expected[{2, 2}] = std::complex<double>(-2.j);
+  utils::checkEqual(prod.to_matrix({{0, 3}}), expected);
+
+  auto sum = cudaq::boson_operator::empty();
+  expected = cudaq::matrix_2(0, 0);
+  utils::checkEqual(sum.to_matrix(), expected);
+
+  sum *= cudaq::boson_operator::number(1); // empty times something is still empty
+  std::vector<int> expected_degrees = {};
+  ASSERT_EQ(sum.degrees(), expected_degrees);
+  utils::checkEqual(sum.to_matrix(), expected);
+
+  sum += cudaq::boson_operator::identity(1);
+  expected = cudaq::matrix_2(3, 3);
+  for (size_t i = 0; i < 3; ++i)
+    expected[{i, i}] = 1.;
+  utils::checkEqual(sum.to_matrix({{1, 3}}), expected);
+
+  sum *= cudaq::boson_operator::number(1);
+  expected = cudaq::matrix_2(3, 3);
+  expected[{1, 1}] = 1.;
+  expected[{2, 2}] = 2.;
+  utils::checkEqual(sum.to_matrix({{1, 3}}), expected);
+
+  sum = cudaq::boson_operator::empty();
+  sum -= cudaq::boson_operator::identity(0);
+  expected = cudaq::matrix_2(3, 3);
+  for (size_t i = 0; i < 3; ++i)
+    expected[{i, i}] = -1.;
+  utils::checkEqual(sum.to_matrix({{0, 3}}), expected);
 }
 
 TEST(OperatorExpressions, checkPreBuiltBosonOps) {

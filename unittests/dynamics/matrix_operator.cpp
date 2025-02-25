@@ -11,8 +11,56 @@
 #include <gtest/gtest.h>
 
 TEST(OperatorExpressions, checkMatrixOpsUnary) {
-  auto create = cudaq::matrix_operator::position(0);
-  utils::checkEqual((-create).to_matrix({{0,2}}), -1.0 * utils::position_matrix(2));
+  auto op = cudaq::matrix_operator::position(0);
+  utils::checkEqual((+op).to_matrix({{0,2}}), utils::position_matrix(2));
+  utils::checkEqual((-op).to_matrix({{0,2}}), -1.0 * utils::position_matrix(2));
+  utils::checkEqual(op.to_matrix({{0,2}}), utils::position_matrix(2));
+}
+
+TEST(OperatorExpressions, checkMatrixOpsConstruction) {
+  auto prod = cudaq::matrix_operator::identity();
+  cudaq::matrix_2 expected(1, 1);
+
+  expected[{0, 0}] = 1.;  
+  utils::checkEqual(prod.to_matrix(), expected);
+
+  prod *= -1.j;
+  expected[{0, 0}] = std::complex<double>(-1.j);
+  utils::checkEqual(prod.to_matrix(), expected);
+
+  prod *= cudaq::matrix_operator::number(0);
+  expected = cudaq::matrix_2(3, 3);
+  expected[{1, 1}] = std::complex<double>(-1.j);
+  expected[{2, 2}] = std::complex<double>(-2.j);
+  utils::checkEqual(prod.to_matrix({{0, 3}}), expected);
+
+  auto sum = cudaq::matrix_operator::empty();
+  expected = cudaq::matrix_2(0, 0);
+  utils::checkEqual(sum.to_matrix(), expected);
+
+  sum *= cudaq::matrix_operator::number(1); // empty times something is still empty
+  std::vector<int> expected_degrees = {};
+  ASSERT_EQ(sum.degrees(), expected_degrees);
+  utils::checkEqual(sum.to_matrix(), expected);
+
+  sum += cudaq::matrix_operator::identity(1);
+  expected = cudaq::matrix_2(3, 3);
+  for (size_t i = 0; i < 3; ++i)
+    expected[{i, i}] = 1.;
+  utils::checkEqual(sum.to_matrix({{1, 3}}), expected);
+
+  sum *= cudaq::matrix_operator::number(1);
+  expected = cudaq::matrix_2(3, 3);
+  expected[{1, 1}] = 1.;
+  expected[{2, 2}] = 2.;
+  utils::checkEqual(sum.to_matrix({{1, 3}}), expected);
+
+  sum = cudaq::matrix_operator::empty();
+  sum -= cudaq::matrix_operator::identity(0);
+  expected = cudaq::matrix_2(3, 3);
+  for (size_t i = 0; i < 3; ++i)
+    expected[{i, i}] = -1.;
+  utils::checkEqual(sum.to_matrix({{0, 3}}), expected);
 }
 
 TEST(OperatorExpressions, checkPreBuiltMatrixOps) {

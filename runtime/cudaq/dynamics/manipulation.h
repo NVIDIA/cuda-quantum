@@ -33,6 +33,8 @@ public:
     return this->value;
   }
 
+  EvaluatedMatrix() = default;
+
   EvaluatedMatrix(std::vector<int> &&degrees, matrix_2 &&matrix)
   : targets(std::move(degrees)), value(std::move(matrix)) {
 #if !defined(NDEBUG)
@@ -66,6 +68,15 @@ public:
   OperatorArithmetics(std::unordered_map<int, int> &dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters);
 
+  /// Whether to inject tensor products with identity to each term in the 
+  /// sum to ensure that all terms are acting on the same degrees of freedom 
+  /// by the time they are added. 
+  const bool pad_sum_terms;
+  /// Whether to inject tensor products with identity to each term in the
+  /// product to ensure that each term has its full size by the time they 
+  /// are multiplied.
+  const bool pad_product_terms;
+  
   /// @brief Accesses the relevant data to evaluate an operator expression
   /// in the leaf nodes, that is in elementary and scalar operators.
   EvalTy evaluate(const operator_handler &op);
@@ -132,6 +143,9 @@ private:
 
 public:
 
+  const bool pad_sum_terms = true;
+  const bool pad_product_terms = true;
+
   OperatorArithmetics(std::unordered_map<int, int> &dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
   : dimensions(dimensions), parameters(parameters) {}
@@ -195,31 +209,28 @@ class EvaluatedCanonicalized {
   friend class OperatorArithmetics<EvaluatedCanonicalized>;
 
 private:
-  std::vector<std::complex<double>> coeffs;
-  std::vector<std::string> terms;
 
-  EvaluatedCanonicalized() = default;
+  std::vector<std::pair<std::complex<double>, std::string>> terms;
 
 public:
 
-  const std::vector<std::complex<double>>& coefficients() {
-    return this->coeffs;
-  }
+  EvaluatedCanonicalized() = default;
 
-  const std::vector<std::string>& products() {
+  const std::vector<std::pair<std::complex<double>, std::string>>& get_terms() {
     return this->terms;
   }
 
-  void push_back(std::complex<double> coeff) {
-    this->coeffs.push_back(coeff);
-    this->terms.push_back("");
+  void push_back(std::pair<std::complex<double>, std::string> &&term) {
+    this->terms.push_back(term);
   }
 
-  void push_back(std::string op) {
+  void push_back(const std::string &op) {
     assert(this->terms.size() != 0);
-    this->terms.back().append(op);
+    this->terms.back().second.append(op);
   }
 };
+
+// FIXME: move the Evaluated data storage into the handlers? -> if we did that we can also move the matrix query in there
 
 template <>
 class OperatorArithmetics<EvaluatedCanonicalized> {
@@ -231,28 +242,27 @@ private:
 
 
 public:
+  const bool pad_sum_terms = true;
+  const bool pad_product_terms = false;
+
   OperatorArithmetics(std::unordered_map<int, int> &dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters) 
     : dimensions(dimensions), parameters(parameters) {}
 
-  /// @brief Accesses the relevant data to evaluate an operator expression
-  /// in the leaf nodes, that is in elementary and scalar operators.
   EvaluatedCanonicalized evaluate(const operator_handler &op) {
     // FIXME: VALIDATE DIMENSIONS PROPERLY HERE - maybe don't use the to_string method here but a dedicated one?
+    auto canon_str = op.to_string(false, this->dimensions);
     EvaluatedCanonicalized eval;
-    eval.push_back(1.);
-    eval.push_back(op.to_string(false, this->dimensions));
+    eval.push_back(std::make_pair(std::complex<double>(1.), std::move(canon_str)));
     return std::move(eval);
   }
 
   EvaluatedCanonicalized evaluate(const scalar_operator &scalar) {
     EvaluatedCanonicalized eval;
-    eval.push_back(scalar.evaluate(this->parameters));
+    eval.push_back(std::make_pair(scalar.evaluate(this->parameters), ""));
     return std::move(eval);
   }
 
-  /// @brief Computes the tensor product of two operators that act on different
-  /// degrees of freedom.
   EvaluatedCanonicalized tensor(const scalar_operator &scalar, EvaluatedCanonicalized &&op) {
     throw std::runtime_error("tensor product should never be called on canonicalized operator - disable product padding");
   }
@@ -261,19 +271,18 @@ public:
     throw std::runtime_error("tensor product should never be called on canonicalized operator - disable product padding");
   }
 
-  /// @brief Multiplies two operators that act on the same degrees of freedom.
   EvaluatedCanonicalized mul(EvaluatedCanonicalized &&val1, EvaluatedCanonicalized &&val2) {
-    // fixme: assert val1 and val2 only have 1 term
-    // FIXME: assert val2 does not have a non-trivial coefficient, or implement differently
-    val1.push_back(val2.products().back());
+    auto val2_terms = val2.get_terms();
+    assert(val1.get_terms().size() == 1 && val2_terms.size() == 1);
+    assert(val2_terms[0].first == std::complex<double>(1.)); // should be trivial
+    val1.push_back(val2_terms[0].second);
     return std::move(val1);
   }
 
-  /// @brief Adds two operators that act on the same degrees of freedom.
   EvaluatedCanonicalized add(EvaluatedCanonicalized &&val1, EvaluatedCanonicalized &&val2) {
-    // fixme: assert val2 only have 1 term
-    val1.push_back(val2.coefficients().back());
-    val1.push_back(val2.products().back());
+    auto val2_terms = val2.get_terms();
+    assert(val2_terms.size() == 1);
+    val1.push_back(std::move(val2_terms[0]));
     return std::move(val1);
   }
 };

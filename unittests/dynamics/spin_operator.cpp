@@ -13,7 +13,55 @@
 
 TEST(OperatorExpressions, checkSpinOpsUnary) {
   auto op = cudaq::spin_operator::x(0);
+  utils::checkEqual((+op).to_matrix(), utils::PauliX_matrix());
   utils::checkEqual((-op).to_matrix(), -1.0 * utils::PauliX_matrix());
+  utils::checkEqual(op.to_matrix(), utils::PauliX_matrix());
+}
+
+TEST(OperatorExpressions, checkSpinOpsConstruction) {
+  auto prod = cudaq::spin_operator::identity();
+  cudaq::matrix_2 expected(1, 1);
+
+  expected[{0, 0}] = 1.;  
+  utils::checkEqual(prod.to_matrix(), expected);
+
+  prod *= -1.j;
+  expected[{0, 0}] = std::complex<double>(-1.j);
+  utils::checkEqual(prod.to_matrix(), expected);
+
+  prod *= cudaq::spin_operator::x(0);
+  expected = cudaq::matrix_2(2, 2);
+  expected[{0, 1}] = std::complex<double>(-1.j);
+  expected[{1, 0}] = std::complex<double>(-1.j);
+  utils::checkEqual(prod.to_matrix(), expected);
+
+  auto sum = cudaq::spin_operator::empty();
+  expected = cudaq::matrix_2(0, 0);
+  utils::checkEqual(sum.to_matrix(), expected);
+
+  sum *= cudaq::spin_operator::x(1); // empty times something is still empty
+  std::vector<int> expected_degrees = {};
+  ASSERT_EQ(sum.degrees(), expected_degrees);
+  utils::checkEqual(sum.to_matrix(), expected);
+
+  sum += cudaq::spin_operator::i(1);
+  expected = cudaq::matrix_2(2, 2);
+  for (size_t i = 0; i < 2; ++i)
+    expected[{i, i}] = 1.;
+  utils::checkEqual(sum.to_matrix(), expected);
+
+  sum *= cudaq::spin_operator::x(1);
+  expected = cudaq::matrix_2(2, 2);
+  expected[{0, 1}] = 1.;
+  expected[{1, 0}] = 1.;
+  utils::checkEqual(sum.to_matrix(), expected);
+
+  sum = cudaq::spin_operator::empty();
+  sum -= cudaq::spin_operator::i(0);
+  expected = cudaq::matrix_2(2, 2);
+  for (size_t i = 0; i < 2; ++i)
+    expected[{i, i}] = -1.;
+  utils::checkEqual(sum.to_matrix(), expected);
 }
 
 TEST(OperatorExpressions, checkPreBuiltSpinOps) {

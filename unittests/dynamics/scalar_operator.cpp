@@ -15,8 +15,10 @@ cudaq::scalar_operator negate(cudaq::scalar_operator op) {
 
 TEST(OperatorExpressions, checkScalarOpsUnary) {
   auto scalar = cudaq::scalar_operator(1.0);
+  EXPECT_EQ((+scalar).evaluate(), std::complex<double>(1.0));
   EXPECT_EQ((-scalar).evaluate(), std::complex<double>(-1.0));
   EXPECT_EQ(negate(scalar).evaluate(), std::complex<double>(-1.0));
+  EXPECT_EQ(scalar.evaluate(), std::complex<double>(1.0));
 }
 
 TEST(OperatorExpressions, checkScalarOpsSimpleComplex) {

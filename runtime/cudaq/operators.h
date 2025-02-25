@@ -40,7 +40,7 @@ private:
   void aggregate_terms(product_operator<HandlerTy> &&head, Args&& ... args);
 
   template <typename EvalTy>
-  EvalTy evaluate(OperatorArithmetics<EvalTy> arithmetics, bool pad_sum_terms = true, bool pad_product_terms = true) const;
+  EvalTy evaluate(OperatorArithmetics<EvalTy> arithmetics) const;
 
 protected:
 
@@ -293,7 +293,7 @@ private:
   void aggregate_terms(HandlerTy &&head, Args&& ... args);
 
   template <typename EvalTy>
-  EvalTy evaluate(OperatorArithmetics<EvalTy> arithmetics, bool pad_terms = true) const;
+  EvalTy evaluate(OperatorArithmetics<EvalTy> arithmetics) const;
 
 protected:
 

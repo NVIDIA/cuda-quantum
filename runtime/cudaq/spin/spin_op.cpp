@@ -53,7 +53,7 @@ actionOnBra(spin_op &term, const std::string &bitConfiguration) {
     } else if (p == pauli::X) {
       newConfiguration[idx] = newConfiguration[idx] == '1' ? '0' : '1';
     } else if (p == pauli::Y) {
-      coeff *= (newConfiguration[idx] == '1' ? -i : i);
+      coeff *= (newConfiguration[idx] == '1' ? i : -i);
       newConfiguration[idx] = (newConfiguration[idx] == '1' ? '0' : '1');
     }
   });
