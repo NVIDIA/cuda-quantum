@@ -61,6 +61,8 @@ struct hello_world : public ::cudaq::kraus_channel {
         k1v{0, std::sqrt(params[0]), std::sqrt(params[0]), 0};
     push_back(cudaq::kraus_op(k0v));
     push_back(cudaq::kraus_op(k1v));
+    validateCompleteness();
+    generateUnitaryParameters();
   }
   REGISTER_KRAUS_CHANNEL("test::hello::hello_world");
 };
