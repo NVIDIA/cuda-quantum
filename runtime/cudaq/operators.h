@@ -13,7 +13,7 @@
 #include <type_traits>
 
 #include "utils/tensor.h"
-#include "dynamics/manipulation.h"
+#include "dynamics/evaluation.h"
 #include "dynamics/operator_leafs.h"
 #include "dynamics/templates.h"
 
@@ -40,7 +40,7 @@ private:
   void aggregate_terms(product_operator<HandlerTy> &&head, Args&& ... args);
 
   template <typename EvalTy>
-  EvalTy evaluate(OperatorArithmetics<EvalTy> arithmetics) const;
+  EvalTy evaluate(operator_arithmetics<EvalTy> arithmetics) const;
 
 protected:
 
@@ -293,7 +293,7 @@ private:
   void aggregate_terms(HandlerTy &&head, Args&& ... args);
 
   template <typename EvalTy>
-  EvalTy evaluate(OperatorArithmetics<EvalTy> arithmetics) const;
+  EvalTy evaluate(operator_arithmetics<EvalTy> arithmetics) const;
 
 protected:
 

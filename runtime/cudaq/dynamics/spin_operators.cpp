@@ -71,9 +71,13 @@ matrix_2 spin_operator::to_matrix(std::string pauli_word, std::complex<double> c
     }
   };
 
-  // fixme: assumes canonical ordering
+  // FIXME: assumes canonical ordering
   auto dim = 1 << pauli_word.size();
   auto nr_deg = pauli_word.size();
+  auto little_endian_to_canonical = [dim, nr_deg](size_t degree) {
+    if (operator_handler::canonical_order(dim, 0)) return nr_deg - 1 - degree;
+    else return degree;
+  };
 
   matrix_2 matrix(dim, dim);
   for (std::size_t old_state = 0; old_state < dim; ++old_state) {
@@ -81,7 +85,8 @@ matrix_2 spin_operator::to_matrix(std::string pauli_word, std::complex<double> c
     std::complex<double> entry = 1.;
     for (auto degree = 0; degree < nr_deg; ++degree) {
       auto state = (old_state & (1 << degree)) >> degree; 
-      auto mapped = map_state(pauli_word[nr_deg - 1 - degree], state); // FIXME: order dependent - operators are ordered from largest to smallest...
+      auto op = pauli_word[little_endian_to_canonical(degree)];
+      auto mapped = map_state(op, state);
       entry *= mapped.first;
       new_state |= (mapped.second << degree);
     }
