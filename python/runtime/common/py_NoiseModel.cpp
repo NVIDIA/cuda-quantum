@@ -234,9 +234,13 @@ void bindNoiseChannels(py::module &mod) {
       For `probability = 0.0`, the channel will behave noise-free. 
       For `probability = 0.75`, the channel will fully depolarize the state.
       For `probability = 1.0`, the channel will be uniform.)#")
+      .def(py::init<std::vector<double>>())
       .def(py::init<double>(), py::arg("probability"),
            "Initialize the `DepolarizationChannel` with the provided "
-           "`probability`.");
+           "`probability`.")
+      .def_readonly_static(
+          "num_parameters", &depolarization_channel::num_parameters,
+          "The number of parameters this channel requires at construction.");
 
   py::class_<amplitude_damping_channel, kraus_channel>(
       mod, "AmplitudeDampingChannel",
@@ -253,9 +257,13 @@ void bindNoiseChannels(py::module &mod) {
       representing the probablity that the qubit will decay to its ground
       state. The probability of the qubit remaining in the same state is
       therefore `1 - probability`.)#")
+      .def(py::init<std::vector<double>>())
       .def(py::init<double>(), py::arg("probability"),
            "Initialize the `AmplitudeDampingChannel` with the provided "
-           "`probability`.");
+           "`probability`.")
+      .def_readonly_static(
+          "num_parameters", &amplitude_damping_channel::num_parameters,
+          "The number of parameters this channel requires at construction.");
 
   py::class_<bit_flip_channel, kraus_channel>(
       mod, "BitFlipChannel",
@@ -272,8 +280,12 @@ void bindNoiseChannels(py::module &mod) {
       
       The probability of the qubit remaining in the same state is therefore `1 - 
       probability`.)#")
+      .def(py::init<std::vector<double>>())
       .def(py::init<double>(), py::arg("probability"),
-           "Initialize the `BitFlipChannel` with the provided `probability`.");
+           "Initialize the `BitFlipChannel` with the provided `probability`.")
+      .def_readonly_static(
+          "num_parameters", &bit_flip_channel::num_parameters,
+          "The number of parameters this channel requires at construction.");
 
   py::class_<phase_flip_channel, kraus_channel>(
       mod, "PhaseFlipChannel",
@@ -289,9 +301,69 @@ void bindNoiseChannels(py::module &mod) {
 
       The probability of the qubit phase remaining untouched is therefore
       `1 - probability`.)#")
-      .def(
-          py::init<double>(), py::arg("probability"),
-          "Initialize the `PhaseFlipChannel` with the provided `probability`.");
+      .def(py::init<std::vector<double>>())
+      .def(py::init<double>(), py::arg("probability"),
+           "Initialize the `PhaseFlipChannel` with the provided `probability`.")
+      .def_readonly_static(
+          "num_parameters", &phase_flip_channel::num_parameters,
+          "The number of parameters this channel requires at construction.");
+
+  py::class_<phase_damping, kraus_channel>(mod, "PhaseDamping", R"#()#")
+      .def(py::init<std::vector<double>>())
+      .def(py::init<double>())
+      .def_readonly_static(
+          "num_parameters", &phase_flip_channel::num_parameters,
+          "The number of parameters this channel requires at construction.");
+
+  py::class_<z_error, kraus_channel>(mod, "ZError", R"#()#")
+      .def(py::init<std::vector<double>>())
+      .def(py::init<double>())
+      .def_readonly_static(
+          "num_parameters", &phase_flip_channel::num_parameters,
+          "The number of parameters this channel requires at construction.");
+
+
+  py::class_<x_error, kraus_channel>(mod, "XError", R"#()#")
+      .def(py::init<std::vector<double>>())
+      .def(py::init<double>())
+      .def_readonly_static(
+          "num_parameters", &phase_flip_channel::num_parameters,
+          "The number of parameters this channel requires at construction.");
+
+  py::class_<y_error, kraus_channel>(mod, "YError", R"#()#")
+      .def(py::init<std::vector<double>>())
+      .def(py::init<double>())
+      .def_readonly_static(
+          "num_parameters", &phase_flip_channel::num_parameters,
+          "The number of parameters this channel requires at construction.");
+
+  py::class_<pauli1, kraus_channel>(mod, "Pauli1", R"#()#")
+      .def(py::init<std::vector<double>>())
+      .def_readonly_static(
+          "num_parameters", &phase_flip_channel::num_parameters,
+          "The number of parameters this channel requires at construction.");
+
+
+  py::class_<pauli2, kraus_channel>(mod, "Pauli2", R"#()#")
+      .def(py::init<std::vector<double>>())
+      .def_readonly_static(
+          "num_parameters", &phase_flip_channel::num_parameters,
+          "The number of parameters this channel requires at construction.");
+
+
+  py::class_<depolarization1, kraus_channel>(mod, "Depolarization1", R"#()#")
+      .def(py::init<std::vector<double>>())
+      .def(py::init<double>())
+      .def_readonly_static(
+          "num_parameters", &phase_flip_channel::num_parameters,
+          "The number of parameters this channel requires at construction.");
+
+  py::class_<depolarization2, kraus_channel>(mod, "Depolarization2", R"#()#")
+      .def(py::init<std::vector<double>>())
+      .def(py::init<double>())
+      .def_readonly_static(
+          "num_parameters", &phase_flip_channel::num_parameters,
+          "The number of parameters this channel requires at construction.");
 }
 
 void bindNoise(py::module &mod) {

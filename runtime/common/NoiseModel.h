@@ -722,7 +722,7 @@ public:
   constexpr static std::size_t num_parameters = 3;
   constexpr static std::size_t num_targets = 1;
   pauli1(const std::vector<cudaq::real> &p) {
-    if (p.size() == num_parameters)
+    if (p.size() != num_parameters)
       throw std::runtime_error(
           "Invalid number of elements to pauli1 constructor. Must be 3.");
     cudaq::real sum = 0;
@@ -764,7 +764,7 @@ public:
   constexpr static std::size_t num_parameters = 15;
   constexpr static std::size_t num_targets = 2;
   pauli2(const std::vector<cudaq::real> &p) {
-    if (p.size() == num_parameters)
+    if (p.size() != num_parameters)
       throw std::runtime_error(
           "Invalid number of elements to pauli2 constructor. Must be 15.");
     cudaq::real sum = 0;

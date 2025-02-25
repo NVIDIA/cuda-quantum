@@ -128,6 +128,14 @@ DepolarizationChannel = cudaq_runtime.DepolarizationChannel
 AmplitudeDampingChannel = cudaq_runtime.AmplitudeDampingChannel
 PhaseFlipChannel = cudaq_runtime.PhaseFlipChannel
 BitFlipChannel = cudaq_runtime.BitFlipChannel
+PhaseDamping = cudaq_runtime.PhaseDamping 
+ZError = cudaq_runtime.ZError 
+XError = cudaq_runtime.XError 
+YError = cudaq_runtime.YError 
+Pauli1 = cudaq_runtime.Pauli1 
+Pauli2 = cudaq_runtime.Pauli2 
+Depolarization1 = cudaq_runtime.Depolarization1 
+Depolarization2 = cudaq_runtime.Depolarization2 
 
 # Functions
 sample_async = cudaq_runtime.sample_async
