@@ -181,6 +181,10 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
         elif hasattr(annotation.value, 'value') and hasattr(
                 annotation.value.value, 'id'):
             id = annotation.value.value.id
+        else:
+            localEmitFatalError(
+                f"{ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation} is not yet a supported type (could not infer type name)."
+            )
     else:
         localEmitFatalError(
             f"{ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation} is not a supported type yet (could not infer type name)."

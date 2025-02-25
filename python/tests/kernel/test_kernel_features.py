@@ -2014,13 +2014,14 @@ def test_numpy_functions():
     with pytest.raises(RuntimeError):
         cudaq.sample(invalid_unsupported)
 
+
 def test_in_comparator():
 
     @cudaq.kernel
     def kernel(ind: int):
         q = cudaq.qubit()
         if ind in [6, 13, 20, 27, 34]:
-            x(q)    
+            x(q)
 
     c = cudaq.sample(kernel, 1)
     assert len(c) == 1 and '0' in c
@@ -2043,12 +2044,13 @@ def test_in_comparator():
     def kernel(ind: int):
         q = cudaq.qubit()
         if ind not in [6, 13, 20, 27, 34]:
-            x(q)    
+            x(q)
 
     c = cudaq.sample(kernel, 1)
     assert len(c) == 1 and '1' in c
     c = cudaq.sample(kernel, 20)
     assert len(c) == 1 and '0' in c
+
 
 # leave for gdb debugging
 if __name__ == "__main__":
