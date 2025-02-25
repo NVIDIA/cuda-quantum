@@ -6,7 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %cpp_std -verify -D CUDAQ_REMOTE_SIM=1 %s
+// RUN: cudaq-quake -std=c++17 -verify -D CUDAQ_REMOTE_SIM=1 %s
+// RUN: cudaq-quake -std=c++20 -verify -D ONE_MORE_NOTE -D CUDAQ_REMOTE_SIM=1 %s
 
 #include <cudaq.h>
 
@@ -22,8 +23,6 @@ struct testApplyNoise {
     cudaq::qubit q0, q1;
     // expected-error@+1{{no matching function for call to 'apply_noise'}}
     cudaq::apply_noise<SantaKraus>(q0, q1);
-    // expected-note@* {{}}
-    // expected-note@* {{}}
-    // expected-note@* {{}}
+    // expected-note@* 2-3 {{}}
   }
 };
