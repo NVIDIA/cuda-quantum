@@ -19,6 +19,8 @@
 
 namespace cudaq {
 
+// FIXME: DEFINE A TEST TO PROPERLY CHECK FERMION ANTICOMMUTATION RELATIONS
+
 // private methods
 
 #if !defined(NDEBUG)
@@ -162,22 +164,31 @@ EvalTy product_operator<HandlerTy>::evaluate(operator_arithmetics<EvalTy> arithm
   auto degrees = this->degrees(false); // keep in canonical order
 
   auto padded_op = [&arithmetics, &degrees = std::as_const(degrees)](const HandlerTy &op) {
-      std::vector<EvalTy> padding;
-      auto op_degrees = op.degrees();
-      for (const auto &degree : degrees) {
-        if (std::find(op_degrees.cbegin(), op_degrees.cend(), degree) == op_degrees.cend())
-          padding.push_back(arithmetics.evaluate(HandlerTy(degree)));
+    std::vector<EvalTy> evaluated;
+    auto op_degrees = op.degrees();
+    bool op_evaluated = false;
+    for (const auto &degree : degrees) {
+      if (std::find(op_degrees.cbegin(), op_degrees.cend(), degree) == op_degrees.cend())
+        evaluated.push_back(arithmetics.evaluate(HandlerTy(degree)));
+      // if op has more than one degree of freedom, then evaluating it here would 
+      // potentially lead to a matrix reordering upon application of each subsequent id
+      else if (op_degrees.size() == 1 && !op_evaluated) {
+        evaluated.push_back(arithmetics.evaluate(op));
+        op_evaluated = true;
       }
+    }
 
-      if (padding.size() == 0)
-        return arithmetics.evaluate(op);
-      // Creating the tensor product with op being last is most efficient, 
-      // to ensure that no reordering needs to happen during computing the tensor of the ids.
-      // FIXME: CAN WE MOVE THE OP EVALUATION TO THE RIGHT PLACE?
-      EvalTy ids = std::move(padding[0]);
-      for (auto i = 1; i < padding.size(); ++i)
-        ids = arithmetics.tensor(std::move(ids), std::move(padding[i]));
-      return arithmetics.tensor(std::move(ids), arithmetics.evaluate(op));
+    if (evaluated.size() == 0)
+      return arithmetics.evaluate(op);
+
+    // Creating the tensor product with op being last is most efficient if op acts on more
+    // than one degree of freedom - this ensure that only a single reordering happens at
+    // at the end.
+    EvalTy product = std::move(evaluated[0]);
+    for (auto i = 1; i < evaluated.size(); ++i)
+      product = arithmetics.tensor(std::move(product), std::move(evaluated[i]));
+    if (op_evaluated) return std::move(product);
+    else return arithmetics.tensor(std::move(product), arithmetics.evaluate(op));
   };
 
   if (arithmetics.pad_product_terms) {
@@ -483,14 +494,13 @@ matrix_2 product_operator<HandlerTy>::to_matrix(std::unordered_map<int, int> dim
                                                 const std::unordered_map<std::string, std::complex<double>> &parameters,
                                                 bool application_order) const {
   auto evaluated = this->evaluate(operator_arithmetics<operator_handler::matrix_evaluation>(dimensions, parameters));
-  auto matrix = std::move(evaluated.matrix()); // FIXME: avoid the additional copy
+  auto matrix = std::move(evaluated.matrix);
   if (!application_order || operator_handler::canonical_order(1, 0) == operator_handler::user_facing_order(1, 0))
     return std::move(matrix);
 
-  auto current_degrees = evaluated.degrees(); // FIXME: avoid the additional copy
-  auto degrees = current_degrees;
+  auto degrees = evaluated.degrees;
   std::sort(degrees.begin(), degrees.end(), operator_handler::user_facing_order);
-  auto permutation = cudaq::detail::compute_permutation(current_degrees, degrees, dimensions);
+  auto permutation = cudaq::detail::compute_permutation(evaluated.degrees, degrees, dimensions);
   cudaq::detail::permute_matrix(matrix, permutation); 
   return std::move(matrix);
 }
@@ -499,8 +509,7 @@ template<>
 matrix_2 product_operator<spin_operator>::to_matrix(std::unordered_map<int, int> dimensions,
                                                 const std::unordered_map<std::string, std::complex<double>> &parameters, 
                                                 bool application_order) const {
-  auto evaluated = this->evaluate(operator_arithmetics<operator_handler::canonical_evaluation>(dimensions, parameters));
-  auto terms = evaluated.get_terms();
+  auto terms = std::move(this->evaluate(operator_arithmetics<operator_handler::canonical_evaluation>(dimensions, parameters)).terms);
   assert(terms.size() == 1);
   bool invert_order = application_order && operator_handler::canonical_order(1, 0) != operator_handler::user_facing_order(1, 0);
   auto matrix = spin_operator::to_matrix(terms[0].second, terms[0].first, invert_order);

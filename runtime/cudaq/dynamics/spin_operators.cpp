@@ -52,6 +52,28 @@ std::complex<double> spin_operator::inplace_mult(const spin_operator &other) {
   return factor;
 }
 
+// read-only properties
+
+std::string spin_operator::unique_id() const {
+  return this->op_code_to_string() + std::to_string(target);
+}
+
+std::vector<int> spin_operator::degrees() const {
+  return {this->target};
+}
+
+// constructors
+
+spin_operator::spin_operator(int target) 
+  : op_code(0), target(target) {}
+
+spin_operator::spin_operator(int target, int op_id) 
+  : op_code(op_id), target(target) {
+    assert(0 <= op_id < 4);
+}
+
+// evaluations
+
 matrix_2 spin_operator::to_matrix(std::string pauli_word, std::complex<double> coeff, bool invert_order) {
   auto map_state = [&pauli_word](char pauli, bool state) {
     if (state) {
@@ -88,25 +110,6 @@ matrix_2 spin_operator::to_matrix(std::string pauli_word, std::complex<double> c
   }
   return std::move(matrix);
 }
-
-// read-only properties
-
-std::string spin_operator::unique_id() const {
-  return this->op_code_to_string() + std::to_string(target);
-}
-
-std::vector<int> spin_operator::degrees() const { return {this->target}; }
-
-// constructors
-
-spin_operator::spin_operator(int target) : op_code(0), target(target) {}
-
-spin_operator::spin_operator(int target, int op_id)
-    : op_code(op_id), target(target) {
-  assert(0 <= op_id < 4);
-}
-
-// evaluations
 
 matrix_2 spin_operator::to_matrix(std::unordered_map<int, int> &dimensions,
                                   const std::unordered_map<std::string, std::complex<double>> &parameters) const {
