@@ -6,6 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// Compile and run with:
+// ```
+// nvq++ --target dynamics qubit_dynamics.cpp -o a.out && ./a.out
+// ```
+
 #include "cudaq/algorithms/evolve.h"
 #include "cudaq/dynamics_integrators.h"
 #include "cudaq/operators.h"
@@ -14,9 +19,11 @@
 
 int main() {
   // Qubit hamiltonian: 2 * pi * 0.1 * sigma_x
+  // Physically, this represents a qubit (a two-level system) driven by a weak
+  // transverse field along the x-axis.
   auto hamiltonian = 2.0 * M_PI * 0.1 * cudaq::spin_operator::x(0);
 
-  // Dimensions: one subsystem of dimension 2 (a two-level system)
+  // Dimensions: one subsystem of dimension 2 (a two-level system).
   const std::map<int, int> dimensions = {{0, 2}};
 
   // Initial state: ground state
