@@ -1003,7 +1003,7 @@ INSTANTIATE_PRODUCT_LHCOMPOSITE_OPS(fermion_operator);
 
 #define PRODUCT_CONVERSIONS_OPS(op, returnTy)                                  \
   template <typename LHtype, typename RHtype,                                  \
-            TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype)>                        \
+            TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>                 \
   returnTy<matrix_operator> operator op(                                       \
       const product_operator<LHtype> &other,                                   \
       const product_operator<RHtype> &self) {                                  \
