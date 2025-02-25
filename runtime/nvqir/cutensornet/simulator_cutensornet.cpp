@@ -198,13 +198,6 @@ void SimulatorTensorNetBase::applyNoise(
     const cudaq::kraus_channel &channel,
     const std::vector<std::size_t> &targets) {
   LOG_API_TIME();
-  // Do nothing if no execution context
-  if (!executionContext)
-    return;
-
-  // Do nothing if no noise model
-  if (!executionContext->noiseModel)
-    return;
 
   // Apply all prior gates before applying noise.
   std::vector<int32_t> qubits{targets.begin(), targets.end()};
