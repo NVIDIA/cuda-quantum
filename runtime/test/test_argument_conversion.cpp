@@ -12,7 +12,6 @@
 // RUN: test_argument_conversion | FileCheck %s
 
 #include "common/ArgumentConversion.h"
-#include "common/StateAggregator.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/InitAllDialects.h"
@@ -143,12 +142,14 @@ public:
 
 extern "C" void __cudaq_deviceCodeHolderAdd(const char *, const char *);
 
-void dumpSubstitutionModule(cudaq::opt::ArgumentConverter &con) {
-  // Dump the conversions
-  llvm::outs() << "========================================\n"
-                  "Substitution module:\n"
-               << con.getKernelName() << "\n"
-               << con.getSubstitutionModule() << '\n';
+void dumpSubstitutionModules(cudaq::opt::ArgumentConverter &con) {
+  for (auto &[kName, kInfo] : con.getKernelInfo()) {
+    // Dump the conversions
+    llvm::outs() << "========================================\n"
+                    "Substitution module:\n"
+                << kName << "\n"
+                << kInfo.getSubstitutionModule() << '\n';
+  }
 }
 
 void doSimpleTest(mlir::MLIRContext *ctx, const std::string &typeName,
@@ -171,38 +172,7 @@ func.func @__nvqpp__mlirgen__testy(%0: )#" +
   // Create the argument conversions
   ab.gen(args);
   // Dump all conversions
-  dumpSubstitutionModule(ab);
-}
-
-
-void doStateAggregationTest(mlir::MLIRContext *ctx, const std::string &typeName,
-  std::vector<void *> args,
-  const std::string &additionalCode = "") {
-std::string code = additionalCode + R"#(
-func.func private @callee(%0: )#" +
-     typeName + R"#()
-func.func @__nvqpp__mlirgen__testy(%0: )#" +
-     typeName + R"#() {
-call @callee(%0) : ()#" +
-     typeName + R"#() -> ()
-return
-})#";
-
-// Create the Module
-auto mod = mlir::parseSourceString<mlir::ModuleOp>(code, ctx);
-llvm::outs() << "Source module:\n" << *mod << '\n';
-
-  // Create the argument conversions for state arguments
-  cudaq::opt::StateAggregator sa;
-  sa.collect(*mod, "testy", args);
-
-  for (auto &kInfo : sa.getKernelInfo()) {
-    cudaq::opt::ArgumentConverter &cab = kInfo.converter;
-    // Create the argument conversions for callee kernels from state arguments
-    cab.gen(kInfo.args);
-    // Dump all conversions
-    dumpSubstitutionModule(cab);
-  }
+  dumpSubstitutionModules(ab);
 }
 
 void doTest(mlir::MLIRContext *ctx, std::vector<std::string> &typeNames,
@@ -245,7 +215,7 @@ void doTest(mlir::MLIRContext *ctx, std::vector<std::string> &typeNames,
   // Create the argument conversions
   ab.gen_drop_front(args, startingArgIdx);
   // Dump all conversions
-  dumpSubstitutionModule(ab);
+  dumpSubstitutionModules(ab);
 }
 
 void test_scalars(mlir::MLIRContext *ctx) {
@@ -568,7 +538,7 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
     std::vector<void *> a = {static_cast<void *>(&n)};
     auto s = cudaq::state(new FakeDeviceState(init, a));
     std::vector<void *> v = {static_cast<void *>(&s)};
-    doStateAggregationTest(ctx, "!cc.ptr<!cc.state>", v, initCode);
+    doSimpleTest(ctx, "!cc.ptr<!cc.state>", v, initCode);
   }
 
   // clang-format off
@@ -669,7 +639,7 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
     std::vector<void *> v1 = {static_cast<void *>(&s1)};
 
     auto code = std::string{initCode} + std::string{stateParamCode};
-    doStateAggregationTest(ctx, "!cc.ptr<!cc.state>", v1, code);
+    doSimpleTest(ctx, "!cc.ptr<!cc.state>", v1, code);
   }
 
   // clang-format off
@@ -799,7 +769,7 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
     std::vector<void *> a = {static_cast<void *>(&n)};
     auto s = cudaq::state(new FakeDeviceState(init, a));
     std::vector<void *> v = {static_cast<void *>(&s)};
-    doStateAggregationTest(ctx, "!cc.ptr<!cc.state>", v, initCode);
+    doSimpleTest(ctx, "!cc.ptr<!cc.state>", v, initCode);
   }
 
   // clang-format off

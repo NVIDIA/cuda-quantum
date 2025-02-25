@@ -9,7 +9,6 @@
 #pragma once
 
 #include "common/ArgumentConversion.h"
-#include "common/StateAggregator.h"
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
 #include "common/Executor.h"
@@ -458,73 +457,35 @@ public:
         // For quantum devices, create a list of ArgumentConverters
         // with nodes corresponding to `init` and `num_qubits` functions
         // created from a kernel that generated the state argument.
-        // Traverse the tree and collect substitutions for all those
+        // Traverse the list and collect substitutions for all those
         // functions.
-        cudaq::opt::StateAggregator aggregator;
-        aggregator.collect(moduleOp, kernelName, rawArgs);
+        auto argCon = cudaq::opt::ArgumentConverter(kernelName, moduleOp);
+        argCon.gen(rawArgs);
 
         // Store kernel and substitution strings on the stack.
         // We pass string references to the `createArgumentSynthesisPass`.
         mlir::SmallVector<std::string> kernels;
         mlir::SmallVector<std::string> substs;
-        for (auto &kInfo : aggregator.getKernelInfo()) {
-          auto con = kInfo.converter;
-          con.gen(kInfo.args);
+        for (auto &[kName, kInfo] : argCon.getKernelInfo()) {
           {
-            auto name = con.getKernelName();
             std::string kernName =
-                cudaq::runtime::cudaqGenPrefixName + name.str();
+                cudaq::runtime::cudaqGenPrefixName + kName.str();
             kernels.emplace_back(kernName);
           }
           {
             std::string substBuff;
             llvm::raw_string_ostream ss(substBuff);
-            ss << con.getSubstitutionModule();
+            ss << kInfo.getSubstitutionModule();
             substs.emplace_back(substBuff);
           }
         }
 
-        // std::list<std::string> kernelRegistry;
-        // opt::ArgumentConverter argCon(kernelRegistry, kernelName, moduleOp);
-        // argCon.gen(rawArgs);
-
-        // // For quantum devices, we've created a tree of ArgumentConverters
-        // // with nodes corresponding to `init` and `num_qubits` functions
-        // // created from a kernel that generated the state argument.
-        // // Traverse the tree and collect substitutions for all those
-        // // functions.
-
-        // // Store kernel and substitution strings on the stack.
-        // // We pass string references to the `createArgumentSynthesisPass`.
-        // mlir::SmallVector<std::string> kernels;
-        // mlir::SmallVector<std::string> substs;
-
-        // std::function<void(opt::ArgumentConverter &)> collect =
-        //     [&kernels, &substs, &collect](opt::ArgumentConverter &con) {
-        //       {
-        //         auto name = con.getKernelName();
-        //         std::string kernName =
-        //             cudaq::runtime::cudaqGenPrefixName + name.str();
-        //         kernels.emplace_back(kernName);
-        //       }
-        //       {
-        //         std::string substBuff;
-        //         llvm::raw_string_ostream ss(substBuff);
-        //         ss << con.getSubstitutionModule();
-        //         substs.emplace_back(substBuff);
-        //       }
-
-        //       for (auto &calleeCon : con.getCalleeConverters())
-        //         collect(calleeCon);
-        //     };
-        // collect(argCon);
-
         // Collect references for the argument synthesis.
-        mlir::SmallVector<mlir::StringRef> funcNames{kernels.begin(),
+        mlir::SmallVector<mlir::StringRef> kernelRefs{kernels.begin(),
                                                      kernels.end()};
-        mlir::SmallVector<mlir::StringRef> substitutions{substs.begin(),
+        mlir::SmallVector<mlir::StringRef> substRefs{substs.begin(),
                                                          substs.end()};
-        pm.addPass(opt::createArgumentSynthesisPass(funcNames, substitutions));
+        pm.addPass(opt::createArgumentSynthesisPass(kernelRefs, substRefs));
         pm.addPass(opt::createDeleteStates());
         pm.addNestedPass<mlir::func::FuncOp>(
             opt::createReplaceStateWithKernel());
@@ -624,6 +585,8 @@ public:
       }
     } else
       modules.emplace_back(kernelName, moduleOp);
+
+    std::cout << "Modules: " << modules.size() << std::endl;
 
     if (emulate) {
       // If we are in emulation mode, we need to first get a full QIR
@@ -750,7 +713,7 @@ public:
             std::vector<cudaq::ExecutionResult> results;
 
             // If seed is 0, then it has not been set.
-            if (seed > 0)
+            if (seed == 0)
               cudaq::set_random_seed(seed);
 
             bool hasConditionals =
@@ -758,6 +721,7 @@ public:
             if (hasConditionals && isObserve)
               throw std::runtime_error("error: spin_ops not yet supported with "
                                        "kernels containing conditionals");
+
             if (hasConditionals) {
               executor->setShots(1); // run one shot at a time
 
@@ -783,6 +747,8 @@ public:
                       counts.sequential_data(regName);
                 }
               }
+              localJIT.clear();
+              return cudaq::sample_result(results);
             }
 
             for (std::size_t i = 0; i < codes.size(); i++) {
