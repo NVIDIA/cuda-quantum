@@ -416,7 +416,7 @@ template<typename HandlerTy>
 matrix_2 operator_sum<HandlerTy>::to_matrix(std::unordered_map<int, int> dimensions,
                                             const std::unordered_map<std::string, std::complex<double>> &parameters,
                                             bool application_order) const {
-  auto evaluated = this->evaluate(matrix_arithmetics(dimensions, parameters));
+  auto evaluated = this->evaluate(operator_arithmetics<operator_handler::matrix_evaluation>(dimensions, parameters));
   auto matrix = std::move(evaluated.matrix()); // FIXME: avoid the additional copy
   if (!application_order || operator_handler::canonical_order(1, 0) == operator_handler::user_facing_order(1, 0))
     return std::move(matrix);
@@ -433,7 +433,7 @@ template<>
 matrix_2 operator_sum<spin_operator>::to_matrix(std::unordered_map<int, int> dimensions,
                                             const std::unordered_map<std::string, std::complex<double>> &parameters,
                                             bool application_order) const {
-  auto evaluated = this->evaluate(canonical_arithmetics(dimensions, parameters));
+  auto evaluated = this->evaluate(operator_arithmetics<operator_handler::canonical_evaluation>(dimensions, parameters));
   auto terms = evaluated.get_terms();
   if (terms.size() == 0) return cudaq::matrix_2(0, 0);
 

@@ -729,6 +729,9 @@ TEST(OperatorExpressions, checkMatrixOpsDegreeVerification) {
         };
     cudaq::matrix_operator::define("custom_op0", {-1, -1}, func0);
     cudaq::matrix_operator::define("custom_op1", {-1, -1}, func1);
+
+    cudaq::matrix_operator::define("custom_op2", {3, 3}, func0);
+    cudaq::matrix_operator::define("custom_op3", {2, -1}, func1);
   }
 
   auto custom_op0 = cudaq::matrix_operator::instantiate("custom_op0", {3, 1});
@@ -749,6 +752,17 @@ TEST(OperatorExpressions, checkMatrixOpsDegreeVerification) {
                std::runtime_error);
   ASSERT_NO_THROW((custom_op0 * custom_op1).to_matrix(dimensions));
   ASSERT_NO_THROW((custom_op0 + custom_op1).to_matrix(dimensions));
+
+  auto custom_op2 = cudaq::matrix_operator::instantiate("custom_op2", {3, 1});
+  auto custom_op3 = cudaq::matrix_operator::instantiate("custom_op3", {1, 0});
+
+  dimensions = {{0, 2}};
+  ASSERT_NO_THROW(custom_op2.to_matrix());
+  ASSERT_THROW(custom_op3.to_matrix(), std::runtime_error);
+  ASSERT_NO_THROW(custom_op3.to_matrix(dimensions));
+  dimensions = {};
+  ASSERT_NO_THROW(custom_op2.to_matrix(dimensions)); // degree 1 should be set to required dim 3
+  ASSERT_THROW(custom_op3.to_matrix(dimensions), std::runtime_error); // degree 1 needs to be 2
 }
 
 TEST(OperatorExpressions, checkMatrixOpsParameterVerification) {

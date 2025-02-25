@@ -37,6 +37,7 @@ private:
   boson_operator(int target, int op_code);
 
   std::string op_code_to_string() const;
+  virtual std::string op_code_to_string(std::unordered_map<int, int> &dimensions) const;
 
   void inplace_mult(const boson_operator &other);
 
@@ -66,7 +67,7 @@ public:
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {}) const;
 
-  virtual std::string to_string(bool include_degrees, const std::unordered_map<int, int> &dimensions = {}) const;
+  virtual std::string to_string(bool include_degrees) const;
 
   // comparisons
 

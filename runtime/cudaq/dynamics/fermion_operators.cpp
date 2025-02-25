@@ -76,6 +76,15 @@ std::string fermion_operator::op_code_to_string() const {
   return "I";
 }
 
+std::string fermion_operator::op_code_to_string(std::unordered_map<int, int> &dimensions) const {
+  auto it = dimensions.find(this->target);
+  if (it == dimensions.end())
+    dimensions[this->target] = 2;
+  else if (it->second != 2)
+    throw std::runtime_error("dimension for fermion operator must be 2");
+  return this->op_code_to_string();
+}
+
 void fermion_operator::inplace_mult(const fermion_operator &other) {
 #if !defined(NDEBUG)
   other.validate_opcode();
@@ -156,11 +165,7 @@ matrix_2 fermion_operator::to_matrix(
   return std::move(mat);
 }
 
-std::string fermion_operator::to_string(bool include_degrees, const std::unordered_map<int, int> &dimensions) const {
-  auto it = dimensions.find(this->target);
-  if (it != dimensions.cend() && it->second != 2)
-    throw std::runtime_error("dimension for fermion operator must be 2");
-
+std::string fermion_operator::to_string(bool include_degrees) const {
   if (include_degrees) return this->op_code_to_string() + "(" + std::to_string(target) + ")";
   else return this->op_code_to_string();
 }

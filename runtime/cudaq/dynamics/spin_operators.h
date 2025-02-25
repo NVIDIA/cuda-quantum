@@ -18,15 +18,8 @@
 namespace cudaq {
 
 // FIXME: rename to spin ...
-<<<<<<< HEAD
-class spin_operator : public operator_handler {
-  template <typename T>
-  friend class product_operator;
-=======
 class spin_operator : public operator_handler{
 template <typename T> friend class product_operator;
-template <typename T> friend class operator_sum;
->>>>>>> 629e2ae33 (making internal (canonical) ordering and user facing ordering constants defined in operator_handler)
 
 private:
   // I = 0, Z = 1, X = 2, Y = 3
@@ -38,6 +31,7 @@ private:
   // private helpers
 
   std::string op_code_to_string() const;
+  std::string op_code_to_string(std::unordered_map<int, int> &dimensions) const;
 
   std::complex<double> inplace_mult(const spin_operator &other);
 
@@ -72,7 +66,7 @@ public:
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {}) const;
 
-  virtual std::string to_string(bool include_degrees, const std::unordered_map<int, int> &dimensions = {}) const; // FIXME: CONST OK?
+  virtual std::string to_string(bool include_degrees) const;
 
   // comparisons
 

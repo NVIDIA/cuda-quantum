@@ -139,7 +139,6 @@ private:
   std::unordered_map<int, int> &dimensions; // may be updated during evaluation
   const std::unordered_map<std::string, std::complex<double>> &parameters;
 
-
 public:
   const bool pad_sum_terms = true;
   const bool pad_product_terms = false;
@@ -149,8 +148,7 @@ public:
     : dimensions(dimensions), parameters(parameters) {}
 
   operator_handler::canonical_evaluation evaluate(const operator_handler &op) {
-    // FIXME: VALIDATE DIMENSIONS PROPERLY HERE - maybe don't use the to_string method here but a dedicated one?
-    auto canon_str = op.to_string(false, this->dimensions);
+    auto canon_str = op.op_code_to_string(this->dimensions);
     operator_handler::canonical_evaluation eval;
     eval.push_back(std::make_pair(std::complex<double>(1.), std::move(canon_str)));
     return std::move(eval);
@@ -186,7 +184,4 @@ public:
   }
 };
 
-
-typedef operator_arithmetics<operator_handler::matrix_evaluation> matrix_arithmetics;
-typedef operator_arithmetics<operator_handler::canonical_evaluation> canonical_arithmetics;
 }

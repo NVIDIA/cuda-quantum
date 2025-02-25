@@ -89,6 +89,30 @@ product_operator<matrix_operator> matrix_operator::instantiate(std::string opera
   return product_operator(matrix_operator(operator_id, std::move(degrees)));
 }
 
+// private helpers
+
+std::string matrix_operator::op_code_to_string(std::unordered_map<int, int> &dimensions) const {
+  auto it = matrix_operator::defined_ops.find(this->op_code);
+  assert(it != matrix_operator::defined_ops.end()); // should be validated upon instantiation
+
+  for (auto i = 0; i < this->targets.size(); ++i) {
+    auto entry = dimensions.find(this->targets[i]);
+    auto expected_dim = it->second.expected_dimensions[i];
+    if (expected_dim <= 0) {
+      if (entry == dimensions.end())
+        throw std::runtime_error("missing dimension for degree " + std::to_string(this->targets[i]));
+    } else {
+      if (entry == dimensions.end())
+        dimensions[this->targets[i]] = expected_dim;
+      else if (entry->second != expected_dim)
+        throw std::runtime_error("invalid dimension for degree " + 
+                                  std::to_string(this->targets[i]) + 
+                                  ", expected dimension is " + std::to_string(expected_dim));
+    }
+  }
+  return this->op_code;
+}
+
 // read-only properties
 
 std::string matrix_operator::unique_id() const {
@@ -206,8 +230,7 @@ matrix_2 matrix_operator::to_matrix(
     std::unordered_map<int, int> &dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters) const {
   auto it = matrix_operator::defined_ops.find(this->op_code);
-  if (it == matrix_operator::defined_ops.end()) 
-    throw std::range_error("unable to find operator");
+  assert(it != matrix_operator::defined_ops.end()); // should be validated upon instantiation
 
   std::vector<int> relevant_dimensions;
   relevant_dimensions.reserve(this->targets.size());
@@ -233,7 +256,7 @@ matrix_2 matrix_operator::to_matrix(
   return it->second.generate_matrix(relevant_dimensions, parameters);
 }
 
-std::string matrix_operator::to_string(bool include_degrees, const std::unordered_map<int, int> &dimensions) const {
+std::string matrix_operator::to_string(bool include_degrees) const {
   if (!include_degrees) return this->op_code;
   else if (this->targets.size() == 0) return this->op_code + "()";
   auto it = this->targets.cbegin();
