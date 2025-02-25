@@ -970,7 +970,9 @@ class PyASTBridge(ast.NodeVisitor):
                 for arg in node.args.args
             ]
             parentResultType = self.knownResultType
-            if node.returns != None:
+            if node.returns is not None and not (isinstance(
+                    node.returns, ast.Constant) and
+                                                 (node.returns.value is None)):
                 self.knownResultType = self.mlirTypeFromAnnotation(node.returns)
 
             # Get the argument names
