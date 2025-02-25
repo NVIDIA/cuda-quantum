@@ -6,19 +6,17 @@ workflow:
         staged: "cuda-quantum-dev"
     - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_BRANCH =~ /arm64/ && $CI_COMMIT_TITLE =~ /cuda-quantum-devdeps@sha256:\S+$/'
       variables:
-        runner: hostname/core-plab-e114-arm-glr01.nvidia.com
+        ossuffix: "-arm"
         staged: "cuda-quantum-devdeps"
     - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_TITLE =~ /cuda-quantum-devdeps@sha256:\S+$/'
       variables:
-        runner: project/cuda-quantum-amd64
         staged: "cuda-quantum-devdeps"
     - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_BRANCH =~ /arm64/ && $CI_COMMIT_TITLE =~ /cuda-quantum-assets@sha256:\S+$/'
       variables:
-        runner: hostname/core-plab-e114-arm-glr01.nvidia.com
+        os_suffix: "-arm"
         staged: "cuda-quantum-assets"
     - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_TITLE =~ /cuda-quantum-assets@sha256:\S+$/'
       variables:
-        runner: project/cuda-quantum-amd64
         staged: "cuda-quantum-assets"
     - when: always
 
@@ -71,7 +69,9 @@ Python Wheels:
     - Metadata
   image: $CI_COMMIT_TITLE
   tags:
-    - $runner
+    - os/linux$ossuffix
+    - perflab$ossuffix
+    - type/docker
   interruptible: false
   artifacts:
     paths:
@@ -135,7 +135,9 @@ Installer:
     - Metadata
   image: $CI_COMMIT_TITLE
   tags:
-    - $runner
+    - os/linux$ossuffix
+    - perflab$ossuffix
+    - type/docker
   interruptible: false
   artifacts:
     paths:
@@ -163,9 +165,11 @@ Docker Image:
   image: $CI_COMMIT_TITLE
   parallel:
     matrix:
-      - runner: [project/cuda-quantum-amd64, hostname/core-plab-e114-arm-glr02.nvidia.com]
+      - ossuffix: ["", "-arm"]
   tags:
-    - $runner
+    - os/linux$ossuffix
+    - perflab$ossuffix
+    - type/docker
   interruptible: false
   artifacts:
     paths:
