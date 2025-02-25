@@ -15,42 +15,30 @@ namespace cudaq {
 
 // implementation for operator_handler::matrix_evaluation
 
-const std::vector<int>& operator_handler::matrix_evaluation::degrees() const {
-  return this->targets;
-}
-
-const matrix_2& operator_handler::matrix_evaluation::matrix() const {
-  return this->value;
-}
-
 operator_handler::matrix_evaluation::matrix_evaluation() = default;
 
 operator_handler::matrix_evaluation::matrix_evaluation(std::vector<int> &&degrees, matrix_2 &&matrix)
-: targets(std::move(degrees)), value(std::move(matrix)) {
+: degrees(std::move(degrees)), matrix(std::move(matrix)) {
 #if !defined(NDEBUG)
   std::set<int> unique_degrees;
-  for (auto d : this->targets)
+  for (auto d : this->degrees)
   unique_degrees.insert(d);
-  assert(unique_degrees.size() == this->targets.size());
+  assert(unique_degrees.size() == this->degrees.size());
 #endif
 }
 
 operator_handler::matrix_evaluation::matrix_evaluation(matrix_evaluation &&other)
-: targets(std::move(other.targets)), value(std::move(other.value)) {}
+: degrees(std::move(other.degrees)), matrix(std::move(other.matrix)) {}
 
 operator_handler::matrix_evaluation& operator_handler::matrix_evaluation::operator=(matrix_evaluation &&other) {
   if (this != &other) {
-    this->targets = std::move(other.targets);
-    this->value = std::move(other.value);
+    this->degrees = std::move(other.degrees);
+    this->matrix = std::move(other.matrix);
   }
   return *this;
 }
 
 // implementation for operator_handler::canonical_evaluation
-
-const std::vector<std::pair<std::complex<double>, std::string>>& operator_handler::canonical_evaluation::get_terms() {
-  return this->terms;
-}
 
 operator_handler::canonical_evaluation::canonical_evaluation() = default;
 

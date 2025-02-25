@@ -384,16 +384,14 @@ matrix_2 operator_sum<HandlerTy>::to_matrix(std::unordered_map<int, int> dimensi
                                             const std::unordered_map<std::string, std::complex<double>> &parameters,
                                             bool application_order) const {
   auto evaluated = this->evaluate(operator_arithmetics<operator_handler::matrix_evaluation>(dimensions, parameters));
-  auto matrix = std::move(evaluated.matrix()); // FIXME: avoid the additional copy
   if (!application_order || operator_handler::canonical_order(1, 0) == operator_handler::user_facing_order(1, 0))
-    return std::move(matrix);
+    return std::move(evaluated.matrix);
 
-  auto current_degrees = evaluated.degrees(); // FIXME: avoid the additional copy
-  auto degrees = current_degrees;
+  auto degrees = evaluated.degrees;
   std::sort(degrees.begin(), degrees.end(), operator_handler::user_facing_order);
-  auto permutation = cudaq::detail::compute_permutation(current_degrees, degrees, dimensions);
-  cudaq::detail::permute_matrix(matrix, permutation); 
-  return std::move(matrix);
+  auto permutation = cudaq::detail::compute_permutation(evaluated.degrees, degrees, dimensions);
+  cudaq::detail::permute_matrix(evaluated.matrix, permutation); 
+  return std::move(evaluated.matrix);
 }
 
 template<>
@@ -401,13 +399,12 @@ matrix_2 operator_sum<spin_operator>::to_matrix(std::unordered_map<int, int> dim
                                             const std::unordered_map<std::string, std::complex<double>> &parameters,
                                             bool application_order) const {
   auto evaluated = this->evaluate(operator_arithmetics<operator_handler::canonical_evaluation>(dimensions, parameters));
-  auto terms = evaluated.get_terms();
-  if (terms.size() == 0) return cudaq::matrix_2(0, 0);
+  if (evaluated.terms.size() == 0) return cudaq::matrix_2(0, 0);
 
   bool invert_order = application_order && operator_handler::canonical_order(1, 0) != operator_handler::user_facing_order(1, 0);
-  auto matrix = spin_operator::to_matrix(terms[0].second, terms[0].first, invert_order);
+  auto matrix = spin_operator::to_matrix(evaluated.terms[0].second, evaluated.terms[0].first, invert_order);
   for (auto i = 1; i < terms.size(); ++i) 
-     matrix += spin_operator::to_matrix(terms[i].second, terms[i].first, invert_order);
+     matrix += spin_operator::to_matrix(evaluated.terms[i].second, evaluated.terms[i].first, invert_order);
   return std::move(matrix);
 }
 

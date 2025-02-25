@@ -89,46 +89,40 @@ public:
     return operator_handler::matrix_evaluation({}, op.to_matrix(this->parameters));
   }
   
-  operator_handler::matrix_evaluation tensor(operator_handler::matrix_evaluation op1, operator_handler::matrix_evaluation op2) {
-    std::vector<int> degrees;
-    auto op1_degrees = op1.degrees();
-    auto op2_degrees = op2.degrees();
-    degrees.reserve(op1_degrees.size() + op2_degrees.size());
-    for (auto d : op1_degrees)
-      degrees.push_back(d);
-    for (auto d : op2_degrees) {
-      assert(std::find(degrees.cbegin(), degrees.cend(), d) == degrees.cend());
-      degrees.push_back(d);
+  operator_handler::matrix_evaluation tensor(operator_handler::matrix_evaluation &&op1, operator_handler::matrix_evaluation &&op2) {
+    op1.degrees.reserve(op1.degrees.size() + op2.degrees.size());
+    for (auto d : op2.degrees) {
+      assert(std::find(op1.degrees.cbegin(), op1.degrees.cend(), d) == op1.degrees.cend());
+      op1.degrees.push_back(d);
     }
-    auto matrix = cudaq::kronecker(op1.matrix(), op2.matrix());
-    this->canonicalize(matrix, degrees);
-    return operator_handler::matrix_evaluation(std::move(degrees), std::move(matrix));
+    auto matrix = cudaq::kronecker(std::move(op1.matrix), std::move(op2.matrix));
+    this->canonicalize(matrix, op1.degrees);
+    return operator_handler::matrix_evaluation(std::move(op1.degrees), std::move(matrix));
   }
 
-  operator_handler::matrix_evaluation mul(const scalar_operator &scalar, operator_handler::matrix_evaluation op) {
-    auto degrees = op.degrees();
-    auto matrix = scalar.evaluate(this->parameters) * op.matrix();
-    return operator_handler::matrix_evaluation(std::move(degrees), std::move(matrix));
+  operator_handler::matrix_evaluation mul(const scalar_operator &scalar, operator_handler::matrix_evaluation &&op) {
+    auto matrix = scalar.evaluate(this->parameters) * std::move(op.matrix);
+    return operator_handler::matrix_evaluation(std::move(op.degrees), std::move(matrix));
   }
 
-  operator_handler::matrix_evaluation mul(operator_handler::matrix_evaluation op1, operator_handler::matrix_evaluation op2) {
+  operator_handler::matrix_evaluation mul(operator_handler::matrix_evaluation &&op1, operator_handler::matrix_evaluation &&op2) {
     // Elementary operators have sorted degrees such that we have a unique
     // convention for how to define the matrix. Tensor products permute the
     // computed matrix if necessary to guarantee that all operators always have
     // sorted degrees.
-    auto degrees = op1.degrees();
-    assert(degrees == op2.degrees());
-    return operator_handler::matrix_evaluation(std::move(degrees), (op1.matrix() * op2.matrix()));
+    assert(op1.degrees == op2.degrees);
+    op1.matrix *= std::move(op2.matrix);
+    return operator_handler::matrix_evaluation(std::move(op1.degrees), std::move(op1.matrix));
   }
   
-  operator_handler::matrix_evaluation add(operator_handler::matrix_evaluation op1, operator_handler::matrix_evaluation op2) {
+  operator_handler::matrix_evaluation add(operator_handler::matrix_evaluation &&op1, operator_handler::matrix_evaluation &&op2) {
     // Elementary operators have sorted degrees such that we have a unique
     // convention for how to define the matrix. Tensor products permute the
     // computed matrix if necessary to guarantee that all operators always have
     // sorted degrees.
-    auto degrees = op1.degrees();
-    assert(degrees == op2.degrees());
-    return operator_handler::matrix_evaluation(std::move(degrees), op1.matrix() + op2.matrix());
+    assert(op1.degrees == op2.degrees);
+    op1.matrix += std::move(op2.matrix);
+    return operator_handler::matrix_evaluation(std::move(op1.degrees), std::move(op1.matrix));
   }
 };
 
@@ -162,10 +156,9 @@ public:
   }
 
   operator_handler::canonical_evaluation tensor(operator_handler::canonical_evaluation &&val1, operator_handler::canonical_evaluation &&val2) {
-    auto val2_terms = val2.get_terms();
-    assert(val1.get_terms().size() == 1 && val2_terms.size() == 1);
-    assert(val2_terms[0].first == std::complex<double>(1.)); // should be trivial
-    val1.push_back(val2_terms[0].second);
+    assert(val1.terms.size() == 1 && val2.terms.size() == 1);
+    assert(val2.terms[0].first == std::complex<double>(1.)); // should be trivial
+    val1.push_back(val2.terms[0].second);
     return std::move(val1);
   }
 
@@ -178,9 +171,8 @@ public:
   }
 
   operator_handler::canonical_evaluation add(operator_handler::canonical_evaluation &&val1, operator_handler::canonical_evaluation &&val2) {
-    auto val2_terms = val2.get_terms();
-    assert(val2_terms.size() == 1);
-    val1.push_back(std::move(val2_terms[0]));
+    assert(val2.terms.size() == 1);
+    val1.push_back(std::move(val2.terms[0]));
     return std::move(val1);
   }
 };
