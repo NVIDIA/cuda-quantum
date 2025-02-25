@@ -322,7 +322,6 @@ void bindNoiseChannels(py::module &mod) {
           "num_parameters", &phase_flip_channel::num_parameters,
           "The number of parameters this channel requires at construction.");
 
-
   py::class_<x_error, kraus_channel>(mod, "XError", R"#()#")
       .def(py::init<std::vector<double>>())
       .def(py::init<double>())
@@ -343,13 +342,11 @@ void bindNoiseChannels(py::module &mod) {
           "num_parameters", &phase_flip_channel::num_parameters,
           "The number of parameters this channel requires at construction.");
 
-
   py::class_<pauli2, kraus_channel>(mod, "Pauli2", R"#()#")
       .def(py::init<std::vector<double>>())
       .def_readonly_static(
           "num_parameters", &phase_flip_channel::num_parameters,
           "The number of parameters this channel requires at construction.");
-
 
   py::class_<depolarization1, kraus_channel>(mod, "Depolarization1", R"#()#")
       .def(py::init<std::vector<double>>())

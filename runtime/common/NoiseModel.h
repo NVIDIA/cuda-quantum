@@ -825,7 +825,8 @@ public:
       : depolarization_channel(probability) {
     noise_type = noise_model_type::depolarization1;
   }
-  REGISTER_KRAUS_CHANNEL(noise_model_strings[(int)noise_model_type::depolarization1])
+  REGISTER_KRAUS_CHANNEL(
+      noise_model_strings[(int)noise_model_type::depolarization1])
 };
 
 class depolarization2 : public kraus_channel {
@@ -866,7 +867,8 @@ public:
   /// mixing occurs at p = 0.9375.)
   depolarization2(const real probability)
       : depolarization2(std::vector<cudaq::real>{probability}) {}
-  REGISTER_KRAUS_CHANNEL(noise_model_strings[(int)noise_model_type::depolarization2])
+  REGISTER_KRAUS_CHANNEL(
+      noise_model_strings[(int)noise_model_type::depolarization2])
 };
 
 } // namespace cudaq
