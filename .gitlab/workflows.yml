@@ -4,17 +4,23 @@ workflow:
     - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_TITLE =~ /cuda-quantum-dev@sha256:\S+$/'
       variables:
         staged: "cuda-quantum-dev"
+        os: os/linux
+        perflab: perflab
     - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_BRANCH =~ /arm64/ && $CI_COMMIT_TITLE =~ /cuda-quantum-devdeps@sha256:\S+$/'
       variables:
-        ossuffix: "-arm"
         staged: "cuda-quantum-devdeps"
+        os: os/linux-arm
+        perflab: perflab-arm
     - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_TITLE =~ /cuda-quantum-devdeps@sha256:\S+$/'
       variables:
         staged: "cuda-quantum-devdeps"
+        os: os/linux
+        perflab: perflab
     - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_BRANCH =~ /arm64/ && $CI_COMMIT_TITLE =~ /cuda-quantum-assets@sha256:\S+$/'
       variables:
-        os_suffix: "-arm"
         staged: "cuda-quantum-assets"
+        os: os/linux-arm
+        perflab: perflab-arm
     - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_TITLE =~ /cuda-quantum-assets@sha256:\S+$/'
       variables:
         staged: "cuda-quantum-assets"
@@ -69,8 +75,8 @@ Python Wheels:
     - Metadata
   image: $CI_COMMIT_TITLE
   tags:
-    - os/linux$ossuffix
-    - perflab$ossuffix
+    - $os
+    - $perflab
     - type/docker
   interruptible: false
   artifacts:
@@ -135,8 +141,8 @@ Installer:
     - Metadata
   image: $CI_COMMIT_TITLE
   tags:
-    - os/linux$ossuffix
-    - perflab$ossuffix
+    - $os
+    - $perflab
     - type/docker
   interruptible: false
   artifacts:
@@ -165,10 +171,13 @@ Docker Image:
   image: $CI_COMMIT_TITLE
   parallel:
     matrix:
-      - ossuffix: ["", "-arm"]
+      - os: "os/linux"
+        perflab: ["perflab"]
+      - os: "os/linux-arm"
+        perflab: ["perflab-arm"]
   tags:
-    - os/linux$ossuffix
-    - perflab$ossuffix
+    - $os
+    - $perflab
     - type/docker
   interruptible: false
   artifacts:
