@@ -1277,10 +1277,25 @@ constexpr bool any_float = std::disjunction_v<
     std::is_floating_point<std::remove_cv_t<std::remove_reference_t<Args>>>...>;
 
 #if CUDAQ_USE_STD20
-template <typename T, typename... Q>
-  requires(std::derived_from<T, cudaq::kraus_channel> && !any_float<Q...>)
+#ifdef CUDAQ_REMOTE_SIM
+#define TARGET_OK_FOR_APPLY_NOISE false
 #else
-template <typename T, typename... Q,
+#define TARGET_OK_FOR_APPLY_NOISE true
+#endif
+#else
+#ifdef CUDAQ_REMOTE_SIM
+#define TARGET_OK_FOR_APPLY_NOISE typename = std::enable_if_t<false>
+#else
+#define TARGET_OK_FOR_APPLY_NOISE typename = std::enable_if_t<true>
+#endif
+#endif
+
+#if CUDAQ_USE_STD20
+template <typename T, typename... Q>
+  requires(std::derived_from<T, cudaq::kraus_channel> && !any_float<Q...> &&
+           TARGET_OK_FOR_APPLY_NOISE)
+#else
+template <typename T, typename... Q, TARGET_OK_FOR_APPLY_NOISE,
           typename = std::enable_if_t<
               std::is_base_of_v<cudaq::kraus_channel, T> &&
               std::is_convertible_v<const volatile T *,
@@ -1340,9 +1355,9 @@ constexpr bool any_vector_of_float = std::disjunction_v<std::is_same<
 #if CUDAQ_USE_STD20
 template <typename KrausChannelT, typename... Args>
   requires(std::derived_from<KrausChannelT, cudaq::kraus_channel> &&
-           !any_vector_of_float<Args...>)
+           !any_vector_of_float<Args...> && TARGET_OK_FOR_APPLY_NOISE)
 #else
-template <typename KrausChannelT, typename... Args,
+template <typename KrausChannelT, typename... Args, TARGET_OK_FOR_APPLY_NOISE,
           typename = std::enable_if_t<
               std::is_base_of_v<cudaq::kraus_channel, KrausChannelT> &&
               std::is_convertible_v<const volatile KrausChannelT *,
