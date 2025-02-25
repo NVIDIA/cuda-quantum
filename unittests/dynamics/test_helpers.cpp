@@ -81,21 +81,3 @@ TEST(OperatorHelpersTest, PermuteMatrix_IdentityPermutation) {
 
   EXPECT_EQ(matrix, matrix);
 }
-
-TEST(OperatorHelpersTest, CanonicalizeDegrees_SortedDescending) {
-  std::vector<int> degrees = {3, 1, 2};
-  canonicalize_degrees(degrees);
-  EXPECT_EQ(degrees, (std::vector<int>{3, 2, 1}));
-}
-
-TEST(OperatorHelpersTest, CanonicalizeDegrees_AlreadySorted) {
-  std::vector<int> degrees = {5, 4, 3, 2, 1};
-  canonicalize_degrees(degrees);
-  EXPECT_EQ(degrees, (std::vector<int>{5, 4, 3, 2, 1}));
-}
-
-TEST(OperatorHelpersTest, CanonicalizeDegrees_EmptyList) {
-  std::vector<int> degrees;
-  canonicalize_degrees(degrees);
-  EXPECT_TRUE(degrees.empty());
-}

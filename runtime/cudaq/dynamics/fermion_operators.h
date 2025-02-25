@@ -46,7 +46,8 @@ private:
   fermion_operator(int target, int op_id);
 
   std::string op_code_to_string() const;
-  virtual std::string op_code_to_string(std::unordered_map<int, int> &dimensions) const;
+  virtual std::string
+  op_code_to_string(std::unordered_map<int, int> &dimensions) const;
 
 #if !defined(NDEBUG)
   // Here to check if my reasoning regarding only ever needing the operators

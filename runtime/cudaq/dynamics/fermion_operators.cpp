@@ -76,7 +76,8 @@ std::string fermion_operator::op_code_to_string() const {
   return "I";
 }
 
-std::string fermion_operator::op_code_to_string(std::unordered_map<int, int> &dimensions) const {
+std::string fermion_operator::op_code_to_string(
+    std::unordered_map<int, int> &dimensions) const {
   auto it = dimensions.find(this->target);
   if (it == dimensions.end())
     dimensions[this->target] = 2;
@@ -166,8 +167,10 @@ matrix_2 fermion_operator::to_matrix(
 }
 
 std::string fermion_operator::to_string(bool include_degrees) const {
-  if (include_degrees) return this->op_code_to_string() + "(" + std::to_string(target) + ")";
-  else return this->op_code_to_string();
+  if (include_degrees)
+    return this->op_code_to_string() + "(" + std::to_string(target) + ")";
+  else
+    return this->op_code_to_string();
 }
 
 // comparisons

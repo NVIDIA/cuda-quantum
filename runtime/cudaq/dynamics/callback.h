@@ -106,7 +106,7 @@ private:
   std::vector<int> required_dimensions;
 
 public:
-  const std::vector<int>& expected_dimensions = this->required_dimensions;
+  const std::vector<int> &expected_dimensions = this->required_dimensions;
 
   Definition(std::string operator_id,
              const std::vector<int> &expected_dimensions,

@@ -12,10 +12,10 @@
 #include <type_traits>
 #include <unordered_map>
 
-#include "helpers.h"
-#include "evaluation.h"
 #include "cudaq/operators.h"
 #include "cudaq/spin_op.h"
+#include "evaluation.h"
+#include "helpers.h"
 
 namespace cudaq {
 
@@ -43,31 +43,45 @@ bool product_operator<HandlerTy>::is_canonicalized() const {
 }
 #endif
 
-template<typename HandlerTy>
-std::vector<HandlerTy>::const_iterator product_operator<HandlerTy>::find_insert_at(const HandlerTy &other) const {
-  // the logic below just ensures that terms are fully or partially ordered in canonical order -
-  // a best effort is made to order terms, but a full canonical ordering is not possible for certain handlers
-  return std::find_if(this->operators.crbegin(), this->operators.crend(), 
-              [other_target = other.target] (const HandlerTy& self_op) { 
-    return !operator_handler::canonical_order(other_target, self_op.target);
-  }).base(); // base causes insert after for reverse iterator
+template <typename HandlerTy>
+std::vector<HandlerTy>::const_iterator
+product_operator<HandlerTy>::find_insert_at(const HandlerTy &other) const {
+  // the logic below just ensures that terms are fully or partially ordered in
+  // canonical order - a best effort is made to order terms, but a full
+  // canonical ordering is not possible for certain handlers
+  return std::find_if(this->operators.crbegin(), this->operators.crend(),
+                      [other_target = other.target](const HandlerTy &self_op) {
+                        return !operator_handler::canonical_order(
+                            other_target, self_op.target);
+                      })
+      .base(); // base causes insert after for reverse iterator
 }
 
-template<>
-std::vector<matrix_operator>::const_iterator product_operator<matrix_operator>::find_insert_at(const matrix_operator &other) const {
-  // the logic below just ensures that terms are fully or partially ordered in canonical order -
-  // a best effort is made to order terms, but a full canonical ordering is not possible for certain handlers
-  return std::find_if(this->operators.crbegin(), this->operators.crend(), 
-              [&other_degrees = static_cast<const std::vector<int>&>(other.degrees())] 
-              (const matrix_operator& self_op) { 
-    const std::vector<int> &self_op_degrees = self_op.degrees();
-    for (auto other_degree : other_degrees) {
-      auto item_it = std::find_if(self_op_degrees.crbegin(), self_op_degrees.crend(), 
-        [other_degree](int self_degree) { return !operator_handler::canonical_order(other_degree, self_degree); });
-      if (item_it != self_op_degrees.crend()) return true;
-    }
-    return false;
-  }).base(); // base causes insert after for reverse iterator
+template <>
+std::vector<matrix_operator>::const_iterator
+product_operator<matrix_operator>::find_insert_at(
+    const matrix_operator &other) const {
+  // the logic below just ensures that terms are fully or partially ordered in
+  // canonical order - a best effort is made to order terms, but a full
+  // canonical ordering is not possible for certain handlers
+  return std::find_if(
+             this->operators.crbegin(), this->operators.crend(),
+             [&other_degrees = static_cast<const std::vector<int> &>(
+                  other.degrees())](const matrix_operator &self_op) {
+               const std::vector<int> &self_op_degrees = self_op.degrees();
+               for (auto other_degree : other_degrees) {
+                 auto item_it = std::find_if(
+                     self_op_degrees.crbegin(), self_op_degrees.crend(),
+                     [other_degree](int self_degree) {
+                       return !operator_handler::canonical_order(other_degree,
+                                                                 self_degree);
+                     });
+                 if (item_it != self_op_degrees.crend())
+                   return true;
+               }
+               return false;
+             })
+      .base(); // base causes insert after for reverse iterator
 }
 
 template <typename HandlerTy>
@@ -160,18 +174,22 @@ void product_operator<HandlerTy>::aggregate_terms(HandlerTy &&head,
 
 template <typename HandlerTy>
 template <typename EvalTy>
-EvalTy product_operator<HandlerTy>::evaluate(operator_arithmetics<EvalTy> arithmetics) const {
+EvalTy product_operator<HandlerTy>::evaluate(
+    operator_arithmetics<EvalTy> arithmetics) const {
   auto degrees = this->degrees(false); // keep in canonical order
 
-  auto padded_op = [&arithmetics, &degrees = std::as_const(degrees)](const HandlerTy &op) {
+  auto padded_op = [&arithmetics,
+                    &degrees = std::as_const(degrees)](const HandlerTy &op) {
     std::vector<EvalTy> evaluated;
     auto op_degrees = op.degrees();
     bool op_evaluated = false;
     for (const auto &degree : degrees) {
-      if (std::find(op_degrees.cbegin(), op_degrees.cend(), degree) == op_degrees.cend())
+      if (std::find(op_degrees.cbegin(), op_degrees.cend(), degree) ==
+          op_degrees.cend())
         evaluated.push_back(arithmetics.evaluate(HandlerTy(degree)));
-      // if op has more than one degree of freedom, then evaluating it here would 
-      // potentially lead to a matrix reordering upon application of each subsequent id
+      // if op has more than one degree of freedom, then evaluating it here
+      // would potentially lead to a matrix reordering upon application of each
+      // subsequent id
       else if (op_degrees.size() == 1 && !op_evaluated) {
         evaluated.push_back(arithmetics.evaluate(op));
         op_evaluated = true;
@@ -181,23 +199,28 @@ EvalTy product_operator<HandlerTy>::evaluate(operator_arithmetics<EvalTy> arithm
     if (evaluated.size() == 0)
       return arithmetics.evaluate(op);
 
-    // Creating the tensor product with op being last is most efficient if op acts on more
-    // than one degree of freedom - this ensure that only a single reordering happens at
-    // at the end.
+    // Creating the tensor product with op being last is most efficient if op
+    // acts on more than one degree of freedom - this ensure that only a single
+    // reordering happens at at the end.
     EvalTy product = std::move(evaluated[0]);
     for (auto i = 1; i < evaluated.size(); ++i)
       product = arithmetics.tensor(std::move(product), std::move(evaluated[i]));
-    if (op_evaluated) return std::move(product);
-    else return arithmetics.tensor(std::move(product), arithmetics.evaluate(op));
+    if (op_evaluated)
+      return std::move(product);
+    else
+      return arithmetics.tensor(std::move(product), arithmetics.evaluate(op));
   };
 
   if (arithmetics.pad_product_terms) {
-    if (degrees.size() == 0) return arithmetics.evaluate(this->coefficient);
+    if (degrees.size() == 0)
+      return arithmetics.evaluate(this->coefficient);
     EvalTy prod = padded_op(this->operators[0]);
     for (auto op_idx = 1; op_idx < this->operators.size(); ++op_idx) {
       auto op_degrees = this->operators[op_idx].degrees();
-      if (op_degrees.size() != 1 || this->operators[op_idx] != HandlerTy(op_degrees[0]))
-        prod = arithmetics.mul(std::move(prod), padded_op(this->operators[op_idx]));
+      if (op_degrees.size() != 1 ||
+          this->operators[op_idx] != HandlerTy(op_degrees[0]))
+        prod = arithmetics.mul(std::move(prod),
+                               padded_op(this->operators[op_idx]));
     }
     return arithmetics.mul(this->coefficient, std::move(prod));
   } else {
@@ -210,45 +233,51 @@ EvalTy product_operator<HandlerTy>::evaluate(operator_arithmetics<EvalTy> arithm
   }
 }
 
-#define INSTANTIATE_PRODUCT_PRIVATE_METHODS(HandlerTy)                                        \
-                                                                                              \
-  template                                                                                    \
-  void product_operator<HandlerTy>::aggregate_terms(HandlerTy &&item1,                        \
-                                                    HandlerTy &&item2);                       \
-                                                                                              \
-  template                                                                                    \
-  void product_operator<HandlerTy>::aggregate_terms(HandlerTy &&item1,                        \
-                                                    HandlerTy &&item2,                        \
-                                                    HandlerTy &&item3);                       \
+#define INSTANTIATE_PRODUCT_PRIVATE_METHODS(HandlerTy)                         \
+                                                                               \
+  template void product_operator<HandlerTy>::aggregate_terms(                  \
+      HandlerTy &&item1, HandlerTy &&item2);                                   \
+                                                                               \
+  template void product_operator<HandlerTy>::aggregate_terms(                  \
+      HandlerTy &&item1, HandlerTy &&item2, HandlerTy &&item3);
 
 INSTANTIATE_PRODUCT_PRIVATE_METHODS(matrix_operator);
 INSTANTIATE_PRODUCT_PRIVATE_METHODS(spin_operator);
 INSTANTIATE_PRODUCT_PRIVATE_METHODS(boson_operator);
 INSTANTIATE_PRODUCT_PRIVATE_METHODS(fermion_operator);
 
-#define INSTANTIATE_PRODUCT_EVALUATE_METHODS(HandlerTy, EvalTy)                               \
-                                                                                              \
-  template                                                                                    \
-  EvalTy product_operator<HandlerTy>::evaluate(                                               \
-    operator_arithmetics<EvalTy> arithmetics) const;                                           \
+#define INSTANTIATE_PRODUCT_EVALUATE_METHODS(HandlerTy, EvalTy)                \
+                                                                               \
+  template EvalTy product_operator<HandlerTy>::evaluate(                       \
+      operator_arithmetics<EvalTy> arithmetics) const;
 
-INSTANTIATE_PRODUCT_EVALUATE_METHODS(matrix_operator, operator_handler::matrix_evaluation);
-INSTANTIATE_PRODUCT_EVALUATE_METHODS(spin_operator, operator_handler::canonical_evaluation);
-INSTANTIATE_PRODUCT_EVALUATE_METHODS(boson_operator, operator_handler::matrix_evaluation);
-INSTANTIATE_PRODUCT_EVALUATE_METHODS(fermion_operator, operator_handler::matrix_evaluation);
+INSTANTIATE_PRODUCT_EVALUATE_METHODS(matrix_operator,
+                                     operator_handler::matrix_evaluation);
+INSTANTIATE_PRODUCT_EVALUATE_METHODS(spin_operator,
+                                     operator_handler::canonical_evaluation);
+INSTANTIATE_PRODUCT_EVALUATE_METHODS(boson_operator,
+                                     operator_handler::matrix_evaluation);
+INSTANTIATE_PRODUCT_EVALUATE_METHODS(fermion_operator,
+                                     operator_handler::matrix_evaluation);
 
 // read-only properties
 
-template<typename HandlerTy>
-std::vector<int> product_operator<HandlerTy>::degrees(bool application_order) const {
+template <typename HandlerTy>
+std::vector<int>
+product_operator<HandlerTy>::degrees(bool application_order) const {
   std::set<int> unsorted_degrees;
   for (const HandlerTy &term : this->operators) {
     auto term_degrees = term.degrees();
     unsorted_degrees.insert(term_degrees.cbegin(), term_degrees.cend());
   }
-  auto degrees = std::vector<int>(unsorted_degrees.cbegin(), unsorted_degrees.cend());
-  if (application_order) std::sort(degrees.begin(), degrees.end(), operator_handler::user_facing_order);
-  else std::sort(degrees.begin(), degrees.end(), operator_handler::canonical_order);
+  auto degrees =
+      std::vector<int>(unsorted_degrees.cbegin(), unsorted_degrees.cend());
+  if (application_order)
+    std::sort(degrees.begin(), degrees.end(),
+              operator_handler::user_facing_order);
+  else
+    std::sort(degrees.begin(), degrees.end(),
+              operator_handler::canonical_order);
   return std::move(degrees);
 }
 
@@ -267,19 +296,17 @@ scalar_operator product_operator<HandlerTy>::get_coefficient() const {
   return this->coefficient;
 }
 
-#define INSTANTIATE_PRODUCT_PROPERTIES(HandlerTy)                                            \
-                                                                                             \
-  template                                                                                   \
-  std::vector<int> product_operator<HandlerTy>::degrees(bool application_order) const;       \
-                                                                                             \
-  template                                                                                   \
-  int product_operator<HandlerTy>::num_terms() const;                                        \
-                                                                                             \
-  template                                                                                   \
-  const std::vector<HandlerTy>& product_operator<HandlerTy>::get_terms() const;              \
-                                                                                             \
-  template                                                                                   \
-  scalar_operator product_operator<HandlerTy>::get_coefficient() const;
+#define INSTANTIATE_PRODUCT_PROPERTIES(HandlerTy)                              \
+                                                                               \
+  template std::vector<int> product_operator<HandlerTy>::degrees(              \
+      bool application_order) const;                                           \
+                                                                               \
+  template int product_operator<HandlerTy>::num_terms() const;                 \
+                                                                               \
+  template const std::vector<HandlerTy> &                                      \
+  product_operator<HandlerTy>::get_terms() const;                              \
+                                                                               \
+  template scalar_operator product_operator<HandlerTy>::get_coefficient() const;
 
 INSTANTIATE_PRODUCT_PROPERTIES(matrix_operator);
 INSTANTIATE_PRODUCT_PROPERTIES(spin_operator);
@@ -489,43 +516,55 @@ std::string product_operator<HandlerTy>::to_string() const {
   return std::move(str);
 }
 
-template<typename HandlerTy>
-matrix_2 product_operator<HandlerTy>::to_matrix(std::unordered_map<int, int> dimensions,
-                                                const std::unordered_map<std::string, std::complex<double>> &parameters,
-                                                bool application_order) const {
-  auto evaluated = this->evaluate(operator_arithmetics<operator_handler::matrix_evaluation>(dimensions, parameters));
+template <typename HandlerTy>
+matrix_2 product_operator<HandlerTy>::to_matrix(
+    std::unordered_map<int, int> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool application_order) const {
+  auto evaluated =
+      this->evaluate(operator_arithmetics<operator_handler::matrix_evaluation>(
+          dimensions, parameters));
   auto matrix = std::move(evaluated.matrix);
-  if (!application_order || operator_handler::canonical_order(1, 0) == operator_handler::user_facing_order(1, 0))
+  if (!application_order || operator_handler::canonical_order(1, 0) ==
+                                operator_handler::user_facing_order(1, 0))
     return std::move(matrix);
 
   auto degrees = evaluated.degrees;
-  std::sort(degrees.begin(), degrees.end(), operator_handler::user_facing_order);
-  auto permutation = cudaq::detail::compute_permutation(evaluated.degrees, degrees, dimensions);
-  cudaq::detail::permute_matrix(matrix, permutation); 
+  std::sort(degrees.begin(), degrees.end(),
+            operator_handler::user_facing_order);
+  auto permutation = cudaq::detail::compute_permutation(evaluated.degrees,
+                                                        degrees, dimensions);
+  cudaq::detail::permute_matrix(matrix, permutation);
   return std::move(matrix);
 }
 
-template<>
-matrix_2 product_operator<spin_operator>::to_matrix(std::unordered_map<int, int> dimensions,
-                                                const std::unordered_map<std::string, std::complex<double>> &parameters, 
-                                                bool application_order) const {
-  auto terms = std::move(this->evaluate(operator_arithmetics<operator_handler::canonical_evaluation>(dimensions, parameters)).terms);
+template <>
+matrix_2 product_operator<spin_operator>::to_matrix(
+    std::unordered_map<int, int> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool application_order) const {
+  auto terms = std::move(
+      this->evaluate(
+              operator_arithmetics<operator_handler::canonical_evaluation>(
+                  dimensions, parameters))
+          .terms);
   assert(terms.size() == 1);
-  bool invert_order = application_order && operator_handler::canonical_order(1, 0) != operator_handler::user_facing_order(1, 0);
-  auto matrix = spin_operator::to_matrix(terms[0].second, terms[0].first, invert_order);
+  bool invert_order =
+      application_order && operator_handler::canonical_order(1, 0) !=
+                               operator_handler::user_facing_order(1, 0);
+  auto matrix =
+      spin_operator::to_matrix(terms[0].second, terms[0].first, invert_order);
   return std::move(matrix);
 }
 
-#define INSTANTIATE_PRODUCT_EVALUATIONS(HandlerTy)                                          \
-                                                                                            \
-  template                                                                                  \
-  std::string product_operator<HandlerTy>::to_string() const;                               \
-                                                                                            \
-  template                                                                                  \
-  matrix_2 product_operator<HandlerTy>::to_matrix(                                          \
-    std::unordered_map<int, int> dimensions,                                                \
-    const std::unordered_map<std::string, std::complex<double>> &parameters,                \
-    bool application_order) const;                                                          \
+#define INSTANTIATE_PRODUCT_EVALUATIONS(HandlerTy)                             \
+                                                                               \
+  template std::string product_operator<HandlerTy>::to_string() const;         \
+                                                                               \
+  template matrix_2 product_operator<HandlerTy>::to_matrix(                    \
+      std::unordered_map<int, int> dimensions,                                 \
+      const std::unordered_map<std::string, std::complex<double>> &parameters, \
+      bool application_order) const;
 
 INSTANTIATE_PRODUCT_EVALUATIONS(matrix_operator);
 INSTANTIATE_PRODUCT_EVALUATIONS(spin_operator);
@@ -1076,6 +1115,7 @@ template product_operator<fermion_operator>
 operator_handler::identity(int target);
 
 #ifdef CUDAQ_INSTANTIATE_TEMPLATES
+template class product_operator<matrix_operator>;
 template class product_operator<spin_operator>;
 template class product_operator<boson_operator>;
 template class product_operator<fermion_operator>;

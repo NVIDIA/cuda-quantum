@@ -12,7 +12,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "utils/tensor.h"
 #include "dynamics/evaluation.h"
 #include "dynamics/operator_leafs.h"
 #include "dynamics/templates.h"
@@ -61,8 +60,8 @@ public:
   // read-only properties
 
   /// @brief The degrees of freedom that the operator acts on.
-  /// By default, degrees reflect the ordering convention (endianness) used in CUDA-Q, 
-  /// and the ordering of the matrix returned by default by `to_matrix`.
+  /// By default, degrees reflect the ordering convention (endianness) used in
+  /// CUDA-Q, and the ordering of the matrix returned by default by `to_matrix`.
   std::vector<int> degrees(bool application_order = true) const;
 
   /// @brief Return the number of operator terms that make up this operator sum.
@@ -118,8 +117,8 @@ public:
   /// @brief Return the operator_sum<HandlerTy> as a string.
   std::string to_string() const;
 
-  /// @brief Return the matrix representation of the operator. 
-  /// By default, the matrix is ordered according to the convention (endianness) 
+  /// @brief Return the matrix representation of the operator.
+  /// By default, the matrix is ordered according to the convention (endianness)
   /// used in CUDA-Q, and the ordering returned by default by `degrees`.
   /// @arg `dimensions` : A mapping that specifies the number of levels,
   ///                      that is, the dimension of each degree of freedom
@@ -128,7 +127,8 @@ public:
   /// @arg `parameters` : A map of the parameter names to their concrete,
   /// complex values.
   matrix_2 to_matrix(std::unordered_map<int, int> dimensions = {},
-                     const std::unordered_map<std::string, std::complex<double>> &parameters = {},
+                     const std::unordered_map<std::string, std::complex<double>>
+                         &parameters = {},
                      bool application_order = true) const;
 
   // unary operators
@@ -378,8 +378,8 @@ public:
   // read-only properties
 
   /// @brief The degrees of freedom that the operator acts on.
-  /// By default, degrees reflect the ordering convention (endianness) used in CUDA-Q, 
-  /// and the ordering of the matrix returned by default by `to_matrix`.
+  /// By default, degrees reflect the ordering convention (endianness) used in
+  /// CUDA-Q, and the ordering of the matrix returned by default by `to_matrix`.
   std::vector<int> degrees(bool application_order = true) const;
 
   /// @brief Return the number of operator terms that make up this product
@@ -431,8 +431,8 @@ public:
   /// @brief Return the `product_operator<HandlerTy>` as a string.
   std::string to_string() const;
 
-  /// @brief Return the matrix representation of the operator. 
-  /// By default, the matrix is ordered according to the convention (endianness) 
+  /// @brief Return the matrix representation of the operator.
+  /// By default, the matrix is ordered according to the convention (endianness)
   /// used in CUDA-Q, and the ordering returned by default by `degrees`.
   /// @arg  `dimensions` : A mapping that specifies the number of levels,
   ///                      that is, the dimension of each degree of freedom
@@ -441,7 +441,8 @@ public:
   /// @arg `parameters` : A map of the parameter names to their concrete,
   /// complex values.
   matrix_2 to_matrix(std::unordered_map<int, int> dimensions = {},
-                     const std::unordered_map<std::string, std::complex<double>> &parameters = {},
+                     const std::unordered_map<std::string, std::complex<double>>
+                         &parameters = {},
                      bool application_order = true) const;
 
   // comparisons
@@ -649,59 +650,6 @@ extern template class operator_sum<matrix_operator>;
 extern template class operator_sum<spin_operator>;
 extern template class operator_sum<boson_operator>;
 extern template class operator_sum<fermion_operator>;
-#endif
-
-/// @brief Representation of a time-dependent Hamiltonian for Rydberg system
-class rydberg_hamiltonian {
-public:
-  using Coordinate = std::pair<double, double>;
-
-  /// @brief Constructor.
-  /// @param atom_sites List of 2D coordinates for trap sites.
-  /// @param amplitude Time-dependent driving amplitude, Omega(t).
-  /// @param phase Time-dependent driving phase, phi(t).
-  /// @param delta_global Time-dependent driving detuning, Delta_global(t).
-  /// @param atom_filling Optional. Marks occupied trap sites (1) and empty
-  /// sites (0). Defaults to all sites occupied.
-  /// @param delta_local Optional. A tuple of Delta_local(t) and site dependent
-  /// local detuning factors.
-  rydberg_hamiltonian(
-      const std::vector<Coordinate> &atom_sites,
-      const scalar_operator &amplitude, const scalar_operator &phase,
-      const scalar_operator &delta_global,
-      const std::vector<int> &atom_filling = {},
-      const std::optional<std::pair<scalar_operator, std::vector<double>>>
-          &delta_local = std::nullopt);
-
-  /// @brief Get atom sites.
-  const std::vector<Coordinate> &get_atom_sites() const;
-
-  /// @brief Get atom filling.
-  const std::vector<int> &get_atom_filling() const;
-
-  /// @brief Get amplitude operator.
-  const scalar_operator &get_amplitude() const;
-
-  /// @brief Get phase operator.
-  const scalar_operator &get_phase() const;
-
-  /// @brief Get global detuning operator.
-  const scalar_operator &get_delta_global() const;
-
-private:
-  std::vector<Coordinate> atom_sites;
-  std::vector<int> atom_filling;
-  scalar_operator amplitude;
-  scalar_operator phase;
-  scalar_operator delta_global;
-  std::optional<std::pair<scalar_operator, std::vector<double>>> delta_local;
-};
-#ifdef CUDAQ_INSTANTIATE_TEMPLATES
-template class product_operator<matrix_operator>;
-template class operator_sum<matrix_operator>;
-#else
-extern template class product_operator<matrix_operator>;
-extern template class operator_sum<matrix_operator>;
 #endif
 
 } // namespace cudaq

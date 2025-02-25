@@ -17,17 +17,17 @@
 
 namespace cudaq {
 
-class matrix_operator : public operator_handler{
+class matrix_operator : public operator_handler {
 
 private:
-
   static std::unordered_map<std::string, Definition> defined_ops;
 
   // used when converting other operators to matrix operators
   template <typename T>
   static std::string type_prefix();
 
-  virtual std::string op_code_to_string(std::unordered_map<int, int> &dimensions) const;
+  virtual std::string
+  op_code_to_string(std::unordered_map<int, int> &dimensions) const;
 
 protected:
   std::vector<int> targets;
@@ -64,14 +64,15 @@ public:
   ///      indicates that the operator is defined for any dimension of the
   ///      corresponding degree of freedom.
   /// @arg create : Takes any number of complex-valued arguments and returns the
-  ///      matrix representing the operator. The matrix must be ordered such that
-  ///      the value returned by `op.degrees()` matches the order of the matrix, 
-  ///      where `op` is the instantiated the operator defined here.
-  ///      The `create` function must take a vector of integers that specifies
-  ///      the "number of levels" (the dimension) for each degree of freedom that
-  ///      the operator acts on, and an unordered map from string to complex 
-  ///      double that contains additional parameters the operator may use. 
-  static void define(std::string operator_id, std::vector<int> expected_dimensions,
+  ///      matrix representing the operator. The matrix must be ordered such
+  ///      that the value returned by `op.degrees()` matches the order of the
+  ///      matrix, where `op` is the instantiated the operator defined here. The
+  ///      `create` function must take a vector of integers that specifies the
+  ///      "number of levels" (the dimension) for each degree of freedom that
+  ///      the operator acts on, and an unordered map from string to complex
+  ///      double that contains additional parameters the operator may use.
+  static void define(std::string operator_id,
+                     std::vector<int> expected_dimensions,
                      MatrixCallbackFunction &&create);
 
   /// @brief Instantiates a custom operator.

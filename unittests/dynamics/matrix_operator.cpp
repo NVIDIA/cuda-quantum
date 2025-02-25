@@ -12,16 +12,17 @@
 
 TEST(OperatorExpressions, checkMatrixOpsUnary) {
   auto op = cudaq::matrix_operator::position(0);
-  utils::checkEqual((+op).to_matrix({{0,2}}), utils::position_matrix(2));
-  utils::checkEqual((-op).to_matrix({{0,2}}), -1.0 * utils::position_matrix(2));
-  utils::checkEqual(op.to_matrix({{0,2}}), utils::position_matrix(2));
+  utils::checkEqual((+op).to_matrix({{0, 2}}), utils::position_matrix(2));
+  utils::checkEqual((-op).to_matrix({{0, 2}}),
+                    -1.0 * utils::position_matrix(2));
+  utils::checkEqual(op.to_matrix({{0, 2}}), utils::position_matrix(2));
 }
 
 TEST(OperatorExpressions, checkMatrixOpsConstruction) {
   auto prod = cudaq::matrix_operator::identity();
   cudaq::matrix_2 expected(1, 1);
 
-  expected[{0, 0}] = 1.;  
+  expected[{0, 0}] = 1.;
   utils::checkEqual(prod.to_matrix(), expected);
 
   prod *= -1.j;
@@ -38,7 +39,8 @@ TEST(OperatorExpressions, checkMatrixOpsConstruction) {
   expected = cudaq::matrix_2(0, 0);
   utils::checkEqual(sum.to_matrix(), expected);
 
-  sum *= cudaq::matrix_operator::number(1); // empty times something is still empty
+  sum *=
+      cudaq::matrix_operator::number(1); // empty times something is still empty
   std::vector<int> expected_degrees = {};
   ASSERT_EQ(sum.degrees(), expected_degrees);
   utils::checkEqual(sum.to_matrix(), expected);
@@ -149,39 +151,45 @@ TEST(OperatorExpressions, checkCustomMatrixOps) {
   std::unordered_map<int, int> dimensions = {
       {0, level_count + 1}, {1, level_count + 2}, {3, level_count}};
 
-    {
-      auto func0 = [](const std::vector<int> &dimensions,
-                      const std::unordered_map<std::string, std::complex<double>> &_none) {
-        return cudaq::kronecker(utils::position_matrix(dimensions[0]),
-                                utils::momentum_matrix(dimensions[1]));;
-      };
-      auto func1 = [](const std::vector<int> &dimensions,
-                      const std::unordered_map<std::string, std::complex<double>> &_none) {
-        return cudaq::kronecker(utils::number_matrix(dimensions[0]),
-                                utils::position_matrix(dimensions[1]));;
-      };
-      cudaq::matrix_operator::define("custom_op0", {-1, -1}, func0);
-      cudaq::matrix_operator::define("custom_op1", {-1, -1}, func1);
-    }
+  {
+    auto func0 =
+        [](const std::vector<int> &dimensions,
+           const std::unordered_map<std::string, std::complex<double>> &_none) {
+          return cudaq::kronecker(utils::position_matrix(dimensions[0]),
+                                  utils::momentum_matrix(dimensions[1]));
+          ;
+        };
+    auto func1 =
+        [](const std::vector<int> &dimensions,
+           const std::unordered_map<std::string, std::complex<double>> &_none) {
+          return cudaq::kronecker(utils::number_matrix(dimensions[0]),
+                                  utils::position_matrix(dimensions[1]));
+          ;
+        };
+    cudaq::matrix_operator::define("custom_op0", {-1, -1}, func0);
+    cudaq::matrix_operator::define("custom_op1", {-1, -1}, func1);
+  }
 
-    // check that we force user facing conventions when defining/instantiating 
-    // a custom operator
-    ASSERT_THROW(cudaq::matrix_operator::instantiate("custom_op0", {0, 1}), std::runtime_error);
-    ASSERT_THROW(cudaq::matrix_operator::instantiate("custom_op0", {1, 3}), std::runtime_error);
+  // check that we force user facing conventions when defining/instantiating
+  // a custom operator
+  ASSERT_THROW(cudaq::matrix_operator::instantiate("custom_op0", {0, 1}),
+               std::runtime_error);
+  ASSERT_THROW(cudaq::matrix_operator::instantiate("custom_op0", {1, 3}),
+               std::runtime_error);
 
-    // op 0:
-    // momentum level+1 on 0
-    // position level+2 on 1
-    // op 1:
-    // number level on 3
-    // create level+2 on 1
-    auto op0 = cudaq::matrix_operator::instantiate("custom_op0", {1, 0});
-    auto op1 = cudaq::matrix_operator::instantiate("custom_op1", {3, 1});
+  // op 0:
+  // momentum level+1 on 0
+  // position level+2 on 1
+  // op 1:
+  // number level on 3
+  // create level+2 on 1
+  auto op0 = cudaq::matrix_operator::instantiate("custom_op0", {1, 0});
+  auto op1 = cudaq::matrix_operator::instantiate("custom_op1", {3, 1});
 
-    auto matrix0 = cudaq::kronecker(utils::position_matrix(level_count + 2),
-                                    utils::momentum_matrix(level_count + 1));
-    auto matrix1 = cudaq::kronecker(utils::number_matrix(level_count),
-                                    utils::position_matrix(level_count + 2));
+  auto matrix0 = cudaq::kronecker(utils::position_matrix(level_count + 2),
+                                  utils::momentum_matrix(level_count + 1));
+  auto matrix1 = cudaq::kronecker(utils::number_matrix(level_count),
+                                  utils::position_matrix(level_count + 2));
 
   std::vector<cudaq::matrix_2> product_matrices = {
       utils::number_matrix(level_count),
@@ -210,12 +218,19 @@ TEST(OperatorExpressions, checkCustomMatrixOps) {
   auto expected_sum_term1 =
       cudaq::kronecker(sum_matrices_term1.begin(), sum_matrices_term1.end());
 
-    utils::checkEqual(op0.to_matrix(dimensions), matrix0); // reordered to match CUDA-Q conventions by default
-    utils::checkEqual(op1.to_matrix(dimensions), matrix1); // reordered to match CUDA-Q conventions by default
-    utils::checkEqual((op0 * op1).to_matrix(dimensions), expected_product);
-    utils::checkEqual((op1 * op0).to_matrix(dimensions), expected_product_reverse);
-    utils::checkEqual((op0 + op1).to_matrix(dimensions), expected_sum_term0 + expected_sum_term1);
-    utils::checkEqual((op1 + op0).to_matrix(dimensions), expected_sum_term0 + expected_sum_term1);
+  utils::checkEqual(
+      op0.to_matrix(dimensions),
+      matrix0); // reordered to match CUDA-Q conventions by default
+  utils::checkEqual(
+      op1.to_matrix(dimensions),
+      matrix1); // reordered to match CUDA-Q conventions by default
+  utils::checkEqual((op0 * op1).to_matrix(dimensions), expected_product);
+  utils::checkEqual((op1 * op0).to_matrix(dimensions),
+                    expected_product_reverse);
+  utils::checkEqual((op0 + op1).to_matrix(dimensions),
+                    expected_sum_term0 + expected_sum_term1);
+  utils::checkEqual((op1 + op0).to_matrix(dimensions),
+                    expected_sum_term0 + expected_sum_term1);
 }
 
 TEST(OperatorExpressions, checkMatrixOpsWithComplex) {
@@ -761,8 +776,10 @@ TEST(OperatorExpressions, checkMatrixOpsDegreeVerification) {
   ASSERT_THROW(custom_op3.to_matrix(), std::runtime_error);
   ASSERT_NO_THROW(custom_op3.to_matrix(dimensions));
   dimensions = {};
-  ASSERT_NO_THROW(custom_op2.to_matrix(dimensions)); // degree 1 should be set to required dim 3
-  ASSERT_THROW(custom_op3.to_matrix(dimensions), std::runtime_error); // degree 1 needs to be 2
+  ASSERT_NO_THROW(custom_op2.to_matrix(
+      dimensions)); // degree 1 should be set to required dim 3
+  ASSERT_THROW(custom_op3.to_matrix(dimensions),
+               std::runtime_error); // degree 1 needs to be 2
 }
 
 TEST(OperatorExpressions, checkMatrixOpsParameterVerification) {

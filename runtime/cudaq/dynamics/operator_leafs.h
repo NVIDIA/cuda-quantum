@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include <functional>
 #include <complex>
+#include <functional>
 #include <map>
 #include <type_traits>
 #include <variant>
@@ -113,7 +113,7 @@ public:
   scalar_operator &operator+=(std::complex<double> other);
   scalar_operator &operator-=(std::complex<double> other);
   scalar_operator operator*(const scalar_operator &other) const &;
-  // scalar_operator operator*(const scalar_operator &other) &&;
+  scalar_operator operator*(const scalar_operator &other) &&;
   scalar_operator operator/(const scalar_operator &other) const &;
   scalar_operator operator/(const scalar_operator &other) &&;
   scalar_operator operator+(const scalar_operator &other) const &;
@@ -160,54 +160,66 @@ template <typename HandlerTy>
 class operator_sum;
 
 class operator_handler {
-template <typename T> friend class product_operator;
-template <typename T> friend class operator_sum;
-template <typename T> friend class operator_arithmetics;
-  
-private:
+  template <typename T>
+  friend class product_operator;
+  template <typename T>
+  friend class operator_sum;
+  template <typename T>
+  friend class operator_arithmetics;
 
-  // Validate or populate the dimension defined for the degree(s) of freedom the operator
-  // acts on, and return a string that identifies the operator but not what degrees it acts on.
-  virtual std::string op_code_to_string(std::unordered_map<int, int> &dimensions) const = 0;
+private:
+  // Validate or populate the dimension defined for the degree(s) of freedom the
+  // operator acts on, and return a string that identifies the operator but not
+  // what degrees it acts on.
+  virtual std::string
+  op_code_to_string(std::unordered_map<int, int> &dimensions) const = 0;
 
   // data storage classes for evaluation
 
   class matrix_evaluation {
-  template <typename T> friend class product_operator;
-  template <typename T> friend class operator_sum;
-  template <typename T> friend class operator_arithmetics;
+    template <typename T>
+    friend class product_operator;
+    template <typename T>
+    friend class operator_sum;
+    template <typename T>
+    friend class operator_arithmetics;
 
   private:
     std::vector<int> degrees;
     matrix_2 matrix;
-  public: 
+
+  public:
     matrix_evaluation();
     matrix_evaluation(std::vector<int> &&degrees, matrix_2 &&matrix);
     matrix_evaluation(matrix_evaluation &&other);
-    matrix_evaluation& operator=(matrix_evaluation &&other);
+    matrix_evaluation &operator=(matrix_evaluation &&other);
     // delete copy constructor and copy assignment to avoid unnecessary copies
     matrix_evaluation(const matrix_evaluation &other) = delete;
-    matrix_evaluation& operator=(const matrix_evaluation &other) = delete;
+    matrix_evaluation &operator=(const matrix_evaluation &other) = delete;
   };
-  
+
   class canonical_evaluation {
-  template <typename T> friend class product_operator;
-  template <typename T> friend class operator_sum;  
-  template <typename T> friend class operator_arithmetics;
+    template <typename T>
+    friend class product_operator;
+    template <typename T>
+    friend class operator_sum;
+    template <typename T>
+    friend class operator_arithmetics;
 
   private:
     std::vector<std::pair<std::complex<double>, std::string>> terms;
+
   public:
     canonical_evaluation();
     canonical_evaluation(canonical_evaluation &&other);
-    canonical_evaluation& operator=(canonical_evaluation &&other);
+    canonical_evaluation &operator=(canonical_evaluation &&other);
     // delete copy constructor and copy assignment to avoid unnecessary copies
     canonical_evaluation(const canonical_evaluation &other) = delete;
-    canonical_evaluation& operator=(const canonical_evaluation &other) = delete;
+    canonical_evaluation &operator=(const canonical_evaluation &other) = delete;
     void push_back(std::pair<std::complex<double>, std::string> &&term);
     void push_back(const std::string &op);
   };
-  
+
 public:
 #if !defined(NDEBUG)
   static bool can_be_canonicalized; // whether a canonical order can be defined
@@ -215,10 +227,11 @@ public:
 #endif
 
   // Individual handlers should *not* override this but rather adhere to it.
-  // The canonical ordering is the ordering used internally by the operator classes.
-  // The user facing ordering is the ordering that matches CUDA-Q convention, i.e. 
-  // the order in which custom matrix operators are defined, the order returned by
-  // to_matrix and degree, and the order in which a user would define a state vector.
+  // The canonical ordering is the ordering used internally by the operator
+  // classes. The user facing ordering is the ordering that matches CUDA-Q
+  // convention, i.e. the order in which custom matrix operators are defined,
+  // the order returned by to_matrix and degree, and the order in which a user
+  // would define a state vector.
   static constexpr auto canonical_order = std::less<int>();
   static constexpr auto user_facing_order = std::greater<int>();
 

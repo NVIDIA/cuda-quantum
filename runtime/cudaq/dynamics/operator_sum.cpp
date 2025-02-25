@@ -11,10 +11,10 @@
 #include <set>
 #include <type_traits>
 
-#include "helpers.h"
-#include "evaluation.h"
 #include "cudaq/operators.h"
 #include "cudaq/spin_op.h"
+#include "evaluation.h"
+#include "helpers.h"
 
 namespace cudaq {
 
@@ -61,25 +61,28 @@ void operator_sum<HandlerTy>::aggregate_terms(
 
 template <typename HandlerTy>
 template <typename EvalTy>
-EvalTy operator_sum<HandlerTy>::evaluate(operator_arithmetics<EvalTy> arithmetics) const {
+EvalTy operator_sum<HandlerTy>::evaluate(
+    operator_arithmetics<EvalTy> arithmetics) const {
 
-  if (terms.size() == 0) return EvalTy();
+  if (terms.size() == 0)
+    return EvalTy();
   auto terms = this->get_terms();
   auto degrees = this->degrees(false); // keep in canonical order
 
-  // Adding a tensor product with the identity for degrees that an operator doesn't act on.
-  // Needed e.g. to make sure all matrices are of the same size before summing them up.
-  auto paddedTerm = 
-    [&arithmetics, &degrees = std::as_const(degrees)](product_operator<HandlerTy> &&term) {
-      std::vector<HandlerTy> prod_ops;
-      prod_ops.reserve(degrees.size());
-      auto term_degrees = term.degrees(false); // ordering does not really matter here
-      for (auto degree : degrees) {
-        auto it = std::find(term_degrees.begin(), term_degrees.end(), degree);
-        if (it == term_degrees.end()) {
-          HandlerTy identity(degree);
-          prod_ops.push_back(std::move(identity));
-        }
+  // Adding a tensor product with the identity for degrees that an operator
+  // doesn't act on. Needed e.g. to make sure all matrices are of the same size
+  // before summing them up.
+  auto paddedTerm = [&arithmetics, &degrees = std::as_const(degrees)](
+                        product_operator<HandlerTy> &&term) {
+    std::vector<HandlerTy> prod_ops;
+    prod_ops.reserve(degrees.size());
+    auto term_degrees =
+        term.degrees(false); // ordering does not really matter here
+    for (auto degree : degrees) {
+      auto it = std::find(term_degrees.begin(), term_degrees.end(), degree);
+      if (it == term_degrees.end()) {
+        HandlerTy identity(degree);
+        prod_ops.push_back(std::move(identity));
       }
     }
     product_operator<HandlerTy> prod(1, std::move(prod_ops));
@@ -106,40 +109,44 @@ EvalTy operator_sum<HandlerTy>::evaluate(operator_arithmetics<EvalTy> arithmetic
   }
 }
 
-#define INSTANTIATE_SUM_PRIVATE_METHODS(HandlerTy)                                            \
-                                                                                              \
-  template                                                                                    \
-  void operator_sum<HandlerTy>::aggregate_terms(product_operator<HandlerTy> &&item2);         \
-                                                                                              \
-  template                                                                                    \
-  void operator_sum<HandlerTy>::aggregate_terms(product_operator<HandlerTy> &&item1,          \
-                                                product_operator<HandlerTy> &&item2);         \
-                                                                                              \
-  template                                                                                    \
-  void operator_sum<HandlerTy>::aggregate_terms(product_operator<HandlerTy> &&item1,          \
-                                                product_operator<HandlerTy> &&item2,          \
-                                                product_operator<HandlerTy> &&item3);         \
+#define INSTANTIATE_SUM_PRIVATE_METHODS(HandlerTy)                             \
+                                                                               \
+  template void operator_sum<HandlerTy>::aggregate_terms(                      \
+      product_operator<HandlerTy> &&item2);                                    \
+                                                                               \
+  template void operator_sum<HandlerTy>::aggregate_terms(                      \
+      product_operator<HandlerTy> &&item1,                                     \
+      product_operator<HandlerTy> &&item2);                                    \
+                                                                               \
+  template void operator_sum<HandlerTy>::aggregate_terms(                      \
+      product_operator<HandlerTy> &&item1,                                     \
+      product_operator<HandlerTy> &&item2,                                     \
+      product_operator<HandlerTy> &&item3);
 
 INSTANTIATE_SUM_PRIVATE_METHODS(matrix_operator);
 INSTANTIATE_SUM_PRIVATE_METHODS(spin_operator);
 INSTANTIATE_SUM_PRIVATE_METHODS(boson_operator);
 INSTANTIATE_SUM_PRIVATE_METHODS(fermion_operator);
 
-#define INSTANTIATE_SUM_EVALUATE_METHODS(HandlerTy, EvalTy)                                   \
-                                                                                              \
-  template                                                                                    \
-  EvalTy operator_sum<HandlerTy>::evaluate(                                                   \
-    operator_arithmetics<EvalTy> arithmetics) const;                                          \
+#define INSTANTIATE_SUM_EVALUATE_METHODS(HandlerTy, EvalTy)                    \
+                                                                               \
+  template EvalTy operator_sum<HandlerTy>::evaluate(                           \
+      operator_arithmetics<EvalTy> arithmetics) const;
 
-INSTANTIATE_SUM_EVALUATE_METHODS(matrix_operator, operator_handler::matrix_evaluation);
-INSTANTIATE_SUM_EVALUATE_METHODS(spin_operator, operator_handler::canonical_evaluation);
-INSTANTIATE_SUM_EVALUATE_METHODS(boson_operator, operator_handler::matrix_evaluation);
-INSTANTIATE_SUM_EVALUATE_METHODS(fermion_operator, operator_handler::matrix_evaluation);
+INSTANTIATE_SUM_EVALUATE_METHODS(matrix_operator,
+                                 operator_handler::matrix_evaluation);
+INSTANTIATE_SUM_EVALUATE_METHODS(spin_operator,
+                                 operator_handler::canonical_evaluation);
+INSTANTIATE_SUM_EVALUATE_METHODS(boson_operator,
+                                 operator_handler::matrix_evaluation);
+INSTANTIATE_SUM_EVALUATE_METHODS(fermion_operator,
+                                 operator_handler::matrix_evaluation);
 
 // read-only properties
 
-template<typename HandlerTy>
-std::vector<int> operator_sum<HandlerTy>::degrees(bool application_order) const {
+template <typename HandlerTy>
+std::vector<int>
+operator_sum<HandlerTy>::degrees(bool application_order) const {
   std::set<int> unsorted_degrees;
   for (const std::vector<HandlerTy> &term : this->terms) {
     for (const HandlerTy &op : term) {
@@ -147,9 +154,14 @@ std::vector<int> operator_sum<HandlerTy>::degrees(bool application_order) const 
       unsorted_degrees.insert(op_degrees.cbegin(), op_degrees.cend());
     }
   }
-  auto degrees = std::vector<int>(unsorted_degrees.cbegin(), unsorted_degrees.cend());
-  if (application_order) std::sort(degrees.begin(), degrees.end(), operator_handler::user_facing_order);
-  else std::sort(degrees.begin(), degrees.end(), operator_handler::canonical_order);
+  auto degrees =
+      std::vector<int>(unsorted_degrees.cbegin(), unsorted_degrees.cend());
+  if (application_order)
+    std::sort(degrees.begin(), degrees.end(),
+              operator_handler::user_facing_order);
+  else
+    std::sort(degrees.begin(), degrees.end(),
+              operator_handler::canonical_order);
   return std::move(degrees);
 }
 
@@ -170,16 +182,15 @@ operator_sum<HandlerTy>::get_terms() const {
   return std::move(prods);
 }
 
-#define INSTANTIATE_SUM_PROPERTIES(HandlerTy)                                               \
-                                                                                            \
-  template                                                                                  \
-  std::vector<int> operator_sum<HandlerTy>::degrees(bool application_order) const;          \
-                                                                                            \
-  template                                                                                  \
-  int operator_sum<HandlerTy>::num_terms() const;                                           \
-                                                                                            \
-  template                                                                                  \
-  std::vector<product_operator<HandlerTy>> operator_sum<HandlerTy>::get_terms() const;
+#define INSTANTIATE_SUM_PROPERTIES(HandlerTy)                                  \
+                                                                               \
+  template std::vector<int> operator_sum<HandlerTy>::degrees(                  \
+      bool application_order) const;                                           \
+                                                                               \
+  template int operator_sum<HandlerTy>::num_terms() const;                     \
+                                                                               \
+  template std::vector<product_operator<HandlerTy>>                            \
+  operator_sum<HandlerTy>::get_terms() const;
 
 INSTANTIATE_SUM_PROPERTIES(matrix_operator);
 INSTANTIATE_SUM_PROPERTIES(spin_operator);
@@ -412,45 +423,57 @@ std::string operator_sum<HandlerTy>::to_string() const {
   return std::move(str);
 }
 
-template<typename HandlerTy>
-matrix_2 operator_sum<HandlerTy>::to_matrix(std::unordered_map<int, int> dimensions,
-                                            const std::unordered_map<std::string, std::complex<double>> &parameters,
-                                            bool application_order) const {
-  auto evaluated = this->evaluate(operator_arithmetics<operator_handler::matrix_evaluation>(dimensions, parameters));
-  if (!application_order || operator_handler::canonical_order(1, 0) == operator_handler::user_facing_order(1, 0))
+template <typename HandlerTy>
+matrix_2 operator_sum<HandlerTy>::to_matrix(
+    std::unordered_map<int, int> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool application_order) const {
+  auto evaluated =
+      this->evaluate(operator_arithmetics<operator_handler::matrix_evaluation>(
+          dimensions, parameters));
+  if (!application_order || operator_handler::canonical_order(1, 0) ==
+                                operator_handler::user_facing_order(1, 0))
     return std::move(evaluated.matrix);
 
   auto degrees = evaluated.degrees;
-  std::sort(degrees.begin(), degrees.end(), operator_handler::user_facing_order);
-  auto permutation = cudaq::detail::compute_permutation(evaluated.degrees, degrees, dimensions);
-  cudaq::detail::permute_matrix(evaluated.matrix, permutation); 
+  std::sort(degrees.begin(), degrees.end(),
+            operator_handler::user_facing_order);
+  auto permutation = cudaq::detail::compute_permutation(evaluated.degrees,
+                                                        degrees, dimensions);
+  cudaq::detail::permute_matrix(evaluated.matrix, permutation);
   return std::move(evaluated.matrix);
 }
 
-template<>
-matrix_2 operator_sum<spin_operator>::to_matrix(std::unordered_map<int, int> dimensions,
-                                            const std::unordered_map<std::string, std::complex<double>> &parameters,
-                                            bool application_order) const {
-  auto evaluated = this->evaluate(operator_arithmetics<operator_handler::canonical_evaluation>(dimensions, parameters));
-  if (evaluated.terms.size() == 0) return cudaq::matrix_2(0, 0);
+template <>
+matrix_2 operator_sum<spin_operator>::to_matrix(
+    std::unordered_map<int, int> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool application_order) const {
+  auto evaluated = this->evaluate(
+      operator_arithmetics<operator_handler::canonical_evaluation>(dimensions,
+                                                                   parameters));
+  if (evaluated.terms.size() == 0)
+    return cudaq::matrix_2(0, 0);
 
-  bool invert_order = application_order && operator_handler::canonical_order(1, 0) != operator_handler::user_facing_order(1, 0);
-  auto matrix = spin_operator::to_matrix(evaluated.terms[0].second, evaluated.terms[0].first, invert_order);
-  for (auto i = 1; i < terms.size(); ++i) 
-     matrix += spin_operator::to_matrix(evaluated.terms[i].second, evaluated.terms[i].first, invert_order);
+  bool invert_order =
+      application_order && operator_handler::canonical_order(1, 0) !=
+                               operator_handler::user_facing_order(1, 0);
+  auto matrix = spin_operator::to_matrix(
+      evaluated.terms[0].second, evaluated.terms[0].first, invert_order);
+  for (auto i = 1; i < terms.size(); ++i)
+    matrix += spin_operator::to_matrix(evaluated.terms[i].second,
+                                       evaluated.terms[i].first, invert_order);
   return std::move(matrix);
 }
 
-#define INSTANTIATE_SUM_EVALUATIONS(HandlerTy)                                              \
-                                                                                            \
-  template                                                                                  \
-  std::string operator_sum<HandlerTy>::to_string() const;                                   \
-                                                                                            \
-  template                                                                                  \
-  matrix_2 operator_sum<HandlerTy>::to_matrix(                                              \
-    std::unordered_map<int, int> dimensions,                                                \
-    const std::unordered_map<std::string, std::complex<double>> &params,                    \
-    bool application_order) const;                                                          \
+#define INSTANTIATE_SUM_EVALUATIONS(HandlerTy)                                 \
+                                                                               \
+  template std::string operator_sum<HandlerTy>::to_string() const;             \
+                                                                               \
+  template matrix_2 operator_sum<HandlerTy>::to_matrix(                        \
+      std::unordered_map<int, int> dimensions,                                 \
+      const std::unordered_map<std::string, std::complex<double>> &params,     \
+      bool application_order) const;
 
 INSTANTIATE_SUM_EVALUATIONS(matrix_operator);
 INSTANTIATE_SUM_EVALUATIONS(spin_operator);
@@ -1174,6 +1197,7 @@ template operator_sum<boson_operator> operator_handler::empty();
 template operator_sum<fermion_operator> operator_handler::empty();
 
 #ifdef CUDAQ_INSTANTIATE_TEMPLATES
+template class operator_sum<matrix_operator>;
 template class operator_sum<spin_operator>;
 template class operator_sum<boson_operator>;
 template class operator_sum<fermion_operator>;

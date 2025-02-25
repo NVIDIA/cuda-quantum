@@ -22,7 +22,7 @@ TEST(OperatorExpressions, checkBosonOpsConstruction) {
   auto prod = cudaq::boson_operator::identity();
   cudaq::matrix_2 expected(1, 1);
 
-  expected[{0, 0}] = 1.;  
+  expected[{0, 0}] = 1.;
   utils::checkEqual(prod.to_matrix(), expected);
 
   prod *= -1.j;
@@ -39,7 +39,8 @@ TEST(OperatorExpressions, checkBosonOpsConstruction) {
   expected = cudaq::matrix_2(0, 0);
   utils::checkEqual(sum.to_matrix(), expected);
 
-  sum *= cudaq::boson_operator::number(1); // empty times something is still empty
+  sum *=
+      cudaq::boson_operator::number(1); // empty times something is still empty
   std::vector<int> expected_degrees = {};
   ASSERT_EQ(sum.degrees(), expected_degrees);
   utils::checkEqual(sum.to_matrix(), expected);

@@ -25,54 +25,71 @@ generate_all_states(const std::vector<int> &degrees,
     states.push_back(std::to_string(state));
   }
 
-  std::vector<int> compute_permutation(const std::vector<int> &op_degrees,
-                                       const std::vector<int> &canon_degrees, 
-                                       const std::unordered_map<int, int> dimensions) {
-    assert(op_degrees.size() == canon_degrees.size());
-    auto states = cudaq::detail::generate_all_states(canon_degrees, dimensions);
-  
-    std::vector<int> reordering;
-    for (auto degree : op_degrees) {
-      auto it = std::find(canon_degrees.cbegin(), canon_degrees.cend(), degree);
-      reordering.push_back(it - canon_degrees.cbegin());
-    }
-  
-    std::vector<std::string> op_states = 
-        cudaq::detail::generate_all_states(op_degrees, dimensions);
-  
-    std::vector<int> permutation;
-    for (auto state : states) {
-      std::string term;
-      for (auto i : reordering) {
-        term += state[i];
+  for (auto idx = 1; idx < degrees.size(); ++idx) {
+    auto entry = dimensions.find(degrees[idx]);
+    assert(entry != dimensions.end());
+    std::vector<std::string> result;
+    for (auto current : states) {
+      for (auto state = 0; state < entry->second; state++) {
+        result.push_back(current + std::to_string(state));
       }
-      auto it = std::find(op_states.cbegin(), op_states.cend(), term);
-      permutation.push_back(it - op_states.cbegin());
     }
-  
-    return std::move(permutation);
+    states = result;
   }
 
-  void permute_matrix(cudaq::matrix_2 &matrix, const std::vector<int> &permutation) {
-    if (permutation.size() == 0) {
-      assert(matrix.get_rows() == matrix.get_columns() == 1);
-      return;
-    }
+  return states;
+}
 
-    std::vector<std::complex<double>> sorted_values;
-    for (std::size_t permuted : permutation) {
-      for (std::size_t permuted_again : permutation) {
-        sorted_values.push_back(matrix[{permuted, permuted_again}]);
-      }
+std::vector<int>
+compute_permutation(const std::vector<int> &op_degrees,
+                    const std::vector<int> &canon_degrees,
+                    const std::unordered_map<int, int> dimensions) {
+  assert(op_degrees.size() == canon_degrees.size());
+  auto states = cudaq::detail::generate_all_states(canon_degrees, dimensions);
+
+  std::vector<int> reordering;
+  for (auto degree : op_degrees) {
+    auto it = std::find(canon_degrees.cbegin(), canon_degrees.cend(), degree);
+    reordering.push_back(it - canon_degrees.cbegin());
+  }
+
+  std::vector<std::string> op_states =
+      cudaq::detail::generate_all_states(op_degrees, dimensions);
+
+  std::vector<int> permutation;
+  for (auto state : states) {
+    std::string term;
+    for (auto i : reordering) {
+      term += state[i];
     }
-    int idx = 0;
-    for (std::size_t row = 0; row < matrix.get_rows(); row++) {
-      for (std::size_t col = 0; col < matrix.get_columns(); col++) {
-        matrix[{row, col}] = sorted_values[idx];
-        idx++;
-      }
+    auto it = std::find(op_states.cbegin(), op_states.cend(), term);
+    permutation.push_back(it - op_states.cbegin());
+  }
+
+  return std::move(permutation);
+}
+
+void permute_matrix(cudaq::matrix_2 &matrix,
+                    const std::vector<int> &permutation) {
+  if (permutation.size() == 0) {
+    assert(matrix.get_rows() == matrix.get_columns() == 1);
+    return;
+  }
+
+  std::vector<std::complex<double>> sorted_values;
+  for (std::size_t permuted : permutation) {
+    for (std::size_t permuted_again : permutation) {
+      sorted_values.push_back(matrix[{permuted, permuted_again}]);
     }
   }
+  int idx = 0;
+  for (std::size_t row = 0; row < matrix.get_rows(); row++) {
+    for (std::size_t col = 0; col < matrix.get_columns(); col++) {
+      matrix[{row, col}] = sorted_values[idx];
+      idx++;
+    }
+  }
+}
 
 } // namespace detail
 } // namespace cudaq

@@ -21,7 +21,7 @@ TEST(OperatorExpressions, checkSpinOpsConstruction) {
   auto prod = cudaq::spin_operator::identity();
   cudaq::matrix_2 expected(1, 1);
 
-  expected[{0, 0}] = 1.;  
+  expected[{0, 0}] = 1.;
   utils::checkEqual(prod.to_matrix(), expected);
 
   prod *= -1.j;
