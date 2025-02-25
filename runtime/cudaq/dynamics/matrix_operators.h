@@ -27,6 +27,8 @@ private:
   template <typename T>
   static std::string type_prefix();
 
+  virtual std::string op_code_to_string(std::unordered_map<int, int> &dimensions) const;
+
 protected:
 
   std::vector<int> targets;
@@ -125,7 +127,7 @@ public:
   virtual matrix_2 to_matrix(std::unordered_map<int, int> &dimensions,
                              const std::unordered_map<std::string, std::complex<double>> &parameters = {}) const;
 
-  virtual std::string to_string(bool include_degrees, const std::unordered_map<int, int> &dimensions = {}) const;
+  virtual std::string to_string(bool include_degrees) const;
 
   // comparisons
 

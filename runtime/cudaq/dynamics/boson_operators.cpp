@@ -43,6 +43,13 @@ std::string boson_operator::op_code_to_string() const {
   return std::move(str);
 }
 
+std::string boson_operator::op_code_to_string(std::unordered_map<int, int> &dimensions) const {
+  auto it = dimensions.find(this->target);
+  if (it == dimensions.end())
+    throw std::runtime_error("missing dimension for degree " + std::to_string(this->target));
+  return this->op_code_to_string();
+}
+
 void boson_operator::inplace_mult(const boson_operator &other) {
   this->number_offsets.reserve(this->number_offsets.size() + other.number_offsets.size());
 
@@ -154,7 +161,7 @@ matrix_2 boson_operator::to_matrix(std::unordered_map<int, int> &dimensions,
   return std::move(mat);
 }
 
-std::string boson_operator::to_string(bool include_degrees, const std::unordered_map<int, int> &dimensions) const {
+std::string boson_operator::to_string(bool include_degrees) const {
   if (include_degrees) return this->op_code_to_string() + "(" + std::to_string(target) + ")";
   else return this->op_code_to_string();
 }

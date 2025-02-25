@@ -150,17 +150,65 @@ template <typename HandlerTy>
 class operator_sum;
 
 class operator_handler {
+template <typename T> friend class product_operator;
+template <typename T> friend class operator_sum;
+template <typename T> friend class operator_arithmetics;
+  
+private:
+
+  // Validate or populate the dimension defined for the degree(s) of freedom the operator
+  // acts on, and return a string that identifies the operator but not what degrees it acts on.
+  virtual std::string op_code_to_string(std::unordered_map<int, int> &dimensions) const = 0;
+
+  // data storage classes for evaluation
+
+  class matrix_evaluation {
+    private:
+      std::vector<int> targets;
+      matrix_2 value;
+    public: 
+      const std::vector<int>& degrees() const;
+      const matrix_2& matrix() const;
+      matrix_evaluation();
+      matrix_evaluation(std::vector<int> &&degrees, matrix_2 &&matrix);
+      matrix_evaluation(matrix_evaluation &&other);
+      matrix_evaluation& operator=(matrix_evaluation &&other);
+      // delete copy constructor and copy assignment to avoid unnecessary copies
+      matrix_evaluation(const matrix_evaluation &other) = delete;
+      matrix_evaluation& operator=(const matrix_evaluation &other) = delete;
+    };
+  
+    class canonical_evaluation {
+    private:
+      std::vector<std::pair<std::complex<double>, std::string>> terms;
+    public:
+      const std::vector<std::pair<std::complex<double>, std::string>>& get_terms();
+      canonical_evaluation();
+      canonical_evaluation(canonical_evaluation &&other);
+      canonical_evaluation& operator=(canonical_evaluation &&other);
+      // delete copy constructor and copy assignment to avoid unnecessary copies
+      canonical_evaluation(const canonical_evaluation &other) = delete;
+      canonical_evaluation& operator=(const canonical_evaluation &other) = delete;
+      void push_back(std::pair<std::complex<double>, std::string> &&term);
+      void push_back(const std::string &op);
+    };
+  
 public:
 #if !defined(NDEBUG)
   static bool can_be_canonicalized; // whether a canonical order can be defined for operator expressions
 #endif
 
-  // individual handlers should *not* override this but rather adhere to it
+  // Individual handlers should *not* override this but rather adhere to it.
+  // The canonical ordering is the ordering used internally by the operator classes.
+  // The user facing ordering is the ordering that matches CUDA-Q convention, i.e. 
+  // the order in which custom matrix operators are defined, the order returned by
+  // to_matrix and degree, and the order in which a user would define a state vector.
   static constexpr auto canonical_order = std::less<int>();
   static constexpr auto user_facing_order = std::greater<int>();
 
   virtual ~operator_handler() = default;
 
+  // returns a unique string id for the operator
   virtual std::string unique_id() const = 0;
 
   virtual std::vector<int> degrees() const = 0;
@@ -173,48 +221,13 @@ public:
   virtual matrix_2 to_matrix(std::unordered_map<int, int> &dimensions,
                              const std::unordered_map<std::string, std::complex<double>> &parameters = {}) const = 0;
 
-  // FIXME: move the dimensions check into a separate function an use that to update dimensions
-  virtual std::string to_string(bool include_degrees = true, const std::unordered_map<int, int> &dimensions = {}) const = 0;
+  virtual std::string to_string(bool include_degrees = true) const = 0;
 
   template <typename HandlerTy>
   static operator_sum<HandlerTy> empty();
 
   template<typename HandlerTy, typename... Args, std::enable_if_t<std::conjunction<std::is_same<int, Args>...>::value, bool> = true>
   static product_operator<HandlerTy> identity(Args... targets);
-
-  // data storage classes for evaluation
-
-  class matrix_evaluation {
-  private:
-    std::vector<int> targets;
-    matrix_2 value;
-  public: 
-    const std::vector<int>& degrees() const;
-    const matrix_2& matrix() const;
-    matrix_evaluation();
-    matrix_evaluation(std::vector<int> &&degrees, matrix_2 &&matrix);
-    matrix_evaluation(matrix_evaluation &&other);
-    matrix_evaluation& operator=(matrix_evaluation &&other);
-    // delete copy constructor and copy assignment to avoid unnecessary copies
-    matrix_evaluation(const matrix_evaluation &other) = delete;
-    matrix_evaluation& operator=(const matrix_evaluation &other) = delete;
-  };
-
-  class canonical_evaluation {
-  private:
-    std::vector<std::pair<std::complex<double>, std::string>> terms;
-  public:
-    const std::vector<std::pair<std::complex<double>, std::string>>& get_terms();
-    canonical_evaluation();
-    canonical_evaluation(canonical_evaluation &&other);
-    canonical_evaluation& operator=(canonical_evaluation &&other);
-    // delete copy constructor and copy assignment to avoid unnecessary copies
-    canonical_evaluation(const canonical_evaluation &other) = delete;
-    canonical_evaluation& operator=(const canonical_evaluation &other) = delete;
-    void push_back(std::pair<std::complex<double>, std::string> &&term);
-    void push_back(const std::string &op);
-  };
-
 };
 
 } // namespace cudaq
