@@ -16,8 +16,11 @@ if (CUDAQ_ENABLE_REST)
 endif()
 
 add_subdirectory(fermioniq)
+
 if (AWSSDK_ROOT)
   add_subdirectory(quera)
 endif()
 
-add_subdirectory(pasqal)
+if (CUDAQ_ENABLE_PASQAL_BACKEND)
+  add_subdirectory(pasqal)
+endif()
