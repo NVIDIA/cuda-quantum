@@ -18,9 +18,15 @@
 namespace cudaq {
 
 // FIXME: rename to spin ...
+<<<<<<< HEAD
 class spin_operator : public operator_handler {
   template <typename T>
   friend class product_operator;
+=======
+class spin_operator : public operator_handler{
+template <typename T> friend class product_operator;
+template <typename T> friend class operator_sum;
+>>>>>>> 629e2ae33 (making internal (canonical) ordering and user facing ordering constants defined in operator_handler)
 
 private:
   // I = 0, Z = 1, X = 2, Y = 3
@@ -52,7 +58,9 @@ public:
 
   // evaluations
 
-  static matrix_2 to_matrix(std::string pauli, std::complex<double> coeff = 1.);
+  /// @brief Computes the matrix representation of a Pauli string. 
+  /// By default, the ordering of the matrix matches the ordering of the Pauli string, 
+  static matrix_2 to_matrix(std::string pauli, std::complex<double> coeff = 1., bool invert_order = false);
 
   /// @brief Return the `matrix_operator` as a matrix.
   /// @arg  `dimensions` : A map specifying the number of levels,

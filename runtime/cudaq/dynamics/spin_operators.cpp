@@ -43,6 +43,43 @@ std::complex<double> spin_operator::inplace_mult(const spin_operator &other) {
   return factor;
 }
 
+matrix_2 spin_operator::to_matrix(std::string pauli_word, std::complex<double> coeff, bool invert_order) {
+  auto map_state = [&pauli_word](char pauli, bool state) {
+    if (state) {
+      if (pauli == 'Z') return std::make_pair<std::complex<double>, bool>(-1., bool(state));
+      if (pauli == 'X') return std::make_pair<std::complex<double>, bool>(1., !state);
+      if (pauli == 'Y') return std::make_pair<std::complex<double>, bool>(-1.j, !state);
+      return std::make_pair<std::complex<double>, bool>(1., bool(state));
+    } else {
+      if (pauli == 'Z') return std::make_pair<std::complex<double>, bool>(1., bool(state));
+      if (pauli == 'X') return std::make_pair<std::complex<double>, bool>(1., !state);
+      if (pauli == 'Y') return std::make_pair<std::complex<double>, bool>(1.j, !state);
+      return std::make_pair<std::complex<double>, bool>(1., bool(state));
+    }
+  };
+
+  auto dim = 1 << pauli_word.size();
+  auto nr_deg = pauli_word.size();
+
+  matrix_2 matrix(dim, dim);
+  for (std::size_t old_state = 0; old_state < dim; ++old_state) {
+    std::size_t new_state = 0;
+    std::complex<double> entry = 1.;
+    for (auto degree = 0; degree < nr_deg; ++degree) {
+      auto canon_degree = degree;
+      auto state = (old_state & (1 << canon_degree)) >> canon_degree; 
+      // Note that indeed to have the matrix match the ordering (endianness) of
+      // the pauli word, we have to look at word index nr_deg-1-degree here.
+      auto op = pauli_word[invert_order? degree : nr_deg - 1 - degree];
+      auto mapped = map_state(op, state);
+      entry *= mapped.first;
+      new_state |= (mapped.second << canon_degree);
+    }
+    matrix[{new_state, old_state}] = coeff * entry;
+  }
+  return std::move(matrix);
+}
+
 // read-only properties
 
 std::string spin_operator::unique_id() const {
@@ -61,45 +98,6 @@ spin_operator::spin_operator(int target, int op_id)
 }
 
 // evaluations
-
-matrix_2 spin_operator::to_matrix(std::string pauli_word, std::complex<double> coeff) {
-  auto map_state = [&pauli_word](char pauli, bool state) {
-    if (state) { // state is 1 -> row 1 of matrix
-      if (pauli == 'Z') return std::make_pair<std::complex<double>, bool>(-1., bool(state));
-      if (pauli == 'X') return std::make_pair<std::complex<double>, bool>(1., !state);
-      if (pauli == 'Y') return std::make_pair<std::complex<double>, bool>(-1.j, !state);
-      return std::make_pair<std::complex<double>, bool>(1., bool(state));
-    } else { // state is 0 -> row 0 of matrix
-      if (pauli == 'Z') return std::make_pair<std::complex<double>, bool>(1., bool(state));
-      if (pauli == 'X') return std::make_pair<std::complex<double>, bool>(1., !state);
-      if (pauli == 'Y') return std::make_pair<std::complex<double>, bool>(1.j, !state);
-      return std::make_pair<std::complex<double>, bool>(1., bool(state));
-    }
-  };
-
-  // FIXME: assumes canonical ordering
-  auto dim = 1 << pauli_word.size();
-  auto nr_deg = pauli_word.size();
-  auto little_endian_to_canonical = [dim, nr_deg](size_t degree) {
-    if (operator_handler::canonical_order(dim, 0)) return nr_deg - 1 - degree;
-    else return degree;
-  };
-
-  matrix_2 matrix(dim, dim);
-  for (std::size_t old_state = 0; old_state < dim; ++old_state) {
-    std::size_t new_state = 0;
-    std::complex<double> entry = 1.;
-    for (auto degree = 0; degree < nr_deg; ++degree) {
-      auto state = (old_state & (1 << degree)) >> degree; 
-      auto op = pauli_word[little_endian_to_canonical(degree)];
-      auto mapped = map_state(op, state);
-      entry *= mapped.first;
-      new_state |= (mapped.second << degree);
-    }
-    matrix[{new_state, old_state}] = coeff * entry;
-  }
-  return std::move(matrix);
-}
 
 matrix_2 spin_operator::to_matrix(std::unordered_map<int, int> &dimensions,
                                   const std::unordered_map<std::string, std::complex<double>> &parameters) const {

@@ -60,9 +60,10 @@ protected:
 public:
   // read-only properties
 
-  /// @brief The degrees of freedom that the operator acts on in canonical
-  /// order.
-  std::vector<int> degrees() const;
+  /// @brief The degrees of freedom that the operator acts on.
+  /// By default, degrees reflect the ordering convention (endianness) used in CUDA-Q, 
+  /// and the ordering of the matrix returned by default by `to_matrix`.
+  std::vector<int> degrees(bool application_order = true) const;
 
   /// @brief Return the number of operator terms that make up this operator sum.
   int num_terms() const;
@@ -117,7 +118,9 @@ public:
   /// @brief Return the operator_sum<HandlerTy> as a string.
   std::string to_string() const;
 
-  /// @brief Return the `operator_sum<HandlerTy>` as a matrix.
+  /// @brief Return the matrix representation of the operator. 
+  /// By default, the matrix is ordered according to the convention (endianness) 
+  /// used in CUDA-Q, and the ordering returned by default by `degrees`.
   /// @arg `dimensions` : A mapping that specifies the number of levels,
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
@@ -125,8 +128,8 @@ public:
   /// @arg `parameters` : A map of the parameter names to their concrete,
   /// complex values.
   matrix_2 to_matrix(std::unordered_map<int, int> dimensions = {},
-                     const std::unordered_map<std::string, std::complex<double>>
-                         &parameters = {}) const;
+                     const std::unordered_map<std::string, std::complex<double>> &parameters = {},
+                     bool application_order = true) const;
 
   // unary operators
 
@@ -374,9 +377,10 @@ protected:
 public:
   // read-only properties
 
-  /// @brief The degrees of freedom that the operator acts on in canonical
-  /// order.
-  std::vector<int> degrees() const;
+  /// @brief The degrees of freedom that the operator acts on.
+  /// By default, degrees reflect the ordering convention (endianness) used in CUDA-Q, 
+  /// and the ordering of the matrix returned by default by `to_matrix`.
+  std::vector<int> degrees(bool application_order = true) const;
 
   /// @brief Return the number of operator terms that make up this product
   /// operator.
@@ -427,7 +431,9 @@ public:
   /// @brief Return the `product_operator<HandlerTy>` as a string.
   std::string to_string() const;
 
-  /// @brief Return the `operator_sum<HandlerTy>` as a matrix.
+  /// @brief Return the matrix representation of the operator. 
+  /// By default, the matrix is ordered according to the convention (endianness) 
+  /// used in CUDA-Q, and the ordering returned by default by `degrees`.
   /// @arg  `dimensions` : A mapping that specifies the number of levels,
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
@@ -435,8 +441,8 @@ public:
   /// @arg `parameters` : A map of the parameter names to their concrete,
   /// complex values.
   matrix_2 to_matrix(std::unordered_map<int, int> dimensions = {},
-                     const std::unordered_map<std::string, std::complex<double>>
-                         &parameters = {}) const;
+                     const std::unordered_map<std::string, std::complex<double>> &parameters = {},
+                     bool application_order = true) const;
 
   // comparisons
 

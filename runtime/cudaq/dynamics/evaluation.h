@@ -57,8 +57,8 @@ class operator_arithmetics<operator_handler::matrix_evaluation> {
 
 private:
 
-  std::unordered_map<int, int> dimensions; // may be updated during evaluation
-  const std::unordered_map<std::string, std::complex<double>> parameters;
+  std::unordered_map<int, int> &dimensions; // may be updated during evaluation
+  const std::unordered_map<std::string, std::complex<double>> &parameters;
   
   // Given a matrix representation that acts on the given degrees or freedom,
   // sorts the degrees and permutes the matrix to match that canonical order.
@@ -136,8 +136,8 @@ class operator_arithmetics<operator_handler::canonical_evaluation> {
 
 private:
 
-  std::unordered_map<int, int> dimensions; // may be updated during evaluation
-  const std::unordered_map<std::string, std::complex<double>> parameters;
+  std::unordered_map<int, int> &dimensions; // may be updated during evaluation
+  const std::unordered_map<std::string, std::complex<double>> &parameters;
 
 
 public:

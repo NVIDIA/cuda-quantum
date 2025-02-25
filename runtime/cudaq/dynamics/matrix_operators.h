@@ -62,15 +62,14 @@ public:
   ///      indicates that the operator is defined for any dimension of the
   ///      corresponding degree of freedom.
   /// @arg create : Takes any number of complex-valued arguments and returns the
-  ///      matrix representing the operator in canonical order. If the matrix
-  ///      can be defined for any number of levels for one or more degree of
-  ///      freedom, the `create` function must take an argument called
-  ///      `dimension` (or `dim` for short), if the operator acts on a single
-  ///      degree of freedom, and an argument called `dimensions` (or `dims` for
-  ///      short), if the operator acts
-  ///     on multiple degrees of freedom.
-  static void define(std::string operator_id,
-                     std::vector<int> expected_dimensions,
+  ///      matrix representing the operator. The matrix must be ordered such that
+  ///      the value returned by `op.degrees()` matches the order of the matrix, 
+  ///      where `op` is the instantiated the operator defined here.
+  ///      The `create` function must take a vector of integers that specifies
+  ///      the "number of levels" (the dimension) for each degree of freedom that
+  ///      the operator acts on, and an unordered map from string to complex 
+  ///      double that contains additional parameters the operator may use. 
+  static void define(std::string operator_id, std::vector<int> expected_dimensions,
                      MatrixCallbackFunction &&create);
 
   /// @brief Instantiates a custom operator.
