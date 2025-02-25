@@ -13,7 +13,9 @@
 #include "cudaq/qis/state.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/Types.h"
+#include <list>
 #include <unordered_set>
+#include <vector>
 
 namespace cudaq::opt {
 
@@ -21,8 +23,7 @@ class ArgumentConverter {
 public:
   /// Build an instance to create argument substitutions for a specified \p
   /// kernelName in \p sourceModule.
-  ArgumentConverter(mlir::StringRef kernelName, mlir::ModuleOp sourceModule,
-                    bool isSimulator = true);
+  ArgumentConverter(mlir::StringRef kernelName, mlir::ModuleOp sourceModule);
 
   /// Generate a substitution ModuleOp for the vector of arguments presented.
   /// The arguments are those presented to the kernel, kernelName.
@@ -47,13 +48,15 @@ public:
   /// created.
   mlir::ModuleOp getSubstitutionModule() { return substModule; }
 
+  /// Kernel name we are converting the arguments for.
+  mlir::StringRef getKernelName() { return kernelName; }
+
 private:
   mlir::ModuleOp sourceModule;
   mlir::ModuleOp substModule;
   mlir::OpBuilder builder;
   mlir::StringRef kernelName;
   mlir::SmallVector<cc::ArgumentSubstitutionOp> substitutions;
-  bool isSimulator;
 };
 
 } // namespace cudaq::opt
