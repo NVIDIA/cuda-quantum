@@ -693,6 +693,7 @@ jobs:
         if: (success() || failure()) && (inputs.target == 'pasqal' || github.event_name == 'schedule' || inputs.target == 'nightly')
         run: |
           echo "### Submit to Pasqal server" >> $GITHUB_STEP_SUMMARY
+          python3 -m pip install pasqal-cloud
           export PASQAL_USERNAME='${{ secrets.PASQAL_USERNAME }}'
           export PASQAL_PASSWORD='${{ secrets.PASQAL_PASSWORD }}'
           export PASQAL_PROJECT_ID='${{ secrets.PASQAL_PROJECT_ID }}'
