@@ -1985,7 +1985,7 @@ class PyASTBridge(ast.NodeVisitor):
                 theta = self.popValue()
                 if IntegerType.isinstance(theta.type):
                     theta = arith.SIToFPOp(self.getFloatType(), theta).result
-                quake.ExpPauliOp(theta, qubits, pauli=pauliWord)
+                quake.ExpPauliOp([], [theta], [], [qubits], pauli=pauliWord)
                 return
 
             elif node.func.id == 'int':

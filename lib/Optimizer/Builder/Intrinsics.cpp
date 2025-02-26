@@ -430,7 +430,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__quantum__qis__rz__ctl(f64, !qir_array, !qir_qubit)
   func.func private @__quantum__qis__r1__ctl(f64, !qir_array, !qir_qubit)
 
-  func.func private @__quantum__qis__exp_pauli(f64, !qir_array, !qir_charptr)
+  func.func private @__quantum__qis__exp_pauli__ctl(f64, !qir_array, !qir_array, !qir_charptr)
   func.func private @__quantum__qis__custom_unitary(!cc.ptr<complex<f64>>, !qir_array, !qir_array, !qir_charptr)
   func.func private @__quantum__qis__custom_unitary__adj(!cc.ptr<complex<f64>>, !qir_array, !qir_array, !qir_charptr)
 
@@ -463,6 +463,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__quantum__qis__ry__body(f64, !qir_qubit)
   func.func private @__quantum__qis__rz__body(f64, !qir_qubit)
   func.func private @__quantum__qis__r1__body(f64, !qir_qubit)
+  func.func private @__quantum__qis__exp_pauli__body(f64, !qir_array, !qir_charptr)
 
   func.func private @__quantum__rt__result_record_output(!qir_result, !qir_charptr)
   func.func private @__quantum__qis__cnot__body(!qir_qubit, !qir_qubit)
@@ -493,6 +494,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__quantum__qis__ry(f64, !qir_qubit)
   func.func private @__quantum__qis__rz(f64, !qir_qubit)
   func.func private @__quantum__qis__r1(f64, !qir_qubit)
+  func.func private @__quantum__qis__exp_pauli(f64, !qir_array, !qir_charptr)
     )#"},
 
     // Choose one of the two QIR typing conventions. Opaque pointers are the
