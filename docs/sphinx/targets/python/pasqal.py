@@ -3,7 +3,7 @@ from cudaq.operator import *
 
 # This example illustrates how to use Pasqal's EMU_MPS emulator over Pasqal's cloud via CUDA-Q.
 
-# To obtain login from Pasqal's SDK uncomment these lines
+# To obtain login we recommend using Pasqal's Python SDK
 # We recommend filling in password via an environment variable
 # or leave it empty in an interactive session as you will be
 # prompted to enter the password securely via the command line.
@@ -24,7 +24,6 @@ os.environ["PASQAL_AUTH_TOKEN"] = str(token)
 
 cudaq.set_target("pasqal",
                  machine=os.environ.get("PASQAL_MACHINE_TARGET", None))
-# cudaq.set_target("pasqal", machine="FRESNEL") # To target QPU
 
 # Define the 2-dimensional atom arrangement
 a = 5e-6
