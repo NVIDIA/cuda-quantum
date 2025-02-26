@@ -29,14 +29,14 @@ cudaq.set_target("pasqal",
 # Define the 2-dimensional atom arrangement
 a = 5e-6
 register = [(a, 0), (2 * a, 0), (3 * a, 0)]
-time_ramp = 0.000002
+time_ramp = 0.000001
 time_max = 0.000003
 # Times for the piece-wise linear waveforms
 steps = [0.0, time_ramp, time_max - time_ramp, time_max]
 schedule = Schedule(steps, ["t"])
 # Rabi frequencies at each step
-omega_max = 100000
-delta_end = 100000
+omega_max = 1000000
+delta_end = 1000000
 delta_start = 0.0
 omega = ScalarOperator(lambda t: omega_max if time_ramp < t < time_max else 0.0)
 # Global phase at each step

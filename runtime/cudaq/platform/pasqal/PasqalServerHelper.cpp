@@ -104,6 +104,10 @@ bool PasqalServerHelper::jobIsDone(ServerMessage &getJobResponse) {
 
 sample_result PasqalServerHelper::processResults(ServerMessage &postJobResponse,
                                                  std::string &jobId) {
+  auto status = postJobResponse["data"]["status"].get<std::string>();
+  if (status != "DONE")
+    throw std::runtime_error("Job status: " + status);
+
   std::vector<ExecutionResult> results;
   auto jobs = postJobResponse["data"]["result"];
   for (auto &job : jobs) {
