@@ -6,16 +6,22 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// REQUIRES: c++20
-// RUN: cudaq-quake -verify %s
+// RUN: cudaq-quake %cpp_std -verify -D CUDAQ_REMOTE_SIM=1 %s
 
 #include <cudaq.h>
 
-struct NegationOperatorTest {
+struct SantaKraus : public cudaq::kraus_channel {
+  constexpr static std::size_t num_parameters = 0;
+  constexpr static std::size_t num_targets = 2;
+  static std::size_t get_key() { return (std::size_t)&get_key; }
+  SantaKraus() {}
+};
+
+struct testApplyNoise {
   void operator()() __qpu__ {
-    cudaq::qvector qr(3);
-    // expected-error@+1{{target qubit cannot be negated}}
-    x<cudaq::ctrl>(qr[0], qr[1], !qr[2]);
-    rz(2.0, !qr[0]); // expected-error{{target qubit cannot be negated}}
+    cudaq::qubit q0, q1;
+    // expected-error@+1{{no matching function for call to 'apply_noise'}}
+    cudaq::apply_noise<SantaKraus>(q0, q1);
+    // expected-note@* 2-3 {{}}
   }
 };
