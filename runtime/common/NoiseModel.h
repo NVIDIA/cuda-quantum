@@ -785,8 +785,9 @@ public:
 
     ops.reserve(16);
     // Use a lambda to avoid excessive line wrapping below
-    auto define_op = [&](double _p, const cudaq::details::matrix_wrapper &_m1,
-                         const cudaq::details::matrix_wrapper &_m2) {
+    auto define_op = [this](double _p,
+                            const cudaq::details::matrix_wrapper &_m1,
+                            const cudaq::details::matrix_wrapper &_m2) {
       ops.push_back(
           details::scale(std::sqrt(_p), details::kron(_m1, 2, 2, _m2, 2, 2)));
     };
