@@ -168,8 +168,7 @@ int IonQServerHelper::setQubits(const std::string &target) {
       {"qpu.harmony", 11},
       {"qpu.aria-1", 25},
       {"qpu.forte-enterprise-1", 36},
-      {"qpu.forte-enterprise-2", 36}
-  };
+      {"qpu.forte-enterprise-2", 36}};
 
   return getOrDefault(qubitMap, target, 29); // 29 is the default value
 }
