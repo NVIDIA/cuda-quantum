@@ -107,7 +107,7 @@ setting the target. It is worth drawing attention to gate fusion, a powerful too
     - Description
   * - ``CUDAQ_FUSION_MAX_QUBITS``
     - positive integer
-    - The max number of qubits used for gate fusion. The default value depends on `GPU Compute Capability <https://developer.nvidia.com/cuda-gpus>`__ (CC) and the floating point precision selected for the simulator. Specifically, for CC 8.0, 9.0, and 10.0 the defaults are `4`, `5`, and `5` for FP32. For FP64 the corresponding defaults are `5`, `6`, and `4`. For all other CC, the default is `4` for both precision modes.
+    - The max number of qubits used for gate fusion. The default value depends on `GPU Compute Capability <https://developer.nvidia.com/cuda-gpus>`__ (CC) and the floating point precision selected for the simulator. Specifically, for CC 8.0, 9.0, and 10.0 the defaults are `4`, `5`, and `5` for `FP32`. For `FP64` the corresponding defaults are `5`, `6`, and `4`. For all other CC, the default is `4` for both precision modes.
   * - ``CUDAQ_FUSION_DIAGONAL_GATE_MAX_QUBITS``
     - integer greater than or equal to -1
     - The max number of qubits used for diagonal gate fusion. The default value is set to `-1` and the fusion size will be automatically adjusted for the better performance. If 0, the gate fusion for diagonal gates is disabled.
@@ -232,7 +232,7 @@ prior to setting the target.
     - The qubit count threshold where state vector distribution is activated. Below this threshold, simulation is performed as independent (non-distributed) tasks across all MPI processes for optimal performance. Default is 25. 
   * - ``CUDAQ_MGPU_FUSE``
     - positive integer
-    - The max number of qubits used for gate fusion. The default value depends on `GPU Compute Capability <https://developer.nvidia.com/cuda-gpus>`__ (CC) and the floating point precision selected for the simulator. Specifically, for CC 8.0, 9.0, and 10.0 the defaults are `4`, `5`, and `5` for FP32. For FP64 the corresponding defaults are `5`, `6`, and `4`. For all other CC, the default is `4` for both precision modes.
+    - The max number of qubits used for gate fusion. The default value depends on `GPU Compute Capability <https://developer.nvidia.com/cuda-gpus>`__ (CC) and the floating point precision selected for the simulator. Specifically, for CC 8.0, 9.0, and 10.0 the defaults are `4`, `5`, and `5` for `FP32`. For `FP64` the corresponding defaults are `5`, `6`, and `4`. For all other CC, the default is `4` for both precision modes.
   * - ``CUDAQ_MGPU_P2P_DEVICE_BITS``
     - positive integer
     - Specify the number of GPUs that can communicate by using GPUDirect P2P. Default value is 0 (P2P communication is disabled).
