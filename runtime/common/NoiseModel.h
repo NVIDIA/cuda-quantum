@@ -649,7 +649,9 @@ public:
       noise_model_strings[(int)noise_model_type::amplitude_damping])
 };
 
-/// @brief phase_damping is similar to amplitude_damping but for phase instead.
+/// @brief phase_damping is a kraus_channel that
+/// automates the creation of the kraus_ops that make up
+/// a single-qubit phase damping error channel.
 class phase_damping : public kraus_channel {
 public:
   constexpr static std::size_t num_parameters = 1;
@@ -671,7 +673,8 @@ public:
       noise_model_strings[(int)noise_model_type::phase_damping])
 };
 
-/// @brief z_error is the same as phase_flip_channel.
+/// @brief z_error is a Pauli error that applies the Z operator when an error
+/// occurs. It is the same as phase_flip_channel.
 class z_error : public phase_flip_channel {
 public:
   z_error(const std::vector<cudaq::real> &p) : phase_flip_channel(p) {
@@ -683,7 +686,8 @@ public:
   REGISTER_KRAUS_CHANNEL(noise_model_strings[(int)noise_model_type::z_error])
 };
 
-/// @brief x_error is the same as bit_flip_channel
+/// @brief x_error is a Pauli error that applies the X operator when an error
+/// occurs. It is the same as bit_flip_channel.
 class x_error : public bit_flip_channel {
 public:
   x_error(const std::vector<cudaq::real> &p) : bit_flip_channel(p) {
@@ -695,7 +699,8 @@ public:
   REGISTER_KRAUS_CHANNEL(noise_model_strings[(int)noise_model_type::x_error])
 };
 
-/// @brief y_error is the same as bit_flip_channel
+/// @brief Y_error is a Pauli error that applies the Y operator when an error
+/// occurs.
 class y_error : public kraus_channel {
 public:
   constexpr static std::size_t num_parameters = 1;
@@ -717,10 +722,15 @@ public:
   REGISTER_KRAUS_CHANNEL(noise_model_strings[(int)noise_model_type::y_error])
 };
 
+/// @brief A single-qubit Pauli error that applies either an X error, Y error,
+/// or Z error, with probabilities \p p[0], \p [1], and \p p[2], respectively
 class pauli1 : public kraus_channel {
 public:
   constexpr static std::size_t num_parameters = 3;
   constexpr static std::size_t num_targets = 1;
+
+  /// @brief Construct a single-qubit Pauli error Kraus channel
+  /// @param p Error probabilities for X, Y, and Z errors, respectively
   pauli1(const std::vector<cudaq::real> &p) {
     if (p.size() != num_parameters)
       throw std::runtime_error(
@@ -759,10 +769,19 @@ public:
   REGISTER_KRAUS_CHANNEL(noise_model_strings[(int)noise_model_type::pauli1])
 };
 
+/// @brief A 2-qubit Pauli error that applies one of the following errors, with
+/// the probabilities specified in \p p. Possible errors: IX, IY, IZ, XI, XX,
+/// XY, XZ, YI, YX, YY, YZ, ZI, ZX, ZY, and ZZ.
 class pauli2 : public kraus_channel {
 public:
   constexpr static std::size_t num_parameters = 15;
   constexpr static std::size_t num_targets = 2;
+
+  /// @brief Construct a 2-qubit Pauli error Kraus channel
+  /// @param p Error probabilities for the 2-qubit Pauli operators. The length
+  /// of this vector must be 15. Note that since the probability of II is not
+  /// specified, it is implied to by 1 - sum(p). Therefore, maximal mixing
+  /// occurs when sum(p) = 0.9375.
   pauli2(const std::vector<cudaq::real> &p) {
     if (p.size() != num_parameters)
       throw std::runtime_error(
@@ -833,6 +852,9 @@ public:
       noise_model_strings[(int)noise_model_type::depolarization1])
 };
 
+/// @brief A 2-qubit depolarization error that applies one of the following
+/// errors. Possible errors: IX, IY, IZ, XI, XX, XY, XZ, YI, YX, YY, YZ, ZI, ZX,
+/// ZY, and ZZ.
 class depolarization2 : public kraus_channel {
 public:
   constexpr static std::size_t num_parameters = 1;
@@ -866,9 +888,9 @@ public:
   /// @brief Construct a two qubit Kraus channel that applies a depolarization
   /// channel on either qubit independently.
   ///
-  /// @param p The probability of any depolarizing error happening in the 2
-  /// qubits. (Setting this to 1.0 ensures that "II" cannot happen; maximal
-  /// mixing occurs at p = 0.9375.)
+  /// @param probability The probability of any depolarizing error happening in
+  /// the 2 qubits. (Setting this to 1.0 ensures that "II" cannot happen;
+  /// maximal mixing occurs at p = 0.9375.)
   depolarization2(const real probability)
       : depolarization2(std::vector<cudaq::real>{probability}) {}
   REGISTER_KRAUS_CHANNEL(
