@@ -56,7 +56,42 @@ void bindNoiseModel(py::module &mod) {
       mod, "NoiseModel",
       "The `NoiseModel` defines a set of :class:`KrausChannel`'s applied to "
       "specific qubits after the invocation of specified quantum operations.")
-      .def(py::init<>(), "Construct an empty noise model.")
+      .def(py::init<>([mod]() {
+             // Create the noise model
+             auto model = std::make_unique<noise_model>();
+
+             // Get the built-in channel types from the module
+             std::vector<std::string> channelNames = {"DepolarizationChannel",
+                                                      "AmplitudeDampingChannel",
+                                                      "BitFlipChannel",
+                                                      "PhaseFlipChannel",
+                                                      "XError",
+                                                      "YError",
+                                                      "ZError",
+                                                      "PhaseDamping",
+                                                      "Pauli1",
+                                                      "Pauli2",
+                                                      "Depolarization1",
+                                                      "Depolarization2"};
+
+             // Auto-register each channel type
+             for (const auto &name : channelNames) {
+               if (py::hasattr(mod, name.c_str())) {
+                 py::type channelType = py::getattr(mod, name.c_str());
+                 auto key = py::hash(channelType);
+                 std::function<kraus_channel(const std::vector<double> &)>
+                     lambda =
+                         [channelType](
+                             const std::vector<double> &p) -> kraus_channel {
+                   return channelType(p).cast<kraus_channel>();
+                 };
+                 model->register_channel(key, lambda);
+               }
+             }
+
+             return model;
+           }),
+           "Construct a noise model with all built-in channels pre-registered.")
       .def(
           "register_channel",
           [](noise_model &self, const py::type krausT) {

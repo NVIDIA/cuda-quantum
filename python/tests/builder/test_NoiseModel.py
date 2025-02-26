@@ -639,8 +639,6 @@ def test_apply_noise():
     counts.dump()
     assert len(counts) == 2 and '0' in counts and '1' in counts 
     
-    noise.register_channel(cudaq.DepolarizationChannel)
-
     # Test builtin channels 
     @cudaq.kernel
     def kernel():
@@ -652,7 +650,6 @@ def test_apply_noise():
     print(counts)
     assert len(counts) == 2 and '000' in counts and '100' in counts 
 
-    noise.register_channel(cudaq.Depolarization2)
     @cudaq.kernel 
     def bell_depol2(d : float, flag : bool): 
         q, r = cudaq.qubit(), cudaq.qubit() 
