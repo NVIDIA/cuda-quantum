@@ -191,7 +191,9 @@ Platform
 
 .. doxygenclass:: cudaq::FermioniqBaseQPU
 
-.. doxygenclass:: cudaq::OrcaRemoteRESTQPU 
+.. doxygenclass:: cudaq::OrcaRemoteRESTQPU
+
+.. doxygenclass:: cudaq::PasqalBaseQPU
 
 .. doxygenclass:: cudaq::QuEraBaseQPU
 

@@ -1,16 +1,29 @@
 import cudaq
 from cudaq.operator import *
 
-# This example illustrates how to use Pasqal's Fresnel device over Pasqal's cloud via CUDA-Q.
+# This example illustrates how to use Pasqal's EMU_MPS emulator over Pasqal's cloud via CUDA-Q.
 
-# To login to Pasqal's cloud platform you need to authenticate and export these two
-# environment variables
-# export PASQAL_AUTH_TOKEN = <>
-# export PASQAL_PROJECT_ID = <>
-# The cloud portal can be found at https://portal.pasqal.cloud, and you can contact
-# Pasqal at help@pasqal.com or at https://community.pasqal.com for assistance.
+# To obtain login from Pasqal's SDK uncomment these lines
+# We recommend filling in password via an environment variable
+# or leave it empty in an interactive session as you will be
+# prompted to enter the password securely via the command line.
+# Contact Pasqal at help@pasqal.com or at https://community.pasqal.com for assistance.
+# See our general docs https://docs.pasqal.com/cloud/set-up/
+# to see how to get this setup, or the CUDA-Q documentation at
+# https://nvidia.github.io/cuda-quantum/latest/using/backends/hardware/neutralatom.html#pasqal
+from pasqal_cloud import SDK
+import os
+
+sdk = SDK(
+    username=os.environ.get("PASQAL_USERNAME"),
+    password=os.environ.get("PASQAL_PASSWORD", None),
+)
+token = sdk._client.authenticator.token_provider.get_token()
+
+os.environ["PASQAL_AUTH_TOKEN"] = str(token)
 
 cudaq.set_target("pasqal")
+# cudaq.set_target("pasqal", machine="FRESNEL") # To target QPU
 
 # Define the 2-dimensional atom arrangement
 a = 5e-6
@@ -39,6 +52,7 @@ async_result = evolve_async(RydbergHamiltonian(atom_sites=register,
                             shots_count=10).get()
 async_result.dump()
 
+# TODO: We don't have "counter" key in result right now - check if we should
 ## Sample result
 # ```
 # {

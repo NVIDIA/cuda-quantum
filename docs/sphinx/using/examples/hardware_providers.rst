@@ -122,7 +122,7 @@ The following code illustrates how to run kernels on Pasqal's backends.
 
 .. tab:: Python
 
-   .. literalinclude:: ../../targets/python/pasqal_basic.py
+   .. literalinclude:: ../../targets/python/pasqal.py
       :language: python
 
 

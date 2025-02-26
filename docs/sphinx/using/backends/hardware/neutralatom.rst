@@ -148,25 +148,25 @@ Setting Credentials
 
 An authentication token for the session must be obtained from Pasqal's cloud platform.
 For example from Python one can use the `pasqal-cloud package <https://github.com/pasqal-io/pasqal-cloud>`__ as below:
+
 .. code:: python
+
     from pasqal_cloud import SDK
     import os
-    username = <Your email on Pasqal's cloud platform>
-    password = <The corresponding password or None to enter from CMD line>
-    project_id = <The project_id to bill against>
-    sdk = SDK(
-        username=username,
-        password=password,
-        project_id=project_id,
-    )
-    token = sdk._client.authenticator.token_provider.get_token()
-    os.environ["PASQAL_AUTH_TOKEN"] = str(token)
-    os.environ["PASQAL_PROJECT_ID"] = project_id
 
+    sdk = SDK(
+        username=os.environ.get['PASQAL_USERNAME'],
+        password=os.environ.get('PASQAL_PASSWORD', None)
+    )
+
+    token = sdk._client.authenticator.token_provider.get_token()
+    os.environ['PASQAL_AUTH_TOKEN'] = str(token)
+    os.environ['PASQAL_PROJECT_ID'] = 'your project id'
 
 Alternatively, users can set the following environment variables directly.
 
 .. code:: bash
+
   export PASQAL_AUTH_TOKEN=<>
   export PASQAL_PROJECT_ID=<>
 
