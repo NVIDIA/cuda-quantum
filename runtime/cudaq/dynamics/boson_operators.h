@@ -47,8 +47,8 @@ public:
 
   virtual std::string unique_id() const;
 
-  /// @brief The degrees of freedom that the operator acts on in canonical
-  /// order.
+  virtual const int get_set_id() const;
+
   virtual std::vector<int> degrees() const;
 
   // constructors and destructors

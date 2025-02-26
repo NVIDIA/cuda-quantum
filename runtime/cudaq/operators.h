@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <set>
 #include <type_traits>
 #include <unordered_map>
 #include <vector>
@@ -327,6 +328,8 @@ private:
 #if !defined(NDEBUG)
   bool is_canonicalized() const;
 #endif
+
+  typename std::vector<HandlerTy>::const_iterator find_insert_at(const HandlerTy &other);
 
   typename std::vector<HandlerTy>::const_iterator
   find_insert_at(const HandlerTy &other) const;

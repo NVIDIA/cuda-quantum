@@ -24,6 +24,7 @@ namespace cudaq {
 void fermion_operator::validate_opcode() const {
   std::vector<int> valid_op_codes = {0, 1, 2, 4, 8, 9};
   assert(std::find(valid_op_codes.cbegin(), valid_op_codes.cend(), this->op_code) != valid_op_codes.cend());
+  assert(this->is_anti_commuting == ((this->op_code & 2) || (this->op_code & 4)));
 }
 #endif
 
@@ -76,6 +77,7 @@ void fermion_operator::inplace_mult(const fermion_operator &other) {
                (get_entry(*this, 3) & get_entry(other, 3));
 
   this->op_code = res00 ^ (res01 << 1) ^ (res10 << 2) ^ (res11 << 3);
+  this->anti_commutes = (this->op_code & 2) || (this->op_code & 4);
 #if !defined(NDEBUG)
   this->validate_opcode();
 #endif
@@ -87,21 +89,44 @@ std::string fermion_operator::unique_id() const {
   return this->op_code_to_string() + std::to_string(target);
 }
 
-std::vector<int> fermion_operator::degrees() const { return {this->target}; }
+const int fermion_operator::get_set_id() const {
+  return 1;
+}
+
+std::vector<int> fermion_operator::degrees() const {
+  return {this->target};
+}
 
 // constructors
 
-fermion_operator::fermion_operator(int target) : target(target), op_code(9) {}
+fermion_operator::fermion_operator(int target) 
+  : target(target), op_code(9), anti_commutes(false) {}
 
-fermion_operator::fermion_operator(int target, int op_id)
-    : target(target), op_code(9) {
-  assert(0 <= op_id < 4);
-  if (op_id == 1) // create
-    this->op_code = 4;
-  else if (op_id == 2) // annihilate
-    this->op_code = 2;
-  else if (op_id == 3) // number
-    this->op_code = 8;
+fermion_operator::fermion_operator(int target, int op_id) 
+  : target(target), op_code(9), anti_commutes(false) {
+    assert(0 <= op_id < 4);
+    if (op_id == 1) { // create
+      this->op_code = 4;
+      this->anti_commutes = true;
+    } else if (op_id == 2) { // annihilate
+      this->op_code = 2;
+      this->anti_commutes = true;
+    } else if (op_id == 3) // number
+      this->op_code = 8;
+}
+
+fermion_operator::fermion_operator(const fermion_operator &other)
+  : op_code(other.op_code), anti_commutes(other.anti_commutes), target(other.target) {}
+
+// assignments
+
+fermion_operator& fermion_operator::operator=(const fermion_operator &other) {
+  if (this != &other) {
+    this->op_code = other.op_code;
+    this->anti_commutes = other.anti_commutes;
+    this->target = other.target;
+  }
+  return *this;
 }
 
 // evaluations
@@ -138,7 +163,8 @@ std::string fermion_operator::to_string(bool include_degrees) const {
 // comparisons
 
 bool fermion_operator::operator==(const fermion_operator &other) const {
-  return this->target == other.target && this->op_code == other.op_code;
+  return this->target == other.target &&
+         this->op_code == other.op_code; // no need to compare anti_commutes (is determined by op_code)
 }
 
 // defined operators

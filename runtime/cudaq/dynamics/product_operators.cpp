@@ -19,6 +19,9 @@
 
 namespace cudaq {
 
+// FIXME: WRITE TESTS ALSO CHECKING ANTICOMMUTATION RELATIONS WHEN WE HAVE N AND I
+// FIXME: it would be nice to also have a validation that different terms in a sum have the same (anti-)commutation sets
+
 // private methods
 
 #if !defined(NDEBUG)
@@ -41,45 +44,64 @@ bool product_operator<HandlerTy>::is_canonicalized() const {
 }
 #endif
 
-template <typename HandlerTy>
-std::vector<HandlerTy>::const_iterator
-product_operator<HandlerTy>::find_insert_at(const HandlerTy &other) const {
-  // the logic below just ensures that terms are fully or partially ordered in
-  // canonical order - a best effort is made to order terms, but a full
-  // canonical ordering is not possible for certain handlers
-  return std::find_if(this->operators.crbegin(), this->operators.crend(),
-                      [other_target = other.target](const HandlerTy &self_op) {
-                        return !operator_handler::canonical_order(
-                            other_target, self_op.target);
-                      })
-      .base(); // base causes insert after for reverse iterator
+template<typename HandlerTy>
+std::vector<HandlerTy>::const_iterator product_operator<HandlerTy>::find_insert_at(const HandlerTy &other) {
+  // the logic below just ensures that terms are fully or partially ordered in canonical order -
+  // a best effort is made to order terms, but a full canonical ordering is not possible for certain handlers
+  bool negate_coefficient = false;
+  auto rit = std::find_if(this->operators.crbegin(), this->operators.crend(), 
+              [&negate_coefficient,
+               other_set_id = other.get_set_id(),
+               &other] (const HandlerTy& self_op) { 
+    if (!operator_handler::canonical_order(other.target, self_op.target)) {
+      if (other.target == self_op.target && other_set_id != self_op.get_set_id())
+        // this indicates that the same degree of freedom is acted upon by an operator of a different 
+        // "commutation class", e.g. a fermion operator has been applied and now we are trying to apply a boson operator
+        throw std::runtime_error("conflicting commutation/anti-commutation relations defined for target " + std::to_string(other.target));
+      return true;
+    }
+    if (other.is_anti_commuting && self_op.is_anti_commuting &&
+        other_set_id && self_op.get_set_id() == other_set_id)
+      negate_coefficient = !negate_coefficient;
+    return false;
+  }); 
+  if (negate_coefficient) this->coefficient *= -1.;
+  return rit.base(); // base causes insert after for reverse iterator
 }
 
-template <>
-std::vector<matrix_operator>::const_iterator
-product_operator<matrix_operator>::find_insert_at(
-    const matrix_operator &other) const {
-  // the logic below just ensures that terms are fully or partially ordered in
-  // canonical order - a best effort is made to order terms, but a full
-  // canonical ordering is not possible for certain handlers
-  return std::find_if(
-             this->operators.crbegin(), this->operators.crend(),
-             [&other_degrees = static_cast<const std::vector<int> &>(
-                  other.degrees())](const matrix_operator &self_op) {
-               const std::vector<int> &self_op_degrees = self_op.degrees();
-               for (auto other_degree : other_degrees) {
-                 auto item_it = std::find_if(
-                     self_op_degrees.crbegin(), self_op_degrees.crend(),
-                     [other_degree](int self_degree) {
-                       return !operator_handler::canonical_order(other_degree,
-                                                                 self_degree);
-                     });
-                 if (item_it != self_op_degrees.crend())
-                   return true;
-               }
-               return false;
-             })
-      .base(); // base causes insert after for reverse iterator
+template<>
+std::vector<matrix_operator>::const_iterator product_operator<matrix_operator>::find_insert_at(const matrix_operator &other) {
+  // the logic below just ensures that terms are fully or partially ordered in canonical order -
+  // a best effort is made to order terms, but a full canonical ordering is not possible for certain handlers
+  bool negate_coefficient = false;
+  auto rit = std::find_if(this->operators.crbegin(), this->operators.crend(), 
+              [&negate_coefficient,
+               other_set_id = other.get_set_id(),
+               &other_degrees = static_cast<const std::vector<int>&>(other.degrees()),
+               &other] (const matrix_operator& self_op) { 
+    const std::vector<int> &self_op_degrees = self_op.degrees();
+    const int self_op_set_id = self_op.get_set_id();
+    for (auto other_degree : other_degrees) {
+      auto item_it = std::find_if(self_op_degrees.crbegin(), self_op_degrees.crend(), 
+        [other_degree](int self_degree) { return !operator_handler::canonical_order(other_degree, self_degree); });
+      if (item_it != self_op_degrees.crend()) {
+        // we need to run this again to properly validate the defined commutation sets - 
+        // we need to know if we have an exact match of the degree somewhere
+        item_it = std::find_if(self_op_degrees.crbegin(), self_op_degrees.crend(), 
+          [other_degree](int self_degree) { return other_degree == self_degree; });        
+        if (item_it != self_op_degrees.crend() && other_set_id != self_op_set_id)
+          // this indicates that the same degree of freedom is acted upon by an operator of a different 
+          // "commutation class", e.g. a fermion operator has been applied and now we are trying to apply a boson operator
+          throw std::runtime_error("conflicting commutation/anti-commutation relations defined for target " + std::to_string(other_degree));
+        return true;
+      } else if (other.is_anti_commuting && self_op.is_anti_commuting &&
+                 other_set_id && self_op_set_id == other_set_id)
+        negate_coefficient = !negate_coefficient;
+    }
+    return false;
+  });
+  if (negate_coefficient) this->coefficient *= -1.;
+  return rit.base(); // base causes insert after for reverse iterator
 }
 
 template <typename HandlerTy>
@@ -109,29 +131,8 @@ void product_operator<HandlerTy>::insert(T &&other) {
 }
 
 template<>
-template<typename T, std::enable_if_t<std::is_same<fermion_operator, T>::value && 
+template<typename T, std::enable_if_t<std::is_same<spin_operator, T>::value && 
                                       product_operator<T>::supports_inplace_mult, std::true_type>>
-void product_operator<fermion_operator>::insert(T &&other) {
-  auto pos = this->find_insert_at(other);
-  if (pos != this->operators.begin() && (pos - 1)->target == other.target) {
-    auto it = this->operators.erase(pos - 1, pos - 1); // erase: constant time conversion to non-const iterator
-    it->inplace_mult(other);
-  }
-  else this->operators.insert(pos++, std::move(other));
-
-  bool update_coefficient = false;
-  for(; pos != this->operators.cend(); ++pos) {
-    if ((std::abs(pos->op_code) & 2) || (std::abs(pos->op_code) & 4))
-      update_coefficient = !update_coefficient;
-  }
-  if (update_coefficient) this->coefficient *= -1.;
-}
-
-template <>
-template <typename T,
-          std::enable_if_t<std::is_same<spin_operator, T>::value &&
-                               product_operator<T>::supports_inplace_mult,
-                           std::true_type>>
 void product_operator<spin_operator>::insert(T &&other) {
   auto pos = this->find_insert_at(other);
   if (pos != this->operators.begin() && (pos - 1)->target == other.target) {

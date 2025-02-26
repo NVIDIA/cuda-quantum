@@ -126,7 +126,13 @@ std::string boson_operator::unique_id() const {
   return this->op_code_to_string() + std::to_string(target);
 }
 
-std::vector<int> boson_operator::degrees() const { return {this->target}; }
+const int boson_operator::get_set_id() const {
+  return 0;
+}
+
+std::vector<int> boson_operator::degrees() const {
+  return {this->target};
+}
 
 // constructors
 

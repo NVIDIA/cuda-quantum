@@ -30,11 +30,15 @@ private:
   op_code_to_string(std::unordered_map<int, int> &dimensions) const;
 
 protected:
-  std::vector<int> targets;
   std::string op_code;
+  bool anti_commutes;
+  int set_id;
+  std::vector<int> targets;
 
-  matrix_operator(std::string operator_id, const std::vector<int> &degrees);
-  matrix_operator(std::string operator_id, std::vector<int> &&degrees);
+  matrix_operator(std::string operator_id, const std::vector<int> &degrees, 
+                  const std::pair<int, bool> &commutation_behavior = {0, 0});
+  matrix_operator(std::string operator_id, std::vector<int> &&degrees, 
+                  const std::pair<int, bool> &commutation_behavior = {0, 0});
 
 public:
 #if !defined(NDEBUG)
@@ -79,22 +83,22 @@ public:
   /// @arg operator_id : The ID of the operator as specified when it was
   /// defined.
   /// @arg degrees : the degrees of freedom that the operator acts upon.
-  static product_operator<matrix_operator>
-  instantiate(std::string operator_id, const std::vector<int> &degrees);
+  static product_operator<matrix_operator> instantiate(std::string operator_id, const std::vector<int> &degrees, const std::pair<int, bool> &commutation_behavior = {0, 0});
 
   /// @brief Instantiates a custom operator.
   /// @arg operator_id : The ID of the operator as specified when it was
   /// defined.
   /// @arg degrees : the degrees of freedom that the operator acts upon.
-  static product_operator<matrix_operator>
-  instantiate(std::string operator_id, std::vector<int> &&degrees);
+  static product_operator<matrix_operator> instantiate(std::string operator_id, std::vector<int> &&degrees, const std::pair<int, bool> &commutation_behavior = {0, 0});
 
   // read-only properties
 
+  const bool& is_anti_commuting = this->anti_commutes;
+
   virtual std::string unique_id() const;
 
-  /// @brief The degrees of freedom that the operator acts on in canonical
-  /// order.
+  virtual const int get_set_id() const;
+
   virtual std::vector<int> degrees() const;
 
   // constructors and destructors
