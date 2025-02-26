@@ -18,10 +18,6 @@
 
 namespace cudaq {
 
-#if !defined(NDEBUG)
-bool fermion_operator::can_be_canonicalized = false;
-#endif
-
 // private helpers
 
 #if !defined(NDEBUG)
@@ -46,19 +42,19 @@ std::string fermion_operator::op_code_to_string() const {
   // To avoid this, we ensure that we reorder the operators for bosons appropriately as part of
   // the in-place multiplication, whereas for fermions, this effect is desired/correct. 
   if (this->op_code == 0) return "0";
-  if (this->op_code & 1) {
+  if (std::abs(this->op_code) & 1) {
     if (this->op_code < 0) return "(N-1)";
     else return "(1-N)";
   } 
-  if (this->op_code & 2) {
+  if (std::abs(this->op_code) & 2) {
     if (this->op_code < 0) return "AZ";
     else return "A";
   }
-  if (this->op_code & 4) {
+  if (std::abs(this->op_code) & 4) {
     if (this->op_code < 0) return "ZAd";
     else return "Ad";
   }
-  if (this->op_code & 8) {
+  if (std::abs(this->op_code) & 8) {
     assert(this->op_code > 0); // should never be negative
     return "N";
   }
@@ -82,7 +78,7 @@ void fermion_operator::inplace_mult(const fermion_operator &other) {
   // The below code is just a bitwise implementation of a matrix multiplication;
   // Multiplication becomes a bitwise and, addition becomes an exclusive or.
   auto get_entry = [](const fermion_operator &op, int quadrant) {
-    return (op.op_code & (1 << quadrant)) >> quadrant;
+    return (std::abs(op.op_code) & (1 << quadrant)) >> quadrant;
   };
 
   auto res00 = (get_entry(*this, 0) & get_entry(other, 0)) ^ (get_entry(*this, 1) & get_entry(other, 2));
@@ -92,6 +88,19 @@ void fermion_operator::inplace_mult(const fermion_operator &other) {
 
   this->op_code = res00 ^ (res01 << 1) ^ (res10 << 2) ^ (res11 << 3);
   if ((this->op_code < 0) ^ (other.op_code < 0)) this->op_code = -this->op_code;
+#if !defined(NDEBUG)
+  this->validate_opcode();
+#endif
+}
+
+void fermion_operator::flip_phase() {
+  if ((std::abs(this->op_code) & 2) || ((std::abs(this->op_code) & 8) && std::abs(this->op_code) != 9))
+    this->op_code = -this->op_code;
+
+  // FIXME:
+  // if we want to make I work (i.e. acting on non-vacuum state), we need a representation for Z...
+  // (use 8 - 1 = 7?)
+
 #if !defined(NDEBUG)
   this->validate_opcode();
 #endif
@@ -139,10 +148,10 @@ matrix_2 fermion_operator::to_matrix(std::unordered_map<int, int> &dimensions,
 
   auto mat = matrix_2(2, 2);
   auto value = this->op_code < 0 ? -1. : 1.;
-  if (this->op_code & 1) mat[{0, 0}] = value;
-  if (this->op_code & 2) mat[{0, 1}] = value;
-  if (this->op_code & 4) mat[{1, 0}] = value;
-  if (this->op_code & 8) mat[{1, 1}] = value;
+  if (std::abs(this->op_code) & 1) mat[{0, 0}] = value;
+  if (std::abs(this->op_code) & 2) mat[{0, 1}] = value;
+  if (std::abs(this->op_code) & 4) mat[{1, 0}] = value;
+  if (std::abs(this->op_code) & 8) mat[{1, 1}] = value;
   return std::move(mat);
 }
 

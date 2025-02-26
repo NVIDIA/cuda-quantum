@@ -56,10 +56,9 @@ private:
   
   void inplace_mult(const fermion_operator &other);
 
+  void flip_phase();
+
 public:
-#if !defined(NDEBUG)
-  static bool can_be_canonicalized; // needs to be false; canonicalization would destroy anti-symmetry
-#endif
 
   // read-only properties
 

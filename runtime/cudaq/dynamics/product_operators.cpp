@@ -88,25 +88,23 @@ void product_operator<HandlerTy>::insert(T &&other) {
   else this->operators.insert(pos, std::move(other));
 }
 
-// FIXME: introduce a general notion of non-commutativity rather than just specializing this for fermions
 template<>
 template<typename T, std::enable_if_t<std::is_same<fermion_operator, T>::value && 
                                       product_operator<T>::supports_inplace_mult, std::true_type>>
 void product_operator<fermion_operator>::insert(T &&other) {
-  // The problem is that only once the entire operator is build do we know which
-  // operators were intended to be applied first (otherwise right hand multiplication 
-  // will later add operators that - according to the user code - have to be applied
-  // before this insert). So that means to ensure proper anti-symmetrization, we cannot
-  // reorder terms until no more terms will be added to the operator (which is never
-  // for all we know). We hence cannot ever reorder terms for non-commuting degrees of
-  // freedom - we can only do that temporarily (without modifying any object that can
-  // still be combined with other product terms) e.g. for computing the matrix.
-  auto &last_operator = this->operators.back();
-  if (this->operators.size() > 0 && last_operator.target == other.target) 
-    // In this case the in-place multiplication is fine, since there is no way to 
-    // insert another operator between the last one here and the one we currently add.
-    last_operator.inplace_mult(other); 
-  else this->operators.push_back(std::move(other));
+  auto pos = this->find_insert_at(other);
+  if (pos != this->operators.begin() && (pos - 1)->target == other.target) {
+    auto it = this->operators.erase(pos - 1, pos - 1); // erase: constant time conversion to non-const iterator
+    it->inplace_mult(other);
+  }
+  else this->operators.insert(pos++, std::move(other));
+
+  bool update_coefficient = false;
+  for(; pos != this->operators.cend(); ++pos) {
+    if ((std::abs(pos->op_code) & 2) || (std::abs(pos->op_code) & 4))
+      update_coefficient = !update_coefficient;
+  }
+  if (update_coefficient) this->coefficient *= -1.;
 }
 
 template<>
