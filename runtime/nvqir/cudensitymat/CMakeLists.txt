@@ -46,12 +46,17 @@ target_include_directories(${LIBRARY_NAME}
     ${CUDENSITYMAT_INCLUDE_DIR}
 )
 
-target_link_libraries(${LIBRARY_NAME} 
+target_link_libraries(${LIBRARY_NAME}
                       PRIVATE
                         fmt::fmt-header-only
                         cudaq-common
                         ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
                         CUDA::cudart_static
                      )
+target_link_libraries(${LIBRARY_NAME}
+                     PUBLIC
+                       cudaq-operator
+                       ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
+                    )
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 
