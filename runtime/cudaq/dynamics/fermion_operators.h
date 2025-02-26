@@ -25,18 +25,16 @@ class fermion_operator : public operator_handler {
 private:
   // Given that the dimension for fermion operators has to be 2,
   // we effectively may just as well store a 2 x 2 matrix.
-  // Since we only ever need the operator Ad, A, N, (1-N), I, 0
-  // as well as their negatives (except for I and 0, which should
-  // never become negative), we choose to store this merely as a
-  // single integer whose bits correspond to the quadrant entry.
-  // That is:
+  // Since we only ever need the operator Ad, A, N, (1-N), I, 0,
+  // we choose to store this as a single integer whose bits 
+  // correspond to the quadrant entry.
+  // That is: 
   // 0 = 0000 = 0,
   // 1 = 0001 = (1-N),
   // 2 = 0010 = A,
   // 4 = 0100 = Ad
   // 8 = 1000 = N
   // 9 = 1001 = I
-  // The sign bit indicates the sign of the operator.
   int op_code;
   int target;
 
@@ -56,8 +54,6 @@ private:
 #endif
 
   void inplace_mult(const fermion_operator &other);
-
-  void flip_phase();
 
 public:
 

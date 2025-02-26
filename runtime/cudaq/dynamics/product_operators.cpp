@@ -19,8 +19,6 @@
 
 namespace cudaq {
 
-// FIXME: DEFINE A TEST TO PROPERLY CHECK FERMION ANTICOMMUTATION RELATIONS
-
 // private methods
 
 #if !defined(NDEBUG)
