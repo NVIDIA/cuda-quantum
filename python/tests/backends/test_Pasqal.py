@@ -9,9 +9,13 @@
 import cudaq
 from cudaq.operator import *
 import json
-import numpy as np
 import os
 import pytest
+
+skipIfPasqalNotInstalled = pytest.mark.skipif(
+    not (cudaq.has_target("pasqal")),
+    reason='Could not find `pasqal` in installation')
+
 
 @pytest.fixture(scope="session", autouse=True)
 def do_something():
@@ -20,7 +24,8 @@ def do_something():
     yield "Running the tests."
     cudaq.reset_target()
 
-@pytest.mark.skip(reason="Pasqal Cloud credentials must be set")
+
+@skipIfPasqalNotInstalled
 def test_JSON_payload():
     input = {
         "setup": {
@@ -59,44 +64,6 @@ def test_JSON_payload():
     # NOTE: For internal testing only, not user-level API; this does not return results
     cudaq.cudaq_runtime.pyAltLaunchAnalogKernel("__analog_hamiltonian_kernel__",
                                                 json.dumps(input))
-
-@pytest.mark.skip(reason="Pasqal Cloud credentials must be set")
-def test_ahs_hello():
-
-    a = 5.7e-6
-    register = []
-    register.append(tuple(np.array([0.5, 0.5 + 1 / np.sqrt(2)]) * a))
-    register.append(tuple(np.array([0.5 + 1 / np.sqrt(2), 0.5]) * a))
-    register.append(tuple(np.array([0.5 + 1 / np.sqrt(2), -0.5]) * a))
-    register.append(tuple(np.array([0.5, -0.5 - 1 / np.sqrt(2)]) * a))
-    register.append(tuple(np.array([-0.5, -0.5 - 1 / np.sqrt(2)]) * a))
-    register.append(tuple(np.array([-0.5 - 1 / np.sqrt(2), -0.5]) * a))
-    register.append(tuple(np.array([-0.5 - 1 / np.sqrt(2), 0.5]) * a))
-    register.append(tuple(np.array([-0.5, 0.5 + 1 / np.sqrt(2)]) * a))
-
-    time_max = 4e-6  # seconds
-    time_ramp = 1e-7  # seconds
-    omega_max = 6300000.0  # rad / sec
-    delta_start = -5 * omega_max
-    delta_end = 5 * omega_max
-
-    omega = ScalarOperator(lambda t: omega_max
-                           if time_ramp < t < time_max else 0.0)
-    phi = ScalarOperator.const(0.0)
-    delta = ScalarOperator(lambda t: delta_end
-                           if time_ramp < t < time_max else delta_start)
-
-    # Schedule of time steps.
-    steps = [0.0, time_ramp, time_max - time_ramp, time_max]
-    schedule = Schedule(steps, ["t"])
-
-    evolution_result = evolve(RydbergHamiltonian(atom_sites=register,
-                                                 amplitude=omega,
-                                                 phase=phi,
-                                                 delta_global=delta),
-                              schedule=schedule,
-                              shots_count=2)
-    evolution_result.dump()
 
 
 # leave for gdb debugging

@@ -23,7 +23,11 @@ token = sdk._client.authenticator.token_provider.get_token()
 os.environ["PASQAL_AUTH_TOKEN"] = str(token)
 
 cudaq.set_target("pasqal",
-                 machine=os.environ.get("PASQAL_MACHINE_TARGET", None))
+                 machine=os.environ.get("PASQAL_MACHINE_TARGET", "EMU_MPS"))
+
+# ```
+# cudaq.set_target("pasqal", machine="FRESNEL") ## To target QPU
+# ```
 
 # Define the 2-dimensional atom arrangement
 a = 5e-6
