@@ -1458,48 +1458,51 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
 
     if (funcName.equals("exp_pauli")) {
       assert(args.size() > 2);
-      SmallVector<Value> processedArgs;
+      SmallVector<Value> parameters;
+      SmallVector<Value> targets;
+      Value pauliWord;
       auto addTheString = [&](Value v) {
         // The C-string argument (char*) may be loaded by an lvalue to rvalue
         // cast. Here, we must pass the pointer and not the first character's
         // value.
         if (isCharPointerType(v.getType())) {
-          processedArgs.push_back(v);
+          pauliWord = v;
         } else if (auto load = v.getDefiningOp<cudaq::cc::LoadOp>()) {
-          processedArgs.push_back(load.getPtrvalue());
+          pauliWord = load.getPtrvalue();
         } else if (isCharspanPointerType(v.getType())) {
           // Load the char span, which is a char*
           auto span = builder.create<cc::LoadOp>(loc, v);
-          processedArgs.push_back(span);
+          pauliWord = span;
         } else if (isa<cudaq::cc::CharspanType>(v.getType())) {
-          processedArgs.push_back(v);
+          pauliWord = v;
         } else {
           reportClangError(x, mangler, "could not determine string argument");
         }
       };
       if (args.size() == 3 && isa<quake::VeqType>(args[1].getType())) {
         // Have f64, veq, string
-        processedArgs.push_back(args[0]);
-        processedArgs.push_back(args[1]);
+        parameters.push_back(args[0]);
+        targets.push_back(args[1]);
         addTheString(args[2]);
       } else {
         // should have f64, string, qubits...
         // need f64, veq, string, so process here
 
         // add f64 value
-        processedArgs.push_back(args[0]);
+        parameters.push_back(args[0]);
 
         // concat the qubits to a veq
         SmallVector<Value> quantumArgs;
         for (std::size_t i = 2; i < args.size(); i++)
           quantumArgs.push_back(args[i]);
-        processedArgs.push_back(builder.create<quake::ConcatOp>(
+        targets.push_back(builder.create<quake::ConcatOp>(
             loc, quake::VeqType::get(builder.getContext(), quantumArgs.size()),
             quantumArgs));
         addTheString(args[1]);
       }
 
-      builder.create<quake::ExpPauliOp>(loc, TypeRange{}, processedArgs);
+      builder.create<quake::ExpPauliOp>(loc, parameters, ValueRange{}, targets,
+                                        pauliWord);
       return true;
     }
 

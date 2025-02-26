@@ -607,6 +607,26 @@ void __quantum__qis__exp_pauli(double theta, Array *qubits, char *pauliWord) {
   return;
 }
 
+void __quantum__qis__exp_pauli__ctl(double theta, Array *ctrls, Array *qubits,
+                                    char *pauliWord) {
+  struct CLikeString {
+    char *ptr = nullptr;
+    int64_t length = 0;
+  };
+  auto *castedString = reinterpret_cast<CLikeString *>(pauliWord);
+  std::string pauliWordStr(castedString->ptr, castedString->length);
+  auto ctrlQubitsVec = arrayToVectorSizeT(ctrls);
+  auto qubitsVec = arrayToVectorSizeT(qubits);
+  nvqir::getCircuitSimulatorInternal()->applyExpPauli(
+      theta, ctrlQubitsVec, qubitsVec, cudaq::spin_op::from_word(pauliWordStr));
+  return;
+}
+
+void __quantum__qis__exp_pauli__body(double theta, Array *qubits,
+                                     char *pauliWord) {
+  return __quantum__qis__exp_pauli(theta, qubits, pauliWord);
+}
+
 void __quantum__rt__result_record_output(Result *r, int8_t *name) {
   if (name && qubitPtrIsIndex)
     __quantum__qis__mz__to__register(measRes2QB[r],
