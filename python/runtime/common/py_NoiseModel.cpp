@@ -390,7 +390,7 @@ void bindNoiseChannels(py::module &mod) {
       parameter)#")
       .def(py::init<std::vector<double>>())
       .def_readonly_static(
-          "num_parameters", &pauli1::num_parameters,
+          "num_parameters", &depolarization1::num_parameters,
           "The number of parameters this channel requires at construction.");
 
   py::class_<pauli2, kraus_channel>(
@@ -400,7 +400,7 @@ void bindNoiseChannels(py::module &mod) {
       XY, XZ, YI, YX, YY, YZ, ZI, ZX, ZY, and ZZ.)#")
       .def(py::init<std::vector<double>>())
       .def_readonly_static(
-          "num_parameters", &pauli2::num_parameters,
+          "num_parameters", &depolarization1::num_parameters,
           "The number of parameters this channel requires at construction.");
 
   py::class_<depolarization1, kraus_channel>(
@@ -420,7 +420,7 @@ void bindNoiseChannels(py::module &mod) {
       .def(py::init<std::vector<double>>())
       .def(py::init<double>())
       .def_readonly_static(
-          "num_parameters", &depolarization2::num_parameters,
+          "num_parameters", &depolarization1::num_parameters,
           "The number of parameters this channel requires at construction.");
 }
 
