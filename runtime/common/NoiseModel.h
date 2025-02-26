@@ -780,29 +780,32 @@ public:
     cudaq::details::matrix_wrapper X({0, 1, 1, 0});
     cudaq::details::matrix_wrapper Y({0, -i, i, 0});
     cudaq::details::matrix_wrapper Z({1, 0, 0, -1});
-    cudaq::real pii = std::sqrt(std::max(static_cast<cudaq::real>(1.0 - sum),
-                                         static_cast<cudaq::real>(0)));
+    cudaq::real pii = std::max(static_cast<cudaq::real>(1.0 - sum),
+                               static_cast<cudaq::real>(0));
 
     ops.reserve(16);
-    ops.push_back(details::scale(pii, details::kron(I, 2, 2, I, 2, 2)));
-    ops.push_back(details::scale(p[0], details::kron(I, 2, 2, X, 2, 2)));
-    ops.push_back(details::scale(p[1], details::kron(I, 2, 2, Y, 2, 2)));
-    ops.push_back(details::scale(p[2], details::kron(I, 2, 2, Z, 2, 2)));
-
-    ops.push_back(details::scale(p[3], details::kron(X, 2, 2, I, 2, 2)));
-    ops.push_back(details::scale(p[4], details::kron(X, 2, 2, X, 2, 2)));
-    ops.push_back(details::scale(p[5], details::kron(X, 2, 2, Y, 2, 2)));
-    ops.push_back(details::scale(p[6], details::kron(X, 2, 2, Z, 2, 2)));
-
-    ops.push_back(details::scale(p[7], details::kron(Y, 2, 2, I, 2, 2)));
-    ops.push_back(details::scale(p[8], details::kron(Y, 2, 2, X, 2, 2)));
-    ops.push_back(details::scale(p[9], details::kron(Y, 2, 2, Y, 2, 2)));
-    ops.push_back(details::scale(p[10], details::kron(Y, 2, 2, Z, 2, 2)));
-
-    ops.push_back(details::scale(p[11], details::kron(Z, 2, 2, I, 2, 2)));
-    ops.push_back(details::scale(p[12], details::kron(Z, 2, 2, X, 2, 2)));
-    ops.push_back(details::scale(p[13], details::kron(Z, 2, 2, Y, 2, 2)));
-    ops.push_back(details::scale(p[14], details::kron(Z, 2, 2, Z, 2, 2)));
+    // Use a lambda to avoid excessive line wrapping below
+    auto define_op = [&](double _p, const cudaq::details::matrix_wrapper &_m1,
+                         const cudaq::details::matrix_wrapper &_m2) {
+      ops.push_back(
+          details::scale(std::sqrt(_p), details::kron(_m1, 2, 2, _m2, 2, 2)));
+    };
+    define_op(pii, I, I);
+    define_op(p[0], I, X);
+    define_op(p[1], I, Y);
+    define_op(p[2], I, Z);
+    define_op(p[3], X, I);
+    define_op(p[4], X, X);
+    define_op(p[5], X, Y);
+    define_op(p[6], X, Z);
+    define_op(p[7], Y, I);
+    define_op(p[8], Y, X);
+    define_op(p[9], Y, Y);
+    define_op(p[10], Y, Z);
+    define_op(p[11], Z, I);
+    define_op(p[12], Z, X);
+    define_op(p[13], Z, Y);
+    define_op(p[14], Z, Z);
 
     this->parameters.reserve(p.size());
     for (auto pp : p)
@@ -859,7 +862,7 @@ public:
     generateUnitaryParameters();
   }
 
-  /// @brief Construct a two qubit kraus channel that applies a depolarization
+  /// @brief Construct a two qubit Kraus channel that applies a depolarization
   /// channel on either qubit independently.
   ///
   /// @param p The probability of any depolarizing error happening in the 2

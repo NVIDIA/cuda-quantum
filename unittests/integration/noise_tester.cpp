@@ -37,6 +37,28 @@ struct bell_depolarization2 {
   }
 };
 
+template <typename T>
+struct bell_error {
+  void operator()(double prob) __qpu__ {
+    cudaq::qubit q, r;
+    h(q);
+    x<cudaq::ctrl>(q, r);
+    cudaq::apply_noise<T>(prob, q);
+    cudaq::apply_noise<T>(prob, r);
+  }
+};
+
+// FIXME is this supposed to work?
+template <typename T>
+struct bell_error_vec {
+  void operator()(double prob) __qpu__ {
+    cudaq::qvector q(2);
+    h(q[0]);
+    x<cudaq::ctrl>(q[0], q[1]);
+    cudaq::apply_noise<T>(prob, q);
+  }
+};
+
 struct bell_depolarization2_vec {
   void operator()(double prob) __qpu__ {
     cudaq::qvector q(2);
@@ -356,6 +378,23 @@ CUDAQ_TEST(NoiseTest, checkApplyDepol2) {
   cudaq::unset_noise(); // clear for subsequent tests
 }
 
+CUDAQ_TEST(NoiseTest, checkApplySimplePauliErrors) {
+  cudaq::set_random_seed(13);
+  double probability = 0.1;
+  cudaq::noise_model noise{};
+  cudaq::set_noise(noise);
+  auto counts = cudaq::sample(bell_error<cudaq::x_error>{}, probability);
+  counts.dump();
+  EXPECT_EQ(4, counts.size());
+  counts = cudaq::sample(bell_error<cudaq::y_error>{}, probability);
+  counts.dump();
+  EXPECT_EQ(4, counts.size());
+  counts = cudaq::sample(bell_error<cudaq::z_error>{}, probability);
+  counts.dump();
+  EXPECT_EQ(2, counts.size());
+  cudaq::unset_noise(); // clear for subsequent tests
+}
+
 #endif
 #if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) ||                \
     defined(CUDAQ_BACKEND_TENSORNET)
@@ -380,15 +419,51 @@ CUDAQ_TEST(NoiseTest, checkDepolTypeSimple) {
 
 CUDAQ_TEST(NoiseTest, checkAmpDampType) {
   cudaq::set_random_seed(13);
-  cudaq::amplitude_damping_channel ad(.25);
+  {
+    cudaq::amplitude_damping_channel ad(.25);
+    cudaq::noise_model noise;
+    noise.add_channel<cudaq::types::x>({0}, ad);
+    cudaq::set_noise(noise);
+    auto counts = cudaq::sample(xOp{});
+    counts.dump();
+    EXPECT_EQ(2, counts.size());
+    EXPECT_NEAR(counts.probability("0"), .25, .1);
+    EXPECT_NEAR(counts.probability("1"), .75, .1);
+    cudaq::unset_noise(); // clear for subsequent tests
+  }
+  {
+    cudaq::amplitude_damping ad(.25);
+    cudaq::noise_model noise;
+    noise.add_channel<cudaq::types::x>({0}, ad);
+    cudaq::set_noise(noise);
+    auto counts = cudaq::sample(xOp{});
+    counts.dump();
+    EXPECT_EQ(2, counts.size());
+    EXPECT_NEAR(counts.probability("0"), .25, .1);
+    EXPECT_NEAR(counts.probability("1"), .75, .1);
+    cudaq::unset_noise(); // clear for subsequent tests
+  }
+}
+
+CUDAQ_TEST(NoiseTest, checkPhaseDampType) {
+  struct phase_test {
+    void operator()(double prob) __qpu__ {
+      cudaq::qubit q;
+      h(q);
+      cudaq::apply_noise<cudaq::phase_damping>(prob, q);
+      h(q);
+      mz(q);
+    }
+  };
+
+  cudaq::set_random_seed(13);
   cudaq::noise_model noise;
-  noise.add_channel<cudaq::types::x>({0}, ad);
   cudaq::set_noise(noise);
-  auto counts = cudaq::sample(xOp{});
+  auto counts = cudaq::sample(phase_test{}, 0.25);
   counts.dump();
+  // No errors would have counts.size() == 1, but errors would produce
+  // counts.size() == 2.
   EXPECT_EQ(2, counts.size());
-  EXPECT_NEAR(counts.probability("0"), .25, .1);
-  EXPECT_NEAR(counts.probability("1"), .75, .1);
   cudaq::unset_noise(); // clear for subsequent tests
 }
 
@@ -489,6 +564,46 @@ CUDAQ_TEST(NoiseTest, checkPhaseFlipType) {
   EXPECT_EQ(1, counts.size());
   EXPECT_NEAR(counts.probability("0"), 1., .1);
   cudaq::unset_noise(); // clear for subsequent tests
+}
+
+#endif
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) ||                \
+    defined(CUDAQ_BACKEND_TENSORNET)
+
+CUDAQ_TEST(NoiseTest, checkPauli1) {
+  cudaq::set_random_seed(13);
+
+  auto kernel = []() __qpu__ {
+    cudaq::qubit q, r;
+    cudaq::apply_noise<cudaq::pauli1>(0.1, 0.1, 0.1, q);
+    cudaq::apply_noise<cudaq::pauli1>(0.1, 0.1, 0.1, r);
+    mz(q);
+    mz(r);
+  };
+
+  auto counts = cudaq::sample(cudaq::sample_options{}, kernel);
+  counts.dump();
+  EXPECT_EQ(4, counts.size());
+}
+
+#endif
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) ||                \
+    defined(CUDAQ_BACKEND_TENSORNET)
+
+CUDAQ_TEST(NoiseTest, checkPauli2) {
+  cudaq::set_random_seed(13);
+
+  auto kernel = [](std::vector<double> parms) __qpu__ {
+    cudaq::qubit q, r;
+    cudaq::apply_noise<cudaq::pauli2>(parms, q, r);
+    mz(q);
+    mz(r);
+  };
+
+  std::vector<double> probs(15, 0.9375 / 15);
+  auto counts = cudaq::sample(cudaq::sample_options{}, kernel, probs);
+  counts.dump();
+  EXPECT_EQ(4, counts.size());
 }
 
 #endif
