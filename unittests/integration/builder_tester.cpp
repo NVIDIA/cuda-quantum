@@ -1060,7 +1060,7 @@ CUDAQ_TEST(BuilderTester, checkEntryPointAttribute) {
   std::cout << quake;
 
   std::regex functionDecleration(
-      R"(func\.func @__nvqpp__mlirgen\w+\(\) attributes \{"cudaq-entrypoint"\})");
+      R"(func\.func @__nvqpp__mlirgen\w+\(\) attributes \{"cudaq-entrypoint")");
   EXPECT_TRUE(std::regex_search(quake, functionDecleration));
 }
 
@@ -1492,4 +1492,44 @@ CUDAQ_TEST(BuilderTester, checkMidCircuitMeasureWithReset) {
     if (countsFinal[k] != countsMidCircuit[k])
       match = false;
   EXPECT_EQ(match, false);
+}
+
+CUDAQ_TEST(BuilderTester, checkExplicitMeasurements) {
+  int n_qubits = 4;
+  int n_rounds = 10;
+  auto explicit_kernel = cudaq::make_kernel();
+  auto q = explicit_kernel.qalloc(n_qubits);
+  for (int round = 0; round < n_rounds; round++) {
+    explicit_kernel.h(q[0]);
+    for (int i = 1; i < n_qubits; i++)
+      explicit_kernel.x<cudaq::ctrl>(q[i - 1], q[i]);
+    explicit_kernel.mz(q);
+    for (int i = 0; i < n_qubits; i++)
+      explicit_kernel.reset(q[i]);
+  }
+
+  std::size_t num_shots = 50;
+  cudaq::sample_options options{.shots = num_shots,
+                                .explicit_measurements = true};
+  auto counts = cudaq::sample(options, explicit_kernel);
+  // counts.dump();
+
+  // With many shots of multiple rounds, we need to see different shot
+  // measurements.
+  EXPECT_GT(counts.to_map().size(), 1);
+
+  // Check some lengths
+  auto seq = counts.sequential_data();
+  EXPECT_EQ(seq.size(), num_shots);
+  EXPECT_EQ(seq[0].size(), n_qubits * n_rounds);
+
+  // Check that all rounds are in the bell state (all 0's or all 1's)
+  for (auto &[k, v] : counts.to_map()) {
+    for (int r = 0; r < n_rounds; r++) {
+      std::string oneRound(k.begin() + r * n_qubits,
+                           k.begin() + (r + 1) * n_qubits);
+      EXPECT_TRUE(oneRound == std::string(n_qubits, '0') ||
+                  oneRound == std::string(n_qubits, '1'));
+    }
+  }
 }

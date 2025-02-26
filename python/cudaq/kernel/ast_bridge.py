@@ -658,6 +658,73 @@ class PyASTBridge(ast.NodeVisitor):
         func.CallOp(printFunc, [strLit, value])
         return
 
+    def __get_vector_size(self, vector):
+        """
+        Get the size of a vector or array type.
+        
+        Args:
+            vector: MLIR Value of vector/array type
+            
+        Returns:
+            MLIR Value containing the size as an integer
+        """
+        if cc.StdvecType.isinstance(vector.type):
+            return cc.StdvecSizeOp(self.getIntegerType(), vector).result
+        return self.getConstantInt(
+            cc.ArrayType.getSize(cc.PointerType.getElementType(vector.type)))
+
+    def __load_vector_element(self, vector, index):
+        """
+        Load an element from a vector or array at the given index.
+        
+        Args:
+            vector: MLIR Value of vector/array type
+            index: MLIR Value containing integer index
+            
+        Returns:
+            MLIR Value containing the loaded element
+        """
+        if cc.StdvecType.isinstance(vector.type):
+            data_ptr = cc.StdvecDataOp(
+                cc.PointerType.get(
+                    self.ctx,
+                    cc.ArrayType.get(self.ctx,
+                                     cc.StdvecType.getElementType(
+                                         vector.type))), vector).result
+            return cc.LoadOp(
+                cc.ComputePtrOp(
+                    cc.PointerType.get(
+                        self.ctx,
+                        cc.StdvecType.getElementType(vector.type)), data_ptr,
+                    [index], DenseI32ArrayAttr.get([kDynamicPtrIndex]))).result
+        return cc.LoadOp(
+            cc.ComputePtrOp(
+                cc.PointerType.get(
+                    self.ctx,
+                    cc.ArrayType.getElementType(
+                        cc.PointerType.getElementType(vector.type))), vector,
+                [index], DenseI32ArrayAttr.get([kDynamicPtrIndex]))).result
+
+    def __get_superior_type(self, a, b):
+        """
+        Get the superior numeric type between two MLIR Values.
+        F64 > F32 > Integer, with integers promoting to the wider width.
+        
+        Args:
+            a: First MLIR Value
+            b: Second MLIR Value
+            
+        Returns:
+            MLIR Type representing the superior type
+        """
+        if F64Type.isinstance(a.type) or F64Type.isinstance(b.type):
+            return F64Type.get()
+        if F32Type.isinstance(a.type) or F32Type.isinstance(b.type):
+            return F32Type.get()
+        return self.getIntegerType(
+            max(IntegerType(a.type).width,
+                IntegerType(b.type).width))
+
     def convertArithmeticToSuperiorType(self, values, type):
         """
         Assuming all values provided are arithmetic, convert each one to the 
@@ -903,7 +970,9 @@ class PyASTBridge(ast.NodeVisitor):
                 for arg in node.args.args
             ]
             parentResultType = self.knownResultType
-            if node.returns != None:
+            if node.returns is not None and not (isinstance(
+                    node.returns, ast.Constant) and
+                                                 (node.returns.value is None)):
                 self.knownResultType = self.mlirTypeFromAnnotation(node.returns)
 
             # Get the argument names
@@ -930,6 +999,7 @@ class PyASTBridge(ast.NodeVisitor):
                     ty) or quake.StruqType.isinstance(ty)
 
             areQuantumTypes = [isQuantumTy(ty) for ty in self.argTypes]
+            f.attributes.__setitem__('cudaq-kernel', UnitAttr.get())
             if True not in areQuantumTypes and not self.disableEntryPointTag:
                 f.attributes.__setitem__('cudaq-entrypoint', UnitAttr.get())
 
@@ -1089,6 +1159,8 @@ class PyASTBridge(ast.NodeVisitor):
                 self.subscriptPushPointerValue = True
                 # Visit the subscript node, get the pointer value
                 self.visit(node.targets[0])
+                # Reset the push pointer value flag
+                self.subscriptPushPointerValue = False
                 ptrVal = self.popValue()
                 if not cc.PointerType.isinstance(ptrVal.type):
                     self.emitFatalError(
@@ -1108,8 +1180,6 @@ class PyASTBridge(ast.NodeVisitor):
                 valueToStore = self.popValue()
                 # Store the value
                 cc.StoreOp(valueToStore, ptrVal)
-                # Reset the push pointer value flag
-                self.subscriptPushPointerValue = False
                 return
 
         else:
@@ -1456,11 +1526,13 @@ class PyASTBridge(ast.NodeVisitor):
 
                 # The total number of elements in the iterable
                 # we are generating should be `N == endVal - startVal`
-                totalSize = math.AbsIOp(arith.SubIOp(endVal,
-                                                     startVal).result).result
+                actualSize = arith.SubIOp(endVal, startVal).result
+                totalSize = math.AbsIOp(actualSize).result
 
                 # If the step is not == 1, then we also have
                 # to update the total size for the range iterable
+                actualSize = arith.DivSIOp(actualSize,
+                                           math.AbsIOp(stepVal).result).result
                 totalSize = arith.DivSIOp(totalSize,
                                           math.AbsIOp(stepVal).result).result
 
@@ -1499,7 +1571,7 @@ class PyASTBridge(ast.NodeVisitor):
                                             isDecrementing=isDecrementing)
 
                 self.pushValue(iterable)
-                self.pushValue(totalSize)
+                self.pushValue(actualSize)
                 return
 
             if node.func.id == 'enumerate':
@@ -1746,9 +1818,11 @@ class PyASTBridge(ast.NodeVisitor):
                     self.ctx) if len(qubits) == 1 and quake.RefType.isinstance(
                         qubits[0].type) else cc.StdvecType.get(
                             self.ctx, quake.MeasureType.get(self.ctx))
-                measureResult = opCtor(measTy, [],
-                                       qubits,
-                                       registerName=registerName).result
+                label = registerName
+                if not label:
+                    label = None
+                measureResult = opCtor(measTy, [], qubits,
+                                       registerName=label).result
                 if pushResultToStack:
                     self.pushValue(
                         quake.DiscriminateOp(resTy, measureResult).result)
@@ -1911,7 +1985,7 @@ class PyASTBridge(ast.NodeVisitor):
                 theta = self.popValue()
                 if IntegerType.isinstance(theta.type):
                     theta = arith.SIToFPOp(self.getFloatType(), theta).result
-                quake.ExpPauliOp(theta, qubits, pauli=pauliWord)
+                quake.ExpPauliOp([], [theta], [], [qubits], pauli=pauliWord)
                 return
 
             elif node.func.id == 'int':
@@ -2343,6 +2417,46 @@ class PyASTBridge(ast.NodeVisitor):
                                   values,
                                   callee=FlatSymbolRefAttr.get(nvqppPrefix +
                                                                otherFuncName))
+                    return
+
+                if node.func.attr == 'apply_noise':
+                    # Pop off all the arguments we need
+                    values = [
+                        self.popValue() for _ in range(len(self.valueStack))
+                    ]
+                    # They are in reverse order
+                    values.reverse()
+                    # First one should be the number of Kraus channel parameters
+                    numParamsVal = values[0]
+                    # Shrink the arguments down
+                    values = values[1:]
+
+                    # Need to get the number of parameters as an integer
+                    concreteIntAttr = IntegerAttr(
+                        numParamsVal.owner.attributes['value'])
+                    numParams = concreteIntAttr.value
+
+                    # Next Value is our generated key for the channel
+                    # Get it and shrink the list
+                    key = values[0]
+                    values = values[1:]
+
+                    # Now we know the next `numParams` arguments are
+                    # our Kraus channel parameters
+                    params = values[:numParams]
+                    for i, p in enumerate(params):
+                        # If we have a F64 value, we want to
+                        # store it to a pointer
+                        if F64Type.isinstance(p.type):
+                            alloca = cc.AllocaOp(
+                                cc.PointerType.get(self.ctx, p.type),
+                                TypeAttr.get(p.type)).result
+                            cc.StoreOp(p, alloca)
+                            params[i] = alloca
+
+                    # The remaining arguments are the qubits
+                    qubits = values[numParams:]
+                    quake.ApplyNoiseOp(params, qubits, key=key)
                     return
 
                 if node.func.attr == 'compute_action':
@@ -3149,6 +3263,73 @@ class PyASTBridge(ast.NodeVisitor):
                                             isDecrementing=isDecrementing)
                 return
 
+        # We can simplify `for i,j in enumerate(L)` MLIR code immensely
+        # by just building a for loop over the iterable object L and using
+        # the index into that iterable and the element.
+        if isinstance(node.iter, ast.Call):
+            if node.iter.func.id == 'enumerate':
+                [self.visit(arg) for arg in node.iter.args]
+                if len(self.valueStack) == 2:
+                    iterable = self.popValue()
+                    self.popValue()
+                else:
+                    assert len(self.valueStack) == 1
+                    iterable = self.popValue()
+                iterable = self.ifPointerThenLoad(iterable)
+                totalSize = None
+                extractFunctor = None
+                varNames = []
+                for elt in node.target.elts:
+                    varNames.append(elt.id)
+
+                beEfficient = False
+                if quake.VeqType.isinstance(iterable.type):
+                    totalSize = quake.VeqSizeOp(self.getIntegerType(),
+                                                iterable).result
+
+                    def functor(seq, idx):
+                        q = quake.ExtractRefOp(self.getRefType(),
+                                               seq,
+                                               -1,
+                                               index=idx).result
+                        return [idx, q]
+
+                    extractFunctor = functor
+                    beEfficient = True
+                elif cc.StdvecType.isinstance(iterable.type):
+                    totalSize = cc.StdvecSizeOp(self.getIntegerType(),
+                                                iterable).result
+
+                    def functor(seq, idx):
+                        vecTy = cc.StdvecType.getElementType(seq.type)
+                        dataTy = cc.PointerType.get(self.ctx, vecTy)
+                        arrTy = vecTy
+                        if not cc.ArrayType.isinstance(arrTy):
+                            arrTy = cc.ArrayType.get(self.ctx, vecTy)
+                        dataArrTy = cc.PointerType.get(self.ctx, arrTy)
+                        data = cc.StdvecDataOp(dataArrTy, seq).result
+                        v = cc.ComputePtrOp(
+                            dataTy, data, [idx],
+                            DenseI32ArrayAttr.get([kDynamicPtrIndex],
+                                                  context=self.ctx)).result
+                        return [idx, v]
+
+                    extractFunctor = functor
+                    beEfficient = True
+
+                if beEfficient:
+
+                    def bodyBuilder(iterVar):
+                        self.symbolTable.pushScope()
+                        values = extractFunctor(iterable, iterVar)
+                        for i, v in enumerate(values):
+                            self.symbolTable[varNames[i]] = v
+                        [self.visit(b) for b in node.body]
+                        self.symbolTable.popScope()
+
+                    self.createInvariantForLoop(totalSize, bodyBuilder)
+                    return
+
         self.visit(node.iter)
         assert len(self.valueStack) > 0 and len(self.valueStack) < 3
 
@@ -3462,6 +3643,50 @@ class PyASTBridge(ast.NodeVisitor):
                 self.pushValue(
                     arith.CmpIOp(self.getIntegerAttr(iTy, 0), left,
                                  right).result)
+            return
+
+        if isinstance(op, (ast.In, ast.NotIn)):
+            right_val = right
+            left_val = left
+
+            # Type validation and vector initialization
+            if not (cc.StdvecType.isinstance(right_val.type) or
+                    cc.ArrayType.isinstance(right_val.type)):
+                self.emitFatalError(
+                    "Right operand must be a list/vector for 'in' comparison")
+
+            # Loop setup
+            i1_type = self.getIntegerType(1)
+            accumulator = cc.AllocaOp(cc.PointerType.get(self.ctx, i1_type),
+                                      TypeAttr.get(i1_type)).result
+            cc.StoreOp(self.getConstantInt(0, 1), accumulator)
+
+            # Element comparison loop
+            def check_element(idx):
+                element = self.__load_vector_element(right_val, idx)
+                promoted_left, promoted_element = self.convertArithmeticToSuperiorType(
+                    [left_val, element],
+                    self.__get_superior_type(left_val, element))
+
+                iCondPred = IntegerAttr.get(self.getIntegerType(), 0)
+                fCondPred = IntegerAttr.get(self.getIntegerType(), 0)
+                cmp_result = (
+                    arith.CmpIOp(iCondPred, promoted_left, promoted_element)
+                    if IntegerType.isinstance(promoted_left.type) else
+                    arith.CmpFOp(fCondPred, promoted_left, promoted_element))
+
+                current = cc.LoadOp(accumulator).result
+                cc.StoreOp(arith.OrIOp(current, cmp_result.result), accumulator)
+
+            self.createInvariantForLoop(self.__get_vector_size(right_val),
+                                        check_element)
+
+            final_result = cc.LoadOp(accumulator).result
+            if isinstance(op, ast.NotIn):
+                final_result = arith.XOrIOp(final_result,
+                                            self.getConstantInt(1, 1)).result
+            self.pushValue(final_result)
+
             return
 
     def visit_AugAssign(self, node):
@@ -3962,6 +4187,18 @@ class PyASTBridge(ast.NodeVisitor):
             errorType = type(value).__name__
             if (isinstance(value, list)):
                 errorType = f"{errorType}[{type(value[0]).__name__}]"
+
+            try:
+                if issubclass(value, cudaq_runtime.KrausChannel):
+                    # Here we have a KrausChannel as part of the AST
+                    # We want to create a hash value from it, and
+                    # we then want to push the number of parameters and
+                    # that hash value. This can only be used with apply_noise
+                    self.pushValue(self.getConstantInt(value.num_parameters))
+                    self.pushValue(self.getConstantInt(hash(value)))
+                    return
+            except TypeError:
+                pass
 
             self.emitFatalError(
                 f"Invalid type for variable ({node.id}) captured from parent scope (only int, bool, float, complex, cudaq.State, and list/np.ndarray[int|bool|float|complex] accepted, type was {errorType}).",

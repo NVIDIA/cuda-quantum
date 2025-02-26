@@ -212,12 +212,9 @@ void exp_pauli(ImplicitLocOpBuilder &builder, const QuakeValue &theta,
                              "type as first argument.");
   cudaq::info("kernel_builder apply exp_pauli {}", pauliWord);
 
-  auto strLitTy = cc::PointerType::get(cc::ArrayType::get(
-      builder.getContext(), builder.getI8Type(), pauliWord.size() + 1));
-  Value stringLiteral = builder.create<cc::CreateStringLiteralOp>(
-      strLitTy, builder.getStringAttr(pauliWord));
-  SmallVector<Value> args{thetaVal, qubitsVal, stringLiteral};
-  builder.create<quake::ExpPauliOp>(TypeRange{}, args);
+  auto stringLiteral = builder.getStringAttr(pauliWord);
+  builder.create<quake::ExpPauliOp>(ValueRange{thetaVal}, ValueRange{},
+                                    ValueRange{qubitsVal}, stringLiteral);
 }
 
 /// @brief Search the given `FuncOp` for all `CallOps` recursively.
@@ -776,16 +773,28 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
 
   cudaq::info("kernel_builder apply measurement");
 
-  auto strAttr = builder.getStringAttr(regName);
+  // FIXME: regName cannot be empty, but the prototypes give an empty string as
+  // the default. This is a workaround to clear out the empty string so we don't
+  // build broken IR.
+  StringAttr strAttr;
+  if (!regName.empty())
+    strAttr = builder.getStringAttr(regName);
+
   Type resTy = builder.getI1Type();
   Type measTy = quake::MeasureType::get(builder.getContext());
   if (!type.isa<quake::RefType>()) {
     resTy = cc::StdvecType::get(resTy);
     measTy = cc::StdvecType::get(measTy);
   }
-  Value measureResult =
-      builder.template create<QuakeMeasureOp>(measTy, value, strAttr)
-          .getMeasOut();
+  Value measureResult;
+  if (strAttr)
+    measureResult =
+        builder.template create<QuakeMeasureOp>(measTy, value, strAttr)
+            .getMeasOut();
+  else
+    measureResult =
+        builder.template create<QuakeMeasureOp>(measTy, value).getMeasOut();
+
   Value bits = builder.create<quake::DiscriminateOp>(resTy, measureResult);
   return QuakeValue(builder, bits);
 }
@@ -887,6 +896,8 @@ void tagEntryPoint(ImplicitLocOpBuilder &builder, ModuleOp &module,
   module.walk([&](func::FuncOp function) {
     if (function.empty())
       return WalkResult::advance();
+    if (!function->hasAttr(cudaq::kernelAttrName))
+      function->setAttr(cudaq::kernelAttrName, builder.getUnitAttr());
     if (!function->hasAttr(cudaq::entryPointAttrName) &&
         !hasAnyQubitTypes(function.getFunctionType()) &&
         (symbolName.empty() || function.getSymName().equals(symbolName)))

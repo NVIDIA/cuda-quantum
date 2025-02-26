@@ -11,8 +11,6 @@
 /// This file provides some common QIR function names for use throughout our
 /// MLIR lowering infrastructure.
 
-#include "mlir/Conversion/LLVMCommon/TypeConverter.h"
-
 namespace cudaq::opt {
 
 /// QIS Function name strings
@@ -21,14 +19,19 @@ static constexpr const char QIRMeasureBody[] = "__quantum__qis__mz__body";
 static constexpr const char QIRMeasure[] = "__quantum__qis__mz";
 static constexpr const char QIRMeasureToRegister[] =
     "__quantum__qis__mz__to__register";
+static constexpr const char QIRResetBody[] = "__quantum__qis__reset__body";
+static constexpr const char QIRReset[] = "__quantum__qis__reset";
 
-static constexpr const char QIRCnot[] = "__quantum__qis__cnot";
+static constexpr const char QIRCnot[] = "__quantum__qis__cnot__body";
 static constexpr const char QIRCphase[] = "__quantum__qis__cphase";
-static constexpr const char QIRCZ[] = "__quantum__qis__cz";
+static constexpr const char QIRCZ[] = "__quantum__qis__cz__body";
 static constexpr const char QIRReadResultBody[] =
     "__quantum__qis__read_result__body";
 
 static constexpr const char QIRCustomOp[] = "__quantum__qis__custom_unitary";
+static constexpr const char QIRCustomAdjOp[] =
+    "__quantum__qis__custom_unitary__adj";
+static constexpr const char QIRExpPauli[] = "__quantum__qis__exp_pauli";
 
 static constexpr const char NVQIRInvokeWithControlBits[] =
     "invokeWithControlQubits";
@@ -38,6 +41,8 @@ static constexpr const char NVQIRInvokeU3RotationWithControlBits[] =
     "invokeU3RotationWithControlQubits";
 static constexpr const char NVQIRInvokeWithControlRegisterOrBits[] =
     "invokeWithControlRegisterOrQubits";
+static constexpr const char NVQIRGeneralizedInvokeAny[] =
+    "generalizedInvokeWithRotationsControlsTargets";
 static constexpr const char NVQIRPackSingleQubitInArray[] =
     "packSingleQubitInArray";
 static constexpr const char NVQIRReleasePackedQubitArray[] =
@@ -89,30 +94,11 @@ static constexpr const char QIRRecordOutput[] =
 static constexpr const char QIRClearResultMaps[] =
     "__quantum__rt__clear_result_maps";
 
-inline mlir::Type getQuantumTypeByName(mlir::StringRef type,
-                                       mlir::MLIRContext *context) {
-  return mlir::LLVM::LLVMStructType::getOpaque(type, context);
-}
+/// Used to specify the type of the data elements in the `QISApplyKrausChannel`
+/// call. (`float` or `double`)
+enum class KrausChannelDataKind { FloatKind, DoubleKind };
 
-inline mlir::Type getQubitType(mlir::MLIRContext *context) {
-  return mlir::LLVM::LLVMPointerType::get(
-      getQuantumTypeByName("Qubit", context));
-}
-
-inline mlir::Type getArrayType(mlir::MLIRContext *context) {
-  return mlir::LLVM::LLVMPointerType::get(
-      getQuantumTypeByName("Array", context));
-}
-
-inline mlir::Type getResultType(mlir::MLIRContext *context) {
-  return mlir::LLVM::LLVMPointerType::get(
-      getQuantumTypeByName("Result", context));
-}
-
-inline mlir::Type getCharPointerType(mlir::MLIRContext *context) {
-  return mlir::LLVM::LLVMPointerType::get(mlir::IntegerType::get(context, 8));
-}
-
-void initializeTypeConversions(mlir::LLVMTypeConverter &typeConverter);
+static constexpr const char QISApplyKrausChannel[] =
+    "__quantum__qis__apply_kraus_channel_generalized";
 
 } // namespace cudaq::opt

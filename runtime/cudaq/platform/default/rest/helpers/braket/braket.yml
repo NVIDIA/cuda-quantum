@@ -17,7 +17,7 @@ config:
   # Tell NVQ++ to generate glue code to set the target backend name
   gen-target-backend: true
   # Define the lowering pipeline
-  platform-lowering-config: "func.func(const-prop-complex,canonicalize,cse,lift-array-alloc),globalize-array-values,func.func(state-prep),unitary-synthesis,canonicalize,apply-op-specialization,aggressive-early-inlining,unrolling-pipeline,func.func(lower-to-cfg,canonicalize,multicontrol-decomposition),decomposition{enable-patterns=SToR1,TToR1,R1ToU3,U3ToRotations,CHToCX,CCZToCX,CRzToCX,CRyToCX,CRxToCX,CR1ToCX,RxAdjToRx,RyAdjToRy,RzAdjToRz},quake-to-cc-prep,func.func(expand-control-veqs,combine-quantum-alloc,canonicalize,combine-measurements)"
+  platform-lowering-config: "classical-optimization-pipeline,globalize-array-values,func.func(state-prep),unitary-synthesis,canonicalize,apply-op-specialization,aggressive-early-inlining,classical-optimization-pipeline,func.func(lower-to-cfg,canonicalize,multicontrol-decomposition),decomposition{enable-patterns=SToR1,TToR1,R1ToU3,U3ToRotations,CHToCX,CCZToCX,CRzToCX,CRyToCX,CRxToCX,CR1ToCX,RxAdjToRx,RyAdjToRy,RzAdjToRz},quake-to-cc-prep,func.func(expand-control-veqs,combine-quantum-alloc,canonicalize,combine-measurements),symbol-dce"
   # Tell the rest-qpu that we are generating OpenQASM 2.0.
   codegen-emission: qasm2
   # Library mode is only for simulators, physical backends must turn this off

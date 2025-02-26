@@ -10,7 +10,72 @@
 #include "Logger.h"
 #include "common/CustomOp.h"
 #include "common/EigenDense.h"
+#include <numeric>
+#include <optional>
+
 namespace cudaq {
+
+// Helper to check whether a matrix is a scaled unitary matrix, i.e., `k * U`
+// where U is a unitary matrix. If so, it also returns the `k` factor.
+// Otherwise, return a nullopt.
+static std::optional<double>
+isScaledUnitary(const std::vector<std::complex<double>> &mat, double eps) {
+  typedef Eigen::Matrix<std::complex<double>, Eigen::Dynamic, Eigen::Dynamic,
+                        Eigen::RowMajor>
+      RowMajorMatTy;
+  const int dim = std::log2(mat.size());
+  Eigen::Map<const RowMajorMatTy> kMat(mat.data(), dim, dim);
+  if (kMat.isZero(eps))
+    return 0.0;
+  // Check that (K_dag * K) is a scaled identity matrix
+  // i.e., the K matrix is a scaled unitary.
+  auto kdK = kMat.adjoint() * kMat;
+  if (!kdK.isDiagonal(eps))
+    return std::nullopt;
+  // First element
+  std::complex<double> val = kdK(0, 0);
+  if (val.real() > eps && std::abs(val.imag()) < eps) {
+    auto scaledKdK = (std::complex<double>{1.0} / val) * kdK;
+    if (scaledKdK.isIdentity())
+      return std::sqrt(val.real());
+  }
+  return std::nullopt;
+}
+
+// Helper to determine if a vector of Kraus ops are actually a unitary mixture.
+// If so, it returns all the unitaries and the probabilities associated with
+// each one of those unitaries.
+static std::optional<std::pair<std::vector<double>,
+                               std::vector<std::vector<std::complex<double>>>>>
+computeUnitaryMixture(
+    const std::vector<std::vector<std::complex<double>>> &krausOps,
+    double tol = 1e-6) {
+  std::vector<double> probs;
+  std::vector<std::vector<std::complex<double>>> mats;
+  const auto scaleMat = [](const std::vector<std::complex<double>> &mat,
+                           double scaleFactor) {
+    std::vector<std::complex<double>> scaledMat = mat;
+    // If scaleFactor is 0, then it means the original matrix was likely all
+    // zeros. In that case, the probability will be 0, so the matrix doesn't
+    // matter, but we don't want NaNs to trickle in anywhere.
+    if (scaleFactor != 0.0)
+      for (auto &x : scaledMat)
+        x /= scaleFactor;
+    return scaledMat;
+  };
+  for (const auto &op : krausOps) {
+    const auto scaledFactor = isScaledUnitary(op, tol);
+    if (!scaledFactor.has_value())
+      return std::nullopt;
+    probs.emplace_back(scaledFactor.value() * scaledFactor.value());
+    mats.emplace_back(scaleMat(op, scaledFactor.value()));
+  }
+
+  if (std::abs(1.0 - std::reduce(probs.begin(), probs.end())) > tol)
+    return std::nullopt;
+
+  return std::make_pair(probs, mats);
+}
 
 template <typename EigenMatTy>
 bool isIdentity(const EigenMatTy &mat, double threshold = 1e-9) {
@@ -78,9 +143,52 @@ void validateCompletenessRelation_fp64(const std::vector<kraus_op> &ops) {
         "Provided kraus_ops are not completely positive and trace preserving.");
 }
 
+void generateUnitaryParameters_fp32(
+    const std::vector<kraus_op> &ops,
+    std::vector<std::vector<std::complex<double>>> &unitary_ops,
+    std::vector<double> &probabilities) {
+  std::vector<std::vector<std::complex<double>>> double_kraus_ops;
+  double_kraus_ops.reserve(ops.size());
+  for (auto &op : ops) {
+    // WARNING: danger here. We are intentially treating the incoming op as fp32
+    // type instead of what the compiler thinks it is (fp64). We have to do this
+    // because this file is compiled with cudaq::real = fp64, but the incoming
+    // data for this specific routine is actually fp32.
+    const std::complex<float> *ptr =
+        reinterpret_cast<const std::complex<float> *>(op.data.data());
+    // Use 2 * size because pointer arithmetic is on fp32 instead of fp64
+    double_kraus_ops.emplace_back(
+        std::vector<std::complex<double>>(ptr, ptr + 2 * op.data.size()));
+  }
+
+  auto asUnitaryMixture = computeUnitaryMixture(double_kraus_ops);
+  if (asUnitaryMixture.has_value()) {
+    probabilities = std::move(asUnitaryMixture.value().first);
+    unitary_ops = std::move(asUnitaryMixture.value().second);
+  }
+}
+
+void generateUnitaryParameters_fp64(
+    const std::vector<kraus_op> &ops,
+    std::vector<std::vector<std::complex<double>>> &unitary_ops,
+    std::vector<double> &probabilities) {
+  std::vector<std::vector<std::complex<double>>> double_kraus_ops;
+  double_kraus_ops.reserve(ops.size());
+  for (auto &op : ops)
+    double_kraus_ops.emplace_back(
+        std::vector<std::complex<double>>(op.data.begin(), op.data.end()));
+
+  auto asUnitaryMixture = computeUnitaryMixture(double_kraus_ops);
+  if (asUnitaryMixture.has_value()) {
+    probabilities = std::move(asUnitaryMixture.value().first);
+    unitary_ops = std::move(asUnitaryMixture.value().second);
+  }
+}
+
 kraus_channel::kraus_channel(const kraus_channel &other)
     : ops(other.ops), noise_type(other.noise_type),
-      parameters(other.parameters) {}
+      parameters(other.parameters), unitary_ops(other.unitary_ops),
+      probabilities(other.probabilities) {}
 
 std::size_t kraus_channel::size() const { return ops.size(); }
 
@@ -94,10 +202,12 @@ kraus_channel &kraus_channel::operator=(const kraus_channel &other) {
   ops = other.ops;
   noise_type = other.noise_type;
   parameters = other.parameters;
+  unitary_ops = other.unitary_ops;
+  probabilities = other.probabilities;
   return *this;
 }
 
-std::vector<kraus_op> kraus_channel::get_ops() { return ops; }
+std::vector<kraus_op> kraus_channel::get_ops() const { return ops; }
 void kraus_channel::push_back(kraus_op op) { ops.push_back(op); }
 
 void noise_model::add_channel(const std::string &quantumOp,
@@ -267,4 +377,16 @@ noise_model::get_channels(const std::string &quantumOp,
 
   return resultChannels;
 }
+
+noise_model::noise_model() {
+  register_channel<bit_flip_channel>();
+  register_channel<phase_flip_channel>();
+  register_channel<depolarization_channel>();
+  register_channel<amplitude_damping_channel>();
+}
+
+std::string get_noise_model_type_name(noise_model_type type) {
+  return noise_model_strings[static_cast<std::size_t>(type)];
+}
+
 } // namespace cudaq

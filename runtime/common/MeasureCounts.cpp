@@ -192,37 +192,34 @@ sample_result::sample_result(double preComputedExp,
     totalShots += count;
 }
 
-void sample_result::append(ExecutionResult &result) {
-  // If given a result corresponding to the same register name,
-  // replace the existing one if in the map.
+void sample_result::append(ExecutionResult &result, bool concatenate) {
+  // If given a result corresponding to the same register name, either a)
+  // replace the existing one if concatenate is false, or b) if concatenate is
+  // true, stitch the bitstrings from "result" into the existing one.
   auto iter = sampleResults.find(result.registerName);
-  if (iter != sampleResults.end())
-    iter->second = result;
-  else
+  if (iter != sampleResults.end()) {
+    auto &existingExecResult = iter->second;
+    if (concatenate) {
+      // Stitch the bitstrings together
+      if (this->totalShots == result.sequentialData.size()) {
+        existingExecResult.counts.clear();
+        for (std::size_t i = 0; i < this->totalShots; i++) {
+          std::string newStr =
+              existingExecResult.sequentialData[i] + result.sequentialData[i];
+          existingExecResult.counts[newStr]++;
+          existingExecResult.sequentialData[i] = std::move(newStr);
+        }
+      }
+    } else {
+      // Replace the existing one
+      existingExecResult = result;
+    }
+  } else {
     sampleResults.insert({result.registerName, result});
+  }
   if (!totalShots)
     for (auto &[bits, count] : result.counts)
       totalShots += count;
-}
-
-sample_result::sample_result(const sample_result &m)
-    : sampleResults(m.sampleResults), totalShots(m.totalShots) {}
-
-sample_result &sample_result::operator=(sample_result &counts) {
-  sampleResults.clear();
-  for (auto &[name, sampleResult] : counts.sampleResults) {
-    sampleResults.insert({name, sampleResult});
-  }
-  totalShots = counts.totalShots;
-  return *this;
-}
-sample_result &sample_result::operator=(const sample_result &counts) {
-  sampleResults.clear();
-  for (auto &[name, sampleResult] : counts.sampleResults) {
-    sampleResults.insert({name, sampleResult});
-  }
-  totalShots = counts.totalShots;
-  return *this;
 }
 
 bool sample_result::operator==(const sample_result &counts) const {
@@ -254,6 +251,8 @@ sample_result &sample_result::operator+=(const sample_result &other) {
                                  otherResults.second.sequentialData.begin(),
                                  otherResults.second.sequentialData.end());
     }
+    if (regName == GlobalRegisterName)
+      totalShots += other.totalShots;
   }
   return *this;
 }
@@ -409,6 +408,7 @@ std::vector<std::string> sample_result::register_names() const {
   std::vector<std::string> ret;
   for (auto &kv : sampleResults)
     ret.push_back(kv.first);
+  std::sort(ret.begin(), ret.end());
 
   return ret;
 }

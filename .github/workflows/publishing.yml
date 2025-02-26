@@ -430,6 +430,10 @@ jobs:
 
       - name: Set up buildx runner
         uses: docker/setup-buildx-action@v3
+        with:
+          version: v0.19.0
+          driver-opts: |
+            image=moby/buildkit:v0.19.0
 
       - name: Extract cuda-quantum metadata
         id: metadata
@@ -586,6 +590,10 @@ jobs:
 
       - name: Set up buildx runner
         uses: docker/setup-buildx-action@v3
+        with:
+          version: v0.19.0
+          driver-opts: |
+            image=moby/buildkit:v0.19.0
 
       - name: Build installer
         uses: docker/build-push-action@v5
@@ -696,7 +704,10 @@ jobs:
         uses: docker/setup-buildx-action@v3
         with:
           endpoint: builder_context
-          driver-opts: network=host
+          version: v0.19.0
+          driver-opts: |
+            network=host
+            image=moby/buildkit:v0.19.0
 
       - name: Build cuda-quantum wheel
         id: build_wheel
@@ -839,7 +850,7 @@ jobs:
                   fi; \
               done`
 
-          rm -rf examples applications targets && mv github-repo/docs/sphinx/examples examples && mv github-repo/docs/sphinx/applications applications && mv github-repo/docs/sphinx/targets targets
+          rm -rf examples applications targets snippets && mv github-repo/docs/sphinx/examples examples && mv github-repo/docs/sphinx/applications applications && mv github-repo/docs/sphinx/targets targets && mv github-repo/docs/sphinx/snippets/python snippets
           mv github-repo/docs/notebook_validation.py .
           GITHUB_STEP_SUMMARY=$GITHUB_STEP_SUMMARY \
           bash github-repo/scripts/validate_container.sh $backends_to_test | tee /tmp/validation.out

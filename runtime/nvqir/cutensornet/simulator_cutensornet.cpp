@@ -137,6 +137,73 @@ void SimulatorTensorNetBase::applyGate(const GateApplicationTask &task) {
   }
 }
 
+// Helper to look up a device memory pointer from a cache.
+// If not found, allocate a new device memory buffer and put it to the cache.
+static void *
+getOrCacheMat(const std::string &key,
+              const std::vector<std::complex<double>> &mat,
+              std::unordered_map<std::string, void *> &gateDeviceMemCache) {
+  const auto iter = gateDeviceMemCache.find(key);
+
+  if (iter == gateDeviceMemCache.end()) {
+    void *dMem = allocateGateMatrix(mat);
+    gateDeviceMemCache[key] = dMem;
+    return dMem;
+  }
+  return iter->second;
+};
+
+void SimulatorTensorNetBase::applyKrausChannel(
+    const std::vector<int32_t> &qubits,
+    const cudaq::kraus_channel &krausChannel) {
+  LOG_API_TIME();
+  if (krausChannel.is_unitary_mixture()) {
+    std::vector<void *> channelMats;
+    for (const auto &mat : krausChannel.unitary_ops)
+      channelMats.emplace_back(
+          getOrCacheMat("ScaledUnitary_" + std::to_string(vecComplexHash(mat)),
+                        mat, m_gateDeviceMemCache));
+    m_state->applyUnitaryChannel(qubits, channelMats,
+                                 krausChannel.probabilities);
+  } else {
+    throw std::runtime_error("Non-unitary noise channels are not supported.");
+  }
+}
+
+void SimulatorTensorNetBase::applyNoiseChannel(
+    const std::string_view gateName, const std::vector<std::size_t> &controls,
+    const std::vector<std::size_t> &targets,
+    const std::vector<double> &params) {
+  LOG_API_TIME();
+  // Do nothing if no execution context
+  if (!executionContext)
+    return;
+
+  // Do nothing if no noise model
+  if (!executionContext->noiseModel)
+    return;
+
+  // Get the name as a string
+  std::string gName(gateName);
+  std::vector<int32_t> qubits{controls.begin(), controls.end()};
+  qubits.insert(qubits.end(), targets.begin(), targets.end());
+
+  // Get the Kraus channels specified for this gate and qubits
+  auto krausChannels = executionContext->noiseModel->get_channels(
+      gName, targets, controls, params);
+
+  // If none, do nothing
+  if (krausChannels.empty())
+    return;
+
+  cudaq::info(
+      "[SimulatorTensorNetBase] Applying {} kraus channels on qubits: {}",
+      krausChannels.size(), qubits);
+
+  for (const auto &krausChannel : krausChannels)
+    applyKrausChannel(qubits, krausChannel);
+}
+
 /// @brief Reset the state of a given qubit to zero
 void SimulatorTensorNetBase::resetQubit(const std::size_t qubitIdx) {
   flushGateQueue();
@@ -225,10 +292,7 @@ cudaq::ExecutionResult
 SimulatorTensorNetBase::sample(const std::vector<std::size_t> &measuredBits,
                                const int shots) {
   LOG_API_TIME();
-  std::vector<int32_t> measuredBitIds;
-  std::transform(measuredBits.begin(), measuredBits.end(),
-                 std::back_inserter(measuredBitIds),
-                 [](std::size_t idx) { return static_cast<int32_t>(idx); });
+  std::vector<int32_t> measuredBitIds(measuredBits.begin(), measuredBits.end());
   if (shots < 1) {
     cudaq::spin_op::spin_op_term allZTerm(2 * m_state->getNumQubits(), 0);
     for (const auto &m : measuredBits)
@@ -239,9 +303,11 @@ SimulatorTensorNetBase::sample(const std::vector<std::size_t> &measuredBits,
   }
 
   prepareQubitTensorState();
-  const auto samples = m_state->sample(measuredBitIds, shots);
+  const auto samples =
+      m_state->sample(measuredBitIds, shots, requireCacheWorkspace());
   cudaq::ExecutionResult counts(samples);
   double expVal = 0.0;
+  std::size_t sum_counts = 0;
   // Compute the expectation value from the counts
   for (auto &kv : counts.counts) {
     auto par = cudaq::sample_result::has_even_parity(kv.first);
@@ -250,9 +316,15 @@ SimulatorTensorNetBase::sample(const std::vector<std::size_t> &measuredBits,
       p = -p;
     }
     expVal += p;
+    sum_counts += kv.second;
   }
 
   counts.expectationValue = expVal;
+  counts.sequentialData.resize(sum_counts);
+  std::size_t s = 0;
+  for (auto &kv : counts.counts)
+    for (std::size_t c = 0; c < kv.second; c++)
+      counts.sequentialData[s++] = kv.first;
 
   return counts;
 }
@@ -286,7 +358,8 @@ SimulatorTensorNetBase::observe(const cudaq::spin_op &ham) {
     // cutensornetNetworkOperator_t and compute the expectation value.
     TensorNetworkSpinOp spinOp(ham, m_cutnHandle);
     std::complex<double> expVal =
-        m_state->computeExpVal(spinOp.getNetworkOperator());
+        m_state->computeExpVal(spinOp.getNetworkOperator(),
+                               this->executionContext->numberTrajectories);
     expVal += spinOp.getIdentityTermOffset();
     return cudaq::observe_result(expVal.real(), ham,
                                  cudaq::sample_result(cudaq::ExecutionResult(
@@ -316,7 +389,8 @@ SimulatorTensorNetBase::observe(const cudaq::spin_op &ham) {
   });
 
   // Compute the expectation value for all terms
-  const auto termExpVals = m_state->computeExpVals(terms);
+  const auto termExpVals = m_state->computeExpVals(
+      terms, this->executionContext->numberTrajectories);
   std::complex<double> expVal = 0.0;
   // Construct per-term data in the final observe_result
   std::vector<cudaq::ExecutionResult> results;

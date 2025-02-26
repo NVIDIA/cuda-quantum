@@ -9,26 +9,58 @@
 #pragma once
 
 #include "cudaq/host_config.h"
-
 #include <array>
 #include <complex>
 #include <functional>
 #include <math.h>
 #include <unordered_map>
+#include <variant>
 #include <vector>
+
+namespace cudaq::details {
+void warn(const std::string_view msg);
+}
 
 namespace cudaq {
 
-/// @brief Noise model enumerated type that allows downstream simulators of
-/// `kraus_channel` objects to apply simulator-specific logic for well-known
-/// noise models.
+// Keep the noise_model_type and noise_model_strings in sync. We don't use
+// macros to work around bugs in the documentation generation.
 enum class noise_model_type {
   unknown,
   depolarization_channel,
   amplitude_damping_channel,
   bit_flip_channel,
-  phase_flip_channel
+  phase_flip_channel,
+  x_error,
+  y_error,
+  z_error,
+  amplitude_damping,
+  phase_damping,
+  pauli1,
+  pauli2,
+  depolarization1,
+  depolarization2
 };
+
+// Keep the noise_model_type and noise_model_strings in sync. We don't use
+// macros to work around bugs in the documentation generation.
+static constexpr const char *noise_model_strings[] = {
+    "unknown",
+    "depolarization_channel",
+    "amplitude_damping_channel",
+    "bit_flip_channel",
+    "phase_flip_channel",
+    "x_error",
+    "y_error",
+    "z_error",
+    "amplitude_damping",
+    "phase_damping",
+    "pauli1",
+    "pauli2",
+    "depolarization1",
+    "depolarization2"};
+
+std::string get_noise_model_type_name(noise_model_type type);
 
 /// @brief A kraus_op represents a single Kraus operation,
 /// described as a complex matrix of specific size. The matrix
@@ -102,6 +134,12 @@ struct kraus_op {
 
 void validateCompletenessRelation_fp32(const std::vector<kraus_op> &ops);
 void validateCompletenessRelation_fp64(const std::vector<kraus_op> &ops);
+void generateUnitaryParameters_fp32(
+    const std::vector<kraus_op> &ops,
+    std::vector<std::vector<std::complex<double>>> &, std::vector<double> &);
+void generateUnitaryParameters_fp64(
+    const std::vector<kraus_op> &ops,
+    std::vector<std::vector<std::complex<double>>> &, std::vector<double> &);
 
 /// @brief A kraus_channel represents a quantum noise channel
 /// on specific qubits. The action of the noise channel is
@@ -143,7 +181,17 @@ public:
   // corruption.
   std::vector<double> parameters;
 
-  ~kraus_channel() = default;
+  /// @brief If all Kraus ops are - when scaled - unitary, this holds the
+  /// unitary versions of those ops. These values are always "double" regardless
+  /// of whether cudaq::real is float or double.
+  std::vector<std::vector<std::complex<double>>> unitary_ops;
+
+  /// @brief If all Kraus ops are - when scaled - unitary, this holds the
+  /// probabilities of those ops. These values are always "double" regardless
+  /// of whether cudaq::real is float or double.
+  std::vector<double> probabilities;
+
+  virtual ~kraus_channel() = default;
 
   /// @brief The nullary constructor
   kraus_channel() = default;
@@ -158,12 +206,14 @@ public:
   kraus_channel(std::initializer_list<T> &&...inputLists) {
     (ops.emplace_back(std::move(inputLists)), ...);
     validateCompleteness();
+    generateUnitaryParameters();
   }
 
   /// @brief The constructor, take qubits and channel kraus_ops as lvalue
   /// reference
   kraus_channel(const std::vector<kraus_op> &inOps) : ops(inOps) {
     validateCompleteness();
+    generateUnitaryParameters();
   }
 
   /// @brief The constructor, take qubits and channel kraus_ops as rvalue
@@ -185,11 +235,37 @@ public:
   kraus_channel &operator=(const kraus_channel &other);
 
   /// @brief Return all kraus_ops in this channel
-  std::vector<kraus_op> get_ops();
+  std::vector<kraus_op> get_ops() const;
 
   /// @brief Add a kraus_op to this channel.
   void push_back(kraus_op op);
+
+  std::string get_type_name() const {
+    return get_noise_model_type_name(noise_type);
+  }
+
+  /// @brief Returns whether or not this is a unitary mixture.
+  bool is_unitary_mixture() const { return !unitary_ops.empty(); }
+
+  /// @brief Checks if Kraus ops have unitary representations and saves them if
+  /// they do. Users should only need to call this if they have modified the
+  /// Kraus ops and want to recompute these values.
+  void generateUnitaryParameters() {
+    unitary_ops.clear();
+    probabilities.clear();
+    if constexpr (std::is_same_v<cudaq::complex::value_type, float>) {
+      generateUnitaryParameters_fp32(ops, this->unitary_ops,
+                                     this->probabilities);
+      return;
+    }
+    generateUnitaryParameters_fp64(ops, this->unitary_ops, this->probabilities);
+  }
 };
+
+#define REGISTER_KRAUS_CHANNEL(NAME)                                           \
+  static std::intptr_t get_key() __attribute__((noinline)) {                   \
+    return (std::intptr_t)std::hash<std::string>{}(std::string{NAME});         \
+  }
 
 /// @brief The noise_model type keeps track of a set of
 /// kraus_channels to be applied after the execution of
@@ -266,9 +342,16 @@ protected:
   static constexpr const char *availableOps[] = {
       "x", "y", "z", "h", "s", "t", "rx", "ry", "rz", "r1", "u3", "mz"};
 
+  // User registered kraus channels for fine grain application
+  std::unordered_map<
+      std::intptr_t,
+      std::variant<std::function<kraus_channel(const std::vector<float> &)>,
+                   std::function<kraus_channel(const std::vector<double> &)>>>
+      registeredChannels;
+
 public:
   /// @brief default constructor
-  noise_model() = default;
+  noise_model();
 
   /// @brief Return true if there are no kraus_channels in this noise model.
   /// @return
@@ -293,6 +376,56 @@ public:
   /// @param quantumOp Quantum operation that the noise channel applies to.
   /// @param pred Callback function that generates a noise channel.
   void add_channel(const std::string &quantumOp, const PredicateFuncTy &pred);
+
+  template <typename T, typename... Args>
+  using requires_constructor =
+      std::enable_if_t<std::is_constructible_v<T, Args...>>;
+
+  template <typename KrausChannelT,
+            typename = requires_constructor<KrausChannelT,
+                                            const std::vector<cudaq::real> &>>
+  void register_channel() {
+    registeredChannels.insert(
+        {KrausChannelT::get_key(),
+         [](const std::vector<cudaq::real> &params) -> kraus_channel {
+           KrausChannelT userChannel(params);
+           userChannel.parameters = params;
+           return userChannel;
+         }});
+  }
+
+  template <typename REAL>
+  void register_channel(
+      std::intptr_t key,
+      const std::function<kraus_channel(const std::vector<REAL> &)> &gen) {
+    registeredChannels.insert({key, gen});
+  }
+
+  template <typename T, typename REAL>
+  kraus_channel get_channel(const std::vector<REAL> &params) const {
+    auto iter = registeredChannels.find(T::get_key());
+    // per spec - caller provides noise model, but channel not registered,
+    // warning generated, no channel application.
+    if (iter == registeredChannels.end()) {
+      details::warn("requested kraus channel not registered with this "
+                    "noise_model. skipping channel application.");
+      return kraus_channel();
+    }
+    return std::get<std::function<kraus_channel(const std::vector<REAL> &)>>(
+        iter->second)(params);
+  }
+
+  // de-mangled name (with namespaces) for NVQIR C API
+  template <typename REAL>
+  kraus_channel get_channel(const std::intptr_t &key,
+                            const std::vector<REAL> &params) const {
+    auto iter = registeredChannels.find(key);
+    if (iter == registeredChannels.end())
+      throw std::runtime_error(
+          "kraus channel not registered with this noise_model.");
+    return std::get<std::function<kraus_channel(const std::vector<REAL> &)>>(
+        iter->second)(params);
+  }
 
   /// @brief Add the Kraus channel that applies to a quantum operation on any
   /// arbitrary qubits.
@@ -366,9 +499,12 @@ public:
 /// a single-qubit depolarization error channel.
 class depolarization_channel : public kraus_channel {
 public:
-  depolarization_channel(const real probability) : kraus_channel() {
+  constexpr static std::size_t num_parameters = 1;
+  constexpr static std::size_t num_targets = 1;
+  depolarization_channel(const std::vector<cudaq::real> &ps) {
     auto three = static_cast<real>(3.);
     auto negOne = static_cast<real>(-1.);
+    auto probability = ps[0];
     std::vector<cudaq::complex> k0v{std::sqrt(1 - probability), 0, 0,
                                     std::sqrt(1 - probability)},
         k1v{0, std::sqrt(probability / three), std::sqrt(probability / three),
@@ -381,7 +517,12 @@ public:
     this->parameters.push_back(probability);
     noise_type = noise_model_type::depolarization_channel;
     validateCompleteness();
+    generateUnitaryParameters();
   }
+  depolarization_channel(const real probability)
+      : depolarization_channel(std::vector<cudaq::real>{probability}) {}
+  REGISTER_KRAUS_CHANNEL(
+      noise_model_strings[(int)noise_model_type::depolarization_channel])
 };
 
 /// @brief amplitude_damping_channel is a kraus_channel that
@@ -389,14 +530,23 @@ public:
 /// a single-qubit amplitude damping error channel.
 class amplitude_damping_channel : public kraus_channel {
 public:
-  amplitude_damping_channel(const real probability) : kraus_channel() {
+  constexpr static std::size_t num_parameters = 1;
+  constexpr static std::size_t num_targets = 1;
+  amplitude_damping_channel(const std::vector<cudaq::real> &ps) {
+    auto probability = ps[0];
     std::vector<cudaq::complex> k0v{1, 0, 0, std::sqrt(1 - probability)},
         k1v{0, std::sqrt(probability), 0, 0};
     ops = {k0v, k1v};
     this->parameters.push_back(probability);
     noise_type = noise_model_type::amplitude_damping_channel;
     validateCompleteness();
+    // Note: amplitude damping is non-unitary, so there is no value in calling
+    // generateUnitaryParameters().
   }
+  amplitude_damping_channel(const real probability)
+      : amplitude_damping_channel(std::vector<cudaq::real>{probability}) {}
+  REGISTER_KRAUS_CHANNEL(
+      noise_model_strings[(int)noise_model_type::amplitude_damping_channel])
 };
 
 /// @brief bit_flip_channel is a kraus_channel that
@@ -404,7 +554,10 @@ public:
 /// a single-qubit bit flipping error channel.
 class bit_flip_channel : public kraus_channel {
 public:
-  bit_flip_channel(const real probability) : kraus_channel() {
+  constexpr static std::size_t num_parameters = 1;
+  constexpr static std::size_t num_targets = 1;
+  bit_flip_channel(const std::vector<cudaq::real> &p) {
+    cudaq::real probability = p[0];
     std::vector<cudaq::complex> k0v{std::sqrt(1 - probability), 0, 0,
                                     std::sqrt(1 - probability)},
         k1v{0, std::sqrt(probability), std::sqrt(probability), 0};
@@ -412,7 +565,12 @@ public:
     this->parameters.push_back(probability);
     noise_type = noise_model_type::bit_flip_channel;
     validateCompleteness();
+    generateUnitaryParameters();
   }
+  bit_flip_channel(const real probability)
+      : bit_flip_channel(std::vector<cudaq::real>{probability}) {}
+  REGISTER_KRAUS_CHANNEL(
+      noise_model_strings[(int)noise_model_type::bit_flip_channel])
 };
 
 /// @brief phase_flip_channel is a kraus_channel that
@@ -420,7 +578,10 @@ public:
 /// a single-qubit phase flip error channel.
 class phase_flip_channel : public kraus_channel {
 public:
-  phase_flip_channel(const real probability) : kraus_channel() {
+  constexpr static std::size_t num_parameters = 1;
+  constexpr static std::size_t num_targets = 1;
+  phase_flip_channel(const std::vector<cudaq::real> &p) {
+    cudaq::real probability = p[0];
     auto negOne = static_cast<real>(-1.);
     std::vector<cudaq::complex> k0v{std::sqrt(1 - probability), 0, 0,
                                     std::sqrt(1 - probability)},
@@ -429,6 +590,11 @@ public:
     this->parameters.push_back(probability);
     noise_type = noise_model_type::phase_flip_channel;
     validateCompleteness();
+    generateUnitaryParameters();
   }
+  phase_flip_channel(const real probability)
+      : phase_flip_channel(std::vector<cudaq::real>{probability}) {}
+  REGISTER_KRAUS_CHANNEL(
+      noise_model_strings[(int)noise_model_type::phase_flip_channel])
 };
 } // namespace cudaq

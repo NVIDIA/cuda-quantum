@@ -127,12 +127,14 @@ Array *vectorSizetToArray(std::vector<std::size_t> &idxs) {
 
 /// @brief Utility function mapping a QIR Array pointer to a vector of ids
 std::vector<std::size_t> arrayToVectorSizeT(Array *arr) {
+  assert(arr && "array must not be null");
   std::vector<std::size_t> ret;
-  for (std::size_t i = 0; i < arr->size(); i++) {
+  const auto arrSize = arr->size();
+  for (std::size_t i = 0; i < arrSize; ++i) {
     auto arrayPtr = (*arr)[i];
     Qubit *idxVal = *reinterpret_cast<Qubit **>(arrayPtr);
     if (qubitPtrIsIndex)
-      ret.push_back((intptr_t)idxVal);
+      ret.push_back(reinterpret_cast<intptr_t>(idxVal));
     else
       ret.push_back(idxVal->idx);
   }
@@ -143,7 +145,7 @@ std::vector<std::size_t> arrayToVectorSizeT(Array *arr) {
 std::size_t qubitToSizeT(Qubit *q) {
   if (qubitPtrIsIndex)
     return (intptr_t)q;
-
+  assert(q && "qubit must not be null");
   return q->idx;
 }
 
@@ -257,7 +259,7 @@ void __quantum__rt__resetExecutionContext() {
 }
 
 /// @brief QIR function for allocated a qubit array
-Array *__quantum__rt__qubit_allocate_array(uint64_t numQubits) {
+Array *__quantum__rt__qubit_allocate_array(std::uint64_t numQubits) {
   ScopedTraceWithContext("NVQIR::qubit_allocate_array", numQubits);
   __quantum__rt__initialize(0, nullptr);
   auto qubitIdxs =
@@ -266,10 +268,10 @@ Array *__quantum__rt__qubit_allocate_array(uint64_t numQubits) {
 }
 
 Array *__quantum__rt__qubit_allocate_array_with_state_complex32(
-    uint64_t numQubits, std::complex<float> *data);
+    std::uint64_t numQubits, std::complex<float> *data);
 
 Array *__quantum__rt__qubit_allocate_array_with_state_complex64(
-    uint64_t numQubits, std::complex<double> *data) {
+    std::uint64_t numQubits, std::complex<double> *data) {
   ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data_complex64",
                          numQubits);
   __quantum__rt__initialize(0, nullptr);
@@ -284,8 +286,9 @@ Array *__quantum__rt__qubit_allocate_array_with_state_complex64(
   return vectorSizetToArray(qubitIdxs);
 }
 
-Array *__quantum__rt__qubit_allocate_array_with_state_fp64(uint64_t numQubits,
-                                                           double *data) {
+Array *
+__quantum__rt__qubit_allocate_array_with_state_fp64(std::uint64_t numQubits,
+                                                    double *data) {
   ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data_fp64",
                          numQubits);
   if (nvqir::getCircuitSimulatorInternal()->isDoublePrecision()) {
@@ -314,7 +317,7 @@ Array *__quantum__rt__qubit_allocate_array_with_state_ptr(
 }
 
 Array *
-__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(int _,
+__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(std::uint64_t,
                                                          cudaq::state *state) {
   if (!state)
     throw std::invalid_argument("[NVQIR] Invalid state encountered "
@@ -604,16 +607,156 @@ void __quantum__qis__exp_pauli(double theta, Array *qubits, char *pauliWord) {
   return;
 }
 
+void __quantum__qis__exp_pauli__ctl(double theta, Array *ctrls, Array *qubits,
+                                    char *pauliWord) {
+  struct CLikeString {
+    char *ptr = nullptr;
+    int64_t length = 0;
+  };
+  auto *castedString = reinterpret_cast<CLikeString *>(pauliWord);
+  std::string pauliWordStr(castedString->ptr, castedString->length);
+  auto ctrlQubitsVec = arrayToVectorSizeT(ctrls);
+  auto qubitsVec = arrayToVectorSizeT(qubits);
+  nvqir::getCircuitSimulatorInternal()->applyExpPauli(
+      theta, ctrlQubitsVec, qubitsVec, cudaq::spin_op::from_word(pauliWordStr));
+  return;
+}
+
+void __quantum__qis__exp_pauli__body(double theta, Array *qubits,
+                                     char *pauliWord) {
+  return __quantum__qis__exp_pauli(theta, qubits, pauliWord);
+}
+
 void __quantum__rt__result_record_output(Result *r, int8_t *name) {
   if (name && qubitPtrIsIndex)
     __quantum__qis__mz__to__register(measRes2QB[r],
                                      reinterpret_cast<const char *>(name));
 }
 
+static std::vector<std::size_t> safeArrayToVectorSizeT(Array *arr) {
+  if (!arr)
+    return {};
+  return arrayToVectorSizeT(arr);
+}
+
+void __quantum__qis__apply_kraus_channel_double(std::int64_t krausChannelKey,
+                                                double *params,
+                                                std::size_t numParams,
+                                                Array *qubits) {
+
+  auto *ctx = nvqir::getCircuitSimulatorInternal()->getExecutionContext();
+  if (!ctx)
+    return;
+
+  auto *noise = ctx->noiseModel;
+  if (!noise)
+    return;
+
+  std::vector<double> paramVec(params, params + numParams);
+  auto channel = noise->get_channel(krausChannelKey, paramVec);
+  nvqir::getCircuitSimulatorInternal()->applyNoise(channel,
+                                                   arrayToVectorSizeT(qubits));
+}
+
+static void
+__quantum__qis__apply_kraus_channel_float(std::int64_t krausChannelKey,
+                                          float *params, std::size_t numParams,
+                                          Array *qubits) {
+
+  auto *ctx = nvqir::getCircuitSimulatorInternal()->getExecutionContext();
+  if (!ctx)
+    return;
+
+  auto *noise = ctx->noiseModel;
+  if (!noise)
+    return;
+
+  std::vector<float> paramVec(params, params + numParams);
+  auto channel = noise->get_channel(krausChannelKey, paramVec);
+  nvqir::getCircuitSimulatorInternal()->applyNoise(channel,
+                                                   arrayToVectorSizeT(qubits));
+}
+
+// The dataKind encoding is defined in QIRFunctionNames.h. 0 is float, 1 is
+// double.
+void __quantum__qis__apply_kraus_channel_generalized(
+    std::int64_t dataKind, std::int64_t krausChannelKey, std::size_t numSpans,
+    std::size_t numParams, std::size_t numTargets, ...) {
+  va_list args;
+  va_start(args, numTargets);
+
+  auto vapplyKrausChannel = [&]<typename REAL>() {
+    struct basic_span {
+      REAL *_0;
+      std::size_t _1;
+    };
+
+    REAL *params;
+    std::size_t totalParams;
+
+    // We assume either a span OR a list of REALs, but not both (for now).
+    if (numSpans) {
+      // 1a. A set of basic spans, `{ptr, i64}`. Pop the varargs and build the
+      // spans.
+      if (numSpans != 1)
+        throw std::invalid_argument("Too many spans (> 1), not supported");
+      basic_span *spans =
+          reinterpret_cast<basic_span *>(alloca(numSpans * sizeof(basic_span)));
+      for (std::size_t i = 0; i < numSpans; ++i) {
+        auto *dataPtr = va_arg(args, REAL *);
+        auto dataLen = va_arg(args, std::size_t);
+        spans[i] = basic_span{dataPtr, dataLen};
+      }
+
+      // There can be only one.
+      params = spans[0]._0;
+      totalParams = spans[0]._1;
+    } else {
+      // 1b. A set of parameters. Pop the varargs as REAL values.
+      params = reinterpret_cast<REAL *>(alloca(numParams * sizeof(REAL)));
+      for (std::size_t i = 0; i < numParams; ++i) {
+        auto *dblPtr = va_arg(args, REAL *);
+        params[i] = *dblPtr;
+      }
+
+      totalParams = numParams;
+    }
+
+    // 2. A set of qubits. Pop the varargs as qubit* values.
+    std::vector<Array *> qubits(numTargets);
+    for (std::size_t i = 0; i < numTargets; ++i) {
+      auto *qbPtr = va_arg(args, Array *);
+      qubits[i] = qbPtr;
+    }
+    // There can be only one.
+    Array *asArray = qubits[0];
+
+    if constexpr (std::is_same_v<REAL, float>) {
+      __quantum__qis__apply_kraus_channel_float(krausChannelKey, params,
+                                                totalParams, asArray);
+    } else {
+      __quantum__qis__apply_kraus_channel_double(krausChannelKey, params,
+                                                 totalParams, asArray);
+    }
+  };
+
+  switch (dataKind) {
+  case 0:
+    vapplyKrausChannel.template operator()<float>();
+    break;
+  case 1:
+    vapplyKrausChannel.template operator()<double>();
+    break;
+  default:
+    throw std::runtime_error("apply_noise: unknown data kind.");
+  }
+  va_end(args);
+}
+
 void __quantum__qis__custom_unitary(std::complex<double> *unitary,
                                     Array *controls, Array *targets,
                                     const char *name) {
-  auto ctrlsVec = arrayToVectorSizeT(controls);
+  auto ctrlsVec = safeArrayToVectorSizeT(controls);
   auto tgtsVec = arrayToVectorSizeT(targets);
   auto numQubits = tgtsVec.size();
   if (numQubits >= 64)
@@ -629,8 +772,7 @@ void __quantum__qis__custom_unitary(std::complex<double> *unitary,
 void __quantum__qis__custom_unitary__adj(std::complex<double> *unitary,
                                          Array *controls, Array *targets,
                                          const char *name) {
-
-  auto ctrlsVec = arrayToVectorSizeT(controls);
+  auto ctrlsVec = safeArrayToVectorSizeT(controls);
   auto tgtsVec = arrayToVectorSizeT(targets);
   auto numQubits = tgtsVec.size();
   if (numQubits >= 64)
@@ -999,6 +1141,38 @@ static void commonInvokeWithRotationsControlsTargets(
           targets[1]);
     break;
   }
+}
+
+void generalizedInvokeWithRotationsControlsTargets(
+    std::size_t numRotationOperands, std::size_t numControlArrayOperands,
+    std::size_t numControlQubitOperands, std::size_t numTargetOperands,
+    void (*QISFunction)(...), ...) {
+  const std::size_t totalControls =
+      numControlArrayOperands + numControlQubitOperands;
+  double parameters[numRotationOperands];
+  std::size_t arrayAndLength[totalControls];
+  Qubit *controls[totalControls];
+  Qubit *targets[numTargetOperands];
+  std::size_t i;
+  va_list args;
+  va_start(args, QISFunction);
+  for (i = 0; i < numRotationOperands; ++i)
+    parameters[i] = va_arg(args, double);
+  for (i = 0; i < numControlArrayOperands; ++i) {
+    arrayAndLength[i] = va_arg(args, std::size_t);
+    controls[i] = va_arg(args, Qubit *);
+  }
+  for (i = 0; i < numControlQubitOperands; ++i) {
+    arrayAndLength[numControlArrayOperands + i] = 0;
+    controls[numControlArrayOperands + i] = va_arg(args, Qubit *);
+  }
+  for (i = 0; i < numTargetOperands; ++i)
+    targets[i] = va_arg(args, Qubit *);
+  va_end(args);
+
+  commonInvokeWithRotationsControlsTargets(
+      numRotationOperands, parameters, totalControls, arrayAndLength, controls,
+      numTargetOperands, targets, reinterpret_cast<void (*)()>(QISFunction));
 }
 
 /// @brief Utility function used by Quake->QIR to invoke a QIR QIS function

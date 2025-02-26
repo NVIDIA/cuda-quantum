@@ -264,8 +264,8 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     %6 = cc.compute_ptr %10[%arg1] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
     call @llvm.memcpy.p0i8.p0i8.i64(%6, %5, %1, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
     %7 = cc.undef !cc.struct<{!cc.ptr<i8>, i64}>
-    %8 = cc.insert_value %3, %7[0] : (!cc.struct<{!cc.ptr<i8>, i64}>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
-    %9 = cc.insert_value %2, %8[1] : (!cc.struct<{!cc.ptr<i8>, i64}>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
+    %8 = cc.insert_value %7[0], %3 : (!cc.struct<{!cc.ptr<i8>, i64}>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+    %9 = cc.insert_value %8[1], %2 : (!cc.struct<{!cc.ptr<i8>, i64}>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
     %11 = cc.compute_ptr %10[%arg3] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
     %12 = cc.cast %11 : (!cc.ptr<i8>) -> !cc.ptr<!cc.ptr<i8>>
     cc.store %6, %12 : !cc.ptr<!cc.ptr<i8>>
@@ -345,8 +345,8 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     %c0_i64 = arith.constant 0 : i64
     %0 = cc.cast %c0_i64 : (i64) -> !cc.ptr<i8>
     %1 = cc.undef !cc.struct<{!cc.ptr<i8>, i64}>
-    %2 = cc.insert_value %0, %1[0] : (!cc.struct<{!cc.ptr<i8>, i64}>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
-    %3 = cc.insert_value %c0_i64, %2[1] : (!cc.struct<{!cc.ptr<i8>, i64}>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
+    %2 = cc.insert_value %1[0], %0 : (!cc.struct<{!cc.ptr<i8>, i64}>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+    %3 = cc.insert_value %2[1], %c0_i64 : (!cc.struct<{!cc.ptr<i8>, i64}>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
     return %3 : !cc.struct<{!cc.ptr<i8>, i64}>
   })#"},
 
@@ -389,6 +389,140 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @llvm.memcpy.p0i8.p0i8.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ())#"},
 
     {"malloc", {}, "func.func private @malloc(i64) -> !cc.ptr<i8>"},
+
+    // Declarations of QIR functions used by codegen that are common to all
+    // subtargets (full, base profle, or adaptive profile).
+    // These include qubit allocation and management, control variants of the
+    // gates, some one offs, and control form invocation helper routines.
+    {"qir_common",
+     {},
+     R"#(
+  func.func private @__quantum__rt__qubit_allocate() -> !qir_qubit
+  func.func private @__quantum__rt__qubit_allocate_array(i64) -> !qir_array
+  func.func private @__quantum__rt__qubit_allocate_array_with_state_fp64(i64, !cc.ptr<f64>) -> !qir_array
+  func.func private @__quantum__rt__qubit_allocate_array_with_state_fp32(i64, !cc.ptr<f32>) -> !qir_array
+  func.func private @__quantum__rt__qubit_allocate_array_with_state_complex64(i64, !cc.ptr<complex<f64>>) -> !qir_array
+  func.func private @__quantum__rt__qubit_allocate_array_with_state_complex32(i64, !cc.ptr<complex<f32>>) -> !qir_array
+  func.func private @__quantum__rt__qubit_allocate_array_with_state_ptr(!cc.ptr<none>) -> !qir_array
+  func.func private @__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(i64, !cc.ptr<!cc.state>) -> !qir_array
+
+  func.func private @__quantum__rt__qubit_release_array(!qir_array)
+  func.func private @__quantum__rt__qubit_release(!qir_qubit)
+
+  func.func private @__quantum__rt__array_create_1d(i32, i64) -> !qir_array
+  func.func private @__quantum__rt__array_concatenate(!qir_array, !qir_array) -> !qir_array
+  func.func private @__quantum__rt__array_get_size_1d(!qir_array) -> i64
+  func.func private @__quantum__rt__array_slice(!qir_array, i32, i64, i64, i64) -> !qir_array
+  func.func private @__quantum__rt__array_get_element_ptr_1d(!qir_array, i64) -> !cc.ptr<!qir_qubit>
+
+  func.func private @__quantum__qis__h__ctl(!qir_array, !qir_qubit)
+  func.func private @__quantum__qis__x__ctl(!qir_array, !qir_qubit)
+  func.func private @__quantum__qis__y__ctl(!qir_array, !qir_qubit)
+  func.func private @__quantum__qis__z__ctl(!qir_array, !qir_qubit)
+  func.func private @__quantum__qis__s__ctl(!qir_array, !qir_qubit)
+  func.func private @__quantum__qis__t__ctl(!qir_array, !qir_qubit)
+  func.func private @__quantum__qis__sdg__ctl(!qir_array, !qir_qubit)
+  func.func private @__quantum__qis__tdg__ctl(!qir_array, !qir_qubit)
+  func.func private @__quantum__qis__u3__ctl(f64, f64, f64, !qir_array, !qir_qubit)
+  func.func private @__quantum__qis__swap__ctl(!qir_array, !qir_qubit, !qir_qubit)
+  func.func private @__quantum__qis__rx__ctl(f64, !qir_array, !qir_qubit)
+  func.func private @__quantum__qis__ry__ctl(f64, !qir_array, !qir_qubit)
+  func.func private @__quantum__qis__rz__ctl(f64, !qir_array, !qir_qubit)
+  func.func private @__quantum__qis__r1__ctl(f64, !qir_array, !qir_qubit)
+
+  func.func private @__quantum__qis__exp_pauli__ctl(f64, !qir_array, !qir_array, !qir_charptr)
+  func.func private @__quantum__qis__custom_unitary(!cc.ptr<complex<f64>>, !qir_array, !qir_array, !qir_charptr)
+  func.func private @__quantum__qis__custom_unitary__adj(!cc.ptr<complex<f64>>, !qir_array, !qir_array, !qir_charptr)
+
+  llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i64, !qir_llvmptr, ...) attributes {sym_visibility = "private"}
+  llvm.func @__quantum__qis__apply_kraus_channel_generalized(i64, i64, i64, i64, i64, ...) attributes {sym_visibility = "private"}
+)#"},
+
+    // Declarations for base and adaptive profile QIR functions used by codegen.
+    // These include gates, adjoint gates, one offs, and dealing with
+    // measurement results.
+    {"qir_common_profile",
+     {"qir_common"},
+     R"#(
+  func.func private @__quantum__qis__h__body(!qir_qubit)
+  func.func private @__quantum__qis__x__body(!qir_qubit)
+  func.func private @__quantum__qis__y__body(!qir_qubit)
+  func.func private @__quantum__qis__z__body(!qir_qubit)
+  func.func private @__quantum__qis__s__body(!qir_qubit)
+  func.func private @__quantum__qis__t__body(!qir_qubit)
+  func.func private @__quantum__qis__sdg__body(!qir_qubit)
+  func.func private @__quantum__qis__tdg__body(!qir_qubit)
+  func.func private @__quantum__qis__s__adj(!qir_qubit)
+  func.func private @__quantum__qis__t__adj(!qir_qubit)
+  func.func private @__quantum__qis__u3__body(f64, f64, f64, !qir_qubit)
+  func.func private @__quantum__qis__reset__body(!qir_qubit)
+  func.func private @__quantum__qis__mz__body(!qir_qubit, !qir_result) attributes {passthrough = ["irreversible"]} 
+  func.func private @__quantum__qis__swap__body(!qir_qubit, !qir_qubit)
+  func.func private @__quantum__qis__rx__body(f64, !qir_qubit)
+  func.func private @__quantum__qis__phased_rx__body(f64, f64, !qir_qubit)
+  func.func private @__quantum__qis__ry__body(f64, !qir_qubit)
+  func.func private @__quantum__qis__rz__body(f64, !qir_qubit)
+  func.func private @__quantum__qis__r1__body(f64, !qir_qubit)
+  func.func private @__quantum__qis__exp_pauli__body(f64, !qir_array, !qir_charptr)
+
+  func.func private @__quantum__rt__result_record_output(!qir_result, !qir_charptr)
+  func.func private @__quantum__qis__cnot__body(!qir_qubit, !qir_qubit)
+  func.func private @__quantum__qis__cz__body(!qir_qubit, !qir_qubit)
+  func.func private @__quantum__qis__read_result__body(!qir_result) -> i1
+    )#"},
+
+    // Declarations of all full QIR functions used by codegen.
+    // These include gates (sans the "__body" suffix) and measurements.
+    {"qir_full",
+     {"qir_common"},
+     R"#(
+  func.func private @__quantum__qis__h(!qir_qubit)
+  func.func private @__quantum__qis__x(!qir_qubit)
+  func.func private @__quantum__qis__y(!qir_qubit)
+  func.func private @__quantum__qis__z(!qir_qubit)
+  func.func private @__quantum__qis__s(!qir_qubit)
+  func.func private @__quantum__qis__t(!qir_qubit)
+  func.func private @__quantum__qis__sdg(!qir_qubit)
+  func.func private @__quantum__qis__tdg(!qir_qubit)
+  func.func private @__quantum__qis__u3(f64, f64, f64, !qir_qubit)
+  func.func private @__quantum__qis__reset(!qir_qubit)
+  func.func private @__quantum__qis__mz(!qir_qubit) -> !qir_result
+  func.func private @__quantum__qis__mz__to__register(!qir_qubit, !qir_charptr) -> !qir_result
+  func.func private @__quantum__qis__swap(!qir_qubit, !qir_qubit)
+  func.func private @__quantum__qis__rx(f64, !qir_qubit)
+  func.func private @__quantum__qis__phased_rx(f64, f64, !qir_qubit)
+  func.func private @__quantum__qis__ry(f64, !qir_qubit)
+  func.func private @__quantum__qis__rz(f64, !qir_qubit)
+  func.func private @__quantum__qis__r1(f64, !qir_qubit)
+  func.func private @__quantum__qis__exp_pauli(f64, !qir_array, !qir_charptr)
+    )#"},
+
+    // Choose one of the two QIR typing conventions. Opaque pointers are the
+    // current LLVM standard. Opaque struct is from an obsolete LLVM version,
+    // but used by the QIR specification.
+
+    // Use opaque pointers (LLVM's `ptr` type). The type of the referent is
+    // always implicit and unambiguous from its usage. At the moment, this is
+    // using i8* instead of ptr, since the latter requires some other changes.
+    {"qir_opaque_pointer",
+     {},
+     R"#(
+  !qir_array = !cc.ptr<none>
+  !qir_qubit = !cc.ptr<none>
+  !qir_result = !cc.ptr<none>
+  !qir_charptr = !cc.ptr<none>
+  !qir_llvmptr = !llvm.ptr<i8>
+    )#"},
+    // Use the obsolete LLVM opaque struct type.
+    {"qir_opaque_struct",
+     {},
+     R"#(
+  !qir_array = !cc.ptr<!llvm.struct<"Array", opaque>>
+  !qir_qubit = !cc.ptr<!llvm.struct<"Qubit", opaque>>
+  !qir_result = !cc.ptr<!llvm.struct<"Result", opaque>>
+  !qir_charptr = !cc.ptr<i8>
+  !qir_llvmptr = !llvm.ptr<i8>
+    )#"},
 
     // streamlinedLaunchKernel(kernelName, vectorArgPtrs)
     {cudaq::runtime::launchKernelStreamlinedFuncName,
@@ -473,6 +607,42 @@ LogicalResult IRBuilder::loadIntrinsic(ModuleOp module, StringRef intrinName) {
   // Now load the requested code.
   return parseSourceString(
       iter->code, module.getBody(),
+      ParserConfig{module.getContext(), /*verifyAfterParse=*/false});
+}
+
+StringRef IRBuilder::getIntrinsicText(StringRef intrinName) {
+  auto iter = std::lower_bound(&intrinsicTable[0],
+                               &intrinsicTable[intrinsicTableSize], intrinName);
+  if (iter == &intrinsicTable[intrinsicTableSize])
+    return "";
+  return iter->code;
+}
+
+LogicalResult IRBuilder::loadIntrinsicWithAliases(ModuleOp module,
+                                                  StringRef intrinName,
+                                                  StringRef prefix) {
+  // Check if this intrinsic was already loaded.
+  if (module.lookupSymbol(intrinName))
+    return success();
+  assert(intrinsicTableIsSorted() && "intrinsic table must be sorted");
+  auto iter = std::lower_bound(&intrinsicTable[0],
+                               &intrinsicTable[intrinsicTableSize], intrinName);
+  if (iter == &intrinsicTable[intrinsicTableSize]) {
+    module.emitError(std::string("intrinsic") + intrinName + " not in table.");
+    return failure();
+  }
+  assert(iter->name == intrinName);
+  // First load the prereqs.
+  for (std::size_t i = 0; i < DefaultPrerequisiteSize; ++i) {
+    if (iter->preReqs[i].empty())
+      break;
+    if (failed(loadIntrinsicWithAliases(module, iter->preReqs[i], prefix)))
+      return failure();
+  }
+  // Now load the requested code.
+  std::string code = prefix.str() + std::string(iter->code);
+  return parseSourceString(
+      code, module.getBody(),
       ParserConfig{module.getContext(), /*verifyAfterParse=*/false});
 }
 
