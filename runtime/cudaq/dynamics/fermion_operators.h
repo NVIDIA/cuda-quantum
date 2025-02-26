@@ -35,7 +35,8 @@ private:
   // 4 = 0100 = Ad
   // 8 = 1000 = N
   // 9 = 1001 = I
-  int op_code;
+  int8_t op_code;
+  bool anti_commutes;
   int target;
 
   // Note that this constructor is chosen to be independent
@@ -58,17 +59,25 @@ public:
 
   // read-only properties
 
+  const bool& is_anti_commuting = this->anti_commutes;
+
   virtual std::string unique_id() const;
 
-  /// @brief The degrees of freedom that the operator acts on in canonical
-  /// order.
+  virtual const int get_set_id() const;
+
   virtual std::vector<int> degrees() const;
 
   // constructors and destructors
 
   fermion_operator(int target);
 
+  fermion_operator(const fermion_operator &other);
+
   ~fermion_operator() = default;
+
+  // assignments
+
+  fermion_operator& operator=(const fermion_operator &other);
 
   // evaluations
 

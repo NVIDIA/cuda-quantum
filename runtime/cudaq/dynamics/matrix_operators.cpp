@@ -45,7 +45,8 @@ void matrix_operator::define(std::string operator_id, std::vector<int> expected_
     throw std::runtime_error("an matrix operator with name " + operator_id + "is already defined");
 }
 
-product_operator<matrix_operator> matrix_operator::instantiate(std::string operator_id, const std::vector<int> &degrees) {
+product_operator<matrix_operator> matrix_operator::instantiate(
+    std::string operator_id, const std::vector<int> &degrees, const std::pair<int, bool> &commutation_behavior) {
   auto it = matrix_operator::defined_ops.find(operator_id);
   if (it == matrix_operator::defined_ops.end()) 
     throw std::range_error("not matrix operator with the name '" + operator_id + "' has been defined");
@@ -59,10 +60,11 @@ product_operator<matrix_operator> matrix_operator::instantiate(std::string opera
     err_msg << "})";
     throw std::runtime_error(err_msg.str());
   }
-  return product_operator(matrix_operator(operator_id, degrees));
+  return product_operator(matrix_operator(operator_id, degrees, commutation_behavior));
 }
 
-product_operator<matrix_operator> matrix_operator::instantiate(std::string operator_id, std::vector<int> &&degrees) {
+product_operator<matrix_operator> matrix_operator::instantiate(
+    std::string operator_id, std::vector<int> &&degrees, const std::pair<int, bool> &commutation_behavior) {
   auto it = matrix_operator::defined_ops.find(operator_id);
   if (it == matrix_operator::defined_ops.end()) 
     throw std::range_error("not matrix operator with the name '" + operator_id + "' has been defined");
@@ -76,7 +78,7 @@ product_operator<matrix_operator> matrix_operator::instantiate(std::string opera
     err_msg << "})";
     throw std::runtime_error(err_msg.str());
   }
-  return product_operator(matrix_operator(operator_id, std::move(degrees)));
+  return product_operator(matrix_operator(operator_id, std::move(degrees), commutation_behavior));
 }
 
 // private helpers
@@ -113,15 +115,20 @@ std::string matrix_operator::unique_id() const {
   return std::move(str);
 }
 
+const int matrix_operator::get_set_id() const {
+  return this->set_id;
+}
+
 std::vector<int> matrix_operator::degrees() const {
   return this->targets;
 }
 
 // constructors
 
-matrix_operator::matrix_operator(int degree) {
-  std::string op_code = "I";
-  if (matrix_operator::defined_ops.find(op_code) == matrix_operator::defined_ops.end()) {
+matrix_operator::matrix_operator(int degree)
+  : op_code("I"), anti_commutes(false), set_id(0) {
+  this->targets.push_back(degree);
+  if (matrix_operator::defined_ops.find(this->op_code) == matrix_operator::defined_ops.end()) {
     auto func = [](const std::vector<int> &dimensions,
                     const std::unordered_map<std::string, std::complex<double>> &_none) {
       std::size_t dimension = dimensions[0];
@@ -133,30 +140,31 @@ matrix_operator::matrix_operator(int degree) {
       }
       return mat;
     };
-    matrix_operator::define(op_code, {-1}, std::move(func));
+    matrix_operator::define(this->op_code, {-1}, std::move(func));
   }
-  this->op_code = op_code;
-  this->targets.push_back(degree);
 }
 
-matrix_operator::matrix_operator(std::string operator_id, const std::vector<int> &degrees)
-  : op_code(operator_id), targets(degrees) {
+matrix_operator::matrix_operator(std::string operator_id, const std::vector<int> &degrees, const std::pair<int, bool> &commutation_behavior)
+  : op_code(operator_id), anti_commutes(commutation_behavior.second), set_id(commutation_behavior.first), targets(degrees) {
     assert(this->targets.size() > 0);
   }
 
-matrix_operator::matrix_operator(std::string operator_id, std::vector<int> &&degrees)
-  : op_code(operator_id), targets(std::move(degrees)) {
+matrix_operator::matrix_operator(std::string operator_id, std::vector<int> &&degrees, const std::pair<int, bool> &commutation_behavior)
+  : op_code(operator_id), anti_commutes(commutation_behavior.second), set_id(commutation_behavior.first), targets(std::move(degrees)) {
     assert(this->targets.size() > 0);
   }
 
 template<typename T, std::enable_if_t<std::is_base_of_v<operator_handler, T>, bool>>
 matrix_operator::matrix_operator(const T &other) {
-  this->targets = other.degrees();
   this->op_code = matrix_operator::type_prefix<T>() + other.to_string(false);
+  this->anti_commutes = other.is_anti_commuting;
+  this->set_id = other.get_set_id();
+  this->targets = other.degrees();
   if (matrix_operator::defined_ops.find(this->op_code) == matrix_operator::defined_ops.end()) {
-    auto func = [targets = other.degrees(), other]
+    auto func = [other]
       (const std::vector<int> &dimensions, const std::unordered_map<std::string, std::complex<double>> &_none) {
       std::unordered_map<int, int> dims;
+      auto targets = other.degrees();
       for(auto i = 0; i < dimensions.size(); ++i)
         dims[targets[i]] = dimensions[i];
       return other.to_matrix(dims, std::move(_none));
@@ -172,17 +180,19 @@ template matrix_operator::matrix_operator(const boson_operator &other);
 template matrix_operator::matrix_operator(const fermion_operator &other);
 
 matrix_operator::matrix_operator(const matrix_operator &other)
-  : targets(other.targets), op_code(other.op_code) {}
+  : op_code(other.op_code), anti_commutes(other.anti_commutes), set_id(other.set_id), targets(other.targets) {}
 
 matrix_operator::matrix_operator(matrix_operator &&other) 
-  : targets(std::move(other.targets)), op_code(other.op_code) {}
+  : op_code(other.op_code), anti_commutes(other.anti_commutes), set_id(other.set_id), targets(std::move(other.targets)) {}
 
 // assignments
 
 matrix_operator& matrix_operator::operator=(const matrix_operator& other) {
   if (this != &other) {
-    this->targets = other.targets;
     this->op_code = other.op_code;
+    this->anti_commutes = other.anti_commutes;
+    this->set_id = other.set_id;
+    this->targets = other.targets;
   }
   return *this;
 }
@@ -199,8 +209,10 @@ template matrix_operator& matrix_operator::operator=(const fermion_operator& oth
 
 matrix_operator& matrix_operator::operator=(matrix_operator &&other) {
   if (this != &other) {
-    this->targets = std::move(other.targets);
     this->op_code = other.op_code;
+    this->anti_commutes = other.anti_commutes;
+    this->set_id = other.set_id;
+    this->targets = std::move(other.targets);
   }
   return *this;
 }
@@ -249,7 +261,9 @@ std::string matrix_operator::to_string(bool include_degrees) const {
 // comparisons
 
 bool matrix_operator::operator==(const matrix_operator &other) const {
-  return this->op_code == other.op_code && this->targets == other.targets;
+  return this->op_code == other.op_code &&  // no need to compare anti_commutes (should be determined by op_code)
+         this->set_id == other.set_id && 
+         this->targets == other.targets;
 }
 
 // predefined operators

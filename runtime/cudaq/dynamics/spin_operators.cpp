@@ -49,6 +49,10 @@ std::string spin_operator::unique_id() const {
   return this->op_code_to_string() + std::to_string(target);
 }
 
+const int spin_operator::get_set_id() const {
+  return 0;
+}
+
 std::vector<int> spin_operator::degrees() const {
   return {this->target};
 }

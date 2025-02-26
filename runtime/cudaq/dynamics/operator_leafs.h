@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include <functional>
 #include <complex>
+#include <functional>
 #include <map>
 #include <type_traits>
 #include <variant>
@@ -210,11 +210,17 @@ public:
   // to_matrix and degree, and the order in which a user would define a state vector.
   static constexpr auto canonical_order = std::less<int>();
   static constexpr auto user_facing_order = std::greater<int>();
+  static constexpr bool is_anti_commuting = false;
 
   virtual ~operator_handler() = default;
 
   // returns a unique string id for the operator
   virtual std::string unique_id() const = 0;
+
+  // The id for the anti-commuting set the operator instance belongs to.
+  // If the id is set to zero, it indicates that this operator 
+  // commutes with all other operators.
+  virtual const int get_set_id() const = 0;
 
   virtual std::vector<int> degrees() const = 0;
 

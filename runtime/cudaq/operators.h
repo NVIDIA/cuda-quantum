@@ -8,9 +8,10 @@
 
 #pragma once
 
-#include <vector>
-#include <unordered_map>
+#include <set>
 #include <type_traits>
+#include <unordered_map>
+#include <vector>
 
 #include "utils/tensor.h"
 #include "dynamics/evaluation.h"
@@ -276,8 +277,8 @@ private:
 #if !defined(NDEBUG)
   bool is_canonicalized() const;
 #endif
- 
-  typename std::vector<HandlerTy>::const_iterator find_insert_at(const HandlerTy &other) const;
+
+  typename std::vector<HandlerTy>::const_iterator find_insert_at(const HandlerTy &other);
 
   template<typename T, std::enable_if_t<std::is_same<HandlerTy, T>::value && 
                                         !product_operator<T>::supports_inplace_mult, 
