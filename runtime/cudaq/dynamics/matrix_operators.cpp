@@ -158,11 +158,31 @@ matrix_operator::matrix_operator(int degree)
 matrix_operator::matrix_operator(std::string operator_id, const std::vector<int> &degrees, const std::pair<int, bool> &commutation_behavior)
   : op_code(operator_id), anti_commutes(commutation_behavior.second), set_id(commutation_behavior.first), targets(degrees) {
     assert(this->targets.size() > 0);
+    if (commutation_behavior.second && this->targets.size() > 1)
+      // We cannot support this with the current mechanism for achieving anti-commutation relations. 
+      // See also the comment in the `find_insert_at` template for product operators. We still want 
+      // to stick with that mechanism, since it is by far more performant than achieving anti-commutation
+      // via phase operator instead.
+      // It should be fine, however, for a multi-qubit operator to belong to a non-zero commutation set
+      // as long as the operator itself commutes with all operators acting on different degrees (as 
+      // indicated by teh boolean value of commutation_behavior); this effectively "marks" the degrees 
+      // that the operator acts on as being a certain kind of particles.
+      throw std::runtime_error("anti-commuting behavior is not supported for multi-target operators");
   }
 
 matrix_operator::matrix_operator(std::string operator_id, std::vector<int> &&degrees, const std::pair<int, bool> &commutation_behavior)
   : op_code(operator_id), anti_commutes(commutation_behavior.second), set_id(commutation_behavior.first), targets(std::move(degrees)) {
     assert(this->targets.size() > 0);
+    if (commutation_behavior.second && this->targets.size() > 1)
+      // We cannot support this with the current mechanism for achieving anti-commutation relations. 
+      // See also the comment in the `find_insert_at` template for product operators. We still want 
+      // to stick with that mechanism, since it is by far more performant than achieving anti-commutation
+      // via phase operator instead.
+      // It should be fine, however, for a multi-qubit operator to belong to a non-zero commutation set
+      // as long as the operator itself commutes with all operators acting on different degrees (as 
+      // indicated by teh boolean value of commutation_behavior); this effectively "marks" the degrees 
+      // that the operator acts on as being a certain kind of particles.
+      throw std::runtime_error("anti-commuting behavior is not supported for multi-target operators");
   }
 
 template <typename T,
