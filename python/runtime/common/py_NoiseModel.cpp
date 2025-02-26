@@ -387,7 +387,7 @@ void bindNoiseChannels(py::module &mod) {
       mod, "Pauli1",
       R"#(A single-qubit Pauli error that applies either an X error, Y error,
       or Z error. The probability of each X, Y, or Z error is supplied as a
-      parameter)#")
+      parameter.)#")
       .def(py::init<std::vector<double>>())
       .def_readonly_static(
           "num_parameters", &pauli1::num_parameters,

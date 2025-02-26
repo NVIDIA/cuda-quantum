@@ -722,21 +722,23 @@ def test_apply_noise_builtin(target: str):
         q, r = cudaq.qubit(), cudaq.qubit()
         h(q)
         x.ctrl(q, r)
-        cudaq.apply_noise(cudaq.Pauli1, [0.1, 0.1, 0.1], q)
-        cudaq.apply_noise(cudaq.Pauli1, [0.1, 0.1, 0.1], r)
+        cudaq.apply_noise(cudaq.Pauli1, 0.1, 0.1, 0.1, q)
+        cudaq.apply_noise(cudaq.Pauli1, 0.1, 0.1, 0.1, r)
 
     counts = cudaq.sample(pauli1_test, noise_model=noise)
     assert len(counts) == 4
     print(counts)
 
     @cudaq.kernel
-    def pauli2_test(prob_list: list[float]):
+    def pauli2_test():
         q, r = cudaq.qubit(), cudaq.qubit()
         h(q)
         x.ctrl(q, r)
-        cudaq.apply_noise(cudaq.Pauli2, prob_list, q, r)
+        cudaq.apply_noise(cudaq.Pauli2, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02,
+                          0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02,
+                          q, r)
 
-    counts = cudaq.sample(pauli2_test, [0.02] * 15, noise_model=noise)
+    counts = cudaq.sample(pauli2_test, noise_model=noise)
     assert len(counts) == 4
     print(counts)
 
