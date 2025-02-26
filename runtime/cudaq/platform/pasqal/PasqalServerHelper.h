@@ -6,15 +6,15 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "common/RestClient.h"
 #include "common/ServerHelper.h"
+#include "nlohmann/json.hpp"
 
 namespace cudaq {
 
 class PasqalServerHelper : public ServerHelper {
 protected:
   /// @brief Server helper implementation for communicating with the REST API of
-  /// Pasqal.
+  /// Pasqal's cloud platform.
   const std::string baseUrl = "https://apis.pasqal.cloud";
   const std::string apiPath = "/core-fast/api";
 

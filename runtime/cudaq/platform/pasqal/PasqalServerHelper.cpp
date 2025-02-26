@@ -86,39 +86,32 @@ std::string PasqalServerHelper::extractJobId(ServerMessage &postResponse) {
 }
 
 std::string PasqalServerHelper::constructGetJobPath(std::string &jobId) {
-  return baseUrl + apiPath + "/v1/batches/" + jobId + "/results";
+  return baseUrl + apiPath + "/v1/cudaq/job/" + jobId;
 }
 
 std::string
 PasqalServerHelper::constructGetJobPath(ServerMessage &postResponse) {
-  return baseUrl + apiPath + "/v1/batches/" +
-         postResponse["data"]["id"].get<std::string>() + "/results";
+  return baseUrl + apiPath + "/v1/cudaq/job/" +
+         postResponse["data"]["id"].get<std::string>();
 }
 
 bool PasqalServerHelper::jobIsDone(ServerMessage &getJobResponse) {
-  std::unordered_set<std::string> terminals = {"PENDING", "RUNNING", "DONE",
-                                               "ERROR", "CANCEL"};
-
+  std::unordered_set<std::string> terminals = {"DONE", "ERROR", "CANCELED",
+                                               "TIMED_OUT", "PAUSED"};
   auto jobStatus = getJobResponse["data"]["status"].get<std::string>();
   return terminals.find(jobStatus) != terminals.end();
 }
 
 sample_result PasqalServerHelper::processResults(ServerMessage &postJobResponse,
                                                  std::string &jobId) {
-
-  auto jobStatus = postJobResponse["data"]["status"].get<std::string>();
-  if (jobStatus != "DONE")
-    throw std::runtime_error("Job status: " + jobStatus);
-
   std::vector<ExecutionResult> results;
-  auto jobs = postJobResponse["data"]["jobs"];
+  auto jobs = postJobResponse["data"]["result"];
   for (auto &job : jobs) {
-    auto result = job["full_result"]["counter"]
-                      .get<std::unordered_map<std::string, std::size_t>>();
+    // loop over jobs in batch to get results
+    // Current implementation only has 1 job
+    auto result = job.get<std::unordered_map<std::string, std::size_t>>();
     results.push_back(ExecutionResult(result));
-  }
-
-  // TODO: Check the index order.
+  } // TODO: Check the index order.
   return sample_result(results);
 }
 
