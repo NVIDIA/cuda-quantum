@@ -205,6 +205,13 @@ CUDA-Q Applications
     </div>
 
 
+    <div class="notebook-entry" data-tags="optimization,noiseless,gpu">
+        <a href="/applications/python/adapt_qaoa.html" class="notebook-title">ADAPT QAOA</a>
+        <div class="notebook-content">
+            Learn how to implement the Adaptive Derivative-Assembled Pseudo-Trotter (ADAPT) ansatz QAOA using CUDA-Q. The method iterativley builds an ansatz to more efficiently converge to the ground state of a problem Hamiltonian.
+        </div>
+        <img src="/_static/app_title_images/adapt_qaoa_preview.png" alt="ADAPT Preview" class="notebook-image">
+    </div>
 
 
     </div>
