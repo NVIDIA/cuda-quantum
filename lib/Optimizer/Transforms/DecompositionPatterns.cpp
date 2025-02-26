@@ -370,16 +370,14 @@ struct ExpPauliDecomposition : public OpRewritePattern<quake::ExpPauliOp> {
             }
             if (stores.empty())
               return {};
-            Value result;
-            for (auto &op : *load->getBlock()) {
-              auto iter = std::find(stores.begin(), stores.end(), &op);
+            for (Operation *op = load.getOperation()->getPrevNode(); op;
+                 op = op->getPrevNode()) {
+              auto iter = std::find(stores.begin(), stores.end(), op);
               if (iter == stores.end())
                 continue;
-              result = cast<cudaq::cc::StoreOp>(*iter).getValue();
-              if (&op == load)
-                break;
+              return cast<cudaq::cc::StoreOp>(*iter).getValue();
             }
-            return result;
+            return {};
           }();
           if (storeVal)
             pauliWord = storeVal;
