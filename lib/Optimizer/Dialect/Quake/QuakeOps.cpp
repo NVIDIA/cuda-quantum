@@ -417,6 +417,56 @@ void quake::ConcatOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
 }
 
 //===----------------------------------------------------------------------===//
+// ExpPauliRef
+//===----------------------------------------------------------------------===//
+
+static ParseResult
+parseRawString(OpAsmParser &parser,
+               std::optional<OpAsmParser::UnresolvedOperand> &value,
+               StringAttr &rawString) {
+  std::string stringVal;
+  auto loc = UnknownLoc::get(parser.getContext());
+  if (succeeded(parser.parseOptionalString(&stringVal))) {
+    value = std::nullopt;
+    rawString = StringAttr::get(parser.getContext(), stringVal);
+    return success();
+  }
+  OpAsmParser::UnresolvedOperand operand;
+  if (parser.parseOperand(operand))
+    return emitError(loc, "must be an operand");
+  value = operand;
+  rawString = StringAttr{};
+  return success();
+}
+
+template <typename OP>
+void printRawString(OpAsmPrinter &printer, OP refOp, Value stringVal,
+                    StringAttr rawString) {
+  if (stringVal)
+    printer.printOperand(stringVal);
+  else if (rawString)
+    printer << rawString;
+}
+
+void quake::ExpPauliOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
+                                                    MLIRContext *context) {
+  patterns.add<AdjustAdjointExpPauliPattern>(context);
+}
+
+LogicalResult quake::ExpPauliOp::verify() {
+  if (getPauliLiteralAttr()) {
+    if (getPauli())
+      return emitOpError("cannot have both a literal and a value Pauli word");
+  } else {
+    if (!getPauli())
+      return emitOpError("must have either a literal or a value Pauli word");
+  }
+  if (!(getParameters().empty() || getParameters().size() == 1))
+    return emitOpError("can only have 0 or 1 parameter");
+  return verifyWireResultsAreLinear(getOperation());
+}
+
+//===----------------------------------------------------------------------===//
 // ExtractRef
 //===----------------------------------------------------------------------===//
 
@@ -990,10 +1040,11 @@ void quake::getOperatorEffectsImpl(EffectsVectorImpl &effects,
 // but not having a way to define them in the ODS.
 // clang-format off
 #define GATE_OPS(MACRO) MACRO(XOp) MACRO(YOp) MACRO(ZOp) MACRO(HOp) MACRO(SOp) \
-  MACRO(TOp) MACRO(SwapOp) MACRO(U2Op) MACRO(U3Op) MACRO(CustomUnitarySymbolOp) \
-  MACRO(R1Op) MACRO(RxOp) MACRO(RyOp) MACRO(RzOp) MACRO(PhasedRxOp)
+  MACRO(TOp) MACRO(SwapOp) MACRO(U2Op) MACRO(U3Op) MACRO(R1Op) MACRO(RxOp)     \
+  MACRO(RyOp) MACRO(RzOp) MACRO(PhasedRxOp) MACRO(CustomUnitarySymbolOp)
 #define MEASURE_OPS(MACRO) MACRO(MxOp) MACRO(MyOp) MACRO(MzOp)
-#define QUANTUM_OPS(MACRO) MACRO(ResetOp) GATE_OPS(MACRO) MEASURE_OPS(MACRO)
+#define QUANTUM_OPS(MACRO) MACRO(ResetOp) MACRO(ExpPauliOp) GATE_OPS(MACRO)    \
+  MEASURE_OPS(MACRO)
 #define WIRE_OPS(MACRO) MACRO(FromControlOp) MACRO(ResetOp) MACRO(NullWireOp)  \
   MACRO(UnwrapOp)
 // clang-format on

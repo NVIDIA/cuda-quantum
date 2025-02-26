@@ -35,6 +35,6 @@ int main() {
 // CHECK:           %[[VAL_9:.*]] = quake.extract_ref %[[VAL_2]][2] : (!quake.veq<4>) -> !quake.ref
 // CHECK:           %[[VAL_10:.*]] = quake.extract_ref %[[VAL_2]][3] : (!quake.veq<4>) -> !quake.ref
 // CHECK:           %[[VAL_11:.*]] = quake.concat %[[VAL_7]], %[[VAL_8]], %[[VAL_9]], %[[VAL_10]] : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> !quake.veq<4>
-// CHECK:           quake.exp_pauli %[[VAL_5]], %[[VAL_11]], %[[VAL_6]] : (f64, !quake.veq<4>, !cc.ptr<!cc.array<i8 x 5>>) -> ()
+// CHECK:           quake.exp_pauli (%[[VAL_5]]) %[[VAL_11]] to %[[VAL_6]] : (f64, !quake.veq<4>, !cc.ptr<!cc.array<i8 x 5>>) -> ()
 // CHECK:           return
 // CHECK:         }
