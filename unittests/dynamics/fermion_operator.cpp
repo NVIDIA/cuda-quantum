@@ -713,10 +713,11 @@ TEST(OperatorExpressions, checkFermionOpsAdvancedArithmetics) {
     for (auto &term : operator_sum.get_terms())
       ASSERT_TRUE(term.num_terms() == term.degrees().size());
 
-    auto expected_term0 = cudaq::kronecker(
-        utils::id_matrix(2), utils::number_matrix(2) * utils::create_matrix(2));
-    auto expected_term1 =
-        cudaq::kronecker(utils::annihilate_matrix(2), utils::create_matrix(2));
+    auto expected_term0 = cudaq::kronecker(utils::id_matrix(2), utils::number_matrix(2) * utils::create_matrix(2));
+    // Minus one here only because of how we choose to implement the anti-commutation relations;
+    // for products of creation and annihilation, we give the term a minus sign whenever their 
+    // application order does not match the canonical order.
+    auto expected_term1 = -1. * cudaq::kronecker(utils::annihilate_matrix(2), utils::create_matrix(2));
 
     auto got_matrix = operator_sum.to_matrix();
     auto want_matrix = expected_term0 + expected_term1;
@@ -744,9 +745,59 @@ TEST(OperatorExpressions, checkAntiCommutationRelations) {
   auto ad_mat = utils::create_matrix(2);
   auto a_mat = utils::annihilate_matrix(2);
 
-  auto anticommutator = a_mat * ad_mat + ad_mat * a_mat;
-  utils::checkEqual(anticommutator, utils::id_matrix(2));
+  auto eval_mat = a_mat * ad_mat + ad_mat * a_mat;
+  utils::checkEqual(eval_mat, utils::id_matrix(2));
   utils::checkEqual(ad_mat * a_mat, utils::number_matrix(2));
-  utils::checkEqual(a_mat * ad_mat,
-                    utils::id_matrix(2) - utils::number_matrix(2));
+  utils::checkEqual(a_mat * ad_mat, utils::id_matrix(2) - utils::number_matrix(2));
+
+  // Expected anti-commutation relations: 
+  // {a†(k), a(q)} = δkq
+  // {a†(k), a†(q)} = {a(k), a(q)} = 0
+
+  auto anticommutator = [](cudaq::product_operator<cudaq::fermion_operator> ad, 
+                           cudaq::product_operator<cudaq::fermion_operator> a) {
+    return ad * a + a * ad;
+  };
+
+  // check {a†(q), a(q)} = 1
+
+  auto rel1 = anticommutator(cudaq::fermion_operator::create(0), cudaq::fermion_operator::annihilate(0));
+  auto rel2 = anticommutator(cudaq::fermion_operator::create(1), cudaq::fermion_operator::annihilate(1));
+  utils::checkEqual(rel1.to_matrix(), utils::id_matrix(2));
+  utils::checkEqual(rel2.to_matrix(), utils::id_matrix(2));
+
+  // check {a†(k), a(q)} = 0 for k != q
+
+  auto rel3 = anticommutator(cudaq::fermion_operator::create(0), cudaq::fermion_operator::annihilate(1));
+  auto rel4 = anticommutator(cudaq::fermion_operator::create(1), cudaq::fermion_operator::annihilate(0));
+  utils::checkEqual(rel3.to_matrix(), utils::zero_matrix(4));
+  utils::checkEqual(rel4.to_matrix(), utils::zero_matrix(4));
+
+  // check {a†(q), a†(q)} = 0
+
+  auto rel5 = anticommutator(cudaq::fermion_operator::create(0), cudaq::fermion_operator::create(0));
+  auto rel6 = anticommutator(cudaq::fermion_operator::create(1), cudaq::fermion_operator::create(1));
+  utils::checkEqual(rel5.to_matrix(), utils::zero_matrix(2));
+  utils::checkEqual(rel6.to_matrix(), utils::zero_matrix(2));
+
+  // check {a(q), a(q)} = 0
+
+  auto rel7 = anticommutator(cudaq::fermion_operator::annihilate(0), cudaq::fermion_operator::annihilate(0));
+  auto rel8 = anticommutator(cudaq::fermion_operator::annihilate(1), cudaq::fermion_operator::annihilate(1));
+  utils::checkEqual(rel7.to_matrix(), utils::zero_matrix(2));
+  utils::checkEqual(rel8.to_matrix(), utils::zero_matrix(2));
+
+  // check {a†(k), a†(q)} = 0 for k != q
+
+  auto rel9 = anticommutator(cudaq::fermion_operator::create(0), cudaq::fermion_operator::create(1));
+  auto rel10 = anticommutator(cudaq::fermion_operator::create(1), cudaq::fermion_operator::create(0));
+  utils::checkEqual(rel9.to_matrix(), utils::zero_matrix(4));
+  utils::checkEqual(rel10.to_matrix(), utils::zero_matrix(4));
+
+  // check {a(k), a(q)} = 0 for k != q
+
+  auto rel11 = anticommutator(cudaq::fermion_operator::annihilate(0), cudaq::fermion_operator::annihilate(1));
+  auto rel12 = anticommutator(cudaq::fermion_operator::annihilate(1), cudaq::fermion_operator::annihilate(0));
+  utils::checkEqual(rel11.to_matrix(), utils::zero_matrix(4));
+  utils::checkEqual(rel12.to_matrix(), utils::zero_matrix(4));
 }
