@@ -21,6 +21,7 @@ on:
           - ionq
           - iqm
           - oqc
+          - pasqal
           - quantinuum
           - nvqc
           - orca
@@ -687,7 +688,36 @@ jobs:
             exit 1
           fi
         shell: bash
-      
+
+      - name: Submit to Pasqal test server
+        if: (success() || failure()) && (inputs.target == 'pasqal' || github.event_name == 'schedule' || inputs.target == 'nightly')
+        run: |
+          echo "### Submit to Pasqal server" >> $GITHUB_STEP_SUMMARY
+          export PASQAL_USERNAME='${{ secrets.PASQAL_USERNAME }}'
+          export PASQAL_PASSWORD='${{ secrets.PASQAL_PASSWORD }}'
+          export PASQAL_PROJECT_ID='${{ secrets.PASQAL_PROJECT_ID }}'
+          export PASQAL_MACHINE_TARGET="EMU_FREE" # Speedup queuing time
+          set +e # Allow script to keep going through errors
+          test_err_sum=0
+          python_tests="docs/sphinx/targets/python/pasqal.py"
+          for filename in $python_tests; do
+            [ -e "$filename" ] || echo "::error::Couldn't find file ($filename)"
+            python3 $filename 1> /dev/null
+            test_status=$?
+            if [ $test_status -eq 0 ]; then
+              echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+            else
+              echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+              test_err_sum=$((test_err_sum+1))
+            fi
+          done
+          set -e # Re-enable exit code error checking
+          if [ ! $test_err_sum -eq 0 ]; then
+            echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
+            exit 1
+          fi
+        shell: bash
+
       - name: Submit to ${{ inputs.target }}
         # The full set of tests used by this step is currently only supported on
         # Quantinuum.  The other supported tests are tested by the step above.

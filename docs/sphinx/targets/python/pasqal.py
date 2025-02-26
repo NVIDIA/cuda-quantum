@@ -22,7 +22,8 @@ token = sdk._client.authenticator.token_provider.get_token()
 
 os.environ["PASQAL_AUTH_TOKEN"] = str(token)
 
-cudaq.set_target("pasqal")
+cudaq.set_target("pasqal",
+                 machine=os.environ.get("PASQAL_MACHINE_TARGET", None))
 # cudaq.set_target("pasqal", machine="FRESNEL") # To target QPU
 
 # Define the 2-dimensional atom arrangement
@@ -52,7 +53,8 @@ async_result = evolve_async(RydbergHamiltonian(atom_sites=register,
                             shots_count=10).get()
 async_result.dump()
 
-# TODO: We don't have "counter" key in result right now - check if we should
+# TODO: We don't have "counter" key in result right now just the dict
+# check if we should in order to conform with standard
 ## Sample result
 # ```
 # {
