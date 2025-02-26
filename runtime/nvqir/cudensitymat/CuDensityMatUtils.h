@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #pragma once
-#include "cudm_error_handling.h"
+#include "CuDensityMatErrorHandling.h"
 #include <complex>
 #include <concepts>
 #include <vector>

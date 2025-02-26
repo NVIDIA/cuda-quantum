@@ -7,26 +7,26 @@
  ******************************************************************************/
 
 #include "CuDensityMatContext.h"
+#include "CuDensityMatErrorHandling.h"
 #include "CuDensityMatState.h"
+#include "CuDensityMatTimeStepper.h"
 #include "cudaq/dynamics_integrators.h"
-#include "cudm_error_handling.h"
-#include "cudm_time_stepper.h"
 
 namespace cudaq {
 
-void runge_kutta::set_system(const SystemDynamics &system,
-                             const cudaq::Schedule &schedule) {
+void RungeKuttaIntegrator::setSystem(const SystemDynamics &system,
+                                     const cudaq::Schedule &schedule) {
   m_system = system;
   m_schedule = schedule;
   m_stepper.reset();
 }
 
-void runge_kutta::set_state(cudaq::state initial_state, double t0) {
+void RungeKuttaIntegrator::setState(cudaq::state initial_state, double t0) {
   m_state = std::make_shared<cudaq::state>(initial_state);
   m_t = t0;
 }
 
-std::pair<double, cudaq::state> runge_kutta::get_state() {
+std::pair<double, cudaq::state> RungeKuttaIntegrator::getState() {
   auto *simState = cudaq::state_helper::getSimulationState(m_state.get());
   auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
   if (!castSimState)
@@ -39,7 +39,7 @@ std::pair<double, cudaq::state> runge_kutta::get_state() {
   return std::make_pair(m_t, cudaq::state(cudmState));
 }
 
-void runge_kutta::integrate(double target_time) {
+void RungeKuttaIntegrator::integrate(double targetTime) {
   const auto asCudmState = [](cudaq::state &cudaqState) -> CuDensityMatState * {
     auto *simState = cudaq::state_helper::getSimulationState(&cudaqState);
     auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
@@ -60,13 +60,13 @@ void runge_kutta::integrate(double target_time) {
             .constructLiouvillian(*m_system.hamiltonian, m_system.collapseOps,
                                   m_system.modeExtents, params,
                                   castSimState.is_density_matrix());
-    m_stepper =
-        std::make_unique<cudmStepper>(castSimState.get_handle(), liouvillian);
+    m_stepper = std::make_unique<CuDensityMatTimeStepper>(
+        castSimState.get_handle(), liouvillian);
   }
   const auto substeps = order.value_or(4);
-  while (m_t < target_time) {
+  while (m_t < targetTime) {
     double step_size =
-        std::min(dt.value_or(target_time - m_t), target_time - m_t);
+        std::min(dt.value_or(targetTime - m_t), targetTime - m_t);
 
     // std::cout << "Runge-Kutta step at time " << m_t
     //           << " with step size: " << step_size << std::endl;

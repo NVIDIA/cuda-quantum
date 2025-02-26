@@ -6,11 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudm_expectation.h"
+#include "CuDensityMatExpectation.h"
 #include "CuDensityMatContext.h"
+#include "CuDensityMatErrorHandling.h"
 #include "CuDensityMatUtils.h"
 #include "common/Logger.h"
-#include "cudm_error_handling.h"
 namespace cudaq {
 cudm_expectation::cudm_expectation(cudensitymatHandle_t handle,
                                    cudensitymatOperator_t op)

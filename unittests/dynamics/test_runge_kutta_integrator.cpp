@@ -7,8 +7,8 @@
 //  ******************************************************************************/
 
 #include "CuDensityMatState.h"
+#include "CuDensityMatTimeStepper.h"
 #include "cudaq/dynamics_integrators.h"
-#include "cudm_time_stepper.h"
 #include "test_mocks.h"
 #include <cmath>
 #include <gtest/gtest.h>
@@ -20,7 +20,7 @@ class RungeKuttaIntegratorTest : public ::testing::Test {
 protected:
   cudensitymatHandle_t handle_;
   cudensitymatOperator_t liouvillian_;
-  std::unique_ptr<runge_kutta> integrator_;
+  std::unique_ptr<RungeKuttaIntegrator> integrator_;
   std::unique_ptr<CuDensityMatState> state_;
 
   void SetUp() override {
@@ -38,7 +38,7 @@ protected:
 
     double t0 = 0.0;
     // Initialize the integrator (using substeps = 4, for Runge-Kutta method)
-    ASSERT_NO_THROW(integrator_ = std::make_unique<runge_kutta>());
+    ASSERT_NO_THROW(integrator_ = std::make_unique<RungeKuttaIntegrator>());
     ASSERT_NE(integrator_, nullptr);
     integrator_->order = 4;
   }
@@ -69,7 +69,7 @@ TEST_F(RungeKuttaIntegratorTest, CheckEvolve) {
 
   for (int integratorOrder : {1, 2, 4}) {
     std::cout << "Test RK order " << integratorOrder << "\n";
-    cudaq::runge_kutta integrator;
+    cudaq::RungeKuttaIntegrator integrator;
     integrator.dt = 0.001;
     integrator.order = integratorOrder;
     constexpr std::size_t numDataPoints = 10;
@@ -80,14 +80,14 @@ TEST_F(RungeKuttaIntegratorTest, CheckEvolve) {
     auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
     EXPECT_TRUE(castSimState != nullptr);
     castSimState->initialize_cudm(handle_, dims);
-    integrator.set_state(initialState, 0.0);
+    integrator.setState(initialState, 0.0);
     cudaq::Schedule schedule(
         cudaq::linspace(0, 1.0 * numDataPoints, numDataPoints));
-    integrator.set_system(system, schedule);
+    integrator.setSystem(system, schedule);
     std::vector<std::complex<double>> outputStateVec(2);
     for (std::size_t i = 1; i < numDataPoints; ++i) {
       integrator.integrate(i);
-      auto [t, state] = integrator.get_state();
+      auto [t, state] = integrator.getState();
       // std::cout << "Time = " << t << "\n";
       // state.dump();
       state.to_host(outputStateVec.data(), outputStateVec.size());

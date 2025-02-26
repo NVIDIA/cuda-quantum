@@ -82,8 +82,8 @@ int main() {
   // Here we choose a Runge-Kutta method for time evolution.
   // dt defines the time step for the numerical integration, and order 4
   // indicates a 4th order method.
-  std::shared_ptr<cudaq::runge_kutta> integrator =
-      std::make_shared<cudaq::runge_kutta>();
+  std::shared_ptr<cudaq::RungeKuttaIntegrator> integrator =
+      std::make_shared<cudaq::RungeKuttaIntegrator>();
   integrator->dt = 0.01;
   integrator->order = 4;
 

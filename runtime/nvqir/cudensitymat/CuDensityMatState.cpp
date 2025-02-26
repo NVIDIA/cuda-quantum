@@ -7,10 +7,10 @@
  ******************************************************************************/
 #include "CuDensityMatState.h"
 #include "CuDensityMatContext.h"
+#include "CuDensityMatErrorHandling.h"
 #include "common/EigenDense.h"
 #include "common/Logger.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "cudm_error_handling.h"
 
 namespace cudaq {
 

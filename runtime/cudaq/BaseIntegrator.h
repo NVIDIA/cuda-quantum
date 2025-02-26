@@ -23,12 +23,12 @@ public:
   virtual ~BaseIntegrator() = default;
 
   /// @brief Set the initial state and time
-  virtual void set_state(cudaq::state initial_state, double t0) = 0;
+  virtual void setState(cudaq::state initialState, double t0) = 0;
 
   /// @brief Perform integration to the target time.
-  virtual void integrate(double target_time) = 0;
+  virtual void integrate(double targetTime) = 0;
 
   /// @brief Get the current time and state.
-  virtual std::pair<double, cudaq::state> get_state() = 0;
+  virtual std::pair<double, cudaq::state> getState() = 0;
 };
 } // namespace cudaq

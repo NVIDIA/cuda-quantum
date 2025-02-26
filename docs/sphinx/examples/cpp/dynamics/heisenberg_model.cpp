@@ -107,8 +107,8 @@ int main() {
 
     // Use a Runge-Kutta integrator (4th order) with a small time step dt =
     // 0.001.
-    std::shared_ptr<cudaq::runge_kutta> integrator =
-        std::make_shared<cudaq::runge_kutta>();
+    std::shared_ptr<cudaq::RungeKuttaIntegrator> integrator =
+        std::make_shared<cudaq::RungeKuttaIntegrator>();
     integrator->dt = 0.001;
     integrator->order = 4;
 

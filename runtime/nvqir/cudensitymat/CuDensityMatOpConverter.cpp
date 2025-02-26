@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 #include "CuDensityMatOpConverter.h"
+#include "CuDensityMatErrorHandling.h"
 #include "common/Logger.h"
-#include "cudm_error_handling.h"
 #include <ranges>
 
 namespace {

@@ -10,10 +10,10 @@
 
 #include "cudaq/operators.h"
 #include "cudaq/utils/tensor.h"
+#include <CuDensityMatErrorHandling.h>
 #include <cmath>
 #include <complex>
 #include <cudensitymat.h>
-#include <cudm_error_handling.h>
 #include <iostream>
 
 // Mock cudensitymatHandle_t

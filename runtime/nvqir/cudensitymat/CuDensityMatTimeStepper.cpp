@@ -6,15 +6,15 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudm_time_stepper.h"
+#include "CuDensityMatTimeStepper.h"
 #include "CuDensityMatContext.h"
-#include "cudm_error_handling.h"
+#include "CuDensityMatErrorHandling.h"
 namespace cudaq {
-cudmStepper::cudmStepper(cudensitymatHandle_t handle,
-                         cudensitymatOperator_t liouvillian)
+CuDensityMatTimeStepper::CuDensityMatTimeStepper(
+    cudensitymatHandle_t handle, cudensitymatOperator_t liouvillian)
     : m_handle(handle), m_liouvillian(liouvillian){};
 
-state cudmStepper::compute(
+state CuDensityMatTimeStepper::compute(
     const state &inputState, double t, double step_size,
     const std::unordered_map<std::string, std::complex<double>> &parameters) {
   if (step_size == 0.0) {

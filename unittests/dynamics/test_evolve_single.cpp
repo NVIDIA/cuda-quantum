@@ -30,11 +30,11 @@ TEST(EvolveTester, checkSimple) {
   auto initialState =
       cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
 
-  cudaq::runge_kutta integrator;
+  cudaq::RungeKuttaIntegrator integrator;
   integrator.dt = 0.001;
   integrator.order = 1;
-  auto result = cudaq::evolve_single(ham, dims, schedule, initialState,
-                                     integrator, {}, {pauliZ}, true);
+  auto result = cudaq::evolveSingle(ham, dims, schedule, initialState,
+                                    integrator, {}, {pauliZ}, true);
   EXPECT_TRUE(result.get_expectation_values().has_value());
   EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
   std::vector<double> theoryResults;
@@ -65,11 +65,11 @@ TEST(EvolveTester, checkSimpleRK4) {
   auto initialState =
       cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
 
-  cudaq::runge_kutta integrator;
+  cudaq::RungeKuttaIntegrator integrator;
   integrator.dt = 0.001;
   integrator.order = 4;
-  auto result = cudaq::evolve_single(ham, dims, schedule, initialState,
-                                     integrator, {}, {pauliZ}, true);
+  auto result = cudaq::evolveSingle(ham, dims, schedule, initialState,
+                                    integrator, {}, {pauliZ}, true);
   EXPECT_TRUE(result.get_expectation_values().has_value());
   EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
   std::vector<double> theoryResults;
@@ -100,11 +100,11 @@ TEST(EvolveTester, checkDensityMatrixSimple) {
   auto initialState = cudaq::state::from_data(
       std::vector<std::complex<double>>{1.0, 0.0, 0.0, 0.0});
 
-  cudaq::runge_kutta integrator;
+  cudaq::RungeKuttaIntegrator integrator;
   integrator.dt = 0.001;
   integrator.order = 1;
-  auto result = cudaq::evolve_single(ham, dims, schedule, initialState,
-                                     integrator, {}, {pauliZ}, true);
+  auto result = cudaq::evolveSingle(ham, dims, schedule, initialState,
+                                    integrator, {}, {pauliZ}, true);
   EXPECT_TRUE(result.get_expectation_values().has_value());
   EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
   std::vector<double> theoryResults;
@@ -152,13 +152,13 @@ TEST(EvolveTester, checkCompositeSystem) {
   cudaq::Schedule schedule(cudaq::linspace(0.0, 1, num_steps));
   auto initialState = cudaq::state::from_data(
       std::make_pair(initial_state_vec.data(), initial_state_vec.size()));
-  cudaq::runge_kutta integrator;
+  cudaq::RungeKuttaIntegrator integrator;
   integrator.dt = 0.001;
   integrator.order = 4;
 
   auto result =
-      cudaq::evolve_single(hamiltonian, dims, schedule, initialState,
-                           integrator, {}, {cavity_occ_op, atom_occ_op}, true);
+      cudaq::evolveSingle(hamiltonian, dims, schedule, initialState, integrator,
+                          {}, {cavity_occ_op, atom_occ_op}, true);
   EXPECT_TRUE(result.get_expectation_values().has_value());
   EXPECT_EQ(result.get_expectation_values().value().size(), num_steps);
 
@@ -207,16 +207,16 @@ TEST(EvolveTester, checkCompositeSystemWithCollapse) {
   cudaq::Schedule schedule(timeSteps);
   auto initialState =
       cudaq::state::from_data(std::make_pair(rho0.data(), rho0.size()));
-  cudaq::runge_kutta integrator;
+  cudaq::RungeKuttaIntegrator integrator;
   integrator.dt = 0.001;
   integrator.order = 4;
   constexpr double decayRate = 0.1;
   cudaq::product_operator<cudaq::matrix_operator> collapsedOp_t =
       std::sqrt(decayRate) * a;
   cudaq::operator_sum<cudaq::matrix_operator> collapsedOp(collapsedOp_t);
-  cudaq::evolve_result result = cudaq::evolve_single(
-      hamiltonian, dims, schedule, initialState, integrator, {collapsedOp},
-      {cavity_occ_op, atom_occ_op}, true);
+  cudaq::evolve_result result =
+      cudaq::evolveSingle(hamiltonian, dims, schedule, initialState, integrator,
+                          {collapsedOp}, {cavity_occ_op, atom_occ_op}, true);
   EXPECT_TRUE(result.get_expectation_values().has_value());
   EXPECT_EQ(result.get_expectation_values().value().size(), num_steps);
 
@@ -261,11 +261,11 @@ TEST(EvolveTester, checkScalarTd) {
   Eigen::MatrixXcd rho0 = initial_state_vec * initial_state_vec.transpose();
   auto initialState =
       cudaq::state::from_data(std::make_pair(rho0.data(), rho0.size()));
-  cudaq::runge_kutta integrator;
+  cudaq::RungeKuttaIntegrator integrator;
   integrator.dt = 0.001;
   integrator.order = 4;
-  auto result = cudaq::evolve_single(ham, dims, schedule, initialState,
-                                     integrator, {collapseOp}, {obs}, true);
+  auto result = cudaq::evolveSingle(ham, dims, schedule, initialState,
+                                    integrator, {collapseOp}, {obs}, true);
   EXPECT_TRUE(result.get_expectation_values().has_value());
   EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
   std::vector<double> theoryResults;

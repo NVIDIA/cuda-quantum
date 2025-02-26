@@ -73,8 +73,8 @@ int main() {
   cudaq::Schedule schedule(steps, {"t"});
 
   // A Runge-Kutta integrator (4th order) with a small time step dt.
-  std::shared_ptr<cudaq::runge_kutta> integrator =
-      std::make_shared<cudaq::runge_kutta>();
+  std::shared_ptr<cudaq::RungeKuttaIntegrator> integrator =
+      std::make_shared<cudaq::RungeKuttaIntegrator>();
   integrator->dt = dt;
   integrator->order = 4;
 

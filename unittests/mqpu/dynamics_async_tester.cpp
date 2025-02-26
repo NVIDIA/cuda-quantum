@@ -20,7 +20,7 @@ TEST(DynamicsAsyncTester, checkSimple) {
     cudaq::Schedule schedule(cudaq::linspace(0.0, 1.0, numSteps));
     auto initialState =
         cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
-    auto integrator = std::make_shared<cudaq::runge_kutta>();
+    auto integrator = std::make_shared<cudaq::RungeKuttaIntegrator>();
     integrator->order = 1;
     integrator->dt = 0.001;
     auto resultFuture1 = cudaq::evolve_async(
@@ -44,7 +44,7 @@ TEST(DynamicsAsyncTester, checkSimple) {
     psi0_.back() = 1.0;
     auto psi0 = cudaq::state::from_data(psi0_);
     constexpr double decay_rate = 0.1;
-    auto integrator = std::make_shared<cudaq::runge_kutta>();
+    auto integrator = std::make_shared<cudaq::RungeKuttaIntegrator>();
     integrator->dt = 0.01;
     auto resultFuture = cudaq::evolve_async(
         hamiltonian, dimensions, schedule, psi0, integrator,

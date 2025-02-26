@@ -9,7 +9,7 @@
 #pragma once
 
 #include "common/EvolveResult.h"
-#include "cudaq/base_integrator.h"
+#include "cudaq/BaseIntegrator.h"
 #include "cudaq/operators.h"
 #include "cudaq/schedule.h"
 #include "cudaq/utils/tensor.h"
@@ -21,7 +21,7 @@
 
 namespace cudaq {
 
-evolve_result evolve_single(
+evolve_result evolveSingle(
     const operator_sum<cudaq::matrix_operator> &hamiltonian,
     const std::map<int, int> &dimensions, const Schedule &schedule,
     const state &initial_state, BaseIntegrator &integrator,
@@ -67,7 +67,7 @@ evolve_result evolve_single(
 
 //   /// Evolves a single quantum state under a given `hamiltonian`.
 //   static evolve_result
-//   evolve_single(const operator_sum &hamiltonian,
+//   evolveSingle(const operator_sum &hamiltonian,
 //                 const std::map<int, int> &dimensions,
 //                 const std::shared_ptr<Schedule> &schedule, state
 //                 initial_state, const std::vector<operator_sum>

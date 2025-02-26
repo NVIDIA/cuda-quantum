@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 #include "CuDensityMatState.h"
+#include <CuDensityMatErrorHandling.h>
 #include <complex>
-#include <cudm_error_handling.h>
 #include <gtest/gtest.h>
 #include <stdexcept>
 #include <vector>

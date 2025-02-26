@@ -8,9 +8,9 @@
 
 #include "CuDensityMatContext.h"
 #include "CuDensityMatState.h"
-#include "cudm_time_stepper.h"
+#include "CuDensityMatTimeStepper.h"
 #include "test_mocks.h"
-#include <cudm_error_handling.h>
+#include <CuDensityMatErrorHandling.h>
 #include <gtest/gtest.h>
 #include <iostream>
 #include <memory>
@@ -20,7 +20,7 @@ class CuDensityMatTimeStepperTest : public ::testing::Test {
 protected:
   cudensitymatHandle_t handle_;
   cudensitymatOperator_t liouvillian_;
-  std::unique_ptr<cudmStepper> time_stepper_;
+  std::unique_ptr<CuDensityMatTimeStepper> time_stepper_;
   cudaq::state state_ = cudaq::state(nullptr);
 
   void SetUp() override {
@@ -31,7 +31,8 @@ protected:
     liouvillian_ = mock_liouvillian(handle_);
 
     // Initialize the time stepper
-    time_stepper_ = std::make_unique<cudmStepper>(handle_, liouvillian_);
+    time_stepper_ =
+        std::make_unique<CuDensityMatTimeStepper>(handle_, liouvillian_);
 
     state_ = cudaq::state::from_data(mock_initial_state_data());
     auto *simState = cudaq::state_helper::getSimulationState(&state_);
@@ -48,7 +49,7 @@ protected:
   }
 };
 
-// Test initialization of cudmStepper
+// Test initialization of CuDensityMatTimeStepper
 TEST_F(CuDensityMatTimeStepperTest, Initialization) {
   ASSERT_NE(time_stepper_, nullptr);
   auto *simState = cudaq::state_helper::getSimulationState(&state_);
@@ -65,14 +66,14 @@ TEST_F(CuDensityMatTimeStepperTest, ComputeStep) {
 
 // Compute step when handle is uninitialized
 TEST_F(CuDensityMatTimeStepperTest, ComputeStepUninitializedHandle) {
-  cudmStepper invalidStepper(nullptr, liouvillian_);
+  CuDensityMatTimeStepper invalidStepper(nullptr, liouvillian_);
   EXPECT_THROW(invalidStepper.compute(state_, 0.0, 1.0, {}),
                std::runtime_error);
 }
 
 // Compute step when liouvillian is missing
 TEST_F(CuDensityMatTimeStepperTest, ComputeStepNoLiouvillian) {
-  cudmStepper invalidStepper(handle_, nullptr);
+  CuDensityMatTimeStepper invalidStepper(handle_, nullptr);
   EXPECT_THROW(invalidStepper.compute(state_, 0.0, 1.0, {}),
                std::runtime_error);
 }
@@ -114,7 +115,8 @@ TEST_F(CuDensityMatTimeStepperTest, ComputeStepCheckOutput) {
                     ->getOpConverter()
                     .convertToCudensitymatOperator(
                         {}, op, dims); // Initialize the time stepper
-  auto time_stepper = std::make_unique<cudmStepper>(handle_, cudmOp);
+  auto time_stepper =
+      std::make_unique<CuDensityMatTimeStepper>(handle_, cudmOp);
   auto outputState = time_stepper->compute(inputState, 0.0, 1.0, {});
 
   std::vector<std::complex<double>> outputStateVec(4);
@@ -149,7 +151,8 @@ TEST_F(CuDensityMatTimeStepperTest, TimeSteppingWithLindblad) {
           ->getOpConverter()
           .constructLiouvillian(zero_op, {c_op}, dims, {}, true);
 
-  auto time_stepper = std::make_unique<cudmStepper>(handle_, cudm_lindblad_op);
+  auto time_stepper =
+      std::make_unique<CuDensityMatTimeStepper>(handle_, cudm_lindblad_op);
   auto output_state = time_stepper->compute(input_state, 0.0, 1.0, {});
 
   std::vector<std::complex<double>> output_state_vec(100);
@@ -195,7 +198,8 @@ TEST_F(CuDensityMatTimeStepperTest, CheckScalarCallback) {
                     ->getOpConverter()
                     .convertToCudensitymatOperator(params, op, dims);
   // Initialize the time stepper
-  auto time_stepper = std::make_unique<cudmStepper>(handle_, cudmOp);
+  auto time_stepper =
+      std::make_unique<CuDensityMatTimeStepper>(handle_, cudmOp);
   auto outputState = time_stepper->compute(inputState, 1.0, 1.0, params);
   outputState.dump(std::cout);
   std::vector<std::complex<double>> outputStateVec(4);
@@ -253,7 +257,8 @@ TEST_F(CuDensityMatTimeStepperTest, CheckTensorCallback) {
                     ->getOpConverter()
                     .convertToCudensitymatOperator(params, op, dims);
   // Initialize the time stepper
-  auto time_stepper = std::make_unique<cudmStepper>(handle_, cudmOp);
+  auto time_stepper =
+      std::make_unique<CuDensityMatTimeStepper>(handle_, cudmOp);
   auto outputState = time_stepper->compute(inputState, 1.0, 1.0, params);
   outputState.dump(std::cout);
   std::vector<std::complex<double>> outputStateVec(2);
@@ -289,7 +294,8 @@ TEST_F(CuDensityMatTimeStepperTest, ComputeOperatorOrder) {
                     ->getOpConverter()
                     .convertToCudensitymatOperator(
                         {}, op, dims); // Initialize the time stepper
-  auto time_stepper = std::make_unique<cudmStepper>(handle_, cudmOp);
+  auto time_stepper =
+      std::make_unique<CuDensityMatTimeStepper>(handle_, cudmOp);
   auto outputState = time_stepper->compute(inputState, 0.0, 1.0, {});
   std::vector<std::complex<double>> expectedOutputStateVec(4);
   // Diagonal elements
@@ -332,7 +338,8 @@ TEST_F(CuDensityMatTimeStepperTest, ComputeOperatorOrderDensityMatrix) {
   auto cudmOp = cudaq::dynamics::Context::getCurrentContext()
                     ->getOpConverter()
                     .constructLiouvillian(op, {}, dims, {}, true);
-  auto time_stepper = std::make_unique<cudmStepper>(handle_, cudmOp);
+  auto time_stepper =
+      std::make_unique<CuDensityMatTimeStepper>(handle_, cudmOp);
   auto outputState = time_stepper->compute(inputState, 0.0, 1.0, {});
   std::vector<std::complex<double>> outputStateVec(initialState.size());
   outputState.to_host(outputStateVec.data(), outputStateVec.size());

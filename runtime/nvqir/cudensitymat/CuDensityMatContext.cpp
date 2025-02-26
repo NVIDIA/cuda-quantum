@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 #include "CuDensityMatContext.h"
+#include "CuDensityMatErrorHandling.h"
 #include "common/Logger.h"
-#include "cudm_error_handling.h"
 #include <memory>
 #include <mutex>
 

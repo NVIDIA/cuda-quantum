@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "cudaq/base_integrator.h"
-#include "cudaq/base_time_stepper.h"
+#include "cudaq/BaseIntegrator.h"
+#include "cudaq/BaseTimeStepper.h"
 #include "cudaq/operators.h"
 #include <memory>
 
@@ -21,25 +21,24 @@ struct SystemDynamics {
   std::unordered_map<std::string, std::complex<double>> parameters;
 };
 
-class runge_kutta : public BaseIntegrator {
+class RungeKuttaIntegrator : public BaseIntegrator {
 
 public:
   std::optional<int> order;
   std::optional<double> dt;
 
 public:
-  runge_kutta() = default;
-  void integrate(double target_time) override;
-  void set_state(cudaq::state initial_state, double t0) override;
-  std::pair<double, cudaq::state> get_state() override;
-  void set_system(const SystemDynamics &system,
-                  const cudaq::Schedule &schedule);
+  RungeKuttaIntegrator() = default;
+  void integrate(double targetTime) override;
+  void setState(cudaq::state initialState, double t0) override;
+  std::pair<double, cudaq::state> getState() override;
+  void setSystem(const SystemDynamics &system, const cudaq::Schedule &schedule);
 
 private:
   double m_t;
   std::shared_ptr<cudaq::state> m_state;
   SystemDynamics m_system;
-  std::unique_ptr<TimeStepper> m_stepper;
+  std::unique_ptr<BaseTimeStepper> m_stepper;
   cudaq::Schedule m_schedule;
 };
 } // namespace cudaq

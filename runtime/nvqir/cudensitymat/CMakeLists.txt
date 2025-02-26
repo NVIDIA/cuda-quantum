@@ -28,10 +28,10 @@ get_filename_component(CUDENSITYMAT_INCLUDE_DIR ${CUDENSITYMAT_INC} DIRECTORY)
 add_library(${LIBRARY_NAME} SHARED 
   CuDensityMatSim.cpp 
   mpi_support.cpp
-  cudm_time_stepper.cpp
-  runge_kutta_integrator.cpp
-  cudm_expectation.cpp
-  cudm_evolution.cpp
+  CuDensityMatTimeStepper.cpp
+  RungeKuttaIntegrator.cpp
+  CuDensityMatExpectation.cpp
+  CuDensityMatEvolution.cpp
   CuDensityMatState.cpp
   CuDensityMatContext.cpp
   CuDensityMatOpConverter.cpp

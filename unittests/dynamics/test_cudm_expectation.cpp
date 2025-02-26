@@ -10,8 +10,8 @@
 #include "CuDensityMatState.h"
 #include "common/EigenDense.h"
 #include "test_mocks.h"
-#include <cudm_error_handling.h>
-#include <cudm_expectation.h>
+#include <CuDensityMatErrorHandling.h>
+#include <CuDensityMatExpectation.h>
 #include <gtest/gtest.h>
 #include <iostream>
 #include <memory>

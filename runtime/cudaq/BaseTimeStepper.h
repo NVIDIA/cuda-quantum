@@ -10,12 +10,12 @@
 #include "cudaq/qis/state.h"
 
 namespace cudaq {
-class TimeStepper {
+class BaseTimeStepper {
 public:
-  virtual ~TimeStepper() = default;
+  virtual ~BaseTimeStepper() = default;
 
   virtual state
-  compute(const state &inputState, double t, double step_size,
+  compute(const state &inputState, double t, double stepSize,
           const std::unordered_map<std::string, std::complex<double>>
               &parameters) = 0;
 };

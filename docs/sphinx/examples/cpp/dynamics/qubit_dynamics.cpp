@@ -35,8 +35,8 @@ int main() {
   cudaq::Schedule schedule(steps, {"time"});
 
   // Runge-Kutta integrator with a time step of 0.001 and order 4
-  std::shared_ptr<cudaq::runge_kutta> integrator =
-      std::make_shared<cudaq::runge_kutta>();
+  std::shared_ptr<cudaq::RungeKuttaIntegrator> integrator =
+      std::make_shared<cudaq::RungeKuttaIntegrator>();
   integrator->dt = 0.01;
   integrator->order = 4;
 

@@ -94,8 +94,8 @@ int main() {
   // Use Runge-Kutta integrator (4th order) to solve the time-dependent
   // evolution. `dt` is the integration time step, and `order` sets the accuracy
   // of the integrator method.
-  std::shared_ptr<cudaq::runge_kutta> integrator =
-      std::make_shared<cudaq::runge_kutta>();
+  std::shared_ptr<cudaq::RungeKuttaIntegrator> integrator =
+      std::make_shared<cudaq::RungeKuttaIntegrator>();
   integrator->dt = 0.0001;
   integrator->order = 4;
 

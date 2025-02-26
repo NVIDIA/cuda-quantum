@@ -7,22 +7,22 @@
  ******************************************************************************/
 
 #include "CuDensityMatContext.h"
+#include "CuDensityMatErrorHandling.h"
+#include "CuDensityMatExpectation.h"
 #include "CuDensityMatState.h"
+#include "CuDensityMatTimeStepper.h"
 #include "cudaq/dynamics_integrators.h"
 #include "cudaq/evolution.h"
-#include "cudm_error_handling.h"
-#include "cudm_expectation.h"
-#include "cudm_time_stepper.h"
 #include <random>
 #include <stdexcept>
 namespace cudaq {
-evolve_result evolve_single(
+evolve_result evolveSingle(
     const operator_sum<cudaq::matrix_operator> &hamiltonian,
     const std::map<int, int> &dimensions, const Schedule &schedule,
-    const state &initialState, BaseIntegrator &in_integrator,
-    const std::vector<operator_sum<cudaq::matrix_operator>> &collapse_operators,
+    const state &initialState, BaseIntegrator &inIntegrator,
+    const std::vector<operator_sum<cudaq::matrix_operator>> &collapseOperators,
     const std::vector<operator_sum<cudaq::matrix_operator>> &observables,
-    bool store_intermediate_results, std::optional<int> shots_count) {
+    bool storeIntermediateResults, std::optional<int> shotsCount) {
   cudensitymatHandle_t handle =
       dynamics::Context::getCurrentContext()->getHandle();
   std::vector<int64_t> dims;
@@ -39,21 +39,22 @@ evolve_result evolve_single(
   auto *cudmState = asCudmState(const_cast<state &>(initialState));
   cudmState->initialize_cudm(handle, dims);
 
-  state initial_state = [&]() {
-    if (!collapse_operators.empty() && !cudmState->is_density_matrix()) {
+  state initial_State = [&]() {
+    if (!collapseOperators.empty() && !cudmState->is_density_matrix()) {
       return state(new CuDensityMatState(cudmState->to_density_matrix()));
     }
     return initialState;
   }();
 
-  runge_kutta &integrator = dynamic_cast<runge_kutta &>(in_integrator);
+  RungeKuttaIntegrator &integrator =
+      dynamic_cast<RungeKuttaIntegrator &>(inIntegrator);
   SystemDynamics system;
   system.hamiltonian =
       const_cast<operator_sum<cudaq::matrix_operator> *>(&hamiltonian);
-  system.collapseOps = collapse_operators;
+  system.collapseOps = collapseOperators;
   system.modeExtents = dims;
-  integrator.set_system(system, schedule);
-  integrator.set_state(initial_state, 0.0);
+  integrator.setSystem(system, schedule);
+  integrator.setState(initial_State, 0.0);
   std::vector<cudm_expectation> expectations;
   for (auto &obs : observables)
     expectations.emplace_back(cudm_expectation(
@@ -65,8 +66,8 @@ evolve_result evolve_single(
   std::vector<cudaq::state> intermediateStates;
   for (const auto &step : schedule) {
     integrator.integrate(step);
-    auto [t, currentState] = integrator.get_state();
-    if (store_intermediate_results) {
+    auto [t, currentState] = integrator.getState();
+    if (storeIntermediateResults) {
       std::vector<double> expVals;
 
       for (auto &expectation : expectations) {
@@ -80,11 +81,11 @@ evolve_result evolve_single(
     }
   }
 
-  if (store_intermediate_results) {
+  if (storeIntermediateResults) {
     return evolve_result(intermediateStates, expectationVals);
   } else {
     // Only final state is needed
-    auto [finalTime, finalState] = integrator.get_state();
+    auto [finalTime, finalState] = integrator.getState();
     std::vector<double> expVals;
     auto *cudmState = asCudmState(finalState);
     for (auto &expectation : expectations) {

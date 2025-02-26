@@ -9,14 +9,14 @@
 #pragma once
 
 #include "CuDensityMatState.h"
-#include "cudaq/base_time_stepper.h"
+#include "cudaq/BaseTimeStepper.h"
 #include <cudensitymat.h>
 
 namespace cudaq {
-class cudmStepper : public TimeStepper {
+class CuDensityMatTimeStepper : public BaseTimeStepper {
 public:
-  explicit cudmStepper(cudensitymatHandle_t handle,
-                       cudensitymatOperator_t liouvillian);
+  explicit CuDensityMatTimeStepper(cudensitymatHandle_t handle,
+                                   cudensitymatOperator_t liouvillian);
 
   state compute(const state &inputState, double t, double step_size,
                 const std::unordered_map<std::string, std::complex<double>>
