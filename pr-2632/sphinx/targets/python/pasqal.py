@@ -3,7 +3,7 @@ from cudaq.operator import *
 
 # This example illustrates how to use Pasqal's EMU_MPS emulator over Pasqal's cloud via CUDA-Q.
 
-# To obtain login from Pasqal's SDK uncomment these lines
+# To obtain login we recommend using Pasqal's Python SDK
 # We recommend filling in password via an environment variable
 # or leave it empty in an interactive session as you will be
 # prompted to enter the password securely via the command line.
@@ -22,20 +22,20 @@ token = sdk._client.authenticator.token_provider.get_token()
 
 os.environ["PASQAL_AUTH_TOKEN"] = str(token)
 
-cudaq.set_target("pasqal")
-# cudaq.set_target("pasqal", machine="FRESNEL") # To target QPU
+cudaq.set_target("pasqal",
+                 machine=os.environ.get("PASQAL_MACHINE_TARGET", None))
 
 # Define the 2-dimensional atom arrangement
 a = 5e-6
 register = [(a, 0), (2 * a, 0), (3 * a, 0)]
-time_ramp = 0.000002
+time_ramp = 0.000001
 time_max = 0.000003
 # Times for the piece-wise linear waveforms
 steps = [0.0, time_ramp, time_max - time_ramp, time_max]
 schedule = Schedule(steps, ["t"])
 # Rabi frequencies at each step
-omega_max = 100000
-delta_end = 100000
+omega_max = 1000000
+delta_end = 1000000
 delta_start = 0.0
 omega = ScalarOperator(lambda t: omega_max if time_ramp < t < time_max else 0.0)
 # Global phase at each step
@@ -52,7 +52,8 @@ async_result = evolve_async(RydbergHamiltonian(atom_sites=register,
                             shots_count=10).get()
 async_result.dump()
 
-# TODO: We don't have "counter" key in result right now - check if we should
+# TODO: We don't have "counter" key in result right now just the dict
+# check if we should in order to conform with standard
 ## Sample result
 # ```
 # {

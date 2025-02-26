@@ -1542,7 +1542,7 @@ parameters of the time bin interferometer.</p>
 
 <span class="c1"># This example illustrates how to use Pasqal&#39;s EMU_MPS emulator over Pasqal&#39;s cloud via CUDA-Q.</span>
 
-<span class="c1"># To obtain login from Pasqal&#39;s SDK uncomment these lines</span>
+<span class="c1"># To obtain login we recommend using Pasqal&#39;s Python SDK</span>
 <span class="c1"># We recommend filling in password via an environment variable</span>
 <span class="c1"># or leave it empty in an interactive session as you will be</span>
 <span class="c1"># prompted to enter the password securely via the command line.</span>
@@ -1561,20 +1561,20 @@ parameters of the time bin interferometer.</p>
 
 <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;PASQAL_AUTH_TOKEN&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
 
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;pasqal&quot;</span><span class="p">)</span>
-<span class="c1"># cudaq.set_target(&quot;pasqal&quot;, machine=&quot;FRESNEL&quot;) # To target QPU</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;pasqal&quot;</span><span class="p">,</span>
+                 <span class="n">machine</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;PASQAL_MACHINE_TARGET&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
 
 <span class="c1"># Define the 2-dimensional atom arrangement</span>
 <span class="n">a</span> <span class="o">=</span> <span class="mf">5e-6</span>
 <span class="n">register</span> <span class="o">=</span> <span class="p">[(</span><span class="n">a</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">a</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="n">a</span><span class="p">,</span> <span class="mi">0</span><span class="p">)]</span>
-<span class="n">time_ramp</span> <span class="o">=</span> <span class="mf">0.000002</span>
+<span class="n">time_ramp</span> <span class="o">=</span> <span class="mf">0.000001</span>
 <span class="n">time_max</span> <span class="o">=</span> <span class="mf">0.000003</span>
 <span class="c1"># Times for the piece-wise linear waveforms</span>
 <span class="n">steps</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">time_ramp</span><span class="p">,</span> <span class="n">time_max</span> <span class="o">-</span> <span class="n">time_ramp</span><span class="p">,</span> <span class="n">time_max</span><span class="p">]</span>
 <span class="n">schedule</span> <span class="o">=</span> <span class="n">Schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;t&quot;</span><span class="p">])</span>
 <span class="c1"># Rabi frequencies at each step</span>
-<span class="n">omega_max</span> <span class="o">=</span> <span class="mi">100000</span>
-<span class="n">delta_end</span> <span class="o">=</span> <span class="mi">100000</span>
+<span class="n">omega_max</span> <span class="o">=</span> <span class="mi">1000000</span>
+<span class="n">delta_end</span> <span class="o">=</span> <span class="mi">1000000</span>
 <span class="n">delta_start</span> <span class="o">=</span> <span class="mf">0.0</span>
 <span class="n">omega</span> <span class="o">=</span> <span class="n">ScalarOperator</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">omega_max</span> <span class="k">if</span> <span class="n">time_ramp</span> <span class="o">&lt;</span> <span class="n">t</span> <span class="o">&lt;</span> <span class="n">time_max</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">)</span>
 <span class="c1"># Global phase at each step</span>
@@ -1591,7 +1591,8 @@ parameters of the time bin interferometer.</p>
                             <span class="n">shots_count</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
 <span class="n">async_result</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
 
-<span class="c1"># TODO: We don&#39;t have &quot;counter&quot; key in result right now - check if we should</span>
+<span class="c1"># TODO: We don&#39;t have &quot;counter&quot; key in result right now just the dict</span>
+<span class="c1"># check if we should in order to conform with standard</span>
 <span class="c1">## Sample result</span>
 <span class="c1"># ```</span>
 <span class="c1"># {</span>
