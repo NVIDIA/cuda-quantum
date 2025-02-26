@@ -343,58 +343,84 @@ void bindNoiseChannels(py::module &mod) {
           "num_parameters", &phase_flip_channel::num_parameters,
           "The number of parameters this channel requires at construction.");
 
-  py::class_<phase_damping, kraus_channel>(mod, "PhaseDamping", R"#()#")
+  py::class_<phase_damping, kraus_channel>(
+      mod, "PhaseDamping",
+      R"#(A Kraus channel that models the single-qubit phase damping error. This
+      is simulator to AmplitudeDamping, but for phase.)#")
       .def(py::init<std::vector<double>>())
       .def(py::init<double>())
       .def_readonly_static(
-          "num_parameters", &phase_flip_channel::num_parameters,
+          "num_parameters", &phase_damping::num_parameters,
           "The number of parameters this channel requires at construction.");
 
-  py::class_<z_error, kraus_channel>(mod, "ZError", R"#()#")
+  py::class_<z_error, kraus_channel>(
+      mod, "ZError",
+      R"#(A Pauli error that applies the Z operator when an error
+      occurs. It is the same as PhaseFlipChannel.)#")
       .def(py::init<std::vector<double>>())
       .def(py::init<double>())
       .def_readonly_static(
-          "num_parameters", &phase_flip_channel::num_parameters,
+          "num_parameters", &z_error::num_parameters,
           "The number of parameters this channel requires at construction.");
 
-  py::class_<x_error, kraus_channel>(mod, "XError", R"#()#")
+  py::class_<x_error, kraus_channel>(
+      mod, "XError",
+      R"#(A Pauli error that applies the X operator when an error
+      occurs. It is the same as BitFlipChannel.)#")
       .def(py::init<std::vector<double>>())
       .def(py::init<double>())
       .def_readonly_static(
-          "num_parameters", &phase_flip_channel::num_parameters,
+          "num_parameters", &x_error::num_parameters,
           "The number of parameters this channel requires at construction.");
 
-  py::class_<y_error, kraus_channel>(mod, "YError", R"#()#")
+  py::class_<y_error, kraus_channel>(
+      mod, "YError",
+      R"#(A Pauli error that applies the X operator when an error
+      occurs.)#")
       .def(py::init<std::vector<double>>())
       .def(py::init<double>())
       .def_readonly_static(
-          "num_parameters", &phase_flip_channel::num_parameters,
+          "num_parameters", &y_error::num_parameters,
           "The number of parameters this channel requires at construction.");
 
-  py::class_<pauli1, kraus_channel>(mod, "Pauli1", R"#()#")
+  py::class_<pauli1, kraus_channel>(
+      mod, "Pauli1",
+      R"#(A single-qubit Pauli error that applies either an X error, Y error,
+      or Z error. The probability of each X, Y, or Z error is supplied as a
+      parameter)#")
       .def(py::init<std::vector<double>>())
       .def_readonly_static(
-          "num_parameters", &phase_flip_channel::num_parameters,
+          "num_parameters", &pauli1::num_parameters,
           "The number of parameters this channel requires at construction.");
 
-  py::class_<pauli2, kraus_channel>(mod, "Pauli2", R"#()#")
+  py::class_<pauli2, kraus_channel>(
+      mod, "Pauli2",
+      R"#(A 2-qubit Pauli error that applies one of the following errors, with
+      the probabilities specified as a vector. Possible errors: IX, IY, IZ, XI, XX,
+      XY, XZ, YI, YX, YY, YZ, ZI, ZX, ZY, and ZZ.)#")
       .def(py::init<std::vector<double>>())
       .def_readonly_static(
-          "num_parameters", &phase_flip_channel::num_parameters,
+          "num_parameters", &pauli2::num_parameters,
           "The number of parameters this channel requires at construction.");
 
-  py::class_<depolarization1, kraus_channel>(mod, "Depolarization1", R"#()#")
+  py::class_<depolarization1, kraus_channel>(
+      mod, "Depolarization1",
+      R"#(The same as DepolarizationChannel (single qubit depolarization))#")
       .def(py::init<std::vector<double>>())
       .def(py::init<double>())
       .def_readonly_static(
-          "num_parameters", &phase_flip_channel::num_parameters,
+          "num_parameters", &depolarization1::num_parameters,
           "The number of parameters this channel requires at construction.");
 
-  py::class_<depolarization2, kraus_channel>(mod, "Depolarization2", R"#()#")
+  py::class_<depolarization2, kraus_channel>(
+      mod, "Depolarization2",
+      R"#(A 2-qubit depolarization error that applies one of the following
+      errors. Possible errors: IX, IY, IZ, XI, XX, XY, XZ, YI, YX, YY, YZ, ZI, ZX,
+      ZY, and ZZ.)#")
       .def(py::init<std::vector<double>>())
       .def(py::init<double>())
       .def_readonly_static(
-          "num_parameters", &phase_flip_channel::num_parameters,
+          "num_parameters", &depolarization2::num_parameters,
           "The number of parameters this channel requires at construction.");
 }
 
