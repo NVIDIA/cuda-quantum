@@ -13,31 +13,26 @@
 namespace cudaq {
 
 // Constructor
-Schedule::Schedule(std::vector<std::complex<double>> steps,
-                   std::vector<std::string> parameters,
-                   std::function<std::complex<double>(
-                       const std::string &, const std::complex<double> &)>
-                       value_function)
-    : _steps(steps), _parameters(parameters), _value_function(value_function),
-      _current_idx(-1) {
-  if (!_steps.empty()) {
-    m_ptr = &_steps[0];
-  } else {
-    m_ptr = nullptr;
-  }
+Schedule::Schedule(const std::vector<std::complex<double>> &steps,
+                   const std::vector<std::string> &parameters,
+                   const std::function<std::complex<double>(
+                       const std::string &, const std::complex<double> &)> &value_function)
+: steps(steps), parameters(parameters), value_function(value_function), current_idx(-1) {
+  if (!steps.empty()) ptr = &this->steps[0];
+  else ptr = nullptr;
 }
 
 // Dereference operator
-Schedule::reference Schedule::operator*() const { return *m_ptr; }
+Schedule::reference Schedule::operator*() const { return *ptr; }
 
 // Arrow operator
-Schedule::pointer Schedule::operator->() { return m_ptr; }
+Schedule::pointer Schedule::operator->() { return ptr; }
 
 // Prefix increment
 Schedule &Schedule::operator++() {
-  if (_current_idx + 1 < static_cast<int>(_steps.size())) {
-    _current_idx++;
-    m_ptr = &_steps[_current_idx];
+  if (current_idx + 1 < static_cast<int>(steps.size())) {
+    current_idx++;
+    ptr = &steps[current_idx];
   } else {
     throw std::out_of_range("No more steps in the schedule.");
   }
@@ -53,27 +48,27 @@ Schedule Schedule::operator++(int) {
 
 // Comparison operators
 bool operator==(const Schedule &a, const Schedule &b) {
-  return a.m_ptr == b.m_ptr;
+  return a.ptr == b.ptr;
 };
 
 bool operator!=(const Schedule &a, const Schedule &b) {
-  return a.m_ptr != b.m_ptr;
+  return a.ptr != b.ptr;
 };
 
 // Reset schedule
 void Schedule::reset() {
-  _current_idx = -1;
-  if (!_steps.empty()) {
-    m_ptr = &_steps[0];
+  current_idx = -1;
+  if (!steps.empty()) {
+    ptr = &steps[0];
   } else {
-    m_ptr = nullptr;
+    ptr = nullptr;
   }
 }
 
 // Get the current step
 std::optional<std::complex<double>> Schedule::current_step() const {
-  if (_current_idx >= 0 && _current_idx < static_cast<int>(_steps.size())) {
-    return _steps[_current_idx];
+  if (current_idx >= 0 && current_idx < static_cast<int>(steps.size())) {
+    return steps[current_idx];
   }
   return std::nullopt;
 }

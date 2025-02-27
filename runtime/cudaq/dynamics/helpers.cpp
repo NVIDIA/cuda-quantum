@@ -55,7 +55,7 @@ namespace detail {
         cudaq::detail::generate_all_states(op_degrees, dimensions);
   
     std::vector<int> permutation;
-    for (auto state : states) {
+    for (const auto &state : states) {
       std::string term;
       for (auto i : reordering) {
         term += state[i];

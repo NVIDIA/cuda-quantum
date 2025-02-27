@@ -29,16 +29,15 @@ public:
   using reference = std::complex<double> &;
 
 private:
-  pointer m_ptr;
-  std::vector<std::complex<double>> _steps;
-  std::vector<std::string> _parameters;
+  pointer ptr;
+  std::vector<std::complex<double>> steps;
+  std::vector<std::string> parameters;
   std::function<std::complex<double>(const std::string &,
-                                     const std::complex<double> &)>
-      _value_function;
-  int _current_idx;
+                                     const std::complex<double> &)> value_function;
+  int current_idx;
 
 public:
-  Schedule(pointer ptr) : m_ptr(ptr){};
+  Schedule(pointer ptr) : ptr(ptr){};
 
   /// @brief Constructor.
   /// @arg steps: The sequence of steps in the schedule. Restricted to a vector
@@ -51,11 +50,11 @@ public:
   /// @details current_idx: Intializes the current index (_current_idx) to -1 to
   /// indicate that iteration has not yet begun. Once iteration starts,
   /// _current_idx will be used to track the position in the sequence of steps.
-  Schedule(const std::vector<std::complex<double>> steps,
-           const std::vector<std::string> parameters,
-           std::function<std::complex<double>(const std::string &,
+  Schedule(const std::vector<std::complex<double>> &steps,
+           const std::vector<std::string> &parameters,
+           const std::function<std::complex<double>(const std::string &,
                                               const std::complex<double> &)>
-               value_function);
+               &value_function);
 
   /// Below, I define what I believe are the minimal necessary methods needed
   /// for this to behave like an iterable. This should be revisited in the
