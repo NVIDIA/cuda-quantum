@@ -146,12 +146,6 @@ std::string cudaq::matrix_2::dump() const {
   return out.str();
 }
 
-double _factorial(std::size_t value) {
-  if (value <= 1)
-    return 1;
-  return value * std::tgamma(value);
-}
-
 // Calculate the power of a given matrix, `powers` times.
 cudaq::matrix_2 cudaq::matrix_2::power(int powers) {
   // Initialize as identity.
@@ -173,6 +167,13 @@ cudaq::matrix_2 cudaq::matrix_2::power(int powers) {
 
 // Calculate the Taylor approximation to the exponential of the given matrix.
 cudaq::matrix_2 cudaq::matrix_2::exponential() {
+  auto factorial = [](std::size_t value) {
+    auto res = 1;
+    while (value-- > 1)
+      res *= value;
+    return (double)res;
+  };
+
   std::size_t rows = get_rows();
   std::size_t columns = get_columns();
   if (rows != columns)
@@ -184,7 +185,7 @@ cudaq::matrix_2 cudaq::matrix_2::exponential() {
     auto term = this->power(step);
     for (std::size_t i = 0; i < rows; i++) {
       for (std::size_t j = 0; j < columns; j++) {
-        result[{i, j}] += term[{i, j}] / _factorial(step);
+        result[{i, j}] += term[{i, j}] / factorial(step);
       }
     }
   }

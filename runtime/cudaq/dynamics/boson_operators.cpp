@@ -116,7 +116,7 @@ void boson_operator::inplace_mult(const boson_operator &other) {
   // operator id perfectly reflects the mathematical evaluation of the operator
   auto sorted_offsets = this->number_offsets;
   std::sort(sorted_offsets.begin(), sorted_offsets.end(), std::greater<int>());
-  // assert(sorted_offsets == this->number_offsets);
+  assert(sorted_offsets == this->number_offsets);
 #endif
 }
 

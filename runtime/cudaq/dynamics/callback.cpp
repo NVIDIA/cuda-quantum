@@ -18,69 +18,17 @@ namespace cudaq {
 
 // ScalarCallbackFunction
 
-ScalarCallbackFunction::ScalarCallbackFunction(
-    const ScalarCallbackFunction &other) {
-  _callback_func = other._callback_func;
-}
-
-ScalarCallbackFunction::ScalarCallbackFunction(ScalarCallbackFunction &&other) {
-  _callback_func = std::move(other._callback_func);
-}
-
-ScalarCallbackFunction &
-ScalarCallbackFunction::operator=(const ScalarCallbackFunction &other) {
-  if (this != &other) {
-    _callback_func = other._callback_func;
-  }
-  return *this;
-}
-
-ScalarCallbackFunction &
-ScalarCallbackFunction::operator=(ScalarCallbackFunction &&other) {
-  if (this != &other) {
-    _callback_func = std::move(other._callback_func);
-  }
-  return *this;
-}
-
-std::complex<double> ScalarCallbackFunction::operator()(
-    const std::unordered_map<std::string, std::complex<double>> &parameters)
-    const {
-  return _callback_func(parameters);
+std::complex<double>
+ScalarCallbackFunction::operator()(const std::unordered_map<std::string, std::complex<double>> &parameters) const {
+  return this->callback_func(parameters);
 }
 
 // MatrixCallbackFunction
 
-MatrixCallbackFunction::MatrixCallbackFunction(
-    const MatrixCallbackFunction &other) {
-  _callback_func = other._callback_func;
-}
-
-MatrixCallbackFunction::MatrixCallbackFunction(MatrixCallbackFunction &&other) {
-  _callback_func = std::move(other._callback_func);
-}
-
-MatrixCallbackFunction &
-MatrixCallbackFunction::operator=(const MatrixCallbackFunction &other) {
-  if (this != &other) {
-    _callback_func = other._callback_func;
-  }
-  return *this;
-}
-
-MatrixCallbackFunction &
-MatrixCallbackFunction::operator=(MatrixCallbackFunction &&other) {
-  if (this != &other) {
-    _callback_func = std::move(other._callback_func);
-  }
-  return *this;
-}
-
-matrix_2 MatrixCallbackFunction::operator()(
-    const std::vector<int> &relevant_dimensions,
-    const std::unordered_map<std::string, std::complex<double>> &parameters)
-    const {
-  return _callback_func(relevant_dimensions, parameters);
+matrix_2
+MatrixCallbackFunction::operator()(const std::vector<int> &relevant_dimensions,
+                                   const std::unordered_map<std::string, std::complex<double>> &parameters) const {
+  return this->callback_func(relevant_dimensions, parameters);
 }
 
 // Definition

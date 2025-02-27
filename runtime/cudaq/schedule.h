@@ -21,15 +21,15 @@ namespace cudaq {
 /// steps.
 class Schedule {
 private:
-  std::vector<double> _steps;
-  std::vector<std::string> _parameters;
-  std::function<std::complex<double>(const std::string &, double)>
-      _value_function;
+  pointer ptr;
+  std::vector<std::complex<double>> steps;
+  std::vector<std::string> parameters;
+  std::function<std::complex<double>(const std::string &,
+                                     const std::complex<double> &)> value_function;
+  int current_idx;
 
 public:
-  /// @brief Range-based iterator begin function
-  /// @return
-  std::vector<double>::iterator begin() { return _steps.begin(); }
+  Schedule(pointer ptr) : ptr(ptr){};
 
   /// @brief Range-based iterator end function
   /// @return
@@ -68,10 +68,55 @@ public:
   /// @details current_idx: Intializes the current index (_current_idx) to -1 to
   /// indicate that iteration has not yet begun. Once iteration starts,
   /// _current_idx will be used to track the position in the sequence of steps.
-  Schedule(const std::vector<double> &steps,
-           const std::vector<std::string> &parameters = {},
-           std::function<std::complex<double>(const std::string &, double)>
-               value_function = {});
-  Schedule() = default;
+  Schedule(const std::vector<std::complex<double>> &steps,
+           const std::vector<std::string> &parameters,
+           const std::function<std::complex<double>(const std::string &,
+                                              const std::complex<double> &)>
+               &value_function);
+
+  /// Below, I define what I believe are the minimal necessary methods needed
+  /// for this to behave like an iterable. This should be revisited in the
+  /// implementation phase.
+
+  // Pointers.
+  /// @brief `Dereference` operator to access the current step value.
+  /// @return Reference to current complex step value.
+  reference operator*() const;
+
+  /// @brief Arrow operator to access the pointer the current step value.
+  /// @return Pointer to the current complex step value.
+  pointer operator->();
+
+  // Prefix increment.
+  /// @brief Prefix increment operator to move to the next step in the schedule.
+  /// @return Reference to the updated Schedule object.
+  Schedule &operator++();
+
+  // Postfix increment.
+  /// @brief `Postfix` increment operator to move to the next step in the
+  /// schedule.
+  /// @return Copy of the previous Schedule state.
+  Schedule operator++(int);
+
+  // Comparison.
+  /// @brief Equality comparison operator.
+  /// @param a: First Schedule object.
+  /// @param b: Second Schedule object.
+  /// @return True if both schedules point to the same step, false otherwise
+  friend bool operator==(const Schedule &a, const Schedule &b);
+
+  /// @brief Inequality comparison operator.
+  /// @param a: First Schedule object.
+  /// @param b: Second Schedule object.
+  /// @return True if both schedules point to different steps, false otherwise
+  friend bool operator!=(const Schedule &a, const Schedule &b);
+
+  /// @brief Reset the schedule iterator to the beginning.
+  void reset();
+
+  /// @brief Get the current step in the schedule.
+  /// @return The current complex step value as an optional. If no valid step,
+  /// returns std::nullopt.
+  std::optional<std::complex<double>> current_step() const;
 };
 } // namespace cudaq

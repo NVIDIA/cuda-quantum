@@ -13,21 +13,64 @@
 namespace cudaq {
 
 // Constructor
-Schedule::Schedule(
-    const std::vector<double> &steps,
-    const std::vector<std::string> &parameters,
-    std::function<std::complex<double>(const std::string &, double)>
-        value_function)
-    : _steps(steps), _parameters(parameters), _value_function(value_function) {
-  if (!_value_function) {
-    _value_function = [&](const std::string &paramName,
-                          double value) -> std::complex<double> {
-      if (std::find(_parameters.begin(), _parameters.end(), paramName) ==
-          _parameters.end())
-        throw std::runtime_error("Unknown parameter named " + paramName);
+Schedule::Schedule(const std::vector<std::complex<double>> &steps,
+                   const std::vector<std::string> &parameters,
+                   const std::function<std::complex<double>(
+                       const std::string &, const std::complex<double> &)> &value_function)
+: steps(steps), parameters(parameters), value_function(value_function), current_idx(-1) {
+  if (!steps.empty()) ptr = &this->steps[0];
+  else ptr = nullptr;
+}
 
-      return value;
-    };
+// Dereference operator
+Schedule::reference Schedule::operator*() const { return *ptr; }
+
+// Arrow operator
+Schedule::pointer Schedule::operator->() { return ptr; }
+
+// Prefix increment
+Schedule &Schedule::operator++() {
+  if (current_idx + 1 < static_cast<int>(steps.size())) {
+    current_idx++;
+    ptr = &steps[current_idx];
+  } else {
+    throw std::out_of_range("No more steps in the schedule.");
+  }
+  return *this;
+}
+
+// Postfix increment
+Schedule Schedule::operator++(int) {
+  Schedule tmp = *this;
+  ++(*this);
+  return tmp;
+}
+
+// Comparison operators
+bool operator==(const Schedule &a, const Schedule &b) {
+  return a.ptr == b.ptr;
+};
+
+bool operator!=(const Schedule &a, const Schedule &b) {
+  return a.ptr != b.ptr;
+};
+
+// Reset schedule
+void Schedule::reset() {
+  current_idx = -1;
+  if (!steps.empty()) {
+    ptr = &steps[0];
+  } else {
+    ptr = nullptr;
   }
 }
+
+// Get the current step
+std::optional<std::complex<double>> Schedule::current_step() const {
+  if (current_idx >= 0 && current_idx < static_cast<int>(steps.size())) {
+    return steps[current_idx];
+  }
+  return std::nullopt;
+}
+
 } // namespace cudaq
