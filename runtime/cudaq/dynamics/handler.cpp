@@ -6,14 +6,49 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include <complex>
 #include <set>
+#include <unordered_map>
 #include <vector>
 #include "cudaq/utils/tensor.h"
 #include "operator_leafs.h"
 
 namespace cudaq {
 
-// implementation for operator_handler::matrix_evaluation
+// commutation_relations
+
+std::unordered_map<uint, std::complex<double>> commutation_relations::exchange_factors = {
+  {-1, 1.}, // default relation
+  {-2, -1.}, // fermion relation
+};
+
+void commutation_relations::define(uint group_id, std::complex<double> exchange_factor) {
+  auto result = commutation_relations::exchange_factors.insert({group_id, exchange_factor});
+  if (!result.second)
+    throw std::invalid_argument("commutation relations for group id '" 
+                                  + std::to_string(group_id) + "' are already defined");
+}
+
+std::complex<double> commutation_relations::commutation_factor() const {
+  auto it = commutation_relations::exchange_factors.find(id);
+  assert(it != commutation_relations::exchange_factors.cend());
+  return it->second;
+}
+
+bool commutation_relations::operator==(const commutation_relations &other) const {
+  return this->id == other.id;
+}
+
+// operator_handler
+
+commutation_relations operator_handler::custom_commutation_relations(uint id) {
+  auto it = commutation_relations::exchange_factors.find(id);
+  if (it == commutation_relations::exchange_factors.cend()) 
+    throw std::range_error("no commutation relations with id '" + std::to_string(id) + "' has been defined");
+  return commutation_relations(id);
+}
+
+// operator_handler::matrix_evaluation
 
 operator_handler::matrix_evaluation::matrix_evaluation() = default;
 
@@ -38,7 +73,7 @@ operator_handler::matrix_evaluation& operator_handler::matrix_evaluation::operat
   return *this;
 }
 
-// implementation for operator_handler::canonical_evaluation
+// operator_handler::canonical_evaluation
 
 operator_handler::canonical_evaluation::canonical_evaluation() = default;
 

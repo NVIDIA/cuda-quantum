@@ -74,6 +74,11 @@ public:
   template<typename T, std::enable_if_t<!std::is_same<T, HandlerTy>::value && std::is_constructible<HandlerTy, T>::value, bool> = true>
   operator_sum(const operator_sum<T> &other);
 
+  template<typename T, std::enable_if_t<std::is_same<HandlerTy, matrix_operator>::value &&
+                                        !std::is_same<T, HandlerTy>::value && 
+                                        std::is_constructible<HandlerTy, T>::value, bool> = true>
+  operator_sum(const operator_sum<T> &other, const matrix_operator::commutation_behavior &behavior);
+
   // copy constructor
   operator_sum(const operator_sum<HandlerTy> &other, int size = 0);
 
@@ -340,6 +345,11 @@ public:
 
   template<typename T, std::enable_if_t<!std::is_same<T, HandlerTy>::value && std::is_constructible<HandlerTy, T>::value, bool> = true>
   product_operator(const product_operator<T> &other);
+
+  template<typename T, std::enable_if_t<std::is_same<HandlerTy, matrix_operator>::value &&
+                                        !std::is_same<T, HandlerTy>::value && 
+                                        std::is_constructible<HandlerTy, T>::value, bool> = true>
+  product_operator(const product_operator<T> &other, const matrix_operator::commutation_behavior &behavior);
 
   // copy constructor
   product_operator(const product_operator<HandlerTy> &other, int size = 0);

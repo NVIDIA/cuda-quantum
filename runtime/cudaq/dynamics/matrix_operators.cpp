@@ -46,7 +46,7 @@ void matrix_operator::define(std::string operator_id, std::vector<int> expected_
 }
 
 product_operator<matrix_operator> matrix_operator::instantiate(
-    std::string operator_id, const std::vector<int> &degrees, const std::pair<int, bool> &commutation_behavior) {
+    std::string operator_id, const std::vector<int> &degrees, const commutation_behavior &commutation_behavior) {
   auto it = matrix_operator::defined_ops.find(operator_id);
   if (it == matrix_operator::defined_ops.end()) 
     throw std::range_error("not matrix operator with the name '" + operator_id + "' has been defined");
@@ -64,7 +64,7 @@ product_operator<matrix_operator> matrix_operator::instantiate(
 }
 
 product_operator<matrix_operator> matrix_operator::instantiate(
-    std::string operator_id, std::vector<int> &&degrees, const std::pair<int, bool> &commutation_behavior) {
+    std::string operator_id, std::vector<int> &&degrees, const commutation_behavior &commutation_behavior) {
   auto it = matrix_operator::defined_ops.find(operator_id);
   if (it == matrix_operator::defined_ops.end()) 
     throw std::range_error("not matrix operator with the name '" + operator_id + "' has been defined");
@@ -115,10 +115,6 @@ std::string matrix_operator::unique_id() const {
   return std::move(str);
 }
 
-const int matrix_operator::get_set_id() const {
-  return this->set_id;
-}
-
 std::vector<int> matrix_operator::degrees() const {
   return this->targets;
 }
@@ -126,7 +122,7 @@ std::vector<int> matrix_operator::degrees() const {
 // constructors
 
 matrix_operator::matrix_operator(int degree)
-  : op_code("I"), anti_commutes(false), set_id(0) {
+  : op_code("I"), commutes(true), group(operator_handler::default_commutation_relations) {
   this->targets.push_back(degree);
   if (matrix_operator::defined_ops.find(this->op_code) == matrix_operator::defined_ops.end()) {
     auto func = [](const std::vector<int> &dimensions,
@@ -144,42 +140,45 @@ matrix_operator::matrix_operator(int degree)
   }
 }
 
-matrix_operator::matrix_operator(std::string operator_id, const std::vector<int> &degrees, const std::pair<int, bool> &commutation_behavior)
-  : op_code(operator_id), anti_commutes(commutation_behavior.second), set_id(commutation_behavior.first), targets(degrees) {
+matrix_operator::matrix_operator(std::string operator_id, const std::vector<int> &degrees, const commutation_behavior &commutation_behavior)
+  : op_code(operator_id), commutes(commutation_behavior.commutes_across_degrees), group(commutation_behavior.group), targets(degrees) {
     assert(this->targets.size() > 0);
-    if (commutation_behavior.second && this->targets.size() > 1)
-      // We cannot support this with the current mechanism for achieving anti-commutation relations. 
-      // See also the comment in the `find_insert_at` template for product operators. We still want 
-      // to stick with that mechanism, since it is by far more performant than achieving anti-commutation
-      // via phase operator instead.
+    if (!commutation_behavior.commutes_across_degrees && this->targets.size() > 1)
+      // We cannot support this with the current mechanism for achieving non-trivial commutation relations
+      // for operators acting on different degrees. See also the comment in the `find_insert_at` template 
+      // for product operators. We still want to stick with that mechanism, since it is more general and 
+      // by far more performant than e.g. achieving anti-commutation via phase operator instead.
       // It should be fine, however, for a multi-qubit operator to belong to a non-zero commutation set
       // as long as the operator itself commutes with all operators acting on different degrees (as 
       // indicated by teh boolean value of commutation_behavior); this effectively "marks" the degrees 
       // that the operator acts on as being a certain kind of particles.
-      throw std::runtime_error("anti-commuting behavior is not supported for multi-target operators");
+      throw std::runtime_error("non-trivial commutation behavior is not supported for multi-target operators");
   }
 
-matrix_operator::matrix_operator(std::string operator_id, std::vector<int> &&degrees, const std::pair<int, bool> &commutation_behavior)
-  : op_code(operator_id), anti_commutes(commutation_behavior.second), set_id(commutation_behavior.first), targets(std::move(degrees)) {
+matrix_operator::matrix_operator(std::string operator_id, std::vector<int> &&degrees, const commutation_behavior &commutation_behavior)
+  : op_code(operator_id), commutes(commutation_behavior.commutes_across_degrees), group(commutation_behavior.group), targets(std::move(degrees)) {
     assert(this->targets.size() > 0);
-    if (commutation_behavior.second && this->targets.size() > 1)
-      // We cannot support this with the current mechanism for achieving anti-commutation relations. 
-      // See also the comment in the `find_insert_at` template for product operators. We still want 
-      // to stick with that mechanism, since it is by far more performant than achieving anti-commutation
-      // via phase operator instead.
+    if (!commutation_behavior.commutes_across_degrees && this->targets.size() > 1)
+      // We cannot support this with the current mechanism for achieving non-trivial commutation relations
+      // for operators acting on different degrees. See also the comment in the `find_insert_at` template 
+      // for product operators. We still want to stick with that mechanism, since it is more general and 
+      // by far more performant than e.g. achieving anti-commutation via phase operator instead.
       // It should be fine, however, for a multi-qubit operator to belong to a non-zero commutation set
       // as long as the operator itself commutes with all operators acting on different degrees (as 
       // indicated by teh boolean value of commutation_behavior); this effectively "marks" the degrees 
       // that the operator acts on as being a certain kind of particles.
-      throw std::runtime_error("anti-commuting behavior is not supported for multi-target operators");
+      throw std::runtime_error("non-trivial commutation behavior is not supported for multi-target operators");
   }
 
 template<typename T, std::enable_if_t<std::is_base_of_v<operator_handler, T>, bool>>
-matrix_operator::matrix_operator(const T &other) {
-  this->op_code = matrix_operator::type_prefix<T>() + other.to_string(false);
-  this->anti_commutes = other.is_anti_commuting;
-  this->set_id = other.get_set_id();
-  this->targets = other.degrees();
+matrix_operator::matrix_operator(const T &other) 
+:  matrix_operator::matrix_operator(other, commutation_behavior(other.commutation_group, other.commutes_across_degrees)) {}
+
+template<typename T, std::enable_if_t<std::is_base_of_v<operator_handler, T>, bool> = true>
+matrix_operator::matrix_operator(const T &other, const commutation_behavior &behavior) 
+: op_code(matrix_operator::type_prefix<T>() + other.to_string(false)), 
+  commutes(behavior.commutes_across_degrees), group(behavior.group), 
+  targets(other.degrees()) {
   if (matrix_operator::defined_ops.find(this->op_code) == matrix_operator::defined_ops.end()) {
     auto func = [other]
       (const std::vector<int> &dimensions, const std::unordered_map<std::string, std::complex<double>> &_none) {
@@ -199,19 +198,33 @@ template matrix_operator::matrix_operator(const spin_operator &other);
 template matrix_operator::matrix_operator(const boson_operator &other);
 template matrix_operator::matrix_operator(const fermion_operator &other);
 
+template matrix_operator::matrix_operator(const spin_operator &other, const commutation_behavior &behavior);
+template matrix_operator::matrix_operator(const boson_operator &other, const commutation_behavior &behavior);
+template matrix_operator::matrix_operator(const fermion_operator &other, const commutation_behavior &behavior);
+
 matrix_operator::matrix_operator(const matrix_operator &other)
-  : op_code(other.op_code), anti_commutes(other.anti_commutes), set_id(other.set_id), targets(other.targets) {}
+  : op_code(other.op_code), commutes(other.commutes), group(other.group), targets(other.targets) {}
 
 matrix_operator::matrix_operator(matrix_operator &&other) 
-  : op_code(other.op_code), anti_commutes(other.anti_commutes), set_id(other.set_id), targets(std::move(other.targets)) {}
+  : op_code(other.op_code), commutes(other.commutes), group(std::move(other.group)), targets(std::move(other.targets)) {}
 
 // assignments
+
+matrix_operator& matrix_operator::operator=(matrix_operator&& other) {
+  if (this != &other) {
+    this->op_code = other.op_code;
+    this->commutes = other.commutes;
+    this->group = std::move(other.group);
+    this->targets = std::move(other.targets);
+  }
+  return *this;
+}
 
 matrix_operator& matrix_operator::operator=(const matrix_operator& other) {
   if (this != &other) {
     this->op_code = other.op_code;
-    this->anti_commutes = other.anti_commutes;
-    this->set_id = other.set_id;
+    this->commutes = other.commutes;
+    this->group = other.group;
     this->targets = other.targets;
   }
   return *this;
@@ -226,16 +239,6 @@ matrix_operator& matrix_operator::operator=(const T& other) {
 template matrix_operator& matrix_operator::operator=(const spin_operator& other);
 template matrix_operator& matrix_operator::operator=(const boson_operator& other);
 template matrix_operator& matrix_operator::operator=(const fermion_operator& other);
-
-matrix_operator& matrix_operator::operator=(matrix_operator &&other) {
-  if (this != &other) {
-    this->op_code = other.op_code;
-    this->anti_commutes = other.anti_commutes;
-    this->set_id = other.set_id;
-    this->targets = std::move(other.targets);
-  }
-  return *this;
-}
 
 // evaluations
 
@@ -281,8 +284,9 @@ std::string matrix_operator::to_string(bool include_degrees) const {
 // comparisons
 
 bool matrix_operator::operator==(const matrix_operator &other) const {
-  return this->op_code == other.op_code &&  // no need to compare anti_commutes (should be determined by op_code)
-         this->set_id == other.set_id && 
+  return this->op_code == other.op_code && 
+         this->group == other.group && 
+         // no need to compare commutes (should be determined by op_code and commutation group)
          this->targets == other.targets;
 }
 

@@ -210,6 +210,21 @@ operator_sum<HandlerTy>::operator_sum(const operator_sum<T> &other)
 }
 
 template<typename HandlerTy>
+template<typename T, std::enable_if_t<std::is_same<HandlerTy, matrix_operator>::value &&
+                                      !std::is_same<T, HandlerTy>::value && 
+                                      std::is_constructible<HandlerTy, T>::value, bool>>
+operator_sum<HandlerTy>::operator_sum(const operator_sum<T> &other, const matrix_operator::commutation_behavior &behavior)
+: coefficients(other.coefficients) {
+  this->term_map.reserve(other.terms.size());
+  this->terms.reserve(other.terms.size());
+  for (const auto &operators : other.terms) {
+    product_operator<HandlerTy> term(product_operator<T>(1., operators), behavior); // coefficient does not matter
+    this->term_map.insert(this->term_map.cend(), std::make_pair(term.get_term_id(), this->terms.size()));
+    this->terms.push_back(std::move(term.operators));
+  }
+}
+
+template<typename HandlerTy>
 operator_sum<HandlerTy>::operator_sum(const operator_sum<HandlerTy> &other, int size) {
   if (size <= 0) {
     this->coefficients = other.coefficients;
@@ -267,6 +282,15 @@ template
 operator_sum<matrix_operator>::operator_sum(const operator_sum<boson_operator> &other);
 template 
 operator_sum<matrix_operator>::operator_sum(const operator_sum<fermion_operator> &other);
+template 
+operator_sum<matrix_operator>::operator_sum(const operator_sum<spin_operator> &other,
+                                            const matrix_operator::commutation_behavior &behavior);
+template 
+operator_sum<matrix_operator>::operator_sum(const operator_sum<boson_operator> &other,
+                                            const matrix_operator::commutation_behavior &behavior);
+template 
+operator_sum<matrix_operator>::operator_sum(const operator_sum<fermion_operator> &other,
+                                            const matrix_operator::commutation_behavior &behavior);
 
 INSTANTIATE_SUM_CONSTRUCTORS(matrix_operator);
 INSTANTIATE_SUM_CONSTRUCTORS(spin_operator);
