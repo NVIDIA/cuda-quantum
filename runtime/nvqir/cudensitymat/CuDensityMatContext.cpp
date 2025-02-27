@@ -21,11 +21,8 @@ static std::mutex g_contextMutex;
 namespace cudaq {
 namespace dynamics {
 
-/**
- * @brief Get the current CUDA context for the active device.
- *
- * @return Context* Pointer to the current context.
- */
+/// @brief Get the current CUDA context for the active device.
+/// @return Context* Pointer to the current context.
 Context *Context::getCurrentContext() {
   int currentDevice = -1;
   HANDLE_CUDA_ERROR(cudaGetDevice(&currentDevice));
@@ -43,12 +40,9 @@ Context *Context::getCurrentContext() {
   return iter->second.get();
 }
 
-/**
- * @brief Get or allocate scratch space on the device.
- *
- * @param minSizeBytes Minimum size of the scratch space in bytes.
- * @return void* Pointer to the scratch space.
- */
+/// @brief Get or allocate scratch space on the device.
+/// @arg minSizeBytes Minimum size of the scratch space in bytes.
+/// @return void* Pointer to the scratch space.
 void *Context::getScratchSpace(std::size_t minSizeBytes) {
   if (minSizeBytes > m_scratchSpaceSizeBytes) {
     // Realloc
@@ -65,11 +59,8 @@ void *Context::getScratchSpace(std::size_t minSizeBytes) {
   return m_scratchSpace;
 }
 
-/**
- * @brief Get the recommended workspace limit based on available memory.
- *
- * @return std::size_t Recommended workspace limit in bytes.
- */
+/// @brief Get the recommended workspace limit based on available memory.
+/// @return std::size_t Recommended workspace limit in bytes.
 std::size_t Context::getRecommendedWorkSpaceLimit() {
   std::size_t freeMem = 0, totalMem = 0;
   HANDLE_CUDA_ERROR(cudaMemGetInfo(&freeMem, &totalMem));
@@ -78,11 +69,8 @@ std::size_t Context::getRecommendedWorkSpaceLimit() {
   return freeMem;
 }
 
-/**
- * @brief Construct a new Context object for a specific device.
- *
- * @param deviceId ID of the CUDA device.
- */
+/// @brief Construct a new Context object for a specific device.
+/// @arg deviceId ID of the CUDA device.
 Context::Context(int deviceId) : m_deviceId(deviceId) {
   HANDLE_CUDA_ERROR(cudaSetDevice(deviceId));
   HANDLE_CUDM_ERROR(cudensitymatCreate(&m_cudmHandle));
@@ -90,9 +78,7 @@ Context::Context(int deviceId) : m_deviceId(deviceId) {
   m_opConverter = std::make_unique<OpConverter>(m_cudmHandle);
 }
 
-/**
- * @brief Destroy the Context object and release resources.
- */
+/// @brief Destroy the Context object and release resources.
 Context::~Context() {
   m_opConverter.reset();
   cudensitymatDestroy(m_cudmHandle);
