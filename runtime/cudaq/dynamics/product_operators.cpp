@@ -84,10 +84,10 @@ product_operator<matrix_operator>::find_insert_at(
   // general is having an non-trivial commutation relation for multi- target
   // operators. The matrix operator class should fail to construct such an
   // operator.
-  std::complex<double> commutation_factor = 1.;
+  int nr_permutations = 0;
   auto rit = std::find_if(
       this->operators.crbegin(), this->operators.crend(),
-      [&commutation_factor,
+      [&nr_permutations,
        &other_degrees = static_cast<const std::vector<int> &>(other.degrees()),
        &other](const matrix_operator &self_op) {
         const std::vector<int> &self_op_degrees = self_op.degrees();
@@ -122,12 +122,13 @@ product_operator<matrix_operator>::find_insert_at(
                      other.commutation_group !=
                          operator_handler::default_commutation_relations &&
                      self_op.commutation_group == other.commutation_group)
-            commutation_factor *= other.commutation_group.commutation_factor();
+            nr_permutations += 1;
         }
         return false;
       });
-  if (commutation_factor != 1.)
-    this->coefficient *= commutation_factor;
+  if (nr_permutations != 0)
+    this->coefficient *=
+        other.commutation_group.commutation_factor() * (double)nr_permutations;
   return rit.base(); // base causes insert after for reverse iterator
 }
 
