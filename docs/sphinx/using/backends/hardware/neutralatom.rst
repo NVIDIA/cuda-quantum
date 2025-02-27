@@ -133,12 +133,14 @@ Submitting
 Pasqal
 ++++++++++++++++
 
-Pasqal is a quantum computing hardware company that builds quantum processors from ordered neutral atoms in 2D and 3D arrays to bring a practical quantum advantage to its customers and address real-world problems.
-The currently available Pasqal QPUs are analog quantum computers.
+Pasqal is a quantum computing hardware company that builds quantum processors from ordered neutral atoms in 2D and 3D
+arrays to bring a practical quantum advantage to its customers and address real-world problems.
+The currently available Pasqal QPUs are analog quantum computers, and one, named Fresnel, is available through our cloud
+portal.
 
 In order to access Pasqal's devices you need an account for `Pasqal's cloud platform <https://portal.pasqal.cloud>`__
-and an active project. Although a different interface `Pasqal's Pulser library <https://pulser.readthedocs.io/en/latest/>`__ is a good
-way of getting started with analog neutral atom quantum computing. For support you can also use `Pasqal Community <https://community.pasqal.com/>`__.
+and an active project. Although a different interface, `Pasqal's Pulser library <https://pulser.readthedocs.io/en/latest/>`__, is a good
+resource for getting started with analog neutral atom quantum computing. For support you can also use `Pasqal Community <https://community.pasqal.com/>`__.
 
 
 .. _pasqal-backend:
