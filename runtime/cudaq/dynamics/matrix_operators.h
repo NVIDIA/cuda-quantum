@@ -17,7 +17,22 @@
 
 namespace cudaq {
 
-class matrix_operator : public operator_handler {
+class matrix_operator : public operator_handler{
+public:
+  struct commutation_behavior {
+    commutation_relations group = operator_handler::default_commutation_relations;
+    bool commutes_across_degrees = true;
+
+    commutation_behavior() {
+      this->group = operator_handler::default_commutation_relations;
+      this->commutes_across_degrees = true;
+    }
+  
+    commutation_behavior(commutation_relations commutation_group, bool commutes_across_degrees) {
+      this->group = commutation_group;
+      this->commutes_across_degrees = commutes_across_degrees;
+    }
+  };
 
 private:
   static std::unordered_map<std::string, Definition> defined_ops;
@@ -31,14 +46,14 @@ private:
 
 protected:
   std::string op_code;
-  bool anti_commutes;
-  int set_id;
+  commutation_relations group;
+  bool commutes;
   std::vector<int> targets;
 
   matrix_operator(std::string operator_id, const std::vector<int> &degrees, 
-                  const std::pair<int, bool> &commutation_behavior = {0, 0});
+                  const commutation_behavior &behavior = commutation_behavior());
   matrix_operator(std::string operator_id, std::vector<int> &&degrees, 
-                  const std::pair<int, bool> &commutation_behavior = {0, 0});
+                  const commutation_behavior &behavior = commutation_behavior());
 
 public:
 #if !defined(NDEBUG)
@@ -83,21 +98,22 @@ public:
   /// @arg operator_id : The ID of the operator as specified when it was
   /// defined.
   /// @arg degrees : the degrees of freedom that the operator acts upon.
-  static product_operator<matrix_operator> instantiate(std::string operator_id, const std::vector<int> &degrees, const std::pair<int, bool> &commutation_behavior = {0, 0});
+  static product_operator<matrix_operator> instantiate(std::string operator_id, const std::vector<int> &degrees, 
+                                                       const commutation_behavior &behavior = commutation_behavior());
 
   /// @brief Instantiates a custom operator.
   /// @arg operator_id : The ID of the operator as specified when it was
   /// defined.
   /// @arg degrees : the degrees of freedom that the operator acts upon.
-  static product_operator<matrix_operator> instantiate(std::string operator_id, std::vector<int> &&degrees, const std::pair<int, bool> &commutation_behavior = {0, 0});
+  static product_operator<matrix_operator> instantiate(std::string operator_id, std::vector<int> &&degrees, 
+                                                       const commutation_behavior &behavior = commutation_behavior());
 
   // read-only properties
 
-  const bool& is_anti_commuting = this->anti_commutes;
+  const commutation_relations& commutation_group = this->group;
+  const bool& commutes_across_degrees = this->commutes;
 
   virtual std::string unique_id() const;
-
-  virtual const int get_set_id() const;
 
   virtual std::vector<int> degrees() const;
 
@@ -109,6 +125,9 @@ public:
                                          bool> = true>
   matrix_operator(const T &other);
 
+  template<typename T, std::enable_if_t<std::is_base_of_v<operator_handler, T>, bool> = true>
+  matrix_operator(const T &other, const commutation_behavior &behavior);
+
   // copy constructor
   matrix_operator(const matrix_operator &other);
 
@@ -119,17 +138,13 @@ public:
 
   // assignments
 
-  template <typename T,
-            std::enable_if_t<!std::is_same<T, matrix_operator>::value &&
-                                 std::is_base_of_v<operator_handler, T>,
-                             bool> = true>
-  matrix_operator &operator=(const T &other);
+  matrix_operator& operator=(matrix_operator &&other);
 
-  // assignment operator
-  matrix_operator &operator=(const matrix_operator &other);
+  matrix_operator& operator=(const matrix_operator& other);
 
-  // move assignment operator
-  matrix_operator &operator=(matrix_operator &&other);
+  template<typename T, std::enable_if_t<!std::is_same<T, matrix_operator>::value && std::is_base_of_v<operator_handler, T>, bool> = true>
+  matrix_operator& operator=(const T& other);
+
 
   // evaluations
 

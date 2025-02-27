@@ -47,8 +47,6 @@ public:
 
   virtual std::string unique_id() const;
 
-  virtual const int get_set_id() const;
-
   virtual std::vector<int> degrees() const;
 
   // constructors and destructors

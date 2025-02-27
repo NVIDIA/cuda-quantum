@@ -36,7 +36,7 @@ private:
   // 8 = 1000 = N
   // 9 = 1001 = I
   int8_t op_code;
-  bool anti_commutes;
+  bool commutes;
   int target;
 
   // Note that this constructor is chosen to be independent
@@ -58,13 +58,13 @@ private:
 
 public:
 
+  static constexpr commutation_relations commutation_group = operator_handler::fermion_commutation_relations;
+
   // read-only properties
 
-  const bool& is_anti_commuting = this->anti_commutes;
+  const bool& commutes_across_degrees = this->commutes;
 
   virtual std::string unique_id() const;
-
-  virtual const int get_set_id() const;
 
   virtual std::vector<int> degrees() const;
 

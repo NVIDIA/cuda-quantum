@@ -19,7 +19,7 @@ set(CUDAQ_OPS_SRC
   matrix_operators.cpp 
   product_operators.cpp 
   operator_sum.cpp 
-  evaluation.cpp
+  handler.cpp
   schedule.cpp
   helpers.cpp
 )
