@@ -9,6 +9,7 @@
 // RUN: nvq++ --target quantinuum %s -o %t && %t |& FileCheck %s
 
 #include <cudaq.h>
+#include <cstdio>
 
 struct Qernel_A {
   void operator()(std::vector<double> angles,
@@ -24,6 +25,7 @@ int main() {
   Qernel_A a;
   std::vector<double> v = {1.0, 2.0};
   std::vector<cudaq::pauli_word> p = {"XYZ", "IXX"};
+  printf("calling sample\n");
   cudaq::sample(a, v, p);
   return 0;
 }
