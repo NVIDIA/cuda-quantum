@@ -50,26 +50,26 @@ def train_transformer(
     Train a transformer model with either classical or quantum attention.
 
     Args:
-        training_data (str): Path to the training data CSV file.
-        checkpoint_dir (str): Directory to save model checkpoints.
-        checkpoint_resume_path (Optional[str]): Path to resume training from a checkpoint.
+        training_data (`str`): Path to the training data CSV file.
+        `checkpoint_dir` (`str`): Directory to save model checkpoints.
+        checkpoint_resume_path (Optional[`str`]): Path to resume training from a checkpoint.
         learning_rate (float): Learning rate for the optimizer.
         weight_decay (float): Weight decay for the optimizer.
         batch_size (int): Batch size for training.
         epochs (int): Number of epochs to train.
         save_every_n_batches (int): Frequency to save batch-level model checkpoints.
         validation_split (float): Fraction of data used for validation.
-        attn_type (str): Use classical attention or quantum attention ('classical' or 'quantum').
-        num_qubits (int): Number of working qubits in the quantum attention layer.
+        attn_type (`str`): Use classical attention or quantum attention ('classical' or 'quantum').
+        `num_qubits` (int): Number of working qubits in the quantum attention layer.
         ansatz_layers (int): Number of layers in the quantum ansatz.
-        conditional_training (bool): Whether to train with physicochemical properties.
-        quantum_gradient_method (str): Quantum gradient method ('spsa' or 'parameter-shift').
-        spsa_epsilon (float): Epsilon value for SPSA optimization.
-        sample_percentage (float): Fraction of dataset used for training.
-        seed (int): Random seed for reproducibility.
+        conditional_training (bool): Whether to train with `physicochemical` properties.
+        quantum_gradient_method (`str`): Quantum gradient method ('`spsa`' or 'parameter-shift').
+        `spsa_epsilon` (float): Epsilon value for `SPSA` optimization.
+        sample_percentage (float): Fraction of `dataset` used for training.
+        seed (int): Random seed for `reproducibility`.
         classical_parameter_reduction (bool): Ensure the number of classical parameters is equal to the number of quantum parameters.
-        device (str): Device for training, either 'cpu' or 'gpu'.
-        qpu_count (int): Number of GPUs to use (-1 = all available GPUs).
+        device (`str`): Device for training, either '`cpu`' or '`gpu`'.
+        `qpu_count` (int): Number of GPUs to use (-1 = all available GPUs).
 
     Returns:
         None
@@ -104,10 +104,10 @@ def train_transformer(
 
     # Check if there are any discrepancies in the training configuration if resuming from a checkpoint
     assert check_training_configuration(
-        checkpoint_resume_path, training_configuration
-    ), "Training configuration mismatch."
+        checkpoint_resume_path,
+        training_configuration), "Training configuration mismatch."
 
-    # Set random seeds for reproducibility
+    # Set random seeds for `reproducibility`
     set_random_seeds(seed)
 
     # Ensure requested parameters are valid
@@ -127,18 +127,16 @@ def train_transformer(
     qpu_count = configure_quantum_target(device, qpu_count)
 
     # Set device for PyTorch
-    torch_device: torch.device = torch.device(
-        "cuda:0" if (device == "gpu" and torch.cuda.is_available()) else "cpu"
-    )
+    torch_device: torch.device = torch.device("cuda:0" if (
+        device == "gpu" and torch.cuda.is_available()) else "cpu")
     logger.info(f"Using device: {torch_device}")
 
     # Ensure training data is available
     ensure_training_data(training_data)
 
-    # Load and split dataset
+    # Load and split `dataset`
     train_dataset, val_dataset, dataset = prepare_datasets(
-        training_data, sample_percentage, validation_split, seed
-    )
+        training_data, sample_percentage, validation_split, seed)
 
     # Save SMILES strings
     save_smiles_strings(train_dataset, val_dataset, dataset, train_id)
@@ -158,28 +156,27 @@ def train_transformer(
         checkpoint_resume_path,
     )
 
-    # Initialize optimizer, scaler, and loss function
-    optimizer = AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+    # Initialize optimizer, `scaler`, and loss function
+    optimizer = AdamW(model.parameters(),
+                      lr=learning_rate,
+                      weight_decay=weight_decay)
     scaler = torch.amp.GradScaler("cuda")
     loss_function = CrossEntropyLoss(ignore_index=-1)
     logger.info("Optimizer, scaler, and loss function initialized.")
 
     # Load checkpoint if provided, otherwise initializes the empty training metrics
     starting_epoch, start_batch, metrics, train_id = checkpoint_resume_path_function(
-        checkpoint_resume_path, model, optimizer, scaler, train_id
-    )
+        checkpoint_resume_path, model, optimizer, scaler, train_id)
 
     # Create data loaders
-    train_loader, val_loader = create_data_loaders(
-        train_dataset, val_dataset, batch_size
-    )
+    train_loader, val_loader = create_data_loaders(train_dataset, val_dataset,
+                                                   batch_size)
 
     if checkpoint_resume_path:
         train_loader.load_state_dict(
-            torch.load(checkpoint_resume_path, map_location="cpu", weights_only=False)[
-                "train_loader_state"
-            ]
-        )
+            torch.load(checkpoint_resume_path,
+                       map_location="cpu",
+                       weights_only=False)["train_loader_state"])
 
     # Start training loop
     logger.info("Starting training...")
@@ -202,7 +199,7 @@ def train_transformer(
 
 
 def set_random_seeds(seed: int) -> None:
-    """Set random seeds for reproducibility."""
+    """Set random seeds for `reproducibility`."""
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
@@ -213,7 +210,8 @@ def set_random_seeds(seed: int) -> None:
     os.environ["OMP_NUM_THREADS"] = "1"
     os.environ["MKL_NUM_THREADS"] = "1"
     logger.debug(f"Random seeds set to: {seed}")
-    logger.info("Note reproducability between device architectures is not garunteed.")
+    logger.info(
+        "Note reproducability between device architectures is not garunteed.")
 
 
 def validate_parameters(
@@ -229,10 +227,11 @@ def validate_parameters(
     if device not in {"cpu", "gpu"}:
         raise ValueError("Device must be either 'cpu' or 'gpu'.")
     if quantum_gradient_method not in {"spsa", "parameter-shift"}:
-        raise ValueError("Quantum gradient method must be 'spsa' or 'parameter-shift'.")
-    if (not conditional_training and num_qubits % 2 != 0) or (
-        conditional_training and num_qubits % 3 != 0
-    ):
+        raise ValueError(
+            "Quantum gradient method must be 'spsa' or 'parameter-shift'.")
+    if (not conditional_training and
+            num_qubits % 2 != 0) or (conditional_training and
+                                     num_qubits % 3 != 0):
         condition = "even" if not conditional_training else "divisible by 3"
         raise ValueError(
             f"Number of qubits must be {condition} for the selected training mode."
@@ -242,11 +241,11 @@ def validate_parameters(
 
 def configure_quantum_target(device: str, qpu_count: int) -> int:
     """Configure the quantum target based on device availability."""
-    target = "nvidia" if device == "gpu" and cudaq.has_target("nvidia") else "qpp-cpu"
+    target = "nvidia" if device == "gpu" and cudaq.has_target(
+        "nvidia") else "qpp-cpu"
     cudaq.set_target(target, option="mqpu,fp32")
-    effective_qpu_count = (
-        cudaq.get_target().num_qpus() if qpu_count == -1 else qpu_count
-    )
+    effective_qpu_count = (cudaq.get_target().num_qpus()
+                           if qpu_count == -1 else qpu_count)
     logger.info(
         f"Quantum target set to: {target} with QPU count: {effective_qpu_count}"
     )
@@ -264,9 +263,9 @@ def ensure_training_data(training_data: str) -> None:
             import gdown
 
             file_id = "1eXIkHTIeQ0gO84fmGwW7cc9s618xsmVR"
-            gdown.download(
-                f"https://drive.google.com/uc?id={file_id}", training_data, quiet=True
-            )
+            gdown.download(f"https://drive.google.com/uc?id={file_id}",
+                           training_data,
+                           quiet=True)
         else:
             logger.warning(
                 f"Training data not found at: {training_data}. Set to training_data='./dataset/qm9.csv' to download the QM9 dataset."
@@ -276,27 +275,30 @@ def ensure_training_data(training_data: str) -> None:
 
 
 def prepare_datasets(
-    training_data: str, sample_percentage: float, validation_split: float, seed: int
-) -> Tuple[torch.utils.data.Subset, torch.utils.data.Subset, Transformer_Dataset]:
-    """Load and split the dataset into training and validation sets."""
+    training_data: str, sample_percentage: float, validation_split: float,
+    seed: int
+) -> Tuple[torch.utils.data.Subset, torch.utils.data.Subset,
+           Transformer_Dataset]:
+    """Load and split the `dataset` into training and validation sets."""
     block_size = 22 if os.path.basename(training_data) == "qm9.csv" else None
-    dataset = Transformer_Dataset(data_path=training_data, block_size=block_size)
+    dataset = Transformer_Dataset(data_path=training_data,
+                                  block_size=block_size)
 
-    # Sample a percentage of the dataset
+    # Sample a percentage of the `dataset`
     total_size = len(dataset)
     sample_size = int(sample_percentage * total_size)
 
     train_size = sample_size - int(validation_split * sample_size)
     val_size = sample_size - train_size
 
-    # Randomly select a subset of the dataset to use
+    # Randomly select a subset of the `dataset` to use
     sampled_dataset, _ = random_split(
         dataset,
         [sample_size, total_size - sample_size],
         generator=torch.Generator().manual_seed(seed),
     )
 
-    # Split the sampled dataset into training and validation sets
+    # Split the sampled `dataset` into training and validation sets
     train_dataset, val_dataset = random_split(
         sampled_dataset,
         [train_size, val_size],
@@ -316,7 +318,7 @@ def save_smiles_strings(
     dataset: Transformer_Dataset,
     train_id: str,
 ) -> None:
-    """Save SMILES strings from training and validation datasets to CSV files."""
+    """Save SMILES strings from training and validation `datasets` to CSV files."""
 
     os.makedirs("./training_splits", exist_ok=True)
     os.makedirs("./validation_splits", exist_ok=True)
@@ -332,9 +334,9 @@ def save_smiles_strings(
         "LogP",
         "StereoCenters",
     ]
-    with open(
-        f"./training_splits/train_dataset_{train_id}.csv", mode="w", newline=""
-    ) as file:
+    with open(f"./training_splits/train_dataset_{train_id}.csv",
+              mode="w",
+              newline="") as file:
         writer = csv.writer(file)
         writer.writerow(["SMILES"] + property_names)
         for idx in tqdm(train_dataset.indices, desc="Saving training SMILES"):
@@ -345,9 +347,9 @@ def save_smiles_strings(
         f"Training SMILES strings with properties saved to ./training_splits/train_dataset_{train_id}.csv."
     )
 
-    with open(
-        f"./validation_splits/val_dataset_{train_id}.csv", mode="w", newline=""
-    ) as file:
+    with open(f"./validation_splits/val_dataset_{train_id}.csv",
+              mode="w",
+              newline="") as file:
         writer = csv.writer(file)
         writer.writerow(["SMILES"] + property_names)
         for idx in tqdm(val_dataset.indices, desc="Saving validation SMILES"):
@@ -390,8 +392,8 @@ def initialize_model(
     logger.info("Transformer model initialized.")
 
     # Since the parameter structures are the same, the same seed will still
-    # give different inits for the same weights in the hybrid network
-    # Thus we choose to save the quantum state dict at initiailization
+    # give different `inits` for the same weights in the hybrid network
+    # Thus we choose to save the quantum state dict at `initiailization`
     # and load this into the classical model where possible
     if classical_attention and checkpoint_resume_path is None:
         quantum_model_for_init = Transformer_Model(
@@ -437,15 +439,16 @@ def create_data_loaders(
     return train_loader, val_loader
 
 
-def check_training_configuration(
-    checkpoint_path: Optional[str], training_configuration: dict
-) -> bool:
+def check_training_configuration(checkpoint_path: Optional[str],
+                                 training_configuration: dict) -> bool:
     """Check training configuration for discrepancies."""
 
     config_match = True
     if checkpoint_path:
 
-        checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+        checkpoint = torch.load(checkpoint_path,
+                                map_location="cpu",
+                                weights_only=False)
 
         saved_training_configuration = checkpoint["training_configuration"]
         for key in saved_training_configuration:
@@ -553,7 +556,9 @@ def checkpoint_resume_path_function(
     """Resume training from a checkpoint."""
     if checkpoint_path:
 
-        checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+        checkpoint = torch.load(checkpoint_path,
+                                map_location="cpu",
+                                weights_only=False)
         train_id = checkpoint["training_configuration"]["train_id"]
 
         torch.set_rng_state(checkpoint["cpu_rng_state"])
@@ -584,8 +589,7 @@ def checkpoint_resume_path_function(
         logger.info(
             f"Previous training losses: {train_losses}, "
             f"Previous validation losses: {val_losses}, "
-            f"Starting at epoch {starting_epoch+1} and batch {start_batch+1} "
-        )
+            f"Starting at epoch {starting_epoch+1} and batch {start_batch+1} ")
 
     else:
         train_losses = []
@@ -636,13 +640,10 @@ def train_model(
 
         model.train()
 
-        # Stateful dataloader may use lazy loading and seems to have a problem with tqdm
+        # Stateful `dataloader` may use lazy loading and seems to have a problem with `tqdm`
         # We trigger it to load in the batches by priming it
-        if (
-            len(metrics["training_losses"]) > 0
-            and start_batch == 0
-            and epoch == starting_epoch
-        ):
+        if (len(metrics["training_losses"]) > 0 and start_batch == 0 and
+                epoch == starting_epoch):
             for idx, batch in enumerate(train_loader, start=start_batch):
                 break
 
@@ -661,7 +662,8 @@ def train_model(
 
             with torch.autocast("cuda"):
                 logits, _ = model(x, physchem_props)
-                loss = loss_function(logits.view(-1, logits.size(-1)), y.view(-1))
+                loss = loss_function(logits.view(-1, logits.size(-1)),
+                                     y.view(-1))
 
             # if batch_id < 5:
             #    print(loss)
@@ -682,11 +684,11 @@ def train_model(
 
             avg_loss = total_loss / processed_batches_count
             train_pbar.set_description(
-                f"Epoch {epoch + 1}/{epochs}; Training Loss: {avg_loss:.4f}"
-            )
+                f"Epoch {epoch + 1}/{epochs}; Training Loss: {avg_loss:.4f}")
 
             # Save batch-level checkpoint
-            if save_every_n_batches > 0 and (batch_id + 1) % save_every_n_batches == 0:
+            if save_every_n_batches > 0 and (batch_id +
+                                             1) % save_every_n_batches == 0:
                 save_checkpoint(
                     training_configuration,
                     model,
@@ -707,9 +709,8 @@ def train_model(
         logger.debug(f"Epoch {epoch + 1} Training Loss: {avg_train_loss:.4f}")
 
         # Validation phase
-        avg_val_loss = validate_model(
-            model, loss_function, val_loader, device, epoch, epochs
-        )
+        avg_val_loss = validate_model(model, loss_function, val_loader, device,
+                                      epoch, epochs)
         metrics["val_losses"].append(avg_val_loss)
         logger.debug(f"Epoch {epoch + 1} Validation Loss: {avg_val_loss:.4f}")
 
@@ -788,13 +789,14 @@ def validate_model(
             desc=f"Validation Epoch {epoch + 1}/{total_epochs}",
         )
         for batch_id, batch in val_pbar:
-            x_val, y_val, physchem_props_val = [item.to(device) for item in batch]
+            x_val, y_val, physchem_props_val = [
+                item.to(device) for item in batch
+            ]
 
             with torch.autocast("cuda"):
                 val_logits, _ = model(x_val, physchem_props_val)
                 val_loss = loss_function(
-                    val_logits.view(-1, val_logits.size(-1)), y_val.view(-1)
-                )
+                    val_logits.view(-1, val_logits.size(-1)), y_val.view(-1))
 
             total_val_loss += val_loss.item()
             avg_val_loss = total_val_loss / (batch_id + 1)
