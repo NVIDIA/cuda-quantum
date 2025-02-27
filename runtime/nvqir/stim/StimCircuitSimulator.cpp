@@ -44,14 +44,30 @@ protected:
   isValidStimNoiseChannel(const kraus_channel &channel) const {
 
     // Check the old way first
-    if (channel.noise_type == cudaq::noise_model_type::bit_flip_channel)
+    switch (channel.noise_type) {
+    case cudaq::noise_model_type::bit_flip_channel:
+    case cudaq::noise_model_type::x_error:
       return "X_ERROR";
-
-    if (channel.noise_type == cudaq::noise_model_type::phase_flip_channel)
+    case cudaq::noise_model_type::y_error:
+      return "Y_ERROR";
+    case cudaq::noise_model_type::phase_flip_channel:
+    case cudaq::noise_model_type::z_error:
       return "Z_ERROR";
-
-    if (channel.noise_type == cudaq::noise_model_type::depolarization_channel)
+    case cudaq::noise_model_type::depolarization_channel:
+    case cudaq::noise_model_type::depolarization1:
       return "DEPOLARIZE1";
+    case cudaq::noise_model_type::depolarization2:
+      return "DEPOLARIZE2";
+    case cudaq::noise_model_type::pauli1:
+      return "PAULI_CHANNEL_1";
+    case cudaq::noise_model_type::pauli2:
+      return "PAULI_CHANNEL_2";
+    case cudaq::noise_model_type::amplitude_damping_channel:
+    case cudaq::noise_model_type::amplitude_damping:
+    case cudaq::noise_model_type::phase_damping:
+    case cudaq::noise_model_type::unknown:
+      return std::nullopt;
+    }
 
     return std::nullopt;
   }

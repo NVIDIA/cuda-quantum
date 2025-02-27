@@ -36,6 +36,12 @@ public:
                          const std::vector<std::size_t> &targets,
                          const std::vector<double> &params) override;
 
+  bool isValidNoiseChannel(const cudaq::noise_model_type &type) const override;
+
+  /// @brief Apply the given kraus_channel on the provided targets.
+  void applyNoise(const cudaq::kraus_channel &channel,
+                  const std::vector<std::size_t> &targets) override;
+
   // Override base calculateStateDim (we don't instantiate full state vector in
   // the tensornet backend). When the user want to retrieve the state vector, we
   // check if it is feasible to do so.
