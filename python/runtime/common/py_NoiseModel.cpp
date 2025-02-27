@@ -56,41 +56,75 @@ void bindNoiseModel(py::module &mod) {
       mod, "NoiseModel",
       "The `NoiseModel` defines a set of :class:`KrausChannel`'s applied to "
       "specific qubits after the invocation of specified quantum operations.")
-      .def(py::init<>(), "Construct an empty noise model.")
-      .def(
-          "register_builtins",
-          [mod](noise_model &self) {
-            // Get the built-in channel types from the module
-            static const std::vector<std::string> channelNames = {
-                "DepolarizationChannel",
-                "AmplitudeDampingChannel",
-                "BitFlipChannel",
-                "PhaseFlipChannel",
-                "XError",
-                "YError",
-                "ZError",
-                "PhaseDamping",
-                "Pauli1",
-                "Pauli2",
-                "Depolarization1",
-                "Depolarization2"};
+      .def(py::init<>([mod]() {
+             // Create the noise model
+             auto model = std::make_unique<noise_model>();
 
-            // Auto-register each channel type
-            for (const auto &name : channelNames) {
-              if (py::hasattr(mod, name.c_str())) {
-                py::type channelType = py::getattr(mod, name.c_str());
-                auto key = py::hash(channelType);
-                std::function<kraus_channel(const std::vector<double> &)>
-                    lambda =
-                        [channelType](
-                            const std::vector<double> &p) -> kraus_channel {
-                  return channelType(p).cast<kraus_channel>();
-                };
-                self.register_channel(key, lambda);
-              }
-            }
-          },
-          "Register the builtin channels")
+             // Define a map of channel names to generator functions
+             std::map<std::string,
+                      std::function<kraus_channel(const std::vector<double> &)>>
+                 channelGenerators = {
+                     {"DepolarizationChannel",
+                      [](const std::vector<double> &p) -> kraus_channel {
+                        return depolarization_channel(p);
+                      }},
+                     {"AmplitudeDampingChannel",
+                      [](const std::vector<double> &p) -> kraus_channel {
+                        return amplitude_damping_channel(p);
+                      }},
+                     {"BitFlipChannel",
+                      [](const std::vector<double> &p) -> kraus_channel {
+                        return bit_flip_channel(p);
+                      }},
+                     {"PhaseFlipChannel",
+                      [](const std::vector<double> &p) -> kraus_channel {
+                        return phase_flip_channel(p);
+                      }},
+                     {"XError",
+                      [](const std::vector<double> &p) -> kraus_channel {
+                        return x_error(p);
+                      }},
+                     {"YError",
+                      [](const std::vector<double> &p) -> kraus_channel {
+                        return y_error(p);
+                      }},
+                     {"ZError",
+                      [](const std::vector<double> &p) -> kraus_channel {
+                        return z_error(p);
+                      }},
+                     {"PhaseDamping",
+                      [](const std::vector<double> &p) -> kraus_channel {
+                        return phase_damping(p);
+                      }},
+                     {"Pauli1",
+                      [](const std::vector<double> &p) -> kraus_channel {
+                        return pauli1(p);
+                      }},
+                     {"Pauli2",
+                      [](const std::vector<double> &p) -> kraus_channel {
+                        return pauli2(p);
+                      }},
+                     {"Depolarization1",
+                      [](const std::vector<double> &p) -> kraus_channel {
+                        return depolarization1(p);
+                      }},
+                     {"Depolarization2",
+                      [](const std::vector<double> &p) -> kraus_channel {
+                        return depolarization2(p);
+                      }}};
+
+             // Register each channel generator
+             for (const auto &[name, generator] : channelGenerators) {
+               if (py::hasattr(mod, name.c_str())) {
+                 py::type channelType = py::getattr(mod, name.c_str());
+                 auto key = py::hash(channelType);
+                 model->register_channel(key, generator);
+               }
+             }
+
+             return model;
+           }),
+           "Construct a noise model with all built-in channels pre-registered.")
       .def(
           "register_channel",
           [](noise_model &self, const py::type krausT) {

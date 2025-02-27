@@ -652,7 +652,6 @@ def test_apply_noise_builtin(target: str):
     cudaq.set_target(target)
 
     noise = cudaq.NoiseModel()
-    noise.register_builtins()
 
     # Test builtin channels
     @cudaq.kernel
