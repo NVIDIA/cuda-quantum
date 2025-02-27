@@ -348,3 +348,4 @@ dependencies:
       - cutensor-cu12==2.0.2
       - cutensornet-cu12==2.6.0
       - gdown==5.2.0
+      - torchdata==0.10.1
