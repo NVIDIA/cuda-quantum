@@ -77,6 +77,9 @@ struct AnsatzMetadata {
 
   /// Map qubit indices to their mlir Value
   DenseMap<std::size_t, Value> qubitValues;
+
+  /// Map qubit indices to their mlir veq Value and index
+  DenseMap<std::size_t, std::pair<Value, std::size_t>> qubitValuesIndexed;
 };
 
 /// Define a map type for Quake functions to their associated metadata
@@ -140,17 +143,20 @@ private:
 
     // walk and find all quantum allocations
     auto walkResult = funcOp->walk([&](quake::AllocaOp op) {
-      if (auto veq = dyn_cast<quake::VeqType>(op.getResult().getType())) {
-        // Only update data.nQubits here. data.qubitValues will be updated for
-        // the corresponding ExtractRefOP's in the `walk` below.
-        if (veq.hasSpecifiedSize())
-          data.nQubits += veq.getSize();
-        else
+      Value result = op.getResult();
+      if (auto veq = dyn_cast<quake::VeqType>(result.getType())) {
+        // Update data.nQubits here and store qubit info as indexes into
+        // the veq, in case we don't encounter any ExtractRefOps for
+        // them later.
+        if (veq.hasSpecifiedSize()) {
+          for (std::size_t i = 0; i < veq.getSize(); i++)
+            data.qubitValuesIndexed.insert({data.nQubits++, {result, i}});
+        } else
           return WalkResult::interrupt(); // this is an error condition
       } else {
         // single alloc is for a single qubit. Update data.qubitValues here
         // because ExtractRefOp `walk` won't find any ExtractRefOp for this.
-        data.qubitValues.insert({data.nQubits++, op.getResult()});
+        data.qubitValues.insert({data.nQubits++, result});
       }
       return WalkResult::advance();
     });
@@ -259,7 +265,8 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
     auto loc = funcOp.getBody().back().getTerminator()->getLoc();
     Operation *last = &funcOp.getBody().back().front();
     funcOp.walk([&](Operation *op) {
-      if (dyn_cast<quake::OperatorInterface>(op))
+      if (dyn_cast<quake::OperatorInterface>(op) ||
+          dyn_cast<quake::AllocaOp>(op))
         last = op;
     });
     builder.setInsertionPointAfter(last);
@@ -279,10 +286,20 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
       // do nothing for z or identities
 
       // get the qubit value
+      Value qubitVal;
       auto seek = iter->second.qubitValues.find(i);
-      if (seek == iter->second.qubitValues.end())
-        continue;
-      auto qubitVal = seek->second;
+      if (seek == iter->second.qubitValues.end()) {
+        auto seekIndexed = iter->second.qubitValuesIndexed.find(i);
+        if (seekIndexed == iter->second.qubitValuesIndexed.end())
+          continue;
+        auto veqOp = seekIndexed->second.first;
+        auto index = seekIndexed->second.second;
+        auto extractRef =
+            builder.create<quake::ExtractRefOp>(loc, veqOp, index);
+        qubitVal = extractRef.getResult();
+      } else {
+        qubitVal = seek->second;
+      }
 
       // append the measurement basis change ops
       // Note: when using value semantics, qubitVal will be updated to the new

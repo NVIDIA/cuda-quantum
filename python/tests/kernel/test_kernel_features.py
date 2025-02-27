@@ -185,6 +185,17 @@ def test_2grover_compute_action():
     assert '011' in counts
 
 
+def test_observe():
+
+    @cudaq.kernel
+    def ansatz():
+        q = cudaq.qvector(1)
+
+    molecule = 5.0 - 1.0 * spin.x(0)
+    res = cudaq.observe(ansatz, molecule, shots_count=10000)
+    assert np.isclose(res.expectation(), 5.0, atol=1e-1)
+
+
 def test_pauli_word_input():
 
     h2_data = [
