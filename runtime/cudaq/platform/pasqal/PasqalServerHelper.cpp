@@ -113,9 +113,18 @@ sample_result PasqalServerHelper::processResults(ServerMessage &postJobResponse,
   for (auto &job : jobs) {
     // loop over jobs in batch to get results
     // Current implementation only has 1 job
-    auto result = job.get<std::unordered_map<std::string, std::size_t>>();
+
+    // Pasqal's bitstring uses little-endian.
+    std::unordered_map<std::string, std::size_t> result;
+    for (auto &[bitstring, count] : job.items()) {
+      auto r_bitstring = bitstring;
+      std::reverse(r_bitstring.begin(), r_bitstring.end());
+      result[r_bitstring] = count;
+    }
+
     results.push_back(ExecutionResult(result));
-  } // TODO: Check the index order.
+  }
+
   return sample_result(results);
 }
 
