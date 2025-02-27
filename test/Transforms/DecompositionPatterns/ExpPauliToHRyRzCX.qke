@@ -19,7 +19,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__Z4mainE3$_0 = "_Z
     quake.x %3 : (!quake.ref) -> ()
     %4 = cc.load %0 : !cc.ptr<f64>
     %5 = cc.string_literal "XXXY" : !cc.ptr<!cc.array<i8 x 5>>
-    quake.exp_pauli %4, %1, %5 : (f64, !quake.veq<4>, !cc.ptr<!cc.array<i8 x 5>>) -> ()
+    quake.exp_pauli (%4) %1 to %5 : (f64, !quake.veq<4>, !cc.ptr<!cc.array<i8 x 5>>) -> ()
     return
   }
 
@@ -73,7 +73,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__Z4mainE3$_0 = "_Z
     %1 = cc.cast %0 : (!cc.ptr<!llvm.array<3 x i8>>) -> !cc.ptr<i8>
     %2 = cc.stdvec_init %1, %c2_i64 : (!cc.ptr<i8>, i64) -> !cc.charspan
     %3 = quake.alloca !quake.veq<2>
-    quake.exp_pauli %cst, %3, %2 : (f64, !quake.veq<2>, !cc.charspan) -> ()
+    quake.exp_pauli (%cst) %3 to %2 : (f64, !quake.veq<2>, !cc.charspan) -> ()
     return
   }
   llvm.mlir.global private constant @cstr.585900("XY\00") {addr_space = 0 : i32}

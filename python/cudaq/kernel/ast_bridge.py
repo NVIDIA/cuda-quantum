@@ -970,7 +970,9 @@ class PyASTBridge(ast.NodeVisitor):
                 for arg in node.args.args
             ]
             parentResultType = self.knownResultType
-            if node.returns != None:
+            if node.returns is not None and not (isinstance(
+                    node.returns, ast.Constant) and
+                                                 (node.returns.value is None)):
                 self.knownResultType = self.mlirTypeFromAnnotation(node.returns)
 
             # Get the argument names
@@ -1983,7 +1985,7 @@ class PyASTBridge(ast.NodeVisitor):
                 theta = self.popValue()
                 if IntegerType.isinstance(theta.type):
                     theta = arith.SIToFPOp(self.getFloatType(), theta).result
-                quake.ExpPauliOp(theta, qubits, pauli=pauliWord)
+                quake.ExpPauliOp([], [theta], [], [qubits], pauli=pauliWord)
                 return
 
             elif node.func.id == 'int':
@@ -2415,6 +2417,46 @@ class PyASTBridge(ast.NodeVisitor):
                                   values,
                                   callee=FlatSymbolRefAttr.get(nvqppPrefix +
                                                                otherFuncName))
+                    return
+
+                if node.func.attr == 'apply_noise':
+                    # Pop off all the arguments we need
+                    values = [
+                        self.popValue() for _ in range(len(self.valueStack))
+                    ]
+                    # They are in reverse order
+                    values.reverse()
+                    # First one should be the number of Kraus channel parameters
+                    numParamsVal = values[0]
+                    # Shrink the arguments down
+                    values = values[1:]
+
+                    # Need to get the number of parameters as an integer
+                    concreteIntAttr = IntegerAttr(
+                        numParamsVal.owner.attributes['value'])
+                    numParams = concreteIntAttr.value
+
+                    # Next Value is our generated key for the channel
+                    # Get it and shrink the list
+                    key = values[0]
+                    values = values[1:]
+
+                    # Now we know the next `numParams` arguments are
+                    # our Kraus channel parameters
+                    params = values[:numParams]
+                    for i, p in enumerate(params):
+                        # If we have a F64 value, we want to
+                        # store it to a pointer
+                        if F64Type.isinstance(p.type):
+                            alloca = cc.AllocaOp(
+                                cc.PointerType.get(self.ctx, p.type),
+                                TypeAttr.get(p.type)).result
+                            cc.StoreOp(p, alloca)
+                            params[i] = alloca
+
+                    # The remaining arguments are the qubits
+                    qubits = values[numParams:]
+                    quake.ApplyNoiseOp(params, qubits, key=key)
                     return
 
                 if node.func.attr == 'compute_action':
@@ -4145,6 +4187,18 @@ class PyASTBridge(ast.NodeVisitor):
             errorType = type(value).__name__
             if (isinstance(value, list)):
                 errorType = f"{errorType}[{type(value[0]).__name__}]"
+
+            try:
+                if issubclass(value, cudaq_runtime.KrausChannel):
+                    # Here we have a KrausChannel as part of the AST
+                    # We want to create a hash value from it, and
+                    # we then want to push the number of parameters and
+                    # that hash value. This can only be used with apply_noise
+                    self.pushValue(self.getConstantInt(value.num_parameters))
+                    self.pushValue(self.getConstantInt(hash(value)))
+                    return
+            except TypeError:
+                pass
 
             self.emitFatalError(
                 f"Invalid type for variable ({node.id}) captured from parent scope (only int, bool, float, complex, cudaq.State, and list/np.ndarray[int|bool|float|complex] accepted, type was {errorType}).",

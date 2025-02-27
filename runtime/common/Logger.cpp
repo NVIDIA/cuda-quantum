@@ -41,7 +41,7 @@ bool isTimingTagEnabled(int tag) {
 /// level and optionally dump to file if specified.
 __attribute__((constructor)) void initializeLogger() {
   // Default to no logging
-  spdlog::set_level(spdlog::level::off);
+  spdlog::set_level(spdlog::level::warn);
 
   // but someone can specify CUDAQ_LOG_LEVEL=info (for example)
   // as an environment variable. Can also stack them
@@ -91,6 +91,7 @@ __attribute__((constructor)) void initializeLogger() {
 namespace details {
 void trace(const std::string_view msg) { spdlog::trace(msg); }
 void info(const std::string_view msg) { spdlog::info(msg); }
+void warn(const std::string_view msg) { spdlog::warn(msg); }
 void debug(const std::string_view msg) {
 #ifdef CUDAQ_DEBUG
   spdlog::debug(msg);
@@ -105,6 +106,9 @@ static_assert(static_cast<int>(LogLevel::trace) ==
               "log level enum mismatch");
 static_assert(static_cast<int>(LogLevel::info) ==
                   static_cast<int>(spdlog::level::info),
+              "log level enum mismatch");
+static_assert(static_cast<int>(LogLevel::warn) ==
+                  static_cast<int>(spdlog::level::warn),
               "log level enum mismatch");
 bool should_log(const LogLevel logLevel) {
   return spdlog::should_log(static_cast<spdlog::level::level_enum>(logLevel));
