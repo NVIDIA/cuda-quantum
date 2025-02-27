@@ -10,6 +10,7 @@
 #include "CuDensityMatErrorHandling.h"
 #include "common/Logger.h"
 #include <ranges>
+#include <iostream>
 
 namespace {
 std::vector<int64_t> getSubspaceExtents(const std::vector<int64_t> &modeExtents,
