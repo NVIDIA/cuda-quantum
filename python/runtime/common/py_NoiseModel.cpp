@@ -61,8 +61,8 @@ void bindNoiseModel(py::module &mod) {
              auto model = std::make_unique<noise_model>();
 
              // Define a map of channel names to generator functions
-             std::map<std::string,
-                      std::function<kraus_channel(const std::vector<double> &)>>
+             static std::map<std::string, std::function<kraus_channel(
+                                              const std::vector<double> &)>>
                  channelGenerators = {
                      {"DepolarizationChannel",
                       [](const std::vector<double> &p) -> kraus_channel {
