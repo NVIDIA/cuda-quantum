@@ -24,11 +24,11 @@ technical details and code examples for using each circuit simulator.
      - State Vector
      - Testing and small applications
      - CPU
-     - single
+     - double
      - < 28
    * - `nvidia`
      - State Vector
-     - General purpose (default)
+     - General purpose (default); Trajectory simulation for noisy circuits
      - Single GPU
      - single / double
      - < 33 / 32 (64 GB)
@@ -72,7 +72,7 @@ technical details and code examples for using each circuit simulator.
      - Density Matrix
      - Noisy simulations
      - CPU
-     - single
+     - double
      - < 14
    * - `stim`
      - Stabilizer 

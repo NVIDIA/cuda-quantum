@@ -249,4 +249,13 @@ class StdvecOf<list<Type> allowedTypes> : Type<
     "stdvec of " # AnyTypeOf<allowedTypes>.summary # " values",
     "::cudaq::cc::StdvecType">;
 
+def IsPointerTypePred : CPred<"$_self.isa<::cudaq::cc::PointerType>()">;
+
+class PointerOf<list<Type> allowedTypes> : Type<
+    And<[IsPointerTypePred, Concat<"[](::mlir::Type elementType) { return ",
+      SubstLeaves<"$_self", "elementType", AnyTypeOf<allowedTypes>.predicate>,
+        "; }($_self.cast<::cudaq::cc::PointerType>().getElementType())">]>,
+    "pointer of " # AnyTypeOf<allowedTypes>.summary # " values",
+    "::cudaq::cc::PointerType">;
+
 #endif // CUDAQ_OPTIMIZER_DIALECT_QUAKE_TYPES

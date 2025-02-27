@@ -46,14 +46,14 @@ public:
   using EraseNopCallsBase::EraseNopCallsBase;
 
   void runOnOperation() override {
-    func::FuncOp func = getOperation();
-    LLVM_DEBUG(llvm::dbgs() << "Function before erasure:\n" << func << "\n\n");
+    auto *op = getOperation();
+    LLVM_DEBUG(llvm::dbgs() << "Before erasure:\n" << *op << "\n\n");
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
     patterns.insert<EraseStdMovePattern>(ctx);
-    if (failed(applyPatternsAndFoldGreedily(func, std::move(patterns))))
+    if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns))))
       signalPassFailure();
-    LLVM_DEBUG(llvm::dbgs() << "Function after erasure:\n" << func << "\n\n");
+    LLVM_DEBUG(llvm::dbgs() << "After erasure:\n" << *op << "\n\n");
   }
 };
 } // namespace

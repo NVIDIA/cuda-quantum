@@ -888,7 +888,8 @@ class PyKernel(object):
                 quantumVal = quake.ConcatOp(quake.VeqType.get(
                     self.ctx), [quantumVal] if quantumVal is not None else [] +
                                             qubitsList).result
-            quake.ExpPauliOp(thetaVal, quantumVal, pauli=pauliWordVal)
+            quake.ExpPauliOp([], [thetaVal], [], [quantumVal],
+                             pauli=pauliWordVal)
 
     def givens_rotation(self, angle, qubitA, qubitB):
         """

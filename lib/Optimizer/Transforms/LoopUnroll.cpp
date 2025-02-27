@@ -70,7 +70,10 @@ public:
 
   static unsigned countLoopOps(Operation *op) {
     unsigned result = 0;
-    op->walk([&](cudaq::cc::LoopOp loop) { result++; });
+    op->walk([&](cudaq::cc::LoopOp loop) {
+      if (!loop->hasAttr(cudaq::opt::DeadLoopAttr))
+        result++;
+    });
     LLVM_DEBUG(llvm::dbgs() << "Total number of loops: " << result << '\n');
     return result;
   }

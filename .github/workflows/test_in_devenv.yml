@@ -61,6 +61,9 @@ jobs:
         uses: docker/setup-buildx-action@v3
         with:
           endpoint: builder_context
+          version: v0.19.0
+          driver-opts: |
+            image=moby/buildkit:v0.19.0
 
       - name: Build CUDA Quantum
         run: |
@@ -191,6 +194,9 @@ jobs:
         uses: docker/setup-buildx-action@v3
         with:
           endpoint: builder_context
+          version: v0.19.0
+          driver-opts: |
+            image=moby/buildkit:v0.19.0
 
       - name: Set up dev environment
         id: dev_env

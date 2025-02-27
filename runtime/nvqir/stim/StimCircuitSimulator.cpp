@@ -40,6 +40,22 @@ protected:
   /// @brief Stim Frame/Flip simulator (used to generate multiple shots)
   std::unique_ptr<stim::FrameSimulator<W>> sampleSim;
 
+  std::optional<std::string>
+  isValidStimNoiseChannel(const kraus_channel &channel) const {
+
+    // Check the old way first
+    if (channel.noise_type == cudaq::noise_model_type::bit_flip_channel)
+      return "X_ERROR";
+
+    if (channel.noise_type == cudaq::noise_model_type::phase_flip_channel)
+      return "Z_ERROR";
+
+    if (channel.noise_type == cudaq::noise_model_type::depolarization_channel)
+      return "DEPOLARIZE1";
+
+    return std::nullopt;
+  }
+
   /// @brief Grow the state vector by one qubit.
   void addQubitToState() override { addQubitsToState(1); }
 
@@ -100,6 +116,8 @@ protected:
   /// @brief Apply operation to all Stim simulators.
   void applyOpToSims(const std::string &gate_name,
                      const std::vector<uint32_t> &targets) {
+    if (targets.empty())
+      return;
     stim::Circuit tempCircuit;
     cudaq::info("Calling applyOpToSims {} - {}", gate_name, targets);
     tempCircuit.safe_append_u(gate_name, targets);
@@ -144,19 +162,36 @@ protected:
 
     stim::Circuit noiseOps;
     for (auto &channel : krausChannels) {
-      if (channel.noise_type == cudaq::noise_model_type::bit_flip_channel)
-        noiseOps.safe_append_ua("X_ERROR", stimTargets, channel.parameters[0]);
-      else if (channel.noise_type ==
-               cudaq::noise_model_type::phase_flip_channel)
-        noiseOps.safe_append_ua("Z_ERROR", stimTargets, channel.parameters[0]);
-      else if (channel.noise_type ==
-               cudaq::noise_model_type::depolarization_channel)
-        noiseOps.safe_append_ua("DEPOLARIZE1", stimTargets,
-                                channel.parameters[0]);
+      if (auto stimName = isValidStimNoiseChannel(channel))
+        noiseOps.safe_append_u(stimName.value(), stimTargets,
+                               channel.parameters);
     }
     // Only apply the noise operations to the sample simulator (not the Tableau
     // simulator).
     sampleSim->safe_do_circuit(noiseOps);
+  }
+
+  bool isValidNoiseChannel(const cudaq::noise_model_type &type) const override {
+    kraus_channel c;
+    c.noise_type = type;
+    return isValidStimNoiseChannel(c).has_value();
+  }
+
+  void applyNoise(const cudaq::kraus_channel &channel,
+                  const std::vector<std::size_t> &qubits) override {
+    flushGateQueue();
+    cudaq::info("[stim] apply kraus channel {}", channel.get_type_name());
+    stim::Circuit noiseOps;
+    std::vector<std::uint32_t> stimTargets;
+    stimTargets.reserve(qubits.size());
+    for (auto q : qubits)
+      stimTargets.push_back(static_cast<std::uint32_t>(q));
+
+    // If we have a valid operation, apply it
+    if (auto stimName = isValidStimNoiseChannel(channel)) {
+      noiseOps.safe_append_u(stimName.value(), stimTargets, channel.parameters);
+      sampleSim->safe_do_circuit(noiseOps);
+    }
   }
 
   void applyGate(const GateApplicationTask &task) override {
@@ -174,10 +209,12 @@ protected:
           fmt::format("Gate not supported by Stim simulator: {}. Note that "
                       "Stim can only simulate Clifford gates.",
                       task.operationName));
+    else if (gateName == "SDG")
+      gateName = "S_DAG";
 
     if (task.controls.size() > 1)
       throw std::runtime_error(
-          "Gates with >1 controls not supported by stim simulator");
+          "Gates with >1 controls not supported by Stim simulator");
     if (task.controls.size() >= 1)
       gateName = "C" + gateName;
     for (auto c : task.controls)
@@ -231,6 +268,10 @@ public:
     // Populate the correct name so it is printed correctly during
     // deconstructor.
     summaryData.name = name();
+    // Set supportsBufferedSample = true to tell the base class that this
+    // simulator knows how to buffer the results across multiple sample()
+    // invocations.
+    supportsBufferedSample = true;
   }
   virtual ~StimCircuitSimulator() = default;
 
@@ -249,13 +290,29 @@ public:
         "R", std::vector<std::uint32_t>{static_cast<std::uint32_t>(index)});
   }
 
-  /// @brief Sample the multi-qubit state.
+  /// @brief Sample the multi-qubit state. If \p qubits is empty and
+  /// explicitMeasurements is set, this returns all previously saved
+  /// measurements.
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &qubits,
                                 const int shots) override {
+    if (executionContext->explicitMeasurements && qubits.empty() &&
+        num_measurements == 0)
+      throw std::runtime_error(
+          "The sampling option `explicit_measurements` is not supported on a "
+          "kernel without any measurement operation.");
+
+    bool populateResult = [&]() {
+      if (executionContext->explicitMeasurements)
+        return qubits.empty();
+      return true;
+    }();
     assert(shots <= sampleSim->batch_size);
     std::vector<std::uint32_t> stimTargetQubits(qubits.begin(), qubits.end());
     applyOpToSims("M", stimTargetQubits);
     num_measurements += stimTargetQubits.size();
+
+    if (!populateResult)
+      return cudaq::ExecutionResult();
 
     // Generate a reference sample
     const std::vector<bool> &v = tableau->measurement_record.storage;
@@ -282,10 +339,13 @@ public:
     // measurements were mid-circuit measurements that have been previously
     // accounted for and saved.
     assert(bits_per_sample >= qubits.size());
-    std::size_t first_bit_to_save = bits_per_sample - qubits.size();
+    std::size_t first_bit_to_save = executionContext->explicitMeasurements
+                                        ? 0
+                                        : bits_per_sample - qubits.size();
     CountsDictionary counts;
+    sequentialData.reserve(shots);
     for (std::size_t shot = 0; shot < shots; shot++) {
-      std::string aShot(qubits.size(), '0');
+      std::string aShot(bits_per_sample - first_bit_to_save, '0');
       for (std::size_t b = first_bit_to_save; b < bits_per_sample; b++)
         aShot[b - first_bit_to_save] = sample[shot][b] ? '1' : '0';
       counts[aShot]++;

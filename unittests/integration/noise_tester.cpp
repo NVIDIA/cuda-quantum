@@ -32,6 +32,123 @@ struct bell {
 #if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_TENSORNET)
 // Stim does not support arbitrary cudaq::kraus_channel specification.
 
+namespace test::hello {
+struct hello_world : public ::cudaq::kraus_channel {
+  static constexpr std::size_t num_parameters = 1;
+  static constexpr std::size_t num_targets = 1;
+
+  hello_world(const std::vector<cudaq::real> &params) {
+    std::vector<cudaq::complex> k0v{std::sqrt(1 - params[0]), 0, 0,
+                                    std::sqrt(1 - params[0])},
+        k1v{0, std::sqrt(params[0]), std::sqrt(params[0]), 0};
+    push_back(cudaq::kraus_op(k0v));
+    push_back(cudaq::kraus_op(k1v));
+  }
+  REGISTER_KRAUS_CHANNEL("test::hello::hello_world");
+};
+} // namespace test::hello
+
+__qpu__ void test2(double p) {
+  cudaq::qubit q;
+  x(q);
+  cudaq::apply_noise<test::hello::hello_world>({0.2}, q);
+}
+
+__qpu__ void test3(double p) {
+  cudaq::qubit q;
+  x(q);
+  cudaq::apply_noise<test::hello::hello_world>(0.2, q);
+}
+
+__qpu__ int test4(double p) {
+  cudaq::qubit q;
+  x(q);
+  cudaq::apply_noise<test::hello::hello_world>(0.2, q);
+  return mz(q);
+}
+
+CUDAQ_TEST(NoiseTest, checkFineGrainArg) {
+  {
+    cudaq::noise_model noise;
+    noise.register_channel<test::hello::hello_world>();
+
+    auto counts = cudaq::sample({.noise = noise}, test3, .7);
+    counts.dump();
+    EXPECT_TRUE(counts.size() == 2);
+  }
+  {
+    // test warning emitted / no noise applied for case where
+    // no noise model is specified
+    auto counts = cudaq::sample(test3, .7);
+    counts.dump();
+    EXPECT_TRUE(counts.size() == 1);
+  }
+  {
+    // test warning emitted / no noise applied for case where
+    // noise mnodel is provided but custom channel not registered.
+    cudaq::noise_model noise;
+    auto counts = cudaq::sample({.noise = noise}, test3, .7);
+    counts.dump();
+    EXPECT_TRUE(counts.size() == 1);
+  }
+  {
+    // test noisy kernel invocation
+    cudaq::noise_model noise;
+    noise.register_channel<test::hello::hello_world>();
+    cudaq::set_noise(noise);
+    std::set<int> res;
+    for (std::size_t i = 0; i < 100; i++)
+      res.insert(test4(.7));
+    EXPECT_EQ(res.size(), 2);
+    cudaq::unset_noise();
+  }
+  {
+    // test noisy kernel invocation,
+    // channel not registered, should get no noise
+    cudaq::noise_model noise;
+    cudaq::set_noise(noise);
+    std::set<int> res;
+    for (std::size_t i = 0; i < 100; i++)
+      res.insert(test4(.7));
+    EXPECT_EQ(res.size(), 1);
+    cudaq::unset_noise();
+  }
+  {
+    // test noisy kernel invocation,
+    // no noise, should get no application
+    std::set<int> res;
+    for (std::size_t i = 0; i < 100; i++)
+      res.insert(test4(.7));
+    EXPECT_EQ(res.size(), 1);
+  }
+}
+
+CUDAQ_TEST(NoiseTest, checkFineGrainVec) {
+  {
+    cudaq::noise_model noise;
+    noise.register_channel<test::hello::hello_world>();
+
+    auto counts = cudaq::sample({.noise = noise}, test2, .7);
+    counts.dump();
+    EXPECT_TRUE(counts.size() == 2);
+  }
+  {
+    // test warning emitted / no noise applied for case where
+    // no noise model is specified
+    auto counts = cudaq::sample(test2, .7);
+    counts.dump();
+    EXPECT_TRUE(counts.size() == 1);
+  }
+  {
+    // test warning emitted / no noise applied for case where
+    // noise mnodel is provided but custom channel not registered.
+    cudaq::noise_model noise;
+    auto counts = cudaq::sample({.noise = noise}, test2, .7);
+    counts.dump();
+    EXPECT_TRUE(counts.size() == 1);
+  }
+}
+
 CUDAQ_TEST(NoiseTest, checkSimple) {
   cudaq::set_random_seed(13);
   cudaq::kraus_channel depol({cudaq::complex{0.99498743710662, 0.0},
@@ -378,71 +495,71 @@ CUDAQ_TEST(NoiseTest, checkAllQubitChannel) {
 // Stim does not support arbitrary cudaq::kraus_op specification.
 
 static cudaq::kraus_channel create2pNoiseChannel() {
-  // 1% depolarization
-  cudaq::kraus_op op0{cudaq::complex{0.94868329805, 0.0},
+  // 20% depolarization
+  cudaq::kraus_op op0{cudaq::complex{0.894427191, 0.0},
                       {0.0, 0.0},
                       {0.0, 0.0},
                       {0.0, 0.0},
                       {0.0, 0.0},
-                      {0.94868329805, 0.0},
+                      {0.894427191, 0.0},
                       {0.0, 0.0},
                       {0.0, 0.0},
                       {0.0, 0.0},
                       {0.0, 0.0},
-                      {0.94868329805, 0.0},
+                      {0.894427191, 0.0},
                       {0.0, 0.0},
                       {0.0, 0.0},
                       {0.0, 0.0},
                       {0.0, 0.0},
-                      {0.94868329805, 0.0}},
+                      {0.894427191, 0.0}},
       op1{cudaq::complex{0.0, 0.0},
           {0.0, 0.0},
-          {0.18257418583, 0.0},
+          {0.25819888974, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
-          {0.18257418583, 0.0},
-          {0.18257418583, 0.0},
+          {0.25819888974, 0.0},
+          {0.25819888974, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
-          {0.18257418583, 0.0},
+          {0.25819888974, 0.0},
           {0.0, 0.0},
           {0.0, 0.0}},
       op2{cudaq::complex{0.0, 0.0},
           {0.0, 0.0},
-          {0.0, -0.18257418583},
+          {0.0, -0.25819888974},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
-          {0.0, -0.18257418583},
-          {0.0, 0.18257418583},
+          {0.0, -0.25819888974},
+          {0.0, 0.25819888974},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
-          {0.0, 0.18257418583},
+          {0.0, 0.25819888974},
           {0.0, 0.0},
           {0.0, 0.0}},
-      op3{cudaq::complex{0.18257418583, 0.0},
+      op3{cudaq::complex{0.25819888974, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
-          {0.18257418583, 0.0},
+          {0.25819888974, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
-          {-0.18257418583, 0.0},
+          {-0.25819888974, 0.0},
           {-0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
           {-0.0, 0.0},
-          {-0.18257418583, 0.0}};
+          {-0.25819888974, 0.0}};
   cudaq::kraus_channel noise2q(
       std::vector<cudaq::kraus_op>{op0, op1, op2, op3});
   return noise2q;
@@ -481,6 +598,7 @@ CUDAQ_TEST(NoiseTest, checkAllQubitChannelWithControl) {
     auto counts =
         cudaq::sample({.shots = shots, .noise = noise}, bellRandom<numQubits>{},
                       qubitIds[0], qubitIds[1]);
+    counts.dump();
     // More than 2 entangled states due to the noise.
     EXPECT_GT(counts.size(), 2);
   } while (std::next_permutation(qubitIds.begin(), qubitIds.end()));
@@ -509,6 +627,7 @@ CUDAQ_TEST(NoiseTest, checkAllQubitChannelWithControlPrefix) {
     auto counts =
         cudaq::sample({.shots = shots, .noise = noise}, bellRandom<numQubits>{},
                       qubitIds[0], qubitIds[1]);
+    counts.dump();
     // More than 2 entangled states due to the noise.
     EXPECT_GT(counts.size(), 2);
   } while (std::next_permutation(qubitIds.begin(), qubitIds.end()));

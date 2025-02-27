@@ -113,6 +113,10 @@ public:
   /// calculation on simulation backends that support trajectory simulation.
   std::optional<std::size_t> numberTrajectories;
 
+  /// @brief Whether or not to simply concatenate measurements in execution
+  /// order.
+  bool explicitMeasurements = false;
+
   /// @brief The Constructor, takes the name of the context
   /// @param n The name of the context
   ExecutionContext(const std::string n) : name(n) {}
