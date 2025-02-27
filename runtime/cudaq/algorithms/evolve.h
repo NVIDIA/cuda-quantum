@@ -36,7 +36,6 @@ evolve(const HamTy &hamiltonian, const std::map<int, int> &dimensions,
        std::initializer_list<ObserveOpTy> observables = {},
        bool store_intermediate_results = false,
        std::optional<int> shots_count = std::nullopt) {
-  std::cout << "In evolve ..." << std::endl;
 #if defined(CUDAQ_DYNAMICS_TARGET)
   if constexpr (std::is_convertible_v<
                     HamTy, cudaq::product_operator<cudaq::matrix_operator>>) {
@@ -160,7 +159,6 @@ evolve_result evolve(const HamTy &hamiltonian,
                      const std::vector<ObserveOpTy> &observables = {},
                      bool store_intermediate_results = false,
                      std::optional<int> shots_count = std::nullopt) {
-  std::cout << "In evolve ..." << std::endl;
 #if defined(CUDAQ_DYNAMICS_TARGET)
   if constexpr (std::is_convertible_v<
                     HamTy, cudaq::product_operator<cudaq::matrix_operator>>) {
@@ -287,7 +285,6 @@ evolve(const HamTy &hamiltonian, const std::map<int, int> &dimensions,
        std::initializer_list<ObserveOpTy> observables = {},
        bool store_intermediate_results = false,
        std::optional<int> shots_count = std::nullopt) {
-  std::cout << "In evolve ..." << std::endl;
 #if defined(CUDAQ_DYNAMICS_TARGET)
   std::vector<evolve_result> results;
   for (const auto &initial_state : initial_states)
@@ -312,7 +309,6 @@ evolve(const HamTy &hamiltonian, const std::map<int, int> &dimensions,
        const std::vector<ObserveOpTy> &observables = {},
        bool store_intermediate_results = false,
        std::optional<int> shots_count = std::nullopt) {
-  std::cout << "In evolve ..." << std::endl;
 #if defined(CUDAQ_DYNAMICS_TARGET)
   std::vector<evolve_result> results;
   for (const auto &initial_state : initial_states)
@@ -339,7 +335,6 @@ evolve_async(const HamTy &hamiltonian, const std::map<int, int> &dimensions,
              const std::vector<ObserveOpTy> &observables = {},
              bool store_intermediate_results = false,
              std::optional<int> shots_count = std::nullopt, int qpu_id = 0) {
-  std::cout << "In evolve ..." << std::endl;
 #if defined(CUDAQ_DYNAMICS_TARGET)
   return __internal__::evolve_async(
       [=]() {

@@ -33,7 +33,6 @@ template <typename QuantumKernel>
 evolve_result evolve(state initial_state, QuantumKernel &&kernel,
                      const std::vector<spin_op> &observables = {},
                      int shots_count = -1) {
-  std::cout << "In evolve ..." << std::endl;
 #if defined(CUDAQ_DYNAMICS_TARGET)
   state final_state =
       get_state(std::forward<QuantumKernel>(kernel), initial_state);
@@ -63,7 +62,6 @@ template <typename QuantumKernel>
 evolve_result evolve(state initial_state, std::vector<QuantumKernel> kernels,
                      const std::vector<std::vector<spin_op>> &observables = {},
                      int shots_count = -1) {
-  std::cout << "In evolve ..." << std::endl;
 #if defined(CUDAQ_DYNAMICS_TARGET)
   std::vector<state> intermediate_states = {};
   std::vector<std::vector<observe_result>> expectation_values = {};
@@ -106,7 +104,6 @@ evolve_async(state initial_state, QuantumKernel &&kernel,
              std::size_t qpu_id = 0,
              std::optional<cudaq::noise_model> noise_model = std::nullopt,
              int shots_count = -1) {
-  std::cout << "In evolve ..." << std::endl;
 #if defined(CUDAQ_DYNAMICS_TARGET)
   auto &platform = cudaq::get_platform();
   std::promise<evolve_result> promise;
@@ -139,7 +136,6 @@ evolve_async(state initial_state, std::vector<QuantumKernel> kernels,
              std::size_t qpu_id = 0,
              std::optional<cudaq::noise_model> noise_model = std::nullopt,
              int shots_count = -1) {
-  std::cout << "In evolve ..." << std::endl;
 #if defined(CUDAQ_DYNAMICS_TARGET)
   auto &platform = cudaq::get_platform();
   std::promise<evolve_result> promise;
@@ -167,7 +163,6 @@ evolve_async(state initial_state, std::vector<QuantumKernel> kernels,
 inline async_evolve_result
 evolve_async(std::function<evolve_result()> evolveFunctor,
              std::size_t qpu_id = 0) {
-  std::cout << "In evolve ..." << std::endl;
 #if defined(CUDAQ_DYNAMICS_TARGET)
   auto &platform = cudaq::get_platform();
   if (qpu_id >= platform.num_qpus()) {

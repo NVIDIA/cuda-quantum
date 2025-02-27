@@ -20,6 +20,14 @@ namespace cudaq {
 /// @brief Create a schedule for evaluating an operator expression at different
 /// steps.
 class Schedule {
+public:
+  /// Iterator tags. May be superfluous.
+  using iterator_category = std::forward_iterator_tag;
+  using difference_type = std::ptrdiff_t;
+  using value_type = std::complex<double>;
+  using pointer = std::complex<double> *;
+  using reference = std::complex<double> &;
+
 private:
   pointer ptr;
   std::vector<std::complex<double>> steps;
@@ -32,32 +40,6 @@ private:
 public:
   Schedule(pointer ptr) : ptr(ptr){};
 
-  /// @brief Range-based iterator end function
-  /// @return
-  std::vector<double>::iterator end() { return _steps.end(); }
-
-  /// @brief Range-based constant iterator begin function
-  /// @return
-  std::vector<double>::const_iterator cbegin() const { return _steps.cbegin(); }
-
-  /// @brief Range-based constant iterator end function
-  /// @return
-  std::vector<double>::const_iterator cend() const { return _steps.cend(); }
-
-  /// @brief Range-based constant iterator begin function
-  /// @return
-  std::vector<double>::const_iterator begin() const { return cbegin(); }
-
-  /// @brief Range-based constant iterator end function
-  /// @return
-  std::vector<double>::const_iterator end() const { return cend(); }
-
-  const std::vector<std::string> &parameters() const { return _parameters; }
-
-  std::function<std::complex<double>(const std::string &, double)>
-  value_function() const {
-    return _value_function;
-  }
   /// @brief Constructor.
   /// @arg steps: The sequence of steps in the schedule. Restricted to a vector
   /// of complex values.
