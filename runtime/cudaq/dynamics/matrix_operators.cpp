@@ -13,10 +13,10 @@
 #include "cudaq/operators.h"
 #include "cudaq/utils/tensor.h"
 
+#include "boson_operators.h"
 #include "fermion_operators.h"
 #include "matrix_operators.h"
 #include "spin_operators.h"
-#include "boson_operators.h"
 
 namespace cudaq {
 
