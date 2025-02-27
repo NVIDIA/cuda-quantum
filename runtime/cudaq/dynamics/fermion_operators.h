@@ -26,9 +26,9 @@ private:
   // Given that the dimension for fermion operators has to be 2,
   // we effectively may just as well store a 2 x 2 matrix.
   // Since we only ever need the operator Ad, A, N, (1-N), I, 0,
-  // we choose to store this as a single integer whose bits 
+  // we choose to store this as a single integer whose bits
   // correspond to the quadrant entry.
-  // That is: 
+  // That is:
   // 0 = 0000 = 0,
   // 1 = 0001 = (1-N),
   // 2 = 0010 = A,
@@ -57,12 +57,12 @@ private:
   void inplace_mult(const fermion_operator &other);
 
 public:
-
-  static constexpr commutation_relations commutation_group = operator_handler::fermion_commutation_relations;
+  static constexpr commutation_relations commutation_group =
+      operator_handler::fermion_commutation_relations;
 
   // read-only properties
 
-  const bool& commutes_across_degrees = this->commutes;
+  const bool &commutes_across_degrees = this->commutes;
 
   virtual std::string unique_id() const;
 
@@ -78,7 +78,7 @@ public:
 
   // assignments
 
-  fermion_operator& operator=(const fermion_operator &other);
+  fermion_operator &operator=(const fermion_operator &other);
 
   // evaluations
 

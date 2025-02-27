@@ -23,26 +23,35 @@ namespace cudaq {
 #if !defined(NDEBUG)
 void fermion_operator::validate_opcode() const {
   std::vector<int> valid_op_codes = {0, 1, 2, 4, 8, 9};
-  assert(std::find(valid_op_codes.cbegin(), valid_op_codes.cend(), this->op_code) != valid_op_codes.cend());
-  assert(this->commutes_across_degrees == (!(this->op_code & 2) && !(this->op_code & 4)));
+  assert(std::find(valid_op_codes.cbegin(), valid_op_codes.cend(),
+                   this->op_code) != valid_op_codes.cend());
+  assert(this->commutes_across_degrees ==
+         (!(this->op_code & 2) && !(this->op_code & 4)));
 }
 #endif
 
 std::string fermion_operator::op_code_to_string() const {
-  // Note that we can (and should) have the same op codes across boson, fermion, and spin ops, 
-  // since individual operators with the same op codes are actually equal.
-  // Note that the matrix definition for creation, annihilation and number operators are 
-  // equal despite the different commutation/anticommutation relations; what makes them 
-  // behave differently is effectively the "finite size effects" for fermions. Specifically,
-  // if we were to blindly multiply the matrices for d=2 for bosons, we would get the same
-  // behavior as we have for a single fermion due to the finite size of the matrix. 
-  // To avoid this, we ensure that we reorder the operators for bosons appropriately as part of
-  // the in-place multiplication, whereas for fermions, this effect is desired/correct. 
-  if (this->op_code == 0) return "0";
-  if (this->op_code & 1) return "(1-N)";
-  if (this->op_code & 2) return "A";
-  if (this->op_code & 4) return "Ad";
-  if (this->op_code & 8) return "N";
+  // Note that we can (and should) have the same op codes across boson, fermion,
+  // and spin ops, since individual operators with the same op codes are
+  // actually equal. Note that the matrix definition for creation, annihilation
+  // and number operators are equal despite the different
+  // commutation/anticommutation relations; what makes them behave differently
+  // is effectively the "finite size effects" for fermions. Specifically, if we
+  // were to blindly multiply the matrices for d=2 for bosons, we would get the
+  // same behavior as we have for a single fermion due to the finite size of the
+  // matrix. To avoid this, we ensure that we reorder the operators for bosons
+  // appropriately as part of the in-place multiplication, whereas for fermions,
+  // this effect is desired/correct.
+  if (this->op_code == 0)
+    return "0";
+  if (this->op_code & 1)
+    return "(1-N)";
+  if (this->op_code & 2)
+    return "A";
+  if (this->op_code & 4)
+    return "Ad";
+  if (this->op_code & 8)
+    return "N";
   return "I";
 }
 
@@ -89,34 +98,32 @@ std::string fermion_operator::unique_id() const {
   return this->op_code_to_string() + std::to_string(target);
 }
 
-std::vector<int> fermion_operator::degrees() const {
-  return {this->target};
-}
+std::vector<int> fermion_operator::degrees() const { return {this->target}; }
 
 // constructors
 
-fermion_operator::fermion_operator(int target) 
-  : target(target), op_code(9), commutes(true) {}
+fermion_operator::fermion_operator(int target)
+    : target(target), op_code(9), commutes(true) {}
 
-fermion_operator::fermion_operator(int target, int op_id) 
-  : target(target), op_code(9), commutes(true) {
-    assert(0 <= op_id < 4);
-    if (op_id == 1) { // create
-      this->op_code = 4;
-      this->commutes = false;
-    } else if (op_id == 2) { // annihilate
-      this->op_code = 2;
-      this->commutes = false;
-    } else if (op_id == 3) // number
-      this->op_code = 8;
+fermion_operator::fermion_operator(int target, int op_id)
+    : target(target), op_code(9), commutes(true) {
+  assert(0 <= op_id < 4);
+  if (op_id == 1) { // create
+    this->op_code = 4;
+    this->commutes = false;
+  } else if (op_id == 2) { // annihilate
+    this->op_code = 2;
+    this->commutes = false;
+  } else if (op_id == 3) // number
+    this->op_code = 8;
 }
 
 fermion_operator::fermion_operator(const fermion_operator &other)
-  : op_code(other.op_code), commutes(other.commutes), target(other.target) {}
+    : op_code(other.op_code), commutes(other.commutes), target(other.target) {}
 
 // assignments
 
-fermion_operator& fermion_operator::operator=(const fermion_operator &other) {
+fermion_operator &fermion_operator::operator=(const fermion_operator &other) {
   if (this != &other) {
     this->op_code = other.op_code;
     this->commutes = other.commutes;
@@ -142,10 +149,14 @@ matrix_2 fermion_operator::to_matrix(
 #endif
 
   auto mat = matrix_2(2, 2);
-  if (this->op_code & 1) mat[{0, 0}] = 1.;
-  if (this->op_code & 2) mat[{0, 1}] = 1.;
-  if (this->op_code & 4) mat[{1, 0}] = 1.;
-  if (this->op_code & 8) mat[{1, 1}] = 1.;
+  if (this->op_code & 1)
+    mat[{0, 0}] = 1.;
+  if (this->op_code & 2)
+    mat[{0, 1}] = 1.;
+  if (this->op_code & 4)
+    mat[{1, 0}] = 1.;
+  if (this->op_code & 8)
+    mat[{1, 1}] = 1.;
   return std::move(mat);
 }
 
@@ -160,7 +171,8 @@ std::string fermion_operator::to_string(bool include_degrees) const {
 
 bool fermion_operator::operator==(const fermion_operator &other) const {
   return this->target == other.target &&
-         this->op_code == other.op_code; // no need to compare commutes (is determined by op_code)
+         this->op_code == other.op_code; // no need to compare commutes (is
+                                         // determined by op_code)
 }
 
 // defined operators

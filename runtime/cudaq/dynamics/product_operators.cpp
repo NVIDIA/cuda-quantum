@@ -41,89 +41,126 @@ bool product_operator<HandlerTy>::is_canonicalized() const {
 }
 #endif
 
-template<typename HandlerTy>
-std::vector<HandlerTy>::const_iterator product_operator<HandlerTy>::find_insert_at(const HandlerTy &other) {
-  // This is the simplest logic for finding the insertion point that should be used only when 
-  // all operators are guaranteed to belong to commutation set 0 and have a single target.
-  // Neither is the case for matrix operators; we handle this with a template specialization below.
-  // That template specialization handles the most general case, but (necessarily) is also the slowest.
-  // We have an additional template specialization for operators that have non-trivial commutation 
-  // relations across different degrees but have a single target (e.g. fermions). That specialization 
-  // is just to avoid the overhead of having to compare multiple targets.
-  assert(other.commutation_group == operator_handler::default_commutation_relations);
+template <typename HandlerTy>
+std::vector<HandlerTy>::const_iterator
+product_operator<HandlerTy>::find_insert_at(const HandlerTy &other) {
+  // This is the simplest logic for finding the insertion point that should be
+  // used only when all operators are guaranteed to belong to commutation set 0
+  // and have a single target. Neither is the case for matrix operators; we
+  // handle this with a template specialization below. That template
+  // specialization handles the most general case, but (necessarily) is also the
+  // slowest. We have an additional template specialization for operators that
+  // have non-trivial commutation relations across different degrees but have a
+  // single target (e.g. fermions). That specialization is just to avoid the
+  // overhead of having to compare multiple targets.
+  assert(other.commutation_group ==
+         operator_handler::default_commutation_relations);
 
-  // The logic below ensures that terms are fully ordered in canonical order, as long as the HandlerTy
-  // supports in-place multiplication.
-  return std::find_if(this->operators.crbegin(), this->operators.crend(), 
-              [other_target = other.target] (const HandlerTy& self_op) { 
-    return !operator_handler::canonical_order(other_target, self_op.target);
-  }).base(); // base causes insert after for reverse iterator
+  // The logic below ensures that terms are fully ordered in canonical order, as
+  // long as the HandlerTy supports in-place multiplication.
+  return std::find_if(this->operators.crbegin(), this->operators.crend(),
+                      [other_target = other.target](const HandlerTy &self_op) {
+                        return !operator_handler::canonical_order(
+                            other_target, self_op.target);
+                      })
+      .base(); // base causes insert after for reverse iterator
 }
 
-template<>
-std::vector<matrix_operator>::const_iterator product_operator<matrix_operator>::find_insert_at(const matrix_operator &other) {
-  // This template specialization contains the most general (and least performant) version of 
-  // the logic to determine where to insert an operator into the product. It takes commutation relations
-  // into account to try and order the operators in canonical order as much as possible. For multi-target 
-  // operators, a canonical ordering cannot be defined/achieved.
-  // IMPORTANT: It is necessary that we do try to partially canonicalize to ensure that any anti-
-  // commutation relations are correct, since we achieve non-trivial commutation relations by updating the 
-  // coefficient upon reordering terms! We should still get the correct relations even if we necessarily
-  // don't have a full canonical order, since incomplete ordering only occurs for multi-qubit terms.
-  // The only thing that does not work in general is having an non-trivial commutation relation for multi-
-  // target operators. The matrix operator class should fail to construct such an operator.
+template <>
+std::vector<matrix_operator>::const_iterator
+product_operator<matrix_operator>::find_insert_at(
+    const matrix_operator &other) {
+  // This template specialization contains the most general (and least
+  // performant) version of the logic to determine where to insert an operator
+  // into the product. It takes commutation relations into account to try and
+  // order the operators in canonical order as much as possible. For
+  // multi-target operators, a canonical ordering cannot be defined/achieved.
+  // IMPORTANT: It is necessary that we do try to partially canonicalize to
+  // ensure that any anti- commutation relations are correct, since we achieve
+  // non-trivial commutation relations by updating the coefficient upon
+  // reordering terms! We should still get the correct relations even if we
+  // necessarily don't have a full canonical order, since incomplete ordering
+  // only occurs for multi-qubit terms. The only thing that does not work in
+  // general is having an non-trivial commutation relation for multi- target
+  // operators. The matrix operator class should fail to construct such an
+  // operator.
   std::complex<double> commutation_factor = 1.;
-  auto rit = std::find_if(this->operators.crbegin(), this->operators.crend(), 
-              [&commutation_factor,
-               &other_degrees = static_cast<const std::vector<int>&>(other.degrees()),
-               &other] (const matrix_operator& self_op) { 
-    const std::vector<int> &self_op_degrees = self_op.degrees();
-    for (auto other_degree : other_degrees) {
-      auto item_it = std::find_if(self_op_degrees.crbegin(), self_op_degrees.crend(), 
-        [other_degree](int self_degree) { return !operator_handler::canonical_order(other_degree, self_degree); });
-      if (item_it != self_op_degrees.crend()) {
-        // we need to run this again to properly validate the defined commutation sets - 
-        // we need to know if we have an exact match of the degree somewhere
-        item_it = std::find_if(self_op_degrees.crbegin(), self_op_degrees.crend(), 
-          [other_degree](int self_degree) { return other_degree == self_degree; });        
-        if (item_it != self_op_degrees.crend() && other.commutation_group != self_op.commutation_group)
-          // this indicates that the same degree of freedom is acted upon by an operator of a different 
-          // "commutation class", e.g. a fermion operator has been applied and now we are trying to apply a boson operator
-          throw std::runtime_error("conflicting commutation relations defined for target " + std::to_string(other_degree));
-        return true;
-      } else if (!other.commutes_across_degrees && !self_op.commutes_across_degrees &&
-                  other.commutation_group != operator_handler::default_commutation_relations && 
-                  self_op.commutation_group == other.commutation_group)
-        commutation_factor *= other.commutation_group.commutation_factor();
-    }
-    return false;
-  });
-  if (commutation_factor != 1.) this->coefficient *= commutation_factor;
+  auto rit = std::find_if(
+      this->operators.crbegin(), this->operators.crend(),
+      [&commutation_factor,
+       &other_degrees = static_cast<const std::vector<int> &>(other.degrees()),
+       &other](const matrix_operator &self_op) {
+        const std::vector<int> &self_op_degrees = self_op.degrees();
+        for (auto other_degree : other_degrees) {
+          auto item_it =
+              std::find_if(self_op_degrees.crbegin(), self_op_degrees.crend(),
+                           [other_degree](int self_degree) {
+                             return !operator_handler::canonical_order(
+                                 other_degree, self_degree);
+                           });
+          if (item_it != self_op_degrees.crend()) {
+            // we need to run this again to properly validate the defined
+            // commutation sets - we need to know if we have an exact match of
+            // the degree somewhere
+            item_it =
+                std::find_if(self_op_degrees.crbegin(), self_op_degrees.crend(),
+                             [other_degree](int self_degree) {
+                               return other_degree == self_degree;
+                             });
+            if (item_it != self_op_degrees.crend() &&
+                other.commutation_group != self_op.commutation_group)
+              // this indicates that the same degree of freedom is acted upon by
+              // an operator of a different "commutation class", e.g. a fermion
+              // operator has been applied and now we are trying to apply a
+              // boson operator
+              throw std::runtime_error(
+                  "conflicting commutation relations defined for target " +
+                  std::to_string(other_degree));
+            return true;
+          } else if (!other.commutes_across_degrees &&
+                     !self_op.commutes_across_degrees &&
+                     other.commutation_group !=
+                         operator_handler::default_commutation_relations &&
+                     self_op.commutation_group == other.commutation_group)
+            commutation_factor *= other.commutation_group.commutation_factor();
+        }
+        return false;
+      });
+  if (commutation_factor != 1.)
+    this->coefficient *= commutation_factor;
   return rit.base(); // base causes insert after for reverse iterator
 }
 
-template<>
-std::vector<fermion_operator>::const_iterator product_operator<fermion_operator>::find_insert_at(const fermion_operator &other) {
-  assert(other.commutation_group == operator_handler::fermion_commutation_relations);
-  // This template specialization contains the same logic as the specialization for matrix operators above,
-  // just written to rely on having a single target qubit and a matching set id for all operators 
-  // for the sake of avoiding unnecessary overhead.
+template <>
+std::vector<fermion_operator>::const_iterator
+product_operator<fermion_operator>::find_insert_at(
+    const fermion_operator &other) {
+  assert(other.commutation_group ==
+         operator_handler::fermion_commutation_relations);
+  // This template specialization contains the same logic as the specialization
+  // for matrix operators above, just written to rely on having a single target
+  // qubit and a matching set id for all operators for the sake of avoiding
+  // unnecessary overhead.
   bool negate_coefficient = false;
-  auto rit = std::find_if(this->operators.crbegin(), this->operators.crend(), 
-              [&negate_coefficient,
-               &other] (const fermion_operator& self_op) { 
-    if (!operator_handler::canonical_order(other.target, self_op.target)) return true;
-    if (!other.commutes_across_degrees && !self_op.commutes_across_degrees)
-      negate_coefficient = !negate_coefficient;
-    return false;
-  }); 
-  if (negate_coefficient) this->coefficient *= -1.;
+  auto rit = std::find_if(
+      this->operators.crbegin(), this->operators.crend(),
+      [&negate_coefficient, &other](const fermion_operator &self_op) {
+        if (!operator_handler::canonical_order(other.target, self_op.target))
+          return true;
+        if (!other.commutes_across_degrees && !self_op.commutes_across_degrees)
+          negate_coefficient = !negate_coefficient;
+        return false;
+      });
+  if (negate_coefficient)
+    this->coefficient *= -1.;
   return rit.base(); // base causes insert after for reverse iterator
 }
 
-template<typename HandlerTy>
-template<typename T, std::enable_if_t<std::is_same<HandlerTy, T>::value && 
-                                      !product_operator<T>::supports_inplace_mult, std::false_type>>
+template <typename HandlerTy>
+template <typename T,
+          std::enable_if_t<std::is_same<HandlerTy, T>::value &&
+                               !product_operator<T>::supports_inplace_mult,
+                           std::false_type>>
 void product_operator<HandlerTy>::insert(T &&other) {
   auto pos = this->find_insert_at(other);
   this->operators.insert(pos, other);
@@ -145,9 +182,11 @@ void product_operator<HandlerTy>::insert(T &&other) {
     this->operators.insert(pos, std::move(other));
 }
 
-template<>
-template<typename T, std::enable_if_t<std::is_same<spin_operator, T>::value && 
-                                      product_operator<T>::supports_inplace_mult, std::true_type>>
+template <>
+template <typename T,
+          std::enable_if_t<std::is_same<spin_operator, T>::value &&
+                               product_operator<T>::supports_inplace_mult,
+                           std::true_type>>
 void product_operator<spin_operator>::insert(T &&other) {
   auto pos = this->find_insert_at(other);
   if (pos != this->operators.begin() && (pos - 1)->target == other.target) {
@@ -388,13 +427,16 @@ product_operator<HandlerTy>::product_operator(const product_operator<T> &other)
   }
 }
 
-template<typename HandlerTy>
-template<typename T, std::enable_if_t<std::is_same<HandlerTy, matrix_operator>::value &&
-                                      !std::is_same<T, HandlerTy>::value && 
-                                      std::is_constructible<HandlerTy, T>::value, bool>>
-product_operator<HandlerTy>::product_operator(const product_operator<T> &other, 
-                                              const matrix_operator::commutation_behavior &behavior)
-: coefficient(other.coefficient) {
+template <typename HandlerTy>
+template <typename T,
+          std::enable_if_t<std::is_same<HandlerTy, matrix_operator>::value &&
+                               !std::is_same<T, HandlerTy>::value &&
+                               std::is_constructible<HandlerTy, T>::value,
+                           bool>>
+product_operator<HandlerTy>::product_operator(
+    const product_operator<T> &other,
+    const matrix_operator::commutation_behavior &behavior)
+    : coefficient(other.coefficient) {
   this->operators.reserve(other.operators.size());
   for (const T &other_op : other.operators) {
     HandlerTy op(other_op, behavior);
@@ -402,10 +444,12 @@ product_operator<HandlerTy>::product_operator(const product_operator<T> &other,
   }
 }
 
-template<typename HandlerTy>
-product_operator<HandlerTy>::product_operator(const product_operator<HandlerTy> &other, int size) 
-  : coefficient(other.coefficient) {
-  if (size <= 0) this->operators = other.operators;
+template <typename HandlerTy>
+product_operator<HandlerTy>::product_operator(
+    const product_operator<HandlerTy> &other, int size)
+    : coefficient(other.coefficient) {
+  if (size <= 0)
+    this->operators = other.operators;
   else {
     this->operators.reserve(size);
     for (const auto &op : other.operators)
@@ -455,21 +499,21 @@ product_operator<HandlerTy>::product_operator(
   template product_operator<HandlerTy>::product_operator(                      \
       product_operator<HandlerTy> &&other, int size);
 
-template 
-product_operator<matrix_operator>::product_operator(const product_operator<spin_operator> &other);
-template 
-product_operator<matrix_operator>::product_operator(const product_operator<boson_operator> &other);
-template 
-product_operator<matrix_operator>::product_operator(const product_operator<fermion_operator> &other);
-template 
-product_operator<matrix_operator>::product_operator(const product_operator<spin_operator> &other, 
-                                                    const matrix_operator::commutation_behavior &behavior);
-template 
-product_operator<matrix_operator>::product_operator(const product_operator<boson_operator> &other,
-                                                    const matrix_operator::commutation_behavior &behavior);
-template 
-product_operator<matrix_operator>::product_operator(const product_operator<fermion_operator> &other,
-                                                    const matrix_operator::commutation_behavior &behavior);
+template product_operator<matrix_operator>::product_operator(
+    const product_operator<spin_operator> &other);
+template product_operator<matrix_operator>::product_operator(
+    const product_operator<boson_operator> &other);
+template product_operator<matrix_operator>::product_operator(
+    const product_operator<fermion_operator> &other);
+template product_operator<matrix_operator>::product_operator(
+    const product_operator<spin_operator> &other,
+    const matrix_operator::commutation_behavior &behavior);
+template product_operator<matrix_operator>::product_operator(
+    const product_operator<boson_operator> &other,
+    const matrix_operator::commutation_behavior &behavior);
+template product_operator<matrix_operator>::product_operator(
+    const product_operator<fermion_operator> &other,
+    const matrix_operator::commutation_behavior &behavior);
 
 INSTANTIATE_PRODUCT_CONSTRUCTORS(matrix_operator);
 INSTANTIATE_PRODUCT_CONSTRUCTORS(spin_operator);

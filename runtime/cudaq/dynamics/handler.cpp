@@ -6,29 +6,31 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "cudaq/utils/tensor.h"
+#include "operator_leafs.h"
 #include <complex>
 #include <set>
 #include <unordered_map>
-#include <vector>
-#include "cudaq/utils/tensor.h"
-#include "operator_leafs.h"
-#include <set>
 #include <vector>
 
 namespace cudaq {
 
 // commutation_relations
 
-std::unordered_map<uint, std::complex<double>> commutation_relations::exchange_factors = {
-  {-1, 1.}, // default relation
-  {-2, -1.}, // fermion relation
+std::unordered_map<uint, std::complex<double>>
+    commutation_relations::exchange_factors = {
+        {-1, 1.},  // default relation
+        {-2, -1.}, // fermion relation
 };
 
-void commutation_relations::define(uint group_id, std::complex<double> exchange_factor) {
-  auto result = commutation_relations::exchange_factors.insert({group_id, exchange_factor});
+void commutation_relations::define(uint group_id,
+                                   std::complex<double> exchange_factor) {
+  auto result = commutation_relations::exchange_factors.insert(
+      {group_id, exchange_factor});
   if (!result.second)
-    throw std::invalid_argument("commutation relations for group id '" 
-                                  + std::to_string(group_id) + "' are already defined");
+    throw std::invalid_argument("commutation relations for group id '" +
+                                std::to_string(group_id) +
+                                "' are already defined");
 }
 
 std::complex<double> commutation_relations::commutation_factor() const {
@@ -37,7 +39,8 @@ std::complex<double> commutation_relations::commutation_factor() const {
   return it->second;
 }
 
-bool commutation_relations::operator==(const commutation_relations &other) const {
+bool commutation_relations::operator==(
+    const commutation_relations &other) const {
   return this->id == other.id;
 }
 
@@ -45,8 +48,9 @@ bool commutation_relations::operator==(const commutation_relations &other) const
 
 commutation_relations operator_handler::custom_commutation_relations(uint id) {
   auto it = commutation_relations::exchange_factors.find(id);
-  if (it == commutation_relations::exchange_factors.cend()) 
-    throw std::range_error("no commutation relations with id '" + std::to_string(id) + "' has been defined");
+  if (it == commutation_relations::exchange_factors.cend())
+    throw std::range_error("no commutation relations with id '" +
+                           std::to_string(id) + "' has been defined");
   return commutation_relations(id);
 }
 

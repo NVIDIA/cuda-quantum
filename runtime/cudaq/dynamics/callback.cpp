@@ -18,16 +18,18 @@ namespace cudaq {
 
 // ScalarCallbackFunction
 
-std::complex<double>
-ScalarCallbackFunction::operator()(const std::unordered_map<std::string, std::complex<double>> &parameters) const {
+std::complex<double> ScalarCallbackFunction::operator()(
+    const std::unordered_map<std::string, std::complex<double>> &parameters)
+    const {
   return this->callback_func(parameters);
 }
 
 // MatrixCallbackFunction
 
-matrix_2
-MatrixCallbackFunction::operator()(const std::vector<int> &relevant_dimensions,
-                                   const std::unordered_map<std::string, std::complex<double>> &parameters) const {
+matrix_2 MatrixCallbackFunction::operator()(
+    const std::vector<int> &relevant_dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters)
+    const {
   return this->callback_func(relevant_dimensions, parameters);
 }
 

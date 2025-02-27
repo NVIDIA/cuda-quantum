@@ -25,7 +25,8 @@ private:
   std::vector<std::complex<double>> steps;
   std::vector<std::string> parameters;
   std::function<std::complex<double>(const std::string &,
-                                     const std::complex<double> &)> value_function;
+                                     const std::complex<double> &)>
+      value_function;
   int current_idx;
 
 public:
@@ -68,11 +69,11 @@ public:
   /// @details current_idx: Intializes the current index (_current_idx) to -1 to
   /// indicate that iteration has not yet begun. Once iteration starts,
   /// _current_idx will be used to track the position in the sequence of steps.
-  Schedule(const std::vector<std::complex<double>> &steps,
-           const std::vector<std::string> &parameters,
-           const std::function<std::complex<double>(const std::string &,
-                                              const std::complex<double> &)>
-               &value_function);
+  Schedule(
+      const std::vector<std::complex<double>> &steps,
+      const std::vector<std::string> &parameters,
+      const std::function<std::complex<double>(
+          const std::string &, const std::complex<double> &)> &value_function);
 
   /// Below, I define what I believe are the minimal necessary methods needed
   /// for this to behave like an iterable. This should be revisited in the

@@ -832,55 +832,67 @@ TEST(OperatorExpressions, checkCommutationRelations) {
   utils::checkEqual(ad_mat * a_mat, utils::number_matrix(5));
   utils::checkEqual(aad_mat, utils::number_matrix(4) + utils::id_matrix(4));
 
-  // Expected commutation relations: 
+  // Expected commutation relations:
   // [a(k), a†(q)] = δkq
   // [a†(k), a†(q)] = [a(k), a(q)] = 0
 
   std::unordered_map<int, int> dimensions = {{0, 4}, {1, 4}};
-  auto commutator = [](cudaq::product_operator<cudaq::boson_operator> ad, 
+  auto commutator = [](cudaq::product_operator<cudaq::boson_operator> ad,
                        cudaq::product_operator<cudaq::boson_operator> a) {
     return a * ad - ad * a;
   };
 
   // check [a(q), a†(q)] = 1
 
-  auto rel1 = commutator(cudaq::boson_operator::create(0), cudaq::boson_operator::annihilate(0));
-  auto rel2 = commutator(cudaq::boson_operator::create(1), cudaq::boson_operator::annihilate(1));
+  auto rel1 = commutator(cudaq::boson_operator::create(0),
+                         cudaq::boson_operator::annihilate(0));
+  auto rel2 = commutator(cudaq::boson_operator::create(1),
+                         cudaq::boson_operator::annihilate(1));
   utils::checkEqual(rel1.to_matrix(dimensions), utils::id_matrix(4));
   utils::checkEqual(rel2.to_matrix(dimensions), utils::id_matrix(4));
 
   // check [a(k), a†(q)] = 0 for k != q
 
-  auto rel3 = commutator(cudaq::boson_operator::create(0), cudaq::boson_operator::annihilate(1));
-  auto rel4 = commutator(cudaq::boson_operator::create(1), cudaq::boson_operator::annihilate(0));
+  auto rel3 = commutator(cudaq::boson_operator::create(0),
+                         cudaq::boson_operator::annihilate(1));
+  auto rel4 = commutator(cudaq::boson_operator::create(1),
+                         cudaq::boson_operator::annihilate(0));
   utils::checkEqual(rel3.to_matrix(dimensions), utils::zero_matrix(16));
   utils::checkEqual(rel4.to_matrix(dimensions), utils::zero_matrix(16));
 
   // check [a†(q), a†(q)] = 0
 
-  auto rel5 = commutator(cudaq::boson_operator::create(0), cudaq::boson_operator::create(0));
-  auto rel6 = commutator(cudaq::boson_operator::create(1), cudaq::boson_operator::create(1));
+  auto rel5 = commutator(cudaq::boson_operator::create(0),
+                         cudaq::boson_operator::create(0));
+  auto rel6 = commutator(cudaq::boson_operator::create(1),
+                         cudaq::boson_operator::create(1));
   utils::checkEqual(rel5.to_matrix(dimensions), utils::zero_matrix(4));
   utils::checkEqual(rel6.to_matrix(dimensions), utils::zero_matrix(4));
 
   // check [a(q), a(q)] = 0
 
-  auto rel7 = commutator(cudaq::boson_operator::annihilate(0), cudaq::boson_operator::annihilate(0));
-  auto rel8 = commutator(cudaq::boson_operator::annihilate(1), cudaq::boson_operator::annihilate(1));
+  auto rel7 = commutator(cudaq::boson_operator::annihilate(0),
+                         cudaq::boson_operator::annihilate(0));
+  auto rel8 = commutator(cudaq::boson_operator::annihilate(1),
+                         cudaq::boson_operator::annihilate(1));
   utils::checkEqual(rel7.to_matrix(dimensions), utils::zero_matrix(4));
   utils::checkEqual(rel8.to_matrix(dimensions), utils::zero_matrix(4));
 
   // check [a†(k), a†(q)] = 0 for k != q
 
-  auto rel9 = commutator(cudaq::boson_operator::create(0), cudaq::boson_operator::create(1));
-  auto rel10 = commutator(cudaq::boson_operator::create(1), cudaq::boson_operator::create(0));
+  auto rel9 = commutator(cudaq::boson_operator::create(0),
+                         cudaq::boson_operator::create(1));
+  auto rel10 = commutator(cudaq::boson_operator::create(1),
+                          cudaq::boson_operator::create(0));
   utils::checkEqual(rel9.to_matrix(dimensions), utils::zero_matrix(16));
   utils::checkEqual(rel10.to_matrix(dimensions), utils::zero_matrix(16));
 
   // check [a(k), a(q)] = 0 for k != q
 
-  auto rel11 = commutator(cudaq::boson_operator::annihilate(0), cudaq::boson_operator::annihilate(1));
-  auto rel12 = commutator(cudaq::boson_operator::annihilate(1), cudaq::boson_operator::annihilate(0));
+  auto rel11 = commutator(cudaq::boson_operator::annihilate(0),
+                          cudaq::boson_operator::annihilate(1));
+  auto rel12 = commutator(cudaq::boson_operator::annihilate(1),
+                          cudaq::boson_operator::annihilate(0));
   utils::checkEqual(rel11.to_matrix(dimensions), utils::zero_matrix(16));
   utils::checkEqual(rel12.to_matrix(dimensions), utils::zero_matrix(16));
 }

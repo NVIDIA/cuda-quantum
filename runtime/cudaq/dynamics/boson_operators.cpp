@@ -11,7 +11,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "boson_operators.h"
 #include "cudaq/operators.h"
 #include "cudaq/utils/tensor.h"
 
@@ -126,9 +125,7 @@ std::string boson_operator::unique_id() const {
   return this->op_code_to_string() + std::to_string(target);
 }
 
-std::vector<int> boson_operator::degrees() const {
-  return {this->target};
-}
+std::vector<int> boson_operator::degrees() const { return {this->target}; }
 
 // constructors
 
