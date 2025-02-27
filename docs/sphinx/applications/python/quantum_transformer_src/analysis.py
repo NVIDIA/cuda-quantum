@@ -10,7 +10,7 @@ import pandas as pd
 import seaborn as sns
 import torch
 from rdkit import Chem, RDLogger
-from sklearn.experimental import enable_iterative_imputer  # noqa F401
+from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import IterativeImputer, KNNImputer, SimpleImputer
 from torch.nn import functional as F
 from torchdata.stateful_dataloader import StatefulDataLoader
@@ -53,44 +53,42 @@ def generate_smiles(
     Generate SMILES strings using a trained Transformer model.
 
     Args:
-        checkpoint_path (str): Path to the model checkpoint.
-        save_dir (Optional[str]): Path to save the generated SMILES strings.
+        checkpoint_path (`str`): Path to the model checkpoint.
+        `save_dir` (Optional[`str`]): Path to save the generated SMILES strings.
         choose_best_val_epoch (bool): Choose the best validation epoch for evaluation from any previous epoch.
-        num_of_model_queries (int): Number of attempts to generate SMILES strings.
+        `num_of_model_queries` (int): Number of attempts to generate SMILES strings.
         sampling_batch_size (int): Batch size for sampling.
-        MW (Union[float, np.float64]): Molecular weight for conditional sampling.
-        HBA (Union[float, np.float64]): Hydrogen bond acceptors for conditional sampling.
-        HBD (Union[float, np.float64]): Hydrogen bond donors for conditional sampling.
-        nRot (Union[float, np.float64]): Number of rotatable bonds for conditional sampling.
-        nRing (Union[float, np.float64]): Number of rings for conditional sampling.
-        nHet (Union[float, np.float64]): Number of heteroatoms for conditional sampling.
-        TPSA (Union[float, np.float64]): Topological polar surface area for conditional sampling.
-        LogP (Union[float, np.float64]): LogP for conditional sampling.
-        StereoCenters (Union[float, np.float64]): Number of stereocenters for conditional sampling.
-        imputation_method (str): Imputation method for missing physicochemical properties.
-        imputation_dataset_path (str): Path to the imputation dataset. Default will be set to the training dataset specified by the train_id from the checkpoint.
-        dataset_novelty_check_path (str): Path to the dataset for novelty check. Default will be set to the training dataset specified by the train_id from the checkpoint.
-        device (str): Device for training, either 'cpu' or 'gpu'.
-        qpu_count (int): Number of GPUs to use (-1 = all available GPUs).
+        MW (Union[float, `np.float64`]): Molecular weight for conditional sampling.
+        HBA (Union[float, `np.float64`]): Hydrogen bond `acceptors` for conditional sampling.
+        HBD (Union[float, `np.float64`]): Hydrogen bond donors for conditional sampling.
+        `nRot` (Union[float, `np.float64`]): Number of `rotatable` bonds for conditional sampling.
+        `nRing` (Union[float, `np.float64`]): Number of rings for conditional sampling.
+        `nHet` (Union[float, `np.float64`]): Number of `heteroatoms` for conditional sampling.
+        TPSA (Union[float, `np.float64`]): Topological polar surface area for conditional sampling.
+        LogP (Union[float, `np.float64`]): LogP for conditional sampling.
+        `StereoCenters` (Union[float, `np.float64`]): Number of `stereocenters` for conditional sampling.
+        imputation_method (`str`): Imputation method for missing `physicochemical` properties.
+        `imputation_dataset_path` (`str`): Path to the imputation `dataset`. Default will be set to the training `dataset` specified by the train_id from the checkpoint.
+        `dataset_novelty_check_path` (`str`): Path to the `dataset` for novelty check. Default will be set to the training `dataset` specified by the train_id from the checkpoint.
+        device (`str`): Device for training, either '`cpu`' or '`gpu`'.
+        `qpu_count` (int): Number of GPUs to use (-1 = all available GPUs).
 
     Returns:
         Tuple[float, float, float]: Average novelty, uniqueness, and validity of the generated SMILES strings
     """
 
-    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+    checkpoint = torch.load(checkpoint_path,
+                            map_location="cpu",
+                            weights_only=False)
 
     os.makedirs(os.path.dirname(save_dir), exist_ok=True)
 
     imputation_dataset_path = (
         f"./training_splits/train_dataset_{checkpoint['training_configuration']['train_id']}.csv"
-        if imputation_dataset_path is None
-        else imputation_dataset_path
-    )
+        if imputation_dataset_path is None else imputation_dataset_path)
     dataset_novelty_check_path = (
         f"./training_splits/train_dataset_{checkpoint['training_configuration']['train_id']}.csv"
-        if dataset_novelty_check_path is None
-        else dataset_novelty_check_path
-    )
+        if dataset_novelty_check_path is None else dataset_novelty_check_path)
     if not os.path.exists(imputation_dataset_path):
         logger.error(f"Training data not found at {imputation_dataset_path}")
         raise FileNotFoundError(
@@ -99,24 +97,18 @@ def generate_smiles(
 
     seed = checkpoint["training_configuration"]["seed"]
 
-    def _configure_quantum_target(device: str | torch.device, qpu_count: int) -> int:
+    def _configure_quantum_target(device: str | torch.device,
+                                  qpu_count: int) -> int:
         """Configure the quantum target based on device availability."""
         if isinstance(device, torch.device):
-            target = (
-                "nvidia"
-                if device.type == "cuda" and cudaq.has_target("nvidia")
-                else "qpp-cpu"
-            )
+            target = ("nvidia" if device.type == "cuda" and
+                      cudaq.has_target("nvidia") else "qpp-cpu")
         else:
-            target = (
-                "nvidia"
-                if device == "gpu" and cudaq.has_target("nvidia")
-                else "qpp-cpu"
-            )
+            target = ("nvidia" if device == "gpu" and cudaq.has_target("nvidia")
+                      else "qpp-cpu")
         cudaq.set_target(target, option="mqpu,fp32")
-        effective_qpu_count = (
-            cudaq.get_target().num_qpus() if qpu_count == -1 else qpu_count
-        )
+        effective_qpu_count = (cudaq.get_target().num_qpus()
+                               if qpu_count == -1 else qpu_count)
         logger.info(
             f"Quantum target set to: {target} with QPU count: {effective_qpu_count}"
         )
@@ -130,9 +122,8 @@ def generate_smiles(
     else:
         if device not in {"cpu", "gpu"}:
             raise ValueError("Device must be either 'cpu' or 'gpu'.")
-        device = torch.device(
-            "cuda:0" if (device == "gpu" and torch.cuda.is_available()) else "cpu"
-        )
+        device = torch.device("cuda:0" if (
+            device == "gpu" and torch.cuda.is_available()) else "cpu")
 
     # Create a local random generator
     local_generator = torch.Generator(device=device)
@@ -140,28 +131,24 @@ def generate_smiles(
 
     dataset = Transformer_Dataset(
         data_path=checkpoint["training_configuration"]["training_data"],
-        block_size=(
-            22
-            if "qm9" in checkpoint["training_configuration"]["training_data"]
-            else None
-        ),
+        block_size=(22 if "qm9"
+                    in checkpoint["training_configuration"]["training_data"]
+                    else None),
     )
 
     if choose_best_val_epoch:
         # Choose the best validation epoch
         best_val_loss_index = (
-            checkpoint["val_losses"].index(min(checkpoint["val_losses"])) + 1
-        )
+            checkpoint["val_losses"].index(min(checkpoint["val_losses"])) + 1)
         best_model_filename = f"model_epoch_{best_val_loss_index}.pt"
         selected_transformer_params = os.path.join(
-            os.path.dirname(checkpoint_path), best_model_filename
-        )
+            os.path.dirname(checkpoint_path), best_model_filename)
         logger.info(
             f"Generating SMILES using {best_model_filename} with val_loss {min(checkpoint['val_losses'])}"
         )
-        checkpoint = torch.load(
-            selected_transformer_params, map_location="cpu", weights_only=False
-        )
+        checkpoint = torch.load(selected_transformer_params,
+                                map_location="cpu",
+                                weights_only=False)
 
     else:
         logger.info(
@@ -172,15 +159,14 @@ def generate_smiles(
         vocab_size=len(dataset.vocab),
         embed_dim=64,
         block_size=dataset.block_size,
-        classical_attention=checkpoint["training_configuration"]["classical_attention"],
+        classical_attention=checkpoint["training_configuration"]
+        ["classical_attention"],
         num_qubits=checkpoint["training_configuration"]["num_qubits"],
         ansatz_layers=checkpoint["training_configuration"]["ansatz_layers"],
-        conditional_training=checkpoint["training_configuration"][
-            "conditional_training"
-        ],
-        classical_parameter_reduction=checkpoint["training_configuration"][
-            "classical_parameter_reduction"
-        ],
+        conditional_training=checkpoint["training_configuration"]
+        ["conditional_training"],
+        classical_parameter_reduction=checkpoint["training_configuration"]
+        ["classical_parameter_reduction"],
         qpu_count=qpu_count,
     ).to(device)
 
@@ -209,15 +195,13 @@ def generate_smiles(
         "LogP",
         "StereoCenters",
     ]
-    sampling_conditions = [MW, HBA, HBD, nRot, nRing, nHet, TPSA, LogP, StereoCenters]
+    sampling_conditions = [
+        MW, HBA, HBD, nRot, nRing, nHet, TPSA, LogP, StereoCenters
+    ]
 
-    if (
-        any(
-            not np.isnan(item) if isinstance(item, (float, int)) else True
-            for item in sampling_conditions
-        )
-        and not checkpoint["training_configuration"]["conditional_training"]
-    ):
+    if (any(not np.isnan(item) if isinstance(item, (float, int)) else True
+            for item in sampling_conditions) and
+            not checkpoint["training_configuration"]["conditional_training"]):
         logger.warning(
             "Some physicochemical properties have been specified while model was trained without conditions. These properties will be ignored."
         )
@@ -229,29 +213,26 @@ def generate_smiles(
                 "Some physicochemical properties are missing. Imputation will be performed. It is recommended to use the training dataset for imputation. The './train_dataset.csv' file will be used by default. Specify the impuation dataset using the 'imputation_dataset' argument."
             )
 
-            # Load training dataset
+            # Load training `dataset`
             imputation_data = pd.read_csv(imputation_dataset_path)
 
             # Check if all headers are present
             all_properties_present = set(required_properties).issubset(
-                imputation_data.columns
-            )
+                imputation_data.columns)
 
             if not all_properties_present:
                 logger.debug(
                     f"Missing required properties in the imputation dataset. Required properties: {required_properties}. Computing properties manually."
                 )
 
-                # Calculate physico-chemical properties of the dataset if they are not provided
+                # Calculate `physicochemical` properties of the `dataset` if they are not provided
                 imputation_dataset_properties_lists = []
                 # Extract SMILES strings and compute properties
 
                 # Determine which SMILES column to use
                 smiles_column = (
-                    "SMILES"
-                    if "SMILES" in imputation_data.columns
-                    else "smiles" if "smiles" in imputation_data.columns else None
-                )
+                    "SMILES" if "SMILES" in imputation_data.columns else
+                    "smiles" if "smiles" in imputation_data.columns else None)
 
                 if smiles_column:
                     for smiles in imputation_data[smiles_column]:
@@ -263,14 +244,13 @@ def generate_smiles(
                     )
                     assert bool(smiles_column), "Missing SMILES strings."
 
-                # Convert the list of properties to a numpy array for easier computation
+                # Convert the list of properties to a array for easier computation
                 imputation_dataset_properties = np.array(
                     imputation_dataset_properties_lists
-                )  # Shape will be (num_samples, 9)
+                )  # Shape will be (number_of_samples, 9)
             else:
                 imputation_dataset_properties = imputation_data[
-                    required_properties
-                ].to_numpy()
+                    required_properties].to_numpy()
 
             logger.info(
                 f"Imputing missing properties using the '{imputation_method}' method."
@@ -280,7 +260,8 @@ def generate_smiles(
             elif imputation_method == "median":
                 imp = SimpleImputer(missing_values=np.nan, strategy="median")
             elif imputation_method == "most_frequent":
-                imp = SimpleImputer(missing_values=np.nan, strategy="most_frequent")
+                imp = SimpleImputer(missing_values=np.nan,
+                                    strategy="most_frequent")
             elif imputation_method == "multivariate":
                 imp = IterativeImputer(max_iter=10, random_state=seed)
             elif imputation_method == "knn":
@@ -294,33 +275,28 @@ def generate_smiles(
 
             imp.fit(imputation_dataset_properties)
             imputed_properties = imp.transform(
-                np.array(sampling_conditions).reshape(1, -1)
-            )
+                np.array(sampling_conditions).reshape(1, -1))
             sampling_properties_tensor = torch.tensor(
-                imputed_properties[0], dtype=torch.float32
-            ).to(device=device)
+                imputed_properties[0], dtype=torch.float32).to(device=device)
 
         else:
             sampling_properties_tensor = torch.tensor(
-                sampling_conditions, dtype=torch.float32
-            ).to(device=device)
+                sampling_conditions, dtype=torch.float32).to(device=device)
 
-    # Silence RDKit warnings
+    # Silence `RDKit` warnings
     lg = RDLogger.logger()
     lg.setLevel(RDLogger.CRITICAL)
     logger.debug("Sampling molecules...")
 
     sampled_molecular_properties = []
     # Sample until we reach the requested number of molecules
-    with tqdm(
-        total=num_of_model_queries, desc="Sampling molecules", leave=True
-    ) as pbar:
+    with tqdm(total=num_of_model_queries, desc="Sampling molecules",
+              leave=True) as pbar:
         while total_generated < num_of_model_queries:
 
             # Adjust batch size if nearing the total number of molecules to generate
-            batch_size_curr = min(
-                sampling_batch_size, num_of_model_queries - total_generated
-            )
+            batch_size_curr = min(sampling_batch_size,
+                                  num_of_model_queries - total_generated)
 
             # Initialize sequences and tracking variables for the batch
             sequences = [["[CLS]"] for _ in range(batch_size_curr)]
@@ -332,58 +308,58 @@ def generate_smiles(
 
                 # Convert sequences to indices
                 token_idxs = [
-                    torch.tensor([dataset.stoi[s] for s in seq], dtype=torch.long)
-                    for seq in sequences
+                    torch.tensor([dataset.stoi[s] for s in seq],
+                                 dtype=torch.long) for seq in sequences
                 ]
 
                 # Pad sequences to the same length
                 token_idxs_padded = torch.nn.utils.rnn.pad_sequence(
-                    token_idxs, batch_first=True, padding_value=dataset.stoi["<pad>"]
-                ).to(device)
+                    token_idxs,
+                    batch_first=True,
+                    padding_value=dataset.stoi["<pad>"]).to(device)
 
                 lengths = [len(seq) for seq in sequences]
-                lengths_tensor = torch.tensor(lengths, dtype=torch.long).to(device)
+                lengths_tensor = torch.tensor(lengths,
+                                              dtype=torch.long).to(device)
 
-                # Generate logits from the model
+                # Generate `logits` from the model
                 with torch.no_grad():
-                    if bool(
-                        checkpoint["training_configuration"]["conditional_training"]
-                    ):
+                    if bool(checkpoint["training_configuration"]
+                            ["conditional_training"]):
                         if sampling_properties_tensor is None:
                             raise ValueError(
                                 "sampling_properties_tensor is None but required for conditional training."
                             )
                         logits, _ = model(
                             token_idxs_padded,
-                            sampling_properties_tensor.expand(batch_size_curr, -1),
+                            sampling_properties_tensor.expand(
+                                batch_size_curr, -1),
                         )  # Shape: (batch_size, seq_length, vocab_size)
                     else:
                         logits, _ = model(token_idxs_padded)
 
-                # Get logits corresponding to the last token in each sequence
-                logits_last = logits[
-                    torch.arange(len(sequences)), lengths_tensor - 1, :
-                ]  # Shape: (batch_size, vocab_size)
+                # Get `logits` corresponding to the last token in each sequence
+                logits_last = logits[torch.arange(len(sequences)),
+                                     lengths_tensor -
+                                     1, :]  # Shape: (batch_size, vocab_size)
 
                 # Compute probabilities and sample the next token
                 probs = F.softmax(logits_last, dim=-1)
                 next_tokens = torch.multinomial(
-                    probs, num_samples=1, generator=local_generator
-                ).squeeze(
-                    -1
-                )  # Shape: (batch_size)
+                    probs, num_samples=1, generator=local_generator).squeeze(
+                        -1)  # Shape: (batch_size)
 
-                next_tokens_strings = [dataset.itos[idx.item()] for idx in next_tokens]
+                next_tokens_strings = [
+                    dataset.itos[idx.item()] for idx in next_tokens
+                ]
 
                 # Update sequences and done flags
                 for i in range(batch_size_curr):
                     if not done[i]:
                         next_token_str = next_tokens_strings[i]
                         sequences[i].append(next_token_str)
-                        if (
-                            next_token_str == "[EOS]"
-                            or len(sequences[i]) >= dataset.block_size
-                        ):
+                        if (next_token_str == "[EOS]" or
+                                len(sequences[i]) >= dataset.block_size):
                             done[i] = True
 
             # Process the completed sequences
@@ -392,12 +368,8 @@ def generate_smiles(
 
                 try:
                     # Convert the generated sequence into SMILES and canonicalize it
-                    smiles = (
-                        "".join(seq)
-                        .replace("[CLS]", "")
-                        .replace("[EOS]", "")
-                        .replace("<pad>", "")
-                    )
+                    smiles = ("".join(seq).replace("[CLS]", "").replace(
+                        "[EOS]", "").replace("<pad>", ""))
                     mol = Chem.MolFromSmiles(smiles)
                     if mol:
                         canonical = Chem.MolToSmiles(mol, canonical=True)
@@ -406,7 +378,7 @@ def generate_smiles(
                             # Calculate properties to validate further as some pass canonicalization but fail getting properties
                             properties = get_physchem_properties(canonical)
                             if (
-                                properties
+                                    properties
                             ):  # Only add if properties calculation is successful
                                 valid_molecules += 1  # Increment valid molecules count
                                 generated_smiles.append(canonical)
@@ -420,9 +392,8 @@ def generate_smiles(
 
     # Calculate properties for each SMILES and create a DataFrame
     df = pd.DataFrame(generated_smiles, columns=["SMILES"])
-    properties_df = pd.DataFrame(
-        sampled_molecular_properties, columns=required_properties
-    )
+    properties_df = pd.DataFrame(sampled_molecular_properties,
+                                 columns=required_properties)
 
     # Concatenate the DataFrames
     df = pd.concat([df, properties_df], axis=1)
@@ -447,21 +418,18 @@ def generate_smiles(
         # Load the CSV into a DataFrame
         df_novelty_check = pd.read_csv(dataset_novelty_check_path)
         smiles_column = (
-            "SMILES"
-            if "SMILES" in df_novelty_check.columns
-            else "smiles" if "smiles" in df_novelty_check.columns else None
-        )
+            "SMILES" if "SMILES" in df_novelty_check.columns else
+            "smiles" if "smiles" in df_novelty_check.columns else None)
         if smiles_column is None:
             logger.error(
                 "SMILES column not found in the dataset. Please ensure the dataset contains a 'SMILES' or 'smiles' column."
             )
             raise ValueError("SMILES not found.")
         novel_smiles = [
-            smiles
-            for smiles in unique_smiles
+            smiles for smiles in unique_smiles
             if smiles not in df_novelty_check[smiles_column].values
         ]
-        # Calculate properties of novel_smiles so they can be saved to csv
+        # Calculate properties of novel_smiles so they can be saved to `csv`
         novel_smiles_properties = []
         for smiles in novel_smiles:
             properties = get_physchem_properties(smiles)
@@ -469,32 +437,24 @@ def generate_smiles(
                 novel_smiles_properties.append(properties)
 
         novel_save_path = save_dir.replace(".csv", "_novel.csv")
-        # save smiles and properties to csv
+        # save smiles and properties to `csv`
         novel_df = pd.DataFrame(novel_smiles, columns=["SMILES"])
-        novel_properties_df = pd.DataFrame(
-            novel_smiles_properties, columns=required_properties
-        )
+        novel_properties_df = pd.DataFrame(novel_smiles_properties,
+                                           columns=required_properties)
         novel_df = pd.concat([novel_df, novel_properties_df], axis=1)
         novel_df.to_csv(novel_save_path, index=False)
 
-        novelty_percentage = (
-            (len(novel_smiles) / len(unique_smiles)) * 100
-            if len(unique_smiles) > 0
-            else 0
-        )
+        novelty_percentage = ((len(novel_smiles) / len(unique_smiles)) *
+                              100 if len(unique_smiles) > 0 else 0)
         logger.info(
             f"{len(novel_smiles)} novel molecules generated ({novelty_percentage:.2f} % of unique molecules)"
         )
 
     # Calculate percentages for validity and uniqueness
-    validity_percentage = (
-        (valid_molecules / num_of_model_queries) * 100
-        if num_of_model_queries > 0
-        else 0
-    )
-    uniqueness_percentage = (
-        (len(unique_smiles) / valid_molecules) * 100 if valid_molecules > 0 else 0
-    )
+    validity_percentage = ((valid_molecules / num_of_model_queries) *
+                           100 if num_of_model_queries > 0 else 0)
+    uniqueness_percentage = ((len(unique_smiles) / valid_molecules) *
+                             100 if valid_molecules > 0 else 0)
 
     return validity_percentage, uniqueness_percentage, novelty_percentage
 
@@ -507,43 +467,37 @@ def evaluate_accuracy(
     qpu_count: int = -1,
 ) -> float:
     """
-    Evaluate the accuracy of the Transformer model on the validation dataset.
+    Evaluate the accuracy of the Transformer model on the validation `dataset`.
 
     Args:
-        checkpoint_path (str): Path to the model checkpoint.
+        checkpoint_path (`str`): Path to the model checkpoint.
         evaluation_batch_size (int): Batch size for evaluation.
         choose_best_val_epoch (bool): Choose the best validation epoch for evaluation from any previous epoch.
-        device (str): Device for training, either 'cpu' or 'gpu'.
-        qpu_count (int): Number of GPUs to use (-1 = all available GPUs).
+        device (`str`): Device for training, either `cpu` or `gpu`.
+        `qpu_count` (int): Number of GPUs to use (-1 = all available GPUs).
 
     Returns:
-        float: Model accuracy on the validation dataset.
+        float: Model accuracy on the validation `dataset`.
     """
 
-    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+    checkpoint = torch.load(checkpoint_path,
+                            map_location="cpu",
+                            weights_only=False)
 
     seed = checkpoint["training_configuration"]["seed"]
 
-    def _configure_quantum_target(
-        device: Union[str, torch.device], qpu_count: int
-    ) -> int:
+    def _configure_quantum_target(device: Union[str, torch.device],
+                                  qpu_count: int) -> int:
         """Configure the quantum target based on device availability."""
         if isinstance(device, torch.device):
-            target = (
-                "nvidia"
-                if device.type == "cuda" and cudaq.has_target("nvidia")
-                else "qpp-cpu"
-            )
+            target = ("nvidia" if device.type == "cuda" and
+                      cudaq.has_target("nvidia") else "qpp-cpu")
         else:
-            target = (
-                "nvidia"
-                if device == "gpu" and cudaq.has_target("nvidia")
-                else "qpp-cpu"
-            )
+            target = ("nvidia" if device == "gpu" and cudaq.has_target("nvidia")
+                      else "qpp-cpu")
         cudaq.set_target(target, option="mqpu,fp32")
-        effective_qpu_count = (
-            cudaq.get_target().num_qpus() if qpu_count == -1 else qpu_count
-        )
+        effective_qpu_count = (cudaq.get_target().num_qpus()
+                               if qpu_count == -1 else qpu_count)
         logger.debug(
             f"Quantum target set to: {target} with QPU count: {effective_qpu_count}"
         )
@@ -553,29 +507,26 @@ def evaluate_accuracy(
 
     if device not in {"cpu", "gpu"}:
         raise ValueError("Device must be either 'cpu' or 'gpu'.")
-    torch_device: torch.device = torch.device(
-        "cuda:0" if (device == "gpu" and torch.cuda.is_available()) else "cpu"
-    )
+    torch_device: torch.device = torch.device("cuda:0" if (
+        device == "gpu" and torch.cuda.is_available()) else "cpu")
 
     # Create a local random generator
     local_generator = torch.Generator(device=torch_device)
     local_generator.manual_seed(seed)
 
-    # Load the dataset
+    # Load the `dataset`
     full_dataset = Transformer_Dataset(
         data_path=checkpoint["training_configuration"]["training_data"],
-        block_size=(
-            22
-            if "qm9" in checkpoint["training_configuration"]["training_data"]
-            else None
-        ),
+        block_size=(22 if "qm9"
+                    in checkpoint["training_configuration"]["training_data"]
+                    else None),
     )
 
     validation_data = f"./validation_splits/val_dataset_{checkpoint['training_configuration']['train_id']}.csv"
 
     validation_dataset = Transformer_Dataset(
-        data_path=validation_data, block_size=22 if "qm9" in validation_data else None
-    )
+        data_path=validation_data,
+        block_size=22 if "qm9" in validation_data else None)
 
     # Validation data loader
     val_loader = StatefulDataLoader(
@@ -589,18 +540,16 @@ def evaluate_accuracy(
     if choose_best_val_epoch:
         # Choose the best validation epoch
         best_val_loss_index = (
-            checkpoint["val_losses"].index(min(checkpoint["val_losses"])) + 1
-        )
+            checkpoint["val_losses"].index(min(checkpoint["val_losses"])) + 1)
         best_model_filename = f"model_epoch_{best_val_loss_index}.pt"
         selected_transformer_params = os.path.join(
-            os.path.dirname(checkpoint_path), best_model_filename
-        )
+            os.path.dirname(checkpoint_path), best_model_filename)
         logger.info(
             f"Evaluating Accuracy using {best_model_filename} with val_loss {min(checkpoint['val_losses'])}"
         )
-        checkpoint = torch.load(
-            selected_transformer_params, map_location="cpu", weights_only=False
-        )
+        checkpoint = torch.load(selected_transformer_params,
+                                map_location="cpu",
+                                weights_only=False)
 
     else:
         logger.info(
@@ -612,15 +561,14 @@ def evaluate_accuracy(
         vocab_size=len(full_dataset.vocab),
         embed_dim=64,
         block_size=full_dataset.block_size,
-        classical_attention=checkpoint["training_configuration"]["classical_attention"],
+        classical_attention=checkpoint["training_configuration"]
+        ["classical_attention"],
         num_qubits=checkpoint["training_configuration"]["num_qubits"],
         ansatz_layers=checkpoint["training_configuration"]["ansatz_layers"],
-        conditional_training=checkpoint["training_configuration"][
-            "conditional_training"
-        ],
-        classical_parameter_reduction=checkpoint["training_configuration"][
-            "classical_parameter_reduction"
-        ],
+        conditional_training=checkpoint["training_configuration"]
+        ["conditional_training"],
+        classical_parameter_reduction=checkpoint["training_configuration"]
+        ["classical_parameter_reduction"],
         qpu_count=qpu_count,
     ).to(torch_device)
 
@@ -639,7 +587,7 @@ def evaluate_accuracy(
         for batch_id, batch in val_pbar:
             x, y, physchem_props = [item.to(torch_device) for item in batch]
 
-            # Predict logits
+            # Predict `logits`
             logits, _ = model(x, physchem_props)
 
             # Get predicted token (highest probability)
@@ -658,7 +606,9 @@ def evaluate_accuracy(
             correct += (predicted_flat == y_flat).sum().item()
             total += valid_mask.sum().item()
 
-            val_pbar.set_postfix(correct=correct, total=total, accuracy=correct / total)
+            val_pbar.set_postfix(correct=correct,
+                                 total=total,
+                                 accuracy=correct / total)
 
     # Return overall accuracy
     return correct * 100 / total
@@ -677,12 +627,12 @@ def get_attention_maps(
     Generate attention maps for the given SMILES strings.
 
     Args:
-        checkpoint_path (str): Path to the model checkpoint.
-        save_path (Optional[str]): Directory to save the attention maps.
-        smiles_list (List[str]): List of SMILES strings.
+        checkpoint_path (`str`): Path to the model checkpoint.
+        save_path (Optional[`str`]): Directory to save the attention maps.
+        smiles_list (List[`str`]): List of SMILES strings.
         choose_best_val_epoch (bool): Choose the best validation epoch for evaluation from any previous epoch.
-        device (str): Device for training, either 'cpu' or 'gpu'.
-        qpu_count (int): Number of GPUs to use (-1 = all available GPUs).
+        device (`str`): Device for training, either '`cpu`' or '`gpu`'.
+        `qpu_count` (int): Number of GPUs to use (-1 = all available GPUs).
         show_plot (bool): Show the plot.
 
     Returns:
@@ -695,28 +645,22 @@ def get_attention_maps(
     if not isinstance(smiles_list, list):
         raise ValueError("smiles_list must be a string or a list of strings.")
 
-    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+    checkpoint = torch.load(checkpoint_path,
+                            map_location="cpu",
+                            weights_only=False)
 
-    def _configure_quantum_target(
-        device: Union[str, torch.device], qpu_count: int
-    ) -> int:
+    def _configure_quantum_target(device: Union[str, torch.device],
+                                  qpu_count: int) -> int:
         """Configure the quantum target based on device availability."""
         if isinstance(device, torch.device):
-            target = (
-                "nvidia"
-                if device.type == "cuda" and cudaq.has_target("nvidia")
-                else "qpp-cpu"
-            )
+            target = ("nvidia" if device.type == "cuda" and
+                      cudaq.has_target("nvidia") else "qpp-cpu")
         else:
-            target = (
-                "nvidia"
-                if device == "gpu" and cudaq.has_target("nvidia")
-                else "qpp-cpu"
-            )
+            target = ("nvidia" if device == "gpu" and cudaq.has_target("nvidia")
+                      else "qpp-cpu")
         cudaq.set_target(target, option="mqpu,fp32")
-        effective_qpu_count = (
-            cudaq.get_target().num_qpus() if qpu_count == -1 else qpu_count
-        )
+        effective_qpu_count = (cudaq.get_target().num_qpus()
+                               if qpu_count == -1 else qpu_count)
         logger.info(
             f"Quantum target set to: {target} with QPU count: {effective_qpu_count}"
         )
@@ -726,20 +670,17 @@ def get_attention_maps(
 
     if device not in {"cpu", "gpu"}:
         raise ValueError("Device must be either 'cpu' or 'gpu'.")
-    torch_device: torch.device = torch.device(
-        "cuda:0" if (device == "gpu" and torch.cuda.is_available()) else "cpu"
-    )
+    torch_device: torch.device = torch.device("cuda:0" if (
+        device == "gpu" and torch.cuda.is_available()) else "cpu")
 
     os.makedirs(save_dir, exist_ok=True)
 
-    # Load dataset
+    # Load `dataset`
     dataset = Transformer_Dataset(
         data_path=checkpoint["training_configuration"]["training_data"],
-        block_size=(
-            22
-            if "qm9" in checkpoint["training_configuration"]["training_data"]
-            else None
-        ),
+        block_size=(22 if "qm9"
+                    in checkpoint["training_configuration"]["training_data"]
+                    else None),
     )
 
     # Build/Load model
@@ -747,33 +688,30 @@ def get_attention_maps(
         vocab_size=len(dataset.vocab),
         embed_dim=64,
         block_size=dataset.block_size,
-        classical_attention=checkpoint["training_configuration"]["classical_attention"],
+        classical_attention=checkpoint["training_configuration"]
+        ["classical_attention"],
         num_qubits=checkpoint["training_configuration"]["num_qubits"],
         ansatz_layers=checkpoint["training_configuration"]["ansatz_layers"],
-        conditional_training=checkpoint["training_configuration"][
-            "conditional_training"
-        ],
-        classical_parameter_reduction=checkpoint["training_configuration"][
-            "classical_parameter_reduction"
-        ],
+        conditional_training=checkpoint["training_configuration"]
+        ["conditional_training"],
+        classical_parameter_reduction=checkpoint["training_configuration"]
+        ["classical_parameter_reduction"],
         qpu_count=qpu_count,
     ).to(torch_device)
 
     if choose_best_val_epoch:
         # Choose the best validation epoch
         best_val_loss_index = (
-            checkpoint["val_losses"].index(min(checkpoint["val_losses"])) + 1
-        )
+            checkpoint["val_losses"].index(min(checkpoint["val_losses"])) + 1)
         best_model_filename = f"model_epoch_{best_val_loss_index}.pt"
         selected_transformer_params = os.path.join(
-            os.path.dirname(checkpoint_path), best_model_filename
-        )
+            os.path.dirname(checkpoint_path), best_model_filename)
         logger.info(
             f"Using {best_model_filename} with val_loss {min(checkpoint['val_losses'])}"
         )
-        checkpoint = torch.load(
-            selected_transformer_params, map_location="cpu", weights_only=False
-        )
+        checkpoint = torch.load(selected_transformer_params,
+                                map_location="cpu",
+                                weights_only=False)
     else:
         logger.info(
             f"Using {os.path.basename(checkpoint_path)} with val_loss {checkpoint['val_losses'][-1]}"
@@ -789,11 +727,8 @@ def get_attention_maps(
             physchem_props = get_physchem_properties(smiles)
             input_sequence = dataset.tokenize_smiles(smiles)
             tokens = [dataset.itos[idx] for idx in input_sequence]
-            input_tensor = (
-                torch.tensor(input_sequence, dtype=torch.long)
-                .unsqueeze(0)
-                .to(torch_device)
-            )
+            input_tensor = (torch.tensor(
+                input_sequence, dtype=torch.long).unsqueeze(0).to(torch_device))
 
             # (debug) Print tokens to verify what they actually are
             logger.debug(f"Tokens for {smiles}: {tokens}")
@@ -801,8 +736,8 @@ def get_attention_maps(
             # Forward pass
             with torch.no_grad():
                 _, attention_maps = model(
-                    input_tensor, torch.tensor([physchem_props], device=torch_device)
-                )
+                    input_tensor,
+                    torch.tensor([physchem_props], device=torch_device))
 
             if checkpoint["training_configuration"]["classical_attention"]:
                 # Single-head classical attention: shape => (batch, head, T, T)
@@ -813,14 +748,13 @@ def get_attention_maps(
 
             # Build mask to exclude special tokens
             valid_mask: NDArray[np.bool_] = np.array(
-                [t not in excluded_token_strings for t in tokens], dtype=bool
-            )
+                [t not in excluded_token_strings for t in tokens], dtype=bool)
 
             # Filter out rows/columns of excluded tokens
             filtered_tokens = np.array(tokens)[valid_mask]
             filtered_attention_map = attention_map[valid_mask][:, valid_mask]
 
-            # Plot with a white->blue colormap
+            # Plot with a white->blue `colormap`
             plt.figure(figsize=(10, 8))
             sns.heatmap(
                 filtered_attention_map,
@@ -841,16 +775,15 @@ def get_attention_maps(
 
             # Save figure
             output_path = os.path.join(
-                save_dir, f"{smiles.replace('/', '_')}_attention.png"
-            )
+                save_dir, f"{smiles.replace('/', '_')}_attention.png")
 
             # prepend the name of the checkpoint_path's directory to the output_path
             parent_dir = os.path.basename(os.path.dirname(checkpoint_path))
             output_dir, output_filename = os.path.dirname(
-                output_path
-            ), os.path.basename(output_path)
+                output_path), os.path.basename(output_path)
 
-            output_path = os.path.join(output_dir, f"{parent_dir}_{output_filename}")
+            output_path = os.path.join(output_dir,
+                                       f"{parent_dir}_{output_filename}")
 
             plt.savefig(output_path)
             plt.show() if show_plots else plt.close()
@@ -877,44 +810,36 @@ def generate_plots_from_checkpoint(
     Generate plots for manuscript based on PyTorch checkpoints.
 
     Args:
-        quantum_checkpoint_path (str): Path to the quantum checkpoint.
-        classical_checkpoint_path (str): Path to the classical checkpoint.
-        classical_equal_param_checkpoint_path (str): Path to the classical checkpoint with equal parameters.
+        quantum_checkpoint_path (`str`): Path to the quantum checkpoint.
+        classical_checkpoint_path (`str`): Path to the classical checkpoint.
+        `classical_equal_param_checkpoint_path` (`str`): Path to the classical checkpoint with equal parameters.
         plot_train_losses (bool): Plot training losses.
         plot_val_losses (bool): Plot validation losses.
         rolling_average (bool): Plot rolling average.
         rolling_window (int): Rolling window size.
-        title (str): Title for the plot.
-        save_path (str): Path to save the plot.
+        title (`str`): Title for the plot.
+        save_path (`str`): Path to save the plot.
 
     Returns:
         None
     """
-    if (
-        quantum_checkpoint_path is None
-        and classical_checkpoint_path is None
-        and classical_equal_param_checkpoint_path is None
-    ):
+    if (quantum_checkpoint_path is None and
+            classical_checkpoint_path is None and
+            classical_equal_param_checkpoint_path is None):
         return
     if not plot_train_losses and not plot_val_losses:
         return
 
     # Load checkpoints if provided
-    quantum_checkpoint = (
-        torch.load(quantum_checkpoint_path, weights_only=False)
-        if quantum_checkpoint_path
-        else None
-    )
-    classical_checkpoint = (
-        torch.load(classical_checkpoint_path, weights_only=False)
-        if classical_checkpoint_path
-        else None
-    )
-    classical_equal_param_checkpoint = (
-        torch.load(classical_equal_param_checkpoint_path, weights_only=False)
-        if classical_equal_param_checkpoint_path
-        else None
-    )
+    quantum_checkpoint = (torch.load(quantum_checkpoint_path,
+                                     weights_only=False)
+                          if quantum_checkpoint_path else None)
+    classical_checkpoint = (torch.load(classical_checkpoint_path,
+                                       weights_only=False)
+                            if classical_checkpoint_path else None)
+    classical_equal_param_checkpoint = (torch.load(
+        classical_equal_param_checkpoint_path,
+        weights_only=False) if classical_equal_param_checkpoint_path else None)
 
     num_quantum_epochs = 0
     num_classical_epochs = 0
@@ -927,20 +852,17 @@ def generate_plots_from_checkpoint(
         num_classical_epochs = len(classical_checkpoint["training_losses"])
     if classical_equal_param_checkpoint:
         num_equal_param_epochs = len(
-            classical_equal_param_checkpoint["training_losses"]
-        )
+            classical_equal_param_checkpoint["training_losses"])
 
-    num_epochs = max(num_quantum_epochs, num_classical_epochs, num_equal_param_epochs)
+    num_epochs = max(num_quantum_epochs, num_classical_epochs,
+                     num_equal_param_epochs)
 
     epochs_loss = np.arange(1, num_epochs + 1)
 
     def _rolling_average_curve(data, window=3):
-        return (
-            pd.Series(data)
-            .rolling(window=window, min_periods=1, center=True)
-            .mean()
-            .to_numpy()
-        )
+        return (pd.Series(data).rolling(window=window,
+                                        min_periods=1,
+                                        center=True).mean().to_numpy())
 
     # Define colors
     quantum_colors = {"train": "blue", "val": "cyan"}
@@ -1006,7 +928,8 @@ def generate_plots_from_checkpoint(
 
     plot_loss(ax1, quantum_checkpoint, "Quantum", quantum_colors)
     plot_loss(ax1, classical_checkpoint, "Classical", classical_colors)
-    plot_loss(ax1, classical_equal_param_checkpoint, "Classical-eq", equal_param_colors)
+    plot_loss(ax1, classical_equal_param_checkpoint, "Classical-eq",
+              equal_param_colors)
 
     ax1.set_xlabel("Epochs", fontsize=16, weight="bold")
     ax1.set_ylabel("Loss", fontsize=16, weight="bold")
