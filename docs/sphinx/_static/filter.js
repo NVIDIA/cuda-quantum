@@ -1,3 +1,16 @@
+/*******************************************************************************
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ *                                                                             *
+ * File: filter.js                                                             *
+ * Created Date: 16 Feb 2023                                                   *
+ * Last Modified: 16 Feb 2023                                                  *
+ ******************************************************************************/
+
+
 document.addEventListener('DOMContentLoaded', function() {
     const notebooks = document.querySelectorAll('.notebook-entry');
     const tagButtons = document.querySelectorAll('.tag-button');
