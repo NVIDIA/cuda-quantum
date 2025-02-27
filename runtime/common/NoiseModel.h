@@ -723,7 +723,7 @@ public:
 };
 
 /// @brief A single-qubit Pauli error that applies either an X error, Y error,
-/// or Z error, with probabilities \p p[0], \p [1], and \p p[2], respectively
+/// or Z error, with 3 probabilities specified as inputs
 class pauli1 : public kraus_channel {
 public:
   constexpr static std::size_t num_parameters = 3;
@@ -736,8 +736,11 @@ public:
       throw std::runtime_error(
           "Invalid number of elements to pauli1 constructor. Must be 3.");
     cudaq::real sum = 0;
-    for (auto pp : p)
+    for (auto pp : p) {
+      if (pp < 0)
+        throw std::runtime_error("Probabilities cannot be negative");
       sum += pp;
+    }
     // This is just a first-level error check. Additional checks are done in
     // validateCompleteness.
     if (sum > static_cast<cudaq::real>(1.0 + 1e-6))
@@ -770,7 +773,7 @@ public:
 };
 
 /// @brief A 2-qubit Pauli error that applies one of the following errors, with
-/// the probabilities specified in \p p. Possible errors: IX, IY, IZ, XI, XX,
+/// the probabilities specified as inputs. Possible errors: IX, IY, IZ, XI, XX,
 /// XY, XZ, YI, YX, YY, YZ, ZI, ZX, ZY, and ZZ.
 class pauli2 : public kraus_channel {
 public:
@@ -787,8 +790,11 @@ public:
       throw std::runtime_error(
           "Invalid number of elements to pauli2 constructor. Must be 15.");
     cudaq::real sum = 0;
-    for (auto pp : p)
+    for (auto pp : p) {
+      if (pp < 0)
+        throw std::runtime_error("Probabilities cannot be negative");
       sum += pp;
+    }
     // This is just a first-level error check. Additional checks are done in
     // validateCompleteness.
     if (sum > static_cast<cudaq::real>(1.0 + 1e-6))

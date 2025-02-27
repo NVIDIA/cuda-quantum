@@ -61,18 +61,19 @@ void bindNoiseModel(py::module &mod) {
           "register_builtins",
           [mod](noise_model &self) {
             // Get the built-in channel types from the module
-            std::vector<std::string> channelNames = {"DepolarizationChannel",
-                                                     "AmplitudeDampingChannel",
-                                                     "BitFlipChannel",
-                                                     "PhaseFlipChannel",
-                                                     "XError",
-                                                     "YError",
-                                                     "ZError",
-                                                     "PhaseDamping",
-                                                     "Pauli1",
-                                                     "Pauli2",
-                                                     "Depolarization1",
-                                                     "Depolarization2"};
+            static const std::vector<std::string> channelNames = {
+                "DepolarizationChannel",
+                "AmplitudeDampingChannel",
+                "BitFlipChannel",
+                "PhaseFlipChannel",
+                "XError",
+                "YError",
+                "ZError",
+                "PhaseDamping",
+                "Pauli1",
+                "Pauli2",
+                "Depolarization1",
+                "Depolarization2"};
 
             // Auto-register each channel type
             for (const auto &name : channelNames) {
@@ -344,7 +345,7 @@ void bindNoiseChannels(py::module &mod) {
   py::class_<phase_damping, kraus_channel>(
       mod, "PhaseDamping",
       R"#(A Kraus channel that models the single-qubit phase damping error. This
-      is simulator to AmplitudeDamping, but for phase.)#")
+      is similar to AmplitudeDamping, but for phase.)#")
       .def(py::init<std::vector<double>>())
       .def(py::init<double>())
       .def_readonly_static(
@@ -373,7 +374,7 @@ void bindNoiseChannels(py::module &mod) {
 
   py::class_<y_error, kraus_channel>(
       mod, "YError",
-      R"#(A Pauli error that applies the X operator when an error
+      R"#(A Pauli error that applies the Y operator when an error
       occurs.)#")
       .def(py::init<std::vector<double>>())
       .def(py::init<double>())
