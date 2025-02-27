@@ -238,28 +238,20 @@ Noisy Simulation
     :special-members: __init__
 
 .. autoclass:: cudaq::PhaseDamping
-    :members:
-    :special-members: __init__
 
 .. autoclass:: cudaq::XError
-    :members:
-    :special-members: __init__
 
 .. autoclass:: cudaq::YError
-    :members:
-    :special-members: __init__
 
 .. autoclass:: cudaq::ZError
-    :members:
-    :special-members: __init__
+
+.. autoclass:: cudaq::Pauli1
+
+.. autoclass:: cudaq::Pauli2
 
 .. autoclass:: cudaq::Depolarization1
-    :members:
-    :special-members: __init__
 
 .. autoclass:: cudaq::Depolarization2
-    :members:
-    :special-members: __init__
 
 .. autoclass:: cudaq::KrausChannel
     :members:
