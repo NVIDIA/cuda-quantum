@@ -227,9 +227,11 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutschs_algorithm.html#Deutsch's-Algorithm:">Deutsch’s Algorithm:</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/deutsch_jozsa.html"><em>The Deutsch-Jozsa Algorithm</em></a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/deutsch_jozsa.html#The-Theory">The Theory</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/deutsch_jozsa.html#The-Algorithm-Implementation">The Algorithm Implementation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/deutsch_jozsa.html">The Deutsch-Jozsa Algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutsch_jozsa.html#The-Theory">The Theory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutsch_jozsa.html#The-Algorithm-Implementation">The Algorithm Implementation</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/hamiltonian_simulation.html">Spin-Hamiltonian Simulation Using CUDA-Q</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/hamiltonian_simulation.html#Introduction">Introduction</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../applications/python/hamiltonian_simulation.html#Heisenberg-Hamiltonian">Heisenberg Hamiltonian</a></li>
@@ -362,6 +364,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/sims/noisy.html">     Noisy Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/noisy.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/noisy.html#density-matrix">Density Matrix</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/noisy.html#stim">Stim</a></li>
 </ul>
@@ -1541,6 +1544,12 @@
 <dd><p>The number of trajectories to be used for an expectation calculation on simulation backends that support trajectory simulation. </p>
 </dd></dl>
 
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16ExecutionContext20explicitMeasurementsE">
+<span class="target" id="classcudaq_1_1ExecutionContext_1a446b7349d57ff400cf0121e5f29962be"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">explicitMeasurements</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N5cudaq16ExecutionContext20explicitMeasurementsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Whether or not to simply concatenate measurements in execution order. </p>
+</dd></dl>
+
 </div>
 </dd></dl>
 
@@ -1791,8 +1800,20 @@
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq13sample_result13sample_resultERK13sample_result">
-<span class="target" id="classcudaq_1_1sample__result_1aa4a1bd43b9b18cca2ef7a722ab6f8697"></span><span class="sig-name descname"><span class="n"><span class="pre">sample_result</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq13sample_result13sample_resultERK13sample_result" title="cudaq::sample_result::sample_result"><span class="n"><span class="pre">sample_result</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq13sample_result13sample_resultERK13sample_result" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="classcudaq_1_1sample__result_1aad55e0428d631c36fcbe34b2a815c68a"></span><span class="sig-name descname"><span class="n"><span class="pre">sample_result</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq13sample_result13sample_resultERK13sample_result" title="cudaq::sample_result::sample_result"><span class="n"><span class="pre">sample_result</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N5cudaq13sample_result13sample_resultERK13sample_result" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Copy Constructor. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13sample_result13sample_resultERR13sample_result">
+<span class="target" id="classcudaq_1_1sample__result_1abed8fbedf514fe7f5459cd8450c37681"></span><span class="sig-name descname"><span class="n"><span class="pre">sample_result</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq13sample_result13sample_resultERR13sample_result" title="cudaq::sample_result::sample_result"><span class="n"><span class="pre">sample_result</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N5cudaq13sample_result13sample_resultERR13sample_result" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Move constructor. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13sample_resultaSERR13sample_result">
+<span class="target" id="classcudaq_1_1sample__result_1ac6ec0e75b434dd181fdb8ee9c65174ea"></span><a class="reference internal" href="#_CPPv4N5cudaq13sample_resultE" title="cudaq::sample_result"><span class="n"><span class="pre">sample_result</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq13sample_resultE" title="cudaq::sample_result"><span class="n"><span class="pre">sample_result</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">counts</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N5cudaq13sample_resultaSERR13sample_result" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Move assignment constructor. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -1808,12 +1829,15 @@
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13sample_result6appendER15ExecutionResult">
-<span class="target" id="classcudaq_1_1sample__result_1ad4f5a8c72c564a51709e426cb8ffafd4"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">append</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq15ExecutionResultE" title="cudaq::ExecutionResult"><span class="n"><span class="pre">ExecutionResult</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">result</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq13sample_result6appendER15ExecutionResult" title="Permalink to this definition">¶</a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13sample_result6appendER15ExecutionResultb">
+<span class="target" id="classcudaq_1_1sample__result_1a1e1a403d48abcda8be41425e62cb3c7d"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">append</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq15ExecutionResultE" title="cudaq::ExecutionResult"><span class="n"><span class="pre">ExecutionResult</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">result</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">concatenate</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq13sample_result6appendER15ExecutionResultb" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Add another <code class="docutils literal notranslate"><a class="reference internal" href="#structcudaq_1_1ExecutionResult"><span class="std std-ref"><span class="pre">ExecutionResult</span></span></a></code> to this <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1sample__result"><span class="std std-ref"><span class="pre">sample_result</span></span></a></code>. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>result</strong> – </p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>result</strong> – Result to append </p></li>
+<li><p><strong>concatenate</strong> – If prior results are found, this concatenates the bitstrings. </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -1831,7 +1855,7 @@
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq13sample_resultaSER13sample_result">
-<span class="target" id="classcudaq_1_1sample__result_1a8073f38162b3cc1fa4a11ccaae13e222"></span><a class="reference internal" href="#_CPPv4N5cudaq13sample_resultE" title="cudaq::sample_result"><span class="n"><span class="pre">sample_result</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq13sample_resultE" title="cudaq::sample_result"><span class="n"><span class="pre">sample_result</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">counts</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq13sample_resultaSER13sample_result" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="classcudaq_1_1sample__result_1a52cf610ecb81c7f9e89ffa919b726c98"></span><a class="reference internal" href="#_CPPv4N5cudaq13sample_resultE" title="cudaq::sample_result"><span class="n"><span class="pre">sample_result</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq13sample_resultE" title="cudaq::sample_result"><span class="n"><span class="pre">sample_result</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">counts</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N5cudaq13sample_resultaSER13sample_result" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set this <a class="reference internal" href="#classcudaq_1_1sample__result"><span class="std std-ref">sample_result</span></a> equal to the provided one. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -2109,6 +2133,12 @@
 </dl>
 </dd></dl>
 
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq13sample_result15get_total_shotsEv">
+<span class="target" id="classcudaq_1_1sample__result_1ae7d688b809ba21ef7cf33849914840d7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_total_shots</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq13sample_result15get_total_shotsEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Get the total number of shots in the result. </p>
+</dd></dl>
+
 </div>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
@@ -2139,6 +2169,9 @@
 </dd>
 <dt class="field-even">Param noise<span class="colon">:</span></dt>
 <dd class="field-even"><p>noise model to use for the sample operation </p>
+</dd>
+<dt class="field-odd">Param explicit_measurements<span class="colon">:</span></dt>
+<dd class="field-odd"><p>whether or not to form the global register based on user-supplied measurement order. </p>
 </dd>
 </dl>
 </dd></dl>
@@ -2624,6 +2657,18 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dd><p>Add a <a class="reference internal" href="#structcudaq_1_1kraus__op"><span class="std std-ref">kraus_op</span></a> to this channel. </p>
 </dd></dl>
 
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq13kraus_channel18is_unitary_mixtureEv">
+<span class="target" id="classcudaq_1_1kraus__channel_1abf8effbbbb302ff37450202b25ffe721"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_unitary_mixture</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq13kraus_channel18is_unitary_mixtureEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Returns whether or not this is a unitary mixture. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13kraus_channel25generateUnitaryParametersEv">
+<span class="target" id="classcudaq_1_1kraus__channel_1a49b36a2b346c14e4cbd6bdabdc2b04fa"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">generateUnitaryParameters</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq13kraus_channel25generateUnitaryParametersEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Checks if Kraus ops have unitary representations and saves them if they do. Users should only need to call this if they have modified the Kraus ops and want to recompute these values. </p>
+</dd></dl>
+
 </div>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
@@ -2637,6 +2682,18 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq13kraus_channel10parametersE">
 <span class="target" id="classcudaq_1_1kraus__channel_1ad78d39ae4ebfcfcb2bfd91f9b5a4ebb5"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">parameters</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq13kraus_channel10parametersE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Noise parameter values. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13kraus_channel11unitary_opsE">
+<span class="target" id="classcudaq_1_1kraus__channel_1a96c9b610069e9ff86ef5597bff834c28"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">unitary_ops</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq13kraus_channel11unitary_opsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>If all Kraus ops are - when scaled - unitary, this holds the unitary versions of those ops. These values are always “double” regardless of whether cudaq::real is float or double. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13kraus_channel13probabilitiesE">
+<span class="target" id="classcudaq_1_1kraus__channel_1a9f9cfb565a7013493a72d67602442bca"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">probabilities</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq13kraus_channel13probabilitiesE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>If all Kraus ops are - when scaled - unitary, this holds the probabilities of those ops. These values are always “double” regardless of whether cudaq::real is float or double. </p>
 </dd></dl>
 
 </div>
@@ -2683,7 +2740,7 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq11noise_model11noise_modelEv">
-<span class="target" id="classcudaq_1_1noise__model_1a5c366911696095b18a8bcf1c55fe1dac"></span><span class="sig-name descname"><span class="n"><span class="pre">noise_model</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N5cudaq11noise_model11noise_modelEv" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="classcudaq_1_1noise__model_1adc4449f34e0319ce95a80bc6124f5d15"></span><span class="sig-name descname"><span class="n"><span class="pre">noise_model</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq11noise_model11noise_modelEv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>default constructor </p>
 </dd></dl>
 
@@ -2769,8 +2826,7 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dl class="cpp enum-class">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_typeE">
 <span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">noise_model_type</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_typeE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Noise model enumerated type that allows downstream simulators of <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1kraus__channel"><span class="std std-ref"><span class="pre">kraus_channel</span></span></a></code> objects to apply simulator-specific logic for well-known noise models. </p>
-<p><em>Values:</em></p>
+<dd><p><em>Values:</em></p>
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type7unknownE">
 <span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5aad921d60486366258809553a3db49a4a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">unknown</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type7unknownE" title="Permalink to this definition">¶</a><br /></dt>
@@ -2794,6 +2850,51 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type18phase_flip_channelE">
 <span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5a47d7b6d93e6a7373d773f10e9971fba6"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">phase_flip_channel</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type18phase_flip_channelE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type7x_errorE">
+<span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5a20ccc71de1bdb05475ee924e5f8ecf41"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">x_error</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type7x_errorE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type7y_errorE">
+<span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5aeeb6d6807691c67a1110e04a3cde2cec"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">y_error</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type7y_errorE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type7z_errorE">
+<span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5a743745d72843c03bf23ecf46214237ac"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">z_error</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type7z_errorE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type17amplitude_dampingE">
+<span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5ab3de5faaf1f45abc76779a1236609b86"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">amplitude_damping</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type17amplitude_dampingE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type13phase_dampingE">
+<span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5a9110851341133106609dc4567991cb25"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">phase_damping</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type13phase_dampingE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type6pauli1E">
+<span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5a444d61d3ef68f4747f0e2e7a8ac9de4e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pauli1</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type6pauli1E" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type6pauli2E">
+<span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5a8069aa5fd7f7d50ae0efd4444f372ec1"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pauli2</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type6pauli2E" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type15depolarization1E">
+<span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5abf9638080b9c0e60da383218767d187d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">depolarization1</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type15depolarization1E" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type15depolarization2E">
+<span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5a91509198e0aaa4c1ebb996ca0bb1ae70"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">depolarization2</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type15depolarization2E" title="Permalink to this definition">¶</a><br /></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -3578,6 +3679,12 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq3QPU28supportsExplicitMeasurementsEv">
+<span class="target" id="classcudaq_1_1QPU_1a7dbeada25331aff921bc06b047ed49b6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">supportsExplicitMeasurements</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq3QPU28supportsExplicitMeasurementsEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Return whether this <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> supports explicit measurements. </p>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK5cudaq3QPU21getRemoteCapabilitiesEv">
 <span class="target" id="classcudaq_1_1QPU_1ada538a4355a21ae9d4920238bed65f30"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq18RemoteCapabilitiesE" title="cudaq::RemoteCapabilities"><span class="n"><span class="pre">RemoteCapabilities</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getRemoteCapabilities</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq3QPU21getRemoteCapabilitiesEv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Return the remote capabilities for this platform. </p>
@@ -3761,6 +3868,12 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq16quantum_platform30supports_explicit_measurementsEKNSt6size_tE">
+<span class="target" id="classcudaq_1_1quantum__platform_1a91598b3ce38311762c5da229800e2326"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">supports_explicit_measurements</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">qpu_id</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq16quantum_platform30supports_explicit_measurementsEKNSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Return whether the <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> supports explicit measurements. </p>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK5cudaq16quantum_platform4nameEv">
 <span class="target" id="classcudaq_1_1quantum__platform_1a16b8cb93fb7a325cc1bd78076c832674"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq16quantum_platform4nameEv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>The name of the platform, which also corresponds to the name of the platform file. </p>
@@ -3794,6 +3907,12 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16quantum_platform9set_noiseEPK11noise_model">
 <span class="target" id="classcudaq_1_1quantum__platform_1a6e798c291d46aff40ce8fdad40e6fb90"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_noise</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq11noise_modelE" title="cudaq::noise_model"><span class="n"><span class="pre">noise_model</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">model</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq16quantum_platform9set_noiseEPK11noise_model" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the noise model for future invocations of quantum kernels. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16quantum_platform9get_noiseEv">
+<span class="target" id="classcudaq_1_1quantum__platform_1aa523466e2bde7c9d7e4bce7ef4322f73"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq11noise_modelE" title="cudaq::noise_model"><span class="n"><span class="pre">noise_model</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_noise</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq16quantum_platform9get_noiseEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Return the current noise model or <code class="docutils literal notranslate"><span class="pre">nullptr</span></code> if none set. </p>
 </dd></dl>
 
 <dl class="cpp function">

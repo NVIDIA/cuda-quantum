@@ -230,9 +230,11 @@
 <li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Deutsch's-Algorithm:">Deutsch’s Algorithm:</a></li>
 </ul>
 </li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#"><em>The Deutsch-Jozsa Algorithm</em></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#The-Theory">The Theory</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#The-Algorithm-Implementation">The Algorithm Implementation</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">The Deutsch-Jozsa Algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#The-Theory">The Theory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#The-Algorithm-Implementation">The Algorithm Implementation</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="hamiltonian_simulation.html">Spin-Hamiltonian Simulation Using CUDA-Q</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="hamiltonian_simulation.html#Introduction">Introduction</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="hamiltonian_simulation.html#Heisenberg-Hamiltonian">Heisenberg Hamiltonian</a></li>
@@ -365,6 +367,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/sims/noisy.html">     Noisy Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/noisy.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/noisy.html#density-matrix">Density Matrix</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/noisy.html#stim">Stim</a></li>
 </ul>
@@ -723,7 +726,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../../using/applications.html">CUDA-Q Applications</a></li>
-      <li class="breadcrumb-item active"><em>The Deutsch-Jozsa Algorithm</em></li>
+      <li class="breadcrumb-item active">The Deutsch-Jozsa Algorithm</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../../_sources/applications/python/deutsch_jozsa.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
@@ -737,7 +740,7 @@
            <div itemprop="articleBody">
              
   <section id="The-Deutsch-Jozsa-Algorithm">
-<h1><em>The Deutsch-Jozsa Algorithm</em><a class="headerlink" href="#The-Deutsch-Jozsa-Algorithm" title="Permalink to this heading">¶</a></h1>
+<h1>The Deutsch-Jozsa Algorithm<a class="headerlink" href="#The-Deutsch-Jozsa-Algorithm" title="Permalink to this heading">¶</a></h1>
 <p>Here is the link to the original paper: <a class="reference external" href="http://rspa.royalsocietypublishing.org/content/439/1907/553">Deutsch-Jozsa algorithm</a>. This algorithm is an earlier demonstration of the computational advantage of quantum algorithm over classical one. It addresses the problem of identifying the nature of a hidden Boolean function, which is provided as an oracle. The function is guaranteed to be either:</p>
 <ul class="simple">
 <li><p><strong>Balanced</strong>, meaning it outputs 0 for exactly half of its possible inputs and 1 for the other half.</p></li>
@@ -745,9 +748,8 @@
 </ul>
 <p>Classically, determining whether the function is balanced or constant requires evaluating the oracle multiple times. In the worst-case scenario, one would need to query at least half of the inputs to distinguish a constant function. However, the Deutsch-Jozsa algorithm demonstrates quantum superiority by solving this problem with a single query to the oracle, regardless of the input size.</p>
 <p>This notebook implements the Deutsch-Jozsa algorithm as described in <a class="reference external" href="https://arxiv.org/pdf/quant-ph/9708016.pdf">Cleve et al. 1997</a>. The input for the oracle function <span class="math notranslate nohighlight">\(f\)</span> is a <span class="math notranslate nohighlight">\(n\)</span>-bit string. It means that for <span class="math notranslate nohighlight">\(x\ in \{0,1\}^n\)</span>, the value of <span class="math notranslate nohighlight">\(f(x)\)</span> is either constant, i.e., the same for all <span class="math notranslate nohighlight">\(x\)</span>, or balanced, i.e., exactly half of the <span class="math notranslate nohighlight">\(n\)</span>-bit string whose <span class="math notranslate nohighlight">\(f(x) = 0\)</span>.</p>
-</section>
 <section id="The-Theory">
-<h1>The Theory<a class="headerlink" href="#The-Theory" title="Permalink to this heading">¶</a></h1>
+<h2>The Theory<a class="headerlink" href="#The-Theory" title="Permalink to this heading">¶</a></h2>
 <p>Here are the steps to implement the algorithm: 1. Start with initializing all input qubits and single auxiliary qubits to zero. The first <span class="math notranslate nohighlight">\(n-1\)</span> input qubits are used for querying the oracle, and the last auxiliary qubit is used for storing the answer of the oracle</p>
 <div class="math notranslate nohighlight">
 \[|0\ldots 0\rangle |0\rangle\]</div>
@@ -771,7 +773,7 @@
 </ol>
 </section>
 <section id="The-Algorithm-Implementation">
-<h1>The Algorithm Implementation<a class="headerlink" href="#The-Algorithm-Implementation" title="Permalink to this heading">¶</a></h1>
+<h2>The Algorithm Implementation<a class="headerlink" href="#The-Algorithm-Implementation" title="Permalink to this heading">¶</a></h2>
 <p>Here is the CUDA-Q code following the steps outlined in the above theory section.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
@@ -917,6 +919,7 @@ The oracle function is constant.
 </pre></div>
 </div>
 </div>
+</section>
 </section>
 
 
