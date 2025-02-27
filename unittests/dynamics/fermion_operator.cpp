@@ -819,20 +819,25 @@ TEST(OperatorExpressions, checkAntiCommutationRelations) {
 
   // check that [N(k), a†(q)] = 0 for k != q
 
-  auto rel13 = cudaq::fermion_operator::number(0) * cudaq::fermion_operator::create(1) -
-               cudaq::fermion_operator::create(1) * cudaq::fermion_operator::number(0);
-  auto rel14 = cudaq::fermion_operator::number(1) * cudaq::fermion_operator::create(0) -
-               cudaq::fermion_operator::create(0) * cudaq::fermion_operator::number(1);
+  auto rel13 =
+      cudaq::fermion_operator::number(0) * cudaq::fermion_operator::create(1) -
+      cudaq::fermion_operator::create(1) * cudaq::fermion_operator::number(0);
+  auto rel14 =
+      cudaq::fermion_operator::number(1) * cudaq::fermion_operator::create(0) -
+      cudaq::fermion_operator::create(0) * cudaq::fermion_operator::number(1);
   utils::checkEqual(rel13.to_matrix(), utils::zero_matrix(4));
   utils::checkEqual(rel14.to_matrix(), utils::zero_matrix(4));
 
   // check that [N(k), a(q)] = 0 for k != q
 
-  auto rel15 = cudaq::fermion_operator::number(0) * cudaq::fermion_operator::annihilate(1) -
-               cudaq::fermion_operator::annihilate(1) * cudaq::fermion_operator::number(0);
-  auto rel16 = cudaq::fermion_operator::number(1) * cudaq::fermion_operator::annihilate(0) -
-               cudaq::fermion_operator::annihilate(0) * cudaq::fermion_operator::number(1);
+  auto rel15 = cudaq::fermion_operator::number(0) *
+                   cudaq::fermion_operator::annihilate(1) -
+               cudaq::fermion_operator::annihilate(1) *
+                   cudaq::fermion_operator::number(0);
+  auto rel16 = cudaq::fermion_operator::number(1) *
+                   cudaq::fermion_operator::annihilate(0) -
+               cudaq::fermion_operator::annihilate(0) *
+                   cudaq::fermion_operator::number(1);
   utils::checkEqual(rel15.to_matrix(), utils::zero_matrix(4));
   utils::checkEqual(rel16.to_matrix(), utils::zero_matrix(4));
-
 }
