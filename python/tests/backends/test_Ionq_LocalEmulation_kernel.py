@@ -8,9 +8,14 @@
 
 import cudaq
 import cudaq.kernels
+from cudaq import spin
 import pytest
 import os
 from typing import List
+
+
+def assert_close(want, got, tolerance=1.0e-1) -> bool:
+    return abs(want - got) < tolerance
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -21,6 +26,19 @@ def configureTarget():
     yield "Running the tests."
 
     cudaq.reset_target()
+
+
+def test_Ionq_observe():
+    cudaq.set_random_seed(13)
+
+    @cudaq.kernel
+    def ansatz():
+        q = cudaq.qvector(1)
+
+    molecule = 5.0 - 1.0 * spin.x(0)
+    res = cudaq.observe(ansatz, molecule, shots_count=10000)
+    print(res.expectation())
+    assert assert_close(5.0, res.expectation())
 
 
 def test_Ionq_cudaq_uccsd():
