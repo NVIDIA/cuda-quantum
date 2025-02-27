@@ -9,11 +9,11 @@ circuit simulators, and secure, on-demand access to various quantum computers.
 To get started users must enable Amazon Braket in their AWS account by following 
 `these instructions <https://docs.aws.amazon.com/braket/latest/developerguide/braket-enable-overview.html>`__.
 To learn more about Amazon Braket, you can view the `Amazon Braket Documentation <https://docs.aws.amazon.com/braket/>`__ 
-and `Amazon Braket Examples <https://github.com/amazon-braket/amazon-braket-examples>`__.
+and `Amazon Braket Examples <https://github.com/amazon-braket/amazon-braket-examples/tree/main/examples/nvidia_cuda_q>`__.
 A list of available devices and regions can be found `here <https://docs.aws.amazon.com/braket/latest/developerguide/braket-devices.html>`__. 
 
 Users can run CUDA-Q programs on Amazon Braket with `Hybrid Job <https://docs.aws.amazon.com/braket/latest/developerguide/braket-what-is-hybrid-job.html>`__.
-See `this guide <https://docs.aws.amazon.com/braket/latest/developerguide/braket-jobs-first.html>`__ to get started.
+See `this guide <https://docs.aws.amazon.com/braket/latest/developerguide/braket-jobs-first.html>`__ to get started with Hybrid Jobs and `this guide <https://docs.aws.amazon.com/braket/latest/developerguide/braket-using-cuda-q.html>`__ on how to use CUDA-Q with Amazon Braket.
 
 Setting Credentials
 ```````````````````

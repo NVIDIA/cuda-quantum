@@ -365,6 +365,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../backends/sims/noisy.html">     Noisy Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../backends/sims/noisy.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/sims/noisy.html#density-matrix">Density Matrix</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/sims/noisy.html#stim">Stim</a></li>
 </ul>
@@ -1542,11 +1543,14 @@ parameters of the time bin interferometer.</p>
 
 <span class="c1"># This example illustrates how to use Pasqal&#39;s EMU_MPS emulator over Pasqal&#39;s cloud via CUDA-Q.</span>
 
-<span class="c1"># To obtain login we recommend using Pasqal&#39;s Python SDK</span>
-<span class="c1"># We recommend filling in password via an environment variable</span>
-<span class="c1"># or leave it empty in an interactive session as you will be</span>
-<span class="c1"># prompted to enter the password securely via the command line.</span>
-<span class="c1"># Contact Pasqal at help@pasqal.com or at https://community.pasqal.com for assistance.</span>
+<span class="c1"># To obtain the authentication token we recommend logging in</span>
+<span class="c1"># by using Pasqal&#39;s Python SDK.</span>
+<span class="c1"># Fill in the  username and password via the environment variables.</span>
+<span class="c1"># The password can be left empty in an interactive session to be</span>
+<span class="c1"># prompted to enter the it securely via the command line interface.</span>
+<span class="c1">#</span>
+<span class="c1"># Contact Pasqal at help@pasqal.com or through https://community.pasqal.com for assistance.</span>
+<span class="c1">#</span>
 <span class="c1"># See our general docs https://docs.pasqal.com/cloud/set-up/</span>
 <span class="c1"># to see how to get this setup, or the CUDA-Q documentation at</span>
 <span class="c1"># https://nvidia.github.io/cuda-quantum/latest/using/backends/hardware/neutralatom.html#pasqal</span>
@@ -1562,7 +1566,11 @@ parameters of the time bin interferometer.</p>
 <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;PASQAL_AUTH_TOKEN&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
 
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;pasqal&quot;</span><span class="p">,</span>
-                 <span class="n">machine</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;PASQAL_MACHINE_TARGET&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+                 <span class="n">machine</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;PASQAL_MACHINE_TARGET&quot;</span><span class="p">,</span> <span class="s2">&quot;EMU_MPS&quot;</span><span class="p">))</span>
+
+<span class="c1"># ```</span>
+<span class="c1"># cudaq.set_target(&quot;pasqal&quot;, machine=&quot;FRESNEL&quot;) ## To target QPU</span>
+<span class="c1"># ```</span>
 
 <span class="c1"># Define the 2-dimensional atom arrangement</span>
 <span class="n">a</span> <span class="o">=</span> <span class="mf">5e-6</span>
@@ -1588,16 +1596,12 @@ parameters of the time bin interferometer.</p>
                                                <span class="n">phase</span><span class="o">=</span><span class="n">phi</span><span class="p">,</span>
                                                <span class="n">delta_global</span><span class="o">=</span><span class="n">delta</span><span class="p">),</span>
                             <span class="n">schedule</span><span class="o">=</span><span class="n">schedule</span><span class="p">,</span>
-                            <span class="n">shots_count</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+                            <span class="n">shots_count</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
 <span class="n">async_result</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
 
-<span class="c1"># TODO: We don&#39;t have &quot;counter&quot; key in result right now just the dict</span>
-<span class="c1"># check if we should in order to conform with standard</span>
 <span class="c1">## Sample result</span>
 <span class="c1"># ```</span>
-<span class="c1"># {</span>
-<span class="c1">#    counter : {&#39;001&#39;: 16, &#39;010&#39;: 23, &#39;100&#39;: 19, &#39;000&#39;: 42}</span>
-<span class="c1"># }</span>
+<span class="c1"># {&#39;001&#39;: 16, &#39;010&#39;: 23, &#39;100&#39;: 19, &#39;000&#39;: 42}</span>
 <span class="c1"># ```</span>
 </pre></div>
 </div>
