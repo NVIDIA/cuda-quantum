@@ -80,6 +80,6 @@ int main() {
 // CHECK-DAG:   func.func private @__nvqpp__callable.thunk.lambda.1(
 // CHECK-DAG:   func.func private @__nvqpp__lifted.lambda.1(
 // CHECK-DAG:   func.func private @__nvqpp__callable.thunk.lambda.0(
-// CHECK-DAG:   func.func private @__nvqpp__lifted.lambda.0() {
+// CHECK-DAG:   func.func private @__nvqpp__lifted.lambda.0()
 // CHECK-DAG:   func.func private @__nvqpp__callable.thunk.lambda.3(
 // CHECK-DAG:   func.func private @__nvqpp__lifted.lambda.3(

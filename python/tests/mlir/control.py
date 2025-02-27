@@ -288,7 +288,7 @@ def test_sample_control_qubit_args():
 # CHECK:           quake.h %{{[0-2]}} : (!quake.ref) -> ()
 # CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}[%{{[0-2]}}] %{{[0-2]}} : (!quake.ref, !quake.ref) -> ()
 # CHECK:           quake.h %{{[0-2]}} : (!quake.ref) -> ()
-# CHECK:           %[[VAL_2:.*]] = quake.mz %{{[0-2]}} name "" : (!quake.ref) -> !quake.measure
+# CHECK:           %[[VAL_2:.*]] = quake.mz %{{[0-2]}} : (!quake.ref) -> !quake.measure
 # CHECK:           return
 # CHECK:         }
 
@@ -345,7 +345,7 @@ def test_sample_control_qreg_args():
 # CHECK:           quake.x %[[VAL_7]] : (!quake.ref) -> ()
 # CHECK:           quake.x %[[VAL_6]] : (!quake.ref) -> ()
 # CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}[%[[VAL_5]]] %[[VAL_6]] : (!quake.veq<2>, !quake.ref) -> ()
-# CHECK:           %[[VAL_19:.*]] = quake.mz %[[VAL_6]] name "" : (!quake.ref) -> !quake.measure
+# CHECK:           %[[VAL_19:.*]] = quake.mz %[[VAL_6]] : (!quake.ref) -> !quake.measure
 # CHECK:           return
 # CHECK:         }
 
@@ -403,7 +403,7 @@ def test_sample_apply_call_control():
 # CHECK:           quake.h %{{[0-2]}} : (!quake.ref) -> ()
 # CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}} [%{{[0-2]}}] %{{[0-2]}} : (!quake.ref, !quake.ref) -> ()
 # CHECK:           quake.h %{{[0-2]}} : (!quake.ref) -> ()
-# CHECK:           %[[VAL_2:.*]] = quake.mz %{{[0-2]}} name "" : (!quake.ref) -> !quake.measure
+# CHECK:           %[[VAL_2:.*]] = quake.mz %{{[0-2]}} : (!quake.ref) -> !quake.measure
 # CHECK:           return
 # CHECK:         }
 

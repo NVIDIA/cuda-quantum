@@ -131,6 +131,33 @@ Noise Modeling
 .. doxygenclass:: cudaq::depolarization_channel
     :members:
 
+.. doxygenclass:: cudaq::x_error
+    :members:
+
+.. doxygenclass:: cudaq::y_error
+    :members:
+
+.. doxygenclass:: cudaq::z_error
+    :members:
+
+.. doxygenclass:: cudaq::amplitude_damping
+    :members:
+
+.. doxygenclass:: cudaq::phase_damping
+    :members:
+
+.. doxygenclass:: cudaq::pauli1
+    :members:
+
+.. doxygenclass:: cudaq::pauli2
+    :members:
+
+.. doxygenclass:: cudaq::depolarization1
+    :members:
+
+.. doxygenclass:: cudaq::depolarization2
+    :members:
+
 .. doxygenclass:: cudaq::noise_model
     :members:
 

@@ -14,17 +14,29 @@ namespace cudaq::opt {
 
 // Loops that are transformed into normal form have this attribute.
 static constexpr char NormalizedLoopAttr[] = "normalized";
+static constexpr char DeadLoopAttr[] = "dead";
 
 struct LoopComponents {
   LoopComponents() = default;
 
   // Get the induction expression of the comparison.
-  mlir::Value getCompareInduction();
+  mlir::Value getCompareInduction() const;
 
-  bool stepIsAnAddOp();
-  bool shouldCommuteStepOp();
-  bool isClosedIntervalForm();
-  bool isLinearExpr();
+  bool stepIsAnAddOp() const;
+  bool shouldCommuteStepOp() const;
+  bool isClosedIntervalForm() const;
+  bool isLinearExpr() const;
+  std::optional<std::size_t> getIterationsConstant() const;
+
+  // Determine if the condition is always true. e.g., `x uge 0`.
+  bool hasAlwaysTrueCondition() const;
+  // Determine if the condition is always false. e.g., `x ult 0`.
+  bool hasAlwaysFalseCondition() const;
+  bool hasInvariantCondition() const {
+    return hasAlwaysTrueCondition() || hasAlwaysFalseCondition();
+  }
+
+  std::int64_t extendValue(unsigned width, std::size_t val) const;
 
   unsigned induction = 0;
   mlir::Value initialValue;
@@ -50,6 +62,7 @@ struct LoopComponents {
 /// Does boundary test defines a semi-open interval?
 bool isSemiOpenPredicate(mlir::arith::CmpIPredicate p);
 bool isUnsignedPredicate(mlir::arith::CmpIPredicate p);
+bool isSignedPredicate(mlir::arith::CmpIPredicate p);
 
 /// A counted loop is defined to be a loop that will execute some compile-time
 /// constant number of iterations. We recognize a normalized, semi-open interval

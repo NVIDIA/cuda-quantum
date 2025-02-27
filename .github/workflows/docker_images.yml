@@ -161,7 +161,10 @@ jobs:
         uses: docker/setup-buildx-action@v3
         with:
           endpoint: builder_context
-          driver-opts: network=host
+          version: v0.19.0
+          driver-opts: |
+            network=host
+            image=moby/buildkit:v0.19.0
 
       - name: Build Open MPI
         id: docker_build
@@ -308,7 +311,10 @@ jobs:
         uses: docker/setup-buildx-action@v3
         with:
           endpoint: builder_context
-          driver-opts: network=host
+          version: v0.19.0
+          driver-opts: |
+            network=host
+            image=moby/buildkit:v0.19.0
 
       - name: Extract metadata
         id: metadata
@@ -512,7 +518,10 @@ jobs:
         uses: docker/setup-buildx-action@v3
         with:
           endpoint: builder_context
-          driver-opts: network=host
+          version: v0.19.0
+          driver-opts: |
+            network=host
+            image=moby/buildkit:v0.19.0
 
       - name: Extract cuda-quantum-dev metadata
         id: cudaqdev_metadata

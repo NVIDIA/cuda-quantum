@@ -288,6 +288,108 @@ ParseResult quake::ApplyOp::parse(OpAsmParser &parser, OperationState &result) {
 }
 
 //===----------------------------------------------------------------------===//
+// ApplyNoiseOp
+//===----------------------------------------------------------------------===//
+
+void quake::ApplyNoiseOp::print(OpAsmPrinter &p) {
+  // noise_func or key
+  p << ' ';
+  if (auto fn = getNoiseFuncAttr())
+    p << fn;
+  else
+    p << getKey();
+  p << '(' << getParameters() << ") " << getQubits() << " : ";
+  SmallVector<Type> operandTys{(*this)->getOperandTypes().begin(),
+                               (*this)->getOperandTypes().end()};
+  p.printFunctionalType(operandTys, (*this)->getResultTypes());
+  p.printOptionalAttrDict((*this)->getAttrs(),
+                          {"operand_segment_sizes", getNoiseFuncAttrName()});
+}
+
+ParseResult quake::ApplyNoiseOp::parse(OpAsmParser &parser,
+                                       OperationState &result) {
+  SmallVector<OpAsmParser::UnresolvedOperand> keyOperand;
+  if (parser.parseOperandList(keyOperand))
+    return failure();
+  bool isDirect = keyOperand.empty();
+  if (keyOperand.size() > 1)
+    return failure();
+  if (isDirect) {
+    NamedAttrList attrs;
+    SymbolRefAttr funcAttr;
+    if (parser.parseCustomAttributeWithFallback(
+            funcAttr, parser.getBuilder().getType<NoneType>(),
+            getNoiseFuncAttrNameStr(), attrs))
+      return failure();
+    result.addAttribute(getNoiseFuncAttrNameStr(), funcAttr);
+  }
+
+  SmallVector<OpAsmParser::UnresolvedOperand> parameterOperands;
+  if (succeeded(parser.parseOptionalLParen()))
+    if (parser.parseOperandList(parameterOperands) || parser.parseRParen())
+      return failure();
+
+  SmallVector<OpAsmParser::UnresolvedOperand> targetOperands;
+  if (parser.parseOperandList(targetOperands) || parser.parseColon())
+    return failure();
+
+  FunctionType applyTy;
+  if (parser.parseType(applyTy) ||
+      parser.parseOptionalAttrDict(result.attributes))
+    return failure();
+  result.addAttribute("operand_segment_sizes",
+                      parser.getBuilder().getDenseI32ArrayAttr(
+                          {static_cast<int32_t>(keyOperand.size()),
+                           static_cast<int32_t>(parameterOperands.size()),
+                           static_cast<int32_t>(targetOperands.size())}));
+  result.addTypes(applyTy.getResults());
+  if (parser.resolveOperands(llvm::concat<const OpAsmParser::UnresolvedOperand>(
+                                 keyOperand, parameterOperands, targetOperands),
+                             applyTy.getInputs(), parser.getNameLoc(),
+                             result.operands))
+    return failure();
+  return success();
+}
+
+LogicalResult quake::ApplyNoiseOp::verify() {
+  // Must have either a noise_func or a key and not both.
+  if (!getNoiseFuncAttr()) {
+    if (!getKey())
+      return emitOpError("must have a noise function or a key");
+    if (getKey().getType() != IntegerType::get(getContext(), 64))
+      return emitOpError("key must be i64");
+  } else {
+    if (getKey())
+      return emitOpError("cannot have a noise function and a key");
+  }
+
+  // Parameters must be exactly one stdvec or 0 or more ptr<floating-point>.
+  auto params = getParameters();
+  if (params.size() == 1) {
+    if (auto stdvecTy = dyn_cast<cudaq::cc::StdvecType>(params[0].getType())) {
+      if (stdvecTy.getElementType() != Float64Type::get(getContext()))
+        return emitOpError("must be std::vector<double>");
+    } else if (auto ptrTy =
+                   dyn_cast<cudaq::cc::PointerType>(params[0].getType())) {
+      if (!isa<FloatType>(ptrTy.getElementType()))
+        return emitOpError("must be floating-point");
+    } else {
+      return emitOpError("must be std::vector<double> or floating-point");
+    }
+  } else {
+    for (auto p : params)
+      if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(p.getType()))
+        if (!isa<FloatType>(ptrTy.getElementType()))
+          return emitOpError("must be floating-point");
+  }
+
+  // Must have at least 1 qubit in qubits.
+  if (getQubits().empty())
+    return emitOpError("must have at least one qubit");
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
 // BorrowWire
 //===----------------------------------------------------------------------===//
 
@@ -312,6 +414,56 @@ LogicalResult quake::BorrowWireOp::verify() {
 void quake::ConcatOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
                                                   MLIRContext *context) {
   patterns.add<ConcatSizePattern, ConcatNoOpPattern>(context);
+}
+
+//===----------------------------------------------------------------------===//
+// ExpPauliRef
+//===----------------------------------------------------------------------===//
+
+static ParseResult
+parseRawString(OpAsmParser &parser,
+               std::optional<OpAsmParser::UnresolvedOperand> &value,
+               StringAttr &rawString) {
+  std::string stringVal;
+  auto loc = UnknownLoc::get(parser.getContext());
+  if (succeeded(parser.parseOptionalString(&stringVal))) {
+    value = std::nullopt;
+    rawString = StringAttr::get(parser.getContext(), stringVal);
+    return success();
+  }
+  OpAsmParser::UnresolvedOperand operand;
+  if (parser.parseOperand(operand))
+    return emitError(loc, "must be an operand");
+  value = operand;
+  rawString = StringAttr{};
+  return success();
+}
+
+template <typename OP>
+void printRawString(OpAsmPrinter &printer, OP refOp, Value stringVal,
+                    StringAttr rawString) {
+  if (stringVal)
+    printer.printOperand(stringVal);
+  else if (rawString)
+    printer << rawString;
+}
+
+void quake::ExpPauliOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
+                                                    MLIRContext *context) {
+  patterns.add<AdjustAdjointExpPauliPattern>(context);
+}
+
+LogicalResult quake::ExpPauliOp::verify() {
+  if (getPauliLiteralAttr()) {
+    if (getPauli())
+      return emitOpError("cannot have both a literal and a value Pauli word");
+  } else {
+    if (!getPauli())
+      return emitOpError("must have either a literal or a value Pauli word");
+  }
+  if (!(getParameters().empty() || getParameters().size() == 1))
+    return emitOpError("can only have 0 or 1 parameter");
+  return verifyWireResultsAreLinear(getOperation());
 }
 
 //===----------------------------------------------------------------------===//
@@ -517,38 +669,41 @@ void quake::WrapOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
 //===----------------------------------------------------------------------===//
 
 // Common verification for measurement operations.
-static LogicalResult verifyMeasurements(Operation *const op,
-                                        TypeRange targetsType,
-                                        const Type bitsType) {
+template <typename MEAS>
+LogicalResult verifyMeasurements(MEAS op, TypeRange targetsType,
+                                 const Type bitsType) {
   if (failed(verifyWireResultsAreLinear(op)))
     return failure();
   bool mustBeStdvec =
       targetsType.size() > 1 ||
       (targetsType.size() == 1 && isa<quake::VeqType>(targetsType[0]));
   if (mustBeStdvec) {
-    if (!isa<cudaq::cc::StdvecType>(op->getResult(0).getType()))
-      return op->emitOpError("must return `!cc.stdvec<!quake.measure>`, when "
-                             "measuring a qreg, a series of qubits, or both");
+    if (!isa<cudaq::cc::StdvecType>(op.getMeasOut().getType()))
+      return op.emitOpError("must return `!cc.stdvec<!quake.measure>`, when "
+                            "measuring a qreg, a series of qubits, or both");
   } else {
-    if (!isa<quake::MeasureType>(op->getResult(0).getType()))
+    if (!isa<quake::MeasureType>(op.getMeasOut().getType()))
       return op->emitOpError(
           "must return `!quake.measure` when measuring exactly one qubit");
   }
+  if (op.getRegisterName())
+    if (op.getRegisterName()->empty())
+      return op->emitError("quake measurement name cannot be empty.");
   return success();
 }
 
 LogicalResult quake::MxOp::verify() {
-  return verifyMeasurements(getOperation(), getTargets().getType(),
+  return verifyMeasurements(*this, getTargets().getType(),
                             getMeasOut().getType());
 }
 
 LogicalResult quake::MyOp::verify() {
-  return verifyMeasurements(getOperation(), getTargets().getType(),
+  return verifyMeasurements(*this, getTargets().getType(),
                             getMeasOut().getType());
 }
 
 LogicalResult quake::MzOp::verify() {
-  return verifyMeasurements(getOperation(), getTargets().getType(),
+  return verifyMeasurements(*this, getTargets().getType(),
                             getMeasOut().getType());
 }
 
@@ -885,10 +1040,11 @@ void quake::getOperatorEffectsImpl(EffectsVectorImpl &effects,
 // but not having a way to define them in the ODS.
 // clang-format off
 #define GATE_OPS(MACRO) MACRO(XOp) MACRO(YOp) MACRO(ZOp) MACRO(HOp) MACRO(SOp) \
-  MACRO(TOp) MACRO(SwapOp) MACRO(U2Op) MACRO(U3Op) MACRO(CustomUnitarySymbolOp) \
-  MACRO(R1Op) MACRO(RxOp) MACRO(RyOp) MACRO(RzOp) MACRO(PhasedRxOp)
+  MACRO(TOp) MACRO(SwapOp) MACRO(U2Op) MACRO(U3Op) MACRO(R1Op) MACRO(RxOp)     \
+  MACRO(RyOp) MACRO(RzOp) MACRO(PhasedRxOp) MACRO(CustomUnitarySymbolOp)
 #define MEASURE_OPS(MACRO) MACRO(MxOp) MACRO(MyOp) MACRO(MzOp)
-#define QUANTUM_OPS(MACRO) MACRO(ResetOp) GATE_OPS(MACRO) MEASURE_OPS(MACRO)
+#define QUANTUM_OPS(MACRO) MACRO(ResetOp) MACRO(ExpPauliOp) GATE_OPS(MACRO)    \
+  MEASURE_OPS(MACRO)
 #define WIRE_OPS(MACRO) MACRO(FromControlOp) MACRO(ResetOp) MACRO(NullWireOp)  \
   MACRO(UnwrapOp)
 // clang-format on

@@ -387,7 +387,7 @@ class TestCallbackTensor(TestSystem):
                                                spin.z(0)],
                                   collapse_operators=[],
                                   store_intermediate_results=True,
-                                  integrator=ScipyZvodeIntegrator())
+                                  integrator=integrator())
 
         get_result = lambda idx, res: [
             exp_vals[idx].expectation()

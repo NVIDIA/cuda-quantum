@@ -587,7 +587,7 @@ while [ $# -ne 0 ]; do
 	*.o | *.so | *.bundle)
 		OBJS="${OBJS} $1"
 		;;
-	*.cpp | *.cc)
+	*.cpp | *.cc | *.cxx | *.c++)
 		SRCS="${SRCS} $1"
 		;;
 	*.a | *.dylib)
@@ -746,7 +746,8 @@ if ${SHOW_VERSION} && [ -z "$SRCS" ] && [ -z "$OBJS" ]; then
 fi
 
 for i in ${SRCS}; do
-	file=$(basename -s .cc -s .cpp $i)
+	file_with_suffix=$(basename $i)
+	file=${file_with_suffix%.*}
 
 	# If LIBRARY_MODE explicitly requested, then
 	# simply compile with the classical compiler.

@@ -28,7 +28,7 @@ technical details and code examples for using each circuit simulator.
      - < 28
    * - `nvidia` *
      - State Vector
-     - General purpose/Noisy Simulation (default)
+     - General purpose (default); Trajectory simulation for noisy circuits
      - Single GPU
      - single / double (default)
      - < 33 / 32 (64 GB)

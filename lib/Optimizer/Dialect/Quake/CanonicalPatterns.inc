@@ -15,6 +15,25 @@
 
 namespace {
 
+struct AdjustAdjointExpPauliPattern : OpRewritePattern<quake::ExpPauliOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::ExpPauliOp pauli,
+                                PatternRewriter &rewriter) const override {
+    if (!pauli.isAdj())
+      return failure();
+    SmallVector<Value> negp;
+    if (!pauli.getParameters().empty())
+      negp.push_back(rewriter.create<arith::NegFOp>(pauli.getLoc(),
+                                                    pauli.getParameters()[0]));
+    rewriter.replaceOpWithNewOp<quake::ExpPauliOp>(
+        pauli, pauli.getResultTypes(), UnitAttr{}, negp, pauli.getControls(),
+        pauli.getTargets(), pauli.getNegatedQubitControlsAttr(),
+        pauli.getPauli(), pauli.getPauliLiteralAttr());
+    return success();
+  }
+};
+
 // %4 = quake.veq_size %3 : (!quake.veq<10>) -> 164
 // ────────────────────────────────────────────────
 // %4 = constant 10 : i64
@@ -326,6 +345,13 @@ struct FuseConstantToSubveqPattern : public OpRewritePattern<quake::SubVeqOp> {
       return failure();
     bool regen = false;
     std::int64_t lo = subveq.getConstantLowerBound();
+    auto veqSize = [&]() -> std::int64_t {
+      auto size = cast<quake::VeqType>(subveq.getVeq().getType()).getSize();
+      // Note: do not support more than 2^32 qubits.
+      if (size == quake::VeqType::kDynamicSize)
+        return std::numeric_limits<std::int32_t>::max();
+      return size - 1;
+    }();
     Value loVal = subveq.getLower();
     if (!subveq.hasConstantLowerBound())
       if (auto olo = cudaq::opt::factory::getIntIfConstant(subveq.getLower())) {
@@ -345,8 +371,17 @@ struct FuseConstantToSubveqPattern : public OpRewritePattern<quake::SubVeqOp> {
 
     if (!regen)
       return failure();
-    rewriter.replaceOpWithNewOp<quake::SubVeqOp>(
-        subveq, subveq.getType(), subveq.getVeq(), loVal, hiVal, lo, hi);
+    if ((!loVal && (lo < 0 || lo > veqSize)) ||
+        (!hiVal && (hi < 0 || hi > veqSize)) || (!loVal && !hiVal && lo > hi)) {
+      // If any invalid conditions with the constants then replace the subveq
+      // with a poison value.
+      auto poison = rewriter.replaceOpWithNewOp<cudaq::cc::PoisonOp>(
+          subveq, subveq.getType());
+      poison.emitWarning("subrange of qvector is invalid.");
+    } else {
+      rewriter.replaceOpWithNewOp<quake::SubVeqOp>(
+          subveq, subveq.getType(), subveq.getVeq(), loVal, hiVal, lo, hi);
+    }
     return success();
   }
 };

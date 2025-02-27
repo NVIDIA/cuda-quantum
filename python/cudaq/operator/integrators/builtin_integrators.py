@@ -33,18 +33,18 @@ class cuDensityMatTimeStepper(BaseTimeStepper[CudmStateType]):
             self.liouvillian_action = cudm.OperatorAction(
                 self.ctx, (self.liouvillian,))
 
-        if state != self.state:
+        if self.state != state:
+            need_prepare = self.state is None
             self.state = state
-            timer = ScopeTimer("liouvillian_action.prepare")
-            with timer:
-                self.liouvillian_action.prepare(self.ctx, (self.state,))
+            if need_prepare:
+                timer = ScopeTimer("liouvillian_action.prepare")
+                with timer:
+                    self.liouvillian_action.prepare(self.ctx, (self.state,))
         # FIXME: reduce temporary allocations.
         # Currently, we cannot return a reference since the caller might call compute() multiple times during a single integrate step.
         timer = ScopeTimer("compute.action_result")
         with timer:
-            action_result = self.state.clone(
-                cp.zeros_like(self.state.storage).reshape(
-                    self.state.local_info[0]))
+            action_result = self.state.clone(cp.zeros_like(self.state.storage))
         timer = ScopeTimer("liouvillian_action.compute")
         with timer:
             self.liouvillian_action.compute(t, (), (self.state,), action_result)
@@ -53,6 +53,8 @@ class cuDensityMatTimeStepper(BaseTimeStepper[CudmStateType]):
 
 class RungeKuttaIntegrator(BaseIntegrator[CudmStateType]):
     n_steps = 10
+    # Order of the integrator: supporting `1st` order (Euler) or `4th` order (`Runge-Kutta`).
+    order = 4
 
     def __init__(self,
                  stepper: BaseTimeStepper[CudmStateType] = None,
@@ -68,6 +70,10 @@ class RungeKuttaIntegrator(BaseIntegrator[CudmStateType]):
     def __post_init__(self):
         if "nsteps" in self.integrator_options:
             self.n_steps = self.integrator_options["nsteps"]
+        if "order" in self.integrator_options:
+            self.order = self.integrator_options["order"]
+            if self.order != 1 and self.order != 4:
+                raise ValueError("The 'order' parameter must be either 1 or 4.")
 
     def integrate(self, t):
         if self.state is None:
@@ -102,33 +108,35 @@ class RungeKuttaIntegrator(BaseIntegrator[CudmStateType]):
         for i in range(self.n_steps):
             current_t = self.t + i * dt
             k1 = self.stepper.compute(self.state, current_t)
+            if self.order == 1:
+                # First order Euler method
+                k1.inplace_scale(dt)
+                self.state.inplace_accumulate(k1)
+            else:
+                # Continue computing the higher-order terms
+                rho_temp = cp.copy(self.state.storage)
+                rho_temp += ((dt / 2) * k1.storage)
+                k2 = self.stepper.compute(self.state.clone(rho_temp),
+                                          current_t + dt / 2)
 
-            rho_temp = cp.copy(self.state.storage).reshape(
-                self.state.local_info[0])
-            rho_temp += ((dt / 2) * k1.storage)
-            k2 = self.stepper.compute(self.state.clone(rho_temp),
-                                      current_t + dt / 2)
+                rho_temp = cp.copy(self.state.storage)
+                rho_temp += ((dt / 2) * k2.storage)
+                k3 = self.stepper.compute(self.state.clone(rho_temp),
+                                          current_t + dt / 2)
 
-            rho_temp = cp.copy(self.state.storage).reshape(
-                self.state.local_info[0])
-            rho_temp += ((dt / 2) * k2.storage)
-            k3 = self.stepper.compute(self.state.clone(rho_temp),
-                                      current_t + dt / 2)
+                rho_temp = cp.copy(self.state.storage)
+                rho_temp += ((dt) * k3.storage)
+                k4 = self.stepper.compute(self.state.clone(rho_temp),
+                                          current_t + dt)
 
-            rho_temp = cp.copy(self.state.storage).reshape(
-                self.state.local_info[0])
-            rho_temp += ((dt) * k3.storage)
-            k4 = self.stepper.compute(self.state.clone(rho_temp),
-                                      current_t + dt)
+                # Scale
+                k1.inplace_scale(dt / 6)
+                k2.inplace_scale(dt / 3)
+                k3.inplace_scale(dt / 3)
+                k4.inplace_scale(dt / 6)
 
-            # Scale
-            k1.inplace_scale(dt / 6)
-            k2.inplace_scale(dt / 3)
-            k3.inplace_scale(dt / 3)
-            k4.inplace_scale(dt / 6)
-
-            self.state.inplace_accumulate(k1)
-            self.state.inplace_accumulate(k2)
-            self.state.inplace_accumulate(k3)
-            self.state.inplace_accumulate(k4)
+                self.state.inplace_accumulate(k1)
+                self.state.inplace_accumulate(k2)
+                self.state.inplace_accumulate(k3)
+                self.state.inplace_accumulate(k4)
         self.t = t

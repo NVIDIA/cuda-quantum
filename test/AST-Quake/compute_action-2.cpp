@@ -33,7 +33,7 @@ struct ctrlHeisenberg {
 };
 
 // CHECK-LABEL:   func.func private @__nvqpp__mlirgen__function_magic_func.
-// CHECK-SAME: .ctrl(%[[VAL_0:.*]]: !quake.veq<?>, %{{.*}}: !quake.veq<?>) {
+// CHECK-SAME: .ctrl(%[[VAL_0:.*]]: !quake.veq<?>, %{{.*}}: !quake.veq<?>) {{.*}}{
 // CHECK:           cc.scope {
 // CHECK:             cc.loop while {
 // CHECK:             } do {
@@ -82,17 +82,17 @@ struct ctrlHeisenberg {
 //===----------------------------------------------------------------------===//
 
 // LAMBDA-LABEL:   func.func private @__nvqpp__lifted.lambda.0.adj(
-// LAMBDA-SAME:      %{{[^:]*}}: !cc.ptr<i32>, %{{[^:]*}}: !quake.veq<?>, %{{[^:]*}}: i32) {
+// LAMBDA-SAME:      %{{[^:]*}}: !cc.ptr<i32>, %{{[^:]*}}: !quake.veq<?>, %{{[^:]*}}: i32) {{.*}}{
 // LAMBDA:           quake.x [%{{.*}}] %{{.*}} : (!quake.ref, !quake.ref) -> ()
 // LAMBDA:           return
 
 // LAMBDA2-LABEL:   func.func private @__nvqpp__lifted.lambda.1.ctrl(
-// LAMBDA2-SAME:      %[[VAL_0:.*]]: !quake.veq<?>, %{{.*}}: !cc.ptr<i32>, %{{.*}}: i32, %{{.*}}: !quake.veq<?>, %{{.*}}: f64) {
+// LAMBDA2-SAME:      %[[VAL_0:.*]]: !quake.veq<?>, %{{.*}}: !cc.ptr<i32>, %{{.*}}: i32, %{{.*}}: !quake.veq<?>, %{{.*}}: f64) {{.*}}{
 // LAMBDA2:           quake.rz (%{{.*}}) [%[[VAL_0]]] %{{.*}} : (f64, !quake.veq<?>, !quake.ref) -> ()
 // LAMBDA2:           return
 
 // LAMBDA-LABEL:   func.func private @__nvqpp__mlirgen__function_magic_func.
-// LAMBDA-SAME:    .ctrl(%[[VAL_0:.*]]: !quake.veq<?>, %[[VAL_1:.*]]: !quake.veq<?>) {
+// LAMBDA-SAME:    .ctrl(%[[VAL_0:.*]]: !quake.veq<?>, %[[VAL_1:.*]]: !quake.veq<?>) {{.*}}{
 // LAMBDA:           cc.scope {
 // LAMBDA:             cc.loop while {
 // LAMBDA:             } do {
@@ -131,8 +131,7 @@ struct ctrlHeisenberg {
 // LAMBDA:         }
 
 // LAMBDA-LABEL:   func.func private @__nvqpp__lifted.lambda.0(
-// LAMBDA-SAME:      %[[VAL_0:.*]]: !cc.ptr<i32>, %[[VAL_1:.*]]: !quake.veq<?>, %{{.*}}: i32) {
+// LAMBDA-SAME:      %[[VAL_0:.*]]: !cc.ptr<i32>, %[[VAL_1:.*]]: !quake.veq<?>, %{{.*}}: i32) {{.*}}{
 // LAMBDA:           quake.x [%{{.*}}] %{{.*}} : (!quake.ref, !quake.ref) -> ()
 // LAMBDA:           return
 // LAMBDA:         }
-

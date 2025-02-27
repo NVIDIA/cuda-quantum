@@ -9,6 +9,8 @@
 #include "common/BraketExecutor.h"
 #include "common/BraketServerHelper.h"
 
+#include <aws/braket/model/Association.h>
+#include <aws/braket/model/AssociationType.h>
 #include <aws/braket/model/CreateQuantumTaskRequest.h>
 #include <aws/braket/model/GetQuantumTaskRequest.h>
 #include <aws/braket/model/QuantumTaskStatus.h>
@@ -100,7 +102,8 @@ void tryCreateBucket(Aws::S3Crt::S3CrtClient &client, std::string const &region,
 
 namespace cudaq {
 BraketExecutor::BraketExecutor()
-    : api(options), jobToken(std::getenv("AMZN_BRAKET_JOB_TOKEN")) {}
+    : api(options), jobToken(std::getenv("AMZN_BRAKET_JOB_TOKEN")),
+      reservationArn(std::getenv("AMZN_BRAKET_RESERVATION_TIME_WINDOW_ARN")) {}
 
 /// @brief Set the server helper
 void BraketExecutor::setServerHelper(ServerHelper *helper) {
@@ -190,6 +193,15 @@ BraketExecutor::execute(std::vector<KernelExecution> &codesToExecute,
     req.SetShots(message["shots"]);
     if (jobToken)
       req.SetJobToken(jobToken);
+
+    if (reservationArn) {
+      Aws::Braket::Model::Association assoc;
+      assoc.SetArn(reservationArn);
+      assoc.SetType(
+          Aws::Braket::Model::AssociationType::RESERVATION_TIME_WINDOW_ARN);
+      req.AddAssociations(std::move(assoc));
+    }
+
     req.SetOutputS3Bucket(defaultBucket);
     req.SetOutputS3KeyPrefix(defaultPrefix);
 
@@ -198,7 +210,7 @@ BraketExecutor::execute(std::vector<KernelExecution> &codesToExecute,
 
   return std::async(
       std::launch::async,
-      [this, codesToExecute](
+      [this, codesToExecute, isObserve](
           std::vector<Aws::Braket::Model::CreateQuantumTaskOutcomeCallable>
               createOutcomes) {
         std::vector<ExecutionResult> results;
@@ -259,9 +271,16 @@ BraketExecutor::execute(std::vector<KernelExecution> &codesToExecute,
 
           auto c = serverHelper->processResults(resultsJson, taskArn);
 
-          for (auto &regName : c.register_names()) {
-            results.emplace_back(c.to_map(regName), regName);
-            results.back().sequentialData = c.sequential_data(regName);
+          if (isObserve) {
+            // Use the job name instead of the global register.
+            results.emplace_back(c.to_map(), codesToExecute[i].name);
+            results.back().sequentialData = c.sequential_data();
+          } else {
+            // For each register, add the results into result.
+            for (auto &regName : c.register_names()) {
+              results.emplace_back(c.to_map(regName), regName);
+              results.back().sequentialData = c.sequential_data(regName);
+            }
           }
           i++;
         }
