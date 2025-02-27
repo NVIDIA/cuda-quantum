@@ -6,26 +6,27 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include <iostream>
+#include "cudaq/operators.h"
 #include "cudaq/utils/tensor.h"
 #include <gtest/gtest.h>
-#include "cudaq/operators.h"
-#include "cudaq/dynamics/matrix_operators.h"
+#include <iostream>
 
 namespace utils {
 
 void print(cudaq::matrix_2 mat, std::string name = "") {
-  if (name != "") std::cout << name << ":" << std::endl;
+  if (name != "")
+    std::cout << name << ":" << std::endl;
   for (std::size_t i = 0; i < mat.get_rows(); i++) {
-    for (std::size_t j = 0; j < mat.get_columns(); j++) 
-        std::cout << mat[{i, j}] << " ";
+    for (std::size_t j = 0; j < mat.get_columns(); j++)
+      std::cout << mat[{i, j}] << " ";
     std::cout << std::endl;
   }
 }
 
-void assert_product_equal(const cudaq::product_operator<cudaq::matrix_operator> &got, 
-                          const std::complex<double> &expected_coefficient,
-                          const std::vector<cudaq::matrix_operator> &expected_terms) {
+void assert_product_equal(
+    const cudaq::product_operator<cudaq::matrix_operator> &got,
+    const std::complex<double> &expected_coefficient,
+    const std::vector<cudaq::matrix_operator> &expected_terms) {
   cudaq::operator_sum<cudaq::matrix_operator> sum = got;
   ASSERT_TRUE(sum.get_terms().size() == 1);
   ASSERT_TRUE(got.get_coefficient().evaluate() == expected_coefficient);
@@ -127,14 +128,14 @@ cudaq::matrix_2 squeeze_matrix(std::size_t size,
 }
 
 cudaq::matrix_2 PauliX_matrix() {
-  auto mat = cudaq::matrix_2(2,2);
+  auto mat = cudaq::matrix_2(2, 2);
   mat[{0, 1}] = 1.0;
   mat[{1, 0}] = 1.0;
   return mat;
 }
 
 cudaq::matrix_2 PauliZ_matrix() {
-  auto mat = cudaq::matrix_2(2,2);
+  auto mat = cudaq::matrix_2(2, 2);
   mat[{0, 0}] = 1.0;
   mat[{1, 1}] = -1.0;
   return mat;

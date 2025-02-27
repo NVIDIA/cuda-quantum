@@ -13,13 +13,17 @@
 namespace cudaq {
 
 // Constructor
-Schedule::Schedule(const std::vector<std::complex<double>> &steps,
-                   const std::vector<std::string> &parameters,
-                   const std::function<std::complex<double>(
-                       const std::string &, const std::complex<double> &)> &value_function)
-: steps(steps), parameters(parameters), value_function(value_function), current_idx(-1) {
-  if (!steps.empty()) ptr = &this->steps[0];
-  else ptr = nullptr;
+Schedule::Schedule(
+    const std::vector<std::complex<double>> &steps,
+    const std::vector<std::string> &parameters,
+    const std::function<std::complex<double>(
+        const std::string &, const std::complex<double> &)> &value_function)
+    : steps(steps), parameters(parameters), value_function(value_function),
+      current_idx(-1) {
+  if (!steps.empty())
+    ptr = &this->steps[0];
+  else
+    ptr = nullptr;
 }
 
 // Dereference operator

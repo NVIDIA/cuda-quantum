@@ -18,13 +18,17 @@ namespace cudaq {
 // private helpers
 
 std::string spin_operator::op_code_to_string() const {
-  if (this->op_code == 1) return "Z";
-  if (this->op_code == 2) return "X";
-  if (this->op_code == 3) return "Y";
+  if (this->op_code == 1)
+    return "Z";
+  if (this->op_code == 2)
+    return "X";
+  if (this->op_code == 3)
+    return "Y";
   return "I";
 }
 
-std::string spin_operator::op_code_to_string(std::unordered_map<int, int> &dimensions) const {
+std::string spin_operator::op_code_to_string(
+    std::unordered_map<int, int> &dimensions) const {
   auto it = dimensions.find(this->target);
   if (it == dimensions.end())
     dimensions[this->target] = 2;
@@ -36,9 +40,14 @@ std::string spin_operator::op_code_to_string(std::unordered_map<int, int> &dimen
 std::complex<double> spin_operator::inplace_mult(const spin_operator &other) {
   assert(this->target == other.target);
   std::complex<double> factor;
-  if (this->op_code == 0 || other.op_code == 0 || this->op_code == other.op_code) factor = 1.0;
-  else if (this->op_code + 1 == other.op_code || this->op_code - 2 == other.op_code) factor = 1.0j;
-  else factor = -1.0j;
+  if (this->op_code == 0 || other.op_code == 0 ||
+      this->op_code == other.op_code)
+    factor = 1.0;
+  else if (this->op_code + 1 == other.op_code ||
+           this->op_code - 2 == other.op_code)
+    factor = 1.0j;
+  else
+    factor = -1.0j;
   this->op_code ^= other.op_code;
   return factor;
 }
@@ -49,33 +58,38 @@ std::string spin_operator::unique_id() const {
   return this->op_code_to_string() + std::to_string(target);
 }
 
-std::vector<int> spin_operator::degrees() const {
-  return {this->target};
-}
+std::vector<int> spin_operator::degrees() const { return {this->target}; }
 
 // constructors
 
-spin_operator::spin_operator(int target) 
-  : op_code(0), target(target) {}
+spin_operator::spin_operator(int target) : op_code(0), target(target) {}
 
-spin_operator::spin_operator(int target, int op_id) 
-  : op_code(op_id), target(target) {
-    assert(0 <= op_id < 4);
+spin_operator::spin_operator(int target, int op_id)
+    : op_code(op_id), target(target) {
+  assert(0 <= op_id < 4);
 }
 
 // evaluations
 
-matrix_2 spin_operator::to_matrix(std::string pauli_word, std::complex<double> coeff, bool invert_order) {
+matrix_2 spin_operator::to_matrix(std::string pauli_word,
+                                  std::complex<double> coeff,
+                                  bool invert_order) {
   auto map_state = [&pauli_word](char pauli, bool state) {
     if (state) {
-      if (pauli == 'Z') return std::make_pair<std::complex<double>, bool>(-1., bool(state));
-      if (pauli == 'X') return std::make_pair<std::complex<double>, bool>(1., !state);
-      if (pauli == 'Y') return std::make_pair<std::complex<double>, bool>(-1.j, !state);
+      if (pauli == 'Z')
+        return std::make_pair<std::complex<double>, bool>(-1., bool(state));
+      if (pauli == 'X')
+        return std::make_pair<std::complex<double>, bool>(1., !state);
+      if (pauli == 'Y')
+        return std::make_pair<std::complex<double>, bool>(-1.j, !state);
       return std::make_pair<std::complex<double>, bool>(1., bool(state));
     } else {
-      if (pauli == 'Z') return std::make_pair<std::complex<double>, bool>(1., bool(state));
-      if (pauli == 'X') return std::make_pair<std::complex<double>, bool>(1., !state);
-      if (pauli == 'Y') return std::make_pair<std::complex<double>, bool>(1.j, !state);
+      if (pauli == 'Z')
+        return std::make_pair<std::complex<double>, bool>(1., bool(state));
+      if (pauli == 'X')
+        return std::make_pair<std::complex<double>, bool>(1., !state);
+      if (pauli == 'Y')
+        return std::make_pair<std::complex<double>, bool>(1.j, !state);
       return std::make_pair<std::complex<double>, bool>(1., bool(state));
     }
   };
@@ -89,10 +103,10 @@ matrix_2 spin_operator::to_matrix(std::string pauli_word, std::complex<double> c
     std::complex<double> entry = 1.;
     for (auto degree = 0; degree < nr_deg; ++degree) {
       auto canon_degree = degree;
-      auto state = (old_state & (1 << canon_degree)) >> canon_degree; 
+      auto state = (old_state & (1 << canon_degree)) >> canon_degree;
       // Note that indeed to have the matrix match the ordering (endianness) of
       // the pauli word, we have to look at word index nr_deg-1-degree here.
-      auto op = pauli_word[invert_order? degree : nr_deg - 1 - degree];
+      auto op = pauli_word[invert_order ? degree : nr_deg - 1 - degree];
       auto mapped = map_state(op, state);
       entry *= mapped.first;
       new_state |= (mapped.second << canon_degree);
@@ -102,8 +116,10 @@ matrix_2 spin_operator::to_matrix(std::string pauli_word, std::complex<double> c
   return std::move(matrix);
 }
 
-matrix_2 spin_operator::to_matrix(std::unordered_map<int, int> &dimensions,
-                                  const std::unordered_map<std::string, std::complex<double>> &parameters) const {
+matrix_2 spin_operator::to_matrix(
+    std::unordered_map<int, int> &dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters)
+    const {
   auto it = dimensions.find(this->target);
   if (it == dimensions.end())
     dimensions[this->target] = 2;
@@ -113,8 +129,10 @@ matrix_2 spin_operator::to_matrix(std::unordered_map<int, int> &dimensions,
 }
 
 std::string spin_operator::to_string(bool include_degrees) const {
-  if (include_degrees) return this->op_code_to_string() + "(" + std::to_string(target) + ")";
-  else return this->op_code_to_string();
+  if (include_degrees)
+    return this->op_code_to_string() + "(" + std::to_string(target) + ")";
+  else
+    return this->op_code_to_string();
 }
 
 // comparisons

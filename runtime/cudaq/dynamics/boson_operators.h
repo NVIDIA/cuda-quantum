@@ -12,17 +12,17 @@
 #include <unordered_map>
 #include <vector>
 
-#include "cudaq/utils/tensor.h"
 #include "cudaq/operators.h"
+#include "cudaq/utils/tensor.h"
 
 namespace cudaq {
 
 // FIXME: rename?
-class boson_operator : public operator_handler{
-template <typename T> friend class product_operator;
+class boson_operator : public operator_handler {
+  template <typename T>
+  friend class product_operator;
 
 private:
-
   // Each boson operator is represented as number operators along with an
   // offset to add to each number operator, as well as an integer indicating
   // how many creation or annihilation terms follow the number operators.
@@ -37,12 +37,12 @@ private:
   boson_operator(int target, int op_code);
 
   std::string op_code_to_string() const;
-  virtual std::string op_code_to_string(std::unordered_map<int, int> &dimensions) const;
+  virtual std::string
+  op_code_to_string(std::unordered_map<int, int> &dimensions) const;
 
   void inplace_mult(const boson_operator &other);
 
 public:
-
   // read-only properties
 
   virtual std::string unique_id() const;
@@ -57,16 +57,21 @@ public:
 
   // evaluations
 
-  /// @brief Return the matrix representation of the operator in the eigenbasis of the number operator.
-  /// @arg  `dimensions` : A map specifying the dimension, that is the number of eigenstates, for each degree of freedom.
-  virtual matrix_2 to_matrix(std::unordered_map<int, int> &dimensions,
-                             const std::unordered_map<std::string, std::complex<double>> &parameters = {}) const;
+  /// @brief Return the matrix representation of the operator in the eigenbasis
+  /// of the number operator.
+  /// @arg  `dimensions` : A map specifying the dimension, that is the number of
+  /// eigenstates, for each degree of freedom.
+  virtual matrix_2
+  to_matrix(std::unordered_map<int, int> &dimensions,
+            const std::unordered_map<std::string, std::complex<double>>
+                &parameters = {}) const;
 
   virtual std::string to_string(bool include_degrees) const;
 
   // comparisons
 
-  /// @returns True if, and only if, the two operators have the same effect on any state.
+  /// @returns True if, and only if, the two operators have the same effect on
+  /// any state.
   bool operator==(const boson_operator &other) const;
 
   // defined operators

@@ -6,12 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#pragma once 
+#pragma once
 
+#include "cudaq/utils/tensor.h"
 #include <set>
 #include <unordered_map>
 #include <vector>
-#include "cudaq/utils/tensor.h"
 
 #include "helpers.h"
 #include "operator_leafs.h"
@@ -21,18 +21,19 @@ namespace cudaq {
 template <typename EvalTy>
 class operator_arithmetics {
 public:
-  operator_arithmetics(std::unordered_map<int, int> &dimensions,
-    const std::unordered_map<std::string, std::complex<double>> &parameters);
+  operator_arithmetics(
+      std::unordered_map<int, int> &dimensions,
+      const std::unordered_map<std::string, std::complex<double>> &parameters);
 
-  /// Whether to inject tensor products with identity to each term in the 
-  /// sum to ensure that all terms are acting on the same degrees of freedom 
-  /// by the time they are added. 
+  /// Whether to inject tensor products with identity to each term in the
+  /// sum to ensure that all terms are acting on the same degrees of freedom
+  /// by the time they are added.
   const bool pad_sum_terms;
   /// Whether to inject tensor products with identity to each term in the
-  /// product to ensure that each term has its full size by the time they 
+  /// product to ensure that each term has its full size by the time they
   /// are multiplied.
   const bool pad_product_terms;
-  
+
   /// @brief Accesses the relevant data to evaluate an operator expression
   /// in the leaf nodes, that is in elementary and scalar operators.
   EvalTy evaluate(const operator_handler &op);
@@ -52,77 +53,92 @@ public:
   EvalTy add(EvalTy &&val1, EvalTy &&val2);
 };
 
-
-template<>
+template <>
 class operator_arithmetics<operator_handler::matrix_evaluation> {
 
 private:
-
   std::unordered_map<int, int> &dimensions; // may be updated during evaluation
   const std::unordered_map<std::string, std::complex<double>> &parameters;
-  
+
   // Given a matrix representation that acts on the given degrees or freedom,
   // sorts the degrees and permutes the matrix to match that canonical order.
   void canonicalize(matrix_2 &matrix, std::vector<int> &degrees) {
     auto current_degrees = degrees;
-    std::sort(degrees.begin(), degrees.end(), operator_handler::canonical_order);
+    std::sort(degrees.begin(), degrees.end(),
+              operator_handler::canonical_order);
     if (current_degrees != degrees) {
-      auto permutation = cudaq::detail::compute_permutation(current_degrees, degrees, this->dimensions);
-      cudaq::detail::permute_matrix(matrix, permutation);   
+      auto permutation = cudaq::detail::compute_permutation(
+          current_degrees, degrees, this->dimensions);
+      cudaq::detail::permute_matrix(matrix, permutation);
     }
   }
 
 public:
-
   const bool pad_sum_terms = true;
   const bool pad_product_terms = true;
 
-  operator_arithmetics(std::unordered_map<int, int> &dimensions,
-    const std::unordered_map<std::string, std::complex<double>> &parameters)
-  : dimensions(dimensions), parameters(parameters) {}
-  
+  operator_arithmetics(
+      std::unordered_map<int, int> &dimensions,
+      const std::unordered_map<std::string, std::complex<double>> &parameters)
+      : dimensions(dimensions), parameters(parameters) {}
+
   operator_handler::matrix_evaluation evaluate(const operator_handler &op) {
-    return operator_handler::matrix_evaluation(op.degrees(), op.to_matrix(this->dimensions, this->parameters));    
+    return operator_handler::matrix_evaluation(
+        op.degrees(), op.to_matrix(this->dimensions, this->parameters));
   }
 
   operator_handler::matrix_evaluation evaluate(const scalar_operator &op) {
-    return operator_handler::matrix_evaluation({}, op.to_matrix(this->parameters));
+    return operator_handler::matrix_evaluation({},
+                                               op.to_matrix(this->parameters));
   }
-  
-  operator_handler::matrix_evaluation tensor(operator_handler::matrix_evaluation &&op1, operator_handler::matrix_evaluation &&op2) {
+
+  operator_handler::matrix_evaluation
+  tensor(operator_handler::matrix_evaluation &&op1,
+         operator_handler::matrix_evaluation &&op2) {
     op1.degrees.reserve(op1.degrees.size() + op2.degrees.size());
     for (auto d : op2.degrees) {
-      assert(std::find(op1.degrees.cbegin(), op1.degrees.cend(), d) == op1.degrees.cend());
+      assert(std::find(op1.degrees.cbegin(), op1.degrees.cend(), d) ==
+             op1.degrees.cend());
       op1.degrees.push_back(d);
     }
-    auto matrix = cudaq::kronecker(std::move(op1.matrix), std::move(op2.matrix));
+    auto matrix =
+        cudaq::kronecker(std::move(op1.matrix), std::move(op2.matrix));
     this->canonicalize(matrix, op1.degrees);
-    return operator_handler::matrix_evaluation(std::move(op1.degrees), std::move(matrix));
+    return operator_handler::matrix_evaluation(std::move(op1.degrees),
+                                               std::move(matrix));
   }
 
-  operator_handler::matrix_evaluation mul(const scalar_operator &scalar, operator_handler::matrix_evaluation &&op) {
+  operator_handler::matrix_evaluation
+  mul(const scalar_operator &scalar, operator_handler::matrix_evaluation &&op) {
     auto matrix = scalar.evaluate(this->parameters) * std::move(op.matrix);
-    return operator_handler::matrix_evaluation(std::move(op.degrees), std::move(matrix));
+    return operator_handler::matrix_evaluation(std::move(op.degrees),
+                                               std::move(matrix));
   }
 
-  operator_handler::matrix_evaluation mul(operator_handler::matrix_evaluation &&op1, operator_handler::matrix_evaluation &&op2) {
+  operator_handler::matrix_evaluation
+  mul(operator_handler::matrix_evaluation &&op1,
+      operator_handler::matrix_evaluation &&op2) {
     // Elementary operators have sorted degrees such that we have a unique
     // convention for how to define the matrix. Tensor products permute the
     // computed matrix if necessary to guarantee that all operators always have
     // sorted degrees.
     assert(op1.degrees == op2.degrees);
     op1.matrix *= std::move(op2.matrix);
-    return operator_handler::matrix_evaluation(std::move(op1.degrees), std::move(op1.matrix));
+    return operator_handler::matrix_evaluation(std::move(op1.degrees),
+                                               std::move(op1.matrix));
   }
-  
-  operator_handler::matrix_evaluation add(operator_handler::matrix_evaluation &&op1, operator_handler::matrix_evaluation &&op2) {
+
+  operator_handler::matrix_evaluation
+  add(operator_handler::matrix_evaluation &&op1,
+      operator_handler::matrix_evaluation &&op2) {
     // Elementary operators have sorted degrees such that we have a unique
     // convention for how to define the matrix. Tensor products permute the
     // computed matrix if necessary to guarantee that all operators always have
     // sorted degrees.
     assert(op1.degrees == op2.degrees);
     op1.matrix += std::move(op2.matrix);
-    return operator_handler::matrix_evaluation(std::move(op1.degrees), std::move(op1.matrix));
+    return operator_handler::matrix_evaluation(std::move(op1.degrees),
+                                               std::move(op1.matrix));
   }
 };
 
@@ -130,7 +146,6 @@ template <>
 class operator_arithmetics<operator_handler::canonical_evaluation> {
 
 private:
-
   std::unordered_map<int, int> &dimensions; // may be updated during evaluation
   const std::unordered_map<std::string, std::complex<double>> &parameters;
 
@@ -138,43 +153,59 @@ public:
   const bool pad_sum_terms = true;
   const bool pad_product_terms = false;
 
-  operator_arithmetics(std::unordered_map<int, int> &dimensions,
-    const std::unordered_map<std::string, std::complex<double>> &parameters) 
-    : dimensions(dimensions), parameters(parameters) {}
+  operator_arithmetics(
+      std::unordered_map<int, int> &dimensions,
+      const std::unordered_map<std::string, std::complex<double>> &parameters)
+      : dimensions(dimensions), parameters(parameters) {}
 
   operator_handler::canonical_evaluation evaluate(const operator_handler &op) {
     auto canon_str = op.op_code_to_string(this->dimensions);
     operator_handler::canonical_evaluation eval;
-    eval.push_back(std::make_pair(std::complex<double>(1.), std::move(canon_str)));
+    eval.push_back(
+        std::make_pair(std::complex<double>(1.), std::move(canon_str)));
     return std::move(eval);
   }
 
-  operator_handler::canonical_evaluation evaluate(const scalar_operator &scalar) {
+  operator_handler::canonical_evaluation
+  evaluate(const scalar_operator &scalar) {
     operator_handler::canonical_evaluation eval;
     eval.push_back(std::make_pair(scalar.evaluate(this->parameters), ""));
     return std::move(eval);
   }
 
-  operator_handler::canonical_evaluation tensor(operator_handler::canonical_evaluation &&val1, operator_handler::canonical_evaluation &&val2) {
+  operator_handler::canonical_evaluation
+  tensor(operator_handler::canonical_evaluation &&val1,
+         operator_handler::canonical_evaluation &&val2) {
     assert(val1.terms.size() == 1 && val2.terms.size() == 1);
-    assert(val2.terms[0].first == std::complex<double>(1.)); // should be trivial
+    assert(val2.terms[0].first ==
+           std::complex<double>(1.)); // should be trivial
     val1.push_back(val2.terms[0].second);
     return std::move(val1);
   }
 
-  operator_handler::canonical_evaluation mul(const scalar_operator &scalar, operator_handler::canonical_evaluation &&op) {
-    throw std::runtime_error("multiplication should never be called on canonicalized operator - product padding is disabled");
+  operator_handler::canonical_evaluation
+  mul(const scalar_operator &scalar,
+      operator_handler::canonical_evaluation &&op) {
+    throw std::runtime_error(
+        "multiplication should never be called on canonicalized operator - "
+        "product padding is disabled");
   }
 
-  operator_handler::canonical_evaluation mul(operator_handler::canonical_evaluation &&val1, operator_handler::canonical_evaluation &&val2) {
-    throw std::runtime_error("multiplication should never be called on canonicalized operator - product padding is disabled");
+  operator_handler::canonical_evaluation
+  mul(operator_handler::canonical_evaluation &&val1,
+      operator_handler::canonical_evaluation &&val2) {
+    throw std::runtime_error(
+        "multiplication should never be called on canonicalized operator - "
+        "product padding is disabled");
   }
 
-  operator_handler::canonical_evaluation add(operator_handler::canonical_evaluation &&val1, operator_handler::canonical_evaluation &&val2) {
+  operator_handler::canonical_evaluation
+  add(operator_handler::canonical_evaluation &&val1,
+      operator_handler::canonical_evaluation &&val2) {
     assert(val2.terms.size() == 1);
     val1.push_back(std::move(val2.terms[0]));
     return std::move(val1);
   }
 };
 
-}
+} // namespace cudaq

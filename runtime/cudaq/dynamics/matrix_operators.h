@@ -12,53 +12,58 @@
 #include <unordered_map>
 #include <vector>
 
-#include "cudaq/utils/tensor.h"
 #include "cudaq/operators.h"
+#include "cudaq/utils/tensor.h"
 
 namespace cudaq {
 
-class matrix_operator : public operator_handler{
+class matrix_operator : public operator_handler {
 public:
   struct commutation_behavior {
-    commutation_relations group = operator_handler::default_commutation_relations;
+    commutation_relations group =
+        operator_handler::default_commutation_relations;
     bool commutes_across_degrees = true;
 
     commutation_behavior() {
       this->group = operator_handler::default_commutation_relations;
       this->commutes_across_degrees = true;
     }
-  
-    commutation_behavior(commutation_relations commutation_group, bool commutes_across_degrees) {
+
+    commutation_behavior(commutation_relations commutation_group,
+                         bool commutes_across_degrees) {
       this->group = commutation_group;
       this->commutes_across_degrees = commutes_across_degrees;
     }
   };
 
 private:
-
   static std::unordered_map<std::string, Definition> defined_ops;
 
   // used when converting other operators to matrix operators
   template <typename T>
   static std::string type_prefix();
 
-  virtual std::string op_code_to_string(std::unordered_map<int, int> &dimensions) const;
+  virtual std::string
+  op_code_to_string(std::unordered_map<int, int> &dimensions) const;
 
 protected:
-
   std::string op_code;
   commutation_relations group;
   bool commutes;
   std::vector<int> targets;
 
-  matrix_operator(std::string operator_id, const std::vector<int> &degrees, 
-                  const commutation_behavior &behavior = commutation_behavior());
-  matrix_operator(std::string operator_id, std::vector<int> &&degrees, 
-                  const commutation_behavior &behavior = commutation_behavior());
+  matrix_operator(
+      std::string operator_id, const std::vector<int> &degrees,
+      const commutation_behavior &behavior = commutation_behavior());
+  matrix_operator(
+      std::string operator_id, std::vector<int> &&degrees,
+      const commutation_behavior &behavior = commutation_behavior());
 
 public:
 #if !defined(NDEBUG)
-  static bool can_be_canonicalized; // needs to be false; no canonical order can be defined for matrix operator expressions
+  static bool
+      can_be_canonicalized; // needs to be false; no canonical order can be
+                            // defined for matrix operator expressions
 #endif
 
   // tools for custom operators
@@ -82,32 +87,37 @@ public:
   ///      indicates that the operator is defined for any dimension of the
   ///      corresponding degree of freedom.
   /// @arg create : Takes any number of complex-valued arguments and returns the
-  ///      matrix representing the operator. The matrix must be ordered such that
-  ///      the value returned by `op.degrees()` matches the order of the matrix, 
-  ///      where `op` is the instantiated the operator defined here.
-  ///      The `create` function must take a vector of integers that specifies
-  ///      the "number of levels" (the dimension) for each degree of freedom that
-  ///      the operator acts on, and an unordered map from string to complex 
-  ///      double that contains additional parameters the operator may use. 
-  static void define(std::string operator_id, std::vector<int> expected_dimensions,
+  ///      matrix representing the operator. The matrix must be ordered such
+  ///      that the value returned by `op.degrees()` matches the order of the
+  ///      matrix, where `op` is the instantiated the operator defined here. The
+  ///      `create` function must take a vector of integers that specifies the
+  ///      "number of levels" (the dimension) for each degree of freedom that
+  ///      the operator acts on, and an unordered map from string to complex
+  ///      double that contains additional parameters the operator may use.
+  static void define(std::string operator_id,
+                     std::vector<int> expected_dimensions,
                      MatrixCallbackFunction &&create);
 
   /// @brief Instantiates a custom operator.
-  /// @arg operator_id : The ID of the operator as specified when it was defined.
+  /// @arg operator_id : The ID of the operator as specified when it was
+  /// defined.
   /// @arg degrees : the degrees of freedom that the operator acts upon.
-  static product_operator<matrix_operator> instantiate(std::string operator_id, const std::vector<int> &degrees, 
-                                                       const commutation_behavior &behavior = commutation_behavior());
+  static product_operator<matrix_operator>
+  instantiate(std::string operator_id, const std::vector<int> &degrees,
+              const commutation_behavior &behavior = commutation_behavior());
 
   /// @brief Instantiates a custom operator.
-  /// @arg operator_id : The ID of the operator as specified when it was defined.
+  /// @arg operator_id : The ID of the operator as specified when it was
+  /// defined.
   /// @arg degrees : the degrees of freedom that the operator acts upon.
-  static product_operator<matrix_operator> instantiate(std::string operator_id, std::vector<int> &&degrees, 
-                                                       const commutation_behavior &behavior = commutation_behavior());
+  static product_operator<matrix_operator>
+  instantiate(std::string operator_id, std::vector<int> &&degrees,
+              const commutation_behavior &behavior = commutation_behavior());
 
   // read-only properties
 
-  const commutation_relations& commutation_group = this->group;
-  const bool& commutes_across_degrees = this->commutes;
+  const commutation_relations &commutation_group = this->group;
+  const bool &commutes_across_degrees = this->commutes;
 
   virtual std::string unique_id() const;
 
@@ -117,10 +127,12 @@ public:
 
   matrix_operator(int target);
 
-  template<typename T, std::enable_if_t<std::is_base_of_v<operator_handler, T>, bool> = true>
+  template <typename T, std::enable_if_t<std::is_base_of_v<operator_handler, T>,
+                                         bool> = true>
   matrix_operator(const T &other);
 
-  template<typename T, std::enable_if_t<std::is_base_of_v<operator_handler, T>, bool> = true>
+  template <typename T, std::enable_if_t<std::is_base_of_v<operator_handler, T>,
+                                         bool> = true>
   matrix_operator(const T &other, const commutation_behavior &behavior);
 
   // copy constructor
@@ -133,13 +145,15 @@ public:
 
   // assignments
 
-  matrix_operator& operator=(matrix_operator &&other);
+  matrix_operator &operator=(matrix_operator &&other);
 
-  matrix_operator& operator=(const matrix_operator& other);
+  matrix_operator &operator=(const matrix_operator &other);
 
-  template<typename T, std::enable_if_t<!std::is_same<T, matrix_operator>::value && std::is_base_of_v<operator_handler, T>, bool> = true>
-  matrix_operator& operator=(const T& other);
-
+  template <typename T,
+            std::enable_if_t<!std::is_same<T, matrix_operator>::value &&
+                                 std::is_base_of_v<operator_handler, T>,
+                             bool> = true>
+  matrix_operator &operator=(const T &other);
 
   // evaluations
 
@@ -148,8 +162,10 @@ public:
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
-  virtual matrix_2 to_matrix(std::unordered_map<int, int> &dimensions,
-                             const std::unordered_map<std::string, std::complex<double>> &parameters = {}) const;
+  virtual matrix_2
+  to_matrix(std::unordered_map<int, int> &dimensions,
+            const std::unordered_map<std::string, std::complex<double>>
+                &parameters = {}) const;
 
   virtual std::string to_string(bool include_degrees) const;
 

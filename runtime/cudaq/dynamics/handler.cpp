@@ -6,27 +6,31 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "cudaq/utils/tensor.h"
+#include "operator_leafs.h"
 #include <complex>
 #include <set>
 #include <unordered_map>
 #include <vector>
-#include "cudaq/utils/tensor.h"
-#include "operator_leafs.h"
 
 namespace cudaq {
 
 // commutation_relations
 
-std::unordered_map<uint, std::complex<double>> commutation_relations::exchange_factors = {
-  {-1, 1.}, // default relation
-  {-2, -1.}, // fermion relation
+std::unordered_map<uint, std::complex<double>>
+    commutation_relations::exchange_factors = {
+        {-1, 1.},  // default relation
+        {-2, -1.}, // fermion relation
 };
 
-void commutation_relations::define(uint group_id, std::complex<double> exchange_factor) {
-  auto result = commutation_relations::exchange_factors.insert({group_id, exchange_factor});
+void commutation_relations::define(uint group_id,
+                                   std::complex<double> exchange_factor) {
+  auto result = commutation_relations::exchange_factors.insert(
+      {group_id, exchange_factor});
   if (!result.second)
-    throw std::invalid_argument("commutation relations for group id '" 
-                                  + std::to_string(group_id) + "' are already defined");
+    throw std::invalid_argument("commutation relations for group id '" +
+                                std::to_string(group_id) +
+                                "' are already defined");
 }
 
 std::complex<double> commutation_relations::commutation_factor() const {
@@ -35,7 +39,8 @@ std::complex<double> commutation_relations::commutation_factor() const {
   return it->second;
 }
 
-bool commutation_relations::operator==(const commutation_relations &other) const {
+bool commutation_relations::operator==(
+    const commutation_relations &other) const {
   return this->id == other.id;
 }
 
@@ -43,8 +48,9 @@ bool commutation_relations::operator==(const commutation_relations &other) const
 
 commutation_relations operator_handler::custom_commutation_relations(uint id) {
   auto it = commutation_relations::exchange_factors.find(id);
-  if (it == commutation_relations::exchange_factors.cend()) 
-    throw std::range_error("no commutation relations with id '" + std::to_string(id) + "' has been defined");
+  if (it == commutation_relations::exchange_factors.cend())
+    throw std::range_error("no commutation relations with id '" +
+                           std::to_string(id) + "' has been defined");
   return commutation_relations(id);
 }
 
@@ -52,20 +58,23 @@ commutation_relations operator_handler::custom_commutation_relations(uint id) {
 
 operator_handler::matrix_evaluation::matrix_evaluation() = default;
 
-operator_handler::matrix_evaluation::matrix_evaluation(std::vector<int> &&degrees, matrix_2 &&matrix)
-: degrees(std::move(degrees)), matrix(std::move(matrix)) {
+operator_handler::matrix_evaluation::matrix_evaluation(
+    std::vector<int> &&degrees, matrix_2 &&matrix)
+    : degrees(std::move(degrees)), matrix(std::move(matrix)) {
 #if !defined(NDEBUG)
   std::set<int> unique_degrees;
   for (auto d : this->degrees)
-  unique_degrees.insert(d);
+    unique_degrees.insert(d);
   assert(unique_degrees.size() == this->degrees.size());
 #endif
 }
 
-operator_handler::matrix_evaluation::matrix_evaluation(matrix_evaluation &&other)
-: degrees(std::move(other.degrees)), matrix(std::move(other.matrix)) {}
+operator_handler::matrix_evaluation::matrix_evaluation(
+    matrix_evaluation &&other)
+    : degrees(std::move(other.degrees)), matrix(std::move(other.matrix)) {}
 
-operator_handler::matrix_evaluation& operator_handler::matrix_evaluation::operator=(matrix_evaluation &&other) {
+operator_handler::matrix_evaluation &
+operator_handler::matrix_evaluation::operator=(matrix_evaluation &&other) {
   if (this != &other) {
     this->degrees = std::move(other.degrees);
     this->matrix = std::move(other.matrix);
@@ -77,16 +86,20 @@ operator_handler::matrix_evaluation& operator_handler::matrix_evaluation::operat
 
 operator_handler::canonical_evaluation::canonical_evaluation() = default;
 
-operator_handler::canonical_evaluation::canonical_evaluation(canonical_evaluation &&other) 
-  : terms(std::move(other.terms)) {}
+operator_handler::canonical_evaluation::canonical_evaluation(
+    canonical_evaluation &&other)
+    : terms(std::move(other.terms)) {}
 
-operator_handler::canonical_evaluation& operator_handler::canonical_evaluation::operator=(canonical_evaluation &&other) {
+operator_handler::canonical_evaluation &
+operator_handler::canonical_evaluation::operator=(
+    canonical_evaluation &&other) {
   if (this != &other)
     this->terms = std::move(other.terms);
   return *this;
 }
 
-void operator_handler::canonical_evaluation::push_back(std::pair<std::complex<double>, std::string> &&term) {
+void operator_handler::canonical_evaluation::push_back(
+    std::pair<std::complex<double>, std::string> &&term) {
   this->terms.push_back(term);
 }
 
