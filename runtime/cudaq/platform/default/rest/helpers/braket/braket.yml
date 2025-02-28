@@ -34,6 +34,11 @@ target-arguments:
     type: string
     platform-arg: default_bucket
     help-string: "Specify a default S3 bucket for Amazon Braket results."
+  - key: polling_interval_ms
+    required: false
+    type: integer
+    platform-arg: polling_interval_ms
+    help-string: "Specify the polling interval (in milliseconds) for checking task completion status on Amazon Braket."
   - key: noise-model
     required: false
     type: string

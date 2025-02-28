@@ -57,7 +57,7 @@ protected:
   char const *jobToken;
   char const *reservationArn;
 
-  std::chrono::microseconds pollingInterval = std::chrono::milliseconds{100};
+  std::chrono::microseconds pollingInterval = std::chrono::milliseconds{2000};
 
   /// @brief Utility function to check the type of ServerHelper and use it to
   /// create job
