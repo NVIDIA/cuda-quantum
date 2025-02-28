@@ -169,6 +169,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # FIXME: remove this before merging to public repo
+      - name: Start private PyPI server
+        if: github.event.repository.private == true
+        id: pypi_server
+        uses: ./.github/actions/start-pypi-server
+        with:
+          release_name: 'cuquantum-25.03'
+          port: 8080
+
       - name: Restore environment
         id: restore_devdeps
         if: inputs.devdeps_image == ''
@@ -223,6 +232,10 @@ jobs:
           run: |
             cd $CUDAQ_REPO_ROOT
             pip install iqm_client==16.1 --user -vvv
+            
+            # FIXME: remove the line below before merging to the public repo
+            export PIP_EXTRA_INDEX_URL=http://localhost:8080
+            
             pip install . --user -vvv
             pyinstall_status=$?
             if [ ! $pyinstall_status -eq 0 ]; then

@@ -131,6 +131,17 @@ jobs:
           path: /tmp/wheels/
           merge-multiple: true
 
+       # FIXME: remove this before merging to public
+      - name: Load cuQuantum assets
+        run: |
+          dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
+          dnf install -y --nobest --setopt=install_weak_deps=False gh
+          mkdir /tmp/packages && cd /tmp/packages
+          gh release download cuquantum-25.03 -R ${{ github.repository }}
+          rm -rf *archive.tar* && cd -
+        env:
+          GH_TOKEN: ${{ github.token }}
+      
       - name: Test installation
         run: |
           mkdir -p /tmp/packages 

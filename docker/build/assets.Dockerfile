@@ -260,12 +260,18 @@ RUN gcc_packages=$(dnf list installed "gcc*" | sed '/Installed Packages/d' | cut
     dnf remove -y $gcc_packages && dnf clean all && \
     dnf install -y --nobest --setopt=install_weak_deps=False glibc-devel
 
+# FIXME: remove the following line before merging to public repo
+ENV PIP_EXTRA_INDEX_URL=http://localhost:8080
+
 ## [Python MLIR tests]
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
-    python3 -m pip install lit pytest scipy cuquantum-python-cu$(echo ${CUDA_VERSION} | cut -d . -f1)~=24.11 && \
+    python3 -m pip install lit pytest scipy cuquantum-python-cu$(echo ${CUDA_VERSION} | cut -d . -f1)~=25.03 && \
     "${LLVM_INSTALL_PREFIX}/bin/llvm-lit" -v _skbuild/python/tests/mlir \
         --param nvqpp_site_config=_skbuild/python/tests/mlir/lit.site.cfg.py
 # The other tests for the Python wheel are run post-installation.
+
+# FIXME: remove the following line before merging to public repo
+ENV PIP_EXTRA_INDEX_URL=
 
 ## [C++ Tests]
 FROM cpp_build AS cpp_tests

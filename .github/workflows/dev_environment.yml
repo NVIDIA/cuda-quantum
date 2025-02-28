@@ -314,6 +314,17 @@ jobs:
           restore-keys: |
             ${{ steps.cache.outputs.local_buildcache_key }}
 
+      # FIXME: remove this before merging to public repo
+      - name: Pre-release tarball file host
+        id: tarball_host
+        run: | 
+          cd /tmp && mkdir cuquantum-assets && cd cuquantum-assets 
+          echo "Download cuquantum-25.03 assets..."
+          gh release download cuquantum-25.03 -R ${{ github.repository }}
+          python3 -m http.server 5555 &
+        env:
+          GH_TOKEN: ${{ github.token }}
+      
       - name: Build ${{ needs.metadata.outputs.image_title }} image
         id: docker_build
         uses: docker/build-push-action@v5

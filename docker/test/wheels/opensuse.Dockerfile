@@ -32,7 +32,14 @@ COPY docs/sphinx/snippets/python /tmp/snippets/
 COPY python/tests /tmp/tests/
 COPY python/README*.md /tmp/
 
+# FIXME: remove the following line before merging to public repo
+ENV PIP_EXTRA_INDEX_URL=http://localhost:8080
+
 RUN python${python_version} -m pip install ${pip_install_flags} /tmp/$cuda_quantum_wheel
+
+# FIXME: remove the following line before merging to public repo
+ENV PIP_EXTRA_INDEX_URL=
+
 RUN if [ -n "$optional_dependencies" ]; then \
         cudaq_package=$(echo $cuda_quantum_wheel | cut -d '-' -f1 | tr _ -) && \
         python${python_version} -m pip install ${pip_install_flags} $cudaq_package[$optional_dependencies]; \
