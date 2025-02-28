@@ -136,7 +136,7 @@ boson_operator::boson_operator(int target)
 
 boson_operator::boson_operator(int target, int op_id)
     : target(target), additional_terms(0) {
-  assert(0 <= op_id < 4);
+  assert(0 <= op_id && op_id < 4);
   if (op_id == 1) // create
     this->additional_terms = 1;
   else if (op_id == 2) // annihilate
@@ -234,7 +234,7 @@ operator_sum<boson_operator> boson_operator::position(int degree) {
 }
 
 operator_sum<boson_operator> boson_operator::momentum(int degree) {
-  return 0.5j *
+  return std::complex<double>(0., 0.5) *
          (boson_operator::create(degree) - boson_operator::annihilate(degree));
 }
 

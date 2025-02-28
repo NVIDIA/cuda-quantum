@@ -66,7 +66,7 @@ spin_operator::spin_operator(int target) : op_code(0), target(target) {}
 
 spin_operator::spin_operator(int target, int op_id)
     : op_code(op_id), target(target) {
-  assert(0 <= op_id < 4);
+  assert(0 <= op_id && op_id < 4);
 }
 
 // evaluations
