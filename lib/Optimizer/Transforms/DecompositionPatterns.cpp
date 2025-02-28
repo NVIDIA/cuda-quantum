@@ -336,9 +336,12 @@ struct ExpPauliDecomposition : public OpRewritePattern<quake::ExpPauliOp> {
                                 PatternRewriter &rewriter) const override {
     auto loc = expPauliOp.getLoc();
     auto module = expPauliOp->getParentOfType<ModuleOp>();
-    auto qubits = expPauliOp.getQubits();
+    auto qubits = expPauliOp.getTarget();
     auto theta = expPauliOp.getParameter();
     auto pauliWord = expPauliOp.getPauli();
+
+    if (expPauliOp.isAdj())
+      theta = rewriter.create<arith::NegFOp>(loc, theta);
 
     std::optional<StringRef> optPauliWordStr;
     if (auto defOp =

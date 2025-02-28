@@ -433,6 +433,13 @@ def test_other_simulators(device_arn):
     cudaq.reset_target()
 
 
+@pytest.mark.parametrize("polling_interval_ms", [10, 100])
+def test_polling_interval(polling_interval_ms):
+    cudaq.set_target("braket", polling_interval_ms=polling_interval_ms)
+    test_qvector_kernel()
+    cudaq.reset_target()
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
