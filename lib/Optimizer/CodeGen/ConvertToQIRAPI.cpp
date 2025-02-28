@@ -1766,7 +1766,8 @@ struct AnyProfileQIR {
         SubveqOpRewrite<Self>,
 
         /* Irregular quantum operators. */
-        CustomUnitaryOpPattern<Self>, ExpPauliOpPattern, ResetOpPattern<Self>,
+        CustomUnitaryOpPattern<Self>, ExpPauliOpPattern<Self>,
+        ResetOpPattern<Self>,
 
         /* Regular quantum operators. */
         QuantumGatePattern<Self, quake::HOp>,
