@@ -401,7 +401,7 @@ struct ExpPauliDecomposition : public OpRewritePattern<quake::ExpPauliOp> {
               auto elementsAttr = cast<mlir::ElementsAttr>(attr.value());
               auto eleTy = elementsAttr.getElementType();
               auto values = elementsAttr.getValues<mlir::Attribute>();
-        
+
               for (auto it = values.begin(); it != values.end(); ++it) {
                 assert(isa<IntegerType>(eleTy));
                 char v = static_cast<char>(cast<IntegerAttr>(*it).getInt());
