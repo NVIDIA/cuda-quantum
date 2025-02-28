@@ -72,7 +72,7 @@ this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 repo_root=$(cd "$this_file_dir" && git rev-parse --show-toplevel)
 
 # Prepare the build directory
-build_dir="$working_dir/build/"$(echo "$build_configuration" | tr '[:upper:]' '[:lower:]')
+build_dir="$working_dir/build
 echo "Build directory: $build_dir"
 mkdir -p "$CUDAQ_INSTALL_PREFIX/bin"
 mkdir -p "$build_dir" && cd "$build_dir" # && rm -rf * 

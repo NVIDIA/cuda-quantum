@@ -583,10 +583,10 @@ public:
 
   // common operators
 
-  template <typename T, typename... Args,
-            std::enable_if_t<
-                std::conjunction<std::is_same<int, Args>...>::value, bool>>
-  friend product_operator<T> operator_handler::identity(Args... targets);
+  template <typename T>
+  friend product_operator<T> operator_handler::identity();
+  template <typename T>
+  friend product_operator<T> operator_handler::identity(int target);
 };
 
 // type aliases for convenience

@@ -320,11 +320,10 @@ public:
   template <typename HandlerTy>
   static operator_sum<HandlerTy> empty();
 
-  template <
-      typename HandlerTy, typename... Args,
-      std::enable_if_t<std::conjunction<std::is_same<int, Args>...>::value,
-                       bool> = true>
-  static product_operator<HandlerTy> identity(Args... targets);
+  template <typename HandlerTy>
+  static product_operator<HandlerTy> identity();
+  template <typename HandlerTy>
+  static product_operator<HandlerTy> identity(int target);
 };
 
 } // namespace cudaq

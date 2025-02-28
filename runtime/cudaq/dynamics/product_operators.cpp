@@ -11,6 +11,7 @@
 #include <set>
 #include <type_traits>
 #include <unordered_map>
+#include <utility>
 
 #include "cudaq/operators.h"
 #include "cudaq/spin_op.h"
@@ -281,6 +282,33 @@ EvalTy product_operator<HandlerTy>::evaluate(
   }
 }
 
+#define INSTANTIATE_PRODUCT_PRIVATE_METHODS(HandlerTy)                         \
+                                                                               \
+  template void product_operator<HandlerTy>::aggregate_terms(                  \
+      HandlerTy &&item1, HandlerTy &&item2);                                   \
+                                                                               \
+  template void product_operator<HandlerTy>::aggregate_terms(                  \
+      HandlerTy &&item1, HandlerTy &&item2, HandlerTy &&item3);
+
+INSTANTIATE_PRODUCT_PRIVATE_METHODS(matrix_operator);
+INSTANTIATE_PRODUCT_PRIVATE_METHODS(spin_operator);
+INSTANTIATE_PRODUCT_PRIVATE_METHODS(boson_operator);
+INSTANTIATE_PRODUCT_PRIVATE_METHODS(fermion_operator);
+
+#define INSTANTIATE_PRODUCT_EVALUATE_METHODS(HandlerTy, EvalTy)                \
+                                                                               \
+  template EvalTy product_operator<HandlerTy>::evaluate(                       \
+      operator_arithmetics<EvalTy> arithmetics) const;
+
+INSTANTIATE_PRODUCT_EVALUATE_METHODS(matrix_operator,
+                                     operator_handler::matrix_evaluation);
+INSTANTIATE_PRODUCT_EVALUATE_METHODS(spin_operator,
+                                     operator_handler::canonical_evaluation);
+INSTANTIATE_PRODUCT_EVALUATE_METHODS(boson_operator,
+                                     operator_handler::matrix_evaluation);
+INSTANTIATE_PRODUCT_EVALUATE_METHODS(fermion_operator,
+                                     operator_handler::matrix_evaluation);
+
 // read-only properties
 
 template <typename HandlerTy>
@@ -316,6 +344,23 @@ template <typename HandlerTy>
 scalar_operator product_operator<HandlerTy>::get_coefficient() const {
   return this->coefficient;
 }
+
+#define INSTANTIATE_PRODUCT_PROPERTIES(HandlerTy)                              \
+                                                                               \
+  template std::vector<int> product_operator<HandlerTy>::degrees(              \
+      bool application_order) const;                                           \
+                                                                               \
+  template int product_operator<HandlerTy>::num_terms() const;                 \
+                                                                               \
+  template const std::vector<HandlerTy> &                                      \
+  product_operator<HandlerTy>::get_terms() const;                              \
+                                                                               \
+  template scalar_operator product_operator<HandlerTy>::get_coefficient() const;
+
+INSTANTIATE_PRODUCT_PROPERTIES(matrix_operator);
+INSTANTIATE_PRODUCT_PROPERTIES(spin_operator);
+INSTANTIATE_PRODUCT_PROPERTIES(boson_operator);
+INSTANTIATE_PRODUCT_PROPERTIES(fermion_operator);
 
 // constructors
 
@@ -425,6 +470,39 @@ product_operator<HandlerTy>::product_operator(
     this->operators.reserve(size);
 }
 
+#define INSTANTIATE_PRODUCT_CONSTRUCTORS(HandlerTy)                            \
+                                                                               \
+  template product_operator<HandlerTy>::product_operator(double coefficient);  \
+                                                                               \
+  template product_operator<HandlerTy>::product_operator(                      \
+      scalar_operator coefficient);                                            \
+                                                                               \
+  template product_operator<HandlerTy>::product_operator(HandlerTy &&atomic);  \
+                                                                               \
+  template product_operator<HandlerTy>::product_operator(                      \
+      scalar_operator coefficient, HandlerTy &&atomic1);                       \
+                                                                               \
+  template product_operator<HandlerTy>::product_operator(                      \
+      scalar_operator coefficient, HandlerTy &&atomic1, HandlerTy &&atomic2);  \
+                                                                               \
+  template product_operator<HandlerTy>::product_operator(                      \
+      scalar_operator coefficient, HandlerTy &&atomic1, HandlerTy &&atomic2,   \
+      HandlerTy &&atomic3);                                                    \
+                                                                               \
+  template product_operator<HandlerTy>::product_operator(                      \
+      scalar_operator coefficient,                                             \
+      const std::vector<HandlerTy> &atomic_operators, int size);               \
+                                                                               \
+  template product_operator<HandlerTy>::product_operator(                      \
+      scalar_operator coefficient, std::vector<HandlerTy> &&atomic_operators,  \
+      int size);                                                               \
+                                                                               \
+  template product_operator<HandlerTy>::product_operator(                      \
+      const product_operator<HandlerTy> &other, int size);                     \
+                                                                               \
+  template product_operator<HandlerTy>::product_operator(                      \
+      product_operator<HandlerTy> &&other, int size);
+
 template product_operator<matrix_operator>::product_operator(
     const product_operator<spin_operator> &other);
 template product_operator<matrix_operator>::product_operator(
@@ -440,6 +518,11 @@ template product_operator<matrix_operator>::product_operator(
 template product_operator<matrix_operator>::product_operator(
     const product_operator<fermion_operator> &other,
     const matrix_operator::commutation_behavior &behavior);
+
+INSTANTIATE_PRODUCT_CONSTRUCTORS(matrix_operator);
+INSTANTIATE_PRODUCT_CONSTRUCTORS(spin_operator);
+INSTANTIATE_PRODUCT_CONSTRUCTORS(boson_operator);
+INSTANTIATE_PRODUCT_CONSTRUCTORS(fermion_operator);
 
 // assignments
 
@@ -473,6 +556,30 @@ product_operator<HandlerTy>::operator=(product_operator<HandlerTy> &&other) {
   }
   return *this;
 }
+
+#define INSTANTIATE_PRODUCT_ASSIGNMENTS(HandlerTy)                             \
+                                                                               \
+  template product_operator<HandlerTy> &                                       \
+  product_operator<HandlerTy>::operator=(                                      \
+      const product_operator<HandlerTy> &other);                               \
+                                                                               \
+  template product_operator<HandlerTy> &                                       \
+  product_operator<HandlerTy>::operator=(product_operator<HandlerTy> &&other);
+
+template product_operator<matrix_operator> &
+product_operator<matrix_operator>::operator=(
+    const product_operator<spin_operator> &other);
+template product_operator<matrix_operator> &
+product_operator<matrix_operator>::operator=(
+    const product_operator<boson_operator> &other);
+template product_operator<matrix_operator> &
+product_operator<matrix_operator>::operator=(
+    const product_operator<fermion_operator> &other);
+
+INSTANTIATE_PRODUCT_ASSIGNMENTS(matrix_operator);
+INSTANTIATE_PRODUCT_ASSIGNMENTS(spin_operator);
+INSTANTIATE_PRODUCT_ASSIGNMENTS(boson_operator);
+INSTANTIATE_PRODUCT_ASSIGNMENTS(fermion_operator);
 
 // evaluations
 
@@ -525,6 +632,27 @@ matrix_2 product_operator<spin_operator>::to_matrix(
   return std::move(matrix);
 }
 
+#define INSTANTIATE_PRODUCT_EVALUATIONS(HandlerTy)                             \
+                                                                               \
+  template std::string product_operator<HandlerTy>::to_string() const;         \
+                                                                               \
+  template matrix_2 product_operator<HandlerTy>::to_matrix(                    \
+      std::unordered_map<int, int> dimensions,                                 \
+      const std::unordered_map<std::string, std::complex<double>> &parameters, \
+      bool application_order) const;
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winstantiation-after-specialization"
+#endif      
+INSTANTIATE_PRODUCT_EVALUATIONS(matrix_operator);
+INSTANTIATE_PRODUCT_EVALUATIONS(spin_operator);
+INSTANTIATE_PRODUCT_EVALUATIONS(boson_operator);
+INSTANTIATE_PRODUCT_EVALUATIONS(fermion_operator);
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
 // comparisons
 
 template <typename HandlerTy>
@@ -533,6 +661,16 @@ bool product_operator<HandlerTy>::operator==(
   return this->coefficient == other.coefficient &&
          this->get_term_id() == other.get_term_id();
 }
+
+#define INSTANTIATE_PRODUCT_COMPARISONS(HandlerTy)                             \
+                                                                               \
+  template bool product_operator<HandlerTy>::operator==(                       \
+      const product_operator<HandlerTy> &other) const;
+
+INSTANTIATE_PRODUCT_COMPARISONS(matrix_operator);
+INSTANTIATE_PRODUCT_COMPARISONS(spin_operator);
+INSTANTIATE_PRODUCT_COMPARISONS(boson_operator);
+INSTANTIATE_PRODUCT_COMPARISONS(fermion_operator);
 
 // unary operators
 
@@ -556,6 +694,21 @@ template <typename HandlerTy>
 product_operator<HandlerTy> product_operator<HandlerTy>::operator+() && {
   return std::move(*this);
 }
+
+#define INSTANTIATE_PRODUCT_UNARY_OPS(HandlerTy)                               \
+  template product_operator<HandlerTy>                                         \
+  product_operator<HandlerTy>::operator-() const &;                            \
+  template product_operator<HandlerTy>                                         \
+  product_operator<HandlerTy>::operator-() &&;                                 \
+  template product_operator<HandlerTy>                                         \
+  product_operator<HandlerTy>::operator+() const &;                            \
+  template product_operator<HandlerTy>                                         \
+  product_operator<HandlerTy>::operator+() &&;
+
+INSTANTIATE_PRODUCT_UNARY_OPS(matrix_operator);
+INSTANTIATE_PRODUCT_UNARY_OPS(spin_operator);
+INSTANTIATE_PRODUCT_UNARY_OPS(boson_operator);
+INSTANTIATE_PRODUCT_UNARY_OPS(fermion_operator);
 
 // right-hand arithmetics
 
@@ -625,6 +778,46 @@ PRODUCT_MULTIPLICATION_SCALAR(/);
 
 PRODUCT_ADDITION_SCALAR(+);
 PRODUCT_ADDITION_SCALAR(-);
+
+#define INSTANTIATE_PRODUCT_RHSIMPLE_OPS(HandlerTy)                            \
+                                                                               \
+  template product_operator<HandlerTy> product_operator<HandlerTy>::operator*( \
+      scalar_operator &&other) const &;                                        \
+  template product_operator<HandlerTy> product_operator<HandlerTy>::operator*( \
+      scalar_operator &&other) &&;                                             \
+  template product_operator<HandlerTy> product_operator<HandlerTy>::operator*( \
+      const scalar_operator &other) const &;                                   \
+  template product_operator<HandlerTy> product_operator<HandlerTy>::operator*( \
+      const scalar_operator &other) &&;                                        \
+  template product_operator<HandlerTy> product_operator<HandlerTy>::operator/( \
+      scalar_operator &&other) const &;                                        \
+  template product_operator<HandlerTy> product_operator<HandlerTy>::operator/( \
+      scalar_operator &&other) &&;                                             \
+  template product_operator<HandlerTy> product_operator<HandlerTy>::operator/( \
+      const scalar_operator &other) const &;                                   \
+  template product_operator<HandlerTy> product_operator<HandlerTy>::operator/( \
+      const scalar_operator &other) &&;                                        \
+  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(     \
+      scalar_operator &&other) const &;                                        \
+  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(     \
+      scalar_operator &&other) &&;                                             \
+  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(     \
+      const scalar_operator &other) const &;                                   \
+  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(     \
+      const scalar_operator &other) &&;                                        \
+  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(     \
+      scalar_operator &&other) const &;                                        \
+  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(     \
+      scalar_operator &&other) &&;                                             \
+  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(     \
+      const scalar_operator &other) const &;                                   \
+  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(     \
+      const scalar_operator &other) &&;
+
+INSTANTIATE_PRODUCT_RHSIMPLE_OPS(matrix_operator);
+INSTANTIATE_PRODUCT_RHSIMPLE_OPS(spin_operator);
+INSTANTIATE_PRODUCT_RHSIMPLE_OPS(boson_operator);
+INSTANTIATE_PRODUCT_RHSIMPLE_OPS(fermion_operator);
 
 template <typename HandlerTy>
 product_operator<HandlerTy> product_operator<HandlerTy>::operator*(
@@ -761,6 +954,52 @@ operator_sum<HandlerTy> product_operator<HandlerTy>::operator*(
 PRODUCT_ADDITION_SUM(+)
 PRODUCT_ADDITION_SUM(-)
 
+#define INSTANTIATE_PRODUCT_RHCOMPOSITE_OPS(HandlerTy)                         \
+                                                                               \
+  template product_operator<HandlerTy> product_operator<HandlerTy>::operator*( \
+      const product_operator<HandlerTy> &other) const &;                       \
+  template product_operator<HandlerTy> product_operator<HandlerTy>::operator*( \
+      const product_operator<HandlerTy> &other) &&;                            \
+  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(     \
+      const product_operator<HandlerTy> &other) const &;                       \
+  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(     \
+      const product_operator<HandlerTy> &other) &&;                            \
+  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(     \
+      product_operator<HandlerTy> &&other) const &;                            \
+  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(     \
+      product_operator<HandlerTy> &&other) &&;                                 \
+  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(     \
+      const product_operator<HandlerTy> &other) const &;                       \
+  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(     \
+      const product_operator<HandlerTy> &other) &&;                            \
+  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(     \
+      product_operator<HandlerTy> &&other) const &;                            \
+  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(     \
+      product_operator<HandlerTy> &&other) &&;                                 \
+  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator*(     \
+      const operator_sum<HandlerTy> &other) const;                             \
+  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(     \
+      const operator_sum<HandlerTy> &other) const &;                           \
+  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(     \
+      const operator_sum<HandlerTy> &other) &&;                                \
+  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(     \
+      operator_sum<HandlerTy> &&other) const &;                                \
+  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator+(     \
+      operator_sum<HandlerTy> &&other) &&;                                     \
+  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(     \
+      const operator_sum<HandlerTy> &other) const &;                           \
+  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(     \
+      const operator_sum<HandlerTy> &other) &&;                                \
+  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(     \
+      operator_sum<HandlerTy> &&other) const &;                                \
+  template operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(     \
+      operator_sum<HandlerTy> &&other) &&;
+
+INSTANTIATE_PRODUCT_RHCOMPOSITE_OPS(matrix_operator);
+INSTANTIATE_PRODUCT_RHCOMPOSITE_OPS(spin_operator);
+INSTANTIATE_PRODUCT_RHCOMPOSITE_OPS(boson_operator);
+INSTANTIATE_PRODUCT_RHCOMPOSITE_OPS(fermion_operator);
+
 #define PRODUCT_MULTIPLICATION_SCALAR_ASSIGNMENT(op)                           \
   template <typename HandlerTy>                                                \
   product_operator<HandlerTy> &product_operator<HandlerTy>::operator op(       \
@@ -791,6 +1030,24 @@ product_operator<HandlerTy>::operator*=(product_operator<HandlerTy> &&other) {
     this->insert(std::move(op));
   return *this;
 }
+
+#define INSTANTIATE_PRODUCT_OPASSIGNMENTS(HandlerTy)                           \
+                                                                               \
+  template product_operator<HandlerTy> &                                       \
+  product_operator<HandlerTy>::operator*=(const scalar_operator &other);       \
+  template product_operator<HandlerTy> &                                       \
+  product_operator<HandlerTy>::operator/=(const scalar_operator &other);       \
+  template product_operator<HandlerTy> &                                       \
+  product_operator<HandlerTy>::operator*=(                                     \
+      const product_operator<HandlerTy> &other);                               \
+  template product_operator<HandlerTy> &                                       \
+  product_operator<HandlerTy>::operator*=(                                     \
+      product_operator<HandlerTy> &&other);
+
+INSTANTIATE_PRODUCT_OPASSIGNMENTS(matrix_operator);
+INSTANTIATE_PRODUCT_OPASSIGNMENTS(spin_operator);
+INSTANTIATE_PRODUCT_OPASSIGNMENTS(boson_operator);
+INSTANTIATE_PRODUCT_OPASSIGNMENTS(fermion_operator);
 
 // left-hand arithmetics
 
@@ -937,15 +1194,18 @@ INSTANTIATE_PRODUCT_CONVERSION_OPS(-, operator_sum);
 
 // common operators
 
-template <
-    typename HandlerTy, typename... Args,
-    std::enable_if_t<std::conjunction<std::is_same<int, Args>...>::value, bool>>
-product_operator<HandlerTy> operator_handler::identity(Args... targets) {
+template <typename HandlerTy>
+product_operator<HandlerTy> operator_handler::identity() {
+  return product_operator<HandlerTy>(1.0);
+}
+
+template <typename HandlerTy>
+product_operator<HandlerTy> operator_handler::identity(int target) {
   static_assert(
       std::is_constructible_v<HandlerTy, int>,
       "operator handlers must have a constructor that take a single degree of "
       "freedom and returns the identity operator on that degree.");
-  return product_operator<HandlerTy>(1.0, HandlerTy(targets)...);
+  return product_operator<HandlerTy>(1.0, HandlerTy(target));
 }
 
 template product_operator<matrix_operator> operator_handler::identity();
@@ -960,8 +1220,7 @@ template product_operator<boson_operator>
 operator_handler::identity(int target);
 template product_operator<fermion_operator>
 operator_handler::identity(int target);
-
-#ifdef CUDAQ_INSTANTIATE_TEMPLATES
+#if defined(CUDAQ_INSTANTIATE_TEMPLATES) && !defined(__clang__)
 template class product_operator<matrix_operator>;
 template class product_operator<spin_operator>;
 template class product_operator<boson_operator>;
