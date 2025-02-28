@@ -46,7 +46,6 @@ def test_Ionq_observe():
 
     s = cudaq.spin.y(3)
     res = cudaq.observe(ansatz_y, s, shots_count=10000)
-    energy = res.expectation()
     assert assert_close(0.0, res.expectation())
 
     @cudaq.kernel
