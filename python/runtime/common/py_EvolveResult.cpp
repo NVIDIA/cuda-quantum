@@ -8,7 +8,7 @@
 
 #include "py_EvolveResult.h"
 #include "common/EvolveResult.h"
-#include "cudaq/algorithms/evolve.h"
+#include "cudaq/algorithms/evolve_internal.h"
 #include <optional>
 #include <pybind11/stl.h>
 

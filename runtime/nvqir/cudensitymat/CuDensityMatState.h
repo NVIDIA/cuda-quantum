@@ -7,21 +7,8 @@
  ******************************************************************************/
 #pragma once
 
-#include "common/EigenDense.h"
-#include "common/Logger.h"
 #include "common/SimulationState.h"
-#include "cudaq/utils/cudaq_utils.h"
-#include <cuda_runtime_api.h>
-
-#define HANDLE_CUDA_ERROR(x)                                                   \
-  {                                                                            \
-    const auto err = x;                                                        \
-    if (err != cudaSuccess) {                                                  \
-      throw std::runtime_error(                                                \
-          fmt::format("[CuDensityMatState] %{} in {} (line {})",               \
-                      cudaGetErrorString(err), __FUNCTION__, __LINE__));       \
-    }                                                                          \
-  };
+#include <cudensitymat.h>
 
 namespace cudaq {
 /// @cond
@@ -34,6 +21,10 @@ private:
   // State device data pointer.
   void *devicePtr = nullptr;
 
+  cudensitymatState_t cudmState = nullptr;
+  cudensitymatHandle_t cudmHandle = nullptr;
+  std::vector<int64_t> hilbertSpaceDims;
+
 public:
   CuDensityMatState(std::size_t s, void *ptr, bool isDm)
       : isDensityMatrix(isDm), devicePtr(ptr),
@@ -43,66 +34,13 @@ public:
 
   std::size_t getNumQubits() const override { return std::log2(dimension); }
 
-  std::complex<double> overlap(const cudaq::SimulationState &other) override {
-    if (getTensor().extents != other.getTensor().extents)
-      throw std::runtime_error(
-          "[CuDensityMatState] overlap error - other state "
-          "dimension not equal to this state dimension.");
-
-    if (other.getPrecision() != getPrecision()) {
-      throw std::runtime_error(
-          "[CuDensityMatState] overlap error - precision mismatch.");
-    }
-
-    if (!isDensityMatrix) {
-      Eigen::VectorXcd state(dimension);
-      const auto size = dimension;
-      HANDLE_CUDA_ERROR(cudaMemcpy(state.data(), devicePtr,
-                                   size * sizeof(std::complex<double>),
-                                   cudaMemcpyDeviceToHost));
-
-      Eigen::VectorXcd otherState(dimension);
-      HANDLE_CUDA_ERROR(cudaMemcpy(otherState.data(), other.getTensor().data,
-                                   size * sizeof(std::complex<double>),
-                                   cudaMemcpyDeviceToHost));
-      return std::abs(std::inner_product(
-          state.begin(), state.end(), otherState.begin(),
-          std::complex<double>{0., 0.}, [](auto a, auto b) { return a + b; },
-          [](auto a, auto b) { return a * std::conj(b); }));
-    }
-
-    // FIXME: implement this in GPU memory
-    Eigen::MatrixXcd state(dimension, dimension);
-    const auto size = dimension * dimension;
-    HANDLE_CUDA_ERROR(cudaMemcpy(state.data(), devicePtr,
-                                 size * sizeof(std::complex<double>),
-                                 cudaMemcpyDeviceToHost));
-
-    Eigen::MatrixXcd otherState(dimension, dimension);
-    HANDLE_CUDA_ERROR(cudaMemcpy(otherState.data(), other.getTensor().data,
-                                 size * sizeof(std::complex<double>),
-                                 cudaMemcpyDeviceToHost));
-
-    return (state.adjoint() * otherState).trace();
-  }
+  std::complex<double> overlap(const cudaq::SimulationState &other) override;
 
   std::complex<double>
-  getAmplitude(const std::vector<int> &basisState) override {
-    throw std::runtime_error(
-        "[CuDensityMatState] getAmplitude by basis states is not supported. "
-        "Please use direct indexing access instead.");
-  }
+  getAmplitude(const std::vector<int> &basisState) override;
 
   // Dump the state to the given output stream
-  void dump(std::ostream &os) const override {
-    // get state data from device to print
-    Eigen::MatrixXcd state(dimension, isDensityMatrix ? dimension : 1);
-    const auto size = isDensityMatrix ? dimension * dimension : dimension;
-    HANDLE_CUDA_ERROR(cudaMemcpy(state.data(), devicePtr,
-                                 size * sizeof(std::complex<double>),
-                                 cudaMemcpyDeviceToHost));
-    os << state << std::endl;
-  }
+  void dump(std::ostream &os) const override;
 
   // This state is GPU device data, always return true.
   bool isDeviceData() const override { return true; }
@@ -116,50 +54,11 @@ public:
 
   std::unique_ptr<SimulationState>
   createFromSizeAndPtr(std::size_t size, void *dataPtr,
-                       std::size_t type) override {
-    bool isDm = false;
-    if (type == cudaq::detail::variant_index<cudaq::state_data,
-                                             cudaq::TensorStateData>()) {
-      if (size != 1)
-        throw std::runtime_error("[CuDensityMatState]: createFromSizeAndPtr "
-                                 "expects a single tensor");
-      auto *casted =
-          reinterpret_cast<cudaq::TensorStateData::value_type *>(dataPtr);
-
-      auto [ptr, extents] = casted[0];
-      if (extents.size() > 2)
-        throw std::runtime_error(
-            "[CuDensityMatState]: createFromSizeAndPtr only "
-            "accept 1D or 2D arrays");
-
-      isDm = extents.size() == 2;
-      size = std::reduce(extents.begin(), extents.end(), 1, std::multiplies());
-      dataPtr = const_cast<void *>(ptr);
-    }
-
-    std::complex<double> *devicePtr = nullptr;
-
-    HANDLE_CUDA_ERROR(
-        cudaMalloc((void **)&devicePtr, size * sizeof(std::complex<double>)));
-    HANDLE_CUDA_ERROR(cudaMemcpy(devicePtr, dataPtr,
-                                 size * sizeof(std::complex<double>),
-                                 cudaMemcpyDefault));
-    // printf("Created CuDensityMatState ptr %p\n", devicePtr);
-    return std::make_unique<CuDensityMatState>(size, devicePtr, isDm);
-  }
+                       std::size_t type) override;
 
   // Return the tensor at the given index. Throws
   // for an invalid tensor index.
-  Tensor getTensor(std::size_t tensorIdx = 0) const override {
-    if (tensorIdx != 0) {
-      throw std::runtime_error(
-          "CuDensityMatState state only supports a single tensor");
-    }
-    const std::vector<std::size_t> extents =
-        isDensityMatrix ? std::vector<std::size_t>{dimension, dimension}
-                        : std::vector<std::size_t>{dimension};
-    return Tensor{devicePtr, extents, precision::fp64};
-  }
+  Tensor getTensor(std::size_t tensorIdx = 0) const override;
 
   // Return all tensors that represent this state
   std::vector<Tensor> getTensors() const override { return {getTensor()}; }
@@ -169,64 +68,84 @@ public:
 
   std::complex<double>
   operator()(std::size_t tensorIdx,
-             const std::vector<std::size_t> &indices) override {
-    const auto extractValue = [&](std::size_t idx) {
-      std::complex<double> value;
-      HANDLE_CUDA_ERROR(cudaMemcpy(
-          &value, reinterpret_cast<std::complex<double> *>(devicePtr) + idx,
-          sizeof(std::complex<double>), cudaMemcpyDeviceToHost));
-      return value;
-    };
-
-    if (tensorIdx != 0)
-      throw std::runtime_error(
-          "CuDensityMatState state only supports a single tensor");
-    if (isDensityMatrix) {
-      if (indices.size() != 2)
-        throw std::runtime_error("CuDensityMatState holding a density matrix "
-                                 "supports only 2-dimensional indices");
-      if (indices[0] >= dimension || indices[1] >= dimension)
-        throw std::runtime_error("CuDensityMatState indices out of range");
-      return extractValue(indices[0] * dimension + indices[1]);
-    }
-    if (indices.size() != 1)
-      throw std::runtime_error(
-          "CuDensityMatState holding a state vector supports "
-          "only 1-dimensional indices");
-    if (indices[0] >= dimension)
-      throw std::runtime_error("Index out of bounds");
-    return extractValue(indices[0]);
-  }
+             const std::vector<std::size_t> &indices) override;
 
   // Copy the state device data to the user-provided host data pointer.
   void toHost(std::complex<double> *userData,
-              std::size_t numElements) const override {
-    if (numElements != dimension * (isDensityMatrix ? dimension : 1)) {
-      throw std::runtime_error("Number of elements in user data does not match "
-                               "the size of the state");
-    }
-    HANDLE_CUDA_ERROR(cudaMemcpy(userData, devicePtr,
-                                 numElements * sizeof(std::complex<double>),
-                                 cudaMemcpyDeviceToHost));
-  }
+              std::size_t numElements) const override;
 
   // Copy the state device data to the user-provided host data pointer.
   void toHost(std::complex<float> *userData,
-              std::size_t numElements) const override {
-    throw std::runtime_error(
-        "CuDensityMatState: Data type mismatches - expecting "
-        "double-precision array.");
-  }
-
+              std::size_t numElements) const override;
   // Free the device data.
-  void destroyState() override {
-    if (devicePtr != nullptr) {
-      HANDLE_CUDA_ERROR(cudaFree(devicePtr));
-      devicePtr = nullptr;
-      dimension = 0;
-      isDensityMatrix = false;
-    }
-  }
+  void destroyState() override;
+
+  // TODO: Tidy this up, remove unnecessary methods
+  /// @brief To initialize state with raw data.
+  explicit CuDensityMatState(cudensitymatHandle_t handle,
+                             const std::vector<std::complex<double>> &rawData,
+                             const std::vector<int64_t> &hilbertSpaceDims);
+  /// @brief To initialize state from a `cudaq::state`
+  explicit CuDensityMatState(cudensitymatHandle_t handle,
+                             const CuDensityMatState &simState,
+                             const std::vector<int64_t> &hilbertSpaceDims);
+  // @brief Create a zero state
+  static CuDensityMatState zero_like(const CuDensityMatState &other);
+  static CuDensityMatState clone(const CuDensityMatState &other);
+  // Prevent copies (avoids double free issues)
+  CuDensityMatState(const CuDensityMatState &) = delete;
+  CuDensityMatState &operator=(const CuDensityMatState &) = delete;
+
+  // Allow move semantics
+  CuDensityMatState(CuDensityMatState &&other) noexcept;
+  CuDensityMatState &operator=(CuDensityMatState &&other) noexcept;
+
+  /// @brief Destructor to clean up resources
+  ~CuDensityMatState();
+
+  /// @brief Check if the state is initialized.
+  /// @return True if the state is initialized, false otherwise.
+  bool is_initialized() const;
+
+  /// @brief Check if the state is a density matrix.
+  /// @return True if the state is a density matrix, false otherwise.
+  bool is_density_matrix() const;
+
+  /// @brief Convert the state vector to a density matrix.
+  /// @return A new CuDensityMatState representing the density matrix.
+  CuDensityMatState to_density_matrix() const;
+
+  /// @brief Get the underlying implementation (if any).
+  /// @return The underlying state implementation.
+  cudensitymatState_t get_impl() const;
+
+  /// @brief Get the pointer to device memory buffer storing the state.
+  /// @return GPU device pointer
+  void *get_device_pointer() const;
+
+  /// @brief Get a copy of the hilbert space dimensions for the quantum state.
+  /// @return A copy of the hilbert space dimensions of a vector of integers.
+  std::vector<int64_t> get_hilbert_space_dims() const;
+
+  /// @brief Returns the handle
+  /// @return The handle associated with the state
+  cudensitymatHandle_t get_handle() const;
+
+  void initialize_cudm(cudensitymatHandle_t handleToSet,
+                       const std::vector<int64_t> &hilbertSpaceDims);
+  /// @brief Addition operator (element-wise)
+  /// @return The new state after the summation of two states.
+  CuDensityMatState operator+(const CuDensityMatState &other) const;
+
+  /// @brief Accumulation operator
+  /// @return Accumulates the summation of two states.
+  CuDensityMatState &operator+=(const CuDensityMatState &other);
+
+  /// @brief Scalar multiplication operator
+  /// @return The new state after multiplying scalar with the current state.
+  CuDensityMatState &operator*=(const std::complex<double> &scalar);
+
+  CuDensityMatState operator*(double scalar) const;
 };
 /// @endcond
 } // namespace cudaq
