@@ -77,4 +77,12 @@ std::optional<std::complex<double>> Schedule::current_step() const {
   return std::nullopt;
 }
 
+auto Schedule::begin() { return steps.begin(); }
+
+auto Schedule::end() { return steps.end(); }
+
+auto Schedule::begin() const { return steps.cbegin(); }
+
+auto Schedule::end() const { return steps.cend(); }
+
 } // namespace cudaq

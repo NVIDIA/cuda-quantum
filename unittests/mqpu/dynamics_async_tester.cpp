@@ -99,7 +99,6 @@ TEST(DynamicsAsyncTester, checkSimple) {
   }
 }
 
-
 TEST(DynamicsAsyncTester, checkInitializerArgs) {
   auto &platform = cudaq::get_platform();
   printf("Num QPUs %lu\n", platform.num_qpus());

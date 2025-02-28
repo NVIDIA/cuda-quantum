@@ -101,5 +101,10 @@ public:
   /// @return The current complex step value as an optional. If no valid step,
   /// returns std::nullopt.
   std::optional<std::complex<double>> current_step() const;
+
+  auto begin();
+  auto end();
+  auto begin() const;
+  auto end() const;
 };
 } // namespace cudaq
