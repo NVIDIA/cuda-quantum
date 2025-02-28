@@ -25,7 +25,7 @@ name: Show Code Coverage Diff
 
 jobs:
   gen_code_coverage:
-    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8-testing' }}
     permissions:
       contents: read
       packages: read
