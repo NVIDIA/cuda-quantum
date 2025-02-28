@@ -107,7 +107,7 @@ fermion_operator::fermion_operator(int target)
 
 fermion_operator::fermion_operator(int target, int op_id)
     : target(target), op_code(9), commutes(true) {
-  assert(0 <= op_id < 4);
+  assert(0 <= op_id && op_id < 4);
   if (op_id == 1) { // create
     this->op_code = 4;
     this->commutes = false;
