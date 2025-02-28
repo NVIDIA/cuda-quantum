@@ -25,6 +25,8 @@ from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 from ..kernel.kernel_builder import PyKernel, make_kernel
 from ..runtime.observe import observe
 
+analog_targets = ["pasqal", "quera"]
+
 
 def _taylor_series_expm(op_matrix: NDArray[numpy.complexfloating],
                         order: int = 20) -> NDArray[numpy.complexfloating]:
@@ -210,7 +212,7 @@ def evolve_single(
                                collapse_operators, observables,
                                store_intermediate_results, integrator)
 
-    if target_name == "quera":
+    if target_name in analog_targets:
         ## TODO: Convert result from `sample_result` to `evolve_result`
         return _launch_analog_hamiltonian_kernel(target_name, hamiltonian,
                                                  schedule, shots_count)
@@ -351,11 +353,10 @@ def evolve(
         during evolution.
     """
     target_name = cudaq_runtime.get_target().name
-
     if not isinstance(schedule, Schedule):
         raise ValueError(
             f"Invalid argument `schedule` for target {target_name}.")
-    if target_name == "quera":
+    if target_name in analog_targets:
         if not isinstance(hamiltonian, RydbergHamiltonian):
             raise ValueError(
                 f"Invalid argument `hamiltonian` for target {target_name}. Must be `RydbergHamiltonian` operator."
@@ -432,7 +433,7 @@ def evolve_single_async(
             collapse_operators, observables, store_intermediate_results,
             integrator))
 
-    if target_name == "quera":
+    if target_name in analog_targets:
         return _launch_analog_hamiltonian_kernel(target_name, hamiltonian,
                                                  schedule, shots_count, True)
 
@@ -548,7 +549,7 @@ def evolve_async(
     if not isinstance(schedule, Schedule):
         raise ValueError(
             f"Invalid argument `schedule` for target {target_name}.")
-    if target_name == "quera":
+    if target_name in analog_targets:
         if not isinstance(hamiltonian, RydbergHamiltonian):
             raise ValueError(
                 f"Invalid argument `hamiltonian` for target {target_name}. Must be `RydbergHamiltonian` operator."

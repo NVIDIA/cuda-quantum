@@ -82,6 +82,7 @@ OpenSUSE
 Ou
 POSIX
 PSIRT
+Pasqal
 Pauli
 Paulis
 Photonic
