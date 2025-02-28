@@ -12,28 +12,28 @@
 #include "CuDensityMatUtils.h"
 #include "common/Logger.h"
 namespace cudaq {
-cudm_expectation::cudm_expectation(cudensitymatHandle_t handle,
-                                   cudensitymatOperator_t op)
+CuDensityMatExpectation::CuDensityMatExpectation(cudensitymatHandle_t handle,
+                                                 cudensitymatOperator_t op)
     : m_handle(handle), m_hamOp(op) {
   HANDLE_CUDM_ERROR(
       cudensitymatCreateExpectation(m_handle, m_hamOp, &m_expectation));
   HANDLE_CUDM_ERROR(cudensitymatCreateWorkspace(m_handle, &m_workspace));
 }
 
-cudm_expectation::~cudm_expectation() {
+CuDensityMatExpectation::~CuDensityMatExpectation() {
   if (m_workspace)
     cudensitymatDestroyWorkspace(m_workspace);
   if (m_expectation)
     cudensitymatDestroyExpectation(m_expectation);
 }
 
-void cudm_expectation::prepare(cudensitymatState_t state) {
+void CuDensityMatExpectation::prepare(cudensitymatState_t state) {
   HANDLE_CUDM_ERROR(cudensitymatExpectationPrepare(
       m_handle, m_expectation, state, CUDENSITYMAT_COMPUTE_64F,
       dynamics::Context::getRecommendedWorkSpaceLimit(), m_workspace, 0x0));
 }
-std::complex<double> cudm_expectation::compute(cudensitymatState_t state,
-                                               double time) {
+std::complex<double> CuDensityMatExpectation::compute(cudensitymatState_t state,
+                                                      double time) {
   std::size_t requiredBufferSize = 0;
   HANDLE_CUDM_ERROR(cudensitymatWorkspaceGetMemorySize(
       m_handle, m_workspace, CUDENSITYMAT_MEMSPACE_DEVICE,

@@ -16,9 +16,9 @@
 
 namespace cudaq {
 namespace dynamics {
-class OpConverter {
+class CuDensityMatOpConverter {
 public:
-  OpConverter(cudensitymatHandle_t handle) : m_handle(handle){};
+  CuDensityMatOpConverter(cudensitymatHandle_t handle) : m_handle(handle){};
 
   cudensitymatOperator_t convertToCudensitymatOperator(
       const std::unordered_map<std::string, std::complex<double>> &parameters,
@@ -33,7 +33,7 @@ public:
       const std::unordered_map<std::string, std::complex<double>> &parameters,
       bool isMasterEquation);
 
-  ~OpConverter();
+  ~CuDensityMatOpConverter();
 
 private:
   std::vector<std::pair<cudaq::scalar_operator, cudensitymatOperatorTerm_t>>

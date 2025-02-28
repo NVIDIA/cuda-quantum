@@ -130,7 +130,8 @@ cudaq::product_operator<cudaq::matrix_operator> computeDagger(
 }
 } // namespace
 
-cudensitymatOperator_t cudaq::dynamics::OpConverter::constructLiouvillian(
+cudensitymatOperator_t
+cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
     const operator_sum<cudaq::matrix_operator> &ham,
     const std::vector<operator_sum<cudaq::matrix_operator>> &collapseOperators,
     const std::vector<int64_t> &modeExtents,
@@ -209,7 +210,7 @@ cudensitymatOperator_t cudaq::dynamics::OpConverter::constructLiouvillian(
   }
 }
 
-cudaq::dynamics::OpConverter::~OpConverter() {
+cudaq::dynamics::CuDensityMatOpConverter::~CuDensityMatOpConverter() {
   for (auto term : m_operatorTerms)
     cudensitymatDestroyOperatorTerm(term);
 
@@ -221,7 +222,7 @@ cudaq::dynamics::OpConverter::~OpConverter() {
 }
 
 cudensitymatElementaryOperator_t
-cudaq::dynamics::OpConverter::createElementaryOperator(
+cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
     const cudaq::matrix_operator &elemOp,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     const std::vector<int64_t> &modeExtents) {
@@ -301,7 +302,7 @@ cudaq::dynamics::OpConverter::createElementaryOperator(
 }
 
 cudensitymatOperatorTerm_t
-cudaq::dynamics::OpConverter::createProductOperatorTerm(
+cudaq::dynamics::CuDensityMatOpConverter::createProductOperatorTerm(
     const std::vector<cudensitymatElementaryOperator_t> &elemOps,
     const std::vector<int64_t> &modeExtents,
     const std::vector<std::vector<int>> &degrees,
@@ -369,7 +370,7 @@ cudaq::dynamics::OpConverter::createProductOperatorTerm(
 }
 
 cudensitymatOperator_t
-cudaq::dynamics::OpConverter::convertToCudensitymatOperator(
+cudaq::dynamics::CuDensityMatOpConverter::convertToCudensitymatOperator(
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     const operator_sum<cudaq::matrix_operator> &op,
     const std::vector<int64_t> &modeExtents) {
@@ -408,7 +409,7 @@ cudaq::dynamics::OpConverter::convertToCudensitymatOperator(
 }
 
 std::vector<std::pair<cudaq::scalar_operator, cudensitymatOperatorTerm_t>>
-cudaq::dynamics::OpConverter::convertToCudensitymat(
+cudaq::dynamics::CuDensityMatOpConverter::convertToCudensitymat(
     const operator_sum<cudaq::matrix_operator> &op,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     const std::vector<int64_t> &modeExtents) {
@@ -448,7 +449,7 @@ cudaq::dynamics::OpConverter::convertToCudensitymat(
 }
 
 std::vector<std::pair<cudaq::scalar_operator, cudensitymatOperatorTerm_t>>
-cudaq::dynamics::OpConverter::computeLindbladTerms(
+cudaq::dynamics::CuDensityMatOpConverter::computeLindbladTerms(
     const operator_sum<cudaq::matrix_operator> &collapseOp,
     const std::vector<int64_t> &modeExtents,
     const std::unordered_map<std::string, std::complex<double>> &parameters) {
@@ -549,7 +550,7 @@ cudaq::dynamics::OpConverter::computeLindbladTerms(
 }
 
 cudensitymatWrappedScalarCallback_t
-cudaq::dynamics::OpConverter::wrapScalarCallback(
+cudaq::dynamics::CuDensityMatOpConverter::wrapScalarCallback(
     const scalar_operator &scalarOp,
     const std::vector<std::string> &paramNames) {
   if (scalarOp.is_constant()) {
@@ -606,7 +607,7 @@ cudaq::dynamics::OpConverter::wrapScalarCallback(
 }
 
 cudensitymatWrappedTensorCallback_t
-cudaq::dynamics::OpConverter::wrapTensorCallback(
+cudaq::dynamics::CuDensityMatOpConverter::wrapTensorCallback(
     const matrix_operator &matrixOp,
     const std::vector<std::string> &paramNames) {
   m_tensorCallbacks.push_back(TensorCallBackContext(matrixOp, paramNames));

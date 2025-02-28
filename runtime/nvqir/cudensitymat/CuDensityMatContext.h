@@ -31,8 +31,8 @@ public:
   cublasHandle_t getCublasHandle() const { return m_cublasHandle; }
 
   /// @brief Get the operation converter.
-  /// @return OpConverter& Reference to the operation converter.
-  OpConverter &getOpConverter() { return *m_opConverter; }
+  /// @return CuDensityMatOpConverter& Reference to the operation converter.
+  CuDensityMatOpConverter &getOpConverter() { return *m_opConverter; }
 
   /// @brief Get the current CUDAQ context for the active device.
   /// @return Context* Pointer to the current context.
@@ -54,7 +54,7 @@ private:
 
   cudensitymatHandle_t m_cudmHandle;
   cublasHandle_t m_cublasHandle;
-  std::unique_ptr<OpConverter> m_opConverter;
+  std::unique_ptr<CuDensityMatOpConverter> m_opConverter;
   int m_deviceId;
   void *m_scratchSpace{nullptr};
   std::size_t m_scratchSpaceSizeBytes{0};

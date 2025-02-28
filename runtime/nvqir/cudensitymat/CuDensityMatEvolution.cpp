@@ -18,6 +18,17 @@
 #include <stdexcept>
 namespace cudaq {
 namespace __internal__ {
+/// @brief Evolve the system for a single time step.
+/// @param hamiltonian Hamiltonian operator.
+/// @param dimensions Dimension of the system.
+/// @param schedule Time schedule.
+/// @param initialState Initial state.
+/// @param inIntegrator Integrator.
+/// @param collapseOperators Collapse operators.
+/// @param observables Observables.
+/// @param storeIntermediateResults Store intermediate results.
+/// @param shotsCount Number of shots.
+/// @return evolve_result Result of the evolution.
 evolve_result evolveSingle(
     const operator_sum<cudaq::matrix_operator> &hamiltonian,
     const std::map<int, int> &dimensions, const Schedule &schedule,
@@ -57,9 +68,9 @@ evolve_result evolveSingle(
   system.modeExtents = dims;
   integrator.setSystem(system, schedule);
   integrator.setState(initial_State, 0.0);
-  std::vector<cudm_expectation> expectations;
+  std::vector<CuDensityMatExpectation> expectations;
   for (auto &obs : observables)
-    expectations.emplace_back(cudm_expectation(
+    expectations.emplace_back(CuDensityMatExpectation(
         handle, cudaq::dynamics::Context::getCurrentContext()
                     ->getOpConverter()
                     .convertToCudensitymatOperator({}, obs, dims)));

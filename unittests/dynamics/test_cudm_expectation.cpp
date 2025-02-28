@@ -42,7 +42,7 @@ TEST_F(CuDensityExpectationTest, checkCompute) {
                     ->getOpConverter()
                     .convertToCudensitymatOperator({}, op, dims);
 
-  cudm_expectation expectation(handle_, cudmOp);
+  CuDensityMatExpectation expectation(handle_, cudmOp);
 
   for (std::size_t stateIdx = 0; stateIdx < dims[0]; ++stateIdx) {
     std::vector<std::complex<double>> initialState(dims[0], 0.0);
@@ -64,7 +64,7 @@ TEST_F(CuDensityExpectationTest, checkCompositeSystem) {
                     ->getOpConverter()
                     .convertToCudensitymatOperator({}, op, dims);
 
-  cudm_expectation expectation(handle_, cudmOp);
+  CuDensityMatExpectation expectation(handle_, cudmOp);
 
   for (std::size_t stateIdx = 0; stateIdx < dims[1]; ++stateIdx) {
     Eigen::Vector2cd qubit_state;

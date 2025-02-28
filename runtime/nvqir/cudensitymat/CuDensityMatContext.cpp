@@ -75,7 +75,7 @@ Context::Context(int deviceId) : m_deviceId(deviceId) {
   HANDLE_CUDA_ERROR(cudaSetDevice(deviceId));
   HANDLE_CUDM_ERROR(cudensitymatCreate(&m_cudmHandle));
   HANDLE_CUBLAS_ERROR(cublasCreate(&m_cublasHandle));
-  m_opConverter = std::make_unique<OpConverter>(m_cudmHandle);
+  m_opConverter = std::make_unique<CuDensityMatOpConverter>(m_cudmHandle);
 }
 
 /// @brief Destroy the Context object and release resources.
