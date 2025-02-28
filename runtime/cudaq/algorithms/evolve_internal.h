@@ -12,7 +12,6 @@
 #include "common/KernelWrapper.h"
 #include "cudaq/BaseIntegrator.h"
 #include "cudaq/algorithms/get_state.h"
-#include "cudaq/evolution.h"
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
 #include "cudaq/platform.h"
@@ -185,5 +184,15 @@ evolve_async(std::function<evolve_result()> evolveFunctor,
       "recompile your application with '--target dynamics' flag.");
 #endif
 }
+
+evolve_result evolveSingle(
+    const operator_sum<cudaq::matrix_operator> &hamiltonian,
+    const std::map<int, int> &dimensions, const Schedule &schedule,
+    const state &initial_state, BaseIntegrator &integrator,
+    const std::vector<operator_sum<cudaq::matrix_operator>>
+        &collapse_operators = {},
+    const std::vector<operator_sum<cudaq::matrix_operator>> &observables = {},
+    bool store_intermediate_results = false,
+    std::optional<int> shots_count = std::nullopt);
 } // namespace __internal__
 } // namespace cudaq

@@ -11,11 +11,12 @@
 #include "CuDensityMatExpectation.h"
 #include "CuDensityMatState.h"
 #include "CuDensityMatTimeStepper.h"
+#include "cudaq/algorithms/evolve_internal.h"
 #include "cudaq/dynamics_integrators.h"
-#include "cudaq/evolution.h"
 #include <random>
 #include <stdexcept>
 namespace cudaq {
+namespace __internal__ {
 evolve_result evolveSingle(
     const operator_sum<cudaq::matrix_operator> &hamiltonian,
     const std::map<int, int> &dimensions, const Schedule &schedule,
@@ -96,5 +97,5 @@ evolve_result evolveSingle(
     return evolve_result(finalState, expVals);
   }
 }
-
+} // namespace __internal__
 } // namespace cudaq
