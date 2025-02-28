@@ -9,6 +9,7 @@
 #pragma once
 
 #include "cudaq/utils/tensor.h"
+#include <algorithm>
 #include <set>
 #include <unordered_map>
 #include <vector>

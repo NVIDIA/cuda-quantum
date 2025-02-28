@@ -112,6 +112,12 @@ EvalTy operator_sum<HandlerTy>::evaluate(
 
 #define INSTANTIATE_SUM_PRIVATE_METHODS(HandlerTy)                             \
                                                                                \
+  template void operator_sum<HandlerTy>::insert(                               \
+      product_operator<HandlerTy> &&other);                                    \
+                                                                               \
+  template void operator_sum<HandlerTy>::insert(                               \
+      const product_operator<HandlerTy> &other);                               \
+                                                                               \
   template void operator_sum<HandlerTy>::aggregate_terms(                      \
       product_operator<HandlerTy> &&item2);                                    \
                                                                                \

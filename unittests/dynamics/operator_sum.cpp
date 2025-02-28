@@ -263,7 +263,7 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
 
 TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
   int level_count = 3;
-  std::complex<double> value = 0.1 + 0.1j;
+  std::complex<double> value = std::complex<double>(0.1, 0.1);
   double double_value = 0.1;
 
   // `operator_sum + double`

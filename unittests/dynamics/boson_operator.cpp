@@ -25,14 +25,14 @@ TEST(OperatorExpressions, checkBosonOpsConstruction) {
   expected[{0, 0}] = 1.;
   utils::checkEqual(prod.to_matrix(), expected);
 
-  prod *= -1.j;
-  expected[{0, 0}] = std::complex<double>(-1.j);
+  prod *= std::complex<double>(0., -1.);
+  expected[{0, 0}] = std::complex<double>(0., -1.);
   utils::checkEqual(prod.to_matrix(), expected);
 
   prod *= cudaq::boson_operator::number(0);
   expected = cudaq::matrix_2(3, 3);
-  expected[{1, 1}] = std::complex<double>(-1.j);
-  expected[{2, 2}] = std::complex<double>(-2.j);
+  expected[{1, 1}] = std::complex<double>(0., -1.);
+  expected[{2, 2}] = std::complex<double>(0., -2.);
   utils::checkEqual(prod.to_matrix({{0, 3}}), expected);
 
   auto sum = cudaq::boson_operator::empty();
@@ -317,7 +317,7 @@ TEST(OperatorExpressions, checkPreBuiltBosonOps) {
 }
 
 TEST(OperatorExpressions, checkBosonOpsWithComplex) {
-  std::complex<double> value = 0.125 + 0.125j;
+  std::complex<double> value = std::complex<double>(0.125, 0.125);
   auto dimension = 3;
 
   // `boson_operator` + `complex<double>`
@@ -631,7 +631,7 @@ TEST(OperatorExpressions, checkBosonOpsSimpleArithmetics) {
 TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
 
   // Keeping this fixed throughout.
-  std::complex<double> value = 0.125 + 0.5j;
+  std::complex<double> value = std::complex<double>(0.125, 0.5);
   std::unordered_map<int, int> dimensions = {{0, 3}, {1, 2}, {2, 4}, {3, 2}};
 
   // `boson_operator + operator_sum`

@@ -25,13 +25,13 @@ TEST(OperatorExpressions, checkFermionOpsConstruction) {
   expected[{0, 0}] = 1.;
   utils::checkEqual(prod.to_matrix(), expected);
 
-  prod *= -1.j;
-  expected[{0, 0}] = std::complex<double>(-1.j);
+  prod *= std::complex<double>(0., -1.);
+  expected[{0, 0}] = std::complex<double>(0., -1.);
   utils::checkEqual(prod.to_matrix(), expected);
 
   prod *= cudaq::fermion_operator::number(0);
   expected = cudaq::matrix_2(2, 2);
-  expected[{1, 1}] = std::complex<double>(-1.j);
+  expected[{1, 1}] = std::complex<double>(0., -1.);
   utils::checkEqual(prod.to_matrix(), expected);
 
   auto sum = cudaq::fermion_operator::empty();
@@ -275,7 +275,7 @@ TEST(OperatorExpressions, checkPreBuiltFermionOps) {
 }
 
 TEST(OperatorExpressions, checkFermionOpsWithComplex) {
-  std::complex<double> value = 0.125 + 0.125j;
+  std::complex<double> value = std::complex<double>(0.125, 0.125);
 
   // `fermion_operator` + `complex<double>`
   {
@@ -573,7 +573,7 @@ TEST(OperatorExpressions, checkFermionOpsSimpleArithmetics) {
 TEST(OperatorExpressions, checkFermionOpsAdvancedArithmetics) {
 
   // Keeping this fixed throughout.
-  std::complex<double> value = 0.125 + 0.5j;
+  std::complex<double> value = std::complex<double>(0.125, 0.5);
 
   // `fermion_operator + operator_sum`
   {

@@ -284,16 +284,30 @@ EvalTy product_operator<HandlerTy>::evaluate(
 
 #define INSTANTIATE_PRODUCT_PRIVATE_METHODS(HandlerTy)                         \
                                                                                \
+  template typename std::vector<HandlerTy>::const_iterator                     \
+  product_operator<HandlerTy>::find_insert_at(const HandlerTy &other);         \
+                                                                               \
+  template void product_operator<HandlerTy>::insert(HandlerTy &&other);        \
+                                                                               \
+  template std::string product_operator<HandlerTy>::get_term_id() const;       \
+                                                                               \
   template void product_operator<HandlerTy>::aggregate_terms(                  \
       HandlerTy &&item1, HandlerTy &&item2);                                   \
                                                                                \
   template void product_operator<HandlerTy>::aggregate_terms(                  \
       HandlerTy &&item1, HandlerTy &&item2, HandlerTy &&item3);
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winstantiation-after-specialization"
+#endif
 INSTANTIATE_PRODUCT_PRIVATE_METHODS(matrix_operator);
 INSTANTIATE_PRODUCT_PRIVATE_METHODS(spin_operator);
 INSTANTIATE_PRODUCT_PRIVATE_METHODS(boson_operator);
 INSTANTIATE_PRODUCT_PRIVATE_METHODS(fermion_operator);
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 #define INSTANTIATE_PRODUCT_EVALUATE_METHODS(HandlerTy, EvalTy)                \
                                                                                \

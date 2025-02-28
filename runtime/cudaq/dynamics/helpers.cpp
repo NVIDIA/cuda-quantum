@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "helpers.h"
+#include <algorithm>
 #include <unordered_map>
 
 namespace cudaq {

@@ -33,8 +33,6 @@ public:
   scalar_operator(double value);
 
   /// @brief Constructor that just takes and returns a complex double value.
-  /// @NOTE: This replicates the behavior of the python `scalar_operator::const`
-  /// without the need for an extra member function.
   scalar_operator(std::complex<double> value);
 
   scalar_operator(const scalar_callback &create);

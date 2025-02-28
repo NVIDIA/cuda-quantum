@@ -24,14 +24,14 @@ TEST(OperatorExpressions, checkSpinOpsConstruction) {
   expected[{0, 0}] = 1.;
   utils::checkEqual(prod.to_matrix(), expected);
 
-  prod *= -1.j;
-  expected[{0, 0}] = std::complex<double>(-1.j);
+  prod *= std::complex<double>(0., -1.);
+  expected[{0, 0}] = std::complex<double>(0., -1.);
   utils::checkEqual(prod.to_matrix(), expected);
 
   prod *= cudaq::spin_operator::x(0);
   expected = cudaq::matrix_2(2, 2);
-  expected[{0, 1}] = std::complex<double>(-1.j);
-  expected[{1, 0}] = std::complex<double>(-1.j);
+  expected[{0, 1}] = std::complex<double>(0., -1.);
+  expected[{1, 0}] = std::complex<double>(0., -1.);
   utils::checkEqual(prod.to_matrix(), expected);
 
   auto sum = cudaq::spin_operator::empty();
@@ -107,7 +107,7 @@ TEST(OperatorExpressions, checkPreBuiltSpinOps) {
 }
 
 TEST(OperatorExpressions, checkSpinOpsWithComplex) {
-  std::complex<double> value = 0.125 + 0.125j;
+  std::complex<double> value = std::complex<double>(0.125, 0.125);
 
   // `spin_operator` + `complex<double>`
   {
@@ -406,7 +406,7 @@ TEST(OperatorExpressions, checkSpinOpsSimpleArithmetics) {
 TEST(OperatorExpressions, checkSpinOpsAdvancedArithmetics) {
 
   // Keeping this fixed throughout.
-  std::complex<double> value = 0.125 + 0.5j;
+  std::complex<double> value = std::complex<double>(0.125, 0.5);
 
   // `spin_operator + operator_sum`
   {

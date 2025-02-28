@@ -25,14 +25,14 @@ TEST(OperatorExpressions, checkMatrixOpsConstruction) {
   expected[{0, 0}] = 1.;
   utils::checkEqual(prod.to_matrix(), expected);
 
-  prod *= -1.j;
-  expected[{0, 0}] = std::complex<double>(-1.j);
+  prod *= std::complex<double>(0., -1.);
+  expected[{0, 0}] = std::complex<double>(0., -1.);
   utils::checkEqual(prod.to_matrix(), expected);
 
   prod *= cudaq::matrix_operator::number(0);
   expected = cudaq::matrix_2(3, 3);
-  expected[{1, 1}] = std::complex<double>(-1.j);
-  expected[{2, 2}] = std::complex<double>(-2.j);
+  expected[{1, 1}] = std::complex<double>(0., -1.);
+  expected[{2, 2}] = std::complex<double>(0., -2.);
   utils::checkEqual(prod.to_matrix({{0, 3}}), expected);
 
   auto sum = cudaq::matrix_operator::empty();
