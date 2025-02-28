@@ -13,6 +13,7 @@
 #include "CuDensityMatTimeStepper.h"
 #include "cudaq/algorithms/evolve_internal.h"
 #include "cudaq/dynamics_integrators.h"
+#include <iterator>
 #include <random>
 #include <stdexcept>
 namespace cudaq {
@@ -66,7 +67,7 @@ evolve_result evolveSingle(
   std::vector<std::vector<double>> expectationVals;
   std::vector<cudaq::state> intermediateStates;
   for (const auto &step : schedule) {
-    integrator.integrate(step);
+    integrator.integrate(step.real());
     auto [t, currentState] = integrator.getState();
     if (storeIntermediateResults) {
       std::vector<double> expVals;
@@ -74,7 +75,8 @@ evolve_result evolveSingle(
       for (auto &expectation : expectations) {
         auto *cudmState = asCudmState(currentState);
         expectation.prepare(cudmState->get_impl());
-        const auto expVal = expectation.compute(cudmState->get_impl(), step);
+        const auto expVal =
+            expectation.compute(cudmState->get_impl(), step.real());
         expVals.emplace_back(expVal.real());
       }
       expectationVals.emplace_back(std::move(expVals));

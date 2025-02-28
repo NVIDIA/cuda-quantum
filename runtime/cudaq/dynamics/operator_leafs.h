@@ -192,8 +192,14 @@ public:
   constexpr commutation_relations(const commutation_relations &other)
       : id(other.id) {}
 
+  // Explicit copy assignment operator
   constexpr commutation_relations &
-  operator=(const commutation_relations &) = default;
+  operator=(const commutation_relations &other) {
+    if (this != &other) {
+      id = other.id;
+    }
+    return *this;
+  }
 
   std::complex<double> commutation_factor() const;
 

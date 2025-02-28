@@ -22,7 +22,13 @@ TEST(EvolveTester, checkSimple) {
   cudaq::operator_sum<cudaq::matrix_operator> ham(ham1);
 
   constexpr int numSteps = 10;
-  cudaq::Schedule schedule(cudaq::linspace(0.0, 1.0, numSteps));
+  std::vector<std::complex<double>> steps;
+  for (double t : cudaq::linspace(0.0, 1.0, numSteps)) {
+    steps.emplace_back(t, 0.0);
+  }
+  cudaq::Schedule schedule(
+      steps, {"t"},
+      [](const std::string &, const std::complex<double> &val) { return val; });
 
   cudaq::product_operator<cudaq::matrix_operator> pauliZ_t =
       cudaq::spin_operator::z(0);
@@ -30,16 +36,16 @@ TEST(EvolveTester, checkSimple) {
   auto initialState =
       cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
 
-  cudaq::RungeKuttaIntegrator integrator;
-  integrator.dt = 0.001;
-  integrator.order = 1;
+  auto integrator = std::make_shared<cudaq::RungeKuttaIntegrator>();
+  integrator->dt = 0.001;
+  integrator->order = 1;
   auto result = cudaq::__internal__::evolveSingle(
-      ham, dims, schedule, initialState, integrator, {}, {pauliZ}, true);
+      ham, dims, schedule, initialState, *integrator, {}, {pauliZ}, true);
   EXPECT_TRUE(result.get_expectation_values().has_value());
   EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
   std::vector<double> theoryResults;
   for (const auto &t : schedule) {
-    const double expected = std::cos(2 * 2.0 * M_PI * 0.1 * t);
+    const double expected = std::cos(2 * 2.0 * M_PI * 0.1 * t.real());
     theoryResults.emplace_back(expected);
   }
 
@@ -57,7 +63,13 @@ TEST(EvolveTester, checkSimpleRK4) {
   cudaq::operator_sum<cudaq::matrix_operator> ham(ham1);
 
   constexpr int numSteps = 10;
-  cudaq::Schedule schedule(cudaq::linspace(0.0, 1.0, numSteps));
+  std::vector<std::complex<double>> steps;
+  for (double t : cudaq::linspace(0.0, 1.0, numSteps)) {
+    steps.emplace_back(t, 0.0);
+  }
+  cudaq::Schedule schedule(
+      steps, {"t"},
+      [](const std::string &, const std::complex<double> &val) { return val; });
 
   cudaq::product_operator<cudaq::matrix_operator> pauliZ_t =
       cudaq::spin_operator::z(0);
@@ -65,16 +77,16 @@ TEST(EvolveTester, checkSimpleRK4) {
   auto initialState =
       cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
 
-  cudaq::RungeKuttaIntegrator integrator;
-  integrator.dt = 0.001;
-  integrator.order = 4;
+  auto integrator = std::make_shared<cudaq::RungeKuttaIntegrator>();
+  integrator->dt = 0.001;
+  integrator->order = 4;
   auto result = cudaq::__internal__::evolveSingle(
-      ham, dims, schedule, initialState, integrator, {}, {pauliZ}, true);
+      ham, dims, schedule, initialState, *integrator, {}, {pauliZ}, true);
   EXPECT_TRUE(result.get_expectation_values().has_value());
   EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
   std::vector<double> theoryResults;
   for (const auto &t : schedule) {
-    const double expected = std::cos(2 * 2.0 * M_PI * 0.1 * t);
+    const double expected = std::cos(2 * 2.0 * M_PI * 0.1 * t.real());
     theoryResults.emplace_back(expected);
   }
 
@@ -92,7 +104,13 @@ TEST(EvolveTester, checkDensityMatrixSimple) {
   cudaq::operator_sum<cudaq::matrix_operator> ham(ham1);
 
   constexpr int numSteps = 10;
-  cudaq::Schedule schedule(cudaq::linspace(0.0, 1.0, numSteps));
+  std::vector<std::complex<double>> steps;
+  for (double t : cudaq::linspace(0.0, 1.0, numSteps)) {
+    steps.emplace_back(t, 0.0);
+  }
+  cudaq::Schedule schedule(
+      steps, {"t"},
+      [](const std::string &, const std::complex<double> &val) { return val; });
 
   cudaq::product_operator<cudaq::matrix_operator> pauliZ_t =
       cudaq::spin_operator::z(0);
@@ -100,16 +118,16 @@ TEST(EvolveTester, checkDensityMatrixSimple) {
   auto initialState = cudaq::state::from_data(
       std::vector<std::complex<double>>{1.0, 0.0, 0.0, 0.0});
 
-  cudaq::RungeKuttaIntegrator integrator;
-  integrator.dt = 0.001;
-  integrator.order = 1;
+  auto integrator = std::make_shared<cudaq::RungeKuttaIntegrator>();
+  integrator->dt = 0.001;
+  integrator->order = 1;
   auto result = cudaq::__internal__::evolveSingle(
-      ham, dims, schedule, initialState, integrator, {}, {pauliZ}, true);
+      ham, dims, schedule, initialState, *integrator, {}, {pauliZ}, true);
   EXPECT_TRUE(result.get_expectation_values().has_value());
   EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
   std::vector<double> theoryResults;
   for (const auto &t : schedule) {
-    const double expected = std::cos(2 * 2.0 * M_PI * 0.1 * t);
+    const double expected = std::cos(2 * 2.0 * M_PI * 0.1 * t.real());
     theoryResults.emplace_back(expected);
   }
 
@@ -149,15 +167,21 @@ TEST(EvolveTester, checkCompositeSystem) {
   Eigen::VectorXcd initial_state_vec =
       Eigen::kroneckerProduct(cavity_state, qubit_state);
   constexpr int num_steps = 21;
-  cudaq::Schedule schedule(cudaq::linspace(0.0, 1, num_steps));
+  std::vector<std::complex<double>> steps;
+  for (double t : cudaq::linspace(0.0, 1.0, num_steps)) {
+    steps.emplace_back(t, 0.0);
+  }
+  cudaq::Schedule schedule(
+      steps, {"t"},
+      [](const std::string &, const std::complex<double> &val) { return val; });
   auto initialState = cudaq::state::from_data(
       std::make_pair(initial_state_vec.data(), initial_state_vec.size()));
-  cudaq::RungeKuttaIntegrator integrator;
-  integrator.dt = 0.001;
-  integrator.order = 4;
+  auto integrator = std::make_shared<cudaq::RungeKuttaIntegrator>();
+  integrator->dt = 0.001;
+  integrator->order = 4;
 
   auto result = cudaq::__internal__::evolveSingle(
-      hamiltonian, dims, schedule, initialState, integrator, {},
+      hamiltonian, dims, schedule, initialState, *integrator, {},
       {cavity_occ_op, atom_occ_op}, true);
   EXPECT_TRUE(result.get_expectation_values().has_value());
   EXPECT_EQ(result.get_expectation_values().value().size(), num_steps);
@@ -203,19 +227,24 @@ TEST(EvolveTester, checkCompositeSystemWithCollapse) {
   Eigen::MatrixXcd rho0 = initial_state_vec * initial_state_vec.transpose();
   std::cout << "Initial rho:\n" << rho0 << "\n";
   constexpr int num_steps = 11;
-  const auto timeSteps = cudaq::linspace(0.0, 0.5, num_steps);
-  cudaq::Schedule schedule(timeSteps);
+  std::vector<std::complex<double>> timeSteps;
+  for (double t : cudaq::linspace(0.0, 1.0, num_steps)) {
+    timeSteps.emplace_back(t, 0.0);
+  }
+  cudaq::Schedule schedule(
+      timeSteps, {"t"},
+      [](const std::string &, const std::complex<double> &val) { return val; });
   auto initialState =
       cudaq::state::from_data(std::make_pair(rho0.data(), rho0.size()));
-  cudaq::RungeKuttaIntegrator integrator;
-  integrator.dt = 0.001;
-  integrator.order = 4;
+  auto integrator = std::make_shared<cudaq::RungeKuttaIntegrator>();
+  integrator->dt = 0.001;
+  integrator->order = 4;
   constexpr double decayRate = 0.1;
   cudaq::product_operator<cudaq::matrix_operator> collapsedOp_t =
       std::sqrt(decayRate) * a;
   cudaq::operator_sum<cudaq::matrix_operator> collapsedOp(collapsedOp_t);
   cudaq::evolve_result result = cudaq::__internal__::evolveSingle(
-      hamiltonian, dims, schedule, initialState, integrator, {collapsedOp},
+      hamiltonian, dims, schedule, initialState, *integrator, {collapsedOp},
       {cavity_occ_op, atom_occ_op}, true);
   EXPECT_TRUE(result.get_expectation_values().has_value());
   EXPECT_EQ(result.get_expectation_values().value().size(), num_steps);
@@ -225,7 +254,8 @@ TEST(EvolveTester, checkCompositeSystemWithCollapse) {
     EXPECT_EQ(expVals.size(), 2);
     const double totalParticleCount = expVals[0] + expVals[1];
     const auto time = timeSteps[count++];
-    const double expectedResult = num_photons * std::exp(-decayRate * time);
+    const double expectedResult =
+        num_photons * std::exp(-decayRate * time.real());
     std::cout << "t = " << time << "; particle count = " << totalParticleCount
               << " vs " << expectedResult << "\n";
     EXPECT_NEAR(totalParticleCount, expectedResult, 0.1);
@@ -236,8 +266,13 @@ TEST(EvolveTester, checkScalarTd) {
   const std::map<int, int> dims = {{0, 10}};
 
   constexpr int numSteps = 101;
-  const auto steps = cudaq::linspace(0.0, 10.0, numSteps);
-  cudaq::Schedule schedule(steps, {"t"});
+  std::vector<std::complex<double>> steps;
+  for (double t : cudaq::linspace(0.0, 10.0, numSteps)) {
+    steps.emplace_back(t, 0.0);
+  }
+  cudaq::Schedule schedule(
+      steps, {"t"},
+      [](const std::string &, const std::complex<double> &val) { return val; });
 
   auto function = [](const std::unordered_map<std::string, std::complex<double>>
                          &parameters) {
@@ -261,17 +296,18 @@ TEST(EvolveTester, checkScalarTd) {
   Eigen::MatrixXcd rho0 = initial_state_vec * initial_state_vec.transpose();
   auto initialState =
       cudaq::state::from_data(std::make_pair(rho0.data(), rho0.size()));
-  cudaq::RungeKuttaIntegrator integrator;
-  integrator.dt = 0.001;
-  integrator.order = 4;
-  auto result = cudaq::__internal__::evolveSingle(
-      ham, dims, schedule, initialState, integrator, {collapseOp}, {obs}, true);
+  auto integrator = std::make_shared<cudaq::RungeKuttaIntegrator>();
+  integrator->dt = 0.001;
+  integrator->order = 4;
+  auto result =
+      cudaq::__internal__::evolveSingle(ham, dims, schedule, initialState,
+                                        *integrator, {collapseOp}, {obs}, true);
   EXPECT_TRUE(result.get_expectation_values().has_value());
   EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
   std::vector<double> theoryResults;
   int idx = 0;
   for (const auto &t : schedule) {
-    const double expected = 9.0 * std::exp(-decayRate * steps[idx++]);
+    const double expected = 9.0 * std::exp(-decayRate * steps[idx++].real());
     theoryResults.emplace_back(expected);
   }
 

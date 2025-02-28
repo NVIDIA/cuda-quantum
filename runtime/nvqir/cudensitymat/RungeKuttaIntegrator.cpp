@@ -50,8 +50,8 @@ void RungeKuttaIntegrator::integrate(double targetTime) {
   auto &castSimState = *asCudmState(*m_state);
   std::unordered_map<std::string, std::complex<double>> params;
   if (!m_stepper) {
-    for (const auto &param : m_schedule.parameters()) {
-      params[param] = m_schedule.value_function()(param, 0.0);
+    for (const auto &param : m_schedule.get_parameters()) {
+      params[param] = m_schedule.get_value_function()(param, 0.0);
     }
 
     auto liouvillian =
@@ -73,8 +73,8 @@ void RungeKuttaIntegrator::integrate(double targetTime) {
 
     if (substeps == 1) {
       // Euler method (1st order)
-      for (const auto &param : m_schedule.parameters()) {
-        params[param] = m_schedule.value_function()(param, m_t);
+      for (const auto &param : m_schedule.get_parameters()) {
+        params[param] = m_schedule.get_value_function()(param, m_t);
       }
       auto k1State = m_stepper->compute(*m_state, m_t, step_size, params);
       auto &k1 = *asCudmState(k1State);
@@ -83,17 +83,17 @@ void RungeKuttaIntegrator::integrate(double targetTime) {
       castSimState += k1;
     } else if (substeps == 2) {
       // Midpoint method (2nd order)
-      for (const auto &param : m_schedule.parameters()) {
-        params[param] = m_schedule.value_function()(param, m_t);
+      for (const auto &param : m_schedule.get_parameters()) {
+        params[param] = m_schedule.get_value_function()(param, m_t);
       }
       auto k1State = m_stepper->compute(*m_state, m_t, step_size, params);
       auto &k1 = *asCudmState(k1State);
       k1 *= (step_size / 2.0);
 
       castSimState += k1;
-      for (const auto &param : m_schedule.parameters()) {
+      for (const auto &param : m_schedule.get_parameters()) {
         params[param] =
-            m_schedule.value_function()(param, m_t + step_size / 2.0);
+            m_schedule.get_value_function()(param, m_t + step_size / 2.0);
       }
       auto k2State = m_stepper->compute(*m_state, m_t + step_size / 2.0,
                                         step_size, params);
@@ -103,17 +103,17 @@ void RungeKuttaIntegrator::integrate(double targetTime) {
       castSimState += k2;
     } else if (substeps == 4) {
       // Runge-Kutta method (4th order)
-      for (const auto &param : m_schedule.parameters()) {
-        params[param] = m_schedule.value_function()(param, m_t);
+      for (const auto &param : m_schedule.get_parameters()) {
+        params[param] = m_schedule.get_value_function()(param, m_t);
       }
       auto k1State = m_stepper->compute(*m_state, m_t, step_size, params);
       auto &k1 = *asCudmState(k1State);
       CuDensityMatState rho_temp = CuDensityMatState::clone(castSimState);
       rho_temp += (k1 * (step_size / 2));
 
-      for (const auto &param : m_schedule.parameters()) {
+      for (const auto &param : m_schedule.get_parameters()) {
         params[param] =
-            m_schedule.value_function()(param, m_t + step_size / 2.0);
+            m_schedule.get_value_function()(param, m_t + step_size / 2.0);
       }
       auto k2State = m_stepper->compute(
           cudaq::state(new CuDensityMatState(std::move(rho_temp))),
@@ -129,8 +129,8 @@ void RungeKuttaIntegrator::integrate(double targetTime) {
       CuDensityMatState rho_temp_3 = CuDensityMatState::clone(castSimState);
       rho_temp_3 += (k3 * step_size);
 
-      for (const auto &param : m_schedule.parameters()) {
-        params[param] = m_schedule.value_function()(param, m_t + step_size);
+      for (const auto &param : m_schedule.get_parameters()) {
+        params[param] = m_schedule.get_value_function()(param, m_t + step_size);
       }
       auto k4State = m_stepper->compute(
           cudaq::state(new CuDensityMatState(std::move(rho_temp_3))),

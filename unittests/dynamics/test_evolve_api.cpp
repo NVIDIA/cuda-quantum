@@ -9,14 +9,25 @@
 #include "cudaq/algorithms/evolve.h"
 #include "cudaq/dynamics_integrators.h"
 #include <cmath>
+#include <complex>
+#include <functional>
 #include <gtest/gtest.h>
 #include <iostream>
+#include <iterator>
+#include <string>
+#include <vector>
 
 TEST(EvolveAPITester, checkSimple) {
   const std::map<int, int> dims = {{0, 2}};
   auto ham = 2.0 * M_PI * 0.1 * cudaq::spin_operator::x(0);
   constexpr int numSteps = 10;
-  cudaq::Schedule schedule(cudaq::linspace(0.0, 1.0, numSteps));
+  std::vector<std::complex<double>> steps;
+  for (double t : cudaq::linspace(0.0, 1.0, numSteps)) {
+    steps.emplace_back(t, 0.0);
+  }
+  cudaq::Schedule schedule(
+      steps, {"t"},
+      [](const std::string &, const std::complex<double> &val) { return val; });
   auto initialState =
       cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
   auto integrator = std::make_shared<cudaq::RungeKuttaIntegrator>();
@@ -28,7 +39,7 @@ TEST(EvolveAPITester, checkSimple) {
   EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
   std::vector<double> theoryResults;
   for (const auto &t : schedule) {
-    const double expected = std::cos(2 * 2.0 * M_PI * 0.1 * t);
+    const double expected = std::cos(2 * 2.0 * M_PI * 0.1 * t.real());
     theoryResults.emplace_back(expected);
   }
 
@@ -42,8 +53,13 @@ TEST(EvolveAPITester, checkSimple) {
 TEST(EvolveAPITester, checkCavityModel) {
   constexpr int N = 10;
   constexpr int numSteps = 101;
-  const auto steps = cudaq::linspace(0, 10, numSteps);
-  cudaq::Schedule schedule(steps, {"t"});
+  std::vector<std::complex<double>> steps;
+  for (double t : cudaq::linspace(0.0, 1.0, numSteps)) {
+    steps.emplace_back(t, 0.0);
+  }
+  cudaq::Schedule schedule(
+      steps, {"t"},
+      [](const std::string &, const std::complex<double> &val) { return val; });
   auto hamiltonian = cudaq::boson_operator::number(0);
   const std::map<int, int> dimensions{{0, N}};
   std::vector<std::complex<double>> psi0_(N, 0.0);
@@ -60,7 +76,7 @@ TEST(EvolveAPITester, checkCavityModel) {
   EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
   std::vector<double> theoryResults;
   for (const auto &t : schedule) {
-    const double expected = (N - 1) * std::exp(-decay_rate * t);
+    const double expected = (N - 1) * std::exp(-decay_rate * t.real());
     theoryResults.emplace_back(expected);
   }
 
@@ -74,8 +90,13 @@ TEST(EvolveAPITester, checkCavityModel) {
 TEST(EvolveAPITester, checkTimeDependent) {
   constexpr int N = 10;
   constexpr int numSteps = 101;
-  const auto steps = cudaq::linspace(0, 10, numSteps);
-  cudaq::Schedule schedule(steps, {"t"});
+  std::vector<std::complex<double>> steps;
+  for (double t : cudaq::linspace(0.0, 1.0, numSteps)) {
+    steps.emplace_back(t, 0.0);
+  }
+  cudaq::Schedule schedule(
+      steps, {"t"},
+      [](const std::string &, const std::complex<double> &val) { return val; });
   auto hamiltonian = cudaq::boson_operator::number(0);
   const std::map<int, int> dimensions{{0, N}};
   std::vector<std::complex<double>> psi0_(N, 0.0);
@@ -106,7 +127,7 @@ TEST(EvolveAPITester, checkTimeDependent) {
   std::vector<double> theoryResults;
   for (const auto &t : schedule) {
     const double expected =
-        (N - 1) * std::exp(-decay_rate * (1.0 - std::exp(-t)));
+        (N - 1) * std::exp(-decay_rate * (1.0 - std::exp(-t.real())));
     theoryResults.emplace_back(expected);
   }
 
