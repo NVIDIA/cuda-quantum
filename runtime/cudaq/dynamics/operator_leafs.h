@@ -192,6 +192,9 @@ public:
   constexpr commutation_relations(const commutation_relations &other)
       : id(other.id) {}
 
+  constexpr commutation_relations &
+  operator=(const commutation_relations &) = default;
+
   std::complex<double> commutation_factor() const;
 
   bool operator==(const commutation_relations &other) const;
