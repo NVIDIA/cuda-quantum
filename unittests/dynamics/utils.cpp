@@ -90,9 +90,9 @@ cudaq::matrix_2 momentum_matrix(std::size_t size) {
   auto mat = cudaq::matrix_2(size, size);
   for (std::size_t i = 0; i + 1 < size; i++) {
     mat[{i + 1, i}] =
-      std::complex<double>(0., 0.5) * std::sqrt(static_cast<double>(i + 1));
+        std::complex<double>(0., 0.5) * std::sqrt(static_cast<double>(i + 1));
     mat[{i, i + 1}] =
-      std::complex<double>(0., -0.5) * std::sqrt(static_cast<double>(i + 1));
+        std::complex<double>(0., -0.5) * std::sqrt(static_cast<double>(i + 1));
   }
   return mat;
 }
@@ -142,7 +142,8 @@ cudaq::matrix_2 PauliZ_matrix() {
 }
 
 cudaq::matrix_2 PauliY_matrix() {
-  return std::complex<double>(0., 1.) * utils::PauliX_matrix() * utils::PauliZ_matrix();
+  return std::complex<double>(0., 1.) * utils::PauliX_matrix() *
+         utils::PauliZ_matrix();
 }
 
 } // namespace utils

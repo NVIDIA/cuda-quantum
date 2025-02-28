@@ -427,10 +427,8 @@ product_operator<matrix_operator> matrix_operator::position(int degree) {
           auto mat = matrix_2(dimension, dimension);
           // position = 0.5 * (create + annihilate)
           for (std::size_t i = 0; i + 1 < dimension; i++) {
-            mat[{i + 1, i}] =
-                0.5 * std::sqrt(static_cast<double>(i + 1));
-            mat[{i, i + 1}] =
-                0.5 * std::sqrt(static_cast<double>(i + 1));
+            mat[{i + 1, i}] = 0.5 * std::sqrt(static_cast<double>(i + 1));
+            mat[{i, i + 1}] = 0.5 * std::sqrt(static_cast<double>(i + 1));
           }
           return mat;
         };
@@ -451,10 +449,10 @@ product_operator<matrix_operator> matrix_operator::momentum(int degree) {
           auto mat = matrix_2(dimension, dimension);
           // momentum = 0.5j * (create - annihilate)
           for (std::size_t i = 0; i + 1 < dimension; i++) {
-            mat[{i + 1, i}] =
-              std::complex<double>(0., 0.5) * std::sqrt(static_cast<double>(i + 1));
-            mat[{i, i + 1}] =
-              std::complex<double>(0., -0.5) * std::sqrt(static_cast<double>(i + 1));
+            mat[{i + 1, i}] = std::complex<double>(0., 0.5) *
+                              std::sqrt(static_cast<double>(i + 1));
+            mat[{i, i + 1}] = std::complex<double>(0., -0.5) *
+                              std::sqrt(static_cast<double>(i + 1));
           }
           return mat;
         };
@@ -480,8 +478,7 @@ product_operator<matrix_operator> matrix_operator::displace(int degree) {
       auto annihilate = matrix_2(dimension, dimension);
       for (std::size_t i = 0; i + 1 < dimension; i++) {
         create[{i + 1, i}] = std::sqrt(static_cast<double>(i + 1));
-        annihilate[{i, i + 1}] =
-            std::sqrt(static_cast<double>(i + 1));
+        annihilate[{i, i + 1}] = std::sqrt(static_cast<double>(i + 1));
       }
       auto term1 = displacement_amplitude * create;
       auto term2 = std::conj(displacement_amplitude) * annihilate;
@@ -509,8 +506,7 @@ product_operator<matrix_operator> matrix_operator::squeeze(int degree) {
       auto annihilate = matrix_2(dimension, dimension);
       for (std::size_t i = 0; i + 1 < dimension; i++) {
         create[{i + 1, i}] = std::sqrt(static_cast<double>(i + 1));
-        annihilate[{i, i + 1}] =
-            std::sqrt(static_cast<double>(i + 1));
+        annihilate[{i, i + 1}] = std::sqrt(static_cast<double>(i + 1));
       }
       auto term1 = std::conj(squeezing) * annihilate.power(2);
       auto term2 = squeezing * create.power(2);
