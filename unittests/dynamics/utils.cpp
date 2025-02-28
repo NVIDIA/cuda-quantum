@@ -59,29 +59,29 @@ cudaq::matrix_2 zero_matrix(std::size_t size) {
 cudaq::matrix_2 id_matrix(std::size_t size) {
   auto mat = cudaq::matrix_2(size, size);
   for (std::size_t i = 0; i < size; i++)
-    mat[{i, i}] = 1.0 + 0.0j;
+    mat[{i, i}] = 1.0;
   return mat;
 }
 
 cudaq::matrix_2 annihilate_matrix(std::size_t size) {
   auto mat = cudaq::matrix_2(size, size);
   for (std::size_t i = 0; i + 1 < size; i++)
-    mat[{i, i + 1}] = std::sqrt(static_cast<double>(i + 1)) + 0.0 * 'j';
+    mat[{i, i + 1}] = std::sqrt(static_cast<double>(i + 1));
   return mat;
 }
 
 cudaq::matrix_2 create_matrix(std::size_t size) {
   auto mat = cudaq::matrix_2(size, size);
   for (std::size_t i = 0; i + 1 < size; i++)
-    mat[{i + 1, i}] = std::sqrt(static_cast<double>(i + 1)) + 0.0 * 'j';
+    mat[{i + 1, i}] = std::sqrt(static_cast<double>(i + 1));
   return mat;
 }
 
 cudaq::matrix_2 position_matrix(std::size_t size) {
   auto mat = cudaq::matrix_2(size, size);
   for (std::size_t i = 0; i + 1 < size; i++) {
-    mat[{i + 1, i}] = 0.5 * std::sqrt(static_cast<double>(i + 1)) + 0.0 * 'j';
-    mat[{i, i + 1}] = 0.5 * std::sqrt(static_cast<double>(i + 1)) + 0.0 * 'j';
+    mat[{i + 1, i}] = 0.5 * std::sqrt(static_cast<double>(i + 1));
+    mat[{i, i + 1}] = 0.5 * std::sqrt(static_cast<double>(i + 1));
   }
   return mat;
 }
@@ -90,9 +90,9 @@ cudaq::matrix_2 momentum_matrix(std::size_t size) {
   auto mat = cudaq::matrix_2(size, size);
   for (std::size_t i = 0; i + 1 < size; i++) {
     mat[{i + 1, i}] =
-        (0.5j) * std::sqrt(static_cast<double>(i + 1)) + 0.0 * 'j';
+      std::complex<double>(0., 0.5) * std::sqrt(static_cast<double>(i + 1));
     mat[{i, i + 1}] =
-        (-0.5j) * std::sqrt(static_cast<double>(i + 1)) + 0.0 * 'j';
+      std::complex<double>(0., -0.5) * std::sqrt(static_cast<double>(i + 1));
   }
   return mat;
 }
@@ -100,14 +100,14 @@ cudaq::matrix_2 momentum_matrix(std::size_t size) {
 cudaq::matrix_2 number_matrix(std::size_t size) {
   auto mat = cudaq::matrix_2(size, size);
   for (std::size_t i = 0; i < size; i++)
-    mat[{i, i}] = static_cast<double>(i) + 0.0j;
+    mat[{i, i}] = static_cast<double>(i);
   return mat;
 }
 
 cudaq::matrix_2 parity_matrix(std::size_t size) {
   auto mat = cudaq::matrix_2(size, size);
   for (std::size_t i = 0; i < size; i++)
-    mat[{i, i}] = std::pow(-1., static_cast<double>(i)) + 0.0j;
+    mat[{i, i}] = std::pow(-1., static_cast<double>(i));
   return mat;
 }
 
@@ -142,7 +142,7 @@ cudaq::matrix_2 PauliZ_matrix() {
 }
 
 cudaq::matrix_2 PauliY_matrix() {
-  return 1.0j * utils::PauliX_matrix() * utils::PauliZ_matrix();
+  return std::complex<double>(0., 1.) * utils::PauliX_matrix() * utils::PauliZ_matrix();
 }
 
 } // namespace utils

@@ -138,7 +138,7 @@ cudaq::matrix_2 cudaq::matrix_2::power(int powers) {
     throw std::runtime_error("Matrix power expects a square matrix.");
   auto result = cudaq::matrix_2(rows, columns);
   for (std::size_t i = 0; i < rows; i++) {
-    result[{i, i}] = 1.0 + 0.0j;
+    result[{i, i}] = 1.0;
   }
 
   // Calculate the matrix power iteratively.
@@ -178,6 +178,6 @@ cudaq::matrix_2 cudaq::matrix_2::exponential() {
 cudaq::matrix_2 cudaq::matrix_2::identity(const std::size_t rows) {
   auto result = cudaq::matrix_2(rows, rows);
   for (std::size_t i = 0; i < rows; i++)
-    result[{i, i}] = 1. + 0.0j;
+    result[{i, i}] = 1.;
   return result;
 }

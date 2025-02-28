@@ -124,7 +124,7 @@ TEST(OperatorExpressions, checkPreBuiltMatrixOps) {
   // Displacement operator.
   {
     for (auto level_count : levels) {
-      auto displacement = 2.0 + 1.0j;
+      auto displacement = std::complex<double>(2.0, 1.0);
       auto displace = cudaq::matrix_operator::displace(degree_index);
       auto got_displace = displace.to_matrix({{degree_index, level_count}},
                                              {{"displacement", displacement}});
@@ -136,7 +136,7 @@ TEST(OperatorExpressions, checkPreBuiltMatrixOps) {
   // Squeeze operator.
   {
     for (auto level_count : levels) {
-      auto squeezing = 2.0 + 1.0j;
+      auto squeezing = std::complex<double>(2.0, 1.0);
       auto squeeze = cudaq::matrix_operator::squeeze(degree_index);
       auto got_squeeze = squeeze.to_matrix({{degree_index, level_count}},
                                            {{"squeezing", squeezing}});
@@ -234,7 +234,7 @@ TEST(OperatorExpressions, checkCustomMatrixOps) {
 }
 
 TEST(OperatorExpressions, checkMatrixOpsWithComplex) {
-  std::complex<double> value = 0.125 + 0.125j;
+  std::complex<double> value = std::complex<double>(0.125, 0.125);
 
   // `matrix_operator` + `complex<double>` and `complex<double>` +
   // `matrix_operator`
@@ -559,7 +559,7 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
 
   /// Keeping this fixed throughout.
   int level_count = 3;
-  std::complex<double> value = 0.125 + 0.5j;
+  std::complex<double> value = std::complex<double>(0.125, 0.5);
 
   // `matrix_operator + operator_sum`
   {

@@ -163,7 +163,7 @@ matrix_operator::matrix_operator(int degree)
 
           // Build up the identity matrix.
           for (std::size_t i = 0; i < dimension; i++) {
-            mat[{i, i}] = 1.0 + 0.0j;
+            mat[{i, i}] = std::complex<double>(1.0);
           }
           return mat;
         };
@@ -386,7 +386,7 @@ product_operator<matrix_operator> matrix_operator::number(int degree) {
           std::size_t dimension = dimensions[0];
           auto mat = matrix_2(dimension, dimension);
           for (std::size_t i = 0; i < dimension; i++) {
-            mat[{i, i}] = static_cast<double>(i) + 0.0j;
+            mat[{i, i}] = std::complex<double>(i);
           }
           return mat;
         };
@@ -406,7 +406,7 @@ product_operator<matrix_operator> matrix_operator::parity(int degree) {
           std::size_t dimension = dimensions[0];
           auto mat = matrix_2(dimension, dimension);
           for (std::size_t i = 0; i < dimension; i++) {
-            mat[{i, i}] = std::pow(-1., static_cast<double>(i)) + 0.0j;
+            mat[{i, i}] = i & 1 ? -1. : 1.;
           }
           return mat;
         };
@@ -428,9 +428,9 @@ product_operator<matrix_operator> matrix_operator::position(int degree) {
           // position = 0.5 * (create + annihilate)
           for (std::size_t i = 0; i + 1 < dimension; i++) {
             mat[{i + 1, i}] =
-                0.5 * std::sqrt(static_cast<double>(i + 1)) + 0.0 * 'j';
+                0.5 * std::sqrt(static_cast<double>(i + 1));
             mat[{i, i + 1}] =
-                0.5 * std::sqrt(static_cast<double>(i + 1)) + 0.0 * 'j';
+                0.5 * std::sqrt(static_cast<double>(i + 1));
           }
           return mat;
         };
@@ -452,10 +452,9 @@ product_operator<matrix_operator> matrix_operator::momentum(int degree) {
           // momentum = 0.5j * (create - annihilate)
           for (std::size_t i = 0; i + 1 < dimension; i++) {
             mat[{i + 1, i}] =
-                (0.5j) * std::sqrt(static_cast<double>(i + 1)) + 0.0 * 'j';
+              std::complex<double>(0., 0.5) * std::sqrt(static_cast<double>(i + 1));
             mat[{i, i + 1}] =
-                -1. * (0.5j) * std::sqrt(static_cast<double>(i + 1)) +
-                0.0 * 'j';
+              std::complex<double>(0., -0.5) * std::sqrt(static_cast<double>(i + 1));
           }
           return mat;
         };
@@ -480,9 +479,9 @@ product_operator<matrix_operator> matrix_operator::displace(int degree) {
       auto create = matrix_2(dimension, dimension);
       auto annihilate = matrix_2(dimension, dimension);
       for (std::size_t i = 0; i + 1 < dimension; i++) {
-        create[{i + 1, i}] = std::sqrt(static_cast<double>(i + 1)) + 0.0 * 'j';
+        create[{i + 1, i}] = std::sqrt(static_cast<double>(i + 1));
         annihilate[{i, i + 1}] =
-            std::sqrt(static_cast<double>(i + 1)) + 0.0 * 'j';
+            std::sqrt(static_cast<double>(i + 1));
       }
       auto term1 = displacement_amplitude * create;
       auto term2 = std::conj(displacement_amplitude) * annihilate;
@@ -509,9 +508,9 @@ product_operator<matrix_operator> matrix_operator::squeeze(int degree) {
       auto create = matrix_2(dimension, dimension);
       auto annihilate = matrix_2(dimension, dimension);
       for (std::size_t i = 0; i + 1 < dimension; i++) {
-        create[{i + 1, i}] = std::sqrt(static_cast<double>(i + 1)) + 0.0 * 'j';
+        create[{i + 1, i}] = std::sqrt(static_cast<double>(i + 1));
         annihilate[{i, i + 1}] =
-            std::sqrt(static_cast<double>(i + 1)) + 0.0 * 'j';
+            std::sqrt(static_cast<double>(i + 1));
       }
       auto term1 = std::conj(squeezing) * annihilate.power(2);
       auto term2 = squeezing * create.power(2);
