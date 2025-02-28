@@ -130,6 +130,85 @@ Submitting
 
 
 
+Pasqal
+++++++++++++++++
+
+Pasqal is a quantum computing hardware company that builds quantum processors from ordered neutral atoms in 2D and 3D
+arrays to bring a practical quantum advantage to its customers and address real-world problems.
+The currently available Pasqal QPUs are analog quantum computers, and one, named Fresnel, is available through our cloud
+portal.
+
+In order to access Pasqal's devices you need an account for `Pasqal's cloud platform <https://portal.pasqal.cloud>`__
+and an active project. Although a different interface, `Pasqal's Pulser library <https://pulser.readthedocs.io/en/latest/>`__, is a good
+resource for getting started with analog neutral atom quantum computing. For support you can also use `Pasqal Community <https://community.pasqal.com/>`__.
+
+
+.. _pasqal-backend:
+
+Setting Credentials
+```````````````````
+
+An authentication token for the session must be obtained from Pasqal's cloud platform.
+For example from Python one can use the `pasqal-cloud package <https://github.com/pasqal-io/pasqal-cloud>`__ as below:
+
+.. code:: python
+
+    from pasqal_cloud import SDK
+    import os
+
+    sdk = SDK(
+        username=os.environ.get['PASQAL_USERNAME'],
+        password=os.environ.get('PASQAL_PASSWORD', None)
+    )
+
+    token = sdk._client.authenticator.token_provider.get_token()
+    os.environ['PASQAL_AUTH_TOKEN'] = str(token)
+    os.environ['PASQAL_PROJECT_ID'] = 'your project id'
+
+Alternatively, users can set the following environment variables directly.
+
+.. code:: bash
+
+  export PASQAL_AUTH_TOKEN=<>
+  export PASQAL_PROJECT_ID=<>
+
+
+Submission from Python
+`````````````````````````
+
+The target to which quantum kernels are submitted 
+can be controlled with the ``cudaq::set_target()`` function.
+
+.. code:: python
+
+    cudaq.set_target('pasqal')
+
+
+Due to the nature of the underlying hardware, this target only supports the 
+``evolve`` and ``evolve_async`` APIs.
+The `hamiltonian` must be an `Operator` of the type `RydbergHamiltonian`. Only 
+other parameters supported are `schedule` (mandatory) and `shots_count` (optional).
+
+For example,
+
+.. code:: python
+
+    evolution_result = evolve(RydbergHamiltonian(atom_sites=register,
+                                                 amplitude=omega,
+                                                 phase=phi,
+                                                 delta_global=delta),
+                               schedule=schedule)
+
+The number of shots for a kernel execution can be set through the ``shots_count``
+argument to ``evolve`` or ``evolve_async``. By default, the ``shots_count`` is 
+set to 100.
+
+.. code:: python 
+
+    cudaq.evolve(RydbergHamiltonian(...), schedule=s, shots_count=1000)
+
+To see a complete example for using Pasqal's backend, take a look at our :doc:`Python examples <../../examples/hardware_providers>`.
+
 
 QuEra Computing
 ++++++++++++++++
