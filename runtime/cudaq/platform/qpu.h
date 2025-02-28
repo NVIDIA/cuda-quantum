@@ -128,6 +128,7 @@ public:
   }
 
   virtual void setNoiseModel(const noise_model *model) { noiseModel = model; }
+  virtual const noise_model *getNoiseModel() { return noiseModel; }
 
   /// Return the number of qubits
   std::size_t getNumQubits() { return numQubits; }
@@ -138,6 +139,9 @@ public:
 
   /// @brief Return whether this QPU has conditional feedback support
   virtual bool supportsConditionalFeedback() { return false; }
+
+  /// @brief Return whether this QPU supports explicit measurements
+  virtual bool supportsExplicitMeasurements() { return true; }
 
   /// @brief Return the remote capabilities for this platform.
   virtual RemoteCapabilities getRemoteCapabilities() const {
