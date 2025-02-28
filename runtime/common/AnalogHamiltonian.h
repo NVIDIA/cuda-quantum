@@ -5,7 +5,6 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-
 #pragma once
 #include "common/FmtCore.h"
 #include "nlohmann/json.hpp"
@@ -211,7 +210,7 @@ struct Program {
 
 ///////////////////////////////////////////////////////////////////////////////
 // The following classes represent the result of Analog Hamiltonian Simulation
-// program
+// program for the QuEra backend
 
 /// @brief Represents the metadata of the shot
 struct ShotMetadata {
