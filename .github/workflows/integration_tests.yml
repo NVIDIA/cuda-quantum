@@ -396,7 +396,7 @@ jobs:
           echo "refresh: $refresh_token" >> ~/.quantinuum_config
 
       - name: QIR syntax check (Quantinuum)
-        if: github.event_name == 'schedule' || inputs.target == 'nightly'
+        if: (success() || failure()) && (github.event_name == 'schedule' || inputs.target == 'nightly')
         run: |
           echo "### QIR syntax check (Quantinuum)" >> $GITHUB_STEP_SUMMARY
           export CUDAQ_LOG_LEVEL="info"
