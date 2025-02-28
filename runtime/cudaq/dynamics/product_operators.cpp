@@ -644,7 +644,7 @@ matrix_2 product_operator<spin_operator>::to_matrix(
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Winstantiation-after-specialization"
-#endif      
+#endif
 INSTANTIATE_PRODUCT_EVALUATIONS(matrix_operator);
 INSTANTIATE_PRODUCT_EVALUATIONS(spin_operator);
 INSTANTIATE_PRODUCT_EVALUATIONS(boson_operator);

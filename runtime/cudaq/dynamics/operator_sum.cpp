@@ -312,7 +312,7 @@ operator_sum<HandlerTy>::operator_sum(operator_sum<HandlerTy> &&other, int size)
       const operator_sum<HandlerTy> &other, int size);                         \
                                                                                \
   template operator_sum<HandlerTy>::operator_sum(                              \
-      operator_sum<HandlerTy> &&other, int size);                              \
+      operator_sum<HandlerTy> &&other, int size);
 
 template operator_sum<matrix_operator>::operator_sum(
     const operator_sum<spin_operator> &other);
@@ -512,7 +512,7 @@ matrix_2 operator_sum<spin_operator>::to_matrix(
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Winstantiation-after-specialization"
-#endif      
+#endif
 INSTANTIATE_SUM_EVALUATIONS(matrix_operator);
 INSTANTIATE_SUM_EVALUATIONS(spin_operator);
 INSTANTIATE_SUM_EVALUATIONS(boson_operator);
