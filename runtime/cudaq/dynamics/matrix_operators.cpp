@@ -225,7 +225,7 @@ matrix_operator::matrix_operator(const T &other)
                                       other.commutes_across_degrees)) {}
 
 template <typename T,
-          std::enable_if_t<std::is_base_of_v<operator_handler, T>, bool> = true>
+          std::enable_if_t<std::is_base_of_v<operator_handler, T>, bool>>
 matrix_operator::matrix_operator(const T &other,
                                  const commutation_behavior &behavior)
     : op_code(matrix_operator::type_prefix<T>() + other.to_string(false)),

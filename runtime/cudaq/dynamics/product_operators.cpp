@@ -1139,7 +1139,7 @@ INSTANTIATE_PRODUCT_LHCOMPOSITE_OPS(fermion_operator);
 
 #define PRODUCT_CONVERSIONS_OPS(op, returnTy)                                  \
   template <typename LHtype, typename RHtype,                                  \
-            TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>                 \
+            TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype)>                        \
   returnTy<matrix_operator> operator op(                                       \
       const product_operator<LHtype> &other,                                   \
       const product_operator<RHtype> &self) {                                  \
@@ -1186,9 +1186,9 @@ INSTANTIATE_PRODUCT_CONVERSION_OPS(-, operator_sum);
 
 // common operators
 
-template <typename HandlerTy, typename... Args,
-          std::enable_if_t<std::conjunction<std::is_same<int, Args>...>::value,
-                           bool> = true>
+template <
+    typename HandlerTy, typename... Args,
+    std::enable_if_t<std::conjunction<std::is_same<int, Args>...>::value, bool>>
 product_operator<HandlerTy> operator_handler::identity(Args... targets) {
   static_assert(
       std::is_constructible_v<HandlerTy, int>,
