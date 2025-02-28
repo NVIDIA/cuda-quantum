@@ -14,6 +14,17 @@
 
 namespace cudaq {
 
+cudaq::Schedule createDummySchedule() {
+  std::vector<std::complex<double>> dummy_steps = {{0.0, 0.0}};
+  std::vector<std::string> dummy_params = {"t"};
+  return cudaq::Schedule(
+      dummy_steps, dummy_params,
+      [](const std::string &, const std::complex<double> &val) { return val; });
+}
+
+RungeKuttaIntegrator::RungeKuttaIntegrator()
+    : m_t(0.0), m_schedule(createDummySchedule()) {}
+
 void RungeKuttaIntegrator::setSystem(const SystemDynamics &system,
                                      const cudaq::Schedule &schedule) {
   m_system = system;

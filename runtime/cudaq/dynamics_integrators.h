@@ -28,7 +28,7 @@ public:
   std::optional<double> dt;
 
 public:
-  RungeKuttaIntegrator() = default;
+  RungeKuttaIntegrator();
   void integrate(double targetTime) override;
   void setState(cudaq::state initialState, double t0) override;
   std::pair<double, cudaq::state> getState() override;
