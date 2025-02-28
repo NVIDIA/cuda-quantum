@@ -839,7 +839,7 @@ The following table summarizes the required components.
     :header-rows: 0
 
     * - GPU Architectures
-      - Volta, Turing, Ampere, Ada, Hopper
+      - Volta, Turing, Ampere, Ada, Hopper, Blackwell
     * - NVIDIA GPU with Compute Capability
       - 7.0+
     * - CUDA
