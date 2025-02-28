@@ -1003,8 +1003,8 @@ struct ExpPauliOpPattern
     operands.push_back(pauliWord);
 
     // First need to check the type of the Pauli word. We expect a pauli_word
-    // directly `{i8*,i64}` or a string literal `ptr<i8>`. If it is a string
-    // literal, we need to map it to a pauli word.
+    // directly (a.k.a. a span)`{i8*,i64}` or a string literal `ptr<array<i8 x
+    // n>>`. If it is a string literal, we need to map it to a pauli word.
     auto i8PtrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
     if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(pauliWord.getType())) {
       // Make sure we have the right types to extract the length of the string
