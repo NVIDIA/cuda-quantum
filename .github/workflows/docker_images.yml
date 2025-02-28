@@ -300,26 +300,6 @@ jobs:
             echo "docker_output=type=docker,dest=$tar_archive" >> $GITHUB_OUTPUT
           fi
 
-      #- name: Install specific QEMU
-      #  run: |
-      #    echo sudo add-apt-repository ppa:mruffell/lp2096782-test-qemu
-      #    sudo add-apt-repository ppa:mruffell/lp2096782-test-qemu
-      #    echo sudo apt update
-      #    sudo apt update
-      #    echo sudo apt-cache policy qemu
-      #    sudo apt-cache policy qemu
-      #    echo sudo apt upgrade -y qemu
-      #    sudo apt upgrade -y qemu
-      #    echo sudo apt-cache policy qemu
-      #    sudo apt-cache policy qemu
-      #    echo "sudo apt-cache policy qemu | grep Installed"
-      #    sudo apt-cache policy qemu | grep Installed
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          image: tonistiigi/binfmt:qemu-v9.2.2-52
-
       - name: Set up context for buildx
         run: |
           echo uname -rv
@@ -525,26 +505,6 @@ jobs:
             echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
             echo "docker_output=type=docker,dest=$tar_archive" >> $GITHUB_OUTPUT
           fi
-
-      #- name: Install specific QEMU
-      #  run: |
-      #    echo sudo add-apt-repository ppa:mruffell/lp2096782-test-qemu
-      #    sudo add-apt-repository ppa:mruffell/lp2096782-test-qemu
-      #    echo sudo apt update
-      #    sudo apt update
-      #    echo sudo apt-cache policy qemu
-      #    sudo apt-cache policy qemu
-      #    echo sudo apt upgrade -y qemu
-      #    sudo apt upgrade -y qemu
-      #    echo sudo apt-cache policy qemu
-      #    sudo apt-cache policy qemu
-      #    echo "sudo apt-cache policy qemu | grep Installed"
-      #    sudo apt-cache policy qemu | grep Installed
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          image: tonistiigi/binfmt:qemu-v9.2.2-52
 
       - name: Set up context for buildx
         run: |
