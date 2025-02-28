@@ -45,7 +45,7 @@ int main() {
 
   // Observe takes the kernel, the spin_op, and the concrete
   // parameters for the kernel
-  double energy = cudaq::observe(ansatz{}, h, .59);
+  double energy = cudaq::observe(10000, ansatz{}, h, .59);
   printf("Energy is %.16lf\n", energy);
   return 0;
 }
