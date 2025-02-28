@@ -50,9 +50,9 @@ std::string matrix_operator::type_prefix<fermion_operator>() {
 
 void matrix_operator::define(std::string operator_id,
                              std::vector<int> expected_dimensions,
-                             MatrixCallbackFunction &&create) {
+                             matrix_callback &&create) {
   auto defn = Definition(operator_id, expected_dimensions,
-                         std::forward<MatrixCallbackFunction>(create));
+                         std::forward<matrix_callback>(create));
   auto result =
       matrix_operator::defined_ops.insert({operator_id, std::move(defn)});
   if (!result.second)

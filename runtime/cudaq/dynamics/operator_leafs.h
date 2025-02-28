@@ -25,7 +25,7 @@ class scalar_operator {
 private:
   // If someone gave us a constant value, we will just return that
   // directly to them when they call `evaluate`.
-  std::variant<std::complex<double>, ScalarCallbackFunction> value;
+  std::variant<std::complex<double>, scalar_callback> value;
 
 public:
   // constructors and destructors
@@ -37,11 +37,11 @@ public:
   /// without the need for an extra member function.
   scalar_operator(std::complex<double> value);
 
-  scalar_operator(const ScalarCallbackFunction &create);
+  scalar_operator(const scalar_callback &create);
 
   /// @brief Constructor that just takes a callback function with no
   /// arguments.
-  scalar_operator(ScalarCallbackFunction &&create);
+  scalar_operator(scalar_callback &&create);
 
   // copy constructor
   scalar_operator(const scalar_operator &other);

@@ -7,7 +7,12 @@
  ******************************************************************************/
 
 #include "cudaq/operators.h"
+#include "utils.h"
 #include <gtest/gtest.h>
+
+std::complex<double> get_value(cudaq::parameter_map params) {
+  return params["value"];
+}
 
 cudaq::scalar_operator negate(cudaq::scalar_operator op) { return -1.0 * op; }
 
@@ -623,5 +628,244 @@ TEST(OperatorExpressions, checkScalarOpsArithmeticScalarOps) {
 
     auto got_value = scalar_op.evaluate({{"value", value_2}});
     EXPECT_NEAR(std::abs(got_value), std::abs(value_2 / value_3), 1e-5);
+  }
+}
+
+TEST(OperatorExpressions, checkScalarOpsFromFunctions) {
+
+  std::complex<double> value = 2.;
+  std::complex<double> squeeze_ampl;
+  cudaq::parameter_map params = {{"squeezing", squeeze_ampl}, {"value", value}};
+  cudaq::dimension_map dims = {{1, 3}};
+  auto squeeze = cudaq::matrix_operator::squeeze(1);
+  auto squeeze_mat = utils::squeeze_matrix(3, squeeze_ampl);
+  auto id_mat = utils::id_matrix(3);
+  auto sum = squeeze + cudaq::matrix_operator::number(1);
+  auto sum_mat = squeeze_mat + utils::number_matrix(3);
+
+  // matrix operator + lambda
+  {
+    auto prod_res =
+        squeeze + [](cudaq::parameter_map ps) { return ps["value"]; };
+    auto prod_res_rev = [](cudaq::parameter_map ps) { return ps["value"]; } +
+                        squeeze;
+    auto prod_want = value * id_mat + squeeze_mat;
+
+    auto sum_res = sum + [](cudaq::parameter_map ps) { return ps["value"]; };
+    auto sum_res_rev = [](cudaq::parameter_map ps) { return ps["value"]; } +
+                       sum;
+    auto sum_want = value * id_mat + sum_mat;
+
+    utils::checkEqual(prod_res.to_matrix(dims, params), prod_want);
+    utils::checkEqual(prod_res_rev.to_matrix(dims, params), prod_want);
+    utils::checkEqual(sum_res.to_matrix(dims, params), sum_want);
+    utils::checkEqual(sum_res_rev.to_matrix(dims, params), sum_want);
+  }
+
+  // matrix operator - lambda
+  {
+    auto prod_res =
+        squeeze - [](cudaq::parameter_map ps) { return ps["value"]; };
+    auto prod_res_rev = [](cudaq::parameter_map ps) { return ps["value"]; } -
+                        squeeze;
+    auto prod_want = squeeze_mat - value * id_mat;
+    auto prod_want_rev = value * id_mat - squeeze_mat;
+
+    auto sum_res = sum - [](cudaq::parameter_map ps) { return ps["value"]; };
+    auto sum_res_rev = [](cudaq::parameter_map ps) { return ps["value"]; } -
+                       sum;
+    auto sum_want = sum_mat - value * id_mat;
+    auto sum_want_rev = value * id_mat - sum_mat;
+
+    utils::checkEqual(prod_res.to_matrix(dims, params), prod_want);
+    utils::checkEqual(prod_res_rev.to_matrix(dims, params), prod_want_rev);
+    utils::checkEqual(sum_res.to_matrix(dims, params), sum_want);
+    utils::checkEqual(sum_res_rev.to_matrix(dims, params), sum_want_rev);
+  }
+
+  // matrix operator * lambda
+  {
+    auto prod_res =
+        squeeze * [](cudaq::parameter_map ps) { return ps["value"]; };
+    auto prod_res_rev = [](cudaq::parameter_map ps) { return ps["value"]; } *
+                        squeeze;
+    auto prod_want = value * squeeze_mat;
+
+    auto sum_res = sum * [](cudaq::parameter_map ps) { return ps["value"]; };
+    auto sum_res_rev = [](cudaq::parameter_map ps) { return ps["value"]; } *
+                       sum;
+    auto sum_want = value * sum_mat;
+
+    utils::checkEqual(prod_res.to_matrix(dims, params), prod_want);
+    utils::checkEqual(prod_res_rev.to_matrix(dims, params), prod_want);
+    utils::checkEqual(sum_res.to_matrix(dims, params), sum_want);
+    utils::checkEqual(sum_res_rev.to_matrix(dims, params), sum_want);
+  }
+
+  // matrix operator / lambda
+  {
+    auto prod_res =
+        squeeze / [](cudaq::parameter_map ps) { return ps["value"]; };
+    auto prod_want = (1. / value) * squeeze_mat;
+
+    auto sum_res = sum / [](cudaq::parameter_map ps) { return ps["value"]; };
+    auto sum_want = (1. / value) * sum_mat;
+
+    utils::checkEqual(prod_res.to_matrix(dims, params), prod_want);
+    utils::checkEqual(sum_res.to_matrix(dims, params), sum_want);
+  }
+
+  // matrix operator += lambda
+  {
+    auto sum_res = sum;
+    sum_res += [](cudaq::parameter_map ps) { return ps["value"]; };
+    auto sum_want = value * id_mat + sum_mat;
+
+    utils::checkEqual(sum_res.to_matrix(dims, params), sum_want);
+  }
+
+  // matrix operator -= lambda
+  {
+    auto sum_res = sum;
+    sum_res -= [](cudaq::parameter_map ps) { return ps["value"]; };
+    auto sum_want = sum_mat - value * id_mat;
+
+    utils::checkEqual(sum_res.to_matrix(dims, params), sum_want);
+  }
+
+  // matrix operator *= lambda
+  {
+    auto prod_res = squeeze;
+    prod_res *= [](cudaq::parameter_map ps) { return ps["value"]; };
+    auto prod_want = value * squeeze_mat;
+
+    auto sum_res = sum;
+    sum_res *= [](cudaq::parameter_map ps) { return ps["value"]; };
+    auto sum_want = value * sum_mat;
+
+    utils::checkEqual(prod_res.to_matrix(dims, params), prod_want);
+    utils::checkEqual(sum_res.to_matrix(dims, params), sum_want);
+  }
+
+  // matrix operator /= lambda
+  {
+    auto prod_res = squeeze;
+    prod_res /= [](cudaq::parameter_map ps) { return ps["value"]; };
+    auto prod_want = (1. / value) * squeeze_mat;
+
+    auto sum_res = sum;
+    sum_res /= [](cudaq::parameter_map ps) { return ps["value"]; };
+    auto sum_want = (1. / value) * sum_mat;
+
+    utils::checkEqual(prod_res.to_matrix(dims, params), prod_want);
+    utils::checkEqual(sum_res.to_matrix(dims, params), sum_want);
+  }
+
+  // matrix operator + function
+  {
+    auto prod_res = squeeze + get_value;
+    auto prod_res_rev = get_value + squeeze;
+    auto prod_want = value * id_mat + squeeze_mat;
+
+    auto sum_res = sum + get_value;
+    auto sum_res_rev = get_value + sum;
+    auto sum_want = value * id_mat + sum_mat;
+
+    utils::checkEqual(prod_res.to_matrix(dims, params), prod_want);
+    utils::checkEqual(prod_res_rev.to_matrix(dims, params), prod_want);
+    utils::checkEqual(sum_res.to_matrix(dims, params), sum_want);
+    utils::checkEqual(sum_res_rev.to_matrix(dims, params), sum_want);
+  }
+
+  // matrix operator - function
+  {
+    auto prod_res = squeeze - get_value;
+    auto prod_res_rev = get_value - squeeze;
+    auto prod_want = squeeze_mat - value * id_mat;
+    auto prod_want_rev = value * id_mat - squeeze_mat;
+
+    auto sum_res = sum - get_value;
+    auto sum_res_rev = get_value - sum;
+    auto sum_want = sum_mat - value * id_mat;
+    auto sum_want_rev = value * id_mat - sum_mat;
+
+    utils::checkEqual(prod_res.to_matrix(dims, params), prod_want);
+    utils::checkEqual(prod_res_rev.to_matrix(dims, params), prod_want_rev);
+    utils::checkEqual(sum_res.to_matrix(dims, params), sum_want);
+    utils::checkEqual(sum_res_rev.to_matrix(dims, params), sum_want_rev);
+  }
+
+  // matrix operator * function
+  {
+    auto prod_res = squeeze * get_value;
+    auto prod_res_rev = get_value * squeeze;
+    auto prod_want = value * squeeze_mat;
+
+    auto sum_res = sum * get_value;
+    auto sum_res_rev = get_value * sum;
+    auto sum_want = value * sum_mat;
+
+    utils::checkEqual(prod_res.to_matrix(dims, params), prod_want);
+    utils::checkEqual(prod_res_rev.to_matrix(dims, params), prod_want);
+    utils::checkEqual(sum_res.to_matrix(dims, params), sum_want);
+    utils::checkEqual(sum_res_rev.to_matrix(dims, params), sum_want);
+  }
+
+  // matrix operator / function
+  {
+    auto prod_res = squeeze / get_value;
+    auto prod_want = (1. / value) * squeeze_mat;
+
+    auto sum_res = sum / get_value;
+    auto sum_want = (1. / value) * sum_mat;
+
+    utils::checkEqual(prod_res.to_matrix(dims, params), prod_want);
+    utils::checkEqual(sum_res.to_matrix(dims, params), sum_want);
+  }
+
+  // matrix operator += function
+  {
+    auto sum_res = sum;
+    sum_res += get_value;
+    auto sum_want = value * id_mat + sum_mat;
+
+    utils::checkEqual(sum_res.to_matrix(dims, params), sum_want);
+  }
+
+  // matrix operator -= function
+  {
+    auto sum_res = sum;
+    sum_res -= get_value;
+    auto sum_want = sum_mat - value * id_mat;
+
+    utils::checkEqual(sum_res.to_matrix(dims, params), sum_want);
+  }
+
+  // matrix operator *= function
+  {
+    auto prod_res = squeeze;
+    prod_res *= get_value;
+    auto prod_want = value * squeeze_mat;
+
+    auto sum_res = sum;
+    sum_res *= get_value;
+    auto sum_want = value * sum_mat;
+
+    utils::checkEqual(prod_res.to_matrix(dims, params), prod_want);
+    utils::checkEqual(sum_res.to_matrix(dims, params), sum_want);
+  }
+
+  // matrix operator /= function
+  {
+    auto prod_res = squeeze;
+    prod_res /= get_value;
+    auto prod_want = (1. / value) * squeeze_mat;
+
+    auto sum_res = sum;
+    sum_res /= get_value;
+    auto sum_want = (1. / value) * sum_mat;
+
+    utils::checkEqual(prod_res.to_matrix(dims, params), prod_want);
+    utils::checkEqual(sum_res.to_matrix(dims, params), sum_want);
   }
 }

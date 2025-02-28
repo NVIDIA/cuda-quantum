@@ -42,12 +42,12 @@ std::complex<double> spin_operator::inplace_mult(const spin_operator &other) {
   std::complex<double> factor;
   if (this->op_code == 0 || other.op_code == 0 ||
       this->op_code == other.op_code)
-    factor = 1.0;
+    factor = std::complex<double>(1., 0.);
   else if (this->op_code + 1 == other.op_code ||
            this->op_code - 2 == other.op_code)
-    factor = 1.0j;
+    factor = std::complex<double>(0., 1.);
   else
-    factor = -1.0j;
+    factor = std::complex<double>(0., -1.);
   this->op_code ^= other.op_code;
   return factor;
 }
@@ -77,20 +77,20 @@ matrix_2 spin_operator::to_matrix(std::string pauli_word,
   auto map_state = [&pauli_word](char pauli, bool state) {
     if (state) {
       if (pauli == 'Z')
-        return std::make_pair<std::complex<double>, bool>(-1., bool(state));
+        return std::make_pair(std::complex<double>(-1., 0.), bool(state));
       if (pauli == 'X')
-        return std::make_pair<std::complex<double>, bool>(1., !state);
+        return std::make_pair(std::complex<double>(1., 0.), !state);
       if (pauli == 'Y')
-        return std::make_pair<std::complex<double>, bool>(-1.j, !state);
-      return std::make_pair<std::complex<double>, bool>(1., bool(state));
+        return std::make_pair(std::complex<double>(0., -1.), !state);
+      return std::make_pair(std::complex<double>(1., 0.), bool(state));
     } else {
       if (pauli == 'Z')
-        return std::make_pair<std::complex<double>, bool>(1., bool(state));
+        return std::make_pair(std::complex<double>(1., 0.), bool(state));
       if (pauli == 'X')
-        return std::make_pair<std::complex<double>, bool>(1., !state);
+        return std::make_pair(std::complex<double>(1., 0.), !state);
       if (pauli == 'Y')
-        return std::make_pair<std::complex<double>, bool>(1.j, !state);
-      return std::make_pair<std::complex<double>, bool>(1., bool(state));
+        return std::make_pair(std::complex<double>(0., 1.), !state);
+      return std::make_pair(std::complex<double>(1., 0.), bool(state));
     }
   };
 

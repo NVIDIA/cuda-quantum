@@ -641,112 +641,114 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     utils::checkEqual(want_matrix, got_matrix_reverse);
   }
 
-  // `operator_sum *= double`
+  // `operator_sum / double`
   {
     auto sum =
-        cudaq::matrix_operator::squeeze(1) + cudaq::matrix_operator::squeeze(2);
+        cudaq::matrix_operator::parity(1) + cudaq::matrix_operator::parity(2);
 
-    sum *= double_value;
+    auto product = sum / double_value;
 
-    ASSERT_TRUE(sum.num_terms() == 2);
-    for (auto term : sum.get_terms()) {
+    ASSERT_TRUE(product.num_terms() == 2);
+
+    for (auto term : product.get_terms()) {
       ASSERT_TRUE(term.num_terms() == 1);
       ASSERT_TRUE(term.get_coefficient().evaluate() ==
-                  std::complex<double>(double_value));
+                  std::complex<double>(1. / double_value));
     }
 
-    auto got_matrix = sum.to_matrix({{1, level_count}, {2, level_count + 1}},
-                                    {{"squeezing", value}});
+    auto got_matrix =
+        product.to_matrix({{1, level_count}, {2, level_count + 1}});
 
     auto matrix0 = cudaq::kronecker(utils::id_matrix(level_count + 1),
-                                    utils::squeeze_matrix(level_count, value));
-    auto matrix1 =
-        cudaq::kronecker(utils::squeeze_matrix(level_count + 1, value),
-                         utils::id_matrix(level_count));
-    auto sum_matrix = matrix0 + matrix1;
-    auto scaled_identity =
-        double_value * utils::id_matrix((level_count) * (level_count + 1));
-
-    auto want_matrix = sum_matrix * scaled_identity;
-    utils::checkEqual(want_matrix, got_matrix);
-  }
-
-  // `spin sum *= double`
-  {
-    auto sum = cudaq::spin_operator::y(1) + cudaq::spin_operator::i(2);
-
-    sum *= double_value;
-
-    ASSERT_TRUE(sum.num_terms() == 2);
-    for (auto term : sum.get_terms()) {
-      ASSERT_TRUE(term.num_terms() == 1);
-      ASSERT_TRUE(term.get_coefficient().evaluate() ==
-                  std::complex<double>(double_value));
-    }
-
-    auto got_matrix = sum.to_matrix();
-    auto matrix0 =
-        cudaq::kronecker(utils::id_matrix(2), utils::PauliY_matrix());
-    auto matrix1 = cudaq::kronecker(utils::id_matrix(2), utils::id_matrix(2));
-    auto scaled_identity = double_value * utils::id_matrix(2 * 2);
+                                    utils::parity_matrix(level_count));
+    auto matrix1 = cudaq::kronecker(utils::parity_matrix(level_count + 1),
+                                    utils::id_matrix(level_count));
+    auto scaled_identity = (1. / double_value) *
+                           utils::id_matrix((level_count) * (level_count + 1));
     auto want_matrix = (matrix0 + matrix1) * scaled_identity;
 
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  // `operator_sum *= std::complex<double>`
+  // `operator_sum / std::complex<double>`
   {
     auto sum =
-        cudaq::matrix_operator::displace(1) + cudaq::matrix_operator::parity(2);
+        cudaq::matrix_operator::parity(1) + cudaq::matrix_operator::parity(2);
 
-    sum *= value;
+    auto product = sum / value;
 
-    ASSERT_TRUE(sum.num_terms() == 2);
-    for (auto term : sum.get_terms()) {
+    ASSERT_TRUE(product.num_terms() == 2);
+
+    for (auto term : product.get_terms()) {
       ASSERT_TRUE(term.num_terms() == 1);
-      ASSERT_TRUE(term.get_coefficient().evaluate() == value);
+      ASSERT_TRUE(term.get_coefficient().evaluate() == 1. / value);
     }
 
-    auto got_matrix = sum.to_matrix({{1, level_count}, {2, level_count + 1}},
-                                    {{"displacement", value}});
+    auto got_matrix =
+        product.to_matrix({{1, level_count}, {2, level_count + 1}});
 
     auto matrix0 = cudaq::kronecker(utils::id_matrix(level_count + 1),
-                                    utils::displace_matrix(level_count, value));
+                                    utils::parity_matrix(level_count));
     auto matrix1 = cudaq::kronecker(utils::parity_matrix(level_count + 1),
                                     utils::id_matrix(level_count));
     auto scaled_identity =
-        value * utils::id_matrix((level_count) * (level_count + 1));
+        (1. / value) * utils::id_matrix((level_count) * (level_count + 1));
     auto want_matrix = (matrix0 + matrix1) * scaled_identity;
 
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  // `operator_sum *= scalar_operator`
+  // `operator_sum / scalar_operator`
   {
     auto sum =
-        cudaq::matrix_operator::parity(1) + cudaq::matrix_operator::momentum(2);
+        cudaq::matrix_operator::parity(1) + cudaq::matrix_operator::parity(2);
 
-    sum *= cudaq::scalar_operator(value);
+    auto product = sum / cudaq::scalar_operator(value);
 
-    ASSERT_TRUE(sum.num_terms() == 2);
-    for (auto term : sum.get_terms()) {
+    ASSERT_TRUE(product.num_terms() == 2);
+
+    for (auto term : product.get_terms()) {
       ASSERT_TRUE(term.num_terms() == 1);
-      ASSERT_TRUE(term.get_coefficient().evaluate() == value);
+      ASSERT_TRUE(term.get_coefficient().evaluate() == 1. / value);
     }
 
-    auto got_matrix = sum.to_matrix(
-        {{0, level_count}, {1, level_count}, {2, level_count + 1}});
+    auto got_matrix =
+        product.to_matrix({{1, level_count}, {2, level_count + 1}});
 
-    std::vector<cudaq::matrix_2> matrices_1 = {
-        utils::id_matrix(level_count + 1), utils::parity_matrix(level_count)};
-    std::vector<cudaq::matrix_2> matrices_2 = {
-        utils::momentum_matrix(level_count + 1), utils::id_matrix(level_count)};
-    auto matrix0 = cudaq::kronecker(matrices_1.begin(), matrices_1.end());
-    auto matrix1 = cudaq::kronecker(matrices_2.begin(), matrices_2.end());
+    auto matrix0 = cudaq::kronecker(utils::id_matrix(level_count + 1),
+                                    utils::parity_matrix(level_count));
+    auto matrix1 = cudaq::kronecker(utils::parity_matrix(level_count + 1),
+                                    utils::id_matrix(level_count));
+    auto sum_matrix = matrix0 + matrix1;
     auto scaled_identity =
-        value * utils::id_matrix((level_count + 1) * level_count);
+        (1. / value) * utils::id_matrix((level_count) * (level_count + 1));
 
+    auto want_matrix = sum_matrix * scaled_identity;
+    auto want_matrix_reverse = scaled_identity * sum_matrix;
+    utils::checkEqual(want_matrix, got_matrix);
+  }
+
+  // `spin sum / scalar_operator`
+  {
+    auto sum = cudaq::spin_operator::i(1) + cudaq::spin_operator::y(2);
+
+    auto product = sum / cudaq::scalar_operator(value);
+
+    ASSERT_TRUE(product.num_terms() == 2);
+
+    for (auto term : product.get_terms()) {
+      ASSERT_TRUE(term.num_terms() == 1);
+      ASSERT_TRUE(term.get_coefficient().evaluate() == 1. / value);
+    }
+
+    auto got_matrix = product.to_matrix();
+
+    auto matrix0 = cudaq::kronecker(utils::id_matrix(2), utils::id_matrix(2));
+    auto matrix1 =
+        cudaq::kronecker(utils::PauliY_matrix(), utils::id_matrix(2));
+    auto scaled_identity = (1. / value) * utils::id_matrix(2 * 2);
     auto want_matrix = (matrix0 + matrix1) * scaled_identity;
+
     utils::checkEqual(want_matrix, got_matrix);
   }
 
@@ -928,6 +930,224 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto scaled_identity = value * utils::id_matrix(2 * 2);
     auto want_matrix = matrix0 + matrix1 - scaled_identity;
 
+    utils::checkEqual(want_matrix, got_matrix);
+  }
+
+  // `operator_sum *= double`
+  {
+    auto sum =
+        cudaq::matrix_operator::squeeze(1) + cudaq::matrix_operator::squeeze(2);
+
+    sum *= double_value;
+
+    ASSERT_TRUE(sum.num_terms() == 2);
+    for (auto term : sum.get_terms()) {
+      ASSERT_TRUE(term.num_terms() == 1);
+      ASSERT_TRUE(term.get_coefficient().evaluate() ==
+                  std::complex<double>(double_value));
+    }
+
+    auto got_matrix = sum.to_matrix({{1, level_count}, {2, level_count + 1}},
+                                    {{"squeezing", value}});
+
+    auto matrix0 = cudaq::kronecker(utils::id_matrix(level_count + 1),
+                                    utils::squeeze_matrix(level_count, value));
+    auto matrix1 =
+        cudaq::kronecker(utils::squeeze_matrix(level_count + 1, value),
+                         utils::id_matrix(level_count));
+    auto sum_matrix = matrix0 + matrix1;
+    auto scaled_identity =
+        double_value * utils::id_matrix((level_count) * (level_count + 1));
+
+    auto want_matrix = sum_matrix * scaled_identity;
+    utils::checkEqual(want_matrix, got_matrix);
+  }
+
+  // `spin sum *= double`
+  {
+    auto sum = cudaq::spin_operator::y(1) + cudaq::spin_operator::i(2);
+
+    sum *= double_value;
+
+    ASSERT_TRUE(sum.num_terms() == 2);
+    for (auto term : sum.get_terms()) {
+      ASSERT_TRUE(term.num_terms() == 1);
+      ASSERT_TRUE(term.get_coefficient().evaluate() ==
+                  std::complex<double>(double_value));
+    }
+
+    auto got_matrix = sum.to_matrix();
+    auto matrix0 =
+        cudaq::kronecker(utils::id_matrix(2), utils::PauliY_matrix());
+    auto matrix1 = cudaq::kronecker(utils::id_matrix(2), utils::id_matrix(2));
+    auto scaled_identity = double_value * utils::id_matrix(2 * 2);
+    auto want_matrix = (matrix0 + matrix1) * scaled_identity;
+
+    utils::checkEqual(want_matrix, got_matrix);
+  }
+
+  // `operator_sum *= std::complex<double>`
+  {
+    auto sum =
+        cudaq::matrix_operator::displace(1) + cudaq::matrix_operator::parity(2);
+
+    sum *= value;
+
+    ASSERT_TRUE(sum.num_terms() == 2);
+    for (auto term : sum.get_terms()) {
+      ASSERT_TRUE(term.num_terms() == 1);
+      ASSERT_TRUE(term.get_coefficient().evaluate() == value);
+    }
+
+    auto got_matrix = sum.to_matrix({{1, level_count}, {2, level_count + 1}},
+                                    {{"displacement", value}});
+
+    auto matrix0 = cudaq::kronecker(utils::id_matrix(level_count + 1),
+                                    utils::displace_matrix(level_count, value));
+    auto matrix1 = cudaq::kronecker(utils::parity_matrix(level_count + 1),
+                                    utils::id_matrix(level_count));
+    auto scaled_identity =
+        value * utils::id_matrix((level_count) * (level_count + 1));
+    auto want_matrix = (matrix0 + matrix1) * scaled_identity;
+
+    utils::checkEqual(want_matrix, got_matrix);
+  }
+
+  // `operator_sum *= scalar_operator`
+  {
+    auto sum =
+        cudaq::matrix_operator::parity(1) + cudaq::matrix_operator::momentum(2);
+
+    sum *= cudaq::scalar_operator(value);
+
+    ASSERT_TRUE(sum.num_terms() == 2);
+    for (auto term : sum.get_terms()) {
+      ASSERT_TRUE(term.num_terms() == 1);
+      ASSERT_TRUE(term.get_coefficient().evaluate() == value);
+    }
+
+    auto got_matrix = sum.to_matrix(
+        {{0, level_count}, {1, level_count}, {2, level_count + 1}});
+
+    std::vector<cudaq::matrix_2> matrices_1 = {
+        utils::id_matrix(level_count + 1), utils::parity_matrix(level_count)};
+    std::vector<cudaq::matrix_2> matrices_2 = {
+        utils::momentum_matrix(level_count + 1), utils::id_matrix(level_count)};
+    auto matrix0 = cudaq::kronecker(matrices_1.begin(), matrices_1.end());
+    auto matrix1 = cudaq::kronecker(matrices_2.begin(), matrices_2.end());
+    auto scaled_identity =
+        value * utils::id_matrix((level_count + 1) * level_count);
+
+    auto want_matrix = (matrix0 + matrix1) * scaled_identity;
+    utils::checkEqual(want_matrix, got_matrix);
+  }
+
+  // `operator_sum /= double`
+  {
+    auto sum =
+        cudaq::matrix_operator::squeeze(1) + cudaq::matrix_operator::squeeze(2);
+
+    sum /= double_value;
+
+    ASSERT_TRUE(sum.num_terms() == 2);
+    for (auto term : sum.get_terms()) {
+      ASSERT_TRUE(term.num_terms() == 1);
+      ASSERT_TRUE(term.get_coefficient().evaluate() ==
+                  std::complex<double>(1. / double_value));
+    }
+
+    auto got_matrix = sum.to_matrix({{1, level_count}, {2, level_count + 1}},
+                                    {{"squeezing", value}});
+
+    auto matrix0 = cudaq::kronecker(utils::id_matrix(level_count + 1),
+                                    utils::squeeze_matrix(level_count, value));
+    auto matrix1 =
+        cudaq::kronecker(utils::squeeze_matrix(level_count + 1, value),
+                         utils::id_matrix(level_count));
+    auto sum_matrix = matrix0 + matrix1;
+    auto scaled_identity = (1. / double_value) *
+                           utils::id_matrix((level_count) * (level_count + 1));
+
+    auto want_matrix = sum_matrix * scaled_identity;
+    utils::checkEqual(want_matrix, got_matrix);
+  }
+
+  // `spin sum /= double`
+  {
+    auto sum = cudaq::spin_operator::y(1) + cudaq::spin_operator::i(2);
+
+    sum /= double_value;
+
+    ASSERT_TRUE(sum.num_terms() == 2);
+    for (auto term : sum.get_terms()) {
+      ASSERT_TRUE(term.num_terms() == 1);
+      ASSERT_TRUE(term.get_coefficient().evaluate() ==
+                  std::complex<double>(1. / double_value));
+    }
+
+    auto got_matrix = sum.to_matrix();
+    auto matrix0 =
+        cudaq::kronecker(utils::id_matrix(2), utils::PauliY_matrix());
+    auto matrix1 = cudaq::kronecker(utils::id_matrix(2), utils::id_matrix(2));
+    auto scaled_identity = (1. / double_value) * utils::id_matrix(2 * 2);
+    auto want_matrix = (matrix0 + matrix1) * scaled_identity;
+
+    utils::checkEqual(want_matrix, got_matrix);
+  }
+
+  // `operator_sum /= std::complex<double>`
+  {
+    auto sum =
+        cudaq::matrix_operator::displace(1) + cudaq::matrix_operator::parity(2);
+
+    sum /= value;
+
+    ASSERT_TRUE(sum.num_terms() == 2);
+    for (auto term : sum.get_terms()) {
+      ASSERT_TRUE(term.num_terms() == 1);
+      ASSERT_TRUE(term.get_coefficient().evaluate() == 1. / value);
+    }
+
+    auto got_matrix = sum.to_matrix({{1, level_count}, {2, level_count + 1}},
+                                    {{"displacement", value}});
+
+    auto matrix0 = cudaq::kronecker(utils::id_matrix(level_count + 1),
+                                    utils::displace_matrix(level_count, value));
+    auto matrix1 = cudaq::kronecker(utils::parity_matrix(level_count + 1),
+                                    utils::id_matrix(level_count));
+    auto scaled_identity =
+        (1. / value) * utils::id_matrix((level_count) * (level_count + 1));
+    auto want_matrix = (matrix0 + matrix1) * scaled_identity;
+
+    utils::checkEqual(want_matrix, got_matrix);
+  }
+
+  // `operator_sum /= scalar_operator`
+  {
+    auto sum =
+        cudaq::matrix_operator::parity(1) + cudaq::matrix_operator::momentum(2);
+
+    sum /= cudaq::scalar_operator(value);
+
+    ASSERT_TRUE(sum.num_terms() == 2);
+    for (auto term : sum.get_terms()) {
+      ASSERT_TRUE(term.num_terms() == 1);
+      ASSERT_TRUE(term.get_coefficient().evaluate() == 1. / value);
+    }
+
+    auto got_matrix = sum.to_matrix(
+        {{0, level_count}, {1, level_count}, {2, level_count + 1}});
+
+    std::vector<cudaq::matrix_2> matrices_1 = {
+        utils::id_matrix(level_count + 1), utils::parity_matrix(level_count)};
+    std::vector<cudaq::matrix_2> matrices_2 = {
+        utils::momentum_matrix(level_count + 1), utils::id_matrix(level_count)};
+    auto matrix0 = cudaq::kronecker(matrices_1.begin(), matrices_1.end());
+    auto matrix1 = cudaq::kronecker(matrices_2.begin(), matrices_2.end());
+    auto scaled_identity =
+        (1. / value) * utils::id_matrix((level_count + 1) * level_count);
+
+    auto want_matrix = (matrix0 + matrix1) * scaled_identity;
     utils::checkEqual(want_matrix, got_matrix);
   }
 }

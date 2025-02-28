@@ -96,7 +96,7 @@ public:
   ///      double that contains additional parameters the operator may use.
   static void define(std::string operator_id,
                      std::vector<int> expected_dimensions,
-                     MatrixCallbackFunction &&create);
+                     matrix_callback &&create);
 
   /// @brief Instantiates a custom operator.
   /// @arg operator_id : The ID of the operator as specified when it was

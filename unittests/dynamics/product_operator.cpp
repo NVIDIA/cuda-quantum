@@ -678,6 +678,127 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
+  /// `product_operator / double`
+  {
+    auto product_op =
+        cudaq::matrix_operator::parity(0) * cudaq::matrix_operator::parity(1);
+    ASSERT_TRUE(product_op.num_terms() == 2);
+    ASSERT_TRUE(product_op.get_coefficient().evaluate() ==
+                std::complex<double>(1.));
+
+    auto reverse = product_op / 2.0;
+
+    ASSERT_TRUE(reverse.num_terms() == 2);
+    ASSERT_TRUE(reverse.get_coefficient().evaluate() ==
+                std::complex<double>(1. / 2.));
+
+    std::vector<int> want_degrees = {1, 0};
+    ASSERT_TRUE(reverse.degrees() == want_degrees);
+
+    auto got_matrix_reverse =
+        reverse.to_matrix({{0, level_count}, {1, level_count}});
+
+    auto term_0 = cudaq::kronecker(utils::id_matrix(level_count),
+                                   utils::parity_matrix(level_count));
+    auto term_1 = cudaq::kronecker(utils::parity_matrix(level_count),
+                                   utils::id_matrix(level_count));
+    auto product_matrix = term_0 * term_1;
+    auto scaled_identity = 0.5 * utils::id_matrix(level_count * level_count);
+
+    auto want_matrix_reverse = product_matrix * scaled_identity;
+
+    utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+  }
+
+  /// `product_operator / complex<double>`
+  {
+    auto product_op =
+        cudaq::matrix_operator::number(0) * cudaq::matrix_operator::number(1);
+    ASSERT_TRUE(product_op.num_terms() == 2);
+    ASSERT_TRUE(product_op.get_coefficient().evaluate() ==
+                std::complex<double>(1.));
+
+    auto reverse = product_op / value_0;
+
+    ASSERT_TRUE(reverse.num_terms() == 2);
+    ASSERT_TRUE(reverse.get_coefficient().evaluate() == 1. / value_0);
+
+    std::vector<int> want_degrees = {1, 0};
+    ASSERT_TRUE(reverse.degrees() == want_degrees);
+
+    auto got_matrix_reverse =
+        reverse.to_matrix({{0, level_count}, {1, level_count}});
+
+    auto term_0 = cudaq::kronecker(utils::id_matrix(level_count),
+                                   utils::number_matrix(level_count));
+    auto term_1 = cudaq::kronecker(utils::number_matrix(level_count),
+                                   utils::id_matrix(level_count));
+    auto product_matrix = term_0 * term_1;
+    auto scaled_identity =
+        (1. / value_0) * utils::id_matrix(level_count * level_count);
+
+    auto want_matrix_reverse = product_matrix * scaled_identity;
+
+    utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+  }
+
+  /// `product_operator / scalar_operator`
+  {
+    auto product_op = cudaq::matrix_operator::position(0) *
+                      cudaq::matrix_operator::position(1);
+    auto scalar_op = cudaq::scalar_operator(value_0);
+
+    auto reverse = product_op / scalar_op;
+
+    ASSERT_TRUE(reverse.num_terms() == 2);
+    ASSERT_TRUE(reverse.get_coefficient().evaluate() ==
+                1. / scalar_op.evaluate());
+
+    std::vector<int> want_degrees = {1, 0};
+    ASSERT_TRUE(reverse.degrees() == want_degrees);
+
+    auto got_matrix_reverse =
+        reverse.to_matrix({{0, level_count}, {1, level_count}});
+
+    auto term_0 = cudaq::kronecker(utils::id_matrix(level_count),
+                                   utils::position_matrix(level_count));
+    auto term_1 = cudaq::kronecker(utils::position_matrix(level_count),
+                                   utils::id_matrix(level_count));
+    auto product_matrix = term_0 * term_1;
+    auto scaled_identity =
+        (1. / value_0) * utils::id_matrix(level_count * level_count);
+
+    auto want_matrix_reverse = product_matrix * scaled_identity;
+
+    utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+  }
+
+  /// `spin product / scalar_operator`
+  {
+    auto product_op = cudaq::spin_operator::z(0) * cudaq::spin_operator::y(1);
+    auto scalar_op = cudaq::scalar_operator(value_0);
+
+    auto reverse = product_op / scalar_op;
+
+    ASSERT_TRUE(reverse.num_terms() == 2);
+    ASSERT_TRUE(reverse.get_coefficient().evaluate() ==
+                1. / scalar_op.evaluate());
+
+    std::vector<int> want_degrees = {1, 0};
+    ASSERT_TRUE(reverse.degrees() == want_degrees);
+
+    auto got_matrix_reverse = reverse.to_matrix();
+
+    auto term_0 = cudaq::kronecker(utils::id_matrix(2), utils::PauliZ_matrix());
+    auto term_1 = cudaq::kronecker(utils::PauliY_matrix(), utils::id_matrix(2));
+    auto product_matrix = term_0 * term_1;
+    auto scaled_identity = (1. / value_0) * utils::id_matrix(2 * 2);
+
+    auto want_matrix_reverse = product_matrix * scaled_identity;
+
+    utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+  }
+
   /// `product_operator *= double`
   {
     auto product = cudaq::matrix_operator::position(0) *
@@ -780,6 +901,114 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     auto product_matrix = term_0 * term_1;
     auto scaled_identity =
         value_0 * utils::id_matrix(level_count * level_count);
+
+    auto want_matrix = product_matrix * scaled_identity;
+    utils::checkEqual(want_matrix, got_matrix);
+  }
+
+  /// `product_operator /= double`
+  {
+    auto product = cudaq::matrix_operator::position(0) *
+                   cudaq::matrix_operator::momentum(1);
+    product /= 2.0;
+
+    ASSERT_TRUE(product.num_terms() == 2);
+    ASSERT_TRUE(product.get_coefficient().evaluate() ==
+                std::complex<double>(1. / 2.));
+
+    std::vector<int> want_degrees = {1, 0};
+    ASSERT_TRUE(product.degrees() == want_degrees);
+
+    auto got_matrix = product.to_matrix({{0, level_count}, {1, level_count}});
+
+    auto term_0 = cudaq::kronecker(utils::id_matrix(level_count),
+                                   utils::position_matrix(level_count));
+    auto term_1 = cudaq::kronecker(utils::momentum_matrix(level_count),
+                                   utils::id_matrix(level_count));
+    auto product_matrix = term_0 * term_1;
+    auto scaled_identity = 0.5 * utils::id_matrix(level_count * level_count);
+
+    auto want_matrix = product_matrix * scaled_identity;
+
+    utils::checkEqual(want_matrix, got_matrix);
+  }
+
+  /// `spin product /= double`
+  {
+    auto product = cudaq::spin_operator::y(0) * cudaq::spin_operator::i(1);
+    product /= 2.0;
+
+    ASSERT_TRUE(product.num_terms() == 2);
+    ASSERT_TRUE(product.get_coefficient().evaluate() ==
+                std::complex<double>(1. / 2.));
+
+    std::vector<int> want_degrees = {1, 0};
+    ASSERT_TRUE(product.degrees() == want_degrees);
+
+    auto got_matrix = product.to_matrix();
+
+    auto term_0 = cudaq::kronecker(utils::id_matrix(2), utils::PauliY_matrix());
+    auto term_1 = cudaq::kronecker(utils::id_matrix(2), utils::id_matrix(2));
+    auto product_matrix = term_0 * term_1;
+    auto scaled_identity = 0.5 * utils::id_matrix(2 * 2);
+
+    auto want_matrix = product_matrix * scaled_identity;
+
+    utils::checkEqual(want_matrix, got_matrix);
+  }
+
+  /// `product_operator /= complex<double>`
+  {
+    auto product =
+        cudaq::matrix_operator::number(0) * cudaq::matrix_operator::momentum(1);
+    product /= value_0;
+
+    ASSERT_TRUE(product.num_terms() == 2);
+    ASSERT_TRUE(product.get_coefficient().evaluate() == 1. / value_0);
+
+    std::vector<int> want_degrees = {1, 0};
+    ASSERT_TRUE(product.degrees() == want_degrees);
+
+    auto got_matrix = product.to_matrix({{0, level_count}, {1, level_count}});
+
+    auto term_0 = cudaq::kronecker(utils::id_matrix(level_count),
+                                   utils::number_matrix(level_count));
+    auto term_1 = cudaq::kronecker(utils::momentum_matrix(level_count),
+                                   utils::id_matrix(level_count));
+    auto product_matrix = term_0 * term_1;
+    auto scaled_identity =
+        (1. / value_0) * utils::id_matrix(level_count * level_count);
+
+    auto want_matrix = product_matrix * scaled_identity;
+
+    utils::checkEqual(want_matrix, got_matrix);
+  }
+
+  /// `product_operator /= scalar_operator`
+  {
+    auto product =
+        cudaq::matrix_operator::number(0) * cudaq::matrix_operator::momentum(1);
+    auto scalar_op = cudaq::scalar_operator(value_0);
+
+    product /= scalar_op;
+
+    ASSERT_TRUE(product.num_terms() == 2);
+    ASSERT_TRUE(product.get_coefficient().evaluate() ==
+                1. / scalar_op.evaluate());
+    ASSERT_TRUE(scalar_op.evaluate() == value_0);
+
+    std::vector<int> want_degrees = {1, 0};
+    ASSERT_TRUE(product.degrees() == want_degrees);
+
+    auto got_matrix = product.to_matrix({{0, level_count}, {1, level_count}});
+
+    auto term_0 = cudaq::kronecker(utils::id_matrix(level_count),
+                                   utils::number_matrix(level_count));
+    auto term_1 = cudaq::kronecker(utils::momentum_matrix(level_count),
+                                   utils::id_matrix(level_count));
+    auto product_matrix = term_0 * term_1;
+    auto scaled_identity =
+        (1. / value_0) * utils::id_matrix(level_count * level_count);
 
     auto want_matrix = product_matrix * scaled_identity;
     utils::checkEqual(want_matrix, got_matrix);

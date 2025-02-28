@@ -16,17 +16,17 @@
 
 namespace cudaq {
 
-// ScalarCallbackFunction
+// scalar_callback
 
-std::complex<double> ScalarCallbackFunction::operator()(
+std::complex<double> scalar_callback::operator()(
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
   return this->callback_func(parameters);
 }
 
-// MatrixCallbackFunction
+// matrix_callback
 
-matrix_2 MatrixCallbackFunction::operator()(
+matrix_2 matrix_callback::operator()(
     const std::vector<int> &relevant_dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
@@ -37,7 +37,7 @@ matrix_2 MatrixCallbackFunction::operator()(
 
 Definition::Definition(std::string operator_id,
                        const std::vector<int> &expected_dimensions,
-                       MatrixCallbackFunction &&create)
+                       matrix_callback &&create)
     : id(operator_id), generator(std::move(create)),
       required_dimensions(expected_dimensions) {}
 
