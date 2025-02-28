@@ -185,6 +185,17 @@ def test_2grover_compute_action():
     assert '011' in counts
 
 
+def test_observe():
+
+    @cudaq.kernel
+    def ansatz():
+        q = cudaq.qvector(1)
+
+    molecule = 5.0 - 1.0 * spin.x(0)
+    res = cudaq.observe(ansatz, molecule, shots_count=10000)
+    assert np.isclose(res.expectation(), 5.0, atol=1e-1)
+
+
 def test_pauli_word_input():
 
     h2_data = [
@@ -2014,13 +2025,14 @@ def test_numpy_functions():
     with pytest.raises(RuntimeError):
         cudaq.sample(invalid_unsupported)
 
+
 def test_in_comparator():
 
     @cudaq.kernel
     def kernel(ind: int):
         q = cudaq.qubit()
         if ind in [6, 13, 20, 27, 34]:
-            x(q)    
+            x(q)
 
     c = cudaq.sample(kernel, 1)
     assert len(c) == 1 and '0' in c
@@ -2043,12 +2055,13 @@ def test_in_comparator():
     def kernel(ind: int):
         q = cudaq.qubit()
         if ind not in [6, 13, 20, 27, 34]:
-            x(q)    
+            x(q)
 
     c = cudaq.sample(kernel, 1)
     assert len(c) == 1 and '1' in c
     c = cudaq.sample(kernel, 20)
     assert len(c) == 1 and '0' in c
+
 
 # leave for gdb debugging
 if __name__ == "__main__":

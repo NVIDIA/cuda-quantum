@@ -28,7 +28,7 @@ __qpu__ void pauli_word_vec(std::vector<cudaq::pauli_word> words,
 // CHECK:           %[[VAL_5:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<!cc.charspan>) -> !cc.ptr<!cc.array<!cc.charspan x ?>>
 // CHECK:           %[[VAL_6:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<!cc.array<!cc.charspan x ?>>) -> !cc.ptr<!cc.charspan>
 // CHECK:           %[[VAL_7:.*]] = cc.load %[[VAL_6]] : !cc.ptr<!cc.charspan>
-// CHECK:           quake.exp_pauli %[[VAL_4]], %[[VAL_3]], %[[VAL_7]] : (f64, !quake.veq<4>, !cc.charspan) -> ()
+// CHECK:           quake.exp_pauli (%[[VAL_4]]) %[[VAL_3]] to %[[VAL_7]] : (f64, !quake.veq<4>, !cc.charspan) -> ()
 // CHECK:           return
 // CHECK:         }
 // clang-format on
@@ -46,7 +46,7 @@ __qpu__ void pauli_word(cudaq::pauli_word wordle, double theta) {
 // CHECK:           cc.store %[[VAL_1]], %[[VAL_2]] : !cc.ptr<f64>
 // CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<4>
 // CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_2]] : !cc.ptr<f64>
-// CHECK:           quake.exp_pauli %[[VAL_4]], %[[VAL_3]], %[[VAL_0]] : (f64, !quake.veq<4>, !cc.charspan) -> ()
+// CHECK:           quake.exp_pauli (%[[VAL_4]]) %[[VAL_3]] to %[[VAL_0]] : (f64, !quake.veq<4>, !cc.charspan) -> ()
 // CHECK:           return
 // CHECK:         }
 // clang-format on

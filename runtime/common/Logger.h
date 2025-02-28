@@ -23,11 +23,12 @@ bool isTimingTagEnabled(int tag);
 namespace details {
 // This enum must match spdlog::level enums. This is checked via static_assert
 // in Logger.cpp.
-enum class LogLevel { trace, debug, info };
+enum class LogLevel { trace, debug, info, warn };
 bool should_log(const LogLevel logLevel);
 void trace(const std::string_view msg);
 void info(const std::string_view msg);
 void debug(const std::string_view msg);
+void warn(const std::string_view msg);
 std::string pathToFileName(const std::string_view fullFilePath);
 } // namespace details
 
@@ -63,6 +64,7 @@ std::string pathToFileName(const std::string_view fullFilePath);
   NAME(const std::string_view, Args &&...) -> NAME<Args...>;
 
 CUDAQ_LOGGER_DEDUCTION_STRUCT(info);
+CUDAQ_LOGGER_DEDUCTION_STRUCT(warn);
 
 #ifdef CUDAQ_DEBUG
 CUDAQ_LOGGER_DEDUCTION_STRUCT(debug);

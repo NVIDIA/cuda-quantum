@@ -607,6 +607,26 @@ void __quantum__qis__exp_pauli(double theta, Array *qubits, char *pauliWord) {
   return;
 }
 
+void __quantum__qis__exp_pauli__ctl(double theta, Array *ctrls, Array *qubits,
+                                    char *pauliWord) {
+  struct CLikeString {
+    char *ptr = nullptr;
+    int64_t length = 0;
+  };
+  auto *castedString = reinterpret_cast<CLikeString *>(pauliWord);
+  std::string pauliWordStr(castedString->ptr, castedString->length);
+  auto ctrlQubitsVec = arrayToVectorSizeT(ctrls);
+  auto qubitsVec = arrayToVectorSizeT(qubits);
+  nvqir::getCircuitSimulatorInternal()->applyExpPauli(
+      theta, ctrlQubitsVec, qubitsVec, cudaq::spin_op::from_word(pauliWordStr));
+  return;
+}
+
+void __quantum__qis__exp_pauli__body(double theta, Array *qubits,
+                                     char *pauliWord) {
+  return __quantum__qis__exp_pauli(theta, qubits, pauliWord);
+}
+
 void __quantum__rt__result_record_output(Result *r, int8_t *name) {
   if (name && qubitPtrIsIndex)
     __quantum__qis__mz__to__register(measRes2QB[r],
@@ -617,6 +637,120 @@ static std::vector<std::size_t> safeArrayToVectorSizeT(Array *arr) {
   if (!arr)
     return {};
   return arrayToVectorSizeT(arr);
+}
+
+void __quantum__qis__apply_kraus_channel_double(std::int64_t krausChannelKey,
+                                                double *params,
+                                                std::size_t numParams,
+                                                Array *qubits) {
+
+  auto *ctx = nvqir::getCircuitSimulatorInternal()->getExecutionContext();
+  if (!ctx)
+    return;
+
+  auto *noise = ctx->noiseModel;
+  if (!noise)
+    return;
+
+  std::vector<double> paramVec(params, params + numParams);
+  auto channel = noise->get_channel(krausChannelKey, paramVec);
+  nvqir::getCircuitSimulatorInternal()->applyNoise(channel,
+                                                   arrayToVectorSizeT(qubits));
+}
+
+static void
+__quantum__qis__apply_kraus_channel_float(std::int64_t krausChannelKey,
+                                          float *params, std::size_t numParams,
+                                          Array *qubits) {
+
+  auto *ctx = nvqir::getCircuitSimulatorInternal()->getExecutionContext();
+  if (!ctx)
+    return;
+
+  auto *noise = ctx->noiseModel;
+  if (!noise)
+    return;
+
+  std::vector<float> paramVec(params, params + numParams);
+  auto channel = noise->get_channel(krausChannelKey, paramVec);
+  nvqir::getCircuitSimulatorInternal()->applyNoise(channel,
+                                                   arrayToVectorSizeT(qubits));
+}
+
+// The dataKind encoding is defined in QIRFunctionNames.h. 0 is float, 1 is
+// double.
+void __quantum__qis__apply_kraus_channel_generalized(
+    std::int64_t dataKind, std::int64_t krausChannelKey, std::size_t numSpans,
+    std::size_t numParams, std::size_t numTargets, ...) {
+  va_list args;
+  va_start(args, numTargets);
+
+  auto vapplyKrausChannel = [&]<typename REAL>() {
+    struct basic_span {
+      REAL *_0;
+      std::size_t _1;
+    };
+
+    REAL *params;
+    std::size_t totalParams;
+
+    // We assume either a span OR a list of REALs, but not both (for now).
+    if (numSpans) {
+      // 1a. A set of basic spans, `{ptr, i64}`. Pop the varargs and build the
+      // spans.
+      if (numSpans != 1)
+        throw std::invalid_argument("Too many spans (> 1), not supported");
+      basic_span *spans =
+          reinterpret_cast<basic_span *>(alloca(numSpans * sizeof(basic_span)));
+      for (std::size_t i = 0; i < numSpans; ++i) {
+        auto *dataPtr = va_arg(args, REAL *);
+        auto dataLen = va_arg(args, std::size_t);
+        spans[i] = basic_span{dataPtr, dataLen};
+      }
+
+      // There can be only one.
+      params = spans[0]._0;
+      totalParams = spans[0]._1;
+    } else {
+      // 1b. A set of parameters. Pop the varargs as REAL values.
+      params = reinterpret_cast<REAL *>(alloca(numParams * sizeof(REAL)));
+      for (std::size_t i = 0; i < numParams; ++i) {
+        auto *dblPtr = va_arg(args, REAL *);
+        params[i] = *dblPtr;
+      }
+
+      totalParams = numParams;
+    }
+
+    // 2. A set of qubits. Pop the varargs as qubit* values.
+    std::vector<Array *> qubits(numTargets);
+    for (std::size_t i = 0; i < numTargets; ++i) {
+      auto *qbPtr = va_arg(args, Array *);
+      qubits[i] = qbPtr;
+    }
+    // There can be only one.
+    Array *asArray = qubits[0];
+
+    if constexpr (std::is_same_v<REAL, float>) {
+      __quantum__qis__apply_kraus_channel_float(krausChannelKey, params,
+                                                totalParams, asArray);
+    } else {
+      __quantum__qis__apply_kraus_channel_double(krausChannelKey, params,
+                                                 totalParams, asArray);
+    }
+  };
+
+  switch (dataKind) {
+  case 0:
+    vapplyKrausChannel.template operator()<float>();
+    break;
+  case 1:
+    vapplyKrausChannel.template operator()<double>();
+    break;
+  default:
+    throw std::runtime_error("apply_noise: unknown data kind.");
+  }
+  va_end(args);
 }
 
 void __quantum__qis__custom_unitary(std::complex<double> *unitary,

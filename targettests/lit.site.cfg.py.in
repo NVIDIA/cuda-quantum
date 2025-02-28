@@ -50,6 +50,13 @@ if cmake_boolvar_to_bool(config.cudaq_backends_braket):
 else:
   config.substitutions.append(('%braket_avail', 'false'))
 
+config.cudaq_backends_pasqal = "@CUDAQ_ENABLE_PASQAL_BACKEND@"
+if cmake_boolvar_to_bool(config.cudaq_backends_pasqal):
+  config.available_features.add('pasqal')
+  config.substitutions.append(('%pasqal_avail', 'true'))
+else:
+  config.substitutions.append(('%pasqal_avail', 'false'))
+
 import lit.llvm
 lit.llvm.initialize(lit_config, config)
 

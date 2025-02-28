@@ -231,6 +231,20 @@ public:
   /// @brief Whether or not this is a state vector simulator
   virtual bool isStateVectorSimulator() const { return false; }
 
+  /// @brief Subtypes can return true if the given noise_model_type is
+  /// supported. By default, return false
+  virtual bool isValidNoiseChannel(const cudaq::noise_model_type &type) const {
+    return false;
+  }
+
+  /// @brief Apply the given kraus_channel on the provided targets.
+  /// Only supported for noise backends. By default do nothing
+  virtual void applyNoise(const cudaq::kraus_channel &channel,
+                          const std::vector<std::size_t> &targets) {
+    cudaq::warn("kraus_channel application not supported on {} simulator.",
+                name());
+  }
+
   /// @brief Apply a custom operation described by a matrix of data
   /// represented as 1-D vector of elements in row-major order, as well
   /// as the the control qubit and target indices
