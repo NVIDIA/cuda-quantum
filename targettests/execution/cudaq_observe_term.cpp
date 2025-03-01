@@ -88,7 +88,7 @@ int main() {
     double expectation = cudaq::sample(10000, ansatz_z{}).expectation();
 
     printf("Energy is %d.\n", (int)(energy + 0.5));
-    printf("Energy is %d.\n", (int)(expectation + 0.5));
+    printf("Expectation is %d.\n", (int)(expectation + 0.5));
 
     assert(isClose(energy, expectation) && "observe of Z failed");
   }
