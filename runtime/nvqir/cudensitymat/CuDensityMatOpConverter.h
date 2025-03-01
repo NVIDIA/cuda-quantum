@@ -20,11 +20,23 @@ class CuDensityMatOpConverter {
 public:
   CuDensityMatOpConverter(cudensitymatHandle_t handle) : m_handle(handle){};
 
+  /// @brief Convert a matrix operator to a cudensity matrix operator.
+  /// @param parameters The parameters of the operator.
+  /// @param op The matrix operator to convert.
+  /// @param modeExtents The extents of the modes.
+  /// @return The converted operator.
   cudensitymatOperator_t convertToCudensitymatOperator(
       const std::unordered_map<std::string, std::complex<double>> &parameters,
       const operator_sum<cudaq::matrix_operator> &op,
       const std::vector<int64_t> &modeExtents);
-  // Construct Liouvillian
+
+  /// @brief Construct a Liouvillian operator.
+  /// @param ham The Hamiltonian operator.
+  /// @param collapseOperators The collapse operators.
+  /// @param modeExtents The extents of the modes.
+  /// @param parameters The parameters of the operators.
+  /// @param isMasterEquation Whether the Liouvillian is a master equation.
+  /// @return The constructed Liouvillian operator.
   cudensitymatOperator_t constructLiouvillian(
       const operator_sum<cudaq::matrix_operator> &ham,
       const std::vector<operator_sum<cudaq::matrix_operator>>

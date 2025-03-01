@@ -20,7 +20,9 @@ class CuDensityMatExpectation {
 public:
   CuDensityMatExpectation(cudensitymatHandle_t handle,
                           cudensitymatOperator_t op);
+  /// @brief Deleted copy constructor
   CuDensityMatExpectation(const CuDensityMatExpectation &) = delete;
+  /// @brief Deleted copy assignment
   CuDensityMatExpectation &operator=(const CuDensityMatExpectation &) = delete;
   CuDensityMatExpectation(CuDensityMatExpectation &&src) {
     std::swap(m_handle, src.m_handle);
@@ -29,7 +31,14 @@ public:
     std::swap(m_workspace, src.m_workspace);
   }
   ~CuDensityMatExpectation();
+  /// @brief Prepare the expectation operator for computation
+  /// @param state The state to compute the expectation value
   void prepare(cudensitymatState_t state);
+
+  /// @brief Compute the expectation value
+  /// @param state The state to compute the expectation value
+  /// @param time The time at which the expectation value is computed
+  /// @return The expectation value
   std::complex<double> compute(cudensitymatState_t state, double time);
 };
 
