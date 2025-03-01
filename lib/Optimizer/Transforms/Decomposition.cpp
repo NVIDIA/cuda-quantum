@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "DecompositionPatterns.h"
-#include "cudaq/Frontend/nvqpp/AttributeNames.h"
+#include "cudaq/constants.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"

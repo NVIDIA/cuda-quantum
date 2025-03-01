@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Frontend/nvqpp/AttributeNames.h"
+#include "cudaq/constants.h"
 #include "cudaq/Optimizer/CodeGen/Emitter.h"
 #include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"

@@ -9,6 +9,7 @@
 #pragma once
 
 #include "common/MeasureCounts.h"
+#include "cudaq/constants.h"
 #include "cudaq/host_config.h"
 #include "cudaq/platform.h"
 #include "cudaq/qis/modifiers.h"
@@ -22,7 +23,7 @@
 #include <cstring>
 #include <functional>
 
-#define __qpu__ __attribute__((annotate("quantum")))
+#define __qpu__ __attribute__((annotate(cudaq::kernelAnnotation)))
 
 // This file describes the API for a default qubit logical instruction
 // set for CUDA-Q kernels.

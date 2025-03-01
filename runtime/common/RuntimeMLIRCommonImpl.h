@@ -11,7 +11,7 @@
 #include "Environment.h"
 #include "Logger.h"
 #include "Timing.h"
-#include "cudaq/Frontend/nvqpp/AttributeNames.h"
+#include "cudaq/constants.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"

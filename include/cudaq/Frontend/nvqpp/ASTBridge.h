@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "cudaq/Frontend/nvqpp/AttributeNames.h"
+#include "cudaq/constants.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Todo.h"
