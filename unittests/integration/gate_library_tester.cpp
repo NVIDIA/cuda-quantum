@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -12,7 +12,7 @@
 #include <random>
 using namespace cudaq;
 
-#ifndef CUDAQ_BACKEND_DM
+#if !defined(CUDAQ_BACKEND_DM) && !defined(CUDAQ_BACKEND_STIM)
 namespace {
 // These tests are meant to validate the correctness of custom kernels.
 // Hence, reduce the test load on tensornet backends (slow for these small

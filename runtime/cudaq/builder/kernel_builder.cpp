@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -17,8 +17,6 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "mlir/Dialect/Affine/IR/AffineOps.h"
-#include "mlir/Dialect/Affine/Passes.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
@@ -214,12 +212,9 @@ void exp_pauli(ImplicitLocOpBuilder &builder, const QuakeValue &theta,
                              "type as first argument.");
   cudaq::info("kernel_builder apply exp_pauli {}", pauliWord);
 
-  auto strLitTy = cc::PointerType::get(cc::ArrayType::get(
-      builder.getContext(), builder.getI8Type(), pauliWord.size() + 1));
-  Value stringLiteral = builder.create<cc::CreateStringLiteralOp>(
-      strLitTy, builder.getStringAttr(pauliWord));
-  SmallVector<Value> args{thetaVal, qubitsVal, stringLiteral};
-  builder.create<quake::ExpPauliOp>(TypeRange{}, args);
+  auto stringLiteral = builder.getStringAttr(pauliWord);
+  builder.create<quake::ExpPauliOp>(ValueRange{thetaVal}, ValueRange{},
+                                    ValueRange{qubitsVal}, stringLiteral);
 }
 
 /// @brief Search the given `FuncOp` for all `CallOps` recursively.
@@ -510,6 +505,22 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &sizeOrVec) {
     return QuakeValue(builder, qubits);
   }
 
+  if (auto statePtrTy = dyn_cast<cc::PointerType>(type)) {
+    auto eleTy = statePtrTy.getElementType();
+    if (auto stateTy = dyn_cast<cc::StateType>(eleTy)) {
+      // get the number of qubits
+      auto numQubits = builder.create<quake::GetNumberOfQubitsOp>(
+          builder.getI64Type(), value);
+      // allocate the number of qubits we need
+      auto veqTy = quake::VeqType::getUnsized(context);
+      Value qubits = builder.create<quake::AllocaOp>(veqTy, numQubits);
+      // Add the initialize state op
+      qubits = builder.create<quake::InitializeStateOp>(qubits.getType(),
+                                                        qubits, value);
+      return QuakeValue(builder, qubits);
+    }
+  }
+
   if (!type.isIntOrIndex())
     throw std::runtime_error(
         "Invalid parameter passed to qalloc (must be integer type).");
@@ -762,16 +773,28 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
 
   cudaq::info("kernel_builder apply measurement");
 
-  auto strAttr = builder.getStringAttr(regName);
+  // FIXME: regName cannot be empty, but the prototypes give an empty string as
+  // the default. This is a workaround to clear out the empty string so we don't
+  // build broken IR.
+  StringAttr strAttr;
+  if (!regName.empty())
+    strAttr = builder.getStringAttr(regName);
+
   Type resTy = builder.getI1Type();
   Type measTy = quake::MeasureType::get(builder.getContext());
   if (!type.isa<quake::RefType>()) {
     resTy = cc::StdvecType::get(resTy);
     measTy = cc::StdvecType::get(measTy);
   }
-  Value measureResult =
-      builder.template create<QuakeMeasureOp>(measTy, value, strAttr)
-          .getMeasOut();
+  Value measureResult;
+  if (strAttr)
+    measureResult =
+        builder.template create<QuakeMeasureOp>(measTy, value, strAttr)
+            .getMeasOut();
+  else
+    measureResult =
+        builder.template create<QuakeMeasureOp>(measTy, value).getMeasOut();
+
   Value bits = builder.create<quake::DiscriminateOp>(resTy, measureResult);
   return QuakeValue(builder, bits);
 }
@@ -873,6 +896,8 @@ void tagEntryPoint(ImplicitLocOpBuilder &builder, ModuleOp &module,
   module.walk([&](func::FuncOp function) {
     if (function.empty())
       return WalkResult::advance();
+    if (!function->hasAttr(cudaq::kernelAttrName))
+      function->setAttr(cudaq::kernelAttrName, builder.getUnitAttr());
     if (!function->hasAttr(cudaq::entryPointAttrName) &&
         !hasAnyQubitTypes(function.getFunctionType()) &&
         (symbolName.empty() || function.getSymName().equals(symbolName)))
@@ -920,30 +945,30 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   names.emplace_back(mlir::StringAttr::get(ctx, kernelName),
                      mlir::StringAttr::get(ctx, "BuilderKernel.EntryPoint"));
   auto mapAttr = mlir::DictionaryAttr::get(ctx, names);
-  module->setAttr("quake.mangled_name_map", mapAttr);
+  module->setAttr(cudaq::runtime::mangledNameMap, mapAttr);
 
   // Tag as an entrypoint if it is one
   tagEntryPoint(builder, module, StringRef{});
 
   {
     PassManager pm(context);
-    OpPassManager &optPM = pm.nest<func::FuncOp>();
-    optPM.addPass(cudaq::opt::createUnwindLoweringPass());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLoweringPass());
     cudaq::opt::addAggressiveEarlyInlining(pm);
     pm.addPass(createCanonicalizerPass());
     pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
-    optPM.addPass(cudaq::opt::createClassicalMemToReg());
-    pm.addPass(createCanonicalizerPass());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
+    pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     pm.addPass(cudaq::opt::createExpandMeasurementsPass());
-    pm.addPass(cudaq::opt::createLoopNormalize());
-    pm.addPass(cudaq::opt::createLoopUnroll());
-    pm.addPass(createCanonicalizerPass());
-    optPM.addPass(cudaq::opt::createQuakeAddDeallocs());
-    optPM.addPass(cudaq::opt::createQuakeAddMetadata());
-    optPM.addPass(createCanonicalizerPass());
-    optPM.addPass(createCSEPass());
-    pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader(/*genAsQuake=*/true));
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll());
+    pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
+    pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+    pm.addNestedPass<func::FuncOp>(createCSEPass());
+    pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader({.jitTime = true}));
     pm.addPass(cudaq::opt::createGenerateKernelExecution());
+    pm.addPass(createSymbolDCEPass());
     if (failed(pm.run(module)))
       throw std::runtime_error(
           "cudaq::builder failed to JIT compile the Quake representation.");
@@ -953,17 +978,17 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
     // rewrites before lowering to a raw CFG form. Loop unrolling depends on the
     // cc.loop op and GKE generates new code which may have cc.loop ops, etc.
     PassManager pm(context);
-    OpPassManager &optPM = pm.nest<func::FuncOp>();
-    optPM.addPass(cudaq::opt::createLowerToCFGPass());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createLowerToCFGPass());
     // We want quantum allocations to stay where they are if
     // we are simulating and have user-provided state vectors.
     // This check could be better / smarter probably, in tandem
     // with some synth strategy to rewrite initState with circuit
     // synthesis result
     if (stateVectorStorage.empty())
-      optPM.addPass(cudaq::opt::createCombineQuantumAllocations());
-    optPM.addPass(createCanonicalizerPass());
-    optPM.addPass(createCSEPass());
+      pm.addNestedPass<func::FuncOp>(
+          cudaq::opt::createCombineQuantumAllocations());
+    pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+    pm.addNestedPass<func::FuncOp>(createCSEPass());
     pm.addPass(cudaq::opt::createConvertToQIR());
     pm.addPass(createCanonicalizerPass());
 

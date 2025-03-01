@@ -1,0 +1,103 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt %s --add-dealloc --canonicalize | cudaq-translate --convert-to=qir | FileCheck %s
+
+func.func @adder_n4() {
+  %0 = quake.alloca !quake.veq<4>
+  %1 = cc.alloca !cc.array<i1 x 4>
+  %c0 = arith.constant 0 : index
+  %2 = quake.extract_ref %0[%c0] : (!quake.veq<4>, index) -> !quake.ref
+  quake.x %2 : (!quake.ref) -> ()
+  %c1 = arith.constant 1 : index
+  %3 = quake.extract_ref %0[%c1] : (!quake.veq<4>, index) -> !quake.ref
+  quake.x %3 : (!quake.ref) -> ()
+  %c3 = arith.constant 3 : index
+  %4 = quake.extract_ref %0[%c3] : (!quake.veq<4>, index) -> !quake.ref
+  quake.h %4 : (!quake.ref) -> ()
+  %c2 = arith.constant 2 : index
+  %5 = quake.extract_ref %0[%c2] : (!quake.veq<4>, index) -> !quake.ref
+  quake.x [%5] %4 : (!quake.ref, !quake.ref) -> ()
+  quake.t %2 : (!quake.ref) -> ()
+  quake.t %3 : (!quake.ref) -> ()
+  quake.t %5 : (!quake.ref) -> ()
+  quake.t<adj> %4 : (!quake.ref) -> ()
+  quake.x [%2] %3 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%5] %4 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%4] %2 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%3] %5 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%2] %3 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%5] %4 : (!quake.ref, !quake.ref) -> ()
+  quake.t<adj> %2 : (!quake.ref) -> ()
+  quake.t<adj> %3 : (!quake.ref) -> ()
+  quake.t<adj> %5 : (!quake.ref) -> ()
+  quake.t %4 : (!quake.ref) -> ()
+  quake.x [%2] %3 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%5] %4 : (!quake.ref, !quake.ref) -> ()
+  quake.s %4 : (!quake.ref) -> ()
+  quake.x [%4] %2 : (!quake.ref, !quake.ref) -> ()
+  quake.h %4 : (!quake.ref) -> ()
+  %6 = quake.mz %2 : (!quake.ref) -> !quake.measure
+  %61 = quake.discriminate %6 : (!quake.measure) -> i1
+  %a = cc.compute_ptr %1[0] : (!cc.ptr<!cc.array<i1 x 4>>) -> !cc.ptr<i1>
+  cc.store %61, %a : !cc.ptr<i1>
+  %7 = quake.mz %3 : (!quake.ref) -> !quake.measure
+  %71 = quake.discriminate %7 : (!quake.measure) -> i1
+  %b = cc.compute_ptr %1[1] : (!cc.ptr<!cc.array<i1 x 4>>) -> !cc.ptr<i1>
+  cc.store %71, %b : !cc.ptr<i1>
+  %8 = quake.mz %5 : (!quake.ref) -> !quake.measure
+  %81 = quake.discriminate %8 : (!quake.measure) -> i1
+  %c = cc.compute_ptr %1[2] : (!cc.ptr<!cc.array<i1 x 4>>) -> !cc.ptr<i1>
+  cc.store %81, %c : !cc.ptr<i1>
+  %9 = quake.mz %4 : (!quake.ref) -> !quake.measure
+  %91 = quake.discriminate %9 : (!quake.measure) -> i1
+  %d = cc.compute_ptr %1[3] : (!cc.ptr<!cc.array<i1 x 4>>) -> !cc.ptr<i1>
+  cc.store %91, %d : !cc.ptr<i1>
+  return
+}
+
+// CHECK-LABEL: define void @adder_n4() local_unnamed_addr {
+// CHECK:         %[[VAL_0:.*]] = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 4)
+// CHECK:         %[[VAL_2:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 0)
+// CHECK:         %[[VAL_4:.*]] = load %Qubit*, %Qubit** %[[VAL_2]], align 8
+// CHECK:         tail call void @__quantum__qis__x(%Qubit* %[[VAL_4]])
+// CHECK:         %[[VAL_5:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 1)
+// CHECK:         %[[VAL_6:.*]] = load %Qubit*, %Qubit** %[[VAL_5]], align 8
+// CHECK:         tail call void @__quantum__qis__x(%Qubit* %[[VAL_6]])
+// CHECK:         %[[VAL_7:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 3)
+// CHECK:         %[[VAL_8:.*]] = load %Qubit*, %Qubit** %[[VAL_7]], align 8
+// CHECK:         tail call void @__quantum__qis__h(%Qubit* %[[VAL_8]])
+// CHECK:         %[[VAL_9:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 2)
+// CHECK:         %[[VAL_10:.*]] = load %Qubit*, %Qubit** %[[VAL_9]], align 8
+// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* nonnull bitcast (void (%Array*, %Qubit*)* @__quantum__qis__x__ctl to i8*), %Qubit* %[[VAL_10]], %Qubit* %[[VAL_8]])
+// CHECK:         tail call void @__quantum__qis__t(%Qubit* %[[VAL_4]])
+// CHECK:         tail call void @__quantum__qis__t(%Qubit* %[[VAL_6]])
+// CHECK:         tail call void @__quantum__qis__t(%Qubit* %[[VAL_10]])
+// CHECK:         tail call void @__quantum__qis__t__adj(%Qubit* %[[VAL_8]])
+// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* nonnull bitcast (void (%Array*, %Qubit*)* @__quantum__qis__x__ctl to i8*), %Qubit* %[[VAL_4]], %Qubit* %[[VAL_6]])
+// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* nonnull bitcast (void (%Array*, %Qubit*)* @__quantum__qis__x__ctl to i8*), %Qubit* %[[VAL_10]], %Qubit* %[[VAL_8]])
+// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* nonnull bitcast (void (%Array*, %Qubit*)* @__quantum__qis__x__ctl to i8*), %Qubit* %[[VAL_8]], %Qubit* %[[VAL_4]])
+// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* nonnull bitcast (void (%Array*, %Qubit*)* @__quantum__qis__x__ctl to i8*), %Qubit* %[[VAL_6]], %Qubit* %[[VAL_10]])
+// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* nonnull bitcast (void (%Array*, %Qubit*)* @__quantum__qis__x__ctl to i8*), %Qubit* %[[VAL_4]], %Qubit* %[[VAL_6]])
+// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* nonnull bitcast (void (%Array*, %Qubit*)* @__quantum__qis__x__ctl to i8*), %Qubit* %[[VAL_10]], %Qubit* %[[VAL_8]])
+// CHECK:         tail call void @__quantum__qis__t__adj(%Qubit* %[[VAL_4]])
+// CHECK:         tail call void @__quantum__qis__t__adj(%Qubit* %[[VAL_6]])
+// CHECK:         tail call void @__quantum__qis__t__adj(%Qubit* %[[VAL_10]])
+// CHECK:         tail call void @__quantum__qis__t(%Qubit* %[[VAL_8]])
+// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* nonnull bitcast (void (%Array*, %Qubit*)* @__quantum__qis__x__ctl to i8*), %Qubit* %[[VAL_4]], %Qubit* %[[VAL_6]])
+// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* nonnull bitcast (void (%Array*, %Qubit*)* @__quantum__qis__x__ctl to i8*), %Qubit* %[[VAL_10]], %Qubit* %[[VAL_8]])
+// CHECK:         tail call void @__quantum__qis__s(%Qubit* %[[VAL_8]])
+// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* nonnull bitcast (void (%Array*, %Qubit*)* @__quantum__qis__x__ctl to i8*), %Qubit* %[[VAL_8]], %Qubit* %[[VAL_4]])
+// CHECK:         tail call void @__quantum__qis__h(%Qubit* %[[VAL_8]])
+// CHECK:         %[[VAL_11:.*]] = tail call %Result* @__quantum__qis__mz(%Qubit* %[[VAL_4]])
+// CHECK:         %[[VAL_13:.*]] = tail call %Result* @__quantum__qis__mz(%Qubit* %[[VAL_6]])
+// CHECK:         %[[VAL_14:.*]] = tail call %Result* @__quantum__qis__mz(%Qubit* %[[VAL_10]])
+// CHECK:         %[[VAL_15:.*]] = tail call %Result* @__quantum__qis__mz(%Qubit* %[[VAL_8]])
+// CHECK:         tail call void @__quantum__rt__qubit_release_array(%Array* %[[VAL_0]])
+// CHECK:         ret void
+// CHECK:       }

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -7,7 +7,6 @@
 # ============================================================================ #
 
 set(LIBRARY_NAME rest_server_impl)
-
 add_library(${LIBRARY_NAME} OBJECT RestServer.cpp)
 
 target_link_libraries(${LIBRARY_NAME} PRIVATE Crow::Crow)

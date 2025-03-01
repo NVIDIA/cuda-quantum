@@ -1,20 +1,21 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import cudaq, pytest, os, time
+import cudaq
+import pytest
+import os
 from cudaq import spin
 import numpy as np
 from typing import List
-from multiprocessing import Process
 
 
-def assert_close(got) -> bool:
-    return got < -1.5 and got > -1.9
+def assert_close(want, got, tolerance=1.0e-1) -> bool:
+    return abs(want - got) < tolerance
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -84,13 +85,26 @@ def test_quantinuum_observe():
 
     # Run the observe task on quantinuum synchronously
     res = cudaq.observe(ansatz, hamiltonian, .59, shots_count=100000)
-    assert assert_close(res.expectation())
+    assert assert_close(-1.7, res.expectation())
 
     # Launch it asynchronously, enters the job into the queue
     future = cudaq.observe_async(ansatz, hamiltonian, .59, shots_count=100000)
     # Retrieve the results (since we're emulating)
     res = future.get()
-    assert assert_close(res.expectation())
+    assert assert_close(-1.7, res.expectation())
+
+
+def test_observe():
+    cudaq.set_random_seed(13)
+
+    @cudaq.kernel
+    def ansatz():
+        q = cudaq.qvector(1)
+
+    molecule = 5.0 - 1.0 * spin.x(0)
+    res = cudaq.observe(ansatz, molecule, shots_count=10000)
+    print(res.expectation())
+    assert assert_close(5.0, res.expectation())
 
 
 def test_quantinuum_exp_pauli():
@@ -110,13 +124,13 @@ def test_quantinuum_exp_pauli():
 
     # Run the observe task on quantinuum synchronously
     res = cudaq.observe(ansatz, hamiltonian, .59, shots_count=100000)
-    assert assert_close(res.expectation())
+    assert assert_close(-1.7, res.expectation())
 
     # Launch it asynchronously, enters the job into the queue
     future = cudaq.observe_async(ansatz, hamiltonian, .59, shots_count=100000)
     # Retrieve the results (since we're emulating)
     res = future.get()
-    assert assert_close(res.expectation())
+    assert assert_close(-1.7, res.expectation())
 
 
 def test_u3_emulatation():
@@ -165,18 +179,144 @@ def test_quantinuum_state_preparation():
     assert not '111' in counts
 
 
-def test_arbitrary_unitary_synthesis():
-    import numpy as np
-    cudaq.register_operation("custom_h",
-                             1. / np.sqrt(2.) * np.array([1, 1, 1, -1]))
+def test_quantinuum_state_synthesis():
 
     @cudaq.kernel
-    def basic():
-        q = cudaq.qubit()
-        custom_h(q)
+    def kernel(state: cudaq.State):
+        qubits = cudaq.qvector(state)
 
-    with pytest.raises(RuntimeError) as error:
-        cudaq.sample(basic)
+    state = cudaq.State.from_data(
+        np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.], dtype=complex))
+
+    with pytest.raises(RuntimeError) as e:
+        counts = cudaq.sample(kernel, state)
+    assert 'Could not successfully apply quake-synth.' in repr(e)
+
+
+def test_exp_pauli():
+
+    @cudaq.kernel
+    def test():
+        q = cudaq.qvector(2)
+        exp_pauli(1.0, q, "XX")
+
+    counts = cudaq.sample(test)
+    assert '00' in counts
+    assert '11' in counts
+    assert not '01' in counts
+    assert not '10' in counts
+
+
+def test_exp_pauli_param():
+
+    @cudaq.kernel
+    def test_param(w: cudaq.pauli_word):
+        q = cudaq.qvector(2)
+        exp_pauli(1.0, q, w)
+
+    # FIXME: should work after new launchKernel becomes default.
+    with pytest.raises(RuntimeError) as e:
+        counts = cudaq.sample(test_param, cudaq.pauli_word("XX"))
+    assert 'Remote rest platform Quake lowering failed.' in repr(e)
+
+
+def test_1q_unitary_synthesis():
+
+    cudaq.register_operation("custom_h",
+                             1. / np.sqrt(2.) * np.array([1, 1, 1, -1]))
+    cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
+
+    @cudaq.kernel
+    def basic_x():
+        qubit = cudaq.qubit()
+        custom_x(qubit)
+
+    counts = cudaq.sample(basic_x)
+    assert len(counts) == 1 and "1" in counts
+
+    @cudaq.kernel
+    def basic_h():
+        qubit = cudaq.qubit()
+        custom_h(qubit)
+
+    counts = cudaq.sample(basic_h)
+    assert "0" in counts and "1" in counts
+
+    @cudaq.kernel
+    def bell():
+        qubits = cudaq.qvector(2)
+        custom_h(qubits[0])
+        custom_x.ctrl(qubits[0], qubits[1])
+
+    counts = cudaq.sample(bell)
+    assert len(counts) == 2
+    assert "00" in counts and "11" in counts
+
+    cudaq.register_operation("custom_s", np.array([1, 0, 0, 1j]))
+    cudaq.register_operation("custom_s_adj", np.array([1, 0, 0, -1j]))
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qubit()
+        h(q)
+        custom_s.adj(q)
+        custom_s_adj(q)
+        h(q)
+
+    counts = cudaq.sample(kernel)
+    assert counts["1"] == 1000
+
+
+def test_2q_unitary_synthesis():
+
+    cudaq.register_operation(
+        "custom_cnot",
+        np.array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0]))
+
+    @cudaq.kernel
+    def bell_pair():
+        qubits = cudaq.qvector(2)
+        h(qubits[0])
+        custom_cnot(qubits[0], qubits[1])
+
+    counts = cudaq.sample(bell_pair)
+    assert len(counts) == 2
+    assert "00" in counts and "11" in counts
+
+    cudaq.register_operation(
+        "custom_cz", np.array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+                               -1]))
+
+    @cudaq.kernel
+    def ctrl_z_kernel():
+        qubits = cudaq.qvector(5)
+        controls = cudaq.qvector(2)
+        custom_cz(qubits[1], qubits[0])
+        x(qubits[2])
+        custom_cz(qubits[3], qubits[2])
+        x(controls)
+
+    counts = cudaq.sample(ctrl_z_kernel)
+    assert counts["0010011"] == 1000
+
+
+def test_3q_unitary_synthesis():
+    cudaq.register_operation(
+        "toffoli",
+        np.array([
+            1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0
+        ]))
+
+    @cudaq.kernel
+    def test_toffoli():
+        q = cudaq.qvector(3)
+        x(q)
+        toffoli(q[0], q[1], q[2])
+
+    with pytest.raises(RuntimeError):
+        cudaq.sample(test_toffoli)
 
 
 # leave for gdb debugging

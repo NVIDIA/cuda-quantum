@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -105,6 +105,10 @@ Value cudaq::cc::getByteSizeOfType(OpBuilder &builder, Location loc, Type ty,
         auto scale = createInt(arrTy.getSize());
         return builder.create<arith::MulIOp>(loc, builder.getI64Type(), v,
                                              scale);
+      })
+      .Case([&](cudaq::cc::SpanLikeType) -> Value {
+        // Uniformly on the device size: {ptr, i64}
+        return createInt(16);
       })
       .Default({});
 }
@@ -319,6 +323,9 @@ LogicalResult cudaq::cc::CastOp::verify() {
       auto iTy2 = cast<IntegerType>(outTy);
       if ((iTy1.getWidth() < iTy2.getWidth()) && !getSint() && !getZint())
         return emitOpError("integer extension must be signed or unsigned.");
+    } else if (isa<IntegerType>(inTy) && isa<cc::IndirectCallableType>(outTy)) {
+      // ok: nop
+      // the indirect callable value is an integer key on the device side.
     } else if (isa<IntegerType>(inTy) && isa<cc::PointerType>(outTy)) {
       // ok: inttoptr
     } else if (isa<cc::PointerType>(inTy) && isa<IntegerType>(outTy)) {
@@ -354,6 +361,9 @@ LogicalResult cudaq::cc::CastOp::verify() {
   } else if (isa<ComplexType>(inTy) && isa<ComplexType>(outTy)) {
     // ok, type conversion of a complex value
     // NB: use complex.re or complex.im to convert (extract) a fp value.
+  } else if (isa<FunctionType>(inTy) && isa<cc::IndirectCallableType>(outTy)) {
+    // ok, type conversion of a function to an indirect callable
+    // Folding will remove this.
   } else {
     // Could support a bitcast of a float with pointer size bits to/from a
     // pointer, but that doesn't seem like it would be very common.
@@ -379,8 +389,9 @@ struct FuseCastCascade : public OpRewritePattern<cudaq::cc::CastOp> {
         // %5 = cc.cast %3 : (!cc.ptr<T>) -> !cc.ptr<V>
         rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(castOp, castOp.getType(),
                                                        castToCast.getValue());
+        return success();
       }
-    return success();
+    return failure();
   }
 };
 
@@ -406,11 +417,13 @@ struct SimplifyIntegerCompare : public OpRewritePattern<arith::CmpIOp> {
       auto rhsVal = rhsCast.getValue();
       if (lhsVal.getType() == rhsVal.getType() &&
           lhsCast.getSint() == rhsCast.getSint() &&
-          lhsCast.getZint() == rhsCast.getZint())
+          lhsCast.getZint() == rhsCast.getZint()) {
         rewriter.replaceOpWithNewOp<arith::CmpIOp>(
             compare, compare.getType(), compare.getPredicate(), lhsVal, rhsVal);
+        return success();
+      }
     }
-    return success();
+    return failure();
   }
 };
 
@@ -429,8 +442,9 @@ struct FuseComplexCreate : public OpRewritePattern<complex::CreateOp> {
       auto arrAttr = rewriter.getArrayAttr({rePart, imPart});
       rewriter.replaceOpWithNewOp<complex::ConstantOp>(
           create, ComplexType::get(eleTy), arrAttr);
+      return success();
     }
-    return success();
+    return failure();
   }
 };
 } // namespace
@@ -764,7 +778,7 @@ struct FuseAddressArithmetic
           return success();
         }
     }
-    return success();
+    return failure();
   }
 };
 } // namespace
@@ -967,7 +981,7 @@ struct FuseWithConstantArray
           return success();
         }
       }
-    return success();
+    return failure();
   }
 };
 } // namespace
@@ -992,6 +1006,14 @@ ParseResult cudaq::cc::GlobalOp::parse(OpAsmParser &parser,
   if (succeeded(parser.parseOptionalKeyword("constant")))
     result.addAttribute(getConstantAttrName(result.name),
                         parser.getBuilder().getUnitAttr());
+
+  // Check for the visibility optional keyword third.
+  StringRef visibility;
+  if (parser.parseOptionalKeyword(&visibility, {"public", "private", "nested"}))
+    return failure();
+
+  StringAttr visibilityAttr = parser.getBuilder().getStringAttr(visibility);
+  result.addAttribute(SymbolTable::getVisibilityAttrName(), visibilityAttr);
 
   // Parse the rest of the global.
   //   @<symbol> ( <initializer-attr> ) : <result-type>
@@ -1023,6 +1045,11 @@ void cudaq::cc::GlobalOp::print(OpAsmPrinter &p) {
     p << "extern ";
   if (getConstant())
     p << "constant ";
+
+  if (auto visibility = getSymVisibility())
+    if (visibility.has_value())
+      p << visibility.value().str() << ' ';
+
   p.printSymbolName(getSymName());
   if (auto value = getValue()) {
     p << " (";
@@ -1030,10 +1057,50 @@ void cudaq::cc::GlobalOp::print(OpAsmPrinter &p) {
     p << ")";
   }
   p << " : " << getGlobalType();
-  p.printOptionalAttrDictWithKeyword(
-      (*this)->getAttrs(),
-      {getSymNameAttrName(), getValueAttrName(), getGlobalTypeAttrName(),
-       getConstantAttrName(), getExternalAttrName()});
+
+  p.printOptionalAttrDict((*this)->getAttrs(),
+                          {getSymNameAttrName(), getValueAttrName(),
+                           getGlobalTypeAttrName(), getConstantAttrName(),
+                           getExternalAttrName(), getSymVisibilityAttrName()});
+}
+
+//===----------------------------------------------------------------------===//
+// InsertValueOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult cudaq::cc::InsertValueOp::verify() {
+  Type eleTy = getContainer().getType();
+  auto resultTy = getResult().getType();
+
+  if (!isCompatible(eleTy, resultTy))
+    return emitOpError("result type does not match input");
+
+  for (std::int32_t i : getPosition()) {
+    if (auto arrTy = dyn_cast<cc::ArrayType>(eleTy)) {
+      if (arrTy.isUnknownSize())
+        return emitOpError("array must have constant size");
+      if (i < 0 || static_cast<std::int64_t>(i) >= arrTy.getSize())
+        return emitOpError("array cannot index out of bounds elements");
+      eleTy = arrTy.getElementType();
+    } else if (auto strTy = dyn_cast<cc::StructType>(eleTy)) {
+      if (i < 0 || static_cast<std::size_t>(i) >= strTy.getMembers().size())
+        return emitOpError("struct cannot index out of bounds members");
+      eleTy = strTy.getMember(i);
+    } else if (auto complexTy = dyn_cast<ComplexType>(eleTy)) {
+      if (!(i == 0 || i == 1))
+        return emitOpError("complex index is out of bounds");
+      eleTy = complexTy.getElementType();
+    } else {
+      return emitOpError(std::string{"too many indices ("} +
+                         std::to_string(getPosition().size()) +
+                         ") for the source pointer");
+    }
+  }
+
+  Type valTy = getValue().getType();
+  if (!isCompatible(valTy, eleTy))
+    return emitOpError("value type does not match selected element");
+  return success();
 }
 
 //===----------------------------------------------------------------------===//
@@ -1058,8 +1125,9 @@ struct ForwardStdvecInitData
       Value cast = rewriter.create<cudaq::cc::CastOp>(
           data.getLoc(), data.getType(), ini.getBuffer());
       rewriter.replaceOp(data, cast);
+      return success();
     }
-    return success();
+    return failure();
   }
 };
 } // namespace
@@ -1085,8 +1153,9 @@ struct ForwardStdvecInitSize
       Value cast = rewriter.create<cudaq::cc::CastOp>(
           size.getLoc(), size.getType(), ini.getLength());
       rewriter.replaceOp(size, cast);
+      return success();
     }
-    return success();
+    return failure();
   }
 };
 } // namespace
@@ -1507,9 +1576,9 @@ struct HoistLoopInvariantArgs : public OpRewritePattern<cudaq::cc::LoopOp> {
           }
         }
       }
+      return success();
     }
-
-    return success();
+    return failure();
   }
 };
 } // namespace
@@ -1640,7 +1709,7 @@ struct EraseScopeWhenNotNeeded : public OpRewritePattern<cudaq::cc::ScopeOp> {
   LogicalResult matchAndRewrite(cudaq::cc::ScopeOp scope,
                                 PatternRewriter &rewriter) const override {
     if (scope.hasAllocation())
-      return success();
+      return failure();
 
     // scope does not allocate, so the region can be inlined into the parent.
     auto loc = scope.getLoc();
@@ -1940,6 +2009,56 @@ LogicalResult cudaq::cc::CallCallableOp::verify() {
 }
 
 //===----------------------------------------------------------------------===//
+// CallIndirectCallableOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult cudaq::cc::CallIndirectCallableOp::verify() {
+  FunctionType funcTy =
+      cast<IndirectCallableType>(getCallee().getType()).getSignature();
+
+  // Check argument types.
+  auto argTys = funcTy.getInputs();
+  if (argTys.size() != getArgOperands().size())
+    return emitOpError("call has incorrect arity");
+  for (auto [targArg, argVal] : llvm::zip(argTys, getArgOperands()))
+    if (targArg != argVal.getType())
+      return emitOpError("argument type mismatch");
+
+  // Check return types.
+  auto resTys = funcTy.getResults();
+  if (resTys.size() != getResults().size())
+    return emitOpError("call has incorrect coarity");
+  for (auto [targRes, callVal] : llvm::zip(resTys, getResults()))
+    if (targRes != callVal.getType())
+      return emitOpError("result type mismatch");
+  return success();
+}
+
+namespace {
+struct MakeDirectCall
+    : public OpRewritePattern<cudaq::cc::CallIndirectCallableOp> {
+  using Base = OpRewritePattern<cudaq::cc::CallIndirectCallableOp>;
+  using Base::Base;
+
+  LogicalResult matchAndRewrite(cudaq::cc::CallIndirectCallableOp indCall,
+                                PatternRewriter &rewriter) const override {
+    if (auto cast = indCall.getCallee().getDefiningOp<cudaq::cc::CastOp>())
+      if (auto fn = cast.getValue().getDefiningOp<func::ConstantOp>()) {
+        rewriter.replaceOpWithNewOp<func::CallIndirectOp>(indCall, fn,
+                                                          indCall.getArgs());
+        return success();
+      }
+    return failure();
+  }
+};
+} // namespace
+
+void cudaq::cc::CallIndirectCallableOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<MakeDirectCall>(context);
+}
+
+//===----------------------------------------------------------------------===//
 // ConditionOp
 //===----------------------------------------------------------------------===//
 
@@ -2095,6 +2214,16 @@ struct ReplaceConstantSizes : public OpRewritePattern<cudaq::cc::SizeOfOp> {
     auto inpTy = sizeOp.getInputType();
     if (Value v = cudaq::cc::getByteSizeOfType(rewriter, sizeOp.getLoc(), inpTy,
                                                /*useSizeOf=*/false)) {
+      if (v.getType() != sizeOp.getType()) {
+        auto vSz = v.getType().getIntOrFloatBitWidth();
+        auto sizeOpSz = sizeOp.getType().getIntOrFloatBitWidth();
+        auto loc = sizeOp.getLoc();
+        if (sizeOpSz < vSz)
+          v = rewriter.create<cudaq::cc::CastOp>(loc, sizeOp.getType(), v);
+        else
+          v = rewriter.create<cudaq::cc::CastOp>(
+              loc, sizeOp.getType(), v, cudaq::cc::CastOpMode::Unsigned);
+      }
       rewriter.replaceOp(sizeOp, v);
       return success();
     }
@@ -2149,8 +2278,9 @@ struct ReplaceInLoop : public OpRewritePattern<FROM> {
       rewriter.splitBlock(scopeBlock, scopePt);
       rewriter.setInsertionPointToEnd(scopeBlock);
       rewriter.replaceOpWithNewOp<WITH>(fromOp, fromOp.getOperands());
+      return success();
     }
-    return success();
+    return failure();
   }
 };
 
@@ -2214,6 +2344,50 @@ LogicalResult cudaq::cc::UnwindReturnOp::verify() {
   for (auto p : llvm::zip(getOperands().getTypes(), resultTypes))
     if (std::get<0>(p) != std::get<1>(p))
       return emitOpError("argument type mismatch with function/lambda result");
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
+// VarargCallOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult
+cudaq::cc::VarargCallOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
+  // Check that the callee attribute was specified.
+  auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("callee");
+  if (!fnAttr)
+    return emitOpError("requires a 'callee' symbol reference attribute");
+  LLVM::LLVMFuncOp fn =
+      symbolTable.lookupNearestSymbolFrom<LLVM::LLVMFuncOp>(*this, fnAttr);
+  if (!fn)
+    return emitOpError() << "'" << fnAttr.getValue()
+                         << "' does not reference a valid LLVM function";
+
+  // Verify that the operand and result types match the callee.
+  auto fnType = fn.getFunctionType();
+  if (fnType.getNumParams() > getNumOperands())
+    return emitOpError("incorrect number of operands for callee");
+
+  for (unsigned i = 0, e = fnType.getNumParams(); i != e; ++i)
+    if (getOperand(i).getType() != fnType.getParams()[i]) {
+      return emitOpError("operand type mismatch: expected operand type ")
+             << fnType.getParams()[i] << ", but provided "
+             << getOperand(i).getType() << " for operand number " << i;
+    }
+
+  if (fnType.getReturnType() == LLVM::LLVMVoidType::get(getContext()) &&
+      getNumResults() == 0)
+    return success();
+
+  if (getNumResults() > 1)
+    return emitOpError("wrong number of result types: ") << getNumResults();
+
+  if (getResult(1).getType() != fnType.getReturnType()) {
+    auto diag = emitOpError("result type mismatch ");
+    diag.attachNote() << "      op result types: " << getResultTypes();
+    diag.attachNote() << "function result types: " << fnType.getReturnType();
+    return diag;
+  }
   return success();
 }
 

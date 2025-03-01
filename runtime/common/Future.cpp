@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -41,12 +41,19 @@ sample_result future::get() {
     }
     auto c = serverHelper->processResults(resultResponse, id.first);
 
-    // If there are multiple jobs, this is likely a spin_op.
-    // If so, use the job name instead of the global register.
-    if (jobs.size() > 1) {
+    if (isObserve) {
+      // Use the job name instead of the global register.
       results.emplace_back(c.to_map(), id.second);
       results.back().sequentialData = c.sequential_data();
     } else {
+      if (c.has_expectation()) {
+        // If the QPU returns the data with expectation values, just use it
+        // directly.
+        // This can be the case for remote emulation/simulation providers who
+        // compute the expectation value for us.
+        return c;
+      }
+
       // For each register, add the results into result.
       for (auto &regName : c.register_names()) {
         results.emplace_back(c.to_map(regName), regName);
@@ -67,6 +74,7 @@ future &future::operator=(future &other) {
   jobs = other.jobs;
   qpuName = other.qpuName;
   serverConfig = other.serverConfig;
+  isObserve = other.isObserve;
   if (other.wrapsFutureSampling) {
     wrapsFutureSampling = true;
     inFuture = std::move(other.inFuture);
@@ -78,6 +86,7 @@ future &future::operator=(future &&other) {
   jobs = other.jobs;
   qpuName = other.qpuName;
   serverConfig = other.serverConfig;
+  isObserve = other.isObserve;
   if (other.wrapsFutureSampling) {
     wrapsFutureSampling = true;
     inFuture = std::move(other.inFuture);
@@ -94,6 +103,7 @@ std::ostream &operator<<(std::ostream &os, future &f) {
   j["jobs"] = f.jobs;
   j["qpu"] = f.qpuName;
   j["config"] = f.serverConfig;
+  j["isObserve"] = f.isObserve;
   os << j.dump(4);
   return os;
 }
@@ -102,13 +112,14 @@ std::istream &operator>>(std::istream &is, future &f) {
   nlohmann::json j;
   try {
     is >> j;
-  } catch (std::exception &ex) {
+  } catch (...) {
     throw std::runtime_error(
         "Formatting error; could not parse input as json.");
   }
   f.jobs = j["jobs"].get<std::vector<future::Job>>();
   f.qpuName = j["qpu"].get<std::string>();
   f.serverConfig = j["config"].get<std::map<std::string, std::string>>();
+  f.isObserve = j["isObserve"].get<bool>();
   return is;
 }
 

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -9,8 +9,6 @@
 # RUN: PYTHONPATH=../../ pytest -rP  %s | FileCheck %s
 
 import cudaq
-
-import pytest
 
 
 def test_var_scope():
@@ -24,7 +22,7 @@ def test_var_scope():
     print(kernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK:           %[[VAL_0:.*]] = arith.constant true
 # CHECK:           %[[VAL_1:.*]] = arith.constant 42 : i64
 # CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<2>

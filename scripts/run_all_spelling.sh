@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -82,7 +82,7 @@ for f in $ff; do
 done
 
 # cxx_examples
-ff=`find $ALL_FILES_TO_CONSIDER -name "*.cpp" | grep -P "^docs/sphinx/examples/"`
+ff=`find $ALL_FILES_TO_CONSIDER -name "*.cpp" | grep -E "^docs/sphinx/applications/|^docs/sphinx/targets/|^docs/sphinx/examples/"`
 NCHECK=0; for f in $ff; do NCHECK=$((NCHECK+1)); done
 echo "Beginning cxx_examples check ($NCHECK files to check)"
 for f in $ff; do

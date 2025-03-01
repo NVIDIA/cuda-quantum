@@ -35,6 +35,14 @@ Common
 .. doxygenclass:: cudaq::observe_result
     :members:
 
+.. doxygenstruct:: cudaq::observe_options
+    :members:
+
+.. doxygenfunction:: cudaq::observe(const observe_options &options, QuantumKernel &&kernel, spin_op H, Args &&...args)
+.. doxygenfunction:: cudaq::observe(std::size_t shots, QuantumKernel &&kernel, spin_op H, Args &&...args)
+.. doxygenfunction:: cudaq::observe(QuantumKernel &&kernel, spin_op H, Args &&...args)
+.. doxygenfunction:: cudaq::observe(QuantumKernel &&kernel, const SpinOpContainer &termList, Args &&...args)
+
 .. doxygenclass:: cudaq::ExecutionContext
     :members:
 
@@ -44,12 +52,21 @@ Common
 .. doxygenclass:: cudaq::async_result
     :members:
 
+.. doxygentypedef:: async_sample_result
+
 
 .. doxygenstruct:: cudaq::ExecutionResult
     :members:
 
 .. doxygenclass:: cudaq::sample_result
     :members:
+
+.. doxygenstruct:: cudaq::sample_options
+    :members:
+
+.. doxygenfunction:: cudaq::sample(const sample_options &options, QuantumKernel &&kernel, Args &&...args)
+.. doxygenfunction:: cudaq::sample(std::size_t shots, QuantumKernel &&kernel, Args &&...args)
+.. doxygenfunction:: cudaq::sample(QuantumKernel &&kernel, Args&&... args)
 
 .. doxygenclass:: cudaq::SimulationState
 
@@ -87,6 +104,8 @@ Common
 
 .. doxygenfunction:: cudaq::draw(QuantumKernel &&kernel, Args&&... args)
 
+.. doxygenfunction:: cudaq::get_state(QuantumKernel &&kernel, Args&&... args)
+
 .. doxygenclass:: cudaq::Resources
 
 .. doxygentypedef:: cudaq::complex_matrix::value_type
@@ -112,8 +131,37 @@ Noise Modeling
 .. doxygenclass:: cudaq::depolarization_channel
     :members:
 
+.. doxygenclass:: cudaq::x_error
+    :members:
+
+.. doxygenclass:: cudaq::y_error
+    :members:
+
+.. doxygenclass:: cudaq::z_error
+    :members:
+
+.. doxygenclass:: cudaq::amplitude_damping
+    :members:
+
+.. doxygenclass:: cudaq::phase_damping
+    :members:
+
+.. doxygenclass:: cudaq::pauli1
+    :members:
+
+.. doxygenclass:: cudaq::pauli2
+    :members:
+
+.. doxygenclass:: cudaq::depolarization1
+    :members:
+
+.. doxygenclass:: cudaq::depolarization2
+    :members:
+
 .. doxygenclass:: cudaq::noise_model
     :members:
+
+.. doxygenenum:: cudaq::noise_model_type
 
 Kernel Builder
 ===============
@@ -166,7 +214,15 @@ Platform
 
 .. doxygenclass:: cudaq::BaseRemoteSimulatorQPU
 
-.. doxygenclass:: cudaq::BaseNvcfSimulatorQPU    
+.. doxygenclass:: cudaq::BaseNvcfSimulatorQPU
+
+.. doxygenclass:: cudaq::FermioniqBaseQPU
+
+.. doxygenclass:: cudaq::OrcaRemoteRESTQPU
+
+.. doxygenclass:: cudaq::PasqalBaseQPU
+
+.. doxygenclass:: cudaq::QuEraBaseQPU
 
 .. doxygenclass:: cudaq::quantum_platform
     :members:
@@ -183,6 +239,10 @@ Platform
 .. doxygentypedef:: cudaq::QubitEdge
 
 .. doxygentypedef:: cudaq::KernelExecutionTask
+
+.. doxygenstruct:: cudaq::KernelThunkResultType
+
+.. doxygentypedef:: cudaq::KernelThunkType
 
 Utilities
 =========
@@ -225,3 +285,11 @@ Namespaces
 .. doxygenfunction:: cudaq::mpi::all_reduce(const T &localValue, const BinaryFunction &function)
 .. doxygenfunction:: cudaq::mpi::broadcast(std::vector<double> &data, int rootRank)
 .. doxygenfunction:: cudaq::mpi::broadcast(std::string &data, int rootRank)
+
+.. doxygennamespace:: cudaq::orca
+    :desc-only:
+
+.. doxygenfunction:: cudaq::orca::sample(std::vector<std::size_t> &input_state, std::vector<std::size_t> &loop_lengths, std::vector<double> &bs_angles, int n_samples = 10000, std::size_t qpu_id = 0)
+.. doxygenfunction:: cudaq::orca::sample(std::vector<std::size_t> &input_state, std::vector<std::size_t> &loop_lengths, std::vector<double> &bs_angles, std::vector<double> &ps_angles, int n_samples = 10000, std::size_t qpu_id = 0)
+.. doxygenfunction:: cudaq::orca::sample_async(std::vector<std::size_t> &input_state, std::vector<std::size_t> &loop_lengths, std::vector<double> &bs_angles, int n_samples = 10000, std::size_t qpu_id = 0)
+.. doxygenfunction:: cudaq::orca::sample_async(std::vector<std::size_t> &input_state, std::vector<std::size_t> &loop_lengths, std::vector<double> &bs_angles, std::vector<double> &ps_angles, int n_samples = 10000, std::size_t qpu_id = 0)

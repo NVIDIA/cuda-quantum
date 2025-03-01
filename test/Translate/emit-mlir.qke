@@ -1,0 +1,32 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-translate --convert-to=qir --emit-llvm=false %s | FileCheck %s
+
+// Test that the output is MLIR's LLVM-IR dialect and not LLVM IR itself.
+
+func.func @test_func(%p : i32) {
+  %qv = quake.alloca !quake.veq<?>[%p : i32]
+  %t = arith.constant 2 : i32
+  %v = quake.alloca !quake.veq<?>[%t : i32]
+  return
+}
+
+// CHECK-LABEL:   llvm.func @test_func(
+// CHECK-SAME:          %[[VAL_0:.*]]: i32) {
+// CHECK:           %[[VAL_1:.*]] = llvm.mlir.constant(2 : i64) : i64
+// CHECK:           %[[VAL_2:.*]] = llvm.zext %[[VAL_0]] : i32 to i64
+// CHECK:           %[[VAL_3:.*]] = llvm.call @__quantum__rt__qubit_allocate_array(%[[VAL_2]]) : (i64) -> !llvm.ptr<struct<"Array", opaque>>
+// CHECK:           %[[VAL_4:.*]] = llvm.call @__quantum__rt__qubit_allocate_array(%[[VAL_1]]) : (i64) -> !llvm.ptr<struct<"Array", opaque>>
+// CHECK-DAG:       llvm.call @__quantum__rt__qubit_release_array(%[[VAL_4]]) : (!llvm.ptr<struct<"Array", opaque>>) -> ()
+// CHECK-DAG:       llvm.call @__quantum__rt__qubit_release_array(%[[VAL_3]]) : (!llvm.ptr<struct<"Array", opaque>>) -> ()
+// CHECK:           llvm.return
+// CHECK:         }
+
+// CHECK:         llvm.func @__quantum__rt__qubit_allocate_array(i64) -> !llvm.ptr<struct<"Array", opaque>> attributes {sym_visibility = "private"}
+// CHECK:         llvm.func @__quantum__rt__qubit_release_array(!llvm.ptr<struct<"Array", opaque>>) attributes {sym_visibility = "private"}

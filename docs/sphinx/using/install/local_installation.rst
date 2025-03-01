@@ -37,11 +37,11 @@ Docker images for all CUDA-Q releases are available on the `NGC Container Regist
 In addition to publishing `stable releases <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags>`__, 
 we also publish Docker images whenever we update certain branches on our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`_.
 These images are published in our `nightly channel on NGC <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/nightly/containers/cuda-quantum/tags>`__.
-To download the latest version on the main branch of our GitHub repository, for example, use the command
+To download the latest version on the main branch of our GitHub repository, built to work with CUDA 12, for example, use the command
 
 .. code-block:: console
 
-    docker pull nvcr.io/nvidia/nightly/cuda-quantum:latest
+    docker pull nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest
 
 .. _NGC Container Registry: https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum
 
@@ -54,7 +54,7 @@ Once you have downloaded an image, the container can be run using the command
 
 .. code-block:: console
 
-    docker run -it --name cuda-quantum nvcr.io/nvidia/nightly/cuda-quantum:latest
+    docker run -it --name cuda-quantum nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest
 
 Replace the image name and/or tag in the command above, if necessary, with the one you want to use.
 This will give you terminal access to the created container. To enable support 
@@ -63,7 +63,7 @@ the container, for example:
 
 .. code-block:: console
 
-    docker run -it --gpus all --name cuda-quantum nvcr.io/nvidia/nightly/cuda-quantum:latest
+    docker run -it --gpus all --name cuda-quantum nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest
 
 .. note:: 
 
@@ -89,7 +89,7 @@ You can then launch the container and connect to it via SSH by executing the fol
 
 .. code-block:: console
 
-    docker run -itd --gpus all --name cuda-quantum -p 2222:22 nvcr.io/nvidia/nightly/cuda-quantum:latest
+    docker run -itd --gpus all --name cuda-quantum -p 2222:22 nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest
     docker exec cuda-quantum bash -c "sudo apt-get install -y --no-install-recommends openssh-server"
     docker exec cuda-quantum bash -c "sudo sed -i -E "s/#?\s*UsePAM\s+.+/UsePAM yes/g" /etc/ssh/sshd_config"
     docker cp ~/.ssh/id_rsa.pub cuda-quantum:/home/cudaq/.ssh/authorized_keys
@@ -121,7 +121,7 @@ Once you have singularity installed, create a file `cuda-quantum.def` with the f
 .. code-block:: console
 
     Bootstrap: docker
-    From: nvcr.io/nvidia/nightly/cuda-quantum:latest
+    From: nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest
 
     %runscript
         mount devpts /dev/pts -t devpts
@@ -183,8 +183,8 @@ please take a look at the section on :ref:`Development with VS Code <singularity
 Python wheels
 ++++++++++++++++++++++++++++++++++++
 
-CUDA-Q Python wheels are available on `PyPI.org <https://pypi.org/project/cuda-quantum>`__. 
-Installation instructions can be found in the `project description <https://pypi.org/project/cuda-quantum/#description>`__.
+CUDA-Q Python wheels are available on `PyPI.org <https://pypi.org/project/cudaq/>`__. 
+Installation instructions can be found in the `project description <https://pypi.org/project/cudaq/#description>`__.
 For more information about available versions and documentation,
 see :doc:`../../releases`.
 
@@ -218,7 +218,7 @@ Pre-built binaries
 Starting with the 0.6.0 release, we provide pre-built binaries for using 
 CUDA-Q with C++. Support for using CUDA-Q with Python can be installed 
 side-by-side with the pre-built binaries for C++ by following the instructions on 
-`PyPI.org <https://pypi.org/project/cuda-quantum>`__.
+`PyPI.org <https://pypi.org/project/cudaq/>`__.
 The pre-built binaries work across a range of Linux operating systems listed 
 under :ref:`dependencies-and-compatibility`. 
 
@@ -251,13 +251,15 @@ To install CUDA-Q, execute the command
 
 .. note:: 
 
-  To use GPU-accelerated backends, you will need to install the necessary CUDA runtime libraries. For more information see the corresponding section on :ref:`Additional CUDA Tools <cuda-dependencies-prebuilt-binaries>`.
+  To use GPU-accelerated backends, you will need to install the necessary CUDA runtime libraries. 
+  For more information see the corresponding section on 
+  :ref:`Additional CUDA Tools <cuda-dependencies-prebuilt-binaries>`.
 
 The installation ensures that the necessary environment variables for
 using the CUDA-Q toolchain are set upon login for all POSIX shells.
 Confirm that the `nvq++` command is found. If it is not, please make sure 
 to set the environment variables defined by the `set_env.sh` script in the 
-CUDA-Q installation folder (usually `/opt/nvidia/cudaq`).
+CUDA-Q installation folder (usually `/usr/local/cudaq` or `/opt/nvidia/cudaq`).
 
 If an MPI installation is available in the directory defined by `MPI_PATH`, 
 the installer automatically enables MPI support in CUDA-Q.
@@ -272,18 +274,15 @@ executing the commands
     MPI_PATH=/usr/local/openmpi # update this path as needed
     bash "${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh"
 
-.. _local-development-with-vscode:
+.. note::
 
-To develop C++ code, you most likely also want to install the
-`C++ standard library <https://en.cppreference.com/w/cpp/standard_library>`__.
-CUDA-Q supports the GNU C++ standard library (`libstdc++`), 
-version 11 or newer. Other libraries may work but can cause issues in certain cases.
-The C++ standard library, including development headers, is almost certainly 
-available via the package manager for your system. To ensure the libraries and headers
-are discoverable, the easiest option is usually to install the complete GCC toolchain.
-Note that for certain distributions, you may need to manually enable that version 
-after installation by running a script called `enable`. You can search for such a 
-script with the command `find / -path '*gcc*' -name enable`.
+  Please make sure that you have the necessary development headers of the C standard 
+  library installed. You can check this by searching for `features.h`, commonly found
+  in `/usr/include/`. You can install the necessary headers via package manager 
+  (usually the package name is called something like `glibc-devel` or `libc6-dev`). 
+  These headers are also included with any installation of GCC.
+
+.. _local-development-with-vscode:
 
 Development with VS Code
 ------------------------------------
@@ -560,7 +559,7 @@ Confirm that you can submit a job with the command
 
     ngc base-command job run \
       --name Job-001 --total-runtime 60s \
-      --image nvcr.io/nvidia/nightly/cuda-quantum:latest --result /results \
+      --image nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest --result /results \
       --ace <ace_name> --instance <instance_name> \
       --commandline 'echo "Hello from DGX Cloud!"'
 
@@ -596,7 +595,7 @@ running on DGX Cloud:
 
     ngc base-command job run \
       --name Job-interactive-001 --total-runtime 600s \
-      --image nvcr.io/nvidia/nightly/cuda-quantum:latest --result /results \
+      --image nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest --result /results \
       --ace <ace_name> --instance <instance_name> \
       --port 8888 --commandline 'jupyter-lab-setup <my-custom-token> --port=8888'
 
@@ -625,7 +624,7 @@ or the `VS Code Web UI <https://vscode.dev/>`__, running on DGX Cloud:
 
     ngc base-command job run \
       --name Job-interactive-001 --total-runtime 600s \
-      --image nvcr.io/nvidia/nightly/cuda-quantum:latest --result /results \
+      --image nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest --result /results \
       --ace <ace_name> --instance <instance_name> \
       --commandline 'vscode-setup tunnel --name cuda-quantum-dgx --accept-server-license-terms'
 
@@ -660,7 +659,7 @@ certain CUDA libraries separately to take advantage of these.
 Installation via PyPI
 ++++++++++++++++++++++++++++++++++++
 
-If you installed CUDA-Q via `PyPI <https://pypi.org/project/cuda-quantum>`__, please follow the installation instructions there to install the necessary CUDA dependencies.
+If you installed CUDA-Q via `PyPI <https://pypi.org/project/cudaq/>`__, please follow the installation instructions there to install the necessary CUDA dependencies.
 
 Installation In Container Images
 ++++++++++++++++++++++++++++++++++++
@@ -673,13 +672,15 @@ Note that the image does not contain all development dependencies for CUDA, such
 
 .. code-block:: console
 
-    sudo apt-get install cuda-toolkit-11.8
+    sudo apt-get install cuda-toolkit-12.0
 
-inside the container. Most Python packages that use GPU-acceleration, such as for example `CuPy <https://cupy.dev>`__, require an existing CUDA installation. After installing the `cuda-toolkit-11.8` you can install CuPy with the command
+inside the container. Make sure the toolkit version you install matches the CUDA runtime installation in the container.
+Most Python packages that use GPU-acceleration, such as for example `CuPy <https://cupy.dev>`__, require an existing CUDA installation. 
+After installing the `cuda-toolkit-12.0` you can install CuPy for CUDA 12 with the command
 
 .. code-block:: console
 
-    python3 -m pip install cupy-cuda11x
+    python3 -m pip install cupy-cuda12x
 
 .. _cuda-dependencies-prebuilt-binaries:
 
@@ -698,12 +699,13 @@ commands, for example, install the necessary packages for RHEL 8:
     :end-before: [<CUDARTInstall]
 
 More detailed instructions for your platform can be found in the online documentation
-of your selected `CUDA version <https://developer.nvidia.com/cuda-toolkit-archive>`__. 
+linked for that `CUDA version <https://developer.nvidia.com/cuda-toolkit-archive>`__. 
 Please make sure to install CUDA version 11.8 or newer, and confirm that your 
 `GPU driver <https://www.nvidia.com/download/index.aspx>`__ supports that version.
 While the above packages are sufficient to use GPU-acceleration within CUDA-Q, 
-we recommend installing the complete CUDA toolkit (`cuda-toolkit-11-8`) that also 
-includes the `nvcc` compiler.
+we recommend installing the complete CUDA toolkit (`cuda-toolkit-12-0`) that also 
+includes the `nvcc` compiler. A separate CUDA-Q installer is available for CUDA 11, 
+built against version 11.8, and for CUDA 12, built against version 12.0.
 
 .. _distributed-computing-with-mpi:
 
@@ -735,7 +737,7 @@ MPI calls via CUDA-Q API for C++ and Python will be delegated to the currently a
     If you installed CUDA-Q using the `installer <install-prebuilt-binaries>`, or if you are using the CUDA-Q 
     container image, this variable should already be defined. If you installed the CUDA-Q 
     `Python wheels <install-python-wheels>`, set this variable to the directory listed under "Location" when you run the 
-    command `pip show cuda-quantum`.
+    command `pip show cudaq`.
 
   - Set the environment variable `MPI_PATH` to the location of your MPI installation. In particular, `${MPI_PATH}/include` 
     is expected to contain the `mpi.h` header and `${MPI_PATH}/lib64` or `${MPI_PATH}/lib` is expected to contain `libmpi.so`.
@@ -778,7 +780,16 @@ by running the command
 
 .. code-block:: console
 
-    python3 -m pip install --upgrade cuda-quantum
+    python3 -m pip install --upgrade cudaq
+
+.. note::
+
+  Please check if you have an existing installation of the `cuda-quantum`, 
+  `cudaq-quantum-cu11`, or `cuda-quantum-cu12` package, 
+  and uninstall it prior to installing `cudaq`. The `cudaq` package supersedes the
+  `cuda-quantum` package and will install a suitable binary distribution (either 
+  `cuda-quantum-cu11` or `cuda-quantum-cu12`) for your system. Multiple versions 
+  of a CUDA-Q binary distribution will conflict with each other and not work properly.
 
 If you previously installed the CUDA-Q pre-built binaries, you should first uninstall your 
 current CUDA-Q installation before installing the new version using the installer. 
@@ -819,9 +830,9 @@ The following table summarizes the required components.
     * - Operating System
       - Linux
     * - Tested Distributions
-      - CentOS 8; Debian 11, 12; Fedora 38; OpenSUSE/SLED/SLES 15.5; RHEL 8, 9; Rocky 8, 9; Ubuntu 22.04
+      - CentOS 8; Debian 11, 12; Fedora 38, 39; OpenSUSE/SLED/SLES 15.5, 15.6; RHEL 8, 9; Rocky 8, 9; Ubuntu 22.04, 24.04
     * - Python versions
-      - 3.8+
+      - 3.10+
 
 .. list-table:: Requirements for GPU Simulation
     :widths: 30 50

@@ -1,5 +1,5 @@
 /********************************************************** -*- tablegen -*- ***
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -119,7 +119,12 @@ def cc_StructType : CCType<"Struct", "struct",
   ];
 
   let extraClassDeclaration = [{
+    // O(1)
     bool isEmpty() const { return getMembers().empty(); }
+
+    // O(n)
+    std::size_t getNumMembers() const { return getMembers().size(); }
+
     Type getMember(unsigned position) { return getMembers()[position]; }
   }];
 }
@@ -192,6 +197,30 @@ def cc_CallableType : CCType<"Callable", "callable"> {
     /// Create a callable type without a signature, for prototyping only.
     [[deprecated]] static CallableType getNoSignature(mlir::MLIRContext *ctx);
   }];
+}
+
+def cc_IndirectCallableType : CCType<"IndirectCallable", "indirect_callable"> {
+  let summary = "Proxy for cudaq::qkernel.";
+  let description = [{
+    An entry-point kernel may take a reference to another kernel as an argument.
+    The passed kernel may be entirely opaque at compile-time with its definition
+    present in some other compilation module.
+
+    It is on the programmer to use the cudaq::qkernel type. This wrapper class
+    is very much like std::function, but it extends that functionality with some
+    extra information for the runtime to be able to "link" the distinct kernels
+    on the device side and provide, for example, LTO at JIT compile time.
+  }];
+
+  let parameters = (ins "mlir::FunctionType":$signature);
+
+  let assemblyFormat = "`<` $signature `>`";
+
+  let builders = [
+    TypeBuilderWithInferredContext<(ins "mlir::FunctionType":$signature), [{
+      return Base::get(signature.getContext(), signature);
+    }]>
+  ];
 }
 
 //===----------------------------------------------------------------------===//

@@ -1,0 +1,25 @@
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: 0 1 * * *
+  
+name: "Sync with upstream repository"
+
+jobs:
+  sync:
+    name: Get Updates from Upstream
+    runs-on: 'ubuntu-latest'
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+
+    - name: Fast-forward ${{ github.ref_name }}
+      run: |
+        git config --global user.name "cuda-quantum-bot"
+        git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
+        git remote add upstream https://github.com/NVIDIA/cuda-quantum
+        git pull --ff-only upstream -- ${{ github.ref_name }}
+        git push origin

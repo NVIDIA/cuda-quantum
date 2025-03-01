@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -154,7 +154,7 @@ public:
   virtual std::size_t getNumQubits() const = 0;
 
   /// @brief Compute the overlap of this state representation with
-  /// the provided `other` state, e.g. `<this | other>`.
+  /// the provided `other` state, e.g. `|<this | other>|`.
   virtual std::complex<double> overlap(const SimulationState &other) = 0;
 
   /// @brief Return the amplitude of the given computational

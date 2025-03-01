@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -45,7 +45,8 @@ def startUpMockServer():
 
     if not check_server_connection(port):
         p.terminate()
-        pytest.exit("Mock server did not start in time, skipping tests.", returncode=1)
+        pytest.exit("Mock server did not start in time, skipping tests.",
+                    returncode=1)
 
     yield credsName
 
@@ -161,6 +162,18 @@ def test_quantinuum_state_preparation():
     assert '10' in counts
     assert not '01' in counts
     assert not '11' in counts
+
+
+def test_exp_pauli():
+    test = cudaq.make_kernel()
+    q = test.qalloc(2)
+    test.exp_pauli(1.0, q, "XX")
+
+    counts = cudaq.sample(test)
+    assert '00' in counts
+    assert '11' in counts
+    assert not '01' in counts
+    assert not '10' in counts
 
 
 # leave for gdb debugging

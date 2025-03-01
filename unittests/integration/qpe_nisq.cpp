@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -11,6 +11,9 @@
 #include <stdio.h>
 
 #include <cmath>
+
+// Rotational gates not supported in Stim.
+#ifndef CUDAQ_BACKEND_STIM
 
 struct iqft {
   void operator()(cudaq::qview<> &q) __qpu__ {
@@ -125,3 +128,5 @@ CUDAQ_TEST(QPENisqTester, checkPerfectForwardingBug) {
   EXPECT_EQ(1, counts.size());
   EXPECT_TRUE(counts.begin()->first == "100");
 }
+
+#endif

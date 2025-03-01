@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -33,10 +33,12 @@ public:
     execution_queue->enqueue(task);
   }
 
-  void launchKernel(const std::string &name, void (*kernelFunc)(void *),
-                    void *args, std::uint64_t, std::uint64_t) override {
+  cudaq::KernelThunkResultType
+  launchKernel(const std::string &name, cudaq::KernelThunkType kernelFunc,
+               void *args, std::uint64_t argsSize, std::uint64_t resultOffset,
+               const std::vector<void *> &rawArgs) override {
     ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::launchKernel");
-    kernelFunc(args);
+    return kernelFunc(args, /*isRemote=*/false);
   }
 
   /// Overrides setExecutionContext to forward it to the ExecutionManager
@@ -80,6 +82,7 @@ public:
   /// specified by that variable.
   void setTargetBackend(const std::string &backend) override {
     platformQPUs.clear();
+    threadToQpuId.clear();
     platformQPUs.emplace_back(std::make_unique<DefaultQPU>());
 
     cudaq::info("Backend string is {}", backend);
@@ -119,6 +122,7 @@ public:
       auto qpuName = config.BackendConfig->PlatformQpu;
       cudaq::info("Default platform QPU subtype name: {}", qpuName);
       platformQPUs.clear();
+      threadToQpuId.clear();
       platformQPUs.emplace_back(cudaq::registry::get<cudaq::QPU>(qpuName));
       if (platformQPUs.front() == nullptr)
         throw std::runtime_error(

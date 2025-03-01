@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,6 +9,9 @@
 #include "CUDAQTestUtils.h"
 #include <algorithm>
 #include <cudaq/algorithm.h>
+
+// Stim does not support arbitrary state vectors.
+#ifndef CUDAQ_BACKEND_STIM
 
 std::vector<cudaq::complex> randomState(int numQubits) {
   std::vector<cudaq::complex> stateVec(1ULL << numQubits);
@@ -330,4 +333,6 @@ CUDAQ_TEST(AllocationTester, checkStateFromMpsData) {
     EXPECT_NEAR(std::abs(overlap), 0.5, 1e-6);
   }
 }
+#endif
+
 #endif

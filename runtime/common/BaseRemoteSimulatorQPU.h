@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -105,9 +105,26 @@ public:
       throw std::runtime_error("Failed to launch VQE. Error: " + errorMsg);
   }
 
-  void launchKernel(const std::string &name, void (*kernelFunc)(void *),
-                    void *args, std::uint64_t voidStarSize,
-                    std::uint64_t resultOffset) override {
+  void launchKernel(const std::string &name,
+                    const std::vector<void *> &rawArgs) override {
+    [[maybe_unused]] auto dynamicResult =
+        launchKernelImpl(name, nullptr, nullptr, 0, 0, &rawArgs);
+  }
+
+  KernelThunkResultType
+  launchKernel(const std::string &name, KernelThunkType kernelFunc, void *args,
+               std::uint64_t voidStarSize, std::uint64_t resultOffset,
+               const std::vector<void *> &rawArgs) override {
+    // Remote simulation cannot deal with rawArgs. Drop them on the floor.
+    return launchKernelImpl(name, kernelFunc, args, voidStarSize, resultOffset,
+                            nullptr);
+  }
+
+  [[nodiscard]] KernelThunkResultType
+  launchKernelImpl(const std::string &name, KernelThunkType kernelFunc,
+                   void *args, std::uint64_t voidStarSize,
+                   std::uint64_t resultOffset,
+                   const std::vector<void *> *rawArgs) {
     cudaq::info(
         "BaseRemoteSimulatorQPU: Launch kernel named '{}' remote QPU {} "
         "(simulator = {})",
@@ -117,7 +134,7 @@ public:
         getExecutionContextForMyThread();
 
     if (executionContextPtr && executionContextPtr->name == "tracer") {
-      return;
+      return {};
     }
 
     // Default context for a 'fire-and-ignore' kernel launch; i.e., no context
@@ -140,7 +157,8 @@ public:
     const bool requestOkay = m_client->sendRequest(
         *m_mlirContext, executionContext, /*serializedCodeContext=*/nullptr,
         /*vqe_gradient=*/nullptr, /*vqe_optimizer=*/nullptr, /*vqe_n_params=*/0,
-        m_simName, name, kernelFunc, args, voidStarSize, &errorMsg);
+        m_simName, name, make_degenerate_kernel_type(kernelFunc), args,
+        voidStarSize, &errorMsg, rawArgs);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
     if (isDirectInvocation &&
@@ -167,6 +185,9 @@ public:
                   executionContext.invocationResultBuffer.size());
       executionContext.invocationResultBuffer.clear();
     }
+
+    // Assumes kernel has no dynamic results. (Static result handled above.)
+    return {};
   }
 
   void

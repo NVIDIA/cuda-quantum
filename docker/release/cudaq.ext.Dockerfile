@@ -1,12 +1,12 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-ARG base_image=nvcr.io/nvidia/nightly/cuda-quantum:latest-base
+ARG base_image=nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest-base
 FROM $base_image
 
 USER root
@@ -29,13 +29,22 @@ RUN if [ -d "$CUDA_QUANTUM_PATH/assets/documentation" ]; then \
     && rm -rf "$CUDA_QUANTUM_PATH/assets" "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
 
 # Install additional runtime dependencies.
-RUN apt-get install -y --no-install-recommends \
-        libcusolver-11-8 libcublas-11-8 cuda-cudart-11-8 \
-        # just here for convenience:
-        curl jq 
+RUN cuda_version_suffix=$(echo ${CUDA_VERSION} | tr . -) && \
+    for cudart_dependency in libcusolver libcublas cuda-cudart cuda-nvrtc; do \
+        if [ -z "$(apt list --installed | grep -o ${cudart_dependency}-${cuda_version_suffix})" ]; then \
+            apt-get install -y --no-install-recommends \
+                ${cudart_dependency}-${cuda_version_suffix}; \
+        fi \
+    done && \
+    if [ $(echo ${CUDA_VERSION} | cut -d . -f1) -gt 11 ]; then \
+        apt-get install -y --no-install-recommends \
+            libnvjitlink-${cuda_version_suffix}; \
+    fi && \
+    # just here for convenience:
+    apt-get install -y --no-install-recommends curl jq 
 RUN if [ -x "$(command -v pip)" ]; then \
         apt-get install -y --no-install-recommends gcc libpython3-dev \
-        && pip install --no-cache-dir jupyterlab; \
+        && pip install --no-cache-dir jupyterlab==4.3.4; \
         if [ -n "$MPI_ROOT" ]; then \
             pip install --no-cache-dir mpi4py~=3.1; \
         fi; \

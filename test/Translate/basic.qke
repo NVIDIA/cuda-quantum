@@ -1,0 +1,119 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -add-dealloc %s | cudaq-translate --convert-to=qir | FileCheck %s
+
+func.func @test_func(%p : i32) {
+  %qv = quake.alloca !quake.veq<?>[%p : i32]
+  %t = arith.constant 2 : i32
+  %v = quake.alloca !quake.veq<?>[%t : i32]
+  return
+}
+
+// CHECK-LABEL: define void @test_func(i32 
+// CHECK-SAME:        %[[VAL_0:.*]]) local_unnamed_addr {
+// CHECK:         %[[VAL_1:.*]] = zext i32 %[[VAL_0]] to i64
+// CHECK:         %[[VAL_2:.*]] = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 %[[VAL_1]])
+// CHECK:         %[[VAL_4:.*]] = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 2)
+// CHECK-DAG:     tail call void @__quantum__rt__qubit_release_array(%Array* %[[VAL_4]])
+// CHECK-DAG:     tail call void @__quantum__rt__qubit_release_array(%Array* %[[VAL_2]])
+// CHECK:         ret void
+// CHECK:       }
+
+func.func @test_func2() {
+  %zero = arith.constant 0 : i32
+  %one = arith.constant 1 : i32
+  %neg = arith.constant -5 : i32
+  %two = arith.constant 2 : i32
+  %0 = quake.alloca !quake.veq<?>[%two : i32]
+
+  %1 = quake.alloca !quake.veq<2>
+  %2 = quake.alloca !quake.veq<?>[%one : i32]
+
+  %qr1 = quake.extract_ref %0[%zero] : (!quake.veq<?>,i32) -> !quake.ref
+  %qr2 = quake.extract_ref %1[%one]  : (!quake.veq<2>,i32) -> !quake.ref
+
+  %fl = arith.constant 0.43 : f64
+  %fl2 = arith.constant 0.33 : f64
+  %fl3 = arith.constant 0.73 : f64
+  quake.h %qr1 : (!quake.ref) -> ()  
+  quake.x [%qr1] %qr2 : (!quake.ref, !quake.ref) -> ()
+  quake.rx (%fl) %qr1 : (f64, !quake.ref) -> ()
+
+  quake.mz %qr1 : (!quake.ref) -> !quake.measure
+  return 
+}
+
+// CHECK-LABEL: define void @test_func2() local_unnamed_addr {
+// CHECK:         %[[VAL_0:.*]] = tail call %[[VAL_1:.*]]* @__quantum__rt__qubit_allocate_array(i64 5)
+// CHECK:         %[[VAL_2:.*]] = tail call %[[VAL_3:.*]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 0)
+// CHECK:         %[[VAL_4:.*]] = load %[[VAL_3]]*, %[[VAL_3]]** %[[VAL_2]], align 8
+// CHECK:         %[[VAL_5:.*]] = tail call %[[VAL_3]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 3)
+// CHECK:         %[[VAL_6:.*]] = bitcast %[[VAL_3]]** %[[VAL_5]] to i8**
+// CHECK:         %[[VAL_7:.*]] = load i8*, i8** %[[VAL_6]], align 8
+// CHECK:         tail call void @__quantum__qis__h(%[[VAL_3]]* %[[VAL_4]])
+// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* nonnull bitcast (void (%[[VAL_1]]*, %[[VAL_3]]*)* @__quantum__qis__x__ctl to i8*), %[[VAL_3]]* %[[VAL_4]], i8* %[[VAL_7]])
+// CHECK:         tail call void @__quantum__qis__rx(double 4.300000e-01, %[[VAL_3]]* %[[VAL_4]])
+// CHECK:         %[[VAL_8:.*]] = tail call %[[VAL_9:.*]]* @__quantum__qis__mz(%[[VAL_3]]* %[[VAL_4]])
+// CHECK:         tail call void @__quantum__rt__qubit_release_array(%[[VAL_1]]* %[[VAL_0]])
+// CHECK:         ret void
+// CHECK:       }
+
+func.func @test_ctrl_swap_basic() {
+  %0 = quake.alloca !quake.ref
+  %1 = quake.alloca !quake.ref
+  %2 = quake.alloca !quake.ref
+  quake.swap [%0] %1, %2 : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: define void @test_ctrl_swap_basic() local_unnamed_addr {
+// CHECK:         %[[VAL_0:.*]] = tail call %[[VAL_1:.*]]* @__quantum__rt__qubit_allocate_array(i64 3)
+// CHECK:         %[[VAL_2:.*]] = tail call %[[VAL_3:.*]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 0)
+// CHECK:         %[[VAL_4:.*]] = bitcast %[[VAL_3]]** %[[VAL_2]] to i8**
+// CHECK:         %[[VAL_5:.*]] = load i8*, i8** %[[VAL_4]], align 8
+// CHECK:         %[[VAL_6:.*]] = tail call %[[VAL_3]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 1)
+// CHECK:         %[[VAL_7:.*]] = bitcast %[[VAL_3]]** %[[VAL_6]] to i8**
+// CHECK:         %[[VAL_8:.*]] = load i8*, i8** %[[VAL_7]], align 8
+// CHECK:         %[[VAL_9:.*]] = tail call %[[VAL_3]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 2)
+// CHECK:         %[[VAL_10:.*]] = bitcast %[[VAL_3]]** %[[VAL_9]] to i8**
+// CHECK:         %[[VAL_11:.*]] = load i8*, i8** %[[VAL_10]], align 8
+// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 2, i8* nonnull bitcast (void (%[[VAL_1]]*, %[[VAL_3]]*, %[[VAL_3]]*)* @__quantum__qis__swap__ctl to i8*), i8* %[[VAL_5]], i8* %[[VAL_8]], i8* %[[VAL_11]])
+// CHECK:         tail call void @__quantum__rt__qubit_release_array(%[[VAL_1]]* %[[VAL_0]])
+// CHECK:         ret void
+// CHECK:       }
+
+func.func @test_ctrl_swap_complex() {
+  %0 = quake.alloca !quake.veq<4>
+  %1 = quake.alloca !quake.ref
+  %2 = quake.alloca !quake.ref
+  %3 = quake.alloca !quake.ref
+  quake.swap [%0] %1, %2 : (!quake.veq<4>, !quake.ref, !quake.ref) -> ()
+  quake.swap [%1, %0] %2, %3 : (!quake.ref, !quake.veq<4>, !quake.ref, !quake.ref) -> ()
+  quake.swap [%0, %2] %1, %3 : (!quake.veq<4>, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: define void @test_ctrl_swap_complex() local_unnamed_addr {
+// CHECK:         %[[VAL_0:.*]] = tail call %[[VAL_1:.*]]* @__quantum__rt__qubit_allocate_array(i64 7)
+// CHECK:         %[[VAL_2:.*]] = tail call %[[VAL_1]]* @__quantum__rt__array_slice(%[[VAL_1]]* %[[VAL_0]], i32 1, i64 0, i64 1, i64 3)
+// CHECK:         %[[VAL_3:.*]] = tail call %[[VAL_4:.*]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 4)
+// CHECK:         %[[VAL_5:.*]] = load %[[VAL_4]]*, %[[VAL_4]]** %[[VAL_3]], align 8
+// CHECK:         %[[VAL_6:.*]] = tail call %[[VAL_4]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 5)
+// CHECK:         %[[VAL_7:.*]] = load %[[VAL_4]]*, %[[VAL_4]]** %[[VAL_6]], align 8
+// CHECK:         %[[VAL_8:.*]] = tail call %[[VAL_4]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 6)
+// CHECK:         %[[VAL_9:.*]] = bitcast %[[VAL_4]]** %[[VAL_8]] to i8**
+// CHECK:         %[[VAL_10:.*]] = load i8*, i8** %[[VAL_9]], align 8
+// CHECK:         tail call void @__quantum__qis__swap__ctl(%[[VAL_1]]* %[[VAL_2]], %[[VAL_4]]* %[[VAL_5]], %[[VAL_4]]* %[[VAL_7]])
+// CHECK:         %[[VAL_11:.*]] = tail call i64 @__quantum__rt__array_get_size_1d(%[[VAL_1]]* %[[VAL_2]])
+// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 1, i64 1, i64 2, i8* nonnull bitcast (void (%[[VAL_1]]*, %[[VAL_4]]*, %[[VAL_4]]*)* @__quantum__qis__swap__ctl to i8*), i64 %[[VAL_11]], %[[VAL_1]]* %[[VAL_2]], %[[VAL_4]]* %[[VAL_5]], %[[VAL_4]]* %[[VAL_7]], i8* %[[VAL_10]])
+// CHECK:         %[[VAL_12:.*]] = tail call i64 @__quantum__rt__array_get_size_1d(%[[VAL_1]]* %[[VAL_2]])
+// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 1, i64 1, i64 2, i8* nonnull bitcast (void (%[[VAL_1]]*, %[[VAL_4]]*, %[[VAL_4]]*)* @__quantum__qis__swap__ctl to i8*), i64 %[[VAL_12]], %[[VAL_1]]* %[[VAL_2]], %[[VAL_4]]* %[[VAL_7]], %[[VAL_4]]* %[[VAL_5]], i8* %[[VAL_10]])
+// CHECK:         tail call void @__quantum__rt__qubit_release_array(%[[VAL_1]]* %[[VAL_0]])
+// CHECK:         ret void
+// CHECK:       }

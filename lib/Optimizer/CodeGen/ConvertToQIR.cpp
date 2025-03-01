@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -14,13 +14,13 @@
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Peephole.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
+#include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
 #include "cudaq/Optimizer/CodeGen/QuakeToLLVM.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/ADT/Hashing.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/FormatVariadic.h"
-#include "mlir/Conversion/AffineToStandard/AffineToStandard.h"
 #include "mlir/Conversion/ArithToLLVM/ArithToLLVM.h"
 #include "mlir/Conversion/ComplexToLLVM/ComplexToLLVM.h"
 #include "mlir/Conversion/ComplexToLibm/ComplexToLibm.h"
@@ -30,7 +30,6 @@
 #include "mlir/Conversion/LLVMCommon/Pattern.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 #include "mlir/Conversion/MathToLLVM/MathToLLVM.h"
-#include "mlir/Conversion/SCFToControlFlow/SCFToControlFlow.h"
 #include "mlir/Dialect/Arith/Transforms/Passes.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Target/LLVMIR/ModuleTranslation.h"
@@ -46,6 +45,8 @@ namespace cudaq::opt {
 } // namespace cudaq::opt
 
 using namespace mlir;
+
+#include "PeepholePatterns.inc"
 
 /// Greedy pass to match subgraphs in the IR and replace them with codegen ops.
 /// This step makes converting a DAG of nodes in the conversion step simpler.
@@ -68,7 +69,7 @@ public:
   /// Measurement counter for unnamed measurements. Resets every module.
   unsigned measureCounter = 0;
 
-  // This is an ad hox transformation to convert constant array values into a
+  // This is an ad hoc transformation to convert constant array values into a
   // buffer of constants.
   LogicalResult eraseConstantArrayOps() {
     bool ok = true;
@@ -167,12 +168,10 @@ public:
     populateComplexToLibmConversionPatterns(patterns, 1);
     populateComplexToLLVMConversionPatterns(typeConverter, patterns);
 
-    populateAffineToStdConversionPatterns(patterns);
     arith::populateCeilFloorDivExpandOpsPatterns(patterns);
     arith::populateArithToLLVMConversionPatterns(typeConverter, patterns);
     populateMathToLLVMConversionPatterns(typeConverter, patterns);
 
-    populateSCFToControlFlowConversionPatterns(patterns);
     cf::populateControlFlowToLLVMConversionPatterns(typeConverter, patterns);
     populateFuncToLLVMConversionPatterns(typeConverter, patterns);
     cudaq::opt::populateCCToLLVMPatterns(typeConverter, patterns);
@@ -198,6 +197,13 @@ void cudaq::opt::initializeTypeConversions(LLVMTypeConverter &typeConverter) {
       [](quake::VeqType type) { return getArrayType(type.getContext()); });
   typeConverter.addConversion(
       [](quake::RefType type) { return getQubitType(type.getContext()); });
+  typeConverter.addConversion([&](quake::StruqType type) {
+    SmallVector<Type> mems;
+    for (auto m : type.getMembers())
+      mems.push_back(typeConverter.convertType(m));
+    return LLVM::LLVMStructType::getLiteral(type.getContext(), mems,
+                                            /*packed=*/false);
+  });
   typeConverter.addConversion([](quake::MeasureType type) {
     return IntegerType::get(type.getContext(), 1);
   });

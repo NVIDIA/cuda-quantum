@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,23 +7,17 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Builder/Runtime.h"
-#include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
+#include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/Support/Debug.h"
-#include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
-#include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/Pass/Pass.h"
-#include "mlir/Target/LLVMIR/TypeToLLVM.h"
-#include "mlir/Transforms/DialectConversion.h"
+#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
-#include "mlir/Transforms/RegionUtils.h"
 #include <span>
 
 namespace cudaq::opt {
@@ -156,41 +150,38 @@ std::vector<double> getAlphaY(const std::span<double> data,
 
 class StateGateBuilder {
 public:
-  StateGateBuilder(mlir::OpBuilder &b, mlir::Location &l, mlir::Value &q)
-      : builder(b), loc(l), qubits(q) {}
+  StateGateBuilder(PatternRewriter &r, mlir::Location &l, mlir::Value &q)
+      : rewriter(r), loc(l), qubits(q) {}
 
   template <typename Op>
   void applyRotationOp(double theta, std::size_t target) {
     auto qubit = createQubitRef(target);
     auto thetaValue = createAngleValue(theta);
-    builder.create<Op>(loc, thetaValue, mlir::ValueRange{}, qubit);
+    rewriter.create<Op>(loc, thetaValue, mlir::ValueRange{}, qubit);
   };
 
   void applyX(std::size_t control, std::size_t target) {
     auto qubitC = createQubitRef(control);
     auto qubitT = createQubitRef(target);
-    builder.create<quake::XOp>(loc, qubitC, qubitT);
+    rewriter.create<quake::XOp>(loc, qubitC, qubitT);
   };
 
 private:
   mlir::Value createQubitRef(std::size_t index) {
-    if (qubitRefs.contains(index)) {
+    if (qubitRefs.contains(index))
       return qubitRefs[index];
-    }
 
-    auto indexValue = builder.create<mlir::arith::ConstantIntOp>(
-        loc, index, builder.getIntegerType(64));
-    auto ref = builder.create<quake::ExtractRefOp>(loc, qubits, indexValue);
+    auto ref = rewriter.create<quake::ExtractRefOp>(loc, qubits, index);
     qubitRefs[index] = ref;
     return ref;
   }
 
   mlir::Value createAngleValue(double angle) {
-    return builder.create<mlir::arith::ConstantFloatOp>(
-        loc, llvm::APFloat{angle}, builder.getF64Type());
+    return rewriter.create<mlir::arith::ConstantFloatOp>(
+        loc, llvm::APFloat{angle}, rewriter.getF64Type());
   }
 
-  mlir::OpBuilder &builder;
+  PatternRewriter &rewriter;
   mlir::Location &loc;
   mlir::Value &qubits;
 
@@ -283,6 +274,8 @@ private:
   double phaseThreshold;
 };
 
+namespace {
+
 /// Replace a qubit initialization from vectors with quantum gates.
 /// For example:
 ///
@@ -293,9 +286,11 @@ private:
 ///     %0 = cc.address_of @foo.rodata_0 : !cc.ptr<!cc.array<complex<f32> x 4>>
 ///     %1 = quake.alloca !quake.veq<2>
 ///     %2 = quake.init_state %1, %0 : (!quake.veq<2>,
-///       !cc.ptr<!cc.array<complex<f32> x 4>>) -> !quake.veq<2> return
+///       !cc.ptr<!cc.array<complex<f32> x 4>>) -> !quake.veq<2>
+///     return
 ///  }
-///  cc.global constant @foo.rodata_0 (dense<[(0.707106769,0.000000e+00),
+///  cc.global constant private @foo.rodata_0
+///  (dense<[(0.707106769,0.000000e+00),
 ///      (0.707106769,0.000000e+00), (0.000000e+00,0.000000e+00),
 ///      (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f32>>) :
 ///    !cc.array<complex<f32> x 4>
@@ -307,12 +302,10 @@ private:
 /// module {
 ///   func.func @foo() attributes {
 ///     %0 = quake.alloca !quake.veq<2>
-///     %c1_i64 = arith.constant 1 : i64
-///     %1 = quake.extract_ref %0[%c1_i64] : (!quake.veq<2>, i64) -> !quake.ref
+///     %1 = quake.extract_ref %0[1] : (!quake.veq<2>, i64) -> !quake.ref
 ///     %cst = arith.constant 0.000000e+00 : f64
 ///     quake.ry (%cst) %1 : (f64, !quake.ref) -> ()
-///     %c0_i64 = arith.constant 0 : i64
-///     %2 = quake.extract_ref %0[%c0_i64] : (!quake.veq<2>, i64) -> !quake.ref
+///     %2 = quake.extract_ref %0[0] : (!quake.veq<2>, i64) -> !quake.ref
 ///     %cst_0 = arith.constant 0.78539816339744839 : f64
 ///     quake.ry (%cst_0) %2 : (f64, !quake.ref) -> ()
 ///     quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
@@ -323,95 +316,55 @@ private:
 ///   }
 /// }
 /// ```
+class StatePrepPattern : public OpRewritePattern<quake::InitializeStateOp> {
+public:
+  using OpRewritePattern::OpRewritePattern;
 
-namespace {
+  explicit StatePrepPattern(MLIRContext *ctx, double phaseThreshold)
+      : OpRewritePattern(ctx), phaseThreshold(phaseThreshold) {}
 
-std::vector<std::complex<double>>
-readGlobalConstantArray(mlir::OpBuilder &builder, cudaq::cc::GlobalOp &global) {
-  std::vector<std::complex<double>> result{};
+  LogicalResult matchAndRewrite(quake::InitializeStateOp init,
+                                PatternRewriter &rewriter) const override {
+    auto loc = init.getLoc();
+    auto qubits = init.getOperand(0);
+    if (auto alloc = qubits.getDefiningOp<quake::AllocaOp>()) {
 
-  auto attr = global.getValue();
-  auto elementsAttr = cast<mlir::ElementsAttr>(attr.value());
-  auto eleTy = elementsAttr.getElementType();
-  auto values = elementsAttr.getValues<mlir::Attribute>();
+      // Find vector data.
+      auto data = init.getOperand(1);
+      auto cast = data.getDefiningOp<cudaq::cc::CastOp>();
+      if (cast)
+        data = cast.getOperand();
 
-  for (auto it = values.begin(); it != values.end(); ++it) {
-    auto valAttr = *it;
+      if (auto addr = data.getDefiningOp<cudaq::cc::AddressOfOp>()) {
+        auto globalName = addr.getGlobalName();
+        auto module = init->getParentOfType<mlir::ModuleOp>();
+        auto symbol = module.lookupSymbol(globalName);
+        if (auto global = dyn_cast<cudaq::cc::GlobalOp>(symbol)) {
 
-    auto v = [&]() -> std::complex<double> {
-      if (isa<FloatType>(eleTy))
-        return {cast<FloatAttr>(valAttr).getValue().convertToDouble(),
-                static_cast<double>(0.0)};
-      if (isa<IntegerType>(eleTy))
-        return {static_cast<double>(cast<IntegerAttr>(valAttr).getInt()),
-                static_cast<double>(0.0)};
-      assert(isa<ComplexType>(eleTy));
-      auto arrayAttr = cast<mlir::ArrayAttr>(valAttr);
-      auto real = cast<FloatAttr>(arrayAttr[0]).getValue().convertToDouble();
-      auto imag = cast<FloatAttr>(arrayAttr[1]).getValue().convertToDouble();
-      return {real, imag};
-    }();
+          // Read state initialization data from the global array.
+          auto vec = cudaq::opt::factory::readGlobalConstantArray(global);
 
-    result.push_back(v);
-  }
-  return result;
-}
+          // Prepare state from vector data.
+          auto gateBuilder = StateGateBuilder(rewriter, loc, qubits);
+          auto decomposer = StateDecomposer(gateBuilder, vec, phaseThreshold);
+          decomposer.decompose();
 
-LogicalResult transform(ModuleOp module, func::FuncOp funcOp,
-                        double phaseThreshold) {
-  auto builder = OpBuilder::atBlockBegin(&funcOp.getBody().front());
-  auto toErase = std::vector<mlir::Operation *>();
-  auto result = success();
+          // Use prepared qubits instead of the initialized state.
+          init.replaceAllUsesWith(qubits);
 
-  funcOp->walk([&](Operation *op) {
-    if (auto initOp = dyn_cast<quake::InitializeStateOp>(op)) {
-      auto loc = op->getLoc();
-      builder.setInsertionPointAfter(initOp);
-      // Find the qvector alloc.
-      auto qubits = initOp.getOperand(0);
-      if (auto alloc = dyn_cast<quake::AllocaOp>(qubits.getDefiningOp())) {
-
-        // Find vector data.
-        auto data = initOp.getOperand(1);
-        auto cast = dyn_cast<cudaq::cc::CastOp>(data.getDefiningOp());
-        if (cast)
-          data = cast.getOperand();
-
-        if (auto addr =
-                dyn_cast<cudaq::cc::AddressOfOp>(data.getDefiningOp())) {
-
-          auto globalName = addr.getGlobalName();
-          auto symbol = module.lookupSymbol(globalName);
-          if (auto global = dyn_cast<cudaq::cc::GlobalOp>(symbol)) {
-            // Read state initialization data from the global array.
-            auto vec = readGlobalConstantArray(builder, global);
-
-            // Prepare state from vector data.
-            auto gateBuilder = StateGateBuilder(builder, loc, qubits);
-            auto decomposer = StateDecomposer(gateBuilder, vec, phaseThreshold);
-            decomposer.decompose();
-
-            initOp.replaceAllUsesWith(qubits);
-            toErase.push_back(initOp);
-            if (cast)
-              toErase.push_back(cast);
-            toErase.push_back(addr);
-            toErase.push_back(global);
-            return;
-          }
+          // Erase the init so we don't try to replace it again.
+          rewriter.eraseOp(init);
+          return success();
         }
       }
-      funcOp.emitOpError("StatePreparation failed to replace quake.state_init");
-      result = failure();
     }
-  });
-
-  for (auto &op : toErase) {
-    op->erase();
+    return init.emitError(
+        "StatePreparation failed to replace quake.state_init");
   }
 
-  return result;
-}
+private:
+  double phaseThreshold;
+};
 
 class StatePreparationPass
     : public cudaq::opt::impl::StatePreparationBase<StatePreparationPass> {
@@ -419,23 +372,24 @@ protected:
 public:
   using StatePreparationBase::StatePreparationBase;
 
-  mlir::ModuleOp getModule() { return getOperation(); }
+  void runOnOperation() override {
+    auto *ctx = &getContext();
+    func::FuncOp func = getOperation();
 
-  void runOnOperation() override final {
-    auto module = getModule();
-    for (Operation &op : *module.getBody()) {
-      auto funcOp = dyn_cast<func::FuncOp>(op);
-      if (!funcOp)
-        continue;
-      std::string kernelName = funcOp.getName().str();
+    LLVM_DEBUG(llvm::dbgs() << "Function before state preparation:\n"
+                            << func << "\n\n");
 
-      auto result = transform(module, funcOp, phaseThreshold);
-      if (result.failed()) {
-        funcOp.emitOpError("Failed to prepare state for '" + kernelName);
-        signalPassFailure();
-        return;
-      }
+    RewritePatternSet patterns(ctx);
+    patterns.insert<StatePrepPattern>(ctx, phaseThreshold);
+
+    if (failed(applyPatternsAndFoldGreedily(func.getOperation(),
+                                            std::move(patterns)))) {
+      func.emitOpError("State preparation failed");
+      signalPassFailure();
     }
+
+    LLVM_DEBUG(llvm::dbgs() << "Function after state preparation:\n"
+                            << func << "\n\n");
   }
 };
 

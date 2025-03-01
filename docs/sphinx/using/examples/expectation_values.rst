@@ -5,22 +5,6 @@ CUDA-Q provides generic library functions enabling one to compute expectation va
 of quantum spin operators with respect to a parameterized CUDA-Q kernel. Let's take a look 
 at an example of this:
 
-.. tab:: Python
-
-   .. literalinclude:: ../../examples/python/expectation_values.py
-      :language: python
-
-   Here we define a parameterized CUDA-Q kernel that takes an angle, `theta`, as a single
-   input. This angle becomes the argument of a single `ry` rotation.
-
-   We define a Hamiltonian operator via the CUDA-Q `cudaq.SpinOperator` type.
-
-   CUDA-Q provides a generic function `cudaq.observe`. This function takes as input three
-   arguments. The first two argument are a parameterized kernel and the `cudaq.SpinOperator` whose
-   expectation value we wish to compute. The final arguments are the runtime parameters at which we
-   evaluate the parameterized kernel.
-
-
 .. tab:: C++
 
    .. literalinclude:: ../../examples/cpp/basics/expectation_values.cpp
@@ -48,10 +32,9 @@ at an example of this:
 Parallelizing across Multiple Processors
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:doc:`multi-processor platforms <../backends/platform>` page.
 
 
-One typical use case of :doc:`multi-processor platforms <../backends/platform>` is to distribute the
+One typical use case of :ref:`multi-processor platforms <mqpu-platform>` is to distribute the
 expectation value computations of a multi-term Hamiltonian across multiple virtual QPUs.
 
 The following shows an example using the :code:`nvidia-mqpu` platform:

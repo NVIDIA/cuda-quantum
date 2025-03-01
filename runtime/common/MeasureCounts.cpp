@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -192,37 +192,34 @@ sample_result::sample_result(double preComputedExp,
     totalShots += count;
 }
 
-void sample_result::append(ExecutionResult &result) {
-  // If given a result corresponding to the same register name,
-  // replace the existing one if in the map.
+void sample_result::append(ExecutionResult &result, bool concatenate) {
+  // If given a result corresponding to the same register name, either a)
+  // replace the existing one if concatenate is false, or b) if concatenate is
+  // true, stitch the bitstrings from "result" into the existing one.
   auto iter = sampleResults.find(result.registerName);
-  if (iter != sampleResults.end())
-    iter->second = result;
-  else
+  if (iter != sampleResults.end()) {
+    auto &existingExecResult = iter->second;
+    if (concatenate) {
+      // Stitch the bitstrings together
+      if (this->totalShots == result.sequentialData.size()) {
+        existingExecResult.counts.clear();
+        for (std::size_t i = 0; i < this->totalShots; i++) {
+          std::string newStr =
+              existingExecResult.sequentialData[i] + result.sequentialData[i];
+          existingExecResult.counts[newStr]++;
+          existingExecResult.sequentialData[i] = std::move(newStr);
+        }
+      }
+    } else {
+      // Replace the existing one
+      existingExecResult = result;
+    }
+  } else {
     sampleResults.insert({result.registerName, result});
+  }
   if (!totalShots)
     for (auto &[bits, count] : result.counts)
       totalShots += count;
-}
-
-sample_result::sample_result(const sample_result &m)
-    : sampleResults(m.sampleResults), totalShots(m.totalShots) {}
-
-sample_result &sample_result::operator=(sample_result &counts) {
-  sampleResults.clear();
-  for (auto &[name, sampleResult] : counts.sampleResults) {
-    sampleResults.insert({name, sampleResult});
-  }
-  totalShots = counts.totalShots;
-  return *this;
-}
-sample_result &sample_result::operator=(const sample_result &counts) {
-  sampleResults.clear();
-  for (auto &[name, sampleResult] : counts.sampleResults) {
-    sampleResults.insert({name, sampleResult});
-  }
-  totalShots = counts.totalShots;
-  return *this;
 }
 
 bool sample_result::operator==(const sample_result &counts) const {
@@ -254,6 +251,8 @@ sample_result &sample_result::operator+=(const sample_result &other) {
                                  otherResults.second.sequentialData.begin(),
                                  otherResults.second.sequentialData.end());
     }
+    if (regName == GlobalRegisterName)
+      totalShots += other.totalShots;
   }
   return *this;
 }
@@ -409,6 +408,7 @@ std::vector<std::string> sample_result::register_names() const {
   std::vector<std::string> ret;
   for (auto &kv : sampleResults)
     ret.push_back(kv.first);
+  std::sort(ret.begin(), ret.end());
 
   return ret;
 }
@@ -458,15 +458,28 @@ void sample_result::clear() {
   totalShots = 0;
 }
 
+/// @brief This is a helper function to sort the keys of an unordered map
+/// without making any deep copies.
+template <typename T>
+std::vector<typename T::const_iterator> sortByKeys(const T &unordered_map) {
+  std::vector<typename T::const_iterator> iterators;
+  iterators.reserve(unordered_map.size());
+  for (auto it = unordered_map.begin(); it != unordered_map.end(); ++it)
+    iterators.push_back(it);
+  std::sort(iterators.begin(), iterators.end(),
+            [](const auto &a, const auto &b) { return a->first < b->first; });
+  return iterators;
+}
+
 void sample_result::dump(std::ostream &os) const {
   os << "{ ";
   if (sampleResults.size() > 1) {
     os << "\n  ";
     std::size_t counter = 0;
-    for (auto &result : sampleResults) {
-      os << result.first << " : { ";
-      for (auto &kv : result.second.counts) {
-        os << kv.first << ":" << kv.second << " ";
+    for (auto &result : sortByKeys(sampleResults)) {
+      os << result->first << " : { ";
+      for (auto &kv : sortByKeys(result->second.counts)) {
+        os << kv->first << ":" << kv->second << " ";
       }
       bool isLast = counter == sampleResults.size() - 1;
       counter++;
@@ -485,8 +498,8 @@ void sample_result::dump(std::ostream &os) const {
       counts = sampleResults.begin()->second.counts;
     }
 
-    for (auto &kv : counts) {
-      os << kv.first << ":" << kv.second << " ";
+    for (auto &kv : sortByKeys(counts)) {
+      os << kv->first << ":" << kv->second << " ";
     }
 
     if (iter == sampleResults.end())

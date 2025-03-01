@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -348,6 +348,14 @@ struct ArgumentValidator<std::vector<T>> {
           std::to_string(nRequiredElements) + ").\n");
   }
 };
+
+/// @brief Return a pointer to store in argument array.
+template <typename T>
+void *getArgPointer(T *arg) {
+  if constexpr (std::is_pointer_v<T>)
+    return *arg;
+  return arg;
+}
 
 /// @brief The `kernel_builder_base` provides a base type for the templated
 /// kernel builder so that we can get a single handle on an instance within the
@@ -889,7 +897,7 @@ public:
     [[maybe_unused]] std::size_t argCounter = 0;
     (details::ArgumentValidator<Args>::validate(argCounter, arguments, args),
      ...);
-    void *argsArr[sizeof...(Args)] = {&args...};
+    void *argsArr[sizeof...(Args)] = {details::getArgPointer(&args)...};
     return operator()(argsArr);
   }
 

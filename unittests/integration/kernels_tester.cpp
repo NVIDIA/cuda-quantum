@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -108,7 +108,7 @@ CUDAQ_TEST(KernelsTester, checkGetAlphaZ) {
   }
 }
 
-#ifndef CUDAQ_BACKEND_DM
+#if !defined(CUDAQ_BACKEND_DM) && !defined(CUDAQ_BACKEND_STIM)
 
 CUDAQ_TEST(KernelsTester, checkFromState) {
   {

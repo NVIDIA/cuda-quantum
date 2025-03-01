@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -11,13 +11,6 @@ import numpy as np
 import sys
 
 import cudaq
-
-## [PYTHON_VERSION_FIX]
-skipIfPythonLessThan39 = pytest.mark.skipif(
-    sys.version_info < (3, 9),
-    reason=
-    "built-in collection types such as `list` not supported or module 'ast' has no attribute 'unparse'"
-)
 
 
 def test_return_float_param():
@@ -177,7 +170,6 @@ def test_param_negative_int():
     assert kernel(-1) == -1
 
 
-@skipIfPythonLessThan39
 def test_param_negative_int_list():
 
     @cudaq.kernel

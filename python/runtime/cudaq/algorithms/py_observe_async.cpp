@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -84,13 +84,8 @@ async_observe_result pyObserveAsync(py::object &kernel, spin_op &spin_operator,
   auto &platform = cudaq::get_platform();
   auto kernelName = kernel.attr("name").cast<std::string>();
   auto kernelMod = kernel.attr("module").cast<MlirModule>();
-  auto kernelFunc = getKernelFuncOp(kernelMod, kernelName);
-
-  // The provided kernel is a builder or MLIR kernel
-  auto *argData = new cudaq::OpaqueArguments();
   args = simplifiedValidateInputArguments(args);
-  cudaq::packArgs(*argData, args, kernelFunc,
-                  [](OpaqueArguments &, py::object &) { return false; });
+  auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
 
   // Launch the asynchronous execution.
   py::gil_scoped_release release;
@@ -100,6 +95,22 @@ async_observe_result pyObserveAsync(py::object &kernel, spin_op &spin_operator,
         delete argData;
       },
       spin_operator, platform, shots, kernelName, qpu_id);
+}
+
+async_observe_result pyObserveAsyncWrapper(py::object &kernel,
+                                           py::object &spin_operator_obj,
+                                           py::args &args, std::size_t qpu_id,
+                                           int shots) {
+
+  // FIXME(OperatorCpp): Remove this when the operator class is implemented in
+  // C++
+  cudaq::spin_op spin_operator = [](py::object &obj) -> cudaq::spin_op {
+    if (py::hasattr(obj, "_to_spinop"))
+      return obj.attr("_to_spinop")().cast<cudaq::spin_op>();
+    return obj.cast<cudaq::spin_op>();
+  }(spin_operator_obj);
+
+  return pyObserveAsync(kernel, spin_operator, args, qpu_id, shots);
 }
 
 /// @brief Run `cudaq::observe` on the provided kernel and spin operator.
@@ -179,7 +190,7 @@ void bindObserveAsync(py::module &mod) {
       "expectation value computations across available GPUs via standard C++ "
       "threads.");
 
-  mod.def("observe_async", &pyObserveAsync, py::arg("kernel"),
+  mod.def("observe_async", &pyObserveAsyncWrapper, py::arg("kernel"),
           py::arg("spin_operator"), py::kw_only(),
           py::arg("qpu_id") = defaultQpuIdValue,
           py::arg("shots_count") = defaultShotsValue,

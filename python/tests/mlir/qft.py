@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -8,9 +8,6 @@
 
 # RUN: PYTHONPATH=../../ pytest -rP  %s | FileCheck %s
 
-import os
-
-import pytest
 import numpy as np
 
 import cudaq
@@ -36,7 +33,7 @@ def test_qft():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__iqft(
-# CHECK-SAME:                                      %[[VAL_0:.*]]: !quake.veq<?>) {
+# CHECK-SAME:             %[[VAL_0:.*]]: !quake.veq<?>)
 # CHECK-DAG:           %[[VAL_1:.*]] = arith.constant -3.1415926535897931 : f64
 # CHECK-DAG:           %[[VAL_2:.*]] = arith.constant -1 : i64
 # CHECK-DAG:           %[[VAL_3:.*]] = arith.constant 1 : i64

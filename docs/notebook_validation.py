@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -29,6 +29,10 @@ def validate(notebook_filename, available_backends):
         lines = f.readlines()
     for notebook_content in lines:
         match = re.search('set_target[\\\s\(]+"(.+)\\\\"[)]', notebook_content)
+        if match and (match.group(1) not in available_backends):
+            return False
+    for notebook_content in lines:
+        match = re.search('--target ([^ ]+)', notebook_content)
         if match and (match.group(1) not in available_backends):
             return False
     return True
@@ -95,7 +99,10 @@ if __name__ == "__main__":
         notebooks_success, notebooks_skipped, notebooks_failed = (
             [] for i in range(3))
         for notebook_filename in notebook_filenames:
-            if (validate(notebook_filename, available_backends)):
+            ## See: https://github.com/NVIDIA/cuda-quantum/issues/2577
+            if os.path.basename(notebook_filename) in ["afqmc.ipynb"]:
+                notebooks_skipped.append(notebook_filename)
+            elif (validate(notebook_filename, available_backends)):
                 if (execute(notebook_filename)):
                     notebooks_success.append(notebook_filename)
                 else:

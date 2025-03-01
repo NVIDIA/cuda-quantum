@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -31,11 +31,19 @@ def __broadcastObserve(kernel, spin_operator, *args, shots_count=0):
     return results
 
 
+# Helper to convert new a Operator instance to a native `SpinOperator`
+def to_spin_op(obj):
+    if hasattr(obj, "_to_spinop"):
+        return obj._to_spinop()
+    return obj
+
+
 def observe(kernel,
             spin_operator,
             *args,
             shots_count=0,
             noise_model=None,
+            num_trajectories=None,
             execution=None):
     """Compute the expected value of the `spin_operator` with respect to 
 the `kernel`. If the input `spin_operator` is a list of `SpinOperator` then compute 
@@ -60,6 +68,7 @@ Args:
   noise_model (Optional[`NoiseModel`]): The optional :class:`NoiseModel` to add 
     noise to the kernel execution on the simulator. Defaults to an empty 
     noise model.
+  `num_trajectories` (Optional[int]): The optional number of trajectories for noisy simulation. Only valid if a noise model is provided. Key-word only.
 
 Returns:
   :class:`ObserveResult`: 
@@ -74,6 +83,10 @@ Returns:
         raise RuntimeError('observe specification violated for \'' +
                            kernel.name + '\': ' + validityCheck[1])
 
+    spin_operator = to_spin_op(spin_operator)
+    if isinstance(spin_operator, list):
+        for idx, op in enumerate(spin_operator):
+            spin_operator[idx] = to_spin_op(op)
     # Handle parallel execution use cases
     if execution != None:
         return cudaq_runtime.observe_parallel(kernel,
@@ -112,6 +125,11 @@ Returns:
     else:
         ctx = cudaq_runtime.ExecutionContext('observe', shots_count)
         ctx.setSpinOperator(localOp)
+        if num_trajectories is not None:
+            if noise_model is None:
+                raise RuntimeError(
+                    "num_trajectories is provided without a noise_model.")
+            ctx.numberTrajectories = num_trajectories
         cudaq_runtime.setExecutionContext(ctx)
         kernel(*args)
         res = ctx.result

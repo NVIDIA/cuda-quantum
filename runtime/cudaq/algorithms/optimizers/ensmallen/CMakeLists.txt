@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -19,13 +19,7 @@ target_compile_definitions(${LIBRARY_NAME} PRIVATE -DARMA_DONT_USE_LAPACK)
 
 set (ENSMALLEN_DEPENDENCIES "")
 list(APPEND ENSMALLEN_DEPENDENCIES BLAS::BLAS)
-find_package(OpenMP)
-
-if(OpenMP_CXX_FOUND)
-  message(STATUS "OpenMP Found. Adding build flags to ensmallen library: ${OpenMP_CXX_FLAGS}.")
-  list(APPEND ENSMALLEN_DEPENDENCIES OpenMP::OpenMP_CXX)
-  target_compile_definitions(${LIBRARY_NAME} PRIVATE -DHAS_OPENMP=1)
-endif()
+add_openmp_configurations(${LIBRARY_NAME} ENSMALLEN_DEPENDENCIES)
 
 if (CUDAQ_OPTIMIZER_VERBOSE) 
   target_compile_definitions(${LIBRARY_NAME} PRIVATE -DENS_PRINT_INFO)
@@ -43,8 +37,6 @@ if (NOT APPLE)
   # Exclude-libs is not supported on macOs
   target_link_options(${LIBRARY_NAME} PRIVATE -Wl,--exclude-libs,ALL)
 endif()
-
-install (FILES ensmallen.h DESTINATION include/cudaq/algorithms/optimizers/)
 
 install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-ensmallen-targets DESTINATION lib)
 install(EXPORT cudaq-ensmallen-targets

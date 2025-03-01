@@ -1,0 +1,68 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt %s --canonicalize --add-dealloc | cudaq-translate --convert-to=qir | FileCheck %s
+
+
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__Z4mainE3$_0 = "_ZZ4mainENK3$_0clEd"}} {
+  func.func @__nvqpp__mlirgen__Z4mainE3$_0(%arg0: f64) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    %0 = cc.alloca f64
+    cc.store %arg0, %0 : !cc.ptr<f64>
+    %1 = quake.alloca !quake.veq<4>
+    %2 = quake.extract_ref %1[0] : (!quake.veq<4>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %3 = quake.extract_ref %1[1] : (!quake.veq<4>) -> !quake.ref
+    quake.x %3 : (!quake.ref) -> ()
+    %4 = cc.load %0 : !cc.ptr<f64>
+    %5 = cc.string_literal "XXXY" : !cc.ptr<!cc.array<i8 x 5>>
+    %6 = quake.extract_ref %1[0] : (!quake.veq<4>) -> !quake.ref
+    %7 = quake.extract_ref %1[1] : (!quake.veq<4>) -> !quake.ref
+    %8 = quake.extract_ref %1[2] : (!quake.veq<4>) -> !quake.ref
+    %9 = quake.extract_ref %1[3] : (!quake.veq<4>) -> !quake.ref
+    %10 = quake.concat %6, %7, %8, %9 : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> !quake.veq<4>
+    quake.exp_pauli (%4) %10 to %5 : (f64, !quake.veq<4>, !cc.ptr<!cc.array<i8 x 5>>) -> ()
+    return
+  }
+}
+
+// CHECK-LABEL: __nvqpp__mlirgen__Z
+// CHECK:         %[[VAL_30:.*]] = alloca [1 x { i8*, i64 }], align 8
+// CHECK:    %[[VAL_0:.*]] = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 4)
+// CHECK:         %[[VAL_2:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 0)
+// CHECK:         %[[VAL_5:.*]] = load %Qubit*, %Qubit** %[[VAL_2]]
+// CHECK:         tail call void @__quantum__qis__x(%Qubit* %[[VAL_5]])
+// CHECK:         %[[VAL_6:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 1)
+// CHECK:         %[[VAL_8:.*]] = load %Qubit*, %Qubit** %[[VAL_6]]
+// CHECK:         tail call void @__quantum__qis__x(%Qubit* %[[VAL_8]])
+// CHECK:         %[[VAL_9:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 2)
+// CHECK:         %[[VAL_11:.*]] = load %Qubit*, %Qubit** %[[VAL_9]]
+// CHECK:         %[[VAL_12:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 3)
+// CHECK:         %[[VAL_14:.*]] = load %Qubit*, %Qubit** %[[VAL_12]]
+// CHECK:         %[[VAL_15:.*]] = tail call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
+// CHECK:         %[[VAL_16:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_15]], i64 0)
+// CHECK:         store %Qubit* %[[VAL_5]], %Qubit** %[[VAL_16]]
+// CHECK:         %[[VAL_18:.*]] = tail call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
+// CHECK:         %[[VAL_19:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_18]], i64 0)
+// CHECK:         store %Qubit* %[[VAL_8]], %Qubit** %[[VAL_19]]
+// CHECK:         %[[VAL_21:.*]] = tail call %Array* @__quantum__rt__array_concatenate(%Array* %[[VAL_15]], %Array* %[[VAL_18]])
+// CHECK:         %[[VAL_22:.*]] = tail call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
+// CHECK:         %[[VAL_23:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_22]], i64 0)
+// CHECK:         store %Qubit* %[[VAL_11]], %Qubit** %[[VAL_23]]
+// CHECK:         %[[VAL_25:.*]] = tail call %Array* @__quantum__rt__array_concatenate(%Array* %[[VAL_21]], %Array* %[[VAL_22]])
+// CHECK:         %[[VAL_26:.*]] = tail call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
+// CHECK:         %[[VAL_27:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_26]], i64 0)
+// CHECK:         store %Qubit* %[[VAL_14]], %Qubit** %[[VAL_27]], align 8
+// CHECK:         %[[VAL_29:.*]] = tail call %Array* @__quantum__rt__array_concatenate(%Array* %[[VAL_25]], %Array* %[[VAL_26]])
+// CHECK:         %[[VAL_31:.*]] = getelementptr inbounds [1 x { i8*, i64 }], [1 x { i8*, i64 }]* %[[VAL_30]], i64 0, i64 0, i32 0
+// CHECK:         store i8* getelementptr inbounds ([5 x i8], [5 x i8]* @cstr.5858585900, i64 0, i64 0), i8** %[[VAL_31]], align 8
+// CHECK:         %[[VAL_32:.*]] = getelementptr inbounds [1 x { i8*, i64 }], [1 x { i8*, i64 }]* %[[VAL_30]], i64 0, i64 0, i32 1
+// CHECK:         store i64 4, i64* %[[VAL_32]], align 8
+// CHECK:         %[[VAL_33:.*]] = bitcast [1 x { i8*, i64 }]* %[[VAL_30]] to i8*
+// CHECK:         call void @__quantum__qis__exp_pauli(double %[[VAL_34:.*]], %Array* %[[VAL_29]], i8* nonnull %[[VAL_33]])
+// CHECK:         call void @__quantum__rt__qubit_release_array(%Array* %[[VAL_0]])
+// CHECK:         ret void

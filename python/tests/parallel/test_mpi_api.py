@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -8,7 +8,6 @@
 
 import os, pytest, importlib
 import cudaq
-import numpy as np
 
 skipIfUnsupported = pytest.mark.skipif(importlib.util.find_spec('mpi4py')
                                        is None,

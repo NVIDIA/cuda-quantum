@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,10 +8,12 @@
 
 // REQUIRES: c++20
 // clang-format off
-// RUN: nvq++ --target ionq                     --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target iqm --iqm-machine Adonis --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target oqc                      --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target anyon                              --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target anyon --anyon-machine berkeley-25q --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target ionq                               --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target iqm --iqm-machine Adonis           --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target oqc                                --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target quantinuum                         --emulate %s -o %t && %t | FileCheck %s
 // Tests for --disable-qubit-mapping:
 // RUN: nvq++ -v %s -o %t --target oqc --emulate --disable-qubit-mapping && CUDAQ_MLIR_PRINT_EACH_PASS=1 %t |& FileCheck --check-prefix=DISABLE %s
 // RUN: nvq++ -v %s -o %t --target iqm --iqm-machine Adonis --emulate --disable-qubit-mapping && CUDAQ_MLIR_PRINT_EACH_PASS=1 %t |& FileCheck --check-prefix=DISABLE %s
@@ -49,5 +51,5 @@ int main() {
 
 // For this test, we should see the mapping pass run, but there should be no
 // mapping_v2p attribute applied anywhere thereafter.
-// DISABLE: IR Dump Before MappingPass
+// DISABLE: IR Dump Before MappingFunc
 // DISABLE-NOT: mapping_v2p

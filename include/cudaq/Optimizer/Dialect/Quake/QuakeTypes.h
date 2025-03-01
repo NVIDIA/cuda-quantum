@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -25,7 +25,7 @@ namespace quake {
 inline bool isQuantumType(mlir::Type ty) {
   // NB: this intentionally excludes MeasureType.
   return mlir::isa<quake::RefType, quake::VeqType, quake::WireType,
-                   quake::ControlType>(ty);
+                   quake::ControlType, quake::StruqType>(ty);
 }
 
 /// \returns true if \p `ty` is a Quake type.
@@ -34,8 +34,14 @@ inline bool isQuakeType(mlir::Type ty) {
   return isQuantumType(ty) || mlir::isa<quake::MeasureType>(ty);
 }
 
-inline bool isQuantumReferenceType(mlir::Type ty) {
+/// \returns true if \p ty is a quantum reference type, excluding `struq`.
+inline bool isNonStruqReferenceType(mlir::Type ty) {
   return mlir::isa<quake::RefType, quake::VeqType>(ty);
+}
+
+/// \returns true if \p ty is a quantum reference type.
+inline bool isQuantumReferenceType(mlir::Type ty) {
+  return isNonStruqReferenceType(ty) || mlir::isa<quake::StruqType>(ty);
 }
 
 /// A quake wire type is a linear type.
@@ -46,5 +52,8 @@ inline bool isLinearType(mlir::Type ty) {
 inline bool isQuantumValueType(mlir::Type ty) {
   return isLinearType(ty) || mlir::isa<quake::ControlType>(ty);
 }
+
+bool isConstantQuantumRefType(mlir::Type ty);
+std::size_t getAllocationSize(mlir::Type ty);
 
 } // namespace quake

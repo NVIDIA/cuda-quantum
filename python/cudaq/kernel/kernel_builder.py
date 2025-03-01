@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -14,7 +14,7 @@ import re
 import string
 import sys
 import numpy as np
-from typing import get_origin, List
+from typing import get_origin
 from .quake_value import QuakeValue
 from .kernel_decorator import PyKernelDecorator
 from .utils import mlirTypeFromPyType, nvqppPrefix, emitFatalError, emitWarning, mlirTypeToPyType, emitErrorIfInvalidPauli, globalRegisteredOperations
@@ -30,16 +30,6 @@ from ..mlir.dialects import builtin, func, arith, math, complex as complexDialec
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime, load_intrinsic, register_all_dialects, gen_vector_of_complex_constant
 
 kDynamicPtrIndex: int = -2147483648
-
-
-## [PYTHON_VERSION_FIX]
-## Refer: https://peps.python.org/pep-0616/
-def remove_prefix(inputStr: str, prefix: str) -> str:
-    if inputStr.startswith(prefix):
-        return inputStr[len(prefix):]
-    else:
-        return inputStr[:]
-
 
 qvector = cudaq_runtime.qvector
 
@@ -268,7 +258,7 @@ class PyKernel(object):
             nvqppPrefix, ''.join(
                 random.choice(string.ascii_uppercase + string.digits)
                 for _ in range(10)))
-        self.name = remove_prefix(self.funcName, nvqppPrefix)
+        self.name = self.funcName.removeprefix(nvqppPrefix)
         self.funcNameEntryPoint = self.funcName + '_PyKernelEntryPointRewrite'
         attr = DictAttr.get(
             {
@@ -295,6 +285,7 @@ class PyKernel(object):
                                       loc=self.loc)
             self.funcOp.attributes.__setitem__('cudaq-entrypoint',
                                                UnitAttr.get())
+            self.funcOp.attributes.__setitem__('cudaq-kernel', UnitAttr.get())
             e = self.funcOp.add_entry_block()
             self.arguments = [self.__createQuakeValue(b) for b in e.arguments]
             self.argument_count = len(self.arguments)
@@ -685,8 +676,8 @@ class PyKernel(object):
 
                 if (quake.VeqType.isinstance(inTy) and
                         quake.VeqType.isinstance(argTy)):
-                    if quake.VeqType.getSize(
-                            inTy) and not quake.VeqType.getSize(argTy):
+                    if quake.VeqType.hasSpecifiedSize(
+                            inTy) and not quake.VeqType.hasSpecifiedSize(argTy):
                         value = quake.RelaxSizeOp(argTy, value).result
 
                 mlirValues.append(value)
@@ -787,10 +778,8 @@ class PyKernel(object):
             if isinstance(initializer, cudaq_runtime.State):
                 statePtr = self.capturedDataStorage.storeCudaqState(initializer)
 
-                symName = '__nvqpp_cudaq_state_numberOfQubits'
-                load_intrinsic(self.module, symName)
                 i64Ty = self.getIntegerType()
-                numQubits = func.CallOp([i64Ty], symName, [statePtr]).result
+                numQubits = quake.GetNumberOfQubitsOp(i64Ty, statePtr).result
 
                 veqTy = quake.VeqType.get(self.ctx)
                 qubits = quake.AllocaOp(veqTy, size=numQubits).result
@@ -826,11 +815,9 @@ class PyKernel(object):
                     if cc.StateType.isinstance(valueTy):
                         statePtr = initializer.mlirValue
 
-                        symName = '__nvqpp_cudaq_state_numberOfQubits'
-                        load_intrinsic(self.module, symName)
                         i64Ty = self.getIntegerType()
-                        numQubits = func.CallOp([i64Ty], symName,
-                                                [statePtr]).result
+                        numQubits = quake.GetNumberOfQubitsOp(i64Ty,
+                                                              statePtr).result
 
                         veqTy = quake.VeqType.get(self.ctx)
                         qubits = quake.AllocaOp(veqTy, size=numQubits).result
@@ -865,7 +852,8 @@ class PyKernel(object):
             qubitsList = []
             pauliWordVal = None
             for arg in args:
-                if isinstance(arg, cudaq_runtime.SpinOperator):
+                if isinstance(arg, cudaq_runtime.SpinOperator) or hasattr(
+                        arg, "_to_spinop"):
                     if arg.get_term_count() > 1:
                         emitFatalError(
                             'exp_pauli operation requires a SpinOperator composed of a single term.'
@@ -900,7 +888,8 @@ class PyKernel(object):
                 quantumVal = quake.ConcatOp(quake.VeqType.get(
                     self.ctx), [quantumVal] if quantumVal is not None else [] +
                                             qubitsList).result
-            quake.ExpPauliOp(thetaVal, quantumVal, pauli=pauliWordVal)
+            quake.ExpPauliOp([], [thetaVal], [], [quantumVal],
+                             pauli=pauliWordVal)
 
     def givens_rotation(self, angle, qubitA, qubitB):
         """
@@ -1038,8 +1027,8 @@ class PyKernel(object):
                 return
 
             # target is a VeqType
-            size = quake.VeqType.getSize(target.mlirValue.type)
-            if size:
+            if quake.VeqType.hasSpecifiedSize(target.mlirValue.type):
+                size = quake.VeqType.getSize(target.mlirValue.type)
                 for i in range(size):
                     extracted = quake.ExtractRefOp(quake.RefType.get(self.ctx),
                                                    target.mlirValue, i).result
@@ -1088,10 +1077,12 @@ class PyKernel(object):
             if quake.VeqType.isinstance(target.mlirValue.type):
                 retTy = stdvecTy
                 measTy = cc.StdvecType.get(self.ctx, measTy)
-            res = quake.MzOp(
-                measTy, [], [target.mlirValue],
-                registerName=StringAttr.get(regName, context=self.ctx)
-                if regName is not None else '')
+            if regName is not None:
+                res = quake.MzOp(measTy, [], [target.mlirValue],
+                                 registerName=StringAttr.get(regName,
+                                                             context=self.ctx))
+            else:
+                res = quake.MzOp(measTy, [], [target.mlirValue])
             disc = quake.DiscriminateOp(retTy, res)
             return self.__createQuakeValue(disc.result)
 
@@ -1132,10 +1123,12 @@ class PyKernel(object):
             if quake.VeqType.isinstance(target.mlirValue.type):
                 retTy = stdvecTy
                 measTy = cc.StdvecType.get(self.ctx, measTy)
-            res = quake.MxOp(
-                measTy, [], [target.mlirValue],
-                registerName=StringAttr.get(regName, context=self.ctx)
-                if regName is not None else '')
+            if regName is not None:
+                res = quake.MxOp(measTy, [], [target.mlirValue],
+                                 registerName=StringAttr.get(regName,
+                                                             context=self.ctx))
+            else:
+                res = quake.MxOp(measTy, [], [target.mlirValue])
             disc = quake.DiscriminateOp(retTy, res)
             return self.__createQuakeValue(disc.result)
 
@@ -1177,10 +1170,12 @@ class PyKernel(object):
             if quake.VeqType.isinstance(target.mlirValue.type):
                 retTy = stdvecTy
                 measTy = cc.StdvecType.get(self.ctx, measTy)
-            res = quake.MyOp(
-                measTy, [], [target.mlirValue],
-                registerName=StringAttr.get(regName, context=self.ctx)
-                if regName is not None else '')
+            if regName is not None:
+                res = quake.MyOp(measTy, [], [target.mlirValue],
+                                 registerName=StringAttr.get(regName,
+                                                             context=self.ctx))
+            else:
+                res = quake.MyOp(measTy, [], [target.mlirValue])
             disc = quake.DiscriminateOp(retTy, res)
             return self.__createQuakeValue(disc.result)
 
@@ -1460,13 +1455,6 @@ class PyKernel(object):
                 f"Invalid number of arguments passed to kernel `{self.funcName}` ({len(args)} provided, {len(self.mlirArgTypes)} required"
             )
 
-        def getListType(eleType: type):
-            ## [PYTHON_VERSION_FIX]
-            if sys.version_info < (3, 9):
-                return List[eleType]
-            else:
-                return list[eleType]
-
         # validate the argument types
         processedArgs = []
         for i, arg in enumerate(args):
@@ -1491,7 +1479,7 @@ class PyKernel(object):
                 if len(arg) == 0:
                     processedArgs.append(arg)
                     continue
-                listType = getListType(type(arg[0]))
+                listType = list[type(arg[0])]
             mlirType = mlirTypeFromPyType(argType, self.ctx)
 
             if cc.StdvecType.isinstance(mlirType):

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -15,12 +15,17 @@ add_cudaq_library(OptTransforms
   AggressiveEarlyInlining.cpp
   ApplyControlNegations.cpp
   ApplyOpSpecialization.cpp
+  ArgumentSynthesis.cpp
   BasisConversion.cpp
+  ClassicalOptimization.cpp
+  CombineMeasurements.cpp
   CombineQuantumAlloc.cpp
   ConstPropComplex.cpp
   Decomposition.cpp
   DecompositionPatterns.cpp
   DelayMeasurements.cpp
+  DeleteStates.cpp
+  EraseNoise.cpp
   EraseNopCalls.cpp
   ExpandControlVeqs.cpp
   ExpandMeasurements.cpp
@@ -28,6 +33,7 @@ add_cudaq_library(OptTransforms
   GenKernelExecution.cpp
   GenDeviceCodeLoader.cpp
   GetConcreteMatrix.cpp
+  GlobalizeArrayValues.cpp
   LambdaLifting.cpp
   LiftArrayAlloc.cpp
   LinearCtrlRelations.cpp
@@ -39,6 +45,7 @@ add_cudaq_library(OptTransforms
   LowerUnwind.cpp
   Mapping.cpp
   MemToReg.cpp
+  DependencyAnalysis.cpp
   MultiControlDecomposition.cpp
   ObserveAnsatz.cpp
   PruneCtrlRelations.cpp
@@ -48,6 +55,10 @@ add_cudaq_library(OptTransforms
   RefToVeqAlloc.cpp
   RegToMem.cpp
   StatePreparation.cpp
+  UnitarySynthesis.cpp
+  UpdateRegisterNames.cpp
+  WiresToWiresets.cpp
+  WriteAfterWriteElimination.cpp
 
   DEPENDS
     OptTransformsPassIncGen
@@ -59,4 +70,9 @@ add_cudaq_library(OptTransforms
     MLIRIR
     OptimBuilder
     QuakeDialect
+)
+
+target_include_directories(OptTransforms SYSTEM
+  PRIVATE ${CMAKE_SOURCE_DIR}/tpls/eigen
+  PRIVATE ${CMAKE_SOURCE_DIR}/runtime
 )

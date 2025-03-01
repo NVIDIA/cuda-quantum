@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -26,6 +26,9 @@ void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *);
 
 namespace cudaq {
 void setQuantumPlatformInternal(quantum_platform *p);
+
+void setExecutionManagerInternal(ExecutionManager *em);
+void resetExecutionManagerInternal();
 
 static constexpr const char PLATFORM_LIBRARY[] = "PLATFORM_LIBRARY=";
 static constexpr const char NVQIR_SIMULATION_BACKEND[] =
@@ -473,6 +476,16 @@ void LinkedLibraryHolder::setTarget(
   platform->setTargetBackend(backendConfigStr);
   setQuantumPlatformInternal(platform);
   currentTarget = targetName;
+
+  if ("orca-photonics" == targetName) {
+    std::filesystem::path libPath =
+        cudaqLibPath / fmt::format("libcudaq-em-photonics.{}", libSuffix);
+    auto *em = getUniquePluginInstance<ExecutionManager>(
+        "getRegisteredExecutionManager_photonics", libPath.c_str());
+    setExecutionManagerInternal(em);
+  } else {
+    resetExecutionManagerInternal();
+  }
 }
 
 std::vector<RuntimeTarget> LinkedLibraryHolder::getTargets() const {

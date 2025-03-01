@@ -1,12 +1,10 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-
-#include "mlir/Bindings/Python/PybindAdaptors.h"
 
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CAPI/Dialects.h"
@@ -17,7 +15,9 @@
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
+#include "cudaq/Optimizer/InitAllPasses.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/InitAllDialects.h"
 #include <fmt/core.h>
 #include <pybind11/complex.h>
@@ -38,16 +38,11 @@ void registerQuakeDialectAndTypes(py::module &m) {
       [](MlirContext context, bool load) {
         MlirDialectHandle handle = mlirGetDialectHandle__quake__();
         mlirDialectHandleRegisterDialect(handle, context);
-        if (load) {
+        if (load)
           mlirDialectHandleLoadDialect(handle, context);
-        }
 
         if (!registered) {
-          cudaq::opt::registerOptCodeGenPasses();
-          cudaq::opt::registerOptTransformsPasses();
-          cudaq::opt::registerAggressiveEarlyInlining();
-          cudaq::opt::registerUnrollingPipeline();
-          cudaq::opt::registerTargetPipelines();
+          cudaq::registerCudaqPassesAndPipelines();
           registered = true;
         }
       },
@@ -73,7 +68,8 @@ void registerQuakeDialectAndTypes(py::module &m) {
           [](py::object cls, MlirContext ctx, std::size_t size) {
             return wrap(quake::VeqType::get(unwrap(ctx), size));
           },
-          py::arg("cls"), py::arg("context"), py::arg("size") = 0)
+          py::arg("cls"), py::arg("context"),
+          py::arg("size") = std::numeric_limits<std::size_t>::max())
       .def_staticmethod(
           "hasSpecifiedSize",
           [](MlirType type) {
@@ -96,6 +92,50 @@ void registerQuakeDialectAndTypes(py::module &m) {
             return veqTy.getSize();
           },
           py::arg("veqTypeInstance"));
+
+  mlir_type_subclass(
+      quakeMod, "StruqType",
+      [](MlirType type) { return unwrap(type).isa<quake::StruqType>(); })
+      .def_classmethod(
+          "get",
+          [](py::object cls, MlirContext ctx, py::list aggregateTypes) {
+            SmallVector<Type> inTys;
+            for (auto &t : aggregateTypes)
+              inTys.push_back(unwrap(t.cast<MlirType>()));
+
+            return wrap(quake::StruqType::get(unwrap(ctx), inTys));
+          })
+      .def_classmethod("getNamed",
+                       [](py::object cls, MlirContext ctx,
+                          const std::string &name, py::list aggregateTypes) {
+                         SmallVector<Type> inTys;
+                         for (auto &t : aggregateTypes)
+                           inTys.push_back(unwrap(t.cast<MlirType>()));
+
+                         return wrap(
+                             quake::StruqType::get(unwrap(ctx), name, inTys));
+                       })
+      .def_classmethod(
+          "getTypes",
+          [](py::object cls, MlirType structTy) {
+            auto ty = dyn_cast<quake::StruqType>(unwrap(structTy));
+            if (!ty)
+              throw std::runtime_error(
+                  "invalid type passed to StruqType.getTypes(), must be a "
+                  "quake.struq");
+            std::vector<MlirType> ret;
+            for (auto &t : ty.getMembers())
+              ret.push_back(wrap(t));
+            return ret;
+          })
+      .def_classmethod("getName", [](py::object cls, MlirType structTy) {
+        auto ty = dyn_cast<quake::StruqType>(unwrap(structTy));
+        if (!ty)
+          throw std::runtime_error(
+              "invalid type passed to StruqType.getName(), must be a "
+              "quake.struq");
+        return ty.getName().getValue().str();
+      });
 }
 
 void registerCCDialectAndTypes(py::module &m) {
@@ -181,16 +221,36 @@ void registerCCDialectAndTypes(py::module &m) {
 
             return wrap(cudaq::cc::StructType::get(unwrap(ctx), inTys));
           })
-      .def_classmethod("getTypes", [](py::object cls, MlirType structTy) {
+      .def_classmethod(
+          "getNamed",
+          [](py::object cls, MlirContext ctx, const std::string &name,
+             py::list aggregateTypes) {
+            SmallVector<Type> inTys;
+            for (auto &t : aggregateTypes)
+              inTys.push_back(unwrap(t.cast<MlirType>()));
+
+            return wrap(cudaq::cc::StructType::get(unwrap(ctx), name, inTys));
+          })
+      .def_classmethod(
+          "getTypes",
+          [](py::object cls, MlirType structTy) {
+            auto ty = dyn_cast<cudaq::cc::StructType>(unwrap(structTy));
+            if (!ty)
+              throw std::runtime_error(
+                  "invalid type passed to StructType.getTypes(), must be a "
+                  "cc.struct");
+            std::vector<MlirType> ret;
+            for (auto &t : ty.getMembers())
+              ret.push_back(wrap(t));
+            return ret;
+          })
+      .def_classmethod("getName", [](py::object cls, MlirType structTy) {
         auto ty = dyn_cast<cudaq::cc::StructType>(unwrap(structTy));
         if (!ty)
           throw std::runtime_error(
-              "invalid type passed to StructType.getTypes(), must be a "
+              "invalid type passed to StructType.getName(), must be a "
               "cc.struct");
-        std::vector<MlirType> ret;
-        for (auto &t : ty.getMembers())
-          ret.push_back(wrap(t));
-        return ret;
+        return ty.getName().getValue().str();
       });
 
   mlir_type_subclass(
@@ -253,12 +313,15 @@ void bindRegisterDialects(py::module &mod) {
     mlirContext->loadAllAvailableDialects();
   });
 
-  mod.def("gen_vector_of_complex_constant",
-          [](MlirLocation loc, MlirModule module, std::string name,
-             const std::vector<std::complex<double>> &values) {
-            ModuleOp modOp = unwrap(module);
-            cudaq::IRBuilder builder = IRBuilder::atBlockEnd(modOp.getBody());
-            builder.genVectorOfConstants(unwrap(loc), modOp, name, values);
-          });
+  mod.def("gen_vector_of_complex_constant", [](MlirLocation loc,
+                                               MlirModule module,
+                                               std::string name,
+                                               const std::vector<std::complex<
+                                                   double>> &values) {
+    ModuleOp modOp = unwrap(module);
+    cudaq::IRBuilder builder = IRBuilder::atBlockEnd(modOp.getBody());
+    SmallVector<std::complex<double>> newValues{values.begin(), values.end()};
+    builder.genVectorOfConstants(unwrap(loc), modOp, name, newValues);
+  });
 }
 } // namespace cudaq

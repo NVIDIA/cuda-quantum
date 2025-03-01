@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -28,7 +28,25 @@ public:
       initCuTensornetComm(m_cutnHandle);
       m_cutnMpiInitialized = true;
     }
+
+    // Retrieve user-defined controlled rank setting if provided.
+    if (auto *maxControlledRankEnvVar =
+            std::getenv("CUDAQ_TENSORNET_CONTROLLED_RANK")) {
+      auto maxControlledRank = std::atoi(maxControlledRankEnvVar);
+      if (maxControlledRank <= 0)
+        throw std::runtime_error(
+            fmt::format("Invalid CUDAQ_TENSORNET_CONTROLLED_RANK environment "
+                        "variable setting. Expecting a "
+                        "positive integer value, got '{}'.",
+                        maxControlledRank));
+
+      cudaq::info("Setting max controlled rank for full tensor expansion from "
+                  "{} to {}.",
+                  m_maxControlledRankForFullTensorExpansion, maxControlledRank);
+      m_maxControlledRankForFullTensorExpansion = maxControlledRank;
+    }
   }
+
   // Nothing to do for state preparation
   virtual void prepareQubitTensorState() override {}
   virtual std::string name() const override { return "tensornet"; }
@@ -47,22 +65,22 @@ public:
 
   std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
     LOG_API_TIME();
-    return std::make_unique<TensorNetSimulationState>(std::move(m_state),
-                                                      scratchPad, m_cutnHandle);
+    return std::make_unique<TensorNetSimulationState>(
+        std::move(m_state), scratchPad, m_cutnHandle, m_randomEngine);
   }
 
   void addQubitsToState(std::size_t numQubits, const void *ptr) override {
     LOG_API_TIME();
     if (!m_state) {
       if (!ptr) {
-        m_state = std::make_unique<TensorNetState>(numQubits, scratchPad,
-                                                   m_cutnHandle);
+        m_state = std::make_unique<TensorNetState>(
+            numQubits, scratchPad, m_cutnHandle, m_randomEngine);
       } else {
         auto *casted =
             reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr));
         std::span<std::complex<double>> stateVec(casted, 1ULL << numQubits);
-        m_state = TensorNetState::createFromStateVector(stateVec, scratchPad,
-                                                        m_cutnHandle);
+        m_state = TensorNetState::createFromStateVector(
+            stateVec, scratchPad, m_cutnHandle, m_randomEngine);
       }
     } else {
       if (!ptr) {
@@ -85,9 +103,9 @@ public:
       throw std::invalid_argument(
           "[Tensornet simulator] Incompatible state input");
     if (!m_state) {
-      m_state = TensorNetState::createFromOpTensors(in_state.getNumQubits(),
-                                                    casted->getAppliedTensors(),
-                                                    scratchPad, m_cutnHandle);
+      m_state = TensorNetState::createFromOpTensors(
+          in_state.getNumQubits(), casted->getAppliedTensors(), scratchPad,
+          m_cutnHandle, m_randomEngine);
     } else {
       // Expand an existing state:
       //  (1) Create a blank tensor network with combined number of qubits
@@ -116,6 +134,7 @@ public:
       }
     }
   }
+  bool requireCacheWorkspace() const override { return true; }
 
 private:
   friend nvqir::CircuitSimulator * ::getCircuitSimulator_tensornet();

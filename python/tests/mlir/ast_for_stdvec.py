@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -8,9 +8,6 @@
 
 # RUN: PYTHONPATH=../../ pytest -rP  %s | FileCheck %s
 
-import os
-
-import pytest
 import numpy as np
 
 import cudaq
@@ -31,7 +28,7 @@ def test_elif():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__cost(
-# CHECK-SAME:                                      %[[VAL_0:.*]]: !cc.stdvec<f64>) attributes {"cudaq-entrypoint"} {
+# CHECK-SAME:                                      %[[VAL_0:.*]]: !cc.stdvec<f64>) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 1 : i64
 # CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 0 : i64
 # CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<4>

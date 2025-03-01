@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -30,10 +30,12 @@ set(NVQPP_TEST_PARAMS
 get_property(test_cudaq_libraries GLOBAL PROPERTY CUDAQ_RUNTIME_LIBS)
 
 set(NVQPP_TEST_DEPENDS
+    CircuitCheck
     cudaq-opt
     cudaq-translate
-    CircuitCheck
     FileCheck
+    test_argument_conversion
+    CustomPassPlugin
 )
 if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
   set(NVQPP_TEST_DEPENDS ${NVQPP_TEST_DEPENDS}

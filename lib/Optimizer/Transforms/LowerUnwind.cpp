@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -513,8 +513,8 @@ struct IfOpPattern : public OpRewritePattern<cudaq::cc::IfOp> {
 
   LogicalResult matchAndRewrite(cudaq::cc::IfOp ifOp,
                                 PatternRewriter &rewriter) const override {
-    auto iter = infoMap.opParentMap.find(ifOp.getOperation());
-    assert(iter != infoMap.opParentMap.end());
+    assert(infoMap.opParentMap.find(ifOp.getOperation()) !=
+           infoMap.opParentMap.end());
     LLVM_DEBUG(llvm::dbgs() << "replacing if @" << ifOp.getLoc() << '\n');
 
     // Decompose the cc.if to a CFG.

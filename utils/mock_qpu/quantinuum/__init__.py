@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -51,7 +51,7 @@ def getNumRequiredQubits(function):
         if "requiredQubits" in str(a):
             return int(
                 str(a).split("requiredQubits\"=")[-1].split(" ")[0].replace(
-                    "\"", ""))
+                    "\"", "").replace("'", ""))
 
 
 # Here we test that the login endpoint works

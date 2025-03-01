@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,6 +8,8 @@
 
 #include "mps_simulation_state.h"
 #include "simulator_cutensornet.h"
+#include <charconv>
+#include <errno.h>
 
 namespace nvqir {
 
@@ -45,8 +47,8 @@ public:
       throw std::invalid_argument(
           "[SimulatorMPS simulator] Incompatible state input");
     if (!m_state) {
-      m_state = TensorNetState::createFromMpsTensors(casted->getMpsTensors(),
-                                                     scratchPad, m_cutnHandle);
+      m_state = TensorNetState::createFromMpsTensors(
+          casted->getMpsTensors(), scratchPad, m_cutnHandle, m_randomEngine);
     } else {
       // Expand an existing state: Append MPS tensors
       // Factor the existing state
@@ -74,8 +76,8 @@ public:
                                      tensorSizeBytes, cudaMemcpyDefault));
         tensors.emplace_back(MPSTensor(mpsTensor, extents));
       }
-      m_state = TensorNetState::createFromMpsTensors(tensors, scratchPad,
-                                                     m_cutnHandle);
+      m_state = TensorNetState::createFromMpsTensors(
+          tensors, scratchPad, m_cutnHandle, m_randomEngine);
     }
   }
 
@@ -151,6 +153,164 @@ public:
     SimulatorTensorNetBase::applyExpPauli(theta, controls, qubitIds, op);
   }
 
+  // Helper to compute expectation value from a bit string distribution
+  static double computeExpValFromDistribution(
+      const std::unordered_map<std::string, std::size_t> &distribution,
+      int shots) {
+    double expVal = 0.0;
+    // Compute the expectation value from the distribution
+    for (auto &kv : distribution) {
+      auto par = cudaq::sample_result::has_even_parity(kv.first);
+      auto p = kv.second / (double)shots;
+      if (!par) {
+        p = -p;
+      }
+      expVal += p;
+    }
+    return expVal;
+  };
+
+  // Set up the MPS factorization before trajectory simulation run loop.
+  // We only need to do cutensornetStateFinalizeMPS once
+  void setUpFactorizeForTrajectoryRuns() {
+    for (auto &tensor : m_mpsTensors_d) {
+      HANDLE_CUDA_ERROR(cudaFree(tensor.deviceData));
+    }
+    m_mpsTensors_d.clear();
+    m_mpsTensors_d =
+        m_state->setupMPSFactorize(m_settings.maxBond, m_settings.absCutoff,
+                                   m_settings.relCutoff, m_settings.svdAlgo);
+  }
+
+  /// @brief Sample a subset of qubits
+  cudaq::ExecutionResult sample(const std::vector<std::size_t> &measuredBits,
+                                const int shots) override {
+    const bool hasNoise = executionContext && executionContext->noiseModel;
+    if (!hasNoise || shots < 1)
+      return SimulatorTensorNetBase::sample(measuredBits, shots);
+
+    LOG_API_TIME();
+    cudaq::ExecutionResult counts;
+    std::vector<int32_t> measuredBitIds(measuredBits.begin(),
+                                        measuredBits.end());
+
+    setUpFactorizeForTrajectoryRuns();
+    std::map<std::vector<int64_t>, std::pair<cutensornetStateSampler_t,
+                                             cutensornetWorkspaceDescriptor_t>>
+        samplerCache;
+    for (int i = 0; i < shots; ++i) {
+      // As the Kraus operator sampling may change the MPS state, we need to
+      // re-compute the factorization in each trajectory.
+      m_state->computeMPSFactorize(m_mpsTensors_d);
+      std::vector<int64_t> samplerKey;
+      for (const auto &tensor : m_mpsTensors_d)
+        samplerKey.insert(samplerKey.end(), tensor.extents.begin(),
+                          tensor.extents.end());
+
+      auto iter = samplerCache.find(samplerKey);
+      if (iter == samplerCache.end()) {
+        const auto [itInsert, success] = samplerCache.insert(
+            {samplerKey, m_state->prepareSample(measuredBitIds)});
+        assert(success);
+        iter = itInsert;
+      }
+
+      assert(iter != samplerCache.end());
+      auto &[sampler, workDesc] = iter->second;
+      const auto samples = m_state->executeSample(
+          sampler, workDesc, measuredBitIds, 1, requireCacheWorkspace());
+      assert(samples.size() == 1);
+      for (const auto &[bitString, count] : samples)
+        counts.appendResult(bitString, count);
+    }
+
+    for (const auto &[k, v] : samplerCache) {
+      auto &[sampler, workDesc] = v;
+      // Destroy the workspace descriptor
+      HANDLE_CUTN_ERROR(cutensornetDestroyWorkspaceDescriptor(workDesc));
+      // Destroy the quantum circuit sampler
+      HANDLE_CUTN_ERROR(cutensornetDestroySampler(sampler));
+    }
+
+    counts.expectationValue =
+        computeExpValFromDistribution(counts.counts, shots);
+
+    return counts;
+  }
+
+  // Helper to prepare term-by-term data from a spin op
+  static std::tuple<std::vector<std::string>,
+                    std::vector<cudaq::spin_op::spin_op_term>,
+                    std::vector<std::complex<double>>>
+  prepareSpinOpTermData(const cudaq::spin_op &ham) {
+    std::vector<std::string> termStrs;
+    std::vector<cudaq::spin_op::spin_op_term> terms;
+    std::vector<std::complex<double>> coeffs;
+    termStrs.reserve(ham.num_terms());
+    terms.reserve(ham.num_terms());
+    coeffs.reserve(ham.num_terms());
+
+    // Note: as the spin_op terms are stored as an unordered map, we need to
+    // iterate in one loop to collect all the data (string, symplectic data, and
+    // coefficient).
+    ham.for_each_term([&](cudaq::spin_op &term) {
+      termStrs.emplace_back(term.to_string(false));
+      auto [symplecticRep, coeff] = term.get_raw_data();
+      if (symplecticRep.size() != 1 || coeff.size() != 1)
+        throw std::runtime_error(fmt::format(
+            "Unexpected data encountered when iterating spin operator terms: "
+            "expecting a single term, got {} terms.",
+            symplecticRep.size()));
+      terms.emplace_back(symplecticRep[0]);
+      coeffs.emplace_back(coeff[0]);
+    });
+    return std::make_tuple(termStrs, terms, coeffs);
+  }
+
+  cudaq::observe_result observe(const cudaq::spin_op &ham) override {
+    LOG_API_TIME();
+    const bool hasNoise = executionContext && executionContext->noiseModel;
+    // If no noise, just use base class implementation.
+    if (!hasNoise)
+      return SimulatorTensorNetBase::observe(ham);
+
+    setUpFactorizeForTrajectoryRuns();
+    const std::size_t numObserveTrajectories =
+        this->executionContext->numberTrajectories.has_value()
+            ? this->executionContext->numberTrajectories.value()
+            : TensorNetState::g_numberTrajectoriesForObserve;
+
+    auto [termStrs, terms, coeffs] = prepareSpinOpTermData(ham);
+    std::vector<std::complex<double>> termExpVals(terms.size(), 0.0);
+
+    for (std::size_t i = 0; i < numObserveTrajectories; ++i) {
+      // As the Kraus operator sampling may change the MPS state, we need to
+      // re-compute the factorization in each trajectory.
+      m_state->computeMPSFactorize(m_mpsTensors_d);
+      // We run a single trajectory for MPS as the final MPS form depends on the
+      // randomly-selected noise op.
+      const auto trajTermExpVals = m_state->computeExpVals(terms, 1);
+
+      for (std::size_t idx = 0; idx < terms.size(); ++idx) {
+        termExpVals[idx] += (trajTermExpVals[idx] /
+                             static_cast<double>(numObserveTrajectories));
+      }
+    }
+    std::complex<double> expVal = 0.0;
+    // Construct per-term data in the final observe_result
+    std::vector<cudaq::ExecutionResult> results;
+    results.reserve(terms.size());
+
+    for (std::size_t i = 0; i < terms.size(); ++i) {
+      expVal += (coeffs[i] * termExpVals[i]);
+      results.emplace_back(
+          cudaq::ExecutionResult({}, termStrs[i], termExpVals[i].real()));
+    }
+
+    cudaq::sample_result perTermData(expVal.real(), results);
+    return cudaq::observe_result(expVal.real(), ham, perTermData);
+  }
+
   virtual std::string name() const override { return "tensornet-mps"; }
 
   CircuitSimulator *clone() override {
@@ -162,13 +322,13 @@ public:
     LOG_API_TIME();
     if (!m_state) {
       if (!ptr) {
-        m_state = std::make_unique<TensorNetState>(numQubits, scratchPad,
-                                                   m_cutnHandle);
+        m_state = std::make_unique<TensorNetState>(
+            numQubits, scratchPad, m_cutnHandle, m_randomEngine);
       } else {
         auto [state, mpsTensors] = MPSSimulationState::createFromStateVec(
             m_cutnHandle, scratchPad, 1ULL << numQubits,
             reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr)),
-            m_settings.maxBond);
+            m_settings.maxBond, m_randomEngine);
         m_state = std::move(state);
       }
     } else {
@@ -192,14 +352,14 @@ public:
                                        cudaMemcpyHostToDevice));
           tensors.emplace_back(MPSTensor(mpsTensor, extents));
         }
-        m_state = TensorNetState::createFromMpsTensors(tensors, scratchPad,
-                                                       m_cutnHandle);
+        m_state = TensorNetState::createFromMpsTensors(
+            tensors, scratchPad, m_cutnHandle, m_randomEngine);
       } else {
         // Non-zero state needs to be factorized and appended.
         auto [state, mpsTensors] = MPSSimulationState::createFromStateVec(
             m_cutnHandle, scratchPad, 1ULL << numQubits,
             reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr)),
-            m_settings.maxBond);
+            m_settings.maxBond, m_randomEngine);
         auto tensors =
             m_state->factorizeMPS(m_settings.maxBond, m_settings.absCutoff,
                                   m_settings.relCutoff, m_settings.svdAlgo);
@@ -212,8 +372,8 @@ public:
         mpsTensors.front().extents = extents;
         // Combine the list
         tensors.insert(tensors.end(), mpsTensors.begin(), mpsTensors.end());
-        m_state = TensorNetState::createFromMpsTensors(tensors, scratchPad,
-                                                       m_cutnHandle);
+        m_state = TensorNetState::createFromMpsTensors(
+            tensors, scratchPad, m_cutnHandle, m_randomEngine);
       }
     }
   }
@@ -222,16 +382,17 @@ public:
     LOG_API_TIME();
 
     if (!m_state || m_state->getNumQubits() == 0)
-      return std::make_unique<MPSSimulationState>(std::move(m_state),
-                                                  std::vector<MPSTensor>{},
-                                                  scratchPad, m_cutnHandle);
+      return std::make_unique<MPSSimulationState>(
+          std::move(m_state), std::vector<MPSTensor>{}, scratchPad,
+          m_cutnHandle, m_randomEngine);
 
     if (m_state->getNumQubits() > 1) {
       std::vector<MPSTensor> tensors =
           m_state->factorizeMPS(m_settings.maxBond, m_settings.absCutoff,
                                 m_settings.relCutoff, m_settings.svdAlgo);
       return std::make_unique<MPSSimulationState>(std::move(m_state), tensors,
-                                                  scratchPad, m_cutnHandle);
+                                                  scratchPad, m_cutnHandle,
+                                                  m_randomEngine);
     }
 
     auto [d_tensor, numElements] = m_state->contractStateVectorInternal({});
@@ -242,8 +403,10 @@ public:
 
     return std::make_unique<MPSSimulationState>(
         std::move(m_state), std::vector<MPSTensor>{stateTensor}, scratchPad,
-        m_cutnHandle);
+        m_cutnHandle, m_randomEngine);
   }
+
+  bool requireCacheWorkspace() const override { return false; }
 
   virtual ~SimulatorMPS() noexcept {
     for (auto &tensor : m_mpsTensors_d) {

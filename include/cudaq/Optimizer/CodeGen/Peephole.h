@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,6 +9,7 @@
 #pragma once
 
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
+#include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/ADT/StringRef.h"
 #include "mlir/IR/ValueRange.h"
@@ -38,9 +39,8 @@ inline bool isIntToPtrOp(mlir::Value operand) {
 static constexpr char resultIndexName[] = "result.index";
 
 inline mlir::Value createMeasureCall(mlir::PatternRewriter &builder,
-                                     mlir::Location loc, mlir::OpResult result,
+                                     mlir::Location loc, mlir::LLVM::CallOp op,
                                      mlir::ValueRange args) {
-  auto op = cast<mlir::LLVM::CallOp>(result.getDefiningOp());
   auto ptrTy = cudaq::opt::getResultType(builder.getContext());
   if (auto intAttr =
           dyn_cast_or_null<mlir::IntegerAttr>(op->getAttr(resultIndexName))) {
@@ -57,15 +57,11 @@ inline mlir::Value createMeasureCall(mlir::PatternRewriter &builder,
 
 inline mlir::Value createReadResultCall(mlir::PatternRewriter &builder,
                                         mlir::Location loc,
-                                        mlir::OpResult result) {
+                                        mlir::Value result) {
   auto i1Ty = mlir::IntegerType::get(builder.getContext(), 1);
   return builder
       .create<mlir::LLVM::CallOp>(loc, mlir::TypeRange{i1Ty},
                                   cudaq::opt::QIRReadResultBody,
                                   mlir::ArrayRef<mlir::Value>{result})
       .getResult();
-}
-
-namespace {
-#include "cudaq/Optimizer/CodeGen/Peephole.inc"
 }

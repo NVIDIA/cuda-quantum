@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -19,7 +19,7 @@
 // ServerHelper, for example, was not invoked at all.
 using namespace mlir;
 
-extern "C" void deviceCodeHolderAdd(const char *, const char *);
+extern "C" void __cudaq_deviceCodeHolderAdd(const char *, const char *);
 
 namespace cudaq {
 
@@ -80,8 +80,8 @@ protected:
     // specific to python before the rest of the RemoteRESTQPU workflow
     auto cloned = m_module.clone();
     PassManager pm(cloned.getContext());
-    pm.addNestedPass<func::FuncOp>(
-        cudaq::opt::createPySynthCallableBlockArgs(callableNames));
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createPySynthCallableBlockArgs(
+        SmallVector<StringRef>(callableNames.begin(), callableNames.end())));
     cudaq::opt::addAggressiveEarlyInlining(pm);
     pm.addPass(mlir::createCanonicalizerPass());
     pm.addNestedPass<mlir::func::FuncOp>(
@@ -89,7 +89,6 @@ protected:
     pm.addPass(mlir::createCanonicalizerPass());
     pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
     pm.addPass(createInlinerPass());
-    pm.addPass(cudaq::opt::createExpandMeasurementsPass());
     pm.addPass(createCanonicalizerPass());
     pm.addPass(createCSEPass());
     if (failed(pm.run(cloned)))
@@ -103,7 +102,7 @@ protected:
     }
     // The remote rest qpu workflow will need the module string in
     // the internal registry.
-    deviceCodeHolderAdd(kernelName.c_str(), moduleStr.c_str());
+    __cudaq_deviceCodeHolderAdd(kernelName.c_str(), moduleStr.c_str());
     return std::make_tuple(cloned, context, wrapper->rawArgs);
   }
 };

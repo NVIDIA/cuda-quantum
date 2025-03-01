@@ -1,0 +1,66 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --canonicalize %s | cudaq-translate --convert-to=qir | FileCheck %s
+
+module attributes {
+  llvm.data_layout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128",
+  llvm.triple = "x86_64-unknown-linux-gnu",
+  quake.mangled_name_map = {__nvqpp__mlirgen__function_test._Z4testSt6vectorIdSaIdEE = "_Z4testSt6vectorIdSaIdEE"}} {
+  
+  func.func @__nvqpp__mlirgen__function_test._Z4testSt6vectorIdSaIdEE() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+    %s0 = cc.const_array [1.0, 0.0, 0.0, 1.0] : !cc.array<f64 x 4>
+    %s1 = cc.alloca !cc.array<f64 x 4>
+    cc.store %s0, %s1 : !cc.ptr<!cc.array<f64 x 4>>
+    %s2 = arith.constant 4 : i64
+    %s3 = cc.cast %s1 : (!cc.ptr<!cc.array<f64 x 4>>) -> !cc.ptr<f64>
+    %arg0 = cc.stdvec_init %s3, %s2 : (!cc.ptr<f64>, i64) -> !cc.stdvec<f64>
+    %c0_i64 = arith.constant 0 : i64
+    %c1_i64 = arith.constant 1 : i64
+    %0 = arith.constant 4 : i64
+    %1 = math.cttz %0 : i64
+    %2 = cc.stdvec_data %arg0 : (!cc.stdvec<f64>) -> !cc.ptr<f64>
+    %3 = quake.alloca !quake.veq<?>[%1 : i64]
+    %4 = quake.init_state %3, %2 : (!quake.veq<?>, !cc.ptr<f64>) -> !quake.veq<?>
+    %5 = quake.veq_size %4 : (!quake.veq<?>) -> i64
+    %6 = cc.loop while ((%arg1 = %c0_i64) -> (i64)) {
+      %9 = arith.cmpi slt, %arg1, %5 : i64
+      cc.condition %9(%arg1 : i64)
+    } do {
+    ^bb0(%arg1: i64):
+      %9 = quake.extract_ref %4[%arg1] : (!quake.veq<?>, i64) -> !quake.ref
+      quake.h %9 : (!quake.ref) -> ()
+      cc.continue %arg1 : i64
+    } step {
+    ^bb0(%arg1: i64):
+      %9 = arith.addi %arg1, %c1_i64 : i64
+      cc.continue %9 : i64
+    } {invariant}
+    %7 = quake.extract_ref %4[1] : (!quake.veq<?>) -> !quake.ref
+    %8 = quake.extract_ref %4[0] : (!quake.veq<?>) -> !quake.ref
+    quake.x [%7] %8 : (!quake.ref, !quake.ref) -> ()
+    return
+  }
+  func.func @_Z4testSt6vectorIdSaIdEE(%arg0: !cc.ptr<!cc.struct<{!cc.ptr<f64>, !cc.ptr<f64>, !cc.ptr<f64>}>>) attributes {no_this} {
+    return
+  }
+}
+
+// CHECK-LABEL: define void @__nvqpp__mlirgen__function_test.
+// CHECK:         %[[VAL_0:.*]] = tail call %[[VAL_1:.*]]* @__quantum__rt__qubit_allocate_array_with_state_fp64(i64 2, double* nonnull getelementptr inbounds ([4 x double], [4 x double]* @__nvqpp__mlirgen__function_test._Z4testSt6vectorIdSaIdEE.rodata_0, i64 0, i64 0))
+// CHECK:         %[[VAL_2:.*]] = tail call %[[VAL_3:.*]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 0)
+// CHECK:         %[[VAL_4:.*]] = load %[[VAL_3]]*, %[[VAL_3]]** %[[VAL_2]], align 8
+// CHECK:         tail call void @__quantum__qis__h(%[[VAL_3]]* %[[VAL_4]])
+// CHECK:         %[[VAL_5:.*]] = tail call %[[VAL_3]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 1)
+// CHECK:         %[[VAL_6:.*]] = load %[[VAL_3]]*, %[[VAL_3]]** %[[VAL_5]], align 8
+// CHECK:         tail call void @__quantum__qis__h(%[[VAL_3]]* %[[VAL_6]])
+// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* nonnull bitcast (void (%[[VAL_1]]*, %[[VAL_3]]*)* @__quantum__qis__x__ctl to i8*), %[[VAL_3]]* %[[VAL_6]], %[[VAL_3]]* %[[VAL_4]])
+// CHECK:         tail call void @__quantum__rt__qubit_release_array(%[[VAL_1]]* %[[VAL_0]])
+// CHECK:         ret void
+// CHECK:       }
+

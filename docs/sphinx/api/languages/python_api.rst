@@ -71,6 +71,12 @@ Kernel Execution
 .. autofunction:: cudaq::draw
 .. autofunction:: cudaq::translate
 
+Dynamics
+=============================
+
+.. autofunction:: cudaq::evolve
+.. autofunction:: cudaq::evolve_async
+
 Backend Configuration
 =============================
 
@@ -119,22 +125,41 @@ Data Types
     :members:
     :special-members: __getitem__, __str__
 
-.. autoclass:: cudaq::SpinOperator
+.. autoclass:: cudaq::Schedule
+.. autoclass:: cudaq.operator.integrator.BaseIntegrator
+.. autoclass:: cudaq::EvolveResult
     :members:
 
-    .. automethod:: __eq__
-    .. automethod:: __add__
-    .. automethod:: __radd__
-    .. automethod:: __sub__
-    .. automethod:: __rsub__
-    .. automethod:: __mul__
-    .. automethod:: __rmul__
-    .. automethod:: __iter__
-        
+.. autoclass:: cudaq::AsyncEvolveResult
+    :members:
+
+.. autoclass:: cudaq::SpinOperator
+.. autoclass:: cudaq.operator.expressions.OperatorSum
+
+.. autoclass:: cudaq.operator.expressions.ElementaryOperator
+    
+    .. automethod:: define
+
+.. autoclass:: cudaq.operator.expressions.ProductOperator
+
+.. autoclass:: cudaq.operator.expressions.RydbergHamiltonian
+    :members:
+    :special-members: __init__
+
+.. autoclass:: cudaq.operator.expressions.ScalarOperator
+.. autoclass:: cudaq.operator.definitions.SpinOperator
+
 .. autofunction:: cudaq::spin.i
 .. autofunction:: cudaq::spin.x
 .. autofunction:: cudaq::spin.y
 .. autofunction:: cudaq::spin.z
+
+.. autoclass:: cudaq.operator.cudm_state.CuDensityMatState
+    :members:
+
+.. autoclass:: cudaq.operator.helpers.InitialState
+
+.. autofunction:: cudaq.operator.cudm_state.to_cupy_array
 
 .. autoclass:: cudaq::SampleResult
     :members:
@@ -193,6 +218,7 @@ Noisy Simulation
 
 .. autoclass:: cudaq::NoiseModel
     :members:
+    :exclude-members: register_channel
     :special-members: __init__
 
 .. autoclass:: cudaq::BitFlipChannel
@@ -211,6 +237,22 @@ Noisy Simulation
     :members:
     :special-members: __init__
 
+.. autoclass:: cudaq::PhaseDamping
+
+.. autoclass:: cudaq::XError
+
+.. autoclass:: cudaq::YError
+
+.. autoclass:: cudaq::ZError
+
+.. autoclass:: cudaq::Pauli1
+
+.. autoclass:: cudaq::Pauli2
+
+.. autoclass:: cudaq::Depolarization1
+
+.. autoclass:: cudaq::Depolarization2
+
 .. autoclass:: cudaq::KrausChannel
     :members:
     :special-members: __getitem__
@@ -228,3 +270,8 @@ MPI Submodule
 .. automethod:: cudaq.mpi::broadcast
 .. automethod:: cudaq.mpi::is_initialized
 .. automethod:: cudaq.mpi::finalize
+
+ORCA Submodule
+=============================
+
+.. automethod:: cudaq.orca::sample

@@ -1,5 +1,5 @@
 /***********************************************************-*- tablegen -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -150,15 +150,54 @@ def VeqType : QuakeType<"Veq", "veq"> {
 
   let parameters = (ins "std::size_t":$size);
 
-  let genVerifyDecl = 1;
   let hasCustomAssemblyFormat = 1;
   
   let extraClassDeclaration = [{
-    bool hasSpecifiedSize() const { return getSize(); }
+    static constexpr std::size_t kDynamicSize =
+      std::numeric_limits<std::size_t>::max();
+
+    bool hasSpecifiedSize() const { return getSize() != kDynamicSize; }
     static VeqType getUnsized(mlir::MLIRContext *ctx) {
-      return VeqType::get(ctx, 0);
+      return VeqType::get(ctx, kDynamicSize);
     }
   }];
+}
+
+//===----------------------------------------------------------------------===//
+// StruqType: quantum reference type; product of veq and ref types.
+//===----------------------------------------------------------------------===//
+
+def StruqType : QuakeType<"Struq", "struq"> {
+  let summary = "a product type of quantum references";
+  let description = [{
+    This type allows one to group veqs of quantum references together in a
+    single product type.
+
+    To support Python, a struq type can be assigned a name. This allows the
+    python bridge to perform dictionary based lookups on member field names.
+  }];
+
+  let parameters = (ins
+    "mlir::StringAttr":$name,
+    // members must be NonStruqRefType.
+    ArrayRefParameter<"mlir::Type">:$members
+  );
+
+  let hasCustomAssemblyFormat = 1;
+
+  let extraClassDeclaration = [{
+    std::size_t getNumMembers() const { return getMembers().size(); }
+  }];
+
+  let builders = [
+    TypeBuilder<(ins CArg<"llvm::ArrayRef<mlir::Type>">:$members), [{
+      return $_get($_ctxt, mlir::StringAttr{}, members);
+    }]>,
+    TypeBuilder<(ins CArg<"llvm::StringRef">:$name,
+                     CArg<"llvm::ArrayRef<mlir::Type>">:$members), [{
+      return $_get($_ctxt, mlir::StringAttr::get($_ctxt, name), members);
+    }]>
+  ];
 }
 
 //===----------------------------------------------------------------------===//
@@ -183,14 +222,19 @@ def MeasureType : QuakeType<"Measure", "measure"> {
 }
 
 def AnyQTypeLike : TypeConstraint<Or<[WireType.predicate, VeqType.predicate,
-        ControlType.predicate, RefType.predicate]>, "quake quantum types">;
+        ControlType.predicate, RefType.predicate, StruqType.predicate]>,
+        "quake quantum types">;
 def AnyQType : Type<AnyQTypeLike.predicate, "quantum type">;
 def AnyQTargetTypeLike : TypeConstraint<Or<[WireType.predicate,
         VeqType.predicate, RefType.predicate]>, "quake quantum target types">;
 def AnyQTargetType : Type<AnyQTargetTypeLike.predicate, "quantum target type">;
-def AnyRefTypeLike : TypeConstraint<Or<[VeqType.predicate,
+def AnyRefTypeLike : TypeConstraint<Or<[VeqType.predicate, StruqType.predicate,
         RefType.predicate]>, "quake quantum reference types">;
 def AnyRefType : Type<AnyRefTypeLike.predicate, "quantum reference type">;
+def NonStruqRefTypeLike : TypeConstraint<Or<[VeqType.predicate,
+        RefType.predicate]>, "non-struct quake quantum reference types">;
+def NonStruqRefType : Type<NonStruqRefTypeLike.predicate,
+        "non-struct quantum reference type">;
 def AnyQValueTypeLike : TypeConstraint<Or<[WireType.predicate,
         ControlType.predicate]>, "quake quantum value types">;
 def AnyQValueType : Type<AnyQValueTypeLike.predicate, "quantum value type">;
@@ -204,5 +248,14 @@ class StdvecOf<list<Type> allowedTypes> : Type<
         "; }($_self.cast<::cudaq::cc::StdvecType>().getElementType())">]>,
     "stdvec of " # AnyTypeOf<allowedTypes>.summary # " values",
     "::cudaq::cc::StdvecType">;
+
+def IsPointerTypePred : CPred<"$_self.isa<::cudaq::cc::PointerType>()">;
+
+class PointerOf<list<Type> allowedTypes> : Type<
+    And<[IsPointerTypePred, Concat<"[](::mlir::Type elementType) { return ",
+      SubstLeaves<"$_self", "elementType", AnyTypeOf<allowedTypes>.predicate>,
+        "; }($_self.cast<::cudaq::cc::PointerType>().getElementType())">]>,
+    "pointer of " # AnyTypeOf<allowedTypes>.summary # " values",
+    "::cudaq::cc::PointerType">;
 
 #endif // CUDAQ_OPTIMIZER_DIALECT_QUAKE_TYPES

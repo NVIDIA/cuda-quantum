@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -12,7 +12,6 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Todo.h"
 #include "llvm/Support/Debug.h"
-#include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
@@ -133,8 +132,7 @@ private:
       keys.pop_back();
       if (isa<cudaq::cc::IfOp, cudaq::cc::ConditionOp, cf::CondBranchOp,
               quake::MeasurementInterface, quake::OperatorInterface,
-              quake::ApplyOp, cudaq::cc::CallCallableOp, func::CallOp,
-              func::CallIndirectOp>(op)) {
+              quake::ApplyOp, CallOpInterface>(op)) {
         data.hasConditionalsOnMeasure = true;
         data.hasQuantumDataflowViaClassical =
             isa<quake::MeasurementInterface, quake::OperatorInterface>(op);

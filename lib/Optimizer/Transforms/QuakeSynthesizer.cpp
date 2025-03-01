@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -10,6 +10,7 @@
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
+#include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
@@ -118,19 +119,13 @@ static bool hasInitStateUse(BlockArgument argument) {
 template <typename ELETY, typename T, typename ATTR, typename MAKER>
 LogicalResult
 synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
-                         BlockArgument argument, std::vector<T> &vec,
+                         BlockArgument argument, SmallVectorImpl<T> &vec,
                          ATTR arrayAttr, MAKER makeElementValue) {
   auto *ctx = builder.getContext();
   auto argTy = argument.getType();
-  assert(isa<cudaq::cc::StdvecType>(argTy) ||
-         isa<cudaq::cc::CharspanType>(argTy));
-  ELETY eleTy = [&]() -> ELETY {
-    if (auto strTy = dyn_cast<cudaq::cc::StdvecType>(argTy))
-      return cast<ELETY>(strTy.getElementType());
-    // Force cast this to ELETY. This will only happen for CharspanType.
-    return cast<ELETY>(cudaq::opt::factory::getCharType(ctx));
-  }();
-  auto strTy = cudaq::cc::StdvecType::get(ctx, eleTy);
+  assert(isa<cudaq::cc::SpanLikeType>(argTy));
+  auto strTy = cast<cudaq::cc::SpanLikeType>(argTy);
+  auto eleTy = cast<ELETY>(strTy.getElementType());
   builder.setInsertionPointToStart(argument.getOwner());
   auto argLoc = argument.getLoc();
   auto conArray = builder.create<cudaq::cc::ConstantArrayOp>(
@@ -273,62 +268,60 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
 }
 
 template <typename A>
-std::vector<std::int32_t> asI32(const std::vector<A> &v) {
-  std::vector<std::int32_t> result(v.size());
-  for (auto iter : llvm::enumerate(v))
-    result[iter.index()] = static_cast<std::int32_t>(iter.value());
-  return result;
+SmallVector<Attribute> asIntAttr(MLIRContext *ctx, unsigned bits,
+                                 const SmallVectorImpl<A> &vec) {
+  return llvm::to_vector<8>(llvm::map_range(vec, [=](A v) -> Attribute {
+    return IntegerAttr::get(IntegerType::get(ctx, bits), APInt(bits, v));
+  }));
 }
 
 // TODO: consider using DenseArrayAttr here instead. NB: such a change may alter
 // the output of the constant array op.
 static LogicalResult
 synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
-                         BlockArgument argument, std::vector<bool> &vec) {
-  auto arrayAttr = builder.getI32ArrayAttr(asI32(vec));
+                         BlockArgument argument, SmallVectorImpl<bool> &vec) {
+  auto arrayAttr = builder.getBoolArrayAttr(vec);
   return synthesizeVectorArgument<IntegerType>(builder, module, counter,
                                                argument, vec, arrayAttr,
                                                makeIntegerElement<bool>);
 }
 
-static LogicalResult synthesizeVectorArgument(OpBuilder &builder,
-                                              ModuleOp module,
-                                              unsigned &counter,
-                                              BlockArgument argument,
-                                              std::vector<std::int8_t> &vec) {
-  auto arrayAttr = builder.getI32ArrayAttr(asI32(vec));
+static LogicalResult
+synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
+                         BlockArgument argument,
+                         SmallVectorImpl<std::int8_t> &vec) {
+  auto arrayAttr =
+      builder.getArrayAttr(asIntAttr(builder.getContext(), 8, vec));
   return synthesizeVectorArgument<IntegerType>(builder, module, counter,
                                                argument, vec, arrayAttr,
                                                makeIntegerElement<std::int8_t>);
 }
 
-static LogicalResult synthesizeVectorArgument(OpBuilder &builder,
-                                              ModuleOp module,
-                                              unsigned &counter,
-                                              BlockArgument argument,
-                                              std::vector<std::int16_t> &vec) {
-  auto arrayAttr = builder.getI32ArrayAttr(asI32(vec));
+static LogicalResult
+synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
+                         BlockArgument argument,
+                         SmallVectorImpl<std::int16_t> &vec) {
+  auto arrayAttr =
+      builder.getArrayAttr(asIntAttr(builder.getContext(), 16, vec));
   return synthesizeVectorArgument<IntegerType>(
       builder, module, counter, argument, vec, arrayAttr,
       makeIntegerElement<std::int16_t>);
 }
 
-static LogicalResult synthesizeVectorArgument(OpBuilder &builder,
-                                              ModuleOp module,
-                                              unsigned &counter,
-                                              BlockArgument argument,
-                                              std::vector<std::int32_t> &vec) {
+static LogicalResult
+synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
+                         BlockArgument argument,
+                         SmallVectorImpl<std::int32_t> &vec) {
   auto arrayAttr = builder.getI32ArrayAttr(vec);
   return synthesizeVectorArgument<IntegerType>(
       builder, module, counter, argument, vec, arrayAttr,
       makeIntegerElement<std::int32_t>);
 }
 
-static LogicalResult synthesizeVectorArgument(OpBuilder &builder,
-                                              ModuleOp module,
-                                              unsigned &counter,
-                                              BlockArgument argument,
-                                              std::vector<std::int64_t> &vec) {
+static LogicalResult
+synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
+                         BlockArgument argument,
+                         SmallVectorImpl<std::int64_t> &vec) {
   auto arrayAttr = builder.getI64ArrayAttr(vec);
   return synthesizeVectorArgument<IntegerType>(
       builder, module, counter, argument, vec, arrayAttr,
@@ -337,7 +330,7 @@ static LogicalResult synthesizeVectorArgument(OpBuilder &builder,
 
 static LogicalResult
 synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
-                         BlockArgument argument, std::vector<float> &vec) {
+                         BlockArgument argument, SmallVectorImpl<float> &vec) {
   auto arrayAttr = builder.getF32ArrayAttr(vec);
   return synthesizeVectorArgument<FloatType>(builder, module, counter, argument,
                                              vec, arrayAttr,
@@ -346,7 +339,7 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
 
 static LogicalResult
 synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
-                         BlockArgument argument, std::vector<double> &vec) {
+                         BlockArgument argument, SmallVectorImpl<double> &vec) {
   auto arrayAttr = builder.getF64ArrayAttr(vec);
   return synthesizeVectorArgument<FloatType>(builder, module, counter, argument,
                                              vec, arrayAttr,
@@ -356,8 +349,8 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
 static LogicalResult
 synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
                          BlockArgument argument,
-                         std::vector<std::complex<float>> &vec) {
-  std::vector<float> vec2;
+                         SmallVectorImpl<std::complex<float>> &vec) {
+  SmallVector<float> vec2;
   for (auto c : vec) {
     vec2.push_back(c.real());
     vec2.push_back(c.imag());
@@ -371,8 +364,8 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
 static LogicalResult
 synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
                          BlockArgument argument,
-                         std::vector<std::complex<double>> &vec) {
-  std::vector<double> vec2;
+                         SmallVectorImpl<std::complex<double>> &vec) {
+  SmallVector<double> vec2;
   for (auto c : vec) {
     vec2.push_back(c.real());
     vec2.push_back(c.imag());
@@ -410,7 +403,7 @@ public:
 
   mlir::ModuleOp getModule() { return getOperation(); }
 
-  std::pair<std::size_t, std::vector<std::size_t>>
+  std::pair<std::size_t, SmallVector<std::size_t>>
   getTargetLayout(FunctionType funcTy) {
     auto bufferTy =
         cudaq::opt::factory::buildInvokeStructType(funcTy, startingArgIdx);
@@ -418,7 +411,7 @@ public:
     if (auto attr =
             getModule()->getAttr(cudaq::opt::factory::targetDataLayoutAttrName))
       dataLayoutSpec = cast<StringAttr>(attr);
-    auto dataLayout = llvm::DataLayout(dataLayoutSpec);
+    llvm::DataLayout dataLayout{dataLayoutSpec};
     // Convert bufferTy to llvm.
     llvm::LLVMContext context;
     LLVMTypeConverter converter(funcTy.getContext());
@@ -429,7 +422,7 @@ public:
         cast<llvm::StructType>(translator.translateType(llvmDialectTy));
     auto *layout = dataLayout.getStructLayout(llvmStructTy);
     auto strSize = layout->getSizeInBytes();
-    std::vector<std::size_t> fieldOffsets;
+    SmallVector<std::size_t> fieldOffsets;
     for (std::size_t i = 0, I = bufferTy.getMembers().size(); i != I; ++i)
       fieldOffsets.emplace_back(layout->getElementOffset(i));
     return {strSize, fieldOffsets};
@@ -462,7 +455,7 @@ public:
     auto arguments = funcOp.getArguments();
     auto structLayout = getTargetLayout(funcOp.getFunctionType());
     // Keep track of the stdVec sizes.
-    std::vector<std::tuple<std::size_t, Type, std::uint64_t>> stdVecInfo;
+    SmallVector<std::tuple<std::size_t, Type, std::uint64_t>> stdVecInfo;
 
     for (std::size_t argNum = startingArgIdx, end = arguments.size();
          argNum < end; argNum++) {
@@ -574,7 +567,7 @@ public:
 
       // If std::vector<arithmetic> type, add it to the list of vector info.
       // These will be processed when we reach the buffer's appendix.
-      if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(type)) {
+      if (auto vecTy = dyn_cast<cudaq::cc::SpanLikeType>(type)) {
         auto eleTy = vecTy.getElementType();
         if (!isa<IntegerType, FloatType, ComplexType, cudaq::cc::CharspanType>(
                 eleTy)) {
@@ -623,19 +616,6 @@ public:
         continue;
       }
 
-      if (auto charSpanTy = dyn_cast<cudaq::cc::CharspanType>(type)) {
-        const char *ptrToSizeInBuffer =
-            static_cast<const char *>(args) + offset;
-        auto sizeFromBuffer =
-            *reinterpret_cast<const std::uint64_t *>(ptrToSizeInBuffer);
-        std::size_t bytesInType = sizeof(char);
-        auto vectorSize = sizeFromBuffer / bytesInType;
-        stdVecInfo.emplace_back(
-            argNum, cudaq::opt::factory::getCharType(builder.getContext()),
-            vectorSize);
-        continue;
-      }
-
       funcOp.emitOpError("We cannot synthesize argument(s) of this type.");
       signalPassFailure();
       return;
@@ -656,7 +636,7 @@ public:
       }
       auto doVector = [&]<typename T>(T) {
         auto *ptr = reinterpret_cast<const T *>(bufferAppendix);
-        std::vector<T> v(ptr, ptr + vecLength);
+        SmallVector<T> v(ptr, ptr + vecLength);
         if (failed(synthesizeVectorArgument(builder, module, counter,
                                             arguments[idx], v)))
           funcOp.emitOpError("synthesis failed for vector<T>");

@@ -42,7 +42,7 @@ jobs:
               /repos/nvidia/cuda-quantum/git/refs/heads/$branch 
           done
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN || github.token }}
 
   draft_releases:
     name: Delete draft release
@@ -51,7 +51,7 @@ jobs:
 
     steps:
       - run: |
-          gh release list -L 100 -R ${{ github.repository }} > rels.txt
+          gh release list -L 1000 -R ${{ github.repository }} > rels.txt
           while read rel _; do 
             isDraft=`gh release view $rel -R ${{ github.repository }} --json isDraft --jq '.isDraft'`
             isPrerelease=`gh release view $rel -R ${{ github.repository }} --json isPrerelease --jq '.isPrerelease'`
@@ -78,7 +78,7 @@ jobs:
       # We need to keep a good number of untagged manifests, 
       # since each tagged image contains/depends on untagged components
       - name: Delete untagged images
-        uses: actions/delete-package-versions@v4
+        uses: actions/delete-package-versions@v5
         with: 
           package-name: ${{ matrix.image_name }}
           package-type: 'container'
@@ -133,7 +133,7 @@ jobs:
 
       - name: Delete matching signatures
         if: steps.packages.outputs.versions_to_remove
-        uses: actions/delete-package-versions@v4
+        uses: actions/delete-package-versions@v5
         with: 
           package-name: ${{ matrix.image_name }}
           package-type: 'container'

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -23,7 +23,7 @@
 #include <sstream>
 #include <stack>
 
-namespace {
+namespace cudaq {
 
 class SimpleQuditExecutionManager : public cudaq::BasicExecutionManager {
 private:
@@ -64,12 +64,22 @@ protected:
       for (auto &s : sampleQudits) {
         ids.push_back(s.id);
       }
-      auto sampleResult =
-          qpp::sample(1000, state, ids, sampleQudits.begin()->levels);
+      sampleQudits.clear();
+      auto sampleResult = qpp::sample(executionContext->shots, state, ids,
+                                      sampleQudits.begin()->levels);
 
+      ExecutionResult execResult;
       for (auto [result, count] : sampleResult) {
         std::cout << fmt::format("Sample {} : {}", result, count) << "\n";
+        // Populate counts dictionary. FIXME - handle qudits with >= 10 levels
+        // better.
+        std::string resultStr;
+        resultStr.reserve(result.size());
+        for (auto x : result)
+          resultStr += std::to_string(x);
+        execResult.counts[resultStr] = count;
       }
+      executionContext->result.append(execResult);
     }
   }
 
@@ -131,6 +141,6 @@ public:
   void resetQudit(const cudaq::QuditInfo &id) override {}
 };
 
-} // namespace
+} // namespace cudaq
 
-CUDAQ_REGISTER_EXECUTION_MANAGER(SimpleQuditExecutionManager)
+CUDAQ_REGISTER_EXECUTION_MANAGER(SimpleQuditExecutionManager, simple)

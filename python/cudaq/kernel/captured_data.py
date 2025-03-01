@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -15,6 +15,8 @@ from ..mlir.execution_engine import *
 from ..mlir.dialects import quake, cc
 from ..mlir.dialects import builtin, func, arith
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
+from ..mlir._mlir_libs._quakeDialects.cudaq_runtime import deletePointersToCudaqState
+from ..mlir._mlir_libs._quakeDialects.cudaq_runtime import deletePointersToStateData
 
 kDynamicPtrIndex: int = -2147483648
 
@@ -46,8 +48,8 @@ class CapturedDataStorage(object):
         """
         Remove pointers to stored data for the current kernel.
         """
-        cudaq_runtime.deletePointersToCudaqState(self.cudaqStateIDs)
-        cudaq_runtime.deletePointersToStateData(self.arrayIDs)
+        deletePointersToCudaqState(self.cudaqStateIDs)
+        deletePointersToStateData(self.arrayIDs)
 
     def getIntegerAttr(self, type, value):
         """
@@ -80,7 +82,10 @@ class CapturedDataStorage(object):
         globalName = f'nvqpp.cudaq.state.{stateID}'
         setStateName = f'nvqpp.set.cudaq.state.{stateID}'
         with InsertionPoint.at_block_begin(self.module.body):
-            cc.GlobalOp(TypeAttr.get(globalTy), globalName, external=True)
+            cc.GlobalOp(TypeAttr.get(globalTy),
+                        globalName,
+                        sym_visibility=StringAttr.get("private"),
+                        external=True)
             setStateFunc = func.FuncOp(setStateName,
                                        FunctionType.get(inputs=[statePtrTy],
                                                         results=[]),
@@ -131,7 +136,10 @@ class CapturedDataStorage(object):
         globalName = f'nvqpp.state.{arrayId}'
         setStateName = f'nvqpp.set.state.{arrayId}'
         with InsertionPoint.at_block_begin(self.module.body):
-            cc.GlobalOp(TypeAttr.get(globalTy), globalName, external=True)
+            cc.GlobalOp(TypeAttr.get(globalTy),
+                        globalName,
+                        sym_visibility=StringAttr.get("private"),
+                        external=True)
             setStateFunc = func.FuncOp(setStateName,
                                        FunctionType.get(inputs=[ptrComplex],
                                                         results=[]),

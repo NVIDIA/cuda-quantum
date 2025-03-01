@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -63,8 +63,13 @@ struct qpe {
   }
 };
 
+// Rotational gates not supported in Stim.
+#ifndef CUDAQ_BACKEND_STIM
+
 CUDAQ_TEST(QPEFTQCTester, checkSimple) {
   double phase = qpe{}(3, 1);
   EXPECT_NEAR(phase, .125, 1e-4);
   printf("Phase = %lf\n", phase);
 }
+
+#endif

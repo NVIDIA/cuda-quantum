@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -167,7 +167,8 @@ int IonQServerHelper::setQubits(const std::string &target) {
       {"simulator", 29},
       {"qpu.harmony", 11},
       {"qpu.aria-1", 25},
-  };
+      {"qpu.forte-enterprise-1", 36},
+      {"qpu.forte-enterprise-2", 36}};
 
   return getOrDefault(qubitMap, target, 29); // 29 is the default value
 }

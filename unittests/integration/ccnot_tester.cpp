@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -54,6 +54,7 @@ struct nested_ctrl {
   }
 };
 
+#ifndef CUDAQ_BACKEND_STIM
 CUDAQ_TEST(CCNOTTester, checkSimple) {
   auto ccnot = []() {
     cudaq::qvector q(3);
@@ -94,3 +95,5 @@ CUDAQ_TEST(FredkinTester, checkTruth) {
   EXPECT_EQ(counts.size(), 1);
   EXPECT_EQ(counts.begin()->first, "110");
 }
+
+#endif

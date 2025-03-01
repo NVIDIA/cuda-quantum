@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -42,6 +42,13 @@ Attributes:
           "dump", [](sample_result &self) { self.dump(); },
           "Print a string of the raw measurement counts data to the "
           "terminal.\n")
+      .def("serialize", &sample_result::serialize,
+           "Serialize this SampleResult to a vector of integer encoding.")
+      .def("deserialize", &sample_result::deserialize,
+           "Deserialize this SampleResult from an existing vector of integers "
+           "adhering to the implicit encoding.")
+      .def("get_total_shots", &sample_result::get_total_shots,
+           "Get the total number of shots in the sample result")
       .def(
           "__str__",
           [](sample_result &self) {

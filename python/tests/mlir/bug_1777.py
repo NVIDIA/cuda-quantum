@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -9,8 +9,6 @@
 # RUN: PYTHONPATH=../../ pytest -rP  %s | FileCheck %s
 
 import cudaq
-
-import pytest
 
 
 def test_bug_1777():
@@ -33,7 +31,7 @@ def test_bug_1777():
     print(result)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__test() attributes {"cudaq-entrypoint", qubitMeasurementFeedback = true} {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__test() attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
 # CHECK:           %[[VAL_0:.*]] = arith.constant false
 # CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
 # CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i64

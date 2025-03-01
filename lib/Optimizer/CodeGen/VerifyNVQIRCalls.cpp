@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -39,11 +39,18 @@ struct VerifyNVQIRCallOpsPass
       if (functionName.startswith("__quantum_"))
         return true;
       static const std::vector<llvm::StringRef> NVQIR_FUNCS = {
-          cudaq::opt::NVQIRInvokeWithControlBits,
-          cudaq::opt::NVQIRInvokeRotationWithControlBits,
-          cudaq::opt::NVQIRInvokeWithControlRegisterOrBits,
+          cudaq::opt::NVQIRInvokeWithControlBits,           // obsolete
+          cudaq::opt::NVQIRInvokeRotationWithControlBits,   // obsolete
+          cudaq::opt::NVQIRInvokeWithControlRegisterOrBits, // obsolete
+          cudaq::opt::NVQIRGeneralizedInvokeAny,
           cudaq::opt::NVQIRPackSingleQubitInArray,
-          cudaq::opt::NVQIRReleasePackedQubitArray};
+          cudaq::opt::NVQIRReleasePackedQubitArray,
+          cudaq::opt::QIRArrayQubitAllocateArrayWithStateComplex32,
+          cudaq::opt::QIRArrayQubitAllocateArrayWithStateComplex64,
+          cudaq::getNumQubitsFromCudaqState,
+          cudaq::createCudaqStateFromDataFP32,
+          cudaq::createCudaqStateFromDataFP64,
+          cudaq::deleteCudaqState};
       // It must be either NVQIR extension functions or in the allowed list.
       return std::find(NVQIR_FUNCS.begin(), NVQIR_FUNCS.end(), functionName) !=
                  NVQIR_FUNCS.end() ||
@@ -72,7 +79,7 @@ struct VerifyNVQIRCallOpsPass
         return WalkResult::interrupt();
       } else if (!isa<LLVM::AddressOfOp, LLVM::AllocaOp, LLVM::BitcastOp,
                       LLVM::ExtractValueOp, LLVM::GEPOp, LLVM::InsertValueOp,
-                      LLVM::LoadOp, LLVM::StoreOp>(op)) {
+                      LLVM::IntToPtrOp, LLVM::LoadOp, LLVM::StoreOp>(op)) {
         // No pointers allowed except for the above operations.
         for (auto oper : op->getOperands()) {
           if (isa<LLVM::LLVMPointerType>(oper.getType())) {

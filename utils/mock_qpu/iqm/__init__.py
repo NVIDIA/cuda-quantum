@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -237,7 +237,7 @@ def _simulate_circuit(instructions: list[iqm_client.Instruction],
                                    measurement_qubits_positions)
     probabilities = np.diag(partial_trace)
     return {
-        ms: int(prob * shots) for ms, prob in zip(
+        ms: int(round(prob * shots)) for ms, prob in zip(
             _generate_measurement_strings(len(measurement_qubits_positions)),
             probabilities,
         )

@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
@@ -15,6 +16,8 @@
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/Types.h"
 #include "mlir/Transforms/DialectConversion.h"
+#include <complex>
+#include <vector>
 
 namespace cudaq {
 namespace cc {
@@ -125,9 +128,13 @@ inline mlir::Type stateImplType(mlir::Type eleTy) {
   return cudaq::opt::factory::getPointerType(eleTy.getContext());
 }
 
-// Host side types for std::string and std::vector
+// Generate host side type for std::string. The result is the type of a block of
+// bytes and the length to allocate. This allows for the creation of code to
+// allocate a variable, stride across such a variable, etc. The ModuleOp must
+// contain the size of a pauli_word in its attributes.
+cudaq::cc::ArrayType genHostStringType(mlir::ModuleOp module);
 
-cudaq::cc::StructType stlStringType(mlir::MLIRContext *ctx);
+// Host side types for std::vector
 cudaq::cc::StructType stlVectorType(mlir::Type eleTy);
 
 //===----------------------------------------------------------------------===//
@@ -179,6 +186,8 @@ std::optional<double> maybeValueOfFloatConstant(mlir::Value v);
 /// \em{not} control dependent (other than on function entry).
 mlir::Value createLLVMTemporary(mlir::Location loc, mlir::OpBuilder &builder,
                                 mlir::Type type, std::size_t size = 1);
+mlir::Value createTemporary(mlir::Location loc, mlir::OpBuilder &builder,
+                            mlir::Type type, std::size_t size = 1);
 
 //===----------------------------------------------------------------------===//
 
@@ -233,11 +242,18 @@ createMonotonicLoop(mlir::OpBuilder &builder, mlir::Location loc,
 
 bool hasHiddenSRet(mlir::FunctionType funcTy);
 
+/// Check a function to see if argument 0 has the `sret` attribute. Typically,
+/// one may find this on a host-side entry point function.
+bool hasSRet(mlir::func::FuncOp funcOp);
+
 /// Convert the function type \p funcTy to a signature compatible with the code
 /// on the host side. This will add hidden arguments, such as the `this`
 /// pointer, convert some results to `sret` pointers, etc.
 mlir::FunctionType toHostSideFuncType(mlir::FunctionType funcTy,
                                       bool addThisPtr, mlir::ModuleOp module);
+
+/// Convert device type, \p ty, to host side type.
+mlir::Type convertToHostSideType(mlir::Type ty, mlir::ModuleOp module);
 
 // Return `true` if the given type corresponds to a standard vector type
 // according to our convention.
@@ -248,7 +264,8 @@ bool isX86_64(mlir::ModuleOp);
 bool isAArch64(mlir::ModuleOp);
 
 /// A small structure may be passed as two arguments on the host side. (e.g., on
-/// the X86-64 ABI.) If \p ty is not a `struct`, this returns `false`.
+/// the X86-64 ABI.) If \p ty is not a `struct`, this returns `false`. Note
+/// also, some small structs may be packed into a single register.
 bool structUsesTwoArguments(mlir::Type ty);
 
 std::optional<std::int64_t> getIntIfConstant(mlir::Value value);
@@ -259,6 +276,18 @@ mlir::Value createCast(mlir::OpBuilder &builder, mlir::Location loc,
                        mlir::Type toType, mlir::Value fromValue,
                        bool signExtend = false, bool zeroExtend = false);
 
+/// Extract complex matrix from a `cc.global`
+std::vector<std::complex<double>>
+readGlobalConstantArray(cudaq::cc::GlobalOp &global);
+
+std::pair<mlir::func::FuncOp, /*alreadyDefined=*/bool>
+getOrAddFunc(mlir::Location loc, mlir::StringRef funcName,
+             mlir::FunctionType funcTy, mlir::ModuleOp module);
+
 } // namespace factory
+
+std::size_t getDataSize(llvm::DataLayout &dataLayout, mlir::Type ty);
+std::size_t getDataOffset(llvm::DataLayout &dataLayout, mlir::Type ty,
+                          std::size_t off);
 } // namespace opt
 } // namespace cudaq

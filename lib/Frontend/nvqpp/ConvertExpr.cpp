@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -13,7 +13,6 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/Support/Debug.h"
-#include "mlir/Dialect/SCF/IR/SCF.h"
 
 #define DEBUG_TYPE "lower-ast-expr"
 
@@ -382,13 +381,22 @@ static SmallVector<Value> convertKernelArgs(OpBuilder &builder, Location loc,
       result.push_back(v);
       continue;
     }
-    if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(vTy))
+    if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(vTy)) {
       if (ptrTy.getElementType() == kTy) {
         // Promote pass-by-reference to pass-by-value.
         auto load = builder.create<cudaq::cc::LoadOp>(loc, v);
         result.push_back(load);
         continue;
       }
+      if (auto kPtrTy = dyn_cast<cudaq::cc::PointerType>(kTy))
+        if (auto vArrTy =
+                dyn_cast<cudaq::cc::ArrayType>(ptrTy.getElementType()))
+          if (kPtrTy.getElementType() == vArrTy.getElementType()) {
+            // ok, degenerate the array to a pointer to a scalar
+            result.push_back(builder.create<cudaq::cc::CastOp>(loc, kPtrTy, v));
+            continue;
+          }
+    }
     if (auto vVecTy = dyn_cast<quake::VeqType>(vTy))
       if (auto kVecTy = dyn_cast<quake::VeqType>(kTy)) {
         // Both are Veq but the Veq are not identical. If the callee has a
@@ -489,6 +497,14 @@ bool QuakeBridgeVisitor::VisitIntegerLiteral(clang::IntegerLiteral *x) {
       builtinTypeToType(cast<clang::BuiltinType>(x->getType().getTypePtr()));
   auto intVal = x->getValue().getLimitedValue();
   return pushValue(getConstantInt(builder, loc, intVal, intTy));
+}
+
+bool QuakeBridgeVisitor::VisitCharacterLiteral(clang::CharacterLiteral *x) {
+  auto loc = toLocation(x->getSourceRange());
+  auto intTy =
+      builtinTypeToType(cast<clang::BuiltinType>(x->getType().getTypePtr()));
+  auto intVal = x->getValue();
+  return pushValue(builder.create<arith::ConstantIntOp>(loc, intVal, intTy));
 }
 
 bool QuakeBridgeVisitor::VisitUnaryOperator(clang::UnaryOperator *x) {
@@ -1109,14 +1125,23 @@ bool QuakeBridgeVisitor::VisitMemberExpr(clang::MemberExpr *x) {
   if (auto *field = dyn_cast<clang::FieldDecl>(x->getMemberDecl())) {
     auto loc = toLocation(x->getSourceRange());
     auto object = popValue(); // DeclRefExpr
+    auto ty = popType();
+    std::int32_t offset = field->getFieldIndex();
+    if (isa<quake::StruqType>(object.getType())) {
+      return pushValue(
+          builder.create<quake::GetMemberOp>(loc, ty, object, offset));
+    }
+    if (!isa<cc::PointerType>(object.getType())) {
+      reportClangError(x, mangler,
+                       "internal error: struct must be an object in memory");
+      return false;
+    }
     auto eleTy = cast<cc::PointerType>(object.getType()).getElementType();
     SmallVector<cc::ComputePtrArg> offsets;
     if (auto arrTy = dyn_cast<cc::ArrayType>(eleTy))
       if (arrTy.isUnknownSize())
         offsets.push_back(0);
-    std::int32_t offset = field->getFieldIndex();
     offsets.push_back(offset);
-    auto ty = popType();
     return pushValue(builder.create<cc::ComputePtrOp>(
         loc, cc::PointerType::get(ty), object, offsets));
   }
@@ -1259,6 +1284,17 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           auto vecPtr = builder.create<cc::StdvecDataOp>(loc, eleArrTy, svec);
           return pushValue(builder.create<cc::ComputePtrOp>(
               loc, elePtrTy, vecPtr, ValueRange{negativeOneIndex}));
+        }
+    if (funcName.equals("data"))
+      if (auto memberCall = dyn_cast<clang::CXXMemberCallExpr>(x))
+        if (memberCall->getImplicitObjectArgument()) {
+          [[maybe_unused]] auto calleeTy = popType();
+          assert(isa<FunctionType>(calleeTy));
+          // data() returns a pointer to a sequence of elements.
+          auto eleTy = cast<cc::SpanLikeType>(svec.getType()).getElementType();
+          auto eleArrTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
+          return pushValue(
+              builder.create<cc::StdvecDataOp>(loc, eleArrTy, svec));
         }
 
     TODO_loc(loc, "unhandled std::vector member function, " + funcName);
@@ -1422,49 +1458,106 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
 
     if (funcName.equals("exp_pauli")) {
       assert(args.size() > 2);
-      SmallVector<Value> processedArgs;
+      SmallVector<Value> parameters;
+      SmallVector<Value> targets;
+      Value pauliWord;
       auto addTheString = [&](Value v) {
         // The C-string argument (char*) may be loaded by an lvalue to rvalue
         // cast. Here, we must pass the pointer and not the first character's
         // value.
         if (isCharPointerType(v.getType())) {
-          processedArgs.push_back(v);
+          pauliWord = v;
         } else if (auto load = v.getDefiningOp<cudaq::cc::LoadOp>()) {
-          processedArgs.push_back(load.getPtrvalue());
+          pauliWord = load.getPtrvalue();
         } else if (isCharspanPointerType(v.getType())) {
           // Load the char span, which is a char*
           auto span = builder.create<cc::LoadOp>(loc, v);
-          processedArgs.push_back(span);
+          pauliWord = span;
         } else if (isa<cudaq::cc::CharspanType>(v.getType())) {
-          processedArgs.push_back(v);
+          pauliWord = v;
         } else {
           reportClangError(x, mangler, "could not determine string argument");
         }
       };
       if (args.size() == 3 && isa<quake::VeqType>(args[1].getType())) {
         // Have f64, veq, string
-        processedArgs.push_back(args[0]);
-        processedArgs.push_back(args[1]);
+        parameters.push_back(args[0]);
+        targets.push_back(args[1]);
         addTheString(args[2]);
       } else {
         // should have f64, string, qubits...
         // need f64, veq, string, so process here
 
         // add f64 value
-        processedArgs.push_back(args[0]);
+        parameters.push_back(args[0]);
 
         // concat the qubits to a veq
         SmallVector<Value> quantumArgs;
         for (std::size_t i = 2; i < args.size(); i++)
           quantumArgs.push_back(args[i]);
-        processedArgs.push_back(builder.create<quake::ConcatOp>(
+        targets.push_back(builder.create<quake::ConcatOp>(
             loc, quake::VeqType::get(builder.getContext(), quantumArgs.size()),
             quantumArgs));
         addTheString(args[1]);
       }
 
-      builder.create<quake::ExpPauliOp>(loc, TypeRange{}, processedArgs);
+      builder.create<quake::ExpPauliOp>(loc, parameters, ValueRange{}, targets,
+                                        pauliWord);
       return true;
+    }
+
+    if (funcName == "apply_noise") {
+      SmallVector<Value> params;
+      SmallVector<Value> qubits;
+      bool inParams = true;
+      for (auto iter : llvm::enumerate(args)) {
+        auto a = iter.value();
+        Type aTy = a.getType();
+        if (inParams) {
+          if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(aTy))
+            if (isa<FloatType>(ptrTy.getElementType())) {
+              params.push_back(a);
+              continue;
+            }
+          if (auto stdvecTy = dyn_cast<cudaq::cc::StdvecType>(aTy))
+            if (stdvecTy.getElementType() == builder.getF64Type() &&
+                iter.index() == 0) {
+              params.push_back(a);
+              inParams = false;
+              continue;
+            }
+          inParams = false;
+        }
+        // The first argument that is not floating-point must be a qubit. If
+        // the user has interleaved floating-point and qubit arguments, that's
+        // an error.
+        if (isa<quake::RefType, quake::VeqType>(aTy)) {
+          qubits.push_back(a);
+        } else {
+          reportClangError(x, mangler,
+                           "apply_noise argument types not supported.");
+          return false;
+        }
+      }
+
+      if (auto callee = calleeOp.getDefiningOp<func::ConstantOp>()) {
+        StringRef calleeName = callee.getValue();
+        builder.create<quake::ApplyNoiseOp>(loc, calleeName, params, qubits);
+
+        // Add the declaration of the function to the module.
+        SmallVector<Type> argTys;
+        for (auto p : params)
+          argTys.push_back(p.getType());
+        for (auto q : qubits)
+          argTys.push_back(q.getType());
+        auto calleeTy = FunctionType::get(builder.getContext(), argTys, {});
+        cudaq::opt::factory::getOrAddFunc(loc, calleeName, calleeTy, module);
+        return true;
+      }
+
+      reportClangError(x, mangler,
+                       "apply_noise with a vector argument is deprecated.");
+      return false;
     }
 
     if (funcName.equals("mx") || funcName.equals("my") ||
@@ -1771,8 +1864,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
                                        kernelArgs);
         return inlinedFinishControlNegations();
       }
-      if (auto func =
-              dyn_cast_or_null<func::ConstantOp>(calleeValue.getDefiningOp())) {
+      if (auto func = calleeValue.getDefiningOp<func::ConstantOp>()) {
         auto funcTy = cast<FunctionType>(func.getType());
         auto callableSym = func.getValueAttr();
         inlinedStartControlNegations();
@@ -1884,8 +1976,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
                                               /*isAdjoint=*/true, ValueRange{},
                                               kernArgs);
       }
-      if (auto func =
-              dyn_cast_or_null<func::ConstantOp>(kernelValue.getDefiningOp())) {
+      if (auto func = kernelValue.getDefiningOp<func::ConstantOp>()) {
         auto kernSym = func.getValueAttr();
         auto funcTy = cast<FunctionType>(func.getType());
         auto kernArgs =
@@ -2020,8 +2111,9 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
                                        ValueRange{buffer, start, stop, step});
       return pushValue(call.getResult(0));
     }
-
-    TODO_loc(loc, "unknown function, " + funcName + ", in cudaq namespace");
+    if (!isInNamespace(func, "solvers") && !isInNamespace(func, "qec")) {
+      TODO_loc(loc, "unknown function, " + funcName + ", in cudaq namespace");
+    }
   } // end in cudaq namespace
 
   if (isInNamespace(func, "std")) {
@@ -2074,24 +2166,35 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       auto *stdGetSpec = cast<clang::FunctionDecl>(callee);
       auto &specArgs = *stdGetSpec->getTemplateSpecializationArgs();
       auto resultTy = cc::PointerType::get(peekType());
+      auto fixIfTuple = [&](std::int32_t &offset) {
+        if (tuplesAreReversed) {
+          auto *rd = x->getArg(0)->getType().getTypePtr()->getAsRecordDecl();
+          if (rd->getName().equals("tuple")) {
+            auto ptrTy = cast<cc::PointerType>(args[0].getType());
+            auto strTy = cast<cc::StructType>(ptrTy.getElementType());
+            offset = strTy.getMembers().size() - offset - 1;
+          }
+        }
+      };
       // The first specialization arg is either a type or an integer value.
       if (specArgs[0].getKind() == clang::TemplateArgument::ArgKind::Integral) {
+        std::int32_t offset = specArgs[0].getAsIntegral().getExtValue();
+        fixIfTuple(offset);
         auto ptr = builder.create<cc::ComputePtrOp>(
-            loc, resultTy, args[0],
-            ArrayRef<cc::ComputePtrArg>{static_cast<std::int32_t>(
-                specArgs[0].getAsIntegral().getExtValue())});
+            loc, resultTy, args[0], ArrayRef<cc::ComputePtrArg>{offset});
         return pushValue(builder.create<cc::LoadOp>(loc, ptr));
       }
       auto *selectTy = specArgs[0].getAsType().getTypePtr();
       assert(specArgs[1].getKind() == clang::TemplateArgument::ArgKind::Pack);
-      int i = 0;
+      std::int32_t offset = 0;
       for (auto &templateArg : specArgs[1].pack_elements()) {
         if (templateArg.getAsType().getTypePtr() == selectTy) {
+          fixIfTuple(offset);
           auto ptr = builder.create<cc::ComputePtrOp>(
-              loc, resultTy, args[0], ArrayRef<cc::ComputePtrArg>{i});
+              loc, resultTy, args[0], ArrayRef<cc::ComputePtrArg>{offset});
           return pushValue(builder.create<cc::LoadOp>(loc, ptr));
         }
-        ++i;
+        ++offset;
       }
     }
   }
@@ -2152,6 +2255,16 @@ bool QuakeBridgeVisitor::WalkUpFromCXXOperatorCallExpr(
   return WalkUpFromCallExpr(x) && VisitCXXOperatorCallExpr(x);
 }
 
+bool QuakeBridgeVisitor::hasTOSEntryKernel() {
+  if (auto fn = peekValue().getDefiningOp<func::ConstantOp>()) {
+    auto name = fn.getValue().str();
+    for (auto fdPair : functionsToEmit)
+      if (getCudaqKernelName(fdPair.first) == name)
+        return true;
+  }
+  return false;
+}
+
 bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
     clang::CXXOperatorCallExpr *x) {
   auto loc = toLocation(x->getSourceRange());
@@ -2167,11 +2280,26 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
     if (isCudaQType(typeName)) {
       auto idx_var = popValue();
       auto qreg_var = popValue();
-
+      auto *arg0 = x->getArg(0);
+      if (isa<clang::MemberExpr>(arg0)) {
+        // This is a subscript operator on a data member and the type is a
+        // quantum type (likely a `qview`). This can only happen in a quantum
+        // `struct`, which the spec says must be one-level deep at most and must
+        // only contain references to qubits explicitly allocated in other
+        // variables. `qreg_var` will be a `quake.get_member`. Do not add this
+        // extract `Op` to the symbol table, but always generate a new
+        // `quake.extract_ref` `Op` to get the exact qubit (reference) value.
+        auto address_qubit =
+            builder.create<quake::ExtractRefOp>(loc, qreg_var, idx_var);
+        return replaceTOSValue(address_qubit);
+      }
       // Get name of the qreg, e.g. qr, and use it to construct a name for the
       // element, which is intended to be qr%n when n is the index of the
       // accessed qubit.
-      StringRef qregName = getNamedDecl(x->getArg(0))->getName();
+      if (!isa<clang::DeclRefExpr>(arg0))
+        reportClangError(x, mangler,
+                         "internal error: expected a variable name");
+      StringRef qregName = getNamedDecl(arg0)->getName();
       auto name = getQubitSymbolTableName(qregName, idx_var);
       char *varName = strdup(name.c_str());
 
@@ -2179,12 +2307,15 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
       if (symbolTable.count(name))
         return replaceTOSValue(symbolTable.lookup(name));
 
-      // Otherwise create an operation to access the qubit, store that value in
-      // the symbol table, and return the AddressQubit operation's resulting
-      // value.
+      // Otherwise create an operation to access the qubit, store that value
+      // in the symbol table, and return the AddressQubit operation's
+      // resulting value.
       auto address_qubit =
           builder.create<quake::ExtractRefOp>(loc, qreg_var, idx_var);
 
+      // NB: varName is built from the variable name *and* the index value. This
+      // front-end optimization is likely unnecessary as the compiler can always
+      // canonicalize and merge identical quake.extract_ref operations.
       symbolTable.insert(StringRef(varName), address_qubit);
       return replaceTOSValue(address_qubit);
     }
@@ -2235,25 +2366,34 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
       auto tos = popValue();
       auto tosTy = tos.getType();
       auto ptrTy = dyn_cast<cc::PointerType>(tosTy);
-      bool isEntryKernel = [&]() {
-        // TODO: make this lambda a member function.
-        if (auto fn = peekValue().getDefiningOp<func::ConstantOp>()) {
-          auto name = fn.getValue().str();
-          for (auto fdPair : functionsToEmit)
-            if (getCudaqKernelName(fdPair.first) == name)
-              return true;
-        }
-        return false;
-      }();
-      if (ptrTy || isEntryKernel) {
+      bool isEntryKernel = hasTOSEntryKernel();
+      if ((ptrTy && isa<cc::StructType>(ptrTy.getElementType())) ||
+          isEntryKernel) {
         // The call operator has an object in the call position, so we want to
         // replace it with an indirect call to the func::ConstantOp.
-        assert((isEntryKernel || isa<cc::StructType>(ptrTy.getElementType())) &&
-               "expected kernel as callable class");
         auto indirect = popValue();
         auto funcTy = cast<FunctionType>(indirect.getType());
+        auto convertedArgs =
+            convertKernelArgs(builder, loc, 0, args, funcTy.getInputs());
         auto call = builder.create<func::CallIndirectOp>(
-            loc, funcTy.getResults(), indirect, args);
+            loc, funcTy.getResults(), indirect, convertedArgs);
+        if (call.getResults().empty())
+          return true;
+        return pushValue(call.getResult(0));
+      }
+      auto indCallTy = [&]() -> cc::IndirectCallableType {
+        if (ptrTy) {
+          auto ty = dyn_cast<cc::IndirectCallableType>(ptrTy.getElementType());
+          if (ty)
+            return ty;
+        }
+        return dyn_cast<cc::IndirectCallableType>(tosTy);
+      }();
+      if (indCallTy) {
+        [[maybe_unused]] auto discardedCallOp = popValue();
+        auto funcTy = cast<FunctionType>(indCallTy.getSignature());
+        auto call = builder.create<cc::CallIndirectCallableOp>(
+            loc, funcTy.getResults(), tos, args);
         if (call.getResults().empty())
           return true;
         return pushValue(call.getResult(0));
@@ -2356,7 +2496,10 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
   bool allRef = std::all_of(last.begin(), last.end(), [](auto v) {
     return isa<quake::RefType, quake::VeqType>(v.getType());
   });
-  if (allRef) {
+  if (allRef && isa<quake::StruqType>(initListTy))
+    return pushValue(builder.create<quake::MakeStruqOp>(loc, initListTy, last));
+
+  if (allRef && !isa<cc::StructType>(initListTy)) {
     // Initializer list contains all quantum reference types. In this case we
     // want to create quake code to concatenate the references into a veq.
     if (size > 1) {
@@ -2420,13 +2563,20 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
     {
       OpBuilder::InsertionGuard guard(builder);
       builder.setInsertionPointToEnd(module.getBody());
-      builder.create<cc::GlobalOp>(loc, globalTy, name, f64Attr,
-                                   /*constant=*/true);
+      builder
+          .create<cc::GlobalOp>(loc, globalTy, name, f64Attr,
+                                /*constant=*/true, /*external=*/false)
+          .setPrivate();
     }
     auto ptrTy = cc::PointerType::get(globalTy);
     auto globalInit = builder.create<cc::AddressOfOp>(loc, ptrTy, name);
     return pushValue(globalInit);
   }
+
+  // If quantum, use value semantics with cc insert / extract value.
+  if (isa<quake::StruqType>(eleTy))
+    return pushValue(builder.create<quake::MakeStruqOp>(loc, eleTy, last));
+
   Value alloca = (numEles > 1)
                      ? builder.create<cc::AllocaOp>(loc, eleTy, arrSize)
                      : builder.create<cc::AllocaOp>(loc, eleTy);
@@ -2517,6 +2667,19 @@ static Type getEleTyFromVectorCtor(Type ctorTy) {
   return ctorTy;
 }
 
+bool QuakeBridgeVisitor::VisitCXXParenListInitExpr(
+    clang::CXXParenListInitExpr *x) {
+  auto ty = peekType();
+  assert(ty && "type must be present");
+  LLVM_DEBUG(llvm::dbgs() << "paren list type: " << ty << '\n');
+  auto structTy = dyn_cast<quake::StruqType>(ty);
+  if (!structTy)
+    return true;
+  auto loc = toLocation(x);
+  auto last = lastValues(structTy.getMembers().size());
+  return pushValue(builder.create<quake::MakeStruqOp>(loc, structTy, last));
+}
+
 bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
   auto loc = toLocation(x);
   auto *ctor = x->getConstructor();
@@ -2598,19 +2761,12 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
             initials = load.getPtrvalue();
         }
         if (isStateType(initials.getType())) {
-          IRBuilder irBuilder(builder.getContext());
-          auto mod =
-              builder.getBlock()->getParentOp()->getParentOfType<ModuleOp>();
-          auto result =
-              irBuilder.loadIntrinsic(mod, getNumQubitsFromCudaqState);
-          assert(succeeded(result) && "loading intrinsic should never fail");
           Value state = initials;
           auto i64Ty = builder.getI64Type();
-          auto numQubits = builder.create<func::CallOp>(
-              loc, i64Ty, getNumQubitsFromCudaqState, ValueRange{state});
+          auto numQubits =
+              builder.create<quake::GetNumberOfQubitsOp>(loc, i64Ty, state);
           auto veqTy = quake::VeqType::getUnsized(ctx);
-          Value alloc = builder.create<quake::AllocaOp>(loc, veqTy,
-                                                        numQubits.getResult(0));
+          Value alloc = builder.create<quake::AllocaOp>(loc, veqTy, numQubits);
           return pushValue(builder.create<quake::InitializeStateOp>(
               loc, veqTy, alloc, state));
         }
@@ -2799,9 +2955,19 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
       if (ctor->isDefaultConstructor())
         reportClangError(ctor, mangler,
                          "Default std::vector<T> constructor within quantum "
-                         "kernel is not allowed "
-                         "(cannot resize the vector).");
+                         "kernel is not allowed (cannot resize the vector).");
+
+      if (ctor->isMoveConstructor()) {
+        // Just use the !cc.stdvec<T> value at TOS.
+        return true;
+      }
     }
+  }
+
+  if (isa<quake::StruqType>(ctorTy)) {
+    if (quake::isConstantQuantumRefType(ctorTy))
+      return pushValue(builder.create<quake::AllocaOp>(loc, ctorTy));
+    return true;
   }
 
   auto *parent = ctor->getParent();
@@ -2812,12 +2978,17 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
     return true;
   }
 
-  if (ctor->isCopyOrMoveConstructor() && parent->isPOD()) {
-    // Copy or move constructor on a POD struct. The value stack should contain
-    // the object to load the value from.
-    auto fromStruct = popValue();
-    assert(isa<cc::StructType>(ctorTy) && "POD must be a struct type");
-    return pushValue(builder.create<cc::LoadOp>(loc, fromStruct));
+  if (ctor->isCopyOrMoveConstructor()) {
+    // Just walk through copy constructors for quantum struct types.
+    if (isa<quake::StruqType>(ctorTy))
+      return true;
+    if (parent->isPOD()) {
+      // Copy or move constructor on a POD struct. The value stack should
+      // contain the object to load the value from.
+      auto fromStruct = popValue();
+      assert(isa<cc::StructType>(ctorTy) && "POD must be a struct type");
+      return pushValue(builder.create<cc::LoadOp>(loc, fromStruct));
+    }
   }
 
   if (ctor->isCopyConstructor() && ctor->isTrivial() &&

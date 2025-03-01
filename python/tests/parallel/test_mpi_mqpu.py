@@ -1,29 +1,33 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import cudaq, os, pytest, random, timeit
+import cudaq, os, pytest
 from cudaq import spin
 import numpy as np
 
 skipIfUnsupported = pytest.mark.skipif(
-    not (cudaq.num_available_gpus() > 0 and cudaq.mpi.is_initialized() and
-         cudaq.has_target('nvidia-mqpu')),
+    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia-mqpu')),
     reason="nvidia-mqpu backend not available or mpi not found")
+
+
+@pytest.fixture(scope='session', autouse=True)
+def mpi_init_finalize():
+    cudaq.mpi.initialize()
+    yield
+    cudaq.mpi.finalize()
 
 
 @pytest.fixture(autouse=True)
 def do_something():
     cudaq.set_target('nvidia-mqpu')
-    cudaq.mpi.initialize()
     yield
     cudaq.__clearKernelRegistries()
     cudaq.reset_target()
-    cudaq.mpi.finalize()
 
 
 def check_mpi(entity):

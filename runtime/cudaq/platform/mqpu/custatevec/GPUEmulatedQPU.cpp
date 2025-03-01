@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -37,11 +37,13 @@ public:
     execution_queue->enqueue(task);
   }
 
-  void launchKernel(const std::string &name, void (*kernelFunc)(void *),
-                    void *args, std::uint64_t, std::uint64_t) override {
+  cudaq::KernelThunkResultType
+  launchKernel(const std::string &name, cudaq::KernelThunkType kernelFunc,
+               void *args, std::uint64_t, std::uint64_t,
+               const std::vector<void *> &rawArgs) override {
     cudaq::info("QPU::launchKernel GPU {}", qpu_id);
     cudaSetDevice(qpu_id);
-    kernelFunc(args);
+    return kernelFunc(args, /*differentMemorySpace=*/false);
   }
 
   /// Overrides setExecutionContext to forward it to the ExecutionManager

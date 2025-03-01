@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,7 +8,6 @@
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
-#include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -46,6 +45,8 @@ public:
     auto funcOp = parentModule.lookupSymbol<func::FuncOp>(generator);
     if (!funcOp)
       return failure();
+
+    funcOp.setPrivate();
 
     // The generator function returns a concrete matrix. If prior passes have
     // run to constant fold and lift array values, the generator function will

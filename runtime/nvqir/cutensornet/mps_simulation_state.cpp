@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -26,9 +26,11 @@ std::size_t MPSSimulationState::getNumQubits() const {
 MPSSimulationState::MPSSimulationState(std::unique_ptr<TensorNetState> inState,
                                        const std::vector<MPSTensor> &mpsTensors,
                                        ScratchDeviceMem &inScratchPad,
-                                       cutensornetHandle_t cutnHandle)
+                                       cutensornetHandle_t cutnHandle,
+                                       std::mt19937 &randomEngine)
     : m_cutnHandle(cutnHandle), state(std::move(inState)),
-      m_mpsTensors(mpsTensors), scratchPad(inScratchPad) {}
+      m_mpsTensors(mpsTensors), scratchPad(inScratchPad),
+      m_randomEngine(randomEngine) {}
 
 MPSSimulationState::~MPSSimulationState() { deallocate(); }
 
@@ -220,7 +222,7 @@ std::complex<double> MPSSimulationState::computeOverlap(
   HANDLE_CUTN_ERROR(cutensornetDestroyContractionOptimizerConfig(m_tnConfig));
   HANDLE_CUTN_ERROR(cutensornetDestroyNetworkDescriptor(m_tnDescr));
 
-  return overlap;
+  return std::abs(overlap);
 }
 
 std::complex<double>
@@ -266,8 +268,8 @@ MPSSimulationState::getAmplitude(const std::vector<int> &basisState) {
   }
 
   if (getNumQubits() > 1) {
-    TensorNetState basisTensorNetState(basisState, scratchPad,
-                                       state->getInternalContext());
+    TensorNetState basisTensorNetState(
+        basisState, scratchPad, state->getInternalContext(), m_randomEngine);
     // Note: this is a basis state, hence bond dim == 1
     std::vector<MPSTensor> basisStateTensors = basisTensorNetState.factorizeMPS(
         1, std::numeric_limits<double>::min(),
@@ -369,7 +371,8 @@ static Eigen::MatrixXcd reshapeStateVec(const Eigen::VectorXcd &stateVec) {
 
 MPSSimulationState::MpsStateData MPSSimulationState::createFromStateVec(
     cutensornetHandle_t cutnHandle, ScratchDeviceMem &inScratchPad,
-    std::size_t size, std::complex<double> *ptr, int bondDim) {
+    std::size_t size, std::complex<double> *ptr, int bondDim,
+    std::mt19937 &randomEngine) {
   const std::size_t numQubits = std::log2(size);
   // Reverse the qubit order to match cutensornet convention
   auto newStateVec = TensorNetState::reverseQubitOrder(
@@ -386,8 +389,8 @@ MPSSimulationState::MpsStateData MPSSimulationState::createFromStateVec(
     MPSTensor stateTensor;
     stateTensor.deviceData = d_tensor;
     stateTensor.extents = std::vector<int64_t>{2};
-    auto state = TensorNetState::createFromMpsTensors({stateTensor},
-                                                      inScratchPad, cutnHandle);
+    auto state = TensorNetState::createFromMpsTensors(
+        {stateTensor}, inScratchPad, cutnHandle, randomEngine);
     return {std::move(state), std::vector<MPSTensor>{stateTensor}};
   }
 
@@ -460,7 +463,7 @@ MPSSimulationState::MpsStateData MPSSimulationState::createFromStateVec(
   mpsTensors.emplace_back(stateTensor);
   assert(mpsTensors.size() == numQubits);
   auto state = TensorNetState::createFromMpsTensors(mpsTensors, inScratchPad,
-                                                    cutnHandle);
+                                                    cutnHandle, randomEngine);
   return {std::move(state), mpsTensors};
 }
 
@@ -486,24 +489,28 @@ MPSSimulationState::createFromSizeAndPtr(std::size_t size, void *ptr,
       MPSTensor stateTensor{d_tensor, mpsExtents};
       mpsTensors.emplace_back(stateTensor);
     }
-    auto state = TensorNetState::createFromMpsTensors(mpsTensors, scratchPad,
-                                                      m_cutnHandle);
-    return std::make_unique<MPSSimulationState>(std::move(state), mpsTensors,
-                                                scratchPad, m_cutnHandle);
+    auto state = TensorNetState::createFromMpsTensors(
+        mpsTensors, scratchPad, m_cutnHandle, m_randomEngine);
+    return std::make_unique<MPSSimulationState>(
+        std::move(state), mpsTensors, scratchPad, m_cutnHandle, m_randomEngine);
   }
-  auto [state, mpsTensors] = createFromStateVec(
-      m_cutnHandle, scratchPad, size,
-      reinterpret_cast<std::complex<double> *>(ptr), MPSSettings().maxBond);
-  return std::make_unique<MPSSimulationState>(std::move(state), mpsTensors,
-                                              scratchPad, m_cutnHandle);
+  auto [state, mpsTensors] =
+      createFromStateVec(m_cutnHandle, scratchPad, size,
+                         reinterpret_cast<std::complex<double> *>(ptr),
+                         MPSSettings().maxBond, m_randomEngine);
+  return std::make_unique<MPSSimulationState>(
+      std::move(state), mpsTensors, scratchPad, m_cutnHandle, m_randomEngine);
 }
 
 MPSSettings::MPSSettings() {
   if (auto *maxBondEnvVar = std::getenv("CUDAQ_MPS_MAX_BOND")) {
     const std::string maxBondStr(maxBondEnvVar);
-    auto [ptr, ec] = std::from_chars(
-        maxBondStr.data(), maxBondStr.data() + maxBondStr.size(), maxBond);
-    if (ec != std::errc{} || maxBond < 1)
+    const char *nptr = maxBondStr.data();
+    char *endptr = nullptr;
+    errno = 0; // reset errno to 0 before call
+    maxBond = strtol(nptr, &endptr, 10);
+
+    if (nptr == endptr || errno != 0 || maxBond < 1)
       throw std::runtime_error("Invalid CUDAQ_MPS_MAX_BOND setting. Expected "
                                "a positive number. Got: " +
                                maxBondStr);
@@ -513,10 +520,12 @@ MPSSettings::MPSSettings() {
   // Cutoff values
   if (auto *absCutoffEnvVar = std::getenv("CUDAQ_MPS_ABS_CUTOFF")) {
     const std::string absCutoffStr(absCutoffEnvVar);
-    auto [ptr, ec] =
-        std::from_chars(absCutoffStr.data(),
-                        absCutoffStr.data() + absCutoffStr.size(), absCutoff);
-    if (ec != std::errc{} || absCutoff <= 0.0 || absCutoff >= 1.0)
+    const char *nptr = absCutoffStr.data();
+    char *endptr = nullptr;
+    errno = 0; // reset errno to 0 before call
+    absCutoff = strtod(nptr, &endptr);
+
+    if (nptr == endptr || errno != 0 || absCutoff <= 0.0 || absCutoff >= 1.0)
       throw std::runtime_error("Invalid CUDAQ_MPS_ABS_CUTOFF setting. Expected "
                                "a number in range (0.0, 1.0). Got: " +
                                absCutoffStr);
@@ -525,10 +534,12 @@ MPSSettings::MPSSettings() {
   }
   if (auto *relCutoffEnvVar = std::getenv("CUDAQ_MPS_RELATIVE_CUTOFF")) {
     const std::string relCutoffStr(relCutoffEnvVar);
-    auto [ptr, ec] =
-        std::from_chars(relCutoffStr.data(),
-                        relCutoffStr.data() + relCutoffStr.size(), relCutoff);
-    if (ec != std::errc{} || relCutoff <= 0.0 || relCutoff >= 1.0)
+    const char *nptr = relCutoffStr.data();
+    char *endptr = nullptr;
+    errno = 0; // reset errno to 0 before call
+    relCutoff = strtod(nptr, &endptr);
+
+    if (nptr == endptr || errno != 0 || relCutoff <= 0.0 || relCutoff >= 1.0)
       throw std::runtime_error(
           "Invalid CUDAQ_MPS_RELATIVE_CUTOFF setting. Expected "
           "a number in range (0.0, 1.0). Got: " +

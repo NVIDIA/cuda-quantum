@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -8,6 +8,9 @@
 
 # Tests that generate MLIR and are run through both pytest and FileCheck.
 add_subdirectory(mlir)
+if (TARGET nvq++) 
+  add_subdirectory(interop)
+endif() 
 
 if (MPI_CXX_FOUND AND CUDA_FOUND)
   add_subdirectory(parallel)

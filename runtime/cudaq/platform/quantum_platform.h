@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -11,6 +11,7 @@
 #include "common/ExecutionContext.h"
 #include "common/NoiseModel.h"
 #include "common/ObserveResult.h"
+#include "common/ThunkInterface.h"
 #include "cudaq/remote_capabilities.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <cstring>
@@ -101,6 +102,9 @@ public:
   /// @brief Return whether the QPU has conditional feedback support
   bool supports_conditional_feedback(const std::size_t qpu_id = 0) const;
 
+  /// @brief Return whether the QPU supports explicit measurements.
+  bool supports_explicit_measurements(const std::size_t qpu_id = 0) const;
+
   /// The name of the platform, which also corresponds to the name of the
   /// platform file.
   std::string name() const { return platformName; }
@@ -117,9 +121,11 @@ public:
   /// @brief Return true if QPU is locally emulating a remote QPU
   bool is_emulated(const std::size_t qpuId = 0) const;
 
-  /// @brief Set the noise model for future invocations of
-  /// quantum kernels.
+  /// @brief Set the noise model for future invocations of quantum kernels.
   void set_noise(const noise_model *model);
+
+  /// @brief Return the current noise model or `nullptr` if none set.
+  const noise_model *get_noise();
 
   /// @brief Get the remote capabilities (only applicable for remote platforms)
   RemoteCapabilities get_remote_capabilities(const std::size_t qpuId = 0) const;
@@ -140,11 +146,12 @@ public:
                  cudaq::optimizer &optimizer, const int n_params,
                  const std::size_t shots);
 
-  // This method is the hook for the kernel rewrites to invoke
-  // quantum kernels.
-  void launchKernel(std::string kernelName, void (*kernelFunc)(void *),
-                    void *args, std::uint64_t voidStarSize,
-                    std::uint64_t resultOffset);
+  // This method is the hook for the kernel rewrites to invoke quantum kernels.
+  [[nodiscard]] KernelThunkResultType
+  launchKernel(std::string kernelName, KernelThunkType kernelFunc, void *args,
+               std::uint64_t voidStarSize, std::uint64_t resultOffset,
+               const std::vector<void *> &rawArgs);
+  void launchKernel(std::string kernelName, const std::vector<void *> &);
 
   // This method is the hook for executing SerializedCodeExecutionContext
   // objects.
@@ -212,8 +219,24 @@ protected:
 /// tied to the quantum platform instance somehow. Note that the compiler cannot
 /// provide that information.
 extern "C" {
-void altLaunchKernel(const char *kernelName, void (*kernel)(void *), void *args,
-                     std::uint64_t argsSize, std::uint64_t resultOffset);
+// Client-server (legacy) interface.
+[[nodiscard]] KernelThunkResultType
+altLaunchKernel(const char *kernelName, KernelThunkType kernel, void *args,
+                std::uint64_t argsSize, std::uint64_t resultOffset);
+
+// Streamlined interface for launching kernels. Argument synthesis and JIT
+// compilation *must* happen on the local machine.
+[[nodiscard]] KernelThunkResultType
+streamlinedLaunchKernel(const char *kernelName,
+                        const std::vector<void *> &rawArgs);
+
+// Hybrid of the client-server and streamlined approaches. Letting JIT
+// compilation happen either early or late and can handle return values from
+// each kernel launch.
+[[nodiscard]] KernelThunkResultType
+hybridLaunchKernel(const char *kernelName, KernelThunkType kernel, void *args,
+                   std::uint64_t argsSize, std::uint64_t resultOffset,
+                   const std::vector<void *> &rawArgs);
 }
 
 } // namespace cudaq

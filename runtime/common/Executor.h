@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -34,14 +34,15 @@ public:
   virtual ~Executor() = default;
 
   /// @brief Set the server helper
-  void setServerHelper(ServerHelper *helper) { serverHelper = helper; }
+  virtual void setServerHelper(ServerHelper *helper) { serverHelper = helper; }
 
   /// @brief Set the number of shots to execute
   void setShots(std::size_t s) { shots = s; }
 
   /// @brief Execute the provided quantum codes and return a future object
   /// The caller can make this synchronous by just immediately calling .get().
-  details::future execute(std::vector<KernelExecution> &codesToExecute);
+  virtual details::future execute(std::vector<KernelExecution> &codesToExecute,
+                                  bool isObserve = false);
 };
 
 } // namespace cudaq

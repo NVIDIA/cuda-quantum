@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -10,11 +10,10 @@
 #include <algorithm>
 #include <cassert>
 
-namespace cudaq {
-
-void Trace::appendInstruction(std::string_view name, std::vector<double> params,
-                              std::vector<QuditInfo> controls,
-                              std::vector<QuditInfo> targets) {
+void cudaq::Trace::appendInstruction(std::string_view name,
+                                     std::vector<double> params,
+                                     std::vector<QuditInfo> controls,
+                                     std::vector<QuditInfo> targets) {
   assert(!targets.empty() && "An instruction must have at least one target");
   auto findMaxID = [](const std::vector<QuditInfo> &qudits) -> std::size_t {
     return std::max_element(qudits.cbegin(), qudits.cend(),
@@ -27,5 +26,3 @@ void Trace::appendInstruction(std::string_view name, std::vector<double> params,
   numQudits = std::max(numQudits, maxID + 1);
   instructions.emplace_back(name, params, controls, targets);
 }
-
-} // namespace cudaq

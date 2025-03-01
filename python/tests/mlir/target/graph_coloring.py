@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -9,11 +9,9 @@
 # RUN: PYTHONPATH=../../.. python3 %s
 # RUN: PYTHONPATH=../../.. python3 %s --target quantinuum --emulate
 
-import sys
 import numpy as np
 
 import cudaq
-from cudaq import spin
 
 
 @cudaq.kernel

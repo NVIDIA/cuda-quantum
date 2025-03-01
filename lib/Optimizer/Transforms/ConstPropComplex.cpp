@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -172,29 +172,22 @@ public:
 
   void runOnOperation() override {
     auto *ctx = &getContext();
-    auto module = getOperation();
-    for (Operation &op : *module.getBody()) {
-      auto func = dyn_cast<func::FuncOp>(op);
-      if (!func)
-        continue;
-      DominanceInfo domInfo(func);
-      std::string funcName = func.getName().str();
-      RewritePatternSet patterns(ctx);
-      patterns
-          .insert<ComplexCreatePattern, FloatCastPattern, FloatExtendPattern,
-                  FloatTruncatePattern, ComplexRePattern, ComplexImPattern>(
-              ctx);
+    auto func = getOperation();
+    DominanceInfo domInfo(func);
+    RewritePatternSet patterns(ctx);
+    patterns.insert<ComplexCreatePattern, FloatCastPattern, FloatExtendPattern,
+                    FloatTruncatePattern, ComplexRePattern, ComplexImPattern>(
+        ctx);
 
-      LLVM_DEBUG(llvm::dbgs()
-                 << "Before lifting constant array: " << func << '\n');
+    LLVM_DEBUG(llvm::dbgs() << "Before constant propagation of complex values: "
+                            << func << '\n');
 
-      if (failed(applyPatternsAndFoldGreedily(func.getOperation(),
-                                              std::move(patterns))))
-        signalPassFailure();
+    if (failed(applyPatternsAndFoldGreedily(func.getOperation(),
+                                            std::move(patterns))))
+      signalPassFailure();
 
-      LLVM_DEBUG(llvm::dbgs()
-                 << "After lifting constant array: " << func << '\n');
-    }
+    LLVM_DEBUG(llvm::dbgs() << "After constant propagation of complex values: "
+                            << func << '\n');
   }
 };
 } // namespace

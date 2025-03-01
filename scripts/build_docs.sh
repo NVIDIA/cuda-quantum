@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -42,7 +42,6 @@ DOCS_INSTALL_PREFIX=${DOCS_INSTALL_PREFIX:-"$CUDAQ_INSTALL_PREFIX/docs"}
 export PYTHONPATH="$CUDAQ_INSTALL_PREFIX:${PYTHONPATH}"
 
 # Process command line arguments
-(return 0 2>/dev/null) && is_sourced=true || is_sourced=false
 force_update=""
 
 __optind__=$OPTIND
@@ -52,7 +51,7 @@ while getopts ":u:" opt; do
     u) force_update="$OPTARG"
     ;;
     \?) echo "Invalid command line option -$OPTARG" >&2
-    if $is_sourced; then return 1; else exit 1; fi
+    (return 0 2>/dev/null) && return 1 || exit 1
     ;;
   esac
 done
@@ -83,7 +82,7 @@ if [ ! "$?" -eq "0" ] || [ ! -d "$build_include_dir" ] || [ "${force_update,,}" 
     python3 -c "import cudaq" 2>/dev/null
     if [ ! "$?" -eq "0" ] || [ ! "$cudaq_build_exit_code" -eq "0" ]; then
         echo "Failed to build and install the CUDA-Q Python package needed for docs generation."
-        cd "$working_dir" && if $is_sourced; then return 2; else exit 2; fi
+        cd "$working_dir" && (return 0 2>/dev/null) && return 2 || exit 2
     else 
         echo "Python package has been installed in $CUDAQ_INSTALL_PREFIX."
         echo "You may need to add it to your PYTHONPATH to use it outside this script."
@@ -120,7 +119,7 @@ if [ "$doxygen_version" = "" ] || [ "$doxygen_revision" -lt "7" ]; then
     if [ ! "$?" -eq "0" ]; then
         echo "Build failed. The build logs can be found in the $logs_dir directory."
         echo "You may need to install the prerequisites listed in the comment at the top of this file."
-        cd "$working_dir" && if $is_sourced; then return 3; else exit 3; fi
+        cd "$working_dir" && (return 0 2>/dev/null) && return 3 || exit 3
     else
         doxygen_exe="$CUDAQ_INSTALL_PREFIX/bin/doxygen"
     fi
@@ -142,11 +141,25 @@ if [ ! "$doxygen_exit_code" -eq "0" ]; then
     docs_exit_code=11
 fi
 
+# Create Python readme from template
+echo "Creating README.md for cudaq package"
+package_name=cudaq
+cuda_version_requirement="11.x (where x >= 8) or 12.x"
+cuda_version_conda=11.8.0 # only used as example in the install script
+cat "$repo_root/python/README.md.in" > "$repo_root/python/README.md"
+for variable in package_name cuda_version_requirement cuda_version_conda; do
+    sed -i "s/.{{[ ]*$variable[ ]*}}/${!variable}/g" "$repo_root/python/README.md"
+done
+if [ -n "$(cat "$repo_root/python/README.md" | grep -e '.{{.*}}')" ]; then 
+    echo "Incomplete template substitutions in README."
+    docs_exit_code=1
+fi
+
 echo "Building CUDA-Q documentation using Sphinx..."
 cd "$repo_root/docs"
+
 # The docs build so far is fast such that we do not care about the cached outputs.
 # Revisit this when caching becomes necessary.
-
 rm -rf sphinx/_doxygen/
 rm -rf sphinx/_mdgen/
 cp -r "$doxygen_output_dir" sphinx/_doxygen/
@@ -178,4 +191,4 @@ else
     echo "Check the logs in $logs_dir, and the documentation build output in $docs_build_output."
 fi
 
-cd "$working_dir" && if $is_sourced; then return $docs_exit_code; else exit $docs_exit_code; fi
+cd "$working_dir" && (return 0 2>/dev/null) && return $docs_exit_code || exit $docs_exit_code

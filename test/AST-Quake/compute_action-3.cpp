@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -80,6 +80,6 @@ int main() {
 // CHECK-DAG:   func.func private @__nvqpp__callable.thunk.lambda.1(
 // CHECK-DAG:   func.func private @__nvqpp__lifted.lambda.1(
 // CHECK-DAG:   func.func private @__nvqpp__callable.thunk.lambda.0(
-// CHECK-DAG:   func.func private @__nvqpp__lifted.lambda.0() {
+// CHECK-DAG:   func.func private @__nvqpp__lifted.lambda.0()
 // CHECK-DAG:   func.func private @__nvqpp__callable.thunk.lambda.3(
 // CHECK-DAG:   func.func private @__nvqpp__lifted.lambda.3(

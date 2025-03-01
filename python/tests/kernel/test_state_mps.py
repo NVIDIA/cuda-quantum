@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -10,16 +10,10 @@ import os
 import pytest
 import numpy as np
 import sys
-from typing import List
 
 import cudaq
 
 cp = pytest.importorskip('cupy')
-
-## [PYTHON_VERSION_FIX]
-skipIfPythonLessThan39 = pytest.mark.skipif(
-    sys.version_info < (3, 9),
-    reason="built-in collection types such as `list` not supported")
 
 skipIfNoGPU = pytest.mark.skipif(
     not (cudaq.num_available_gpus() > 0 and cudaq.has_target('tensornet-mps')),

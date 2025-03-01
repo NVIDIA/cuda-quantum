@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -15,11 +15,6 @@ import sys
 
 import cudaq
 from cudaq import spin
-
-## [PYTHON_VERSION_FIX]
-skipIfPythonLessThan39 = pytest.mark.skipif(
-    sys.version_info < (3, 9),
-    reason="built-in collection types such as `list` not supported")
 
 
 @pytest.fixture(autouse=True)
@@ -190,7 +185,17 @@ def test_2grover_compute_action():
     assert '011' in counts
 
 
-@skipIfPythonLessThan39
+def test_observe():
+
+    @cudaq.kernel
+    def ansatz():
+        q = cudaq.qvector(1)
+
+    molecule = 5.0 - 1.0 * spin.x(0)
+    res = cudaq.observe(ansatz, molecule, shots_count=10000)
+    assert np.isclose(res.expectation(), 5.0, atol=1e-1)
+
+
 def test_pauli_word_input():
 
     h2_data = [
@@ -263,9 +268,14 @@ def test_exp_pauli():
     assert np.isclose(want_exp, -1.13, atol=1e-2)
 
 
-def test_dynamic_circuit():
+@pytest.mark.parametrize('target', ['default', 'stim'])
+def test_dynamic_circuit(target):
     """Test that we correctly sample circuits with 
        mid-circuit measurements and conditionals."""
+
+    if target == 'stim':
+        save_target = cudaq.get_target()
+        cudaq.set_target('stim')
 
     @cudaq.kernel
     def simple():
@@ -296,6 +306,9 @@ def test_dynamic_circuit():
     c0 = counts.get_register_counts('i')
     assert '0' in c0 and '1' in c0
     assert '00' in counts and '11' in counts
+
+    if target == 'stim':
+        cudaq.set_target(save_target)
 
 
 def test_teleport():
@@ -437,7 +450,6 @@ def test_no_dynamic_Lists():
         print(kernel)
 
 
-@skipIfPythonLessThan39
 def test_no_dynamic_lists():
     with pytest.raises(RuntimeError) as error:
 
@@ -526,7 +538,6 @@ def test_list_creation():
     assert '1' * 5 in counts
 
 
-@skipIfPythonLessThan39
 def test_list_creation_with_cast():
 
     @cudaq.kernel
@@ -542,7 +553,6 @@ def test_list_creation_with_cast():
     assert '1' * 5 in counts
 
 
-@skipIfPythonLessThan39
 def test_list_creation_with_cast():
 
     @cudaq.kernel
@@ -556,6 +566,93 @@ def test_list_creation_with_cast():
     counts = cudaq.sample(kernel, list(range(5)))
     assert len(counts) == 1
     assert '1' * 5 in counts
+
+
+def test_list_boundaries():
+
+    @cudaq.kernel
+    def kernel1():
+        qubits = cudaq.qvector(2)
+        r = range(0, 0)
+        for i in r:
+            x(qubits[i])
+
+    counts = cudaq.sample(kernel1)
+    assert len(counts) == 1
+    assert '00' in counts
+
+    @cudaq.kernel
+    def kernel2():
+        qubits = cudaq.qvector(2)
+        r = range(1, 0)
+        for i in r:
+            x(qubits[i])
+
+    counts = cudaq.sample(kernel2)
+    assert len(counts) == 1
+    assert '00' in counts
+
+    @cudaq.kernel
+    def kernel3():
+        qubits = cudaq.qvector(2)
+        for i in range(-1):
+            x(qubits[i])
+
+    counts = cudaq.sample(kernel3)
+    assert len(counts) == 1
+    assert '00' in counts
+
+    @cudaq.kernel
+    def kernel4():
+        qubits = cudaq.qvector(4)
+        r = [i * 2 + 1 for i in range(1)]
+        for i in r:
+            x(qubits[i])
+
+    counts = cudaq.sample(kernel4)
+    assert len(counts) == 1
+    assert '0100' in counts
+
+    @cudaq.kernel
+    def kernel5():
+        qubits = cudaq.qvector(4)
+        r = [i * 2 + 1 for i in range(0)]
+        for i in r:
+            x(qubits[i])
+
+    counts = cudaq.sample(kernel5)
+    assert len(counts) == 1
+    assert '0000' in counts
+
+    @cudaq.kernel
+    def kernel6():
+        qubits = cudaq.qvector(4)
+        r = [i * 2 + 1 for i in range(2)]
+        for i in r:
+            x(qubits[i])
+
+    counts = cudaq.sample(kernel6)
+    assert len(counts) == 1
+    assert '0101' in counts
+
+
+def test_array_value_assignment():
+
+    @cudaq.kernel()
+    def foo():
+        a = [1, 1]
+        b = [0, 0]
+        b[0] = a[0]
+        b[1] = a[1]
+        q0 = cudaq.qubit()
+        q1 = cudaq.qubit()
+        if (b[0]):
+            x(q0)
+        if (b[1]):
+            x(q1)
+
+    counts = cudaq.sample(foo)
+    assert "11" in counts
 
 
 def test_control_operations():
@@ -853,7 +950,6 @@ def test_invalid_cudaq_type():
         print(test)
 
 
-@skipIfPythonLessThan39
 def test_bool_list_elements():
 
     @cudaq.kernel
@@ -918,7 +1014,6 @@ def test_aug_assign_add():
     assert test2() == 10
 
 
-@skipIfPythonLessThan39
 def test_empty_lists():
 
     @cudaq.kernel
@@ -1519,7 +1614,6 @@ def test_nested_loops_with_continue():
     print(prog)
 
 
-@skipIfPythonLessThan39
 def test_issue_1682():
 
     @cudaq.kernel
@@ -1623,7 +1717,210 @@ def test_capture_opaque_kernel():
     assert len(counts) == 2 and '0' in counts and '1' in counts
 
 
-@skipIfPythonLessThan39
+def test_custom_classical_kernel_type():
+    from dataclasses import dataclass
+
+    @dataclass
+    class CustomIntAndFloatType:
+        integer: int
+        floatingPoint: float
+
+    instance = CustomIntAndFloatType(123, 123.123)
+    assert instance.integer == 123 and instance.floatingPoint == 123.123
+
+    @cudaq.kernel
+    def test(input: CustomIntAndFloatType):
+        qubits = cudaq.qvector(input.integer)
+        ry(input.floatingPoint, qubits[0])
+        rx(input.floatingPoint * 2, qubits[0])
+        x.ctrl(qubits[0], qubits[1])
+
+    instance = CustomIntAndFloatType(2, np.pi / 2.)
+    counts = cudaq.sample(test, instance)
+    counts.dump()
+    assert len(counts) == 2 and '00' in counts and '11' in counts
+
+    @dataclass
+    class CustomIntAndListFloat:
+        integer: int
+        array: List[float]
+
+    @cudaq.kernel
+    def test(input: CustomIntAndListFloat):
+        qubits = cudaq.qvector(input.integer)
+        ry(input.array[0], qubits[0])
+        rx(input.array[1], qubits[0])
+        x.ctrl(qubits[0], qubits[1])
+
+    print(test)
+    instance = CustomIntAndListFloat(2, [np.pi / 2., np.pi])
+    counts = cudaq.sample(test, instance)
+    counts.dump()
+    assert len(counts) == 2 and '00' in counts and '11' in counts
+
+    # Test that the class can be in a library
+    # and the paths all work out
+    from mock.hello import TestClass
+
+    @cudaq.kernel
+    def test(input: TestClass):
+        q = cudaq.qvector(input.i)
+
+    instance = TestClass(2, 2.2)
+    state = cudaq.get_state(test, instance)
+    state.dump()
+
+    assert len(state) == 2**instance.i
+
+    # Test invalid struct member
+    @cudaq.kernel
+    def test(input: TestClass):
+        local = input.helloBadMember
+
+    with pytest.raises(RuntimeError) as e:
+        test.compile()
+
+
+def test_custom_quantum_type():
+    from dataclasses import dataclass
+
+    @dataclass
+    class patch:
+        data: cudaq.qview
+        ancx: cudaq.qview
+        ancz: cudaq.qview
+
+    @cudaq.kernel
+    def logicalH(p: patch):
+        h(p.data)
+
+    # print(logicalH)
+    @cudaq.kernel
+    def logicalX(p: patch):
+        x(p.ancx)
+
+    @cudaq.kernel
+    def logicalZ(p: patch):
+        z(p.ancz)
+
+    @cudaq.kernel  # (verbose=True)
+    def run():
+        q = cudaq.qvector(2)
+        r = cudaq.qvector(2)
+        s = cudaq.qvector(2)
+        p = patch(q, r, s)
+
+        logicalH(p)
+        logicalX(p)
+        logicalZ(p)
+
+    # Test here is that it compiles and runs successfully
+    print(run)
+    run()
+
+
+def test_disallow_hybrid_types():
+    from dataclasses import dataclass
+    # Ensure we don't allow hybrid type s
+    @dataclass
+    class hybrid:
+        q: cudaq.qview
+        i: int
+
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def test():
+            q = cudaq.qvector(2)
+            h = hybrid(q, 1)
+
+        test()
+
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def testtest(h: hybrid):
+            x(h.q[h.i])
+
+        testtest.compile()
+
+
+def test_disallow_quantum_struct_return():
+    from dataclasses import dataclass
+    # Ensure we don't allow hybrid type s
+    @dataclass
+    class T:
+        q: cudaq.qview
+
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def test() -> T:
+            q = cudaq.qvector(2)
+            h = T(q)
+            return h
+
+        test()
+
+
+def test_disallow_recursive_quantum_struct():
+    from dataclasses import dataclass
+
+    @dataclass
+    class T:
+        q: cudaq.qview
+
+    @dataclass
+    class Holder:
+        t: T
+
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def test():
+            q = cudaq.qvector(2)
+            t = T(q)
+            hh = Holder(t)
+
+        print(test)
+
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def test(hh: Holder):
+            pass
+
+        print(test)
+
+
+def test_disallow_struct_with_methods():
+    from dataclasses import dataclass
+
+    @dataclass
+    class T:
+        q: cudaq.qview
+
+        def doSomething(self):
+            pass
+
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def test(t: T):
+            pass
+
+        print(test)
+
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def test():
+            q = cudaq.qvector(2)
+            t = T(q)
+
+        print(test)
+
+
 def test_issue_9():
 
     @cudaq.kernel
@@ -1695,6 +1992,75 @@ def test_control_then_adjoint():
     theta = 1.5
     # test here is that this compiles and runs
     cudaq.sample(kernel, theta).dump()
+
+
+def test_numpy_functions():
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(3)
+        h(q)
+        rx(np.pi, q[0])
+        ry(np.e, q[1])
+        rz(np.euler_gamma, q[2])
+
+    # test here is that this compiles and runs
+    cudaq.sample(kernel).dump()
+
+    @cudaq.kernel
+    def valid_unsupported():
+        q = cudaq.qubit()
+        h(q)
+        r1(np.inf, q)
+
+    with pytest.raises(RuntimeError):
+        cudaq.sample(valid_unsupported)
+
+    @cudaq.kernel
+    def invalid_unsupported():
+        q = cudaq.qubit()
+        h(q)
+        r1(np.foo, q)
+
+    with pytest.raises(RuntimeError):
+        cudaq.sample(invalid_unsupported)
+
+
+def test_in_comparator():
+
+    @cudaq.kernel
+    def kernel(ind: int):
+        q = cudaq.qubit()
+        if ind in [6, 13, 20, 27, 34]:
+            x(q)
+
+    c = cudaq.sample(kernel, 1)
+    assert len(c) == 1 and '0' in c
+    c = cudaq.sample(kernel, 20)
+    assert len(c) == 1 and '1' in c
+    c = cudaq.sample(kernel, 14)
+    assert len(c) == 1 and '0' in c
+    c = cudaq.sample(kernel, 13)
+    assert len(c) == 1 and '1' in c
+    c = cudaq.sample(kernel, 26)
+    assert len(c) == 1 and '0' in c
+    c = cudaq.sample(kernel, 27)
+    assert len(c) == 1 and '1' in c
+    c = cudaq.sample(kernel, 34)
+    assert len(c) == 1 and '1' in c
+    c = cudaq.sample(kernel, 36)
+    assert len(c) == 1 and '0' in c
+
+    @cudaq.kernel
+    def kernel(ind: int):
+        q = cudaq.qubit()
+        if ind not in [6, 13, 20, 27, 34]:
+            x(q)
+
+    c = cudaq.sample(kernel, 1)
+    assert len(c) == 1 and '1' in c
+    c = cudaq.sample(kernel, 20)
+    assert len(c) == 1 and '0' in c
 
 
 # leave for gdb debugging

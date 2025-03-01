@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,9 +8,9 @@
 
 // Compile and run with:
 // ```
-// nvq++ sample_async.cpp -o sample_async.x --target remote-mqpu
-// --remote-mqpu-auto-launch 2
-// && ./sample_async.x
+// nvq++ sample_async_remote.cpp -o sample.x \
+//   --target remote-mqpu --remote-mqpu-auto-launch 2
+// ./sample.x
 // ```
 #include <cudaq.h>
 

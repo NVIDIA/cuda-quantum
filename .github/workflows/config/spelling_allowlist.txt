@@ -1,11 +1,15 @@
+ABI
+AFQMC
 API
 APIs
 AST
 Aer
 AlmaLinux
+Anyon
 Asynchronous
 BFGS
 Bloch
+Braket
 CLA
 CLI
 CMake
@@ -19,11 +23,13 @@ Cartesian
 CentOS
 Conda
 CuPy
+DCO
 DGX
 DOI
 Deuteron
 Doxygen
 FPGAs
+Fock
 Fortran
 Fourier
 GHCR
@@ -39,6 +45,8 @@ Hadamards
 Hamiltonian
 Hamiltonians
 IQM
+InfiniBand
+Infleqtion
 IonQ
 JIT
 JSON
@@ -55,6 +63,7 @@ MPI
 MPICH
 MPS
 MSB
+Mandel
 Max-Cut
 MyST
 NGC
@@ -70,14 +79,19 @@ OpenMPI
 OpenQASM
 OpenSSL
 OpenSUSE
+Ou
 POSIX
 PSIRT
+Pasqal
 Pauli
 Paulis
+Photonic
+Photonics
 PyPI
 Pygments
 QAOA
 QCaaS
+QEC
 QIR
 QIS
 QPP
@@ -86,6 +100,7 @@ QPUs
 QPU’s
 QTX
 Qiskit
+QuEra
 QuTiP
 Quake
 Quantinuum
@@ -97,7 +112,10 @@ SLED
 SLES
 SLURM
 SVD
+Sqale
+Stim
 Superpositions
+Superstaq
 TBI
 TCP
 TableGen
@@ -117,6 +135,7 @@ amongst
 ancilla
 ansatz
 ansatzes
+archiver
 arity
 auxillary
 backend
@@ -124,6 +143,8 @@ backends
 bitcode
 bitstring
 bitstrings
+bmatrix
+bool
 boolean
 boson
 broadcasted
@@ -134,6 +155,8 @@ canonicalization
 canonicalize
 canonicalizer
 canonicalizes
+centroid
+centroids
 codebase
 comparator
 comparators
@@ -145,6 +168,7 @@ coprocessing
 coprocessor
 coprocessors
 copyable
+coreset
 cortex-cli
 coupler
 couplers
@@ -152,6 +176,7 @@ cuQuantum
 cuTensor
 cudaq
 dataflow
+ddots
 deallocate
 deallocated
 deallocates
@@ -159,8 +184,10 @@ deallocation
 deallocations
 decrement
 decrementing
+dendrogram
 deserialize
 destructor
+detuning
 dimensionality
 discoverable
 discretization
@@ -174,6 +201,7 @@ eigenvalue
 eigenvalues
 eigenvector
 eigenvectors
+endian
 enqueue
 enqueues
 enqueuing
@@ -189,6 +217,8 @@ expressivity
 extensibility
 extremal
 fermionic
+fermioniq
+fmt
 frontend
 frontends
 homogenous
@@ -201,6 +231,8 @@ inlined
 inlining
 instantiation
 instantiations
+integrator
+integrators
 interferometer
 interoperational
 intrinsics
@@ -223,6 +255,7 @@ namespaces
 natively
 normalization
 nullary
+observables
 optimizer
 optimizers
 parallelization
@@ -231,6 +264,7 @@ parallelizing
 parameterization
 performant
 photonic
+photonics
 precompute
 precomputed
 prepend
@@ -244,6 +278,8 @@ qubit
 qubits
 qudit
 qudits
+qumode
+qumodes
 reStructuredText
 reconfigurable
 runtime
@@ -284,6 +320,7 @@ templated
 toolchain
 toolchains
 toolset
+transmon
 trotterization
 unary
 uncomputation
@@ -295,7 +332,9 @@ unoptimized
 upvote
 variadic
 variational
+vdots
 verifier
 vertices
+waveforms
 wavefunction
 workflow

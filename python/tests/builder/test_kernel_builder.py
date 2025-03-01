@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -17,11 +17,6 @@ from typing import List
 
 import cudaq
 from cudaq import spin
-
-## [PYTHON_VERSION_FIX]
-skipIfPythonLessThan39 = pytest.mark.skipif(
-    sys.version_info < (3, 9),
-    reason="built-in collection types such as `list` not supported")
 
 
 def test_sdg_0_state():
@@ -1036,7 +1031,6 @@ def test_from_state1():
     cudaq.reset_target()
 
 
-@skipIfPythonLessThan39
 def test_pauli_word_input():
     h2_data = [
         3, 1, 1, 3, 0.0454063, 0, 2, 0, 0, 0, 0.17028, 0, 0, 0, 2, 0, -0.220041,
@@ -1222,14 +1216,16 @@ def test_call_kernel_expressions_List():
                       atol=1e-2)
 
     kernelAndArgs = cudaq.make_kernel(List[bool])
+    qubits = kernelAndArgs[0].qalloc(1)
     cudaq.sample(kernelAndArgs[0], [False, True, False])
     kernelAndArgs = cudaq.make_kernel(List[int])
+    qubits = kernelAndArgs[0].qalloc(1)
     cudaq.sample(kernelAndArgs[0], [1, 2, 3, 4])
     kernelAndArgs = cudaq.make_kernel(List[float])
+    qubits = kernelAndArgs[0].qalloc(1)
     cudaq.sample(kernelAndArgs[0], [5.5, 6.5, 7.5])
 
 
-@skipIfPythonLessThan39
 def test_call_kernel_expressions_list():
 
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
@@ -1267,11 +1263,20 @@ def test_call_kernel_expressions_list():
                       atol=1e-2)
 
     kernelAndArgs = cudaq.make_kernel(list[bool])
+    qubits = kernelAndArgs[0].qalloc(1)
     cudaq.sample(kernelAndArgs[0], [False, True, False])
     kernelAndArgs = cudaq.make_kernel(list[int])
+    qubits = kernelAndArgs[0].qalloc(1)
     cudaq.sample(kernelAndArgs[0], [1, 2, 3, 4])
     kernelAndArgs = cudaq.make_kernel(list[float])
+    qubits = kernelAndArgs[0].qalloc(1)
     cudaq.sample(kernelAndArgs[0], [5.5, 6.5, 7.5])
+
+
+def test_sample_with_no_qubits():
+    kernel = cudaq.make_kernel()
+    with pytest.raises(RuntimeError) as e:
+        cudaq.sample(kernel)
 
 
 def test_adequate_number_params():
@@ -1355,11 +1360,11 @@ q3 : ┤ h ├──────────────────────
     assert circuit == expected_str
 
 
-@skipIfPythonLessThan39
 def test_list_subscript():
     kernelAndArgs = cudaq.make_kernel(bool, list[bool], List[int], list[float])
     print(kernelAndArgs[0])
     assert len(kernelAndArgs) == 5 and len(kernelAndArgs[0].arguments) == 4
+    qubits = kernelAndArgs[0].qalloc(1)
     cudaq.sample(kernelAndArgs[0], False, [False], [3], [3.5])
 
     # Test can call with empty list
@@ -1420,7 +1425,6 @@ def test_builder_rotate_state():
     assert '10' in counts
 
 
-@skipIfPythonLessThan39
 def test_issue_9():
 
     kernel, features = cudaq.make_kernel(list)
@@ -1432,7 +1436,7 @@ def test_issue_9():
 
 
 def test_issue_670():
-    
+
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(1)
     kernel.ry(0.1, qubits)

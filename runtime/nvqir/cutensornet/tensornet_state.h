@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -12,6 +12,7 @@
 #include "cutensornet.h"
 #include "tensornet_utils.h"
 #include "timing_utils.h"
+#include <optional>
 #include <span>
 #include <unordered_map>
 
@@ -28,13 +29,31 @@ struct MPSTensor {
   std::vector<int64_t> extents;
 };
 
+struct UnitaryChannel {
+  std::vector<void *> tensorData;
+  std::vector<double> probabilities;
+};
+
 /// Track gate tensors that were appended to the tensor network.
 struct AppliedTensorOp {
   void *deviceData = nullptr;
+  std::optional<UnitaryChannel> unitaryChannel;
   std::vector<int32_t> targetQubitIds;
   std::vector<int32_t> controlQubitIds;
   bool isAdjoint;
   bool isUnitary;
+  AppliedTensorOp(void *dataPtr, const std::vector<int32_t> &targetQubits,
+                  const std::vector<int32_t> &controlQubits, bool adjoint,
+                  bool unitary)
+      : deviceData(dataPtr), targetQubitIds(targetQubits),
+        controlQubitIds(controlQubits), isAdjoint(adjoint), isUnitary(unitary) {
+  }
+
+  AppliedTensorOp(const std::vector<int32_t> &qubits,
+                  const std::vector<void *> &krausOps,
+                  const std::vector<double> &probabilities)
+      : targetQubitIds(qubits),
+        unitaryChannel(UnitaryChannel(krausOps, probabilities)) {}
 };
 
 /// @brief Wrapper of cutensornetState_t to provide convenient API's for CUDA-Q
@@ -52,29 +71,45 @@ protected:
   // Tensor ops that have been applied to the state.
   std::vector<AppliedTensorOp> m_tensorOps;
   ScratchDeviceMem &scratchPad;
+  // Random number generator measurement sampling.
+  // This is a reference to the backend random number generator, which can be
+  // reseeded by users.
+  std::mt19937 &m_randomEngine;
+  bool m_hasNoiseChannel = false;
 
 public:
+  // The number of hyper samples used in the tensor network contraction path
+  // finder
+  static std::int32_t numHyperSamples;
+
   /// @brief Constructor
   TensorNetState(std::size_t numQubits, ScratchDeviceMem &inScratchPad,
-                 cutensornetHandle_t handle);
+                 cutensornetHandle_t handle, std::mt19937 &randomEngine);
 
   /// @brief Constructor (specific basis state)
   TensorNetState(const std::vector<int> &basisState,
-                 ScratchDeviceMem &inScratchPad, cutensornetHandle_t handle);
+                 ScratchDeviceMem &inScratchPad, cutensornetHandle_t handle,
+                 std::mt19937 &randomEngine);
 
   std::unique_ptr<TensorNetState> clone() const;
+
+  /// Default number of trajectories for observe (with noise) in case no option
+  /// is provided.
+  static inline constexpr int g_numberTrajectoriesForObserve = 1000;
 
   /// Reconstruct/initialize a state from MPS tensors
   static std::unique_ptr<TensorNetState>
   createFromMpsTensors(const std::vector<MPSTensor> &mpsTensors,
                        ScratchDeviceMem &inScratchPad,
-                       cutensornetHandle_t handle);
+                       cutensornetHandle_t handle, std::mt19937 &randomEngine);
 
   /// Reconstruct/initialize a tensor network state from a list of tensor
   /// operators.
-  static std::unique_ptr<TensorNetState> createFromOpTensors(
-      std::size_t numQubits, const std::vector<AppliedTensorOp> &opTensors,
-      ScratchDeviceMem &inScratchPad, cutensornetHandle_t handle);
+  static std::unique_ptr<TensorNetState>
+  createFromOpTensors(std::size_t numQubits,
+                      const std::vector<AppliedTensorOp> &opTensors,
+                      ScratchDeviceMem &inScratchPad,
+                      cutensornetHandle_t handle, std::mt19937 &randomEngine);
 
   // Create a tensor network state from the input state vector.
   // Note: this is not the most efficient mode of initialization. However, this
@@ -83,7 +118,7 @@ public:
   static std::unique_ptr<TensorNetState>
   createFromStateVector(std::span<std::complex<double>> stateVec,
                         ScratchDeviceMem &inScratchPad,
-                        cutensornetHandle_t handle);
+                        cutensornetHandle_t handle, std::mt19937 &randomEngine);
 
   /// @brief Apply a unitary gate
   /// @param controlQubits Controlled qubit operands
@@ -93,6 +128,11 @@ public:
   void applyGate(const std::vector<int32_t> &controlQubits,
                  const std::vector<int32_t> &targetQubits, void *gateDeviceMem,
                  bool adjoint = false);
+
+  /// @brief Apply a unitary channel
+  void applyUnitaryChannel(const std::vector<int32_t> &qubits,
+                           const std::vector<void *> &krausOps,
+                           const std::vector<double> &probabilities);
 
   /// @brief Apply a projector matrix (non-unitary)
   /// @param proj_d Projector matrix (expected a 2x2 matrix in column major)
@@ -115,7 +155,8 @@ public:
 
   /// @brief Perform measurement sampling on the quantum state.
   std::unordered_map<std::string, size_t>
-  sample(const std::vector<int32_t> &measuredBitIds, int32_t shots);
+  sample(const std::vector<int32_t> &measuredBitIds, int32_t shots,
+         bool enableCacheWorkspace);
 
   /// @brief Contract the tensor network representation to retrieve the state
   /// vector.
@@ -138,14 +179,18 @@ public:
                                       double relCutoff,
                                       cutensornetTensorSVDAlgo_t algo);
 
-  /// @brief  Compute the expectation value w.r.t. a
+  /// @brief Compute the expectation value of an observable
+  /// @param symplecticRepr The symplectic representation of the observable
+  /// @return
+  std::vector<std::complex<double>>
+  computeExpVals(const std::vector<std::vector<bool>> &symplecticRepr,
+                 const std::optional<std::size_t> &numberTrajectories);
+
+  /// @brief Evaluate the expectation value of a given
   /// `cutensornetNetworkOperator_t`
-  ///
-  /// The `cutensornetNetworkOperator_t` can be constructed from
-  /// `cudaq::spin_op`, i.e., representing a sum of Pauli products with
-  /// different coefficients.
   std::complex<double>
-  computeExpVal(cutensornetNetworkOperator_t tensorNetworkOperator);
+  computeExpVal(cutensornetNetworkOperator_t tensorNetworkOperator,
+                const std::optional<std::size_t> &numberTrajectories);
 
   /// @brief Number of qubits that this state represents.
   std::size_t getNumQubits() const { return m_numQubits; }
@@ -158,6 +203,12 @@ public:
   static std::vector<std::complex<double>>
   reverseQubitOrder(std::span<std::complex<double>> stateVec);
 
+  /// @brief Apply all the cached ops to the state.
+  void applyCachedOps();
+
+  /// @brief Set the state to a zero state
+  void setZeroState();
+
   /// @brief Destructor
   ~TensorNetState();
 
@@ -169,5 +220,24 @@ private:
   std::pair<void *, std::size_t> contractStateVectorInternal(
       const std::vector<int32_t> &projectedModes,
       const std::vector<int64_t> &projectedModeValues = {});
+
+  /// Internal methods to perform MPS factorize.
+  // Note: `factorizeMPS` is an end-to-end API for factorization.
+  // This factorization can be split into `cutensornetStateFinalizeMPS` and
+  // `cutensornetStateCompute` to facilitate reuse.
+  std::vector<MPSTensor> setupMPSFactorize(int64_t maxExtent, double absCutoff,
+                                           double relCutoff,
+                                           cutensornetTensorSVDAlgo_t algo);
+  void computeMPSFactorize(std::vector<MPSTensor> &mpsTensors);
+
+  /// Internal methods for sampling
+  std::pair<cutensornetStateSampler_t, cutensornetWorkspaceDescriptor_t>
+  prepareSample(const std::vector<int32_t> &measuredBitIds);
+
+  std::unordered_map<std::string, size_t>
+  executeSample(cutensornetStateSampler_t &sampler,
+                cutensornetWorkspaceDescriptor_t &workspaceDesc,
+                const std::vector<int32_t> &measuredBitIds, int32_t shots,
+                bool enableCacheWorkspace);
 };
 } // namespace nvqir

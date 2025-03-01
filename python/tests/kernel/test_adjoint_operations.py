@@ -1,16 +1,10 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-
-import pytest
-import random
-import numpy as np
-import sys
-from typing import List
 
 import cudaq
 from cudaq import spin
@@ -102,7 +96,7 @@ def test_sdg_1_state_negate():
 
         # Place qubit in 1-state.
         x(qubit)
-        # Superpositoin.
+        # Superposition.
         h(qubit)
         # Rotate around Z by -pi/2, twice. Total rotation of -pi.
         sdg(qubit)

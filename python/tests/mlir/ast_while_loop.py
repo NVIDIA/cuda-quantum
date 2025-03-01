@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -8,9 +8,6 @@
 
 # RUN: PYTHONPATH=../../ pytest -rP  %s | FileCheck %s
 
-import os
-
-import pytest
 import numpy as np
 
 import cudaq
@@ -30,7 +27,7 @@ def test_while():
     # cost()
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__cost() attributes {"cudaq-entrypoint"} {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__cost() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK:           %[[VAL_0:.*]] = arith.constant 1 : i64
 # CHECK:           %[[VAL_1:.*]] = arith.constant 3.1415926535897931 : f64
 # CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i64
@@ -68,7 +65,7 @@ def test_complex_conditional():
     print(cost)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__cost() attributes {"cudaq-entrypoint"} {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__cost() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK-DAG:           %[[VAL_0:.*]] = arith.constant 1 : i64
 # CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 3.1415926535897931 : f64
 # CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 14 : i64

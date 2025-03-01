@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -11,12 +11,15 @@
 #include "common/MeasureCounts.h"
 #include "cudaq/constants.h"
 #include "cudaq/host_config.h"
+#include "cudaq/platform.h"
 #include "cudaq/qis/modifiers.h"
 #include "cudaq/qis/pauli_word.h"
 #include "cudaq/qis/qarray.h"
+#include "cudaq/qis/qkernel.h"
 #include "cudaq/qis/qreg.h"
 #include "cudaq/qis/qvector.h"
 #include "cudaq/spin_op.h"
+#include <algorithm>
 #include <cstring>
 #include <functional>
 
@@ -26,6 +29,10 @@
 // set for CUDA-Q kernels.
 
 namespace cudaq {
+
+namespace details {
+void warn(const std::string_view msg);
+}
 
 // Define the common single qubit operations.
 namespace qubit_op {
@@ -706,7 +713,7 @@ template <
         std::remove_reference_t<std::remove_cv_t<QubitRange>>, cudaq::qubit>>>
 #endif
 void exp_pauli(double theta, QubitRange &&qubits,
-               cudaq::pauli_word &pauliWord) {
+               const cudaq::pauli_word &pauliWord) {
   exp_pauli(theta, qubits, pauliWord.str().c_str());
 }
 
@@ -828,11 +835,13 @@ std::vector<measure_result> mz(qubit &q, Qs &&...qs) {
 }
 
 namespace support {
-// Helper to initialize a `vector<bool>` data structure.
+// Helpers to deal with the `vector<bool>` specialized template type.
 extern "C" {
 void __nvqpp_initializer_list_to_vector_bool(std::vector<bool> &, char *,
                                              std::size_t);
-void __nvqpp_vector_bool_to_initializer_list(void *, const std::vector<bool> &);
+void __nvqpp_vector_bool_to_initializer_list(void *, const std::vector<bool> &,
+                                             std::vector<char *> **);
+void __nvqpp_vector_bool_free_temporary_initlists(std::vector<char *> *);
 }
 } // namespace support
 
@@ -1097,6 +1106,41 @@ void findQubitNegations(const std::tuple<QuantumT...> &quantumTuple,
   });
 }
 
+// 1. Type traits for container detection
+template <typename T>
+struct is_fixed_size_container : std::false_type {};
+
+template <>
+struct is_fixed_size_container<cudaq::qarray_base> : std::true_type {};
+
+// 2. Compile-time qubit counting logic
+template <typename T>
+constexpr std::size_t count_qubits_compile_time() {
+  if constexpr (details::IsQubitType<T>::value) {
+    return 1;
+  } else if constexpr (details::IsQarrayType<T>::value) {
+    return std::tuple_size<std::decay_t<T>>::value;
+  } else {
+    return 0; // Dynamic containers handled at runtime
+  }
+}
+
+template <typename Tuple, std::size_t... Is>
+constexpr std::size_t sum_targets_impl(std::index_sequence<Is...>) {
+  return (count_qubits_compile_time<std::tuple_element_t<Is, Tuple>>() + ...);
+}
+
+// Type trait to check if T has a static constexpr integer 'num_parameters'
+template <typename T, typename = void>
+struct has_num_parameters : std::false_type {};
+
+template <typename T>
+struct has_num_parameters<T, std::void_t<decltype(T::num_parameters)>>
+    : std::bool_constant<std::is_integral_v<decltype(T::num_parameters)>> {};
+
+template <typename T>
+inline constexpr bool has_num_parameters_v = has_num_parameters<T>::value;
+
 /// @brief Generic quantum operation applicator function. Supports the
 /// following signatures for a generic operation name `OP`
 /// `OP(qubit(s))`
@@ -1183,9 +1227,158 @@ void genericApplicator(const std::string &gateName, Args &&...args) {
       tuple_slice_last<sizeof...(Args) - NUMP>(std::forward_as_tuple(args...)));
 }
 
+template <typename T, typename... RotationT, typename... QuantumT,
+          std::size_t NumPProvided = sizeof...(RotationT),
+          std::enable_if_t<T::num_parameters == NumPProvided, std::size_t> = 0>
+void applyNoiseImpl(const std::tuple<RotationT...> &paramTuple,
+                    const std::tuple<QuantumT...> &quantumTuple) {
+  auto &platform = get_platform();
+  const auto *noiseModel = platform.get_noise();
+
+  // per-spec, no noise model provided, emit warning, no application
+  if (!noiseModel)
+    return details::warn("apply_noise called without a noise model provided.");
+
+  std::vector<double> parameters;
+  cudaq::tuple_for_each(paramTuple,
+                        [&](auto &&element) { parameters.push_back(element); });
+  std::vector<QuditInfo> qubits;
+  // auto argTuple = std::forward_as_tuple(args...);
+  cudaq::tuple_for_each(quantumTuple, [&qubits](auto &&element) {
+    if constexpr (details::IsQubitType<decltype(element)>::value) {
+      qubits.push_back(qubitToQuditInfo(element));
+    } else {
+      for (auto &qq : element) {
+        qubits.push_back(qubitToQuditInfo(qq));
+      }
+    }
+  });
+
+  if (qubits.size() != T::num_targets) {
+    throw std::invalid_argument("Incorrect number of target qubits. Expected " +
+                                std::to_string(T::num_targets) + ", got " +
+                                std::to_string(qubits.size()));
+  }
+
+  auto channel = noiseModel->template get_channel<T>(parameters);
+  // per spec - caller provides noise model, but channel not registered,
+  // warning generated, no channel application.
+  if (channel.empty())
+    return;
+
+  getExecutionManager()->applyNoise(channel, qubits);
+}
 } // namespace cudaq::details
 
-#define __qop__ __attribute__((annotate(cudaq::generatorAnnotation)))
+namespace cudaq {
+
+// Apply noise with runtime vector of parameters
+template <typename... Args>
+constexpr bool any_float = std::disjunction_v<
+    std::is_floating_point<std::remove_cv_t<std::remove_reference_t<Args>>>...>;
+
+#if CUDAQ_USE_STD20
+#ifdef CUDAQ_REMOTE_SIM
+#define TARGET_OK_FOR_APPLY_NOISE false
+#else
+#define TARGET_OK_FOR_APPLY_NOISE true
+#endif
+#else
+#ifdef CUDAQ_REMOTE_SIM
+#define TARGET_OK_FOR_APPLY_NOISE                                              \
+  typename = std::enable_if_t<std::is_same_v<T, int>>
+#else
+#define TARGET_OK_FOR_APPLY_NOISE                                              \
+  typename = std::enable_if_t<std::is_same_v<T, T>>
+#endif
+#endif
+
+#if CUDAQ_USE_STD20
+template <typename T, typename... Q>
+  requires(std::derived_from<T, cudaq::kraus_channel> && !any_float<Q...> &&
+           TARGET_OK_FOR_APPLY_NOISE)
+#else
+template <typename T, typename... Q, TARGET_OK_FOR_APPLY_NOISE,
+          typename = std::enable_if_t<
+              std::is_base_of_v<cudaq::kraus_channel, T> &&
+              std::is_convertible_v<const volatile T *,
+                                    const volatile cudaq::kraus_channel *> &&
+              !any_float<Q...>>>
+#endif
+void apply_noise(const std::vector<double> &params, Q &&...args) {
+  auto &platform = get_platform();
+  const auto *noiseModel = platform.get_noise();
+
+  // per-spec, no noise model provided, emit warning, no application
+  if (!noiseModel)
+    return details::warn("apply_noise called without a noise model provided. "
+                         "skipping kraus channel application.");
+
+  std::vector<QuditInfo> qubits;
+  auto argTuple = std::forward_as_tuple(args...);
+  cudaq::tuple_for_each(argTuple, [&qubits](auto &&element) {
+    if constexpr (details::IsQubitType<decltype(element)>::value) {
+      qubits.push_back(qubitToQuditInfo(element));
+    } else {
+      for (auto &qq : element) {
+        qubits.push_back(qubitToQuditInfo(qq));
+      }
+    }
+  });
+
+  auto channel = noiseModel->template get_channel<T>(params);
+  // per spec - caller provides noise model, but channel not registered,
+  // warning generated, no channel application.
+  if (channel.empty())
+    return;
+  getExecutionManager()->applyNoise(channel, qubits);
+}
+
+class kraus_channel;
+
+template <unsigned len, typename A, typename... As>
+constexpr unsigned count_leading_floats() {
+  // Note: don't use remove_cvref to keep this C++17 clean.
+  if constexpr (std::is_floating_point_v<
+                    std::remove_cv_t<std::remove_reference_t<A>>>) {
+    return count_leading_floats<len + 1, As...>();
+  } else {
+    return len;
+  }
+}
+template <unsigned len>
+constexpr unsigned count_leading_floats() {
+  return len;
+}
+
+template <typename... Args>
+constexpr bool any_vector_of_float = std::disjunction_v<std::is_same<
+    std::vector<double>, std::remove_cv_t<std::remove_reference_t<Args>>>...>;
+
+#if CUDAQ_USE_STD20
+template <typename T, typename... Args>
+  requires(std::derived_from<T, cudaq::kraus_channel> &&
+           !any_vector_of_float<Args...> && TARGET_OK_FOR_APPLY_NOISE)
+#else
+template <typename T, typename... Args, TARGET_OK_FOR_APPLY_NOISE,
+          typename = std::enable_if_t<
+              std::is_base_of_v<cudaq::kraus_channel, T> &&
+              std::is_convertible_v<const volatile T *,
+                                    const volatile cudaq::kraus_channel *> &&
+              !any_vector_of_float<Args...>>>
+#endif
+void apply_noise(Args &&...args) {
+  constexpr auto ctor_arity = count_leading_floats<0, Args...>();
+  constexpr auto qubit_arity = sizeof...(args) - ctor_arity;
+
+  details::applyNoiseImpl<T>(
+      details::tuple_slice<ctor_arity>(std::forward_as_tuple(args...)),
+      details::tuple_slice_last<qubit_arity>(std::forward_as_tuple(args...)));
+}
+
+} // namespace cudaq
+
+#define __qop__ __attribute__((annotate("user_custom_quantum_operation")))
 
 /// Register a new custom unitary operation providing a unique name,
 /// the number of target qubits, the number of rotation parameters (can be 0),
@@ -1199,11 +1392,19 @@ void genericApplicator(const std::string &gateName, Args &&...args) {
       [[maybe_unused]] std::complex<double> i(0, 1.);                          \
       return __VA_ARGS__;                                                      \
     }                                                                          \
+    static inline const bool registered_ = []() {                              \
+      cudaq::customOpRegistry::getInstance()                                   \
+          .registerOperation<CONCAT(NAME, _operation)>(#NAME);                 \
+      return true;                                                             \
+    }();                                                                       \
   };                                                                           \
   CUDAQ_MOD_TEMPLATE                                                           \
   void NAME(Args &&...args) {                                                  \
-    cudaq::getExecutionManager()->registerOperation<CONCAT(NAME, _operation)>( \
-        #NAME);                                                                \
+    /* Perform registration at call site as well in case the static            \
+     * initialization was not executed in the same context, e.g., remote       \
+     * execution.*/                                                            \
+    cudaq::customOpRegistry::getInstance()                                     \
+        .registerOperation<CONCAT(NAME, _operation)>(#NAME);                   \
     details::genericApplicator<mod, NUMT, NUMP>(#NAME,                         \
                                                 std::forward<Args>(args)...);  \
   }                                                                            \

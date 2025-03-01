@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -14,10 +14,8 @@
 
 // Tests that we can take a small struct, a struct with a vector member, a
 // vector of small structs, and a large struct as an argument and return the
-// same. Currently, DefaultQPU::launchKernel does not handle return values at
-// all.
+// same.
 
-// FIXME
 #define NYI /*__qpu__*/
 
 void ok() { std::cout << "ok\n"; }
@@ -48,7 +46,6 @@ struct QernelS1 {
   }
 };
 
-// struct with vector member not yet supported
 struct S2 {
   int _1;
   std::vector<float> _2;
@@ -66,6 +63,7 @@ struct QernelS2a {
 };
 
 struct QernelS2 {
+  // kernel result type not supported (bridge)
   S2 operator()(S2 s) NYI {
     s._1++;
     s._2[0] = 0.0;
@@ -84,16 +82,14 @@ public:
   }
 };
 
-// ctor in return not supported
 struct QernelS3 {
-  std::vector<S1> operator()(std::vector<S1> s) NYI {
+  std::vector<S1> operator()(std::vector<S1> s) __qpu__ {
     s[0]._1++;
     s[0]._2 = 0.0;
     return s;
   }
 };
 
-// bug in bridge
 std::vector<S1> mock_ctor(const std::vector<S1> &v) { return v; }
 
 struct QernelS4 {

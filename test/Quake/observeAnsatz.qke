@@ -1,5 +1,5 @@
 // ========================================================================== //
-// Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                 //
+// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
 // All rights reserved.                                                       //
 //                                                                            //
 // This source code and the accompanying materials are made available under   //
@@ -11,12 +11,12 @@
   func.func @__nvqpp__mlirgen__ansatz(%arg0: f64) {
     %c0_i64 = arith.constant 0 : i64
     %c1_i64 = arith.constant 1 : i64
-    %0 = memref.alloca() : memref<f64>
-    memref.store %arg0, %0[] : memref<f64>
+    %0 = cc.alloca f64
+    cc.store %arg0, %0 : !cc.ptr<f64>
     %1 = quake.alloca  !quake.veq<2>
     %2 = quake.extract_ref %1[%c0_i64] : (!quake.veq<2>,i64) -> !quake.ref
     quake.x %2 : (!quake.ref) -> ()
-    %3 = memref.load %0[] : memref<f64>
+    %3 = cc.load %0 : !cc.ptr<f64>
     %4 = quake.extract_ref %1[%c1_i64] : (!quake.veq<2>,i64) -> !quake.ref
     quake.ry (%3) %4 : (f64, !quake.ref) -> ()
     %5 = quake.extract_ref %1[%c1_i64] : (!quake.veq<2>,i64) -> !quake.ref
@@ -25,7 +25,58 @@
     return
   }
 
-// CHECK: quake.h %
-// CHECK: quake.h %
-// CHECK: %{{.*}} = quake.mz %{{.*}} : (!quake.ref) -> !quake.measure
-// CHECK: %{{.*}} = quake.mz %{{.*}} : (!quake.ref) -> !quake.measure
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__ansatz(%arg0: f64) {
+// CHECK:           quake.h %
+// CHECK:           quake.h %
+// CHECK:           %{{.*}} = quake.mz %{{.*}} : (!quake.ref) -> !quake.measure
+// CHECK:           %{{.*}} = quake.mz %{{.*}} : (!quake.ref) -> !quake.measure
+
+  func.func @test_veq_no_extract_refs() {
+    %0 = quake.alloca !quake.veq<2>
+    return
+  }
+
+// CHECK-LABEL:   func.func @test_veq_no_extract_refs() {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           quake.h %[[VAL_2]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_1]] name "r00000" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_4:.*]] = quake.mz %[[VAL_2]] name "r00001" : (!quake.ref) -> !quake.measure
+// CHECK:           return
+// CHECK:         }
+
+  func.func @test_veq_no_extract_refs2() {
+    %0 = quake.alloca !quake.ref
+    %1 = quake.alloca !quake.ref
+    return
+  }
+
+// CHECK-LABEL:   func.func @test_veq_no_extract_refs2() {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
+// CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_0]] name "r00000" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_4:.*]] = quake.mz %[[VAL_1]] name "r00001" : (!quake.ref) -> !quake.measure
+// CHECK:           return
+// CHECK:         }
+
+  func.func @test_veq_no_extract_refs3() {
+    %0 = quake.alloca !quake.veq<1>
+    %1 = quake.alloca !quake.veq<1>
+    return
+  }
+
+// CHECK-LABEL:   func.func @test_veq_no_extract_refs3() {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<1>
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<1>
+// CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<1>) -> !quake.ref
+// CHECK:           quake.h %[[VAL_2]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_1]][0] : (!quake.veq<1>) -> !quake.ref
+// CHECK:           quake.h %[[VAL_3]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_4:.*]] = quake.mz %[[VAL_2]] name "r00000" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_5:.*]] = quake.mz %[[VAL_3]] name "r00001" : (!quake.ref) -> !quake.measure
+// CHECK:           return
+// CHECK:         }

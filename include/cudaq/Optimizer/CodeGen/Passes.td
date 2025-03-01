@@ -1,5 +1,5 @@
 /********************************************************** -*- tablegen -*- ***
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -23,9 +23,7 @@ def QuakeToCC : Pass<"quake-to-cc", "mlir::ModuleOp"> {
     execution manager.
   }];
 
-  let dependentDialects = [
-    "cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"
-  ];
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
 }
 
 def QuakeToCCPrep : Pass<"quake-to-cc-prep", "mlir::ModuleOp"> {
@@ -67,7 +65,10 @@ def ConvertToQIR : Pass<"quake-to-qir", "mlir::ModuleOp"> {
 def LowerToCG : Pass<"lower-to-cg", "mlir::ModuleOp"> {
   let summary = "Lower Quake to CG dialect.";
   let description = [{
-    For testing purposes only.
+    Lower the Quake IR to the codegen dialect. The codegen dialect is used to
+    fuse small DAGs of IR into larger macro operations just prior to the final
+    codegen. This allows conversions to take place on the macro operations and
+    avoid some of the limitations of an MLIR conversion pass.
   }];
   let dependentDialects = [ "cudaq::codegen::CodeGenDialect" ];
 }
@@ -89,21 +90,6 @@ def QIRToQIRProfilePrep : Pass<"qir-profile-prep", "mlir::ModuleOp"> {
   let constructor = "cudaq::opt::createQIRProfilePreparationPass()";
 }
 
-def VerifyQIRProfile : Pass<"verify-qir-profile", "mlir::LLVM::LLVMFuncOp"> {
-  let summary = "Verify that the output conforms to the specific profile";
-  let description = [{
-    This pass scans over functions in the LLVM-IR dialect to make sure they
-    conform to the QIR specific profile.
-  }];
-
-  let options = [
-    Option<"convertTo", "convert-to", "std::string", "\"qir-base\"",
-           "Which QIR profile to convert to (default is 'qir-base')">
-  ];
-
-  let constructor = "cudaq::opt::verifyQIRProfilePass(\"qir-base\")";
-}
-
 def QIRToQIRProfileFunc : Pass<"quake-to-qir-func",
                             "mlir::LLVM::LLVMFuncOp"> {
   let summary = "Analyze kernels and add attributes and record calls.";
@@ -118,7 +104,7 @@ def QIRToQIRProfileFunc : Pass<"quake-to-qir-func",
   }];
 
   let options = [
-    Option<"convertTo", "convert-to", "std::string", "\"qir-base\"",
+    Option<"convertTo", "convert-to", "std::string", /*default=*/"\"qir-base\"",
            "Which QIR profile to convert to (default is 'qir-base')">
   ];
 
@@ -127,8 +113,10 @@ def QIRToQIRProfileFunc : Pass<"quake-to-qir-func",
 
 def QIRToQIRProfile : Pass<"convert-to-qir-profile"> {
   let summary =
-    "After lowering a Quake kernel to QIR, lower further to the specific QIR Profile.";
+    "Lower full QIR further to the specific QIR Profile.";
   let description = [{
+    This is run after lowering a Quake kernel to full QIR.
+
     This is a subpass of the pipeline to convert to the specific QIR Profile.
 
     This pass lowers various QIR DAGs to the specific QIR Profile. See
@@ -178,5 +166,110 @@ def VerifyNVQIRCallOps :
 
   let constructor = "cudaq::opt::createVerifyNVQIRCallOpsPass({})";
 }
+
+def VerifyQIRProfile : Pass<"verify-qir-profile", "mlir::LLVM::LLVMFuncOp"> {
+  let summary = "Verify that the output conforms to the specific profile";
+  let description = [{
+    This pass scans over functions in the LLVM-IR dialect to make sure they
+    conform to the QIR specific profile.
+  }];
+
+  let options = [
+    Option<"convertTo", "convert-to", "std::string", "\"qir-base\"",
+           "Which QIR profile to convert to (default is 'qir-base')">
+  ];
+}
+
+def WireSetToProfileQIR : Pass<"wireset-to-profile-qir", "mlir::func::FuncOp"> {
+  let summary = "Convert quake using wire sets to a profile of QIR";
+  let description = [{
+    This pass takes quake in "value semantics" form and after it has been
+    converted to use wire sets (qubit management, mapping, etc.) and converts
+    the code to CC dialect with QIR calls, etc.
+  }];
+
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
+  let options = [
+    Option<"convertTo", "convert-to", "std::string", /*default=*/"\"qir-base\"",
+           "Select the profile to convert wire sets to.">
+  ];
+}
+
+def WireSetToProfileQIRPost :
+    Pass<"wireset-to-profile-qir-post", "mlir::ModuleOp"> {
+  let summary = "Post processing for lowering wire sets to a profile of QIR";
+  let description = [{
+    This pass should be run immediately after wireset-to-profile-qir.
+  }];
+
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
+}
+
+def WireSetToProfileQIRPrep :
+    Pass<"wireset-to-profile-qir-prep", "mlir::ModuleOp"> {
+  let summary = "Prepare for lowering wire sets to a profile of QIR";
+  let description = [{
+    This pass should be run immediately before wireset-to-profile-qir.
+  }];
+
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
+}
+
+def QuakeToQIRAPI : Pass<"quake-to-qir-api"> {
+  let summary = "Convert the Quake dialect to the QIR API.";
+  let description = [{
+    This pass converts Quake operations to the QIR API as expressed in terms
+    of function calls to QIR functions.
+
+    Which QIR functions are to be used is parameterized on the `api` option.
+
+    This pass can lower to either use the obsolete opaque structure types (per
+    the QIR spec) or to use LLVM's currently supported opaque pointers. In the
+    latter case, type information is fully understood from the function names
+    themselves.
+  }];
+
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::arith::ArithDialect",
+      "mlir::cf::ControlFlowDialect", "mlir::func::FuncDialect",
+      "mlir::LLVM::LLVMDialect"];
+
+  let options = [
+    Option<"api", "api", "std::string", /*default=*/"\"full\"",
+           "Select the QIR API to use.">,
+    Option<"opaquePtr", "opaque-pointer", "bool", /*default=*/"false",
+           "Use opaque pointers.">
+  ];
+}
+
+def QuakeToQIRAPIFinal : Pass<"quake-to-qir-api-final", "mlir::ModuleOp"> {
+  let summary = "Convert the Quake dialect to the QIR API finalization.";
+  let description = [{
+  }];
+
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::arith::ArithDialect",
+      "mlir::cf::ControlFlowDialect", "mlir::func::FuncDialect",
+      "mlir::LLVM::LLVMDialect"];
+
+  let options = [
+    Option<"api", "api", "std::string", /*default=*/"\"full\"",
+           "Select the QIR API to use.">
+  ];
+}
+
+def QuakeToQIRAPIPrep : Pass<"quake-to-qir-api-prep", "mlir::ModuleOp"> {
+  let summary = "Convert the Quake dialect to the QIR API preparation.";
+  let description = [{
+  }];
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::arith::ArithDialect",
+      "mlir::cf::ControlFlowDialect", "mlir::func::FuncDialect",
+      "mlir::LLVM::LLVMDialect", "cudaq::codegen::CodeGenDialect"];
+  let options = [
+    Option<"api", "api", "std::string", /*default=*/"\"full\"",
+           "Select the QIR API to use.">,
+    Option<"opaquePtr", "opaque-pointer", "bool", /*default=*/"false",
+           "Use opaque pointers.">
+  ];
+}
+
 
 #endif // CUDAQ_OPT_OPTIMIZER_CODEGEN_PASSES

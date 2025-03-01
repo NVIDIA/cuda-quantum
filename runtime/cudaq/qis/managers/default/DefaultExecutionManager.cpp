@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -19,7 +19,7 @@ namespace nvqir {
 CircuitSimulator *getCircuitSimulatorInternal();
 }
 
-namespace {
+namespace cudaq {
 
 /// The DefaultExecutionManager will implement allocation, deallocation, and
 /// quantum instruction application via calls to the current CircuitSimulator
@@ -207,9 +207,11 @@ protected:
                 simulator()->applyExpPauli(parameters[0], localC, localT, op);
               })
         .Default([&]() {
-          if (auto iter = registeredOperations.find(gateName);
-              iter != registeredOperations.end()) {
-            auto data = iter->second->unitary(parameters);
+          if (cudaq::customOpRegistry::getInstance().isOperationRegistered(
+                  gateName)) {
+            const auto &op =
+                cudaq::customOpRegistry::getInstance().getOperation(gateName);
+            auto data = op.unitary(parameters);
             simulator()->applyCustomOperation(data, localC, localT, gateName);
             return;
           }
@@ -217,6 +219,29 @@ protected:
                                    "application requested " +
                                    gateName + ".");
         })();
+  }
+
+  void applyNoise(const kraus_channel &channel,
+                  const std::vector<QuditInfo> &targets) override {
+    if (isInTracerMode())
+      return;
+
+    flushGateQueue();
+
+    if (channel.empty())
+      if (!simulator()->isValidNoiseChannel(channel.noise_type))
+        throw std::runtime_error("this is not a valid kraus channel name (" +
+                                 channel.get_type_name() +
+                                 "), no "
+                                 "kraus ops available to construct it.");
+
+    std::vector<std::size_t> localT;
+    std::transform(targets.begin(), targets.end(), std::back_inserter(localT),
+                   [](auto &&el) { return el.id; });
+    cudaq::info(
+        "[DefaultExecutionManager] Applying fine-grain kraus channel {}.",
+        channel.get_type_name());
+    simulator()->applyNoise(channel, localT);
   }
 
   int measureQudit(const cudaq::QuditInfo &q,
@@ -249,9 +274,9 @@ public:
   }
 };
 
-} // namespace
+} // namespace cudaq
 
-CUDAQ_REGISTER_EXECUTION_MANAGER(DefaultExecutionManager)
+CUDAQ_REGISTER_EXECUTION_MANAGER(DefaultExecutionManager, default)
 
 extern "C" {
 /// C interface to the (default) execution manager's methods.

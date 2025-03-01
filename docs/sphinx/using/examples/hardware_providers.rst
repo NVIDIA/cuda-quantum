@@ -1,9 +1,40 @@
 Using Quantum Hardware Providers
 -----------------------------------
 
-CUDA-Q contains support for using a set of hardware providers (IonQ, IQM, OQC, ORCA Computing and Quantinuum). 
-For more information about executing quantum kernels on different hardware backends, please take a look
-at :doc:`hardware <../backends/hardware>`.
+CUDA-Q contains support for using a set of hardware providers (Amazon Braket, 
+Infleqtion, IonQ, IQM, OQC, ORCA Computing, Quantinuum, and QuEra Computing). 
+For more information about executing quantum kernels on different hardware 
+backends, please take a look at :doc:`hardware <../backends/hardware>`.
+
+Amazon Braket
+==================================
+
+The following code illustrates how to run kernels on Amazon Braket's backends.
+
+.. tab:: Python
+
+   .. literalinclude:: ../../targets/python/braket.py
+      :language: python
+
+.. tab:: C++
+
+   .. literalinclude:: ../../targets/cpp/braket.cpp
+      :language: cpp
+
+Infleqtion
+==================================
+
+The following code illustrates how to run kernels on Infleqtion's backends.
+
+.. tab:: Python
+
+   .. literalinclude:: ../../targets/python/infleqtion.py
+      :language: python
+
+.. tab:: C++
+
+   .. literalinclude:: ../../targets/cpp/infleqtion.cpp
+      :language: cpp
 
 IonQ
 ==================================
@@ -12,12 +43,12 @@ The following code illustrates how to run kernels on IonQ's backends.
 
 .. tab:: Python
 
-   .. literalinclude:: ../../examples/python/providers/ionq.py
+   .. literalinclude:: ../../targets/python/ionq.py
       :language: python
 
 .. tab:: C++
 
-   .. literalinclude:: ../../examples/cpp/providers/ionq.cpp
+   .. literalinclude:: ../../targets/cpp/ionq.cpp
       :language: cpp
 
 IQM
@@ -27,12 +58,12 @@ The following code illustrates how to run kernels on IQM's backends.
 
 .. tab:: Python
 
-   .. literalinclude:: ../../examples/python/providers/iqm.py
+   .. literalinclude:: ../../targets/python/iqm.py
       :language: python
 
 .. tab:: C++
 
-   .. literalinclude:: ../../examples/cpp/providers/iqm.cpp
+   .. literalinclude:: ../../targets/cpp/iqm.cpp
       :language: cpp
 
 OQC
@@ -42,7 +73,7 @@ The following code illustrates how to run kernels on OQC's backends.
 
 .. tab:: Python
 
-   .. literalinclude:: ../../examples/python/providers/oqc.py
+   .. literalinclude:: ../../targets/python/oqc.py
       :language: python
 
 ORCA Computing
@@ -76,14 +107,25 @@ This experiment is performed on ORCA's backends by the code below.
 
 .. tab:: Python
 
-   .. literalinclude:: ../../examples/python/providers/orca.py
+   .. literalinclude:: ../../targets/python/orca.py
       :language: python
 
 .. tab:: C++
 
-   .. literalinclude:: ../../examples/cpp/providers/orca.cpp
+   .. literalinclude:: ../../targets/cpp/orca.cpp
       :language: cpp
-      
+
+Pasqal
+==================================
+
+The following code illustrates how to run kernels on Pasqal's backends.
+
+.. tab:: Python
+
+   .. literalinclude:: ../../targets/python/pasqal.py
+      :language: python
+
+
 Quantinuum
 ==================================
 
@@ -91,11 +133,21 @@ The following code illustrates how to run kernels on Quantinuum's backends.
 
 .. tab:: Python
 
-   .. literalinclude:: ../../examples/python/providers/quantinuum.py
+   .. literalinclude:: ../../targets/python/quantinuum.py
       :language: python
 
 .. tab:: C++
 
-   .. literalinclude:: ../../examples/cpp/providers/quantinuum.cpp
+   .. literalinclude:: ../../targets/cpp/quantinuum.cpp
       :language: cpp
+
+QuEra Computing
+==================================
+
+The following code illustrates how to run kernels on QuEra's backends.
+
+.. tab:: Python
+
+   .. literalinclude:: ../../targets/python/quera_basic.py
+      :language: python
 

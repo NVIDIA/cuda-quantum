@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -266,6 +266,7 @@ public:
         auto thunk = build.create<func::FuncOp>(
             loc, getThunkLambdaName(counter), funTy, emptyDict);
         thunk.setPrivate();
+        thunk->setAttr(cudaq::kernelAttrName, build.getUnitAttr());
         auto *entry = thunk.addEntryBlock();
         build.setInsertionPointToEnd(entry);
         SmallVector<Value> callableArgs;
@@ -295,6 +296,7 @@ public:
         auto func = build.create<func::FuncOp>(
             loc, getLiftedLambdaName(counter), funTy, emptyDict);
         func.setPrivate();
+        func->setAttr(cudaq::kernelAttrName, build.getUnitAttr());
         auto *entry = func.addEntryBlock();
         // Add entry block, block arguments for free variables to a renaming
         // map.

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -17,6 +17,8 @@ struct ansatz2 {
     x<cudaq::ctrl>(q[1], q[0]);
   }
 };
+
+#ifndef CUDAQ_BACKEND_STIM
 
 CUDAQ_TEST(D2VariationalTester, checkSimple) {
 
@@ -101,3 +103,5 @@ CUDAQ_TEST(D2VariationalTester, checkBroadcast) {
         cudaq::make_argset(params, std::vector(params.size() + 1, 2)));
   });
 }
+
+#endif

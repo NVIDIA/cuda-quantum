@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -10,8 +10,8 @@
 #include "common/Logger.h"
 
 namespace cudaq {
-details::future
-Executor::execute(std::vector<KernelExecution> &codesToExecute) {
+details::future Executor::execute(std::vector<KernelExecution> &codesToExecute,
+                                  bool isObserve) {
 
   serverHelper->setShots(shots);
 
@@ -53,6 +53,8 @@ Executor::execute(std::vector<KernelExecution> &codesToExecute) {
 
   config.insert({"shots", std::to_string(shots)});
   std::string name = serverHelper->name();
-  return details::future(ids, name, config);
+  return details::future(ids, name, config, isObserve);
 }
 } // namespace cudaq
+
+LLVM_INSTANTIATE_REGISTRY(cudaq::Executor::RegistryType)

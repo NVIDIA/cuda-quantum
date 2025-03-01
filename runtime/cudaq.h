@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -12,9 +12,19 @@
 #include "cudaq/host_config.h"
 #include "cudaq/qis/qubit_qis.h"
 #include <string>
+#include <tuple>
 #include <type_traits>
 
 namespace cudaq {
+namespace details {
+// Test std::tuple layout.
+constexpr bool isTupleRecursivelyDefined() {
+  std::tuple<double, int, char> t;
+  return static_cast<void *>(&std::get<double>(t)) != static_cast<void *>(&t);
+}
+[[maybe_unused]] static bool TupleIsReverse = isTupleRecursivelyDefined();
+} // namespace details
+
 namespace __internal__ {
 std::string demangle_kernel(const char *);
 bool isLibraryMode(const std::string &);
@@ -22,7 +32,22 @@ extern bool globalFalse;
 } // namespace __internal__
 
 /// @brief Given a string kernel name, return the corresponding Quake code
+/// This will throw if the kernel name is unknown to the quake code registry.
 std::string get_quake_by_name(const std::string &kernelName);
+
+/// @brief Given a string kernel name, return the corresponding Quake code.
+/// This overload allows one to specify the known mangled arguments string
+/// in order to disambiguate overloaded kernel names.
+/// This will throw if the kernel name is unknown to the quake code registry.
+std::string get_quake_by_name(const std::string &kernelName,
+                              std::optional<std::string> knownMangledArgs);
+
+/// @brief Given a string kernel name, return the corresponding Quake code.
+// If `throwException` is set, it will throw if the kernel name is unknown to
+// the quake code registry. Otherwise, return an empty string in that case.
+std::string
+get_quake_by_name(const std::string &kernelName, bool throwException,
+                  std::optional<std::string> knownMangledArgs = std::nullopt);
 
 // Simple test to see if the QuantumKernel template
 // type is a `cudaq::builder` with `operator()(Args...)`
@@ -180,6 +205,12 @@ inline std::string get_quake(std::string &&functionName) {
   return get_quake_by_name(get_kernel_function_name(std::move(functionName)));
 }
 
+inline std::string get_quake(std::string &&functionName,
+                             const std::string &knownMangledArgs) {
+  return get_quake_by_name(get_kernel_function_name(std::move(functionName)),
+                           knownMangledArgs);
+}
+
 typedef std::size_t (*KernelArgsCreator)(void **, void **);
 KernelArgsCreator getArgsCreator(const std::string &kernelName);
 
@@ -275,6 +306,10 @@ void broadcast(std::vector<double> &data, int rootRank);
 
 /// @brief Broadcast a string from a process (rootRank) to all other processes.
 void broadcast(std::string &data, int rootRank);
+
+/// @brief Duplicate the communicator. Returns the new communicator (as a void*)
+/// and its size.
+std::pair<void *, std::size_t> comm_dup();
 
 /// @brief Finalize MPI. This function
 /// is a no-op if there CUDA-Q has not been built

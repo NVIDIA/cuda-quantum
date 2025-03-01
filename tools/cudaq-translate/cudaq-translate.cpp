@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -11,6 +11,7 @@
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "cudaq/Optimizer/InitAllDialects.h"
 #include "cudaq/Support/Version.h"
 #include "cudaq/Todo.h"
 #include "llvm/IR/Module.h"
@@ -26,9 +27,6 @@
 #include "mlir/ExecutionEngine/OptUtils.h"
 #include "mlir/IR/AsmState.h"
 #include "mlir/IR/Verifier.h"
-#include "mlir/InitAllDialects.h"
-#include "mlir/InitAllPasses.h"
-#include "mlir/InitAllTranslations.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Export.h"
@@ -63,7 +61,7 @@ static llvm::cl::opt<std::string> convertTo(
     "convert-to",
     llvm::cl::desc(
         "Specify the translation output to be created. [Default: \"qir\"]"),
-    llvm::cl::value_desc("target dialect [\"qir\", \"qir-adaptive\", "
+    llvm::cl::value_desc("target assembly format [\"qir\", \"qir-adaptive\", "
                          "\"qir-base\", \"openqasm2\", \"iqm\"]"),
     llvm::cl::init("qir"));
 
@@ -95,14 +93,13 @@ int main(int argc, char **argv) {
   registerMLIRContextCLOptions();
   registerPassManagerCLOptions();
   registerTranslationCLOptions();
-  registerAllPasses();
 
   llvm::cl::ParseCommandLineOptions(argc, argv,
                                     "quake mlir to llvm ir compiler\n");
 
   DialectRegistry registry;
   registry.insert<cudaq::cc::CCDialect, quake::QuakeDialect>();
-  registerAllDialects(registry);
+  cudaq::registerAllDialects(registry);
   MLIRContext context(registry);
   context.loadAllAvailableDialects();
 

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -47,6 +47,7 @@
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
 #include "mlir/Transforms/Passes.h"
+#include <cxxabi.h>
 #include <filesystem>
 #include <fstream>
 #include <streambuf>
@@ -403,7 +404,6 @@ public:
                   platform.set_exec_ctx(&io_context);
               });
           io_context.result = counts;
-          platform.set_exec_ctx(&io_context);
         } else {
           // If no conditionals, nothing special to do for library mode
           platform.set_exec_ctx(&io_context);
@@ -413,11 +413,13 @@ public:
           clearRegOpsAndDestroyJIT(llvmJit);
           llvmJit = cudaq::invokeWrappedKernel(ir, std::string(kernelName),
                                                kernelArgs, argsSize);
+          platform.reset_exec_ctx();
         }
       } else {
         platform.set_exec_ctx(&io_context);
         llvmJit = cudaq::invokeWrappedKernel(ir, std::string(kernelName),
                                              kernelArgs, argsSize);
+        platform.reset_exec_ctx();
       }
     } else {
       platform.set_exec_ctx(&io_context);
@@ -439,13 +441,12 @@ public:
                              platform.set_exec_ctx(&io_context);
                          });
         io_context.result = counts;
-        platform.set_exec_ctx(&io_context);
       } else {
         invokeMlirKernel(io_context, m_mlirContext, ir, requestInfo.passes,
                          std::string(kernelName));
+        platform.reset_exec_ctx();
       }
     }
-    platform.reset_exec_ctx();
     // Clear the registered operations before the `llvmJit` goes out of scope
     // so that destruction of registered operations doesn't cause segfaults
     // during shutdown.
@@ -798,6 +799,19 @@ protected:
       json resultJson;
       resultJson["status"] = "Failed to process incoming request";
       resultJson["errorMessage"] = e.what();
+      return resultJson;
+    } catch (...) {
+      json resultJson;
+      resultJson["status"] = "Failed to process incoming request";
+      std::string exType = __cxxabiv1::__cxa_current_exception_type()->name();
+      auto demangledPtr =
+          __cxxabiv1::__cxa_demangle(exType.c_str(), nullptr, nullptr, nullptr);
+      if (demangledPtr) {
+        std::string demangledName(demangledPtr);
+        resultJson["errorMessage"] = "Unknown error of type " + demangledName;
+      } else {
+        resultJson["errorMessage"] = "Unknown error";
+      }
       return resultJson;
     }
   }

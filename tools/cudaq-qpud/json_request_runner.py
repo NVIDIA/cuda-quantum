@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -163,11 +163,11 @@ if __name__ == "__main__":
             'errorMessage': error_message
         }
     finally:
-        if cudaq.mpi.is_initialized():
-            cudaq.mpi.finalize()
-
         # Only rank 0 prints the result
         if not (cudaq.mpi.is_initialized()) or (cudaq.mpi.rank() == 0):
             with open(jsonFile, 'w') as fp:
                 json.dump(result, fp)
                 fp.flush()
+
+        if cudaq.mpi.is_initialized():
+            cudaq.mpi.finalize()

@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -21,10 +21,13 @@ struct RemoteCapabilities {
   /// True if the remote can perform an entire VQE operation without and
   /// back-and-forth client/server communications.
   bool vqe = false;
+  /// True if execution is performed on a remote simulator - i.e. IR generation
+  /// (including synthesis) and execution are performed in different processes.
+  bool isRemoteSimulator = false;
   /// Constructor that broadcasts \p initValue to all fields.
   RemoteCapabilities(bool initValue)
-      : stateOverlap(initValue), serializedCodeExec(initValue), vqe(initValue) {
-  }
+      : stateOverlap(initValue), serializedCodeExec(initValue), vqe(initValue),
+        isRemoteSimulator(initValue) {}
 };
 
 } // namespace cudaq

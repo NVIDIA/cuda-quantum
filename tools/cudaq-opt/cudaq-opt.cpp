@@ -1,15 +1,18 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "cudaq/Optimizer/CodeGen/CodeGenDialect.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Common/InlinerInterface.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "cudaq/Optimizer/InitAllDialects.h"
+#include "cudaq/Optimizer/InitAllPasses.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Support/Plugin.h"
 #include "cudaq/Support/Version.h"
@@ -20,8 +23,6 @@
 #include "llvm/Support/ToolOutputFile.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/MLIRContext.h"
-#include "mlir/InitAllDialects.h"
-#include "mlir/InitAllPasses.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Support/FileUtilities.h"
@@ -55,13 +56,7 @@ int main(int argc, char **argv) {
   // nvidia/cuda-quantum
   llvm::setBugReportMsg(cudaq::bugReportMsg);
 
-  mlir::registerAllPasses();
-  cudaq::opt::registerOptCodeGenPasses();
-  cudaq::opt::registerOptTransformsPasses();
-  cudaq::opt::registerAggressiveEarlyInlining();
-  cudaq::opt::registerUnrollingPipeline();
-  cudaq::opt::registerToExecutionManagerCCPipeline();
-  cudaq::opt::registerTargetPipelines();
+  cudaq::registerAllPasses();
 
   // See if we have been asked to load a pass plugin,
   // if so load it.
@@ -80,8 +75,8 @@ int main(int argc, char **argv) {
   }
 
   mlir::DialectRegistry registry;
-  registry.insert<quake::QuakeDialect, cudaq::cc::CCDialect>();
-  registerAllDialects(registry);
+  cudaq::registerAllDialects(registry);
+  registry.insert<cudaq::codegen::CodeGenDialect>();
   registerInlinerExtension(registry);
   return mlir::asMainReturnCode(
       mlir::MlirOptMain(argc, argv, "nvq++ optimizer\n", registry));

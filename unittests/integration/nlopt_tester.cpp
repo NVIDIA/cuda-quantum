@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -12,6 +12,9 @@
 
 #include <cudaq/algorithms/gradients/central_difference.h>
 #include <cudaq/optimizers.h>
+
+// Rotational gates not supported in Stim.
+#ifndef CUDAQ_BACKEND_STIM
 
 // Skip these Nlopt optimizer tests for slow backends to reduce test time.
 // Note: CUDA-Q API level tests (e.g., `cudaq::observe`) should cover all
@@ -96,5 +99,7 @@ CUDAQ_TEST(NloptTester, checkOtherSignatures) {
     });
   });
 }
+
+#endif
 
 #endif

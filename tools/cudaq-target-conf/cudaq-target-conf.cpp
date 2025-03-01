@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -24,6 +24,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include <fstream>
 #include <sstream>
+#include <unistd.h>
 
 using namespace llvm;
 #define DEBUG_TYPE "target-config"

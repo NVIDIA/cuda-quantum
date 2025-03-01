@@ -1,0 +1,31 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-translate --convert-to=qir %s | FileCheck %s
+
+func.func private @g(%0 : !cc.stdvec<i32>)
+func.func @f() {
+  %0 = cc.const_array [0, 1, 0] : !cc.array<i32 x 3>
+  %1 = arith.constant 1 : i32
+  %2 = cc.extract_value %0[%1] : (!cc.array<i32 x 3>, i32) -> i32
+  %3 = cc.alloca !cc.array<i32 x 3>
+  cc.store %0, %3 : !cc.ptr<!cc.array<i32 x 3>>
+  %4 = arith.constant 3 : i64
+  %5 = cc.cast %3 : (!cc.ptr<!cc.array<i32 x 3>>) -> !cc.ptr<i32>
+  %6 = cc.stdvec_init %5, %4 : (!cc.ptr<i32>, i64) -> !cc.stdvec<i32>
+  call @g(%6) : (!cc.stdvec<i32>) -> ()
+  return
+}
+
+// CHECK-LABEL: @f.rodata_0 = private constant [3 x i32] [i32 0, i32 1, i32 0]
+
+// CHECK-LABEL: define void @f() local_unnamed_addr {
+// CHECK:         tail call void @g({ i32*, i64 } { i32* getelementptr inbounds ([3 x i32], [3 x i32]* @f.rodata_0, i32 0, i32 0), i64 3 })
+// CHECK:         ret void
+// CHECK:       }
+

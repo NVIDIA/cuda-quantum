@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -69,6 +69,12 @@ void bindSpinOperator(py::module &mod) {
   py::class_<cudaq::spin_op>(mod, "SpinOperator")
       /// @brief Bind the constructors.
       .def(py::init<>(), "Empty constructor, creates the identity term.")
+      .def_static("empty_op",
+                  []() {
+                    return cudaq::spin_op(
+                        std::unordered_map<cudaq::spin_op::spin_op_term,
+                                           std::complex<double>>{});
+                  })
       .def(py::init([](std::string fileName) {
              cudaq::binary_spin_op_reader reader;
              return reader.read(fileName);

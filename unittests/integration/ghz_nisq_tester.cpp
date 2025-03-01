@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -94,23 +94,19 @@ CUDAQ_TEST(GHZSampleTester, checkBroadcast) {
   }
 }
 
-// Enable once https://github.com/NVIDIA/cuda-quantum/issues/895 is fixed.
-#ifndef CUDAQ_BACKEND_TENSORNET
-// Tensornet backend doesn't support seed.
 CUDAQ_TEST(GHZSampleTester, checkBroadcastRepeatability) {
   std::vector<int> sizeVals(8);
   std::iota(sizeVals.begin(), sizeVals.end(), 3);
 
-  cudaq::set_random_seed(13);
+  cudaq::set_random_seed(130);
   auto allCounts1 = cudaq::sample(2000, ghz{}, cudaq::make_argset(sizeVals));
 
-  cudaq::set_random_seed(13);
+  cudaq::set_random_seed(130);
   auto allCounts2 = cudaq::sample(2000, ghz{}, cudaq::make_argset(sizeVals));
 
-  cudaq::set_random_seed(14);
+  cudaq::set_random_seed(140);
   auto allCounts3 = cudaq::sample(2000, ghz{}, cudaq::make_argset(sizeVals));
 
   EXPECT_EQ(allCounts1, allCounts2); // these should match
   EXPECT_NE(allCounts1, allCounts3); // these should NOT match
 }
-#endif

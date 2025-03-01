@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -7,7 +7,12 @@
 # ============================================================================ #
 
 add_library(cudaq-chemistry SHARED molecule.cpp)
-target_link_libraries(cudaq-chemistry PRIVATE cudaq-spin)
+
+set (CHEMISTRY_DEPENDENCIES "")
+list(APPEND CHEMISTRY_DEPENDENCIES cudaq-spin)
+add_openmp_configurations(cudaq-chemistry CHEMISTRY_DEPENDENCIES)
+
+target_link_libraries(cudaq-chemistry PRIVATE ${CHEMISTRY_DEPENDENCIES})
 target_include_directories(cudaq-chemistry SYSTEM
    PRIVATE 
      ${CMAKE_SOURCE_DIR}/tpls/xtl/include 

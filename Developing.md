@@ -28,7 +28,7 @@ line printed when you build the code and run an example using the command
 
 ```bash
 bash "$CUDAQ_REPO_ROOT/scripts/build_cudaq.sh" && \
-nvq++ "$CUDAQ_REPO_ROOT/docs/sphinx/examples/cpp/algorithms/grover.cpp" -o grover.out && \
+nvq++ "$CUDAQ_REPO_ROOT/docs/sphinx/applications/cpp/grover.cpp" -o grover.out && \
 ./grover.out
 ```
 
@@ -36,18 +36,18 @@ When working on compiler internals, it can be useful to look at intermediate
 representations for CUDA-Q kernels.
 
 To see how the kernels in [this
-example](./docs/sphinx/examples/cpp/algorithms/grover.cpp) are translated, you
+example](./docs/sphinx/applications/cpp/grover.cpp) are translated, you
 can run
 
 ```bash
-cudaq-quake $CUDAQ_REPO_ROOT/docs/sphinx/examples/cpp/algorithms/grover.cpp
+cudaq-quake $CUDAQ_REPO_ROOT/docs/sphinx/applications/cpp/grover.cpp
 ```
 
 to see its representation in the Quake MLIR dialect. To see its translation to
 [QIR](https://www.qir-alliance.org/), you can run
 
 ```bash
-cudaq-quake $CUDAQ_REPO_ROOT/docs/sphinx/examples/cpp/algorithms/grover.cpp |
+cudaq-quake $CUDAQ_REPO_ROOT/docs/sphinx/applications/cpp/grover.cpp |
 cudaq-opt --canonicalize --add-dealloc |
 quake-translate --convert-to=qir
 ```

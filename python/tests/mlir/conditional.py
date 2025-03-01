@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -11,7 +11,6 @@
 import os
 
 import pytest
-import numpy as np
 
 import cudaq
 
@@ -48,7 +47,7 @@ def test_kernel_conditional():
     print(kernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"
 # CHECK-DAG:           %[[VAL_0:.*]] = arith.constant 2 : i64
 # CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 1 : i64
 # CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 0 : i64
@@ -60,7 +59,7 @@ def test_kernel_conditional():
 # CHECK:           %[[VAL_9:.*]] = quake.discriminate %[[VAL_8]] : (!quake.measure) -> i1
 # CHECK:           cc.if(%[[VAL_9]]) {
 # CHECK:             quake.x %[[VAL_7]] : (!quake.ref) -> ()
-# CHECK:             %[[VAL_10:.*]] = quake.mz %[[VAL_7]] name "" : (!quake.ref) -> !quake.measure
+# CHECK:             %[[VAL_10:.*]] = quake.mz %[[VAL_7]] : (!quake.ref) -> !quake.measure
 # CHECK:           }
 # CHECK:           %[[VAL_11:.*]] = cc.loop while ((%[[VAL_12:.*]] = %[[VAL_2]]) -> (i64)) {
 # CHECK:             %[[VAL_13:.*]] = arith.cmpi slt, %[[VAL_12]], %[[VAL_0]] : i64
@@ -77,7 +76,7 @@ def test_kernel_conditional():
 # CHECK:           } {invariant}
 # CHECK:           cc.if(%[[VAL_9]]) {
 # CHECK:             quake.x %[[VAL_7]] : (!quake.ref) -> ()
-# CHECK:             %[[VAL_18:.*]] = quake.mz %[[VAL_7]] name "" : (!quake.ref) -> !quake.measure
+# CHECK:             %[[VAL_18:.*]] = quake.mz %[[VAL_7]] : (!quake.ref) -> !quake.measure
 # CHECK:           }
 # CHECK:           return
 # CHECK:         }
@@ -114,10 +113,11 @@ def test_kernel_conditional_with_sample():
     print(kernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
+# CHECK-LABEL: test_kernel_conditional_with_sample
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 # CHECK:           quake.x %[[VAL_0]] : (!quake.ref) -> ()
-# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "" : (!quake.ref) -> !quake.measure
+# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> !quake.measure
 # CHECK:           %[[VAL_2:.*]] = quake.discriminate %[[VAL_1]] : (!quake.measure) -> i1
 # CHECK:           cc.if(%[[VAL_2]]) {
 # CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
@@ -156,7 +156,8 @@ def test_cif_extract_ref_bug():
     print(kernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
+# CHECK-LABEL: test_cif_extract_ref_bug
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
 # CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           quake.x %[[VAL_1]] : (!quake.ref) -> ()

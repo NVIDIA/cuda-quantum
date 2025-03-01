@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -65,12 +65,9 @@ public:
   }
 };
 
-// FIXME: unhandled ctor call
-#define NYI /*__qpu__*/
-
 class Qernel7 {
 public:
-  std::vector<bool> operator()(std::vector<bool> v) NYI { return v; }
+  std::vector<bool> operator()(std::vector<bool> v) __qpu__ { return v; }
 };
 
 int main() {

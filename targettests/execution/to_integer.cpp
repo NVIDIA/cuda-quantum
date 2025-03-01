@@ -1,15 +1,14 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
-// RUN: if [ $(echo %cpp_std | cut -c4- ) -ge 20 ]; then \
-// RUN:   nvq++ --enable-mlir %s -o %t && %t; \
-// RUN: fi
+// RUN: nvq++ %cpp_std --enable-mlir %s -o %t && %t
+// TODO-FIX-KERNEL-EXEC
+// RUN: nvq++ %cpp_std -fkernel-exec-kind=2 --enable-mlir %s -o %t && %t
 
 #include <cudaq.h>
 

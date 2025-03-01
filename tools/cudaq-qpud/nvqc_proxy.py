@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -145,7 +145,7 @@ class Server(http.server.SimpleHTTPRequestHandler):
                 filename = f'{asset_dir}/{asset_id}'
                 with open(filename, 'rb') as f:
                     request_data = f.read()
-            except Exception as e:
+            except Exception:
                 # If something failed, simply forward the original message
                 pass
         return request_data

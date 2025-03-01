@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -7,11 +7,6 @@
 # ============================================================================ #
 
 # RUN: PYTHONPATH=../../ pytest -rP  %s | FileCheck %s
-
-import os
-
-import pytest
-import numpy as np
 
 import cudaq
 
@@ -33,13 +28,13 @@ def test_control_kernel():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__reflect(
-# CHECK-SAME:                                         %[[VAL_0:.*]]: !quake.veq<?>) {
+# CHECK-SAME:                      %[[VAL_0:.*]]: !quake.veq<?>)
 # CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 2 : i64
 # CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 0 : i64
 # CHECK-DAG:           %[[VAL_3:.*]] = arith.constant 1 : i64
 # CHECK:           %[[VAL_4:.*]] = quake.veq_size %[[VAL_0]] : (!quake.veq<?>) -> i64
 # CHECK:           %[[VAL_5:.*]] = arith.subi %[[VAL_4]], %[[VAL_1]] : i64
-# CHECK:           %[[VAL_6:.*]] = quake.subveq %[[VAL_0]], %[[VAL_2]], %[[VAL_5]] : (!quake.veq<?>, i64, i64) -> !quake.veq<?>
+# CHECK:           %[[VAL_6:.*]] = quake.subveq %[[VAL_0]], 0, %[[VAL_5]] : (!quake.veq<?>, i64) -> !quake.veq<?>
 # CHECK:           %[[VAL_7:.*]] = arith.subi %[[VAL_4]], %[[VAL_3]] : i64
 # CHECK:           %[[VAL_8:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_7]]] : (!quake.veq<?>, i64) -> !quake.ref
 # CHECK:           %[[VAL_9:.*]] = cc.create_lambda {

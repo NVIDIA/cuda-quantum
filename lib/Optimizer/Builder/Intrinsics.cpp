@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -49,8 +49,31 @@ inline bool operator<(const IntrinsicCode &icode, const IntrinsicCode &jcode) {
 /// well as prototypes for LLVM intrinsics and C library calls that are used by
 /// the compiler. The table should be kept in sorted order.
 static constexpr IntrinsicCode intrinsicTable[] = {
+    // These following pauli_word helper functions are only available on the
+    // host-side. They ought not be called in kernel code.
+    {cudaq::runtime::getPauliWordData,
+     {},
+     "func.func private @_ZNK5cudaq10pauli_word11_nvqpp_dataEv(%pw : "
+     "!cc.ptr<i8>) -> !cc.ptr<i8>"},
+    {cudaq::runtime::getPauliWordSize,
+     {cudaq::runtime::getPauliWordData, cudaq::runtime::bindingGetStringData,
+      cudaq::runtime::bindingGetStringSize},
+     "func.func private @_ZNK5cudaq10pauli_word11_nvqpp_sizeEv(%pw : "
+     "!cc.ptr<i8>) -> i64"},
+
     // Initialize a (preallocated) buffer (the first parameter) with i64 values
     // on the semi-open range `[0..n)` where `n` is the second parameter.
+    {cudaq::runtime::getLinkableKernelKey,
+     {},
+     R"#(
+  func.func private @__cudaq_getLinkableKernelKey(!cc.ptr<i8>) -> i64
+)#"},
+    {cudaq::runtime::registerLinkableKernel,
+     {},
+     R"#(
+  func.func private @__cudaq_registerLinkableKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>) -> ()
+)#"},
+
     {cudaq::setCudaqRangeVector,
      {},
      R"#(
@@ -221,9 +244,14 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   })#"},
 
     {"__nvqpp_createDynamicResult",
+     /* arguments:
+          arg0: original buffer ptr
+          arg1: original buffer size
+          arg2: ptr to span of the return data: {ptr, bytes}
+          arg3: offset to result slot in buffer */
      {cudaq::llvmMemCopyIntrinsic, "malloc"},
      R"#(
-  func.func private @__nvqpp_createDynamicResult(%arg0: !cc.ptr<i8>, %arg1: i64, %arg2: !cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>) -> !cc.struct<{!cc.ptr<i8>, i64}> {
+  func.func private @__nvqpp_createDynamicResult(%arg0: !cc.ptr<i8>, %arg1: i64, %arg2: !cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>, %arg3: i64) -> !cc.struct<{!cc.ptr<i8>, i64}> {
     %0 = cc.compute_ptr %arg2[1] : (!cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>) -> !cc.ptr<i64>
     %1 = cc.load %0 : !cc.ptr<i64>
     %2 = arith.addi %arg1, %1 : i64
@@ -236,10 +264,24 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     %6 = cc.compute_ptr %10[%arg1] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
     call @llvm.memcpy.p0i8.p0i8.i64(%6, %5, %1, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
     %7 = cc.undef !cc.struct<{!cc.ptr<i8>, i64}>
-    %8 = cc.insert_value %3, %7[0] : (!cc.struct<{!cc.ptr<i8>, i64}>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
-    %9 = cc.insert_value %2, %8[1] : (!cc.struct<{!cc.ptr<i8>, i64}>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
+    %8 = cc.insert_value %7[0], %3 : (!cc.struct<{!cc.ptr<i8>, i64}>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+    %9 = cc.insert_value %8[1], %2 : (!cc.struct<{!cc.ptr<i8>, i64}>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
+    %11 = cc.compute_ptr %10[%arg3] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+    %12 = cc.cast %11 : (!cc.ptr<i8>) -> !cc.ptr<!cc.ptr<i8>>
+    cc.store %6, %12 : !cc.ptr<!cc.ptr<i8>>
     return %9 : !cc.struct<{!cc.ptr<i8>, i64}>
   })#"},
+
+    {cudaq::createCudaqStateFromDataFP32, {}, R"#(
+  func.func private @__nvqpp_cudaq_state_createFromData_fp32(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!cc.state>
+  )#"},
+    {cudaq::createCudaqStateFromDataFP64, {}, R"#(
+  func.func private @__nvqpp_cudaq_state_createFromData_fp64(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!cc.state>
+  )#"},
+
+    {cudaq::deleteCudaqState, {}, R"#(
+  func.func private @__nvqpp_cudaq_state_delete(%p : !cc.ptr<!cc.state>) -> ()
+  )#"},
 
     {cudaq::getNumQubitsFromCudaqState, {}, R"#(
   func.func private @__nvqpp_cudaq_state_numberOfQubits(%p : !cc.ptr<!cc.state>) -> i64
@@ -262,6 +304,15 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__nvqpp_getStateVectorLength_fp64(%p : i64, %o : i64) -> i64
   )#"},
 
+    // Quasi-portable entry points for use with non-C++ front ends (Python).
+    {cudaq::runtime::bindingGetStringData,
+     {},
+     "func.func private @__nvqpp_getStringData(%p: !cc.ptr<i8>) -> "
+     "!cc.ptr<i8>"},
+    {cudaq::runtime::bindingGetStringSize,
+     {},
+     "func.func private @__nvqpp_getStringSize(%p: !cc.ptr<i8>) -> i64"},
+
     // __nvqpp_initializer_list_to_vector_bool
     {cudaq::stdvecBoolCtorFromInitList,
      {},
@@ -277,35 +328,205 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     return %0 : !cc.ptr<i8>
   })#"},
 
+    // __nvqpp_vector_bool_free_temporary_lists
+    {cudaq::stdvecBoolFreeTemporaryLists,
+     {},
+     R"#(
+  func.func private @__nvqpp_vector_bool_free_temporary_initlists(!cc.ptr<i8>) -> ())#"},
+
     // __nvqpp_vector_bool_to_initializer_list
     {cudaq::stdvecBoolUnpackToInitList,
      {},
      R"#(
-  func.func private @__nvqpp_vector_bool_to_initializer_list(!cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>) -> ())#"},
+  func.func private @__nvqpp_vector_bool_to_initializer_list(!cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x 32>}>>, !cc.ptr<!cc.ptr<i8>>) -> ())#"},
 
     {"__nvqpp_zeroDynamicResult", {}, R"#(
   func.func private @__nvqpp_zeroDynamicResult() -> !cc.struct<{!cc.ptr<i8>, i64}> {
     %c0_i64 = arith.constant 0 : i64
     %0 = cc.cast %c0_i64 : (i64) -> !cc.ptr<i8>
     %1 = cc.undef !cc.struct<{!cc.ptr<i8>, i64}>
-    %2 = cc.insert_value %0, %1[0] : (!cc.struct<{!cc.ptr<i8>, i64}>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
-    %3 = cc.insert_value %c0_i64, %2[1] : (!cc.struct<{!cc.ptr<i8>, i64}>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
+    %2 = cc.insert_value %1[0], %0 : (!cc.struct<{!cc.ptr<i8>, i64}>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+    %3 = cc.insert_value %2[1], %c0_i64 : (!cc.struct<{!cc.ptr<i8>, i64}>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
     return %3 : !cc.struct<{!cc.ptr<i8>, i64}>
   })#"},
 
-    {cudaq::runtime::launchKernelFuncName, // altLaunchKernel
+    // altLaunchKernel(kernelName, thunk, commBuffer, buffSize, resultOffset)
+    {cudaq::runtime::launchKernelFuncName,
      {},
      R"#(
-  func.func private @altLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> ())#"},
+  func.func private @altLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>)#"},
+
+    {cudaq::runtime::CudaqRegisterArgsCreator,
+     {},
+     R"#(
+  func.func private @cudaqRegisterArgsCreator(!cc.ptr<i8>, !cc.ptr<i8>) -> ()
+)#"},
+    {cudaq::runtime::CudaqRegisterKernelName,
+     {cudaq::runtime::CudaqRegisterArgsCreator,
+      cudaq::runtime::CudaqRegisterLambdaName,
+      cudaq::runtime::registerLinkableKernel,
+      cudaq::runtime::getLinkableKernelKey},
+     "func.func private @cudaqRegisterKernelName(!cc.ptr<i8>) -> ()"},
+
+    {cudaq::runtime::CudaqRegisterLambdaName,
+     {},
+     R"#(
+  llvm.func @cudaqRegisterLambdaName(!llvm.ptr<i8>, !llvm.ptr<i8>) attributes {sym_visibility = "private"}
+)#"},
 
     {"free", {}, "func.func private @free(!cc.ptr<i8>) -> ()"},
+
+    // hybridLaunchKernel(kernelName, thunk, commBuffer, buffSize,
+    //                    resultOffset, vectorArgPtrs)
+    {cudaq::runtime::launchKernelHybridFuncName,
+     {},
+     R"#(
+  func.func private @hybridLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>)#"},
 
     {cudaq::llvmMemCopyIntrinsic, // llvm.memcpy.p0i8.p0i8.i64
      {},
      R"#(
   func.func private @llvm.memcpy.p0i8.p0i8.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ())#"},
 
-    {"malloc", {}, "func.func private @malloc(i64) -> !cc.ptr<i8>"}};
+    {"malloc", {}, "func.func private @malloc(i64) -> !cc.ptr<i8>"},
+
+    // Declarations of QIR functions used by codegen that are common to all
+    // subtargets (full, base profle, or adaptive profile).
+    // These include qubit allocation and management, control variants of the
+    // gates, some one offs, and control form invocation helper routines.
+    {"qir_common",
+     {},
+     R"#(
+  func.func private @__quantum__rt__qubit_allocate() -> !qir_qubit
+  func.func private @__quantum__rt__qubit_allocate_array(i64) -> !qir_array
+  func.func private @__quantum__rt__qubit_allocate_array_with_state_fp64(i64, !cc.ptr<f64>) -> !qir_array
+  func.func private @__quantum__rt__qubit_allocate_array_with_state_fp32(i64, !cc.ptr<f32>) -> !qir_array
+  func.func private @__quantum__rt__qubit_allocate_array_with_state_complex64(i64, !cc.ptr<complex<f64>>) -> !qir_array
+  func.func private @__quantum__rt__qubit_allocate_array_with_state_complex32(i64, !cc.ptr<complex<f32>>) -> !qir_array
+  func.func private @__quantum__rt__qubit_allocate_array_with_state_ptr(!cc.ptr<none>) -> !qir_array
+  func.func private @__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(i64, !cc.ptr<!cc.state>) -> !qir_array
+
+  func.func private @__quantum__rt__qubit_release_array(!qir_array)
+  func.func private @__quantum__rt__qubit_release(!qir_qubit)
+
+  func.func private @__quantum__rt__array_create_1d(i32, i64) -> !qir_array
+  func.func private @__quantum__rt__array_concatenate(!qir_array, !qir_array) -> !qir_array
+  func.func private @__quantum__rt__array_get_size_1d(!qir_array) -> i64
+  func.func private @__quantum__rt__array_slice(!qir_array, i32, i64, i64, i64) -> !qir_array
+  func.func private @__quantum__rt__array_get_element_ptr_1d(!qir_array, i64) -> !cc.ptr<!qir_qubit>
+
+  func.func private @__quantum__qis__h__ctl(!qir_array, !qir_qubit)
+  func.func private @__quantum__qis__x__ctl(!qir_array, !qir_qubit)
+  func.func private @__quantum__qis__y__ctl(!qir_array, !qir_qubit)
+  func.func private @__quantum__qis__z__ctl(!qir_array, !qir_qubit)
+  func.func private @__quantum__qis__s__ctl(!qir_array, !qir_qubit)
+  func.func private @__quantum__qis__t__ctl(!qir_array, !qir_qubit)
+  func.func private @__quantum__qis__sdg__ctl(!qir_array, !qir_qubit)
+  func.func private @__quantum__qis__tdg__ctl(!qir_array, !qir_qubit)
+  func.func private @__quantum__qis__u3__ctl(f64, f64, f64, !qir_array, !qir_qubit)
+  func.func private @__quantum__qis__swap__ctl(!qir_array, !qir_qubit, !qir_qubit)
+  func.func private @__quantum__qis__rx__ctl(f64, !qir_array, !qir_qubit)
+  func.func private @__quantum__qis__ry__ctl(f64, !qir_array, !qir_qubit)
+  func.func private @__quantum__qis__rz__ctl(f64, !qir_array, !qir_qubit)
+  func.func private @__quantum__qis__r1__ctl(f64, !qir_array, !qir_qubit)
+
+  func.func private @__quantum__qis__exp_pauli__ctl(f64, !qir_array, !qir_array, !qir_charptr)
+  func.func private @__quantum__qis__custom_unitary(!cc.ptr<complex<f64>>, !qir_array, !qir_array, !qir_charptr)
+  func.func private @__quantum__qis__custom_unitary__adj(!cc.ptr<complex<f64>>, !qir_array, !qir_array, !qir_charptr)
+
+  llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i64, !qir_llvmptr, ...) attributes {sym_visibility = "private"}
+  llvm.func @__quantum__qis__apply_kraus_channel_generalized(i64, i64, i64, i64, i64, ...) attributes {sym_visibility = "private"}
+)#"},
+
+    // Declarations for base and adaptive profile QIR functions used by codegen.
+    // These include gates, adjoint gates, one offs, and dealing with
+    // measurement results.
+    {"qir_common_profile",
+     {"qir_common"},
+     R"#(
+  func.func private @__quantum__qis__h__body(!qir_qubit)
+  func.func private @__quantum__qis__x__body(!qir_qubit)
+  func.func private @__quantum__qis__y__body(!qir_qubit)
+  func.func private @__quantum__qis__z__body(!qir_qubit)
+  func.func private @__quantum__qis__s__body(!qir_qubit)
+  func.func private @__quantum__qis__t__body(!qir_qubit)
+  func.func private @__quantum__qis__s__adj(!qir_qubit)
+  func.func private @__quantum__qis__t__adj(!qir_qubit)
+  func.func private @__quantum__qis__u3__body(f64, f64, f64, !qir_qubit)
+  func.func private @__quantum__qis__reset__body(!qir_qubit)
+  func.func private @__quantum__qis__mz__body(!qir_qubit, !qir_result) attributes {passthrough = ["irreversible"]} 
+  func.func private @__quantum__qis__swap__body(!qir_qubit, !qir_qubit)
+  func.func private @__quantum__qis__rx__body(f64, !qir_qubit)
+  func.func private @__quantum__qis__phased_rx__body(f64, f64, !qir_qubit)
+  func.func private @__quantum__qis__ry__body(f64, !qir_qubit)
+  func.func private @__quantum__qis__rz__body(f64, !qir_qubit)
+  func.func private @__quantum__qis__r1__body(f64, !qir_qubit)
+  func.func private @__quantum__qis__exp_pauli__body(f64, !qir_array, !qir_charptr)
+
+  func.func private @__quantum__rt__result_record_output(!qir_result, !qir_charptr)
+  func.func private @__quantum__qis__cnot__body(!qir_qubit, !qir_qubit)
+  func.func private @__quantum__qis__cz__body(!qir_qubit, !qir_qubit)
+  func.func private @__quantum__qis__read_result__body(!qir_result) -> i1
+    )#"},
+
+    // Declarations of all full QIR functions used by codegen.
+    // These include gates (sans the "__body" suffix) and measurements.
+    {"qir_full",
+     {"qir_common"},
+     R"#(
+  func.func private @__quantum__qis__h(!qir_qubit)
+  func.func private @__quantum__qis__x(!qir_qubit)
+  func.func private @__quantum__qis__y(!qir_qubit)
+  func.func private @__quantum__qis__z(!qir_qubit)
+  func.func private @__quantum__qis__s(!qir_qubit)
+  func.func private @__quantum__qis__t(!qir_qubit)
+  func.func private @__quantum__qis__s__adj(!qir_qubit)
+  func.func private @__quantum__qis__t__adj(!qir_qubit)
+  func.func private @__quantum__qis__u3(f64, f64, f64, !qir_qubit)
+  func.func private @__quantum__qis__reset(!qir_qubit)
+  func.func private @__quantum__qis__mz(!qir_qubit) -> !qir_result
+  func.func private @__quantum__qis__mz__to__register(!qir_qubit, !qir_charptr) -> !qir_result
+  func.func private @__quantum__qis__swap(!qir_qubit, !qir_qubit)
+  func.func private @__quantum__qis__rx(f64, !qir_qubit)
+  func.func private @__quantum__qis__phased_rx(f64, f64, !qir_qubit)
+  func.func private @__quantum__qis__ry(f64, !qir_qubit)
+  func.func private @__quantum__qis__rz(f64, !qir_qubit)
+  func.func private @__quantum__qis__r1(f64, !qir_qubit)
+  func.func private @__quantum__qis__exp_pauli(f64, !qir_array, !qir_charptr)
+    )#"},
+
+    // Choose one of the two QIR typing conventions. Opaque pointers are the
+    // current LLVM standard. Opaque struct is from an obsolete LLVM version,
+    // but used by the QIR specification.
+
+    // Use opaque pointers (LLVM's `ptr` type). The type of the referent is
+    // always implicit and unambiguous from its usage. At the moment, this is
+    // using i8* instead of ptr, since the latter requires some other changes.
+    {"qir_opaque_pointer",
+     {},
+     R"#(
+  !qir_array = !cc.ptr<none>
+  !qir_qubit = !cc.ptr<none>
+  !qir_result = !cc.ptr<none>
+  !qir_charptr = !cc.ptr<none>
+  !qir_llvmptr = !llvm.ptr<i8>
+    )#"},
+    // Use the obsolete LLVM opaque struct type.
+    {"qir_opaque_struct",
+     {},
+     R"#(
+  !qir_array = !cc.ptr<!llvm.struct<"Array", opaque>>
+  !qir_qubit = !cc.ptr<!llvm.struct<"Qubit", opaque>>
+  !qir_result = !cc.ptr<!llvm.struct<"Result", opaque>>
+  !qir_charptr = !cc.ptr<i8>
+  !qir_llvmptr = !llvm.ptr<i8>
+    )#"},
+
+    // streamlinedLaunchKernel(kernelName, vectorArgPtrs)
+    {cudaq::runtime::launchKernelStreamlinedFuncName,
+     {},
+     R"#(
+  func.func private @streamlinedLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>) -> ())#"}};
 
 static constexpr std::size_t intrinsicTableSize =
     sizeof(intrinsicTable) / sizeof(IntrinsicCode);
@@ -387,19 +608,56 @@ LogicalResult IRBuilder::loadIntrinsic(ModuleOp module, StringRef intrinName) {
       ParserConfig{module.getContext(), /*verifyAfterParse=*/false});
 }
 
+StringRef IRBuilder::getIntrinsicText(StringRef intrinName) {
+  auto iter = std::lower_bound(&intrinsicTable[0],
+                               &intrinsicTable[intrinsicTableSize], intrinName);
+  if (iter == &intrinsicTable[intrinsicTableSize])
+    return "";
+  return iter->code;
+}
+
+LogicalResult IRBuilder::loadIntrinsicWithAliases(ModuleOp module,
+                                                  StringRef intrinName,
+                                                  StringRef prefix) {
+  // Check if this intrinsic was already loaded.
+  if (module.lookupSymbol(intrinName))
+    return success();
+  assert(intrinsicTableIsSorted() && "intrinsic table must be sorted");
+  auto iter = std::lower_bound(&intrinsicTable[0],
+                               &intrinsicTable[intrinsicTableSize], intrinName);
+  if (iter == &intrinsicTable[intrinsicTableSize]) {
+    module.emitError(std::string("intrinsic") + intrinName + " not in table.");
+    return failure();
+  }
+  assert(iter->name == intrinName);
+  // First load the prereqs.
+  for (std::size_t i = 0; i < DefaultPrerequisiteSize; ++i) {
+    if (iter->preReqs[i].empty())
+      break;
+    if (failed(loadIntrinsicWithAliases(module, iter->preReqs[i], prefix)))
+      return failure();
+  }
+  // Now load the requested code.
+  std::string code = prefix.str() + std::string(iter->code);
+  return parseSourceString(
+      code, module.getBody(),
+      ParserConfig{module.getContext(), /*verifyAfterParse=*/false});
+}
+
 template <typename T>
-DenseElementsAttr createDenseElementsAttr(const std::vector<T> &values,
+DenseElementsAttr createDenseElementsAttr(const SmallVectorImpl<T> &values,
                                           Type eleTy) {
   auto newValues = ArrayRef<T>(values.data(), values.size());
   auto tensorTy = RankedTensorType::get(values.size(), eleTy);
   return DenseElementsAttr::get(tensorTy, newValues);
 }
 
-DenseElementsAttr createDenseElementsAttr(const std::vector<bool> &values,
-                                          Type eleTy) {
-  std::vector<std::byte> converted;
-  for (auto b : values) {
-    converted.push_back(std::byte(b));
+static DenseElementsAttr
+createDenseElementsAttr(const SmallVectorImpl<bool> &values, Type eleTy) {
+  SmallVector<std::byte> converted;
+  for (auto it = values.begin(); it != values.end(); it++) {
+    bool value = *it;
+    converted.push_back(std::byte(value));
   }
   auto newValues = ArrayRef<bool>(reinterpret_cast<bool *>(converted.data()),
                                   converted.size());
@@ -407,83 +665,102 @@ DenseElementsAttr createDenseElementsAttr(const std::vector<bool> &values,
   return DenseElementsAttr::get(tensorTy, newValues);
 }
 
-template <typename A>
-cc::GlobalOp buildVectorOfConstantElements(Location loc, ModuleOp module,
-                                           StringRef name,
-                                           const std::vector<A> &values,
-                                           IRBuilder &builder, Type eleTy) {
+static cc::GlobalOp buildVectorOfConstantElements(Location loc, ModuleOp module,
+                                                  StringRef name,
+                                                  DenseElementsAttr &arrayAttr,
+                                                  IRBuilder &builder,
+                                                  Type eleTy) {
   if (auto glob = module.lookupSymbol<cc::GlobalOp>(name))
     return glob;
   auto *ctx = builder.getContext();
   OpBuilder::InsertionGuard guard(builder);
   builder.setInsertionPointToEnd(module.getBody());
-  auto globalTy = cc::ArrayType::get(ctx, eleTy, values.size());
+  auto globalTy = cc::ArrayType::get(ctx, eleTy, arrayAttr.size());
+  auto global =
+      builder.create<cudaq::cc::GlobalOp>(loc, globalTy, name, arrayAttr,
+                                          /*constant=*/true,
+                                          /*external=*/false);
+  global.setPrivate();
+  return global;
+}
 
+template <typename A>
+cc::GlobalOp buildVectorOfConstantElements(Location loc, ModuleOp module,
+                                           StringRef name,
+                                           const SmallVectorImpl<A> &values,
+                                           IRBuilder &builder, Type eleTy) {
   auto arrayAttr = createDenseElementsAttr(values, eleTy);
-  return builder.create<cudaq::cc::GlobalOp>(loc, globalTy, name, arrayAttr,
-                                             /*constant=*/true,
-                                             /*external=*/false);
+  return buildVectorOfConstantElements(loc, module, name, arrayAttr, builder,
+                                       eleTy);
+}
+
+cc::GlobalOp IRBuilder::genVectorOfConstants(Location loc, ModuleOp module,
+                                             StringRef name,
+                                             DenseElementsAttr values,
+                                             Type elementType) {
+  return buildVectorOfConstantElements(loc, module, name, values, *this,
+                                       elementType);
 }
 
 cc::GlobalOp IRBuilder::genVectorOfConstants(
     Location loc, ModuleOp module, StringRef name,
-    const std::vector<std::complex<double>> &values) {
+    const SmallVectorImpl<std::complex<double>> &values) {
   return buildVectorOfConstantElements(loc, module, name, values, *this,
                                        ComplexType::get(getF64Type()));
 }
 
 cc::GlobalOp IRBuilder::genVectorOfConstants(
     Location loc, ModuleOp module, StringRef name,
-    const std::vector<std::complex<float>> &values) {
+    const SmallVectorImpl<std::complex<float>> &values) {
   return buildVectorOfConstantElements(loc, module, name, values, *this,
                                        ComplexType::get(getF32Type()));
 }
 
 cc::GlobalOp
 IRBuilder::genVectorOfConstants(Location loc, ModuleOp module, StringRef name,
-                                const std::vector<double> &values) {
+                                const SmallVectorImpl<double> &values) {
   return buildVectorOfConstantElements(loc, module, name, values, *this,
                                        getF64Type());
 }
 
-cc::GlobalOp IRBuilder::genVectorOfConstants(Location loc, ModuleOp module,
-                                             StringRef name,
-                                             const std::vector<float> &values) {
+cc::GlobalOp
+IRBuilder::genVectorOfConstants(Location loc, ModuleOp module, StringRef name,
+                                const SmallVectorImpl<float> &values) {
   return buildVectorOfConstantElements(loc, module, name, values, *this,
                                        getF32Type());
 }
 
 cc::GlobalOp
 IRBuilder::genVectorOfConstants(Location loc, ModuleOp module, StringRef name,
-                                const std::vector<std::int64_t> &values) {
+                                const SmallVectorImpl<std::int64_t> &values) {
   return buildVectorOfConstantElements(loc, module, name, values, *this,
                                        getI64Type());
 }
 
 cc::GlobalOp
 IRBuilder::genVectorOfConstants(Location loc, ModuleOp module, StringRef name,
-                                const std::vector<std::int32_t> &values) {
+                                const SmallVectorImpl<std::int32_t> &values) {
   return buildVectorOfConstantElements(loc, module, name, values, *this,
                                        getI32Type());
 }
 
 cc::GlobalOp
 IRBuilder::genVectorOfConstants(Location loc, ModuleOp module, StringRef name,
-                                const std::vector<std::int16_t> &values) {
+                                const SmallVectorImpl<std::int16_t> &values) {
   return buildVectorOfConstantElements(loc, module, name, values, *this,
                                        getI16Type());
 }
 
 cc::GlobalOp
 IRBuilder::genVectorOfConstants(Location loc, ModuleOp module, StringRef name,
-                                const std::vector<std::int8_t> &values) {
+                                const SmallVectorImpl<std::int8_t> &values) {
   return buildVectorOfConstantElements(loc, module, name, values, *this,
                                        getI8Type());
 }
 
-cc::GlobalOp IRBuilder::genVectorOfConstants(Location loc, ModuleOp module,
-                                             StringRef name,
-                                             const std::vector<bool> &values) {
+cc::GlobalOp
+IRBuilder::genVectorOfConstants(Location loc, ModuleOp module, StringRef name,
+                                const SmallVectorImpl<bool> &values) {
   return buildVectorOfConstantElements(loc, module, name, values, *this,
                                        getI1Type());
 }

@@ -1,5 +1,5 @@
 /********************************************************** -*- tablegen -*- ***
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -10,6 +10,7 @@
 #define CUDAQ_OPTIMIZER_DIALECT_CC_OPS
 
 include "mlir/Interfaces/InferTypeOpInterface.td"
+include "mlir/IR/SymbolInterfaces.td"
 include "cudaq/Optimizer/Dialect/Common/Traits.td"
 include "cudaq/Optimizer/Dialect/CC/CCDialect.td"
 include "cudaq/Optimizer/Dialect/CC/CCInterfaces.td"
@@ -23,7 +24,8 @@ def AnyCallableType : Type<CPred<"$_self.isa<cudaq::cc::CallableType, "
                           "mlir::FunctionType>()">, "any callable type">;
 
 def AnyAggregateType : Type<CPred<"$_self.isa<cudaq::cc::StructType, "
-                            "cudaq::cc::ArrayType>()">, "any aggregate type">;
+                            "cudaq::cc::ArrayType, mlir::ComplexType>()">,
+                            "any aggregate type">;
 
 //===----------------------------------------------------------------------===//
 // Base operation definition.
@@ -911,19 +913,35 @@ def cc_GlobalOp : CCOp<"global", [IsolatedFromAbove, Symbol]> {
 
   let arguments = (ins
     TypeAttr:$global_type,
-    StrAttr:$sym_name,
+    SymbolNameAttr:$sym_name,
     OptionalAttr<AnyAttr>:$value,
+    OptionalAttr<StrAttr>:$sym_visibility,
     UnitAttr:$constant,
     UnitAttr:$external
   );
 
   let hasCustomAssemblyFormat = 1;
 
+  let builders = [
+    OpBuilder<(ins
+      "mlir::Type":$type, "mlir::StringRef":$name,
+      "mlir::Attribute":$value, "bool":$constant, "bool":$external), [{
+        return build($_builder, $_state, type, name, value,
+                     mlir::StringAttr{}, constant, external);
+      }]
+    >];
+
   let extraClassDeclaration = [{
     cudaq::cc::PointerType getType() {
       auto globalTy = getGlobalType();
       return cudaq::cc::PointerType::get(globalTy);
     }
+
+    //===------------------------------------------------------------------===//
+    // SymbolOpInterface Methods
+    //===------------------------------------------------------------------===//
+
+    bool isDeclaration() { return getExternal(); }
   }];
 }
 
@@ -1005,9 +1023,11 @@ def cc_InsertValueOp : CCOp<"insert_value", [Pure]> {
   let results = (outs AnyAggregateType);
 
   let assemblyFormat = [{
-    $value `,` $container `` $position `:` functional-type(operands, results)
+    $container `` $position `,` $value `:` functional-type(operands, results)
       attr-dict
   }];
+
+  let hasVerifier = 1;
 
   let builders = [
     OpBuilder<(ins "mlir::Type":$resultType, "mlir::Value":$aggregate,
@@ -1439,6 +1459,49 @@ def cc_CallCallableOp : CCOp<"call_callable", [CallOpInterface]> {
   }];
 }
 
+def cc_CallIndirectCallableOp :
+    CCOp<"call_indirect_callable", [CallOpInterface]> {
+  let summary = "Call a C++ callable, unresolved, at run-time.";
+  let description = [{
+    This effectively connects a call from one kernel to another kernel, which
+    would have been done at link-time in host code, at run-time on the device
+    side. This allows calls between kernels defined in separate compilation
+    units. The definitions of these caller/callee functions are not both present
+    at compile-time, so they are exposed to the CUDAQ runtime for stitching or
+    LTO at JIT compile time.
+  }];
+
+  let arguments = (ins
+    cc_IndirectCallableType:$callee,
+    Variadic<AnyType>:$args
+  );
+  let results = (outs Variadic<AnyType>:$results);
+  let hasVerifier = 1;
+  let hasCanonicalizer = 1;
+
+  let assemblyFormat = [{
+    $callee (`,` $args^)? `:` functional-type(operands, results) attr-dict
+  }];
+
+  let extraClassDeclaration = [{
+    /// Get the argument operands to the called function.
+    operand_range getArgOperands() {
+      return {arg_operand_begin(), arg_operand_end()};
+    }
+
+    operand_iterator arg_operand_begin() { return ++operand_begin(); }
+    operand_iterator arg_operand_end() { return operand_end(); }
+
+    /// Return the callee of this operation.
+    mlir::CallInterfaceCallable getCallableForCallee() { return getCallee(); }
+
+    mlir::FunctionType getFunctionType() {
+      return mlir::FunctionType::get(getContext(), getOperands().getType(),
+        getResults().getTypes());
+    }
+  }];
+}
+
 def cc_InstantiateCallableOp : CCOp<"instantiate_callable", [Pure]> {
   let summary = "Construction of a callable object.";
   let description = [{
@@ -1586,6 +1649,43 @@ def cc_CallableClosureOp : CCOp<"callable_closure", [Pure]> {
   }];
 }
 
+def cc_VarargCallOp :
+    CCOp<"call_vararg", [CallOpInterface, SymbolUserOpInterface]> {
+  let summary = "Create a call to an llvm.func with variadic arguments.";
+  let description = [{
+    This operation lets us create a call to an LLVMIR FuncOp with variadic
+    arguments without the restriction that all the arguments have to be
+    converted to LLVMIR types first. These conversions are just code bloat and
+    make the code harder to read.
+  }];
+
+  let arguments = (ins
+    FlatSymbolRefAttr:$callee,
+    Variadic<AnyType>:$args
+  );
+  let results = (outs Variadic<AnyType>);
+
+  let assemblyFormat = [{
+    $callee `(` $args `)` `:` functional-type(operands, results) attr-dict
+  }];
+
+  let extraClassDeclaration = [{
+    operand_range getArgOperands() {
+      return {arg_operand_begin(), arg_operand_end()};
+    }
+
+    operand_iterator arg_operand_begin() { return operand_begin(); }
+    operand_iterator arg_operand_end() { return operand_end(); }
+
+    /// Return the callee of this operation.
+    mlir::CallInterfaceCallable getCallableForCallee() {
+      return getCalleeAttr();
+    }
+
+    mlir::LogicalResult verifySymbolUses(mlir::SymbolTableCollection &);
+  }];
+}
+
 def cc_CreateStringLiteralOp : CCOp<"string_literal"> {
   let summary = "Create a constant string literal.";
   let description = [{
@@ -1604,4 +1704,52 @@ def cc_CreateStringLiteralOp : CCOp<"string_literal"> {
      $stringLiteral `:` qualified(type(results)) attr-dict
   }];
 }
+
+def cc_ArgumentSubstitutionOp : CCOp<"arg_subst",
+  [IsolatedFromAbove, NoRegionArguments, NoTerminator, SingleBlock]> {
+  let summary = "An argument substition.";
+  let description = [{
+    This operation is used to define computations to produce a particular value.
+    The last Op in the block is the result and specifies the result type.
+    The code in the block will be substituted into a FuncOp to replace an
+    argument. The argument is erased from the function's signature, specializing
+    the function into a new function of reduced arity. (Typically, all arguments
+    are erased turning the function into a nullary.)
+
+    For example, given a function
+    ```mlir
+      func.func @foo(%arg0: i32, %arg1: f32) ...
+    ```
+    and a set of argument substitutions for the scalar arguments
+    ```mlir
+      cc.arg_subst[0] {
+        %c42_i32 = arith.constant 42 : i32
+      }
+      cc.arg_subst[1] {
+        %cst = arith.constant 3.100000e+00 : f32
+      }
+    ```
+    the argument synthesis pass can substitute the arguments and create a new
+    nullary function
+    ```mlir
+      func.func @foo() {
+        %arg0 = arith.constant 42 : i32
+        %arg1 = arith.constant 3.1 : f32
+        ...
+    ```
+
+    Each arg_subst can hold an arbitrary block of code, allowing for the
+    construction of non-trivial values.
+
+    See also the `argument-synthesis` pass.
+  }];
+
+  let arguments = (ins
+    ConfinedAttr<I32Attr, [IntNonNegative]>:$position
+  );
+  let regions = (region SizedRegion<1>:$body);
+
+  let assemblyFormat = "`[` $position `]` $body attr-dict";
+}
+
 #endif // CUDAQ_OPTIMIZER_DIALECT_CC_OPS

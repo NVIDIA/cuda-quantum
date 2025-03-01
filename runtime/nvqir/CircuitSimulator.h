@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -10,6 +10,7 @@
 
 #include "Gates.h"
 #include "QIRTypes.h"
+#include "common/Environment.h"
 #include "common/Logger.h"
 #include "common/MeasureCounts.h"
 #include "common/NoiseModel.h"
@@ -92,6 +93,11 @@ protected:
 
   /// @brief Statistics collected over the life of the simulator.
   SummaryData summaryData;
+
+  /// @brief An "opt-in" way for simulators to tell the base class that they are
+  /// capable of buffering sample results across multiple invocations of the
+  /// sample() function.
+  bool supportsBufferedSample = false;
 
 public:
   /// @brief The constructor
@@ -224,6 +230,20 @@ public:
 
   /// @brief Whether or not this is a state vector simulator
   virtual bool isStateVectorSimulator() const { return false; }
+
+  /// @brief Subtypes can return true if the given noise_model_type is
+  /// supported. By default, return false
+  virtual bool isValidNoiseChannel(const cudaq::noise_model_type &type) const {
+    return false;
+  }
+
+  /// @brief Apply the given kraus_channel on the provided targets.
+  /// Only supported for noise backends. By default do nothing
+  virtual void applyNoise(const cudaq::kraus_channel &channel,
+                          const std::vector<std::size_t> &targets) {
+    cudaq::warn("kraus_channel application not supported on {} simulator.",
+                name());
+  }
 
   /// @brief Apply a custom operation described by a matrix of data
   /// represented as 1-D vector of elements in row-major order, as well
@@ -448,6 +468,18 @@ protected:
   /// @brief Get the name of the current circuit being executed.
   std::string getCircuitName() const { return currentCircuitName; }
 
+  /// @brief Get the number of shots to execute (only valid if executionContext
+  /// is set)
+  int getNumShotsToExec() const {
+    if (!executionContext)
+      return 1;
+    if (executionContext->hasConditionalsOnMeasureResults)
+      return 1;
+    if (executionContext->explicitMeasurements && !supportsBufferedSample)
+      return 1;
+    return static_cast<int>(executionContext->shots);
+  }
+
   /// @brief Return the current multi-qubit state dimension
   virtual std::size_t calculateStateDim(const std::size_t numQubits) {
     assert(numQubits < 64);
@@ -492,8 +524,21 @@ protected:
                            const std::string &regName) {
     if (executionContext && executionContext->name == "sample" &&
         !executionContext->hasConditionalsOnMeasureResults) {
+
+      // Handle duplicate measurements in explicit measurements mode
+      if (executionContext->explicitMeasurements) {
+        auto iter =
+            std::find(sampleQubits.begin(), sampleQubits.end(), qubitIdx);
+        if (iter != sampleQubits.end())
+          flushAnySamplingTasks(/*force this*/ true);
+      }
       // Add the qubit to the sampling list
       sampleQubits.push_back(qubitIdx);
+
+      // If we're using explicit measurements (an optimized sampling mode), then
+      // don't populate registerNameToMeasuredQubit.
+      if (executionContext->explicitMeasurements)
+        return true;
 
       auto processForRegName = [&](const std::string &regStr) {
         // Insert the sample qubit into the register name map
@@ -642,28 +687,45 @@ protected:
 
   /// @brief Execute a sampling task with the current set of sample qubits.
   void flushAnySamplingTasks(bool force = false) {
+    if (force && supportsBufferedSample &&
+        executionContext->explicitMeasurements) {
+      int nShots = getNumShotsToExec();
+      if (!sampleQubits.empty()) {
+        // We have a few more qubits to be sampled. Call sample on the subclass,
+        // but there is no need to save the results this time.
+        sample(sampleQubits, nShots);
+        sampleQubits.clear();
+      }
+      // OK, now we're ready to grab the buffered sample results for the entire
+      // execution context.
+      auto execResult = sample(sampleQubits, nShots);
+      executionContext->result.append(execResult);
+      return;
+    }
+
     if (sampleQubits.empty())
       return;
 
     if (executionContext->hasConditionalsOnMeasureResults && !force)
       return;
 
-    // Sort the qubit indices
-    std::sort(sampleQubits.begin(), sampleQubits.end());
-    auto last = std::unique(sampleQubits.begin(), sampleQubits.end());
-    sampleQubits.erase(last, sampleQubits.end());
+    // Sort the qubit indices (unless we're in the optimized sampling mode that
+    // simply concatenates sequential measurements)
+    if (!executionContext->explicitMeasurements) {
+      std::sort(sampleQubits.begin(), sampleQubits.end());
+      auto last = std::unique(sampleQubits.begin(), sampleQubits.end());
+      sampleQubits.erase(last, sampleQubits.end());
+    }
 
     cudaq::info("Sampling the current state, with measure qubits = {}",
                 sampleQubits);
 
     // Ask the subtype to sample the current state
-    auto execResult =
-        sample(sampleQubits, executionContext->hasConditionalsOnMeasureResults
-                                 ? 1
-                                 : executionContext->shots);
+    auto execResult = sample(sampleQubits, getNumShotsToExec());
 
     if (registerNameToMeasuredQubit.empty()) {
-      executionContext->result.append(execResult);
+      executionContext->result.append(execResult,
+                                      executionContext->explicitMeasurements);
     } else {
 
       for (auto &[regName, qubits] : registerNameToMeasuredQubit) {
@@ -685,6 +747,7 @@ protected:
         cudaq::ExecutionResult tmp(regName);
         for (auto &[bits, count] : execResult.counts) {
           std::string b = "";
+          b.reserve(qubits.size());
           for (auto &qb : qubits)
             b += bits[qubitLocMap[qb]];
           tmp.appendResult(b, count);
@@ -724,6 +787,19 @@ protected:
       return;
     }
 
+    // Use static variables to reduce the number of calls to cudaq::getEnvBool
+    // since this is a frequently called piece of code, and we don't expect it
+    // to change in the middle of a run.
+    static bool z_env_var_checked = false;
+    static bool z_matrix_logging = false;
+    if (!z_env_var_checked) {
+      z_matrix_logging = cudaq::getEnvBool("CUDAQ_LOG_GATE_MATRIX", false);
+      z_env_var_checked = true;
+    }
+    if (z_matrix_logging)
+      cudaq::log("{}: matrix={}, controls={}, targets={}, params={}", name,
+                 matrix, controls, targets, params);
+
     gateQueue.emplace(name, matrix, controls, targets, params);
   }
 
@@ -739,7 +815,9 @@ protected:
   /// model. Unimplemented on the base class, sub-types can implement noise
   /// modeling.
   virtual void applyNoiseChannel(const std::string_view gateName,
-                                 const std::vector<std::size_t> &qubits) {}
+                                 const std::vector<std::size_t> &controls,
+                                 const std::vector<std::size_t> &targets,
+                                 const std::vector<double> &params) {}
 
   /// @brief Flush the gate queue, run all queued gate
   /// application tasks.
@@ -750,13 +828,23 @@ protected:
         summaryData.svGateUpdate(
             next.controls.size(), next.targets.size(), stateDimension,
             stateDimension * sizeof(std::complex<ScalarType>));
-      applyGate(next);
+      try {
+        applyGate(next);
+      } catch (std::exception &e) {
+        while (!gateQueue.empty())
+          gateQueue.pop();
+        throw std::runtime_error(std::string("Exception in applyGate: ") +
+                                 e.what());
+      } catch (...) {
+        while (!gateQueue.empty())
+          gateQueue.pop();
+        throw std::runtime_error("Unknown exception in applyGate");
+      }
       if (executionContext && executionContext->noiseModel) {
-        std::vector<std::size_t> noiseQubits{next.controls.begin(),
-                                             next.controls.end()};
-        noiseQubits.insert(noiseQubits.end(), next.targets.begin(),
-                           next.targets.end());
-        applyNoiseChannel(next.operationName, noiseQubits);
+        std::vector<double> params(next.parameters.begin(),
+                                   next.parameters.end());
+        applyNoiseChannel(next.operationName, next.controls, next.targets,
+                          params);
       }
       gateQueue.pop();
     }
@@ -776,17 +864,7 @@ protected:
   /// The environment variable "CUDAQ_OBSERVE_FROM_SAMPLING" can be used to turn
   /// on or off this setting.
   bool shouldObserveFromSampling(bool defaultConfig = true) {
-    if (auto envVar = std::getenv(observeSamplingEnvVar); envVar) {
-      std::string asString = envVar;
-      std::transform(asString.begin(), asString.end(), asString.begin(),
-                     [](auto c) { return std::tolower(c); });
-      if (asString == "false" || asString == "off" || asString == "0")
-        return false;
-      if (asString == "true" || asString == "on" || asString == "1")
-        return true;
-    }
-
-    return defaultConfig;
+    return cudaq::getEnvBool(observeSamplingEnvVar, defaultConfig);
   }
 
   bool isSinglePrecision() const override {
@@ -1030,11 +1108,15 @@ public:
     // If we are sampling...
     if (execContextName.find("sample") != std::string::npos) {
       // Sample the state over the specified number of shots
-      if (sampleQubits.empty()) {
+      if (sampleQubits.empty() && !executionContext->explicitMeasurements) {
         if (isInBatchMode())
           sampleQubits.resize(batchModeCurrentNumQubits);
         else
           sampleQubits.resize(nQubitsAllocated);
+        if (sampleQubits.empty())
+          throw std::runtime_error(
+              "Sampling detected on a kernel with no qubits. Your kernel must "
+              "have qubits to sample it.");
         std::iota(sampleQubits.begin(), sampleQubits.end(), 0);
       }
 
@@ -1177,7 +1259,8 @@ public:
                                controls, {}, targets) +
                       " = {}",
                   matrix);
-    enqueueGate("custom", actual, controls, targets, {});
+    enqueueGate(customName.empty() ? "unknown op" : customName.data(), actual,
+                controls, targets, {});
   }
 
   template <typename QuantumOperation>
@@ -1301,6 +1384,12 @@ public:
           const std::string &registerName) override {
     // Flush the Gate Queue
     flushGateQueue();
+
+    // Apply measurement noise (if any)
+    // Note: gate noises are applied during flushGateQueue
+    if (executionContext && executionContext->noiseModel)
+      applyNoiseChannel(/*gateName=*/"mz", /*controls=*/{},
+                        /*targets=*/{qubitIdx}, /*params=*/{});
 
     // If sampling, just store the bit, do nothing else.
     if (handleBasicSampling(qubitIdx, registerName))

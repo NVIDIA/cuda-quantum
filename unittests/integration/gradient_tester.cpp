@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -10,6 +10,8 @@
 #include <cudaq/algorithm.h>
 #include <cudaq/algorithms/gradients/central_difference.h>
 #include <cudaq/optimizers.h>
+
+#ifndef CUDAQ_BACKEND_STIM
 
 // Skip these gradient tests for slow backends to reduce test time.
 // Note: CUDA-Q API level tests (e.g., `cudaq::observe`) should cover all
@@ -72,5 +74,7 @@ CUDAQ_TEST(GradientTester, checkSimple) {
 
   EXPECT_NEAR(-2.0453, opt_val, 1e-3);
 }
+
+#endif
 
 #endif

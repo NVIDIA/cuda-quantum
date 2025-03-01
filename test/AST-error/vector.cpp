@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -22,7 +22,6 @@ struct VectorVectorReturner {
       for (std::size_t j = 0, M = v.size(); j < M; ++j)
         r[j] = v[j];
     }
-    // expected-error@+1{{C++ constructor (non-default)}}
     return result;
   }
 };
