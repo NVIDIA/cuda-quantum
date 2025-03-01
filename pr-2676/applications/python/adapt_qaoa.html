@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>The Deutsch-Jozsa Algorithm &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>ADAPT-QAOA algorithm &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
@@ -33,8 +33,8 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="Spin-Hamiltonian Simulation Using CUDA-Q" href="hamiltonian_simulation.html" />
-    <link rel="prev" title="Deutsch’s Algorithm" href="deutschs_algorithm.html" /> 
+    <link rel="next" title="CUDA-Q Backends" href="../../using/backends/backends.html" />
+    <link rel="prev" title="Anderson Impurity Model ground state solver on Infleqtion’s Sqale" href="logical_aim_sqale.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -231,9 +231,9 @@
 <li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Deutsch's-Algorithm:">Deutsch’s Algorithm:</a></li>
 </ul>
 </li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">The Deutsch-Jozsa Algorithm</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#The-Theory">The Theory</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#The-Algorithm-Implementation">The Algorithm Implementation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deutsch_jozsa.html">The Deutsch-Jozsa Algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="deutsch_jozsa.html#The-Theory">The Theory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deutsch_jozsa.html#The-Algorithm-Implementation">The Algorithm Implementation</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="hamiltonian_simulation.html">Spin-Hamiltonian Simulation Using CUDA-Q</a><ul>
@@ -346,12 +346,12 @@
 <li class="toctree-l3"><a class="reference internal" href="logical_aim_sqale.html#Running-logical-AIM-on-Infleqtion's-hardware">Running logical AIM on Infleqtion’s hardware</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="adapt_qaoa.html">ADAPT-QAOA algorithm</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="adapt_qaoa.html#Simulation-input:">Simulation input:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="adapt_qaoa.html#The-problem-Hamiltonian-H_C-of-the-max-cut-graph:">The problem Hamiltonian <span class="math notranslate nohighlight">\(H_C\)</span> of the max-cut graph:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="adapt_qaoa.html#Th-operator-pool-A_j:">Th operator pool <span class="math notranslate nohighlight">\(A_j\)</span>:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="adapt_qaoa.html#The-commutator-[H_C,A_j]:">The commutator <span class="math notranslate nohighlight">\([H_C,A_j]\)</span>:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="adapt_qaoa.html#Beginning-of-ADAPT-QAOA-iteration:">Beginning of ADAPT-QAOA iteration:</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">ADAPT-QAOA algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Simulation-input:">Simulation input:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#The-problem-Hamiltonian-H_C-of-the-max-cut-graph:">The problem Hamiltonian <span class="math notranslate nohighlight">\(H_C\)</span> of the max-cut graph:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Th-operator-pool-A_j:">Th operator pool <span class="math notranslate nohighlight">\(A_j\)</span>:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#The-commutator-[H_C,A_j]:">The commutator <span class="math notranslate nohighlight">\([H_C,A_j]\)</span>:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Beginning-of-ADAPT-QAOA-iteration:">Beginning of ADAPT-QAOA iteration:</a></li>
 </ul>
 </li>
 </ul>
@@ -736,198 +736,475 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../../using/applications.html">CUDA-Q Applications</a></li>
-      <li class="breadcrumb-item active">The Deutsch-Jozsa Algorithm</li>
+      <li class="breadcrumb-item active">ADAPT-QAOA algorithm</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../_sources/applications/python/deutsch_jozsa.ipynb.txt" rel="nofollow"> View page source</a>
+            <a href="../../_sources/applications/python/adapt_qaoa.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="deutschs_algorithm.html" class="btn btn-neutral float-left" title="Deutsch’s Algorithm" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="hamiltonian_simulation.html" class="btn btn-neutral float-right" title="Spin-Hamiltonian Simulation Using CUDA-Q" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="logical_aim_sqale.html" class="btn btn-neutral float-left" title="Anderson Impurity Model ground state solver on Infleqtion’s Sqale" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../using/backends/backends.html" class="btn btn-neutral float-right" title="CUDA-Q Backends" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="The-Deutsch-Jozsa-Algorithm">
-<h1>The Deutsch-Jozsa Algorithm<a class="headerlink" href="#The-Deutsch-Jozsa-Algorithm" title="Permalink to this heading">¶</a></h1>
-<p>Here is the link to the original paper: <a class="reference external" href="http://rspa.royalsocietypublishing.org/content/439/1907/553">Deutsch-Jozsa algorithm</a>. This algorithm is an earlier demonstration of the computational advantage of quantum algorithm over classical one. It addresses the problem of identifying the nature of a hidden Boolean function, which is provided as an oracle. The function is guaranteed to be either:</p>
-<ul class="simple">
-<li><p><strong>Balanced</strong>, meaning it outputs 0 for exactly half of its possible inputs and 1 for the other half.</p></li>
-<li><p><strong>Constant</strong>, meaning it outputs the same value (either 0 or 1) for all inputs.</p></li>
-</ul>
-<p>Classically, determining whether the function is balanced or constant requires evaluating the oracle multiple times. In the worst-case scenario, one would need to query at least half of the inputs to distinguish a constant function. However, the Deutsch-Jozsa algorithm demonstrates quantum superiority by solving this problem with a single query to the oracle, regardless of the input size.</p>
-<p>This notebook implements the Deutsch-Jozsa algorithm as described in <a class="reference external" href="https://arxiv.org/pdf/quant-ph/9708016.pdf">Cleve et al. 1997</a>. The input for the oracle function <span class="math notranslate nohighlight">\(f\)</span> is a <span class="math notranslate nohighlight">\(n\)</span>-bit string. It means that for <span class="math notranslate nohighlight">\(x\ in \{0,1\}^n\)</span>, the value of <span class="math notranslate nohighlight">\(f(x)\)</span> is either constant, i.e., the same for all <span class="math notranslate nohighlight">\(x\)</span>, or balanced, i.e., exactly half of the <span class="math notranslate nohighlight">\(n\)</span>-bit string whose <span class="math notranslate nohighlight">\(f(x) = 0\)</span>.</p>
-<section id="The-Theory">
-<h2>The Theory<a class="headerlink" href="#The-Theory" title="Permalink to this heading">¶</a></h2>
-<p>Here are the steps to implement the algorithm: 1. Start with initializing all input qubits and single auxiliary qubits to zero. The first <span class="math notranslate nohighlight">\(n-1\)</span> input qubits are used for querying the oracle, and the last auxiliary qubit is used for storing the answer of the oracle</p>
+  <section id="ADAPT-QAOA-algorithm">
+<h1>ADAPT-QAOA algorithm<a class="headerlink" href="#ADAPT-QAOA-algorithm" title="Permalink to this heading">¶</a></h1>
+<p>In this tutorial, we explain the ADAPT-QAOA algorithm introduced in this <a class="reference external" href="https://journals.aps.org/prresearch/pdf/10.1103/PhysRevResearch.4.033029">paper</a> and show how to implement the algorithm in cudaq.</p>
+<p>In QAOA (explained in this <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/applications/python/qaoa.html">Tutorial</a>), the variational Ansatz consists of <span class="math notranslate nohighlight">\(p\)</span> layers, each containing the cost Hamiltonian <span class="math notranslate nohighlight">\(H_C\)</span> and a mixer, <span class="math notranslate nohighlight">\(H_M\)</span>.</p>
 <div class="math notranslate nohighlight">
-\[|0\ldots 0\rangle |0\rangle\]</div>
-<ol class="arabic simple" start="2">
-<li><p>Create the superposition of all input qubits by applying the Hadamard gate to each qubit.</p></li>
-</ol>
+\[\ket{\psi_p (\beta, \gamma)}  = \left ( \prod_{k=1} ^p [e^{-i H_M \beta_k}  e^{-i H_C \gamma_k}]  \right ) \ket{\psi_{\mathrm{ref}}}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\ket{\psi_{\mathrm{ref}}} = \ket{+}^{\otimes n}\)</span>, <span class="math notranslate nohighlight">\(n\)</span> is the number of qubits and <span class="math notranslate nohighlight">\(\gamma, \beta\)</span> are set of variational parameters. If these parameters are chosen such that</p>
 <div class="math notranslate nohighlight">
-\[H^{\otimes^n} |0\ldots 0\rangle |0\rangle = \frac{1}{\sqrt{2^n}}\sum_{i=0}^{2^n-1}|i\rangle |0\rangle\]</div>
-<ol class="arabic simple" start="3">
-<li><p>Apply the Pauli-X gate and apply the Hadamard gate to the auxiliary qubit. This is to store the answer of the oracle in the phase.</p></li>
-</ol>
+\[\braket{\psi_p (\beta, \gamma)| H_C |\psi_p (\beta, \gamma) }\]</div>
+<p>is minimized, then the resulting energy and state provide an approximate solution to the optimization problem encoded in <span class="math notranslate nohighlight">\(H_C\)</span>. In the standard QAOA Ansatz, the mixer is chosen to be a single-qubit X rotation applied to all qubits.</p>
+<p>In ADAPT-QAOA, the single, fixed mixer <span class="math notranslate nohighlight">\(H_M\)</span> is replaced by a set of mixers <span class="math notranslate nohighlight">\(A_k\)</span> that change from one layer to the next.</p>
 <div class="math notranslate nohighlight">
-\[\frac{1}{\sqrt{2^n}}\sum_{i=0}^{2^n-1}|i\rangle |0\rangle \rightarrow \frac{1}{\sqrt{2^{n+1}}}\sum_{i=0}^{2^n-1}|i\rangle ( |0\rangle - |1\rangle )\]</div>
-<ol class="arabic simple" start="4">
-<li><p>Query the oracle.</p></li>
-</ol>
-<div class="math notranslate nohighlight">
-\[\frac{1}{\sqrt{2^{n+1}}}\sum_{i=0}^{2^n-1}|i\rangle ( |0\rangle - |1\rangle ) \rightarrow \frac{1}{\sqrt{2^{n+1}}}\sum_{i=0}^{2^n-1}(-1)^{f(i)}|i\rangle ( |0\rangle - |1\rangle )\]</div>
-<ol class="arabic simple" start="5">
-<li><p>Apply the Hadamard gate to all input gates. 6. Measure input gates. If measured values are non-zero, then the function is balanced. If not, then it is constant.</p></li>
-</ol>
-</section>
-<section id="The-Algorithm-Implementation">
-<h2>The Algorithm Implementation<a class="headerlink" href="#The-Algorithm-Implementation" title="Permalink to this heading">¶</a></h2>
-<p>Here is the CUDA-Q code following the steps outlined in the above theory section.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
+\[\ket{\psi_p (\beta, \gamma) }  = \left ( \prod_{k=1} ^p [e^{-i A_k \beta_k}  e^{-i H_C \gamma_k}]  \right ) \ket{\psi_{\mathrm{ref}}}\]</div>
+<p>The ADAPT-QAOA algorithm can be summarized in three steps:</p>
+<p>1- Define the operator set <span class="math notranslate nohighlight">\(A_j\)</span> (called the mixer pool, and where <span class="math notranslate nohighlight">\(A_j = A^{\dagger}_j\)</span> and select a suitable reference state to be the initial state: <span class="math notranslate nohighlight">\(\ket{ \psi (0) }= \ket{\psi_{\mathrm{ref}}}\)</span>; <span class="math notranslate nohighlight">\(\ket{\psi_{\mathrm{ref}}} = \ket{+}^{\otimes n}\)</span> is chosen as in the standard QAOA</p>
+<p>2- Prepare the current Ansatz <span class="math notranslate nohighlight">\(\ket{\psi(k-1)}\)</span> and measure the energy gradient with respect to the pool, the <span class="math notranslate nohighlight">\(j\)</span>th component of which is given by <span class="math notranslate nohighlight">\(−i \braket{\psi(k-1)|e^{i H_C \gamma_k} [H_C,A_j] e^{−i H_C \gamma_k} |\psi(k-1)}\)</span>, where the new variational parameter <span class="math notranslate nohighlight">\(\gamma_k\)</span> is set to a predefined value <span class="math notranslate nohighlight">\(\gamma_0\)</span>. For the measurement, we can decompose the commutator into linear combinations of Pauli strings and measure the expectation values of the strings
+using general variational quantum algorithm methods. If the norm of the gradient is below a predefined threshold, then the algorithm stops, and the current state and energy estimate approximate the desired solution. If the gradient threshold is not met, modify the Ansatz (k) by adding the operator, A(k) , associated with the largest max component of the gradient: <span class="math notranslate nohighlight">\(\ket{\psi(k)}= e^ {−i A_\mathrm{max} \beta_k} e^{−i H_C \gamma_k} \ket{\psi(k-1)}\)</span>, where <span class="math notranslate nohighlight">\(\beta_k\)</span> is a new variational
+parameter</p>
+<p>3- Optimize all parameters currently in the Ansatz <span class="math notranslate nohighlight">\(\beta_m, \gamma_m = 1, 2, ...k\)</span> such that <span class="math notranslate nohighlight">\(\braket{\psi (k)|H_C|\psi(k)}\)</span> is minimized, and return to the second step.</p>
+<p>Below is a schematic representation of the ADAPT-QAOA algorithm explained above.</p>
+<div><p><img alt="ce7d88fec9e64d80a3a32e78f4cfdda0" class="no-scaled-link" src="../../_images/adapt-qaoa.png" style="width: 600px;" /></p>
+</div><div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import the CUDA-Q package and set the target to run on NVIDIA GPUs.</span>
-
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.optimize</span><span class="w"> </span><span class="kn">import</span> <span class="n">minimize</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
 
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
-
-<span class="c1"># Number of qubits for the Deutsch-Jozsa algorithm, the last qubit is an auxiliary qubit</span>
-<span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="s2">&quot;fp64&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[32]:
+<section id="Simulation-input:">
+<h2>Simulation input:<a class="headerlink" href="#Simulation-input:" title="Permalink to this heading">¶</a></h2>
+<p>The gradients used to select new operators are sensitive to the initial values for <span class="math notranslate nohighlight">\(\gamma\)</span>. We initialize the parameter at <span class="math notranslate nohighlight">\(\gamma_0 =0.01\)</span> as explained in the paper.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Set the function to be &quot;constant&quot; or &quot;balanced&quot;</span>
-<span class="n">function_type</span> <span class="o">=</span> <span class="s1">&#39;constant&#39;</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># The Max-cut graph:</span>
 
-<span class="c1"># Initialize fx depending on whether the function is constant or balanced</span>
-<span class="k">if</span> <span class="n">function_type</span> <span class="o">==</span> <span class="s1">&#39;constant&#39;</span><span class="p">:</span>
-    <span class="c1"># For a constant function, fx is either all 0&#39;s or all 1&#39;s</span>
-    <span class="n">oracleType</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># 0 for constant</span>
-    <span class="n">fx_value</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>  <span class="c1"># Randomly pick 0 or 1</span>
-    <span class="n">oracleValue</span> <span class="o">=</span> <span class="n">fx_value</span>  <span class="c1"># In constant case, fx_value is passed, for balanced it&#39;s not used</span>
-    <span class="n">fx</span> <span class="o">=</span> <span class="p">[</span><span class="n">fx_value</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">qubit_count</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-<span class="k">else</span><span class="p">:</span>
-    <span class="c1"># For a balanced function, half of fx will be 0&#39;s and half will be 1&#39;s</span>
-    <span class="n">oracleType</span> <span class="o">=</span> <span class="mi">1</span>
-    <span class="n">fx</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">((</span><span class="n">qubit_count</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">((</span><span class="n">qubit_count</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="n">qubit_count</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span>
-    <span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">fx</span><span class="p">)</span>  <span class="c1"># Shuffle to randomize the positions of 0&#39;s and 1&#39;s</span>
+<span class="c1"># Example 1</span>
+<span class="c1">#true_energy=-12.0</span>
+<span class="c1">#nodes = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]</span>
+<span class="c1">#edges = [[0,4], [1,4], [0,6], [3,6], [5,6], [2,7], [1,8], [3,8], [5,8], [6,8], [7,8], [2,9], [8,9]]</span>
+<span class="c1">#weight = [1.0] * len(edges)</span>
 
-<span class="c1"># If needed initialize fx, oracleType, and oracleValue manually</span>
-<span class="c1">#oracleType = 0</span>
-<span class="c1">#oracleValue = 0</span>
-<span class="c1">#fx = [0,0]</span>
+<span class="c1"># Examle 2:</span>
+<span class="c1">#true_energy=-5.0</span>
+<span class="n">nodes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span>
+<span class="n">edges</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]]</span>
+<span class="n">weight</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">edges</span><span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Generated fx for function type = </span><span class="si">{</span><span class="n">function_type</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">fx</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;oracleType = &quot;</span><span class="p">,</span> <span class="n">oracleType</span><span class="p">)</span>
-<span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;oracleValue = &quot;</span><span class="p">,</span> <span class="n">oracleValue</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-Generated fx for function type = constant: [1, 1]
-oracleType =  0
-oracleValue =  1
-</pre></div></div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[33]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define kernel</span>
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">fx</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">qubit_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">oracleType</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">oracleValue</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-    <span class="c1"># Allocate two input qubits</span>
-    <span class="n">input_qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubit_count</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-    <span class="c1"># Allocate an auxiliary qubit (initially |0⟩)</span>
-    <span class="n">auxiliary_qubit</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
+<span class="c1"># Define the number of qubits.</span>
 
-    <span class="c1"># Prepare the auxiliary qubit</span>
-    <span class="n">x</span><span class="p">(</span><span class="n">auxiliary_qubit</span><span class="p">)</span>
-    <span class="n">h</span><span class="p">(</span><span class="n">auxiliary_qubit</span><span class="p">)</span>
+<span class="n">qubits_num</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">nodes</span><span class="p">)</span>
 
-    <span class="c1"># Place the rest of the register in a superposition state</span>
-    <span class="n">h</span><span class="p">(</span><span class="n">input_qubits</span><span class="p">)</span>
+<span class="c1"># Predefined values to terminate iteration. These can be changed based on user preference</span>
+<span class="n">E_prev</span> <span class="o">=</span> <span class="mf">0.0</span>
+<span class="n">threshold</span> <span class="o">=</span> <span class="mf">1e-3</span>   <span class="c1"># This is a predefined value to stop the calculation. if norm of the gradient smaller than this value, calculation will be terminated.</span>
+<span class="n">e_stop</span> <span class="o">=</span> <span class="mf">1e-7</span>      <span class="c1"># This is a predefined value to stop the calculation. if dE &lt;= e_stop, calculation stop. dE=current_erg-prev_erg</span>
 
-    <span class="c1"># Logic for oracleType == 0 (constant oracle)</span>
-    <span class="k">if</span> <span class="n">oracleType</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">oracleValue</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="c1"># Apply X gate to the auxiliary qubit</span>
-            <span class="n">x</span><span class="p">(</span><span class="n">auxiliary_qubit</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">oracleValue</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="c1"># Apply identity gate (do nothing)</span>
-            <span class="k">pass</span>
+<span class="c1"># Initiate the parameters gamma of the problem Hamiltonian for gradient calculation</span>
 
-    <span class="c1"># Logic for oracleType == 1 (balanced oracle)</span>
-    <span class="k">elif</span> <span class="n">oracleType</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">fx</span><span class="p">)):</span>
-            <span class="k">if</span> <span class="n">fx</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">input_qubits</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">auxiliary_qubit</span><span class="p">)</span>
-
-    <span class="c1"># Apply Hadamard to the input qubit again after querying the oracle</span>
-    <span class="n">h</span><span class="p">(</span><span class="n">input_qubits</span><span class="p">)</span>
-
-    <span class="c1"># Measure the input qubit to yield if the function is constant or balanced.</span>
-    <span class="n">mz</span><span class="p">(</span><span class="n">input_qubits</span><span class="p">)</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">fx</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">,</span> <span class="n">oracleType</span><span class="p">,</span> <span class="n">oracleValue</span><span class="p">))</span>
-
-<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">fx</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">,</span> <span class="n">oracleType</span><span class="p">,</span> <span class="n">oracleValue</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-
-<span class="c1"># Debugging: Print the raw result dictionary</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Input qubits measurement outcome and frequency = </span><span class="si">{</span><span class="n">result</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
-<span class="c1"># Define the expected constant results for &#39;00&#39; and &#39;11&#39; for the number of input qubits</span>
-<span class="n">expected_constant_results</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;0&#39;</span> <span class="o">*</span> <span class="p">(</span><span class="n">qubit_count</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="s1">&#39;1&#39;</span> <span class="o">*</span> <span class="p">(</span><span class="n">qubit_count</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)]</span>
-
-<span class="c1"># Check if either &#39;00&#39; or &#39;11&#39; (or their equivalent for more qubits) appears in the result</span>
-<span class="n">is_constant</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span><span class="n">result_key</span> <span class="ow">in</span> <span class="n">result</span> <span class="k">for</span> <span class="n">result_key</span> <span class="ow">in</span> <span class="n">expected_constant_results</span><span class="p">)</span>
-
-<span class="k">if</span> <span class="n">is_constant</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The oracle function is constant.&quot;</span><span class="p">)</span>
-<span class="k">else</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The oracle function is balanced.&quot;</span><span class="p">)</span>
+<span class="n">init_gamma</span> <span class="o">=</span> <span class="mf">0.01</span>
 <br/></pre></div>
 </div>
 </div>
+</section>
+<section id="The-problem-Hamiltonian-H_C-of-the-max-cut-graph:">
+<h2>The problem Hamiltonian <span class="math notranslate nohighlight">\(H_C\)</span> of the max-cut graph:<a class="headerlink" href="#The-problem-Hamiltonian-H_C-of-the-max-cut-graph:" title="Permalink to this heading">¶</a></h2>
+<div class="math notranslate nohighlight">
+\[H_C= - \frac{1}{2} \sum_{i,j} \omega_{i,j} (I - Z_i Z_j)\]</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">spin_ham</span> <span class="p">(</span><span class="n">edges</span><span class="p">,</span> <span class="n">weight</span><span class="p">):</span>
+
+    <span class="n">ham</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">edge</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">edges</span><span class="p">)):</span>
+
+        <span class="n">qubitu</span> <span class="o">=</span> <span class="n">edges</span><span class="p">[</span><span class="n">edge</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">qubitv</span> <span class="o">=</span> <span class="n">edges</span><span class="p">[</span><span class="n">edge</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+        <span class="c1"># Add a term to the Hamiltonian for the edge (u,v)</span>
+        <span class="n">ham</span> <span class="o">+=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">weight</span><span class="p">[</span><span class="n">count</span><span class="p">]</span> <span class="o">*</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">qubitu</span><span class="p">)</span> <span class="o">*</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">qubitv</span><span class="p">)</span> <span class="o">-</span>
+                            <span class="n">weight</span><span class="p">[</span><span class="n">count</span><span class="p">]</span> <span class="o">*</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">i</span><span class="p">(</span><span class="n">qubitu</span><span class="p">)</span> <span class="o">*</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">i</span><span class="p">(</span><span class="n">qubitv</span><span class="p">))</span>
+        <span class="n">count</span><span class="o">+=</span><span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">ham</span>
+
+<span class="c1"># Collect coefficients from a spin operator so we can pass them to a kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">term_coefficients</span><span class="p">(</span><span class="n">ham</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">]:</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">ham</span><span class="o">.</span><span class="n">for_each_term</span><span class="p">(</span><span class="k">lambda</span> <span class="n">term</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">get_coefficient</span><span class="p">()))</span>
+    <span class="k">return</span> <span class="n">result</span>
+
+<span class="c1"># Collect Pauli words from a spin operator so we can pass them to a kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">term_words</span><span class="p">(</span><span class="n">ham</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">ham</span><span class="o">.</span><span class="n">for_each_term</span><span class="p">(</span><span class="k">lambda</span> <span class="n">term</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="kc">False</span><span class="p">)))</span>
+    <span class="k">return</span> <span class="n">result</span>
+
+<span class="c1"># Generate the Spin Hmiltonian:</span>
+
+<span class="n">ham</span> <span class="o">=</span> <span class="n">spin_ham</span><span class="p">(</span><span class="n">edges</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
+<span class="n">ham_coef</span> <span class="o">=</span> <span class="n">term_coefficients</span><span class="p">(</span><span class="n">ham</span><span class="p">)</span>
+<span class="n">ham_word</span> <span class="o">=</span> <span class="n">term_words</span><span class="p">(</span><span class="n">ham</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Th-operator-pool-A_j:">
+<h2>Th operator pool <span class="math notranslate nohighlight">\(A_j\)</span>:<a class="headerlink" href="#Th-operator-pool-A_j:" title="Permalink to this heading">¶</a></h2>
+<p>Here, the mixer pool consists of single-qubit and multi-qubit entangling gates.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">mixer_pool</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">):</span>
+    <span class="n">op</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">):</span>
+        <span class="n">op</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+        <span class="n">op</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+        <span class="n">op</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubits_num</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">):</span>
+            <span class="n">op</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">j</span><span class="p">))</span>
+            <span class="n">op</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="n">j</span><span class="p">))</span>
+            <span class="n">op</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">j</span><span class="p">))</span>
+
+            <span class="n">op</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">j</span><span class="p">))</span>
+            <span class="n">op</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="n">j</span><span class="p">))</span>
+
+            <span class="n">op</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">j</span><span class="p">))</span>
+            <span class="n">op</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">j</span><span class="p">))</span>
+
+            <span class="n">op</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">j</span><span class="p">))</span>
+            <span class="n">op</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="n">j</span><span class="p">))</span>
+
+
+    <span class="k">return</span> <span class="n">op</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Generate the mixer pool</span>
+
+<span class="n">pools</span> <span class="o">=</span> <span class="n">mixer_pool</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">)</span>
+<span class="c1">#print([op.to_string(False) for op in pools])</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Number of pool operator: &#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">pools</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-     ╭───╮╭───╮
-q0 : ┤ h ├┤ h ├─────
-     ├───┤├───┤
-q1 : ┤ h ├┤ h ├─────
-     ├───┤├───┤╭───╮
-q2 : ┤ x ├┤ h ├┤ x ├
-     ╰───╯╰───╯╰───╯
-
-Input qubits measurement outcome and frequency = { 00:1 }
-
-The oracle function is constant.
+Number of pool operator:  105
 </pre></div></div>
 </div>
+</section>
+<section id="The-commutator-[H_C,A_j]:">
+<h2>The commutator <span class="math notranslate nohighlight">\([H_C,A_j]\)</span>:<a class="headerlink" href="#The-commutator-[H_C,A_j]:" title="Permalink to this heading">¶</a></h2>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Generate the commutator [H,Ai]</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">commutator</span><span class="p">(</span><span class="n">pools</span><span class="p">,</span> <span class="n">ham</span><span class="p">):</span>
+    <span class="n">com_op</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">pools</span><span class="p">)):</span>
+    <span class="c1">#for i in range(2):</span>
+        <span class="n">op</span> <span class="o">=</span> <span class="n">pools</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">com_op</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ham</span> <span class="o">*</span> <span class="n">op</span> <span class="o">-</span> <span class="n">op</span> <span class="o">*</span> <span class="n">ham</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">com_op</span>
+
+<span class="n">grad_op</span> <span class="o">=</span> <span class="n">commutator</span><span class="p">(</span><span class="n">pools</span><span class="p">,</span> <span class="n">ham</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">###########################################</span>
+<span class="c1"># Get the initial state (psi_ref)</span>
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">initial_state</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">:</span><span class="nb">int</span><span class="p">):</span>
+    <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">)</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
+
+<span class="n">state</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">initial_state</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">)</span>
+
+<span class="c1">#print(state)</span>
+<span class="c1">###############################################</span>
+
+<span class="c1"># Circuit to compute the energy gradient with respect to the pool</span>
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">grad</span><span class="p">(</span><span class="n">state</span><span class="p">:</span><span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="p">,</span> <span class="n">ham_word</span><span class="p">:</span><span class="nb">list</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">pauli_word</span><span class="p">],</span> <span class="n">ham_coef</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">],</span> <span class="n">init_gamma</span><span class="p">:</span><span class="nb">float</span><span class="p">):</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ham_coef</span><span class="p">)):</span>
+        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">init_gamma</span> <span class="o">*</span> <span class="n">ham_coef</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">ham_word</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+
+<span class="c1"># The qaoa circuit using the selected pool operator with max gradient</span>
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel_qaoa</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span> <span class="n">ham_word</span><span class="p">:</span><span class="nb">list</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">pauli_word</span><span class="p">],</span> <span class="n">ham_coef</span><span class="p">:</span><span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">],</span>
+        <span class="n">mixer_pool</span><span class="p">:</span><span class="nb">list</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">pauli_word</span><span class="p">],</span> <span class="n">gamma</span><span class="p">:</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">beta</span><span class="p">:</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">layer</span><span class="p">:</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">num_layer</span><span class="p">:</span><span class="nb">int</span><span class="p">):</span>
+
+    <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">)</span>
+
+    <span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
+
+    <span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layer</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ham_coef</span><span class="p">)):</span>
+            <span class="n">exp_pauli</span><span class="p">(</span><span class="n">gamma</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">*</span> <span class="n">ham_coef</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">ham_word</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">layer</span><span class="p">[</span><span class="n">p</span><span class="p">]):</span>
+            <span class="n">exp_pauli</span><span class="p">(</span><span class="n">beta</span><span class="p">[</span><span class="n">idx</span><span class="o">+</span><span class="n">j</span><span class="p">],</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">mixer_pool</span><span class="p">[</span><span class="n">idx</span><span class="o">+</span><span class="n">j</span><span class="p">])</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">idx</span> <span class="o">+</span> <span class="n">layer</span><span class="p">[</span><span class="n">p</span><span class="p">]</span>
+<br/></pre></div>
+</div>
+</div>
+</section>
+<section id="Beginning-of-ADAPT-QAOA-iteration:">
+<h2>Beginning of ADAPT-QAOA iteration:<a class="headerlink" href="#Beginning-of-ADAPT-QAOA-iteration:" title="Permalink to this heading">¶</a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Begining od ADAPT-QAOA iteration</span>
+
+<span class="n">beta</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">gamma</span> <span class="o">=</span> <span class="p">[]</span>
+
+<span class="n">mixer_pool</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">layer</span> <span class="o">=</span> <span class="p">[]</span>
+
+
+<span class="n">istep</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Step: &#39;</span><span class="p">,</span> <span class="n">istep</span><span class="p">)</span>
+
+    <span class="c1">#####################</span>
+    <span class="c1"># compute the gradient and find the mixer pool with large values.</span>
+    <span class="c1"># If norm is below the predefined threshold, stop calculation</span>
+
+    <span class="n">gradient_vec</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">grad_op</span><span class="p">:</span>
+        <span class="n">op</span> <span class="o">=</span> <span class="n">op</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span><span class="n">j</span>
+        <span class="n">gradient_vec</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">grad</span><span class="p">,</span> <span class="n">op</span> <span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">ham_word</span><span class="p">,</span> <span class="n">ham_coef</span><span class="p">,</span> <span class="n">init_gamma</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">())</span>
+
+    <span class="c1"># Compute the norm of the gradient vector</span>
+    <span class="n">norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">gradient_vec</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Norm of the gradient: &#39;</span><span class="p">,</span> <span class="n">norm</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">norm</span> <span class="o">&lt;=</span> <span class="n">threshold</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;Final Result: &#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Final mixer_pool: &#39;</span><span class="p">,</span> <span class="n">mixer_pool</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Number of layers: &#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">layer</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Number of mixer pool in each layer: &#39;</span><span class="p">,</span> <span class="n">layer</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Final Energy: &#39;</span><span class="p">,</span> <span class="n">result_vqe</span><span class="o">.</span><span class="n">fun</span><span class="p">)</span>
+
+        <span class="k">break</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">temp_pool</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">tot_pool</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">max_grad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">gradient_vec</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">pools</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">gradient_vec</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">&gt;=</span> <span class="n">max_grad</span><span class="p">:</span>
+                <span class="n">tot_pool</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">temp_pool</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pools</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+        <span class="c1"># Set the seed: Good for reproducibility of results</span>
+        <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+
+        <span class="n">layer</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">random_mixer</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">temp_pool</span><span class="p">)</span>
+
+        <span class="n">mixer_pool</span> <span class="o">=</span> <span class="n">mixer_pool</span> <span class="o">+</span> <span class="p">[</span><span class="n">random_mixer</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="kc">False</span><span class="p">)]</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Mixer pool at step&#39;</span><span class="p">,</span> <span class="n">istep</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">mixer_pool</span><span class="p">)</span>
+
+        <span class="n">num_layer</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Number of layers: &#39;</span><span class="p">,</span> <span class="n">num_layer</span><span class="p">)</span>
+
+        <span class="n">beta_count</span> <span class="o">=</span> <span class="n">layer</span><span class="p">[</span><span class="n">num_layer</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">init_beta</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span> <span class="o">*</span> <span class="n">beta_count</span>
+        <span class="n">beta</span> <span class="o">=</span> <span class="n">beta</span> <span class="o">+</span> <span class="n">init_beta</span>
+        <span class="n">gamma</span> <span class="o">=</span> <span class="n">gamma</span> <span class="o">+</span> <span class="p">[</span><span class="n">init_gamma</span><span class="p">]</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">gamma</span> <span class="o">+</span> <span class="n">beta</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">cost</span><span class="p">(</span><span class="n">theta</span><span class="p">):</span>
+
+            <span class="n">theta</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+            <span class="n">gamma</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[:</span><span class="n">num_layer</span><span class="p">]</span>
+            <span class="n">beta</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[</span><span class="n">num_layer</span><span class="p">:]</span>
+
+
+            <span class="n">energy</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel_qaoa</span><span class="p">,</span> <span class="n">ham</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">,</span> <span class="n">ham_word</span><span class="p">,</span> <span class="n">ham_coef</span><span class="p">,</span>
+                                    <span class="n">mixer_pool</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">layer</span><span class="p">,</span> <span class="n">num_layer</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
+            <span class="c1">#print(energy)</span>
+            <span class="k">return</span> <span class="n">energy</span>
+
+        <span class="n">result_vqe</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;BFGS&#39;</span><span class="p">,</span> <span class="n">jac</span><span class="o">=</span><span class="s1">&#39;2-point&#39;</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Result from the step &#39;</span><span class="p">,</span> <span class="n">istep</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Optmized Energy: &#39;</span><span class="p">,</span> <span class="n">result_vqe</span><span class="o">.</span><span class="n">fun</span><span class="p">)</span>
+
+        <span class="n">dE</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">result_vqe</span><span class="o">.</span><span class="n">fun</span> <span class="o">-</span> <span class="n">E_prev</span><span class="p">)</span>
+        <span class="n">E_prev</span> <span class="o">=</span> <span class="n">result_vqe</span><span class="o">.</span><span class="n">fun</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">result_vqe</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="n">erg</span> <span class="o">=</span> <span class="n">result_vqe</span><span class="o">.</span><span class="n">fun</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;dE= :&#39;</span><span class="p">,</span> <span class="n">dE</span><span class="p">)</span>
+        <span class="n">gamma</span><span class="o">=</span><span class="n">theta</span><span class="p">[:</span><span class="n">num_layer</span><span class="p">]</span>
+        <span class="n">beta</span><span class="o">=</span><span class="n">theta</span><span class="p">[</span><span class="n">num_layer</span><span class="p">:]</span>
+
+        <span class="k">if</span> <span class="n">dE</span> <span class="o">&lt;=</span> <span class="n">e_stop</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;Final Result: &#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Final mixer_pool: &#39;</span><span class="p">,</span> <span class="n">mixer_pool</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Number of layers: &#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">layer</span><span class="p">))</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Number of mixer pool in each layer: &#39;</span><span class="p">,</span> <span class="n">layer</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Final Energy= &#39;</span><span class="p">,</span> <span class="n">erg</span><span class="p">)</span>
+
+            <span class="k">break</span>
+
+        <span class="k">else</span><span class="p">:</span>
+
+            <span class="c1"># Compute the state of this current step for the gradient</span>
+            <span class="n">state</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">kernel_qaoa</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">,</span> <span class="n">ham_word</span><span class="p">,</span> <span class="n">ham_coef</span><span class="p">,</span><span class="n">mixer_pool</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">layer</span><span class="p">,</span> <span class="n">num_layer</span><span class="p">)</span>
+            <span class="c1">#print(&#39;State at step &#39;, istep)</span>
+            <span class="c1">#print(state)</span>
+            <span class="n">istep</span><span class="o">+=</span><span class="mi">1</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+<br/><br/></pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Step:  1
+Norm of the gradient:  3.466322556913865
+Mixer pool at step 1
+[&#39;YZ&#39;]
+Number of layers:  1
+Result from the step  1
+Optmized Energy:  -3.499999999999957
+dE= : 3.499999999999957
+
+
+Step:  2
+Norm of the gradient:  3.162404152906434
+Mixer pool at step 2
+[&#39;YZ&#39;, &#39;IIZIY&#39;]
+Number of layers:  2
+Result from the step  2
+Optmized Energy:  -3.999999999976162
+dE= : 0.49999999997620526
+
+
+Step:  3
+Norm of the gradient:  1.4145319953645363
+Mixer pool at step 3
+[&#39;YZ&#39;, &#39;IIZIY&#39;, &#39;ZIIY&#39;]
+Number of layers:  3
+Result from the step  3
+Optmized Energy:  -4.499999999993414
+dE= : 0.500000000017252
+
+
+Step:  4
+Norm of the gradient:  0.01414371076153925
+Mixer pool at step 4
+[&#39;YZ&#39;, &#39;IIZIY&#39;, &#39;ZIIY&#39;, &#39;IIXIX&#39;]
+Number of layers:  4
+Result from the step  4
+Optmized Energy:  -4.999999999996571
+dE= : 0.5000000000031566
+
+
+Step:  5
+Norm of the gradient:  5.585137881516482e-06
+
+ Final Result:
+
+Final mixer_pool:  [&#39;YZ&#39;, &#39;IIZIY&#39;, &#39;ZIIY&#39;, &#39;IIXIX&#39;]
+Number of layers:  4
+Number of mixer pool in each layer:  [1, 1, 1, 1]
+Final Energy:  -4.999999999996571
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;Sampling the Final ADAPT QAOA circuit&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="c1"># Sample the circuit</span>
+<span class="n">count</span><span class="o">=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel_qaoa</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">,</span> <span class="n">ham_word</span><span class="p">,</span> <span class="n">ham_coef</span><span class="p">,</span><span class="n">mixer_pool</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">layer</span><span class="p">,</span> <span class="n">num_layer</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">5000</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;The most probable max cut: &#39;</span><span class="p">,</span> <span class="n">count</span><span class="o">.</span><span class="n">most_probable</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;All bitstring from circuit sampling: &#39;</span><span class="p">,</span> <span class="n">count</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+
+ Sampling the Final ADAPT QAOA circuit
+
+The most probable max cut:  10100
+All bitstring from circuit sampling:  { 01011:2438 10100:2562 }
+
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
 </pre></div>
 </div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CUDA-Q Version cu12-latest (https://github.com/NVIDIA/cuda-quantum 5e9dc6aebbcf9c301808574d04dd4bc0e1d6dbdf)
+</pre></div></div>
 </div>
 </section>
 </section>
@@ -936,8 +1213,8 @@ The oracle function is constant.
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="deutschs_algorithm.html" class="btn btn-neutral float-left" title="Deutsch’s Algorithm" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="hamiltonian_simulation.html" class="btn btn-neutral float-right" title="Spin-Hamiltonian Simulation Using CUDA-Q" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="logical_aim_sqale.html" class="btn btn-neutral float-left" title="Anderson Impurity Model ground state solver on Infleqtion’s Sqale" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../using/backends/backends.html" class="btn btn-neutral float-right" title="CUDA-Q Backends" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
