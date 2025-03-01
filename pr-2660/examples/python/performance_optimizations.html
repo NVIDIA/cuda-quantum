@@ -190,6 +190,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#iqm">IQM</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#oqc">OQC</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#orca-computing">ORCA Computing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#pasqal">Pasqal</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
 </ul>
@@ -391,6 +392,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware/neutralatom.html">     Neutral Atom QPUs</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/neutralatom.html#infleqtion">Infleqtion</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/neutralatom.html#pasqal">Pasqal</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/neutralatom.html#quera-computing">QuEra Computing</a></li>
 </ul>
 </li>
@@ -744,9 +746,9 @@
 <section id="Gate-Fusion">
 <h2>Gate Fusion<a class="headerlink" href="#Gate-Fusion" title="Permalink to this heading">¶</a></h2>
 <p>Gate fusion is an optimization technique where consecutive gates are combined into a single gate operation to improve the efficiency of the simulation (See figure below). By targeting the <code class="docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> backend and setting the <code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE</span></code> environment variable, you can select the degree of fusion that takes place. A full command line example would look like <code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE=4</span> <span class="pre">python</span> <span class="pre">c2h2VQE.py</span> <span class="pre">--target</span> <span class="pre">nvidia</span> <span class="pre">--target-option</span> <span class="pre">fp64,mgpu</span></code></p>
-<p><img alt="ab2c18f6e0d5452f864220a45ebebf1c" src="../../_images/gate-fuse.png" /></p>
+<p><img alt="24c6e6d026fd4e60a03eb1c4ddc053cc" src="../../_images/gate-fuse.png" /></p>
 <p>The importance of gate fusion is system dependent, but can have a large influence on the performance of the simulation. See the example below for a 24 qubit VQE experiment where changing the fusion level resulted in significant performance boosts.</p>
-<p><img alt="0bd04e5a90d745219e8250d68e981ed6" src="../../_images/gatefusion.png" /></p>
+<p><img alt="5f98277afc8743849ca81a3b4f1d41bb" src="../../_images/gatefusion.png" /></p>
 </section>
 </section>
 
