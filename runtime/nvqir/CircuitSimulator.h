@@ -386,13 +386,12 @@ private:
   /// @brief Reference to the current circuit name.
   std::string currentCircuitName = "";
 
-private:
+protected:
   /// @brief Return true if the simulator is in the tracer mode.
   bool isInTracerMode() const {
     return executionContext && executionContext->name == "tracer";
   }
 
-protected:
   /// @brief The current Execution Context (typically this is null,
   /// sampling, or spin_op observation.
   cudaq::ExecutionContext *executionContext = nullptr;
