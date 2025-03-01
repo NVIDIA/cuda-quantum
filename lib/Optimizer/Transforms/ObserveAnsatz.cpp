@@ -42,7 +42,7 @@ void appendMeasurement(MeasureBasis &basis, OpBuilder &builder, Location &loc,
       llvm::APFloat d(M_PI_2);
       Value rotation =
           builder.create<arith::ConstantFloatOp>(loc, d, builder.getF64Type());
-      auto newOp = builder.create<quake::RyOp>(
+      auto newOp = builder.create<quake::RxOp>(
           loc, TypeRange{wireTy}, /*is_adj=*/false, ValueRange{rotation},
           ValueRange{}, ValueRange{qubit}, DenseBoolArrayAttr{});
       qubit.replaceAllUsesExcept(newOp.getResult(0), newOp);
@@ -57,7 +57,7 @@ void appendMeasurement(MeasureBasis &basis, OpBuilder &builder, Location &loc,
       Value rotation =
           builder.create<arith::ConstantFloatOp>(loc, d, builder.getF64Type());
       SmallVector<Value> params{rotation};
-      builder.create<quake::RyOp>(loc, params, ValueRange{}, targets);
+      builder.create<quake::RxOp>(loc, params, ValueRange{}, targets);
     }
   }
 }
@@ -291,7 +291,9 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
       if (seek == iter->second.qubitValues.end()) {
         auto seekIndexed = iter->second.qubitValuesIndexed.find(i);
         if (seekIndexed == iter->second.qubitValuesIndexed.end())
-          continue;
+          return funcOp.emitError(
+              "ObserveAnsatz could not find the qubit to measure: " +
+              std::to_string(i));
         auto veqOp = seekIndexed->second.first;
         auto index = seekIndexed->second.second;
         auto extractRef =

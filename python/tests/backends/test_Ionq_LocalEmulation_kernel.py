@@ -32,13 +32,32 @@ def test_Ionq_observe():
     cudaq.set_random_seed(13)
 
     @cudaq.kernel
-    def ansatz():
+    def ansatz_x():
         q = cudaq.qvector(1)
 
-    molecule = 5.0 - 1.0 * spin.x(0)
-    res = cudaq.observe(ansatz, molecule, shots_count=10000)
-    print(res.expectation())
-    assert assert_close(5.0, res.expectation())
+    s = cudaq.spin.x(0)
+    res = cudaq.observe(ansatz_x, s, shots_count=10000)
+    assert assert_close(0.0, res.expectation())
+
+    @cudaq.kernel
+    def ansatz_y():
+        q = cudaq.qvector(4)
+        x(q[0])
+
+    s = cudaq.spin.y(3)
+    res = cudaq.observe(ansatz_y, s, shots_count=10000)
+    assert assert_close(0.0, res.expectation())
+
+    @cudaq.kernel
+    def ansatz_z():
+        q = cudaq.qvector(2)
+        x(q[0])
+
+    s = cudaq.spin.z(0) * cudaq.spin.z(1)
+    res = cudaq.observe(ansatz_z, s, shots_count=10000)
+    counts = cudaq.sample(ansatz_z, shots_count=10000)
+
+    assert assert_close(res.expectation(), counts.expectation())
 
 
 def test_Ionq_cudaq_uccsd():
