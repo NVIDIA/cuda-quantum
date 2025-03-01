@@ -292,13 +292,13 @@ if (CUDA_FOUND)
   
   # Create an executable for dynamics UnitTests
   set(CUDAQ_DYNAMICS_TEST_SOURCES 
-    dynamics/test_runge_kutta_integrator.cpp
-    dynamics/test_helpers.cpp
-    dynamics/test_cudm_state.cpp
-    dynamics/test_cudm_time_stepper.cpp
-    dynamics/test_cudm_expectation.cpp
-    dynamics/test_evolve_single.cpp
-    dynamics/test_evolve_api.cpp
+    dynamics/test_RungeKuttaIntegrator.cpp
+    dynamics/test_Helpers.cpp
+    dynamics/test_CuDensityMatState.cpp
+    dynamics/test_CuDensityMatTimeStepper.cpp
+    dynamics/test_CuDensityMatExpectation.cpp
+    dynamics/test_EvolveSingle.cpp
+    dynamics/test_EvolveApi.cpp
   )
   add_executable(test_dynamics main.cpp ${CUDAQ_DYNAMICS_TEST_SOURCES})
   target_compile_definitions(test_dynamics PRIVATE -DCUDAQ_DYNAMICS_TARGET)

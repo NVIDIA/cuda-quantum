@@ -9,7 +9,7 @@
 #include "CuDensityMatContext.h"
 #include "CuDensityMatState.h"
 #include "CuDensityMatTimeStepper.h"
-#include "test_mocks.h"
+#include "test_Mocks.h"
 #include <CuDensityMatErrorHandling.h>
 #include <gtest/gtest.h>
 #include <iostream>

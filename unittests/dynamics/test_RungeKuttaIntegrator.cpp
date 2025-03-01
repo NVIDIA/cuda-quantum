@@ -9,7 +9,7 @@
 #include "CuDensityMatState.h"
 #include "CuDensityMatTimeStepper.h"
 #include "cudaq/dynamics_integrators.h"
-#include "test_mocks.h"
+#include "test_Mocks.h"
 #include <cmath>
 #include <gtest/gtest.h>
 #include <iostream>

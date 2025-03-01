@@ -9,7 +9,7 @@
 #include "CuDensityMatContext.h"
 #include "CuDensityMatState.h"
 #include "common/EigenDense.h"
-#include "test_mocks.h"
+#include "test_Mocks.h"
 #include <CuDensityMatErrorHandling.h>
 #include <CuDensityMatExpectation.h>
 #include <gtest/gtest.h>
@@ -19,7 +19,7 @@
 
 using namespace cudaq;
 
-class CuDensityExpectationTest : public ::testing::Test {
+class CuDensityMatExpectationTest : public ::testing::Test {
 protected:
   cudensitymatHandle_t handle_;
 
@@ -34,7 +34,7 @@ protected:
   }
 };
 
-TEST_F(CuDensityExpectationTest, checkCompute) {
+TEST_F(CuDensityMatExpectationTest, checkCompute) {
   const std::vector<int64_t> dims = {10};
   // Check number operator on boson Fock space
   auto op = cudaq::matrix_operator::number(0);
@@ -56,7 +56,7 @@ TEST_F(CuDensityExpectationTest, checkCompute) {
   }
 }
 
-TEST_F(CuDensityExpectationTest, checkCompositeSystem) {
+TEST_F(CuDensityMatExpectationTest, checkCompositeSystem) {
   const std::vector<int64_t> dims = {2, 10};
   // Check number operator on boson Fock space
   auto op = cudaq::matrix_operator::number(1);
