@@ -425,7 +425,11 @@ public:
         {KrausChannelT::get_key(),
          [](const std::vector<cudaq::real> &params) -> kraus_channel {
            KrausChannelT userChannel(params);
-           userChannel.parameters = params;
+           if constexpr (std::is_same_v<cudaq::real, double>)
+             userChannel.parameters = params;
+           else
+             userChannel.parameters =
+                 std::vector<double>(params.begin(), params.end());
            return userChannel;
          }});
   }
@@ -447,8 +451,27 @@ public:
                     "noise_model. skipping channel application.");
       return kraus_channel();
     }
-    return std::get<std::function<kraus_channel(const std::vector<REAL> &)>>(
-        iter->second)(params);
+
+    if (std::holds_alternative<
+            std::function<kraus_channel(const std::vector<REAL> &)>>(
+            iter->second)) {
+      return std::get<std::function<kraus_channel(const std::vector<REAL> &)>>(
+          iter->second)(params);
+    } else {
+      // Type mismatch, e.g., the model is defined for float but params is
+      // supplied as double.
+      if constexpr (std::is_same_v<REAL, double>) {
+        // Params was double, casted to float
+        return std::get<
+            std::function<kraus_channel(const std::vector<float> &)>>(
+            iter->second)(std::vector<float>(params.begin(), params.end()));
+      } else {
+        // Params was float, casted to double
+        return std::get<
+            std::function<kraus_channel(const std::vector<double> &)>>(
+            iter->second)(std::vector<double>(params.begin(), params.end()));
+      }
+    }
   }
 
   // de-mangled name (with namespaces) for NVQIR C API
@@ -459,8 +482,26 @@ public:
     if (iter == registeredChannels.end())
       throw std::runtime_error(
           "kraus channel not registered with this noise_model.");
-    return std::get<std::function<kraus_channel(const std::vector<REAL> &)>>(
-        iter->second)(params);
+    if (std::holds_alternative<
+            std::function<kraus_channel(const std::vector<REAL> &)>>(
+            iter->second)) {
+      return std::get<std::function<kraus_channel(const std::vector<REAL> &)>>(
+          iter->second)(params);
+    } else {
+      // Type mismatch, e.g., the model is defined for float but params is
+      // supplied as double.
+      if constexpr (std::is_same_v<REAL, double>) {
+        // Params was double, casted to float
+        return std::get<
+            std::function<kraus_channel(const std::vector<float> &)>>(
+            iter->second)(std::vector<float>(params.begin(), params.end()));
+      } else {
+        // Params was float, casted to double
+        return std::get<
+            std::function<kraus_channel(const std::vector<double> &)>>(
+            iter->second)(std::vector<double>(params.begin(), params.end()));
+      }
+    }
   }
 
   /// @brief Add the Kraus channel that applies to a quantum operation on any
