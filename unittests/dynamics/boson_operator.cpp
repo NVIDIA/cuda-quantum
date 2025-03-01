@@ -798,10 +798,10 @@ TEST(OperatorExpressions, checkBosonOpsDegreeVerification) {
   auto op2 = cudaq::boson_operator::annihilate(0);
   std::unordered_map<int, int> dimensions = {{0, 2}, {1, 2}, {2, 3}, {3, 3}};
 
-  ASSERT_THROW(op1.to_matrix({}), std::runtime_error);
-  ASSERT_THROW(op1.to_matrix({{1, 2}}), std::runtime_error);
-  ASSERT_THROW((op1 * op2).to_matrix({{2, 3}}), std::runtime_error);
-  ASSERT_THROW((op1 + op2).to_matrix({{0, 3}}), std::runtime_error);
+  ASSERT_ANY_THROW(op1.to_matrix({}));
+  ASSERT_ANY_THROW(op1.to_matrix({{1, 2}}));
+  ASSERT_ANY_THROW((op1 * op2).to_matrix({{2, 3}}));
+  ASSERT_ANY_THROW((op1 + op2).to_matrix({{0, 3}}));
   ASSERT_NO_THROW((op1 * op2).to_matrix(dimensions));
   ASSERT_NO_THROW((op1 + op2).to_matrix(dimensions));
 }

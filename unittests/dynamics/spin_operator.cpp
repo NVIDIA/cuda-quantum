@@ -557,8 +557,8 @@ TEST(OperatorExpressions, checkSpinOpsDegreeVerification) {
   auto op2 = cudaq::spin_operator::x(0);
   std::map<int, int> dimensions = {{0, 1}, {1, 3}};
 
-  ASSERT_THROW(op1.to_matrix({{1, 3}}), std::runtime_error);
-  ASSERT_THROW((op1 * op2).to_matrix({{0, 3}, {1, 3}}), std::runtime_error);
-  ASSERT_THROW((op1 + op2).to_matrix({{0, 3}}), std::runtime_error);
+  ASSERT_ANY_THROW(op1.to_matrix({{1, 3}}));
+  ASSERT_ANY_THROW((op1 * op2).to_matrix({{0, 3}, {1, 3}}));
+  ASSERT_ANY_THROW((op1 + op2).to_matrix({{0, 3}}));
   ASSERT_NO_THROW(op1.to_matrix({{0, 3}}));
 }

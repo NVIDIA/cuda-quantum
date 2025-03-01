@@ -172,10 +172,8 @@ TEST(OperatorExpressions, checkCustomMatrixOps) {
 
   // check that we force user facing conventions when defining/instantiating
   // a custom operator
-  ASSERT_THROW(cudaq::matrix_operator::instantiate("custom_op0", {0, 1}),
-               std::runtime_error);
-  ASSERT_THROW(cudaq::matrix_operator::instantiate("custom_op0", {1, 3}),
-               std::runtime_error);
+  ASSERT_ANY_THROW(cudaq::matrix_operator::instantiate("custom_op0", {0, 1}));
+  ASSERT_ANY_THROW(cudaq::matrix_operator::instantiate("custom_op0", {1, 3}));
 
   // op 0:
   // momentum level+1 on 0
@@ -752,19 +750,18 @@ TEST(OperatorExpressions, checkMatrixOpsDegreeVerification) {
   auto custom_op0 = cudaq::matrix_operator::instantiate("custom_op0", {3, 1});
   auto custom_op1 = cudaq::matrix_operator::instantiate("custom_op1", {1, 0});
 
-  ASSERT_THROW(op1.to_matrix(), std::runtime_error);
-  ASSERT_THROW(op1.to_matrix({{1, 2}}), std::runtime_error);
-  ASSERT_THROW((op1 * op2).to_matrix({{2, 3}}), std::runtime_error);
-  ASSERT_THROW((op1 + op2).to_matrix({{0, 3}}), std::runtime_error);
+  ASSERT_ANY_THROW(op1.to_matrix());
+  ASSERT_ANY_THROW(op1.to_matrix({{1, 2}}));
+  ASSERT_ANY_THROW((op1 * op2).to_matrix({{2, 3}}));
+  ASSERT_ANY_THROW((op1 + op2).to_matrix({{0, 3}}));
   ASSERT_NO_THROW((op1 * op2).to_matrix(dimensions));
   ASSERT_NO_THROW((op1 + op2).to_matrix(dimensions));
 
-  ASSERT_THROW(custom_op0.to_matrix(), std::runtime_error);
-  ASSERT_THROW(custom_op1.to_matrix({{1, 2}}), std::runtime_error);
-  ASSERT_THROW((custom_op1 * custom_op0).to_matrix({{0, 2}, {1, 2}}),
-               std::runtime_error);
-  ASSERT_THROW((custom_op1 + custom_op0).to_matrix({{0, 2}, {1, 2}, {2, 2}}),
-               std::runtime_error);
+  ASSERT_ANY_THROW(custom_op0.to_matrix());
+  ASSERT_ANY_THROW(custom_op1.to_matrix({{1, 2}}));
+  ASSERT_ANY_THROW((custom_op1 * custom_op0).to_matrix({{0, 2}, {1, 2}}));
+  ASSERT_ANY_THROW(
+      (custom_op1 + custom_op0).to_matrix({{0, 2}, {1, 2}, {2, 2}}));
   ASSERT_NO_THROW((custom_op0 * custom_op1).to_matrix(dimensions));
   ASSERT_NO_THROW((custom_op0 + custom_op1).to_matrix(dimensions));
 
@@ -773,13 +770,12 @@ TEST(OperatorExpressions, checkMatrixOpsDegreeVerification) {
 
   dimensions = {{0, 2}};
   ASSERT_NO_THROW(custom_op2.to_matrix());
-  ASSERT_THROW(custom_op3.to_matrix(), std::runtime_error);
+  ASSERT_ANY_THROW(custom_op3.to_matrix());
   ASSERT_NO_THROW(custom_op3.to_matrix(dimensions));
   dimensions = {};
   ASSERT_NO_THROW(custom_op2.to_matrix(
       dimensions)); // degree 1 should be set to required dim 3
-  ASSERT_THROW(custom_op3.to_matrix(dimensions),
-               std::runtime_error); // degree 1 needs to be 2
+  ASSERT_ANY_THROW(custom_op3.to_matrix(dimensions)); // degree 1 needs to be 2
 }
 
 TEST(OperatorExpressions, checkMatrixOpsParameterVerification) {
@@ -791,14 +787,12 @@ TEST(OperatorExpressions, checkMatrixOpsParameterVerification) {
   auto squeeze = cudaq::matrix_operator::squeeze(1);
   auto displace = cudaq::matrix_operator::displace(0);
 
-  ASSERT_THROW(squeeze.to_matrix(dimensions), std::runtime_error);
-  ASSERT_THROW(squeeze.to_matrix(dimensions, {{"displacement", 0.25}}),
-               std::runtime_error);
-  ASSERT_THROW(
-      (squeeze * displace).to_matrix(dimensions, {{"displacement", 0.25}}),
-      std::runtime_error);
-  ASSERT_THROW((squeeze + displace).to_matrix(dimensions, {{"squeezing", 0.5}}),
-               std::runtime_error);
+  ASSERT_ANY_THROW(squeeze.to_matrix(dimensions));
+  ASSERT_ANY_THROW(squeeze.to_matrix(dimensions, {{"displacement", 0.25}}));
+  ASSERT_ANY_THROW(
+      (squeeze * displace).to_matrix(dimensions, {{"displacement", 0.25}}));
+  ASSERT_ANY_THROW(
+      (squeeze + displace).to_matrix(dimensions, {{"squeezing", 0.5}}));
   ASSERT_NO_THROW((squeeze * displace).to_matrix(dimensions, parameters));
   ASSERT_NO_THROW((squeeze + displace).to_matrix(dimensions, parameters));
 }

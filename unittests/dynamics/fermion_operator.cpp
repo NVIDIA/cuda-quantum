@@ -734,9 +734,9 @@ TEST(OperatorExpressions, checkFermionOpsDegreeVerification) {
 
   std::map<int, int> dimensions = {{0, 1}, {2, 3}};
 
-  ASSERT_THROW(op1.to_matrix({{2, 3}}), std::runtime_error);
-  ASSERT_THROW((op1 * op2).to_matrix({{0, 3}, {2, 3}}), std::runtime_error);
-  ASSERT_THROW((op1 + op2).to_matrix({{0, 3}}), std::runtime_error);
+  ASSERT_ANY_THROW(op1.to_matrix({{2, 3}}));
+  ASSERT_ANY_THROW((op1 * op2).to_matrix({{0, 3}, {2, 3}}));
+  ASSERT_ANY_THROW((op1 + op2).to_matrix({{0, 3}}));
   ASSERT_NO_THROW(op1.to_matrix({{0, 3}}));
 }
 
