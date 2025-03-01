@@ -105,6 +105,28 @@ q3 : ┤ h ├──────────────────────
     assert expected_str == produced_string
 
 
+# This test will run on the default simulator. For machines with GPUs, that
+# will be a GPU-accelerated simulator, but for machines without GPUs, it
+# will run on a CPU simulator.
+def test_draw_with_exp_pauli():
+    @cudaq.kernel
+    def kernel_exp_pauli():
+        q = cudaq.qvector(2)
+        exp_pauli(0.2, q, "ZZ")
+
+
+    expected_str = R"""
+                           
+q0 : ──●────────────────●──
+     ╭─┴─╮╭──────────╮╭─┴─╮
+q1 : ┤ x ├┤ rz(-0.4) ├┤ x ├
+     ╰───╯╰──────────╯╰───╯
+"""
+    expected_str = expected_str[1:]
+    produced_string = cudaq.draw(kernel_exp_pauli)
+    assert expected_str == produced_string
+
+
 def test_draw_hw_target():
 
     @cudaq.kernel
