@@ -152,8 +152,8 @@ cudaq::matrix_2 cudaq::matrix_2::power(int powers) {
 cudaq::matrix_2 cudaq::matrix_2::exponential() {
   auto factorial = [](std::size_t value) {
     auto res = 1;
-    while (value-- > 1)
-      res *= value;
+    while (value > 1)
+      res *= value--;
     return (double)res;
   };
 

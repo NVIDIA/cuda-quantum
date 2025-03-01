@@ -297,16 +297,11 @@ EvalTy product_operator<HandlerTy>::evaluate(
   template void product_operator<HandlerTy>::aggregate_terms(                  \
       HandlerTy &&item1, HandlerTy &&item2, HandlerTy &&item3);
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Winstantiation-after-specialization"
-#endif
+#if !defined(__clang__)
 INSTANTIATE_PRODUCT_PRIVATE_METHODS(matrix_operator);
 INSTANTIATE_PRODUCT_PRIVATE_METHODS(spin_operator);
 INSTANTIATE_PRODUCT_PRIVATE_METHODS(boson_operator);
 INSTANTIATE_PRODUCT_PRIVATE_METHODS(fermion_operator);
-#ifdef __clang__
-#pragma clang diagnostic pop
 #endif
 
 #define INSTANTIATE_PRODUCT_EVALUATE_METHODS(HandlerTy, EvalTy)                \
@@ -371,10 +366,12 @@ scalar_operator product_operator<HandlerTy>::get_coefficient() const {
                                                                                \
   template scalar_operator product_operator<HandlerTy>::get_coefficient() const;
 
+#if !defined(__clang__)
 INSTANTIATE_PRODUCT_PROPERTIES(matrix_operator);
 INSTANTIATE_PRODUCT_PROPERTIES(spin_operator);
 INSTANTIATE_PRODUCT_PROPERTIES(boson_operator);
 INSTANTIATE_PRODUCT_PROPERTIES(fermion_operator);
+#endif
 
 // constructors
 
@@ -517,6 +514,15 @@ product_operator<HandlerTy>::product_operator(
   template product_operator<HandlerTy>::product_operator(                      \
       product_operator<HandlerTy> &&other, int size);
 
+// Note:
+// These are the private constructors needed by friend classes and functions
+// of product_operator. For clang, (only!) these need to be instantiated
+// explicitly to be available to those.
+#define INSTANTIATE_PRODUCT_PRIVATE_CONSTRUCTORS(HandlerTy)                    \
+                                                                               \
+  template product_operator<HandlerTy>::product_operator(                      \
+      scalar_operator coefficient);
+
 template product_operator<matrix_operator>::product_operator(
     const product_operator<spin_operator> &other);
 template product_operator<matrix_operator>::product_operator(
@@ -533,10 +539,17 @@ template product_operator<matrix_operator>::product_operator(
     const product_operator<fermion_operator> &other,
     const matrix_operator::commutation_behavior &behavior);
 
+#if !defined(__clang__)
 INSTANTIATE_PRODUCT_CONSTRUCTORS(matrix_operator);
 INSTANTIATE_PRODUCT_CONSTRUCTORS(spin_operator);
 INSTANTIATE_PRODUCT_CONSTRUCTORS(boson_operator);
 INSTANTIATE_PRODUCT_CONSTRUCTORS(fermion_operator);
+#else
+INSTANTIATE_PRODUCT_PRIVATE_CONSTRUCTORS(matrix_operator);
+INSTANTIATE_PRODUCT_PRIVATE_CONSTRUCTORS(spin_operator);
+INSTANTIATE_PRODUCT_PRIVATE_CONSTRUCTORS(boson_operator);
+INSTANTIATE_PRODUCT_PRIVATE_CONSTRUCTORS(fermion_operator);
+#endif
 
 // assignments
 
@@ -590,10 +603,12 @@ template product_operator<matrix_operator> &
 product_operator<matrix_operator>::operator=(
     const product_operator<fermion_operator> &other);
 
+#if !defined(__clang__)
 INSTANTIATE_PRODUCT_ASSIGNMENTS(matrix_operator);
 INSTANTIATE_PRODUCT_ASSIGNMENTS(spin_operator);
 INSTANTIATE_PRODUCT_ASSIGNMENTS(boson_operator);
 INSTANTIATE_PRODUCT_ASSIGNMENTS(fermion_operator);
+#endif
 
 // evaluations
 
@@ -655,16 +670,11 @@ matrix_2 product_operator<spin_operator>::to_matrix(
       const std::unordered_map<std::string, std::complex<double>> &parameters, \
       bool application_order) const;
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Winstantiation-after-specialization"
-#endif
+#if !defined(__clang__)
 INSTANTIATE_PRODUCT_EVALUATIONS(matrix_operator);
 INSTANTIATE_PRODUCT_EVALUATIONS(spin_operator);
 INSTANTIATE_PRODUCT_EVALUATIONS(boson_operator);
 INSTANTIATE_PRODUCT_EVALUATIONS(fermion_operator);
-#ifdef __clang__
-#pragma clang diagnostic pop
 #endif
 
 // comparisons
@@ -681,10 +691,12 @@ bool product_operator<HandlerTy>::operator==(
   template bool product_operator<HandlerTy>::operator==(                       \
       const product_operator<HandlerTy> &other) const;
 
+#if !defined(__clang__)
 INSTANTIATE_PRODUCT_COMPARISONS(matrix_operator);
 INSTANTIATE_PRODUCT_COMPARISONS(spin_operator);
 INSTANTIATE_PRODUCT_COMPARISONS(boson_operator);
 INSTANTIATE_PRODUCT_COMPARISONS(fermion_operator);
+#endif
 
 // unary operators
 
@@ -719,10 +731,12 @@ product_operator<HandlerTy> product_operator<HandlerTy>::operator+() && {
   template product_operator<HandlerTy>                                         \
   product_operator<HandlerTy>::operator+() &&;
 
+#if !defined(__clang__)
 INSTANTIATE_PRODUCT_UNARY_OPS(matrix_operator);
 INSTANTIATE_PRODUCT_UNARY_OPS(spin_operator);
 INSTANTIATE_PRODUCT_UNARY_OPS(boson_operator);
 INSTANTIATE_PRODUCT_UNARY_OPS(fermion_operator);
+#endif
 
 // right-hand arithmetics
 
@@ -828,10 +842,12 @@ PRODUCT_ADDITION_SCALAR(-);
   template operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(     \
       const scalar_operator &other) &&;
 
+#if !defined(__clang__)
 INSTANTIATE_PRODUCT_RHSIMPLE_OPS(matrix_operator);
 INSTANTIATE_PRODUCT_RHSIMPLE_OPS(spin_operator);
 INSTANTIATE_PRODUCT_RHSIMPLE_OPS(boson_operator);
 INSTANTIATE_PRODUCT_RHSIMPLE_OPS(fermion_operator);
+#endif
 
 template <typename HandlerTy>
 product_operator<HandlerTy> product_operator<HandlerTy>::operator*(
@@ -1009,10 +1025,12 @@ PRODUCT_ADDITION_SUM(-)
   template operator_sum<HandlerTy> product_operator<HandlerTy>::operator-(     \
       operator_sum<HandlerTy> &&other) &&;
 
+#if !defined(__clang__)
 INSTANTIATE_PRODUCT_RHCOMPOSITE_OPS(matrix_operator);
 INSTANTIATE_PRODUCT_RHCOMPOSITE_OPS(spin_operator);
 INSTANTIATE_PRODUCT_RHCOMPOSITE_OPS(boson_operator);
 INSTANTIATE_PRODUCT_RHCOMPOSITE_OPS(fermion_operator);
+#endif
 
 #define PRODUCT_MULTIPLICATION_SCALAR_ASSIGNMENT(op)                           \
   template <typename HandlerTy>                                                \
@@ -1058,10 +1076,12 @@ product_operator<HandlerTy>::operator*=(product_operator<HandlerTy> &&other) {
   product_operator<HandlerTy>::operator*=(                                     \
       product_operator<HandlerTy> &&other);
 
+#if !defined(__clang__)
 INSTANTIATE_PRODUCT_OPASSIGNMENTS(matrix_operator);
 INSTANTIATE_PRODUCT_OPASSIGNMENTS(spin_operator);
 INSTANTIATE_PRODUCT_OPASSIGNMENTS(boson_operator);
 INSTANTIATE_PRODUCT_OPASSIGNMENTS(fermion_operator);
+#endif
 
 // left-hand arithmetics
 
@@ -1234,7 +1254,8 @@ template product_operator<boson_operator>
 operator_handler::identity(int target);
 template product_operator<fermion_operator>
 operator_handler::identity(int target);
-#if defined(CUDAQ_INSTANTIATE_TEMPLATES) && !defined(__clang__)
+
+#if defined(CUDAQ_INSTANTIATE_TEMPLATES)
 template class product_operator<matrix_operator>;
 template class product_operator<spin_operator>;
 template class product_operator<boson_operator>;

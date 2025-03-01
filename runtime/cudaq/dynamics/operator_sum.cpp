@@ -130,16 +130,19 @@ EvalTy operator_sum<HandlerTy>::evaluate(
       product_operator<HandlerTy> &&item2,                                     \
       product_operator<HandlerTy> &&item3);
 
+#if !defined(__clang__)
 INSTANTIATE_SUM_PRIVATE_METHODS(matrix_operator);
 INSTANTIATE_SUM_PRIVATE_METHODS(spin_operator);
 INSTANTIATE_SUM_PRIVATE_METHODS(boson_operator);
 INSTANTIATE_SUM_PRIVATE_METHODS(fermion_operator);
+#endif
 
 #define INSTANTIATE_SUM_EVALUATE_METHODS(HandlerTy, EvalTy)                    \
                                                                                \
   template EvalTy operator_sum<HandlerTy>::evaluate(                           \
       operator_arithmetics<EvalTy> arithmetics) const;
 
+#if !defined(__clang__)
 INSTANTIATE_SUM_EVALUATE_METHODS(matrix_operator,
                                  operator_handler::matrix_evaluation);
 INSTANTIATE_SUM_EVALUATE_METHODS(spin_operator,
@@ -148,6 +151,7 @@ INSTANTIATE_SUM_EVALUATE_METHODS(boson_operator,
                                  operator_handler::matrix_evaluation);
 INSTANTIATE_SUM_EVALUATE_METHODS(fermion_operator,
                                  operator_handler::matrix_evaluation);
+#endif
 
 // read-only properties
 
@@ -199,10 +203,12 @@ operator_sum<HandlerTy>::get_terms() const {
   template std::vector<product_operator<HandlerTy>>                            \
   operator_sum<HandlerTy>::get_terms() const;
 
+#if !defined(__clang__)
 INSTANTIATE_SUM_PROPERTIES(matrix_operator);
 INSTANTIATE_SUM_PROPERTIES(spin_operator);
 INSTANTIATE_SUM_PROPERTIES(boson_operator);
 INSTANTIATE_SUM_PROPERTIES(fermion_operator);
+#endif
 
 // constructors
 
@@ -320,6 +326,18 @@ operator_sum<HandlerTy>::operator_sum(operator_sum<HandlerTy> &&other, int size)
   template operator_sum<HandlerTy>::operator_sum(                              \
       operator_sum<HandlerTy> &&other, int size);
 
+// Note:
+// These are the private constructors needed by friend classes and functions
+// of operator_sum. For clang, (only!) these need to be instantiated explicitly
+// to be available to those.
+#define INSTANTIATE_SUM_PRIVATE_CONSTRUCTORS(HandlerTy)                        \
+                                                                               \
+  template operator_sum<HandlerTy>::operator_sum();                            \
+                                                                               \
+  template operator_sum<HandlerTy>::operator_sum(                              \
+      product_operator<HandlerTy> &&item1,                                     \
+      product_operator<HandlerTy> &&item2);
+
 template operator_sum<matrix_operator>::operator_sum(
     const operator_sum<spin_operator> &other);
 template operator_sum<matrix_operator>::operator_sum(
@@ -336,10 +354,17 @@ template operator_sum<matrix_operator>::operator_sum(
     const operator_sum<fermion_operator> &other,
     const matrix_operator::commutation_behavior &behavior);
 
+#if !defined(__clang__)
 INSTANTIATE_SUM_CONSTRUCTORS(matrix_operator);
 INSTANTIATE_SUM_CONSTRUCTORS(spin_operator);
 INSTANTIATE_SUM_CONSTRUCTORS(boson_operator);
 INSTANTIATE_SUM_CONSTRUCTORS(fermion_operator);
+#else
+INSTANTIATE_SUM_PRIVATE_CONSTRUCTORS(matrix_operator);
+INSTANTIATE_SUM_PRIVATE_CONSTRUCTORS(spin_operator);
+INSTANTIATE_SUM_PRIVATE_CONSTRUCTORS(boson_operator);
+INSTANTIATE_SUM_PRIVATE_CONSTRUCTORS(fermion_operator);
+#endif
 
 // assignments
 
@@ -446,10 +471,12 @@ template operator_sum<matrix_operator> &
 operator_sum<matrix_operator>::operator=(
     const operator_sum<fermion_operator> &other);
 
+#if !defined(__clang__)
 INSTANTIATE_SUM_ASSIGNMENTS(matrix_operator);
 INSTANTIATE_SUM_ASSIGNMENTS(spin_operator);
 INSTANTIATE_SUM_ASSIGNMENTS(boson_operator);
 INSTANTIATE_SUM_ASSIGNMENTS(fermion_operator);
+#endif
 
 // evaluations
 
@@ -515,16 +542,11 @@ matrix_2 operator_sum<spin_operator>::to_matrix(
       const std::unordered_map<std::string, std::complex<double>> &params,     \
       bool application_order) const;
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Winstantiation-after-specialization"
-#endif
+#if !defined(__clang__)
 INSTANTIATE_SUM_EVALUATIONS(matrix_operator);
 INSTANTIATE_SUM_EVALUATIONS(spin_operator);
 INSTANTIATE_SUM_EVALUATIONS(boson_operator);
 INSTANTIATE_SUM_EVALUATIONS(fermion_operator);
-#ifdef __clang__
-#pragma clang diagnostic pop
 #endif
 
 // unary operators
@@ -569,10 +591,12 @@ operator_sum<HandlerTy> operator_sum<HandlerTy>::operator+() && {
                                                                                \
   template operator_sum<HandlerTy> operator_sum<HandlerTy>::operator+() &&;
 
+#if !defined(__clang__)
 INSTANTIATE_SUM_UNARY_OPS(matrix_operator);
 INSTANTIATE_SUM_UNARY_OPS(spin_operator);
 INSTANTIATE_SUM_UNARY_OPS(boson_operator);
 INSTANTIATE_SUM_UNARY_OPS(fermion_operator);
+#endif
 
 // right-hand arithmetics
 
@@ -663,10 +687,12 @@ SUM_ADDITION_SCALAR(-);
   template operator_sum<HandlerTy> operator_sum<HandlerTy>::operator-(         \
       const scalar_operator &other) &&;
 
+#if !defined(__clang__)
 INSTANTIATE_SUM_RHSIMPLE_OPS(matrix_operator);
 INSTANTIATE_SUM_RHSIMPLE_OPS(spin_operator);
 INSTANTIATE_SUM_RHSIMPLE_OPS(boson_operator);
 INSTANTIATE_SUM_RHSIMPLE_OPS(fermion_operator);
+#endif
 
 template <typename HandlerTy>
 operator_sum<HandlerTy> operator_sum<HandlerTy>::operator*(
@@ -839,10 +865,12 @@ SUM_ADDITION_SUM(-);
   template operator_sum<HandlerTy> operator_sum<HandlerTy>::operator-(         \
       operator_sum<HandlerTy> &&other) &&;
 
+#if !defined(__clang__)
 INSTANTIATE_SUM_RHCOMPOSITE_OPS(matrix_operator);
 INSTANTIATE_SUM_RHCOMPOSITE_OPS(spin_operator);
 INSTANTIATE_SUM_RHCOMPOSITE_OPS(boson_operator);
 INSTANTIATE_SUM_RHCOMPOSITE_OPS(fermion_operator);
+#endif
 
 #define SUM_MULTIPLICATION_SCALAR_ASSIGNMENT(op)                               \
                                                                                \
@@ -1003,10 +1031,12 @@ SUM_ADDITION_SUM_ASSIGNMENT(-);
   template operator_sum<HandlerTy> &operator_sum<HandlerTy>::operator-=(       \
       operator_sum<HandlerTy> &&other);
 
+#if !defined(__clang__)
 INSTANTIATE_SUM_OPASSIGNMENTS(matrix_operator);
 INSTANTIATE_SUM_OPASSIGNMENTS(spin_operator);
 INSTANTIATE_SUM_OPASSIGNMENTS(boson_operator);
 INSTANTIATE_SUM_OPASSIGNMENTS(fermion_operator);
+#endif
 
 // left-hand arithmetics
 
@@ -1230,7 +1260,7 @@ template operator_sum<spin_operator> operator_handler::empty();
 template operator_sum<boson_operator> operator_handler::empty();
 template operator_sum<fermion_operator> operator_handler::empty();
 
-#if defined(CUDAQ_INSTANTIATE_TEMPLATES) && !defined(__clang__)
+#if defined(CUDAQ_INSTANTIATE_TEMPLATES)
 template class operator_sum<matrix_operator>;
 template class operator_sum<spin_operator>;
 template class operator_sum<boson_operator>;
