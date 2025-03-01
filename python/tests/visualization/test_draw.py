@@ -115,7 +115,6 @@ def test_draw_with_exp_pauli():
         exp_pauli(0.2, q, "ZZ")
 
 
-    # fmt: off
     expected_str = R"""
                            
 q0 : ──●────────────────●──
@@ -123,12 +122,8 @@ q0 : ──●────────────────●──
 q1 : ┤ x ├┤ rz(-0.4) ├┤ x ├
      ╰───╯╰──────────╯╰───╯
 """
-    # fmt: on
-    # Extra newline added for convenience to match the cleanly formatted expected_str above.
-    # print(cudaq.draw(kernel_exp_pauli))
     expected_str = expected_str[1:]
     produced_string = cudaq.draw(kernel_exp_pauli)
-    print(produced_string, end='')
     assert expected_str == produced_string
 
 
