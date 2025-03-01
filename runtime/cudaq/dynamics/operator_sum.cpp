@@ -330,7 +330,7 @@ operator_sum<HandlerTy>::operator_sum(operator_sum<HandlerTy> &&other, int size)
 // These are the private constructors needed by friend classes and functions
 // of operator_sum. For clang, (only!) these need to be instantiated explicitly
 // to be available to those.
-#define INSTANTIATE_SUM_PRIVATE_CONSTRUCTORS(HandlerTy)                        \
+#define INSTANTIATE_SUM_PRIVATE_FRIEND_CONSTRUCTORS(HandlerTy)                 \
                                                                                \
   template operator_sum<HandlerTy>::operator_sum();                            \
                                                                                \
@@ -360,10 +360,10 @@ INSTANTIATE_SUM_CONSTRUCTORS(spin_operator);
 INSTANTIATE_SUM_CONSTRUCTORS(boson_operator);
 INSTANTIATE_SUM_CONSTRUCTORS(fermion_operator);
 #else
-INSTANTIATE_SUM_PRIVATE_CONSTRUCTORS(matrix_operator);
-INSTANTIATE_SUM_PRIVATE_CONSTRUCTORS(spin_operator);
-INSTANTIATE_SUM_PRIVATE_CONSTRUCTORS(boson_operator);
-INSTANTIATE_SUM_PRIVATE_CONSTRUCTORS(fermion_operator);
+INSTANTIATE_SUM_PRIVATE_FRIEND_CONSTRUCTORS(matrix_operator);
+INSTANTIATE_SUM_PRIVATE_FRIEND_CONSTRUCTORS(spin_operator);
+INSTANTIATE_SUM_PRIVATE_FRIEND_CONSTRUCTORS(boson_operator);
+INSTANTIATE_SUM_PRIVATE_FRIEND_CONSTRUCTORS(fermion_operator);
 #endif
 
 // assignments

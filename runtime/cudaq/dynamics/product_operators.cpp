@@ -282,6 +282,10 @@ EvalTy product_operator<HandlerTy>::evaluate(
   }
 }
 
+// Note:
+// These are the private methods needed by friend classes and functions
+// of product_operator. For clang, (only!) these need to be instantiated
+// explicitly to be available to those.
 #define INSTANTIATE_PRODUCT_PRIVATE_METHODS(HandlerTy)                         \
                                                                                \
   template typename std::vector<HandlerTy>::const_iterator                     \
@@ -297,11 +301,20 @@ EvalTy product_operator<HandlerTy>::evaluate(
   template void product_operator<HandlerTy>::aggregate_terms(                  \
       HandlerTy &&item1, HandlerTy &&item2, HandlerTy &&item3);
 
+#define INSTANTIATE_PRODUCT_PRIVATE_FRIEND_METHODS(HandlerTy)                  \
+                                                                               \
+  template void product_operator<HandlerTy>::insert(HandlerTy &&other);
+
 #if !defined(__clang__)
 INSTANTIATE_PRODUCT_PRIVATE_METHODS(matrix_operator);
 INSTANTIATE_PRODUCT_PRIVATE_METHODS(spin_operator);
 INSTANTIATE_PRODUCT_PRIVATE_METHODS(boson_operator);
 INSTANTIATE_PRODUCT_PRIVATE_METHODS(fermion_operator);
+#else
+INSTANTIATE_PRODUCT_PRIVATE_FRIEND_METHODS(matrix_operator);
+INSTANTIATE_PRODUCT_PRIVATE_FRIEND_METHODS(spin_operator);
+INSTANTIATE_PRODUCT_PRIVATE_FRIEND_METHODS(boson_operator);
+INSTANTIATE_PRODUCT_PRIVATE_FRIEND_METHODS(fermion_operator);
 #endif
 
 #define INSTANTIATE_PRODUCT_EVALUATE_METHODS(HandlerTy, EvalTy)                \
@@ -518,7 +531,7 @@ product_operator<HandlerTy>::product_operator(
 // These are the private constructors needed by friend classes and functions
 // of product_operator. For clang, (only!) these need to be instantiated
 // explicitly to be available to those.
-#define INSTANTIATE_PRODUCT_PRIVATE_CONSTRUCTORS(HandlerTy)                    \
+#define INSTANTIATE_PRODUCT_PRIVATE_FRIEND_CONSTRUCTORS(HandlerTy)             \
                                                                                \
   template product_operator<HandlerTy>::product_operator(                      \
       scalar_operator coefficient);
@@ -545,10 +558,10 @@ INSTANTIATE_PRODUCT_CONSTRUCTORS(spin_operator);
 INSTANTIATE_PRODUCT_CONSTRUCTORS(boson_operator);
 INSTANTIATE_PRODUCT_CONSTRUCTORS(fermion_operator);
 #else
-INSTANTIATE_PRODUCT_PRIVATE_CONSTRUCTORS(matrix_operator);
-INSTANTIATE_PRODUCT_PRIVATE_CONSTRUCTORS(spin_operator);
-INSTANTIATE_PRODUCT_PRIVATE_CONSTRUCTORS(boson_operator);
-INSTANTIATE_PRODUCT_PRIVATE_CONSTRUCTORS(fermion_operator);
+INSTANTIATE_PRODUCT_PRIVATE_FRIEND_CONSTRUCTORS(matrix_operator);
+INSTANTIATE_PRODUCT_PRIVATE_FRIEND_CONSTRUCTORS(spin_operator);
+INSTANTIATE_PRODUCT_PRIVATE_FRIEND_CONSTRUCTORS(boson_operator);
+INSTANTIATE_PRODUCT_PRIVATE_FRIEND_CONSTRUCTORS(fermion_operator);
 #endif
 
 // assignments
