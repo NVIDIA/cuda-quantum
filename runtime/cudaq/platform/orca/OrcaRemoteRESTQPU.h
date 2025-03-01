@@ -108,11 +108,10 @@ public:
     cudaq::getExecutionManager()->setExecutionContext(contexts[tid]);
   }
 
-  /// @brief Overrides resetExecutionContext to forward to the ExecutionManager
+  /// @brief Overrides resetExecutionContext
   void resetExecutionContext() override {
     cudaq::info("OrcaRemoteRESTQPU::resetExecutionContext QPU {}", qpu_id);
     auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
-    cudaq::getExecutionManager()->resetExecutionContext();
     contexts[tid] = nullptr;
     contexts.erase(tid);
   }
