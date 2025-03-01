@@ -151,9 +151,9 @@ cudaq::matrix_2 cudaq::matrix_2::power(int powers) {
 // Calculate the Taylor approximation to the exponential of the given matrix.
 cudaq::matrix_2 cudaq::matrix_2::exponential() {
   auto factorial = [](std::size_t value) {
-    auto res = 1;
-    while (value > 1)
-      res *= value--;
+    std::size_t res = 1;
+    for (std::size_t factor = 2; factor <= value; ++factor)
+      res *= factor;
     return (double)res;
   };
 
