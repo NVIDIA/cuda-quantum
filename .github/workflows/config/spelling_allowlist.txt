@@ -193,6 +193,7 @@ discoverable
 discretization
 discretize
 discretized
+eigenbasis
 eigensolver
 eigensolvers
 eigenstate
@@ -202,6 +203,7 @@ eigenvalues
 eigenvector
 eigenvectors
 endian
+endianness
 enqueue
 enqueues
 enqueuing
