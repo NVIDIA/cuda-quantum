@@ -524,7 +524,7 @@ endfunction()
 
 if(CMAKE_CUDA_COMPILER)
   if (NOT CUDA_TARGET_ARCHS)
-    # Volta, Ampere, Hopper
+    # Volta, Ampere, Hopper (TBA - Blackwell = 100)
     set(CUDA_TARGET_ARCHS  "70;80;90")
   endif()
   CUDA_get_gencode_args(CUDA_gencode_flags ${CUDA_TARGET_ARCHS})

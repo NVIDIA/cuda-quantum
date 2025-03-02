@@ -774,7 +774,7 @@ jobs:
     with:
       cudaq_version: ${{ needs.assets.outputs.cudaq_version }}
       python_versions: "['3.10', '3.11', '3.12']" 
-      cuda_versions: "['', '11.8', '12.0']"
+      cuda_versions: "['', '11.8', '12.8']"
       wheel_artifacts: '*-wheels'
       github_commit: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
@@ -903,7 +903,7 @@ jobs:
     strategy:
       matrix:
         os_image: ['redhat/ubi8:8.0', 'ubuntu:22.04']
-        cuda_version: ['11.8', '12.0']
+        cuda_version: ['11.8', '12.8']
       fail-fast: false
 
     container:
@@ -1098,7 +1098,7 @@ jobs:
 
     strategy:
       matrix:
-        cuda_version: ['11.8', '12.4']
+        cuda_version: ['11.8', '12.8']
       fail-fast: false
 
     # Must have environment to access environment secreats
