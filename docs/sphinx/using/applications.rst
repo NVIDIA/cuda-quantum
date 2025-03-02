@@ -22,6 +22,7 @@ Applications that give an in depth view of CUDA-Q and its applications in Python
     /applications/python/afqmc.ipynb
     /applications/python/quantum_fourier_transform.ipynb
     /applications/python/quantum_teleportation.ipynb
+    /applications/python/quantum_transformer.ipynb
     /applications/python/quantum_volume.ipynb
     /applications/python/readout_error_mitigation.ipynb
     /applications/python/vqe.ipynb
