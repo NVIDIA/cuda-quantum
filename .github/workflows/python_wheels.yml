@@ -296,9 +296,6 @@ jobs:
             while IFS= read -r line; do
               # Replace Python version
               line=$(echo $line | sed -E "s/python(=)?3.[0-9]{1,}/python\1${{ inputs.python_version }}/g")
-              # Replace openmpi version requirement - version 4.0.5 was being installed which was not built with
-              # cuda support, thus causing a seg fault. See https://github.com/NVIDIA/cuda-quantum/issues/2623
-              line=$(echo "$line" | sed -E 's/\bopenmpi\b/openmpi\\>=5.0.7/g')
               # Install the wheel file
               line=${line//pip install cuda-quantum-cu${cuda_major}/pip install ${cudaq_wheel}}
               eval "$line"
