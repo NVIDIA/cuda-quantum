@@ -21,7 +21,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "69f47c12",
+   "id": "9c5434b2",
    "metadata": {},
    "source": [
     "This tutorial follows the implementation of [A Hybrid Transformer Architecture with a Quantized Self-Attention Mechanism Applied to Molecular Generation](https://arxiv.org/abs/2502.19214)"
@@ -45,7 +45,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": 1,
    "id": "87071629",
    "metadata": {},
    "outputs": [],
@@ -162,7 +162,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": 2,
    "id": "b2a6389c",
    "metadata": {},
    "outputs": [],
@@ -180,7 +180,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 2,
+   "execution_count": 3,
    "id": "05d4c2d1",
    "metadata": {},
    "outputs": [],
@@ -188,6 +188,7 @@
     "# This quantum circuit only include token and positional encodings as shown in Figure 3\n",
     "import cudaq\n",
     "\n",
+    "cudaq.set_target(\"nvidia\")\n",
     "\n",
     "@cudaq.kernel\n",
     "def build_sequence_only_circuit(\n",
@@ -228,7 +229,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 3,
+   "execution_count": 4,
    "id": "305af87e",
    "metadata": {},
    "outputs": [
@@ -459,7 +460,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 4,
+   "execution_count": 5,
    "id": "e7262d7c",
    "metadata": {},
    "outputs": [
@@ -510,7 +511,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": 6,
    "id": "b25e1993",
    "metadata": {},
    "outputs": [
@@ -556,7 +557,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 6,
+   "execution_count": 7,
    "id": "25d2ff69",
    "metadata": {},
    "outputs": [
@@ -590,7 +591,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 7,
+   "execution_count": 8,
    "id": "5ce65e98",
    "metadata": {},
    "outputs": [
@@ -649,7 +650,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": 9,
    "id": "fd03bbd6",
    "metadata": {},
    "outputs": [
@@ -695,7 +696,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 9,
+   "execution_count": 10,
    "id": "c11595dc",
    "metadata": {},
    "outputs": [
@@ -762,7 +763,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 10,
+   "execution_count": 11,
    "id": "c23c2acc",
    "metadata": {},
    "outputs": [
@@ -931,7 +932,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": 12,
    "id": "98a37bcb",
    "metadata": {},
    "outputs": [
@@ -1000,7 +1001,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 16,
+   "execution_count": 13,
    "id": "3ed9b804",
    "metadata": {},
    "outputs": [
@@ -1069,7 +1070,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 17,
+   "execution_count": 14,
    "id": "df67639c",
    "metadata": {},
    "outputs": [
@@ -1135,7 +1136,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": 15,
    "id": "228342cb",
    "metadata": {},
    "outputs": [
@@ -1213,7 +1214,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": 16,
    "id": "c178a054",
    "metadata": {},
    "outputs": [
@@ -1271,7 +1272,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 15,
+   "execution_count": 17,
    "id": "d4180138",
    "metadata": {},
    "outputs": [
@@ -1366,7 +1367,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": 18,
    "id": "2d1ad59d",
    "metadata": {},
    "outputs": [
