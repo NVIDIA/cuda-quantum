@@ -38,6 +38,9 @@ public:
   using Dimensions = std::pair<std::size_t, std::size_t>;
 
   matrix_2() = default;
+  matrix_2(std::size_t rows, std::size_t cols)
+      : dimensions(std::make_pair(rows, cols)),
+        data{new std::complex<double>[rows * cols]} {}
   matrix_2(const matrix_2 &other)
       : dimensions{other.dimensions},
         data{new std::complex<double>[get_size(other.dimensions)]} {
@@ -95,6 +98,15 @@ public:
   /// Kronecker of two matrices.
   friend matrix_2 kronecker(const matrix_2 &, const matrix_2 &);
   matrix_2 &kronecker_inplace(const matrix_2 &);
+
+  /// Matrix exponential, uses 20 terms of Taylor Series approximation.
+  matrix_2 exponential();
+
+  /// Matrix power.
+  matrix_2 power(int powers);
+
+  /// Return a square identity matrix for the given size.
+  static matrix_2 identity(const std::size_t rows);
 
   /// Kronecker a list of matrices. The list can be any container that has
   /// iterators defined.
