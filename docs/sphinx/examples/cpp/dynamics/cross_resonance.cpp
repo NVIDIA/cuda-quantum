@@ -27,8 +27,8 @@ int main() {
   // This terms facilitates energy exchange between the qubits, effectively
   // coupling their dynamics.
   double J = 7 * 2 * M_PI;
-  // `m_12` models spurious electromagnetic crosstalk.
-  // Crosstalk is an unwanted interaction , here represented as a fraction of
+  // `m_12` models spurious electromagnetic `crosstalk`.
+  // `Crosstalk` is an unwanted interaction , here represented as a fraction of
   // the drive strength applied to the second qubit.
   double m_12 = 0.2;
   // `Omega` is the drive strength applied to the qubits.
@@ -36,7 +36,7 @@ int main() {
   double Omega = 20 * 2 * M_PI;
 
   // For a spin-1/2 system, the raising operator S^+ and lowering operator S^-
-  // are defined as: S^+ = 0.5 * (X + iY) and S^- = 0.5 * (X - iY) These
+  // are defined as: S^+ = 0.5 * (X + `iY`) and S^- = 0.5 * (X - `iY`) These
   // operators allow transitions between the spin states (|0> and |1>).
   auto spin_plus = [](int degree) {
     return 0.5 *
@@ -58,8 +58,8 @@ int main() {
   // the two qubits, enabling excitation transfer.
   // 3. Drive on qubit 0: Omega * X. A control field that drives transition in
   // qubit 0.
-  // 4. Crosstalk drive on qubit 1: m_12 * Omega * X. A reduces drive on qubit 1
-  // due to electromagnetic crosstalk.
+  // 4. `Crosstalk` drive on qubit 1: m_12 * Omega * X. A reduces drive on qubit
+  // 1 due to electromagnetic `crosstalk`.
   auto hamiltonian =
       (delta / 2.0) * cudaq::spin_operator::z(0) +
       J * (spin_minus(1) * spin_plus(0) + spin_plus(1) * spin_minus(0)) +
@@ -96,7 +96,7 @@ int main() {
       steps, {"t"},
       [](const std::string &, const std::complex<double> &val) { return val; });
 
-  // Use Runge-Kutta integrator (4th order) to solve the time-dependent
+  // Use Runge-`Kutta` integrator (4`th` order) to solve the time-dependent
   // evolution. `dt` is the integration time step, and `order` sets the accuracy
   // of the integrator method.
   std::shared_ptr<cudaq::RungeKuttaIntegrator> integrator =
@@ -112,7 +112,7 @@ int main() {
 
   // Evolution with 2 initial states
   // We evolve the system under the defined Hamiltonian for both initial states
-  // simulataneously. No collapsed operators are provided (closed system
+  // simultaneously. No collapsed operators are provided (closed system
   // evolution). The evolution returns expectation values for all defined
   // observables at each time step.
   auto evolution_results =
@@ -134,7 +134,7 @@ int main() {
     return expectations;
   };
 
-  // For the two evolutions, extract the six observable trajectories.
+  // For the two `evolutions`, extract the six observable trajectories.
   // For the |00> initial state, we extract the expectation trajectories for
   // each observable.
   auto result_00_0 = get_expectation(0, evolution_result_00);
@@ -152,14 +152,14 @@ int main() {
   auto result_10_4 = get_expectation(4, evolution_result_10);
   auto result_10_5 = get_expectation(5, evolution_result_10);
 
-  // Export the results to a CSV file
+  // Export the results to a `CSV` file
   // Export the Z-component of qubit 1's expectation values for both initial
-  // states. The CSV file "cross_resonance_z.csv" will have time versus (Z1)
+  // states. The `CSV` file "cross_resonance_z.`csv`" will have time versus (Z1)
   // data for both |00> and |10> initial conditions.
   export_csv("cross_resonance_z.csv", "time", steps, "<Z1>_00", result_00_5,
              "<Z1>_10", result_10_5);
   // Export the Y-component of qubit 1's expectation values for both initial
-  // states. The CSV file "cross_resonance_y.csv" will have time versus (Y1)
+  // states. The `CSV` file "cross_resonance_y.`csv`" will have time versus (Y1)
   // data.
   export_csv("cross_resonance_y.csv", "time", steps, "<Y1>_00", result_00_4,
              "<Y1>_10", result_10_4);

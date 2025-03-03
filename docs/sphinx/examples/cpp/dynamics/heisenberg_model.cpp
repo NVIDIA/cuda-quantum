@@ -43,7 +43,7 @@ int main() {
   // Build the staggered magnetization operator
   // The staggered magnetization operator is used to measure antiferromagnetic
   // order. It is defined as a sum over all spins of the Z operator, alternating
-  // in sign. For even sites, we add sz; for odd sites, we subtract sz.
+  // in sign. For even sites, we add `sz`; for odd sites, we subtract `sz`.
   auto staggered_magnetization_t = cudaq::matrix_operator::empty();
   for (int i = 0; i < num_spins; i++) {
     auto sz = cudaq::spin_operator::z(i);
@@ -58,7 +58,7 @@ int main() {
   auto stagged_magnetization_op =
       (1 / static_cast<double>(num_spins)) * staggered_magnetization_t;
 
-  // Each entry will associate a value of g (the anisotropy in the Z coupling)
+  // Each entry will associate a value of g (the `anisotropy` in the Z coupling)
   // with its corresponding time-series of expectation values of the staggered
   // magnetization.
   std::vector<std::pair<double, std::vector<double>>> observe_results;
@@ -71,21 +71,21 @@ int main() {
   }
 
   // For three different values of g, which sets the strength of the Z-Z
-  // interaction: g = 0.0 (isotropic in the XY plane), 0.25, and 4.0 (strongly
-  // anisotropy).
+  // interaction: g = 0.0 (isotropic in the `XY` plane), 0.25, and 4.0 (strongly
+  // `anisotropy`).
   std::vector<double> g_values = {0.0, 0.25, 4.0};
 
   for (auto g : g_values) {
     // Set the coupling strengths:
-    // Jx and Jy are set to 1.0 (coupling along X and Y axes), while Jz is set
-    // to the current g value (coupling along the Z axis).
+    // `Jx` and `Jy` are set to 1.0 (coupling along X and Y axes), while `Jz` is
+    // set to the current g value (coupling along the Z axis).
     double Jx = 1.0, Jy = 1.0, Jz = g;
 
     // The Hamiltonian is built from the nearest-neighbor interactions:
-    // H = H + Jx * Sx_i * Sx_{i+1}
-    // H = H + Jy * Sy_i * Sy_{i+1}
-    // H = H + Jz * Sz_i * Sz_{i+1}
-    // This is a form of the anisotropic Heisenberg (or XYZ) model.
+    // H = H + `Jx` * `Sx`_i * `Sx`_{i+1}
+    // H = H + `Jy` * `Sy`_i * `Sy`_{i+1}
+    // H = H + `Jz` * `Sz`_i * `Sz`_{i+1}
+    // This is a form of the `anisotropic` Heisenberg (or `XYZ`) model.
     auto hamiltonian = cudaq::spin_operator::empty();
     for (int i = 0; i < num_spins - 1; i++) {
       hamiltonian = hamiltonian + Jx * cudaq::spin_operator::x(i) *
@@ -112,8 +112,8 @@ int main() {
           return val;
         });
 
-    // Use a Runge-Kutta integrator (4th order) with a small time step dt =
-    // 0.001.
+    // Use a Runge-`Kutta` integrator (4`th` order) with a small time step `dt`
+    // = 0.001.
     std::shared_ptr<cudaq::RungeKuttaIntegrator> integrator =
         std::make_shared<cudaq::RungeKuttaIntegrator>();
     integrator->dt = 0.001;
@@ -146,7 +146,7 @@ int main() {
     return 1;
   }
 
-  // The CSV file "heisenberg_model.csv" will contain column with:
+  // The `CSV` file "`heisenberg`_model.`csv`" will contain column with:
   //    - The time steps
   //    - The expectation values of the staggered magnetization for each g value
   //    (labeled g_0, g_0.25, g_4).

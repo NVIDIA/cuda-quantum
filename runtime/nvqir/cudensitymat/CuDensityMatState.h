@@ -123,8 +123,8 @@ public:
   /// @return GPU device pointer
   void *get_device_pointer() const;
 
-  /// @brief Get a copy of the hilbert space dimensions for the quantum state.
-  /// @return A copy of the hilbert space dimensions of a vector of integers.
+  /// @brief Get a copy of the `hilbert` space dimensions for the quantum state.
+  /// @return A copy of the `hilbert` space dimensions of a vector of integers.
   std::vector<int64_t> get_hilbert_space_dims() const;
 
   /// @brief Returns the handle
