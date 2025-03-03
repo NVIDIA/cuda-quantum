@@ -22,7 +22,7 @@ public:
   Context &operator=(Context const &) = delete;
   ~Context();
 
-  /// @brief Get the cudensitymat handle.
+  /// @brief Get the `cudensitymat` handle.
   /// @return cudensitymatHandle_t Handle to the cudensitymat context.
   cudensitymatHandle_t getHandle() const { return m_cudmHandle; }
 
