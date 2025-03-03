@@ -27,6 +27,7 @@ matrix_2 kronecker(const matrix_2 &, const matrix_2 &);
 template <typename Iterable,
           typename T = typename std::iterator_traits<Iterable>::value_type>
 matrix_2 kronecker(Iterable begin, Iterable end);
+bool operator==(const matrix_2 &, const matrix_2 &);
 
 //===----------------------------------------------------------------------===//
 
@@ -104,6 +105,9 @@ public:
 
   /// Matrix power.
   matrix_2 power(int powers);
+
+  /// Returns the conjugate transpose of a matrix.
+  static matrix_2 adjoint(const matrix_2 &matrix);
 
   /// Return a square identity matrix for the given size.
   static matrix_2 identity(const std::size_t rows);
