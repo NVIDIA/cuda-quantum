@@ -35,6 +35,14 @@ Common
 .. doxygenclass:: cudaq::observe_result
     :members:
 
+.. doxygenstruct:: cudaq::observe_options
+    :members:
+
+.. doxygenfunction:: cudaq::observe(const observe_options &options, QuantumKernel &&kernel, spin_op H, Args &&...args)
+.. doxygenfunction:: cudaq::observe(std::size_t shots, QuantumKernel &&kernel, spin_op H, Args &&...args)
+.. doxygenfunction:: cudaq::observe(QuantumKernel &&kernel, spin_op H, Args &&...args)
+.. doxygenfunction:: cudaq::observe(QuantumKernel &&kernel, const SpinOpContainer &termList, Args &&...args)
+
 .. doxygenclass:: cudaq::ExecutionContext
     :members:
 
@@ -52,6 +60,13 @@ Common
 
 .. doxygenclass:: cudaq::sample_result
     :members:
+
+.. doxygenstruct:: cudaq::sample_options
+    :members:
+
+.. doxygenfunction:: cudaq::sample(const sample_options &options, QuantumKernel &&kernel, Args &&...args)
+.. doxygenfunction:: cudaq::sample(std::size_t shots, QuantumKernel &&kernel, Args &&...args)
+.. doxygenfunction:: cudaq::sample(QuantumKernel &&kernel, Args&&... args)
 
 .. doxygenclass:: cudaq::SimulationState
 
@@ -89,6 +104,8 @@ Common
 
 .. doxygenfunction:: cudaq::draw(QuantumKernel &&kernel, Args&&... args)
 
+.. doxygenfunction:: cudaq::get_state(QuantumKernel &&kernel, Args&&... args)
+
 .. doxygenclass:: cudaq::Resources
 
 .. doxygentypedef:: cudaq::complex_matrix::value_type
@@ -112,6 +129,33 @@ Noise Modeling
     :members:
 
 .. doxygenclass:: cudaq::depolarization_channel
+    :members:
+
+.. doxygenclass:: cudaq::x_error
+    :members:
+
+.. doxygenclass:: cudaq::y_error
+    :members:
+
+.. doxygenclass:: cudaq::z_error
+    :members:
+
+.. doxygenclass:: cudaq::amplitude_damping
+    :members:
+
+.. doxygenclass:: cudaq::phase_damping
+    :members:
+
+.. doxygenclass:: cudaq::pauli1
+    :members:
+
+.. doxygenclass:: cudaq::pauli2
+    :members:
+
+.. doxygenclass:: cudaq::depolarization1
+    :members:
+
+.. doxygenclass:: cudaq::depolarization2
     :members:
 
 .. doxygenclass:: cudaq::noise_model
@@ -174,7 +218,9 @@ Platform
 
 .. doxygenclass:: cudaq::FermioniqBaseQPU
 
-.. doxygenclass:: cudaq::OrcaRemoteRESTQPU 
+.. doxygenclass:: cudaq::OrcaRemoteRESTQPU
+
+.. doxygenclass:: cudaq::PasqalBaseQPU
 
 .. doxygenclass:: cudaq::QuEraBaseQPU
 

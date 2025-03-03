@@ -2,7 +2,7 @@ Using Quantum Hardware Providers
 -----------------------------------
 
 CUDA-Q contains support for using a set of hardware providers (Amazon Braket, 
-IonQ, IQM, OQC, ORCA Computing, Quantinuum and QuEra Computing). 
+Infleqtion, IonQ, IQM, OQC, ORCA Computing, Quantinuum, and QuEra Computing). 
 For more information about executing quantum kernels on different hardware 
 backends, please take a look at :doc:`hardware <../backends/hardware>`.
 
@@ -19,6 +19,21 @@ The following code illustrates how to run kernels on Amazon Braket's backends.
 .. tab:: C++
 
    .. literalinclude:: ../../targets/cpp/braket.cpp
+      :language: cpp
+
+Infleqtion
+==================================
+
+The following code illustrates how to run kernels on Infleqtion's backends.
+
+.. tab:: Python
+
+   .. literalinclude:: ../../targets/python/infleqtion.py
+      :language: python
+
+.. tab:: C++
+
+   .. literalinclude:: ../../targets/cpp/infleqtion.cpp
       :language: cpp
 
 IonQ
@@ -99,7 +114,18 @@ This experiment is performed on ORCA's backends by the code below.
 
    .. literalinclude:: ../../targets/cpp/orca.cpp
       :language: cpp
-      
+
+Pasqal
+==================================
+
+The following code illustrates how to run kernels on Pasqal's backends.
+
+.. tab:: Python
+
+   .. literalinclude:: ../../targets/python/pasqal.py
+      :language: python
+
+
 Quantinuum
 ==================================
 

@@ -157,6 +157,8 @@ Data Types
 .. autoclass:: cudaq.operator.cudm_state.CuDensityMatState
     :members:
 
+.. autoclass:: cudaq.operator.helpers.InitialState
+
 .. autofunction:: cudaq.operator.cudm_state.to_cupy_array
 
 .. autoclass:: cudaq::SampleResult
@@ -216,6 +218,7 @@ Noisy Simulation
 
 .. autoclass:: cudaq::NoiseModel
     :members:
+    :exclude-members: register_channel
     :special-members: __init__
 
 .. autoclass:: cudaq::BitFlipChannel
@@ -233,6 +236,22 @@ Noisy Simulation
 .. autoclass:: cudaq::AmplitudeDampingChannel
     :members:
     :special-members: __init__
+
+.. autoclass:: cudaq::PhaseDamping
+
+.. autoclass:: cudaq::XError
+
+.. autoclass:: cudaq::YError
+
+.. autoclass:: cudaq::ZError
+
+.. autoclass:: cudaq::Pauli1
+
+.. autoclass:: cudaq::Pauli2
+
+.. autoclass:: cudaq::Depolarization1
+
+.. autoclass:: cudaq::Depolarization2
 
 .. autoclass:: cudaq::KrausChannel
     :members:
