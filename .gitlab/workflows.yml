@@ -147,9 +147,10 @@ Installer:
       - os: "os/linux-arm"
         perflab: ["perflab-arm"]
   tags:
-    - $os
-    - $perflab
+    - ${os}
+    - ${perflab}
     - type/docker
+  environment: ${os}/${perflab}
   interruptible: false
   artifacts:
     paths:
