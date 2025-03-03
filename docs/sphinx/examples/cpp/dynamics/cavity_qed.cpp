@@ -32,27 +32,27 @@ int main() {
   auto a_dag = cudaq::boson_operator::create(1);
 
   // For the atom subsystem 0
-  // We create the annihilation (sm) and creation (sm_dag) operators.
+  // We create the annihilation (`sm`) and creation (`sm_dag`) operators.
   // These operators lower and raise the excitation number, respectively.
   auto sm = cudaq::boson_operator::annihilate(0);
   auto sm_dag = cudaq::boson_operator::create(0);
 
   // Number operators
   // These operators count the number of excitations.
-  // For the atom (subsytem 0) and the cavity (subsystem 1) they give the
+  // For the atom (`subsytem` 0) and the cavity (`subsystem` 1) they give the
   // population in each subsystem.
   auto atom_occ_op = cudaq::matrix_operator::number(0);
   auto cavity_occ_op = cudaq::matrix_operator::number(1);
 
   // Hamiltonian
-  // The hamiltonian models the dynamics of the atom-cavity (cavity QED) system
-  // It has 3 parts:
-  // 1. Caity energy: 2 * pi * photon_number_operator -> energy proportional to
+  // The `hamiltonian` models the dynamics of the atom-cavity (cavity QED)
+  // system It has 3 parts:
+  // 1. Cavity energy: 2 * pi * photon_number_operator -> energy proportional to
   // the number of photons.
   // 2. Atomic energy: 2 * pi * atom_number_operator -> energy proportional to
   // the atomic excitation.
-  // 3. Atomic-cavity interaction: 2 * pi * 0.25 * (sm * a_dag + sm_dag * a) ->
-  // represents the exchange of energy between the atom and the cavity. It is
+  // 3. Atomic-cavity interaction: 2 * pi * 0.25 * (`sm` * a_dag + `sm_dag` * a)
+  // -> represents the exchange of energy between the atom and the cavity. It is
   // analogous to the Jaynes-Cummings model in cavity QED.
   auto hamiltonian = (2 * M_PI * cavity_occ_op) + (2 * M_PI * atom_occ_op) +
                      (2 * M_PI * 0.25 * (sm * a_dag + sm_dag * a));
@@ -68,7 +68,7 @@ int main() {
   initial_state_vec[dimensions[0] * num_photons] = 1;
 
   // Define a time evolution schedule
-  // We define a time grid from 0 to 10 (in arbitray time units) with 201 time
+  // We define a time grid from 0 to 10 (in arbitrary time units) with 201 time
   // steps This schedule is used by the integrator to simulate the dynamics.
   const int num_steps = 201;
   std::vector<std::complex<double>> steps;
@@ -84,9 +84,9 @@ int main() {
   auto rho0 = cudaq::state::from_data(initial_state_vec);
 
   // Numerical integrator
-  // Here we choose a Runge-Kutta method for time evolution.
-  // dt defines the time step for the numerical integration, and order 4
-  // indicates a 4th order method.
+  // Here we choose a Runge-`Kutta` method for time evolution.
+  // `dt` defines the time step for the numerical integration, and order 4
+  // indicates a 4`th` order method.
   std::shared_ptr<cudaq::RungeKuttaIntegrator> integrator =
       std::make_shared<cudaq::RungeKuttaIntegrator>();
   integrator->dt = 0.01;
@@ -123,16 +123,16 @@ int main() {
     return expectations;
   };
 
-  // Retrieve expectation values from both the ideal and decaying evolutions.
+  // Retrieve expectation values from both the ideal and decaying `evolutions`.
   auto ideal_result0 = get_expectation(0, evolve_result);
   auto ideal_result1 = get_expectation(1, evolve_result);
   auto decay_result0 = get_expectation(0, evolve_result_decay);
   auto decay_result1 = get_expectation(1, evolve_result_decay);
 
-  // Export the results to CSV files
-  // "cavity_qed_ideal_result.csv" contains the ideal evolution results.
-  // "cavity_qed_decay_result.csv" contains the evolution results with cavity
-  // decay.
+  // Export the results to `CSV` files
+  // "cavity_`qed`_ideal_result.`csv`" contains the ideal evolution results.
+  // "cavity_`qed`_decay_result.`csv`" contains the evolution results with
+  // cavity decay.
   export_csv("cavity_qed_ideal_result.csv", "time", steps,
              "cavity_photon_number", ideal_result0,
              "atom_excitation_probability", ideal_result1);

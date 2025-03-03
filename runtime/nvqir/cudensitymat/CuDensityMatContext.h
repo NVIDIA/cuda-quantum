@@ -23,7 +23,7 @@ public:
   ~Context();
 
   /// @brief Get the `cudensitymat` handle.
-  /// @return cudensitymatHandle_t Handle to the cudensitymat context.
+  /// @return cudensitymatHandle_t Handle to the `cudensitymat` context.
   cudensitymatHandle_t getHandle() const { return m_cudmHandle; }
 
   /// @brief Get the cuBLAS handle.

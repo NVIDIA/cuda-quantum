@@ -22,7 +22,7 @@ int main() {
   double omega_z = 10.0 * 2 * M_PI;
   // Transverse driving term (amplitude of the drive along the X-axis).
   double omega_x = 2 * M_PI;
-  // Driving frequency, chosen to be slightly off-resonance (0.99 og omega_z).
+  // Driving frequency, chosen to be slightly off-resonance (0.99 of omega_z).
   double omega_drive = 0.99 * omega_z;
 
   // The lambda function acts as a callback that returns a modulation factor for
@@ -42,11 +42,11 @@ int main() {
   };
 
   // The Hamiltonian consists of two terms:
-  // 1. A static term: 0.5 * omega_z * Sz_0, representing the qubit's intrinsic
-  // energy splitting.
-  // 2. A time-dependent driving term: omega_x * cos(omega_drive * t) * Sx_0,
-  // which induces rotations about the X-axis. The scalar_operator(mod_func)
-  // allows the drive term to vary in time according to mod_func.
+  // 1. A static term: 0.5 * omega_z * `Sz`_0, representing the `qubit's`
+  // intrinsic energy splitting.
+  // 2. A time-dependent driving term: omega_x * cos(omega_drive * t) * `Sx`_0,
+  // which induces rotations about the X-axis. The scalar_operator(mod_`func`)
+  // allows the drive term to vary in time according to mod_`func`.
   auto hamiltonian =
       0.5 * omega_z * cudaq::spin_operator::z(0) +
       omega_x * cudaq::scalar_operator(mod_func) * cudaq::spin_operator::x(0);
@@ -61,7 +61,7 @@ int main() {
   // Set the final simulation time such that t_final = pi / omega_x, which
   // relates to a specific qubit rotation.
   double t_final = M_PI / omega_x;
-  // Define the integration time step dt as a small fraction of the drive
+  // Define the integration time step `dt` as a small fraction of the drive
   // period.
   double dt = 2.0 * M_PI / omega_drive / 100;
   // Compute the number of steps required for the simulation
@@ -71,20 +71,20 @@ int main() {
   for (double t : cudaq::linspace(0.0, t_final, num_steps)) {
     steps.emplace_back(t, 0.0);
   }
-  // The schedule carries the time parameter labelled `t`, which is used by
-  // mod_func.
+  // The schedule carries the time parameter `labelled` `t`, which is used by
+  // mod_`func`.
   cudaq::Schedule schedule(
       steps, {"t"},
       [](const std::string &, const std::complex<double> &val) { return val; });
 
-  // A Runge-Kutta integrator (4th order) with a small time step dt.
+  // A Runge-`Kutta` integrator (4`th` order) with a small time step `dt`.
   std::shared_ptr<cudaq::RungeKuttaIntegrator> integrator =
       std::make_shared<cudaq::RungeKuttaIntegrator>();
   integrator->dt = dt;
   integrator->order = 4;
 
-  // Measure the expectation values of the qubit's spin components along the X,
-  // Y, and Z directions.
+  // Measure the expectation values of the `qubit's` spin components along the
+  // X, Y, and Z directions.
   auto observables = {cudaq::spin_operator::x(0), cudaq::spin_operator::y(0),
                       cudaq::spin_operator::z(0)};
 
@@ -95,10 +95,10 @@ int main() {
                                      integrator, {}, observables, true);
 
   // Simulation with decoherence
-  // Introduce dephasing (decoherence) through a collapse operator.
-  // Here, gamma_sz = 1.0 is the dephasing rate, and the collapse operator is
-  // sqrt(gamma_sz) * Sz_0 which simulates decoherence in teh energy basis
-  // (Z-basis dephasing).
+  // Introduce `dephasing` (decoherence) through a collapse operator.
+  // Here, gamma_`sz` = 1.0 is the `dephasing` rate, and the collapse operator
+  // is `sqrt`(gamma_`sz`) * `Sz`_0 which simulates decoherence in the energy
+  // basis (Z-basis `dephasing`).
   double gamma_sz = 1.0;
   auto evolve_result_decay = cudaq::evolve(
       hamiltonian, dimensions, schedule, psi0, integrator,
@@ -125,7 +125,7 @@ int main() {
   auto decoherence_result_y = get_expectation(1, evolve_result_decay);
   auto decoherence_result_z = get_expectation(2, evolve_result_decay);
 
-  // Export the results to a CSV file
+  // Export the results to a `CSV` file
   export_csv("qubit_control_ideal_result.csv", "t", steps, "sigma_x",
              ideal_result_x, "sigma_y", ideal_result_y, "sigma_z",
              ideal_result_z);
