@@ -142,10 +142,11 @@ Installer:
   image: $CI_COMMIT_TITLE
   parallel:
     matrix:
-      - os: "os/linux"
-        perflab: ["perflab"]
-      - os: "os/linux-arm"
-        perflab: ["perflab-arm"]
+      include:
+        - os: "os/linux"
+          perflab: ["perflab"]
+        - os: "os/linux-arm"
+          perflab: ["perflab-arm"]
   tags:
     - $os
     - $perflab
