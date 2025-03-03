@@ -32,7 +32,6 @@ template <typename QuantumKernel>
 evolve_result evolve(state initial_state, QuantumKernel &&kernel,
                      const std::vector<spin_op> &observables = {},
                      int shots_count = -1) {
-#if defined(CUDAQ_DYNAMICS_TARGET)
   state final_state =
       get_state(std::forward<QuantumKernel>(kernel), initial_state);
   if (observables.size() == 0)
@@ -47,11 +46,6 @@ evolve_result evolve(state initial_state, QuantumKernel &&kernel,
               observe(shots_count, prepare_state, observable));
   }
   return evolve_result(final_state, final_expectations);
-#else
-  throw std::runtime_error(
-      "cudaq::evolve is only supported on the 'dynamics' target. Please "
-      "recompile your application with '--target dynamics' flag.");
-#endif
 }
 
 /// @brief Evolve from an initial state to the final state and gather
@@ -61,7 +55,6 @@ template <typename QuantumKernel>
 evolve_result evolve(state initial_state, std::vector<QuantumKernel> kernels,
                      const std::vector<std::vector<spin_op>> &observables = {},
                      int shots_count = -1) {
-#if defined(CUDAQ_DYNAMICS_TARGET)
   std::vector<state> intermediate_states = {};
   std::vector<std::vector<observe_result>> expectation_values = {};
   int step_idx = -1;
@@ -89,11 +82,6 @@ evolve_result evolve(state initial_state, std::vector<QuantumKernel> kernels,
   if (step_idx < 0)
     return evolve_result(intermediate_states);
   return evolve_result(intermediate_states, expectation_values);
-#else
-  throw std::runtime_error(
-      "cudaq::evolve is only supported on the 'dynamics' target. Please "
-      "recompile your application with '--target dynamics' flag.");
-#endif
 }
 
 template <typename QuantumKernel>
@@ -103,7 +91,6 @@ evolve_async(state initial_state, QuantumKernel &&kernel,
              std::size_t qpu_id = 0,
              std::optional<cudaq::noise_model> noise_model = std::nullopt,
              int shots_count = -1) {
-#if defined(CUDAQ_DYNAMICS_TARGET)
   auto &platform = cudaq::get_platform();
   std::promise<evolve_result> promise;
   auto f = promise.get_future();
@@ -121,11 +108,6 @@ evolve_async(state initial_state, QuantumKernel &&kernel,
 
   platform.enqueueAsyncTask(qpu_id, wrapped);
   return f;
-#else
-  throw std::runtime_error(
-      "cudaq::evolve is only supported on the 'dynamics' target. Please "
-      "recompile your application with '--target dynamics' flag.");
-#endif
 }
 
 template <typename QuantumKernel>
@@ -135,7 +117,6 @@ evolve_async(state initial_state, std::vector<QuantumKernel> kernels,
              std::size_t qpu_id = 0,
              std::optional<cudaq::noise_model> noise_model = std::nullopt,
              int shots_count = -1) {
-#if defined(CUDAQ_DYNAMICS_TARGET)
   auto &platform = cudaq::get_platform();
   std::promise<evolve_result> promise;
   auto f = promise.get_future();
@@ -152,17 +133,11 @@ evolve_async(state initial_state, std::vector<QuantumKernel> kernels,
 
   platform.enqueueAsyncTask(qpu_id, wrapped);
   return f;
-#else
-  throw std::runtime_error(
-      "cudaq::evolve is only supported on the 'dynamics' target. Please "
-      "recompile your application with '--target dynamics' flag.");
-#endif
 }
 
 inline async_evolve_result
 evolve_async(std::function<evolve_result()> evolveFunctor,
              std::size_t qpu_id = 0) {
-#if defined(CUDAQ_DYNAMICS_TARGET)
   auto &platform = cudaq::get_platform();
   if (qpu_id >= platform.num_qpus()) {
     throw std::invalid_argument(
@@ -178,11 +153,6 @@ evolve_async(std::function<evolve_result()> evolveFunctor,
 
   platform.enqueueAsyncTask(qpu_id, wrapped);
   return f;
-#else
-  throw std::runtime_error(
-      "cudaq::evolve is only supported on the 'dynamics' target. Please "
-      "recompile your application with '--target dynamics' flag.");
-#endif
 }
 
 evolve_result evolveSingle(
