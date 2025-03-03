@@ -191,6 +191,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#iqm">IQM</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#oqc">OQC</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#orca-computing">ORCA Computing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#pasqal">Pasqal</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
 </ul>
@@ -307,6 +308,20 @@
 <li class="toctree-l3"><a class="reference internal" href="quantum_teleportation.html#Teleportation-explained">Teleportation explained</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="quantum_transformer.html">Quantum Transformer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="quantum_transformer.html#Installation">Installation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quantum_transformer.html#Algorithm-and-Example">Algorithm and Example</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="quantum_transformer.html#Creating-the-self-attention-circuits">Creating the self-attention circuits</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="quantum_transformer.html#Usage">Usage</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="quantum_transformer.html#Model-Training">Model Training</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quantum_transformer.html#Generating-Molecules">Generating Molecules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quantum_transformer.html#Attention-Maps">Attention Maps</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="quantum_volume.html">Quantum Volume</a></li>
 <li class="toctree-l2"><a class="reference internal" href="readout_error_mitigation.html">Readout Error Mitigation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="readout_error_mitigation.html#Inverse-confusion-matrix-from-single-qubit-noise-model">Inverse confusion matrix from single-qubit noise model</a></li>
@@ -343,6 +358,14 @@
 <li class="toctree-l3"><a class="reference internal" href="logical_aim_sqale.html#Setting-up-submission-and-decoding-workflow">Setting up submission and decoding workflow</a></li>
 <li class="toctree-l3"><a class="reference internal" href="logical_aim_sqale.html#Running-a-CUDA-Q-noisy-simulation">Running a CUDA-Q noisy simulation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="logical_aim_sqale.html#Running-logical-AIM-on-Infleqtion's-hardware">Running logical AIM on Infleqtion’s hardware</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="adapt_qaoa.html">ADAPT-QAOA algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="adapt_qaoa.html#Simulation-input:">Simulation input:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adapt_qaoa.html#The-problem-Hamiltonian-H_C-of-the-max-cut-graph:">The problem Hamiltonian <span class="math notranslate nohighlight">\(H_C\)</span> of the max-cut graph:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adapt_qaoa.html#Th-operator-pool-A_j:">Th operator pool <span class="math notranslate nohighlight">\(A_j\)</span>:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adapt_qaoa.html#The-commutator-[H_C,A_j]:">The commutator <span class="math notranslate nohighlight">\([H_C,A_j]\)</span>:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adapt_qaoa.html#Beginning-of-ADAPT-QAOA-iteration:">Beginning of ADAPT-QAOA iteration:</a></li>
 </ul>
 </li>
 </ul>
@@ -392,6 +415,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware/neutralatom.html">     Neutral Atom QPUs</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/neutralatom.html#infleqtion">Infleqtion</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/neutralatom.html#pasqal">Pasqal</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/neutralatom.html#quera-computing">QuEra Computing</a></li>
 </ul>
 </li>
@@ -816,7 +840,7 @@ The function is constant
 </section>
 <section id="Quantum-oracles">
 <h2>Quantum oracles<a class="headerlink" href="#Quantum-oracles" title="Permalink to this heading">¶</a></h2>
-<p><img alt="fcdfe65761b1427e96815adf04c1b469" class="no-scaled-link" src="../../_images/oracle.png" style="width: 300px; height: 150px;" /></p>
+<p><img alt="8004f91d600f448499d392be4f77ffb3" class="no-scaled-link" src="../../_images/oracle.png" style="width: 300px; height: 150px;" /></p>
 <p>Suppose we have <span class="math notranslate nohighlight">\(f(x): \{0,1\} \longrightarrow \{0,1\}\)</span>. We can compute this function on a quantum computer using oracles which we treat as black box functions that yield the output with an appropriate sequence of logical gates.</p>
 <p>Above you see an oracle represented as <span class="math notranslate nohighlight">\(U_f\)</span> which allows us to transform the state <span class="math notranslate nohighlight">\(\ket{x}\ket{y}\)</span> into:</p>
 <div class="math notranslate nohighlight">
@@ -864,7 +888,7 @@ U_f\ket{+}\ket{0} &amp;= U_f \tfrac{1}{\sqrt{2}}(\ket{0}+\ket{1}) \ket{0} \\
 <h2>Deutsch’s Algorithm:<a class="headerlink" href="#Deutsch's-Algorithm:" title="Permalink to this heading">¶</a></h2>
 <p>Our aim is to find out if <span class="math notranslate nohighlight">\(f: \{0,1\} \longrightarrow \{0,1\}\)</span> is a constant or a balanced function? If constant, <span class="math notranslate nohighlight">\(f(0) = f(1)\)</span>, and if balanced, <span class="math notranslate nohighlight">\(f(0) \neq f(1)\)</span>.</p>
 <p>We step through the circuit diagram below and follow the math after the application of each gate.</p>
-<p><img alt="b362dec70cd9493bb42ab54f32cb8570" class="no-scaled-link" src="../../_images/deutsch.png" style="width: 500px; height: 210px;" /></p>
+<p><img alt="a43cff6f65c64a668c98b796459d0723" class="no-scaled-link" src="../../_images/deutsch.png" style="width: 500px; height: 210px;" /></p>
 <div class="math notranslate nohighlight">
 \[\ket{\psi_0}  =  \ket{01}
 \tag{1}\]</div>
