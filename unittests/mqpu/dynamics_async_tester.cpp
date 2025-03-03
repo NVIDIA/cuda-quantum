@@ -17,7 +17,14 @@ TEST(DynamicsAsyncTester, checkSimple) {
     const std::map<int, int> dims = {{0, 2}};
     auto ham = 2.0 * M_PI * 0.1 * cudaq::spin_operator::x(0);
     constexpr int numSteps = 10;
-    cudaq::Schedule schedule(cudaq::linspace(0.0, 1.0, numSteps));
+    std::vector<std::complex<double>> steps;
+    for (double t : cudaq::linspace(0.0, 1.0, numSteps)) {
+      steps.emplace_back(t, 0.0);
+    }
+    cudaq::Schedule schedule(
+        steps, {"t"}, [](const std::string &, const std::complex<double> &val) {
+          return val;
+        });
     auto initialState =
         cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
     auto integrator = std::make_shared<cudaq::RungeKuttaIntegrator>();
@@ -36,8 +43,14 @@ TEST(DynamicsAsyncTester, checkSimple) {
   auto jobHandle2 = []() {
     constexpr int N = 10;
     constexpr int numSteps = 101;
-    const auto steps = cudaq::linspace(0, 10, numSteps);
-    cudaq::Schedule schedule(steps);
+    std::vector<std::complex<double>> steps;
+    for (double t : cudaq::linspace(0, 10, numSteps)) {
+      steps.emplace_back(t, 0.0);
+    }
+    cudaq::Schedule schedule(
+        steps, {"t"}, [](const std::string &, const std::complex<double> &val) {
+          return val;
+        });
     auto hamiltonian = cudaq::boson_operator::number(0);
     const std::map<int, int> dimensions{{0, N}};
     std::vector<std::complex<double>> psi0_(N, 0.0);
@@ -106,7 +119,15 @@ TEST(DynamicsAsyncTester, checkInitializerArgs) {
     const std::map<int, int> dims = {{0, 2}};
     auto ham = 2.0 * M_PI * 0.1 * cudaq::spin_operator::x(0);
     constexpr int numSteps = 10;
-    cudaq::Schedule schedule(cudaq::linspace(0.0, 1.0, numSteps));
+    std::vector<std::complex<double>> steps;
+    for (double t : cudaq::linspace(0.0, 1.0, numSteps)) {
+      steps.emplace_back(t, 0.0);
+    }
+    cudaq::Schedule schedule(
+        steps, {"t"}, [](const std::string &, const std::complex<double> &val) {
+          return val;
+        });
+
     auto initialState =
         cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
     auto integrator = std::make_shared<cudaq::RungeKuttaIntegrator>();
@@ -122,8 +143,14 @@ TEST(DynamicsAsyncTester, checkInitializerArgs) {
   auto jobHandle2 = []() {
     constexpr int N = 10;
     constexpr int numSteps = 101;
-    const auto steps = cudaq::linspace(0, 10, numSteps);
-    cudaq::Schedule schedule(steps);
+    std::vector<std::complex<double>> steps;
+    for (double t : cudaq::linspace(0, 10, numSteps)) {
+      steps.emplace_back(t, 0.0);
+    }
+    cudaq::Schedule schedule(
+        steps, {"t"}, [](const std::string &, const std::complex<double> &val) {
+          return val;
+        });
     auto hamiltonian = cudaq::boson_operator::number(0);
     const std::map<int, int> dimensions{{0, N}};
     std::vector<std::complex<double>> psi0_(N, 0.0);
