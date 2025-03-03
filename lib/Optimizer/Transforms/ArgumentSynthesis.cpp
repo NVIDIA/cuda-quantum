@@ -37,7 +37,7 @@ public:
       if (pos == std::string::npos)
         continue;
 
-      StringRef funcName = item.substr(0, pos);
+      std::string funcName = item.substr(0, pos);
       std::string text = item.substr(pos + 1);
 
       auto *op = moduleOp.lookupSymbol(funcName);
