@@ -607,7 +607,8 @@ public:
     }
 
     if (emulate && combineMeasurements)
-      runPassPipeline("func.func(combine-measurements)", moduleOp);
+      for (auto &[name, module] : modules)
+        runPassPipeline("func.func(combine-measurements)", module);
 
     // Get the code gen translation
     auto translation = cudaq::getTranslation(codegenTranslation);

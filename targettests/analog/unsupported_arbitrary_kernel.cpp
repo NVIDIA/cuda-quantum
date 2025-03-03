@@ -13,6 +13,12 @@
 // RUN: if %braket_avail; then not %t.x 2>&1 | FileCheck %s; fi
 // RUN: if %braket_avail; then nvq++ %cpp_std --target quera --emulate %s -o %t.x; fi
 // RUN: if %braket_avail; then not %t.x 2>&1 | FileCheck %s; fi
+
+// RUN: if %pasqal_avail; then nvq++ %cpp_std --target pasqal %s -o %t.x; fi
+// RUN: if %pasqal_avail; then not %t.x 2>&1 | FileCheck %s; fi
+// RUN: if %pasqal_avail; then nvq++ %cpp_std --target pasqal --emulate %s -o %t.x; fi
+// RUN: if %pasqal_avail; then not %t.x 2>&1 | FileCheck %s; fi
+
 // clang-format on
 
 #include <cudaq.h>

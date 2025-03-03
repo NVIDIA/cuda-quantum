@@ -6,26 +6,92 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --canonicalize --cse --observe-ansatz="term-bsf=1,1,0,0" --canonicalize %s | FileCheck %s
+// clang-format off
+// Observing for SpinOp = "x(0)*y(1)*z(2)"
+// RUN: cudaq-opt --canonicalize --cse --observe-ansatz="term-bsf=1,1,0,0,1,1" --canonicalize %s | FileCheck %s
+// clang-format on
 
   func.func @__nvqpp__mlirgen__ansatz(%arg0: f64) {
     %c0_i64 = arith.constant 0 : i64
     %c1_i64 = arith.constant 1 : i64
+    %c2_i64 = arith.constant 2 : i64
     %0 = cc.alloca f64
     cc.store %arg0, %0 : !cc.ptr<f64>
-    %1 = quake.alloca  !quake.veq<2>
-    %2 = quake.extract_ref %1[%c0_i64] : (!quake.veq<2>,i64) -> !quake.ref
+    %1 = quake.alloca  !quake.veq<3>
+    %2 = quake.extract_ref %1[%c0_i64] : (!quake.veq<3>,i64) -> !quake.ref
     quake.x %2 : (!quake.ref) -> ()
     %3 = cc.load %0 : !cc.ptr<f64>
-    %4 = quake.extract_ref %1[%c1_i64] : (!quake.veq<2>,i64) -> !quake.ref
+    %4 = quake.extract_ref %1[%c1_i64] : (!quake.veq<3>,i64) -> !quake.ref
     quake.ry (%3) %4 : (f64, !quake.ref) -> ()
-    %5 = quake.extract_ref %1[%c1_i64] : (!quake.veq<2>,i64) -> !quake.ref
-    %6 = quake.extract_ref %1[%c0_i64] : (!quake.veq<2>,i64) -> !quake.ref
+    %5 = quake.extract_ref %1[%c0_i64] : (!quake.veq<3>,i64) -> !quake.ref
+    %6 = quake.extract_ref %1[%c2_i64] : (!quake.veq<3>,i64) -> !quake.ref
     quake.x [%5] %6 : (!quake.ref,!quake.ref) -> ()
     return
   }
 
-// CHECK: quake.h %
-// CHECK: quake.h %
-// CHECK: %{{.*}} = quake.mz %{{.*}} : (!quake.ref) -> !quake.measure
-// CHECK: %{{.*}} = quake.mz %{{.*}} : (!quake.ref) -> !quake.measure
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__ansatz(%arg0: f64) {
+// CHECK:           quake.h %
+// CHECK:           quake.rx (%
+// CHECK:           %{{.*}} = quake.mz %{{.*}} : (!quake.ref) -> !quake.measure
+// CHECK:           %{{.*}} = quake.mz %{{.*}} : (!quake.ref) -> !quake.measure
+// CHECK:           %{{.*}} = quake.mz %{{.*}} : (!quake.ref) -> !quake.measure
+
+  func.func @test_veq_no_extract_refs() {
+    %0 = quake.alloca !quake.veq<3>
+    return
+  }
+
+// CHECK-LABEL:   func.func @test_veq_no_extract_refs() {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 1.5707963267948966 : f64
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<3>
+// CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_1]][0] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           quake.h %[[VAL_2]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_1]][1] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           quake.rx (%cst) %[[VAL_3]] : (f64, !quake.ref) -> ()
+// CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_1]][2] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           %[[VAL_5:.*]] = quake.mz %[[VAL_2]] name "r00000" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_6:.*]] = quake.mz %[[VAL_3]] name "r00001" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_7:.*]] = quake.mz %[[VAL_4]] name "r00002" : (!quake.ref) -> !quake.measure
+// CHECK:           return
+// CHECK:         }
+
+  func.func @test_veq_no_extract_refs2() {
+    %0 = quake.alloca !quake.ref
+    %1 = quake.alloca !quake.ref
+    %2 = quake.alloca !quake.ref
+    return
+  }
+
+// CHECK-LABEL:   func.func @test_veq_no_extract_refs2() {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 1.5707963267948966 : f64
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.ref
+// CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           quake.rx (%cst) %[[VAL_2]] : (f64, !quake.ref) -> ()
+// CHECK:           %[[VAL_4:.*]] = quake.mz %[[VAL_1]] name "r00000" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_5:.*]] = quake.mz %[[VAL_2]] name "r00001" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_6:.*]] = quake.mz %[[VAL_3]] name "r00002" : (!quake.ref) -> !quake.measure
+// CHECK:           return
+// CHECK:         }
+
+  func.func @test_veq_no_extract_refs3() {
+    %0 = quake.alloca !quake.veq<1>
+    %1 = quake.alloca !quake.veq<2>
+    return
+  }
+
+// CHECK-LABEL:   func.func @test_veq_no_extract_refs3() {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 1.5707963267948966 : f64
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<1>
+// CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_1]][0] : (!quake.veq<1>) -> !quake.ref
+// CHECK:           quake.h %[[VAL_3]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_2]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           quake.rx (%cst) %[[VAL_4]] : (f64, !quake.ref) -> ()
+// CHECK:           %[[VAL_5:.*]] = quake.extract_ref %[[VAL_2]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[VAL_6:.*]] = quake.mz %[[VAL_3]] name "r00000" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_7:.*]] = quake.mz %[[VAL_4]] name "r00001" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_8:.*]] = quake.mz %[[VAL_5]] name "r00002" : (!quake.ref) -> !quake.measure
+// CHECK:           return
+// CHECK:         }

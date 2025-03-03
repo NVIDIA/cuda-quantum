@@ -28,7 +28,7 @@ func.func @test_func2(){
 // CHECK:         %[[VAL_4:.*]] = load %Qubit*, %Qubit** %[[VAL_2]], align 8
 // CHECK:         tail call void @__quantum__qis__h(%Qubit* %[[VAL_4]])
 // CHECK:         %[[VAL_5:.*]] = tail call %[[VAL_6:.*]]* @__quantum__qis__mz(%Qubit* %[[VAL_4]])
-// CHECK:         tail call void @__quantum__qis__sdg(%Qubit* %[[VAL_4]])
+// CHECK:         tail call void @__quantum__qis__s__adj(%Qubit* %[[VAL_4]])
 // CHECK:         tail call void @__quantum__qis__h(%Qubit* %[[VAL_4]])
 // CHECK:         %[[VAL_7:.*]] = tail call %[[VAL_6]]* @__quantum__qis__mz(%Qubit* %[[VAL_4]])
 // CHECK:         tail call void @__quantum__rt__qubit_release_array(%Array* %[[VAL_0]])
