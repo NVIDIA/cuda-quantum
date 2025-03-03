@@ -16,7 +16,7 @@ from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 
 # Operators as defined here (watch out of differences in convention):
-# https://www.dynamiqs.org/python_api/utils/operators/sigmay.html
+# https://www.dynamiqs.org/stable/python_api/utils/operators/create.html
 class operators:
 
     class matrices:
