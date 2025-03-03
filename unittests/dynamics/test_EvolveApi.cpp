@@ -35,8 +35,8 @@ TEST(EvolveAPITester, checkSimple) {
   integrator->dt = 0.001;
   auto result = cudaq::evolve(ham, dims, schedule, initialState, integrator, {},
                               {cudaq::spin_operator::z(0)}, true);
-  EXPECT_TRUE(result.get_expectation_values().has_value());
-  EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
+  EXPECT_NE(result.get_expectation_values().size(), 0);
+  EXPECT_EQ(result.get_expectation_values().size(), numSteps);
 
   std::vector<double> theoryResults;
   for (const auto &t : schedule) {
@@ -45,7 +45,7 @@ TEST(EvolveAPITester, checkSimple) {
   }
 
   int count = 0;
-  for (auto expVals : result.get_expectation_values().value()) {
+  for (auto expVals : result.get_expectation_values()) {
     EXPECT_EQ(expVals.size(), 1);
     EXPECT_NEAR((double)expVals[0], theoryResults[count++], 1e-3);
   }
@@ -73,8 +73,8 @@ TEST(EvolveAPITester, checkCavityModel) {
       hamiltonian, dimensions, schedule, psi0, integrator,
       {std::sqrt(decay_rate) * cudaq::boson_operator::annihilate(0)},
       {hamiltonian}, true);
-  EXPECT_TRUE(result.get_expectation_values().has_value());
-  EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
+  EXPECT_NE(result.get_expectation_values().size(), 0);
+  EXPECT_EQ(result.get_expectation_values().size(), numSteps);
   std::vector<double> theoryResults;
   for (const auto &t : schedule) {
     const double expected = (N - 1) * std::exp(-decay_rate * t.real());
@@ -82,7 +82,7 @@ TEST(EvolveAPITester, checkCavityModel) {
   }
 
   int count = 0;
-  for (auto expVals : result.get_expectation_values().value()) {
+  for (auto expVals : result.get_expectation_values()) {
     EXPECT_EQ(expVals.size(), 1);
     EXPECT_NEAR((double)expVals[0], theoryResults[count++], 1e-3);
   }
@@ -123,8 +123,8 @@ TEST(EvolveAPITester, checkTimeDependent) {
   auto result =
       cudaq::evolve(hamiltonian, dimensions, schedule, psi0, integrator,
                     {collapseOperator}, {hamiltonian}, true);
-  EXPECT_TRUE(result.get_expectation_values().has_value());
-  EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
+  EXPECT_NE(result.get_expectation_values().size(), 0);
+  EXPECT_EQ(result.get_expectation_values().size(), numSteps);
   std::vector<double> theoryResults;
   for (const auto &t : schedule) {
     const double expected =
@@ -133,7 +133,7 @@ TEST(EvolveAPITester, checkTimeDependent) {
   }
 
   int count = 0;
-  for (auto expVals : result.get_expectation_values().value()) {
+  for (auto expVals : result.get_expectation_values()) {
     EXPECT_EQ(expVals.size(), 1);
     std::cout << "Result = " << (double)expVals[0] << "; expected "
               << theoryResults[count] << "\n";
