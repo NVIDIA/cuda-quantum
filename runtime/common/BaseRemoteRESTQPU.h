@@ -466,10 +466,10 @@ public:
         // We pass string references to the `createArgumentSynthesisPass`.
         mlir::SmallVector<std::string> kernels;
         mlir::SmallVector<std::string> substs;
-        for (auto &[kName, kInfo] : argCon.getKernelInfo()) {
+        for (auto &kInfo : argCon.getKernelSubstitutions()) {
           {
-            std::string kernName =
-                cudaq::runtime::cudaqGenPrefixName + kName.str();
+            std::string kernName = cudaq::runtime::cudaqGenPrefixName +
+                                   kInfo.getKernelName().str();
             kernels.emplace_back(kernName);
           }
           {
@@ -482,9 +482,9 @@ public:
 
         // Collect references for the argument synthesis.
         mlir::SmallVector<mlir::StringRef> kernelRefs{kernels.begin(),
-                                                     kernels.end()};
+                                                      kernels.end()};
         mlir::SmallVector<mlir::StringRef> substRefs{substs.begin(),
-                                                         substs.end()};
+                                                     substs.end()};
         pm.addPass(opt::createArgumentSynthesisPass(kernelRefs, substRefs));
         pm.addPass(opt::createDeleteStates());
         pm.addNestedPass<mlir::func::FuncOp>(

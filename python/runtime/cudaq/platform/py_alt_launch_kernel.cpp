@@ -550,10 +550,10 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   // We pass string references to the `createArgumentSynthesisPass`.
   mlir::SmallVector<std::string> kernels;
   mlir::SmallVector<std::string> substs;
-  for (auto &[kName, kInfo] : argCon.getKernelInfo()) {
+  for (auto &kInfo : argCon.getKernelSubstitutions()) {
     {
       std::string kernName =
-          cudaq::runtime::cudaqGenPrefixName + kName.str();
+          cudaq::runtime::cudaqGenPrefixName + kInfo.getKernelName().str();
       kernels.emplace_back(kernName);
     }
     {
@@ -565,10 +565,8 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   }
 
   // Collect references for the argument synthesis.
-  mlir::SmallVector<mlir::StringRef> kernelRefs{kernels.begin(),
-                                               kernels.end()};
-  mlir::SmallVector<mlir::StringRef> substRefs{substs.begin(),
-                                                   substs.end()};
+  mlir::SmallVector<mlir::StringRef> kernelRefs{kernels.begin(), kernels.end()};
+  mlir::SmallVector<mlir::StringRef> substRefs{substs.begin(), substs.end()};
 
   PassManager pm(context);
   pm.addPass(opt::createArgumentSynthesisPass(kernelRefs, substRefs));

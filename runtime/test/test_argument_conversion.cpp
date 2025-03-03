@@ -143,12 +143,12 @@ public:
 extern "C" void __cudaq_deviceCodeHolderAdd(const char *, const char *);
 
 void dumpSubstitutionModules(cudaq::opt::ArgumentConverter &con) {
-  for (auto &[kName, kInfo] : con.getKernelInfo()) {
+  for (auto &kInfo : con.getKernelSubstitutions()) {
     // Dump the conversions
     llvm::outs() << "========================================\n"
                     "Substitution module:\n"
-                << kName << "\n"
-                << kInfo.getSubstitutionModule() << '\n';
+                 << kInfo.getKernelName() << "\n"
+                 << kInfo.getSubstitutionModule() << '\n';
   }
 }
 

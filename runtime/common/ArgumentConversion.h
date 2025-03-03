@@ -19,34 +19,34 @@
 
 namespace cudaq::opt {
 
-  
-class KernelInfo {
-  public:
-    KernelInfo(mlir::OpBuilder builder, mlir::StringRef kernelName)
-    :  kernelName(kernelName) {
-      substModule = builder.create<mlir::ModuleOp>(builder.getUnknownLoc());
-    }
-  
-    /// Some substitutions may generate global constant information. Use this
-    /// interface to access both the substitutions and any global constants
-    /// created.
-    mlir::ModuleOp getSubstitutionModule() {
-      return substModule;
-    }
+class ArgumentConverter;
 
-    /// Get the list of substitutions for this kernel that were generated
-    /// by `ArgumentConverter::gen()`.
-    mlir::SmallVector<cc::ArgumentSubstitutionOp> &getSubstitutions() {
-      return substitutions;
-    }
+class KernelSubstitutionInfo {
+public:
+  KernelSubstitutionInfo(mlir::StringRef kernelName, mlir::ModuleOp substModule)
+      : kernelName(kernelName), substModule(substModule) {}
 
-  private:
-    mlir::ModuleOp substModule;
-    mlir::StringRef kernelName;
-    mlir::SmallVector<cc::ArgumentSubstitutionOp> substitutions;
-  };
+  /// Some substitutions may generate global constant information. Use this
+  /// interface to access both the substitutions and any global constants
+  /// created.
+  mlir::ModuleOp getSubstitutionModule() { return substModule; }
 
-  
+  /// Get the list of substitutions for this kernel that were generated
+  /// by `ArgumentConverter::gen()`.
+  mlir::SmallVector<cc::ArgumentSubstitutionOp> &getSubstitutions() {
+    return substitutions;
+  }
+
+  mlir::StringRef getKernelName() { return kernelName; }
+
+private:
+  mlir::StringRef kernelName;
+  mlir::ModuleOp substModule;
+  mlir::SmallVector<cc::ArgumentSubstitutionOp> substitutions;
+
+  friend ArgumentConverter;
+};
+
 class ArgumentConverter {
 public:
   /// Build an instance to create argument substitutions for a specified \p
@@ -59,7 +59,8 @@ public:
 
   /// Generate a substitution ModuleOp for the vector of arguments presented.
   /// The arguments are those presented to the kernel, kernelName.
-  void gen(mlir::StringRef kernelName, const std::vector<void *> &arguments);
+  void gen(mlir::StringRef kernelName, mlir::ModuleOp sourceModule,
+           const std::vector<void *> &arguments);
 
   /// Generate a substitution ModuleOp but include only the arguments that do
   /// not appear in the set of \p exclusions.
@@ -70,38 +71,38 @@ public:
   /// and thereby exclude them from the substitutions.
   void gen_drop_front(const std::vector<void *> &arguments, unsigned numDrop);
 
-  /// Kernel we are converting the arguments for.
-  mlir::StringRef getKernelName() { return kernelName; }
-
-  /// Get the map of kernel names to their kernel info that
-  /// were collected by `collect()`.
-   mlir::DenseMap<mlir::StringRef, KernelInfo>& getKernelInfo() {
-    return kernelInfo;
+  /// Get the kernel info that were collected by `gen()`.
+  std::list<KernelSubstitutionInfo> &getKernelSubstitutions() {
+    return kernelSubstitutions;
   }
 
   bool isRegisteredKernel(const std::string &kernelName) {
-    return std::find(nameRegistry.begin(), nameRegistry.end(), kernelName) != nameRegistry.end();
+    return std::find(nameRegistry.begin(), nameRegistry.end(), kernelName) !=
+           nameRegistry.end();
   }
 
   std::string &registerKernel(const std::string &kernelName) {
     return nameRegistry.emplace_back(kernelName);
   }
 
-  KernelInfo& addKernelInfo(mlir::StringRef kernelName) {
-    auto [it,b] = kernelInfo.try_emplace(kernelName, std::move(KernelInfo(builder, kernelName)));
-    return it->second;
+private:
+  KernelSubstitutionInfo &addKernelInfo(mlir::StringRef kernelName,
+                                        mlir::ModuleOp substModule) {
+    return kernelSubstitutions.emplace_back(kernelName, substModule);
   }
 
-  private:
   /// Memory to store new kernel names generated during argument conversion.
+  /// Use list here to keep references to those elements valid.
   std::list<std::string> nameRegistry;
 
-  /// Kernel info for kernels we are converting the arguments for, including
-  /// new kernels generated from state arguments.
-  mlir::DenseMap<mlir::StringRef, KernelInfo> kernelInfo;
+  /// Memory to store new kernel info generated during argument conversion.
+  /// Use list here to keep elements sorted in order of creation.
+  std::list<KernelSubstitutionInfo> kernelSubstitutions;
 
+  /// Original module before substitutions.
   mlir::ModuleOp sourceModule;
-  mlir::OpBuilder builder;
+
+  /// Kernel we are substituting the arguments for.
   mlir::StringRef kernelName;
 };
 
