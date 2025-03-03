@@ -24,6 +24,43 @@ namespace cudaq {
 /// @brief Return type for asynchronous `evolve_async`.
 using async_evolve_result = std::future<evolve_result>;
 
+namespace __internal__ {
+template <typename OpTy>
+cudaq::operator_sum<cudaq::matrix_operator> convertOp(const OpTy &op) {
+  if constexpr (std::is_convertible_v<
+                    OpTy, cudaq::product_operator<cudaq::matrix_operator>>) {
+    cudaq::operator_sum<cudaq::matrix_operator> convertedOp(op);
+    return convertedOp;
+  } else if constexpr (std::is_convertible_v<
+                           OpTy, cudaq::operator_sum<cudaq::matrix_operator>>) {
+    return op;
+  } else {
+    throw std::invalid_argument("Invalid operator type: cannot convert type " +
+                                std::string(typeid(op).name()) +
+                                " to cudaq::product_operator or "
+                                "cudaq::operator_sum");
+  }
+}
+
+template <typename OpTy>
+std::vector<cudaq::operator_sum<cudaq::matrix_operator>>
+convertOps(const std::vector<OpTy> &ops) {
+  std::vector<cudaq::operator_sum<cudaq::matrix_operator>> converted;
+  for (const auto &op : ops)
+    converted.emplace_back(convertOp(op));
+  return converted;
+}
+
+template <typename OpTy>
+std::vector<cudaq::operator_sum<cudaq::matrix_operator>>
+convertOps(const std::initializer_list<OpTy> &ops) {
+  std::vector<cudaq::operator_sum<cudaq::matrix_operator>> converted;
+  for (const auto &op : ops)
+    converted.emplace_back(convertOp(op));
+  return converted;
+}
+} // namespace __internal__
+
 template <typename HamTy,
           typename CollapseOpTy = cudaq::operator_sum<cudaq::matrix_operator>,
           typename ObserveOpTy = cudaq::operator_sum<cudaq::matrix_operator>>
@@ -36,116 +73,15 @@ evolve(const HamTy &hamiltonian, const std::map<int, int> &dimensions,
        bool store_intermediate_results = false,
        std::optional<int> shots_count = std::nullopt) {
 #if defined(CUDAQ_DYNAMICS_TARGET)
-  if constexpr (std::is_convertible_v<
-                    HamTy, cudaq::product_operator<cudaq::matrix_operator>>) {
-    cudaq::operator_sum<cudaq::matrix_operator> convertedHam(hamiltonian);
-    if (std::is_convertible_v<
-            CollapseOpTy, cudaq::product_operator<cudaq::matrix_operator>>) {
-      std::vector<cudaq::operator_sum<cudaq::matrix_operator>> cOpConverted;
-      for (const auto &cOp : collapse_operators)
-        cOpConverted.emplace_back(cOp);
-      if (std::is_convertible_v<
-              ObserveOpTy, cudaq::product_operator<cudaq::matrix_operator>>) {
-        std::vector<cudaq::operator_sum<cudaq::matrix_operator>> obsOpConverted;
-        for (const auto &obsOp : observables)
-          obsOpConverted.emplace_back(obsOp);
-        return cudaq::__internal__::evolveSingle(
-            convertedHam, dimensions, schedule, initial_state, *integrator,
-            cOpConverted, obsOpConverted, store_intermediate_results);
-      } else if constexpr (std::is_convertible_v<
-                               ObserveOpTy,
-                               cudaq::operator_sum<cudaq::matrix_operator>>) {
-        return cudaq::__internal__::evolveSingle(
-            convertedHam, dimensions, schedule, initial_state, *integrator,
-            cOpConverted, observables, store_intermediate_results);
-      } else {
-        throw std::invalid_argument("Observe operator type is not convertible "
-                                    "to cudaq::matrix_operator");
-      }
-    } else if constexpr (std::is_convertible_v<
-                             CollapseOpTy,
-                             cudaq::operator_sum<cudaq::matrix_operator>>) {
-      if (std::is_convertible_v<
-              ObserveOpTy, cudaq::product_operator<cudaq::matrix_operator>>) {
-        std::vector<cudaq::operator_sum<cudaq::matrix_operator>> obsOpConverted;
-        for (const auto &obsOp : observables)
-          obsOpConverted.emplace_back(obsOp);
-        return cudaq::__internal__::evolveSingle(
-            convertedHam, dimensions, schedule, initial_state, *integrator,
-            collapse_operators, obsOpConverted, store_intermediate_results);
-      } else if constexpr (std::is_convertible_v<
-                               ObserveOpTy,
-                               cudaq::operator_sum<cudaq::matrix_operator>>) {
-        return cudaq::__internal__::evolveSingle(
-            convertedHam, dimensions, schedule, initial_state, *integrator,
-            collapse_operators, observables, store_intermediate_results);
-      } else {
-        throw std::invalid_argument("Observe operator type is not convertible "
-                                    "to cudaq::matrix_operator");
-      }
-    } else {
-      throw std::invalid_argument("Collapse operator type is not convertible "
-                                  "to cudaq::matrix_operator");
-    }
-  } else if constexpr (std::is_convertible_v<
-                           HamTy,
-                           cudaq::operator_sum<cudaq::matrix_operator>>) {
-    if (std::is_convertible_v<
-            CollapseOpTy, cudaq::product_operator<cudaq::matrix_operator>>) {
-      std::vector<cudaq::operator_sum<cudaq::matrix_operator>> cOpConverted;
-      for (const auto &cOp : collapse_operators)
-        cOpConverted.emplace_back(cOp);
-      if (std::is_convertible_v<
-              ObserveOpTy, cudaq::product_operator<cudaq::matrix_operator>>) {
-        std::vector<cudaq::operator_sum<cudaq::matrix_operator>> obsOpConverted;
-        for (const auto &obsOp : observables)
-          obsOpConverted.emplace_back(obsOp);
-        return cudaq::__internal__::evolveSingle(
-            hamiltonian, dimensions, schedule, initial_state, *integrator,
-            cOpConverted, obsOpConverted, store_intermediate_results);
-      } else if constexpr (std::is_convertible_v<
-                               ObserveOpTy,
-                               cudaq::operator_sum<cudaq::matrix_operator>>) {
-        return cudaq::__internal__::evolveSingle(
-            hamiltonian, dimensions, schedule, initial_state, *integrator,
-            cOpConverted, observables, store_intermediate_results);
-      } else {
-        throw std::invalid_argument("Observe operator type is not convertible "
-                                    "to cudaq::matrix_operator");
-      }
-    } else if constexpr (std::is_convertible_v<
-                             CollapseOpTy,
-                             cudaq::operator_sum<cudaq::matrix_operator>>) {
-      if (std::is_convertible_v<
-              ObserveOpTy, cudaq::product_operator<cudaq::matrix_operator>>) {
-        std::vector<cudaq::operator_sum<cudaq::matrix_operator>> obsOpConverted;
-        for (const auto &obsOp : observables)
-          obsOpConverted.emplace_back(obsOp);
-        return cudaq::__internal__::evolveSingle(
-            hamiltonian, dimensions, schedule, initial_state, *integrator,
-            collapse_operators, obsOpConverted, store_intermediate_results);
-      } else if constexpr (std::is_convertible_v<
-                               ObserveOpTy,
-                               cudaq::operator_sum<cudaq::matrix_operator>>) {
-        return cudaq::__internal__::evolveSingle(
-            hamiltonian, dimensions, schedule, initial_state, *integrator,
-            collapse_operators, observables, store_intermediate_results);
-      } else {
-        throw std::invalid_argument("Observe operator type is not convertible "
-                                    "to cudaq::matrix_operator");
-      }
-    } else {
-      throw std::invalid_argument("Collapse operator type is not convertible "
-                                  "to cudaq::matrix_operator");
-    }
-  } else {
-    throw std::invalid_argument(
-        "Hamiltonian type is not convertible to cudaq::matrix_operator");
-  }
+  return cudaq::__internal__::evolveSingle(
+      cudaq::__internal__::convertOp(hamiltonian), dimensions, schedule,
+      initial_state, *integrator,
+      cudaq::__internal__::convertOps(collapse_operators),
+      cudaq::__internal__::convertOps(observables), store_intermediate_results);
 #else
-  throw std::runtime_error(
-      "cudaq::evolve is only supported on the 'dynamics' target. Please "
-      "recompile your application with '--target dynamics' flag.");
+  static_assert(
+      false, "cudaq::evolve is only supported on the 'dynamics' target. Please "
+             "recompile your application with '--target dynamics' flag.");
 #endif
 }
 
@@ -159,113 +95,11 @@ evolve_result evolve(const HamTy &hamiltonian,
                      bool store_intermediate_results = false,
                      std::optional<int> shots_count = std::nullopt) {
 #if defined(CUDAQ_DYNAMICS_TARGET)
-  if constexpr (std::is_convertible_v<
-                    HamTy, cudaq::product_operator<cudaq::matrix_operator>>) {
-
-    cudaq::operator_sum<cudaq::matrix_operator> convertedHam(hamiltonian);
-    if (std::is_convertible_v<
-            CollapseOpTy, cudaq::product_operator<cudaq::matrix_operator>>) {
-      std::vector<cudaq::operator_sum<cudaq::matrix_operator>> cOpConverted;
-      for (const auto &cOp : collapse_operators)
-        cOpConverted.emplace_back(cOp);
-      if (std::is_convertible_v<
-              ObserveOpTy, cudaq::product_operator<cudaq::matrix_operator>>) {
-        std::vector<cudaq::operator_sum<cudaq::matrix_operator>> obsOpConverted;
-        for (const auto &obsOp : observables)
-          obsOpConverted.emplace_back(obsOp);
-        return cudaq::__internal__::evolveSingle(
-            convertedHam, dimensions, schedule, initial_state, *integrator,
-            cOpConverted, obsOpConverted, store_intermediate_results);
-      } else if constexpr (std::is_convertible_v<
-                               ObserveOpTy,
-                               cudaq::operator_sum<cudaq::matrix_operator>>) {
-        return cudaq::__internal__::evolveSingle(
-            convertedHam, dimensions, schedule, initial_state, *integrator,
-            cOpConverted, observables, store_intermediate_results);
-      } else {
-        throw std::invalid_argument("Observe operator type is not convertible "
-                                    "to cudaq::matrix_operator");
-      }
-    } else if constexpr (std::is_convertible_v<
-                             CollapseOpTy,
-                             cudaq::operator_sum<cudaq::matrix_operator>>) {
-      if (std::is_convertible_v<
-              ObserveOpTy, cudaq::product_operator<cudaq::matrix_operator>>) {
-        std::vector<cudaq::operator_sum<cudaq::matrix_operator>> obsOpConverted;
-        for (const auto &obsOp : observables)
-          obsOpConverted.emplace_back(obsOp);
-        return cudaq::__internal__::evolveSingle(
-            convertedHam, dimensions, schedule, initial_state, *integrator,
-            collapse_operators, obsOpConverted, store_intermediate_results);
-      } else if constexpr (std::is_convertible_v<
-                               ObserveOpTy,
-                               cudaq::operator_sum<cudaq::matrix_operator>>) {
-        return cudaq::__internal__::evolveSingle(
-            convertedHam, dimensions, schedule, initial_state, *integrator,
-            collapse_operators, observables, store_intermediate_results);
-      } else {
-        throw std::invalid_argument("Observe operator type is not convertible "
-                                    "to cudaq::matrix_operator");
-      }
-    } else {
-      throw std::invalid_argument("Collapse operator type is not convertible "
-                                  "to cudaq::matrix_operator");
-    }
-  } else if constexpr (std::is_convertible_v<
-                           HamTy,
-                           cudaq::operator_sum<cudaq::matrix_operator>>) {
-    if (std::is_convertible_v<
-            CollapseOpTy, cudaq::product_operator<cudaq::matrix_operator>>) {
-      std::vector<cudaq::operator_sum<cudaq::matrix_operator>> cOpConverted;
-      for (const auto &cOp : collapse_operators)
-        cOpConverted.emplace_back(cOp);
-      if (std::is_convertible_v<
-              ObserveOpTy, cudaq::product_operator<cudaq::matrix_operator>>) {
-        std::vector<cudaq::operator_sum<cudaq::matrix_operator>> obsOpConverted;
-        for (const auto &obsOp : observables)
-          obsOpConverted.emplace_back(obsOp);
-        return cudaq::__internal__::evolveSingle(
-            hamiltonian, dimensions, schedule, initial_state, *integrator,
-            cOpConverted, obsOpConverted, store_intermediate_results);
-      } else if constexpr (std::is_convertible_v<
-                               ObserveOpTy,
-                               cudaq::operator_sum<cudaq::matrix_operator>>) {
-        return cudaq::__internal__::evolveSingle(
-            hamiltonian, dimensions, schedule, initial_state, *integrator,
-            cOpConverted, observables, store_intermediate_results);
-      } else {
-        throw std::invalid_argument("Observe operator type is not convertible "
-                                    "to cudaq::matrix_operator");
-      }
-    } else if constexpr (std::is_convertible_v<
-                             CollapseOpTy,
-                             cudaq::operator_sum<cudaq::matrix_operator>>) {
-      if (std::is_convertible_v<
-              ObserveOpTy, cudaq::product_operator<cudaq::matrix_operator>>) {
-        std::vector<cudaq::operator_sum<cudaq::matrix_operator>> obsOpConverted;
-        for (const auto &obsOp : observables)
-          obsOpConverted.emplace_back(obsOp);
-        return cudaq::__internal__::evolveSingle(
-            hamiltonian, dimensions, schedule, initial_state, *integrator,
-            collapse_operators, obsOpConverted, store_intermediate_results);
-      } else if constexpr (std::is_convertible_v<
-                               ObserveOpTy,
-                               cudaq::operator_sum<cudaq::matrix_operator>>) {
-        return cudaq::__internal__::evolveSingle(
-            hamiltonian, dimensions, schedule, initial_state, *integrator,
-            collapse_operators, observables, store_intermediate_results);
-      } else {
-        throw std::invalid_argument("Observe operator type is not convertible "
-                                    "to cudaq::matrix_operator");
-      }
-    } else {
-      throw std::invalid_argument("Collapse operator type is not convertible "
-                                  "to cudaq::matrix_operator");
-    }
-  } else {
-    throw std::invalid_argument(
-        "Hamiltonian type is not convertible to cudaq::matrix_operator");
-  }
+  return cudaq::__internal__::evolveSingle(
+      cudaq::__internal__::convertOp(hamiltonian), dimensions, schedule,
+      initial_state, *integrator,
+      cudaq::__internal__::convertOps(collapse_operators),
+      cudaq::__internal__::convertOps(observables), store_intermediate_results);
 #else
   static_assert(
       false, "cudaq::evolve is only supported on the 'dynamics' target. Please "
