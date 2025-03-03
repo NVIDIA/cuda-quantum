@@ -101,5 +101,20 @@ public:
   /// @return The current complex step value as an optional. If no valid step,
   /// returns std::nullopt.
   std::optional<std::complex<double>> current_step() const;
+
+  std::vector<std::complex<double>>::iterator begin();
+  std::vector<std::complex<double>>::iterator end();
+  std::vector<std::complex<double>>::const_iterator begin() const;
+  std::vector<std::complex<double>>::const_iterator end() const;
+
+  /// @brief Get the parameters of the schedule.
+  /// @return The parameters of the schedule.
+  const std::vector<std::string> &get_parameters() const;
+
+  /// @brief Get the value function of the schedule.
+  /// @return The value function of the schedule.
+  const std::function<std::complex<double>(const std::string &,
+                                           const std::complex<double> &)>
+  get_value_function() const;
 };
 } // namespace cudaq

@@ -64,6 +64,23 @@ cudaq::matrix_2 &cudaq::matrix_2::operator-=(const cudaq::matrix_2 &right) {
   return *this;
 }
 
+bool cudaq::operator==(const cudaq::matrix_2 &lhs, const cudaq::matrix_2 &rhs) {
+  if (lhs.get_rows() != rhs.get_rows() ||
+      lhs.get_columns() != rhs.get_columns()) {
+    return false;
+  }
+
+  for (std::size_t i = 0; i < lhs.get_rows(); i++) {
+    for (std::size_t j = 0; j < lhs.get_columns(); j++) {
+      if (lhs[{i, j}] != rhs[{i, j}]) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
 cudaq::matrix_2 &
 cudaq::matrix_2::kronecker_inplace(const cudaq::matrix_2 &right) {
   Dimensions new_dim{get_rows() * right.get_rows(),
@@ -179,5 +196,20 @@ cudaq::matrix_2 cudaq::matrix_2::identity(const std::size_t rows) {
   auto result = cudaq::matrix_2(rows, rows);
   for (std::size_t i = 0; i < rows; i++)
     result[{i, i}] = 1.;
+  return result;
+}
+
+// Transpose + Conjugate
+cudaq::matrix_2 cudaq::matrix_2::adjoint(const matrix_2 &matrix) {
+  std::size_t rows = matrix.get_rows();
+  std::size_t cols = matrix.get_columns();
+  matrix_2 result(cols, rows);
+
+  for (std::size_t i = 0; i < rows; i++) {
+    for (std::size_t j = 0; j < cols; j++) {
+      result[{j, i}] = std::conj(matrix[{i, j}]);
+    }
+  }
+
   return result;
 }

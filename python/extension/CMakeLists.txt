@@ -39,6 +39,9 @@ declare_mlir_dialect_python_bindings(
     dialects/cc.py
   DIALECT_NAME cc)
 
+# FIXME: remove this flag   
+set (CMAKE_CXX_FLAGS "-fPIC ${CMAKE_CXX_FLAGS} -Wno-suggest-override")
+
 declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
   MODULE_NAME _quakeDialects
   ADD_TO_PARENT CUDAQuantumPythonSources

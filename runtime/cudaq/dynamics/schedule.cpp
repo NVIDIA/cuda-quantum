@@ -77,4 +77,32 @@ std::optional<std::complex<double>> Schedule::current_step() const {
   return std::nullopt;
 }
 
+std::vector<std::complex<double>>::iterator Schedule::begin() {
+  return steps.begin();
+}
+
+std::vector<std::complex<double>>::iterator Schedule::end() {
+  return steps.end();
+}
+
+std::vector<std::complex<double>>::const_iterator Schedule::begin() const {
+  return steps.cbegin();
+}
+
+std::vector<std::complex<double>>::const_iterator Schedule::end() const {
+  return steps.cend();
+}
+
+// Get the parameters of the schedule.
+const std::vector<std::string> &Schedule::get_parameters() const {
+  return parameters;
+}
+
+// Get the value function of the schedule.
+const std::function<std::complex<double>(const std::string &,
+                                         const std::complex<double> &)>
+Schedule::get_value_function() const {
+  return value_function;
+}
+
 } // namespace cudaq

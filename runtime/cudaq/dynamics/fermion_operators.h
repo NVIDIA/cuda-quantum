@@ -46,7 +46,7 @@ private:
 
   std::string op_code_to_string() const;
   virtual std::string
-  op_code_to_string(std::unordered_map<int, int> &dimensions) const;
+  op_code_to_string(std::unordered_map<int, int> &dimensions) const override;
 
 #if !defined(NDEBUG)
   // Here to check if my reasoning regarding only ever needing the operators
@@ -64,9 +64,9 @@ public:
 
   const bool &commutes_across_degrees = this->commutes;
 
-  virtual std::string unique_id() const;
+  virtual std::string unique_id() const override;
 
-  virtual std::vector<int> degrees() const;
+  virtual std::vector<int> degrees() const override;
 
   // constructors and destructors
 
@@ -89,9 +89,9 @@ public:
   virtual matrix_2
   to_matrix(std::unordered_map<int, int> &dimensions,
             const std::unordered_map<std::string, std::complex<double>>
-                &parameters = {}) const;
+                &parameters = {}) const override;
 
-  virtual std::string to_string(bool include_degrees) const;
+  virtual std::string to_string(bool include_degrees) const override;
 
   // comparisons
 
