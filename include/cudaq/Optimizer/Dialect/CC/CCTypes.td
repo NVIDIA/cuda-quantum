@@ -83,6 +83,7 @@ def cc_StructType : CCType<"Struct", "struct",
   );
 
   let hasCustomAssemblyFormat = 1;
+  let genVerifyDecl = 1;
 
   let builders = [
     TypeBuilder<(ins CArg<"llvm::StringRef">:$name,
@@ -154,6 +155,7 @@ def cc_ArrayType : CCType<"Array", "array"> {
   );
 
   let hasCustomAssemblyFormat = 1;
+  let genVerifyDecl = 1;
 
   let extraClassDeclaration = [{
     using SizeType = std::int64_t;
@@ -248,6 +250,8 @@ def cc_StdVectorType : CCType<"Stdvec", "stdvec", [],
   let parameters = (ins "mlir::Type":$elementType);
 
   let assemblyFormat = "`<` qualified($elementType) `>`";
+
+  let genVerifyDecl = 1;
 
   let builders = [
     TypeBuilderWithInferredContext<(ins "mlir::Type":$elementType), [{
