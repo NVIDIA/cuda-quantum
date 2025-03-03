@@ -150,7 +150,6 @@ Installer:
     - ${os}
     - ${perflab}
     - type/docker
-  environment: ${os}/${perflab}
   interruptible: false
   artifacts:
     paths:
