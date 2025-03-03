@@ -1,4 +1,4 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "CircuitSimulator.h"
+#include "CuDensityMatErrorHandling.h"
 #include "CuDensityMatState.h"
 #include "cudaq.h"
 #include "cudaq/distributed/mpi_plugin.h"
@@ -80,16 +81,18 @@ public:
   CuDensityMatSim() {
     int numDevices{0};
     HANDLE_CUDA_ERROR(cudaGetDeviceCount(&numDevices));
-    const int deviceId =
-        cudaq::mpi::is_initialized() ? cudaq::mpi::rank() % numDevices : 0;
+    int currentDevice = -1;
+    HANDLE_CUDA_ERROR(cudaGetDevice(&currentDevice));
+    const int deviceId = cudaq::mpi::is_initialized()
+                             ? cudaq::mpi::rank() % numDevices
+                             : currentDevice;
     if (cudaq::mpi::is_initialized())
       initCuDensityMatCommLib();
     HANDLE_CUDA_ERROR(cudaSetDevice(deviceId));
   }
 
   /// The destructor
-  virtual ~CuDensityMatSim() = default;
-
+  virtual ~CuDensityMatSim() {}
   std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
     return std::make_unique<cudaq::CuDensityMatState>();
   }
