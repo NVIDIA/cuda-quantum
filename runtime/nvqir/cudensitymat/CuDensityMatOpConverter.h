@@ -20,7 +20,7 @@ class CuDensityMatOpConverter {
 public:
   CuDensityMatOpConverter(cudensitymatHandle_t handle) : m_handle(handle){};
 
-  /// @brief Convert a matrix operator to a cudensity matrix operator.
+  /// @brief Convert a matrix operator to a `cudensitymat` matrix operator.
   /// @param parameters The parameters of the operator.
   /// @param op The matrix operator to convert.
   /// @param modeExtents The extents of the modes.

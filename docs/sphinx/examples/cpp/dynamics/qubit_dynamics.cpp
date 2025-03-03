@@ -18,7 +18,7 @@
 #include <cudaq.h>
 
 int main() {
-  // Qubit hamiltonian: 2 * pi * 0.1 * sigma_x
+  // Qubit `hamiltonian`: 2 * pi * 0.1 * sigma_x
   // Physically, this represents a qubit (a two-level system) driven by a weak
   // transverse field along the x-axis.
   auto hamiltonian = 2.0 * M_PI * 0.1 * cudaq::spin_operator::x(0);
@@ -39,7 +39,7 @@ int main() {
       steps, {"time"},
       [](const std::string &, const std::complex<double> &val) { return val; });
 
-  // Runge-Kutta integrator with a time step of 0.001 and order 4
+  // Runge-`Kutta` integrator with a time step of 0.001 and order 4
   std::shared_ptr<cudaq::RungeKuttaIntegrator> integrator =
       std::make_shared<cudaq::RungeKuttaIntegrator>();
   integrator->dt = 0.01;
