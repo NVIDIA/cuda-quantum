@@ -104,7 +104,8 @@ public:
     if (intermediate_states.has_value()) {
       return intermediate_states.value();
     } else {
-      throw std::runtime_error("no intermediate states have been computed in the call to evolve");
+      throw std::runtime_error(
+          "no intermediate states have been computed in the call to evolve");
     }
   }
 
