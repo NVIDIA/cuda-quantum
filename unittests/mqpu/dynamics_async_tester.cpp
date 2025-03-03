@@ -62,8 +62,8 @@ TEST(DynamicsAsyncTester, checkSimple) {
     auto result = jobHandle1.get();
     std::cout << "Checking the results from QPU 0\n";
     constexpr int numSteps = 10;
-    EXPECT_TRUE(result.get_expectation_values().has_value());
-    EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
+    EXPECT_NE(result.get_expectation_values().size(), 0);
+    EXPECT_EQ(result.get_expectation_values().size(), numSteps);
     std::vector<double> theoryResults;
     for (const auto &t : cudaq::linspace(0.0, 1.0, numSteps)) {
       const double expected = std::cos(2 * 2.0 * M_PI * 0.1 * t);
@@ -71,7 +71,7 @@ TEST(DynamicsAsyncTester, checkSimple) {
     }
 
     int count = 0;
-    for (auto expVals : result.get_expectation_values().value()) {
+    for (auto expVals : result.get_expectation_values()) {
       EXPECT_EQ(expVals.size(), 1);
       EXPECT_NEAR((double)expVals[0], theoryResults[count++], 1e-3);
     }
@@ -83,8 +83,8 @@ TEST(DynamicsAsyncTester, checkSimple) {
     constexpr double decay_rate = 0.1;
     constexpr int numSteps = 101;
     const auto steps = cudaq::linspace(0, 10, numSteps);
-    EXPECT_TRUE(result.get_expectation_values().has_value());
-    EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
+    EXPECT_NE(result.get_expectation_values().size(), 0);
+    EXPECT_EQ(result.get_expectation_values().size(), numSteps);
     std::vector<double> theoryResults;
     for (const auto &t : steps) {
       const double expected = (N - 1) * std::exp(-decay_rate * t);
@@ -92,7 +92,7 @@ TEST(DynamicsAsyncTester, checkSimple) {
     }
 
     int count = 0;
-    for (auto expVals : result.get_expectation_values().value()) {
+    for (auto expVals : result.get_expectation_values()) {
       EXPECT_EQ(expVals.size(), 1);
       EXPECT_NEAR((double)expVals[0], theoryResults[count++], 1e-3);
     }
@@ -145,8 +145,8 @@ TEST(DynamicsAsyncTester, checkInitializerArgs) {
     auto result = jobHandle1.get();
     std::cout << "Checking the results from QPU 0\n";
     constexpr int numSteps = 10;
-    EXPECT_TRUE(result.get_expectation_values().has_value());
-    EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
+    EXPECT_NE(result.get_expectation_values().size(), 0);
+    EXPECT_EQ(result.get_expectation_values().size(), numSteps);
     std::vector<double> theoryResults;
     for (const auto &t : cudaq::linspace(0.0, 1.0, numSteps)) {
       const double expected = std::cos(2 * 2.0 * M_PI * 0.1 * t);
@@ -154,7 +154,7 @@ TEST(DynamicsAsyncTester, checkInitializerArgs) {
     }
 
     int count = 0;
-    for (auto expVals : result.get_expectation_values().value()) {
+    for (auto expVals : result.get_expectation_values()) {
       EXPECT_EQ(expVals.size(), 1);
       EXPECT_NEAR((double)expVals[0], theoryResults[count++], 1e-3);
     }
@@ -166,8 +166,8 @@ TEST(DynamicsAsyncTester, checkInitializerArgs) {
     constexpr double decay_rate = 0.1;
     constexpr int numSteps = 101;
     const auto steps = cudaq::linspace(0, 10, numSteps);
-    EXPECT_TRUE(result.get_expectation_values().has_value());
-    EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
+    EXPECT_NE(result.get_expectation_values().size(), 0);
+    EXPECT_EQ(result.get_expectation_values().size(), numSteps);
     std::vector<double> theoryResults;
     for (const auto &t : steps) {
       const double expected = (N - 1) * std::exp(-decay_rate * t);
@@ -175,7 +175,7 @@ TEST(DynamicsAsyncTester, checkInitializerArgs) {
     }
 
     int count = 0;
-    for (auto expVals : result.get_expectation_values().value()) {
+    for (auto expVals : result.get_expectation_values()) {
       EXPECT_EQ(expVals.size(), 1);
       EXPECT_NEAR((double)expVals[0], theoryResults[count++], 1e-3);
     }

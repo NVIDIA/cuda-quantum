@@ -100,34 +100,33 @@ public:
     return final_state;
   }
 
-  std::optional<std::vector<state>> get_intermediate_states() {
+  std::vector<state> get_intermediate_states() {
     if (intermediate_states.has_value()) {
-      return intermediate_states;
+      return intermediate_states.value();
     } else {
       throw std::runtime_error("No intermediate states are present!");
     }
   }
 
-  std::optional<std::vector<observe_result>> get_final_expectation_values() {
+  std::vector<observe_result> get_final_expectation_values() {
     if (final_expectation_values.has_value()) {
-      return final_expectation_values;
+      return final_expectation_values.value();
     } else {
       throw std::runtime_error("No final expectation values!");
     }
   }
 
-  std::optional<std::vector<std::vector<observe_result>>>
-  get_expectation_values() {
+  std::vector<std::vector<observe_result>> get_expectation_values() {
     if (expectation_values.has_value()) {
-      return expectation_values;
+      return expectation_values.value();
     } else {
       throw std::runtime_error("No expectation values!");
     }
   }
 
-  std::optional<sample_result> get_sampling_result() {
+  sample_result get_sampling_result() {
     if (sampling_result.has_value()) {
-      return sampling_result;
+      return sampling_result.value();
     } else {
       throw std::runtime_error("No sampling result!");
     }
