@@ -30,7 +30,7 @@ public:
 public:
   RungeKuttaIntegrator();
   void integrate(double targetTime) override;
-  void setState(cudaq::state initialState, double t0) override;
+  void setState(const cudaq::state &initialState, double t0) override;
   std::pair<double, cudaq::state> getState() override;
   void setSystem(const SystemDynamics &system, const cudaq::Schedule &schedule);
 
