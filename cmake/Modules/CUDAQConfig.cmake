@@ -14,6 +14,9 @@ list(APPEND CMAKE_MODULE_PATH "${CUDAQ_CMAKE_DIR}")
 set (CUDAQSpin_DIR "${CUDAQ_CMAKE_DIR}")
 find_dependency(CUDAQSpin REQUIRED)
 
+set (CUDAQOperator_DIR "${CUDAQ_CMAKE_DIR}")
+find_dependency(CUDAQOperator REQUIRED)
+
 set (CUDAQCommon_DIR "${CUDAQ_CMAKE_DIR}")
 find_dependency(CUDAQCommon REQUIRED)
 

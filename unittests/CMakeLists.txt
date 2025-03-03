@@ -67,8 +67,10 @@ macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER)
   endif()
   target_link_libraries(${TEST_EXE_NAME}
     PUBLIC 
-    nvqir-${NVQIR_BACKEND} nvqir  
-    cudaq fmt::fmt-header-only
+    nvqir-${NVQIR_BACKEND}
+    nvqir  
+    cudaq
+    fmt::fmt-header-only
     cudaq-platform-default
     cudaq-builder
     gtest_main)
@@ -257,6 +259,30 @@ target_link_libraries(test_spin
   cudaq-spin
   gtest_main)
 gtest_discover_tests(test_spin)
+
+# Create an executable for operators UnitTests
+set(CUDAQ_OPERATOR_TEST_SOURCES 
+   dynamics/utils.cpp
+   dynamics/scalar_operator.cpp
+   dynamics/matrix_operator.cpp
+   dynamics/spin_operator.cpp
+   dynamics/boson_operator.cpp
+   dynamics/fermion_operator.cpp
+   dynamics/operator_conversions.cpp
+   dynamics/product_operator.cpp
+   dynamics/operator_sum.cpp
+)
+add_executable(test_operators main.cpp ${CUDAQ_OPERATOR_TEST_SOURCES})
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+  target_link_options(test_operators PRIVATE -Wl,--no-as-needed)
+endif()
+target_link_libraries(test_operators
+  PRIVATE
+  cudaq-spin
+  cudaq-operator
+  cudaq
+  gtest_main)
+gtest_discover_tests(test_operators)
 
 add_subdirectory(plugin)
 

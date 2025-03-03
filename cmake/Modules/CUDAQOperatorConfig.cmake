@@ -8,18 +8,6 @@
 
 get_filename_component(CUDAQ_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 
-set (CUDAQEmDefault_DIR "${CUDAQ_CMAKE_DIR}")
-find_dependency(CUDAQEmDefault REQUIRED)
-
-set (CUDAQOperator_DIR "${CUDAQ_CMAKE_DIR}")
-find_dependency(CUDAQOperator REQUIRED)
-
-set (CUDAQSpin_DIR "${CUDAQ_CMAKE_DIR}")
-find_dependency(CUDAQSpin REQUIRED)
-
-set (CUDAQCommon_DIR "${CUDAQ_CMAKE_DIR}")
-find_dependency(CUDAQCommon REQUIRED)
-
-if(NOT TARGET cudaq::cudaq-platform-default)
-  include("${CUDAQ_CMAKE_DIR}/CUDAQPlatformDefaultTargets.cmake")
+if(NOT TARGET cudaq::cudaq-operator)
+  include("${CUDAQ_CMAKE_DIR}/CUDAQOperatorTargets.cmake")
 endif()
