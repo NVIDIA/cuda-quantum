@@ -102,8 +102,7 @@ static Value genConstant(OpBuilder &, cudaq::cc::ArrayType, void *,
 /// Create callee.init_N that initializes the state
 /// Callee (the kernel captured by state):
 // clang-format off
-/// ```mlir
-/// func.func @__nvqpp__mlirgen__callee(%arg0: i64) {
+/// func.func @callee(%arg0: i64) {
 ///   %0 = cc.alloca i64
 ///   cc.store %arg0, %0 : !cc.ptr<i64>
 ///   %1 = cc.load %0 : !cc.ptr<i64>
@@ -119,7 +118,6 @@ static Value genConstant(OpBuilder &, cudaq::cc::ArrayType, void *,
 ///   quake.x %1 : (f64, !quake.ref) -> ()
 ///   return %arg0: !quake.veq<?>
 /// }
-/// ```
 // clang-format on
 static void createInitFunc(OpBuilder &builder, ModuleOp moduleOp,
                            func::FuncOp calleeFunc, StringRef initKernelName) {
@@ -228,7 +226,6 @@ static void createInitFunc(OpBuilder &builder, ModuleOp moduleOp,
 /// initialize the state
 /// Callee: (the kernel captured by state):
 // clang-format off
-/// ```mlir
 /// func.func @callee(%arg0: i64) {
 ///   %0 = cc.alloca i64
 ///   cc.store %arg0, %0 : !cc.ptr<i64>
@@ -246,7 +243,6 @@ static void createInitFunc(OpBuilder &builder, ModuleOp moduleOp,
 ///   %1 = cc.load %0 : !cc.ptr<i64>
 ///   return %1 : i64
 /// }
-/// ```
 // clang-format on
 static void createNumQubitsFunc(OpBuilder &builder, ModuleOp moduleOp,
                                 func::FuncOp calleeFunc,
@@ -327,13 +323,11 @@ static void createNumQubitsFunc(OpBuilder &builder, ModuleOp moduleOp,
 }
 
 static Value genConstant(OpBuilder &builder, const cudaq::state *v,
-                         llvm::DataLayout &layout,
+                         llvm::DataLayout &layout, StringRef kernelName,
+                         ModuleOp substMod,
                          cudaq::opt::ArgumentConverter &converter) {
   auto simState =
       cudaq::state_helper::getSimulationState(const_cast<cudaq::state *>(v));
-
-  auto kernelName = converter.getKernelName();
-  auto substMod = converter.getSubstitutionModule();
 
   // If the state has amplitude data, we materialize the data as a state
   // vector and create a new state from it.
@@ -385,7 +379,6 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
     return builder.create<quake::CreateStateOp>(loc, statePtrTy, buffer,
                                                 arrSize);
   }
-
   // Otherwise (ie quantum hardware, where getting the amplitude data is not
   // efficient) we aim at replacing states with calls to kernels (`callees`)
   // that generated them. This is done in three stages:
@@ -475,6 +468,7 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
    // }
    // ```
   // clang-format on
+
   if (simState->getKernelInfo().has_value()) {
     auto [calleeName, calleeArgs] = simState->getKernelInfo().value();
 
@@ -508,14 +502,12 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
       createNumQubitsFunc(builder, substMod, calleeFunc, numQubitsKernelName);
 
       // Convert arguments for `callee.init_N`.
-      auto &initConverter =
-          cudaq::opt::createChildConverter(converter, initName);
-      initConverter.gen(calleeArgs);
+      auto &registeredInitName = converter.registerKernel(initName);
+      converter.gen(registeredInitName, substMod, calleeArgs);
 
       // Convert arguments for `callee.num_qubits_N`.
-      auto &numQubitsConverter =
-          cudaq::opt::createChildConverter(converter, numQubitsName);
-      numQubitsConverter.gen(calleeArgs);
+      auto &registeredNumQubitsName = converter.registerKernel(numQubitsName);
+      converter.gen(registeredNumQubitsName, substMod, calleeArgs);
     }
 
     // Create a substitution for the state pointer.
@@ -699,29 +691,31 @@ Value genConstant(OpBuilder &builder, cudaq::cc::IndirectCallableType indCallTy,
 
 //===----------------------------------------------------------------------===//
 
-std::list<std::string> cudaq::opt::ArgumentConverter::emptyRegistry;
-
 cudaq::opt::ArgumentConverter::ArgumentConverter(StringRef kernelName,
                                                  ModuleOp sourceModule)
-    : sourceModule(sourceModule), builder(sourceModule.getContext()),
-      kernelName(kernelName), kernelRegistry(emptyRegistry) {
-  substModule = builder.create<ModuleOp>(builder.getUnknownLoc());
-}
-
-cudaq::opt::ArgumentConverter::ArgumentConverter(
-    std::list<std::string> &kernelRegistry, StringRef kernelName,
-    ModuleOp sourceModule)
-    : sourceModule(sourceModule), builder(sourceModule.getContext()),
-      kernelName(kernelName), kernelRegistry(kernelRegistry) {
-  substModule = builder.create<ModuleOp>(builder.getUnknownLoc());
-}
+    : sourceModule(sourceModule), kernelName(kernelName) {}
 
 void cudaq::opt::ArgumentConverter::gen(const std::vector<void *> &arguments) {
-  auto *ctx = builder.getContext();
-  // We should look up the input type signature here.
+  gen(kernelName, sourceModule, arguments);
+}
 
+void cudaq::opt::ArgumentConverter::gen(StringRef kernelName,
+                                        ModuleOp sourceModule,
+                                        const std::vector<void *> &arguments) {
+  auto *ctx = sourceModule.getContext();
+  OpBuilder builder(ctx);
+  ModuleOp substModule =
+      builder.create<mlir::ModuleOp>(builder.getUnknownLoc());
+  auto &kernelInfo = addKernelInfo(kernelName, substModule);
+
+  // We should look up the input type signature here.
   auto fun = sourceModule.lookupSymbol<func::FuncOp>(
       cudaq::runtime::cudaqGenPrefixName + kernelName.str());
+  if (!fun) {
+    throw std::runtime_error("missing fun in argument conversion: " +
+                             kernelName.str());
+  }
+
   FunctionType fromFuncTy = fun.getFunctionType();
   for (auto iter :
        llvm::enumerate(llvm::zip(fromFuncTy.getInputs(), arguments))) {
@@ -789,7 +783,7 @@ void cudaq::opt::ArgumentConverter::gen(const std::vector<void *> &arguments) {
             .Case([&](cc::PointerType ptrTy) -> cc::ArgumentSubstitutionOp {
               if (ptrTy.getElementType() == cc::StateType::get(ctx))
                 return buildSubst(static_cast<const state *>(argPtr),
-                                  dataLayout, *this);
+                                  dataLayout, kernelName, substModule, *this);
               return {};
             })
             .Case([&](cc::StdvecType ty) {
@@ -807,7 +801,7 @@ void cudaq::opt::ArgumentConverter::gen(const std::vector<void *> &arguments) {
             })
             .Default({});
     if (subst)
-      substitutions.emplace_back(std::move(subst));
+      kernelInfo.getSubstitutions().emplace_back(std::move(subst));
   }
 }
 
@@ -841,12 +835,4 @@ void cudaq::opt::ArgumentConverter::gen_drop_front(
     partialArgs.push_back(arg);
   }
   gen(partialArgs);
-}
-
-cudaq::opt::ArgumentConverter &
-cudaq::opt::createChildConverter(cudaq::opt::ArgumentConverter &parent,
-                                 std::string &calleeName) {
-  // Store the name in the kernel name cache before referencing it.
-  auto &name = parent.registerKernel(calleeName);
-  return parent.createCalleeConverter(name);
 }

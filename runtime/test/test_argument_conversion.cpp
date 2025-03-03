@@ -142,20 +142,14 @@ public:
 
 extern "C" void __cudaq_deviceCodeHolderAdd(const char *, const char *);
 
-void dumpSubstitutionModules(cudaq::opt::ArgumentConverter &ab) {
-  std::function<void(cudaq::opt::ArgumentConverter &)> dump =
-      [&dump](cudaq::opt::ArgumentConverter &con) {
-        // Dump the conversions
-        llvm::outs() << "========================================\n"
-                        "Substitution module:\n"
-                     << con.getKernelName() << "\n"
-                     << con.getSubstitutionModule() << '\n';
-
-        for (auto &calleeCon : con.getCalleeConverters())
-          dump(calleeCon);
-      };
-
-  dump(ab);
+void dumpSubstitutionModules(cudaq::opt::ArgumentConverter &con) {
+  for (auto &kInfo : con.getKernelSubstitutions()) {
+    // Dump the conversions
+    llvm::outs() << "========================================\n"
+                    "Substitution module:\n"
+                 << kInfo.getKernelName() << "\n"
+                 << kInfo.getSubstitutionModule() << '\n';
+  }
 }
 
 void doSimpleTest(mlir::MLIRContext *ctx, const std::string &typeName,
