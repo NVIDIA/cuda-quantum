@@ -112,7 +112,8 @@ public:
     if (final_expectation_values.has_value()) {
       return final_expectation_values.value();
     } else {
-      throw std::runtime_error("No final expectation values!");
+      throw std::runtime_error("no final expectation values have been computed "
+                               "in the call to evolve!");
     }
   }
 
@@ -120,7 +121,8 @@ public:
     if (expectation_values.has_value()) {
       return expectation_values.value();
     } else {
-      throw std::runtime_error("No expectation values!");
+      throw std::runtime_error(
+          "no expectation values have been computed in the call to evolve!");
     }
   }
 
@@ -128,7 +130,7 @@ public:
     if (sampling_result.has_value()) {
       return sampling_result.value();
     } else {
-      throw std::runtime_error("No sampling result!");
+      throw std::runtime_error("no sampling result for non-hardware provider!");
     }
   }
 
