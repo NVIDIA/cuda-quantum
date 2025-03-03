@@ -1,0 +1,220 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --convert-to-qir-api=api=base-profile %s | FileCheck %s
+
+module attributes {cc.sizeof_string = 32 : i64, llvm.data_layout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128", llvm.triple = "x86_64-unknown-linux-gnu", quake.mangled_name_map = {__nvqpp__mlirgen__function_grover._Z6groverv = "_Z6groverv", __nvqpp__mlirgen__function_oracle._Z6oracleRN5cudaq7qvectorILm2EEERNS_5quditILm2EEE = "_Z6oracleRN5cudaq7qvectorILm2EEERNS_5quditILm2EEE", __nvqpp__mlirgen__function_reflect_uniform._Z15reflect_uniformRN5cudaq7qvectorILm2EEE = "_Z15reflect_uniformRN5cudaq7qvectorILm2EEE"}} {
+  func.func @__nvqpp__mlirgen__function_grover._Z6groverv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+    %0 = quake.alloca !quake.ref
+    %1 = quake.alloca !quake.ref
+    %2 = quake.alloca !quake.veq<4>
+    %3 = quake.alloca !quake.ref
+    quake.x %3 : (!quake.ref) -> ()
+    quake.h %3 : (!quake.ref) -> ()
+    %4 = quake.extract_ref %2[0] : (!quake.veq<4>) -> !quake.ref
+    quake.h %4 : (!quake.ref) -> ()
+    %5 = quake.extract_ref %2[1] : (!quake.veq<4>) -> !quake.ref
+    quake.h %5 : (!quake.ref) -> ()
+    %6 = quake.extract_ref %2[2] : (!quake.veq<4>) -> !quake.ref
+    quake.h %6 : (!quake.ref) -> ()
+    %7 = quake.extract_ref %2[3] : (!quake.veq<4>) -> !quake.ref
+    quake.h %7 : (!quake.ref) -> ()
+    quake.h %0 : (!quake.ref) -> ()
+    quake.x [%4] %0 : (!quake.ref, !quake.ref) -> ()
+    quake.t %0 : (!quake.ref) -> ()
+    quake.x [%5] %0 : (!quake.ref, !quake.ref) -> ()
+    quake.t %0 : (!quake.ref) -> ()
+    quake.x [%4] %0 : (!quake.ref, !quake.ref) -> ()
+    quake.t<adj> %0 : (!quake.ref) -> ()
+    quake.x [%5] %0 : (!quake.ref, !quake.ref) -> ()
+    quake.t<adj> %0 : (!quake.ref) -> ()
+    quake.x [%5] %4 : (!quake.ref, !quake.ref) -> ()
+    quake.t<adj> %4 : (!quake.ref) -> ()
+    quake.x [%5] %4 : (!quake.ref, !quake.ref) -> ()
+    quake.t<adj> %4 : (!quake.ref) -> ()
+    quake.x %4 : (!quake.ref) -> ()
+    quake.x %5 : (!quake.ref) -> ()
+    quake.x %6 : (!quake.ref) -> ()
+    quake.x %7 : (!quake.ref) -> ()
+    quake.h %4 : (!quake.ref) -> ()
+    quake.h %5 : (!quake.ref) -> ()
+    quake.h %6 : (!quake.ref) -> ()
+    quake.h %7 : (!quake.ref) -> ()
+    %8 = cc.alloca !cc.array<i8 x 4>
+    %measOut = quake.mz %4 : (!quake.ref) -> !quake.measure
+    %9 = quake.discriminate %measOut : (!quake.measure) -> i1
+    %10 = cc.cast %8 : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
+    %11 = cc.cast unsigned %9 : (i1) -> i8
+    cc.store %11, %10 : !cc.ptr<i8>
+    %measOut_0 = quake.mz %5 : (!quake.ref) -> !quake.measure
+    %12 = quake.discriminate %measOut_0 : (!quake.measure) -> i1
+    %13 = cc.compute_ptr %8[1] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
+    %14 = cc.cast unsigned %12 : (i1) -> i8
+    cc.store %14, %13 : !cc.ptr<i8>
+    %measOut_1 = quake.mz %6 : (!quake.ref) -> !quake.measure
+    %15 = quake.discriminate %measOut_1 : (!quake.measure) -> i1
+    %16 = cc.compute_ptr %8[2] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
+    %17 = cc.cast unsigned %15 : (i1) -> i8
+    cc.store %17, %16 : !cc.ptr<i8>
+    %measOut_2 = quake.mz %7 : (!quake.ref) -> !quake.measure
+    %18 = quake.discriminate %measOut_2 : (!quake.measure) -> i1
+    %19 = cc.compute_ptr %8[3] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
+    %20 = cc.cast unsigned %18 : (i1) -> i8
+    cc.store %20, %19 : !cc.ptr<i8>
+    return
+  }
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_grover._Z6groverv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this, passthrough = ["entry_point", ["qir_profiles", "base_profile"], ["output_labeling_schema", "schema_id"], ["requiredQubits", "7"], ["requiredResults", "4"], ["output_names", "{{\[\[}}[0,[2,\22r00000\22]],[1,[3,\22r00001\22]],[2,[4,\22r00002\22]],[3,[5,\22r00003\22]]]]"]], "qir-api"} {
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 5 : i64
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 4 : i64
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 3 : i64
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 2 : i64
+// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 6 : i64
+// CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[VAL_6:.*]] = arith.constant 0 : i64
+// CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_6]] : (i64) -> !cc.ptr<!llvm.struct<"Qubit", opaque>>
+// CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_4]] : (i64) -> !cc.ptr<!llvm.struct<"Qubit", opaque>>
+// CHECK:           call @__quantum__qis__x__body(%[[VAL_8]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
+// CHECK:           call @__quantum__qis__h__body(%[[VAL_8]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
+// CHECK:           %[[VAL_9:.*]] = cc.cast %[[VAL_3]] : (i64) -> !cc.ptr<!llvm.struct<"Qubit", opaque>>
+// CHECK:           call @__quantum__qis__h__body(%[[VAL_9]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
+// CHECK:           %[[VAL_10:.*]] = cc.cast %[[VAL_2]] : (i64) -> !cc.ptr<!llvm.struct<"Qubit", opaque>>
+// CHECK:           call @__quantum__qis__h__body(%[[VAL_10]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
+// CHECK:           %[[VAL_11:.*]] = cc.cast %[[VAL_1]] : (i64) -> !cc.ptr<!llvm.struct<"Qubit", opaque>>
+// CHECK:           call @__quantum__qis__h__body(%[[VAL_11]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
+// CHECK:           %[[VAL_12:.*]] = cc.cast %[[VAL_0]] : (i64) -> !cc.ptr<!llvm.struct<"Qubit", opaque>>
+// CHECK:           call @__quantum__qis__h__body(%[[VAL_12]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
+// CHECK:           call @__quantum__qis__h__body(%[[VAL_7]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
+// CHECK:           call @__quantum__qis__cnot__body(%[[VAL_9]], %[[VAL_7]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
+// CHECK:           call @__quantum__qis__t__body(%[[VAL_7]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
+// CHECK:           call @__quantum__qis__cnot__body(%[[VAL_10]], %[[VAL_7]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
+// CHECK:           call @__quantum__qis__t__body(%[[VAL_7]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
+// CHECK:           call @__quantum__qis__cnot__body(%[[VAL_9]], %[[VAL_7]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
+// CHECK:           call @__quantum__qis__t__adj(%[[VAL_7]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
+// CHECK:           call @__quantum__qis__cnot__body(%[[VAL_10]], %[[VAL_7]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
+// CHECK:           call @__quantum__qis__t__adj(%[[VAL_7]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
+// CHECK:           call @__quantum__qis__cnot__body(%[[VAL_10]], %[[VAL_9]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
+// CHECK:           call @__quantum__qis__t__adj(%[[VAL_9]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
+// CHECK:           call @__quantum__qis__cnot__body(%[[VAL_10]], %[[VAL_9]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
+// CHECK:           call @__quantum__qis__t__adj(%[[VAL_9]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
+// CHECK:           call @__quantum__qis__x__body(%[[VAL_9]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
+// CHECK:           call @__quantum__qis__x__body(%[[VAL_10]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
+// CHECK:           call @__quantum__qis__x__body(%[[VAL_11]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
+// CHECK:           call @__quantum__qis__x__body(%[[VAL_12]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
+// CHECK:           call @__quantum__qis__h__body(%[[VAL_9]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
+// CHECK:           call @__quantum__qis__h__body(%[[VAL_10]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
+// CHECK:           call @__quantum__qis__h__body(%[[VAL_11]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
+// CHECK:           call @__quantum__qis__h__body(%[[VAL_12]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
+// CHECK:           %[[VAL_13:.*]] = cc.alloca !cc.array<i8 x 4>
+// CHECK:           %[[VAL_14:.*]] = cc.cast %[[VAL_6]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
+// CHECK:           call @__quantum__qis__mz__body(%[[VAL_9]], %[[VAL_14]]) {registerName = "r00000"} : (!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<!llvm.struct<"Result", opaque>>) -> ()
+// CHECK:           %[[VAL_15:.*]] = cc.address_of @cstr.72303030303000 : !cc.ptr<!llvm.array<7 x i8>>
+// CHECK:           %[[VAL_16:.*]] = cc.cast %[[VAL_15]] : (!cc.ptr<!llvm.array<7 x i8>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_17:.*]] = cc.cast %[[VAL_14]] : (!cc.ptr<!llvm.struct<"Result", opaque>>) -> i64
+// CHECK:           %[[VAL_18:.*]] = cc.cast %[[VAL_17]] : (i64) -> !cc.ptr<i1>
+// CHECK:           %[[VAL_19:.*]] = cc.load %[[VAL_18]] : !cc.ptr<i1>
+// CHECK:           %[[VAL_20:.*]] = cc.cast %[[VAL_13]] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_21:.*]] = cc.cast unsigned %[[VAL_19]] : (i1) -> i8
+// CHECK:           cc.store %[[VAL_21]], %[[VAL_20]] : !cc.ptr<i8>
+// CHECK:           %[[VAL_22:.*]] = cc.cast %[[VAL_5]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
+// CHECK:           call @__quantum__qis__mz__body(%[[VAL_10]], %[[VAL_22]]) {registerName = "r00001"} : (!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<!llvm.struct<"Result", opaque>>) -> ()
+// CHECK:           %[[VAL_23:.*]] = cc.address_of @cstr.72303030303100 : !cc.ptr<!llvm.array<7 x i8>>
+// CHECK:           %[[VAL_24:.*]] = cc.cast %[[VAL_23]] : (!cc.ptr<!llvm.array<7 x i8>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_25:.*]] = cc.cast %[[VAL_22]] : (!cc.ptr<!llvm.struct<"Result", opaque>>) -> i64
+// CHECK:           %[[VAL_26:.*]] = cc.cast %[[VAL_25]] : (i64) -> !cc.ptr<i1>
+// CHECK:           %[[VAL_27:.*]] = cc.load %[[VAL_26]] : !cc.ptr<i1>
+// CHECK:           %[[VAL_28:.*]] = cc.compute_ptr %[[VAL_13]][1] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_29:.*]] = cc.cast unsigned %[[VAL_27]] : (i1) -> i8
+// CHECK:           cc.store %[[VAL_29]], %[[VAL_28]] : !cc.ptr<i8>
+// CHECK:           %[[VAL_30:.*]] = cc.cast %[[VAL_3]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
+// CHECK:           call @__quantum__qis__mz__body(%[[VAL_11]], %[[VAL_30]]) {registerName = "r00002"} : (!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<!llvm.struct<"Result", opaque>>) -> ()
+// CHECK:           %[[VAL_31:.*]] = cc.address_of @cstr.72303030303200 : !cc.ptr<!llvm.array<7 x i8>>
+// CHECK:           %[[VAL_32:.*]] = cc.cast %[[VAL_31]] : (!cc.ptr<!llvm.array<7 x i8>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_33:.*]] = cc.cast %[[VAL_30]] : (!cc.ptr<!llvm.struct<"Result", opaque>>) -> i64
+// CHECK:           %[[VAL_34:.*]] = cc.cast %[[VAL_33]] : (i64) -> !cc.ptr<i1>
+// CHECK:           %[[VAL_35:.*]] = cc.load %[[VAL_34]] : !cc.ptr<i1>
+// CHECK:           %[[VAL_36:.*]] = cc.compute_ptr %[[VAL_13]][2] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_37:.*]] = cc.cast unsigned %[[VAL_35]] : (i1) -> i8
+// CHECK:           cc.store %[[VAL_37]], %[[VAL_36]] : !cc.ptr<i8>
+// CHECK:           %[[VAL_38:.*]] = cc.cast %[[VAL_2]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
+// CHECK:           call @__quantum__qis__mz__body(%[[VAL_12]], %[[VAL_38]]) {registerName = "r00003"} : (!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<!llvm.struct<"Result", opaque>>) -> ()
+// CHECK:           %[[VAL_39:.*]] = cc.address_of @cstr.72303030303300 : !cc.ptr<!llvm.array<7 x i8>>
+// CHECK:           %[[VAL_40:.*]] = cc.cast %[[VAL_39]] : (!cc.ptr<!llvm.array<7 x i8>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_41:.*]] = cc.cast %[[VAL_38]] : (!cc.ptr<!llvm.struct<"Result", opaque>>) -> i64
+// CHECK:           %[[VAL_42:.*]] = cc.cast %[[VAL_41]] : (i64) -> !cc.ptr<i1>
+// CHECK:           %[[VAL_43:.*]] = cc.load %[[VAL_42]] : !cc.ptr<i1>
+// CHECK:           %[[VAL_44:.*]] = cc.compute_ptr %[[VAL_13]][3] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_45:.*]] = cc.cast unsigned %[[VAL_43]] : (i1) -> i8
+// CHECK:           cc.store %[[VAL_45]], %[[VAL_44]] : !cc.ptr<i8>
+// CHECK:           call @__quantum__rt__result_record_output(%[[VAL_14]], %[[VAL_16]]) {ResultIndex = 0 : i64, registerName = "r00000"} : (!cc.ptr<!llvm.struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
+// CHECK:           call @__quantum__rt__result_record_output(%[[VAL_22]], %[[VAL_24]]) {ResultIndex = 1 : i64, registerName = "r00001"} : (!cc.ptr<!llvm.struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
+// CHECK:           call @__quantum__rt__result_record_output(%[[VAL_30]], %[[VAL_32]]) {ResultIndex = 2 : i64, registerName = "r00002"} : (!cc.ptr<!llvm.struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
+// CHECK:           call @__quantum__rt__result_record_output(%[[VAL_38]], %[[VAL_40]]) {ResultIndex = 3 : i64, registerName = "r00003"} : (!cc.ptr<!llvm.struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
+// CHECK:           return
+// CHECK:         }
+// CHECK:         func.func private @__quantum__rt__qubit_allocate() -> !cc.ptr<!llvm.struct<"Qubit", opaque>>
+// CHECK:         func.func private @__quantum__rt__qubit_allocate_array(i64) -> !cc.ptr<!llvm.struct<"Array", opaque>>
+// CHECK:         func.func private @__quantum__rt__qubit_allocate_array_with_state_fp64(i64, !cc.ptr<f64>) -> !cc.ptr<!llvm.struct<"Array", opaque>>
+// CHECK:         func.func private @__quantum__rt__qubit_allocate_array_with_state_fp32(i64, !cc.ptr<f32>) -> !cc.ptr<!llvm.struct<"Array", opaque>>
+// CHECK:         func.func private @__quantum__rt__qubit_allocate_array_with_state_complex64(i64, !cc.ptr<complex<f64>>) -> !cc.ptr<!llvm.struct<"Array", opaque>>
+// CHECK:         func.func private @__quantum__rt__qubit_allocate_array_with_state_complex32(i64, !cc.ptr<complex<f32>>) -> !cc.ptr<!llvm.struct<"Array", opaque>>
+// CHECK:         func.func private @__quantum__rt__qubit_allocate_array_with_state_ptr(!cc.ptr<none>) -> !cc.ptr<!llvm.struct<"Array", opaque>>
+// CHECK:         func.func private @__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(i64, !cc.ptr<!cc.state>) -> !cc.ptr<!llvm.struct<"Array", opaque>>
+// CHECK:         func.func private @__quantum__rt__qubit_release_array(!cc.ptr<!llvm.struct<"Array", opaque>>)
+// CHECK:         func.func private @__quantum__rt__qubit_release(!cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__rt__array_create_1d(i32, i64) -> !cc.ptr<!llvm.struct<"Array", opaque>>
+// CHECK:         func.func private @__quantum__rt__array_concatenate(!cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<!llvm.struct<"Array", opaque>>) -> !cc.ptr<!llvm.struct<"Array", opaque>>
+// CHECK:         func.func private @__quantum__rt__array_get_size_1d(!cc.ptr<!llvm.struct<"Array", opaque>>) -> i64
+// CHECK:         func.func private @__quantum__rt__array_slice(!cc.ptr<!llvm.struct<"Array", opaque>>, i32, i64, i64, i64) -> !cc.ptr<!llvm.struct<"Array", opaque>>
+// CHECK:         func.func private @__quantum__rt__array_get_element_ptr_1d(!cc.ptr<!llvm.struct<"Array", opaque>>, i64) -> !cc.ptr<!cc.ptr<!llvm.struct<"Qubit", opaque>>>
+// CHECK:         func.func private @__quantum__qis__h__ctl(!cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__qis__x__ctl(!cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__qis__y__ctl(!cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__qis__z__ctl(!cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__qis__s__ctl(!cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__qis__t__ctl(!cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__qis__sdg__ctl(!cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__qis__tdg__ctl(!cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__qis__u3__ctl(f64, f64, f64, !cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__qis__swap__ctl(!cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__qis__rx__ctl(f64, !cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__qis__ry__ctl(f64, !cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__qis__rz__ctl(f64, !cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__qis__r1__ctl(f64, !cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__qis__exp_pauli__ctl(f64, !cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<i8>)
+// CHECK:         func.func private @__quantum__qis__custom_unitary(!cc.ptr<complex<f64>>, !cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<i8>)
+// CHECK:         func.func private @__quantum__qis__custom_unitary__adj(!cc.ptr<complex<f64>>, !cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<i8>)
+// CHECK:         llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i64, !llvm.ptr<i8>, ...) attributes {sym_visibility = "private"}
+// CHECK:         func.func private @__quantum__qis__h__body(!cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__qis__x__body(!cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__qis__y__body(!cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__qis__z__body(!cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__qis__s__body(!cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__qis__t__body(!cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__qis__s__adj(!cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__qis__t__adj(!cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__qis__u3__body(f64, f64, f64, !cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__qis__reset__body(!cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__qis__mz__body(!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<!llvm.struct<"Result", opaque>>) attributes {passthrough = ["irreversible"]}
+// CHECK:         func.func private @__quantum__qis__swap__body(!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__qis__rx__body(f64, !cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__qis__phased_rx__body(f64, f64, !cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__qis__ry__body(f64, !cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__qis__rz__body(f64, !cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__qis__r1__body(f64, !cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__qis__exp_pauli__body(f64, !cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<i8>)
+// CHECK:         func.func private @__quantum__rt__result_record_output(!cc.ptr<!llvm.struct<"Result", opaque>>, !cc.ptr<i8>)
+// CHECK:         func.func private @__quantum__qis__cnot__body(!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__qis__cz__body(!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>)
+// CHECK:         func.func private @__quantum__qis__read_result__body(!cc.ptr<!llvm.struct<"Result", opaque>>) -> i1
+// CHECK:         llvm.mlir.global private constant @cstr.72303030303000("r00000\00") {addr_space = 0 : i32}
+// CHECK:         llvm.mlir.global private constant @cstr.72303030303100("r00001\00") {addr_space = 0 : i32}
+// CHECK:         llvm.mlir.global private constant @cstr.72303030303200("r00002\00") {addr_space = 0 : i32}
+// CHECK:         llvm.mlir.global private constant @cstr.72303030303300("r00003\00") {addr_space = 0 : i32}
+

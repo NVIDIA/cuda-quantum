@@ -207,6 +207,9 @@ for ex in `find "$root_folder/examples" -name '*.py'`; do
         elif [ "$t" == "nvqc" ] && [ -z "${NVQC_API_KEY}" ]; then 
             echo -e "\e[01;31mWarning: Explicitly set target nvqc in $ex; skipping validation due to missing API key.\e[0m" >&2
             skip_example=true
+        elif [ "$t" == "pasqal" ] && [ -z "${PASQAL_PASSWORD}" ]; then
+            echo -e "\e[01;31mWarning: Explicitly set target pasqal in $ex; skipping validation due to missing token.\e[0m" >&2
+            skip_example=true
         fi
     done
     if ! $skip_example; then 

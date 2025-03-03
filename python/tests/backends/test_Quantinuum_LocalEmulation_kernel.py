@@ -14,8 +14,8 @@ import numpy as np
 from typing import List
 
 
-def assert_close(got) -> bool:
-    return got < -1.5 and got > -1.9
+def assert_close(want, got, tolerance=1.0e-1) -> bool:
+    return abs(want - got) < tolerance
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -85,13 +85,26 @@ def test_quantinuum_observe():
 
     # Run the observe task on quantinuum synchronously
     res = cudaq.observe(ansatz, hamiltonian, .59, shots_count=100000)
-    assert assert_close(res.expectation())
+    assert assert_close(-1.7, res.expectation())
 
     # Launch it asynchronously, enters the job into the queue
     future = cudaq.observe_async(ansatz, hamiltonian, .59, shots_count=100000)
     # Retrieve the results (since we're emulating)
     res = future.get()
-    assert assert_close(res.expectation())
+    assert assert_close(-1.7, res.expectation())
+
+
+def test_observe():
+    cudaq.set_random_seed(13)
+
+    @cudaq.kernel
+    def ansatz():
+        q = cudaq.qvector(1)
+
+    molecule = 5.0 - 1.0 * spin.x(0)
+    res = cudaq.observe(ansatz, molecule, shots_count=10000)
+    print(res.expectation())
+    assert assert_close(5.0, res.expectation())
 
 
 def test_quantinuum_exp_pauli():
@@ -111,13 +124,13 @@ def test_quantinuum_exp_pauli():
 
     # Run the observe task on quantinuum synchronously
     res = cudaq.observe(ansatz, hamiltonian, .59, shots_count=100000)
-    assert assert_close(res.expectation())
+    assert assert_close(-1.7, res.expectation())
 
     # Launch it asynchronously, enters the job into the queue
     future = cudaq.observe_async(ansatz, hamiltonian, .59, shots_count=100000)
     # Retrieve the results (since we're emulating)
     res = future.get()
-    assert assert_close(res.expectation())
+    assert assert_close(-1.7, res.expectation())
 
 
 def test_u3_emulatation():
