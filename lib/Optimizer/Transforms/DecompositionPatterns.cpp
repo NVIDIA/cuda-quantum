@@ -340,7 +340,7 @@ struct ExpPauliDecomposition : public OpRewritePattern<quake::ExpPauliOp> {
     auto theta = expPauliOp.getParameter();
     auto pauliWord = expPauliOp.getPauli();
     auto stringTy = pauliWord.getType();
-    SmallVector<char> pauliWordAsVec;
+    std::string pauliWordString;
 
     if (expPauliOp.isAdj())
       theta = rewriter.create<arith::NegFOp>(loc, theta);
@@ -402,13 +402,13 @@ struct ExpPauliDecomposition : public OpRewritePattern<quake::ExpPauliOp> {
               auto eleTy = elementsAttr.getElementType();
               auto values = elementsAttr.getValues<mlir::Attribute>();
 
+              pauliWordString.reserve(values.size());
               for (auto it = values.begin(); it != values.end(); ++it) {
                 assert(isa<IntegerType>(eleTy));
                 char v = static_cast<char>(cast<IntegerAttr>(*it).getInt());
-                pauliWordAsVec.push_back(v);
+                pauliWordString.push_back(v);
               }
-              optPauliWordStr =
-                  StringRef(pauliWordAsVec.data(), pauliWordAsVec.size());
+              optPauliWordStr = StringRef(pauliWordString);
             }
           } else if (auto lit = addrOp.getDefiningOp<
                                 cudaq::cc::CreateStringLiteralOp>()) {

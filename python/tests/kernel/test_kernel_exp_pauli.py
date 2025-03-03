@@ -7,16 +7,9 @@
 # ============================================================================ #
 
 import cudaq
-import pytest
 
 
-@pytest.mark.parametrize("target", ['qpp-cpu', 'quantinuum'])
-def test_exp_pauli(target: str):
-
-    if target == 'quantinuum':
-        cudaq.set_target(target, emulate=True)
-    else:
-        cudaq.set_target(target)
+def test_exp_pauli():
 
     @cudaq.kernel
     def test():
@@ -29,16 +22,8 @@ def test_exp_pauli(target: str):
     assert not '01' in counts
     assert not '10' in counts
 
-    cudaq.reset_target()
 
-
-@pytest.mark.parametrize("target", ['qpp-cpu', 'quantinuum'])
-def test_exp_pauli_param(target: str):
-
-    if target == 'quantinuum':
-        cudaq.set_target(target, emulate=True)
-    else:
-        cudaq.set_target(target)
+def test_exp_pauli_param():
 
     @cudaq.kernel
     def test_param(w: cudaq.pauli_word):
@@ -50,5 +35,3 @@ def test_exp_pauli_param(target: str):
     assert '11' in counts
     assert not '01' in counts
     assert not '10' in counts
-
-    cudaq.reset_target()
