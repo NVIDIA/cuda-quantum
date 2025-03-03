@@ -23,7 +23,7 @@ public:
   virtual ~BaseIntegrator() = default;
 
   /// @brief Set the initial state and time
-  virtual void setState(cudaq::state initialState, double t0) = 0;
+  virtual void setState(const cudaq::state &initialState, double t0) = 0;
 
   /// @brief Perform integration to the target time.
   virtual void integrate(double targetTime) = 0;

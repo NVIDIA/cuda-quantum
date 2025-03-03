@@ -32,7 +32,8 @@ void RungeKuttaIntegrator::setSystem(const SystemDynamics &system,
   m_stepper.reset();
 }
 
-void RungeKuttaIntegrator::setState(cudaq::state initial_state, double t0) {
+void RungeKuttaIntegrator::setState(const cudaq::state &initial_state,
+                                    double t0) {
   m_state = std::make_shared<cudaq::state>(initial_state);
   m_t = t0;
 }
