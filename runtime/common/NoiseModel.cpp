@@ -377,4 +377,25 @@ noise_model::get_channels(const std::string &quantumOp,
 
   return resultChannels;
 }
+
+noise_model::noise_model() {
+  register_channel<depolarization_channel>();
+  register_channel<amplitude_damping_channel>();
+  register_channel<bit_flip_channel>();
+  register_channel<phase_flip_channel>();
+  register_channel<x_error>();
+  register_channel<y_error>();
+  register_channel<z_error>();
+  register_channel<amplitude_damping>();
+  register_channel<phase_damping>();
+  register_channel<pauli1>();
+  register_channel<pauli2>();
+  register_channel<depolarization1>();
+  register_channel<depolarization2>();
+}
+
+std::string get_noise_model_type_name(noise_model_type type) {
+  return noise_model_strings[static_cast<std::size_t>(type)];
+}
+
 } // namespace cudaq
