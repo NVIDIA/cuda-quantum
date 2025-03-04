@@ -67,7 +67,7 @@ template <typename HamTy,
 evolve_result
 evolve(const HamTy &hamiltonian, const std::map<int, int> &dimensions,
        const Schedule &schedule, const state &initial_state,
-       std::shared_ptr<BaseIntegrator> integrator = {},
+       BaseIntegrator &integrator,
        std::initializer_list<CollapseOpTy> collapse_operators = {},
        std::initializer_list<ObserveOpTy> observables = {},
        bool store_intermediate_results = false,
@@ -75,7 +75,7 @@ evolve(const HamTy &hamiltonian, const std::map<int, int> &dimensions,
 #if defined(CUDAQ_DYNAMICS_TARGET)
   return cudaq::__internal__::evolveSingle(
       cudaq::__internal__::convertOp(hamiltonian), dimensions, schedule,
-      initial_state, *integrator,
+      initial_state, integrator,
       cudaq::__internal__::convertOps(collapse_operators),
       cudaq::__internal__::convertOps(observables), store_intermediate_results);
 #else
@@ -89,7 +89,7 @@ template <typename HamTy, typename CollapseOpTy, typename ObserveOpTy>
 evolve_result evolve(const HamTy &hamiltonian,
                      const std::map<int, int> &dimensions,
                      const Schedule &schedule, const state &initial_state,
-                     std::shared_ptr<BaseIntegrator> integrator = {},
+                     BaseIntegrator &integrator,
                      const std::vector<CollapseOpTy> &collapse_operators = {},
                      const std::vector<ObserveOpTy> &observables = {},
                      bool store_intermediate_results = false,
@@ -97,7 +97,7 @@ evolve_result evolve(const HamTy &hamiltonian,
 #if defined(CUDAQ_DYNAMICS_TARGET)
   return cudaq::__internal__::evolveSingle(
       cudaq::__internal__::convertOp(hamiltonian), dimensions, schedule,
-      initial_state, *integrator,
+      initial_state, integrator,
       cudaq::__internal__::convertOps(collapse_operators),
       cudaq::__internal__::convertOps(observables), store_intermediate_results);
 #else
@@ -113,7 +113,7 @@ template <typename HamTy,
 std::vector<evolve_result>
 evolve(const HamTy &hamiltonian, const std::map<int, int> &dimensions,
        const Schedule &schedule, const std::vector<state> &initial_states,
-       std::shared_ptr<BaseIntegrator> integrator = {},
+       BaseIntegrator &integrator,
        std::initializer_list<CollapseOpTy> collapse_operators = {},
        std::initializer_list<ObserveOpTy> observables = {},
        bool store_intermediate_results = false,
@@ -137,7 +137,7 @@ template <typename HamTy, typename CollapseOpTy, typename ObserveOpTy>
 std::vector<evolve_result>
 evolve(const HamTy &hamiltonian, const std::map<int, int> &dimensions,
        const Schedule &schedule, const std::vector<state> &initial_states,
-       std::shared_ptr<BaseIntegrator> integrator = {},
+       BaseIntegrator &integrator,
        const std::vector<CollapseOpTy> &collapse_operators = {},
        const std::vector<ObserveOpTy> &observables = {},
        bool store_intermediate_results = false,
@@ -163,62 +163,26 @@ template <typename HamTy,
 async_evolve_result
 evolve_async(const HamTy &hamiltonian, const std::map<int, int> &dimensions,
              const Schedule &schedule, const state &initial_state,
-             std::shared_ptr<BaseIntegrator> integrator = {},
+             BaseIntegrator &integrator,
              std::initializer_list<CollapseOpTy> collapse_operators = {},
              std::initializer_list<ObserveOpTy> observables = {},
              bool store_intermediate_results = false,
              std::optional<int> shots_count = std::nullopt, int qpu_id = 0) {
 #if defined(CUDAQ_DYNAMICS_TARGET)
-  if (collapse_operators.size() > 0 && observables.size() > 0) {
-    std::vector<CollapseOpTy> collapseOperators(collapse_operators);
-    std::vector<ObserveOpTy> observableOperators(observables);
-    return __internal__::evolve_async(
-        [=, cOps = std::move(collapseOperators),
-         obs = std::move(observableOperators)]() {
-          ExecutionContext context("evolve");
-          cudaq::get_platform().set_exec_ctx(&context, qpu_id);
-          return evolve(hamiltonian, dimensions, schedule, initial_state,
-                        integrator, cOps, obs, store_intermediate_results,
-                        shots_count);
-        },
-        qpu_id);
-  } else if (collapse_operators.size() > 0) {
-    std::vector<CollapseOpTy> collapseOperators(collapse_operators);
-    std::vector<CollapseOpTy> observableOperators;
-    return __internal__::evolve_async(
-        [=, cOps = std::move(collapseOperators),
-         obs = std::move(observableOperators)]() {
-          ExecutionContext context("evolve");
-          cudaq::get_platform().set_exec_ctx(&context, qpu_id);
-          return evolve(hamiltonian, dimensions, schedule, initial_state,
-                        integrator, cOps, obs, store_intermediate_results,
-                        shots_count);
-        },
-        qpu_id);
-  } else if (observables.size()) {
-    std::vector<ObserveOpTy> observableOperators(observables);
-    std::vector<ObserveOpTy> collapseOperators;
-    return __internal__::evolve_async(
-        [=, cOps = std::move(collapseOperators),
-         obs = std::move(observableOperators)]() {
-          ExecutionContext context("evolve");
-          cudaq::get_platform().set_exec_ctx(&context, qpu_id);
-          return evolve(hamiltonian, dimensions, schedule, initial_state,
-                        integrator, cOps, obs, store_intermediate_results,
-                        shots_count);
-        },
-        qpu_id);
-  } else {
-    return __internal__::evolve_async(
-        [=]() {
-          ExecutionContext context("evolve");
-          cudaq::get_platform().set_exec_ctx(&context, qpu_id);
-          return evolve(hamiltonian, dimensions, schedule, initial_state,
-                        integrator, {}, {}, store_intermediate_results,
-                        shots_count);
-        },
-        qpu_id);
-  }
+  // Clone the integrator to extend its lifetime.
+  auto cloneIntegrator = integrator.clone();
+  auto collapseOperators = cudaq::__internal__::convertOps(collapse_operators);
+  auto observableOperators = cudaq::__internal__::convertOps(observables);
+  return __internal__::evolve_async(
+      [=, cOps = std::move(collapseOperators),
+       obs = std::move(observableOperators)]() {
+        ExecutionContext context("evolve");
+        cudaq::get_platform().set_exec_ctx(&context, qpu_id);
+        return evolve(hamiltonian, dimensions, schedule, initial_state,
+                      *cloneIntegrator, cOps, obs, store_intermediate_results,
+                      shots_count);
+      },
+      qpu_id);
 
 #else
   static_assert(
@@ -231,18 +195,20 @@ template <typename HamTy, typename CollapseOpTy, typename ObserveOpTy>
 async_evolve_result
 evolve_async(const HamTy &hamiltonian, const std::map<int, int> &dimensions,
              const Schedule &schedule, const state &initial_state,
-             std::shared_ptr<BaseIntegrator> integrator = {},
+             BaseIntegrator &integrator,
              const std::vector<CollapseOpTy> &collapse_operators = {},
              const std::vector<ObserveOpTy> &observables = {},
              bool store_intermediate_results = false,
              std::optional<int> shots_count = std::nullopt, int qpu_id = 0) {
 #if defined(CUDAQ_DYNAMICS_TARGET)
+  // Clone the integrator to extend its lifetime.
+  auto cloneIntegrator = integrator.clone();
   return __internal__::evolve_async(
       [=]() {
         ExecutionContext context("evolve");
         cudaq::get_platform().set_exec_ctx(&context, qpu_id);
         return evolve(hamiltonian, dimensions, schedule, initial_state,
-                      integrator, collapse_operators, observables,
+                      *cloneIntegrator, collapse_operators, observables,
                       store_intermediate_results, shots_count);
       },
       qpu_id);

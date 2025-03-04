@@ -30,9 +30,9 @@ TEST(EvolveAPITester, checkSimple) {
       [](const std::string &, const std::complex<double> &val) { return val; });
   auto initialState =
       cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
-  auto integrator = std::make_shared<cudaq::RungeKuttaIntegrator>();
-  integrator->order = 1;
-  integrator->dt = 0.001;
+  cudaq::RungeKuttaIntegrator integrator;
+  integrator.order = 1;
+  integrator.dt = 0.001;
   auto result = cudaq::evolve(ham, dims, schedule, initialState, integrator, {},
                               {cudaq::spin_operator::z(0)}, true);
   EXPECT_NE(result.get_expectation_values().size(), 0);
@@ -67,8 +67,8 @@ TEST(EvolveAPITester, checkCavityModel) {
   psi0_.back() = 1.0;
   auto psi0 = cudaq::state::from_data(psi0_);
   constexpr double decay_rate = 0.1;
-  auto integrator = std::make_shared<cudaq::RungeKuttaIntegrator>();
-  integrator->dt = 0.01;
+  cudaq::RungeKuttaIntegrator integrator;
+  integrator.dt = 0.01;
   auto result = cudaq::evolve(
       hamiltonian, dimensions, schedule, psi0, integrator,
       {std::sqrt(decay_rate) * cudaq::boson_operator::annihilate(0)},
@@ -118,8 +118,8 @@ TEST(EvolveAPITester, checkTimeDependent) {
 
   auto collapseOperator = cudaq::scalar_operator(td_function) *
                           cudaq::boson_operator::annihilate(0);
-  auto integrator = std::make_shared<cudaq::RungeKuttaIntegrator>();
-  integrator->dt = 0.01;
+  cudaq::RungeKuttaIntegrator integrator;
+  integrator.dt = 0.01;
   auto result =
       cudaq::evolve(hamiltonian, dimensions, schedule, psi0, integrator,
                     {collapseOperator}, {hamiltonian}, true);

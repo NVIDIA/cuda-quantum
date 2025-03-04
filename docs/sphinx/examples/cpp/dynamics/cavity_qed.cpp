@@ -82,10 +82,9 @@ int main() {
   // Here we choose a Runge-`Kutta` method for time evolution.
   // `dt` defines the time step for the numerical integration, and order 4
   // indicates a 4`th` order method.
-  std::shared_ptr<cudaq::RungeKuttaIntegrator> integrator =
-      std::make_shared<cudaq::RungeKuttaIntegrator>();
-  integrator->dt = 0.01;
-  integrator->order = 4;
+  cudaq::RungeKuttaIntegrator integrator;
+  integrator.dt = 0.01;
+  integrator.order = 4;
 
   // Evolve without collapse operators
   // This evolution is ideal (closed system) dynamics governed solely by the

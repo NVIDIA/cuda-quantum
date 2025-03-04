@@ -14,13 +14,6 @@
 #include <memory>
 
 namespace cudaq {
-struct SystemDynamics {
-  operator_sum<cudaq::matrix_operator> *hamiltonian = nullptr;
-  std::vector<operator_sum<cudaq::matrix_operator>> collapseOps;
-  std::vector<int64_t> modeExtents;
-  std::unordered_map<std::string, std::complex<double>> parameters;
-};
-
 class RungeKuttaIntegrator : public BaseIntegrator {
 
 public:
@@ -32,7 +25,9 @@ public:
   void integrate(double targetTime) override;
   void setState(const cudaq::state &initialState, double t0) override;
   std::pair<double, cudaq::state> getState() override;
-  void setSystem(const SystemDynamics &system, const cudaq::Schedule &schedule);
+  void setSystem(const SystemDynamics &system,
+                 const cudaq::Schedule &schedule) override;
+  std::shared_ptr<BaseIntegrator> clone() override;
 
 private:
   double m_t;

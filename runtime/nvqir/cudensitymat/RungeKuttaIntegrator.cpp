@@ -32,6 +32,17 @@ void RungeKuttaIntegrator::setSystem(const SystemDynamics &system,
   m_stepper.reset();
 }
 
+std::shared_ptr<BaseIntegrator> RungeKuttaIntegrator::clone() {
+  auto clone = std::make_shared<RungeKuttaIntegrator>();
+  clone->order = this->order;
+  clone->dt = this->dt;
+  clone->m_t = this->m_t;
+  clone->m_state = this->m_state;
+  clone->m_system = this->m_system;
+  clone->m_schedule = this->m_schedule;
+  return clone;
+}
+
 void RungeKuttaIntegrator::setState(const cudaq::state &initial_state,
                                     double t0) {
   m_state = std::make_shared<cudaq::state>(initial_state);
@@ -69,7 +80,7 @@ void RungeKuttaIntegrator::integrate(double targetTime) {
     auto liouvillian =
         cudaq::dynamics::Context::getCurrentContext()
             ->getOpConverter()
-            .constructLiouvillian(*m_system.hamiltonian, m_system.collapseOps,
+            .constructLiouvillian(m_system.hamiltonian, m_system.collapseOps,
                                   m_system.modeExtents, params,
                                   castSimState.is_density_matrix());
     m_stepper = std::make_unique<CuDensityMatTimeStepper>(

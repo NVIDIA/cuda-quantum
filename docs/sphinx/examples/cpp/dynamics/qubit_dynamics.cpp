@@ -35,10 +35,9 @@ int main() {
   cudaq::Schedule schedule(steps);
 
   // Runge-`Kutta` integrator with a time step of 0.001 and order 4
-  std::shared_ptr<cudaq::RungeKuttaIntegrator> integrator =
-      std::make_shared<cudaq::RungeKuttaIntegrator>();
-  integrator->dt = 0.01;
-  integrator->order = 4;
+  cudaq::RungeKuttaIntegrator integrator;
+  integrator.dt = 0.01;
+  integrator.order = 4;
 
   // Run the simulation without collapse operators (ideal evolution)
   auto evolve_result = cudaq::evolve(

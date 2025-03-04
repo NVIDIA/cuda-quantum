@@ -27,9 +27,9 @@ TEST(DynamicsAsyncTester, checkSimple) {
         });
     auto initialState =
         cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
-    auto integrator = std::make_shared<cudaq::RungeKuttaIntegrator>();
-    integrator->order = 1;
-    integrator->dt = 0.001;
+    cudaq::RungeKuttaIntegrator integrator;
+    integrator.order = 1;
+    integrator.dt = 0.001;
     auto resultFuture1 = cudaq::evolve_async(
         ham, dims, schedule, initialState, integrator,
         std::vector<cudaq::product_operator<cudaq::spin_operator>>{},
@@ -57,8 +57,8 @@ TEST(DynamicsAsyncTester, checkSimple) {
     psi0_.back() = 1.0;
     auto psi0 = cudaq::state::from_data(psi0_);
     constexpr double decay_rate = 0.1;
-    auto integrator = std::make_shared<cudaq::RungeKuttaIntegrator>();
-    integrator->dt = 0.01;
+    cudaq::RungeKuttaIntegrator integrator;
+    integrator.dt = 0.01;
     auto resultFuture = cudaq::evolve_async(
         hamiltonian, dimensions, schedule, psi0, integrator,
         std::vector<cudaq::product_operator<cudaq::boson_operator>>{
@@ -130,9 +130,9 @@ TEST(DynamicsAsyncTester, checkInitializerArgs) {
 
     auto initialState =
         cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
-    auto integrator = std::make_shared<cudaq::RungeKuttaIntegrator>();
-    integrator->order = 1;
-    integrator->dt = 0.001;
+    cudaq::RungeKuttaIntegrator integrator;
+    integrator.order = 1;
+    integrator.dt = 0.001;
     auto resultFuture1 =
         cudaq::evolve_async(ham, dims, schedule, initialState, integrator, {},
                             {cudaq::spin_operator::z(0)}, true, {}, 0);
@@ -157,8 +157,8 @@ TEST(DynamicsAsyncTester, checkInitializerArgs) {
     psi0_.back() = 1.0;
     auto psi0 = cudaq::state::from_data(psi0_);
     constexpr double decay_rate = 0.1;
-    auto integrator = std::make_shared<cudaq::RungeKuttaIntegrator>();
-    integrator->dt = 0.01;
+    cudaq::RungeKuttaIntegrator integrator;
+    integrator.dt = 0.01;
     auto resultFuture = cudaq::evolve_async(
         hamiltonian, dimensions, schedule, psi0, integrator,
         {std::sqrt(decay_rate) * cudaq::boson_operator::annihilate(0)},

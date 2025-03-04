@@ -32,7 +32,7 @@ namespace __internal__ {
 evolve_result evolveSingle(
     const operator_sum<cudaq::matrix_operator> &hamiltonian,
     const std::map<int, int> &dimensions, const Schedule &schedule,
-    const state &initialState, BaseIntegrator &inIntegrator,
+    const state &initialState, BaseIntegrator &integrator,
     const std::vector<operator_sum<cudaq::matrix_operator>> &collapseOperators,
     const std::vector<operator_sum<cudaq::matrix_operator>> &observables,
     bool storeIntermediateResults, std::optional<int> shotsCount) {
@@ -59,13 +59,7 @@ evolve_result evolveSingle(
     return initialState;
   }();
 
-  RungeKuttaIntegrator &integrator =
-      dynamic_cast<RungeKuttaIntegrator &>(inIntegrator);
-  SystemDynamics system;
-  system.hamiltonian =
-      const_cast<operator_sum<cudaq::matrix_operator> *>(&hamiltonian);
-  system.collapseOps = collapseOperators;
-  system.modeExtents = dims;
+  SystemDynamics system(dims, hamiltonian, collapseOperators);
   integrator.setSystem(system, schedule);
   integrator.setState(initial_State, 0.0);
   std::vector<CuDensityMatExpectation> expectations;
