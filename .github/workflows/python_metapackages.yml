@@ -131,7 +131,7 @@ jobs:
           path: /tmp/wheels/
           merge-multiple: true
 
-       # FIXME: remove this before merging to public
+      # FIXME: remove this before merging to public
       - name: Load cuQuantum assets
         run: |
           dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
