@@ -343,6 +343,8 @@ if (CUDA_FOUND)
     nvqir-dynamics
     ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
     CUDA::cudart_static
+    CUDA::cublas
+    ${CUTENSOR_LIB}
     gtest_main
     fmt::fmt-header-only)
   # Count the number of GPUs
