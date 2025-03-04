@@ -59,7 +59,7 @@ target_link_libraries(${LIBRARY_NAME}
                         fmt::fmt-header-only
                         cudaq-common
                         ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
-                        CUDA::cudart_static
+                        CUDA::cudart
                      )
 target_link_libraries(${LIBRARY_NAME}
                      PUBLIC
