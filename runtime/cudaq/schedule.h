@@ -37,6 +37,18 @@ private:
       value_function;
   int current_idx;
 
+  static std::vector<std::complex<double>>
+  toComplex(const std::vector<double> &vec) {
+    std::vector<std::complex<double>> result;
+
+    result.reserve(vec.size());
+    for (const auto &d : vec) {
+      result.emplace_back(d, 0.0);
+    }
+
+    return result;
+  }
+
 public:
   Schedule(pointer ptr) : ptr(ptr){};
 
@@ -56,6 +68,12 @@ public:
       const std::vector<std::string> &parameters,
       const std::function<std::complex<double>(
           const std::string &, const std::complex<double> &)> &value_function);
+
+  Schedule(const std::vector<double> &steps,
+           const std::vector<std::string> &parameters = {})
+      : Schedule(toComplex(steps), parameters,
+                 [](const std::string &, const std::complex<double> &step)
+                     -> std::complex<double> { return step; }) {}
 
   /// Below, I define what I believe are the minimal necessary methods needed
   /// for this to behave like an iterable. This should be revisited in the

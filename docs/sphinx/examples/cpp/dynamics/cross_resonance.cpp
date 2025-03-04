@@ -88,13 +88,8 @@ int main() {
   // Here we use 1001 points linearly spaced between time 0 and 1.
   // This schedule will be used to integrate the time evolution of the system.
   const int num_steps = 1001;
-  std::vector<std::complex<double>> steps;
-  for (double t : cudaq::linspace(0.0, 1.0, num_steps)) {
-    steps.emplace_back(t, 0.0);
-  }
-  cudaq::Schedule schedule(
-      steps, {"t"},
-      [](const std::string &, const std::complex<double> &val) { return val; });
+  std::vector<double> steps = cudaq::linspace(0.0, 1.0, num_steps);
+  cudaq::Schedule schedule(steps);
 
   // Use Runge-`Kutta` integrator (4`th` order) to solve the time-dependent
   // evolution. `dt` is the integration time step, and `order` sets the accuracy
