@@ -71,7 +71,7 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[CudmStateType]):
         t_scalar = t.item()
         # `vec` is a torch tensor on GPU
         # convert torch tensor to CuPy array without copying data
-        # CuPy v13.4+ (from_dlpack as a method)
+        # CuPy v13.4+ (from_`dlpack` as a method)
         # https://github.com/cupy/cupy/blob/main/docs/source/user_guide/interoperability.rst
         # https://github.com/cupy/cupy/pull/8048/files
         if hasattr(cp, 'from_dlpack'):
@@ -126,7 +126,7 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[CudmStateType]):
 
         # Prepare initial state y0 as torch tensor
         y0_cupy = self.state.storage.ravel()
-        # CuPy v13.4+ (from_dlpack as a method)
+        # CuPy v13.4+ (from_`dlpack` as a method)
         # https://github.com/cupy/cupy/blob/main/docs/source/user_guide/interoperability.rst
         # https://github.com/cupy/cupy/pull/8048/files
         if hasattr(cp, 'from_dlpack'):
@@ -152,7 +152,7 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[CudmStateType]):
         y_t = solution[-1]
 
         # convert the solution back to CuPy array
-        # CuPy v13.4+ (from_dlpack as a method)
+        # CuPy v13.4+ (from_`dlpack` as a method)
         # https://github.com/cupy/cupy/blob/main/docs/source/user_guide/interoperability.rst
         # https://github.com/cupy/cupy/pull/8048/files
         if hasattr(cp, 'from_dlpack'):
