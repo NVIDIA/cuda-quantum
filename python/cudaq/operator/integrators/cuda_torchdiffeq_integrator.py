@@ -71,14 +71,22 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[CudmStateType]):
         t_scalar = t.item()
         # `vec` is a torch tensor on GPU
         # convert torch tensor to CuPy array without copying data
-        vec_cupy = cp.from_dlpack(torch.utils.dlpack.to_dlpack(vec))
+        # CuPy v13.4+ (from_dlpack as a method)
+        # https://github.com/cupy/cupy/blob/main/docs/source/user_guide/interoperability.rst
+        # https://github.com/cupy/cupy/pull/8048/files
+        if hasattr(cp, 'from_dlpack'):
+            vec_cupy = cp.from_dlpack(torch.utils.dlpack.to_dlpack(vec))
+        # CuPy v13.3 and older (check for __dlpack__ attribute)
+        else:
+            vec_cupy = cp.from_dlpack(vec.__dlpack__())
+
         rho_data = cp.asfortranarray(
             vec_cupy.reshape(*self.dm_shape, self.state.batch_size))
         temp_state = self.state.clone(rho_data)
         result = self.stepper.compute(temp_state, t_scalar)
         # convert result back to torch tensor without copying data
         result_vec = torch.utils.dlpack.from_dlpack(
-            result.storage.ravel().copy().toDlpack())
+            result.storage.ravel().toDlpack())
         return result_vec
 
     def __post_init__(self):
@@ -118,7 +126,15 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[CudmStateType]):
 
         # Prepare initial state y0 as torch tensor
         y0_cupy = self.state.storage.ravel()
-        y0 = torch.utils.dlpack.from_dlpack(y0_cupy.copy().toDlpack())
+        # CuPy v13.4+ (from_dlpack as a method)
+        # https://github.com/cupy/cupy/blob/main/docs/source/user_guide/interoperability.rst
+        # https://github.com/cupy/cupy/pull/8048/files
+        if hasattr(cp, 'from_dlpack'):
+            y0 = torch.utils.dlpack.from_dlpack(y0_cupy.toDlpack())
+        # CuPy v13.3 and older (check for __dlpack__ attribute)
+        else:
+            y0 = torch.utils.dlpack.from_dlpack(y0_cupy.__dlpack__())
+
         y0 = y0.to('cuda')
 
         # time span
@@ -136,7 +152,14 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[CudmStateType]):
         y_t = solution[-1]
 
         # convert the solution back to CuPy array
-        y_t_cupy = cp.from_dlpack(torch.utils.dlpack.to_dlpack(y_t))
+        # CuPy v13.4+ (from_dlpack as a method)
+        # https://github.com/cupy/cupy/blob/main/docs/source/user_guide/interoperability.rst
+        # https://github.com/cupy/cupy/pull/8048/files
+        if hasattr(cp, 'from_dlpack'):
+            y_t_cupy = cp.from_dlpack(torch.utils.dlpack.to_dlpack(y_t))
+        # CuPy v13.3 and older (check for __dlpack__ attribute)
+        else:
+            y_t_cupy = cp.from_dlpack(y_t.__dlpack__())
 
         # Keep results in GPU memory
         rho_data = cp.asfortranarray(
