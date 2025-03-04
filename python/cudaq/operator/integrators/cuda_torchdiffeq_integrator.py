@@ -78,7 +78,7 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[CudmStateType]):
         result = self.stepper.compute(temp_state, t_scalar)
         # convert result back to torch tensor without copying data
         result_vec = torch.utils.dlpack.from_dlpack(
-            result.storage.ravel().toDlpack())
+            result.storage.ravel().copy().toDlpack())
         return result_vec
 
     def __post_init__(self):
@@ -118,7 +118,7 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[CudmStateType]):
 
         # Prepare initial state y0 as torch tensor
         y0_cupy = self.state.storage.ravel()
-        y0 = torch.utils.dlpack.from_dlpack(y0_cupy.toDlpack())
+        y0 = torch.utils.dlpack.from_dlpack(y0_cupy.copy().toDlpack())
         y0 = y0.to('cuda')
 
         # time span
