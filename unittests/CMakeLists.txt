@@ -312,6 +312,7 @@ if (CUDA_FOUND)
     nvqir-dynamics
     ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
     CUDA::cudart_static
+    CUDA::cublas
     gtest_main
     fmt::fmt-header-only)
   target_include_directories(test_dynamics PRIVATE ${CMAKE_SOURCE_DIR}/runtime/nvqir/cudensitymat)
