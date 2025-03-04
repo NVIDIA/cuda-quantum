@@ -31,13 +31,8 @@ int main() {
   auto psi0 = cudaq::state::from_data(initial_state_vec);
 
   // Create a schedule of time steps from 0 to 10 with 101 points
-  std::vector<std::complex<double>> steps;
-  for (double t : cudaq::linspace(0.0, 10.0, 101)) {
-    steps.emplace_back(t, 0.0);
-  }
-  cudaq::Schedule schedule(
-      steps, {"time"},
-      [](const std::string &, const std::complex<double> &val) { return val; });
+  std::vector<double> steps = cudaq::linspace(0.0, 10.0, 101);
+  cudaq::Schedule schedule(steps);
 
   // Runge-`Kutta` integrator with a time step of 0.001 and order 4
   std::shared_ptr<cudaq::RungeKuttaIntegrator> integrator =

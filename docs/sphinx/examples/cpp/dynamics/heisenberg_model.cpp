@@ -65,10 +65,7 @@ int main() {
 
   // Simulate the dynamics over 1000 time steps spanning from time 0 to 5.
   const int num_steps = 1000;
-  std::vector<std::complex<double>> steps;
-  for (double t : cudaq::linspace(0.0, 5.0, num_steps)) {
-    steps.emplace_back(t, 0.0);
-  }
+  std::vector<double> steps = cudaq::linspace(0.0, 5.0, num_steps);
 
   // For three different values of g, which sets the strength of the Z-Z
   // interaction: g = 0.0 (isotropic in the `XY` plane), 0.25, and 4.0 (strongly
@@ -106,11 +103,7 @@ int main() {
     auto psi0 = cudaq::state::from_data(psi0_data);
 
     // The schedule is built using the time steps array.
-    cudaq::Schedule schedule(
-        steps, {"time"},
-        [](const std::string &, const std::complex<double> &val) {
-          return val;
-        });
+    cudaq::Schedule schedule(steps);
 
     // Use a Runge-`Kutta` integrator (4`th` order) with a small time step `dt`
     // = 0.001.

@@ -30,21 +30,14 @@ inline void export_csv_helper(std::vector<std::string> &headers,
 
 template <typename... Args>
 void export_csv(const std::string &filename, const std::string &header1,
-                const std::vector<std::complex<double>> &col1,
-                const Args &...args) {
+                const std::vector<double> &col1, const Args &...args) {
   static_assert(sizeof...(args) % 2 == 0,
                 "Parameters must be provided in header/vector pairs.");
-
-  std::vector<double> col1_real;
-  col1_real.reserve(col1.size());
-  for (const auto &c : col1) {
-    col1_real.push_back(c.real());
-  }
 
   std::vector<std::string> headers;
   std::vector<const std::vector<double> *> columns;
   headers.push_back(header1);
-  columns.push_back(&col1_real);
+  columns.push_back(&col1);
   export_csv_helper(headers, columns, args...);
 
   size_t n = columns.front()->size();
