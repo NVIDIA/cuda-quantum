@@ -46,6 +46,11 @@ target_include_directories(${LIBRARY_NAME}
     ${CUDENSITYMAT_INCLUDE_DIR}
 )
 
+target_include_directories(${LIBRARY_NAME}
+  PUBLIC
+    ${CUDENSITYMAT_INCLUDE_DIR}
+)
+
 target_link_libraries(${LIBRARY_NAME}
                       PRIVATE
                         fmt::fmt-header-only
