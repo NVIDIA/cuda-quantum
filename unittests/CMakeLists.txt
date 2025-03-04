@@ -320,7 +320,7 @@ if (CUDA_FOUND)
     cudaq
     nvqir-dynamics
     ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
-    CUDA::cudart_static
+    CUDA::cudart
     CUDA::cublas
     ${CUTENSOR_LIB}
     gtest_main
@@ -342,7 +342,7 @@ if (CUDA_FOUND)
     cudaq-platform-mqpu
     nvqir-dynamics
     ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
-    CUDA::cudart_static
+    CUDA::cudart
     CUDA::cublas
     ${CUTENSOR_LIB}
     gtest_main
