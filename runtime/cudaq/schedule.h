@@ -69,6 +69,14 @@ public:
       const std::function<std::complex<double>(
           const std::string &, const std::complex<double> &)> &value_function);
 
+  /// @brief Constructor.
+  /// @arg steps: The sequence of steps in the schedule. Restricted to a vector
+  /// of double values.
+  /// @arg parameters: A sequence of strings representing the parameter names of
+  /// an operator expression.
+  /// @arg value_function: A function that takes the name of a parameter as well
+  /// as an additional value ("step") of arbitrary type as argument and returns
+  /// the complex value for that parameter at the given step.
   Schedule(const std::vector<double> &steps,
            const std::vector<std::string> &parameters = {})
       : Schedule(toComplex(steps), parameters,
