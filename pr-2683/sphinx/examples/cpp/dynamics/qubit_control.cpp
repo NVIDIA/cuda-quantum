@@ -67,15 +67,10 @@ int main() {
   // Compute the number of steps required for the simulation
   int num_steps = static_cast<int>(std::ceil(t_final / dt)) + 1;
   // Create a schedule with time steps from 0 to t_final.
-  std::vector<std::complex<double>> steps;
-  for (double t : cudaq::linspace(0.0, t_final, num_steps)) {
-    steps.emplace_back(t, 0.0);
-  }
+  std::vector<double> steps = cudaq::linspace(0.0, t_final, num_steps);
   // The schedule carries the time parameter `labelled` `t`, which is used by
   // mod_`func`.
-  cudaq::Schedule schedule(
-      steps, {"t"},
-      [](const std::string &, const std::complex<double> &val) { return val; });
+  cudaq::Schedule schedule(steps, {"t"});
 
   // A Runge-`Kutta` integrator (4`th` order) with a small time step `dt`.
   std::shared_ptr<cudaq::RungeKuttaIntegrator> integrator =

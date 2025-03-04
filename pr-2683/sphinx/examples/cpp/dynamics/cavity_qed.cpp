@@ -69,15 +69,10 @@ int main() {
 
   // Define a time evolution schedule
   // We define a time grid from 0 to 10 (in arbitrary time units) with 201 time
-  // steps This schedule is used by the integrator to simulate the dynamics.
+  // steps. This schedule is used by the integrator to simulate the dynamics.
   const int num_steps = 201;
-  std::vector<std::complex<double>> steps;
-  for (double t : cudaq::linspace(0.0, 10.0, num_steps)) {
-    steps.emplace_back(t, 0.0);
-  }
-  cudaq::Schedule schedule(
-      steps, {"t"},
-      [](const std::string &, const std::complex<double> &val) { return val; });
+  std::vector<double> steps = cudaq::linspace(0.0, 10.0, num_steps);
+  cudaq::Schedule schedule(steps);
 
   // Create a CUDA quantum state
   // The initial state is converted into a quantum state object for evolution.
