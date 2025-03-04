@@ -288,6 +288,15 @@ gtest_discover_tests(test_operators)
 
 if (CUDA_FOUND)
   find_package(CUDAToolkit REQUIRED)
+
+  find_library(CUTENSOR_LIB
+    NAMES   cutensor libcutensor.so.2
+    HINTS
+        ${CUTENSOR_ROOT}/lib64
+        ${CUTENSOR_ROOT}/lib
+        ${CUTENSOR_ROOT}/lib64/${CUDAToolkit_VERSION_MAJOR}
+        ${CUTENSOR_ROOT}/lib/${CUDAToolkit_VERSION_MAJOR}
+  )
   
   # Create an executable for dynamics UnitTests
   set(CUDAQ_DYNAMICS_TEST_SOURCES 
@@ -313,6 +322,7 @@ if (CUDA_FOUND)
     ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
     CUDA::cudart_static
     CUDA::cublas
+    ${CUTENSOR_LIB}
     gtest_main
     fmt::fmt-header-only)
   target_include_directories(test_dynamics PRIVATE ${CMAKE_SOURCE_DIR}/runtime/nvqir/cudensitymat)
