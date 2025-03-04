@@ -214,10 +214,11 @@ def test_exp_pauli_param():
         q = cudaq.qvector(2)
         exp_pauli(1.0, q, w)
 
-    # FIXME: should work after new launchKernel becomes default.
-    with pytest.raises(RuntimeError) as e:
-        counts = cudaq.sample(test_param, cudaq.pauli_word("XX"))
-    assert 'Remote rest platform Quake lowering failed.' in repr(e)
+    counts = cudaq.sample(test_param, cudaq.pauli_word("XX"))
+    assert '00' in counts
+    assert '11' in counts
+    assert not '01' in counts
+    assert not '10' in counts
 
 
 def test_1q_unitary_synthesis():
