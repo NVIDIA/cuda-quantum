@@ -48,6 +48,9 @@ target_include_directories(${LIBRARY_NAME}
 
 target_include_directories(${LIBRARY_NAME}
   PUBLIC
+    . ..
+    ${CUDAToolkit_INCLUDE_DIRS}
+    ${CMAKE_SOURCE_DIR}/runtime/common
     ${CUDENSITYMAT_INCLUDE_DIR}
 )
 
