@@ -128,7 +128,7 @@ void RemoteSimulationState::toHost(std::complex<float> *clientAllocatedData,
   }
 }
 
-std::pair<std::string, std::vector<void *>>
+std::optional<std::pair<std::string, std::vector<void *>>>
 RemoteSimulationState::getKernelInfo() const {
   return std::make_pair(kernelName, args);
 }
