@@ -49,13 +49,8 @@ class CuDensityMatState(object):
                 dev = cupy.cuda.Device(rank % NUM_DEVICES)
                 dev.use()
                 self.__ctx = WorkStream(device_id=cupy.cuda.runtime.getDevice())
-                # FIXME: use the below once `cudensitymat` supports raw MPI Comm pointer.
-                # `ctx.set_communicator(comm=cudaq_runtime.mpi.comm_dup(), provider="MPI")`
-                # At the moment, only `mpi4py` communicator objects are supported, thus we use the underlying `reset_distributed_configuration` API.
-                _comm_ptr, _size = cudaq_runtime.mpi.comm_dup()
-                cudm.reset_distributed_configuration(
-                    self.__ctx._handle._validated_ptr,
-                    cudm.DistributedProvider.MPI, _comm_ptr, _size)
+                self.__ctx.set_communicator(comm=cudaq_runtime.mpi.comm_dup(),
+                                            provider="MPI")
                 CuDensityMatState.__is_multi_process = True
             else:
                 self.__ctx = WorkStream()
