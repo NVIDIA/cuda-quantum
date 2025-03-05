@@ -38,7 +38,7 @@ convertToOrderedMap(const std::unordered_map<Key, Value> &unorderedMap) {
 evolve_result evolveSingle(
     const operator_sum<cudaq::matrix_operator> &hamiltonian,
     const cudaq::dimension_map &dimensionsMap, const Schedule &schedule,
-    const state &initialState, BaseIntegrator &integrator,
+    const state &initialState, base_integrator &integrator,
     const std::vector<operator_sum<cudaq::matrix_operator>> &collapseOperators,
     const std::vector<operator_sum<cudaq::matrix_operator>> &observables,
     bool storeIntermediateResults, std::optional<int> shotsCount) {
@@ -67,7 +67,7 @@ evolve_result evolveSingle(
   }();
 
   SystemDynamics system(dims, hamiltonian, collapseOperators);
-  integrator.setSystem(system, schedule);
+  cudaq::integrator_helper::init_system_dynamics(integrator, system, schedule);
   integrator.setState(initial_State, 0.0);
   std::vector<CuDensityMatExpectation> expectations;
   for (auto &obs : observables)

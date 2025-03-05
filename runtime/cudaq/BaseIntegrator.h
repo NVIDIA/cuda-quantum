@@ -34,18 +34,18 @@ struct SystemDynamics {
       : hamiltonian(operator_sum<cudaq::matrix_operator>(
             cudaq::matrix_operator::empty())){};
 };
-class BaseIntegrator {
+
+class base_time_stepper;
+class base_integrator {
 public:
   /// @brief Default constructor
-  BaseIntegrator() = default;
+  base_integrator() = default;
 
-  virtual ~BaseIntegrator() = default;
+  virtual ~base_integrator() = default;
 
   /// @brief Set the initial state and time
   virtual void setState(const cudaq::state &initialState, double t0) = 0;
-  /// @brief Set the system dynamics
-  virtual void setSystem(const cudaq::SystemDynamics &system,
-                         const cudaq::Schedule &schedule) = 0;
+
   /// @brief Perform integration to the target time.
   virtual void integrate(double targetTime) = 0;
 
@@ -53,6 +53,24 @@ public:
   virtual std::pair<double, cudaq::state> getState() = 0;
 
   /// @brief Create a clone of this integrator.
-  virtual std::shared_ptr<BaseIntegrator> clone() = 0;
+  // e.g., cloning an integrator to keep inside async. functors.
+  virtual std::shared_ptr<base_integrator> clone() = 0;
+
+protected:
+  friend class integrator_helper;
+  SystemDynamics m_system;
+  cudaq::Schedule m_schedule;
+  std::unique_ptr<base_time_stepper> m_stepper;
+};
+
+class integrator_helper {
+public:
+  static void init_system_dynamics(base_integrator &integrator,
+                                   const SystemDynamics &system,
+                                   const cudaq::Schedule &schedule) {
+    integrator.m_system = system;
+    integrator.m_schedule = schedule;
+    integrator.m_stepper.reset();
+  }
 };
 } // namespace cudaq

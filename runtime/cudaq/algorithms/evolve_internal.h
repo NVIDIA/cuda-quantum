@@ -10,7 +10,6 @@
 
 #include "common/EvolveResult.h"
 #include "common/KernelWrapper.h"
-#include "cudaq/BaseIntegrator.h"
 #include "cudaq/algorithms/get_state.h"
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
@@ -19,6 +18,7 @@
 #include "cudaq/schedule.h"
 
 namespace cudaq {
+class base_integrator;
 
 /// @brief Return type for asynchronous `evolve_async`.
 using async_evolve_result = std::future<evolve_result>;
@@ -158,7 +158,7 @@ evolve_async(std::function<evolve_result()> evolveFunctor,
 evolve_result evolveSingle(
     const operator_sum<cudaq::matrix_operator> &hamiltonian,
     const cudaq::dimension_map &dimensions, const Schedule &schedule,
-    const state &initial_state, BaseIntegrator &integrator,
+    const state &initial_state, base_integrator &integrator,
     const std::vector<operator_sum<cudaq::matrix_operator>>
         &collapse_operators = {},
     const std::vector<operator_sum<cudaq::matrix_operator>> &observables = {},

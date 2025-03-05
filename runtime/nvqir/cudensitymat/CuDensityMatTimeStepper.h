@@ -13,7 +13,7 @@
 #include <cudensitymat.h>
 
 namespace cudaq {
-class CuDensityMatTimeStepper : public BaseTimeStepper {
+class CuDensityMatTimeStepper : public base_time_stepper {
 public:
   explicit CuDensityMatTimeStepper(cudensitymatHandle_t handle,
                                    cudensitymatOperator_t liouvillian);

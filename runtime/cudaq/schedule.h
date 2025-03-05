@@ -50,6 +50,8 @@ private:
   }
 
 public:
+  // Default constructor (empty schedule)
+  Schedule() = default;
   Schedule(pointer ptr) : ptr(ptr){};
 
   /// @brief Constructor.

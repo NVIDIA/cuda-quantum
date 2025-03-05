@@ -31,7 +31,7 @@ TEST(EvolveTester, checkSimple) {
   auto initialState =
       cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
 
-  cudaq::RungeKuttaIntegrator integrator;
+  cudaq::integrators::runge_kutta integrator;
   integrator.dt = 0.001;
   integrator.order = 1;
   auto result = cudaq::__internal__::evolveSingle(
@@ -67,7 +67,7 @@ TEST(EvolveTester, checkSimpleRK4) {
   auto initialState =
       cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
 
-  cudaq::RungeKuttaIntegrator integrator;
+  cudaq::integrators::runge_kutta integrator;
   integrator.dt = 0.001;
   integrator.order = 4;
   auto result = cudaq::__internal__::evolveSingle(
@@ -103,7 +103,7 @@ TEST(EvolveTester, checkDensityMatrixSimple) {
   auto initialState = cudaq::state::from_data(
       std::vector<std::complex<double>>{1.0, 0.0, 0.0, 0.0});
 
-  cudaq::RungeKuttaIntegrator integrator;
+  cudaq::integrators::runge_kutta integrator;
   integrator.dt = 0.001;
   integrator.order = 1;
   auto result = cudaq::__internal__::evolveSingle(
@@ -156,7 +156,7 @@ TEST(EvolveTester, checkCompositeSystem) {
   cudaq::Schedule schedule(steps, {"t"});
   auto initialState = cudaq::state::from_data(
       std::make_pair(initial_state_vec.data(), initial_state_vec.size()));
-  cudaq::RungeKuttaIntegrator integrator;
+  cudaq::integrators::runge_kutta integrator;
   integrator.dt = 0.001;
   integrator.order = 4;
 
@@ -211,7 +211,7 @@ TEST(EvolveTester, checkCompositeSystemWithCollapse) {
   cudaq::Schedule schedule(timeSteps, {"t"});
   auto initialState =
       cudaq::state::from_data(std::make_pair(rho0.data(), rho0.size()));
-  cudaq::RungeKuttaIntegrator integrator;
+  cudaq::integrators::runge_kutta integrator;
   integrator.dt = 0.001;
   integrator.order = 4;
   constexpr double decayRate = 0.1;
@@ -265,7 +265,7 @@ TEST(EvolveTester, checkScalarTd) {
   Eigen::MatrixXcd rho0 = initial_state_vec * initial_state_vec.transpose();
   auto initialState =
       cudaq::state::from_data(std::make_pair(rho0.data(), rho0.size()));
-  cudaq::RungeKuttaIntegrator integrator;
+  cudaq::integrators::runge_kutta integrator;
   integrator.dt = 0.001;
   integrator.order = 4;
   auto result = cudaq::__internal__::evolveSingle(

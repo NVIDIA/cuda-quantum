@@ -73,7 +73,7 @@ int main() {
   cudaq::Schedule schedule(steps, {"t"});
 
   // A Runge-`Kutta` integrator (4`th` order) with a small time step `dt`.
-  cudaq::RungeKuttaIntegrator integrator;
+  cudaq::integrators::runge_kutta integrator;
   integrator.dt = dt;
   integrator.order = 4;
 

@@ -27,7 +27,7 @@ TEST(DynamicsAsyncTester, checkSimple) {
         });
     auto initialState =
         cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
-    cudaq::RungeKuttaIntegrator integrator;
+    cudaq::integrators::runge_kutta integrator;
     integrator.order = 1;
     integrator.dt = 0.001;
     auto resultFuture1 = cudaq::evolve_async(
@@ -57,7 +57,7 @@ TEST(DynamicsAsyncTester, checkSimple) {
     psi0_.back() = 1.0;
     auto psi0 = cudaq::state::from_data(psi0_);
     constexpr double decay_rate = 0.1;
-    cudaq::RungeKuttaIntegrator integrator;
+    cudaq::integrators::runge_kutta integrator;
     integrator.dt = 0.01;
     auto resultFuture = cudaq::evolve_async(
         hamiltonian, dimensions, schedule, psi0, integrator,
@@ -130,7 +130,7 @@ TEST(DynamicsAsyncTester, checkInitializerArgs) {
 
     auto initialState =
         cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
-    cudaq::RungeKuttaIntegrator integrator;
+    cudaq::integrators::runge_kutta integrator;
     integrator.order = 1;
     integrator.dt = 0.001;
     auto resultFuture1 =
@@ -157,7 +157,7 @@ TEST(DynamicsAsyncTester, checkInitializerArgs) {
     psi0_.back() = 1.0;
     auto psi0 = cudaq::state::from_data(psi0_);
     constexpr double decay_rate = 0.1;
-    cudaq::RungeKuttaIntegrator integrator;
+    cudaq::integrators::runge_kutta integrator;
     integrator.dt = 0.01;
     auto resultFuture = cudaq::evolve_async(
         hamiltonian, dimensions, schedule, psi0, integrator,

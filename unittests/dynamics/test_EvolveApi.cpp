@@ -30,7 +30,7 @@ TEST(EvolveAPITester, checkSimple) {
       [](const std::string &, const std::complex<double> &val) { return val; });
   auto initialState =
       cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
-  cudaq::RungeKuttaIntegrator integrator;
+  cudaq::integrators::runge_kutta integrator;
   integrator.order = 1;
   integrator.dt = 0.001;
   auto result = cudaq::evolve(ham, dims, schedule, initialState, integrator, {},
@@ -67,7 +67,7 @@ TEST(EvolveAPITester, checkCavityModel) {
   psi0_.back() = 1.0;
   auto psi0 = cudaq::state::from_data(psi0_);
   constexpr double decay_rate = 0.1;
-  cudaq::RungeKuttaIntegrator integrator;
+  cudaq::integrators::runge_kutta integrator;
   integrator.dt = 0.01;
   auto result = cudaq::evolve(
       hamiltonian, dimensions, schedule, psi0, integrator,
@@ -118,7 +118,7 @@ TEST(EvolveAPITester, checkTimeDependent) {
 
   auto collapseOperator = cudaq::scalar_operator(td_function) *
                           cudaq::boson_operator::annihilate(0);
-  cudaq::RungeKuttaIntegrator integrator;
+  cudaq::integrators::runge_kutta integrator;
   integrator.dt = 0.01;
   auto result =
       cudaq::evolve(hamiltonian, dimensions, schedule, psi0, integrator,

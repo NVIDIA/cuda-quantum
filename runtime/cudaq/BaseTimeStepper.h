@@ -10,9 +10,9 @@
 #include "cudaq/qis/state.h"
 
 namespace cudaq {
-class BaseTimeStepper {
+class base_time_stepper {
 public:
-  virtual ~BaseTimeStepper() = default;
+  virtual ~base_time_stepper() = default;
 
   virtual state
   compute(const state &inputState, double t, double stepSize,

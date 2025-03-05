@@ -13,27 +13,12 @@
 #include "cudaq/dynamics_integrators.h"
 
 namespace cudaq {
+namespace integrators {
 
-cudaq::Schedule createDummySchedule() {
-  std::vector<std::complex<double>> dummy_steps = {{0.0, 0.0}};
-  std::vector<std::string> dummy_params = {"t"};
-  return cudaq::Schedule(
-      dummy_steps, dummy_params,
-      [](const std::string &, const std::complex<double> &val) { return val; });
-}
+runge_kutta::runge_kutta() : m_t(0.0) {}
 
-RungeKuttaIntegrator::RungeKuttaIntegrator()
-    : m_t(0.0), m_schedule(createDummySchedule()) {}
-
-void RungeKuttaIntegrator::setSystem(const SystemDynamics &system,
-                                     const cudaq::Schedule &schedule) {
-  m_system = system;
-  m_schedule = schedule;
-  m_stepper.reset();
-}
-
-std::shared_ptr<BaseIntegrator> RungeKuttaIntegrator::clone() {
-  auto clone = std::make_shared<RungeKuttaIntegrator>();
+std::shared_ptr<base_integrator> runge_kutta::clone() {
+  auto clone = std::make_shared<cudaq::integrators::runge_kutta>();
   clone->order = this->order;
   clone->dt = this->dt;
   clone->m_t = this->m_t;
@@ -43,13 +28,13 @@ std::shared_ptr<BaseIntegrator> RungeKuttaIntegrator::clone() {
   return clone;
 }
 
-void RungeKuttaIntegrator::setState(const cudaq::state &initial_state,
+void runge_kutta::setState(const cudaq::state &initial_state,
                                     double t0) {
   m_state = std::make_shared<cudaq::state>(initial_state);
   m_t = t0;
 }
 
-std::pair<double, cudaq::state> RungeKuttaIntegrator::getState() {
+std::pair<double, cudaq::state> runge_kutta::getState() {
   auto *simState = cudaq::state_helper::getSimulationState(m_state.get());
   auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
   if (!castSimState)
@@ -62,7 +47,7 @@ std::pair<double, cudaq::state> RungeKuttaIntegrator::getState() {
   return std::make_pair(m_t, cudaq::state(cudmState));
 }
 
-void RungeKuttaIntegrator::integrate(double targetTime) {
+void runge_kutta::integrate(double targetTime) {
   const auto asCudmState = [](cudaq::state &cudaqState) -> CuDensityMatState * {
     auto *simState = cudaq::state_helper::getSimulationState(&cudaqState);
     auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
@@ -168,4 +153,5 @@ void RungeKuttaIntegrator::integrate(double targetTime) {
     m_t += step_size;
   }
 }
+} // namespace integrators
 } // namespace cudaq

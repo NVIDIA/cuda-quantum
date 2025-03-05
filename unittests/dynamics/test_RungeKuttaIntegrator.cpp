@@ -20,7 +20,7 @@ class RungeKuttaIntegratorTest : public ::testing::Test {
 protected:
   cudensitymatHandle_t handle_;
   cudensitymatOperator_t liouvillian_;
-  std::unique_ptr<RungeKuttaIntegrator> integrator_;
+  std::unique_ptr<cudaq::integrators::runge_kutta> integrator_;
   std::unique_ptr<CuDensityMatState> state_;
 
   void SetUp() override {
@@ -38,7 +38,8 @@ protected:
 
     double t0 = 0.0;
     // Initialize the integrator (using substeps = 4, for Runge-Kutta method)
-    ASSERT_NO_THROW(integrator_ = std::make_unique<RungeKuttaIntegrator>());
+    ASSERT_NO_THROW(integrator_ =
+                        std::make_unique<cudaq::integrators::runge_kutta>());
     ASSERT_NE(integrator_, nullptr);
     integrator_->order = 4;
   }
@@ -67,7 +68,7 @@ TEST_F(RungeKuttaIntegratorTest, CheckEvolve) {
 
   for (int integratorOrder : {1, 2, 4}) {
     std::cout << "Test RK order " << integratorOrder << "\n";
-    cudaq::RungeKuttaIntegrator integrator;
+    cudaq::integrators::runge_kutta integrator;
     integrator.dt = 0.001;
     integrator.order = integratorOrder;
     constexpr std::size_t numDataPoints = 10;
@@ -87,7 +88,8 @@ TEST_F(RungeKuttaIntegratorTest, CheckEvolve) {
         steps, {"t"}, [](const std::string &, const std::complex<double> &val) {
           return val;
         });
-    integrator.setSystem(system, schedule);
+    cudaq::integrator_helper::init_system_dynamics(integrator, system,
+                                                   schedule);
     std::vector<std::complex<double>> outputStateVec(2);
     for (std::size_t i = 1; i < numDataPoints; ++i) {
       integrator.integrate(i);
