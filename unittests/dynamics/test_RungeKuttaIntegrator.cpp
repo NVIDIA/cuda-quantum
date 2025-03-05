@@ -41,7 +41,6 @@ protected:
     ASSERT_NO_THROW(integrator_ =
                         std::make_unique<cudaq::integrators::runge_kutta>());
     ASSERT_NE(integrator_, nullptr);
-    integrator_->order = 4;
   }
 
   void TearDown() override {
@@ -68,9 +67,7 @@ TEST_F(RungeKuttaIntegratorTest, CheckEvolve) {
 
   for (int integratorOrder : {1, 2, 4}) {
     std::cout << "Test RK order " << integratorOrder << "\n";
-    cudaq::integrators::runge_kutta integrator;
-    integrator.dt = 0.001;
-    integrator.order = integratorOrder;
+    cudaq::integrators::runge_kutta integrator(integratorOrder, 0.001);
     constexpr std::size_t numDataPoints = 10;
     double t = 0.0;
     auto initialState = cudaq::state::from_data(initialStateVec);
