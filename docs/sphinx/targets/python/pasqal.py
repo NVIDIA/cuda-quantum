@@ -8,7 +8,7 @@ from cudaq.operator import *
 #
 # Contact Pasqal at help@pasqal.com or through https://community.pasqal.com for assistance.
 #
-# Visit our documentation portal, https://docs.pasqal.com/, to find further
+# Visit the documentation portal, https://docs.pasqal.com/, to find further
 # documentation on Pasqal's devices, emulators and the cloud platform.
 #
 # For more details on the EMU_MPS emulator see the documentation of the open-source
