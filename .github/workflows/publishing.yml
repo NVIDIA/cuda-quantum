@@ -978,7 +978,7 @@ jobs:
           bash ~/.miniconda3/miniconda.sh -b -u -p ~/.miniconda3
           rm -rf ~/.miniconda3/miniconda.sh
           eval "$(~/.miniconda3/bin/conda shell.bash hook)"
-          conda install -y -c conda-forge openmpi
+          conda install -y -c conda-forge openmpi">=5.0.7"
 
           echo 'eval "$(~/.miniconda3/bin/conda shell.bash hook)"' >> ~/.bashrc
           echo 'export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CONDA_PREFIX/lib"' >> ~/.bashrc

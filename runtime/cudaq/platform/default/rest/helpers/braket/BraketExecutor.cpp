@@ -113,6 +113,16 @@ void BraketExecutor::setServerHelper(ServerHelper *helper) {
       Aws::Utils::ARN(helper->getConfig().at("deviceArn")).GetRegion();
   std::string defaultBucket = helper->getConfig().at("defaultBucket");
 
+  if (helper->getConfig().contains("polling_interval_ms")) {
+    long pollingIntervalMs{
+        std::stol(helper->getConfig().at("polling_interval_ms"))};
+    if (pollingIntervalMs <= 0) {
+      throw std::runtime_error(
+          "polling_interval_ms must be a positive integer.");
+    }
+    pollingInterval = std::chrono::milliseconds{pollingIntervalMs};
+  }
+
   Aws::Client::ClientConfiguration clientConfig;
   clientConfig.verifySSL = false;
   Aws::S3Crt::ClientConfiguration s3ClientConfig;
