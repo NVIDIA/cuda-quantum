@@ -98,17 +98,18 @@ if __name__ == "__main__":
 
         notebooks_success, notebooks_skipped, notebooks_failed = (
             [] for i in range(3))
+
+        ## afqmc.ipynb:
+        ## See: https://github.com/NVIDIA/cuda-quantum/issues/2577
+        ## quantum_transformer.ipynb:
+        ## See: https://github.com/NVIDIA/cuda-quantum/issues/2689
+        notebooks_to_skip = {"afqmc.ipynb", "quantum_transformer.ipynb"}
+
         for notebook_filename in notebook_filenames:
-            ## See: https://github.com/NVIDIA/cuda-quantum/issues/2577
-            if os.path.basename(notebook_filename) in ["afqmc.ipynb"]:
+            if os.path.basename(notebook_filename) in notebooks_to_skip:
                 notebooks_skipped.append(notebook_filename)
-            ## See: https://github.com/NVIDIA/cuda-quantum/issues/2689
-            elif os.path.basename(notebook_filename) in [
-                    "quantum_transformer.ipynb"
-            ]:
-                notebooks_skipped.append(notebook_filename)
-            elif (validate(notebook_filename, available_backends)):
-                if (execute(notebook_filename)):
+            elif validate(notebook_filename, available_backends):
+                if execute(notebook_filename):
                     notebooks_success.append(notebook_filename)
                 else:
                     notebooks_failed.append(notebook_filename)
