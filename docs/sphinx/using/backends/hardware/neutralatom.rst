@@ -191,7 +191,7 @@ can be controlled with the ``cudaq::set_target()`` function.
 This accepts an optional argument, ``machine``, which is used in the cloud platform to
 select the corresponding Pasqal QPU or emulator to execute on.
 See the `Pasqal cloud portal <https://portal.pasqal.cloud/>`__ for an up to date list.
-The default value is ``EMU_MPS`` which is an open-source ensor network emulator based on the
+The default value is ``EMU_MPS`` which is an open-source tensor network emulator based on the
 Matrix Product State formalism running in Pasqal's cloud platform. You can see the
 documentation for the publicly accessible emulator `here <https://pasqal-io.github.io/emulators/latest/emu_mps/>`__.
 
