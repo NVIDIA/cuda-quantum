@@ -54,6 +54,14 @@ std::complex<double> spin_operator::inplace_mult(const spin_operator &other) {
 
 // read-only properties
 
+pauli spin_operator::as_pauli() const {
+  if (this->op_code == 1) return pauli::Z;
+  if (this->op_code == 2) return pauli::X;
+  if (this->op_code == 3) return pauli::Y;
+  assert(this->op_code == 0);
+  return pauli::I;
+}
+
 std::string spin_operator::unique_id() const {
   return this->op_code_to_string() + std::to_string(target);
 }

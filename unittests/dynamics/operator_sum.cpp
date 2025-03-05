@@ -23,7 +23,7 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
   auto spin1 = cudaq::spin_operator::z(5);
   auto spin_sum = spin0 + spin1;
 
-  std::vector<int> want_degrees = {5};
+  std::vector<std::size_t> want_degrees = {5};
   auto spin_matrix = utils::PauliX_matrix() + utils::PauliZ_matrix();
 
   ASSERT_TRUE(spin_sum.degrees() == want_degrees);
@@ -50,7 +50,7 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
   auto spin1 = cudaq::spin_operator::z(1);
   auto spin_sum = spin0 + spin1;
 
-  std::vector<int> want_degrees = {1, 0};
+  std::vector<std::size_t> want_degrees = {1, 0};
   auto spin_matrix =
       cudaq::kronecker(utils::id_matrix(2), utils::PauliX_matrix()) +
       cudaq::kronecker(utils::PauliZ_matrix(), utils::id_matrix(2));
@@ -92,7 +92,7 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
   auto spin1 = cudaq::spin_operator::z(2);
   auto spin_sum = spin0 + spin1;
 
-  std::vector<int> want_degrees = {2, 0};
+  std::vector<std::size_t> want_degrees = {2, 0};
   auto spin_matrix =
       cudaq::kronecker(utils::id_matrix(2), utils::PauliX_matrix()) +
       cudaq::kronecker(utils::PauliZ_matrix(), utils::id_matrix(2));
@@ -134,7 +134,7 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
   auto spin1 = cudaq::spin_operator::z(2);
   auto spin_sum = spin0 + spin1;
 
-  std::vector<int> want_degrees = {2, 0};
+  std::vector<std::size_t> want_degrees = {2, 0};
   auto spin_matrix =
       cudaq::kronecker(utils::id_matrix(2), utils::PauliX_matrix()) +
       cudaq::kronecker(utils::PauliZ_matrix(), utils::id_matrix(2));
@@ -150,7 +150,7 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
     auto got = op0 + op1;
     auto got_reverse = op1 + op0;
 
-    std::vector<int> want_degrees = {2, 0};
+    std::vector<std::size_t> want_degrees = {2, 0};
     ASSERT_TRUE(got.degrees() == want_degrees);
     ASSERT_TRUE(got_reverse.degrees() == want_degrees);
 
@@ -192,7 +192,7 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
     auto sum = scalar_op + op;
     auto reverse = op + scalar_op;
 
-    std::vector<int> want_degrees = {0};
+    std::vector<std::size_t> want_degrees = {0};
     auto op_matrix = utils::parity_matrix(2);
     auto scalar_matrix = value_0 * utils::id_matrix(2);
 
@@ -209,7 +209,7 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
     auto sum = scalar_op + op;
     auto reverse = op + scalar_op;
 
-    std::vector<int> want_degrees = {0};
+    std::vector<std::size_t> want_degrees = {0};
     auto op_matrix = utils::PauliX_matrix();
     auto scalar_matrix = value_0 * utils::id_matrix(2);
 
@@ -226,7 +226,7 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
     auto sum = scalar_op + op;
     auto reverse = op + scalar_op;
 
-    std::vector<int> want_degrees = {1};
+    std::vector<std::size_t> want_degrees = {1};
     auto op_matrix = utils::parity_matrix(2);
     auto scalar_matrix =
         scalar_op.evaluate({{"value", 0.3}}) * utils::id_matrix(2);
@@ -246,7 +246,7 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
     auto sum = scalar_op + op;
     auto reverse = op + scalar_op;
 
-    std::vector<int> want_degrees = {1};
+    std::vector<std::size_t> want_degrees = {1};
     auto op_matrix = utils::PauliX_matrix();
     auto scalar_matrix =
         scalar_op.evaluate({{"value", 0.3}}) * utils::id_matrix(2);

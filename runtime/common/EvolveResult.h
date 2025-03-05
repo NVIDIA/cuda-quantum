@@ -12,6 +12,7 @@
 #include "cudaq/qis/state.h"
 #include <memory>
 #include <optional>
+#include "operators.h"
 
 namespace cudaq {
 
@@ -48,8 +49,7 @@ public:
   evolve_result(state state, const std::vector<double> &expectations)
       : final_state(state) {
     std::vector<observe_result> result;
-    const spin_op emptyOp(
-        std::unordered_map<spin_op::spin_op_term, std::complex<double>>{});
+    const spin_op emptyOp = spin_op::empty();
     for (auto e : expectations) {
       result.push_back(observe_result(e, emptyOp));
     }
@@ -76,8 +76,7 @@ public:
       : final_state(getLastStateIfValid(states)),
         intermediate_states(std::make_optional<std::vector<state>>(states)) {
     std::vector<std::vector<observe_result>> result;
-    const spin_op emptyOp(
-        std::unordered_map<spin_op::spin_op_term, std::complex<double>>{});
+    const spin_op emptyOp = spin_op::empty();
     for (const auto &vec : expectations) {
       std::vector<observe_result> subResult;
       for (auto e : vec) {

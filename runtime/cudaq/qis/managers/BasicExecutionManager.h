@@ -8,6 +8,7 @@
 
 #include "common/ExecutionContext.h"
 #include "common/Logger.h"
+#include "cudaq/operators.h"
 #include "cudaq/qis/execution_manager.h"
 
 #include <complex>
@@ -38,7 +39,7 @@ protected:
   /// target qudits, and an optional spin_op.
   using Instruction = std::tuple<std::string, std::vector<double>,
                                  std::vector<cudaq::QuditInfo>,
-                                 std::vector<cudaq::QuditInfo>, spin_op>;
+                                 std::vector<cudaq::QuditInfo>, spin_op_term>;
 
   /// @brief `typedef` for a queue of instructions
   using InstructionQueue = std::vector<Instruction>;
@@ -178,7 +179,7 @@ public:
   void apply(const std::string_view gateName, const std::vector<double> &params,
              const std::vector<cudaq::QuditInfo> &controls,
              const std::vector<cudaq::QuditInfo> &targets,
-             bool isAdjoint = false, spin_op op = spin_op()) override {
+             bool isAdjoint = false, spin_op_term op = cudaq::spin_op_term::identity()) override {
 
     // Make a copy of the name that we can mutate if necessary
     std::string mutable_name(gateName);
@@ -266,7 +267,7 @@ public:
     return measureQudit(target, registerName);
   }
 
-  cudaq::SpinMeasureResult measure(cudaq::spin_op &op) override {
+  cudaq::SpinMeasureResult measure(const cudaq::spin_op &op) override {
     synchronize();
     measureSpinOp(op);
     return std::make_pair(executionContext->expectationValue.value(),

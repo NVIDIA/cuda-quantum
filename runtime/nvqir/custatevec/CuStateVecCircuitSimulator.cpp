@@ -455,30 +455,35 @@ public:
   /// rotation to delegate to the performant custatevecApplyPauliRotation.
   void applyExpPauli(double theta, const std::vector<std::size_t> &controlIds,
                      const std::vector<std::size_t> &qubits,
-                     const cudaq::spin_op &op) override {
+                     const cudaq::spin_op_term &op) override {
     if (this->isInTracerMode()) {
       nvqir::CircuitSimulator::applyExpPauli(theta, controlIds, qubits, op);
       return;
     }
     flushGateQueue();
     cudaq::info(" [cusv decomposing] exp_pauli({}, {})", theta,
-                op.to_string(false));
+                op.to_string());
     std::vector<int> controls, targets;
     for (const auto &bit : controlIds)
       controls.emplace_back(static_cast<int>(bit));
     std::vector<custatevecPauli_t> paulis;
-    op.for_each_pauli([&](cudaq::pauli p, std::size_t i) {
-      if (p == cudaq::pauli::I)
+    auto ops = op.get_terms();
+    if (ops.size() != qubits.size())
+      throw std::runtime_error("incorrect number of qubits for exp_pauli - expecting " + std::to_string(ops.size()) + " qubits");
+
+    for (std::size_t idx = 0; idx < ops.size(); ++idx) {
+      auto pauli = ops[idx].as_pauli();
+      if (pauli == cudaq::pauli::I)
         paulis.push_back(custatevecPauli_t::CUSTATEVEC_PAULI_I);
-      else if (p == cudaq::pauli::X)
+      else if (pauli == cudaq::pauli::X)
         paulis.push_back(custatevecPauli_t::CUSTATEVEC_PAULI_X);
-      else if (p == cudaq::pauli::Y)
+      else if (pauli == cudaq::pauli::Y)
         paulis.push_back(custatevecPauli_t::CUSTATEVEC_PAULI_Y);
       else
         paulis.push_back(custatevecPauli_t::CUSTATEVEC_PAULI_Z);
 
-      targets.push_back(qubits[i]);
-    });
+      targets.push_back(qubits[idx]);
+    }
 
     HANDLE_ERROR(custatevecApplyPauliRotation(
         handle, deviceStateVector, cuStateVecCudaDataType, nQubitsAllocated,
@@ -585,18 +590,23 @@ public:
     // Contruct data to send on to custatevec
     std::vector<std::string> termStrs;
     termStrs.reserve(nPauliOperatorArrays);
-    op.for_each_term([&](cudaq::spin_op &term) {
-      coeffs.emplace_back(term.get_coefficient());
+    auto terms = op.get_terms();
+    for (const auto &term : terms) {
+      coeffs.emplace_back(term.get_coefficient().evaluate()); // fails if we have parameters
       std::vector<custatevecPauli_t> paulis;
       std::vector<int32_t> idxs;
-      paulis.reserve(term.num_qubits());
-      idxs.reserve(term.num_qubits());
-      term.for_each_pauli([&](cudaq::pauli p, std::size_t idx) {
-        if (p != cudaq::pauli::I) {
-          paulis.emplace_back(cudaqToCustateVec(p));
-          idxs.emplace_back(idx);
+      auto ops = term.get_terms();
+      paulis.reserve(ops.size());
+      idxs.reserve(ops.size());
+      for (const auto &p : ops) {
+        auto pauli = p.as_pauli();
+        if (pauli != cudaq::pauli::I) {
+          assert(p.degrees().size() == 1);
+          auto target = p.degrees()[0];
+          paulis.emplace_back(cudaqToCustateVec(pauli));
+          idxs.emplace_back(target);
           // Only X and Y pauli's translate to applied gates
-          if (p != cudaq::pauli::Z) {
+          if (pauli != cudaq::pauli::Z) {
             // One operation for applying the term
             summaryData.svGateUpdate(/*nControls=*/0, /*nTargets=*/1,
                                      stateDimension,
@@ -607,14 +617,14 @@ public:
                                      stateDimension * sizeof(DataType));
           }
         }
-      });
+      }
       pauliOperatorsArrayHolder.emplace_back(std::move(paulis));
       basisBitsArrayHolder.emplace_back(std::move(idxs));
       pauliOperatorsArray.emplace_back(pauliOperatorsArrayHolder.back().data());
       basisBitsArray.emplace_back(basisBitsArrayHolder.back().data());
       nBasisBitsArray.emplace_back(pauliOperatorsArrayHolder.back().size());
       termStrs.emplace_back(term.to_string(false));
-    });
+    }
     std::vector<double> expectationValues(nPauliOperatorArrays);
     HANDLE_ERROR(custatevecComputeExpectationsOnPauliBasis(
         handle, deviceStateVector, cuStateVecCudaDataType, nQubitsAllocated,

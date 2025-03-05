@@ -39,7 +39,7 @@ TEST(OperatorExpressions, checkSpinOpsConstruction) {
   utils::checkEqual(sum.to_matrix(), expected);
 
   sum *= cudaq::spin_operator::x(1); // empty times something is still empty
-  std::vector<int> expected_degrees = {};
+  std::vector<std::size_t> expected_degrees = {};
   ASSERT_EQ(sum.degrees(), expected_degrees);
   utils::checkEqual(sum.to_matrix(), expected);
 
@@ -268,7 +268,7 @@ TEST(OperatorExpressions, checkSpinOpsWithScalars) {
     auto product = self * other;
     auto reverse = other * self;
 
-    std::vector<int> want_degrees = {0};
+    std::vector<std::size_t> want_degrees = {0};
     ASSERT_TRUE(product.degrees() == want_degrees);
     ASSERT_TRUE(reverse.degrees() == want_degrees);
 
@@ -289,7 +289,7 @@ TEST(OperatorExpressions, checkSpinOpsWithScalars) {
     auto product = self * other;
     auto reverse = other * self;
 
-    std::vector<int> want_degrees = {0};
+    std::vector<std::size_t> want_degrees = {0};
     ASSERT_TRUE(product.degrees() == want_degrees);
     ASSERT_TRUE(reverse.degrees() == want_degrees);
 
@@ -374,7 +374,7 @@ TEST(OperatorExpressions, checkSpinOpsSimpleArithmetics) {
     auto product = self * other;
     ASSERT_TRUE(product.num_terms() == 1);
 
-    std::vector<int> want_degrees = {0};
+    std::vector<std::size_t> want_degrees = {0};
     ASSERT_TRUE(product.degrees() == want_degrees);
 
     auto got_matrix = product.to_matrix();
@@ -390,7 +390,7 @@ TEST(OperatorExpressions, checkSpinOpsSimpleArithmetics) {
     auto product = self * other;
     ASSERT_TRUE(product.num_terms() == 2);
 
-    std::vector<int> want_degrees = {1, 0};
+    std::vector<std::size_t> want_degrees = {1, 0};
     ASSERT_TRUE(product.degrees() == want_degrees);
 
     auto annihilate_full =

@@ -41,7 +41,7 @@ TEST(OperatorExpressions, checkBosonOpsConstruction) {
 
   sum *=
       cudaq::boson_operator::number(1); // empty times something is still empty
-  std::vector<int> expected_degrees = {};
+  std::vector<std::size_t> expected_degrees = {};
   ASSERT_EQ(sum.degrees(), expected_degrees);
   utils::checkEqual(sum.to_matrix(), expected);
 
@@ -488,7 +488,7 @@ TEST(OperatorExpressions, checkBosonOpsWithScalars) {
     auto product = self * other;
     auto reverse = other * self;
 
-    std::vector<int> want_degrees = {0};
+    std::vector<std::size_t> want_degrees = {0};
     ASSERT_TRUE(product.degrees() == want_degrees);
     ASSERT_TRUE(reverse.degrees() == want_degrees);
 
@@ -510,7 +510,7 @@ TEST(OperatorExpressions, checkBosonOpsWithScalars) {
     auto product = self * other;
     auto reverse = other * self;
 
-    std::vector<int> want_degrees = {0};
+    std::vector<std::size_t> want_degrees = {0};
     ASSERT_TRUE(product.degrees() == want_degrees);
     ASSERT_TRUE(reverse.degrees() == want_degrees);
 
@@ -598,7 +598,7 @@ TEST(OperatorExpressions, checkBosonOpsSimpleArithmetics) {
     auto product = self * other;
     ASSERT_TRUE(product.num_terms() == 1);
 
-    std::vector<int> want_degrees = {0};
+    std::vector<std::size_t> want_degrees = {0};
     ASSERT_TRUE(product.degrees() == want_degrees);
 
     auto got_matrix = product.to_matrix(dimensions);
@@ -615,7 +615,7 @@ TEST(OperatorExpressions, checkBosonOpsSimpleArithmetics) {
         self * other; // nnote that position and momentum are each 2-term sums
     ASSERT_TRUE(result.num_terms() == 4);
 
-    std::vector<int> want_degrees = {1, 0};
+    std::vector<std::size_t> want_degrees = {1, 0};
     ASSERT_TRUE(result.degrees() == want_degrees);
 
     auto annihilate_full =
