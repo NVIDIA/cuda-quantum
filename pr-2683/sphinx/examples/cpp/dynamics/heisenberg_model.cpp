@@ -107,10 +107,9 @@ int main() {
 
     // Use a Runge-`Kutta` integrator (4`th` order) with a small time step `dt`
     // = 0.001.
-    std::shared_ptr<cudaq::RungeKuttaIntegrator> integrator =
-        std::make_shared<cudaq::RungeKuttaIntegrator>();
-    integrator->dt = 0.001;
-    integrator->order = 4;
+    cudaq::RungeKuttaIntegrator integrator;
+    integrator.dt = 0.001;
+    integrator.order = 4;
 
     // Evolve the initial state psi0 under the Hamiltonian, using the specified
     // schedule and integrator. No collapse operators are included (closed

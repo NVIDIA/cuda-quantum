@@ -73,10 +73,9 @@ int main() {
   cudaq::Schedule schedule(steps, {"t"});
 
   // A Runge-`Kutta` integrator (4`th` order) with a small time step `dt`.
-  std::shared_ptr<cudaq::RungeKuttaIntegrator> integrator =
-      std::make_shared<cudaq::RungeKuttaIntegrator>();
-  integrator->dt = dt;
-  integrator->order = 4;
+  cudaq::RungeKuttaIntegrator integrator;
+  integrator.dt = dt;
+  integrator.order = 4;
 
   // Measure the expectation values of the `qubit's` spin components along the
   // X, Y, and Z directions.
