@@ -24,7 +24,7 @@ int main() {
   auto hamiltonian = 2.0 * M_PI * 0.1 * cudaq::spin_operator::x(0);
 
   // Dimensions: one subsystem of dimension 2 (a two-level system).
-  const std::map<int, int> dimensions = {{0, 2}};
+  const cudaq::dimension_map dimensions = {{0, 2}};
 
   // Initial state: ground state
   std::vector<std::complex<double>> initial_state_vec = {1.0, 0.0};

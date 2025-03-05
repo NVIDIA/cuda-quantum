@@ -16,19 +16,14 @@
 #include <unsupported/Eigen/KroneckerProduct>
 
 TEST(EvolveTester, checkSimple) {
-  const std::map<int, int> dims = {{0, 2}};
+  const cudaq::dimension_map dims = {{0, 2}};
   cudaq::product_operator<cudaq::matrix_operator> ham1 =
       (2.0 * M_PI * 0.1 * cudaq::spin_operator::x(0));
   cudaq::operator_sum<cudaq::matrix_operator> ham(ham1);
 
   constexpr int numSteps = 10;
-  std::vector<std::complex<double>> steps;
-  for (double t : cudaq::linspace(0.0, 1.0, numSteps)) {
-    steps.emplace_back(t, 0.0);
-  }
-  cudaq::Schedule schedule(
-      steps, {"t"},
-      [](const std::string &, const std::complex<double> &val) { return val; });
+  std::vector<double> steps = cudaq::linspace(0.0, 1.0, numSteps);
+  cudaq::Schedule schedule(steps, {"t"});
 
   cudaq::product_operator<cudaq::matrix_operator> pauliZ_t =
       cudaq::spin_operator::z(0);
@@ -57,19 +52,14 @@ TEST(EvolveTester, checkSimple) {
 }
 
 TEST(EvolveTester, checkSimpleRK4) {
-  const std::map<int, int> dims = {{0, 2}};
+  const cudaq::dimension_map dims = {{0, 2}};
   cudaq::product_operator<cudaq::matrix_operator> ham1 =
       (2.0 * M_PI * 0.1 * cudaq::spin_operator::x(0));
   cudaq::operator_sum<cudaq::matrix_operator> ham(ham1);
 
   constexpr int numSteps = 10;
-  std::vector<std::complex<double>> steps;
-  for (double t : cudaq::linspace(0.0, 1.0, numSteps)) {
-    steps.emplace_back(t, 0.0);
-  }
-  cudaq::Schedule schedule(
-      steps, {"t"},
-      [](const std::string &, const std::complex<double> &val) { return val; });
+  std::vector<double> steps = cudaq::linspace(0.0, 1.0, numSteps);
+  cudaq::Schedule schedule(steps, {"t"});
 
   cudaq::product_operator<cudaq::matrix_operator> pauliZ_t =
       cudaq::spin_operator::z(0);
@@ -98,19 +88,14 @@ TEST(EvolveTester, checkSimpleRK4) {
 }
 
 TEST(EvolveTester, checkDensityMatrixSimple) {
-  const std::map<int, int> dims = {{0, 2}};
+  const cudaq::dimension_map dims = {{0, 2}};
   cudaq::product_operator<cudaq::matrix_operator> ham1 =
       (2.0 * M_PI * 0.1 * cudaq::spin_operator::x(0));
   cudaq::operator_sum<cudaq::matrix_operator> ham(ham1);
 
   constexpr int numSteps = 10;
-  std::vector<std::complex<double>> steps;
-  for (double t : cudaq::linspace(0.0, 1.0, numSteps)) {
-    steps.emplace_back(t, 0.0);
-  }
-  cudaq::Schedule schedule(
-      steps, {"t"},
-      [](const std::string &, const std::complex<double> &val) { return val; });
+  std::vector<double> steps = cudaq::linspace(0.0, 1.0, numSteps);
+  cudaq::Schedule schedule(steps, {"t"});
 
   cudaq::product_operator<cudaq::matrix_operator> pauliZ_t =
       cudaq::spin_operator::z(0);
@@ -140,7 +125,7 @@ TEST(EvolveTester, checkDensityMatrixSimple) {
 
 TEST(EvolveTester, checkCompositeSystem) {
   constexpr int cavity_levels = 10;
-  const std::map<int, int> dims = {{0, 2}, {1, cavity_levels}};
+  const cudaq::dimension_map dims = {{0, 2}, {1, cavity_levels}};
   auto a = cudaq::boson_operator::annihilate(1);
   auto a_dag = cudaq::boson_operator::create(1);
 
@@ -167,13 +152,8 @@ TEST(EvolveTester, checkCompositeSystem) {
   Eigen::VectorXcd initial_state_vec =
       Eigen::kroneckerProduct(cavity_state, qubit_state);
   constexpr int num_steps = 21;
-  std::vector<std::complex<double>> steps;
-  for (double t : cudaq::linspace(0.0, 1.0, num_steps)) {
-    steps.emplace_back(t, 0.0);
-  }
-  cudaq::Schedule schedule(
-      steps, {"t"},
-      [](const std::string &, const std::complex<double> &val) { return val; });
+  std::vector<double> steps = cudaq::linspace(0.0, 1.0, num_steps);
+  cudaq::Schedule schedule(steps, {"t"});
   auto initialState = cudaq::state::from_data(
       std::make_pair(initial_state_vec.data(), initial_state_vec.size()));
   cudaq::RungeKuttaIntegrator integrator;
@@ -198,7 +178,7 @@ TEST(EvolveTester, checkCompositeSystem) {
 
 TEST(EvolveTester, checkCompositeSystemWithCollapse) {
   constexpr int cavity_levels = 10;
-  const std::map<int, int> dims = {{0, 2}, {1, cavity_levels}};
+  const cudaq::dimension_map dims = {{0, 2}, {1, cavity_levels}};
   auto a = cudaq::boson_operator::annihilate(1);
   auto a_dag = cudaq::boson_operator::create(1);
 
@@ -227,13 +207,8 @@ TEST(EvolveTester, checkCompositeSystemWithCollapse) {
   Eigen::MatrixXcd rho0 = initial_state_vec * initial_state_vec.transpose();
   std::cout << "Initial rho:\n" << rho0 << "\n";
   constexpr int num_steps = 11;
-  std::vector<std::complex<double>> timeSteps;
-  for (double t : cudaq::linspace(0.0, 1.0, num_steps)) {
-    timeSteps.emplace_back(t, 0.0);
-  }
-  cudaq::Schedule schedule(
-      timeSteps, {"t"},
-      [](const std::string &, const std::complex<double> &val) { return val; });
+  std::vector<double> timeSteps = cudaq::linspace(0.0, 1.0, num_steps);
+  cudaq::Schedule schedule(timeSteps, {"t"});
   auto initialState =
       cudaq::state::from_data(std::make_pair(rho0.data(), rho0.size()));
   cudaq::RungeKuttaIntegrator integrator;
@@ -254,8 +229,7 @@ TEST(EvolveTester, checkCompositeSystemWithCollapse) {
     EXPECT_EQ(expVals.size(), 2);
     const double totalParticleCount = expVals[0] + expVals[1];
     const auto time = timeSteps[count++];
-    const double expectedResult =
-        num_photons * std::exp(-decayRate * time.real());
+    const double expectedResult = num_photons * std::exp(-decayRate * time);
     std::cout << "t = " << time << "; particle count = " << totalParticleCount
               << " vs " << expectedResult << "\n";
     EXPECT_NEAR(totalParticleCount, expectedResult, 0.1);
@@ -263,16 +237,11 @@ TEST(EvolveTester, checkCompositeSystemWithCollapse) {
 }
 
 TEST(EvolveTester, checkScalarTd) {
-  const std::map<int, int> dims = {{0, 10}};
+  const cudaq::dimension_map dims = {{0, 10}};
 
   constexpr int numSteps = 101;
-  std::vector<std::complex<double>> steps;
-  for (double t : cudaq::linspace(0.0, 10.0, numSteps)) {
-    steps.emplace_back(t, 0.0);
-  }
-  cudaq::Schedule schedule(
-      steps, {"t"},
-      [](const std::string &, const std::complex<double> &val) { return val; });
+  std::vector<double> steps = cudaq::linspace(0.0, 10.0, numSteps);
+  cudaq::Schedule schedule(steps, {"t"});
 
   auto function = [](const std::unordered_map<std::string, std::complex<double>>
                          &parameters) {
@@ -299,15 +268,14 @@ TEST(EvolveTester, checkScalarTd) {
   cudaq::RungeKuttaIntegrator integrator;
   integrator.dt = 0.001;
   integrator.order = 4;
-  auto result =
-      cudaq::__internal__::evolveSingle(ham, dims, schedule, initialState,
-                                        integrator, {collapseOp}, {obs}, true);
+  auto result = cudaq::__internal__::evolveSingle(
+      ham, dims, schedule, initialState, integrator, {collapseOp}, {obs}, true);
   EXPECT_NE(result.get_expectation_values().size(), 0);
   EXPECT_EQ(result.get_expectation_values().size(), numSteps);
   std::vector<double> theoryResults;
   int idx = 0;
   for (const auto &t : schedule) {
-    const double expected = 9.0 * std::exp(-decayRate * steps[idx++].real());
+    const double expected = 9.0 * std::exp(-decayRate * steps[idx++]);
     theoryResults.emplace_back(expected);
   }
 

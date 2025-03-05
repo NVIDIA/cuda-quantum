@@ -18,7 +18,7 @@
 #include <vector>
 
 TEST(EvolveAPITester, checkSimple) {
-  const std::map<int, int> dims = {{0, 2}};
+  const cudaq::dimension_map dims = {{0, 2}};
   auto ham = 2.0 * M_PI * 0.1 * cudaq::spin_operator::x(0);
   constexpr int numSteps = 10;
   std::vector<std::complex<double>> steps;
@@ -62,7 +62,7 @@ TEST(EvolveAPITester, checkCavityModel) {
       steps, {"t"},
       [](const std::string &, const std::complex<double> &val) { return val; });
   auto hamiltonian = cudaq::boson_operator::number(0);
-  const std::map<int, int> dimensions{{0, N}};
+  const cudaq::dimension_map dimensions{{0, N}};
   std::vector<std::complex<double>> psi0_(N, 0.0);
   psi0_.back() = 1.0;
   auto psi0 = cudaq::state::from_data(psi0_);
@@ -99,7 +99,7 @@ TEST(EvolveAPITester, checkTimeDependent) {
       steps, {"t"},
       [](const std::string &, const std::complex<double> &val) { return val; });
   auto hamiltonian = cudaq::boson_operator::number(0);
-  const std::map<int, int> dimensions{{0, N}};
+  const cudaq::dimension_map dimensions{{0, N}};
   std::vector<std::complex<double>> psi0_(N, 0.0);
   psi0_.back() = 1.0;
   auto psi0 = cudaq::state::from_data(psi0_);

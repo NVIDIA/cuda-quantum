@@ -23,7 +23,7 @@ int main() {
   // subsystem 0 (atom) has 2 levels (ground and excited states).
   // subsystem 1 (cavity) has 10 levels (Fock states, representing photon number
   // states).
-  std::map<int, int> dimensions{{0, 2}, {1, 10}};
+  cudaq::dimension_map dimensions{{0, 2}, {1, 10}};
 
   // For the cavity subsystem 1
   // We create the annihilation (a) and creation (a+) operators.

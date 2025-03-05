@@ -18,9 +18,15 @@
 #include <stdexcept>
 namespace cudaq {
 namespace __internal__ {
+template <typename Key, typename Value>
+std::map<Key, Value>
+convertToOrderedMap(const std::unordered_map<Key, Value> &unorderedMap) {
+  return std::map<Key, Value>(unorderedMap.begin(), unorderedMap.end());
+}
+
 /// @brief Evolve the system for a single time step.
 /// @param hamiltonian Hamiltonian operator.
-/// @param dimensions Dimension of the system.
+/// @param dimensionsMap Dimension of the system.
 /// @param schedule Time schedule.
 /// @param initialState Initial state.
 /// @param inIntegrator Integrator.
@@ -31,13 +37,14 @@ namespace __internal__ {
 /// @return evolve_result Result of the evolution.
 evolve_result evolveSingle(
     const operator_sum<cudaq::matrix_operator> &hamiltonian,
-    const std::map<int, int> &dimensions, const Schedule &schedule,
+    const cudaq::dimension_map &dimensionsMap, const Schedule &schedule,
     const state &initialState, BaseIntegrator &integrator,
     const std::vector<operator_sum<cudaq::matrix_operator>> &collapseOperators,
     const std::vector<operator_sum<cudaq::matrix_operator>> &observables,
     bool storeIntermediateResults, std::optional<int> shotsCount) {
   cudensitymatHandle_t handle =
       dynamics::Context::getCurrentContext()->getHandle();
+  std::map<int, int> dimensions = convertToOrderedMap(dimensionsMap);
   std::vector<int64_t> dims;
   for (const auto &[id, dim] : dimensions)
     dims.emplace_back(dim);

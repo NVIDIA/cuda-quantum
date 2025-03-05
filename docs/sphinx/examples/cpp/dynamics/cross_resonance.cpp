@@ -69,7 +69,7 @@ int main() {
   // Each qubit is a 2-level system (dimension 2).
   // The composite system (two qubits) has a total Hilbert space dimension of 2
   // * 2 = 4.
-  std::map<int, int> dimensions{{0, 2}, {1, 2}};
+  cudaq::dimension_map dimensions{{0, 2}, {1, 2}};
 
   // Build the initial state
   // psi_00 represents the state |00> (both qubits in the ground state).
