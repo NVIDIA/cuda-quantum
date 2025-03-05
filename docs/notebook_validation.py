@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+import time
 import os
 import re
 import sys
@@ -42,11 +43,14 @@ def execute(notebook_filename):
     notebook_filename_out = notebook_filename.replace('.ipynb',
                                                       '.nbconvert.ipynb')
     try:
+        start_time = time.perf_counter()
         subprocess.run([
             "jupyter", "nbconvert", "--to", "notebook", "--execute",
             notebook_filename
         ],
                        check=True)
+        elapsed = time.perf_counter() - start_time
+        print(f"Time taken for nbconvert: {elapsed:.2f} seconds")
         os.remove(notebook_filename_out)
         return True
     except subprocess.CalledProcessError:
