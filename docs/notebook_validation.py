@@ -103,9 +103,9 @@ if __name__ == "__main__":
         notebooks_success, notebooks_skipped, notebooks_failed = (
             [] for i in range(3))
 
-        ## afqmc.ipynb:
+        ## `afqmc`:
         ## See: https://github.com/NVIDIA/cuda-quantum/issues/2577
-        ## quantum_transformer.ipynb:
+        ## `quantum_transformer`:
         ## See: https://github.com/NVIDIA/cuda-quantum/issues/2689
         notebooks_skipped = ['afqmc.ipynb', 'quantum_transformer.ipynb']
 
