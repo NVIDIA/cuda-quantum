@@ -139,8 +139,11 @@ The currently available Pasqal QPUs are analog quantum computers, and one, named
 portal.
 
 In order to access Pasqal's devices you need an account for `Pasqal's cloud platform <https://portal.pasqal.cloud>`__
-and an active project. Although a different interface, `Pasqal's Pulser library <https://pulser.readthedocs.io/en/latest/>`__, is a good
-resource for getting started with analog neutral atom quantum computing. For support you can also use `Pasqal Community <https://community.pasqal.com/>`__.
+and an active project. Please see our `cloud documentation <https://docs.pasqal.cloud/cloud/>`__ for more details if needed.
+
+Although a different SDK, `Pasqal's Pulser library <https://pulser.readthedocs.io/en/latest/>`__, is a good
+resource for getting started with analog neutral atom quantum computing.
+For support you can also join the `Pasqal Community <https://community.pasqal.com/>`__.
 
 
 .. _pasqal-backend:
@@ -161,7 +164,8 @@ For example from Python one can use the `pasqal-cloud package <https://github.co
         password=os.environ.get('PASQAL_PASSWORD', None)
     )
 
-    token = sdk._client.authenticator.token_provider.get_token()
+    token = sdk.user_token()
+
     os.environ['PASQAL_AUTH_TOKEN'] = str(token)
     os.environ['PASQAL_PROJECT_ID'] = 'your project id'
 
@@ -184,10 +188,25 @@ can be controlled with the ``cudaq::set_target()`` function.
     cudaq.set_target('pasqal')
 
 
+This accepts an optional argument, ``machine``, which is used in the cloud platform to
+select the corresponding Pasqal QPU or emulator to execute on.
+See the `Pasqal cloud portal <https://portal.pasqal.cloud/>`__ for an up to date list.
+The default value is ``EMU_MPS`` which is an open-source ensor network emulator based on the
+Matrix Product State formalism running in Pasqal's cloud platform. You can see the
+documentation for the publicly accessible emulator `here <https://pasqal-io.github.io/emulators/latest/emu_mps/>`__.
+
+To target the QPU use the FRESNEL machine name. Note that there are restrictions
+regarding the values of the pulses as well as the register layout. We invite you to
+consult our `documentation <https://docs.pasqal.com/cloud/fresnel-job>`__. Note that
+the CUDA-Q integration currently only works with `arbitrary layouts <https://docs.pasqal.com/cloud/fresnel-job/#arbitrary-layouts>`__
+which are implemented with automatic calibration for less than 30 qubits. For jobs
+larger than 30 qubits please use the `atom_sites` to define the layout, and use the
+`atom_filling` to select sites as filled or not filled in order to define the register.
+
 Due to the nature of the underlying hardware, this target only supports the 
 ``evolve`` and ``evolve_async`` APIs.
-The `hamiltonian` must be an `Operator` of the type `RydbergHamiltonian`. Only 
-other parameters supported are `schedule` (mandatory) and `shots_count` (optional).
+The `hamiltonian` must be an `Operator` of the type `RydbergHamiltonian`. The only
+other supported parameters are `schedule` (mandatory) and `shots_count` (optional).
 
 For example,
 

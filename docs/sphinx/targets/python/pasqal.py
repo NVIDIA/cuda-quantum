@@ -2,34 +2,41 @@ import cudaq
 from cudaq.operator import *
 
 # This example illustrates how to use Pasqal's EMU_MPS emulator over Pasqal's cloud via CUDA-Q.
-
-# To obtain the authentication token we recommend logging in
-# by using Pasqal's Python SDK.
-# Fill in the  username and password via the environment variables.
-# The password can be left empty in an interactive session to be
-# prompted to enter the it securely via the command line interface.
+#
+# To obtain the authentication token for the cloud  we recommend logging in with
+# Pasqal's Python SDK. See our documentation https://docs.pasqal.com/cloud/ for more.
 #
 # Contact Pasqal at help@pasqal.com or through https://community.pasqal.com for assistance.
 #
-# See our general docs https://docs.pasqal.com/cloud/set-up/
-# to see how to get this setup, or the CUDA-Q documentation at
-# https://nvidia.github.io/cuda-quantum/latest/using/backends/hardware/neutralatom.html#pasqal
+# Visit our documentation portal, https://docs.pasqal.com/, to find further
+# documentation on Pasqal's devices, emulators and the cloud platform.
+#
+# For more details on the EMU_MPS emulator see the documentation of the open-source
+# package: https://pasqal-io.github.io/emulators/latest/emu_mps/.
 from pasqal_cloud import SDK
 import os
 
+# We recommend leaving the password empty in an interactive session as you will be
+# prompted to enter it securely via the command line interface.
 sdk = SDK(
     username=os.environ.get("PASQAL_USERNAME"),
     password=os.environ.get("PASQAL_PASSWORD", None),
 )
-token = sdk._client.authenticator.token_provider.get_token()
 
-os.environ["PASQAL_AUTH_TOKEN"] = str(token)
+os.environ["PASQAL_AUTH_TOKEN"] = str(sdk.user_token())
 
+# It is also mandatory to specify the project against which the execution will be billed.
+# Uncomment this line to set it from Python, or export it as an environment variable
+# prior to execution. You can find your projects here: https://portal.pasqal.cloud/projects.
+# os.environ['PASQAL_PROJECT_ID'] = 'your project id'
+
+# Set the target including specifying optional arguments like target machine
 cudaq.set_target("pasqal",
                  machine=os.environ.get("PASQAL_MACHINE_TARGET", "EMU_MPS"))
 
 # ```
-# cudaq.set_target("pasqal", machine="FRESNEL") ## To target QPU
+## To target QPU set FRESNEL as the machine, see our cloud portal for latest machine names
+# cudaq.set_target("pasqal", machine="FRESNEL")
 # ```
 
 # Define the 2-dimensional atom arrangement
