@@ -1,4 +1,4 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "cudaq/utils/tensor.h"
+#include "cudaq/utils/matrix.h"
 #include <algorithm>
 #include <set>
 #include <unordered_map>
@@ -63,7 +63,7 @@ private:
 
   // Given a matrix representation that acts on the given degrees or freedom,
   // sorts the degrees and permutes the matrix to match that canonical order.
-  void canonicalize(matrix_2 &matrix, std::vector<int> &degrees) {
+  void canonicalize(complex_matrix &matrix, std::vector<int> &degrees) {
     auto current_degrees = degrees;
     std::sort(degrees.begin(), degrees.end(),
               operator_handler::canonical_order);

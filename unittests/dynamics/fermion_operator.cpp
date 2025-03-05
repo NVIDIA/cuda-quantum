@@ -20,7 +20,7 @@ TEST(OperatorExpressions, checkFermionOpsUnary) {
 
 TEST(OperatorExpressions, checkFermionOpsConstruction) {
   auto prod = cudaq::fermion_operator::identity();
-  cudaq::matrix_2 expected(1, 1);
+  cudaq::complex_matrix expected(1, 1);
 
   expected[{0, 0}] = 1.;
   utils::checkEqual(prod.to_matrix(), expected);
@@ -30,12 +30,12 @@ TEST(OperatorExpressions, checkFermionOpsConstruction) {
   utils::checkEqual(prod.to_matrix(), expected);
 
   prod *= cudaq::fermion_operator::number(0);
-  expected = cudaq::matrix_2(2, 2);
+  expected = cudaq::complex_matrix(2, 2);
   expected[{1, 1}] = std::complex<double>(0., -1.);
   utils::checkEqual(prod.to_matrix(), expected);
 
   auto sum = cudaq::fermion_operator::empty();
-  expected = cudaq::matrix_2(0, 0);
+  expected = cudaq::complex_matrix(0, 0);
   utils::checkEqual(sum.to_matrix(), expected);
 
   sum *= cudaq::fermion_operator::number(
@@ -45,19 +45,19 @@ TEST(OperatorExpressions, checkFermionOpsConstruction) {
   utils::checkEqual(sum.to_matrix(), expected);
 
   sum += cudaq::fermion_operator::identity(1);
-  expected = cudaq::matrix_2(2, 2);
+  expected = cudaq::complex_matrix(2, 2);
   for (size_t i = 0; i < 2; ++i)
     expected[{i, i}] = 1.;
   utils::checkEqual(sum.to_matrix(), expected);
 
   sum *= cudaq::fermion_operator::number(1);
-  expected = cudaq::matrix_2(2, 2);
+  expected = cudaq::complex_matrix(2, 2);
   expected[{1, 1}] = 1.;
   utils::checkEqual(sum.to_matrix(), expected);
 
   sum = cudaq::fermion_operator::empty();
   sum -= cudaq::fermion_operator::identity(0);
-  expected = cudaq::matrix_2(2, 2);
+  expected = cudaq::complex_matrix(2, 2);
   for (size_t i = 0; i < 2; ++i)
     expected[{i, i}] = -1.;
   utils::checkEqual(sum.to_matrix(), expected);

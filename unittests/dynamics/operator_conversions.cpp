@@ -25,7 +25,7 @@ TEST(OperatorExpressions, checkElementaryOpsConversions) {
 
   auto checkSumEquals =
       [dimensions, parameters](cudaq::operator_sum<cudaq::matrix_operator> sum,
-                               cudaq::matrix_2 expected,
+                               cudaq::complex_matrix expected,
                                int expected_num_terms = 2) {
         auto got = sum.to_matrix(dimensions, parameters);
         ASSERT_TRUE(sum.num_terms() == expected_num_terms);
@@ -35,7 +35,7 @@ TEST(OperatorExpressions, checkElementaryOpsConversions) {
   auto checkProductEquals =
       [dimensions,
        parameters](cudaq::product_operator<cudaq::matrix_operator> prod,
-                   cudaq::matrix_2 expected, int expected_num_terms = 2) {
+                   cudaq::complex_matrix expected, int expected_num_terms = 2) {
         auto got = prod.to_matrix(dimensions, parameters);
         ASSERT_TRUE(prod.num_terms() == expected_num_terms);
         utils::checkEqual(got, expected);
@@ -157,7 +157,7 @@ TEST(OperatorExpressions, checkProductOperatorConversions) {
 
   auto checkSumEquals =
       [dimensions, parameters](cudaq::operator_sum<cudaq::matrix_operator> sum,
-                               cudaq::matrix_2 expected,
+                               cudaq::complex_matrix expected,
                                int expected_num_terms = 2) {
         auto got = sum.to_matrix(dimensions, parameters);
         ASSERT_TRUE(sum.num_terms() == expected_num_terms);
@@ -167,7 +167,7 @@ TEST(OperatorExpressions, checkProductOperatorConversions) {
   auto checkProductEquals =
       [dimensions,
        parameters](cudaq::product_operator<cudaq::matrix_operator> prod,
-                   cudaq::matrix_2 expected, int expected_num_terms = 4) {
+                   cudaq::complex_matrix expected, int expected_num_terms = 4) {
         auto got = prod.to_matrix(dimensions, parameters);
         ASSERT_TRUE(prod.num_terms() == expected_num_terms);
         utils::checkEqual(got, expected);
@@ -303,7 +303,7 @@ TEST(OperatorExpressions, checkOperatorSumConversions) {
 
   auto checkSumEquals =
       [dimensions, parameters](cudaq::operator_sum<cudaq::matrix_operator> sum,
-                               cudaq::matrix_2 expected, int num_terms = 4) {
+                               cudaq::complex_matrix expected, int num_terms = 4) {
         auto got = sum.to_matrix(dimensions, parameters);
         ASSERT_TRUE(sum.num_terms() == num_terms);
         utils::checkEqual(got, expected);

@@ -20,7 +20,7 @@ TEST(OperatorExpressions, checkBosonOpsUnary) {
 
 TEST(OperatorExpressions, checkBosonOpsConstruction) {
   auto prod = cudaq::boson_operator::identity();
-  cudaq::matrix_2 expected(1, 1);
+  cudaq::complex_matrix expected(1, 1);
 
   expected[{0, 0}] = 1.;
   utils::checkEqual(prod.to_matrix(), expected);
@@ -30,13 +30,13 @@ TEST(OperatorExpressions, checkBosonOpsConstruction) {
   utils::checkEqual(prod.to_matrix(), expected);
 
   prod *= cudaq::boson_operator::number(0);
-  expected = cudaq::matrix_2(3, 3);
+  expected = cudaq::complex_matrix(3, 3);
   expected[{1, 1}] = std::complex<double>(0., -1.);
   expected[{2, 2}] = std::complex<double>(0., -2.);
   utils::checkEqual(prod.to_matrix({{0, 3}}), expected);
 
   auto sum = cudaq::boson_operator::empty();
-  expected = cudaq::matrix_2(0, 0);
+  expected = cudaq::complex_matrix(0, 0);
   utils::checkEqual(sum.to_matrix(), expected);
 
   sum *=
@@ -46,20 +46,20 @@ TEST(OperatorExpressions, checkBosonOpsConstruction) {
   utils::checkEqual(sum.to_matrix(), expected);
 
   sum += cudaq::boson_operator::identity(1);
-  expected = cudaq::matrix_2(3, 3);
+  expected = cudaq::complex_matrix(3, 3);
   for (size_t i = 0; i < 3; ++i)
     expected[{i, i}] = 1.;
   utils::checkEqual(sum.to_matrix({{1, 3}}), expected);
 
   sum *= cudaq::boson_operator::number(1);
-  expected = cudaq::matrix_2(3, 3);
+  expected = cudaq::complex_matrix(3, 3);
   expected[{1, 1}] = 1.;
   expected[{2, 2}] = 2.;
   utils::checkEqual(sum.to_matrix({{1, 3}}), expected);
 
   sum = cudaq::boson_operator::empty();
   sum -= cudaq::boson_operator::identity(0);
-  expected = cudaq::matrix_2(3, 3);
+  expected = cudaq::complex_matrix(3, 3);
   for (size_t i = 0; i < 3; ++i)
     expected[{i, i}] = -1.;
   utils::checkEqual(sum.to_matrix({{0, 3}}), expected);
@@ -149,7 +149,7 @@ TEST(OperatorExpressions, checkPreBuiltBosonOps) {
               padded *= nr_mat;
             for (auto i = 0; i < as; ++i)
               padded *= a_mat;
-            auto expected = cudaq::matrix_2(d, d);
+            auto expected = cudaq::complex_matrix(d, d);
             for (std::size_t i = 0; i < d; i++) {
               for (std::size_t j = 0; j < d; j++)
                 expected[{i, j}] = padded[{i, j}];
@@ -178,7 +178,7 @@ TEST(OperatorExpressions, checkPreBuiltBosonOps) {
               padded *= a_mat;
             for (auto i = 0; i < nrs; ++i)
               padded *= nr_mat;
-            expected = cudaq::matrix_2(d, d);
+            expected = cudaq::complex_matrix(d, d);
             for (std::size_t i = 0; i < d; i++) {
               for (std::size_t j = 0; j < d; j++)
                 expected[{i, j}] = padded[{i, j}];
@@ -207,7 +207,7 @@ TEST(OperatorExpressions, checkPreBuiltBosonOps) {
               padded *= ad_mat;
             for (auto i = 0; i < as; ++i)
               padded *= a_mat;
-            expected = cudaq::matrix_2(d, d);
+            expected = cudaq::complex_matrix(d, d);
             for (std::size_t i = 0; i < d; i++) {
               for (std::size_t j = 0; j < d; j++)
                 expected[{i, j}] = padded[{i, j}];
@@ -236,7 +236,7 @@ TEST(OperatorExpressions, checkPreBuiltBosonOps) {
               padded *= a_mat;
             for (auto i = 0; i < ads; ++i)
               padded *= ad_mat;
-            expected = cudaq::matrix_2(d, d);
+            expected = cudaq::complex_matrix(d, d);
             for (std::size_t i = 0; i < d; i++) {
               for (std::size_t j = 0; j < d; j++)
                 expected[{i, j}] = padded[{i, j}];
@@ -265,7 +265,7 @@ TEST(OperatorExpressions, checkPreBuiltBosonOps) {
               padded *= nr_mat;
             for (auto i = 0; i < ads; ++i)
               padded *= ad_mat;
-            expected = cudaq::matrix_2(d, d);
+            expected = cudaq::complex_matrix(d, d);
             for (std::size_t i = 0; i < d; i++) {
               for (std::size_t j = 0; j < d; j++)
                 expected[{i, j}] = padded[{i, j}];
@@ -294,7 +294,7 @@ TEST(OperatorExpressions, checkPreBuiltBosonOps) {
               padded *= ad_mat;
             for (auto i = 0; i < nrs; ++i)
               padded *= nr_mat;
-            expected = cudaq::matrix_2(d, d);
+            expected = cudaq::complex_matrix(d, d);
             for (std::size_t i = 0; i < d; i++) {
               for (std::size_t j = 0; j < d; j++)
                 expected[{i, j}] = padded[{i, j}];
@@ -777,7 +777,7 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
     // (naive construction with "the right size" will lead to finite size
     // errors).
     auto padded_term0 = utils::momentum_matrix(5) * utils::position_matrix(5);
-    auto term0 = cudaq::matrix_2(3, 3);
+    auto term0 = cudaq::complex_matrix(3, 3);
     for (size_t i = 0; i < 3; ++i) {
       for (size_t j = 0; j < 3; ++j)
         term0[{i, j}] = padded_term0[{i, j}];
@@ -815,14 +815,14 @@ TEST(OperatorExpressions, checkCommutationRelations) {
   auto a_mat = utils::annihilate_matrix(5);
 
   auto padded_commutator = a_mat * ad_mat - ad_mat * a_mat;
-  cudaq::matrix_2 commutator_mat(4, 4);
+  cudaq::complex_matrix commutator_mat(4, 4);
   for (size_t i = 0; i < 4; ++i) {
     for (size_t j = 0; j < 4; ++j)
       commutator_mat[{i, j}] = padded_commutator[{i, j}];
   }
 
   auto padded_aad = a_mat * ad_mat;
-  cudaq::matrix_2 aad_mat(4, 4);
+  cudaq::complex_matrix aad_mat(4, 4);
   for (size_t i = 0; i < 4; ++i) {
     for (size_t j = 0; j < 4; ++j)
       aad_mat[{i, j}] = padded_aad[{i, j}];

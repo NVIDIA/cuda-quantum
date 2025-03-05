@@ -19,7 +19,7 @@ TEST(OperatorExpressions, checkSpinOpsUnary) {
 
 TEST(OperatorExpressions, checkSpinOpsConstruction) {
   auto prod = cudaq::spin_operator::identity();
-  cudaq::matrix_2 expected(1, 1);
+  cudaq::complex_matrix expected(1, 1);
 
   expected[{0, 0}] = 1.;
   utils::checkEqual(prod.to_matrix(), expected);
@@ -29,13 +29,13 @@ TEST(OperatorExpressions, checkSpinOpsConstruction) {
   utils::checkEqual(prod.to_matrix(), expected);
 
   prod *= cudaq::spin_operator::x(0);
-  expected = cudaq::matrix_2(2, 2);
+  expected = cudaq::complex_matrix(2, 2);
   expected[{0, 1}] = std::complex<double>(0., -1.);
   expected[{1, 0}] = std::complex<double>(0., -1.);
   utils::checkEqual(prod.to_matrix(), expected);
 
   auto sum = cudaq::spin_operator::empty();
-  expected = cudaq::matrix_2(0, 0);
+  expected = cudaq::complex_matrix(0, 0);
   utils::checkEqual(sum.to_matrix(), expected);
 
   sum *= cudaq::spin_operator::x(1); // empty times something is still empty
@@ -44,20 +44,20 @@ TEST(OperatorExpressions, checkSpinOpsConstruction) {
   utils::checkEqual(sum.to_matrix(), expected);
 
   sum += cudaq::spin_operator::i(1);
-  expected = cudaq::matrix_2(2, 2);
+  expected = cudaq::complex_matrix(2, 2);
   for (size_t i = 0; i < 2; ++i)
     expected[{i, i}] = 1.;
   utils::checkEqual(sum.to_matrix(), expected);
 
   sum *= cudaq::spin_operator::x(1);
-  expected = cudaq::matrix_2(2, 2);
+  expected = cudaq::complex_matrix(2, 2);
   expected[{0, 1}] = 1.;
   expected[{1, 0}] = 1.;
   utils::checkEqual(sum.to_matrix(), expected);
 
   sum = cudaq::spin_operator::empty();
   sum -= cudaq::spin_operator::i(0);
-  expected = cudaq::matrix_2(2, 2);
+  expected = cudaq::complex_matrix(2, 2);
   for (size_t i = 0; i < 2; ++i)
     expected[{i, i}] = -1.;
   utils::checkEqual(sum.to_matrix(), expected);

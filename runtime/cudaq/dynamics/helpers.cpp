@@ -70,10 +70,10 @@ compute_permutation(const std::vector<int> &op_degrees,
   return std::move(permutation);
 }
 
-void permute_matrix(cudaq::matrix_2 &matrix,
+void permute_matrix(cudaq::complex_matrix &matrix,
                     const std::vector<int> &permutation) {
   if (permutation.size() == 0) {
-    assert(matrix.get_rows() == matrix.get_columns() == 1);
+    assert(matrix.rows() == matrix.cols() == 1);
     return;
   }
 
@@ -84,8 +84,8 @@ void permute_matrix(cudaq::matrix_2 &matrix,
     }
   }
   int idx = 0;
-  for (std::size_t row = 0; row < matrix.get_rows(); row++) {
-    for (std::size_t col = 0; col < matrix.get_columns(); col++) {
+  for (std::size_t row = 0; row < matrix.rows(); row++) {
+    for (std::size_t col = 0; col < matrix.cols(); col++) {
       matrix[{row, col}] = sorted_values[idx];
       idx++;
     }

@@ -12,7 +12,7 @@
 #include <vector>
 
 #include "cudaq/operators.h"
-#include "cudaq/utils/tensor.h"
+#include "cudaq/utils/matrix.h"
 
 #include "boson_operators.h"
 
@@ -147,7 +147,7 @@ boson_operator::boson_operator(int target, int op_id)
 
 // evaluations
 
-matrix_2 boson_operator::to_matrix(
+complex_matrix boson_operator::to_matrix(
     std::unordered_map<int, int> &dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
@@ -157,7 +157,7 @@ matrix_2 boson_operator::to_matrix(
                              std::to_string(this->target));
   auto dim = it->second;
 
-  auto mat = matrix_2(dim, dim);
+  auto mat = complex_matrix(dim, dim);
   if (this->additional_terms > 0) {
     for (std::size_t column = 0; column + this->additional_terms < dim;
          column++) {

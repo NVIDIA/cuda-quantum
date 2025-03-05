@@ -11,7 +11,7 @@
 #include <vector>
 
 #include "cudaq/operators.h"
-#include "cudaq/utils/tensor.h"
+#include "cudaq/utils/matrix.h"
 
 #include "boson_operators.h"
 #include "fermion_operators.h"
@@ -159,7 +159,7 @@ matrix_operator::matrix_operator(int degree)
         [](const std::vector<int> &dimensions,
            const std::unordered_map<std::string, std::complex<double>> &_none) {
           std::size_t dimension = dimensions[0];
-          auto mat = matrix_2(dimension, dimension);
+          auto mat = complex_matrix(dimension, dimension);
 
           // Build up the identity matrix.
           for (std::size_t i = 0; i < dimension; i++) {
@@ -309,7 +309,7 @@ matrix_operator::operator=(const fermion_operator &other);
 
 // evaluations
 
-matrix_2 matrix_operator::to_matrix(
+complex_matrix matrix_operator::to_matrix(
     std::unordered_map<int, int> &dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
@@ -384,7 +384,7 @@ product_operator<matrix_operator> matrix_operator::number(int degree) {
         [](const std::vector<int> &dimensions,
            const std::unordered_map<std::string, std::complex<double>> &_none) {
           std::size_t dimension = dimensions[0];
-          auto mat = matrix_2(dimension, dimension);
+          auto mat = complex_matrix(dimension, dimension);
           for (std::size_t i = 0; i < dimension; i++) {
             mat[{i, i}] = std::complex<double>(i);
           }
@@ -404,7 +404,7 @@ product_operator<matrix_operator> matrix_operator::parity(int degree) {
         [](const std::vector<int> &dimensions,
            const std::unordered_map<std::string, std::complex<double>> &_none) {
           std::size_t dimension = dimensions[0];
-          auto mat = matrix_2(dimension, dimension);
+          auto mat = complex_matrix(dimension, dimension);
           for (std::size_t i = 0; i < dimension; i++) {
             mat[{i, i}] = i & 1 ? -1. : 1.;
           }
@@ -424,7 +424,7 @@ product_operator<matrix_operator> matrix_operator::position(int degree) {
         [](const std::vector<int> &dimensions,
            const std::unordered_map<std::string, std::complex<double>> &_none) {
           std::size_t dimension = dimensions[0];
-          auto mat = matrix_2(dimension, dimension);
+          auto mat = complex_matrix(dimension, dimension);
           // position = 0.5 * (create + annihilate)
           for (std::size_t i = 0; i + 1 < dimension; i++) {
             mat[{i + 1, i}] = 0.5 * std::sqrt(static_cast<double>(i + 1));
@@ -446,7 +446,7 @@ product_operator<matrix_operator> matrix_operator::momentum(int degree) {
         [](const std::vector<int> &dimensions,
            const std::unordered_map<std::string, std::complex<double>> &_none) {
           std::size_t dimension = dimensions[0];
-          auto mat = matrix_2(dimension, dimension);
+          auto mat = complex_matrix(dimension, dimension);
           // momentum = 0.5j * (create - annihilate)
           for (std::size_t i = 0; i + 1 < dimension; i++) {
             mat[{i + 1, i}] = std::complex<double>(0., 0.5) *
@@ -474,8 +474,8 @@ product_operator<matrix_operator> matrix_operator::displace(int degree) {
       if (entry == parameters.end())
         throw std::runtime_error("missing value for parameter 'displacement'");
       auto displacement_amplitude = entry->second;
-      auto create = matrix_2(dimension, dimension);
-      auto annihilate = matrix_2(dimension, dimension);
+      auto create = complex_matrix(dimension, dimension);
+      auto annihilate = complex_matrix(dimension, dimension);
       for (std::size_t i = 0; i + 1 < dimension; i++) {
         create[{i + 1, i}] = std::sqrt(static_cast<double>(i + 1));
         annihilate[{i, i + 1}] = std::sqrt(static_cast<double>(i + 1));
@@ -502,8 +502,8 @@ product_operator<matrix_operator> matrix_operator::squeeze(int degree) {
       if (entry == parameters.end())
         throw std::runtime_error("missing value for parameter 'squeezing'");
       auto squeezing = entry->second;
-      auto create = matrix_2(dimension, dimension);
-      auto annihilate = matrix_2(dimension, dimension);
+      auto create = complex_matrix(dimension, dimension);
+      auto annihilate = complex_matrix(dimension, dimension);
       for (std::size_t i = 0; i + 1 < dimension; i++) {
         create[{i + 1, i}] = std::sqrt(static_cast<double>(i + 1));
         annihilate[{i, i + 1}] = std::sqrt(static_cast<double>(i + 1));

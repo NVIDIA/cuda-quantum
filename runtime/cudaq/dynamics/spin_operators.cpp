@@ -10,7 +10,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "cudaq/utils/tensor.h"
+#include "cudaq/utils/matrix.h"
 #include "spin_operators.h"
 
 namespace cudaq {
@@ -71,7 +71,7 @@ spin_operator::spin_operator(int target, int op_id)
 
 // evaluations
 
-matrix_2 spin_operator::to_matrix(std::string pauli_word,
+complex_matrix spin_operator::to_matrix(std::string pauli_word,
                                   std::complex<double> coeff,
                                   bool invert_order) {
   auto map_state = [&pauli_word](char pauli, bool state) {
@@ -97,7 +97,7 @@ matrix_2 spin_operator::to_matrix(std::string pauli_word,
   auto dim = 1 << pauli_word.size();
   auto nr_deg = pauli_word.size();
 
-  matrix_2 matrix(dim, dim);
+  complex_matrix matrix(dim, dim);
   for (std::size_t old_state = 0; old_state < dim; ++old_state) {
     std::size_t new_state = 0;
     std::complex<double> entry = 1.;
@@ -116,7 +116,7 @@ matrix_2 spin_operator::to_matrix(std::string pauli_word,
   return std::move(matrix);
 }
 
-matrix_2 spin_operator::to_matrix(
+complex_matrix spin_operator::to_matrix(
     std::unordered_map<int, int> &dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {

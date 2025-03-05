@@ -124,6 +124,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
   target_link_libraries(test_mqpu
     PRIVATE 
     cudaq
+    fmt::fmt-header-only
     cudaq-builder
     cudaq-platform-mqpu
     nvqir-custatevec-fp64
@@ -147,6 +148,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
   target_link_libraries(test_custatevec_observe_from_sampling
     PRIVATE 
     cudaq
+    fmt::fmt-header-only
     cudaq-builder
     cudaq-platform-default
     nvqir-custatevec-fp32
@@ -168,6 +170,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
         target_link_libraries(test_mpi
             PRIVATE 
             cudaq
+            fmt::fmt-header-only
             cudaq-platform-mqpu
             nvqir-custatevec-fp32
             gtest_main)
@@ -188,6 +191,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
     target_link_libraries(test_gpu_get_state
       PRIVATE 
       cudaq
+      fmt::fmt-header-only
       cudaq-builder
       cudaq-platform-mqpu
       nvqir-custatevec-fp64
@@ -215,6 +219,7 @@ if(TARGET nvqir-tensornet)
         target_link_libraries(test_tensornet_mpi
             PRIVATE 
             cudaq
+            fmt::fmt-header-only
             cudaq-platform-default
             nvqir-tensornet
             gtest)
@@ -240,6 +245,7 @@ if(TARGET nvqir-tensornet)
   target_link_libraries(test_tensornet_observe_path_reuse
     PRIVATE 
     cudaq
+    fmt::fmt-header-only
     cudaq-builder
     cudaq-platform-default
     nvqir-tensornet
@@ -256,7 +262,8 @@ set(CUDAQ_SPIN_TEST_SOURCES
 add_executable(test_spin main.cpp ${CUDAQ_SPIN_TEST_SOURCES})
 target_link_libraries(test_spin
   PRIVATE 
-  cudaq-spin
+  fmt::fmt-header-only
+  cudaq-operator
   gtest_main)
 gtest_discover_tests(test_spin)
 
@@ -278,8 +285,8 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
 endif()
 target_link_libraries(test_operators
   PRIVATE
-  cudaq-spin
   cudaq-operator
+  fmt::fmt-header-only
   cudaq
   gtest_main)
 gtest_discover_tests(test_operators)
@@ -295,6 +302,7 @@ endif()
 target_link_libraries(test_qudit
   PRIVATE 
   cudaq
+  fmt::fmt-header-only
   cudaq-platform-default
   cudaq-em-qudit
   gtest_main)
@@ -308,13 +316,14 @@ endif()
 target_link_libraries(test_photonics
   PRIVATE 
   cudaq
+  fmt::fmt-header-only
   cudaq-platform-default
   cudaq-em-photonics
   nvqir-qpp
   gtest_main)
 gtest_discover_tests(test_photonics)
 
-add_executable(test_utils main.cpp utils/UtilsTester.cpp utils/Tensor.cpp)
+add_executable(test_utils main.cpp utils/UtilsTester.cpp utils/Matrix.cpp)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
   target_link_options(test_utils PRIVATE -Wl,--no-as-needed)
 endif()
@@ -340,6 +349,7 @@ if (MPI_CXX_FOUND)
   target_link_libraries(test_mpi_plugin
     PRIVATE 
     cudaq
+    fmt::fmt-header-only
     cudaq-platform-default
     nvqir-qpp
     gtest
@@ -385,7 +395,7 @@ if (CUDAQ_ENABLE_PYTHON)
     cudaq
     cudaq-platform-default
     nvqir nvqir-qpp
-    cudaq-spin
+    cudaq-operator
     cudaq-chemistry
     cudaq-pyscf
     gtest_main)

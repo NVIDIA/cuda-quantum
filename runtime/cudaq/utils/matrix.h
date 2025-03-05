@@ -15,62 +15,85 @@
 #include <optional>
 #include <vector>
 
+#include <Eigen/Dense>
+
 namespace cudaq {
 
-class matrix_2;
+class complex_matrix;
 
-matrix_2 operator*(const matrix_2 &, const matrix_2 &);
-matrix_2 operator*(std::complex<double>, const matrix_2 &);
-matrix_2 operator+(const matrix_2 &, const matrix_2 &);
-matrix_2 operator-(const matrix_2 &, const matrix_2 &);
-matrix_2 kronecker(const matrix_2 &, const matrix_2 &);
+complex_matrix operator*(const complex_matrix &, const complex_matrix &);
+std::vector<std::complex<double>> operator*(
+  const complex_matrix &, const std::vector<std::complex<double>> &);
+complex_matrix operator*(std::complex<double>, const complex_matrix &);
+complex_matrix operator+(const complex_matrix &, const complex_matrix &);
+complex_matrix operator-(const complex_matrix &, const complex_matrix &);
+complex_matrix kronecker(const complex_matrix &, const complex_matrix &);
 template <typename Iterable,
           typename T = typename std::iterator_traits<Iterable>::value_type>
-matrix_2 kronecker(Iterable begin, Iterable end);
+complex_matrix kronecker(Iterable begin, Iterable end);
 
 //===----------------------------------------------------------------------===//
 
 /// This is a minimalist matrix container. It is two-dimensional. It owns its
 /// data. Elements are of type `complex<double>`. Typically, it will contain a
 /// two-by-two set of values.
-class matrix_2 {
+class complex_matrix {
 public:
   using Dimensions = std::pair<std::size_t, std::size_t>;
 
-  matrix_2() = default;
-  matrix_2(std::size_t rows, std::size_t cols)
+  complex_matrix() = default;
+
+  // Instantiates a matrix of the given size.
+  // All entries are set to zero by default.
+  complex_matrix(std::size_t rows, std::size_t cols, bool set_zero = true)
       : dimensions(std::make_pair(rows, cols)),
-        data{new std::complex<double>[rows * cols]} {}
-  matrix_2(const matrix_2 &other)
+        data{new std::complex<double>[rows * cols]} {
+        if (set_zero) {
+          for(std::size_t i = 0; i < rows * cols; ++i)
+            data[i] = 0.;
+        }
+      }
+
+  complex_matrix(const complex_matrix &other)
       : dimensions{other.dimensions},
         data{new std::complex<double>[get_size(other.dimensions)]} {
     std::copy(other.data, other.data + get_size(dimensions), data);
   }
-  matrix_2(matrix_2 &&other) : dimensions{other.dimensions}, data{other.data} {
+  complex_matrix(complex_matrix &&other) : dimensions{other.dimensions}, data{other.data} {
     other.data = nullptr;
   }
-  matrix_2(const std::vector<std::complex<double>> &v,
+  complex_matrix(const std::vector<std::complex<double>> &v,
            const Dimensions &dim = {2, 2})
       : dimensions{dim}, data{new std::complex<double>[get_size(dim)]} {
     check_size(v.size(), dimensions);
     std::copy(v.begin(), v.begin() + get_size(dimensions), data);
   }
 
-  matrix_2 &operator=(const matrix_2 &other) {
+  complex_matrix &operator=(const complex_matrix &other) {
     dimensions = other.dimensions;
     data = new std::complex<double>[get_size(other.dimensions)];
     std::copy(other.data, other.data + get_size(dimensions), data);
     return *this;
   }
 
-  matrix_2 &operator=(matrix_2 &&other) {
+  complex_matrix &operator=(complex_matrix &&other) {
     dimensions = other.dimensions;
     data = other.data;
     other.data = nullptr;
     return *this;
   }
 
-  ~matrix_2() {
+  /// @brief Return the minimal eigenvalue for this matrix.
+  std::complex<double> minimal_eigenvalue() const;
+
+  /// @brief Return this matrix's eigenvalues.
+  std::vector<std::complex<double>> eigenvalues() const;
+
+  /// @brief Return the eigenvectors of this matrix.
+  /// They are returned as the columns of a new matrix.
+  complex_matrix eigenvectors() const;
+
+  ~complex_matrix() {
     if (data)
       delete[] data;
     data = nullptr;
@@ -81,37 +104,41 @@ public:
   //===--------------------------------------------------------------------===//
 
   /// Multiplication (cross-product) of two matrices.
-  friend matrix_2 operator*(const matrix_2 &, const matrix_2 &);
-  matrix_2 &operator*=(const matrix_2 &);
+  friend complex_matrix operator*(const complex_matrix &, const complex_matrix &);
+  complex_matrix &operator*=(const complex_matrix &);
+
+  /// Right-side multiplication with a vector
+  friend std::vector<std::complex<double>> operator*(
+    const complex_matrix &, const std::vector<std::complex<double>> &);
 
   /// Scalar Multiplication with matrices.
-  friend matrix_2 operator*(std::complex<double>, const matrix_2 &);
+  friend complex_matrix operator*(std::complex<double>, const complex_matrix &);
 
   /// Addition of two matrices.
-  friend matrix_2 operator+(const matrix_2 &, const matrix_2 &);
-  matrix_2 &operator+=(const matrix_2 &);
+  friend complex_matrix operator+(const complex_matrix &, const complex_matrix &);
+  complex_matrix &operator+=(const complex_matrix &);
 
   /// Subtraction of two matrices.
-  friend matrix_2 operator-(const matrix_2 &, const matrix_2 &);
-  matrix_2 &operator-=(const matrix_2 &);
+  friend complex_matrix operator-(const complex_matrix &, const complex_matrix &);
+  complex_matrix &operator-=(const complex_matrix &);
 
   /// Kronecker of two matrices.
-  friend matrix_2 kronecker(const matrix_2 &, const matrix_2 &);
-  matrix_2 &kronecker_inplace(const matrix_2 &);
+  friend complex_matrix kronecker(const complex_matrix &, const complex_matrix &);
+  complex_matrix &kronecker_inplace(const complex_matrix &);
 
   /// Matrix exponential, uses 20 terms of Taylor Series approximation.
-  matrix_2 exponential();
+  complex_matrix exponential();
 
   /// Matrix power.
-  matrix_2 power(int powers);
+  complex_matrix power(int powers);
 
   /// Return a square identity matrix for the given size.
-  static matrix_2 identity(const std::size_t rows);
+  static complex_matrix identity(const std::size_t rows);
 
   /// Kronecker a list of matrices. The list can be any container that has
   /// iterators defined.
   template <typename Iterable, typename T>
-  friend matrix_2 kronecker(Iterable begin, Iterable end);
+  friend complex_matrix kronecker(Iterable begin, Iterable end);
 
   /// Operator to get the value at a particular index in the matrix.
   std::complex<double> operator[](const std::vector<std::size_t> &at) const;
@@ -119,15 +146,27 @@ public:
   /// Operator to get the value at a particular index in the matrix.
   std::complex<double> &operator[](const std::vector<std::size_t> &at);
 
+  /// Operator to get the value at a particular index in the matrix.
+  std::complex<double> operator()(std::size_t i, std::size_t j) const;
+
+  /// Operator to get the value at a particular index in the matrix.
+  std::complex<double> &operator()(std::size_t i, std::size_t j);
+
+  /// @brief Returns a string representation of the matrix
   std::string dump() const;
 
+  /// @brief Print this matrix to the given output stream
+  void dump(std::ostream &os) const;
+
   std::size_t get_rank() const { return 2; }
-  std::size_t get_rows() const { return dimensions.first; }
-  std::size_t get_columns() const { return dimensions.second; }
-  std::size_t get_size() const { return get_size(dimensions); }
+  std::size_t rows() const { return dimensions.first; }
+  std::size_t cols() const { return dimensions.second; }
+  std::size_t size() const { return get_size(dimensions); }
+
+  Eigen::MatrixXcd as_eigen() const;
 
 private:
-  matrix_2(const std::complex<double> *v, const Dimensions &dim = {2, 2})
+  complex_matrix(const std::complex<double> *v, const Dimensions &dim = {2, 2})
       : dimensions{dim}, data{new std::complex<double>[get_size(dim)]} {
     auto size = get_size(dimensions);
     std::copy(v, v + size, data);
@@ -159,8 +198,8 @@ private:
 //===----------------------------------------------------------------------===//
 
 template <typename Iterable, typename T>
-matrix_2 kronecker(Iterable begin, Iterable end) {
-  matrix_2 result;
+complex_matrix kronecker(Iterable begin, Iterable end) {
+  complex_matrix result;
   if (begin == end)
     return result;
   result = *begin;
@@ -169,26 +208,26 @@ matrix_2 kronecker(Iterable begin, Iterable end) {
   return result;
 }
 
-inline matrix_2 operator*(const matrix_2 &left, const matrix_2 &right) {
-  matrix_2 result = left;
+inline complex_matrix operator*(const complex_matrix &left, const complex_matrix &right) {
+  complex_matrix result = left;
   result *= right;
   return result;
 }
 
-inline matrix_2 operator+(const matrix_2 &left, const matrix_2 &right) {
-  matrix_2 result = left;
+inline complex_matrix operator+(const complex_matrix &left, const complex_matrix &right) {
+  complex_matrix result = left;
   result += right;
   return result;
 }
 
-inline matrix_2 operator-(const matrix_2 &left, const matrix_2 &right) {
-  matrix_2 result = left;
+inline complex_matrix operator-(const complex_matrix &left, const complex_matrix &right) {
+  complex_matrix result = left;
   result -= right;
   return result;
 }
 
-inline matrix_2 kronecker(const matrix_2 &left, const matrix_2 &right) {
-  matrix_2 result = left;
+inline complex_matrix kronecker(const complex_matrix &left, const complex_matrix &right) {
+  complex_matrix result = left;
   result.kronecker_inplace(right);
   return result;
 }

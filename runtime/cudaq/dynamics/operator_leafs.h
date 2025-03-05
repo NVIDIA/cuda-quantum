@@ -16,7 +16,7 @@
 #include <vector>
 
 #include "callback.h"
-#include "cudaq/utils/tensor.h"
+#include "cudaq/utils/matrix.h"
 
 namespace cudaq {
 
@@ -66,7 +66,7 @@ public:
 
   // Return the scalar operator as a 1x1 matrix. This is needed for
   // compatibility with the other inherited classes.
-  matrix_2 to_matrix(const std::unordered_map<std::string, std::complex<double>>
+  complex_matrix to_matrix(const std::unordered_map<std::string, std::complex<double>>
                          &parameters = {}) const;
 
   std::string to_string() const;
@@ -188,6 +188,12 @@ public:
   constexpr commutation_relations(const commutation_relations &other)
       : id(other.id) {}
 
+  commutation_relations& operator=(const commutation_relations &other) {
+    if (this != &other)
+      this->id = other.id;
+    return *this;
+  }
+
   std::complex<double> commutation_factor() const;
 
   bool operator==(const commutation_relations &other) const;
@@ -226,11 +232,11 @@ private:
 
   private:
     std::vector<int> degrees;
-    matrix_2 matrix;
+    complex_matrix matrix;
 
   public:
     matrix_evaluation();
-    matrix_evaluation(std::vector<int> &&degrees, matrix_2 &&matrix);
+    matrix_evaluation(std::vector<int> &&degrees, complex_matrix &&matrix);
     matrix_evaluation(matrix_evaluation &&other);
     matrix_evaluation &operator=(matrix_evaluation &&other);
     // delete copy constructor and copy assignment to avoid unnecessary copies
@@ -308,7 +314,7 @@ public:
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
-  virtual matrix_2
+  virtual complex_matrix
   to_matrix(std::unordered_map<int, int> &dimensions,
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {}) const = 0;

@@ -13,7 +13,7 @@
 #include <vector>
 
 #include "cudaq/operators.h"
-#include "cudaq/utils/tensor.h"
+#include "cudaq/utils/matrix.h"
 #include "fermion_operators.h"
 
 namespace cudaq {
@@ -134,7 +134,7 @@ fermion_operator &fermion_operator::operator=(const fermion_operator &other) {
 
 // evaluations
 
-matrix_2 fermion_operator::to_matrix(
+complex_matrix fermion_operator::to_matrix(
     std::unordered_map<int, int> &dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
@@ -148,7 +148,7 @@ matrix_2 fermion_operator::to_matrix(
   this->validate_opcode();
 #endif
 
-  auto mat = matrix_2(2, 2);
+  auto mat = complex_matrix(2, 2);
   if (this->op_code & 1)
     mat[{0, 0}] = 1.;
   if (this->op_code & 2)

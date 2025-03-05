@@ -16,9 +16,9 @@
 #include "cudaq/algorithms/optimizer.h"
 #include <optional>
 #include <string_view>
+#include "cudaq/operators.h"
 
 namespace cudaq {
-class spin_op;
 
 /// @brief The ExecutionContext is an abstraction to indicate
 /// how a CUDA-Q kernel should be executed.
