@@ -15,7 +15,7 @@
 # Must be built from the repo root with:
 #   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:ompi -f docker/build/devdeps.ompi.Dockerfile .
 
-ARG cuda_version=12.0
+ARG cuda_version=12.8
 FROM nvidia/cuda:${cuda_version}.0-devel-ubuntu22.04
 SHELL ["/bin/bash", "-c"]
 ARG DEBIAN_FRONTEND=noninteractive

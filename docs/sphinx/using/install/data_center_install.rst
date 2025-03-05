@@ -149,7 +149,7 @@ CUDA
 
 Building CUDA-Q requires a full installation of the CUDA toolkit.
 **You can install the CUDA toolkit and use the CUDA compiler without having a GPU.**
-The instructions are tested using version 11.8 and 12.0, but other CUDA 11 or 12 versions
+The instructions are tested using version 11.8 and 12.8, but other CUDA 11 or 12 versions
 should work, as long as the CUDA runtime version on the host system matches the 
 CUDA version used for the build, and the installed driver on the host 
 system supports that CUDA version. We recommend using the latest CUDA version
@@ -160,7 +160,7 @@ following the installation guide for your platform in the online documentation
 linked on that page.
 
 Within the tested AlmaLinux 8 environment, for example, the following commands
-install CUDA 12.0:
+install CUDA 12.8:
 
 .. literalinclude:: ../../../../scripts/configure_build.sh
     :language: bash
