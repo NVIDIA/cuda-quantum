@@ -28,4 +28,4 @@ struct is_operator_type<operator_sum<HandlerTy>> : std::true_type {};
 template <typename T>
 concept operator_type = is_operator_type<std::decay_t<T>>::value;
 #endif
-}
+} // namespace cudaq
