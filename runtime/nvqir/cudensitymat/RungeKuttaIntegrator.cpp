@@ -28,8 +28,7 @@ std::shared_ptr<base_integrator> runge_kutta::clone() {
   return clone;
 }
 
-void runge_kutta::setState(const cudaq::state &initial_state,
-                                    double t0) {
+void runge_kutta::setState(const cudaq::state &initial_state, double t0) {
   m_state = std::make_shared<cudaq::state>(initial_state);
   m_t = t0;
 }

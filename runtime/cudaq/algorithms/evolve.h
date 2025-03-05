@@ -12,6 +12,7 @@
 #include "common/KernelWrapper.h"
 #include "cudaq/BaseIntegrator.h"
 #include "cudaq/algorithms/get_state.h"
+#include "cudaq/dynamics/operator_type.h"
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
 #include "cudaq/platform.h"
@@ -64,6 +65,8 @@ convertOps(const std::initializer_list<OpTy> &ops) {
 template <typename HamTy,
           typename CollapseOpTy = cudaq::operator_sum<cudaq::matrix_operator>,
           typename ObserveOpTy = cudaq::operator_sum<cudaq::matrix_operator>>
+  requires cudaq::operator_type<HamTy> && cudaq::operator_type<CollapseOpTy> &&
+           cudaq::operator_type<ObserveOpTy>
 evolve_result
 evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
        const Schedule &schedule, const state &initial_state,
