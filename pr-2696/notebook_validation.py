@@ -113,12 +113,12 @@ if __name__ == "__main__":
             base_name = os.path.basename(notebook_filename)
             if base_name in notebooks_skipped:
                 continue  # Already skipped, no need to re-check
-            if validate(notebook_filename, available_backends):
-                if execute(notebook_filename):
-                    notebooks_success.append(notebook_filename)
-                else:
-                    notebooks_failed.append(notebook_filename)
-            else:
+            if not validate(notebook_filename, available_backends):
                 notebooks_skipped.append(base_name)
+                continue
+            if execute(notebook_filename):
+                notebooks_success.append(notebook_filename)
+            else:
+                notebooks_failed.append(notebook_filename)
 
         print_results(notebooks_success, notebooks_failed, notebooks_skipped)
