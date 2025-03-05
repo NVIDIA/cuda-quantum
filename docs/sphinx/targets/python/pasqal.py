@@ -28,7 +28,9 @@ os.environ["PASQAL_AUTH_TOKEN"] = str(sdk.user_token())
 # It is also mandatory to specify the project against which the execution will be billed.
 # Uncomment this line to set it from Python, or export it as an environment variable
 # prior to execution. You can find your projects here: https://portal.pasqal.cloud/projects.
+# ```
 # os.environ['PASQAL_PROJECT_ID'] = 'your project id'
+# ```
 
 # Set the target including specifying optional arguments like target machine
 cudaq.set_target("pasqal",
