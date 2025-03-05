@@ -60,8 +60,8 @@ public:
   /// @arg parameters: A sequence of strings representing the parameter names of
   /// an operator expression.
   /// @arg value_function: A function that takes the name of a parameter as well
-  /// as an additional value ("step") of arbitrary type as argument and returns
-  /// the complex value for that parameter at the given step.
+  /// as an additional value ("step") of std::complex<double> type as argument
+  /// and returns the complex value for that parameter at the given step.
   /// @details current_idx: Intializes the current index (_current_idx) to -1 to
   /// indicate that iteration has not yet begun. Once iteration starts,
   /// _current_idx will be used to track the position in the sequence of steps.
@@ -77,8 +77,8 @@ public:
   /// @arg parameters: A sequence of strings representing the parameter names of
   /// an operator expression.
   /// @arg value_function: A function that takes the name of a parameter as well
-  /// as an additional value ("step") of arbitrary type as argument and returns
-  /// the complex value for that parameter at the given step.
+  /// as an additional value ("step") of std::complex<double> type as argument
+  /// and returns the complex value for that parameter at the given step.
   Schedule(const std::vector<double> &steps,
            const std::vector<std::string> &parameters = {})
       : Schedule(toComplex(steps), parameters,
