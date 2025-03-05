@@ -52,7 +52,7 @@ int main() {
       omega_x * cudaq::scalar_operator(mod_func) * cudaq::spin_operator::x(0);
 
   // A single qubit with dimension 2.
-  std::map<int, int> dimensions = {{0, 2}};
+  cudaq::dimension_map dimensions = {{0, 2}};
 
   // The qubit starts in the |0> state, represented by the vector [1, 0].
   std::vector<std::complex<double>> initial_state_vec = {1.0, 0.0};

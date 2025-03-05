@@ -21,7 +21,7 @@ int main() {
 
   // Set up a 9-spin chain, where each spin is a two-level system.
   const int num_spins = 9;
-  std::map<int, int> dimensions;
+  cudaq::dimension_map dimensions;
   for (int i = 0; i < num_spins; i++) {
     dimensions[i] = 2; // Each spin (site) has dimension 2.
   }
