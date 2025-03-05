@@ -14,7 +14,7 @@
 #include "cudaq/algorithms/broadcast.h"
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
-#include "cudaq/spin_op.h"
+#include "cudaq/operators.h"
 #include <functional>
 #if CUDAQ_USE_STD20
 #include <ranges>
@@ -122,14 +122,14 @@ runObservation(KernelFunctor &&k, cudaq::spin_op &h, quantum_platform &platform,
   else {
     // If not, we have everything we need to compute it.
     double sum = 0.0;
-    h.for_each_term([&](spin_op &term) {
+    auto terms = h.get_terms();
+    for (const auto &term : terms) {
       if (term.is_identity())
-        sum += term.get_coefficient().real();
+        sum += term.get_coefficient().evaluate().real(); // fails if we have parameters
       else
         sum += data.expectation(term.to_string(false)) *
-               term.get_coefficient().real();
-    });
-
+               term.get_coefficient().evaluate().real(); // fails if we have parameters
+    }
     expectationValue = sum;
   }
 
@@ -251,6 +251,8 @@ template <typename QuantumKernel, typename SpinOpContainer, typename... Args,
           typename = std::enable_if_t<
               std::is_invocable_r_v<void, QuantumKernel, Args...>>>
 #endif
+// FIXME: the error message when the SpinOpContainer doesn't actually contain
+// spin_op_terms is somewhat cryptic here... 
 std::vector<observe_result> observe(QuantumKernel &&kernel,
                                     const SpinOpContainer &termList,
                                     Args &&...args) {
@@ -260,11 +262,9 @@ std::vector<observe_result> observe(QuantumKernel &&kernel,
   auto kernelName = cudaq::getKernelName(kernel);
 
   // Convert all spin_ops to a single summed spin_op
-  cudaq::spin_op op;
+  auto op = cudaq::spin_op::empty();
   for (auto &o : termList)
     op += o;
-  // the constructor for spin_op starts the op as the identity, remove that
-  op -= spin_op();
 
   // Run the observation
   auto result = details::runObservation(

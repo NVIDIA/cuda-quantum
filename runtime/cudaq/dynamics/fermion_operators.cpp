@@ -57,9 +57,9 @@ std::string fermion_operator::op_code_to_string() const {
 
 std::string fermion_operator::op_code_to_string(
     std::unordered_map<int, int> &dimensions) const {
-  auto it = dimensions.find(this->target);
+  auto it = dimensions.find(this->degree);
   if (it == dimensions.end())
-    dimensions[this->target] = 2;
+    dimensions[this->degree] = 2;
   else if (it->second != 2)
     throw std::runtime_error("dimension for fermion operator must be 2");
   return this->op_code_to_string();
@@ -95,18 +95,18 @@ void fermion_operator::inplace_mult(const fermion_operator &other) {
 // read-only properties
 
 std::string fermion_operator::unique_id() const {
-  return this->op_code_to_string() + std::to_string(target);
+  return this->op_code_to_string() + std::to_string(this->degree);
 }
 
-std::vector<int> fermion_operator::degrees() const { return {this->target}; }
+std::vector<int> fermion_operator::degrees() const { return {this->degree}; }
 
 // constructors
 
 fermion_operator::fermion_operator(int target)
-    : target(target), op_code(9), commutes(true) {}
+    : degree(target), op_code(9), commutes(true) {}
 
 fermion_operator::fermion_operator(int target, int op_id)
-    : target(target), op_code(9), commutes(true) {
+    : degree(target), op_code(9), commutes(true) {
   assert(0 <= op_id && op_id < 4);
   if (op_id == 1) { // create
     this->op_code = 4;
@@ -119,7 +119,7 @@ fermion_operator::fermion_operator(int target, int op_id)
 }
 
 fermion_operator::fermion_operator(const fermion_operator &other)
-    : op_code(other.op_code), commutes(other.commutes), target(other.target) {}
+    : op_code(other.op_code), commutes(other.commutes), degree(other.degree) {}
 
 // assignments
 
@@ -127,7 +127,7 @@ fermion_operator &fermion_operator::operator=(const fermion_operator &other) {
   if (this != &other) {
     this->op_code = other.op_code;
     this->commutes = other.commutes;
-    this->target = other.target;
+    this->degree = other.degree;
   }
   return *this;
 }
@@ -138,9 +138,9 @@ complex_matrix fermion_operator::to_matrix(
     std::unordered_map<int, int> &dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
-  auto it = dimensions.find(this->target);
+  auto it = dimensions.find(this->degree);
   if (it == dimensions.end())
-    dimensions[this->target] = 2;
+    dimensions[this->degree] = 2;
   else if (it->second != 2)
     throw std::runtime_error("dimension for fermion operator must be 2");
 
@@ -162,7 +162,7 @@ complex_matrix fermion_operator::to_matrix(
 
 std::string fermion_operator::to_string(bool include_degrees) const {
   if (include_degrees)
-    return this->op_code_to_string() + "(" + std::to_string(target) + ")";
+    return this->op_code_to_string() + "(" + std::to_string(this->degree) + ")";
   else
     return this->op_code_to_string();
 }
@@ -170,7 +170,7 @@ std::string fermion_operator::to_string(bool include_degrees) const {
 // comparisons
 
 bool fermion_operator::operator==(const fermion_operator &other) const {
-  return this->target == other.target &&
+  return this->degree == other.degree &&
          this->op_code == other.op_code; // no need to compare commutes (is
                                          // determined by op_code)
 }

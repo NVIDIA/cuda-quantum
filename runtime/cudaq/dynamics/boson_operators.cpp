@@ -52,10 +52,10 @@ std::string boson_operator::op_code_to_string() const {
 
 std::string boson_operator::op_code_to_string(
     std::unordered_map<int, int> &dimensions) const {
-  auto it = dimensions.find(this->target);
+  auto it = dimensions.find(this->degree);
   if (it == dimensions.end())
     throw std::runtime_error("missing dimension for degree " +
-                             std::to_string(this->target));
+                             std::to_string(this->degree));
   return this->op_code_to_string();
 }
 
@@ -124,18 +124,18 @@ void boson_operator::inplace_mult(const boson_operator &other) {
 // read-only properties
 
 std::string boson_operator::unique_id() const {
-  return this->op_code_to_string() + std::to_string(target);
+  return this->op_code_to_string() + std::to_string(this->degree);
 }
 
-std::vector<int> boson_operator::degrees() const { return {this->target}; }
+std::vector<int> boson_operator::degrees() const { return {this->degree}; }
 
 // constructors
 
 boson_operator::boson_operator(int target)
-    : target(target), additional_terms(0) {}
+    : degree(target), additional_terms(0) {}
 
 boson_operator::boson_operator(int target, int op_id)
-    : target(target), additional_terms(0) {
+    : degree(target), additional_terms(0) {
   assert(0 <= op_id && op_id < 4);
   if (op_id == 1) // create
     this->additional_terms = 1;
@@ -151,10 +151,10 @@ complex_matrix boson_operator::to_matrix(
     std::unordered_map<int, int> &dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
-  auto it = dimensions.find(this->target);
+  auto it = dimensions.find(this->degree);
   if (it == dimensions.end())
     throw std::runtime_error("missing dimension for degree " +
-                             std::to_string(this->target));
+                             std::to_string(this->degree));
   auto dim = it->second;
 
   auto mat = complex_matrix(dim, dim);
@@ -189,7 +189,7 @@ complex_matrix boson_operator::to_matrix(
 
 std::string boson_operator::to_string(bool include_degrees) const {
   if (include_degrees)
-    return this->op_code_to_string() + "(" + std::to_string(target) + ")";
+    return this->op_code_to_string() + "(" + std::to_string(this->degree) + ")";
   else
     return this->op_code_to_string();
 }
@@ -197,7 +197,7 @@ std::string boson_operator::to_string(bool include_degrees) const {
 // comparisons
 
 bool boson_operator::operator==(const boson_operator &other) const {
-  return this->target == other.target &&
+  return this->degree == other.degree &&
          this->additional_terms == other.additional_terms &&
          this->number_offsets == other.number_offsets;
 }

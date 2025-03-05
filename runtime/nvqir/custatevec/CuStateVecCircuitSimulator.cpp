@@ -601,8 +601,7 @@ public:
       for (const auto &p : ops) {
         auto pauli = p.as_pauli();
         if (pauli != cudaq::pauli::I) {
-          assert(p.degrees().size() == 1);
-          auto target = p.degrees()[0];
+          auto target = p.target();
           paulis.emplace_back(cudaqToCustateVec(pauli));
           idxs.emplace_back(target);
           // Only X and Y pauli's translate to applied gates

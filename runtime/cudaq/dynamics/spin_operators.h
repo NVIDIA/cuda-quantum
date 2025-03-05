@@ -27,7 +27,7 @@ class spin_operator : public operator_handler {
 private:
   // I = 0, Z = 1, X = 2, Y = 3
   int op_code;
-  int target;
+  int degree;
 
   spin_operator(int target, int op_code);
 
@@ -46,6 +46,8 @@ public:
   virtual std::string unique_id() const override;
 
   virtual std::vector<int> degrees() const override;
+
+  int target() const;
 
   // constructors and destructors
 

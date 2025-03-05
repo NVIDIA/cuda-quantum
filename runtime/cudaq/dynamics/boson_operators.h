@@ -31,7 +31,7 @@ private:
   // representation allows us to perform a perfect in-place multiplication.
   int additional_terms;
   std::vector<int> number_offsets;
-  int target;
+  int degree;
 
   // 0 = I, Ad = 1, A = 2, AdA = 3
   boson_operator(int target, int op_code);

@@ -37,7 +37,7 @@ private:
   // 9 = 1001 = I
   int8_t op_code;
   bool commutes;
-  int target;
+  int degree;
 
   // Note that this constructor is chosen to be independent
   // on the internal encoding; to be less critic, we here use the usual

@@ -141,7 +141,7 @@ public:
   virtual void applyExpPauli(double theta,
                              const std::vector<std::size_t> &controls,
                              const std::vector<std::size_t> &qubitIds,
-                             const cudaq::spin_op &op) {
+                             const cudaq::spin_op_term &op) {
     if (op.is_identity()) {
       if (controls.empty()) {
         // exp(i*theta*Id) is noop if this is not a controlled gate.
@@ -157,21 +157,27 @@ public:
     }
     flushGateQueue();
     cudaq::info(" [CircuitSimulator decomposing] exp_pauli({}, {})", theta,
-                op.to_string(false));
+                op.to_string());
     std::vector<std::size_t> qubitSupport;
     std::vector<std::function<void(bool)>> basisChange;
-    op.for_each_pauli([&](cudaq::pauli type, std::size_t qubitIdx) {
-      auto qId = qubitIds[qubitIdx];
-      if (type != cudaq::pauli::I)
+    auto ops = op.get_terms();
+    if (ops.size() != qubitIds.size())
+      throw std::runtime_error("incorrect number of qubits in exp_pauli - expecting " + std::to_string(ops.size()) + " qubits");
+
+    for (std::size_t idx = 0; idx < ops.size(); ++idx) {
+      auto pauli = ops[idx].as_pauli();
+      // operator targets are relative to the qubit argument vector
+      auto qId = qubitIds[idx];
+      if (pauli != cudaq::pauli::I)
         qubitSupport.push_back(qId);
 
-      if (type == cudaq::pauli::Y)
+      if (pauli == cudaq::pauli::Y)
         basisChange.emplace_back([this, qId](bool reverse) {
           rx(!reverse ? M_PI_2 : -M_PI_2, qId);
         });
-      else if (type == cudaq::pauli::X)
+      else if (pauli == cudaq::pauli::X)
         basisChange.emplace_back([this, qId](bool) { h(qId); });
-    });
+    }
 
     if (!basisChange.empty())
       for (auto &basis : basisChange)
@@ -1409,6 +1415,9 @@ public:
     return measureResult;
   }
 
+  // FIXME: it would be cleaner and more consistent (with exp_pauli) if 
+  // this function explicitly received a vector of qubit indices such that
+  // only the relative order of the target in the spin op is relevant.
   void measureSpinOp(const cudaq::spin_op &op) override {
     flushGateQueue();
 
@@ -1419,22 +1428,31 @@ public:
       return;
     }
 
-    assert(op.num_terms() == 1 && "Number of terms is not 1.");
+    auto terms = op.get_terms();
+    if (terms.size() != 1)
+      // more than one term needs to be directly supported by the backend
+      throw std::runtime_error("measuring a sum of spin operators is not supported");
+    auto ops = terms[0].get_terms();
 
-    cudaq::info("Measure {}", op.to_string(false));
+    cudaq::info("Measure {}", op.to_string());
     std::vector<std::size_t> qubitsToMeasure;
     std::vector<std::function<void(bool)>> basisChange;
-    op.for_each_pauli([&](cudaq::pauli type, std::size_t qubitIdx) {
-      if (type != cudaq::pauli::I)
-        qubitsToMeasure.push_back(qubitIdx);
 
-      if (type == cudaq::pauli::Y)
-        basisChange.emplace_back([&, qubitIdx](bool reverse) {
-          rx(!reverse ? M_PI_2 : -M_PI_2, qubitIdx);
+    for (const auto &p : ops) {
+      auto pauli = p.as_pauli();
+      // Note: qubit index is necessarily defined by target here - 
+      // imposes a somewhat unclean requirement for spin op...
+      auto target = p.target();
+      if (pauli != cudaq::pauli::I)
+        qubitsToMeasure.push_back(target);
+
+      if (pauli == cudaq::pauli::Y)
+        basisChange.emplace_back([&, target](bool reverse) {
+          rx(!reverse ? M_PI_2 : -M_PI_2, target);
         });
-      else if (type == cudaq::pauli::X)
-        basisChange.emplace_back([&, qubitIdx](bool) { h(qubitIdx); });
-    });
+      else if (pauli == cudaq::pauli::X)
+        basisChange.emplace_back([&, target](bool) { h(target); });
+    }
 
     // Change basis, flush the queue
     if (!basisChange.empty()) {
