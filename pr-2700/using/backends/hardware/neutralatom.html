@@ -862,8 +862,10 @@ arrays to bring a practical quantum advantage to its customers and address real-
 The currently available Pasqal QPUs are analog quantum computers, and one, named Fresnel, is available through our cloud
 portal.</p>
 <p>In order to access Pasqal’s devices you need an account for <a class="reference external" href="https://portal.pasqal.cloud">Pasqal’s cloud platform</a>
-and an active project. Although a different interface, <a class="reference external" href="https://pulser.readthedocs.io/en/latest/">Pasqal’s Pulser library</a>, is a good
-resource for getting started with analog neutral atom quantum computing. For support you can also use <a class="reference external" href="https://community.pasqal.com/">Pasqal Community</a>.</p>
+and an active project. Please see our <a class="reference external" href="https://docs.pasqal.cloud/cloud/">cloud documentation</a> for more details if needed.</p>
+<p>Although a different SDK, <a class="reference external" href="https://pulser.readthedocs.io/en/latest/">Pasqal’s Pulser library</a>, is a good
+resource for getting started with analog neutral atom quantum computing.
+For support you can also join the <a class="reference external" href="https://community.pasqal.com/">Pasqal Community</a>.</p>
 <section id="pasqal-backend">
 <span id="id1"></span><h3>Setting Credentials<a class="headerlink" href="#pasqal-backend" title="Permalink to this heading">¶</a></h3>
 <p>An authentication token for the session must be obtained from Pasqal’s cloud platform.
@@ -876,7 +878,8 @@ For example from Python one can use the <a class="reference external" href="http
     <span class="n">password</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PASQAL_PASSWORD&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 <span class="p">)</span>
 
-<span class="n">token</span> <span class="o">=</span> <span class="n">sdk</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">authenticator</span><span class="o">.</span><span class="n">token_provider</span><span class="o">.</span><span class="n">get_token</span><span class="p">()</span>
+<span class="n">token</span> <span class="o">=</span> <span class="n">sdk</span><span class="o">.</span><span class="n">user_token</span><span class="p">()</span>
+
 <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;PASQAL_AUTH_TOKEN&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
 <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;PASQAL_PROJECT_ID&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;your project id&#39;</span>
 </pre></div>
@@ -894,10 +897,23 @@ can be controlled with the <code class="docutils literal notranslate"><span clas
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;pasqal&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
+<p>This accepts an optional argument, <code class="docutils literal notranslate"><span class="pre">machine</span></code>, which is used in the cloud platform to
+select the corresponding Pasqal QPU or emulator to execute on.
+See the <a class="reference external" href="https://portal.pasqal.cloud/">Pasqal cloud portal</a> for an up to date list.
+The default value is <code class="docutils literal notranslate"><span class="pre">EMU_MPS</span></code> which is an open-source tensor network emulator based on the
+Matrix Product State formalism running in Pasqal’s cloud platform. You can see the
+documentation for the publicly accessible emulator <a class="reference external" href="https://pasqal-io.github.io/emulators/latest/emu_mps/">here</a>.</p>
+<p>To target the QPU use the FRESNEL machine name. Note that there are restrictions
+regarding the values of the pulses as well as the register layout. We invite you to
+consult our <a class="reference external" href="https://docs.pasqal.com/cloud/fresnel-job">documentation</a>. Note that
+the CUDA-Q integration currently only works with <a class="reference external" href="https://docs.pasqal.com/cloud/fresnel-job/#arbitrary-layouts">arbitrary layouts</a>
+which are implemented with automatic calibration for less than 30 qubits. For jobs
+larger than 30 qubits please use the <code class="code docutils literal notranslate"><span class="pre">atom_sites</span></code> to define the layout, and use the
+<code class="code docutils literal notranslate"><span class="pre">atom_filling</span></code> to select sites as filled or not filled in order to define the register.</p>
 <p>Due to the nature of the underlying hardware, this target only supports the
 <code class="docutils literal notranslate"><span class="pre">evolve</span></code> and <code class="docutils literal notranslate"><span class="pre">evolve_async</span></code> APIs.
-The <code class="code docutils literal notranslate"><span class="pre">hamiltonian</span></code> must be an <code class="code docutils literal notranslate"><span class="pre">Operator</span></code> of the type <code class="code docutils literal notranslate"><span class="pre">RydbergHamiltonian</span></code>. Only
-other parameters supported are <code class="code docutils literal notranslate"><span class="pre">schedule</span></code> (mandatory) and <code class="code docutils literal notranslate"><span class="pre">shots_count</span></code> (optional).</p>
+The <code class="code docutils literal notranslate"><span class="pre">hamiltonian</span></code> must be an <code class="code docutils literal notranslate"><span class="pre">Operator</span></code> of the type <code class="code docutils literal notranslate"><span class="pre">RydbergHamiltonian</span></code>. The only
+other supported parameters are <code class="code docutils literal notranslate"><span class="pre">schedule</span></code> (mandatory) and <code class="code docutils literal notranslate"><span class="pre">shots_count</span></code> (optional).</p>
 <p>For example,</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">evolution_result</span> <span class="o">=</span> <span class="n">evolve</span><span class="p">(</span><span class="n">RydbergHamiltonian</span><span class="p">(</span><span class="n">atom_sites</span><span class="o">=</span><span class="n">register</span><span class="p">,</span>
                                              <span class="n">amplitude</span><span class="o">=</span><span class="n">omega</span><span class="p">,</span>
