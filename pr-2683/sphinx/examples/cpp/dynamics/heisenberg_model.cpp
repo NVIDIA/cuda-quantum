@@ -103,7 +103,7 @@ int main() {
     auto psi0 = cudaq::state::from_data(psi0_data);
 
     // The schedule is built using the time steps array.
-    cudaq::Schedule schedule(steps);
+    cudaq::schedule schedule(steps);
 
     // Use a Runge-`Kutta` integrator (4`th` order) with a small time step `dt`
     // = 0.001.

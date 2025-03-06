@@ -30,8 +30,7 @@ int main() {
   // computes cos(omega_drive * t).
   auto mod_func =
       [omega_drive](
-          const std::unordered_map<std::string, std::complex<double>> &params)
-      -> std::complex<double> {
+          const cudaq::parameter_map &params) -> std::complex<double> {
     auto it = params.find("t");
     if (it != params.end()) {
       double t = it->second.real();
@@ -70,7 +69,7 @@ int main() {
   std::vector<double> steps = cudaq::linspace(0.0, t_final, num_steps);
   // The schedule carries the time parameter `labelled` `t`, which is used by
   // mod_`func`.
-  cudaq::Schedule schedule(steps, {"t"});
+  cudaq::schedule schedule(steps, {"t"});
 
   // A default Runge-`Kutta` integrator (4`th` order) with time step `dt`
   // depending on the schedule.

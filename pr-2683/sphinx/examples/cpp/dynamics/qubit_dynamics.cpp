@@ -32,7 +32,7 @@ int main() {
 
   // Create a schedule of time steps from 0 to 10 with 101 points
   std::vector<double> steps = cudaq::linspace(0.0, 10.0, 101);
-  cudaq::Schedule schedule(steps);
+  cudaq::schedule schedule(steps);
 
   // Runge-`Kutta` integrator with a time step of 0.01 and order 4
   cudaq::integrators::runge_kutta integrator(4, 0.01);
