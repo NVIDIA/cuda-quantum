@@ -26,31 +26,29 @@ public:
     ::qpp::cmat Y = ::qpp::Gates::get_instance().Y;
     ::qpp::cmat Z = ::qpp::Gates::get_instance().Z;
 
-    auto nQ = op.num_qubits();
     double sum = 0.0;
-
-    auto bsf_terms = op.get_binary_symplectic_form();
 
     // Want to loop over all terms in op and
     // compute E_i = coeff_i * < psi | Term | psi >
     // = coeff_i * sum_k <psi | Pauli_k psi>
     auto terms = op.get_terms();
-    for (std::size_t t = 0; t < terms.size(); ++t) {
-      if (!terms[t].is_identity()) {
+    for (const auto &term : terms) {
+      if (!term.is_identity()) {
         ::qpp::ket cached = state;
-        assert(bsf_terms[t].size() == 2 * nQ);
-        for (std::size_t i = 0; i < nQ; i++) {
-          if (bsf_terms[t][i] && bsf_terms[t][i + nQ])
+        auto bsf = term.get_binary_symplectic_form();
+        auto max_target = bsf.size() / 2;
+        for (std::size_t i = 0; i < max_target; i++) {
+          if (bsf[i] && bsf[i + max_target])
             cached = ::qpp::apply(cached, Y, {convertQubitIndex(i)});
-          else if (bsf_terms[t][i])
+          else if (bsf[i])
             cached = ::qpp::apply(cached, X, {convertQubitIndex(i)});
-          else if (bsf_terms[t][i + nQ])
+          else if (bsf[i + max_target])
             cached = ::qpp::apply(cached, Z, {convertQubitIndex(i)});
         }
 
-        sum += terms[t].get_coefficient().evaluate().real() * state.transpose().dot(cached).real();
+        sum += term.get_coefficient().evaluate().real() * state.transpose().dot(cached).real();
       } else {
-        sum += terms[t].get_coefficient().evaluate().real();
+        sum += term.get_coefficient().evaluate().real();
       }
     }
 

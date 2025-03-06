@@ -1345,15 +1345,16 @@ INSTANTIATE_SUM_UTILITY_FUNCTIONS(fermion_operator);
                                       std::is_same<HandlerTy, T>::value, bool>>
 
 SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
-std::vector<std::vector<bool>> operator_sum<HandlerTy>::get_binary_symplectic_form() const {
+std::vector<std::vector<bool>> operator_sum<HandlerTy>::_get_binary_symplectic_form() const {
   std::unordered_map<int, int> dims;
   auto degrees = this->degrees(false); // degrees in canonical order to match the evaluation
   auto evaluated =
     this->evaluate(operator_arithmetics<operator_handler::canonical_evaluation>(
         dims, {})); // fails if we have parameters
   
-  auto max_target = operator_handler::canonical_order(0, 1) ? degrees.back() : degrees[0];
-  auto term_size = max_target + 1;
+  std::size_t term_size = 0;
+  if (degrees.size() != 0) 
+    term_size = operator_handler::canonical_order(0, 1) ? degrees.back() + 1 : degrees[0] + 1;
   std::vector<std::vector<bool>> bsf_terms;
   bsf_terms.reserve(evaluated.terms.size());
 
@@ -1381,7 +1382,7 @@ std::vector<std::vector<bool>> operator_sum<HandlerTy>::get_binary_symplectic_fo
 }
 
 #if !defined(__clang__)
-template std::vector<std::vector<bool>> operator_sum<spin_operator>::get_binary_symplectic_form() const;
+template std::vector<std::vector<bool>> operator_sum<spin_operator>::_get_binary_symplectic_form() const;
 #endif
 
 

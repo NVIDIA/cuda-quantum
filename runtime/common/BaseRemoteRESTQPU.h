@@ -518,11 +518,9 @@ public:
       mapping_reorder_idx.clear();
       runPassPipeline("canonicalize,cse", moduleOp);
       cudaq::spin_op &spin = *executionContext->spin.value();
-      // FIXME: TO_STRING NEEDS TO BE HERE FOR THE SAME REASON
-      auto bsf_terms = spin.get_binary_symplectic_form();      
       auto terms = spin.get_terms();
-      for (std::size_t i = 0; i < terms.size(); ++i) {
-        if (terms[i].is_identity())
+      for (const auto &term : terms) {
+        if (term.is_identity())
           continue;
 
         // Get the ansatz
@@ -538,7 +536,7 @@ public:
         // followed by the canonicalizer
         mlir::PassManager pm(&context);
         pm.addNestedPass<mlir::func::FuncOp>(
-            cudaq::opt::createObserveAnsatzPass(bsf_terms[i]));
+            cudaq::opt::createObserveAnsatzPass(term.get_binary_symplectic_form()));
         if (disableMLIRthreading || enablePrintMLIREachPass)
           tmpModuleOp.getContext()->disableMultithreading();
         if (enablePrintMLIREachPass)
@@ -555,7 +553,7 @@ public:
             runPassPipeline(pass, tmpModuleOp);
         if (!emulate && combineMeasurements)
           runPassPipeline("func.func(combine-measurements)", tmpModuleOp);
-        modules.emplace_back(terms[i].to_string(false), tmpModuleOp);
+        modules.emplace_back(term.to_string(false), tmpModuleOp);
       }
     } else
       modules.emplace_back(kernelName, moduleOp);

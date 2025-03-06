@@ -1329,6 +1329,46 @@ template product_operator<spin_operator> product_operator<spin_operator>::identi
                                       std::is_same<HandlerTy, spin_operator>::value &&    \
                                       std::is_same<HandlerTy, T>::value, bool>>
 
+SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
+std::vector<bool> product_operator<HandlerTy>::get_binary_symplectic_form() const {
+  if (this->operators.size() == 0)
+    return {};
+
+  std::unordered_map<int, int> dims;
+  auto degrees = this->degrees(false); // degrees in canonical order to match the evaluation
+  auto evaluated =
+    this->evaluate(operator_arithmetics<operator_handler::canonical_evaluation>(
+        dims, {})); // fails if we have parameters
+  
+  std::size_t max_degree = operator_handler::canonical_order(0, 1) ? degrees.back() : degrees[0];
+  std::size_t term_size = max_degree + 1;
+  assert(evaluated.terms.size() == 1);
+  auto term = std::move(evaluated.terms[0]);
+
+  // For compatiblity with existing code, the binary symplectic representation
+  // needs to be from smallest to largest degree, and it necessarily must include 
+  // all consecutive degrees starting from 0 (even if the operator doesn't act on them). 
+  auto pauli_str = std::move(term.second);
+  std::vector<bool> bsf(term_size << 1, 0);
+  for (std::size_t i = 0; i < degrees.size(); ++i) {
+    auto op = pauli_str[i];
+    if (op == 'X')
+      bsf[degrees[i]] = 1;
+    else if (op == 'Z')
+      bsf[degrees[i] + term_size] = 1;
+    else if (op == 'Y') {
+      bsf[degrees[i]] = 1;
+      bsf[degrees[i] + term_size] = 1;
+    }
+  }
+  return bsf; // always little endian order by definition of the bsf
+}
+
+#if !defined(__clang__)
+template std::vector<bool> product_operator<spin_operator>::get_binary_symplectic_form() const;
+#endif
+
+
 #if defined(CUDAQ_INSTANTIATE_TEMPLATES)
 template class product_operator<matrix_operator>;
 template class product_operator<spin_operator>;

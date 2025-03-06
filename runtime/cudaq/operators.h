@@ -312,7 +312,7 @@ public:
   // utility functions for backward compatibility
 
   SPIN_OPS_BACKWARD_COMPATIBILITY
-  std::vector<std::vector<bool>> get_binary_symplectic_form() const;
+  std::vector<std::vector<bool>> _get_binary_symplectic_form() const;
 
   SPIN_OPS_BACKWARD_COMPATIBILITY
   size_t num_qubits() const {
@@ -675,8 +675,6 @@ public:
 
   // handler specific operators
 
-  // handler specific operators
-
   HANDLER_SPECIFIC_TEMPLATE(spin_operator)
   std::string get_pauli_word() const;
 
@@ -687,7 +685,10 @@ public:
   static product_operator<HandlerTy> identity(int target);
 
   // utility functions for backward compatibility
-  
+
+  SPIN_OPS_BACKWARD_COMPATIBILITY
+  std::vector<bool> get_binary_symplectic_form() const;
+
   SPIN_OPS_BACKWARD_COMPATIBILITY
   bool is_identity() const {
     // ignores the coefficients (according to the old behavior)
