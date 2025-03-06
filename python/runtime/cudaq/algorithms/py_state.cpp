@@ -140,6 +140,43 @@ state pyGetStateRemote(py::object kernel, py::args args) {
                                            size, returnOffset));
 }
 
+/// @brief Python implementation of the `QPUState`.
+// Note: Python kernel arguments are wrapped hence need to be unwrapped
+// accordingly.
+class PyQPUState : public QPUState {
+  // Holder of args data for clean-up.
+  cudaq::OpaqueArguments *argsData;
+  mlir::ModuleOp kernelMod;
+
+public:
+PyQPUState(const std::string &in_kernelName, cudaq::OpaqueArguments *argsDataToOwn)
+      : argsData(argsDataToOwn) {
+    this->kernelName = in_kernelName;
+  }
+
+  std::optional<std::pair<std::string, std::vector<void *>>>
+  getKernelInfo() const override {
+    return std::make_pair(kernelName, argsData->getArgs());
+  }
+
+  ~PyQPUState() { delete argsData; }
+};
+
+/// @brief Run `cudaq::get_state` for qpu targets on the provided
+/// kernel and args
+state pyGetStateQPU(py::object kernel, py::args args) {
+  if (py::hasattr(kernel, "compile"))
+    kernel.attr("compile")();
+
+  auto kernelName = kernel.attr("name").cast<std::string>();
+  args = simplifiedValidateInputArguments(args);
+  auto kernelMod = kernel.attr("module").cast<MlirModule>();
+  auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
+  auto [argWrapper, size, returnOffset] =
+      pyCreateNativeKernel(kernelName, kernelMod, *argData);
+  return state(new PyQPUState(kernelName, argData));
+}
+
 state pyGetStateLibraryMode(py::object kernel, py::args args) {
   return details::extractState([&]() mutable {
     if (0 == args.size())
@@ -671,6 +708,8 @@ index pair.
           return pyGetStateRemote(kernel, args);
         if (holder.getTarget().name == "orca-photonics")
           return pyGetStateLibraryMode(kernel, args);
+        if (holder.getTarget().is_remote() || holder.getTarget().is_emulated())
+          return pyGetStateQPU(kernel, args);
         return pyGetState(kernel, args);
       },
       R"#(Return the :class:`State` of the system after execution of the provided `kernel`.

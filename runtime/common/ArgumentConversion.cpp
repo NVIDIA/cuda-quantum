@@ -185,6 +185,9 @@ static void createInitFunc(OpBuilder &builder, ModuleOp moduleOp,
         }
 
         auto allocSize = alloc.getSize();
+        if (!allocSize)
+          allocSize = newBuilder.create<arith::ConstantIntOp>(loc, quake::getAllocationSize(alloc.getType()), 64);
+        
         auto offset = newBuilder.create<arith::SubIOp>(loc, allocSize, one);
         subArg =
             newBuilder.create<quake::SubVeqOp>(loc, retTy, arg, begin, offset);
@@ -279,6 +282,8 @@ static void createNumQubitsFunc(OpBuilder &builder, ModuleOp moduleOp,
       // Calculate allocation size (existing allocation size plus new one)
       if (auto alloc = dyn_cast<quake::AllocaOp>(&op)) {
         auto allocSize = alloc.getSize();
+        if (!allocSize)
+          allocSize = newBuilder.create<arith::ConstantIntOp>(loc, quake::getAllocationSize(alloc.getType()), 64);
         newBuilder.setInsertionPointAfter(alloc);
         size = newBuilder.create<arith::AddIOp>(loc, size, allocSize);
       }

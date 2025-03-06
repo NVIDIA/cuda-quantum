@@ -137,8 +137,8 @@ protected:
     delete jit;
   }
 
-  virtual std::tuple<mlir::ModuleOp, mlir::MLIRContext *, void *>
-  extractQuakeCodeAndContext(const std::string &kernelName, void *data) = 0;
+  virtual std::tuple<mlir::ModuleOp, mlir::MLIRContext *>
+  extractQuakeCodeAndContext(const std::string &kernelName) = 0;
   virtual void cleanupContext(mlir::MLIRContext *context) { return; }
 
 public:
@@ -402,8 +402,8 @@ public:
   lowerQuakeCode(const std::string &kernelName, void *kernelArgs,
                  const std::vector<void *> &rawArgs) {
 
-    auto [m_module, contextPtr, updatedArgs] =
-        extractQuakeCodeAndContext(kernelName, kernelArgs);
+    auto [m_module, contextPtr] =
+        extractQuakeCodeAndContext(kernelName);
 
     mlir::MLIRContext &context = *contextPtr;
 
@@ -450,9 +450,8 @@ public:
         throw std::runtime_error("Remote rest platform Quake lowering failed.");
     };
 
-    if (!rawArgs.empty() || updatedArgs) {
+    if (!rawArgs.empty()) {
       mlir::PassManager pm(&context);
-      if (!rawArgs.empty()) {
         cudaq::info("Run Argument Synth.\n");
         // For quantum devices, create a list of ArgumentConverters
         // with nodes corresponding to `init` and `num_qubits` functions
@@ -490,10 +489,7 @@ public:
         pm.addNestedPass<mlir::func::FuncOp>(
             opt::createReplaceStateWithKernel());
         pm.addPass(mlir::createSymbolDCEPass());
-      } else if (updatedArgs) {
-        cudaq::info("Run Quake Synth.\n");
-        pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));
-      }
+      
       pm.addPass(mlir::createCanonicalizerPass());
       if (disableMLIRthreading || enablePrintMLIREachPass)
         moduleOp.getContext()->disableMultithreading();
@@ -585,8 +581,6 @@ public:
       }
     } else
       modules.emplace_back(kernelName, moduleOp);
-
-    std::cout << "Modules: " << modules.size() << std::endl;
 
     if (emulate) {
       // If we are in emulation mode, we need to first get a full QIR

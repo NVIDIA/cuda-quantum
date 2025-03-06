@@ -38,6 +38,8 @@
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
 
+#include <iostream>
+
 namespace py = pybind11;
 using namespace mlir;
 
@@ -99,10 +101,11 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
     PassManager pm(context);
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createPySynthCallableBlockArgs(
         SmallVector<StringRef>(names.begin(), names.end())));
+    pm.addPass(cudaq::opt::createLambdaLiftingPass());
     pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader({.jitTime = true}));
+    // TODO stop here for remote devices?
     pm.addPass(cudaq::opt::createGenerateKernelExecution(
         {.startingArgIdx = startingArgIdx}));
-    pm.addPass(cudaq::opt::createLambdaLiftingPass());
     pm.addPass(createSymbolDCEPass());
     cudaq::opt::addPipelineConvertToQIR(pm);
 
@@ -267,9 +270,13 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
 
   std::string properName = name;
 
+  auto &platform = cudaq::get_platform();
   // If we have any state vector data, we need to extract the function pointer
   // to set that data, and then set it.
   for (auto &[stateHash, stateData] : *stateStorage) {
+    if (platform.is_remote() || platform.is_emulated())
+      throw std::runtime_error("captured vectors are not supported on quantum hardware or remote simulators");
+    
     if (stateData.kernelName != name)
       continue;
 
@@ -297,6 +304,9 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
   // If we have any cudaq state data, we need to extract the function pointer
   // to set that data, and then set it.
   for (auto &[stateHash, stateData] : *cudaqStateStorage) {
+    if (platform.is_remote() || platform.is_emulated())
+      throw std::runtime_error("captured vectors are not supported on quantum hardware or remote simulators");
+
     if (stateData.kernelName != name)
       continue;
 
@@ -335,16 +345,34 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
   kernelReg();
 
   if (launch) {
-    auto &platform = cudaq::get_platform();
     auto uReturnOffset = static_cast<std::uint64_t>(returnOffset);
-    if (platform.is_remote() || platform.is_emulated()) {
-      auto *wrapper = new cudaq::ArgWrapper{mod, names, rawArgs};
-      auto dynamicResult = cudaq::altLaunchKernel(
-          name.c_str(), thunk, reinterpret_cast<void *>(wrapper), size,
-          uReturnOffset);
+    if (platform.get_remote_capabilities().isRemoteSimulator) {
+      std::cout << "*** Launch on Remote sim " << std::endl;
+      auto args = runtimeArgs.getArgs();
+      //auto m = new ModuleOp(mod);
+      //m->getContext();
+      std::cout << "*** args size before:" << args.size() << std::endl;
+      //args.insert(args.begin(), reinterpret_cast<void*>(m));
+      args.insert(args.begin(), reinterpret_cast<void*>(&mod));
+      std::cout << "*** args size after:" << args.size() << std::endl;
+      
+      
+      auto dynamicResult = cudaq::streamlinedLaunchKernel(name.c_str(), args);
       if (dynamicResult.data_buffer || dynamicResult.size)
         throw std::runtime_error("not implemented: support dynamic results");
-      delete wrapper;
+
+      // auto *wrapper = new cudaq::ArgWrapper{mod, names, rawArgs};
+      // auto dynamicResult = cudaq::altLaunchKernel(
+      //     name.c_str(), thunk, reinterpret_cast<void *>(wrapper), size,
+      //     uReturnOffset);
+      // if (dynamicResult.data_buffer || dynamicResult.size)
+      //   throw std::runtime_error("not implemented: support dynamic results");
+      //delete m;
+    } else if (platform.is_remote() || platform.is_emulated()) {
+      std::cout << "*** Launch on Remote device " << std::endl;
+      auto dynamicResult = cudaq::streamlinedLaunchKernel(name.c_str(), runtimeArgs.getArgs());
+      if (dynamicResult.data_buffer || dynamicResult.size)
+        throw std::runtime_error("not implemented: support dynamic results");
     } else {
       auto dynamicResult = cudaq::altLaunchKernel(name.c_str(), thunk, rawArgs,
                                                   size, uReturnOffset);
@@ -363,6 +391,7 @@ pyCreateNativeKernel(const std::string &name, MlirModule module,
       jitAndCreateArgs(name, module, runtimeArgs, {},
                        mlir::NoneType::get(unwrap(module).getContext()));
 
+  auto &platform = cudaq::get_platform();
   auto thunkName = name + ".thunk";
   auto thunkPtr = jit->lookup(thunkName);
   if (!thunkPtr)
@@ -371,6 +400,9 @@ pyCreateNativeKernel(const std::string &name, MlirModule module,
   // If we have any state vector data, we need to extract the function pointer
   // to set that data, and then set it.
   for (auto &[stateHash, svdata] : *stateStorage) {
+    if (platform.is_remote() || platform.is_emulated())
+      throw std::runtime_error("captured vectors are not supported on quantum hardware or remote simulators");
+    
     if (svdata.kernelName != name)
       continue;
     auto setStateFPtr = jit->lookup("nvqpp.set.state." + stateHash);
@@ -388,6 +420,29 @@ pyCreateNativeKernel(const std::string &name, MlirModule module,
     auto setStateFunc =
         reinterpret_cast<void (*)(std::complex<float> *)>(*setStateFPtr);
     setStateFunc(reinterpret_cast<std::complex<float> *>(svdata.data));
+  }
+
+  // If we have any cudaq state data, we need to extract the function pointer
+  // to set that data, and then set it.
+  for (auto &[stateHash, stateData] : *cudaqStateStorage) {
+    if (platform.is_remote() || platform.is_emulated())
+      throw std::runtime_error("captured vectors are not supported on quantum hardware or remote simulators");
+
+    if (stateData.kernelName != name)
+      continue;
+
+    auto setStateFPtr = jit->lookup("nvqpp.set.cudaq.state." + stateHash);
+    if (auto error = setStateFPtr.takeError()) {
+      auto message = "python alt_launch_kernel failed to get set cudaq state "
+                     "function for kernel: " +
+                     name;
+      llvm::logAllUnhandledErrors(std::move(error), llvm::errs(), message);
+      throw std::runtime_error(message);
+    }
+
+    auto setStateFunc =
+        reinterpret_cast<void (*)(cudaq::state *)>(*setStateFPtr);
+    setStateFunc(&stateData.data);
   }
 
   // Need to first invoke the init_func()

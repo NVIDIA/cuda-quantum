@@ -17,6 +17,7 @@ struct ArgWrapper {
   mlir::ModuleOp mod;
   std::vector<std::string> callableNames;
   void *rawArgs = nullptr;
+  std::vector<void*> args;
 };
 
 /// Holder of wrapped kernel `args`.

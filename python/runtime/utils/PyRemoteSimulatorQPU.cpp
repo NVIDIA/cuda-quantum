@@ -10,6 +10,8 @@
 #include "common/BaseRemoteSimulatorQPU.h"
 #include <mlir/IR/BuiltinOps.h>
 
+#include <iostream>
+
 using namespace mlir;
 
 namespace {
@@ -86,9 +88,13 @@ static void launchKernelStreamlineImpl(
         "be empty. The first argument should be a pointer to the MLIR "
         "ModuleOp.");
 
+  std::cout << "*** RawArgs size: " << rawArgs.size() << std::endl;
+  std::cout << "*** Getting module " << std::endl;
   auto *moduleOpPtr = reinterpret_cast<mlir::ModuleOp *>(rawArgs[0]);
   auto m_module = *moduleOpPtr;
-  auto *mlirContext = m_module->getContext();
+  std::cout << "*** Getting context " << std::endl;
+  auto *mlirContext = m_module.getContext();
+  std::cout << "*** Got context " << std::endl;
 
   // Default context for a 'fire-and-ignore' kernel launch; i.e., no context
   // was set before launching the kernel. Use a static variable per thread to
