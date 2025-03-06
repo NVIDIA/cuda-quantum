@@ -182,12 +182,12 @@ for ex in `find "$root_folder/snippets" -name '*.py' -not -path '*/nvqc/*'`; do
         status_sum=$((status_sum+1))
     fi
 done
+## NOTE: The newer client may fail against older server version. Hence, treat these as non-fatal.
 if [ -n "${NVQC_API_KEY}" ]; then
     for ex in `find "$root_folder/snippets" -name '*.py' -path '*/nvqc/*'`; do
         python3 "$ex"
         if [ ! $? -eq 0 ]; then
-            echo -e "\e[01;31mFailed to execute $ex.\e[0m" >&2
-            status_sum=$((status_sum+1))
+            echo -e "\033[1;33mFailed to execute $ex.\033[0m" >&2
         fi
     done
 fi
