@@ -157,7 +157,7 @@ evolve_async(std::function<evolve_result()> evolveFunctor,
 
 evolve_result evolveSingle(
     const operator_sum<cudaq::matrix_operator> &hamiltonian,
-    const cudaq::dimension_map &dimensions, const Schedule &schedule,
+    const cudaq::dimension_map &dimensions, const schedule &schedule,
     const state &initial_state, base_integrator &integrator,
     const std::vector<operator_sum<cudaq::matrix_operator>>
         &collapse_operators = {},

@@ -89,7 +89,7 @@ int main() {
   // This schedule will be used to integrate the time evolution of the system.
   const int num_steps = 1001;
   std::vector<double> steps = cudaq::linspace(0.0, 1.0, num_steps);
-  cudaq::Schedule schedule(steps);
+  cudaq::schedule schedule(steps);
 
   // Use Runge-`Kutta` integrator (4`th` order) to solve the time-dependent
   // evolution. `dt` is the integration time step, and `order` sets the accuracy

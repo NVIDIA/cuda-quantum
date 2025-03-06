@@ -13,7 +13,7 @@
 namespace cudaq {
 
 // Constructor
-Schedule::Schedule(
+schedule::schedule(
     const std::vector<std::complex<double>> &steps,
     const std::vector<std::string> &parameters,
     const std::function<std::complex<double>(
@@ -27,13 +27,13 @@ Schedule::Schedule(
 }
 
 // Dereference operator
-Schedule::reference Schedule::operator*() const { return *ptr; }
+schedule::reference schedule::operator*() const { return *ptr; }
 
 // Arrow operator
-Schedule::pointer Schedule::operator->() { return ptr; }
+schedule::pointer schedule::operator->() { return ptr; }
 
 // Prefix increment
-Schedule &Schedule::operator++() {
+schedule &schedule::operator++() {
   if (current_idx + 1 < static_cast<int>(steps.size())) {
     current_idx++;
     ptr = &steps[current_idx];
@@ -44,23 +44,23 @@ Schedule &Schedule::operator++() {
 }
 
 // Postfix increment
-Schedule Schedule::operator++(int) {
-  Schedule tmp = *this;
+schedule schedule::operator++(int) {
+  schedule tmp = *this;
   ++(*this);
   return tmp;
 }
 
 // Comparison operators
-bool operator==(const Schedule &a, const Schedule &b) {
+bool operator==(const schedule &a, const schedule &b) {
   return a.ptr == b.ptr;
 };
 
-bool operator!=(const Schedule &a, const Schedule &b) {
+bool operator!=(const schedule &a, const schedule &b) {
   return a.ptr != b.ptr;
 };
 
 // Reset schedule
-void Schedule::reset() {
+void schedule::reset() {
   current_idx = -1;
   if (!steps.empty()) {
     ptr = &steps[0];
@@ -70,38 +70,38 @@ void Schedule::reset() {
 }
 
 // Get the current step
-std::optional<std::complex<double>> Schedule::current_step() const {
+std::optional<std::complex<double>> schedule::current_step() const {
   if (current_idx >= 0 && current_idx < static_cast<int>(steps.size())) {
     return steps[current_idx];
   }
   return std::nullopt;
 }
 
-std::vector<std::complex<double>>::iterator Schedule::begin() {
+std::vector<std::complex<double>>::iterator schedule::begin() {
   return steps.begin();
 }
 
-std::vector<std::complex<double>>::iterator Schedule::end() {
+std::vector<std::complex<double>>::iterator schedule::end() {
   return steps.end();
 }
 
-std::vector<std::complex<double>>::const_iterator Schedule::begin() const {
+std::vector<std::complex<double>>::const_iterator schedule::begin() const {
   return steps.cbegin();
 }
 
-std::vector<std::complex<double>>::const_iterator Schedule::end() const {
+std::vector<std::complex<double>>::const_iterator schedule::end() const {
   return steps.cend();
 }
 
 // Get the parameters of the schedule.
-const std::vector<std::string> &Schedule::get_parameters() const {
+const std::vector<std::string> &schedule::get_parameters() const {
   return parameters;
 }
 
 // Get the value function of the schedule.
 const std::function<std::complex<double>(const std::string &,
                                          const std::complex<double> &)>
-Schedule::get_value_function() const {
+schedule::get_value_function() const {
   return value_function;
 }
 

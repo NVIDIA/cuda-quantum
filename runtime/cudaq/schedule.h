@@ -19,7 +19,7 @@ namespace cudaq {
 
 /// @brief Create a schedule for evaluating an operator expression at different
 /// steps.
-class Schedule {
+class schedule {
 public:
   /// Iterator tags. May be superfluous.
   using iterator_category = std::forward_iterator_tag;
@@ -51,8 +51,8 @@ private:
 
 public:
   // Default constructor (empty schedule)
-  Schedule() = default;
-  Schedule(pointer ptr) : ptr(ptr){};
+  schedule() = default;
+  schedule(pointer ptr) : ptr(ptr){};
 
   /// @brief Constructor.
   /// @arg steps: The sequence of steps in the schedule. Restricted to a vector
@@ -65,7 +65,7 @@ public:
   /// @details current_idx: Intializes the current index (_current_idx) to -1 to
   /// indicate that iteration has not yet begun. Once iteration starts,
   /// _current_idx will be used to track the position in the sequence of steps.
-  Schedule(
+  schedule(
       const std::vector<std::complex<double>> &steps,
       const std::vector<std::string> &parameters,
       const std::function<std::complex<double>(
@@ -79,9 +79,9 @@ public:
   /// @arg value_function: A function that takes the name of a parameter as well
   /// as an additional value ("step") of std::complex<double> type as argument
   /// and returns the complex value for that parameter at the given step.
-  Schedule(const std::vector<double> &steps,
+  schedule(const std::vector<double> &steps,
            const std::vector<std::string> &parameters = {})
-      : Schedule(toComplex(steps), parameters,
+      : schedule(toComplex(steps), parameters,
                  [](const std::string &, const std::complex<double> &step)
                      -> std::complex<double> { return step; }) {}
 
@@ -100,27 +100,27 @@ public:
 
   // Prefix increment.
   /// @brief Prefix increment operator to move to the next step in the schedule.
-  /// @return Reference to the updated Schedule object.
-  Schedule &operator++();
+  /// @return Reference to the updated schedule object.
+  schedule &operator++();
 
   // Postfix increment.
   /// @brief `Postfix` increment operator to move to the next step in the
   /// schedule.
-  /// @return Copy of the previous Schedule state.
-  Schedule operator++(int);
+  /// @return Copy of the previous schedule state.
+  schedule operator++(int);
 
   // Comparison.
   /// @brief Equality comparison operator.
-  /// @param a: First Schedule object.
-  /// @param b: Second Schedule object.
+  /// @param a: First schedule object.
+  /// @param b: Second schedule object.
   /// @return True if both schedules point to the same step, false otherwise
-  friend bool operator==(const Schedule &a, const Schedule &b);
+  friend bool operator==(const schedule &a, const schedule &b);
 
   /// @brief Inequality comparison operator.
-  /// @param a: First Schedule object.
-  /// @param b: Second Schedule object.
+  /// @param a: First schedule object.
+  /// @param b: Second schedule object.
   /// @return True if both schedules point to different steps, false otherwise
-  friend bool operator!=(const Schedule &a, const Schedule &b);
+  friend bool operator!=(const schedule &a, const schedule &b);
 
   /// @brief Reset the schedule iterator to the beginning.
   void reset();

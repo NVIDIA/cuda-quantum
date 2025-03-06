@@ -83,7 +83,7 @@ computeDagger(const cudaq::matrix_operator &op) {
         dims[op.degrees()[i]] = dimensions[i];
       }
       auto originalMat = op.to_matrix(dims, params);
-      return cudaq::matrix_2::adjoint(originalMat);
+      return originalMat.adjoint();
     };
     cudaq::matrix_operator::define(daggerOpName, {-1}, std::move(func));
   } catch (...) {

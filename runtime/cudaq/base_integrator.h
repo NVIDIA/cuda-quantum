@@ -59,7 +59,7 @@ public:
 protected:
   friend class integrator_helper;
   SystemDynamics m_system;
-  cudaq::Schedule m_schedule;
+  cudaq::schedule m_schedule;
   std::unique_ptr<base_time_stepper> m_stepper;
 };
 
@@ -67,7 +67,7 @@ class integrator_helper {
 public:
   static void init_system_dynamics(base_integrator &integrator,
                                    const SystemDynamics &system,
-                                   const cudaq::Schedule &schedule) {
+                                   const cudaq::schedule &schedule) {
     integrator.m_system = system;
     integrator.m_schedule = schedule;
     integrator.m_stepper.reset();

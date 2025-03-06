@@ -21,7 +21,7 @@ TEST(DynamicsAsyncTester, checkSimple) {
     for (double t : cudaq::linspace(0.0, 1.0, numSteps)) {
       steps.emplace_back(t, 0.0);
     }
-    cudaq::Schedule schedule(
+    cudaq::schedule schedule(
         steps, {"t"}, [](const std::string &, const std::complex<double> &val) {
           return val;
         });
@@ -47,7 +47,7 @@ TEST(DynamicsAsyncTester, checkSimple) {
     for (double t : cudaq::linspace(0, 10, numSteps)) {
       steps.emplace_back(t, 0.0);
     }
-    cudaq::Schedule schedule(
+    cudaq::schedule schedule(
         steps, {"t"}, [](const std::string &, const std::complex<double> &val) {
           return val;
         });
@@ -123,7 +123,7 @@ TEST(DynamicsAsyncTester, checkInitializerArgs) {
     for (double t : cudaq::linspace(0.0, 1.0, numSteps)) {
       steps.emplace_back(t, 0.0);
     }
-    cudaq::Schedule schedule(
+    cudaq::schedule schedule(
         steps, {"t"}, [](const std::string &, const std::complex<double> &val) {
           return val;
         });
@@ -147,7 +147,7 @@ TEST(DynamicsAsyncTester, checkInitializerArgs) {
     for (double t : cudaq::linspace(0, 10, numSteps)) {
       steps.emplace_back(t, 0.0);
     }
-    cudaq::Schedule schedule(
+    cudaq::schedule schedule(
         steps, {"t"}, [](const std::string &, const std::complex<double> &val) {
           return val;
         });

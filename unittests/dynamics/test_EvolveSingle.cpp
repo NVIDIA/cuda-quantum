@@ -23,7 +23,7 @@ TEST(EvolveTester, checkSimple) {
 
   constexpr int numSteps = 10;
   std::vector<double> steps = cudaq::linspace(0.0, 1.0, numSteps);
-  cudaq::Schedule schedule(steps, {"t"});
+  cudaq::schedule schedule(steps, {"t"});
 
   cudaq::product_operator<cudaq::matrix_operator> pauliZ_t =
       cudaq::spin_operator::z(0);
@@ -59,7 +59,7 @@ TEST(EvolveTester, checkSimpleRK4) {
 
   constexpr int numSteps = 10;
   std::vector<double> steps = cudaq::linspace(0.0, 1.0, numSteps);
-  cudaq::Schedule schedule(steps, {"t"});
+  cudaq::schedule schedule(steps, {"t"});
 
   cudaq::product_operator<cudaq::matrix_operator> pauliZ_t =
       cudaq::spin_operator::z(0);
@@ -95,7 +95,7 @@ TEST(EvolveTester, checkDensityMatrixSimple) {
 
   constexpr int numSteps = 10;
   std::vector<double> steps = cudaq::linspace(0.0, 1.0, numSteps);
-  cudaq::Schedule schedule(steps, {"t"});
+  cudaq::schedule schedule(steps, {"t"});
 
   cudaq::product_operator<cudaq::matrix_operator> pauliZ_t =
       cudaq::spin_operator::z(0);
@@ -153,7 +153,7 @@ TEST(EvolveTester, checkCompositeSystem) {
       Eigen::kroneckerProduct(cavity_state, qubit_state);
   constexpr int num_steps = 21;
   std::vector<double> steps = cudaq::linspace(0.0, 1.0, num_steps);
-  cudaq::Schedule schedule(steps, {"t"});
+  cudaq::schedule schedule(steps, {"t"});
   auto initialState = cudaq::state::from_data(
       std::make_pair(initial_state_vec.data(), initial_state_vec.size()));
   cudaq::integrators::runge_kutta integrator;
@@ -208,7 +208,7 @@ TEST(EvolveTester, checkCompositeSystemWithCollapse) {
   std::cout << "Initial rho:\n" << rho0 << "\n";
   constexpr int num_steps = 11;
   std::vector<double> timeSteps = cudaq::linspace(0.0, 1.0, num_steps);
-  cudaq::Schedule schedule(timeSteps, {"t"});
+  cudaq::schedule schedule(timeSteps, {"t"});
   auto initialState =
       cudaq::state::from_data(std::make_pair(rho0.data(), rho0.size()));
   cudaq::integrators::runge_kutta integrator;
@@ -241,7 +241,7 @@ TEST(EvolveTester, checkScalarTd) {
 
   constexpr int numSteps = 101;
   std::vector<double> steps = cudaq::linspace(0.0, 10.0, numSteps);
-  cudaq::Schedule schedule(steps, {"t"});
+  cudaq::schedule schedule(steps, {"t"});
 
   auto function = [](const std::unordered_map<std::string, std::complex<double>>
                          &parameters) {

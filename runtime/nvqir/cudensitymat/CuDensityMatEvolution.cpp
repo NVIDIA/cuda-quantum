@@ -37,7 +37,7 @@ convertToOrderedMap(const std::unordered_map<Key, Value> &unorderedMap) {
 /// @return evolve_result Result of the evolution.
 evolve_result evolveSingle(
     const operator_sum<cudaq::matrix_operator> &hamiltonian,
-    const cudaq::dimension_map &dimensionsMap, const Schedule &schedule,
+    const cudaq::dimension_map &dimensionsMap, const schedule &schedule,
     const state &initialState, base_integrator &integrator,
     const std::vector<operator_sum<cudaq::matrix_operator>> &collapseOperators,
     const std::vector<operator_sum<cudaq::matrix_operator>> &observables,

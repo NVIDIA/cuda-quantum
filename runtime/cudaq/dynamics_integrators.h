@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "cudaq/BaseIntegrator.h"
-#include "cudaq/BaseTimeStepper.h"
+#include "cudaq/base_integrator.h"
+#include "cudaq/base_time_stepper.h"
 #include "cudaq/operators.h"
 #include <memory>
 

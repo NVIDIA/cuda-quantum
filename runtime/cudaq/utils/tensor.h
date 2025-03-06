@@ -107,7 +107,7 @@ public:
   matrix_2 power(int powers);
 
   /// Returns the conjugate transpose of a matrix.
-  static matrix_2 adjoint(const matrix_2 &matrix);
+  matrix_2 adjoint();
 
   /// Return a square identity matrix for the given size.
   static matrix_2 identity(const std::size_t rows);

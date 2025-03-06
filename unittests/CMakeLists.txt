@@ -49,8 +49,6 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
 # Make it so we can get function symbols
 set (CMAKE_ENABLE_EXPORTS TRUE)
 
-include_directories(/usr/local/cuda/targets/x86_64-linux/include)
-
 ## This Macro allows us to create a test_runtime executable for 
 ## the sources in CUDAQ_RUNTIME_TEST_SOURCE for a specific backend simulator
 macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER) 

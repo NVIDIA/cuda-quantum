@@ -10,8 +10,8 @@
 
 #include "common/EvolveResult.h"
 #include "common/KernelWrapper.h"
-#include "cudaq/BaseIntegrator.h"
 #include "cudaq/algorithms/get_state.h"
+#include "cudaq/base_integrator.h"
 #include "cudaq/dynamics/operator_type.h"
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
@@ -69,7 +69,7 @@ template <typename HamTy,
            cudaq::operator_type<ObserveOpTy>
 evolve_result
 evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
-       const Schedule &schedule, const state &initial_state,
+       const schedule &schedule, const state &initial_state,
        base_integrator &integrator,
        std::initializer_list<CollapseOpTy> collapse_operators = {},
        std::initializer_list<ObserveOpTy> observables = {},
@@ -93,7 +93,7 @@ template <typename HamTy, typename CollapseOpTy, typename ObserveOpTy>
            cudaq::operator_type<ObserveOpTy>
 evolve_result evolve(const HamTy &hamiltonian,
                      const cudaq::dimension_map &dimensions,
-                     const Schedule &schedule, const state &initial_state,
+                     const schedule &schedule, const state &initial_state,
                      base_integrator &integrator,
                      const std::vector<CollapseOpTy> &collapse_operators = {},
                      const std::vector<ObserveOpTy> &observables = {},
@@ -119,7 +119,7 @@ template <typename HamTy,
            cudaq::operator_type<ObserveOpTy>
 std::vector<evolve_result>
 evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
-       const Schedule &schedule, const std::vector<state> &initial_states,
+       const schedule &schedule, const std::vector<state> &initial_states,
        base_integrator &integrator,
        std::initializer_list<CollapseOpTy> collapse_operators = {},
        std::initializer_list<ObserveOpTy> observables = {},
@@ -145,7 +145,7 @@ template <typename HamTy, typename CollapseOpTy, typename ObserveOpTy>
            cudaq::operator_type<ObserveOpTy>
 std::vector<evolve_result>
 evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
-       const Schedule &schedule, const std::vector<state> &initial_states,
+       const schedule &schedule, const std::vector<state> &initial_states,
        base_integrator &integrator,
        const std::vector<CollapseOpTy> &collapse_operators = {},
        const std::vector<ObserveOpTy> &observables = {},
@@ -173,7 +173,7 @@ template <typename HamTy,
            cudaq::operator_type<ObserveOpTy>
 async_evolve_result
 evolve_async(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
-             const Schedule &schedule, const state &initial_state,
+             const schedule &schedule, const state &initial_state,
              base_integrator &integrator,
              std::initializer_list<CollapseOpTy> collapse_operators = {},
              std::initializer_list<ObserveOpTy> observables = {},
@@ -207,7 +207,7 @@ template <typename HamTy, typename CollapseOpTy, typename ObserveOpTy>
            cudaq::operator_type<ObserveOpTy>
 async_evolve_result
 evolve_async(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
-             const Schedule &schedule, const state &initial_state,
+             const schedule &schedule, const state &initial_state,
              base_integrator &integrator,
              const std::vector<CollapseOpTy> &collapse_operators = {},
              const std::vector<ObserveOpTy> &observables = {},

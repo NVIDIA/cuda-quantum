@@ -72,7 +72,7 @@ int main() {
   // steps. This schedule is used by the integrator to simulate the dynamics.
   const int num_steps = 201;
   std::vector<double> steps = cudaq::linspace(0.0, 10.0, num_steps);
-  cudaq::Schedule schedule(steps);
+  cudaq::schedule schedule(steps);
 
   // Create a CUDA quantum state
   // The initial state is converted into a quantum state object for evolution.

@@ -25,7 +25,7 @@ TEST(EvolveAPITester, checkSimple) {
   for (double t : cudaq::linspace(0.0, 1.0, numSteps)) {
     steps.emplace_back(t, 0.0);
   }
-  cudaq::Schedule schedule(
+  cudaq::schedule schedule(
       steps, {"t"},
       [](const std::string &, const std::complex<double> &val) { return val; });
   auto initialState =
@@ -58,7 +58,7 @@ TEST(EvolveAPITester, checkCavityModel) {
   for (double t : cudaq::linspace(0.0, 1.0, numSteps)) {
     steps.emplace_back(t, 0.0);
   }
-  cudaq::Schedule schedule(
+  cudaq::schedule schedule(
       steps, {"t"},
       [](const std::string &, const std::complex<double> &val) { return val; });
   auto hamiltonian = cudaq::boson_operator::number(0);
@@ -95,7 +95,7 @@ TEST(EvolveAPITester, checkTimeDependent) {
   for (double t : cudaq::linspace(0.0, 1.0, numSteps)) {
     steps.emplace_back(t, 0.0);
   }
-  cudaq::Schedule schedule(
+  cudaq::schedule schedule(
       steps, {"t"},
       [](const std::string &, const std::complex<double> &val) { return val; });
   auto hamiltonian = cudaq::boson_operator::number(0);
