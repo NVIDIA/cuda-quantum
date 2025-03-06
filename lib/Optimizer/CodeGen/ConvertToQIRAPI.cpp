@@ -994,9 +994,20 @@ struct ExpPauliOpPattern
     operands.append(targets.begin(), targets.end());
 
     auto pauliWord = [&]() -> Value {
-      if (auto pauliLiteral = pauli.getPauliLiteralAttr())
-        return createGlobalCString(pauli, loc, rewriter,
-                                   pauliLiteral.getValue());
+      if (auto pauliLiteral = pauli.getPauliLiteralAttr()) {
+        auto glob =
+            createGlobalCString(pauli, loc, rewriter, pauliLiteral.getValue());
+        auto ccCast = glob.getDefiningOp<cudaq::cc::CastOp>();
+        auto addrOf = ccCast.getValue();
+        auto eleTy =
+            cast<cudaq::cc::PointerType>(addrOf.getType()).getElementType();
+        auto llvmArrTy = cast<LLVM::LLVMArrayType>(eleTy);
+        Type arrEleTy = llvmArrTy.getElementType();
+        auto arrSize = llvmArrTy.getNumElements();
+        auto toTy = cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(
+            rewriter.getContext(), arrEleTy, arrSize));
+        return rewriter.create<cudaq::cc::CastOp>(loc, toTy, glob);
+      }
       return adaptor.getPauli();
     }();
 
