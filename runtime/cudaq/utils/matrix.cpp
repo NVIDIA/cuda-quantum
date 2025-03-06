@@ -14,9 +14,9 @@
 
 // tools for caching eigensolvers
 
-/// @brief Hash function for an Eigen::MatrixXcd
+/// @brief Hash function for an cudaq::complex_matrix::EigenMatrix
 struct complex_matrix_hash {
-  std::size_t operator()(const Eigen::MatrixXcd &matrix) const {
+  std::size_t operator()(const cudaq::complex_matrix::EigenMatrix &matrix) const {
     size_t seed = 0;
     for (Eigen::Index i = 0; i < matrix.size(); ++i) {
       auto elem = *(matrix.data() + i);
@@ -28,13 +28,13 @@ struct complex_matrix_hash {
   }
 };
 
-std::unordered_map<Eigen::MatrixXcd,
-                   Eigen::SelfAdjointEigenSolver<Eigen::MatrixXcd>,
+std::unordered_map<cudaq::complex_matrix::EigenMatrix,
+                   Eigen::SelfAdjointEigenSolver<cudaq::complex_matrix::EigenMatrix>,
                    complex_matrix_hash>
     selfAdjointEigenSolvers;
 
-std::unordered_map<Eigen::MatrixXcd,
-                   Eigen::ComplexEigenSolver<Eigen::MatrixXcd>,
+std::unordered_map<cudaq::complex_matrix::EigenMatrix,
+                   Eigen::ComplexEigenSolver<cudaq::complex_matrix::EigenMatrix>,
                    complex_matrix_hash>
     generalEigenSolvers;
 
@@ -46,9 +46,8 @@ inline std::complex<double> &access(std::complex<double> *p,
   return p[row * sizes.second + col];
 }
 
-Eigen::MatrixXcd cudaq::complex_matrix::as_eigen() const {
-  return Eigen::Map<Eigen::Matrix<std::complex<double>, Eigen::Dynamic,
-                            Eigen::Dynamic, Eigen::RowMajor>>(
+cudaq::complex_matrix::EigenMatrix cudaq::complex_matrix::as_eigen() const {
+  return Eigen::Map<cudaq::complex_matrix::EigenMatrix>(
             this->data, this->dimensions.first, this->dimensions.second);
 }
 
@@ -57,12 +56,12 @@ std::complex<double> cudaq::complex_matrix::minimal_eigenvalue() const {
 }
 
 std::vector<std::complex<double>> cudaq::complex_matrix::eigenvalues() const {
-  Eigen::Map<Eigen::MatrixXcd> map(data, rows(), cols());
+  Eigen::Map<cudaq::complex_matrix::EigenMatrix> map(data, rows(), cols());
   if (map.isApprox(map.adjoint())) {
     auto iter = selfAdjointEigenSolvers.find(map);
     if (iter == selfAdjointEigenSolvers.end())
       selfAdjointEigenSolvers.emplace(
-          map, Eigen::SelfAdjointEigenSolver<Eigen::MatrixXcd>(map));
+          map, Eigen::SelfAdjointEigenSolver<cudaq::complex_matrix::EigenMatrix>(map));
 
     auto eigs = selfAdjointEigenSolvers[map].eigenvalues();
     std::vector<std::complex<double>> ret(eigs.size());
@@ -74,7 +73,7 @@ std::vector<std::complex<double>> cudaq::complex_matrix::eigenvalues() const {
   auto iter = generalEigenSolvers.find(map);
   if (iter == generalEigenSolvers.end())
     generalEigenSolvers.emplace(
-        map, Eigen::ComplexEigenSolver<Eigen::MatrixXcd>(map));
+        map, Eigen::ComplexEigenSolver<cudaq::complex_matrix::EigenMatrix>(map));
 
   auto eigs = generalEigenSolvers[map].eigenvalues();
   std::vector<std::complex<double>> ret(eigs.size());
@@ -83,13 +82,13 @@ std::vector<std::complex<double>> cudaq::complex_matrix::eigenvalues() const {
 }
 
 cudaq::complex_matrix cudaq::complex_matrix::eigenvectors() const {
-  Eigen::Map<Eigen::MatrixXcd> map(data, rows(), cols());
+  Eigen::Map<cudaq::complex_matrix::EigenMatrix> map(data, rows(), cols());
 
   if (map.isApprox(map.adjoint())) {
     auto iter = selfAdjointEigenSolvers.find(map);
     if (iter == selfAdjointEigenSolvers.end())
       selfAdjointEigenSolvers.emplace(
-          map, Eigen::SelfAdjointEigenSolver<Eigen::MatrixXcd>(map));
+          map, Eigen::SelfAdjointEigenSolver<cudaq::complex_matrix::EigenMatrix>(map));
 
     auto eigv = selfAdjointEigenSolvers[map].eigenvectors();
     cudaq::complex_matrix copy(eigv.rows(), eigv.cols(), false);
@@ -101,7 +100,7 @@ cudaq::complex_matrix cudaq::complex_matrix::eigenvectors() const {
   auto iter = generalEigenSolvers.find(map);
   if (iter == generalEigenSolvers.end())
     generalEigenSolvers.emplace(
-        map, Eigen::ComplexEigenSolver<Eigen::MatrixXcd>(map));
+        map, Eigen::ComplexEigenSolver<cudaq::complex_matrix::EigenMatrix>(map));
 
   auto eigv = generalEigenSolvers[map].eigenvectors();
   cudaq::complex_matrix copy(eigv.rows(), eigv.cols(), false);
@@ -246,13 +245,13 @@ cudaq::complex_matrix::operator()(std::size_t i, std::size_t j) {
 }
 
 std::string cudaq::complex_matrix::dump() const {
-  std::ostringstream out;
+  std::stringstream out;
   dump(out);
   return out.str();
 }
 
 void cudaq::complex_matrix::dump(std::ostream &os) const {
-  Eigen::Map<Eigen::MatrixXcd> map(data, rows(), cols());
+  Eigen::Map<cudaq::complex_matrix::EigenMatrix> map(data, rows(), cols());
   os << map << "\n";
 }
 

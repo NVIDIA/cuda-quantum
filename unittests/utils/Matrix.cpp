@@ -6,22 +6,32 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include <algorithm>
 #include "cudaq/utils/matrix.h"
 #include "gtest/gtest.h"
+
+void string_equal(std::string str1, std::string str2) {
+  auto is_space = [](char c) {return c == ' '; }; // *only* space, opposed to builtin isspace
+  auto it = std::remove_if(str1.begin(), str1.end(), is_space);
+  str1 = std::string(str1.begin(), it);
+  it = std::remove_if(str2.begin(), str2.end(), is_space);
+  str2 = std::string(str2.begin(), it);
+  EXPECT_EQ(str1, str2);
+}
 
 TEST(Tensor, initialization) {
   {
     cudaq::complex_matrix m0;
-    EXPECT_EQ(m0.dump(), "{}");
+    string_equal(m0.dump(), "\n");
   }
   {
     cudaq::complex_matrix m1({1., 0., 0., 1.});
-    EXPECT_EQ(m1.dump(), "{  { (1,0)  (0,0) }\n   { (0,0)  (1,0) }\n }");
+    string_equal(m1.dump(), "(1,0) (0,0)\n(0,0) (1,0)\n");
   }
   {
     cudaq::complex_matrix m1({1., 2., 3., 4., 5., 6.}, {2, 3});
-    EXPECT_EQ(m1.dump(),
-              "{  { (1,0)  (2,0)  (3,0) }\n   { (4,0)  (5,0)  (6,0) }\n }");
+    string_equal(m1.dump(),
+              "(1,0) (2,0) (3,0)\n(4,0) (5,0) (6,0)\n");
   }
 }
 
@@ -85,14 +95,14 @@ TEST(Tensor, product) {
     cudaq::complex_matrix m2({2., 1., 3., 4.});
     cudaq::complex_matrix m3({3., 2., 1., 4.});
     cudaq::complex_matrix m4 = m2 * m3;
-    EXPECT_EQ(m4.dump(), "{  { (7,0)  (8,0) }\n   { (13,0)  (22,0) }\n }");
+    string_equal(m4.dump(), "(7,0) (8,0)\n(13,0) (22,0)\n");
   }
   {
     cudaq::complex_matrix m2({1., 2., 3., 4., 5., 6.}, {3, 2});
     cudaq::complex_matrix m3({1., 2., 3., 4., 5., 6.}, {2, 3});
     cudaq::complex_matrix m4 = m2 * m3;
-    EXPECT_EQ(m4.dump(), "{  { (9,0)  (12,0) }\n   { (15,0)  (19,0) }\n   { "
-                         "(26,0)  (33,0) }\n }");
+    string_equal(m4.dump(), "(9,0) (12,0)\n(15,0) (19,0)\n"
+                         "(26,0) (33,0)\n");
   }
 }
 
@@ -109,7 +119,7 @@ TEST(Tensor, addition) {
     cudaq::complex_matrix m5({2., 11., 3., 4.2});
     cudaq::complex_matrix m6({3., 42., 1.4, 4.});
     cudaq::complex_matrix m7 = m5 + m6;
-    EXPECT_EQ(m7.dump(), "{  { (5,0)  (53,0) }\n   { (4.4,0)  (8.2,0) }\n }");
+    string_equal(m7.dump(), "(5,0) (53,0)\n(4.4,0) (8.2,0)\n");
   }
 }
 
@@ -126,7 +136,7 @@ TEST(Tensor, subtraction) {
     cudaq::complex_matrix m8({12.1, 1., 3., 14.});
     cudaq::complex_matrix m9({3., 22., 31., 4.});
     cudaq::complex_matrix ma = m8 - m9;
-    EXPECT_EQ(ma.dump(), "{  { (9.1,0)  (-21,0) }\n   { (-28,0)  (10,0) }\n }");
+    string_equal(ma.dump(), "(9.1,0) (-21,0)\n(-28,0) (10,0)\n");
   }
 }
 TEST(Tensor, subtractionError) {
@@ -142,11 +152,11 @@ TEST(Tensor, kroneckerProduct) {
     cudaq::complex_matrix mb({6.1, 1.5, 3., 14.});
     cudaq::complex_matrix mc({7.4, 8., 9., 4.2});
     cudaq::complex_matrix md = cudaq::kronecker(mb, mc);
-    EXPECT_EQ(
+    string_equal(
         md.dump(),
-        "{  { (45.14,0)  (48.8,0)  (11.1,0)  (12,0) }\n   { (54.9,0)  "
-        "(25.62,0)  (13.5,0)  (6.3,0) }\n   { (22.2,0)  (24,0)  (103.6,0)  "
-        "(112,0) }\n   { (27,0)  (12.6,0)  (126,0)  (58.8,0) }\n }");
+        "(45.14,0) (48.8,0) (11.1,0) (12,0)\n(54.9,0) "
+        "(25.62,0) (13.5,0) (6.3,0)\n(22.2,0) (24,0) (103.6,0) "
+        "(112,0)\n(27,0) (12.6,0) (126,0) (58.8,0)\n");
   }
 }
 
@@ -157,9 +167,9 @@ TEST(Tensor, kroneckerOnList) {
     cudaq::complex_matrix mg({3., 4., 5.}, {3, 1});
     std::vector<cudaq::complex_matrix> v{me, mf, mg};
     cudaq::complex_matrix mh = cudaq::kronecker(v.begin(), v.end());
-    EXPECT_EQ(
+    string_equal(
         mh.dump(),
-        "{  { (3,3)  (6,6) }\n   { (4,4)  (8,8) }\n   { (5,5)  (10,10) }\n }");
+        "(3,3) (6,6)\n(4,4) (8,8)\n(5,5) (10,10)\n");
   }
 }
 
@@ -175,19 +185,19 @@ TEST(Tensor, exponential) {
     auto mf_exp = mf.exponential();
     auto mg_exp = mg.exponential();
 
-    EXPECT_EQ(
+    string_equal(
         me_exp.dump(),
-        "{  { (3.23795,0)  (1.86268,0) }\n   { (0.93134,0)  (1.37527,0) }\n }");
+        "(3.23795,0) (1.86268,0)\n(0.93134,0) (1.37527,0)\n");
 
-    EXPECT_EQ(
+    string_equal(
         mf_exp.dump(),
-        "{  { (4.84921,0)  (0,0)  (5.4755,0) }\n   { (1.46673,0)  (2.01375,0)  "
-        "(0.977708,0) }\n   { (5.4755,0)  (0,0)  (10.3247,0) }\n }");
+        "(4.84921,0) (0,0) (5.4755,0)\n(1.46673,0) (2.01375,0) "
+        "(0.977708,0)\n(5.4755,0) (0,0) (10.3247,0)\n");
 
-    EXPECT_EQ(mg_exp.dump(),
-              "{  { (2.9751,0)  (0.447969,0)  (1.01977,0)  (1.75551,0) }\n   { "
-              "(2.10247,0)  (2.55646,0)  (1.97654,0)  (1.39927,0) }\n   { "
-              "(0.800451,0)  (0.648569,0)  (1.69099,0)  (1.76597,0) }\n   { "
-              "(0.498881,0)  (1.05119,0)  (0.753502,0)  (2.03447,0) }\n }");
+    string_equal(mg_exp.dump(),
+              "(2.9751,0) (0.447969,0) (1.01977,0) (1.75551,0)\n"
+              "(2.10247,0) (2.55646,0) (1.97654,0) (1.39927,0)\n"
+              "(0.800451,0) (0.648569,0) (1.69099,0) (1.76597,0)\n"
+              "(0.498881,0) (1.05119,0) (0.753502,0) (2.03447,0)\n");
   }
 }

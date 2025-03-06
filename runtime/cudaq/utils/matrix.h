@@ -15,7 +15,11 @@
 #include <optional>
 #include <vector>
 
-#include <Eigen/Dense>
+namespace Eigen {
+  // forward declared here so that this header can be used even if the Eigen is not used/found
+  template<typename Scalar_, int Rows_, int Cols_, int Options_, int MaxRows_, int MaxCols_>
+  class Matrix;
+}
 
 namespace cudaq {
 
@@ -40,6 +44,7 @@ complex_matrix kronecker(Iterable begin, Iterable end);
 class complex_matrix {
 public:
   using Dimensions = std::pair<std::size_t, std::size_t>;
+  using EigenMatrix = Eigen::Matrix<std::complex<double>, -1, -1, 0x1, -1, -1>; // row major
 
   complex_matrix() = default;
 
@@ -163,7 +168,7 @@ public:
   std::size_t cols() const { return dimensions.second; }
   std::size_t size() const { return get_size(dimensions); }
 
-  Eigen::MatrixXcd as_eigen() const;
+  EigenMatrix as_eigen() const;
 
 private:
   complex_matrix(const std::complex<double> *v, const Dimensions &dim = {2, 2})
