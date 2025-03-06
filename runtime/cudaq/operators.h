@@ -589,6 +589,52 @@ public:
   friend product_operator<T> operator_handler::identity(int target);
 };
 
+/// @brief Representation of a time-dependent Hamiltonian for Rydberg system
+class rydberg_hamiltonian {
+public:
+  using Coordinate = std::pair<double, double>;
+
+  /// @brief Constructor.
+  /// @param atom_sites List of 2D coordinates for trap sites.
+  /// @param amplitude Time-dependent driving amplitude, Omega(t).
+  /// @param phase Time-dependent driving phase, phi(t).
+  /// @param delta_global Time-dependent driving detuning, Delta_global(t).
+  /// @param atom_filling Optional. Marks occupied trap sites (1) and empty
+  /// sites (0). Defaults to all sites occupied.
+  /// @param delta_local Optional. A tuple of Delta_local(t) and site dependent
+  /// local detuning factors.
+  rydberg_hamiltonian(
+      const std::vector<Coordinate> &atom_sites,
+      const scalar_operator &amplitude, const scalar_operator &phase,
+      const scalar_operator &delta_global,
+      const std::vector<int> &atom_filling = {},
+      const std::optional<std::pair<scalar_operator, std::vector<double>>>
+          &delta_local = std::nullopt);
+
+  /// @brief Get atom sites.
+  const std::vector<Coordinate> &get_atom_sites() const;
+
+  /// @brief Get atom filling.
+  const std::vector<int> &get_atom_filling() const;
+
+  /// @brief Get amplitude operator.
+  const scalar_operator &get_amplitude() const;
+
+  /// @brief Get phase operator.
+  const scalar_operator &get_phase() const;
+
+  /// @brief Get global detuning operator.
+  const scalar_operator &get_delta_global() const;
+
+private:
+  std::vector<Coordinate> atom_sites;
+  std::vector<int> atom_filling;
+  scalar_operator amplitude;
+  scalar_operator phase;
+  scalar_operator delta_global;
+  std::optional<std::pair<scalar_operator, std::vector<double>>> delta_local;
+};
+
 // type aliases for convenience
 typedef std::unordered_map<std::string, std::complex<double>> parameter_map;
 typedef std::unordered_map<int, int> dimension_map;
