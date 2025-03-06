@@ -719,7 +719,7 @@ public:
   void exp_pauli(const ParamT &theta, const QuakeValue &qubits,
                  const std::variant<std::string, spin_op_term> &op) {
     // FIXME: this ignores the coefficient defined in the spin_op_term -
-    // it would be better to just pass the pauli word instead
+    // it would be better to just force passing the pauli word only
     auto pauliWord = toPauliWord(op);
     std::vector<QuakeValue> qubitValues{qubits};
     if constexpr (std::is_floating_point_v<ParamT>)
@@ -736,7 +736,7 @@ public:
                  const std::variant<std::string, spin_op_term> &op,
                  QubitArgs &&...qubits) {
     // FIXME: this ignores the coefficient defined in the spin_op_term -
-    // it would be better to just pass the pauli word instead
+    // it would be better to just force passing the pauli word only
     auto pauliWord = toPauliWord(op);
     std::vector<QuakeValue> qubitValues{qubits...};
     if constexpr (std::is_floating_point_v<ParamT>)

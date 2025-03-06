@@ -125,7 +125,7 @@ public:
   virtual ~SimpleQuditExecutionManager() = default;
 
   cudaq::SpinMeasureResult measure(const cudaq::spin_op &op) override {
-    return cudaq::SpinMeasureResult(); // FIXME: why is this succeeding without even looking at spin_op_term?
+    return cudaq::SpinMeasureResult();
   }
   void initializeState(const std::vector<cudaq::QuditInfo> &targets,
                        const void *state,

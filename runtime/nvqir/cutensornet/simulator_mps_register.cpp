@@ -128,10 +128,10 @@ public:
       return pauli_word == "XX" || pauli_word == "YY" || pauli_word == "ZZ";
     };
 
-    // FIXME: this is very silly; the implementation here clearly assumes that
-    // the spin op term is not a general spin op term, but really just a pauli 
-    // word; it's coefficient is silently ignored. This works because it was 
-    // actually constructed from a pauli word - we should just pass that one along.
+    // FIXME: the implementation here assumes that  the spin op term is not
+    // a general spin op term, but really just a pauli word; it's coefficient is
+    // silently ignored. This works because it was actually constructed from a
+    // pauli word - we should just pass that one along.
     auto pauli_word = op.get_pauli_word();
     if (controls.empty() && qubitIds.size() == 2 && shouldHandlePauliOp(pauli_word)) {
       flushGateQueue();

@@ -592,7 +592,7 @@ public:
     termStrs.reserve(nPauliOperatorArrays);
     auto terms = op.get_terms();
     for (const auto &term : terms) {
-      coeffs.emplace_back(term.get_coefficient().evaluate()); // fails if we have parameters
+      coeffs.emplace_back(term.get_coefficient().evaluate());
       std::vector<custatevecPauli_t> paulis;
       std::vector<int32_t> idxs;
       auto ops = term.get_terms();

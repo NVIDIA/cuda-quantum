@@ -808,7 +808,7 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
       std::memcpy(address, pauliMatrixPtr, PAULI_ARRAY_SIZE_BYTES);
     }
     if (allIdOps) {
-      allExpVals.emplace_back(prod.get_coefficient().evaluate()); // fails if we have parameters
+      allExpVals.emplace_back(prod.get_coefficient().evaluate());
     } else {
       HANDLE_CUDA_ERROR(cudaMemcpy(pauliMats_d, pauliMats_h,
                                    placeHolderArraySize,
@@ -822,7 +822,7 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
             /*cudaStream*/ 0));
         expVal += (result / static_cast<double>(numObserveTrajectories));
       }
-      allExpVals.emplace_back(expVal * prod.get_coefficient().evaluate()); // fails if we have parameters
+      allExpVals.emplace_back(expVal * prod.get_coefficient().evaluate());
     }
   }
 

@@ -1440,8 +1440,9 @@ public:
 
     for (const auto &p : ops) {
       auto pauli = p.as_pauli();
-      // Note: qubit index is necessarily defined by target here - 
-      // imposes a somewhat unclean requirement for spin op...
+      // Note: qubit index is necessarily defined by target here
+      // since we don't explicitly pass the qubits the measurement
+      // applies to
       auto target = p.target();
       if (pauli != cudaq::pauli::I)
         qubitsToMeasure.push_back(target);
