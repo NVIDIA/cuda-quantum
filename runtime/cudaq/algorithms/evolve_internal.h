@@ -52,7 +52,7 @@ evolve_result evolve(state initial_state, QuantumKernel &&kernel,
 /// intermediate states.
 // Step evolution is provided as `kernels`.
 template <typename QuantumKernel>
-evolve_result evolve(state initial_state, std::vector<QuantumKernel> kernels,
+evolve_result evolve(state initial_state, std::vector<QuantumKernel> &kernels,
                      const std::vector<std::vector<spin_op>> &observables = {},
                      int shots_count = -1) {
   std::vector<state> intermediate_states = {};
