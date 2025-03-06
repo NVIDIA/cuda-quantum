@@ -274,13 +274,11 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
   auto flatMatrix =
       flattenMatrixColumnMajor(elemOp.to_matrix(dimensions, parameters));
 
-  if (flatMatrix.empty()) {
+  if (flatMatrix.empty())
     throw std::invalid_argument("Input matrix (flat matrix) cannot be empty.");
-  }
 
-  if (subspaceExtents.empty()) {
+  if (subspaceExtents.empty())
     throw std::invalid_argument("subspaceExtents cannot be empty.");
-  }
 
   auto *elementaryMat_d = createArrayGpu(flatMatrix);
   cudensitymatElementaryOperator_t cudmElemOp = nullptr;
@@ -313,24 +311,20 @@ cudaq::dynamics::CuDensityMatOpConverter::createProductOperatorTerm(
       m_handle, static_cast<int32_t>(modeExtents.size()), modeExtents.data(),
       &term));
   m_operatorTerms.emplace(term);
-  if (degrees.empty()) {
+  if (degrees.empty())
     throw std::invalid_argument("Degrees vector cannot be empty.");
-  }
 
-  if (elemOps.empty()) {
+  if (elemOps.empty())
     throw std::invalid_argument("elemOps cannot be null.");
-  }
 
-  if (degrees.size() != elemOps.size()) {
+  if (degrees.size() != elemOps.size())
     throw std::invalid_argument("elemOps and degrees must have the same size.");
-  }
 
   const bool hasDualModalities = !dualModalities.empty();
 
-  if (hasDualModalities && degrees.size() != dualModalities.size()) {
+  if (hasDualModalities && degrees.size() != dualModalities.size())
     throw std::invalid_argument(
         "degrees and dualModalities must have the same size.");
-  }
 
   std::vector<int32_t> allDegrees;
   std::vector<int32_t> allModeActionDuality;
@@ -340,14 +334,13 @@ cudaq::dynamics::CuDensityMatOpConverter::createProductOperatorTerm(
                                  ? dualModalities[i]
                                  : std::vector<int>(sub_degrees.size(), 0);
 
-    if (sub_degrees.size() != modalities.size()) {
+    if (sub_degrees.size() != modalities.size())
       throw std::runtime_error(
           "Mismatch between degrees and modalities sizes.");
-    }
-    if (sub_degrees.size() != 1) {
+
+    if (sub_degrees.size() != 1)
       throw std::runtime_error(
           "Elementary operator must act on a single degree.");
-    }
 
     for (size_t j = 0; j < sub_degrees.size(); j++) {
       int degree = sub_degrees[j];
@@ -413,9 +406,8 @@ cudaq::dynamics::CuDensityMatOpConverter::convertToCudensitymat(
     const operator_sum<cudaq::matrix_operator> &op,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     const std::vector<int64_t> &modeExtents) {
-  if (op.get_terms().empty()) {
+  if (op.get_terms().empty())
     throw std::invalid_argument("Operator sum cannot be empty.");
-  }
 
   std::vector<std::pair<cudaq::scalar_operator, cudensitymatOperatorTerm_t>>
       result;
@@ -553,10 +545,9 @@ cudensitymatWrappedScalarCallback_t
 cudaq::dynamics::CuDensityMatOpConverter::wrapScalarCallback(
     const scalar_operator &scalarOp,
     const std::vector<std::string> &paramNames) {
-  if (scalarOp.is_constant()) {
+  if (scalarOp.is_constant())
     throw std::runtime_error(
         "scalar_operator does not have a valid generator function.");
-  }
 
   m_scalarCallbacks.push_back(ScalarCallBackContext(scalarOp, paramNames));
   ScalarCallBackContext *storedCallbackContext = &m_scalarCallbacks.back();

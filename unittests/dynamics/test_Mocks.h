@@ -31,9 +31,8 @@ inline cudensitymatOperator_t mock_liouvillian(cudensitymatHandle_t handle) {
       handle, static_cast<int32_t>(dimensions.size()), dimensions.data(),
       &liouvillian));
 
-  if (!liouvillian) {
+  if (!liouvillian)
     throw std::runtime_error("Failed to create mock Liouvillian!");
-  }
 
   return liouvillian;
 }
@@ -43,9 +42,8 @@ inline std::vector<std::complex<double>> mock_initial_state_data() {
   std::vector<std::complex<double>> data = {
       {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}};
 
-  if (data.size() != 4) {
+  if (data.size() != 4)
     throw std::runtime_error("Mock initial state data has incorrect size!");
-  }
 
   return data;
 }
@@ -54,9 +52,8 @@ inline std::vector<std::complex<double>> mock_initial_state_data() {
 inline std::vector<int64_t> mock_hilbert_space_dims() {
   std::vector<int64_t> dims = {2, 2};
 
-  if (dims.empty()) {
+  if (dims.empty())
     throw std::runtime_error("Mock Hilbert space dimensions are empty!");
-  }
 
   return dims;
 }

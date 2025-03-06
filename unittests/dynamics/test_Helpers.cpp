@@ -7,14 +7,14 @@
  ******************************************************************************/
 
 #include "cudaq/dynamics/helpers.h"
+#include "cudaq/operators.h"
 #include <gtest/gtest.h>
-#include <vector>
 
 using namespace cudaq::detail;
 
 TEST(OperatorHelpersTest, GenerateAllStates_TwoQubits) {
   std::vector<int> degrees = {0, 1};
-  std::unordered_map<int, int> dimensions = {{0, 2}, {1, 2}};
+  cudaq::dimension_map dimensions = {{0, 2}, {1, 2}};
 
   auto states = generate_all_states(degrees, dimensions);
   std::vector<std::string> expected_states = {"00", "01", "10", "11"};
@@ -24,7 +24,7 @@ TEST(OperatorHelpersTest, GenerateAllStates_TwoQubits) {
 
 TEST(OperatorHelpersTest, GenerateAllStates_ThreeQubits) {
   std::vector<int> degrees = {0, 1, 2};
-  std::unordered_map<int, int> dimensions = {{0, 2}, {1, 2}, {2, 2}};
+  cudaq::dimension_map dimensions = {{0, 2}, {1, 2}, {2, 2}};
 
   auto states = generate_all_states(degrees, dimensions);
   std::vector<std::string> expected_states = {"000", "001", "010", "011",
@@ -35,7 +35,7 @@ TEST(OperatorHelpersTest, GenerateAllStates_ThreeQubits) {
 
 TEST(OperatorHelpersTest, GenerateAllStates_EmptyDegrees) {
   std::vector<int> degrees;
-  std::unordered_map<int, int> dimensions;
+  cudaq::dimension_map dimensions;
 
   auto states = generate_all_states(degrees, dimensions);
   EXPECT_TRUE(states.empty());

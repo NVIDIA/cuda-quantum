@@ -18,9 +18,7 @@ static std::unordered_map<int, std::unique_ptr<cudaq::dynamics::Context>>
 static std::mutex g_contextMutex;
 } // namespace
 
-namespace cudaq {
-namespace dynamics {
-
+namespace cudaq::dynamics {
 /// @brief Get the current CUDA context for the active device.
 /// @return Context* Pointer to the current context.
 Context *Context::getCurrentContext() {
@@ -62,7 +60,8 @@ void *Context::getScratchSpace(std::size_t minSizeBytes) {
 /// @brief Get the recommended workspace limit based on available memory.
 /// @return std::size_t Recommended workspace limit in bytes.
 std::size_t Context::getRecommendedWorkSpaceLimit() {
-  std::size_t freeMem = 0, totalMem = 0;
+  std::size_t freeMem = 0;
+  std::size_t totalMem = 0;
   HANDLE_CUDA_ERROR(cudaMemGetInfo(&freeMem, &totalMem));
   // Take 80% of free memory
   freeMem = static_cast<std::size_t>(static_cast<double>(freeMem) * 0.80);
@@ -86,5 +85,4 @@ Context::~Context() {
   if (m_scratchSpaceSizeBytes > 0)
     cudaFree(m_scratchSpace);
 }
-} // namespace dynamics
-} // namespace cudaq
+} // namespace cudaq::dynamics

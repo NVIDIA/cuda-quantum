@@ -14,8 +14,7 @@
 #include <deque>
 #include <unordered_set>
 
-namespace cudaq {
-namespace dynamics {
+namespace cudaq::dynamics {
 class CuDensityMatOpConverter {
 public:
   CuDensityMatOpConverter(cudensitymatHandle_t handle) : m_handle(handle){};
@@ -103,5 +102,4 @@ private:
   std::deque<ScalarCallBackContext> m_scalarCallbacks;
   std::deque<TensorCallBackContext> m_tensorCallbacks;
 };
-} // namespace dynamics
-} // namespace cudaq
+} // namespace cudaq::dynamics

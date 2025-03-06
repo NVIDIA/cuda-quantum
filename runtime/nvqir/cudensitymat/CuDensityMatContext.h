@@ -12,9 +12,7 @@
 #include <cuda_runtime.h>
 #include <cudensitymat.h>
 
-namespace cudaq {
-namespace dynamics {
-
+namespace cudaq::dynamics {
 /// @brief Class representing the CUDAQ context for density matrix operations.
 class Context {
 public:
@@ -59,5 +57,4 @@ private:
   void *m_scratchSpace{nullptr};
   std::size_t m_scratchSpaceSizeBytes{0};
 };
-} // namespace dynamics
-} // namespace cudaq
+} // namespace cudaq::dynamics

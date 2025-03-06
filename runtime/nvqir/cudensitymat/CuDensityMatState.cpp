@@ -397,8 +397,6 @@ CuDensityMatState CuDensityMatState::clone(const CuDensityMatState &other) {
       storageSize / sizeof(std::complex<double>); // quantum state tensor volume
                                                   // (number of elements)
   assert(stateVolume == state.dimension);
-  // std::cout << "Quantum state storage size (bytes) = " << storageSize
-  //           << std::endl;
 
   // Attach initialized GPU storage to the input quantum state
   HANDLE_CUDM_ERROR(cudensitymatStateAttachComponentStorage(
@@ -564,16 +562,6 @@ cudaq::CuDensityMatState::operator+=(const CuDensityMatState &other) {
                     other.dimension));
   }
 
-  // double scalingFactor = 1.0;
-  // double *gpuScalingFactor;
-  // cudaMalloc(reinterpret_cast<void **>(&gpuScalingFactor), sizeof(double));
-  // cudaMemcpy(gpuScalingFactor, &scalingFactor, sizeof(double),
-  //            cudaMemcpyHostToDevice);
-
-  // HANDLE_CUDM_ERROR(cudensitymatStateComputeAccumulation(
-  //     cudmHandle, other.get_impl(), cudmState, gpuScalingFactor, 0));
-
-  // cudaFree(gpuScalingFactor);
   cuDoubleComplex scalar{1.0, 0.0};
   HANDLE_CUBLAS_ERROR(cublasZaxpy(
       dynamics::Context::getCurrentContext()->getCublasHandle(), dimension,

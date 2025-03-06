@@ -12,8 +12,7 @@
 #include <concepts>
 #include <vector>
 
-namespace cudaq {
-namespace dynamics {
+namespace cudaq::dynamics {
 // GPU memory management
 template <std::floating_point T>
 void *createArrayGpu(const std::vector<std::complex<T>> &cpuArray) {
@@ -31,5 +30,4 @@ inline void destroyArrayGpu(void *gpuArray) {
   if (gpuArray)
     HANDLE_CUDA_ERROR(cudaFree(gpuArray));
 }
-} // namespace dynamics
-} // namespace cudaq
+} // namespace cudaq::dynamics

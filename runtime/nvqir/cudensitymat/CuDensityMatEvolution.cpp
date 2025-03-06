@@ -16,8 +16,7 @@
 #include <iterator>
 #include <random>
 #include <stdexcept>
-namespace cudaq {
-namespace __internal__ {
+namespace cudaq::__internal__ {
 template <typename Key, typename Value>
 std::map<Key, Value>
 convertToOrderedMap(const std::unordered_map<Key, Value> &unorderedMap) {
@@ -111,5 +110,4 @@ evolve_result evolveSingle(
     return evolve_result(finalState, expVals);
   }
 }
-} // namespace __internal__
-} // namespace cudaq
+} // namespace cudaq::__internal__
