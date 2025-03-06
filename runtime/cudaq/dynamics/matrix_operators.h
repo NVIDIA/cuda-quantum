@@ -44,7 +44,7 @@ private:
   static std::string type_prefix();
 
   virtual std::string
-  op_code_to_string(std::unordered_map<int, int> &dimensions) const;
+  op_code_to_string(std::unordered_map<int, int> &dimensions) const override;
 
 protected:
   std::string op_code;
@@ -119,9 +119,9 @@ public:
   const commutation_relations &commutation_group = this->group;
   const bool &commutes_across_degrees = this->commutes;
 
-  virtual std::string unique_id() const;
+  virtual std::string unique_id() const override;
 
-  virtual std::vector<int> degrees() const;
+  virtual std::vector<int> degrees() const override;
 
   // constructors and destructors
 
@@ -165,9 +165,9 @@ public:
   virtual matrix_2
   to_matrix(std::unordered_map<int, int> &dimensions,
             const std::unordered_map<std::string, std::complex<double>>
-                &parameters = {}) const;
+                &parameters = {}) const override;
 
-  virtual std::string to_string(bool include_degrees) const;
+  virtual std::string to_string(bool include_degrees) const override;
 
   // comparisons
 

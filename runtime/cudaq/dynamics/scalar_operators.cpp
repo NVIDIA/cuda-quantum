@@ -35,6 +35,10 @@ scalar_operator::scalar_operator(const scalar_operator &other)
 scalar_operator::scalar_operator(scalar_operator &&other)
     : value(std::move(other.value)) {}
 
+bool scalar_operator::is_constant() const {
+  return std::holds_alternative<std::complex<double>>(value);
+}
+
 // assignments
 
 scalar_operator &scalar_operator::operator=(const scalar_operator &other) {

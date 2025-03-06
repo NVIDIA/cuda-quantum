@@ -19,7 +19,7 @@ namespace cudaq {
 
 /// @brief Create a schedule for evaluating an operator expression at different
 /// steps.
-class Schedule {
+class schedule {
 public:
   /// Iterator tags. May be superfluous.
   using iterator_category = std::forward_iterator_tag;
@@ -37,8 +37,22 @@ private:
       value_function;
   int current_idx;
 
+  static std::vector<std::complex<double>>
+  toComplex(const std::vector<double> &vec) {
+    std::vector<std::complex<double>> result;
+
+    result.reserve(vec.size());
+    for (const auto &d : vec) {
+      result.emplace_back(d, 0.0);
+    }
+
+    return result;
+  }
+
 public:
-  Schedule(pointer ptr) : ptr(ptr){};
+  // Default constructor (empty schedule)
+  schedule() = default;
+  schedule(pointer ptr) : ptr(ptr){};
 
   /// @brief Constructor.
   /// @arg steps: The sequence of steps in the schedule. Restricted to a vector
@@ -46,16 +60,30 @@ public:
   /// @arg parameters: A sequence of strings representing the parameter names of
   /// an operator expression.
   /// @arg value_function: A function that takes the name of a parameter as well
-  /// as an additional value ("step") of arbitrary type as argument and returns
-  /// the complex value for that parameter at the given step.
+  /// as an additional value ("step") of std::complex<double> type as argument
+  /// and returns the complex value for that parameter at the given step.
   /// @details current_idx: Intializes the current index (_current_idx) to -1 to
   /// indicate that iteration has not yet begun. Once iteration starts,
   /// _current_idx will be used to track the position in the sequence of steps.
-  Schedule(
+  schedule(
       const std::vector<std::complex<double>> &steps,
       const std::vector<std::string> &parameters,
       const std::function<std::complex<double>(
           const std::string &, const std::complex<double> &)> &value_function);
+
+  /// @brief Constructor.
+  /// @arg steps: The sequence of steps in the schedule. Restricted to a vector
+  /// of double values.
+  /// @arg parameters: A sequence of strings representing the parameter names of
+  /// an operator expression.
+  /// @arg value_function: A function that takes the name of a parameter as well
+  /// as an additional value ("step") of std::complex<double> type as argument
+  /// and returns the complex value for that parameter at the given step.
+  schedule(const std::vector<double> &steps,
+           const std::vector<std::string> &parameters = {})
+      : schedule(toComplex(steps), parameters,
+                 [](const std::string &, const std::complex<double> &step)
+                     -> std::complex<double> { return step; }) {}
 
   /// Below, I define what I believe are the minimal necessary methods needed
   /// for this to behave like an iterable. This should be revisited in the
@@ -72,27 +100,27 @@ public:
 
   // Prefix increment.
   /// @brief Prefix increment operator to move to the next step in the schedule.
-  /// @return Reference to the updated Schedule object.
-  Schedule &operator++();
+  /// @return Reference to the updated schedule object.
+  schedule &operator++();
 
   // Postfix increment.
   /// @brief `Postfix` increment operator to move to the next step in the
   /// schedule.
-  /// @return Copy of the previous Schedule state.
-  Schedule operator++(int);
+  /// @return Copy of the previous schedule state.
+  schedule operator++(int);
 
   // Comparison.
   /// @brief Equality comparison operator.
-  /// @param a: First Schedule object.
-  /// @param b: Second Schedule object.
+  /// @param a: First schedule object.
+  /// @param b: Second schedule object.
   /// @return True if both schedules point to the same step, false otherwise
-  friend bool operator==(const Schedule &a, const Schedule &b);
+  friend bool operator==(const schedule &a, const schedule &b);
 
   /// @brief Inequality comparison operator.
-  /// @param a: First Schedule object.
-  /// @param b: Second Schedule object.
+  /// @param a: First schedule object.
+  /// @param b: Second schedule object.
   /// @return True if both schedules point to different steps, false otherwise
-  friend bool operator!=(const Schedule &a, const Schedule &b);
+  friend bool operator!=(const schedule &a, const schedule &b);
 
   /// @brief Reset the schedule iterator to the beginning.
   void reset();
@@ -101,5 +129,20 @@ public:
   /// @return The current complex step value as an optional. If no valid step,
   /// returns std::nullopt.
   std::optional<std::complex<double>> current_step() const;
+
+  std::vector<std::complex<double>>::iterator begin();
+  std::vector<std::complex<double>>::iterator end();
+  std::vector<std::complex<double>>::const_iterator begin() const;
+  std::vector<std::complex<double>>::const_iterator end() const;
+
+  /// @brief Get the parameters of the schedule.
+  /// @return The parameters of the schedule.
+  const std::vector<std::string> &get_parameters() const;
+
+  /// @brief Get the value function of the schedule.
+  /// @return The value function of the schedule.
+  const std::function<std::complex<double>(const std::string &,
+                                           const std::complex<double> &)>
+  get_value_function() const;
 };
 } // namespace cudaq
