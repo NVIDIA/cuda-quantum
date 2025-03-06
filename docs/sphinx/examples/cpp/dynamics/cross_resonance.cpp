@@ -94,9 +94,7 @@ int main() {
   // Use Runge-`Kutta` integrator (4`th` order) to solve the time-dependent
   // evolution. `dt` is the integration time step, and `order` sets the accuracy
   // of the integrator method.
-  cudaq::integrators::runge_kutta integrator;
-  integrator.dt = 0.0001;
-  integrator.order = 4;
+  cudaq::integrators::runge_kutta integrator(4, 0.0001);
 
   // The observables are the spin components along the x, y, and z directions
   // for both qubits. These observables will be measured during the evolution.

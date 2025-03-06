@@ -31,9 +31,7 @@ TEST(EvolveTester, checkSimple) {
   auto initialState =
       cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
 
-  cudaq::integrators::runge_kutta integrator;
-  integrator.dt = 0.001;
-  integrator.order = 1;
+  cudaq::integrators::runge_kutta integrator(1, 0.001);
   auto result = cudaq::__internal__::evolveSingle(
       ham, dims, schedule, initialState, integrator, {}, {pauliZ}, true);
   EXPECT_NE(result.get_expectation_values().size(), 0);
@@ -67,9 +65,7 @@ TEST(EvolveTester, checkSimpleRK4) {
   auto initialState =
       cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
 
-  cudaq::integrators::runge_kutta integrator;
-  integrator.dt = 0.001;
-  integrator.order = 4;
+  cudaq::integrators::runge_kutta integrator(4, 0.001);
   auto result = cudaq::__internal__::evolveSingle(
       ham, dims, schedule, initialState, integrator, {}, {pauliZ}, true);
   EXPECT_NE(result.get_expectation_values().size(), 0);
@@ -103,9 +99,7 @@ TEST(EvolveTester, checkDensityMatrixSimple) {
   auto initialState = cudaq::state::from_data(
       std::vector<std::complex<double>>{1.0, 0.0, 0.0, 0.0});
 
-  cudaq::integrators::runge_kutta integrator;
-  integrator.dt = 0.001;
-  integrator.order = 1;
+  cudaq::integrators::runge_kutta integrator(1, 0.001);
   auto result = cudaq::__internal__::evolveSingle(
       ham, dims, schedule, initialState, integrator, {}, {pauliZ}, true);
   EXPECT_NE(result.get_expectation_values().size(), 0);
@@ -156,9 +150,7 @@ TEST(EvolveTester, checkCompositeSystem) {
   cudaq::schedule schedule(steps, {"t"});
   auto initialState = cudaq::state::from_data(
       std::make_pair(initial_state_vec.data(), initial_state_vec.size()));
-  cudaq::integrators::runge_kutta integrator;
-  integrator.dt = 0.001;
-  integrator.order = 4;
+  cudaq::integrators::runge_kutta integrator(4, 0.001);
 
   auto result = cudaq::__internal__::evolveSingle(
       hamiltonian, dims, schedule, initialState, integrator, {},
@@ -211,9 +203,7 @@ TEST(EvolveTester, checkCompositeSystemWithCollapse) {
   cudaq::schedule schedule(timeSteps, {"t"});
   auto initialState =
       cudaq::state::from_data(std::make_pair(rho0.data(), rho0.size()));
-  cudaq::integrators::runge_kutta integrator;
-  integrator.dt = 0.001;
-  integrator.order = 4;
+  cudaq::integrators::runge_kutta integrator(4, 0.001);
   constexpr double decayRate = 0.1;
   cudaq::product_operator<cudaq::matrix_operator> collapsedOp_t =
       std::sqrt(decayRate) * a;
@@ -265,9 +255,7 @@ TEST(EvolveTester, checkScalarTd) {
   Eigen::MatrixXcd rho0 = initial_state_vec * initial_state_vec.transpose();
   auto initialState =
       cudaq::state::from_data(std::make_pair(rho0.data(), rho0.size()));
-  cudaq::integrators::runge_kutta integrator;
-  integrator.dt = 0.001;
-  integrator.order = 4;
+  cudaq::integrators::runge_kutta integrator(4, 0.001);
   auto result = cudaq::__internal__::evolveSingle(
       ham, dims, schedule, initialState, integrator, {collapseOp}, {obs}, true);
   EXPECT_NE(result.get_expectation_values().size(), 0);

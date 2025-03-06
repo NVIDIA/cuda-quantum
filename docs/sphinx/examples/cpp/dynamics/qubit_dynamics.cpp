@@ -34,10 +34,8 @@ int main() {
   std::vector<double> steps = cudaq::linspace(0.0, 10.0, 101);
   cudaq::schedule schedule(steps);
 
-  // Runge-`Kutta` integrator with a time step of 0.001 and order 4
-  cudaq::integrators::runge_kutta integrator;
-  integrator.dt = 0.01;
-  integrator.order = 4;
+  // Runge-`Kutta` integrator with a time step of 0.01 and order 4
+  cudaq::integrators::runge_kutta integrator(4, 0.01);
 
   // Run the simulation without collapse operators (ideal evolution)
   auto evolve_result = cudaq::evolve(

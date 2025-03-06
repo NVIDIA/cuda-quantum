@@ -324,7 +324,7 @@ if (CUDA_FOUND)
     gtest_main
     fmt::fmt-header-only)
   target_include_directories(test_dynamics PRIVATE ${CMAKE_SOURCE_DIR}/runtime/nvqir/cudensitymat)
-  gtest_discover_tests(test_dynamics)
+  gtest_discover_tests(test_dynamics PROPERTIES LABELS "gpu_required")
 
   # Multi-QPU evolve_async test
   add_executable(test_evolve_async mqpu/dynamics_async_tester.cpp)
@@ -351,7 +351,7 @@ if (CUDA_FOUND)
     execute_process(COMMAND bash -c "nvidia-smi --list-gpus | wc -l" OUTPUT_VARIABLE NGPUS)
     # Only add this test if we have more than 1 GPU
     if (${NGPUS} GREATER_EQUAL 2)
-      gtest_discover_tests(test_evolve_async)
+      gtest_discover_tests(test_evolve_async PROPERTIES LABELS "gpu_required;mgpus_required")
     endif()
   endif() 
 endif()

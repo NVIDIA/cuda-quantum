@@ -10,17 +10,22 @@
 #include "CuDensityMatErrorHandling.h"
 #include "CuDensityMatState.h"
 #include "CuDensityMatTimeStepper.h"
+#include "common/Logger.h"
 #include "cudaq/dynamics_integrators.h"
-
 namespace cudaq {
 namespace integrators {
 
-runge_kutta::runge_kutta() : m_t(0.0) {}
+runge_kutta::runge_kutta(int order, const std::optional<double> &max_step_size)
+    : m_t(0.0), m_order(order), m_dt(max_step_size) {
+  if (m_order != 1 && m_order != 2 && m_order != 4)
+    throw std::invalid_argument(
+        "runge_kutta integrator only supports integration order 1, 2, or 4.");
+}
 
 std::shared_ptr<base_integrator> runge_kutta::clone() {
   auto clone = std::make_shared<cudaq::integrators::runge_kutta>();
-  clone->order = this->order;
-  clone->dt = this->dt;
+  clone->m_order = this->m_order;
+  clone->m_dt = this->m_dt;
   clone->m_t = this->m_t;
   clone->m_state = this->m_state;
   clone->m_system = this->m_system;
@@ -70,25 +75,23 @@ void runge_kutta::integrate(double targetTime) {
     m_stepper = std::make_unique<CuDensityMatTimeStepper>(
         castSimState.get_handle(), liouvillian);
   }
-  const auto substeps = order.value_or(4);
   while (m_t < targetTime) {
-    double step_size =
-        std::min(dt.value_or(targetTime - m_t), targetTime - m_t);
+    const double step_size =
+        std::min(m_dt.value_or(targetTime - m_t), targetTime - m_t);
 
-    // std::cout << "Runge-Kutta step at time " << m_t
-    //           << " with step size: " << step_size << std::endl;
+    cudaq::debug("Runge-Kutta step at time {} with step size {}", m_t,
+                 step_size);
 
-    if (substeps == 1) {
+    if (m_order == 1) {
       // Euler method (1st order)
       for (const auto &param : m_schedule.get_parameters()) {
         params[param] = m_schedule.get_value_function()(param, m_t);
       }
       auto k1State = m_stepper->compute(*m_state, m_t, step_size, params);
       auto &k1 = *asCudmState(k1State);
-      // k1.dump(std::cout);
       k1 *= step_size;
       castSimState += k1;
-    } else if (substeps == 2) {
+    } else if (m_order == 2) {
       // Midpoint method (2nd order)
       for (const auto &param : m_schedule.get_parameters()) {
         params[param] = m_schedule.get_value_function()(param, m_t);
@@ -108,7 +111,7 @@ void runge_kutta::integrate(double targetTime) {
       k2 *= (step_size / 2.0);
 
       castSimState += k2;
-    } else if (substeps == 4) {
+    } else if (m_order == 4) {
       // Runge-Kutta method (4th order)
       for (const auto &param : m_schedule.get_parameters()) {
         params[param] = m_schedule.get_value_function()(param, m_t);
