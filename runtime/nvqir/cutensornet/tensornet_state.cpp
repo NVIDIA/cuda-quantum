@@ -10,6 +10,7 @@
 #include "common/EigenDense.h"
 #include <bitset>
 #include <cassert>
+#include <algorithm>
 
 namespace nvqir {
 std::int32_t TensorNetState::numHyperSamples = []() {
@@ -657,16 +658,13 @@ TensorNetState::factorizeMPS(int64_t maxExtent, double absCutoff,
 }
 
 std::vector<std::complex<double>> TensorNetState::computeExpVals(
-    const std::vector<std::vector<bool>> &symplecticRepr,
+    const std::vector<cudaq::spin_op_term> &product_terms,
     const std::optional<std::size_t> &numberTrajectories) {
   LOG_API_TIME();
-  if (symplecticRepr.empty())
+  if (product_terms.empty())
     return {};
 
   const std::size_t numQubits = getNumQubits();
-  const auto numSpinOps = symplecticRepr[0].size() / 2;
-  std::vector<std::complex<double>> allExpVals;
-  allExpVals.reserve(symplecticRepr.size());
 
   constexpr int ALIGNMENT_BYTES = 256;
   const int placeHolderArraySize = ALIGNMENT_BYTES * numQubits;
@@ -766,36 +764,51 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
       return numberTrajectories.value();
     return g_numberTrajectoriesForObserve;
   }();
-  for (const auto &term : symplecticRepr) {
+
+  std::vector<std::complex<double>> allExpVals;
+  allExpVals.reserve(product_terms.size());
+
+  constexpr int PAULI_ARRAY_SIZE_BYTES = 4 * sizeof(std::complex<double>);
+  for (const auto &prod : product_terms) {
     bool allIdOps = true;
-    for (std::size_t i = 0; i < numQubits; ++i) {
-      // Memory address of this Pauli term in the placeholder array.
-      auto *address = static_cast<char *>(pauliMats_h) + i * ALIGNMENT_BYTES;
-      constexpr int PAULI_ARRAY_SIZE_BYTES = 4 * sizeof(std::complex<double>);
+    auto ops = prod.get_terms();
+    auto offset = 0;
+    for (const auto &p : ops) { 
       // The Pauli matrix data that we want to load to this slot.
       // Default is the Identity matrix.
       const std::complex<double> *pauliMatrixPtr = PauliI_h;
-      if (i < numSpinOps) {
-        if (term[i] && term[i + numSpinOps]) {
-          // Y
-          allIdOps = false;
-          pauliMatrixPtr = PauliY_h;
-        } else if (term[i]) {
-          // X
-          allIdOps = false;
-          pauliMatrixPtr = PauliX_h;
-        } else if (term[i + numSpinOps]) {
-          // Z
-          allIdOps = false;
-          pauliMatrixPtr = PauliZ_h;
-        }
+      // FIXME: relies on canonicalization (specifically each target occurring at most once)
+      // We need to make sure to populate the identity for all qubits 
+      // that are not part of this term
+      // FIXME: RELIES ON ORDERING LEAST TO MOST
+      while(offset < p.target()) {
+        auto *address = static_cast<char *>(pauliMats_h) + offset++ * ALIGNMENT_BYTES;
+        std::memcpy(address, pauliMatrixPtr, PAULI_ARRAY_SIZE_BYTES);
+      }
+      // Memory address of this Pauli term in the placeholder array.
+      auto *address = static_cast<char *>(pauliMats_h) + offset++ * ALIGNMENT_BYTES;
+      auto pauli = p.as_pauli();
+      if (pauli == cudaq::pauli::Y) {
+        allIdOps = false;
+        pauliMatrixPtr = PauliY_h;
+      } else if (pauli == cudaq::pauli::X) {
+        allIdOps = false;
+        pauliMatrixPtr = PauliX_h;
+      } else if (pauli == cudaq::pauli::Z) {
+        allIdOps = false;
+        pauliMatrixPtr = PauliZ_h;
       }
       // Copy the Pauli matrix data to the placeholder array at the appropriate
       // slot.
       std::memcpy(address, pauliMatrixPtr, PAULI_ARRAY_SIZE_BYTES);
     }
+    const std::complex<double> *pauliMatrixPtr = PauliI_h;
+    while (offset < numQubits) {
+      auto *address = static_cast<char *>(pauliMats_h) + offset++ * ALIGNMENT_BYTES;
+      std::memcpy(address, pauliMatrixPtr, PAULI_ARRAY_SIZE_BYTES);
+    }
     if (allIdOps) {
-      allExpVals.emplace_back(1.0);
+      allExpVals.emplace_back(prod.get_coefficient().evaluate()); // fails if we have parameters
     } else {
       HANDLE_CUDA_ERROR(cudaMemcpy(pauliMats_d, pauliMats_h,
                                    placeHolderArraySize,
@@ -809,7 +822,7 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
             /*cudaStream*/ 0));
         expVal += (result / static_cast<double>(numObserveTrajectories));
       }
-      allExpVals.emplace_back(expVal);
+      allExpVals.emplace_back(expVal * prod.get_coefficient().evaluate()); // fails if we have parameters
     }
   }
 

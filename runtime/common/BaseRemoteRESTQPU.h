@@ -31,7 +31,7 @@
 #include "cudaq/Support/TargetConfig.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
-#include "cudaq/spin_op.h"
+#include "cudaq/operators.h"
 #include "nvqpp_config.h"
 #include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
@@ -518,8 +518,11 @@ public:
       mapping_reorder_idx.clear();
       runPassPipeline("canonicalize,cse", moduleOp);
       cudaq::spin_op &spin = *executionContext->spin.value();
-      for (const auto &term : spin) {
-        if (term.is_identity())
+      // FIXME: TO_STRING NEEDS TO BE HERE FOR THE SAME REASON
+      auto bsf_terms = spin.get_binary_symplectic_form();      
+      auto terms = spin.get_terms();
+      for (std::size_t i = 0; i < terms.size(); ++i) {
+        if (terms[i].is_identity())
           continue;
 
         // Get the ansatz
@@ -531,14 +534,11 @@ public:
         // Create a new Module to clone the ansatz into it
         auto tmpModuleOp = moduleOp.clone();
 
-        // Extract the binary symplectic encoding
-        auto [binarySymplecticForm, coeffs] = term.get_raw_data();
-
         // Create the pass manager, add the quake observe ansatz pass and run it
         // followed by the canonicalizer
         mlir::PassManager pm(&context);
         pm.addNestedPass<mlir::func::FuncOp>(
-            cudaq::opt::createObserveAnsatzPass(binarySymplecticForm[0]));
+            cudaq::opt::createObserveAnsatzPass(bsf_terms[i]));
         if (disableMLIRthreading || enablePrintMLIREachPass)
           tmpModuleOp.getContext()->disableMultithreading();
         if (enablePrintMLIREachPass)
@@ -555,7 +555,7 @@ public:
             runPassPipeline(pass, tmpModuleOp);
         if (!emulate && combineMeasurements)
           runPassPipeline("func.func(combine-measurements)", tmpModuleOp);
-        modules.emplace_back(term.to_string(false), tmpModuleOp);
+        modules.emplace_back(terms[i].to_string(false), tmpModuleOp);
       }
     } else
       modules.emplace_back(kernelName, moduleOp);

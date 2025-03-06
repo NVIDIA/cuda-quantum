@@ -14,7 +14,6 @@
 #include <utility>
 
 #include "cudaq/operators.h"
-#include "cudaq/spin_op.h"
 #include "evaluation.h"
 #include "helpers.h"
 
@@ -32,7 +31,7 @@ bool operator_handler::can_be_canonicalized = true;
 template <typename HandlerTy>
 bool product_operator<HandlerTy>::is_canonicalized() const {
   auto canon_degrees = this->degrees(false);
-  std::vector<int> degrees;
+  std::vector<std::size_t> degrees;
   degrees.reserve(canon_degrees.size());
   for (const auto &op : this->operators) {
     for (auto d : op.degrees())
@@ -60,9 +59,9 @@ product_operator<HandlerTy>::find_insert_at(const HandlerTy &other) {
   // The logic below ensures that terms are fully ordered in canonical order, as
   // long as the HandlerTy supports in-place multiplication.
   return std::find_if(this->operators.crbegin(), this->operators.crend(),
-                      [other_target = other.target](const HandlerTy &self_op) {
+                      [other_degree = other.degree](const HandlerTy &self_op) {
                         return !operator_handler::canonical_order(
-                            other_target, self_op.target);
+                            other_degree, self_op.degree);
                       })
       .base(); // base causes insert after for reverse iterator
 }
@@ -147,7 +146,7 @@ product_operator<fermion_operator>::find_insert_at(
   auto rit = std::find_if(
       this->operators.crbegin(), this->operators.crend(),
       [&negate_coefficient, &other](const fermion_operator &self_op) {
-        if (!operator_handler::canonical_order(other.target, self_op.target))
+        if (!operator_handler::canonical_order(other.degree, self_op.degree))
           return true;
         if (!other.commutes_across_degrees && !self_op.commutes_across_degrees)
           negate_coefficient = !negate_coefficient;
@@ -175,7 +174,7 @@ template <typename T,
                            std::true_type>>
 void product_operator<HandlerTy>::insert(T &&other) {
   auto pos = this->find_insert_at(other);
-  if (pos != this->operators.begin() && (pos - 1)->target == other.target) {
+  if (pos != this->operators.begin() && (pos - 1)->degree == other.degree) {
     auto it = this->operators.erase(
         pos - 1,
         pos - 1); // erase: constant time conversion to non-const iterator
@@ -191,7 +190,7 @@ template <typename T,
                            std::true_type>>
 void product_operator<spin_operator>::insert(T &&other) {
   auto pos = this->find_insert_at(other);
-  if (pos != this->operators.begin() && (pos - 1)->target == other.target) {
+  if (pos != this->operators.begin() && (pos - 1)->degree == other.degree) {
     auto it = this->operators.erase(
         pos - 1,
         pos - 1); // erase: constant time conversion to non-const iterator
@@ -334,15 +333,15 @@ INSTANTIATE_PRODUCT_EVALUATE_METHODS(fermion_operator,
 // read-only properties
 
 template <typename HandlerTy>
-std::vector<int>
+std::vector<std::size_t>
 product_operator<HandlerTy>::degrees(bool application_order) const {
-  std::set<int> unsorted_degrees;
+  std::set<std::size_t> unsorted_degrees;
   for (const HandlerTy &term : this->operators) {
     auto term_degrees = term.degrees();
     unsorted_degrees.insert(term_degrees.cbegin(), term_degrees.cend());
   }
   auto degrees =
-      std::vector<int>(unsorted_degrees.cbegin(), unsorted_degrees.cend());
+      std::vector<std::size_t>(unsorted_degrees.cbegin(), unsorted_degrees.cend());
   if (application_order)
     std::sort(degrees.begin(), degrees.end(),
               operator_handler::user_facing_order);
@@ -353,12 +352,14 @@ product_operator<HandlerTy>::degrees(bool application_order) const {
 }
 
 template <typename HandlerTy>
-int product_operator<HandlerTy>::num_terms() const {
+std::size_t product_operator<HandlerTy>::num_terms() const {
   return this->operators.size();
 }
 
 template <typename HandlerTy>
 const std::vector<HandlerTy> &product_operator<HandlerTy>::get_terms() const {
+  // FIXME: WE NEED TO RETURN THESE IN USER FACING ORDER BY DEFAULT!!
+  // SAME IN FOR_EACH_PAULI!
   return this->operators;
 }
 
@@ -369,10 +370,10 @@ scalar_operator product_operator<HandlerTy>::get_coefficient() const {
 
 #define INSTANTIATE_PRODUCT_PROPERTIES(HandlerTy)                              \
                                                                                \
-  template std::vector<int> product_operator<HandlerTy>::degrees(              \
+  template std::vector<std::size_t> product_operator<HandlerTy>::degrees(      \
       bool application_order) const;                                           \
                                                                                \
-  template int product_operator<HandlerTy>::num_terms() const;                 \
+  template std::size_t product_operator<HandlerTy>::num_terms() const;         \
                                                                                \
   template const std::vector<HandlerTy> &                                      \
   product_operator<HandlerTy>::get_terms() const;                              \
@@ -390,6 +391,10 @@ INSTANTIATE_PRODUCT_PROPERTIES(fermion_operator);
 
 template <typename HandlerTy>
 product_operator<HandlerTy>::product_operator(double coefficient)
+    : coefficient(coefficient) {}
+
+template <typename HandlerTy>
+product_operator<HandlerTy>::product_operator(std::complex<double> coefficient)
     : coefficient(coefficient) {}
 
 template <typename HandlerTy>
@@ -497,6 +502,9 @@ product_operator<HandlerTy>::product_operator(
 #define INSTANTIATE_PRODUCT_CONSTRUCTORS(HandlerTy)                            \
                                                                                \
   template product_operator<HandlerTy>::product_operator(double coefficient);  \
+                                                                               \
+  template product_operator<HandlerTy>::product_operator(                      \
+    std::complex<double> coefficient);                                         \
                                                                                \
   template product_operator<HandlerTy>::product_operator(                      \
       scalar_operator coefficient);                                            \
@@ -627,14 +635,16 @@ INSTANTIATE_PRODUCT_ASSIGNMENTS(fermion_operator);
 
 template <typename HandlerTy>
 std::string product_operator<HandlerTy>::to_string() const {
-  auto str = "(" + this->coefficient.to_string() + ") * ";
+  std::stringstream str;
+  str << this->coefficient.to_string();
+  if (this->operators.size() > 0) str << " * ";
   for (const auto &op : this->operators)
-    str += op.to_string(true);
-  return std::move(str);
+    str << op.to_string(true);
+  return str.str();
 }
 
 template <typename HandlerTy>
-matrix_2 product_operator<HandlerTy>::to_matrix(
+complex_matrix product_operator<HandlerTy>::to_matrix(
     std::unordered_map<int, int> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool application_order) const {
@@ -656,7 +666,7 @@ matrix_2 product_operator<HandlerTy>::to_matrix(
 }
 
 template <>
-matrix_2 product_operator<spin_operator>::to_matrix(
+complex_matrix product_operator<spin_operator>::to_matrix(
     std::unordered_map<int, int> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool application_order) const {
@@ -678,7 +688,7 @@ matrix_2 product_operator<spin_operator>::to_matrix(
                                                                                \
   template std::string product_operator<HandlerTy>::to_string() const;         \
                                                                                \
-  template matrix_2 product_operator<HandlerTy>::to_matrix(                    \
+  template complex_matrix product_operator<HandlerTy>::to_matrix(                    \
       std::unordered_map<int, int> dimensions,                                 \
       const std::unordered_map<std::string, std::complex<double>> &parameters, \
       bool application_order) const;
@@ -1241,11 +1251,13 @@ INSTANTIATE_PRODUCT_CONVERSION_OPS(-, operator_sum);
 
 // common operators
 
+// FIXME: remove
 template <typename HandlerTy>
 product_operator<HandlerTy> operator_handler::identity() {
   return product_operator<HandlerTy>(1.0);
 }
 
+// FIXME: remove
 template <typename HandlerTy>
 product_operator<HandlerTy> operator_handler::identity(int target) {
   static_assert(
@@ -1267,6 +1279,55 @@ template product_operator<boson_operator>
 operator_handler::identity(int target);
 template product_operator<fermion_operator>
 operator_handler::identity(int target);
+
+// handler specific operators
+
+#define HANDLER_SPECIFIC_TEMPLATE_DEFINITION(ConcreteTy)                                  \
+  template <typename HandlerTy>                                                           \
+  template <typename T, std::enable_if_t<                                                 \
+                                      std::is_same<HandlerTy, ConcreteTy>::value &&       \
+                                      std::is_same<HandlerTy, T>::value, bool>>
+
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_operator)
+std::string product_operator<HandlerTy>::get_pauli_word() const {
+  // no padding here (only covers the operators we have), and does not include the coefficient
+  std::unordered_map<int, int> dims;
+  auto terms = std::move(
+    this->evaluate(
+            operator_arithmetics<operator_handler::canonical_evaluation>(
+                dims, {})) // fails if operator is parameterized
+        .terms);
+  assert(terms.size() == 1);
+  return terms[0].second; // FIXME: USER FACING VS INTERNAL ORDERING!!
+}
+
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_operator)
+product_operator<HandlerTy> product_operator<HandlerTy>::identity() {
+  return product_operator<HandlerTy>(1.0);
+}
+
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_operator)
+product_operator<HandlerTy> product_operator<HandlerTy>::identity(int target) {
+  static_assert(
+      std::is_constructible_v<HandlerTy, int>,
+      "operator handlers must have a constructor that take a single degree of "
+      "freedom and returns the identity operator on that degree.");
+  return product_operator<HandlerTy>(1.0, HandlerTy(target));
+}
+
+#if !defined(__clang__)
+template std::string product_operator<spin_operator>::get_pauli_word() const;
+template product_operator<spin_operator> product_operator<spin_operator>::identity();
+template product_operator<spin_operator> product_operator<spin_operator>::identity(int target);
+#endif
+
+// functions for backwards compatibility
+
+#define SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION                                        \
+  template <typename HandlerTy>                                                           \
+  template <typename T, std::enable_if_t<                                                 \
+                                      std::is_same<HandlerTy, spin_operator>::value &&    \
+                                      std::is_same<HandlerTy, T>::value, bool>>
 
 #if defined(CUDAQ_INSTANTIATE_TEMPLATES)
 template class product_operator<matrix_operator>;

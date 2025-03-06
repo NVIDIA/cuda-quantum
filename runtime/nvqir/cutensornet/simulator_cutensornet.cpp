@@ -333,10 +333,9 @@ SimulatorTensorNetBase::sample(const std::vector<std::size_t> &measuredBits,
   LOG_API_TIME();
   std::vector<int32_t> measuredBitIds(measuredBits.begin(), measuredBits.end());
   if (shots < 1) {
-    cudaq::spin_op::spin_op_term allZTerm(2 * m_state->getNumQubits(), 0);
-    for (const auto &m : measuredBits)
-      allZTerm.at(m_state->getNumQubits() + m) = 1;
-    cudaq::spin_op allZ(allZTerm, 1.0);
+    auto allZ = cudaq::spin_op_term::identity();
+    for (std::size_t t = 0; t < m_state->getNumQubits(); ++t)
+      allZ *= cudaq::spin_op::z(t);
     // Just compute the expected value on <Z...Z>
     return cudaq::ExecutionResult({}, observe(allZ).expectation());
   }
@@ -402,41 +401,25 @@ SimulatorTensorNetBase::observe(const cudaq::spin_op &ham) {
     expVal += spinOp.getIdentityTermOffset();
     return cudaq::observe_result(expVal.real(), ham,
                                  cudaq::sample_result(cudaq::ExecutionResult(
-                                     {}, ham.to_string(false), expVal.real())));
+                                     {}, ham.to_string(), expVal.real())));
   }
 
   std::vector<std::string> termStrs;
-  std::vector<cudaq::spin_op::spin_op_term> terms;
-  std::vector<std::complex<double>> coeffs;
   termStrs.reserve(ham.num_terms());
-  terms.reserve(ham.num_terms());
-  coeffs.reserve(ham.num_terms());
-
-  // Note: as the spin_op terms are stored as an unordered map, we need to
-  // iterate in one loop to collect all the data (string, symplectic data, and
-  // coefficient).
-  ham.for_each_term([&](cudaq::spin_op &term) {
+  auto prods = ham.get_terms();
+  for (const auto &term : prods)
     termStrs.emplace_back(term.to_string(false));
-    auto [symplecticRep, coeff] = term.get_raw_data();
-    if (symplecticRep.size() != 1 || coeff.size() != 1)
-      throw std::runtime_error(fmt::format(
-          "Unexpected data encountered when iterating spin operator terms: "
-          "expecting a single term, got {} terms.",
-          symplecticRep.size()));
-    terms.emplace_back(symplecticRep[0]);
-    coeffs.emplace_back(coeff[0]);
-  });
 
   // Compute the expectation value for all terms
   const auto termExpVals = m_state->computeExpVals(
-      terms, this->executionContext->numberTrajectories);
+      prods, this->executionContext->numberTrajectories);
   std::complex<double> expVal = 0.0;
   // Construct per-term data in the final observe_result
   std::vector<cudaq::ExecutionResult> results;
-  results.reserve(terms.size());
+  results.reserve(prods.size());
 
-  for (std::size_t i = 0; i < terms.size(); ++i) {
-    expVal += (coeffs[i] * termExpVals[i]);
+  for (std::size_t i = 0; i < prods.size(); ++i) {
+    expVal += termExpVals[i];
     results.emplace_back(
         cudaq::ExecutionResult({}, termStrs[i], termExpVals[i].real()));
   }

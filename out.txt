@@ -1,0 +1,538 @@
+Build directory: /workspaces/cuda-quantum/build
+CUDA version 12.0 detected.
+Using cuQuantum installation in /usr/local/lib/python3.10/dist-packages/cuquantum.
+Using cuTensor installation in /usr/local/lib/python3.10/dist-packages/cutensor.
+Configuring nvq++ to use the lld linker by default.
+Preparing CUDA-Q build with LLVM installation in /usr/local/llvm...
+-- Submodule update
+-- CUDA Quantum static linking disabled.
+-- Using LLVMConfig.cmake in: /usr/local/llvm/lib/cmake/llvm
+-- Using ClangConfig.cmake in: /usr/local/llvm/lib/cmake/clang
+-- Using MLIRConfig.cmake in: /usr/local/llvm/lib/cmake/mlir
+-- Build type is Debug
+-- MPI CXX Found: /usr/local/openmpi/bin/mpiexec
+-- Building default MPI Comm plugin
+-- Module support is disabled.
+-- Version: 8.1.2
+-- Build type: Debug
+-- CXX_STANDARD: 20
+-- Required features: cxx_variadic_templates
+-- Build spdlog: 1.11.0
+-- Build type: Debug
+-- Using system curl for CPR.
+-- C++ Requests CMake Options
+-- =======================================================
+--   CPR_GENERATE_COVERAGE: OFF
+--   CPR_CURL_NOSIGNAL: OFF
+--   CPR_USE_SYSTEM_GTEST: OFF
+--   CPR_FORCE_USE_SYSTEM_CURL: TRUE
+--   CPR_ENABLE_SSL: ON
+--   CPR_FORCE_OPENSSL_BACKEND: ON
+--   CPR_FORCE_WINSSL_BACKEND: OFF
+--   CPR_FORCE_DARWINSSL_BACKEND: OFF
+--   CPR_FORCE_MBEDTLS_BACKEND: OFF
+--   CPR_ENABLE_LINTING: OFF
+--   CPR_ENABLE_CPPCHECK: OFF
+--   CPR_BUILD_TESTS: OFF
+--   CPR_BUILD_TESTS_SSL: OFF
+-- =======================================================
+-- Disabled SSL backend auto detect since either CPR_FORCE_OPENSSL_BACKEND, CPR_FORCE_DARWINSSL_BACKEND, CPR_FORCE_MBEDTLS_BACKEND, or CPR_FORCE_WINSSL_BACKEND is enabled.
+-- Using OpenSSL.
+-- Curl 8.5.0 found on this system.
+-- OpenMP Found. Adding interface definitions to target libqpp.
+-- Cuda language found.
+-- Building with -fPIC
+-- Building with -fPIC
+-- Building with -fPIC
+-- OpenSSL Found, building REST Client.
+-- OpenMP Found. Adding build flags to target nvqir-qpp: -fopenmp.
+-- OpenMP Found. Adding build flags to target nvqir-dm: -fopenmp.
+-- Found Python: /usr/bin/python3.10 (found version "3.10.12") found components: Interpreter Development Development.Module Development.Embed 
+-- Could NOT find pybind11 (missing: pybind11_DIR)
+-- CUSTATEVEC_ROOT and CUDA_FOUND - building custatevec NVQIR backend.
+-- CUSTATEVEC_LIB: /usr/local/lib/python3.10/dist-packages/cuquantum/lib/libcustatevec.so.1
+-- CUTENSOR_LIB: /usr/local/lib/python3.10/dist-packages/cutensor/lib/libcutensor.so.2
+-- CUTENSORNET_LIB: /usr/local/lib/python3.10/dist-packages/cuquantum/lib/libcutensornet.so.2
+-- CUTENSORNET_INC: /usr/local/lib/python3.10/dist-packages/cuquantum/include/cutensornet.h
+-- Found cutensornet version: 2.6.0
+-- cudensitymat header: /usr/local/lib/python3.10/dist-packages/cuquantum/include/cudensitymat.h
+-- Building with -fPIC
+-- OpenMP Found. Adding build flags to target cudaq-em-photonics: -fopenmp.
+-- OpenMP Found. Adding build flags to target cudaq-ensmallen: -fopenmp.
+-- Building with -fPIC
+-- Building REST QPU.
+-- Found AWS SDK for C++, Version: 1.11.454, Install Root:/usr/local/aws, Platform Prefix:, Platform Dependent Libraries: pthread;curl
+-- Components specified for AWSSDK: braket;s3-crt;sts, application will be depending on libs: aws-cpp-sdk-braket;aws-cpp-sdk-s3-crt;aws-cpp-sdk-sts;aws-cpp-sdk-core;aws-crt-cpp;aws-c-http;aws-c-mqtt;aws-c-cal;aws-c-auth;aws-c-common;aws-c-io;aws-checksums;aws-c-event-stream;aws-c-s3;aws-c-compression;aws-c-sdkutils;pthread;curl
+-- Try finding aws-cpp-sdk-core
+-- LibCrypto Include Dir: /usr/local/openssl/include
+-- LibCrypto Shared Lib:  crypto_SHARED_LIBRARY-NOTFOUND
+-- LibCrypto Static Lib:  crypto_STATIC_LIBRARY-NOTFOUND
+-- Found aws-cpp-sdk-core
+-- Try finding aws-cpp-sdk-sts
+-- Found aws-cpp-sdk-sts
+-- Try finding aws-cpp-sdk-s3-crt
+-- Found aws-cpp-sdk-s3-crt
+-- Try finding aws-cpp-sdk-braket
+-- Found aws-cpp-sdk-braket
+-- Found AWS SDK for C++, Version: 1.11.454, Install Root:/usr/local/aws, Platform Prefix:, Platform Dependent Libraries: pthread;curl
+-- Components specified for AWSSDK: braket;s3-crt;sts, application will be depending on libs: aws-cpp-sdk-braket;aws-cpp-sdk-s3-crt;aws-cpp-sdk-sts;aws-cpp-sdk-core;aws-crt-cpp;aws-c-http;aws-c-mqtt;aws-c-cal;aws-c-auth;aws-c-common;aws-c-io;aws-checksums;aws-c-event-stream;aws-c-s3;aws-c-compression;aws-c-sdkutils;pthread;curl
+-- Try finding aws-cpp-sdk-core
+-- LibCrypto Include Dir: /usr/local/openssl/include
+-- LibCrypto Shared Lib:  crypto_SHARED_LIBRARY-NOTFOUND
+-- LibCrypto Static Lib:  crypto_STATIC_LIBRARY-NOTFOUND
+-- Found aws-cpp-sdk-core
+-- Try finding aws-cpp-sdk-sts
+-- Found aws-cpp-sdk-sts
+-- Try finding aws-cpp-sdk-s3-crt
+-- Found aws-cpp-sdk-s3-crt
+-- Try finding aws-cpp-sdk-braket
+-- Found aws-cpp-sdk-braket
+-- Could NOT find PkgConfig (missing: PKG_CONFIG_EXECUTABLE) 
+-- Minizip found: /usr/local/zlib/lib/libminizip.a and /usr/local/zlib/include/minizip/unzip.h
+-- Building ORCA REST QPU.
+-- Building Fermioniq REST QPU.
+-- Building QuEra REST QPU.
+-- Building Pasqal REST QPU.
+-- Building with -fPIC
+-- OpenMP Found. Adding build flags to target cudaq-chemistry: -fopenmp.
+-- OpenMP Found. Adding build flags to target cudaq-operator: -fopenmp.
+-- Building with -fPIC
+-- Building with -fPIC
+-- Building cutensornet backend tests.
+-- Building with -fPIC
+-- Registering CustomPassPlugin as a pass plugin (static build: OFF)
+-- Found Python: /usr/bin/python3.10 (found version "3.10.12") found components: Interpreter 
+-- OpenMP Found. Adding build flags to target nvqir-qpp-observe-test: -fopenmp.
+-- Building with -fPIC
+-- Configuring done (6.5s)
+-- Generating done (0.2s)
+-- Build files have been written to: /workspaces/cuda-quantum/build
+Building CUDA-Q with configuration Debug...
+[1/8] Building CXX object runtime/nvqir/cutensornet/CMakeFiles/nvqir-tensornet-mps.dir/tensornet_spin_op.cpp.o
+[2/8] Building CXX object runtime/nvqir/cutensornet/CMakeFiles/nvqir-tensornet.dir/tensornet_spin_op.cpp.o
+[3/8] Linking CXX shared library lib/libnvqir-tensornet.so
+[4/8] Linking CXX executable unittests/test_tensornet_observe_path_reuse
+[5/8] Linking CXX shared library lib/libnvqir-tensornet-mps.so
+[6/8] Linking CXX executable unittests/test_runtime_tensornet
+[7/8] Linking CXX executable unittests/test_runtime_tensornet-mps
+[7/8] Install the project...
+-- Install configuration: "Debug"
+-- Up-to-date: /usr/local/cudaq/lib/plugins/libcudaq-comm-plugin.so
+-- Up-to-date: /usr/local/cudaq/lib/libfmtd.a
+-- Up-to-date: /usr/local/cudaq/include/fmt/args.h
+-- Up-to-date: /usr/local/cudaq/include/fmt/chrono.h
+-- Up-to-date: /usr/local/cudaq/include/fmt/color.h
+-- Up-to-date: /usr/local/cudaq/include/fmt/compile.h
+-- Up-to-date: /usr/local/cudaq/include/fmt/core.h
+-- Up-to-date: /usr/local/cudaq/include/fmt/format.h
+-- Up-to-date: /usr/local/cudaq/include/fmt/format-inl.h
+-- Up-to-date: /usr/local/cudaq/include/fmt/os.h
+-- Up-to-date: /usr/local/cudaq/include/fmt/ostream.h
+-- Up-to-date: /usr/local/cudaq/include/fmt/printf.h
+-- Up-to-date: /usr/local/cudaq/include/fmt/ranges.h
+-- Up-to-date: /usr/local/cudaq/include/fmt/std.h
+-- Up-to-date: /usr/local/cudaq/include/fmt/xchar.h
+-- Up-to-date: /usr/local/cudaq/lib/cmake/fmt/fmt-config.cmake
+-- Up-to-date: /usr/local/cudaq/lib/cmake/fmt/fmt-config-version.cmake
+-- Up-to-date: /usr/local/cudaq/lib/cmake/fmt/fmt-targets.cmake
+-- Up-to-date: /usr/local/cudaq/lib/cmake/fmt/fmt-targets-debug.cmake
+-- Up-to-date: /usr/local/cudaq/lib/pkgconfig/fmt.pc
+-- Up-to-date: /usr/local/cudaq/lib/libcpr.a
+-- Up-to-date: /usr/local/cudaq/lib/cmake/cpr/cprTargets.cmake
+-- Up-to-date: /usr/local/cudaq/lib/cmake/cpr/cprTargets-debug.cmake
+-- Up-to-date: /usr/local/cudaq/lib/cmake/cpr/cprConfig.cmake
+-- Up-to-date: /usr/local/cudaq/lib/cmake/cpr/cprConfigVersion.cmake
+-- Up-to-date: /usr/local/cudaq/include/cpr
+-- Up-to-date: /usr/local/cudaq/include/cpr/session.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/unix_socket.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/payload.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/curlholder.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/cprtypes.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/error.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/singleton.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/file.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/accept_encoding.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/cookies.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/limit_rate.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/api.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/util.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/redirect.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/threadpool.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/status_codes.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/bearer.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/connect_timeout.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/auth.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/verbose.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/curl_container.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/proxies.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/callback.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/multipart.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/low_speed.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/interface.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/proxyauth.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/cpr.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/ssl_options.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/body.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/http_version.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/timeout.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/buffer.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/response.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/local_port_range.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/async.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/ssl_ctx.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/cert_info.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/range.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/parameters.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/interceptor.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/reserve_size.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/local_port.h
+-- Up-to-date: /usr/local/cudaq/include/cpr/user_agent.h
+-- Up-to-date: /usr/local/cudaq/include/cpr
+-- Up-to-date: /usr/local/cudaq/include/cpr/cprver.h
+-- Up-to-date: /usr/local/cudaq/include
+-- Up-to-date: /usr/local/cudaq/include/crow.h
+-- Up-to-date: /usr/local/cudaq/include/crow
+-- Up-to-date: /usr/local/cudaq/include/crow/logging.h
+-- Up-to-date: /usr/local/cudaq/include/crow/mustache.h
+-- Up-to-date: /usr/local/cudaq/include/crow/routing.h
+-- Up-to-date: /usr/local/cudaq/include/crow/task_timer.h
+-- Up-to-date: /usr/local/cudaq/include/crow/json.h
+-- Up-to-date: /usr/local/cudaq/include/crow/mime_types.h
+-- Up-to-date: /usr/local/cudaq/include/crow/middleware_context.h
+-- Up-to-date: /usr/local/cudaq/include/crow/socket_adaptors.h
+-- Up-to-date: /usr/local/cudaq/include/crow/utility.h
+-- Up-to-date: /usr/local/cudaq/include/crow/parser.h
+-- Up-to-date: /usr/local/cudaq/include/crow/returnable.h
+-- Up-to-date: /usr/local/cudaq/include/crow/common.h
+-- Up-to-date: /usr/local/cudaq/include/crow/app.h
+-- Up-to-date: /usr/local/cudaq/include/crow/http_request.h
+-- Up-to-date: /usr/local/cudaq/include/crow/query_string.h
+-- Up-to-date: /usr/local/cudaq/include/crow/version.h
+-- Up-to-date: /usr/local/cudaq/include/crow/http_parser_merged.h
+-- Up-to-date: /usr/local/cudaq/include/crow/http_server.h
+-- Up-to-date: /usr/local/cudaq/include/crow/compression.h
+-- Up-to-date: /usr/local/cudaq/include/crow/middleware.h
+-- Up-to-date: /usr/local/cudaq/include/crow/multipart.h
+-- Up-to-date: /usr/local/cudaq/include/crow/http_connection.h
+-- Up-to-date: /usr/local/cudaq/include/crow/http_response.h
+-- Up-to-date: /usr/local/cudaq/include/crow/middlewares
+-- Up-to-date: /usr/local/cudaq/include/crow/middlewares/session.h
+-- Up-to-date: /usr/local/cudaq/include/crow/middlewares/cookie_parser.h
+-- Up-to-date: /usr/local/cudaq/include/crow/middlewares/cors.h
+-- Up-to-date: /usr/local/cudaq/include/crow/middlewares/utf-8.h
+-- Up-to-date: /usr/local/cudaq/include/crow/ci_map.h
+-- Up-to-date: /usr/local/cudaq/include/crow/settings.h
+-- Up-to-date: /usr/local/cudaq/include/crow/TinySHA1.hpp
+-- Up-to-date: /usr/local/cudaq/include/crow/websocket.h
+-- Up-to-date: /usr/local/cudaq/lib/cmake/Crow/CrowTargets.cmake
+-- Up-to-date: /usr/local/cudaq/lib/cmake/Crow/Findasio.cmake
+-- Up-to-date: /usr/local/cudaq/lib/cmake/Crow/CrowConfig.cmake
+-- Up-to-date: /usr/local/cudaq/lib/cmake/cudaq/CUDAQCommonConfig.cmake
+-- Up-to-date: /usr/local/cudaq/lib/cmake/cudaq/CUDAQEmDefaultConfig.cmake
+-- Up-to-date: /usr/local/cudaq/lib/cmake/cudaq/CUDAQNloptConfig.cmake
+-- Up-to-date: /usr/local/cudaq/lib/cmake/cudaq/CUDAQOperatorConfig.cmake
+-- Up-to-date: /usr/local/cudaq/lib/cmake/cudaq/CUDAQConfig.cmake
+-- Up-to-date: /usr/local/cudaq/lib/cmake/cudaq/CUDAQEnsmallenConfig.cmake
+-- Up-to-date: /usr/local/cudaq/lib/cmake/cudaq/CUDAQPlatformDefaultConfig.cmake
+-- Up-to-date: /usr/local/cudaq/lib/cmake/cudaq/CUDAQPythonInteropConfig.cmake
+-- Up-to-date: /usr/local/cudaq/lib/cmake/cudaq/CMakeCUDAQCompiler.cmake.in
+-- Up-to-date: /usr/local/cudaq/lib/cmake/cudaq/CMakeCUDAQInformation.cmake
+-- Up-to-date: /usr/local/cudaq/lib/cmake/cudaq/CMakeDetermineCUDAQCompiler.cmake
+-- Up-to-date: /usr/local/cudaq/lib/cmake/cudaq/CMakeTestCUDAQCompiler.cmake
+-- Up-to-date: /usr/local/cudaq/lib/cmake/nvqir/NVQIRConfig.cmake
+-- Up-to-date: /usr/local/cudaq/lib/libcudaq-mlirgen.a
+-- Up-to-date: /usr/local/cudaq/lib/libOptimBuilder.a
+-- Up-to-date: /usr/local/cudaq/lib/libOptCodeGen.a
+-- Up-to-date: /usr/local/cudaq/lib/libOptCodeGen.a
+-- Up-to-date: /usr/local/cudaq/lib/libCCDialect.a
+-- Up-to-date: /usr/local/cudaq/lib/libCCDialect.a
+-- Up-to-date: /usr/local/cudaq/lib/libQuakeDialect.a
+-- Up-to-date: /usr/local/cudaq/lib/libQuakeDialect.a
+-- Up-to-date: /usr/local/cudaq/lib/libOptTransforms.a
+-- Up-to-date: /usr/local/cudaq/lib/libOptTransforms.a
+-- Up-to-date: /usr/local/cudaq/lib/libCUDAQuantumMLIRCAPI.a
+-- Up-to-date: /usr/local/cudaq/lib/objects-Debug/obj.CUDAQuantumMLIRCAPI/Dialects.cpp.o
+-- Up-to-date: /usr/local/cudaq/lib/libCUDAQSupport.a
+-- Up-to-date: /usr/local/cudaq/lib/libCUDAQTargetConfigUtil.a
+-- Up-to-date: /usr/local/cudaq/lib/libcudaq-common.so
+-- Up-to-date: /usr/local/cudaq/lib/cmake/cudaq/CUDAQCommonTargets.cmake
+-- Up-to-date: /usr/local/cudaq/lib/cmake/cudaq/CUDAQCommonTargets-debug.cmake
+-- Up-to-date: /usr/local/cudaq/./cacert.pem
+-- Up-to-date: /usr/local/cudaq/lib/libcudaq-mlir-runtime.so
+-- Up-to-date: /usr/local/cudaq/lib/libnvqir.so
+-- Up-to-date: /usr/local/cudaq/lib/libnvqir-qpp.so
+-- Up-to-date: /usr/local/cudaq/lib/libnvqir-dm.so
+-- Up-to-date: /usr/local/cudaq/targets/qpp-cpu.yml
+-- Up-to-date: /usr/local/cudaq/targets/density-matrix-cpu.yml
+-- Up-to-date: /usr/local/cudaq/lib/libnvqir-stim.so
+-- Up-to-date: /usr/local/cudaq/targets/stim.yml
+-- Up-to-date: /usr/local/cudaq/lib/libnvqir-custatevec-kernels.so
+-- Up-to-date: /usr/local/cudaq/lib/libnvqir-custatevec-fp64.so
+-- Up-to-date: /usr/local/cudaq/lib/libnvqir-custatevec-fp32.so
+-- Up-to-date: /usr/local/cudaq/include/nvqir/CuStateVecCircuitSimulator.h
+-- Installing: /usr/local/cudaq/lib/libnvqir-tensornet.so
+-- Up-to-date: /usr/local/cudaq/targets/tensornet.yml
+-- Installing: /usr/local/cudaq/lib/libnvqir-tensornet-mps.so
+-- Up-to-date: /usr/local/cudaq/targets/tensornet-mps.yml
+-- Up-to-date: /usr/local/cudaq/lib/libnvqir-dynamics.so
+-- Up-to-date: /usr/local/cudaq/lib/cmake/nvqir/NVQIRTargets.cmake
+-- Up-to-date: /usr/local/cudaq/lib/cmake/nvqir/NVQIRTargets-debug.cmake
+-- Up-to-date: /usr/local/cudaq/lib/libcudaq-em-default.so
+-- Up-to-date: /usr/local/cudaq/lib/cmake/cudaq/CUDAQEmDefaultTargets.cmake
+-- Up-to-date: /usr/local/cudaq/lib/cmake/cudaq/CUDAQEmDefaultTargets-debug.cmake
+-- Up-to-date: /usr/local/cudaq/lib/libcudaq-em-photonics.so
+-- Up-to-date: /usr/local/cudaq/lib/cmake/cudaq/CUDAQEmPhotonicsTargets.cmake
+-- Up-to-date: /usr/local/cudaq/lib/cmake/cudaq/CUDAQEmPhotonicsTargets-debug.cmake
+-- Up-to-date: /usr/local/cudaq/targets/orca-photonics.yml
+-- Up-to-date: /usr/local/cudaq/lib/libcudaq-nlopt.so
+-- Up-to-date: /usr/local/cudaq/lib/cmake/cudaq/CUDAQNloptTargets.cmake
+-- Up-to-date: /usr/local/cudaq/lib/cmake/cudaq/CUDAQNloptTargets-debug.cmake
+-- Up-to-date: /usr/local/cudaq/lib/libcudaq-ensmallen.so
+-- Up-to-date: /usr/local/cudaq/lib/cmake/cudaq/CUDAQEnsmallenTargets.cmake
+-- Up-to-date: /usr/local/cudaq/lib/cmake/cudaq/CUDAQEnsmallenTargets-debug.cmake
+-- Up-to-date: /usr/local/cudaq/lib/libcudaq-platform-default.so
+-- Up-to-date: /usr/local/cudaq/lib/cmake/cudaq/CUDAQPlatformDefaultTargets.cmake
+-- Up-to-date: /usr/local/cudaq/lib/cmake/cudaq/CUDAQPlatformDefaultTargets-debug.cmake
+-- Up-to-date: /usr/local/cudaq/targets/anyon.yml
+-- Up-to-date: /usr/local/cudaq/targets/mapping/anyon/berkeley-25q.txt
+-- Up-to-date: /usr/local/cudaq/targets/mapping/anyon/telegraph-8q.txt
+-- Up-to-date: /usr/local/cudaq/lib/libcudaq-serverhelper-anyon.so
+-- Up-to-date: /usr/local/cudaq/targets/infleqtion.yml
+-- Up-to-date: /usr/local/cudaq/lib/libcudaq-serverhelper-infleqtion.so
+-- Up-to-date: /usr/local/cudaq/targets/ionq.yml
+-- Up-to-date: /usr/local/cudaq/lib/libcudaq-serverhelper-ionq.so
+-- Up-to-date: /usr/local/cudaq/targets/iqm.yml
+-- Up-to-date: /usr/local/cudaq/targets/mapping/iqm/Adonis.txt
+-- Up-to-date: /usr/local/cudaq/targets/mapping/iqm/Apollo.txt
+-- Up-to-date: /usr/local/cudaq/targets/mapping/iqm/Aphrodite.txt
+-- Up-to-date: /usr/local/cudaq/lib/libcudaq-serverhelper-iqm.so
+-- Up-to-date: /usr/local/cudaq/targets/oqc.yml
+-- Up-to-date: /usr/local/cudaq/lib/libcudaq-serverhelper-oqc.so
+-- Up-to-date: /usr/local/cudaq/targets/mapping/oqc/lucy.txt
+-- Up-to-date: /usr/local/cudaq/targets/mapping/oqc/toshiko.txt
+-- Up-to-date: /usr/local/cudaq/targets/quantinuum.yml
+-- Up-to-date: /usr/local/cudaq/lib/libcudaq-serverhelper-quantinuum.so
+-- Up-to-date: /usr/local/cudaq/targets/braket.yml
+-- Up-to-date: /usr/local/cudaq/lib/libcudaq-serverhelper-braket.so
+-- Up-to-date: /usr/local/cudaq/lib/libcudaq-rest-qpu.so
+-- Up-to-date: /usr/local/cudaq/lib/librest-remote-platform-client.so
+-- Up-to-date: /usr/local/cudaq/lib/librest-remote-platform-server.so
+-- Up-to-date: /usr/local/cudaq/targets/opt-test.yml
+-- Up-to-date: /usr/local/cudaq/targets/nvidia.yml
+-- Up-to-date: /usr/local/cudaq/targets/nvidia-fp64.yml
+-- Up-to-date: /usr/local/cudaq/lib/libcudaq-orca-qpu.so
+-- Up-to-date: /usr/local/cudaq/targets/orca.yml
+-- Up-to-date: /usr/local/cudaq/lib/libcudaq-remote-simulator-qpu.so
+-- Up-to-date: /usr/local/cudaq/targets/nvidia-mqpu.yml
+-- Up-to-date: /usr/local/cudaq/targets/nvidia-mqpu-mps.yml
+-- Up-to-date: /usr/local/cudaq/targets/nvidia-mqpu-fp64.yml
+-- Up-to-date: /usr/local/cudaq/lib/libcudaq-platform-mqpu.so
+-- Up-to-date: /usr/local/cudaq/targets/remote-mqpu.yml
+-- Up-to-date: /usr/local/cudaq/targets/nvqc.yml
+-- Up-to-date: /usr/local/cudaq/lib/libcudaq-fermioniq-qpu.so
+-- Up-to-date: /usr/local/cudaq/targets/fermioniq.yml
+-- Up-to-date: /usr/local/cudaq/lib/libcudaq-serverhelper-fermioniq.so
+-- Up-to-date: /usr/local/cudaq/lib/libcudaq-quera-qpu.so
+-- Up-to-date: /usr/local/cudaq/targets/quera.yml
+-- Up-to-date: /usr/local/cudaq/lib/libcudaq-serverhelper-quera.so
+-- Up-to-date: /usr/local/cudaq/lib/libcudaq-pasqal-qpu.so
+-- Up-to-date: /usr/local/cudaq/targets/pasqal.yml
+-- Up-to-date: /usr/local/cudaq/lib/libcudaq-builder.so
+-- Up-to-date: /usr/local/cudaq/lib/libcudaq-chemistry.so
+-- Up-to-date: /usr/local/cudaq/lib/libcudaq-operator.so
+-- Up-to-date: /usr/local/cudaq/lib/cmake/cudaq/CUDAQOperatorTargets.cmake
+-- Up-to-date: /usr/local/cudaq/lib/cmake/cudaq/CUDAQOperatorTargets-debug.cmake
+-- Up-to-date: /usr/local/cudaq/lib/libcudaq.so
+-- Up-to-date: /usr/local/cudaq/lib/cmake/cudaq/CUDAQTargets.cmake
+-- Up-to-date: /usr/local/cudaq/lib/cmake/cudaq/CUDAQTargets-debug.cmake
+-- Up-to-date: /usr/local/cudaq/distributed_interfaces/distributed_capi.h
+-- Up-to-date: /usr/local/cudaq/distributed_interfaces/mpi_comm_impl.cpp
+-- Up-to-date: /usr/local/cudaq/distributed_interfaces/activate_custom_mpi.sh
+-- Up-to-date: /usr/local/cudaq/include/cudaq
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/orca
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/orca/OrcaRemoteRESTQPU.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/orca/OrcaExecutor.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/orca/OrcaServerHelper.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/orca/orca_qpu.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/fermioniq
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/fermioniq/helpers
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/fermioniq/FermioniqBaseQPU.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/mqpu
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/mqpu/remote
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/mqpu/custatevec
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/mqpu/helpers
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/mqpu/helpers/MQPUUtils.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/QuantumExecutionQueue.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/qpu.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/pasqal
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/pasqal/PasqalBaseQPU.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/pasqal/PasqalServerHelper.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/common
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/default
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/default/rest
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/default/rest/helpers
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/default/rest/helpers/quantinuum
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/default/rest/helpers/anyon
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/default/rest/helpers/infleqtion
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/default/rest/helpers/ionq
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/default/rest/helpers/iqm
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/default/rest/helpers/oqc
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/default/rest/helpers/braket
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/default/rest_server
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/default/rest_server/helpers
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/default/rest_server/helpers/server_impl
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/default/rest_server/helpers/server_impl/RestServer.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/quantum_platform.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/quera
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/quera/QuEraServerHelper.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/platform/quera/QuEraBaseQPU.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/qis
+-- Up-to-date: /usr/local/cudaq/include/cudaq/qis/pauli_word.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/qis/qudit.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/qis/state.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/qis/managers
+-- Up-to-date: /usr/local/cudaq/include/cudaq/qis/managers/default
+-- Up-to-date: /usr/local/cudaq/include/cudaq/qis/managers/photonics
+-- Up-to-date: /usr/local/cudaq/include/cudaq/qis/managers/photonics/photonics_qis.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/qis/managers/BasicExecutionManager.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/qis/modifiers.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/qis/qvector.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/qis/execution_manager.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/qis/qreg.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/qis/qkernel.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/qis/qarray.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/qis/qview.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/qis/remote_state.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/qis/qspan.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/qis/qubit_qis.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/schedule.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/optimizers.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/simulators.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/target_control.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/operators.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/builder.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/kernels
+-- Up-to-date: /usr/local/cudaq/include/cudaq/kernels/fermionic_swap.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/kernels/givens_rotation.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/concepts.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/algorithms
+-- Up-to-date: /usr/local/cudaq/include/cudaq/algorithms/resource_estimation.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/algorithms/get_state.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/algorithms/observe.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/algorithms/gradients
+-- Up-to-date: /usr/local/cudaq/include/cudaq/algorithms/gradients/parameter_shift.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/algorithms/gradients/forward_difference.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/algorithms/gradients/central_difference.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/algorithms/state.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/algorithms/draw.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/algorithms/gradient.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/algorithms/optimizer.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/algorithms/broadcast.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/algorithms/sample.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/algorithms/optimizers
+-- Up-to-date: /usr/local/cudaq/include/cudaq/algorithms/optimizers/ensmallen
+-- Up-to-date: /usr/local/cudaq/include/cudaq/algorithms/optimizers/ensmallen/ensmallen.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/algorithms/optimizers/nlopt
+-- Up-to-date: /usr/local/cudaq/include/cudaq/algorithms/optimizers/nlopt/nlopt.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/algorithms/vqe.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/algorithms/evolve.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/host_config.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/domains
+-- Up-to-date: /usr/local/cudaq/include/cudaq/domains/chemistry.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/domains/chemistry
+-- Up-to-date: /usr/local/cudaq/include/cudaq/domains/chemistry/hwe.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/domains/chemistry/molecule.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/domains/chemistry/MoleculePackageDriver.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/domains/chemistry/uccsd.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/utils
+-- Up-to-date: /usr/local/cudaq/include/cudaq/utils/registry.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/utils/cudaq_utils.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/utils/matrix.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/Todo.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/orca.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/remote_capabilities.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/algorithm.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/dynamics
+-- Up-to-date: /usr/local/cudaq/include/cudaq/dynamics/evaluation.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/dynamics/boson_operators.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/dynamics/spin_operators.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/dynamics/templates.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/dynamics/fermion_operators.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/dynamics/matrix_operators.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/dynamics/callback.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/dynamics/operator_leafs.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/dynamics/helpers.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/distributed
+-- Up-to-date: /usr/local/cudaq/include/cudaq/distributed/builtin
+-- Up-to-date: /usr/local/cudaq/include/cudaq/distributed/mpi_plugin.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/distributed/distributed_capi.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/gradients.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/photonics.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/builder
+-- Up-to-date: /usr/local/cudaq/include/cudaq/builder/QuakeValue.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/builder/kernels.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq/builder/kernel_builder.h
+-- Up-to-date: /usr/local/cudaq/include/common
+-- Up-to-date: /usr/local/cudaq/include/common/EigenSparse.h
+-- Up-to-date: /usr/local/cudaq/include/common/RuntimeMLIRCommonImpl.h
+-- Up-to-date: /usr/local/cudaq/include/common/Trace.h
+-- Up-to-date: /usr/local/cudaq/include/common/RuntimeMLIR.h
+-- Up-to-date: /usr/local/cudaq/include/common/KernelWrapper.h
+-- Up-to-date: /usr/local/cudaq/include/common/ThunkInterface.h
+-- Up-to-date: /usr/local/cudaq/include/common/AnalogHamiltonian.h
+-- Up-to-date: /usr/local/cudaq/include/common/Timing.h
+-- Up-to-date: /usr/local/cudaq/include/common/EvolveResult.h
+-- Up-to-date: /usr/local/cudaq/include/common/BaseRestRemoteClient.h
+-- Up-to-date: /usr/local/cudaq/include/common/Resources.h
+-- Up-to-date: /usr/local/cudaq/include/common/SerializedCodeExecutionContext.h
+-- Up-to-date: /usr/local/cudaq/include/common/SimulationState.h
+-- Up-to-date: /usr/local/cudaq/include/common/ArgumentWrapper.h
+-- Up-to-date: /usr/local/cudaq/include/common/BraketExecutor.h
+-- Up-to-date: /usr/local/cudaq/include/common/ServerHelper.h
+-- Up-to-date: /usr/local/cudaq/include/common/GPUInfo.h
+-- Up-to-date: /usr/local/cudaq/include/common/EigenDense.h
+-- Up-to-date: /usr/local/cudaq/include/common/Executor.h
+-- Up-to-date: /usr/local/cudaq/include/common/BraketServerHelper.h
+-- Up-to-date: /usr/local/cudaq/include/common/RestClient.h
+-- Up-to-date: /usr/local/cudaq/include/common/NvqcConfig.h
+-- Up-to-date: /usr/local/cudaq/include/common/Environment.h
+-- Up-to-date: /usr/local/cudaq/include/common/Registry.h
+-- Up-to-date: /usr/local/cudaq/include/common/UnzipUtils.h
+-- Up-to-date: /usr/local/cudaq/include/common/BaseRemoteRESTQPU.h
+-- Up-to-date: /usr/local/cudaq/include/common/MeasureCounts.h
+-- Up-to-date: /usr/local/cudaq/include/common/RemoteKernelExecutor.h
+-- Up-to-date: /usr/local/cudaq/include/common/PluginUtils.h
+-- Up-to-date: /usr/local/cudaq/include/common/Logger.h
+-- Up-to-date: /usr/local/cudaq/include/common/ExecutionContext.h
+-- Up-to-date: /usr/local/cudaq/include/common/CustomOp.h
+-- Up-to-date: /usr/local/cudaq/include/common/NoiseModel.h
+-- Up-to-date: /usr/local/cudaq/include/common/QuditIdTracker.h
+-- Up-to-date: /usr/local/cudaq/include/common/ArgumentConversion.h
+-- Up-to-date: /usr/local/cudaq/include/common/JIT.h
+-- Up-to-date: /usr/local/cudaq/include/common/BaseRemoteSimulatorQPU.h
+-- Up-to-date: /usr/local/cudaq/include/common/FmtCore.h
+-- Up-to-date: /usr/local/cudaq/include/common/JsonConvert.h
+-- Up-to-date: /usr/local/cudaq/include/common/Future.h
+-- Up-to-date: /usr/local/cudaq/include/common/ObserveResult.h
+-- Up-to-date: /usr/local/cudaq/include/nvqir/CircuitSimulator.h
+-- Up-to-date: /usr/local/cudaq/include/nvqir/QIRTypes.h
+-- Up-to-date: /usr/local/cudaq/include/nvqir/Gates.h
+-- Up-to-date: /usr/local/cudaq/include/cudaq.h
+-- Up-to-date: /usr/local/cudaq/bin/cudaq-opt
+-- Up-to-date: /usr/local/cudaq/bin/cudaq-translate
+-- Up-to-date: /usr/local/cudaq/bin/cudaq-lsp-server
+-- Up-to-date: /usr/local/cudaq/bin/cudaq-quake
+-- Up-to-date: /usr/local/cudaq/bin/fixup-linkage
+-- Up-to-date: /usr/local/cudaq/include/nvqpp/nvqpp_config.h
+-- Up-to-date: /usr/local/cudaq/bin/nvq++
+-- Up-to-date: /usr/local/cudaq/targets/backendConfig.cpp
+-- Up-to-date: /usr/local/cudaq/bin/cudaq-target-conf
+-- Up-to-date: /usr/local/cudaq/bin/cudaq-qpud
+-- Up-to-date: /usr/local/cudaq/bin/cudaq-qpud.py
+-- Up-to-date: /usr/local/cudaq/bin/nvqc_proxy.py
+-- Up-to-date: /usr/local/cudaq/bin/json_request_runner.py
+-- Up-to-date: /usr/local/cudaq/lib/CustomPassPlugin.so
+-- Up-to-date: /usr/local/cudaq/lib/libcudaq-em-qudit.so
+Installed CUDA-Q in directory: /usr/local/cudaq

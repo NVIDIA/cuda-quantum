@@ -16,9 +16,27 @@
 #include "dynamics/evaluation.h"
 #include "dynamics/operator_leafs.h"
 #include "dynamics/templates.h"
-#include "utils/tensor.h"
+#include "utils/cudaq_utils.h"
+#include "utils/matrix.h"
+#include "common/FmtCore.h"
 
 namespace cudaq {
+
+// Here primarily for backward compatibility
+class spin_operator;
+
+#define HANDLER_SPECIFIC_TEMPLATE(ConcreteTy)                                             \
+  template <typename T = HandlerTy, std::enable_if_t<                                     \
+                                      std::is_same<HandlerTy, ConcreteTy>::value &&       \
+                                      std::is_same<HandlerTy, T>::value, bool> = true>
+
+  // utility functions for backward compatibility
+
+#define SPIN_OPS_BACKWARD_COMPATIBILITY                                                   \
+  template <typename T = HandlerTy, std::enable_if_t<                                     \
+                                      std::is_same<HandlerTy, spin_operator>::value &&    \
+                                      std::is_same<HandlerTy, T>::value, bool> = true>
+
 
 /// @brief Represents an operator expression consisting of a sum of terms, where
 /// each term is a product of elementary and scalar operators. Operator
@@ -63,10 +81,10 @@ public:
   /// @brief The degrees of freedom that the operator acts on.
   /// By default, degrees reflect the ordering convention (endianness) used in
   /// CUDA-Q, and the ordering of the matrix returned by default by `to_matrix`.
-  std::vector<int> degrees(bool application_order = true) const;
+  std::vector<std::size_t> degrees(bool application_order = true) const;
 
   /// @brief Return the number of operator terms that make up this operator sum.
-  int num_terms() const;
+  std::size_t num_terms() const;
 
   /// FIXME: GET RID OF THIS (MAKE ITERABLE INSTEAD)
   std::vector<product_operator<HandlerTy>> get_terms() const;
@@ -135,7 +153,7 @@ public:
   ///                      degrees of freedom: `{0:2, 1:2}`.
   /// @arg `parameters` : A map of the parameter names to their concrete,
   /// complex values.
-  matrix_2 to_matrix(std::unordered_map<int, int> dimensions = {},
+  complex_matrix to_matrix(std::unordered_map<int, int> dimensions = {},
                      const std::unordered_map<std::string, std::complex<double>>
                          &parameters = {},
                      bool application_order = true) const;
@@ -270,6 +288,71 @@ public:
 
   template <typename T>
   friend operator_sum<T> operator_handler::empty();
+
+  // handler specific operators
+
+  HANDLER_SPECIFIC_TEMPLATE(spin_operator)
+  static operator_sum<HandlerTy> empty();
+
+  HANDLER_SPECIFIC_TEMPLATE(spin_operator)
+  static product_operator<HandlerTy> i(int target);
+
+  HANDLER_SPECIFIC_TEMPLATE(spin_operator)
+  static product_operator<HandlerTy> x(int target);
+
+  HANDLER_SPECIFIC_TEMPLATE(spin_operator)
+  static product_operator<HandlerTy> y(int target);
+
+  HANDLER_SPECIFIC_TEMPLATE(spin_operator)
+  static product_operator<HandlerTy> z(int target);
+
+  // general utility functions
+
+  std::vector<operator_sum<HandlerTy>> distribute_terms(std::size_t numChunks) const;
+
+  // utility functions for backward compatibility
+
+  SPIN_OPS_BACKWARD_COMPATIBILITY
+  std::vector<std::vector<bool>> get_binary_symplectic_form() const;
+
+  SPIN_OPS_BACKWARD_COMPATIBILITY
+  size_t num_qubits() const {
+    return this->degrees().size();
+  }
+
+  SPIN_OPS_BACKWARD_COMPATIBILITY
+  static product_operator<HandlerTy> from_word(const std::string &word);
+
+  SPIN_OPS_BACKWARD_COMPATIBILITY
+  static operator_sum<HandlerTy> random(std::size_t nQubits, std::size_t nTerms, unsigned int seed);
+
+  SPIN_OPS_BACKWARD_COMPATIBILITY
+  operator_sum(const std::vector<double> &input_vec, std::size_t nQubits);
+
+  SPIN_OPS_BACKWARD_COMPATIBILITY
+  std::vector<double> getDataRepresentation() const {
+    // FIXME: this is an imperfect representation because it does not capture targets accurately
+    std::vector<double> dataVec;
+    for(std::size_t i = 0; i < this->terms.size(); ++i) {
+      for(std::size_t j = 0; j < this->terms[i].size(); ++j) {
+        auto op_str = this->terms[i][j].to_string(false);
+        // FIXME: align numbering with op codes
+        if (op_str == "X")
+          dataVec.push_back(1.);
+        else if (op_str == "Z")
+          dataVec.push_back(2.);
+        else if (op_str == "Y")
+          dataVec.push_back(3.);
+        else
+          dataVec.push_back(0.);
+      }
+      auto coeff = this->coefficients[i].evaluate(); // fails if we have params
+      dataVec.push_back(coeff.real());
+      dataVec.push_back(coeff.imag());
+    }
+    dataVec.push_back(this->terms.size());
+    return dataVec;
+  }
 };
 
 /// @brief Represents an operator expression consisting of a product of
@@ -352,11 +435,11 @@ public:
   /// @brief The degrees of freedom that the operator acts on.
   /// By default, degrees reflect the ordering convention (endianness) used in
   /// CUDA-Q, and the ordering of the matrix returned by default by `to_matrix`.
-  std::vector<int> degrees(bool application_order = true) const;
+  std::vector<std::size_t> degrees(bool application_order = true) const;
 
   /// @brief Return the number of operator terms that make up this product
   /// operator.
-  int num_terms() const;
+  std::size_t num_terms() const;
 
   /// FIXME: GET RID OF THIS (MAKE ITERABLE INSTEAD)
   const std::vector<HandlerTy> &get_terms() const;
@@ -366,6 +449,8 @@ public:
   // constructors and destructors
 
   product_operator(double coefficient);
+
+  product_operator(std::complex<double> coefficient);
 
   product_operator(HandlerTy &&atomic);
 
@@ -420,7 +505,7 @@ public:
   ///                      degrees of freedom: `{0:2, 1:2}`.
   /// @arg `parameters` : A map of the parameter names to their concrete,
   /// complex values.
-  matrix_2 to_matrix(std::unordered_map<int, int> dimensions = {},
+  complex_matrix to_matrix(std::unordered_map<int, int> dimensions = {},
                      const std::unordered_map<std::string, std::complex<double>>
                          &parameters = {},
                      bool application_order = true) const;
@@ -583,15 +668,70 @@ public:
 
   // common operators
 
+  // FIXME: remove
   template <typename T>
   friend product_operator<T> operator_handler::identity();
   template <typename T>
   friend product_operator<T> operator_handler::identity(int target);
+
+  // handler specific operators
+
+  // handler specific operators
+
+  HANDLER_SPECIFIC_TEMPLATE(spin_operator)
+  std::string get_pauli_word() const;
+
+  HANDLER_SPECIFIC_TEMPLATE(spin_operator)
+  static product_operator<HandlerTy> identity();
+
+  HANDLER_SPECIFIC_TEMPLATE(spin_operator)
+  static product_operator<HandlerTy> identity(int target);
+
+  // utility functions for backward compatibility
+  
+  SPIN_OPS_BACKWARD_COMPATIBILITY
+  bool is_identity() const {
+    // ignores the coefficients (according to the old behavior)
+    for (const auto &op : this->operators)
+      if (op.to_string(false) != "I") return false;
+    return true;
+  }
+
+  SPIN_OPS_BACKWARD_COMPATIBILITY
+  std::string to_string(bool printCoeffs) const {
+    std::unordered_map<int, int> dims;
+    auto degrees = this->degrees(false); // degrees in canonical order to match the evaluation
+    auto evaluated = this->evaluate(
+              operator_arithmetics<operator_handler::canonical_evaluation>(
+                  dims, {})); // fails if operator is parameterized
+    assert(evaluated.terms.size() == 1);
+    auto term = std::move(evaluated.terms[0]);
+
+    std::stringstream ss;
+    if (printCoeffs) {
+      auto coeff = term.first;
+      ss << fmt::format("[{}{}{}j]", coeff.real(), coeff.imag() < 0.0 ? "-" : "+", std::fabs(coeff.imag())) << " ";
+    }
+    
+    // For compatibility with existing code, the ordering for the term string always
+    // needs to be from smallest to largest degree, and it necessarily must include 
+    // all consecutive degrees starting from 0 (even if the operator doesn't act on them).
+    if (degrees.size() > 0) {
+      auto max_target = operator_handler::canonical_order(0, 1) ? degrees.back() : degrees[0];
+      std::string term_str(max_target + 1, 'I');
+      for (std::size_t i = 0; i < degrees.size(); ++i)
+        term_str[degrees[i]] = term.second[i];
+      ss << term_str;  
+    }
+    return ss.str();
+  }
 };
 
 // type aliases for convenience
 typedef std::unordered_map<std::string, std::complex<double>> parameter_map;
 typedef std::unordered_map<int, int> dimension_map;
+typedef operator_sum<spin_operator> spin_op;
+typedef product_operator<spin_operator> spin_op_term;
 
 #ifndef CUDAQ_INSTANTIATE_TEMPLATES
 extern template class product_operator<matrix_operator>;

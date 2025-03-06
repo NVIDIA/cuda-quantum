@@ -317,22 +317,11 @@ public:
     flushGateQueue();
 
     // The op is on the following target bits.
-    std::vector<std::size_t> targets;
-    op.for_each_term([&](cudaq::spin_op &term) {
-      term.for_each_pauli(
-          [&](cudaq::pauli p, std::size_t idx) { targets.push_back(idx); });
-    });
-
-    std::sort(targets.begin(), targets.end());
-    const auto last_iter = std::unique(targets.begin(), targets.end());
-    targets.erase(last_iter, targets.end());
+    auto targets = op.degrees(false); // FIXME: sorting previously was least to most
 
     // Get the matrix as an Eigen matrix
-    auto matrix = op.to_matrix();
-    qpp::cmat asEigen =
-        Eigen::Map<Eigen::Matrix<std::complex<double>, Eigen::Dynamic,
-                                 Eigen::Dynamic, Eigen::RowMajor>>(
-            matrix.data(), matrix.rows(), matrix.cols());
+    auto matrix = op.to_matrix({}, {}, false); // FIXME: I guess the matrix needs to match...??
+    qpp::cmat asEigen = matrix.as_eigen();
 
     // Compute the expected value
     double ee = 0.0;
@@ -345,7 +334,7 @@ public:
 
     return cudaq::observe_result(ee, op,
                                  cudaq::sample_result(cudaq::ExecutionResult(
-                                     {}, op.to_string(false), ee)));
+                                     {}, op.to_string(), ee)));
   }
 
   /// @brief Reset the qubit

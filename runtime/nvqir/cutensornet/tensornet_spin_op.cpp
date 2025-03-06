@@ -16,19 +16,24 @@ TensorNetworkSpinOp::TensorNetworkSpinOp(const cudaq::spin_op &spinOp,
                                          cutensornetHandle_t handle)
     : m_cutnHandle(handle) {
   LOG_API_TIME();
-  const std::vector<int64_t> qubitDims(spinOp.num_qubits(), 2);
+  auto degrees = spinOp.degrees(false); // internal ordering
+  const std::vector<int64_t> qubitDims(degrees.size(), 2);
   HANDLE_CUTN_ERROR(cutensornetCreateNetworkOperator(
-      m_cutnHandle, spinOp.num_qubits(), qubitDims.data(), CUDA_C_64F,
+      m_cutnHandle, degrees.size(), qubitDims.data(), CUDA_C_64F,
       &m_cutnNetworkOperator));
   // Heuristic threshold to perform direct observable calculation.
   // If the number of qubits in the spin_op is small, it is more efficient to
   // directly convert the spin_op into a matrix and perform the contraction
   // <psi| H |psi> in one go rather than summing over term-by-term contractions.
   constexpr std::size_t NUM_QUBITS_THRESHOLD_DIRECT_OBS = 10;
-  if (spinOp.num_qubits() < NUM_QUBITS_THRESHOLD_DIRECT_OBS) {
-    const auto hamMat = spinOp.to_matrix();
-    std::vector<std::complex<double>> opMat(
-        hamMat.data(), hamMat.data() + hamMat.rows() * hamMat.cols());
+  if (degrees.size() < NUM_QUBITS_THRESHOLD_DIRECT_OBS) {
+    const auto spinMat = spinOp.to_matrix({}, {}); // FIXME: this is concerning; the matrix and degree ordering mismatch...!!
+    std::vector<std::complex<double>> opMat;
+    opMat.reserve(spinMat.rows() * spinMat.cols());
+    for (size_t i = 0; i < spinMat.rows(); ++i) {
+      for (size_t j = 0; j < spinMat.cols(); ++j)
+        opMat.push_back(spinMat[{i, j}]); // row major
+    }
     void *opMat_d{nullptr};
     HANDLE_CUDA_ERROR(
         cudaMalloc(&opMat_d, opMat.size() * sizeof(std::complex<double>)));
@@ -37,10 +42,9 @@ TensorNetworkSpinOp::TensorNetworkSpinOp(const cudaq::spin_op &spinOp,
                                  cudaMemcpyHostToDevice));
     m_mat_d.emplace_back(opMat_d);
     const std::vector<int32_t> numModes = {
-        static_cast<int32_t>(spinOp.num_qubits())};
+        static_cast<int32_t>(degrees.size())};
     std::vector<const void *> pauliTensorData = {opMat_d};
-    std::vector<int32_t> stateModes(spinOp.num_qubits());
-    std::iota(stateModes.begin(), stateModes.end(), 0);
+    std::vector<int32_t> stateModes(degrees.begin(), degrees.end());
     std::vector<const int32_t *> dataStateModes = {stateModes.data()};
     HANDLE_CUTN_ERROR(cutensornetNetworkOperatorAppendProduct(
         m_cutnHandle, m_cutnNetworkOperator,
@@ -84,24 +88,32 @@ TensorNetworkSpinOp::TensorNetworkSpinOp(const cudaq::spin_op &spinOp,
       m_pauli_d[pauli] = d_mat;
     }
 
-    spinOp.for_each_term([&](cudaq::spin_op &term) {
+    auto terms = spinOp.get_terms();
+    for (const auto &term : terms) {
+      auto coeff = term.get_coefficient().evaluate(); // fails if we have parameters
       if (term.is_identity()) {
         // Note: we don't add I Pauli.
-        m_identityCoeff = term.get_coefficient();
-        return;
+        m_identityCoeff = coeff;
+        continue;
       }
 
-      const cuDoubleComplex termCoeff{term.get_coefficient().real(),
-                                      term.get_coefficient().imag()};
+      const cuDoubleComplex termCoeff{coeff.real(),
+                                      coeff.imag()};
       std::vector<const void *> pauliTensorData;
       std::vector<std::vector<int32_t>> stateModes;
-      term.for_each_pauli([&](cudaq::pauli p, std::size_t idx) {
-        if (p != cudaq::pauli::I) {
+      auto ops = term.get_terms();
+      for (const auto &p : ops) {
+        auto pauli = p.as_pauli();
+        // FIXME: used (only) for observe - 
+        // matches the behavior in CircuitSimulator.h to require
+        // the target to match the intended qubit index.
+        auto target = p.target();
+        if (pauli != cudaq::pauli::I) {
           stateModes.emplace_back(
-              std::vector<int32_t>{static_cast<int32_t>(idx)});
-          pauliTensorData.emplace_back(m_pauli_d[p]);
+              std::vector<int32_t>{static_cast<int32_t>(target)});
+          pauliTensorData.emplace_back(m_pauli_d[pauli]);
         }
-      });
+      }
 
       std::vector<int32_t> numModes(pauliTensorData.size(), 1);
       std::vector<const int32_t *> dataStateModes;
@@ -113,7 +125,7 @@ TensorNetworkSpinOp::TensorNetworkSpinOp(const cudaq::spin_op &spinOp,
           pauliTensorData.size(), numModes.data(), dataStateModes.data(),
           /*tensorModeStrides*/ nullptr, pauliTensorData.data(),
           /*componentId*/ nullptr));
-    });
+    }
   }
 }
 

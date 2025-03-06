@@ -13,7 +13,6 @@
 #include <utility>
 
 #include "cudaq/operators.h"
-#include "cudaq/spin_op.h"
 #include "evaluation.h"
 #include "helpers.h"
 
@@ -67,6 +66,10 @@ EvalTy operator_sum<HandlerTy>::evaluate(
 
   if (terms.size() == 0)
     return EvalTy();
+
+  // NOTE: It is important that we evaluate the terms in a specific order,
+  // otherwise the evaluation is not consistent with other methods.
+  // The specific order does not matter, as long as all methods use the same term order.
   auto terms = this->get_terms();
   auto degrees = this->degrees(false); // keep in canonical order
 
@@ -156,9 +159,9 @@ INSTANTIATE_SUM_EVALUATE_METHODS(fermion_operator,
 // read-only properties
 
 template <typename HandlerTy>
-std::vector<int>
+std::vector<std::size_t>
 operator_sum<HandlerTy>::degrees(bool application_order) const {
-  std::set<int> unsorted_degrees;
+  std::set<std::size_t> unsorted_degrees;
   for (const std::vector<HandlerTy> &term : this->terms) {
     for (const HandlerTy &op : term) {
       auto op_degrees = op.degrees();
@@ -166,7 +169,7 @@ operator_sum<HandlerTy>::degrees(bool application_order) const {
     }
   }
   auto degrees =
-      std::vector<int>(unsorted_degrees.cbegin(), unsorted_degrees.cend());
+      std::vector<std::size_t>(unsorted_degrees.cbegin(), unsorted_degrees.cend());
   if (application_order)
     std::sort(degrees.begin(), degrees.end(),
               operator_handler::user_facing_order);
@@ -177,7 +180,7 @@ operator_sum<HandlerTy>::degrees(bool application_order) const {
 }
 
 template <typename HandlerTy>
-int operator_sum<HandlerTy>::num_terms() const {
+std::size_t operator_sum<HandlerTy>::num_terms() const {
   return this->terms.size();
 }
 
@@ -195,10 +198,10 @@ operator_sum<HandlerTy>::get_terms() const {
 
 #define INSTANTIATE_SUM_PROPERTIES(HandlerTy)                                  \
                                                                                \
-  template std::vector<int> operator_sum<HandlerTy>::degrees(                  \
+  template std::vector<std::size_t> operator_sum<HandlerTy>::degrees(          \
       bool application_order) const;                                           \
                                                                                \
-  template int operator_sum<HandlerTy>::num_terms() const;                     \
+  template std::size_t operator_sum<HandlerTy>::num_terms() const;             \
                                                                                \
   template std::vector<product_operator<HandlerTy>>                            \
   operator_sum<HandlerTy>::get_terms() const;
@@ -491,7 +494,7 @@ std::string operator_sum<HandlerTy>::to_string() const {
 }
 
 template <typename HandlerTy>
-matrix_2 operator_sum<HandlerTy>::to_matrix(
+complex_matrix operator_sum<HandlerTy>::to_matrix(
     std::unordered_map<int, int> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool application_order) const {
@@ -512,7 +515,7 @@ matrix_2 operator_sum<HandlerTy>::to_matrix(
 }
 
 template <>
-matrix_2 operator_sum<spin_operator>::to_matrix(
+complex_matrix operator_sum<spin_operator>::to_matrix(
     std::unordered_map<int, int> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool application_order) const {
@@ -520,7 +523,7 @@ matrix_2 operator_sum<spin_operator>::to_matrix(
       operator_arithmetics<operator_handler::canonical_evaluation>(dimensions,
                                                                    parameters));
   if (evaluated.terms.size() == 0)
-    return cudaq::matrix_2(0, 0);
+    return cudaq::complex_matrix(0, 0);
 
   bool invert_order =
       application_order && operator_handler::canonical_order(1, 0) !=
@@ -537,7 +540,7 @@ matrix_2 operator_sum<spin_operator>::to_matrix(
                                                                                \
   template std::string operator_sum<HandlerTy>::to_string() const;             \
                                                                                \
-  template matrix_2 operator_sum<HandlerTy>::to_matrix(                        \
+  template complex_matrix operator_sum<HandlerTy>::to_matrix(                        \
       std::unordered_map<int, int> dimensions,                                 \
       const std::unordered_map<std::string, std::complex<double>> &params,     \
       bool application_order) const;
@@ -1250,6 +1253,7 @@ INSTANTIATE_SUM_CONVERSION_OPS(-);
 
 // common operators
 
+// FIXME: remove
 template <typename HandlerTy>
 operator_sum<HandlerTy> operator_handler::empty() {
   return operator_sum<HandlerTy>();
@@ -1259,6 +1263,208 @@ template operator_sum<matrix_operator> operator_handler::empty();
 template operator_sum<spin_operator> operator_handler::empty();
 template operator_sum<boson_operator> operator_handler::empty();
 template operator_sum<fermion_operator> operator_handler::empty();
+
+// handler specific operators
+
+#define HANDLER_SPECIFIC_TEMPLATE_DEFINITION(ConcreteTy)                                  \
+  template <typename HandlerTy>                                                           \
+  template <typename T, std::enable_if_t<                                                 \
+                                      std::is_same<HandlerTy, ConcreteTy>::value &&       \
+                                      std::is_same<HandlerTy, T>::value, bool>>
+
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_operator)
+operator_sum<HandlerTy> operator_sum<HandlerTy>::empty() {
+  return operator_sum<HandlerTy>();
+}
+
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_operator)
+product_operator<HandlerTy> operator_sum<HandlerTy>::i(int target) {
+  return spin_operator::i(target);
+}
+
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_operator)
+product_operator<HandlerTy> operator_sum<HandlerTy>::x(int target) {
+  return spin_operator::x(target);
+}
+
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_operator)
+product_operator<HandlerTy> operator_sum<HandlerTy>::y(int target) {
+  return spin_operator::y(target);
+}
+
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_operator)
+product_operator<HandlerTy> operator_sum<HandlerTy>::z(int target) {
+  return spin_operator::z(target);
+}
+
+#if !defined(__clang__)
+template operator_sum<spin_operator> operator_sum<spin_operator>::empty();
+template product_operator<spin_operator> operator_sum<spin_operator>::i(int target);
+template product_operator<spin_operator> operator_sum<spin_operator>::x(int target);
+template product_operator<spin_operator> operator_sum<spin_operator>::y(int target);
+template product_operator<spin_operator> operator_sum<spin_operator>::z(int target);
+#endif
+
+// general utility functions
+
+template <typename HandlerTy>
+std::vector<operator_sum<HandlerTy>> operator_sum<HandlerTy>::distribute_terms(std::size_t numChunks) const {
+  // Calculate how many terms we can equally divide amongst the chunks
+  auto nTermsPerChunk = num_terms() / numChunks;
+  auto leftover = num_terms() % numChunks;
+
+  // Slice the given spin_op into subsets for each chunk
+  std::vector<operator_sum<HandlerTy>> chunks;
+  for (auto it = this->term_map.cbegin(); it != this->term_map.cend();) { // order does not matter here
+    operator_sum<HandlerTy> chunk;
+    // Evenly distribute any leftovers across the early chunks
+    for (auto count = nTermsPerChunk + (chunks.size() < leftover ? 1 : 0); count > 0; --count, ++it)
+      chunk += product_operator<HandlerTy>(this->coefficients[it->second], this->terms[it->second]);
+    chunks.push_back(chunk);
+  }
+  return std::move(chunks);
+}
+
+#define INSTANTIATE_SUM_UTILITY_FUNCTIONS(HandlerTy)                                      \
+  template std::vector<operator_sum<HandlerTy>>                                           \
+  operator_sum<HandlerTy>::distribute_terms(std::size_t numChunks) const;
+
+#if !defined(__clang__)
+INSTANTIATE_SUM_UTILITY_FUNCTIONS(matrix_operator);
+INSTANTIATE_SUM_UTILITY_FUNCTIONS(spin_operator);
+INSTANTIATE_SUM_UTILITY_FUNCTIONS(boson_operator);
+INSTANTIATE_SUM_UTILITY_FUNCTIONS(fermion_operator);
+#endif
+
+// functions for backwards compatibility
+
+#define SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION                                        \
+  template <typename HandlerTy>                                                           \
+  template <typename T, std::enable_if_t<                                                 \
+                                      std::is_same<HandlerTy, spin_operator>::value &&    \
+                                      std::is_same<HandlerTy, T>::value, bool>>
+
+SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
+std::vector<std::vector<bool>> operator_sum<HandlerTy>::get_binary_symplectic_form() const {
+  std::unordered_map<int, int> dims;
+  auto degrees = this->degrees(false); // degrees in canonical order to match the evaluation
+  auto evaluated =
+    this->evaluate(operator_arithmetics<operator_handler::canonical_evaluation>(
+        dims, {})); // fails if we have parameters
+  
+  auto max_target = operator_handler::canonical_order(0, 1) ? degrees.back() : degrees[0];
+  auto term_size = max_target + 1;
+  std::vector<std::vector<bool>> bsf_terms;
+  bsf_terms.reserve(evaluated.terms.size());
+
+  // For compatiblity with existing code, the binary symplectic representation
+  // needs to be from smallest to largest degree, and it necessarily must include 
+  // all consecutive degrees starting from 0 (even if the operator doesn't act on them). 
+  for (auto &term : evaluated.terms) {
+    auto pauli_str = std::move(term.second);
+    std::vector<bool> bsf(term_size << 1, 0);
+    for (std::size_t i = 0; i < degrees.size(); ++i) {
+      auto op = pauli_str[i];
+      if (op == 'X')
+        bsf[degrees[i]] = 1;
+      else if (op == 'Z')
+        bsf[degrees[i] + term_size] = 1;
+      else if (op == 'Y') {
+        bsf[degrees[i]] = 1;
+        bsf[degrees[i] + term_size] = 1;
+      }
+    }
+    bsf_terms.push_back(std::move(bsf));
+  }
+
+  return std::move(bsf_terms); // always little endian order by definition of the bsf
+}
+
+#if !defined(__clang__)
+template std::vector<std::vector<bool>> operator_sum<spin_operator>::get_binary_symplectic_form() const;
+#endif
+
+
+SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
+product_operator<HandlerTy> operator_sum<HandlerTy>::from_word(const std::string &word) {
+  auto prod = operator_handler::identity<HandlerTy>();
+  for (std::size_t i = 0; i < word.length(); i++) {
+    auto letter = word[i];
+    if (letter == 'Y')
+      prod *= spin_operator::y(i);
+    else if (letter == 'X')
+      prod *= spin_operator::x(i);
+    else if (letter == 'Z')
+      prod *= spin_operator::z(i);
+    else if (letter == 'I')
+      prod *= spin_operator::i(i);
+    else
+      throw std::runtime_error(
+        "Invalid Pauli for spin_op::from_word, must be X, Y, Z, or I.");
+  }
+  return std::move(prod);
+}
+
+SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
+operator_sum<HandlerTy> operator_sum<HandlerTy>::random(std::size_t nQubits, std::size_t nTerms, unsigned int seed) {
+  auto get_spin_op = [](int target, int kind) {
+    if (kind == 1) return spin_operator::z(target);
+    if (kind == 2) return spin_operator::x(target);
+    if (kind == 3) return spin_operator::y(target);
+    return spin_operator::i(target);
+  };
+  std::mt19937 gen(seed);
+  auto sum = spin_op::empty();
+  for (std::size_t i = 0; i < nTerms; i++) {
+    std::vector<bool> termData(2 * nQubits);
+    std::fill_n(termData.begin(), nQubits, true);
+    std::shuffle(termData.begin(), termData.end(), gen);
+    // duplicates are fine - they will just increase the coefficient
+    auto prod = spin_operator::identity();
+    for (int qubit_idx = 0; qubit_idx < nQubits; ++qubit_idx) {
+      auto kind = (termData[qubit_idx << 1] << 1) | termData[(qubit_idx << 1) + 1];
+      prod *= get_spin_op(qubit_idx, kind);
+    }
+    sum += std::move(prod);
+  }
+  return std::move(sum);
+}
+
+SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
+operator_sum<HandlerTy>::operator_sum(const std::vector<double> &input_vec, std::size_t nQubits) {
+  auto n_terms = (int)input_vec.back();
+  if (nQubits != (((input_vec.size() - 1) - 2 * n_terms) / n_terms))
+    throw std::runtime_error("Invalid data representation for construction "
+                              "spin_op. Number of data elements is incorrect.");
+
+  for (std::size_t i = 0; i < input_vec.size() - 1; i += nQubits + 2) {
+    auto el_real = input_vec[i + nQubits];
+    auto el_imag = input_vec[i + nQubits + 1];
+    auto prod = product_operator<spin_operator>(std::complex<double>{el_real, el_imag});
+    for (std::size_t j = 0; j < nQubits; j++) {
+      double intPart;
+      if (std::modf(input_vec[j + i], &intPart) != 0.0)
+        throw std::runtime_error(
+            "Invalid pauli data element, must be integer value.");
+
+      int val = (int)input_vec[j + i];
+      // FIXME: align op codes with old impl
+      if (val == 1) // X
+        prod *= spin_operator::x(j);
+      else if (val == 2) // Z
+        prod *= spin_operator::z(j);
+      else if (val == 3) // Y
+        prod *= spin_operator::y(j);
+    }
+    *this += std::move(prod);
+  }
+}
+
+#if !defined(__clang__)
+template product_operator<spin_operator> operator_sum<spin_operator>::from_word(const std::string &word);
+template operator_sum<spin_operator> operator_sum<spin_operator>::random(std::size_t nQubits, std::size_t nTerms, unsigned int seed);
+template operator_sum<spin_operator>::operator_sum(const std::vector<double> &input_vec, std::size_t nQubits);
+#endif
 
 #if defined(CUDAQ_INSTANTIATE_TEMPLATES)
 template class operator_sum<matrix_operator>;

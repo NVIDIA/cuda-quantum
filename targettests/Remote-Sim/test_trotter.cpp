@@ -59,17 +59,19 @@ struct initState {
 
 std::vector<double> term_coefficients(cudaq::spin_op op) {
   std::vector<double> result{};
-  op.for_each_term([&](cudaq::spin_op &term) {
-    const auto coeff = term.get_coefficient().real();
+  auto terms = op.get_terms();
+  for (const auto &term : terms) {
+    const auto coeff = term.get_coefficient().evaluate().real();
     result.push_back(coeff);
-  });
+  }
   return result;
 }
 
 std::vector<cudaq::pauli_word> term_words(cudaq::spin_op op) {
   std::vector<cudaq::pauli_word> result{};
-  op.for_each_term(
-      [&](cudaq::spin_op &term) { result.push_back(term.to_string(false)); });
+  auto terms = op.get_terms();
+  for (const auto &term : terms) 
+    result.push_back(term.to_string(false));
   return result;
 }
 

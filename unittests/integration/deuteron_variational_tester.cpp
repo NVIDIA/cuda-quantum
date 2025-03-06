@@ -22,29 +22,31 @@ struct ansatz2 {
 
 CUDAQ_TEST(D2VariationalTester, checkSimple) {
 
-  using namespace cudaq::spin;
-
   cudaq::set_random_seed(13);
 
-  cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
-                     .21829 * z(0) - 6.125 * z(1);
-  h.dump();
+  cudaq::spin_op h = 5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) - 2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
+                     .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
 
   double energy = cudaq::observe(ansatz2{}, h, .59);
   printf("Energy is %.16lf\n", energy);
   EXPECT_NEAR(energy, -1.7487, 1e-3);
 
-  std::vector<cudaq::spin_op> asList;
-  h.for_each_term([&](cudaq::spin_op &term) {
+  std::vector<cudaq::spin_op_term> asList;
+  auto terms = h.get_terms();
+  for (const auto &term : terms) {
     if (!term.is_identity())
       asList.push_back(term);
-  });
+  }
 
   // Test that we can osberve a list.
   auto results = cudaq::observe(ansatz2{}, asList, .59);
   double test = 5.907;
   for (auto &r : results) {
-    test += r.expectation() * r.get_spin().get_coefficient().real();
+    // FIXME: shoule get_spin really return a spin_op or merely a spin_op term?
+    // FIXME: also, we should probably store the evaluated coeffs with the results...
+    auto spin_op_terms = r.get_spin().get_terms();
+    EXPECT_EQ(spin_op_terms.size(), 1);
+    test += r.expectation() * spin_op_terms[0].get_coefficient().evaluate().real();
   }
 
   printf("TEST: %.16lf\n", test);
@@ -53,12 +55,10 @@ CUDAQ_TEST(D2VariationalTester, checkSimple) {
 
 CUDAQ_TEST(D2VariationalTester, checkBroadcast) {
 
-  using namespace cudaq::spin;
-
   cudaq::set_random_seed(13);
 
-  cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
-                     .21829 * z(0) - 6.125 * z(1);
+  cudaq::spin_op h = 5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) - 2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
+                     .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
 
 #if defined CUDAQ_BACKEND_TENSORNET
   // Reduce test time by reducing the broadcast size.

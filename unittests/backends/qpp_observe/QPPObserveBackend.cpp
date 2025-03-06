@@ -9,7 +9,7 @@
 #define __NVQIR_QPP_TOGGLE_CREATE
 #include "qpp/QppCircuitSimulator.cpp"
 #undef __NVQIR_QPP_TOGGLE_CREATE
-#include "cudaq/spin_op.h"
+#include "cudaq/operators.h"
 
 namespace cudaq {
 
@@ -29,31 +29,34 @@ public:
     auto nQ = op.num_qubits();
     double sum = 0.0;
 
+    auto bsf_terms = op.get_binary_symplectic_form();
+
     // Want to loop over all terms in op and
     // compute E_i = coeff_i * < psi | Term | psi >
     // = coeff_i * sum_k <psi | Pauli_k psi>
-    for (const auto &term : op) {
-      if (!term.is_identity()) {
+    auto terms = op.get_terms();
+    for (std::size_t t = 0; t < terms.size(); ++t) {
+      if (!terms[t].is_identity()) {
         ::qpp::ket cached = state;
-        auto [bsf, coeffs] = term.get_raw_data();
+        assert(bsf_terms[t].size() == 2 * nQ);
         for (std::size_t i = 0; i < nQ; i++) {
-          if (bsf[0][i] && bsf[0][i + nQ])
+          if (bsf_terms[t][i] && bsf_terms[t][i + nQ])
             cached = ::qpp::apply(cached, Y, {convertQubitIndex(i)});
-          else if (bsf[0][i])
+          else if (bsf_terms[t][i])
             cached = ::qpp::apply(cached, X, {convertQubitIndex(i)});
-          else if (bsf[0][i + nQ])
+          else if (bsf_terms[t][i + nQ])
             cached = ::qpp::apply(cached, Z, {convertQubitIndex(i)});
         }
 
-        sum += coeffs[0].real() * state.transpose().dot(cached).real();
+        sum += terms[t].get_coefficient().evaluate().real() * state.transpose().dot(cached).real();
       } else {
-        sum += term.get_coefficient().real();
+        sum += terms[t].get_coefficient().evaluate().real();
       }
     }
 
     return cudaq::observe_result(sum, op,
                                  cudaq::sample_result(cudaq::ExecutionResult(
-                                     {}, op.to_string(false), sum)));
+                                     {}, op.to_string(), sum)));
   }
 
   std::string name() const override { return "qpp-test"; }
