@@ -188,6 +188,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#iqm">IQM</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#oqc">OQC</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#orca-computing">ORCA Computing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#pasqal">Pasqal</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
 </ul>
@@ -304,6 +305,20 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/quantum_teleportation.html#Teleportation-explained">Teleportation explained</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../../applications/python/quantum_transformer.html">Quantum Transformer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/quantum_transformer.html#Installation">Installation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/quantum_transformer.html#Algorithm-and-Example">Algorithm and Example</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/quantum_transformer.html#Creating-the-self-attention-circuits">Creating the self-attention circuits</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/quantum_transformer.html#Usage">Usage</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/quantum_transformer.html#Model-Training">Model Training</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/quantum_transformer.html#Generating-Molecules">Generating Molecules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/quantum_transformer.html#Attention-Maps">Attention Maps</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../../applications/python/quantum_volume.html">Quantum Volume</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../applications/python/readout_error_mitigation.html">Readout Error Mitigation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/readout_error_mitigation.html#Inverse-confusion-matrix-from-single-qubit-noise-model">Inverse confusion matrix from single-qubit noise model</a></li>
@@ -342,6 +357,14 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/logical_aim_sqale.html#Running-logical-AIM-on-Infleqtion's-hardware">Running logical AIM on Infleqtion’s hardware</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../../applications/python/adapt_qaoa.html">ADAPT-QAOA algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/adapt_qaoa.html#Simulation-input:">Simulation input:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/adapt_qaoa.html#The-problem-Hamiltonian-H_C-of-the-max-cut-graph:">The problem Hamiltonian <span class="math notranslate nohighlight">\(H_C\)</span> of the max-cut graph:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/adapt_qaoa.html#Th-operator-pool-A_j:">Th operator pool <span class="math notranslate nohighlight">\(A_j\)</span>:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/adapt_qaoa.html#The-commutator-[H_C,A_j]:">The commutator <span class="math notranslate nohighlight">\([H_C,A_j]\)</span>:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/adapt_qaoa.html#Beginning-of-ADAPT-QAOA-iteration:">Beginning of ADAPT-QAOA iteration:</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../backends.html">   Backends</a><ul class="current">
@@ -364,6 +387,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../sims/noisy.html">     Noisy Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../sims/noisy.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../sims/noisy.html#density-matrix">Density Matrix</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../sims/noisy.html#stim">Stim</a></li>
 </ul>
@@ -388,6 +412,7 @@
 </li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">     Neutral Atom QPUs</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#infleqtion">Infleqtion</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pasqal">Pasqal</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#quera-computing">QuEra Computing</a></li>
 </ul>
 </li>
@@ -830,10 +855,86 @@ specific compiler diagnostics, before running a noise free emulation.</p>
 </div>
 </section>
 </section>
+<section id="pasqal">
+<h2>Pasqal<a class="headerlink" href="#pasqal" title="Permalink to this heading">¶</a></h2>
+<p>Pasqal is a quantum computing hardware company that builds quantum processors from ordered neutral atoms in 2D and 3D
+arrays to bring a practical quantum advantage to its customers and address real-world problems.
+The currently available Pasqal QPUs are analog quantum computers, and one, named Fresnel, is available through our cloud
+portal.</p>
+<p>In order to access Pasqal’s devices you need an account for <a class="reference external" href="https://portal.pasqal.cloud">Pasqal’s cloud platform</a>
+and an active project. Please see our <a class="reference external" href="https://docs.pasqal.cloud/cloud/">cloud documentation</a> for more details if needed.</p>
+<p>Although a different SDK, <a class="reference external" href="https://pulser.readthedocs.io/en/latest/">Pasqal’s Pulser library</a>, is a good
+resource for getting started with analog neutral atom quantum computing.
+For support you can also join the <a class="reference external" href="https://community.pasqal.com/">Pasqal Community</a>.</p>
+<section id="pasqal-backend">
+<span id="id1"></span><h3>Setting Credentials<a class="headerlink" href="#pasqal-backend" title="Permalink to this heading">¶</a></h3>
+<p>An authentication token for the session must be obtained from Pasqal’s cloud platform.
+For example from Python one can use the <a class="reference external" href="https://github.com/pasqal-io/pasqal-cloud">pasqal-cloud package</a> as below:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pasqal_cloud</span><span class="w"> </span><span class="kn">import</span> <span class="n">SDK</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+
+<span class="n">sdk</span> <span class="o">=</span> <span class="n">SDK</span><span class="p">(</span>
+    <span class="n">username</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">[</span><span class="s1">&#39;PASQAL_USERNAME&#39;</span><span class="p">],</span>
+    <span class="n">password</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PASQAL_PASSWORD&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="p">)</span>
+
+<span class="n">token</span> <span class="o">=</span> <span class="n">sdk</span><span class="o">.</span><span class="n">user_token</span><span class="p">()</span>
+
+<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;PASQAL_AUTH_TOKEN&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;PASQAL_PROJECT_ID&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;your project id&#39;</span>
+</pre></div>
+</div>
+<p>Alternatively, users can set the following environment variables directly.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">PASQAL_AUTH_TOKEN</span><span class="o">=</span>&lt;&gt;
+<span class="nb">export</span><span class="w"> </span><span class="nv">PASQAL_PROJECT_ID</span><span class="o">=</span>&lt;&gt;
+</pre></div>
+</div>
+</section>
+<section id="submission-from-python">
+<h3>Submission from Python<a class="headerlink" href="#submission-from-python" title="Permalink to this heading">¶</a></h3>
+<p>The target to which quantum kernels are submitted
+can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq::set_target()</span></code> function.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;pasqal&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This accepts an optional argument, <code class="docutils literal notranslate"><span class="pre">machine</span></code>, which is used in the cloud platform to
+select the corresponding Pasqal QPU or emulator to execute on.
+See the <a class="reference external" href="https://portal.pasqal.cloud/">Pasqal cloud portal</a> for an up to date list.
+The default value is <code class="docutils literal notranslate"><span class="pre">EMU_MPS</span></code> which is an open-source tensor network emulator based on the
+Matrix Product State formalism running in Pasqal’s cloud platform. You can see the
+documentation for the publicly accessible emulator <a class="reference external" href="https://pasqal-io.github.io/emulators/latest/emu_mps/">here</a>.</p>
+<p>To target the QPU use the FRESNEL machine name. Note that there are restrictions
+regarding the values of the pulses as well as the register layout. We invite you to
+consult our <a class="reference external" href="https://docs.pasqal.com/cloud/fresnel-job">documentation</a>. Note that
+the CUDA-Q integration currently only works with <a class="reference external" href="https://docs.pasqal.com/cloud/fresnel-job/#arbitrary-layouts">arbitrary layouts</a>
+which are implemented with automatic calibration for less than 30 qubits. For jobs
+larger than 30 qubits please use the <code class="code docutils literal notranslate"><span class="pre">atom_sites</span></code> to define the layout, and use the
+<code class="code docutils literal notranslate"><span class="pre">atom_filling</span></code> to select sites as filled or not filled in order to define the register.</p>
+<p>Due to the nature of the underlying hardware, this target only supports the
+<code class="docutils literal notranslate"><span class="pre">evolve</span></code> and <code class="docutils literal notranslate"><span class="pre">evolve_async</span></code> APIs.
+The <code class="code docutils literal notranslate"><span class="pre">hamiltonian</span></code> must be an <code class="code docutils literal notranslate"><span class="pre">Operator</span></code> of the type <code class="code docutils literal notranslate"><span class="pre">RydbergHamiltonian</span></code>. The only
+other supported parameters are <code class="code docutils literal notranslate"><span class="pre">schedule</span></code> (mandatory) and <code class="code docutils literal notranslate"><span class="pre">shots_count</span></code> (optional).</p>
+<p>For example,</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">evolution_result</span> <span class="o">=</span> <span class="n">evolve</span><span class="p">(</span><span class="n">RydbergHamiltonian</span><span class="p">(</span><span class="n">atom_sites</span><span class="o">=</span><span class="n">register</span><span class="p">,</span>
+                                             <span class="n">amplitude</span><span class="o">=</span><span class="n">omega</span><span class="p">,</span>
+                                             <span class="n">phase</span><span class="o">=</span><span class="n">phi</span><span class="p">,</span>
+                                             <span class="n">delta_global</span><span class="o">=</span><span class="n">delta</span><span class="p">),</span>
+                           <span class="n">schedule</span><span class="o">=</span><span class="n">schedule</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The number of shots for a kernel execution can be set through the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code>
+argument to <code class="docutils literal notranslate"><span class="pre">evolve</span></code> or <code class="docutils literal notranslate"><span class="pre">evolve_async</span></code>. By default, the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code> is
+set to 100.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">RydbergHamiltonian</span><span class="p">(</span><span class="o">...</span><span class="p">),</span> <span class="n">schedule</span><span class="o">=</span><span class="n">s</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>To see a complete example for using Pasqal’s backend, take a look at our <a class="reference internal" href="../../examples/hardware_providers.html"><span class="doc">Python examples</span></a>.</p>
+</section>
+</section>
 <section id="quera-computing">
 <h2>QuEra Computing<a class="headerlink" href="#quera-computing" title="Permalink to this heading">¶</a></h2>
 <section id="quera-backend">
-<span id="id1"></span><h3>Setting Credentials<a class="headerlink" href="#quera-backend" title="Permalink to this heading">¶</a></h3>
+<span id="id2"></span><h3>Setting Credentials<a class="headerlink" href="#quera-backend" title="Permalink to this heading">¶</a></h3>
 <p>Programmers of CUDA-Q may access Aquila, QuEra’s first generation of quantum
 processing unit (QPU) via Amazon Braket. Hence, users must first enable Braket by
 following <a class="reference external" href="https://docs.aws.amazon.com/braket/latest/developerguide/braket-enable-overview.html">these instructions</a>.
@@ -850,8 +951,8 @@ One of the simplest ways is to use <a class="reference external" href="https://a
 </pre></div>
 </div>
 </section>
-<section id="submission-from-python">
-<h3>Submission from Python<a class="headerlink" href="#submission-from-python" title="Permalink to this heading">¶</a></h3>
+<section id="id3">
+<h3>Submission from Python<a class="headerlink" href="#id3" title="Permalink to this heading">¶</a></h3>
 <p>The target to which quantum kernels are submitted
 can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq::set_target()</span></code> function.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;quera&#39;</span><span class="p">)</span>

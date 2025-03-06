@@ -189,6 +189,7 @@
 <li class="toctree-l3"><a class="reference internal" href="examples/hardware_providers.html#iqm">IQM</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/hardware_providers.html#oqc">OQC</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/hardware_providers.html#orca-computing">ORCA Computing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/hardware_providers.html#pasqal">Pasqal</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
 </ul>
@@ -305,6 +306,20 @@
 <li class="toctree-l3"><a class="reference internal" href="../applications/python/quantum_teleportation.html#Teleportation-explained">Teleportation explained</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../applications/python/quantum_transformer.html">Quantum Transformer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/quantum_transformer.html#Installation">Installation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/quantum_transformer.html#Algorithm-and-Example">Algorithm and Example</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/quantum_transformer.html#Creating-the-self-attention-circuits">Creating the self-attention circuits</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/quantum_transformer.html#Usage">Usage</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/quantum_transformer.html#Model-Training">Model Training</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/quantum_transformer.html#Generating-Molecules">Generating Molecules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/quantum_transformer.html#Attention-Maps">Attention Maps</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../applications/python/quantum_volume.html">Quantum Volume</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../applications/python/readout_error_mitigation.html">Readout Error Mitigation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../applications/python/readout_error_mitigation.html#Inverse-confusion-matrix-from-single-qubit-noise-model">Inverse confusion matrix from single-qubit noise model</a></li>
@@ -343,6 +358,14 @@
 <li class="toctree-l3"><a class="reference internal" href="../applications/python/logical_aim_sqale.html#Running-logical-AIM-on-Infleqtion's-hardware">Running logical AIM on Infleqtion’s hardware</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../applications/python/adapt_qaoa.html">ADAPT-QAOA algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/adapt_qaoa.html#Simulation-input:">Simulation input:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/adapt_qaoa.html#The-problem-Hamiltonian-H_C-of-the-max-cut-graph:">The problem Hamiltonian <span class="math notranslate nohighlight">\(H_C\)</span> of the max-cut graph:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/adapt_qaoa.html#Th-operator-pool-A_j:">Th operator pool <span class="math notranslate nohighlight">\(A_j\)</span>:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/adapt_qaoa.html#The-commutator-[H_C,A_j]:">The commutator <span class="math notranslate nohighlight">\([H_C,A_j]\)</span>:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/adapt_qaoa.html#Beginning-of-ADAPT-QAOA-iteration:">Beginning of ADAPT-QAOA iteration:</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="backends/backends.html">   Backends</a><ul>
@@ -365,6 +388,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="backends/sims/noisy.html">     Noisy Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="backends/sims/noisy.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="backends/sims/noisy.html#density-matrix">Density Matrix</a></li>
 <li class="toctree-l4"><a class="reference internal" href="backends/sims/noisy.html#stim">Stim</a></li>
 </ul>
@@ -389,6 +413,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="backends/hardware/neutralatom.html">     Neutral Atom QPUs</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="backends/hardware/neutralatom.html#infleqtion">Infleqtion</a></li>
+<li class="toctree-l4"><a class="reference internal" href="backends/hardware/neutralatom.html#pasqal">Pasqal</a></li>
 <li class="toctree-l4"><a class="reference internal" href="backends/hardware/neutralatom.html#quera-computing">QuEra Computing</a></li>
 </ul>
 </li>
@@ -804,6 +829,10 @@
   <div><img alt="" src="../_static/cuda_quantum_icon.svg"></div>
   <div>Quantum Teleporation</div>
 </a>
+<a class="reference internal" href="../applications/python/quantum_transformer.html"None>
+  <div><img alt="" src="../_static/cuda_quantum_icon.svg"></div>
+  <div>Quantum Transformer</div>
+</a>
 <a class="reference internal" href="../applications/python/quantum_volume.html">
   <div><img alt="" src="../_static/cuda_quantum_icon.svg"></div>
   <div>Quantum Volume</div>
@@ -827,6 +856,10 @@
 <a class="reference internal" href="../applications/python/logical_aim_sqale.html"None>
   <div><img alt="" src="../_static/cuda_quantum_icon.svg"></div>
   <div>Anderson Impurity Model ground state solver on Infleqtion’s Sqale</div>
+</a>
+<a class="reference internal" href="../applications/python/adapt_qaoa.html">
+  <div><img alt="" src="../_static/cuda_quantum_icon.svg"></div>
+  <div>ADAPT-QAOA algorithm</div>
 </a>
 </div>
 </div>

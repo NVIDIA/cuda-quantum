@@ -188,6 +188,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#iqm">IQM</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#oqc">OQC</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#orca-computing">ORCA Computing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#pasqal">Pasqal</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
 </ul>
@@ -304,6 +305,20 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_teleportation.html#Teleportation-explained">Teleportation explained</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/quantum_transformer.html">Quantum Transformer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_transformer.html#Installation">Installation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_transformer.html#Algorithm-and-Example">Algorithm and Example</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/quantum_transformer.html#Creating-the-self-attention-circuits">Creating the self-attention circuits</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_transformer.html#Usage">Usage</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/quantum_transformer.html#Model-Training">Model Training</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/quantum_transformer.html#Generating-Molecules">Generating Molecules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/quantum_transformer.html#Attention-Maps">Attention Maps</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/quantum_volume.html">Quantum Volume</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/readout_error_mitigation.html">Readout Error Mitigation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/readout_error_mitigation.html#Inverse-confusion-matrix-from-single-qubit-noise-model">Inverse confusion matrix from single-qubit noise model</a></li>
@@ -342,6 +357,14 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/logical_aim_sqale.html#Running-logical-AIM-on-Infleqtion's-hardware">Running logical AIM on Infleqtion’s hardware</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/adapt_qaoa.html">ADAPT-QAOA algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_qaoa.html#Simulation-input:">Simulation input:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_qaoa.html#The-problem-Hamiltonian-H_C-of-the-max-cut-graph:">The problem Hamiltonian <span class="math notranslate nohighlight">\(H_C\)</span> of the max-cut graph:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_qaoa.html#Th-operator-pool-A_j:">Th operator pool <span class="math notranslate nohighlight">\(A_j\)</span>:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_qaoa.html#The-commutator-[H_C,A_j]:">The commutator <span class="math notranslate nohighlight">\([H_C,A_j]\)</span>:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_qaoa.html#Beginning-of-ADAPT-QAOA-iteration:">Beginning of ADAPT-QAOA iteration:</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/backends/backends.html">   Backends</a><ul>
@@ -364,6 +387,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/sims/noisy.html">     Noisy Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/noisy.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/noisy.html#density-matrix">Density Matrix</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/noisy.html#stim">Stim</a></li>
 </ul>
@@ -388,6 +412,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware/neutralatom.html">     Neutral Atom QPUs</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/neutralatom.html#infleqtion">Infleqtion</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/neutralatom.html#pasqal">Pasqal</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/neutralatom.html#quera-computing">QuEra Computing</a></li>
 </ul>
 </li>
@@ -2582,7 +2607,7 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq13kraus_channelE">
 <span class="target" id="classcudaq_1_1kraus__channel"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kraus_channel</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq13kraus_channelE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>A <a class="reference internal" href="#classcudaq_1_1kraus__channel"><span class="std std-ref">kraus_channel</span></a> represents a quantum noise channel on specific qubits. The action of the noise channel is described by a vector of Kraus operations - matrices with size equal to 2**nQubits x 2**nQubits, where the number of qubits is the number of provided qubit indices at construction. </p>
-<p>Subclassed by <a class="reference internal" href="#classcudaq_1_1amplitude__damping__channel"><span class="std std-ref">cudaq::amplitude_damping_channel</span></a>, <a class="reference internal" href="#classcudaq_1_1bit__flip__channel"><span class="std std-ref">cudaq::bit_flip_channel</span></a>, <a class="reference internal" href="#classcudaq_1_1depolarization__channel"><span class="std std-ref">cudaq::depolarization_channel</span></a>, <a class="reference internal" href="#classcudaq_1_1phase__flip__channel"><span class="std std-ref">cudaq::phase_flip_channel</span></a></p>
+<p>Subclassed by <a class="reference internal" href="#classcudaq_1_1amplitude__damping__channel"><span class="std std-ref">cudaq::amplitude_damping_channel</span></a>, <a class="reference internal" href="#classcudaq_1_1bit__flip__channel"><span class="std std-ref">cudaq::bit_flip_channel</span></a>, <a class="reference internal" href="#classcudaq_1_1depolarization2"><span class="std std-ref">cudaq::depolarization2</span></a>, <a class="reference internal" href="#classcudaq_1_1depolarization__channel"><span class="std std-ref">cudaq::depolarization_channel</span></a>, <a class="reference internal" href="#classcudaq_1_1pauli1"><span class="std std-ref">cudaq::pauli1</span></a>, <a class="reference internal" href="#classcudaq_1_1pauli2"><span class="std std-ref">cudaq::pauli2</span></a>, <a class="reference internal" href="#classcudaq_1_1phase__damping"><span class="std std-ref">cudaq::phase_damping</span></a>, <a class="reference internal" href="#classcudaq_1_1phase__flip__channel"><span class="std std-ref">cudaq::phase_flip_channel</span></a>, <a class="reference internal" href="#classcudaq_1_1y__error"><span class="std std-ref">cudaq::y_error</span></a></p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
@@ -2656,6 +2681,18 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dd><p>Add a <a class="reference internal" href="#structcudaq_1_1kraus__op"><span class="std std-ref">kraus_op</span></a> to this channel. </p>
 </dd></dl>
 
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq13kraus_channel18is_unitary_mixtureEv">
+<span class="target" id="classcudaq_1_1kraus__channel_1abf8effbbbb302ff37450202b25ffe721"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_unitary_mixture</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq13kraus_channel18is_unitary_mixtureEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Returns whether or not this is a unitary mixture. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13kraus_channel25generateUnitaryParametersEv">
+<span class="target" id="classcudaq_1_1kraus__channel_1a49b36a2b346c14e4cbd6bdabdc2b04fa"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">generateUnitaryParameters</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq13kraus_channel25generateUnitaryParametersEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Checks if Kraus ops have unitary representations and saves them if they do. Users should only need to call this if they have modified the Kraus ops and want to recompute these values. </p>
+</dd></dl>
+
 </div>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
@@ -2671,6 +2708,18 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dd><p>Noise parameter values. </p>
 </dd></dl>
 
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13kraus_channel11unitary_opsE">
+<span class="target" id="classcudaq_1_1kraus__channel_1a96c9b610069e9ff86ef5597bff834c28"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">unitary_ops</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq13kraus_channel11unitary_opsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>If all Kraus ops are - when scaled - unitary, this holds the unitary versions of those ops. These values are always “double” regardless of whether cudaq::real is float or double. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13kraus_channel13probabilitiesE">
+<span class="target" id="classcudaq_1_1kraus__channel_1a9f9cfb565a7013493a72d67602442bca"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">probabilities</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq13kraus_channel13probabilitiesE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>If all Kraus ops are - when scaled - unitary, this holds the probabilities of those ops. These values are always “double” regardless of whether cudaq::real is float or double. </p>
+</dd></dl>
+
 </div>
 </dd></dl>
 
@@ -2678,24 +2727,124 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq25amplitude_damping_channelE">
 <span class="target" id="classcudaq_1_1amplitude__damping__channel"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">amplitude_damping_channel</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq13kraus_channelE" title="cudaq::kraus_channel"><span class="n"><span class="pre">kraus_channel</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq25amplitude_damping_channelE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p><a class="reference internal" href="#classcudaq_1_1amplitude__damping__channel"><span class="std std-ref">amplitude_damping_channel</span></a> is a <a class="reference internal" href="#classcudaq_1_1kraus__channel"><span class="std std-ref">kraus_channel</span></a> that automates the creation of the kraus_ops that make up a single-qubit amplitude damping error channel. </p>
+<p>Subclassed by <a class="reference internal" href="#classcudaq_1_1amplitude__damping"><span class="std std-ref">cudaq::amplitude_damping</span></a></p>
 </dd></dl>
 
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16bit_flip_channelE">
 <span class="target" id="classcudaq_1_1bit__flip__channel"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">bit_flip_channel</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq13kraus_channelE" title="cudaq::kraus_channel"><span class="n"><span class="pre">kraus_channel</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq16bit_flip_channelE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p><a class="reference internal" href="#classcudaq_1_1bit__flip__channel"><span class="std std-ref">bit_flip_channel</span></a> is a <a class="reference internal" href="#classcudaq_1_1kraus__channel"><span class="std std-ref">kraus_channel</span></a> that automates the creation of the kraus_ops that make up a single-qubit bit flipping error channel. </p>
+<p>Subclassed by <a class="reference internal" href="#classcudaq_1_1x__error"><span class="std std-ref">cudaq::x_error</span></a></p>
 </dd></dl>
 
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq18phase_flip_channelE">
 <span class="target" id="classcudaq_1_1phase__flip__channel"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">phase_flip_channel</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq13kraus_channelE" title="cudaq::kraus_channel"><span class="n"><span class="pre">kraus_channel</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq18phase_flip_channelE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p><a class="reference internal" href="#classcudaq_1_1phase__flip__channel"><span class="std std-ref">phase_flip_channel</span></a> is a <a class="reference internal" href="#classcudaq_1_1kraus__channel"><span class="std std-ref">kraus_channel</span></a> that automates the creation of the kraus_ops that make up a single-qubit phase flip error channel. </p>
+<p>Subclassed by <a class="reference internal" href="#classcudaq_1_1z__error"><span class="std std-ref">cudaq::z_error</span></a></p>
 </dd></dl>
 
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq22depolarization_channelE">
 <span class="target" id="classcudaq_1_1depolarization__channel"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">depolarization_channel</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq13kraus_channelE" title="cudaq::kraus_channel"><span class="n"><span class="pre">kraus_channel</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq22depolarization_channelE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p><a class="reference internal" href="#classcudaq_1_1depolarization__channel"><span class="std std-ref">depolarization_channel</span></a> is a <a class="reference internal" href="#classcudaq_1_1kraus__channel"><span class="std std-ref">kraus_channel</span></a> that automates the creation of the kraus_ops that make up a single-qubit depolarization error channel. </p>
+<p>Subclassed by <a class="reference internal" href="#classcudaq_1_1depolarization1"><span class="std std-ref">cudaq::depolarization1</span></a></p>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq7x_errorE">
+<span class="target" id="classcudaq_1_1x__error"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">x_error</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq16bit_flip_channelE" title="cudaq::bit_flip_channel"><span class="n"><span class="pre">bit_flip_channel</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq7x_errorE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p><a class="reference internal" href="#classcudaq_1_1x__error"><span class="std std-ref">x_error</span></a> is a Pauli error that applies the X operator when an error occurs. It is the same as <a class="reference internal" href="#classcudaq_1_1bit__flip__channel"><span class="std std-ref">bit_flip_channel</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq7y_errorE">
+<span class="target" id="classcudaq_1_1y__error"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">y_error</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq13kraus_channelE" title="cudaq::kraus_channel"><span class="n"><span class="pre">kraus_channel</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq7y_errorE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Y_error is a Pauli error that applies the Y operator when an error occurs. </p>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq7z_errorE">
+<span class="target" id="classcudaq_1_1z__error"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">z_error</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq18phase_flip_channelE" title="cudaq::phase_flip_channel"><span class="n"><span class="pre">phase_flip_channel</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq7z_errorE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p><a class="reference internal" href="#classcudaq_1_1z__error"><span class="std std-ref">z_error</span></a> is a Pauli error that applies the Z operator when an error occurs. It is the same as <a class="reference internal" href="#classcudaq_1_1phase__flip__channel"><span class="std std-ref">phase_flip_channel</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq17amplitude_dampingE">
+<span class="target" id="classcudaq_1_1amplitude__damping"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">amplitude_damping</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq25amplitude_damping_channelE" title="cudaq::amplitude_damping_channel"><span class="n"><span class="pre">amplitude_damping_channel</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq17amplitude_dampingE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p><a class="reference internal" href="#classcudaq_1_1amplitude__damping"><span class="std std-ref">amplitude_damping</span></a> is the same as <a class="reference internal" href="#classcudaq_1_1amplitude__damping__channel"><span class="std std-ref">amplitude_damping_channel</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13phase_dampingE">
+<span class="target" id="classcudaq_1_1phase__damping"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">phase_damping</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq13kraus_channelE" title="cudaq::kraus_channel"><span class="n"><span class="pre">kraus_channel</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq13phase_dampingE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p><a class="reference internal" href="#classcudaq_1_1phase__damping"><span class="std std-ref">phase_damping</span></a> is a <a class="reference internal" href="#classcudaq_1_1kraus__channel"><span class="std std-ref">kraus_channel</span></a> that automates the creation of the kraus_ops that make up a single-qubit phase damping error channel. </p>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq6pauli1E">
+<span class="target" id="classcudaq_1_1pauli1"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pauli1</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq13kraus_channelE" title="cudaq::kraus_channel"><span class="n"><span class="pre">kraus_channel</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq6pauli1E" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>A single-qubit Pauli error that applies either an X error, Y error, or Z error, with 3 probabilities specified as inputs. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq6pauli16pauli1ERKNSt6vectorIN5cudaq4realEEE">
+<span class="target" id="classcudaq_1_1pauli1_1aa44116b940f9aa114491bcff1e858277"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pauli1</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq4realE" title="cudaq::real"><span class="n"><span class="pre">real</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">p</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq6pauli16pauli1ERKNSt6vectorIN5cudaq4realEEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Construct a single-qubit Pauli error Kraus channel. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>p</strong> – Error probabilities for X, Y, and Z errors, respectively </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq6pauli2E">
+<span class="target" id="classcudaq_1_1pauli2"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pauli2</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq13kraus_channelE" title="cudaq::kraus_channel"><span class="n"><span class="pre">kraus_channel</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq6pauli2E" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>A 2-qubit Pauli error that applies one of the following errors, with the probabilities specified as inputs. Possible errors: IX, IY, IZ, XI, XX, XY, XZ, YI, YX, YY, YZ, ZI, ZX, ZY, and ZZ. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq6pauli26pauli2ERKNSt6vectorIN5cudaq4realEEE">
+<span class="target" id="classcudaq_1_1pauli2_1a0872eff8b7aad135aabf2fc8de8cd8e3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pauli2</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq4realE" title="cudaq::real"><span class="n"><span class="pre">real</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">p</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq6pauli26pauli2ERKNSt6vectorIN5cudaq4realEEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Construct a 2-qubit Pauli error Kraus channel. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>p</strong> – Error probabilities for the 2-qubit Pauli operators. The length of this vector must be 15. Note that since the probability of II is not specified, it is implied to by 1 - sum(p). Therefore, maximal mixing occurs when sum(p) = 0.9375. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15depolarization1E">
+<span class="target" id="classcudaq_1_1depolarization1"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">depolarization1</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq22depolarization_channelE" title="cudaq::depolarization_channel"><span class="n"><span class="pre">depolarization_channel</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq15depolarization1E" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p><a class="reference internal" href="#classcudaq_1_1depolarization1"><span class="std std-ref">depolarization1</span></a> is the same as <a class="reference internal" href="#classcudaq_1_1depolarization__channel"><span class="std std-ref">depolarization_channel</span></a> </p>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15depolarization2E">
+<span class="target" id="classcudaq_1_1depolarization2"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">depolarization2</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq13kraus_channelE" title="cudaq::kraus_channel"><span class="n"><span class="pre">kraus_channel</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq15depolarization2E" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>A 2-qubit depolarization error that applies one of the following errors. Possible errors: IX, IY, IZ, XI, XX, XY, XZ, YI, YX, YY, YZ, ZI, ZX, ZY, and ZZ. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15depolarization215depolarization2EK4real">
+<span class="target" id="classcudaq_1_1depolarization2_1aa0a6744f70184f41dc6218cebb886d07"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">depolarization2</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq4realE" title="cudaq::real"><span class="n"><span class="pre">real</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">probability</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15depolarization215depolarization2EK4real" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Construct a two qubit Kraus channel that applies a depolarization channel on either qubit independently. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>probability</strong> – The probability of any depolarizing error happening in the 2 qubits. (Setting this to 1.0 ensures that “II” cannot happen; maximal mixing occurs at p = 0.9375.) </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
 </dd></dl>
 
 <dl class="cpp class">
@@ -2715,7 +2864,7 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq11noise_model11noise_modelEv">
-<span class="target" id="classcudaq_1_1noise__model_1a5c366911696095b18a8bcf1c55fe1dac"></span><span class="sig-name descname"><span class="n"><span class="pre">noise_model</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N5cudaq11noise_model11noise_modelEv" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="classcudaq_1_1noise__model_1adc4449f34e0319ce95a80bc6124f5d15"></span><span class="sig-name descname"><span class="n"><span class="pre">noise_model</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq11noise_model11noise_modelEv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>default constructor </p>
 </dd></dl>
 
@@ -2801,8 +2950,7 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dl class="cpp enum-class">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_typeE">
 <span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">noise_model_type</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_typeE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Noise model enumerated type that allows downstream simulators of <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1kraus__channel"><span class="std std-ref"><span class="pre">kraus_channel</span></span></a></code> objects to apply simulator-specific logic for well-known noise models. </p>
-<p><em>Values:</em></p>
+<dd><p><em>Values:</em></p>
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type7unknownE">
 <span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5aad921d60486366258809553a3db49a4a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">unknown</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type7unknownE" title="Permalink to this definition">¶</a><br /></dt>
@@ -2826,6 +2974,51 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type18phase_flip_channelE">
 <span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5a47d7b6d93e6a7373d773f10e9971fba6"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">phase_flip_channel</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type18phase_flip_channelE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type7x_errorE">
+<span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5a20ccc71de1bdb05475ee924e5f8ecf41"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">x_error</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type7x_errorE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type7y_errorE">
+<span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5aeeb6d6807691c67a1110e04a3cde2cec"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">y_error</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type7y_errorE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type7z_errorE">
+<span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5a743745d72843c03bf23ecf46214237ac"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">z_error</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type7z_errorE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type17amplitude_dampingE">
+<span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5ab3de5faaf1f45abc76779a1236609b86"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">amplitude_damping</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type17amplitude_dampingE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type13phase_dampingE">
+<span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5a9110851341133106609dc4567991cb25"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">phase_damping</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type13phase_dampingE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type6pauli1E">
+<span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5a444d61d3ef68f4747f0e2e7a8ac9de4e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pauli1</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type6pauli1E" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type6pauli2E">
+<span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5a8069aa5fd7f7d50ae0efd4444f372ec1"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pauli2</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type6pauli2E" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type15depolarization1E">
+<span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5abf9638080b9c0e60da383218767d187d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">depolarization1</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type15depolarization1E" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type15depolarization2E">
+<span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5a91509198e0aaa4c1ebb996ca0bb1ae70"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">depolarization2</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type15depolarization2E" title="Permalink to this definition">¶</a><br /></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -3681,7 +3874,7 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq17BaseRemoteRESTQPUE">
 <span class="target" id="classcudaq_1_1BaseRemoteRESTQPU"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BaseRemoteRESTQPU</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq3QPUE" title="cudaq::QPU"><span class="n"><span class="pre">QPU</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq17BaseRemoteRESTQPUE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Subclassed by <a class="reference internal" href="#classcudaq_1_1FermioniqBaseQPU"><span class="std std-ref">cudaq::FermioniqBaseQPU</span></a>, <a class="reference internal" href="#classcudaq_1_1QuEraBaseQPU"><span class="std std-ref">cudaq::QuEraBaseQPU</span></a></p>
+<dd><p>Subclassed by <a class="reference internal" href="#classcudaq_1_1FermioniqBaseQPU"><span class="std std-ref">cudaq::FermioniqBaseQPU</span></a>, <a class="reference internal" href="#classcudaq_1_1PasqalBaseQPU"><span class="std std-ref">cudaq::PasqalBaseQPU</span></a>, <a class="reference internal" href="#classcudaq_1_1QuEraBaseQPU"><span class="std std-ref">cudaq::QuEraBaseQPU</span></a></p>
 </dd></dl>
 
 <dl class="cpp class">
@@ -3706,6 +3899,12 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq17OrcaRemoteRESTQPUE">
 <span class="target" id="classcudaq_1_1OrcaRemoteRESTQPU"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OrcaRemoteRESTQPU</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq3QPUE" title="cudaq::QPU"><span class="n"><span class="pre">QPU</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq17OrcaRemoteRESTQPUE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>The <a class="reference internal" href="#classcudaq_1_1OrcaRemoteRESTQPU"><span class="std std-ref">OrcaRemoteRESTQPU</span></a> is a subtype of <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> that enables the execution of CUDA-Q kernels on remotely hosted quantum computing services via a REST Client / Server interaction. This type is meant to be general enough to support any remotely hosted service. Moreover, this <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> handles launching kernels under the Execution Context that includes sampling via synchronous client invocations. </p>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13PasqalBaseQPUE">
+<span class="target" id="classcudaq_1_1PasqalBaseQPU"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PasqalBaseQPU</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq17BaseRemoteRESTQPUE" title="cudaq::BaseRemoteRESTQPU"><span class="n"><span class="pre">BaseRemoteRESTQPU</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq13PasqalBaseQPUE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>The <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1PasqalBaseQPU"><span class="std std-ref"><span class="pre">PasqalBaseQPU</span></span></a></code> is a <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> that allows users to submit kernels to the Pasqal machine. </p>
 </dd></dl>
 
 <dl class="cpp class">
@@ -3838,6 +4037,12 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16quantum_platform9set_noiseEPK11noise_model">
 <span class="target" id="classcudaq_1_1quantum__platform_1a6e798c291d46aff40ce8fdad40e6fb90"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_noise</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq11noise_modelE" title="cudaq::noise_model"><span class="n"><span class="pre">noise_model</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">model</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq16quantum_platform9set_noiseEPK11noise_model" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the noise model for future invocations of quantum kernels. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16quantum_platform9get_noiseEv">
+<span class="target" id="classcudaq_1_1quantum__platform_1aa523466e2bde7c9d7e4bce7ef4322f73"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq11noise_modelE" title="cudaq::noise_model"><span class="n"><span class="pre">noise_model</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_noise</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq16quantum_platform9get_noiseEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Return the current noise model or <code class="docutils literal notranslate"><span class="pre">nullptr</span></code> if none set. </p>
 </dd></dl>
 
 <dl class="cpp function">
