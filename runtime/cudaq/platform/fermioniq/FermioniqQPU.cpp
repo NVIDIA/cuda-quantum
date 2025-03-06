@@ -21,7 +21,7 @@ namespace {
 /// execution of CUDA-Q kernels on the Fermioniq simulator via a REST Client.
 class FermioniqRestQPU : public cudaq::FermioniqBaseQPU {
 protected:
- std::tuple<mlir::ModuleOp, mlir::MLIRContext *>
+  std::tuple<mlir::ModuleOp, mlir::MLIRContext *>
   extractQuakeCodeAndContext(const std::string &kernelName) override {
     auto contextPtr = cudaq::initializeMLIR();
     MLIRContext &context = *contextPtr.get();

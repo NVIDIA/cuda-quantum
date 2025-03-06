@@ -513,7 +513,7 @@ void test_simulation_state(mlir::MLIRContext *ctx) {
 }
 
 void test_quantum_state(mlir::MLIRContext *ctx) {
-  
+
   {
     // @cudaq.kernel
     // def init():
@@ -525,11 +525,10 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
     // s = cudaq.get_state(init)
     // cudaq.sample(kernel, s)
     auto init = "init";
-    auto initCode =
-        "func.func private @__nvqpp__mlirgen__init() {\n"
-        "  %0 = quake.alloca !quake.veq<2>\n"
-        "  return\n"
-        "}\n";
+    auto initCode = "func.func private @__nvqpp__mlirgen__init() {\n"
+                    "  %0 = quake.alloca !quake.veq<2>\n"
+                    "  return\n"
+                    "}\n";
     __cudaq_deviceCodeHolderAdd(init, initCode);
 
     std::int64_t n = 2;

@@ -6,10 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Optimizer/InitAllDialects.h"
 #include "common/ArgumentWrapper.h"
 #include "common/BaseRemoteRESTQPU.h"
 #include "common/RuntimeMLIRCommonImpl.h"
+#include "cudaq/Optimizer/InitAllDialects.h"
 
 // [RFC]:
 // The RemoteRESTQPU implementation that is now split across several files needs
@@ -80,18 +80,15 @@ private:
   }
 
 protected:
- std::tuple<mlir::ModuleOp, mlir::MLIRContext *>
-extractQuakeCodeAndContext(const std::string &kernelName) override {
+  std::tuple<mlir::ModuleOp, mlir::MLIRContext *>
+  extractQuakeCodeAndContext(const std::string &kernelName) override {
 
     auto contextPtr = createContext();
-    MLIRContext* context = contextPtr.get();
+    MLIRContext *context = contextPtr.get();
 
     // Get the quake representation of the kernel
     auto quakeCode = cudaq::get_quake_by_name(kernelName);
     auto m_module = parseSourceString<ModuleOp>(quakeCode, context);
-    std::cout << "parsed module" << std::endl;
-    m_module->dump();
-
     if (!m_module)
       throw std::runtime_error("module cannot be parsed");
 

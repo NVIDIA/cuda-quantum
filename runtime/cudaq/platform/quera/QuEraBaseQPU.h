@@ -16,7 +16,7 @@ namespace cudaq {
 // submit kernels to the QuEra machine.
 class QuEraBaseQPU : public BaseRemoteRESTQPU {
 protected:
-virtual std::tuple<mlir::ModuleOp, mlir::MLIRContext *>
+  virtual std::tuple<mlir::ModuleOp, mlir::MLIRContext *>
   extractQuakeCodeAndContext(const std::string &kernelName) override {
     throw std::runtime_error("Not supported on this target.");
   }

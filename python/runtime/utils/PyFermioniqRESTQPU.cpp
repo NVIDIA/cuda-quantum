@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Optimizer/InitAllDialects.h"
 #include "common/ArgumentWrapper.h"
+#include "cudaq/Optimizer/InitAllDialects.h"
 #include "cudaq/platform/fermioniq/FermioniqBaseQPU.h"
 
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
@@ -28,7 +28,7 @@ void registerLLVMDialectTranslation(MLIRContext *context);
 namespace cudaq {
 
 class PyFermioniqRESTQPU : public cudaq::FermioniqBaseQPU {
- private:
+private:
   /// Creates new context without mlir initialization.
   std::unique_ptr<MLIRContext> createContext() {
     DialectRegistry registry;
@@ -48,18 +48,19 @@ class PyFermioniqRESTQPU : public cudaq::FermioniqBaseQPU {
 
     return context;
   }
+
 protected:
- std::tuple<mlir::ModuleOp, mlir::MLIRContext *>
+  std::tuple<mlir::ModuleOp, mlir::MLIRContext *>
   extractQuakeCodeAndContext(const std::string &kernelName) override {
 
-  auto contextPtr = createContext();
-  MLIRContext* context = contextPtr.get();
+    auto contextPtr = createContext();
+    MLIRContext *context = contextPtr.get();
 
-  // Get the quake representation of the kernel
-  auto quakeCode = cudaq::get_quake_by_name(kernelName);
-  auto m_module = parseSourceString<ModuleOp>(quakeCode, context);
-  if (!m_module)
-    throw std::runtime_error("module cannot be parsed");
+    // Get the quake representation of the kernel
+    auto quakeCode = cudaq::get_quake_by_name(kernelName);
+    auto m_module = parseSourceString<ModuleOp>(quakeCode, context);
+    if (!m_module)
+      throw std::runtime_error("module cannot be parsed");
 
     // Here we have an opportunity to run any passes that are
     // specific to python before the rest of the RemoteRESTQPU workflow

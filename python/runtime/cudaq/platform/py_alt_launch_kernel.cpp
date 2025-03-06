@@ -38,8 +38,6 @@
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
 
-#include <iostream>
-
 namespace py = pybind11;
 using namespace mlir;
 
@@ -275,8 +273,9 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
   // to set that data, and then set it.
   for (auto &[stateHash, stateData] : *stateStorage) {
     if (platform.is_remote() || platform.is_emulated())
-      throw std::runtime_error("captured vectors are not supported on quantum hardware or remote simulators");
-    
+      throw std::runtime_error("captured vectors are not supported on quantum "
+                               "hardware or remote simulators");
+
     if (stateData.kernelName != name)
       continue;
 
@@ -305,7 +304,8 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
   // to set that data, and then set it.
   for (auto &[stateHash, stateData] : *cudaqStateStorage) {
     if (platform.is_remote() || platform.is_emulated())
-      throw std::runtime_error("captured vectors are not supported on quantum hardware or remote simulators");
+      throw std::runtime_error("captured vectors are not supported on quantum "
+                               "hardware or remote simulators");
 
     if (stateData.kernelName != name)
       continue;
@@ -346,31 +346,12 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
 
   if (launch) {
     auto uReturnOffset = static_cast<std::uint64_t>(returnOffset);
-    if (platform.get_remote_capabilities().isRemoteSimulator) {
-      std::cout << "*** Launch on Remote sim " << std::endl;
-      auto args = runtimeArgs.getArgs();
-      //auto m = new ModuleOp(mod);
-      //m->getContext();
-      std::cout << "*** args size before:" << args.size() << std::endl;
-      //args.insert(args.begin(), reinterpret_cast<void*>(m));
-      args.insert(args.begin(), reinterpret_cast<void*>(&mod));
-      std::cout << "*** args size after:" << args.size() << std::endl;
-      
-      
-      auto dynamicResult = cudaq::streamlinedLaunchKernel(name.c_str(), args);
-      if (dynamicResult.data_buffer || dynamicResult.size)
-        throw std::runtime_error("not implemented: support dynamic results");
+    auto args = runtimeArgs.getArgs();
+    if (platform.get_remote_capabilities().isRemoteSimulator)
+      args.insert(args.begin(), reinterpret_cast<void *>(&mod));
 
-      // auto *wrapper = new cudaq::ArgWrapper{mod, names, rawArgs};
-      // auto dynamicResult = cudaq::altLaunchKernel(
-      //     name.c_str(), thunk, reinterpret_cast<void *>(wrapper), size,
-      //     uReturnOffset);
-      // if (dynamicResult.data_buffer || dynamicResult.size)
-      //   throw std::runtime_error("not implemented: support dynamic results");
-      //delete m;
-    } else if (platform.is_remote() || platform.is_emulated()) {
-      std::cout << "*** Launch on Remote device " << std::endl;
-      auto dynamicResult = cudaq::streamlinedLaunchKernel(name.c_str(), runtimeArgs.getArgs());
+    if (platform.is_remote() || platform.is_emulated()) {
+      auto dynamicResult = cudaq::streamlinedLaunchKernel(name.c_str(), args);
       if (dynamicResult.data_buffer || dynamicResult.size)
         throw std::runtime_error("not implemented: support dynamic results");
     } else {
@@ -401,8 +382,9 @@ pyCreateNativeKernel(const std::string &name, MlirModule module,
   // to set that data, and then set it.
   for (auto &[stateHash, svdata] : *stateStorage) {
     if (platform.is_remote() || platform.is_emulated())
-      throw std::runtime_error("captured vectors are not supported on quantum hardware or remote simulators");
-    
+      throw std::runtime_error("captured vectors are not supported on quantum "
+                               "hardware or remote simulators");
+
     if (svdata.kernelName != name)
       continue;
     auto setStateFPtr = jit->lookup("nvqpp.set.state." + stateHash);
@@ -426,7 +408,8 @@ pyCreateNativeKernel(const std::string &name, MlirModule module,
   // to set that data, and then set it.
   for (auto &[stateHash, stateData] : *cudaqStateStorage) {
     if (platform.is_remote() || platform.is_emulated())
-      throw std::runtime_error("captured vectors are not supported on quantum hardware or remote simulators");
+      throw std::runtime_error("captured vectors are not supported on quantum "
+                               "hardware or remote simulators");
 
     if (stateData.kernelName != name)
       continue;

@@ -402,8 +402,7 @@ public:
   lowerQuakeCode(const std::string &kernelName, void *kernelArgs,
                  const std::vector<void *> &rawArgs) {
 
-    auto [m_module, contextPtr] =
-        extractQuakeCodeAndContext(kernelName);
+    auto [m_module, contextPtr] = extractQuakeCodeAndContext(kernelName);
 
     mlir::MLIRContext &context = *contextPtr;
 
@@ -452,44 +451,43 @@ public:
 
     if (!rawArgs.empty()) {
       mlir::PassManager pm(&context);
-        cudaq::info("Run Argument Synth.\n");
-        // For quantum devices, create a list of ArgumentConverters
-        // with nodes corresponding to `init` and `num_qubits` functions
-        // created from a kernel that generated the state argument.
-        // Traverse the list and collect substitutions for all those
-        // functions.
-        auto argCon = cudaq::opt::ArgumentConverter(kernelName, moduleOp);
-        argCon.gen(rawArgs);
+      cudaq::info("Run Argument Synth.\n");
+      // For quantum devices, create a list of ArgumentConverters
+      // with nodes corresponding to `init` and `num_qubits` functions
+      // created from a kernel that generated the state argument.
+      // Traverse the list and collect substitutions for all those
+      // functions.
+      auto argCon = cudaq::opt::ArgumentConverter(kernelName, moduleOp);
+      argCon.gen(rawArgs);
 
-        // Store kernel and substitution strings on the stack.
-        // We pass string references to the `createArgumentSynthesisPass`.
-        mlir::SmallVector<std::string> kernels;
-        mlir::SmallVector<std::string> substs;
-        for (auto &kInfo : argCon.getKernelSubstitutions()) {
-          {
-            std::string kernName = cudaq::runtime::cudaqGenPrefixName +
-                                   kInfo.getKernelName().str();
-            kernels.emplace_back(kernName);
-          }
-          {
-            std::string substBuff;
-            llvm::raw_string_ostream ss(substBuff);
-            ss << kInfo.getSubstitutionModule();
-            substs.emplace_back(substBuff);
-          }
+      // Store kernel and substitution strings on the stack.
+      // We pass string references to the `createArgumentSynthesisPass`.
+      mlir::SmallVector<std::string> kernels;
+      mlir::SmallVector<std::string> substs;
+      for (auto &kInfo : argCon.getKernelSubstitutions()) {
+        {
+          std::string kernName =
+              cudaq::runtime::cudaqGenPrefixName + kInfo.getKernelName().str();
+          kernels.emplace_back(kernName);
         }
+        {
+          std::string substBuff;
+          llvm::raw_string_ostream ss(substBuff);
+          ss << kInfo.getSubstitutionModule();
+          substs.emplace_back(substBuff);
+        }
+      }
 
-        // Collect references for the argument synthesis.
-        mlir::SmallVector<mlir::StringRef> kernelRefs{kernels.begin(),
-                                                      kernels.end()};
-        mlir::SmallVector<mlir::StringRef> substRefs{substs.begin(),
-                                                     substs.end()};
-        pm.addPass(opt::createArgumentSynthesisPass(kernelRefs, substRefs));
-        pm.addPass(opt::createDeleteStates());
-        pm.addNestedPass<mlir::func::FuncOp>(
-            opt::createReplaceStateWithKernel());
-        pm.addPass(mlir::createSymbolDCEPass());
-      
+      // Collect references for the argument synthesis.
+      mlir::SmallVector<mlir::StringRef> kernelRefs{kernels.begin(),
+                                                    kernels.end()};
+      mlir::SmallVector<mlir::StringRef> substRefs{substs.begin(),
+                                                   substs.end()};
+      pm.addPass(opt::createArgumentSynthesisPass(kernelRefs, substRefs));
+      pm.addPass(opt::createDeleteStates());
+      pm.addNestedPass<mlir::func::FuncOp>(opt::createReplaceStateWithKernel());
+      pm.addPass(mlir::createSymbolDCEPass());
+
       pm.addPass(mlir::createCanonicalizerPass());
       if (disableMLIRthreading || enablePrintMLIREachPass)
         moduleOp.getContext()->disableMultithreading();

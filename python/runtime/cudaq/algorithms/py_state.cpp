@@ -149,7 +149,8 @@ class PyQPUState : public QPUState {
   mlir::ModuleOp kernelMod;
 
 public:
-PyQPUState(const std::string &in_kernelName, cudaq::OpaqueArguments *argsDataToOwn)
+  PyQPUState(const std::string &in_kernelName,
+             cudaq::OpaqueArguments *argsDataToOwn)
       : argsData(argsDataToOwn) {
     this->kernelName = in_kernelName;
   }
