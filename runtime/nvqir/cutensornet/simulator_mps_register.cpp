@@ -108,8 +108,6 @@ public:
             exp_itheta2,       0., 0., 0., 0., exp_minus_itheta2};
   };
 
-  // FIXME: EXP_PAULI SHOULD JUST TAKE A PAULI WORD -
-  // WE DON'T DEAL WITH COEFFICIENTS
   virtual void applyExpPauli(double theta,
                              const std::vector<std::size_t> &controls,
                              const std::vector<std::size_t> &qubitIds,
@@ -126,28 +124,31 @@ public:
     // are commonly-used gates and apply the operation directly (the base
     // decomposition will result in 2 CNOT gates).
     const auto shouldHandlePauliOp =
-        [](const cudaq::spin_op_term &opToCheck) -> bool {
-      const std::string opStr = opToCheck.to_string(false);
-      // FIXME: COMPLETELY IGNORES COEFFICIENTS - SAME PROBABLY IN THE GENERAL IMPLEMENTATION IN SimulatorTensorNetBase
-      return opStr == "XX" || opStr == "YY" || opStr == "ZZ";
+        [](const std::string &pauli_word) -> bool {
+      return pauli_word == "XX" || pauli_word == "YY" || pauli_word == "ZZ";
     };
-    if (controls.empty() && qubitIds.size() == 2 && shouldHandlePauliOp(op)) {
+
+    // FIXME: this is very silly; the implementation here clearly assumes that
+    // the spin op term is not a general spin op term, but really just a pauli 
+    // word; it's coefficient is silently ignored. This works because it was 
+    // actually constructed from a pauli word - we should just pass that one along.
+    auto pauli_word = op.get_pauli_word();
+    if (controls.empty() && qubitIds.size() == 2 && shouldHandlePauliOp(pauli_word)) {
       flushGateQueue();
       cudaq::info("[SimulatorMPS] (apply) exp(i*{}*{}) ({}, {}).", theta,
-                  op.to_string(false), qubitIds[0], qubitIds[1]);
+                  op.to_string(), qubitIds[0], qubitIds[1]);
       const GateApplicationTask task = [&]() {
-        const std::string opStr = op.to_string(false);
         // Note: Rxx(angle) ==  exp(-i*angle/2 XX)
         // i.e., exp(i*theta XX) == Rxx(-2 * theta)
-        if (opStr == "XX") {
+        if (pauli_word == "XX") {
           // Note: use a special name so that the gate matrix caching procedure
           // works properly.
           return GateApplicationTask("Rxx", generateXX(-2.0 * theta), {},
                                      qubitIds, {theta});
-        } else if (opStr == "YY") {
+        } else if (pauli_word == "YY") {
           return GateApplicationTask("Ryy", generateYY(-2.0 * theta), {},
                                      qubitIds, {theta});
-        } else if (opStr == "ZZ") {
+        } else if (pauli_word == "ZZ") {
           return GateApplicationTask("Rzz", generateZZ(-2.0 * theta), {},
                                      qubitIds, {theta});
         }

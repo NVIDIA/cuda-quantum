@@ -251,11 +251,15 @@ template <typename QuantumKernel, typename SpinOpContainer, typename... Args,
           typename = std::enable_if_t<
               std::is_invocable_r_v<void, QuantumKernel, Args...>>>
 #endif
-// FIXME: the error message when the SpinOpContainer doesn't actually contain
-// spin_op_terms is somewhat cryptic here... 
 std::vector<observe_result> observe(QuantumKernel &&kernel,
                                     const SpinOpContainer &termList,
                                     Args &&...args) {
+  // Here to give a more comprehensive error if the container does not contain 
+  // values of type spin_op_term.
+  typedef typename SpinOpContainer::value_type value_type;
+  static_assert(std::is_same_v<spin_op_term, value_type>, 
+    "term list must be a container of spin_op_term");
+
   // Run this SHOTS times
   auto &platform = cudaq::get_platform();
   auto shots = platform.get_shots().value_or(-1);
