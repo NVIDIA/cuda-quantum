@@ -1153,9 +1153,6 @@ jobs:
           cp    $GITHUB_WORKSPACE/$readme /tmp/README.md
           # Target tests should not be run here either, since that requires credentials but doesn't require a GPU runner.
 
-          # The NVQC API key is needed to validate NVQC related snippets and examples.
-          export NVQC_API_KEY="${{ secrets.NVQC_PROD_SERVICE_KEY }}"
-
           # Run the script w/ -q to run a shortened test
           set +e # Allow script to keep going through errors (needed for skipped tests)
           source validate_pycudaq.sh \
