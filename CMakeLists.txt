@@ -98,6 +98,11 @@ if (NOT DEFINED CUDAQ_ENABLE_BRAKET_BACKEND)
   set(CUDAQ_ENABLE_BRAKET_BACKEND ON CACHE BOOL "Enable building AWS SDK for Amazon Braket backends.")
 endif()
 
+# Enable Pasqal target by default.
+if (NOT DEFINED CUDAQ_ENABLE_PASQAL_BACKEND)
+  set(CUDAQ_ENABLE_PASQAL_BACKEND ON CACHE BOOL "Enable building the Pasqal target.")
+endif()
+
 # Generate a CompilationDatabase (compile_commands.json file) for our build,
 # for use by clang_complete, YouCompleteMe, etc.
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
@@ -553,6 +558,10 @@ if (NOT CUDAQ_DISABLE_RUNTIME)
 endif()
 add_subdirectory(tools)
 add_subdirectory(utils)
+
+if(CUDAQ_BUILD_TESTS)
+  enable_testing()
+endif()
 
 if (CUDAQ_ENABLE_PYTHON)
   find_package(Python 3 COMPONENTS Interpreter Development)

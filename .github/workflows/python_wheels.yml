@@ -129,7 +129,10 @@ jobs:
         uses: docker/setup-buildx-action@v3
         with:
           endpoint: builder_context
-          driver-opts: network=host
+          version: v0.19.0
+          driver-opts: |
+            network=host
+            image=moby/buildkit:v0.19.0
 
       - name: Build wheel
         id: wheel_build

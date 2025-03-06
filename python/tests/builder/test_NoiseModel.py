@@ -529,6 +529,222 @@ def test_custom_op():
     check_custom_op_noise(noise)
 
 
+def test_apply_noise_custom():
+    cudaq.set_target('density-matrix-cpu')
+
+    class CustomNoiseChannelBad(cudaq.KrausChannel):
+        # NEEDS num_parameters member, but it is missing, so this is Bad
+        def __init__(self, params: list[float]):
+            cudaq.KrausChannel.__init__(self)
+            # Example: Create Kraus ops based on params
+            p = params[0]
+            k0 = np.array([[np.sqrt(1 - p), 0], [0, np.sqrt(1 - p)]],
+                          dtype=np.complex128)
+            k1 = np.array([[0, np.sqrt(p)], [np.sqrt(p), 0]],
+                          dtype=np.complex128)
+
+            # Create KrausOperators and add to channel
+            self.append(cudaq.KrausOperator(k0))
+            self.append(cudaq.KrausOperator(k1))
+
+            # Set noise type for Stim integration
+            self.noise_type = cudaq.NoiseModelType.Unknown
+
+    class CustomNoiseChannel(cudaq.KrausChannel):
+        num_parameters = 1
+        num_targets = 1
+
+        def __init__(self, params: list[float]):
+            cudaq.KrausChannel.__init__(self)
+            # Example: Create Kraus ops based on params
+            p = params[0]
+            k0 = np.array([[np.sqrt(1 - p), 0], [0, np.sqrt(1 - p)]],
+                          dtype=np.complex128)
+            k1 = np.array([[0, np.sqrt(p)], [np.sqrt(p), 0]],
+                          dtype=np.complex128)
+
+            # Create KrausOperators and add to channel
+            self.append(cudaq.KrausOperator(k0))
+            self.append(cudaq.KrausOperator(k1))
+
+            # Set noise type for Stim integration
+            self.noise_type = cudaq.NoiseModelType.Unknown
+
+    class CustomNoiseChannelTwoParams(cudaq.KrausChannel):
+        num_parameters = 2
+        num_targets = 1
+
+        def __init__(self, params: list[float]):
+            cudaq.KrausChannel.__init__(self)
+            # Example: Create Kraus ops based on params
+            p = params[0]
+            q = params[1]
+            k0 = np.array([[np.sqrt(1 - p), 0], [0, np.sqrt(1 - p)]],
+                          dtype=np.complex128)
+            k1 = np.array([[0, np.sqrt(q)], [np.sqrt(q), 0]],
+                          dtype=np.complex128)
+
+            # Create KrausOperators and add to channel
+            self.append(cudaq.KrausOperator(k0))
+            self.append(cudaq.KrausOperator(k1))
+
+            # Set noise type for Stim integration
+            self.noise_type = cudaq.NoiseModelType.Unknown
+
+    noise = cudaq.NoiseModel()
+    noise.register_channel(CustomNoiseChannel)
+    noise.register_channel(CustomNoiseChannelBad)
+
+    @cudaq.kernel
+    def test():
+        q = cudaq.qubit()
+        x(q)
+        # can pass as vector of params
+        cudaq.apply_noise(CustomNoiseChannel, [0.1], q)
+
+    counts = cudaq.sample(test)
+    assert len(counts) == 1 and '1' in counts
+
+    counts = cudaq.sample(test, noise_model=noise)
+    assert len(counts) == 2 and '0' in counts and '1' in counts
+
+    @cudaq.kernel
+    def test():
+        q = cudaq.qubit()
+        x(q)
+        # can pass as standard arguments
+        cudaq.apply_noise(CustomNoiseChannel, 0.1, q)
+
+    counts = cudaq.sample(test)
+    assert len(counts) == 1 and '1' in counts
+
+    counts = cudaq.sample(test, noise_model=noise)
+    assert len(counts) == 2 and '0' in counts and '1' in counts
+
+    @cudaq.kernel
+    def testbad():
+        q = cudaq.qubit()
+        x(q)
+        # can pass as standard arguments
+        cudaq.apply_noise(CustomNoiseChannelBad, 0.1, q)
+
+    with pytest.raises(RuntimeError) as e:
+        testbad.compile()
+
+    @cudaq.kernel
+    def test():
+        q = cudaq.qubit()
+        x(q)
+        # can pass as standard arguments
+        cudaq.apply_noise(CustomNoiseChannelTwoParams, 0.1, 0.2, q)
+
+    noise.register_channel(CustomNoiseChannelTwoParams)
+
+    counts = cudaq.sample(test, noise_model=noise)
+    counts.dump()
+    assert len(counts) == 2 and '0' in counts and '1' in counts
+
+    cudaq.reset_target()
+
+
+@pytest.mark.parametrize('target', ['density-matrix-cpu', 'stim'])
+def test_apply_noise_builtin(target: str):
+    cudaq.set_target(target)
+
+    noise = cudaq.NoiseModel()
+
+    # Test builtin channels
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(3)
+        cudaq.apply_noise(cudaq.DepolarizationChannel, 0.1, q[0])
+        mz(q)
+
+    counts = cudaq.sample(kernel, noise_model=noise)
+    print(counts)
+    assert len(counts) == 2 and '000' in counts and '100' in counts
+
+    @cudaq.kernel
+    def bell_depol2(d: float, flag: bool):
+        q, r = cudaq.qubit(), cudaq.qubit()
+        h(q)
+        x.ctrl(q, r)
+        if flag:
+            cudaq.apply_noise(cudaq.Depolarization2, d, q, r)
+        else:
+            cudaq.apply_noise(cudaq.Depolarization2, [d], q, r)
+
+    counts = cudaq.sample(bell_depol2, 0.2, True, noise_model=noise)
+    assert len(counts) == 4
+    print(counts)
+
+    counts = cudaq.sample(bell_depol2, 0.2, False, noise_model=noise)
+    assert len(counts) == 4
+    print(counts)
+
+    @cudaq.kernel
+    def bell_x():
+        q, r = cudaq.qubit(), cudaq.qubit()
+        h(q)
+        x.ctrl(q, r)
+        cudaq.apply_noise(cudaq.XError, 0.1, q)
+        cudaq.apply_noise(cudaq.XError, 0.1, r)
+
+    @cudaq.kernel
+    def bell_y():
+        q, r = cudaq.qubit(), cudaq.qubit()
+        h(q)
+        x.ctrl(q, r)
+        cudaq.apply_noise(cudaq.YError, 0.1, q)
+        cudaq.apply_noise(cudaq.YError, 0.1, r)
+
+    @cudaq.kernel
+    def test_z():
+        q = cudaq.qvector(2)
+        h(q)
+        cudaq.apply_noise(cudaq.ZError, 0.1, q[0])
+        cudaq.apply_noise(cudaq.ZError, 0.1, q[1])
+        h(q)
+        mz(q)
+
+    counts = cudaq.sample(bell_x, noise_model=noise)
+    assert len(counts) == 4
+    print(counts)
+    counts = cudaq.sample(bell_y, noise_model=noise)
+    assert len(counts) == 4
+    print(counts)
+    counts = cudaq.sample(test_z, noise_model=noise)
+    assert len(counts) == 4
+    print(counts)
+
+    @cudaq.kernel
+    def pauli1_test():
+        q, r = cudaq.qubit(), cudaq.qubit()
+        h(q)
+        x.ctrl(q, r)
+        cudaq.apply_noise(cudaq.Pauli1, 0.1, 0.1, 0.1, q)
+        cudaq.apply_noise(cudaq.Pauli1, 0.1, 0.1, 0.1, r)
+
+    counts = cudaq.sample(pauli1_test, noise_model=noise)
+    assert len(counts) == 4
+    print(counts)
+
+    @cudaq.kernel
+    def pauli2_test():
+        q, r = cudaq.qubit(), cudaq.qubit()
+        h(q)
+        x.ctrl(q, r)
+        cudaq.apply_noise(cudaq.Pauli2, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02,
+                          0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02,
+                          q, r)
+
+    counts = cudaq.sample(pauli2_test, noise_model=noise)
+    assert len(counts) == 4
+    print(counts)
+
+    cudaq.reset_target()
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
