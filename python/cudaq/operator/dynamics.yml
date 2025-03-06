@@ -11,3 +11,6 @@ description: "Dynamics simulation backend"
 gpu-requirements: true
 config:
   nvqir-simulation-backend: dynamics
+  platform-library: mqpu
+  preprocessor-defines: ["-D CUDAQ_DYNAMICS_TARGET"]
+  library-mode: true
