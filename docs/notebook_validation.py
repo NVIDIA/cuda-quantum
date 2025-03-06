@@ -50,7 +50,9 @@ def execute(notebook_filename):
         ],
                        check=True)
         elapsed = time.perf_counter() - start_time
-        print(f"Time taken for nbconvert: {elapsed:.2f} seconds")
+        print(
+            f"Time taken for nbconvert : {elapsed:.2f} seconds for '{notebook_filename}'"
+        )
         os.remove(notebook_filename_out)
         return True
     except subprocess.CalledProcessError:
