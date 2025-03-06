@@ -108,7 +108,7 @@ int main() {
   auto get_expectation = [](int idx, auto &result) -> std::vector<double> {
     std::vector<double> expectations;
 
-    auto all_exps = result.get_expectation_values();
+    auto all_exps = result.get_expectation_values().value();
     for (auto exp_vals : all_exps) {
       expectations.push_back((double)exp_vals[idx]);
     }
