@@ -326,7 +326,6 @@ public:
         std::memcpy(request.args.data(), kernelArgs, argsSize);
       }
 
-      std::cout << "library mode, using thunk" << std::endl;
       if (kernelFunc) {
         ::Dl_info info;
         ::dladdr(reinterpret_cast<void *>(kernelFunc), &info);

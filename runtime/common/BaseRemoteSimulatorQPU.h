@@ -20,8 +20,6 @@
 #include "cudaq/platform/quantum_platform.h"
 #include <fstream>
 
-#include <iostream>
-
 namespace cudaq {
 
 // Remote QPU: delegating the execution to a remotely-hosted server, which can
@@ -109,7 +107,6 @@ public:
 
   void launchKernel(const std::string &name,
                     const std::vector<void *> &rawArgs) override {
-    std::cout << "*** BaseRemoteSimulatorQPU New launch kernel" << std::endl;
     [[maybe_unused]] auto dynamicResult =
         launchKernelImpl(name, nullptr, nullptr, 0, 0, &rawArgs);
   }

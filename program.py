@@ -9,7 +9,7 @@
 import cudaq
 from typing import Callable
 
-# cudaq.set_target('quantinuum', emulate=True)
+#cudaq.set_target('quantinuum', emulate=True)
 # #cudaq.set_target("remote-mqpu", auto_launch="1")
 
 # @cudaq.kernel
@@ -25,8 +25,8 @@ from typing import Callable
 # counts = cudaq.sample(kernel, state)
 # print(counts)
 
-#cudaq.set_target("quantinuum", emulate = True)
-cudaq.set_target("remote-mqpu", auto_launch="1")
+cudaq.set_target("quantinuum", emulate = True)
+#cudaq.set_target("remote-mqpu", auto_launch="1")
 
 def test_grover():
     """Test that compute_action works in tandem with kernel composability."""
