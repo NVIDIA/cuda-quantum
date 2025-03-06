@@ -42,7 +42,7 @@ void bindEvolveResult(py::module &mod) {
           "detail.\n")
       .def(
           "intermediate_states",
-          [](evolve_result &self) { return self.get_intermediate_states(); },
+          [](evolve_result &self) { return self.intermediate_states; },
           "Stores all intermediate states, meaning the state after each step "
           "in a defined schedule, produced by a call to :func:`evolve`, "
           "including the final state. This property is only populated if "
@@ -50,9 +50,7 @@ void bindEvolveResult(py::module &mod) {
           ":func:`evolve`.\n")
       .def(
           "final_expectation_values",
-          [](evolve_result &self) {
-            return self.get_final_expectation_values();
-          },
+          [](evolve_result &self) { return self.final_expectation_values; },
           "Stores the final expectation values, that is the results produced "
           "by "
           "calls to :func:`observe`, triggered by a call to :func:`evolve`. "
@@ -63,7 +61,7 @@ void bindEvolveResult(py::module &mod) {
           "call.\n")
       .def(
           "expectation_values",
-          [](evolve_result &self) { return self.get_expectation_values(); },
+          [](evolve_result &self) { return self.expectation_values; },
           "Stores the expectation values, that is the results from the calls "
           "to "
           ":func:`observe`, at each step in the schedule produced by a call to "
