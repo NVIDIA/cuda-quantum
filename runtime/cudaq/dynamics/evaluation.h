@@ -164,14 +164,14 @@ public:
     operator_handler::canonical_evaluation eval;
     eval.push_back(
         std::make_pair(std::complex<double>(1.), std::move(canon_str)));
-    return std::move(eval);
+    return eval;
   }
 
   operator_handler::canonical_evaluation
   evaluate(const scalar_operator &scalar) {
     operator_handler::canonical_evaluation eval;
     eval.push_back(std::make_pair(scalar.evaluate(this->parameters), ""));
-    return std::move(eval);
+    return eval;
   }
 
   operator_handler::canonical_evaluation
