@@ -137,7 +137,7 @@ echo "============================="
 
 # Note: piping the `find` results through `sort` guarantees repeatable ordering.
 tmpFile=$(mktemp)
-for ex in `find examples/ applications/ targets/ -name '*.cpp' -not -path "examples/cpp/dynamics/*" | sort`;
+for ex in `find examples/ applications/ targets/ -name '*.cpp' -not -path "*/dynamics/*" | sort`;
 do
     filename=$(basename -- "$ex")
     filename="${filename%.*}"
