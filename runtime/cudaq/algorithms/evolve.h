@@ -64,12 +64,17 @@ convertOps(const std::initializer_list<OpTy> &ops) {
 
 template <typename HamTy,
           typename CollapseOpTy = cudaq::operator_sum<cudaq::matrix_operator>,
-          typename ObserveOpTy = cudaq::operator_sum<cudaq::matrix_operator>,
+          typename ObserveOpTy = cudaq::operator_sum<cudaq::matrix_operator>
+#if CUDAQ_USE_STD20
+          >
+  requires cudaq::operator_type<HamTy> && cudaq::operator_type<CollapseOpTy> &&
+           cudaq::operator_type<ObserveOpTy>
+#else
+          ,
           typename = std::enable_if_t<cudaq::operator_type<HamTy> &&
                                       cudaq::operator_type<CollapseOpTy> &&
                                       cudaq::operator_type<ObserveOpTy>>>
-  requires cudaq::operator_type<HamTy> && cudaq::operator_type<CollapseOpTy> &&
-           cudaq::operator_type<ObserveOpTy>
+#endif
 evolve_result
 evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
        const schedule &schedule, const state &initial_state,
@@ -91,12 +96,17 @@ evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
 #endif
 }
 
-template <typename HamTy, typename CollapseOpTy, typename ObserveOpTy,
+template <typename HamTy, typename CollapseOpTy, typename ObserveOpTy
+#if CUDAQ_USE_STD20
+          >
+  requires cudaq::operator_type<HamTy> && cudaq::operator_type<CollapseOpTy> &&
+           cudaq::operator_type<ObserveOpTy>
+#else
+          ,
           typename = std::enable_if_t<cudaq::operator_type<HamTy> &&
                                       cudaq::operator_type<CollapseOpTy> &&
                                       cudaq::operator_type<ObserveOpTy>>>
-  requires cudaq::operator_type<HamTy> && cudaq::operator_type<CollapseOpTy> &&
-           cudaq::operator_type<ObserveOpTy>
+#endif
 evolve_result evolve(const HamTy &hamiltonian,
                      const cudaq::dimension_map &dimensions,
                      const schedule &schedule, const state &initial_state,
@@ -120,12 +130,17 @@ evolve_result evolve(const HamTy &hamiltonian,
 
 template <typename HamTy,
           typename CollapseOpTy = cudaq::operator_sum<cudaq::matrix_operator>,
-          typename ObserveOpTy = cudaq::operator_sum<cudaq::matrix_operator>,
+          typename ObserveOpTy = cudaq::operator_sum<cudaq::matrix_operator>
+#if CUDAQ_USE_STD20
+          >
+  requires cudaq::operator_type<HamTy> && cudaq::operator_type<CollapseOpTy> &&
+           cudaq::operator_type<ObserveOpTy>
+#else
+          ,
           typename = std::enable_if_t<cudaq::operator_type<HamTy> &&
                                       cudaq::operator_type<CollapseOpTy> &&
                                       cudaq::operator_type<ObserveOpTy>>>
-  requires cudaq::operator_type<HamTy> && cudaq::operator_type<CollapseOpTy> &&
-           cudaq::operator_type<ObserveOpTy>
+#endif
 std::vector<evolve_result>
 evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
        const schedule &schedule, const std::vector<state> &initial_states,
@@ -149,12 +164,17 @@ evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
 #endif
 }
 
-template <typename HamTy, typename CollapseOpTy, typename ObserveOpTy,
+template <typename HamTy, typename CollapseOpTy, typename ObserveOpTy
+#if CUDAQ_USE_STD20
+          >
+  requires cudaq::operator_type<HamTy> && cudaq::operator_type<CollapseOpTy> &&
+           cudaq::operator_type<ObserveOpTy>
+#else
+          ,
           typename = std::enable_if_t<cudaq::operator_type<HamTy> &&
                                       cudaq::operator_type<CollapseOpTy> &&
                                       cudaq::operator_type<ObserveOpTy>>>
-  requires cudaq::operator_type<HamTy> && cudaq::operator_type<CollapseOpTy> &&
-           cudaq::operator_type<ObserveOpTy>
+#endif
 std::vector<evolve_result>
 evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
        const schedule &schedule, const std::vector<state> &initial_states,
@@ -180,12 +200,17 @@ evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
 
 template <typename HamTy,
           typename CollapseOpTy = cudaq::operator_sum<cudaq::matrix_operator>,
-          typename ObserveOpTy = cudaq::operator_sum<cudaq::matrix_operator>,
+          typename ObserveOpTy = cudaq::operator_sum<cudaq::matrix_operator>
+#if CUDAQ_USE_STD20
+          >
+  requires cudaq::operator_type<HamTy> && cudaq::operator_type<CollapseOpTy> &&
+           cudaq::operator_type<ObserveOpTy>
+#else
+          ,
           typename = std::enable_if_t<cudaq::operator_type<HamTy> &&
                                       cudaq::operator_type<CollapseOpTy> &&
                                       cudaq::operator_type<ObserveOpTy>>>
-  requires cudaq::operator_type<HamTy> && cudaq::operator_type<CollapseOpTy> &&
-           cudaq::operator_type<ObserveOpTy>
+#endif
 async_evolve_result
 evolve_async(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
              const schedule &schedule, const state &initial_state,
@@ -217,12 +242,17 @@ evolve_async(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
 #endif
 }
 
-template <typename HamTy, typename CollapseOpTy, typename ObserveOpTy,
+template <typename HamTy, typename CollapseOpTy, typename ObserveOpTy
+#if CUDAQ_USE_STD20
+          >
+  requires cudaq::operator_type<HamTy> && cudaq::operator_type<CollapseOpTy> &&
+           cudaq::operator_type<ObserveOpTy>
+#else
+          ,
           typename = std::enable_if_t<cudaq::operator_type<HamTy> &&
                                       cudaq::operator_type<CollapseOpTy> &&
                                       cudaq::operator_type<ObserveOpTy>>>
-  requires cudaq::operator_type<HamTy> && cudaq::operator_type<CollapseOpTy> &&
-           cudaq::operator_type<ObserveOpTy>
+#endif
 async_evolve_result
 evolve_async(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
              const schedule &schedule, const state &initial_state,
