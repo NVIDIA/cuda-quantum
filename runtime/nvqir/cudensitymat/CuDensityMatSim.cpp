@@ -59,6 +59,9 @@ void initCuDensityMatCommLib() {
 }
 
 class CuDensityMatSim : public nvqir::CircuitSimulatorBase<double> {
+private:
+  static constexpr int INVALID_CUDA_DEVICE = -1;
+
 protected:
   using ScalarType = double;
   using DataType = std::complex<double>;
@@ -81,7 +84,7 @@ public:
   CuDensityMatSim() {
     int numDevices{0};
     HANDLE_CUDA_ERROR(cudaGetDeviceCount(&numDevices));
-    int currentDevice = -1;
+    int currentDevice = INVALID_CUDA_DEVICE;
     HANDLE_CUDA_ERROR(cudaGetDevice(&currentDevice));
     const int deviceId = cudaq::mpi::is_initialized()
                              ? cudaq::mpi::rank() % numDevices
