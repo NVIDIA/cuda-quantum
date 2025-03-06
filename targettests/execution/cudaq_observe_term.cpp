@@ -53,7 +53,7 @@ struct ansatz_z {
 int main() {
 
   {
-    cudaq::spin_op h = cudaq::spin_op::x(0);
+    auto h = cudaq::spin_op::x(0);
     cudaq::set_random_seed(13);
 
     // Observe the kernel and make sure we get the expected energy
@@ -65,7 +65,7 @@ int main() {
   }
 
   {
-    cudaq::spin_op h = cudaq::spin_op::y(3);
+    auto h = cudaq::spin_op::y(3);
     cudaq::set_random_seed(13);
 
     // Observe the kernel and make sure we get the expected energy
@@ -77,7 +77,7 @@ int main() {
   }
 
   {
-    cudaq::spin_op h = cudaq::spin_op::z(0) * cudaq::spin_op::z(1);
+    auto h = cudaq::spin_op::z(0) * cudaq::spin_op::z(1);
     cudaq::set_random_seed(13);
 
     // Observe the kernel and make sure we get the expected energy.

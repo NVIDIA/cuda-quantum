@@ -18,7 +18,6 @@
 #include "dynamics/templates.h"
 #include "utils/cudaq_utils.h"
 #include "utils/matrix.h"
-#include "common/FmtCore.h"
 
 namespace cudaq {
 
@@ -710,7 +709,7 @@ public:
     std::stringstream ss;
     if (printCoeffs) {
       auto coeff = term.first;
-      ss << fmt::format("[{}{}{}j]", coeff.real(), coeff.imag() < 0.0 ? "-" : "+", std::fabs(coeff.imag())) << " ";
+      ss << "[" << coeff.real() << (coeff.imag() < 0.0 ? "-" : "+") << std::fabs(coeff.imag()) << "j] ";
     }
     
     // For compatibility with existing code, the ordering for the term string always
