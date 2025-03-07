@@ -403,7 +403,7 @@ TEST(OperatorExpressions, checkMatrixOpsWithScalars) {
     auto product = self * other;
     auto reverse = other * self;
 
-    auto momentum = cudaq::matrix_operator::momentum(0).get_terms()[0];
+    auto momentum = *cudaq::matrix_operator::momentum(0).begin();
     utils::assert_product_equal(product, const_scale_factor, {momentum});
     utils::assert_product_equal(reverse, const_scale_factor, {momentum});
 
@@ -540,9 +540,10 @@ TEST(OperatorExpressions, checkMatrixOpsSimpleArithmetics) {
     auto product = self * other;
     ASSERT_TRUE(product.num_terms() == 2);
 
-    std::vector<std::size_t> want_degrees = {1, 0};
-    ASSERT_TRUE(product.degrees() == want_degrees);
-
+    std::vector<std::size_t> want_degrees = {0, 1};  //  [00 01 10 11]
+    ASSERT_TRUE(product.degrees() == want_degrees); // want: qidx 0 should be 1 with prob 1.
+                                                     //init: [0., 1., 0., 0.]
+                                                     // consistent with position x momentum
     auto annihilate_full = cudaq::kronecker(
         utils::id_matrix(level_count), utils::momentum_matrix(level_count));
     auto create_full = cudaq::kronecker(utils::position_matrix(level_count),

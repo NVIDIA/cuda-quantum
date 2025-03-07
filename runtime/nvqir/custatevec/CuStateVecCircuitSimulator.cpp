@@ -455,24 +455,24 @@ public:
   /// rotation to delegate to the performant custatevecApplyPauliRotation.
   void applyExpPauli(double theta, const std::vector<std::size_t> &controlIds,
                      const std::vector<std::size_t> &qubits,
-                     const cudaq::spin_op_term &op) override {
+                     const cudaq::spin_op_term &term) override {
     if (this->isInTracerMode()) {
-      nvqir::CircuitSimulator::applyExpPauli(theta, controlIds, qubits, op);
+      nvqir::CircuitSimulator::applyExpPauli(theta, controlIds, qubits, term);
       return;
     }
     flushGateQueue();
     cudaq::info(" [cusv decomposing] exp_pauli({}, {})", theta,
-                op.to_string());
+                term.to_string());
     std::vector<int> controls, targets;
     for (const auto &bit : controlIds)
       controls.emplace_back(static_cast<int>(bit));
     std::vector<custatevecPauli_t> paulis;
-    auto ops = op.get_terms();
-    if (ops.size() != qubits.size())
-      throw std::runtime_error("incorrect number of qubits for exp_pauli - expecting " + std::to_string(ops.size()) + " qubits");
+    if (term.num_terms() != qubits.size())
+      throw std::runtime_error("incorrect number of qubits for exp_pauli - expecting " + std::to_string(term.num_terms()) + " qubits");
 
-    for (std::size_t idx = 0; idx < ops.size(); ++idx) {
-      auto pauli = ops[idx].as_pauli();
+    std::size_t idx = 0;
+    for (const auto &op : term) {
+      auto pauli = op.as_pauli();
       if (pauli == cudaq::pauli::I)
         paulis.push_back(custatevecPauli_t::CUSTATEVEC_PAULI_I);
       else if (pauli == cudaq::pauli::X)
@@ -482,7 +482,7 @@ public:
       else
         paulis.push_back(custatevecPauli_t::CUSTATEVEC_PAULI_Z);
 
-      targets.push_back(qubits[idx]);
+      targets.push_back(qubits[idx++]);
     }
 
     HANDLE_ERROR(custatevecApplyPauliRotation(
@@ -595,10 +595,9 @@ public:
       coeffs.emplace_back(term.get_coefficient().evaluate());
       std::vector<custatevecPauli_t> paulis;
       std::vector<int32_t> idxs;
-      auto ops = term.get_terms();
-      paulis.reserve(ops.size());
-      idxs.reserve(ops.size());
-      for (const auto &p : ops) {
+      paulis.reserve(term.num_terms());
+      idxs.reserve(term.num_terms());
+      for (const auto &p : term) {
         auto pauli = p.as_pauli();
         if (pauli != cudaq::pauli::I) {
           auto target = p.target();

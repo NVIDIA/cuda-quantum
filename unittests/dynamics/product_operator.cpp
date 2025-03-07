@@ -37,7 +37,7 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
 
     auto got = op0 * op1;
     utils::assert_product_equal(got, 1.,
-                                {op0.get_terms()[0], op1.get_terms()[0]});
+                                {*op0.begin(), *op1.begin()});
     ASSERT_TRUE(got.degrees() == want_degrees);
 
     auto got_matrix = got.to_matrix({{5, level_count}});

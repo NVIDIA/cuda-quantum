@@ -101,8 +101,7 @@ TensorNetworkSpinOp::TensorNetworkSpinOp(const cudaq::spin_op &spinOp,
                                       coeff.imag()};
       std::vector<const void *> pauliTensorData;
       std::vector<std::vector<int32_t>> stateModes;
-      auto ops = term.get_terms();
-      for (const auto &p : ops) {
+      for (const auto &p : term) {
         auto pauli = p.as_pauli();
         // FIXME: used (only) for observe - 
         // matches the behavior in CircuitSimulator.h to require

@@ -428,6 +428,46 @@ protected:
                    std::vector<HandlerTy> &&atomic_operators, int size = 0);
 
 public:
+  // iterator subclass
+  struct const_iterator {
+  private:
+    const product_operator<HandlerTy> *prod;
+    std::size_t current_idx;
+
+  public:
+    using iterator_category = std::bidirectional_iterator_tag;
+    using difference_type   = std::ptrdiff_t;
+    using value_type        = const HandlerTy;
+    using pointer           = const HandlerTy*;
+    using reference         = const HandlerTy&;
+
+    const_iterator(const product_operator<HandlerTy> *prod, std::size_t idx = 0)
+    : prod(prod), current_idx(idx) {}
+
+    bool operator==(const const_iterator &other) const {
+      return prod == other.prod && current_idx == other.current_idx;
+    }
+
+    bool operator!=(const const_iterator &other) const { return !(*this == other); }
+
+    reference operator*() const { return prod->operators[current_idx]; }
+    pointer operator->() { return &(prod->operators[current_idx]); }
+
+    // prefix
+    const_iterator& operator++() { ++current_idx; return *this; }  
+    const_iterator& operator--() { --current_idx; return *this; }  
+
+    // postfix
+    const_iterator operator++(int) { return const_iterator(prod, current_idx++); }
+    const_iterator operator--(int) { return const_iterator(prod, current_idx--); }
+  };
+
+  /// @brief Get iterator to beginning of operator terms
+  const_iterator begin() const { return const_iterator(this); }
+
+  /// @brief Get iterator to end of operator terms
+  const_iterator end() const { return const_iterator(this, this->operators.size()); }
+
   // read-only properties
 
   /// @brief The degrees of freedom that the operator acts on.
@@ -438,9 +478,6 @@ public:
   /// @brief Return the number of operator terms that make up this product
   /// operator.
   std::size_t num_terms() const;
-
-  /// FIXME: GET RID OF THIS (MAKE ITERABLE INSTEAD)
-  const std::vector<HandlerTy> &get_terms() const;
 
   // Public since it is used by the CUDA-Q compiler and runtime 
   // to retrieve expectation values for specific terms.

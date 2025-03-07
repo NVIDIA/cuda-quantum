@@ -30,7 +30,9 @@ void assert_product_equal(
   cudaq::operator_sum<cudaq::matrix_operator> sum = got;
   ASSERT_TRUE(sum.get_terms().size() == 1);
   ASSERT_TRUE(got.get_coefficient().evaluate() == expected_coefficient);
-  ASSERT_TRUE(got.get_terms() == expected_terms);
+  std::size_t idx = 0;
+  for (const auto &op : got) 
+    ASSERT_EQ(op, expected_terms[idx++]);
 }
 
 void checkEqual(cudaq::complex_matrix a, cudaq::complex_matrix b) {

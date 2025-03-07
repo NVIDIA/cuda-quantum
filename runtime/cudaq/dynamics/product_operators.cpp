@@ -347,13 +347,6 @@ std::size_t product_operator<HandlerTy>::num_terms() const {
 }
 
 template <typename HandlerTy>
-const std::vector<HandlerTy> &product_operator<HandlerTy>::get_terms() const {
-  // FIXME: WE NEED TO RETURN THESE IN USER FACING ORDER BY DEFAULT!!
-  // SAME IN FOR_EACH_PAULI!
-  return this->operators;
-}
-
-template <typename HandlerTy>
 std::string product_operator<HandlerTy>::get_term_id() const {
   std::string term_id;
   for (const auto &op : this->operators)
@@ -372,9 +365,6 @@ scalar_operator product_operator<HandlerTy>::get_coefficient() const {
       bool application_order) const;                                           \
                                                                                \
   template std::size_t product_operator<HandlerTy>::num_terms() const;         \
-                                                                               \
-  template const std::vector<HandlerTy> &                                      \
-  product_operator<HandlerTy>::get_terms() const;                              \
                                                                                \
   template std::string product_operator<HandlerTy>::get_term_id() const;       \
                                                                                \

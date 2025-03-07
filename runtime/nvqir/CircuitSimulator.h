@@ -141,8 +141,8 @@ public:
   virtual void applyExpPauli(double theta,
                              const std::vector<std::size_t> &controls,
                              const std::vector<std::size_t> &qubitIds,
-                             const cudaq::spin_op_term &op) {
-    if (op.is_identity()) {
+                             const cudaq::spin_op_term &term) {
+    if (term.is_identity()) {
       if (controls.empty()) {
         // exp(i*theta*Id) is noop if this is not a controlled gate.
         return;
@@ -157,17 +157,17 @@ public:
     }
     flushGateQueue();
     cudaq::info(" [CircuitSimulator decomposing] exp_pauli({}, {})", theta,
-                op.to_string());
+                term.to_string());
     std::vector<std::size_t> qubitSupport;
     std::vector<std::function<void(bool)>> basisChange;
-    auto ops = op.get_terms();
-    if (ops.size() != qubitIds.size())
-      throw std::runtime_error("incorrect number of qubits in exp_pauli - expecting " + std::to_string(ops.size()) + " qubits");
+    if (term.num_terms() != qubitIds.size())
+      throw std::runtime_error("incorrect number of qubits in exp_pauli - expecting " + std::to_string(term.num_terms()) + " qubits");
 
-    for (std::size_t idx = 0; idx < ops.size(); ++idx) {
-      auto pauli = ops[idx].as_pauli();
+    std::size_t idx = 0;
+    for (const auto& op : term) {
+      auto pauli = op.as_pauli();
       // operator targets are relative to the qubit argument vector
-      auto qId = qubitIds[idx];
+      auto qId = qubitIds[idx++];
       if (pauli != cudaq::pauli::I)
         qubitSupport.push_back(qId);
 
@@ -1432,13 +1432,12 @@ public:
     if (terms.size() != 1)
       // more than one term needs to be directly supported by the backend
       throw std::runtime_error("measuring a sum of spin operators is not supported");
-    auto ops = terms[0].get_terms();
 
     cudaq::info("Measure {}", op.to_string());
     std::vector<std::size_t> qubitsToMeasure;
     std::vector<std::function<void(bool)>> basisChange;
 
-    for (const auto &p : ops) {
+    for (const auto &p : terms[0]) {
       auto pauli = p.as_pauli();
       // Note: qubit index is necessarily defined by target here
       // since we don't explicitly pass the qubits the measurement

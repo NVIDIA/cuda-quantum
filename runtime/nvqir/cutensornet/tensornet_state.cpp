@@ -780,9 +780,8 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
   constexpr int PAULI_ARRAY_SIZE_BYTES = 4 * sizeof(std::complex<double>);
   for (const auto &prod : product_terms) {
     bool allIdOps = true;
-    auto ops = prod.get_terms();
     auto offset = 0;
-    for (const auto &p : ops) { 
+    for (const auto &p : prod) { 
       // The Pauli matrix data that we want to load to this slot.
       // Default is the Identity matrix.
       const std::complex<double> *pauliMatrixPtr = PauliI_h;
