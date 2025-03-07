@@ -74,6 +74,13 @@ int spin_operator::target() const { return this->degree; }
 
 spin_operator::spin_operator(int target) : op_code(0), degree(target) {}
 
+spin_operator::spin_operator(pauli p, int target) 
+: op_code(0), degree(target) {
+  if (p == pauli::Z) this->op_code = 1;
+  else if (p == pauli::X) this->op_code = 2;
+  else if (p == pauli::Y) this->op_code = 3;  
+}
+
 spin_operator::spin_operator(int target, int op_id)
     : op_code(op_id), degree(target) {
   assert(0 <= op_id && op_id < 4);

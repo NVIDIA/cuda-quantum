@@ -53,6 +53,8 @@ public:
 
   spin_operator(int target);
 
+  spin_operator(pauli p, int target);
+
   ~spin_operator() = default;
 
   // evaluations

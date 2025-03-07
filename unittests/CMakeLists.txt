@@ -251,12 +251,12 @@ endif()
 
 # Create an executable for SpinOp UnitTests
 set(CUDAQ_SPIN_TEST_SOURCES 
-   # Spin
    spin_op/SpinOpTester.cpp
 )
 add_executable(test_spin main.cpp ${CUDAQ_SPIN_TEST_SOURCES})
 target_link_libraries(test_spin
   PRIVATE 
+  cudaq
   cudaq-operator
   gtest_main)
 gtest_discover_tests(test_spin)

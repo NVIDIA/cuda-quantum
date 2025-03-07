@@ -67,12 +67,6 @@ protected:
   std::vector<std::vector<HandlerTy>> terms;
   std::vector<scalar_operator> coefficients;
 
-  template <typename... Args,
-            std::enable_if_t<std::conjunction<std::is_same<
-                                 product_op<HandlerTy>, Args>...>::value,
-                             bool> = true>
-  sum_op(Args &&...args);
-
 public:
 
   // called const_iterator because it will *not* modify the sum, 
@@ -137,6 +131,12 @@ public:
   std::size_t num_terms() const;
 
   // constructors and destructors
+
+  template <typename... Args,
+            std::enable_if_t<std::conjunction<std::is_same<
+                                 product_op<HandlerTy>, Args>...>::value,
+                             bool> = true>
+  sum_op(Args &&...args);
 
   sum_op(const product_op<HandlerTy> &other);
 
@@ -416,6 +416,10 @@ public:
   SPIN_OPS_BACKWARD_COMPATIBILITY
   sum_op(const std::vector<double> &input_vec, std::size_t nQubits);
 
+  SPIN_OPS_BACKWARD_COMPATIBILITY
+  sum_op(const std::vector<std::vector<bool>> &bsf_terms,
+          const std::vector<std::complex<double>> &coeffs);
+  
   SPIN_OPS_BACKWARD_COMPATIBILITY
   std::vector<double> getDataRepresentation() const;
 
@@ -800,6 +804,11 @@ public:
 
   HANDLER_SPECIFIC_TEMPLATE(spin_operator)
   std::vector<bool> get_binary_symplectic_form() const;
+
+  // utility functions for backward compatibility
+
+  SPIN_OPS_BACKWARD_COMPATIBILITY
+  std::string to_string(bool printCoeffs) const;
 };
 
 // type aliases for convenience

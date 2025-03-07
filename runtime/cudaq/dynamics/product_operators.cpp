@@ -1332,6 +1332,23 @@ template std::string product_op<spin_operator>::get_pauli_word() const;
 template std::vector<bool> product_op<spin_operator>::get_binary_symplectic_form() const;
 #endif
 
+// utility functions for backwards compatibility
+
+#define SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION                                        \
+  template <typename HandlerTy>                                                           \
+  template <typename T, std::enable_if_t<                                                 \
+                                      std::is_same<HandlerTy, spin_operator>::value &&    \
+                                      std::is_same<HandlerTy, T>::value, bool>>
+
+SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION                                  
+std::string product_op<HandlerTy>::to_string(bool printCoeffs) const {
+  return sum_op(*this).to_string(printCoeffs);
+}
+
+#if !defined(__clang__)
+template std::string product_op<spin_operator>::to_string(bool printCoeffs) const;
+#endif
+
 
 #if defined(CUDAQ_INSTANTIATE_TEMPLATES)
 template class product_op<matrix_handler>;

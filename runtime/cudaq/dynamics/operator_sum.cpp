@@ -115,22 +115,22 @@ EvalTy sum_op<HandlerTy>::evaluate(
 
 #define INSTANTIATE_SUM_PRIVATE_METHODS(HandlerTy)                             \
                                                                                \
-  template void sum_op<HandlerTy>::insert(                               \
-      product_op<HandlerTy> &&other);                                    \
+  template void sum_op<HandlerTy>::insert(                                     \
+      product_op<HandlerTy> &&other);                                          \
                                                                                \
-  template void sum_op<HandlerTy>::insert(                               \
-      const product_op<HandlerTy> &other);                               \
+  template void sum_op<HandlerTy>::insert(                                     \
+      const product_op<HandlerTy> &other);                                     \
                                                                                \
-  template void sum_op<HandlerTy>::aggregate_terms(                      \
-      product_op<HandlerTy> &&item2);                                    \
+  template void sum_op<HandlerTy>::aggregate_terms(                            \
+      product_op<HandlerTy> &&item2);                                          \
                                                                                \
-  template void sum_op<HandlerTy>::aggregate_terms(                      \
-      product_op<HandlerTy> &&item1,                                     \
-      product_op<HandlerTy> &&item2);                                    \
+  template void sum_op<HandlerTy>::aggregate_terms(                            \
+      product_op<HandlerTy> &&item1,                                           \
+      product_op<HandlerTy> &&item2);                                          \
                                                                                \
-  template void sum_op<HandlerTy>::aggregate_terms(                      \
-      product_op<HandlerTy> &&item1,                                     \
-      product_op<HandlerTy> &&item2,                                     \
+  template void sum_op<HandlerTy>::aggregate_terms(                            \
+      product_op<HandlerTy> &&item1,                                           \
+      product_op<HandlerTy> &&item2,                                           \
       product_op<HandlerTy> &&item3);
 
 #if !defined(__clang__)
@@ -142,7 +142,7 @@ INSTANTIATE_SUM_PRIVATE_METHODS(fermion_handler);
 
 #define INSTANTIATE_SUM_EVALUATE_METHODS(HandlerTy, EvalTy)                    \
                                                                                \
-  template EvalTy sum_op<HandlerTy>::evaluate(                           \
+  template EvalTy sum_op<HandlerTy>::evaluate(                                 \
       operator_arithmetics<EvalTy> arithmetics) const;
 
 #if !defined(__clang__)
@@ -186,7 +186,7 @@ std::size_t sum_op<HandlerTy>::num_terms() const {
 
 #define INSTANTIATE_SUM_PROPERTIES(HandlerTy)                                  \
                                                                                \
-  template std::vector<std::size_t> sum_op<HandlerTy>::degrees(          \
+  template std::vector<std::size_t> sum_op<HandlerTy>::degrees(                \
       bool application_order) const;                                           \
                                                                                \
   template std::size_t sum_op<HandlerTy>::num_terms() const;
@@ -291,27 +291,27 @@ sum_op<HandlerTy>::sum_op(sum_op<HandlerTy> &&other, int size)
 
 #define INSTANTIATE_SUM_CONSTRUCTORS(HandlerTy)                                \
                                                                                \
-  template sum_op<HandlerTy>::sum_op();                            \
+  template sum_op<HandlerTy>::sum_op();                                        \
                                                                                \
-  template sum_op<HandlerTy>::sum_op(                              \
-      const product_op<HandlerTy> &item2);                               \
+  template sum_op<HandlerTy>::sum_op(                                          \
+      const product_op<HandlerTy> &item2);                                     \
                                                                                \
-  template sum_op<HandlerTy>::sum_op(                              \
-      product_op<HandlerTy> &&item2);                                    \
+  template sum_op<HandlerTy>::sum_op(                                          \
+      product_op<HandlerTy> &&item2);                                          \
                                                                                \
-  template sum_op<HandlerTy>::sum_op(                              \
-      product_op<HandlerTy> &&item1,                                     \
-      product_op<HandlerTy> &&item2);                                    \
+  template sum_op<HandlerTy>::sum_op(                                          \
+      product_op<HandlerTy> &&item1,                                           \
+      product_op<HandlerTy> &&item2);                                          \
                                                                                \
-  template sum_op<HandlerTy>::sum_op(                              \
-      product_op<HandlerTy> &&item1,                                     \
-      product_op<HandlerTy> &&item2,                                     \
-      product_op<HandlerTy> &&item3);                                    \
+  template sum_op<HandlerTy>::sum_op(                                          \
+      product_op<HandlerTy> &&item1,                                           \
+      product_op<HandlerTy> &&item2,                                           \
+      product_op<HandlerTy> &&item3);                                          \
                                                                                \
-  template sum_op<HandlerTy>::sum_op(                              \
-      const sum_op<HandlerTy> &other, int size);                         \
+  template sum_op<HandlerTy>::sum_op(                                          \
+      const sum_op<HandlerTy> &other, int size);                               \
                                                                                \
-  template sum_op<HandlerTy>::sum_op(                              \
+  template sum_op<HandlerTy>::sum_op(                                          \
       sum_op<HandlerTy> &&other, int size);
 
 // Note:
@@ -320,10 +320,10 @@ sum_op<HandlerTy>::sum_op(sum_op<HandlerTy> &&other, int size)
 // to be available to those.
 #define INSTANTIATE_SUM_PRIVATE_FRIEND_CONSTRUCTORS(HandlerTy)                 \
                                                                                \
-  template sum_op<HandlerTy>::sum_op();                            \
+  template sum_op<HandlerTy>::sum_op();                                        \
                                                                                \
-  template sum_op<HandlerTy>::sum_op(                              \
-      product_op<HandlerTy> &&item1,                                     \
+  template sum_op<HandlerTy>::sum_op(                                          \
+      product_op<HandlerTy> &&item1,                                           \
       product_op<HandlerTy> &&item2);
 
 template sum_op<matrix_handler>::sum_op(
@@ -428,16 +428,16 @@ sum_op<HandlerTy>::operator=(sum_op<HandlerTy> &&other) {
 
 #define INSTANTIATE_SUM_ASSIGNMENTS(HandlerTy)                                 \
                                                                                \
-  template sum_op<HandlerTy> &sum_op<HandlerTy>::operator=(        \
-      product_op<HandlerTy> &&other);                                    \
+  template sum_op<HandlerTy> &sum_op<HandlerTy>::operator=(                    \
+      product_op<HandlerTy> &&other);                                          \
                                                                                \
-  template sum_op<HandlerTy> &sum_op<HandlerTy>::operator=(        \
-      const product_op<HandlerTy> &other);                               \
+  template sum_op<HandlerTy> &sum_op<HandlerTy>::operator=(                    \
+      const product_op<HandlerTy> &other);                                     \
                                                                                \
-  template sum_op<HandlerTy> &sum_op<HandlerTy>::operator=(        \
-      const sum_op<HandlerTy> &other);                                   \
+  template sum_op<HandlerTy> &sum_op<HandlerTy>::operator=(                    \
+      const sum_op<HandlerTy> &other);                                         \
                                                                                \
-  template sum_op<HandlerTy> &sum_op<HandlerTy>::operator=(        \
+  template sum_op<HandlerTy> &sum_op<HandlerTy>::operator=(                    \
       sum_op<HandlerTy> &&other);
 
 template sum_op<matrix_handler> &
@@ -522,7 +522,7 @@ complex_matrix sum_op<spin_operator>::to_matrix(
 
 #define INSTANTIATE_SUM_EVALUATIONS(HandlerTy)                                 \
                                                                                \
-  template std::string sum_op<HandlerTy>::to_string() const;             \
+  template std::string sum_op<HandlerTy>::to_string() const;                   \
                                                                                \
   template complex_matrix sum_op<HandlerTy>::to_matrix(                        \
       std::unordered_map<int, int> dimensions,                                 \
@@ -1532,6 +1532,34 @@ sum_op<HandlerTy>::sum_op(const std::vector<double> &input_vec, std::size_t nQub
 }
 
 SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
+sum_op<HandlerTy>::sum_op(const std::vector<std::vector<bool>> &bsf_terms,
+                          const std::vector<std::complex<double>> &coeffs) {
+  if (bsf_terms.size() != coeffs.size())
+    throw std::invalid_argument("size of the coefficient and bsf_terms must match");
+  this->coefficients.reserve(coeffs.size());
+  this->terms.reserve(bsf_terms.size());
+
+  for (const auto &term : bsf_terms) {
+    auto nr_degrees = term.size() / 2;
+    std::vector<HandlerTy> ops;
+    ops.reserve(nr_degrees);
+    for (std::size_t i = 0; i < nr_degrees; ++i) {
+      if (term[i] && term[i + nr_degrees])
+        ops.push_back(spin_operator(pauli::Y, i));
+      else if (term[i])
+        ops.push_back(spin_operator(pauli::X, i));
+      else if (term[i + nr_degrees])
+        ops.push_back(spin_operator(pauli::Z, i));
+    }
+    product_op<HandlerTy> prod(coeffs[this->terms.size()], std::move(ops));
+    this->term_map.insert(this->term_map.cend(),
+                          std::make_pair(prod.get_term_id(), this->terms.size()));
+    this->terms.push_back(std::move(prod.operators));
+    this->coefficients.push_back(std::move(prod.coefficient));
+  }
+}
+
+SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
 std::vector<double> sum_op<HandlerTy>::getDataRepresentation() const {
   // NOTE: this is an imperfect representation that we will want to 
   // deprecate because it does not capture targets accurately.
@@ -1614,7 +1642,10 @@ std::string sum_op<HandlerTy>::to_string(bool printCoeffs) const {
   };
             
   std::stringstream ss;
+  auto first = true;
   for (auto &&term : evaluated.terms) {
+    if (first) first = false;
+    else ss << std::endl;
     if (printCoeffs) {
       auto coeff = term.first;
       ss << "[" << coeff.real() << (coeff.imag() < 0.0 ? "-" : "+") << std::fabs(coeff.imag()) << "j] ";
@@ -1636,6 +1667,8 @@ std::string sum_op<HandlerTy>::to_string(bool printCoeffs) const {
 
 #if !defined(__clang__)
 template sum_op<spin_operator>::sum_op(const std::vector<double> &input_vec, std::size_t nQubits);
+template sum_op<spin_operator>::sum_op(const std::vector<std::vector<bool>> &bsf_terms,
+                                       const std::vector<std::complex<double>> &coeffs);
 template std::vector<double> sum_op<spin_operator>::getDataRepresentation() const;
 template std::pair<std::vector<std::vector<bool>>, std::vector<std::complex<double>>> 
 sum_op<spin_operator>::get_raw_data() const;
