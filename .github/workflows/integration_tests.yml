@@ -702,6 +702,7 @@ jobs:
           python3 -m pip install pasqal-cloud
           export PASQAL_USERNAME='${{ secrets.PASQAL_USERNAME }}'
           export PASQAL_PASSWORD='${{ secrets.PASQAL_PASSWORD }}'
+          export PASQAL_AUTH_TOKEN=$(python3 docs/sphinx/targets/cpp/pasqal_auth.py)
           export PASQAL_PROJECT_ID='${{ secrets.PASQAL_PROJECT_ID }}'
           export PASQAL_MACHINE_TARGET="EMU_FREE" # Speedup queuing time
           set +e # Allow script to keep going through errors
