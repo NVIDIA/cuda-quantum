@@ -336,6 +336,7 @@ public:
       for(std::size_t j = 0; j < this->terms[i].size(); ++j) {
         auto op_str = this->terms[i][j].to_string(false);
         // FIXME: align numbering with op codes
+        // FIXME: compare to pauli instead
         if (op_str == "X")
           dataVec.push_back(1.);
         else if (op_str == "Z")
@@ -397,8 +398,6 @@ private:
                              std::true_type> = std::true_type()>
   void insert(T &&other);
 
-  std::string get_term_id() const;
-
   void aggregate_terms();
 
   template <typename... Args>
@@ -442,6 +441,13 @@ public:
 
   /// FIXME: GET RID OF THIS (MAKE ITERABLE INSTEAD)
   const std::vector<HandlerTy> &get_terms() const;
+
+  // Public since it is used by the CUDA-Q compiler and runtime 
+  // to retrieve expectation values for specific terms.
+  // The term id uniquely identifies the operators and targets
+  // (degrees) that they act on, but does not include information 
+  // about the coefficient. 
+  std::string get_term_id() const;
 
   scalar_operator get_coefficient() const;
 
@@ -693,12 +699,12 @@ public:
   bool is_identity() const {
     // ignores the coefficients (according to the old behavior)
     for (const auto &op : this->operators)
-      if (op.to_string(false) != "I") return false;
+      if (op.to_string(false) != "I") return false; // fixme: use pauli instead
     return true;
   }
 
   SPIN_OPS_BACKWARD_COMPATIBILITY
-  std::string to_string(bool printCoeffs) const {
+  std::string _to_string(bool printCoeffs) const {
     std::unordered_map<int, int> dims;
     auto degrees = this->degrees(false); // degrees in canonical order to match the evaluation
     auto evaluated = this->evaluate(

@@ -125,10 +125,10 @@ runObservation(KernelFunctor &&k, cudaq::spin_op &h, quantum_platform &platform,
     auto terms = h.get_terms();
     for (const auto &term : terms) {
       if (term.is_identity())
-        sum += term.get_coefficient().evaluate().real(); // fails if we have parameters
+        sum += term.get_coefficient().evaluate().real();
       else
-        sum += data.expectation(term.to_string(false)) *
-               term.get_coefficient().evaluate().real(); // fails if we have parameters
+        sum += data.expectation(term.get_term_id()) *
+               term.get_coefficient().evaluate().real();
     }
     expectationValue = sum;
   }

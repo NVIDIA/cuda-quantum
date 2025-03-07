@@ -255,7 +255,7 @@ public:
 
     auto prods = ham.get_terms();
     for (const auto &term : prods)
-      termStrs.emplace_back(term.to_string(false));
+      termStrs.emplace_back(term.get_term_id());
     return std::make_tuple(termStrs, prods);
   }
 

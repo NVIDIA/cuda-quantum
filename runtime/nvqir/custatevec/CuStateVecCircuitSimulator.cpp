@@ -622,7 +622,7 @@ public:
       pauliOperatorsArray.emplace_back(pauliOperatorsArrayHolder.back().data());
       basisBitsArray.emplace_back(basisBitsArrayHolder.back().data());
       nBasisBitsArray.emplace_back(pauliOperatorsArrayHolder.back().size());
-      termStrs.emplace_back(term.to_string(false));
+      termStrs.emplace_back(term.get_term_id());
     }
     std::vector<double> expectationValues(nPauliOperatorArrays);
     HANDLE_ERROR(custatevecComputeExpectationsOnPauliBasis(

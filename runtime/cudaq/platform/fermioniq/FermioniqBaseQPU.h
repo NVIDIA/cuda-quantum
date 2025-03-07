@@ -84,7 +84,7 @@ public:
 
         auto terms = nlohmann::json::array();
 
-        auto termStr = term.to_string(false);
+        auto termStr = term.get_term_id();
 
         terms.push_back(termStr);
 

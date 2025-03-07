@@ -408,7 +408,7 @@ SimulatorTensorNetBase::observe(const cudaq::spin_op &ham) {
   termStrs.reserve(ham.num_terms());
   auto prods = ham.get_terms();
   for (const auto &term : prods)
-    termStrs.emplace_back(term.to_string(false));
+    termStrs.emplace_back(term.get_term_id());
 
   // Compute the expectation value for all terms
   const auto termExpVals = m_state->computeExpVals(

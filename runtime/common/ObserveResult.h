@@ -67,24 +67,8 @@ public:
   double expectation(SpinOpType term) {
     static_assert(std::is_same_v<spin_op_term, std::remove_reference_t<SpinOpType>>,
                   "Must provide a spin_op_term");
-    // Pauli == Pauli II..III
-    // e.g. someone might check for <Z>, which
-    // on more than 1 qubit can be <ZIII...III>
     auto numQubits = spinOp.num_qubits();
-    auto termStr = term.to_string(false);
-    // FIXME: MAKE THIS CLEANER
-    // FIXME: THE PROBLEM IS THAT IF WE HAVE AN EXPLICIT PRODUCT WITH I, 
-    // THEN THE TO_STRING(FALSE) WILL STILL PRODUCT IT AND IT WILL BE STORED ACCORDINGLY
-    // -> SO WE MAY HAVE ANY NUMBER OF I'S APPENDED...
-    while (termStr.size() > 0 && termStr[termStr.size() - 1] == 'I')
-      termStr.pop_back();
-    // FIXME: THIS LOGIC DOESN'T SEE SOUND...
-    // Expand the string representation of the term to match the number of
-    // qubits of the overall spin_op this result represents by appending
-    // identity ops.
-    if (!data.has_expectation(termStr))
-      for (std::size_t i = termStr.size(); i < numQubits; i++)
-        termStr += "I";
+    auto termStr = term.get_term_id();
     return data.expectation(termStr);
   }
 
@@ -96,10 +80,7 @@ public:
     static_assert(std::is_same_v<spin_op_term, std::remove_reference_t<SpinOpType>>,
                   "Must provide a spin_op_term");
     auto numQubits = spinOp.num_qubits();
-    auto termStr = term.to_string(false);
-    if (!data.has_expectation(termStr) && termStr.size() == 1 && numQubits > 1)
-      for (std::size_t i = 1; i < numQubits; i++)
-        termStr += "I";
+    auto termStr = term.get_term_id();
     auto counts = data.to_map(termStr);
     ExecutionResult result(counts);
     return sample_result(result);

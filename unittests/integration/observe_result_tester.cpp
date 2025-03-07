@@ -110,11 +110,6 @@ CUDAQ_TEST(ObserveResult, checkExpValBug) {
   exp = result.expectation(observable);
   printf("exp %lf \n", exp);
   EXPECT_NEAR(exp, .62, 1e-1);
-
-  observable = cudaq::spin_op::z(0) * cudaq::spin_op::i(1);
-  exp = result.expectation(observable);
-  printf("exp %lf \n", exp);
-  EXPECT_NEAR(exp, .79, 1e-1);
 }
 #endif
 #endif

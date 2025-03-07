@@ -151,7 +151,7 @@ public:
           // processed here as is making assumptions about correctness.
           sum += term.get_coefficient().evaluate().real();
         else
-          sum += data.expectation(term.to_string(false)) *
+          sum += data.expectation(term.get_term_id()) *
                  term.get_coefficient().evaluate().real();
       }
       return observe_result(sum, *spinOp, data);

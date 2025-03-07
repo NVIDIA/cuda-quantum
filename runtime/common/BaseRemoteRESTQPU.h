@@ -553,7 +553,7 @@ public:
             runPassPipeline(pass, tmpModuleOp);
         if (!emulate && combineMeasurements)
           runPassPipeline("func.func(combine-measurements)", tmpModuleOp);
-        modules.emplace_back(term.to_string(false), tmpModuleOp);
+        modules.emplace_back(term.get_term_id(), tmpModuleOp);
       }
     } else
       modules.emplace_back(kernelName, moduleOp);

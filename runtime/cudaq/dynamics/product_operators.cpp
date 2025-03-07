@@ -200,14 +200,6 @@ void product_operator<spin_operator>::insert(T &&other) {
 }
 
 template <typename HandlerTy>
-std::string product_operator<HandlerTy>::get_term_id() const {
-  std::string term_id;
-  for (const auto &op : this->operators)
-    term_id += op.unique_id();
-  return std::move(term_id);
-}
-
-template <typename HandlerTy>
 void product_operator<HandlerTy>::aggregate_terms() {}
 
 template <typename HandlerTy>
@@ -292,8 +284,6 @@ EvalTy product_operator<HandlerTy>::evaluate(
                                                                                \
   template void product_operator<HandlerTy>::insert(HandlerTy &&other);        \
                                                                                \
-  template std::string product_operator<HandlerTy>::get_term_id() const;       \
-                                                                               \
   template void product_operator<HandlerTy>::aggregate_terms(                  \
       HandlerTy &&item1, HandlerTy &&item2);                                   \
                                                                                \
@@ -364,6 +354,14 @@ const std::vector<HandlerTy> &product_operator<HandlerTy>::get_terms() const {
 }
 
 template <typename HandlerTy>
+std::string product_operator<HandlerTy>::get_term_id() const {
+  std::string term_id;
+  for (const auto &op : this->operators)
+    term_id += op.unique_id();
+  return std::move(term_id);
+}
+
+template <typename HandlerTy>
 scalar_operator product_operator<HandlerTy>::get_coefficient() const {
   return this->coefficient;
 }
@@ -377,6 +375,8 @@ scalar_operator product_operator<HandlerTy>::get_coefficient() const {
                                                                                \
   template const std::vector<HandlerTy> &                                      \
   product_operator<HandlerTy>::get_terms() const;                              \
+                                                                               \
+  template std::string product_operator<HandlerTy>::get_term_id() const;       \
                                                                                \
   template scalar_operator product_operator<HandlerTy>::get_coefficient() const;
 

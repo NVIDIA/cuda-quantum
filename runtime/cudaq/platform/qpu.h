@@ -94,7 +94,7 @@ protected:
             // This takes a longer time for the first iteration unless
             // flushGateQueue() is called above.
             auto [exp, data] = cudaq::measure(term);
-            results.emplace_back(data.to_map(), term.to_string(false), exp);
+            results.emplace_back(data.to_map(), term.get_term_id(), exp);
             sum += term.get_coefficient().evaluate().real() * exp;
           }
         };
