@@ -213,7 +213,7 @@ do
         #     # These C++ tests are not intended for dynamics
         #     echo ":white_flag: $filename: Not executed due to compatibility reasons. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
         #     continue
-        # fi
+        fi
 
         echo "Testing on $t target..."
         if [ "$t" == "nvidia" || "$t" == "dynamics" ]; then
