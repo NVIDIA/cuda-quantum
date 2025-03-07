@@ -15,8 +15,7 @@
 #include <sstream>
 #include <string>
 
-namespace cudaq {
-namespace __internal__ {
+namespace cudaq::__internal__ {
 
 evolve_result evolveSingle(const cudaq::rydberg_hamiltonian &hamiltonian,
                            const cudaq::schedule &schedule,
@@ -39,9 +38,8 @@ evolve_result evolveSingle(const cudaq::rydberg_hamiltonian &hamiltonian,
   }
 
   auto atoms = cudaq::ahs::AtomArrangement();
-  for (auto pair : hamiltonian.get_atom_sites()) {
+  for (auto pair : hamiltonian.get_atom_sites())
     atoms.sites.push_back({pair.first, pair.second});
-  }
   atoms.filling = hamiltonian.get_atom_filling();
 
   auto omega = cudaq::ahs::PhysicalField();
@@ -65,10 +63,11 @@ evolve_result evolveSingle(const cudaq::rydberg_hamiltonian &hamiltonian,
 
   std::ostringstream programName;
   programName << "__analog_hamiltonian_kernel__" << []() {
-    const std::string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    const char chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    const auto length = sizeof(chars) / sizeof(char);
     std::random_device rd;
     std::mt19937 generator(rd());
-    std::uniform_int_distribution<> distribution(0, chars.size() - 1);
+    std::uniform_int_distribution<> distribution(0, length - 1);
     std::string result;
     result.reserve(10);
     for (int i = 0; i < 10; ++i)
@@ -85,7 +84,7 @@ evolve_result evolveSingle(const cudaq::rydberg_hamiltonian &hamiltonian,
   platform.set_exec_ctx(ctx.get());
 
   auto programString = programJson.dump();
-  cudaq::info("Program JSON: {}", programString);
+  cudaq::debug("Program JSON: {}", programString);
 
   auto dynamicResult = cudaq::altLaunchKernel(
       programName.str().c_str(), KernelThunkType(nullptr),
@@ -97,5 +96,4 @@ evolve_result evolveSingle(const cudaq::rydberg_hamiltonian &hamiltonian,
   return evolve_result(sampleResults);
 }
 
-} // namespace __internal__
-} // namespace cudaq
+} // namespace cudaq::__internal__

@@ -592,7 +592,7 @@ public:
 /// @brief Representation of a time-dependent Hamiltonian for Rydberg system
 class rydberg_hamiltonian {
 public:
-  using Coordinate = std::pair<double, double>;
+  using coordinate = std::pair<double, double>;
 
   /// @brief Constructor.
   /// @param atom_sites List of 2D coordinates for trap sites.
@@ -604,7 +604,7 @@ public:
   /// @param delta_local Optional. A tuple of Delta_local(t) and site dependent
   /// local detuning factors.
   rydberg_hamiltonian(
-      const std::vector<Coordinate> &atom_sites,
+      const std::vector<coordinate> &atom_sites,
       const scalar_operator &amplitude, const scalar_operator &phase,
       const scalar_operator &delta_global,
       const std::vector<int> &atom_filling = {},
@@ -612,7 +612,7 @@ public:
           &delta_local = std::nullopt);
 
   /// @brief Get atom sites.
-  const std::vector<Coordinate> &get_atom_sites() const;
+  const std::vector<coordinate> &get_atom_sites() const;
 
   /// @brief Get atom filling.
   const std::vector<int> &get_atom_filling() const;
@@ -627,7 +627,7 @@ public:
   const scalar_operator &get_delta_global() const;
 
 private:
-  std::vector<Coordinate> atom_sites;
+  std::vector<coordinate> atom_sites;
   std::vector<int> atom_filling;
   scalar_operator amplitude;
   scalar_operator phase;

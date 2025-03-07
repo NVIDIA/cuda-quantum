@@ -285,7 +285,7 @@ evolve_result evolve(const cudaq::rydberg_hamiltonian &hamiltonian,
   return cudaq::__internal__::evolveSingle(hamiltonian, schedule, shots_count);
 }
 
-async_evolve_result async_evolve(const cudaq::rydberg_hamiltonian &hamiltonian,
+async_evolve_result evolve_async(const cudaq::rydberg_hamiltonian &hamiltonian,
                                  const cudaq::schedule &schedule,
                                  std::optional<int> shots_count = std::nullopt,
                                  int qpu_id = 0) {

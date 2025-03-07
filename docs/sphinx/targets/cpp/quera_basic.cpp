@@ -7,7 +7,6 @@
 
 #include "cudaq/algorithms/evolve.h"
 #include "cudaq/dynamics_integrators.h"
-#include "cudaq/operators.h"
 #include "cudaq/schedule.h"
 #include <cmath>
 #include <map>
@@ -76,7 +75,7 @@ int main() {
       cudaq::rydberg_hamiltonian(register_sites, omega, phi, delta);
 
   // Evolve the system
-  auto result = cudaq::evolve(hamiltonian, schedule, 10);
+  auto result = cudaq::evolve_async(hamiltonian, schedule, 10).get();
   result.get_sampling_result()->dump();
 
   return 0;

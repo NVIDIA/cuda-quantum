@@ -13,7 +13,7 @@ using namespace cudaq;
 
 TEST(RydbergHamiltonianTest, ConstructorValidInputs) {
   // Valid atom sites
-  std::vector<rydberg_hamiltonian::Coordinate> atom_sites = {
+  std::vector<rydberg_hamiltonian::coordinate> atom_sites = {
       {0.0, 0.0}, {1.0, 0.0}, {0.0, 1.0}, {1.0, 1.0}};
 
   // Valid operators
@@ -35,7 +35,7 @@ TEST(RydbergHamiltonianTest, ConstructorValidInputs) {
 }
 
 TEST(RydbergHamiltonianTest, ConstructorWithAtomFilling) {
-  std::vector<rydberg_hamiltonian::Coordinate> atom_sites = {
+  std::vector<rydberg_hamiltonian::coordinate> atom_sites = {
       {0.0, 0.0}, {1.0, 0.0}, {0.0, 1.0}};
 
   // Valid operators
@@ -54,7 +54,7 @@ TEST(RydbergHamiltonianTest, ConstructorWithAtomFilling) {
 }
 
 TEST(RydbergHamiltonianTest, InvalidAtomFillingSize) {
-  std::vector<rydberg_hamiltonian::Coordinate> atom_sites = {
+  std::vector<rydberg_hamiltonian::coordinate> atom_sites = {
       {0.0, 0.0}, {1.0, 0.0}, {0.0, 1.0}};
 
   // Valid operators
@@ -71,7 +71,7 @@ TEST(RydbergHamiltonianTest, InvalidAtomFillingSize) {
 }
 
 TEST(RydbergHamiltonianTest, UnsupportedLocalDetuning) {
-  std::vector<rydberg_hamiltonian::Coordinate> atom_sites = {
+  std::vector<rydberg_hamiltonian::coordinate> atom_sites = {
       {0.0, 0.0}, {1.0, 0.0}, {0.0, 1.0}};
 
   // Valid operators
@@ -89,7 +89,7 @@ TEST(RydbergHamiltonianTest, UnsupportedLocalDetuning) {
 }
 
 TEST(RydbergHamiltonianTest, Accessors) {
-  std::vector<rydberg_hamiltonian::Coordinate> atom_sites = {
+  std::vector<rydberg_hamiltonian::coordinate> atom_sites = {
       {0.0, 0.0}, {1.0, 0.0}, {0.0, 1.0}};
 
   // Valid operators
@@ -109,7 +109,7 @@ TEST(RydbergHamiltonianTest, Accessors) {
 }
 
 TEST(RydbergHamiltonianTest, DefaultAtomFilling) {
-  std::vector<rydberg_hamiltonian::Coordinate> atom_sites = {
+  std::vector<rydberg_hamiltonian::coordinate> atom_sites = {
       {0.0, 0.0}, {1.0, 0.0}, {0.0, 1.0}, {1.0, 1.0}};
 
   // Valid operators

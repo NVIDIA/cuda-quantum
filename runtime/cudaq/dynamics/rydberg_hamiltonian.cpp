@@ -12,7 +12,7 @@
 
 namespace cudaq {
 rydberg_hamiltonian::rydberg_hamiltonian(
-    const std::vector<Coordinate> &atom_sites, const scalar_operator &amplitude,
+    const std::vector<coordinate> &atom_sites, const scalar_operator &amplitude,
     const scalar_operator &phase, const scalar_operator &delta_global,
     const std::vector<int> &atom_filling,
     const std::optional<std::pair<scalar_operator, std::vector<double>>>
@@ -34,7 +34,7 @@ rydberg_hamiltonian::rydberg_hamiltonian(
   }
 }
 
-const std::vector<rydberg_hamiltonian::Coordinate> &
+const std::vector<rydberg_hamiltonian::coordinate> &
 rydberg_hamiltonian::get_atom_sites() const {
   return atom_sites;
 }
