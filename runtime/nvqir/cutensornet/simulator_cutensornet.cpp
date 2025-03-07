@@ -333,7 +333,7 @@ SimulatorTensorNetBase::sample(const std::vector<std::size_t> &measuredBits,
   LOG_API_TIME();
   std::vector<int32_t> measuredBitIds(measuredBits.begin(), measuredBits.end());
   if (shots < 1) {
-    auto allZ = cudaq::spin_op_term::identity();
+    auto allZ = cudaq::spin_op::identity();
     for (std::size_t t = 0; t < m_state->getNumQubits(); ++t)
       allZ *= cudaq::spin_op::z(t);
     // Just compute the expected value on <Z...Z>

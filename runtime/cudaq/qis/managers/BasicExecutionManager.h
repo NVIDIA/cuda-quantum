@@ -179,7 +179,7 @@ public:
   void apply(const std::string_view gateName, const std::vector<double> &params,
              const std::vector<cudaq::QuditInfo> &controls,
              const std::vector<cudaq::QuditInfo> &targets,
-             bool isAdjoint = false, spin_op_term op = cudaq::spin_op_term::identity()) override {
+             bool isAdjoint = false, spin_op_term op = cudaq::spin_op::identity()) override {
 
     // Make a copy of the name that we can mutate if necessary
     std::string mutable_name(gateName);

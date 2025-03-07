@@ -131,7 +131,7 @@ public:
                      const std::vector<double> &params,
                      const std::vector<QuditInfo> &controls,
                      const std::vector<QuditInfo> &targets,
-                     bool isAdjoint = false, const spin_op_term op = cudaq::spin_op_term::identity()) = 0;
+                     bool isAdjoint = false, const spin_op_term op = cudaq::spin_op::identity()) = 0;
 
   /// @brief Apply a fine-grain noise operation within a kernel.
   virtual void applyNoise(const kraus_channel &channelName,

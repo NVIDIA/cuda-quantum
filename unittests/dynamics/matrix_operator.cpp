@@ -11,7 +11,7 @@
 #include <gtest/gtest.h>
 
 TEST(OperatorExpressions, checkMatrixOpsUnary) {
-  auto op = cudaq::matrix_operator::position(0);
+  auto op = cudaq::matrix_op::position(0);
   utils::checkEqual((+op).to_matrix({{0, 2}}), utils::position_matrix(2));
   utils::checkEqual((-op).to_matrix({{0, 2}}),
                     -1.0 * utils::position_matrix(2));
@@ -19,7 +19,7 @@ TEST(OperatorExpressions, checkMatrixOpsUnary) {
 }
 
 TEST(OperatorExpressions, checkMatrixOpsConstruction) {
-  auto prod = cudaq::matrix_operator::identity();
+  auto prod = cudaq::matrix_op::identity();
   cudaq::complex_matrix expected(1, 1);
 
   expected[{0, 0}] = 1.;
@@ -29,36 +29,36 @@ TEST(OperatorExpressions, checkMatrixOpsConstruction) {
   expected[{0, 0}] = std::complex<double>(0., -1.);
   utils::checkEqual(prod.to_matrix(), expected);
 
-  prod *= cudaq::matrix_operator::number(0);
+  prod *= cudaq::matrix_op::number(0);
   expected = cudaq::complex_matrix(3, 3);
   expected[{1, 1}] = std::complex<double>(0., -1.);
   expected[{2, 2}] = std::complex<double>(0., -2.);
   utils::checkEqual(prod.to_matrix({{0, 3}}), expected);
 
-  auto sum = cudaq::matrix_operator::empty();
+  auto sum = cudaq::matrix_op::empty();
   expected = cudaq::complex_matrix(0, 0);
   utils::checkEqual(sum.to_matrix(), expected);
 
   sum *=
-      cudaq::matrix_operator::number(1); // empty times something is still empty
+      cudaq::matrix_op::number(1); // empty times something is still empty
   std::vector<std::size_t> expected_degrees = {};
   ASSERT_EQ(sum.degrees(), expected_degrees);
   utils::checkEqual(sum.to_matrix(), expected);
 
-  sum += cudaq::matrix_operator::identity(1);
+  sum += cudaq::matrix_op::identity(1);
   expected = cudaq::complex_matrix(3, 3);
   for (size_t i = 0; i < 3; ++i)
     expected[{i, i}] = 1.;
   utils::checkEqual(sum.to_matrix({{1, 3}}), expected);
 
-  sum *= cudaq::matrix_operator::number(1);
+  sum *= cudaq::matrix_op::number(1);
   expected = cudaq::complex_matrix(3, 3);
   expected[{1, 1}] = 1.;
   expected[{2, 2}] = 2.;
   utils::checkEqual(sum.to_matrix({{1, 3}}), expected);
 
-  sum = cudaq::matrix_operator::empty();
-  sum -= cudaq::matrix_operator::identity(0);
+  sum = cudaq::matrix_op::empty();
+  sum -= cudaq::matrix_op::identity(0);
   expected = cudaq::complex_matrix(3, 3);
   for (size_t i = 0; i < 3; ++i)
     expected[{i, i}] = -1.;
@@ -74,7 +74,7 @@ TEST(OperatorExpressions, checkPreBuiltMatrixOps) {
   // Identity operator.
   {
     for (auto level_count : levels) {
-      auto id = cudaq::matrix_operator::identity(degree_index);
+      auto id = cudaq::matrix_op::identity(degree_index);
       auto got_id = id.to_matrix({{degree_index, level_count}});
       auto want_id = utils::id_matrix(level_count);
       utils::checkEqual(want_id, got_id);
@@ -84,7 +84,7 @@ TEST(OperatorExpressions, checkPreBuiltMatrixOps) {
   // Number operator.
   {
     for (auto level_count : levels) {
-      auto number = cudaq::matrix_operator::number(degree_index);
+      auto number = cudaq::matrix_op::number(degree_index);
       auto got_number = number.to_matrix({{degree_index, level_count}});
       auto want_number = utils::number_matrix(level_count);
       utils::checkEqual(want_number, got_number);
@@ -94,7 +94,7 @@ TEST(OperatorExpressions, checkPreBuiltMatrixOps) {
   // Parity operator.
   {
     for (auto level_count : levels) {
-      auto parity = cudaq::matrix_operator::parity(degree_index);
+      auto parity = cudaq::matrix_op::parity(degree_index);
       auto got_parity = parity.to_matrix({{degree_index, level_count}});
       auto want_parity = utils::parity_matrix(level_count);
       utils::checkEqual(want_parity, got_parity);
@@ -104,7 +104,7 @@ TEST(OperatorExpressions, checkPreBuiltMatrixOps) {
   // Position operator.
   {
     for (auto level_count : levels) {
-      auto position = cudaq::matrix_operator::position(degree_index);
+      auto position = cudaq::matrix_op::position(degree_index);
       auto got_position = position.to_matrix({{degree_index, level_count}});
       auto want_position = utils::position_matrix(level_count);
       utils::checkEqual(want_position, got_position);
@@ -114,7 +114,7 @@ TEST(OperatorExpressions, checkPreBuiltMatrixOps) {
   // Momentum operator.
   {
     for (auto level_count : levels) {
-      auto momentum = cudaq::matrix_operator::momentum(degree_index);
+      auto momentum = cudaq::matrix_op::momentum(degree_index);
       auto got_momentum = momentum.to_matrix({{degree_index, level_count}});
       auto want_momentum = utils::momentum_matrix(level_count);
       utils::checkEqual(want_momentum, got_momentum);
@@ -125,7 +125,7 @@ TEST(OperatorExpressions, checkPreBuiltMatrixOps) {
   {
     for (auto level_count : levels) {
       auto displacement = std::complex<double>(2.0, 1.0);
-      auto displace = cudaq::matrix_operator::displace(degree_index);
+      auto displace = cudaq::matrix_op::displace(degree_index);
       auto got_displace = displace.to_matrix({{degree_index, level_count}},
                                              {{"displacement", displacement}});
       auto want_displace = utils::displace_matrix(level_count, displacement);
@@ -137,7 +137,7 @@ TEST(OperatorExpressions, checkPreBuiltMatrixOps) {
   {
     for (auto level_count : levels) {
       auto squeezing = std::complex<double>(2.0, 1.0);
-      auto squeeze = cudaq::matrix_operator::squeeze(degree_index);
+      auto squeeze = cudaq::matrix_op::squeeze(degree_index);
       auto got_squeeze = squeeze.to_matrix({{degree_index, level_count}},
                                            {{"squeezing", squeezing}});
       auto want_squeeze = utils::squeeze_matrix(level_count, squeezing);
@@ -237,7 +237,7 @@ TEST(OperatorExpressions, checkMatrixOpsWithComplex) {
   // `matrix_operator` + `complex<double>` and `complex<double>` +
   // `matrix_operator`
   {
-    auto elementary = cudaq::matrix_operator::momentum(0);
+    auto elementary = cudaq::matrix_op::momentum(0);
 
     auto sum = value + elementary;
     auto reverse = elementary + value;
@@ -256,7 +256,7 @@ TEST(OperatorExpressions, checkMatrixOpsWithComplex) {
   // `matrix_operator` - `complex<double>` and `complex<double>` -
   // `matrix_operator`
   {
-    auto elementary = cudaq::matrix_operator::position(0);
+    auto elementary = cudaq::matrix_op::position(0);
 
     auto difference = value - elementary;
     auto reverse = elementary - value;
@@ -275,7 +275,7 @@ TEST(OperatorExpressions, checkMatrixOpsWithComplex) {
   // `matrix_operator` * `complex<double>` and `complex<double>` *
   // `matrix_operator`
   {
-    auto elementary = cudaq::matrix_operator::number(0);
+    auto elementary = cudaq::matrix_op::number(0);
 
     auto product = value * elementary;
     auto reverse = elementary * value;
@@ -309,7 +309,7 @@ TEST(OperatorExpressions, checkMatrixOpsWithScalars) {
 
   // `matrix_operator + scalar_operator`
   {
-    auto self = cudaq::matrix_operator::momentum(0);
+    auto self = cudaq::matrix_op::momentum(0);
     auto other = cudaq::scalar_operator(const_scale_factor);
 
     auto sum = self + other;
@@ -330,7 +330,7 @@ TEST(OperatorExpressions, checkMatrixOpsWithScalars) {
 
   // `matrix_operator + scalar_operator`
   {
-    auto self = cudaq::matrix_operator::parity(0);
+    auto self = cudaq::matrix_op::parity(0);
     auto other = cudaq::scalar_operator(function);
 
     auto sum = self + other;
@@ -353,7 +353,7 @@ TEST(OperatorExpressions, checkMatrixOpsWithScalars) {
 
   // `matrix_operator - scalar_operator`
   {
-    auto self = cudaq::matrix_operator::number(0);
+    auto self = cudaq::matrix_op::number(0);
     auto other = cudaq::scalar_operator(const_scale_factor);
 
     auto sum = self - other;
@@ -374,7 +374,7 @@ TEST(OperatorExpressions, checkMatrixOpsWithScalars) {
 
   // `matrix_operator - scalar_operator`
   {
-    auto self = cudaq::matrix_operator::position(0);
+    auto self = cudaq::matrix_op::position(0);
     auto other = cudaq::scalar_operator(function);
 
     auto sum = self - other;
@@ -397,13 +397,13 @@ TEST(OperatorExpressions, checkMatrixOpsWithScalars) {
 
   // `matrix_operator * scalar_operator`
   {
-    auto self = cudaq::matrix_operator::momentum(0);
+    auto self = cudaq::matrix_op::momentum(0);
     auto other = cudaq::scalar_operator(const_scale_factor);
 
     auto product = self * other;
     auto reverse = other * self;
 
-    auto momentum = *cudaq::matrix_operator::momentum(0).begin();
+    auto momentum = *cudaq::matrix_op::momentum(0).begin();
     utils::assert_product_equal(product, const_scale_factor, {momentum});
     utils::assert_product_equal(reverse, const_scale_factor, {momentum});
 
@@ -423,7 +423,7 @@ TEST(OperatorExpressions, checkMatrixOpsWithScalars) {
 
   // `matrix_operator * scalar_operator`
   {
-    auto self = cudaq::matrix_operator::position(0);
+    auto self = cudaq::matrix_op::position(0);
     auto other = cudaq::scalar_operator(function);
 
     auto product = self * other;
@@ -455,8 +455,8 @@ TEST(OperatorExpressions, checkMatrixOpsSimpleArithmetics) {
 
   // Addition, same DOF.
   {
-    auto self = cudaq::matrix_operator::momentum(0);
-    auto other = cudaq::matrix_operator::position(0);
+    auto self = cudaq::matrix_op::momentum(0);
+    auto other = cudaq::matrix_op::position(0);
 
     auto sum = self + other;
     ASSERT_TRUE(sum.num_terms() == 2);
@@ -469,8 +469,8 @@ TEST(OperatorExpressions, checkMatrixOpsSimpleArithmetics) {
 
   // Addition, different DOF's.
   {
-    auto self = cudaq::matrix_operator::momentum(0);
-    auto other = cudaq::matrix_operator::position(1);
+    auto self = cudaq::matrix_op::momentum(0);
+    auto other = cudaq::matrix_op::position(1);
 
     auto sum = self + other;
     ASSERT_TRUE(sum.num_terms() == 2);
@@ -486,8 +486,8 @@ TEST(OperatorExpressions, checkMatrixOpsSimpleArithmetics) {
 
   // Subtraction, same DOF.
   {
-    auto self = cudaq::matrix_operator::momentum(0);
-    auto other = cudaq::matrix_operator::position(0);
+    auto self = cudaq::matrix_op::momentum(0);
+    auto other = cudaq::matrix_op::position(0);
 
     auto sum = self - other;
     ASSERT_TRUE(sum.num_terms() == 2);
@@ -500,8 +500,8 @@ TEST(OperatorExpressions, checkMatrixOpsSimpleArithmetics) {
 
   // Subtraction, different DOF's.
   {
-    auto self = cudaq::matrix_operator::momentum(0);
-    auto other = cudaq::matrix_operator::position(1);
+    auto self = cudaq::matrix_op::momentum(0);
+    auto other = cudaq::matrix_op::position(1);
 
     auto sum = self - other;
     ASSERT_TRUE(sum.num_terms() == 2);
@@ -517,8 +517,8 @@ TEST(OperatorExpressions, checkMatrixOpsSimpleArithmetics) {
 
   // Multiplication, same DOF.
   {
-    auto self = cudaq::matrix_operator::momentum(0);
-    auto other = cudaq::matrix_operator::position(0);
+    auto self = cudaq::matrix_op::momentum(0);
+    auto other = cudaq::matrix_op::position(0);
 
     auto product = self * other;
     ASSERT_TRUE(product.num_terms() == 2);
@@ -534,8 +534,8 @@ TEST(OperatorExpressions, checkMatrixOpsSimpleArithmetics) {
 
   // Multiplication, different DOF's.
   {
-    auto self = cudaq::matrix_operator::momentum(0);
-    auto other = cudaq::matrix_operator::position(1);
+    auto self = cudaq::matrix_op::momentum(0);
+    auto other = cudaq::matrix_op::position(1);
 
     auto product = self * other;
     ASSERT_TRUE(product.num_terms() == 2);
@@ -561,9 +561,9 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
 
   // `matrix_operator + operator_sum`
   {
-    auto self = cudaq::matrix_operator::momentum(0);
-    auto operator_sum = cudaq::matrix_operator::position(0) +
-                        cudaq::matrix_operator::identity(1);
+    auto self = cudaq::matrix_op::momentum(0);
+    auto operator_sum = cudaq::matrix_op::position(0) +
+                        cudaq::matrix_op::identity(1);
 
     auto got = self + operator_sum;
     auto reverse = operator_sum + self;
@@ -589,9 +589,9 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
 
   // `matrix_operator - operator_sum`
   {
-    auto self = cudaq::matrix_operator::momentum(0);
-    auto operator_sum = cudaq::matrix_operator::position(0) +
-                        cudaq::matrix_operator::identity(1);
+    auto self = cudaq::matrix_op::momentum(0);
+    auto operator_sum = cudaq::matrix_op::position(0) +
+                        cudaq::matrix_op::identity(1);
 
     auto got = self - operator_sum;
     auto reverse = operator_sum - self;
@@ -617,9 +617,9 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
 
   // `matrix_operator * operator_sum`
   {
-    auto self = cudaq::matrix_operator::momentum(0);
-    auto operator_sum = cudaq::matrix_operator::squeeze(0) +
-                        cudaq::matrix_operator::identity(1);
+    auto self = cudaq::matrix_op::momentum(0);
+    auto operator_sum = cudaq::matrix_op::squeeze(0) +
+                        cudaq::matrix_op::identity(1);
 
     auto got = self * operator_sum;
     auto reverse = operator_sum * self;
@@ -652,9 +652,9 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
 
   // `operator_sum += matrix_operator`
   {
-    auto operator_sum = cudaq::matrix_operator::position(0) +
-                        cudaq::matrix_operator::identity(1);
-    operator_sum += cudaq::matrix_operator::displace(0);
+    auto operator_sum = cudaq::matrix_op::position(0) +
+                        cudaq::matrix_op::identity(1);
+    operator_sum += cudaq::matrix_op::displace(0);
 
     ASSERT_TRUE(operator_sum.num_terms() == 3);
 
@@ -674,9 +674,9 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
 
   // `operator_sum -= matrix_operator`
   {
-    auto operator_sum = cudaq::matrix_operator::position(0) +
-                        cudaq::matrix_operator::identity(1);
-    operator_sum -= cudaq::matrix_operator::momentum(0);
+    auto operator_sum = cudaq::matrix_op::position(0) +
+                        cudaq::matrix_op::identity(1);
+    operator_sum -= cudaq::matrix_op::momentum(0);
 
     ASSERT_TRUE(operator_sum.num_terms() == 3);
 
@@ -695,9 +695,9 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
 
   // `operator_sum *= matrix_operator`
   {
-    auto self = cudaq::matrix_operator::momentum(0);
-    auto operator_sum = cudaq::matrix_operator::position(0) +
-                        cudaq::matrix_operator::identity(1);
+    auto self = cudaq::matrix_op::momentum(0);
+    auto operator_sum = cudaq::matrix_op::position(0) +
+                        cudaq::matrix_op::identity(1);
 
     operator_sum *= self;
 
@@ -721,8 +721,8 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
 }
 
 TEST(OperatorExpressions, checkMatrixOpsDegreeVerification) {
-  auto op1 = cudaq::matrix_operator::position(2);
-  auto op2 = cudaq::matrix_operator::momentum(0);
+  auto op1 = cudaq::matrix_op::position(2);
+  auto op2 = cudaq::matrix_op::momentum(0);
   std::unordered_map<int, int> dimensions = {{0, 2}, {1, 2}, {2, 3}, {3, 3}};
 
   {
@@ -784,8 +784,8 @@ TEST(OperatorExpressions, checkMatrixOpsParameterVerification) {
       {"squeezing", 0.5}, {"displacement", 0.25}};
   std::unordered_map<int, int> dimensions = {{0, 2}, {1, 2}};
 
-  auto squeeze = cudaq::matrix_operator::squeeze(1);
-  auto displace = cudaq::matrix_operator::displace(0);
+  auto squeeze = cudaq::matrix_op::squeeze(1);
+  auto displace = cudaq::matrix_op::displace(0);
 
   ASSERT_ANY_THROW(squeeze.to_matrix(dimensions));
   ASSERT_ANY_THROW(squeeze.to_matrix(dimensions, {{"displacement", 0.25}}));

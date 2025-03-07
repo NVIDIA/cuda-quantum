@@ -364,18 +364,6 @@ bool matrix_operator::operator==(const matrix_operator &other) const {
 
 // predefined operators
 
-operator_sum<matrix_operator> matrix_operator::empty() {
-  return operator_handler::empty<matrix_operator>();
-}
-
-product_operator<matrix_operator> matrix_operator::identity() {
-  return operator_handler::identity<matrix_operator>();
-}
-
-product_operator<matrix_operator> matrix_operator::identity(int degree) {
-  return product_operator(matrix_operator(degree));
-}
-
 product_operator<matrix_operator> matrix_operator::number(int degree) {
   std::string op_code = "number";
   if (matrix_operator::defined_ops.find(op_code) ==

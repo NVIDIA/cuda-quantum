@@ -101,10 +101,6 @@ public:
 
   // defined operators
 
-  static operator_sum<fermion_operator> empty();
-  static product_operator<fermion_operator> identity();
-
-  static product_operator<fermion_operator> identity(int degree);
   static product_operator<fermion_operator> create(int degree);
   static product_operator<fermion_operator> annihilate(int degree);
   static product_operator<fermion_operator> number(int degree);

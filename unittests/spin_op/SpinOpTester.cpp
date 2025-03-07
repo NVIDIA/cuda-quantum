@@ -72,7 +72,7 @@ static std::string generate_pauli_string(const std::vector<Pauli> &word) {
 static cudaq::spin_op generate_cudaq_spin(int64_t id, int64_t num_qubits,
                                           bool addI = true) {
   constexpr int64_t mask = 0x3;
-  cudaq::spin_op result = cudaq::spin_operator::empty();
+  cudaq::spin_op result = cudaq::spin_op::empty();
   for (int64_t i = 0; i < num_qubits; ++i) {
     switch (paulis[id & mask]) {
     case Pauli::I:

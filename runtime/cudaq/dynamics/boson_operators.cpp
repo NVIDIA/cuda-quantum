@@ -204,18 +204,6 @@ bool boson_operator::operator==(const boson_operator &other) const {
 
 // defined operators
 
-operator_sum<boson_operator> boson_operator::empty() {
-  return operator_handler::empty<boson_operator>();
-}
-
-product_operator<boson_operator> boson_operator::identity() {
-  return operator_handler::identity<boson_operator>();
-}
-
-product_operator<boson_operator> boson_operator::identity(int degree) {
-  return product_operator(boson_operator(degree));
-}
-
 product_operator<boson_operator> boson_operator::create(int degree) {
   return product_operator(boson_operator(degree, 1));
 }

@@ -1241,41 +1241,12 @@ INSTANTIATE_PRODUCT_CONVERSION_OPS(-, operator_sum);
 
 // common operators
 
-// FIXME: remove
-template <typename HandlerTy>
-product_operator<HandlerTy> operator_handler::identity() {
-  return product_operator<HandlerTy>(1.0);
-}
-
-// FIXME: remove
-template <typename HandlerTy>
-product_operator<HandlerTy> operator_handler::identity(int target) {
-  static_assert(
-      std::is_constructible_v<HandlerTy, int>,
-      "operator handlers must have a constructor that take a single degree of "
-      "freedom and returns the identity operator on that degree.");
-  return product_operator<HandlerTy>(1.0, HandlerTy(target));
-}
-
-template product_operator<matrix_operator> operator_handler::identity();
-template product_operator<spin_operator> operator_handler::identity();
-template product_operator<boson_operator> operator_handler::identity();
-template product_operator<fermion_operator> operator_handler::identity();
-
-template product_operator<matrix_operator>
-operator_handler::identity(int target);
-template product_operator<spin_operator> operator_handler::identity(int target);
-template product_operator<boson_operator>
-operator_handler::identity(int target);
-template product_operator<fermion_operator>
-operator_handler::identity(int target);
-
 // handler specific operators
 
 #define HANDLER_SPECIFIC_TEMPLATE_DEFINITION(ConcreteTy)                                  \
   template <typename HandlerTy>                                                           \
   template <typename T, std::enable_if_t<                                                 \
-                                      std::is_same<HandlerTy, ConcreteTy>::value &&       \
+                                      std::is_same<T, ConcreteTy>::value &&       \
                                       std::is_same<HandlerTy, T>::value, bool>>
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_operator)
@@ -1291,24 +1262,8 @@ std::string product_operator<HandlerTy>::get_pauli_word() const {
   return terms[0].second; // FIXME: USER FACING VS INTERNAL ORDERING!!
 }
 
-HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_operator)
-product_operator<HandlerTy> product_operator<HandlerTy>::identity() {
-  return product_operator<HandlerTy>(1.0);
-}
-
-HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_operator)
-product_operator<HandlerTy> product_operator<HandlerTy>::identity(int target) {
-  static_assert(
-      std::is_constructible_v<HandlerTy, int>,
-      "operator handlers must have a constructor that take a single degree of "
-      "freedom and returns the identity operator on that degree.");
-  return product_operator<HandlerTy>(1.0, HandlerTy(target));
-}
-
 #if !defined(__clang__)
 template std::string product_operator<spin_operator>::get_pauli_word() const;
-template product_operator<spin_operator> product_operator<spin_operator>::identity();
-template product_operator<spin_operator> product_operator<spin_operator>::identity(int target);
 #endif
 
 // functions for backwards compatibility

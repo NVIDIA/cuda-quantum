@@ -16,11 +16,11 @@ TEST(OperatorExpressions, checkElementaryOpsConversions) {
       {"squeezing", 0.5}, {"displacement", 0.25}};
   std::unordered_map<int, int> dimensions = {{0, 2}, {1, 2}};
 
-  auto matrix_elementary = cudaq::matrix_operator::parity(1);
+  auto matrix_elementary = cudaq::matrix_op::parity(1);
   auto matrix_elementary_expected = utils::parity_matrix(2);
-  auto spin_elementary = cudaq::spin_operator::y(1);
+  auto spin_elementary = cudaq::spin_op::y(1);
   auto spin_elementary_expected = utils::PauliY_matrix();
-  auto boson_elementary = cudaq::boson_operator::annihilate(1);
+  auto boson_elementary = cudaq::boson_op::annihilate(1);
   auto boson_elementary_expected = utils::annihilate_matrix(2);
 
   auto checkSumEquals =
@@ -144,14 +144,14 @@ TEST(OperatorExpressions, checkProductOperatorConversions) {
       {"squeezing", 0.5}, {"displacement", 0.25}};
   std::unordered_map<int, int> dimensions = {{0, 2}, {1, 2}};
   auto matrix_product =
-      cudaq::matrix_operator::squeeze(0) * cudaq::matrix_operator::displace(1);
+      cudaq::matrix_op::squeeze(0) * cudaq::matrix_op::displace(1);
   auto matrix_product_expected = cudaq::kronecker(
       utils::displace_matrix(2, 0.25), utils::squeeze_matrix(2, 0.5));
-  auto spin_product = cudaq::spin_operator::y(1) * cudaq::spin_operator::x(0);
+  auto spin_product = cudaq::spin_op::y(1) * cudaq::spin_op::x(0);
   auto spin_product_expected =
       cudaq::kronecker(utils::PauliY_matrix(), utils::PauliX_matrix());
   auto boson_product =
-      cudaq::boson_operator::annihilate(1) * cudaq::boson_operator::number(0);
+      cudaq::boson_op::annihilate(1) * cudaq::boson_op::number(0);
   auto boson_product_expected =
       cudaq::kronecker(utils::annihilate_matrix(2), utils::number_matrix(2));
 
@@ -275,28 +275,28 @@ TEST(OperatorExpressions, checkOperatorSumConversions) {
   std::unordered_map<int, int> dimensions = {{0, 2}, {1, 2}};
 
   auto matrix_product =
-      cudaq::matrix_operator::squeeze(0) * cudaq::matrix_operator::displace(1);
+      cudaq::matrix_op::squeeze(0) * cudaq::matrix_op::displace(1);
   auto matrix_product_expected = cudaq::kronecker(
       utils::displace_matrix(2, 0.25), utils::squeeze_matrix(2, 0.5));
-  auto spin_product = cudaq::spin_operator::y(1) * cudaq::spin_operator::x(0);
+  auto spin_product = cudaq::spin_op::y(1) * cudaq::spin_op::x(0);
   auto spin_product_expected =
       cudaq::kronecker(utils::PauliY_matrix(), utils::PauliX_matrix());
   auto boson_product =
-      cudaq::boson_operator::annihilate(1) * cudaq::boson_operator::number(0);
+      cudaq::boson_op::annihilate(1) * cudaq::boson_op::number(0);
   auto boson_product_expected =
       cudaq::kronecker(utils::annihilate_matrix(2), utils::number_matrix(2));
 
   auto matrix_sum =
-      cudaq::matrix_operator::squeeze(0) + cudaq::matrix_operator::displace(1);
+      cudaq::matrix_op::squeeze(0) + cudaq::matrix_op::displace(1);
   auto matrix_sum_expected =
       cudaq::kronecker(utils::displace_matrix(2, 0.25), utils::id_matrix(2)) +
       cudaq::kronecker(utils::id_matrix(2), utils::squeeze_matrix(2, 0.5));
-  auto spin_sum = cudaq::spin_operator::y(1) + cudaq::spin_operator::x(0);
+  auto spin_sum = cudaq::spin_op::y(1) + cudaq::spin_op::x(0);
   auto spin_sum_expected =
       cudaq::kronecker(utils::PauliY_matrix(), utils::id_matrix(2)) +
       cudaq::kronecker(utils::id_matrix(2), utils::PauliX_matrix());
   auto boson_sum =
-      cudaq::boson_operator::annihilate(1) + cudaq::boson_operator::number(0);
+      cudaq::boson_op::annihilate(1) + cudaq::boson_op::number(0);
   auto boson_sum_expected =
       cudaq::kronecker(utils::annihilate_matrix(2), utils::id_matrix(2)) +
       cudaq::kronecker(utils::id_matrix(2), utils::number_matrix(2));

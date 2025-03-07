@@ -177,18 +177,6 @@ bool fermion_operator::operator==(const fermion_operator &other) const {
 
 // defined operators
 
-operator_sum<fermion_operator> fermion_operator::empty() {
-  return operator_handler::empty<fermion_operator>();
-}
-
-product_operator<fermion_operator> fermion_operator::identity() {
-  return operator_handler::identity<fermion_operator>();
-}
-
-product_operator<fermion_operator> fermion_operator::identity(int degree) {
-  return product_operator(fermion_operator(degree));
-}
-
 product_operator<fermion_operator> fermion_operator::create(int degree) {
   return product_operator(fermion_operator(degree, 1));
 }

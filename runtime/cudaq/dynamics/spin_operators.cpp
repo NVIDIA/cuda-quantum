@@ -151,14 +151,6 @@ bool spin_operator::operator==(const spin_operator &other) const {
 
 // defined operators
 
-operator_sum<spin_operator> spin_operator::empty() {
-  return operator_handler::empty<spin_operator>();
-}
-
-product_operator<spin_operator> spin_operator::identity() {
-  return operator_handler::identity<spin_operator>();
-}
-
 product_operator<spin_operator> spin_operator::i(int degree) {
   return product_operator(spin_operator(degree));
 }

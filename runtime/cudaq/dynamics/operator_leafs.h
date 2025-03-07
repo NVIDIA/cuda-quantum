@@ -320,14 +320,6 @@ public:
                 &parameters = {}) const = 0;
 
   virtual std::string to_string(bool include_degrees = true) const = 0;
-
-  template <typename HandlerTy>
-  static operator_sum<HandlerTy> empty();
-
-  template <typename HandlerTy>
-  static product_operator<HandlerTy> identity();
-  template <typename HandlerTy>
-  static product_operator<HandlerTy> identity(int target);
 };
 
 } // namespace cudaq

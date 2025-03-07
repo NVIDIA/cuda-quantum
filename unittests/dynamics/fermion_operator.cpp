@@ -12,14 +12,14 @@
 #include <iostream>
 
 TEST(OperatorExpressions, checkFermionOpsUnary) {
-  auto op = cudaq::fermion_operator::number(0);
+  auto op = cudaq::fermion_op::number(0);
   utils::checkEqual((+op).to_matrix(), utils::number_matrix(2));
   utils::checkEqual((-op).to_matrix(), -1.0 * utils::number_matrix(2));
   utils::checkEqual(op.to_matrix(), utils::number_matrix(2));
 }
 
 TEST(OperatorExpressions, checkFermionOpsConstruction) {
-  auto prod = cudaq::fermion_operator::identity();
+  auto prod = cudaq::fermion_op::identity();
   cudaq::complex_matrix expected(1, 1);
 
   expected[{0, 0}] = 1.;
@@ -29,34 +29,34 @@ TEST(OperatorExpressions, checkFermionOpsConstruction) {
   expected[{0, 0}] = std::complex<double>(0., -1.);
   utils::checkEqual(prod.to_matrix(), expected);
 
-  prod *= cudaq::fermion_operator::number(0);
+  prod *= cudaq::fermion_op::number(0);
   expected = cudaq::complex_matrix(2, 2);
   expected[{1, 1}] = std::complex<double>(0., -1.);
   utils::checkEqual(prod.to_matrix(), expected);
 
-  auto sum = cudaq::fermion_operator::empty();
+  auto sum = cudaq::fermion_op::empty();
   expected = cudaq::complex_matrix(0, 0);
   utils::checkEqual(sum.to_matrix(), expected);
 
-  sum *= cudaq::fermion_operator::number(
+  sum *= cudaq::fermion_op::number(
       1); // empty times something is still empty
   std::vector<std::size_t> expected_degrees = {};
   ASSERT_EQ(sum.degrees(), expected_degrees);
   utils::checkEqual(sum.to_matrix(), expected);
 
-  sum += cudaq::fermion_operator::identity(1);
+  sum += cudaq::fermion_op::identity(1);
   expected = cudaq::complex_matrix(2, 2);
   for (size_t i = 0; i < 2; ++i)
     expected[{i, i}] = 1.;
   utils::checkEqual(sum.to_matrix(), expected);
 
-  sum *= cudaq::fermion_operator::number(1);
+  sum *= cudaq::fermion_op::number(1);
   expected = cudaq::complex_matrix(2, 2);
   expected[{1, 1}] = 1.;
   utils::checkEqual(sum.to_matrix(), expected);
 
-  sum = cudaq::fermion_operator::empty();
-  sum -= cudaq::fermion_operator::identity(0);
+  sum = cudaq::fermion_op::empty();
+  sum -= cudaq::fermion_op::identity(0);
   expected = cudaq::complex_matrix(2, 2);
   for (size_t i = 0; i < 2; ++i)
     expected[{i, i}] = -1.;
@@ -67,7 +67,7 @@ TEST(OperatorExpressions, checkPreBuiltFermionOps) {
 
   // number operator
   {
-    auto nr_op = cudaq::fermion_operator::number(0);
+    auto nr_op = cudaq::fermion_op::number(0);
     auto nr_mat = utils::number_matrix(2);
     for (auto pow = 1; pow < 4; ++pow) {
       auto expected = nr_mat;
@@ -82,7 +82,7 @@ TEST(OperatorExpressions, checkPreBuiltFermionOps) {
 
   // creation operator
   {
-    auto ad_op = cudaq::fermion_operator::create(0);
+    auto ad_op = cudaq::fermion_op::create(0);
     auto ad_mat = utils::create_matrix(2);
     for (auto pow = 1; pow < 4; ++pow) {
       auto expected = ad_mat;
@@ -97,7 +97,7 @@ TEST(OperatorExpressions, checkPreBuiltFermionOps) {
 
   // annihilation operator
   {
-    auto a_op = cudaq::fermion_operator::annihilate(0);
+    auto a_op = cudaq::fermion_op::annihilate(0);
     auto a_mat = utils::annihilate_matrix(2);
     for (auto pow = 1; pow < 4; ++pow) {
       auto expected = a_mat;
@@ -113,9 +113,9 @@ TEST(OperatorExpressions, checkPreBuiltFermionOps) {
   // basic in-place multiplication
   {
     auto max_nr_consecutive = 3;
-    auto nr_op = cudaq::fermion_operator::number(0);
-    auto ad_op = cudaq::fermion_operator::create(0);
-    auto a_op = cudaq::fermion_operator::annihilate(0);
+    auto nr_op = cudaq::fermion_op::number(0);
+    auto ad_op = cudaq::fermion_op::create(0);
+    auto a_op = cudaq::fermion_op::annihilate(0);
 
     auto nr_mat = utils::number_matrix(2);
     auto ad_mat = utils::create_matrix(2);
@@ -139,7 +139,7 @@ TEST(OperatorExpressions, checkPreBuiltFermionOps) {
           for (auto i = 0; i < as; ++i)
             expected *= a_mat;
 
-          auto got = cudaq::fermion_operator::identity(0);
+          auto got = cudaq::fermion_op::identity(0);
           for (auto i = 0; i < ads; ++i)
             got *= ad_op;
           for (auto i = 0; i < nrs; ++i)
@@ -163,7 +163,7 @@ TEST(OperatorExpressions, checkPreBuiltFermionOps) {
           for (auto i = 0; i < nrs; ++i)
             expected *= nr_mat;
 
-          got = cudaq::fermion_operator::identity(0);
+          got = cudaq::fermion_op::identity(0);
           for (auto i = 0; i < ads; ++i)
             got *= ad_op;
           for (auto i = 0; i < as; ++i)
@@ -187,7 +187,7 @@ TEST(OperatorExpressions, checkPreBuiltFermionOps) {
           for (auto i = 0; i < as; ++i)
             expected *= a_mat;
 
-          got = cudaq::fermion_operator::identity(0);
+          got = cudaq::fermion_op::identity(0);
           for (auto i = 0; i < nrs; ++i)
             got *= nr_op;
           for (auto i = 0; i < ads; ++i)
@@ -211,7 +211,7 @@ TEST(OperatorExpressions, checkPreBuiltFermionOps) {
           for (auto i = 0; i < ads; ++i)
             expected *= ad_mat;
 
-          got = cudaq::fermion_operator::identity(0);
+          got = cudaq::fermion_op::identity(0);
           for (auto i = 0; i < nrs; ++i)
             got *= nr_op;
           for (auto i = 0; i < as; ++i)
@@ -235,7 +235,7 @@ TEST(OperatorExpressions, checkPreBuiltFermionOps) {
           for (auto i = 0; i < ads; ++i)
             expected *= ad_mat;
 
-          got = cudaq::fermion_operator::identity(0);
+          got = cudaq::fermion_op::identity(0);
           for (auto i = 0; i < as; ++i)
             got *= a_op;
           for (auto i = 0; i < nrs; ++i)
@@ -259,7 +259,7 @@ TEST(OperatorExpressions, checkPreBuiltFermionOps) {
           for (auto i = 0; i < nrs; ++i)
             expected *= nr_mat;
 
-          got = cudaq::fermion_operator::identity(0);
+          got = cudaq::fermion_op::identity(0);
           for (auto i = 0; i < as; ++i)
             got *= a_op;
           for (auto i = 0; i < ads; ++i)
@@ -279,7 +279,7 @@ TEST(OperatorExpressions, checkFermionOpsWithComplex) {
 
   // `fermion_operator` + `complex<double>`
   {
-    auto elementary = cudaq::fermion_operator::create(0);
+    auto elementary = cudaq::fermion_op::create(0);
 
     auto sum = value + elementary;
     auto reverse = elementary + value;
@@ -297,7 +297,7 @@ TEST(OperatorExpressions, checkFermionOpsWithComplex) {
 
   // `fermion_operator` - `complex<double>`
   {
-    auto elementary = cudaq::fermion_operator::number(0);
+    auto elementary = cudaq::fermion_op::number(0);
 
     auto difference = value - elementary;
     auto reverse = elementary - value;
@@ -315,7 +315,7 @@ TEST(OperatorExpressions, checkFermionOpsWithComplex) {
 
   // `fermion_operator` * `complex<double>`
   {
-    auto elementary = cudaq::fermion_operator::annihilate(0);
+    auto elementary = cudaq::fermion_op::annihilate(0);
 
     auto product = value * elementary;
     auto reverse = elementary * value;
@@ -347,7 +347,7 @@ TEST(OperatorExpressions, checkFermionOpsWithScalars) {
 
   // `fermion_operator + scalar_operator`
   {
-    auto self = cudaq::fermion_operator::number(0);
+    auto self = cudaq::fermion_op::number(0);
     auto other = cudaq::scalar_operator(const_scale_factor);
 
     auto sum = self + other;
@@ -367,7 +367,7 @@ TEST(OperatorExpressions, checkFermionOpsWithScalars) {
 
   // `fermion_operator + scalar_operator`
   {
-    auto self = cudaq::fermion_operator::annihilate(0);
+    auto self = cudaq::fermion_op::annihilate(0);
     auto other = cudaq::scalar_operator(function);
 
     auto sum = self + other;
@@ -388,7 +388,7 @@ TEST(OperatorExpressions, checkFermionOpsWithScalars) {
 
   // `fermion_operator - scalar_operator`
   {
-    auto self = cudaq::fermion_operator::identity(0);
+    auto self = cudaq::fermion_op::identity(0);
     auto other = cudaq::scalar_operator(const_scale_factor);
 
     auto sum = self - other;
@@ -408,7 +408,7 @@ TEST(OperatorExpressions, checkFermionOpsWithScalars) {
 
   // `fermion_operator - scalar_operator`
   {
-    auto self = cudaq::fermion_operator::create(0);
+    auto self = cudaq::fermion_op::create(0);
     auto other = cudaq::scalar_operator(function);
 
     auto sum = self - other;
@@ -429,7 +429,7 @@ TEST(OperatorExpressions, checkFermionOpsWithScalars) {
 
   // `fermion_operator * scalar_operator`
   {
-    auto self = cudaq::fermion_operator::number(0);
+    auto self = cudaq::fermion_op::number(0);
     auto other = cudaq::scalar_operator(const_scale_factor);
 
     auto product = self * other;
@@ -450,7 +450,7 @@ TEST(OperatorExpressions, checkFermionOpsWithScalars) {
 
   // `fermion_operator * scalar_operator`
   {
-    auto self = cudaq::fermion_operator::annihilate(0);
+    auto self = cudaq::fermion_op::annihilate(0);
     auto other = cudaq::scalar_operator(function);
 
     auto product = self * other;
@@ -475,8 +475,8 @@ TEST(OperatorExpressions, checkFermionOpsSimpleArithmetics) {
 
   // Addition, same DOF.
   {
-    auto self = cudaq::fermion_operator::number(0);
-    auto other = cudaq::fermion_operator::annihilate(0);
+    auto self = cudaq::fermion_op::number(0);
+    auto other = cudaq::fermion_op::annihilate(0);
 
     auto sum = self + other;
     ASSERT_TRUE(sum.num_terms() == 2);
@@ -488,8 +488,8 @@ TEST(OperatorExpressions, checkFermionOpsSimpleArithmetics) {
 
   // Addition, different DOF's.
   {
-    auto self = cudaq::fermion_operator::create(0);
-    auto other = cudaq::fermion_operator::identity(1);
+    auto self = cudaq::fermion_op::create(0);
+    auto other = cudaq::fermion_op::identity(1);
 
     auto sum = self + other;
     ASSERT_TRUE(sum.num_terms() == 2);
@@ -505,8 +505,8 @@ TEST(OperatorExpressions, checkFermionOpsSimpleArithmetics) {
 
   // Subtraction, same DOF.
   {
-    auto self = cudaq::fermion_operator::identity(0);
-    auto other = cudaq::fermion_operator::number(0);
+    auto self = cudaq::fermion_op::identity(0);
+    auto other = cudaq::fermion_op::number(0);
 
     auto sum = self - other;
     ASSERT_TRUE(sum.num_terms() == 2);
@@ -518,8 +518,8 @@ TEST(OperatorExpressions, checkFermionOpsSimpleArithmetics) {
 
   // Subtraction, different DOF's.
   {
-    auto self = cudaq::fermion_operator::annihilate(0);
-    auto other = cudaq::fermion_operator::create(1);
+    auto self = cudaq::fermion_op::annihilate(0);
+    auto other = cudaq::fermion_op::create(1);
 
     auto sum = self - other;
     ASSERT_TRUE(sum.num_terms() == 2);
@@ -535,8 +535,8 @@ TEST(OperatorExpressions, checkFermionOpsSimpleArithmetics) {
 
   // Multiplication, same DOF.
   {
-    auto self = cudaq::fermion_operator::create(0);
-    auto other = cudaq::fermion_operator::annihilate(0);
+    auto self = cudaq::fermion_op::create(0);
+    auto other = cudaq::fermion_op::annihilate(0);
 
     auto product = self * other;
     ASSERT_TRUE(product.num_terms() == 1);
@@ -551,8 +551,8 @@ TEST(OperatorExpressions, checkFermionOpsSimpleArithmetics) {
 
   // Multiplication, different DOF's.
   {
-    auto self = cudaq::fermion_operator::identity(0);
-    auto other = cudaq::fermion_operator::annihilate(1);
+    auto self = cudaq::fermion_op::identity(0);
+    auto other = cudaq::fermion_op::annihilate(1);
 
     auto result = self * other;
     ASSERT_TRUE(result.num_terms() == 2);
@@ -577,9 +577,9 @@ TEST(OperatorExpressions, checkFermionOpsAdvancedArithmetics) {
 
   // `fermion_operator + operator_sum`
   {
-    auto self = cudaq::fermion_operator::create(2);
-    auto operator_sum = cudaq::fermion_operator::annihilate(2) +
-                        cudaq::fermion_operator::number(1);
+    auto self = cudaq::fermion_op::create(2);
+    auto operator_sum = cudaq::fermion_op::annihilate(2) +
+                        cudaq::fermion_op::number(1);
 
     auto got = self + operator_sum;
     auto reverse = operator_sum + self;
@@ -604,9 +604,9 @@ TEST(OperatorExpressions, checkFermionOpsAdvancedArithmetics) {
 
   // `fermion_operator - operator_sum`
   {
-    auto self = cudaq::fermion_operator::annihilate(0);
-    auto operator_sum = cudaq::fermion_operator::create(0) +
-                        cudaq::fermion_operator::identity(1);
+    auto self = cudaq::fermion_op::annihilate(0);
+    auto operator_sum = cudaq::fermion_op::create(0) +
+                        cudaq::fermion_op::identity(1);
 
     auto got = self - operator_sum;
     auto reverse = operator_sum - self;
@@ -631,9 +631,9 @@ TEST(OperatorExpressions, checkFermionOpsAdvancedArithmetics) {
 
   // `fermion_operator * operator_sum`
   {
-    auto self = cudaq::fermion_operator::number(0);
+    auto self = cudaq::fermion_op::number(0);
     auto operator_sum =
-        cudaq::fermion_operator::create(0) + cudaq::fermion_operator::number(2);
+        cudaq::fermion_op::create(0) + cudaq::fermion_op::number(2);
 
     auto got = self * operator_sum;
     auto reverse = operator_sum * self;
@@ -663,9 +663,9 @@ TEST(OperatorExpressions, checkFermionOpsAdvancedArithmetics) {
 
   // `operator_sum += fermion_operator`
   {
-    auto operator_sum = cudaq::fermion_operator::create(0) +
-                        cudaq::fermion_operator::annihilate(2);
-    operator_sum += cudaq::fermion_operator::number(0);
+    auto operator_sum = cudaq::fermion_op::create(0) +
+                        cudaq::fermion_op::annihilate(2);
+    operator_sum += cudaq::fermion_op::number(0);
 
     ASSERT_TRUE(operator_sum.num_terms() == 3);
 
@@ -683,9 +683,9 @@ TEST(OperatorExpressions, checkFermionOpsAdvancedArithmetics) {
 
   // `operator_sum -= fermion_operator`
   {
-    auto operator_sum = cudaq::fermion_operator::create(0) +
-                        cudaq::fermion_operator::annihilate(1);
-    operator_sum -= cudaq::fermion_operator::identity(0);
+    auto operator_sum = cudaq::fermion_op::create(0) +
+                        cudaq::fermion_op::annihilate(1);
+    operator_sum -= cudaq::fermion_op::identity(0);
 
     ASSERT_TRUE(operator_sum.num_terms() == 3);
 
@@ -703,9 +703,9 @@ TEST(OperatorExpressions, checkFermionOpsAdvancedArithmetics) {
 
   // `operator_sum *= fermion_operator`
   {
-    auto operator_sum = cudaq::fermion_operator::number(0) +
-                        cudaq::fermion_operator::annihilate(1);
-    auto self = cudaq::fermion_operator::create(0);
+    auto operator_sum = cudaq::fermion_op::number(0) +
+                        cudaq::fermion_op::annihilate(1);
+    auto self = cudaq::fermion_op::create(0);
 
     operator_sum *= self;
 
@@ -729,8 +729,8 @@ TEST(OperatorExpressions, checkFermionOpsAdvancedArithmetics) {
 }
 
 TEST(OperatorExpressions, checkFermionOpsDegreeVerification) {
-  auto op1 = cudaq::fermion_operator::create(2);
-  auto op2 = cudaq::fermion_operator::annihilate(0);
+  auto op1 = cudaq::fermion_op::create(2);
+  auto op2 = cudaq::fermion_op::annihilate(0);
 
   std::map<int, int> dimensions = {{0, 1}, {2, 3}};
 
@@ -765,79 +765,79 @@ TEST(OperatorExpressions, checkAntiCommutationRelations) {
 
   // check {a†(q), a(q)} = 1
 
-  auto rel1 = anticommutator(cudaq::fermion_operator::create(0),
-                             cudaq::fermion_operator::annihilate(0));
-  auto rel2 = anticommutator(cudaq::fermion_operator::create(1),
-                             cudaq::fermion_operator::annihilate(1));
+  auto rel1 = anticommutator(cudaq::fermion_op::create(0),
+                             cudaq::fermion_op::annihilate(0));
+  auto rel2 = anticommutator(cudaq::fermion_op::create(1),
+                             cudaq::fermion_op::annihilate(1));
   utils::checkEqual(rel1.to_matrix(), utils::id_matrix(2));
   utils::checkEqual(rel2.to_matrix(), utils::id_matrix(2));
 
   // check {a†(k), a(q)} = 0 for k != q
 
-  auto rel3 = anticommutator(cudaq::fermion_operator::create(0),
-                             cudaq::fermion_operator::annihilate(1));
-  auto rel4 = anticommutator(cudaq::fermion_operator::create(1),
-                             cudaq::fermion_operator::annihilate(0));
+  auto rel3 = anticommutator(cudaq::fermion_op::create(0),
+                             cudaq::fermion_op::annihilate(1));
+  auto rel4 = anticommutator(cudaq::fermion_op::create(1),
+                             cudaq::fermion_op::annihilate(0));
   utils::checkEqual(rel3.to_matrix(), utils::zero_matrix(4));
   utils::checkEqual(rel4.to_matrix(), utils::zero_matrix(4));
 
   // check {a†(q), a†(q)} = 0
 
-  auto rel5 = anticommutator(cudaq::fermion_operator::create(0),
-                             cudaq::fermion_operator::create(0));
-  auto rel6 = anticommutator(cudaq::fermion_operator::create(1),
-                             cudaq::fermion_operator::create(1));
+  auto rel5 = anticommutator(cudaq::fermion_op::create(0),
+                             cudaq::fermion_op::create(0));
+  auto rel6 = anticommutator(cudaq::fermion_op::create(1),
+                             cudaq::fermion_op::create(1));
   utils::checkEqual(rel5.to_matrix(), utils::zero_matrix(2));
   utils::checkEqual(rel6.to_matrix(), utils::zero_matrix(2));
 
   // check {a(q), a(q)} = 0
 
-  auto rel7 = anticommutator(cudaq::fermion_operator::annihilate(0),
-                             cudaq::fermion_operator::annihilate(0));
-  auto rel8 = anticommutator(cudaq::fermion_operator::annihilate(1),
-                             cudaq::fermion_operator::annihilate(1));
+  auto rel7 = anticommutator(cudaq::fermion_op::annihilate(0),
+                             cudaq::fermion_op::annihilate(0));
+  auto rel8 = anticommutator(cudaq::fermion_op::annihilate(1),
+                             cudaq::fermion_op::annihilate(1));
   utils::checkEqual(rel7.to_matrix(), utils::zero_matrix(2));
   utils::checkEqual(rel8.to_matrix(), utils::zero_matrix(2));
 
   // check {a†(k), a†(q)} = 0 for k != q
 
-  auto rel9 = anticommutator(cudaq::fermion_operator::create(0),
-                             cudaq::fermion_operator::create(1));
-  auto rel10 = anticommutator(cudaq::fermion_operator::create(1),
-                              cudaq::fermion_operator::create(0));
+  auto rel9 = anticommutator(cudaq::fermion_op::create(0),
+                             cudaq::fermion_op::create(1));
+  auto rel10 = anticommutator(cudaq::fermion_op::create(1),
+                              cudaq::fermion_op::create(0));
   utils::checkEqual(rel9.to_matrix(), utils::zero_matrix(4));
   utils::checkEqual(rel10.to_matrix(), utils::zero_matrix(4));
 
   // check {a(k), a(q)} = 0 for k != q
 
-  auto rel11 = anticommutator(cudaq::fermion_operator::annihilate(0),
-                              cudaq::fermion_operator::annihilate(1));
-  auto rel12 = anticommutator(cudaq::fermion_operator::annihilate(1),
-                              cudaq::fermion_operator::annihilate(0));
+  auto rel11 = anticommutator(cudaq::fermion_op::annihilate(0),
+                              cudaq::fermion_op::annihilate(1));
+  auto rel12 = anticommutator(cudaq::fermion_op::annihilate(1),
+                              cudaq::fermion_op::annihilate(0));
   utils::checkEqual(rel11.to_matrix(), utils::zero_matrix(4));
   utils::checkEqual(rel12.to_matrix(), utils::zero_matrix(4));
 
   // check that [N(k), a†(q)] = 0 for k != q
 
   auto rel13 =
-      cudaq::fermion_operator::number(0) * cudaq::fermion_operator::create(1) -
-      cudaq::fermion_operator::create(1) * cudaq::fermion_operator::number(0);
+      cudaq::fermion_op::number(0) * cudaq::fermion_op::create(1) -
+      cudaq::fermion_op::create(1) * cudaq::fermion_op::number(0);
   auto rel14 =
-      cudaq::fermion_operator::number(1) * cudaq::fermion_operator::create(0) -
-      cudaq::fermion_operator::create(0) * cudaq::fermion_operator::number(1);
+      cudaq::fermion_op::number(1) * cudaq::fermion_op::create(0) -
+      cudaq::fermion_op::create(0) * cudaq::fermion_op::number(1);
   utils::checkEqual(rel13.to_matrix(), utils::zero_matrix(4));
   utils::checkEqual(rel14.to_matrix(), utils::zero_matrix(4));
 
   // check that [N(k), a(q)] = 0 for k != q
 
-  auto rel15 = cudaq::fermion_operator::number(0) *
-                   cudaq::fermion_operator::annihilate(1) -
-               cudaq::fermion_operator::annihilate(1) *
-                   cudaq::fermion_operator::number(0);
-  auto rel16 = cudaq::fermion_operator::number(1) *
-                   cudaq::fermion_operator::annihilate(0) -
-               cudaq::fermion_operator::annihilate(0) *
-                   cudaq::fermion_operator::number(1);
+  auto rel15 = cudaq::fermion_op::number(0) *
+                   cudaq::fermion_op::annihilate(1) -
+               cudaq::fermion_op::annihilate(1) *
+                   cudaq::fermion_op::number(0);
+  auto rel16 = cudaq::fermion_op::number(1) *
+                   cudaq::fermion_op::annihilate(0) -
+               cudaq::fermion_op::annihilate(0) *
+                   cudaq::fermion_op::number(1);
   utils::checkEqual(rel15.to_matrix(), utils::zero_matrix(4));
   utils::checkEqual(rel16.to_matrix(), utils::zero_matrix(4));
 }

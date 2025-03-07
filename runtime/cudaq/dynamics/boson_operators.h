@@ -76,10 +76,6 @@ public:
 
   // defined operators
 
-  static operator_sum<boson_operator> empty();
-  static product_operator<boson_operator> identity();
-
-  static product_operator<boson_operator> identity(int degree);
   static product_operator<boson_operator> create(int degree);
   static product_operator<boson_operator> annihilate(int degree);
   static product_operator<boson_operator> number(int degree);

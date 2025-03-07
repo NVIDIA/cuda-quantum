@@ -26,7 +26,7 @@ class spin_operator;
 
 #define HANDLER_SPECIFIC_TEMPLATE(ConcreteTy)                                             \
   template <typename T = HandlerTy, std::enable_if_t<                                     \
-                                      std::is_same<HandlerTy, ConcreteTy>::value &&       \
+                                      std::is_same<T, ConcreteTy>::value &&       \
                                       std::is_same<HandlerTy, T>::value, bool> = true>
 
   // utility functions for backward compatibility
@@ -334,25 +334,68 @@ public:
 
   // common operators
 
-  template <typename T>
-  friend operator_sum<T> operator_handler::empty();
+  static operator_sum<HandlerTy> empty();
+  static product_operator<HandlerTy> identity();
+  static product_operator<HandlerTy> identity(int target);
 
   // handler specific operators
 
-  HANDLER_SPECIFIC_TEMPLATE(spin_operator)
-  static operator_sum<HandlerTy> empty();
+  HANDLER_SPECIFIC_TEMPLATE(matrix_operator)
+  static product_operator<T> number(int target);
+
+  HANDLER_SPECIFIC_TEMPLATE(matrix_operator)
+  static product_operator<T> parity(int target);
+
+  HANDLER_SPECIFIC_TEMPLATE(matrix_operator)
+  static product_operator<T> position(int target);
+
+  HANDLER_SPECIFIC_TEMPLATE(matrix_operator)
+  static product_operator<T> momentum(int target);
+
+  HANDLER_SPECIFIC_TEMPLATE(matrix_operator)
+  static product_operator<T> squeeze(int target);
+
+  HANDLER_SPECIFIC_TEMPLATE(matrix_operator)
+  static product_operator<T> displace(int target);
+
 
   HANDLER_SPECIFIC_TEMPLATE(spin_operator)
-  static product_operator<HandlerTy> i(int target);
+  static product_operator<T> i(int target);
 
   HANDLER_SPECIFIC_TEMPLATE(spin_operator)
-  static product_operator<HandlerTy> x(int target);
+  static product_operator<T> x(int target);
 
   HANDLER_SPECIFIC_TEMPLATE(spin_operator)
-  static product_operator<HandlerTy> y(int target);
+  static product_operator<T> y(int target);
 
   HANDLER_SPECIFIC_TEMPLATE(spin_operator)
-  static product_operator<HandlerTy> z(int target);
+  static product_operator<T> z(int target);
+
+
+  HANDLER_SPECIFIC_TEMPLATE(boson_operator)
+  static product_operator<T> create(int target);
+
+  HANDLER_SPECIFIC_TEMPLATE(boson_operator)
+  static product_operator<T> annihilate(int target);
+  
+  HANDLER_SPECIFIC_TEMPLATE(boson_operator)
+  static product_operator<T> number(int target);
+
+  HANDLER_SPECIFIC_TEMPLATE(boson_operator)
+  static operator_sum<T> position(int target);
+
+  HANDLER_SPECIFIC_TEMPLATE(boson_operator)
+  static operator_sum<T> momentum(int target);
+
+
+  HANDLER_SPECIFIC_TEMPLATE(fermion_operator)
+  static product_operator<T> create(int target);
+
+  HANDLER_SPECIFIC_TEMPLATE(fermion_operator)
+  static product_operator<T> annihilate(int target);
+  
+  HANDLER_SPECIFIC_TEMPLATE(fermion_operator)
+  static product_operator<T> number(int target);
 
   // general utility functions
 
@@ -764,22 +807,10 @@ public:
 
   // common operators
 
-  // FIXME: remove
-  template <typename T>
-  friend product_operator<T> operator_handler::identity();
-  template <typename T>
-  friend product_operator<T> operator_handler::identity(int target);
-
   // handler specific operators
 
   HANDLER_SPECIFIC_TEMPLATE(spin_operator)
   std::string get_pauli_word() const;
-
-  HANDLER_SPECIFIC_TEMPLATE(spin_operator)
-  static product_operator<HandlerTy> identity();
-
-  HANDLER_SPECIFIC_TEMPLATE(spin_operator)
-  static product_operator<HandlerTy> identity(int target);
 
   // utility functions for backward compatibility
 
@@ -827,8 +858,14 @@ public:
 // type aliases for convenience
 typedef std::unordered_map<std::string, std::complex<double>> parameter_map;
 typedef std::unordered_map<int, int> dimension_map;
+typedef operator_sum<matrix_operator> matrix_op;
+typedef product_operator<matrix_operator> matrix_op_term;
 typedef operator_sum<spin_operator> spin_op;
 typedef product_operator<spin_operator> spin_op_term;
+typedef operator_sum<boson_operator> boson_op;
+typedef product_operator<boson_operator> boson_op_term;
+typedef operator_sum<fermion_operator> fermion_op;
+typedef product_operator<fermion_operator> fermion_op_term;
 
 #ifndef CUDAQ_INSTANTIATE_TEMPLATES
 extern template class product_operator<matrix_operator>;

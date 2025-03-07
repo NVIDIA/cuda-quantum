@@ -1237,56 +1237,165 @@ INSTANTIATE_SUM_CONVERSION_OPS(-);
 
 // common operators
 
-// FIXME: remove
 template <typename HandlerTy>
-operator_sum<HandlerTy> operator_handler::empty() {
+operator_sum<HandlerTy> operator_sum<HandlerTy>::empty() {
   return operator_sum<HandlerTy>();
 }
 
-template operator_sum<matrix_operator> operator_handler::empty();
-template operator_sum<spin_operator> operator_handler::empty();
-template operator_sum<boson_operator> operator_handler::empty();
-template operator_sum<fermion_operator> operator_handler::empty();
+template <typename HandlerTy>
+product_operator<HandlerTy> operator_sum<HandlerTy>::identity() {
+  return product_operator<HandlerTy>(1.0);
+}
+
+template <typename HandlerTy>
+product_operator<HandlerTy> operator_sum<HandlerTy>::identity(int target) {
+  static_assert(
+      std::is_constructible_v<HandlerTy, int>,
+      "operator handlers must have a constructor that take a single degree of "
+      "freedom and returns the identity operator on that degree.");
+  return product_operator<HandlerTy>(1.0, HandlerTy(target));
+}
+
+#if !defined(__clang__)
+template operator_sum<matrix_operator> operator_sum<matrix_operator>::empty();
+template operator_sum<spin_operator> operator_sum<spin_operator>::empty();
+template operator_sum<boson_operator> operator_sum<boson_operator>::empty();
+template operator_sum<fermion_operator> operator_sum<fermion_operator>::empty();
+template product_operator<matrix_operator> operator_sum<matrix_operator>::identity();
+template product_operator<spin_operator> operator_sum<spin_operator>::identity();
+template product_operator<boson_operator> operator_sum<boson_operator>::identity();
+template product_operator<fermion_operator> operator_sum<fermion_operator>::identity();
+template product_operator<matrix_operator>
+operator_sum<matrix_operator>::identity(int target);
+template product_operator<spin_operator> operator_sum<spin_operator>::identity(int target);
+template product_operator<boson_operator>
+operator_sum<boson_operator>::identity(int target);
+template product_operator<fermion_operator>
+operator_sum<fermion_operator>::identity(int target);
+#endif
 
 // handler specific operators
 
 #define HANDLER_SPECIFIC_TEMPLATE_DEFINITION(ConcreteTy)                                  \
   template <typename HandlerTy>                                                           \
   template <typename T, std::enable_if_t<                                                 \
-                                      std::is_same<HandlerTy, ConcreteTy>::value &&       \
+                                      std::is_same<T, ConcreteTy>::value &&       \
                                       std::is_same<HandlerTy, T>::value, bool>>
 
-HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_operator)
-operator_sum<HandlerTy> operator_sum<HandlerTy>::empty() {
-  return operator_sum<HandlerTy>();
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(matrix_operator)
+product_operator<T> operator_sum<HandlerTy>::number(int target) {
+  return matrix_operator::number(target);
 }
 
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(matrix_operator)
+product_operator<T> operator_sum<HandlerTy>::parity(int target) {
+  return matrix_operator::parity(target);
+}
+
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(matrix_operator)
+product_operator<T> operator_sum<HandlerTy>::position(int target) {
+  return matrix_operator::position(target);
+}
+
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(matrix_operator)
+product_operator<T> operator_sum<HandlerTy>::momentum(int target) {
+  return matrix_operator::momentum(target);
+}
+
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(matrix_operator)
+product_operator<T> operator_sum<HandlerTy>::squeeze(int target) {
+  return matrix_operator::squeeze(target);
+}
+
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(matrix_operator)
+product_operator<T> operator_sum<HandlerTy>::displace(int target) {
+  return matrix_operator::displace(target);
+}
+
+
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_operator)
-product_operator<HandlerTy> operator_sum<HandlerTy>::i(int target) {
+product_operator<T> operator_sum<HandlerTy>::i(int target) {
   return spin_operator::i(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_operator)
-product_operator<HandlerTy> operator_sum<HandlerTy>::x(int target) {
+product_operator<T> operator_sum<HandlerTy>::x(int target) {
   return spin_operator::x(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_operator)
-product_operator<HandlerTy> operator_sum<HandlerTy>::y(int target) {
+product_operator<T> operator_sum<HandlerTy>::y(int target) {
   return spin_operator::y(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_operator)
-product_operator<HandlerTy> operator_sum<HandlerTy>::z(int target) {
+product_operator<T> operator_sum<HandlerTy>::z(int target) {
   return spin_operator::z(target);
 }
 
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(boson_operator)
+product_operator<T> operator_sum<HandlerTy>::create(int target) {
+  return boson_operator::create(target);
+}
+
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(boson_operator)
+product_operator<T> operator_sum<HandlerTy>::annihilate(int target) {
+  return boson_operator::annihilate(target);
+}
+
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(boson_operator)
+product_operator<T> operator_sum<HandlerTy>::number(int target) {
+  return boson_operator::number(target);
+}
+
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(boson_operator)
+operator_sum<T> operator_sum<HandlerTy>::position(int target) {
+  return boson_operator::position(target);
+}
+
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(boson_operator)
+operator_sum<T> operator_sum<HandlerTy>::momentum(int target) {
+  return boson_operator::momentum(target);
+}
+
+
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(fermion_operator)
+product_operator<T> operator_sum<HandlerTy>::create(int target) {
+  return fermion_operator::create(target);
+}
+
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(fermion_operator)
+product_operator<T> operator_sum<HandlerTy>::annihilate(int target) {
+  return fermion_operator::annihilate(target);
+}
+
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(fermion_operator)
+product_operator<T> operator_sum<HandlerTy>::number(int target) {
+  return fermion_operator::number(target);
+}
+
 #if !defined(__clang__)
-template operator_sum<spin_operator> operator_sum<spin_operator>::empty();
+template product_operator<matrix_operator> operator_sum<matrix_operator>::number(int target);
+template product_operator<matrix_operator> operator_sum<matrix_operator>::parity(int target);
+template product_operator<matrix_operator> operator_sum<matrix_operator>::position(int target);
+template product_operator<matrix_operator> operator_sum<matrix_operator>::momentum(int target);
+template product_operator<matrix_operator> operator_sum<matrix_operator>::squeeze(int target);
+template product_operator<matrix_operator> operator_sum<matrix_operator>::displace(int target);
+
 template product_operator<spin_operator> operator_sum<spin_operator>::i(int target);
 template product_operator<spin_operator> operator_sum<spin_operator>::x(int target);
 template product_operator<spin_operator> operator_sum<spin_operator>::y(int target);
 template product_operator<spin_operator> operator_sum<spin_operator>::z(int target);
+
+template product_operator<boson_operator> operator_sum<boson_operator>::create(int target);
+template product_operator<boson_operator> operator_sum<boson_operator>::annihilate(int target);
+template product_operator<boson_operator> operator_sum<boson_operator>::number(int target);
+template operator_sum<boson_operator> operator_sum<boson_operator>::position(int target);
+template operator_sum<boson_operator> operator_sum<boson_operator>::momentum(int target);
+
+template product_operator<fermion_operator> operator_sum<fermion_operator>::create(int target);
+template product_operator<fermion_operator> operator_sum<fermion_operator>::annihilate(int target);
+template product_operator<fermion_operator> operator_sum<fermion_operator>::number(int target);
 #endif
 
 // general utility functions
@@ -1372,17 +1481,17 @@ template std::vector<std::vector<bool>> operator_sum<spin_operator>::_get_binary
 
 SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
 product_operator<HandlerTy> operator_sum<HandlerTy>::from_word(const std::string &word) {
-  auto prod = operator_handler::identity<HandlerTy>();
+  auto prod = operator_sum<HandlerTy>::identity();
   for (std::size_t i = 0; i < word.length(); i++) {
     auto letter = word[i];
     if (letter == 'Y')
-      prod *= spin_operator::y(i);
+      prod *= operator_sum<HandlerTy>::y(i);
     else if (letter == 'X')
-      prod *= spin_operator::x(i);
+      prod *= operator_sum<HandlerTy>::x(i);
     else if (letter == 'Z')
-      prod *= spin_operator::z(i);
+      prod *= operator_sum<HandlerTy>::z(i);
     else if (letter == 'I')
-      prod *= spin_operator::i(i);
+      prod *= operator_sum<HandlerTy>::i(i);
     else
       throw std::runtime_error(
         "Invalid Pauli for spin_op::from_word, must be X, Y, Z, or I.");
@@ -1393,10 +1502,10 @@ product_operator<HandlerTy> operator_sum<HandlerTy>::from_word(const std::string
 SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
 operator_sum<HandlerTy> operator_sum<HandlerTy>::random(std::size_t nQubits, std::size_t nTerms, unsigned int seed) {
   auto get_spin_op = [](int target, int kind) {
-    if (kind == 1) return spin_operator::z(target);
-    if (kind == 2) return spin_operator::x(target);
-    if (kind == 3) return spin_operator::y(target);
-    return spin_operator::i(target);
+    if (kind == 1) return operator_sum<HandlerTy>::z(target);
+    if (kind == 2) return operator_sum<HandlerTy>::x(target);
+    if (kind == 3) return operator_sum<HandlerTy>::y(target);
+    return operator_sum<HandlerTy>::i(target);
   };
   std::mt19937 gen(seed);
   auto sum = spin_op::empty();
@@ -1405,7 +1514,7 @@ operator_sum<HandlerTy> operator_sum<HandlerTy>::random(std::size_t nQubits, std
     std::fill_n(termData.begin(), nQubits, true);
     std::shuffle(termData.begin(), termData.end(), gen);
     // duplicates are fine - they will just increase the coefficient
-    auto prod = spin_operator::identity();
+    auto prod = operator_sum<HandlerTy>::identity();
     for (int qubit_idx = 0; qubit_idx < nQubits; ++qubit_idx) {
       auto kind = (termData[qubit_idx << 1] << 1) | termData[(qubit_idx << 1) + 1];
       prod *= get_spin_op(qubit_idx, kind);
@@ -1425,7 +1534,7 @@ operator_sum<HandlerTy>::operator_sum(const std::vector<double> &input_vec, std:
   for (std::size_t i = 0; i < input_vec.size() - 1; i += nQubits + 2) {
     auto el_real = input_vec[i + nQubits];
     auto el_imag = input_vec[i + nQubits + 1];
-    auto prod = product_operator<spin_operator>(std::complex<double>{el_real, el_imag});
+    auto prod = product_operator<HandlerTy>(std::complex<double>{el_real, el_imag});
     for (std::size_t j = 0; j < nQubits; j++) {
       double intPart;
       if (std::modf(input_vec[j + i], &intPart) != 0.0)
@@ -1435,11 +1544,11 @@ operator_sum<HandlerTy>::operator_sum(const std::vector<double> &input_vec, std:
       int val = (int)input_vec[j + i];
       // FIXME: align op codes with old impl
       if (val == 1) // X
-        prod *= spin_operator::x(j);
+        prod *= operator_sum<HandlerTy>::x(j);
       else if (val == 2) // Z
-        prod *= spin_operator::z(j);
+        prod *= operator_sum<HandlerTy>::z(j);
       else if (val == 3) // Y
-        prod *= spin_operator::y(j);
+        prod *= operator_sum<HandlerTy>::y(j);
     }
     *this += std::move(prod);
   }

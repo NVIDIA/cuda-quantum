@@ -177,10 +177,6 @@ public:
 
   // predefined operators
 
-  static operator_sum<matrix_operator> empty();
-  static product_operator<matrix_operator> identity();
-
-  static product_operator<matrix_operator> identity(int degree);
   static product_operator<matrix_operator> number(int degree);
   static product_operator<matrix_operator> parity(int degree);
   static product_operator<matrix_operator> position(int degree);

@@ -81,9 +81,6 @@ public:
 
   // defined operators
 
-  static operator_sum<spin_operator> empty();
-  static product_operator<spin_operator> identity();
-
   static product_operator<spin_operator> i(int degree);
   static product_operator<spin_operator> z(int degree);
   static product_operator<spin_operator> x(int degree);
