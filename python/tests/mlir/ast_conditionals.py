@@ -204,6 +204,49 @@ def test_conditional_on_measure():
 
     # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test14() attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
 
+    @cudaq.kernel
+    def test15():
+        qubits = cudaq.qvector(2)
+        h(qubits)
+        foo = mx(qubits[0])
+        bar = foo
+
+        if not bar:
+            reset(qubits[0])
+
+    print(test15)
+
+    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test15() attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
+
+    @cudaq.kernel
+    def test16():
+        qubits = cudaq.qvector(2)
+        x(qubits)
+        foo = mx(qubits[0])
+        bar = my(qubits[1])
+        qux = foo or bar
+
+        if qux:
+            h(qubits[0])
+
+    print(test16)
+
+    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test16() attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
+
+    @cudaq.kernel
+    def test17():
+        qubits = cudaq.qvector(2)
+        x(qubits)
+        foo = mx(qubits[0])
+        bar = my(qubits[1])
+
+        if not foo and bar:
+            h(qubits[0])
+
+    print(test17)
+
+    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test17() attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
+
 
 # leave for gdb debugging
 if __name__ == "__main__":
