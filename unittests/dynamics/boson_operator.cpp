@@ -615,7 +615,7 @@ TEST(OperatorExpressions, checkBosonOpsSimpleArithmetics) {
         self * other; // nnote that position and momentum are each 2-term sums
     ASSERT_TRUE(result.num_terms() == 4);
 
-    std::vector<std::size_t> want_degrees = {1, 0};
+    std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(result.degrees() == want_degrees);
 
     auto annihilate_full =

@@ -279,7 +279,7 @@ public:
   // the order returned by to_matrix and degree, and the order in which a user
   // would define a state vector.
   static constexpr auto canonical_order = std::less<int>();
-  static constexpr auto user_facing_order = std::greater<int>();
+  static constexpr auto user_facing_order = std::less<int>();
 
   /// Default commutation relations mean that two operator always commute as
   /// long as they act on different degrees of freedom.

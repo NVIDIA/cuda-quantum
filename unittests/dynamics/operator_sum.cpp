@@ -50,7 +50,7 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
   auto spin1 = cudaq::spin_operator::z(1);
   auto spin_sum = spin0 + spin1;
 
-  std::vector<std::size_t> want_degrees = {1, 0};
+  std::vector<std::size_t> want_degrees = {0, 1};
   auto spin_matrix =
       cudaq::kronecker(utils::id_matrix(2), utils::PauliX_matrix()) +
       cudaq::kronecker(utils::PauliZ_matrix(), utils::id_matrix(2));
@@ -92,7 +92,7 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
   auto spin1 = cudaq::spin_operator::z(2);
   auto spin_sum = spin0 + spin1;
 
-  std::vector<std::size_t> want_degrees = {2, 0};
+  std::vector<std::size_t> want_degrees = {0, 2};
   auto spin_matrix =
       cudaq::kronecker(utils::id_matrix(2), utils::PauliX_matrix()) +
       cudaq::kronecker(utils::PauliZ_matrix(), utils::id_matrix(2));
@@ -134,7 +134,7 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
   auto spin1 = cudaq::spin_operator::z(2);
   auto spin_sum = spin0 + spin1;
 
-  std::vector<std::size_t> want_degrees = {2, 0};
+  std::vector<std::size_t> want_degrees = {0, 2};
   auto spin_matrix =
       cudaq::kronecker(utils::id_matrix(2), utils::PauliX_matrix()) +
       cudaq::kronecker(utils::PauliZ_matrix(), utils::id_matrix(2));
@@ -150,7 +150,7 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
     auto got = op0 + op1;
     auto got_reverse = op1 + op0;
 
-    std::vector<std::size_t> want_degrees = {2, 0};
+    std::vector<std::size_t> want_degrees = {0, 2};
     ASSERT_TRUE(got.degrees() == want_degrees);
     ASSERT_TRUE(got_reverse.degrees() == want_degrees);
 
@@ -1543,21 +1543,21 @@ TEST(OperatorExpressions, checkCustomOperatorSum) {
     auto func0 =
         [](const std::vector<int> &dimensions,
            const std::unordered_map<std::string, std::complex<double>> &_none) {
-          return cudaq::kronecker(utils::momentum_matrix(dimensions[0]),
-                                  utils::position_matrix(dimensions[1]));
+          return cudaq::kronecker(utils::momentum_matrix(dimensions[1]),
+                                  utils::position_matrix(dimensions[0]));
         };
     auto func1 =
         [](const std::vector<int> &dimensions,
            const std::unordered_map<std::string, std::complex<double>> &_none) {
-          return cudaq::kronecker(utils::parity_matrix(dimensions[0]),
-                                  utils::number_matrix(dimensions[1]));
+          return cudaq::kronecker(utils::parity_matrix(dimensions[1]),
+                                  utils::number_matrix(dimensions[0]));
         };
     cudaq::matrix_operator::define("custom_op0", {-1, -1}, func0);
     cudaq::matrix_operator::define("custom_op1", {-1, -1}, func1);
   }
 
-  auto op0 = cudaq::matrix_operator::instantiate("custom_op0", {1, 0});
-  auto op1 = cudaq::matrix_operator::instantiate("custom_op1", {2, 1});
+  auto op0 = cudaq::matrix_operator::instantiate("custom_op0", {0, 1});
+  auto op1 = cudaq::matrix_operator::instantiate("custom_op1", {1, 2});
   auto sum = op0 + op1;
   auto sum_reverse = op1 + op0;
   auto difference = op0 - op1;
@@ -1583,8 +1583,8 @@ TEST(OperatorExpressions, checkCustomOperatorSum) {
   utils::checkEqual(difference_reverse.to_matrix(dimensions),
                     diff_reverse_expected);
 
-  op0 = cudaq::matrix_operator::instantiate("custom_op0", {3, 2});
-  op1 = cudaq::matrix_operator::instantiate("custom_op1", {2, 0});
+  op0 = cudaq::matrix_operator::instantiate("custom_op0", {2, 3});
+  op1 = cudaq::matrix_operator::instantiate("custom_op1", {0, 2});
   sum = op0 + op1;
   sum_reverse = op1 + op0;
   difference = op0 - op1;

@@ -557,7 +557,7 @@ TEST(OperatorExpressions, checkFermionOpsSimpleArithmetics) {
     auto result = self * other;
     ASSERT_TRUE(result.num_terms() == 2);
 
-    std::vector<std::size_t> want_degrees = {1, 0};
+    std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(result.degrees() == want_degrees);
 
     auto annihilate_full =

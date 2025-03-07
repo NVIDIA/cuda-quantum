@@ -473,6 +473,11 @@ public:
   /// @brief The degrees of freedom that the operator acts on.
   /// By default, degrees reflect the ordering convention (endianness) used in
   /// CUDA-Q, and the ordering of the matrix returned by default by `to_matrix`.
+  ///
+  /// Specifically, the indices of a statevector with two qubits are {00, 01, 10, 11}.
+  /// An ordering of degrees {0, 1} then indicates that a state where
+  /// the qubit with index 0 equals 1 with probability 1 is given by 
+  /// the vector {0., 1., 0., 0.}.
   std::vector<std::size_t> degrees(bool application_order = true) const;
 
   /// @brief Return the number of operator terms that make up this product

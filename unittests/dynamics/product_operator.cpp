@@ -54,7 +54,7 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
   auto spin1 = cudaq::spin_operator::z(1);
   auto spin_prod = spin0 * spin1;
 
-  std::vector<std::size_t> want_degrees = {1, 0};
+  std::vector<std::size_t> want_degrees = {0, 1};
   auto spin_matrix =
       cudaq::kronecker(utils::PauliZ_matrix(), utils::PauliX_matrix());
 
@@ -96,7 +96,7 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
   auto spin1 = cudaq::spin_operator::z(2);
   auto spin_prod = spin0 * spin1;
 
-  std::vector<std::size_t> want_degrees = {2, 0};
+  std::vector<std::size_t> want_degrees = {0, 2};
   auto spin_matrix =
       cudaq::kronecker(utils::PauliZ_matrix(), utils::PauliX_matrix());
 
@@ -138,7 +138,7 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
   auto spin1 = cudaq::spin_operator::z(2);
   auto spin_prod = spin0 * spin1;
 
-  std::vector<std::size_t> want_degrees = {2, 0};
+  std::vector<std::size_t> want_degrees = {0, 2};
   auto spin_matrix =
       cudaq::kronecker(utils::PauliZ_matrix(), utils::PauliX_matrix());
   std::unordered_map<int, int> dimensions = {{0, 2}, {1, 2}, {2, 2}};
@@ -153,7 +153,7 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
     cudaq::product_operator got = op0 * op1;
     cudaq::product_operator got_reverse = op1 * op0;
 
-    std::vector<std::size_t> want_degrees = {2, 0};
+    std::vector<std::size_t> want_degrees = {0, 2};
     ASSERT_TRUE(got.degrees() == want_degrees);
     ASSERT_TRUE(got_reverse.degrees() == want_degrees);
 
@@ -276,7 +276,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(sum.num_terms() == 2);
     ASSERT_TRUE(reverse.num_terms() == 2);
 
-    std::vector<std::size_t> want_degrees = {1, 0};
+    std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(sum.degrees() == want_degrees);
     ASSERT_TRUE(reverse.degrees() == want_degrees);
 
@@ -309,7 +309,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(sum.num_terms() == 2);
     ASSERT_TRUE(reverse.num_terms() == 2);
 
-    std::vector<std::size_t> want_degrees = {1, 0};
+    std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(sum.degrees() == want_degrees);
     ASSERT_TRUE(reverse.degrees() == want_degrees);
 
@@ -342,7 +342,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(sum.num_terms() == 2);
     ASSERT_TRUE(reverse.num_terms() == 2);
 
-    std::vector<std::size_t> want_degrees = {1, 0};
+    std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(sum.degrees() == want_degrees);
     ASSERT_TRUE(reverse.degrees() == want_degrees);
 
@@ -373,7 +373,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(sum.num_terms() == 2);
     ASSERT_TRUE(reverse.num_terms() == 2);
 
-    std::vector<std::size_t> want_degrees = {1, 0};
+    std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(sum.degrees() == want_degrees);
     ASSERT_TRUE(reverse.degrees() == want_degrees);
 
@@ -407,7 +407,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(difference.num_terms() == 2);
     ASSERT_TRUE(reverse.num_terms() == 2);
 
-    std::vector<std::size_t> want_degrees = {1, 0};
+    std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(difference.degrees() == want_degrees);
     ASSERT_TRUE(reverse.degrees() == want_degrees);
 
@@ -440,7 +440,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(sum.num_terms() == 2);
     ASSERT_TRUE(reverse.num_terms() == 2);
 
-    std::vector<std::size_t> want_degrees = {1, 0};
+    std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(sum.degrees() == want_degrees);
     ASSERT_TRUE(reverse.degrees() == want_degrees);
 
@@ -470,7 +470,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(difference.num_terms() == 2);
     ASSERT_TRUE(reverse.num_terms() == 2);
 
-    std::vector<std::size_t> want_degrees = {1, 0};
+    std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(difference.degrees() == want_degrees);
     ASSERT_TRUE(reverse.degrees() == want_degrees);
 
@@ -506,7 +506,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(difference.num_terms() == 2);
     ASSERT_TRUE(reverse.num_terms() == 2);
 
-    std::vector<std::size_t> want_degrees = {1, 0};
+    std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(difference.degrees() == want_degrees);
     ASSERT_TRUE(reverse.degrees() == want_degrees);
 
@@ -548,7 +548,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(reverse.get_coefficient().evaluate() ==
                 std::complex<double>(2.));
 
-    std::vector<std::size_t> want_degrees = {1, 0};
+    std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(product.degrees() == want_degrees);
     ASSERT_TRUE(reverse.degrees() == want_degrees);
 
@@ -586,7 +586,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(product.get_coefficient().evaluate() == value_0);
     ASSERT_TRUE(reverse.get_coefficient().evaluate() == value_0);
 
-    std::vector<std::size_t> want_degrees = {1, 0};
+    std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(product.degrees() == want_degrees);
     ASSERT_TRUE(reverse.degrees() == want_degrees);
 
@@ -623,7 +623,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(product.get_coefficient().evaluate() == scalar_op.evaluate());
     ASSERT_TRUE(reverse.get_coefficient().evaluate() == scalar_op.evaluate());
 
-    std::vector<std::size_t> want_degrees = {1, 0};
+    std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(product.degrees() == want_degrees);
     ASSERT_TRUE(reverse.degrees() == want_degrees);
 
@@ -659,7 +659,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(product.get_coefficient().evaluate() == scalar_op.evaluate());
     ASSERT_TRUE(reverse.get_coefficient().evaluate() == scalar_op.evaluate());
 
-    std::vector<std::size_t> want_degrees = {1, 0};
+    std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(product.degrees() == want_degrees);
     ASSERT_TRUE(reverse.degrees() == want_degrees);
 
@@ -692,7 +692,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(reverse.get_coefficient().evaluate() ==
                 std::complex<double>(1. / 2.));
 
-    std::vector<std::size_t> want_degrees = {1, 0};
+    std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(reverse.degrees() == want_degrees);
 
     auto got_matrix_reverse =
@@ -723,7 +723,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(reverse.num_terms() == 2);
     ASSERT_TRUE(reverse.get_coefficient().evaluate() == 1. / value_0);
 
-    std::vector<std::size_t> want_degrees = {1, 0};
+    std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(reverse.degrees() == want_degrees);
 
     auto got_matrix_reverse =
@@ -754,7 +754,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(reverse.get_coefficient().evaluate() ==
                 1. / scalar_op.evaluate());
 
-    std::vector<std::size_t> want_degrees = {1, 0};
+    std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(reverse.degrees() == want_degrees);
 
     auto got_matrix_reverse =
@@ -784,7 +784,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(reverse.get_coefficient().evaluate() ==
                 1. / scalar_op.evaluate());
 
-    std::vector<std::size_t> want_degrees = {1, 0};
+    std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(reverse.degrees() == want_degrees);
 
     auto got_matrix_reverse = reverse.to_matrix();
@@ -809,7 +809,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(product.get_coefficient().evaluate() ==
                 std::complex<double>(2.));
 
-    std::vector<std::size_t> want_degrees = {1, 0};
+    std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(product.degrees() == want_degrees);
 
     auto got_matrix = product.to_matrix({{0, level_count}, {1, level_count}});
@@ -835,7 +835,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(product.get_coefficient().evaluate() ==
                 std::complex<double>(2.));
 
-    std::vector<std::size_t> want_degrees = {1, 0};
+    std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(product.degrees() == want_degrees);
 
     auto got_matrix = product.to_matrix();
@@ -859,7 +859,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(product.num_terms() == 2);
     ASSERT_TRUE(product.get_coefficient().evaluate() == value_0);
 
-    std::vector<std::size_t> want_degrees = {1, 0};
+    std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(product.degrees() == want_degrees);
 
     auto got_matrix = product.to_matrix({{0, level_count}, {1, level_count}});
@@ -889,7 +889,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(product.get_coefficient().evaluate() == scalar_op.evaluate());
     ASSERT_TRUE(scalar_op.evaluate() == value_0);
 
-    std::vector<std::size_t> want_degrees = {1, 0};
+    std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(product.degrees() == want_degrees);
 
     auto got_matrix = product.to_matrix({{0, level_count}, {1, level_count}});
@@ -916,7 +916,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(product.get_coefficient().evaluate() ==
                 std::complex<double>(1. / 2.));
 
-    std::vector<std::size_t> want_degrees = {1, 0};
+    std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(product.degrees() == want_degrees);
 
     auto got_matrix = product.to_matrix({{0, level_count}, {1, level_count}});
@@ -942,7 +942,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(product.get_coefficient().evaluate() ==
                 std::complex<double>(1. / 2.));
 
-    std::vector<std::size_t> want_degrees = {1, 0};
+    std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(product.degrees() == want_degrees);
 
     auto got_matrix = product.to_matrix();
@@ -966,7 +966,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     ASSERT_TRUE(product.num_terms() == 2);
     ASSERT_TRUE(product.get_coefficient().evaluate() == 1. / value_0);
 
-    std::vector<std::size_t> want_degrees = {1, 0};
+    std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(product.degrees() == want_degrees);
 
     auto got_matrix = product.to_matrix({{0, level_count}, {1, level_count}});
@@ -997,7 +997,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
                 1. / scalar_op.evaluate());
     ASSERT_TRUE(scalar_op.evaluate() == value_0);
 
-    std::vector<std::size_t> want_degrees = {1, 0};
+    std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(product.degrees() == want_degrees);
 
     auto got_matrix = product.to_matrix({{0, level_count}, {1, level_count}});
@@ -1032,7 +1032,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
 
     ASSERT_TRUE(sum.num_terms() == 2);
 
-    std::vector<std::size_t> want_degrees = {2, 1, 0};
+    std::vector<std::size_t> want_degrees = {0, 1, 2};
     ASSERT_TRUE(sum.degrees() == want_degrees);
 
     auto got_matrix = sum.to_matrix(dimensions);
@@ -1075,7 +1075,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
 
     ASSERT_TRUE(sum.num_terms() == 2);
 
-    std::vector<std::size_t> want_degrees = {4, 2, 0};
+    std::vector<std::size_t> want_degrees = {0, 2, 4};
     ASSERT_TRUE(sum.degrees() == want_degrees);
 
     auto got_matrix = sum.to_matrix();
@@ -1233,7 +1233,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
 
     auto product = term_0 * term_1;
     auto reverse = term_1 * term_0;
-    std::vector<std::size_t> expected_degrees = {3, 1, 0};
+    std::vector<std::size_t> expected_degrees = {0, 1, 3};
 
     ASSERT_TRUE(product.num_terms() == 3);
     ASSERT_TRUE(reverse.num_terms() == 3);
@@ -1609,21 +1609,21 @@ TEST(OperatorExpressions, checkCustomProductOps) {
     auto func0 =
         [](const std::vector<int> &dimensions,
            const std::unordered_map<std::string, std::complex<double>> &_none) {
-          return cudaq::kronecker(utils::momentum_matrix(dimensions[0]),
-                                  utils::position_matrix(dimensions[1]));
+          return cudaq::kronecker(utils::momentum_matrix(dimensions[1]),
+                                  utils::position_matrix(dimensions[0]));
         };
     auto func1 =
         [](const std::vector<int> &dimensions,
            const std::unordered_map<std::string, std::complex<double>> &_none) {
-          return cudaq::kronecker(utils::momentum_matrix(dimensions[0]),
-                                  utils::number_matrix(dimensions[1]));
+          return cudaq::kronecker(utils::momentum_matrix(dimensions[1]),
+                                  utils::number_matrix(dimensions[0]));
         };
     cudaq::matrix_operator::define("custom_op0", {-1, -1}, func0);
     cudaq::matrix_operator::define("custom_op1", {-1, -1}, func1);
   }
 
-  auto op0 = cudaq::matrix_operator::instantiate("custom_op0", {1, 0});
-  auto op1 = cudaq::matrix_operator::instantiate("custom_op1", {2, 1});
+  auto op0 = cudaq::matrix_operator::instantiate("custom_op0", {0, 1});
+  auto op1 = cudaq::matrix_operator::instantiate("custom_op1", {1, 2});
   auto product = op0 * op1;
   auto reverse = op1 * op0;
 
@@ -1645,8 +1645,8 @@ TEST(OperatorExpressions, checkCustomProductOps) {
   utils::checkEqual(product.to_matrix(dimensions), expected);
   utils::checkEqual(reverse.to_matrix(dimensions), expected_reverse);
 
-  op0 = cudaq::matrix_operator::instantiate("custom_op0", {3, 2});
-  op1 = cudaq::matrix_operator::instantiate("custom_op1", {2, 0});
+  op0 = cudaq::matrix_operator::instantiate("custom_op0", {2, 3});
+  op1 = cudaq::matrix_operator::instantiate("custom_op1", {0, 2});
   product = op0 * op1;
   reverse = op1 * op0;
 

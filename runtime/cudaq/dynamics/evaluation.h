@@ -102,8 +102,9 @@ public:
              op1.degrees.cend());
       op1.degrees.push_back(d);
     }
-    auto matrix =
-        cudaq::kronecker(std::move(op1.matrix), std::move(op2.matrix));
+    
+    auto matrix = // matrix order needs to be reversed to be consistent
+        cudaq::kronecker(std::move(op2.matrix), std::move(op1.matrix));
     this->canonicalize(matrix, op1.degrees);
     return operator_handler::matrix_evaluation(std::move(op1.degrees),
                                                std::move(matrix));

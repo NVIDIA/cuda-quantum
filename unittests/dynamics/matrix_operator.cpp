@@ -155,15 +155,15 @@ TEST(OperatorExpressions, checkCustomMatrixOps) {
     auto func0 =
         [](const std::vector<int> &dimensions,
            const std::unordered_map<std::string, std::complex<double>> &_none) {
-          return cudaq::kronecker(utils::position_matrix(dimensions[0]),
-                                  utils::momentum_matrix(dimensions[1]));
+          return cudaq::kronecker(utils::position_matrix(dimensions[1]),
+                                  utils::momentum_matrix(dimensions[0]));
           ;
         };
     auto func1 =
         [](const std::vector<int> &dimensions,
            const std::unordered_map<std::string, std::complex<double>> &_none) {
-          return cudaq::kronecker(utils::number_matrix(dimensions[0]),
-                                  utils::position_matrix(dimensions[1]));
+          return cudaq::kronecker(utils::number_matrix(dimensions[1]),
+                                  utils::position_matrix(dimensions[0]));
           ;
         };
     cudaq::matrix_operator::define("custom_op0", {-1, -1}, func0);
@@ -172,8 +172,8 @@ TEST(OperatorExpressions, checkCustomMatrixOps) {
 
   // check that we force user facing conventions when defining/instantiating
   // a custom operator
-  ASSERT_ANY_THROW(cudaq::matrix_operator::instantiate("custom_op0", {0, 1}));
-  ASSERT_ANY_THROW(cudaq::matrix_operator::instantiate("custom_op0", {1, 3}));
+  ASSERT_ANY_THROW(cudaq::matrix_operator::instantiate("custom_op0", {1, 0}));
+  ASSERT_ANY_THROW(cudaq::matrix_operator::instantiate("custom_op0", {3, 1}));
 
   // op 0:
   // momentum level+1 on 0
@@ -181,8 +181,8 @@ TEST(OperatorExpressions, checkCustomMatrixOps) {
   // op 1:
   // number level on 3
   // create level+2 on 1
-  auto op0 = cudaq::matrix_operator::instantiate("custom_op0", {1, 0});
-  auto op1 = cudaq::matrix_operator::instantiate("custom_op1", {3, 1});
+  auto op0 = cudaq::matrix_operator::instantiate("custom_op0", {0, 1});
+  auto op1 = cudaq::matrix_operator::instantiate("custom_op1", {1, 3});
 
   auto matrix0 = cudaq::kronecker(utils::position_matrix(level_count + 2),
                                   utils::momentum_matrix(level_count + 1));
@@ -540,10 +540,9 @@ TEST(OperatorExpressions, checkMatrixOpsSimpleArithmetics) {
     auto product = self * other;
     ASSERT_TRUE(product.num_terms() == 2);
 
-    std::vector<std::size_t> want_degrees = {0, 1};  //  [00 01 10 11]
-    ASSERT_TRUE(product.degrees() == want_degrees); // want: qidx 0 should be 1 with prob 1.
-                                                     //init: [0., 1., 0., 0.]
-                                                     // consistent with position x momentum
+    std::vector<std::size_t> want_degrees = {0, 1};
+    ASSERT_TRUE(product.degrees() == want_degrees);
+
     auto annihilate_full = cudaq::kronecker(
         utils::id_matrix(level_count), utils::momentum_matrix(level_count));
     auto create_full = cudaq::kronecker(utils::position_matrix(level_count),
@@ -745,11 +744,11 @@ TEST(OperatorExpressions, checkMatrixOpsDegreeVerification) {
     cudaq::matrix_operator::define("custom_op1", {-1, -1}, func1);
 
     cudaq::matrix_operator::define("custom_op2", {3, 3}, func0);
-    cudaq::matrix_operator::define("custom_op3", {2, -1}, func1);
+    cudaq::matrix_operator::define("custom_op3", {-1, 2}, func1);
   }
 
-  auto custom_op0 = cudaq::matrix_operator::instantiate("custom_op0", {3, 1});
-  auto custom_op1 = cudaq::matrix_operator::instantiate("custom_op1", {1, 0});
+  auto custom_op0 = cudaq::matrix_operator::instantiate("custom_op0", {1, 3});
+  auto custom_op1 = cudaq::matrix_operator::instantiate("custom_op1", {0, 1});
 
   ASSERT_ANY_THROW(op1.to_matrix());
   ASSERT_ANY_THROW(op1.to_matrix({{1, 2}}));
@@ -766,8 +765,8 @@ TEST(OperatorExpressions, checkMatrixOpsDegreeVerification) {
   ASSERT_NO_THROW((custom_op0 * custom_op1).to_matrix(dimensions));
   ASSERT_NO_THROW((custom_op0 + custom_op1).to_matrix(dimensions));
 
-  auto custom_op2 = cudaq::matrix_operator::instantiate("custom_op2", {3, 1});
-  auto custom_op3 = cudaq::matrix_operator::instantiate("custom_op3", {1, 0});
+  auto custom_op2 = cudaq::matrix_operator::instantiate("custom_op2", {1, 3});
+  auto custom_op3 = cudaq::matrix_operator::instantiate("custom_op3", {0, 1});
 
   dimensions = {{0, 2}};
   ASSERT_NO_THROW(custom_op2.to_matrix());

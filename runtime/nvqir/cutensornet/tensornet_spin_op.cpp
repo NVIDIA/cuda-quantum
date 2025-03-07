@@ -27,7 +27,7 @@ TensorNetworkSpinOp::TensorNetworkSpinOp(const cudaq::spin_op &spinOp,
   // <psi| H |psi> in one go rather than summing over term-by-term contractions.
   constexpr std::size_t NUM_QUBITS_THRESHOLD_DIRECT_OBS = 10;
   if (degrees.size() < NUM_QUBITS_THRESHOLD_DIRECT_OBS) {
-    const auto spinMat = spinOp.to_matrix({}, {}); // FIXME: this is concerning; the matrix and degree ordering mismatch...!!
+    const auto spinMat = spinOp.to_matrix({}, {}, false); // ordering consistent with degrees
     std::vector<std::complex<double>> opMat;
     opMat.reserve(spinMat.rows() * spinMat.cols());
     for (size_t i = 0; i < spinMat.rows(); ++i) {

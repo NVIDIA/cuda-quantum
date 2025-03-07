@@ -114,9 +114,7 @@ complex_matrix spin_operator::to_matrix(std::string pauli_word,
     for (auto degree = 0; degree < nr_deg; ++degree) {
       auto canon_degree = degree;
       auto state = (old_state & (1 << canon_degree)) >> canon_degree;
-      // Note that indeed to have the matrix match the ordering (endianness) of
-      // the pauli word, we have to look at word index nr_deg-1-degree here.
-      auto op = pauli_word[invert_order ? degree : nr_deg - 1 - degree];
+      auto op = pauli_word[invert_order ? nr_deg - 1 - degree : degree];
       auto mapped = map_state(op, state);
       entry *= mapped.first;
       new_state |= (mapped.second << canon_degree);

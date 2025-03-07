@@ -18,21 +18,22 @@ generate_all_states(const std::vector<int> &degrees,
                     const std::unordered_map<int, int> &dimensions) {
   if (degrees.size() == 0)
     return {};
+  auto dit = degrees.crbegin();
 
   std::vector<std::string> states;
-  auto entry = dimensions.find(degrees[0]);
+  auto entry = dimensions.find(*dit);
   assert(entry != dimensions.end());
   for (auto state = 0; state < entry->second; state++) {
     states.push_back(std::to_string(state));
   }
 
-  for (auto idx = 1; idx < degrees.size(); ++idx) {
-    auto entry = dimensions.find(degrees[idx]);
+  while (++dit != degrees.crend()) {
+    auto entry = dimensions.find(*dit);
     assert(entry != dimensions.end());
     std::vector<std::string> result;
     for (auto current : states) {
       for (auto state = 0; state < entry->second; state++) {
-        result.push_back(current + std::to_string(state));
+        result.push_back(std::to_string(state) + current);
       }
     }
     states = result;
