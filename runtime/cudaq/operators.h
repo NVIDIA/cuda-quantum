@@ -401,51 +401,33 @@ public:
 
   std::vector<operator_sum<HandlerTy>> distribute_terms(std::size_t numChunks) const;
 
-  // utility functions for backward compatibility
+  // handler specific utility functions
 
-  SPIN_OPS_BACKWARD_COMPATIBILITY
-  std::vector<std::vector<bool>> _get_binary_symplectic_form() const;
+  HANDLER_SPECIFIC_TEMPLATE(spin_operator) // naming is not very general, kept for compatibility
+  std::size_t num_qubits() const;
 
-  SPIN_OPS_BACKWARD_COMPATIBILITY
-  size_t num_qubits() const {
-    return this->degrees().size();
-  }
-
-  SPIN_OPS_BACKWARD_COMPATIBILITY
+  HANDLER_SPECIFIC_TEMPLATE(spin_operator) // could be defined for other operators as well
   static product_operator<HandlerTy> from_word(const std::string &word);
 
-  SPIN_OPS_BACKWARD_COMPATIBILITY
+  HANDLER_SPECIFIC_TEMPLATE(spin_operator) // could be defined for other operators as well
   static operator_sum<HandlerTy> random(std::size_t nQubits, std::size_t nTerms, unsigned int seed);
+
+  // utility functions for backward compatibility
 
   SPIN_OPS_BACKWARD_COMPATIBILITY
   operator_sum(const std::vector<double> &input_vec, std::size_t nQubits);
 
   SPIN_OPS_BACKWARD_COMPATIBILITY
-  std::vector<double> getDataRepresentation() const {
-    // FIXME: this is an imperfect representation because it does not capture targets accurately
-    std::vector<double> dataVec;
-    for(std::size_t i = 0; i < this->terms.size(); ++i) {
-      for(std::size_t j = 0; j < this->terms[i].size(); ++j) {
-        auto op_str = this->terms[i][j].to_string(false);
-        // FIXME: align numbering with op codes
-        // FIXME: compare to pauli instead
-        if (op_str == "X")
-          dataVec.push_back(1.);
-        else if (op_str == "Z")
-          dataVec.push_back(2.);
-        else if (op_str == "Y")
-          dataVec.push_back(3.);
-        else
-          dataVec.push_back(0.);
-      }
-      auto coeff = this->coefficients[i].evaluate(); // fails if we have params
-      dataVec.push_back(coeff.real());
-      dataVec.push_back(coeff.imag());
-    }
-    dataVec.push_back(this->terms.size());
-    return dataVec;
-  }
+  std::vector<double> getDataRepresentation() const;
+
+  SPIN_OPS_BACKWARD_COMPATIBILITY
+  std::pair<std::vector<std::vector<bool>>, std::vector<std::complex<double>>>
+  get_raw_data() const;
+
+  SPIN_OPS_BACKWARD_COMPATIBILITY
+  std::string to_string(bool printCoeffs) const;
 };
+
 
 /// @brief Represents an operator expression consisting of a product of
 /// elementary and scalar operators. Operator expressions cannot be used within
@@ -805,54 +787,20 @@ public:
   friend operator_sum<T> operator-(const scalar_operator &other,
                                    operator_sum<T> &&self);
 
-  // common operators
+  // general utility functions
 
-  // handler specific operators
+  // Checks if all operators in the product are the identity.
+  // Note: this function returns true regardless of the value
+  // of the coefficient.
+  bool is_identity() const;
+
+  // handler specific utility functions
 
   HANDLER_SPECIFIC_TEMPLATE(spin_operator)
   std::string get_pauli_word() const;
 
-  // utility functions for backward compatibility
-
-  SPIN_OPS_BACKWARD_COMPATIBILITY
+  HANDLER_SPECIFIC_TEMPLATE(spin_operator)
   std::vector<bool> get_binary_symplectic_form() const;
-
-  SPIN_OPS_BACKWARD_COMPATIBILITY
-  bool is_identity() const {
-    // ignores the coefficients (according to the old behavior)
-    for (const auto &op : this->operators)
-      if (op.to_string(false) != "I") return false; // fixme: use pauli instead
-    return true;
-  }
-
-  SPIN_OPS_BACKWARD_COMPATIBILITY
-  std::string _to_string(bool printCoeffs) const {
-    std::unordered_map<int, int> dims;
-    auto degrees = this->degrees(false); // degrees in canonical order to match the evaluation
-    auto evaluated = this->evaluate(
-              operator_arithmetics<operator_handler::canonical_evaluation>(
-                  dims, {})); // fails if operator is parameterized
-    assert(evaluated.terms.size() == 1);
-    auto term = std::move(evaluated.terms[0]);
-
-    std::stringstream ss;
-    if (printCoeffs) {
-      auto coeff = term.first;
-      ss << "[" << coeff.real() << (coeff.imag() < 0.0 ? "-" : "+") << std::fabs(coeff.imag()) << "j] ";
-    }
-    
-    // For compatibility with existing code, the ordering for the term string always
-    // needs to be from smallest to largest degree, and it necessarily must include 
-    // all consecutive degrees starting from 0 (even if the operator doesn't act on them).
-    if (degrees.size() > 0) {
-      auto max_target = operator_handler::canonical_order(0, 1) ? degrees.back() : degrees[0];
-      std::string term_str(max_target + 1, 'I');
-      for (std::size_t i = 0; i < degrees.size(); ++i)
-        term_str[degrees[i]] = term.second[i];
-      ss << term_str;  
-    }
-    return ss.str();
-  }
 };
 
 // type aliases for convenience

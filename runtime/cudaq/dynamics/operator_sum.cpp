@@ -1429,57 +1429,20 @@ INSTANTIATE_SUM_UTILITY_FUNCTIONS(boson_operator);
 INSTANTIATE_SUM_UTILITY_FUNCTIONS(fermion_operator);
 #endif
 
-// functions for backwards compatibility
+// handler specific utility functions
 
-#define SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION                                        \
+#define HANDLER_SPECIFIC_TEMPLATE_DEFINITION(ConcreteTy)                                  \
   template <typename HandlerTy>                                                           \
   template <typename T, std::enable_if_t<                                                 \
-                                      std::is_same<HandlerTy, spin_operator>::value &&    \
+                                      std::is_same<T, ConcreteTy>::value &&               \
                                       std::is_same<HandlerTy, T>::value, bool>>
 
-SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
-std::vector<std::vector<bool>> operator_sum<HandlerTy>::_get_binary_symplectic_form() const {
-  std::unordered_map<int, int> dims;
-  auto degrees = this->degrees(false); // degrees in canonical order to match the evaluation
-  auto evaluated =
-    this->evaluate(operator_arithmetics<operator_handler::canonical_evaluation>(
-        dims, {})); // fails if we have parameters
-  
-  std::size_t term_size = 0;
-  if (degrees.size() != 0) 
-    term_size = operator_handler::canonical_order(0, 1) ? degrees.back() + 1 : degrees[0] + 1;
-  std::vector<std::vector<bool>> bsf_terms;
-  bsf_terms.reserve(evaluated.terms.size());
-
-  // For compatiblity with existing code, the binary symplectic representation
-  // needs to be from smallest to largest degree, and it necessarily must include 
-  // all consecutive degrees starting from 0 (even if the operator doesn't act on them). 
-  for (auto &term : evaluated.terms) {
-    auto pauli_str = std::move(term.second);
-    std::vector<bool> bsf(term_size << 1, 0);
-    for (std::size_t i = 0; i < degrees.size(); ++i) {
-      auto op = pauli_str[i];
-      if (op == 'X')
-        bsf[degrees[i]] = 1;
-      else if (op == 'Z')
-        bsf[degrees[i] + term_size] = 1;
-      else if (op == 'Y') {
-        bsf[degrees[i]] = 1;
-        bsf[degrees[i] + term_size] = 1;
-      }
-    }
-    bsf_terms.push_back(std::move(bsf));
-  }
-
-  return std::move(bsf_terms); // always little endian order by definition of the bsf
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_operator)
+std::size_t operator_sum<HandlerTy>::num_qubits() const {
+  return this->degrees().size();
 }
 
-#if !defined(__clang__)
-template std::vector<std::vector<bool>> operator_sum<spin_operator>::_get_binary_symplectic_form() const;
-#endif
-
-
-SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_operator)
 product_operator<HandlerTy> operator_sum<HandlerTy>::from_word(const std::string &word) {
   auto prod = operator_sum<HandlerTy>::identity();
   for (std::size_t i = 0; i < word.length(); i++) {
@@ -1496,10 +1459,10 @@ product_operator<HandlerTy> operator_sum<HandlerTy>::from_word(const std::string
       throw std::runtime_error(
         "Invalid Pauli for spin_op::from_word, must be X, Y, Z, or I.");
   }
-  return std::move(prod);
+  return prod;
 }
 
-SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_operator)
 operator_sum<HandlerTy> operator_sum<HandlerTy>::random(std::size_t nQubits, std::size_t nTerms, unsigned int seed) {
   auto get_spin_op = [](int target, int kind) {
     if (kind == 1) return operator_sum<HandlerTy>::z(target);
@@ -1523,6 +1486,20 @@ operator_sum<HandlerTy> operator_sum<HandlerTy>::random(std::size_t nQubits, std
   }
   return std::move(sum);
 }
+
+#if !defined(__clang__)
+template std::size_t operator_sum<spin_operator>::num_qubits() const;
+template product_operator<spin_operator> operator_sum<spin_operator>::from_word(const std::string &word);
+template operator_sum<spin_operator> operator_sum<spin_operator>::random(std::size_t nQubits, std::size_t nTerms, unsigned int seed);
+#endif
+
+// utility functions for backwards compatibility
+
+#define SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION                                        \
+  template <typename HandlerTy>                                                           \
+  template <typename T, std::enable_if_t<                                                 \
+                                      std::is_same<HandlerTy, spin_operator>::value &&    \
+                                      std::is_same<HandlerTy, T>::value, bool>>
 
 SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
 operator_sum<HandlerTy>::operator_sum(const std::vector<double> &input_vec, std::size_t nQubits) {
@@ -1554,11 +1531,117 @@ operator_sum<HandlerTy>::operator_sum(const std::vector<double> &input_vec, std:
   }
 }
 
+SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
+std::vector<double> operator_sum<HandlerTy>::getDataRepresentation() const {
+  // NOTE: this is an imperfect representation that we will want to 
+  // deprecate because it does not capture targets accurately.
+  std::vector<double> dataVec;
+  for(std::size_t i = 0; i < this->terms.size(); ++i) {
+    for(std::size_t j = 0; j < this->terms[i].size(); ++j) {
+      auto pauli = this->terms[i][j].as_pauli();
+      if (pauli == pauli::X)
+        dataVec.push_back(1.);
+      else if (pauli == pauli::Z)
+        dataVec.push_back(2.);
+      else if (pauli == pauli::Y)
+        dataVec.push_back(3.);
+      else
+        dataVec.push_back(0.);
+    }
+    auto coeff = this->coefficients[i].evaluate();
+    dataVec.push_back(coeff.real());
+    dataVec.push_back(coeff.imag());
+  }
+  dataVec.push_back(this->terms.size());
+  return dataVec;
+}
+
+SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
+std::pair<std::vector<std::vector<bool>>, std::vector<std::complex<double>>>
+operator_sum<HandlerTy>::get_raw_data() const {
+  std::unordered_map<int, int> dims;
+  auto degrees = this->degrees(false); // degrees in canonical order to match the evaluation
+  auto evaluated =
+    this->evaluate(operator_arithmetics<operator_handler::canonical_evaluation>(
+        dims, {})); // fails if we have parameters
+  
+  std::size_t term_size = 0;
+  if (degrees.size() != 0) 
+    term_size = operator_handler::canonical_order(0, 1) ? degrees.back() + 1 : degrees[0] + 1;
+
+  std::vector<std::complex<double>> coeffs;
+  std::vector<std::vector<bool>> bsf_terms;
+  coeffs.reserve(evaluated.terms.size());
+  bsf_terms.reserve(evaluated.terms.size());
+
+  // For compatiblity with existing code, the binary symplectic representation
+  // needs to be from smallest to largest degree, and it necessarily must include 
+  // all consecutive degrees starting from 0 (even if the operator doesn't act on them). 
+  for (auto &term : evaluated.terms) {
+    auto pauli_str = std::move(term.second);
+    std::vector<bool> bsf(term_size << 1, 0);
+    for (std::size_t i = 0; i < degrees.size(); ++i) {
+      auto op = pauli_str[i];
+      if (op == 'X')
+        bsf[degrees[i]] = 1;
+      else if (op == 'Z')
+        bsf[degrees[i] + term_size] = 1;
+      else if (op == 'Y') {
+        bsf[degrees[i]] = 1;
+        bsf[degrees[i] + term_size] = 1;
+      }
+    }
+    bsf_terms.push_back(std::move(bsf));
+    coeffs.push_back(std::move(term.first));
+  }
+
+  // always little endian order by definition of the bsf
+  return std::make_pair(std::move(bsf_terms), std::move(coeffs));
+}
+
+SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION                                  
+std::string operator_sum<HandlerTy>::to_string(bool printCoeffs) const {
+  // This function prints a string representing the operator sum that 
+  // includes the full representation for any degree in [0, max_degree],
+  // padding identities if necessary (opposed to pauli_word).
+  std::unordered_map<int, int> dims;
+  auto degrees = this->degrees(false); // degrees in canonical order to match the evaluation
+  auto evaluated = this->evaluate(
+            operator_arithmetics<operator_handler::canonical_evaluation>(dims, {}));
+  auto get_application_index = [&degrees](std::size_t idx) {
+    return (operator_handler::canonical_order(1, 0) == operator_handler::user_facing_order(1, 0))
+      ? idx : degrees.size() - 1 - idx;
+  };
+            
+  std::stringstream ss;
+  for (auto &&term : evaluated.terms) {
+    if (printCoeffs) {
+      auto coeff = term.first;
+      ss << "[" << coeff.real() << (coeff.imag() < 0.0 ? "-" : "+") << std::fabs(coeff.imag()) << "j] ";
+    }
+    
+    // For compatibility with existing code, the ordering for the term string always
+    // needs to be from smallest to largest degree, and it necessarily must include 
+    // all consecutive degrees starting from 0 (even if the operator doesn't act on them).
+    if (degrees.size() > 0) {
+      auto max_target = operator_handler::canonical_order(0, 1) ? degrees.back() : degrees[0];
+      std::string term_str(max_target + 1, 'I');
+      for (std::size_t i = 0; i < degrees.size(); ++i)
+        term_str[degrees[i]] = term.second[get_application_index(i)];
+      ss << term_str;  
+    }
+  }
+  return ss.str();
+}
+
 #if !defined(__clang__)
-template product_operator<spin_operator> operator_sum<spin_operator>::from_word(const std::string &word);
-template operator_sum<spin_operator> operator_sum<spin_operator>::random(std::size_t nQubits, std::size_t nTerms, unsigned int seed);
 template operator_sum<spin_operator>::operator_sum(const std::vector<double> &input_vec, std::size_t nQubits);
+template std::vector<double> operator_sum<spin_operator>::getDataRepresentation() const;
+template std::pair<std::vector<std::vector<bool>>, std::vector<std::complex<double>>> 
+operator_sum<spin_operator>::get_raw_data() const;
+template std::string operator_sum<spin_operator>::to_string(bool printCoeffs) const;
 #endif
+
 
 #if defined(CUDAQ_INSTANTIATE_TEMPLATES)
 template class operator_sum<matrix_operator>;

@@ -1239,42 +1239,60 @@ INSTANTIATE_PRODUCT_CONVERSION_OPS(*, product_operator);
 INSTANTIATE_PRODUCT_CONVERSION_OPS(+, operator_sum);
 INSTANTIATE_PRODUCT_CONVERSION_OPS(-, operator_sum);
 
-// common operators
+// general utility functions
 
-// handler specific operators
+template <typename HandlerTy>
+bool product_operator<HandlerTy>::is_identity() const {
+  for (const auto &op : *this) {
+    if (op != HandlerTy(op.degree))
+      return false;
+  }
+  return true;  
+}
+
+template <>
+bool product_operator<matrix_operator>::is_identity() const {
+  for (const auto &op : *this) {
+    auto degrees = op.degrees();
+    if (degrees.size() != 1 || op != matrix_operator(degrees[0]))
+      return false;
+  }
+  return true;  
+}
+
+#if !defined(__clang__)
+template bool product_operator<matrix_operator>::is_identity() const;
+template bool product_operator<spin_operator>::is_identity() const;
+template bool product_operator<boson_operator>::is_identity() const;
+template bool product_operator<fermion_operator>::is_identity() const;
+#endif
+
+// handler specific utility functions
 
 #define HANDLER_SPECIFIC_TEMPLATE_DEFINITION(ConcreteTy)                                  \
   template <typename HandlerTy>                                                           \
   template <typename T, std::enable_if_t<                                                 \
-                                      std::is_same<T, ConcreteTy>::value &&       \
+                                      std::is_same<T, ConcreteTy>::value &&               \
                                       std::is_same<HandlerTy, T>::value, bool>>
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_operator)
 std::string product_operator<HandlerTy>::get_pauli_word() const {
-  // no padding here (only covers the operators we have), and does not include the coefficient
+  // No padding here (only covers the operators we have),
+  // and does not include the coefficient
   std::unordered_map<int, int> dims;
   auto terms = std::move(
     this->evaluate(
             operator_arithmetics<operator_handler::canonical_evaluation>(
-                dims, {})) // fails if operator is parameterized
+                dims, {}))
         .terms);
   assert(terms.size() == 1);
-  return terms[0].second; // FIXME: USER FACING VS INTERNAL ORDERING!!
+  auto str = std::move(terms[0].second);
+  if (operator_handler::canonical_order(1, 0) != operator_handler::user_facing_order(1, 0))
+    std::reverse(str.begin(), str.end());
+  return str;
 }
 
-#if !defined(__clang__)
-template std::string product_operator<spin_operator>::get_pauli_word() const;
-#endif
-
-// functions for backwards compatibility
-
-#define SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION                                        \
-  template <typename HandlerTy>                                                           \
-  template <typename T, std::enable_if_t<                                                 \
-                                      std::is_same<HandlerTy, spin_operator>::value &&    \
-                                      std::is_same<HandlerTy, T>::value, bool>>
-
-SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_operator)
 std::vector<bool> product_operator<HandlerTy>::get_binary_symplectic_form() const {
   if (this->operators.size() == 0)
     return {};
@@ -1283,7 +1301,7 @@ std::vector<bool> product_operator<HandlerTy>::get_binary_symplectic_form() cons
   auto degrees = this->degrees(false); // degrees in canonical order to match the evaluation
   auto evaluated =
     this->evaluate(operator_arithmetics<operator_handler::canonical_evaluation>(
-        dims, {})); // fails if we have parameters
+        dims, {}));
   
   std::size_t max_degree = operator_handler::canonical_order(0, 1) ? degrees.back() : degrees[0];
   std::size_t term_size = max_degree + 1;
@@ -1310,6 +1328,7 @@ std::vector<bool> product_operator<HandlerTy>::get_binary_symplectic_form() cons
 }
 
 #if !defined(__clang__)
+template std::string product_operator<spin_operator>::get_pauli_word() const;
 template std::vector<bool> product_operator<spin_operator>::get_binary_symplectic_form() const;
 #endif
 
