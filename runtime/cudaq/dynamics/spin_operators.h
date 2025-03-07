@@ -19,8 +19,7 @@ namespace cudaq {
 
 enum class pauli { I, X, Y, Z };
 
-// FIXME: rename to spin ...
-class spin_operator : public operator_handler {
+class spin_handler : public operator_handler {
   template <typename T>
   friend class product_op;
 
@@ -29,14 +28,14 @@ private:
   int op_code;
   int degree;
 
-  spin_operator(int target, int op_code);
+  spin_handler(int target, int op_code);
 
   // private helpers
 
   std::string op_code_to_string() const;
   virtual std::string op_code_to_string(std::unordered_map<int, int> &dimensions) const override;
 
-  std::complex<double> inplace_mult(const spin_operator &other);
+  std::complex<double> inplace_mult(const spin_handler &other);
 
 public:
   // read-only properties
@@ -51,11 +50,11 @@ public:
 
   // constructors and destructors
 
-  spin_operator(int target);
+  spin_handler(int target);
 
-  spin_operator(pauli p, int target);
+  spin_handler(pauli p, int target);
 
-  ~spin_operator() = default;
+  ~spin_handler() = default;
 
   // evaluations
 
@@ -79,14 +78,14 @@ public:
 
   // comparisons
 
-  bool operator==(const spin_operator &other) const;
+  bool operator==(const spin_handler &other) const;
 
   // defined operators
 
-  static product_op<spin_operator> i(int degree);
-  static product_op<spin_operator> z(int degree);
-  static product_op<spin_operator> x(int degree);
-  static product_op<spin_operator> y(int degree);
+  static product_op<spin_handler> i(int degree);
+  static product_op<spin_handler> z(int degree);
+  static product_op<spin_handler> x(int degree);
+  static product_op<spin_handler> y(int degree);
 };
 
 } // namespace cudaq

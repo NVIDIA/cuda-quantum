@@ -135,7 +135,7 @@ EvalTy sum_op<HandlerTy>::evaluate(
 
 #if !defined(__clang__)
 INSTANTIATE_SUM_PRIVATE_METHODS(matrix_handler);
-INSTANTIATE_SUM_PRIVATE_METHODS(spin_operator);
+INSTANTIATE_SUM_PRIVATE_METHODS(spin_handler);
 INSTANTIATE_SUM_PRIVATE_METHODS(boson_handler);
 INSTANTIATE_SUM_PRIVATE_METHODS(fermion_handler);
 #endif
@@ -148,7 +148,7 @@ INSTANTIATE_SUM_PRIVATE_METHODS(fermion_handler);
 #if !defined(__clang__)
 INSTANTIATE_SUM_EVALUATE_METHODS(matrix_handler,
                                  operator_handler::matrix_evaluation);
-INSTANTIATE_SUM_EVALUATE_METHODS(spin_operator,
+INSTANTIATE_SUM_EVALUATE_METHODS(spin_handler,
                                  operator_handler::canonical_evaluation);
 INSTANTIATE_SUM_EVALUATE_METHODS(boson_handler,
                                  operator_handler::matrix_evaluation);
@@ -193,7 +193,7 @@ std::size_t sum_op<HandlerTy>::num_terms() const {
 
 #if !defined(__clang__)
 INSTANTIATE_SUM_PROPERTIES(matrix_handler);
-INSTANTIATE_SUM_PROPERTIES(spin_operator);
+INSTANTIATE_SUM_PROPERTIES(spin_handler);
 INSTANTIATE_SUM_PROPERTIES(boson_handler);
 INSTANTIATE_SUM_PROPERTIES(fermion_handler);
 #endif
@@ -327,13 +327,13 @@ sum_op<HandlerTy>::sum_op(sum_op<HandlerTy> &&other, int size)
       product_op<HandlerTy> &&item2);
 
 template sum_op<matrix_handler>::sum_op(
-    const sum_op<spin_operator> &other);
+    const sum_op<spin_handler> &other);
 template sum_op<matrix_handler>::sum_op(
     const sum_op<boson_handler> &other);
 template sum_op<matrix_handler>::sum_op(
     const sum_op<fermion_handler> &other);
 template sum_op<matrix_handler>::sum_op(
-    const sum_op<spin_operator> &other,
+    const sum_op<spin_handler> &other,
     const matrix_handler::commutation_behavior &behavior);
 template sum_op<matrix_handler>::sum_op(
     const sum_op<boson_handler> &other,
@@ -344,12 +344,12 @@ template sum_op<matrix_handler>::sum_op(
 
 #if !defined(__clang__)
 INSTANTIATE_SUM_CONSTRUCTORS(matrix_handler);
-INSTANTIATE_SUM_CONSTRUCTORS(spin_operator);
+INSTANTIATE_SUM_CONSTRUCTORS(spin_handler);
 INSTANTIATE_SUM_CONSTRUCTORS(boson_handler);
 INSTANTIATE_SUM_CONSTRUCTORS(fermion_handler);
 #else
 INSTANTIATE_SUM_PRIVATE_FRIEND_CONSTRUCTORS(matrix_handler);
-INSTANTIATE_SUM_PRIVATE_FRIEND_CONSTRUCTORS(spin_operator);
+INSTANTIATE_SUM_PRIVATE_FRIEND_CONSTRUCTORS(spin_handler);
 INSTANTIATE_SUM_PRIVATE_FRIEND_CONSTRUCTORS(boson_handler);
 INSTANTIATE_SUM_PRIVATE_FRIEND_CONSTRUCTORS(fermion_handler);
 #endif
@@ -442,7 +442,7 @@ sum_op<HandlerTy>::operator=(sum_op<HandlerTy> &&other) {
 
 template sum_op<matrix_handler> &
 sum_op<matrix_handler>::operator=(
-    const product_op<spin_operator> &other);
+    const product_op<spin_handler> &other);
 template sum_op<matrix_handler> &
 sum_op<matrix_handler>::operator=(
     const product_op<boson_handler> &other);
@@ -451,7 +451,7 @@ sum_op<matrix_handler>::operator=(
     const product_op<fermion_handler> &other);
 template sum_op<matrix_handler> &
 sum_op<matrix_handler>::operator=(
-    const sum_op<spin_operator> &other);
+    const sum_op<spin_handler> &other);
 template sum_op<matrix_handler> &
 sum_op<matrix_handler>::operator=(
     const sum_op<boson_handler> &other);
@@ -461,7 +461,7 @@ sum_op<matrix_handler>::operator=(
 
 #if !defined(__clang__)
 INSTANTIATE_SUM_ASSIGNMENTS(matrix_handler);
-INSTANTIATE_SUM_ASSIGNMENTS(spin_operator);
+INSTANTIATE_SUM_ASSIGNMENTS(spin_handler);
 INSTANTIATE_SUM_ASSIGNMENTS(boson_handler);
 INSTANTIATE_SUM_ASSIGNMENTS(fermion_handler);
 #endif
@@ -499,7 +499,7 @@ complex_matrix sum_op<HandlerTy>::to_matrix(
 }
 
 template <>
-complex_matrix sum_op<spin_operator>::to_matrix(
+complex_matrix sum_op<spin_handler>::to_matrix(
     std::unordered_map<int, int> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool application_order) const {
@@ -512,10 +512,10 @@ complex_matrix sum_op<spin_operator>::to_matrix(
   bool invert_order =
       application_order && operator_handler::canonical_order(1, 0) !=
                                operator_handler::user_facing_order(1, 0);
-  auto matrix = spin_operator::to_matrix(
+  auto matrix = spin_handler::to_matrix(
       evaluated.terms[0].second, evaluated.terms[0].first, invert_order);
   for (auto i = 1; i < terms.size(); ++i)
-    matrix += spin_operator::to_matrix(evaluated.terms[i].second,
+    matrix += spin_handler::to_matrix(evaluated.terms[i].second,
                                        evaluated.terms[i].first, invert_order);
   return std::move(matrix);
 }
@@ -531,7 +531,7 @@ complex_matrix sum_op<spin_operator>::to_matrix(
 
 #if !defined(__clang__)
 INSTANTIATE_SUM_EVALUATIONS(matrix_handler);
-INSTANTIATE_SUM_EVALUATIONS(spin_operator);
+INSTANTIATE_SUM_EVALUATIONS(spin_handler);
 INSTANTIATE_SUM_EVALUATIONS(boson_handler);
 INSTANTIATE_SUM_EVALUATIONS(fermion_handler);
 #endif
@@ -580,7 +580,7 @@ sum_op<HandlerTy> sum_op<HandlerTy>::operator+() && {
 
 #if !defined(__clang__)
 INSTANTIATE_SUM_UNARY_OPS(matrix_handler);
-INSTANTIATE_SUM_UNARY_OPS(spin_operator);
+INSTANTIATE_SUM_UNARY_OPS(spin_handler);
 INSTANTIATE_SUM_UNARY_OPS(boson_handler);
 INSTANTIATE_SUM_UNARY_OPS(fermion_handler);
 #endif
@@ -676,7 +676,7 @@ SUM_ADDITION_SCALAR(-);
 
 #if !defined(__clang__)
 INSTANTIATE_SUM_RHSIMPLE_OPS(matrix_handler);
-INSTANTIATE_SUM_RHSIMPLE_OPS(spin_operator);
+INSTANTIATE_SUM_RHSIMPLE_OPS(spin_handler);
 INSTANTIATE_SUM_RHSIMPLE_OPS(boson_handler);
 INSTANTIATE_SUM_RHSIMPLE_OPS(fermion_handler);
 #endif
@@ -854,7 +854,7 @@ SUM_ADDITION_SUM(-);
 
 #if !defined(__clang__)
 INSTANTIATE_SUM_RHCOMPOSITE_OPS(matrix_handler);
-INSTANTIATE_SUM_RHCOMPOSITE_OPS(spin_operator);
+INSTANTIATE_SUM_RHCOMPOSITE_OPS(spin_handler);
 INSTANTIATE_SUM_RHCOMPOSITE_OPS(boson_handler);
 INSTANTIATE_SUM_RHCOMPOSITE_OPS(fermion_handler);
 #endif
@@ -1020,7 +1020,7 @@ SUM_ADDITION_SUM_ASSIGNMENT(-);
 
 #if !defined(__clang__)
 INSTANTIATE_SUM_OPASSIGNMENTS(matrix_handler);
-INSTANTIATE_SUM_OPASSIGNMENTS(spin_operator);
+INSTANTIATE_SUM_OPASSIGNMENTS(spin_handler);
 INSTANTIATE_SUM_OPASSIGNMENTS(boson_handler);
 INSTANTIATE_SUM_OPASSIGNMENTS(fermion_handler);
 #endif
@@ -1110,7 +1110,7 @@ SUM_ADDITION_SCALAR_REVERSE(-);
                                              sum_op<HandlerTy> &&self);
 
 INSTANTIATE_SUM_LHCOMPOSITE_OPS(matrix_handler);
-INSTANTIATE_SUM_LHCOMPOSITE_OPS(spin_operator);
+INSTANTIATE_SUM_LHCOMPOSITE_OPS(spin_handler);
 INSTANTIATE_SUM_LHCOMPOSITE_OPS(boson_handler);
 INSTANTIATE_SUM_LHCOMPOSITE_OPS(fermion_handler);
 
@@ -1148,7 +1148,7 @@ SUM_CONVERSIONS_OPS(-);
 #define INSTANTIATE_SUM_CONVERSION_OPS(op)                                     \
                                                                                \
   template sum_op<matrix_handler> operator op(                          \
-      const sum_op<spin_operator> &other,                                \
+      const sum_op<spin_handler> &other,                                \
       const product_op<matrix_handler> &self);                          \
   template sum_op<matrix_handler> operator op(                          \
       const sum_op<boson_handler> &other,                               \
@@ -1157,17 +1157,17 @@ SUM_CONVERSIONS_OPS(-);
       const sum_op<fermion_handler> &other,                             \
       const product_op<matrix_handler> &self);                          \
   template sum_op<matrix_handler> operator op(                          \
-      const sum_op<spin_operator> &other,                                \
+      const sum_op<spin_handler> &other,                                \
       const product_op<boson_handler> &self);                           \
   template sum_op<matrix_handler> operator op(                          \
       const sum_op<boson_handler> &other,                               \
-      const product_op<spin_operator> &self);                            \
+      const product_op<spin_handler> &self);                            \
   template sum_op<matrix_handler> operator op(                          \
-      const sum_op<spin_operator> &other,                                \
+      const sum_op<spin_handler> &other,                                \
       const product_op<fermion_handler> &self);                         \
   template sum_op<matrix_handler> operator op(                          \
       const sum_op<fermion_handler> &other,                             \
-      const product_op<spin_operator> &self);                            \
+      const product_op<spin_handler> &self);                            \
   template sum_op<matrix_handler> operator op(                          \
       const sum_op<boson_handler> &other,                               \
       const product_op<fermion_handler> &self);                         \
@@ -1176,7 +1176,7 @@ SUM_CONVERSIONS_OPS(-);
       const product_op<boson_handler> &self);                           \
                                                                                \
   template sum_op<matrix_handler> operator op(                          \
-      const product_op<spin_operator> &other,                            \
+      const product_op<spin_handler> &other,                            \
       const sum_op<matrix_handler> &self);                              \
   template sum_op<matrix_handler> operator op(                          \
       const product_op<boson_handler> &other,                           \
@@ -1185,17 +1185,17 @@ SUM_CONVERSIONS_OPS(-);
       const product_op<fermion_handler> &other,                         \
       const sum_op<matrix_handler> &self);                              \
   template sum_op<matrix_handler> operator op(                          \
-      const product_op<spin_operator> &other,                            \
+      const product_op<spin_handler> &other,                            \
       const sum_op<boson_handler> &self);                               \
   template sum_op<matrix_handler> operator op(                          \
       const product_op<boson_handler> &other,                           \
-      const sum_op<spin_operator> &self);                                \
+      const sum_op<spin_handler> &self);                                \
   template sum_op<matrix_handler> operator op(                          \
-      const product_op<spin_operator> &other,                            \
+      const product_op<spin_handler> &other,                            \
       const sum_op<fermion_handler> &self);                             \
   template sum_op<matrix_handler> operator op(                          \
       const product_op<fermion_handler> &other,                         \
-      const sum_op<spin_operator> &self);                                \
+      const sum_op<spin_handler> &self);                                \
   template sum_op<matrix_handler> operator op(                          \
       const product_op<boson_handler> &other,                           \
       const sum_op<fermion_handler> &self);                             \
@@ -1204,7 +1204,7 @@ SUM_CONVERSIONS_OPS(-);
       const sum_op<boson_handler> &self);                               \
                                                                                \
   template sum_op<matrix_handler> operator op(                          \
-      const sum_op<spin_operator> &other,                                \
+      const sum_op<spin_handler> &other,                                \
       const sum_op<matrix_handler> &self);                              \
   template sum_op<matrix_handler> operator op(                          \
       const sum_op<boson_handler> &other,                               \
@@ -1213,17 +1213,17 @@ SUM_CONVERSIONS_OPS(-);
       const sum_op<fermion_handler> &other,                             \
       const sum_op<matrix_handler> &self);                              \
   template sum_op<matrix_handler> operator op(                          \
-      const sum_op<spin_operator> &other,                                \
+      const sum_op<spin_handler> &other,                                \
       const sum_op<boson_handler> &self);                               \
   template sum_op<matrix_handler> operator op(                          \
       const sum_op<boson_handler> &other,                               \
-      const sum_op<spin_operator> &self);                                \
+      const sum_op<spin_handler> &self);                                \
   template sum_op<matrix_handler> operator op(                          \
-      const sum_op<spin_operator> &other,                                \
+      const sum_op<spin_handler> &other,                                \
       const sum_op<fermion_handler> &self);                             \
   template sum_op<matrix_handler> operator op(                          \
       const sum_op<fermion_handler> &other,                             \
-      const sum_op<spin_operator> &self);                                \
+      const sum_op<spin_handler> &self);                                \
   template sum_op<matrix_handler> operator op(                          \
       const sum_op<boson_handler> &other,                               \
       const sum_op<fermion_handler> &self);                             \
@@ -1258,16 +1258,16 @@ product_op<HandlerTy> sum_op<HandlerTy>::identity(int target) {
 
 #if !defined(__clang__)
 template sum_op<matrix_handler> sum_op<matrix_handler>::empty();
-template sum_op<spin_operator> sum_op<spin_operator>::empty();
+template sum_op<spin_handler> sum_op<spin_handler>::empty();
 template sum_op<boson_handler> sum_op<boson_handler>::empty();
 template sum_op<fermion_handler> sum_op<fermion_handler>::empty();
 template product_op<matrix_handler> sum_op<matrix_handler>::identity();
-template product_op<spin_operator> sum_op<spin_operator>::identity();
+template product_op<spin_handler> sum_op<spin_handler>::identity();
 template product_op<boson_handler> sum_op<boson_handler>::identity();
 template product_op<fermion_handler> sum_op<fermion_handler>::identity();
 template product_op<matrix_handler>
 sum_op<matrix_handler>::identity(int target);
-template product_op<spin_operator> sum_op<spin_operator>::identity(int target);
+template product_op<spin_handler> sum_op<spin_handler>::identity(int target);
 template product_op<boson_handler>
 sum_op<boson_handler>::identity(int target);
 template product_op<fermion_handler>
@@ -1313,24 +1313,24 @@ product_op<T> sum_op<HandlerTy>::displace(int target) {
 }
 
 
-HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_operator)
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
 product_op<T> sum_op<HandlerTy>::i(int target) {
-  return spin_operator::i(target);
+  return spin_handler::i(target);
 }
 
-HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_operator)
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
 product_op<T> sum_op<HandlerTy>::x(int target) {
-  return spin_operator::x(target);
+  return spin_handler::x(target);
 }
 
-HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_operator)
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
 product_op<T> sum_op<HandlerTy>::y(int target) {
-  return spin_operator::y(target);
+  return spin_handler::y(target);
 }
 
-HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_operator)
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
 product_op<T> sum_op<HandlerTy>::z(int target) {
-  return spin_operator::z(target);
+  return spin_handler::z(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(boson_handler)
@@ -1382,10 +1382,10 @@ template product_op<matrix_handler> sum_op<matrix_handler>::momentum(int target)
 template product_op<matrix_handler> sum_op<matrix_handler>::squeeze(int target);
 template product_op<matrix_handler> sum_op<matrix_handler>::displace(int target);
 
-template product_op<spin_operator> sum_op<spin_operator>::i(int target);
-template product_op<spin_operator> sum_op<spin_operator>::x(int target);
-template product_op<spin_operator> sum_op<spin_operator>::y(int target);
-template product_op<spin_operator> sum_op<spin_operator>::z(int target);
+template product_op<spin_handler> sum_op<spin_handler>::i(int target);
+template product_op<spin_handler> sum_op<spin_handler>::x(int target);
+template product_op<spin_handler> sum_op<spin_handler>::y(int target);
+template product_op<spin_handler> sum_op<spin_handler>::z(int target);
 
 template product_op<boson_handler> sum_op<boson_handler>::create(int target);
 template product_op<boson_handler> sum_op<boson_handler>::annihilate(int target);
@@ -1424,7 +1424,7 @@ std::vector<sum_op<HandlerTy>> sum_op<HandlerTy>::distribute_terms(std::size_t n
 
 #if !defined(__clang__)
 INSTANTIATE_SUM_UTILITY_FUNCTIONS(matrix_handler);
-INSTANTIATE_SUM_UTILITY_FUNCTIONS(spin_operator);
+INSTANTIATE_SUM_UTILITY_FUNCTIONS(spin_handler);
 INSTANTIATE_SUM_UTILITY_FUNCTIONS(boson_handler);
 INSTANTIATE_SUM_UTILITY_FUNCTIONS(fermion_handler);
 #endif
@@ -1437,12 +1437,12 @@ INSTANTIATE_SUM_UTILITY_FUNCTIONS(fermion_handler);
                                       std::is_same<T, ConcreteTy>::value &&               \
                                       std::is_same<HandlerTy, T>::value, bool>>
 
-HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_operator)
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
 std::size_t sum_op<HandlerTy>::num_qubits() const {
   return this->degrees().size();
 }
 
-HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_operator)
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
 product_op<HandlerTy> sum_op<HandlerTy>::from_word(const std::string &word) {
   auto prod = sum_op<HandlerTy>::identity();
   for (std::size_t i = 0; i < word.length(); i++) {
@@ -1462,7 +1462,7 @@ product_op<HandlerTy> sum_op<HandlerTy>::from_word(const std::string &word) {
   return prod;
 }
 
-HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_operator)
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
 sum_op<HandlerTy> sum_op<HandlerTy>::random(std::size_t nQubits, std::size_t nTerms, unsigned int seed) {
   auto get_spin_op = [](int target, int kind) {
     if (kind == 1) return sum_op<HandlerTy>::z(target);
@@ -1488,9 +1488,9 @@ sum_op<HandlerTy> sum_op<HandlerTy>::random(std::size_t nQubits, std::size_t nTe
 }
 
 #if !defined(__clang__)
-template std::size_t sum_op<spin_operator>::num_qubits() const;
-template product_op<spin_operator> sum_op<spin_operator>::from_word(const std::string &word);
-template sum_op<spin_operator> sum_op<spin_operator>::random(std::size_t nQubits, std::size_t nTerms, unsigned int seed);
+template std::size_t sum_op<spin_handler>::num_qubits() const;
+template product_op<spin_handler> sum_op<spin_handler>::from_word(const std::string &word);
+template sum_op<spin_handler> sum_op<spin_handler>::random(std::size_t nQubits, std::size_t nTerms, unsigned int seed);
 #endif
 
 // utility functions for backwards compatibility
@@ -1498,7 +1498,7 @@ template sum_op<spin_operator> sum_op<spin_operator>::random(std::size_t nQubits
 #define SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION                                        \
   template <typename HandlerTy>                                                           \
   template <typename T, std::enable_if_t<                                                 \
-                                      std::is_same<HandlerTy, spin_operator>::value &&    \
+                                      std::is_same<HandlerTy, spin_handler>::value &&    \
                                       std::is_same<HandlerTy, T>::value, bool>>
 
 SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
@@ -1519,7 +1519,6 @@ sum_op<HandlerTy>::sum_op(const std::vector<double> &input_vec, std::size_t nQub
             "Invalid pauli data element, must be integer value.");
 
       int val = (int)input_vec[j + i];
-      // FIXME: align op codes with old impl
       if (val == 1) // X
         prod *= sum_op<HandlerTy>::x(j);
       else if (val == 2) // Z
@@ -1545,11 +1544,11 @@ sum_op<HandlerTy>::sum_op(const std::vector<std::vector<bool>> &bsf_terms,
     ops.reserve(nr_degrees);
     for (std::size_t i = 0; i < nr_degrees; ++i) {
       if (term[i] && term[i + nr_degrees])
-        ops.push_back(spin_operator(pauli::Y, i));
+        ops.push_back(spin_handler(pauli::Y, i));
       else if (term[i])
-        ops.push_back(spin_operator(pauli::X, i));
+        ops.push_back(spin_handler(pauli::X, i));
       else if (term[i + nr_degrees])
-        ops.push_back(spin_operator(pauli::Z, i));
+        ops.push_back(spin_handler(pauli::Z, i));
     }
     product_op<HandlerTy> prod(coeffs[this->terms.size()], std::move(ops));
     this->term_map.insert(this->term_map.cend(),
@@ -1666,19 +1665,19 @@ std::string sum_op<HandlerTy>::to_string(bool printCoeffs) const {
 }
 
 #if !defined(__clang__)
-template sum_op<spin_operator>::sum_op(const std::vector<double> &input_vec, std::size_t nQubits);
-template sum_op<spin_operator>::sum_op(const std::vector<std::vector<bool>> &bsf_terms,
+template sum_op<spin_handler>::sum_op(const std::vector<double> &input_vec, std::size_t nQubits);
+template sum_op<spin_handler>::sum_op(const std::vector<std::vector<bool>> &bsf_terms,
                                        const std::vector<std::complex<double>> &coeffs);
-template std::vector<double> sum_op<spin_operator>::getDataRepresentation() const;
+template std::vector<double> sum_op<spin_handler>::getDataRepresentation() const;
 template std::pair<std::vector<std::vector<bool>>, std::vector<std::complex<double>>> 
-sum_op<spin_operator>::get_raw_data() const;
-template std::string sum_op<spin_operator>::to_string(bool printCoeffs) const;
+sum_op<spin_handler>::get_raw_data() const;
+template std::string sum_op<spin_handler>::to_string(bool printCoeffs) const;
 #endif
 
 
 #if defined(CUDAQ_INSTANTIATE_TEMPLATES)
 template class sum_op<matrix_handler>;
-template class sum_op<spin_operator>;
+template class sum_op<spin_handler>;
 template class sum_op<boson_handler>;
 template class sum_op<fermion_handler>;
 #endif

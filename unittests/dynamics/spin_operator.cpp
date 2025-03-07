@@ -109,7 +109,7 @@ TEST(OperatorExpressions, checkPreBuiltSpinOps) {
 TEST(OperatorExpressions, checkSpinOpsWithComplex) {
   std::complex<double> value = std::complex<double>(0.125, 0.125);
 
-  // `spin_operator` + `complex<double>`
+  // `spin_handler` + `complex<double>`
   {
     auto elementary = cudaq::spin_op::y(0);
 
@@ -127,7 +127,7 @@ TEST(OperatorExpressions, checkSpinOpsWithComplex) {
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
-  // `spin_operator` - `complex<double>`
+  // `spin_handler` - `complex<double>`
   {
     auto elementary = cudaq::spin_op::x(0);
 
@@ -145,7 +145,7 @@ TEST(OperatorExpressions, checkSpinOpsWithComplex) {
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
-  // `spin_operator` * `complex<double>`
+  // `spin_handler` * `complex<double>`
   {
     auto elementary = cudaq::spin_op::z(0);
 
@@ -178,7 +178,7 @@ TEST(OperatorExpressions, checkSpinOpsWithScalars) {
   int degree_index = 0;
   double const_scale_factor = 2.0;
 
-  // `spin_operator + scalar_operator`
+  // `spin_handler + scalar_operator`
   {
     auto self = cudaq::spin_op::x(0);
     auto other = cudaq::scalar_operator(const_scale_factor);
@@ -198,7 +198,7 @@ TEST(OperatorExpressions, checkSpinOpsWithScalars) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `spin_operator + scalar_operator`
+  // `spin_handler + scalar_operator`
   {
     auto self = cudaq::spin_op::y(0);
     auto other = cudaq::scalar_operator(function);
@@ -219,7 +219,7 @@ TEST(OperatorExpressions, checkSpinOpsWithScalars) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `spin_operator - scalar_operator`
+  // `spin_handler - scalar_operator`
   {
     auto self = cudaq::spin_op::i(0);
     auto other = cudaq::scalar_operator(const_scale_factor);
@@ -239,7 +239,7 @@ TEST(OperatorExpressions, checkSpinOpsWithScalars) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `spin_operator - scalar_operator`
+  // `spin_handler - scalar_operator`
   {
     auto self = cudaq::spin_op::z(0);
     auto other = cudaq::scalar_operator(function);
@@ -260,7 +260,7 @@ TEST(OperatorExpressions, checkSpinOpsWithScalars) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `spin_operator * scalar_operator`
+  // `spin_handler * scalar_operator`
   {
     auto self = cudaq::spin_op::y(0);
     auto other = cudaq::scalar_operator(const_scale_factor);
@@ -281,7 +281,7 @@ TEST(OperatorExpressions, checkSpinOpsWithScalars) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `spin_operator * scalar_operator`
+  // `spin_handler * scalar_operator`
   {
     auto self = cudaq::spin_op::z(0);
     auto other = cudaq::scalar_operator(function);
@@ -408,7 +408,7 @@ TEST(OperatorExpressions, checkSpinOpsAdvancedArithmetics) {
   // Keeping this fixed throughout.
   std::complex<double> value = std::complex<double>(0.125, 0.5);
 
-  // `spin_operator + sum_op`
+  // `spin_handler + sum_op`
   {
     auto self = cudaq::spin_op::y(2);
     auto sum_op = cudaq::spin_op::y(2) + cudaq::spin_op::x(1);
@@ -434,7 +434,7 @@ TEST(OperatorExpressions, checkSpinOpsAdvancedArithmetics) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `spin_operator - sum_op`
+  // `spin_handler - sum_op`
   {
     auto self = cudaq::spin_op::i(0);
     auto sum_op = cudaq::spin_op::x(0) + cudaq::spin_op::z(1);
@@ -459,7 +459,7 @@ TEST(OperatorExpressions, checkSpinOpsAdvancedArithmetics) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `spin_operator * sum_op`
+  // `spin_handler * sum_op`
   {
     auto self = cudaq::spin_op::y(0);
     auto sum_op = cudaq::spin_op::x(0) + cudaq::spin_op::y(2);
@@ -490,7 +490,7 @@ TEST(OperatorExpressions, checkSpinOpsAdvancedArithmetics) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `sum_op += spin_operator`
+  // `sum_op += spin_handler`
   {
     auto sum_op = cudaq::spin_op::z(0) + cudaq::spin_op::x(2);
     sum_op += cudaq::spin_op::y(0);
@@ -509,7 +509,7 @@ TEST(OperatorExpressions, checkSpinOpsAdvancedArithmetics) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  // `sum_op -= spin_operator`
+  // `sum_op -= spin_handler`
   {
     auto sum_op = cudaq::spin_op::x(0) + cudaq::spin_op::i(1);
     sum_op -= cudaq::spin_op::x(0);
@@ -528,7 +528,7 @@ TEST(OperatorExpressions, checkSpinOpsAdvancedArithmetics) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  // `sum_op *= spin_operator`
+  // `sum_op *= spin_handler`
   {
     auto self = cudaq::spin_op::i(0);
     auto sum_op = cudaq::spin_op::y(0) + cudaq::spin_op::z(1);

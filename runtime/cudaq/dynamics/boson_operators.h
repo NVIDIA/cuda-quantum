@@ -17,7 +17,6 @@
 
 namespace cudaq {
 
-// FIXME: rename?
 class boson_handler : public operator_handler {
   template <typename T>
   friend class product_op;

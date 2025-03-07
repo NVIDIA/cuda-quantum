@@ -21,7 +21,7 @@
 
 namespace cudaq {
 
-class spin_operator;
+class spin_handler;
 
 #define HANDLER_SPECIFIC_TEMPLATE(ConcreteTy)                                             \
   template <typename T = HandlerTy, std::enable_if_t<                                     \
@@ -32,7 +32,7 @@ class spin_operator;
 
 #define SPIN_OPS_BACKWARD_COMPATIBILITY                                                   \
   template <typename T = HandlerTy, std::enable_if_t<                                     \
-                                      std::is_same<HandlerTy, spin_operator>::value &&    \
+                                      std::is_same<HandlerTy, spin_handler>::value &&    \
                                       std::is_same<HandlerTy, T>::value, bool> = true>
 
 
@@ -358,16 +358,16 @@ public:
   static product_op<T> displace(int target);
 
 
-  HANDLER_SPECIFIC_TEMPLATE(spin_operator)
+  HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   static product_op<T> i(int target);
 
-  HANDLER_SPECIFIC_TEMPLATE(spin_operator)
+  HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   static product_op<T> x(int target);
 
-  HANDLER_SPECIFIC_TEMPLATE(spin_operator)
+  HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   static product_op<T> y(int target);
 
-  HANDLER_SPECIFIC_TEMPLATE(spin_operator)
+  HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   static product_op<T> z(int target);
 
 
@@ -402,13 +402,13 @@ public:
 
   // handler specific utility functions
 
-  HANDLER_SPECIFIC_TEMPLATE(spin_operator) // naming is not very general, kept for compatibility
+  HANDLER_SPECIFIC_TEMPLATE(spin_handler) // naming is not very general, kept for compatibility
   std::size_t num_qubits() const;
 
-  HANDLER_SPECIFIC_TEMPLATE(spin_operator) // could be defined for other operators as well
+  HANDLER_SPECIFIC_TEMPLATE(spin_handler) // could be defined for other operators as well
   static product_op<HandlerTy> from_word(const std::string &word);
 
-  HANDLER_SPECIFIC_TEMPLATE(spin_operator) // could be defined for other operators as well
+  HANDLER_SPECIFIC_TEMPLATE(spin_handler) // could be defined for other operators as well
   static sum_op<HandlerTy> random(std::size_t nQubits, std::size_t nTerms, unsigned int seed);
 
   // utility functions for backward compatibility
@@ -799,10 +799,10 @@ public:
 
   // handler specific utility functions
 
-  HANDLER_SPECIFIC_TEMPLATE(spin_operator)
+  HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   std::string get_pauli_word() const;
 
-  HANDLER_SPECIFIC_TEMPLATE(spin_operator)
+  HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   std::vector<bool> get_binary_symplectic_form() const;
 
   // utility functions for backward compatibility
@@ -816,8 +816,8 @@ typedef std::unordered_map<std::string, std::complex<double>> parameter_map;
 typedef std::unordered_map<int, int> dimension_map;
 typedef sum_op<matrix_handler> matrix_op;
 typedef product_op<matrix_handler> matrix_op_term;
-typedef sum_op<spin_operator> spin_op;
-typedef product_op<spin_operator> spin_op_term;
+typedef sum_op<spin_handler> spin_op;
+typedef product_op<spin_handler> spin_op_term;
 typedef sum_op<boson_handler> boson_op;
 typedef product_op<boson_handler> boson_op_term;
 typedef sum_op<fermion_handler> fermion_op;
@@ -825,12 +825,12 @@ typedef product_op<fermion_handler> fermion_op_term;
 
 #ifndef CUDAQ_INSTANTIATE_TEMPLATES
 extern template class product_op<matrix_handler>;
-extern template class product_op<spin_operator>;
+extern template class product_op<spin_handler>;
 extern template class product_op<boson_handler>;
 extern template class product_op<fermion_handler>;
 
 extern template class sum_op<matrix_handler>;
-extern template class sum_op<spin_operator>;
+extern template class sum_op<spin_handler>;
 extern template class sum_op<boson_handler>;
 extern template class sum_op<fermion_handler>;
 #endif

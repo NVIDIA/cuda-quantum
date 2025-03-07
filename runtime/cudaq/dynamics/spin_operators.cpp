@@ -17,7 +17,7 @@ namespace cudaq {
 
 // private helpers
 
-std::string spin_operator::op_code_to_string() const {
+std::string spin_handler::op_code_to_string() const {
   if (this->op_code == 1)
     return "Z";
   if (this->op_code == 2)
@@ -27,7 +27,7 @@ std::string spin_operator::op_code_to_string() const {
   return "I";
 }
 
-std::string spin_operator::op_code_to_string(
+std::string spin_handler::op_code_to_string(
     std::unordered_map<int, int> &dimensions) const {
   auto it = dimensions.find(this->degree);
   if (it == dimensions.end())
@@ -37,7 +37,7 @@ std::string spin_operator::op_code_to_string(
   return this->op_code_to_string();
 }
 
-std::complex<double> spin_operator::inplace_mult(const spin_operator &other) {
+std::complex<double> spin_handler::inplace_mult(const spin_handler &other) {
   assert(this->degree == other.degree);
   std::complex<double> factor;
   if (this->op_code == 0 || other.op_code == 0 ||
@@ -54,7 +54,7 @@ std::complex<double> spin_operator::inplace_mult(const spin_operator &other) {
 
 // read-only properties
 
-pauli spin_operator::as_pauli() const {
+pauli spin_handler::as_pauli() const {
   if (this->op_code == 1) return pauli::Z;
   if (this->op_code == 2) return pauli::X;
   if (this->op_code == 3) return pauli::Y;
@@ -62,33 +62,33 @@ pauli spin_operator::as_pauli() const {
   return pauli::I;
 }
 
-std::string spin_operator::unique_id() const {
+std::string spin_handler::unique_id() const {
   return this->op_code_to_string() + std::to_string(this->degree);
 }
 
-std::vector<int> spin_operator::degrees() const { return {this->degree}; }
+std::vector<int> spin_handler::degrees() const { return {this->degree}; }
 
-int spin_operator::target() const { return this->degree; }
+int spin_handler::target() const { return this->degree; }
 
 // constructors
 
-spin_operator::spin_operator(int target) : op_code(0), degree(target) {}
+spin_handler::spin_handler(int target) : op_code(0), degree(target) {}
 
-spin_operator::spin_operator(pauli p, int target) 
+spin_handler::spin_handler(pauli p, int target) 
 : op_code(0), degree(target) {
   if (p == pauli::Z) this->op_code = 1;
   else if (p == pauli::X) this->op_code = 2;
   else if (p == pauli::Y) this->op_code = 3;  
 }
 
-spin_operator::spin_operator(int target, int op_id)
+spin_handler::spin_handler(int target, int op_id)
     : op_code(op_id), degree(target) {
   assert(0 <= op_id && op_id < 4);
 }
 
 // evaluations
 
-complex_matrix spin_operator::to_matrix(std::string pauli_word,
+complex_matrix spin_handler::to_matrix(std::string pauli_word,
                                   std::complex<double> coeff,
                                   bool invert_order) {
   auto map_state = [&pauli_word](char pauli, bool state) {
@@ -131,7 +131,7 @@ complex_matrix spin_operator::to_matrix(std::string pauli_word,
   return std::move(matrix);
 }
 
-complex_matrix spin_operator::to_matrix(
+complex_matrix spin_handler::to_matrix(
     std::unordered_map<int, int> &dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
@@ -140,10 +140,10 @@ complex_matrix spin_operator::to_matrix(
     dimensions[this->degree] = 2;
   else if (it->second != 2)
     throw std::runtime_error("dimension for spin operator must be 2");
-  return spin_operator::to_matrix(this->op_code_to_string());
+  return spin_handler::to_matrix(this->op_code_to_string());
 }
 
-std::string spin_operator::to_string(bool include_degrees) const {
+std::string spin_handler::to_string(bool include_degrees) const {
   if (include_degrees)
     return this->op_code_to_string() + "(" + std::to_string(this->degree) + ")";
   else
@@ -152,26 +152,26 @@ std::string spin_operator::to_string(bool include_degrees) const {
 
 // comparisons
 
-bool spin_operator::operator==(const spin_operator &other) const {
+bool spin_handler::operator==(const spin_handler &other) const {
   return this->op_code == other.op_code && this->degree == other.degree;
 }
 
 // defined operators
 
-product_op<spin_operator> spin_operator::i(int degree) {
-  return product_op(spin_operator(degree));
+product_op<spin_handler> spin_handler::i(int degree) {
+  return product_op(spin_handler(degree));
 }
 
-product_op<spin_operator> spin_operator::z(int degree) {
-  return product_op(spin_operator(degree, 1));
+product_op<spin_handler> spin_handler::z(int degree) {
+  return product_op(spin_handler(degree, 1));
 }
 
-product_op<spin_operator> spin_operator::x(int degree) {
-  return product_op(spin_operator(degree, 2));
+product_op<spin_handler> spin_handler::x(int degree) {
+  return product_op(spin_handler(degree, 2));
 }
 
-product_op<spin_operator> spin_operator::y(int degree) {
-  return product_op(spin_operator(degree, 3));
+product_op<spin_handler> spin_handler::y(int degree) {
+  return product_op(spin_handler(degree, 3));
 }
 
 } // namespace cudaq

@@ -36,7 +36,7 @@ std::string matrix_handler::type_prefix() {
 // no need to prefix the operator id and op code with the type name for these
 // (same names mean the same thing)
 template <>
-std::string matrix_handler::type_prefix<spin_operator>() {
+std::string matrix_handler::type_prefix<spin_handler>() {
   return "";
 }
 template <>
@@ -250,11 +250,11 @@ matrix_handler::matrix_handler(const T &other,
   }
 }
 
-template matrix_handler::matrix_handler(const spin_operator &other);
+template matrix_handler::matrix_handler(const spin_handler &other);
 template matrix_handler::matrix_handler(const boson_handler &other);
 template matrix_handler::matrix_handler(const fermion_handler &other);
 
-template matrix_handler::matrix_handler(const spin_operator &other,
+template matrix_handler::matrix_handler(const spin_handler &other,
                                           const commutation_behavior &behavior);
 template matrix_handler::matrix_handler(const boson_handler &other,
                                           const commutation_behavior &behavior);
@@ -301,7 +301,7 @@ matrix_handler &matrix_handler::operator=(const T &other) {
 }
 
 template matrix_handler &
-matrix_handler::operator=(const spin_operator &other);
+matrix_handler::operator=(const spin_handler &other);
 template matrix_handler &
 matrix_handler::operator=(const boson_handler &other);
 template matrix_handler &
