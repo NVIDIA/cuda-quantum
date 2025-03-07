@@ -8,7 +8,7 @@
 
 // Test for std::vector support
 
-// RUN: cudaq-quake %cpp_std %s  | FileCheck %s
+// RUN: cudaq-quake %cpp_std %s | FileCheck %s
 
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
