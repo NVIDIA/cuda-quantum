@@ -709,7 +709,7 @@ jobs:
           cpp_tests="docs/sphinx/targets/cpp/pasqal.cpp"
           for filename in $cpp_tests; do
             [ -e "$filename" ] || echo "::error::Couldn't find file ($filename)"
-            nvq++ --target pasqal $filename
+            nvq++ --target pasqal --pasqal-machine EMU_FREE $filename
             test_status=$?
             if [ $test_status -eq 0 ]; then
               ./a.out
