@@ -165,6 +165,7 @@ do
             echo "Skipping $t target for $ex.";
             echo ":white_flag: $filename: Not intended for this target. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
             continue
+        fi
 
         if [ "$t" == "default" ]; then target_flag=""
         else target_flag="--target $t"
