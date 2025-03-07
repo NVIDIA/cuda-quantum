@@ -1,759 +1,100 @@
-CUDA-Q Simulation Backends
-*********************************
+CUDA-Q Circuit Simulation Backends
+************************************
+.. _simulators:
+
+The simulators available in CUDA-Q are grouped in the figure below. The 
+following sections follow the structure of the figure and provide additional 
+technical details and code examples for using each circuit simulator.
+
+.. figure:: circuitsimulators.png
+   :width: 600
+   :align: center
+
+.. list-table:: Simulators In CUDA-Q
+   :header-rows: 1
+   :widths: 20 20 25 10 10 16
+
+   * - Simulator Name
+     - Method
+     - Purpose
+     - Processor(s)
+     - Precision(s)
+     - N Qubits
+   * - `qpp-cpu`
+     - State Vector
+     - Testing and small applications
+     - CPU
+     - double
+     - < 28
+   * - `nvidia`
+     - State Vector
+     - General purpose (default); Trajectory simulation for noisy circuits
+     - Single GPU
+     - single / double
+     - < 33 / 32 (64 GB)
+   * - `nvidia, option=mgpu`
+     - State Vector
+     - Large-scale simulation
+     - multi-GPU multi-node
+     - single / double
+     - 33+
+   * - `tensornet`
+     - Tensor Network
+     - Shallow-depth (low-entanglement) and high width circuits
+     - multi-GPU multi-node
+     - single / double
+     - Thousands 
+   * - `tensornet-mps`
+     - Matrix Product State
+     - Square-shaped circuits
+     - Single GPU
+     - single / double
+     - Hundreds
+   * - `fermioniq`
+     - Various
+     - Various
+     - Single GPU
+     - Various
+     - Various
+   * - `nvidia, option=mqpu`
+     - State Vector 
+     - Asynchronous distribution across multiple simulated QPUs to speedup applications
+     - multi-GPU multi-node
+     - single / double
+     - < 33 / 32 (64 GB)
+   * - `remote-mqpu`
+     - State Vector / Tensor Network
+     - Combine `mqpu` with other backend like `tensornet` and `mgpu`
+     - varies
+     - varies
+     - varies
+   * - `density-matrix-cpu`
+     - Density Matrix
+     - Noisy simulations
+     - CPU
+     - double
+     - < 14
+   * - `stim`
+     - Stabilizer 
+     - QEC simulation
+     - CPU
+     - N/A
+     - Thousands +
+   * - `orca-photonics`
+     - State Vector
+     - Photonics
+     - CPU
+     - double
+     - Varies on qudit level
+
+
+
+.. toctree::
+   :maxdepth: 2
+      
+        State Vector Simulators <sims/svsims.rst>
+        Tensor Network Simulators <sims/tnsims.rst>
+        Multi-QPU Simulators <sims/mqpusims.rst>
+        Noisy Simulators <sims/noisy.rst>
+        Photonics Simulators <sims/photonics.rst>
 
-.. _nvidia-backend:
-
-The simulation backends that are currently available in CUDA-Q are as follows.
-
-State Vector Simulators
-==================================
-
-The :code:`nvidia` target provides a state vector simulator accelerated with 
-the :code:`cuStateVec` library. 
-
-The :code:`nvidia` target supports multiple configurable options.
-
-Features 
-+++++++++
-
-* Floating-point precision configuration 
-
-The floating point precision of the state vector data can be configured to either 
-double (`fp64`) or single (`fp32`) precision. This option can be chosen for the optimal performance and accuracy.
-
-
-* Distributed simulation
-
-The :code:`nvidia` target supports distributing state vector simulations to multiple GPUs and multiple nodes (`mgpu` :ref:`distribution <nvidia-mgpu-backend>`)
-and multi-QPU (`mqpu` :ref:`platform <mqpu-platform>`) distribution whereby each QPU is simulated via a single-GPU simulator instance.
-
-
-* Host CPU memory utilization 
-
-Host CPU memory can be leveraged in addition to GPU memory to accommodate the state vector 
-(i.e., maximizing the number of qubits to be simulated).
-
-* Trajectory simulation for noisy quantum circuits
-
-The :code:`nvidia` target supports noisy quantum circuit simulations using quantum trajectory method across all configurations: single GPU, multi-node multi-GPU, and with host memory.
-When simulating many trajectories with small state vectors, the simulation is batched for optimal performance.
-
-.. _cuQuantum single-GPU:
-
-
-Single-GPU 
-++++++++++++++++++++++++++++++++++
-
-To execute a program on the :code:`nvidia` target, use the following commands:
-
-.. tab:: Python
-
-    .. code:: bash 
-
-        python3 program.py [...] --target nvidia
-
-    The target can also be defined in the application code by calling
-
-    .. code:: python 
-
-        cudaq.set_target('nvidia')
-
-    If a target is set in the application code, this target will override the :code:`--target` command line flag given during program invocation.
-
-.. tab:: C++
-
-    .. code:: bash 
-
-        nvq++ --target nvidia program.cpp [...] -o program.x
-        ./program.x
-
-.. _nvidia-fp64-backend:
-
-By default, this will leverage :code:`FP32` floating point types for the simulation. To 
-switch to :code:`FP64`, specify the :code:`--target-option fp64` `nvq++` command line option for `C++` and `Python` or 
-use `cudaq.set_target('nvidia', option='fp64')` for Python in-source target modification instead. 
-
-.. tab:: Python
-
-    .. code:: bash 
-
-        python3 program.py [...] --target nvidia --target-option fp64
-
-    The precision of the :code:`nvidia` target can also be modified in the application code by calling
-
-    .. code:: python 
-
-        cudaq.set_target('nvidia', option='fp64')
-
-.. tab:: C++
-
-    .. code:: bash 
-
-        nvq++ --target nvidia --target-option fp64 program.cpp [...] -o program.x
-        ./program.x
-
-.. note:: 
-
-  This backend requires an NVIDIA GPU and CUDA runtime libraries. If you do not have these dependencies installed, you may encounter an error stating `Invalid simulator requested`. See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
-
-In the single-GPU mode, the :code:`nvidia` target provides the following
-environment variable options. Any environment variables must be set prior to
-setting the target.
-
-.. list-table:: **Environment variable options supported in single-GPU mode**
-  :widths: 20 30 50
-
-  * - Option
-    - Value
-    - Description
-  * - ``CUDAQ_FUSION_MAX_QUBITS``
-    - positive integer
-    - The max number of qubits used for gate fusion. The default value is `4`.
-  * - ``CUDAQ_FUSION_DIAGONAL_GATE_MAX_QUBITS``
-    - integer greater than or equal to -1
-    - The max number of qubits used for diagonal gate fusion. The default value is set to `-1` and the fusion size will be automatically adjusted for the better performance. If 0, the gate fusion for diagonal gates is disabled.
-  * - ``CUDAQ_FUSION_NUM_HOST_THREADS``
-    - positive integer
-    - Number of CPU threads used for circuit processing. The default value is `8`.
-  * - ``CUDAQ_MAX_CPU_MEMORY_GB``
-    - non-negative integer, or `NONE`
-    - CPU memory size (in GB) allowed for state-vector migration. `NONE` means unlimited (up to physical memory constraints). Default is 0GB (disabled, variable is not set to any value).
-  * - ``CUDAQ_MAX_GPU_MEMORY_GB``
-    - positive integer, or `NONE`
-    - GPU memory (in GB) allowed for on-device state-vector allocation. As the state-vector size exceeds this limit, host memory will be utilized for migration. `NONE` means unlimited (up to physical memory constraints). This is the default.
-
-.. deprecated:: 0.8
-    The :code:`nvidia-fp64` targets, which is equivalent setting the `fp64` option on the :code:`nvidia` target, 
-    is deprecated and will be removed in a future release.
-
-.. _nvidia-mgpu-backend:
-
-Multi-node multi-GPU
-++++++++++++++++++++++++++++++++++
-
-The NVIDIA target also provides a state vector simulator accelerated with 
-the :code:`cuStateVec` library with support for Multi-Node, Multi-GPU distribution of the 
-state vector, in addition to a single GPU.
-
-The multi-node multi-GPU simulator expects to run within an MPI context.
-To execute a program on the multi-node multi-GPU NVIDIA target, use the following commands 
-(adjust the value of the :code:`-np` flag as needed to reflect available GPU resources on your system):
-
-.. tab:: Python
-
-    Double precision simulation:
-
-    .. code:: bash 
-
-        mpiexec -np 2 python3 program.py [...] --target nvidia --target-option fp64,mgpu
-
-    Single precision simulation:
-    
-    .. code:: bash 
-
-        mpiexec -np 2 python3 program.py [...] --target nvidia --target-option fp32,mgpu
-
-    .. note::
-
-      If you installed CUDA-Q via :code:`pip`, you will need to install the necessary MPI dependencies separately;
-      please follow the instructions for installing dependencies in the `Project Description <https://pypi.org/project/cudaq/#description>`__.
-
-    In addition to using MPI in the simulator, you can use it in your application code by installing `mpi4py <https://mpi4py.readthedocs.io/>`__, and 
-    invoking the program with the command
-
-    .. code:: bash 
-
-        mpiexec -np 2 python3 -m mpi4py program.py [...] --target nvidia --target-option fp64,mgpu
-
-    The target can also be defined in the application code by calling
-
-    .. code:: python 
-
-        cudaq.set_target('nvidia', option='mgpu,fp64')
-
-    If a target is set in the application code, this target will override the :code:`--target` command line flag given during program invocation.
-
-    .. note::
-        
-        * The order of the option settings are interchangeable.
-          For example, `cudaq.set_target('nvidia', option='mgpu,fp64')` is equivalent to `cudaq.set_target('nvidia', option='fp64,mgpu')`.
-
-        * The `nvidia` target has single-precision as the default setting. Thus, using `option='mgpu'` implies that `option='mgpu,fp32'`.  
-
-.. tab:: C++
-
-    Double precision simulation:
-
-    .. code:: bash 
-
-        nvq++ --target nvidia  --target-option mgpu,fp64 program.cpp [...] -o program.x
-        mpiexec -np 2 ./program.x
-
-    Single precision simulation:
-
-    .. code:: bash 
-
-        nvq++ --target nvidia  --target-option mgpu,fp32 program.cpp [...] -o program.x
-        mpiexec -np 2 ./program.x
-
-.. note:: 
-
-  This backend requires an NVIDIA GPU, CUDA runtime libraries, as well as an MPI installation. If you do not have these dependencies installed, you may encounter either an error stating `invalid simulator requested` (missing CUDA libraries), or an error along the lines of `failed to launch kernel` (missing MPI installation). See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
-  
-  The number of processes and nodes should be always power-of-2. 
-
-  Host-device state vector migration is also supported in the multi-node multi-GPU configuration. 
-
-
-In addition to those environment variable options supported in the single-GPU mode,
-the :code:`nvidia` target provides the following environment variable options particularly for 
-the multi-node multi-GPU configuration. Any environment variables must be set
-prior to setting the target.
-
-.. list-table:: **Additional environment variable options for multi-node multi-GPU mode**
-  :widths: 20 30 50
-
-  * - Option
-    - Value
-    - Description
-  * - ``CUDAQ_MGPU_LIB_MPI``
-    - string
-    - The shared library name for inter-process communication. The default value is `libmpi.so`.
-  * - ``CUDAQ_MGPU_COMM_PLUGIN_TYPE``
-    - `AUTO`, `EXTERNAL`, `OpenMPI`, or `MPICH` 
-    - Selecting :code:`cuStateVec` `CommPlugin` for inter-process communication. The default is `AUTO`. If `EXTERNAL` is selected, `CUDAQ_MGPU_LIB_MPI` should point to an implementation of :code:`cuStateVec` `CommPlugin` interface.
-  * - ``CUDAQ_MGPU_NQUBITS_THRESH``
-    - positive integer
-    - The qubit count threshold where state vector distribution is activated. Below this threshold, simulation is performed as independent (non-distributed) tasks across all MPI processes for optimal performance. Default is 25. 
-  * - ``CUDAQ_MGPU_FUSE``
-    - positive integer
-    - The max number of qubits used for gate fusion. The default value is `6` if there are more than one MPI processes or `4` otherwise.
-  * - ``CUDAQ_MGPU_P2P_DEVICE_BITS``
-    - positive integer
-    - Specify the number of GPUs that can communicate by using GPUDirect P2P. Default value is 0 (P2P communication is disabled).
-  * - ``CUDAQ_GPU_FABRIC``
-    - `MNNVL`, `NVL`, or `NONE`
-    - Automatically set the number of P2P device bits based on the total number of processes when multi-node NVLink (`MNNVL`) is selected; or the number of processes per node when NVLink (`NVL`) is selected; or disable P2P (with `NONE`). 
-  * - ``CUDAQ_GLOBAL_INDEX_BITS``
-    - comma-separated list of positive integers
-    - Specify the inter-node network structure (faster to slower). For example, assuming a 8 nodes, 4 GPUs/node simulation whereby network communication is faster, this `CUDAQ_GLOBAL_INDEX_BITS` environment variable can be set to `3,2`. The first `3` represents **8** nodes with fast communication and the second `2` represents **4** 8-node groups in those total 32 nodes. Default is an empty list (no customization based on network structure of the cluster).
-  * - ``CUDAQ_HOST_DEVICE_MIGRATION_LEVEL``
-    - positive integer
-    - Specify host-device memory migration w.r.t. the network structure. If provided, this setting determines the position to insert the number of migration index bits to the `CUDAQ_GLOBAL_INDEX_BITS` list. By default, if not set, the number of migration index bits (CPU-GPU data transfers) is appended to the end of the array of index bits (aka, state vector distribution scheme). This default behavior is optimized for systems with fast GPU-GPU interconnects (NVLink, InfiniBand, etc.) 
-
-.. deprecated:: 0.8
-    The :code:`nvidia-mgpu` target, which is equivalent to the multi-node multi-GPU double-precision option (`mgpu,fp64`) of the :code:`nvidia`
-    is deprecated and will be removed in a future release.
-
-The above configuration options of the :code:`nvidia` backend 
-can be tuned to reduce your simulation runtimes. One of the
-performance improvements is to fuse multiple gates together during runtime. For
-example, :code:`x(qubit0)` and :code:`x(qubit1)` can be fused together into a
-single 4x4 matrix operation on the state vector rather than 2 separate 2x2
-matrix operations on the state vector. This fusion reduces memory bandwidth on
-the GPU because the state vector is transferred into and out of memory fewer
-times. By default, up to 4 gates are fused together for single-GPU simulations,
-and up to 6 gates are fused together for multi-GPU simulations. The number of
-gates fused can **significantly** affect performance of some circuits, so users
-can override the default fusion level by setting the setting `CUDAQ_MGPU_FUSE`
-environment variable to another integer value as shown below.
-
-.. tab:: Python
-
-    .. code:: bash 
-
-        CUDAQ_MGPU_FUSE=5 mpiexec -np 2 python3 program.py [...] --target nvidia --target-option mgpu,fp64
-
-.. tab:: C++
-
-    .. code:: bash 
-
-        nvq++ --target nvidia --target-option mgpu,fp64 program.cpp [...] -o program.x
-        CUDAQ_MGPU_FUSE=5 mpiexec -np 2 ./program.x
-
-
-Trajectory Noisy Simulation
-++++++++++++++++++++++++++++++++++
-
-When a :code:`noise_model` is provided to CUDA-Q, the :code:`nvidia` target will incorporate quantum noise into the quantum circuit simulation according to the noise model specified.
-
-
-.. tab:: Python
-
-    .. literalinclude:: ../../snippets/python/using/backends/trajectory.py
-        :language: python
-        :start-after: [Begin Docs]
-
-    .. code:: bash 
-        
-        python3 program.py
-        { 00:15 01:92 10:81 11:812 }
-
-.. tab:: C++
-
-    .. literalinclude:: ../../snippets/cpp/using/backends/trajectory.cpp
-        :language: cpp
-        :start-after: [Begin Documentation]
-
-    .. code:: bash 
-
-        nvq++ --target nvidia program.cpp [...] -o program.x
-        ./program.x
-        { 00:15 01:92 10:81 11:812 }
-
-
-In the case of bit-string measurement sampling as in the above example, each measurement 'shot' is executed as a trajectory, whereby Kraus operators specified in the noise model are sampled.
-
-For observable expectation value estimation, the statistical error scales asymptotically as :math:`1/\sqrt{N_{trajectories}}`, where :math:`N_{trajectories}` is the number of trajectories.
-Hence, depending on the required level of accuracy, the number of trajectories can be specified accordingly.
-
-.. tab:: Python
-
-    .. literalinclude:: ../../snippets/python/using/backends/trajectory_observe.py
-        :language: python
-        :start-after: [Begin Docs]
-
-    .. code:: bash 
-        
-        python3 program.py
-        Noisy <Z> with 1024 trajectories = -0.810546875
-        Noisy <Z> with 8192 trajectories = -0.800048828125
-
-.. tab:: C++
-
-    .. literalinclude:: ../../snippets/cpp/using/backends/trajectory_observe.cpp
-        :language: cpp
-        :start-after: [Begin Documentation]
-
-    .. code:: bash 
-
-        nvq++ --target nvidia program.cpp [...] -o program.x
-        ./program.x
-        Noisy <Z> with 1024 trajectories = -0.810547
-        Noisy <Z> with 8192 trajectories = -0.800049
-
-
-The following environment variable options are applicable to the :code:`nvidia` target for trajectory noisy simulation. Any environment variables must be set
-prior to setting the target.
-
-.. list-table:: **Additional environment variable options for trajectory simulation**
-  :widths: 20 30 50
-
-  * - Option
-    - Value
-    - Description
-  * - ``CUDAQ_OBSERVE_NUM_TRAJECTORIES``
-    - positive integer
-    - The default number of trajectories for observe simulation if none was provided in the `observe` call. The default value is 1000.
-  * - ``CUDAQ_BATCH_SIZE``
-    - positive integer or `NONE`
-    - The number of state vectors in the batched mode. If `NONE`, the batch size will be calculated based on the available device memory. Default is `NONE`.
-  * - ``CUDAQ_BATCHED_SIM_MAX_BRANCHES``
-    - positive integer
-    - The number of trajectory branches to be tracked simultaneously in the gate fusion. Default is 16. 
-  * - ``CUDAQ_BATCHED_SIM_MAX_QUBITS``
-    - positive integer
-    - The max number of qubits for batching. If the qubit count in the circuit is more than this value, batched trajectory simulation will be disabled. The default value is 20.
-  * - ``CUDAQ_BATCHED_SIM_MIN_BATCH_SIZE``
-    - positive integer
-    - The minimum number of trajectories for batching. If the number of trajectories is less than this value, batched trajectory simulation will be disabled. Default value is 4.
-
-.. note::
-    
-    Batched trajectory simulation is only available on the single-GPU execution mode of the :code:`nvidia` target. 
-    
-    If batched trajectory simulation is not activated, e.g., due to problem size, number of trajectories, or the nature of the circuit (dynamic circuits with mid-circuit measurements and conditional branching), the required number of trajectories will be executed sequentially.  
-
-
-.. _OpenMP CPU-only:
-
-OpenMP CPU-only
-++++++++++++++++++++++++++++++++++
-
-.. _qpp-cpu-backend:
-
-This target provides a state vector simulator based on the CPU-only, OpenMP threaded `Q++ <https://github.com/softwareqinc/qpp>`_ library.
-This is the default target when running on CPU-only systems.
-
-To execute a program on the :code:`qpp-cpu` target even if a GPU-accelerated backend is available, 
-use the following commands:
-
-.. tab:: Python
-
-    .. code:: bash 
-
-        python3 program.py [...] --target qpp-cpu
-
-    The target can also be defined in the application code by calling
-
-    .. code:: python 
-
-        cudaq.set_target('qpp-cpu')
-
-    If a target is set in the application code, this target will override the :code:`--target` command line flag given during program invocation.
-
-.. tab:: C++
-
-    .. code:: bash 
-
-        nvq++ --target qpp-cpu program.cpp [...] -o program.x
-        ./program.x
-
-Tensor Network Simulators
-==================================
-
-.. _tensor-backends:
-
-CUDA-Q provides a couple of tensor-network simulator targets accelerated with 
-the :code:`cuTensorNet` library. 
-These backends are available for use from both C++ and Python.
-
-Tensor network simulators are suitable for large-scale simulation of certain classes of quantum circuits involving many qubits beyond the memory limit of state vector based simulators. For example, computing the expectation value of a Hamiltonian via :code:`cudaq::observe` can be performed efficiently, thanks to :code:`cuTensorNet` contraction optimization capability. On the other hand, conditional circuits, i.e., those with mid-circuit measurements or reset, despite being supported by both backends, may result in poor performance. 
-
-Multi-node multi-GPU
-+++++++++++++++++++++++++++++++++++
-
-The :code:`tensornet` backend represents quantum states and circuits as tensor networks in an exact form (no approximation). 
-Measurement samples and expectation values are computed via tensor network contractions. 
-This backend supports multi-node, multi-GPU distribution of tensor operations required to evaluate and simulate the circuit.
-
-To execute a program on the :code:`tensornet` target using a *single GPU*, use the following commands:
-
-.. tab:: Python
-
-    .. code:: bash 
-
-        python3 program.py [...] --target tensornet
-
-    The target can also be defined in the application code by calling
-
-    .. code:: python 
-
-        cudaq.set_target('tensornet')
-
-    If a target is set in the application code, this target will override the :code:`--target` command line flag given during program invocation.
-
-.. tab:: C++
-
-    .. code:: bash 
-
-        nvq++ --target tensornet program.cpp [...] -o program.x
-        ./program.x
-
-If you have *multiple GPUs* available on your system, you can use MPI to automatically distribute parallelization across the visible GPUs. 
-
-.. note::
-
-  If you installed the CUDA-Q Python wheels, distribution across multiple GPUs is currently not supported for this backend.
-  We will add support for it in future releases. For more information, see this `GitHub issue <https://github.com/NVIDIA/cuda-quantum/issues/920>`__.
-
-Use the following commands to enable distribution across multiple GPUs (adjust the value of the :code:`-np` flag as needed to reflect available GPU resources on your system):
-
-.. tab:: Python
-
-    .. code:: bash 
-
-        mpiexec -np 2 python3 program.py [...] --target tensornet
-
-    In addition to using MPI in the simulator, you can use it in your application code by installing `mpi4py <https://mpi4py.readthedocs.io/>`__, and 
-    invoking the program with the command
-
-    .. code:: bash 
-
-        mpiexec -np 2 python3 -m mpi4py program.py [...] --target tensornet
-
-.. tab:: C++
-
-    .. code:: bash 
-
-        nvq++ --target tensornet program.cpp [...] -o program.x
-        mpiexec -np 2 ./program.x
-
-.. note::
-
-  If the `CUTENSORNET_COMM_LIB` environment variable is not set, MPI parallelization on the :code:`tensornet` backend may fail.
-  If you are using a CUDA-Q container, this variable is pre-configured and no additional setup is needed. If you are customizing your installation or have built CUDA-Q from source, please follow the instructions for `activating the distributed interface <https://docs.nvidia.com/cuda/cuquantum/latest/getting-started/index.html#from-nvidia-devzone>`__ for the `cuTensorNet` library. This requires 
-  :ref:`installing CUDA development dependencies <additional-cuda-tools>`, and setting the `CUTENSORNET_COMM_LIB`
-  environment variable to the newly built `libcutensornet_distributed_interface_mpi.so` library.
-
-Specific aspects of the simulation can be configured by setting the following of environment variables:
-
-* **`CUDA_VISIBLE_DEVICES=X`**: Makes the process only see GPU X on multi-GPU nodes. Each MPI process must only see its own dedicated GPU. For example, if you run 8 MPI processes on a DGX system with 8 GPUs, each MPI process should be assigned its own dedicated GPU via `CUDA_VISIBLE_DEVICES` when invoking `mpiexec` (or `mpirun`) commands. 
-* **`OMP_PLACES=cores`**: Set this environment variable to improve CPU parallelization.
-* **`OMP_NUM_THREADS=X`**: To enable CPU parallelization, set X to `NUMBER_OF_CORES_PER_NODE/NUMBER_OF_GPUS_PER_NODE`.
-* **`CUDAQ_TENSORNET_CONTROLLED_RANK=X`**: Specify the number of controlled qubits whereby the full tensor body of the controlled gate is expanded. If the number of controlled qubits is greater than this value, the gate is applied as a controlled tensor operator to the tensor network state. Default value is 1.
-* **`CUDAQ_TENSORNET_OBSERVE_CONTRACT_PATH_REUSE=X`**: Set this environment variable to `TRUE` (`ON`) or `FALSE` (`OFF`) to enable or disable contraction path reuse when computing expectation values. Default is `OFF`.
-
-.. note:: 
-
-  This backend requires an NVIDIA GPU and CUDA runtime libraries. 
-  If you do not have these dependencies installed, you may encounter an error stating `Invalid simulator requested`. 
-  See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
-
-.. note:: 
-
-  When using contraction path reuse (`CUDAQ_TENSORNET_OBSERVE_CONTRACT_PATH_REUSE=TRUE`), :code:`tensornet` backends perform a single contraction path optimization with an opaque spin operator term. This path is then used to contract all the actual terms in the spin operator, hence saving the path finding time.
-
-  As we use an opaque spin operator term as a placeholder for contraction path optimization, the resulting contraction path is not as optimal as if the actual spin operator is used.
-  For instance, if the spin operator is sparse (only acting on a few qubits), the contraction can be significantly simplified.  
-
-.. note:: 
-
-  :code:`tensornet` backends only return the overall expectation value for a :class:`cudaq.SpinOperator` when using the `cudaq::observe` method. 
-  Term-by-term expectation values will not be available in the resulting `ObserveResult` object.
-  If needed, these values can be computed by calling `cudaq::observe` on individual terms instead.  
-
-Matrix product state 
-+++++++++++++++++++++++++++++++++++
-
-The :code:`tensornet-mps` backend is based on the matrix product state (MPS) representation of the state vector/wave function, exploiting the sparsity in the tensor network via tensor decomposition techniques such as QR and SVD. As such, this backend is an approximate simulator, whereby the number of singular values may be truncated to keep the MPS size tractable. 
-The :code:`tensornet-mps` backend only supports single-GPU simulation. Its approximate nature allows the :code:`tensornet-mps` backend to handle a large number of qubits for certain classes of quantum circuits on a relatively small memory footprint.
-
-To execute a program on the :code:`tensornet-mps` target, use the following commands:
-
-.. tab:: Python
-
-    .. code:: bash 
-
-        python3 program.py [...] --target tensornet-mps
-
-    The target can also be defined in the application code by calling
-
-    .. code:: python 
-
-        cudaq.set_target('tensornet-mps')
-
-    If a target is set in the application code, this target will override the :code:`--target` command line flag given during program invocation.
-
-.. tab:: C++
-
-    .. code:: bash 
-
-        nvq++ --target tensornet-mps program.cpp [...] -o program.x
-        ./program.x
-
-Specific aspects of the simulation can be configured by defining the following environment variables:
-
-* **`CUDAQ_MPS_MAX_BOND=X`**: The maximum number of singular values to keep (fixed extent truncation). Default: 64.
-* **`CUDAQ_MPS_ABS_CUTOFF=X`**: The cutoff for the largest singular value during truncation. Eigenvalues that are smaller will be trimmed out. Default: 1e-5.
-* **`CUDAQ_MPS_RELATIVE_CUTOFF=X`**: The cutoff for the maximal singular value relative to the largest eigenvalue. Eigenvalues that are smaller than this fraction of the largest singular value will be trimmed out. Default: 1e-5
-* **`CUDAQ_MPS_SVD_ALGO=X`**: The SVD algorithm to use. Valid values are: `GESVD` (QR algorithm), `GESVDJ` (Jacobi method), `GESVDP` (`polar decomposition <https://epubs.siam.org/doi/10.1137/090774999>`__), `GESVDR` (`randomized methods <https://epubs.siam.org/doi/10.1137/090771806>`__). Default: `GESVDJ`.
-
-.. note:: 
-
-  This backend requires an NVIDIA GPU and CUDA runtime libraries. 
-  If you do not have these dependencies installed, you may encounter an error stating `Invalid simulator requested`. 
-  See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
-
-.. note::
-    The parallelism of Jacobi method (the default `CUDAQ_MPS_SVD_ALGO` setting) gives GPU better performance on small and medium size matrices.
-    If you expect a large number of singular values (e.g., increasing the `CUDAQ_MPS_MAX_BOND` setting), please adjust the `CUDAQ_MPS_SVD_ALGO` setting accordingly.  
-
-Clifford-Only Simulator
-==================================
-
-Stim (CPU)
-++++++++++++++++++++++++++++++++++
-
-.. _stim-backend:
-
-This target provides a fast simulator for circuits containing *only* Clifford
-gates. Any non-Clifford gates (such as T gates and Toffoli gates) are not
-supported. This simulator is based on the `Stim <https://github.com/quantumlib/Stim>`_
-library.
-
-To execute a program on the :code:`stim` target, use the following commands:
-
-.. tab:: Python
-
-    .. code:: bash 
-
-        python3 program.py [...] --target stim
-
-    The target can also be defined in the application code by calling
-
-    .. code:: python 
-
-        cudaq.set_target('stim')
-
-    If a target is set in the application code, this target will override the :code:`--target` command line flag given during program invocation.
-
-.. tab:: C++
-
-    .. code:: bash 
-
-        nvq++ --target stim program.cpp [...] -o program.x
-        ./program.x
-
-.. note::
-    CUDA-Q currently executes kernels using a "shot-by-shot" execution approach.
-    This allows for conditional gate execution (i.e. full control flow), but it
-    can be slower than executing Stim a single time and generating all the shots
-    from that single execution.
-
-
-Photonics Simulators
-==================================
-
-The :code:`orca-photonics` target provides a state vector simulator with 
-the :code:`Q++` library. 
-
-The :code:`orca-photonics` target supports supports a double precision simulator that can run in multiple CPUs.
-
-OpenMP CPU-only
-++++++++++++++++++++++++++++++++++
-
-.. _qpp-cpu-photonics-backend:
-
-This target provides a state vector simulator based on the CPU-only, OpenMP threaded `Q++ <https://github.com/softwareqinc/qpp>`_  library.
-
-To execute a program on the :code:`orca-photonics` target, use the following commands:
-
-.. tab:: Python
-
-    .. code:: bash 
-
-        python3 program.py [...] --target orca-photonics
-
-    The target can also be defined in the application code by calling
-
-    .. code:: python 
-
-        cudaq.set_target('orca-photonics')
-
-    If a target is set in the application code, this target will override the :code:`--target` command line flag given during program invocation.
-
-.. tab:: C++
-
-    .. code:: bash 
-
-        nvq++ --library-mode --target orca-photonics program.cpp [...] -o program.x
-
-
-Fermioniq
-==================================
-
-.. _fermioniq-backend:
-
-`Fermioniq <https://fermioniq.com/>`__ offers a cloud-based tensor-network emulation platform, `Ava <https://www.fermioniq.com/ava/>`__, 
-for the approximate simulation of large-scale quantum circuits beyond the memory limit of state vector and exact tensor network based methods. 
-
-The level of approximation can be controlled by setting the bond dimension: larger values yield more accurate simulations at the expense 
-of slower computation time. For a detailed description of Ava users are referred to the `online documentation <https://docs.fermioniq.com/>`__.
-
-Users of CUDA-Q can access a simplified version of the full Fermioniq emulator (`Ava <https://www.fermioniq.com/ava/>`__) from either
-C++ or Python. This version currently supports emulation of quantum circuits without noise, and can return measurement samples and/or 
-compute expectation values of observables.
-
-.. note::
-    In order to use the Fermioniq emulator, users must provide access credentials. These can be requested by contacting info@fermioniq.com 
-
-    The credentials must be set via two environment variables:
-    `FERMIONIQ_ACCESS_TOKEN_ID` and `FERMIONIQ_ACCESS_TOKEN_SECRET`.
-
-.. tab:: Python
-
-    The target to which quantum kernels are submitted 
-    can be controlled with the ``cudaq::set_target()`` function.
-
-    .. code:: python
-
-        cudaq.set_target('fermioniq')
-
-    You will have to specify a remote configuration id for the Fermioniq backend
-    during compilation.
-
-    .. code:: python
-
-        cudaq.set_target("fermioniq", **{
-            "remote_config": remote_config_id
-        })
-
-    For a comprehensive list of all remote configurations, please contact Fermioniq directly.
-
-    When your organization requires you to define a project id, you have to specify
-    the project id during compilation.
-
-    .. code:: python
-
-        cudaq.set_target("fermioniq", **{
-            "project_id": project_id
-        })
-
-    To specify the bond dimension, you can pass the ``bond_dim`` parameter.
-
-    .. code:: python 
-
-        cudaq.set_target("fermioniq", **{
-            "bond_dim": 5
-        })
-
-.. tab:: C++
-
-    To target quantum kernel code for execution in the Fermioniq backends,
-    pass the flag ``--target fermioniq`` to the ``nvq++`` compiler. CUDA-Q will 
-    authenticate via the Fermioniq REST API using the environment variables 
-    set earlier.
-
-    .. code:: bash
-
-        nvq++ --target fermioniq src.cpp ...
-
-    You will have to specify a remote configuration id for the Fermioniq backend
-    during compilation.
-
-    .. code:: bash
-
-        nvq++ --target fermioniq --fermioniq-remote-config <remote_config_id> src.cpp ...
-
-    For a comprehensive list of all remote configurations, please contact Fermioniq directly.
-
-    When your organization requires you to define a project id, you have to specify
-    the project id during compilation.
-
-    .. code:: bash
-
-        nvq++ --target fermioniq --fermioniq-project-id <project_id> src.cpp ...
-
-    To specify the bond dimension, you can pass the ``fermioniq-bond-dim`` parameter.
-
-    .. code:: bash
-
-        nvq++ --target fermioniq --fermioniq-bond-dim 10 src.cpp ...
-
-Default Simulator
-==================================
-
-.. _default-simulator:
-
-If no explicit target is set, i.e., if the code is compiled without any :code:`--target` flags, then CUDA-Q makes a default choice for the simulator.
-
-If an NVIDIA GPU and CUDA runtime libraries are available, the default target is set to `nvidia`. This will utilize the :ref:`cuQuantum single-GPU state vector simulator <cuQuantum single-GPU>`.  
-On CPU-only systems, the default target is set to `qpp-cpu` which uses the :ref:`OpenMP CPU-only simulator <OpenMP CPU-only>`.
-
-The default simulator can be overridden by the environment variable `CUDAQ_DEFAULT_SIMULATOR`. If no target is explicitly specified and the environment variable has a valid value, then it will take effect.
-This environment variable can be set to any non-hardware backend. Any invalid value is ignored.
-
-For CUDA-Q Python API, the environment variable at the time when `cudaq` module is imported is relevant, not the value of the environment variable at the time when the simulator is invoked.
-
-For example,
-
-.. tab:: Python
-
-    .. code:: bash 
-
-        CUDAQ_DEFAULT_SIMULATOR=density-matrix-cpu python3 program.py [...]
-        
-.. tab:: C++
-
-    .. code:: bash 
-
-        CUDAQ_DEFAULT_SIMULATOR=density-matrix-cpu nvq++ program.cpp [...] -o program.x
-        ./program.x
-
-This will use the density matrix simulator target.
-
-
-.. note:: 
-
-    To use targets that require an NVIDIA GPU and CUDA runtime libraries, the dependencies must be installed, else you may encounter an error stating `Invalid simulator requested`. See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
