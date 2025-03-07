@@ -364,7 +364,7 @@ double sample_result::expectation(const std::string_view registerName) const {
   double aver = 0.0;
   auto iter = sampleResults.find(registerName.data());
   if (iter == sampleResults.end())
-    return 0.0;
+    throw std::runtime_error("no value(s) computed for " + std::string(registerName));
 
   if (iter->second.expectationValue.has_value())
     return iter->second.expectationValue.value();

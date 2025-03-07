@@ -110,6 +110,20 @@ CUDAQ_TEST(ObserveResult, checkExpValBug) {
   exp = result.expectation(observable);
   printf("exp %lf \n", exp);
   EXPECT_NEAR(exp, .62, 1e-1);
+
+  // We support retrieval of terms as long as they are equal to the
+  // terms defined in the spin op passed to observe. A term/operator
+  // that acts on two degrees is never the same as an operator that
+  // acts on one degree, even if it only acts with an identity on the
+  // second degree. While the expectation values generally should be
+  // the same in this case, the operators are not (e.g. the respective
+  // kernels/gates defined by the two operators is not the same since
+  // it acts on a different number of qubits). This is in particular
+  // also relevant for noise modeling.
+  observable = cudaq::spin_op::z(0) * cudaq::spin_op::i(1);
+  ASSERT_ANY_THROW(result.expectation(observable));
+  observable = cudaq::spin_op::i(0) * cudaq::spin_op::z(1);
+  ASSERT_ANY_THROW(result.expectation(observable));
 }
 #endif
 #endif
