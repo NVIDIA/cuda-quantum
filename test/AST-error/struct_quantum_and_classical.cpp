@@ -20,6 +20,7 @@ struct test {
 
 __qpu__ void hello(cudaq::qubit &q) { h(q); }
 
+// expected-error@+1 {{failed to generate type for kernel function}}
 __qpu__ void kernel(test t) {
   h(t.q);
   hello(t.q[0]);
