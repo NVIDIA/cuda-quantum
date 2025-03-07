@@ -207,13 +207,13 @@ do
                 # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1283
                 target_flag+=" --enable-mlir"
             fi
-        elif [ "$t" == "dynamics" ]; then
-            let "skipped+=1"
-            echo "Skipping $t target."
-            # These C++ tests are not intended for dynamics
-            echo ":white_flag: $filename: Not executed due to compatibility reasons. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
-            continue
-        fi
+        # elif [ "$t" == "dynamics" ]; then
+        #     let "skipped+=1"
+        #     echo "Skipping $t target."
+        #     # These C++ tests are not intended for dynamics
+        #     echo ":white_flag: $filename: Not executed due to compatibility reasons. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
+        #     continue
+        # fi
 
         echo "Testing on $t target..."
         if [ "$t" == "nvidia" || "$t" == "dynamics" ]; then
