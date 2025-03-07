@@ -699,9 +699,9 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
 
     ASSERT_TRUE(got.num_terms() == 2);
     ASSERT_TRUE(reverse.num_terms() == 2);
-    for (auto &term : got.get_terms())
+    for (const auto &term : got)
       ASSERT_TRUE(term.num_terms() == term.degrees().size());
-    for (auto &term : reverse.get_terms())
+    for (const auto &term : reverse)
       ASSERT_TRUE(term.num_terms() == term.degrees().size());
 
     auto self_full =
@@ -769,7 +769,7 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
     operator_sum *= self;
 
     ASSERT_TRUE(operator_sum.num_terms() == 8);
-    for (auto &term : operator_sum.get_terms())
+    for (const auto &term : operator_sum)
       ASSERT_TRUE(term.num_terms() == term.degrees().size());
 
     // Note that here we need to again expand the matrices for the product

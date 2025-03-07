@@ -1428,8 +1428,7 @@ public:
       return;
     }
 
-    auto terms = op.get_terms();
-    if (terms.size() != 1)
+    if (op.num_terms() != 1)
       // more than one term needs to be directly supported by the backend
       throw std::runtime_error("measuring a sum of spin operators is not supported");
 
@@ -1437,7 +1436,8 @@ public:
     std::vector<std::size_t> qubitsToMeasure;
     std::vector<std::function<void(bool)>> basisChange;
 
-    for (const auto &p : terms[0]) {
+    auto term = *op.begin();
+    for (const auto &p : term) {
       auto pauli = p.as_pauli();
       // Note: qubit index is necessarily defined by target here
       // since we don't explicitly pass the qubits the measurement

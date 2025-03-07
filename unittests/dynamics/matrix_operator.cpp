@@ -626,9 +626,9 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
 
     ASSERT_TRUE(got.num_terms() == 2);
     ASSERT_TRUE(reverse.num_terms() == 2);
-    for (auto &term : got.get_terms())
+    for (const auto &term : got)
       ASSERT_TRUE(term.num_terms() == 2);
-    for (auto &term : reverse.get_terms())
+    for (const auto &term : reverse)
       ASSERT_TRUE(term.num_terms() == 2);
 
     auto self_full = cudaq::kronecker(utils::id_matrix(level_count),
@@ -702,7 +702,7 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
     operator_sum *= self;
 
     ASSERT_TRUE(operator_sum.num_terms() == 2);
-    for (auto &term : operator_sum.get_terms())
+    for (const auto &term : operator_sum)
       ASSERT_TRUE(term.num_terms() == 2);
 
     auto self_full = cudaq::kronecker(utils::id_matrix(level_count),

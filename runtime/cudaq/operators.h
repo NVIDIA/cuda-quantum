@@ -75,6 +75,58 @@ protected:
   operator_sum(Args &&...args);
 
 public:
+
+  // called const_iterator because it will *not* modify the sum, 
+  // regardless of what is done with the products/iterator
+  struct const_iterator {
+  private:
+    const operator_sum<HandlerTy> *sum;
+    typename std::unordered_map<std::string, int>::const_iterator iter;
+    product_operator<HandlerTy> current_val;
+
+  public:
+    using iterator_category = std::forward_iterator_tag;
+    using difference_type   = std::ptrdiff_t;
+    using value_type        = product_operator<HandlerTy>;
+    using pointer           = product_operator<HandlerTy>*;
+    using reference         = product_operator<HandlerTy>&;
+
+    const_iterator(const operator_sum<HandlerTy> *sum)
+    : const_iterator(sum, sum->term_map.begin()) {}
+
+    const_iterator(const operator_sum<HandlerTy> *sum, 
+                   std::unordered_map<std::string, int>::const_iterator &&it)
+    : sum(sum), iter(std::move(it)), current_val(1.) {
+      if (iter != sum->term_map.end())
+        current_val = product_operator<HandlerTy>(sum->coefficients[iter->second], sum->terms[iter->second]);
+    }
+
+    bool operator==(const const_iterator &other) const {
+      return sum == other.sum && iter == other.iter;
+    }
+
+    bool operator!=(const const_iterator &other) const { return !(*this == other); }
+
+    reference operator*() { return current_val; } // not const - allow to move current_value
+    pointer operator->() { return &current_val; }
+
+    // prefix
+    const_iterator& operator++() {
+      if (++iter != sum->term_map.end())
+        current_val = product_operator<HandlerTy>(sum->coefficients[iter->second], sum->terms[iter->second]); 
+      return *this; 
+    }
+
+    // postfix
+    const_iterator operator++(int) { return const_iterator(sum, iter++); }
+  };
+
+  /// @brief Get iterator to beginning of operator terms
+  const_iterator begin() const { return const_iterator(this); }
+
+  /// @brief Get iterator to end of operator terms
+  const_iterator end() const { return const_iterator(this, this->term_map.cend()); }
+
   // read-only properties
 
   /// @brief The degrees of freedom that the operator acts on.
@@ -84,9 +136,6 @@ public:
 
   /// @brief Return the number of operator terms that make up this operator sum.
   std::size_t num_terms() const;
-
-  /// FIXME: GET RID OF THIS (MAKE ITERABLE INSTEAD)
-  std::vector<product_operator<HandlerTy>> get_terms() const;
 
   // constructors and destructors
 
@@ -428,7 +477,7 @@ protected:
                    std::vector<HandlerTy> &&atomic_operators, int size = 0);
 
 public:
-  // iterator subclass
+
   struct const_iterator {
   private:
     const product_operator<HandlerTy> *prod;

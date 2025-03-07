@@ -590,8 +590,7 @@ public:
     // Contruct data to send on to custatevec
     std::vector<std::string> termStrs;
     termStrs.reserve(nPauliOperatorArrays);
-    auto terms = op.get_terms();
-    for (const auto &term : terms) {
+    for (const auto &term : op) {
       coeffs.emplace_back(term.get_coefficient().evaluate());
       std::vector<custatevecPauli_t> paulis;
       std::vector<int32_t> idxs;

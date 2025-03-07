@@ -135,8 +135,7 @@ public:
 
       // this assumes we ran in shots mode.
       double sum = 0.0;
-      auto terms = spinOp->get_terms();
-      for (const auto &term : terms) {
+      for (const auto &term : spinOp.value()) {
         if (term.is_identity())
           // FIXME: simply taking real here is very unclean at best,
           // and might be wrong/hiding a user error that should cause a failure

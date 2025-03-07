@@ -67,15 +67,10 @@ EvalTy operator_sum<HandlerTy>::evaluate(
   if (terms.size() == 0)
     return EvalTy();
 
-  // NOTE: It is important that we evaluate the terms in a specific order,
-  // otherwise the evaluation is not consistent with other methods.
-  // The specific order does not matter, as long as all methods use the same term order.
-  auto terms = this->get_terms();
-  auto degrees = this->degrees(false); // keep in canonical order
-
   // Adding a tensor product with the identity for degrees that an operator
   // doesn't act on. Needed e.g. to make sure all matrices are of the same size
   // before summing them up.
+  auto degrees = this->degrees(false); // keep in canonical order
   auto paddedTerm = [&arithmetics, &degrees = std::as_const(degrees)](
                         product_operator<HandlerTy> &&term) {
     std::vector<HandlerTy> prod_ops;
@@ -94,19 +89,24 @@ EvalTy operator_sum<HandlerTy>::evaluate(
     return prod;
   };
 
+  // NOTE: It is important that we evaluate the terms in a specific order,
+  // otherwise the evaluation is not consistent with other methods.
+  // The specific order does not matter, as long as all methods use the same term order.
+  auto it = this->begin();
+  auto end = this->end();
   if (arithmetics.pad_sum_terms) {
-    product_operator<HandlerTy> padded_term = paddedTerm(std::move(terms[0]));
+    product_operator<HandlerTy> padded_term = paddedTerm(std::move(*it));
     EvalTy sum = padded_term.template evaluate<EvalTy>(arithmetics);
-    for (auto term_idx = 1; term_idx < terms.size(); ++term_idx) {
-      padded_term = paddedTerm(std::move(terms[term_idx]));
+    while (++it != end) {
+      padded_term = paddedTerm(std::move(*it));
       EvalTy term_eval = padded_term.template evaluate<EvalTy>(arithmetics);
       sum = arithmetics.add(std::move(sum), std::move(term_eval));
     }
     return sum;
   } else {
-    EvalTy sum = terms[0].template evaluate<EvalTy>(arithmetics);
-    for (auto term_idx = 1; term_idx < terms.size(); ++term_idx) {
-      EvalTy term_eval = terms[term_idx].template evaluate<EvalTy>(arithmetics);
+    EvalTy sum = it->template evaluate<EvalTy>(arithmetics);
+    while (++it != end) {
+      EvalTy term_eval = it->template evaluate<EvalTy>(arithmetics);
       sum = arithmetics.add(std::move(sum), std::move(term_eval));
     }
     return sum;
@@ -184,27 +184,12 @@ std::size_t operator_sum<HandlerTy>::num_terms() const {
   return this->terms.size();
 }
 
-template <typename HandlerTy>
-std::vector<product_operator<HandlerTy>>
-operator_sum<HandlerTy>::get_terms() const {
-  std::vector<product_operator<HandlerTy>> prods;
-  prods.reserve(this->terms.size());
-  for (size_t i = 0; i < this->terms.size(); ++i) {
-    prods.push_back(
-        product_operator<HandlerTy>(this->coefficients[i], this->terms[i]));
-  }
-  return std::move(prods);
-}
-
 #define INSTANTIATE_SUM_PROPERTIES(HandlerTy)                                  \
                                                                                \
   template std::vector<std::size_t> operator_sum<HandlerTy>::degrees(          \
       bool application_order) const;                                           \
                                                                                \
-  template std::size_t operator_sum<HandlerTy>::num_terms() const;             \
-                                                                               \
-  template std::vector<product_operator<HandlerTy>>                            \
-  operator_sum<HandlerTy>::get_terms() const;
+  template std::size_t operator_sum<HandlerTy>::num_terms() const;
 
 #if !defined(__clang__)
 INSTANTIATE_SUM_PROPERTIES(matrix_operator);
@@ -485,10 +470,9 @@ INSTANTIATE_SUM_ASSIGNMENTS(fermion_operator);
 
 template <typename HandlerTy>
 std::string operator_sum<HandlerTy>::to_string() const {
-  auto prods = this->get_terms();
-  auto it = prods.cbegin();
+  auto it = this->begin();
   std::string str = it->to_string();
-  while (++it != prods.cend())
+  while (++it != this->end())
     str += " + " + it->to_string();
   return std::move(str);
 }

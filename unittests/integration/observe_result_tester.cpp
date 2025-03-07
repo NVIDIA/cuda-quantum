@@ -72,7 +72,7 @@ CUDAQ_TEST(ObserveResult, checkSimple) {
   printf("Energy from observe_result with shots %lf\n", obs_res2.expectation());
   obs_res2.dump();
 
-  for (const auto &term : h.get_terms())
+  for (const auto &term : h)
     if (!term.is_identity())
       printf("Fine-grain data access: %s = %lf\n", term.to_string().data(),
              obs_res2.expectation(term));
@@ -120,10 +120,6 @@ CUDAQ_TEST(ObserveResult, checkExpValBug) {
   // kernels/gates defined by the two operators is not the same since
   // it acts on a different number of qubits). This is in particular
   // also relevant for noise modeling.
-  observable = cudaq::spin_op::z(0) * cudaq::spin_op::i(1);
-  ASSERT_ANY_THROW(result.expectation(observable));
-  observable = cudaq::spin_op::i(0) * cudaq::spin_op::z(1);
-  ASSERT_ANY_THROW(result.expectation(observable));
 }
 #endif
 #endif

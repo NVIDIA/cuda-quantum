@@ -78,8 +78,7 @@ public:
       auto user_data = nlohmann::json::object();
       auto obs = nlohmann::json::array();
 
-      auto spinop_terms = spin->get_terms();
-      for (const auto &term : spinop_terms) {
+      for (const auto &term : *spin) {
         auto spin_op = nlohmann::json::object();
 
         auto terms = nlohmann::json::array();

@@ -405,10 +405,13 @@ SimulatorTensorNetBase::observe(const cudaq::spin_op &ham) {
   }
 
   std::vector<std::string> termStrs;
+  std::vector<cudaq::spin_op_term> prods;
   termStrs.reserve(ham.num_terms());
-  auto prods = ham.get_terms();
-  for (const auto &term : prods)
+  prods.reserve(ham.num_terms());
+  for (auto &&term : ham) {
     termStrs.emplace_back(term.get_term_id());
+    prods.push_back(std::move(term));
+  }
 
   // Compute the expectation value for all terms
   const auto termExpVals = m_state->computeExpVals(

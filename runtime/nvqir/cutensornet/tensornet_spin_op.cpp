@@ -88,8 +88,7 @@ TensorNetworkSpinOp::TensorNetworkSpinOp(const cudaq::spin_op &spinOp,
       m_pauli_d[pauli] = d_mat;
     }
 
-    auto terms = spinOp.get_terms();
-    for (const auto &term : terms) {
+    for (const auto &term : spinOp) {
       auto coeff = term.get_coefficient().evaluate();
       if (term.is_identity()) {
         // Note: we don't add I Pauli.

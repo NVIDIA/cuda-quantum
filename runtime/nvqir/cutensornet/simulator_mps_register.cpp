@@ -251,11 +251,13 @@ public:
                     std::vector<cudaq::spin_op_term>>
   prepareSpinOpTermData(const cudaq::spin_op &ham) {
     std::vector<std::string> termStrs;
+    std::vector<cudaq::spin_op_term> prods;
     termStrs.reserve(ham.num_terms());
-
-    auto prods = ham.get_terms();
-    for (const auto &term : prods)
+    prods.reserve(ham.num_terms());
+    for (auto &&term : prods) {
       termStrs.emplace_back(term.get_term_id());
+      prods.push_back(std::move(term));
+    }
     return std::make_tuple(termStrs, prods);
   }
 

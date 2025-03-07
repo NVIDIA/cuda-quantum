@@ -518,8 +518,7 @@ public:
       mapping_reorder_idx.clear();
       runPassPipeline("canonicalize,cse", moduleOp);
       cudaq::spin_op &spin = *executionContext->spin.value();
-      auto terms = spin.get_terms();
-      for (const auto &term : terms) {
+      for (const auto &term : spin) {
         if (term.is_identity())
           continue;
 

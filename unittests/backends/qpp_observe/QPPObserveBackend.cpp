@@ -31,8 +31,7 @@ public:
     // Want to loop over all terms in op and
     // compute E_i = coeff_i * < psi | Term | psi >
     // = coeff_i * sum_k <psi | Pauli_k psi>
-    auto terms = op.get_terms();
-    for (const auto &term : terms) {
+    for (const auto &term : op) {
       if (!term.is_identity()) {
         ::qpp::ket cached = state;
         auto bsf = term.get_binary_symplectic_form();

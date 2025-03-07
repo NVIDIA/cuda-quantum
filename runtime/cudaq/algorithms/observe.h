@@ -122,8 +122,7 @@ runObservation(KernelFunctor &&k, cudaq::spin_op &h, quantum_platform &platform,
   else {
     // If not, we have everything we need to compute it.
     double sum = 0.0;
-    auto terms = h.get_terms();
-    for (const auto &term : terms) {
+    for (const auto &term : h) {
       if (term.is_identity())
         sum += term.get_coefficient().evaluate().real();
       else

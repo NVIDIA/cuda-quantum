@@ -90,8 +90,7 @@ public:
   /// Assumes there is at more one identity term. 
   /// Returns 0 if no identity term exists.
   double id_coefficient() {
-    auto terms = spinOp.get_terms();
-    for (const auto &term : terms)
+    for (const auto &term : spinOp)
       if (term.is_identity())
         return term.get_coefficient().evaluate().real();
     return 0.0;

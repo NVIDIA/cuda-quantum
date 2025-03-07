@@ -86,8 +86,7 @@ protected:
       } else {
 
         // Loop over each term and compute coeff * <term>
-        auto terms = H.get_terms();
-        for (const auto &term : terms) {
+        for (const auto &term : H) {
           if (term.is_identity())
             sum += term.get_coefficient().evaluate().real();
           else {
