@@ -18,6 +18,7 @@
 #include "common/RuntimeMLIR.h"
 #include "cudaq.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
+#include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
@@ -136,8 +137,8 @@ protected:
     delete jit;
   }
 
-  virtual std::tuple<mlir::ModuleOp, mlir::MLIRContext *, void *>
-  extractQuakeCodeAndContext(const std::string &kernelName, void *data) = 0;
+  virtual std::tuple<mlir::ModuleOp, mlir::MLIRContext *>
+  extractQuakeCodeAndContext(const std::string &kernelName) = 0;
   virtual void cleanupContext(mlir::MLIRContext *context) { return; }
 
 public:
@@ -401,8 +402,7 @@ public:
   lowerQuakeCode(const std::string &kernelName, void *kernelArgs,
                  const std::vector<void *> &rawArgs) {
 
-    auto [m_module, contextPtr, updatedArgs] =
-        extractQuakeCodeAndContext(kernelName, kernelArgs);
+    auto [m_module, contextPtr] = extractQuakeCodeAndContext(kernelName);
 
     mlir::MLIRContext &context = *contextPtr;
 
@@ -424,8 +424,8 @@ public:
     for (auto &op : m_module.getOps()) {
       // Add any global symbols, including global constant arrays.
       // Global constant arrays can be created during compilation,
-      // `lift-array-alloc`, `quake-synthesizer`, and `get-concrete-matrix`
-      // passes.
+      // `lift-array-alloc`, `argument-synthesis`, `quake-synthesizer`,
+      // and `get-concrete-matrix` passes.
       if (auto globalOp = dyn_cast<cudaq::cc::GlobalOp>(op))
         moduleOp.push_back(globalOp.clone());
     }
@@ -449,25 +449,45 @@ public:
         throw std::runtime_error("Remote rest platform Quake lowering failed.");
     };
 
-    if (!rawArgs.empty() || updatedArgs) {
+    if (!rawArgs.empty()) {
       mlir::PassManager pm(&context);
-      if (!rawArgs.empty()) {
-        cudaq::info("Run Argument Synth.\n");
-        opt::ArgumentConverter argCon(kernelName, moduleOp, false);
-        argCon.gen(rawArgs);
-        std::string kernName = cudaq::runtime::cudaqGenPrefixName + kernelName;
-        mlir::SmallVector<mlir::StringRef> kernels = {kernName};
-        std::string substBuff;
-        llvm::raw_string_ostream ss(substBuff);
-        ss << argCon.getSubstitutionModule();
-        mlir::SmallVector<mlir::StringRef> substs = {substBuff};
-        pm.addNestedPass<mlir::func::FuncOp>(
-            opt::createArgumentSynthesisPass(kernels, substs));
-        pm.addPass(opt::createDeleteStates());
-      } else if (updatedArgs) {
-        cudaq::info("Run Quake Synth.\n");
-        pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));
+      cudaq::info("Run Argument Synth.\n");
+      // For quantum devices, create a list of ArgumentConverters
+      // with nodes corresponding to `init` and `num_qubits` functions
+      // created from a kernel that generated the state argument.
+      // Traverse the list and collect substitutions for all those
+      // functions.
+      auto argCon = cudaq::opt::ArgumentConverter(kernelName, moduleOp);
+      argCon.gen(rawArgs);
+
+      // Store kernel and substitution strings on the stack.
+      // We pass string references to the `createArgumentSynthesisPass`.
+      mlir::SmallVector<std::string> kernels;
+      mlir::SmallVector<std::string> substs;
+      for (auto &kInfo : argCon.getKernelSubstitutions()) {
+        {
+          std::string kernName =
+              cudaq::runtime::cudaqGenPrefixName + kInfo.getKernelName().str();
+          kernels.emplace_back(kernName);
+        }
+        {
+          std::string substBuff;
+          llvm::raw_string_ostream ss(substBuff);
+          ss << kInfo.getSubstitutionModule();
+          substs.emplace_back(substBuff);
+        }
       }
+
+      // Collect references for the argument synthesis.
+      mlir::SmallVector<mlir::StringRef> kernelRefs{kernels.begin(),
+                                                    kernels.end()};
+      mlir::SmallVector<mlir::StringRef> substRefs{substs.begin(),
+                                                   substs.end()};
+      pm.addPass(opt::createArgumentSynthesisPass(kernelRefs, substRefs));
+      pm.addPass(opt::createDeleteStates());
+      pm.addNestedPass<mlir::func::FuncOp>(opt::createReplaceStateWithKernel());
+      pm.addPass(mlir::createSymbolDCEPass());
+
       pm.addPass(mlir::createCanonicalizerPass());
       if (disableMLIRthreading || enablePrintMLIREachPass)
         moduleOp.getContext()->disableMultithreading();
@@ -686,7 +706,7 @@ public:
             std::vector<cudaq::ExecutionResult> results;
 
             // If seed is 0, then it has not been set.
-            if (seed > 0)
+            if (seed == 0)
               cudaq::set_random_seed(seed);
 
             bool hasConditionals =
@@ -694,6 +714,7 @@ public:
             if (hasConditionals && isObserve)
               throw std::runtime_error("error: spin_ops not yet supported with "
                                        "kernels containing conditionals");
+
             if (hasConditionals) {
               executor->setShots(1); // run one shot at a time
 
@@ -719,6 +740,8 @@ public:
                       counts.sequential_data(regName);
                 }
               }
+              localJIT.clear();
+              return cudaq::sample_result(results);
             }
 
             for (std::size_t i = 0; i < codes.size(); i++) {

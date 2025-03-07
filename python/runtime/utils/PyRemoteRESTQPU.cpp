@@ -9,6 +9,7 @@
 #include "common/ArgumentWrapper.h"
 #include "common/BaseRemoteRESTQPU.h"
 #include "common/RuntimeMLIRCommonImpl.h"
+#include "cudaq/Optimizer/InitAllDialects.h"
 
 // [RFC]:
 // The RemoteRESTQPU implementation that is now split across several files needs
@@ -57,16 +58,15 @@ TranslateFromMLIRRegistration::TranslateFromMLIRRegistration(
 // implement some core functionality here in PyRemoteRESTQPU so we don't load
 // twice
 class PyRemoteRESTQPU : public cudaq::BaseRemoteRESTQPU {
-protected:
-  std::tuple<ModuleOp, MLIRContext *, void *>
-  extractQuakeCodeAndContext(const std::string &kernelName,
-                             void *data) override {
+private:
+  /// Creates new context without mlir initialization.
+  std::unique_ptr<MLIRContext> createContext() {
+    DialectRegistry registry;
+    cudaq::opt::registerCodeGenDialect(registry);
+    cudaq::registerAllDialects(registry);
+    auto context = std::make_unique<MLIRContext>(registry);
+    context->loadAllAvailableDialects();
 
-    auto *wrapper = reinterpret_cast<cudaq::ArgWrapper *>(data);
-    auto m_module = wrapper->mod;
-    auto callableNames = wrapper->callableNames;
-
-    auto *context = m_module->getContext();
     static bool initOnce = [&] {
       registerToQIRTranslation();
       registerToOpenQASMTranslation();
@@ -76,12 +76,27 @@ protected:
     }();
     (void)initOnce;
 
+    return context;
+  }
+
+protected:
+  std::tuple<mlir::ModuleOp, mlir::MLIRContext *>
+  extractQuakeCodeAndContext(const std::string &kernelName) override {
+
+    auto contextPtr = createContext();
+    MLIRContext *context = contextPtr.get();
+
+    // Get the quake representation of the kernel
+    auto quakeCode = cudaq::get_quake_by_name(kernelName);
+    auto m_module = parseSourceString<ModuleOp>(quakeCode, context);
+    if (!m_module)
+      throw std::runtime_error("module cannot be parsed");
+
     // Here we have an opportunity to run any passes that are
     // specific to python before the rest of the RemoteRESTQPU workflow
-    auto cloned = m_module.clone();
+    auto cloned = m_module->clone();
     PassManager pm(cloned.getContext());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createPySynthCallableBlockArgs(
-        SmallVector<StringRef>(callableNames.begin(), callableNames.end())));
+
     cudaq::opt::addAggressiveEarlyInlining(pm);
     pm.addPass(mlir::createCanonicalizerPass());
     pm.addNestedPass<mlir::func::FuncOp>(
@@ -103,8 +118,10 @@ protected:
     // The remote rest qpu workflow will need the module string in
     // the internal registry.
     __cudaq_deviceCodeHolderAdd(kernelName.c_str(), moduleStr.c_str());
-    return std::make_tuple(cloned, context, wrapper->rawArgs);
+    return std::make_tuple(cloned, contextPtr.release());
   }
+
+  void cleanupContext(MLIRContext *context) override { delete context; }
 };
 } // namespace cudaq
 
