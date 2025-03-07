@@ -163,6 +163,9 @@ public:
     return codegenTranslation == "qir-adaptive";
   }
 
+  /// @brief Return true if the current backend supports explicit measurements
+  bool supportsExplicitMeasurements() override { return false; }
+
   /// Provide the number of shots
   void setShots(int _nShots) override {
     nShots = _nShots;
@@ -569,7 +572,8 @@ public:
     }
 
     if (emulate && combineMeasurements)
-      runPassPipeline("func.func(combine-measurements)", moduleOp);
+      for (auto &[name, module] : modules)
+        runPassPipeline("func.func(combine-measurements)", module);
 
     // Get the code gen translation
     auto translation = cudaq::getTranslation(codegenTranslation);

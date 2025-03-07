@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/utils/tensor.h"
+#include <cmath>
 #include <sstream>
 
 inline std::complex<double> &access(std::complex<double> *p,
@@ -61,6 +62,23 @@ cudaq::matrix_2 &cudaq::matrix_2::operator-=(const cudaq::matrix_2 &right) {
       access(data, dimensions, i, j) -=
           access(right.data, right.dimensions, i, j);
   return *this;
+}
+
+bool cudaq::operator==(const cudaq::matrix_2 &lhs, const cudaq::matrix_2 &rhs) {
+  if (lhs.get_rows() != rhs.get_rows() ||
+      lhs.get_columns() != rhs.get_columns()) {
+    return false;
+  }
+
+  for (std::size_t i = 0; i < lhs.get_rows(); i++) {
+    for (std::size_t j = 0; j < lhs.get_columns(); j++) {
+      if (lhs[{i, j}] != rhs[{i, j}]) {
+        return false;
+      }
+    }
+  }
+
+  return true;
 }
 
 cudaq::matrix_2 &
@@ -126,4 +144,72 @@ std::string cudaq::matrix_2::dump() const {
   }
   out << '}';
   return out.str();
+}
+
+// Calculate the power of a given matrix, `powers` times.
+cudaq::matrix_2 cudaq::matrix_2::power(int powers) {
+  // Initialize as identity.
+  std::size_t rows = get_rows();
+  std::size_t columns = get_columns();
+  if (rows != columns)
+    throw std::runtime_error("Matrix power expects a square matrix.");
+  auto result = cudaq::matrix_2(rows, columns);
+  for (std::size_t i = 0; i < rows; i++) {
+    result[{i, i}] = 1.0;
+  }
+
+  // Calculate the matrix power iteratively.
+  for (std::size_t i = 0; i < powers; i++) {
+    result = result * *this;
+  }
+  return result;
+}
+
+// Calculate the Taylor approximation to the exponential of the given matrix.
+cudaq::matrix_2 cudaq::matrix_2::exponential() {
+  auto factorial = [](std::size_t value) {
+    std::size_t res = 1;
+    for (std::size_t factor = 2; factor <= value; ++factor)
+      res *= factor;
+    return (double)res;
+  };
+
+  std::size_t rows = get_rows();
+  std::size_t columns = get_columns();
+  if (rows != columns)
+    throw std::runtime_error("Matrix exponential expects a square matrix.");
+  auto result = cudaq::matrix_2(rows, columns);
+  // Taylor Series Approximation, fixed at 20 steps.
+  std::size_t taylor_steps = 20;
+  for (std::size_t step = 0; step < taylor_steps; step++) {
+    auto term = this->power(step);
+    for (std::size_t i = 0; i < rows; i++) {
+      for (std::size_t j = 0; j < columns; j++) {
+        result[{i, j}] += term[{i, j}] / factorial(step);
+      }
+    }
+  }
+  return result;
+}
+
+cudaq::matrix_2 cudaq::matrix_2::identity(const std::size_t rows) {
+  auto result = cudaq::matrix_2(rows, rows);
+  for (std::size_t i = 0; i < rows; i++)
+    result[{i, i}] = 1.;
+  return result;
+}
+
+// Transpose + Conjugate
+cudaq::matrix_2 cudaq::matrix_2::adjoint() {
+  std::size_t rows = get_rows();
+  std::size_t cols = get_columns();
+  matrix_2 result(cols, rows);
+
+  for (std::size_t i = 0; i < rows; i++) {
+    for (std::size_t j = 0; j < cols; j++) {
+      result[{j, i}] = std::conj((*this)[{i, j}]);
+    }
+  }
+
+  return result;
 }

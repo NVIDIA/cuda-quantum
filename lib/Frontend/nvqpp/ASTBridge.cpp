@@ -53,7 +53,7 @@ listReachableFunctions(clang::CallGraphNode *cgn) {
 // Does `ty` refer to a Quake quantum type? This also checks custom recursive
 // types. It does not check builtin recursive types; e.g., `!llvm.ptr<T>`.
 static bool isQubitType(Type ty) {
-  if (ty.isa<quake::RefType, quake::VeqType>())
+  if (quake::isQuakeType(ty))
     return true;
   // FIXME: next if case is a bug.
   if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(ty))
@@ -430,14 +430,17 @@ namespace cudaq::details {
 
 bool QuakeBridgeVisitor::generateFunctionDeclaration(
     StringRef funcName, const clang::FunctionDecl *x) {
-  auto loc = toLocation(x);
   allowUnknownRecordType = true;
-  if (!TraverseType(x->getType()))
-    emitFatalError(loc, "failed to generate type for kernel function");
+  if (!TraverseType(x->getType())) {
+    reportClangError(x, mangler, "failed to generate type for kernel function");
+    typeStack.clear();
+    return false;
+  }
   allowUnknownRecordType = false;
   if (!doSyntaxChecks(x))
     return false;
   auto funcTy = cast<FunctionType>(popType());
+  auto loc = toLocation(x);
   [[maybe_unused]] auto fnPair = getOrAddFunc(loc, funcName, funcTy);
   assert(fnPair.first && "expected FuncOp to be created");
   if (!isa<clang::CXXMethodDecl>(x) || x->isStatic())
