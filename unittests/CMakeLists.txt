@@ -284,6 +284,78 @@ target_link_libraries(test_operators
   gtest_main)
 gtest_discover_tests(test_operators)
 
+if (CUDA_FOUND)
+  find_package(CUDAToolkit REQUIRED)
+
+  find_library(CUTENSOR_LIB
+    NAMES   cutensor libcutensor.so.2
+    HINTS
+        ${CUTENSOR_ROOT}/lib64
+        ${CUTENSOR_ROOT}/lib
+        ${CUTENSOR_ROOT}/lib64/${CUDAToolkit_VERSION_MAJOR}
+        ${CUTENSOR_ROOT}/lib/${CUDAToolkit_VERSION_MAJOR}
+  )
+  
+  # Create an executable for dynamics UnitTests
+  set(CUDAQ_DYNAMICS_TEST_SOURCES 
+    dynamics/test_RungeKuttaIntegrator.cpp
+    dynamics/test_Helpers.cpp
+    dynamics/test_CuDensityMatState.cpp
+    dynamics/test_CuDensityMatTimeStepper.cpp
+    dynamics/test_CuDensityMatExpectation.cpp
+    dynamics/test_EvolveSingle.cpp
+    dynamics/test_EvolveApi.cpp
+  )
+  add_executable(test_dynamics main.cpp ${CUDAQ_DYNAMICS_TEST_SOURCES})
+  target_compile_definitions(test_dynamics PRIVATE -DCUDAQ_DYNAMICS_TARGET)
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+    target_link_options(test_dynamics PRIVATE -Wl,--no-as-needed)
+  endif()
+  target_link_libraries(test_dynamics
+    PRIVATE
+    cudaq-spin
+    cudaq-operator
+    cudaq
+    nvqir-dynamics
+    ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
+    CUDA::cudart
+    CUDA::cublas
+    ${CUTENSOR_LIB}
+    gtest_main
+    fmt::fmt-header-only)
+  target_include_directories(test_dynamics PRIVATE ${CMAKE_SOURCE_DIR}/runtime/nvqir/cudensitymat)
+  gtest_discover_tests(test_dynamics PROPERTIES LABELS "gpu_required")
+
+  # Multi-QPU evolve_async test
+  add_executable(test_evolve_async mqpu/dynamics_async_tester.cpp)
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+    target_link_options(test_evolve_async PRIVATE -Wl,--no-as-needed)
+  endif()
+  target_compile_definitions(test_evolve_async PRIVATE -DCUDAQ_DYNAMICS_TARGET)
+  target_link_libraries(test_evolve_async
+    PRIVATE
+    cudaq-spin
+    cudaq-operator
+    cudaq
+    cudaq-platform-mqpu
+    nvqir-dynamics
+    ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
+    CUDA::cudart
+    CUDA::cublas
+    ${CUTENSOR_LIB}
+    gtest_main
+    fmt::fmt-header-only)
+  # Count the number of GPUs
+  find_program(NVIDIA_SMI "nvidia-smi")
+  if(NVIDIA_SMI)
+    execute_process(COMMAND bash -c "nvidia-smi --list-gpus | wc -l" OUTPUT_VARIABLE NGPUS)
+    # Only add this test if we have more than 1 GPU
+    if (${NGPUS} GREATER_EQUAL 2)
+      gtest_discover_tests(test_evolve_async PROPERTIES LABELS "gpu_required;mgpus_required")
+    endif()
+  endif() 
+endif()
+
 add_subdirectory(plugin)
 
 # build the test qudit execution manager

@@ -430,14 +430,17 @@ namespace cudaq::details {
 
 bool QuakeBridgeVisitor::generateFunctionDeclaration(
     StringRef funcName, const clang::FunctionDecl *x) {
-  auto loc = toLocation(x);
   allowUnknownRecordType = true;
-  if (!TraverseType(x->getType()))
-    emitFatalError(loc, "failed to generate type for kernel function");
+  if (!TraverseType(x->getType())) {
+    reportClangError(x, mangler, "failed to generate type for kernel function");
+    typeStack.clear();
+    return false;
+  }
   allowUnknownRecordType = false;
   if (!doSyntaxChecks(x))
     return false;
   auto funcTy = cast<FunctionType>(popType());
+  auto loc = toLocation(x);
   [[maybe_unused]] auto fnPair = getOrAddFunc(loc, funcName, funcTy);
   assert(fnPair.first && "expected FuncOp to be created");
   if (!isa<clang::CXXMethodDecl>(x) || x->isStatic())
