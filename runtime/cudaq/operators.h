@@ -26,7 +26,7 @@ class spin_operator;
 
 #define HANDLER_SPECIFIC_TEMPLATE(ConcreteTy)                                             \
   template <typename T = HandlerTy, std::enable_if_t<                                     \
-                                      std::is_same<T, ConcreteTy>::value &&       \
+                                      std::is_same<T, ConcreteTy>::value &&               \
                                       std::is_same<HandlerTy, T>::value, bool> = true>
 
   // utility functions for backward compatibility
