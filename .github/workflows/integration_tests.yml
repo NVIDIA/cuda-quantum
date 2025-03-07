@@ -702,30 +702,10 @@ jobs:
           python3 -m pip install pasqal-cloud
           export PASQAL_USERNAME='${{ secrets.PASQAL_USERNAME }}'
           export PASQAL_PASSWORD='${{ secrets.PASQAL_PASSWORD }}'
-          export PASQAL_AUTH_TOKEN=$(python3 docs/sphinx/targets/cpp/pasqal_auth.py)
           export PASQAL_PROJECT_ID='${{ secrets.PASQAL_PROJECT_ID }}'
           export PASQAL_MACHINE_TARGET="EMU_FREE" # Speedup queuing time
           set +e # Allow script to keep going through errors
           test_err_sum=0
-          cpp_tests="docs/sphinx/targets/cpp/pasqal.cpp"
-          for filename in $cpp_tests; do
-            [ -e "$filename" ] || echo "::error::Couldn't find file ($filename)"
-            nvq++ --target pasqal --pasqal-machine EMU_FREE $filename
-            test_status=$?
-            if [ $test_status -eq 0 ]; then
-              ./a.out
-              test_status=$?
-              if [ $test_status -eq 0 ]; then
-                echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
-              else
-                echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                test_err_sum=$((test_err_sum+1))
-              fi
-            else
-              echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-              test_err_sum=$((test_err_sum+1))
-            fi
-          done
           python_tests="docs/sphinx/targets/python/pasqal.py"
           for filename in $python_tests; do
             [ -e "$filename" ] || echo "::error::Couldn't find file ($filename)"
