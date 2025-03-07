@@ -216,7 +216,7 @@ do
         fi
 
         echo "Testing on $t target..."
-        if [ "$t" == "nvidia" || "$t" == "dynamics" ]; then
+        if [[ "$t" == "nvidia" || "$t" == "dynamics" ]]; then
             # For the unified 'nvidia' target, we validate all target options as well.
             # Note: this overlaps some legacy standalone targets (e.g., nvidia-mqpu, nvidia-mgpu, etc.),
             # but we want to make sure all supported configurations in the unified 'nvidia' target are validated.
