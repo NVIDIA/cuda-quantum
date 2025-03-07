@@ -60,7 +60,7 @@ void matrix_handler::define(std::string operator_id,
                              "is already defined");
 }
 
-product_operator<matrix_handler>
+product_op<matrix_handler>
 matrix_handler::instantiate(std::string operator_id,
                              const std::vector<int> &degrees,
                              const commutation_behavior &commutation_behavior) {
@@ -80,11 +80,11 @@ matrix_handler::instantiate(std::string operator_id,
     err_msg << "})";
     throw std::runtime_error(err_msg.str());
   }
-  return product_operator(
+  return product_op(
       matrix_handler(operator_id, degrees, commutation_behavior));
 }
 
-product_operator<matrix_handler>
+product_op<matrix_handler>
 matrix_handler::instantiate(std::string operator_id,
                              std::vector<int> &&degrees,
                              const commutation_behavior &commutation_behavior) {
@@ -104,7 +104,7 @@ matrix_handler::instantiate(std::string operator_id,
     err_msg << "})";
     throw std::runtime_error(err_msg.str());
   }
-  return product_operator(
+  return product_op(
       matrix_handler(operator_id, std::move(degrees), commutation_behavior));
 }
 
@@ -364,7 +364,7 @@ bool matrix_handler::operator==(const matrix_handler &other) const {
 
 // predefined operators
 
-product_operator<matrix_handler> matrix_handler::number(int degree) {
+product_op<matrix_handler> matrix_handler::number(int degree) {
   std::string op_code = "number";
   if (matrix_handler::defined_ops.find(op_code) ==
       matrix_handler::defined_ops.end()) {
@@ -381,10 +381,10 @@ product_operator<matrix_handler> matrix_handler::number(int degree) {
     matrix_handler::define(op_code, {-1}, func);
   }
   auto op = matrix_handler(op_code, {degree});
-  return product_operator(std::move(op));
+  return product_op(std::move(op));
 }
 
-product_operator<matrix_handler> matrix_handler::parity(int degree) {
+product_op<matrix_handler> matrix_handler::parity(int degree) {
   std::string op_code = "parity";
   if (matrix_handler::defined_ops.find(op_code) ==
       matrix_handler::defined_ops.end()) {
@@ -401,10 +401,10 @@ product_operator<matrix_handler> matrix_handler::parity(int degree) {
     matrix_handler::define(op_code, {-1}, func);
   }
   auto op = matrix_handler(op_code, {degree});
-  return product_operator(std::move(op));
+  return product_op(std::move(op));
 }
 
-product_operator<matrix_handler> matrix_handler::position(int degree) {
+product_op<matrix_handler> matrix_handler::position(int degree) {
   std::string op_code = "position";
   if (matrix_handler::defined_ops.find(op_code) ==
       matrix_handler::defined_ops.end()) {
@@ -423,10 +423,10 @@ product_operator<matrix_handler> matrix_handler::position(int degree) {
     matrix_handler::define(op_code, {-1}, func);
   }
   auto op = matrix_handler(op_code, {degree});
-  return product_operator(std::move(op));
+  return product_op(std::move(op));
 }
 
-product_operator<matrix_handler> matrix_handler::momentum(int degree) {
+product_op<matrix_handler> matrix_handler::momentum(int degree) {
   std::string op_code = "momentum";
   if (matrix_handler::defined_ops.find(op_code) ==
       matrix_handler::defined_ops.end()) {
@@ -447,10 +447,10 @@ product_operator<matrix_handler> matrix_handler::momentum(int degree) {
     matrix_handler::define(op_code, {-1}, func);
   }
   auto op = matrix_handler(op_code, {degree});
-  return product_operator(std::move(op));
+  return product_op(std::move(op));
 }
 
-product_operator<matrix_handler> matrix_handler::displace(int degree) {
+product_op<matrix_handler> matrix_handler::displace(int degree) {
   std::string op_code = "displace";
   if (matrix_handler::defined_ops.find(op_code) ==
       matrix_handler::defined_ops.end()) {
@@ -475,10 +475,10 @@ product_operator<matrix_handler> matrix_handler::displace(int degree) {
     matrix_handler::define(op_code, {-1}, func);
   }
   auto op = matrix_handler(op_code, {degree});
-  return product_operator(std::move(op));
+  return product_op(std::move(op));
 }
 
-product_operator<matrix_handler> matrix_handler::squeeze(int degree) {
+product_op<matrix_handler> matrix_handler::squeeze(int degree) {
   std::string op_code = "squeeze";
   if (matrix_handler::defined_ops.find(op_code) ==
       matrix_handler::defined_ops.end()) {
@@ -504,7 +504,7 @@ product_operator<matrix_handler> matrix_handler::squeeze(int degree) {
     matrix_handler::define(op_code, {-1}, func);
   }
   auto op = matrix_handler(op_code, {degree});
-  return product_operator(std::move(op));
+  return product_op(std::move(op));
 }
 
 // tools for custom operators

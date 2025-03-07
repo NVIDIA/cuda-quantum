@@ -65,8 +65,8 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
     auto op0 = cudaq::matrix_op::position(0);
     auto op1 = cudaq::matrix_op::momentum(1);
 
-    cudaq::product_operator got = op0 * op1;
-    cudaq::product_operator got_reverse = op1 * op0;
+    cudaq::product_op got = op0 * op1;
+    cudaq::product_op got_reverse = op1 * op0;
 
     ASSERT_TRUE(got.degrees() == want_degrees);
     ASSERT_TRUE(got_reverse.degrees() == want_degrees);
@@ -107,8 +107,8 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
     auto op0 = cudaq::matrix_op::position(0);
     auto op1 = cudaq::matrix_op::momentum(2);
 
-    cudaq::product_operator got = op0 * op1;
-    cudaq::product_operator got_reverse = op1 * op0;
+    cudaq::product_op got = op0 * op1;
+    cudaq::product_op got_reverse = op1 * op0;
 
     ASSERT_TRUE(got.degrees() == want_degrees);
     ASSERT_TRUE(got_reverse.degrees() == want_degrees);
@@ -150,8 +150,8 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
     auto op0 = cudaq::matrix_op::position(0);
     auto op1 = cudaq::matrix_op::momentum(2);
 
-    cudaq::product_operator got = op0 * op1;
-    cudaq::product_operator got_reverse = op1 * op0;
+    cudaq::product_op got = op0 * op1;
+    cudaq::product_op got_reverse = op1 * op0;
 
     std::vector<std::size_t> want_degrees = {0, 2};
     ASSERT_TRUE(got.degrees() == want_degrees);
@@ -265,7 +265,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
   std::complex<double> value_0 = 0.1 + 0.1;
   int level_count = 3;
 
-  /// `product_operator + double`
+  /// `product_op + double`
   {
     auto product_op = cudaq::matrix_op::position(0) *
                       cudaq::matrix_op::position(1);
@@ -298,7 +298,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
-  /// `product_operator + complex<double>`
+  /// `product_op + complex<double>`
   {
     auto product_op = cudaq::matrix_op::position(0) *
                       cudaq::matrix_op::position(1);
@@ -361,7 +361,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
-  /// `product_operator + scalar_operator`
+  /// `product_op + scalar_operator`
   {
     auto product_op = cudaq::matrix_op::position(0) *
                       cudaq::matrix_op::position(1);
@@ -396,7 +396,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
-  /// `product_operator - double`
+  /// `product_op - double`
   {
     auto product_op = cudaq::matrix_op::position(0) *
                       cudaq::matrix_op::position(1);
@@ -459,7 +459,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
-  /// `product_operator - complex<double>`
+  /// `product_op - complex<double>`
   {
     auto product_op = cudaq::matrix_op::position(0) *
                       cudaq::matrix_op::position(1);
@@ -494,7 +494,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
-  /// `product_operator - scalar_operator`
+  /// `product_op - scalar_operator`
   {
     auto product_op = cudaq::matrix_op::momentum(0) *
                       cudaq::matrix_op::momentum(1);
@@ -530,7 +530,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
-  /// `product_operator * double`
+  /// `product_op * double`
   {
     auto product_op =
         cudaq::matrix_op::parity(0) * cudaq::matrix_op::parity(1);
@@ -570,7 +570,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
-  /// `product_operator * complex<double>`
+  /// `product_op * complex<double>`
   {
     auto product_op =
         cudaq::matrix_op::number(0) * cudaq::matrix_op::number(1);
@@ -609,7 +609,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
-  /// `product_operator * scalar_operator`
+  /// `product_op * scalar_operator`
   {
     auto product_op = cudaq::matrix_op::position(0) *
                       cudaq::matrix_op::position(1);
@@ -678,7 +678,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
-  /// `product_operator / double`
+  /// `product_op / double`
   {
     auto product_op =
         cudaq::matrix_op::parity(0) * cudaq::matrix_op::parity(1);
@@ -710,7 +710,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
-  /// `product_operator / complex<double>`
+  /// `product_op / complex<double>`
   {
     auto product_op =
         cudaq::matrix_op::number(0) * cudaq::matrix_op::number(1);
@@ -742,7 +742,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
-  /// `product_operator / scalar_operator`
+  /// `product_op / scalar_operator`
   {
     auto product_op = cudaq::matrix_op::position(0) *
                       cudaq::matrix_op::position(1);
@@ -799,7 +799,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
-  /// `product_operator *= double`
+  /// `product_op *= double`
   {
     auto product = cudaq::matrix_op::position(0) *
                    cudaq::matrix_op::momentum(1);
@@ -850,7 +850,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  /// `product_operator *= complex<double>`
+  /// `product_op *= complex<double>`
   {
     auto product =
         cudaq::matrix_op::number(0) * cudaq::matrix_op::momentum(1);
@@ -877,7 +877,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  /// `product_operator *= scalar_operator`
+  /// `product_op *= scalar_operator`
   {
     auto product =
         cudaq::matrix_op::number(0) * cudaq::matrix_op::momentum(1);
@@ -906,7 +906,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  /// `product_operator /= double`
+  /// `product_op /= double`
   {
     auto product = cudaq::matrix_op::position(0) *
                    cudaq::matrix_op::momentum(1);
@@ -957,7 +957,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  /// `product_operator /= complex<double>`
+  /// `product_op /= complex<double>`
   {
     auto product =
         cudaq::matrix_op::number(0) * cudaq::matrix_op::momentum(1);
@@ -984,7 +984,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  /// `product_operator /= scalar_operator`
+  /// `product_op /= scalar_operator`
   {
     auto product =
         cudaq::matrix_op::number(0) * cudaq::matrix_op::momentum(1);
@@ -1021,7 +1021,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
   std::unordered_map<int, int> dimensions = {
       {0, level_count}, {1, level_count}, {2, level_count + 1}};
 
-  // `product_operator + product_operator`
+  // `product_op + product_op`
   {
     auto term_0 = cudaq::matrix_op::position(0) *
                   cudaq::matrix_op::position(1);
@@ -1105,7 +1105,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  // `product_operator - product_operator`
+  // `product_op - product_op`
   {
     auto term_0 =
         cudaq::matrix_op::position(0) * cudaq::matrix_op::number(1);
@@ -1184,7 +1184,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
     utils::checkEqual(want_reverse_matrix, reverse_matrix);
   }
 
-  // `product_operator * product_operator`
+  // `product_op * product_op`
   {
     auto term_0 = cudaq::matrix_op::position(0) *
                   cudaq::matrix_op::position(1);
@@ -1269,7 +1269,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `product_operator *= product_operator`
+  // `product_op *= product_op`
   {
     auto term_0 =
         cudaq::matrix_op::position(0) * cudaq::matrix_op::number(1);
@@ -1361,7 +1361,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
   std::unordered_map<int, int> dimensions = {
       {0, level_count}, {1, level_count}, {2, level_count + 1}};
 
-  // `product_operator + operator_sum`
+  // `product_op + sum_op`
   {
     auto product = cudaq::matrix_op::position(0) *
                    cudaq::matrix_op::position(1);
@@ -1439,7 +1439,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
-  // `product_operator - operator_sum`
+  // `product_op - sum_op`
   {
     auto product = cudaq::matrix_op::position(0) *
                    cudaq::matrix_op::position(1);
@@ -1518,7 +1518,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
-  // `product_operator * operator_sum`
+  // `product_op * sum_op`
   {
     auto original_product = cudaq::matrix_op::position(0) *
                             cudaq::matrix_op::position(1);

@@ -14,7 +14,7 @@ namespace utils {
 void print(cudaq::complex_matrix mat, std::string name = "");
 
 void assert_product_equal(
-    const cudaq::product_operator<cudaq::matrix_handler> &got,
+    const cudaq::product_op<cudaq::matrix_handler> &got,
     const std::complex<double> &expected_coefficient,
     const std::vector<cudaq::matrix_handler> &expected_terms);
 

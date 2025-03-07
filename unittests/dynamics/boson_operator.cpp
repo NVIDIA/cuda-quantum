@@ -634,14 +634,14 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
   std::complex<double> value = std::complex<double>(0.125, 0.5);
   std::unordered_map<int, int> dimensions = {{0, 3}, {1, 2}, {2, 4}, {3, 2}};
 
-  // `boson_handler + operator_sum`
+  // `boson_handler + sum_op`
   {
     auto self = cudaq::boson_op::create(2);
-    auto operator_sum =
+    auto sum_op =
         cudaq::boson_op::annihilate(2) + cudaq::boson_op::number(1);
 
-    auto got = self + operator_sum;
-    auto reverse = operator_sum + self;
+    auto got = self + sum_op;
+    auto reverse = sum_op + self;
 
     ASSERT_TRUE(got.num_terms() == 3);
     ASSERT_TRUE(reverse.num_terms() == 3);
@@ -661,14 +661,14 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `boson_handler - operator_sum`
+  // `boson_handler - sum_op`
   {
     auto self = cudaq::boson_op::annihilate(0);
-    auto operator_sum =
+    auto sum_op =
         cudaq::boson_op::create(0) + cudaq::boson_op::identity(1);
 
-    auto got = self - operator_sum;
-    auto reverse = operator_sum - self;
+    auto got = self - sum_op;
+    auto reverse = sum_op - self;
 
     ASSERT_TRUE(got.num_terms() == 3);
     ASSERT_TRUE(reverse.num_terms() == 3);
@@ -688,14 +688,14 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `boson_handler * operator_sum`
+  // `boson_handler * sum_op`
   {
     auto self = cudaq::boson_op::number(0);
-    auto operator_sum =
+    auto sum_op =
         cudaq::boson_op::create(0) + cudaq::boson_op::number(2);
 
-    auto got = self * operator_sum;
-    auto reverse = operator_sum * self;
+    auto got = self * sum_op;
+    auto reverse = sum_op * self;
 
     ASSERT_TRUE(got.num_terms() == 2);
     ASSERT_TRUE(reverse.num_terms() == 2);
@@ -720,13 +720,13 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `operator_sum += boson_handler`
+  // `sum_op += boson_handler`
   {
-    auto operator_sum = cudaq::boson_op::momentum(0) +
+    auto sum_op = cudaq::boson_op::momentum(0) +
                         cudaq::boson_op::annihilate(2);
-    operator_sum += cudaq::boson_op::position(0);
+    sum_op += cudaq::boson_op::position(0);
 
-    ASSERT_TRUE(operator_sum.num_terms() == 3);
+    ASSERT_TRUE(sum_op.num_terms() == 3);
 
     auto term_0_full =
         cudaq::kronecker(utils::annihilate_matrix(4), utils::id_matrix(3));
@@ -735,18 +735,18 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
     auto added_full =
         cudaq::kronecker(utils::id_matrix(4), utils::momentum_matrix(3));
 
-    auto got_matrix = operator_sum.to_matrix(dimensions);
+    auto got_matrix = sum_op.to_matrix(dimensions);
     auto want_matrix = term_0_full + term_1_full + added_full;
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  // `operator_sum -= boson_handler`
+  // `sum_op -= boson_handler`
   {
-    auto operator_sum =
+    auto sum_op =
         cudaq::boson_op::create(0) + cudaq::boson_op::annihilate(1);
-    operator_sum -= cudaq::boson_op::momentum(0);
+    sum_op -= cudaq::boson_op::momentum(0);
 
-    ASSERT_TRUE(operator_sum.num_terms() == 3);
+    ASSERT_TRUE(sum_op.num_terms() == 3);
 
     auto term_0_full =
         cudaq::kronecker(utils::id_matrix(2), utils::create_matrix(3));
@@ -755,21 +755,21 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
     auto subtr_full =
         cudaq::kronecker(utils::id_matrix(2), utils::momentum_matrix(3));
 
-    auto got_matrix = operator_sum.to_matrix(dimensions);
+    auto got_matrix = sum_op.to_matrix(dimensions);
     auto want_matrix = term_0_full + term_1_full - subtr_full;
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  // `operator_sum *= boson_handler`
+  // `sum_op *= boson_handler`
   {
-    auto operator_sum =
+    auto sum_op =
         cudaq::boson_op::momentum(0) + cudaq::boson_op::momentum(1);
     auto self = cudaq::boson_op::position(0);
 
-    operator_sum *= self;
+    sum_op *= self;
 
-    ASSERT_TRUE(operator_sum.num_terms() == 8);
-    for (const auto &term : operator_sum)
+    ASSERT_TRUE(sum_op.num_terms() == 8);
+    for (const auto &term : sum_op)
       ASSERT_TRUE(term.num_terms() == term.degrees().size());
 
     // Note that here we need to again expand the matrices for the product
@@ -787,7 +787,7 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
     auto expected_term1 =
         cudaq::kronecker(utils::momentum_matrix(2), utils::position_matrix(3));
 
-    auto got_matrix = operator_sum.to_matrix(dimensions);
+    auto got_matrix = sum_op.to_matrix(dimensions);
     auto want_matrix = expected_term0 + expected_term1;
     utils::checkEqual(want_matrix, got_matrix);
   }
@@ -837,8 +837,8 @@ TEST(OperatorExpressions, checkCommutationRelations) {
   // [a†(k), a†(q)] = [a(k), a(q)] = 0
 
   std::unordered_map<int, int> dimensions = {{0, 4}, {1, 4}};
-  auto commutator = [](cudaq::product_operator<cudaq::boson_handler> ad,
-                       cudaq::product_operator<cudaq::boson_handler> a) {
+  auto commutator = [](cudaq::product_op<cudaq::boson_handler> ad,
+                       cudaq::product_op<cudaq::boson_handler> a) {
     return a * ad - ad * a;
   };
 

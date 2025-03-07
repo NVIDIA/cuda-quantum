@@ -20,7 +20,7 @@ namespace cudaq {
 // FIXME: rename?
 class boson_handler : public operator_handler {
   template <typename T>
-  friend class product_operator;
+  friend class product_op;
 
 private:
   // Each boson operator is represented as number operators along with an
@@ -76,12 +76,12 @@ public:
 
   // defined operators
 
-  static product_operator<boson_handler> create(int degree);
-  static product_operator<boson_handler> annihilate(int degree);
-  static product_operator<boson_handler> number(int degree);
+  static product_op<boson_handler> create(int degree);
+  static product_op<boson_handler> annihilate(int degree);
+  static product_op<boson_handler> number(int degree);
 
-  static operator_sum<boson_handler> position(int degree);
-  static operator_sum<boson_handler> momentum(int degree);
+  static sum_op<boson_handler> position(int degree);
+  static sum_op<boson_handler> momentum(int degree);
 };
 
 } // namespace cudaq

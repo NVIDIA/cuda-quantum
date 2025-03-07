@@ -268,7 +268,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
   std::complex<double> value = std::complex<double>(0.1, 0.1);
   double double_value = 0.1;
 
-  // `operator_sum + double`
+  // `sum_op + double`
   {
     auto original = cudaq::matrix_op::momentum(1) +
                     cudaq::matrix_op::position(2);
@@ -295,7 +295,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     utils::checkEqual(want_matrix, got_matrix_reverse);
   }
 
-  // `operator_sum + std::complex<double>`
+  // `sum_op + std::complex<double>`
   {
     auto original =
         cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
@@ -346,7 +346,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     utils::checkEqual(want_matrix, got_matrix_reverse);
   }
 
-  // `operator_sum + scalar_operator`
+  // `sum_op + scalar_operator`
   {
     level_count = 2;
     auto original =
@@ -376,7 +376,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
-  // `operator_sum - double`
+  // `sum_op - double`
   {
     auto original =
         cudaq::matrix_op::parity(1) + cudaq::matrix_op::number(2);
@@ -432,7 +432,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
-  // `operator_sum - std::complex<double>`
+  // `sum_op - std::complex<double>`
   {
     auto original =
         cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
@@ -462,7 +462,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
-  // `operator_sum - scalar_operator`
+  // `sum_op - scalar_operator`
   {
     auto original =
         cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
@@ -492,7 +492,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
-  // `operator_sum * double`
+  // `sum_op * double`
   {
     auto sum =
         cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
@@ -532,7 +532,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     utils::checkEqual(want_matrix, got_matrix_reverse);
   }
 
-  // `operator_sum * std::complex<double>`
+  // `sum_op * std::complex<double>`
   {
     auto sum =
         cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
@@ -570,7 +570,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     utils::checkEqual(want_matrix, got_matrix_reverse);
   }
 
-  // `operator_sum * scalar_operator`
+  // `sum_op * scalar_operator`
   {
     auto sum =
         cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
@@ -643,7 +643,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     utils::checkEqual(want_matrix, got_matrix_reverse);
   }
 
-  // `operator_sum / double`
+  // `sum_op / double`
   {
     auto sum =
         cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
@@ -674,7 +674,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  // `operator_sum / std::complex<double>`
+  // `sum_op / std::complex<double>`
   {
     auto sum =
         cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
@@ -705,7 +705,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  // `operator_sum / scalar_operator`
+  // `sum_op / scalar_operator`
   {
     auto sum =
         cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
@@ -765,7 +765,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  // `operator_sum += double`
+  // `sum_op += double`
   {
     auto sum =
         cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
@@ -805,7 +805,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  // `operator_sum += std::complex<double>`
+  // `sum_op += std::complex<double>`
   {
     auto sum = cudaq::matrix_op::momentum(1) +
                cudaq::matrix_op::squeeze(2);
@@ -829,7 +829,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  // `operator_sum += scalar_operator`
+  // `sum_op += scalar_operator`
   {
     auto sum =
         cudaq::matrix_op::parity(1) + cudaq::matrix_op::position(2);
@@ -854,7 +854,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  // `operator_sum -= double`
+  // `sum_op -= double`
   {
     auto sum =
         cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
@@ -878,7 +878,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  // `operator_sum -= std::complex<double>`
+  // `sum_op -= std::complex<double>`
   {
     auto sum =
         cudaq::matrix_op::position(1) + cudaq::matrix_op::number(2);
@@ -900,7 +900,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  // `operator_sum -= scalar_operator`
+  // `sum_op -= scalar_operator`
   {
     auto sum =
         cudaq::matrix_op::number(1) + cudaq::matrix_op::identity(2);
@@ -946,7 +946,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  // `operator_sum *= double`
+  // `sum_op *= double`
   {
     auto sum =
         cudaq::matrix_op::squeeze(1) + cudaq::matrix_op::squeeze(2);
@@ -999,7 +999,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  // `operator_sum *= std::complex<double>`
+  // `sum_op *= std::complex<double>`
   {
     auto sum =
         cudaq::matrix_op::displace(1) + cudaq::matrix_op::parity(2);
@@ -1026,7 +1026,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  // `operator_sum *= scalar_operator`
+  // `sum_op *= scalar_operator`
   {
     auto sum =
         cudaq::matrix_op::parity(1) + cudaq::matrix_op::momentum(2);
@@ -1055,7 +1055,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  // `operator_sum /= double`
+  // `sum_op /= double`
   {
     auto sum =
         cudaq::matrix_op::squeeze(1) + cudaq::matrix_op::squeeze(2);
@@ -1112,7 +1112,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  // `operator_sum /= std::complex<double>`
+  // `sum_op /= std::complex<double>`
   {
     auto sum =
         cudaq::matrix_op::displace(1) + cudaq::matrix_op::parity(2);
@@ -1142,7 +1142,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  // `operator_sum /= scalar_operator`
+  // `sum_op /= scalar_operator`
   {
     auto sum =
         cudaq::matrix_op::parity(1) + cudaq::matrix_op::momentum(2);
@@ -1184,7 +1184,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstProduct) {
   // between the two types.
   int level_count = 2;
 
-  // `operator_sum += product_operator`
+  // `sum_op += product_op`
   {
     auto product =
         cudaq::matrix_op::number(0) * cudaq::matrix_op::number(1);
@@ -1222,7 +1222,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstProduct) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  // `operator_sum -= product_operator`
+  // `sum_op -= product_op`
   {
     auto product =
         cudaq::matrix_op::number(0) * cudaq::matrix_op::number(1);
@@ -1260,7 +1260,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstProduct) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  // `operator_sum *= product_operator`
+  // `sum_op *= product_op`
   {
     auto product =
         cudaq::matrix_op::number(0) * cudaq::matrix_op::number(1);
@@ -1306,7 +1306,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstProduct) {
 TEST(OperatorExpressions, checkOperatorSumAgainstOperatorSum) {
   int level_count = 2;
 
-  // `operator_sum + operator_sum`
+  // `sum_op + sum_op`
   {
     auto sum_0 =
         cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
@@ -1359,7 +1359,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstOperatorSum) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  // `operator_sum - operator_sum`
+  // `sum_op - sum_op`
   {
     auto sum_0 =
         cudaq::matrix_op::parity(1) + cudaq::matrix_op::position(2);
@@ -1412,7 +1412,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstOperatorSum) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  // `operator_sum * operator_sum`
+  // `sum_op * sum_op`
   {
     auto sum_0 =
         cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
@@ -1478,7 +1478,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstOperatorSum) {
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
-  // `operator_sum *= operator_sum`
+  // `sum_op *= sum_op`
   {
     auto sum =
         cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);

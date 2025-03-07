@@ -102,7 +102,7 @@ public:
   /// @arg operator_id : The ID of the operator as specified when it was
   /// defined.
   /// @arg degrees : the degrees of freedom that the operator acts upon.
-  static product_operator<matrix_handler>
+  static product_op<matrix_handler>
   instantiate(std::string operator_id, const std::vector<int> &degrees,
               const commutation_behavior &behavior = commutation_behavior());
 
@@ -110,7 +110,7 @@ public:
   /// @arg operator_id : The ID of the operator as specified when it was
   /// defined.
   /// @arg degrees : the degrees of freedom that the operator acts upon.
-  static product_operator<matrix_handler>
+  static product_op<matrix_handler>
   instantiate(std::string operator_id, std::vector<int> &&degrees,
               const commutation_behavior &behavior = commutation_behavior());
 
@@ -177,13 +177,13 @@ public:
 
   // predefined operators
 
-  static product_operator<matrix_handler> number(int degree);
-  static product_operator<matrix_handler> parity(int degree);
-  static product_operator<matrix_handler> position(int degree);
-  static product_operator<matrix_handler> momentum(int degree);
+  static product_op<matrix_handler> number(int degree);
+  static product_op<matrix_handler> parity(int degree);
+  static product_op<matrix_handler> position(int degree);
+  static product_op<matrix_handler> momentum(int degree);
   /// Operators that accept parameters at runtime.
-  static product_operator<matrix_handler> squeeze(int degree);
-  static product_operator<matrix_handler> displace(int degree);
+  static product_op<matrix_handler> squeeze(int degree);
+  static product_op<matrix_handler> displace(int degree);
 };
 
 } // namespace cudaq

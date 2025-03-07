@@ -41,21 +41,21 @@ class spin_operator;
 /// expressions cannot be used within quantum kernels, but they provide methods
 /// to convert them to data types that can.
 template <typename HandlerTy>
-class operator_sum {
+class sum_op {
   template <typename T>
-  friend class operator_sum;
+  friend class sum_op;
   template <typename T>
-  friend class product_operator;
+  friend class product_op;
 
 private:
   // inserts a new term combining it with an existing one if possible
-  void insert(product_operator<HandlerTy> &&other);
-  void insert(const product_operator<HandlerTy> &other);
+  void insert(product_op<HandlerTy> &&other);
+  void insert(const product_op<HandlerTy> &other);
 
   void aggregate_terms();
 
   template <typename... Args>
-  void aggregate_terms(product_operator<HandlerTy> &&head, Args &&...args);
+  void aggregate_terms(product_op<HandlerTy> &&head, Args &&...args);
 
   template <typename EvalTy>
   EvalTy evaluate(operator_arithmetics<EvalTy> arithmetics) const;
@@ -69,9 +69,9 @@ protected:
 
   template <typename... Args,
             std::enable_if_t<std::conjunction<std::is_same<
-                                 product_operator<HandlerTy>, Args>...>::value,
+                                 product_op<HandlerTy>, Args>...>::value,
                              bool> = true>
-  operator_sum(Args &&...args);
+  sum_op(Args &&...args);
 
 public:
 
@@ -79,25 +79,25 @@ public:
   // regardless of what is done with the products/iterator
   struct const_iterator {
   private:
-    const operator_sum<HandlerTy> *sum;
+    const sum_op<HandlerTy> *sum;
     typename std::unordered_map<std::string, int>::const_iterator iter;
-    product_operator<HandlerTy> current_val;
+    product_op<HandlerTy> current_val;
 
   public:
     using iterator_category = std::forward_iterator_tag;
     using difference_type   = std::ptrdiff_t;
-    using value_type        = product_operator<HandlerTy>;
-    using pointer           = product_operator<HandlerTy>*;
-    using reference         = product_operator<HandlerTy>&;
+    using value_type        = product_op<HandlerTy>;
+    using pointer           = product_op<HandlerTy>*;
+    using reference         = product_op<HandlerTy>&;
 
-    const_iterator(const operator_sum<HandlerTy> *sum)
+    const_iterator(const sum_op<HandlerTy> *sum)
     : const_iterator(sum, sum->term_map.begin()) {}
 
-    const_iterator(const operator_sum<HandlerTy> *sum, 
+    const_iterator(const sum_op<HandlerTy> *sum, 
                    std::unordered_map<std::string, int>::const_iterator &&it)
     : sum(sum), iter(std::move(it)), current_val(1.) {
       if (iter != sum->term_map.end())
-        current_val = product_operator<HandlerTy>(sum->coefficients[iter->second], sum->terms[iter->second]);
+        current_val = product_op<HandlerTy>(sum->coefficients[iter->second], sum->terms[iter->second]);
     }
 
     bool operator==(const const_iterator &other) const {
@@ -112,7 +112,7 @@ public:
     // prefix
     const_iterator& operator++() {
       if (++iter != sum->term_map.end())
-        current_val = product_operator<HandlerTy>(sum->coefficients[iter->second], sum->terms[iter->second]); 
+        current_val = product_op<HandlerTy>(sum->coefficients[iter->second], sum->terms[iter->second]); 
       return *this; 
     }
 
@@ -138,29 +138,29 @@ public:
 
   // constructors and destructors
 
-  operator_sum(const product_operator<HandlerTy> &other);
+  sum_op(const product_op<HandlerTy> &other);
 
   template <typename T,
             std::enable_if_t<!std::is_same<T, HandlerTy>::value &&
                                  std::is_constructible<HandlerTy, T>::value,
                              bool> = true>
-  operator_sum(const operator_sum<T> &other);
+  sum_op(const sum_op<T> &other);
 
   template <typename T,
             std::enable_if_t<std::is_same<HandlerTy, matrix_handler>::value &&
                                  !std::is_same<T, HandlerTy>::value &&
                                  std::is_constructible<HandlerTy, T>::value,
                              bool> = true>
-  operator_sum(const operator_sum<T> &other,
+  sum_op(const sum_op<T> &other,
                const matrix_handler::commutation_behavior &behavior);
 
   // copy constructor
-  operator_sum(const operator_sum<HandlerTy> &other, int size = 0);
+  sum_op(const sum_op<HandlerTy> &other, int size = 0);
 
   // move constructor
-  operator_sum(operator_sum<HandlerTy> &&other, int size = 0);
+  sum_op(sum_op<HandlerTy> &&other, int size = 0);
 
-  ~operator_sum() = default;
+  ~sum_op() = default;
 
   // assignments
 
@@ -168,27 +168,27 @@ public:
             std::enable_if_t<!std::is_same<T, HandlerTy>::value &&
                                  std::is_constructible<HandlerTy, T>::value,
                              bool> = true>
-  operator_sum<HandlerTy> &operator=(const product_operator<T> &other);
+  sum_op<HandlerTy> &operator=(const product_op<T> &other);
 
-  operator_sum<HandlerTy> &operator=(const product_operator<HandlerTy> &other);
+  sum_op<HandlerTy> &operator=(const product_op<HandlerTy> &other);
 
-  operator_sum<HandlerTy> &operator=(product_operator<HandlerTy> &&other);
+  sum_op<HandlerTy> &operator=(product_op<HandlerTy> &&other);
 
   template <typename T,
             std::enable_if_t<!std::is_same<T, HandlerTy>::value &&
                                  std::is_constructible<HandlerTy, T>::value,
                              bool> = true>
-  operator_sum<HandlerTy> &operator=(const operator_sum<T> &other);
+  sum_op<HandlerTy> &operator=(const sum_op<T> &other);
 
   // assignment operator
-  operator_sum<HandlerTy> &operator=(const operator_sum<HandlerTy> &other);
+  sum_op<HandlerTy> &operator=(const sum_op<HandlerTy> &other);
 
   // move assignment operator
-  operator_sum<HandlerTy> &operator=(operator_sum<HandlerTy> &&other);
+  sum_op<HandlerTy> &operator=(sum_op<HandlerTy> &&other);
 
   // evaluations
 
-  /// @brief Return the operator_sum<HandlerTy> as a string.
+  /// @brief Return the sum_op<HandlerTy> as a string.
   std::string to_string() const;
 
   /// @brief Return the matrix representation of the operator.
@@ -207,198 +207,198 @@ public:
 
   // unary operators
 
-  operator_sum<HandlerTy> operator-() const &;
-  operator_sum<HandlerTy> operator-() &&;
-  operator_sum<HandlerTy> operator+() const &;
-  operator_sum<HandlerTy> operator+() &&;
+  sum_op<HandlerTy> operator-() const &;
+  sum_op<HandlerTy> operator-() &&;
+  sum_op<HandlerTy> operator+() const &;
+  sum_op<HandlerTy> operator+() &&;
 
   // right-hand arithmetics
 
-  operator_sum<HandlerTy> operator*(const scalar_operator &other) const &;
-  operator_sum<HandlerTy> operator*(const scalar_operator &other) &&;
-  operator_sum<HandlerTy> operator/(const scalar_operator &other) const &;
-  operator_sum<HandlerTy> operator/(const scalar_operator &other) &&;
-  operator_sum<HandlerTy> operator+(scalar_operator &&other) const &;
-  operator_sum<HandlerTy> operator+(scalar_operator &&other) &&;
-  operator_sum<HandlerTy> operator+(const scalar_operator &other) const &;
-  operator_sum<HandlerTy> operator+(const scalar_operator &other) &&;
-  operator_sum<HandlerTy> operator-(scalar_operator &&other) const &;
-  operator_sum<HandlerTy> operator-(scalar_operator &&other) &&;
-  operator_sum<HandlerTy> operator-(const scalar_operator &other) const &;
-  operator_sum<HandlerTy> operator-(const scalar_operator &other) &&;
-  operator_sum<HandlerTy>
-  operator*(const product_operator<HandlerTy> &other) const;
-  operator_sum<HandlerTy>
-  operator+(const product_operator<HandlerTy> &other) const &;
-  operator_sum<HandlerTy>
-  operator+(const product_operator<HandlerTy> &other) &&;
-  operator_sum<HandlerTy>
-  operator+(product_operator<HandlerTy> &&other) const &;
-  operator_sum<HandlerTy> operator+(product_operator<HandlerTy> &&other) &&;
-  operator_sum<HandlerTy>
-  operator-(const product_operator<HandlerTy> &other) const &;
-  operator_sum<HandlerTy>
-  operator-(const product_operator<HandlerTy> &other) &&;
-  operator_sum<HandlerTy>
-  operator-(product_operator<HandlerTy> &&other) const &;
-  operator_sum<HandlerTy> operator-(product_operator<HandlerTy> &&other) &&;
-  operator_sum<HandlerTy> operator*(const operator_sum<HandlerTy> &other) const;
-  operator_sum<HandlerTy>
-  operator+(const operator_sum<HandlerTy> &other) const &;
-  operator_sum<HandlerTy> operator+(const operator_sum<HandlerTy> &other) &&;
-  operator_sum<HandlerTy> operator+(operator_sum<HandlerTy> &&other) const &;
-  operator_sum<HandlerTy> operator+(operator_sum<HandlerTy> &&other) &&;
-  operator_sum<HandlerTy>
-  operator-(const operator_sum<HandlerTy> &other) const &;
-  operator_sum<HandlerTy> operator-(const operator_sum<HandlerTy> &other) &&;
-  operator_sum<HandlerTy> operator-(operator_sum<HandlerTy> &&other) const &;
-  operator_sum<HandlerTy> operator-(operator_sum<HandlerTy> &&other) &&;
+  sum_op<HandlerTy> operator*(const scalar_operator &other) const &;
+  sum_op<HandlerTy> operator*(const scalar_operator &other) &&;
+  sum_op<HandlerTy> operator/(const scalar_operator &other) const &;
+  sum_op<HandlerTy> operator/(const scalar_operator &other) &&;
+  sum_op<HandlerTy> operator+(scalar_operator &&other) const &;
+  sum_op<HandlerTy> operator+(scalar_operator &&other) &&;
+  sum_op<HandlerTy> operator+(const scalar_operator &other) const &;
+  sum_op<HandlerTy> operator+(const scalar_operator &other) &&;
+  sum_op<HandlerTy> operator-(scalar_operator &&other) const &;
+  sum_op<HandlerTy> operator-(scalar_operator &&other) &&;
+  sum_op<HandlerTy> operator-(const scalar_operator &other) const &;
+  sum_op<HandlerTy> operator-(const scalar_operator &other) &&;
+  sum_op<HandlerTy>
+  operator*(const product_op<HandlerTy> &other) const;
+  sum_op<HandlerTy>
+  operator+(const product_op<HandlerTy> &other) const &;
+  sum_op<HandlerTy>
+  operator+(const product_op<HandlerTy> &other) &&;
+  sum_op<HandlerTy>
+  operator+(product_op<HandlerTy> &&other) const &;
+  sum_op<HandlerTy> operator+(product_op<HandlerTy> &&other) &&;
+  sum_op<HandlerTy>
+  operator-(const product_op<HandlerTy> &other) const &;
+  sum_op<HandlerTy>
+  operator-(const product_op<HandlerTy> &other) &&;
+  sum_op<HandlerTy>
+  operator-(product_op<HandlerTy> &&other) const &;
+  sum_op<HandlerTy> operator-(product_op<HandlerTy> &&other) &&;
+  sum_op<HandlerTy> operator*(const sum_op<HandlerTy> &other) const;
+  sum_op<HandlerTy>
+  operator+(const sum_op<HandlerTy> &other) const &;
+  sum_op<HandlerTy> operator+(const sum_op<HandlerTy> &other) &&;
+  sum_op<HandlerTy> operator+(sum_op<HandlerTy> &&other) const &;
+  sum_op<HandlerTy> operator+(sum_op<HandlerTy> &&other) &&;
+  sum_op<HandlerTy>
+  operator-(const sum_op<HandlerTy> &other) const &;
+  sum_op<HandlerTy> operator-(const sum_op<HandlerTy> &other) &&;
+  sum_op<HandlerTy> operator-(sum_op<HandlerTy> &&other) const &;
+  sum_op<HandlerTy> operator-(sum_op<HandlerTy> &&other) &&;
 
-  operator_sum<HandlerTy> &operator*=(const scalar_operator &other);
-  operator_sum<HandlerTy> &operator/=(const scalar_operator &other);
-  operator_sum<HandlerTy> &operator+=(scalar_operator &&other);
-  operator_sum<HandlerTy> &operator+=(const scalar_operator &other);
-  operator_sum<HandlerTy> &operator-=(scalar_operator &&other);
-  operator_sum<HandlerTy> &operator-=(const scalar_operator &other);
-  operator_sum<HandlerTy> &operator*=(const product_operator<HandlerTy> &other);
-  operator_sum<HandlerTy> &operator+=(const product_operator<HandlerTy> &other);
-  operator_sum<HandlerTy> &operator+=(product_operator<HandlerTy> &&other);
-  operator_sum<HandlerTy> &operator-=(const product_operator<HandlerTy> &other);
-  operator_sum<HandlerTy> &operator-=(product_operator<HandlerTy> &&other);
-  operator_sum<HandlerTy> &operator*=(const operator_sum<HandlerTy> &other);
-  operator_sum<HandlerTy> &operator+=(const operator_sum<HandlerTy> &other);
-  operator_sum<HandlerTy> &operator+=(operator_sum<HandlerTy> &&other);
-  operator_sum<HandlerTy> &operator-=(const operator_sum<HandlerTy> &other);
-  operator_sum<HandlerTy> &operator-=(operator_sum<HandlerTy> &&other);
+  sum_op<HandlerTy> &operator*=(const scalar_operator &other);
+  sum_op<HandlerTy> &operator/=(const scalar_operator &other);
+  sum_op<HandlerTy> &operator+=(scalar_operator &&other);
+  sum_op<HandlerTy> &operator+=(const scalar_operator &other);
+  sum_op<HandlerTy> &operator-=(scalar_operator &&other);
+  sum_op<HandlerTy> &operator-=(const scalar_operator &other);
+  sum_op<HandlerTy> &operator*=(const product_op<HandlerTy> &other);
+  sum_op<HandlerTy> &operator+=(const product_op<HandlerTy> &other);
+  sum_op<HandlerTy> &operator+=(product_op<HandlerTy> &&other);
+  sum_op<HandlerTy> &operator-=(const product_op<HandlerTy> &other);
+  sum_op<HandlerTy> &operator-=(product_op<HandlerTy> &&other);
+  sum_op<HandlerTy> &operator*=(const sum_op<HandlerTy> &other);
+  sum_op<HandlerTy> &operator+=(const sum_op<HandlerTy> &other);
+  sum_op<HandlerTy> &operator+=(sum_op<HandlerTy> &&other);
+  sum_op<HandlerTy> &operator-=(const sum_op<HandlerTy> &other);
+  sum_op<HandlerTy> &operator-=(sum_op<HandlerTy> &&other);
 
   // left-hand arithmetics
 
   // Being a bit permissive here, since otherwise the explicit template
   // instantiation is a nightmare.
   template <typename T>
-  friend operator_sum<T> operator*(const scalar_operator &other,
-                                   const operator_sum<T> &self);
+  friend sum_op<T> operator*(const scalar_operator &other,
+                                   const sum_op<T> &self);
   template <typename T>
-  friend operator_sum<T> operator*(const scalar_operator &other,
-                                   operator_sum<T> &&self);
+  friend sum_op<T> operator*(const scalar_operator &other,
+                                   sum_op<T> &&self);
   template <typename T>
-  friend operator_sum<T> operator+(scalar_operator &&other,
-                                   const operator_sum<T> &self);
+  friend sum_op<T> operator+(scalar_operator &&other,
+                                   const sum_op<T> &self);
   template <typename T>
-  friend operator_sum<T> operator+(scalar_operator &&other,
-                                   operator_sum<T> &&self);
+  friend sum_op<T> operator+(scalar_operator &&other,
+                                   sum_op<T> &&self);
   template <typename T>
-  friend operator_sum<T> operator+(const scalar_operator &other,
-                                   const operator_sum<T> &self);
+  friend sum_op<T> operator+(const scalar_operator &other,
+                                   const sum_op<T> &self);
   template <typename T>
-  friend operator_sum<T> operator+(const scalar_operator &other,
-                                   operator_sum<T> &&self);
+  friend sum_op<T> operator+(const scalar_operator &other,
+                                   sum_op<T> &&self);
   template <typename T>
-  friend operator_sum<T> operator-(scalar_operator &&other,
-                                   const operator_sum<T> &self);
+  friend sum_op<T> operator-(scalar_operator &&other,
+                                   const sum_op<T> &self);
   template <typename T>
-  friend operator_sum<T> operator-(scalar_operator &&other,
-                                   operator_sum<T> &&self);
+  friend sum_op<T> operator-(scalar_operator &&other,
+                                   sum_op<T> &&self);
   template <typename T>
-  friend operator_sum<T> operator-(const scalar_operator &other,
-                                   const operator_sum<T> &self);
+  friend sum_op<T> operator-(const scalar_operator &other,
+                                   const sum_op<T> &self);
   template <typename T>
-  friend operator_sum<T> operator-(const scalar_operator &other,
-                                   operator_sum<T> &&self);
+  friend sum_op<T> operator-(const scalar_operator &other,
+                                   sum_op<T> &&self);
 
   template <typename T>
-  friend operator_sum<T> operator+(scalar_operator &&other,
-                                   const product_operator<T> &self);
+  friend sum_op<T> operator+(scalar_operator &&other,
+                                   const product_op<T> &self);
   template <typename T>
-  friend operator_sum<T> operator+(scalar_operator &&other,
-                                   product_operator<T> &&self);
+  friend sum_op<T> operator+(scalar_operator &&other,
+                                   product_op<T> &&self);
   template <typename T>
-  friend operator_sum<T> operator+(const scalar_operator &other,
-                                   const product_operator<T> &self);
+  friend sum_op<T> operator+(const scalar_operator &other,
+                                   const product_op<T> &self);
   template <typename T>
-  friend operator_sum<T> operator+(const scalar_operator &other,
-                                   product_operator<T> &&self);
+  friend sum_op<T> operator+(const scalar_operator &other,
+                                   product_op<T> &&self);
   template <typename T>
-  friend operator_sum<T> operator-(scalar_operator &&other,
-                                   const product_operator<T> &self);
+  friend sum_op<T> operator-(scalar_operator &&other,
+                                   const product_op<T> &self);
   template <typename T>
-  friend operator_sum<T> operator-(scalar_operator &&other,
-                                   product_operator<T> &&self);
+  friend sum_op<T> operator-(scalar_operator &&other,
+                                   product_op<T> &&self);
   template <typename T>
-  friend operator_sum<T> operator-(const scalar_operator &other,
-                                   const product_operator<T> &self);
+  friend sum_op<T> operator-(const scalar_operator &other,
+                                   const product_op<T> &self);
   template <typename T>
-  friend operator_sum<T> operator-(const scalar_operator &other,
-                                   product_operator<T> &&self);
+  friend sum_op<T> operator-(const scalar_operator &other,
+                                   product_op<T> &&self);
 
   // common operators
 
-  static operator_sum<HandlerTy> empty();
-  static product_operator<HandlerTy> identity();
-  static product_operator<HandlerTy> identity(int target);
+  static sum_op<HandlerTy> empty();
+  static product_op<HandlerTy> identity();
+  static product_op<HandlerTy> identity(int target);
 
   // handler specific operators
 
   HANDLER_SPECIFIC_TEMPLATE(matrix_handler)
-  static product_operator<T> number(int target);
+  static product_op<T> number(int target);
 
   HANDLER_SPECIFIC_TEMPLATE(matrix_handler)
-  static product_operator<T> parity(int target);
+  static product_op<T> parity(int target);
 
   HANDLER_SPECIFIC_TEMPLATE(matrix_handler)
-  static product_operator<T> position(int target);
+  static product_op<T> position(int target);
 
   HANDLER_SPECIFIC_TEMPLATE(matrix_handler)
-  static product_operator<T> momentum(int target);
+  static product_op<T> momentum(int target);
 
   HANDLER_SPECIFIC_TEMPLATE(matrix_handler)
-  static product_operator<T> squeeze(int target);
+  static product_op<T> squeeze(int target);
 
   HANDLER_SPECIFIC_TEMPLATE(matrix_handler)
-  static product_operator<T> displace(int target);
+  static product_op<T> displace(int target);
 
 
   HANDLER_SPECIFIC_TEMPLATE(spin_operator)
-  static product_operator<T> i(int target);
+  static product_op<T> i(int target);
 
   HANDLER_SPECIFIC_TEMPLATE(spin_operator)
-  static product_operator<T> x(int target);
+  static product_op<T> x(int target);
 
   HANDLER_SPECIFIC_TEMPLATE(spin_operator)
-  static product_operator<T> y(int target);
+  static product_op<T> y(int target);
 
   HANDLER_SPECIFIC_TEMPLATE(spin_operator)
-  static product_operator<T> z(int target);
+  static product_op<T> z(int target);
 
 
   HANDLER_SPECIFIC_TEMPLATE(boson_handler)
-  static product_operator<T> create(int target);
+  static product_op<T> create(int target);
 
   HANDLER_SPECIFIC_TEMPLATE(boson_handler)
-  static product_operator<T> annihilate(int target);
+  static product_op<T> annihilate(int target);
   
   HANDLER_SPECIFIC_TEMPLATE(boson_handler)
-  static product_operator<T> number(int target);
+  static product_op<T> number(int target);
 
   HANDLER_SPECIFIC_TEMPLATE(boson_handler)
-  static operator_sum<T> position(int target);
+  static sum_op<T> position(int target);
 
   HANDLER_SPECIFIC_TEMPLATE(boson_handler)
-  static operator_sum<T> momentum(int target);
+  static sum_op<T> momentum(int target);
 
 
   HANDLER_SPECIFIC_TEMPLATE(fermion_handler)
-  static product_operator<T> create(int target);
+  static product_op<T> create(int target);
 
   HANDLER_SPECIFIC_TEMPLATE(fermion_handler)
-  static product_operator<T> annihilate(int target);
+  static product_op<T> annihilate(int target);
   
   HANDLER_SPECIFIC_TEMPLATE(fermion_handler)
-  static product_operator<T> number(int target);
+  static product_op<T> number(int target);
 
   // general utility functions
 
-  std::vector<operator_sum<HandlerTy>> distribute_terms(std::size_t numChunks) const;
+  std::vector<sum_op<HandlerTy>> distribute_terms(std::size_t numChunks) const;
 
   // handler specific utility functions
 
@@ -406,15 +406,15 @@ public:
   std::size_t num_qubits() const;
 
   HANDLER_SPECIFIC_TEMPLATE(spin_operator) // could be defined for other operators as well
-  static product_operator<HandlerTy> from_word(const std::string &word);
+  static product_op<HandlerTy> from_word(const std::string &word);
 
   HANDLER_SPECIFIC_TEMPLATE(spin_operator) // could be defined for other operators as well
-  static operator_sum<HandlerTy> random(std::size_t nQubits, std::size_t nTerms, unsigned int seed);
+  static sum_op<HandlerTy> random(std::size_t nQubits, std::size_t nTerms, unsigned int seed);
 
   // utility functions for backward compatibility
 
   SPIN_OPS_BACKWARD_COMPATIBILITY
-  operator_sum(const std::vector<double> &input_vec, std::size_t nQubits);
+  sum_op(const std::vector<double> &input_vec, std::size_t nQubits);
 
   SPIN_OPS_BACKWARD_COMPATIBILITY
   std::vector<double> getDataRepresentation() const;
@@ -433,11 +433,11 @@ public:
 /// quantum kernels, but they provide methods to convert them to data types
 /// that can.
 template <typename HandlerTy>
-class product_operator {
+class product_op {
   template <typename T>
-  friend class product_operator;
+  friend class product_op;
   template <typename T>
-  friend class operator_sum;
+  friend class sum_op;
 
 private:
   // template defined as long as T implements an in-place multiplication -
@@ -461,13 +461,13 @@ private:
 
   template <typename T,
             std::enable_if_t<std::is_same<HandlerTy, T>::value &&
-                                 !product_operator<T>::supports_inplace_mult,
+                                 !product_op<T>::supports_inplace_mult,
                              std::false_type> = std::false_type()>
   void insert(T &&other);
 
   template <typename T,
             std::enable_if_t<std::is_same<HandlerTy, T>::value &&
-                                 product_operator<T>::supports_inplace_mult,
+                                 product_op<T>::supports_inplace_mult,
                              std::true_type> = std::true_type()>
   void insert(T &&other);
 
@@ -487,24 +487,24 @@ protected:
             std::enable_if_t<
                 std::conjunction<std::is_same<HandlerTy, Args>...>::value,
                 bool> = true>
-  product_operator(scalar_operator coefficient, Args &&...args);
+  product_op(scalar_operator coefficient, Args &&...args);
 
   // keep this constructor protected (otherwise it needs to ensure canonical
   // order)
-  product_operator(scalar_operator coefficient,
+  product_op(scalar_operator coefficient,
                    const std::vector<HandlerTy> &atomic_operators,
                    int size = 0);
 
   // keep this constructor protected (otherwise it needs to ensure canonical
   // order)
-  product_operator(scalar_operator coefficient,
+  product_op(scalar_operator coefficient,
                    std::vector<HandlerTy> &&atomic_operators, int size = 0);
 
 public:
 
   struct const_iterator {
   private:
-    const product_operator<HandlerTy> *prod;
+    const product_op<HandlerTy> *prod;
     std::size_t current_idx;
 
   public:
@@ -514,7 +514,7 @@ public:
     using pointer           = const HandlerTy*;
     using reference         = const HandlerTy&;
 
-    const_iterator(const product_operator<HandlerTy> *prod, std::size_t idx = 0)
+    const_iterator(const product_op<HandlerTy> *prod, std::size_t idx = 0)
     : prod(prod), current_idx(idx) {}
 
     bool operator==(const const_iterator &other) const {
@@ -568,33 +568,33 @@ public:
 
   // constructors and destructors
 
-  product_operator(double coefficient);
+  product_op(double coefficient);
 
-  product_operator(std::complex<double> coefficient);
+  product_op(std::complex<double> coefficient);
 
-  product_operator(HandlerTy &&atomic);
+  product_op(HandlerTy &&atomic);
 
   template <typename T,
             std::enable_if_t<!std::is_same<T, HandlerTy>::value &&
                                  std::is_constructible<HandlerTy, T>::value,
                              bool> = true>
-  product_operator(const product_operator<T> &other);
+  product_op(const product_op<T> &other);
 
   template <typename T,
             std::enable_if_t<std::is_same<HandlerTy, matrix_handler>::value &&
                                  !std::is_same<T, HandlerTy>::value &&
                                  std::is_constructible<HandlerTy, T>::value,
                              bool> = true>
-  product_operator(const product_operator<T> &other,
+  product_op(const product_op<T> &other,
                    const matrix_handler::commutation_behavior &behavior);
 
   // copy constructor
-  product_operator(const product_operator<HandlerTy> &other, int size = 0);
+  product_op(const product_op<HandlerTy> &other, int size = 0);
 
   // move constructor
-  product_operator(product_operator<HandlerTy> &&other, int size = 0);
+  product_op(product_op<HandlerTy> &&other, int size = 0);
 
-  ~product_operator() = default;
+  ~product_op() = default;
 
   // assignments
 
@@ -602,18 +602,18 @@ public:
             std::enable_if_t<!std::is_same<T, HandlerTy>::value &&
                                  std::is_constructible<HandlerTy, T>::value,
                              bool> = true>
-  product_operator<HandlerTy> &operator=(const product_operator<T> &other);
+  product_op<HandlerTy> &operator=(const product_op<T> &other);
 
   // assignment operator
-  product_operator<HandlerTy> &
-  operator=(const product_operator<HandlerTy> &other);
+  product_op<HandlerTy> &
+  operator=(const product_op<HandlerTy> &other);
 
   // move assignment operator
-  product_operator<HandlerTy> &operator=(product_operator<HandlerTy> &&other);
+  product_op<HandlerTy> &operator=(product_op<HandlerTy> &&other);
 
   // evaluations
 
-  /// @brief Return the `product_operator<HandlerTy>` as a string.
+  /// @brief Return the `product_op<HandlerTy>` as a string.
   std::string to_string() const;
 
   /// @brief Return the matrix representation of the operator.
@@ -632,7 +632,7 @@ public:
 
   // comparisons
 
-  /// @brief True, if the other value is an operator_sum<HandlerTy> with
+  /// @brief True, if the other value is an sum_op<HandlerTy> with
   /// equivalent terms,
   ///  and False otherwise. The equality takes into account that operator
   ///  addition is commutative, as is the product of two operators if they
@@ -642,149 +642,149 @@ public:
   ///  evaluate to False, even if two operators in reality are the same.
   ///  If the equality evaluates to True, on the other hand, the operators
   ///  are guaranteed to represent the same transformation for all arguments.
-  bool operator==(const product_operator<HandlerTy> &other) const;
+  bool operator==(const product_op<HandlerTy> &other) const;
 
   // unary operators
 
-  product_operator<HandlerTy> operator-() const &;
-  product_operator<HandlerTy> operator-() &&;
-  product_operator<HandlerTy> operator+() const &;
-  product_operator<HandlerTy> operator+() &&;
+  product_op<HandlerTy> operator-() const &;
+  product_op<HandlerTy> operator-() &&;
+  product_op<HandlerTy> operator+() const &;
+  product_op<HandlerTy> operator+() &&;
 
   // right-hand arithmetics
 
-  product_operator<HandlerTy> operator*(scalar_operator &&other) const &;
-  product_operator<HandlerTy> operator*(scalar_operator &&other) &&;
-  product_operator<HandlerTy> operator*(const scalar_operator &other) const &;
-  product_operator<HandlerTy> operator*(const scalar_operator &other) &&;
-  product_operator<HandlerTy> operator/(scalar_operator &&other) const &;
-  product_operator<HandlerTy> operator/(scalar_operator &&other) &&;
-  product_operator<HandlerTy> operator/(const scalar_operator &other) const &;
-  product_operator<HandlerTy> operator/(const scalar_operator &other) &&;
-  operator_sum<HandlerTy> operator+(scalar_operator &&other) const &;
-  operator_sum<HandlerTy> operator+(scalar_operator &&other) &&;
-  operator_sum<HandlerTy> operator+(const scalar_operator &other) const &;
-  operator_sum<HandlerTy> operator+(const scalar_operator &other) &&;
-  operator_sum<HandlerTy> operator-(scalar_operator &&other) const &;
-  operator_sum<HandlerTy> operator-(scalar_operator &&other) &&;
-  operator_sum<HandlerTy> operator-(const scalar_operator &other) const &;
-  operator_sum<HandlerTy> operator-(const scalar_operator &other) &&;
-  product_operator<HandlerTy>
-  operator*(const product_operator<HandlerTy> &other) const &;
-  product_operator<HandlerTy>
-  operator*(const product_operator<HandlerTy> &other) &&;
-  product_operator<HandlerTy>
-  operator*(product_operator<HandlerTy> &&other) const &;
-  product_operator<HandlerTy> operator*(product_operator<HandlerTy> &&other) &&;
-  operator_sum<HandlerTy>
-  operator+(const product_operator<HandlerTy> &other) const &;
-  operator_sum<HandlerTy>
-  operator+(const product_operator<HandlerTy> &other) &&;
-  operator_sum<HandlerTy>
-  operator+(product_operator<HandlerTy> &&other) const &;
-  operator_sum<HandlerTy> operator+(product_operator<HandlerTy> &&other) &&;
-  operator_sum<HandlerTy>
-  operator-(const product_operator<HandlerTy> &other) const &;
-  operator_sum<HandlerTy>
-  operator-(const product_operator<HandlerTy> &other) &&;
-  operator_sum<HandlerTy>
-  operator-(product_operator<HandlerTy> &&other) const &;
-  operator_sum<HandlerTy> operator-(product_operator<HandlerTy> &&other) &&;
-  operator_sum<HandlerTy> operator*(const operator_sum<HandlerTy> &other) const;
-  operator_sum<HandlerTy>
-  operator+(const operator_sum<HandlerTy> &other) const &;
-  operator_sum<HandlerTy> operator+(const operator_sum<HandlerTy> &other) &&;
-  operator_sum<HandlerTy> operator+(operator_sum<HandlerTy> &&other) const &;
-  operator_sum<HandlerTy> operator+(operator_sum<HandlerTy> &&other) &&;
-  operator_sum<HandlerTy>
-  operator-(const operator_sum<HandlerTy> &other) const &;
-  operator_sum<HandlerTy> operator-(const operator_sum<HandlerTy> &other) &&;
-  operator_sum<HandlerTy> operator-(operator_sum<HandlerTy> &&other) const &;
-  operator_sum<HandlerTy> operator-(operator_sum<HandlerTy> &&other) &&;
+  product_op<HandlerTy> operator*(scalar_operator &&other) const &;
+  product_op<HandlerTy> operator*(scalar_operator &&other) &&;
+  product_op<HandlerTy> operator*(const scalar_operator &other) const &;
+  product_op<HandlerTy> operator*(const scalar_operator &other) &&;
+  product_op<HandlerTy> operator/(scalar_operator &&other) const &;
+  product_op<HandlerTy> operator/(scalar_operator &&other) &&;
+  product_op<HandlerTy> operator/(const scalar_operator &other) const &;
+  product_op<HandlerTy> operator/(const scalar_operator &other) &&;
+  sum_op<HandlerTy> operator+(scalar_operator &&other) const &;
+  sum_op<HandlerTy> operator+(scalar_operator &&other) &&;
+  sum_op<HandlerTy> operator+(const scalar_operator &other) const &;
+  sum_op<HandlerTy> operator+(const scalar_operator &other) &&;
+  sum_op<HandlerTy> operator-(scalar_operator &&other) const &;
+  sum_op<HandlerTy> operator-(scalar_operator &&other) &&;
+  sum_op<HandlerTy> operator-(const scalar_operator &other) const &;
+  sum_op<HandlerTy> operator-(const scalar_operator &other) &&;
+  product_op<HandlerTy>
+  operator*(const product_op<HandlerTy> &other) const &;
+  product_op<HandlerTy>
+  operator*(const product_op<HandlerTy> &other) &&;
+  product_op<HandlerTy>
+  operator*(product_op<HandlerTy> &&other) const &;
+  product_op<HandlerTy> operator*(product_op<HandlerTy> &&other) &&;
+  sum_op<HandlerTy>
+  operator+(const product_op<HandlerTy> &other) const &;
+  sum_op<HandlerTy>
+  operator+(const product_op<HandlerTy> &other) &&;
+  sum_op<HandlerTy>
+  operator+(product_op<HandlerTy> &&other) const &;
+  sum_op<HandlerTy> operator+(product_op<HandlerTy> &&other) &&;
+  sum_op<HandlerTy>
+  operator-(const product_op<HandlerTy> &other) const &;
+  sum_op<HandlerTy>
+  operator-(const product_op<HandlerTy> &other) &&;
+  sum_op<HandlerTy>
+  operator-(product_op<HandlerTy> &&other) const &;
+  sum_op<HandlerTy> operator-(product_op<HandlerTy> &&other) &&;
+  sum_op<HandlerTy> operator*(const sum_op<HandlerTy> &other) const;
+  sum_op<HandlerTy>
+  operator+(const sum_op<HandlerTy> &other) const &;
+  sum_op<HandlerTy> operator+(const sum_op<HandlerTy> &other) &&;
+  sum_op<HandlerTy> operator+(sum_op<HandlerTy> &&other) const &;
+  sum_op<HandlerTy> operator+(sum_op<HandlerTy> &&other) &&;
+  sum_op<HandlerTy>
+  operator-(const sum_op<HandlerTy> &other) const &;
+  sum_op<HandlerTy> operator-(const sum_op<HandlerTy> &other) &&;
+  sum_op<HandlerTy> operator-(sum_op<HandlerTy> &&other) const &;
+  sum_op<HandlerTy> operator-(sum_op<HandlerTy> &&other) &&;
 
-  product_operator<HandlerTy> &operator*=(const scalar_operator &other);
-  product_operator<HandlerTy> &operator/=(const scalar_operator &other);
-  product_operator<HandlerTy> &
-  operator*=(const product_operator<HandlerTy> &other);
-  product_operator<HandlerTy> &operator*=(product_operator<HandlerTy> &&other);
+  product_op<HandlerTy> &operator*=(const scalar_operator &other);
+  product_op<HandlerTy> &operator/=(const scalar_operator &other);
+  product_op<HandlerTy> &
+  operator*=(const product_op<HandlerTy> &other);
+  product_op<HandlerTy> &operator*=(product_op<HandlerTy> &&other);
 
   // left-hand arithmetics
 
   // Being a bit permissive here, since otherwise the explicit template
   // instantiation is a nightmare.
   template <typename T>
-  friend product_operator<T> operator*(scalar_operator &&other,
-                                       const product_operator<T> &self);
+  friend product_op<T> operator*(scalar_operator &&other,
+                                       const product_op<T> &self);
   template <typename T>
-  friend product_operator<T> operator*(scalar_operator &&other,
-                                       product_operator<T> &&self);
+  friend product_op<T> operator*(scalar_operator &&other,
+                                       product_op<T> &&self);
   template <typename T>
-  friend product_operator<T> operator*(const scalar_operator &other,
-                                       const product_operator<T> &self);
+  friend product_op<T> operator*(const scalar_operator &other,
+                                       const product_op<T> &self);
   template <typename T>
-  friend product_operator<T> operator*(const scalar_operator &other,
-                                       product_operator<T> &&self);
+  friend product_op<T> operator*(const scalar_operator &other,
+                                       product_op<T> &&self);
   template <typename T>
-  friend operator_sum<T> operator+(scalar_operator &&other,
-                                   const product_operator<T> &self);
+  friend sum_op<T> operator+(scalar_operator &&other,
+                                   const product_op<T> &self);
   template <typename T>
-  friend operator_sum<T> operator+(scalar_operator &&other,
-                                   product_operator<T> &&self);
+  friend sum_op<T> operator+(scalar_operator &&other,
+                                   product_op<T> &&self);
   template <typename T>
-  friend operator_sum<T> operator+(const scalar_operator &other,
-                                   const product_operator<T> &self);
+  friend sum_op<T> operator+(const scalar_operator &other,
+                                   const product_op<T> &self);
   template <typename T>
-  friend operator_sum<T> operator+(const scalar_operator &other,
-                                   product_operator<T> &&self);
+  friend sum_op<T> operator+(const scalar_operator &other,
+                                   product_op<T> &&self);
   template <typename T>
-  friend operator_sum<T> operator-(scalar_operator &&other,
-                                   const product_operator<T> &self);
+  friend sum_op<T> operator-(scalar_operator &&other,
+                                   const product_op<T> &self);
   template <typename T>
-  friend operator_sum<T> operator-(scalar_operator &&other,
-                                   product_operator<T> &&self);
+  friend sum_op<T> operator-(scalar_operator &&other,
+                                   product_op<T> &&self);
   template <typename T>
-  friend operator_sum<T> operator-(const scalar_operator &other,
-                                   const product_operator<T> &self);
+  friend sum_op<T> operator-(const scalar_operator &other,
+                                   const product_op<T> &self);
   template <typename T>
-  friend operator_sum<T> operator-(const scalar_operator &other,
-                                   product_operator<T> &&self);
+  friend sum_op<T> operator-(const scalar_operator &other,
+                                   product_op<T> &&self);
 
   template <typename T>
-  friend operator_sum<T> operator*(scalar_operator &&other,
-                                   const operator_sum<T> &self);
+  friend sum_op<T> operator*(scalar_operator &&other,
+                                   const sum_op<T> &self);
   template <typename T>
-  friend operator_sum<T> operator*(scalar_operator &&other,
-                                   operator_sum<T> &&self);
+  friend sum_op<T> operator*(scalar_operator &&other,
+                                   sum_op<T> &&self);
   template <typename T>
-  friend operator_sum<T> operator*(const scalar_operator &other,
-                                   const operator_sum<T> &self);
+  friend sum_op<T> operator*(const scalar_operator &other,
+                                   const sum_op<T> &self);
   template <typename T>
-  friend operator_sum<T> operator*(const scalar_operator &other,
-                                   operator_sum<T> &&self);
+  friend sum_op<T> operator*(const scalar_operator &other,
+                                   sum_op<T> &&self);
   template <typename T>
-  friend operator_sum<T> operator+(scalar_operator &&other,
-                                   const operator_sum<T> &self);
+  friend sum_op<T> operator+(scalar_operator &&other,
+                                   const sum_op<T> &self);
   template <typename T>
-  friend operator_sum<T> operator+(scalar_operator &&other,
-                                   operator_sum<T> &&self);
+  friend sum_op<T> operator+(scalar_operator &&other,
+                                   sum_op<T> &&self);
   template <typename T>
-  friend operator_sum<T> operator+(const scalar_operator &other,
-                                   const operator_sum<T> &self);
+  friend sum_op<T> operator+(const scalar_operator &other,
+                                   const sum_op<T> &self);
   template <typename T>
-  friend operator_sum<T> operator+(const scalar_operator &other,
-                                   operator_sum<T> &&self);
+  friend sum_op<T> operator+(const scalar_operator &other,
+                                   sum_op<T> &&self);
   template <typename T>
-  friend operator_sum<T> operator-(scalar_operator &&other,
-                                   const operator_sum<T> &self);
+  friend sum_op<T> operator-(scalar_operator &&other,
+                                   const sum_op<T> &self);
   template <typename T>
-  friend operator_sum<T> operator-(scalar_operator &&other,
-                                   operator_sum<T> &&self);
+  friend sum_op<T> operator-(scalar_operator &&other,
+                                   sum_op<T> &&self);
   template <typename T>
-  friend operator_sum<T> operator-(const scalar_operator &other,
-                                   const operator_sum<T> &self);
+  friend sum_op<T> operator-(const scalar_operator &other,
+                                   const sum_op<T> &self);
   template <typename T>
-  friend operator_sum<T> operator-(const scalar_operator &other,
-                                   operator_sum<T> &&self);
+  friend sum_op<T> operator-(const scalar_operator &other,
+                                   sum_op<T> &&self);
 
   // general utility functions
 
@@ -805,25 +805,25 @@ public:
 // type aliases for convenience
 typedef std::unordered_map<std::string, std::complex<double>> parameter_map;
 typedef std::unordered_map<int, int> dimension_map;
-typedef operator_sum<matrix_handler> matrix_op;
-typedef product_operator<matrix_handler> matrix_op_term;
-typedef operator_sum<spin_operator> spin_op;
-typedef product_operator<spin_operator> spin_op_term;
-typedef operator_sum<boson_handler> boson_op;
-typedef product_operator<boson_handler> boson_op_term;
-typedef operator_sum<fermion_handler> fermion_op;
-typedef product_operator<fermion_handler> fermion_op_term;
+typedef sum_op<matrix_handler> matrix_op;
+typedef product_op<matrix_handler> matrix_op_term;
+typedef sum_op<spin_operator> spin_op;
+typedef product_op<spin_operator> spin_op_term;
+typedef sum_op<boson_handler> boson_op;
+typedef product_op<boson_handler> boson_op_term;
+typedef sum_op<fermion_handler> fermion_op;
+typedef product_op<fermion_handler> fermion_op_term;
 
 #ifndef CUDAQ_INSTANTIATE_TEMPLATES
-extern template class product_operator<matrix_handler>;
-extern template class product_operator<spin_operator>;
-extern template class product_operator<boson_handler>;
-extern template class product_operator<fermion_handler>;
+extern template class product_op<matrix_handler>;
+extern template class product_op<spin_operator>;
+extern template class product_op<boson_handler>;
+extern template class product_op<fermion_handler>;
 
-extern template class operator_sum<matrix_handler>;
-extern template class operator_sum<spin_operator>;
-extern template class operator_sum<boson_handler>;
-extern template class operator_sum<fermion_handler>;
+extern template class sum_op<matrix_handler>;
+extern template class sum_op<spin_operator>;
+extern template class sum_op<boson_handler>;
+extern template class sum_op<fermion_handler>;
 #endif
 
 } // namespace cudaq

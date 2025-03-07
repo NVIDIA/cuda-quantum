@@ -20,7 +20,7 @@ namespace cudaq {
 // FIXME: rename?
 class fermion_handler : public operator_handler {
   template <typename T>
-  friend class product_operator;
+  friend class product_op;
 
 private:
   // Given that the dimension for fermion operators has to be 2,
@@ -101,9 +101,9 @@ public:
 
   // defined operators
 
-  static product_operator<fermion_handler> create(int degree);
-  static product_operator<fermion_handler> annihilate(int degree);
-  static product_operator<fermion_handler> number(int degree);
+  static product_op<fermion_handler> create(int degree);
+  static product_op<fermion_handler> annihilate(int degree);
+  static product_op<fermion_handler> number(int degree);
 
   // Note that we don't define position and momentum here, since physically they
   // do not make much sense; see e.g.

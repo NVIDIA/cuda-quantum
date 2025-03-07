@@ -24,10 +24,10 @@ void print(cudaq::complex_matrix mat, std::string name = "") {
 }
 
 void assert_product_equal(
-    const cudaq::product_operator<cudaq::matrix_handler> &got,
+    const cudaq::product_op<cudaq::matrix_handler> &got,
     const std::complex<double> &expected_coefficient,
     const std::vector<cudaq::matrix_handler> &expected_terms) {
-  cudaq::operator_sum<cudaq::matrix_handler> sum = got;
+  cudaq::sum_op<cudaq::matrix_handler> sum = got;
   ASSERT_TRUE(sum.num_terms() == 1);
   ASSERT_TRUE(got.get_coefficient().evaluate() == expected_coefficient);
   std::size_t idx = 0;

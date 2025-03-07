@@ -200,16 +200,16 @@ public:
 };
 
 template <typename HandlerTy>
-class product_operator;
+class product_op;
 
 template <typename HandlerTy>
-class operator_sum;
+class sum_op;
 
 class operator_handler {
   template <typename T>
-  friend class product_operator;
+  friend class product_op;
   template <typename T>
-  friend class operator_sum;
+  friend class sum_op;
   template <typename T>
   friend class operator_arithmetics;
 
@@ -224,9 +224,9 @@ private:
 
   class matrix_evaluation {
     template <typename T>
-    friend class product_operator;
+    friend class product_op;
     template <typename T>
-    friend class operator_sum;
+    friend class sum_op;
     template <typename T>
     friend class operator_arithmetics;
 
@@ -246,9 +246,9 @@ private:
 
   class canonical_evaluation {
     template <typename T>
-    friend class product_operator;
+    friend class product_op;
     template <typename T>
-    friend class operator_sum;
+    friend class sum_op;
     template <typename T>
     friend class operator_arithmetics;
 

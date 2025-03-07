@@ -24,7 +24,7 @@ TEST(OperatorExpressions, checkElementaryOpsConversions) {
   auto boson_elementary_expected = utils::annihilate_matrix(2);
 
   auto checkSumEquals =
-      [dimensions, parameters](cudaq::operator_sum<cudaq::matrix_handler> sum,
+      [dimensions, parameters](cudaq::sum_op<cudaq::matrix_handler> sum,
                                cudaq::complex_matrix expected,
                                int expected_num_terms = 2) {
         auto got = sum.to_matrix(dimensions, parameters);
@@ -34,7 +34,7 @@ TEST(OperatorExpressions, checkElementaryOpsConversions) {
 
   auto checkProductEquals =
       [dimensions,
-       parameters](cudaq::product_operator<cudaq::matrix_handler> prod,
+       parameters](cudaq::product_op<cudaq::matrix_handler> prod,
                    cudaq::complex_matrix expected, int expected_num_terms = 2) {
         auto got = prod.to_matrix(dimensions, parameters);
         ASSERT_TRUE(prod.num_terms() == expected_num_terms);
@@ -110,28 +110,28 @@ TEST(OperatorExpressions, checkElementaryOpsConversions) {
 
   // `elementary *= elementary`
   {
-    auto matrix_product = cudaq::product_operator(matrix_elementary);
+    auto matrix_product = cudaq::product_op(matrix_elementary);
     matrix_product *= matrix_elementary;
     checkProductEquals(matrix_product,
                        matrix_elementary_expected * matrix_elementary_expected);
 
-    auto spin_product = cudaq::product_operator(spin_elementary);
+    auto spin_product = cudaq::product_op(spin_elementary);
     spin_product *= spin_elementary;
     checkProductEquals(spin_product,
                        spin_elementary_expected * spin_elementary_expected, 1);
 
-    auto boson_product = cudaq::product_operator(boson_elementary);
+    auto boson_product = cudaq::product_op(boson_elementary);
     boson_product *= boson_elementary;
     checkProductEquals(boson_product,
                        boson_elementary_expected * boson_elementary_expected,
                        1);
 
-    matrix_product = cudaq::product_operator(matrix_elementary);
+    matrix_product = cudaq::product_op(matrix_elementary);
     matrix_product *= spin_elementary;
     checkProductEquals(matrix_product,
                        matrix_elementary_expected * spin_elementary_expected);
 
-    matrix_product = cudaq::product_operator(matrix_elementary);
+    matrix_product = cudaq::product_op(matrix_elementary);
     matrix_product *= boson_elementary;
     checkProductEquals(matrix_product,
                        matrix_elementary_expected * boson_elementary_expected);
@@ -156,7 +156,7 @@ TEST(OperatorExpressions, checkProductOperatorConversions) {
       cudaq::kronecker(utils::annihilate_matrix(2), utils::number_matrix(2));
 
   auto checkSumEquals =
-      [dimensions, parameters](cudaq::operator_sum<cudaq::matrix_handler> sum,
+      [dimensions, parameters](cudaq::sum_op<cudaq::matrix_handler> sum,
                                cudaq::complex_matrix expected,
                                int expected_num_terms = 2) {
         auto got = sum.to_matrix(dimensions, parameters);
@@ -166,7 +166,7 @@ TEST(OperatorExpressions, checkProductOperatorConversions) {
 
   auto checkProductEquals =
       [dimensions,
-       parameters](cudaq::product_operator<cudaq::matrix_handler> prod,
+       parameters](cudaq::product_op<cudaq::matrix_handler> prod,
                    cudaq::complex_matrix expected, int expected_num_terms = 4) {
         auto got = prod.to_matrix(dimensions, parameters);
         ASSERT_TRUE(prod.num_terms() == expected_num_terms);
@@ -302,7 +302,7 @@ TEST(OperatorExpressions, checkOperatorSumConversions) {
       cudaq::kronecker(utils::id_matrix(2), utils::number_matrix(2));
 
   auto checkSumEquals =
-      [dimensions, parameters](cudaq::operator_sum<cudaq::matrix_handler> sum,
+      [dimensions, parameters](cudaq::sum_op<cudaq::matrix_handler> sum,
                                cudaq::complex_matrix expected, int num_terms = 4) {
         auto got = sum.to_matrix(dimensions, parameters);
         ASSERT_TRUE(sum.num_terms() == num_terms);

@@ -177,16 +177,16 @@ bool fermion_handler::operator==(const fermion_handler &other) const {
 
 // defined operators
 
-product_operator<fermion_handler> fermion_handler::create(int degree) {
-  return product_operator(fermion_handler(degree, 1));
+product_op<fermion_handler> fermion_handler::create(int degree) {
+  return product_op(fermion_handler(degree, 1));
 }
 
-product_operator<fermion_handler> fermion_handler::annihilate(int degree) {
-  return product_operator(fermion_handler(degree, 2));
+product_op<fermion_handler> fermion_handler::annihilate(int degree) {
+  return product_op(fermion_handler(degree, 2));
 }
 
-product_operator<fermion_handler> fermion_handler::number(int degree) {
-  return product_operator(fermion_handler(degree, 3));
+product_op<fermion_handler> fermion_handler::number(int degree) {
+  return product_op(fermion_handler(degree, 3));
 }
 
 } // namespace cudaq

@@ -559,14 +559,14 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
   int level_count = 3;
   std::complex<double> value = std::complex<double>(0.125, 0.5);
 
-  // `matrix_handler + operator_sum`
+  // `matrix_handler + sum_op`
   {
     auto self = cudaq::matrix_op::momentum(0);
-    auto operator_sum = cudaq::matrix_op::position(0) +
+    auto sum_op = cudaq::matrix_op::position(0) +
                         cudaq::matrix_op::identity(1);
 
-    auto got = self + operator_sum;
-    auto reverse = operator_sum + self;
+    auto got = self + sum_op;
+    auto reverse = sum_op + self;
 
     ASSERT_TRUE(got.num_terms() == 3);
     ASSERT_TRUE(reverse.num_terms() == 3);
@@ -587,14 +587,14 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `matrix_handler - operator_sum`
+  // `matrix_handler - sum_op`
   {
     auto self = cudaq::matrix_op::momentum(0);
-    auto operator_sum = cudaq::matrix_op::position(0) +
+    auto sum_op = cudaq::matrix_op::position(0) +
                         cudaq::matrix_op::identity(1);
 
-    auto got = self - operator_sum;
-    auto reverse = operator_sum - self;
+    auto got = self - sum_op;
+    auto reverse = sum_op - self;
 
     ASSERT_TRUE(got.num_terms() == 3);
     ASSERT_TRUE(reverse.num_terms() == 3);
@@ -615,14 +615,14 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `matrix_handler * operator_sum`
+  // `matrix_handler * sum_op`
   {
     auto self = cudaq::matrix_op::momentum(0);
-    auto operator_sum = cudaq::matrix_op::squeeze(0) +
+    auto sum_op = cudaq::matrix_op::squeeze(0) +
                         cudaq::matrix_op::identity(1);
 
-    auto got = self * operator_sum;
-    auto reverse = operator_sum * self;
+    auto got = self * sum_op;
+    auto reverse = sum_op * self;
 
     ASSERT_TRUE(got.num_terms() == 2);
     ASSERT_TRUE(reverse.num_terms() == 2);
@@ -650,13 +650,13 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `operator_sum += matrix_handler`
+  // `sum_op += matrix_handler`
   {
-    auto operator_sum = cudaq::matrix_op::position(0) +
+    auto sum_op = cudaq::matrix_op::position(0) +
                         cudaq::matrix_op::identity(1);
-    operator_sum += cudaq::matrix_op::displace(0);
+    sum_op += cudaq::matrix_op::displace(0);
 
-    ASSERT_TRUE(operator_sum.num_terms() == 3);
+    ASSERT_TRUE(sum_op.num_terms() == 3);
 
     auto self_full =
         cudaq::kronecker(utils::id_matrix(level_count),
@@ -666,19 +666,19 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
     auto term_1_full = cudaq::kronecker(utils::id_matrix(level_count),
                                         utils::id_matrix(level_count));
 
-    auto got_matrix = operator_sum.to_matrix(
+    auto got_matrix = sum_op.to_matrix(
         {{0, level_count}, {1, level_count}}, {{"displacement", value}});
     auto want_matrix = term_0_full + term_1_full + self_full;
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  // `operator_sum -= matrix_handler`
+  // `sum_op -= matrix_handler`
   {
-    auto operator_sum = cudaq::matrix_op::position(0) +
+    auto sum_op = cudaq::matrix_op::position(0) +
                         cudaq::matrix_op::identity(1);
-    operator_sum -= cudaq::matrix_op::momentum(0);
+    sum_op -= cudaq::matrix_op::momentum(0);
 
-    ASSERT_TRUE(operator_sum.num_terms() == 3);
+    ASSERT_TRUE(sum_op.num_terms() == 3);
 
     auto self_full = cudaq::kronecker(utils::id_matrix(level_count),
                                       utils::momentum_matrix(level_count));
@@ -688,21 +688,21 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
                                         utils::id_matrix(level_count));
 
     auto got_matrix =
-        operator_sum.to_matrix({{0, level_count}, {1, level_count}});
+        sum_op.to_matrix({{0, level_count}, {1, level_count}});
     auto want_matrix = term_0_full + term_1_full - self_full;
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  // `operator_sum *= matrix_handler`
+  // `sum_op *= matrix_handler`
   {
     auto self = cudaq::matrix_op::momentum(0);
-    auto operator_sum = cudaq::matrix_op::position(0) +
+    auto sum_op = cudaq::matrix_op::position(0) +
                         cudaq::matrix_op::identity(1);
 
-    operator_sum *= self;
+    sum_op *= self;
 
-    ASSERT_TRUE(operator_sum.num_terms() == 2);
-    for (const auto &term : operator_sum)
+    ASSERT_TRUE(sum_op.num_terms() == 2);
+    for (const auto &term : sum_op)
       ASSERT_TRUE(term.num_terms() == 2);
 
     auto self_full = cudaq::kronecker(utils::id_matrix(level_count),
@@ -714,7 +714,7 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
     auto sum_full = term_0_full + term_1_full;
 
     auto got_matrix =
-        operator_sum.to_matrix({{0, level_count}, {1, level_count}});
+        sum_op.to_matrix({{0, level_count}, {1, level_count}});
     auto want_matrix = sum_full * self_full;
     utils::checkEqual(want_matrix, got_matrix);
   }

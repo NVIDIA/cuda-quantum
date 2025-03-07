@@ -151,20 +151,20 @@ bool spin_operator::operator==(const spin_operator &other) const {
 
 // defined operators
 
-product_operator<spin_operator> spin_operator::i(int degree) {
-  return product_operator(spin_operator(degree));
+product_op<spin_operator> spin_operator::i(int degree) {
+  return product_op(spin_operator(degree));
 }
 
-product_operator<spin_operator> spin_operator::z(int degree) {
-  return product_operator(spin_operator(degree, 1));
+product_op<spin_operator> spin_operator::z(int degree) {
+  return product_op(spin_operator(degree, 1));
 }
 
-product_operator<spin_operator> spin_operator::x(int degree) {
-  return product_operator(spin_operator(degree, 2));
+product_op<spin_operator> spin_operator::x(int degree) {
+  return product_op(spin_operator(degree, 2));
 }
 
-product_operator<spin_operator> spin_operator::y(int degree) {
-  return product_operator(spin_operator(degree, 3));
+product_op<spin_operator> spin_operator::y(int degree) {
+  return product_op(spin_operator(degree, 3));
 }
 
 } // namespace cudaq

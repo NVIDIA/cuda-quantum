@@ -204,24 +204,24 @@ bool boson_handler::operator==(const boson_handler &other) const {
 
 // defined operators
 
-product_operator<boson_handler> boson_handler::create(int degree) {
-  return product_operator(boson_handler(degree, 1));
+product_op<boson_handler> boson_handler::create(int degree) {
+  return product_op(boson_handler(degree, 1));
 }
 
-product_operator<boson_handler> boson_handler::annihilate(int degree) {
-  return product_operator(boson_handler(degree, 2));
+product_op<boson_handler> boson_handler::annihilate(int degree) {
+  return product_op(boson_handler(degree, 2));
 }
 
-product_operator<boson_handler> boson_handler::number(int degree) {
-  return product_operator(boson_handler(degree, 3));
+product_op<boson_handler> boson_handler::number(int degree) {
+  return product_op(boson_handler(degree, 3));
 }
 
-operator_sum<boson_handler> boson_handler::position(int degree) {
+sum_op<boson_handler> boson_handler::position(int degree) {
   return 0.5 *
          (boson_handler::create(degree) + boson_handler::annihilate(degree));
 }
 
-operator_sum<boson_handler> boson_handler::momentum(int degree) {
+sum_op<boson_handler> boson_handler::momentum(int degree) {
   return std::complex<double>(0., 0.5) *
          (boson_handler::create(degree) - boson_handler::annihilate(degree));
 }

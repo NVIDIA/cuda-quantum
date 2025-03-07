@@ -22,7 +22,7 @@ enum class pauli { I, X, Y, Z };
 // FIXME: rename to spin ...
 class spin_operator : public operator_handler {
   template <typename T>
-  friend class product_operator;
+  friend class product_op;
 
 private:
   // I = 0, Z = 1, X = 2, Y = 3
@@ -81,10 +81,10 @@ public:
 
   // defined operators
 
-  static product_operator<spin_operator> i(int degree);
-  static product_operator<spin_operator> z(int degree);
-  static product_operator<spin_operator> x(int degree);
-  static product_operator<spin_operator> y(int degree);
+  static product_op<spin_operator> i(int degree);
+  static product_op<spin_operator> z(int degree);
+  static product_op<spin_operator> x(int degree);
+  static product_op<spin_operator> y(int degree);
 };
 
 } // namespace cudaq
