@@ -46,9 +46,8 @@ int main() {
   // 2. A time-dependent driving term: omega_x * cos(omega_drive * t) * `Sx`_0,
   // which induces rotations about the X-axis. The scalar_operator(mod_`func`)
   // allows the drive term to vary in time according to mod_`func`.
-  auto hamiltonian =
-      0.5 * omega_z * cudaq::spin_operator::z(0) +
-      omega_x * cudaq::scalar_operator(mod_func) * cudaq::spin_operator::x(0);
+  auto hamiltonian = 0.5 * omega_z * cudaq::spin_operator::z(0) +
+                     mod_func * cudaq::spin_operator::x(0) * omega_x;
 
   // A single qubit with dimension 2.
   cudaq::dimension_map dimensions = {{0, 2}};
