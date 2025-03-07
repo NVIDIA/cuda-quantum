@@ -1043,7 +1043,7 @@ jobs:
       - name: Load cuQuantum assets
         shell: bash
         run: |
-          apt-get update && apt-get install -y --no-install-recommends gh
+          apt-get update && apt-get install -y --no-install-recommends ca-certificates gh
           mkdir /tmp/packages && cd /tmp/packages
           gh release download cuquantum-25.03 -R ${{ github.repository }}
           rm -rf *archive.tar* && cd -
@@ -1150,7 +1150,7 @@ jobs:
       - name: Load cuQuantum assets
         shell: bash
         run: |
-          apt-get update && apt-get install -y --no-install-recommends gh
+          apt-get update && apt-get install -y --no-install-recommends ca-certificates gh
           mkdir /tmp/packages && cd /tmp/packages
           gh release download cuquantum-25.03 -R ${{ github.repository }}
           rm -rf *archive.tar* && cd -
