@@ -8,6 +8,7 @@
 
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/DialectImplementation.h"
@@ -103,6 +104,16 @@ cc::StructType::getPreferredAlignment(const DataLayout &dataLayout,
   return getAlignment();
 }
 
+LogicalResult
+cc::StructType::verify(llvm::function_ref<mlir::InFlightDiagnostic()> emitError,
+                       mlir::StringAttr, llvm::ArrayRef<mlir::Type> members,
+                       bool, bool, unsigned long, unsigned int) {
+  for (auto ty : members)
+    if (quake::isQuantumType(ty))
+      return emitError() << "cc.struct may not contain quake types: " << ty;
+  return success();
+}
+
 //===----------------------------------------------------------------------===//
 // ArrayType
 //===----------------------------------------------------------------------===//
@@ -137,6 +148,24 @@ void cc::ArrayType::print(AsmPrinter &printer) const {
   else
     printer << getSize();
   printer << '>';
+}
+
+LogicalResult
+cc::ArrayType::verify(function_ref<InFlightDiagnostic()> emitError, Type eleTy,
+                      long) {
+  if (quake::isQuantumType(eleTy))
+    return emitError() << "cc.array may not have a quake element type: "
+                       << eleTy;
+  return success();
+}
+
+LogicalResult
+cc::StdvecType::verify(function_ref<InFlightDiagnostic()> emitError,
+                       Type eleTy) {
+  if (quake::isQuantumType(eleTy))
+    return emitError() << "cc.stdvec may not have a quake element type: "
+                       << eleTy;
+  return success();
 }
 
 } // namespace cudaq
