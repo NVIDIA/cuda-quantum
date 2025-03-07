@@ -706,7 +706,7 @@ public:
             std::vector<cudaq::ExecutionResult> results;
 
             // If seed is 0, then it has not been set.
-            if (seed == 0)
+            if (seed > 0)
               cudaq::set_random_seed(seed);
 
             bool hasConditionals =

@@ -66,16 +66,15 @@ private:
     cudaq::registerAllDialects(registry);
     auto context = std::make_unique<MLIRContext>(registry);
     context->loadAllAvailableDialects();
+    registerLLVMDialectTranslation(*context);
 
     static bool initOnce = [&] {
       registerToQIRTranslation();
       registerToOpenQASMTranslation();
       registerToIQMJsonTranslation();
-      registerLLVMDialectTranslation(*context);
       return true;
     }();
     (void)initOnce;
-
     return context;
   }
 

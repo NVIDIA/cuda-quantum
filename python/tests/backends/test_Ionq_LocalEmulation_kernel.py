@@ -12,6 +12,7 @@ from cudaq import spin
 import pytest
 import os
 from typing import List
+import numpy as np
 
 
 def assert_close(want, got, tolerance=1.0e-1) -> bool:
@@ -92,6 +93,28 @@ def test_Ionq_cudaq_uccsd():
     assert '10000001' in counts
     assert '11000000' in counts
 
+def test_Ionq_state_synthesis():
+
+    @cudaq.kernel
+    def kernel(state: cudaq.State):
+        qubits = cudaq.qvector(state)
+
+    state = cudaq.State.from_data(
+        np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.], dtype=complex))
+
+    counts = cudaq.sample(kernel, state)
+    print(counts)
+    assert "00" in counts
+    assert "10" in counts
+    assert "01" not in counts
+    assert "11" not in counts
+
+    synthesized = cudaq.synthesize(kernel, state)
+    counts = cudaq.sample(synthesized)
+    print(counts)
+    assert '00' in counts
+    assert '10' in counts
+    assert len(counts) == 2
 
 # leave for gdb debugging
 if __name__ == "__main__":
