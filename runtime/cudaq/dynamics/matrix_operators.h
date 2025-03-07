@@ -17,7 +17,7 @@
 
 namespace cudaq {
 
-class matrix_operator : public operator_handler {
+class matrix_handler : public operator_handler {
 public:
   struct commutation_behavior {
     commutation_relations group =
@@ -52,10 +52,10 @@ protected:
   bool commutes;
   std::vector<int> targets;
 
-  matrix_operator(
+  matrix_handler(
       std::string operator_id, const std::vector<int> &degrees,
       const commutation_behavior &behavior = commutation_behavior());
-  matrix_operator(
+  matrix_handler(
       std::string operator_id, std::vector<int> &&degrees,
       const commutation_behavior &behavior = commutation_behavior());
 
@@ -102,7 +102,7 @@ public:
   /// @arg operator_id : The ID of the operator as specified when it was
   /// defined.
   /// @arg degrees : the degrees of freedom that the operator acts upon.
-  static product_operator<matrix_operator>
+  static product_operator<matrix_handler>
   instantiate(std::string operator_id, const std::vector<int> &degrees,
               const commutation_behavior &behavior = commutation_behavior());
 
@@ -110,7 +110,7 @@ public:
   /// @arg operator_id : The ID of the operator as specified when it was
   /// defined.
   /// @arg degrees : the degrees of freedom that the operator acts upon.
-  static product_operator<matrix_operator>
+  static product_operator<matrix_handler>
   instantiate(std::string operator_id, std::vector<int> &&degrees,
               const commutation_behavior &behavior = commutation_behavior());
 
@@ -125,39 +125,39 @@ public:
 
   // constructors and destructors
 
-  matrix_operator(int target);
+  matrix_handler(int target);
 
   template <typename T, std::enable_if_t<std::is_base_of_v<operator_handler, T>,
                                          bool> = true>
-  matrix_operator(const T &other);
+  matrix_handler(const T &other);
 
   template <typename T, std::enable_if_t<std::is_base_of_v<operator_handler, T>,
                                          bool> = true>
-  matrix_operator(const T &other, const commutation_behavior &behavior);
+  matrix_handler(const T &other, const commutation_behavior &behavior);
 
   // copy constructor
-  matrix_operator(const matrix_operator &other);
+  matrix_handler(const matrix_handler &other);
 
   // move constructor
-  matrix_operator(matrix_operator &&other);
+  matrix_handler(matrix_handler &&other);
 
-  ~matrix_operator() = default;
+  ~matrix_handler() = default;
 
   // assignments
 
-  matrix_operator &operator=(matrix_operator &&other);
+  matrix_handler &operator=(matrix_handler &&other);
 
-  matrix_operator &operator=(const matrix_operator &other);
+  matrix_handler &operator=(const matrix_handler &other);
 
   template <typename T,
-            std::enable_if_t<!std::is_same<T, matrix_operator>::value &&
+            std::enable_if_t<!std::is_same<T, matrix_handler>::value &&
                                  std::is_base_of_v<operator_handler, T>,
                              bool> = true>
-  matrix_operator &operator=(const T &other);
+  matrix_handler &operator=(const T &other);
 
   // evaluations
 
-  /// @brief Return the `matrix_operator` as a matrix.
+  /// @brief Return the `matrix_handler` as a matrix.
   /// @arg  `dimensions` : A map specifying the number of levels,
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
@@ -173,17 +173,17 @@ public:
 
   /// @brief True, if the other value is an elementary operator with the same id
   /// acting on the same degrees of freedom, and False otherwise.
-  bool operator==(const matrix_operator &other) const;
+  bool operator==(const matrix_handler &other) const;
 
   // predefined operators
 
-  static product_operator<matrix_operator> number(int degree);
-  static product_operator<matrix_operator> parity(int degree);
-  static product_operator<matrix_operator> position(int degree);
-  static product_operator<matrix_operator> momentum(int degree);
+  static product_operator<matrix_handler> number(int degree);
+  static product_operator<matrix_handler> parity(int degree);
+  static product_operator<matrix_handler> position(int degree);
+  static product_operator<matrix_handler> momentum(int degree);
   /// Operators that accept parameters at runtime.
-  static product_operator<matrix_operator> squeeze(int degree);
-  static product_operator<matrix_operator> displace(int degree);
+  static product_operator<matrix_handler> squeeze(int degree);
+  static product_operator<matrix_handler> displace(int degree);
 };
 
 } // namespace cudaq

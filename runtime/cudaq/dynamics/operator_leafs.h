@@ -309,7 +309,7 @@ public:
 
   virtual std::vector<int> degrees() const = 0;
 
-  /// @brief Return the `matrix_operator` as a matrix.
+  /// @brief Return the `matrix_handler` as a matrix.
   /// @arg  `dimensions` : A map specifying the number of levels,
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level

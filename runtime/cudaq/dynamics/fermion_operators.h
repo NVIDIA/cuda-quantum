@@ -18,7 +18,7 @@
 namespace cudaq {
 
 // FIXME: rename?
-class fermion_operator : public operator_handler {
+class fermion_handler : public operator_handler {
   template <typename T>
   friend class product_operator;
 
@@ -42,7 +42,7 @@ private:
   // Note that this constructor is chosen to be independent
   // on the internal encoding; to be less critic, we here use the usual
   // 0 = I, Ad = 1, A = 2, AdA = 3
-  fermion_operator(int target, int op_id);
+  fermion_handler(int target, int op_id);
 
   std::string op_code_to_string() const;
   virtual std::string
@@ -54,7 +54,7 @@ private:
   void validate_opcode() const;
 #endif
 
-  void inplace_mult(const fermion_operator &other);
+  void inplace_mult(const fermion_handler &other);
 
 public:
   static constexpr commutation_relations commutation_group =
@@ -70,15 +70,15 @@ public:
 
   // constructors and destructors
 
-  fermion_operator(int target);
+  fermion_handler(int target);
 
-  fermion_operator(const fermion_operator &other);
+  fermion_handler(const fermion_handler &other);
 
-  ~fermion_operator() = default;
+  ~fermion_handler() = default;
 
   // assignments
 
-  fermion_operator &operator=(const fermion_operator &other);
+  fermion_handler &operator=(const fermion_handler &other);
 
   // evaluations
 
@@ -97,13 +97,13 @@ public:
 
   /// @returns True if, and only if, the two operators have the same effect on
   /// any state.
-  bool operator==(const fermion_operator &other) const;
+  bool operator==(const fermion_handler &other) const;
 
   // defined operators
 
-  static product_operator<fermion_operator> create(int degree);
-  static product_operator<fermion_operator> annihilate(int degree);
-  static product_operator<fermion_operator> number(int degree);
+  static product_operator<fermion_handler> create(int degree);
+  static product_operator<fermion_handler> annihilate(int degree);
+  static product_operator<fermion_handler> number(int degree);
 
   // Note that we don't define position and momentum here, since physically they
   // do not make much sense; see e.g.

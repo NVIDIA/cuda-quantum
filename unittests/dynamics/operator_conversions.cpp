@@ -24,7 +24,7 @@ TEST(OperatorExpressions, checkElementaryOpsConversions) {
   auto boson_elementary_expected = utils::annihilate_matrix(2);
 
   auto checkSumEquals =
-      [dimensions, parameters](cudaq::operator_sum<cudaq::matrix_operator> sum,
+      [dimensions, parameters](cudaq::operator_sum<cudaq::matrix_handler> sum,
                                cudaq::complex_matrix expected,
                                int expected_num_terms = 2) {
         auto got = sum.to_matrix(dimensions, parameters);
@@ -34,7 +34,7 @@ TEST(OperatorExpressions, checkElementaryOpsConversions) {
 
   auto checkProductEquals =
       [dimensions,
-       parameters](cudaq::product_operator<cudaq::matrix_operator> prod,
+       parameters](cudaq::product_operator<cudaq::matrix_handler> prod,
                    cudaq::complex_matrix expected, int expected_num_terms = 2) {
         auto got = prod.to_matrix(dimensions, parameters);
         ASSERT_TRUE(prod.num_terms() == expected_num_terms);
@@ -156,7 +156,7 @@ TEST(OperatorExpressions, checkProductOperatorConversions) {
       cudaq::kronecker(utils::annihilate_matrix(2), utils::number_matrix(2));
 
   auto checkSumEquals =
-      [dimensions, parameters](cudaq::operator_sum<cudaq::matrix_operator> sum,
+      [dimensions, parameters](cudaq::operator_sum<cudaq::matrix_handler> sum,
                                cudaq::complex_matrix expected,
                                int expected_num_terms = 2) {
         auto got = sum.to_matrix(dimensions, parameters);
@@ -166,7 +166,7 @@ TEST(OperatorExpressions, checkProductOperatorConversions) {
 
   auto checkProductEquals =
       [dimensions,
-       parameters](cudaq::product_operator<cudaq::matrix_operator> prod,
+       parameters](cudaq::product_operator<cudaq::matrix_handler> prod,
                    cudaq::complex_matrix expected, int expected_num_terms = 4) {
         auto got = prod.to_matrix(dimensions, parameters);
         ASSERT_TRUE(prod.num_terms() == expected_num_terms);
@@ -302,7 +302,7 @@ TEST(OperatorExpressions, checkOperatorSumConversions) {
       cudaq::kronecker(utils::id_matrix(2), utils::number_matrix(2));
 
   auto checkSumEquals =
-      [dimensions, parameters](cudaq::operator_sum<cudaq::matrix_operator> sum,
+      [dimensions, parameters](cudaq::operator_sum<cudaq::matrix_handler> sum,
                                cudaq::complex_matrix expected, int num_terms = 4) {
         auto got = sum.to_matrix(dimensions, parameters);
         ASSERT_TRUE(sum.num_terms() == num_terms);

@@ -21,51 +21,51 @@
 namespace cudaq {
 
 #if !defined(NDEBUG)
-bool matrix_operator::can_be_canonicalized = false;
+bool matrix_handler::can_be_canonicalized = false;
 #endif
 
 // tools for custom operators
 
-std::unordered_map<std::string, Definition> matrix_operator::defined_ops = {};
+std::unordered_map<std::string, Definition> matrix_handler::defined_ops = {};
 
 template <typename T>
-std::string matrix_operator::type_prefix() {
+std::string matrix_handler::type_prefix() {
   return typeid(T).name();
 }
 
 // no need to prefix the operator id and op code with the type name for these
 // (same names mean the same thing)
 template <>
-std::string matrix_operator::type_prefix<spin_operator>() {
+std::string matrix_handler::type_prefix<spin_operator>() {
   return "";
 }
 template <>
-std::string matrix_operator::type_prefix<boson_operator>() {
+std::string matrix_handler::type_prefix<boson_handler>() {
   return "";
 }
 template <>
-std::string matrix_operator::type_prefix<fermion_operator>() {
+std::string matrix_handler::type_prefix<fermion_handler>() {
   return "";
 }
 
-void matrix_operator::define(std::string operator_id,
+void matrix_handler::define(std::string operator_id,
                              std::vector<int> expected_dimensions,
                              matrix_callback &&create) {
   auto defn = Definition(operator_id, expected_dimensions,
                          std::forward<matrix_callback>(create));
   auto result =
-      matrix_operator::defined_ops.insert({operator_id, std::move(defn)});
+      matrix_handler::defined_ops.insert({operator_id, std::move(defn)});
   if (!result.second)
     throw std::runtime_error("an matrix operator with name " + operator_id +
                              "is already defined");
 }
 
-product_operator<matrix_operator>
-matrix_operator::instantiate(std::string operator_id,
+product_operator<matrix_handler>
+matrix_handler::instantiate(std::string operator_id,
                              const std::vector<int> &degrees,
                              const commutation_behavior &commutation_behavior) {
-  auto it = matrix_operator::defined_ops.find(operator_id);
-  if (it == matrix_operator::defined_ops.end())
+  auto it = matrix_handler::defined_ops.find(operator_id);
+  if (it == matrix_handler::defined_ops.end())
     throw std::range_error("not matrix operator with the name '" + operator_id +
                            "' has been defined");
   auto application_degrees = degrees;
@@ -81,15 +81,15 @@ matrix_operator::instantiate(std::string operator_id,
     throw std::runtime_error(err_msg.str());
   }
   return product_operator(
-      matrix_operator(operator_id, degrees, commutation_behavior));
+      matrix_handler(operator_id, degrees, commutation_behavior));
 }
 
-product_operator<matrix_operator>
-matrix_operator::instantiate(std::string operator_id,
+product_operator<matrix_handler>
+matrix_handler::instantiate(std::string operator_id,
                              std::vector<int> &&degrees,
                              const commutation_behavior &commutation_behavior) {
-  auto it = matrix_operator::defined_ops.find(operator_id);
-  if (it == matrix_operator::defined_ops.end())
+  auto it = matrix_handler::defined_ops.find(operator_id);
+  if (it == matrix_handler::defined_ops.end())
     throw std::range_error("not matrix operator with the name '" + operator_id +
                            "' has been defined");
   auto application_degrees = degrees;
@@ -105,15 +105,15 @@ matrix_operator::instantiate(std::string operator_id,
     throw std::runtime_error(err_msg.str());
   }
   return product_operator(
-      matrix_operator(operator_id, std::move(degrees), commutation_behavior));
+      matrix_handler(operator_id, std::move(degrees), commutation_behavior));
 }
 
 // private helpers
 
-std::string matrix_operator::op_code_to_string(
+std::string matrix_handler::op_code_to_string(
     std::unordered_map<int, int> &dimensions) const {
-  auto it = matrix_operator::defined_ops.find(this->op_code);
-  assert(it != matrix_operator::defined_ops
+  auto it = matrix_handler::defined_ops.find(this->op_code);
+  assert(it != matrix_handler::defined_ops
                    .end()); // should be validated upon instantiation
 
   for (auto i = 0; i < this->targets.size(); ++i) {
@@ -137,7 +137,7 @@ std::string matrix_operator::op_code_to_string(
 
 // read-only properties
 
-std::string matrix_operator::unique_id() const {
+std::string matrix_handler::unique_id() const {
   auto it = this->targets.cbegin();
   auto str = this->op_code + std::to_string(*it);
   while (++it != this->targets.cend())
@@ -145,16 +145,16 @@ std::string matrix_operator::unique_id() const {
   return std::move(str);
 }
 
-std::vector<int> matrix_operator::degrees() const { return this->targets; }
+std::vector<int> matrix_handler::degrees() const { return this->targets; }
 
 // constructors
 
-matrix_operator::matrix_operator(int degree)
+matrix_handler::matrix_handler(int degree)
     : op_code("I"), commutes(true),
       group(operator_handler::default_commutation_relations) {
   this->targets.push_back(degree);
-  if (matrix_operator::defined_ops.find(this->op_code) ==
-      matrix_operator::defined_ops.end()) {
+  if (matrix_handler::defined_ops.find(this->op_code) ==
+      matrix_handler::defined_ops.end()) {
     auto func =
         [](const std::vector<int> &dimensions,
            const std::unordered_map<std::string, std::complex<double>> &_none) {
@@ -167,11 +167,11 @@ matrix_operator::matrix_operator(int degree)
           }
           return mat;
         };
-    matrix_operator::define(this->op_code, {-1}, std::move(func));
+    matrix_handler::define(this->op_code, {-1}, std::move(func));
   }
 }
 
-matrix_operator::matrix_operator(
+matrix_handler::matrix_handler(
     std::string operator_id, const std::vector<int> &degrees,
     const commutation_behavior &commutation_behavior)
     : op_code(operator_id),
@@ -194,7 +194,7 @@ matrix_operator::matrix_operator(
                              "supported for multi-target operators");
 }
 
-matrix_operator::matrix_operator(
+matrix_handler::matrix_handler(
     std::string operator_id, std::vector<int> &&degrees,
     const commutation_behavior &commutation_behavior)
     : op_code(operator_id),
@@ -219,20 +219,20 @@ matrix_operator::matrix_operator(
 
 template <typename T,
           std::enable_if_t<std::is_base_of_v<operator_handler, T>, bool>>
-matrix_operator::matrix_operator(const T &other)
-    : matrix_operator::matrix_operator(
+matrix_handler::matrix_handler(const T &other)
+    : matrix_handler::matrix_handler(
           other, commutation_behavior(other.commutation_group,
                                       other.commutes_across_degrees)) {}
 
 template <typename T,
           std::enable_if_t<std::is_base_of_v<operator_handler, T>, bool>>
-matrix_operator::matrix_operator(const T &other,
+matrix_handler::matrix_handler(const T &other,
                                  const commutation_behavior &behavior)
-    : op_code(matrix_operator::type_prefix<T>() + other.to_string(false)),
+    : op_code(matrix_handler::type_prefix<T>() + other.to_string(false)),
       commutes(behavior.commutes_across_degrees), group(behavior.group),
       targets(other.degrees()) {
-  if (matrix_operator::defined_ops.find(this->op_code) ==
-      matrix_operator::defined_ops.end()) {
+  if (matrix_handler::defined_ops.find(this->op_code) ==
+      matrix_handler::defined_ops.end()) {
     auto func = [other](const std::vector<int> &dimensions,
                         const std::unordered_map<std::string,
                                                  std::complex<double>> &_none) {
@@ -245,33 +245,33 @@ matrix_operator::matrix_operator(const T &other,
     // the to_matrix method on the spin op will check the dimensions, so we
     // allow arbitrary here
     std::vector<int> required_dimensions(this->targets.size(), -1);
-    matrix_operator::define(this->op_code, std::move(required_dimensions),
+    matrix_handler::define(this->op_code, std::move(required_dimensions),
                             func);
   }
 }
 
-template matrix_operator::matrix_operator(const spin_operator &other);
-template matrix_operator::matrix_operator(const boson_operator &other);
-template matrix_operator::matrix_operator(const fermion_operator &other);
+template matrix_handler::matrix_handler(const spin_operator &other);
+template matrix_handler::matrix_handler(const boson_handler &other);
+template matrix_handler::matrix_handler(const fermion_handler &other);
 
-template matrix_operator::matrix_operator(const spin_operator &other,
+template matrix_handler::matrix_handler(const spin_operator &other,
                                           const commutation_behavior &behavior);
-template matrix_operator::matrix_operator(const boson_operator &other,
+template matrix_handler::matrix_handler(const boson_handler &other,
                                           const commutation_behavior &behavior);
-template matrix_operator::matrix_operator(const fermion_operator &other,
+template matrix_handler::matrix_handler(const fermion_handler &other,
                                           const commutation_behavior &behavior);
 
-matrix_operator::matrix_operator(const matrix_operator &other)
+matrix_handler::matrix_handler(const matrix_handler &other)
     : op_code(other.op_code), commutes(other.commutes), group(other.group),
       targets(other.targets) {}
 
-matrix_operator::matrix_operator(matrix_operator &&other)
+matrix_handler::matrix_handler(matrix_handler &&other)
     : op_code(other.op_code), commutes(other.commutes),
       group(std::move(other.group)), targets(std::move(other.targets)) {}
 
 // assignments
 
-matrix_operator &matrix_operator::operator=(matrix_operator &&other) {
+matrix_handler &matrix_handler::operator=(matrix_handler &&other) {
   if (this != &other) {
     this->op_code = other.op_code;
     this->commutes = other.commutes;
@@ -281,7 +281,7 @@ matrix_operator &matrix_operator::operator=(matrix_operator &&other) {
   return *this;
 }
 
-matrix_operator &matrix_operator::operator=(const matrix_operator &other) {
+matrix_handler &matrix_handler::operator=(const matrix_handler &other) {
   if (this != &other) {
     this->op_code = other.op_code;
     this->commutes = other.commutes;
@@ -292,29 +292,29 @@ matrix_operator &matrix_operator::operator=(const matrix_operator &other) {
 }
 
 template <typename T,
-          std::enable_if_t<!std::is_same<T, matrix_operator>::value &&
+          std::enable_if_t<!std::is_same<T, matrix_handler>::value &&
                                std::is_base_of_v<operator_handler, T>,
                            bool>>
-matrix_operator &matrix_operator::operator=(const T &other) {
-  *this = matrix_operator(other);
+matrix_handler &matrix_handler::operator=(const T &other) {
+  *this = matrix_handler(other);
   return *this;
 }
 
-template matrix_operator &
-matrix_operator::operator=(const spin_operator &other);
-template matrix_operator &
-matrix_operator::operator=(const boson_operator &other);
-template matrix_operator &
-matrix_operator::operator=(const fermion_operator &other);
+template matrix_handler &
+matrix_handler::operator=(const spin_operator &other);
+template matrix_handler &
+matrix_handler::operator=(const boson_handler &other);
+template matrix_handler &
+matrix_handler::operator=(const fermion_handler &other);
 
 // evaluations
 
-complex_matrix matrix_operator::to_matrix(
+complex_matrix matrix_handler::to_matrix(
     std::unordered_map<int, int> &dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
-  auto it = matrix_operator::defined_ops.find(this->op_code);
-  assert(it != matrix_operator::defined_ops
+  auto it = matrix_handler::defined_ops.find(this->op_code);
+  assert(it != matrix_handler::defined_ops
                    .end()); // should be validated upon instantiation
 
   std::vector<int> relevant_dimensions;
@@ -341,7 +341,7 @@ complex_matrix matrix_operator::to_matrix(
   return it->second.generate_matrix(relevant_dimensions, parameters);
 }
 
-std::string matrix_operator::to_string(bool include_degrees) const {
+std::string matrix_handler::to_string(bool include_degrees) const {
   if (!include_degrees)
     return this->op_code;
   else if (this->targets.size() == 0)
@@ -355,7 +355,7 @@ std::string matrix_operator::to_string(bool include_degrees) const {
 
 // comparisons
 
-bool matrix_operator::operator==(const matrix_operator &other) const {
+bool matrix_handler::operator==(const matrix_handler &other) const {
   return this->op_code == other.op_code && this->group == other.group &&
          // no need to compare commutes (should be determined by op_code and
          // commutation group)
@@ -364,10 +364,10 @@ bool matrix_operator::operator==(const matrix_operator &other) const {
 
 // predefined operators
 
-product_operator<matrix_operator> matrix_operator::number(int degree) {
+product_operator<matrix_handler> matrix_handler::number(int degree) {
   std::string op_code = "number";
-  if (matrix_operator::defined_ops.find(op_code) ==
-      matrix_operator::defined_ops.end()) {
+  if (matrix_handler::defined_ops.find(op_code) ==
+      matrix_handler::defined_ops.end()) {
     auto func =
         [](const std::vector<int> &dimensions,
            const std::unordered_map<std::string, std::complex<double>> &_none) {
@@ -378,16 +378,16 @@ product_operator<matrix_operator> matrix_operator::number(int degree) {
           }
           return mat;
         };
-    matrix_operator::define(op_code, {-1}, func);
+    matrix_handler::define(op_code, {-1}, func);
   }
-  auto op = matrix_operator(op_code, {degree});
+  auto op = matrix_handler(op_code, {degree});
   return product_operator(std::move(op));
 }
 
-product_operator<matrix_operator> matrix_operator::parity(int degree) {
+product_operator<matrix_handler> matrix_handler::parity(int degree) {
   std::string op_code = "parity";
-  if (matrix_operator::defined_ops.find(op_code) ==
-      matrix_operator::defined_ops.end()) {
+  if (matrix_handler::defined_ops.find(op_code) ==
+      matrix_handler::defined_ops.end()) {
     auto func =
         [](const std::vector<int> &dimensions,
            const std::unordered_map<std::string, std::complex<double>> &_none) {
@@ -398,16 +398,16 @@ product_operator<matrix_operator> matrix_operator::parity(int degree) {
           }
           return mat;
         };
-    matrix_operator::define(op_code, {-1}, func);
+    matrix_handler::define(op_code, {-1}, func);
   }
-  auto op = matrix_operator(op_code, {degree});
+  auto op = matrix_handler(op_code, {degree});
   return product_operator(std::move(op));
 }
 
-product_operator<matrix_operator> matrix_operator::position(int degree) {
+product_operator<matrix_handler> matrix_handler::position(int degree) {
   std::string op_code = "position";
-  if (matrix_operator::defined_ops.find(op_code) ==
-      matrix_operator::defined_ops.end()) {
+  if (matrix_handler::defined_ops.find(op_code) ==
+      matrix_handler::defined_ops.end()) {
     auto func =
         [](const std::vector<int> &dimensions,
            const std::unordered_map<std::string, std::complex<double>> &_none) {
@@ -420,16 +420,16 @@ product_operator<matrix_operator> matrix_operator::position(int degree) {
           }
           return mat;
         };
-    matrix_operator::define(op_code, {-1}, func);
+    matrix_handler::define(op_code, {-1}, func);
   }
-  auto op = matrix_operator(op_code, {degree});
+  auto op = matrix_handler(op_code, {degree});
   return product_operator(std::move(op));
 }
 
-product_operator<matrix_operator> matrix_operator::momentum(int degree) {
+product_operator<matrix_handler> matrix_handler::momentum(int degree) {
   std::string op_code = "momentum";
-  if (matrix_operator::defined_ops.find(op_code) ==
-      matrix_operator::defined_ops.end()) {
+  if (matrix_handler::defined_ops.find(op_code) ==
+      matrix_handler::defined_ops.end()) {
     auto func =
         [](const std::vector<int> &dimensions,
            const std::unordered_map<std::string, std::complex<double>> &_none) {
@@ -444,16 +444,16 @@ product_operator<matrix_operator> matrix_operator::momentum(int degree) {
           }
           return mat;
         };
-    matrix_operator::define(op_code, {-1}, func);
+    matrix_handler::define(op_code, {-1}, func);
   }
-  auto op = matrix_operator(op_code, {degree});
+  auto op = matrix_handler(op_code, {degree});
   return product_operator(std::move(op));
 }
 
-product_operator<matrix_operator> matrix_operator::displace(int degree) {
+product_operator<matrix_handler> matrix_handler::displace(int degree) {
   std::string op_code = "displace";
-  if (matrix_operator::defined_ops.find(op_code) ==
-      matrix_operator::defined_ops.end()) {
+  if (matrix_handler::defined_ops.find(op_code) ==
+      matrix_handler::defined_ops.end()) {
     auto func = [](const std::vector<int> &dimensions,
                    const std::unordered_map<std::string, std::complex<double>>
                        &parameters) {
@@ -472,16 +472,16 @@ product_operator<matrix_operator> matrix_operator::displace(int degree) {
       auto term2 = std::conj(displacement_amplitude) * annihilate;
       return (term1 - term2).exponential();
     };
-    matrix_operator::define(op_code, {-1}, func);
+    matrix_handler::define(op_code, {-1}, func);
   }
-  auto op = matrix_operator(op_code, {degree});
+  auto op = matrix_handler(op_code, {degree});
   return product_operator(std::move(op));
 }
 
-product_operator<matrix_operator> matrix_operator::squeeze(int degree) {
+product_operator<matrix_handler> matrix_handler::squeeze(int degree) {
   std::string op_code = "squeeze";
-  if (matrix_operator::defined_ops.find(op_code) ==
-      matrix_operator::defined_ops.end()) {
+  if (matrix_handler::defined_ops.find(op_code) ==
+      matrix_handler::defined_ops.end()) {
     auto func = [](const std::vector<int> &dimensions,
                    const std::unordered_map<std::string, std::complex<double>>
                        &parameters) {
@@ -501,9 +501,9 @@ product_operator<matrix_operator> matrix_operator::squeeze(int degree) {
       auto difference = 0.5 * (term1 - term2);
       return difference.exponential();
     };
-    matrix_operator::define(op_code, {-1}, func);
+    matrix_handler::define(op_code, {-1}, func);
   }
-  auto op = matrix_operator(op_code, {degree});
+  auto op = matrix_handler(op_code, {degree});
   return product_operator(std::move(op));
 }
 

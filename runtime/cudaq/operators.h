@@ -21,7 +21,6 @@
 
 namespace cudaq {
 
-// Here primarily for backward compatibility
 class spin_operator;
 
 #define HANDLER_SPECIFIC_TEMPLATE(ConcreteTy)                                             \
@@ -148,12 +147,12 @@ public:
   operator_sum(const operator_sum<T> &other);
 
   template <typename T,
-            std::enable_if_t<std::is_same<HandlerTy, matrix_operator>::value &&
+            std::enable_if_t<std::is_same<HandlerTy, matrix_handler>::value &&
                                  !std::is_same<T, HandlerTy>::value &&
                                  std::is_constructible<HandlerTy, T>::value,
                              bool> = true>
   operator_sum(const operator_sum<T> &other,
-               const matrix_operator::commutation_behavior &behavior);
+               const matrix_handler::commutation_behavior &behavior);
 
   // copy constructor
   operator_sum(const operator_sum<HandlerTy> &other, int size = 0);
@@ -340,22 +339,22 @@ public:
 
   // handler specific operators
 
-  HANDLER_SPECIFIC_TEMPLATE(matrix_operator)
+  HANDLER_SPECIFIC_TEMPLATE(matrix_handler)
   static product_operator<T> number(int target);
 
-  HANDLER_SPECIFIC_TEMPLATE(matrix_operator)
+  HANDLER_SPECIFIC_TEMPLATE(matrix_handler)
   static product_operator<T> parity(int target);
 
-  HANDLER_SPECIFIC_TEMPLATE(matrix_operator)
+  HANDLER_SPECIFIC_TEMPLATE(matrix_handler)
   static product_operator<T> position(int target);
 
-  HANDLER_SPECIFIC_TEMPLATE(matrix_operator)
+  HANDLER_SPECIFIC_TEMPLATE(matrix_handler)
   static product_operator<T> momentum(int target);
 
-  HANDLER_SPECIFIC_TEMPLATE(matrix_operator)
+  HANDLER_SPECIFIC_TEMPLATE(matrix_handler)
   static product_operator<T> squeeze(int target);
 
-  HANDLER_SPECIFIC_TEMPLATE(matrix_operator)
+  HANDLER_SPECIFIC_TEMPLATE(matrix_handler)
   static product_operator<T> displace(int target);
 
 
@@ -372,29 +371,29 @@ public:
   static product_operator<T> z(int target);
 
 
-  HANDLER_SPECIFIC_TEMPLATE(boson_operator)
+  HANDLER_SPECIFIC_TEMPLATE(boson_handler)
   static product_operator<T> create(int target);
 
-  HANDLER_SPECIFIC_TEMPLATE(boson_operator)
+  HANDLER_SPECIFIC_TEMPLATE(boson_handler)
   static product_operator<T> annihilate(int target);
   
-  HANDLER_SPECIFIC_TEMPLATE(boson_operator)
+  HANDLER_SPECIFIC_TEMPLATE(boson_handler)
   static product_operator<T> number(int target);
 
-  HANDLER_SPECIFIC_TEMPLATE(boson_operator)
+  HANDLER_SPECIFIC_TEMPLATE(boson_handler)
   static operator_sum<T> position(int target);
 
-  HANDLER_SPECIFIC_TEMPLATE(boson_operator)
+  HANDLER_SPECIFIC_TEMPLATE(boson_handler)
   static operator_sum<T> momentum(int target);
 
 
-  HANDLER_SPECIFIC_TEMPLATE(fermion_operator)
+  HANDLER_SPECIFIC_TEMPLATE(fermion_handler)
   static product_operator<T> create(int target);
 
-  HANDLER_SPECIFIC_TEMPLATE(fermion_operator)
+  HANDLER_SPECIFIC_TEMPLATE(fermion_handler)
   static product_operator<T> annihilate(int target);
   
-  HANDLER_SPECIFIC_TEMPLATE(fermion_operator)
+  HANDLER_SPECIFIC_TEMPLATE(fermion_handler)
   static product_operator<T> number(int target);
 
   // general utility functions
@@ -582,12 +581,12 @@ public:
   product_operator(const product_operator<T> &other);
 
   template <typename T,
-            std::enable_if_t<std::is_same<HandlerTy, matrix_operator>::value &&
+            std::enable_if_t<std::is_same<HandlerTy, matrix_handler>::value &&
                                  !std::is_same<T, HandlerTy>::value &&
                                  std::is_constructible<HandlerTy, T>::value,
                              bool> = true>
   product_operator(const product_operator<T> &other,
-                   const matrix_operator::commutation_behavior &behavior);
+                   const matrix_handler::commutation_behavior &behavior);
 
   // copy constructor
   product_operator(const product_operator<HandlerTy> &other, int size = 0);
@@ -806,25 +805,25 @@ public:
 // type aliases for convenience
 typedef std::unordered_map<std::string, std::complex<double>> parameter_map;
 typedef std::unordered_map<int, int> dimension_map;
-typedef operator_sum<matrix_operator> matrix_op;
-typedef product_operator<matrix_operator> matrix_op_term;
+typedef operator_sum<matrix_handler> matrix_op;
+typedef product_operator<matrix_handler> matrix_op_term;
 typedef operator_sum<spin_operator> spin_op;
 typedef product_operator<spin_operator> spin_op_term;
-typedef operator_sum<boson_operator> boson_op;
-typedef product_operator<boson_operator> boson_op_term;
-typedef operator_sum<fermion_operator> fermion_op;
-typedef product_operator<fermion_operator> fermion_op_term;
+typedef operator_sum<boson_handler> boson_op;
+typedef product_operator<boson_handler> boson_op_term;
+typedef operator_sum<fermion_handler> fermion_op;
+typedef product_operator<fermion_handler> fermion_op_term;
 
 #ifndef CUDAQ_INSTANTIATE_TEMPLATES
-extern template class product_operator<matrix_operator>;
+extern template class product_operator<matrix_handler>;
 extern template class product_operator<spin_operator>;
-extern template class product_operator<boson_operator>;
-extern template class product_operator<fermion_operator>;
+extern template class product_operator<boson_handler>;
+extern template class product_operator<fermion_handler>;
 
-extern template class operator_sum<matrix_operator>;
+extern template class operator_sum<matrix_handler>;
 extern template class operator_sum<spin_operator>;
-extern template class operator_sum<boson_operator>;
-extern template class operator_sum<fermion_operator>;
+extern template class operator_sum<boson_handler>;
+extern template class operator_sum<fermion_handler>;
 #endif
 
 } // namespace cudaq

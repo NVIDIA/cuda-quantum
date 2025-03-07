@@ -18,7 +18,7 @@
 namespace cudaq {
 
 // FIXME: rename?
-class boson_operator : public operator_handler {
+class boson_handler : public operator_handler {
   template <typename T>
   friend class product_operator;
 
@@ -34,13 +34,13 @@ private:
   int degree;
 
   // 0 = I, Ad = 1, A = 2, AdA = 3
-  boson_operator(int target, int op_code);
+  boson_handler(int target, int op_code);
 
   std::string op_code_to_string() const;
   virtual std::string
   op_code_to_string(std::unordered_map<int, int> &dimensions) const override;
 
-  void inplace_mult(const boson_operator &other);
+  void inplace_mult(const boson_handler &other);
 
 public:
   // read-only properties
@@ -51,9 +51,9 @@ public:
 
   // constructors and destructors
 
-  boson_operator(int target);
+  boson_handler(int target);
 
-  ~boson_operator() = default;
+  ~boson_handler() = default;
 
   // evaluations
 
@@ -72,16 +72,16 @@ public:
 
   /// @returns True if, and only if, the two operators have the same effect on
   /// any state.
-  bool operator==(const boson_operator &other) const;
+  bool operator==(const boson_handler &other) const;
 
   // defined operators
 
-  static product_operator<boson_operator> create(int degree);
-  static product_operator<boson_operator> annihilate(int degree);
-  static product_operator<boson_operator> number(int degree);
+  static product_operator<boson_handler> create(int degree);
+  static product_operator<boson_handler> annihilate(int degree);
+  static product_operator<boson_handler> number(int degree);
 
-  static operator_sum<boson_operator> position(int degree);
-  static operator_sum<boson_operator> momentum(int degree);
+  static operator_sum<boson_handler> position(int degree);
+  static operator_sum<boson_handler> momentum(int degree);
 };
 
 } // namespace cudaq

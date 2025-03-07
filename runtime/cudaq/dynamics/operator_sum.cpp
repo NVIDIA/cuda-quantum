@@ -134,10 +134,10 @@ EvalTy operator_sum<HandlerTy>::evaluate(
       product_operator<HandlerTy> &&item3);
 
 #if !defined(__clang__)
-INSTANTIATE_SUM_PRIVATE_METHODS(matrix_operator);
+INSTANTIATE_SUM_PRIVATE_METHODS(matrix_handler);
 INSTANTIATE_SUM_PRIVATE_METHODS(spin_operator);
-INSTANTIATE_SUM_PRIVATE_METHODS(boson_operator);
-INSTANTIATE_SUM_PRIVATE_METHODS(fermion_operator);
+INSTANTIATE_SUM_PRIVATE_METHODS(boson_handler);
+INSTANTIATE_SUM_PRIVATE_METHODS(fermion_handler);
 #endif
 
 #define INSTANTIATE_SUM_EVALUATE_METHODS(HandlerTy, EvalTy)                    \
@@ -146,13 +146,13 @@ INSTANTIATE_SUM_PRIVATE_METHODS(fermion_operator);
       operator_arithmetics<EvalTy> arithmetics) const;
 
 #if !defined(__clang__)
-INSTANTIATE_SUM_EVALUATE_METHODS(matrix_operator,
+INSTANTIATE_SUM_EVALUATE_METHODS(matrix_handler,
                                  operator_handler::matrix_evaluation);
 INSTANTIATE_SUM_EVALUATE_METHODS(spin_operator,
                                  operator_handler::canonical_evaluation);
-INSTANTIATE_SUM_EVALUATE_METHODS(boson_operator,
+INSTANTIATE_SUM_EVALUATE_METHODS(boson_handler,
                                  operator_handler::matrix_evaluation);
-INSTANTIATE_SUM_EVALUATE_METHODS(fermion_operator,
+INSTANTIATE_SUM_EVALUATE_METHODS(fermion_handler,
                                  operator_handler::matrix_evaluation);
 #endif
 
@@ -192,10 +192,10 @@ std::size_t operator_sum<HandlerTy>::num_terms() const {
   template std::size_t operator_sum<HandlerTy>::num_terms() const;
 
 #if !defined(__clang__)
-INSTANTIATE_SUM_PROPERTIES(matrix_operator);
+INSTANTIATE_SUM_PROPERTIES(matrix_handler);
 INSTANTIATE_SUM_PROPERTIES(spin_operator);
-INSTANTIATE_SUM_PROPERTIES(boson_operator);
-INSTANTIATE_SUM_PROPERTIES(fermion_operator);
+INSTANTIATE_SUM_PROPERTIES(boson_handler);
+INSTANTIATE_SUM_PROPERTIES(fermion_handler);
 #endif
 
 // constructors
@@ -238,13 +238,13 @@ operator_sum<HandlerTy>::operator_sum(const operator_sum<T> &other)
 
 template <typename HandlerTy>
 template <typename T,
-          std::enable_if_t<std::is_same<HandlerTy, matrix_operator>::value &&
+          std::enable_if_t<std::is_same<HandlerTy, matrix_handler>::value &&
                                !std::is_same<T, HandlerTy>::value &&
                                std::is_constructible<HandlerTy, T>::value,
                            bool>>
 operator_sum<HandlerTy>::operator_sum(
     const operator_sum<T> &other,
-    const matrix_operator::commutation_behavior &behavior)
+    const matrix_handler::commutation_behavior &behavior)
     : coefficients(other.coefficients) {
   this->term_map.reserve(other.terms.size());
   this->terms.reserve(other.terms.size());
@@ -326,32 +326,32 @@ operator_sum<HandlerTy>::operator_sum(operator_sum<HandlerTy> &&other, int size)
       product_operator<HandlerTy> &&item1,                                     \
       product_operator<HandlerTy> &&item2);
 
-template operator_sum<matrix_operator>::operator_sum(
+template operator_sum<matrix_handler>::operator_sum(
     const operator_sum<spin_operator> &other);
-template operator_sum<matrix_operator>::operator_sum(
-    const operator_sum<boson_operator> &other);
-template operator_sum<matrix_operator>::operator_sum(
-    const operator_sum<fermion_operator> &other);
-template operator_sum<matrix_operator>::operator_sum(
+template operator_sum<matrix_handler>::operator_sum(
+    const operator_sum<boson_handler> &other);
+template operator_sum<matrix_handler>::operator_sum(
+    const operator_sum<fermion_handler> &other);
+template operator_sum<matrix_handler>::operator_sum(
     const operator_sum<spin_operator> &other,
-    const matrix_operator::commutation_behavior &behavior);
-template operator_sum<matrix_operator>::operator_sum(
-    const operator_sum<boson_operator> &other,
-    const matrix_operator::commutation_behavior &behavior);
-template operator_sum<matrix_operator>::operator_sum(
-    const operator_sum<fermion_operator> &other,
-    const matrix_operator::commutation_behavior &behavior);
+    const matrix_handler::commutation_behavior &behavior);
+template operator_sum<matrix_handler>::operator_sum(
+    const operator_sum<boson_handler> &other,
+    const matrix_handler::commutation_behavior &behavior);
+template operator_sum<matrix_handler>::operator_sum(
+    const operator_sum<fermion_handler> &other,
+    const matrix_handler::commutation_behavior &behavior);
 
 #if !defined(__clang__)
-INSTANTIATE_SUM_CONSTRUCTORS(matrix_operator);
+INSTANTIATE_SUM_CONSTRUCTORS(matrix_handler);
 INSTANTIATE_SUM_CONSTRUCTORS(spin_operator);
-INSTANTIATE_SUM_CONSTRUCTORS(boson_operator);
-INSTANTIATE_SUM_CONSTRUCTORS(fermion_operator);
+INSTANTIATE_SUM_CONSTRUCTORS(boson_handler);
+INSTANTIATE_SUM_CONSTRUCTORS(fermion_handler);
 #else
-INSTANTIATE_SUM_PRIVATE_FRIEND_CONSTRUCTORS(matrix_operator);
+INSTANTIATE_SUM_PRIVATE_FRIEND_CONSTRUCTORS(matrix_handler);
 INSTANTIATE_SUM_PRIVATE_FRIEND_CONSTRUCTORS(spin_operator);
-INSTANTIATE_SUM_PRIVATE_FRIEND_CONSTRUCTORS(boson_operator);
-INSTANTIATE_SUM_PRIVATE_FRIEND_CONSTRUCTORS(fermion_operator);
+INSTANTIATE_SUM_PRIVATE_FRIEND_CONSTRUCTORS(boson_handler);
+INSTANTIATE_SUM_PRIVATE_FRIEND_CONSTRUCTORS(fermion_handler);
 #endif
 
 // assignments
@@ -440,30 +440,30 @@ operator_sum<HandlerTy>::operator=(operator_sum<HandlerTy> &&other) {
   template operator_sum<HandlerTy> &operator_sum<HandlerTy>::operator=(        \
       operator_sum<HandlerTy> &&other);
 
-template operator_sum<matrix_operator> &
-operator_sum<matrix_operator>::operator=(
+template operator_sum<matrix_handler> &
+operator_sum<matrix_handler>::operator=(
     const product_operator<spin_operator> &other);
-template operator_sum<matrix_operator> &
-operator_sum<matrix_operator>::operator=(
-    const product_operator<boson_operator> &other);
-template operator_sum<matrix_operator> &
-operator_sum<matrix_operator>::operator=(
-    const product_operator<fermion_operator> &other);
-template operator_sum<matrix_operator> &
-operator_sum<matrix_operator>::operator=(
+template operator_sum<matrix_handler> &
+operator_sum<matrix_handler>::operator=(
+    const product_operator<boson_handler> &other);
+template operator_sum<matrix_handler> &
+operator_sum<matrix_handler>::operator=(
+    const product_operator<fermion_handler> &other);
+template operator_sum<matrix_handler> &
+operator_sum<matrix_handler>::operator=(
     const operator_sum<spin_operator> &other);
-template operator_sum<matrix_operator> &
-operator_sum<matrix_operator>::operator=(
-    const operator_sum<boson_operator> &other);
-template operator_sum<matrix_operator> &
-operator_sum<matrix_operator>::operator=(
-    const operator_sum<fermion_operator> &other);
+template operator_sum<matrix_handler> &
+operator_sum<matrix_handler>::operator=(
+    const operator_sum<boson_handler> &other);
+template operator_sum<matrix_handler> &
+operator_sum<matrix_handler>::operator=(
+    const operator_sum<fermion_handler> &other);
 
 #if !defined(__clang__)
-INSTANTIATE_SUM_ASSIGNMENTS(matrix_operator);
+INSTANTIATE_SUM_ASSIGNMENTS(matrix_handler);
 INSTANTIATE_SUM_ASSIGNMENTS(spin_operator);
-INSTANTIATE_SUM_ASSIGNMENTS(boson_operator);
-INSTANTIATE_SUM_ASSIGNMENTS(fermion_operator);
+INSTANTIATE_SUM_ASSIGNMENTS(boson_handler);
+INSTANTIATE_SUM_ASSIGNMENTS(fermion_handler);
 #endif
 
 // evaluations
@@ -530,10 +530,10 @@ complex_matrix operator_sum<spin_operator>::to_matrix(
       bool application_order) const;
 
 #if !defined(__clang__)
-INSTANTIATE_SUM_EVALUATIONS(matrix_operator);
+INSTANTIATE_SUM_EVALUATIONS(matrix_handler);
 INSTANTIATE_SUM_EVALUATIONS(spin_operator);
-INSTANTIATE_SUM_EVALUATIONS(boson_operator);
-INSTANTIATE_SUM_EVALUATIONS(fermion_operator);
+INSTANTIATE_SUM_EVALUATIONS(boson_handler);
+INSTANTIATE_SUM_EVALUATIONS(fermion_handler);
 #endif
 
 // unary operators
@@ -579,10 +579,10 @@ operator_sum<HandlerTy> operator_sum<HandlerTy>::operator+() && {
   template operator_sum<HandlerTy> operator_sum<HandlerTy>::operator+() &&;
 
 #if !defined(__clang__)
-INSTANTIATE_SUM_UNARY_OPS(matrix_operator);
+INSTANTIATE_SUM_UNARY_OPS(matrix_handler);
 INSTANTIATE_SUM_UNARY_OPS(spin_operator);
-INSTANTIATE_SUM_UNARY_OPS(boson_operator);
-INSTANTIATE_SUM_UNARY_OPS(fermion_operator);
+INSTANTIATE_SUM_UNARY_OPS(boson_handler);
+INSTANTIATE_SUM_UNARY_OPS(fermion_handler);
 #endif
 
 // right-hand arithmetics
@@ -675,10 +675,10 @@ SUM_ADDITION_SCALAR(-);
       const scalar_operator &other) &&;
 
 #if !defined(__clang__)
-INSTANTIATE_SUM_RHSIMPLE_OPS(matrix_operator);
+INSTANTIATE_SUM_RHSIMPLE_OPS(matrix_handler);
 INSTANTIATE_SUM_RHSIMPLE_OPS(spin_operator);
-INSTANTIATE_SUM_RHSIMPLE_OPS(boson_operator);
-INSTANTIATE_SUM_RHSIMPLE_OPS(fermion_operator);
+INSTANTIATE_SUM_RHSIMPLE_OPS(boson_handler);
+INSTANTIATE_SUM_RHSIMPLE_OPS(fermion_handler);
 #endif
 
 template <typename HandlerTy>
@@ -853,10 +853,10 @@ SUM_ADDITION_SUM(-);
       operator_sum<HandlerTy> &&other) &&;
 
 #if !defined(__clang__)
-INSTANTIATE_SUM_RHCOMPOSITE_OPS(matrix_operator);
+INSTANTIATE_SUM_RHCOMPOSITE_OPS(matrix_handler);
 INSTANTIATE_SUM_RHCOMPOSITE_OPS(spin_operator);
-INSTANTIATE_SUM_RHCOMPOSITE_OPS(boson_operator);
-INSTANTIATE_SUM_RHCOMPOSITE_OPS(fermion_operator);
+INSTANTIATE_SUM_RHCOMPOSITE_OPS(boson_handler);
+INSTANTIATE_SUM_RHCOMPOSITE_OPS(fermion_handler);
 #endif
 
 #define SUM_MULTIPLICATION_SCALAR_ASSIGNMENT(op)                               \
@@ -1019,10 +1019,10 @@ SUM_ADDITION_SUM_ASSIGNMENT(-);
       operator_sum<HandlerTy> &&other);
 
 #if !defined(__clang__)
-INSTANTIATE_SUM_OPASSIGNMENTS(matrix_operator);
+INSTANTIATE_SUM_OPASSIGNMENTS(matrix_handler);
 INSTANTIATE_SUM_OPASSIGNMENTS(spin_operator);
-INSTANTIATE_SUM_OPASSIGNMENTS(boson_operator);
-INSTANTIATE_SUM_OPASSIGNMENTS(fermion_operator);
+INSTANTIATE_SUM_OPASSIGNMENTS(boson_handler);
+INSTANTIATE_SUM_OPASSIGNMENTS(fermion_handler);
 #endif
 
 // left-hand arithmetics
@@ -1109,10 +1109,10 @@ SUM_ADDITION_SCALAR_REVERSE(-);
   template operator_sum<HandlerTy> operator-(const scalar_operator &other,     \
                                              operator_sum<HandlerTy> &&self);
 
-INSTANTIATE_SUM_LHCOMPOSITE_OPS(matrix_operator);
+INSTANTIATE_SUM_LHCOMPOSITE_OPS(matrix_handler);
 INSTANTIATE_SUM_LHCOMPOSITE_OPS(spin_operator);
-INSTANTIATE_SUM_LHCOMPOSITE_OPS(boson_operator);
-INSTANTIATE_SUM_LHCOMPOSITE_OPS(fermion_operator);
+INSTANTIATE_SUM_LHCOMPOSITE_OPS(boson_handler);
+INSTANTIATE_SUM_LHCOMPOSITE_OPS(fermion_handler);
 
 // arithmetics that require conversions
 
@@ -1120,25 +1120,25 @@ INSTANTIATE_SUM_LHCOMPOSITE_OPS(fermion_operator);
                                                                                \
   template <typename LHtype, typename RHtype,                                  \
             TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype)>                        \
-  operator_sum<matrix_operator> operator op(                                   \
+  operator_sum<matrix_handler> operator op(                                   \
       const operator_sum<LHtype> &other,                                       \
       const product_operator<RHtype> &self) {                                  \
-    return operator_sum<matrix_operator>(other) op self;                       \
+    return operator_sum<matrix_handler>(other) op self;                       \
   }                                                                            \
                                                                                \
   template <typename LHtype, typename RHtype,                                  \
             TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype)>                        \
-  operator_sum<matrix_operator> operator op(                                   \
+  operator_sum<matrix_handler> operator op(                                   \
       const product_operator<LHtype> &other,                                   \
       const operator_sum<RHtype> &self) {                                      \
-    return product_operator<matrix_operator>(other) op self;                   \
+    return product_operator<matrix_handler>(other) op self;                   \
   }                                                                            \
                                                                                \
   template <typename LHtype, typename RHtype,                                  \
             TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype)>                        \
-  operator_sum<matrix_operator> operator op(                                   \
+  operator_sum<matrix_handler> operator op(                                   \
       const operator_sum<LHtype> &other, const operator_sum<RHtype> &self) {   \
-    return operator_sum<matrix_operator>(other) op self;                       \
+    return operator_sum<matrix_handler>(other) op self;                       \
   }
 
 SUM_CONVERSIONS_OPS(*);
@@ -1147,89 +1147,89 @@ SUM_CONVERSIONS_OPS(-);
 
 #define INSTANTIATE_SUM_CONVERSION_OPS(op)                                     \
                                                                                \
-  template operator_sum<matrix_operator> operator op(                          \
+  template operator_sum<matrix_handler> operator op(                          \
       const operator_sum<spin_operator> &other,                                \
-      const product_operator<matrix_operator> &self);                          \
-  template operator_sum<matrix_operator> operator op(                          \
-      const operator_sum<boson_operator> &other,                               \
-      const product_operator<matrix_operator> &self);                          \
-  template operator_sum<matrix_operator> operator op(                          \
-      const operator_sum<fermion_operator> &other,                             \
-      const product_operator<matrix_operator> &self);                          \
-  template operator_sum<matrix_operator> operator op(                          \
+      const product_operator<matrix_handler> &self);                          \
+  template operator_sum<matrix_handler> operator op(                          \
+      const operator_sum<boson_handler> &other,                               \
+      const product_operator<matrix_handler> &self);                          \
+  template operator_sum<matrix_handler> operator op(                          \
+      const operator_sum<fermion_handler> &other,                             \
+      const product_operator<matrix_handler> &self);                          \
+  template operator_sum<matrix_handler> operator op(                          \
       const operator_sum<spin_operator> &other,                                \
-      const product_operator<boson_operator> &self);                           \
-  template operator_sum<matrix_operator> operator op(                          \
-      const operator_sum<boson_operator> &other,                               \
+      const product_operator<boson_handler> &self);                           \
+  template operator_sum<matrix_handler> operator op(                          \
+      const operator_sum<boson_handler> &other,                               \
       const product_operator<spin_operator> &self);                            \
-  template operator_sum<matrix_operator> operator op(                          \
+  template operator_sum<matrix_handler> operator op(                          \
       const operator_sum<spin_operator> &other,                                \
-      const product_operator<fermion_operator> &self);                         \
-  template operator_sum<matrix_operator> operator op(                          \
-      const operator_sum<fermion_operator> &other,                             \
+      const product_operator<fermion_handler> &self);                         \
+  template operator_sum<matrix_handler> operator op(                          \
+      const operator_sum<fermion_handler> &other,                             \
       const product_operator<spin_operator> &self);                            \
-  template operator_sum<matrix_operator> operator op(                          \
-      const operator_sum<boson_operator> &other,                               \
-      const product_operator<fermion_operator> &self);                         \
-  template operator_sum<matrix_operator> operator op(                          \
-      const operator_sum<fermion_operator> &other,                             \
-      const product_operator<boson_operator> &self);                           \
+  template operator_sum<matrix_handler> operator op(                          \
+      const operator_sum<boson_handler> &other,                               \
+      const product_operator<fermion_handler> &self);                         \
+  template operator_sum<matrix_handler> operator op(                          \
+      const operator_sum<fermion_handler> &other,                             \
+      const product_operator<boson_handler> &self);                           \
                                                                                \
-  template operator_sum<matrix_operator> operator op(                          \
+  template operator_sum<matrix_handler> operator op(                          \
       const product_operator<spin_operator> &other,                            \
-      const operator_sum<matrix_operator> &self);                              \
-  template operator_sum<matrix_operator> operator op(                          \
-      const product_operator<boson_operator> &other,                           \
-      const operator_sum<matrix_operator> &self);                              \
-  template operator_sum<matrix_operator> operator op(                          \
-      const product_operator<fermion_operator> &other,                         \
-      const operator_sum<matrix_operator> &self);                              \
-  template operator_sum<matrix_operator> operator op(                          \
+      const operator_sum<matrix_handler> &self);                              \
+  template operator_sum<matrix_handler> operator op(                          \
+      const product_operator<boson_handler> &other,                           \
+      const operator_sum<matrix_handler> &self);                              \
+  template operator_sum<matrix_handler> operator op(                          \
+      const product_operator<fermion_handler> &other,                         \
+      const operator_sum<matrix_handler> &self);                              \
+  template operator_sum<matrix_handler> operator op(                          \
       const product_operator<spin_operator> &other,                            \
-      const operator_sum<boson_operator> &self);                               \
-  template operator_sum<matrix_operator> operator op(                          \
-      const product_operator<boson_operator> &other,                           \
+      const operator_sum<boson_handler> &self);                               \
+  template operator_sum<matrix_handler> operator op(                          \
+      const product_operator<boson_handler> &other,                           \
       const operator_sum<spin_operator> &self);                                \
-  template operator_sum<matrix_operator> operator op(                          \
+  template operator_sum<matrix_handler> operator op(                          \
       const product_operator<spin_operator> &other,                            \
-      const operator_sum<fermion_operator> &self);                             \
-  template operator_sum<matrix_operator> operator op(                          \
-      const product_operator<fermion_operator> &other,                         \
+      const operator_sum<fermion_handler> &self);                             \
+  template operator_sum<matrix_handler> operator op(                          \
+      const product_operator<fermion_handler> &other,                         \
       const operator_sum<spin_operator> &self);                                \
-  template operator_sum<matrix_operator> operator op(                          \
-      const product_operator<boson_operator> &other,                           \
-      const operator_sum<fermion_operator> &self);                             \
-  template operator_sum<matrix_operator> operator op(                          \
-      const product_operator<fermion_operator> &other,                         \
-      const operator_sum<boson_operator> &self);                               \
+  template operator_sum<matrix_handler> operator op(                          \
+      const product_operator<boson_handler> &other,                           \
+      const operator_sum<fermion_handler> &self);                             \
+  template operator_sum<matrix_handler> operator op(                          \
+      const product_operator<fermion_handler> &other,                         \
+      const operator_sum<boson_handler> &self);                               \
                                                                                \
-  template operator_sum<matrix_operator> operator op(                          \
+  template operator_sum<matrix_handler> operator op(                          \
       const operator_sum<spin_operator> &other,                                \
-      const operator_sum<matrix_operator> &self);                              \
-  template operator_sum<matrix_operator> operator op(                          \
-      const operator_sum<boson_operator> &other,                               \
-      const operator_sum<matrix_operator> &self);                              \
-  template operator_sum<matrix_operator> operator op(                          \
-      const operator_sum<fermion_operator> &other,                             \
-      const operator_sum<matrix_operator> &self);                              \
-  template operator_sum<matrix_operator> operator op(                          \
+      const operator_sum<matrix_handler> &self);                              \
+  template operator_sum<matrix_handler> operator op(                          \
+      const operator_sum<boson_handler> &other,                               \
+      const operator_sum<matrix_handler> &self);                              \
+  template operator_sum<matrix_handler> operator op(                          \
+      const operator_sum<fermion_handler> &other,                             \
+      const operator_sum<matrix_handler> &self);                              \
+  template operator_sum<matrix_handler> operator op(                          \
       const operator_sum<spin_operator> &other,                                \
-      const operator_sum<boson_operator> &self);                               \
-  template operator_sum<matrix_operator> operator op(                          \
-      const operator_sum<boson_operator> &other,                               \
+      const operator_sum<boson_handler> &self);                               \
+  template operator_sum<matrix_handler> operator op(                          \
+      const operator_sum<boson_handler> &other,                               \
       const operator_sum<spin_operator> &self);                                \
-  template operator_sum<matrix_operator> operator op(                          \
+  template operator_sum<matrix_handler> operator op(                          \
       const operator_sum<spin_operator> &other,                                \
-      const operator_sum<fermion_operator> &self);                             \
-  template operator_sum<matrix_operator> operator op(                          \
-      const operator_sum<fermion_operator> &other,                             \
+      const operator_sum<fermion_handler> &self);                             \
+  template operator_sum<matrix_handler> operator op(                          \
+      const operator_sum<fermion_handler> &other,                             \
       const operator_sum<spin_operator> &self);                                \
-  template operator_sum<matrix_operator> operator op(                          \
-      const operator_sum<boson_operator> &other,                               \
-      const operator_sum<fermion_operator> &self);                             \
-  template operator_sum<matrix_operator> operator op(                          \
-      const operator_sum<fermion_operator> &other,                             \
-      const operator_sum<boson_operator> &self);
+  template operator_sum<matrix_handler> operator op(                          \
+      const operator_sum<boson_handler> &other,                               \
+      const operator_sum<fermion_handler> &self);                             \
+  template operator_sum<matrix_handler> operator op(                          \
+      const operator_sum<fermion_handler> &other,                             \
+      const operator_sum<boson_handler> &self);
 
 INSTANTIATE_SUM_CONVERSION_OPS(*);
 INSTANTIATE_SUM_CONVERSION_OPS(+);
@@ -1257,21 +1257,21 @@ product_operator<HandlerTy> operator_sum<HandlerTy>::identity(int target) {
 }
 
 #if !defined(__clang__)
-template operator_sum<matrix_operator> operator_sum<matrix_operator>::empty();
+template operator_sum<matrix_handler> operator_sum<matrix_handler>::empty();
 template operator_sum<spin_operator> operator_sum<spin_operator>::empty();
-template operator_sum<boson_operator> operator_sum<boson_operator>::empty();
-template operator_sum<fermion_operator> operator_sum<fermion_operator>::empty();
-template product_operator<matrix_operator> operator_sum<matrix_operator>::identity();
+template operator_sum<boson_handler> operator_sum<boson_handler>::empty();
+template operator_sum<fermion_handler> operator_sum<fermion_handler>::empty();
+template product_operator<matrix_handler> operator_sum<matrix_handler>::identity();
 template product_operator<spin_operator> operator_sum<spin_operator>::identity();
-template product_operator<boson_operator> operator_sum<boson_operator>::identity();
-template product_operator<fermion_operator> operator_sum<fermion_operator>::identity();
-template product_operator<matrix_operator>
-operator_sum<matrix_operator>::identity(int target);
+template product_operator<boson_handler> operator_sum<boson_handler>::identity();
+template product_operator<fermion_handler> operator_sum<fermion_handler>::identity();
+template product_operator<matrix_handler>
+operator_sum<matrix_handler>::identity(int target);
 template product_operator<spin_operator> operator_sum<spin_operator>::identity(int target);
-template product_operator<boson_operator>
-operator_sum<boson_operator>::identity(int target);
-template product_operator<fermion_operator>
-operator_sum<fermion_operator>::identity(int target);
+template product_operator<boson_handler>
+operator_sum<boson_handler>::identity(int target);
+template product_operator<fermion_handler>
+operator_sum<fermion_handler>::identity(int target);
 #endif
 
 // handler specific operators
@@ -1282,34 +1282,34 @@ operator_sum<fermion_operator>::identity(int target);
                                       std::is_same<T, ConcreteTy>::value &&       \
                                       std::is_same<HandlerTy, T>::value, bool>>
 
-HANDLER_SPECIFIC_TEMPLATE_DEFINITION(matrix_operator)
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(matrix_handler)
 product_operator<T> operator_sum<HandlerTy>::number(int target) {
-  return matrix_operator::number(target);
+  return matrix_handler::number(target);
 }
 
-HANDLER_SPECIFIC_TEMPLATE_DEFINITION(matrix_operator)
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(matrix_handler)
 product_operator<T> operator_sum<HandlerTy>::parity(int target) {
-  return matrix_operator::parity(target);
+  return matrix_handler::parity(target);
 }
 
-HANDLER_SPECIFIC_TEMPLATE_DEFINITION(matrix_operator)
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(matrix_handler)
 product_operator<T> operator_sum<HandlerTy>::position(int target) {
-  return matrix_operator::position(target);
+  return matrix_handler::position(target);
 }
 
-HANDLER_SPECIFIC_TEMPLATE_DEFINITION(matrix_operator)
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(matrix_handler)
 product_operator<T> operator_sum<HandlerTy>::momentum(int target) {
-  return matrix_operator::momentum(target);
+  return matrix_handler::momentum(target);
 }
 
-HANDLER_SPECIFIC_TEMPLATE_DEFINITION(matrix_operator)
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(matrix_handler)
 product_operator<T> operator_sum<HandlerTy>::squeeze(int target) {
-  return matrix_operator::squeeze(target);
+  return matrix_handler::squeeze(target);
 }
 
-HANDLER_SPECIFIC_TEMPLATE_DEFINITION(matrix_operator)
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(matrix_handler)
 product_operator<T> operator_sum<HandlerTy>::displace(int target) {
-  return matrix_operator::displace(target);
+  return matrix_handler::displace(target);
 }
 
 
@@ -1333,69 +1333,69 @@ product_operator<T> operator_sum<HandlerTy>::z(int target) {
   return spin_operator::z(target);
 }
 
-HANDLER_SPECIFIC_TEMPLATE_DEFINITION(boson_operator)
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(boson_handler)
 product_operator<T> operator_sum<HandlerTy>::create(int target) {
-  return boson_operator::create(target);
+  return boson_handler::create(target);
 }
 
-HANDLER_SPECIFIC_TEMPLATE_DEFINITION(boson_operator)
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(boson_handler)
 product_operator<T> operator_sum<HandlerTy>::annihilate(int target) {
-  return boson_operator::annihilate(target);
+  return boson_handler::annihilate(target);
 }
 
-HANDLER_SPECIFIC_TEMPLATE_DEFINITION(boson_operator)
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(boson_handler)
 product_operator<T> operator_sum<HandlerTy>::number(int target) {
-  return boson_operator::number(target);
+  return boson_handler::number(target);
 }
 
-HANDLER_SPECIFIC_TEMPLATE_DEFINITION(boson_operator)
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(boson_handler)
 operator_sum<T> operator_sum<HandlerTy>::position(int target) {
-  return boson_operator::position(target);
+  return boson_handler::position(target);
 }
 
-HANDLER_SPECIFIC_TEMPLATE_DEFINITION(boson_operator)
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(boson_handler)
 operator_sum<T> operator_sum<HandlerTy>::momentum(int target) {
-  return boson_operator::momentum(target);
+  return boson_handler::momentum(target);
 }
 
 
-HANDLER_SPECIFIC_TEMPLATE_DEFINITION(fermion_operator)
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(fermion_handler)
 product_operator<T> operator_sum<HandlerTy>::create(int target) {
-  return fermion_operator::create(target);
+  return fermion_handler::create(target);
 }
 
-HANDLER_SPECIFIC_TEMPLATE_DEFINITION(fermion_operator)
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(fermion_handler)
 product_operator<T> operator_sum<HandlerTy>::annihilate(int target) {
-  return fermion_operator::annihilate(target);
+  return fermion_handler::annihilate(target);
 }
 
-HANDLER_SPECIFIC_TEMPLATE_DEFINITION(fermion_operator)
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(fermion_handler)
 product_operator<T> operator_sum<HandlerTy>::number(int target) {
-  return fermion_operator::number(target);
+  return fermion_handler::number(target);
 }
 
 #if !defined(__clang__)
-template product_operator<matrix_operator> operator_sum<matrix_operator>::number(int target);
-template product_operator<matrix_operator> operator_sum<matrix_operator>::parity(int target);
-template product_operator<matrix_operator> operator_sum<matrix_operator>::position(int target);
-template product_operator<matrix_operator> operator_sum<matrix_operator>::momentum(int target);
-template product_operator<matrix_operator> operator_sum<matrix_operator>::squeeze(int target);
-template product_operator<matrix_operator> operator_sum<matrix_operator>::displace(int target);
+template product_operator<matrix_handler> operator_sum<matrix_handler>::number(int target);
+template product_operator<matrix_handler> operator_sum<matrix_handler>::parity(int target);
+template product_operator<matrix_handler> operator_sum<matrix_handler>::position(int target);
+template product_operator<matrix_handler> operator_sum<matrix_handler>::momentum(int target);
+template product_operator<matrix_handler> operator_sum<matrix_handler>::squeeze(int target);
+template product_operator<matrix_handler> operator_sum<matrix_handler>::displace(int target);
 
 template product_operator<spin_operator> operator_sum<spin_operator>::i(int target);
 template product_operator<spin_operator> operator_sum<spin_operator>::x(int target);
 template product_operator<spin_operator> operator_sum<spin_operator>::y(int target);
 template product_operator<spin_operator> operator_sum<spin_operator>::z(int target);
 
-template product_operator<boson_operator> operator_sum<boson_operator>::create(int target);
-template product_operator<boson_operator> operator_sum<boson_operator>::annihilate(int target);
-template product_operator<boson_operator> operator_sum<boson_operator>::number(int target);
-template operator_sum<boson_operator> operator_sum<boson_operator>::position(int target);
-template operator_sum<boson_operator> operator_sum<boson_operator>::momentum(int target);
+template product_operator<boson_handler> operator_sum<boson_handler>::create(int target);
+template product_operator<boson_handler> operator_sum<boson_handler>::annihilate(int target);
+template product_operator<boson_handler> operator_sum<boson_handler>::number(int target);
+template operator_sum<boson_handler> operator_sum<boson_handler>::position(int target);
+template operator_sum<boson_handler> operator_sum<boson_handler>::momentum(int target);
 
-template product_operator<fermion_operator> operator_sum<fermion_operator>::create(int target);
-template product_operator<fermion_operator> operator_sum<fermion_operator>::annihilate(int target);
-template product_operator<fermion_operator> operator_sum<fermion_operator>::number(int target);
+template product_operator<fermion_handler> operator_sum<fermion_handler>::create(int target);
+template product_operator<fermion_handler> operator_sum<fermion_handler>::annihilate(int target);
+template product_operator<fermion_handler> operator_sum<fermion_handler>::number(int target);
 #endif
 
 // general utility functions
@@ -1423,10 +1423,10 @@ std::vector<operator_sum<HandlerTy>> operator_sum<HandlerTy>::distribute_terms(s
   operator_sum<HandlerTy>::distribute_terms(std::size_t numChunks) const;
 
 #if !defined(__clang__)
-INSTANTIATE_SUM_UTILITY_FUNCTIONS(matrix_operator);
+INSTANTIATE_SUM_UTILITY_FUNCTIONS(matrix_handler);
 INSTANTIATE_SUM_UTILITY_FUNCTIONS(spin_operator);
-INSTANTIATE_SUM_UTILITY_FUNCTIONS(boson_operator);
-INSTANTIATE_SUM_UTILITY_FUNCTIONS(fermion_operator);
+INSTANTIATE_SUM_UTILITY_FUNCTIONS(boson_handler);
+INSTANTIATE_SUM_UTILITY_FUNCTIONS(fermion_handler);
 #endif
 
 // handler specific utility functions
@@ -1644,10 +1644,10 @@ template std::string operator_sum<spin_operator>::to_string(bool printCoeffs) co
 
 
 #if defined(CUDAQ_INSTANTIATE_TEMPLATES)
-template class operator_sum<matrix_operator>;
+template class operator_sum<matrix_handler>;
 template class operator_sum<spin_operator>;
-template class operator_sum<boson_operator>;
-template class operator_sum<fermion_operator>;
+template class operator_sum<boson_handler>;
+template class operator_sum<fermion_handler>;
 #endif
 
 } // namespace cudaq

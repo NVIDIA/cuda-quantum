@@ -63,7 +63,7 @@ public:
   static complex_matrix to_matrix(std::string pauli, std::complex<double> coeff = 1.,
                             bool invert_order = false);
 
-  /// @brief Return the `matrix_operator` as a matrix.
+  /// @brief Return the `matrix_handler` as a matrix.
   /// @arg  `dimensions` : A map specifying the number of levels,
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level

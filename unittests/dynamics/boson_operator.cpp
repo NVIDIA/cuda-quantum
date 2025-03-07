@@ -320,7 +320,7 @@ TEST(OperatorExpressions, checkBosonOpsWithComplex) {
   std::complex<double> value = std::complex<double>(0.125, 0.125);
   auto dimension = 3;
 
-  // `boson_operator` + `complex<double>`
+  // `boson_handler` + `complex<double>`
   {
     auto elementary = cudaq::boson_op::create(0);
 
@@ -339,7 +339,7 @@ TEST(OperatorExpressions, checkBosonOpsWithComplex) {
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
-  // `boson_operator` - `complex<double>`
+  // `boson_handler` - `complex<double>`
   {
     auto elementary = cudaq::boson_op::number(0);
 
@@ -358,7 +358,7 @@ TEST(OperatorExpressions, checkBosonOpsWithComplex) {
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
-  // `boson_operator` * `complex<double>`
+  // `boson_handler` * `complex<double>`
   {
     auto elementary = cudaq::boson_op::annihilate(0);
 
@@ -393,7 +393,7 @@ TEST(OperatorExpressions, checkBosonOpsWithScalars) {
   int dimension = 3;
   double const_scale_factor = 2.0;
 
-  // `boson_operator + scalar_operator`
+  // `boson_handler + scalar_operator`
   {
     auto self = cudaq::boson_op::number(0);
     auto other = cudaq::scalar_operator(const_scale_factor);
@@ -414,7 +414,7 @@ TEST(OperatorExpressions, checkBosonOpsWithScalars) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `boson_operator + scalar_operator`
+  // `boson_handler + scalar_operator`
   {
     auto self = cudaq::boson_op::annihilate(0);
     auto other = cudaq::scalar_operator(function);
@@ -437,7 +437,7 @@ TEST(OperatorExpressions, checkBosonOpsWithScalars) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `boson_operator - scalar_operator`
+  // `boson_handler - scalar_operator`
   {
     auto self = cudaq::boson_op::identity(0);
     auto other = cudaq::scalar_operator(const_scale_factor);
@@ -457,7 +457,7 @@ TEST(OperatorExpressions, checkBosonOpsWithScalars) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `boson_operator - scalar_operator`
+  // `boson_handler - scalar_operator`
   {
     auto self = cudaq::boson_op::create(0);
     auto other = cudaq::scalar_operator(function);
@@ -480,7 +480,7 @@ TEST(OperatorExpressions, checkBosonOpsWithScalars) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `boson_operator * scalar_operator`
+  // `boson_handler * scalar_operator`
   {
     auto self = cudaq::boson_op::number(0);
     auto other = cudaq::scalar_operator(const_scale_factor);
@@ -502,7 +502,7 @@ TEST(OperatorExpressions, checkBosonOpsWithScalars) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `boson_operator * scalar_operator`
+  // `boson_handler * scalar_operator`
   {
     auto self = cudaq::boson_op::annihilate(0);
     auto other = cudaq::scalar_operator(function);
@@ -634,7 +634,7 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
   std::complex<double> value = std::complex<double>(0.125, 0.5);
   std::unordered_map<int, int> dimensions = {{0, 3}, {1, 2}, {2, 4}, {3, 2}};
 
-  // `boson_operator + operator_sum`
+  // `boson_handler + operator_sum`
   {
     auto self = cudaq::boson_op::create(2);
     auto operator_sum =
@@ -661,7 +661,7 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `boson_operator - operator_sum`
+  // `boson_handler - operator_sum`
   {
     auto self = cudaq::boson_op::annihilate(0);
     auto operator_sum =
@@ -688,7 +688,7 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `boson_operator * operator_sum`
+  // `boson_handler * operator_sum`
   {
     auto self = cudaq::boson_op::number(0);
     auto operator_sum =
@@ -720,7 +720,7 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `operator_sum += boson_operator`
+  // `operator_sum += boson_handler`
   {
     auto operator_sum = cudaq::boson_op::momentum(0) +
                         cudaq::boson_op::annihilate(2);
@@ -740,7 +740,7 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  // `operator_sum -= boson_operator`
+  // `operator_sum -= boson_handler`
   {
     auto operator_sum =
         cudaq::boson_op::create(0) + cudaq::boson_op::annihilate(1);
@@ -760,7 +760,7 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  // `operator_sum *= boson_operator`
+  // `operator_sum *= boson_handler`
   {
     auto operator_sum =
         cudaq::boson_op::momentum(0) + cudaq::boson_op::momentum(1);
@@ -837,8 +837,8 @@ TEST(OperatorExpressions, checkCommutationRelations) {
   // [a†(k), a†(q)] = [a(k), a(q)] = 0
 
   std::unordered_map<int, int> dimensions = {{0, 4}, {1, 4}};
-  auto commutator = [](cudaq::product_operator<cudaq::boson_operator> ad,
-                       cudaq::product_operator<cudaq::boson_operator> a) {
+  auto commutator = [](cudaq::product_operator<cudaq::boson_handler> ad,
+                       cudaq::product_operator<cudaq::boson_handler> a) {
     return a * ad - ad * a;
   };
 

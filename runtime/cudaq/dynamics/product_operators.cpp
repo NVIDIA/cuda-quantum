@@ -67,9 +67,9 @@ product_operator<HandlerTy>::find_insert_at(const HandlerTy &other) {
 }
 
 template <>
-std::vector<matrix_operator>::const_iterator
-product_operator<matrix_operator>::find_insert_at(
-    const matrix_operator &other) {
+std::vector<matrix_handler>::const_iterator
+product_operator<matrix_handler>::find_insert_at(
+    const matrix_handler &other) {
   // This template specialization contains the most general (and least
   // performant) version of the logic to determine where to insert an operator
   // into the product. It takes commutation relations into account to try and
@@ -89,7 +89,7 @@ product_operator<matrix_operator>::find_insert_at(
       this->operators.crbegin(), this->operators.crend(),
       [&nr_permutations,
        &other_degrees = static_cast<const std::vector<int> &>(other.degrees()),
-       &other](const matrix_operator &self_op) {
+       &other](const matrix_handler &self_op) {
         const std::vector<int> &self_op_degrees = self_op.degrees();
         for (auto other_degree : other_degrees) {
           auto item_it =
@@ -133,9 +133,9 @@ product_operator<matrix_operator>::find_insert_at(
 }
 
 template <>
-std::vector<fermion_operator>::const_iterator
-product_operator<fermion_operator>::find_insert_at(
-    const fermion_operator &other) {
+std::vector<fermion_handler>::const_iterator
+product_operator<fermion_handler>::find_insert_at(
+    const fermion_handler &other) {
   assert(other.commutation_group ==
          operator_handler::fermion_commutation_relations);
   // This template specialization contains the same logic as the specialization
@@ -145,7 +145,7 @@ product_operator<fermion_operator>::find_insert_at(
   bool negate_coefficient = false;
   auto rit = std::find_if(
       this->operators.crbegin(), this->operators.crend(),
-      [&negate_coefficient, &other](const fermion_operator &self_op) {
+      [&negate_coefficient, &other](const fermion_handler &self_op) {
         if (!operator_handler::canonical_order(other.degree, self_op.degree))
           return true;
         if (!other.commutes_across_degrees && !self_op.commutes_across_degrees)
@@ -295,15 +295,15 @@ EvalTy product_operator<HandlerTy>::evaluate(
   template void product_operator<HandlerTy>::insert(HandlerTy &&other);
 
 #if !defined(__clang__)
-INSTANTIATE_PRODUCT_PRIVATE_METHODS(matrix_operator);
+INSTANTIATE_PRODUCT_PRIVATE_METHODS(matrix_handler);
 INSTANTIATE_PRODUCT_PRIVATE_METHODS(spin_operator);
-INSTANTIATE_PRODUCT_PRIVATE_METHODS(boson_operator);
-INSTANTIATE_PRODUCT_PRIVATE_METHODS(fermion_operator);
+INSTANTIATE_PRODUCT_PRIVATE_METHODS(boson_handler);
+INSTANTIATE_PRODUCT_PRIVATE_METHODS(fermion_handler);
 #else
-INSTANTIATE_PRODUCT_PRIVATE_FRIEND_METHODS(matrix_operator);
+INSTANTIATE_PRODUCT_PRIVATE_FRIEND_METHODS(matrix_handler);
 INSTANTIATE_PRODUCT_PRIVATE_FRIEND_METHODS(spin_operator);
-INSTANTIATE_PRODUCT_PRIVATE_FRIEND_METHODS(boson_operator);
-INSTANTIATE_PRODUCT_PRIVATE_FRIEND_METHODS(fermion_operator);
+INSTANTIATE_PRODUCT_PRIVATE_FRIEND_METHODS(boson_handler);
+INSTANTIATE_PRODUCT_PRIVATE_FRIEND_METHODS(fermion_handler);
 #endif
 
 #define INSTANTIATE_PRODUCT_EVALUATE_METHODS(HandlerTy, EvalTy)                \
@@ -311,13 +311,13 @@ INSTANTIATE_PRODUCT_PRIVATE_FRIEND_METHODS(fermion_operator);
   template EvalTy product_operator<HandlerTy>::evaluate(                       \
       operator_arithmetics<EvalTy> arithmetics) const;
 
-INSTANTIATE_PRODUCT_EVALUATE_METHODS(matrix_operator,
+INSTANTIATE_PRODUCT_EVALUATE_METHODS(matrix_handler,
                                      operator_handler::matrix_evaluation);
 INSTANTIATE_PRODUCT_EVALUATE_METHODS(spin_operator,
                                      operator_handler::canonical_evaluation);
-INSTANTIATE_PRODUCT_EVALUATE_METHODS(boson_operator,
+INSTANTIATE_PRODUCT_EVALUATE_METHODS(boson_handler,
                                      operator_handler::matrix_evaluation);
-INSTANTIATE_PRODUCT_EVALUATE_METHODS(fermion_operator,
+INSTANTIATE_PRODUCT_EVALUATE_METHODS(fermion_handler,
                                      operator_handler::matrix_evaluation);
 
 // read-only properties
@@ -371,10 +371,10 @@ scalar_operator product_operator<HandlerTy>::get_coefficient() const {
   template scalar_operator product_operator<HandlerTy>::get_coefficient() const;
 
 #if !defined(__clang__)
-INSTANTIATE_PRODUCT_PROPERTIES(matrix_operator);
+INSTANTIATE_PRODUCT_PROPERTIES(matrix_handler);
 INSTANTIATE_PRODUCT_PROPERTIES(spin_operator);
-INSTANTIATE_PRODUCT_PROPERTIES(boson_operator);
-INSTANTIATE_PRODUCT_PROPERTIES(fermion_operator);
+INSTANTIATE_PRODUCT_PROPERTIES(boson_handler);
+INSTANTIATE_PRODUCT_PROPERTIES(fermion_handler);
 #endif
 
 // constructors
@@ -452,13 +452,13 @@ product_operator<HandlerTy>::product_operator(const product_operator<T> &other)
 
 template <typename HandlerTy>
 template <typename T,
-          std::enable_if_t<std::is_same<HandlerTy, matrix_operator>::value &&
+          std::enable_if_t<std::is_same<HandlerTy, matrix_handler>::value &&
                                !std::is_same<T, HandlerTy>::value &&
                                std::is_constructible<HandlerTy, T>::value,
                            bool>>
 product_operator<HandlerTy>::product_operator(
     const product_operator<T> &other,
-    const matrix_operator::commutation_behavior &behavior)
+    const matrix_handler::commutation_behavior &behavior)
     : coefficient(other.coefficient) {
   this->operators.reserve(other.operators.size());
   for (const T &other_op : other.operators) {
@@ -534,32 +534,32 @@ product_operator<HandlerTy>::product_operator(
   template product_operator<HandlerTy>::product_operator(                      \
       scalar_operator coefficient);
 
-template product_operator<matrix_operator>::product_operator(
+template product_operator<matrix_handler>::product_operator(
     const product_operator<spin_operator> &other);
-template product_operator<matrix_operator>::product_operator(
-    const product_operator<boson_operator> &other);
-template product_operator<matrix_operator>::product_operator(
-    const product_operator<fermion_operator> &other);
-template product_operator<matrix_operator>::product_operator(
+template product_operator<matrix_handler>::product_operator(
+    const product_operator<boson_handler> &other);
+template product_operator<matrix_handler>::product_operator(
+    const product_operator<fermion_handler> &other);
+template product_operator<matrix_handler>::product_operator(
     const product_operator<spin_operator> &other,
-    const matrix_operator::commutation_behavior &behavior);
-template product_operator<matrix_operator>::product_operator(
-    const product_operator<boson_operator> &other,
-    const matrix_operator::commutation_behavior &behavior);
-template product_operator<matrix_operator>::product_operator(
-    const product_operator<fermion_operator> &other,
-    const matrix_operator::commutation_behavior &behavior);
+    const matrix_handler::commutation_behavior &behavior);
+template product_operator<matrix_handler>::product_operator(
+    const product_operator<boson_handler> &other,
+    const matrix_handler::commutation_behavior &behavior);
+template product_operator<matrix_handler>::product_operator(
+    const product_operator<fermion_handler> &other,
+    const matrix_handler::commutation_behavior &behavior);
 
 #if !defined(__clang__)
-INSTANTIATE_PRODUCT_CONSTRUCTORS(matrix_operator);
+INSTANTIATE_PRODUCT_CONSTRUCTORS(matrix_handler);
 INSTANTIATE_PRODUCT_CONSTRUCTORS(spin_operator);
-INSTANTIATE_PRODUCT_CONSTRUCTORS(boson_operator);
-INSTANTIATE_PRODUCT_CONSTRUCTORS(fermion_operator);
+INSTANTIATE_PRODUCT_CONSTRUCTORS(boson_handler);
+INSTANTIATE_PRODUCT_CONSTRUCTORS(fermion_handler);
 #else
-INSTANTIATE_PRODUCT_PRIVATE_FRIEND_CONSTRUCTORS(matrix_operator);
+INSTANTIATE_PRODUCT_PRIVATE_FRIEND_CONSTRUCTORS(matrix_handler);
 INSTANTIATE_PRODUCT_PRIVATE_FRIEND_CONSTRUCTORS(spin_operator);
-INSTANTIATE_PRODUCT_PRIVATE_FRIEND_CONSTRUCTORS(boson_operator);
-INSTANTIATE_PRODUCT_PRIVATE_FRIEND_CONSTRUCTORS(fermion_operator);
+INSTANTIATE_PRODUCT_PRIVATE_FRIEND_CONSTRUCTORS(boson_handler);
+INSTANTIATE_PRODUCT_PRIVATE_FRIEND_CONSTRUCTORS(fermion_handler);
 #endif
 
 // assignments
@@ -604,21 +604,21 @@ product_operator<HandlerTy>::operator=(product_operator<HandlerTy> &&other) {
   template product_operator<HandlerTy> &                                       \
   product_operator<HandlerTy>::operator=(product_operator<HandlerTy> &&other);
 
-template product_operator<matrix_operator> &
-product_operator<matrix_operator>::operator=(
+template product_operator<matrix_handler> &
+product_operator<matrix_handler>::operator=(
     const product_operator<spin_operator> &other);
-template product_operator<matrix_operator> &
-product_operator<matrix_operator>::operator=(
-    const product_operator<boson_operator> &other);
-template product_operator<matrix_operator> &
-product_operator<matrix_operator>::operator=(
-    const product_operator<fermion_operator> &other);
+template product_operator<matrix_handler> &
+product_operator<matrix_handler>::operator=(
+    const product_operator<boson_handler> &other);
+template product_operator<matrix_handler> &
+product_operator<matrix_handler>::operator=(
+    const product_operator<fermion_handler> &other);
 
 #if !defined(__clang__)
-INSTANTIATE_PRODUCT_ASSIGNMENTS(matrix_operator);
+INSTANTIATE_PRODUCT_ASSIGNMENTS(matrix_handler);
 INSTANTIATE_PRODUCT_ASSIGNMENTS(spin_operator);
-INSTANTIATE_PRODUCT_ASSIGNMENTS(boson_operator);
-INSTANTIATE_PRODUCT_ASSIGNMENTS(fermion_operator);
+INSTANTIATE_PRODUCT_ASSIGNMENTS(boson_handler);
+INSTANTIATE_PRODUCT_ASSIGNMENTS(fermion_handler);
 #endif
 
 // evaluations
@@ -684,10 +684,10 @@ complex_matrix product_operator<spin_operator>::to_matrix(
       bool application_order) const;
 
 #if !defined(__clang__)
-INSTANTIATE_PRODUCT_EVALUATIONS(matrix_operator);
+INSTANTIATE_PRODUCT_EVALUATIONS(matrix_handler);
 INSTANTIATE_PRODUCT_EVALUATIONS(spin_operator);
-INSTANTIATE_PRODUCT_EVALUATIONS(boson_operator);
-INSTANTIATE_PRODUCT_EVALUATIONS(fermion_operator);
+INSTANTIATE_PRODUCT_EVALUATIONS(boson_handler);
+INSTANTIATE_PRODUCT_EVALUATIONS(fermion_handler);
 #endif
 
 // comparisons
@@ -705,10 +705,10 @@ bool product_operator<HandlerTy>::operator==(
       const product_operator<HandlerTy> &other) const;
 
 #if !defined(__clang__)
-INSTANTIATE_PRODUCT_COMPARISONS(matrix_operator);
+INSTANTIATE_PRODUCT_COMPARISONS(matrix_handler);
 INSTANTIATE_PRODUCT_COMPARISONS(spin_operator);
-INSTANTIATE_PRODUCT_COMPARISONS(boson_operator);
-INSTANTIATE_PRODUCT_COMPARISONS(fermion_operator);
+INSTANTIATE_PRODUCT_COMPARISONS(boson_handler);
+INSTANTIATE_PRODUCT_COMPARISONS(fermion_handler);
 #endif
 
 // unary operators
@@ -745,10 +745,10 @@ product_operator<HandlerTy> product_operator<HandlerTy>::operator+() && {
   product_operator<HandlerTy>::operator+() &&;
 
 #if !defined(__clang__)
-INSTANTIATE_PRODUCT_UNARY_OPS(matrix_operator);
+INSTANTIATE_PRODUCT_UNARY_OPS(matrix_handler);
 INSTANTIATE_PRODUCT_UNARY_OPS(spin_operator);
-INSTANTIATE_PRODUCT_UNARY_OPS(boson_operator);
-INSTANTIATE_PRODUCT_UNARY_OPS(fermion_operator);
+INSTANTIATE_PRODUCT_UNARY_OPS(boson_handler);
+INSTANTIATE_PRODUCT_UNARY_OPS(fermion_handler);
 #endif
 
 // right-hand arithmetics
@@ -856,10 +856,10 @@ PRODUCT_ADDITION_SCALAR(-);
       const scalar_operator &other) &&;
 
 #if !defined(__clang__)
-INSTANTIATE_PRODUCT_RHSIMPLE_OPS(matrix_operator);
+INSTANTIATE_PRODUCT_RHSIMPLE_OPS(matrix_handler);
 INSTANTIATE_PRODUCT_RHSIMPLE_OPS(spin_operator);
-INSTANTIATE_PRODUCT_RHSIMPLE_OPS(boson_operator);
-INSTANTIATE_PRODUCT_RHSIMPLE_OPS(fermion_operator);
+INSTANTIATE_PRODUCT_RHSIMPLE_OPS(boson_handler);
+INSTANTIATE_PRODUCT_RHSIMPLE_OPS(fermion_handler);
 #endif
 
 template <typename HandlerTy>
@@ -1039,10 +1039,10 @@ PRODUCT_ADDITION_SUM(-)
       operator_sum<HandlerTy> &&other) &&;
 
 #if !defined(__clang__)
-INSTANTIATE_PRODUCT_RHCOMPOSITE_OPS(matrix_operator);
+INSTANTIATE_PRODUCT_RHCOMPOSITE_OPS(matrix_handler);
 INSTANTIATE_PRODUCT_RHCOMPOSITE_OPS(spin_operator);
-INSTANTIATE_PRODUCT_RHCOMPOSITE_OPS(boson_operator);
-INSTANTIATE_PRODUCT_RHCOMPOSITE_OPS(fermion_operator);
+INSTANTIATE_PRODUCT_RHCOMPOSITE_OPS(boson_handler);
+INSTANTIATE_PRODUCT_RHCOMPOSITE_OPS(fermion_handler);
 #endif
 
 #define PRODUCT_MULTIPLICATION_SCALAR_ASSIGNMENT(op)                           \
@@ -1090,10 +1090,10 @@ product_operator<HandlerTy>::operator*=(product_operator<HandlerTy> &&other) {
       product_operator<HandlerTy> &&other);
 
 #if !defined(__clang__)
-INSTANTIATE_PRODUCT_OPASSIGNMENTS(matrix_operator);
+INSTANTIATE_PRODUCT_OPASSIGNMENTS(matrix_handler);
 INSTANTIATE_PRODUCT_OPASSIGNMENTS(spin_operator);
-INSTANTIATE_PRODUCT_OPASSIGNMENTS(boson_operator);
-INSTANTIATE_PRODUCT_OPASSIGNMENTS(fermion_operator);
+INSTANTIATE_PRODUCT_OPASSIGNMENTS(boson_handler);
+INSTANTIATE_PRODUCT_OPASSIGNMENTS(fermion_handler);
 #endif
 
 // left-hand arithmetics
@@ -1185,20 +1185,20 @@ PRODUCT_ADDITION_SCALAR_REVERSE(-);
   template operator_sum<HandlerTy> operator-(                                  \
       const scalar_operator &other, product_operator<HandlerTy> &&self);
 
-INSTANTIATE_PRODUCT_LHCOMPOSITE_OPS(matrix_operator);
+INSTANTIATE_PRODUCT_LHCOMPOSITE_OPS(matrix_handler);
 INSTANTIATE_PRODUCT_LHCOMPOSITE_OPS(spin_operator);
-INSTANTIATE_PRODUCT_LHCOMPOSITE_OPS(boson_operator);
-INSTANTIATE_PRODUCT_LHCOMPOSITE_OPS(fermion_operator);
+INSTANTIATE_PRODUCT_LHCOMPOSITE_OPS(boson_handler);
+INSTANTIATE_PRODUCT_LHCOMPOSITE_OPS(fermion_handler);
 
 // arithmetics that require conversions
 
 #define PRODUCT_CONVERSIONS_OPS(op, returnTy)                                  \
   template <typename LHtype, typename RHtype,                                  \
             TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype)>                        \
-  returnTy<matrix_operator> operator op(                                       \
+  returnTy<matrix_handler> operator op(                                       \
       const product_operator<LHtype> &other,                                   \
       const product_operator<RHtype> &self) {                                  \
-    return product_operator<matrix_operator>(other) op self;                   \
+    return product_operator<matrix_handler>(other) op self;                   \
   }
 
 PRODUCT_CONVERSIONS_OPS(*, product_operator);
@@ -1207,33 +1207,33 @@ PRODUCT_CONVERSIONS_OPS(-, operator_sum);
 
 #define INSTANTIATE_PRODUCT_CONVERSION_OPS(op, returnTy)                       \
                                                                                \
-  template returnTy<matrix_operator> operator op(                              \
+  template returnTy<matrix_handler> operator op(                              \
       const product_operator<spin_operator> &other,                            \
-      const product_operator<matrix_operator> &self);                          \
-  template returnTy<matrix_operator> operator op(                              \
-      const product_operator<boson_operator> &other,                           \
-      const product_operator<matrix_operator> &self);                          \
-  template returnTy<matrix_operator> operator op(                              \
-      const product_operator<fermion_operator> &other,                         \
-      const product_operator<matrix_operator> &self);                          \
-  template returnTy<matrix_operator> operator op(                              \
+      const product_operator<matrix_handler> &self);                          \
+  template returnTy<matrix_handler> operator op(                              \
+      const product_operator<boson_handler> &other,                           \
+      const product_operator<matrix_handler> &self);                          \
+  template returnTy<matrix_handler> operator op(                              \
+      const product_operator<fermion_handler> &other,                         \
+      const product_operator<matrix_handler> &self);                          \
+  template returnTy<matrix_handler> operator op(                              \
       const product_operator<spin_operator> &other,                            \
-      const product_operator<boson_operator> &self);                           \
-  template returnTy<matrix_operator> operator op(                              \
-      const product_operator<boson_operator> &other,                           \
+      const product_operator<boson_handler> &self);                           \
+  template returnTy<matrix_handler> operator op(                              \
+      const product_operator<boson_handler> &other,                           \
       const product_operator<spin_operator> &self);                            \
-  template returnTy<matrix_operator> operator op(                              \
+  template returnTy<matrix_handler> operator op(                              \
       const product_operator<spin_operator> &other,                            \
-      const product_operator<fermion_operator> &self);                         \
-  template returnTy<matrix_operator> operator op(                              \
-      const product_operator<fermion_operator> &other,                         \
+      const product_operator<fermion_handler> &self);                         \
+  template returnTy<matrix_handler> operator op(                              \
+      const product_operator<fermion_handler> &other,                         \
       const product_operator<spin_operator> &self);                            \
-  template returnTy<matrix_operator> operator op(                              \
-      const product_operator<boson_operator> &other,                           \
-      const product_operator<fermion_operator> &self);                         \
-  template returnTy<matrix_operator> operator op(                              \
-      const product_operator<fermion_operator> &other,                         \
-      const product_operator<boson_operator> &self);
+  template returnTy<matrix_handler> operator op(                              \
+      const product_operator<boson_handler> &other,                           \
+      const product_operator<fermion_handler> &self);                         \
+  template returnTy<matrix_handler> operator op(                              \
+      const product_operator<fermion_handler> &other,                         \
+      const product_operator<boson_handler> &self);
 
 INSTANTIATE_PRODUCT_CONVERSION_OPS(*, product_operator);
 INSTANTIATE_PRODUCT_CONVERSION_OPS(+, operator_sum);
@@ -1251,20 +1251,20 @@ bool product_operator<HandlerTy>::is_identity() const {
 }
 
 template <>
-bool product_operator<matrix_operator>::is_identity() const {
+bool product_operator<matrix_handler>::is_identity() const {
   for (const auto &op : *this) {
     auto degrees = op.degrees();
-    if (degrees.size() != 1 || op != matrix_operator(degrees[0]))
+    if (degrees.size() != 1 || op != matrix_handler(degrees[0]))
       return false;
   }
   return true;  
 }
 
 #if !defined(__clang__)
-template bool product_operator<matrix_operator>::is_identity() const;
+template bool product_operator<matrix_handler>::is_identity() const;
 template bool product_operator<spin_operator>::is_identity() const;
-template bool product_operator<boson_operator>::is_identity() const;
-template bool product_operator<fermion_operator>::is_identity() const;
+template bool product_operator<boson_handler>::is_identity() const;
+template bool product_operator<fermion_handler>::is_identity() const;
 #endif
 
 // handler specific utility functions
@@ -1334,10 +1334,10 @@ template std::vector<bool> product_operator<spin_operator>::get_binary_symplecti
 
 
 #if defined(CUDAQ_INSTANTIATE_TEMPLATES)
-template class product_operator<matrix_operator>;
+template class product_operator<matrix_handler>;
 template class product_operator<spin_operator>;
-template class product_operator<boson_operator>;
-template class product_operator<fermion_operator>;
+template class product_operator<boson_handler>;
+template class product_operator<fermion_handler>;
 #endif
 
 } // namespace cudaq

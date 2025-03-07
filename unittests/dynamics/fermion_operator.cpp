@@ -277,7 +277,7 @@ TEST(OperatorExpressions, checkPreBuiltFermionOps) {
 TEST(OperatorExpressions, checkFermionOpsWithComplex) {
   std::complex<double> value = std::complex<double>(0.125, 0.125);
 
-  // `fermion_operator` + `complex<double>`
+  // `fermion_handler` + `complex<double>`
   {
     auto elementary = cudaq::fermion_op::create(0);
 
@@ -295,7 +295,7 @@ TEST(OperatorExpressions, checkFermionOpsWithComplex) {
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
-  // `fermion_operator` - `complex<double>`
+  // `fermion_handler` - `complex<double>`
   {
     auto elementary = cudaq::fermion_op::number(0);
 
@@ -313,7 +313,7 @@ TEST(OperatorExpressions, checkFermionOpsWithComplex) {
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
-  // `fermion_operator` * `complex<double>`
+  // `fermion_handler` * `complex<double>`
   {
     auto elementary = cudaq::fermion_op::annihilate(0);
 
@@ -345,7 +345,7 @@ TEST(OperatorExpressions, checkFermionOpsWithScalars) {
   /// Keeping these fixed for these more simple tests.
   double const_scale_factor = 2.0;
 
-  // `fermion_operator + scalar_operator`
+  // `fermion_handler + scalar_operator`
   {
     auto self = cudaq::fermion_op::number(0);
     auto other = cudaq::scalar_operator(const_scale_factor);
@@ -365,7 +365,7 @@ TEST(OperatorExpressions, checkFermionOpsWithScalars) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `fermion_operator + scalar_operator`
+  // `fermion_handler + scalar_operator`
   {
     auto self = cudaq::fermion_op::annihilate(0);
     auto other = cudaq::scalar_operator(function);
@@ -386,7 +386,7 @@ TEST(OperatorExpressions, checkFermionOpsWithScalars) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `fermion_operator - scalar_operator`
+  // `fermion_handler - scalar_operator`
   {
     auto self = cudaq::fermion_op::identity(0);
     auto other = cudaq::scalar_operator(const_scale_factor);
@@ -406,7 +406,7 @@ TEST(OperatorExpressions, checkFermionOpsWithScalars) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `fermion_operator - scalar_operator`
+  // `fermion_handler - scalar_operator`
   {
     auto self = cudaq::fermion_op::create(0);
     auto other = cudaq::scalar_operator(function);
@@ -427,7 +427,7 @@ TEST(OperatorExpressions, checkFermionOpsWithScalars) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `fermion_operator * scalar_operator`
+  // `fermion_handler * scalar_operator`
   {
     auto self = cudaq::fermion_op::number(0);
     auto other = cudaq::scalar_operator(const_scale_factor);
@@ -448,7 +448,7 @@ TEST(OperatorExpressions, checkFermionOpsWithScalars) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `fermion_operator * scalar_operator`
+  // `fermion_handler * scalar_operator`
   {
     auto self = cudaq::fermion_op::annihilate(0);
     auto other = cudaq::scalar_operator(function);
@@ -575,7 +575,7 @@ TEST(OperatorExpressions, checkFermionOpsAdvancedArithmetics) {
   // Keeping this fixed throughout.
   std::complex<double> value = std::complex<double>(0.125, 0.5);
 
-  // `fermion_operator + operator_sum`
+  // `fermion_handler + operator_sum`
   {
     auto self = cudaq::fermion_op::create(2);
     auto operator_sum = cudaq::fermion_op::annihilate(2) +
@@ -602,7 +602,7 @@ TEST(OperatorExpressions, checkFermionOpsAdvancedArithmetics) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `fermion_operator - operator_sum`
+  // `fermion_handler - operator_sum`
   {
     auto self = cudaq::fermion_op::annihilate(0);
     auto operator_sum = cudaq::fermion_op::create(0) +
@@ -629,7 +629,7 @@ TEST(OperatorExpressions, checkFermionOpsAdvancedArithmetics) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `fermion_operator * operator_sum`
+  // `fermion_handler * operator_sum`
   {
     auto self = cudaq::fermion_op::number(0);
     auto operator_sum =
@@ -661,7 +661,7 @@ TEST(OperatorExpressions, checkFermionOpsAdvancedArithmetics) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `operator_sum += fermion_operator`
+  // `operator_sum += fermion_handler`
   {
     auto operator_sum = cudaq::fermion_op::create(0) +
                         cudaq::fermion_op::annihilate(2);
@@ -681,7 +681,7 @@ TEST(OperatorExpressions, checkFermionOpsAdvancedArithmetics) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  // `operator_sum -= fermion_operator`
+  // `operator_sum -= fermion_handler`
   {
     auto operator_sum = cudaq::fermion_op::create(0) +
                         cudaq::fermion_op::annihilate(1);
@@ -701,7 +701,7 @@ TEST(OperatorExpressions, checkFermionOpsAdvancedArithmetics) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  // `operator_sum *= fermion_operator`
+  // `operator_sum *= fermion_handler`
   {
     auto operator_sum = cudaq::fermion_op::number(0) +
                         cudaq::fermion_op::annihilate(1);
@@ -758,8 +758,8 @@ TEST(OperatorExpressions, checkAntiCommutationRelations) {
   // {a†(k), a(q)} = δkq
   // {a†(k), a†(q)} = {a(k), a(q)} = 0
 
-  auto anticommutator = [](cudaq::product_operator<cudaq::fermion_operator> ad,
-                           cudaq::product_operator<cudaq::fermion_operator> a) {
+  auto anticommutator = [](cudaq::product_operator<cudaq::fermion_handler> ad,
+                           cudaq::product_operator<cudaq::fermion_handler> a) {
     return ad * a + a * ad;
   };
 

@@ -33,7 +33,7 @@ class operator_sum;
 
 #define TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype)                             \
   std::enable_if_t<!std::is_same<LHtype, RHtype>::value &&                     \
-                       !std::is_same<matrix_operator, LHtype>::value &&        \
+                       !std::is_same<matrix_handler, LHtype>::value &&        \
                        std::is_base_of<operator_handler, LHtype>::value &&     \
                        std::is_base_of<operator_handler, RHtype>::value,       \
                    bool>
@@ -59,16 +59,16 @@ operator_sum<HandlerTy> operator-(const scalar_operator &other,
 
 template <typename LHtype, typename RHtype,
           TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
-product_operator<matrix_operator>
+product_operator<matrix_handler>
 operator*(const product_operator<LHtype> &other,
           const product_operator<RHtype> &self);
 template <typename LHtype, typename RHtype,
           TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
-operator_sum<matrix_operator> operator+(const product_operator<LHtype> &other,
+operator_sum<matrix_handler> operator+(const product_operator<LHtype> &other,
                                         const product_operator<RHtype> &self);
 template <typename LHtype, typename RHtype,
           TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
-operator_sum<matrix_operator> operator-(const product_operator<LHtype> &other,
+operator_sum<matrix_handler> operator-(const product_operator<LHtype> &other,
                                         const product_operator<RHtype> &self);
 
 template <typename HandlerTy>
@@ -92,39 +92,39 @@ operator_sum<HandlerTy> operator-(const scalar_operator &other,
 
 template <typename LHtype, typename RHtype,
           TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
-operator_sum<matrix_operator> operator*(const operator_sum<LHtype> &other,
+operator_sum<matrix_handler> operator*(const operator_sum<LHtype> &other,
                                         const product_operator<RHtype> &self);
 template <typename LHtype, typename RHtype,
           TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
-operator_sum<matrix_operator> operator+(const operator_sum<LHtype> &other,
+operator_sum<matrix_handler> operator+(const operator_sum<LHtype> &other,
                                         const product_operator<RHtype> &self);
 template <typename LHtype, typename RHtype,
           TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
-operator_sum<matrix_operator> operator-(const operator_sum<LHtype> &other,
+operator_sum<matrix_handler> operator-(const operator_sum<LHtype> &other,
                                         const product_operator<RHtype> &self);
 template <typename LHtype, typename RHtype,
           TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
-operator_sum<matrix_operator> operator*(const product_operator<LHtype> &other,
+operator_sum<matrix_handler> operator*(const product_operator<LHtype> &other,
                                         const operator_sum<RHtype> &self);
 template <typename LHtype, typename RHtype,
           TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
-operator_sum<matrix_operator> operator+(const product_operator<LHtype> &other,
+operator_sum<matrix_handler> operator+(const product_operator<LHtype> &other,
                                         const operator_sum<RHtype> &self);
 template <typename LHtype, typename RHtype,
           TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
-operator_sum<matrix_operator> operator-(const product_operator<LHtype> &other,
+operator_sum<matrix_handler> operator-(const product_operator<LHtype> &other,
                                         const operator_sum<RHtype> &self);
 template <typename LHtype, typename RHtype,
           TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
-operator_sum<matrix_operator> operator*(const operator_sum<LHtype> &other,
+operator_sum<matrix_handler> operator*(const operator_sum<LHtype> &other,
                                         const operator_sum<RHtype> &self);
 template <typename LHtype, typename RHtype,
           TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
-operator_sum<matrix_operator> operator+(const operator_sum<LHtype> &other,
+operator_sum<matrix_handler> operator+(const operator_sum<LHtype> &other,
                                         const operator_sum<RHtype> &self);
 template <typename LHtype, typename RHtype,
           TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
-operator_sum<matrix_operator> operator-(const operator_sum<LHtype> &other,
+operator_sum<matrix_handler> operator-(const operator_sum<LHtype> &other,
                                         const operator_sum<RHtype> &self);
 
 #ifndef CUDAQ_INSTANTIATE_TEMPLATES
@@ -156,123 +156,123 @@ operator_sum<matrix_operator> operator-(const operator_sum<LHtype> &other,
   extern template operator_sum<HandlerTy> operator-(                           \
       const scalar_operator &other, operator_sum<HandlerTy> &&self);
 
-EXTERN_TEMPLATE_SPECIALIZATIONS(matrix_operator);
+EXTERN_TEMPLATE_SPECIALIZATIONS(matrix_handler);
 EXTERN_TEMPLATE_SPECIALIZATIONS(spin_operator);
-EXTERN_TEMPLATE_SPECIALIZATIONS(boson_operator);
+EXTERN_TEMPLATE_SPECIALIZATIONS(boson_handler);
 
 #define EXTERN_CONVERSION_TEMPLATE_SPECIALIZATIONS(op, returnTy)               \
                                                                                \
-  extern template returnTy<matrix_operator> operator op(                       \
+  extern template returnTy<matrix_handler> operator op(                       \
       const product_operator<spin_operator> &other,                            \
-      const product_operator<matrix_operator> &self);                          \
-  extern template returnTy<matrix_operator> operator op(                       \
-      const product_operator<boson_operator> &other,                           \
-      const product_operator<matrix_operator> &self);                          \
-  extern template returnTy<matrix_operator> operator op(                       \
-      const product_operator<fermion_operator> &other,                         \
-      const product_operator<matrix_operator> &self);                          \
-  extern template returnTy<matrix_operator> operator op(                       \
+      const product_operator<matrix_handler> &self);                          \
+  extern template returnTy<matrix_handler> operator op(                       \
+      const product_operator<boson_handler> &other,                           \
+      const product_operator<matrix_handler> &self);                          \
+  extern template returnTy<matrix_handler> operator op(                       \
+      const product_operator<fermion_handler> &other,                         \
+      const product_operator<matrix_handler> &self);                          \
+  extern template returnTy<matrix_handler> operator op(                       \
       const product_operator<spin_operator> &other,                            \
-      const product_operator<boson_operator> &self);                           \
-  extern template returnTy<matrix_operator> operator op(                       \
-      const product_operator<boson_operator> &other,                           \
+      const product_operator<boson_handler> &self);                           \
+  extern template returnTy<matrix_handler> operator op(                       \
+      const product_operator<boson_handler> &other,                           \
       const product_operator<spin_operator> &self);                            \
-  extern template returnTy<matrix_operator> operator op(                       \
+  extern template returnTy<matrix_handler> operator op(                       \
       const product_operator<spin_operator> &other,                            \
-      const product_operator<fermion_operator> &self);                         \
-  extern template returnTy<matrix_operator> operator op(                       \
-      const product_operator<fermion_operator> &other,                         \
+      const product_operator<fermion_handler> &self);                         \
+  extern template returnTy<matrix_handler> operator op(                       \
+      const product_operator<fermion_handler> &other,                         \
       const product_operator<spin_operator> &self);                            \
-  extern template returnTy<matrix_operator> operator op(                       \
-      const product_operator<boson_operator> &other,                           \
-      const product_operator<fermion_operator> &self);                         \
-  extern template returnTy<matrix_operator> operator op(                       \
-      const product_operator<fermion_operator> &other,                         \
-      const product_operator<boson_operator> &self);                           \
+  extern template returnTy<matrix_handler> operator op(                       \
+      const product_operator<boson_handler> &other,                           \
+      const product_operator<fermion_handler> &self);                         \
+  extern template returnTy<matrix_handler> operator op(                       \
+      const product_operator<fermion_handler> &other,                         \
+      const product_operator<boson_handler> &self);                           \
                                                                                \
-  extern template operator_sum<matrix_operator> operator op(                   \
+  extern template operator_sum<matrix_handler> operator op(                   \
       const operator_sum<spin_operator> &other,                                \
-      const product_operator<matrix_operator> &self);                          \
-  extern template operator_sum<matrix_operator> operator op(                   \
-      const operator_sum<boson_operator> &other,                               \
-      const product_operator<matrix_operator> &self);                          \
-  extern template operator_sum<matrix_operator> operator op(                   \
-      const operator_sum<fermion_operator> &other,                             \
-      const product_operator<matrix_operator> &self);                          \
-  extern template operator_sum<matrix_operator> operator op(                   \
+      const product_operator<matrix_handler> &self);                          \
+  extern template operator_sum<matrix_handler> operator op(                   \
+      const operator_sum<boson_handler> &other,                               \
+      const product_operator<matrix_handler> &self);                          \
+  extern template operator_sum<matrix_handler> operator op(                   \
+      const operator_sum<fermion_handler> &other,                             \
+      const product_operator<matrix_handler> &self);                          \
+  extern template operator_sum<matrix_handler> operator op(                   \
       const operator_sum<spin_operator> &other,                                \
-      const product_operator<boson_operator> &self);                           \
-  extern template operator_sum<matrix_operator> operator op(                   \
-      const operator_sum<boson_operator> &other,                               \
+      const product_operator<boson_handler> &self);                           \
+  extern template operator_sum<matrix_handler> operator op(                   \
+      const operator_sum<boson_handler> &other,                               \
       const product_operator<spin_operator> &self);                            \
-  extern template operator_sum<matrix_operator> operator op(                   \
+  extern template operator_sum<matrix_handler> operator op(                   \
       const operator_sum<spin_operator> &other,                                \
-      const product_operator<fermion_operator> &self);                         \
-  extern template operator_sum<matrix_operator> operator op(                   \
-      const operator_sum<fermion_operator> &other,                             \
+      const product_operator<fermion_handler> &self);                         \
+  extern template operator_sum<matrix_handler> operator op(                   \
+      const operator_sum<fermion_handler> &other,                             \
       const product_operator<spin_operator> &self);                            \
-  extern template operator_sum<matrix_operator> operator op(                   \
-      const operator_sum<boson_operator> &other,                               \
-      const product_operator<fermion_operator> &self);                         \
-  extern template operator_sum<matrix_operator> operator op(                   \
-      const operator_sum<fermion_operator> &other,                             \
-      const product_operator<boson_operator> &self);                           \
+  extern template operator_sum<matrix_handler> operator op(                   \
+      const operator_sum<boson_handler> &other,                               \
+      const product_operator<fermion_handler> &self);                         \
+  extern template operator_sum<matrix_handler> operator op(                   \
+      const operator_sum<fermion_handler> &other,                             \
+      const product_operator<boson_handler> &self);                           \
                                                                                \
-  extern template operator_sum<matrix_operator> operator op(                   \
+  extern template operator_sum<matrix_handler> operator op(                   \
       const product_operator<spin_operator> &other,                            \
-      const operator_sum<matrix_operator> &self);                              \
-  extern template operator_sum<matrix_operator> operator op(                   \
-      const product_operator<boson_operator> &other,                           \
-      const operator_sum<matrix_operator> &self);                              \
-  extern template operator_sum<matrix_operator> operator op(                   \
-      const product_operator<fermion_operator> &other,                         \
-      const operator_sum<matrix_operator> &self);                              \
-  extern template operator_sum<matrix_operator> operator op(                   \
+      const operator_sum<matrix_handler> &self);                              \
+  extern template operator_sum<matrix_handler> operator op(                   \
+      const product_operator<boson_handler> &other,                           \
+      const operator_sum<matrix_handler> &self);                              \
+  extern template operator_sum<matrix_handler> operator op(                   \
+      const product_operator<fermion_handler> &other,                         \
+      const operator_sum<matrix_handler> &self);                              \
+  extern template operator_sum<matrix_handler> operator op(                   \
       const product_operator<spin_operator> &other,                            \
-      const operator_sum<boson_operator> &self);                               \
-  extern template operator_sum<matrix_operator> operator op(                   \
-      const product_operator<boson_operator> &other,                           \
+      const operator_sum<boson_handler> &self);                               \
+  extern template operator_sum<matrix_handler> operator op(                   \
+      const product_operator<boson_handler> &other,                           \
       const operator_sum<spin_operator> &self);                                \
-  extern template operator_sum<matrix_operator> operator op(                   \
+  extern template operator_sum<matrix_handler> operator op(                   \
       const product_operator<spin_operator> &other,                            \
-      const operator_sum<fermion_operator> &self);                             \
-  extern template operator_sum<matrix_operator> operator op(                   \
-      const product_operator<fermion_operator> &other,                         \
+      const operator_sum<fermion_handler> &self);                             \
+  extern template operator_sum<matrix_handler> operator op(                   \
+      const product_operator<fermion_handler> &other,                         \
       const operator_sum<spin_operator> &self);                                \
-  extern template operator_sum<matrix_operator> operator op(                   \
-      const product_operator<boson_operator> &other,                           \
-      const operator_sum<fermion_operator> &self);                             \
-  extern template operator_sum<matrix_operator> operator op(                   \
-      const product_operator<fermion_operator> &other,                         \
-      const operator_sum<boson_operator> &self);                               \
+  extern template operator_sum<matrix_handler> operator op(                   \
+      const product_operator<boson_handler> &other,                           \
+      const operator_sum<fermion_handler> &self);                             \
+  extern template operator_sum<matrix_handler> operator op(                   \
+      const product_operator<fermion_handler> &other,                         \
+      const operator_sum<boson_handler> &self);                               \
                                                                                \
-  extern template operator_sum<matrix_operator> operator op(                   \
+  extern template operator_sum<matrix_handler> operator op(                   \
       const operator_sum<spin_operator> &other,                                \
-      const operator_sum<matrix_operator> &self);                              \
-  extern template operator_sum<matrix_operator> operator op(                   \
-      const operator_sum<boson_operator> &other,                               \
-      const operator_sum<matrix_operator> &self);                              \
-  extern template operator_sum<matrix_operator> operator op(                   \
-      const operator_sum<fermion_operator> &other,                             \
-      const operator_sum<matrix_operator> &self);                              \
-  extern template operator_sum<matrix_operator> operator op(                   \
+      const operator_sum<matrix_handler> &self);                              \
+  extern template operator_sum<matrix_handler> operator op(                   \
+      const operator_sum<boson_handler> &other,                               \
+      const operator_sum<matrix_handler> &self);                              \
+  extern template operator_sum<matrix_handler> operator op(                   \
+      const operator_sum<fermion_handler> &other,                             \
+      const operator_sum<matrix_handler> &self);                              \
+  extern template operator_sum<matrix_handler> operator op(                   \
       const operator_sum<spin_operator> &other,                                \
-      const operator_sum<boson_operator> &self);                               \
-  extern template operator_sum<matrix_operator> operator op(                   \
-      const operator_sum<boson_operator> &other,                               \
+      const operator_sum<boson_handler> &self);                               \
+  extern template operator_sum<matrix_handler> operator op(                   \
+      const operator_sum<boson_handler> &other,                               \
       const operator_sum<spin_operator> &self);                                \
-  extern template operator_sum<matrix_operator> operator op(                   \
+  extern template operator_sum<matrix_handler> operator op(                   \
       const operator_sum<spin_operator> &other,                                \
-      const operator_sum<fermion_operator> &self);                             \
-  extern template operator_sum<matrix_operator> operator op(                   \
-      const operator_sum<fermion_operator> &other,                             \
+      const operator_sum<fermion_handler> &self);                             \
+  extern template operator_sum<matrix_handler> operator op(                   \
+      const operator_sum<fermion_handler> &other,                             \
       const operator_sum<spin_operator> &self);                                \
-  extern template operator_sum<matrix_operator> operator op(                   \
-      const operator_sum<boson_operator> &other,                               \
-      const operator_sum<fermion_operator> &self);                             \
-  extern template operator_sum<matrix_operator> operator op(                   \
-      const operator_sum<fermion_operator> &other,                             \
-      const operator_sum<boson_operator> &self);
+  extern template operator_sum<matrix_handler> operator op(                   \
+      const operator_sum<boson_handler> &other,                               \
+      const operator_sum<fermion_handler> &self);                             \
+  extern template operator_sum<matrix_handler> operator op(                   \
+      const operator_sum<fermion_handler> &other,                             \
+      const operator_sum<boson_handler> &self);
 
 EXTERN_CONVERSION_TEMPLATE_SPECIALIZATIONS(*, product_operator);
 EXTERN_CONVERSION_TEMPLATE_SPECIALIZATIONS(+, operator_sum);

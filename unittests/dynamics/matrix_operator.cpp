@@ -166,14 +166,14 @@ TEST(OperatorExpressions, checkCustomMatrixOps) {
                                   utils::position_matrix(dimensions[0]));
           ;
         };
-    cudaq::matrix_operator::define("custom_op0", {-1, -1}, func0);
-    cudaq::matrix_operator::define("custom_op1", {-1, -1}, func1);
+    cudaq::matrix_handler::define("custom_op0", {-1, -1}, func0);
+    cudaq::matrix_handler::define("custom_op1", {-1, -1}, func1);
   }
 
   // check that we force user facing conventions when defining/instantiating
   // a custom operator
-  ASSERT_ANY_THROW(cudaq::matrix_operator::instantiate("custom_op0", {1, 0}));
-  ASSERT_ANY_THROW(cudaq::matrix_operator::instantiate("custom_op0", {3, 1}));
+  ASSERT_ANY_THROW(cudaq::matrix_handler::instantiate("custom_op0", {1, 0}));
+  ASSERT_ANY_THROW(cudaq::matrix_handler::instantiate("custom_op0", {3, 1}));
 
   // op 0:
   // momentum level+1 on 0
@@ -181,8 +181,8 @@ TEST(OperatorExpressions, checkCustomMatrixOps) {
   // op 1:
   // number level on 3
   // create level+2 on 1
-  auto op0 = cudaq::matrix_operator::instantiate("custom_op0", {0, 1});
-  auto op1 = cudaq::matrix_operator::instantiate("custom_op1", {1, 3});
+  auto op0 = cudaq::matrix_handler::instantiate("custom_op0", {0, 1});
+  auto op1 = cudaq::matrix_handler::instantiate("custom_op1", {1, 3});
 
   auto matrix0 = cudaq::kronecker(utils::position_matrix(level_count + 2),
                                   utils::momentum_matrix(level_count + 1));
@@ -234,8 +234,8 @@ TEST(OperatorExpressions, checkCustomMatrixOps) {
 TEST(OperatorExpressions, checkMatrixOpsWithComplex) {
   std::complex<double> value = std::complex<double>(0.125, 0.125);
 
-  // `matrix_operator` + `complex<double>` and `complex<double>` +
-  // `matrix_operator`
+  // `matrix_handler` + `complex<double>` and `complex<double>` +
+  // `matrix_handler`
   {
     auto elementary = cudaq::matrix_op::momentum(0);
 
@@ -253,8 +253,8 @@ TEST(OperatorExpressions, checkMatrixOpsWithComplex) {
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
-  // `matrix_operator` - `complex<double>` and `complex<double>` -
-  // `matrix_operator`
+  // `matrix_handler` - `complex<double>` and `complex<double>` -
+  // `matrix_handler`
   {
     auto elementary = cudaq::matrix_op::position(0);
 
@@ -272,8 +272,8 @@ TEST(OperatorExpressions, checkMatrixOpsWithComplex) {
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
   }
 
-  // `matrix_operator` * `complex<double>` and `complex<double>` *
-  // `matrix_operator`
+  // `matrix_handler` * `complex<double>` and `complex<double>` *
+  // `matrix_handler`
   {
     auto elementary = cudaq::matrix_op::number(0);
 
@@ -307,7 +307,7 @@ TEST(OperatorExpressions, checkMatrixOpsWithScalars) {
   int degree_index = 0;
   double const_scale_factor = 2.0;
 
-  // `matrix_operator + scalar_operator`
+  // `matrix_handler + scalar_operator`
   {
     auto self = cudaq::matrix_op::momentum(0);
     auto other = cudaq::scalar_operator(const_scale_factor);
@@ -328,7 +328,7 @@ TEST(OperatorExpressions, checkMatrixOpsWithScalars) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `matrix_operator + scalar_operator`
+  // `matrix_handler + scalar_operator`
   {
     auto self = cudaq::matrix_op::parity(0);
     auto other = cudaq::scalar_operator(function);
@@ -351,7 +351,7 @@ TEST(OperatorExpressions, checkMatrixOpsWithScalars) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `matrix_operator - scalar_operator`
+  // `matrix_handler - scalar_operator`
   {
     auto self = cudaq::matrix_op::number(0);
     auto other = cudaq::scalar_operator(const_scale_factor);
@@ -372,7 +372,7 @@ TEST(OperatorExpressions, checkMatrixOpsWithScalars) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `matrix_operator - scalar_operator`
+  // `matrix_handler - scalar_operator`
   {
     auto self = cudaq::matrix_op::position(0);
     auto other = cudaq::scalar_operator(function);
@@ -395,7 +395,7 @@ TEST(OperatorExpressions, checkMatrixOpsWithScalars) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `matrix_operator * scalar_operator`
+  // `matrix_handler * scalar_operator`
   {
     auto self = cudaq::matrix_op::momentum(0);
     auto other = cudaq::scalar_operator(const_scale_factor);
@@ -421,7 +421,7 @@ TEST(OperatorExpressions, checkMatrixOpsWithScalars) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `matrix_operator * scalar_operator`
+  // `matrix_handler * scalar_operator`
   {
     auto self = cudaq::matrix_op::position(0);
     auto other = cudaq::scalar_operator(function);
@@ -559,7 +559,7 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
   int level_count = 3;
   std::complex<double> value = std::complex<double>(0.125, 0.5);
 
-  // `matrix_operator + operator_sum`
+  // `matrix_handler + operator_sum`
   {
     auto self = cudaq::matrix_op::momentum(0);
     auto operator_sum = cudaq::matrix_op::position(0) +
@@ -587,7 +587,7 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `matrix_operator - operator_sum`
+  // `matrix_handler - operator_sum`
   {
     auto self = cudaq::matrix_op::momentum(0);
     auto operator_sum = cudaq::matrix_op::position(0) +
@@ -615,7 +615,7 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `matrix_operator * operator_sum`
+  // `matrix_handler * operator_sum`
   {
     auto self = cudaq::matrix_op::momentum(0);
     auto operator_sum = cudaq::matrix_op::squeeze(0) +
@@ -650,7 +650,7 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
   }
 
-  // `operator_sum += matrix_operator`
+  // `operator_sum += matrix_handler`
   {
     auto operator_sum = cudaq::matrix_op::position(0) +
                         cudaq::matrix_op::identity(1);
@@ -672,7 +672,7 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  // `operator_sum -= matrix_operator`
+  // `operator_sum -= matrix_handler`
   {
     auto operator_sum = cudaq::matrix_op::position(0) +
                         cudaq::matrix_op::identity(1);
@@ -693,7 +693,7 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
     utils::checkEqual(want_matrix, got_matrix);
   }
 
-  // `operator_sum *= matrix_operator`
+  // `operator_sum *= matrix_handler`
   {
     auto self = cudaq::matrix_op::momentum(0);
     auto operator_sum = cudaq::matrix_op::position(0) +
@@ -740,15 +740,15 @@ TEST(OperatorExpressions, checkMatrixOpsDegreeVerification) {
                                   utils::number_matrix(dimensions[1]));
           ;
         };
-    cudaq::matrix_operator::define("custom_op0", {-1, -1}, func0);
-    cudaq::matrix_operator::define("custom_op1", {-1, -1}, func1);
+    cudaq::matrix_handler::define("custom_op0", {-1, -1}, func0);
+    cudaq::matrix_handler::define("custom_op1", {-1, -1}, func1);
 
-    cudaq::matrix_operator::define("custom_op2", {3, 3}, func0);
-    cudaq::matrix_operator::define("custom_op3", {-1, 2}, func1);
+    cudaq::matrix_handler::define("custom_op2", {3, 3}, func0);
+    cudaq::matrix_handler::define("custom_op3", {-1, 2}, func1);
   }
 
-  auto custom_op0 = cudaq::matrix_operator::instantiate("custom_op0", {1, 3});
-  auto custom_op1 = cudaq::matrix_operator::instantiate("custom_op1", {0, 1});
+  auto custom_op0 = cudaq::matrix_handler::instantiate("custom_op0", {1, 3});
+  auto custom_op1 = cudaq::matrix_handler::instantiate("custom_op1", {0, 1});
 
   ASSERT_ANY_THROW(op1.to_matrix());
   ASSERT_ANY_THROW(op1.to_matrix({{1, 2}}));
@@ -765,8 +765,8 @@ TEST(OperatorExpressions, checkMatrixOpsDegreeVerification) {
   ASSERT_NO_THROW((custom_op0 * custom_op1).to_matrix(dimensions));
   ASSERT_NO_THROW((custom_op0 + custom_op1).to_matrix(dimensions));
 
-  auto custom_op2 = cudaq::matrix_operator::instantiate("custom_op2", {1, 3});
-  auto custom_op3 = cudaq::matrix_operator::instantiate("custom_op3", {0, 1});
+  auto custom_op2 = cudaq::matrix_handler::instantiate("custom_op2", {1, 3});
+  auto custom_op3 = cudaq::matrix_handler::instantiate("custom_op3", {0, 1});
 
   dimensions = {{0, 2}};
   ASSERT_NO_THROW(custom_op2.to_matrix());
