@@ -38,12 +38,10 @@ CUDAQ_TEST(D2VariationalTester, checkSimple) {
       asList.push_back(term);
   }
 
-  // Test that we can osberve a list.
+  // Test that we can observe a list.
   auto results = cudaq::observe(ansatz2{}, asList, .59);
   double test = 5.907;
   for (auto &r : results) {
-    // FIXME: shoule get_spin really return a spin_op or merely a spin_op term?
-    // FIXME: also, we should probably store the evaluated coeffs with the results...
     auto spin_op_terms = r.get_spin().get_terms();
     EXPECT_EQ(spin_op_terms.size(), 1);
     test += r.expectation() * spin_op_terms[0].get_coefficient().evaluate().real();

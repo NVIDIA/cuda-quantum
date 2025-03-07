@@ -768,6 +768,15 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
   std::vector<std::complex<double>> allExpVals;
   allExpVals.reserve(product_terms.size());
 
+  // NOTE: The logic in the loop below relies on the following:
+  // Spin operator terms are canonically ordered. Specifically, we can 
+  // assume that every operator does not act on the same target more than
+  // once. That assumption is not enforced by the code below. 
+  // Additionally, the loops that inject identities rely on the ordering
+  // starting with the smallest index/degree. We could write it agnostic
+  // by querying cudaq::operator_handler::canonical_order, but it was late,
+  // so I kept it at putting an assert here.
+  assert(cudaq::operator_handler::canonical_order(0, 1));
   constexpr int PAULI_ARRAY_SIZE_BYTES = 4 * sizeof(std::complex<double>);
   for (const auto &prod : product_terms) {
     bool allIdOps = true;
@@ -777,10 +786,8 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
       // The Pauli matrix data that we want to load to this slot.
       // Default is the Identity matrix.
       const std::complex<double> *pauliMatrixPtr = PauliI_h;
-      // FIXME: relies on canonicalization (specifically each target occurring at most once)
       // We need to make sure to populate the identity for all qubits 
       // that are not part of this term
-      // FIXME: RELIES ON ORDERING LEAST TO MOST
       while(offset < p.target()) {
         auto *address = static_cast<char *>(pauliMats_h) + offset++ * ALIGNMENT_BYTES;
         std::memcpy(address, pauliMatrixPtr, PAULI_ARRAY_SIZE_BYTES);
@@ -802,6 +809,7 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
       // slot.
       std::memcpy(address, pauliMatrixPtr, PAULI_ARRAY_SIZE_BYTES);
     }
+    // Populate the remaining identities.
     const std::complex<double> *pauliMatrixPtr = PauliI_h;
     while (offset < numQubits) {
       auto *address = static_cast<char *>(pauliMats_h) + offset++ * ALIGNMENT_BYTES;
