@@ -137,7 +137,7 @@ echo "============================="
 
 # Note: piping the `find` results through `sort` guarantees repeatable ordering.
 tmpFile=$(mktemp)
-for ex in `find examples/ applications/ targets/ -name '*.cpp' -not -path "*/dynamics/*" | sort`;
+for ex in `find examples/ applications/ targets/ -name '*.cpp' | sort`;
 do
     filename=$(basename -- "$ex")
     filename="${filename%.*}"
@@ -158,6 +158,14 @@ do
 
     for t in $requested_backends
     do
+        # Skipping dynamics examples if target is not dynamics and ex is dynamics
+        # or gpu is unavailable
+        if [ "$t" != "dynamics" ] && [[ "$ex" == *"dynamics"* ]]; then
+            let "skipped+=1"
+            echo "Skipping $t target for $ex.";
+            echo ":white_flag: $filename: Not intended for this target. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
+            continue
+
         if [ "$t" == "default" ]; then target_flag=""
         else target_flag="--target $t"
         fi
@@ -207,12 +215,6 @@ do
                 # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1283
                 target_flag+=" --enable-mlir"
             fi
-        # elif [ "$t" == "dynamics" ]; then
-        #     let "skipped+=1"
-        #     echo "Skipping $t target."
-        #     # These C++ tests are not intended for dynamics
-        #     echo ":white_flag: $filename: Not executed due to compatibility reasons. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
-        #     continue
         fi
 
         echo "Testing on $t target..."
@@ -224,7 +226,7 @@ do
             arraylength=${#optionArray[@]}
             for (( i=0; i<${arraylength}; i++ ));
             do
-                echo "  Testing nvidia target option: ${optionArray[$i]}"
+                echo "  Testing $t target option: ${optionArray[$i]}"
                 nvq++ $nvqpp_extra_options $ex $target_flag --target-option "${optionArray[$i]}"
                 if [ ! $? -eq 0 ]; then
                     let "failed+=1"
