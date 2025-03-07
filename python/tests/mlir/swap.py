@@ -39,7 +39,7 @@ def test_swap_2q():
 # CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           quake.x %[[VAL_1]] : (!quake.ref) -> ()
 # CHECK:           quake.swap %[[VAL_1]], %[[VAL_2]] : (!quake.ref, !quake.ref) -> ()
-# CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_0]] name "" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+# CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 # CHECK:           return
 # CHECK:         }
 

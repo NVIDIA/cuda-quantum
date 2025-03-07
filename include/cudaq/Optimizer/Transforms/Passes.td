@@ -141,9 +141,36 @@ def CheckKernelCalls : Pass<"check-kernel-calls", "mlir::func::FuncOp"> {
   }];
 }
 
+def ClassicalOptimization : Pass<"classical-optimization"> {
+  let summary = "Perform classical optimizations until a fix point is reached.";
+  let description = [{
+    Performs a number of classical optimizations greedily until a fix point
+    is reached:
+    - canonicalization
+    - simplify regions
+    - write-after-write-elimination
+    - lift-array-alloc
+    - cc-loop-normalize
+    - cc-loop-unroll
+  }];
+
+  let dependentDialects = ["mlir::arith::ArithDialect",
+                           "mlir::cf::ControlFlowDialect",
+                           "cudaq::cc::CCDialect"];
+
+  let options = [
+    Option<"threshold", "maximum-iterations", "unsigned", /*default=*/"50",
+      "Maximum iterations to unroll.">,
+    Option<"allowClosedInterval", "allow-closed-interval", "bool",
+      /*default=*/"true", "Allow loop iterations on a closed interval.">,
+    Option<"allowBreak", "allow-early-exit", "bool", /*default=*/"false",
+      "Allow unrolling of loop with early exit (i.e. break statement).">
+  ];
+}
+
 def CombineMeasurements :
     Pass<"combine-measurements", "mlir::func::FuncOp"> {
-  let summary = "Extends mesurements on subveqs adds output names";
+  let summary = "Extends measurements on subveqs adds output names";
   let description = [{
     Replace a pattern such as:
     ```
@@ -283,7 +310,16 @@ def DependencyAnalysis : Pass<"dep-analysis", "mlir::ModuleOp"> {
   ];
 }
 
-def EraseNopCalls : Pass<"erase-nop-calls", "mlir::func::FuncOp"> {
+def EraseNoise : Pass<"erase-noise"> {
+  let summary = "Erase the inject of noise via Kraus channels.";
+  let description = [{
+    Although CUDA-Q allows the user to specify the application of noise via
+    Kraus channels, these are not needed and must be removed if the code is to
+    run on quantum hardware, for example.
+  }];
+}
+
+def EraseNopCalls : Pass<"erase-nop-calls"> {
   let summary = "Erase calls to any builtin intrinsics that are NOPs.";
   let description = [{
     The code may contain marker function calls that do not generate any actual

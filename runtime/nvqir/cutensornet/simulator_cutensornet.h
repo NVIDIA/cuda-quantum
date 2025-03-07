@@ -30,6 +30,18 @@ public:
   /// @brief Apply quantum gate
   void applyGate(const GateApplicationTask &task) override;
 
+  /// @brief Apply a noise channel
+  void applyNoiseChannel(const std::string_view gateName,
+                         const std::vector<std::size_t> &controls,
+                         const std::vector<std::size_t> &targets,
+                         const std::vector<double> &params) override;
+
+  bool isValidNoiseChannel(const cudaq::noise_model_type &type) const override;
+
+  /// @brief Apply the given kraus_channel on the provided targets.
+  void applyNoise(const cudaq::kraus_channel &channel,
+                  const std::vector<std::size_t> &targets) override;
+
   // Override base calculateStateDim (we don't instantiate full state vector in
   // the tensornet backend). When the user want to retrieve the state vector, we
   // check if it is feasible to do so.
@@ -87,6 +99,15 @@ protected:
 
   /// @brief Query if direct expectation value calculation is enabled
   virtual bool canHandleObserve() override;
+
+  /// @brief Return true if this simulator can use cache workspace (e.g., for
+  /// intermediate tensors)
+  virtual bool requireCacheWorkspace() const = 0;
+
+private:
+  // Helper to apply a Kraus channel
+  void applyKrausChannel(const std::vector<int32_t> &qubits,
+                         const cudaq::kraus_channel &channel);
 
 protected:
   cutensornetHandle_t m_cutnHandle;

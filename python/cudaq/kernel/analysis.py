@@ -36,6 +36,19 @@ class MidCircuitMeasurementAnalyzer(ast.NodeVisitor):
                 node.value, 'id') and node.value.id in self.measureResultsVars:
             self.measureResultsVars.append(target.id)
             return
+        # Check if the new variable is assigned from a measurement result
+        if hasattr(node, 'value') and isinstance(
+                node.value,
+                ast.Name) and node.value.id in self.measureResultsVars:
+            self.measureResultsVars.append(target.id)
+            return
+        # Check if the new variable uses measurement results
+        if hasattr(node, 'value') and isinstance(
+                node.value, ast.BoolOp) and 'values' in node.value.__dict__:
+            for value in node.value.__dict__['values']:
+                if hasattr(value, 'id') and value.id in self.measureResultsVars:
+                    self.measureResultsVars.append(target.id)
+                    return
         if not 'func' in node.value.__dict__:
             return
         creatorFunc = node.value.func
@@ -54,8 +67,14 @@ class MidCircuitMeasurementAnalyzer(ast.NodeVisitor):
         return ''
 
     def checkForMeasureResult(self, value):
-        return self.isMeasureCallOp(value) or self.getVariableName(
-            value) in self.measureResultsVars
+        if self.isMeasureCallOp(value):
+            return True
+        if self.getVariableName(value) in self.measureResultsVars:
+            return True
+        if isinstance(value, ast.BoolOp) and 'values' in value.__dict__:
+            for val in value.__dict__['values']:
+                if self.getVariableName(val) in self.measureResultsVars:
+                    return True
 
     def visit_If(self, node):
         condition = node.test
@@ -177,7 +196,7 @@ class FindDepKernelsVisitor(ast.NodeVisitor):
 
                     if name not in globalAstRegistry:
                         raise RuntimeError(
-                            f"{name} is not a valid kernel to call ({'.'.join(moduleNames)})."
+                            f"{name} is not a valid kernel to call ({'.'.join(moduleNames)}). Registry: {globalAstRegistry}"
                         )
 
                     self.depKernels[name] = globalAstRegistry[name]
