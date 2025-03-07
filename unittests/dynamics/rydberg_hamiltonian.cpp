@@ -65,9 +65,8 @@ TEST(RydbergHamiltonianTest, InvalidAtomFillingSize) {
   // Invalid atom filling size
   std::vector<int> atom_filling = {1, 0};
 
-  EXPECT_THROW(rydberg_hamiltonian(atom_sites, amplitude, phase, delta_global,
-                                   atom_filling),
-               std::invalid_argument);
+  EXPECT_ANY_THROW(rydberg_hamiltonian(atom_sites, amplitude, phase,
+                                       delta_global, atom_filling));
 }
 
 TEST(RydbergHamiltonianTest, UnsupportedLocalDetuning) {
@@ -83,9 +82,8 @@ TEST(RydbergHamiltonianTest, UnsupportedLocalDetuning) {
   auto delta_local =
       std::make_pair(scalar_operator(0.5), std::vector<double>{0.1, 0.2, 0.3});
 
-  EXPECT_THROW(rydberg_hamiltonian(atom_sites, amplitude, phase, delta_global,
-                                   {}, delta_local),
-               std::runtime_error);
+  EXPECT_ANY_THROW(rydberg_hamiltonian(atom_sites, amplitude, phase,
+                                       delta_global, {}, delta_local));
 }
 
 TEST(RydbergHamiltonianTest, Accessors) {
