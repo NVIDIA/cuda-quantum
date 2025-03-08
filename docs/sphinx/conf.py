@@ -180,7 +180,7 @@ breathe_show_enumvalue_initializer = True
 autosummary_generate = True
 
 # This is unfortunately not sufficient for docs generation, due to the use of Union type;
-# see also https://github.com/sphinx-doc/sphinx/issues/11211. 
+# see also https://github.com/sphinx-doc/sphinx/issues/11211.
 # autodoc_mock_imports = ['cuquantum', 'cupy']
 
 intersphinx_mapping = {
