@@ -12,15 +12,6 @@
 #include "cudaq/algorithms/observe.h"
 
 namespace py = pybind11;
-namespace {
-// FIXME(OperatorCpp): Remove this when the operator class is implemented in
-// C++
-cudaq::spin_op to_spin_op(py::object &obj) {
-  if (py::hasattr(obj, "_to_spinop"))
-    return obj.attr("_to_spinop")().cast<cudaq::spin_op>();
-  return obj.cast<cudaq::spin_op>();
-}
-} // namespace
 
 namespace cudaq {
 /// @brief Bind the `cudaq::observe_result` and `cudaq::async_observe_result`
@@ -34,8 +25,8 @@ void bindObserveResult(py::module &mod) {
       "expectation value of the user-defined `spin_operator`.\n")
       .def(py::init<double, spin_op, sample_result>())
       .def(py::init(
-          [](double exp_val, py::object spin_op, sample_result result) {
-            return observe_result(exp_val, to_spin_op(spin_op), result);
+          [](double exp_val, const spin_op &spin_op, sample_result result) {
+            return observe_result(exp_val, spin_op, result);
           }))
       /// @brief Bind the member functions of `cudaq.ObserveResult`.
       .def("dump", &observe_result::dump,
@@ -50,27 +41,17 @@ void bindObserveResult(py::module &mod) {
           "the `spin_operator` is stored in its own measurement register. "
           "Each register name corresponds to the string representation of the "
           "spin term (without any coefficients).\n")
-      .def("counts", &observe_result::counts<spin_op>, py::arg("sub_term"),
-           R"#(Given a `sub_term` of the global `spin_operator` that was passed 
-to :func:`observe`, return its measurement counts.
-
-Args:
-  sub_term (:class:`SpinOperator`): An individual sub-term of the 
-    `spin_operator`.
-
-Returns:
-  :class:`SampleResult`: The measurement counts data for the individual `sub_term`.)#")
       .def(
           "counts",
-          [](observe_result &self, py::object sub_term) {
-            return self.counts(to_spin_op(sub_term));
+          [](observe_result &self, const spin_op_term &sub_term) {
+            return self.counts(sub_term);
           },
           py::arg("sub_term"),
           R"#(Given a `sub_term` of the global `spin_operator` that was passed 
 to :func:`observe`, return its measurement counts.
 
 Args:
-  sub_term (:class:`SpinOperator`): An individual sub-term of the 
+  sub_term (:class:`SpinOperatorTerm`): An individual sub-term of the 
     `spin_operator`.
 
 Returns:
@@ -82,55 +63,15 @@ Returns:
           "provided in :func:`observe`.")
       .def(
           "expectation",
-          [](observe_result &self, py::object spin_term) {
-            return self.expectation(to_spin_op(spin_term));
+          [](observe_result &self, const spin_op_term &spin_term) {
+            return self.expectation(spin_term);
           },
           py::arg("sub_term"),
           R"#(Return the expectation value of an individual `sub_term` of the 
 global `spin_operator` that was passed to :func:`observe`.
 
 Args:
-  sub_term (:class:`SpinOperator`): An individual sub-term of the 
-    `spin_operator`.
-
-Returns:
-  float : The expectation value of the `sub_term` with respect to the 
-  :class:`Kernel` that was passed to :func:`observe`.)#")
-
-      .def(
-          "expectation_z",
-          [](observe_result &self) {
-            PyErr_WarnEx(PyExc_DeprecationWarning,
-                         "expectation_z() is deprecated, use expectation() "
-                         "with the same "
-                         "argument structure.",
-                         1);
-            return self.expectation();
-          },
-          R"#(Return the expectation value of the `spin_operator` that was
-provided in :func:`observe`.
-
-Note:
-  `expectation_z` has been deprecated in favor of `expectation`.)#")
-      .def(
-          "expectation_z",
-          [](observe_result &self, py::object spin_term) {
-            PyErr_WarnEx(PyExc_DeprecationWarning,
-                         "expectation_z() is deprecated, use expectation() "
-                         "with the same "
-                         "argument structure.",
-                         1);
-            return self.expectation(to_spin_op(spin_term));
-          },
-          py::arg("sub_term"),
-          R"#(Return the expectation value of an individual `sub_term` of the 
-global `spin_operator` that was passed to :func:`observe`.
-
-Note:
-  `expectation_z` has been deprecated in favor of `expectation`.
-
-Args:
-  sub_term (:class:`SpinOperator`): An individual sub-term of the 
+  sub_term (:class:`SpinOperatorTerm`): An individual sub-term of the 
     `spin_operator`.
 
 Returns:
@@ -148,9 +89,8 @@ This kicks off a wait on the current thread until the results are available.
 
 See `future <https://en.cppreference.com/w/cpp/thread/future>`_
 for more information on this programming pattern.)#")
-      .def(py::init([](std::string inJson, py::object op) {
-        auto as_spin_op = to_spin_op(op);
-        async_observe_result f(&as_spin_op);
+      .def(py::init([](std::string inJson, spin_op op) {
+        async_observe_result f(&op);
         std::istringstream is(inJson);
         is >> f;
         return f;

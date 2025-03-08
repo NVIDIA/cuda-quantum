@@ -46,7 +46,7 @@ def test_observe_result():
     for index, sub_term in enumerate(hamiltonian):
         print(sub_term)
         # Extract the register name from the spin term.
-        name = str(sub_term).split(" ")[1].rstrip()
+        name = sub_term.get_term_id()
         # Does the register exist in the measurement results?
         assert name in register_names
         # Check `cudaq.ObserveResult::counts(sub_term)`

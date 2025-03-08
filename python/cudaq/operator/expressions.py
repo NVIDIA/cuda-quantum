@@ -228,9 +228,9 @@ class OperatorSum:
         converted = self._evaluate(_SpinArithmetics(**kwargs), False)
         if not isinstance(converted, cudaq_runtime.SpinOperator):
             if converted == 0:
-                return cudaq_runtime.SpinOperator.empty_op()
+                return cudaq_runtime.SpinOperator.empty()
             else:
-                return converted * cudaq_runtime.SpinOperator()
+                return converted * cudaq_runtime.SpinOperator.identity()
         else:
             return converted
 

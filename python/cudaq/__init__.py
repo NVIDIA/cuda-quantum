@@ -87,7 +87,7 @@ SimulationPrecision = cudaq_runtime.SimulationPrecision
 qreg = cudaq_runtime.qvector
 
 # Operator API
-from .operator.definitions import spin, SpinOperator
+from .operator.definitions import spin, SpinOperator, SpinOperatorTerm
 # Re-export non-spin-op operators under the `operators` namespace
 # e.g. `cudaq.operators.annihilate`
 from .operator import operators as operators

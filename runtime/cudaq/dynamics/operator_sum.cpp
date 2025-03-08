@@ -1472,6 +1472,10 @@ std::vector<sum_op<HandlerTy>> sum_op<HandlerTy>::distribute_terms(std::size_t n
       chunk += product_op<HandlerTy>(this->coefficients[it->second], this->terms[it->second]);
     chunks.push_back(chunk);
   }
+  // Not sure if we need this - we might need this when parallelizing a spin_op 
+  // over QPUs when the system has more processors than we have terms.
+  while (chunks.size() < numChunks)
+    chunks.push_back(sum_op<HandlerTy>());
   return std::move(chunks);
 }
 
@@ -1522,22 +1526,46 @@ product_op<HandlerTy> sum_op<HandlerTy>::from_word(const std::string &word) {
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
 sum_op<HandlerTy> sum_op<HandlerTy>::random(std::size_t nQubits, std::size_t nTerms, unsigned int seed) {
+  if (nQubits <= 30) {
+    // For the given algorithm below that sets bool=true for 1/2 of the the
+    // termData, the maximum number of unique terms is n choose k, where n =
+    // 2*nQubits, and k=nQubits. For up to 30 qubits, we can calculate n choose
+    // k without overflows (i.e. 60 choose 30 = 118264581564861424) to validate
+    // that nTerms is reasonable. For anything larger, the user can't set nTerms
+    // large enough to run into actual problems because they would encounter
+    // memory limitations long before anything else.
+    // Note: use the multiplicative formula to evaluate n-choose-k. The
+    // arrangement of multiplications and divisions do not truncate any division
+    // remainders.
+    std::size_t maxTerms = 1;
+    for (std::size_t i = 1; i <= nQubits; i++) {
+      maxTerms *= 2 * nQubits + 1 - i;
+      maxTerms /= i;
+    }
+    if (nTerms > maxTerms)
+      throw std::runtime_error(
+          "Unable to produce " + std::to_string(nTerms) + " unique random terms for " + std::to_string(nQubits) + " qubits");
+  }
+
   auto get_spin_op = [](int target, int kind) {
     if (kind == 1) return sum_op<HandlerTy>::z(target);
     if (kind == 2) return sum_op<HandlerTy>::x(target);
     if (kind == 3) return sum_op<HandlerTy>::y(target);
     return sum_op<HandlerTy>::i(target);
   };
+
   std::mt19937 gen(seed);
   auto sum = spin_op::empty();
-  for (std::size_t i = 0; i < nTerms; i++) {
+  // make sure the number of terms matches the requested number...
+  while(sum.terms.size() < nTerms) {
     std::vector<bool> termData(2 * nQubits);
     std::fill_n(termData.begin(), nQubits, true);
     std::shuffle(termData.begin(), termData.end(), gen);
-    // duplicates are fine - they will just increase the coefficient
+    // ... but allow for duplicates (will be a single term with coefficient != 1)
     auto prod = sum_op<HandlerTy>::identity();
     for (int qubit_idx = 0; qubit_idx < nQubits; ++qubit_idx) {
       auto kind = (termData[qubit_idx << 1] << 1) | termData[(qubit_idx << 1) + 1];
+      // keep identities so that we act on the requested number of qubits
       prod *= get_spin_op(qubit_idx, kind);
     }
     sum += std::move(prod);
@@ -1583,6 +1611,12 @@ sum_op<HandlerTy>::sum_op(const std::vector<double> &input_vec, std::size_t nQub
         prod *= sum_op<HandlerTy>::z(j);
       else if (val == 3) // Y
         prod *= sum_op<HandlerTy>::y(j);
+      else 
+        // This preserves the serialization/deserialization roundtrip
+        // but *only* if we have consecutive degrees in the original 
+        // operator. The serialization format is currently not expressive
+        // enough to accurately handle of identities.
+        prod *= sum_op<HandlerTy>::i(j);
     }
     *this += std::move(prod);
   }

@@ -101,13 +101,10 @@ Returns:
 
     # Process spin_operator if its a list
     localOp = spin_operator
-    localOp = cudaq_runtime.SpinOperator()
     if isinstance(spin_operator, list):
+        localOp = cudaq_runtime.SpinOperator.empty()
         for o in spin_operator:
             localOp += o
-        localOp -= cudaq_runtime.SpinOperator()
-    else:
-        localOp = spin_operator
 
     results = None
     if __isBroadcast(kernel, *args):

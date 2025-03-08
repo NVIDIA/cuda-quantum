@@ -253,10 +253,10 @@ class _SpinArithmetics(OperatorArithmetics[cudaq_runtime.SpinOperator |
         # FIXME(OperatorCpp): `SpinOperator` only exposes `+` operator for `double`, needs to multiply with an identity operator before adding.
         if isinstance(op1, NumericType) and isinstance(
                 op2, cudaq_runtime.SpinOperator):
-            return op1 * cudaq_runtime.SpinOperator() + op2
+            return op1 * cudaq_runtime.SpinOperator.identity() + op2
         if isinstance(op2, NumericType) and isinstance(
                 op1, cudaq_runtime.SpinOperator):
-            return op2 * cudaq_runtime.SpinOperator() + op1
+            return op2 * cudaq_runtime.SpinOperator.identity() + op1
         return op1 + op2
 
     def evaluate(
