@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <functional>
 #include <set>
 #include <type_traits>
 #include <unordered_map>
@@ -22,6 +23,7 @@
 namespace cudaq {
 
 class spin_handler;
+enum class pauli;
 
 #define HANDLER_SPECIFIC_TEMPLATE(ConcreteTy)                                             \
   template <typename T = HandlerTy, std::enable_if_t<                                     \
@@ -66,6 +68,8 @@ protected:
                 // terms)
   std::vector<std::vector<HandlerTy>> terms;
   std::vector<scalar_operator> coefficients;
+
+  sum_op(){};
 
 public:
 
@@ -134,7 +138,8 @@ public:
 
   template <typename... Args,
             std::enable_if_t<std::conjunction<std::is_same<
-                                 product_op<HandlerTy>, Args>...>::value,
+                                 product_op<HandlerTy>, Args>...>::value &&
+                            sizeof...(Args),
                              bool> = true>
   sum_op(Args &&...args);
 
@@ -204,6 +209,20 @@ public:
                      const std::unordered_map<std::string, std::complex<double>>
                          &parameters = {},
                      bool application_order = true) const;
+
+  // comparisons
+
+  /// @brief True, if the other value is an sum_op<HandlerTy> with
+  /// equivalent terms, and False otherwise. 
+  /// The equality takes into account that operator
+  /// addition is commutative, as is the product of two operators if they
+  /// act on different degrees of freedom.
+  /// The equality comparison does *not* take commutation relations into
+  /// account, and does not try to reorder terms `blockwise`; it may hence
+  /// evaluate to False, even if two operators in reality are the same.
+  /// If the equality evaluates to True, on the other hand, the operators
+  /// are guaranteed to represent the same transformation for all arguments.
+  bool operator==(const sum_op<HandlerTy> &other) const;
 
   // unary operators
 
@@ -370,6 +389,12 @@ public:
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   static product_op<T> z(int target);
 
+  HANDLER_SPECIFIC_TEMPLATE(spin_handler)
+  static sum_op<T> plus(int target);
+
+  HANDLER_SPECIFIC_TEMPLATE(spin_handler)
+  static sum_op<T> minus(int target);
+
 
   HANDLER_SPECIFIC_TEMPLATE(boson_handler)
   static product_op<T> create(int target);
@@ -398,6 +423,8 @@ public:
 
   // general utility functions
 
+  void dump() const;
+  
   std::vector<sum_op<HandlerTy>> distribute_terms(std::size_t numChunks) const;
 
   // handler specific utility functions
@@ -429,6 +456,15 @@ public:
 
   SPIN_OPS_BACKWARD_COMPATIBILITY
   std::string to_string(bool printCoeffs) const;
+
+  SPIN_OPS_BACKWARD_COMPATIBILITY
+  void for_each_term(std::function<void(sum_op<HandlerTy> &)> &&functor) const;
+
+  SPIN_OPS_BACKWARD_COMPATIBILITY
+  void for_each_pauli(std::function<void(pauli, std::size_t)> &&functor) const;
+
+  SPIN_OPS_BACKWARD_COMPATIBILITY
+  bool is_identity() const;
 };
 
 
@@ -637,15 +673,15 @@ public:
   // comparisons
 
   /// @brief True, if the other value is an sum_op<HandlerTy> with
-  /// equivalent terms,
-  ///  and False otherwise. The equality takes into account that operator
-  ///  addition is commutative, as is the product of two operators if they
-  ///  act on different degrees of freedom.
-  ///  The equality comparison does *not* take commutation relations into
-  ///  account, and does not try to reorder terms `blockwise`; it may hence
-  ///  evaluate to False, even if two operators in reality are the same.
-  ///  If the equality evaluates to True, on the other hand, the operators
-  ///  are guaranteed to represent the same transformation for all arguments.
+  /// equivalent terms, and False otherwise. 
+  /// The equality takes into account that operator
+  /// addition is commutative, as is the product of two operators if they
+  /// act on different degrees of freedom.
+  /// The equality comparison does *not* take commutation relations into
+  /// account, and does not try to reorder terms `blockwise`; it may hence
+  /// evaluate to False, even if two operators in reality are the same.
+  /// If the equality evaluates to True, on the other hand, the operators
+  /// are guaranteed to represent the same transformation for all arguments.
   bool operator==(const product_op<HandlerTy> &other) const;
 
   // unary operators
@@ -796,6 +832,8 @@ public:
   // Note: this function returns true regardless of the value
   // of the coefficient.
   bool is_identity() const;
+
+  void dump() const;
 
   // handler specific utility functions
 

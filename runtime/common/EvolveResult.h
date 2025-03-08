@@ -12,7 +12,7 @@
 #include "cudaq/qis/state.h"
 #include <memory>
 #include <optional>
-#include "operators.h"
+#include "cudaq/operators.h"
 
 namespace cudaq {
 

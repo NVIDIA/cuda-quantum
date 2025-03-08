@@ -174,4 +174,12 @@ product_op<spin_handler> spin_handler::y(int degree) {
   return product_op(spin_handler(degree, 3));
 }
 
+sum_op<spin_handler> spin_handler::plus(int degree) {
+  return 0.5 * x(degree) + std::complex<double>(0., 0.5) * y(degree);
+}
+
+sum_op<spin_handler> spin_handler::minus(int degree) {
+  return 0.5 * x(degree) - std::complex<double>(0., 0.5) * y(degree);
+}
+
 } // namespace cudaq

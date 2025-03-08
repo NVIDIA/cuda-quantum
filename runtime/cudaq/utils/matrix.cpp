@@ -8,6 +8,7 @@
 
 #include "cudaq/utils/matrix.h"
 #include <cmath>
+#include <iostream>
 #include <sstream>
 
 #include <Eigen/Dense>
@@ -244,10 +245,14 @@ cudaq::complex_matrix::operator()(std::size_t i, std::size_t j) {
   return access(data, dimensions, i, j);
 }
 
-std::string cudaq::complex_matrix::dump() const {
+std::string cudaq::complex_matrix::to_string() const {
   std::stringstream out;
   dump(out);
   return out.str();
+}
+
+void cudaq::complex_matrix::dump() const {
+  dump(std::cout);
 }
 
 void cudaq::complex_matrix::dump(std::ostream &os) const {

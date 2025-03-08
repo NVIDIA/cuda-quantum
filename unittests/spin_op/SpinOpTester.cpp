@@ -147,6 +147,7 @@ TEST(SpinOpTester, checkBug178) {
   std::vector<std::vector<bool>> expected{std::vector<bool>(2),
                                           std::vector<bool>{1, 0}};
   cudaq::spin_op exp(expected, {1., 2.});
+  EXPECT_EQ(op, exp);
   EXPECT_EQ(2, op.num_terms());
   EXPECT_EQ(2, exp.num_terms());
   auto op_it = op.begin();
@@ -155,6 +156,7 @@ TEST(SpinOpTester, checkBug178) {
   EXPECT_EQ(*op_it++, *exp_it++);
   EXPECT_EQ(op_it, op.end());
   EXPECT_EQ(exp_it, exp.end());
+  EXPECT_EQ(op, exp);
 
   EXPECT_TRUE(std::find(expected.begin(), expected.end(), bsf[0]) !=
               expected.end());

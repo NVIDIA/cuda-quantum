@@ -67,7 +67,6 @@ public:
   double expectation(SpinOpType term) {
     static_assert(std::is_same_v<spin_op_term, std::remove_reference_t<SpinOpType>>,
                   "Must provide a spin_op_term");
-    auto numQubits = spinOp.num_qubits();
     auto termStr = term.get_term_id();
     return data.expectation(termStr);
   }
@@ -79,7 +78,6 @@ public:
   sample_result counts(SpinOpType term) {
     static_assert(std::is_same_v<spin_op_term, std::remove_reference_t<SpinOpType>>,
                   "Must provide a spin_op_term");
-    auto numQubits = spinOp.num_qubits();
     auto termStr = term.get_term_id();
     auto counts = data.to_map(termStr);
     ExecutionResult result(counts);

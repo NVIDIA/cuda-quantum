@@ -86,6 +86,8 @@ public:
   static product_op<spin_handler> z(int degree);
   static product_op<spin_handler> x(int degree);
   static product_op<spin_handler> y(int degree);
+  static sum_op<spin_handler> plus(int degree);
+  static sum_op<spin_handler> minus(int degree);
 };
 
 } // namespace cudaq

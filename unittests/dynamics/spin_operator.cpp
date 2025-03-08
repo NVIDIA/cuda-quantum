@@ -104,6 +104,31 @@ TEST(OperatorExpressions, checkPreBuiltSpinOps) {
     utils::checkEqual(want, got);
     utils::checkEqual(id, (op * op).to_matrix());
   }
+
+  std::complex<double> onej(0., 1.);
+  // plus operator.
+  {
+    auto op = cudaq::spin_op::plus(degree_index);
+    auto composite = (cudaq::spin_op::x(degree_index) + onej * cudaq::spin_op::y(degree_index)) / 2.;
+    auto composite_mat = 0.5 * utils::PauliX_matrix() + 0.5 * onej * utils::PauliY_matrix();
+    auto got = op.to_matrix();
+    auto want = utils::annihilate_matrix(2);
+    utils::checkEqual(want, got);
+    utils::checkEqual(want, composite.to_matrix());
+    utils::checkEqual(composite_mat, composite.to_matrix());
+  }
+
+  // minus operator.
+  {
+    auto op = cudaq::spin_op::minus(degree_index);
+    auto composite = (cudaq::spin_op::x(degree_index) - onej * cudaq::spin_op::y(degree_index)) / 2.;
+    auto composite_mat = 0.5 * utils::PauliX_matrix() - 0.5 * onej * utils::PauliY_matrix();
+    auto got = op.to_matrix();
+    auto want = utils::create_matrix(2);
+    utils::checkEqual(want, got);
+    utils::checkEqual(want, composite.to_matrix());
+    utils::checkEqual(composite_mat, composite.to_matrix());
+  }
 }
 
 TEST(OperatorExpressions, checkSpinOpsWithComplex) {

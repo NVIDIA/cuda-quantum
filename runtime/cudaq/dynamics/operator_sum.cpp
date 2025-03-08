@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include <algorithm>
+#include <iostream>
 #include <numeric>
 #include <set>
 #include <type_traits>
@@ -208,7 +209,8 @@ sum_op<HandlerTy>::sum_op(const product_op<HandlerTy> &prod) {
 template <typename HandlerTy>
 template <typename... Args,
           std::enable_if_t<std::conjunction<std::is_same<
-                               product_op<HandlerTy>, Args>...>::value,
+                               product_op<HandlerTy>, Args>...>::value &&
+                               sizeof...(Args),
                            bool>>
 sum_op<HandlerTy>::sum_op(Args &&...args) {
   this->coefficients.reserve(sizeof...(Args));
@@ -470,6 +472,7 @@ INSTANTIATE_SUM_ASSIGNMENTS(fermion_handler);
 
 template <typename HandlerTy>
 std::string sum_op<HandlerTy>::to_string() const {
+  if (this->terms.size() == 0) return "";
   auto it = this->begin();
   std::string str = it->to_string();
   while (++it != this->end())
@@ -534,6 +537,42 @@ INSTANTIATE_SUM_EVALUATIONS(matrix_handler);
 INSTANTIATE_SUM_EVALUATIONS(spin_handler);
 INSTANTIATE_SUM_EVALUATIONS(boson_handler);
 INSTANTIATE_SUM_EVALUATIONS(fermion_handler);
+#endif
+
+// comparisons
+
+template <typename HandlerTy>
+bool sum_op<HandlerTy>::operator==(const sum_op<HandlerTy> &other) const {
+  if (this->terms.size() != other.terms.size()) return false;
+  std::vector<std::string> self_keys;
+  std::vector<std::string> other_keys;
+  self_keys.reserve(this->terms.size());
+  other_keys.reserve(other.terms.size());
+  for (const auto &entry : this->term_map)
+    self_keys.push_back(entry.first);
+  for (const auto &entry : other.term_map)
+    other_keys.push_back(entry.first);
+  std::sort(self_keys.begin(), self_keys.end());
+  std::sort(other_keys.begin(), other_keys.end());
+  if (self_keys != other_keys) return false;
+  for (const auto &key : self_keys) {
+    auto self_idx = this->term_map.find(key)->second;
+    auto other_idx = other.term_map.find(key)->second;
+    if (this->coefficients[self_idx] != other.coefficients[other_idx])
+      return false;
+  }
+  return true;
+}
+
+#define INSTANTIATE_SUM_COMPARISONS(HandlerTy)                                 \
+  template bool sum_op<HandlerTy>::operator==(                                 \
+    const sum_op<HandlerTy> &other) const;
+
+#if !defined(__clang__)
+INSTANTIATE_SUM_COMPARISONS(matrix_handler);
+INSTANTIATE_SUM_COMPARISONS(spin_handler);
+INSTANTIATE_SUM_COMPARISONS(boson_handler);
+INSTANTIATE_SUM_COMPARISONS(fermion_handler);
 #endif
 
 // unary operators
@@ -1333,6 +1372,16 @@ product_op<T> sum_op<HandlerTy>::z(int target) {
   return spin_handler::z(target);
 }
 
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
+sum_op<T> sum_op<HandlerTy>::plus(int target) {
+  return spin_handler::plus(target);
+}
+
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
+sum_op<T> sum_op<HandlerTy>::minus(int target) {
+  return spin_handler::minus(target);
+}
+
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(boson_handler)
 product_op<T> sum_op<HandlerTy>::create(int target) {
   return boson_handler::create(target);
@@ -1386,6 +1435,8 @@ template product_op<spin_handler> sum_op<spin_handler>::i(int target);
 template product_op<spin_handler> sum_op<spin_handler>::x(int target);
 template product_op<spin_handler> sum_op<spin_handler>::y(int target);
 template product_op<spin_handler> sum_op<spin_handler>::z(int target);
+template sum_op<spin_handler> sum_op<spin_handler>::plus(int target);
+template sum_op<spin_handler> sum_op<spin_handler>::minus(int target);
 
 template product_op<boson_handler> sum_op<boson_handler>::create(int target);
 template product_op<boson_handler> sum_op<boson_handler>::annihilate(int target);
@@ -1399,6 +1450,12 @@ template product_op<fermion_handler> sum_op<fermion_handler>::number(int target)
 #endif
 
 // general utility functions
+
+template <typename HandlerTy>
+void sum_op<HandlerTy>::dump() const {
+  auto str = to_string();
+  std::cout << str;
+}
 
 template <typename HandlerTy>
 std::vector<sum_op<HandlerTy>> sum_op<HandlerTy>::distribute_terms(std::size_t numChunks) const {
@@ -1419,8 +1476,9 @@ std::vector<sum_op<HandlerTy>> sum_op<HandlerTy>::distribute_terms(std::size_t n
 }
 
 #define INSTANTIATE_SUM_UTILITY_FUNCTIONS(HandlerTy)                                      \
-  template std::vector<sum_op<HandlerTy>>                                           \
-  sum_op<HandlerTy>::distribute_terms(std::size_t numChunks) const;
+  template std::vector<sum_op<HandlerTy>>                                                 \
+  sum_op<HandlerTy>::distribute_terms(std::size_t numChunks) const;                       \
+  template void sum_op<HandlerTy>::dump() const;
 
 #if !defined(__clang__)
 INSTANTIATE_SUM_UTILITY_FUNCTIONS(matrix_handler);
@@ -1664,6 +1722,34 @@ std::string sum_op<HandlerTy>::to_string(bool printCoeffs) const {
   return ss.str();
 }
 
+SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
+void sum_op<HandlerTy>::for_each_term(std::function<void(sum_op<HandlerTy> &)> &&functor) const {
+  for (auto &&prod : *this) {
+    sum_op<HandlerTy> as_sum(std::move(prod));
+    functor(as_sum);
+  }
+}
+
+SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
+void sum_op<HandlerTy>::for_each_pauli(std::function<void(pauli, std::size_t)> &&functor) const {
+  if (this->terms.size() == 0) return;
+  if (this->terms.size() != 1) 
+    throw std::runtime_error("more than one term in for_each_pauli");
+  for (const auto &op : this->terms[0])
+    functor(op.as_pauli(), op.degrees()[0]);
+}
+
+SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
+bool sum_op<HandlerTy>::is_identity() const {
+  for(const auto &term : this->terms) {
+    for (const auto &op : term) {
+      if (op != HandlerTy(op.degrees()[0]))
+        return false;
+    }
+  }
+  return true;
+}
+
 #if !defined(__clang__)
 template sum_op<spin_handler>::sum_op(const std::vector<double> &input_vec, std::size_t nQubits);
 template sum_op<spin_handler>::sum_op(const std::vector<std::vector<bool>> &bsf_terms,
@@ -1672,6 +1758,9 @@ template std::vector<double> sum_op<spin_handler>::getDataRepresentation() const
 template std::pair<std::vector<std::vector<bool>>, std::vector<std::complex<double>>> 
 sum_op<spin_handler>::get_raw_data() const;
 template std::string sum_op<spin_handler>::to_string(bool printCoeffs) const;
+template void sum_op<spin_handler>::for_each_term(std::function<void(sum_op<spin_handler> &)> &&functor) const;
+template void sum_op<spin_handler>::for_each_pauli(std::function<void(pauli, std::size_t)> &&functor) const;
+template bool sum_op<spin_handler>::is_identity() const;
 #endif
 
 

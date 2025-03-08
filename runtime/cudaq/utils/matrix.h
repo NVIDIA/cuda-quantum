@@ -21,6 +21,10 @@ namespace Eigen {
   class Matrix;
 }
 
+namespace pybind11 {
+  class module_;
+}
+
 namespace cudaq {
 
 class complex_matrix;
@@ -158,7 +162,10 @@ public:
   std::complex<double> &operator()(std::size_t i, std::size_t j);
 
   /// @brief Returns a string representation of the matrix
-  std::string dump() const;
+  std::string to_string() const;
+
+  /// @brief Print this matrix to the standard output stream
+  void dump() const;
 
   /// @brief Print this matrix to the given output stream
   void dump(std::ostream &os) const;
@@ -169,6 +176,8 @@ public:
   std::size_t size() const { return get_size(dimensions); }
 
   EigenMatrix as_eigen() const;
+
+  friend void bindComplexMatrix(pybind11::module_ &mod);
 
 private:
   complex_matrix(const std::complex<double> *v, const Dimensions &dim = {2, 2})

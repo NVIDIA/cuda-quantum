@@ -22,15 +22,15 @@ void string_equal(std::string str1, std::string str2) {
 TEST(Tensor, initialization) {
   {
     cudaq::complex_matrix m0;
-    string_equal(m0.dump(), "\n");
+    string_equal(m0.to_string(), "\n");
   }
   {
     cudaq::complex_matrix m1({1., 0., 0., 1.});
-    string_equal(m1.dump(), "(1,0) (0,0)\n(0,0) (1,0)\n");
+    string_equal(m1.to_string(), "(1,0) (0,0)\n(0,0) (1,0)\n");
   }
   {
     cudaq::complex_matrix m1({1., 2., 3., 4., 5., 6.}, {2, 3});
-    string_equal(m1.dump(),
+    string_equal(m1.to_string(),
               "(1,0) (2,0) (3,0)\n(4,0) (5,0) (6,0)\n");
   }
 }
@@ -95,13 +95,13 @@ TEST(Tensor, product) {
     cudaq::complex_matrix m2({2., 1., 3., 4.});
     cudaq::complex_matrix m3({3., 2., 1., 4.});
     cudaq::complex_matrix m4 = m2 * m3;
-    string_equal(m4.dump(), "(7,0) (8,0)\n(13,0) (22,0)\n");
+    string_equal(m4.to_string(), "(7,0) (8,0)\n(13,0) (22,0)\n");
   }
   {
     cudaq::complex_matrix m2({1., 2., 3., 4., 5., 6.}, {3, 2});
     cudaq::complex_matrix m3({1., 2., 3., 4., 5., 6.}, {2, 3});
     cudaq::complex_matrix m4 = m2 * m3;
-    string_equal(m4.dump(), "(9,0) (12,0)\n(15,0) (19,0)\n"
+    string_equal(m4.to_string(), "(9,0) (12,0)\n(15,0) (19,0)\n"
                          "(26,0) (33,0)\n");
   }
 }
@@ -119,7 +119,7 @@ TEST(Tensor, addition) {
     cudaq::complex_matrix m5({2., 11., 3., 4.2});
     cudaq::complex_matrix m6({3., 42., 1.4, 4.});
     cudaq::complex_matrix m7 = m5 + m6;
-    string_equal(m7.dump(), "(5,0) (53,0)\n(4.4,0) (8.2,0)\n");
+    string_equal(m7.to_string(), "(5,0) (53,0)\n(4.4,0) (8.2,0)\n");
   }
 }
 
@@ -136,7 +136,7 @@ TEST(Tensor, subtraction) {
     cudaq::complex_matrix m8({12.1, 1., 3., 14.});
     cudaq::complex_matrix m9({3., 22., 31., 4.});
     cudaq::complex_matrix ma = m8 - m9;
-    string_equal(ma.dump(), "(9.1,0) (-21,0)\n(-28,0) (10,0)\n");
+    string_equal(ma.to_string(), "(9.1,0) (-21,0)\n(-28,0) (10,0)\n");
   }
 }
 TEST(Tensor, subtractionError) {
@@ -153,7 +153,7 @@ TEST(Tensor, kroneckerProduct) {
     cudaq::complex_matrix mc({7.4, 8., 9., 4.2});
     cudaq::complex_matrix md = cudaq::kronecker(mb, mc);
     string_equal(
-        md.dump(),
+        md.to_string(),
         "(45.14,0) (48.8,0) (11.1,0) (12,0)\n(54.9,0) "
         "(25.62,0) (13.5,0) (6.3,0)\n(22.2,0) (24,0) (103.6,0) "
         "(112,0)\n(27,0) (12.6,0) (126,0) (58.8,0)\n");
@@ -168,7 +168,7 @@ TEST(Tensor, kroneckerOnList) {
     std::vector<cudaq::complex_matrix> v{me, mf, mg};
     cudaq::complex_matrix mh = cudaq::kronecker(v.begin(), v.end());
     string_equal(
-        mh.dump(),
+        mh.to_string(),
         "(3,3) (6,6)\n(4,4) (8,8)\n(5,5) (10,10)\n");
   }
 }
@@ -186,15 +186,15 @@ TEST(Tensor, exponential) {
     auto mg_exp = mg.exponential();
 
     string_equal(
-        me_exp.dump(),
+        me_exp.to_string(),
         "(3.23795,0) (1.86268,0)\n(0.93134,0) (1.37527,0)\n");
 
     string_equal(
-        mf_exp.dump(),
+        mf_exp.to_string(),
         "(4.84921,0) (0,0) (5.4755,0)\n(1.46673,0) (2.01375,0) "
         "(0.977708,0)\n(5.4755,0) (0,0) (10.3247,0)\n");
 
-    string_equal(mg_exp.dump(),
+    string_equal(mg_exp.to_string(),
               "(2.9751,0) (0.447969,0) (1.01977,0) (1.75551,0)\n"
               "(2.10247,0) (2.55646,0) (1.97654,0) (1.39927,0)\n"
               "(0.800451,0) (0.648569,0) (1.69099,0) (1.76597,0)\n"

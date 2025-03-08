@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include <algorithm>
+#include <iostream>
 #include <numeric>
 #include <set>
 #include <type_traits>
@@ -1260,11 +1261,21 @@ bool product_op<matrix_handler>::is_identity() const {
   return true;  
 }
 
+template <typename HandlerTy>
+void product_op<HandlerTy>::dump() const {
+  auto str = to_string();
+  std::cout << str;
+}
+
 #if !defined(__clang__)
 template bool product_op<matrix_handler>::is_identity() const;
 template bool product_op<spin_handler>::is_identity() const;
 template bool product_op<boson_handler>::is_identity() const;
 template bool product_op<fermion_handler>::is_identity() const;
+template void product_op<matrix_handler>::dump() const;
+template void product_op<spin_handler>::dump() const;
+template void product_op<boson_handler>::dump() const;
+template void product_op<fermion_handler>::dump() const;
 #endif
 
 // handler specific utility functions
