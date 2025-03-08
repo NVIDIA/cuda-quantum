@@ -83,7 +83,7 @@ runObservation(KernelFunctor &&k, cudaq::spin_op &h, quantum_platform &platform,
                std::optional<std::size_t> numTrajectories = {}) {
   auto ctx = std::make_unique<ExecutionContext>("observe", shots);
   ctx->kernelName = kernelName;
-  ctx->spin = &h;
+  ctx->spin = h;
   if (shots > 0)
     ctx->shots = shots;
 

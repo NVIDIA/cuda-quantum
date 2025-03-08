@@ -31,7 +31,7 @@ public:
   std::size_t shots = 0;
 
   /// @brief An optional spin operator
-  std::optional<cudaq::spin_op *> spin;
+  std::optional<cudaq::spin_op> spin;
 
   /// @brief Measurement counts for a CUDA-Q kernel invocation
   sample_result result;

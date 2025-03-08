@@ -73,7 +73,7 @@ protected:
                                  "without a cudaq::spin_op.");
 
       std::vector<cudaq::ExecutionResult> results;
-      cudaq::spin_op &H = *localContext->spin.value();
+      cudaq::spin_op &H = localContext->spin.value();
 
       // If the backend supports the observe task,
       // let it compute the expectation value instead of

@@ -139,7 +139,7 @@ pyVQE_remote_cpp(cudaq::quantum_platform &platform, py::object &kernel,
   auto [kernelName, kernelMod] = getKernelNameAndModule(kernel);
   auto ctx = std::make_unique<ExecutionContext>("observe", /*shots=*/0);
   ctx->kernelName = kernelName;
-  ctx->spin = &hamiltonian;
+  ctx->spin = hamiltonian;
   platform.set_exec_ctx(ctx.get());
 
   constexpr std::size_t startingArgIdx = 1;

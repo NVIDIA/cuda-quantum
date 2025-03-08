@@ -1422,7 +1422,7 @@ public:
     flushGateQueue();
 
     if (executionContext->canHandleObserve) {
-      auto result = observe(*executionContext->spin.value());
+      auto result = observe(executionContext->spin.value());
       executionContext->expectationValue = result.expectation();
       executionContext->result = result.raw_data();
       return;

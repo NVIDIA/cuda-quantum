@@ -517,7 +517,7 @@ public:
     if (executionContext && executionContext->name == "observe") {
       mapping_reorder_idx.clear();
       runPassPipeline("canonicalize,cse", moduleOp);
-      cudaq::spin_op &spin = *executionContext->spin.value();
+      cudaq::spin_op &spin = executionContext->spin.value();
       for (const auto &term : spin) {
         if (term.is_identity())
           continue;

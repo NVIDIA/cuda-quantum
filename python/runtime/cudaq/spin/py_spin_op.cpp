@@ -539,10 +539,16 @@ void bindSpinOperator(py::module &mod) {
 void bindSpinWrapper(py::module &mod) {
   bindSpinClass(mod);
   bindSpinOperator(mod);
-  // We may run into issue with implicitly convertible
-  // because the execution context merely stores a reference
-  // to an existing object rather than a copy...
-  //py::implicitly_convertible<spin_op_term, spin_op>();
+  // If the spin op in the execution context is a pointer
+  // rather than an actual copy, then we may run into trouble
+  // that the pointer points to a temporary object due to 
+  // spin_op_term -> spin_op automatic conversion. 
+  // I am not sure why I didn't see a similar issue in C++, 
+  // but I am concerned it might be there as well.
+  // I hence decided to have the context own it's spin - 
+  // I *think* is should only be one additional copy and seems
+  // less likely to have any hidden issues.
+  py::implicitly_convertible<spin_op_term, spin_op>();
 }
 
 } // namespace cudaq

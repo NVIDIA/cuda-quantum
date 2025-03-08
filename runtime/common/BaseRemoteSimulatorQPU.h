@@ -92,7 +92,7 @@ public:
 
     auto ctx = std::make_unique<ExecutionContext>("observe", shots);
     ctx->kernelName = name;
-    ctx->spin = &H;
+    ctx->spin = H;
     if (shots > 0)
       ctx->shots = shots;
 
