@@ -12,5 +12,5 @@ gpu-requirements: true
 config:
   nvqir-simulation-backend: dynamics
   platform-library: mqpu
-  preprocessor-defines: ["-D CUDAQ_DYNAMICS_TARGET"]
+  preprocessor-defines: ["-D CUDAQ_ANALOG_TARGET"]
   library-mode: true
