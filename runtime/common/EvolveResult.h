@@ -24,20 +24,19 @@ protected:
   // The final state after the time evolution.
   state final_state;
 
+public:
   // The state after each step in the evolution, if computed.
-  std::optional<std::vector<state>> intermediate_states = {};
+  std::optional<std::vector<state>> intermediate_states;
 
   // The computed expectation values at the end of the evolution.
-  std::optional<std::vector<observe_result>> final_expectation_values = {};
+  std::optional<std::vector<observe_result>> final_expectation_values;
 
   // The computed expectation values for each step of the evolution.
-  std::optional<std::vector<std::vector<observe_result>>> expectation_values =
-      {};
+  std::optional<std::vector<std::vector<observe_result>>> expectation_values;
 
   // The result of sampling of an analog Hamiltonian simulation on a QPU
-  std::optional<sample_result> sampling_result = {};
+  std::optional<sample_result> sampling_result;
 
-public:
   evolve_result(state state) : final_state(state) {}
 
   evolve_result(state state, const std::vector<observe_result> &expectations)
@@ -98,24 +97,6 @@ public:
     //   throw std::runtime_error("No state available for this result");
     // }
     return final_state;
-  }
-
-  const std::optional<std::vector<state>> &get_intermediate_states() {
-    return intermediate_states;
-  }
-
-  const std::optional<std::vector<observe_result>> &
-  get_final_expectation_values() {
-    return final_expectation_values;
-  }
-
-  const std::optional<std::vector<std::vector<observe_result>>> &
-  get_expectation_values() {
-    return expectation_values;
-  }
-
-  const std::optional<sample_result> &get_sampling_result() {
-    return sampling_result;
   }
 
 private:
