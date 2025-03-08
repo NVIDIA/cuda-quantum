@@ -242,10 +242,21 @@ bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
   SmallVector<Type> fieldTys =
       lastTypes(std::distance(x->field_begin(), x->field_end()));
   auto [width, alignInBytes] = getWidthAndAlignment(x);
+
+  // This is a struq if it is not empty and all members are quantum references.
   bool isStruq = !fieldTys.empty();
-  for (auto ty : fieldTys)
+  bool quantumMembers = false;
+  for (auto ty : fieldTys) {
+    if (quake::isQuantumType(ty))
+      quantumMembers = true;
     if (!quake::isQuantumReferenceType(ty))
       isStruq = false;
+  }
+  if (quantumMembers && !isStruq) {
+    reportClangError(x, mangler,
+                     "hybrid quantum-classical struct types are not allowed");
+    return false;
+  }
 
   auto ty = [&]() -> Type {
     if (isStruq)
@@ -458,7 +469,16 @@ bool QuakeBridgeVisitor::VisitRValueReferenceType(
 
 bool QuakeBridgeVisitor::VisitConstantArrayType(clang::ConstantArrayType *t) {
   auto size = t->getSize().getZExtValue();
-  return pushType(cc::ArrayType::get(builder.getContext(), popType(), size));
+  auto ty = popType();
+  if (quake::isQuantumType(ty)) {
+    auto *ctx = builder.getContext();
+    if (ty == quake::RefType::get(ctx))
+      return pushType(quake::VeqType::getUnsized(ctx));
+    emitFatalError(builder.getUnknownLoc(),
+                   "array element type is not supported");
+    return false;
+  }
+  return pushType(cc::ArrayType::get(builder.getContext(), ty, size));
 }
 
 bool QuakeBridgeVisitor::pushType(Type t) {
