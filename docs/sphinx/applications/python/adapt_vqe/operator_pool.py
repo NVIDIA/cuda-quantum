@@ -80,9 +80,8 @@ def add_single_excitation(op, p_occ, q_virt):
         parity *= spin.z(i)
 
     c = 0.5
-    op.append(
-        c * spin.y(p_occ) * parity * spin.x(q_virt) -
-        c * spin.x(p_occ) * parity * spin.y(q_virt))
+    op.append(c * spin.y(p_occ) * parity * spin.x(q_virt) -
+              c * spin.x(p_occ) * parity * spin.y(q_virt))
 
 
 def add_double_excitation(op, p_occ, q_occ, r_virt, s_virt):
@@ -113,7 +112,7 @@ def add_double_excitation(op, p_occ, q_occ, r_virt, s_virt):
     for i in range(a_virt + 1, b_virt):
         parity_b *= spin.z(i)
 
-    c = 1.0 / 8.0 
+    c = 1.0 / 8.0
     temp_op = c * spin.x(i_occ) * parity_a * spin.x(j_occ) * spin.x(
         a_virt) * parity_b * spin.y(b_virt)
     temp_op += c * spin.x(i_occ) * parity_a * spin.x(j_occ) * spin.y(
