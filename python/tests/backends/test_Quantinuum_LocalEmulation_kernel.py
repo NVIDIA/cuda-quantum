@@ -318,6 +318,20 @@ def test_3q_unitary_synthesis():
     with pytest.raises(RuntimeError):
         cudaq.sample(test_toffoli)
 
+def test_observe():
+    geometry = [('H', (0., 0., 0.)), ('H', (0., 0., .7474))]
+    molecule, data = cudaq.chemistry.create_molecular_hamiltonian(geometry, 'sto-3g', 1, 0)
+    
+    qubit_count = data.n_orbitals * 2
+    
+    @cudaq.kernel
+    def kernel(thetas: list[float]):
+        qubits = cudaq.qvector(qubit_count)
+    
+    result = cudaq.observe(kernel, molecule, [.0,.0,.0,.0], shots_count = 1000)
+    
+    expectation = result.expectation()
+    assert_close(expectation, 0.707)
 
 # leave for gdb debugging
 if __name__ == "__main__":
