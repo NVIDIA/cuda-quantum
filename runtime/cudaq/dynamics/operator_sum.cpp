@@ -1500,8 +1500,10 @@ INSTANTIATE_SUM_UTILITY_FUNCTIONS(fermion_handler);
                                       std::is_same<HandlerTy, T>::value, bool>>
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
-std::size_t sum_op<HandlerTy>::num_qubits() const {
-  return this->degrees().size();
+std::size_t sum_op<HandlerTy>::num_qubits(bool include_padding) const {
+  const auto &degrees = this->degrees(false);
+  if (include_padding) return operator_handler::canonical_order(0, 1) ? degrees.back() + 1 : degrees[0] + 1;
+  else return degrees.size();
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
@@ -1574,7 +1576,7 @@ sum_op<HandlerTy> sum_op<HandlerTy>::random(std::size_t nQubits, std::size_t nTe
 }
 
 #if !defined(__clang__)
-template std::size_t sum_op<spin_handler>::num_qubits() const;
+template std::size_t sum_op<spin_handler>::num_qubits(bool include_padding) const;
 template product_op<spin_handler> sum_op<spin_handler>::from_word(const std::string &word);
 template sum_op<spin_handler> sum_op<spin_handler>::random(std::size_t nQubits, std::size_t nTerms, unsigned int seed);
 #endif
@@ -1652,12 +1654,31 @@ sum_op<HandlerTy>::sum_op(const std::vector<std::vector<bool>> &bsf_terms,
 
 SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
 std::vector<double> sum_op<HandlerTy>::getDataRepresentation() const {
+  // This function prints a data representing the operator sum that 
+  // includes the full representation for any degree in [0, max_degree),
+  // padding identities if necessary.
   // NOTE: this is an imperfect representation that we will want to 
   // deprecate because it does not capture targets accurately.
+  auto degrees = this->degrees(false); // degrees in canonical order to match the evaluation
+  auto le_order = std::less<int>();
+  auto get_le_index = [&degrees, &le_order](std::size_t idx) {
+    // For compatibility with existing code, the ordering for the term ops always
+    // needs to be from smallest to largest degree.
+    return (operator_handler::canonical_order(1, 0) == le_order(1, 0))
+      ? idx : degrees.size() - 1 - idx;
+  };
+
+  // number of degrees including the ones for any injected identities
+  auto n_targets = operator_handler::canonical_order(0, 1) ? degrees.back() + 1 : degrees[0] + 1;
+  auto padded = *this; // copy for identity padding
+  for (std::size_t j = 0; j < n_targets; ++j)
+    padded *= sum_op<HandlerTy>::identity(j);
+
   std::vector<double> dataVec;
-  for(std::size_t i = 0; i < this->terms.size(); ++i) {
-    for(std::size_t j = 0; j < this->terms[i].size(); ++j) {
-      auto pauli = this->terms[i][j].as_pauli();
+  dataVec.reserve(n_targets * padded.terms.size() + 2 * padded.terms.size() + 1);
+  for(std::size_t i = 0; i < padded.terms.size(); ++i) {
+    for(std::size_t j = 0; j < padded.terms[i].size(); ++j) {
+      auto pauli = padded.terms[i][get_le_index(j)].as_pauli();
       if (pauli == pauli::X)
         dataVec.push_back(1.);
       else if (pauli == pauli::Z)
@@ -1667,11 +1688,11 @@ std::vector<double> sum_op<HandlerTy>::getDataRepresentation() const {
       else
         dataVec.push_back(0.);
     }
-    auto coeff = this->coefficients[i].evaluate();
+    auto coeff = padded.coefficients[i].evaluate();
     dataVec.push_back(coeff.real());
     dataVec.push_back(coeff.imag());
   }
-  dataVec.push_back(this->terms.size());
+  dataVec.push_back(padded.terms.size());
   return dataVec;
 }
 
@@ -1721,14 +1742,18 @@ sum_op<HandlerTy>::get_raw_data() const {
 SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION                                  
 std::string sum_op<HandlerTy>::to_string(bool printCoeffs) const {
   // This function prints a string representing the operator sum that 
-  // includes the full representation for any degree in [0, max_degree],
+  // includes the full representation for any degree in [0, max_degree),
   // padding identities if necessary (opposed to pauli_word).
   std::unordered_map<int, int> dims;
   auto degrees = this->degrees(false); // degrees in canonical order to match the evaluation
   auto evaluated = this->evaluate(
             operator_arithmetics<operator_handler::canonical_evaluation>(dims, {}));
-  auto get_application_index = [&degrees](std::size_t idx) {
-    return (operator_handler::canonical_order(1, 0) == operator_handler::user_facing_order(1, 0))
+  auto le_order = std::less<int>();
+  auto get_le_index = [&degrees, &le_order](std::size_t idx) {
+    // For compatibility with existing code, the ordering for the term string always
+    // needs to be from smallest to largest degree, and it necessarily must include 
+    // all consecutive degrees starting from 0 (even if the operator doesn't act on them).
+    return (operator_handler::canonical_order(1, 0) == le_order(1, 0))
       ? idx : degrees.size() - 1 - idx;
   };
             
@@ -1742,14 +1767,11 @@ std::string sum_op<HandlerTy>::to_string(bool printCoeffs) const {
       ss << "[" << coeff.real() << (coeff.imag() < 0.0 ? "-" : "+") << std::fabs(coeff.imag()) << "j] ";
     }
     
-    // For compatibility with existing code, the ordering for the term string always
-    // needs to be from smallest to largest degree, and it necessarily must include 
-    // all consecutive degrees starting from 0 (even if the operator doesn't act on them).
     if (degrees.size() > 0) {
       auto max_target = operator_handler::canonical_order(0, 1) ? degrees.back() : degrees[0];
       std::string term_str(max_target + 1, 'I');
       for (std::size_t i = 0; i < degrees.size(); ++i)
-        term_str[degrees[i]] = term.second[get_application_index(i)];
+        term_str[degrees[i]] = term.second[get_le_index(i)];
       ss << term_str;  
     }
   }
