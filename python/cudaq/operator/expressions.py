@@ -319,7 +319,7 @@ class OperatorSum:
         def term_to_operator(term):
             nonlocal result_ops
             coeff = term.get_coefficient()
-            pauliWord = term.to_string(False)
+            pauliWord = term.get_pauli_word()
             result_ops.append(ProductOperator._from_word(pauliWord) * coeff)
 
         spin_op.for_each_term(lambda term: term_to_operator(term))

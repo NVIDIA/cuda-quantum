@@ -362,9 +362,6 @@ bool sample_result::has_expectation(const std::string_view registerName) const {
 
 double sample_result::expectation(const std::string_view registerName) const {
   double aver = 0.0;
-  for (auto &sr : sampleResults) {
-    std::cout << "***  Actual register name: " << sr.first << std::endl;
-  }
   
   auto iter = sampleResults.find(registerName.data());
   if (iter == sampleResults.end())

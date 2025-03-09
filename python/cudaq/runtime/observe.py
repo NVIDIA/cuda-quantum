@@ -141,11 +141,8 @@ Returns:
                 if term.is_identity():
                     sum += term.get_coefficient().real
                 else:
-                    sum += res.expectation(
-                        term.to_string(False)) * term.get_coefficient().real
+                    sum += res.expectation(term.get_term_id()) * term.get_coefficient().real
 
-            for t in localOp:
-                print(f'** *Term: {t}, expected register name: {t.to_string(False)}')
             localOp.for_each_term(computeExpVal)
             expVal = sum
 
