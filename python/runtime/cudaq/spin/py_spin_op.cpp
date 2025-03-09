@@ -136,11 +136,9 @@ void bindSpinOperator(py::module &mod) {
             cudaq::spin_op op(p);
             py::object json = py::module_::import("json");
             auto data = op.getDataRepresentation();
-            py::tuple py_tup =
-                py::make_tuple(data, op.num_qubits());
-            return json.attr("dumps")(py_tup);
+            return json.attr("dumps")(data);
           },
-          "Convert spin_op to JSON string: '[[d1, d2, d3, ...], numQubits]'")
+          "Convert spin_op to JSON string: '[d1, d2, d3, ...]'")
       .def("get_qubit_count", [](cudaq::spin_op_term &op) {
             return cudaq::spin_op(op).num_qubits();
           },
@@ -268,9 +266,8 @@ void bindSpinOperator(py::module &mod) {
            "Copy constructor, given another :class:`SpinOperator`.")
       .def(py::init<const cudaq::spin_op_term>(), py::arg("spin_operator"),
            "Constructor given a :class:`SpinOperatorTerm`.")
-      .def(py::init(
-               [](py::object o) { return fromOpenFermionQubitOperator(o); }),
-           "Create from OpenFermion QubitOperator.")
+      .def(py::init<std::vector<double> &>(), py::arg("data"),
+           "Construct a :class:`SpinOperator` from a list of numeric values.")
       .def(py::init<std::vector<double> &, std::size_t>(), py::arg("data"),
            py::arg("num_qubits"),
            "Construct a :class:`SpinOperator` from a list of numeric values. "
@@ -279,6 +276,9 @@ void bindSpinOperator(py::module &mod) {
            "`Z` on qubit `i`, followed by the real and imaginary part of the "
            "coefficient. Each set of term elements is appended to the one "
            "list. The list is ended with the total number of terms.")
+      .def(py::init(
+               [](py::object o) { return fromOpenFermionQubitOperator(o); }),
+           "Create from OpenFermion QubitOperator.")
       /*
       .def(py::init<std::size_t>(), py::arg("num_qubits"),
            "Construct the identity term on the given number of qubits.")
@@ -288,21 +288,15 @@ void bindSpinOperator(py::module &mod) {
           [](const cudaq::spin_op &p) {
             py::object json = py::module_::import("json");
             auto data = p.getDataRepresentation();
-            py::tuple py_tup =
-                py::make_tuple(data, p.num_qubits());
-            return json.attr("dumps")(py_tup);
+            return json.attr("dumps")(data);
           },
-          "Convert spin_op to JSON string: '[[d1, d2, d3, ...], numQubits]'")
+          "Convert spin_op to JSON string: '[d1, d2, d3, ...]]'")
       .def_static(
           "from_json",
           [](const std::string &j) {
             py::object json = py::module_::import("json");
-            auto list = py::list(json.attr("loads")(j));
-            if (py::len(list) != 2)
-              throw std::runtime_error("Invalid JSON string for spin_op");
-
-            cudaq::spin_op p(list[0].cast<std::vector<double>>(),
-                             list[1].cast<std::size_t>());
+            auto data = py::list(json.attr("loads")(j));
+            cudaq::spin_op p(data.cast<std::vector<double>>());
             return p;
           },
           "Convert JSON string ('[[d1, d2, d3, ...], numQubits]') to spin_op")

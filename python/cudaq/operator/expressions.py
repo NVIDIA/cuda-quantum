@@ -328,13 +328,10 @@ class OperatorSum:
     @staticmethod
     def from_json(json_str: str):
         """
-        Convert JSON string (`[[d1, d2, d3, ...], numQubits]`) to operator  
+        Convert JSON string (`[d1, d2, d3, ...]`) to operator  
         """
-        tuple_data = json.loads(json_str)
-        if len(tuple_data) != 2:
-            raise ValueError("Invalid JSON string for spin_op")
-
-        spin_op = cudaq_runtime.SpinOperator(tuple_data[0], tuple_data[1])
+        data = json.loads(json_str)
+        spin_op = cudaq_runtime.SpinOperator(data)
         return OperatorSum._from_spin_op(spin_op)
 
     def to_sparse_matrix(self: OperatorSum):

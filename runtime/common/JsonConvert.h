@@ -142,9 +142,7 @@ inline void to_json(json &j, const ExecutionContext &context) {
   if (context.spin.has_value()) {
     const std::vector<double> spinOpRepr =
         context.spin.value().getDataRepresentation();
-    const auto spinOpN = context.spin.value().num_qubits();
     j["spin"] = json();
-    j["spin"]["num_qubits"] = spinOpN;
     j["spin"]["data"] = spinOpRepr;
   }
   j["registerNames"] = context.registerNames;
@@ -178,8 +176,7 @@ inline void from_json(const json &j, ExecutionContext &context) {
   if (j.contains("spin")) {
     std::vector<double> spinData;
     j["spin"]["data"].get_to(spinData);
-    const std::size_t nQubits = j["spin"]["num_qubits"];
-    auto serializedSpinOps = spin_op(spinData, nQubits);
+    auto serializedSpinOps = spin_op(spinData);
     context.spin = std::move(serializedSpinOps);
   }
 

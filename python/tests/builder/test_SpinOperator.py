@@ -394,7 +394,7 @@ def test_spin_op_serialization():
                                            term_count=nt,
                                            seed=13)
             h2 = h1.serialize()
-            h3 = cudaq.SpinOperator(h2, nq)
+            h3 = cudaq.SpinOperator(h2)
             assert (h1 == h3)
     # Note that serializing and deserializing will identity-
     # pad the operator such that after serialization/deserialization

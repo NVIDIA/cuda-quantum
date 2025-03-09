@@ -70,6 +70,8 @@ protected:
   std::vector<scalar_operator> coefficients;
 
   sum_op(){};
+  sum_op(const sum_op<HandlerTy> &other, bool sized, int size);
+  sum_op(sum_op<HandlerTy> &&other, bool sized, int size);
 
 public:
 
@@ -160,10 +162,10 @@ public:
                const matrix_handler::commutation_behavior &behavior);
 
   // copy constructor
-  sum_op(const sum_op<HandlerTy> &other, int size = 0);
+  sum_op(const sum_op<HandlerTy> &other);
 
   // move constructor
-  sum_op(sum_op<HandlerTy> &&other, int size = 0);
+  sum_op(sum_op<HandlerTy> &&other);
 
   ~sum_op() = default;
 

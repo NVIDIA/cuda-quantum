@@ -100,11 +100,14 @@ Returns:
         cudaq_runtime.set_noise(noise_model)
 
     # Process spin_operator if its a list
-    localOp = spin_operator
-    if isinstance(spin_operator, list):
+    if isinstance(spin_operator, cudaq_runtime.SpinOperatorTerm):
+        localOp = cudaq_runtime.SpinOperator(spin_operator)
+    elif isinstance(spin_operator, list):
         localOp = cudaq_runtime.SpinOperator.empty()
         for o in spin_operator:
             localOp += o
+    else:
+        localOp = spin_operator
 
     results = None
     if __isBroadcast(kernel, *args):
@@ -143,7 +146,8 @@ Returns:
                 else:
                     sum += res.expectation(term.get_term_id()) * term.get_coefficient().real
 
-            localOp.for_each_term(computeExpVal)
+            for term in localOp:
+                computeExpVal(term)
             expVal = sum
 
         observeResult = cudaq_runtime.ObserveResult(expVal, localOp, res)
