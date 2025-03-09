@@ -349,6 +349,7 @@ class OperatorSum:
         return self._to_spinop().to_sparse_matrix()
 
     def __iter__(self: OperatorSum) -> OperatorSum:
+        self._iter_idx = 0
         return self
 
     def __next__(self: OperatorSum) -> ProductOperator:
@@ -596,16 +597,13 @@ class ProductOperator(OperatorSum):
         ops = [char_to_op(c, idx) for idx, c in enumerate(pauli_word)]
         return ProductOperator(ops)
 
+    def get_pauli_word(self: ProductOperator) -> str:
+        op, *_ = self._to_spinop()
+        return op.get_pauli_word()
+
     def get_term_id(self: ProductOperator) -> str:
-        if not self._is_spinop:
-            raise RuntimeError("term id is only supported for spin operators")
-        term_id = ""
-        for op in self._operators:
-            if isinstance(op, ElementaryOperator):
-                if op.id.startswith('pauli_'):
-                    term_id += op.id[6].upper() + str(op.degrees[0])
-                else: term_id += "I" + str(op.degrees[0])
-        return term_id
+        op, *_ = self._to_spinop()
+        return op.get_term_id()
 
     # These are `cudaq_runtime.SpinOperator` methods that we provide shims (to maintain compatibility).
     # FIXME(OperatorCpp): Review these APIs: drop/deprecate or make them general (not `SpinOperator`-specific).

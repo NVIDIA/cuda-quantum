@@ -254,9 +254,15 @@ class _SpinArithmetics(OperatorArithmetics[cudaq_runtime.SpinOperator |
         if isinstance(op1, NumericType) and isinstance(
                 op2, cudaq_runtime.SpinOperator):
             return op1 * cudaq_runtime.SpinOperatorTerm() + op2
+        if isinstance(op1, NumericType) and isinstance(
+                op2, cudaq_runtime.SpinOperatorTerm):
+            return op1 * cudaq_runtime.SpinOperatorTerm() + cudaq_runtime.SpinOperator(op2)
         if isinstance(op2, NumericType) and isinstance(
                 op1, cudaq_runtime.SpinOperator):
             return op2 * cudaq_runtime.SpinOperatorTerm() + op1
+        if isinstance(op2, NumericType) and isinstance(
+                op1, cudaq_runtime.SpinOperatorTerm):
+            return op2 * cudaq_runtime.SpinOperatorTerm() + cudaq_runtime.SpinOperator(op1)
         return op1 + op2
 
     def evaluate(
