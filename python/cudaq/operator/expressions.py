@@ -38,8 +38,6 @@ class OperatorSum:
                 evaluating the operator expression.
         """
         self._terms = tuple(terms)
-        if len(self._terms) == 0:
-            self._terms = (ProductOperator((ScalarOperator.const(0),)),)
         self._cache = {}
         self._iter_idx = 0
 
@@ -168,6 +166,8 @@ class OperatorSum:
                     term *= ElementaryOperator.identity(degree)
             return term
 
+        if len(self._terms) == 0:
+            return arithmetics.evaluate(ScalarOperator.const(0))
         if pad_terms:
             sum = padded_term(self._terms[0])._evaluate(arithmetics, pad_terms)
             for term in self._terms[1:]:
@@ -226,11 +226,13 @@ class OperatorSum:
                 "incorrect dimensions - conversion to spin operator can only be done for qubits"
             )
         converted = self._evaluate(_SpinArithmetics(**kwargs), False)
-        if not isinstance(converted, cudaq_runtime.SpinOperator):
+        if isinstance(converted, cudaq_runtime.SpinOperatorTerm):
+            return cudaq_runtime.SpinOperator(converted)
+        elif not isinstance(converted, cudaq_runtime.SpinOperator):
             if converted == 0:
-                return cudaq_runtime.SpinOperator.empty()
+                return cudaq_runtime.SpinOperator.empty_op()
             else:
-                return converted * cudaq_runtime.SpinOperator.identity()
+                return converted * cudaq_runtime.SpinOperator()
         else:
             return converted
 
@@ -308,21 +310,26 @@ class OperatorSum:
         Converts the representation to JSON string: `[[d1, d2, d3, ...], numQubits]`
         """
         as_spin_op = self._to_spinop()
-        tuple_data = (as_spin_op.serialize(), as_spin_op.get_qubit_count())
-        return json.dumps(tuple_data)
+        data = as_spin_op.serialize()
+        return json.dumps(data)
 
     # Convert from `SpinOperator` to an `Operator`
     @staticmethod
     def _from_spin_op(spin_op: cudaq_runtime.SpinOperator) -> OperatorSum:
         result_ops = []
-
-        def term_to_operator(term):
-            nonlocal result_ops
-            coeff = term.get_coefficient()
-            pauliWord = term.get_pauli_word()
-            result_ops.append(ProductOperator._from_word(pauliWord) * coeff)
-
-        spin_op.for_each_term(lambda term: term_to_operator(term))
+        for term in spin_op:
+            prod = ScalarOperator.const(term.get_coefficient())
+            def pauli_to_operator(pauli, idx):
+                nonlocal prod
+                if pauli == cudaq_runtime.Pauli.X:
+                    prod *= ElementaryOperator("pauli_x", [idx])
+                elif pauli == cudaq_runtime.Pauli.Y:
+                    prod *= ElementaryOperator("pauli_y", [idx])
+                elif pauli == cudaq_runtime.Pauli.Z:
+                    prod *= ElementaryOperator("pauli_z", [idx])
+                else: prod *= ElementaryOperator.identity(idx)
+            term.for_each_pauli(pauli_to_operator)
+            result_ops.append(prod)
         return OperatorSum(result_ops)
 
     @staticmethod
@@ -345,24 +352,11 @@ class OperatorSum:
         return self
 
     def __next__(self: OperatorSum) -> ProductOperator:
-        degrees = frozenset((degree for term in self._terms
-                             for op in term._operators
-                             for degree in op._degrees))
-
-        def padded_term(term: ProductOperator) -> ProductOperator:
-            op_degrees = [
-                op_degree for op in term._operators for op_degree in op._degrees
-            ]
-            for degree in degrees:
-                if not degree in op_degrees:
-                    term *= ElementaryOperator.identity(degree)
-            return term
-
         if self._terms is None or self._iter_idx >= len(self._terms):
             raise StopIteration
         value = self._terms[self._iter_idx]
         self._iter_idx += 1
-        return padded_term(value)
+        return value
 
     def get_coefficient(self):
         """
@@ -601,6 +595,17 @@ class ProductOperator(OperatorSum):
         pauli_word = word.lower()
         ops = [char_to_op(c, idx) for idx, c in enumerate(pauli_word)]
         return ProductOperator(ops)
+
+    def get_term_id(self: ProductOperator) -> str:
+        if not self._is_spinop:
+            raise RuntimeError("term id is only supported for spin operators")
+        term_id = ""
+        for op in self._operators:
+            if isinstance(op, ElementaryOperator):
+                if op.id.startswith('pauli_'):
+                    term_id += op.id[6].upper() + str(op.degrees[0])
+                else: term_id += "I" + str(op.degrees[0])
+        return term_id
 
     # These are `cudaq_runtime.SpinOperator` methods that we provide shims (to maintain compatibility).
     # FIXME(OperatorCpp): Review these APIs: drop/deprecate or make them general (not `SpinOperator`-specific).

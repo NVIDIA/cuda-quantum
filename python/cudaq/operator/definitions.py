@@ -152,13 +152,7 @@ class operators:
     def momentum(cls, degree: int) -> ElementaryOperator:
         return ElementaryOperator("op_momentum", [degree])
 
-SpinOperator = cudaq_runtime.SpinOperator
-SpinOperatorTerm = cudaq_runtime.SpinOperatorTerm
-spin = cudaq_runtime.spin
 
-# FIXME: confirm the bindings work, then remove + 
-# clean up all the methods in expressions.py that are now bound
-'''
 class spin:
     ElementaryOperator.define(
         "pauli_x", [2], lambda: cudaq_runtime.spin.x(0).to_matrix().to_numpy())
@@ -199,6 +193,14 @@ class SpinOperator(OperatorSum):
     def __init__(self):
         # This should never be called. We have `__new__` method instead.
         raise ValueError("Not supported")
+
+    @staticmethod
+    def empty() -> OperatorSum:
+        return OperatorSum()
+
+    @staticmethod
+    def identity() -> OperatorSum:
+        return ProductOperator(ScalarOperator.const(1.))
 
     # Convert from a Pauli word to an Operator
     @staticmethod
@@ -253,4 +255,3 @@ class SpinOperator(OperatorSum):
             return OperatorSum._from_spin_op(
                 cudaq_runtime.SpinOperator.random(qubit_count, term_count,
                                                   seed))
-'''
