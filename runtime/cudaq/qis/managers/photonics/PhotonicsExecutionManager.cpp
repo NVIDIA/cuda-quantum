@@ -7,7 +7,7 @@
  ******************************************************************************/
 #include "common/Logger.h"
 #include "cudaq/qis/managers/BasicExecutionManager.h"
-#include "cudaq/spin_op.h"
+#include "cudaq/operators.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include "qpp.h"
 #include <cmath>
@@ -412,7 +412,7 @@ public:
 
   virtual ~PhotonicsExecutionManager() = default;
 
-  cudaq::SpinMeasureResult measure(cudaq::spin_op &op) override {
+  cudaq::SpinMeasureResult measure(const cudaq::spin_op &op) override {
     throw "spin_op observation (cudaq::observe()) is not supported for this "
           "photonics simulator";
   }

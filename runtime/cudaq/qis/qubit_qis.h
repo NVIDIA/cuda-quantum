@@ -17,7 +17,7 @@
 #include "cudaq/qis/qkernel.h"
 #include "cudaq/qis/qreg.h"
 #include "cudaq/qis/qvector.h"
-#include "cudaq/spin_op.h"
+#include "cudaq/operators.h"
 #include <algorithm>
 #include <cstring>
 #include <functional>
@@ -696,6 +696,7 @@ void exp_pauli(double theta, QubitRange &&qubits, const char *pauliWord) {
   std::vector<QuditInfo> quditInfos;
   std::transform(qubits.begin(), qubits.end(), std::back_inserter(quditInfos),
                  [](auto &q) { return cudaq::qubitToQuditInfo(q); });
+  // FIXME: it would be cleaner if we just kept it as a pauli word here
   getExecutionManager()->apply("exp_pauli", {theta}, {}, quditInfos, false,
                                spin_op::from_word(pauliWord));
 }
@@ -845,7 +846,7 @@ void __nvqpp_vector_bool_free_temporary_initlists(std::vector<char *> *);
 } // namespace support
 
 // Measure the state in the given spin_op basis.
-inline SpinMeasureResult measure(cudaq::spin_op &term) {
+inline SpinMeasureResult measure(const cudaq::spin_op &term) {
   return getExecutionManager()->measure(term);
 }
 

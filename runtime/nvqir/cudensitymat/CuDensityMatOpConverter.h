@@ -9,7 +9,7 @@
 #pragma once
 
 #include "cudaq/operators.h"
-#include "cudaq/utils/tensor.h"
+#include "cudaq/utils/matrix.h"
 #include <cudensitymat.h>
 #include <deque>
 #include <unordered_set>
@@ -26,7 +26,7 @@ public:
   /// @return The converted operator.
   cudensitymatOperator_t convertToCudensitymatOperator(
       const std::unordered_map<std::string, std::complex<double>> &parameters,
-      const operator_sum<cudaq::matrix_operator> &op,
+      const sum_op<cudaq::matrix_handler> &op,
       const std::vector<int64_t> &modeExtents);
 
   /// @brief Construct a Liouvillian operator.
@@ -37,8 +37,8 @@ public:
   /// @param isMasterEquation Whether the Liouvillian is a master equation.
   /// @return The constructed Liouvillian operator.
   cudensitymatOperator_t constructLiouvillian(
-      const operator_sum<cudaq::matrix_operator> &ham,
-      const std::vector<operator_sum<cudaq::matrix_operator>>
+      const sum_op<cudaq::matrix_handler> &ham,
+      const std::vector<sum_op<cudaq::matrix_handler>>
           &collapseOperators,
       const std::vector<int64_t> &modeExtents,
       const std::unordered_map<std::string, std::complex<double>> &parameters,
@@ -49,11 +49,11 @@ public:
 private:
   std::vector<std::pair<cudaq::scalar_operator, cudensitymatOperatorTerm_t>>
   convertToCudensitymat(
-      const operator_sum<cudaq::matrix_operator> &op,
+      const sum_op<cudaq::matrix_handler> &op,
       const std::unordered_map<std::string, std::complex<double>> &parameters,
       const std::vector<int64_t> &modeExtents);
   cudensitymatElementaryOperator_t createElementaryOperator(
-      const cudaq::matrix_operator &elemOp,
+      const cudaq::matrix_handler &elemOp,
       const std::unordered_map<std::string, std::complex<double>> &parameters,
       const std::vector<int64_t> &modeExtents);
   cudensitymatOperatorTerm_t createProductOperatorTerm(
@@ -64,7 +64,7 @@ private:
 
   std::vector<std::pair<cudaq::scalar_operator, cudensitymatOperatorTerm_t>>
   computeLindbladTerms(
-      const operator_sum<cudaq::matrix_operator> &collapseOp,
+      const sum_op<cudaq::matrix_handler> &collapseOp,
       const std::vector<int64_t> &modeExtents,
       const std::unordered_map<std::string, std::complex<double>> &parameters);
 
@@ -77,10 +77,10 @@ private:
   };
 
   struct TensorCallBackContext {
-    matrix_operator tensorOp;
+    matrix_handler tensorOp;
     std::vector<std::string> paramNames;
 
-    TensorCallBackContext(const matrix_operator &tensor_op,
+    TensorCallBackContext(const matrix_handler &tensor_op,
                           const std::vector<std::string> &param_names)
         : tensorOp(tensor_op), paramNames(param_names){};
   };
@@ -89,7 +89,7 @@ private:
   wrapScalarCallback(const scalar_operator &scalarOp,
                      const std::vector<std::string> &paramNames);
   cudensitymatWrappedTensorCallback_t
-  wrapTensorCallback(const matrix_operator &matrixOp,
+  wrapTensorCallback(const matrix_handler &matrixOp,
                      const std::vector<std::string> &paramNames);
 
 private:

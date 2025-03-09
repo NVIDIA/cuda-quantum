@@ -59,17 +59,19 @@ struct initState {
 
 std::vector<double> term_coefficients(cudaq::spin_op op) {
   std::vector<double> result{};
-  op.for_each_term([&](cudaq::spin_op &term) {
-    const auto coeff = term.get_coefficient().real();
+  auto terms = op.get_terms();
+  for (const auto &term : terms) {
+    const auto coeff = term.get_coefficient().evaluate().real();
     result.push_back(coeff);
-  });
+  }
   return result;
 }
 
 std::vector<cudaq::pauli_word> term_words(cudaq::spin_op op) {
   std::vector<cudaq::pauli_word> result{};
-  op.for_each_term(
-      [&](cudaq::spin_op &term) { result.push_back(term.to_string(false)); });
+  auto terms = op.get_terms();
+  for (const auto &term : terms) 
+    result.push_back(term.get_term_id());
   return result;
 }
 
@@ -98,18 +100,18 @@ int run_steps(int steps, int spins) {
   const auto heisenbergModelHam = [&](double t) -> cudaq::spin_op {
     cudaq::spin_op tdOp(n_spins);
     for (int i = 0; i < n_spins - 1; ++i) {
-      tdOp += (Jx * cudaq::spin::x(i) * cudaq::spin::x(i + 1));
-      tdOp += (Jy * cudaq::spin::y(i) * cudaq::spin::y(i + 1));
-      tdOp += (Jz * cudaq::spin::z(i) * cudaq::spin::z(i + 1));
+      tdOp += (Jx * cudaq::spin_op::x(i) * cudaq::spin_op::x(i + 1));
+      tdOp += (Jy * cudaq::spin_op::y(i) * cudaq::spin_op::y(i + 1));
+      tdOp += (Jz * cudaq::spin_op::z(i) * cudaq::spin_op::z(i + 1));
     }
     for (int i = 0; i < n_spins; ++i)
-      tdOp += (std::cos(omega * t) * cudaq::spin::x(i));
+      tdOp += (std::cos(omega * t) * cudaq::spin_op::x(i));
     return tdOp;
   };
   // Observe the average magnetization of all spins (<Z>)
   cudaq::spin_op average_magnetization(n_spins);
   for (int i = 0; i < n_spins; ++i)
-    average_magnetization += ((1.0 / n_spins) * cudaq::spin::z(i));
+    average_magnetization += ((1.0 / n_spins) * cudaq::spin_op::z(i));
   average_magnetization -= 1.0;
 
   // Run loop

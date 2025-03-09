@@ -325,7 +325,7 @@ public:
         gradient->setKernel(fnWrapper);
 
       bool requiresGrad = optimizer.requiresGradients();
-      auto theSpin = **io_context.spin;
+      auto theSpin = *io_context.spin;
 
       result = optimizer.optimize(n_params, [&](const std::vector<double> &x,
                                                 std::vector<double> &grad_vec) {

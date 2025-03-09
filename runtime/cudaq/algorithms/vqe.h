@@ -29,7 +29,7 @@ remote_vqe(cudaq::quantum_platform &platform, QuantumKernel &&kernel,
            const std::size_t shots, Args &&...args) {
   auto ctx = std::make_unique<ExecutionContext>("observe", shots);
   ctx->kernelName = cudaq::getKernelName(kernel);
-  ctx->spin = &H;
+  ctx->spin = H;
   platform.set_exec_ctx(ctx.get());
   auto serializedArgsBuffer = serializeArgs(args...);
   platform.launchVQE(ctx->kernelName, serializedArgsBuffer.data(), gradient, H,

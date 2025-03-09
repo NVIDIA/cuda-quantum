@@ -129,20 +129,30 @@ public:
         throw std::runtime_error(
             "Returning an observe_result requires a spin_op.");
 
-      auto checkRegName = spinOp->to_string(false);
+      auto checkRegName = spinOp->to_string();
       if (data.has_expectation(checkRegName))
         return observe_result(data.expectation(checkRegName), *spinOp, data);
 
       // this assumes we ran in shots mode.
       double sum = 0.0;
-      spinOp->for_each_term([&](spin_op &term) {
+      for (const auto &term : spinOp.value()) {
         if (term.is_identity())
-          sum += term.get_coefficient().real();
+          // FIXME: simply taking real here is very unclean at best,
+          // and might be wrong/hiding a user error that should cause a failure
+          // at worst. It would be good to not store a general spin op for the 
+          // result, but instead store the term ids and the evaluated 
+          // (double-valued) coefficient. Similarly, evaluate would fail if 
+          // the operator was parameterized. In general, both parameters, and 
+          // complex coefficients are valid for a spin-op term.
+          // The code here (and in all other places that do something similar)
+          // will work perfectly fine as long as there is no user error, but 
+          // the passed observable should really be validated properly and not
+          // processed here as is making assumptions about correctness.
+          sum += term.get_coefficient().evaluate().real();
         else
-          sum += data.expectation(term.to_string(false)) *
-                 term.get_coefficient().real();
-      });
-
+          sum += data.expectation(term.get_term_id()) *
+                 term.get_coefficient().evaluate().real();
+      }
       return observe_result(sum, *spinOp, data);
     }
 
