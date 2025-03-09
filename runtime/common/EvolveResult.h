@@ -99,20 +99,23 @@ public:
     return final_state;
   }
 
-  std::optional<std::vector<state>> get_intermediate_states() {
+  const std::optional<std::vector<state>> &get_intermediate_states() {
     return intermediate_states;
   }
 
-  std::optional<std::vector<observe_result>> get_final_expectation_values() {
+  const std::optional<std::vector<observe_result>> &
+  get_final_expectation_values() {
     return final_expectation_values;
   }
 
-  std::optional<std::vector<std::vector<observe_result>>>
+  const std::optional<std::vector<std::vector<observe_result>>> &
   get_expectation_values() {
     return expectation_values;
   }
 
-  std::optional<sample_result> get_sampling_result() { return sampling_result; }
+  const std::optional<sample_result> &get_sampling_result() {
+    return sampling_result;
+  }
 
 private:
   state getLastStateIfValid(const std::vector<state> &states) {

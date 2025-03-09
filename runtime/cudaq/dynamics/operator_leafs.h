@@ -35,6 +35,8 @@ public:
 
   scalar_operator(double value);
 
+  bool is_constant() const;
+
   /// @brief Constructor that just takes and returns a complex double value.
   scalar_operator(std::complex<double> value);
 
@@ -191,9 +193,11 @@ public:
   constexpr commutation_relations(const commutation_relations &other)
       : id(other.id) {}
 
-  commutation_relations& operator=(const commutation_relations &other) {
-    if (this != &other)
+  constexpr commutation_relations &
+  operator=(const commutation_relations &other) {
+    if (this != &other) {
       this->id = other.id;
+    }
     return *this;
   }
 

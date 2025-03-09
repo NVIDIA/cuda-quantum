@@ -47,11 +47,23 @@ if [ -z "${CXX}" ]; then
 fi
 
 echo "Using $CXX to build the MPI plugin for MPI installation in $MPI_PATH."
+lib_mpi_plugin="$this_file_dir/libcudaq_distributed_interface_mpi.so"
 $CXX -shared -std=c++17 -fPIC \
     -I"${MPI_PATH}/include" \
     -I"$this_file_dir" \
     "$this_file_dir/mpi_comm_impl.cpp" \
     -L"${MPI_PATH}/lib64" -L"${MPI_PATH}/lib" -lmpi \
     -Wl,-rpath="${MPI_PATH}/lib64" -Wl,-rpath="${MPI_PATH}/lib" \
-    -o "$this_file_dir/libcudaq_distributed_interface_mpi.so"
-export CUDAQ_MPI_COMM_LIB="$this_file_dir/libcudaq_distributed_interface_mpi.so"
+    -o "$lib_mpi_plugin"
+
+if [ ! $? -eq 0 ]; then
+    echo "MPI plugin compilation failed."
+    (return 0 2>/dev/null) && return 3 || exit 3
+fi
+
+if [ -e "$lib_mpi_plugin" ]; then
+    export CUDAQ_MPI_COMM_LIB="$lib_mpi_plugin"
+else
+    echo "MPI plugin not found at $lib_mpi_plugin"
+    (return 0 2>/dev/null) && return 4 || exit 4
+fi

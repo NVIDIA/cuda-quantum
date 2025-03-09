@@ -171,6 +171,17 @@ cudaq::complex_matrix &cudaq::complex_matrix::operator-=(const cudaq::complex_ma
   return *this;
 }
 
+bool cudaq::operator==(const cudaq::complex_matrix &lhs, const cudaq::complex_matrix &rhs) {
+  if (lhs.rows() != rhs.rows() || lhs.cols() != rhs.cols())
+    return false;
+  for (std::size_t i = 0; i < lhs.rows(); i++) {
+    for (std::size_t j = 0; j < lhs.cols(); j++) {
+      if (lhs[{i, j}] != rhs[{i, j}]) return false;
+    }
+  }
+  return true;
+}
+
 cudaq::complex_matrix &
 cudaq::complex_matrix::kronecker_inplace(const cudaq::complex_matrix &right) {
   Dimensions new_dim{rows() * right.rows(),
@@ -304,5 +315,20 @@ cudaq::complex_matrix cudaq::complex_matrix::identity(const std::size_t rows) {
   auto result = cudaq::complex_matrix(rows, rows);
   for (std::size_t i = 0; i < rows; i++)
     result[{i, i}] = 1.;
+  return result;
+}
+
+// Transpose + Conjugate
+cudaq::complex_matrix cudaq::complex_matrix::adjoint() {
+  std::size_t rows = this->rows();
+  std::size_t cols = this->cols();
+  cudaq::complex_matrix result(cols, rows);
+
+  for (std::size_t i = 0; i < rows; i++) {
+    for (std::size_t j = 0; j < cols; j++) {
+      result[{j, i}] = std::conj((*this)[{i, j}]);
+    }
+  }
+
   return result;
 }

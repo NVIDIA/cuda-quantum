@@ -35,6 +35,7 @@ std::vector<std::complex<double>> operator*(
 complex_matrix operator*(std::complex<double>, const complex_matrix &);
 complex_matrix operator+(const complex_matrix &, const complex_matrix &);
 complex_matrix operator-(const complex_matrix &, const complex_matrix &);
+bool operator==(const complex_matrix &, const complex_matrix &);
 complex_matrix kronecker(const complex_matrix &, const complex_matrix &);
 template <typename Iterable,
           typename T = typename std::iterator_traits<Iterable>::value_type>
@@ -140,6 +141,9 @@ public:
 
   /// Matrix power.
   complex_matrix power(int powers);
+
+  /// Returns the conjugate transpose of a matrix.
+  complex_matrix adjoint();
 
   /// Return a square identity matrix for the given size.
   static complex_matrix identity(const std::size_t rows);
