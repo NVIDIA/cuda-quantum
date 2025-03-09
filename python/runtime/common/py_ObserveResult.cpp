@@ -56,6 +56,13 @@ Args:
 
 Returns:
   :class:`SampleResult`: The measurement counts data for the individual `sub_term`.)#")
+      // FIXME: deprecate
+      .def(
+        "counts",
+        [](observe_result &self, const spin_op &sub_term) {
+          return self.counts(sub_term);
+        },
+        py::arg("sub_term"), "")      
       .def(
           "expectation",
           [](observe_result &self) { return self.expectation(); },
@@ -76,7 +83,14 @@ Args:
 
 Returns:
   float : The expectation value of the `sub_term` with respect to the 
-  :class:`Kernel` that was passed to :func:`observe`.)#");
+  :class:`Kernel` that was passed to :func:`observe`.)#")
+      // FIXME: deprecate
+      .def(
+        "expectation",
+        [](observe_result &self, const spin_op &spin_term) {
+          return self.expectation(spin_term);
+        },
+        py::arg("sub_term"), "");
 
   py::class_<async_observe_result>(
       mod, "AsyncObserveResult",

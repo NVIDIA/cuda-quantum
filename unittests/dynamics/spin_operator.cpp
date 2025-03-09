@@ -397,7 +397,7 @@ TEST(OperatorExpressions, checkSpinOpsSimpleArithmetics) {
     auto other = cudaq::spin_op::z(0);
 
     auto product = self * other;
-    ASSERT_TRUE(product.num_terms() == 1);
+    ASSERT_TRUE(product.num_ops() == 1);
 
     std::vector<std::size_t> want_degrees = {0};
     ASSERT_TRUE(product.degrees() == want_degrees);
@@ -413,7 +413,7 @@ TEST(OperatorExpressions, checkSpinOpsSimpleArithmetics) {
     auto other = cudaq::spin_op::z(1);
 
     auto product = self * other;
-    ASSERT_TRUE(product.num_terms() == 2);
+    ASSERT_TRUE(product.num_ops() == 2);
 
     std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(product.degrees() == want_degrees);
@@ -495,9 +495,9 @@ TEST(OperatorExpressions, checkSpinOpsAdvancedArithmetics) {
     ASSERT_TRUE(got.num_terms() == 2);
     ASSERT_TRUE(reverse.num_terms() == 2);
     for (const auto &term : got)
-      ASSERT_TRUE(term.num_terms() == term.degrees().size());
+      ASSERT_TRUE(term.num_ops() == term.degrees().size());
     for (const auto &term : reverse)
-      ASSERT_TRUE(term.num_terms() == term.degrees().size());
+      ASSERT_TRUE(term.num_ops() == term.degrees().size());
 
     auto self_full =
         cudaq::kronecker(utils::id_matrix(2), utils::PauliY_matrix());
@@ -562,7 +562,7 @@ TEST(OperatorExpressions, checkSpinOpsAdvancedArithmetics) {
 
     ASSERT_TRUE(sum_op.num_terms() == 2);
     for (const auto &term : sum_op)
-      ASSERT_TRUE(term.num_terms() == term.degrees().size());
+      ASSERT_TRUE(term.num_ops() == term.degrees().size());
 
     auto self_full = cudaq::kronecker(utils::id_matrix(2), utils::id_matrix(2));
     auto term_0_full =

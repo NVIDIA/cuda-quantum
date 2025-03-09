@@ -343,7 +343,7 @@ product_op<HandlerTy>::degrees(bool application_order) const {
 }
 
 template <typename HandlerTy>
-std::size_t product_op<HandlerTy>::num_terms() const {
+std::size_t product_op<HandlerTy>::num_ops() const {
   return this->operators.size();
 }
 
@@ -365,7 +365,7 @@ scalar_operator product_op<HandlerTy>::get_coefficient() const {
   template std::vector<std::size_t> product_op<HandlerTy>::degrees(      \
       bool application_order) const;                                           \
                                                                                \
-  template std::size_t product_op<HandlerTy>::num_terms() const;         \
+  template std::size_t product_op<HandlerTy>::num_ops() const;         \
                                                                                \
   template std::string product_op<HandlerTy>::get_term_id() const;       \
                                                                                \
@@ -1287,6 +1287,11 @@ template void product_op<fermion_handler>::dump() const;
                                       std::is_same<HandlerTy, T>::value, bool>>
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
+std::size_t product_op<HandlerTy>::num_qubits() const {
+  return this->degrees(false).size();
+}
+
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
 std::string product_op<HandlerTy>::get_pauli_word() const {
   // No padding here (only covers the operators we have),
   // and does not include the coefficient
@@ -1339,6 +1344,7 @@ std::vector<bool> product_op<HandlerTy>::get_binary_symplectic_form() const {
 }
 
 #if !defined(__clang__)
+template std::size_t product_op<spin_handler>::num_qubits() const;
 template std::string product_op<spin_handler>::get_pauli_word() const;
 template std::vector<bool> product_op<spin_handler>::get_binary_symplectic_form() const;
 #endif

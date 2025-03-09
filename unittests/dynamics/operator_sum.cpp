@@ -504,13 +504,13 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     ASSERT_TRUE(reverse.num_terms() == 2);
 
     for (const auto &term : product) {
-      ASSERT_TRUE(term.num_terms() == 1);
+      ASSERT_TRUE(term.num_ops() == 1);
       ASSERT_TRUE(term.get_coefficient().evaluate() ==
                   std::complex<double>(double_value));
     }
 
     for (const auto &term : reverse) {
-      ASSERT_TRUE(term.num_terms() == 1);
+      ASSERT_TRUE(term.num_ops() == 1);
       ASSERT_TRUE(term.get_coefficient().evaluate() ==
                   std::complex<double>(double_value));
     }
@@ -544,12 +544,12 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     ASSERT_TRUE(reverse.num_terms() == 2);
 
     for (const auto &term : product) {
-      ASSERT_TRUE(term.num_terms() == 1);
+      ASSERT_TRUE(term.num_ops() == 1);
       ASSERT_TRUE(term.get_coefficient().evaluate() == value);
     }
 
     for (const auto &term : reverse) {
-      ASSERT_TRUE(term.num_terms() == 1);
+      ASSERT_TRUE(term.num_ops() == 1);
       ASSERT_TRUE(term.get_coefficient().evaluate() == value);
     }
 
@@ -582,12 +582,12 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     ASSERT_TRUE(reverse.num_terms() == 2);
 
     for (const auto &term : product) {
-      ASSERT_TRUE(term.num_terms() == 1);
+      ASSERT_TRUE(term.num_ops() == 1);
       ASSERT_TRUE(term.get_coefficient().evaluate() == value);
     }
 
     for (const auto &term : reverse) {
-      ASSERT_TRUE(term.num_terms() == 1);
+      ASSERT_TRUE(term.num_ops() == 1);
       ASSERT_TRUE(term.get_coefficient().evaluate() == value);
     }
 
@@ -621,12 +621,12 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     ASSERT_TRUE(reverse.num_terms() == 2);
 
     for (const auto &term : product) {
-      ASSERT_TRUE(term.num_terms() == 1);
+      ASSERT_TRUE(term.num_ops() == 1);
       ASSERT_TRUE(term.get_coefficient().evaluate() == value);
     }
 
     for (const auto &term : reverse) {
-      ASSERT_TRUE(term.num_terms() == 1);
+      ASSERT_TRUE(term.num_ops() == 1);
       ASSERT_TRUE(term.get_coefficient().evaluate() == value);
     }
 
@@ -654,7 +654,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     auto expected_coeff = std::complex<double>(1. / double_value);
     for (const auto &term : product) {
-      ASSERT_TRUE(term.num_terms() == 1);
+      ASSERT_TRUE(term.num_ops() == 1);
       auto coeff = term.get_coefficient().evaluate();
       EXPECT_NEAR(coeff.real(), expected_coeff.real(), 1e-8);
       EXPECT_NEAR(coeff.imag(), expected_coeff.imag(), 1e-8);
@@ -685,7 +685,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     auto expected_coeff = std::complex<double>(1. / value);
     for (const auto &term : product) {
-      ASSERT_TRUE(term.num_terms() == 1);
+      ASSERT_TRUE(term.num_ops() == 1);
       auto coeff = term.get_coefficient().evaluate();
       EXPECT_NEAR(coeff.real(), expected_coeff.real(), 1e-8);
       EXPECT_NEAR(coeff.imag(), expected_coeff.imag(), 1e-8);
@@ -716,7 +716,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     auto expected_coeff = std::complex<double>(1. / value);
     for (const auto &term : product) {
-      ASSERT_TRUE(term.num_terms() == 1);
+      ASSERT_TRUE(term.num_ops() == 1);
       auto coeff = term.get_coefficient().evaluate();
       EXPECT_NEAR(coeff.real(), expected_coeff.real(), 1e-8);
       EXPECT_NEAR(coeff.imag(), expected_coeff.imag(), 1e-8);
@@ -748,7 +748,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     auto expected_coeff = std::complex<double>(1. / value);
     for (const auto &term : product) {
-      ASSERT_TRUE(term.num_terms() == 1);
+      ASSERT_TRUE(term.num_ops() == 1);
       auto coeff = term.get_coefficient().evaluate();
       EXPECT_NEAR(coeff.real(), expected_coeff.real(), 1e-8);
       EXPECT_NEAR(coeff.imag(), expected_coeff.imag(), 1e-8);
@@ -955,7 +955,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     ASSERT_TRUE(sum.num_terms() == 2);
     for (const auto &term : sum) {
-      ASSERT_TRUE(term.num_terms() == 1);
+      ASSERT_TRUE(term.num_ops() == 1);
       ASSERT_TRUE(term.get_coefficient().evaluate() ==
                   std::complex<double>(double_value));
     }
@@ -984,7 +984,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     ASSERT_TRUE(sum.num_terms() == 2);
     for (const auto &term : sum) {
-      ASSERT_TRUE(term.num_terms() == 1);
+      ASSERT_TRUE(term.num_ops() == 1);
       ASSERT_TRUE(term.get_coefficient().evaluate() ==
                   std::complex<double>(double_value));
     }
@@ -1008,7 +1008,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     ASSERT_TRUE(sum.num_terms() == 2);
     for (const auto &term : sum) {
-      ASSERT_TRUE(term.num_terms() == 1);
+      ASSERT_TRUE(term.num_ops() == 1);
       ASSERT_TRUE(term.get_coefficient().evaluate() == value);
     }
 
@@ -1035,7 +1035,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     ASSERT_TRUE(sum.num_terms() == 2);
     for (const auto &term : sum) {
-      ASSERT_TRUE(term.num_terms() == 1);
+      ASSERT_TRUE(term.num_ops() == 1);
       ASSERT_TRUE(term.get_coefficient().evaluate() == value);
     }
 
@@ -1065,7 +1065,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     ASSERT_TRUE(sum.num_terms() == 2);
     auto expected_coeff = std::complex<double>(1. / double_value);
     for (const auto &term : sum) {
-      ASSERT_TRUE(term.num_terms() == 1);
+      ASSERT_TRUE(term.num_ops() == 1);
       auto coeff = term.get_coefficient().evaluate();
       EXPECT_NEAR(coeff.real(), expected_coeff.real(), 1e-8);
       EXPECT_NEAR(coeff.imag(), expected_coeff.imag(), 1e-8);
@@ -1096,7 +1096,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     ASSERT_TRUE(sum.num_terms() == 2);
     auto expected_coeff = std::complex<double>(1. / double_value);
     for (const auto &term : sum) {
-      ASSERT_TRUE(term.num_terms() == 1);
+      ASSERT_TRUE(term.num_ops() == 1);
       auto coeff = term.get_coefficient().evaluate();
       EXPECT_NEAR(coeff.real(), expected_coeff.real(), 1e-8);
       EXPECT_NEAR(coeff.imag(), expected_coeff.imag(), 1e-8);
@@ -1122,7 +1122,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     ASSERT_TRUE(sum.num_terms() == 2);
     auto expected_coeff = std::complex<double>(1. / value);
     for (const auto &term : sum) {
-      ASSERT_TRUE(term.num_terms() == 1);
+      ASSERT_TRUE(term.num_ops() == 1);
       auto coeff = term.get_coefficient().evaluate();
       EXPECT_NEAR(coeff.real(), expected_coeff.real(), 1e-8);
       EXPECT_NEAR(coeff.imag(), expected_coeff.imag(), 1e-8);
@@ -1152,7 +1152,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     ASSERT_TRUE(sum.num_terms() == 2);
     auto expected_coeff = std::complex<double>(1. / value);
     for (const auto &term : sum) {
-      ASSERT_TRUE(term.num_terms() == 1);
+      ASSERT_TRUE(term.num_ops() == 1);
       auto coeff = term.get_coefficient().evaluate();
       EXPECT_NEAR(coeff.real(), expected_coeff.real(), 1e-8);
       EXPECT_NEAR(coeff.imag(), expected_coeff.imag(), 1e-8);
@@ -1271,7 +1271,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstProduct) {
 
     ASSERT_TRUE(sum.num_terms() == 2);
     for (const auto &term : sum) {
-      ASSERT_TRUE(term.num_terms() == 3);
+      ASSERT_TRUE(term.num_ops() == 3);
     }
 
     auto got_matrix = sum.to_matrix(
@@ -1426,9 +1426,9 @@ TEST(OperatorExpressions, checkOperatorSumAgainstOperatorSum) {
     ASSERT_TRUE(sum_product.num_terms() == 6);
     ASSERT_TRUE(sum_product_reverse.num_terms() == 6);
     for (const auto &term : sum_product)
-      ASSERT_TRUE(term.num_terms() == 2);
+      ASSERT_TRUE(term.num_ops() == 2);
     for (const auto &term : sum_product_reverse)
-      ASSERT_TRUE(term.num_terms() == 2);
+      ASSERT_TRUE(term.num_ops() == 2);
 
     auto got_matrix = sum_product.to_matrix({{0, level_count},
                                              {1, level_count + 1},
@@ -1490,7 +1490,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstOperatorSum) {
 
     ASSERT_TRUE(sum.num_terms() == 6);
     for (const auto &term : sum)
-      ASSERT_TRUE(term.num_terms() == 2);
+      ASSERT_TRUE(term.num_ops() == 2);
 
     auto got_matrix = sum.to_matrix({{0, level_count},
                                      {1, level_count + 1},
