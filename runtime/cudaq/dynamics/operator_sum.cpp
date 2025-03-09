@@ -1500,10 +1500,8 @@ INSTANTIATE_SUM_UTILITY_FUNCTIONS(fermion_handler);
                                       std::is_same<HandlerTy, T>::value, bool>>
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
-std::size_t sum_op<HandlerTy>::num_qubits(bool include_padding) const {
-  const auto &degrees = this->degrees(false);
-  if (include_padding) return operator_handler::canonical_order(0, 1) ? degrees.back() + 1 : degrees[0] + 1;
-  else return degrees.size();
+std::size_t sum_op<HandlerTy>::num_qubits() const {
+  return this->degrees(false).size();
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
@@ -1576,7 +1574,7 @@ sum_op<HandlerTy> sum_op<HandlerTy>::random(std::size_t nQubits, std::size_t nTe
 }
 
 #if !defined(__clang__)
-template std::size_t sum_op<spin_handler>::num_qubits(bool include_padding) const;
+template std::size_t sum_op<spin_handler>::num_qubits() const;
 template product_op<spin_handler> sum_op<spin_handler>::from_word(const std::string &word);
 template sum_op<spin_handler> sum_op<spin_handler>::random(std::size_t nQubits, std::size_t nTerms, unsigned int seed);
 #endif
@@ -1591,37 +1589,47 @@ template sum_op<spin_handler> sum_op<spin_handler>::random(std::size_t nQubits, 
 
 SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
 sum_op<HandlerTy>::sum_op(const std::vector<double> &input_vec, std::size_t nQubits) {
-  auto n_terms = (int)input_vec.back();
-  if (nQubits != (((input_vec.size() - 1) - 2 * n_terms) / n_terms))
-    throw std::runtime_error("Invalid data representation for construction "
-                              "spin_op. Number of data elements is incorrect.");
+  // FIXME: NOTHING TO DO WITH NQUBITS
+  auto it = input_vec.cbegin();
+  auto next_int = [&it, &input_vec]() {
+    if (it == input_vec.end())
+      throw std::runtime_error("incorrect data format - missing entry");
+    double intPart;
+    if (std::modf(*it, &intPart) != 0.0)
+      throw std::runtime_error(
+        "Invalid pauli data element, must be integer value.");
+    return (int)*it++;
+  };
+  auto next_double = [&it, &input_vec]() {
+    if (it == input_vec.end())
+      throw std::runtime_error("incorrect data format - missing entry");
+    return *it++;
+  };
 
-  for (std::size_t i = 0; i < input_vec.size() - 1; i += nQubits + 2) {
-    auto el_real = input_vec[i + nQubits];
-    auto el_imag = input_vec[i + nQubits + 1];
+  auto n_terms = next_int();
+  for (std::size_t tidx = 0; tidx < n_terms; ++tidx) {
+    auto el_real = next_double();
+    auto el_imag = next_double();
     auto prod = product_op<HandlerTy>(std::complex<double>{el_real, el_imag});
-    for (std::size_t j = 0; j < nQubits; j++) {
-      double intPart;
-      if (std::modf(input_vec[j + i], &intPart) != 0.0)
-        throw std::runtime_error(
-            "Invalid pauli data element, must be integer value.");
-
-      int val = (int)input_vec[j + i];
-      if (val == 1) // X
-        prod *= sum_op<HandlerTy>::x(j);
-      else if (val == 2) // Z
-        prod *= sum_op<HandlerTy>::z(j);
+    auto nr_ops = next_int();
+    for (std::size_t oidx = 0; oidx < nr_ops; ++oidx) {
+      auto target = next_int();
+      auto val = next_int();
+      if (val == 1) // Z
+        prod *= sum_op<HandlerTy>::z(target);
+      else if (val == 2) // X
+        prod *= sum_op<HandlerTy>::x(target);
       else if (val == 3) // Y
-        prod *= sum_op<HandlerTy>::y(j);
-      else 
-        // This preserves the serialization/deserialization roundtrip
-        // but *only* if we have consecutive degrees in the original 
-        // operator. The serialization format is currently not expressive
-        // enough to accurately handle of identities.
-        prod *= sum_op<HandlerTy>::i(j);
+        prod *= sum_op<HandlerTy>::y(target);
+      else {
+        assert (val == 0);
+        prod *= sum_op<HandlerTy>::i(target);
+      }
     }
     *this += std::move(prod);
   }
+  if (it != input_vec.end())
+    throw std::runtime_error("incorrect data format  - excess entry");
 }
 
 SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
@@ -1654,45 +1662,29 @@ sum_op<HandlerTy>::sum_op(const std::vector<std::vector<bool>> &bsf_terms,
 
 SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
 std::vector<double> sum_op<HandlerTy>::getDataRepresentation() const {
-  // This function prints a data representing the operator sum that 
-  // includes the full representation for any degree in [0, max_degree),
-  // padding identities if necessary.
-  // NOTE: this is an imperfect representation that we will want to 
-  // deprecate because it does not capture targets accurately.
-  auto degrees = this->degrees(false); // degrees in canonical order to match the evaluation
-  auto le_order = std::less<int>();
-  auto get_le_index = [&degrees, &le_order](std::size_t idx) {
-    // For compatibility with existing code, the ordering for the term ops always
-    // needs to be from smallest to largest degree.
-    return (operator_handler::canonical_order(1, 0) == le_order(1, 0))
-      ? idx : degrees.size() - 1 - idx;
-  };
-
-  // number of degrees including the ones for any injected identities
-  auto n_targets = operator_handler::canonical_order(0, 1) ? degrees.back() + 1 : degrees[0] + 1;
-  auto padded = *this; // copy for identity padding
-  for (std::size_t j = 0; j < n_targets; ++j)
-    padded *= sum_op<HandlerTy>::identity(j);
-
+  // This function prints a data representing the operator sum 
   std::vector<double> dataVec;
-  dataVec.reserve(n_targets * padded.terms.size() + 2 * padded.terms.size() + 1);
-  for(std::size_t i = 0; i < padded.terms.size(); ++i) {
-    for(std::size_t j = 0; j < padded.terms[i].size(); ++j) {
-      auto pauli = padded.terms[i][get_le_index(j)].as_pauli();
-      if (pauli == pauli::X)
+  //dataVec.reserve(n_targets * padded.terms.size() + 2 * padded.terms.size() + 1);
+  dataVec.push_back(this->terms.size());
+  for(std::size_t i = 0; i < this->terms.size(); ++i) {
+    auto coeff = this->coefficients[i].evaluate();
+    dataVec.push_back(coeff.real());
+    dataVec.push_back(coeff.imag());
+    dataVec.push_back(this->terms[i].size());
+    for(std::size_t j = 0; j < this->terms[i].size(); ++j) {
+      auto op = this->terms[i][j];
+      dataVec.push_back(op.degrees()[0]);
+      auto pauli = op.as_pauli();
+      if (pauli == pauli::Z)
         dataVec.push_back(1.);
-      else if (pauli == pauli::Z)
+      else if (pauli == pauli::X)
         dataVec.push_back(2.);
       else if (pauli == pauli::Y)
         dataVec.push_back(3.);
       else
         dataVec.push_back(0.);
     }
-    auto coeff = padded.coefficients[i].evaluate();
-    dataVec.push_back(coeff.real());
-    dataVec.push_back(coeff.imag());
   }
-  dataVec.push_back(padded.terms.size());
   return dataVec;
 }
 

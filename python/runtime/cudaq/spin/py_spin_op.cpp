@@ -137,7 +137,7 @@ void bindSpinOperator(py::module &mod) {
             py::object json = py::module_::import("json");
             auto data = op.getDataRepresentation();
             py::tuple py_tup =
-                py::make_tuple(data, op.num_qubits(true));
+                py::make_tuple(data, op.num_qubits());
             return json.attr("dumps")(py_tup);
           },
           "Convert spin_op to JSON string: '[[d1, d2, d3, ...], numQubits]'")
@@ -289,7 +289,7 @@ void bindSpinOperator(py::module &mod) {
             py::object json = py::module_::import("json");
             auto data = p.getDataRepresentation();
             py::tuple py_tup =
-                py::make_tuple(data, p.num_qubits(true));
+                py::make_tuple(data, p.num_qubits());
             return json.attr("dumps")(py_tup);
           },
           "Convert spin_op to JSON string: '[[d1, d2, d3, ...], numQubits]'")
