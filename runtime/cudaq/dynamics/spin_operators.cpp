@@ -182,4 +182,19 @@ sum_op<spin_handler> spin_handler::minus(int degree) {
   return 0.5 * x(degree) - std::complex<double>(0., 0.5) * y(degree);
 }
 
+namespace spin {
+  sum_op<spin_handler> i(std::size_t target) {
+    return spin_handler::i(target);
+  }
+  sum_op<spin_handler> x(std::size_t target) {
+    return spin_handler::x(target);
+  }
+  sum_op<spin_handler> y(std::size_t target) {
+    return spin_handler::y(target);
+  }
+  sum_op<spin_handler> z(std::size_t target) {
+    return spin_handler::z(target);
+  }
+}
+
 } // namespace cudaq

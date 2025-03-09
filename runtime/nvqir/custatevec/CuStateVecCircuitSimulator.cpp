@@ -467,8 +467,8 @@ public:
     for (const auto &bit : controlIds)
       controls.emplace_back(static_cast<int>(bit));
     std::vector<custatevecPauli_t> paulis;
-    if (term.num_terms() != qubits.size())
-      throw std::runtime_error("incorrect number of qubits for exp_pauli - expecting " + std::to_string(term.num_terms()) + " qubits");
+    if (term.num_ops() != qubits.size())
+      throw std::runtime_error("incorrect number of qubits for exp_pauli - expecting " + std::to_string(term.num_ops()) + " qubits");
 
     std::size_t idx = 0;
     for (const auto &op : term) {
@@ -594,8 +594,8 @@ public:
       coeffs.emplace_back(term.get_coefficient().evaluate());
       std::vector<custatevecPauli_t> paulis;
       std::vector<int32_t> idxs;
-      paulis.reserve(term.num_terms());
-      idxs.reserve(term.num_terms());
+      paulis.reserve(term.num_ops());
+      idxs.reserve(term.num_ops());
       for (const auto &p : term) {
         auto pauli = p.as_pauli();
         if (pauli != cudaq::pauli::I) {

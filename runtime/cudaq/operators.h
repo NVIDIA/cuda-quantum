@@ -69,7 +69,7 @@ protected:
   std::vector<std::vector<HandlerTy>> terms;
   std::vector<scalar_operator> coefficients;
 
-  sum_op(){};
+  constexpr sum_op(){};
   sum_op(const sum_op<HandlerTy> &other, bool sized, int size);
   sum_op(sum_op<HandlerTy> &&other, bool sized, int size);
 
@@ -431,7 +431,7 @@ public:
 
   // handler specific utility functions
 
-  HANDLER_SPECIFIC_TEMPLATE(spin_handler) // naming is not very general, kept for compatibility
+  HANDLER_SPECIFIC_TEMPLATE(spin_handler) // naming is not very general
   std::size_t num_qubits() const;
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
@@ -600,7 +600,7 @@ public:
 
   /// @brief Return the number of operator terms that make up this product
   /// operator.
-  std::size_t num_terms() const;
+  std::size_t num_ops() const;
 
   // Public since it is used by the CUDA-Q compiler and runtime 
   // to retrieve expectation values for specific terms.
@@ -612,6 +612,8 @@ public:
   scalar_operator get_coefficient() const;
 
   // constructors and destructors
+
+  constexpr product_op() {}
 
   product_op(double coefficient);
 
@@ -842,6 +844,9 @@ public:
 
   // handler specific utility functions
 
+  HANDLER_SPECIFIC_TEMPLATE(spin_handler) // naming is not very general
+  std::size_t num_qubits() const;
+
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   std::string get_pauli_word() const;
 
@@ -877,5 +882,13 @@ extern template class sum_op<spin_handler>;
 extern template class sum_op<boson_handler>;
 extern template class sum_op<fermion_handler>;
 #endif
+
+// Here only for backward compatibility
+namespace spin {
+  sum_op<spin_handler> i(std::size_t target);
+  sum_op<spin_handler> x(std::size_t target);
+  sum_op<spin_handler> y(std::size_t target);
+  sum_op<spin_handler> z(std::size_t target);
+}
 
 } // namespace cudaq

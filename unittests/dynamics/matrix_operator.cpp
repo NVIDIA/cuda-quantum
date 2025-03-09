@@ -521,7 +521,7 @@ TEST(OperatorExpressions, checkMatrixOpsSimpleArithmetics) {
     auto other = cudaq::matrix_op::position(0);
 
     auto product = self * other;
-    ASSERT_TRUE(product.num_terms() == 2);
+    ASSERT_TRUE(product.num_ops() == 2);
 
     std::vector<std::size_t> want_degrees = {0};
     ASSERT_TRUE(product.degrees() == want_degrees);
@@ -538,7 +538,7 @@ TEST(OperatorExpressions, checkMatrixOpsSimpleArithmetics) {
     auto other = cudaq::matrix_op::position(1);
 
     auto product = self * other;
-    ASSERT_TRUE(product.num_terms() == 2);
+    ASSERT_TRUE(product.num_ops() == 2);
 
     std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(product.degrees() == want_degrees);
@@ -627,9 +627,9 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
     ASSERT_TRUE(got.num_terms() == 2);
     ASSERT_TRUE(reverse.num_terms() == 2);
     for (const auto &term : got)
-      ASSERT_TRUE(term.num_terms() == 2);
+      ASSERT_TRUE(term.num_ops() == 2);
     for (const auto &term : reverse)
-      ASSERT_TRUE(term.num_terms() == 2);
+      ASSERT_TRUE(term.num_ops() == 2);
 
     auto self_full = cudaq::kronecker(utils::id_matrix(level_count),
                                       utils::momentum_matrix(level_count));
@@ -703,7 +703,7 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
 
     ASSERT_TRUE(sum_op.num_terms() == 2);
     for (const auto &term : sum_op)
-      ASSERT_TRUE(term.num_terms() == 2);
+      ASSERT_TRUE(term.num_ops() == 2);
 
     auto self_full = cudaq::kronecker(utils::id_matrix(level_count),
                                       utils::momentum_matrix(level_count));

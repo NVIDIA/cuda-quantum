@@ -81,6 +81,8 @@ void bindSpinOperator(py::module &mod) {
 
       /// @brief Bind the member functions.
 
+      .def("get_ops_count", &cudaq::spin_op_term::num_ops,
+           "Return the number of terms in this :class:`SpinOperator`.")
       .def("get_coefficient", [](cudaq::spin_op_term &op) {
             return op.get_coefficient().evaluate();
           },

@@ -539,7 +539,7 @@ TEST(OperatorExpressions, checkFermionOpsSimpleArithmetics) {
     auto other = cudaq::fermion_op::annihilate(0);
 
     auto product = self * other;
-    ASSERT_TRUE(product.num_terms() == 1);
+    ASSERT_TRUE(product.num_ops() == 1);
 
     std::vector<std::size_t> want_degrees = {0};
     ASSERT_TRUE(product.degrees() == want_degrees);
@@ -555,7 +555,7 @@ TEST(OperatorExpressions, checkFermionOpsSimpleArithmetics) {
     auto other = cudaq::fermion_op::annihilate(1);
 
     auto result = self * other;
-    ASSERT_TRUE(result.num_terms() == 2);
+    ASSERT_TRUE(result.num_ops() == 2);
 
     std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(result.degrees() == want_degrees);
@@ -641,9 +641,9 @@ TEST(OperatorExpressions, checkFermionOpsAdvancedArithmetics) {
     ASSERT_TRUE(got.num_terms() == 2);
     ASSERT_TRUE(reverse.num_terms() == 2);
     for (const auto &term : got)
-      ASSERT_TRUE(term.num_terms() == term.degrees().size());
+      ASSERT_TRUE(term.num_ops() == term.degrees().size());
     for (const auto &term : reverse)
-      ASSERT_TRUE(term.num_terms() == term.degrees().size());
+      ASSERT_TRUE(term.num_ops() == term.degrees().size());
 
     auto self_full =
         cudaq::kronecker(utils::id_matrix(2), utils::number_matrix(2));
@@ -711,7 +711,7 @@ TEST(OperatorExpressions, checkFermionOpsAdvancedArithmetics) {
 
     ASSERT_TRUE(sum_op.num_terms() == 2);
     for (const auto &term : sum_op)
-      ASSERT_TRUE(term.num_terms() == term.degrees().size());
+      ASSERT_TRUE(term.num_ops() == term.degrees().size());
 
     auto expected_term0 = cudaq::kronecker(
         utils::id_matrix(2), utils::number_matrix(2) * utils::create_matrix(2));

@@ -30,6 +30,9 @@ private:
 public:
   // constructors and destructors
 
+  constexpr scalar_operator()
+    : value(1.) {}
+
   scalar_operator(double value);
 
   /// @brief Constructor that just takes and returns a complex double value.

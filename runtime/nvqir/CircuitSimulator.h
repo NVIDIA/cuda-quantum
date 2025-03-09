@@ -160,8 +160,8 @@ public:
                 term.to_string());
     std::vector<std::size_t> qubitSupport;
     std::vector<std::function<void(bool)>> basisChange;
-    if (term.num_terms() != qubitIds.size())
-      throw std::runtime_error("incorrect number of qubits in exp_pauli - expecting " + std::to_string(term.num_terms()) + " qubits");
+    if (term.num_ops() != qubitIds.size())
+      throw std::runtime_error("incorrect number of qubits in exp_pauli - expecting " + std::to_string(term.num_ops()) + " qubits");
 
     std::size_t idx = 0;
     for (const auto& op : term) {

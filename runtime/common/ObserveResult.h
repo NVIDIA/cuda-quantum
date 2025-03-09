@@ -63,22 +63,31 @@ public:
 
   /// @brief Return the expectation value for a sub-term in the provided
   /// spin_op.
-  template <typename SpinOpType>
-  double expectation(SpinOpType term) {
-    static_assert(std::is_same_v<spin_op_term, std::remove_reference_t<SpinOpType>>,
-                  "Must provide a spin_op_term");
+  double expectation(spin_op_term term) {
     auto termStr = term.get_term_id();
     return data.expectation(termStr);
   }
 
+  // FIXME: deprecate
+  double expectation(spin_op op) {
+    if (op.num_terms() != 1)
+      throw std::runtime_error("expecting a spin op with exactly one term");
+    auto termStr = op.begin()->get_term_id();
+    return data.expectation(termStr);
+  }
+
   /// @brief Return the counts data for the given spin_op
-  /// @param term
-  /// @return
-  template <typename SpinOpType>
-  sample_result counts(SpinOpType term) {
-    static_assert(std::is_same_v<spin_op_term, std::remove_reference_t<SpinOpType>>,
-                  "Must provide a spin_op_term");
+  sample_result counts(spin_op_term term) {
     auto termStr = term.get_term_id();
+    auto counts = data.to_map(termStr);
+    ExecutionResult result(counts);
+    return sample_result(result);
+  }
+
+  sample_result counts(spin_op op) {
+    if (op.num_terms() != 1)
+      throw std::runtime_error("expecting a spin op with exactly one term");
+    auto termStr = op.begin()->get_term_id();
     auto counts = data.to_map(termStr);
     ExecutionResult result(counts);
     return sample_result(result);

@@ -37,7 +37,7 @@ TEST(OperatorExpressions, checkElementaryOpsConversions) {
        parameters](cudaq::product_op<cudaq::matrix_handler> prod,
                    cudaq::complex_matrix expected, int expected_num_terms = 2) {
         auto got = prod.to_matrix(dimensions, parameters);
-        ASSERT_TRUE(prod.num_terms() == expected_num_terms);
+        ASSERT_TRUE(prod.num_ops() == expected_num_terms);
         utils::checkEqual(got, expected);
       };
 
@@ -169,7 +169,7 @@ TEST(OperatorExpressions, checkProductOperatorConversions) {
        parameters](cudaq::product_op<cudaq::matrix_handler> prod,
                    cudaq::complex_matrix expected, int expected_num_terms = 4) {
         auto got = prod.to_matrix(dimensions, parameters);
-        ASSERT_TRUE(prod.num_terms() == expected_num_terms);
+        ASSERT_TRUE(prod.num_ops() == expected_num_terms);
         utils::checkEqual(got, expected);
       };
 
