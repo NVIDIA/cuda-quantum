@@ -430,7 +430,10 @@ public:
   // handler specific utility functions
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler) // naming is not very general, kept for compatibility
-  std::size_t num_qubits(bool include_padding = false) const;
+  std::size_t num_qubits() const;
+
+  HANDLER_SPECIFIC_TEMPLATE(spin_handler)
+  sum_op(const std::vector<double> &input_vec);
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler) // could be defined for other operators as well
   static product_op<HandlerTy> from_word(const std::string &word);

@@ -1505,6 +1505,50 @@ std::size_t sum_op<HandlerTy>::num_qubits() const {
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
+sum_op<HandlerTy>::sum_op(const std::vector<double> &input_vec) {
+  auto it = input_vec.cbegin();
+  auto next_int = [&it, &input_vec]() {
+    if (it == input_vec.end())
+      throw std::runtime_error("incorrect data format - missing entry");
+    double intPart;
+    if (std::modf(*it, &intPart) != 0.0)
+      throw std::runtime_error(
+        "Invalid pauli data element, must be integer value.");
+    return (int)*it++;
+  };
+  auto next_double = [&it, &input_vec]() {
+    if (it == input_vec.end())
+      throw std::runtime_error("incorrect data format - missing entry");
+    return *it++;
+  };
+
+  auto n_terms = next_int();
+  for (std::size_t tidx = 0; tidx < n_terms; ++tidx) {
+    auto el_real = next_double();
+    auto el_imag = next_double();
+    auto prod = product_op<HandlerTy>(std::complex<double>{el_real, el_imag});
+    auto nr_ops = next_int();
+    for (std::size_t oidx = 0; oidx < nr_ops; ++oidx) {
+      auto target = next_int();
+      auto val = next_int();
+      if (val == 1) // Z
+        prod *= sum_op<HandlerTy>::z(target);
+      else if (val == 2) // X
+        prod *= sum_op<HandlerTy>::x(target);
+      else if (val == 3) // Y
+        prod *= sum_op<HandlerTy>::y(target);
+      else {
+        assert (val == 0);
+        prod *= sum_op<HandlerTy>::i(target);
+      }
+    }
+    *this += std::move(prod);
+  }
+  if (it != input_vec.end())
+    throw std::runtime_error("incorrect data format  - excess entry");
+}
+
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
 product_op<HandlerTy> sum_op<HandlerTy>::from_word(const std::string &word) {
   auto prod = sum_op<HandlerTy>::identity();
   for (std::size_t i = 0; i < word.length(); i++) {
@@ -1575,6 +1619,7 @@ sum_op<HandlerTy> sum_op<HandlerTy>::random(std::size_t nQubits, std::size_t nTe
 
 #if !defined(__clang__)
 template std::size_t sum_op<spin_handler>::num_qubits() const;
+template sum_op<spin_handler>::sum_op(const std::vector<double> &input_vec);
 template product_op<spin_handler> sum_op<spin_handler>::from_word(const std::string &word);
 template sum_op<spin_handler> sum_op<spin_handler>::random(std::size_t nQubits, std::size_t nTerms, unsigned int seed);
 #endif
@@ -1589,47 +1634,35 @@ template sum_op<spin_handler> sum_op<spin_handler>::random(std::size_t nQubits, 
 
 SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
 sum_op<HandlerTy>::sum_op(const std::vector<double> &input_vec, std::size_t nQubits) {
-  // FIXME: NOTHING TO DO WITH NQUBITS
-  auto it = input_vec.cbegin();
-  auto next_int = [&it, &input_vec]() {
-    if (it == input_vec.end())
-      throw std::runtime_error("incorrect data format - missing entry");
-    double intPart;
-    if (std::modf(*it, &intPart) != 0.0)
-      throw std::runtime_error(
-        "Invalid pauli data element, must be integer value.");
-    return (int)*it++;
-  };
-  auto next_double = [&it, &input_vec]() {
-    if (it == input_vec.end())
-      throw std::runtime_error("incorrect data format - missing entry");
-    return *it++;
-  };
+  auto n_terms = (int)input_vec.back();
+  if (nQubits != (((input_vec.size() - 1) - 2 * n_terms) / n_terms))
+    throw std::runtime_error("Invalid data representation for construction "
+                              "spin_op. Number of data elements is incorrect.");
 
-  auto n_terms = next_int();
-  for (std::size_t tidx = 0; tidx < n_terms; ++tidx) {
-    auto el_real = next_double();
-    auto el_imag = next_double();
+  for (std::size_t i = 0; i < input_vec.size() - 1; i += nQubits + 2) {
+    auto el_real = input_vec[i + nQubits];
+    auto el_imag = input_vec[i + nQubits + 1];
     auto prod = product_op<HandlerTy>(std::complex<double>{el_real, el_imag});
-    auto nr_ops = next_int();
-    for (std::size_t oidx = 0; oidx < nr_ops; ++oidx) {
-      auto target = next_int();
-      auto val = next_int();
-      if (val == 1) // Z
-        prod *= sum_op<HandlerTy>::z(target);
-      else if (val == 2) // X
-        prod *= sum_op<HandlerTy>::x(target);
+    for (std::size_t j = 0; j < nQubits; j++) {
+      double intPart;
+      if (std::modf(input_vec[j + i], &intPart) != 0.0)
+        throw std::runtime_error(
+            "Invalid pauli data element, must be integer value.");
+
+      int val = (int)input_vec[j + i];
+      if (val == 1) // X
+        prod *= sum_op<HandlerTy>::x(j);
+      else if (val == 2) // Z
+        prod *= sum_op<HandlerTy>::z(j);
       else if (val == 3) // Y
-        prod *= sum_op<HandlerTy>::y(target);
-      else {
-        assert (val == 0);
-        prod *= sum_op<HandlerTy>::i(target);
+        prod *= sum_op<HandlerTy>::y(j);
+      else { // I
+        assert(val == 0);
+        prod *= sum_op<HandlerTy>::i(j);
       }
     }
     *this += std::move(prod);
   }
-  if (it != input_vec.end())
-    throw std::runtime_error("incorrect data format  - excess entry");
 }
 
 SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
