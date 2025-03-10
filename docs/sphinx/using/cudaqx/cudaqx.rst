@@ -16,7 +16,7 @@ CUDA-Q Solvers
 
 The CUDA-Q Solvers library provides high-level quantum-classical hybrid algorithms and supporting infrastructure for quantum chemistry and optimization problems. It features implementations of VQE, ADAPT-VQE, and supporting utilities for Hamiltonian generation and operator pool management.
 
-Learn more in the `CUDA-Q Solvers documentation <https://nvidia.github.io/cudaqx/components/solvers/introduction.html>`_ and explore a number of detailed `examples <https://nvidia.github.io/cudaqx/examples_rst/solvers/examples.html>`_.
+Learn more in the `CUDA-Q Solvers documentation <https://nvidia.github.io/cudaqx/components/solvers/introduction.html>`_ and explore a number of detailed `examples <https://nvidia.github.io/cudaqx/examples_rst/solvers/examples.html>`__.
 
 .. figure:: solvers.png
    :width: 500px
@@ -27,7 +27,7 @@ CUDA-Q QEC
 
 The CUDA-Q QEC library provides a comprehensive framework for quantum error correction research and development.
 
-Learn more in the `CUDA-Q QEC documentation <https://nvidia.github.io/cudaqx/components/qec/introduction.html>`_ and explore a number of detailed `examples <https://nvidia.github.io/cudaqx/examples_rst/qec/examples.html>`_.
+Learn more in the `CUDA-Q QEC documentation <https://nvidia.github.io/cudaqx/components/qec/introduction.html>`_ and explore a number of detailed `examples <https://nvidia.github.io/cudaqx/examples_rst/qec/examples.html>`__.
 
 .. figure:: qec.png
    :width: 400px
