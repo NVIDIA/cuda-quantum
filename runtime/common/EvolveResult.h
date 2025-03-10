@@ -90,13 +90,5 @@ public:
   }
 
   evolve_result(const sample_result &sr) : sampling_result(sr) {}
-
-private:
-  state getFinalStateIfValid(const std::vector<state> &states) {
-    if (states.empty())
-      throw std::runtime_error(
-          "Cannot create evolve_result with an empty list of states.");
-    return states.back();
-  }
 };
 } // namespace cudaq
