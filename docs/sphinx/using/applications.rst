@@ -1,7 +1,6 @@
 CUDA-Q Applications
 ====================
 
-:spellcheck-disable:
 
 .. toctree::
    :maxdepth: 1
