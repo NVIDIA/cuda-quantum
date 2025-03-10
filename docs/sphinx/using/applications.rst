@@ -1,6 +1,8 @@
 CUDA-Q Applications
 ====================
 
+:spellcheck-disable:
+
 .. toctree::
    :maxdepth: 1
    :hidden:
@@ -308,7 +310,6 @@ This notebook explains the theory behind the Quantum Approximate Optimization Al
         <img src="/_static/app_title_images/bv_preview.png" alt="BV Preview" class="notebook-image">
     </div>
 
-
     <div class="notebook-entry" data-tags="fundamental,noiseless,gpu">
         <a href="/applications/python/deutsch_jozsa.html" class="notebook-title">Deutsch's Algorithm</a>
         <div class="notebook-content">
@@ -325,6 +326,14 @@ This notebook explains the theory behind the Quantum Approximate Optimization Al
         <img src="/_static/app_title_images/clustering_preview.png" alt="Clustering Preview" class="notebook-image">
     </div>
 
+    <div class="notebook-entry" data-tags="qforai,noiseless,gpu">
+        <a href="/applications/python/hybrid_qnns.html" class="notebook-title">Hybrid Quantum Neural Networks</a>
+        <div class="notebook-content">
+            Learn how to implement Neural Network composed of a traditional PyTorch layer and a quantum layer added with CUDA-Q
+        </div>
+        <img src="/_static/app_title_images/hqnn_preview.png" alt="HQNN Preview" class="notebook-image">
+    </div>
+
     <div class="notebook-entry" data-tags="fundamental,noiseless,gpu,mqpu">
         <a href="/applications/python/hadamard_test.html" class="notebook-title">The Hadamard Test</a>
         <div class="notebook-content">
@@ -332,7 +341,6 @@ This notebook explains the theory behind the Quantum Approximate Optimization Al
         </div>
         <img src="/_static/app_title_images/hadamard_preview.png" alt="Hadamard Preview" class="notebook-image">
     </div>
-
 
     <div class="notebook-entry" data-tags="chemistry,qec,qpu,neutral,collab">
         <a href="/applications/python/logical_aim_sqale.html" class="notebook-title">The Anderson Impurity Model With Logical Qubits</a>
@@ -358,7 +366,6 @@ This notebook explains the theory behind the Quantum Approximate Optimization Al
         <img src="/_static/app_title_images/qft_preview.png" alt="QFT Preview" class="notebook-image">
     </div>
 
-
     <div class="notebook-entry" data-tags="fundamental,noiseless,gpu">
         <a href="/applications/python/quantum_teleportation.html" class="notebook-title">Quantum Teleportation</a>
         <div class="notebook-content">
@@ -383,7 +390,6 @@ This notebook explains the theory behind the Quantum Approximate Optimization Al
         <img src="/_static/app_title_images/readout_preview.png" alt="Readout Error Mitigation Preview" class="notebook-image">
     </div>
 
-
     <div class="notebook-entry" data-tags="aiforq,noiseless,gpu">
         <a href="/applications/python/unitary_compilation_diffusion_models.html" class="notebook-title">Compiling Unitaries with Diffusion Models</a>
         <div class="notebook-content">
@@ -400,6 +406,14 @@ This notebook explains the theory behind the Quantum Approximate Optimization Al
         <img src="/_static/app_title_images/vqe_preview.png" alt="VQE Preview" class="notebook-image">
     </div>
 
+    <div class="notebook-entry" data-tags="chemistry,collab,qforai,noiseless,gpu">
+        <a href="/applications/python/quantum_transformer.html" class="notebook-title">Quantum Transformer Model for Generating Molecules</a>
+        <div class="notebook-content">
+            Learn how to implement a hybrid quantum transformer model for generating molecules. The tutorial is based off a collaboration between NVIDIA and Yale. (https://arxiv.org/pdf/2502.19214)
+        </div>
+        <img src="/_static/app_title_images/quantum_transformer_preview.png" alt="Transformer Preview" class="notebook-image">
+    </div>
+
     <div class="notebook-entry" data-tags="chemistry,noiseless,gpu,collab">
         <a href="/applications/python/afqmc.html" class="notebook-title">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a>
         <div class="notebook-content">
@@ -408,7 +422,6 @@ This notebook explains the theory behind the Quantum Approximate Optimization Al
         <img src="/_static/app_title_images/afmqc_preview.png" alt="AFQMC Preview" class="notebook-image">
     </div>
 
-
     <div class="notebook-entry" data-tags="optimization,noiseless,gpu">
         <a href="/applications/python/adapt_qaoa.html" class="notebook-title">ADAPT QAOA</a>
         <div class="notebook-content">
@@ -416,11 +429,4 @@ This notebook explains the theory behind the Quantum Approximate Optimization Al
         </div>
         <img src="/_static/app_title_images/adapt_qaoa_preview.png" alt="ADAPT Preview" class="notebook-image">
     </div>
-
-
-    </div>
-    </div>
-
-
-
 
