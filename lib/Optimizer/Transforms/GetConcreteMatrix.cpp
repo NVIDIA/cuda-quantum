@@ -88,8 +88,8 @@ public:
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
     patterns.insert<CustomUnitaryPattern>(ctx);
-    if (failed(applyPatternsAndFoldGreedily(getOperation(),
-                                            std::move(patterns))))
+    if (failed(
+            applyPatternsAndFoldGreedily(getOperation(), std::move(patterns))))
       signalPassFailure();
   }
 };
