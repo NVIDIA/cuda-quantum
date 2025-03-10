@@ -1,12 +1,12 @@
 CUDA-Q Applications
 ====================
 
-:spellcheck-disable:
 
 .. toctree::
    :maxdepth: 1
    :hidden:
 
+   |:spellcheck-disable:|
    /applications/python/qaoa
    /applications/python/digitized_counterdiabatic_qaoa
    /applications/python/krylov
@@ -27,8 +27,7 @@ CUDA-Q Applications
    /applications/python/quantum_transformer
    /applications/python/afqmc
    /applications/python/adapt_qaoa
-   
-:spellcheck-enable:
+   |:spellcheck-enable:|
 
 
 .. raw:: html
