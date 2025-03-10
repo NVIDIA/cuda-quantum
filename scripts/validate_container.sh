@@ -82,7 +82,8 @@ available_backends=`\
         requirements=$(cat $file | grep "gpu-requirements:")
         gpus=${requirements##* }
         if [ "${qpu}" != "remote_rest" ] && [ "${qpu}" != "NvcfSimulatorQPU" ] \
-        && [ "${qpu}" != "fermioniq" ] && [ "${qpu}" != "orca" ] && [ "${qpu}" != "quera" ] \
+        && [ "${qpu}" != "fermioniq" ] && [ "${qpu}" != "orca" ] \
+        && [ "${qpu}" != "pasqal" ] && [ "${qpu}" != "quera" ] \
         && ($gpu_available || [ -z "$gpus" ] || [ "${gpus,,}" == "false" ]); then \
             basename $file | cut -d "." -f 1; \
         fi; \
@@ -136,7 +137,7 @@ echo "============================="
 
 # Note: piping the `find` results through `sort` guarantees repeatable ordering.
 tmpFile=$(mktemp)
-for ex in `find examples/ applications/ targets/ -name '*.cpp' | sort`;
+for ex in `find examples/ applications/ targets/ -name '*.cpp' -not -path "*/dynamics/*" | sort`;
 do
     filename=$(basename -- "$ex")
     filename="${filename%.*}"

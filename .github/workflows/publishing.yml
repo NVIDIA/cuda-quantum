@@ -969,7 +969,7 @@ jobs:
           bash ~/.miniconda3/miniconda.sh -b -u -p ~/.miniconda3
           rm -rf ~/.miniconda3/miniconda.sh
           eval "$(~/.miniconda3/bin/conda shell.bash hook)"
-          conda install -y -c conda-forge openmpi
+          conda install -y -c conda-forge openmpi">=5.0.7"
 
           echo 'eval "$(~/.miniconda3/bin/conda shell.bash hook)"' >> ~/.bashrc
           echo 'export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CONDA_PREFIX/lib"' >> ~/.bashrc
@@ -1152,9 +1152,6 @@ jobs:
           cp -r $GITHUB_WORKSPACE/python/tests /tmp/tests/
           cp    $GITHUB_WORKSPACE/$readme /tmp/README.md
           # Target tests should not be run here either, since that requires credentials but doesn't require a GPU runner.
-
-          # The NVQC API key is needed to validate NVQC related snippets and examples.
-          export NVQC_API_KEY="${{ secrets.NVQC_PROD_SERVICE_KEY }}"
 
           # Run the script w/ -q to run a shortened test
           set +e # Allow script to keep going through errors (needed for skipped tests)

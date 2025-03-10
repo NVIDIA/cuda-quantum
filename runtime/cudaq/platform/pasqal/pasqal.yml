@@ -1,0 +1,28 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: pasqal
+description: "CUDA-Q target for pasqal."
+config:
+  # Tell DefaultQuantumPlatform what QPU subtype to use
+  platform-qpu: pasqal
+  # Add the pasqal-qpu library to the link list
+  link-libs: ["-lcudaq-pasqal-qpu"]
+  # Allow evolve API in C++
+  preprocessor-defines: ["-D CUDAQ_ANALOG_TARGET"]
+  # Library mode is only for simulators, physical backends must turn this off
+  library-mode: false
+  # Tell NVQ++ to generate glue code to set the target backend name
+  gen-target-backend: true
+
+target-arguments:
+  - key: machine
+    required: false
+    type: string
+    platform-arg: machine
+    help-string: "Specify the Pasqal machine to target, FRESNEL to target QPU and EMU_MPS to run on a MPS emulator."

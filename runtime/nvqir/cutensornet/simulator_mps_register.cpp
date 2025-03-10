@@ -112,6 +112,10 @@ public:
                              const std::vector<std::size_t> &controls,
                              const std::vector<std::size_t> &qubitIds,
                              const cudaq::spin_op &op) override {
+    if (this->isInTracerMode()) {
+      nvqir::CircuitSimulator::applyExpPauli(theta, controls, qubitIds, op);
+      return;
+    }
     // Special handling for equivalence of Rxx(theta), Ryy(theta), Rzz(theta)
     // expressed as exp_pauli.
     //  Note: for MPS, the runtime is ~ linear with the number of 2-body gates

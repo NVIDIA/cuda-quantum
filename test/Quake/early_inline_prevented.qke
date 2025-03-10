@@ -1,0 +1,83 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --aggressive-early-inlining %s | FileCheck %s
+
+// The purpose of this regression test is to make sure the pipeline
+// doesn't throw an error on this input.
+
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__trotter(%arg0: !quake.veq<?>, %arg1: f64, %arg2: !cc.stdvec<complex<f64>>, %arg3: !cc.stdvec<!cc.charspan>) attributes {"cudaq-kernel"} {
+    %c1_i64 = arith.constant 1 : i64
+    %c0_i64 = arith.constant 0 : i64
+    %0 = cc.alloca f64
+    cc.store %arg1, %0 : !cc.ptr<f64>
+    %1 = cc.stdvec_size %arg2 : (!cc.stdvec<complex<f64>>) -> i64
+    %2 = cc.loop while ((%arg4 = %c0_i64) -> (i64)) {
+      %3 = arith.cmpi slt, %arg4, %1 : i64
+      cc.condition %3(%arg4 : i64)
+    } do {
+    ^bb0(%arg4: i64):
+      %3 = cc.stdvec_data %arg2 : (!cc.stdvec<complex<f64>>) -> !cc.ptr<!cc.array<complex<f64> x ?>>
+      %4 = cc.compute_ptr %3[%arg4] : (!cc.ptr<!cc.array<complex<f64> x ?>>, i64) -> !cc.ptr<complex<f64>>
+      %5 = cc.load %4 : !cc.ptr<complex<f64>>
+      %6 = complex.re %5 : complex<f64>
+      %7 = cc.load %0 : !cc.ptr<f64>
+      %8 = arith.mulf %6, %7 : f64
+      %9 = cc.stdvec_data %arg3 : (!cc.stdvec<!cc.charspan>) -> !cc.ptr<!cc.array<!cc.charspan x ?>>
+      %10 = cc.compute_ptr %9[%arg4] : (!cc.ptr<!cc.array<!cc.charspan x ?>>, i64) -> !cc.ptr<!cc.charspan>
+      %11 = cc.load %10 : !cc.ptr<!cc.charspan>
+      quake.exp_pauli (%8) %arg0 to %11 : (f64, !quake.veq<?>, !cc.charspan) -> ()
+      cc.continue %arg4 : i64
+    } step {
+    ^bb0(%arg4: i64):
+      %3 = arith.addi %arg4, %c1_i64 : i64
+      cc.continue %3 : i64
+    } {invariant}
+    return
+  }
+  func.func @__nvqpp__mlirgen__kernel(%arg0: i64, %arg1: !cc.stdvec<complex<f64>>, %arg2: !cc.stdvec<!cc.charspan>) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    %c1_i64 = arith.constant 1 : i64
+    %c0_i64 = arith.constant 0 : i64
+    %cst = arith.constant 1.000000e+00 : f64
+    %c5_i64 = arith.constant 5 : i64
+    %0 = cc.alloca i64
+    cc.store %arg0, %0 : !cc.ptr<i64>
+    %1 = cc.alloca i64
+    cc.store %c5_i64, %1 : !cc.ptr<i64>
+    %2 = cc.alloca f64
+    cc.store %cst, %2 : !cc.ptr<f64>
+    %3 = cc.load %0 : !cc.ptr<i64>
+    %4 = quake.alloca !quake.veq<?>[%3 : i64]
+    %5 = cc.load %2 : !cc.ptr<f64>
+    %6 = cc.load %1 : !cc.ptr<i64>
+    %7 = arith.sitofp %6 : i64 to f64
+    %8 = arith.divf %5, %7 : f64
+    %9 = cc.alloca f64
+    cc.store %8, %9 : !cc.ptr<f64>
+    %10 = cc.load %1 : !cc.ptr<i64>
+    %11 = cc.loop while ((%arg3 = %c0_i64) -> (i64)) {
+      %12 = arith.cmpi slt, %arg3, %10 : i64
+      cc.condition %12(%arg3 : i64)
+    } do {
+    ^bb0(%arg3: i64):
+      %12 = cc.load %9 : !cc.ptr<f64>
+      func.call @__nvqpp__mlirgen__trotter(%4, %12, %arg1, %arg2) : (!quake.veq<?>, f64, !cc.stdvec<complex<f64>>, !cc.stdvec<!cc.charspan>) -> ()
+      cc.continue %arg3 : i64
+    } step {
+    ^bb0(%arg3: i64):
+      %12 = arith.addi %arg3, %c1_i64 : i64
+      cc.continue %12 : i64
+    } {invariant}
+    return
+  }
+}
+
+// CHECK-LABEL: func.func @__nvqpp__mlirgen__trotter
+// CHECK-LABEL: func.func @__nvqpp__mlirgen__kernel
+// CHECK: func.call @__nvqpp__mlirgen__trotter

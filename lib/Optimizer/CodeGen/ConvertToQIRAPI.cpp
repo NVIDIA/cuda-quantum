@@ -56,20 +56,16 @@ static std::string getGateFunctionPrefix(Operation *op) {
 
 constexpr std::array<std::string_view, 2> filterAdjointNames = {"s", "t"};
 
-template <typename M, typename OP>
+template <typename OP>
 std::pair<std::string, bool> generateGateFunctionName(OP op) {
   auto prefix = getGateFunctionPrefix(op.getOperation());
   auto gateName = getGateName(op.getOperation());
   if (op.isAdj()) {
     if (std::find(filterAdjointNames.begin(), filterAdjointNames.end(),
                   gateName) != filterAdjointNames.end()) {
-      if constexpr (M::dgSuffix) {
-        prefix += "dg";
-      } else {
-        if (!op.getControls().empty())
-          return {prefix + "dg__ctl", false};
-        return {prefix + "__adj", false};
-      }
+      if (!op.getControls().empty())
+        return {prefix + "dg__ctl", false};
+      return {prefix + "__adj", false};
     }
   }
   if (!op.getControls().empty())
@@ -998,17 +994,28 @@ struct ExpPauliOpPattern
     operands.append(targets.begin(), targets.end());
 
     auto pauliWord = [&]() -> Value {
-      if (auto pauliLiteral = pauli.getPauliLiteralAttr())
-        return createGlobalCString(pauli, loc, rewriter,
-                                   pauliLiteral.getValue());
+      if (auto pauliLiteral = pauli.getPauliLiteralAttr()) {
+        auto glob =
+            createGlobalCString(pauli, loc, rewriter, pauliLiteral.getValue());
+        auto ccCast = glob.getDefiningOp<cudaq::cc::CastOp>();
+        auto addrOf = ccCast.getValue();
+        auto eleTy =
+            cast<cudaq::cc::PointerType>(addrOf.getType()).getElementType();
+        auto llvmArrTy = cast<LLVM::LLVMArrayType>(eleTy);
+        Type arrEleTy = llvmArrTy.getElementType();
+        auto arrSize = llvmArrTy.getNumElements();
+        auto toTy = cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(
+            rewriter.getContext(), arrEleTy, arrSize));
+        return rewriter.create<cudaq::cc::CastOp>(loc, toTy, glob);
+      }
       return adaptor.getPauli();
     }();
 
     operands.push_back(pauliWord);
 
     // First need to check the type of the Pauli word. We expect a pauli_word
-    // directly `{i8*,i64}` or a string literal `ptr<i8>`. If it is a string
-    // literal, we need to map it to a pauli word.
+    // directly (a.k.a. a span)`{i8*,i64}` or a string literal `ptr<array<i8 x
+    // n>>`. If it is a string literal, we need to map it to a pauli word.
     auto i8PtrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
     if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(pauliWord.getType())) {
       // Make sure we have the right types to extract the length of the string
@@ -1689,7 +1696,7 @@ struct FullQIR {
 
   template <typename QuakeOp>
   static std::string quakeToFuncName(QuakeOp op) {
-    auto [prefix, _] = generateGateFunctionName<Self>(op);
+    auto [prefix, _] = generateGateFunctionName(op);
     return prefix;
   }
 
@@ -1747,14 +1754,18 @@ struct FullQIR {
   static Type getLLVMPointerType(MLIRContext *ctx) {
     return GetLLVMPointerType<opaquePtr>(ctx);
   }
-
-  static constexpr bool dgSuffix = true;
 };
 
 /// The base modifier class for the "profile QIR" APIs.
 template <bool opaquePtr>
 struct AnyProfileQIR {
   using Self = AnyProfileQIR;
+
+  template <typename QuakeOp>
+  static std::string quakeToFuncName(QuakeOp op) {
+    auto [prefix, isBarePrefix] = generateGateFunctionName(op);
+    return isBarePrefix ? prefix + "__body" : prefix;
+  }
 
   static void populateRewritePatterns(RewritePatternSet &patterns,
                                       TypeConverter &typeConverter) {
@@ -1766,7 +1777,24 @@ struct AnyProfileQIR {
         SubveqOpRewrite<Self>,
 
         /* Irregular quantum operators. */
-        CustomUnitaryOpPattern<Self>, ResetOpPattern<Self>>(typeConverter, ctx);
+        CustomUnitaryOpPattern<Self>, ExpPauliOpPattern<Self>,
+        ResetOpPattern<Self>,
+
+        /* Regular quantum operators. */
+        QuantumGatePattern<Self, quake::HOp>,
+        QuantumGatePattern<Self, quake::PhasedRxOp>,
+        QuantumGatePattern<Self, quake::R1Op>,
+        QuantumGatePattern<Self, quake::RxOp>,
+        QuantumGatePattern<Self, quake::RyOp>,
+        QuantumGatePattern<Self, quake::RzOp>,
+        QuantumGatePattern<Self, quake::SOp>,
+        QuantumGatePattern<Self, quake::SwapOp>,
+        QuantumGatePattern<Self, quake::TOp>,
+        QuantumGatePattern<Self, quake::U2Op>,
+        QuantumGatePattern<Self, quake::U3Op>,
+        QuantumGatePattern<Self, quake::XOp>,
+        QuantumGatePattern<Self, quake::YOp>,
+        QuantumGatePattern<Self, quake::ZOp>>(typeConverter, ctx);
     commonQuakeHandlingPatterns(patterns, typeConverter, ctx);
     commonClassicalHandlingPatterns(patterns, typeConverter, ctx);
   }
@@ -1801,38 +1829,15 @@ struct BaseProfileQIR : public AnyProfileQIR<opaquePtr> {
   using Self = BaseProfileQIR;
   using Base = AnyProfileQIR<opaquePtr>;
 
-  template <typename QuakeOp>
-  static std::string quakeToFuncName(QuakeOp op) {
-    auto [prefix, isBarePrefix] = generateGateFunctionName<Self>(op);
-    return isBarePrefix ? prefix + "__body" : prefix;
-  }
-
   static void populateRewritePatterns(RewritePatternSet &patterns,
                                       TypeConverter &typeConverter) {
     Base::populateRewritePatterns(patterns, typeConverter);
     patterns
-        .insert<DiscriminateOpToCallRewrite<Self>, MeasurementOpPattern<Self>,
-
-                /* Regular quantum operators. */
-                ExpPauliOpPattern<Self>, QuantumGatePattern<Self, quake::HOp>,
-                QuantumGatePattern<Self, quake::PhasedRxOp>,
-                QuantumGatePattern<Self, quake::R1Op>,
-                QuantumGatePattern<Self, quake::RxOp>,
-                QuantumGatePattern<Self, quake::RyOp>,
-                QuantumGatePattern<Self, quake::RzOp>,
-                QuantumGatePattern<Self, quake::SOp>,
-                QuantumGatePattern<Self, quake::SwapOp>,
-                QuantumGatePattern<Self, quake::TOp>,
-                QuantumGatePattern<Self, quake::U2Op>,
-                QuantumGatePattern<Self, quake::U3Op>,
-                QuantumGatePattern<Self, quake::XOp>,
-                QuantumGatePattern<Self, quake::YOp>,
-                QuantumGatePattern<Self, quake::ZOp>>(typeConverter,
-                                                      patterns.getContext());
+        .insert<DiscriminateOpToCallRewrite<Self>, MeasurementOpPattern<Self>>(
+            typeConverter, patterns.getContext());
   }
 
   static constexpr bool discriminateToClassical = false;
-  static constexpr bool dgSuffix = false;
 };
 
 /// The QIR adaptive profile modifier class.
@@ -1841,38 +1846,15 @@ struct AdaptiveProfileQIR : public AnyProfileQIR<opaquePtr> {
   using Self = AdaptiveProfileQIR;
   using Base = AnyProfileQIR<opaquePtr>;
 
-  template <typename QuakeOp>
-  static std::string quakeToFuncName(QuakeOp op) {
-    auto [prefix, isBarePrefix] = generateGateFunctionName<Self>(op);
-    return isBarePrefix ? prefix + "__body" : prefix;
-  }
-
   static void populateRewritePatterns(RewritePatternSet &patterns,
                                       TypeConverter &typeConverter) {
     Base::populateRewritePatterns(patterns, typeConverter);
     patterns
-        .insert<DiscriminateOpToCallRewrite<Self>, MeasurementOpPattern<Self>,
-
-                /* Regular quantum operators. */
-                ExpPauliOpPattern<Self>, QuantumGatePattern<Self, quake::HOp>,
-                QuantumGatePattern<Self, quake::PhasedRxOp>,
-                QuantumGatePattern<Self, quake::R1Op>,
-                QuantumGatePattern<Self, quake::RxOp>,
-                QuantumGatePattern<Self, quake::RyOp>,
-                QuantumGatePattern<Self, quake::RzOp>,
-                QuantumGatePattern<Self, quake::SOp>,
-                QuantumGatePattern<Self, quake::SwapOp>,
-                QuantumGatePattern<Self, quake::TOp>,
-                QuantumGatePattern<Self, quake::U2Op>,
-                QuantumGatePattern<Self, quake::U3Op>,
-                QuantumGatePattern<Self, quake::XOp>,
-                QuantumGatePattern<Self, quake::YOp>,
-                QuantumGatePattern<Self, quake::ZOp>>(typeConverter,
-                                                      patterns.getContext());
+        .insert<DiscriminateOpToCallRewrite<Self>, MeasurementOpPattern<Self>>(
+            typeConverter, patterns.getContext());
   }
 
   static constexpr bool discriminateToClassical = true;
-  static constexpr bool dgSuffix = true;
 };
 
 //===----------------------------------------------------------------------===//
