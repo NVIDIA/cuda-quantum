@@ -35,10 +35,13 @@ public:
                std::uint64_t resultOffset,
                const std::vector<void *> &rawArgs) override {
 
-    if (kernelName.find(cudaq::runtime::cudaqAHKPrefixName) != 0) {
+    if (kernelName.find(cudaq::runtime::cudaqAHKPrefixName) != 0)
       throw std::runtime_error(
           "Arbitrary kernel execution is not supported on this target.");
-    }
+
+    if (emulate)
+      throw std::runtime_error(
+          "Local emulation is not yet supported on this target.");
 
     cudaq::info("Launching remote kernel ({})", kernelName);
     std::vector<cudaq::KernelExecution> codes;
