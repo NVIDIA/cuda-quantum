@@ -98,7 +98,7 @@ public:
   std::vector<value_type> eigenvalues() const;
 
   /// @brief Return the eigenvectors of this matrix.
-  /// They are returned as the columns of a new matrix.
+  /// They are returned as the rows of a new matrix.
   complex_matrix eigenvectors() const;
 
   ~complex_matrix() {
