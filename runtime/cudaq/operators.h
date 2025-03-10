@@ -70,7 +70,6 @@ protected:
   std::vector<scalar_operator> coefficients;
   bool is_default = false;
 
-  //constexpr sum_op(){};
   constexpr sum_op(bool is_default) : is_default(is_default) {};
   sum_op(const sum_op<HandlerTy> &other, bool is_default, int size);
   sum_op(sum_op<HandlerTy> &&other, bool is_default, int size);
@@ -139,6 +138,12 @@ public:
   std::size_t num_terms() const;
 
   // constructors and destructors
+
+  // A default initialized sum will act as both the additive
+  // and multiplicative identity. To construct a true "0" value
+  // (neutral element for addition only), use sum_op<T>::empty().
+  constexpr sum_op()
+    : is_default(true) {};
 
   template <typename... Args,
             std::enable_if_t<std::conjunction<std::is_same<

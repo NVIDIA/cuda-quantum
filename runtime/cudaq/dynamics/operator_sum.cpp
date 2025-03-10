@@ -749,8 +749,6 @@ INSTANTIATE_SUM_RHSIMPLE_OPS(fermion_handler);
 template <typename HandlerTy>
 sum_op<HandlerTy> sum_op<HandlerTy>::operator*(
     const product_op<HandlerTy> &other) const {
-  // A default initialized sum will act as both the additive
-  // and multiplicative identity.
   if (this->is_default) return other;
   sum_op<HandlerTy> sum(false); // the entire sum needs to be rebuilt
   sum.coefficients.reserve(this->coefficients.size());
@@ -1338,8 +1336,9 @@ INSTANTIATE_SUM_CONVERSION_OPS(-);
 
 template <typename HandlerTy>
 sum_op<HandlerTy> sum_op<HandlerTy>::empty() {
-  // The empty sum is explicitly intended to be the additive 1, 
-  // and multiplicative 0; specifically, multiplication with an 
+  // The empty sum is explicitly intended to be the 0
+  // element of the algebra, i.e. it is the neutral  
+  // element for addition, whereas multiplication with an 
   // empty sum must always result in an emtpy sum.
   return sum_op<HandlerTy>(false);
 }
