@@ -71,9 +71,9 @@ void schedule::reset() {
 
 // Get the current step
 std::optional<std::complex<double>> schedule::current_step() const {
-  if (current_idx >= 0 && current_idx < static_cast<int>(steps.size())) {
+  if (current_idx >= 0 && current_idx < static_cast<int>(steps.size()))
     return steps[current_idx];
-  }
+
   return std::nullopt;
 }
 

@@ -118,9 +118,8 @@ cudaq::product_operator<cudaq::matrix_operator> computeDagger(
   }
   std::reverse(daggerOps.begin(), daggerOps.end());
 
-  if (daggerOps.empty()) {
+  if (daggerOps.empty())
     throw std::runtime_error("Empty product operator");
-  }
   cudaq::product_operator<cudaq::matrix_operator> daggerProduct = daggerOps[0];
   for (std::size_t i = 1; i < daggerOps.size(); ++i) {
     daggerProduct *= daggerOps[i];
@@ -346,9 +345,9 @@ cudaq::dynamics::CuDensityMatOpConverter::createProductOperatorTerm(
       int degree = sub_degrees[j];
       int modality = modalities[j];
 
-      if (sub_degrees[i] < 0) {
+      if (sub_degrees[i] < 0)
         throw std::out_of_range("Degree cannot be negative!");
-      }
+
       allDegrees.emplace_back(degree);
       allModeActionDuality.emplace_back(modality);
     }
@@ -367,9 +366,8 @@ cudaq::dynamics::CuDensityMatOpConverter::convertToCudensitymatOperator(
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     const operator_sum<cudaq::matrix_operator> &op,
     const std::vector<int64_t> &modeExtents) {
-  if (op.get_terms().empty()) {
+  if (op.get_terms().empty())
     throw std::invalid_argument("Operator sum cannot be empty.");
-  }
 
   cudensitymatOperator_t cudmOperator;
   HANDLE_CUDM_ERROR(cudensitymatCreateOperator(
