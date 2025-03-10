@@ -228,6 +228,10 @@ set to 100.
 
 To see a complete example for using Pasqal's backend, take a look at our :doc:`Python examples <../../examples/hardware_providers>`.
 
+.. note:: 
+
+    Local emulation via ``emulate`` flag is not yet supported on the `pasqal` target.
+
 
 QuEra Computing
 ++++++++++++++++
@@ -298,3 +302,7 @@ set to 100.
     cudaq.evolve(RydbergHamiltonian(...), schedule=s, shots_count=1000)
 
 To see a complete example for using QuEra's backend, take a look at our :doc:`Python examples <../../examples/hardware_providers>`.
+
+.. note:: 
+
+    Local emulation via ``emulate`` flag is not yet supported on the `quera` target.
