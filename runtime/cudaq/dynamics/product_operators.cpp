@@ -942,8 +942,8 @@ PRODUCT_ADDITION_PRODUCT(-)
 template <typename HandlerTy>
 sum_op<HandlerTy> product_op<HandlerTy>::operator*(
     const sum_op<HandlerTy> &other) const {
-  sum_op<HandlerTy>
-      sum; // everything needs to be updated, so creating a new sum makes sense
+  if (other.is_default) return *this;
+  sum_op<HandlerTy> sum(false); // everything needs to be updated, so creating a new sum makes sense
   sum.coefficients.reserve(other.coefficients.size());
   sum.term_map.reserve(other.terms.size());
   sum.terms.reserve(other.terms.size());
@@ -960,7 +960,8 @@ sum_op<HandlerTy> product_op<HandlerTy>::operator*(
   template <typename HandlerTy>                                                \
   sum_op<HandlerTy> product_op<HandlerTy>::operator op(            \
       const sum_op<HandlerTy> &other) const & {                          \
-    sum_op<HandlerTy> sum;                                               \
+    if (other.is_default) return *this;                                        \
+    sum_op<HandlerTy> sum(false);                                               \
     sum.coefficients.reserve(other.coefficients.size() + 1);                   \
     sum.term_map = other.term_map;                                             \
     sum.terms = other.terms;                                                   \
@@ -973,7 +974,8 @@ sum_op<HandlerTy> product_op<HandlerTy>::operator*(
   template <typename HandlerTy>                                                \
   sum_op<HandlerTy> product_op<HandlerTy>::operator op(            \
       const sum_op<HandlerTy> &other) && {                               \
-    sum_op<HandlerTy> sum;                                               \
+    if (other.is_default) return *this;                                        \
+    sum_op<HandlerTy> sum(false);                                               \
     sum.coefficients.reserve(other.coefficients.size() + 1);                   \
     sum.term_map = other.term_map;                                             \
     sum.terms = other.terms;                                                   \
@@ -985,6 +987,7 @@ sum_op<HandlerTy> product_op<HandlerTy>::operator*(
   template <typename HandlerTy>                                                \
   sum_op<HandlerTy> product_op<HandlerTy>::operator op(            \
       sum_op<HandlerTy> &&other) const & {                               \
+    if (other.is_default) return *this;                                        \
     sum_op<HandlerTy> sum(op std::move(other));                          \
     sum.insert(*this);                                                         \
     return std::move(sum);                                                     \
@@ -993,6 +996,7 @@ sum_op<HandlerTy> product_op<HandlerTy>::operator*(
   template <typename HandlerTy>                                                \
   sum_op<HandlerTy> product_op<HandlerTy>::operator op(            \
       sum_op<HandlerTy> &&other) && {                                    \
+    if (other.is_default) return *this;                                        \
     sum_op<HandlerTy> sum(op std::move(other));                          \
     sum.insert(std::move(*this));                                              \
     return std::move(sum);                                                     \

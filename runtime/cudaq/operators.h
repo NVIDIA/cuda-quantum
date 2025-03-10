@@ -68,10 +68,12 @@ protected:
                 // terms)
   std::vector<std::vector<HandlerTy>> terms;
   std::vector<scalar_operator> coefficients;
+  bool is_default = false;
 
-  constexpr sum_op(){};
-  sum_op(const sum_op<HandlerTy> &other, bool sized, int size);
-  sum_op(sum_op<HandlerTy> &&other, bool sized, int size);
+  //constexpr sum_op(){};
+  constexpr sum_op(bool is_default) : is_default(is_default) {};
+  sum_op(const sum_op<HandlerTy> &other, bool is_default, int size);
+  sum_op(sum_op<HandlerTy> &&other, bool is_default, int size);
 
 public:
 
