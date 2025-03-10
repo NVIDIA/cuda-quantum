@@ -14,9 +14,9 @@
 #include "SimulationState.h"
 #include "Trace.h"
 #include "cudaq/algorithms/optimizer.h"
+#include "cudaq/operators.h"
 #include <optional>
 #include <string_view>
-#include "cudaq/operators.h"
 
 namespace cudaq {
 

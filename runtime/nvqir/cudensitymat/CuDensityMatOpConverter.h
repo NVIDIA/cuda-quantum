@@ -38,8 +38,7 @@ public:
   /// @return The constructed Liouvillian operator.
   cudensitymatOperator_t constructLiouvillian(
       const sum_op<cudaq::matrix_handler> &ham,
-      const std::vector<sum_op<cudaq::matrix_handler>>
-          &collapseOperators,
+      const std::vector<sum_op<cudaq::matrix_handler>> &collapseOperators,
       const std::vector<int64_t> &modeExtents,
       const std::unordered_map<std::string, std::complex<double>> &parameters,
       bool isMasterEquation);

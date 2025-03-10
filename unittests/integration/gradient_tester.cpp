@@ -33,9 +33,12 @@ struct deuteron_n3_ansatz {
 
 CUDAQ_TEST(GradientTester, checkSimple) {
 
-  cudaq::spin_op h = 5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) - 2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
-                     .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
-  cudaq::spin_op h3 = h + 9.625 - 9.625 * cudaq::spin_op::z(2) - 3.913119 * cudaq::spin_op::x(1) * cudaq::spin_op::x(2) -
+  cudaq::spin_op h =
+      5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
+      2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
+      .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
+  cudaq::spin_op h3 = h + 9.625 - 9.625 * cudaq::spin_op::z(2) -
+                      3.913119 * cudaq::spin_op::x(1) * cudaq::spin_op::x(2) -
                       3.913119 * cudaq::spin_op::y(1) * cudaq::spin_op::y(2);
 
   // Use l-bfgs optimizer which requires gradient calc

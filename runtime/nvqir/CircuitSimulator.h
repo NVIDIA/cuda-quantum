@@ -161,10 +161,12 @@ public:
     std::vector<std::size_t> qubitSupport;
     std::vector<std::function<void(bool)>> basisChange;
     if (term.num_ops() != qubitIds.size())
-      throw std::runtime_error("incorrect number of qubits in exp_pauli - expecting " + std::to_string(term.num_ops()) + " qubits");
+      throw std::runtime_error(
+          "incorrect number of qubits in exp_pauli - expecting " +
+          std::to_string(term.num_ops()) + " qubits");
 
     std::size_t idx = 0;
-    for (const auto& op : term) {
+    for (const auto &op : term) {
       auto pauli = op.as_pauli();
       // operator targets are relative to the qubit argument vector
       auto qId = qubitIds[idx++];
@@ -1415,7 +1417,7 @@ public:
     return measureResult;
   }
 
-  // FIXME: it would be cleaner and more consistent (with exp_pauli) if 
+  // FIXME: it would be cleaner and more consistent (with exp_pauli) if
   // this function explicitly received a vector of qubit indices such that
   // only the relative order of the target in the spin op is relevant.
   void measureSpinOp(const cudaq::spin_op &op) override {
@@ -1430,7 +1432,8 @@ public:
 
     if (op.num_terms() != 1)
       // more than one term needs to be directly supported by the backend
-      throw std::runtime_error("measuring a sum of spin operators is not supported");
+      throw std::runtime_error(
+          "measuring a sum of spin operators is not supported");
 
     cudaq::info("Measure {}", op.to_string());
     std::vector<std::size_t> qubitsToMeasure;

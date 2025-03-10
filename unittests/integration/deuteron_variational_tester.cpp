@@ -24,8 +24,10 @@ CUDAQ_TEST(D2VariationalTester, checkSimple) {
 
   cudaq::set_random_seed(13);
 
-  cudaq::spin_op h = 5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) - 2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
-                     .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
+  cudaq::spin_op h =
+      5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
+      2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
+      .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
 
   double energy = cudaq::observe(ansatz2{}, h, .59);
   printf("Energy is %.16lf\n", energy);
@@ -61,8 +63,10 @@ CUDAQ_TEST(D2VariationalTester, checkBroadcast) {
 
   cudaq::set_random_seed(13);
 
-  cudaq::spin_op h = 5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) - 2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
-                     .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
+  cudaq::spin_op h =
+      5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
+      2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
+      .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
 
 #if defined CUDAQ_BACKEND_TENSORNET
   // Reduce test time by reducing the broadcast size.

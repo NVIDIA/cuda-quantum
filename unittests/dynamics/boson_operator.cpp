@@ -39,8 +39,7 @@ TEST(OperatorExpressions, checkBosonOpsConstruction) {
   expected = cudaq::complex_matrix(0, 0);
   utils::checkEqual(sum.to_matrix(), expected);
 
-  sum *=
-      cudaq::boson_op::number(1); // empty times something is still empty
+  sum *= cudaq::boson_op::number(1); // empty times something is still empty
   std::vector<std::size_t> expected_degrees = {};
   ASSERT_EQ(sum.degrees(), expected_degrees);
   utils::checkEqual(sum.to_matrix(), expected);
@@ -637,8 +636,7 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
   // `boson_handler + sum_op`
   {
     auto self = cudaq::boson_op::create(2);
-    auto sum_op =
-        cudaq::boson_op::annihilate(2) + cudaq::boson_op::number(1);
+    auto sum_op = cudaq::boson_op::annihilate(2) + cudaq::boson_op::number(1);
 
     auto got = self + sum_op;
     auto reverse = sum_op + self;
@@ -664,8 +662,7 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
   // `boson_handler - sum_op`
   {
     auto self = cudaq::boson_op::annihilate(0);
-    auto sum_op =
-        cudaq::boson_op::create(0) + cudaq::boson_op::identity(1);
+    auto sum_op = cudaq::boson_op::create(0) + cudaq::boson_op::identity(1);
 
     auto got = self - sum_op;
     auto reverse = sum_op - self;
@@ -691,8 +688,7 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
   // `boson_handler * sum_op`
   {
     auto self = cudaq::boson_op::number(0);
-    auto sum_op =
-        cudaq::boson_op::create(0) + cudaq::boson_op::number(2);
+    auto sum_op = cudaq::boson_op::create(0) + cudaq::boson_op::number(2);
 
     auto got = self * sum_op;
     auto reverse = sum_op * self;
@@ -722,8 +718,7 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
 
   // `sum_op += boson_handler`
   {
-    auto sum_op = cudaq::boson_op::momentum(0) +
-                        cudaq::boson_op::annihilate(2);
+    auto sum_op = cudaq::boson_op::momentum(0) + cudaq::boson_op::annihilate(2);
     sum_op += cudaq::boson_op::position(0);
 
     ASSERT_TRUE(sum_op.num_terms() == 3);
@@ -742,8 +737,7 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
 
   // `sum_op -= boson_handler`
   {
-    auto sum_op =
-        cudaq::boson_op::create(0) + cudaq::boson_op::annihilate(1);
+    auto sum_op = cudaq::boson_op::create(0) + cudaq::boson_op::annihilate(1);
     sum_op -= cudaq::boson_op::momentum(0);
 
     ASSERT_TRUE(sum_op.num_terms() == 3);
@@ -762,8 +756,7 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
 
   // `sum_op *= boson_handler`
   {
-    auto sum_op =
-        cudaq::boson_op::momentum(0) + cudaq::boson_op::momentum(1);
+    auto sum_op = cudaq::boson_op::momentum(0) + cudaq::boson_op::momentum(1);
     auto self = cudaq::boson_op::position(0);
 
     sum_op *= self;
@@ -844,28 +837,28 @@ TEST(OperatorExpressions, checkCommutationRelations) {
 
   // check [a(q), a†(q)] = 1
 
-  auto rel1 = commutator(cudaq::boson_op::create(0),
-                         cudaq::boson_op::annihilate(0));
-  auto rel2 = commutator(cudaq::boson_op::create(1),
-                         cudaq::boson_op::annihilate(1));
+  auto rel1 =
+      commutator(cudaq::boson_op::create(0), cudaq::boson_op::annihilate(0));
+  auto rel2 =
+      commutator(cudaq::boson_op::create(1), cudaq::boson_op::annihilate(1));
   utils::checkEqual(rel1.to_matrix(dimensions), utils::id_matrix(4));
   utils::checkEqual(rel2.to_matrix(dimensions), utils::id_matrix(4));
 
   // check [a(k), a†(q)] = 0 for k != q
 
-  auto rel3 = commutator(cudaq::boson_op::create(0),
-                         cudaq::boson_op::annihilate(1));
-  auto rel4 = commutator(cudaq::boson_op::create(1),
-                         cudaq::boson_op::annihilate(0));
+  auto rel3 =
+      commutator(cudaq::boson_op::create(0), cudaq::boson_op::annihilate(1));
+  auto rel4 =
+      commutator(cudaq::boson_op::create(1), cudaq::boson_op::annihilate(0));
   utils::checkEqual(rel3.to_matrix(dimensions), utils::zero_matrix(16));
   utils::checkEqual(rel4.to_matrix(dimensions), utils::zero_matrix(16));
 
   // check [a†(q), a†(q)] = 0
 
-  auto rel5 = commutator(cudaq::boson_op::create(0),
-                         cudaq::boson_op::create(0));
-  auto rel6 = commutator(cudaq::boson_op::create(1),
-                         cudaq::boson_op::create(1));
+  auto rel5 =
+      commutator(cudaq::boson_op::create(0), cudaq::boson_op::create(0));
+  auto rel6 =
+      commutator(cudaq::boson_op::create(1), cudaq::boson_op::create(1));
   utils::checkEqual(rel5.to_matrix(dimensions), utils::zero_matrix(4));
   utils::checkEqual(rel6.to_matrix(dimensions), utils::zero_matrix(4));
 
@@ -880,10 +873,10 @@ TEST(OperatorExpressions, checkCommutationRelations) {
 
   // check [a†(k), a†(q)] = 0 for k != q
 
-  auto rel9 = commutator(cudaq::boson_op::create(0),
-                         cudaq::boson_op::create(1));
-  auto rel10 = commutator(cudaq::boson_op::create(1),
-                          cudaq::boson_op::create(0));
+  auto rel9 =
+      commutator(cudaq::boson_op::create(0), cudaq::boson_op::create(1));
+  auto rel10 =
+      commutator(cudaq::boson_op::create(1), cudaq::boson_op::create(0));
   utils::checkEqual(rel9.to_matrix(dimensions), utils::zero_matrix(16));
   utils::checkEqual(rel10.to_matrix(dimensions), utils::zero_matrix(16));
 

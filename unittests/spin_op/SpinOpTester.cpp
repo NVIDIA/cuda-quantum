@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include <gtest/gtest.h>
 #include "cudaq/operators.h"
+#include <gtest/gtest.h>
 
 enum Pauli : int8_t { I = 0, X, Y, Z };
 constexpr Pauli paulis[4] = {Pauli::I, Pauli::X, Pauli::Y, Pauli::Z};
@@ -68,7 +68,7 @@ static std::string generate_pauli_string(const std::vector<Pauli> &word) {
 }
 
 static cudaq::spin_op_term generate_cudaq_spin(int64_t id, int64_t num_qubits,
-                                          bool addI = true) {
+                                               bool addI = true) {
   constexpr int64_t mask = 0x3;
   auto result = cudaq::spin_op::identity();
   for (int64_t i = 0; i < num_qubits; ++i) {
@@ -107,17 +107,20 @@ TEST(SpinOpTester, checkFromWord) {
   {
     auto s = cudaq::spin_op::from_word("ZZZ");
     std::cout << s.to_string() << "\n";
-    EXPECT_EQ(cudaq::spin_op::z(0) * cudaq::spin_op::z(1) * cudaq::spin_op::z(2), s);
+    EXPECT_EQ(
+        cudaq::spin_op::z(0) * cudaq::spin_op::z(1) * cudaq::spin_op::z(2), s);
   }
   {
     auto s = cudaq::spin_op::from_word("XYX");
     std::cout << s.to_string() << "\n";
-    EXPECT_EQ(cudaq::spin_op::x(0) * cudaq::spin_op::y(1) * cudaq::spin_op::x(2), s);
+    EXPECT_EQ(
+        cudaq::spin_op::x(0) * cudaq::spin_op::y(1) * cudaq::spin_op::x(2), s);
   }
   {
     auto s = cudaq::spin_op::from_word("IZY");
     std::cout << s.to_string() << "\n";
-    EXPECT_EQ(cudaq::spin_op::i(0) * cudaq::spin_op::z(1) * cudaq::spin_op::y(2), s);
+    EXPECT_EQ(
+        cudaq::spin_op::i(0) * cudaq::spin_op::z(1) * cudaq::spin_op::y(2), s);
   }
 }
 
@@ -129,7 +132,8 @@ TEST(SpinOpTester, checkAddition) {
   EXPECT_EQ(1, added.num_terms());
   EXPECT_EQ(2.0, added.begin()->get_coefficient());
 
-  auto added2 = cudaq::spin_op::x(0) + cudaq::spin_op::y(1) + cudaq::spin_op:: z(2);
+  auto added2 =
+      cudaq::spin_op::x(0) + cudaq::spin_op::y(1) + cudaq::spin_op::z(2);
   EXPECT_EQ(3, added2.num_terms());
   EXPECT_EQ(3, added2.num_qubits());
   for (int i = 0; i < 3; i++) {
@@ -188,8 +192,8 @@ TEST(SpinOpTester, checkMultiplication) {
 }
 
 TEST(SpinOpTester, canBuildDeuteron) {
-  auto H = 5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) - 
-           2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) + 
+  auto H = 5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
+           2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
            .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
 
   EXPECT_EQ(5, H.num_terms());
@@ -198,8 +202,8 @@ TEST(SpinOpTester, canBuildDeuteron) {
 
 /*
 TEST(SpinOpTester, checkGetSparseMatrix) {
-  auto H = 5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) - 
-           2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) + 
+  auto H = 5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
+           2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
            .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
 
   auto matrix = H.to_matrix();
@@ -214,10 +218,10 @@ TEST(SpinOpTester, checkGetSparseMatrix) {
 */
 
 TEST(SpinOpTester, checkGetMatrix) {
-  auto H = 5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) - 
-           2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) + 
+  auto H = 5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
+           2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
            .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
-           
+
   auto matrix = H.to_matrix();
   matrix.dump();
   auto groundEnergy = matrix.minimal_eigenvalue();
@@ -274,8 +278,8 @@ TEST(SpinOpTester, checkGetMatrix) {
 }
 
 TEST(SpinOpTester, checkIterator) {
-  auto H = 5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) - 
-           2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) + 
+  auto H = 5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
+           2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
            .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
 
   std::size_t count = 0;
@@ -288,8 +292,8 @@ TEST(SpinOpTester, checkIterator) {
 }
 
 TEST(SpinOpTester, checkDistributeTerms) {
-  auto H = 5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) - 
-           2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) + 
+  auto H = 5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
+           2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
            .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
 
   auto distributed = H.distribute_terms(2);

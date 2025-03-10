@@ -25,8 +25,7 @@ TEST(EvolveTester, checkSimple) {
   std::vector<double> steps = cudaq::linspace(0.0, 1.0, numSteps);
   cudaq::schedule schedule(steps, {"t"});
 
-  cudaq::product_op<cudaq::matrix_handler> pauliZ_t =
-      cudaq::spin_op::z(0);
+  cudaq::product_op<cudaq::matrix_handler> pauliZ_t = cudaq::spin_op::z(0);
   cudaq::sum_op<cudaq::matrix_handler> pauliZ(pauliZ_t);
   auto initialState =
       cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
@@ -59,8 +58,7 @@ TEST(EvolveTester, checkSimpleRK4) {
   std::vector<double> steps = cudaq::linspace(0.0, 1.0, numSteps);
   cudaq::schedule schedule(steps, {"t"});
 
-  cudaq::product_op<cudaq::matrix_handler> pauliZ_t =
-      cudaq::spin_op::z(0);
+  cudaq::product_op<cudaq::matrix_handler> pauliZ_t = cudaq::spin_op::z(0);
   cudaq::sum_op<cudaq::matrix_handler> pauliZ(pauliZ_t);
   auto initialState =
       cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
@@ -93,8 +91,7 @@ TEST(EvolveTester, checkDensityMatrixSimple) {
   std::vector<double> steps = cudaq::linspace(0.0, 1.0, numSteps);
   cudaq::schedule schedule(steps, {"t"});
 
-  cudaq::product_op<cudaq::matrix_handler> pauliZ_t =
-      cudaq::spin_op::z(0);
+  cudaq::product_op<cudaq::matrix_handler> pauliZ_t = cudaq::spin_op::z(0);
   cudaq::sum_op<cudaq::matrix_handler> pauliZ(pauliZ_t);
   auto initialState = cudaq::state::from_data(
       std::vector<std::complex<double>>{1.0, 0.0, 0.0, 0.0});
@@ -243,8 +240,7 @@ TEST(EvolveTester, checkScalarTd) {
   cudaq::product_op<cudaq::matrix_handler> ham1 =
       cudaq::scalar_operator(function) * cudaq::boson_op::number(0);
   cudaq::sum_op<cudaq::matrix_handler> ham(ham1);
-  cudaq::product_op<cudaq::matrix_handler> obs1 =
-      cudaq::boson_op::number(0);
+  cudaq::product_op<cudaq::matrix_handler> obs1 = cudaq::boson_op::number(0);
   cudaq::sum_op<cudaq::matrix_handler> obs(obs1);
   const double decayRate = 0.1;
   cudaq::product_op<cudaq::matrix_handler> collapseOp1 =

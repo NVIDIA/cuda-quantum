@@ -30,8 +30,7 @@ private:
 public:
   // constructors and destructors
 
-  constexpr scalar_operator()
-    : value(1.) {}
+  constexpr scalar_operator() : value(1.) {}
 
   scalar_operator(double value);
 
@@ -71,8 +70,9 @@ public:
 
   // Return the scalar operator as a 1x1 matrix. This is needed for
   // compatibility with the other inherited classes.
-  complex_matrix to_matrix(const std::unordered_map<std::string, std::complex<double>>
-                         &parameters = {}) const;
+  complex_matrix
+  to_matrix(const std::unordered_map<std::string, std::complex<double>>
+                &parameters = {}) const;
 
   std::string to_string() const;
 

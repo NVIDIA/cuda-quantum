@@ -150,8 +150,10 @@ CUDAQ_TEST(QubitQISTester, checkCommonKernel) {
     x<cudaq::ctrl>(q[1], q[0]);
   };
 
-  cudaq::spin_op h = 5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) - 2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
-                     .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
+  cudaq::spin_op h =
+      5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
+      2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
+      .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
   auto energy = cudaq::observe(ansatz, h, .59);
   EXPECT_NEAR(energy, -1.7487, 1e-3);
 #endif

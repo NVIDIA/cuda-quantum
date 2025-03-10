@@ -45,8 +45,10 @@ CUDAQ_TEST(VqeThenSample, checkBug67) {
     }
   };
 
-  cudaq::spin_op Hp = 0.5 * cudaq::spin_op::z(0) * cudaq::spin_op::z(1) + 0.5 * cudaq::spin_op::z(1) * cudaq::spin_op::z(2) +
-                      0.5 * cudaq::spin_op::z(0) * cudaq::spin_op::z(3) + 0.5 * cudaq::spin_op::z(2) * cudaq::spin_op::z(3);
+  cudaq::spin_op Hp = 0.5 * cudaq::spin_op::z(0) * cudaq::spin_op::z(1) +
+                      0.5 * cudaq::spin_op::z(1) * cudaq::spin_op::z(2) +
+                      0.5 * cudaq::spin_op::z(0) * cudaq::spin_op::z(3) +
+                      0.5 * cudaq::spin_op::z(2) * cudaq::spin_op::z(3);
 
   int n_qubits = 4;
   int n_layers = 2;

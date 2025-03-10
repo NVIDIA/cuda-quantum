@@ -45,15 +45,16 @@ public:
             cached = ::qpp::apply(cached, Z, {convertQubitIndex(i)});
         }
 
-        sum += term.get_coefficient().evaluate().real() * state.transpose().dot(cached).real();
+        sum += term.get_coefficient().evaluate().real() *
+               state.transpose().dot(cached).real();
       } else {
         sum += term.get_coefficient().evaluate().real();
       }
     }
 
-    return cudaq::observe_result(sum, op,
-                                 cudaq::sample_result(cudaq::ExecutionResult(
-                                     {}, op.to_string(), sum)));
+    return cudaq::observe_result(
+        sum, op,
+        cudaq::sample_result(cudaq::ExecutionResult({}, op.to_string(), sum)));
   }
 
   std::string name() const override { return "qpp-test"; }

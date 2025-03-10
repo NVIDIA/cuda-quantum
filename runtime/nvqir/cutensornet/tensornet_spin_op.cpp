@@ -27,7 +27,8 @@ TensorNetworkSpinOp::TensorNetworkSpinOp(const cudaq::spin_op &spinOp,
   // <psi| H |psi> in one go rather than summing over term-by-term contractions.
   constexpr std::size_t NUM_QUBITS_THRESHOLD_DIRECT_OBS = 10;
   if (degrees.size() < NUM_QUBITS_THRESHOLD_DIRECT_OBS) {
-    const auto spinMat = spinOp.to_matrix({}, {}, false); // ordering consistent with degrees
+    const auto spinMat =
+        spinOp.to_matrix({}, {}, false); // ordering consistent with degrees
     std::vector<std::complex<double>> opMat;
     opMat.reserve(spinMat.rows() * spinMat.cols());
     for (size_t i = 0; i < spinMat.rows(); ++i) {
@@ -96,13 +97,12 @@ TensorNetworkSpinOp::TensorNetworkSpinOp(const cudaq::spin_op &spinOp,
         continue;
       }
 
-      const cuDoubleComplex termCoeff{coeff.real(),
-                                      coeff.imag()};
+      const cuDoubleComplex termCoeff{coeff.real(), coeff.imag()};
       std::vector<const void *> pauliTensorData;
       std::vector<std::vector<int32_t>> stateModes;
       for (const auto &p : term) {
         auto pauli = p.as_pauli();
-        // FIXME: used (only) for observe - 
+        // FIXME: used (only) for observe -
         // matches the behavior in CircuitSimulator.h to require
         // the target to match the intended qubit index.
         auto target = p.target();

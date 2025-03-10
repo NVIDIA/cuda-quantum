@@ -21,10 +21,11 @@ cudaq::spin_op to_spin_op(py::object &obj) {
   return obj.cast<cudaq::spin_op>();
 }
 cudaq::spin_op to_spin_op_term(py::object &obj) {
-  auto op = cudaq::spin_op::empty(); 
+  auto op = cudaq::spin_op::empty();
   if (py::hasattr(obj, "_to_spinop"))
     op = obj.attr("_to_spinop")().cast<cudaq::spin_op>();
-  else op = obj.cast<cudaq::spin_op>();
+  else
+    op = obj.cast<cudaq::spin_op>();
   if (op.num_terms() != 1)
     throw std::invalid_argument("expecting a spin op with a single term");
   return *op.begin();
@@ -43,9 +44,9 @@ void bindObserveResult(py::module &mod) {
       "expectation value of the user-defined `spin_operator`.\n")
       .def(py::init<double, spin_op, sample_result>())
       .def(py::init(
-        [](double exp_val, const spin_op &spin_op, sample_result result) {
-          return observe_result(exp_val, spin_op, result);
-        }))
+          [](double exp_val, const spin_op &spin_op, sample_result result) {
+            return observe_result(exp_val, spin_op, result);
+          }))
       .def(py::init(
           [](double exp_val, py::object spin_op, sample_result result) {
             return observe_result(exp_val, to_spin_op(spin_op), result);
@@ -86,11 +87,11 @@ Returns:
   :class:`SampleResult`: The measurement counts data for the individual `sub_term`.)#")
       // FIXME: deprecate
       .def(
-        "counts",
-        [](observe_result &self, const spin_op &sub_term) {
-          return self.counts(sub_term);
-        },
-        py::arg("sub_term"), "")      
+          "counts",
+          [](observe_result &self, const spin_op &sub_term) {
+            return self.counts(sub_term);
+          },
+          py::arg("sub_term"), "")
       .def(
           "expectation",
           [](observe_result &self) { return self.expectation(); },
@@ -120,11 +121,11 @@ Returns:
   :class:`Kernel` that was passed to :func:`observe`.)#")
       // FIXME: deprecate
       .def(
-        "expectation",
-        [](observe_result &self, const spin_op &spin_term) {
-          return self.expectation(spin_term);
-        },
-        py::arg("sub_term"), "");
+          "expectation",
+          [](observe_result &self, const spin_op &spin_term) {
+            return self.expectation(spin_term);
+          },
+          py::arg("sub_term"), "");
 
   py::class_<async_observe_result>(
       mod, "AsyncObserveResult",

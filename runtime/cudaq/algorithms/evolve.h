@@ -63,10 +63,9 @@ convertOps(const std::initializer_list<OpTy> &ops) {
 } // namespace __internal__
 
 #if CUDAQ_USE_STD20
-template <
-    operator_type HamTy,
-    operator_type CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
-    operator_type ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>>
+template <operator_type HamTy,
+          operator_type CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
+          operator_type ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>>
 #else
 template <typename HamTy,
           typename CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
@@ -127,10 +126,9 @@ evolve_result evolve(const HamTy &hamiltonian,
 }
 
 #if CUDAQ_USE_STD20
-template <
-    operator_type HamTy,
-    operator_type CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
-    operator_type ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>>
+template <operator_type HamTy,
+          operator_type CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
+          operator_type ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>>
 #else
 template <typename HamTy,
           typename CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
@@ -163,10 +161,9 @@ evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
 }
 
 #if CUDAQ_USE_STD20
-template <
-    operator_type HamTy,
-    operator_type CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
-    operator_type ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>>
+template <operator_type HamTy,
+          operator_type CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
+          operator_type ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>>
 #else
 template <typename HamTy,
           typename CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
@@ -199,10 +196,9 @@ evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
 }
 
 #if CUDAQ_USE_STD20
-template <
-    operator_type HamTy,
-    operator_type CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
-    operator_type ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>>
+template <operator_type HamTy,
+          operator_type CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
+          operator_type ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>>
 #else
 template <typename HamTy,
           typename CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,

@@ -10,6 +10,7 @@
 
 #include "common/MeasureCounts.h"
 #include "cudaq/host_config.h"
+#include "cudaq/operators.h"
 #include "cudaq/platform.h"
 #include "cudaq/qis/modifiers.h"
 #include "cudaq/qis/pauli_word.h"
@@ -17,7 +18,6 @@
 #include "cudaq/qis/qkernel.h"
 #include "cudaq/qis/qreg.h"
 #include "cudaq/qis/qvector.h"
-#include "cudaq/operators.h"
 #include <algorithm>
 #include <cstring>
 #include <functional>

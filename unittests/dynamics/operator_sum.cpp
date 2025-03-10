@@ -18,249 +18,247 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
   std::complex<double> value_2 = 2.0 + 0.1;
   std::complex<double> value_3 = 2.0 + 1.0;
 
+  {// Same degrees of freedom.
+   {auto spin0 = cudaq::spin_op::x(5);
+  auto spin1 = cudaq::spin_op::z(5);
+  auto spin_sum = spin0 + spin1;
+
+  std::vector<std::size_t> want_degrees = {5};
+  auto spin_matrix = utils::PauliX_matrix() + utils::PauliZ_matrix();
+
+  ASSERT_TRUE(spin_sum.degrees() == want_degrees);
+  utils::checkEqual(spin_matrix, spin_sum.to_matrix());
+
+  for (auto level_count : levels) {
+    auto op0 = cudaq::matrix_op::number(5);
+    auto op1 = cudaq::matrix_op::parity(5);
+
+    auto sum = op0 + op1;
+    ASSERT_TRUE(sum.degrees() == want_degrees);
+
+    auto got_matrix = sum.to_matrix({{5, level_count}});
+    auto matrix0 = utils::number_matrix(level_count);
+    auto matrix1 = utils::parity_matrix(level_count);
+    auto want_matrix = matrix0 + matrix1;
+    utils::checkEqual(want_matrix, got_matrix);
+  }
+}
+
+// Different degrees of freedom.
+{
+  auto spin0 = cudaq::spin_op::x(0);
+  auto spin1 = cudaq::spin_op::z(1);
+  auto spin_sum = spin0 + spin1;
+
+  std::vector<std::size_t> want_degrees = {0, 1};
+  auto spin_matrix =
+      cudaq::kronecker(utils::id_matrix(2), utils::PauliX_matrix()) +
+      cudaq::kronecker(utils::PauliZ_matrix(), utils::id_matrix(2));
+
+  ASSERT_TRUE(spin_sum.degrees() == want_degrees);
+  utils::checkEqual(spin_matrix, spin_sum.to_matrix());
+
+  for (auto level_count : levels) {
+    auto op0 = cudaq::matrix_op::number(0);
+    auto op1 = cudaq::matrix_op::parity(1);
+
+    auto got = op0 + op1;
+    auto got_reverse = op1 + op0;
+
+    ASSERT_TRUE(got.degrees() == want_degrees);
+    ASSERT_TRUE(got_reverse.degrees() == want_degrees);
+
+    auto got_matrix = got.to_matrix({{0, level_count}, {1, level_count}});
+    auto got_matrix_reverse =
+        got_reverse.to_matrix({{0, level_count}, {1, level_count}});
+
+    auto identity = utils::id_matrix(level_count);
+    auto matrix0 = utils::number_matrix(level_count);
+    auto matrix1 = utils::parity_matrix(level_count);
+
+    auto fullHilbert0 = cudaq::kronecker(identity, matrix0);
+    auto fullHilbert1 = cudaq::kronecker(matrix1, identity);
+    auto want_matrix = fullHilbert0 + fullHilbert1;
+
+    utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_matrix, got_matrix_reverse);
+  }
+}
+
+// Different degrees of freedom, non-consecutive.
+// Should produce the same matrices as the above test.
+{
+  auto spin0 = cudaq::spin_op::x(0);
+  auto spin1 = cudaq::spin_op::z(2);
+  auto spin_sum = spin0 + spin1;
+
+  std::vector<std::size_t> want_degrees = {0, 2};
+  auto spin_matrix =
+      cudaq::kronecker(utils::id_matrix(2), utils::PauliX_matrix()) +
+      cudaq::kronecker(utils::PauliZ_matrix(), utils::id_matrix(2));
+
+  ASSERT_TRUE(spin_sum.degrees() == want_degrees);
+  utils::checkEqual(spin_matrix, spin_sum.to_matrix());
+
+  for (auto level_count : levels) {
+    auto op0 = cudaq::matrix_op::number(0);
+    auto op1 = cudaq::matrix_op::parity(2);
+
+    auto got = op0 + op1;
+    auto got_reverse = op1 + op0;
+
+    ASSERT_TRUE(got.degrees() == want_degrees);
+    ASSERT_TRUE(got_reverse.degrees() == want_degrees);
+
+    auto got_matrix = got.to_matrix({{0, level_count}, {2, level_count}});
+    auto got_matrix_reverse =
+        got_reverse.to_matrix({{0, level_count}, {2, level_count}});
+
+    auto identity = utils::id_matrix(level_count);
+    auto matrix0 = utils::number_matrix(level_count);
+    auto matrix1 = utils::parity_matrix(level_count);
+
+    auto fullHilbert0 = cudaq::kronecker(identity, matrix0);
+    auto fullHilbert1 = cudaq::kronecker(matrix1, identity);
+    auto want_matrix = fullHilbert0 + fullHilbert1;
+
+    utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(want_matrix, got_matrix_reverse);
+  }
+}
+
+// Different degrees of freedom, non-consecutive but all dimensions
+// provided.
+{
+  auto spin0 = cudaq::spin_op::x(0);
+  auto spin1 = cudaq::spin_op::z(2);
+  auto spin_sum = spin0 + spin1;
+
+  std::vector<std::size_t> want_degrees = {0, 2};
+  auto spin_matrix =
+      cudaq::kronecker(utils::id_matrix(2), utils::PauliX_matrix()) +
+      cudaq::kronecker(utils::PauliZ_matrix(), utils::id_matrix(2));
+  std::unordered_map<int, int> dimensions = {{0, 2}, {1, 2}, {2, 2}};
+
+  ASSERT_TRUE(spin_sum.degrees() == want_degrees);
+  utils::checkEqual(spin_matrix, spin_sum.to_matrix(dimensions));
+
+  for (auto level_count : levels) {
+    auto op0 = cudaq::matrix_op::number(0);
+    auto op1 = cudaq::matrix_op::parity(2);
+
+    auto got = op0 + op1;
+    auto got_reverse = op1 + op0;
+
+    std::vector<std::size_t> want_degrees = {0, 2};
+    ASSERT_TRUE(got.degrees() == want_degrees);
+    ASSERT_TRUE(got_reverse.degrees() == want_degrees);
+
+    dimensions = {{0, level_count}, {1, level_count}, {2, level_count}};
+    auto got_matrix = got.to_matrix(dimensions);
+    auto got_matrix_reverse = got_reverse.to_matrix(dimensions);
+
+    auto identity = utils::id_matrix(level_count);
+    auto matrix0 = utils::number_matrix(level_count);
+    auto matrix1 = utils::parity_matrix(level_count);
+    std::vector<cudaq::complex_matrix> matrices_0 = {identity, matrix0};
+    std::vector<cudaq::complex_matrix> matrices_1 = {matrix1, identity};
+
+    auto fullHilbert0 = cudaq::kronecker(matrices_0.begin(), matrices_0.end());
+    auto fullHilbert1 = cudaq::kronecker(matrices_1.begin(), matrices_1.end());
+    auto want_matrix = fullHilbert0 + fullHilbert1;
+    auto want_matrix_reverse = fullHilbert1 + fullHilbert0;
+
+    utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(got_matrix, want_matrix);
+  }
+}
+}
+
+// Scalar Ops against Elementary Ops
+{
+  auto function = [](const std::unordered_map<std::string, std::complex<double>>
+                         &parameters) {
+    auto entry = parameters.find("value");
+    if (entry == parameters.end())
+      throw std::runtime_error("value not defined in parameters");
+    return entry->second;
+  };
+
+  // matrix operator against constant
   {
-    // Same degrees of freedom.
-    {
-      auto spin0 = cudaq::spin_op::x(5);
-      auto spin1 = cudaq::spin_op::z(5);
-      auto spin_sum = spin0 + spin1;
+    auto op = cudaq::matrix_op::parity(0);
+    auto scalar_op = cudaq::scalar_operator(value_0);
+    auto sum = scalar_op + op;
+    auto reverse = op + scalar_op;
 
-      std::vector<std::size_t> want_degrees = {5};
-      auto spin_matrix = utils::PauliX_matrix() + utils::PauliZ_matrix();
+    std::vector<std::size_t> want_degrees = {0};
+    auto op_matrix = utils::parity_matrix(2);
+    auto scalar_matrix = value_0 * utils::id_matrix(2);
 
-      ASSERT_TRUE(spin_sum.degrees() == want_degrees);
-      utils::checkEqual(spin_matrix, spin_sum.to_matrix());
-
-      for (auto level_count : levels) {
-        auto op0 = cudaq::matrix_op::number(5);
-        auto op1 = cudaq::matrix_op::parity(5);
-
-        auto sum = op0 + op1;
-        ASSERT_TRUE(sum.degrees() == want_degrees);
-
-        auto got_matrix = sum.to_matrix({{5, level_count}});
-        auto matrix0 = utils::number_matrix(level_count);
-        auto matrix1 = utils::parity_matrix(level_count);
-        auto want_matrix = matrix0 + matrix1;
-        utils::checkEqual(want_matrix, got_matrix);
-      }
-    }
-
-    // Different degrees of freedom.
-    {
-      auto spin0 = cudaq::spin_op::x(0);
-      auto spin1 = cudaq::spin_op::z(1);
-      auto spin_sum = spin0 + spin1;
-
-      std::vector<std::size_t> want_degrees = {0, 1};
-      auto spin_matrix =
-          cudaq::kronecker(utils::id_matrix(2), utils::PauliX_matrix()) +
-          cudaq::kronecker(utils::PauliZ_matrix(), utils::id_matrix(2));
-
-      ASSERT_TRUE(spin_sum.degrees() == want_degrees);
-      utils::checkEqual(spin_matrix, spin_sum.to_matrix());
-
-      for (auto level_count : levels) {
-        auto op0 = cudaq::matrix_op::number(0);
-        auto op1 = cudaq::matrix_op::parity(1);
-
-        auto got = op0 + op1;
-        auto got_reverse = op1 + op0;
-
-        ASSERT_TRUE(got.degrees() == want_degrees);
-        ASSERT_TRUE(got_reverse.degrees() == want_degrees);
-
-        auto got_matrix = got.to_matrix({{0, level_count}, {1, level_count}});
-        auto got_matrix_reverse =
-            got_reverse.to_matrix({{0, level_count}, {1, level_count}});
-
-        auto identity = utils::id_matrix(level_count);
-        auto matrix0 = utils::number_matrix(level_count);
-        auto matrix1 = utils::parity_matrix(level_count);
-
-        auto fullHilbert0 = cudaq::kronecker(identity, matrix0);
-        auto fullHilbert1 = cudaq::kronecker(matrix1, identity);
-        auto want_matrix = fullHilbert0 + fullHilbert1;
-
-        utils::checkEqual(want_matrix, got_matrix);
-        utils::checkEqual(want_matrix, got_matrix_reverse);
-      }
-    }
-
-    // Different degrees of freedom, non-consecutive.
-    // Should produce the same matrices as the above test.
-    {
-      auto spin0 = cudaq::spin_op::x(0);
-      auto spin1 = cudaq::spin_op::z(2);
-      auto spin_sum = spin0 + spin1;
-
-      std::vector<std::size_t> want_degrees = {0, 2};
-      auto spin_matrix =
-          cudaq::kronecker(utils::id_matrix(2), utils::PauliX_matrix()) +
-          cudaq::kronecker(utils::PauliZ_matrix(), utils::id_matrix(2));
-
-      ASSERT_TRUE(spin_sum.degrees() == want_degrees);
-      utils::checkEqual(spin_matrix, spin_sum.to_matrix());
-
-      for (auto level_count : levels) {
-        auto op0 = cudaq::matrix_op::number(0);
-        auto op1 = cudaq::matrix_op::parity(2);
-
-        auto got = op0 + op1;
-        auto got_reverse = op1 + op0;
-
-        ASSERT_TRUE(got.degrees() == want_degrees);
-        ASSERT_TRUE(got_reverse.degrees() == want_degrees);
-
-        auto got_matrix = got.to_matrix({{0, level_count}, {2, level_count}});
-        auto got_matrix_reverse =
-            got_reverse.to_matrix({{0, level_count}, {2, level_count}});
-
-        auto identity = utils::id_matrix(level_count);
-        auto matrix0 = utils::number_matrix(level_count);
-        auto matrix1 = utils::parity_matrix(level_count);
-
-        auto fullHilbert0 = cudaq::kronecker(identity, matrix0);
-        auto fullHilbert1 = cudaq::kronecker(matrix1, identity);
-        auto want_matrix = fullHilbert0 + fullHilbert1;
-
-        utils::checkEqual(want_matrix, got_matrix);
-        utils::checkEqual(want_matrix, got_matrix_reverse);
-      }
-    }
-
-    // Different degrees of freedom, non-consecutive but all dimensions
-    // provided.
-    {
-      auto spin0 = cudaq::spin_op::x(0);
-      auto spin1 = cudaq::spin_op::z(2);
-      auto spin_sum = spin0 + spin1;
-
-      std::vector<std::size_t> want_degrees = {0, 2};
-      auto spin_matrix =
-          cudaq::kronecker(utils::id_matrix(2), utils::PauliX_matrix()) +
-          cudaq::kronecker(utils::PauliZ_matrix(), utils::id_matrix(2));
-      std::unordered_map<int, int> dimensions = {{0, 2}, {1, 2}, {2, 2}};
-
-      ASSERT_TRUE(spin_sum.degrees() == want_degrees);
-      utils::checkEqual(spin_matrix, spin_sum.to_matrix(dimensions));
-
-      for (auto level_count : levels) {
-        auto op0 = cudaq::matrix_op::number(0);
-        auto op1 = cudaq::matrix_op::parity(2);
-
-        auto got = op0 + op1;
-        auto got_reverse = op1 + op0;
-
-        std::vector<std::size_t> want_degrees = {0, 2};
-        ASSERT_TRUE(got.degrees() == want_degrees);
-        ASSERT_TRUE(got_reverse.degrees() == want_degrees);
-
-        dimensions = {{0, level_count}, {1, level_count}, {2, level_count}};
-        auto got_matrix = got.to_matrix(dimensions);
-        auto got_matrix_reverse = got_reverse.to_matrix(dimensions);
-
-        auto identity = utils::id_matrix(level_count);
-        auto matrix0 = utils::number_matrix(level_count);
-        auto matrix1 = utils::parity_matrix(level_count);
-        std::vector<cudaq::complex_matrix> matrices_0 = {identity, matrix0};
-        std::vector<cudaq::complex_matrix> matrices_1 = {matrix1, identity};
-
-        auto fullHilbert0 = cudaq::kronecker(matrices_0.begin(), matrices_0.end());
-        auto fullHilbert1 = cudaq::kronecker(matrices_1.begin(), matrices_1.end());
-        auto want_matrix = fullHilbert0 + fullHilbert1;
-        auto want_matrix_reverse = fullHilbert1 + fullHilbert0;
-
-        utils::checkEqual(want_matrix, got_matrix);
-        utils::checkEqual(got_matrix, want_matrix);
-      }
-    }
+    ASSERT_TRUE(sum.degrees() == want_degrees);
+    ASSERT_TRUE(reverse.degrees() == want_degrees);
+    utils::checkEqual(scalar_matrix + op_matrix, sum.to_matrix({{0, 2}}));
+    utils::checkEqual(scalar_matrix + op_matrix, reverse.to_matrix({{0, 2}}));
   }
 
-  // Scalar Ops against Elementary Ops
+  // spin operator against constant
   {
-    auto function = [](const std::unordered_map<std::string, std::complex<double>>
-                          &parameters) {
-      auto entry = parameters.find("value");
-      if (entry == parameters.end())
-        throw std::runtime_error("value not defined in parameters");
-      return entry->second;
-    };
+    auto op = cudaq::spin_op::x(0);
+    auto scalar_op = cudaq::scalar_operator(value_0);
+    auto sum = scalar_op + op;
+    auto reverse = op + scalar_op;
 
-    // matrix operator against constant
-    {
-      auto op = cudaq::matrix_op::parity(0);
-      auto scalar_op = cudaq::scalar_operator(value_0);
-      auto sum = scalar_op + op;
-      auto reverse = op + scalar_op;
+    std::vector<std::size_t> want_degrees = {0};
+    auto op_matrix = utils::PauliX_matrix();
+    auto scalar_matrix = value_0 * utils::id_matrix(2);
 
-      std::vector<std::size_t> want_degrees = {0};
-      auto op_matrix = utils::parity_matrix(2);
-      auto scalar_matrix = value_0 * utils::id_matrix(2);
-
-      ASSERT_TRUE(sum.degrees() == want_degrees);
-      ASSERT_TRUE(reverse.degrees() == want_degrees);
-      utils::checkEqual(scalar_matrix + op_matrix, sum.to_matrix({{0, 2}}));
-      utils::checkEqual(scalar_matrix + op_matrix, reverse.to_matrix({{0, 2}}));
-    }
-
-    // spin operator against constant
-    {
-      auto op = cudaq::spin_op::x(0);
-      auto scalar_op = cudaq::scalar_operator(value_0);
-      auto sum = scalar_op + op;
-      auto reverse = op + scalar_op;
-
-      std::vector<std::size_t> want_degrees = {0};
-      auto op_matrix = utils::PauliX_matrix();
-      auto scalar_matrix = value_0 * utils::id_matrix(2);
-
-      ASSERT_TRUE(sum.degrees() == want_degrees);
-      ASSERT_TRUE(reverse.degrees() == want_degrees);
-      utils::checkEqual(scalar_matrix + op_matrix, sum.to_matrix());
-      utils::checkEqual(scalar_matrix + op_matrix, reverse.to_matrix());
-    }
-
-    // matrix operator against constant from lambda
-    {
-      auto op = cudaq::matrix_op::parity(1);
-      auto scalar_op = cudaq::scalar_operator(function);
-      auto sum = scalar_op + op;
-      auto reverse = op + scalar_op;
-
-      std::vector<std::size_t> want_degrees = {1};
-      auto op_matrix = utils::parity_matrix(2);
-      auto scalar_matrix =
-          scalar_op.evaluate({{"value", 0.3}}) * utils::id_matrix(2);
-
-      ASSERT_TRUE(sum.degrees() == want_degrees);
-      ASSERT_TRUE(reverse.degrees() == want_degrees);
-      utils::checkEqual(scalar_matrix + op_matrix,
-                        sum.to_matrix({{1, 2}}, {{"value", 0.3}}));
-      utils::checkEqual(scalar_matrix + op_matrix,
-                        reverse.to_matrix({{1, 2}}, {{"value", 0.3}}));
-    }
-
-    // spin operator against constant from lambda
-    {
-      auto op = cudaq::spin_op::x(1);
-      auto scalar_op = cudaq::scalar_operator(function);
-      auto sum = scalar_op + op;
-      auto reverse = op + scalar_op;
-
-      std::vector<std::size_t> want_degrees = {1};
-      auto op_matrix = utils::PauliX_matrix();
-      auto scalar_matrix =
-          scalar_op.evaluate({{"value", 0.3}}) * utils::id_matrix(2);
-
-      ASSERT_TRUE(sum.degrees() == want_degrees);
-      ASSERT_TRUE(reverse.degrees() == want_degrees);
-      utils::checkEqual(scalar_matrix + op_matrix,
-                        sum.to_matrix({{1, 2}}, {{"value", 0.3}}));
-      utils::checkEqual(scalar_matrix + op_matrix,
-                        reverse.to_matrix({{1, 2}}, {{"value", 0.3}}));
-    }
+    ASSERT_TRUE(sum.degrees() == want_degrees);
+    ASSERT_TRUE(reverse.degrees() == want_degrees);
+    utils::checkEqual(scalar_matrix + op_matrix, sum.to_matrix());
+    utils::checkEqual(scalar_matrix + op_matrix, reverse.to_matrix());
   }
+
+  // matrix operator against constant from lambda
+  {
+    auto op = cudaq::matrix_op::parity(1);
+    auto scalar_op = cudaq::scalar_operator(function);
+    auto sum = scalar_op + op;
+    auto reverse = op + scalar_op;
+
+    std::vector<std::size_t> want_degrees = {1};
+    auto op_matrix = utils::parity_matrix(2);
+    auto scalar_matrix =
+        scalar_op.evaluate({{"value", 0.3}}) * utils::id_matrix(2);
+
+    ASSERT_TRUE(sum.degrees() == want_degrees);
+    ASSERT_TRUE(reverse.degrees() == want_degrees);
+    utils::checkEqual(scalar_matrix + op_matrix,
+                      sum.to_matrix({{1, 2}}, {{"value", 0.3}}));
+    utils::checkEqual(scalar_matrix + op_matrix,
+                      reverse.to_matrix({{1, 2}}, {{"value", 0.3}}));
+  }
+
+  // spin operator against constant from lambda
+  {
+    auto op = cudaq::spin_op::x(1);
+    auto scalar_op = cudaq::scalar_operator(function);
+    auto sum = scalar_op + op;
+    auto reverse = op + scalar_op;
+
+    std::vector<std::size_t> want_degrees = {1};
+    auto op_matrix = utils::PauliX_matrix();
+    auto scalar_matrix =
+        scalar_op.evaluate({{"value", 0.3}}) * utils::id_matrix(2);
+
+    ASSERT_TRUE(sum.degrees() == want_degrees);
+    ASSERT_TRUE(reverse.degrees() == want_degrees);
+    utils::checkEqual(scalar_matrix + op_matrix,
+                      sum.to_matrix({{1, 2}}, {{"value", 0.3}}));
+    utils::checkEqual(scalar_matrix + op_matrix,
+                      reverse.to_matrix({{1, 2}}, {{"value", 0.3}}));
+  }
+}
 }
 
 TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
@@ -270,8 +268,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `sum_op + double`
   {
-    auto original = cudaq::matrix_op::momentum(1) +
-                    cudaq::matrix_op::position(2);
+    auto original =
+        cudaq::matrix_op::momentum(1) + cudaq::matrix_op::position(2);
 
     auto sum = original + double_value;
     auto reverse = double_value + original;
@@ -297,8 +295,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `sum_op + std::complex<double>`
   {
-    auto original =
-        cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
+    auto original = cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
 
     auto sum = original + value;
     auto reverse = value + original;
@@ -349,8 +346,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
   // `sum_op + scalar_operator`
   {
     level_count = 2;
-    auto original =
-        cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
+    auto original = cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
 
     auto sum = original + cudaq::scalar_operator(value);
     auto reverse = cudaq::scalar_operator(value) + original;
@@ -378,8 +374,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `sum_op - double`
   {
-    auto original =
-        cudaq::matrix_op::parity(1) + cudaq::matrix_op::number(2);
+    auto original = cudaq::matrix_op::parity(1) + cudaq::matrix_op::number(2);
 
     auto difference = original - double_value;
     auto reverse = double_value - original;
@@ -434,8 +429,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `sum_op - std::complex<double>`
   {
-    auto original =
-        cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
+    auto original = cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
 
     auto difference = original - value;
     auto reverse = value - original;
@@ -464,8 +458,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `sum_op - scalar_operator`
   {
-    auto original =
-        cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
+    auto original = cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
 
     auto difference = original - cudaq::scalar_operator(value);
     auto reverse = cudaq::scalar_operator(value) - original;
@@ -494,8 +487,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `sum_op * double`
   {
-    auto sum =
-        cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
+    auto sum = cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
 
     auto product = sum * double_value;
     auto reverse = double_value * sum;
@@ -534,8 +526,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `sum_op * std::complex<double>`
   {
-    auto sum =
-        cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
+    auto sum = cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
 
     auto product = sum * value;
     auto reverse = value * sum;
@@ -572,8 +563,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `sum_op * scalar_operator`
   {
-    auto sum =
-        cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
+    auto sum = cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
 
     auto product = sum * cudaq::scalar_operator(value);
     auto reverse = cudaq::scalar_operator(value) * sum;
@@ -645,8 +635,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `sum_op / double`
   {
-    auto sum =
-        cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
+    auto sum = cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
 
     auto product = sum / double_value;
 
@@ -676,8 +665,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `sum_op / std::complex<double>`
   {
-    auto sum =
-        cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
+    auto sum = cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
 
     auto product = sum / value;
 
@@ -707,8 +695,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `sum_op / scalar_operator`
   {
-    auto sum =
-        cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
+    auto sum = cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
 
     auto product = sum / cudaq::scalar_operator(value);
 
@@ -767,8 +754,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `sum_op += double`
   {
-    auto sum =
-        cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
+    auto sum = cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
 
     sum += double_value;
 
@@ -807,8 +793,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `sum_op += std::complex<double>`
   {
-    auto sum = cudaq::matrix_op::momentum(1) +
-               cudaq::matrix_op::squeeze(2);
+    auto sum = cudaq::matrix_op::momentum(1) + cudaq::matrix_op::squeeze(2);
 
     sum += value;
 
@@ -831,8 +816,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `sum_op += scalar_operator`
   {
-    auto sum =
-        cudaq::matrix_op::parity(1) + cudaq::matrix_op::position(2);
+    auto sum = cudaq::matrix_op::parity(1) + cudaq::matrix_op::position(2);
 
     sum += cudaq::scalar_operator(value);
 
@@ -856,8 +840,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `sum_op -= double`
   {
-    auto sum =
-        cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
+    auto sum = cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
 
     sum -= double_value;
 
@@ -880,8 +863,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `sum_op -= std::complex<double>`
   {
-    auto sum =
-        cudaq::matrix_op::position(1) + cudaq::matrix_op::number(2);
+    auto sum = cudaq::matrix_op::position(1) + cudaq::matrix_op::number(2);
 
     sum -= value;
 
@@ -902,8 +884,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `sum_op -= scalar_operator`
   {
-    auto sum =
-        cudaq::matrix_op::number(1) + cudaq::matrix_op::identity(2);
+    auto sum = cudaq::matrix_op::number(1) + cudaq::matrix_op::identity(2);
 
     sum -= cudaq::scalar_operator(value);
 
@@ -935,9 +916,9 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto got_matrix = sum.to_matrix();
 
     std::vector<cudaq::complex_matrix> matrices_1 = {utils::id_matrix(2),
-                                               utils::PauliZ_matrix()};
+                                                     utils::PauliZ_matrix()};
     std::vector<cudaq::complex_matrix> matrices_2 = {utils::PauliY_matrix(),
-                                               utils::id_matrix(2)};
+                                                     utils::id_matrix(2)};
     auto matrix0 = cudaq::kronecker(matrices_1.begin(), matrices_1.end());
     auto matrix1 = cudaq::kronecker(matrices_2.begin(), matrices_2.end());
     auto scaled_identity = value * utils::id_matrix(2 * 2);
@@ -948,8 +929,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `sum_op *= double`
   {
-    auto sum =
-        cudaq::matrix_op::squeeze(1) + cudaq::matrix_op::squeeze(2);
+    auto sum = cudaq::matrix_op::squeeze(1) + cudaq::matrix_op::squeeze(2);
 
     sum *= double_value;
 
@@ -1001,8 +981,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `sum_op *= std::complex<double>`
   {
-    auto sum =
-        cudaq::matrix_op::displace(1) + cudaq::matrix_op::parity(2);
+    auto sum = cudaq::matrix_op::displace(1) + cudaq::matrix_op::parity(2);
 
     sum *= value;
 
@@ -1028,8 +1007,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `sum_op *= scalar_operator`
   {
-    auto sum =
-        cudaq::matrix_op::parity(1) + cudaq::matrix_op::momentum(2);
+    auto sum = cudaq::matrix_op::parity(1) + cudaq::matrix_op::momentum(2);
 
     sum *= cudaq::scalar_operator(value);
 
@@ -1057,8 +1035,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `sum_op /= double`
   {
-    auto sum =
-        cudaq::matrix_op::squeeze(1) + cudaq::matrix_op::squeeze(2);
+    auto sum = cudaq::matrix_op::squeeze(1) + cudaq::matrix_op::squeeze(2);
 
     sum /= double_value;
 
@@ -1114,8 +1091,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `sum_op /= std::complex<double>`
   {
-    auto sum =
-        cudaq::matrix_op::displace(1) + cudaq::matrix_op::parity(2);
+    auto sum = cudaq::matrix_op::displace(1) + cudaq::matrix_op::parity(2);
 
     sum /= value;
 
@@ -1144,8 +1120,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `sum_op /= scalar_operator`
   {
-    auto sum =
-        cudaq::matrix_op::parity(1) + cudaq::matrix_op::momentum(2);
+    auto sum = cudaq::matrix_op::parity(1) + cudaq::matrix_op::momentum(2);
 
     sum /= cudaq::scalar_operator(value);
 
@@ -1186,10 +1161,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstProduct) {
 
   // `sum_op += product_op`
   {
-    auto product =
-        cudaq::matrix_op::number(0) * cudaq::matrix_op::number(1);
-    auto sum =
-        cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
+    auto product = cudaq::matrix_op::number(0) * cudaq::matrix_op::number(1);
+    auto sum = cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
 
     sum += product;
 
@@ -1224,10 +1197,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstProduct) {
 
   // `sum_op -= product_op`
   {
-    auto product =
-        cudaq::matrix_op::number(0) * cudaq::matrix_op::number(1);
-    auto sum =
-        cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
+    auto product = cudaq::matrix_op::number(0) * cudaq::matrix_op::number(1);
+    auto sum = cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
 
     sum -= product;
 
@@ -1262,10 +1233,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstProduct) {
 
   // `sum_op *= product_op`
   {
-    auto product =
-        cudaq::matrix_op::number(0) * cudaq::matrix_op::number(1);
-    auto sum =
-        cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
+    auto product = cudaq::matrix_op::number(0) * cudaq::matrix_op::number(1);
+    auto sum = cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
 
     sum *= product;
 
@@ -1308,10 +1277,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstOperatorSum) {
 
   // `sum_op + sum_op`
   {
-    auto sum_0 =
-        cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
-    auto sum_1 = cudaq::matrix_op::parity(0) +
-                 cudaq::matrix_op::number(1) +
+    auto sum_0 = cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
+    auto sum_1 = cudaq::matrix_op::parity(0) + cudaq::matrix_op::number(1) +
                  cudaq::matrix_op::parity(3);
 
     auto sum = sum_0 + sum_1;
@@ -1361,10 +1328,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstOperatorSum) {
 
   // `sum_op - sum_op`
   {
-    auto sum_0 =
-        cudaq::matrix_op::parity(1) + cudaq::matrix_op::position(2);
-    auto sum_1 = cudaq::matrix_op::parity(0) +
-                 cudaq::matrix_op::number(1) +
+    auto sum_0 = cudaq::matrix_op::parity(1) + cudaq::matrix_op::position(2);
+    auto sum_1 = cudaq::matrix_op::parity(0) + cudaq::matrix_op::number(1) +
                  cudaq::matrix_op::momentum(3);
 
     auto difference = sum_0 - sum_1;
@@ -1414,10 +1379,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstOperatorSum) {
 
   // `sum_op * sum_op`
   {
-    auto sum_0 =
-        cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
-    auto sum_1 = cudaq::matrix_op::parity(0) +
-                 cudaq::matrix_op::number(1) +
+    auto sum_0 = cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
+    auto sum_1 = cudaq::matrix_op::parity(0) + cudaq::matrix_op::number(1) +
                  cudaq::matrix_op::parity(3);
 
     auto sum_product = sum_0 * sum_1;
@@ -1480,10 +1443,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstOperatorSum) {
 
   // `sum_op *= sum_op`
   {
-    auto sum =
-        cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
-    auto sum_1 = cudaq::matrix_op::parity(0) +
-                 cudaq::matrix_op::number(1) +
+    auto sum = cudaq::matrix_op::parity(1) + cudaq::matrix_op::parity(2);
+    auto sum_1 = cudaq::matrix_op::parity(0) + cudaq::matrix_op::number(1) +
                  cudaq::matrix_op::parity(3);
 
     sum *= sum_1;
@@ -1618,8 +1579,8 @@ TEST(OperatorExpressions, checkDefaultValue) {
   cudaq::complex_matrix empty;
   auto matrix_term = cudaq::matrix_op::identity(0);
   auto boson_term = cudaq::boson_op::number(0);
-  auto matrix_sum =  cudaq::matrix_op::number(0) + matrix_term;
-  auto boson_sum =  cudaq::boson_op::number(0) + boson_term;
+  auto matrix_sum = cudaq::matrix_op::number(0) + matrix_term;
+  auto boson_sum = cudaq::boson_op::number(0) + boson_term;
 
   auto matrix_default = cudaq::sum_op<cudaq::matrix_handler>();
   auto matrix_empty = cudaq::sum_op<cudaq::matrix_handler>::empty();
@@ -1664,7 +1625,8 @@ TEST(OperatorExpressions, checkDefaultValue) {
     sum_default -= matrix_sum;
     auto res = matrix_sum;
     res -= matrix_default;
-    utils::checkEqual(sum_default.to_matrix(dims), (-matrix_sum).to_matrix(dims));
+    utils::checkEqual(sum_default.to_matrix(dims),
+                      (-matrix_sum).to_matrix(dims));
     utils::checkEqual(res.to_matrix(dims), matrix_sum.to_matrix(dims));
   }
   // matrix default *= matrix sum
@@ -1705,7 +1667,8 @@ TEST(OperatorExpressions, checkDefaultValue) {
   {
     cudaq::sum_op<cudaq::matrix_handler> sum_default;
     sum_default -= boson_sum;
-    utils::checkEqual(sum_default.to_matrix(dims), (-boson_sum).to_matrix(dims));
+    utils::checkEqual(sum_default.to_matrix(dims),
+                      (-boson_sum).to_matrix(dims));
   }
   // matrix default *= boson sum
   {
@@ -1742,7 +1705,8 @@ TEST(OperatorExpressions, checkDefaultValue) {
   {
     cudaq::sum_op<cudaq::matrix_handler> sum_default;
     sum_default -= matrix_term;
-    utils::checkEqual(sum_default.to_matrix(dims), (-matrix_term).to_matrix(dims));
+    utils::checkEqual(sum_default.to_matrix(dims),
+                      (-matrix_term).to_matrix(dims));
   }
   // matrix default *= matrix term
   {
@@ -1779,7 +1743,8 @@ TEST(OperatorExpressions, checkDefaultValue) {
   {
     cudaq::sum_op<cudaq::matrix_handler> sum_default;
     sum_default -= boson_term;
-    utils::checkEqual(sum_default.to_matrix(dims), (-boson_term).to_matrix(dims));
+    utils::checkEqual(sum_default.to_matrix(dims),
+                      (-boson_term).to_matrix(dims));
   }
   // matrix default *= boson term
   {
@@ -1904,8 +1869,8 @@ TEST(OperatorExpressions, checkDefaultValue) {
   }
 
   // We cannot properly deal with scalar factors on uninitialized sums;
-  // I made a draft, but it is messy and breaks down when adding 
-  // two uninitialized sums with different factors. 
+  // I made a draft, but it is messy and breaks down when adding
+  // two uninitialized sums with different factors.
   {
     cudaq::sum_op<cudaq::matrix_handler> sum_default;
     utils::checkEqual((+sum_default).to_matrix(dims), empty);

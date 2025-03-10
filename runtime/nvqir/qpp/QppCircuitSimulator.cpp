@@ -332,9 +332,9 @@ public:
       ee = qpp::apply(asEigen, state, targets).trace().real();
     }
 
-    return cudaq::observe_result(ee, op,
-                                 cudaq::sample_result(cudaq::ExecutionResult(
-                                     {}, op.to_string(), ee)));
+    return cudaq::observe_result(
+        ee, op,
+        cudaq::sample_result(cudaq::ExecutionResult({}, op.to_string(), ee)));
   }
 
   /// @brief Reset the qubit

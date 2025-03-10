@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include <fstream>
 #include "cudaq/operators.h"
+#include <fstream>
 
 namespace cudaq {
 class spin_op_reader {
@@ -22,7 +22,7 @@ public:
     std::ifstream input(data_filename, std::ios::binary);
     if (input.fail())
       throw std::runtime_error(data_filename + " does not exist.");
-  
+
     input.seekg(0, std::ios_base::end);
     std::size_t size = input.tellg();
     input.seekg(0, std::ios_base::beg);
@@ -34,4 +34,4 @@ public:
     return s;
   }
 };
-}
+} // namespace cudaq

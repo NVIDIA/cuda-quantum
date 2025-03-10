@@ -39,9 +39,10 @@ int main() {
   {
 
     // Create a Hamiltonian as a `cudaq::spin_op`.
-    cudaq::spin_op h = 5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) - 
-                       2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
-                       .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
+    cudaq::spin_op h =
+        5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
+        2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
+        .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
 
     // Build a quantum kernel dynamically
     // Start by creating the Builder, the kernel argument types
@@ -66,10 +67,11 @@ int main() {
   {
     // Build up a 2 parameter circuit using a vector<double> parameter
     // Run the CUDA-Q optimizer to find optimal value.
-    cudaq::spin_op h = 5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) - 
-                       2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
-                       .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
-    cudaq::spin_op h3 = h + 9.625 - 9.625 * cudaq::spin_op::z(2) - 
+    cudaq::spin_op h =
+        5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
+        2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
+        .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
+    cudaq::spin_op h3 = h + 9.625 - 9.625 * cudaq::spin_op::z(2) -
                         3.913119 * cudaq::spin_op::x(1) * cudaq::spin_op::x(2) -
                         3.913119 * cudaq::spin_op::y(1) * cudaq::spin_op::y(2);
 

@@ -31,8 +31,7 @@ protected:
   sample_result data;
 
 public:
-  observe_result() 
-  : spinOp(cudaq::spin_op::empty()){}
+  observe_result() : spinOp(cudaq::spin_op::empty()) {}
 
   /// @brief Constructor, takes the precomputed expectation value for
   /// <psi(x) | H | psi(x)> for the given spin_op.
@@ -94,7 +93,7 @@ public:
   }
 
   /// @brief Return the coefficient of the identity term.
-  /// Assumes there is at more one identity term. 
+  /// Assumes there is at more one identity term.
   /// Returns 0 if no identity term exists.
   double id_coefficient() {
     for (const auto &term : spinOp)

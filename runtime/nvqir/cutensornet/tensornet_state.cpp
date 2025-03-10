@@ -8,9 +8,9 @@
 
 #include "tensornet_state.h"
 #include "common/EigenDense.h"
+#include <algorithm>
 #include <bitset>
 #include <cassert>
-#include <algorithm>
 
 namespace nvqir {
 std::int32_t TensorNetState::numHyperSamples = []() {
@@ -769,9 +769,9 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
   allExpVals.reserve(product_terms.size());
 
   // NOTE: The logic in the loop below relies on the following:
-  // Spin operator terms are canonically ordered. Specifically, we can 
+  // Spin operator terms are canonically ordered. Specifically, we can
   // assume that every operator does not act on the same target more than
-  // once. That assumption is not enforced by the code below. 
+  // once. That assumption is not enforced by the code below.
   // Additionally, the loops that inject identities rely on the ordering
   // starting with the smallest index/degree. We could write it agnostic
   // by querying cudaq::operator_handler::canonical_order, but it was late,
@@ -781,18 +781,20 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
   for (const auto &prod : product_terms) {
     bool allIdOps = true;
     auto offset = 0;
-    for (const auto &p : prod) { 
+    for (const auto &p : prod) {
       // The Pauli matrix data that we want to load to this slot.
       // Default is the Identity matrix.
       const std::complex<double> *pauliMatrixPtr = PauliI_h;
-      // We need to make sure to populate the identity for all qubits 
+      // We need to make sure to populate the identity for all qubits
       // that are not part of this term
-      while(offset < p.target()) {
-        auto *address = static_cast<char *>(pauliMats_h) + offset++ * ALIGNMENT_BYTES;
+      while (offset < p.target()) {
+        auto *address =
+            static_cast<char *>(pauliMats_h) + offset++ * ALIGNMENT_BYTES;
         std::memcpy(address, pauliMatrixPtr, PAULI_ARRAY_SIZE_BYTES);
       }
       // Memory address of this Pauli term in the placeholder array.
-      auto *address = static_cast<char *>(pauliMats_h) + offset++ * ALIGNMENT_BYTES;
+      auto *address =
+          static_cast<char *>(pauliMats_h) + offset++ * ALIGNMENT_BYTES;
       auto pauli = p.as_pauli();
       if (pauli == cudaq::pauli::Y) {
         allIdOps = false;
@@ -811,7 +813,8 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
     // Populate the remaining identities.
     const std::complex<double> *pauliMatrixPtr = PauliI_h;
     while (offset < numQubits) {
-      auto *address = static_cast<char *>(pauliMats_h) + offset++ * ALIGNMENT_BYTES;
+      auto *address =
+          static_cast<char *>(pauliMats_h) + offset++ * ALIGNMENT_BYTES;
       std::memcpy(address, pauliMatrixPtr, PAULI_ARRAY_SIZE_BYTES);
     }
     if (allIdOps) {

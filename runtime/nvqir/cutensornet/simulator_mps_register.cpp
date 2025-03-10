@@ -123,8 +123,7 @@ public:
     // Hence, we check if this is a Rxx(theta), Ryy(theta), or Rzz(theta), which
     // are commonly-used gates and apply the operation directly (the base
     // decomposition will result in 2 CNOT gates).
-    const auto shouldHandlePauliOp =
-        [](const std::string &pauli_word) -> bool {
+    const auto shouldHandlePauliOp = [](const std::string &pauli_word) -> bool {
       return pauli_word == "XX" || pauli_word == "YY" || pauli_word == "ZZ";
     };
 
@@ -133,7 +132,8 @@ public:
     // silently ignored. This works because it was actually constructed from a
     // pauli word - we should just pass that one along.
     auto pauli_word = op.get_pauli_word();
-    if (controls.empty() && qubitIds.size() == 2 && shouldHandlePauliOp(pauli_word)) {
+    if (controls.empty() && qubitIds.size() == 2 &&
+        shouldHandlePauliOp(pauli_word)) {
       flushGateQueue();
       cudaq::info("[SimulatorMPS] (apply) exp(i*{}*{}) ({}, {}).", theta,
                   op.to_string(), qubitIds[0], qubitIds[1]);
@@ -247,8 +247,7 @@ public:
   }
 
   // Helper to prepare term-by-term data from a spin op
-  static std::tuple<std::vector<std::string>,
-                    std::vector<cudaq::spin_op_term>>
+  static std::tuple<std::vector<std::string>, std::vector<cudaq::spin_op_term>>
   prepareSpinOpTermData(const cudaq::spin_op &ham) {
     std::vector<std::string> termStrs;
     std::vector<cudaq::spin_op_term> prods;

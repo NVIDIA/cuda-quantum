@@ -52,12 +52,10 @@ protected:
   bool commutes;
   std::vector<int> targets;
 
-  matrix_handler(
-      std::string operator_id, const std::vector<int> &degrees,
-      const commutation_behavior &behavior = commutation_behavior());
-  matrix_handler(
-      std::string operator_id, std::vector<int> &&degrees,
-      const commutation_behavior &behavior = commutation_behavior());
+  matrix_handler(std::string operator_id, const std::vector<int> &degrees,
+                 const commutation_behavior &behavior = commutation_behavior());
+  matrix_handler(std::string operator_id, std::vector<int> &&degrees,
+                 const commutation_behavior &behavior = commutation_behavior());
 
 public:
 #if !defined(NDEBUG)

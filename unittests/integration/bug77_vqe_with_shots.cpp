@@ -49,8 +49,10 @@ CUDAQ_TEST(VqeWithShots, checkBug77) {
   int n_params = 2 * n_layers;
 
   // Problem Hamiltonian
-  cudaq::spin_op Hp = 0.5 * cudaq::spin_op::z(0) * cudaq::spin_op::z(1) + 0.5 * cudaq::spin_op::z(1) * cudaq::spin_op::z(2) +
-                      0.5 * cudaq::spin_op::z(0) * cudaq::spin_op::z(3) + 0.5 * cudaq::spin_op::z(2) * cudaq::spin_op::z(3);
+  cudaq::spin_op Hp = 0.5 * cudaq::spin_op::z(0) * cudaq::spin_op::z(1) +
+                      0.5 * cudaq::spin_op::z(1) * cudaq::spin_op::z(2) +
+                      0.5 * cudaq::spin_op::z(0) * cudaq::spin_op::z(3) +
+                      0.5 * cudaq::spin_op::z(2) * cudaq::spin_op::z(3);
 
   // Optimizer
   cudaq::optimizers::cobyla optimizer; // gradient-free

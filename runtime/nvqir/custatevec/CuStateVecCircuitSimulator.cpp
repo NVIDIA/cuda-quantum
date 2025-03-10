@@ -468,7 +468,9 @@ public:
       controls.emplace_back(static_cast<int>(bit));
     std::vector<custatevecPauli_t> paulis;
     if (term.num_ops() != qubits.size())
-      throw std::runtime_error("incorrect number of qubits for exp_pauli - expecting " + std::to_string(term.num_ops()) + " qubits");
+      throw std::runtime_error(
+          "incorrect number of qubits for exp_pauli - expecting " +
+          std::to_string(term.num_ops()) + " qubits");
 
     std::size_t idx = 0;
     for (const auto &op : term) {

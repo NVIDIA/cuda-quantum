@@ -11,8 +11,8 @@
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
 
-#include "cudaq/operators.h"
 #include "cudaq/dynamics/serialization.h"
+#include "cudaq/operators.h"
 #include "py_spin_op.h"
 
 #include <complex>
@@ -46,7 +46,8 @@ void bindSpinClass(py::module &mod) {
   // Binding the `cudaq::spin` class to `_pycudaq` as a submodule
   // so it's accessible directly in the cudaq namespace.
   auto spin_submodule = mod.def_submodule("spin");
-  spin_submodule.def("i", &cudaq::spin_op::i<cudaq::spin_handler>, py::arg("target"),
+  spin_submodule.def("i", &cudaq::spin_op::i<cudaq::spin_handler>,
+                     py::arg("target"),
                      "Return an identity :class:`SpinOperator` on the given "
                      "target qubit index.");
   spin_submodule.def(
@@ -58,12 +59,14 @@ void bindSpinClass(py::module &mod) {
   spin_submodule.def(
       "z", &cudaq::spin_op::z<cudaq::spin_handler>, py::arg("target"),
       "Return a Z :class:`SpinOperator` on the given target qubit index.");
-  spin_submodule.def(
-      "plus", &cudaq::spin_op::plus<cudaq::spin_handler>, py::arg("target"),
-      "Return a sigma plus :class:`SpinOperator` on the given target qubit index.");
-  spin_submodule.def(
-      "minus", &cudaq::spin_op::minus<cudaq::spin_handler>, py::arg("target"),
-      "Return a sigma minus :class:`SpinOperator` on the given target qubit index.");
+  spin_submodule.def("plus", &cudaq::spin_op::plus<cudaq::spin_handler>,
+                     py::arg("target"),
+                     "Return a sigma plus :class:`SpinOperator` on the given "
+                     "target qubit index.");
+  spin_submodule.def("minus", &cudaq::spin_op::minus<cudaq::spin_handler>,
+                     py::arg("target"),
+                     "Return a sigma minus :class:`SpinOperator` on the given "
+                     "target qubit index.");
 }
 
 void bindSpinOperator(py::module &mod) {
@@ -83,15 +86,18 @@ void bindSpinOperator(py::module &mod) {
 
       .def("get_ops_count", &cudaq::spin_op_term::num_ops,
            "Return the number of terms in this :class:`SpinOperator`.")
-      .def("get_coefficient", [](cudaq::spin_op_term &op) {
+      .def(
+          "get_coefficient",
+          [](cudaq::spin_op_term &op) {
             return op.get_coefficient().evaluate();
           },
-           "Return the coefficient of this :class:`SpinOperatorTerm`.")
+          "Return the coefficient of this :class:`SpinOperatorTerm`.")
       .def("is_identity", &cudaq::spin_op_term::is_identity,
-           "Returns a bool indicating if this :class:`SpinOperatorTerm` is equal "
+           "Returns a bool indicating if this :class:`SpinOperatorTerm` is "
+           "equal "
            "to the "
            "identity.")
-      // FIXME: deprecate 
+      // FIXME: deprecate
       .def(
           "to_string",
           [](cudaq::spin_op_term &op, bool print_coefficient) {
@@ -105,31 +111,48 @@ void bindSpinOperator(py::module &mod) {
       .def("dump", &cudaq::spin_op_term::dump,
            "Print a string representation of this :class:`SpinOperatorTerm`.")
       .def("get_term_id", &cudaq::spin_op_term::get_term_id,
-           "Gets the id with which counts and expectation values for this term can be retrieved.")
-      .def("get_pauli_word", &cudaq::spin_op_term::get_pauli_word<cudaq::spin_handler>,
-           "Gets the Pauli word representation of this :class:`SpinOperatorTerm`.")
-      .def("get_binary_symplectic_form", &cudaq::spin_op_term::get_binary_symplectic_form<cudaq::spin_handler>,
-           "Gets the binary symplectic representation of this :class:`SpinOperatorTerm`.")
-      .def("to_matrix", [](spin_op_term &self) {
-               return self.to_matrix(); // can't bind function ref since it has additional (optional) args
+           "Gets the id with which counts and expectation values for this term "
+           "can be retrieved.")
+      .def("get_pauli_word",
+           &cudaq::spin_op_term::get_pauli_word<cudaq::spin_handler>,
+           "Gets the Pauli word representation of this "
+           ":class:`SpinOperatorTerm`.")
+      .def(
+          "get_binary_symplectic_form",
+          &cudaq::spin_op_term::get_binary_symplectic_form<cudaq::spin_handler>,
+          "Gets the binary symplectic representation of this "
+          ":class:`SpinOperatorTerm`.")
+      .def(
+          "to_matrix",
+          [](spin_op_term &self) {
+            return self.to_matrix(); // can't bind function ref since it has
+                                     // additional (optional) args
           },
           "Return `self` as a :class:`ComplexMatrix`.")
-      // iteration over terms is not bound here since we didn't bind the handlers
-     .def("__eq__", &cudaq::spin_op_term::operator==, py::arg("other"),
-          "Return true if the two :class:`SpinOperatorTerm`'s are equal. Equality "
-          "does "
-          "not consider the coefficients.")
-      // not sure if we should consider a sum_op and a product_op equal if the content matches... 
-     .def("__eq__", [](spin_op_term &self, spin_op other) {
-               return spin_op(self) == other;
-          }, py::arg("other"),
-          "Return true if the two operators are equal.")
+      // iteration over terms is not bound here since we didn't bind the
+      // handlers
+      .def("__eq__", &cudaq::spin_op_term::operator==, py::arg("other"),
+           "Return true if the two :class:`SpinOperatorTerm`'s are equal. "
+           "Equality "
+           "does "
+           "not consider the coefficients.")
+      // not sure if we should consider a sum_op and a product_op equal if the
+      // content matches...
+      .def(
+          "__eq__",
+          [](spin_op_term &self, spin_op other) {
+            return spin_op(self) == other;
+          },
+          py::arg("other"), "Return true if the two operators are equal.")
 
       // FIXME: deprecate these
-      // The functions below are supported on SpinOperatorTerm for backwards compatiblity,
-      // but are only supported by spin_op in C++ (and also only for backward compatiblity). 
-      .def("get_raw_data", [](cudaq::spin_op_term &op) {
-          return cudaq::spin_op(op).get_raw_data();
+      // The functions below are supported on SpinOperatorTerm for backwards
+      // compatiblity, but are only supported by spin_op in C++ (and also only
+      // for backward compatiblity).
+      .def(
+          "get_raw_data",
+          [](cudaq::spin_op_term &op) {
+            return cudaq::spin_op(op).get_raw_data();
           },
           "Return the raw data of this :class:`SpinOperatorTerm`.")
       .def(
@@ -141,15 +164,18 @@ void bindSpinOperator(py::module &mod) {
             return json.attr("dumps")(data);
           },
           "Convert spin_op to JSON string: '[d1, d2, d3, ...]'")
-      .def("get_qubit_count", [](cudaq::spin_op_term &op) {
+      .def(
+          "get_qubit_count",
+          [](cudaq::spin_op_term &op) {
             return cudaq::spin_op(op).num_qubits();
           },
           "Return the number of qubits this :class:`SpinOperatorTerm` acts on.")
-      .def("get_term_count", [](cudaq::spin_op_term &op) {
-            return 1;
-          },
+      .def(
+          "get_term_count", [](cudaq::spin_op_term &op) { return 1; },
           "Return the number of terms (always 1).")
-      .def("for_each_pauli", [](spin_op_term &self, py::function functor) {
+      .def(
+          "for_each_pauli",
+          [](spin_op_term &self, py::function functor) {
             return cudaq::spin_op(self).for_each_pauli(functor);
           },
           py::arg("function"),
@@ -157,7 +183,9 @@ void bindSpinOperator(py::module &mod) {
           "to each pauli element in the term. The function must have "
           "`void(pauli, int)` signature where `pauli` is the Pauli matrix "
           "type and the `int` is the qubit index.")
-      .def("distribute_terms", [](cudaq::spin_op_term &op, std::size_t chunks) {
+      .def(
+          "distribute_terms",
+          [](cudaq::spin_op_term &op, std::size_t chunks) {
             return cudaq::spin_op(op).distribute_terms(chunks);
           },
           py::arg("chunk_count"),
@@ -168,94 +196,101 @@ void bindSpinOperator(py::module &mod) {
 
       /// @brief Arithmetic operators between different data types
 
-     .def("__add__", [](spin_op_term &self, spin_op other) {
-               return self + other;
-          }, py::arg("other"),
+      .def(
+          "__add__",
+          [](spin_op_term &self, spin_op other) { return self + other; },
+          py::arg("other"),
           "Adds a :class:`SpinOperatorTerm` and a :class:`SpinOperator`.")
-     .def("__sub__", [](spin_op_term &self, spin_op other) {
-               return self - other;
-          }, py::arg("other"),
+      .def(
+          "__sub__",
+          [](spin_op_term &self, spin_op other) { return self - other; },
+          py::arg("other"),
           "Subtracts a :class:`SpinOperatorTerm` and a :class:`SpinOperator`.")
-     .def("__mul__", [](spin_op_term &self, spin_op other) {
-               return self * other;
-          }, py::arg("other"),
+      .def(
+          "__mul__",
+          [](spin_op_term &self, spin_op other) { return self * other; },
+          py::arg("other"),
           "Multiplies a :class:`SpinOperatorTerm` and a :class:`SpinOperator`.")
 
       /// @brief Bind overloaded operators that are in-place on
       /// :class:`SpinOperatorTerm`.
 
-     // `this_spin_op_term` *= :class:`SpinOperatorTerm`
-     .def(py::self *= py::self, py::arg("other"),
-          "Multiply the given :class:`SpinOperatorTerm` with this one and return "
-          "*this.")
-     // `this_spin_op_term` *= `float`
-     .def(py::self *= float(), py::arg("other"),
-          "Multiply the :class:`SpinOperatorTerm` by the given "
-          "float value and return *this.")
-     // `this_spin_op_term` *= `double`
-     .def(py::self *= double(), py::arg("other"),
-          "Multiply the :class:`SpinOperatorTerm` by the given "
-          "double value and return *this.")
-     // `this_spin_op_term` *= `complex`
-     .def(py::self *= std::complex<double>(), py::arg("other"),
-          "Multiply the :class:`SpinOperatorTerm` by the given complex value and "
-          "return "
-          "*this.")
+      // `this_spin_op_term` *= :class:`SpinOperatorTerm`
+      .def(py::self *= py::self, py::arg("other"),
+           "Multiply the given :class:`SpinOperatorTerm` with this one and "
+           "return "
+           "*this.")
+      // `this_spin_op_term` *= `float`
+      .def(py::self *= float(), py::arg("other"),
+           "Multiply the :class:`SpinOperatorTerm` by the given "
+           "float value and return *this.")
+      // `this_spin_op_term` *= `double`
+      .def(py::self *= double(), py::arg("other"),
+           "Multiply the :class:`SpinOperatorTerm` by the given "
+           "double value and return *this.")
+      // `this_spin_op_term` *= `complex`
+      .def(py::self *= std::complex<double>(), py::arg("other"),
+           "Multiply the :class:`SpinOperatorTerm` by the given complex value "
+           "and "
+           "return "
+           "*this.")
 
-     /// @brief Bind overloaded operators that return a new
-     /// :class:`SpinOperatorTerm`.
+      /// @brief Bind overloaded operators that return a new
+      /// :class:`SpinOperatorTerm`.
 
-     // :class:`SpinOperatorTerm` + :class:`SpinOperatorTerm`
-     .def(py::self + py::self, py::arg("other"),
-          "Add the given :class:`SpinOperatorTerm` to this one and "
-          "return result as a new :class:`SpinOperator`.")
-     // :class:`SpinOperatorTerm` + `double`
-     .def(py::self + double(), py::arg("other"),
-          "Add a double to the given :class:`SpinOperatorTerm` and "
-          "return result as a new :class:`SpinOperator`.")
-     // `double` + :class:`SpinOperatorTerm`
-     .def(double() + py::self, py::arg("other"),
-          "Add a :class:`SpinOperatorTerm` to the given double and "
-          "return result as a new :class:`SpinOperator`.")
-     // :class:`SpinOperatorTerm` - :class:`SpinOperatorTerm`
-     .def(py::self - py::self, py::arg("other"),
-          "Subtract the given :class:`SpinOperatorTerm` from this one "
-          "and return result as a new :class:`SpinOperator`.")
-     // :class:`SpinOperatorTerm` - `double`
-     .def(py::self - double(), py::arg("other"),
-          "Subtract a double from the given :class:`SpinOperatorTerm` "
-          "and return result as a new :class:`SpinOperator`.")
-     // `double` - :class:`SpinOperatorTerm`
-     .def(double() - py::self, py::arg("other"),
-          "Subtract a :class:`SpinOperatorTerm` from the given double "
-          "and return result as a new :class:`SpinOperator`.")
-     // :class:`SpinOperatorTerm` * :class:`SpinOperatorTerm`
-     .def(py::self * py::self, py::arg("other"),
-          "Multiply the given :class:`SpinOperatorTerm`'s together "
-          "and return result as a new :class:`SpinOperatorTerm`.")
-     // :class:`SpinOperatorTerm` * `double`
-     .def(py::self * double(), py::arg("other"),
-          "Multiply the :class:`SpinOperatorTerm` by the given double "
-          "and return result as a new :class:`SpinOperatorTerm`.")
-     // `double` * :class:`SpinOperatorTerm`
-     .def(double() * py::self, py::arg("other"),
-          "Multiply the double by the given :class:`SpinOperatorTerm` "
-          "and return result as a new :class:`SpinOperatorTerm`.")
-     // :class:`SpinOperatorTerm` * `complex`
-     .def(py::self * std::complex<double>(), py::arg("other"),
-          "Multiply the :class:`SpinOperatorTerm` by the given complex value and "
-          "return "
-          "result as a new :class:`SpinOperatorTerm`.")
-     // `complex` * :class:`SpinOperatorTerm`
-     .def(std::complex<double>() * py::self, py::arg("other"),
-          "Multiply the complex value by the given :class:`SpinOperatorTerm` and "
-          "return "
-          "result as a new :class:`SpinOperatorTerm`.");
+      // :class:`SpinOperatorTerm` + :class:`SpinOperatorTerm`
+      .def(py::self + py::self, py::arg("other"),
+           "Add the given :class:`SpinOperatorTerm` to this one and "
+           "return result as a new :class:`SpinOperator`.")
+      // :class:`SpinOperatorTerm` + `double`
+      .def(py::self + double(), py::arg("other"),
+           "Add a double to the given :class:`SpinOperatorTerm` and "
+           "return result as a new :class:`SpinOperator`.")
+      // `double` + :class:`SpinOperatorTerm`
+      .def(double() + py::self, py::arg("other"),
+           "Add a :class:`SpinOperatorTerm` to the given double and "
+           "return result as a new :class:`SpinOperator`.")
+      // :class:`SpinOperatorTerm` - :class:`SpinOperatorTerm`
+      .def(py::self - py::self, py::arg("other"),
+           "Subtract the given :class:`SpinOperatorTerm` from this one "
+           "and return result as a new :class:`SpinOperator`.")
+      // :class:`SpinOperatorTerm` - `double`
+      .def(py::self - double(), py::arg("other"),
+           "Subtract a double from the given :class:`SpinOperatorTerm` "
+           "and return result as a new :class:`SpinOperator`.")
+      // `double` - :class:`SpinOperatorTerm`
+      .def(double() - py::self, py::arg("other"),
+           "Subtract a :class:`SpinOperatorTerm` from the given double "
+           "and return result as a new :class:`SpinOperator`.")
+      // :class:`SpinOperatorTerm` * :class:`SpinOperatorTerm`
+      .def(py::self * py::self, py::arg("other"),
+           "Multiply the given :class:`SpinOperatorTerm`'s together "
+           "and return result as a new :class:`SpinOperatorTerm`.")
+      // :class:`SpinOperatorTerm` * `double`
+      .def(py::self * double(), py::arg("other"),
+           "Multiply the :class:`SpinOperatorTerm` by the given double "
+           "and return result as a new :class:`SpinOperatorTerm`.")
+      // `double` * :class:`SpinOperatorTerm`
+      .def(double() * py::self, py::arg("other"),
+           "Multiply the double by the given :class:`SpinOperatorTerm` "
+           "and return result as a new :class:`SpinOperatorTerm`.")
+      // :class:`SpinOperatorTerm` * `complex`
+      .def(py::self * std::complex<double>(), py::arg("other"),
+           "Multiply the :class:`SpinOperatorTerm` by the given complex value "
+           "and "
+           "return "
+           "result as a new :class:`SpinOperatorTerm`.")
+      // `complex` * :class:`SpinOperatorTerm`
+      .def(std::complex<double>() * py::self, py::arg("other"),
+           "Multiply the complex value by the given :class:`SpinOperatorTerm` "
+           "and "
+           "return "
+           "result as a new :class:`SpinOperatorTerm`.");
 
   py::class_<cudaq::spin_op>(mod, "SpinOperator")
-      // FIXME: deprecate this one      
-      .def(py::init([]() { return cudaq::spin_op::identity(); }), 
-      "Empty constructor, creates the identity term.")
+      // FIXME: deprecate this one
+      .def(py::init([]() { return cudaq::spin_op::identity(); }),
+           "Empty constructor, creates the identity term.")
       // FIXME: deprecate name
       .def_static("empty_op", &cudaq::spin_op::empty)
       .def_static("empty", &cudaq::spin_op::empty)
@@ -312,15 +347,18 @@ void bindSpinOperator(py::module &mod) {
            "Return the number of terms in this :class:`SpinOperator`.")
       .def("get_qubit_count", &cudaq::spin_op::num_qubits<cudaq::spin_handler>,
            "Return the number of qubits this :class:`SpinOperator` is on.")
-       // FIXME: deprecate
-      .def("get_coefficient", [](cudaq::spin_op &op) {
+      // FIXME: deprecate
+      .def(
+          "get_coefficient",
+          [](cudaq::spin_op &op) {
             if (op.num_terms() != 1)
-               throw std::runtime_error("expecting a spin op with exactly one term");
+              throw std::runtime_error(
+                  "expecting a spin op with exactly one term");
             return op.begin()->get_coefficient().evaluate();
           },
-           "Return the coefficient of this :class:`SpinOperator`. Must be a "
-           "`SpinOperator` with one term, otherwise an exception is thrown.")
-       // FIXME: deprecate
+          "Return the coefficient of this :class:`SpinOperator`. Must be a "
+          "`SpinOperator` with one term, otherwise an exception is thrown.")
+      // FIXME: deprecate
       .def("is_identity", &cudaq::spin_op::is_identity<cudaq::spin_handler>,
            "Returns a bool indicating if this :class:`SpinOperator` is equal "
            "to the "
@@ -344,15 +382,16 @@ void bindSpinOperator(py::module &mod) {
            "of the "
            "terms in this :class:`SpinOperator` into `chunk_count` sized "
            "chunks.")
-      .def_static("random", &cudaq::spin_op::random<cudaq::spin_handler>, py::arg("qubit_count"),
-                  py::arg("term_count"),
+      .def_static("random", &cudaq::spin_op::random<cudaq::spin_handler>,
+                  py::arg("qubit_count"), py::arg("term_count"),
                   py::arg("seed") = std::random_device{}(),
                   "Return a random :class:`SpinOperator` on the given number "
                   "of qubits (`qubit_count`) and "
                   "composed of the given number of terms (`term_count`). An "
                   "optional seed value may also be provided.")
       .def_static(
-          "from_word", &cudaq::spin_op::from_word<cudaq::spin_handler>, py::arg("word"),
+          "from_word", &cudaq::spin_op::from_word<cudaq::spin_handler>,
+          py::arg("word"),
           R"#(Return a :class:`SpinOperator` corresponding to the provided Pauli `word`.
 
 .. code-block:: python
@@ -393,8 +432,11 @@ void bindSpinOperator(py::module &mod) {
            "Each term is appended to the array forming one large 1d array of "
            "doubles. The array is ended with the total number of terms "
            "represented as a double.")
-      .def("to_matrix", [](spin_op &self) {
-               return self.to_matrix(); // can't bind function ref since it has additional (optional) args
+      .def(
+          "to_matrix",
+          [](spin_op &self) {
+            return self.to_matrix(); // can't bind function ref since it has
+                                     // additional (optional) args
           },
           "Return `self` as a :class:`ComplexMatrix`.")
       /*
@@ -414,38 +456,50 @@ void bindSpinOperator(py::module &mod) {
       // :class:`SpinOperator` == :class:`SpinOperator`
       .def("__eq__", &cudaq::spin_op::operator==, py::arg("other"),
            "Return true if the two :class:`SpinOperator`'s are equal.")
-      // not sure if we should consider a sum_op and a product_op equal if the content matches... 
-     .def("__eq__", [](spin_op &self, spin_op_term other) {
-               return self == spin_op(other);
-          }, py::arg("other"),
-          "Return true if the two operators are equal.")
+      // not sure if we should consider a sum_op and a product_op equal if the
+      // content matches...
+      .def(
+          "__eq__",
+          [](spin_op &self, spin_op_term other) {
+            return self == spin_op(other);
+          },
+          py::arg("other"), "Return true if the two operators are equal.")
 
       /// @brief Arithmetic operators between different data types
 
-     .def("__add__", [](spin_op &self, spin_op_term other) {
-               return self + other;
-          }, py::arg("other"),
+      .def(
+          "__add__",
+          [](spin_op &self, spin_op_term other) { return self + other; },
+          py::arg("other"),
           "Adds a :class:`SpinOperator` and a :class:`SpinOperatorTerm`.")
-     .def("__iadd__", [](spin_op &self, spin_op_term other) {
-               return self += other;
-          }, py::arg("other"),
-          "Adds a :class:`SpinOperator` and a :class:`SpinOperatorTerm` and assigns it to self.")
-     .def("__sub__", [](spin_op &self, spin_op_term other) {
-               return self - other;
-          }, py::arg("other"),
+      .def(
+          "__iadd__",
+          [](spin_op &self, spin_op_term other) { return self += other; },
+          py::arg("other"),
+          "Adds a :class:`SpinOperator` and a :class:`SpinOperatorTerm` and "
+          "assigns it to self.")
+      .def(
+          "__sub__",
+          [](spin_op &self, spin_op_term other) { return self - other; },
+          py::arg("other"),
           "Subtracts a :class:`SpinOperator` and a :class:`SpinOperatorTerm`.")
-     .def("__isub__", [](spin_op &self, spin_op_term other) {
-               return self -= other;
-          }, py::arg("other"),
-          "Subtracts a :class:`SpinOperator` and a :class:`SpinOperatorTerm` and assigns it to self.")
-     .def("__mul__", [](spin_op &self, spin_op_term other) {
-               return self * other;
-          }, py::arg("other"),
+      .def(
+          "__isub__",
+          [](spin_op &self, spin_op_term other) { return self -= other; },
+          py::arg("other"),
+          "Subtracts a :class:`SpinOperator` and a :class:`SpinOperatorTerm` "
+          "and assigns it to self.")
+      .def(
+          "__mul__",
+          [](spin_op &self, spin_op_term other) { return self * other; },
+          py::arg("other"),
           "Multiplies a :class:`SpinOperator` and a :class:`SpinOperatorTerm`.")
-     .def("__imul__", [](spin_op &self, spin_op_term other) {
-               return self *= other;
-          }, py::arg("other"),
-          "Multiplies a :class:`SpinOperator` and a :class:`SpinOperatorTerm` and assigns it to self.")
+      .def(
+          "__imul__",
+          [](spin_op &self, spin_op_term other) { return self *= other; },
+          py::arg("other"),
+          "Multiplies a :class:`SpinOperator` and a :class:`SpinOperatorTerm` "
+          "and assigns it to self.")
 
       /// @brief Bind overloaded operators that are in-place on
       /// :class:`SpinOperator`.
@@ -537,11 +591,11 @@ void bindSpinWrapper(py::module &mod) {
   bindSpinOperator(mod);
   // If the spin op in the execution context is a pointer
   // rather than an actual copy, then we may run into trouble
-  // that the pointer points to a temporary object due to 
-  // spin_op_term -> spin_op automatic conversion. 
-  // I am not sure why I didn't see a similar issue in C++, 
+  // that the pointer points to a temporary object due to
+  // spin_op_term -> spin_op automatic conversion.
+  // I am not sure why I didn't see a similar issue in C++,
   // but I am concerned it might be there as well.
-  // I hence decided to have the context own it's spin - 
+  // I hence decided to have the context own it's spin -
   // I *think* is should only be one additional copy and seems
   // less likely to have any hidden issues.
   py::implicitly_convertible<spin_op_term, spin_op>();

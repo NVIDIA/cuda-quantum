@@ -49,8 +49,8 @@ std::string matrix_handler::type_prefix<fermion_handler>() {
 }
 
 void matrix_handler::define(std::string operator_id,
-                             std::vector<int> expected_dimensions,
-                             matrix_callback &&create) {
+                            std::vector<int> expected_dimensions,
+                            matrix_callback &&create) {
   auto defn = Definition(operator_id, expected_dimensions,
                          std::forward<matrix_callback>(create));
   auto result =
@@ -62,8 +62,8 @@ void matrix_handler::define(std::string operator_id,
 
 product_op<matrix_handler>
 matrix_handler::instantiate(std::string operator_id,
-                             const std::vector<int> &degrees,
-                             const commutation_behavior &commutation_behavior) {
+                            const std::vector<int> &degrees,
+                            const commutation_behavior &commutation_behavior) {
   auto it = matrix_handler::defined_ops.find(operator_id);
   if (it == matrix_handler::defined_ops.end())
     throw std::range_error("not matrix operator with the name '" + operator_id +
@@ -80,14 +80,12 @@ matrix_handler::instantiate(std::string operator_id,
     err_msg << "})";
     throw std::runtime_error(err_msg.str());
   }
-  return product_op(
-      matrix_handler(operator_id, degrees, commutation_behavior));
+  return product_op(matrix_handler(operator_id, degrees, commutation_behavior));
 }
 
 product_op<matrix_handler>
-matrix_handler::instantiate(std::string operator_id,
-                             std::vector<int> &&degrees,
-                             const commutation_behavior &commutation_behavior) {
+matrix_handler::instantiate(std::string operator_id, std::vector<int> &&degrees,
+                            const commutation_behavior &commutation_behavior) {
   auto it = matrix_handler::defined_ops.find(operator_id);
   if (it == matrix_handler::defined_ops.end())
     throw std::range_error("not matrix operator with the name '" + operator_id +
@@ -171,9 +169,9 @@ matrix_handler::matrix_handler(int degree)
   }
 }
 
-matrix_handler::matrix_handler(
-    std::string operator_id, const std::vector<int> &degrees,
-    const commutation_behavior &commutation_behavior)
+matrix_handler::matrix_handler(std::string operator_id,
+                               const std::vector<int> &degrees,
+                               const commutation_behavior &commutation_behavior)
     : op_code(operator_id),
       commutes(commutation_behavior.commutes_across_degrees),
       group(commutation_behavior.group), targets(degrees) {
@@ -194,9 +192,9 @@ matrix_handler::matrix_handler(
                              "supported for multi-target operators");
 }
 
-matrix_handler::matrix_handler(
-    std::string operator_id, std::vector<int> &&degrees,
-    const commutation_behavior &commutation_behavior)
+matrix_handler::matrix_handler(std::string operator_id,
+                               std::vector<int> &&degrees,
+                               const commutation_behavior &commutation_behavior)
     : op_code(operator_id),
       commutes(commutation_behavior.commutes_across_degrees),
       group(commutation_behavior.group), targets(std::move(degrees)) {
@@ -227,7 +225,7 @@ matrix_handler::matrix_handler(const T &other)
 template <typename T,
           std::enable_if_t<std::is_base_of_v<operator_handler, T>, bool>>
 matrix_handler::matrix_handler(const T &other,
-                                 const commutation_behavior &behavior)
+                               const commutation_behavior &behavior)
     : op_code(matrix_handler::type_prefix<T>() + other.to_string(false)),
       commutes(behavior.commutes_across_degrees), group(behavior.group),
       targets(other.degrees()) {
@@ -245,8 +243,7 @@ matrix_handler::matrix_handler(const T &other,
     // the to_matrix method on the spin op will check the dimensions, so we
     // allow arbitrary here
     std::vector<int> required_dimensions(this->targets.size(), -1);
-    matrix_handler::define(this->op_code, std::move(required_dimensions),
-                            func);
+    matrix_handler::define(this->op_code, std::move(required_dimensions), func);
   }
 }
 
@@ -255,11 +252,11 @@ template matrix_handler::matrix_handler(const boson_handler &other);
 template matrix_handler::matrix_handler(const fermion_handler &other);
 
 template matrix_handler::matrix_handler(const spin_handler &other,
-                                          const commutation_behavior &behavior);
+                                        const commutation_behavior &behavior);
 template matrix_handler::matrix_handler(const boson_handler &other,
-                                          const commutation_behavior &behavior);
+                                        const commutation_behavior &behavior);
 template matrix_handler::matrix_handler(const fermion_handler &other,
-                                          const commutation_behavior &behavior);
+                                        const commutation_behavior &behavior);
 
 matrix_handler::matrix_handler(const matrix_handler &other)
     : op_code(other.op_code), commutes(other.commutes), group(other.group),
@@ -300,10 +297,8 @@ matrix_handler &matrix_handler::operator=(const T &other) {
   return *this;
 }
 
-template matrix_handler &
-matrix_handler::operator=(const spin_handler &other);
-template matrix_handler &
-matrix_handler::operator=(const boson_handler &other);
+template matrix_handler &matrix_handler::operator=(const spin_handler &other);
+template matrix_handler &matrix_handler::operator=(const boson_handler &other);
 template matrix_handler &
 matrix_handler::operator=(const fermion_handler &other);
 

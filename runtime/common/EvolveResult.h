@@ -9,10 +9,10 @@
 #pragma once
 
 #include "common/ObserveResult.h"
+#include "cudaq/operators.h"
 #include "cudaq/qis/state.h"
 #include <memory>
 #include <optional>
-#include "cudaq/operators.h"
 
 namespace cudaq {
 

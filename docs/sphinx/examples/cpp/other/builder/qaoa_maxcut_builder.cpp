@@ -36,9 +36,9 @@ int main() {
   cudaq::set_random_seed(13); // set for repeatability
 
   // Problem Hamiltonian
-  const cudaq::spin_op Hp = 0.5 * cudaq::spin_op::z(0) * cudaq::spin_op::z(1) + 
+  const cudaq::spin_op Hp = 0.5 * cudaq::spin_op::z(0) * cudaq::spin_op::z(1) +
                             0.5 * cudaq::spin_op::z(1) * cudaq::spin_op::z(2) +
-                            0.5 * cudaq::spin_op::z(0) * cudaq::spin_op::z(3) + 
+                            0.5 * cudaq::spin_op::z(0) * cudaq::spin_op::z(3) +
                             0.5 * cudaq::spin_op::z(2) * cudaq::spin_op::z(3);
 
   // Specify problem parameters

@@ -109,8 +109,11 @@ TEST(OperatorExpressions, checkPreBuiltSpinOps) {
   // plus operator.
   {
     auto op = cudaq::spin_op::plus(degree_index);
-    auto composite = (cudaq::spin_op::x(degree_index) + onej * cudaq::spin_op::y(degree_index)) / 2.;
-    auto composite_mat = 0.5 * utils::PauliX_matrix() + 0.5 * onej * utils::PauliY_matrix();
+    auto composite = (cudaq::spin_op::x(degree_index) +
+                      onej * cudaq::spin_op::y(degree_index)) /
+                     2.;
+    auto composite_mat =
+        0.5 * utils::PauliX_matrix() + 0.5 * onej * utils::PauliY_matrix();
     auto got = op.to_matrix();
     auto want = utils::annihilate_matrix(2);
     utils::checkEqual(want, got);
@@ -121,8 +124,11 @@ TEST(OperatorExpressions, checkPreBuiltSpinOps) {
   // minus operator.
   {
     auto op = cudaq::spin_op::minus(degree_index);
-    auto composite = (cudaq::spin_op::x(degree_index) - onej * cudaq::spin_op::y(degree_index)) / 2.;
-    auto composite_mat = 0.5 * utils::PauliX_matrix() - 0.5 * onej * utils::PauliY_matrix();
+    auto composite = (cudaq::spin_op::x(degree_index) -
+                      onej * cudaq::spin_op::y(degree_index)) /
+                     2.;
+    auto composite_mat =
+        0.5 * utils::PauliX_matrix() - 0.5 * onej * utils::PauliY_matrix();
     auto got = op.to_matrix();
     auto want = utils::create_matrix(2);
     utils::checkEqual(want, got);

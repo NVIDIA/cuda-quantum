@@ -29,9 +29,9 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Support/Plugin.h"
 #include "cudaq/Support/TargetConfig.h"
+#include "cudaq/operators.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
-#include "cudaq/operators.h"
 #include "nvqpp_config.h"
 #include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
@@ -535,7 +535,8 @@ public:
         // followed by the canonicalizer
         mlir::PassManager pm(&context);
         pm.addNestedPass<mlir::func::FuncOp>(
-            cudaq::opt::createObserveAnsatzPass(term.get_binary_symplectic_form()));
+            cudaq::opt::createObserveAnsatzPass(
+                term.get_binary_symplectic_form()));
         if (disableMLIRthreading || enablePrintMLIREachPass)
           tmpModuleOp.getContext()->disableMultithreading();
         if (enablePrintMLIREachPass)

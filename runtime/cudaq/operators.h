@@ -25,18 +25,19 @@ namespace cudaq {
 class spin_handler;
 enum class pauli;
 
-#define HANDLER_SPECIFIC_TEMPLATE(ConcreteTy)                                             \
-  template <typename T = HandlerTy, std::enable_if_t<                                     \
-                                      std::is_same<T, ConcreteTy>::value &&               \
-                                      std::is_same<HandlerTy, T>::value, bool> = true>
+#define HANDLER_SPECIFIC_TEMPLATE(ConcreteTy)                                  \
+  template <typename T = HandlerTy,                                            \
+            std::enable_if_t<std::is_same<T, ConcreteTy>::value &&             \
+                                 std::is_same<HandlerTy, T>::value,            \
+                             bool> = true>
 
-  // utility functions for backward compatibility
+// utility functions for backward compatibility
 
-#define SPIN_OPS_BACKWARD_COMPATIBILITY                                                   \
-  template <typename T = HandlerTy, std::enable_if_t<                                     \
-                                      std::is_same<HandlerTy, spin_handler>::value &&    \
-                                      std::is_same<HandlerTy, T>::value, bool> = true>
-
+#define SPIN_OPS_BACKWARD_COMPATIBILITY                                        \
+  template <typename T = HandlerTy,                                            \
+            std::enable_if_t<std::is_same<HandlerTy, spin_handler>::value &&   \
+                                 std::is_same<HandlerTy, T>::value,            \
+                             bool> = true>
 
 /// @brief Represents an operator expression consisting of a sum of terms, where
 /// each term is a product of elementary and scalar operators. Operator
@@ -70,13 +71,12 @@ protected:
   std::vector<scalar_operator> coefficients;
   bool is_default = false;
 
-  constexpr sum_op(bool is_default) : is_default(is_default) {};
+  constexpr sum_op(bool is_default) : is_default(is_default){};
   sum_op(const sum_op<HandlerTy> &other, bool is_default, int size);
   sum_op(sum_op<HandlerTy> &&other, bool is_default, int size);
 
 public:
-
-  // called const_iterator because it will *not* modify the sum, 
+  // called const_iterator because it will *not* modify the sum,
   // regardless of what is done with the products/iterator
   struct const_iterator {
   private:
@@ -86,35 +86,41 @@ public:
 
   public:
     using iterator_category = std::forward_iterator_tag;
-    using difference_type   = std::ptrdiff_t;
-    using value_type        = product_op<HandlerTy>;
-    using pointer           = product_op<HandlerTy>*;
-    using reference         = product_op<HandlerTy>&;
+    using difference_type = std::ptrdiff_t;
+    using value_type = product_op<HandlerTy>;
+    using pointer = product_op<HandlerTy> *;
+    using reference = product_op<HandlerTy> &;
 
     const_iterator(const sum_op<HandlerTy> *sum)
-    : const_iterator(sum, sum->term_map.begin()) {}
+        : const_iterator(sum, sum->term_map.begin()) {}
 
-    const_iterator(const sum_op<HandlerTy> *sum, 
+    const_iterator(const sum_op<HandlerTy> *sum,
                    std::unordered_map<std::string, int>::const_iterator &&it)
-    : sum(sum), iter(std::move(it)), current_val(1.) {
+        : sum(sum), iter(std::move(it)), current_val(1.) {
       if (iter != sum->term_map.end())
-        current_val = product_op<HandlerTy>(sum->coefficients[iter->second], sum->terms[iter->second]);
+        current_val = product_op<HandlerTy>(sum->coefficients[iter->second],
+                                            sum->terms[iter->second]);
     }
 
     bool operator==(const const_iterator &other) const {
       return sum == other.sum && iter == other.iter;
     }
 
-    bool operator!=(const const_iterator &other) const { return !(*this == other); }
+    bool operator!=(const const_iterator &other) const {
+      return !(*this == other);
+    }
 
-    reference operator*() { return current_val; } // not const - allow to move current_value
+    reference operator*() {
+      return current_val;
+    } // not const - allow to move current_value
     pointer operator->() { return &current_val; }
 
     // prefix
-    const_iterator& operator++() {
+    const_iterator &operator++() {
       if (++iter != sum->term_map.end())
-        current_val = product_op<HandlerTy>(sum->coefficients[iter->second], sum->terms[iter->second]); 
-      return *this; 
+        current_val = product_op<HandlerTy>(sum->coefficients[iter->second],
+                                            sum->terms[iter->second]);
+      return *this;
     }
 
     // postfix
@@ -125,7 +131,9 @@ public:
   const_iterator begin() const { return const_iterator(this); }
 
   /// @brief Get iterator to end of operator terms
-  const_iterator end() const { return const_iterator(this, this->term_map.cend()); }
+  const_iterator end() const {
+    return const_iterator(this, this->term_map.cend());
+  }
 
   // read-only properties
 
@@ -142,13 +150,12 @@ public:
   // A default initialized sum will act as both the additive
   // and multiplicative identity. To construct a true "0" value
   // (neutral element for addition only), use sum_op<T>::empty().
-  constexpr sum_op()
-    : is_default(true) {};
+  constexpr sum_op() : is_default(true){};
 
   template <typename... Args,
             std::enable_if_t<std::conjunction<std::is_same<
                                  product_op<HandlerTy>, Args>...>::value &&
-                            sizeof...(Args),
+                                 sizeof...(Args),
                              bool> = true>
   sum_op(Args &&...args);
 
@@ -166,7 +173,7 @@ public:
                                  std::is_constructible<HandlerTy, T>::value,
                              bool> = true>
   sum_op(const sum_op<T> &other,
-               const matrix_handler::commutation_behavior &behavior);
+         const matrix_handler::commutation_behavior &behavior);
 
   // copy constructor
   sum_op(const sum_op<HandlerTy> &other);
@@ -214,15 +221,16 @@ public:
   ///                      degrees of freedom: `{0:2, 1:2}`.
   /// @arg `parameters` : A map of the parameter names to their concrete,
   /// complex values.
-  complex_matrix to_matrix(std::unordered_map<int, int> dimensions = {},
-                     const std::unordered_map<std::string, std::complex<double>>
-                         &parameters = {},
-                     bool application_order = true) const;
+  complex_matrix
+  to_matrix(std::unordered_map<int, int> dimensions = {},
+            const std::unordered_map<std::string, std::complex<double>>
+                &parameters = {},
+            bool application_order = true) const;
 
   // comparisons
 
   /// @brief True, if the other value is an sum_op<HandlerTy> with
-  /// equivalent terms, and False otherwise. 
+  /// equivalent terms, and False otherwise.
   /// The equality takes into account that operator
   /// addition is commutative, as is the product of two operators if they
   /// act on different degrees of freedom.
@@ -254,30 +262,21 @@ public:
   sum_op<HandlerTy> operator-(scalar_operator &&other) &&;
   sum_op<HandlerTy> operator-(const scalar_operator &other) const &;
   sum_op<HandlerTy> operator-(const scalar_operator &other) &&;
-  sum_op<HandlerTy>
-  operator*(const product_op<HandlerTy> &other) const;
-  sum_op<HandlerTy>
-  operator+(const product_op<HandlerTy> &other) const &;
-  sum_op<HandlerTy>
-  operator+(const product_op<HandlerTy> &other) &&;
-  sum_op<HandlerTy>
-  operator+(product_op<HandlerTy> &&other) const &;
+  sum_op<HandlerTy> operator*(const product_op<HandlerTy> &other) const;
+  sum_op<HandlerTy> operator+(const product_op<HandlerTy> &other) const &;
+  sum_op<HandlerTy> operator+(const product_op<HandlerTy> &other) &&;
+  sum_op<HandlerTy> operator+(product_op<HandlerTy> &&other) const &;
   sum_op<HandlerTy> operator+(product_op<HandlerTy> &&other) &&;
-  sum_op<HandlerTy>
-  operator-(const product_op<HandlerTy> &other) const &;
-  sum_op<HandlerTy>
-  operator-(const product_op<HandlerTy> &other) &&;
-  sum_op<HandlerTy>
-  operator-(product_op<HandlerTy> &&other) const &;
+  sum_op<HandlerTy> operator-(const product_op<HandlerTy> &other) const &;
+  sum_op<HandlerTy> operator-(const product_op<HandlerTy> &other) &&;
+  sum_op<HandlerTy> operator-(product_op<HandlerTy> &&other) const &;
   sum_op<HandlerTy> operator-(product_op<HandlerTy> &&other) &&;
   sum_op<HandlerTy> operator*(const sum_op<HandlerTy> &other) const;
-  sum_op<HandlerTy>
-  operator+(const sum_op<HandlerTy> &other) const &;
+  sum_op<HandlerTy> operator+(const sum_op<HandlerTy> &other) const &;
   sum_op<HandlerTy> operator+(const sum_op<HandlerTy> &other) &&;
   sum_op<HandlerTy> operator+(sum_op<HandlerTy> &&other) const &;
   sum_op<HandlerTy> operator+(sum_op<HandlerTy> &&other) &&;
-  sum_op<HandlerTy>
-  operator-(const sum_op<HandlerTy> &other) const &;
+  sum_op<HandlerTy> operator-(const sum_op<HandlerTy> &other) const &;
   sum_op<HandlerTy> operator-(const sum_op<HandlerTy> &other) &&;
   sum_op<HandlerTy> operator-(sum_op<HandlerTy> &&other) const &;
   sum_op<HandlerTy> operator-(sum_op<HandlerTy> &&other) &&;
@@ -305,59 +304,50 @@ public:
   // instantiation is a nightmare.
   template <typename T>
   friend sum_op<T> operator*(const scalar_operator &other,
-                                   const sum_op<T> &self);
+                             const sum_op<T> &self);
   template <typename T>
-  friend sum_op<T> operator*(const scalar_operator &other,
-                                   sum_op<T> &&self);
+  friend sum_op<T> operator*(const scalar_operator &other, sum_op<T> &&self);
   template <typename T>
-  friend sum_op<T> operator+(scalar_operator &&other,
-                                   const sum_op<T> &self);
+  friend sum_op<T> operator+(scalar_operator &&other, const sum_op<T> &self);
   template <typename T>
-  friend sum_op<T> operator+(scalar_operator &&other,
-                                   sum_op<T> &&self);
+  friend sum_op<T> operator+(scalar_operator &&other, sum_op<T> &&self);
   template <typename T>
   friend sum_op<T> operator+(const scalar_operator &other,
-                                   const sum_op<T> &self);
+                             const sum_op<T> &self);
   template <typename T>
-  friend sum_op<T> operator+(const scalar_operator &other,
-                                   sum_op<T> &&self);
+  friend sum_op<T> operator+(const scalar_operator &other, sum_op<T> &&self);
   template <typename T>
-  friend sum_op<T> operator-(scalar_operator &&other,
-                                   const sum_op<T> &self);
+  friend sum_op<T> operator-(scalar_operator &&other, const sum_op<T> &self);
   template <typename T>
-  friend sum_op<T> operator-(scalar_operator &&other,
-                                   sum_op<T> &&self);
+  friend sum_op<T> operator-(scalar_operator &&other, sum_op<T> &&self);
   template <typename T>
   friend sum_op<T> operator-(const scalar_operator &other,
-                                   const sum_op<T> &self);
+                             const sum_op<T> &self);
   template <typename T>
-  friend sum_op<T> operator-(const scalar_operator &other,
-                                   sum_op<T> &&self);
+  friend sum_op<T> operator-(const scalar_operator &other, sum_op<T> &&self);
 
   template <typename T>
   friend sum_op<T> operator+(scalar_operator &&other,
-                                   const product_op<T> &self);
+                             const product_op<T> &self);
   template <typename T>
-  friend sum_op<T> operator+(scalar_operator &&other,
-                                   product_op<T> &&self);
-  template <typename T>
-  friend sum_op<T> operator+(const scalar_operator &other,
-                                   const product_op<T> &self);
+  friend sum_op<T> operator+(scalar_operator &&other, product_op<T> &&self);
   template <typename T>
   friend sum_op<T> operator+(const scalar_operator &other,
-                                   product_op<T> &&self);
+                             const product_op<T> &self);
+  template <typename T>
+  friend sum_op<T> operator+(const scalar_operator &other,
+                             product_op<T> &&self);
   template <typename T>
   friend sum_op<T> operator-(scalar_operator &&other,
-                                   const product_op<T> &self);
+                             const product_op<T> &self);
   template <typename T>
-  friend sum_op<T> operator-(scalar_operator &&other,
-                                   product_op<T> &&self);
-  template <typename T>
-  friend sum_op<T> operator-(const scalar_operator &other,
-                                   const product_op<T> &self);
+  friend sum_op<T> operator-(scalar_operator &&other, product_op<T> &&self);
   template <typename T>
   friend sum_op<T> operator-(const scalar_operator &other,
-                                   product_op<T> &&self);
+                             const product_op<T> &self);
+  template <typename T>
+  friend sum_op<T> operator-(const scalar_operator &other,
+                             product_op<T> &&self);
 
   // common operators
 
@@ -385,7 +375,6 @@ public:
   HANDLER_SPECIFIC_TEMPLATE(matrix_handler)
   static product_op<T> displace(int target);
 
-
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   static product_op<T> i(int target);
 
@@ -404,13 +393,12 @@ public:
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   static sum_op<T> minus(int target);
 
-
   HANDLER_SPECIFIC_TEMPLATE(boson_handler)
   static product_op<T> create(int target);
 
   HANDLER_SPECIFIC_TEMPLATE(boson_handler)
   static product_op<T> annihilate(int target);
-  
+
   HANDLER_SPECIFIC_TEMPLATE(boson_handler)
   static product_op<T> number(int target);
 
@@ -420,20 +408,19 @@ public:
   HANDLER_SPECIFIC_TEMPLATE(boson_handler)
   static sum_op<T> momentum(int target);
 
-
   HANDLER_SPECIFIC_TEMPLATE(fermion_handler)
   static product_op<T> create(int target);
 
   HANDLER_SPECIFIC_TEMPLATE(fermion_handler)
   static product_op<T> annihilate(int target);
-  
+
   HANDLER_SPECIFIC_TEMPLATE(fermion_handler)
   static product_op<T> number(int target);
 
   // general utility functions
 
   void dump() const;
-  
+
   std::vector<sum_op<HandlerTy>> distribute_terms(std::size_t numChunks) const;
 
   // handler specific utility functions
@@ -444,11 +431,14 @@ public:
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   sum_op(const std::vector<double> &input_vec);
 
-  HANDLER_SPECIFIC_TEMPLATE(spin_handler) // could be defined for other operators as well
+  HANDLER_SPECIFIC_TEMPLATE(
+      spin_handler) // could be defined for other operators as well
   static product_op<HandlerTy> from_word(const std::string &word);
 
-  HANDLER_SPECIFIC_TEMPLATE(spin_handler) // could be defined for other operators as well
-  static sum_op<HandlerTy> random(std::size_t nQubits, std::size_t nTerms, unsigned int seed);
+  HANDLER_SPECIFIC_TEMPLATE(
+      spin_handler) // could be defined for other operators as well
+  static sum_op<HandlerTy> random(std::size_t nQubits, std::size_t nTerms,
+                                  unsigned int seed);
 
   // utility functions for backward compatibility
 
@@ -457,8 +447,8 @@ public:
 
   SPIN_OPS_BACKWARD_COMPATIBILITY
   sum_op(const std::vector<std::vector<bool>> &bsf_terms,
-          const std::vector<std::complex<double>> &coeffs);
-  
+         const std::vector<std::complex<double>> &coeffs);
+
   SPIN_OPS_BACKWARD_COMPATIBILITY
   std::vector<double> getDataRepresentation() const;
 
@@ -478,7 +468,6 @@ public:
   SPIN_OPS_BACKWARD_COMPATIBILITY
   bool is_identity() const;
 };
-
 
 /// @brief Represents an operator expression consisting of a product of
 /// elementary and scalar operators. Operator expressions cannot be used within
@@ -544,16 +533,14 @@ protected:
   // keep this constructor protected (otherwise it needs to ensure canonical
   // order)
   product_op(scalar_operator coefficient,
-                   const std::vector<HandlerTy> &atomic_operators,
-                   int size = 0);
+             const std::vector<HandlerTy> &atomic_operators, int size = 0);
 
   // keep this constructor protected (otherwise it needs to ensure canonical
   // order)
   product_op(scalar_operator coefficient,
-                   std::vector<HandlerTy> &&atomic_operators, int size = 0);
+             std::vector<HandlerTy> &&atomic_operators, int size = 0);
 
 public:
-
   struct const_iterator {
   private:
     const product_op<HandlerTy> *prod;
@@ -561,37 +548,51 @@ public:
 
   public:
     using iterator_category = std::bidirectional_iterator_tag;
-    using difference_type   = std::ptrdiff_t;
-    using value_type        = const HandlerTy;
-    using pointer           = const HandlerTy*;
-    using reference         = const HandlerTy&;
+    using difference_type = std::ptrdiff_t;
+    using value_type = const HandlerTy;
+    using pointer = const HandlerTy *;
+    using reference = const HandlerTy &;
 
     const_iterator(const product_op<HandlerTy> *prod, std::size_t idx = 0)
-    : prod(prod), current_idx(idx) {}
+        : prod(prod), current_idx(idx) {}
 
     bool operator==(const const_iterator &other) const {
       return prod == other.prod && current_idx == other.current_idx;
     }
 
-    bool operator!=(const const_iterator &other) const { return !(*this == other); }
+    bool operator!=(const const_iterator &other) const {
+      return !(*this == other);
+    }
 
     reference operator*() const { return prod->operators[current_idx]; }
     pointer operator->() { return &(prod->operators[current_idx]); }
 
     // prefix
-    const_iterator& operator++() { ++current_idx; return *this; }  
-    const_iterator& operator--() { --current_idx; return *this; }  
+    const_iterator &operator++() {
+      ++current_idx;
+      return *this;
+    }
+    const_iterator &operator--() {
+      --current_idx;
+      return *this;
+    }
 
     // postfix
-    const_iterator operator++(int) { return const_iterator(prod, current_idx++); }
-    const_iterator operator--(int) { return const_iterator(prod, current_idx--); }
+    const_iterator operator++(int) {
+      return const_iterator(prod, current_idx++);
+    }
+    const_iterator operator--(int) {
+      return const_iterator(prod, current_idx--);
+    }
   };
 
   /// @brief Get iterator to beginning of operator terms
   const_iterator begin() const { return const_iterator(this); }
 
   /// @brief Get iterator to end of operator terms
-  const_iterator end() const { return const_iterator(this, this->operators.size()); }
+  const_iterator end() const {
+    return const_iterator(this, this->operators.size());
+  }
 
   // read-only properties
 
@@ -599,9 +600,9 @@ public:
   /// By default, degrees reflect the ordering convention (endianness) used in
   /// CUDA-Q, and the ordering of the matrix returned by default by `to_matrix`.
   ///
-  /// Specifically, the indices of a statevector with two qubits are {00, 01, 10, 11}.
-  /// An ordering of degrees {0, 1} then indicates that a state where
-  /// the qubit with index 0 equals 1 with probability 1 is given by 
+  /// Specifically, the indices of a statevector with two qubits are {00, 01,
+  /// 10, 11}. An ordering of degrees {0, 1} then indicates that a state where
+  /// the qubit with index 0 equals 1 with probability 1 is given by
   /// the vector {0., 1., 0., 0.}.
   std::vector<std::size_t> degrees(bool application_order = true) const;
 
@@ -609,11 +610,11 @@ public:
   /// operator.
   std::size_t num_ops() const;
 
-  // Public since it is used by the CUDA-Q compiler and runtime 
+  // Public since it is used by the CUDA-Q compiler and runtime
   // to retrieve expectation values for specific terms.
   // The term id uniquely identifies the operators and targets
-  // (degrees) that they act on, but does not include information 
-  // about the coefficient. 
+  // (degrees) that they act on, but does not include information
+  // about the coefficient.
   std::string get_term_id() const;
 
   scalar_operator get_coefficient() const;
@@ -640,7 +641,7 @@ public:
                                  std::is_constructible<HandlerTy, T>::value,
                              bool> = true>
   product_op(const product_op<T> &other,
-                   const matrix_handler::commutation_behavior &behavior);
+             const matrix_handler::commutation_behavior &behavior);
 
   // copy constructor
   product_op(const product_op<HandlerTy> &other, int size = 0);
@@ -659,8 +660,7 @@ public:
   product_op<HandlerTy> &operator=(const product_op<T> &other);
 
   // assignment operator
-  product_op<HandlerTy> &
-  operator=(const product_op<HandlerTy> &other);
+  product_op<HandlerTy> &operator=(const product_op<HandlerTy> &other);
 
   // move assignment operator
   product_op<HandlerTy> &operator=(product_op<HandlerTy> &&other);
@@ -679,15 +679,16 @@ public:
   ///                      degrees of freedom: `{0:2, 1:2}`.
   /// @arg `parameters` : A map of the parameter names to their concrete,
   /// complex values.
-  complex_matrix to_matrix(std::unordered_map<int, int> dimensions = {},
-                     const std::unordered_map<std::string, std::complex<double>>
-                         &parameters = {},
-                     bool application_order = true) const;
+  complex_matrix
+  to_matrix(std::unordered_map<int, int> dimensions = {},
+            const std::unordered_map<std::string, std::complex<double>>
+                &parameters = {},
+            bool application_order = true) const;
 
   // comparisons
 
   /// @brief True, if the other value is an sum_op<HandlerTy> with
-  /// equivalent terms, and False otherwise. 
+  /// equivalent terms, and False otherwise.
   /// The equality takes into account that operator
   /// addition is commutative, as is the product of two operators if they
   /// act on different degrees of freedom.
@@ -723,43 +724,31 @@ public:
   sum_op<HandlerTy> operator-(scalar_operator &&other) &&;
   sum_op<HandlerTy> operator-(const scalar_operator &other) const &;
   sum_op<HandlerTy> operator-(const scalar_operator &other) &&;
-  product_op<HandlerTy>
-  operator*(const product_op<HandlerTy> &other) const &;
-  product_op<HandlerTy>
-  operator*(const product_op<HandlerTy> &other) &&;
-  product_op<HandlerTy>
-  operator*(product_op<HandlerTy> &&other) const &;
+  product_op<HandlerTy> operator*(const product_op<HandlerTy> &other) const &;
+  product_op<HandlerTy> operator*(const product_op<HandlerTy> &other) &&;
+  product_op<HandlerTy> operator*(product_op<HandlerTy> &&other) const &;
   product_op<HandlerTy> operator*(product_op<HandlerTy> &&other) &&;
-  sum_op<HandlerTy>
-  operator+(const product_op<HandlerTy> &other) const &;
-  sum_op<HandlerTy>
-  operator+(const product_op<HandlerTy> &other) &&;
-  sum_op<HandlerTy>
-  operator+(product_op<HandlerTy> &&other) const &;
+  sum_op<HandlerTy> operator+(const product_op<HandlerTy> &other) const &;
+  sum_op<HandlerTy> operator+(const product_op<HandlerTy> &other) &&;
+  sum_op<HandlerTy> operator+(product_op<HandlerTy> &&other) const &;
   sum_op<HandlerTy> operator+(product_op<HandlerTy> &&other) &&;
-  sum_op<HandlerTy>
-  operator-(const product_op<HandlerTy> &other) const &;
-  sum_op<HandlerTy>
-  operator-(const product_op<HandlerTy> &other) &&;
-  sum_op<HandlerTy>
-  operator-(product_op<HandlerTy> &&other) const &;
+  sum_op<HandlerTy> operator-(const product_op<HandlerTy> &other) const &;
+  sum_op<HandlerTy> operator-(const product_op<HandlerTy> &other) &&;
+  sum_op<HandlerTy> operator-(product_op<HandlerTy> &&other) const &;
   sum_op<HandlerTy> operator-(product_op<HandlerTy> &&other) &&;
   sum_op<HandlerTy> operator*(const sum_op<HandlerTy> &other) const;
-  sum_op<HandlerTy>
-  operator+(const sum_op<HandlerTy> &other) const &;
+  sum_op<HandlerTy> operator+(const sum_op<HandlerTy> &other) const &;
   sum_op<HandlerTy> operator+(const sum_op<HandlerTy> &other) &&;
   sum_op<HandlerTy> operator+(sum_op<HandlerTy> &&other) const &;
   sum_op<HandlerTy> operator+(sum_op<HandlerTy> &&other) &&;
-  sum_op<HandlerTy>
-  operator-(const sum_op<HandlerTy> &other) const &;
+  sum_op<HandlerTy> operator-(const sum_op<HandlerTy> &other) const &;
   sum_op<HandlerTy> operator-(const sum_op<HandlerTy> &other) &&;
   sum_op<HandlerTy> operator-(sum_op<HandlerTy> &&other) const &;
   sum_op<HandlerTy> operator-(sum_op<HandlerTy> &&other) &&;
 
   product_op<HandlerTy> &operator*=(const scalar_operator &other);
   product_op<HandlerTy> &operator/=(const scalar_operator &other);
-  product_op<HandlerTy> &
-  operator*=(const product_op<HandlerTy> &other);
+  product_op<HandlerTy> &operator*=(const product_op<HandlerTy> &other);
   product_op<HandlerTy> &operator*=(product_op<HandlerTy> &&other);
 
   // left-hand arithmetics
@@ -768,77 +757,65 @@ public:
   // instantiation is a nightmare.
   template <typename T>
   friend product_op<T> operator*(scalar_operator &&other,
-                                       const product_op<T> &self);
+                                 const product_op<T> &self);
   template <typename T>
-  friend product_op<T> operator*(scalar_operator &&other,
-                                       product_op<T> &&self);
-  template <typename T>
-  friend product_op<T> operator*(const scalar_operator &other,
-                                       const product_op<T> &self);
+  friend product_op<T> operator*(scalar_operator &&other, product_op<T> &&self);
   template <typename T>
   friend product_op<T> operator*(const scalar_operator &other,
-                                       product_op<T> &&self);
+                                 const product_op<T> &self);
+  template <typename T>
+  friend product_op<T> operator*(const scalar_operator &other,
+                                 product_op<T> &&self);
   template <typename T>
   friend sum_op<T> operator+(scalar_operator &&other,
-                                   const product_op<T> &self);
+                             const product_op<T> &self);
   template <typename T>
-  friend sum_op<T> operator+(scalar_operator &&other,
-                                   product_op<T> &&self);
-  template <typename T>
-  friend sum_op<T> operator+(const scalar_operator &other,
-                                   const product_op<T> &self);
+  friend sum_op<T> operator+(scalar_operator &&other, product_op<T> &&self);
   template <typename T>
   friend sum_op<T> operator+(const scalar_operator &other,
-                                   product_op<T> &&self);
+                             const product_op<T> &self);
+  template <typename T>
+  friend sum_op<T> operator+(const scalar_operator &other,
+                             product_op<T> &&self);
   template <typename T>
   friend sum_op<T> operator-(scalar_operator &&other,
-                                   const product_op<T> &self);
+                             const product_op<T> &self);
   template <typename T>
-  friend sum_op<T> operator-(scalar_operator &&other,
-                                   product_op<T> &&self);
-  template <typename T>
-  friend sum_op<T> operator-(const scalar_operator &other,
-                                   const product_op<T> &self);
+  friend sum_op<T> operator-(scalar_operator &&other, product_op<T> &&self);
   template <typename T>
   friend sum_op<T> operator-(const scalar_operator &other,
-                                   product_op<T> &&self);
+                             const product_op<T> &self);
+  template <typename T>
+  friend sum_op<T> operator-(const scalar_operator &other,
+                             product_op<T> &&self);
 
   template <typename T>
-  friend sum_op<T> operator*(scalar_operator &&other,
-                                   const sum_op<T> &self);
+  friend sum_op<T> operator*(scalar_operator &&other, const sum_op<T> &self);
   template <typename T>
-  friend sum_op<T> operator*(scalar_operator &&other,
-                                   sum_op<T> &&self);
+  friend sum_op<T> operator*(scalar_operator &&other, sum_op<T> &&self);
   template <typename T>
   friend sum_op<T> operator*(const scalar_operator &other,
-                                   const sum_op<T> &self);
+                             const sum_op<T> &self);
   template <typename T>
-  friend sum_op<T> operator*(const scalar_operator &other,
-                                   sum_op<T> &&self);
+  friend sum_op<T> operator*(const scalar_operator &other, sum_op<T> &&self);
   template <typename T>
-  friend sum_op<T> operator+(scalar_operator &&other,
-                                   const sum_op<T> &self);
+  friend sum_op<T> operator+(scalar_operator &&other, const sum_op<T> &self);
   template <typename T>
-  friend sum_op<T> operator+(scalar_operator &&other,
-                                   sum_op<T> &&self);
+  friend sum_op<T> operator+(scalar_operator &&other, sum_op<T> &&self);
   template <typename T>
   friend sum_op<T> operator+(const scalar_operator &other,
-                                   const sum_op<T> &self);
+                             const sum_op<T> &self);
   template <typename T>
-  friend sum_op<T> operator+(const scalar_operator &other,
-                                   sum_op<T> &&self);
+  friend sum_op<T> operator+(const scalar_operator &other, sum_op<T> &&self);
   template <typename T>
-  friend sum_op<T> operator-(scalar_operator &&other,
-                                   const sum_op<T> &self);
+  friend sum_op<T> operator-(scalar_operator &&other, const sum_op<T> &self);
   template <typename T>
-  friend sum_op<T> operator-(scalar_operator &&other,
-                                   sum_op<T> &&self);
+  friend sum_op<T> operator-(scalar_operator &&other, sum_op<T> &&self);
   template <typename T>
   friend sum_op<T> operator-(const scalar_operator &other,
-                                   const sum_op<T> &self);
+                             const sum_op<T> &self);
   template <typename T>
-  friend sum_op<T> operator-(const scalar_operator &other,
-                                   sum_op<T> &&self);
+  friend sum_op<T> operator-(const scalar_operator &other, sum_op<T> &&self);
 
   // general utility functions
 
@@ -938,10 +915,10 @@ extern template class sum_op<fermion_handler>;
 
 // Here only for backward compatibility
 namespace spin {
-  sum_op<spin_handler> i(std::size_t target);
-  sum_op<spin_handler> x(std::size_t target);
-  sum_op<spin_handler> y(std::size_t target);
-  sum_op<spin_handler> z(std::size_t target);
-}
+sum_op<spin_handler> i(std::size_t target);
+sum_op<spin_handler> x(std::size_t target);
+sum_op<spin_handler> y(std::size_t target);
+sum_op<spin_handler> z(std::size_t target);
+} // namespace spin
 
 } // namespace cudaq
