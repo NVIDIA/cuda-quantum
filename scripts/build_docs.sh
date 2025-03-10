@@ -69,6 +69,15 @@ doxygen_output_dir="$docs_build_output/doxygen"
 dialect_output_dir="$docs_build_output/Dialects"
 rm -rf "$docs_build_output"
 
+# Install `sphinx-tags`. 
+# NOTE: This should be moved to be part of devdeps image
+python3 -m pip install sphinx-tags 2>/dev/null
+if [ ! "$?" -eq "0" ]; then
+    echo "Failed to install `sphinx-tags` package."
+    cd "$working_dir" && (return 0 2>/dev/null) && return 3 || exit 3
+fi
+
+
 # Check if the cudaq Python package is installed and if not, build and install it
 build_include_dir="$repo_root/build/include"
 python3 -c "import cudaq" 2>/dev/null
