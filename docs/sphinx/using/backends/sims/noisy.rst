@@ -6,7 +6,7 @@ Trajectory Noisy Simulation
 
 The :code:`nvidia` target supports noisy quantum circuit simulations using 
 quantum trajectory method across all configurations: single GPU, multi-GPU 
-multi-Node, and with host memory. When simulating many trajectories with small 
+multi-node, and with host memory. When simulating many trajectories with small 
 state vectors, the simulation is batched for optimal performance.
 
 When a :code:`noise_model` is provided to CUDA-Q, the :code:`nvidia` target 
