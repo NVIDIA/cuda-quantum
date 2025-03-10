@@ -336,8 +336,6 @@ sum_op<HandlerTy>::sum_op(sum_op<HandlerTy> &&other)
 // to be available to those.
 #define INSTANTIATE_SUM_PRIVATE_FRIEND_CONSTRUCTORS(HandlerTy)                 \
                                                                                \
-  template sum_op<HandlerTy>::sum_op();                                        \
-                                                                               \
   template sum_op<HandlerTy>::sum_op(                                          \
       product_op<HandlerTy> &&item1,                                           \
       product_op<HandlerTy> &&item2);
