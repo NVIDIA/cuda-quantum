@@ -108,8 +108,7 @@ TEST_F(CuDensityMatTimeStepperTest, ComputeStepCheckOutput) {
   EXPECT_TRUE(castSimState != nullptr);
   castSimState->initialize_cudm(handle_, dims);
 
-  cudaq::boson_op_term op_1 =
-      cudaq::boson_op::create(0);
+  cudaq::boson_op_term op_1 = cudaq::boson_op::create(0);
   cudaq::sum_op<cudaq::matrix_handler> op(op_1);
   auto cudmOp = cudaq::dynamics::Context::getCurrentContext()
                     ->getOpConverter()

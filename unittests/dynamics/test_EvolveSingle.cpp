@@ -243,8 +243,7 @@ TEST(EvolveTester, checkScalarTd) {
   cudaq::product_op<cudaq::matrix_handler> ham1 =
       cudaq::scalar_operator(function) * cudaq::boson_op::number(0);
   cudaq::sum_op<cudaq::matrix_handler> ham(ham1);
-  cudaq::product_op<cudaq::matrix_handler> obs1 =
-      cudaq::boson_op::number(0);
+  cudaq::product_op<cudaq::matrix_handler> obs1 = cudaq::boson_op::number(0);
   cudaq::sum_op<cudaq::matrix_handler> obs(obs1);
   const double decayRate = 0.1;
   cudaq::product_op<cudaq::matrix_handler> collapseOp1 =

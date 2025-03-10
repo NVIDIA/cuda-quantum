@@ -55,9 +55,12 @@ std::complex<double> spin_handler::inplace_mult(const spin_handler &other) {
 // read-only properties
 
 pauli spin_handler::as_pauli() const {
-  if (this->op_code == 1) return pauli::Z;
-  if (this->op_code == 2) return pauli::X;
-  if (this->op_code == 3) return pauli::Y;
+  if (this->op_code == 1)
+    return pauli::Z;
+  if (this->op_code == 2)
+    return pauli::X;
+  if (this->op_code == 3)
+    return pauli::Y;
   assert(this->op_code == 0);
   return pauli::I;
 }
@@ -74,11 +77,13 @@ int spin_handler::target() const { return this->degree; }
 
 spin_handler::spin_handler(int target) : op_code(0), degree(target) {}
 
-spin_handler::spin_handler(pauli p, int target) 
-: op_code(0), degree(target) {
-  if (p == pauli::Z) this->op_code = 1;
-  else if (p == pauli::X) this->op_code = 2;
-  else if (p == pauli::Y) this->op_code = 3;  
+spin_handler::spin_handler(pauli p, int target) : op_code(0), degree(target) {
+  if (p == pauli::Z)
+    this->op_code = 1;
+  else if (p == pauli::X)
+    this->op_code = 2;
+  else if (p == pauli::Y)
+    this->op_code = 3;
 }
 
 spin_handler::spin_handler(int target, int op_id)
@@ -89,8 +94,8 @@ spin_handler::spin_handler(int target, int op_id)
 // evaluations
 
 complex_matrix spin_handler::to_matrix(std::string pauli_word,
-                                  std::complex<double> coeff,
-                                  bool invert_order) {
+                                       std::complex<double> coeff,
+                                       bool invert_order) {
   auto map_state = [&pauli_word](char pauli, bool state) {
     if (state) {
       if (pauli == 'Z')

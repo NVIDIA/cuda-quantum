@@ -33,128 +33,127 @@ class sum_op;
 
 #define TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype)                             \
   std::enable_if_t<!std::is_same<LHtype, RHtype>::value &&                     \
-                       !std::is_same<matrix_handler, LHtype>::value &&        \
+                       !std::is_same<matrix_handler, LHtype>::value &&         \
                        std::is_base_of<operator_handler, LHtype>::value &&     \
                        std::is_base_of<operator_handler, RHtype>::value,       \
                    bool>
 
 template <typename HandlerTy>
 product_op<HandlerTy> operator*(const scalar_operator &other,
-                                      const product_op<HandlerTy> &self);
+                                const product_op<HandlerTy> &self);
 template <typename HandlerTy>
 product_op<HandlerTy> operator*(const scalar_operator &other,
-                                      product_op<HandlerTy> &&self);
+                                product_op<HandlerTy> &&self);
 template <typename HandlerTy>
 sum_op<HandlerTy> operator+(const scalar_operator &other,
-                                  const product_op<HandlerTy> &self);
+                            const product_op<HandlerTy> &self);
 template <typename HandlerTy>
 sum_op<HandlerTy> operator+(const scalar_operator &other,
-                                  product_op<HandlerTy> &&self);
+                            product_op<HandlerTy> &&self);
 template <typename HandlerTy>
 sum_op<HandlerTy> operator-(const scalar_operator &other,
-                                  const product_op<HandlerTy> &self);
+                            const product_op<HandlerTy> &self);
 template <typename HandlerTy>
 sum_op<HandlerTy> operator-(const scalar_operator &other,
-                                  product_op<HandlerTy> &&self);
+                            product_op<HandlerTy> &&self);
 
 template <typename LHtype, typename RHtype,
           TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
-product_op<matrix_handler>
-operator*(const product_op<LHtype> &other,
-          const product_op<RHtype> &self);
+product_op<matrix_handler> operator*(const product_op<LHtype> &other,
+                                     const product_op<RHtype> &self);
 template <typename LHtype, typename RHtype,
           TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
 sum_op<matrix_handler> operator+(const product_op<LHtype> &other,
-                                        const product_op<RHtype> &self);
+                                 const product_op<RHtype> &self);
 template <typename LHtype, typename RHtype,
           TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
 sum_op<matrix_handler> operator-(const product_op<LHtype> &other,
-                                        const product_op<RHtype> &self);
+                                 const product_op<RHtype> &self);
 
 template <typename HandlerTy>
 sum_op<HandlerTy> operator*(const scalar_operator &other,
-                                  const sum_op<HandlerTy> &self);
+                            const sum_op<HandlerTy> &self);
 template <typename HandlerTy>
 sum_op<HandlerTy> operator*(const scalar_operator &other,
-                                  sum_op<HandlerTy> &&self);
+                            sum_op<HandlerTy> &&self);
 template <typename HandlerTy>
 sum_op<HandlerTy> operator+(const scalar_operator &other,
-                                  const sum_op<HandlerTy> &self);
+                            const sum_op<HandlerTy> &self);
 template <typename HandlerTy>
 sum_op<HandlerTy> operator+(const scalar_operator &other,
-                                  sum_op<HandlerTy> &&self);
+                            sum_op<HandlerTy> &&self);
 template <typename HandlerTy>
 sum_op<HandlerTy> operator-(const scalar_operator &other,
-                                  const sum_op<HandlerTy> &self);
+                            const sum_op<HandlerTy> &self);
 template <typename HandlerTy>
 sum_op<HandlerTy> operator-(const scalar_operator &other,
-                                  sum_op<HandlerTy> &&self);
+                            sum_op<HandlerTy> &&self);
 
 template <typename LHtype, typename RHtype,
           TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
 sum_op<matrix_handler> operator*(const sum_op<LHtype> &other,
-                                        const product_op<RHtype> &self);
+                                 const product_op<RHtype> &self);
 template <typename LHtype, typename RHtype,
           TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
 sum_op<matrix_handler> operator+(const sum_op<LHtype> &other,
-                                        const product_op<RHtype> &self);
+                                 const product_op<RHtype> &self);
 template <typename LHtype, typename RHtype,
           TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
 sum_op<matrix_handler> operator-(const sum_op<LHtype> &other,
-                                        const product_op<RHtype> &self);
+                                 const product_op<RHtype> &self);
 template <typename LHtype, typename RHtype,
           TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
 sum_op<matrix_handler> operator*(const product_op<LHtype> &other,
-                                        const sum_op<RHtype> &self);
+                                 const sum_op<RHtype> &self);
 template <typename LHtype, typename RHtype,
           TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
 sum_op<matrix_handler> operator+(const product_op<LHtype> &other,
-                                        const sum_op<RHtype> &self);
+                                 const sum_op<RHtype> &self);
 template <typename LHtype, typename RHtype,
           TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
 sum_op<matrix_handler> operator-(const product_op<LHtype> &other,
-                                        const sum_op<RHtype> &self);
+                                 const sum_op<RHtype> &self);
 template <typename LHtype, typename RHtype,
           TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
 sum_op<matrix_handler> operator*(const sum_op<LHtype> &other,
-                                        const sum_op<RHtype> &self);
+                                 const sum_op<RHtype> &self);
 template <typename LHtype, typename RHtype,
           TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
 sum_op<matrix_handler> operator+(const sum_op<LHtype> &other,
-                                        const sum_op<RHtype> &self);
+                                 const sum_op<RHtype> &self);
 template <typename LHtype, typename RHtype,
           TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
 sum_op<matrix_handler> operator-(const sum_op<LHtype> &other,
-                                        const sum_op<RHtype> &self);
+                                 const sum_op<RHtype> &self);
 
 #ifndef CUDAQ_INSTANTIATE_TEMPLATES
 #define EXTERN_TEMPLATE_SPECIALIZATIONS(HandlerTy)                             \
                                                                                \
-  extern template product_op<HandlerTy> operator*(                       \
-      const scalar_operator &other, const product_op<HandlerTy> &self);  \
-  extern template product_op<HandlerTy> operator*(                       \
-      const scalar_operator &other, product_op<HandlerTy> &&self);       \
-  extern template sum_op<HandlerTy> operator+(                           \
-      const scalar_operator &other, const product_op<HandlerTy> &self);  \
-  extern template sum_op<HandlerTy> operator+(                           \
-      const scalar_operator &other, product_op<HandlerTy> &&self);       \
-  extern template sum_op<HandlerTy> operator-(                           \
-      const scalar_operator &other, const product_op<HandlerTy> &self);  \
-  extern template sum_op<HandlerTy> operator-(                           \
-      const scalar_operator &other, product_op<HandlerTy> &&self);       \
+  extern template product_op<HandlerTy> operator*(                             \
+      const scalar_operator &other, const product_op<HandlerTy> &self);        \
+  extern template product_op<HandlerTy> operator*(                             \
+      const scalar_operator &other, product_op<HandlerTy> &&self);             \
+  extern template sum_op<HandlerTy> operator+(                                 \
+      const scalar_operator &other, const product_op<HandlerTy> &self);        \
+  extern template sum_op<HandlerTy> operator+(const scalar_operator &other,    \
+                                              product_op<HandlerTy> &&self);   \
+  extern template sum_op<HandlerTy> operator-(                                 \
+      const scalar_operator &other, const product_op<HandlerTy> &self);        \
+  extern template sum_op<HandlerTy> operator-(const scalar_operator &other,    \
+                                              product_op<HandlerTy> &&self);   \
                                                                                \
-  extern template sum_op<HandlerTy> operator*(                           \
-      const scalar_operator &other, const sum_op<HandlerTy> &self);      \
-  extern template sum_op<HandlerTy> operator*(                           \
-      const scalar_operator &other, sum_op<HandlerTy> &&self);           \
-  extern template sum_op<HandlerTy> operator+(                           \
-      const scalar_operator &other, const sum_op<HandlerTy> &self);      \
-  extern template sum_op<HandlerTy> operator+(                           \
-      const scalar_operator &other, sum_op<HandlerTy> &&self);           \
-  extern template sum_op<HandlerTy> operator-(                           \
-      const scalar_operator &other, const sum_op<HandlerTy> &self);      \
-  extern template sum_op<HandlerTy> operator-(                           \
-      const scalar_operator &other, sum_op<HandlerTy> &&self);
+  extern template sum_op<HandlerTy> operator*(const scalar_operator &other,    \
+                                              const sum_op<HandlerTy> &self);  \
+  extern template sum_op<HandlerTy> operator*(const scalar_operator &other,    \
+                                              sum_op<HandlerTy> &&self);       \
+  extern template sum_op<HandlerTy> operator+(const scalar_operator &other,    \
+                                              const sum_op<HandlerTy> &self);  \
+  extern template sum_op<HandlerTy> operator+(const scalar_operator &other,    \
+                                              sum_op<HandlerTy> &&self);       \
+  extern template sum_op<HandlerTy> operator-(const scalar_operator &other,    \
+                                              const sum_op<HandlerTy> &self);  \
+  extern template sum_op<HandlerTy> operator-(const scalar_operator &other,    \
+                                              sum_op<HandlerTy> &&self);
 
 EXTERN_TEMPLATE_SPECIALIZATIONS(matrix_handler);
 EXTERN_TEMPLATE_SPECIALIZATIONS(spin_handler);
@@ -162,116 +161,110 @@ EXTERN_TEMPLATE_SPECIALIZATIONS(boson_handler);
 
 #define EXTERN_CONVERSION_TEMPLATE_SPECIALIZATIONS(op, returnTy)               \
                                                                                \
-  extern template returnTy<matrix_handler> operator op(                       \
-      const product_op<spin_handler> &other,                            \
-      const product_op<matrix_handler> &self);                          \
-  extern template returnTy<matrix_handler> operator op(                       \
-      const product_op<boson_handler> &other,                           \
-      const product_op<matrix_handler> &self);                          \
-  extern template returnTy<matrix_handler> operator op(                       \
-      const product_op<fermion_handler> &other,                         \
-      const product_op<matrix_handler> &self);                          \
-  extern template returnTy<matrix_handler> operator op(                       \
-      const product_op<spin_handler> &other,                            \
-      const product_op<boson_handler> &self);                           \
-  extern template returnTy<matrix_handler> operator op(                       \
-      const product_op<boson_handler> &other,                           \
-      const product_op<spin_handler> &self);                            \
-  extern template returnTy<matrix_handler> operator op(                       \
-      const product_op<spin_handler> &other,                            \
-      const product_op<fermion_handler> &self);                         \
-  extern template returnTy<matrix_handler> operator op(                       \
-      const product_op<fermion_handler> &other,                         \
-      const product_op<spin_handler> &self);                            \
-  extern template returnTy<matrix_handler> operator op(                       \
-      const product_op<boson_handler> &other,                           \
-      const product_op<fermion_handler> &self);                         \
-  extern template returnTy<matrix_handler> operator op(                       \
-      const product_op<fermion_handler> &other,                         \
-      const product_op<boson_handler> &self);                           \
+  extern template returnTy<matrix_handler> operator op(                        \
+      const product_op<spin_handler> &other,                                   \
+      const product_op<matrix_handler> &self);                                 \
+  extern template returnTy<matrix_handler> operator op(                        \
+      const product_op<boson_handler> &other,                                  \
+      const product_op<matrix_handler> &self);                                 \
+  extern template returnTy<matrix_handler> operator op(                        \
+      const product_op<fermion_handler> &other,                                \
+      const product_op<matrix_handler> &self);                                 \
+  extern template returnTy<matrix_handler> operator op(                        \
+      const product_op<spin_handler> &other,                                   \
+      const product_op<boson_handler> &self);                                  \
+  extern template returnTy<matrix_handler> operator op(                        \
+      const product_op<boson_handler> &other,                                  \
+      const product_op<spin_handler> &self);                                   \
+  extern template returnTy<matrix_handler> operator op(                        \
+      const product_op<spin_handler> &other,                                   \
+      const product_op<fermion_handler> &self);                                \
+  extern template returnTy<matrix_handler> operator op(                        \
+      const product_op<fermion_handler> &other,                                \
+      const product_op<spin_handler> &self);                                   \
+  extern template returnTy<matrix_handler> operator op(                        \
+      const product_op<boson_handler> &other,                                  \
+      const product_op<fermion_handler> &self);                                \
+  extern template returnTy<matrix_handler> operator op(                        \
+      const product_op<fermion_handler> &other,                                \
+      const product_op<boson_handler> &self);                                  \
                                                                                \
-  extern template sum_op<matrix_handler> operator op(                   \
-      const sum_op<spin_handler> &other,                                \
-      const product_op<matrix_handler> &self);                          \
-  extern template sum_op<matrix_handler> operator op(                   \
-      const sum_op<boson_handler> &other,                               \
-      const product_op<matrix_handler> &self);                          \
-  extern template sum_op<matrix_handler> operator op(                   \
-      const sum_op<fermion_handler> &other,                             \
-      const product_op<matrix_handler> &self);                          \
-  extern template sum_op<matrix_handler> operator op(                   \
-      const sum_op<spin_handler> &other,                                \
-      const product_op<boson_handler> &self);                           \
-  extern template sum_op<matrix_handler> operator op(                   \
-      const sum_op<boson_handler> &other,                               \
-      const product_op<spin_handler> &self);                            \
-  extern template sum_op<matrix_handler> operator op(                   \
-      const sum_op<spin_handler> &other,                                \
-      const product_op<fermion_handler> &self);                         \
-  extern template sum_op<matrix_handler> operator op(                   \
-      const sum_op<fermion_handler> &other,                             \
-      const product_op<spin_handler> &self);                            \
-  extern template sum_op<matrix_handler> operator op(                   \
-      const sum_op<boson_handler> &other,                               \
-      const product_op<fermion_handler> &self);                         \
-  extern template sum_op<matrix_handler> operator op(                   \
-      const sum_op<fermion_handler> &other,                             \
-      const product_op<boson_handler> &self);                           \
+  extern template sum_op<matrix_handler> operator op(                          \
+      const sum_op<spin_handler> &other,                                       \
+      const product_op<matrix_handler> &self);                                 \
+  extern template sum_op<matrix_handler> operator op(                          \
+      const sum_op<boson_handler> &other,                                      \
+      const product_op<matrix_handler> &self);                                 \
+  extern template sum_op<matrix_handler> operator op(                          \
+      const sum_op<fermion_handler> &other,                                    \
+      const product_op<matrix_handler> &self);                                 \
+  extern template sum_op<matrix_handler> operator op(                          \
+      const sum_op<spin_handler> &other,                                       \
+      const product_op<boson_handler> &self);                                  \
+  extern template sum_op<matrix_handler> operator op(                          \
+      const sum_op<boson_handler> &other,                                      \
+      const product_op<spin_handler> &self);                                   \
+  extern template sum_op<matrix_handler> operator op(                          \
+      const sum_op<spin_handler> &other,                                       \
+      const product_op<fermion_handler> &self);                                \
+  extern template sum_op<matrix_handler> operator op(                          \
+      const sum_op<fermion_handler> &other,                                    \
+      const product_op<spin_handler> &self);                                   \
+  extern template sum_op<matrix_handler> operator op(                          \
+      const sum_op<boson_handler> &other,                                      \
+      const product_op<fermion_handler> &self);                                \
+  extern template sum_op<matrix_handler> operator op(                          \
+      const sum_op<fermion_handler> &other,                                    \
+      const product_op<boson_handler> &self);                                  \
                                                                                \
-  extern template sum_op<matrix_handler> operator op(                   \
-      const product_op<spin_handler> &other,                            \
-      const sum_op<matrix_handler> &self);                              \
-  extern template sum_op<matrix_handler> operator op(                   \
-      const product_op<boson_handler> &other,                           \
-      const sum_op<matrix_handler> &self);                              \
-  extern template sum_op<matrix_handler> operator op(                   \
-      const product_op<fermion_handler> &other,                         \
-      const sum_op<matrix_handler> &self);                              \
-  extern template sum_op<matrix_handler> operator op(                   \
-      const product_op<spin_handler> &other,                            \
-      const sum_op<boson_handler> &self);                               \
-  extern template sum_op<matrix_handler> operator op(                   \
-      const product_op<boson_handler> &other,                           \
-      const sum_op<spin_handler> &self);                                \
-  extern template sum_op<matrix_handler> operator op(                   \
-      const product_op<spin_handler> &other,                            \
-      const sum_op<fermion_handler> &self);                             \
-  extern template sum_op<matrix_handler> operator op(                   \
-      const product_op<fermion_handler> &other,                         \
-      const sum_op<spin_handler> &self);                                \
-  extern template sum_op<matrix_handler> operator op(                   \
-      const product_op<boson_handler> &other,                           \
-      const sum_op<fermion_handler> &self);                             \
-  extern template sum_op<matrix_handler> operator op(                   \
-      const product_op<fermion_handler> &other,                         \
-      const sum_op<boson_handler> &self);                               \
+  extern template sum_op<matrix_handler> operator op(                          \
+      const product_op<spin_handler> &other,                                   \
+      const sum_op<matrix_handler> &self);                                     \
+  extern template sum_op<matrix_handler> operator op(                          \
+      const product_op<boson_handler> &other,                                  \
+      const sum_op<matrix_handler> &self);                                     \
+  extern template sum_op<matrix_handler> operator op(                          \
+      const product_op<fermion_handler> &other,                                \
+      const sum_op<matrix_handler> &self);                                     \
+  extern template sum_op<matrix_handler> operator op(                          \
+      const product_op<spin_handler> &other,                                   \
+      const sum_op<boson_handler> &self);                                      \
+  extern template sum_op<matrix_handler> operator op(                          \
+      const product_op<boson_handler> &other,                                  \
+      const sum_op<spin_handler> &self);                                       \
+  extern template sum_op<matrix_handler> operator op(                          \
+      const product_op<spin_handler> &other,                                   \
+      const sum_op<fermion_handler> &self);                                    \
+  extern template sum_op<matrix_handler> operator op(                          \
+      const product_op<fermion_handler> &other,                                \
+      const sum_op<spin_handler> &self);                                       \
+  extern template sum_op<matrix_handler> operator op(                          \
+      const product_op<boson_handler> &other,                                  \
+      const sum_op<fermion_handler> &self);                                    \
+  extern template sum_op<matrix_handler> operator op(                          \
+      const product_op<fermion_handler> &other,                                \
+      const sum_op<boson_handler> &self);                                      \
                                                                                \
-  extern template sum_op<matrix_handler> operator op(                   \
-      const sum_op<spin_handler> &other,                                \
-      const sum_op<matrix_handler> &self);                              \
-  extern template sum_op<matrix_handler> operator op(                   \
-      const sum_op<boson_handler> &other,                               \
-      const sum_op<matrix_handler> &self);                              \
-  extern template sum_op<matrix_handler> operator op(                   \
-      const sum_op<fermion_handler> &other,                             \
-      const sum_op<matrix_handler> &self);                              \
-  extern template sum_op<matrix_handler> operator op(                   \
-      const sum_op<spin_handler> &other,                                \
-      const sum_op<boson_handler> &self);                               \
-  extern template sum_op<matrix_handler> operator op(                   \
-      const sum_op<boson_handler> &other,                               \
-      const sum_op<spin_handler> &self);                                \
-  extern template sum_op<matrix_handler> operator op(                   \
-      const sum_op<spin_handler> &other,                                \
-      const sum_op<fermion_handler> &self);                             \
-  extern template sum_op<matrix_handler> operator op(                   \
-      const sum_op<fermion_handler> &other,                             \
-      const sum_op<spin_handler> &self);                                \
-  extern template sum_op<matrix_handler> operator op(                   \
-      const sum_op<boson_handler> &other,                               \
-      const sum_op<fermion_handler> &self);                             \
-  extern template sum_op<matrix_handler> operator op(                   \
-      const sum_op<fermion_handler> &other,                             \
+  extern template sum_op<matrix_handler> operator op(                          \
+      const sum_op<spin_handler> &other, const sum_op<matrix_handler> &self);  \
+  extern template sum_op<matrix_handler> operator op(                          \
+      const sum_op<boson_handler> &other, const sum_op<matrix_handler> &self); \
+  extern template sum_op<matrix_handler> operator op(                          \
+      const sum_op<fermion_handler> &other,                                    \
+      const sum_op<matrix_handler> &self);                                     \
+  extern template sum_op<matrix_handler> operator op(                          \
+      const sum_op<spin_handler> &other, const sum_op<boson_handler> &self);   \
+  extern template sum_op<matrix_handler> operator op(                          \
+      const sum_op<boson_handler> &other, const sum_op<spin_handler> &self);   \
+  extern template sum_op<matrix_handler> operator op(                          \
+      const sum_op<spin_handler> &other, const sum_op<fermion_handler> &self); \
+  extern template sum_op<matrix_handler> operator op(                          \
+      const sum_op<fermion_handler> &other, const sum_op<spin_handler> &self); \
+  extern template sum_op<matrix_handler> operator op(                          \
+      const sum_op<boson_handler> &other,                                      \
+      const sum_op<fermion_handler> &self);                                    \
+  extern template sum_op<matrix_handler> operator op(                          \
+      const sum_op<fermion_handler> &other,                                    \
       const sum_op<boson_handler> &self);
 
 EXTERN_CONVERSION_TEMPLATE_SPECIALIZATIONS(*, product_op);
@@ -287,7 +280,7 @@ EXTERN_CONVERSION_TEMPLATE_SPECIALIZATIONS(-, sum_op);
             std::enable_if_t<                                                  \
                 std::is_constructible<scalar_callback, Callable>::value,       \
                 bool> = true>                                                  \
-  returnTy<HandlerTy> operator op(product_op<HandlerTy> &&prod,          \
+  returnTy<HandlerTy> operator op(product_op<HandlerTy> &&prod,                \
                                   Callable &&fct) {                            \
     return std::move(prod)                                                     \
         op scalar_operator(scalar_callback(std::forward<Callable>(fct)));      \
@@ -297,7 +290,7 @@ EXTERN_CONVERSION_TEMPLATE_SPECIALIZATIONS(-, sum_op);
             std::enable_if_t<                                                  \
                 std::is_constructible<scalar_callback, Callable>::value,       \
                 bool> = true>                                                  \
-  returnTy<HandlerTy> operator op(const product_op<HandlerTy> &prod,     \
+  returnTy<HandlerTy> operator op(const product_op<HandlerTy> &prod,           \
                                   Callable &&fct) {                            \
     return prod op scalar_operator(                                            \
         scalar_callback(std::forward<Callable>(fct)));                         \
@@ -307,7 +300,7 @@ EXTERN_CONVERSION_TEMPLATE_SPECIALIZATIONS(-, sum_op);
             std::enable_if_t<                                                  \
                 std::is_constructible<std::complex<double>, scalar>::value,    \
                 bool> = true>                                                  \
-  returnTy<HandlerTy> operator op(product_op<HandlerTy> &&prod,          \
+  returnTy<HandlerTy> operator op(product_op<HandlerTy> &&prod,                \
                                   scalar value) {                              \
     return std::move(prod) op scalar_operator(value);                          \
   }                                                                            \
@@ -316,7 +309,7 @@ EXTERN_CONVERSION_TEMPLATE_SPECIALIZATIONS(-, sum_op);
             std::enable_if_t<                                                  \
                 std::is_constructible<std::complex<double>, scalar>::value,    \
                 bool> = true>                                                  \
-  returnTy<HandlerTy> operator op(const product_op<HandlerTy> &prod,     \
+  returnTy<HandlerTy> operator op(const product_op<HandlerTy> &prod,           \
                                   scalar value) {                              \
     return prod op scalar_operator(value);                                     \
   }
@@ -328,7 +321,7 @@ EXTERN_CONVERSION_TEMPLATE_SPECIALIZATIONS(-, sum_op);
                 std::is_constructible<scalar_callback, Callable>::value,       \
                 bool> = true>                                                  \
   returnTy<HandlerTy> operator op(Callable &&fct,                              \
-                                  product_op<HandlerTy> &&prod) {        \
+                                  product_op<HandlerTy> &&prod) {              \
     return scalar_operator(scalar_callback(std::forward<Callable>(fct)))       \
         op std::move(prod);                                                    \
   }                                                                            \
@@ -338,7 +331,7 @@ EXTERN_CONVERSION_TEMPLATE_SPECIALIZATIONS(-, sum_op);
                 std::is_constructible<scalar_callback, Callable>::value,       \
                 bool> = true>                                                  \
   returnTy<HandlerTy> operator op(Callable &&fct,                              \
-                                  const product_op<HandlerTy> &prod) {   \
+                                  const product_op<HandlerTy> &prod) {         \
     return scalar_operator(scalar_callback(std::forward<Callable>(fct)))       \
         op prod;                                                               \
   }                                                                            \
@@ -348,7 +341,7 @@ EXTERN_CONVERSION_TEMPLATE_SPECIALIZATIONS(-, sum_op);
                 std::is_constructible<std::complex<double>, scalar>::value,    \
                 bool> = true>                                                  \
   returnTy<HandlerTy> operator op(scalar value,                                \
-                                  product_op<HandlerTy> &&prod) {        \
+                                  product_op<HandlerTy> &&prod) {              \
     return scalar_operator(value) op std::move(prod);                          \
   }                                                                            \
                                                                                \
@@ -357,7 +350,7 @@ EXTERN_CONVERSION_TEMPLATE_SPECIALIZATIONS(-, sum_op);
                 std::is_constructible<std::complex<double>, scalar>::value,    \
                 bool> = true>                                                  \
   returnTy<HandlerTy> operator op(scalar value,                                \
-                                  const product_op<HandlerTy> &prod) {   \
+                                  const product_op<HandlerTy> &prod) {         \
     return scalar_operator(value) op prod;                                     \
   }
 
@@ -367,8 +360,8 @@ EXTERN_CONVERSION_TEMPLATE_SPECIALIZATIONS(-, sum_op);
             std::enable_if_t<                                                  \
                 std::is_constructible<scalar_callback, Callable>::value,       \
                 bool> = true>                                                  \
-  product_op<HandlerTy> &operator op(product_op<HandlerTy> &prod,  \
-                                           Callable &&fct) {                   \
+  product_op<HandlerTy> &operator op(product_op<HandlerTy> &prod,              \
+                                     Callable &&fct) {                         \
     return prod op scalar_operator(                                            \
         scalar_callback(std::forward<Callable>(fct)));                         \
   }                                                                            \
@@ -377,8 +370,8 @@ EXTERN_CONVERSION_TEMPLATE_SPECIALIZATIONS(-, sum_op);
             std::enable_if_t<                                                  \
                 std::is_constructible<std::complex<double>, scalar>::value,    \
                 bool> = true>                                                  \
-  product_op<HandlerTy> &operator op(product_op<HandlerTy> &prod,  \
-                                           scalar value) {                     \
+  product_op<HandlerTy> &operator op(product_op<HandlerTy> &prod,              \
+                                     scalar value) {                           \
     return prod op scalar_operator(value);                                     \
   }
 
@@ -398,8 +391,7 @@ PRODUCT_FUNCTION_ARITHMETICS_ASSIGNMENT(/=);
             std::enable_if_t<                                                  \
                 std::is_constructible<scalar_callback, Callable>::value,       \
                 bool> = true>                                                  \
-  sum_op<HandlerTy> operator op(sum_op<HandlerTy> &&sum,           \
-                                      Callable &&fct) {                        \
+  sum_op<HandlerTy> operator op(sum_op<HandlerTy> &&sum, Callable &&fct) {     \
     return std::move(sum)                                                      \
         op scalar_operator(scalar_callback(std::forward<Callable>(fct)));      \
   }                                                                            \
@@ -408,8 +400,8 @@ PRODUCT_FUNCTION_ARITHMETICS_ASSIGNMENT(/=);
             std::enable_if_t<                                                  \
                 std::is_constructible<scalar_callback, Callable>::value,       \
                 bool> = true>                                                  \
-  sum_op<HandlerTy> operator op(const sum_op<HandlerTy> &sum,      \
-                                      Callable &&fct) {                        \
+  sum_op<HandlerTy> operator op(const sum_op<HandlerTy> &sum,                  \
+                                Callable &&fct) {                              \
     return sum op scalar_operator(                                             \
         scalar_callback(std::forward<Callable>(fct)));                         \
   }                                                                            \
@@ -418,8 +410,7 @@ PRODUCT_FUNCTION_ARITHMETICS_ASSIGNMENT(/=);
             std::enable_if_t<                                                  \
                 std::is_constructible<std::complex<double>, scalar>::value,    \
                 bool> = true>                                                  \
-  sum_op<HandlerTy> operator op(sum_op<HandlerTy> &&sum,           \
-                                      scalar value) {                          \
+  sum_op<HandlerTy> operator op(sum_op<HandlerTy> &&sum, scalar value) {       \
     return std::move(sum) op scalar_operator(value);                           \
   }                                                                            \
                                                                                \
@@ -427,8 +418,7 @@ PRODUCT_FUNCTION_ARITHMETICS_ASSIGNMENT(/=);
             std::enable_if_t<                                                  \
                 std::is_constructible<std::complex<double>, scalar>::value,    \
                 bool> = true>                                                  \
-  sum_op<HandlerTy> operator op(const sum_op<HandlerTy> &sum,      \
-                                      scalar value) {                          \
+  sum_op<HandlerTy> operator op(const sum_op<HandlerTy> &sum, scalar value) {  \
     return sum op scalar_operator(value);                                      \
   }
 
@@ -438,8 +428,7 @@ PRODUCT_FUNCTION_ARITHMETICS_ASSIGNMENT(/=);
             std::enable_if_t<                                                  \
                 std::is_constructible<scalar_callback, Callable>::value,       \
                 bool> = true>                                                  \
-  sum_op<HandlerTy> operator op(Callable &&fct,                          \
-                                      sum_op<HandlerTy> &&sum) {         \
+  sum_op<HandlerTy> operator op(Callable &&fct, sum_op<HandlerTy> &&sum) {     \
     return scalar_operator(scalar_callback(std::forward<Callable>(fct)))       \
         op std::move(sum);                                                     \
   }                                                                            \
@@ -448,8 +437,8 @@ PRODUCT_FUNCTION_ARITHMETICS_ASSIGNMENT(/=);
             std::enable_if_t<                                                  \
                 std::is_constructible<scalar_callback, Callable>::value,       \
                 bool> = true>                                                  \
-  sum_op<HandlerTy> operator op(Callable &&fct,                          \
-                                      const sum_op<HandlerTy> &sum) {    \
+  sum_op<HandlerTy> operator op(Callable &&fct,                                \
+                                const sum_op<HandlerTy> &sum) {                \
     return scalar_operator(scalar_callback(std::forward<Callable>(fct)))       \
         op sum;                                                                \
   }                                                                            \
@@ -458,8 +447,7 @@ PRODUCT_FUNCTION_ARITHMETICS_ASSIGNMENT(/=);
             std::enable_if_t<                                                  \
                 std::is_constructible<std::complex<double>, scalar>::value,    \
                 bool> = true>                                                  \
-  sum_op<HandlerTy> operator op(scalar value,                            \
-                                      sum_op<HandlerTy> &&sum) {         \
+  sum_op<HandlerTy> operator op(scalar value, sum_op<HandlerTy> &&sum) {       \
     return scalar_operator(value) op std::move(sum);                           \
   }                                                                            \
                                                                                \
@@ -467,8 +455,7 @@ PRODUCT_FUNCTION_ARITHMETICS_ASSIGNMENT(/=);
             std::enable_if_t<                                                  \
                 std::is_constructible<std::complex<double>, scalar>::value,    \
                 bool> = true>                                                  \
-  sum_op<HandlerTy> operator op(scalar value,                            \
-                                      const sum_op<HandlerTy> &sum) {    \
+  sum_op<HandlerTy> operator op(scalar value, const sum_op<HandlerTy> &sum) {  \
     return scalar_operator(value) op sum;                                      \
   }
 
@@ -478,8 +465,7 @@ PRODUCT_FUNCTION_ARITHMETICS_ASSIGNMENT(/=);
             std::enable_if_t<                                                  \
                 std::is_constructible<scalar_callback, Callable>::value,       \
                 bool> = true>                                                  \
-  sum_op<HandlerTy> &operator op(sum_op<HandlerTy> &prod,          \
-                                       Callable &&fct) {                       \
+  sum_op<HandlerTy> &operator op(sum_op<HandlerTy> &prod, Callable &&fct) {    \
     return prod op scalar_operator(                                            \
         scalar_callback(std::forward<Callable>(fct)));                         \
   }                                                                            \
@@ -488,8 +474,7 @@ PRODUCT_FUNCTION_ARITHMETICS_ASSIGNMENT(/=);
             std::enable_if_t<                                                  \
                 std::is_constructible<std::complex<double>, scalar>::value,    \
                 bool> = true>                                                  \
-  sum_op<HandlerTy> &operator op(sum_op<HandlerTy> &prod,          \
-                                       scalar value) {                         \
+  sum_op<HandlerTy> &operator op(sum_op<HandlerTy> &prod, scalar value) {      \
     return prod op scalar_operator(value);                                     \
   }
 

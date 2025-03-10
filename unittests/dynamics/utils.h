@@ -37,10 +37,10 @@ cudaq::complex_matrix number_matrix(std::size_t size);
 cudaq::complex_matrix parity_matrix(std::size_t size);
 
 cudaq::complex_matrix displace_matrix(std::size_t size,
-                                std::complex<double> amplitude);
+                                      std::complex<double> amplitude);
 
 cudaq::complex_matrix squeeze_matrix(std::size_t size,
-                               std::complex<double> amplitude);
+                                     std::complex<double> amplitude);
 
 cudaq::complex_matrix PauliX_matrix();
 

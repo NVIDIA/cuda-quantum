@@ -106,8 +106,8 @@ cudaq::scalar_operator computeDagger(const cudaq::scalar_operator &scalar) {
   }
 }
 
-cudaq::product_op<cudaq::matrix_handler> computeDagger(
-    const cudaq::product_op<cudaq::matrix_handler> &productOp) {
+cudaq::product_op<cudaq::matrix_handler>
+computeDagger(const cudaq::product_op<cudaq::matrix_handler> &productOp) {
   std::vector<cudaq::product_op<cudaq::matrix_handler>> daggerOps;
   for (const auto &component : productOp) {
     if (const auto *elemOp =
@@ -238,14 +238,12 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
         cudaq::boson_op::identity(0).begin()->to_string(false));
     // These are ops that we created during lindblad generation
     opNames.emplace_back(opNames.back() + "_dagger");
-    opNames.emplace_back(
-        cudaq::boson_op::create(0).begin()->to_string(false));
+    opNames.emplace_back(cudaq::boson_op::create(0).begin()->to_string(false));
     opNames.emplace_back(opNames.back() + "_dagger");
     opNames.emplace_back(
         cudaq::boson_op::annihilate(0).begin()->to_string(false));
     opNames.emplace_back(opNames.back() + "_dagger");
-    opNames.emplace_back(
-        cudaq::boson_op::number(0).begin()->to_string(false));
+    opNames.emplace_back(cudaq::boson_op::number(0).begin()->to_string(false));
     opNames.emplace_back(opNames.back() + "_dagger");
     opNames.emplace_back(
         cudaq::sum_op<cudaq::spin_handler>::i(0).begin()->to_string(false));
@@ -449,8 +447,7 @@ cudaq::dynamics::CuDensityMatOpConverter::computeLindbladTerms(
   std::vector<std::pair<cudaq::scalar_operator, cudensitymatOperatorTerm_t>>
       lindbladTerms;
   for (const product_op<matrix_handler> &l_op : collapseOp) {
-    for (const product_op<matrix_handler> &r_op :
-         collapseOp) {
+    for (const product_op<matrix_handler> &r_op : collapseOp) {
       scalar_operator coeff =
           l_op.get_coefficient() * computeDagger(r_op.get_coefficient());
       auto ldag = computeDagger(r_op);

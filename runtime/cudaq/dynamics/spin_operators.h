@@ -13,8 +13,8 @@
 #include <vector>
 
 #include "cudaq/operators.h"
-#include "cudaq/utils/matrix.h"
 #include "cudaq/spin_op.h" // for pauli
+#include "cudaq/utils/matrix.h"
 
 namespace cudaq {
 
@@ -32,7 +32,8 @@ private:
   // private helpers
 
   std::string op_code_to_string() const;
-  virtual std::string op_code_to_string(std::unordered_map<int, int> &dimensions) const override;
+  virtual std::string
+  op_code_to_string(std::unordered_map<int, int> &dimensions) const override;
 
   std::complex<double> inplace_mult(const spin_handler &other);
 
@@ -60,8 +61,9 @@ public:
   /// @brief Computes the matrix representation of a Pauli string.
   /// By default, the ordering of the matrix matches the ordering of the Pauli
   /// string,
-  static complex_matrix to_matrix(std::string pauli, std::complex<double> coeff = 1.,
-                            bool invert_order = false);
+  static complex_matrix to_matrix(std::string pauli,
+                                  std::complex<double> coeff = 1.,
+                                  bool invert_order = false);
 
   /// @brief Return the `matrix_handler` as a matrix.
   /// @arg  `dimensions` : A map specifying the number of levels,

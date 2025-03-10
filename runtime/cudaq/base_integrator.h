@@ -31,8 +31,7 @@ struct SystemDynamics {
         parameters(params) {}
 
   SystemDynamics()
-      : hamiltonian(sum_op<cudaq::matrix_handler>(
-            cudaq::matrix_op::empty())){};
+      : hamiltonian(sum_op<cudaq::matrix_handler>(cudaq::matrix_op::empty())){};
 };
 
 class base_time_stepper;

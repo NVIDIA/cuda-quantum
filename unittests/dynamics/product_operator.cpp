@@ -36,8 +36,7 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
     auto op1 = cudaq::matrix_op::momentum(5);
 
     auto got = op0 * op1;
-    utils::assert_product_equal(got, 1.,
-                                {*op0.begin(), *op1.begin()});
+    utils::assert_product_equal(got, 1., {*op0.begin(), *op1.begin()});
     ASSERT_TRUE(got.degrees() == want_degrees);
 
     auto got_matrix = got.to_matrix({{5, level_count}});
@@ -267,8 +266,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
   /// `product_op + double`
   {
-    auto product_op = cudaq::matrix_op::position(0) *
-                      cudaq::matrix_op::position(1);
+    auto product_op =
+        cudaq::matrix_op::position(0) * cudaq::matrix_op::position(1);
 
     auto sum = 2.0 + product_op;
     auto reverse = product_op + 2.0;
@@ -300,8 +299,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
   /// `product_op + complex<double>`
   {
-    auto product_op = cudaq::matrix_op::position(0) *
-                      cudaq::matrix_op::position(1);
+    auto product_op =
+        cudaq::matrix_op::position(0) * cudaq::matrix_op::position(1);
 
     auto sum = value_0 + product_op;
     auto reverse = product_op + value_0;
@@ -334,7 +333,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
   /// `spin product + complex<double>`
   {
-    auto product_op = cudaq::sum_op<cudaq::spin_handler>::x(0) * cudaq::sum_op<cudaq::spin_handler>::y(1);
+    auto product_op = cudaq::sum_op<cudaq::spin_handler>::x(0) *
+                      cudaq::sum_op<cudaq::spin_handler>::y(1);
 
     auto sum = value_0 + product_op;
     auto reverse = product_op + value_0;
@@ -363,8 +363,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
   /// `product_op + scalar_operator`
   {
-    auto product_op = cudaq::matrix_op::position(0) *
-                      cudaq::matrix_op::position(1);
+    auto product_op =
+        cudaq::matrix_op::position(0) * cudaq::matrix_op::position(1);
     auto scalar_op = cudaq::scalar_operator(value_0);
 
     auto sum = scalar_op + product_op;
@@ -398,8 +398,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
   /// `product_op - double`
   {
-    auto product_op = cudaq::matrix_op::position(0) *
-                      cudaq::matrix_op::position(1);
+    auto product_op =
+        cudaq::matrix_op::position(0) * cudaq::matrix_op::position(1);
 
     auto difference = 2.0 - product_op;
     auto reverse = product_op - 2.0;
@@ -432,7 +432,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
   /// `spin product - double`
   {
-    auto product_op = cudaq::sum_op<cudaq::spin_handler>::i(0) * cudaq::sum_op<cudaq::spin_handler>::z(1);
+    auto product_op = cudaq::sum_op<cudaq::spin_handler>::i(0) *
+                      cudaq::sum_op<cudaq::spin_handler>::z(1);
 
     auto sum = 2.0 - product_op;
     auto reverse = product_op - 2.0;
@@ -461,8 +462,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
   /// `product_op - complex<double>`
   {
-    auto product_op = cudaq::matrix_op::position(0) *
-                      cudaq::matrix_op::position(1);
+    auto product_op =
+        cudaq::matrix_op::position(0) * cudaq::matrix_op::position(1);
 
     auto difference = value_0 - product_op;
     auto reverse = product_op - value_0;
@@ -496,8 +497,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
   /// `product_op - scalar_operator`
   {
-    auto product_op = cudaq::matrix_op::momentum(0) *
-                      cudaq::matrix_op::momentum(1);
+    auto product_op =
+        cudaq::matrix_op::momentum(0) * cudaq::matrix_op::momentum(1);
     auto scalar_op = cudaq::scalar_operator(value_0);
 
     auto difference = scalar_op - product_op;
@@ -532,8 +533,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
   /// `product_op * double`
   {
-    auto product_op =
-        cudaq::matrix_op::parity(0) * cudaq::matrix_op::parity(1);
+    auto product_op = cudaq::matrix_op::parity(0) * cudaq::matrix_op::parity(1);
     ASSERT_TRUE(product_op.num_ops() == 2);
     ASSERT_TRUE(product_op.get_coefficient().evaluate() ==
                 std::complex<double>(1.));
@@ -572,8 +572,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
   /// `product_op * complex<double>`
   {
-    auto product_op =
-        cudaq::matrix_op::number(0) * cudaq::matrix_op::number(1);
+    auto product_op = cudaq::matrix_op::number(0) * cudaq::matrix_op::number(1);
     ASSERT_TRUE(product_op.num_ops() == 2);
     ASSERT_TRUE(product_op.get_coefficient().evaluate() ==
                 std::complex<double>(1.));
@@ -611,8 +610,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
   /// `product_op * scalar_operator`
   {
-    auto product_op = cudaq::matrix_op::position(0) *
-                      cudaq::matrix_op::position(1);
+    auto product_op =
+        cudaq::matrix_op::position(0) * cudaq::matrix_op::position(1);
     auto scalar_op = cudaq::scalar_operator(value_0);
 
     auto product = scalar_op * product_op;
@@ -648,7 +647,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
   /// `spin product * scalar_operator`
   {
-    auto product_op = cudaq::sum_op<cudaq::spin_handler>::z(0) * cudaq::sum_op<cudaq::spin_handler>::y(1);
+    auto product_op = cudaq::sum_op<cudaq::spin_handler>::z(0) *
+                      cudaq::sum_op<cudaq::spin_handler>::y(1);
     auto scalar_op = cudaq::scalar_operator(value_0);
 
     auto product = scalar_op * product_op;
@@ -680,8 +680,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
   /// `product_op / double`
   {
-    auto product_op =
-        cudaq::matrix_op::parity(0) * cudaq::matrix_op::parity(1);
+    auto product_op = cudaq::matrix_op::parity(0) * cudaq::matrix_op::parity(1);
     ASSERT_TRUE(product_op.num_ops() == 2);
     ASSERT_TRUE(product_op.get_coefficient().evaluate() ==
                 std::complex<double>(1.));
@@ -712,8 +711,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
   /// `product_op / complex<double>`
   {
-    auto product_op =
-        cudaq::matrix_op::number(0) * cudaq::matrix_op::number(1);
+    auto product_op = cudaq::matrix_op::number(0) * cudaq::matrix_op::number(1);
     ASSERT_TRUE(product_op.num_ops() == 2);
     ASSERT_TRUE(product_op.get_coefficient().evaluate() ==
                 std::complex<double>(1.));
@@ -744,8 +742,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
   /// `product_op / scalar_operator`
   {
-    auto product_op = cudaq::matrix_op::position(0) *
-                      cudaq::matrix_op::position(1);
+    auto product_op =
+        cudaq::matrix_op::position(0) * cudaq::matrix_op::position(1);
     auto scalar_op = cudaq::scalar_operator(value_0);
 
     auto reverse = product_op / scalar_op;
@@ -775,7 +773,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
   /// `spin product / scalar_operator`
   {
-    auto product_op = cudaq::sum_op<cudaq::spin_handler>::z(0) * cudaq::sum_op<cudaq::spin_handler>::y(1);
+    auto product_op = cudaq::sum_op<cudaq::spin_handler>::z(0) *
+                      cudaq::sum_op<cudaq::spin_handler>::y(1);
     auto scalar_op = cudaq::scalar_operator(value_0);
 
     auto reverse = product_op / scalar_op;
@@ -801,8 +800,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
   /// `product_op *= double`
   {
-    auto product = cudaq::matrix_op::position(0) *
-                   cudaq::matrix_op::momentum(1);
+    auto product =
+        cudaq::matrix_op::position(0) * cudaq::matrix_op::momentum(1);
     product *= 2.0;
 
     ASSERT_TRUE(product.num_ops() == 2);
@@ -828,7 +827,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
   /// `spin product *= double`
   {
-    auto product = cudaq::sum_op<cudaq::spin_handler>::y(0) * cudaq::sum_op<cudaq::spin_handler>::i(1);
+    auto product = cudaq::sum_op<cudaq::spin_handler>::y(0) *
+                   cudaq::sum_op<cudaq::spin_handler>::i(1);
     product *= 2.0;
 
     ASSERT_TRUE(product.num_ops() == 2);
@@ -852,8 +852,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
   /// `product_op *= complex<double>`
   {
-    auto product =
-        cudaq::matrix_op::number(0) * cudaq::matrix_op::momentum(1);
+    auto product = cudaq::matrix_op::number(0) * cudaq::matrix_op::momentum(1);
     product *= value_0;
 
     ASSERT_TRUE(product.num_ops() == 2);
@@ -879,8 +878,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
   /// `product_op *= scalar_operator`
   {
-    auto product =
-        cudaq::matrix_op::number(0) * cudaq::matrix_op::momentum(1);
+    auto product = cudaq::matrix_op::number(0) * cudaq::matrix_op::momentum(1);
     auto scalar_op = cudaq::scalar_operator(value_0);
 
     product *= scalar_op;
@@ -908,8 +906,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
   /// `product_op /= double`
   {
-    auto product = cudaq::matrix_op::position(0) *
-                   cudaq::matrix_op::momentum(1);
+    auto product =
+        cudaq::matrix_op::position(0) * cudaq::matrix_op::momentum(1);
     product /= 2.0;
 
     ASSERT_TRUE(product.num_ops() == 2);
@@ -935,7 +933,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
   /// `spin product /= double`
   {
-    auto product = cudaq::sum_op<cudaq::spin_handler>::y(0) * cudaq::sum_op<cudaq::spin_handler>::i(1);
+    auto product = cudaq::sum_op<cudaq::spin_handler>::y(0) *
+                   cudaq::sum_op<cudaq::spin_handler>::i(1);
     product /= 2.0;
 
     ASSERT_TRUE(product.num_ops() == 2);
@@ -959,8 +958,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
   /// `product_op /= complex<double>`
   {
-    auto product =
-        cudaq::matrix_op::number(0) * cudaq::matrix_op::momentum(1);
+    auto product = cudaq::matrix_op::number(0) * cudaq::matrix_op::momentum(1);
     product /= value_0;
 
     ASSERT_TRUE(product.num_ops() == 2);
@@ -986,8 +984,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
   /// `product_op /= scalar_operator`
   {
-    auto product =
-        cudaq::matrix_op::number(0) * cudaq::matrix_op::momentum(1);
+    auto product = cudaq::matrix_op::number(0) * cudaq::matrix_op::momentum(1);
     auto scalar_op = cudaq::scalar_operator(value_0);
 
     product /= scalar_op;
@@ -1023,10 +1020,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
 
   // `product_op + product_op`
   {
-    auto term_0 = cudaq::matrix_op::position(0) *
-                  cudaq::matrix_op::position(1);
-    auto term_1 = cudaq::matrix_op::momentum(1) *
-                  cudaq::matrix_op::position(2);
+    auto term_0 = cudaq::matrix_op::position(0) * cudaq::matrix_op::position(1);
+    auto term_1 = cudaq::matrix_op::momentum(1) * cudaq::matrix_op::position(2);
 
     auto sum = term_0 + term_1;
 
@@ -1068,8 +1063,10 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
 
   // `spin product + spin product`
   {
-    auto term_0 = cudaq::sum_op<cudaq::spin_handler>::z(0) * cudaq::sum_op<cudaq::spin_handler>::y(2);
-    auto term_1 = cudaq::sum_op<cudaq::spin_handler>::x(2) * cudaq::sum_op<cudaq::spin_handler>::z(4);
+    auto term_0 = cudaq::sum_op<cudaq::spin_handler>::z(0) *
+                  cudaq::sum_op<cudaq::spin_handler>::y(2);
+    auto term_1 = cudaq::sum_op<cudaq::spin_handler>::x(2) *
+                  cudaq::sum_op<cudaq::spin_handler>::z(4);
 
     auto sum = term_0 + term_1;
 
@@ -1107,10 +1104,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
 
   // `product_op - product_op`
   {
-    auto term_0 =
-        cudaq::matrix_op::position(0) * cudaq::matrix_op::number(1);
-    auto term_1 = cudaq::matrix_op::momentum(1) *
-                  cudaq::matrix_op::momentum(2);
+    auto term_0 = cudaq::matrix_op::position(0) * cudaq::matrix_op::number(1);
+    auto term_1 = cudaq::matrix_op::momentum(1) * cudaq::matrix_op::momentum(2);
 
     auto difference = term_0 - term_1;
 
@@ -1150,7 +1145,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
   // `spin product - spin product`
   {
     auto term_0 = cudaq::sum_op<cudaq::spin_handler>::i(0);
-    auto term_1 = cudaq::sum_op<cudaq::spin_handler>::x(1) * cudaq::sum_op<cudaq::spin_handler>::y(2);
+    auto term_1 = cudaq::sum_op<cudaq::spin_handler>::x(1) *
+                  cudaq::sum_op<cudaq::spin_handler>::y(2);
 
     auto difference = term_0 - term_1;
     auto reverse = term_1 - term_0;
@@ -1186,10 +1182,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
 
   // `product_op * product_op`
   {
-    auto term_0 = cudaq::matrix_op::position(0) *
-                  cudaq::matrix_op::position(1);
-    auto term_1 =
-        cudaq::matrix_op::momentum(1) * cudaq::matrix_op::parity(2);
+    auto term_0 = cudaq::matrix_op::position(0) * cudaq::matrix_op::position(1);
+    auto term_1 = cudaq::matrix_op::momentum(1) * cudaq::matrix_op::parity(2);
 
     auto product = term_0 * term_1;
 
@@ -1228,8 +1222,10 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
 
   // `spin product * spin product`
   {
-    auto term_0 = cudaq::sum_op<cudaq::spin_handler>::y(0) * cudaq::sum_op<cudaq::spin_handler>::x(1);
-    auto term_1 = cudaq::sum_op<cudaq::spin_handler>::z(1) * cudaq::sum_op<cudaq::spin_handler>::i(3);
+    auto term_0 = cudaq::sum_op<cudaq::spin_handler>::y(0) *
+                  cudaq::sum_op<cudaq::spin_handler>::x(1);
+    auto term_1 = cudaq::sum_op<cudaq::spin_handler>::z(1) *
+                  cudaq::sum_op<cudaq::spin_handler>::i(3);
 
     auto product = term_0 * term_1;
     auto reverse = term_1 * term_0;
@@ -1271,10 +1267,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
 
   // `product_op *= product_op`
   {
-    auto term_0 =
-        cudaq::matrix_op::position(0) * cudaq::matrix_op::number(1);
-    auto term_1 = cudaq::matrix_op::momentum(1) *
-                  cudaq::matrix_op::position(2);
+    auto term_0 = cudaq::matrix_op::position(0) * cudaq::matrix_op::number(1);
+    auto term_1 = cudaq::matrix_op::momentum(1) * cudaq::matrix_op::position(2);
 
     term_0 *= term_1;
 
@@ -1317,8 +1311,10 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
 
   // `spin product *= spin product`
   {
-    auto term_0 = cudaq::sum_op<cudaq::spin_handler>::y(3) * cudaq::sum_op<cudaq::spin_handler>::y(1);
-    auto term_1 = cudaq::sum_op<cudaq::spin_handler>::z(1) * cudaq::sum_op<cudaq::spin_handler>::x(0);
+    auto term_0 = cudaq::sum_op<cudaq::spin_handler>::y(3) *
+                  cudaq::sum_op<cudaq::spin_handler>::y(1);
+    auto term_1 = cudaq::sum_op<cudaq::spin_handler>::z(1) *
+                  cudaq::sum_op<cudaq::spin_handler>::x(0);
 
     term_0 *= term_1;
 
@@ -1363,10 +1359,10 @@ TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
 
   // `product_op + sum_op`
   {
-    auto product = cudaq::matrix_op::position(0) *
-                   cudaq::matrix_op::position(1);
-    auto original_sum = cudaq::matrix_op::momentum(1) +
-                        cudaq::matrix_op::momentum(2);
+    auto product =
+        cudaq::matrix_op::position(0) * cudaq::matrix_op::position(1);
+    auto original_sum =
+        cudaq::matrix_op::momentum(1) + cudaq::matrix_op::momentum(2);
 
     auto sum = product + original_sum;
     auto reverse = original_sum + product;
@@ -1405,8 +1401,10 @@ TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
 
   // `spin product + spin sum`
   {
-    auto product = cudaq::sum_op<cudaq::spin_handler>::x(0) * cudaq::sum_op<cudaq::spin_handler>::y(1);
-    auto original_sum = cudaq::sum_op<cudaq::spin_handler>::z(1) + cudaq::sum_op<cudaq::spin_handler>::i(2);
+    auto product = cudaq::sum_op<cudaq::spin_handler>::x(0) *
+                   cudaq::sum_op<cudaq::spin_handler>::y(1);
+    auto original_sum = cudaq::sum_op<cudaq::spin_handler>::z(1) +
+                        cudaq::sum_op<cudaq::spin_handler>::i(2);
 
     auto sum = product + original_sum;
     auto reverse = original_sum + product;
@@ -1441,10 +1439,10 @@ TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
 
   // `product_op - sum_op`
   {
-    auto product = cudaq::matrix_op::position(0) *
-                   cudaq::matrix_op::position(1);
-    auto original_difference = cudaq::matrix_op::momentum(1) -
-                               cudaq::matrix_op::momentum(2);
+    auto product =
+        cudaq::matrix_op::position(0) * cudaq::matrix_op::position(1);
+    auto original_difference =
+        cudaq::matrix_op::momentum(1) - cudaq::matrix_op::momentum(2);
 
     auto difference = product - original_difference;
     auto reverse = original_difference - product;
@@ -1483,9 +1481,10 @@ TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
 
   // `spin product - spin sum`
   {
-    auto product = cudaq::sum_op<cudaq::spin_handler>::y(0) * cudaq::sum_op<cudaq::spin_handler>::z(1);
-    auto original_difference =
-        cudaq::sum_op<cudaq::spin_handler>::x(1) - cudaq::sum_op<cudaq::spin_handler>::i(2);
+    auto product = cudaq::sum_op<cudaq::spin_handler>::y(0) *
+                   cudaq::sum_op<cudaq::spin_handler>::z(1);
+    auto original_difference = cudaq::sum_op<cudaq::spin_handler>::x(1) -
+                               cudaq::sum_op<cudaq::spin_handler>::i(2);
 
     auto difference = product - original_difference;
     auto reverse = original_difference - product;
@@ -1520,10 +1519,9 @@ TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
 
   // `product_op * sum_op`
   {
-    auto original_product = cudaq::matrix_op::position(0) *
-                            cudaq::matrix_op::position(1);
-    auto sum = cudaq::matrix_op::momentum(1) +
-               cudaq::matrix_op::momentum(2);
+    auto original_product =
+        cudaq::matrix_op::position(0) * cudaq::matrix_op::position(1);
+    auto sum = cudaq::matrix_op::momentum(1) + cudaq::matrix_op::momentum(2);
 
     auto product = original_product * sum;
     auto reverse = sum * original_product;
@@ -1562,9 +1560,10 @@ TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
 
   // `spin product * spin sum`
   {
-    auto original_product =
-        cudaq::sum_op<cudaq::spin_handler>::z(0) * cudaq::sum_op<cudaq::spin_handler>::y(1);
-    auto sum = cudaq::sum_op<cudaq::spin_handler>::i(1) + cudaq::sum_op<cudaq::spin_handler>::x(2);
+    auto original_product = cudaq::sum_op<cudaq::spin_handler>::z(0) *
+                            cudaq::sum_op<cudaq::spin_handler>::y(1);
+    auto sum = cudaq::sum_op<cudaq::spin_handler>::i(1) +
+               cudaq::sum_op<cudaq::spin_handler>::x(2);
 
     auto product = original_product * sum;
     auto reverse = sum * original_product;

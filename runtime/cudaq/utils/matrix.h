@@ -16,13 +16,15 @@
 #include <vector>
 
 namespace Eigen {
-  // forward declared here so that this header can be used even if the Eigen is not used/found
-  template<typename Scalar_, int Rows_, int Cols_, int Options_, int MaxRows_, int MaxCols_>
-  class Matrix;
-}
+// forward declared here so that this header can be used even if the Eigen is
+// not used/found
+template <typename Scalar_, int Rows_, int Cols_, int Options_, int MaxRows_,
+          int MaxCols_>
+class Matrix;
+} // namespace Eigen
 
 namespace pybind11 {
-  class module_;
+class module_;
 }
 
 namespace cudaq {
@@ -30,8 +32,8 @@ namespace cudaq {
 class complex_matrix;
 
 complex_matrix operator*(const complex_matrix &, const complex_matrix &);
-std::vector<std::complex<double>> operator*(
-  const complex_matrix &, const std::vector<std::complex<double>> &);
+std::vector<std::complex<double>>
+operator*(const complex_matrix &, const std::vector<std::complex<double>> &);
 complex_matrix operator*(std::complex<double>, const complex_matrix &);
 complex_matrix operator+(const complex_matrix &, const complex_matrix &);
 complex_matrix operator-(const complex_matrix &, const complex_matrix &);
@@ -50,7 +52,8 @@ class complex_matrix {
 public:
   using value_type = std::complex<double>;
   using Dimensions = std::pair<std::size_t, std::size_t>;
-  using EigenMatrix = Eigen::Matrix<value_type, -1, -1, 0x1, -1, -1>; // row major
+  using EigenMatrix =
+      Eigen::Matrix<value_type, -1, -1, 0x1, -1, -1>; // row major
 
   complex_matrix() = default;
 
@@ -59,19 +62,21 @@ public:
   complex_matrix(std::size_t rows, std::size_t cols, bool set_zero = true)
       : dimensions(std::make_pair(rows, cols)),
         data{new value_type[rows * cols]} {
-        if (set_zero) this->set_zero();
-      }
+    if (set_zero)
+      this->set_zero();
+  }
 
   complex_matrix(const complex_matrix &other)
       : dimensions{other.dimensions},
         data{new value_type[get_size(other.dimensions)]} {
     std::copy(other.data, other.data + get_size(dimensions), data);
   }
-  complex_matrix(complex_matrix &&other) : dimensions{other.dimensions}, data{other.data} {
+  complex_matrix(complex_matrix &&other)
+      : dimensions{other.dimensions}, data{other.data} {
     other.data = nullptr;
   }
   complex_matrix(const std::vector<value_type> &v,
-           const Dimensions &dim = {2, 2})
+                 const Dimensions &dim = {2, 2})
       : dimensions{dim}, data{new value_type[get_size(dim)]} {
     check_size(v.size(), dimensions);
     std::copy(v.begin(), v.begin() + get_size(dimensions), data);
@@ -112,30 +117,37 @@ public:
   //===--------------------------------------------------------------------===//
 
   /// Multiplication (cross-product) of two matrices.
-  friend complex_matrix operator*(const complex_matrix &, const complex_matrix &);
+  friend complex_matrix operator*(const complex_matrix &,
+                                  const complex_matrix &);
   complex_matrix &operator*=(const complex_matrix &);
 
   /// Right-side multiplication with a vector
-  friend std::vector<complex_matrix::value_type> operator*(
-    const complex_matrix &, const std::vector<complex_matrix::value_type> &);
+  friend std::vector<complex_matrix::value_type>
+  operator*(const complex_matrix &,
+            const std::vector<complex_matrix::value_type> &);
 
   /// Scalar Multiplication with matrices.
-  friend complex_matrix operator*(complex_matrix::value_type, const complex_matrix &);
+  friend complex_matrix operator*(complex_matrix::value_type,
+                                  const complex_matrix &);
 
   /// Addition of two matrices.
-  friend complex_matrix operator+(const complex_matrix &, const complex_matrix &);
+  friend complex_matrix operator+(const complex_matrix &,
+                                  const complex_matrix &);
   complex_matrix &operator+=(const complex_matrix &);
 
   /// Subtraction of two matrices.
-  friend complex_matrix operator-(const complex_matrix &, const complex_matrix &);
+  friend complex_matrix operator-(const complex_matrix &,
+                                  const complex_matrix &);
   complex_matrix &operator-=(const complex_matrix &);
 
   /// Kronecker of two matrices.
-  friend complex_matrix kronecker(const complex_matrix &, const complex_matrix &);
+  friend complex_matrix kronecker(const complex_matrix &,
+                                  const complex_matrix &);
   complex_matrix &kronecker_inplace(const complex_matrix &);
 
   /// Resets the matrix to all zero entries.
-  /// Not needed after construction since the matrix will be initialized to zero.
+  /// Not needed after construction since the matrix will be initialized to
+  /// zero.
   void set_zero();
 
   /// Matrix exponential, uses 20 terms of Taylor Series approximation.
@@ -156,7 +168,8 @@ public:
   friend complex_matrix kronecker(Iterable begin, Iterable end);
 
   /// Operator to get the value at a particular index in the matrix.
-  complex_matrix::value_type operator[](const std::vector<std::size_t> &at) const;
+  complex_matrix::value_type
+  operator[](const std::vector<std::size_t> &at) const;
 
   /// Operator to get the value at a particular index in the matrix.
   complex_matrix::value_type &operator[](const std::vector<std::size_t> &at);
@@ -187,7 +200,8 @@ public:
   friend class spin_op;
 
 private:
-  complex_matrix(const complex_matrix::value_type *v, const Dimensions &dim = {2, 2})
+  complex_matrix(const complex_matrix::value_type *v,
+                 const Dimensions &dim = {2, 2})
       : dimensions{dim}, data{new complex_matrix::value_type[get_size(dim)]} {
     auto size = get_size(dimensions);
     std::copy(v, v + size, data);
@@ -229,25 +243,29 @@ complex_matrix kronecker(Iterable begin, Iterable end) {
   return result;
 }
 
-inline complex_matrix operator*(const complex_matrix &left, const complex_matrix &right) {
+inline complex_matrix operator*(const complex_matrix &left,
+                                const complex_matrix &right) {
   complex_matrix result = left;
   result *= right;
   return result;
 }
 
-inline complex_matrix operator+(const complex_matrix &left, const complex_matrix &right) {
+inline complex_matrix operator+(const complex_matrix &left,
+                                const complex_matrix &right) {
   complex_matrix result = left;
   result += right;
   return result;
 }
 
-inline complex_matrix operator-(const complex_matrix &left, const complex_matrix &right) {
+inline complex_matrix operator-(const complex_matrix &left,
+                                const complex_matrix &right) {
   complex_matrix result = left;
   result -= right;
   return result;
 }
 
-inline complex_matrix kronecker(const complex_matrix &left, const complex_matrix &right) {
+inline complex_matrix kronecker(const complex_matrix &left,
+                                const complex_matrix &right) {
   complex_matrix result = left;
   result.kronecker_inplace(right);
   return result;

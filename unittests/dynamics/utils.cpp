@@ -31,7 +31,7 @@ void assert_product_equal(
   ASSERT_TRUE(sum.num_terms() == 1);
   ASSERT_TRUE(got.get_coefficient().evaluate() == expected_coefficient);
   std::size_t idx = 0;
-  for (const auto &op : got) 
+  for (const auto &op : got)
     ASSERT_EQ(op, expected_terms[idx++]);
 }
 
@@ -114,7 +114,7 @@ cudaq::complex_matrix parity_matrix(std::size_t size) {
 }
 
 cudaq::complex_matrix displace_matrix(std::size_t size,
-                                std::complex<double> amplitude) {
+                                      std::complex<double> amplitude) {
   auto term1 = amplitude * create_matrix(size);
   auto term2 = std::conj(amplitude) * annihilate_matrix(size);
   auto difference = term1 - term2;
@@ -122,7 +122,7 @@ cudaq::complex_matrix displace_matrix(std::size_t size,
 }
 
 cudaq::complex_matrix squeeze_matrix(std::size_t size,
-                               std::complex<double> amplitude) {
+                                     std::complex<double> amplitude) {
   auto term1 = std::conj(amplitude) * annihilate_matrix(size).power(2);
   auto term2 = amplitude * create_matrix(size).power(2);
   auto difference = 0.5 * (term1 - term2);

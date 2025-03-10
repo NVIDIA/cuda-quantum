@@ -6,12 +6,14 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include <algorithm>
 #include "cudaq/utils/matrix.h"
 #include "gtest/gtest.h"
+#include <algorithm>
 
 void string_equal(std::string str1, std::string str2) {
-  auto is_space = [](char c) {return c == ' '; }; // *only* space, opposed to builtin isspace
+  auto is_space = [](char c) {
+    return c == ' ';
+  }; // *only* space, opposed to builtin isspace
   auto it = std::remove_if(str1.begin(), str1.end(), is_space);
   str1 = std::string(str1.begin(), it);
   it = std::remove_if(str2.begin(), str2.end(), is_space);
@@ -30,8 +32,7 @@ TEST(Tensor, initialization) {
   }
   {
     cudaq::complex_matrix m1({1., 2., 3., 4., 5., 6.}, {2, 3});
-    string_equal(m1.to_string(),
-              "(1,0) (2,0) (3,0)\n(4,0) (5,0) (6,0)\n");
+    string_equal(m1.to_string(), "(1,0) (2,0) (3,0)\n(4,0) (5,0) (6,0)\n");
   }
 }
 
@@ -103,7 +104,7 @@ TEST(Tensor, product) {
     cudaq::complex_matrix m4 = m2 * m3;
     cudaq::complex_matrix m5 = m3 * m2;
     string_equal(m4.to_string(), "(9,0) (12,0) (15,0) \n (19,0)"
-                         "(26,0) (33,0)\n (29, 0) (40, 0) (51, 0)\n");
+                                 "(26,0) (33,0)\n (29, 0) (40, 0) (51, 0)\n");
     string_equal(m5.to_string(), "(22,0) (28,0)\n(49,0) (64,0)\n");
   }
 }
@@ -154,11 +155,10 @@ TEST(Tensor, kroneckerProduct) {
     cudaq::complex_matrix mb({6.1, 1.5, 3., 14.});
     cudaq::complex_matrix mc({7.4, 8., 9., 4.2});
     cudaq::complex_matrix md = cudaq::kronecker(mb, mc);
-    string_equal(
-        md.to_string(),
-        "(45.14,0) (48.8,0) (11.1,0) (12,0)\n(54.9,0) "
-        "(25.62,0) (13.5,0) (6.3,0)\n(22.2,0) (24,0) (103.6,0) "
-        "(112,0)\n(27,0) (12.6,0) (126,0) (58.8,0)\n");
+    string_equal(md.to_string(),
+                 "(45.14,0) (48.8,0) (11.1,0) (12,0)\n(54.9,0) "
+                 "(25.62,0) (13.5,0) (6.3,0)\n(22.2,0) (24,0) (103.6,0) "
+                 "(112,0)\n(27,0) (12.6,0) (126,0) (58.8,0)\n");
   }
 }
 
@@ -169,9 +169,7 @@ TEST(Tensor, kroneckerOnList) {
     cudaq::complex_matrix mg({3., 4., 5.}, {3, 1});
     std::vector<cudaq::complex_matrix> v{me, mf, mg};
     cudaq::complex_matrix mh = cudaq::kronecker(v.begin(), v.end());
-    string_equal(
-        mh.to_string(),
-        "(3,3) (6,6)\n(4,4) (8,8)\n(5,5) (10,10)\n");
+    string_equal(mh.to_string(), "(3,3) (6,6)\n(4,4) (8,8)\n(5,5) (10,10)\n");
   }
 }
 
@@ -187,19 +185,17 @@ TEST(Tensor, exponential) {
     auto mf_exp = mf.exponential();
     auto mg_exp = mg.exponential();
 
-    string_equal(
-        me_exp.to_string(),
-        "(3.23795,0) (1.86268,0)\n(0.93134,0) (1.37527,0)\n");
+    string_equal(me_exp.to_string(),
+                 "(3.23795,0) (1.86268,0)\n(0.93134,0) (1.37527,0)\n");
 
-    string_equal(
-        mf_exp.to_string(),
-        "(4.84921,0) (0,0) (5.4755,0)\n(1.46673,0) (2.01375,0) "
-        "(0.977708,0)\n(5.4755,0) (0,0) (10.3247,0)\n");
+    string_equal(mf_exp.to_string(),
+                 "(4.84921,0) (0,0) (5.4755,0)\n(1.46673,0) (2.01375,0) "
+                 "(0.977708,0)\n(5.4755,0) (0,0) (10.3247,0)\n");
 
     string_equal(mg_exp.to_string(),
-              "(2.9751,0) (0.447969,0) (1.01977,0) (1.75551,0)\n"
-              "(2.10247,0) (2.55646,0) (1.97654,0) (1.39927,0)\n"
-              "(0.800451,0) (0.648569,0) (1.69099,0) (1.76597,0)\n"
-              "(0.498881,0) (1.05119,0) (0.753502,0) (2.03447,0)\n");
+                 "(2.9751,0) (0.447969,0) (1.01977,0) (1.75551,0)\n"
+                 "(2.10247,0) (2.55646,0) (1.97654,0) (1.39927,0)\n"
+                 "(0.800451,0) (0.648569,0) (1.69099,0) (1.76597,0)\n"
+                 "(0.498881,0) (1.05119,0) (0.753502,0) (2.03447,0)\n");
   }
 }

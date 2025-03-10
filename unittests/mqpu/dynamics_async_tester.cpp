@@ -62,9 +62,8 @@ TEST(DynamicsAsyncTester, checkSimple) {
         hamiltonian, dimensions, schedule, psi0, integrator,
         std::vector<cudaq::product_op<cudaq::boson_handler>>{
             std::sqrt(decay_rate) * cudaq::boson_op::annihilate(0)},
-        std::vector<cudaq::product_op<cudaq::boson_handler>>{
-            hamiltonian},
-        true, {}, 1);
+        std::vector<cudaq::product_op<cudaq::boson_handler>>{hamiltonian}, true,
+        {}, 1);
     std::cout << "Launched evolve job on QPU 1\n";
     return resultFuture;
   }();
@@ -130,9 +129,9 @@ TEST(DynamicsAsyncTester, checkInitializerArgs) {
     auto initialState =
         cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
     cudaq::integrators::runge_kutta integrator(1, 0.001);
-    auto resultFuture1 =
-        cudaq::evolve_async(ham, dims, schedule, initialState, integrator, {},
-                            {cudaq::sum_op<cudaq::spin_handler>::z(0)}, true, {}, 0);
+    auto resultFuture1 = cudaq::evolve_async(
+        ham, dims, schedule, initialState, integrator, {},
+        {cudaq::sum_op<cudaq::spin_handler>::z(0)}, true, {}, 0);
     std::cout << "Launched evolve job on QPU 0\n";
     return resultFuture1;
   }();
@@ -157,8 +156,8 @@ TEST(DynamicsAsyncTester, checkInitializerArgs) {
     cudaq::integrators::runge_kutta integrator(4, 0.01);
     auto resultFuture = cudaq::evolve_async(
         hamiltonian, dimensions, schedule, psi0, integrator,
-        {std::sqrt(decay_rate) * cudaq::boson_op::annihilate(0)},
-        {hamiltonian}, true, {}, 1);
+        {std::sqrt(decay_rate) * cudaq::boson_op::annihilate(0)}, {hamiltonian},
+        true, {}, 1);
     std::cout << "Launched evolve job on QPU 1\n";
     return resultFuture;
   }();

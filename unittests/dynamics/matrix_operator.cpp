@@ -39,8 +39,7 @@ TEST(OperatorExpressions, checkMatrixOpsConstruction) {
   expected = cudaq::complex_matrix(0, 0);
   utils::checkEqual(sum.to_matrix(), expected);
 
-  sum *=
-      cudaq::matrix_op::number(1); // empty times something is still empty
+  sum *= cudaq::matrix_op::number(1); // empty times something is still empty
   std::vector<std::size_t> expected_degrees = {};
   ASSERT_EQ(sum.degrees(), expected_degrees);
   utils::checkEqual(sum.to_matrix(), expected);
@@ -562,8 +561,7 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
   // `matrix_handler + sum_op`
   {
     auto self = cudaq::matrix_op::momentum(0);
-    auto sum_op = cudaq::matrix_op::position(0) +
-                        cudaq::matrix_op::identity(1);
+    auto sum_op = cudaq::matrix_op::position(0) + cudaq::matrix_op::identity(1);
 
     auto got = self + sum_op;
     auto reverse = sum_op + self;
@@ -590,8 +588,7 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
   // `matrix_handler - sum_op`
   {
     auto self = cudaq::matrix_op::momentum(0);
-    auto sum_op = cudaq::matrix_op::position(0) +
-                        cudaq::matrix_op::identity(1);
+    auto sum_op = cudaq::matrix_op::position(0) + cudaq::matrix_op::identity(1);
 
     auto got = self - sum_op;
     auto reverse = sum_op - self;
@@ -618,8 +615,7 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
   // `matrix_handler * sum_op`
   {
     auto self = cudaq::matrix_op::momentum(0);
-    auto sum_op = cudaq::matrix_op::squeeze(0) +
-                        cudaq::matrix_op::identity(1);
+    auto sum_op = cudaq::matrix_op::squeeze(0) + cudaq::matrix_op::identity(1);
 
     auto got = self * sum_op;
     auto reverse = sum_op * self;
@@ -652,8 +648,7 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
 
   // `sum_op += matrix_handler`
   {
-    auto sum_op = cudaq::matrix_op::position(0) +
-                        cudaq::matrix_op::identity(1);
+    auto sum_op = cudaq::matrix_op::position(0) + cudaq::matrix_op::identity(1);
     sum_op += cudaq::matrix_op::displace(0);
 
     ASSERT_TRUE(sum_op.num_terms() == 3);
@@ -666,16 +661,15 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
     auto term_1_full = cudaq::kronecker(utils::id_matrix(level_count),
                                         utils::id_matrix(level_count));
 
-    auto got_matrix = sum_op.to_matrix(
-        {{0, level_count}, {1, level_count}}, {{"displacement", value}});
+    auto got_matrix = sum_op.to_matrix({{0, level_count}, {1, level_count}},
+                                       {{"displacement", value}});
     auto want_matrix = term_0_full + term_1_full + self_full;
     utils::checkEqual(want_matrix, got_matrix);
   }
 
   // `sum_op -= matrix_handler`
   {
-    auto sum_op = cudaq::matrix_op::position(0) +
-                        cudaq::matrix_op::identity(1);
+    auto sum_op = cudaq::matrix_op::position(0) + cudaq::matrix_op::identity(1);
     sum_op -= cudaq::matrix_op::momentum(0);
 
     ASSERT_TRUE(sum_op.num_terms() == 3);
@@ -687,8 +681,7 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
     auto term_1_full = cudaq::kronecker(utils::id_matrix(level_count),
                                         utils::id_matrix(level_count));
 
-    auto got_matrix =
-        sum_op.to_matrix({{0, level_count}, {1, level_count}});
+    auto got_matrix = sum_op.to_matrix({{0, level_count}, {1, level_count}});
     auto want_matrix = term_0_full + term_1_full - self_full;
     utils::checkEqual(want_matrix, got_matrix);
   }
@@ -696,8 +689,7 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
   // `sum_op *= matrix_handler`
   {
     auto self = cudaq::matrix_op::momentum(0);
-    auto sum_op = cudaq::matrix_op::position(0) +
-                        cudaq::matrix_op::identity(1);
+    auto sum_op = cudaq::matrix_op::position(0) + cudaq::matrix_op::identity(1);
 
     sum_op *= self;
 
@@ -713,8 +705,7 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
                                         utils::id_matrix(level_count));
     auto sum_full = term_0_full + term_1_full;
 
-    auto got_matrix =
-        sum_op.to_matrix({{0, level_count}, {1, level_count}});
+    auto got_matrix = sum_op.to_matrix({{0, level_count}, {1, level_count}});
     auto want_matrix = sum_full * self_full;
     utils::checkEqual(want_matrix, got_matrix);
   }
