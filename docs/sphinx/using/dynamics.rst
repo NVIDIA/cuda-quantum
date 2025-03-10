@@ -30,7 +30,7 @@ Using CUDA-Q `operator`, the above time-dependent Hamiltonian can be set up as f
 
 .. tab:: Python
 
-  .. literalinclude:: ../../snippets/python/using/backends/dynamics.py
+  .. literalinclude:: ../snippets/python/using/backends/dynamics.py
         :language: python
         :start-after: [Begin Transmon]
         :end-before: [End Transmon]
@@ -45,7 +45,7 @@ with `cudaq.evolve`.
 
 .. tab:: Python
 
-  .. literalinclude:: ../../snippets/python/using/backends/dynamics.py
+  .. literalinclude:: ../snippets/python/using/backends/dynamics.py
         :language: python
         :start-after: [Begin Evolve]
         :end-before: [End Evolve]
@@ -78,7 +78,7 @@ For example, we can plot the Pauli expectation value for the above simulation as
 
 .. tab:: Python
 
-  .. literalinclude:: ../../snippets/python/using/backends/dynamics.py
+  .. literalinclude:: ../snippets/python/using/backends/dynamics.py
         :language: python
         :start-after: [Begin Plot]
         :end-before: [End Plot]
@@ -150,7 +150,7 @@ This Hamiltonian can be converted to CUDA-Q `Operator` representation with
 
 .. tab:: Python
 
-  .. literalinclude:: ../../snippets/python/using/backends/dynamics.py
+  .. literalinclude:: ../snippets/python/using/backends/dynamics.py
         :language: python
         :start-after: [Begin Jaynes-Cummings]
         :end-before: [End Jaynes-Cummings]
@@ -181,7 +181,7 @@ The following code sets up the problem
 
 .. tab:: Python
 
-  .. literalinclude:: ../../snippets/python/using/backends/dynamics.py
+  .. literalinclude:: ../snippets/python/using/backends/dynamics.py
         :language: python
         :start-after: [Begin Hamiltonian]
         :end-before: [End Hamiltonian]
@@ -196,7 +196,7 @@ As an example, let's looks at the `displacement operator <https://en.wikipedia.o
 
 .. tab:: Python
 
-  .. literalinclude:: ../../snippets/python/using/backends/dynamics.py
+  .. literalinclude:: ../snippets/python/using/backends/dynamics.py
         :language: python
         :start-after: [Begin DefineOp]
         :end-before: [End DefineOp]
@@ -206,7 +206,7 @@ operator under a time dependent displacement amplitude, we can define how the am
 
 .. tab:: Python
 
-  .. literalinclude:: ../../snippets/python/using/backends/dynamics.py
+  .. literalinclude:: ../snippets/python/using/backends/dynamics.py
         :language: python
         :start-after: [Begin Schedule1]
         :end-before: [End Schedule1]
@@ -217,7 +217,7 @@ the desired value for each parameter:
 
 .. tab:: Python
 
-  .. literalinclude:: ../../snippets/python/using/backends/dynamics.py
+  .. literalinclude:: ../snippets/python/using/backends/dynamics.py
         :language: python
         :start-after: [Begin Schedule2]
         :end-before: [End Schedule2]
@@ -294,7 +294,7 @@ To enable parallel execution, the application must initialize MPI as follows.
 
 .. tab:: Python
 
-  .. literalinclude:: ../../snippets/python/using/backends/dynamics.py
+  .. literalinclude:: ../snippets/python/using/backends/dynamics.py
         :language: python
         :start-after: [Begin MPI]
         :end-before: [End MPI]
