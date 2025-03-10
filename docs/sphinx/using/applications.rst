@@ -29,7 +29,6 @@ CUDA-Q Applications
    /applications/python/edge-detection
 
 
-
 .. raw:: html
 
     <div class="filter-groups" style="margin-bottom: 60px;">
