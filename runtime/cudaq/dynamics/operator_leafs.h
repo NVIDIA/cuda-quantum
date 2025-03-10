@@ -16,7 +16,7 @@
 #include <vector>
 
 #include "callback.h"
-#include "cudaq/utils/tensor.h"
+#include "cudaq/utils/matrix.h"
 
 namespace cudaq {
 
@@ -29,6 +29,9 @@ private:
 
 public:
   // constructors and destructors
+
+  constexpr scalar_operator()
+    : value(1.) {}
 
   scalar_operator(double value);
 
@@ -68,7 +71,7 @@ public:
 
   // Return the scalar operator as a 1x1 matrix. This is needed for
   // compatibility with the other inherited classes.
-  matrix_2 to_matrix(const std::unordered_map<std::string, std::complex<double>>
+  complex_matrix to_matrix(const std::unordered_map<std::string, std::complex<double>>
                          &parameters = {}) const;
 
   std::string to_string() const;
@@ -190,11 +193,10 @@ public:
   constexpr commutation_relations(const commutation_relations &other)
       : id(other.id) {}
 
-  // Explicit copy assignment operator
   constexpr commutation_relations &
   operator=(const commutation_relations &other) {
     if (this != &other) {
-      id = other.id;
+      this->id = other.id;
     }
     return *this;
   }
@@ -205,16 +207,16 @@ public:
 };
 
 template <typename HandlerTy>
-class product_operator;
+class product_op;
 
 template <typename HandlerTy>
-class operator_sum;
+class sum_op;
 
 class operator_handler {
   template <typename T>
-  friend class product_operator;
+  friend class product_op;
   template <typename T>
-  friend class operator_sum;
+  friend class sum_op;
   template <typename T>
   friend class operator_arithmetics;
 
@@ -229,19 +231,19 @@ private:
 
   class matrix_evaluation {
     template <typename T>
-    friend class product_operator;
+    friend class product_op;
     template <typename T>
-    friend class operator_sum;
+    friend class sum_op;
     template <typename T>
     friend class operator_arithmetics;
 
   private:
     std::vector<int> degrees;
-    matrix_2 matrix;
+    complex_matrix matrix;
 
   public:
     matrix_evaluation();
-    matrix_evaluation(std::vector<int> &&degrees, matrix_2 &&matrix);
+    matrix_evaluation(std::vector<int> &&degrees, complex_matrix &&matrix);
     matrix_evaluation(matrix_evaluation &&other);
     matrix_evaluation &operator=(matrix_evaluation &&other);
     // delete copy constructor and copy assignment to avoid unnecessary copies
@@ -251,9 +253,9 @@ private:
 
   class canonical_evaluation {
     template <typename T>
-    friend class product_operator;
+    friend class product_op;
     template <typename T>
-    friend class operator_sum;
+    friend class sum_op;
     template <typename T>
     friend class operator_arithmetics;
 
@@ -284,7 +286,7 @@ public:
   // the order returned by to_matrix and degree, and the order in which a user
   // would define a state vector.
   static constexpr auto canonical_order = std::less<int>();
-  static constexpr auto user_facing_order = std::greater<int>();
+  static constexpr auto user_facing_order = std::less<int>();
 
   /// Default commutation relations mean that two operator always commute as
   /// long as they act on different degrees of freedom.
@@ -314,25 +316,17 @@ public:
 
   virtual std::vector<int> degrees() const = 0;
 
-  /// @brief Return the `matrix_operator` as a matrix.
+  /// @brief Return the `matrix_handler` as a matrix.
   /// @arg  `dimensions` : A map specifying the number of levels,
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
-  virtual matrix_2
+  virtual complex_matrix
   to_matrix(std::unordered_map<int, int> &dimensions,
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {}) const = 0;
 
   virtual std::string to_string(bool include_degrees = true) const = 0;
-
-  template <typename HandlerTy>
-  static operator_sum<HandlerTy> empty();
-
-  template <typename HandlerTy>
-  static product_operator<HandlerTy> identity();
-  template <typename HandlerTy>
-  static product_operator<HandlerTy> identity(int target);
 };
 
 } // namespace cudaq

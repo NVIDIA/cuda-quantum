@@ -59,10 +59,10 @@ TEST_F(RungeKuttaIntegratorTest, CheckEvolve) {
   const std::vector<std::complex<double>> initialStateVec = {{1.0, 0.0},
                                                              {0.0, 0.0}};
   const std::vector<int64_t> dims = {2};
-  auto spin_op_x = cudaq::spin_operator::x(0);
-  cudaq::product_operator<cudaq::matrix_operator> ham1 =
+  auto spin_op_x = cudaq::sum_op<cudaq::spin_handler>::x(0);
+  cudaq::product_op<cudaq::matrix_handler> ham1 =
       2.0 * M_PI * 0.1 * spin_op_x;
-  cudaq::operator_sum<cudaq::matrix_operator> ham(ham1);
+  cudaq::sum_op<cudaq::matrix_handler> ham(ham1);
   SystemDynamics system(dims, ham);
 
   for (int integratorOrder : {1, 2, 4}) {

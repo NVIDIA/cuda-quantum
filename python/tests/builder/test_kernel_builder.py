@@ -12,7 +12,7 @@
 import pytest
 import random
 import numpy as np
-import sys
+import os
 from typing import List
 
 import cudaq
