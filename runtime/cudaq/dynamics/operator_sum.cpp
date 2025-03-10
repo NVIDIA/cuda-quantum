@@ -1435,7 +1435,6 @@ product_op<T> sum_op<HandlerTy>::number(int target) {
   return fermion_handler::number(target);
 }
 
-#if !defined(__clang__)
 template product_op<matrix_handler> sum_op<matrix_handler>::number(int target);
 template product_op<matrix_handler> sum_op<matrix_handler>::parity(int target);
 template product_op<matrix_handler> sum_op<matrix_handler>::position(int target);
@@ -1459,7 +1458,6 @@ template sum_op<boson_handler> sum_op<boson_handler>::momentum(int target);
 template product_op<fermion_handler> sum_op<fermion_handler>::create(int target);
 template product_op<fermion_handler> sum_op<fermion_handler>::annihilate(int target);
 template product_op<fermion_handler> sum_op<fermion_handler>::number(int target);
-#endif
 
 // general utility functions
 
