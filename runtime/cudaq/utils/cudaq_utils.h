@@ -56,7 +56,6 @@ extern std::string demangle_kernel(const char *);
 } // namespace cudaq::__internal__
 
 namespace cudaq {
-class spin_op;
 class sample_result;
 
 inline static std::string getCUDAQLibraryPath() {

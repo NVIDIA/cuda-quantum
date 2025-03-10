@@ -845,7 +845,7 @@ void __nvqpp_vector_bool_free_temporary_initlists(std::vector<char *> *);
 } // namespace support
 
 // Measure the state in the given spin_op basis.
-inline SpinMeasureResult measure(cudaq::spin_op &term) {
+inline SpinMeasureResult measure(const cudaq::spin_op &term) {
   return getExecutionManager()->measure(term);
 }
 

@@ -38,8 +38,6 @@ class OperatorSum:
                 evaluating the operator expression.
         """
         self._terms = tuple(terms)
-        if len(self._terms) == 0:
-            self._terms = (ProductOperator((ScalarOperator.const(0),)),)
         self._cache = {}
         self._iter_idx = 0
 
@@ -168,6 +166,8 @@ class OperatorSum:
                     term *= ElementaryOperator.identity(degree)
             return term
 
+        if len(self._terms) == 0:
+            return arithmetics.evaluate(ScalarOperator.const(0))
         if pad_terms:
             sum = padded_term(self._terms[0])._evaluate(arithmetics, pad_terms)
             for term in self._terms[1:]:
@@ -345,6 +345,7 @@ class OperatorSum:
         return self._to_spinop().to_sparse_matrix()
 
     def __iter__(self: OperatorSum) -> OperatorSum:
+        self._iter_idx = 0
         return self
 
     def __next__(self: OperatorSum) -> ProductOperator:
