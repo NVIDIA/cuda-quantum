@@ -79,9 +79,9 @@ def add_single_excitation(op, p_occ, q_virt):
     for i in range(p_occ + 1, q_virt):
         parity *= spin.z(i)
 
-    op.append(
-        spin.y(p_occ) * parity * spin.x(q_virt) -
-        spin.x(p_occ) * parity * spin.y(q_virt))
+    c = 0.5
+    op.append(c * spin.y(p_occ) * parity * spin.x(q_virt) -
+              c * spin.x(p_occ) * parity * spin.y(q_virt))
 
 
 def add_double_excitation(op, p_occ, q_occ, r_virt, s_virt):
@@ -112,21 +112,22 @@ def add_double_excitation(op, p_occ, q_occ, r_virt, s_virt):
     for i in range(a_virt + 1, b_virt):
         parity_b *= spin.z(i)
 
-    temp_op = spin.x(i_occ) * parity_a * spin.x(j_occ) * spin.x(
+    c = 1.0 / 8.0
+    temp_op = c * spin.x(i_occ) * parity_a * spin.x(j_occ) * spin.x(
         a_virt) * parity_b * spin.y(b_virt)
-    temp_op += spin.x(i_occ) * parity_a * spin.x(j_occ) * spin.y(
+    temp_op += c * spin.x(i_occ) * parity_a * spin.x(j_occ) * spin.y(
         a_virt) * parity_b * spin.x(b_virt)
-    temp_op += spin.x(i_occ) * parity_a * spin.y(j_occ) * spin.y(
+    temp_op += c * spin.x(i_occ) * parity_a * spin.y(j_occ) * spin.y(
         a_virt) * parity_b * spin.y(b_virt)
-    temp_op += spin.y(i_occ) * parity_a * spin.x(j_occ) * spin.y(
+    temp_op += c * spin.y(i_occ) * parity_a * spin.x(j_occ) * spin.y(
         a_virt) * parity_b * spin.y(b_virt)
-    temp_op -= spin.x(i_occ) * parity_a * spin.y(j_occ) * spin.x(
+    temp_op -= c * spin.x(i_occ) * parity_a * spin.y(j_occ) * spin.x(
         a_virt) * parity_b * spin.x(b_virt)
-    temp_op -= spin.y(i_occ) * parity_a * spin.x(j_occ) * spin.x(
+    temp_op -= c * spin.y(i_occ) * parity_a * spin.x(j_occ) * spin.x(
         a_virt) * parity_b * spin.x(b_virt)
-    temp_op -= spin.y(i_occ) * parity_a * spin.y(j_occ) * spin.x(
+    temp_op -= c * spin.y(i_occ) * parity_a * spin.y(j_occ) * spin.x(
         a_virt) * parity_b * spin.y(b_virt)
-    temp_op -= spin.y(i_occ) * parity_a * spin.y(j_occ) * spin.y(
+    temp_op -= c * spin.y(i_occ) * parity_a * spin.y(j_occ) * spin.y(
         a_virt) * parity_b * spin.x(b_virt)
 
     op.append(temp_op)

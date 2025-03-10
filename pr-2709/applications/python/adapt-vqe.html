@@ -790,9 +790,9 @@
 <p>7- Perform a VQE experiment to re-optimize all parameters in the ansatz.</p>
 <p>8- go to step 4</p>
 <p>Below is a Schematic depiction of the ADAPT-VQE algorithm</p>
-<div><p><img alt="9cd92a0584c14a569a636ab513f21b4f" class="no-scaled-link" src="../../_images/adapt-vqe.png" style="width: 600px;" /></p>
+<div><p><img alt="896921409abb42df86727ec964b90fe8" class="no-scaled-link" src="../../_images/adapt-vqe.png" style="width: 600px;" /></p>
 </div><div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[71]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Requires pyscf to be installed</span>
@@ -807,15 +807,15 @@
 <div class="highlight"><pre>
 Defaulting to user installation because normal site-packages is not writeable
 Requirement already satisfied: pyscf in /home/cudaq/.local/lib/python3.10/site-packages (2.8.0)
-Requirement already satisfied: numpy!=1.16,!=1.17,&gt;=1.13 in /usr/local/lib/python3.10/dist-packages (from pyscf) (1.26.4)
-Requirement already satisfied: setuptools in /usr/lib/python3/dist-packages (from pyscf) (59.6.0)
 Requirement already satisfied: scipy&gt;=1.6.0 in /usr/local/lib/python3.10/dist-packages (from pyscf) (1.12.0)
 Requirement already satisfied: h5py&gt;=2.7 in /home/cudaq/.local/lib/python3.10/site-packages (from pyscf) (3.13.0)
+Requirement already satisfied: setuptools in /usr/lib/python3/dist-packages (from pyscf) (59.6.0)
+Requirement already satisfied: numpy!=1.16,!=1.17,&gt;=1.13 in /usr/local/lib/python3.10/dist-packages (from pyscf) (1.26.4)
 Note: you may need to restart the kernel to use updated packages.
 </pre></div></div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[72]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
@@ -826,9 +826,9 @@ Note: you may need to restart the kernel to use updated packages.
 
 <span class="c1"># Set the traget</span>
 <span class="c1"># Double precision is recommended for the best performance.</span>
-<span class="c1">#cudaq.set_target(&quot;nvidia&quot;, option = &quot;fp64&quot;)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">,</span> <span class="n">option</span> <span class="o">=</span> <span class="s2">&quot;fp64&quot;</span><span class="p">)</span>
 
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
+<span class="c1">#cudaq.set_target(&quot;nvidia&quot;)</span>
 </pre></div>
 </div>
 </div>
@@ -836,7 +836,7 @@ Note: you may need to restart the kernel to use updated packages.
 <h2>Classical pre-processing<a class="headerlink" href="#Classical-pre-processing" title="Permalink to this heading">¶</a></h2>
 <p>Here, we compute one and two-electron intgrals using Hartree Fock molecular orbitals.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[73]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pyscf</span><span class="w"> </span><span class="kn">import</span> <span class="n">gto</span><span class="p">,</span> <span class="n">scf</span><span class="p">,</span> <span class="n">cc</span><span class="p">,</span> <span class="n">mcscf</span><span class="p">,</span> <span class="n">ao2mo</span>
@@ -886,7 +886,7 @@ R-CCSD energy =  -1.13728399861044
 <h2>Jordan Wigner:<a class="headerlink" href="#Jordan-Wigner:" title="Permalink to this heading">¶</a></h2>
 <p>Convert fermionic Hamiltonian to qubit Hamiltonian.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[74]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">adapt_vqe.hamiltonian</span><span class="w"> </span><span class="kn">import</span> <span class="n">jordan_wigner_fermion</span><span class="p">,</span> <span class="n">generate_molecular_spin_ham_restricted</span>
@@ -944,7 +944,7 @@ Total number of pauli hamiltonian terms:  19
 <div class="math notranslate nohighlight">
 \[T_{ijkl} = \frac{i}{8} (X_i Y_j X_k X_l + Y_i X_j X_k X_l + Y_i Y_j Y_k X_l + Y_i Y_j X_k Y_l − X_i X_j Y_k X_l − X_i X_j X_k Y_l − Y_i X_j Y_k Y_l − X_i Y_j Y_k Y_l) \prod_{p=i+1}^{j-1} Zp \prod_{r=k+1}^{l-1} Z_r\]</div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[75]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">adapt_vqe.operator_pool</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_uccsd_pool</span>
@@ -980,7 +980,7 @@ Total number of pauli hamiltonian terms:  19
 <div class="highlight"><pre>
 Number of operator pool:  3
 [[&#39;XZY&#39;, &#39;YZX&#39;], [&#39;IXZY&#39;, &#39;IYZX&#39;], [&#39;XXYX&#39;, &#39;XXXY&#39;, &#39;XYYY&#39;, &#39;YYXY&#39;, &#39;XYXX&#39;, &#39;YXYY&#39;, &#39;YYYX&#39;, &#39;YXXX&#39;]]
-[[(-1-0j), (1+0j)], [(-1-0j), (1+0j)], [(1+0j), (1+0j), (1+0j), (-1-0j), (-1-0j), (1+0j), (-1-0j), (-1-0j)]]
+[[(-0.5-0j), (0.5+0j)], [(-0.5-0j), (0.5+0j)], [(0.125+0j), (0.125+0j), (0.125+0j), (-0.125-0j), (-0.125-0j), (0.125+0j), (-0.125-0j), (-0.125-0j)]]
 </pre></div></div>
 </div>
 </section>
@@ -988,7 +988,7 @@ Number of operator pool:  3
 <section id="Commutator-[H,-A_i]">
 <h2>Commutator [<span class="math notranslate nohighlight">\(H\)</span>, <span class="math notranslate nohighlight">\(A_i\)</span>]<a class="headerlink" href="#Commutator-[H,-A_i]" title="Permalink to this heading">¶</a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[76]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">commutator</span><span class="p">(</span><span class="n">pools</span><span class="p">,</span> <span class="n">ham</span><span class="p">):</span>
@@ -1023,7 +1023,7 @@ Number of op for gradient:  3
 <h2>Reference State:<a class="headerlink" href="#Reference-State:" title="Permalink to this heading">¶</a></h2>
 <p>Reference state here is Haretree Fock</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[77]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Get the initial state (reference state).</span>
@@ -1054,7 +1054,7 @@ SV: [(0,0), (0,0), (0,0), (1,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0)
 <section id="Quantum-kernels:">
 <h2>Quantum kernels:<a class="headerlink" href="#Quantum-kernels:" title="Permalink to this heading">¶</a></h2>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[78]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">###################################</span>
@@ -1075,19 +1075,19 @@ SV: [(0,0), (0,0), (0,0), (1,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0)
 
     <span class="n">count</span><span class="o">=</span><span class="mi">0</span>
     <span class="k">for</span>  <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">coef_single</span><span class="p">),</span> <span class="mi">2</span><span class="p">):</span>
-        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_single</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">/</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_single</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_single</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">/</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_single</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_single</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_single</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_single</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_single</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span>
         <span class="n">count</span><span class="o">+=</span><span class="mi">1</span>
 
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">coef_double</span><span class="p">),</span> <span class="mi">8</span><span class="p">):</span>
-        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_double</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">/</span><span class="mf">8.0</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_double</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">/</span><span class="mf">8.0</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span>
-        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">]</span><span class="o">/</span><span class="mf">8.0</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">])</span>
-        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">3</span><span class="p">]</span><span class="o">/</span><span class="mf">8.0</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">3</span><span class="p">])</span>
-        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">4</span><span class="p">]</span><span class="o">/</span><span class="mf">8.0</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">4</span><span class="p">])</span>
-        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">5</span><span class="p">]</span><span class="o">/</span><span class="mf">8.0</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">5</span><span class="p">])</span>
-        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">6</span><span class="p">]</span><span class="o">/</span><span class="mf">8.0</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">6</span><span class="p">])</span>
-        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">7</span><span class="p">]</span><span class="o">/</span><span class="mf">8.0</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">7</span><span class="p">])</span>
+        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_double</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_double</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">])</span>
+        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">3</span><span class="p">]</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">3</span><span class="p">])</span>
+        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">4</span><span class="p">]</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">4</span><span class="p">])</span>
+        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">5</span><span class="p">]</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">5</span><span class="p">])</span>
+        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">6</span><span class="p">]</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">6</span><span class="p">])</span>
+        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">7</span><span class="p">]</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">7</span><span class="p">])</span>
         <span class="n">count</span><span class="o">+=</span><span class="mi">1</span>
 </pre></div>
 </div>
@@ -1096,7 +1096,7 @@ SV: [(0,0), (0,0), (0,0), (1,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0)
 <section id="Beginning-of-ADAPT-VQE:">
 <h2>Beginning of ADAPT-VQE:<a class="headerlink" href="#Beginning-of-ADAPT-VQE:" title="Permalink to this heading">¶</a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">scipy.optimize</span><span class="w"> </span><span class="kn">import</span> <span class="n">minimize</span>
@@ -1271,50 +1271,33 @@ SV: [(0,0), (0,0), (0,0), (1,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0)
 <div class="highlight"><pre>
 Beginning of ADAPT-VQE
 Step:  0
-Norm of the gradient:  2.8993673922431524
-max_grad:  2.8993673922431524
+Norm of the gradient:  0.36242092403039405
+max_grad:  0.36242092403039405
 Selected pool at current step:  [[&#39;XXYX&#39;, &#39;XXXY&#39;, &#39;XYYY&#39;, &#39;YYXY&#39;, &#39;XYXX&#39;, &#39;YXYY&#39;, &#39;YYYX&#39;, &#39;YXXX&#39;]]
 pool single:  []
 coef_single:  []
 pool_double:  [&#39;XXYX&#39;, &#39;XXXY&#39;, &#39;XYYY&#39;, &#39;YYXY&#39;, &#39;XYXX&#39;, &#39;YXYY&#39;, &#39;YYYX&#39;, &#39;YXXX&#39;]
-coef_double:  [1.0, 1.0, 1.0, -1.0, -1.0, 1.0, -1.0, -1.0]
+coef_double:  [0.125, 0.125, 0.125, -0.125, -0.125, 0.125, -0.125, -0.125]
 tot_single:  0
 tot_double:  1
 theta_single []
 theta_double:  [0.0]
 theta [0.0]
-Optmized Energy:  -1.1372818607440434
+Optmized Energy:  -1.1372838344885003
 Optimizer exited successfully:  True
 CONVERGENCE: REL_REDUCTION_OF_F_&lt;=_FACTR*EPSMCH
-dE:  -1.1372818607440434
+dE:  -1.1372838344885003
 
 
 Step:  1
-Norm of the gradient:  0.03237935949701409
-max_grad:  0.03237935949701409
-Selected pool at current step:  [[&#39;XXYX&#39;, &#39;XXXY&#39;, &#39;XYYY&#39;, &#39;YYXY&#39;, &#39;XYXX&#39;, &#39;YXYY&#39;, &#39;YYYX&#39;, &#39;YXXX&#39;]]
-pool single:  []
-coef_single:  []
-pool_double:  [&#39;XXYX&#39;, &#39;XXXY&#39;, &#39;XYYY&#39;, &#39;YYXY&#39;, &#39;XYXX&#39;, &#39;YXYY&#39;, &#39;YYYX&#39;, &#39;YXXX&#39;, &#39;XXYX&#39;, &#39;XXXY&#39;, &#39;XYYY&#39;, &#39;YYXY&#39;, &#39;XYXX&#39;, &#39;YXYY&#39;, &#39;YYYX&#39;, &#39;YXXX&#39;]
-coef_double:  [1.0, 1.0, 1.0, -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0, -1.0, -1.0, 1.0, -1.0, -1.0]
-tot_single:  0
-tot_double:  1
-theta_single []
-theta_double:  [0.11403170846705746, 0.0]
-theta [0.11403170846705746, 0.0]
-Optmized Energy:  -1.1372818666905484
-Optimizer exited successfully:  True
-CONVERGENCE: REL_REDUCTION_OF_F_&lt;=_FACTR*EPSMCH
-dE:  -5.946505066134478e-09
-
-
+Norm of the gradient:  1.1233558207257577e-07
 
  Final Result:
 
-Final parameters:  [0.11403132939681472, 4.2171389419406486e-07]
-Selected pools:  [[&#39;XXYX&#39;, &#39;XXXY&#39;, &#39;XYYY&#39;, &#39;YYXY&#39;, &#39;XYXX&#39;, &#39;YXYY&#39;, &#39;YYYX&#39;, &#39;YXXX&#39;], [&#39;XXYX&#39;, &#39;XXXY&#39;, &#39;XYYY&#39;, &#39;YYXY&#39;, &#39;XYXX&#39;, &#39;YXYY&#39;, &#39;YYYX&#39;, &#39;YXXX&#39;]]
-Number of pools:  2
-Final energy:  -1.1372818666905484
+Final parameters:  [0.11278279920936399]
+Selected pools:  [[&#39;XXYX&#39;, &#39;XXXY&#39;, &#39;XYYY&#39;, &#39;YYXY&#39;, &#39;XYXX&#39;, &#39;YXYY&#39;, &#39;YYYX&#39;, &#39;YXXX&#39;]]
+Number of pools:  1
+Final energy:  -1.1372838344885003
 </pre></div></div>
 </div>
 </section>
