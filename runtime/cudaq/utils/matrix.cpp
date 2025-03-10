@@ -121,6 +121,7 @@ cudaq::complex_matrix &cudaq::complex_matrix::operator*=(const cudaq::complex_ma
             access(data, dimensions, i, k) *
             access(right.data, right.dimensions, k, j);
   swap(new_data);
+  dimensions.second = right.cols();
   return *this;
 }
 
@@ -282,6 +283,12 @@ cudaq::complex_matrix cudaq::complex_matrix::power(int powers) {
   for (std::size_t i = 0; i < powers; i++)
     result = result * *this;
   return result;
+}
+
+void cudaq::complex_matrix::set_zero() {
+  auto size = rows() * cols();
+  for(std::size_t i = 0; i < size; ++i)
+    data[i] = 0.;
 }
 
 // Calculate the Taylor approximation to the exponential of the given matrix.

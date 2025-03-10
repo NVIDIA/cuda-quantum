@@ -58,10 +58,7 @@ public:
   complex_matrix(std::size_t rows, std::size_t cols, bool set_zero = true)
       : dimensions(std::make_pair(rows, cols)),
         data{new std::complex<double>[rows * cols]} {
-        if (set_zero) {
-          for(std::size_t i = 0; i < rows * cols; ++i)
-            data[i] = 0.;
-        }
+        if (set_zero) this->set_zero();
       }
 
   complex_matrix(const complex_matrix &other)
@@ -135,6 +132,10 @@ public:
   /// Kronecker of two matrices.
   friend complex_matrix kronecker(const complex_matrix &, const complex_matrix &);
   complex_matrix &kronecker_inplace(const complex_matrix &);
+
+  /// Resets the matrix to all zero entries.
+  /// Not needed after construction since the matrix will be initialized to zero.
+  void set_zero();
 
   /// Matrix exponential, uses 20 terms of Taylor Series approximation.
   complex_matrix exponential();

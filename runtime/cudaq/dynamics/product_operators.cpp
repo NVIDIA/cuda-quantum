@@ -533,7 +533,10 @@ product_op<HandlerTy>::product_op(
 #define INSTANTIATE_PRODUCT_PRIVATE_FRIEND_CONSTRUCTORS(HandlerTy)             \
                                                                                \
   template product_op<HandlerTy>::product_op(                      \
-      scalar_operator coefficient);
+      scalar_operator coefficient);                                            \
+                                                                               \
+  template product_op<HandlerTy>::product_op(                      \
+      scalar_operator coefficient, HandlerTy &&atomic1);                       \
 
 template product_op<matrix_handler>::product_op(
     const product_op<spin_handler> &other);

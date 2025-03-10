@@ -336,8 +336,6 @@ sum_op<HandlerTy>::sum_op(sum_op<HandlerTy> &&other)
 // to be available to those.
 #define INSTANTIATE_SUM_PRIVATE_FRIEND_CONSTRUCTORS(HandlerTy)                 \
                                                                                \
-  template sum_op<HandlerTy>::sum_op();                                        \
-                                                                               \
   template sum_op<HandlerTy>::sum_op(                                          \
       product_op<HandlerTy> &&item1,                                           \
       product_op<HandlerTy> &&item2);
@@ -1613,7 +1611,7 @@ sum_op<HandlerTy> sum_op<HandlerTy>::random(std::size_t nQubits, std::size_t nTe
   };
 
   std::mt19937 gen(seed);
-  auto sum = spin_op::empty();
+  auto sum = sum_op<HandlerTy>::empty();
   // make sure the number of terms matches the requested number...
   while(sum.terms.size() < nTerms) {
     std::vector<bool> termData(2 * nQubits);

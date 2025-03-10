@@ -10,9 +10,8 @@
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
 
-#include "cudaq/operators.h"
 #include "cudaq/utils/matrix.h"
-#include "py_spin_op.h"
+#include "py_matrix.h"
 
 #include <complex>
 

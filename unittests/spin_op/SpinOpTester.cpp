@@ -233,7 +233,6 @@ TEST(SpinOpTester, checkGetMatrix) {
         EXPECT_NEAR(matrix(i, j).real(), expected[4 * i + j], 1e-3);
     }
   }
-  /* FIXME: using complex matrix as vector is not currently supported
   {
     // Create the G=ground state for the above hamiltonian
     cudaq::complex_matrix vec(4, 1);
@@ -247,7 +246,7 @@ TEST(SpinOpTester, checkGetMatrix) {
     for (std::size_t i = 0; i < 4; i++)
       EXPECT_NEAR(tmp(i, 0).real(), groundEnergy.real() * vec(i, 0).real(),
                   1e-2);
-  }*/
+  }
   {
     // do the same thing, but use std vector instead
     std::vector<std::complex<double>> vec{0.0, .956178, .292786, 0.0};
@@ -260,7 +259,6 @@ TEST(SpinOpTester, checkGetMatrix) {
       EXPECT_NEAR(tmp[i].real(), groundEnergy.real() * vec[i].real(), 1e-2);
   }
 
-  /* FIXME: using complex matrix as vector is not currently supported
   {
     // test <psi_g | H | psi_g>
     cudaq::complex_matrix psig(4, 1);
@@ -272,7 +270,7 @@ TEST(SpinOpTester, checkGetMatrix) {
       sum += (std::conj(psig(i, 0)) * prod(i, 0)).real();
     }
     EXPECT_NEAR(sum, -1.74, 1e-2);
-  } */
+  }
 }
 
 TEST(SpinOpTester, checkIterator) {
