@@ -14,7 +14,7 @@
 #include "cudaq/algorithms/broadcast.h"
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
-#include "cudaq/spin_op.h"
+#include "cudaq/operators.h"
 #include <functional>
 #if CUDAQ_USE_STD20
 #include <ranges>
@@ -83,7 +83,7 @@ runObservation(KernelFunctor &&k, cudaq::spin_op &h, quantum_platform &platform,
                std::optional<std::size_t> numTrajectories = {}) {
   auto ctx = std::make_unique<ExecutionContext>("observe", shots);
   ctx->kernelName = kernelName;
-  ctx->spin = &h;
+  ctx->spin = h;
   if (shots > 0)
     ctx->shots = shots;
 
@@ -122,14 +122,13 @@ runObservation(KernelFunctor &&k, cudaq::spin_op &h, quantum_platform &platform,
   else {
     // If not, we have everything we need to compute it.
     double sum = 0.0;
-    h.for_each_term([&](spin_op &term) {
+    for (const auto &term : h) {
       if (term.is_identity())
-        sum += term.get_coefficient().real();
+        sum += term.get_coefficient().evaluate().real();
       else
-        sum += data.expectation(term.to_string(false)) *
-               term.get_coefficient().real();
-    });
-
+        sum += data.expectation(term.get_term_id()) *
+               term.get_coefficient().evaluate().real();
+    }
     expectationValue = sum;
   }
 
@@ -254,17 +253,21 @@ template <typename QuantumKernel, typename SpinOpContainer, typename... Args,
 std::vector<observe_result> observe(QuantumKernel &&kernel,
                                     const SpinOpContainer &termList,
                                     Args &&...args) {
+  // Here to give a more comprehensive error if the container does not contain
+  // values of type spin_op_term.
+  typedef typename SpinOpContainer::value_type value_type;
+  static_assert(std::is_same_v<spin_op_term, value_type>,
+                "term list must be a container of spin_op_term");
+
   // Run this SHOTS times
   auto &platform = cudaq::get_platform();
   auto shots = platform.get_shots().value_or(-1);
   auto kernelName = cudaq::getKernelName(kernel);
 
   // Convert all spin_ops to a single summed spin_op
-  cudaq::spin_op op;
+  auto op = cudaq::spin_op::empty();
   for (auto &o : termList)
     op += o;
-  // the constructor for spin_op starts the op as the identity, remove that
-  op -= spin_op();
 
   // Run the observation
   auto result = details::runObservation(

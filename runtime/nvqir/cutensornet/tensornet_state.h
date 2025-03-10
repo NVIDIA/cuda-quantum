@@ -9,6 +9,7 @@
 #pragma once
 #include "common/EigenDense.h"
 #include "common/SimulationState.h"
+#include "cudaq/operators.h"
 #include "cutensornet.h"
 #include "tensornet_utils.h"
 #include "timing_utils.h"
@@ -183,7 +184,7 @@ public:
   /// @param symplecticRepr The symplectic representation of the observable
   /// @return
   std::vector<std::complex<double>>
-  computeExpVals(const std::vector<std::vector<bool>> &symplecticRepr,
+  computeExpVals(const std::vector<cudaq::spin_op_term> &product_terms,
                  const std::optional<std::size_t> &numberTrajectories);
 
   /// @brief Evaluate the expectation value of a given

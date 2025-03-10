@@ -16,13 +16,13 @@ namespace cudaq {
 template <typename T>
 struct is_operator_type : std::false_type {};
 
-// product_operator
+// product_op
 template <typename HandlerTy>
-struct is_operator_type<product_operator<HandlerTy>> : std::true_type {};
+struct is_operator_type<product_op<HandlerTy>> : std::true_type {};
 
-// operator_sum
+// sum_op
 template <typename HandlerTy>
-struct is_operator_type<operator_sum<HandlerTy>> : std::true_type {};
+struct is_operator_type<sum_op<HandlerTy>> : std::true_type {};
 
 // Satisfied if T (after decay) is one of operator types.
 template <typename T>
