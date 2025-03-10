@@ -99,6 +99,7 @@ QPU
 QPUs
 QPU’s
 QTX
+QX
 Qiskit
 QuEra
 QuTiP
