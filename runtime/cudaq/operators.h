@@ -425,12 +425,10 @@ public:
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   sum_op(const std::vector<double> &input_vec);
 
-  HANDLER_SPECIFIC_TEMPLATE(
-      spin_handler) // could be defined for other operators as well
+  HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   static product_op<HandlerTy> from_word(const std::string &word);
 
-  HANDLER_SPECIFIC_TEMPLATE(
-      spin_handler) // could be defined for other operators as well
+  HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   static sum_op<HandlerTy> random(std::size_t nQubits, std::size_t nTerms,
                                   unsigned int seed);
 

@@ -225,13 +225,13 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
       return funcOp.emitOpError("Errors encountered in pass analysis");
     auto nQubits = iter->second.nQubits;
 
-    if (nQubits < termBSF.size() / 2) {
+    if (nQubits < termBSF.size() / 2) 
       return funcOp.emitOpError("Invalid number of binary-symplectic elements "
                                 "provided: " +
                                 std::to_string(termBSF.size()) +
                                 ". Must provide at most 2 * NQubits = " +
                                 std::to_string(2 * nQubits));
-    }
+
     // Update nQubits so we only measure the requested qubits.
     nQubits = termBSF.size() / 2;
 

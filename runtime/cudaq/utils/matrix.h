@@ -113,7 +113,7 @@ public:
   }
 
   //===--------------------------------------------------------------------===//
-  // Primitive operations on `matrix_2` objects.
+  // Primitive operations on `complex_matrix` objects.
   //===--------------------------------------------------------------------===//
 
   /// Multiplication (cross-product) of two matrices.
