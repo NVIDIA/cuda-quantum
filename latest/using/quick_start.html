@@ -797,7 +797,7 @@ dependencies:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">cuda_version=11.8.0 # set this variable to version 11.x (where x &gt;= 8) or 12.x</span>
 <span class="go">conda create -y -n cudaq-env python=3.11 pip</span>
 <span class="go">conda install -y -n cudaq-env -c &quot;nvidia/label/cuda-${cuda_version}&quot; cuda</span>
-<span class="go">conda install -y -n cudaq-env -c conda-forge mpi4py openmpi cxx-compiler</span>
+<span class="go">conda install -y -n cudaq-env -c conda-forge mpi4py openmpi&quot;&gt;=5.0.3&quot; cxx-compiler</span>
 <span class="go">conda env config vars set -n cudaq-env LD_LIBRARY_PATH=&quot;$CONDA_PREFIX/envs/cudaq-env/lib:$LD_LIBRARY_PATH&quot;</span>
 <span class="go">conda env config vars set -n cudaq-env MPI_PATH=$CONDA_PREFIX/envs/cudaq-env</span>
 <span class="go">conda activate cudaq-env</span>
