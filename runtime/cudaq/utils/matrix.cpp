@@ -203,8 +203,8 @@ cudaq::complex_matrix::kronecker_inplace(const cudaq::complex_matrix &right) {
 }
 
 void cudaq::complex_matrix::check_size(std::size_t size, const Dimensions &dim) {
-  if (size < get_size(dim))
-    throw std::runtime_error("vector must have enough elements");
+  if (size != get_size(dim))
+    throw std::runtime_error("mismatch between data and dimensions");
 }
 
 cudaq::complex_matrix::value_type
