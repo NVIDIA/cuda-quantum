@@ -1625,43 +1625,56 @@ TEST(OperatorExpressions, checkDefaultValue) {
   auto matrix_empty = cudaq::sum_op<cudaq::matrix_handler>::empty();
   auto boson_empty = cudaq::sum_op<cudaq::boson_handler>::empty();
 
-  // FIXME: UNARY EXPRESSIONS AND SCALAR MULT ARE NOR PROPERLY HANDLED
-
   // matrix default + matrix sum
   {
     cudaq::sum_op<cudaq::matrix_handler> sum_default;
-    auto res = sum_default + matrix_sum;
-    utils::checkEqual(res.to_matrix(dims), matrix_sum.to_matrix(dims));
+    auto res1 = sum_default + matrix_sum;
+    auto res2 = matrix_sum + sum_default;
+    utils::checkEqual(res1.to_matrix(dims), matrix_sum.to_matrix(dims));
+    utils::checkEqual(res2.to_matrix(dims), matrix_sum.to_matrix(dims));
   }
   // matrix default - matrix sum
   {
     cudaq::sum_op<cudaq::matrix_handler> sum_default;
-    auto res = sum_default - matrix_sum;
-    utils::checkEqual(res.to_matrix(dims), (-matrix_sum).to_matrix(dims));
+    auto res1 = sum_default - matrix_sum;
+    auto res2 = matrix_sum - sum_default;
+    utils::checkEqual(res1.to_matrix(dims), (-matrix_sum).to_matrix(dims));
+    utils::checkEqual(res2.to_matrix(dims), matrix_sum.to_matrix(dims));
   }
   // matrix default * matrix sum
   {
     cudaq::sum_op<cudaq::matrix_handler> sum_default;
-    auto res = sum_default * matrix_sum;
-    utils::checkEqual(res.to_matrix(dims), matrix_sum.to_matrix(dims));
+    auto res1 = sum_default * matrix_sum;
+    auto res2 = matrix_sum * sum_default;
+    utils::checkEqual(res1.to_matrix(dims), matrix_sum.to_matrix(dims));
+    utils::checkEqual(res2.to_matrix(dims), matrix_sum.to_matrix(dims));
   }
   // matrix default += matrix sum
   {
     cudaq::sum_op<cudaq::matrix_handler> sum_default;
     sum_default += matrix_sum;
+    auto res = matrix_sum;
+    res += matrix_default;
     utils::checkEqual(sum_default.to_matrix(dims), matrix_sum.to_matrix(dims));
+    utils::checkEqual(res.to_matrix(dims), matrix_sum.to_matrix(dims));
   }
   // matrix default -= matrix sum
   {
     cudaq::sum_op<cudaq::matrix_handler> sum_default;
     sum_default -= matrix_sum;
+    auto res = matrix_sum;
+    res -= matrix_default;
     utils::checkEqual(sum_default.to_matrix(dims), (-matrix_sum).to_matrix(dims));
+    utils::checkEqual(res.to_matrix(dims), matrix_sum.to_matrix(dims));
   }
   // matrix default *= matrix sum
   {
     cudaq::sum_op<cudaq::matrix_handler> sum_default;
     sum_default *= matrix_sum;
+    auto res = matrix_sum;
+    res *= matrix_default;
     utils::checkEqual(sum_default.to_matrix(dims), matrix_sum.to_matrix(dims));
+    utils::checkEqual(res.to_matrix(dims), matrix_sum.to_matrix(dims));
   }
 
   // matrix default + boson sum
@@ -1852,5 +1865,54 @@ TEST(OperatorExpressions, checkDefaultValue) {
     utils::checkEqual(res2.to_matrix(dims), empty);
     utils::checkEqual(res3.to_matrix(dims), empty);
     utils::checkEqual(res4.to_matrix(dims), empty);
+  }
+
+  auto scalar_val = 5.;
+  std::complex<double> minus_one = -1.;
+  cudaq::complex_matrix scalar_mat(1, 1);
+  scalar_mat[{0, 0}] = scalar_val;
+
+  // matrix default + scalar
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    auto res1 = sum_default + scalar_val;
+    auto res2 = scalar_val + sum_default;
+    utils::checkEqual(res1.to_matrix(dims), scalar_mat);
+    utils::checkEqual(res2.to_matrix(dims), scalar_mat);
+  }
+  // matrix default - scalar
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    auto res1 = sum_default - scalar_val;
+    auto res2 = scalar_val - sum_default;
+    utils::checkEqual(res1.to_matrix(dims), minus_one * scalar_mat);
+    utils::checkEqual(res2.to_matrix(dims), scalar_mat);
+  }
+  // matrix default += scalar
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    auto res1 = sum_default;
+    res1 += scalar_val;
+    utils::checkEqual(res1.to_matrix(dims), scalar_mat);
+  }
+  // matrix default -= scalar
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    auto res1 = sum_default;
+    res1 -= scalar_val;
+    utils::checkEqual(res1.to_matrix(dims), minus_one * scalar_mat);
+  }
+
+  // We cannot properly deal with scalar factors on uninitialized sums;
+  // I made a draft, but it is messy and breaks down when adding 
+  // two uninitialized sums with different factors. 
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    utils::checkEqual((+sum_default).to_matrix(dims), empty);
+
+    ASSERT_ANY_THROW(-sum_default);
+    ASSERT_ANY_THROW(sum_default * scalar_val);
+    ASSERT_ANY_THROW(scalar_val * sum_default);
+    ASSERT_ANY_THROW(sum_default *= scalar_val);
   }
 }
