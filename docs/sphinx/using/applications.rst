@@ -5,6 +5,7 @@ CUDA-Q Applications
    :maxdepth: 1
    :hidden:
 
+   |:spellcheck-disable:|
    /applications/python/qaoa
    /applications/python/digitized_counterdiabatic_qaoa
    /applications/python/krylov
@@ -12,7 +13,7 @@ CUDA-Q Applications
    /applications/python/cost_minimization
    /applications/python/deutschs_algorithm
    /applications/python/divisive_clustering_coresets
-   /applications/python/hybrid_qnns.ipynb
+   /applications/python/hybrid_qnns
    /applications/python/hadamard_test
    /applications/python/logical_aim_sqale
    /applications/python/hamiltonian_simulation
@@ -22,9 +23,10 @@ CUDA-Q Applications
    /applications/python/readout_error_mitigation
    /applications/python/unitary_compilation_diffusion_models
    /applications/python/vqe_advanced
-   /applications/python/quantum_transformer.ipynb
+   /applications/python/quantum_transformer
    /applications/python/afqmc
    /applications/python/adapt_qaoa
+   |:spellcheck-enable:|
 
 
 .. raw:: html
