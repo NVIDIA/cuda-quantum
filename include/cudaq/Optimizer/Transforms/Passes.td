@@ -65,7 +65,7 @@ def ApplySpecialization : Pass<"apply-op-specialization", "mlir::ModuleOp"> {
   ];
 }
 
-def ArgumentSynthesis : Pass<"argument-synthesis", "mlir::func::FuncOp"> {
+def ArgumentSynthesis : Pass<"argument-synthesis", "mlir::ModuleOp"> {
   let summary = "Specialize a function by replacing arguments with constants";
   let description = [{
     This pass takes a list of functions and argument substitutions. For each
