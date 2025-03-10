@@ -164,5 +164,10 @@ evolve_result evolveSingle(
     const std::vector<operator_sum<cudaq::matrix_operator>> &observables = {},
     bool store_intermediate_results = false,
     std::optional<int> shots_count = std::nullopt);
+
+evolve_result evolveSingle(const cudaq::rydberg_hamiltonian &hamiltonian,
+                           const cudaq::schedule &schedule,
+                           std::optional<int> shots_count = std::nullopt);
+
 } // namespace __internal__
 } // namespace cudaq
