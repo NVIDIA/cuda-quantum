@@ -7,7 +7,7 @@ of quantum systems or models. In the simulation mode, CUDA-Q provides the ``dyna
 backend target, which is based on the cuQuantum library, optimized for performance and scale
 on NVIDIA GPU.
 
-Explore the :ref:`dynamics docs page <dynamics>` to see examples and learn more about CUDA-Q's dynamics capabilites.
+Explore the :ref:`dynamics docs page <dynamics>` to see examples and learn more about CUDA-Q's dynamics capabilities.
 
 
 
