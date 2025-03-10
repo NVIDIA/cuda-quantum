@@ -144,7 +144,8 @@ Returns:
                 if term.is_identity():
                     sum += term.get_coefficient().real
                 else:
-                    sum += res.expectation(term.get_term_id()) * term.get_coefficient().real
+                    sum += res.expectation(
+                        term.get_term_id()) * term.get_coefficient().real
 
             for term in localOp:
                 computeExpVal(term)

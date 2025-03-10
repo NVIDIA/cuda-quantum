@@ -319,6 +319,7 @@ class OperatorSum:
         result_ops = []
         for term in spin_op:
             prod = ScalarOperator.const(term.get_coefficient())
+
             def pauli_to_operator(pauli, idx):
                 nonlocal prod
                 if pauli == cudaq_runtime.Pauli.X:
@@ -327,7 +328,9 @@ class OperatorSum:
                     prod *= ElementaryOperator("pauli_y", [idx])
                 elif pauli == cudaq_runtime.Pauli.Z:
                     prod *= ElementaryOperator("pauli_z", [idx])
-                else: prod *= ElementaryOperator.identity(idx)
+                else:
+                    prod *= ElementaryOperator.identity(idx)
+
             term.for_each_pauli(pauli_to_operator)
             result_ops.append(prod)
         return OperatorSum(result_ops)
