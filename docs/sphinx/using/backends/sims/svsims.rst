@@ -127,13 +127,13 @@ setting the target. It is worth drawing attention to gate fusion, a powerful too
 
 
 
-Multi-node multi-GPU 
+Multi-GPU multi-node 
 +++++++++++++++++++++++
 
 .. _nvidia-mgpu-backend:
 
 The :code:`nvidia` backend also provides a state vector simulator accelerated with 
-the :code:`cuStateVec` library with support for Multi-Node, Multi-GPU distribution of the 
+the :code:`cuStateVec` library with support for Multi-GPU, Multi-node distribution of the 
 state vector.
 
 This backend is necessary to scale applications that require a state vector that cannot fit on a single GPU memory.
@@ -207,12 +207,12 @@ See the `Divisive Clustering <https://nvidia.github.io/cuda-quantum/latest/appli
   
   The number of processes and nodes should be always power-of-2. 
 
-  Host-device state vector migration is also supported in the multi-node multi-GPU configuration. 
+  Host-device state vector migration is also supported in the multi-GPU multi-node configuration. 
 
 
 In addition to those environment variable options supported in the single-GPU mode,
 the :code:`nvidia` backend provides the following environment variable options particularly for 
-the multi-node multi-GPU configuration. Any environment variables must be set
+the multi-GPU multi-node configuration. Any environment variables must be set
 prior to setting the target.
 
 .. list-table:: **Additional environment variable options for multi-node multi-GPU mode**
