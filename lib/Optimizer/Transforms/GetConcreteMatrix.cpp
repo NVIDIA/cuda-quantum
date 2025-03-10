@@ -68,7 +68,6 @@ public:
         parentModule.lookupSymbol<cudaq::cc::GlobalOp>(concreteMatrix);
 
     if (ccGlobalOp) {
-
       rewriter.replaceOpWithNewOp<quake::CustomUnitarySymbolOp>(
           customOp,
           FlatSymbolRefAttr::get(parentModule.getContext(), concreteMatrix),
@@ -86,11 +85,10 @@ public:
   using GetConcreteMatrixBase::GetConcreteMatrixBase;
 
   void runOnOperation() override {
-    func::FuncOp func = getOperation();
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
     patterns.insert<CustomUnitaryPattern>(ctx);
-    if (failed(applyPatternsAndFoldGreedily(func.getOperation(),
+    if (failed(applyPatternsAndFoldGreedily(getOperation(),
                                             std::move(patterns))))
       signalPassFailure();
   }
