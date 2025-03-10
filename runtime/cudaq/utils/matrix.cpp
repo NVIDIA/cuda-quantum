@@ -41,7 +41,7 @@ std::unordered_map<cudaq::complex_matrix::EigenMatrix,
 
 // matrix implementation
 
-inline std::complex<double> &access(std::complex<double> *p,
+inline cudaq::complex_matrix::value_type &access(cudaq::complex_matrix::value_type *p,
                                     cudaq::complex_matrix::Dimensions sizes,
                                     std::size_t row, std::size_t col) {
   return p[row * sizes.second + col];
@@ -52,11 +52,11 @@ cudaq::complex_matrix::EigenMatrix cudaq::complex_matrix::as_eigen() const {
             this->data, this->dimensions.first, this->dimensions.second);
 }
 
-std::complex<double> cudaq::complex_matrix::minimal_eigenvalue() const {
+cudaq::complex_matrix::value_type cudaq::complex_matrix::minimal_eigenvalue() const {
   return eigenvalues()[0];
 }
 
-std::vector<std::complex<double>> cudaq::complex_matrix::eigenvalues() const {
+std::vector<cudaq::complex_matrix::value_type> cudaq::complex_matrix::eigenvalues() const {
   Eigen::Map<cudaq::complex_matrix::EigenMatrix> map(data, rows(), cols());
   if (map.isApprox(map.adjoint())) {
     auto iter = selfAdjointEigenSolvers.find(map);
@@ -65,7 +65,7 @@ std::vector<std::complex<double>> cudaq::complex_matrix::eigenvalues() const {
           map, Eigen::SelfAdjointEigenSolver<cudaq::complex_matrix::EigenMatrix>(map));
 
     auto eigs = selfAdjointEigenSolvers[map].eigenvalues();
-    std::vector<std::complex<double>> ret(eigs.size());
+    std::vector<cudaq::complex_matrix::value_type> ret(eigs.size());
     Eigen::VectorXcd::Map(&ret[0], eigs.size()) = eigs;
     return ret;
   }
@@ -77,7 +77,7 @@ std::vector<std::complex<double>> cudaq::complex_matrix::eigenvalues() const {
         map, Eigen::ComplexEigenSolver<cudaq::complex_matrix::EigenMatrix>(map));
 
   auto eigs = generalEigenSolvers[map].eigenvalues();
-  std::vector<std::complex<double>> ret(eigs.size());
+  std::vector<cudaq::complex_matrix::value_type> ret(eigs.size());
   Eigen::VectorXcd::Map(&ret[0], eigs.size()) = eigs;
   return ret;
 }
@@ -93,7 +93,7 @@ cudaq::complex_matrix cudaq::complex_matrix::eigenvectors() const {
 
     auto eigv = selfAdjointEigenSolvers[map].eigenvectors();
     cudaq::complex_matrix copy(eigv.rows(), eigv.cols(), false);
-    std::memcpy(copy.data, eigv.data(), sizeof(std::complex<double>) * eigv.size());
+    std::memcpy(copy.data, eigv.data(), sizeof(cudaq::complex_matrix::value_type) * eigv.size());
     return copy;
   }
 
@@ -105,7 +105,7 @@ cudaq::complex_matrix cudaq::complex_matrix::eigenvectors() const {
 
   auto eigv = generalEigenSolvers[map].eigenvectors();
   cudaq::complex_matrix copy(eigv.rows(), eigv.cols(), false);
-  std::memcpy(copy.data, eigv.data(), sizeof(std::complex<double>) * eigv.size());
+  std::memcpy(copy.data, eigv.data(), sizeof(cudaq::complex_matrix::value_type) * eigv.size());
   return copy;
 }
 
@@ -113,7 +113,7 @@ cudaq::complex_matrix &cudaq::complex_matrix::operator*=(const cudaq::complex_ma
   if (cols() != right.rows())
     throw std::runtime_error("matrix dimensions mismatch in operator*=");
 
-  auto new_data = new std::complex<double>[rows() * right.cols()];
+  auto new_data = new cudaq::complex_matrix::value_type[rows() * right.cols()];
   for (std::size_t i = 0; i < rows(); i++)
     for (std::size_t j = 0; j < right.cols(); j++)
       for (std::size_t k = 0; k < cols(); k++)
@@ -125,11 +125,11 @@ cudaq::complex_matrix &cudaq::complex_matrix::operator*=(const cudaq::complex_ma
   return *this;
 }
 
-std::vector<std::complex<double>> cudaq::operator*(
-  const cudaq::complex_matrix &matrix, const std::vector<std::complex<double>> &vect) {
+std::vector<cudaq::complex_matrix::value_type> cudaq::operator*(
+  const cudaq::complex_matrix &matrix, const std::vector<cudaq::complex_matrix::value_type> &vect) {
   if (matrix.cols() != vect.size())
     throw std::runtime_error("size mismatch for vector multiplication - expecting a vector of length " + std::to_string(matrix.cols()));
-  std::vector<std::complex<double>> res;
+  std::vector<cudaq::complex_matrix::value_type> res;
   res.reserve(matrix.rows());
   for (std::size_t i = 0; i < matrix.rows(); i++) {
     res[i] = 0.;
@@ -139,10 +139,10 @@ std::vector<std::complex<double>> cudaq::operator*(
   return res;
 }
 
-cudaq::complex_matrix cudaq::operator*(std::complex<double> scalar,
+cudaq::complex_matrix cudaq::operator*(cudaq::complex_matrix::value_type scalar,
                                  const cudaq::complex_matrix &right) {
   auto new_data =
-      new std::complex<double>[right.rows() * right.cols()];
+      new cudaq::complex_matrix::value_type[right.rows() * right.cols()];
   for (std::size_t i = 0; i < right.rows(); i++)
     for (std::size_t j = 0; j < right.cols(); j++)
       access(new_data, right.dimensions, i, j) =
@@ -187,7 +187,7 @@ cudaq::complex_matrix &
 cudaq::complex_matrix::kronecker_inplace(const cudaq::complex_matrix &right) {
   Dimensions new_dim{rows() * right.rows(),
                      cols() * right.cols()};
-  auto new_data = new std::complex<double>[rows() * right.rows() *
+  auto new_data = new cudaq::complex_matrix::value_type[rows() * right.rows() *
                                            cols() * right.cols()];
   for (std::size_t i = 0; i < rows(); i++)
     for (std::size_t k = 0; k < right.rows(); k++)
@@ -203,11 +203,11 @@ cudaq::complex_matrix::kronecker_inplace(const cudaq::complex_matrix &right) {
 }
 
 void cudaq::complex_matrix::check_size(std::size_t size, const Dimensions &dim) {
-  if (size < get_size(dim))
-    throw std::runtime_error("vector must have enough elements");
+  if (size != get_size(dim))
+    throw std::runtime_error("mismatch between data and dimensions");
 }
 
-std::complex<double>
+cudaq::complex_matrix::value_type
 cudaq::complex_matrix::operator[](const std::vector<std::size_t> &at) const {
   if (at.size() != 2)
     throw std::runtime_error("Invalid access: indices must have length of 2");
@@ -221,7 +221,7 @@ cudaq::complex_matrix::operator[](const std::vector<std::size_t> &at) const {
   return access(data, dimensions, at[0], at[1]);
 }
 
-std::complex<double> &
+cudaq::complex_matrix::value_type &
 cudaq::complex_matrix::operator[](const std::vector<std::size_t> &at) {
   if (at.size() != 2)
     throw std::runtime_error("Invalid access: indices must have length of 2");
@@ -235,7 +235,7 @@ cudaq::complex_matrix::operator[](const std::vector<std::size_t> &at) {
   return access(data, dimensions, at[0], at[1]);
 }
 
-std::complex<double>
+cudaq::complex_matrix::value_type
 cudaq::complex_matrix::operator()(std::size_t i, std::size_t j) const {
   if (i >= rows() || j >= cols())
     throw std::runtime_error(
@@ -246,7 +246,7 @@ cudaq::complex_matrix::operator()(std::size_t i, std::size_t j) const {
   return access(data, dimensions, i, j);
 }
 
-std::complex<double> &
+cudaq::complex_matrix::value_type &
 cudaq::complex_matrix::operator()(std::size_t i, std::size_t j) {
   if (i >= rows() || j >= cols())
     throw std::runtime_error(

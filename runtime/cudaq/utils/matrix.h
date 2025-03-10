@@ -48,8 +48,9 @@ complex_matrix kronecker(Iterable begin, Iterable end);
 /// two-by-two set of values.
 class complex_matrix {
 public:
+  using value_type = std::complex<double>;
   using Dimensions = std::pair<std::size_t, std::size_t>;
-  using EigenMatrix = Eigen::Matrix<std::complex<double>, -1, -1, 0x1, -1, -1>; // row major
+  using EigenMatrix = Eigen::Matrix<value_type, -1, -1, 0x1, -1, -1>; // row major
 
   complex_matrix() = default;
 
@@ -57,28 +58,28 @@ public:
   // All entries are set to zero by default.
   complex_matrix(std::size_t rows, std::size_t cols, bool set_zero = true)
       : dimensions(std::make_pair(rows, cols)),
-        data{new std::complex<double>[rows * cols]} {
+        data{new value_type[rows * cols]} {
         if (set_zero) this->set_zero();
       }
 
   complex_matrix(const complex_matrix &other)
       : dimensions{other.dimensions},
-        data{new std::complex<double>[get_size(other.dimensions)]} {
+        data{new value_type[get_size(other.dimensions)]} {
     std::copy(other.data, other.data + get_size(dimensions), data);
   }
   complex_matrix(complex_matrix &&other) : dimensions{other.dimensions}, data{other.data} {
     other.data = nullptr;
   }
-  complex_matrix(const std::vector<std::complex<double>> &v,
+  complex_matrix(const std::vector<value_type> &v,
            const Dimensions &dim = {2, 2})
-      : dimensions{dim}, data{new std::complex<double>[get_size(dim)]} {
+      : dimensions{dim}, data{new value_type[get_size(dim)]} {
     check_size(v.size(), dimensions);
     std::copy(v.begin(), v.begin() + get_size(dimensions), data);
   }
 
   complex_matrix &operator=(const complex_matrix &other) {
     dimensions = other.dimensions;
-    data = new std::complex<double>[get_size(other.dimensions)];
+    data = new value_type[get_size(other.dimensions)];
     std::copy(other.data, other.data + get_size(dimensions), data);
     return *this;
   }
@@ -91,13 +92,13 @@ public:
   }
 
   /// @brief Return the minimal eigenvalue for this matrix.
-  std::complex<double> minimal_eigenvalue() const;
+  value_type minimal_eigenvalue() const;
 
   /// @brief Return this matrix's eigenvalues.
-  std::vector<std::complex<double>> eigenvalues() const;
+  std::vector<value_type> eigenvalues() const;
 
   /// @brief Return the eigenvectors of this matrix.
-  /// They are returned as the columns of a new matrix.
+  /// They are returned as the rows of a new matrix.
   complex_matrix eigenvectors() const;
 
   ~complex_matrix() {
@@ -115,11 +116,11 @@ public:
   complex_matrix &operator*=(const complex_matrix &);
 
   /// Right-side multiplication with a vector
-  friend std::vector<std::complex<double>> operator*(
-    const complex_matrix &, const std::vector<std::complex<double>> &);
+  friend std::vector<complex_matrix::value_type> operator*(
+    const complex_matrix &, const std::vector<complex_matrix::value_type> &);
 
   /// Scalar Multiplication with matrices.
-  friend complex_matrix operator*(std::complex<double>, const complex_matrix &);
+  friend complex_matrix operator*(complex_matrix::value_type, const complex_matrix &);
 
   /// Addition of two matrices.
   friend complex_matrix operator+(const complex_matrix &, const complex_matrix &);
@@ -155,16 +156,16 @@ public:
   friend complex_matrix kronecker(Iterable begin, Iterable end);
 
   /// Operator to get the value at a particular index in the matrix.
-  std::complex<double> operator[](const std::vector<std::size_t> &at) const;
+  complex_matrix::value_type operator[](const std::vector<std::size_t> &at) const;
 
   /// Operator to get the value at a particular index in the matrix.
-  std::complex<double> &operator[](const std::vector<std::size_t> &at);
+  complex_matrix::value_type &operator[](const std::vector<std::size_t> &at);
 
   /// Operator to get the value at a particular index in the matrix.
-  std::complex<double> operator()(std::size_t i, std::size_t j) const;
+  complex_matrix::value_type operator()(std::size_t i, std::size_t j) const;
 
   /// Operator to get the value at a particular index in the matrix.
-  std::complex<double> &operator()(std::size_t i, std::size_t j);
+  complex_matrix::value_type &operator()(std::size_t i, std::size_t j);
 
   /// @brief Returns a string representation of the matrix
   std::string to_string() const;
@@ -185,8 +186,8 @@ public:
   friend void bindComplexMatrix(pybind11::module_ &mod);
 
 private:
-  complex_matrix(const std::complex<double> *v, const Dimensions &dim = {2, 2})
-      : dimensions{dim}, data{new std::complex<double>[get_size(dim)]} {
+  complex_matrix(const complex_matrix::value_type *v, const Dimensions &dim = {2, 2})
+      : dimensions{dim}, data{new complex_matrix::value_type[get_size(dim)]} {
     auto size = get_size(dimensions);
     std::copy(v, v + size, data);
   }
@@ -197,7 +198,7 @@ private:
 
   static void check_size(std::size_t size, const Dimensions &dim);
 
-  void swap(std::complex<double> *new_data) {
+  void swap(complex_matrix::value_type *new_data) {
     if (data)
       delete[] data;
     data = new_data;
@@ -211,7 +212,7 @@ private:
   }
 
   Dimensions dimensions = {};
-  std::complex<double> *data = nullptr;
+  complex_matrix::value_type *data = nullptr;
 };
 
 //===----------------------------------------------------------------------===//

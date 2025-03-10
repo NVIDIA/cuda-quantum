@@ -101,8 +101,10 @@ TEST(Tensor, product) {
     cudaq::complex_matrix m2({1., 2., 3., 4., 5., 6.}, {3, 2});
     cudaq::complex_matrix m3({1., 2., 3., 4., 5., 6.}, {2, 3});
     cudaq::complex_matrix m4 = m2 * m3;
-    string_equal(m4.to_string(), "(9,0) (12,0)\n(15,0) (19,0)\n"
-                         "(26,0) (33,0)\n");
+    cudaq::complex_matrix m5 = m3 * m2;
+    string_equal(m4.to_string(), "(9,0) (12,0) (15,0) \n (19,0)"
+                         "(26,0) (33,0)\n (29, 0) (40, 0) (51, 0)\n");
+    string_equal(m5.to_string(), "(22,0) (28,0)\n(49,0) (64,0)\n");
   }
 }
 
