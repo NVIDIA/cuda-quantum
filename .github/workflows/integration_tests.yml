@@ -67,7 +67,7 @@ on:
 env:
   NGC_QUANTUM_ORG: pnyjrcojiblh
   NGC_QUANTUM_TEAM: cuda-quantum
-  NVQC_FUNCTION_ID: 3bfa0342-7d2a-4f1b-8e81-b6608d28ca7d
+  NVQC_FUNCTION_ID: ac857a08-12df-46e5-addc-ce9d39ae8fd9
   # <Backend>:<GPU Type>:<Instance Type>:<Min Instances>:<Max Instances>
   NGC_NVQC_DEPLOYMENT_SPEC: GFN:L40S:gl40s_1.br25_2xlarge:1:1
   python_version: '3.10'
