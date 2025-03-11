@@ -19,6 +19,7 @@ RUN zypper clean --all && zypper ref && zypper --non-interactive up --no-recomme
         python$(echo ${python_version} | tr -d .) \
     && python${python_version} -m ensurepip --upgrade
 RUN if [ -n "$preinstalled_modules" ]; then \
+        python${python_version} -m pip cache purge && \
         echo $preinstalled_modules | xargs python${python_version} -m pip install; \
     fi
 

@@ -18,6 +18,7 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False \
         python${python_version} \
     && python${python_version} -m ensurepip --upgrade
 RUN if [ -n "$preinstalled_modules" ]; then \
+        python${python_version} -m pip cache purge && \
         echo $preinstalled_modules | xargs python${python_version} -m pip install; \
     fi
 

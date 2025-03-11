@@ -24,6 +24,7 @@ ENV VIRTUAL_ENV=/opt/venv
 RUN python${python_version} -m venv "$VIRTUAL_ENV"
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 RUN if [ -n "$preinstalled_modules" ]; then \
+        python${python_version} -m pip cache purge && \
         echo $preinstalled_modules | xargs python${python_version} -m pip install; \
     fi
 
