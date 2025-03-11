@@ -82,7 +82,8 @@ available_backends=`\
         requirements=$(cat $file | grep "gpu-requirements:")
         gpus=${requirements##* }
         if [ "${qpu}" != "remote_rest" ] && [ "${qpu}" != "NvcfSimulatorQPU" ] \
-        && [ "${qpu}" != "fermioniq" ] && [ "${qpu}" != "orca" ] && [ "${qpu}" != "quera" ] \
+        && [ "${qpu}" != "fermioniq" ] && [ "${qpu}" != "orca" ] \
+        && [ "${qpu}" != "pasqal" ] && [ "${qpu}" != "quera" ] \
         && ($gpu_available || [ -z "$gpus" ] || [ "${gpus,,}" == "false" ]); then \
             basename $file | cut -d "." -f 1; \
         fi; \
@@ -136,7 +137,7 @@ echo "============================="
 
 # Note: piping the `find` results through `sort` guarantees repeatable ordering.
 tmpFile=$(mktemp)
-for ex in `find examples/ applications/ targets/ -name '*.cpp' | sort`;
+for ex in `find examples/ applications/ targets/ -name '*.cpp' -not -path "*/dynamics/*" | sort`;
 do
     filename=$(basename -- "$ex")
     filename="${filename%.*}"
@@ -353,6 +354,30 @@ else
     let "skipped+=1"
     echo "Skipped notebook validation.";
     echo ":white_flag: Notebooks validation skipped." >> "${tmpFile}"
+fi
+
+# Python snippet validation 
+if [ -d "snippets/" ];
+then
+    # Skip NVQC and multi-GPU snippets.
+    for ex in `find snippets/ -name '*.py' -not -path '*/nvqc/*' -not -path '*/multi_gpu_workflows/*' | sort`;
+    do 
+        filename=$(basename -- "$ex")
+        filename="${filename%.*}"
+        echo "Testing $filename:"
+        echo "Source: $ex"
+        let "samples+=1"
+        python3 $ex 1> /dev/null
+        status=$?
+        echo "Exited with code $status"
+        if [ "$status" -eq "0" ]; then 
+            let "passed+=1"
+            echo ":white_check_mark: Successfully ran $filename." >> "${tmpFile}"
+        else
+            let "failed+=1"
+            echo ":x: Failed to run $filename." >> "${tmpFile}"
+        fi 
+    done
 fi
 
 if [ -f "$GITHUB_STEP_SUMMARY" ]; 

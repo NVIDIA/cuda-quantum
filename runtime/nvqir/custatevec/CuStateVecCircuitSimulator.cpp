@@ -456,6 +456,10 @@ public:
   void applyExpPauli(double theta, const std::vector<std::size_t> &controlIds,
                      const std::vector<std::size_t> &qubits,
                      const cudaq::spin_op &op) override {
+    if (this->isInTracerMode()) {
+      nvqir::CircuitSimulator::applyExpPauli(theta, controlIds, qubits, op);
+      return;
+    }
     flushGateQueue();
     cudaq::info(" [cusv decomposing] exp_pauli({}, {})", theta,
                 op.to_string(false));

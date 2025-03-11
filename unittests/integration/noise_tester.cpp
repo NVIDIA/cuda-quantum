@@ -28,9 +28,168 @@ struct bell {
   }
 };
 
+struct bell_depolarization2 {
+  void operator()(double prob) __qpu__ {
+    cudaq::qubit q, r;
+    h(q);
+    x<cudaq::ctrl>(q, r);
+    cudaq::apply_noise<cudaq::depolarization2>(prob, q, r);
+  }
+};
+
+template <typename T>
+struct bell_error {
+  void operator()(double prob) __qpu__ {
+    cudaq::qubit q, r;
+    h(q);
+    x<cudaq::ctrl>(q, r);
+    cudaq::apply_noise<T>(prob, q);
+    cudaq::apply_noise<T>(prob, r);
+  }
+};
+
+// FIXME is this supposed to work?
+template <typename T>
+struct bell_error_vec {
+  void operator()(double prob) __qpu__ {
+    cudaq::qvector q(2);
+    h(q[0]);
+    x<cudaq::ctrl>(q[0], q[1]);
+    cudaq::apply_noise<T>(prob, q);
+  }
+};
+
+struct bell_depolarization2_vec {
+  void operator()(double prob) __qpu__ {
+    cudaq::qvector q(2);
+    h(q[0]);
+    x<cudaq::ctrl>(q[0], q[1]);
+    cudaq::apply_noise<cudaq::depolarization2>(prob, q);
+  }
+};
+
 #endif
 #if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_TENSORNET)
 // Stim does not support arbitrary cudaq::kraus_channel specification.
+
+namespace test::hello {
+struct hello_world : public ::cudaq::kraus_channel {
+  static constexpr std::size_t num_parameters = 1;
+  static constexpr std::size_t num_targets = 1;
+
+  hello_world(const std::vector<cudaq::real> &params) {
+    std::vector<cudaq::complex> k0v{std::sqrt(1 - params[0]), 0, 0,
+                                    std::sqrt(1 - params[0])},
+        k1v{0, std::sqrt(params[0]), std::sqrt(params[0]), 0};
+    push_back(cudaq::kraus_op(k0v));
+    push_back(cudaq::kraus_op(k1v));
+    validateCompleteness();
+    generateUnitaryParameters();
+  }
+  REGISTER_KRAUS_CHANNEL("test::hello::hello_world");
+};
+} // namespace test::hello
+
+__qpu__ void test2(double p) {
+  cudaq::qubit q;
+  x(q);
+  cudaq::apply_noise<test::hello::hello_world>({0.2}, q);
+}
+
+__qpu__ void test3(double p) {
+  cudaq::qubit q;
+  x(q);
+  cudaq::apply_noise<test::hello::hello_world>(0.2, q);
+}
+
+__qpu__ int test4(double p) {
+  cudaq::qubit q;
+  x(q);
+  cudaq::apply_noise<test::hello::hello_world>(0.2, q);
+  return mz(q);
+}
+
+CUDAQ_TEST(NoiseTest, checkFineGrainArg) {
+  {
+    cudaq::noise_model noise;
+    noise.register_channel<test::hello::hello_world>();
+
+    auto counts = cudaq::sample({.noise = noise}, test3, .7);
+    counts.dump();
+    EXPECT_TRUE(counts.size() == 2);
+  }
+  {
+    // test warning emitted / no noise applied for case where
+    // no noise model is specified
+    auto counts = cudaq::sample(test3, .7);
+    counts.dump();
+    EXPECT_TRUE(counts.size() == 1);
+  }
+  {
+    // test warning emitted / no noise applied for case where
+    // noise mnodel is provided but custom channel not registered.
+    cudaq::noise_model noise;
+    auto counts = cudaq::sample({.noise = noise}, test3, .7);
+    counts.dump();
+    EXPECT_TRUE(counts.size() == 1);
+  }
+  {
+    // test noisy kernel invocation
+    cudaq::noise_model noise;
+    noise.register_channel<test::hello::hello_world>();
+    cudaq::set_noise(noise);
+    std::set<int> res;
+    for (std::size_t i = 0; i < 100; i++)
+      res.insert(test4(.7));
+    EXPECT_EQ(res.size(), 2);
+    cudaq::unset_noise();
+  }
+  {
+    // test noisy kernel invocation,
+    // channel not registered, should get no noise
+    cudaq::noise_model noise;
+    cudaq::set_noise(noise);
+    std::set<int> res;
+    for (std::size_t i = 0; i < 100; i++)
+      res.insert(test4(.7));
+    EXPECT_EQ(res.size(), 1);
+    cudaq::unset_noise();
+  }
+  {
+    // test noisy kernel invocation,
+    // no noise, should get no application
+    std::set<int> res;
+    for (std::size_t i = 0; i < 100; i++)
+      res.insert(test4(.7));
+    EXPECT_EQ(res.size(), 1);
+  }
+}
+
+CUDAQ_TEST(NoiseTest, checkFineGrainVec) {
+  {
+    cudaq::noise_model noise;
+    noise.register_channel<test::hello::hello_world>();
+
+    auto counts = cudaq::sample({.noise = noise}, test2, .7);
+    counts.dump();
+    EXPECT_TRUE(counts.size() == 2);
+  }
+  {
+    // test warning emitted / no noise applied for case where
+    // no noise model is specified
+    auto counts = cudaq::sample(test2, .7);
+    counts.dump();
+    EXPECT_TRUE(counts.size() == 1);
+  }
+  {
+    // test warning emitted / no noise applied for case where
+    // noise mnodel is provided but custom channel not registered.
+    cudaq::noise_model noise;
+    auto counts = cudaq::sample({.noise = noise}, test2, .7);
+    counts.dump();
+    EXPECT_TRUE(counts.size() == 1);
+  }
+}
 
 CUDAQ_TEST(NoiseTest, checkSimple) {
   cudaq::set_random_seed(13);
@@ -205,6 +364,37 @@ CUDAQ_TEST(NoiseTest, checkDepolType) {
   cudaq::unset_noise(); // clear for subsequent tests
 }
 
+CUDAQ_TEST(NoiseTest, checkApplyDepol2) {
+  cudaq::set_random_seed(13);
+  double probability = 0.1;
+  cudaq::noise_model noise{};
+  cudaq::set_noise(noise);
+  auto counts = cudaq::sample(bell_depolarization2{}, probability);
+  counts.dump();
+  EXPECT_EQ(4, counts.size());
+  counts = cudaq::sample(bell_depolarization2_vec{}, probability);
+  counts.dump();
+  EXPECT_EQ(4, counts.size());
+  cudaq::unset_noise(); // clear for subsequent tests
+}
+
+CUDAQ_TEST(NoiseTest, checkApplySimplePauliErrors) {
+  cudaq::set_random_seed(13);
+  double probability = 0.1;
+  cudaq::noise_model noise{};
+  cudaq::set_noise(noise);
+  auto counts = cudaq::sample(bell_error<cudaq::x_error>{}, probability);
+  counts.dump();
+  EXPECT_EQ(4, counts.size());
+  counts = cudaq::sample(bell_error<cudaq::y_error>{}, probability);
+  counts.dump();
+  EXPECT_EQ(4, counts.size());
+  counts = cudaq::sample(bell_error<cudaq::z_error>{}, probability);
+  counts.dump();
+  EXPECT_EQ(2, counts.size());
+  cudaq::unset_noise(); // clear for subsequent tests
+}
+
 #endif
 #if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) ||                \
     defined(CUDAQ_BACKEND_TENSORNET)
@@ -229,15 +419,51 @@ CUDAQ_TEST(NoiseTest, checkDepolTypeSimple) {
 
 CUDAQ_TEST(NoiseTest, checkAmpDampType) {
   cudaq::set_random_seed(13);
-  cudaq::amplitude_damping_channel ad(.25);
+  {
+    cudaq::amplitude_damping_channel ad(.25);
+    cudaq::noise_model noise;
+    noise.add_channel<cudaq::types::x>({0}, ad);
+    cudaq::set_noise(noise);
+    auto counts = cudaq::sample(xOp{});
+    counts.dump();
+    EXPECT_EQ(2, counts.size());
+    EXPECT_NEAR(counts.probability("0"), .25, .1);
+    EXPECT_NEAR(counts.probability("1"), .75, .1);
+    cudaq::unset_noise(); // clear for subsequent tests
+  }
+  {
+    cudaq::amplitude_damping ad(.25);
+    cudaq::noise_model noise;
+    noise.add_channel<cudaq::types::x>({0}, ad);
+    cudaq::set_noise(noise);
+    auto counts = cudaq::sample(xOp{});
+    counts.dump();
+    EXPECT_EQ(2, counts.size());
+    EXPECT_NEAR(counts.probability("0"), .25, .1);
+    EXPECT_NEAR(counts.probability("1"), .75, .1);
+    cudaq::unset_noise(); // clear for subsequent tests
+  }
+}
+
+CUDAQ_TEST(NoiseTest, checkPhaseDampType) {
+  struct phase_test {
+    void operator()(double prob) __qpu__ {
+      cudaq::qubit q;
+      h(q);
+      cudaq::apply_noise<cudaq::phase_damping>(prob, q);
+      h(q);
+      mz(q);
+    }
+  };
+
+  cudaq::set_random_seed(13);
   cudaq::noise_model noise;
-  noise.add_channel<cudaq::types::x>({0}, ad);
   cudaq::set_noise(noise);
-  auto counts = cudaq::sample(xOp{});
+  auto counts = cudaq::sample(phase_test{}, 0.25);
   counts.dump();
+  // No errors would have counts.size() == 1, but errors would produce
+  // counts.size() == 2.
   EXPECT_EQ(2, counts.size());
-  EXPECT_NEAR(counts.probability("0"), .25, .1);
-  EXPECT_NEAR(counts.probability("1"), .75, .1);
   cudaq::unset_noise(); // clear for subsequent tests
 }
 
@@ -344,6 +570,46 @@ CUDAQ_TEST(NoiseTest, checkPhaseFlipType) {
 #if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) ||                \
     defined(CUDAQ_BACKEND_TENSORNET)
 
+CUDAQ_TEST(NoiseTest, checkPauli1) {
+  cudaq::set_random_seed(13);
+
+  auto kernel = []() __qpu__ {
+    cudaq::qubit q, r;
+    cudaq::apply_noise<cudaq::pauli1>(0.1, 0.1, 0.1, q);
+    cudaq::apply_noise<cudaq::pauli1>(0.1, 0.1, 0.1, r);
+    mz(q);
+    mz(r);
+  };
+
+  auto counts = cudaq::sample(cudaq::sample_options{}, kernel);
+  counts.dump();
+  EXPECT_EQ(4, counts.size());
+}
+
+#endif
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) ||                \
+    defined(CUDAQ_BACKEND_TENSORNET)
+
+CUDAQ_TEST(NoiseTest, checkPauli2) {
+  cudaq::set_random_seed(13);
+
+  auto kernel = [](std::vector<double> parms) __qpu__ {
+    cudaq::qubit q, r;
+    cudaq::apply_noise<cudaq::pauli2>(parms, q, r);
+    mz(q);
+    mz(r);
+  };
+
+  std::vector<double> probs(15, 0.9375 / 15);
+  auto counts = cudaq::sample(cudaq::sample_options{}, kernel, probs);
+  counts.dump();
+  EXPECT_EQ(4, counts.size());
+}
+
+#endif
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) ||                \
+    defined(CUDAQ_BACKEND_TENSORNET)
+
 template <std::size_t N>
 struct xOpAll {
   void operator()() __qpu__ {
@@ -378,71 +644,71 @@ CUDAQ_TEST(NoiseTest, checkAllQubitChannel) {
 // Stim does not support arbitrary cudaq::kraus_op specification.
 
 static cudaq::kraus_channel create2pNoiseChannel() {
-  // 1% depolarization
-  cudaq::kraus_op op0{cudaq::complex{0.94868329805, 0.0},
+  // 20% depolarization
+  cudaq::kraus_op op0{cudaq::complex{0.894427191, 0.0},
                       {0.0, 0.0},
                       {0.0, 0.0},
                       {0.0, 0.0},
                       {0.0, 0.0},
-                      {0.94868329805, 0.0},
+                      {0.894427191, 0.0},
                       {0.0, 0.0},
                       {0.0, 0.0},
                       {0.0, 0.0},
                       {0.0, 0.0},
-                      {0.94868329805, 0.0},
+                      {0.894427191, 0.0},
                       {0.0, 0.0},
                       {0.0, 0.0},
                       {0.0, 0.0},
                       {0.0, 0.0},
-                      {0.94868329805, 0.0}},
+                      {0.894427191, 0.0}},
       op1{cudaq::complex{0.0, 0.0},
           {0.0, 0.0},
-          {0.18257418583, 0.0},
+          {0.25819888974, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
-          {0.18257418583, 0.0},
-          {0.18257418583, 0.0},
+          {0.25819888974, 0.0},
+          {0.25819888974, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
-          {0.18257418583, 0.0},
+          {0.25819888974, 0.0},
           {0.0, 0.0},
           {0.0, 0.0}},
       op2{cudaq::complex{0.0, 0.0},
           {0.0, 0.0},
-          {0.0, -0.18257418583},
+          {0.0, -0.25819888974},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
-          {0.0, -0.18257418583},
-          {0.0, 0.18257418583},
+          {0.0, -0.25819888974},
+          {0.0, 0.25819888974},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
-          {0.0, 0.18257418583},
+          {0.0, 0.25819888974},
           {0.0, 0.0},
           {0.0, 0.0}},
-      op3{cudaq::complex{0.18257418583, 0.0},
+      op3{cudaq::complex{0.25819888974, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
-          {0.18257418583, 0.0},
+          {0.25819888974, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
-          {-0.18257418583, 0.0},
+          {-0.25819888974, 0.0},
           {-0.0, 0.0},
           {0.0, 0.0},
           {0.0, 0.0},
           {-0.0, 0.0},
-          {-0.18257418583, 0.0}};
+          {-0.25819888974, 0.0}};
   cudaq::kraus_channel noise2q(
       std::vector<cudaq::kraus_op>{op0, op1, op2, op3});
   return noise2q;
@@ -481,6 +747,7 @@ CUDAQ_TEST(NoiseTest, checkAllQubitChannelWithControl) {
     auto counts =
         cudaq::sample({.shots = shots, .noise = noise}, bellRandom<numQubits>{},
                       qubitIds[0], qubitIds[1]);
+    counts.dump();
     // More than 2 entangled states due to the noise.
     EXPECT_GT(counts.size(), 2);
   } while (std::next_permutation(qubitIds.begin(), qubitIds.end()));
@@ -509,6 +776,7 @@ CUDAQ_TEST(NoiseTest, checkAllQubitChannelWithControlPrefix) {
     auto counts =
         cudaq::sample({.shots = shots, .noise = noise}, bellRandom<numQubits>{},
                       qubitIds[0], qubitIds[1]);
+    counts.dump();
     // More than 2 entangled states due to the noise.
     EXPECT_GT(counts.size(), 2);
   } while (std::next_permutation(qubitIds.begin(), qubitIds.end()));

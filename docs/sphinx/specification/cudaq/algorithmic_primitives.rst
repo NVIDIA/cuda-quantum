@@ -130,12 +130,16 @@ extract the result information in the following manner:
       };
     }
 
-**[7]** The :code:`sample_result` type enables one to encode measurement results from a 
-quantum circuit sampling task. It keeps track of a list of sample results, each 
-one corresponding to a measurement action during the sampling process and represented 
-by a unique register name. It also tracks a unique global register, the implicit sampling 
-of the state at the end of circuit execution. The API gives fine-grain access 
-to the measurement results for each register. To illustrate this, observe 
+**[7]** By default the :code:`sample_result` type enables one to encode 
+measurement results from a quantum circuit sampling task. It keeps track of a 
+list of sample results, each one corresponding to a measurement action during 
+the sampling process and represented by a unique register name. It also tracks 
+a unique global register, which by default, contains the implicit sampling of 
+the state at the end of circuit execution. If the :code:`explicit_measurements` 
+sample option is enabled, the global register contains all measurements 
+concatenated together in the order the measurements occurred in the kernel. 
+The API gives fine-grain access to the measurement results for each register. 
+To illustrate this, observe 
 
 .. tab:: C++ 
 
@@ -148,7 +152,13 @@ to the measurement results for each register. To illustrate this, observe
       reset (q);
       x(q);
     };
+    
+    printf("Default - no explicit measurements\n");
     cudaq::sample(kernel).dump();
+
+    cudaq::sample_options options{.explicit_measurements = true};
+    printf("Setting `explicit_measurements` option\n");
+    cudaq::sample(options, kernel).dump();
 
 .. tab:: Python 
 
@@ -162,30 +172,41 @@ to the measurement results for each register. To illustrate this, observe
        reset(q)
        x(q)
     
+    print("Default - no explicit measurements")
     cudaq.sample(kernel).dump()
+
+    print("Setting `explicit_measurements` option")
+    cudaq.sample(kernel, explicit_measurements=True).dump() 
 
 should produce 
 
 .. code-block:: bash 
 
+    Default - no explicit measurements
     { 
       __global__ : { 1:1000 }
-      reg1 : { 0:501 1:499 }
+      reg1 : { 0:506 1:494 }
     }
+
+    Setting `explicit_measurements` option
+    { 0:479 1:521 }
 
 Here we see that we have measured a qubit in a uniform superposition to a 
 register named :code:`reg1`, and followed it with a reset and the application 
-of an NOT operation. The :code:`sample_result` returned for this sampling 
-tasks contains the default :code:`__global__` register as well as the user 
-specified :code:`reg1` register. 
+of an NOT operation. By default the :code:`sample_result` returned for this 
+sampling tasks contains the default :code:`__global__` register as well as the 
+user specified :code:`reg1` register. 
 
 The contents of the :code:`__global__` register will depend on how your kernel
 is written:
 
-1. If no measurements appear in the kernel, then the :code:`__global__`
-   register is formed with implicit measurements being added for *all* the
-   qubits defined in the kernel, and the measurements all occur at the end of
-   the kernel. The order of the bits in the bitstring corresponds to the qubit
+1. If no measurements appear in the kernel, then the :code:`__global__` 
+   register is formed with implicit measurements being added for *all* the 
+   qubits defined in the kernel, and the measurements all occur at the end of 
+   the kernel. This is not supported when sampling with the 
+   :code:`explicit_measurements` option; kernels executed with 
+   :code:`explicit_measurements` mode must contain measurements.   
+   The order of the bits in the bitstring corresponds to the qubit
    allocation order specified in the kernel.  That is - the :code:`[0]` element
    in the :code:`__global__` bitstring corresponds with the first declared qubit
    in the kernel. For example,
@@ -222,12 +243,15 @@ should produce
 2. Conversely, if any measurements appear in the kernel, then only the measured
    qubits will appear in the :code:`__global__` register. Similar to #1, the 
    bitstring corresponds to the qubit allocation order specified in the kernel.
-   Also (again, similar to #1), the values of the sampled qubits always
-   correspond to the values *at the end of the kernel execution*. That is - if a
-   qubit is measured in the middle of a kernel and subsequent operations change
-   the state of the qubit, the qubit will be implicitly re-measured at the end
-   of the kernel, and that re-measured value is the value that will appear in
-   the :code:`__global__` register. For example,
+   Also (again, similar to #1), the values of the sampled qubits always 
+   correspond to the values *at the end of the kernel execution*, unless the 
+   :code:`explicit_measurements` option is enabled. That is - if a qubit is 
+   measured in the middle of a kernel and subsequent operations change the state
+   of the qubit, the qubit will be implicitly re-measured at the end of the 
+   kernel, and that re-measured value is the value that will appear in the 
+   :code:`__global__` register. If the sampling option :code:`explicit_measurements` 
+   is enabled, then no re-measurements occur, and the global register contains 
+   the concatenated measurements in the order they were executed in the kernel.
 
 .. tab:: C++ 
 
@@ -239,7 +263,13 @@ should produce
          mz(b);
          mz(a);
        };
+       
+       printf("Default - no explicit measurements\n");
        cudaq::sample(kernel).dump();
+
+       cudaq::sample_options options{.explicit_measurements = true};
+       printf("Setting `explicit_measurements` option\n");
+       cudaq::sample(options, kernel).dump();
 
 .. tab:: Python 
 
@@ -252,15 +282,21 @@ should produce
         mz(b)
         mz(a)
 
-    cudaq.sample(kernel).dump() 
+    print("Default - no explicit measurements")
+    cudaq.sample(kernel).dump()
+
+    print("Setting `explicit_measurements` option")
+    cudaq.sample(kernel, explicit_measurements=True).dump()
   
 should produce 
 
    .. code-block:: bash 
 
-       { 
-         __global__ : { 10:1000 }
-       }
+       Default - no explicit measurements
+       { 10:1000 }
+
+       Setting `explicit_measurements` option
+       { 01:1000 }
 
 .. note::
 

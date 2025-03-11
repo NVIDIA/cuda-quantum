@@ -14,6 +14,7 @@ from .builtin_integrators import cuDensityMatTimeStepper
 has_cupy = True
 has_torch = True
 has_torchdiffeq = True
+has_torch_without_cuda = False
 
 try:
     import cupy as cp
@@ -24,6 +25,8 @@ try:
     import torch
     import torch.utils
     import torch.utils.dlpack
+    if torch.version.cuda is None:
+        has_torch_without_cuda = True
 except ImportError:
     has_torch = False
 
@@ -46,6 +49,10 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[CudmStateType]):
             raise ImportError(
                 'torch and torchdiffeq are required to use Torch-based integrators.'
             )
+        if has_torch_without_cuda:
+            raise ImportError(
+                'Please install a compatible version of PyTorch with CUDA support.'
+            )
         if not has_torchdiffeq:
             raise ImportError(
                 'torchdiffeq is required to use Torch-based integrators.')
@@ -64,14 +71,13 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[CudmStateType]):
         t_scalar = t.item()
         # `vec` is a torch tensor on GPU
         # convert torch tensor to CuPy array without copying data
-        vec_cupy = cp.from_dlpack(torch.utils.dlpack.to_dlpack(vec))
+        vec_cupy = cp.from_dlpack(vec)
         rho_data = cp.asfortranarray(
             vec_cupy.reshape(*self.dm_shape, self.state.batch_size))
         temp_state = self.state.clone(rho_data)
         result = self.stepper.compute(temp_state, t_scalar)
         # convert result back to torch tensor without copying data
-        result_vec = torch.utils.dlpack.from_dlpack(
-            result.storage.ravel().toDlpack())
+        result_vec = torch.from_dlpack(result.storage.ravel())
         return result_vec
 
     def __post_init__(self):
@@ -111,8 +117,7 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[CudmStateType]):
 
         # Prepare initial state y0 as torch tensor
         y0_cupy = self.state.storage.ravel()
-        y0 = torch.utils.dlpack.from_dlpack(y0_cupy.toDlpack())
-        y0 = y0.to('cuda')
+        y0 = torch.from_dlpack(y0_cupy)
 
         # time span
         t_span = torch.tensor([self.t, t], device='cuda', dtype=torch.float64)
@@ -129,7 +134,7 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[CudmStateType]):
         y_t = solution[-1]
 
         # convert the solution back to CuPy array
-        y_t_cupy = cp.from_dlpack(torch.utils.dlpack.to_dlpack(y_t))
+        y_t_cupy = cp.from_dlpack(y_t)
 
         # Keep results in GPU memory
         rho_data = cp.asfortranarray(

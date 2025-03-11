@@ -6,27 +6,21 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-/// NOTE: The `quera` target is available only if AWS SDK is installed, i.e. if
-/// `braket` target is also available.
-// clang-format off
-// RUN: if %braket_avail; then nvq++ %cpp_std --target quera %s -o %t.x; fi
-// RUN: if %braket_avail; then not %t.x 2>&1 | FileCheck %s; fi
-// RUN: if %braket_avail; then nvq++ %cpp_std --target quera --emulate %s -o %t.x; fi
-// RUN: if %braket_avail; then not %t.x 2>&1 | FileCheck %s; fi
-// clang-format on
+// RUN: nvq++ %cpp_std %s -o %t && %t 2>&1 | FileCheck %s -check-prefix=FAIL
 
 #include <cudaq.h>
 
-auto bell = []() __qpu__ {
+auto kernel_with_conditional_on_measure = []() __qpu__ {
   cudaq::qvector q(2);
   h(q[0]);
-  x<cudaq::ctrl>(q[0], q[1]);
+  if (mz(q[0]))
+    x(q[0]);
 };
 
 int main() {
-  auto counts = cudaq::sample(bell);
-  counts.dump();
+  cudaq::sample_options options{.shots = 10, .explicit_measurements = true};
+  cudaq::sample(options, kernel_with_conditional_on_measure);
   return 0;
 }
 
-// CHECK: Arbitrary kernel execution is not supported on this target
+// FAIL: not supported on a kernel with conditional logic on a measurement result
