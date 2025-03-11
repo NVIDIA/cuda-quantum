@@ -22,7 +22,6 @@ RUN dnf update -y --nobest expat \
         python$(echo $python_version | tr -d .) \
     && python${python_version} -m ensurepip --upgrade
 RUN if [ -n "$preinstalled_modules" ]; then \
-        python${python_version} -m pip cache purge && \
         echo $preinstalled_modules | xargs python${python_version} -m pip install; \
     fi
 
@@ -36,8 +35,7 @@ COPY docs/sphinx/snippets/python /tmp/snippets/
 COPY python/tests /tmp/tests/
 COPY python/README*.md /tmp/
 
-RUN python${python_version} -m pip cache purge && \
-    python${python_version} -m pip install ${pip_install_flags} /tmp/$cuda_quantum_wheel
+RUN python${python_version} -m pip install ${pip_install_flags} /tmp/$cuda_quantum_wheel
 RUN if [ -n "$optional_dependencies" ]; then \
         cudaq_package=$(echo $cuda_quantum_wheel | cut -d '-' -f1 | tr _ -) && \
         python${python_version} -m pip install ${pip_install_flags} $cudaq_package[$optional_dependencies]; \
