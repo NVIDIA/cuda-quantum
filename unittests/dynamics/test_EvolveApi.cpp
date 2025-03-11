@@ -54,10 +54,10 @@ TEST(EvolveAPITester, checkCavityModel) {
   auto psi0 = cudaq::state::from_data(psi0_);
   constexpr double decay_rate = 0.1;
   cudaq::integrators::runge_kutta integrator(4, 0.01);
-  auto result = cudaq::evolve(
-      hamiltonian, dimensions, schedule, psi0, integrator,
-      {std::sqrt(decay_rate) * cudaq::boson_op::annihilate(0)},
-      {hamiltonian}, true);
+  auto result =
+      cudaq::evolve(hamiltonian, dimensions, schedule, psi0, integrator,
+                    {std::sqrt(decay_rate) * cudaq::boson_op::annihilate(0)},
+                    {hamiltonian}, true);
   EXPECT_TRUE(result.expectation_values.has_value());
   EXPECT_EQ(result.expectation_values.value().size(), numSteps);
   std::vector<double> theoryResults;
