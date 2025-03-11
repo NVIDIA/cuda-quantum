@@ -18,6 +18,7 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False \
         python${python_version} \
     && python${python_version} -m ensurepip --upgrade
 RUN if [ -n "$preinstalled_modules" ]; then \
+        python${python_version} -m pip cache purge && \
         echo $preinstalled_modules | xargs python${python_version} -m pip install; \
     fi
 
@@ -34,7 +35,8 @@ COPY python/README*.md /tmp/
 # FIXME: remove the following line before merging to public repo
 ENV PIP_EXTRA_INDEX_URL=http://localhost:8080
 
-RUN python${python_version} -m pip install ${pip_install_flags} /tmp/$cuda_quantum_wheel
+RUN python${python_version} -m pip cache purge && \
+    python${python_version} -m pip install ${pip_install_flags} /tmp/$cuda_quantum_wheel
 
 # FIXME: remove the following line before merging to public repo
 ENV PIP_EXTRA_INDEX_URL=

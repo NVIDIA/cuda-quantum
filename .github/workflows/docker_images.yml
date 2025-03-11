@@ -747,7 +747,7 @@ jobs:
           # since using mock imports in the autodocs configuration doesn't work properly. 
           # See also https://github.com/sphinx-doc/sphinx/issues/11211. 
           # FIXME: remove extra-index-url before merging to public repo
-          docker exec cuda-quantum-dev bash -c "python3 -m pip install cuquantum-python-cu12~=25.03 --extra-index-url ${{ steps.pypi_server.outputs.local_pypi_server_url }}"
+          docker exec cuda-quantum-dev bash -c "python3 -m pip cache purge && python3 -m pip install cuquantum-python-cu12~=25.03 --extra-index-url ${{ steps.pypi_server.outputs.local_pypi_server_url }}"
           
           (docker exec cuda-quantum-dev bash -c "export $docs_version && bash scripts/build_docs.sh" && built=true) || built=false
           if $built; then docker cp cuda-quantum-dev:"/usr/local/cudaq/docs/." docs; \
@@ -848,7 +848,7 @@ jobs:
           docker cp docs/notebook_validation.py cuda-quantum:"/home/cudaq/notebook_validation.py"
           # In containers without GPU support, UCX does not work properly since it is configured to work with GPU-support.
           # Hence, don't enforce UCX when running these tests.
-          docker exec cuda-quantum bash -c "python3 -m pip install pandas scipy pandas seaborn 'h5py<3.11' contfrac"
+          docker exec cuda-quantum bash -c "python3 -m pip cache purge && python3 -m pip install pandas scipy pandas seaborn 'h5py<3.11' contfrac"
           (docker exec cuda-quantum bash -c "unset OMPI_MCA_pml && set -o pipefail && bash validate_container.sh | tee /tmp/validation.out") && passed=true || passed=false
           docker cp cuda-quantum:"/tmp/validation.out" /tmp/validation.out
           docker stop cuda-quantum
