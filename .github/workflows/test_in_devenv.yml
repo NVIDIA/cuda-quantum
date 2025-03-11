@@ -222,6 +222,7 @@ jobs:
           shell: bash
           run: |
             cd $CUDAQ_REPO_ROOT
+            pip cache purge
             pip install iqm_client==16.1 --user -vvv
             pip install . -vvv # FIXME: --user causes package hash mismatch on ubuntu...
             pyinstall_status=$?
