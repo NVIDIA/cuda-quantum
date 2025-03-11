@@ -224,7 +224,7 @@ jobs:
             cd $CUDAQ_REPO_ROOT
             pip cache purge
             pip install iqm_client==16.1 --user -vvv
-            pip install . --user -vvv
+            pip install . -vvv # FIXME: --user causes package hash mismatch on ubuntu...
             pyinstall_status=$?
             if [ ! $pyinstall_status -eq 0 ]; then
               echo "::error file=test_in_devenv.yml:: Pip install of CUDA Quantum failed with status $pyinstall_status."
