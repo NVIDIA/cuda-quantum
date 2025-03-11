@@ -108,9 +108,8 @@ TEST_F(CuDensityMatTimeStepperTest, ComputeStepCheckOutput) {
   EXPECT_TRUE(castSimState != nullptr);
   castSimState->initialize_cudm(handle_, dims);
 
-  cudaq::product_operator<cudaq::boson_operator> op_1 =
-      cudaq::boson_operator::create(0);
-  cudaq::operator_sum<cudaq::matrix_operator> op(op_1);
+  cudaq::boson_op_term op_1 = cudaq::boson_op::create(0);
+  cudaq::sum_op<cudaq::matrix_handler> op(op_1);
   auto cudmOp = cudaq::dynamics::Context::getCurrentContext()
                     ->getOpConverter()
                     .convertToCudensitymatOperator(
@@ -142,10 +141,10 @@ TEST_F(CuDensityMatTimeStepperTest, TimeSteppingWithLindblad) {
   auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
   EXPECT_TRUE(castSimState != nullptr);
   castSimState->initialize_cudm(handle_, dims);
-  cudaq::product_operator<cudaq::matrix_operator> c_op_0 =
-      cudaq::boson_operator::annihilate(0);
-  cudaq::operator_sum<cudaq::matrix_operator> c_op(c_op_0);
-  cudaq::operator_sum<cudaq::matrix_operator> zero_op = 0.0 * c_op;
+  cudaq::product_op<cudaq::matrix_handler> c_op_0 =
+      cudaq::boson_op::annihilate(0);
+  cudaq::sum_op<cudaq::matrix_handler> c_op(c_op_0);
+  cudaq::sum_op<cudaq::matrix_handler> zero_op = 0.0 * c_op;
   auto cudm_lindblad_op =
       cudaq::dynamics::Context::getCurrentContext()
           ->getOpConverter()
@@ -191,9 +190,9 @@ TEST_F(CuDensityMatTimeStepperTest, CheckScalarCallback) {
         return entry->second;
       };
 
-  cudaq::product_operator<cudaq::matrix_operator> op_t =
-      cudaq::scalar_operator(function) * cudaq::boson_operator::create(0);
-  cudaq::operator_sum<cudaq::matrix_operator> op(op_t);
+  cudaq::product_op<cudaq::matrix_handler> op_t =
+      cudaq::scalar_operator(function) * cudaq::boson_op::create(0);
+  cudaq::sum_op<cudaq::matrix_handler> op(op_t);
   auto cudmOp = cudaq::dynamics::Context::getCurrentContext()
                     ->getOpConverter()
                     .convertToCudensitymatOperator(params, op, dims);
@@ -232,7 +231,7 @@ TEST_F(CuDensityMatTimeStepperTest, CheckTensorCallback) {
   auto tensorFunction =
       [paramName](const std::vector<int> &dimensions,
                   const std::unordered_map<std::string, std::complex<double>>
-                      &parameters) -> matrix_2 {
+                      &parameters) -> complex_matrix {
     if (dimensions.empty())
       throw std::runtime_error("Empty dimensions vector received!");
 
@@ -242,7 +241,7 @@ TEST_F(CuDensityMatTimeStepperTest, CheckTensorCallback) {
           "Cannot find value of expected parameter named " + paramName);
 
     std::complex<double> value = entry->second;
-    matrix_2 mat(2, 2);
+    complex_matrix mat(2, 2);
     mat[{0, 0}] = value;
     mat[{1, 1}] = std::conj(value);
     mat[{0, 1}] = {0.0, 0.0};
@@ -250,8 +249,8 @@ TEST_F(CuDensityMatTimeStepperTest, CheckTensorCallback) {
     return mat;
   };
 
-  matrix_operator::define("CustomTensorOp", {2}, tensorFunction);
-  auto op = cudaq::matrix_operator::instantiate("CustomTensorOp", {0});
+  matrix_handler::define("CustomTensorOp", {2}, tensorFunction);
+  auto op = cudaq::matrix_handler::instantiate("CustomTensorOp", {0});
   auto cudmOp = cudaq::dynamics::Context::getCurrentContext()
                     ->getOpConverter()
                     .convertToCudensitymatOperator(params, op, dims);
@@ -282,13 +281,13 @@ TEST_F(CuDensityMatTimeStepperTest, ComputeOperatorOrder) {
   EXPECT_TRUE(castSimState != nullptr);
   castSimState->initialize_cudm(handle_, dims);
 
-  cudaq::product_operator<cudaq::matrix_operator> op_t =
-      cudaq::boson_operator::create(0) *
-      cudaq::boson_operator::annihilate(0); // a_dagger * a
-  cudaq::operator_sum<cudaq::matrix_operator> op(op_t);
+  cudaq::product_op<cudaq::matrix_handler> op_t =
+      cudaq::boson_op::create(0) *
+      cudaq::boson_op::annihilate(0); // a_dagger * a
+  cudaq::sum_op<cudaq::matrix_handler> op(op_t);
   const auto opMat = op.to_matrix({{0, 4}});
 
-  std::cout << "Op matrix:\n" << opMat.dump() << "\n";
+  std::cout << "Op matrix:\n" << opMat.to_string() << "\n";
   auto cudmOp = cudaq::dynamics::Context::getCurrentContext()
                     ->getOpConverter()
                     .convertToCudensitymatOperator(
@@ -322,18 +321,18 @@ TEST_F(CuDensityMatTimeStepperTest, ComputeOperatorOrderDensityMatrix) {
   EXPECT_TRUE(castSimState != nullptr);
   castSimState->initialize_cudm(handle_, dims);
 
-  cudaq::product_operator<cudaq::matrix_operator> op_t =
-      cudaq::boson_operator::create(0) *
-      cudaq::boson_operator::annihilate(0); // a_dagger * a
-  cudaq::operator_sum<cudaq::matrix_operator> op(op_t);
+  cudaq::product_op<cudaq::matrix_handler> op_t =
+      cudaq::boson_op::create(0) *
+      cudaq::boson_op::annihilate(0); // a_dagger * a
+  cudaq::sum_op<cudaq::matrix_handler> op(op_t);
   const auto opMat = op.to_matrix({{0, N}});
-  cudaq::matrix_2 rho = cudaq::matrix_2::identity(N);
+  cudaq::complex_matrix rho = cudaq::complex_matrix::identity(N);
   for (std::size_t col = 0; col < N; ++col)
     for (std::size_t row = 0; row < N; ++row)
       rho[{row, col}] = 1.0;
   const auto expectedResult =
       std::complex<double>(0.0, -1.0) * (opMat * rho - rho * opMat);
-  std::cout << "Expected result:\n" << expectedResult.dump() << "\n";
+  std::cout << "Expected result:\n" << expectedResult.to_string() << "\n";
   auto cudmOp = cudaq::dynamics::Context::getCurrentContext()
                     ->getOpConverter()
                     .constructLiouvillian(op, {}, dims, {}, true);

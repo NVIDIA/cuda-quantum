@@ -19,14 +19,14 @@
 
 TEST(EvolveAPITester, checkSimple) {
   const cudaq::dimension_map dims = {{0, 2}};
-  auto ham = 2.0 * M_PI * 0.1 * cudaq::spin_operator::x(0);
+  auto ham = 2.0 * M_PI * 0.1 * cudaq::sum_op<cudaq::spin_handler>::x(0);
   constexpr int numSteps = 10;
   cudaq::schedule schedule(cudaq::linspace(0.0, 1.0, numSteps), {"t"});
   auto initialState =
       cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
   cudaq::integrators::runge_kutta integrator(1, 0.001);
   auto result = cudaq::evolve(ham, dims, schedule, initialState, integrator, {},
-                              {cudaq::spin_operator::z(0)}, true);
+                              {cudaq::sum_op<cudaq::spin_handler>::z(0)}, true);
   EXPECT_TRUE(result.expectation_values.has_value());
   EXPECT_EQ(result.expectation_values.value().size(), numSteps);
 
@@ -47,7 +47,7 @@ TEST(EvolveAPITester, checkCavityModel) {
   constexpr int N = 10;
   constexpr int numSteps = 101;
   cudaq::schedule schedule(cudaq::linspace(0.0, 1.0, numSteps), {"t"});
-  auto hamiltonian = cudaq::boson_operator::number(0);
+  auto hamiltonian = cudaq::boson_op::number(0);
   const cudaq::dimension_map dimensions{{0, N}};
   std::vector<std::complex<double>> psi0_(N, 0.0);
   psi0_.back() = 1.0;
@@ -56,7 +56,7 @@ TEST(EvolveAPITester, checkCavityModel) {
   cudaq::integrators::runge_kutta integrator(4, 0.01);
   auto result = cudaq::evolve(
       hamiltonian, dimensions, schedule, psi0, integrator,
-      {std::sqrt(decay_rate) * cudaq::boson_operator::annihilate(0)},
+      {std::sqrt(decay_rate) * cudaq::boson_op::annihilate(0)},
       {hamiltonian}, true);
   EXPECT_TRUE(result.expectation_values.has_value());
   EXPECT_EQ(result.expectation_values.value().size(), numSteps);
@@ -77,7 +77,7 @@ TEST(EvolveAPITester, checkTimeDependent) {
   constexpr int N = 10;
   constexpr int numSteps = 101;
   cudaq::schedule schedule(cudaq::linspace(0.0, 1.0, numSteps), {"t"});
-  auto hamiltonian = cudaq::boson_operator::number(0);
+  auto hamiltonian = cudaq::boson_op::number(0);
   const cudaq::dimension_map dimensions{{0, N}};
   std::vector<std::complex<double>> psi0_(N, 0.0);
   psi0_.back() = 1.0;
@@ -95,8 +95,8 @@ TEST(EvolveAPITester, checkTimeDependent) {
         return result;
       };
 
-  auto collapseOperator = cudaq::scalar_operator(td_function) *
-                          cudaq::boson_operator::annihilate(0);
+  auto collapseOperator =
+      cudaq::scalar_operator(td_function) * cudaq::boson_op::annihilate(0);
   cudaq::integrators::runge_kutta integrator(4, 0.01);
   auto result =
       cudaq::evolve(hamiltonian, dimensions, schedule, psi0, integrator,

@@ -13,7 +13,7 @@
 #include <vector>
 
 #include "cudaq/operators.h"
-#include "cudaq/utils/tensor.h"
+#include "cudaq/utils/matrix.h"
 #include "fermion_operators.h"
 
 namespace cudaq {
@@ -21,7 +21,7 @@ namespace cudaq {
 // private helpers
 
 #if !defined(NDEBUG)
-void fermion_operator::validate_opcode() const {
+void fermion_handler::validate_opcode() const {
   std::vector<int> valid_op_codes = {0, 1, 2, 4, 8, 9};
   assert(std::find(valid_op_codes.cbegin(), valid_op_codes.cend(),
                    this->op_code) != valid_op_codes.cend());
@@ -30,7 +30,7 @@ void fermion_operator::validate_opcode() const {
 }
 #endif
 
-std::string fermion_operator::op_code_to_string() const {
+std::string fermion_handler::op_code_to_string() const {
   // Note that we can (and should) have the same op codes across boson, fermion,
   // and spin ops, since individual operators with the same op codes are
   // actually equal. Note that the matrix definition for creation, annihilation
@@ -55,24 +55,24 @@ std::string fermion_operator::op_code_to_string() const {
   return "I";
 }
 
-std::string fermion_operator::op_code_to_string(
+std::string fermion_handler::op_code_to_string(
     std::unordered_map<int, int> &dimensions) const {
-  auto it = dimensions.find(this->target);
+  auto it = dimensions.find(this->degree);
   if (it == dimensions.end())
-    dimensions[this->target] = 2;
+    dimensions[this->degree] = 2;
   else if (it->second != 2)
     throw std::runtime_error("dimension for fermion operator must be 2");
   return this->op_code_to_string();
 }
 
-void fermion_operator::inplace_mult(const fermion_operator &other) {
+void fermion_handler::inplace_mult(const fermion_handler &other) {
 #if !defined(NDEBUG)
   other.validate_opcode();
 #endif
 
   // The below code is just a bitwise implementation of a matrix multiplication;
   // Multiplication becomes a bitwise and, addition becomes an exclusive or.
-  auto get_entry = [](const fermion_operator &op, int quadrant) {
+  auto get_entry = [](const fermion_handler &op, int quadrant) {
     return (op.op_code & (1 << quadrant)) >> quadrant;
   };
 
@@ -94,19 +94,19 @@ void fermion_operator::inplace_mult(const fermion_operator &other) {
 
 // read-only properties
 
-std::string fermion_operator::unique_id() const {
-  return this->op_code_to_string() + std::to_string(target);
+std::string fermion_handler::unique_id() const {
+  return this->op_code_to_string() + std::to_string(this->degree);
 }
 
-std::vector<int> fermion_operator::degrees() const { return {this->target}; }
+std::vector<int> fermion_handler::degrees() const { return {this->degree}; }
 
 // constructors
 
-fermion_operator::fermion_operator(int target)
-    : target(target), op_code(9), commutes(true) {}
+fermion_handler::fermion_handler(int target)
+    : degree(target), op_code(9), commutes(true) {}
 
-fermion_operator::fermion_operator(int target, int op_id)
-    : target(target), op_code(9), commutes(true) {
+fermion_handler::fermion_handler(int target, int op_id)
+    : degree(target), op_code(9), commutes(true) {
   assert(0 <= op_id && op_id < 4);
   if (op_id == 1) { // create
     this->op_code = 4;
@@ -118,29 +118,29 @@ fermion_operator::fermion_operator(int target, int op_id)
     this->op_code = 8;
 }
 
-fermion_operator::fermion_operator(const fermion_operator &other)
-    : op_code(other.op_code), commutes(other.commutes), target(other.target) {}
+fermion_handler::fermion_handler(const fermion_handler &other)
+    : op_code(other.op_code), commutes(other.commutes), degree(other.degree) {}
 
 // assignments
 
-fermion_operator &fermion_operator::operator=(const fermion_operator &other) {
+fermion_handler &fermion_handler::operator=(const fermion_handler &other) {
   if (this != &other) {
     this->op_code = other.op_code;
     this->commutes = other.commutes;
-    this->target = other.target;
+    this->degree = other.degree;
   }
   return *this;
 }
 
 // evaluations
 
-matrix_2 fermion_operator::to_matrix(
+complex_matrix fermion_handler::to_matrix(
     std::unordered_map<int, int> &dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
-  auto it = dimensions.find(this->target);
+  auto it = dimensions.find(this->degree);
   if (it == dimensions.end())
-    dimensions[this->target] = 2;
+    dimensions[this->degree] = 2;
   else if (it->second != 2)
     throw std::runtime_error("dimension for fermion operator must be 2");
 
@@ -148,7 +148,7 @@ matrix_2 fermion_operator::to_matrix(
   this->validate_opcode();
 #endif
 
-  auto mat = matrix_2(2, 2);
+  auto mat = complex_matrix(2, 2);
   if (this->op_code & 1)
     mat[{0, 0}] = 1.;
   if (this->op_code & 2)
@@ -160,45 +160,33 @@ matrix_2 fermion_operator::to_matrix(
   return std::move(mat);
 }
 
-std::string fermion_operator::to_string(bool include_degrees) const {
+std::string fermion_handler::to_string(bool include_degrees) const {
   if (include_degrees)
-    return this->op_code_to_string() + "(" + std::to_string(target) + ")";
+    return this->op_code_to_string() + "(" + std::to_string(this->degree) + ")";
   else
     return this->op_code_to_string();
 }
 
 // comparisons
 
-bool fermion_operator::operator==(const fermion_operator &other) const {
-  return this->target == other.target &&
+bool fermion_handler::operator==(const fermion_handler &other) const {
+  return this->degree == other.degree &&
          this->op_code == other.op_code; // no need to compare commutes (is
                                          // determined by op_code)
 }
 
 // defined operators
 
-operator_sum<fermion_operator> fermion_operator::empty() {
-  return operator_handler::empty<fermion_operator>();
+product_op<fermion_handler> fermion_handler::create(int degree) {
+  return product_op(fermion_handler(degree, 1));
 }
 
-product_operator<fermion_operator> fermion_operator::identity() {
-  return operator_handler::identity<fermion_operator>();
+product_op<fermion_handler> fermion_handler::annihilate(int degree) {
+  return product_op(fermion_handler(degree, 2));
 }
 
-product_operator<fermion_operator> fermion_operator::identity(int degree) {
-  return product_operator(fermion_operator(degree));
-}
-
-product_operator<fermion_operator> fermion_operator::create(int degree) {
-  return product_operator(fermion_operator(degree, 1));
-}
-
-product_operator<fermion_operator> fermion_operator::annihilate(int degree) {
-  return product_operator(fermion_operator(degree, 2));
-}
-
-product_operator<fermion_operator> fermion_operator::number(int degree) {
-  return product_operator(fermion_operator(degree, 3));
+product_op<fermion_handler> fermion_handler::number(int degree) {
+  return product_op(fermion_handler(degree, 3));
 }
 
 } // namespace cudaq
