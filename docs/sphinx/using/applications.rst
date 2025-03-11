@@ -1,33 +1,32 @@
 CUDA-Q Applications
 ====================
 
-
 .. toctree::
    :maxdepth: 1
    :hidden:
 
-   |:spellcheck-disable:|
-   /applications/python/qaoa
-   /applications/python/digitized_counterdiabatic_qaoa
-   /applications/python/krylov
-   /applications/python/bernstein_vazirani
+
+   /applications/python/QAOA
+   /applications/python/digitized_counterdiabatic_QAOA
+   /applications/python/Krylov
+   /applications/python/Bernstein-Vazirani
    /applications/python/cost_minimization
-   /applications/python/deutschs_algorithm
+   /applications/python/Deutsch_algorithm
    /applications/python/divisive_clustering_coresets
-   /applications/python/hybrid_qnns
-   /applications/python/hadamard_test
-   /applications/python/logical_aim_sqale
-   /applications/python/hamiltonian_simulation
-   /applications/python/quantum_fourier_transform
+   /applications/python/hybrid_quantum_neural_networks
+   /applications/python/Hadamard_test
+   /applications/python/logical_aim_Sqale
+   /applications/python/Hamiltonian_simulation
+   /applications/python/quantum_Fourier_transform
    /applications/python/quantum_teleportation
    /applications/python/quantum_volume
    /applications/python/readout_error_mitigation
    /applications/python/unitary_compilation_diffusion_models
-   /applications/python/vqe_advanced
+   /applications/python/VQE_advanced
    /applications/python/quantum_transformer
-   /applications/python/afqmc
-   /applications/python/adapt_qaoa
-   |:spellcheck-enable:|
+   /applications/python/AFQMC
+   /applications/python/adapt_QAOA
+
 
 
 .. raw:: html
@@ -78,7 +77,7 @@ CUDA-Q Applications
 .. raw:: html
 
     <div class="notebook-entry" data-tags="optimization,noiseless,gpu">
-        <a href="/applications/python/qaoa.html" class="notebook-title">QAOA for Max Cut Problem</a>
+        <a href="/applications/python/QAOA.html" class="notebook-title">QAOA for Max Cut Problem</a>
         <div class="notebook-content">
             This notebook explains the theory behind the Quantum Approximate Optimization Algorithm (QAOA) and explains how it can be used to solve the Max Cut problem.
         </div>
@@ -86,7 +85,7 @@ CUDA-Q Applications
     </div>
 
     <div class="notebook-entry" data-tags="chemistry,optimization,noiseless,gpu">
-        <a href="/applications/python/digitized_counterdiabatic_qaoa.ipynb" class="notebook-title">Digitized Counterdiabatic QAOA</a>
+        <a href="/applications/python/digitized_counterdiabatic_QAOA.html" class="notebook-title">Digitized Counterdiabatic QAOA</a>
         <div class="notebook-content">
             This notebook explores application of DC-QAOA to predict molecules that might be good candidates for drugs based on their interactions with proteins.
         </div>
@@ -94,7 +93,7 @@ CUDA-Q Applications
     </div>
 
     <div class="notebook-entry" data-tags="chemistry,noiseless,mqpu">
-        <a href="/applications/python/krylov.html" class="notebook-title">Krylov Subspace Methods</a>
+        <a href="/applications/python/Krylov.html" class="notebook-title">Krylov Subspace Methods</a>
         <div class="notebook-content">
             Learn how the Krylov method uses the Hadamard test to predict the ground state energy of molecules. Also learn how to implement the same approach with the <code>mqpu</code> backend and simulate execution on multiple QPUs in parallel.
         </div>
@@ -102,7 +101,7 @@ CUDA-Q Applications
     </div>
 
     <div class="notebook-entry" data-tags="fundamental,noiseless,gpu">
-        <a href="/applications/python/bernstein_vazirani.html" class="notebook-title">The Bernstein-Vazirani Algorithm</a>
+        <a href="/applications/python/Bernstein-Vazirani.html" class="notebook-title">The Bernstein-Vazirani Algorithm</a>
         <div class="notebook-content">
             Learn a famous quantum algorithm that provides intuition for why exponential speedups can be achieved with quantum computers.
         </div>
@@ -126,7 +125,7 @@ CUDA-Q Applications
     </div>
 
     <div class="notebook-entry" data-tags="qforai,noiseless,gpu">
-        <a href="/applications/python/hybrid_qnns.html" class="notebook-title">Hybrid Quantum Neural Networks</a>
+        <a href="/applications/python/hybrid_hybrid_quantum_neural_networks.html" class="notebook-title">Hybrid Quantum Neural Networks</a>
         <div class="notebook-content">
             Learn how to implement Neural Network composed of a traditional PyTorch layer and a quantum layer added with CUDA-Q
         </div>
@@ -134,7 +133,7 @@ CUDA-Q Applications
     </div>
 
     <div class="notebook-entry" data-tags="fundamental,noiseless,gpu,mqpu">
-        <a href="/applications/python/hadamard_test.html" class="notebook-title">The Hadamard Test</a>
+        <a href="/applications/python/Hadamard_test.html" class="notebook-title">The Hadamard Test</a>
         <div class="notebook-content">
             Learn about the Hadamard test and how it can be used to estimate expectation values. This notebook also explores how the Hadamard test can be used for Krylov subspace method and accelerated with the <code>mqpu</code> backend to evaluate execution on multiple simulated QPUs in parallel.
         </div>
@@ -142,7 +141,7 @@ CUDA-Q Applications
     </div>
 
     <div class="notebook-entry" data-tags="chemistry,qec,qpu,neutral,collab">
-        <a href="/applications/python/logical_aim_sqale.html" class="notebook-title">The Anderson Impurity Model With Logical Qubits</a>
+        <a href="/applications/python/logical_aim_Sqale.html" class="notebook-title">The Anderson Impurity Model With Logical Qubits</a>
         <div class="notebook-content">
             A recent collaboration between NVIDIA and Infleqtion demonstrated a logical qubit workflow built in CUDA-Q and executed on the Infleqtion's neutral atom QPU.
         </div>
@@ -150,7 +149,7 @@ CUDA-Q Applications
     </div>
 
     <div class="notebook-entry" data-tags="fundamental,noiseless,gpu">
-        <a href="/applications/python/hamiltonian_simulation.html" class="notebook-title">Trotterized Hamiltonian Simulation</a>
+        <a href="/applications/python/Hamiltonian_simulation.html" class="notebook-title">Trotterized Hamiltonian Simulation</a>
         <div class="notebook-content">
             Trotterization is an approximation to enable simulation of a Hamiltonian. Learn how this technique works and simulate the dynamics of the Heisenberg model.
         </div>
@@ -158,7 +157,7 @@ CUDA-Q Applications
     </div>
 
     <div class="notebook-entry" data-tags="fundamental,noiseless,gpu">
-        <a href="/applications/python/quantum_fourier_transform.html" class="notebook-title">The Quantum Fourier Transform</a>
+        <a href="/applications/python/quantum_Fourier_transform.html" class="notebook-title">The Quantum Fourier Transform</a>
         <div class="notebook-content">
             The Quantum Fourier transform (QFT) is a fundamental quantum algorithm that is also an important subroutine of quantum phase estimation, Shor's, and other quantum algorithms. Learn the basics of the QFT and how to implement it in CUDA-Q.
         </div>
@@ -198,7 +197,7 @@ CUDA-Q Applications
     </div>
 
     <div class="notebook-entry" data-tags="chemistry,noiseless,mqpu">
-        <a href="/applications/python/vqe_advanced.html" class="notebook-title">The Variational Quantum Eigensolver</a>
+        <a href="/applications/python/VQE_advanced.html" class="notebook-title">The Variational Quantum Eigensolver</a>
         <div class="notebook-content">
             The variational quantum eigensolver is a hybrid quantum classical algorithm for predicting the ground state of a Hamiltonian. Learn how to predict molecular energies with the VQE in CUDA-Q using active spaces, how to parallelize gradient evaluation, and how to use performance optimizations like gate fusion.
         </div>
@@ -214,7 +213,7 @@ CUDA-Q Applications
     </div>
 
     <div class="notebook-entry" data-tags="chemistry,noiseless,gpu,collab">
-        <a href="/applications/python/afqmc.html" class="notebook-title">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a>
+        <a href="/applications/python/AFQMC.html" class="notebook-title">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a>
         <div class="notebook-content">
             Quantum Enhanced Auxiliary Field Quantum Monte Carlo is an advanced variational technique for simulating molecular energies. Learn how NVIDIA and BASF collaborated to implement this technique.
         </div>
@@ -222,7 +221,7 @@ CUDA-Q Applications
     </div>
 
     <div class="notebook-entry" data-tags="optimization,noiseless,gpu">
-        <a href="/applications/python/adapt_qaoa.html" class="notebook-title">ADAPT QAOA</a>
+        <a href="/applications/python/adapt_QAOA.html" class="notebook-title">ADAPT QAOA</a>
         <div class="notebook-content">
             Learn how to implement the Adaptive Derivative-Assembled Pseudo-Trotter (ADAPT) ansatz QAOA using CUDA-Q. The method iteratively builds an ansatz to more efficiently converge to the ground state of a problem Hamiltonian.
         </div>
