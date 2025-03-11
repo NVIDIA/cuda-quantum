@@ -78,7 +78,7 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False \
     && cmake --build . --target install --config Release \
     && cd / && rm -rf /pybind11-project
 
-RUN curl -L https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-$(uname -m).sh -o cmake-install.sh \
+RUN curl -L https://github.com/Kitware/CMake/releases/download/v3.28.4/cmake-3.28.4-linux-$(uname -m).sh -o cmake-install.sh \
     && bash cmake-install.sh --skip-licence --exclude-subdir --prefix=/usr/local \
     && rm cmake-install.sh
 

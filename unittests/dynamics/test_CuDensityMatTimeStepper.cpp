@@ -232,9 +232,8 @@ TEST_F(CuDensityMatTimeStepperTest, CheckTensorCallback) {
       [paramName](const std::vector<int> &dimensions,
                   const std::unordered_map<std::string, std::complex<double>>
                       &parameters) -> complex_matrix {
-    if (dimensions.empty()) {
+    if (dimensions.empty())
       throw std::runtime_error("Empty dimensions vector received!");
-    }
 
     auto entry = parameters.find(paramName);
     if (entry == parameters.end())

@@ -59,9 +59,8 @@ evolve_result evolveSingle(
   cudmState->initialize_cudm(handle, dims);
 
   state initial_State = [&]() {
-    if (!collapseOperators.empty() && !cudmState->is_density_matrix()) {
+    if (!collapseOperators.empty() && !cudmState->is_density_matrix())
       return state(new CuDensityMatState(cudmState->to_density_matrix()));
-    }
     return initialState;
   }();
 
