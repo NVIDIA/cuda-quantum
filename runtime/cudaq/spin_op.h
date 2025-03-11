@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "matrix.h"
+#include "cudaq/utils/matrix.h"
 #include "utils/cudaq_utils.h"
 #include <complex>
 #include <functional>

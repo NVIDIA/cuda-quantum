@@ -42,7 +42,7 @@ TEST(OperatorHelpersTest, GenerateAllStates_EmptyDegrees) {
 }
 
 TEST(OperatorHelpersTest, PermuteMatrix_SingleSwap) {
-  cudaq::matrix_2 matrix(2, 2);
+  cudaq::complex_matrix matrix(2, 2);
   matrix[{0, 0}] = 1;
   matrix[{0, 1}] = 2;
   matrix[{1, 0}] = 3;
@@ -53,7 +53,7 @@ TEST(OperatorHelpersTest, PermuteMatrix_SingleSwap) {
 
   permute_matrix(matrix, permutation);
 
-  cudaq::matrix_2 expected(2, 2);
+  cudaq::complex_matrix expected(2, 2);
   expected[{0, 0}] = 4;
   expected[{0, 1}] = 3;
   expected[{1, 0}] = 2;
@@ -63,7 +63,7 @@ TEST(OperatorHelpersTest, PermuteMatrix_SingleSwap) {
 }
 
 TEST(OperatorHelpersTest, PermuteMatrix_IdentityPermutation) {
-  cudaq::matrix_2 matrix(3, 3);
+  cudaq::complex_matrix matrix(3, 3);
   matrix[{0, 0}] = 1;
   matrix[{0, 1}] = 2;
   matrix[{0, 2}] = 3;

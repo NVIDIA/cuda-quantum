@@ -200,8 +200,7 @@ complex_matrix spin_op::to_matrix() const {
   // data.
 
   complex_matrix A(dim, dim);
-  A.set_zero();
-  auto rawData = A.data();
+  auto rawData = A.data;
 #if defined(_OPENMP)
 #pragma omp parallel for shared(rawData)
 #endif

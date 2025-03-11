@@ -159,7 +159,7 @@ public:
 
   /// Measure the current state in the given Pauli basis, return the expectation
   /// value <term>.
-  virtual SpinMeasureResult measure(cudaq::spin_op &op) = 0;
+  virtual SpinMeasureResult measure(const cudaq::spin_op &op) = 0;
 
   /// Synchronize - run all queue-ed instructions
   virtual void synchronize() = 0;

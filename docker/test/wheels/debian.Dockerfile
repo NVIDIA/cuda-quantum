@@ -24,6 +24,7 @@ ENV VIRTUAL_ENV=/opt/venv
 RUN python${python_version} -m venv "$VIRTUAL_ENV"
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 RUN if [ -n "$preinstalled_modules" ]; then \
+        python${python_version} -m pip cache purge && \
         echo $preinstalled_modules | xargs python${python_version} -m pip install; \
     fi
 
@@ -42,7 +43,8 @@ RUN if [ -n "$pip_install_flags" ]; then \
         sed -i 's/include-system-site-packages = false/include-system-site-packages = true/' $VIRTUAL_ENV/pyvenv.cfg; \
     fi
 
-RUN python${python_version} -m pip install ${pip_install_flags} /tmp/$cuda_quantum_wheel
+RUN python${python_version} -m pip cache purge && \
+    python${python_version} -m pip install ${pip_install_flags} /tmp/$cuda_quantum_wheel
 RUN if [ -n "$optional_dependencies" ]; then \
         cudaq_package=$(echo $cuda_quantum_wheel | cut -d '-' -f1 | tr _ -) && \
         python${python_version} -m pip install ${pip_install_flags} $cudaq_package[$optional_dependencies]; \

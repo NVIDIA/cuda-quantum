@@ -35,11 +35,11 @@ convertToOrderedMap(const std::unordered_map<Key, Value> &unorderedMap) {
 /// @param shotsCount Number of shots.
 /// @return evolve_result Result of the evolution.
 evolve_result evolveSingle(
-    const operator_sum<cudaq::matrix_operator> &hamiltonian,
+    const sum_op<cudaq::matrix_handler> &hamiltonian,
     const cudaq::dimension_map &dimensionsMap, const schedule &schedule,
     const state &initialState, base_integrator &integrator,
-    const std::vector<operator_sum<cudaq::matrix_operator>> &collapseOperators,
-    const std::vector<operator_sum<cudaq::matrix_operator>> &observables,
+    const std::vector<sum_op<cudaq::matrix_handler>> &collapseOperators,
+    const std::vector<sum_op<cudaq::matrix_handler>> &observables,
     bool storeIntermediateResults, std::optional<int> shotsCount) {
   cudensitymatHandle_t handle =
       dynamics::Context::getCurrentContext()->getHandle();
@@ -59,9 +59,8 @@ evolve_result evolveSingle(
   cudmState->initialize_cudm(handle, dims);
 
   state initial_State = [&]() {
-    if (!collapseOperators.empty() && !cudmState->is_density_matrix()) {
+    if (!collapseOperators.empty() && !cudmState->is_density_matrix())
       return state(new CuDensityMatState(cudmState->to_density_matrix()));
-    }
     return initialState;
   }();
 

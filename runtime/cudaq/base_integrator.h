@@ -18,21 +18,19 @@ namespace cudaq {
 // Struct captures the system dynamics needed by the integrator
 struct SystemDynamics {
   std::vector<int64_t> modeExtents;
-  operator_sum<cudaq::matrix_operator> hamiltonian;
-  std::vector<operator_sum<cudaq::matrix_operator>> collapseOps;
+  sum_op<cudaq::matrix_handler> hamiltonian;
+  std::vector<sum_op<cudaq::matrix_handler>> collapseOps;
   std::unordered_map<std::string, std::complex<double>> parameters;
 
   SystemDynamics(
       const std::vector<int64_t> extents,
-      const operator_sum<cudaq::matrix_operator> &ham,
-      const std::vector<operator_sum<cudaq::matrix_operator>> &cOps = {},
+      const sum_op<cudaq::matrix_handler> &ham,
+      const std::vector<sum_op<cudaq::matrix_handler>> &cOps = {},
       const std::unordered_map<std::string, std::complex<double>> &params = {})
       : modeExtents(extents), hamiltonian(ham), collapseOps(cOps),
         parameters(params) {}
 
-  SystemDynamics()
-      : hamiltonian(operator_sum<cudaq::matrix_operator>(
-            cudaq::matrix_operator::empty())){};
+  SystemDynamics() : hamiltonian(cudaq::matrix_op::empty()){};
 };
 
 class base_time_stepper;
