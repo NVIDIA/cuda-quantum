@@ -266,7 +266,7 @@ public:
     return measureQudit(target, registerName);
   }
 
-  cudaq::SpinMeasureResult measure(cudaq::spin_op &op) override {
+  cudaq::SpinMeasureResult measure(const cudaq::spin_op &op) override {
     synchronize();
     measureSpinOp(op);
     return std::make_pair(executionContext->expectationValue.value(),

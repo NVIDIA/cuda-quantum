@@ -13,14 +13,13 @@
 #include <vector>
 
 #include "cudaq/operators.h"
-#include "cudaq/utils/tensor.h"
+#include "cudaq/utils/matrix.h"
 
 namespace cudaq {
 
-// FIXME: rename?
-class boson_operator : public operator_handler {
+class boson_handler : public operator_handler {
   template <typename T>
-  friend class product_operator;
+  friend class product_op;
 
 private:
   // Each boson operator is represented as number operators along with an
@@ -31,16 +30,16 @@ private:
   // representation allows us to perform a perfect in-place multiplication.
   int additional_terms;
   std::vector<int> number_offsets;
-  int target;
+  int degree;
 
   // 0 = I, Ad = 1, A = 2, AdA = 3
-  boson_operator(int target, int op_code);
+  boson_handler(int target, int op_code);
 
   std::string op_code_to_string() const;
   virtual std::string
   op_code_to_string(std::unordered_map<int, int> &dimensions) const override;
 
-  void inplace_mult(const boson_operator &other);
+  void inplace_mult(const boson_handler &other);
 
 public:
   // read-only properties
@@ -51,9 +50,9 @@ public:
 
   // constructors and destructors
 
-  boson_operator(int target);
+  boson_handler(int target);
 
-  ~boson_operator() = default;
+  ~boson_handler() = default;
 
   // evaluations
 
@@ -61,7 +60,7 @@ public:
   /// of the number operator.
   /// @arg  `dimensions` : A map specifying the dimension, that is the number of
   /// eigenstates, for each degree of freedom.
-  virtual matrix_2
+  virtual complex_matrix
   to_matrix(std::unordered_map<int, int> &dimensions,
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {}) const override;
@@ -72,20 +71,16 @@ public:
 
   /// @returns True if, and only if, the two operators have the same effect on
   /// any state.
-  bool operator==(const boson_operator &other) const;
+  bool operator==(const boson_handler &other) const;
 
   // defined operators
 
-  static operator_sum<boson_operator> empty();
-  static product_operator<boson_operator> identity();
+  static product_op<boson_handler> create(int degree);
+  static product_op<boson_handler> annihilate(int degree);
+  static product_op<boson_handler> number(int degree);
 
-  static product_operator<boson_operator> identity(int degree);
-  static product_operator<boson_operator> create(int degree);
-  static product_operator<boson_operator> annihilate(int degree);
-  static product_operator<boson_operator> number(int degree);
-
-  static operator_sum<boson_operator> position(int degree);
-  static operator_sum<boson_operator> momentum(int degree);
+  static sum_op<boson_handler> position(int degree);
+  static sum_op<boson_handler> momentum(int degree);
 };
 
 } // namespace cudaq

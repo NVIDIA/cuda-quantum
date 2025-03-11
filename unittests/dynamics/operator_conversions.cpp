@@ -16,28 +16,28 @@ TEST(OperatorExpressions, checkElementaryOpsConversions) {
       {"squeezing", 0.5}, {"displacement", 0.25}};
   std::unordered_map<int, int> dimensions = {{0, 2}, {1, 2}};
 
-  auto matrix_elementary = cudaq::matrix_operator::parity(1);
+  auto matrix_elementary = cudaq::matrix_op::parity(1);
   auto matrix_elementary_expected = utils::parity_matrix(2);
-  auto spin_elementary = cudaq::spin_operator::y(1);
+  auto spin_elementary = cudaq::sum_op<cudaq::spin_handler>::y(1);
   auto spin_elementary_expected = utils::PauliY_matrix();
-  auto boson_elementary = cudaq::boson_operator::annihilate(1);
+  auto boson_elementary = cudaq::boson_op::annihilate(1);
   auto boson_elementary_expected = utils::annihilate_matrix(2);
 
-  auto checkSumEquals =
-      [dimensions, parameters](cudaq::operator_sum<cudaq::matrix_operator> sum,
-                               cudaq::matrix_2 expected,
-                               int expected_num_terms = 2) {
-        auto got = sum.to_matrix(dimensions, parameters);
-        ASSERT_TRUE(sum.num_terms() == expected_num_terms);
-        utils::checkEqual(got, expected);
-      };
+  auto checkSumEquals = [dimensions,
+                         parameters](cudaq::sum_op<cudaq::matrix_handler> sum,
+                                     cudaq::complex_matrix expected,
+                                     int expected_num_terms = 2) {
+    auto got = sum.to_matrix(dimensions, parameters);
+    ASSERT_TRUE(sum.num_terms() == expected_num_terms);
+    utils::checkEqual(got, expected);
+  };
 
   auto checkProductEquals =
-      [dimensions,
-       parameters](cudaq::product_operator<cudaq::matrix_operator> prod,
-                   cudaq::matrix_2 expected, int expected_num_terms = 2) {
+      [dimensions, parameters](cudaq::product_op<cudaq::matrix_handler> prod,
+                               cudaq::complex_matrix expected,
+                               int expected_num_terms = 2) {
         auto got = prod.to_matrix(dimensions, parameters);
-        ASSERT_TRUE(prod.num_terms() == expected_num_terms);
+        ASSERT_TRUE(prod.num_ops() == expected_num_terms);
         utils::checkEqual(got, expected);
       };
 
@@ -110,28 +110,28 @@ TEST(OperatorExpressions, checkElementaryOpsConversions) {
 
   // `elementary *= elementary`
   {
-    auto matrix_product = cudaq::product_operator(matrix_elementary);
+    auto matrix_product = cudaq::product_op(matrix_elementary);
     matrix_product *= matrix_elementary;
     checkProductEquals(matrix_product,
                        matrix_elementary_expected * matrix_elementary_expected);
 
-    auto spin_product = cudaq::product_operator(spin_elementary);
+    auto spin_product = cudaq::product_op(spin_elementary);
     spin_product *= spin_elementary;
     checkProductEquals(spin_product,
                        spin_elementary_expected * spin_elementary_expected, 1);
 
-    auto boson_product = cudaq::product_operator(boson_elementary);
+    auto boson_product = cudaq::product_op(boson_elementary);
     boson_product *= boson_elementary;
     checkProductEquals(boson_product,
                        boson_elementary_expected * boson_elementary_expected,
                        1);
 
-    matrix_product = cudaq::product_operator(matrix_elementary);
+    matrix_product = cudaq::product_op(matrix_elementary);
     matrix_product *= spin_elementary;
     checkProductEquals(matrix_product,
                        matrix_elementary_expected * spin_elementary_expected);
 
-    matrix_product = cudaq::product_operator(matrix_elementary);
+    matrix_product = cudaq::product_op(matrix_elementary);
     matrix_product *= boson_elementary;
     checkProductEquals(matrix_product,
                        matrix_elementary_expected * boson_elementary_expected);
@@ -144,32 +144,33 @@ TEST(OperatorExpressions, checkProductOperatorConversions) {
       {"squeezing", 0.5}, {"displacement", 0.25}};
   std::unordered_map<int, int> dimensions = {{0, 2}, {1, 2}};
   auto matrix_product =
-      cudaq::matrix_operator::squeeze(0) * cudaq::matrix_operator::displace(1);
+      cudaq::matrix_op::squeeze(0) * cudaq::matrix_op::displace(1);
   auto matrix_product_expected = cudaq::kronecker(
       utils::displace_matrix(2, 0.25), utils::squeeze_matrix(2, 0.5));
-  auto spin_product = cudaq::spin_operator::y(1) * cudaq::spin_operator::x(0);
+  auto spin_product = cudaq::sum_op<cudaq::spin_handler>::y(1) *
+                      cudaq::sum_op<cudaq::spin_handler>::x(0);
   auto spin_product_expected =
       cudaq::kronecker(utils::PauliY_matrix(), utils::PauliX_matrix());
   auto boson_product =
-      cudaq::boson_operator::annihilate(1) * cudaq::boson_operator::number(0);
+      cudaq::boson_op::annihilate(1) * cudaq::boson_op::number(0);
   auto boson_product_expected =
       cudaq::kronecker(utils::annihilate_matrix(2), utils::number_matrix(2));
 
-  auto checkSumEquals =
-      [dimensions, parameters](cudaq::operator_sum<cudaq::matrix_operator> sum,
-                               cudaq::matrix_2 expected,
-                               int expected_num_terms = 2) {
-        auto got = sum.to_matrix(dimensions, parameters);
-        ASSERT_TRUE(sum.num_terms() == expected_num_terms);
-        utils::checkEqual(got, expected);
-      };
+  auto checkSumEquals = [dimensions,
+                         parameters](cudaq::sum_op<cudaq::matrix_handler> sum,
+                                     cudaq::complex_matrix expected,
+                                     int expected_num_terms = 2) {
+    auto got = sum.to_matrix(dimensions, parameters);
+    ASSERT_TRUE(sum.num_terms() == expected_num_terms);
+    utils::checkEqual(got, expected);
+  };
 
   auto checkProductEquals =
-      [dimensions,
-       parameters](cudaq::product_operator<cudaq::matrix_operator> prod,
-                   cudaq::matrix_2 expected, int expected_num_terms = 4) {
+      [dimensions, parameters](cudaq::product_op<cudaq::matrix_handler> prod,
+                               cudaq::complex_matrix expected,
+                               int expected_num_terms = 4) {
         auto got = prod.to_matrix(dimensions, parameters);
-        ASSERT_TRUE(prod.num_terms() == expected_num_terms);
+        ASSERT_TRUE(prod.num_ops() == expected_num_terms);
         utils::checkEqual(got, expected);
       };
 
@@ -275,39 +276,40 @@ TEST(OperatorExpressions, checkOperatorSumConversions) {
   std::unordered_map<int, int> dimensions = {{0, 2}, {1, 2}};
 
   auto matrix_product =
-      cudaq::matrix_operator::squeeze(0) * cudaq::matrix_operator::displace(1);
+      cudaq::matrix_op::squeeze(0) * cudaq::matrix_op::displace(1);
   auto matrix_product_expected = cudaq::kronecker(
       utils::displace_matrix(2, 0.25), utils::squeeze_matrix(2, 0.5));
-  auto spin_product = cudaq::spin_operator::y(1) * cudaq::spin_operator::x(0);
+  auto spin_product = cudaq::sum_op<cudaq::spin_handler>::y(1) *
+                      cudaq::sum_op<cudaq::spin_handler>::x(0);
   auto spin_product_expected =
       cudaq::kronecker(utils::PauliY_matrix(), utils::PauliX_matrix());
   auto boson_product =
-      cudaq::boson_operator::annihilate(1) * cudaq::boson_operator::number(0);
+      cudaq::boson_op::annihilate(1) * cudaq::boson_op::number(0);
   auto boson_product_expected =
       cudaq::kronecker(utils::annihilate_matrix(2), utils::number_matrix(2));
 
   auto matrix_sum =
-      cudaq::matrix_operator::squeeze(0) + cudaq::matrix_operator::displace(1);
+      cudaq::matrix_op::squeeze(0) + cudaq::matrix_op::displace(1);
   auto matrix_sum_expected =
       cudaq::kronecker(utils::displace_matrix(2, 0.25), utils::id_matrix(2)) +
       cudaq::kronecker(utils::id_matrix(2), utils::squeeze_matrix(2, 0.5));
-  auto spin_sum = cudaq::spin_operator::y(1) + cudaq::spin_operator::x(0);
+  auto spin_sum = cudaq::sum_op<cudaq::spin_handler>::y(1) +
+                  cudaq::sum_op<cudaq::spin_handler>::x(0);
   auto spin_sum_expected =
       cudaq::kronecker(utils::PauliY_matrix(), utils::id_matrix(2)) +
       cudaq::kronecker(utils::id_matrix(2), utils::PauliX_matrix());
-  auto boson_sum =
-      cudaq::boson_operator::annihilate(1) + cudaq::boson_operator::number(0);
+  auto boson_sum = cudaq::boson_op::annihilate(1) + cudaq::boson_op::number(0);
   auto boson_sum_expected =
       cudaq::kronecker(utils::annihilate_matrix(2), utils::id_matrix(2)) +
       cudaq::kronecker(utils::id_matrix(2), utils::number_matrix(2));
 
-  auto checkSumEquals =
-      [dimensions, parameters](cudaq::operator_sum<cudaq::matrix_operator> sum,
-                               cudaq::matrix_2 expected, int num_terms = 4) {
-        auto got = sum.to_matrix(dimensions, parameters);
-        ASSERT_TRUE(sum.num_terms() == num_terms);
-        utils::checkEqual(got, expected);
-      };
+  auto checkSumEquals = [dimensions, parameters](
+                            cudaq::sum_op<cudaq::matrix_handler> sum,
+                            cudaq::complex_matrix expected, int num_terms = 4) {
+    auto got = sum.to_matrix(dimensions, parameters);
+    ASSERT_TRUE(sum.num_terms() == num_terms);
+    utils::checkEqual(got, expected);
+  };
 
   // `sum + product`
   {

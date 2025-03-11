@@ -637,10 +637,10 @@ TEST(OperatorExpressions, checkScalarOpsFromFunctions) {
   std::complex<double> squeeze_ampl;
   cudaq::parameter_map params = {{"squeezing", squeeze_ampl}, {"value", value}};
   cudaq::dimension_map dims = {{1, 3}};
-  auto squeeze = cudaq::matrix_operator::squeeze(1);
+  auto squeeze = cudaq::matrix_op::squeeze(1);
   auto squeeze_mat = utils::squeeze_matrix(3, squeeze_ampl);
   auto id_mat = utils::id_matrix(3);
-  auto sum = squeeze + cudaq::matrix_operator::number(1);
+  auto sum = squeeze + cudaq::matrix_op::number(1);
   auto sum_mat = squeeze_mat + utils::number_matrix(3);
 
   // matrix operator + lambda

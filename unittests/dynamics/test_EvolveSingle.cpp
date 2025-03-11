@@ -17,17 +17,17 @@
 
 TEST(EvolveTester, checkSimple) {
   const cudaq::dimension_map dims = {{0, 2}};
-  cudaq::product_operator<cudaq::matrix_operator> ham1 =
-      (2.0 * M_PI * 0.1 * cudaq::spin_operator::x(0));
-  cudaq::operator_sum<cudaq::matrix_operator> ham(ham1);
+  cudaq::product_op<cudaq::matrix_handler> ham1 =
+      (2.0 * M_PI * 0.1 * cudaq::sum_op<cudaq::spin_handler>::x(0));
+  cudaq::sum_op<cudaq::matrix_handler> ham(ham1);
 
   constexpr int numSteps = 10;
   std::vector<double> steps = cudaq::linspace(0.0, 1.0, numSteps);
   cudaq::schedule schedule(steps, {"t"});
 
-  cudaq::product_operator<cudaq::matrix_operator> pauliZ_t =
-      cudaq::spin_operator::z(0);
-  cudaq::operator_sum<cudaq::matrix_operator> pauliZ(pauliZ_t);
+  cudaq::product_op<cudaq::matrix_handler> pauliZ_t =
+      cudaq::sum_op<cudaq::spin_handler>::z(0);
+  cudaq::sum_op<cudaq::matrix_handler> pauliZ(pauliZ_t);
   auto initialState =
       cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
 
@@ -51,17 +51,17 @@ TEST(EvolveTester, checkSimple) {
 
 TEST(EvolveTester, checkSimpleRK4) {
   const cudaq::dimension_map dims = {{0, 2}};
-  cudaq::product_operator<cudaq::matrix_operator> ham1 =
-      (2.0 * M_PI * 0.1 * cudaq::spin_operator::x(0));
-  cudaq::operator_sum<cudaq::matrix_operator> ham(ham1);
+  cudaq::product_op<cudaq::matrix_handler> ham1 =
+      (2.0 * M_PI * 0.1 * cudaq::sum_op<cudaq::spin_handler>::x(0));
+  cudaq::sum_op<cudaq::matrix_handler> ham(ham1);
 
   constexpr int numSteps = 10;
   std::vector<double> steps = cudaq::linspace(0.0, 1.0, numSteps);
   cudaq::schedule schedule(steps, {"t"});
 
-  cudaq::product_operator<cudaq::matrix_operator> pauliZ_t =
-      cudaq::spin_operator::z(0);
-  cudaq::operator_sum<cudaq::matrix_operator> pauliZ(pauliZ_t);
+  cudaq::product_op<cudaq::matrix_handler> pauliZ_t =
+      cudaq::sum_op<cudaq::spin_handler>::z(0);
+  cudaq::sum_op<cudaq::matrix_handler> pauliZ(pauliZ_t);
   auto initialState =
       cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
 
@@ -85,17 +85,17 @@ TEST(EvolveTester, checkSimpleRK4) {
 
 TEST(EvolveTester, checkDensityMatrixSimple) {
   const cudaq::dimension_map dims = {{0, 2}};
-  cudaq::product_operator<cudaq::matrix_operator> ham1 =
-      (2.0 * M_PI * 0.1 * cudaq::spin_operator::x(0));
-  cudaq::operator_sum<cudaq::matrix_operator> ham(ham1);
+  cudaq::product_op<cudaq::matrix_handler> ham1 =
+      (2.0 * M_PI * 0.1 * cudaq::sum_op<cudaq::spin_handler>::x(0));
+  cudaq::sum_op<cudaq::matrix_handler> ham(ham1);
 
   constexpr int numSteps = 10;
   std::vector<double> steps = cudaq::linspace(0.0, 1.0, numSteps);
   cudaq::schedule schedule(steps, {"t"});
 
-  cudaq::product_operator<cudaq::matrix_operator> pauliZ_t =
-      cudaq::spin_operator::z(0);
-  cudaq::operator_sum<cudaq::matrix_operator> pauliZ(pauliZ_t);
+  cudaq::product_op<cudaq::matrix_handler> pauliZ_t =
+      cudaq::sum_op<cudaq::spin_handler>::z(0);
+  cudaq::sum_op<cudaq::matrix_handler> pauliZ(pauliZ_t);
   auto initialState = cudaq::state::from_data(
       std::vector<std::complex<double>>{1.0, 0.0, 0.0, 0.0});
 
@@ -120,19 +120,19 @@ TEST(EvolveTester, checkDensityMatrixSimple) {
 TEST(EvolveTester, checkCompositeSystem) {
   constexpr int cavity_levels = 10;
   const cudaq::dimension_map dims = {{0, 2}, {1, cavity_levels}};
-  auto a = cudaq::boson_operator::annihilate(1);
-  auto a_dag = cudaq::boson_operator::create(1);
+  auto a = cudaq::boson_op::annihilate(1);
+  auto a_dag = cudaq::boson_op::create(1);
 
-  auto sm = cudaq::boson_operator::annihilate(0);
-  auto sm_dag = cudaq::boson_operator::create(0);
+  auto sm = cudaq::boson_op::annihilate(0);
+  auto sm_dag = cudaq::boson_op::create(0);
 
-  cudaq::product_operator<cudaq::matrix_operator> atom_occ_op_t =
-      cudaq::matrix_operator::number(0);
-  cudaq::operator_sum<cudaq::matrix_operator> atom_occ_op(atom_occ_op_t);
+  cudaq::product_op<cudaq::matrix_handler> atom_occ_op_t =
+      cudaq::matrix_handler::number(0);
+  cudaq::sum_op<cudaq::matrix_handler> atom_occ_op(atom_occ_op_t);
 
-  cudaq::product_operator<cudaq::matrix_operator> cavity_occ_op_t =
-      cudaq::matrix_operator::number(1);
-  cudaq::operator_sum<cudaq::matrix_operator> cavity_occ_op(cavity_occ_op_t);
+  cudaq::product_op<cudaq::matrix_handler> cavity_occ_op_t =
+      cudaq::matrix_handler::number(1);
+  cudaq::sum_op<cudaq::matrix_handler> cavity_occ_op(cavity_occ_op_t);
 
   auto hamiltonian = 2 * M_PI * atom_occ_op + 2 * M_PI * cavity_occ_op +
                      2 * M_PI * 0.25 * (sm * a_dag + sm_dag * a);
@@ -171,19 +171,19 @@ TEST(EvolveTester, checkCompositeSystem) {
 TEST(EvolveTester, checkCompositeSystemWithCollapse) {
   constexpr int cavity_levels = 10;
   const cudaq::dimension_map dims = {{0, 2}, {1, cavity_levels}};
-  auto a = cudaq::boson_operator::annihilate(1);
-  auto a_dag = cudaq::boson_operator::create(1);
+  auto a = cudaq::boson_op::annihilate(1);
+  auto a_dag = cudaq::boson_op::create(1);
 
-  auto sm = cudaq::boson_operator::annihilate(0);
-  auto sm_dag = cudaq::boson_operator::create(0);
+  auto sm = cudaq::boson_op::annihilate(0);
+  auto sm_dag = cudaq::boson_op::create(0);
 
-  cudaq::product_operator<cudaq::matrix_operator> atom_occ_op_t =
-      cudaq::matrix_operator::number(0);
-  cudaq::operator_sum<cudaq::matrix_operator> atom_occ_op(atom_occ_op_t);
+  cudaq::product_op<cudaq::matrix_handler> atom_occ_op_t =
+      cudaq::matrix_handler::number(0);
+  cudaq::sum_op<cudaq::matrix_handler> atom_occ_op(atom_occ_op_t);
 
-  cudaq::product_operator<cudaq::matrix_operator> cavity_occ_op_t =
-      cudaq::matrix_operator::number(1);
-  cudaq::operator_sum<cudaq::matrix_operator> cavity_occ_op(cavity_occ_op_t);
+  cudaq::product_op<cudaq::matrix_handler> cavity_occ_op_t =
+      cudaq::matrix_handler::number(1);
+  cudaq::sum_op<cudaq::matrix_handler> cavity_occ_op(cavity_occ_op_t);
 
   auto hamiltonian = 2 * M_PI * atom_occ_op + 2 * M_PI * cavity_occ_op +
                      2 * M_PI * 0.25 * (sm * a_dag + sm_dag * a);
@@ -205,9 +205,9 @@ TEST(EvolveTester, checkCompositeSystemWithCollapse) {
       cudaq::state::from_data(std::make_pair(rho0.data(), rho0.size()));
   cudaq::integrators::runge_kutta integrator(4, 0.001);
   constexpr double decayRate = 0.1;
-  cudaq::product_operator<cudaq::matrix_operator> collapsedOp_t =
+  cudaq::product_op<cudaq::matrix_handler> collapsedOp_t =
       std::sqrt(decayRate) * a;
-  cudaq::operator_sum<cudaq::matrix_operator> collapsedOp(collapsedOp_t);
+  cudaq::sum_op<cudaq::matrix_handler> collapsedOp(collapsedOp_t);
   cudaq::evolve_result result = cudaq::__internal__::evolveSingle(
       hamiltonian, dims, schedule, initialState, integrator, {collapsedOp},
       {cavity_occ_op, atom_occ_op}, true);
@@ -240,16 +240,15 @@ TEST(EvolveTester, checkScalarTd) {
       throw std::runtime_error("Cannot find value of expected parameter");
     return 1.0;
   };
-  cudaq::product_operator<cudaq::matrix_operator> ham1 =
-      cudaq::scalar_operator(function) * cudaq::boson_operator::number(0);
-  cudaq::operator_sum<cudaq::matrix_operator> ham(ham1);
-  cudaq::product_operator<cudaq::matrix_operator> obs1 =
-      cudaq::boson_operator::number(0);
-  cudaq::operator_sum<cudaq::matrix_operator> obs(obs1);
+  cudaq::product_op<cudaq::matrix_handler> ham1 =
+      cudaq::scalar_operator(function) * cudaq::boson_op::number(0);
+  cudaq::sum_op<cudaq::matrix_handler> ham(ham1);
+  cudaq::product_op<cudaq::matrix_handler> obs1 = cudaq::boson_op::number(0);
+  cudaq::sum_op<cudaq::matrix_handler> obs(obs1);
   const double decayRate = 0.1;
-  cudaq::product_operator<cudaq::matrix_operator> collapseOp1 =
-      std::sqrt(decayRate) * cudaq::boson_operator::annihilate(0);
-  cudaq::operator_sum<cudaq::matrix_operator> collapseOp(collapseOp1);
+  cudaq::product_op<cudaq::matrix_handler> collapseOp1 =
+      std::sqrt(decayRate) * cudaq::boson_op::annihilate(0);
+  cudaq::sum_op<cudaq::matrix_handler> collapseOp(collapseOp1);
   Eigen::VectorXcd initial_state_vec = Eigen::VectorXcd::Zero(10);
   initial_state_vec[9] = 1.0;
   Eigen::MatrixXcd rho0 = initial_state_vec * initial_state_vec.transpose();

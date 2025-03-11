@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/utils/tensor.h"
+#include "cudaq/utils/matrix.h"
 #include <unordered_map>
 #include <vector>
 
@@ -33,7 +33,7 @@ compute_permutation(const std::vector<int> &op_degrees,
 // acts, and permuted_states is the desired order of an array on which the
 // permuted matrix should act, then the permutation is defined such that
 // [states[i] for i in permutation] produces permuted_states.
-void permute_matrix(cudaq::matrix_2 &matrix,
+void permute_matrix(cudaq::complex_matrix &matrix,
                     const std::vector<int> &permutation);
 
 } // namespace detail
