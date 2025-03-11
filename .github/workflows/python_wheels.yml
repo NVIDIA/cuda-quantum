@@ -197,13 +197,6 @@ jobs:
       matrix:
         os_image: ${{ fromJSON(needs.create_test_config.outputs.json).os_images }}
         pip_install_flags: ['', '--user']
-        exclude: 
-          - os_image: ubuntu:22.04
-            pip_install_flags: '--user'
-          - os_image: ubuntu:24.04
-            pip_install_flags: '--user'
-          - os_image: fedora:39
-            pip_install_flags: ''
       fail-fast: false
 
     steps:
@@ -275,7 +268,7 @@ jobs:
               echo "::error file=python_wheel.yml::Python tests failed with status $pytest_status."
               exit 1
             fi
-            python${{ inputs.python_version }} -m pip install --user fastapi uvicorn llvmlite openfermionpyscf==0.5
+            python${{ inputs.python_version }} -m pip install --user fastapi uvicorn llvmlite
             for backendTest in /tmp/tests/backends/*.py; do 
               python${{ inputs.python_version }} -m pytest $backendTest
               pytest_status=$?

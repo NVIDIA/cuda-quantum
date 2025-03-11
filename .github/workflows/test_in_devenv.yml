@@ -224,6 +224,9 @@ jobs:
             -t dev_env:local -f docker/build/cudaq.dev.Dockerfile . \
             --build-arg base_image=$base_image 
 
+      - name: Setup proxy cache
+        uses: nv-gha-runners/setup-proxy-cache@main
+
       - name: Build and test CUDA Quantum (Python)
         uses: ./.github/actions/run-in-docker
         with:
@@ -231,13 +234,12 @@ jobs:
           shell: bash
           run: |
             cd $CUDAQ_REPO_ROOT
-            pip cache purge
             pip install iqm_client==16.1 --user -vvv
             
             # FIXME: remove the line below before merging to the public repo
             export PIP_EXTRA_INDEX_URL=http://localhost:8080
             
-            pip install . -vvv
+            pip install . --user -vvv
             pyinstall_status=$?
             if [ ! $pyinstall_status -eq 0 ]; then
               echo "::error file=test_in_devenv.yml:: Pip install of CUDA Quantum failed with status $pyinstall_status."

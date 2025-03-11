@@ -15,7 +15,7 @@ ARG pip_install_flags=""
 ARG preinstalled_modules="numpy pytest nvidia-cublas-cu12"
 
 ARG DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends wget \
         python${python_version} python${python_version}-venv
 
 # We need to make sure the virtual Python environment remains
@@ -24,7 +24,6 @@ ENV VIRTUAL_ENV=/opt/venv
 RUN python${python_version} -m venv "$VIRTUAL_ENV"
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 RUN if [ -n "$preinstalled_modules" ]; then \
-        python${python_version} -m pip cache purge && \
         echo $preinstalled_modules | xargs python${python_version} -m pip install; \
     fi
 
@@ -46,13 +45,16 @@ RUN if [ -n "$pip_install_flags" ]; then \
 # FIXME: remove the following line before merging to public repo
 ENV PIP_EXTRA_INDEX_URL=http://localhost:8080
 
-RUN python${python_version} -m pip cache purge && \
-    python${python_version} -m pip install ${pip_install_flags} /tmp/$cuda_quantum_wheel
+# Working around issue https://github.com/pypa/pip/issues/11153.
+RUN wget https://github.com/rapidsai/gha-tools/releases/latest/download/tools.tar.gz -O - | tar -xz -C /usr/local/bin && \
+    RAPIDS_PIP_EXE="python${python_version} -m pip" \
+    /usr/local/bin/rapids-pip-retry install ${pip_install_flags} /tmp/$cuda_quantum_wheel
 
 # FIXME: remove the following line before merging to public repo
 ENV PIP_EXTRA_INDEX_URL=
 
 RUN if [ -n "$optional_dependencies" ]; then \
         cudaq_package=$(echo $cuda_quantum_wheel | cut -d '-' -f1 | tr _ -) && \
-        python${python_version} -m pip install ${pip_install_flags} $cudaq_package[$optional_dependencies]; \
+        RAPIDS_PIP_EXE="python${python_version} -m pip" \
+        /usr/local/bin/rapids-pip-retry install ${pip_install_flags} $cudaq_package[$optional_dependencies]; \
     fi
