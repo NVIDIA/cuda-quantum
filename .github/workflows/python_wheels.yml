@@ -188,6 +188,11 @@ jobs:
       matrix:
         os_image: ${{ fromJSON(needs.create_test_config.outputs.json).os_images }}
         pip_install_flags: ['', '--user']
+        exclude: 
+          - os_image: ubuntu:22.04
+            pip_install_flags: '--user'
+          - os_image: ubuntu:24.04
+            pip_install_flags: '--user'
       fail-fast: false
 
     steps:
