@@ -13,6 +13,7 @@
 #include <vector>
 
 namespace cudaq::dynamics {
+// Adapted from cuquantum team
 // GPU memory management
 template <std::floating_point T>
 void *createArrayGpu(const std::vector<std::complex<T>> &cpuArray) {
@@ -26,6 +27,8 @@ void *createArrayGpu(const std::vector<std::complex<T>> &cpuArray) {
   }
   return gpuArray;
 }
+
+// Adapted from cuquantum team
 inline void destroyArrayGpu(void *gpuArray) {
   if (gpuArray)
     HANDLE_CUDA_ERROR(cudaFree(gpuArray));

@@ -96,7 +96,7 @@ The default set of quantum intrinsic operations for the cudaq::qubit type is as 
  
       bool MEASURE_OP(qubit &q) noexcept;
       std::vector<bool> MEASURE_OP(qvector &q) noexcept;
-      double measure(cudaq::spin_op & term) noexcept { ... }
+      double measure(const cudaq::spin_op & term) noexcept { ... }
   }
 
 **[1]** For the default implementation of the :code:`cudaq::qubit` intrinsic operations, we let 

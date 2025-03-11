@@ -15,7 +15,7 @@ TEST(DynamicsAsyncTester, checkSimple) {
   printf("Num QPUs %lu\n", platform.num_qpus());
   auto jobHandle1 = []() {
     const cudaq::dimension_map dims = {{0, 2}};
-    auto ham = 2.0 * M_PI * 0.1 * cudaq::spin_operator::x(0);
+    auto ham = 2.0 * M_PI * 0.1 * cudaq::sum_op<cudaq::spin_handler>::x(0);
     constexpr int numSteps = 10;
     std::vector<std::complex<double>> steps;
     for (double t : cudaq::linspace(0.0, 1.0, numSteps)) {
@@ -31,9 +31,9 @@ TEST(DynamicsAsyncTester, checkSimple) {
                                                /*max_step_size*/ 0.001);
     auto resultFuture1 = cudaq::evolve_async(
         ham, dims, schedule, initialState, integrator,
-        std::vector<cudaq::product_operator<cudaq::spin_operator>>{},
-        std::vector<cudaq::product_operator<cudaq::spin_operator>>{
-            cudaq::spin_operator::z(0)},
+        std::vector<cudaq::product_op<cudaq::spin_handler>>{},
+        std::vector<cudaq::product_op<cudaq::spin_handler>>{
+            cudaq::sum_op<cudaq::spin_handler>::z(0)},
         true, {}, 0);
     std::cout << "Launched evolve job on QPU 0\n";
     return resultFuture1;
@@ -50,7 +50,7 @@ TEST(DynamicsAsyncTester, checkSimple) {
         steps, {"t"}, [](const std::string &, const std::complex<double> &val) {
           return val;
         });
-    auto hamiltonian = cudaq::boson_operator::number(0);
+    auto hamiltonian = cudaq::boson_op::number(0);
     const cudaq::dimension_map dimensions{{0, N}};
     std::vector<std::complex<double>> psi0_(N, 0.0);
     psi0_.back() = 1.0;
@@ -60,11 +60,10 @@ TEST(DynamicsAsyncTester, checkSimple) {
                                                /*max_step_size*/ 0.01);
     auto resultFuture = cudaq::evolve_async(
         hamiltonian, dimensions, schedule, psi0, integrator,
-        std::vector<cudaq::product_operator<cudaq::boson_operator>>{
-            std::sqrt(decay_rate) * cudaq::boson_operator::annihilate(0)},
-        std::vector<cudaq::product_operator<cudaq::boson_operator>>{
-            hamiltonian},
-        true, {}, 1);
+        std::vector<cudaq::product_op<cudaq::boson_handler>>{
+            std::sqrt(decay_rate) * cudaq::boson_op::annihilate(0)},
+        std::vector<cudaq::product_op<cudaq::boson_handler>>{hamiltonian}, true,
+        {}, 1);
     std::cout << "Launched evolve job on QPU 1\n";
     return resultFuture;
   }();
@@ -74,8 +73,8 @@ TEST(DynamicsAsyncTester, checkSimple) {
     auto result = jobHandle1.get();
     std::cout << "Checking the results from QPU 0\n";
     constexpr int numSteps = 10;
-    EXPECT_TRUE(result.get_expectation_values().has_value());
-    EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
+    EXPECT_TRUE(result.expectation_values.has_value());
+    EXPECT_EQ(result.expectation_values.value().size(), numSteps);
     std::vector<double> theoryResults;
     for (const auto &t : cudaq::linspace(0.0, 1.0, numSteps)) {
       const double expected = std::cos(2 * 2.0 * M_PI * 0.1 * t);
@@ -83,7 +82,7 @@ TEST(DynamicsAsyncTester, checkSimple) {
     }
 
     int count = 0;
-    for (auto expVals : result.get_expectation_values().value()) {
+    for (auto expVals : result.expectation_values.value()) {
       EXPECT_EQ(expVals.size(), 1);
       EXPECT_NEAR((double)expVals[0], theoryResults[count++], 1e-3);
     }
@@ -95,8 +94,8 @@ TEST(DynamicsAsyncTester, checkSimple) {
     constexpr double decay_rate = 0.1;
     constexpr int numSteps = 101;
     const auto steps = cudaq::linspace(0, 10, numSteps);
-    EXPECT_TRUE(result.get_expectation_values().has_value());
-    EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
+    EXPECT_TRUE(result.expectation_values.has_value());
+    EXPECT_EQ(result.expectation_values.value().size(), numSteps);
     std::vector<double> theoryResults;
     for (const auto &t : steps) {
       const double expected = (N - 1) * std::exp(-decay_rate * t);
@@ -104,7 +103,7 @@ TEST(DynamicsAsyncTester, checkSimple) {
     }
 
     int count = 0;
-    for (auto expVals : result.get_expectation_values().value()) {
+    for (auto expVals : result.expectation_values.value()) {
       EXPECT_EQ(expVals.size(), 1);
       EXPECT_NEAR((double)expVals[0], theoryResults[count++], 1e-3);
     }
@@ -116,7 +115,7 @@ TEST(DynamicsAsyncTester, checkInitializerArgs) {
   printf("Num QPUs %lu\n", platform.num_qpus());
   auto jobHandle1 = []() {
     const cudaq::dimension_map dims = {{0, 2}};
-    auto ham = 2.0 * M_PI * 0.1 * cudaq::spin_operator::x(0);
+    auto ham = 2.0 * M_PI * 0.1 * cudaq::sum_op<cudaq::spin_handler>::x(0);
     constexpr int numSteps = 10;
     std::vector<std::complex<double>> steps;
     for (double t : cudaq::linspace(0.0, 1.0, numSteps)) {
@@ -130,9 +129,9 @@ TEST(DynamicsAsyncTester, checkInitializerArgs) {
     auto initialState =
         cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
     cudaq::integrators::runge_kutta integrator(1, 0.001);
-    auto resultFuture1 =
-        cudaq::evolve_async(ham, dims, schedule, initialState, integrator, {},
-                            {cudaq::spin_operator::z(0)}, true, {}, 0);
+    auto resultFuture1 = cudaq::evolve_async(
+        ham, dims, schedule, initialState, integrator, {},
+        {cudaq::sum_op<cudaq::spin_handler>::z(0)}, true, {}, 0);
     std::cout << "Launched evolve job on QPU 0\n";
     return resultFuture1;
   }();
@@ -148,7 +147,7 @@ TEST(DynamicsAsyncTester, checkInitializerArgs) {
         steps, {"t"}, [](const std::string &, const std::complex<double> &val) {
           return val;
         });
-    auto hamiltonian = cudaq::boson_operator::number(0);
+    auto hamiltonian = cudaq::boson_op::number(0);
     const cudaq::dimension_map dimensions{{0, N}};
     std::vector<std::complex<double>> psi0_(N, 0.0);
     psi0_.back() = 1.0;
@@ -157,8 +156,8 @@ TEST(DynamicsAsyncTester, checkInitializerArgs) {
     cudaq::integrators::runge_kutta integrator(4, 0.01);
     auto resultFuture = cudaq::evolve_async(
         hamiltonian, dimensions, schedule, psi0, integrator,
-        {std::sqrt(decay_rate) * cudaq::boson_operator::annihilate(0)},
-        {hamiltonian}, true, {}, 1);
+        {std::sqrt(decay_rate) * cudaq::boson_op::annihilate(0)}, {hamiltonian},
+        true, {}, 1);
     std::cout << "Launched evolve job on QPU 1\n";
     return resultFuture;
   }();
@@ -168,8 +167,8 @@ TEST(DynamicsAsyncTester, checkInitializerArgs) {
     auto result = jobHandle1.get();
     std::cout << "Checking the results from QPU 0\n";
     constexpr int numSteps = 10;
-    EXPECT_TRUE(result.get_expectation_values().has_value());
-    EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
+    EXPECT_TRUE(result.expectation_values.has_value());
+    EXPECT_EQ(result.expectation_values.value().size(), numSteps);
     std::vector<double> theoryResults;
     for (const auto &t : cudaq::linspace(0.0, 1.0, numSteps)) {
       const double expected = std::cos(2 * 2.0 * M_PI * 0.1 * t);
@@ -177,7 +176,7 @@ TEST(DynamicsAsyncTester, checkInitializerArgs) {
     }
 
     int count = 0;
-    for (auto expVals : result.get_expectation_values().value()) {
+    for (auto expVals : result.expectation_values.value()) {
       EXPECT_EQ(expVals.size(), 1);
       EXPECT_NEAR((double)expVals[0], theoryResults[count++], 1e-3);
     }
@@ -189,8 +188,8 @@ TEST(DynamicsAsyncTester, checkInitializerArgs) {
     constexpr double decay_rate = 0.1;
     constexpr int numSteps = 101;
     const auto steps = cudaq::linspace(0, 10, numSteps);
-    EXPECT_TRUE(result.get_expectation_values().has_value());
-    EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
+    EXPECT_TRUE(result.expectation_values.has_value());
+    EXPECT_EQ(result.expectation_values.value().size(), numSteps);
     std::vector<double> theoryResults;
     for (const auto &t : steps) {
       const double expected = (N - 1) * std::exp(-decay_rate * t);
@@ -198,7 +197,7 @@ TEST(DynamicsAsyncTester, checkInitializerArgs) {
     }
 
     int count = 0;
-    for (auto expVals : result.get_expectation_values().value()) {
+    for (auto expVals : result.expectation_values.value()) {
       EXPECT_EQ(expVals.size(), 1);
       EXPECT_NEAR((double)expVals[0], theoryResults[count++], 1e-3);
     }
