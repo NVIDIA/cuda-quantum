@@ -27,6 +27,7 @@ DCO
 DGX
 DOI
 Deuteron
+Deutsch
 Doxygen
 FPGAs
 Fock
@@ -54,6 +55,7 @@ Jupyter
 JupyterLab
 Kagome
 Kraus
+Krylov
 LLVM
 LSB
 Libraries
@@ -171,7 +173,9 @@ coprocessor
 coprocessors
 copyable
 coreset
+coresets
 cortex-cli
+counterdiabatic
 coupler
 couplers
 cuQuantum
