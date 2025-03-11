@@ -38,6 +38,8 @@
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
 
+#include <iostream>
+
 namespace py = pybind11;
 using namespace mlir;
 
@@ -101,7 +103,6 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
         SmallVector<StringRef>(names.begin(), names.end())));
     pm.addPass(cudaq::opt::createLambdaLiftingPass());
     pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader({.jitTime = true}));
-    // TODO stop here for remote devices?
     pm.addPass(cudaq::opt::createGenerateKernelExecution(
         {.startingArgIdx = startingArgIdx}));
     pm.addPass(createSymbolDCEPass());
@@ -346,15 +347,23 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
 
   if (launch) {
     auto uReturnOffset = static_cast<std::uint64_t>(returnOffset);
-    auto args = runtimeArgs.getArgs();
-    if (platform.get_remote_capabilities().isRemoteSimulator)
-      args.insert(args.begin(), reinterpret_cast<void *>(&mod));
-
-    if (platform.is_remote() || platform.is_emulated()) {
-      auto dynamicResult = cudaq::streamlinedLaunchKernel(name.c_str(), args);
+    if (platform.get_remote_capabilities().isRemoteSimulator) {
+      // Remote simulator - use altLaunchKernel to support returning values.
+      auto *wrapper = new cudaq::ArgWrapper{mod, names, rawArgs};
+      auto dynamicResult = cudaq::altLaunchKernel(
+          name.c_str(), thunk, reinterpret_cast<void *>(wrapper), size,
+          uReturnOffset);
+      if (dynamicResult.data_buffer || dynamicResult.size)
+        throw std::runtime_error("not implemented: support dynamic results");
+      delete wrapper;
+    } else if (platform.is_remote() || platform.is_emulated()) {
+      // Quantum devices or their emulation - we can use streamlinedLaunchKernel
+      // as quantum platform do not support direct returns.
+      auto dynamicResult = cudaq::streamlinedLaunchKernel(name.c_str(), runtimeArgs.getArgs());
       if (dynamicResult.data_buffer || dynamicResult.size)
         throw std::runtime_error("not implemented: support dynamic results");
     } else {
+      // Local simulator - use altLaunchKernel with the thunk function 
       auto dynamicResult = cudaq::altLaunchKernel(name.c_str(), thunk, rawArgs,
                                                   size, uReturnOffset);
       if (dynamicResult.data_buffer || dynamicResult.size)
