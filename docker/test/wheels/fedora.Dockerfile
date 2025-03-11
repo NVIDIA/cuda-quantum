@@ -18,7 +18,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 # Some Python versions need the latest version of libexpat on Fedora, and the
 # base fedora:38 image doesn't have the latest version installed.
 RUN dnf update -y --nobest expat \
-    && dnf install -y --nobest --setopt=install_weak_deps=False wget \
+    && dnf install -y --nobest --setopt=install_weak_deps=False \
         python$(echo $python_version | tr -d .) \
     && python${python_version} -m ensurepip --upgrade
 RUN if [ -n "$preinstalled_modules" ]; then \
@@ -35,11 +35,8 @@ COPY docs/sphinx/snippets/python /tmp/snippets/
 COPY python/tests /tmp/tests/
 COPY python/README*.md /tmp/
 
-RUN wget https://github.com/rapidsai/gha-tools/releases/latest/download/tools.tar.gz -O - | tar -xz -C /usr/local/bin && \
-    RAPIDS_PIP_EXE="python${python_version} -m pip" \
-    /usr/local/bin/rapids-pip-retry install ${pip_install_flags} /tmp/$cuda_quantum_wheel
+RUN python${python_version} -m pip install ${pip_install_flags} /tmp/$cuda_quantum_wheel
 RUN if [ -n "$optional_dependencies" ]; then \
         cudaq_package=$(echo $cuda_quantum_wheel | cut -d '-' -f1 | tr _ -) && \
-        RAPIDS_PIP_EXE="python${python_version} -m pip" \
-        /usr/local/bin/rapids-pip-retry install ${pip_install_flags} $cudaq_package[$optional_dependencies]; \
+        python${python_version} -m pip install ${pip_install_flags} $cudaq_package[$optional_dependencies]; \
     fi

@@ -215,9 +215,6 @@ jobs:
             -t dev_env:local -f docker/build/cudaq.dev.Dockerfile . \
             --build-arg base_image=$base_image 
 
-      - name: Setup proxy cache
-        uses: nv-gha-runners/setup-proxy-cache@main
-
       - name: Build and test CUDA Quantum (Python)
         uses: ./.github/actions/run-in-docker
         with:

@@ -14,7 +14,7 @@ ARG pip_install_flags="--user"
 ARG preinstalled_modules="numpy pytest nvidia-cublas-cu12"
 
 ARG DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y --no-install-recommends wget \
+RUN apt-get update && apt-get install -y --no-install-recommends \
         python${python_version} python${python_version}-venv
 
 # We need to make sure the virtual Python environment remains
@@ -38,11 +38,8 @@ COPY python/README*.md /tmp/
 
 RUN sed -ie 's/include-system-site-packages\s*=\s*false/include-system-site-packages = true/g' "$VIRTUAL_ENV/pyvenv.cfg"
 
-RUN wget https://github.com/rapidsai/gha-tools/releases/latest/download/tools.tar.gz -O - | tar -xz -C /usr/local/bin && \
-    RAPIDS_PIP_EXE="python${python_version} -m pip" \
-    /usr/local/bin/rapids-pip-retry install ${pip_install_flags} /tmp/$cuda_quantum_wheel
+RUN python${python_version} -m pip install ${pip_install_flags} /tmp/$cuda_quantum_wheel
 RUN if [ -n "$optional_dependencies" ]; then \
         cudaq_package=$(echo $cuda_quantum_wheel | cut -d '-' -f1 | tr _ -) && \
-        RAPIDS_PIP_EXE="python${python_version} -m pip" \
-        /usr/local/bin/rapids-pip-retry install ${pip_install_flags} $cudaq_package[$optional_dependencies]; \
+        python${python_version} -m pip install ${pip_install_flags} $cudaq_package[$optional_dependencies]; \
     fi
