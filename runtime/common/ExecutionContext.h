@@ -20,10 +20,22 @@
 namespace cudaq {
 class spin_op;
 
-/// @brief The ExecutionContext is an abstraction to indicate
-/// how a CUDA-Q kernel should be executed.
+/// The ExecutionContext is an abstraction to indicate how a CUDA-Q kernel
+/// should be executed.
 class ExecutionContext {
 public:
+  /// @brief The Constructor, takes the name of the context
+  /// @param n The name of the context
+  ExecutionContext(const std::string &n) : name(n) {}
+
+  /// @brief The constructor, takes the name and the number of shots.
+  /// @param n The name of the context
+  /// @param shots_ The number of shots
+  ExecutionContext(const std::string &n, std::size_t shots_)
+      : name(n), shots(shots_) {}
+
+  ~ExecutionContext() = default;
+
   /// @brief The name of the context ({basic, sampling, observe})
   const std::string name;
 
@@ -42,24 +54,23 @@ public:
   /// @brief An optimization result
   std::optional<cudaq::optimization_result> optResult = std::nullopt;
 
-  /// @brief The kernel being executed in this context
-  /// has conditional statements on measure results.
+  /// @brief The kernel being executed in this context has conditional
+  /// statements on measure results.
   bool hasConditionalsOnMeasureResults = false;
 
-  /// @brief Noise model to apply to the
-  /// current execution.
+  /// @brief Noise model to apply to the current execution.
   const noise_model *noiseModel = nullptr;
 
-  /// @brief Flag to indicate if backend can
-  /// handle spin_op observe task under this ExecutionContext.
+  /// @brief Flag to indicate if backend can handle spin_op observe task under
+  /// this ExecutionContext.
   bool canHandleObserve = false;
 
-  /// @brief Flag indicating that the current
-  /// execution should occur asynchronously
+  /// @brief Flag indicating that the current execution should occur
+  /// asynchronously
   bool asyncExec = false;
 
-  /// @brief When execution asynchronously, store
-  /// the expected results as a cudaq::future here.
+  /// @brief When execution asynchronously, store the expected results as a
+  /// cudaq::future here.
   details::future futureResult;
 
   /// @brief Construct a `async_sample_result` so as to pass across Python
@@ -72,32 +83,32 @@ public:
   /// @brief A map of basis-state amplitudes
   // The list of basis state is set before kernel launch and the map is filled
   // by the executor platform.
-  std::optional<std::map<std::vector<int>, std::complex<double>>> amplitudeMaps;
+  std::optional<std::map<std::vector<int>, std::complex<double>>>
+      amplitudeMaps = std::nullopt;
 
   /// @brief List of pairs of states to compute the overlap
   std::optional<std::pair<const SimulationState *, const SimulationState *>>
-      overlapComputeStates;
+      overlapComputeStates = std::nullopt;
 
   /// @brief Overlap results
-  std::optional<std::complex<double>> overlapResult;
+  std::optional<std::complex<double>> overlapResult = std::nullopt;
 
-  /// @brief When run under the tracer context, persist the
-  /// traced quantum resources here.
+  /// @brief When run under the tracer context, persist the traced quantum
+  /// resources here.
   Trace kernelTrace;
 
   /// @brief The name of the kernel being executed.
-  std::string kernelName = "";
+  std::string kernelName;
 
-  /// @brief The current iteration for a batch execution,
-  /// used by observe_n and sample_n.
+  /// @brief The current iteration for a batch execution, used by `observe_n`
+  /// and `sample_n`.
   std::size_t batchIteration = 0;
 
-  /// @brief For batch execution, the total number of
-  /// batch iterations.
+  /// @brief For batch execution, the total number of batch iterations.
   std::size_t totalIterations = 0;
 
-  /// @brief For mid-circuit measurements in library mode
-  /// keep track of the register names.
+  /// @brief For mid-circuit measurements in library mode keep track of the
+  /// register names.
   std::vector<std::string> registerNames;
 
   /// @brief A vector containing information about how to reorder the global
@@ -111,25 +122,14 @@ public:
 
   /// @brief The number of trajectories to be used for an expectation
   /// calculation on simulation backends that support trajectory simulation.
-  std::optional<std::size_t> numberTrajectories;
+  std::optional<std::size_t> numberTrajectories = std::nullopt;
 
   /// A string containing the output logging of a kernel launched with
-  /// cudaq::run.
+  /// `cudaq::run()`.
   std::string outputLog;
 
   /// @brief Whether or not to simply concatenate measurements in execution
   /// order.
   bool explicitMeasurements = false;
-
-  /// @brief The Constructor, takes the name of the context
-  /// @param n The name of the context
-  ExecutionContext(const std::string n) : name(n) {}
-
-  /// @brief The constructor, takes the name and the number of shots.
-  /// @param n The name of the context
-  /// @param shots_ The number of shots
-  ExecutionContext(const std::string n, std::size_t shots_)
-      : name(n), shots(shots_) {}
-  ~ExecutionContext() = default;
 };
 } // namespace cudaq
