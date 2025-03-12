@@ -70,7 +70,7 @@ __pycache__/
 .cache/*
 
 # LLVM/MLIR files
-*.ll 
+*.ll
 *.bc
 
 # Build results
@@ -93,3 +93,6 @@ apps/
 
 # JetBrains IDE files
 .idea
+
+# direnv
+.direnv
