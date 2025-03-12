@@ -441,7 +441,7 @@ qirProfileTranslationFunction(const char *qirProfile, mlir::Operation *op,
     llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
                               "backwards_branching", falseValue);
 
-                              std::cout << "Translated to llvm" << std::endl;
+    std::cout << "Translated to llvm" << std::endl;
   }
 
   // Note: optimizeLLVM is the one that is setting nonnull attributes on

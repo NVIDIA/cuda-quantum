@@ -863,7 +863,7 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 2 : i64
 // CHECK:         }
   // clang-format on
-  
+
   {
     // (No memtoreg pass before synthesis)
     // @cudaq.kernel
@@ -876,14 +876,13 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
     // s = cudaq.get_state(init3, 2)
     // cudaq.sample(kernel, s)
     auto init = "init3";
-    auto initCode =
-        " func.func @__nvqpp__mlirgen__init3(%arg0: i64) {\n"
-        "   %0 = cc.alloca i64\n"
-        "   cc.store %arg0, %0 : !cc.ptr<i64>\n"
-        "   %1 = cc.load %0 : !cc.ptr<i64>\n"
-        "   %2 = quake.alloca !quake.veq<?>[%1 : i64]\n"
-        "   return\n"
-        "}\n";
+    auto initCode = " func.func @__nvqpp__mlirgen__init3(%arg0: i64) {\n"
+                    "   %0 = cc.alloca i64\n"
+                    "   cc.store %arg0, %0 : !cc.ptr<i64>\n"
+                    "   %1 = cc.load %0 : !cc.ptr<i64>\n"
+                    "   %2 = quake.alloca !quake.veq<?>[%1 : i64]\n"
+                    "   return\n"
+                    "}\n";
 
     __cudaq_deviceCodeHolderAdd(init, initCode);
 

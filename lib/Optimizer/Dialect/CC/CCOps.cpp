@@ -983,7 +983,8 @@ struct FuseWithConstantArray
         if (auto complexTy = dyn_cast<ComplexType>(extval.getType())) {
           std::int32_t i = extval.getRawConstantIndices()[0];
           auto cval = cast<ArrayAttr>(conarr.getConstantValues()[i]);
-          rewriter.replaceOpWithNewOp<complex::ConstantOp>(extval, complexTy, cval);
+          rewriter.replaceOpWithNewOp<complex::ConstantOp>(extval, complexTy,
+                                                           cval);
 
           return success();
         }

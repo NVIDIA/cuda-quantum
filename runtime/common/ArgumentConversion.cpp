@@ -307,12 +307,12 @@ static void createNumQubitsFunc(OpBuilder &builder, ModuleOp moduleOp,
     while (!used.empty()) {
       auto *op = used.pop_back_val();
       keep.push_back(op);
-      
+
       for (auto opnd : op->getOperands())
         if (auto defOp = opnd.getDefiningOp())
           used.push_back(defOp);
 
-      for (auto user: op->getUsers())
+      for (auto user : op->getUsers())
         if (auto store = dyn_cast<cudaq::cc::StoreOp>(user))
           keep.push_back(user);
     }
