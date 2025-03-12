@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ADAPT-VQE &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>ADAPT-VQE algorithm &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
@@ -291,15 +291,6 @@
 <li class="toctree-l3"><a class="reference internal" href="krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="afqmc.html">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Hamiltonian-preparation-for-VQE">Hamiltonian preparation for VQE</a></li>
-<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Run-VQE-with-CUDA-Q">Run VQE with CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)">Auxiliary Field Quantum Monte Carlo (AFQMC)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Preparation-of-the-molecular-Hamiltonian">Preparation of the molecular Hamiltonian</a></li>
-<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Preparation-of-the-trial-wave-function">Preparation of the trial wave function</a></li>
-<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Setup-of-the-AFQMC-parameters">Setup of the AFQMC parameters</a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="quantum_fourier_transform.html">Quantum Fourier Transform</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="quantum_fourier_transform.html#Quantum-Fourier-Transform-revisited">Quantum Fourier Transform revisited</a></li>
 </ul>
@@ -368,7 +359,7 @@
 <li class="toctree-l3"><a class="reference internal" href="adapt_qaoa.html#Beginning-of-ADAPT-QAOA-iteration:">Beginning of ADAPT-QAOA iteration:</a></li>
 </ul>
 </li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">ADAPT-VQE</a><ul>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">ADAPT-VQE algorithm</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#Classical-pre-processing">Classical pre-processing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#Jordan-Wigner:">Jordan Wigner:</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#UCCSD-operator-pool">UCCSD operator pool</a><ul>
@@ -764,7 +755,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../../using/applications.html">CUDA-Q Applications</a></li>
-      <li class="breadcrumb-item active">ADAPT-VQE</li>
+      <li class="breadcrumb-item active">ADAPT-VQE algorithm</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../../_sources/applications/python/adapt-vqe.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
@@ -777,9 +768,13 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="ADAPT-VQE">
-<h1>ADAPT-VQE<a class="headerlink" href="#ADAPT-VQE" title="Permalink to this heading">¶</a></h1>
-<p>This tutorial explains the implementation of ADAPT-VQE algorithm introduced in this <a class="reference external" href="https://www.nature.com/articles/s41467-019-10988-2">paper</a>.</p>
+  <section id="ADAPT-VQE-algorithm">
+<h1>ADAPT-VQE algorithm<a class="headerlink" href="#ADAPT-VQE-algorithm" title="Permalink to this heading">¶</a></h1>
+<p>This tutorial explains the implementation of Adaptive Derivative-Assembled Pseudo-Trotter VQE (ADAPT-VQE) algorithm introduced in this <a class="reference external" href="https://www.nature.com/articles/s41467-019-10988-2">paper</a>.</p>
+<p>In VQE (see this <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/applications/python/vqe_advanced.html">tutorial</a>), a parameterized wave-function using UCCSD ansatz is generated and variationally tuned to minimize the expectation value of the molecular electronic Hamiltonian. In VQE approach, we include all possible single and double excitations of electrons from the occupied spin molecular orbitals of a reference state (Hartree Fock) to the unoccupied spin molecular orbitals. The excessive
+depth of these quantum circuits make them ill-suited for applications in the NISQ regime.</p>
+<p>The VQE issue has led to the ADAPT-VQE proposal in which the ansatz wave-functions is constructed through the action of a selective subset of possible unitary operators , i.e., only those operators whose inclusion in the ansatz can potentially lead to the largest decrease in the expectation value of the molecular electronic Hamiltonian. In ADAPT-VQE, the ansatz is grown iteratively by appending a sequence of unitary operators to the reference Hartree-Fock state. At each iteration, the unitary
+operator to be applied is chosen according to a simple criterion based on the gradient of the expectation value of the Hamiltonian. Therefore, allowing us to build a compact quantum circuit which can lead to more efficient use of quantum resources.</p>
 <p>The ADAPT-VQE algorithm consists of 8 steps:</p>
 <p>1- On classical hardware, compute one- and two-electron integrals, and transform the fermionic Hamiltonian into a qubit representation using an appropriate transformation: Jordan–Wigner, Bravyi–Kitaev, etc. For this tutorial, we will use Jordan Wigner.</p>
 <p>2- Define an “Operator Pool”. This is simply a collection of operator definitions which will be used to construct the ansatz. For this tutorial, we will use UCCSD.</p>
@@ -790,7 +785,7 @@
 <p>7- Perform a VQE experiment to re-optimize all parameters in the ansatz.</p>
 <p>8- go to step 4</p>
 <p>Below is a Schematic depiction of the ADAPT-VQE algorithm</p>
-<div><p><img alt="01c85dcea2c449f0a9eb822c4237ab25" class="no-scaled-link" src="../../_images/adapt-vqe.png" style="width: 600px;" /></p>
+<div><p><img alt="2fb7fb24f2e54320a50889ab040ac442" class="no-scaled-link" src="../../_images/adapt-vqe.png" style="width: 800px;" /></p>
 </div><div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
@@ -815,14 +810,14 @@ Note: you may need to restart the kernel to use updated packages.
 </pre></div></div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 
 <span class="c1"># When use mpi</span>
 <span class="c1">#cudaq.mpi.initialize()</span>
-<span class="c1">#print(f&quot;My rank {cudaq.mpi.rank()} of {cudaq.mpi.num_ranks()}&quot;, flush = True)</span>
+<span class="c1">#print(f&quot;My rank {cudaq.mpi.rank()} of {cudaq.mpi.num_ranks()}&quot;, flush=True)</span>
 
 <span class="c1"># Set the traget</span>
 <span class="c1"># Double precision is recommended for the best performance.</span>
@@ -836,7 +831,7 @@ Note: you may need to restart the kernel to use updated packages.
 <h2>Classical pre-processing<a class="headerlink" href="#Classical-pre-processing" title="Permalink to this heading">¶</a></h2>
 <p>Here, we compute one and two-electron intgrals using Hartree Fock molecular orbitals.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pyscf</span><span class="w"> </span><span class="kn">import</span> <span class="n">gto</span><span class="p">,</span> <span class="n">scf</span><span class="p">,</span> <span class="n">cc</span><span class="p">,</span> <span class="n">mcscf</span><span class="p">,</span> <span class="n">ao2mo</span>
@@ -855,7 +850,7 @@ Note: you may need to restart the kernel to use updated packages.
 <span class="n">mf</span> <span class="o">=</span> <span class="n">scf</span><span class="o">.</span><span class="n">RHF</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
 <span class="n">mf</span><span class="o">.</span><span class="n">kernel</span><span class="p">()</span>
 
-<span class="n">mycc</span> <span class="o">=</span> <span class="n">cc</span><span class="o">.</span><span class="n">CCSD</span><span class="p">(</span><span class="n">mf</span><span class="p">)</span>
+<span class="n">mycc</span><span class="o">=</span><span class="n">cc</span><span class="o">.</span><span class="n">CCSD</span><span class="p">(</span><span class="n">mf</span><span class="p">)</span>
 <span class="n">mycc</span><span class="o">.</span><span class="n">kernel</span><span class="p">()</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;R-CCSD energy = &#39;</span><span class="p">,</span> <span class="n">mycc</span><span class="o">.</span><span class="n">e_tot</span><span class="p">)</span>
@@ -863,10 +858,10 @@ Note: you may need to restart the kernel to use updated packages.
 <span class="c1"># Compute the electron integrals</span>
 
 <span class="n">h1e_ao</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">intor</span><span class="p">(</span><span class="s2">&quot;int1e_kin&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="n">mol</span><span class="o">.</span><span class="n">intor</span><span class="p">(</span><span class="s2">&quot;int1e_nuc&quot;</span><span class="p">)</span>
-<span class="n">h1e</span> <span class="o">=</span> <span class="n">reduce</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">,</span> <span class="p">(</span><span class="n">mf</span><span class="o">.</span><span class="n">mo_coeff</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">h1e_ao</span><span class="p">,</span> <span class="n">mf</span><span class="o">.</span><span class="n">mo_coeff</span><span class="p">))</span>
-<span class="n">h2e_ao</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">intor</span><span class="p">(</span><span class="s2">&quot;int2e_sph&quot;</span><span class="p">,</span> <span class="n">aosym</span> <span class="o">=</span> <span class="s1">&#39;1&#39;</span><span class="p">)</span>
-<span class="n">h2e</span> <span class="o">=</span> <span class="n">ao2mo</span><span class="o">.</span><span class="n">incore</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">h2e_ao</span><span class="p">,</span> <span class="n">mf</span><span class="o">.</span><span class="n">mo_coeff</span><span class="p">)</span>
-<span class="n">h2</span> <span class="o">=</span> <span class="n">h2e</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">h1e</span><span class="o">=</span><span class="n">reduce</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">,</span> <span class="p">(</span><span class="n">mf</span><span class="o">.</span><span class="n">mo_coeff</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">h1e_ao</span><span class="p">,</span> <span class="n">mf</span><span class="o">.</span><span class="n">mo_coeff</span><span class="p">))</span>
+<span class="n">h2e_ao</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">intor</span><span class="p">(</span><span class="s2">&quot;int2e_sph&quot;</span><span class="p">,</span> <span class="n">aosym</span><span class="o">=</span><span class="s1">&#39;1&#39;</span><span class="p">)</span>
+<span class="n">h2e</span><span class="o">=</span><span class="n">ao2mo</span><span class="o">.</span><span class="n">incore</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">h2e_ao</span><span class="p">,</span> <span class="n">mf</span><span class="o">.</span><span class="n">mo_coeff</span><span class="p">)</span>
+<span class="n">h2e</span><span class="o">=</span><span class="n">h2e</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
 <span class="n">nuclear_repulsion</span> <span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">energy_nuc</span><span class="p">()</span>
 <br/></pre></div>
 </div>
@@ -878,7 +873,7 @@ Note: you may need to restart the kernel to use updated packages.
 <div class="highlight"><pre>
 converged SCF energy = -1.11675930739643
 E(CCSD) = -1.13728399861044  E_corr = -0.02052469121401448
-R-CCSD energy = -1.13728399861044
+R-CCSD energy =  -1.13728399861044
 </pre></div></div>
 </div>
 </section>
@@ -886,7 +881,7 @@ R-CCSD energy = -1.13728399861044
 <h2>Jordan Wigner:<a class="headerlink" href="#Jordan-Wigner:" title="Permalink to this heading">¶</a></h2>
 <p>Convert fermionic Hamiltonian to qubit Hamiltonian.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">adapt_vqe.hamiltonian</span><span class="w"> </span><span class="kn">import</span> <span class="n">jordan_wigner_fermion</span><span class="p">,</span> <span class="n">generate_molecular_spin_ham_restricted</span>
@@ -895,7 +890,7 @@ R-CCSD energy = -1.13728399861044
 <span class="n">obi</span><span class="p">,</span> <span class="n">tbi</span><span class="p">,</span> <span class="n">nuclear_repulsion</span> <span class="o">=</span> <span class="n">generate_molecular_spin_ham_restricted</span><span class="p">(</span><span class="n">h1e</span><span class="p">,</span><span class="n">h2e</span><span class="p">,</span> <span class="n">nuclear_repulsion</span><span class="p">)</span>
 
 <span class="c1"># Convert the fermionic Hamiltonian to a qubit Hamiltonian</span>
-<span class="n">tolerance</span> <span class="o">=</span> <span class="mf">1e-15</span>
+<span class="n">tolerance</span><span class="o">=</span><span class="mf">1e-15</span>
 <span class="n">spin_ham</span> <span class="o">=</span> <span class="n">jordan_wigner_fermion</span><span class="p">(</span><span class="n">obi</span><span class="p">,</span> <span class="n">tbi</span><span class="p">,</span> <span class="n">nuclear_repulsion</span><span class="p">,</span><span class="n">tolerance</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Total number of pauli hamiltonian terms: &#39;</span><span class="p">,</span><span class="n">spin_ham</span><span class="o">.</span><span class="n">get_term_count</span><span class="p">())</span>
 
@@ -937,20 +932,20 @@ Total number of pauli hamiltonian terms:  19
 <section id="Single-excitation">
 <h3>Single excitation<a class="headerlink" href="#Single-excitation" title="Permalink to this heading">¶</a></h3>
 <div class="math notranslate nohighlight">
-\[T_{ij} = \frac{i}{2} (X_i Y_j - Y_i X_j) \prod_{p = i+1}^{j-1} Z_p\]</div>
+\[T_{ij} = \frac{i}{2} (X_i Y_j - Y_i X_j) \prod_{p=i+1}^{j-1} Z_p\]</div>
 </section>
 <section id="Double-excitation">
 <h3>Double excitation<a class="headerlink" href="#Double-excitation" title="Permalink to this heading">¶</a></h3>
 <div class="math notranslate nohighlight">
-\[T_{ijkl} = \frac{i}{8} (X_i Y_j X_k X_l + Y_i X_j X_k X_l + Y_i Y_j Y_k X_l + Y_i Y_j X_k Y_l − X_i X_j Y_k X_l − X_i X_j X_k Y_l − Y_i X_j Y_k Y_l − X_i Y_j Y_k Y_l) \prod_{p = i+1}^{j-1} Zp \prod_{r = k+1}^{l-1} Z_r\]</div>
+\[T_{ijkl} = \frac{i}{8} (X_i Y_j X_k X_l + Y_i X_j X_k X_l + Y_i Y_j Y_k X_l + Y_i Y_j X_k Y_l − X_i X_j Y_k X_l − X_i X_j X_k Y_l − Y_i X_j Y_k Y_l − X_i Y_j Y_k Y_l) \prod_{p=i+1}^{j-1} Zp \prod_{r=k+1}^{l-1} Z_r\]</div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">adapt_vqe.operator_pool</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_uccsd_pool</span>
 
 <span class="n">nelectrons</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">nelectron</span>
-<span class="n">n_qubits</span> <span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">mo_coeff</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mi">2</span>
+<span class="n">n_qubits</span><span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">mo_coeff</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mi">2</span>
 
 <span class="n">pools</span> <span class="o">=</span> <span class="n">get_uccsd_pool</span><span class="p">(</span><span class="n">nelectrons</span><span class="p">,</span> <span class="n">n_qubits</span><span class="p">)</span>
 
@@ -988,7 +983,7 @@ Number of operator pool:  3
 <section id="Commutator-[H,-A_i]">
 <h2>Commutator [<span class="math notranslate nohighlight">\(H\)</span>, <span class="math notranslate nohighlight">\(A_i\)</span>]<a class="headerlink" href="#Commutator-[H,-A_i]" title="Permalink to this heading">¶</a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">commutator</span><span class="p">(</span><span class="n">pools</span><span class="p">,</span> <span class="n">ham</span><span class="p">):</span>
@@ -1023,7 +1018,7 @@ Number of op for gradient:  3
 <h2>Reference State:<a class="headerlink" href="#Reference-State:" title="Permalink to this heading">¶</a></h2>
 <p>Reference state here is Haretree Fock</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Get the initial state (reference state).</span>
@@ -1054,7 +1049,7 @@ SV: [(0,0), (0,0), (0,0), (1,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0)
 <section id="Quantum-kernels:">
 <h2>Quantum kernels:<a class="headerlink" href="#Quantum-kernels:" title="Permalink to this heading">¶</a></h2>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">###################################</span>
@@ -1073,11 +1068,11 @@ SV: [(0,0), (0,0), (0,0), (1,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0)
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nelectrons</span><span class="p">):</span>
         <span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
 
-    <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">count</span><span class="o">=</span><span class="mi">0</span>
     <span class="k">for</span>  <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">coef_single</span><span class="p">),</span> <span class="mi">2</span><span class="p">):</span>
         <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_single</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_single</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
         <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_single</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_single</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span>
-        <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">count</span><span class="o">+=</span><span class="mi">1</span>
 
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">coef_double</span><span class="p">),</span> <span class="mi">8</span><span class="p">):</span>
         <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_double</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_double</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
@@ -1088,7 +1083,7 @@ SV: [(0,0), (0,0), (0,0), (1,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0)
         <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">5</span><span class="p">]</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">5</span><span class="p">])</span>
         <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">6</span><span class="p">]</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">6</span><span class="p">])</span>
         <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">7</span><span class="p">]</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">7</span><span class="p">])</span>
-        <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">count</span><span class="o">+=</span><span class="mi">1</span>
 </pre></div>
 </div>
 </div>
@@ -1096,65 +1091,65 @@ SV: [(0,0), (0,0), (0,0), (1,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0)
 <section id="Beginning-of-ADAPT-VQE:">
 <h2>Beginning of ADAPT-VQE:<a class="headerlink" href="#Beginning-of-ADAPT-VQE:" title="Permalink to this heading">¶</a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">scipy.optimize</span><span class="w"> </span><span class="kn">import</span> <span class="n">minimize</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Beginning of ADAPT-VQE&#39;</span><span class="p">)</span>
 
-<span class="n">threshold</span> <span class="o">=</span> <span class="mf">1e-3</span>
-<span class="n">E_prev</span> <span class="o">=</span> <span class="mf">0.0</span>
-<span class="n">e_stop</span> <span class="o">=</span> <span class="mf">1e-5</span>
-<span class="n">init_theta</span> <span class="o">=</span> <span class="mf">0.0</span>
+<span class="n">threshold</span><span class="o">=</span><span class="mf">1e-3</span>
+<span class="n">E_prev</span><span class="o">=</span><span class="mf">0.0</span>
+<span class="n">e_stop</span><span class="o">=</span><span class="mf">1e-5</span>
+<span class="n">init_theta</span><span class="o">=</span><span class="mf">0.0</span>
 
-<span class="n">theta_single</span> <span class="o">=</span> <span class="p">[]</span>
-<span class="n">theta_double</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">theta_single</span><span class="o">=</span><span class="p">[]</span>
+<span class="n">theta_double</span><span class="o">=</span><span class="p">[]</span>
 
-<span class="n">pool_single</span> <span class="o">=</span> <span class="p">[]</span>
-<span class="n">pool_double</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">pool_single</span><span class="o">=</span><span class="p">[]</span>
+<span class="n">pool_double</span><span class="o">=</span><span class="p">[]</span>
 
-<span class="n">coef_single</span> <span class="o">=</span> <span class="p">[]</span>
-<span class="n">coef_double</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">coef_single</span><span class="o">=</span><span class="p">[]</span>
+<span class="n">coef_double</span><span class="o">=</span><span class="p">[]</span>
 
-<span class="n">selected_pool</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">selected_pool</span><span class="o">=</span><span class="p">[]</span>
 
 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
 
     <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Step: &#39;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
 
-    <span class="n">gradient_vec</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">gradient_vec</span><span class="o">=</span><span class="p">[]</span>
 
     <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">grad_op</span><span class="p">:</span>
-        <span class="n">grad</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">gradient</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
+        <span class="n">grad</span><span class="o">=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">gradient</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
         <span class="n">gradient_vec</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">grad</span><span class="p">)</span>
 
-    <span class="n">norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">gradient_vec</span><span class="p">))</span>
+    <span class="n">norm</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">gradient_vec</span><span class="p">))</span>
     <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Norm of the gradient: &#39;</span><span class="p">,</span> <span class="n">norm</span><span class="p">)</span>
 
 
     <span class="c1"># When using mpi to parallelize gradient calculation: uncomment the following lines</span>
 
-    <span class="c1">#chunks = np.array_split(np.array(grad_op), cudaq.mpi.num_ranks())</span>
-    <span class="c1">#my_rank_op = chunks[cudaq.mpi.rank()]</span>
+    <span class="c1">#chunks=np.array_split(np.array(grad_op), cudaq.mpi.num_ranks())</span>
+    <span class="c1">#my_rank_op=chunks[cudaq.mpi.rank()]</span>
 
-    <span class="c1">#print(&#39;We have&#39;, len(grad_op), &#39;pool operators which we would like to split&#39;, flush = True)</span>
-    <span class="c1">#print(&#39;We have&#39;, len(my_rank_op), &#39;pool operators on this rank&#39;, cudaq.mpi.rank(), flush = True)</span>
+    <span class="c1">#print(&#39;We have&#39;, len(grad_op), &#39;pool operators which we would like to split&#39;, flush=True)</span>
+    <span class="c1">#print(&#39;We have&#39;, len(my_rank_op), &#39;pool operators on this rank&#39;, cudaq.mpi.rank(), flush=True)</span>
 
-    <span class="c1">#gradient_vec_async = []</span>
+    <span class="c1">#gradient_vec_async=[]</span>
 
     <span class="c1">#for op in my_rank_op:</span>
         <span class="c1">#gradient_vec_async.append(cudaq.observe_async(gradient, op, state))</span>
 
-    <span class="c1">#gradient_vec_rank = []</span>
+    <span class="c1">#gradient_vec_rank=[]</span>
     <span class="c1">#for i in range(len(gradient_vec_async)):</span>
-    <span class="c1">#    get_result = gradient_vec_async[i].get()</span>
-    <span class="c1">#    get_expectation = get_result.expectation()</span>
+    <span class="c1">#    get_result=gradient_vec_async[i].get()</span>
+    <span class="c1">#    get_expectation=get_result.expectation()</span>
     <span class="c1">#    gradient_vec_rank.append(get_expectation)</span>
 
-    <span class="c1">#print(&#39;My rank has&#39;, len(gradient_vec_rank), &#39;gradients&#39;, flush = True)</span>
+    <span class="c1">#print(&#39;My rank has&#39;, len(gradient_vec_rank), &#39;gradients&#39;, flush=True)</span>
 
-    <span class="c1">#gradient_vec = cudaq.mpi.all_gather(len(gradient_vec_rank)*cudaq.mpi.num_ranks(), gradient_vec_rank)</span>
+    <span class="c1">#gradient_vec=cudaq.mpi.all_gather(len(gradient_vec_rank)*cudaq.mpi.num_ranks(), gradient_vec_rank)</span>
 
 
     <span class="k">if</span> <span class="n">norm</span> <span class="o">&lt;=</span> <span class="n">threshold</span><span class="p">:</span>
@@ -1168,7 +1163,7 @@ SV: [(0,0), (0,0), (0,0), (1,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0)
 
     <span class="k">else</span><span class="p">:</span>
 
-        <span class="n">max_grad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">gradient_vec</span><span class="p">))</span>
+        <span class="n">max_grad</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">gradient_vec</span><span class="p">))</span>
         <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;max_grad: &#39;</span><span class="p">,</span> <span class="n">max_grad</span><span class="p">)</span>
 
         <span class="n">temp_pool</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1180,10 +1175,10 @@ SV: [(0,0), (0,0), (0,0), (1,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0)
 
         <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Selected pool at current step: &#39;</span><span class="p">,</span> <span class="n">temp_pool</span><span class="p">)</span>
 
-        <span class="n">selected_pool</span> <span class="o">=</span> <span class="n">selected_pool</span><span class="o">+</span><span class="n">temp_pool</span>
+        <span class="n">selected_pool</span><span class="o">=</span><span class="n">selected_pool</span><span class="o">+</span><span class="n">temp_pool</span>
 
-        <span class="n">tot_single</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="n">tot_double</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">tot_single</span><span class="o">=</span><span class="mi">0</span>
+        <span class="n">tot_double</span><span class="o">=</span><span class="mi">0</span>
         <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">temp_pool</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
                 <span class="n">tot_single</span> <span class="o">+=</span> <span class="mi">1</span>
@@ -1222,28 +1217,28 @@ SV: [(0,0), (0,0), (0,0), (1,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0)
 
         <span class="k">def</span><span class="w"> </span><span class="nf">cost</span><span class="p">(</span><span class="n">theta</span><span class="p">):</span>
 
-            <span class="n">theta</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+            <span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
 
-            <span class="n">energy</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">spin_ham</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">n_qubits</span><span class="p">,</span> <span class="n">nelectrons</span><span class="p">,</span> <span class="n">pool_single</span><span class="p">,</span>
+            <span class="n">energy</span><span class="o">=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">spin_ham</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">n_qubits</span><span class="p">,</span> <span class="n">nelectrons</span><span class="p">,</span> <span class="n">pool_single</span><span class="p">,</span>
                                 <span class="n">coef_single</span><span class="p">,</span> <span class="n">pool_double</span><span class="p">,</span> <span class="n">coef_double</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
 
             <span class="k">return</span> <span class="n">energy</span>
 
-        <span class="n">result_vqe</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">method</span> <span class="o">=</span> <span class="s1">&#39;L-BFGS-B&#39;</span><span class="p">,</span> <span class="n">jac</span> <span class="o">=</span> <span class="s1">&#39;3-point&#39;</span><span class="p">,</span> <span class="n">tol</span> <span class="o">=</span> <span class="mf">1e-7</span><span class="p">)</span>
+        <span class="n">result_vqe</span><span class="o">=</span><span class="n">minimize</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;L-BFGS-B&#39;</span><span class="p">,</span> <span class="n">jac</span><span class="o">=</span><span class="s1">&#39;3-point&#39;</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">)</span>
 
-        <span class="n">theta</span> <span class="o">=</span> <span class="n">result_vqe</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="n">theta</span><span class="o">=</span><span class="n">result_vqe</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
         <span class="n">theta_single</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[:</span><span class="n">tot_single</span><span class="p">]</span>
         <span class="n">theta_double</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[</span><span class="n">tot_single</span><span class="p">:]</span>
 
         <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Optmized Energy: &#39;</span><span class="p">,</span> <span class="n">result_vqe</span><span class="o">.</span><span class="n">fun</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Optimizer exited successfully: &#39;</span><span class="p">,</span><span class="n">result_vqe</span><span class="o">.</span><span class="n">success</span><span class="p">,</span> <span class="n">flush</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="n">result_vqe</span><span class="o">.</span><span class="n">message</span><span class="p">,</span> <span class="n">flush</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Optimizer exited successfully: &#39;</span><span class="p">,</span><span class="n">result_vqe</span><span class="o">.</span><span class="n">success</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">result_vqe</span><span class="o">.</span><span class="n">message</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-        <span class="n">dE</span> <span class="o">=</span> <span class="n">result_vqe</span><span class="o">.</span><span class="n">fun</span><span class="o">-</span><span class="n">E_prev</span>
+        <span class="n">dE</span><span class="o">=</span> <span class="n">result_vqe</span><span class="o">.</span><span class="n">fun</span><span class="o">-</span><span class="n">E_prev</span>
         <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;dE: &#39;</span><span class="p">,</span> <span class="n">dE</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">dE</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">e_stop</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">dE</span><span class="p">)</span><span class="o">&lt;=</span><span class="n">e_stop</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;Final Result: &#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
             <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Final parameters: &#39;</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span>
             <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Selected pools: &#39;</span><span class="p">,</span> <span class="n">selected_pool</span><span class="p">)</span>
@@ -1253,10 +1248,10 @@ SV: [(0,0), (0,0), (0,0), (1,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0)
             <span class="k">break</span>
 
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">E_prev</span> <span class="o">=</span> <span class="n">result_vqe</span><span class="o">.</span><span class="n">fun</span>
+            <span class="n">E_prev</span><span class="o">=</span><span class="n">result_vqe</span><span class="o">.</span><span class="n">fun</span>
 
             <span class="c1"># Prepare a trial state with the current ansatz.</span>
-            <span class="n">state</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">n_qubits</span><span class="p">,</span> <span class="n">nelectrons</span><span class="p">,</span> <span class="n">pool_single</span><span class="p">,</span>
+            <span class="n">state</span><span class="o">=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">n_qubits</span><span class="p">,</span> <span class="n">nelectrons</span><span class="p">,</span> <span class="n">pool_single</span><span class="p">,</span>
                             <span class="n">coef_single</span><span class="p">,</span> <span class="n">pool_double</span><span class="p">,</span> <span class="n">coef_double</span><span class="p">)</span>
 
 <span class="c1"># When using mpi</span>
@@ -1285,7 +1280,7 @@ theta_double:  [0.0]
 theta [0.0]
 Optmized Energy:  -1.1372838344885003
 Optimizer exited successfully:  True
-CONVERGENCE: REL_REDUCTION_OF_F_ &lt;= _FACTR*EPSMCH
+CONVERGENCE: REL_REDUCTION_OF_F_&lt;=_FACTR*EPSMCH
 dE:  -1.1372838344885003
 
 
@@ -1300,6 +1295,7 @@ Number of pools:  1
 Final energy:  -1.1372838344885003
 </pre></div></div>
 </div>
+<p>We obtain the ground state energy of the H2 within chemical accuracy by having only 8 paulit string. This is less than the total number of pauli string (12) of H2. For larger molecules, building a compact quantum circuit can help to reduce the cost and improve perfomance.</p>
 </section>
 </section>
 
