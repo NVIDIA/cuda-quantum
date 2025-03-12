@@ -147,7 +147,6 @@ func.func @testy4(%arg0: !cc.stdvec<!cc.struct<{i32, f64, i8, i16}>>) {
 // CHECK:           return
 // CHECK:         }
 
-
 func.func @testy5(%arg0: i32) -> i32 {
   return %arg0: i32
 }
