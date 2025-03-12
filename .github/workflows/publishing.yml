@@ -1019,7 +1019,7 @@ jobs:
         cuda_major: ['', '11', '12']
       fail-fast: false
 
-    runs-on: linux-${{ matrix.plaform }}-latest-1
+    runs-on: linux-${{ matrix.platform }}-latest-1
 
     container:
       image: ubuntu:22.04
