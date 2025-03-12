@@ -28,21 +28,21 @@ int main() {
   // For the cavity subsystem 1
   // We create the annihilation (a) and creation (a+) operators.
   // These operators lower and raise the photon number, respectively.
-  auto a = cudaq::boson_operator::annihilate(1);
-  auto a_dag = cudaq::boson_operator::create(1);
+  auto a = cudaq::boson_op::annihilate(1);
+  auto a_dag = cudaq::boson_op::create(1);
 
   // For the atom subsystem 0
   // We create the annihilation (`sm`) and creation (`sm_dag`) operators.
   // These operators lower and raise the excitation number, respectively.
-  auto sm = cudaq::boson_operator::annihilate(0);
-  auto sm_dag = cudaq::boson_operator::create(0);
+  auto sm = cudaq::boson_op::annihilate(0);
+  auto sm_dag = cudaq::boson_op::create(0);
 
   // Number operators
   // These operators count the number of excitations.
   // For the atom (`subsytem` 0) and the cavity (`subsystem` 1) they give the
   // population in each subsystem.
-  auto atom_occ_op = cudaq::matrix_operator::number(0);
-  auto cavity_occ_op = cudaq::matrix_operator::number(1);
+  auto atom_occ_op = cudaq::matrix_op::number(0);
+  auto cavity_occ_op = cudaq::matrix_op::number(1);
 
   // Hamiltonian
   // The `hamiltonian` models the dynamics of the atom-cavity (cavity QED)
@@ -108,7 +108,7 @@ int main() {
   auto get_expectation = [](int idx, auto &result) -> std::vector<double> {
     std::vector<double> expectations;
 
-    auto all_exps = result.get_expectation_values().value();
+    auto all_exps = result.expectation_values.value();
     for (auto exp_vals : all_exps) {
       expectations.push_back((double)exp_vals[idx]);
     }
