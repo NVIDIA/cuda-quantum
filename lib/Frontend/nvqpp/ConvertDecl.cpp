@@ -180,7 +180,15 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
       // Traverse template argument 0 to get the vector's element type.
       if (!cts || !TraverseType(cts->getTemplateArgs()[0].getAsType()))
         return false;
-      return pushType(cc::StdvecType::get(ctx, popType()));
+      auto ty = popType();
+      if (quake::isQuantumType(ty)) {
+        if (ty == quake::RefType::get(ctx))
+          return pushType(quake::VeqType::getUnsized(ctx));
+        cudaq::emitFatalError(toLocation(x->getSourceRange()),
+                              "std::vector element type is not supported");
+        return false;
+      }
+      return pushType(cc::StdvecType::get(ctx, ty));
     }
     // std::vector<bool>   =>   cc.stdvec<i1>
     if (name.equals("_Bit_reference") || name.equals("__bit_reference")) {

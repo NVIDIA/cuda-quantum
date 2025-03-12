@@ -8,7 +8,7 @@
 
 #include "py_EvolveResult.h"
 #include "common/EvolveResult.h"
-#include "cudaq/algorithms/evolve.h"
+#include "cudaq/algorithms/evolve_internal.h"
 #include <optional>
 #include <pybind11/stl.h>
 
@@ -35,14 +35,14 @@ void bindEvolveResult(py::module &mod) {
       .def(py::init<std::vector<state>, std::vector<std::vector<double>>>())
       .def(
           "final_state",
-          [](evolve_result &self) { return self.get_final_state(); },
+          [](evolve_result &self) { return self.states->back(); },
           "Stores the final state produced by a call to :func:`evolve`. "
           "Represent the state of a quantum system after time evolution under "
           "a set of operators, see the :func:`evolve` documentation for more "
           "detail.\n")
       .def(
           "intermediate_states",
-          [](evolve_result &self) { return self.get_intermediate_states(); },
+          [](evolve_result &self) { return self.states; },
           "Stores all intermediate states, meaning the state after each step "
           "in a defined schedule, produced by a call to :func:`evolve`, "
           "including the final state. This property is only populated if "
@@ -50,9 +50,7 @@ void bindEvolveResult(py::module &mod) {
           ":func:`evolve`.\n")
       .def(
           "final_expectation_values",
-          [](evolve_result &self) {
-            return self.get_final_expectation_values();
-          },
+          [](evolve_result &self) { return self.expectation_values; },
           "Stores the final expectation values, that is the results produced "
           "by "
           "calls to :func:`observe`, triggered by a call to :func:`evolve`. "
@@ -63,7 +61,7 @@ void bindEvolveResult(py::module &mod) {
           "call.\n")
       .def(
           "expectation_values",
-          [](evolve_result &self) { return self.get_expectation_values(); },
+          [](evolve_result &self) { return self.expectation_values; },
           "Stores the expectation values, that is the results from the calls "
           "to "
           ":func:`observe`, at each step in the schedule produced by a call to "
