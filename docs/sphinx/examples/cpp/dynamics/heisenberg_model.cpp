@@ -44,8 +44,7 @@ int main() {
   // The staggered magnetization operator is used to measure antiferromagnetic
   // order. It is defined as a sum over all spins of the Z operator, alternating
   // in sign. For even sites, we add `sz`; for odd sites, we subtract `sz`.
-  auto staggered_magnetization_t =
-      (cudaq::sum_op<cudaq::spin_handler>)cudaq::spin_handler::i(0);
+  auto staggered_magnetization_t = cudaq::sum_op<cudaq::spin_handler>::empty();
   for (int i = 0; i < num_spins; i++) {
     auto sz = cudaq::spin_handler::z(i);
     if (i % 2 == 0) {
@@ -84,8 +83,7 @@ int main() {
     // H = H + `Jy` * `Sy`_i * `Sy`_{i+1}
     // H = H + `Jz` * `Sz`_i * `Sz`_{i+1}
     // This is a form of the `anisotropic` Heisenberg (or `XYZ`) model.
-    auto hamiltonian =
-        (cudaq::sum_op<cudaq::spin_handler>)cudaq::spin_handler::i(0);
+    auto hamiltonian = cudaq::sum_op<cudaq::spin_handler>::empty();
     for (int i = 0; i < num_spins - 1; i++) {
       hamiltonian = hamiltonian + Jx * cudaq::spin_handler::x(i) *
                                       cudaq::spin_handler::x(i + 1);
