@@ -291,15 +291,6 @@
 <li class="toctree-l3"><a class="reference internal" href="krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="afqmc.html">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Hamiltonian-preparation-for-VQE">Hamiltonian preparation for VQE</a></li>
-<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Run-VQE-with-CUDA-Q">Run VQE with CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)">Auxiliary Field Quantum Monte Carlo (AFQMC)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Preparation-of-the-molecular-Hamiltonian">Preparation of the molecular Hamiltonian</a></li>
-<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Preparation-of-the-trial-wave-function">Preparation of the trial wave function</a></li>
-<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Setup-of-the-AFQMC-parameters">Setup of the AFQMC parameters</a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="quantum_fourier_transform.html">Quantum Fourier Transform</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="quantum_fourier_transform.html#Quantum-Fourier-Transform-revisited">Quantum Fourier Transform revisited</a></li>
 </ul>
@@ -370,7 +361,10 @@
 </li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Quantum edge detection</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#Image">Image</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Quantum-Probability-Image-Encoding-(QPIE):">Quantum Probability Image Encoding (QPIE):</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Quantum-Probability-Image-Encoding-(QPIE):">Quantum Probability Image Encoding (QPIE):</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Below-we-show-how-to-encode-an-image-using-QPIE-in-cudaq.">Below we show how to encode an image using QPIE in cudaq.</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="#Flexible-Representation-of-Quantum-Images-(FRQI):">Flexible Representation of Quantum Images (FRQI):</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#Building-the-FRQI-State:">Building the FRQI State:</a></li>
 </ul>
@@ -781,7 +775,7 @@
 <p>Image processing allows us to understand what is occurring in an image, and edge detection is an essential method to identify components of an image. Edge detection is the process of detecting edges of components to distinguish them by their perimeter. In this tutorial, we will use Quantum Hadamard Edge detection (QHED) to perform edge detection <a class="reference external" href="https://arxiv.org/pdf/2404.06889">1</a>.</p>
 <p>To perform quantum image processing on images used with classical image processing, we need to convert them to quantum images. There are various types of quantum image representation. In this tutorial, we will introduce the Quantum Probability Image Encoding (QPIE) and the Flexible Representation of Quantum Images (FRQI).</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
@@ -799,7 +793,7 @@
 <section id="Image">
 <h2>Image<a class="headerlink" href="#Image" title="Permalink to this heading">¶</a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">image</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
@@ -833,16 +827,17 @@
 <section id="Quantum-Probability-Image-Encoding-(QPIE):">
 <h2>Quantum Probability Image Encoding (QPIE):<a class="headerlink" href="#Quantum-Probability-Image-Encoding-(QPIE):" title="Permalink to this heading">¶</a></h2>
 <p>Lets take as an example a classical 2x2 image (4 pixels). We can label each pixel with its position</p>
-<div><p><img alt="faa18f725fee4294b469cf76147eeceb" class="no-scaled-link" src="../../_images/pixels-img.png" style="width: 200px;" /></p>
+<div><p><img alt="34fc237bbc5e44588f9a5d60ed206cbc" class="no-scaled-link" src="../../_images/pixels-img.png" style="width: 200px;" /></p>
 </div><p>Each pixel will have its own color intensity represented along with its position label as an 8-bit black and white color. To convert the pixel intensity to probability amplitudes of a quantum state</p>
 <div class="math notranslate nohighlight">
 \[c_i = \frac{I_{yx}}{\sqrt(\sum I^2_{yx})}\]</div>
 <p>The state can now be written as:</p>
 <div class="math notranslate nohighlight">
 \[\ket{img} = c_0 \ket{00} + c_1 \ket{01} + c_2 \ket{10} + c_3 \ket{11}\]</div>
-<p>Below, is how to encode an image using QPIE in cudaq.</p>
+<section id="Below-we-show-how-to-encode-an-image-using-QPIE-in-cudaq.">
+<h3>Below we show how to encode an image using QPIE in cudaq.<a class="headerlink" href="#Below-we-show-how-to-encode-an-image-using-QPIE-in-cudaq." title="Permalink to this heading">¶</a></h3>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">amplitude_encode</span><span class="p">(</span><span class="n">img_data</span><span class="p">):</span>
@@ -865,12 +860,12 @@
 
 <span class="c1"># Horizontal: Original image</span>
 <span class="n">image_norm_h</span> <span class="o">=</span> <span class="n">amplitude_encode</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">image_norm_h</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;length of the horizontal state: &#39;</span><span class="p">,</span> <span class="n">image_norm_h</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 <span class="n">state_image_h</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="n">from_data</span><span class="p">(</span><span class="n">image_norm_h</span><span class="p">)</span>
 
 <span class="c1"># Vertical: Transpose of Original image</span>
 <span class="n">image_norm_v</span> <span class="o">=</span> <span class="n">amplitude_encode</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">image_norm_v</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;length of the vertical state: &#39;</span><span class="p">,</span> <span class="n">image_norm_v</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 <span class="n">state_image_v</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="n">from_data</span><span class="p">(</span><span class="n">image_norm_v</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -880,10 +875,11 @@
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-(64,)
-(64,)
+length of the horizontal state:  (64,)
+length of the vertical state:  (64,)
 </pre></div></div>
 </div>
+</section>
 </section>
 <section id="Flexible-Representation-of-Quantum-Images-(FRQI):">
 <h2>Flexible Representation of Quantum Images (FRQI):<a class="headerlink" href="#Flexible-Representation-of-Quantum-Images-(FRQI):" title="Permalink to this heading">¶</a></h2>
@@ -898,25 +894,74 @@
 <section id="Building-the-FRQI-State:">
 <h3>Building the FRQI State:<a class="headerlink" href="#Building-the-FRQI-State:" title="Permalink to this heading">¶</a></h3>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">faltten_image</span><span class="o">=</span><span class="n">image</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
-<span class="n">angles</span><span class="o">=</span><span class="p">[]</span>
-<span class="k">for</span> <span class="n">intensity</span> <span class="ow">in</span> <span class="n">faltten_image</span><span class="p">:</span>
-    <span class="k">if</span> <span class="n">intensity</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">angles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arcsin</span><span class="p">(</span><span class="n">intensity</span><span class="p">)</span>
-        <span class="n">angles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">frqi</span><span class="p">(</span><span class="n">image</span><span class="p">):</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;angles&#39;</span><span class="p">,</span> <span class="n">angles</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">angles</span><span class="p">))</span>
+    <span class="n">faltten_image</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+    <span class="n">angles</span><span class="o">=</span><span class="p">[]</span>
+    <span class="k">for</span> <span class="n">intensity</span> <span class="ow">in</span> <span class="n">faltten_image</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">intensity</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">angles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arcsin</span><span class="p">(</span><span class="n">intensity</span><span class="p">)</span>
+            <span class="n">angles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
 
-<span class="c1"># number of qubits</span>
-<span class="n">pos_pixel</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">angles</span><span class="p">)))</span>
+    <span class="c1"># number of qubits</span>
+    <span class="n">pos_pixel</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">angles</span><span class="p">)))</span>
+
+    <span class="n">k_value</span> <span class="o">=</span> <span class="n">pos_pixel</span><span class="o">-</span><span class="mi">1</span>
+
+    <span class="c1"># This function let us know which are the qubits that need to be applied</span>
+    <span class="c1"># the X-gate so we can change the state of the pixels positions qubits</span>
+    <span class="c1"># to the new state.</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">change</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">new_state</span><span class="p">):</span>
+
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>  <span class="c1"># n is the length of the binary string</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>  <span class="c1"># create an empty array</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>  <span class="c1"># start to iterate n times</span>
+            <span class="k">if</span> <span class="n">state</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">!=</span> <span class="n">new_state</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+                <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>  <span class="c1"># if it is different we append the position to the array</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">c</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">c</span>
+
+    <span class="n">index</span><span class="o">=</span><span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">jk</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">angles</span><span class="p">)):</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="s1">&#39;{0:0</span><span class="si">{1}</span><span class="s1">b}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">jk</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">pos_pixel</span><span class="p">)</span>
+        <span class="n">new_state</span> <span class="o">=</span> <span class="s1">&#39;{0:0</span><span class="si">{1}</span><span class="s1">b}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">jk</span><span class="p">,</span> <span class="n">pos_pixel</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">jk</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="n">change</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">new_state</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">temp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">c</span><span class="o">-</span><span class="n">k_value</span><span class="p">)</span>
+                <span class="n">index</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">temp</span><span class="p">)</span>
+
+    <span class="n">index_q</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">num_x</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">arr</span> <span class="ow">in</span> <span class="n">index</span><span class="p">:</span>
+        <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="n">arr</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">arr</span><span class="p">:</span>
+            <span class="n">index_q</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+            <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">num_x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">count</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">angles</span><span class="p">,</span> <span class="n">index_q</span><span class="p">,</span> <span class="n">num_x</span><span class="p">,</span> <span class="n">pos_pixel</span>
+
+<span class="n">angles</span><span class="p">,</span> <span class="n">index_q</span><span class="p">,</span> <span class="n">num_x</span><span class="p">,</span> <span class="n">pos_pixel</span> <span class="o">=</span> <span class="n">frqi</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Number of qubits:&#39;</span><span class="p">,</span> <span class="n">pos_pixel</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Angles:&#39;</span><span class="p">,</span> <span class="n">angles</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Length of angles:&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">angles</span><span class="p">))</span>
+<span class="c1">#print(&#39;Index:&#39;, index_q)</span>
+<span class="c1">#print(&#39;Number of X-gates:&#39;, num_x)</span>
 </pre></div>
 </div>
 </div>
@@ -925,63 +970,15 @@
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-angles [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 0.0, 0.0, 0.0, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 0.0, 0.0, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 0.0, 0.0, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 0.0, 0.0, 0.0, 0.0, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 0.0, 0.0, 0.0, 0.0, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-64
 Number of qubits: 6
+Angles: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 0.0, 0.0, 0.0, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 0.0, 0.0, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 0.0, 0.0, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 0.0, 0.0, 0.0, 0.0, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 0.0, 0.0, 0.0, 0.0, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+Length of angles: 64
 </pre></div></div>
-</div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">k_value</span> <span class="o">=</span> <span class="n">pos_pixel</span><span class="o">-</span><span class="mi">1</span>
-
-<span class="c1"># This function let us know which are the qubits that need to be applied</span>
-<span class="c1"># the X-gate so we can change the state of the pixels positions qubits</span>
-<span class="c1"># to the new state.</span>
-
-<span class="k">def</span><span class="w"> </span><span class="nf">change</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">new_state</span><span class="p">):</span>
-
-    <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>  <span class="c1"># n is the length of the binary string</span>
-    <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>  <span class="c1"># create an empty array</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>  <span class="c1"># start to iterate n times</span>
-        <span class="k">if</span> <span class="n">state</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">!=</span> <span class="n">new_state</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
-            <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>  <span class="c1"># if it is different we append the position to the array</span>
-
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">c</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">c</span>
-
-<span class="n">index</span><span class="o">=</span><span class="p">[]</span>
-
-<span class="k">for</span> <span class="n">jk</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">angles</span><span class="p">)):</span>
-    <span class="n">state</span> <span class="o">=</span> <span class="s1">&#39;{0:0</span><span class="si">{1}</span><span class="s1">b}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">jk</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">pos_pixel</span><span class="p">)</span>
-    <span class="n">new_state</span> <span class="o">=</span> <span class="s1">&#39;{0:0</span><span class="si">{1}</span><span class="s1">b}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">jk</span><span class="p">,</span> <span class="n">pos_pixel</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">jk</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">c</span> <span class="o">=</span> <span class="n">change</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">new_state</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">temp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">c</span><span class="o">-</span><span class="n">k_value</span><span class="p">)</span>
-            <span class="n">index</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">temp</span><span class="p">)</span>
-
-<span class="n">index_q</span> <span class="o">=</span> <span class="p">[]</span>
-<span class="n">num_x</span> <span class="o">=</span> <span class="p">[]</span>
-
-<span class="k">for</span> <span class="n">arr</span> <span class="ow">in</span> <span class="n">index</span><span class="p">:</span>
-    <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">arr</span> <span class="o">=</span> <span class="n">arr</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
-    <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">arr</span><span class="p">:</span>
-        <span class="n">index_q</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
-        <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
-    <span class="n">num_x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">count</span><span class="p">)</span>
-<br/><br/><br/></pre></div>
-</div>
 </div>
 <section id="Measurement-and-Image-Retrieval:">
 <h4>Measurement and Image Retrieval:<a class="headerlink" href="#Measurement-and-Image-Retrieval:" title="Permalink to this heading">¶</a></h4>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
@@ -1025,7 +1022,7 @@ Number of qubits: 6
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create an empty array to save the retrieved image</span>
@@ -1089,7 +1086,7 @@ retrieved image
 <p>With a quantum algorithm, we can determine the pixel-intensity gradients with complexity O(1), regardless of the image size, by taking advantage of the superposition induced by the Hadamard gate. This is an exponential speedup. Furthermore, we only need n qubits for an image with <span class="math notranslate nohighlight">\(2^n\)</span> pixels.</p>
 <p>Below, we show how to implement the QHED along with some classical post-processing to get our edge detected horizontal and vertical scans. We employ in this example QPIE to encode the image.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">qubits_num</span><span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">image_norm_h</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
@@ -1141,7 +1138,7 @@ q6 : ─────────────────────────
 </pre></div></div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Sampling the circuit</span>
@@ -1169,7 +1166,7 @@ q6 : ─────────────────────────
 <section id="Post-processing">
 <h3>Post-processing<a class="headerlink" href="#Post-processing" title="Permalink to this heading">¶</a></h3>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">x</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">image_norm_h</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
@@ -1179,7 +1176,7 @@ q6 : ─────────────────────────
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plot_image</span><span class="p">(</span><span class="n">edge_scan_h</span><span class="p">,</span> <span class="s1">&#39;Horizontal scan output&#39;</span><span class="p">)</span>
@@ -1190,11 +1187,11 @@ q6 : ─────────────────────────
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/applications_python_edge-detection_17_0.png" src="../../_images/applications_python_edge-detection_17_0.png" />
+<img alt="../../_images/applications_python_edge-detection_16_0.png" src="../../_images/applications_python_edge-detection_16_0.png" />
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plot_image</span><span class="p">(</span><span class="n">edge_scan_v</span><span class="p">,</span> <span class="s1">&#39;vertical scan output&#39;</span><span class="p">)</span>
@@ -1205,12 +1202,12 @@ q6 : ─────────────────────────
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/applications_python_edge-detection_18_0.png" src="../../_images/applications_python_edge-detection_18_0.png" />
+<img alt="../../_images/applications_python_edge-detection_17_0.png" src="../../_images/applications_python_edge-detection_17_0.png" />
 </div>
 </div>
 <p>Finally, we combine both horizontal and vertical scans to get the complete edge detected image</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Combining the horizontal and vertical component of the result</span>
@@ -1224,7 +1221,7 @@ q6 : ─────────────────────────
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/applications_python_edge-detection_20_0.png" src="../../_images/applications_python_edge-detection_20_0.png" />
+<img alt="../../_images/applications_python_edge-detection_19_0.png" src="../../_images/applications_python_edge-detection_19_0.png" />
 </div>
 </div>
 </section>
