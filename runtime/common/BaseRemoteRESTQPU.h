@@ -586,7 +586,6 @@ public:
       // JIT ExecutionEngine pointer and use that for execution
       for (auto &[name, module] : modules) {
         auto clonedModule = module.clone();
-        std::cout << "JITTING module" << std::endl;
         jitEngines.emplace_back(
             cudaq::createQIRJITEngine(clonedModule, codegenTranslation));
       }
@@ -607,24 +606,20 @@ public:
         llvm::raw_string_ostream outStr(codeStr);
         if (disableMLIRthreading)
           moduleOpI.getContext()->disableMultithreading();
-        std::cout << "Running translation" << std::endl;
         if (failed(translation(moduleOpI, outStr, postCodeGenPasses, printIR,
                                enablePrintMLIREachPass, enablePassStatistics)))
           throw std::runtime_error("Could not successfully translate to " +
                                    codegenTranslation + ".");
       }
 
-      std::cout << "Finished translation" << std::endl;
       // Form an output_names mapping from codeStr
       nlohmann::json j =
           formOutputNames(codegenTranslation, moduleOpI, codeStr);
 
-      std::cout << "Created codes" << std::endl;
       codes.emplace_back(name, codeStr, j, mapping_reorder_idx);
     }
 
     cleanupContext(contextPtr);
-    std::cout << "Cleaned up context" << std::endl;
     return codes;
   }
 
@@ -745,12 +740,9 @@ public:
                       counts.sequential_data(regName);
                 }
               }
-              localJIT.clear();
-              return cudaq::sample_result(results);
             }
 
             for (std::size_t i = 0; i < codes.size(); i++) {
-              std::cout << "Executing..." << std::endl;
               cudaq::ExecutionContext context("sample", localShots);
               context.reorderIdx = reorderIdx;
               cudaq::getExecutionManager()->setExecutionContext(&context);
@@ -763,7 +755,6 @@ public:
                 results.back().sequentialData =
                     context.result.sequential_data();
               } else {
-                std::cout << "Collecting results." << std::endl;
                 // For each register, add the context results into result.
                 for (auto &regName : context.result.register_names()) {
                   results.emplace_back(context.result.to_map(regName), regName);
@@ -773,7 +764,6 @@ public:
               }
             }
 
-            std::cout << "Returning results." << std::endl;
             localJIT.clear();
             return cudaq::sample_result(results);
           }));

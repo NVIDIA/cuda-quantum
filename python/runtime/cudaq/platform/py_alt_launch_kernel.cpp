@@ -38,8 +38,6 @@
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
 
-#include <iostream>
-
 namespace py = pybind11;
 using namespace mlir;
 

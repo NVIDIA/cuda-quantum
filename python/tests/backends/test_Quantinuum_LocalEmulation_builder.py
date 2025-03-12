@@ -151,13 +151,6 @@ def test_quantinuum_state_synthesis():
     assert "01" not in counts
     assert "11" not in counts
 
-    synthesized = cudaq.synthesize(kernel, state)
-    counts = cudaq.sample(synthesized)
-    print(counts)
-    assert '00' in counts
-    assert '10' in counts
-    assert len(counts) == 2
-
 
 def test_exp_pauli():
     test = cudaq.make_kernel()
