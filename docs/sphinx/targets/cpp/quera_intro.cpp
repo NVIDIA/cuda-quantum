@@ -13,7 +13,7 @@
 #include <map>
 #include <vector>
 
-// This example illustrates how to use QuEra's Aquila device on Braket with
+// This example illustrates how to use QuEra Aquila device on Braket with
 // CUDA-Q. It is a CUDA-Q implementation of the getting started materials for
 // Braket available here:
 // https://github.com/amazon-braket/amazon-braket-examples/blob/main/examples/analog_hamiltonian_simulation/01_Introduction_to_Aquila.ipynb
