@@ -63,10 +63,10 @@ std::complex<double> scalar_operator::evaluate(
   return std::get<std::complex<double>>(this->value);
 }
 
-matrix_2 scalar_operator::to_matrix(
+complex_matrix scalar_operator::to_matrix(
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
-  auto returnOperator = matrix_2(1, 1);
+  auto returnOperator = complex_matrix(1, 1);
   returnOperator[{0, 0}] = evaluate(parameters);
   return returnOperator;
 }

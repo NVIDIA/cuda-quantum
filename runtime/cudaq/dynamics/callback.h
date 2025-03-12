@@ -9,7 +9,7 @@
 #pragma once
 
 #include "cudaq/qis/state.h"
-#include "cudaq/utils/tensor.h"
+#include "cudaq/utils/matrix.h"
 
 #include <complex>
 #include <functional>
@@ -54,7 +54,7 @@ private:
   // The user provided callback function that takes a vector defining the
   // dimension for each degree of freedom it acts on, and a map of complex
   // parameters.
-  std::function<matrix_2(
+  std::function<complex_matrix(
       const std::vector<int> &,
       const std::unordered_map<std::string, std::complex<double>> &)>
       callback_func;
@@ -64,7 +64,7 @@ public:
       typename Callable,
       std::enable_if_t<
           std::is_invocable_r_v<
-              matrix_2, Callable, const std::vector<int> &,
+              complex_matrix, Callable, const std::vector<int> &,
               const std::unordered_map<std::string, std::complex<double>> &>,
           bool> = true>
   matrix_callback(Callable &&callable) {
@@ -77,7 +77,7 @@ public:
   matrix_callback &operator=(const matrix_callback &other) = default;
   matrix_callback &operator=(matrix_callback &&other) = default;
 
-  matrix_2
+  complex_matrix
   operator()(const std::vector<int> &relevant_dimensions,
              const std::unordered_map<std::string, std::complex<double>>
                  &parameters) const;
@@ -100,7 +100,7 @@ public:
   ~Definition();
 
   // To call the generator function
-  matrix_2
+  complex_matrix
   generate_matrix(const std::vector<int> &relevant_dimensions,
                   const std::unordered_map<std::string, std::complex<double>>
                       &parameters) const;
