@@ -12,7 +12,10 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
   target_link_options(test_record PRIVATE -Wl,--no-as-needed)
 endif()
 target_include_directories(test_record PRIVATE ..)
-target_link_libraries(test_record PRIVATE 
+target_link_libraries(test_record
+  PRIVATE
+    fmt::fmt-header-only 
+    cudaq
     fmt::fmt-header-only 
     cudaq-common 
     gtest_main
