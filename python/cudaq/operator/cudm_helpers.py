@@ -13,13 +13,18 @@ from .expressions import ElementaryOperator, ScalarOperator
 from .manipulation import OperatorArithmetics
 import logging
 from .schedule import Schedule
+import warnings
 
 cudm = None
 CudmStateType = None
 try:
-    from cuquantum import densitymat as cudm
-    from cuquantum.densitymat.callbacks import Callback as CallbackCoefficient
-    from cuquantum.densitymat.callbacks import CPUCallback
+    # Suppress deprecation warnings on `cuquantum` import.
+    # FIXME: remove this after `cuquantum` no longer warns on import.
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        from cuquantum import densitymat as cudm
+        from cuquantum.densitymat.callbacks import Callback as CallbackCoefficient
+        from cuquantum.densitymat.callbacks import CPUCallback
     CudmStateType = Union[cudm.DensePureState, cudm.DenseMixedState]
     CudmOperator = cudm.Operator
     CudmOperatorTerm = cudm.OperatorTerm

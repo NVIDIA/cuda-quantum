@@ -6,13 +6,19 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-from cuquantum.densitymat import DenseMixedState, DensePureState, WorkStream
 import numpy, cupy, atexit
 from typing import Sequence
 from cupy.cuda.memory import MemoryPointer, UnownedMemory
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
-from cuquantum.bindings import cudensitymat as cudm
 from .helpers import InitialState
+import warnings
+
+# Suppress deprecation warnings on `cuquantum` import.
+# FIXME: remove this after `cuquantum` no longer warns on import.
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    from cuquantum.densitymat import DenseMixedState, DensePureState, WorkStream
+    from cuquantum.bindings import cudensitymat as cudm
 
 
 def is_multi_processes():
