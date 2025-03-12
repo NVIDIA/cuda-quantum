@@ -97,14 +97,15 @@ protected:
     PassManager pm(cloned.getContext());
 
     cudaq::opt::addAggressiveEarlyInlining(pm);
-    pm.addPass(mlir::createCanonicalizerPass());
-    pm.addNestedPass<mlir::func::FuncOp>(
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
+    pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+    pm.addNestedPass<func::FuncOp>(
         cudaq::opt::createUnwindLoweringPass());
-    pm.addPass(mlir::createCanonicalizerPass());
+    pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
     pm.addPass(createInlinerPass());
-    pm.addPass(createCanonicalizerPass());
-    pm.addPass(createCSEPass());
+    pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+    pm.addNestedPass<func::FuncOp>(createCSEPass());
     if (failed(pm.run(cloned)))
       throw std::runtime_error(
           "Failure to synthesize callable block arguments in PyRemoteRESTQPU ");

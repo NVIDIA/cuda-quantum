@@ -44,6 +44,8 @@
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Tools/ParseUtilities.h"
 
+#include <iostream>
+
 namespace cudaq {
 
 bool setupTargetTriple(llvm::Module *llvmModule) {
@@ -399,6 +401,8 @@ qirProfileTranslationFunction(const char *qirProfile, mlir::Operation *op,
     return mlir::failure();
   timingScope.stop();
 
+  std::cout << "Translating to llvm" << std::endl;
+
   auto llvmContext = std::make_unique<llvm::LLVMContext>();
   llvmContext->setOpaquePointers(false);
   auto llvmModule = translateModuleToLLVMIR(op, *llvmContext);
@@ -436,6 +440,8 @@ qirProfileTranslationFunction(const char *qirProfile, mlir::Operation *op,
                               "extern_functions", falseValue);
     llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
                               "backwards_branching", falseValue);
+
+                              std::cout << "Translated to llvm" << std::endl;
   }
 
   // Note: optimizeLLVM is the one that is setting nonnull attributes on

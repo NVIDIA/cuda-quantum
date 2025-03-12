@@ -531,19 +531,13 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
                     "}\n";
     __cudaq_deviceCodeHolderAdd(init, initCode);
 
-    std::int64_t n = 2;
-    std::vector<void *> a = {static_cast<void *>(&n)};
-    auto s = cudaq::state(new FakeDeviceState(init, a));
+    auto s = cudaq::state(new FakeDeviceState(init, {}));
     std::vector<void *> v = {static_cast<void *>(&s)};
     doSimpleTest(ctx, "!cc.ptr<!cc.state>", v, initCode);
   }
 
   // clang-format off
 // CHECK:       Source module:
-// CHECK:         func.func private @__nvqpp__mlirgen__init() {
-// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
-// CHECK:           return
-// CHECK:         }
 // CHECK:         func.func private @callee(!cc.ptr<!cc.state>)
 
 // CHECK:         ========================================
@@ -552,7 +546,7 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
 // CHECK-LABEL:   cc.arg_subst[0] {
 // CHECK:           %[[VAL_0:.*]] = quake.materialize_state @__nvqpp__mlirgen__init.num_qubits_[[HASH_0:.*]] @__nvqpp__mlirgen__init.init_[[HASH_0]] : !cc.ptr<!cc.state>
 // CHECK:         }
-// CHECK:         func.func private @__nvqpp__mlirgen__init.init_[[HASH_0]](%arg1: !quake.veq<?>) -> !quake.veq<?> {
+// CHECK:         func.func private @__nvqpp__mlirgen__init.init_[[HASH_0]](%arg0: !quake.veq<?>) -> !quake.veq<?> {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i64
 // CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
 // CHECK:           %[[VAL_2:.*]] = arith.constant 2 : i64
@@ -580,18 +574,18 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
 
   {
     // @cudaq.kernel
-    // def init(n: int):
+    // def init0(n: int):
     //    q = cudaq.qvector(n)
     //    x(q[0])
     //
     // def kernel(s: cudaq.State):
     //   ...
     //
-    // s = cudaq.get_state(init, 2)
+    // s = cudaq.get_state(init0, 2)
     // cudaq.sample(kernel, s)
-    auto init = "init";
+    auto init = "init0";
     auto initCode =
-        "func.func private @__nvqpp__mlirgen__init(%arg0: i64) {\n"
+        "func.func private @__nvqpp__mlirgen__init0(%arg0: i64) {\n"
         "  %0 = quake.alloca !quake.veq<?>[%arg0 : i64]\n"
         "  %1 = quake.extract_ref %0[0] : (!quake.veq<?>) -> !quake.ref\n"
         "  quake.x %1 : (!quake.ref) -> ()\n"
@@ -608,21 +602,15 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
 
   // clang-format off
 // CHECK:       Source module:
-// CHECK:         func.func private @__nvqpp__mlirgen__init(%arg0: i64) {
-// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<?>[%arg0 : i64]
-// CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<?>) -> !quake.ref
-// CHECK:           quake.x %[[VAL_1]] : (!quake.ref) -> ()
-// CHECK:           return
-// CHECK:         }
 // CHECK:         func.func private @callee(!cc.ptr<!cc.state>)
 
 // CHECK:         ========================================
 // CHECK:         Substitution module:
 // CHECK:         testy
 // CHECK-LABEL:   cc.arg_subst[0] {
-// CHECK:           %[[VAL_0:.*]] = quake.materialize_state @__nvqpp__mlirgen__init.num_qubits_[[HASH_0:.*]] @__nvqpp__mlirgen__init.init_[[HASH_0]] : !cc.ptr<!cc.state>
+// CHECK:           %[[VAL_0:.*]] = quake.materialize_state @__nvqpp__mlirgen__init0.num_qubits_[[HASH_0:.*]] @__nvqpp__mlirgen__init0.init_[[HASH_0]] : !cc.ptr<!cc.state>
 // CHECK:         }
-// CHECK:         func.func private @__nvqpp__mlirgen__init.init_[[HASH_0]](%arg0: i64, %arg1: !quake.veq<?>) -> !quake.veq<?> {
+// CHECK:         func.func private @__nvqpp__mlirgen__init0.init_[[HASH_0]](%arg0: i64, %arg1: !quake.veq<?>) -> !quake.veq<?> {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i64
 // CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
 // CHECK:           %[[VAL_2:.*]] = arith.subi %arg0, %[[VAL_1]] : i64
@@ -635,20 +623,20 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
 // CHECK:           %[[VAL_8:.*]] = quake.subveq %arg1, %[[VAL_0]], %[[VAL_7]] : (!quake.veq<?>, i64, i64) -> !quake.veq<?>
 // CHECK:           return %[[VAL_8]] : !quake.veq<?>
 // CHECK:         }
-// CHECK:         func.func private @__nvqpp__mlirgen__init.num_qubits_[[HASH_0]](%arg0: i64) -> i64 {
+// CHECK:         func.func private @__nvqpp__mlirgen__init0.num_qubits_[[HASH_0]](%arg0: i64) -> i64 {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i64
 // CHECK:           %[[VAL_1:.*]] = arith.addi %[[VAL_0]], %arg0 : i64
 // CHECK:           return %[[VAL_1]] : i64
 // CHECK:         }
 // CHECK:         ========================================
 // CHECK:         Substitution module:
-// CHECK:         init.init_[[HASH_0]]
+// CHECK:         init0.init_[[HASH_0]]
 // CHECK-LABEL:   cc.arg_subst[0] {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 2 : i64
 // CHECK:         }
 // CHECK:         ========================================
 // CHECK:         Substitution module:
-// CHECK:         init.num_qubits_[[HASH_0]]
+// CHECK:         init0.num_qubits_[[HASH_0]]
 // CHECK-LABEL:   cc.arg_subst[0] {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 2 : i64
 // CHECK:         }
@@ -709,18 +697,6 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
 
   // clang-format off
 // CHECK:       Source module:
-// CHECK:         func.func private @__nvqpp__mlirgen__init1(%arg0: i64) {
-// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<?>[%arg0 : i64]
-// CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<?>) -> !quake.ref
-// CHECK:           quake.x %[[VAL_1]] : (!quake.ref) -> ()
-// CHECK:           return
-// CHECK:         }
-// CHECK:         func.func private @__nvqpp__mlirgen__state_param(%arg0: !cc.ptr<!cc.state>) {
-// CHECK:           %[[VAL_0:.*]] = quake.get_number_of_qubits %arg0 : (!cc.ptr<!cc.state>) -> i64
-// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<?>[%[[VAL_0]] : i64]
-// CHECK:           %[[VAL_2:.*]] = quake.init_state %[[VAL_1]], %arg0 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
-// CHECK:           return
-// CHECK:         }
 // CHECK:         func.func private @callee(!cc.ptr<!cc.state>)
 
 // CHECK:         ========================================
@@ -839,21 +815,6 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
 
   // clang-format off
 // CHECK:       Source module:
-// CHECK:         func.func private @__nvqpp__mlirgen__init2(%arg0: i64) {
-// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<?>[%arg0 : i64]
-// CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<?>) -> !quake.ref
-// CHECK:           quake.x %[[VAL_1]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] name "q0" : (!quake.ref) -> !quake.measure
-// CHECK:           %[[VAL_3:.*]] = quake.discriminate %[[VAL_2]] : (!quake.measure) -> i1
-// CHECK:           cc.if(%[[VAL_3]]) {
-// CHECK:             %[[VAL_4:.*]] = quake.alloca !quake.veq<?>[%arg0 : i64]
-// CHECK:             %[[VAL_5:.*]] = quake.extract_ref %[[VAL_4]][0] : (!quake.veq<?>) -> !quake.ref
-// CHECK:             quake.x %[[VAL_5]] : (!quake.ref) -> ()
-// CHECK:             %[[VAL_6:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<?>) -> !quake.ref
-// CHECK:             quake.y %[[VAL_6]] : (!quake.ref) -> ()
-// CHECK:           }
-// CHECK:           return
-// CHECK:         }
 // CHECK:         func.func private @callee(!cc.ptr<!cc.state>)
 
 // CHECK:         ========================================
@@ -901,6 +862,76 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
 // CHECK-LABEL:   cc.arg_subst[0] {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 2 : i64
 // CHECK:         }
+  // clang-format on
+  
+  {
+    // (No memtoreg pass before synthesis)
+    // @cudaq.kernel
+    // def init3(n: int):
+    //    q0 = cudaq.qvector(n)
+    //
+    // def kernel(s: cudaq.State):
+    //   ...
+    //
+    // s = cudaq.get_state(init3, 2)
+    // cudaq.sample(kernel, s)
+    auto init = "init3";
+    auto initCode =
+        " func.func @__nvqpp__mlirgen__init3(%arg0: i64) {\n"
+        "   %0 = cc.alloca i64\n"
+        "   cc.store %arg0, %0 : !cc.ptr<i64>\n"
+        "   %1 = cc.load %0 : !cc.ptr<i64>\n"
+        "   %2 = quake.alloca !quake.veq<?>[%1 : i64]\n"
+        "   return\n"
+        "}\n";
+
+    __cudaq_deviceCodeHolderAdd(init, initCode);
+
+    std::int64_t n = 2;
+    std::vector<void *> a = {static_cast<void *>(&n)};
+    auto s = cudaq::state(new FakeDeviceState(init, a));
+    std::vector<void *> v = {static_cast<void *>(&s)};
+    doSimpleTest(ctx, "!cc.ptr<!cc.state>", v, initCode);
+  }
+
+  // clang-format off
+// CHECK:       Source module:
+// CHECK:         func.func private @callee(!cc.ptr<!cc.state>)
+
+// CHECK:         ========================================
+// CHECK:         Substitution module:
+// CHECK:         testy
+// CHECK-LABEL:   cc.arg_subst[0] {
+// CHECK:           %[[VAL_0:.*]] = quake.materialize_state @__nvqpp__mlirgen__init3.num_qubits_[[HASH_0:.*]] @__nvqpp__mlirgen__init3.init_[[HASH_0]] : !cc.ptr<!cc.state>
+// CHECK:         }
+// CHECK:         func.func private @__nvqpp__mlirgen__init3.init_[[HASH_0]](%arg0: i64, %arg1: !quake.veq<?>) -> !quake.veq<?> {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i64
+// CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
+// CHECK:           %[[VAL_2:.*]] = cc.alloca i64
+// CHECK:           cc.store %arg0, %[[VAL_2]] : !cc.ptr<i64>
+// CHECK:           %[[VAL_3:.*]] = cc.load %[[VAL_2]] : !cc.ptr<i64>
+// CHECK:           %[[VAL_4:.*]] = arith.subi %[[VAL_3]], %[[VAL_1]] : i64
+// CHECK:           %[[VAL_5:.*]] = quake.subveq %arg1, %[[VAL_0]], %[[VAL_4]] : (!quake.veq<?>, i64, i64) -> !quake.veq<?>
+// CHECK:           %[[VAL_6:.*]] = arith.addi %[[VAL_0]], %[[VAL_3]] : i64
+// CHECK:           %[[VAL_7:.*]] = arith.addi %[[VAL_0]], %[[VAL_3]] : i64
+// CHECK:           %[[VAL_8:.*]] = arith.subi %[[VAL_7]], %[[VAL_1]] : i64
+// CHECK:           %[[VAL_9:.*]] = quake.subveq %arg1, %[[VAL_0]], %[[VAL_8]] : (!quake.veq<?>, i64, i64) -> !quake.veq<?>
+// CHECK:           return %[[VAL_9]] : !quake.veq<?>
+// CHECK:         }
+// CHECK:         func.func private @__nvqpp__mlirgen__init3.num_qubits_[[HASH_0]](%arg0: i64) -> i64 {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i64
+// CHECK:           %[[VAL_1:.*]] = cc.alloca i64
+// CHECK:           cc.store %arg0, %[[VAL_1]] : !cc.ptr<i64>
+// CHECK:           %[[VAL_2:.*]] = cc.load %[[VAL_1]] : !cc.ptr<i64>
+// CHECK:           %[[VAL_3:.*]] = arith.addi %[[VAL_0]], %[[VAL_2]] : i64
+// CHECK:           return %[[VAL_3]] : i64
+// CHECK:         }
+// CHECK:         ========================================
+// CHECK:         Substitution module:
+// CHECK:         init3.init_[[HASH_0]]
+// CHECK:         ========================================
+// CHECK:         Substitution module:
+// CHECK:         init3.num_qubits_[[HASH_0]]
   // clang-format on
 }
 
