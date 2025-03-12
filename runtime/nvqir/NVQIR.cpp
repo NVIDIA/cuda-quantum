@@ -11,7 +11,6 @@
 #include "common/Logger.h"
 #include "common/PluginUtils.h"
 #include "cudaq/qis/state.h"
-#include "cudaq/spin_op.h"
 #include <cmath>
 #include <complex>
 #include <string>
