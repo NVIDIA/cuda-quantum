@@ -874,7 +874,7 @@ def ReplaceStateWithKernel : Pass<"replace-state-with-kernel", "mlir::func::Func
 
     The `quake.materialize_state` operation accepts symbols for the synthesized
     kernels `@num_qubits` and `@init` that argument synthesis generated from
-    the original kernel call that generated the state, e.g., 
+    the original kernel call that generated the state, e.g.,
     the `cudaq::get_state` call that refers to the result of a specific quantum
     kernel being invoked with a set of parameters
 

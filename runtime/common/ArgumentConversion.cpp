@@ -723,10 +723,9 @@ void cudaq::opt::ArgumentConverter::gen(StringRef kernelName,
   // We should look up the input type signature here.
   auto fun = sourceModule.lookupSymbol<func::FuncOp>(
       cudaq::runtime::cudaqGenPrefixName + kernelName.str());
-  if (!fun) {
+  if (!fun)
     throw std::runtime_error("missing fun in argument conversion: " +
                              kernelName.str());
-  }
 
   FunctionType fromFuncTy = fun.getFunctionType();
   for (auto iter :

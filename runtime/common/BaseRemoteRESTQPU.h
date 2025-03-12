@@ -586,8 +586,6 @@ public:
     } else
       modules.emplace_back(kernelName, moduleOp);
 
-    std::cout << "Modules: " << modules.size() << std::endl;
-
     if (emulate) {
       // If we are in emulation mode, we need to first get a full QIR
       // representation of the code. Then we'll map to an LLVM Module, create a
@@ -714,7 +712,7 @@ public:
             std::vector<cudaq::ExecutionResult> results;
 
             // If seed is 0, then it has not been set.
-            if (seed == 0)
+            if (seed > 0)
               cudaq::set_random_seed(seed);
 
             bool hasConditionals =
@@ -722,7 +720,6 @@ public:
             if (hasConditionals && isObserve)
               throw std::runtime_error("error: spin_ops not yet supported with "
                                        "kernels containing conditionals");
-
             if (hasConditionals) {
               executor->setShots(1); // run one shot at a time
 
@@ -748,8 +745,6 @@ public:
                       counts.sequential_data(regName);
                 }
               }
-              localJIT.clear();
-              return cudaq::sample_result(results);
             }
 
             for (std::size_t i = 0; i < codes.size(); i++) {
