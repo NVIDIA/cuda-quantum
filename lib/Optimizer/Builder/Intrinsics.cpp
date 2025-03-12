@@ -264,8 +264,8 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     %6 = cc.compute_ptr %10[%arg1] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
     call @llvm.memcpy.p0i8.p0i8.i64(%6, %5, %1, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
     %7 = cc.undef !cc.struct<{!cc.ptr<i8>, i64}>
-    %8 = cc.insert_value %3, %7[0] : (!cc.struct<{!cc.ptr<i8>, i64}>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
-    %9 = cc.insert_value %2, %8[1] : (!cc.struct<{!cc.ptr<i8>, i64}>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
+    %8 = cc.insert_value %7[0], %3 : (!cc.struct<{!cc.ptr<i8>, i64}>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+    %9 = cc.insert_value %8[1], %2 : (!cc.struct<{!cc.ptr<i8>, i64}>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
     %11 = cc.compute_ptr %10[%arg3] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
     %12 = cc.cast %11 : (!cc.ptr<i8>) -> !cc.ptr<!cc.ptr<i8>>
     cc.store %6, %12 : !cc.ptr<!cc.ptr<i8>>
@@ -345,8 +345,8 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     %c0_i64 = arith.constant 0 : i64
     %0 = cc.cast %c0_i64 : (i64) -> !cc.ptr<i8>
     %1 = cc.undef !cc.struct<{!cc.ptr<i8>, i64}>
-    %2 = cc.insert_value %0, %1[0] : (!cc.struct<{!cc.ptr<i8>, i64}>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
-    %3 = cc.insert_value %c0_i64, %2[1] : (!cc.struct<{!cc.ptr<i8>, i64}>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
+    %2 = cc.insert_value %1[0], %0 : (!cc.struct<{!cc.ptr<i8>, i64}>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+    %3 = cc.insert_value %2[1], %c0_i64 : (!cc.struct<{!cc.ptr<i8>, i64}>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
     return %3 : !cc.struct<{!cc.ptr<i8>, i64}>
   })#"},
 
@@ -430,11 +430,12 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__quantum__qis__rz__ctl(f64, !qir_array, !qir_qubit)
   func.func private @__quantum__qis__r1__ctl(f64, !qir_array, !qir_qubit)
 
-  func.func private @__quantum__qis__exp_pauli(f64, !qir_array, !qir_charptr)
+  func.func private @__quantum__qis__exp_pauli__ctl(f64, !qir_array, !qir_array, !qir_charptr)
   func.func private @__quantum__qis__custom_unitary(!cc.ptr<complex<f64>>, !qir_array, !qir_array, !qir_charptr)
   func.func private @__quantum__qis__custom_unitary__adj(!cc.ptr<complex<f64>>, !qir_array, !qir_array, !qir_charptr)
 
   llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i64, !qir_llvmptr, ...) attributes {sym_visibility = "private"}
+  llvm.func @__quantum__qis__apply_kraus_channel_generalized(i64, i64, i64, i64, i64, ...) attributes {sym_visibility = "private"}
 )#"},
 
     // Declarations for base and adaptive profile QIR functions used by codegen.
@@ -449,8 +450,8 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__quantum__qis__z__body(!qir_qubit)
   func.func private @__quantum__qis__s__body(!qir_qubit)
   func.func private @__quantum__qis__t__body(!qir_qubit)
-  func.func private @__quantum__qis__sdg__body(!qir_qubit)
-  func.func private @__quantum__qis__tdg__body(!qir_qubit)
+  func.func private @__quantum__qis__s__adj(!qir_qubit)
+  func.func private @__quantum__qis__t__adj(!qir_qubit)
   func.func private @__quantum__qis__u3__body(f64, f64, f64, !qir_qubit)
   func.func private @__quantum__qis__reset__body(!qir_qubit)
   func.func private @__quantum__qis__mz__body(!qir_qubit, !qir_result) attributes {passthrough = ["irreversible"]} 
@@ -460,6 +461,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__quantum__qis__ry__body(f64, !qir_qubit)
   func.func private @__quantum__qis__rz__body(f64, !qir_qubit)
   func.func private @__quantum__qis__r1__body(f64, !qir_qubit)
+  func.func private @__quantum__qis__exp_pauli__body(f64, !qir_array, !qir_charptr)
 
   func.func private @__quantum__rt__result_record_output(!qir_result, !qir_charptr)
   func.func private @__quantum__qis__cnot__body(!qir_qubit, !qir_qubit)
@@ -478,8 +480,8 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__quantum__qis__z(!qir_qubit)
   func.func private @__quantum__qis__s(!qir_qubit)
   func.func private @__quantum__qis__t(!qir_qubit)
-  func.func private @__quantum__qis__sdg(!qir_qubit)
-  func.func private @__quantum__qis__tdg(!qir_qubit)
+  func.func private @__quantum__qis__s__adj(!qir_qubit)
+  func.func private @__quantum__qis__t__adj(!qir_qubit)
   func.func private @__quantum__qis__u3(f64, f64, f64, !qir_qubit)
   func.func private @__quantum__qis__reset(!qir_qubit)
   func.func private @__quantum__qis__mz(!qir_qubit) -> !qir_result
@@ -490,6 +492,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__quantum__qis__ry(f64, !qir_qubit)
   func.func private @__quantum__qis__rz(f64, !qir_qubit)
   func.func private @__quantum__qis__r1(f64, !qir_qubit)
+  func.func private @__quantum__qis__exp_pauli(f64, !qir_array, !qir_charptr)
     )#"},
 
     // Choose one of the two QIR typing conventions. Opaque pointers are the

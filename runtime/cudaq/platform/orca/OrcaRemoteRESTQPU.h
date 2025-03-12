@@ -88,6 +88,9 @@ public:
   /// @brief Return true if the current backend supports conditional feedback
   bool supportsConditionalFeedback() override { return false; }
 
+  /// @brief Return true if the current backend supports explicit measurements
+  bool supportsExplicitMeasurements() override { return false; }
+
   /// @brief Provide the number of shots
   void setShots(int _nShots) override { nShots = _nShots; }
 
@@ -105,11 +108,10 @@ public:
     cudaq::getExecutionManager()->setExecutionContext(contexts[tid]);
   }
 
-  /// @brief Overrides resetExecutionContext to forward to the ExecutionManager
+  /// @brief Overrides resetExecutionContext
   void resetExecutionContext() override {
     cudaq::info("OrcaRemoteRESTQPU::resetExecutionContext QPU {}", qpu_id);
     auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
-    cudaq::getExecutionManager()->resetExecutionContext();
     contexts[tid] = nullptr;
     contexts.erase(tid);
   }

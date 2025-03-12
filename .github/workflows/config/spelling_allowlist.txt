@@ -82,13 +82,16 @@ OpenSUSE
 Ou
 POSIX
 PSIRT
+Pasqal
 Pauli
 Paulis
+Photonic
 Photonics
 PyPI
 Pygments
 QAOA
 QCaaS
+QEC
 QIR
 QIS
 QPP
@@ -109,6 +112,7 @@ SLED
 SLES
 SLURM
 SVD
+Sqale
 Stim
 Superpositions
 Superstaq
@@ -189,6 +193,7 @@ discoverable
 discretization
 discretize
 discretized
+eigenbasis
 eigensolver
 eigensolvers
 eigenstate
@@ -198,6 +203,7 @@ eigenvalues
 eigenvector
 eigenvectors
 endian
+endianness
 enqueue
 enqueues
 enqueuing
@@ -260,6 +266,7 @@ parallelizing
 parameterization
 performant
 photonic
+photonics
 precompute
 precomputed
 prepend

@@ -117,6 +117,10 @@ public:
   /// cudaq::run.
   std::string outputLog;
 
+  /// @brief Whether or not to simply concatenate measurements in execution
+  /// order.
+  bool explicitMeasurements = false;
+
   /// @brief The Constructor, takes the name of the context
   /// @param n The name of the context
   ExecutionContext(const std::string n) : name(n) {}

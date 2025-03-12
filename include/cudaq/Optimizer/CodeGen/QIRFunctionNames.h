@@ -106,4 +106,11 @@ static constexpr const char QIRTupleRecordOutput[] =
 static constexpr const char QIRArrayRecordOutput[] =
     "__quantum__rt__array_record_output";
 
+/// Used to specify the type of the data elements in the `QISApplyKrausChannel`
+/// call. (`float` or `double`)
+enum class KrausChannelDataKind { FloatKind, DoubleKind };
+
+static constexpr const char QISApplyKrausChannel[] =
+    "__quantum__qis__apply_kraus_channel_generalized";
+
 } // namespace cudaq::opt

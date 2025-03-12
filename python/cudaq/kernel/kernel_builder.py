@@ -888,7 +888,8 @@ class PyKernel(object):
                 quantumVal = quake.ConcatOp(quake.VeqType.get(
                     self.ctx), [quantumVal] if quantumVal is not None else [] +
                                             qubitsList).result
-            quake.ExpPauliOp(thetaVal, quantumVal, pauli=pauliWordVal)
+            quake.ExpPauliOp([], [thetaVal], [], [quantumVal],
+                             pauli=pauliWordVal)
 
     def givens_rotation(self, angle, qubitA, qubitB):
         """
@@ -1076,10 +1077,12 @@ class PyKernel(object):
             if quake.VeqType.isinstance(target.mlirValue.type):
                 retTy = stdvecTy
                 measTy = cc.StdvecType.get(self.ctx, measTy)
-            res = quake.MzOp(
-                measTy, [], [target.mlirValue],
-                registerName=StringAttr.get(regName, context=self.ctx)
-                if regName is not None else '')
+            if regName is not None:
+                res = quake.MzOp(measTy, [], [target.mlirValue],
+                                 registerName=StringAttr.get(regName,
+                                                             context=self.ctx))
+            else:
+                res = quake.MzOp(measTy, [], [target.mlirValue])
             disc = quake.DiscriminateOp(retTy, res)
             return self.__createQuakeValue(disc.result)
 
@@ -1120,10 +1123,12 @@ class PyKernel(object):
             if quake.VeqType.isinstance(target.mlirValue.type):
                 retTy = stdvecTy
                 measTy = cc.StdvecType.get(self.ctx, measTy)
-            res = quake.MxOp(
-                measTy, [], [target.mlirValue],
-                registerName=StringAttr.get(regName, context=self.ctx)
-                if regName is not None else '')
+            if regName is not None:
+                res = quake.MxOp(measTy, [], [target.mlirValue],
+                                 registerName=StringAttr.get(regName,
+                                                             context=self.ctx))
+            else:
+                res = quake.MxOp(measTy, [], [target.mlirValue])
             disc = quake.DiscriminateOp(retTy, res)
             return self.__createQuakeValue(disc.result)
 
@@ -1165,10 +1170,12 @@ class PyKernel(object):
             if quake.VeqType.isinstance(target.mlirValue.type):
                 retTy = stdvecTy
                 measTy = cc.StdvecType.get(self.ctx, measTy)
-            res = quake.MyOp(
-                measTy, [], [target.mlirValue],
-                registerName=StringAttr.get(regName, context=self.ctx)
-                if regName is not None else '')
+            if regName is not None:
+                res = quake.MyOp(measTy, [], [target.mlirValue],
+                                 registerName=StringAttr.get(regName,
+                                                             context=self.ctx))
+            else:
+                res = quake.MyOp(measTy, [], [target.mlirValue])
             disc = quake.DiscriminateOp(retTy, res)
             return self.__createQuakeValue(disc.result)
 

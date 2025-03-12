@@ -27,12 +27,12 @@ namespace cudaq {
 /// measurement, allocation, and deallocation, and execution context handling
 /// (e.g. sampling)
 class BasicExecutionManager : public cudaq::ExecutionManager {
-private:
+protected:
+  /// @brief Return true if we are in tracer mode
   bool isInTracerMode() {
     return executionContext && executionContext->name == "tracer";
   }
 
-protected:
   /// @brief An instruction is composed of a operation name,
   /// a optional set of rotation parameters, control qudits,
   /// target qudits, and an optional spin_op.
@@ -235,6 +235,11 @@ public:
                                   mutable_controls, mutable_targets, op);
   }
 
+  void applyNoise(const kraus_channel &channel,
+                  const std::vector<QuditInfo> &targets) override {
+    return;
+  }
+
   void synchronize() override {
     for (auto &instruction : instructionQueue) {
       if (!isInTracerMode()) {
@@ -261,7 +266,7 @@ public:
     return measureQudit(target, registerName);
   }
 
-  cudaq::SpinMeasureResult measure(cudaq::spin_op &op) override {
+  cudaq::SpinMeasureResult measure(const cudaq::spin_op &op) override {
     synchronize();
     measureSpinOp(op);
     return std::make_pair(executionContext->expectationValue.value(),
