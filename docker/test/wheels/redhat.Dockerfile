@@ -14,7 +14,7 @@ ARG pip_install_flags="--user"
 ARG preinstalled_modules="numpy pytest nvidia-cublas-cu12"
 
 ARG DEBIAN_FRONTEND=noninteractive
-RUN dnf install -y --nobest --setopt=install_weak_deps=False \
+RUN dnf install -y --nobest --setopt=install_weak_deps=False wget \
         python${python_version} \
     && python${python_version} -m ensurepip --upgrade
 RUN if [ -n "$preinstalled_modules" ]; then \
@@ -31,8 +31,12 @@ COPY docs/sphinx/snippets/python /tmp/snippets/
 COPY python/tests /tmp/tests/
 COPY python/README*.md /tmp/
 
-RUN python${python_version} -m pip install ${pip_install_flags} /tmp/$cuda_quantum_wheel
+# Working around issue https://github.com/pypa/pip/issues/11153.
+RUN wget https://github.com/rapidsai/gha-tools/releases/latest/download/tools.tar.gz -O - | tar -xz -C /usr/local/bin && \
+    RAPIDS_PIP_EXE="python${python_version} -m pip" \
+    /usr/local/bin/rapids-pip-retry install ${pip_install_flags} /tmp/$cuda_quantum_wheel
 RUN if [ -n "$optional_dependencies" ]; then \
         cudaq_package=$(echo $cuda_quantum_wheel | cut -d '-' -f1 | tr _ -) && \
-        python${python_version} -m pip install ${pip_install_flags} $cudaq_package[$optional_dependencies]; \
+        RAPIDS_PIP_EXE="python${python_version} -m pip" \
+        /usr/local/bin/rapids-pip-retry install ${pip_install_flags} $cudaq_package[$optional_dependencies]; \
     fi

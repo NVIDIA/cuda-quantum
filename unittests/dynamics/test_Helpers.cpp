@@ -17,7 +17,7 @@ TEST(OperatorHelpersTest, GenerateAllStates_TwoQubits) {
   cudaq::dimension_map dimensions = {{0, 2}, {1, 2}};
 
   auto states = generate_all_states(degrees, dimensions);
-  std::vector<std::string> expected_states = {"00", "01", "10", "11"};
+  std::vector<std::string> expected_states = {"00", "10", "01", "11"};
 
   EXPECT_EQ(states, expected_states);
 }
@@ -27,8 +27,8 @@ TEST(OperatorHelpersTest, GenerateAllStates_ThreeQubits) {
   cudaq::dimension_map dimensions = {{0, 2}, {1, 2}, {2, 2}};
 
   auto states = generate_all_states(degrees, dimensions);
-  std::vector<std::string> expected_states = {"000", "001", "010", "011",
-                                              "100", "101", "110", "111"};
+  std::vector<std::string> expected_states = {"000", "100", "010", "110",
+                                              "001", "101", "011", "111"};
 
   EXPECT_EQ(states, expected_states);
 }
@@ -42,7 +42,7 @@ TEST(OperatorHelpersTest, GenerateAllStates_EmptyDegrees) {
 }
 
 TEST(OperatorHelpersTest, PermuteMatrix_SingleSwap) {
-  cudaq::matrix_2 matrix(2, 2);
+  cudaq::complex_matrix matrix(2, 2);
   matrix[{0, 0}] = 1;
   matrix[{0, 1}] = 2;
   matrix[{1, 0}] = 3;
@@ -53,7 +53,7 @@ TEST(OperatorHelpersTest, PermuteMatrix_SingleSwap) {
 
   permute_matrix(matrix, permutation);
 
-  cudaq::matrix_2 expected(2, 2);
+  cudaq::complex_matrix expected(2, 2);
   expected[{0, 0}] = 4;
   expected[{0, 1}] = 3;
   expected[{1, 0}] = 2;
@@ -63,7 +63,7 @@ TEST(OperatorHelpersTest, PermuteMatrix_SingleSwap) {
 }
 
 TEST(OperatorHelpersTest, PermuteMatrix_IdentityPermutation) {
-  cudaq::matrix_2 matrix(3, 3);
+  cudaq::complex_matrix matrix(3, 3);
   matrix[{0, 0}] = 1;
   matrix[{0, 1}] = 2;
   matrix[{0, 2}] = 3;
