@@ -215,6 +215,7 @@ if(TARGET nvqir-tensornet)
         target_link_libraries(test_tensornet_mpi
             PRIVATE
             cudaq
+            fmt::fmt-header-only
             cudaq-platform-default
             nvqir-tensornet
             gtest)
@@ -249,13 +250,13 @@ if(TARGET nvqir-tensornet)
 endif()
 
 # Create an executable for SpinOp UnitTests
-set(CUDAQ_SPIN_TEST_SOURCES
-   # Spin
+set(CUDAQ_SPIN_TEST_SOURCES 
    spin_op/SpinOpTester.cpp
 )
 add_executable(test_spin main.cpp ${CUDAQ_SPIN_TEST_SOURCES})
 target_link_libraries(test_spin
-  PRIVATE
+  PRIVATE 
+  cudaq
   cudaq-spin
   gtest_main)
 gtest_discover_tests(test_spin)
@@ -272,6 +273,7 @@ set(CUDAQ_OPERATOR_TEST_SOURCES
    dynamics/product_operator.cpp
    dynamics/operator_sum.cpp
    dynamics/rydberg_hamiltonian.cpp
+   dynamics/test_Helpers.cpp
 )
 add_executable(test_operators main.cpp ${CUDAQ_OPERATOR_TEST_SOURCES})
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
@@ -300,7 +302,6 @@ if (CUDA_FOUND)
   # Create an executable for dynamics UnitTests
   set(CUDAQ_DYNAMICS_TEST_SOURCES
     dynamics/test_RungeKuttaIntegrator.cpp
-    dynamics/test_Helpers.cpp
     dynamics/test_CuDensityMatState.cpp
     dynamics/test_CuDensityMatTimeStepper.cpp
     dynamics/test_CuDensityMatExpectation.cpp
@@ -387,7 +388,7 @@ target_link_libraries(test_photonics
   gtest_main)
 gtest_discover_tests(test_photonics)
 
-add_executable(test_utils main.cpp utils/UtilsTester.cpp utils/Tensor.cpp)
+add_executable(test_utils main.cpp utils/UtilsTester.cpp utils/Matrix.cpp)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
   target_link_options(test_utils PRIVATE -Wl,--no-as-needed)
 endif()

@@ -20,10 +20,9 @@ CuDensityMatState::overlap(const cudaq::SimulationState &other) {
     throw std::runtime_error("[CuDensityMatState] overlap error - other state "
                              "dimension not equal to this state dimension.");
 
-  if (other.getPrecision() != getPrecision()) {
+  if (other.getPrecision() != getPrecision())
     throw std::runtime_error(
         "[CuDensityMatState] overlap error - precision mismatch.");
-  }
 
   if (!isDensityMatrix) {
     Eigen::VectorXcd state(dimension);
@@ -112,10 +111,10 @@ CuDensityMatState::createFromSizeAndPtr(std::size_t size, void *dataPtr,
 // for an invalid tensor index.
 cudaq::SimulationState::Tensor
 CuDensityMatState::getTensor(std::size_t tensorIdx) const {
-  if (tensorIdx != 0) {
+  if (tensorIdx != 0)
     throw std::runtime_error(
         "CuDensityMatState state only supports a single tensor");
-  }
+
   const std::vector<std::size_t> extents =
       isDensityMatrix ? std::vector<std::size_t>{dimension, dimension}
                       : std::vector<std::size_t>{dimension};
@@ -156,10 +155,10 @@ CuDensityMatState::operator()(std::size_t tensorIdx,
 // Copy the state device data to the user-provided host data pointer.
 void CuDensityMatState::toHost(std::complex<double> *userData,
                                std::size_t numElements) const {
-  if (numElements != dimension * (isDensityMatrix ? dimension : 1)) {
+  if (numElements != dimension * (isDensityMatrix ? dimension : 1))
     throw std::runtime_error("Number of elements in user data does not match "
                              "the size of the state");
-  }
+
   HANDLE_CUDA_ERROR(cudaMemcpy(userData, devicePtr,
                                numElements * sizeof(std::complex<double>),
                                cudaMemcpyDeviceToHost));
@@ -205,9 +204,9 @@ CuDensityMatState::CuDensityMatState(
     const std::vector<int64_t> &dims)
     : cudmHandle(handle), dimension(rawData.size()), cudmState(nullptr),
       hilbertSpaceDims(dims) {
-  if (rawData.empty()) {
+  if (rawData.empty())
     throw std::invalid_argument("Raw data cannot be empty.");
-  }
+
   // Allocate device memory
   size_t dataSize = rawData.size() * sizeof(std::complex<double>);
   HANDLE_CUDA_ERROR(
@@ -255,10 +254,9 @@ CuDensityMatState::CuDensityMatState(
   // Validate device memory
   size_t totalSize = std::accumulate(componentBufferSizes.begin(),
                                      componentBufferSizes.end(), 0);
-  if (totalSize > rawData.size() * sizeof(std::complex<double>)) {
+  if (totalSize > rawData.size() * sizeof(std::complex<double>))
     throw std::invalid_argument(
         "Device memory size is insufficient to cover all components.");
-  }
 
   // Attach storage for using device memory (devicePtr)
   std::vector<void *> componentBuffers(numStateComponents);
@@ -426,12 +424,11 @@ CuDensityMatState &
 CuDensityMatState::operator=(CuDensityMatState &&other) noexcept {
   if (this != &other) {
     // Free existing resources
-    if (cudmState) {
+    if (cudmState)
       cudensitymatDestroyState(cudmState);
-    }
-    if (devicePtr) {
+
+    if (devicePtr)
       cudaFree(devicePtr);
-    }
 
     // Move data from other
     isDensityMatrix = other.isDensityMatrix;
@@ -456,21 +453,18 @@ CuDensityMatState::~CuDensityMatState() { destroyState(); }
 bool CuDensityMatState::is_initialized() const { return cudmState != nullptr; }
 
 bool cudaq::CuDensityMatState::is_density_matrix() const {
-  if (!is_initialized()) {
+  if (!is_initialized())
     return false;
-  }
 
   return dimension == calculate_density_matrix_size(hilbertSpaceDims);
 }
 
 CuDensityMatState cudaq::CuDensityMatState::to_density_matrix() const {
-  if (!is_initialized()) {
+  if (!is_initialized())
     throw std::runtime_error("State is not initialized.");
-  }
 
-  if (is_density_matrix()) {
+  if (is_density_matrix())
     throw std::runtime_error("State is already a density matrix.");
-  }
 
   size_t vectorSize = calculate_state_vector_size(hilbertSpaceDims);
   std::vector<std::complex<double>> stateVecData(vectorSize);
@@ -543,9 +537,8 @@ void CuDensityMatState::initialize_cudm(cudensitymatHandle_t handleToSet,
 
 CuDensityMatState
 cudaq::CuDensityMatState::operator+(const CuDensityMatState &other) const {
-  if (dimension != other.dimension) {
+  if (dimension != other.dimension)
     throw std::invalid_argument("State size mismatch for addition.");
-  }
 
   CuDensityMatState result = CuDensityMatState::clone(*this);
 
@@ -556,11 +549,10 @@ cudaq::CuDensityMatState::operator+(const CuDensityMatState &other) const {
 
 CuDensityMatState &
 cudaq::CuDensityMatState::operator+=(const CuDensityMatState &other) {
-  if (dimension != other.dimension) {
+  if (dimension != other.dimension)
     throw std::invalid_argument(
         fmt::format("State size mismatch for addition ({} vs {}).", dimension,
                     other.dimension));
-  }
 
   cuDoubleComplex scalar{1.0, 0.0};
   HANDLE_CUBLAS_ERROR(cublasZaxpy(
