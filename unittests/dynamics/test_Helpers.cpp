@@ -17,7 +17,7 @@ TEST(OperatorHelpersTest, GenerateAllStates_TwoQubits) {
   cudaq::dimension_map dimensions = {{0, 2}, {1, 2}};
 
   auto states = generate_all_states(degrees, dimensions);
-  std::vector<std::string> expected_states = {"00", "01", "10", "11"};
+  std::vector<std::string> expected_states = {"00", "10", "01", "11"};
 
   EXPECT_EQ(states, expected_states);
 }
@@ -27,8 +27,8 @@ TEST(OperatorHelpersTest, GenerateAllStates_ThreeQubits) {
   cudaq::dimension_map dimensions = {{0, 2}, {1, 2}, {2, 2}};
 
   auto states = generate_all_states(degrees, dimensions);
-  std::vector<std::string> expected_states = {"000", "001", "010", "011",
-                                              "100", "101", "110", "111"};
+  std::vector<std::string> expected_states = {"000", "100", "010", "110",
+                                              "001", "101", "011", "111"};
 
   EXPECT_EQ(states, expected_states);
 }
