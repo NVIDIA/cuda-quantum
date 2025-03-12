@@ -8,6 +8,7 @@
 
 #include "cudaq/algorithms/run.h"
 #include "common/ExecutionContext.h"
+#include "common/RecordLogDecoder.h"
 #include "cudaq/simulators.h"
 #include "nvqir/CircuitSimulator.h"
 
@@ -20,9 +21,22 @@ cudaq::details::RunResultSpan cudaq::details::runTheKernel(
   currentContext->outputLog.clear();
 
   // 2. Launch the kernel on the QPU.
+  kernel();
+
   // 3. Pass the outputLog to the decoder (target-specific?)
+  cudaq::RecordLogDecoder decoder;
+  decoder.decode(currentContext->outputLog);
+
   // 4. Get the buffer and length of buffer (in bytes) from the decoder.
+  auto *origBuffer = decoder.getBufferPtr();
+  std::size_t bufferSize = decoder.getBufferSize();
+  char *buffer = static_cast<char *>(malloc(bufferSize));
+  std::memcpy(buffer, origBuffer, bufferSize);
+
   // 5. Clear the outputLog (?)
-  // 6. Pass the span back as a RunResultSpan.
-  return {nullptr, 0};
+  currentContext->outputLog.clear();
+
+  // 6. Pass the span back as a RunResultSpan. NB: it is the responsibility of
+  // the caller to free the buffer.
+  return {static_cast<void *>(buffer), bufferSize};
 }
