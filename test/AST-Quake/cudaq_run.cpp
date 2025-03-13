@@ -49,7 +49,7 @@ struct CliffHanger {
 };
 
 // clang-format off
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__K9() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__K9() attributes {"cudaq-entrypoint", "cudaq-kernel", "qir-api"} {
 // CHECK-DAG:           %[[VAL_0:.*]] = arith.constant 4 : i64
 // CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 3 : i64
 // CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 2 : i64
@@ -138,7 +138,7 @@ struct CliffHanger {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_of_truth.
-// CHECK-SAME:     () attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK-SAME:     () attributes {"cudaq-entrypoint", "cudaq-kernel", no_this, "qir-api"} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant true
 // CHECK:           %[[VAL_1:.*]] = cc.string_literal "i1" : !cc.ptr<!cc.array<i8 x 3>>
 // CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
@@ -147,7 +147,7 @@ struct CliffHanger {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_of_corn.
-// CHECK-SAME:     () attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK-SAME:     () attributes {"cudaq-entrypoint", "cudaq-kernel", no_this, "qir-api"} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant -559038737 : i64
 // CHECK:           %[[VAL_1:.*]] = cc.string_literal "i32" : !cc.ptr<!cc.array<i8 x 4>>
 // CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
@@ -155,7 +155,7 @@ struct CliffHanger {
 // CHECK:           return
 // CHECK:         }
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__CliffDiver() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__CliffDiver() attributes {"cudaq-entrypoint", "cudaq-kernel", "qir-api"} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 4.200000e+01 : f64
 // CHECK:           %[[VAL_1:.*]] = cc.string_literal "f64" : !cc.ptr<!cc.array<i8 x 4>>
 // CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
@@ -164,7 +164,7 @@ struct CliffHanger {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_of_wheat.
-// CHECK-SAME:     () attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK-SAME:     () attributes {"cudaq-entrypoint", "cudaq-kernel", no_this, "qir-api"} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 13.100000381469727 : f64
 // CHECK:           %[[VAL_1:.*]] = cc.string_literal "f32" : !cc.ptr<!cc.array<i8 x 4>>
 // CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
@@ -172,7 +172,7 @@ struct CliffHanger {
 // CHECK:           return
 // CHECK:         }
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__CliffClimber() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__CliffClimber() attributes {"cudaq-entrypoint", "cudaq-kernel", "qir-api"} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 99 : i64
 // CHECK:           %[[VAL_1:.*]] = cc.string_literal "i8" : !cc.ptr<!cc.array<i8 x 3>>
 // CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
@@ -181,7 +181,7 @@ struct CliffHanger {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_this_is_not_a_drill.
-// CHECK-SAME:     () attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK-SAME:     () attributes {"cudaq-entrypoint", "cudaq-kernel", no_this, "qir-api"} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 123400000 : i64
 // CHECK:           %[[VAL_1:.*]] = cc.string_literal "i64" : !cc.ptr<!cc.array<i8 x 4>>
 // CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
@@ -190,7 +190,7 @@ struct CliffHanger {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_this_is_a_hammer.
-// CHECK-SAME:     () attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK-SAME:     () attributes {"cudaq-entrypoint", "cudaq-kernel", no_this, "qir-api"} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 2387 : i64
 // CHECK:           %[[VAL_1:.*]] = cc.string_literal "i16" : !cc.ptr<!cc.array<i8 x 4>>
 // CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
@@ -198,7 +198,7 @@ struct CliffHanger {
 // CHECK:           return
 // CHECK:         }
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__CliffHanger() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__CliffHanger() attributes {"cudaq-entrypoint", "cudaq-kernel", "qir-api"} {
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2 : i64
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant true
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 747 : i32
