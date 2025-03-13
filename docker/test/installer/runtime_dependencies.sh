@@ -34,7 +34,7 @@ esac
 CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
 CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
 CUDA_VERSION_SUFFIX=$(echo ${CUDART_VERSION:-'12.0'} | tr . -)
-CUDA_PACKAGES=$(echo "cuda-cudart cuda-nvrtc libcusolver libcublas" | sed "s/[^ ]*/&-${CUDA_VERSION_SUFFIX} /g")
+CUDA_PACKAGES=$(echo "cuda-cudart cuda-nvrtc libcusolver libcublas libcurand" | sed "s/[^ ]*/&-${CUDA_VERSION_SUFFIX} /g")
 if [ $(echo ${CUDART_VERSION} | cut -d . -f1) -gt 11 ]; then 
     CUDA_PACKAGES+=" libnvjitlink-${CUDA_VERSION_SUFFIX}"
 fi

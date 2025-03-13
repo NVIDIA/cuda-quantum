@@ -59,7 +59,8 @@ def test_observeAsync_QNN():
     target = cudaq.get_target('nvidia-mqpu')
 
     cudaq.set_target(target)
-    num_qpus = target.num_qpus()
+    # The number of parameters can only be split between a maximum of 2 QPUs.
+    num_qpus = min(target.num_qpus(), 2)
 
     n_qubits = 2
     n_samples = 2
@@ -80,7 +81,6 @@ def test_observeAsync_QNN():
         kernel.ry(params[i + n_qubits], qubits[i])
     for i in range(n_qubits):
         kernel.rz(params[i + n_qubits * 2], qubits[i])
-
     xi = np.split(parameters, num_qpus)
     asyncresults = []
     for i in range(len(xi)):

@@ -224,6 +224,7 @@ RUN echo "Patching up wheel using auditwheel..." && \
         --plat ${MANYLINUX_PLATFORM} \
         --exclude libcublas.so.11 \
         --exclude libcublasLt.so.11 \
+        --exclude libcurand.so.10 \
         --exclude libcusolver.so.11 \
         --exclude libcutensor.so.2 \
         --exclude libcutensornet.so.2 \
@@ -322,7 +323,8 @@ RUN . /cuda-quantum/scripts/configure_build.sh install-gcc && \
     dnf install -y --nobest --setopt=install_weak_deps=False \
         cuda-compiler-$(echo ${CUDA_VERSION} | tr . -) \
         cuda-cudart-devel-$(echo ${CUDA_VERSION} | tr . -) \
-        libcublas-devel-$(echo ${CUDA_VERSION} | tr . -) && \
+        libcublas-devel-$(echo ${CUDA_VERSION} | tr . -) \
+        libcurand-devel-$(echo ${CUDA_VERSION} | tr . -) && \
     if [ $(echo $CUDA_VERSION | cut -d "." -f1) -ge 12 ]; then \
         dnf install -y --nobest --setopt=install_weak_deps=False \
             libnvjitlink-$(echo ${CUDA_VERSION} | tr . -); \
