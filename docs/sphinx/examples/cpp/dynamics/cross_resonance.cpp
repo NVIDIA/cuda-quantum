@@ -40,14 +40,14 @@ int main() {
   // operators allow transitions between the spin states (|0> and |1>).
   auto spin_plus = [](int degree) {
     return 0.5 *
-           (cudaq::spin_operator::x(degree) +
-            std::complex<double>(0.0, 1.0) * cudaq::spin_operator::y(degree));
+           (cudaq::spin_handler::x(degree) +
+            std::complex<double>(0.0, 1.0) * cudaq::spin_handler::y(degree));
   };
 
   auto spin_minus = [](int degree) {
     return 0.5 *
-           (cudaq::spin_operator::x(degree) -
-            std::complex<double>(0.0, 1.0) * cudaq::spin_operator::y(degree));
+           (cudaq::spin_handler::x(degree) -
+            std::complex<double>(0.0, 1.0) * cudaq::spin_handler::y(degree));
   };
 
   // The Hamiltonian describes the energy and dynamics of our 2-qubit system.
@@ -61,10 +61,10 @@ int main() {
   // 4. `Crosstalk` drive on qubit 1: m_12 * Omega * X. A reduces drive on qubit
   // 1 due to electromagnetic `crosstalk`.
   auto hamiltonian =
-      (delta / 2.0) * cudaq::spin_operator::z(0) +
+      (delta / 2.0) * cudaq::spin_handler::z(0) +
       J * (spin_minus(1) * spin_plus(0) + spin_plus(1) * spin_minus(0)) +
-      Omega * cudaq::spin_operator::x(0) +
-      m_12 * Omega * cudaq::spin_operator::x(1);
+      Omega * cudaq::spin_handler::x(0) +
+      m_12 * Omega * cudaq::spin_handler::x(1);
 
   // Each qubit is a 2-level system (dimension 2).
   // The composite system (two qubits) has a total Hilbert space dimension of 2
@@ -98,9 +98,9 @@ int main() {
 
   // The observables are the spin components along the x, y, and z directions
   // for both qubits. These observables will be measured during the evolution.
-  auto observables = {cudaq::spin_operator::x(0), cudaq::spin_operator::y(0),
-                      cudaq::spin_operator::z(0), cudaq::spin_operator::x(1),
-                      cudaq::spin_operator::y(1), cudaq::spin_operator::z(1)};
+  auto observables = {cudaq::spin_handler::x(0), cudaq::spin_handler::y(0),
+                      cudaq::spin_handler::z(0), cudaq::spin_handler::x(1),
+                      cudaq::spin_handler::y(1), cudaq::spin_handler::z(1)};
 
   // Evolution with 2 initial states
   // We evolve the system under the defined Hamiltonian for both initial states
@@ -119,7 +119,7 @@ int main() {
   auto get_expectation = [](int idx, auto &result) -> std::vector<double> {
     std::vector<double> expectations;
 
-    auto all_exps = result.get_expectation_values().value();
+    auto all_exps = result.expectation_values.value();
     for (auto exp_vals : all_exps) {
       expectations.push_back((double)exp_vals[idx]);
     }
