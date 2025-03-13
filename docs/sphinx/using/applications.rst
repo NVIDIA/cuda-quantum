@@ -79,7 +79,7 @@ CUDA-Q Applications
     <div class="notebook-entry" data-tags="optimization,noiseless,gpu">
         <a href="/applications/python/QAOA.html" class="notebook-title">QAOA for Max Cut Problem</a>
         <div class="notebook-content">
-            This notebook explains the theory behind the Quantum Approximate Optimization Algorithm (QAOA) and explains how it can be used to solve the Max Cut problem.
+            This notebook explains the theory behind the Quantum Approximate Optimization Algorithm (QAOA) and how it can be used to solve the Max Cut problem.
         </div>
         <img src="/_static/app_title_images/qaoa_preview.png" alt="QAOA Preview" class="notebook-image">
     </div>
@@ -143,7 +143,7 @@ CUDA-Q Applications
     <div class="notebook-entry" data-tags="chemistry,qec,qpu,neutral,collab">
         <a href="/applications/python/logical_aim_Sqale.html" class="notebook-title">The Anderson Impurity Model With Logical Qubits</a>
         <div class="notebook-content">
-            A recent collaboration between NVIDIA and Infleqtion demonstrated a logical qubit workflow built in CUDA-Q and executed on the Infleqtion's neutral atom QPU.
+            A collaboration between NVIDIA and Infleqtion demonstrated a logical qubit workflow built in CUDA-Q and executed on the Infleqtion's neutral atom QPU.
         </div>
         <img src="/_static/app_title_images/aim_preview.png" alt="AIM Preview" class="notebook-image">
     </div>
@@ -167,7 +167,7 @@ CUDA-Q Applications
     <div class="notebook-entry" data-tags="fundamental,noiseless,gpu">
         <a href="/applications/python/quantum_teleportation.html" class="notebook-title">Quantum Teleportation</a>
         <div class="notebook-content">
-            Quantum teleportation is one of the strange phenomena that makes quantum computing so interesting. Learn how teleportation works and how it can be implemented in CUDA-Q.
+            Quantum teleportation is one of the strange phenomena that makes quantum computing so interesting. Learn how teleportation works and how it is implemented in CUDA-Q.
         </div>
         <img src="/_static/app_title_images/teleport_preview.png" alt="Quantum Teleportation Preview" class="notebook-image">
     </div>
@@ -175,7 +175,7 @@ CUDA-Q Applications
     <div class="notebook-entry" data-tags="fundamental,noisy,density">
         <a href="/applications/python/quantum_volume.html" class="notebook-title">Quantum Volume</a>
         <div class="notebook-content">
-            Benchmarking the performance of quantum computers, especially between different qubit modalities, is challenging. One method is to experimentally perform the quantum volume test. Learn how this test is performed and how it can be implemented in CUDA-Q.
+            Benchmarking the performance of quantum computers, especially between different qubit modalities, is challenging. One method is to experimentally perform the quantum volume test. Learn how this test is performed and how it is implemented in CUDA-Q.
         </div>
         <img src="/_static/app_title_images/qv_preview.png" alt="Quantum Volume Preview" class="notebook-image">
     </div>
