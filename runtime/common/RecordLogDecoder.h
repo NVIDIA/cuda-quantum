@@ -9,6 +9,9 @@
 #pragma once
 
 #include "cudaq/utils/cudaq_utils.h"
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -41,6 +44,14 @@ private:
     throw std::runtime_error("Unknown datatype in label");
   }
 
+  template <typename T>
+  void addPrimitiveRecord(T value) {
+    /// ASKME: Is this efficient?
+    std::size_t position = buffer.size();
+    buffer.resize(position + sizeof(T));
+    std::memcpy(buffer.data() + position, &value, sizeof(T));
+  }
+
   void prcoessSingleRecord(const std::string &recValue,
                            const std::string &recLabel) {
     if ((!recLabel.empty()) &&
@@ -56,17 +67,17 @@ private:
         value = false;
       else
         throw std::runtime_error("Invalid boolean value");
-      buffer.emplace_back(value ? '1' : '0');
+      addPrimitiveRecord<bool>(value);
       break;
     }
-    // case OutputType::INT: {
-    //   buffer.emplace_back(recValue.c_str());
-    //   break;
-    // }
-    // case OutputType::DOUBLE: {
-    //   addPrimitiveRecord<double>(std::stod(recValue));
-    //   break;
-    // }
+    case OutputType::INT: {
+      addPrimitiveRecord<int>(std::stoi(recValue));
+      break;
+    }
+    case OutputType::DOUBLE: {
+      addPrimitiveRecord<double>(std::stod(recValue));
+      break;
+    }
     default:
       throw std::runtime_error("Unsupported output type");
     }
