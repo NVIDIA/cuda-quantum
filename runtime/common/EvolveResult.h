@@ -34,19 +34,21 @@ public:
   std::optional<sample_result> sampling_result = std::nullopt;
 
   // Construct from single final state.
-  evolve_result(state state) {}
+  evolve_result(state state)
+      : states(std::make_optional<std::vector<cudaq::state>>(
+            std::vector<cudaq::state>{std::move(state)})) {}
 
   // Construct from single final observe result.
-  evolve_result(state state, const std::vector<observe_result> &expectations) {
-    if (!expectation_values.has_value()) {
-      expectation_values =
-          std::make_optional<std::vector<std::vector<observe_result>>>();
-    }
+  evolve_result(state state, const std::vector<observe_result> &expectations)
+      : states(std::make_optional<std::vector<cudaq::state>>(
+            std::vector<cudaq::state>{std::move(state)})),
+        expectation_values(
+            std::make_optional<std::vector<std::vector<observe_result>>>(
+                std::vector<std::vector<observe_result>>{expectations})) {}
 
-    expectation_values->emplace_back(expectations);
-  }
-
-  evolve_result(state state, const std::vector<double> &expectations) {
+  evolve_result(state state, const std::vector<double> &expectations)
+      : states(std::make_optional<std::vector<cudaq::state>>(
+            std::vector<cudaq::state>{std::move(state)})) {
     std::vector<observe_result> result;
     const spin_op emptyOp(
         std::unordered_map<spin_op::spin_op_term, std::complex<double>>{});
@@ -54,16 +56,14 @@ public:
       result.push_back(observe_result(e, emptyOp));
     }
 
-    if (!expectation_values.has_value()) {
-      expectation_values =
-          std::make_optional<std::vector<std::vector<observe_result>>>();
-    }
-
-    expectation_values->emplace_back(result);
+    expectation_values =
+        std::make_optional<std::vector<std::vector<observe_result>>>(
+            std::vector<std::vector<observe_result>>{result});
   }
 
   // Construct from system states.
-  evolve_result(const std::vector<state> &states) {}
+  evolve_result(const std::vector<state> &states)
+      : states(std::make_optional<std::vector<state>>(states)) {}
 
   // Construct from intermediate system states and observe results.
   evolve_result(const std::vector<state> &states,

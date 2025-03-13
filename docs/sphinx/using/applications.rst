@@ -24,7 +24,6 @@ CUDA-Q Applications
    /applications/python/unitary_compilation_diffusion_models
    /applications/python/VQE_advanced
    /applications/python/quantum_transformer
-   /applications/python/AFQMC
    /applications/python/adapt_QAOA
 
 
@@ -211,14 +210,6 @@ CUDA-Q Applications
             Learn how to implement a hybrid quantum transformer model for generating molecules. The tutorial is based off a collaboration between NVIDIA and Yale. (https://arxiv.org/pdf/2502.19214)
         </div>
         <img src="/_static/app_title_images/quantum_transformer_preview.png" alt="Transformer Preview" class="notebook-image">
-    </div>
-
-    <div class="notebook-entry" data-tags="chemistry,noiseless,gpu,collab">
-        <a href="/applications/python/AFQMC.html" class="notebook-title">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a>
-        <div class="notebook-content">
-            Quantum Enhanced Auxiliary Field Quantum Monte Carlo is an advanced variational technique for simulating molecular energies. Learn how NVIDIA and BASF collaborated to implement this technique.
-        </div>
-        <img src="/_static/app_title_images/afmqc_preview.png" alt="AFQMC Preview" class="notebook-image">
     </div>
 
     <div class="notebook-entry" data-tags="optimization,noiseless,gpu">

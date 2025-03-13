@@ -273,6 +273,7 @@ set(CUDAQ_OPERATOR_TEST_SOURCES
    dynamics/product_operator.cpp
    dynamics/operator_sum.cpp
    dynamics/rydberg_hamiltonian.cpp
+   dynamics/test_Helpers.cpp
 )
 add_executable(test_operators main.cpp ${CUDAQ_OPERATOR_TEST_SOURCES})
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
@@ -301,7 +302,6 @@ if (CUDA_FOUND)
   # Create an executable for dynamics UnitTests
   set(CUDAQ_DYNAMICS_TEST_SOURCES
     dynamics/test_RungeKuttaIntegrator.cpp
-    dynamics/test_Helpers.cpp
     dynamics/test_CuDensityMatState.cpp
     dynamics/test_CuDensityMatTimeStepper.cpp
     dynamics/test_CuDensityMatExpectation.cpp
