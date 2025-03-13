@@ -942,6 +942,7 @@ jobs:
           cuda_version_suffix="$(echo ${{ matrix.cuda_version }} | tr . -)"
           apt-get update && apt-get install -y --no-install-recommends \
             libcublas-$cuda_version_suffix \
+            libcurand-$cuda_version_suffix \
             cuda-cudart-$cuda_version_suffix \
             libcusolver-$cuda_version_suffix \
             cuda-nvrtc-$cuda_version_suffix
@@ -1000,14 +1001,16 @@ jobs:
   wheel_validation_piponly:
     name: Wheel validation, pip only
     needs: [assets, cudaq_wheels, cudaq_metapackages]
-    runs-on: linux-amd64-gpu-v100-latest-1
     permissions:
       contents: read
 
     strategy:
       matrix:
+        platform: ['amd64-gpu-v100', 'arm64-gpu-a100']
         cuda_major: ['', '11', '12']
       fail-fast: false
+
+    runs-on: linux-${{ matrix.plaform }}-latest-1
 
     container:
       image: ubuntu:22.04
@@ -1036,11 +1039,11 @@ jobs:
           name: ${{ needs.cudaq_metapackages.outputs.artifact_name }}
           path: /tmp/packages
 
-      - name: Run x86 validation
+      - name: Run basic validation
         shell: bash
         run: |
-          # These simple steps are only expected to work for x86 and only for
-          # targets and test cases that don't require MPI.
+          # These simple steps are only expected to work for
+          # test cases that don't require MPI.
           # Create clean python3 environment.
           apt-get update && apt-get install -y --no-install-recommends python3 python3-pip
           mkdir -p /tmp/packages && mv /tmp/wheels/* /tmp/packages && rmdir /tmp/wheels
