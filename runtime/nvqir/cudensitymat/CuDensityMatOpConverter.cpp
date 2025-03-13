@@ -590,6 +590,7 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapScalarCallback(
   cudensitymatWrappedScalarCallback_t wrappedCallback;
   wrappedCallback.callback =
       reinterpret_cast<cudensitymatScalarCallback_t>(storedCallbackContext);
+  wrappedCallback.device = CUDENSITYMAT_CALLBACK_DEVICE_CPU;
   wrappedCallback.wrapper =
       reinterpret_cast<void *>(static_cast<WrapperFuncType>(wrapper));
   return wrappedCallback;
@@ -688,6 +689,7 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapTensorCallback(
   cudensitymatWrappedTensorCallback_t wrappedCallback;
   wrappedCallback.callback =
       reinterpret_cast<cudensitymatTensorCallback_t>(storedCallbackContext);
+  wrappedCallback.device = CUDENSITYMAT_CALLBACK_DEVICE_CPU;
   wrappedCallback.wrapper =
       reinterpret_cast<void *>(static_cast<WrapperFuncType>(wrapper));
 
