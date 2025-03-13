@@ -434,6 +434,9 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__quantum__qis__custom_unitary(!cc.ptr<complex<f64>>, !qir_array, !qir_array, !qir_charptr)
   func.func private @__quantum__qis__custom_unitary__adj(!cc.ptr<complex<f64>>, !qir_array, !qir_array, !qir_charptr)
 
+  func.func private @__quantum__qis__convert_array_to_stdvector(!qir_array) -> !qir_array
+  func.func private @__quantum__qis__free_converted_stdvector(!qir_array)
+
   llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i64, !qir_llvmptr, ...) attributes {sym_visibility = "private"}
   llvm.func @__quantum__qis__apply_kraus_channel_generalized(i64, i64, i64, i64, i64, ...) attributes {sym_visibility = "private"}
 )#"},
