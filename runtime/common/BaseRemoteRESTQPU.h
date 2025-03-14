@@ -454,11 +454,9 @@ public:
       mlir::PassManager pm(&context);
       if (!rawArgs.empty()) {
         cudaq::info("Run Argument Synth.\n");
-        // For quantum devices, create a list of ArgumentConverters
-        // with nodes corresponding to `init` and `num_qubits` functions
-        // created from a kernel that generated the state argument.
-        // Traverse the list and collect substitutions for all those
-        // functions.
+        // For quantum devices, we generate a collection of `init` and
+        // `num_qubits` functions and their substitutions created
+        // from a kernel and arguments that generated a state argument.
         cudaq::opt::ArgumentConverter argCon(kernelName, moduleOp);
         argCon.gen(rawArgs);
 

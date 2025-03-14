@@ -313,7 +313,8 @@ static void createNumQubitsFunc(OpBuilder &builder, ModuleOp moduleOp,
       // Collect ops that store into memory used in ops we already collected.
       for (auto user : op->getUsers())
         if (auto iface = dyn_cast<MemoryEffectOpInterface>(user))
-          if (iface.hasEffect<MemoryEffects::Write>())
+          if (iface.hasEffect<MemoryEffects::Write>() &&
+              !iface.hasEffect<MemoryEffects::Allocate>())
             used.push_back(user);
     }
 
